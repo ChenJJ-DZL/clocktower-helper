@@ -568,6 +568,7 @@ export default function Home() {
 
   const seatsRef = useRef(seats);
   const fakeInspectionResultRef = useRef<string | null>(null);
+  const consoleContentRef = useRef<HTMLDivElement>(null);
   
   // 历史记录用于"上一步"功能
   const [history, setHistory] = useState<Array<{
@@ -723,24 +724,51 @@ export default function Home() {
     }
   }, [currentWakeIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult]);
 
+  // 夜晚阶段切换角色时，自动滚动控制台到顶部
+  useEffect(() => {
+    if ((gamePhase === 'firstNight' || gamePhase === 'night') && consoleContentRef.current) {
+      consoleContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentWakeIndex, gamePhase]);
+
   // 检查游戏结束条件
   const checkGameOver = useCallback((updatedSeats: Seat[]) => {
-    // 10. 任意状态下，小恶魔被死亡或被标记死亡，游戏立即结束
-    const demon = updatedSeats.find(s => 
-      ((s.role?.type === 'demon' || s.isDemonSuccessor) && s.isDead)
-    );
-    if (demon) {
-      setWinResult('good');
+    const aliveCount = updatedSeats.filter(s => !s.isDead).length;
+    
+    // 优先检查：当场上仅存2位存活玩家时，游戏结束，宣布邪恶阵营获胜
+    // 这个检查应该优先于其他检查，因为这是立即胜利条件
+    if (aliveCount <= 2) {
+      setWinResult('evil');
       setGamePhase('gameOver');
-      addLog("游戏结束：小恶魔死亡，好人胜利");
+      addLog(`游戏结束：场上仅存${aliveCount}位存活玩家，邪恶阵营获胜`);
       return true;
     }
     
-    const aliveCount = updatedSeats.filter(s => !s.isDead).length;
+    // 检查是否有活着的恶魔（包括原小恶魔和"小恶魔（传）"）
     const aliveDemon = updatedSeats.find(s => 
       (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead
     );
     
+    // 检查是否有死亡的恶魔（包括原小恶魔和"小恶魔（传）"）
+    const deadDemon = updatedSeats.find(s => 
+      ((s.role?.type === 'demon' || s.isDemonSuccessor) && s.isDead)
+    );
+    
+    // 如果原小恶魔死亡，但存在活着的"小恶魔（传）"，游戏继续
+    // 只有当所有恶魔（包括"小恶魔（传）"）都死亡时，好人才胜利
+    if (deadDemon && !aliveDemon) {
+      setWinResult('good');
+      setGamePhase('gameOver');
+      // 判断是原小恶魔还是"小恶魔（传）"死亡
+      if (deadDemon.isDemonSuccessor) {
+        addLog("游戏结束：小恶魔（传）死亡，好人胜利");
+      } else {
+        addLog("游戏结束：小恶魔死亡，好人胜利");
+      }
+      return true;
+    }
+    
+    // 如果没有活着的恶魔，检查是否有红女巫可以继任
     if (!aliveDemon) {
       const scarletWoman = updatedSeats.find(s => 
         s.role?.id === 'scarlet_woman' && !s.isDead && !s.isDemonSuccessor
@@ -751,14 +779,6 @@ export default function Home() {
         addLog("游戏结束：恶魔死亡，好人胜利");
         return true;
       }
-    }
-    
-    // 当场上存活玩家少于3人时，宣布邪恶阵营获胜
-    if (aliveCount < 3) {
-      setWinResult('evil');
-      setGamePhase('gameOver');
-      addLog("游戏结束：存活玩家少于3人，邪恶胜利");
-      return true;
     }
     
     const mayor = updatedSeats.find(s => s.role?.id === 'mayor' && !s.isDead);
@@ -1127,6 +1147,12 @@ export default function Home() {
   const confirmNightDeathReport = () => {
     setShowNightDeathReportModal(null);
     setDeadThisNight([]); // 清空夜晚死亡记录
+    // 使用seatsRef确保获取最新的seats状态，然后检查游戏结束条件
+    const currentSeats = seatsRef.current;
+    // 检查游戏结束条件（包括存活人数）
+    if (checkGameOver(currentSeats)) {
+      return;
+    }
     setGamePhase("day");
   };
   
@@ -1307,15 +1333,16 @@ export default function Home() {
     // 10. 记录上一个黄昏的处决（用于送葬者）
     setLastDuskExecution(id);
     
+    // 立即检查游戏结束条件（包括存活人数）
+    if (checkGameOver(newSeats)) {
+      return;
+    }
+    
     if(t?.role?.id === 'saint' && !t.isPoisoned) { 
       setWinResult('evil'); 
       setGamePhase('gameOver'); 
       addLog("游戏结束：圣徒被处决，邪恶胜利");
       return; 
-    }
-    
-    if (checkGameOver(newSeats)) {
-      return;
     }
     
     // 5. 屏蔽浏览器弹窗，直接进入夜晚
@@ -1484,11 +1511,9 @@ export default function Home() {
       } : s);
       // 8. 恶魔可以死在任意环节，当被标记死亡后，游戏立即结束
       if (type === 'dead') {
-        const target = updated.find(s => s.id === contextMenu.seatId);
-        if (target && (target.role?.type === 'demon' || target.isDemonSuccessor) && target.isDead) {
-          setWinResult('good');
-          setGamePhase('gameOver');
-          addLog(`游戏结束：${contextMenu.seatId+1}号(小恶魔) 被标记死亡，好人胜利`);
+        // 立即检查游戏结束条件（包括存活人数和恶魔死亡）
+        if (checkGameOver(updated)) {
+          return updated;
         }
       }
       return updated;
@@ -1758,33 +1783,33 @@ export default function Home() {
       </div>
 
       <div className="w-2/5 flex flex-col border-l border-gray-800 bg-gray-900/95 z-40">
-        <div className="p-3 border-b font-bold text-purple-400 text-lg">控制台</div>
-          <div className="flex-1 overflow-y-auto p-3 text-sm">
+        <div className="p-4 border-b font-bold text-purple-400 text-xl">控制台</div>
+          <div ref={consoleContentRef} className="flex-1 overflow-y-auto p-4 text-base">
           {/* 4. 白天控制台增加说书人提示 */}
           {gamePhase==='day' && (
-            <div className="mb-3 p-2 bg-gray-800/50 border border-yellow-500/30 rounded-lg text-xs text-gray-300 leading-relaxed">
-              <p className="mb-1 font-bold text-yellow-400 text-xs">📖 说书人提示</p>
-              <p className="mb-1 text-[10px]">你的目标是主持一场有趣好玩且参与度高的游戏。</p>
-              <p className="mb-1 text-[10px]">有些事你可以做，但不意味着你应该去做。你是否只顾自己取乐而给玩家们添乱？你是否正在牺牲玩家的乐趣来放纵自己？比如说当小恶魔在夜里将自己杀死时，你"可以"将陌客当作是爪牙并让他因此变成一个善良的小恶魔，但这并不意味着这样做是有趣或平衡的。比如说你"可以"说服一名迷惑的善良阵营玩家，告诉他他是邪恶阵营的，但这并不意味着玩家在得知真相后会享受这个过程。又比如说你"可以"给博学者提供完全没用的信息，但显然提供有趣且独特的信息会更好。</p>
-              <p className="mb-1 text-[10px]">作为说书人，你在每一局游戏当中都需要做出很多有趣的决定。而这每一个决定的目的都应该是使游戏变得更好玩，为大家带来更多乐趣。这通常意味着你需要给善良阵营制造尽可能多的混乱，将他们引入歧途，因为这对所有人来说都是有趣的。但请牢记在心，维持游戏的公平性是同样重要的，你主持游戏是为了让玩家都能够享受到游戏中的精彩。</p>
+            <div className="mb-4 p-3 bg-gray-800/50 border border-yellow-500/30 rounded-lg text-sm text-gray-300 leading-relaxed">
+              <p className="mb-2 font-bold text-yellow-400 text-sm">📖 说书人提示</p>
+              <p className="mb-2 text-xs">你的目标是主持一场有趣好玩且参与度高的游戏。</p>
+              <p className="mb-2 text-xs">有些事你可以做，但不意味着你应该去做。你是否只顾自己取乐而给玩家们添乱？你是否正在牺牲玩家的乐趣来放纵自己？比如说当小恶魔在夜里将自己杀死时，你"可以"将陌客当作是爪牙并让他因此变成一个善良的小恶魔，但这并不意味着这样做是有趣或平衡的。比如说你"可以"说服一名迷惑的善良阵营玩家，告诉他他是邪恶阵营的，但这并不意味着玩家在得知真相后会享受这个过程。又比如说你"可以"给博学者提供完全没用的信息，但显然提供有趣且独特的信息会更好。</p>
+              <p className="mb-2 text-xs">作为说书人，你在每一局游戏当中都需要做出很多有趣的决定。而这每一个决定的目的都应该是使游戏变得更好玩，为大家带来更多乐趣。这通常意味着你需要给善良阵营制造尽可能多的混乱，将他们引入歧途，因为这对所有人来说都是有趣的。但请牢记在心，维持游戏的公平性是同样重要的，你主持游戏是为了让玩家都能够享受到游戏中的精彩。</p>
                       </div>
           )}
           {gamePhase==='setup' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {Object.entries(groupedRoles).map(([type, list]) => (
                 <div key={type}>
-                  <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">{typeLabels[type] || type}</h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">{typeLabels[type] || type}</h3>
+                  <div className="grid grid-cols-3 gap-3">
                     {list.map(r=>{
                       const isTaken=seats.some(s=>s.role?.id===r.id);
                       return (
                         <button 
                           key={r.id} 
                           onClick={(e)=>{e.stopPropagation();if(!isTaken)setSelectedRole(r)}} 
-                          className={`p-2 border rounded-lg text-xs font-medium transition-all ${
+                          className={`p-3 border rounded-lg text-sm font-medium transition-all ${
                             isTaken?'opacity-30 cursor-not-allowed bg-gray-800':'' 
                           } ${typeBgColors[r.type]} ${
-                            selectedRole?.id===r.id?'ring-2 ring-white scale-105':''
+                            selectedRole?.id===r.id?'ring-4 ring-white scale-105':''
                           }`}
                         >
                           {r.name}
@@ -1799,8 +1824,8 @@ export default function Home() {
           
           {gamePhase==='check' && (
             <div className="text-center">
-              <h2 className="text-xl font-bold mb-3">核对身份</h2>
-              <div className="bg-gray-800 p-3 rounded-xl text-left text-sm space-y-2 max-h-[60vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">核对身份</h2>
+              <div className="bg-gray-800 p-4 rounded-xl text-left text-base space-y-3 max-h-[60vh] overflow-y-auto">
                 {seats.filter(s=>s.role).map(s=>(
                   <div key={s.id} className="flex justify-between border-b border-gray-700 pb-2">
                     <span>{s.id+1}号</span>
@@ -1816,33 +1841,33 @@ export default function Home() {
           )}
           
           {(gamePhase==='firstNight'||gamePhase==='night') && nightInfo ? (
-            <div className="space-y-3 animate-fade-in">
-              <div className="text-center mb-2">
-                <h2 className={`text-2xl font-bold ${typeColors[nightInfo.effectiveRole.type].split(' ')[0]}`}>
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center mb-3">
+                <h2 className={`text-3xl font-bold ${typeColors[nightInfo.effectiveRole.type].split(' ')[0]}`}>
                   {nightInfo.effectiveRole.name}
                 </h2>
-                <p className="text-gray-400 mt-1 text-sm">{nightInfo.seat.id+1}号</p>
+                <p className="text-gray-400 mt-1 text-base">{nightInfo.seat.id+1}号</p>
               </div>
-              <div className={`p-3 rounded-xl border-2 ${
+              <div className={`p-4 rounded-xl border-2 ${
                 currentHint.isPoisoned?'bg-red-900/20 border-red-500':'bg-gray-800 border-gray-600'
               }`}>
                 {currentHint.isPoisoned && (
-                  <div className="text-red-400 font-bold mb-2 text-sm flex items-center gap-2">
+                  <div className="text-red-400 font-bold mb-3 text-base flex items-center gap-2">
                     ⚠️ {currentHint.reason}
                   </div>
                 )}
-                <div className="mb-1 text-xs text-gray-400 font-bold uppercase">📖 指引：</div>
-                <p className="text-sm mb-3 leading-relaxed whitespace-pre-wrap font-medium">{currentHint.guide}</p>
-                <div className="mb-1 text-xs text-yellow-400 font-bold uppercase">🗣️ 台词：</div>
-                <p className="text-base font-serif bg-black/40 p-2 rounded-xl border-l-2 border-yellow-500 italic text-yellow-100">
+                <div className="mb-2 text-sm text-gray-400 font-bold uppercase">📖 指引：</div>
+                <p className="text-base mb-4 leading-relaxed whitespace-pre-wrap font-medium">{currentHint.guide}</p>
+                <div className="mb-2 text-sm text-yellow-400 font-bold uppercase">🗣️ 台词：</div>
+                <p className="text-lg font-serif bg-black/40 p-3 rounded-xl border-l-4 border-yellow-500 italic text-yellow-100">
                   {currentHint.speak}
                 </p>
               </div>
                       
               {nightInfo.effectiveRole.nightActionType === 'spy_info' && (
-                <div className="bg-black/50 p-2 rounded-xl h-40 overflow-y-auto text-[10px] flex gap-2">
+                <div className="bg-black/50 p-3 rounded-xl h-56 overflow-y-auto text-xs flex gap-3">
                   <div className="w-1/2">
-                    <h4 className="text-purple-400 mb-1 font-bold border-b pb-0.5 text-xs">魔典</h4>
+                    <h4 className="text-purple-400 mb-2 font-bold border-b pb-1 text-sm">魔典</h4>
                     {seats.filter(s=>s.role).map(s => (
                       <div key={s.id} className="py-0.5 border-b border-gray-700 flex justify-between">
                         <span>{s.id+1}号</span>
@@ -1853,8 +1878,8 @@ export default function Home() {
                     ))}
                   </div>
                   <div className="w-1/2">
-                    <h4 className="text-yellow-400 mb-1 font-bold border-b pb-0.5 text-xs">行动日志</h4>
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                    <h4 className="text-yellow-400 mb-2 font-bold border-b pb-1 text-sm">行动日志</h4>
+                    <div className="space-y-2 max-h-56 overflow-y-auto">
                       {/* 5. 按天数分开显示日志 */}
                       {(() => {
                         const logsByDay = gameLogs.reduce((acc, log) => {
@@ -1865,15 +1890,15 @@ export default function Home() {
                         }, {} as Record<number, LogEntry[]>);
                         
                         return Object.entries(logsByDay).reverse().map(([day, logs]) => (
-                          <div key={day} className="mb-1">
-                            <div className="text-yellow-300 font-bold mb-0.5 text-[10px]">
+                          <div key={day} className="mb-2">
+                            <div className="text-yellow-300 font-bold mb-1 text-xs">
                               {logs[0]?.phase === 'firstNight' ? '第1夜' : 
                                logs[0]?.phase === 'night' ? `第${day}夜` :
                                logs[0]?.phase === 'day' ? `第${day}天` :
                                logs[0]?.phase === 'dusk' ? `第${day}天黄昏` : `第${day}轮`}
                             </div>
                             {logs.reverse().map((l, i) => (
-                              <div key={i} className="py-0.5 border-b border-gray-700 text-gray-300 text-[10px] pl-1">
+                              <div key={i} className="py-1 border-b border-gray-700 text-gray-300 text-xs pl-2">
                                 {l.message}
                               </div>
                             ))}
@@ -1887,7 +1912,7 @@ export default function Home() {
               
               {/* 7. 修复小恶魔选择问题 - 确保小恶魔在非首夜可以显示选择按钮 */}
               {nightInfo.effectiveRole.nightActionType!=='spy_info' && nightInfo.effectiveRole.nightActionType!=='none' && (
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-3 gap-3 mt-4">
                   {seats.filter(s=>{
                     // 占卜师可以选择任意2名玩家（包括自己和已死亡玩家）
                     if (nightInfo.effectiveRole.id === 'fortune_teller') {
@@ -1904,9 +1929,9 @@ export default function Home() {
                       key={s.id} 
                       onClick={()=>toggleTarget(s.id)} 
                       disabled={isTargetDisabled(s)} 
-                      className={`p-2 border-2 rounded-lg text-xs font-bold transition-all ${
+                      className={`p-3 border-2 rounded-lg text-sm font-bold transition-all ${
                         selectedActionTargets.includes(s.id)?
-                          'bg-green-600 border-white scale-105 shadow-lg ring-2 ring-green-500':
+                          'bg-green-600 border-white scale-105 shadow-lg ring-4 ring-green-500':
                           'bg-gray-700 border-gray-600 hover:bg-gray-600'
                       } ${isTargetDisabled(s)?'opacity-30 cursor-not-allowed':''}`}
                     >
@@ -1917,7 +1942,7 @@ export default function Home() {
               )}
               
               {inspectionResult && (
-                <div className="bg-blue-600 p-2 rounded-xl text-center font-bold text-lg shadow-2xl mt-2 animate-bounce">
+                <div className="bg-blue-600 p-4 rounded-xl text-center font-bold text-2xl shadow-2xl mt-4 animate-bounce">
                   {inspectionResult}
                 </div>
               )}
@@ -1927,8 +1952,8 @@ export default function Home() {
           ))}
           
           {gamePhase==='dusk' && (
-            <div className="mt-2 bg-gray-800 p-2 rounded-xl">
-              <h3 className="text-sm font-bold mb-1 text-orange-400">⚖️ 处决台</h3>
+            <div className="mt-4 bg-gray-800 p-3 rounded-xl">
+              <h3 className="text-lg font-bold mb-2 text-orange-400">⚖️ 处决台</h3>
               {seats.filter(s=>s.isCandidate).sort((a,b)=>(b.voteCount||0)-(a.voteCount||0)).map((s,i)=>(
                 <div 
                   key={s.id} 
@@ -1944,11 +1969,11 @@ export default function Home() {
           )}
         </div>
         
-        <div className="p-3 border-t border-gray-700 bg-gray-900 flex gap-2 justify-center z-50">
+        <div className="p-4 border-t border-gray-700 bg-gray-900 flex gap-3 justify-center z-50">
           {gamePhase==='setup' && (
             <button 
               onClick={handlePreStartNight} 
-              className="w-full py-2 bg-indigo-600 rounded-xl font-bold text-sm shadow-xl"
+              className="w-full py-3 bg-indigo-600 rounded-xl font-bold text-base shadow-xl"
             >
               开始游戏 (首夜)
             </button>
@@ -1956,7 +1981,7 @@ export default function Home() {
           {gamePhase==='check' && (
             <button 
               onClick={()=>startNight(true)} 
-              className="w-full py-2 bg-green-600 rounded-xl font-bold text-sm shadow-xl"
+              className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl"
             >
               确认无误，入夜
             </button>
@@ -1965,7 +1990,7 @@ export default function Home() {
             <>
               <button 
                 onClick={handleStepBack} 
-                className="flex-1 py-2 bg-gray-700 rounded-xl font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 bg-gray-700 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={currentWakeIndex === 0 && history.length === 0}
               >
                 上一步
@@ -1990,7 +2015,7 @@ export default function Home() {
                    nightInfo?.seat.isDead &&
                    (selectedActionTargets.length !== 1 || showRavenkeeperResultModal !== null || showRavenkeeperFakeModal !== null))
                 }
-                className="flex-[2] py-2 bg-white text-black rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-[2] py-3 bg-white text-black rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 确认 / 下一步
               </button>
@@ -2007,7 +2032,7 @@ export default function Home() {
                 // 重置提名记录
                 setNominationRecords({ nominators: new Set(), nominees: new Set() });
               }} 
-              className="w-full py-2 bg-orange-600 rounded-xl font-bold text-sm"
+              className="w-full py-3 bg-orange-600 rounded-xl font-bold text-base"
             >
               进入黄昏 (提名)
             </button>
@@ -2016,13 +2041,13 @@ export default function Home() {
             <>
               <button 
                 onClick={executeJudgment} 
-                className="flex-[2] py-2 bg-red-600 rounded-xl font-bold text-sm shadow-lg animate-pulse"
+                className="flex-[2] py-3 bg-red-600 rounded-xl font-bold text-lg shadow-lg animate-pulse"
               >
                 执行处决
               </button>
               <button 
                 onClick={()=>startNight(false)} 
-                className="flex-1 py-2 bg-indigo-600 rounded-xl font-bold text-xs"
+                className="flex-1 py-3 bg-indigo-600 rounded-xl font-bold text-sm"
               >
                 直接入夜
               </button>
@@ -2031,7 +2056,7 @@ export default function Home() {
           {gamePhase==='dawnReport' && (
             <button 
               onClick={()=>setGamePhase('day')} 
-              className="w-full py-2 bg-yellow-500 text-black rounded-xl font-bold text-sm"
+              className="w-full py-3 bg-yellow-500 text-black rounded-xl font-bold text-base"
             >
               进入白天
             </button>
