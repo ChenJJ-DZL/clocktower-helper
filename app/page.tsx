@@ -1783,7 +1783,14 @@ export default function Home() {
       </div>
 
       <div className="w-2/5 flex flex-col border-l border-gray-800 bg-gray-900/95 z-40">
-        <div className="p-4 border-b font-bold text-purple-400 text-xl">控制台</div>
+        <div className="p-4 border-b font-bold text-purple-400 text-xl">
+          控制台
+          {nightInfo && (
+            <span className="ml-3 text-base text-yellow-300 font-normal">
+              当前是{nightInfo.seat.id+1}号{nightInfo.effectiveRole.name}在行动
+            </span>
+          )}
+        </div>
           <div ref={consoleContentRef} className="flex-1 overflow-y-auto p-4 text-base">
           {/* 4. 白天控制台增加说书人提示 */}
           {gamePhase==='day' && (
