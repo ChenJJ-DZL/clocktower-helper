@@ -100,9 +100,15 @@ const calculateNightInfo = (
     speak = '"请选择一名玩家下毒。被你下毒的玩家今晚会看到错误的信息。"'; 
     action = "投毒";
   } else if (effectiveRole.id === 'monk') {
-    guide = "🛡️ 选择一名玩家保护。"; 
-    // 8. 台词融入指引内容
-    speak = '"请选择一名玩家保护。被你保护的玩家今晚不会被恶魔杀害，但不能保护自己。"'; 
+    if (isPoisoned) {
+      guide = "⚠️ [异常] 中毒/醉酒状态下无法保护玩家，但可以正常选择。"; 
+      // 8. 台词融入指引内容
+      speak = '"请选择一名玩家。但由于你处于中毒/醉酒状态，无法提供保护效果。"'; 
+    } else {
+      guide = "🛡️ 选择一名玩家保护。"; 
+      // 8. 台词融入指引内容
+      speak = '"请选择一名玩家保护。被你保护的玩家今晚不会被恶魔杀害，但不能保护自己。"'; 
+    }
     action = "保护";
   } else if (effectiveRole.id === 'fortune_teller') {
     guide = "🔮 查验2人。若有恶魔/红罗刹->是。"; 
@@ -622,6 +628,7 @@ export default function Home() {
       isDrunk: false, 
       isPoisoned: false, 
       isProtected: false, 
+      protectedBy: null,
       isRedHerring: false, 
       isSentenced: false, 
       masterId: null, 
@@ -866,7 +873,8 @@ export default function Home() {
     setSeats(p => p.map(s => ({
       ...s, 
       isPoisoned: false, 
-      isProtected: false, 
+      isProtected: false,
+      protectedBy: null,
       voteCount: undefined, 
       isCandidate: false
     })));
@@ -957,15 +965,28 @@ export default function Home() {
         }
       }
       if(action === 'protect') {
-        setSeats(p => p.map(s => ({...s, isProtected: s.id === tid})));
         if (nightInfo) {
-          // 7. 行动日志去重
-          setGameLogs(prev => {
-            const filtered = prev.filter(log => 
-              !(log.message.includes(`${nightInfo.seat.id+1}号(僧侣)`) && log.phase === gamePhase)
-            );
-            return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(僧侣) 保护 ${tid+1}号` }];
-          });
+          const isMonkPoisoned = nightInfo.isPoisoned;
+          // 如果僧侣中毒/醉酒，不设置保护效果，但可以正常选择玩家
+          if (isMonkPoisoned) {
+            setSeats(p => p.map(s => ({...s, isProtected: false, protectedBy: null})));
+            // 记录日志：选择但无保护效果
+            setGameLogs(prev => {
+              const filtered = prev.filter(log => 
+                !(log.message.includes(`${nightInfo.seat.id+1}号(僧侣)`) && log.phase === gamePhase)
+              );
+              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(僧侣) 选择保护 ${tid+1}号，但中毒/醉酒状态下无保护效果` }];
+            });
+          } else {
+            // 健康状态下正常保护
+            setSeats(p => p.map(s => ({...s, isProtected: s.id === tid, protectedBy: s.id === tid ? nightInfo.seat.id : s.protectedBy})));
+            setGameLogs(prev => {
+              const filtered = prev.filter(log => 
+                !(log.message.includes(`${nightInfo.seat.id+1}号(僧侣)`) && log.phase === gamePhase)
+              );
+              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(僧侣) 保护 ${tid+1}号` }];
+            });
+          }
         }
       }
       if(action === 'mark' && nightInfo.effectiveRole.id === 'butler') {
@@ -990,7 +1011,7 @@ export default function Home() {
         setSeats(p => p.map(s => ({...s, isPoisoned: false})));
       }
       if(action === 'protect') {
-        setSeats(p => p.map(s => ({...s, isProtected: false})));
+        setSeats(p => p.map(s => ({...s, isProtected: false, protectedBy: null})));
       }
     }
     
@@ -1159,7 +1180,17 @@ export default function Home() {
     } else {
       // 正常杀死其他玩家
       const target = seats.find(s => s.id === targetId);
-      if(target && !target.isProtected && target.role?.id !== 'soldier' && !target.isDead) {
+      // 检查保护是否有效：如果被保护，需要检查保护者（僧侣）是否中毒/醉酒
+      let isEffectivelyProtected = false;
+      if (target?.isProtected && target.protectedBy !== null) {
+        const protector = seats.find(s => s.id === target.protectedBy);
+        if (protector) {
+          // 如果保护者中毒/醉酒，保护无效
+          const isProtectorPoisoned = protector.isPoisoned || protector.isDrunk || protector.role?.id === "drunk";
+          isEffectivelyProtected = !isProtectorPoisoned;
+        }
+      }
+      if(target && !isEffectivelyProtected && target.role?.id !== 'soldier' && !target.isDead) {
         setSeats(p => {
           const updated = p.map(s => s.id === targetId ? { ...s, isDead: true } : s);
           // 从唤醒队列中移除已死亡的玩家
@@ -1925,9 +1956,10 @@ export default function Home() {
                   (nightInfo?.effectiveRole.id === 'poisoner' && 
                    nightInfo?.effectiveRole.nightActionType !== 'none' && 
                    selectedActionTargets.length !== 1) ||
-                  // 守鸦人必须选择1名玩家并确认结果后才能继续
+                  // 守鸦人必须选择1名玩家并确认结果后才能继续（仅当守鸦人死亡时）
                   (nightInfo?.effectiveRole.id === 'ravenkeeper' && 
                    nightInfo?.effectiveRole.nightActionType === 'inspect_death' && 
+                   nightInfo?.seat.isDead &&
                    (selectedActionTargets.length !== 1 || showRavenkeeperResultModal !== null || showRavenkeeperFakeModal !== null))
                 }
                 className="flex-[2] py-4 bg-white text-black rounded-xl font-bold text-2xl disabled:opacity-50 disabled:cursor-not-allowed"

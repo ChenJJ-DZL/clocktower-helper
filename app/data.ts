@@ -38,6 +38,7 @@ export interface Seat {
   isDrunk: boolean;
   isPoisoned: boolean;
   isProtected: boolean;
+  protectedBy: number | null; // 记录保护者的ID
   isRedHerring: boolean;
   isSentenced: boolean;
   masterId: number | null;
