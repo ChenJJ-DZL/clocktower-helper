@@ -57,8 +57,7 @@ const getRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length
 // 判断玩家是否为邪恶阵营
 const isEvil = (seat: Seat): boolean => {
   if (!seat.role) return false;
-  return seat.isRedHerring || 
-         seat.role.type === 'demon' || 
+  return seat.role.type === 'demon' || 
          seat.role.type === 'minion' || 
          seat.isDemonSuccessor ||
          (seat.role.id === 'recluse' && Math.random() < 0.3);
@@ -388,7 +387,7 @@ const calculateNightInfo = (
           // 2. 选择错误的座位号：只从善良玩家中选择（避开所有邪恶阵营玩家）
           // 同时确保这些座位号上的角色都不是错误信息中的角色
           // 善良玩家包括：townsfolk（镇民）和 outsider（外来者）
-          // 邪恶玩家包括：minion（爪牙）、demon（恶魔）、isDemonSuccessor（恶魔继任者）、isRedHerring（红罗刹）
+          // 邪恶玩家包括：minion（爪牙）、demon（恶魔）、isDemonSuccessor（恶魔继任者）
           const goodSeats = seats.filter(s => {
             if (!s.role || s.id === currentSeatId || s.id === realMinion.id || s.id === decoySeat.id) return false;
             // 排除邪恶阵营
@@ -551,6 +550,7 @@ export default function Home() {
   const [showDrunkModal, setShowDrunkModal] = useState<number | null>(null);
   const [showVirginTriggerModal, setShowVirginTriggerModal] = useState<{source: Seat, target: Seat} | null>(null);
   const [showRavenkeeperFakeModal, setShowRavenkeeperFakeModal] = useState<number | null>(null);
+  const [showRavenkeeperResultModal, setShowRavenkeeperResultModal] = useState<{targetId: number, roleName: string, isFake: boolean} | null>(null);
   const [showVoteInputModal, setShowVoteInputModal] = useState<number | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showExecutionResultModal, setShowExecutionResultModal] = useState<{message: string} | null>(null);
@@ -880,8 +880,8 @@ export default function Home() {
     });
     const validQueue = q.filter(s => {
       const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
-      // 6. 跳过在夜晚死亡的玩家（小恶魔杀害的玩家）
-      if (s.isDead && !isFirst) {
+      // 6. 跳过在夜晚死亡的玩家（小恶魔杀害的玩家），但守鸦人死亡的当晚需要被唤醒
+      if (s.isDead && !isFirst && s.role?.id !== 'ravenkeeper') {
         return false;
       }
       return isFirst ? (r?.firstNightOrder ?? 0) > 0 : (r?.otherNightOrder ?? 0) > 0;
@@ -1023,16 +1023,16 @@ export default function Home() {
     if(nightInfo.effectiveRole.nightActionType === 'inspect_death' && newT.length === 1) {
       const t = seats.find(s=>s.id===newT[0]);
       if (!currentHint.isPoisoned) {
-        setInspectionResult(`真实: ${t?.role?.name}`);
-        if (nightInfo) {
-          // 行动日志去重：守鸦人每次选择都更新日志，只保留最后一次
-          addLogWithDeduplication(
-            `${nightInfo.seat.id+1}号(守鸦人) 查验 ${newT[0]+1}号 -> ${t?.role?.name}`,
-            nightInfo.seat.id,
-            '守鸦人'
-          );
+        // 健康状态：直接弹出结果弹窗显示真实身份
+        if (t?.role) {
+          setShowRavenkeeperResultModal({
+            targetId: newT[0],
+            roleName: t.role.name,
+            isFake: false
+          });
         }
       } else {
+        // 中毒/醉酒状态：先弹出选择假身份的弹窗
         setShowRavenkeeperFakeModal(newT[0]);
       }
     }
@@ -1043,7 +1043,8 @@ export default function Home() {
     
     // 检查是否有待确认的操作（投毒者和恶魔的确认弹窗已在toggleTarget中处理）
     // 如果有打开的确认弹窗，不继续流程
-    if(showKillConfirmModal !== null || showPoisonConfirmModal !== null || showPoisonEvilConfirmModal !== null) {
+    if(showKillConfirmModal !== null || showPoisonConfirmModal !== null || showPoisonEvilConfirmModal !== null || 
+       showRavenkeeperResultModal !== null || showRavenkeeperFakeModal !== null) {
       return;
     }
     
@@ -1437,16 +1438,41 @@ export default function Home() {
   };
 
   const confirmRavenkeeperFake = (r: Role) => {
-    setInspectionResult(`🎲 (中毒) 伪造身份: ${r.name}`); 
-    if (nightInfo) {
-      // 行动日志去重：守鸦人每次选择都更新日志，只保留最后一次
+    // 选择假身份后，弹出结果弹窗显示假身份
+    const targetId = showRavenkeeperFakeModal;
+    if (targetId !== null) {
+      setShowRavenkeeperResultModal({
+        targetId: targetId,
+        roleName: r.name,
+        isFake: true
+      });
+    }
+    setShowRavenkeeperFakeModal(null);
+  };
+
+  const confirmRavenkeeperResult = () => {
+    if (!showRavenkeeperResultModal || !nightInfo) return;
+    
+    const { targetId, roleName, isFake } = showRavenkeeperResultModal;
+    const target = seats.find(s => s.id === targetId);
+    
+    // 记录日志
+    if (isFake) {
       addLogWithDeduplication(
-        `${nightInfo.seat.id+1}号(守鸦人) 查验 -> 伪造: ${r.name}`,
+        `${nightInfo.seat.id+1}号(守鸦人) 查验 ${targetId+1}号 -> 伪造: ${roleName}`,
+        nightInfo.seat.id,
+        '守鸦人'
+      );
+    } else {
+      addLogWithDeduplication(
+        `${nightInfo.seat.id+1}号(守鸦人) 查验 ${targetId+1}号 -> ${roleName}`,
         nightInfo.seat.id,
         '守鸦人'
       );
     }
-    setShowRavenkeeperFakeModal(null);
+    
+    // 关闭弹窗
+    setShowRavenkeeperResultModal(null);
   };
 
   const confirmVirginTrigger = () => {
@@ -1898,7 +1924,11 @@ export default function Home() {
                   // 投毒者必须选择1名玩家才能确认
                   (nightInfo?.effectiveRole.id === 'poisoner' && 
                    nightInfo?.effectiveRole.nightActionType !== 'none' && 
-                   selectedActionTargets.length !== 1)
+                   selectedActionTargets.length !== 1) ||
+                  // 守鸦人必须选择1名玩家并确认结果后才能继续
+                  (nightInfo?.effectiveRole.id === 'ravenkeeper' && 
+                   nightInfo?.effectiveRole.nightActionType === 'inspect_death' && 
+                   (selectedActionTargets.length !== 1 || showRavenkeeperResultModal !== null || showRavenkeeperFakeModal !== null))
                 }
                 className="flex-[2] py-4 bg-white text-black rounded-xl font-bold text-2xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -2081,6 +2111,24 @@ export default function Home() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      
+      {showRavenkeeperResultModal && (
+        <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
+          <div className="bg-gray-800 p-8 rounded-2xl w-[600px] border-2 border-blue-500 text-center">
+            <h2 className="text-3xl font-bold mb-6 text-blue-400">🧛 守鸦人查验结果</h2>
+            <p className="text-2xl font-bold text-white mb-8">
+              {showRavenkeeperResultModal.targetId+1}号玩家的真实身份是{showRavenkeeperResultModal.roleName}
+              {showRavenkeeperResultModal.isFake && <span className="text-red-400 text-xl block mt-2">(中毒/醉酒状态，此为假消息)</span>}
+            </p>
+            <button
+              onClick={confirmRavenkeeperResult}
+              className="px-12 py-4 bg-blue-600 rounded-xl font-bold text-2xl hover:bg-blue-700 transition-colors"
+            >
+              确认
+            </button>
           </div>
         </div>
       )}
