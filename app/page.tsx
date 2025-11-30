@@ -63,13 +63,52 @@ const isEvil = (seat: Seat): boolean => {
          (seat.role.id === 'recluse' && Math.random() < 0.3);
 };
 
+// 判断玩家在胜负条件计算中是否属于邪恶阵营（仅计算爪牙和恶魔，隐士永远属于善良阵营）
+const isEvilForWinCondition = (seat: Seat): boolean => {
+  if (!seat.role) return false;
+  return seat.role.type === 'demon' || 
+         seat.role.type === 'minion' || 
+         seat.isDemonSuccessor;
+};
+
+// 判断是否应该显示假信息（根据中毒/酒鬼状态和概率）
+// 返回true表示应该显示假信息，false表示显示真信息
+const shouldShowFakeInfo = (
+  targetSeat: Seat,
+  drunkFirstInfoMap: Map<number, boolean>
+): { showFake: boolean; isFirstTime: boolean } => {
+  const isDrunk = targetSeat.isDrunk || targetSeat.role?.id === "drunk";
+  const isPoisoned = targetSeat.isPoisoned;
+  
+  if (isDrunk && !isPoisoned) {
+    // 酒鬼状态：首次一定假，之后90%假，10%真
+    const isFirstTime = !drunkFirstInfoMap.has(targetSeat.id);
+    if (isFirstTime) {
+      drunkFirstInfoMap.set(targetSeat.id, true);
+      return { showFake: true, isFirstTime: true };
+    }
+    // 90%概率假，10%概率真
+    return { showFake: Math.random() < 0.9, isFirstTime: false };
+  } else if (isPoisoned && !isDrunk) {
+    // 中毒状态：95%假，5%真
+    return { showFake: Math.random() < 0.95, isFirstTime: false };
+  } else if (isPoisoned && isDrunk) {
+    // 同时中毒和酒鬼：优先按中毒处理（95%假，5%真）
+    return { showFake: Math.random() < 0.95, isFirstTime: false };
+  }
+  
+  // 健康状态：显示真信息
+  return { showFake: false, isFirstTime: false };
+};
+
 // --- 核心计算逻辑 ---
 const calculateNightInfo = (
   seats: Seat[], 
   currentSeatId: number, 
   gamePhase: GamePhase,
   lastDuskExecution: number | null,
-  fakeInspectionResult?: string
+  fakeInspectionResult?: string,
+  drunkFirstInfoMap?: Map<number, boolean>
 ): NightInfoResult | null => {
   const targetSeat = seats.find(s => s.id === currentSeatId);
   if (!targetSeat || !targetSeat.role) return null;
@@ -79,6 +118,13 @@ const calculateNightInfo = (
 
   const isPoisoned = targetSeat.isPoisoned || targetSeat.isDrunk || targetSeat.role.id === "drunk";
   const reason = targetSeat.isPoisoned ? "中毒" : targetSeat.isDrunk ? "酒鬼" : "";
+  
+  // 判断是否应该显示假信息
+  const fakeInfoCheck = drunkFirstInfoMap 
+    ? shouldShowFakeInfo(targetSeat, drunkFirstInfoMap)
+    : { showFake: isPoisoned, isFirstTime: false };
+  const shouldShowFake = fakeInfoCheck.showFake;
+  
   let guide = "", speak = "", action = "";
 
   if (effectiveRole.id === 'imp') {
@@ -130,7 +176,7 @@ const calculateNightInfo = (
       if (isEvil(p)) c++; 
       if (isEvil(n)) c++;
       const fakeC = c===0 ? 1 : (c===2 ? 1 : (Math.random()<0.5?0:2));
-      if (isPoisoned) {
+      if (shouldShowFake) {
         guide = `⚠️ [异常] 真实:${c}。请报伪造数据: ${fakeC} (比划${fakeC})`;
         // 8. 台词融入指引内容
         speak = `"你的左右邻居中有 ${fakeC} 名邪恶玩家。"（向他比划数字 ${fakeC}）`;
@@ -169,8 +215,8 @@ const calculateNightInfo = (
         const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
         const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
         
-        if (isPoisoned) {
-          // 中毒时：指引处先展示正确信息，然后生成错误的干扰信息
+        if (shouldShowFake) {
+          // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
           // 确保错误信息一定为假：选择的角色和座位号必须不匹配
           
           // 1. 随机选择一个村民角色作为错误信息中的角色
@@ -283,8 +329,8 @@ const calculateNightInfo = (
         const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
         const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
       
-        if (isPoisoned) {
-          // 中毒时：指引处先展示正确信息，然后生成错误的干扰信息
+        if (shouldShowFake) {
+          // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
           // 确保错误信息一定为假：选择的角色和座位号必须不匹配
           
           // 1. 获取所有可能的外来者角色列表
@@ -380,8 +426,8 @@ const calculateNightInfo = (
         const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
         const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
         
-        if (isPoisoned) {
-          // 中毒时：指引处先展示正确信息，然后生成错误的干扰信息
+        if (shouldShowFake) {
+          // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
           // 确保错误信息一定为假：选择的角色和座位号必须不匹配
           
           // 1. 随机选择一个爪牙角色作为错误信息中的角色
@@ -461,7 +507,7 @@ const calculateNightInfo = (
         pairs++;
       }
     }
-    if (isPoisoned) {
+    if (shouldShowFake) {
       const fakePairs = pairs === 0 ? 1 : (pairs >= 2 ? pairs - 1 : pairs + 1);
       guide = `⚠️ [异常] 真实:${pairs}对。请报: ${fakePairs}对`;
       // 8. 台词融入指引内容
@@ -549,17 +595,21 @@ export default function Home() {
   
   // 保存每个角色的 hint 信息，用于"上一步"时恢复（不重新生成）
   const hintCacheRef = useRef<Map<string, NightHintState>>(new Map());
+  // 记录酒鬼是否首次获得信息（首次一定是假的）
+  const drunkFirstInfoRef = useRef<Map<number, boolean>>(new Map());
 
   const [showShootModal, setShowShootModal] = useState<number | null>(null);
   const [showNominateModal, setShowNominateModal] = useState<number | null>(null);
   const [showDayActionModal, setShowDayActionModal] = useState<{type: 'slayer'|'nominate', sourceId: number} | null>(null);
   const [showDrunkModal, setShowDrunkModal] = useState<number | null>(null);
   const [showVirginTriggerModal, setShowVirginTriggerModal] = useState<{source: Seat, target: Seat} | null>(null);
+  // 记录贞洁者是否在本局游戏中已被提名过（每局仅能触发一次）
+  const [virginNominatedThisGame, setVirginNominatedThisGame] = useState(false);
   const [showRavenkeeperFakeModal, setShowRavenkeeperFakeModal] = useState<number | null>(null);
   const [showRavenkeeperResultModal, setShowRavenkeeperResultModal] = useState<{targetId: number, roleName: string, isFake: boolean} | null>(null);
   const [showVoteInputModal, setShowVoteInputModal] = useState<number | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showExecutionResultModal, setShowExecutionResultModal] = useState<{message: string} | null>(null);
+  const [showExecutionResultModal, setShowExecutionResultModal] = useState<{message: string, isVirginTrigger?: boolean} | null>(null);
   const [showShootResultModal, setShowShootResultModal] = useState<{message: string, isDemonDead: boolean} | null>(null);
   const [showKillConfirmModal, setShowKillConfirmModal] = useState<number | null>(null); // 恶魔确认杀死玩家
   const [showPoisonConfirmModal, setShowPoisonConfirmModal] = useState<number | null>(null); // 投毒者确认下毒
@@ -591,6 +641,8 @@ export default function Home() {
   
   // 上一个黄昏的处决记录（用于送葬者）
   const [lastDuskExecution, setLastDuskExecution] = useState<number | null>(null);
+  // 当前黄昏的处决记录（在进入新黄昏时，会更新lastDuskExecution）
+  const [currentDuskExecution, setCurrentDuskExecution] = useState<number | null>(null);
   
   // 使用ref存储最新状态，避免Hook依赖问题
   const gameStateRef = useRef({
@@ -675,7 +727,7 @@ export default function Home() {
 
   const nightInfo = useMemo(() => {
     if ((gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0) {
-      return calculateNightInfo(seats, wakeQueueIds[currentWakeIndex], gamePhase, lastDuskExecution, fakeInspectionResultRef.current || undefined);
+      return calculateNightInfo(seats, wakeQueueIds[currentWakeIndex], gamePhase, lastDuskExecution, fakeInspectionResultRef.current || undefined, drunkFirstInfoRef.current);
     }
     return null;
   }, [seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution]);
@@ -698,8 +750,23 @@ export default function Home() {
       // 没有缓存，重新计算 hint
       let fakeResult = currentHint.fakeInspectionResult;
       if (nightInfo.effectiveRole.id === 'fortune_teller' && nightInfo.isPoisoned && !fakeResult) {
-        fakeResult = Math.random() < 0.5 ? "✅ 是" : "❌ 否";
-        fakeInspectionResultRef.current = fakeResult;
+        // 占卜师的假信息生成：根据酒鬼/中毒状态使用不同的概率
+        const targetSeat = seats.find(s => s.id === nightInfo.seat.id);
+        if (targetSeat) {
+          // 判断是否应该显示假信息（根据酒鬼/中毒状态和概率）
+          const fakeInfoCheck = drunkFirstInfoRef.current 
+            ? shouldShowFakeInfo(targetSeat, drunkFirstInfoRef.current)
+            : { showFake: nightInfo.isPoisoned, isFirstTime: false };
+          
+          if (fakeInfoCheck.showFake) {
+            // 显示假信息：随机生成"是"或"否"
+            fakeResult = Math.random() < 0.5 ? "✅ 是" : "❌ 否";
+            fakeInspectionResultRef.current = fakeResult;
+          } else {
+            // 显示真信息：不设置fakeResult，让后续逻辑计算真实结果
+            fakeInspectionResultRef.current = null;
+          }
+        }
       } else if (nightInfo.effectiveRole.id !== 'fortune_teller' || !nightInfo.isPoisoned) {
         fakeInspectionResultRef.current = null;
       }
@@ -742,6 +809,19 @@ export default function Home() {
       setGamePhase('gameOver');
       addLog(`游戏结束：场上仅存${aliveCount}位存活玩家，邪恶阵营获胜`);
       return true;
+    }
+    
+    // 检查：当场上所有存活玩家都是邪恶阵营时，立即宣布邪恶阵营获胜
+    // 注意：在胜负条件计算中，仅计算爪牙和恶魔，隐士永远属于善良阵营
+    const aliveSeats = updatedSeats.filter(s => !s.isDead);
+    if (aliveSeats.length > 0) {
+      const allEvil = aliveSeats.every(s => isEvilForWinCondition(s));
+      if (allEvil) {
+        setWinResult('evil');
+        setGamePhase('gameOver');
+        addLog(`游戏结束：场上所有存活玩家都是邪恶阵营，邪恶阵营获胜`);
+        return true;
+      }
     }
     
     // 检查是否有活着的恶魔（包括原小恶魔和"小恶魔（传）"）
@@ -832,6 +912,8 @@ export default function Home() {
     }
     const compact = active.map((s, i) => ({ ...s, id: i }));
       setSeats(compact);
+      // 重置贞洁者提名状态（新游戏开始）
+      setVirginNominatedThisGame(false);
 
     setTimeout(() => {
       const drunk = compact.find(s => s.role?.id === "drunk" && !s.charadeRole);
@@ -890,6 +972,18 @@ export default function Home() {
     // 保存历史记录
     saveHistory();
     
+    // 对于非首夜，在进入夜晚前，将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
+    // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
+    if (!isFirst) {
+      if (currentDuskExecution !== null) {
+        setLastDuskExecution(currentDuskExecution);
+        // 清空当前黄昏的处决记录，准备记录新的处决
+        setCurrentDuskExecution(null);
+      }
+      // 如果当前黄昏没有处决，保持上一个黄昏的记录（如果有的话）
+      // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
+    }
+    
       if(isFirst) setStartTime(new Date());
     setSeats(p => p.map(s => ({
       ...s, 
@@ -902,6 +996,16 @@ export default function Home() {
       setDeadThisNight([]);
     fakeInspectionResultRef.current = null;
     
+    // 对于非首夜，检查上一个黄昏是否有处决
+    // 如果上一个黄昏没有处决，送葬者不应该被唤醒
+    let previousDuskExecution = lastDuskExecution;
+    if (isFirst) {
+      // 首夜没有上一个黄昏，清除处决记录
+      previousDuskExecution = null;
+    }
+    // 注意：lastDuskExecution 在进入夜晚时应该保持为上一个黄昏的处决记录
+    // 在进入新的黄昏时会被更新
+    
     const q = seats.filter(s => s.role).filter(s => !s.isDead || s.role?.id === 'ravenkeeper').sort((a,b) => {
       const ra = a.role?.id === 'drunk' ? a.charadeRole : a.role;
       const rb = b.role?.id === 'drunk' ? b.charadeRole : b.role;
@@ -911,6 +1015,10 @@ export default function Home() {
       const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
       // 6. 跳过在夜晚死亡的玩家（小恶魔杀害的玩家），但守鸦人死亡的当晚需要被唤醒
       if (s.isDead && !isFirst && s.role?.id !== 'ravenkeeper') {
+        return false;
+      }
+      // 送葬者：如果上一个黄昏没有处决，不应该被唤醒
+      if (r?.id === 'undertaker' && !isFirst && previousDuskExecution === null) {
         return false;
       }
       return isFirst ? (r?.firstNightOrder ?? 0) > 0 : (r?.otherNightOrder ?? 0) > 0;
@@ -1316,12 +1424,31 @@ export default function Home() {
       return;
     }
     
-    if (t.role?.id === 'virgin' && !t.hasUsedVirginAbility && !t.isPoisoned) {
+    // 贞洁者逻辑：当真正的镇民在贞洁者健康状态下提名贞洁者时，且贞洁者也是本局游戏中首次被提名
+    if (t.role?.id === 'virgin' && !t.hasUsedVirginAbility && !t.isPoisoned && !virginNominatedThisGame) {
       const nominatorId = showVoteInputModal;
       if (nominatorId !== null) {
         const nominator = seats.find(s => s.id === nominatorId);
-        if (nominator && nominator.role?.type === 'townsfolk') {
-          setShowVirginTriggerModal({ source: nominator, target: t });
+        // 检查提名者是否是真正的镇民（不是酒鬼伪装的）
+        const isRealTownsfolk = nominator && 
+                                nominator.role?.type === 'townsfolk' && 
+                                nominator.role?.id !== 'drunk' &&
+                                !nominator.isDrunk;
+        if (isRealTownsfolk) {
+          // 贞洁者首次被提名，立即处决提名者
+          setVirginNominatedThisGame(true);
+          const updatedSeats = newSeats.map(s => 
+            s.id === nominatorId ? { ...s, isDead: true } : 
+            s.id === id ? { ...s, hasUsedVirginAbility: true } : s
+          );
+          setSeats(updatedSeats);
+          addLog(`${nominatorId+1}号 提名贞洁者被处决`);
+          // 检查游戏结束条件
+          if (checkGameOver(updatedSeats)) {
+            return;
+          }
+          // 显示处决结果弹窗，标记为贞洁者触发
+          setShowExecutionResultModal({ message: `${nominatorId+1}号玩家被处决`, isVirginTrigger: true });
           return;
         }
       }
@@ -1330,8 +1457,9 @@ export default function Home() {
     setSeats(newSeats);
     addLog(`${id+1}号 被处决`); 
     setExecutedPlayerId(id);
-    // 10. 记录上一个黄昏的处决（用于送葬者）
-    setLastDuskExecution(id);
+    // 10. 记录当前黄昏的处决（用于送葬者）
+    // 这个记录会在进入下一个黄昏时，更新为lastDuskExecution
+    setCurrentDuskExecution(id);
     
     // 立即检查游戏结束条件（包括存活人数）
     if (checkGameOver(newSeats)) {
@@ -1407,6 +1535,23 @@ export default function Home() {
 
   const submitVotes = (v: number) => {
     if(showVoteInputModal===null) return;
+    
+    // 验证票数：必须是自然数（>=1），且不超过开局时的玩家数
+    const initialPlayerCount = initialSeats.length > 0 
+      ? initialSeats.filter(s => s.role !== null).length 
+      : seats.filter(s => s.role !== null).length;
+    
+    // 验证票数范围
+    if (isNaN(v) || v < 1 || !Number.isInteger(v)) {
+      alert(`票数必须是自然数（大于等于1的整数）`);
+      return;
+    }
+    
+    if (v > initialPlayerCount) {
+      alert(`票数不能超过开局时的玩家数（${initialPlayerCount}人）`);
+      return;
+    }
+    
     // 保存历史记录
     saveHistory();
     
@@ -1450,7 +1595,15 @@ export default function Home() {
   
   // 6. 确认处决结果后继续游戏
   const confirmExecutionResult = () => {
+    const isVirginTrigger = showExecutionResultModal?.isVirginTrigger;
     setShowExecutionResultModal(null);
+    
+    // 如果是贞洁者触发的处决，点击确认后自动进入下一个黑夜
+    if (isVirginTrigger) {
+      startNight(false);
+      return;
+    }
+    
     const cands = seats.filter(s=>s.isCandidate).sort((a,b)=>(b.voteCount||0)-(a.voteCount||0));
     if(cands.length===0) {
       startNight(false);
@@ -1675,31 +1828,6 @@ export default function Home() {
       }`} 
       onClick={()=>{setContextMenu(null);setShowMenu(false);}}
     >
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
-        <button 
-          onClick={()=>{if(gamePhase==='gameOver')setShowReviewModal(true)}} 
-          className="p-3 bg-indigo-600 border rounded-lg shadow-lg"
-        >
-          复盘
-        </button>
-        <button 
-          onClick={(e)=>{e.stopPropagation();setShowMenu(!showMenu)}} 
-          className="p-3 bg-gray-800 border rounded-lg shadow-lg"
-        >
-          ☰
-        </button>
-        {showMenu && (
-          <div className="absolute right-0 mt-14 w-48 bg-gray-800 border rounded-lg shadow-xl z-[1000]">
-            <button 
-              onClick={handleRestart} 
-              className="w-full p-4 text-left text-red-400 hover:bg-gray-700"
-            >
-              🔄 重开
-            </button>
-          </div>
-        )}
-      </div>
-      
       <div className="w-3/5 relative flex items-center justify-center border-r border-gray-700">
         {/* 2. 万能上一步按钮 - 移到左侧圆桌右上角 */}
         {/* 支持无限次撤回，直到游戏开始（setup阶段） */}
@@ -1783,13 +1911,37 @@ export default function Home() {
       </div>
 
       <div className="w-2/5 flex flex-col border-l border-gray-800 bg-gray-900/95 z-40">
-        <div className="p-4 border-b font-bold text-purple-400 text-xl">
-          控制台
+        <div className="px-4 py-2 border-b flex items-center justify-center gap-3 relative">
+          <span className="font-bold text-purple-400 text-xl">控制台</span>
           {nightInfo && (
-            <span className="ml-3 text-base text-yellow-300 font-normal">
+            <span className="text-base text-yellow-300 font-normal">
               当前是{nightInfo.seat.id+1}号{nightInfo.effectiveRole.name}在行动
             </span>
           )}
+          <div className="flex gap-2 items-center">
+            <button 
+              onClick={()=>{if(gamePhase==='gameOver')setShowReviewModal(true)}} 
+              className="px-2 py-1 bg-indigo-600 border rounded text-sm shadow-lg"
+            >
+              复盘
+            </button>
+            <button 
+              onClick={(e)=>{e.stopPropagation();setShowMenu(!showMenu)}} 
+              className="px-2 py-1 bg-gray-800 border rounded text-sm shadow-lg"
+            >
+              ☰
+            </button>
+            {showMenu && (
+              <div className="absolute right-4 top-full mt-1 w-48 bg-gray-800 border rounded-lg shadow-xl z-[1000]">
+                <button 
+                  onClick={handleRestart} 
+                  className="w-full p-4 text-left text-red-400 hover:bg-gray-700"
+                >
+                  🔄 重开
+                </button>
+              </div>
+            )}
+          </div>
         </div>
           <div ref={consoleContentRef} className="flex-1 overflow-y-auto p-4 text-base">
           {/* 4. 白天控制台增加说书人提示 */}
@@ -2033,6 +2185,16 @@ export default function Home() {
               onClick={()=>{
                 // 保存历史记录
                 saveHistory();
+                // 进入新黄昏时，将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
+                // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
+                if (currentDuskExecution !== null) {
+                  setLastDuskExecution(currentDuskExecution);
+                } else {
+                  // 如果当前黄昏没有处决，保持上一个黄昏的记录（如果有的话）
+                  // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
+                }
+                // 清空当前黄昏的处决记录，准备记录新的处决
+                setCurrentDuskExecution(null);
                 setGamePhase('dusk');
                 // 重置所有提名状态，允许重新提名
                 setSeats(p => p.map(s => ({...s, voteCount: undefined, isCandidate: false})));
@@ -2104,6 +2266,11 @@ export default function Home() {
             <input 
               autoFocus 
               type="number" 
+              min="1"
+              max={initialSeats.length > 0 
+                ? initialSeats.filter(s => s.role !== null).length 
+                : seats.filter(s => s.role !== null).length}
+              step="1"
               className="w-full p-4 bg-gray-700 rounded-xl mb-6 text-center text-4xl font-mono" 
               onKeyDown={(e)=>{if(e.key==='Enter')submitVotes(parseInt(e.currentTarget.value)||0)}} 
             />
