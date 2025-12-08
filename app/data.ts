@@ -46,6 +46,7 @@ export interface Seat {
   role: Role | null;
   charadeRole: Role | null;
   isDead: boolean;
+  isEvilConverted?: boolean; // 通过灵言师等效果被转为邪恶
   isDrunk: boolean;
   isPoisoned: boolean;
   isProtected: boolean;
