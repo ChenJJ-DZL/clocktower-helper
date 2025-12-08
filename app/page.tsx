@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { roles, Role, Seat, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, scripts, Script } from "./data";
+import { roles, Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, scripts, Script } from "./data";
 
 // --- 辅助类型 ---
 interface NightHintState { 
@@ -67,7 +67,185 @@ const getSeatPosition = (index: number, total: number = 15) => {
 
 const getRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-// 判断玩家是否为邪恶阵营
+// 获取玩家的注册阵营（用于查验类技能）
+// 间谍：虽然是爪牙，但可以被注册为"Good"（善良）
+// 隐士：虽然是外来者，但可以被注册为"Evil"（邪恶）
+// viewingRole: 执行查验的角色，用于判断是否需要应用注册判定
+export const getRegisteredAlignment = (
+  targetPlayer: Seat, 
+  viewingRole?: Role | null,
+  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseProbability?: number
+): 'Good' | 'Evil' => {
+  if (!targetPlayer.role) return 'Good';
+  
+  // 真实阵营判断
+  const isActuallyEvil = targetPlayer.role.type === 'demon' || 
+                         targetPlayer.role.type === 'minion' || 
+                         targetPlayer.isDemonSuccessor;
+  const isActuallyGood = !isActuallyEvil;
+  
+  // 间谍的注册判定：允许注册为"Good"
+  if (targetPlayer.role.id === 'spy') {
+    // 如果查看者不是查验类角色，或者间谍伪装模式关闭，返回真实阵营（邪恶）
+    if (!viewingRole || spyDisguiseMode === 'off') {
+      return 'Evil';
+    }
+    // 开启伪装模式：根据概率决定是否注册为善良
+    if (spyDisguiseMode === 'on') {
+      const probability = spyDisguiseProbability ?? 0.8;
+      return Math.random() < probability ? 'Good' : 'Evil';
+    }
+    // 默认模式：使用默认概率80%注册为善良
+    return Math.random() < 0.8 ? 'Good' : 'Evil';
+  }
+  
+  // 隐士的注册判定：允许注册为"Evil"
+  if (targetPlayer.role.id === 'recluse') {
+    // 隐士可能在查验中被注册为邪恶或恶魔
+    // 使用概率判断：大约30%概率注册为邪恶（与原有的isEvil中隐士判断一致）
+    return Math.random() < 0.3 ? 'Evil' : 'Good';
+  }
+  
+  // 默认返回真实阵营
+  return isActuallyEvil ? 'Evil' : 'Good';
+};
+
+// 判断玩家是否被注册为恶魔（用于占卜师等角色）
+// 隐士可能被注册为恶魔，间谍不相关（占卜师检查的是恶魔，不是邪恶）
+export const isRegisteredAsDemon = (
+  targetPlayer: Seat
+): boolean => {
+  if (!targetPlayer.role) return false;
+  
+  // 真实恶魔
+  if (targetPlayer.role.type === 'demon' || targetPlayer.isDemonSuccessor) {
+    return true;
+  }
+  
+  // 隐士可能被注册为恶魔（类似于被注册为邪恶）
+  if (targetPlayer.role.id === 'recluse') {
+    // 隐士可能在查验中被注册为恶魔
+    // 使用概率判断：大约30%概率注册为恶魔
+    return Math.random() < 0.3;
+  }
+  
+  return false;
+};
+
+// 判断玩家是否被注册为爪牙（用于调查员等角色）
+// 间谍虽然是爪牙，但可能被注册为"Good"（善良），此时不应被调查员看到
+// viewingRole: 执行查验的角色，用于判断是否需要应用注册判定
+export const isRegisteredAsMinion = (
+  targetPlayer: Seat,
+  viewingRole?: Role | null,
+  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseProbability?: number
+): boolean => {
+  if (!targetPlayer.role) return false;
+  
+  // 真实爪牙
+  if (targetPlayer.role.type === 'minion') {
+    // 如果是间谍，需要检查注册判定
+    if (targetPlayer.role.id === 'spy') {
+      // 如果查看者不是查验类角色，或者间谍伪装模式关闭，返回真实类型（是爪牙）
+      if (!viewingRole || spyDisguiseMode === 'off') {
+        return true;
+      }
+      // 如果间谍被注册为善良，则不应被注册为爪牙
+      const registeredAlignment = getRegisteredAlignment(
+        targetPlayer,
+        viewingRole,
+        spyDisguiseMode,
+        spyDisguiseProbability
+      );
+      // 如果被注册为善良，则不被注册为爪牙；如果被注册为邪恶，则被注册为爪牙
+      return registeredAlignment === 'Evil';
+    }
+    // 其他爪牙总是被注册为爪牙
+    return true;
+  }
+  
+  // 隐士可能被注册为爪牙（如果被注册为邪恶，可能在某些查验中被视为爪牙）
+  // 但根据规则，调查员检查的是"爪牙"，隐士通常不会被注册为爪牙类型
+  // 这里保持原逻辑：隐士不会被注册为爪牙类型
+  
+  return false;
+};
+
+// 统一的身份注册判定：返回"此刻在查看者眼中"的阵营/类型
+// 包含隐士/间谍的干扰效果，并在一次调用内保持一致的随机结果
+type RegistrationResult = {
+  alignment: 'Good' | 'Evil';
+  roleType: RoleType | null;
+  registersAsDemon: boolean;
+  registersAsMinion: boolean;
+};
+
+const getRegistration = (
+  targetPlayer: Seat,
+  viewingRole?: Role | null,
+  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseProbability?: number
+): RegistrationResult => {
+  const role = targetPlayer.role;
+  if (!role) {
+    return { alignment: 'Good', roleType: null, registersAsDemon: false, registersAsMinion: false };
+  }
+
+  // 真实基准
+  let registeredRoleType: RoleType | null = targetPlayer.isDemonSuccessor ? 'demon' : role.type;
+  let registeredAlignment: 'Good' | 'Evil' =
+    registeredRoleType === 'demon' || registeredRoleType === 'minion' ? 'Evil' : 'Good';
+
+  // 间谍：可能注册为善良镇民/外来者
+  if (role.id === 'spy') {
+    if (viewingRole && spyDisguiseMode !== 'off') {
+      const probability = spyDisguiseMode === 'on' ? (spyDisguiseProbability ?? 0.8) : 0.8;
+      const looksGood = Math.random() < probability;
+      if (looksGood) {
+        registeredAlignment = 'Good';
+        registeredRoleType = Math.random() < 0.5 ? 'townsfolk' : 'outsider';
+      } else {
+        registeredAlignment = 'Evil';
+        registeredRoleType = 'minion';
+      }
+    } else {
+      registeredAlignment = 'Evil';
+      registeredRoleType = 'minion';
+    }
+  }
+
+  // 隐士：可能注册为爪牙或恶魔
+  if (role.id === 'recluse') {
+    const roll = Math.random();
+    if (roll < 0.33) {
+      registeredAlignment = 'Evil';
+      registeredRoleType = 'minion';
+    } else if (roll < 0.66) {
+      registeredAlignment = 'Evil';
+      registeredRoleType = 'demon';
+    } else {
+      registeredAlignment = 'Good';
+      registeredRoleType = 'outsider';
+    }
+  }
+
+  return {
+    alignment: registeredAlignment,
+    roleType: registeredRoleType,
+    registersAsDemon: registeredRoleType === 'demon',
+    registersAsMinion: registeredRoleType === 'minion',
+  };
+};
+
+const getSeatRoleId = (seat?: Seat | null): string | null => {
+  if (!seat) return null;
+  const role = seat.role?.id === 'drunk' ? seat.charadeRole : seat.role;
+  return role ? role.id : null;
+};
+
+// 判断玩家是否为邪恶阵营（真实阵营）
 const isEvil = (seat: Seat): boolean => {
   if (!seat.role) return false;
   return seat.role.type === 'demon' || 
@@ -82,6 +260,50 @@ const isEvilForWinCondition = (seat: Seat): boolean => {
   return seat.role.type === 'demon' || 
          seat.role.type === 'minion' || 
          seat.isDemonSuccessor;
+};
+
+const isGoodAlignment = (seat: Seat): boolean => {
+  if (!seat.role) return false;
+  const roleType = seat.role.type;
+  return roleType !== 'demon' && roleType !== 'minion' && !seat.isDemonSuccessor;
+};
+
+const getAliveNeighbors = (allSeats: Seat[], targetId: number): Seat[] => {
+  const originIndex = allSeats.findIndex((s) => s.id === targetId);
+  if (originIndex === -1 || allSeats.length <= 1) return [];
+  const total = allSeats.length;
+  const neighbors: Seat[] = [];
+
+  for (let step = 1; step < total && neighbors.length < 2; step++) {
+    const left = allSeats[(originIndex - step + total) % total];
+    if (!left.isDead && left.id !== targetId) {
+      neighbors.push(left);
+    }
+    if (neighbors.length >= 2) break;
+
+    const right = allSeats[(originIndex + step) % total];
+    if (!right.isDead && right.id !== targetId && !neighbors.some(n => n.id === right.id)) {
+      neighbors.push(right);
+    }
+  }
+
+  return neighbors;
+};
+
+const hasTeaLadyProtection = (targetSeat: Seat | undefined, allSeats: Seat[]): boolean => {
+  if (!targetSeat) return false;
+  const neighbors = getAliveNeighbors(allSeats, targetSeat.id);
+  return neighbors.some(
+    (neighbor) =>
+      getSeatRoleId(neighbor) === 'tea_lady' &&
+      isGoodAlignment(neighbor) &&
+      isGoodAlignment(targetSeat)
+  );
+};
+
+const hasExecutionProof = (seat?: Seat | null): boolean => {
+  if (!seat) return false;
+  return (seat.statuses || []).some((status) => status.effect === 'ExecutionProof');
 };
 
 // 判断是否应该显示假信息（根据中毒/酒鬼状态和概率）
@@ -114,6 +336,36 @@ const shouldShowFakeInfo = (
   return { showFake: false, isFirstTime: false };
 };
 
+// 生成误导性错误信息（用于中毒/酒鬼状态）
+// 根据真实结果生成合理的错误信息，而不是简单的随机值
+const getMisinformation = {
+  // 占卜师：根据真实结果生成误导性假信息
+  // 如果真实是"否"（查的是好人），有概率返回"是"（误导为恶魔）
+  // 如果真实是"是"（查的是恶魔），也可能返回"否"（误导为好人）
+  fortuneTeller: (realResult: boolean): string => {
+    if (realResult) {
+      // 真实结果是"是"（有恶魔），中毒时70%概率返回"否"（误导），30%概率返回"是"（正确但可能是巧合）
+      return Math.random() < 0.7 ? "❌ 否" : "✅ 是";
+    } else {
+      // 真实结果是"否"（无恶魔，查的是好人），中毒时80%概率返回"是"（误导为有恶魔），20%概率返回"否"（正确但可能是巧合）
+      return Math.random() < 0.8 ? "✅ 是" : "❌ 否";
+    }
+  },
+  
+  // 共情者：根据真实数字生成错误的数字
+  // 确保返回一个合理的错误值（0、1或2），而不是返回0或null
+  empath: (realCount: number): number => {
+    // 真实数字是0、1或2，生成一个不同的错误数字
+    const possibleValues = [0, 1, 2].filter(v => v !== realCount);
+    if (possibleValues.length === 0) {
+      // 理论上不会发生，但作为保险
+      return realCount === 0 ? 1 : 0;
+    }
+    // 从可能的错误值中随机选择一个
+    return getRandom(possibleValues);
+  }
+};
+
 // --- 核心计算逻辑 ---
 const calculateNightInfo = (
   selectedScript: Script | null,
@@ -124,20 +376,53 @@ const calculateNightInfo = (
   fakeInspectionResult?: string,
   drunkFirstInfoMap?: Map<number, boolean>,
   isEvilWithJudgmentFn?: (seat: Seat) => boolean,
-  poppyGrowerDead?: boolean
+  poppyGrowerDead?: boolean,
+  gameLogs?: LogEntry[],
+  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseProbability?: number,
+  deadThisNight: number[] = []
 ): NightInfoResult | null => {
   // 使用传入的判定函数，如果没有则使用默认的isEvil
   const checkEvil = isEvilWithJudgmentFn || isEvil;
+  
+  // 创建用于厨师/共情者查验的判断函数，考虑间谍和隐士的注册判定
+  const checkEvilForChefEmpath = (seat: Seat): boolean => {
+    // 使用统一注册判定，传入当前查看的角色（厨师或共情者）
+    const registration = getRegistration(
+      seat,
+      effectiveRole,
+      spyDisguiseMode,
+      spyDisguiseProbability
+    );
+    return registration.alignment === 'Evil';
+  };
+  // 查找最近的存活邻居（跳过所有死亡玩家和自己）
+  const findNearestAliveNeighbor = (
+    originId: number,
+    direction: 1 | -1
+  ): Seat | null => {
+    const originIndex = seats.findIndex((s) => s.id === originId);
+    if (originIndex === -1 || seats.length <= 1) return null;
+    for (let step = 1; step < seats.length; step++) {
+      const seat = seats[(originIndex + direction * step + seats.length) % seats.length];
+      if (!seat.isDead && seat.id !== originId) {
+        return seat;
+      }
+    }
+    return null;
+  };
   const targetSeat = seats.find(s => s.id === currentSeatId);
   if (!targetSeat || !targetSeat.role) return null;
 
   const effectiveRole = targetSeat.role.id === "drunk" ? targetSeat.charadeRole : targetSeat.role;
   if (!effectiveRole) return null;
+  const diedTonight = deadThisNight.includes(targetSeat.id);
 
-  // 检查是否中毒：包括普通中毒、永久中毒（舞蛇人制造）、酒鬼状态
+  // 检查是否中毒：包括普通中毒、永久中毒（舞蛇人制造）、亡骨魔中毒、酒鬼状态
   const hasPermanentPoison = targetSeat.statusDetails?.includes('永久中毒') || false;
-  const isPoisoned = targetSeat.isPoisoned || hasPermanentPoison || targetSeat.isDrunk || targetSeat.role.id === "drunk";
-  const reason = hasPermanentPoison ? "永久中毒" : targetSeat.isPoisoned ? "中毒" : targetSeat.isDrunk ? "酒鬼" : "";
+  const hasVigormortisPoison = targetSeat.statusDetails?.includes('亡骨魔中毒') || false;
+  const isPoisoned = targetSeat.isPoisoned || hasPermanentPoison || hasVigormortisPoison || targetSeat.isDrunk || targetSeat.role.id === "drunk";
+  const reason = hasPermanentPoison ? "永久中毒" : hasVigormortisPoison ? "亡骨魔中毒" : targetSeat.isPoisoned ? "中毒" : targetSeat.isDrunk ? "酒鬼" : "";
   
   // 判断是否应该显示假信息
   const fakeInfoCheck = drunkFirstInfoMap 
@@ -175,6 +460,27 @@ const calculateNightInfo = (
     // 8. 台词融入指引内容
     speak = '"请选择一名玩家下毒。被你下毒的玩家今晚会看到错误的信息。"'; 
     action = "投毒";
+  } else if (effectiveRole.id === 'pukka') {
+    if (gamePhase === 'firstNight') {
+      // 检查罂粟种植者状态：如果罂粟种植者在场且存活，恶魔不知道爪牙是谁
+      const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
+      const shouldHideMinions = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
+      
+      if (shouldHideMinions) {
+        guide = `🌺 罂粟种植者在场，你不知道你的爪牙是谁。`;
+        speak = `"罂粟种植者在场，你不知道你的爪牙是谁。"`;
+        action = "无信息";
+      } else {
+        const minions = seats.filter(s => s.role?.type === 'minion' && s.id !== currentSeatId).map(s => `${s.id+1}号`);
+        guide = `👿 爪牙列表：${minions.length > 0 ? minions.join(', ') : '无'}。`;
+        speak = `"${minions.length > 0 ? `你的爪牙是 ${minions.join('、')}。` : '场上没有爪牙。'}请确认你的爪牙。"`;
+        action = "展示爪牙";
+      }
+    } else {
+      guide = "🧪 选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。"; 
+      speak = '"请选择一名玩家。他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。"'; 
+      action = "投毒";
+    }
   } else if (effectiveRole.id === 'monk') {
     if (isPoisoned) {
       guide = "⚠️ [异常] 中毒/醉酒状态下无法保护玩家，但可以正常选择。"; 
@@ -197,15 +503,19 @@ const calculateNightInfo = (
     speak = '"请通过手势选择你的主人。指向你选择的玩家，我会确认。"'; 
     action = "标记";
   } else if (effectiveRole.id === 'empath') {
-    const alive = seats.filter(s => !s.isDead);
-    const idx = alive.findIndex(s => s.id === currentSeatId);
-    if (idx !== -1) {
-      const p = alive[(idx - 1 + alive.length) % alive.length];
-      const n = alive[(idx + 1) % alive.length];
-      let c = 0; 
-      if (isEvil(p)) c++; 
-      if (isEvil(n)) c++;
-      const fakeC = c===0 ? 1 : (c===2 ? 1 : (Math.random()<0.5?0:2));
+    const leftNeighbor = findNearestAliveNeighbor(currentSeatId, -1);
+    const rightNeighbor = findNearestAliveNeighbor(currentSeatId, 1);
+    // 邻居去重，避免在极端少人时左右指向同一人
+    const neighbors = [leftNeighbor, rightNeighbor].filter(
+      (s, idx, arr): s is Seat => !!s && arr.findIndex((t) => t?.id === s.id) === idx
+    );
+    if (neighbors.length > 0) {
+      let c = 0;
+      neighbors.forEach((neighbor) => {
+        if (checkEvilForChefEmpath(neighbor)) c++;
+      });
+      // 使用 getMisinformation.empath 生成误导性错误数字
+      const fakeC = getMisinformation.empath(c);
       if (shouldShowFake) {
         guide = `⚠️ [异常] 真实:${c}。请报伪造数据: ${fakeC} (比划${fakeC})`;
         // 8. 台词融入指引内容
@@ -216,229 +526,251 @@ const calculateNightInfo = (
         speak = `"你的左右邻居中有 ${c} 名邪恶玩家。"（向他比划数字 ${c}）`;
       }
       action = "告知";
+    } else {
+      guide = "⚠️ 周围没有存活邻居，信息无法生成，示0或手动说明。";
+      speak = '"你没有存活的邻居可供检测，请示意0或由说书人说明。"' ;
+      action = "展示";
     }
   } else if (effectiveRole.id === 'washerwoman' && gamePhase==='firstNight') {
-    // 洗衣妇：首夜得知一名村民的具体身份，并被告知该村民在X号或Y号（其中一个是真实的，另一个是干扰项）
-    const townsfolkSeats = seats.filter(s => s.role?.type === 'townsfolk' && s.role && s.id !== currentSeatId);
-    
-    if(townsfolkSeats.length > 0 && seats.length >= 2) {
-      // 正常时：从场上实际存在的村民中随机选择一个
-      const validTownsfolk = townsfolkSeats.filter(s => s.role !== null);
-      if (validTownsfolk.length === 0) {
-        guide = "无此角色。示0。"; 
-        speak = '"场上没有村民角色，请比划0。"';
-        action = "展示";
-      } else {
-        const realTownsfolk = getRandom(validTownsfolk);
-        const realRole = realTownsfolk.role!; // 此时确保不为null
-        
-        // 真实村民的座位号
-        const realSeatNum = realTownsfolk.id + 1;
-        
-        // 选择干扰项座位（不能是自己，不能是真实村民的座位）
-        const availableSeats = seats.filter(s => s.id !== currentSeatId && s.id !== realTownsfolk.id);
-        const decoySeat = availableSeats.length > 0 ? getRandom(availableSeats) : realTownsfolk;
-        const decoySeatNum = decoySeat.id + 1;
-        
-        // 随机决定真实座位和干扰项座位的显示顺序（符合游戏规则）
-        const shouldSwap = Math.random() < 0.5;
-        const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
-        const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
-        
-        if (shouldShowFake) {
-          // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
-          // 确保错误信息一定为假：选择的角色和座位号必须不匹配
-          
-          // 1. 随机选择一个村民角色作为错误信息中的角色
-          const otherTownsfolk = validTownsfolk.filter(s => s.id !== realTownsfolk.id);
-          const wrongTownsfolk = otherTownsfolk.length > 0 ? getRandom(otherTownsfolk) : realTownsfolk;
-          const wrongRole = wrongTownsfolk.role!;
-          
-          // 2. 选择两个座位号，确保这两个座位号上的角色都不是错误信息中的角色
-          // 排除：自己、真实座位、干扰项座位，以及任何座位上是错误角色的座位
-          const wrongSeats = seats.filter(s => 
-            s.id !== currentSeatId && 
-            s.id !== realTownsfolk.id && 
-            s.id !== decoySeat.id &&
-            s.role?.id !== wrongRole.id  // 确保座位上的角色不是错误角色
-          );
-          
-          // 如果过滤后没有足够的座位，则从所有座位中选择（排除自己、真实座位、干扰项座位）
-          const fallbackSeats = seats.filter(s => 
-            s.id !== currentSeatId && 
-            s.id !== realTownsfolk.id && 
-            s.id !== decoySeat.id
-          );
-          
-          const availableWrongSeats = wrongSeats.length >= 2 ? wrongSeats : fallbackSeats;
-          
-          // 随机打乱座位数组，确保随机性
-          const shuffledSeats = [...availableWrongSeats].sort(() => Math.random() - 0.5);
-          const wrongSeat1 = shuffledSeats[0] || decoySeat;
-          const wrongSeat2 = shuffledSeats.length > 1 ? shuffledSeats[1] : wrongSeat1;
-          
-          // 最终验证：确保两个座位号上的角色都不是错误角色（如果相同则重新选择）
-          let finalWrongSeat1 = wrongSeat1;
-          let finalWrongSeat2 = wrongSeat2;
-          
-          // 如果第一个座位上的角色恰好是错误角色，尝试找另一个
-          if (finalWrongSeat1.role?.id === wrongRole.id) {
-            const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
-            if (alternative) finalWrongSeat1 = alternative;
-          }
-          
-          // 如果第二个座位上的角色恰好是错误角色，尝试找另一个
-          if (finalWrongSeat2.role?.id === wrongRole.id) {
-            const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat2.id && s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
-            if (alternative) finalWrongSeat2 = alternative;
-          }
-          
-          // 如果两个座位相同，尝试找不同的座位
-          if (finalWrongSeat1.id === finalWrongSeat2.id) {
-            const differentSeat = shuffledSeats.find(s => s.id !== finalWrongSeat1.id);
-            if (differentSeat) finalWrongSeat2 = differentSeat;
-          }
-          
-          const wrongSeat1Num = finalWrongSeat1.id + 1;
-          const wrongSeat2Num = finalWrongSeat2.id + 1;
-          
-          // 指引：显示正确信息（给说书人看）+ 错误信息（给说书人看）
-          guide = `⚠️ [异常] 真实信息：【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）\n请展示错误信息：【${wrongRole.name}】在 ${wrongSeat1Num}号 或 ${wrongSeat2Num}号（${wrongSeat1Num}号是${finalWrongSeat1.role?.name || '无角色'}，${wrongSeat2Num}号是${finalWrongSeat2.role?.name || '无角色'}，均为假信息）`;
-          // 台词：只显示错误信息（给玩家看）
-          speak = `"你得知【${wrongRole.name}】在 ${wrongSeat1Num}号 或 ${wrongSeat2Num}号。"`;
+    try {
+      // 洗衣妇：首夜得知一名村民的具体身份，并被告知该村民在X号或Y号（其中一个是真实的，另一个是干扰项）
+      const townsfolkSeats = seats.filter(s => s.role?.type === 'townsfolk' && s.role && s.id !== currentSeatId);
+      
+      if(townsfolkSeats.length > 0 && seats.length >= 2) {
+        // 正常时：从场上实际存在的村民中随机选择一个
+        const validTownsfolk = townsfolkSeats.filter(s => s.role !== null);
+        if (validTownsfolk.length === 0) {
+          guide = "⚠️ 未找到可用的村民信息，改为手动指定或示0。"; 
+          speak = '"场上没有可用的村民信息，请你手动指定两个座位或比划0。"';
+          action = "展示";
         } else {
-          // 正常时：展示真实信息（真实村民角色 + 真实座位和干扰项，顺序随机）
-          guide = `👀 真实信息: 【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）`;
-          speak = `"你得知【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号。"`;
+          const realTownsfolk = getRandom(validTownsfolk);
+          const realRole = realTownsfolk.role!; // 此时确保不为null
+          
+          // 真实村民的座位号
+          const realSeatNum = realTownsfolk.id + 1;
+          
+          // 选择干扰项座位（不能是自己，不能是真实村民的座位）
+          const availableSeats = seats.filter(s => s.id !== currentSeatId && s.id !== realTownsfolk.id);
+          const decoySeat = availableSeats.length > 0 ? getRandom(availableSeats) : realTownsfolk;
+          const decoySeatNum = decoySeat.id + 1;
+          
+          // 随机决定真实座位和干扰项座位的显示顺序（符合游戏规则）
+          const shouldSwap = Math.random() < 0.5;
+          const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
+          const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
+          
+          if (shouldShowFake) {
+            // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
+            // 确保错误信息一定为假：选择的角色和座位号必须不匹配
+            
+            // 1. 随机选择一个村民角色作为错误信息中的角色
+            const otherTownsfolk = validTownsfolk.filter(s => s.id !== realTownsfolk.id);
+            const wrongTownsfolk = otherTownsfolk.length > 0 ? getRandom(otherTownsfolk) : realTownsfolk;
+            const wrongRole = wrongTownsfolk.role!;
+            
+            // 2. 选择两个座位号，确保这两个座位号上的角色都不是错误信息中的角色
+            // 排除：自己、真实座位、干扰项座位，以及任何座位上是错误角色的座位
+            const wrongSeats = seats.filter(s => 
+              s.id !== currentSeatId && 
+              s.id !== realTownsfolk.id && 
+              s.id !== decoySeat.id &&
+              s.role?.id !== wrongRole.id  // 确保座位上的角色不是错误角色
+            );
+            
+            // 如果过滤后没有足够的座位，则从所有座位中选择（排除自己、真实座位、干扰项座位）
+            const fallbackSeats = seats.filter(s => 
+              s.id !== currentSeatId && 
+              s.id !== realTownsfolk.id && 
+              s.id !== decoySeat.id
+            );
+            
+            const availableWrongSeats = wrongSeats.length >= 2 ? wrongSeats : fallbackSeats;
+            
+            // 随机打乱座位数组，确保随机性
+            const shuffledSeats = [...availableWrongSeats].sort(() => Math.random() - 0.5);
+            const wrongSeat1 = shuffledSeats[0] || decoySeat;
+            const wrongSeat2 = shuffledSeats.length > 1 ? shuffledSeats[1] : wrongSeat1;
+            
+            // 最终验证：确保两个座位号上的角色都不是错误角色（如果相同则重新选择）
+            let finalWrongSeat1 = wrongSeat1;
+            let finalWrongSeat2 = wrongSeat2;
+            
+            // 如果第一个座位上的角色恰好是错误角色，尝试找另一个
+            if (finalWrongSeat1.role?.id === wrongRole.id) {
+              const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
+              if (alternative) finalWrongSeat1 = alternative;
+            }
+            
+            // 如果第二个座位上的角色恰好是错误角色，尝试找另一个
+            if (finalWrongSeat2.role?.id === wrongRole.id) {
+              const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat2.id && s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
+              if (alternative) finalWrongSeat2 = alternative;
+            }
+            
+            // 如果两个座位相同，尝试找不同的座位
+            if (finalWrongSeat1.id === finalWrongSeat2.id) {
+              const differentSeat = shuffledSeats.find(s => s.id !== finalWrongSeat1.id);
+              if (differentSeat) finalWrongSeat2 = differentSeat;
+            }
+            
+            const wrongSeat1Num = finalWrongSeat1.id + 1;
+            const wrongSeat2Num = finalWrongSeat2.id + 1;
+            
+            // 指引：显示正确信息（给说书人看）+ 错误信息（给说书人看）
+            guide = `⚠️ [异常] 真实信息：【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）\n请展示错误信息：【${wrongRole.name}】在 ${wrongSeat1Num}号 或 ${wrongSeat2Num}号（${wrongSeat1Num}号是${finalWrongSeat1.role?.name || '无角色'}，${wrongSeat2Num}号是${finalWrongSeat2.role?.name || '无角色'}，均为假信息）`;
+            // 台词：只显示错误信息（给玩家看）
+            speak = `"你得知【${wrongRole.name}】在 ${wrongSeat1Num}号 或 ${wrongSeat2Num}号。"`;
+          } else {
+            // 正常时：展示真实信息（真实村民角色 + 真实座位和干扰项，顺序随机）
+            guide = `👀 真实信息: 【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）`;
+            speak = `"你得知【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号。"`;
+          }
+          action = "展示";
         }
+      } else { 
+        guide = "⚠️ 未能生成洗衣妇信息，请手动指定两个座位或示0。"; 
+        speak = '"场上没有合适的村民信息，请你手动指定两个座位，或比划0示意无信息。"'; 
         action = "展示";
       }
-    } else { 
-      guide = "无此角色。示0。"; 
-      speak = '"场上没有村民角色，请比划0。"'; 
+    } catch (_error) {
+      guide = "⚠️ 信息生成出现问题，请手动选择座位或示0。";
+      speak = '"信息无法自动生成，请你手动指定要告知的两个座位，或比划0。"';
       action = "展示";
     }
   } else if (effectiveRole.id === 'librarian' && gamePhase==='firstNight') {
-    // 图书管理员：首夜得知一名外来者的具体身份，并被告知该外来者在X号或Y号（其中一个是真实的，另一个是干扰项）
-    const outsiderSeats = seats.filter(s => s.role?.type === 'outsider' && s.role && s.id !== currentSeatId);
-    
-    if(outsiderSeats.length > 0 && seats.length >= 2) {
-      // 正常时：从场上实际存在的外来者中随机选择一个
-      const validOutsiders = outsiderSeats.filter(s => s.role !== null);
-      if (validOutsiders.length === 0) {
-        guide = "无此角色。示0。"; 
-        speak = '"场上没有外来者角色，请比划0。"';
-        action = "展示";
-      } else {
-        // 检查场上是否有酒鬼
-        const hasDrunk = validOutsiders.some(s => s.role?.id === 'drunk');
-        const nonDrunkOutsiders = validOutsiders.filter(s => s.role?.id !== 'drunk');
-        
-        // 随机选择外来者座位，保留酒鬼保护机制
-        let realOutsider: Seat;
-        if (hasDrunk && nonDrunkOutsiders.length > 0 && Math.random() < 0.7) {
-          // 如果场上有酒鬼，70%概率选择非酒鬼的外来者（避免暴露酒鬼）
-          realOutsider = getRandom(nonDrunkOutsiders);
-        } else {
-          // 30%概率或没有其他外来者时，从所有外来者中随机选择（包括酒鬼）
-          realOutsider = getRandom(validOutsiders);
-        }
-        
-        // 确保选择的角色确实在该座位上
-        // realOutsider 本身就是从 outsiderSeats 中选择的，所以 realOutsider.role 就是该座位的角色
-        const realRole = realOutsider.role!; // 此时确保不为null，且该角色确实在 realOutsider 座位上
-        const realSeatNum = realOutsider.id + 1; // 真实座位号
-        
-        // 选择干扰项座位（不能是自己，不能是真实外来者的座位）
-        const availableSeats = seats.filter(s => s.id !== currentSeatId && s.id !== realOutsider.id);
-        const decoySeat = availableSeats.length > 0 ? getRandom(availableSeats) : realOutsider;
-        const decoySeatNum = decoySeat.id + 1;
-        
-        // 随机决定真实座位和干扰项座位的显示顺序（符合游戏规则）
-        const shouldSwap = Math.random() < 0.5;
-        const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
-        const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
+    try {
+      // 图书管理员：首夜得知一名外来者的具体身份，并被告知该外来者在X号或Y号（其中一个是真实的，另一个是干扰项）
+      const outsiderSeats = seats.filter(s => s.role?.type === 'outsider' && s.role && s.id !== currentSeatId);
       
-        if (shouldShowFake) {
-          // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
-          // 确保错误信息一定为假：选择的角色和座位号必须不匹配
-          
-          // 1. 获取所有可能的外来者角色列表（根据当前剧本过滤）
-          const allOutsiderRoles = roles.filter(r => r.type === 'outsider' && r.id !== effectiveRole.id);
-          const outsiderRoles = selectedScript 
-            ? allOutsiderRoles.filter(r => 
-                !r.script || 
-                r.script === selectedScript.name ||
-                (selectedScript.id === 'trouble_brewing' && !r.script) ||
-                (selectedScript.id === 'bad_moon_rising' && (!r.script || r.script === '暗月初升')) ||
-                (selectedScript.id === 'sects_and_violets' && (!r.script || r.script === '梦陨春宵')) ||
-                (selectedScript.id === 'midnight_revelry' && (!r.script || r.script === '夜半狂欢'))
-              )
-            : allOutsiderRoles;
-          
-          // 2. 随机选择一个外来者角色作为错误信息中的角色
-          const otherRoles = outsiderRoles.filter(r => r.id !== realRole.id);
-          const wrongRole = otherRoles.length > 0 ? getRandom(otherRoles) : realRole;
-          
-          // 3. 选择两个座位号，确保这两个座位号上的角色都不是错误信息中的角色
-          // 排除：自己、真实座位、干扰项座位，以及任何座位上是错误角色的座位
-          const wrongSeats = seats.filter(s => 
-            s.id !== currentSeatId && 
-            s.id !== realOutsider.id && 
-            s.id !== decoySeat.id &&
-            s.role?.id !== wrongRole.id  // 确保座位上的角色不是错误角色
-          );
-          
-          // 如果过滤后没有足够的座位，则从所有座位中选择（排除自己、真实座位、干扰项座位）
-          const fallbackSeats = seats.filter(s => 
-            s.id !== currentSeatId && 
-            s.id !== realOutsider.id && 
-            s.id !== decoySeat.id
-          );
-          
-          const availableWrongSeats = wrongSeats.length >= 2 ? wrongSeats : fallbackSeats;
-          
-          // 随机打乱座位数组，确保随机性
-          const shuffledSeats = [...availableWrongSeats].sort(() => Math.random() - 0.5);
-          let finalWrongSeat1 = shuffledSeats[0] || decoySeat;
-          let finalWrongSeat2 = shuffledSeats.length > 1 ? shuffledSeats[1] : finalWrongSeat1;
-          
-          // 最终验证：确保两个座位号上的角色都不是错误角色
-          if (finalWrongSeat1.role?.id === wrongRole.id) {
-            const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
-            if (alternative) finalWrongSeat1 = alternative;
-          }
-          
-          if (finalWrongSeat2.role?.id === wrongRole.id) {
-            const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat2.id && s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
-            if (alternative) finalWrongSeat2 = alternative;
-          }
-          
-          // 如果两个座位相同，尝试找不同的座位
-          if (finalWrongSeat1.id === finalWrongSeat2.id) {
-            const differentSeat = shuffledSeats.find(s => s.id !== finalWrongSeat1.id);
-            if (differentSeat) finalWrongSeat2 = differentSeat;
-          }
-          
-          // 指引：显示正确信息（给说书人看）+ 错误信息（给说书人看）
-          guide = `⚠️ [异常] 真实信息：【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）\n请展示错误信息：【${wrongRole.name}】在 ${finalWrongSeat1.id+1}号 或 ${finalWrongSeat2.id+1}号（${finalWrongSeat1.id+1}号是${finalWrongSeat1.role?.name || '无角色'}，${finalWrongSeat2.id+1}号是${finalWrongSeat2.role?.name || '无角色'}，均为假信息）`;
-          // 台词：只显示错误信息（给玩家看）
-          speak = `"你得知【${wrongRole.name}】在 ${finalWrongSeat1.id+1}号 或 ${finalWrongSeat2.id+1}号。"`;
+      if(outsiderSeats.length > 0 && seats.length >= 2) {
+        // 正常时：从场上实际存在的外来者中随机选择一个
+        const validOutsiders = outsiderSeats.filter(s => s.role !== null);
+        if (validOutsiders.length === 0) {
+          guide = "⚠️ 未找到可用的外来者信息，改为手动指定或示0。"; 
+          speak = '"场上没有可用的外来者信息，请你手动指定两个座位或比划0。"';
+          action = "展示";
         } else {
-          // 正常时：展示真实信息（真实外来者角色 + 真实座位和干扰项，顺序随机）
-          guide = `👀 真实信息: 【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）`;
-          speak = `"你得知【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号。"`;
+          // 检查场上是否有酒鬼
+          const hasDrunk = validOutsiders.some(s => s.role?.id === 'drunk');
+          const nonDrunkOutsiders = validOutsiders.filter(s => s.role?.id !== 'drunk');
+          
+          // 随机选择外来者座位，保留酒鬼保护机制
+          let realOutsider: Seat;
+          if (hasDrunk && nonDrunkOutsiders.length > 0 && Math.random() < 0.7) {
+            // 如果场上有酒鬼，70%概率选择非酒鬼的外来者（避免暴露酒鬼）
+            realOutsider = getRandom(nonDrunkOutsiders);
+          } else {
+            // 30%概率或没有其他外来者时，从所有外来者中随机选择（包括酒鬼）
+            realOutsider = getRandom(validOutsiders);
+          }
+          
+          // 确保选择的角色确实在该座位上
+          const realRole = realOutsider.role!; // 此时确保不为null，且该角色确实在 realOutsider 座位上
+          const realSeatNum = realOutsider.id + 1; // 真实座位号
+          
+          // 选择干扰项座位（不能是自己，不能是真实外来者的座位）
+          const availableSeats = seats.filter(s => s.id !== currentSeatId && s.id !== realOutsider.id);
+          const decoySeat = availableSeats.length > 0 ? getRandom(availableSeats) : realOutsider;
+          const decoySeatNum = decoySeat.id + 1;
+          
+          // 随机决定真实座位和干扰项座位的显示顺序（符合游戏规则）
+          const shouldSwap = Math.random() < 0.5;
+          const seat1Num = shouldSwap ? decoySeatNum : realSeatNum;
+          const seat2Num = shouldSwap ? realSeatNum : decoySeatNum;
+        
+          if (shouldShowFake) {
+            // 中毒/酒鬼时：指引处先展示正确信息，然后生成错误的干扰信息
+            // 确保错误信息一定为假：选择的角色和座位号必须不匹配
+            
+            // 1. 获取所有可能的外来者角色列表（根据当前剧本过滤）
+            const allOutsiderRoles = roles.filter(r => r.type === 'outsider' && r.id !== effectiveRole.id);
+            const outsiderRoles = selectedScript 
+              ? allOutsiderRoles.filter(r => 
+                  !r.script || 
+                  r.script === selectedScript.name ||
+                  (selectedScript.id === 'trouble_brewing' && !r.script) ||
+                  (selectedScript.id === 'bad_moon_rising' && (!r.script || r.script === '暗月初升')) ||
+                  (selectedScript.id === 'sects_and_violets' && (!r.script || r.script === '梦陨春宵')) ||
+                  (selectedScript.id === 'midnight_revelry' && (!r.script || r.script === '夜半狂欢'))
+                )
+              : allOutsiderRoles;
+            
+            // 2. 随机选择一个外来者角色作为错误信息中的角色
+            const otherRoles = outsiderRoles.filter(r => r.id !== realRole.id);
+            const wrongRole = otherRoles.length > 0 ? getRandom(otherRoles) : realRole;
+            
+            // 3. 选择两个座位号，确保这两个座位号上的角色都不是错误信息中的角色
+            const wrongSeats = seats.filter(s => 
+              s.id !== currentSeatId && 
+              s.id !== realOutsider.id && 
+              s.id !== decoySeat.id &&
+              s.role?.id !== wrongRole.id
+            );
+            
+            const fallbackSeats = seats.filter(s => 
+              s.id !== currentSeatId && 
+              s.id !== realOutsider.id && 
+              s.id !== decoySeat.id
+            );
+            
+            const availableWrongSeats = wrongSeats.length >= 2 ? wrongSeats : fallbackSeats;
+            
+            // 随机打乱座位数组，确保随机性
+            const shuffledSeats = [...availableWrongSeats].sort(() => Math.random() - 0.5);
+            let finalWrongSeat1 = shuffledSeats[0] || decoySeat;
+            let finalWrongSeat2 = shuffledSeats.length > 1 ? shuffledSeats[1] : finalWrongSeat1;
+            
+            // 最终验证：确保两个座位号上的角色都不是错误角色
+            if (finalWrongSeat1.role?.id === wrongRole.id) {
+              const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
+              if (alternative) finalWrongSeat1 = alternative;
+            }
+            
+            if (finalWrongSeat2.role?.id === wrongRole.id) {
+              const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat2.id && s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
+              if (alternative) finalWrongSeat2 = alternative;
+            }
+            
+            if (finalWrongSeat1.id === finalWrongSeat2.id) {
+              const differentSeat = shuffledSeats.find(s => s.id !== finalWrongSeat1.id && s.id !== finalWrongSeat2.id);
+              if (differentSeat) finalWrongSeat1 = differentSeat;
+            }
+            
+            // 指引：显示正确信息（给说书人看）+ 错误信息（给说书人看）
+            guide = `⚠️ [异常] 真实信息：【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）\n请展示错误信息：【${wrongRole.name}】在 ${finalWrongSeat1.id+1}号 或 ${finalWrongSeat2.id+1}号（${finalWrongSeat1.id+1}号是${finalWrongSeat1.role?.name || '无角色'}，${finalWrongSeat2.id+1}号是${finalWrongSeat2.role?.name || '无角色'}，均为假信息）`;
+            // 台词：只显示错误信息（给玩家看）
+            speak = `"你得知【${wrongRole.name}】在 ${finalWrongSeat1.id+1}号 或 ${finalWrongSeat2.id+1}号。"`;
+          } else {
+            // 正常时：展示真实信息（真实外来者角色 + 真实座位和干扰项，顺序随机）
+            guide = `👀 真实信息: 【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号（真实：${realSeatNum}号）`;
+            speak = `"你得知【${realRole.name}】在 ${seat1Num}号 或 ${seat2Num}号。"`;
+          }
+          action = "展示";
         }
+      } else { 
+        guide = "⚠️ 未能生成图书管理员信息，请手动指定两个座位或示0。"; 
+        speak = '"场上没有合适的外来者信息，请你手动指定两个座位，或比划0示意无信息。"'; 
         action = "展示";
       }
-    } else { 
-      guide = "无外来者。示0。"; 
-      speak = '"场上没有外来者角色，请比划0。"'; 
+    } catch (_error) {
+      guide = "⚠️ 信息生成出现问题，请手动选择座位或示0。";
+      speak = '"信息无法自动生成，请你手动指定要告知的两个座位，或比划0。"';
+      action = "展示";
     }
-    action = "展示";
   } else if (effectiveRole.id === 'investigator' && gamePhase==='firstNight') {
     // 调查员：首夜得知一名爪牙的具体身份，并被告知该爪牙在X号或Y号（其中一个是真实的，另一个是干扰项）
-    const minionSeats = seats.filter(s => s.role?.type === 'minion' && s.role && s.id !== currentSeatId);
+    // 使用注册判定：只包含被注册为爪牙的玩家（考虑间谍的伪装与隐士的干扰）
+    const minionSeats = seats.filter(s => 
+      s.role && 
+      s.id !== currentSeatId &&
+      getRegistration(
+        s,
+        effectiveRole,
+        spyDisguiseMode,
+        spyDisguiseProbability
+      ).registersAsMinion
+    );
     
     if(minionSeats.length > 0 && seats.length >= 2) {
       // 正常时：随机选择一个实际存在的爪牙，确保角色存在
@@ -486,7 +818,7 @@ const calculateNightInfo = (
             ? getRandom(filteredMinionRoles.filter(r => r.id !== realRole.id))
             : getRandom(filteredMinionRoles);
           
-          // 2. 选择错误的座位号：只从善良玩家中选择（避开所有邪恶阵营玩家）
+          // 2. 选择错误的座位号：优先从善良玩家中选择，如果没有足够的善良玩家，允许使用邪恶玩家的座位
           // 同时确保这些座位号上的角色都不是错误信息中的角色
           // 善良玩家包括：townsfolk（镇民）和 outsider（外来者）
           // 邪恶玩家包括：minion（爪牙）、demon（恶魔）、isDemonSuccessor（恶魔继任者）
@@ -506,7 +838,25 @@ const calculateNightInfo = (
             return s.role.type === 'townsfolk' || s.role.type === 'outsider';
           });
           
-          const availableGoodSeats = goodSeats.length >= 2 ? goodSeats : fallbackGoodSeats;
+          // 如果善良玩家仍然不够，允许使用邪恶玩家的座位（反正信息本身是假的）
+          const allAvailableSeats = seats.filter(s => {
+            if (!s.role || s.id === currentSeatId || s.id === realMinion.id || s.id === decoySeat.id) return false;
+            // 确保座位上的角色不是错误角色
+            return s.role.id !== wrongRole.id;
+          });
+          
+          // 优先使用善良玩家，如果不够则使用所有可用座位
+          let availableGoodSeats = goodSeats.length >= 2 ? goodSeats : fallbackGoodSeats;
+          if (availableGoodSeats.length < 2) {
+            // 如果没有足够的善良玩家，使用所有可用座位（包括邪恶玩家）
+            availableGoodSeats = allAvailableSeats.length >= 2 ? allAvailableSeats : fallbackGoodSeats.length > 0 ? fallbackGoodSeats : allAvailableSeats;
+          }
+          
+          // 确保至少有一个可用座位（极端情况下的回退）
+          if (availableGoodSeats.length === 0) {
+            // 如果完全没有可用座位，使用干扰项座位作为最后的回退
+            availableGoodSeats = [decoySeat];
+          }
           
           // 随机打乱座位数组，确保随机性
           const shuffledSeats = [...availableGoodSeats].sort(() => Math.random() - 0.5);
@@ -516,18 +866,35 @@ const calculateNightInfo = (
           // 最终验证：确保两个座位号上的角色都不是错误角色
           if (finalWrongSeat1.role?.id === wrongRole.id) {
             const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
-            if (alternative) finalWrongSeat1 = alternative;
+            if (alternative) {
+              finalWrongSeat1 = alternative;
+            } else {
+              // 如果找不到替代，使用干扰项座位（虽然可能不符合要求，但至少不会报错）
+              finalWrongSeat1 = decoySeat;
+            }
           }
           
           if (finalWrongSeat2.role?.id === wrongRole.id) {
             const alternative = shuffledSeats.find(s => s.id !== finalWrongSeat2.id && s.id !== finalWrongSeat1.id && s.role?.id !== wrongRole.id);
-            if (alternative) finalWrongSeat2 = alternative;
+            if (alternative) {
+              finalWrongSeat2 = alternative;
+            } else {
+              // 如果找不到替代，使用干扰项座位或第一个座位（虽然可能不符合要求，但至少不会报错）
+              finalWrongSeat2 = finalWrongSeat1.id !== decoySeat.id ? decoySeat : finalWrongSeat1;
+            }
           }
           
           // 如果两个座位相同，尝试找不同的座位
-          if (finalWrongSeat1.id === finalWrongSeat2.id) {
+          if (finalWrongSeat1.id === finalWrongSeat2.id && shuffledSeats.length > 1) {
             const differentSeat = shuffledSeats.find(s => s.id !== finalWrongSeat1.id);
-            if (differentSeat) finalWrongSeat2 = differentSeat;
+            if (differentSeat) {
+              finalWrongSeat2 = differentSeat;
+            } else {
+              // 如果找不到不同的座位，使用干扰项座位（如果不同）
+              if (decoySeat.id !== finalWrongSeat1.id) {
+                finalWrongSeat2 = decoySeat;
+              }
+            }
           }
           
           const wrongSeat1Num = finalWrongSeat1.id + 1;
@@ -553,7 +920,7 @@ const calculateNightInfo = (
     let pairs = 0;
     for (let i = 0; i < seats.length; i++) {
       const next = (i + 1) % seats.length;
-      if (isEvil(seats[i]) && isEvil(seats[next]) && !seats[i].isDead && !seats[next].isDead) {
+      if (checkEvilForChefEmpath(seats[i]) && checkEvilForChefEmpath(seats[next]) && !seats[i].isDead && !seats[next].isDead) {
         pairs++;
       }
     }
@@ -592,14 +959,15 @@ const calculateNightInfo = (
     speak = '"请查看魔典。"'; 
     action="展示";
   } else if (effectiveRole.id === 'ravenkeeper') {
-    if (!targetSeat.isDead) { 
-      guide = "你还活着。"; 
+    if (!targetSeat.isDead || !diedTonight) { 
+      guide = "你尚未在本夜死亡，不会被唤醒。"; 
       speak = "（摇头示意无效）"; 
+      action = "跳过";
     } else { 
       guide = "查验一身份。"; 
       speak = '"请选择一名玩家。"'; 
+      action = "查验";
     }
-    action = "查验";
   } 
   // ========== 夜半狂欢角色处理 ==========
   else if (effectiveRole.id === 'professor_mr' && gamePhase !== 'firstNight') {
@@ -621,8 +989,22 @@ const calculateNightInfo = (
     // 贵族：首夜得知三名玩家，其中恰好有一名是邪恶的
     const allPlayers = seats.filter(s => s.id !== currentSeatId && s.role);
     if (allPlayers.length >= 3) {
-      const evilPlayers = allPlayers.filter(s => checkEvil(s));
-      const goodPlayers = allPlayers.filter(s => !checkEvil(s));
+      const evilPlayers = allPlayers.filter(s => 
+        getRegistration(
+          s,
+          effectiveRole,
+          spyDisguiseMode,
+          spyDisguiseProbability
+        ).alignment === 'Evil'
+      );
+      const goodPlayers = allPlayers.filter(s => 
+        getRegistration(
+          s,
+          effectiveRole,
+          spyDisguiseMode,
+          spyDisguiseProbability
+        ).alignment === 'Good'
+      );
       
       let selectedPlayers: Seat[] = [];
       if (evilPlayers.length > 0 && goodPlayers.length >= 2) {
@@ -659,11 +1041,78 @@ const calculateNightInfo = (
         action = "展示";
       }
   } else if (effectiveRole.id === 'balloonist') {
-    // 气球驾驶员：每晚得知一名不同角色类型的玩家，直到你得知了场上所有角色类型
-    // 这里需要记录已经得知的角色类型
-    guide = "🎈 选择一名玩家，你会得知他的角色类型。"; 
-    speak = '"请选择一名玩家。你会得知他的角色类型。"'; 
-    action = "inspect";
+    // 气球驾驶员：被动信息技能，每晚自动得知一名不同角色类型的玩家座位号
+    // 检查历史记录，找出已经给过的角色类型
+    const typeNames: Record<string, string> = { 
+      townsfolk: "镇民", 
+      outsider: "外来者", 
+      minion: "爪牙", 
+      demon: "恶魔" 
+    };
+    
+    const allTypes: RoleType[] = ['townsfolk', 'outsider', 'minion', 'demon'];
+    const givenTypes = new Set<RoleType>();
+    
+    // 从历史记录中提取已经给过的角色类型
+    if (gameLogs) {
+      gameLogs.forEach(log => {
+        // 查找气球驾驶员的日志，格式类似："X号(气球驾驶员) 得知 Y号，角色类型：镇民"
+        const match = log.message.match(/(\d+)号\(气球驾驶员\).*角色类型[：:](.+)/);
+        if (match) {
+          const typeName = match[2].trim();
+          // 根据类型名称找到对应的 RoleType
+          for (const [type, name] of Object.entries(typeNames)) {
+            if (name === typeName) {
+              givenTypes.add(type as RoleType);
+              break;
+            }
+          }
+        }
+      });
+    }
+    
+    // 找出还没有给过的角色类型
+    const remainingTypes = allTypes.filter(type => !givenTypes.has(type));
+    
+    let targetType: RoleType | null = null;
+    let targetSeatId: number | null = null;
+    
+    if (shouldShowFake) {
+      // 中毒时：返回重复阵营的角色的座位号（从已给过的类型中随机选一个，如果已给过的类型为空，则从所有类型中选）
+      const typesToChooseFrom = givenTypes.size > 0 ? Array.from(givenTypes) : allTypes;
+      targetType = getRandom(typesToChooseFrom);
+    } else if (remainingTypes.length > 0) {
+      // 正常情况：从未给过的类型中随机选一个
+      targetType = getRandom(remainingTypes);
+    } else {
+      // 所有类型都已给过，随机选择一个
+      targetType = getRandom(allTypes);
+    }
+    
+    // 找到该类型的角色（排除自己）
+    if (targetType) {
+      const candidates = seats.filter(s => 
+        s.role && 
+        s.id !== currentSeatId && 
+        !s.isDead &&
+        s.role.type === targetType
+      );
+      
+      if (candidates.length > 0) {
+        const selected = getRandom(candidates);
+        targetSeatId = selected.id;
+      }
+    }
+    
+    if (targetSeatId !== null && targetType) {
+      guide = `🎈 你得知 ${targetSeatId+1}号，角色类型：${typeNames[targetType]}`;
+      speak = `"你得知 ${targetSeatId+1}号，角色类型：${typeNames[targetType]}。"`;
+      action = "无行动";
+    } else {
+      guide = "🎈 无可用信息。";
+      speak = '"无可用信息。"';
+      action = "无行动";
+    }
   } else if (effectiveRole.id === 'amnesiac') {
     // 失意者：每个白天可以询问说书人一次猜测
     guide = "🧠 每个白天，你可以询问说书人一次猜测，你会得知你的猜测有多准确。"; 
@@ -767,6 +1216,36 @@ const calculateNightInfo = (
         guide = "⚔️ 选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。"; 
         speak = '"请选择一名玩家。他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。"'; 
         action = "kill";
+    }
+  } else if (effectiveRole.id === 'zombuul') {
+    // 僵怖：每晚如果今天白天没有人死亡，你会被唤醒并要选择一名玩家：他死亡
+    if (gamePhase === 'firstNight') {
+      // 检查罂粟种植者状态：如果罂粟种植者在场且存活，恶魔不知道爪牙是谁
+      const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
+      const shouldHideMinions = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
+      
+      if (shouldHideMinions) {
+        guide = `🌺 罂粟种植者在场，你不知道你的爪牙是谁。`;
+        speak = `"罂粟种植者在场，你不知道你的爪牙是谁。"`;
+        action = "无信息";
+      } else {
+        const minions = seats.filter(s => s.role?.type === 'minion' && s.id !== currentSeatId).map(s => `${s.id+1}号`);
+        guide = `👿 爪牙列表：${minions.length > 0 ? minions.join(', ') : '无'}。`;
+        speak = `"${minions.length > 0 ? `你的爪牙是 ${minions.join('、')}。` : '场上没有爪牙。'}请确认你的爪牙。"`;
+        action = "展示";
+      }
+    } else {
+      // 非首夜：如果上一个黄昏没有处决（lastDuskExecution === null），僵怖应该被唤醒
+      if (lastDuskExecution === null) {
+        guide = "⚔️ 选择一名玩家：他死亡。";
+        speak = '"请选择一名玩家。他死亡。"';
+        action = "kill";
+      } else {
+        // 如果上一个黄昏有处决，僵怖不应该被唤醒（这个检查在startNight中已经处理，但这里作为双重保障）
+        guide = "💤 今天白天有人死亡或处决，无需行动。";
+        speak = '"今天白天有人死亡或处决，你无需行动。"';
+        action = "跳过";
+      }
     }
   } else if (effectiveRole.id === 'hadesia') {
     // 哈迪寂亚：每晚选择三名玩家（所有玩家都会得知你选择了谁），他们秘密决定自己的命运，如果他们全部存活，他们全部死亡
@@ -872,8 +1351,6 @@ export default function Home() {
   const [showDayActionModal, setShowDayActionModal] = useState<{type: 'slayer'|'nominate', sourceId: number} | null>(null);
   const [showDrunkModal, setShowDrunkModal] = useState<number | null>(null);
   const [showVirginTriggerModal, setShowVirginTriggerModal] = useState<{source: Seat, target: Seat} | null>(null);
-  // 记录贞洁者是否在本局游戏中已被提名过（每局仅能触发一次）
-  const [virginNominatedThisGame, setVirginNominatedThisGame] = useState(false);
   const [showRavenkeeperFakeModal, setShowRavenkeeperFakeModal] = useState<number | null>(null);
   const [showRavenkeeperResultModal, setShowRavenkeeperResultModal] = useState<{targetId: number, roleName: string, isFake: boolean} | null>(null);
   const [showVoteInputModal, setShowVoteInputModal] = useState<number | null>(null);
@@ -886,19 +1363,26 @@ export default function Home() {
   const [showExecutionResultModal, setShowExecutionResultModal] = useState<{message: string, isVirginTrigger?: boolean} | null>(null);
   const [showShootResultModal, setShowShootResultModal] = useState<{message: string, isDemonDead: boolean} | null>(null);
   const [showKillConfirmModal, setShowKillConfirmModal] = useState<number | null>(null); // 恶魔确认杀死玩家
+  const [showMayorRedirectModal, setShowMayorRedirectModal] = useState<{targetId: number; demonName: string} | null>(null); // 市长被攻击时的转移提示
+  const [mayorRedirectTarget, setMayorRedirectTarget] = useState<number | null>(null); // 市长转移的目标
   const [showPoisonConfirmModal, setShowPoisonConfirmModal] = useState<number | null>(null); // 投毒者确认下毒
   const [showPoisonEvilConfirmModal, setShowPoisonEvilConfirmModal] = useState<number | null>(null); // 投毒者确认对邪恶玩家下毒
   const [showNightDeathReportModal, setShowNightDeathReportModal] = useState<string | null>(null); // 夜晚死亡报告
   const [showHadesiaKillConfirmModal, setShowHadesiaKillConfirmModal] = useState<number[] | null>(null); // 哈迪寂亚确认杀死3名玩家
+  const [showMoonchildKillModal, setShowMoonchildKillModal] = useState<{ sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null>(null); // 月之子死亡连锁提示
   const [showRestartConfirmModal, setShowRestartConfirmModal] = useState<boolean>(false); // 重开确认弹窗
   const [poppyGrowerDead, setPoppyGrowerDead] = useState(false); // 罂粟种植者是否已死亡
   const [lastExecutedPlayerId, setLastExecutedPlayerId] = useState<number | null>(null); // 最后被处决的玩家ID（用于食人族）
   const [damselGuessed, setDamselGuessed] = useState(false); // 落难少女是否已被猜测
   const [shamanKeyword, setShamanKeyword] = useState<string | null>(null); // 灵言师的关键词
+  const [spyDisguiseMode, setSpyDisguiseMode] = useState<'off' | 'default' | 'on'>('default'); // 间谍伪装干扰模式：关闭干扰、默认、开启干扰
+  const [spyDisguiseProbability, setSpyDisguiseProbability] = useState(0.8); // 间谍伪装干扰概率（默认80%）
+  const [pukkaPoisonQueue, setPukkaPoisonQueue] = useState<{ targetId: number; nightsUntilDeath: number }[]>([]); // 普卡中毒->死亡队列
 
   const seatsRef = useRef(seats);
   const fakeInspectionResultRef = useRef<string | null>(null);
   const consoleContentRef = useRef<HTMLDivElement>(null);
+  const moonchildChainPendingRef = useRef(false);
   const longPressTimerRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // 存储每个座位的长按定时器
 
   // 根据selectedScript过滤角色的辅助函数
@@ -1040,11 +1524,14 @@ export default function Home() {
       masterId: null, 
       hasUsedSlayerAbility: false, 
       hasUsedVirginAbility: false, 
+      hasBeenNominated: false,
       isDemonSuccessor: false, 
       hasAbilityEvenDead: false,
       statusDetails: [],
+      statuses: [],
       grandchildId: null,
-      isGrandchild: false
+      isGrandchild: false,
+      zombuulLives: 1
       })));
       triggerIntroLoading();
   }, [triggerIntroLoading]);
@@ -1090,17 +1577,38 @@ export default function Home() {
     });
   }, [nightCount, gamePhase]);
 
+  const cleanStatusesForNewDay = useCallback(() => {
+    setSeats(prev => prev.map(s => {
+      const remaining = (s.statuses || []).filter(status => 
+        status.effect === 'ExecutionProof' || status.duration !== 'Night'
+      );
+      return { ...s, statuses: remaining };
+    }));
+  }, []);
+
   const isEvilWithJudgment = useCallback((seat: Seat): boolean => {
     // 默认使用isEvil函数
     return isEvil(seat);
   }, []);
 
+  const enqueueRavenkeeperIfNeeded = useCallback((targetId: number) => {
+    const targetSeat = seats.find(s => s.id === targetId);
+    if (getSeatRoleId(targetSeat) !== 'ravenkeeper') return;
+    setWakeQueueIds(prev => {
+      if (prev.includes(targetId)) return prev;
+      const insertionIndex = Math.min(currentWakeIndex + 1, prev.length);
+      const next = [...prev];
+      next.splice(insertionIndex, 0, targetId);
+      return next;
+    });
+  }, [seats, currentWakeIndex]);
+
   const nightInfo = useMemo(() => {
     if ((gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && currentWakeIndex >= 0 && currentWakeIndex < wakeQueueIds.length) {
-      return calculateNightInfo(selectedScript, seats, wakeQueueIds[currentWakeIndex], gamePhase, lastDuskExecution, fakeInspectionResultRef.current || undefined, drunkFirstInfoRef.current, isEvilWithJudgment, poppyGrowerDead);
+      return calculateNightInfo(selectedScript, seats, wakeQueueIds[currentWakeIndex], gamePhase, lastDuskExecution, fakeInspectionResultRef.current || undefined, drunkFirstInfoRef.current, isEvilWithJudgment, poppyGrowerDead, gameLogs, spyDisguiseMode, spyDisguiseProbability, deadThisNight);
     }
     return null;
-  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead]);
+  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, gameLogs, spyDisguiseMode, spyDisguiseProbability, deadThisNight]);
 
   useEffect(() => {
     if (nightInfo) {
@@ -1119,25 +1627,9 @@ export default function Home() {
       
       // 没有缓存，重新计算 hint
       let fakeResult = currentHint.fakeInspectionResult;
-      if (nightInfo.effectiveRole.id === 'fortune_teller' && nightInfo.isPoisoned && !fakeResult) {
-        // 占卜师的假信息生成：根据酒鬼/中毒状态使用不同的概率
-        const targetSeat = seats.find(s => s.id === nightInfo.seat.id);
-        if (targetSeat) {
-          // 判断是否应该显示假信息（根据酒鬼/中毒状态和概率）
-          const fakeInfoCheck = drunkFirstInfoRef.current 
-            ? shouldShowFakeInfo(targetSeat, drunkFirstInfoRef.current)
-            : { showFake: nightInfo.isPoisoned, isFirstTime: false };
-          
-          if (fakeInfoCheck.showFake) {
-            // 显示假信息：随机生成"是"或"否"
-            fakeResult = Math.random() < 0.5 ? "✅ 是" : "❌ 否";
-            fakeInspectionResultRef.current = fakeResult;
-          } else {
-            // 显示真信息：不设置fakeResult，让后续逻辑计算真实结果
-            fakeInspectionResultRef.current = null;
-          }
-        }
-      } else if (nightInfo.effectiveRole.id !== 'fortune_teller' || !nightInfo.isPoisoned) {
+      // 占卜师的假信息现在在玩家选择后根据真实结果生成（在 toggleTarget 函数中）
+      // 这里不再预先生成假信息，因为需要先知道玩家选择了谁才能计算真实结果
+      if (nightInfo.effectiveRole.id !== 'fortune_teller' || !nightInfo.isPoisoned) {
         fakeInspectionResultRef.current = null;
       }
 
@@ -1149,6 +1641,29 @@ export default function Home() {
         fakeInspectionResult: fakeResult
       };
       
+      // 气球驾驶员：自动记录日志（被动信息技能）
+      if (nightInfo.effectiveRole.id === 'balloonist' && nightInfo.guide.includes('你得知')) {
+        // 从 guide 中提取信息：格式为 "🎈 你得知 X号，角色类型：镇民"
+        const match = nightInfo.guide.match(/你得知 (\d+)号，角色类型[：:](.+)/);
+        if (match) {
+          const seatNum = match[1];
+          const typeName = match[2].trim();
+          // 检查是否已经记录过（避免重复记录）
+          const alreadyLogged = gameLogs.some(log => 
+            log.message.includes(`${nightInfo.seat.id+1}号(气球驾驶员)`) && 
+            log.message.includes(`得知 ${seatNum}号`) &&
+            log.phase === gamePhase
+          );
+          if (!alreadyLogged) {
+            addLogWithDeduplication(
+              `${nightInfo.seat.id+1}号(气球驾驶员) 得知 ${seatNum}号，角色类型：${typeName}`,
+              nightInfo.seat.id,
+              '气球驾驶员'
+            );
+          }
+        }
+      }
+      
       // 保存到缓存
       hintCacheRef.current.set(hintKey, newHint);
       setCurrentHint(newHint);
@@ -1159,7 +1674,7 @@ export default function Home() {
         fakeInspectionResultRef.current = null;
       }
     }
-  }, [currentWakeIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult]);
+  }, [currentWakeIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult, gameLogs, addLogWithDeduplication]);
 
   // 夜晚阶段切换角色时，自动滚动控制台到顶部
   useEffect(() => {
@@ -1208,8 +1723,15 @@ export default function Home() {
   }, [gamePhase, winResult, selectedScript, startTime, timer, winReason, seats, gameLogs, saveGameRecord]);
 
   // 检查游戏结束条件
-  const checkGameOver = useCallback((updatedSeats: Seat[]) => {
-    const aliveCount = updatedSeats.filter(s => !s.isDead).length;
+  const checkGameOver = useCallback((updatedSeats: Seat[], executedPlayerId?: number | null) => {
+    // 计算存活人数：僵怖假死状态（isFirstDeathForZombuul=true但isZombuulTrulyDead=false）应该被算作存活
+    const aliveCount = updatedSeats.filter(s => {
+      // 僵怖特殊处理：假死状态算作存活
+      if (s.role?.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
+        return true;
+      }
+      return !s.isDead;
+    }).length;
     
     // 优先检查：当场上仅存2位存活玩家时，游戏结束，宣布邪恶阵营获胜
     // 这个检查应该优先于其他检查，因为这是立即胜利条件
@@ -1223,7 +1745,14 @@ export default function Home() {
     
     // 检查：当场上所有存活玩家都是邪恶阵营时，立即宣布邪恶阵营获胜
     // 注意：在胜负条件计算中，仅计算爪牙和恶魔，隐士永远属于善良阵营
-    const aliveSeats = updatedSeats.filter(s => !s.isDead);
+    // 僵怖假死状态应该被算作存活
+    const aliveSeats = updatedSeats.filter(s => {
+      // 僵怖特殊处理：假死状态算作存活
+      if (s.role?.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
+        return true;
+      }
+      return !s.isDead;
+    });
     if (aliveSeats.length > 0) {
       const allEvil = aliveSeats.every(s => isEvilForWinCondition(s));
       if (allEvil) {
@@ -1235,15 +1764,40 @@ export default function Home() {
       }
     }
     
+    // 优先检查：圣徒被处决导致邪恶方获胜（优先级高于恶魔死亡判定）
+    // 这个检查必须在恶魔死亡检查之前，确保圣徒被处决的判定优先级更高
+    if (executedPlayerId !== null && executedPlayerId !== undefined) {
+      const executedPlayer = updatedSeats.find(s => s.id === executedPlayerId);
+      if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
+        setWinResult('evil');
+        setWinReason('圣徒被处决');
+        setGamePhase('gameOver');
+        addLog("游戏结束：圣徒被处决，邪恶胜利");
+        return true;
+      }
+    }
+    
     // 检查是否有活着的恶魔（包括原小恶魔和"小恶魔（传）"）
-    const aliveDemon = updatedSeats.find(s => 
-      (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead
-    );
+    // 注意：僵怖假死状态（isFirstDeathForZombuul=true但isZombuulTrulyDead=false）不算真正死亡
+    const aliveDemon = updatedSeats.find(s => {
+      if (s.role?.type !== 'demon' && !s.isDemonSuccessor) return false;
+      // 僵怖特殊处理：只有真正死亡（isZombuulTrulyDead=true）才算死亡
+      if (s.role?.id === 'zombuul') {
+        return !s.isZombuulTrulyDead;
+      }
+      return !s.isDead;
+    });
     
     // 检查是否有死亡的恶魔（包括原小恶魔和"小恶魔（传）"）
-    const deadDemon = updatedSeats.find(s => 
-      ((s.role?.type === 'demon' || s.isDemonSuccessor) && s.isDead)
-    );
+    // 注意：僵怖假死状态不算真正死亡
+    const deadDemon = updatedSeats.find(s => {
+      if (s.role?.type !== 'demon' && !s.isDemonSuccessor) return false;
+      // 僵怖特殊处理：只有真正死亡（isZombuulTrulyDead=true）才算死亡
+      if (s.role?.id === 'zombuul') {
+        return s.isZombuulTrulyDead === true;
+      }
+      return s.isDead;
+    });
     
     // 如果原小恶魔死亡，但存在活着的"小恶魔（传）"，游戏继续
     // 只有当所有恶魔（包括"小恶魔（传）"）都死亡时，好人才胜利
@@ -1261,18 +1815,22 @@ export default function Home() {
       return true;
     }
     
-    // 如果没有活着的恶魔，检查是否有红女巫可以继任
+    // 如果没有活着的恶魔，检查是否有红唇女郎可以继任
+    // 注意：红唇女郎的变身逻辑主要在 executePlayer 中处理
+    // 这里只是检查，如果存活玩家数量 < 5 或没有红唇女郎，判定好人胜利
     if (!aliveDemon) {
       const scarletWoman = updatedSeats.find(s => 
         s.role?.id === 'scarlet_woman' && !s.isDead && !s.isDemonSuccessor
       );
-      if (!scarletWoman) {
+      // 如果存活玩家数量 < 5 或没有红唇女郎，判定好人胜利
+      if (aliveCount < 5 || !scarletWoman) {
         setWinResult('good');
         setWinReason('恶魔死亡');
         setGamePhase('gameOver');
         addLog("游戏结束：恶魔死亡，好人胜利");
         return true;
       }
+      // 如果存活玩家数量 >= 5 且有红唇女郎，游戏继续（红唇女郎的变身在 executePlayer 中处理）
     }
     
     const mayor = updatedSeats.find(s => s.role?.id === 'mayor' && !s.isDead);
@@ -1305,7 +1863,7 @@ export default function Home() {
     const rid = nightInfo.effectiveRole.id;
     if (rid === 'monk' && s.id === nightInfo.seat.id) return true;
     if (rid === 'poisoner' && s.isDead) return true;
-    if (rid === 'ravenkeeper' && !nightInfo.seat.isDead) return true;
+    if (rid === 'ravenkeeper' && !deadThisNight.includes(nightInfo.seat.id)) return true;
     // 7. 修复小恶魔选择问题 - 首夜不能选人，非首夜可以选择
     if (rid === 'imp' && gamePhase === 'firstNight') return true;
     // 小恶魔可以选择自己（用于身份转移）
@@ -1338,18 +1896,44 @@ export default function Home() {
       return;
     }
     const compact = active.map((s, i) => ({ ...s, id: i }));
-      setSeats(compact);
-      // 重置贞洁者提名状态（新游戏开始）
-      setVirginNominatedThisGame(false);
+      
+    // 自动为酒鬼分配一个未被使用的镇民角色作为伪装
+    let updatedCompact = [...compact];
+    const drunk = updatedCompact.find(s => s.role?.id === "drunk" && !s.charadeRole);
+    if(drunk) {
+      // 获取所有已被使用的镇民角色ID
+      const usedTownsfokIds = new Set(updatedCompact.map(s => s.role?.id).filter(Boolean));
+      
+      // 从当前剧本的镇民角色中筛选出未被使用的
+      const availableTownsfok = (filteredGroupedRoles['townsfolk'] || groupedRoles['townsfolk'] || [])
+        .filter(r => !usedTownsfokIds.has(r.id));
+      
+      if(availableTownsfok.length > 0) {
+        // 随机选择一个未被使用的镇民角色作为酒鬼的伪装
+        const charadeRole = getRandom(availableTownsfok);
+        updatedCompact = updatedCompact.map(s => 
+          s.id === drunk.id 
+            ? { ...s, charadeRole, isDrunk: true } 
+            : s
+        );
+      } else {
+        // 如果没有未被使用的镇民角色，从所有镇民角色中随机选择一个（即使已被使用）
+        const allTownsfok = filteredGroupedRoles['townsfolk'] || groupedRoles['townsfolk'] || [];
+        if(allTownsfok.length > 0) {
+          const charadeRole = getRandom(allTownsfok);
+          updatedCompact = updatedCompact.map(s => 
+            s.id === drunk.id 
+              ? { ...s, charadeRole, isDrunk: true } 
+              : s
+          );
+        }
+      }
+    }
+    
+    setSeats(updatedCompact);
 
     setTimeout(() => {
-        const drunk = compact.find(s => s.role?.id === "drunk" && !s.charadeRole);
-        if(drunk) { 
-          setShowDrunkModal(drunk.id); 
-          return; 
-        }
-        
-        const withRed = [...compact];
+        const withRed = [...updatedCompact];
           if(!withRed.some(s => s.isRedHerring)) {
             const good = withRed.filter(s => ["townsfolk","outsider"].includes(s.role?.type || ""));
             if(good.length > 0) {
@@ -1398,6 +1982,7 @@ export default function Home() {
   const startNight = (isFirst: boolean) => {
     // 保存历史记录
     saveHistory();
+    const nightlyDeaths: number[] = [];
     
     // 对于非首夜，在进入夜晚前，将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
     // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
@@ -1411,21 +1996,58 @@ export default function Home() {
       // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
     }
     
-      if(isFirst) setStartTime(new Date());
+    if(isFirst) setStartTime(new Date());
+    
+    // 普卡特殊处理：按队列推进中毒->死亡流程
+    const pukkaDeaths: number[] = [];
+    const nextPukkaQueue = pukkaPoisonQueue
+      .map(entry => {
+        const targetSeat = seats.find(s => s.id === entry.targetId);
+        // 如果目标已经死亡（被处决或其他效果），移出队列
+        if (targetSeat?.isDead) return null;
+        const nightsLeft = entry.nightsUntilDeath - 1;
+        if (nightsLeft <= 0) {
+          pukkaDeaths.push(entry.targetId);
+          return null;
+        }
+        return { ...entry, nightsUntilDeath: nightsLeft };
+      })
+      .filter((v): v is { targetId: number; nightsUntilDeath: number } => !!v);
+    if (pukkaDeaths.length > 0) {
+      pukkaDeaths.forEach((id, idx) => {
+        nightlyDeaths.push(id);
+        const isLast = idx === pukkaDeaths.length - 1;
+        killPlayer(id, {
+          seatTransformer: seat => {
+            const filteredStatuses = (seat.statusDetails || []).filter(st => st !== '普卡中毒');
+            return { ...seat, isPoisoned: false, statusDetails: filteredStatuses };
+          },
+          skipGameOverCheck: !isLast, // 最后一次再检查游戏结束，避免重复检查
+        });
+        addLog(`${id+1}号 因普卡的中毒效果死亡并恢复健康`);
+      });
+    }
+    // 更新普卡队列（存活者继续保持中毒状态）
+    setPukkaPoisonQueue(nextPukkaQueue);
+    
     setSeats(p => p.map(s => {
-      // 检查是否有永久中毒标记（舞蛇人制造的中毒）
+      // 检查是否有永久中毒标记（舞蛇人制造的中毒）或亡骨魔中毒标记
       const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+      const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+      const hasPukkaPoison = s.statusDetails?.includes('普卡中毒') || false;
+      const filteredStatuses = (s.statuses || []).filter(status => status.effect !== 'ExecutionProof' && status.duration !== '1 Day');
       return {
         ...s, 
-        // 如果有永久中毒标记，保持 isPoisoned 为 true，否则重置为 false
-        isPoisoned: hasPermanentPoison ? true : false, 
+        statuses: filteredStatuses,
+        // 如果有永久中毒标记、亡骨魔中毒标记或普卡中毒标记，保持 isPoisoned 为 true，否则重置为 false
+        isPoisoned: hasPermanentPoison || hasVigormortisPoison || hasPukkaPoison, 
         isProtected: false,
         protectedBy: null,
         voteCount: undefined, 
         isCandidate: false
       };
     }));
-      setDeadThisNight([]);
+    setDeadThisNight(nightlyDeaths);
     fakeInspectionResultRef.current = null;
     
     // 对于非首夜，检查上一个黄昏是否有处决
@@ -1471,19 +2093,37 @@ export default function Home() {
       }
     }
     
-    const q = seats.filter(s => s.role).filter(s => !s.isDead || s.role?.id === 'ravenkeeper' || s.hasAbilityEvenDead).sort((a,b) => {
-      const ra = a.role?.id === 'drunk' ? a.charadeRole : a.role;
-      const rb = b.role?.id === 'drunk' ? b.charadeRole : b.role;
-      return (isFirst ? (ra?.firstNightOrder??0) : (ra?.otherNightOrder??0)) - (isFirst ? (rb?.firstNightOrder??0) : (rb?.otherNightOrder??0));
-    });
+    const q = seats
+      .filter(s => s.role)
+      .filter(s => 
+        !s.isDead || 
+        s.hasAbilityEvenDead || 
+        s.isFirstDeathForZombuul || 
+        (getSeatRoleId(s) === 'ravenkeeper' && nightlyDeaths.includes(s.id))
+      )
+      .sort((a,b) => {
+        const ra = a.role?.id === 'drunk' ? a.charadeRole : a.role;
+        const rb = b.role?.id === 'drunk' ? b.charadeRole : b.role;
+        return (isFirst ? (ra?.firstNightOrder??0) : (ra?.otherNightOrder??0)) - (isFirst ? (rb?.firstNightOrder??0) : (rb?.otherNightOrder??0));
+      });
     const validQueue = q.filter(s => {
       const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
+      const roleId = r?.id;
+      const diedTonight = nightlyDeaths.includes(s.id);
       // 6. 跳过在夜晚死亡的玩家（小恶魔杀害的玩家），但守鸦人死亡的当晚需要被唤醒，亡骨魔杀死的爪牙（保留能力）也需要被唤醒
-      if (s.isDead && !isFirst && s.role?.id !== 'ravenkeeper' && !s.hasAbilityEvenDead) {
+      // 僵怖假死状态（isFirstDeathForZombuul=true）也需要被唤醒
+      if (roleId === 'ravenkeeper' && !diedTonight) {
+        return false;
+      }
+      if (s.isDead && !diedTonight && !s.hasAbilityEvenDead && !s.isFirstDeathForZombuul) {
         return false;
       }
       // 送葬者：如果上一个黄昏没有处决，不应该被唤醒
       if (r?.id === 'undertaker' && !isFirst && previousDuskExecution === null) {
+        return false;
+      }
+      // 僵怖：如果上一个黄昏有处决，不应该被唤醒（只有在白天没有人死亡时才被唤醒）
+      if (r?.id === 'zombuul' && !isFirst && previousDuskExecution !== null) {
         return false;
       }
       return isFirst ? (r?.firstNightOrder ?? 0) > 0 : (r?.otherNightOrder ?? 0) > 0;
@@ -1534,7 +2174,12 @@ export default function Home() {
         setShowPoisonConfirmModal(targetId);
       }
       // 只更新高亮，不执行下毒，等待确认
-      setSeats(p => p.map(s => ({...s, isPoisoned: false})));
+      // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记
+      setSeats(p => p.map(s => {
+        const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+        const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+        return {...s, isPoisoned: hasPermanentPoison || hasVigormortisPoison};
+      }));
       return;
     }
     
@@ -1550,15 +2195,50 @@ export default function Home() {
       const tid = newT[newT.length - 1];
       const action = nightInfo.effectiveRole.nightActionType;
       if(action === 'poison') {
-        setSeats(p => p.map(s => ({...s, isPoisoned: s.id === tid})));
-        if (nightInfo) {
-          // 7. 行动日志去重：移除该玩家之前的操作记录，只保留最新的
-          setGameLogs(prev => {
-            const filtered = prev.filter(log => 
-              !(log.message.includes(`${nightInfo.seat.id+1}号(投毒者)`) && log.phase === gamePhase)
-            );
-            return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(投毒者) 对 ${tid+1}号 下毒` }];
+        // 普卡特殊处理：只设置中毒，不立即死亡，并更新上一个中毒目标
+        if (nightInfo.effectiveRole.id === 'pukka') {
+          // 将目标放入普卡队列：当前夜晚中毒，下一夜死亡
+          setPukkaPoisonQueue(prev => {
+            const filtered = prev.filter(entry => entry.targetId !== tid);
+            return [...filtered, { targetId: tid, nightsUntilDeath: 1 }];
           });
+          // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记，同时保留既有的普卡中毒标记
+          setSeats(p => p.map(s => {
+            const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+            const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+            const hasPukkaPoison = s.statusDetails?.includes('普卡中毒') || false;
+            const updatedStatusDetails = s.id === tid 
+              ? Array.from(new Set([...(s.statusDetails || []), '普卡中毒']))
+              : (s.statusDetails || []);
+            const shouldBePoisoned = s.id === tid || hasPermanentPoison || hasVigormortisPoison || hasPukkaPoison;
+            return {...s, isPoisoned: shouldBePoisoned, statusDetails: updatedStatusDetails};
+          }));
+          if (nightInfo) {
+            // 7. 行动日志去重：移除该玩家之前的操作记录，只保留最新的
+            setGameLogs(prev => {
+              const filtered = prev.filter(log => 
+                !(log.message.includes(`${nightInfo.seat.id+1}号(普卡)`) && log.phase === gamePhase)
+              );
+              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(普卡) 对 ${tid+1}号 下毒` }];
+            });
+          }
+        } else {
+          // 其他投毒者（投毒者、夜半狂欢投毒者）的正常处理
+          // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记
+          setSeats(p => p.map(s => {
+            const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+            const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+            return {...s, isPoisoned: s.id === tid || hasPermanentPoison || hasVigormortisPoison};
+          }));
+          if (nightInfo) {
+            // 7. 行动日志去重：移除该玩家之前的操作记录，只保留最新的
+            setGameLogs(prev => {
+              const filtered = prev.filter(log => 
+                !(log.message.includes(`${nightInfo.seat.id+1}号(投毒者)`) && log.phase === gamePhase)
+              );
+              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(投毒者) 对 ${tid+1}号 下毒` }];
+            });
+          }
         }
       }
       if(action === 'protect') {
@@ -1599,6 +2279,23 @@ export default function Home() {
             });
           }
         }
+      }
+      if(action === 'mark' && nightInfo.effectiveRole.id === 'devils_advocate' && newT.length === 1) {
+        const targetId = newT[0];
+        setSeats(p => p.map(s => {
+          const filtered = (s.statuses || []).filter(status => status.effect !== 'ExecutionProof');
+          if (s.id === targetId) {
+            const nextStatuses: StatusEffect[] = [...filtered, { effect: 'ExecutionProof', duration: '1 Day', sourceId: nightInfo.seat.id }];
+            return { ...s, statuses: nextStatuses };
+          }
+          return { ...s, statuses: filtered };
+        }));
+        setGameLogs(prev => {
+          const filtered = prev.filter(log => 
+            !(log.message.includes(`${nightInfo.seat.id+1}号(魔鬼代言人)`) && log.phase === gamePhase)
+          );
+          return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(魔鬼代言人) 选择保护 ${targetId+1}号 免于今日处决` }];
+        });
       }
       if(action === 'mark' && nightInfo.effectiveRole.id === 'butler') {
         setSeats(p => p.map(s => ({...s, masterId: tid})));
@@ -1659,26 +2356,7 @@ export default function Home() {
           });
         }
       }
-      if(action === 'inspect' && nightInfo.effectiveRole.id === 'balloonist' && newT.length === 1) {
-        // 气球驾驶员：选择一名玩家，得知他的角色类型
-        const targetSeat = seats.find(s => s.id === newT[0]);
-        if (targetSeat && targetSeat.role) {
-          const roleType = targetSeat.role.type;
-          const typeNames: Record<string, string> = { 
-            townsfolk: "镇民", 
-            outsider: "外来者", 
-            minion: "爪牙", 
-            demon: "恶魔" 
-          };
-          setInspectionResult(`该玩家的角色类型是：${typeNames[roleType] || roleType}`);
-          setGameLogs(prev => {
-            const filtered = prev.filter(log => 
-              !(log.message.includes(`${nightInfo.seat.id+1}号(气球驾驶员)`) && log.phase === gamePhase)
-            );
-            return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(气球驾驶员) 选择 ${newT[0]+1}号，角色类型：${typeNames[roleType]}` }];
-          });
-        }
-      }
+      // 气球驾驶员已改为被动信息技能，不再需要主动选择处理
       if(action === 'kill' && (nightInfo.effectiveRole.id === 'vigormortis_mr' || nightInfo.effectiveRole.id === 'hadesia') && gamePhase !== 'firstNight' && newT.length === 1) {
         // 夜半狂欢恶魔：选择1名玩家后立即显示确认弹窗
         setShowKillConfirmModal(newT[0]);
@@ -1699,16 +2377,32 @@ export default function Home() {
         } else {
           setShowPoisonConfirmModal(targetId);
         }
-        setSeats(p => p.map(s => ({...s, isPoisoned: false})));
+        // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记
+        setSeats(p => p.map(s => {
+          const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+          const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+          return {...s, isPoisoned: hasPermanentPoison || hasVigormortisPoison};
+        }));
         return;
       }
     } else {
       const action = nightInfo.effectiveRole.nightActionType;
       if(action === 'poison') {
-        setSeats(p => p.map(s => ({...s, isPoisoned: false})));
+        // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记
+        setSeats(p => p.map(s => {
+          const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+          const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+          return {...s, isPoisoned: hasPermanentPoison || hasVigormortisPoison};
+        }));
       }
       if(action === 'protect') {
         setSeats(p => p.map(s => ({...s, isProtected: false, protectedBy: null})));
+      }
+      if(action === 'mark' && nightInfo.effectiveRole.id === 'devils_advocate') {
+        setSeats(p => p.map(s => ({
+          ...s,
+          statuses: (s.statuses || []).filter(status => status.effect !== 'ExecutionProof')
+        })));
       }
     }
     
@@ -1716,9 +2410,53 @@ export default function Home() {
       if (newT.length === 2) {
         // 每次选中两人时，实时重新计算结果，并刷新弹窗动画
         let resultText: string;
-        if (currentHint.isPoisoned && currentHint.fakeInspectionResult) {
-          resultText = currentHint.fakeInspectionResult;
+        // 先计算真实结果
+        // 占卜师判断逻辑：查验2人，若有恶魔/红罗刹则显示"是"，其他显示"否"
+        // 使用注册判定：隐士可能被注册为恶魔
+        const hasEvil = newT.some(tid => { 
+          const t = seats.find(x=>x.id===tid); 
+          if (!t || !t.role) return false;
+          // 检查是否注册为恶魔（包括隐士的注册判定）
+          const registration = getRegistration(
+            t,
+            nightInfo.effectiveRole,
+            spyDisguiseMode,
+            spyDisguiseProbability
+          );
+          const isDemon = registration.registersAsDemon;
+          // 检查是否是红罗刹（兼容旧数据：既看 isRedHerring 标记，也看状态文字中是否含"红罗刹"）
+          const isRedHerring = t.isRedHerring === true || (t.statusDetails || []).includes("红罗刹");
+          return isDemon || isRedHerring;
+        });
+        
+        // 如果占卜师中毒/酒鬼，使用误导性信息生成逻辑
+        if (currentHint.isPoisoned) {
+          const targetSeat = seats.find(s => s.id === nightInfo.seat.id);
+          if (targetSeat) {
+            // 判断是否应该显示假信息（根据酒鬼/中毒状态和概率）
+            const fakeInfoCheck = drunkFirstInfoRef.current 
+              ? shouldShowFakeInfo(targetSeat, drunkFirstInfoRef.current)
+              : { showFake: currentHint.isPoisoned, isFirstTime: false };
+            
+            if (fakeInfoCheck.showFake) {
+              // 显示假信息：根据真实结果生成误导性信息
+              resultText = getMisinformation.fortuneTeller(hasEvil);
+              // 更新缓存的假信息结果
+              fakeInspectionResultRef.current = resultText;
+            } else {
+              // 显示真信息
+              resultText = hasEvil ? "✅ 是" : "❌ 否";
+            }
+          } else {
+            resultText = hasEvil ? "✅ 是" : "❌ 否";
+          }
         } else {
+          // 健康状态：显示真实结果
+          resultText = hasEvil ? "✅ 是" : "❌ 否";
+        }
+        
+        // 旧逻辑已移除，保留此注释作为标记
+        if (false) {
           // 占卜师判断逻辑：查验2人，若有恶魔/红罗刹则显示"是"，其他显示"否"
           const hasEvil = newT.some(tid => { 
             const t = seats.find(x=>x.id===tid); 
@@ -1772,7 +2510,7 @@ export default function Home() {
     // 检查是否有待确认的操作（投毒者和恶魔的确认弹窗已在toggleTarget中处理）
     // 如果有打开的确认弹窗，不继续流程
     if(showKillConfirmModal !== null || showPoisonConfirmModal !== null || showPoisonEvilConfirmModal !== null || showHadesiaKillConfirmModal !== null || 
-       showRavenkeeperResultModal !== null || showRavenkeeperFakeModal !== null) {
+       showRavenkeeperResultModal !== null || showRavenkeeperFakeModal !== null || showMoonchildKillModal !== null) {
       return;
     }
     
@@ -1785,13 +2523,20 @@ export default function Home() {
     saveHistory();
     
     // 检查是否有玩家在夜晚死亡，需要跳过他们的环节（但亡骨魔杀死的爪牙保留能力，需要被唤醒）
-    const currentDead = seats.filter(s => s.isDead && !s.hasAbilityEvenDead);
+    const currentDead = seats.filter(s => {
+      const roleId = getSeatRoleId(s);
+      const diedTonight = deadThisNight.includes(s.id);
+      if (roleId === 'ravenkeeper' && diedTonight) return false;
+      return s.isDead && !s.hasAbilityEvenDead;
+    });
     setWakeQueueIds(prev => prev.filter(id => !currentDead.find(d => d.id === id)));
     
     // 如果当前玩家已死亡（且不保留能力），跳过到下一个
     const currentId = wakeQueueIds[currentWakeIndex];
     const currentSeat = currentId !== undefined ? seats.find(s => s.id === currentId) : null;
-    if (currentId !== undefined && currentSeat?.isDead && !currentSeat.hasAbilityEvenDead) {
+    const currentRoleId = getSeatRoleId(currentSeat);
+    const currentDiedTonight = currentSeat ? deadThisNight.includes(currentSeat.id) : false;
+    if (currentId !== undefined && currentSeat?.isDead && !currentSeat.hasAbilityEvenDead && !(currentRoleId === 'ravenkeeper' && currentDiedTonight)) {
         setCurrentWakeIndex(p => p + 1);
         setInspectionResult(null);
         setSelectedActionTargets([]);
@@ -1819,6 +2564,12 @@ export default function Home() {
   // 确认夜晚死亡报告后进入白天
   const confirmNightDeathReport = () => {
     setShowNightDeathReportModal(null);
+    
+    // 白天开始：清理仅限夜晚的状态，但保留魔鬼代言人的跨日保护
+    cleanStatusesForNewDay();
+    
+    // 清除所有保护状态（僧侣的保护只在夜晚有效）
+    setSeats(p => p.map(s => ({...s, isProtected: false, protectedBy: null})));
     
     // 检查罂粟种植者是否死亡，如果死亡，告知爪牙和恶魔彼此
     const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
@@ -1864,6 +2615,238 @@ export default function Home() {
     setGamePhase("day");
   };
   
+  const getDemonDisplayName = (roleId?: string, fallbackName?: string) => {
+    switch (roleId) {
+      case 'hadesia': return '哈迪寂亚';
+      case 'vigormortis_mr': return '亡骨魔';
+      case 'imp': return '小恶魔';
+      case 'zombuul': return '僵怖';
+      case 'shabaloth': return '沙巴洛斯';
+      case 'fang_gu': return '方古';
+      case 'vigormortis': return '亡骨魔';
+      case 'no_dashii': return '诺-达';
+      case 'vortox': return '涡流';
+      case 'po': return '珀';
+      default: return fallbackName || '恶魔';
+    }
+  };
+
+  type KillPlayerOptions = {
+    recordNightDeath?: boolean;
+    keepInWakeQueue?: boolean;
+    seatTransformer?: (seat: Seat) => Seat;
+    skipGameOverCheck?: boolean;
+    executedPlayerId?: number | null;
+    onAfterKill?: (latestSeats: Seat[]) => void;
+  };
+
+  const killPlayer = useCallback(
+    (targetId: number, options: KillPlayerOptions = {}) => {
+      const seatsSnapshot = seatsRef.current || seats;
+      const targetSeat = seatsSnapshot.find(s => s.id === targetId);
+      if (!targetSeat) return;
+
+      // 茶艺师动态保护：实时计算邻座是否提供保护
+      if (hasTeaLadyProtection(targetSeat, seatsSnapshot)) {
+        addLog(`${targetId + 1}号 被茶艺师保护，未死亡`);
+        return;
+      }
+
+      const {
+        recordNightDeath = true,
+        keepInWakeQueue = false,
+        seatTransformer,
+        skipGameOverCheck,
+        executedPlayerId = null,
+        onAfterKill,
+      } = options;
+
+      const shouldSkipGameOver = skipGameOverCheck ?? targetSeat.role?.id === 'moonchild';
+
+      let updatedSeats: Seat[] = [];
+      setSeats(prev => {
+        updatedSeats = prev.map(s => {
+          if (s.id !== targetId) return s;
+          let next: Seat = { ...s, isDead: true };
+          // 僵怖假死状态再次被杀死：算作真正死亡
+          if (s.role?.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
+            next = { ...next, isZombuulTrulyDead: true };
+          }
+          if (seatTransformer) {
+            next = seatTransformer(next);
+          }
+          return next;
+        });
+        return updatedSeats;
+      });
+
+      if (!keepInWakeQueue) {
+        setWakeQueueIds(prev => prev.filter(id => id !== targetId));
+      }
+
+      if (recordNightDeath) {
+        setDeadThisNight(prev => (prev.includes(targetId) ? prev : [...prev, targetId]));
+      }
+
+      enqueueRavenkeeperIfNeeded(targetId);
+
+      const finalize = (latestSeats?: Seat[]) => {
+        const seatsToUse = latestSeats || updatedSeats;
+        if (!shouldSkipGameOver) {
+          moonchildChainPendingRef.current = false;
+          checkGameOver(seatsToUse, executedPlayerId);
+        }
+        onAfterKill?.(seatsToUse);
+      };
+
+      if (targetSeat.role?.id === 'moonchild') {
+        moonchildChainPendingRef.current = true;
+        setShowMoonchildKillModal({
+          sourceId: targetId,
+          onResolve: finalize,
+        });
+        return;
+      }
+
+      finalize(updatedSeats);
+    },
+    [seats, enqueueRavenkeeperIfNeeded, checkGameOver]
+  );
+
+  type KillProcessResult = 'pending' | 'resolved';
+
+  const processDemonKill = (
+    targetId: number,
+    options: { skipMayorRedirectCheck?: boolean; mayorId?: number | null } = {}
+  ): KillProcessResult => {
+    if (!nightInfo) return 'resolved';
+    const seatsSnapshot = seatsRef.current || seats;
+    const target = seatsSnapshot.find(s => s.id === targetId);
+    if (!target) return 'resolved';
+
+    // 检查保护是否有效：如果被保护，必须检查保护者（僧侣）是否中毒/醉酒
+    let isEffectivelyProtected = false;
+    if (target.isProtected && target.protectedBy !== null) {
+      const protector = seatsSnapshot.find(s => s.id === target.protectedBy);
+      if (protector) {
+        // 如果保护者中毒/醉酒，保护绝对无效，无论isProtected是否为true
+        const isProtectorPoisoned = protector.isPoisoned || protector.isDrunk || protector.role?.id === "drunk";
+        if (isProtectorPoisoned) {
+          // 保护者中毒/醉酒，保护无效，同时清除错误的保护状态
+          isEffectivelyProtected = false;
+          setSeats(p => p.map(s => 
+            s.id === targetId ? {...s, isProtected: false, protectedBy: null} : s
+          ));
+        } else {
+          // 保护者健康，保护有效
+          isEffectivelyProtected = true;
+        }
+      } else {
+        // 保护者不存在，保护无效
+        isEffectivelyProtected = false;
+      }
+    }
+    const teaLadyProtected = hasTeaLadyProtection(target, seatsSnapshot);
+    // 如果玩家被保护，记录日志说明保护生效（僧侣的保护对所有恶魔都有效）
+    if (isEffectivelyProtected) {
+      const protector = seatsSnapshot.find(s => s.id === target.protectedBy);
+      const demonName = getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
+      if (protector) {
+        addLogWithDeduplication(
+          `${nightInfo.seat.id+1}号(${demonName}) 试图杀害 ${targetId+1}号，但 ${targetId+1}号 被 ${protector.id+1}号(僧侣) 保护`,
+          nightInfo.seat.id,
+          demonName
+        );
+      }
+    }
+    if (teaLadyProtected) {
+      addLog(`${targetId+1}号 被茶艺师保护，未被夜晚杀害`);
+    }
+    
+    // 检查目标是否可以被杀死：僵怖假死状态可以被杀死
+    const canBeKilled = target && !isEffectivelyProtected && !teaLadyProtected && target.role?.id !== 'soldier' && 
+      (!target.isDead || (target.role?.id === 'zombuul' && target.isFirstDeathForZombuul && !target.isZombuulTrulyDead));
+
+    // 市长特殊处理：允许死亡转移
+    if (canBeKilled && !options.skipMayorRedirectCheck && target.role?.id === 'mayor') {
+      const aliveCandidates = seats.filter(s => !s.isDead && s.id !== targetId);
+      if (aliveCandidates.length > 0) {
+        setMayorRedirectTarget(null);
+        setShowKillConfirmModal(null);
+        setShowMayorRedirectModal({
+          targetId,
+          demonName: getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name)
+        });
+        return 'pending';
+      }
+    }
+    
+    const mayorNote = options.mayorId !== undefined && options.mayorId !== null 
+      ? `（由${options.mayorId + 1}号市长转移）`
+      : '';
+
+    if(canBeKilled) {
+      // 夜半狂欢亡骨魔特殊处理：杀死爪牙时，爪牙保留能力，且邻近的两名镇民之一中毒
+      if (nightInfo.effectiveRole.id === 'vigormortis_mr' && target.role?.type === 'minion') {
+        // 找到邻近的两名镇民
+        const targetIndex = seats.findIndex(s => s.id === targetId);
+        const totalSeats = seats.length;
+        const leftIndex = (targetIndex - 1 + totalSeats) % totalSeats;
+        const rightIndex = (targetIndex + 1) % totalSeats;
+        const leftNeighbor = seats[leftIndex];
+        const rightNeighbor = seats[rightIndex];
+        const townsfolkNeighbors = [leftNeighbor, rightNeighbor].filter(s => 
+          s.role?.type === 'townsfolk' && !s.isDead
+        );
+        
+        // 随机选择一名镇民中毒
+        const poisonedNeighbor = townsfolkNeighbors.length > 0 ? getRandom(townsfolkNeighbors) : null;
+        
+        if (poisonedNeighbor) {
+          setSeats(p => p.map(s => {
+            if (s.id === poisonedNeighbor.id) {
+              const statusDetails = [...(s.statusDetails || [])];
+              if (!statusDetails.includes('亡骨魔中毒')) {
+                statusDetails.push('亡骨魔中毒');
+              }
+              return { ...s, isPoisoned: true, statusDetails };
+            }
+            return s;
+          }));
+        }
+
+        killPlayer(targetId, {
+          keepInWakeQueue: true, // 保留能力，需要夜晚继续唤醒
+          seatTransformer: seat => ({ ...seat, hasAbilityEvenDead: true }),
+          onAfterKill: () => {
+            if (nightInfo) {
+              addLogWithDeduplication(
+                `${nightInfo.seat.id+1}号(亡骨魔) 杀害 ${targetId+1}号(爪牙)${mayorNote}，爪牙保留能力${poisonedNeighbor ? `，${poisonedNeighbor.id+1}号(邻近镇民)中毒` : ''}`,
+                nightInfo.seat.id,
+                '亡骨魔'
+              );
+            }
+          }
+        });
+      } else {
+        // 正常杀死其他玩家
+        killPlayer(targetId, {
+          onAfterKill: () => {
+            if (nightInfo) {
+              const demonName = getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
+              addLogWithDeduplication(
+                `${nightInfo.seat.id+1}号(${demonName}) 杀害 ${targetId+1}号${mayorNote}，${targetId+1}号已在夜晚死亡`,
+                nightInfo.seat.id,
+                demonName
+              );
+            }
+          }
+        });
+      }
+    }
+    return 'resolved';
+  };
+
   // 确认杀死玩家
   const confirmKill = () => {
     if(!nightInfo || showKillConfirmModal === null) return;
@@ -1912,6 +2895,7 @@ export default function Home() {
         
         // 记录原小恶魔的死亡
         setDeadThisNight(p => [...p, impSeat.id]);
+        enqueueRavenkeeperIfNeeded(impSeat.id);
         
         if (nightInfo) {
           addLogWithDeduplication(
@@ -1919,6 +2903,11 @@ export default function Home() {
             impSeat.id,
             '小恶魔'
           );
+          
+          // 显眼的高亮提示：提醒说书人唤醒新恶魔玩家
+          console.warn('%c⚠️ 重要提醒：小恶魔传位成功 ⚠️', 'color: #FFD700; font-size: 20px; font-weight: bold; background: #1a1a1a; padding: 10px; border: 3px solid #FFD700;');
+          console.warn(`%c请立即唤醒 ${newImp.id+1}号玩家，向其出示"你是小恶魔"卡牌！`, 'color: #FF6B6B; font-size: 16px; font-weight: bold; background: #1a1a1a; padding: 8px;');
+          console.warn(`%c注意：新恶魔今晚不行动，从下一夜开始才会进入唤醒队列。`, 'color: #4ECDC4; font-size: 14px; background: #1a1a1a; padding: 5px;');
         }
       } else {
         // 如果没有活着的爪牙，小恶魔不能选择自己
@@ -1927,96 +2916,38 @@ export default function Home() {
         return;
       }
     } else {
-      // 正常杀死其他玩家
-      const target = seats.find(s => s.id === targetId);
-      // 检查保护是否有效：如果被保护，必须检查保护者（僧侣）是否中毒/醉酒
-      // 关键：中毒/醉酒状态下的僧侣的保护绝对无效
-      let isEffectivelyProtected = false;
-      if (target?.isProtected && target.protectedBy !== null) {
-        const protector = seats.find(s => s.id === target.protectedBy);
-        if (protector) {
-          // 如果保护者中毒/醉酒，保护绝对无效，无论isProtected是否为true
-          const isProtectorPoisoned = protector.isPoisoned || protector.isDrunk || protector.role?.id === "drunk";
-          if (isProtectorPoisoned) {
-            // 保护者中毒/醉酒，保护无效，同时清除错误的保护状态
-            isEffectivelyProtected = false;
-            setSeats(p => p.map(s => 
-              s.id === targetId ? {...s, isProtected: false, protectedBy: null} : s
-            ));
-          } else {
-            // 保护者健康，保护有效
-            isEffectivelyProtected = true;
-          }
-        } else {
-          // 保护者不存在，保护无效
-          isEffectivelyProtected = false;
-        }
-      }
-      if(target && !isEffectivelyProtected && target.role?.id !== 'soldier' && !target.isDead) {
-        // 夜半狂欢亡骨魔特殊处理：杀死爪牙时，爪牙保留能力，且邻近的两名镇民之一中毒
-        if (nightInfo.effectiveRole.id === 'vigormortis_mr' && target.role?.type === 'minion') {
-          // 找到邻近的两名镇民
-          const targetIndex = seats.findIndex(s => s.id === targetId);
-          const totalSeats = seats.length;
-          const leftIndex = (targetIndex - 1 + totalSeats) % totalSeats;
-          const rightIndex = (targetIndex + 1) % totalSeats;
-          const leftNeighbor = seats[leftIndex];
-          const rightNeighbor = seats[rightIndex];
-          const townsfolkNeighbors = [leftNeighbor, rightNeighbor].filter(s => 
-            s.role?.type === 'townsfolk' && !s.isDead
-          );
-          
-          // 随机选择一名镇民中毒
-          const poisonedNeighbor = townsfolkNeighbors.length > 0 ? getRandom(townsfolkNeighbors) : null;
-          
-          setSeats(p => {
-            const updated = p.map(s => {
-              if (s.id === targetId) {
-                // 亡骨魔杀死的爪牙：死亡但保留能力
-                return { ...s, isDead: true, hasAbilityEvenDead: true };
-              } else if (poisonedNeighbor && s.id === poisonedNeighbor.id) {
-                return { ...s, isPoisoned: true };
-              }
-              return s;
-            });
-            // 不要从唤醒队列中移除，因为爪牙保留能力，需要在夜晚被唤醒
-            checkGameOver(updated);
-            return updated;
-          });
-          
-          setDeadThisNight(p => [...p, targetId]);
-          if (nightInfo) {
-            const neighborInfo = poisonedNeighbor ? `，${poisonedNeighbor.id+1}号(邻近镇民)中毒` : '';
-            addLogWithDeduplication(
-              `${nightInfo.seat.id+1}号(亡骨魔) 杀害 ${targetId+1}号(爪牙)，爪牙保留能力${neighborInfo}`,
-              nightInfo.seat.id,
-              '亡骨魔'
-            );
-          }
-        } else {
-          // 正常杀死其他玩家
-          setSeats(p => {
-            const updated = p.map(s => s.id === targetId ? { ...s, isDead: true } : s);
-            // 从唤醒队列中移除已死亡的玩家
-            setWakeQueueIds(prev => prev.filter(id => id !== targetId));
-            // 检查游戏结束
-            checkGameOver(updated);
-            return updated;
-          });
-          setDeadThisNight(p => [...p, targetId]);
-          if (nightInfo) {
-            const demonName = nightInfo.effectiveRole.id === 'hadesia' ? '哈迪寂亚' : 
-                             nightInfo.effectiveRole.id === 'vigormortis_mr' ? '亡骨魔' : '小恶魔';
-            addLogWithDeduplication(
-              `${nightInfo.seat.id+1}号(${demonName}) 杀害 ${targetId+1}号，${targetId+1}号已在夜晚死亡`,
-              nightInfo.seat.id,
-              demonName
-            );
-          }
-        }
-      }
+      const result = processDemonKill(targetId);
+      if (result === 'pending') return;
     }
     setShowKillConfirmModal(null);
+    if (moonchildChainPendingRef.current) return;
+    continueToNextAction();
+  };
+
+  const confirmMayorRedirect = (redirectTargetId: number | null) => {
+    if (!nightInfo || !showMayorRedirectModal) return;
+    const mayorId = showMayorRedirectModal.targetId;
+    const demonName = showMayorRedirectModal.demonName;
+
+    setShowMayorRedirectModal(null);
+
+    if (redirectTargetId === null) {
+      // 不转移，市长自己死亡
+      processDemonKill(mayorId, { skipMayorRedirectCheck: true });
+      setShowKillConfirmModal(null);
+      continueToNextAction();
+      return;
+    }
+
+    addLogWithDeduplication(
+      `${nightInfo.seat.id+1}号(${demonName}) 攻击市长 ${mayorId+1}号，死亡转移给 ${redirectTargetId+1}号`,
+      nightInfo.seat.id,
+      demonName
+    );
+
+    processDemonKill(redirectTargetId, { skipMayorRedirectCheck: true, mayorId });
+    setShowKillConfirmModal(null);
+    if (moonchildChainPendingRef.current) return;
     continueToNextAction();
   };
 
@@ -2037,13 +2968,35 @@ export default function Home() {
     setSelectedActionTargets([]);
     continueToNextAction();
   };
+
+  const confirmMoonchildKill = (targetId: number) => {
+    if (!showMoonchildKillModal) return;
+    const { sourceId, onResolve } = showMoonchildKillModal;
+    setShowMoonchildKillModal(null);
+
+    addLog(`${sourceId + 1}号(月之子) 选择 ${targetId + 1}号 与其陪葬`);
+
+    killPlayer(targetId, {
+      onAfterKill: latestSeats => {
+        onResolve?.(latestSeats);
+        if (!moonchildChainPendingRef.current) {
+          continueToNextAction();
+        }
+      }
+    });
+  };
   
   // 确认下毒（善良玩家）
   const confirmPoison = () => {
     const targetId = showPoisonConfirmModal;
     if(!nightInfo || targetId === null) return;
     
-    setSeats(p => p.map(s => ({...s, isPoisoned: s.id === targetId})));
+    // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记
+    setSeats(p => p.map(s => {
+      const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+      const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+      return {...s, isPoisoned: s.id === targetId || hasPermanentPoison || hasVigormortisPoison};
+    }));
     addLogWithDeduplication(
       `${nightInfo.seat.id+1}号(投毒者) 对 ${targetId+1}号 下毒`,
       nightInfo.seat.id,
@@ -2059,7 +3012,12 @@ export default function Home() {
     const targetId = showPoisonEvilConfirmModal;
     if(!nightInfo || targetId === null) return;
     
-    setSeats(p => p.map(s => ({...s, isPoisoned: s.id === targetId})));
+    // 注意：保留永久中毒标记（舞蛇人制造）和亡骨魔中毒标记
+    setSeats(p => p.map(s => {
+      const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+      const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+      return {...s, isPoisoned: s.id === targetId || hasPermanentPoison || hasVigormortisPoison};
+    }));
     addLogWithDeduplication(
       `${nightInfo.seat.id+1}号(投毒者) 对 ${targetId+1}号(队友) 下毒`,
       nightInfo.seat.id,
@@ -2071,61 +3029,157 @@ export default function Home() {
   };
 
   const executePlayer = (id: number) => {
-    const t = seats.find(s => s.id === id);
+    const seatsSnapshot = seatsRef.current || seats;
+    const t = seatsSnapshot.find(s => s.id === id);
     if (!t) return;
-    
-    // 10. 检查小恶魔是否被处决 - 立即结束游戏
-    let newSeats = seats.map(s => s.id === id ? { ...s, isDead: true } : s);
-    
-    // 10. 立即检查恶魔是否死亡（包括所有恶魔类型）
-    if ((t.role?.type === 'demon' || t.isDemonSuccessor)) {
-      setSeats(newSeats);
-      addLog(`${id+1}号(小恶魔) 被处决`);
-      setWinResult('good');
-      setWinReason('小恶魔被处决');
-      setGamePhase('gameOver');
-      addLog("游戏结束：小恶魔被处决，好人胜利");
+
+    // 茶艺师动态保护：邻座善良茶艺师保护的善良玩家无法被处决
+    if (hasTeaLadyProtection(t, seatsSnapshot)) {
+      addLog(`${id+1}号 被茶艺师保护，处决无效`);
+      setExecutedPlayerId(id);
+      setCurrentDuskExecution(id);
       return;
     }
     
-    // 贞洁者逻辑：当真正的镇民在贞洁者健康状态下提名贞洁者时，且贞洁者也是本局游戏中首次被提名
-    // 即使提名者是中毒状态，也会被立即处决，并进入下一个黑夜
-    if (t.role?.id === 'virgin' && !t.hasUsedVirginAbility && !t.isPoisoned && !virginNominatedThisGame) {
-      const nominatorId = showVoteInputModal;
-      if (nominatorId !== null) {
-        const nominator = seats.find(s => s.id === nominatorId);
-        // 检查提名者是否是真正的镇民（不是酒鬼伪装的）
-        // 注意：即使提名者是中毒状态，也会被立即处决
-        const isRealTownsfolk = nominator && 
-                                nominator.role?.type === 'townsfolk' && 
-                                nominator.role?.id !== 'drunk' &&
-                                !nominator.isDrunk;
-        if (isRealTownsfolk) {
-          // 贞洁者首次被提名，立即处决提名者（无视任何规则，包括中毒状态），并立即进入下一个黑夜
-          setVirginNominatedThisGame(true);
-          const updatedSeats = newSeats.map(s => 
-            s.id === nominatorId ? { ...s, isDead: true } : 
-            s.id === id ? { ...s, hasUsedVirginAbility: true } : s
-          );
+    // 魔鬼代言人保护：当日处决免疫
+    if (hasExecutionProof(t)) {
+      addLog(`${id+1}号 受到魔鬼代言人保护，处决无效`);
+      setExecutedPlayerId(id);
+      setCurrentDuskExecution(id);
+      return;
+    }
+    
+    const isZombuul = t.role?.id === 'zombuul';
+    const zombuulLives = t.zombuulLives ?? 1;
+    
+    const markDeath = (overrides: Partial<Seat> = {}) =>
+      seats.map(s => s.id === id ? { ...s, isDead: true, ...overrides } : s);
+    
+    // 僵怖第一次被处决：假死，保留夜间行动，但消耗一次僵怖生命
+    if (isZombuul && zombuulLives > 0 && !t.isZombuulTrulyDead && !t.isFirstDeathForZombuul) {
+      const updatedSeats = seats.map(s => {
+        if (s.id !== id) return s;
+        const details = s.statusDetails || [];
+        const hasFakeDeathTag = details.includes('僵怖假死');
+        return {
+          ...s,
+          // UI 可以通过状态标签体现假死，但逻辑上仍视为存活
+          isDead: false,
+          isFirstDeathForZombuul: true,
+          isZombuulTrulyDead: false,
+          zombuulLives: Math.max(0, zombuulLives - 1),
+          statusDetails: hasFakeDeathTag ? details : [...details, '僵怖假死']
+        };
+      });
+      
+      setSeats(updatedSeats);
+      addLog(`${id+1}号(僵怖) 被处决（假死，游戏继续）`);
+      setExecutedPlayerId(id);
+      setCurrentDuskExecution(id);
+      
+      // 检查其他即时结束条件（如圣徒），正常情况下不会结束
+      if (checkGameOver(updatedSeats, id)) {
+        return;
+      }
+      
+      setTimeout(() => {
+        startNight(false);
+      }, 500);
+      return;
+    }
+    
+    // 10. 检查小恶魔是否被处决 - 先检查红唇女郎
+    let newSeats = markDeath(isZombuul ? { isZombuulTrulyDead: true, zombuulLives: 0 } : {});
+    
+    // 优先检查：圣徒被处决导致邪恶方获胜（优先级高于恶魔死亡判定）
+    // 这个检查必须在恶魔死亡检查之前，确保圣徒被处决的判定优先级更高
+    // 虽然通常不会同时发生，但在复杂结算中要注意优先级
+    if (t?.role?.id === 'saint' && !t.isPoisoned) {
+      setSeats(newSeats);
+      addLog(`${id+1}号 被处决`);
+      setExecutedPlayerId(id);
+      setCurrentDuskExecution(id);
+      setWinResult('evil');
+      setWinReason('圣徒被处决');
+      setGamePhase('gameOver');
+      addLog("游戏结束：圣徒被处决，邪恶胜利");
+      return;
+    }
+    
+    // 10. 立即检查恶魔是否死亡（包括所有恶魔类型）
+    if ((t.role?.type === 'demon' || t.isDemonSuccessor)) {
+      // 僵怖特殊处理：耗尽僵怖生命后再被处决才算真正死亡
+      if (isZombuul) {
+        const updatedSeats = newSeats.map(s => 
+          s.id === id ? { ...s, isZombuulTrulyDead: true, zombuulLives: 0 } : s
+        );
+        setSeats(updatedSeats);
+        addLog(`${id+1}号(僵怖) 被处决（真正死亡）`);
+        setWinResult('good');
+        setWinReason('僵怖被处决');
+        setGamePhase('gameOver');
+        addLog("游戏结束：僵怖被处决，好人胜利");
+        setExecutedPlayerId(id);
+        setCurrentDuskExecution(id);
+        return;
+      }
+      
+      // 计算处决后的存活玩家数量
+      const aliveCount = newSeats.filter(s => !s.isDead).length;
+      
+      // 检查红唇女郎是否可以变成恶魔
+      const scarletWoman = newSeats.find(s => 
+        s.role?.id === 'scarlet_woman' && !s.isDead && !s.isDemonSuccessor
+      );
+      
+      // 如果存活玩家数量 >= 5 且红唇女郎存活，让红唇女郎变成恶魔
+      if (aliveCount >= 5 && scarletWoman) {
+        // 获取被处决的恶魔角色
+        const demonRole = t.role;
+        if (demonRole) {
+          // 将红唇女郎变成恶魔
+          const updatedSeats = newSeats.map(s => {
+            if (s.id === scarletWoman.id) {
+              const statusDetails = [...(s.statusDetails || []), '恶魔（传）'];
+              return {
+                ...s,
+                role: demonRole,
+                isDemonSuccessor: true,
+                statusDetails: statusDetails
+              };
+            }
+            return s;
+          });
+          
           setSeats(updatedSeats);
-          addLog(`${nominatorId+1}号 提名贞洁者被处决`);
-          // 检查游戏结束条件
+          addLog(`${id+1}号(${demonRole.name}) 被处决`);
+          addLog(`${scarletWoman.id+1}号(红唇女郎) 变成新的${demonRole.name}`);
+          
+          // 继续游戏，不触发游戏结束
+          setExecutedPlayerId(id);
+          setCurrentDuskExecution(id);
+          
+          // 检查游戏结束条件（不应该结束，因为新恶魔还在）
           if (checkGameOver(updatedSeats)) {
             return;
           }
-          // 贞洁者触发后，立即进入下一个黑夜（无需等待确认）
-          // 关闭投票输入弹窗
-          setShowVoteInputModal(null);
-          // 显示短暂提示后自动进入黑夜
-          setShowExecutionResultModal({ message: `${nominatorId+1}号玩家被处决（贞洁者触发）`, isVirginTrigger: true });
-          // 延迟500ms后自动进入黑夜，给用户看到提示的时间
+          
+          // 进入下一个夜晚
           setTimeout(() => {
-            setShowExecutionResultModal(null);
             startNight(false);
           }, 500);
           return;
         }
       }
+      
+      // 如果不满足红唇女郎变身条件，判定好人胜利
+      setSeats(newSeats);
+      addLog(`${id+1}号(${t.role?.name || '小恶魔'}) 被处决`);
+      setWinResult('good');
+      setWinReason(`${t.role?.name || '小恶魔'}被处决`);
+      setGamePhase('gameOver');
+      addLog("游戏结束：恶魔被处决，好人胜利");
+      return;
     }
     
     // 无神论者特殊处理：如果说书人被处决（这里用特殊标记表示），好人获胜
@@ -2145,9 +3199,17 @@ export default function Home() {
       const isEvilExecuted = (roleType === 'demon' || roleType === 'minion' || t.isDemonSuccessor);
       setSeats(p => p.map(s => {
         if (s.id === cannibal.id) {
+          // 检查是否有永久中毒（舞蛇人制造）或亡骨魔中毒
+          // 这些永久中毒不能被食人族的能力清除
+          const hasPermanentPoison = s.statusDetails?.includes('永久中毒') || false;
+          const hasVigormortisPoison = s.statusDetails?.includes('亡骨魔中毒') || false;
+          // 如果被处决的是善良玩家，清除临时中毒（食人族能力造成的中毒）
+          // 但必须保留永久中毒和亡骨魔中毒
+          // 如果被处决的是邪恶玩家，设置临时中毒，但也要保留永久中毒
+          const shouldBePoisoned = isEvilExecuted || hasPermanentPoison || hasVigormortisPoison;
           return { 
             ...s, 
-            isPoisoned: isEvilExecuted ? true : false,
+            isPoisoned: shouldBePoisoned,
             // 记录最后被处决的玩家ID，用于后续能力处理
             masterId: id
           };
@@ -2168,17 +3230,10 @@ export default function Home() {
     // 这个记录会在进入下一个黄昏时，更新为lastDuskExecution
     setCurrentDuskExecution(id);
     
-    // 立即检查游戏结束条件（包括存活人数）
-    if (checkGameOver(newSeats)) {
+    // 立即检查游戏结束条件（包括存活人数和恶魔死亡）
+    // 注意：圣徒被处决的检查已经在前面优先处理了，checkGameOver 内部也会检查作为双重保障
+    if (checkGameOver(newSeats, id)) {
       return;
-    }
-    
-    if(t?.role?.id === 'saint' && !t.isPoisoned) { 
-      setWinResult('evil'); 
-      setWinReason('圣徒被处决');
-      setGamePhase('gameOver'); 
-      addLog("游戏结束：圣徒被处决，邪恶胜利");
-      return; 
     }
     
     // 无神论者特殊胜利条件：如果说书人被处决，好人阵营获胜
@@ -2206,35 +3261,59 @@ export default function Home() {
         return;
       }
       
-      // 贞洁者逻辑：当真正的镇民在贞洁者健康状态下提名贞洁者时，且贞洁者也是本局游戏中首次被提名
-      // 即使提名者是中毒状态，也会被立即处决，并进入下一个黑夜
+      // 贞洁者（处女）逻辑处理
+      // 规则：当你第一次被提名时，如果提名你的玩家是镇民，他立刻被处决。
+      // 关键点：无论提名者是谁，只要处女被提名，技能就必须永久失效（即使不触发处决）
       const target = seats.find(s => s.id === id);
       const nominatorSeat = seats.find(s => s.id === sourceId);
       
-      if (target?.role?.id === 'virgin' && !target.hasUsedVirginAbility && !target.isPoisoned && !virginNominatedThisGame) {
+      // 检查是否是处女且是首次被提名（无论提名者是谁，只要被提名过就标记）
+      if (target?.role?.id === 'virgin' && !target.hasBeenNominated && !target.isPoisoned) {
+        // 【关键修复】无论提名者是谁（镇民、外来者、爪牙、恶魔），只要处女被提名，
+        // 就必须立即标记技能已使用（hasUsedVirginAbility = true）和已提名（hasBeenNominated = true）
+        // 这是官方规则要求：技能在第一次被提名时强制结算，之后永久失效
+        const updatedSeats = seats.map(s => 
+          s.id === id ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
+        );
+        
         // 检查提名者是否是真正的镇民（不是酒鬼伪装的）
         // 注意：即使提名者是中毒状态，也会被立即处决
         const isRealTownsfolk = nominatorSeat && 
                                 nominatorSeat.role?.type === 'townsfolk' && 
                                 nominatorSeat.role?.id !== 'drunk' &&
                                 !nominatorSeat.isDrunk;
+        
         if (isRealTownsfolk) {
-          // 贞洁者首次被提名，立即处决提名者（无视任何规则，包括中毒状态），并立即进入下一个黑夜
-          setVirginNominatedThisGame(true);
-          const updatedSeats = seats.map(s => 
-            s.id === sourceId ? { ...s, isDead: true } : 
-            s.id === id ? { ...s, hasUsedVirginAbility: true } : s
+          // 情况1：提名者是镇民 -> 触发处决，提名者立即死亡
+          // 贞洁者首次被提名且提名者是镇民，立即处决提名者（无视任何规则，包括中毒状态），并立即进入下一个黑夜
+          const finalSeats = updatedSeats.map(s => 
+            s.id === sourceId ? { ...s, isDead: true } : s
           );
-          setSeats(updatedSeats);
+          setSeats(finalSeats);
           addLog(`${sourceId+1}号 提名 ${id+1}号`);
           addLog(`${sourceId+1}号 提名贞洁者被处决`);
+          // 优先检查：圣徒被处决导致邪恶方获胜（优先级高于其他检查）
+          const executedPlayer = finalSeats.find(s => s.id === sourceId);
+          if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
+            setWinResult('evil');
+            setWinReason('圣徒被处决');
+            setGamePhase('gameOver');
+            addLog("游戏结束：圣徒被处决，邪恶胜利");
+            return;
+          }
           // 检查游戏结束条件
-          if (checkGameOver(updatedSeats)) {
+          if (checkGameOver(finalSeats, sourceId)) {
             return;
           }
           // 贞洁者触发后，显示弹窗，点击确认后进入下一个黑夜
           setShowExecutionResultModal({ message: `${sourceId+1}号玩家被处决`, isVirginTrigger: true });
           return;
+        } else {
+          // 情况2：提名者不是镇民（外来者、爪牙、恶魔等）-> 不触发处决，但技能已永久失效
+          // 重要：即使技能不触发，hasUsedVirginAbility 和 hasBeenNominated 已经在上面设置为 true
+          // 后续真正的镇民再次提名处女时，技能不会再触发（因为 hasUsedVirginAbility 已经是 true）
+          setSeats(updatedSeats);
+          // 继续正常的提名流程（不在这里记录日志，让后面的代码统一处理）
         }
       }
       
@@ -2248,7 +3327,16 @@ export default function Home() {
           addLog(`${sourceId+1}号(魔像) 提名 ${id+1}号，${id+1}号不是恶魔，${id+1}号死亡`);
           // 检查游戏结束
           const updatedSeats = seats.map(s => s.id === id ? { ...s, isDead: true } : s);
-          if (checkGameOver(updatedSeats)) {
+          // 优先检查：圣徒被处决导致邪恶方获胜（优先级高于其他检查）
+          const executedPlayer = updatedSeats.find(s => s.id === id);
+          if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
+            setWinResult('evil');
+            setWinReason('圣徒被处决');
+            setGamePhase('gameOver');
+            addLog("游戏结束：圣徒被处决，邪恶胜利");
+            return;
+          }
+          if (checkGameOver(updatedSeats, id)) {
             return;
           }
           // 标记魔像已使用能力
@@ -2272,6 +3360,12 @@ export default function Home() {
       // 开枪可以在任意环节，但只有健康猎手选中恶魔才有效
       const shooter = seats.find(s => s.id === sourceId);
       if (!shooter || shooter.hasUsedSlayerAbility) return;
+      // 死亡的猎手不能行动
+      if (shooter.isDead) {
+        addLog(`${sourceId+1}号 已死亡，无法开枪`);
+        setShowShootResultModal({ message: "无事发生（射手已死亡）", isDemonDead: false });
+        return;
+      }
       
       const target = seats.find(s => s.id === id);
       if (!target) return;
@@ -2279,9 +3373,22 @@ export default function Home() {
       // 标记为已使用开枪能力
       setSeats(p => p.map(s => s.id === sourceId ? { ...s, hasUsedSlayerAbility: true } : s));
       
+      // 对尸体开枪：能力被消耗，但无效果
+      if (target.isDead) {
+        addLog(`${sourceId+1}号 对 ${id+1}号的尸体开枪，未产生效果`);
+        setShowShootResultModal({ message: "无事发生（目标已死亡）", isDemonDead: false });
+        return;
+      }
+      
       // 只有健康状态的真正猎手选中恶魔才有效
       const isRealSlayer = shooter.role?.id === 'slayer' && !shooter.isPoisoned && !shooter.isDead;
-      const isDemon = target.role?.type === 'demon' || target.isDemonSuccessor;
+      const targetRegistration = getRegistration(
+        target,
+        shooter.role,
+        spyDisguiseMode,
+        spyDisguiseProbability
+      );
+      const isDemon = targetRegistration.registersAsDemon;
       
       if (isRealSlayer && isDemon) {
         // 恶魔死亡，游戏立即结束
@@ -2562,14 +3669,17 @@ export default function Home() {
     setShowRavenkeeperResultModal(null);
   };
 
+  // 注意：此函数已不再使用，处女的逻辑现在在 handleDayAction 中直接处理
+  // 保留此函数仅为了兼容性，但不会被调用
   const confirmVirginTrigger = () => {
     if (!showVirginTriggerModal) return;
     const { source, target } = showVirginTriggerModal;
-    if (target.role?.id === 'virgin' && !target.hasUsedVirginAbility && !target.isPoisoned) {
+    // 使用 hasBeenNominated 而不是 hasUsedVirginAbility
+    if (target.role?.id === 'virgin' && !target.hasBeenNominated && !target.isPoisoned) {
       setSeats(p => {
         const newSeats = p.map(s => 
           s.id === source.id ? { ...s, isDead: true } : 
-          s.id === target.id ? { ...s, hasUsedVirginAbility: true } : s
+          s.id === target.id ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
         );
         addLog(`${source.id+1}号 提名贞洁者被处决`);
         checkGameOver(newSeats);
@@ -2651,6 +3761,7 @@ export default function Home() {
     // 注意：这里不清空gameLogs，保留游戏记录，用户可以在复盘时查看
     setWinResult(null);
     setDeadThisNight([]);
+    setPukkaPoisonQueue([]); // 清空普卡队列，防止旧局状态泄漏
     setSelectedRole(null);
     setInspectionResult(null);
     setCurrentHint({ isPoisoned: false, guide: "", speak: "" });
@@ -2675,11 +3786,14 @@ export default function Home() {
       masterId: null, 
       hasUsedSlayerAbility: false, 
       hasUsedVirginAbility: false, 
+      hasBeenNominated: false,
       isDemonSuccessor: false, 
       hasAbilityEvenDead: false,
       statusDetails: [],
+      statuses: [],
       grandchildId: null,
-      isGrandchild: false
+      isGrandchild: false,
+      zombuulLives: 1
     })));
     setInitialSeats([]);
   };
@@ -2721,11 +3835,14 @@ export default function Home() {
       masterId: null, 
       hasUsedSlayerAbility: false, 
       hasUsedVirginAbility: false, 
+      hasBeenNominated: false,
       isDemonSuccessor: false, 
       hasAbilityEvenDead: false,
       statusDetails: [],
+      statuses: [],
       grandchildId: null,
-      isGrandchild: false
+      isGrandchild: false,
+      zombuulLives: 1
     })));
     setInitialSeats([]);
   };
@@ -2818,8 +3935,10 @@ export default function Home() {
         isDemonSuccessor: false, 
         hasAbilityEvenDead: false,
         statusDetails: [],
+        statuses: [],
         grandchildId: null,
-        isGrandchild: false
+      isGrandchild: false,
+      zombuulLives: 1
       })));
       setInitialSeats([]);
       return;
@@ -3088,16 +4207,21 @@ export default function Home() {
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">核对身份</h2>
               <div className="bg-gray-800 p-4 rounded-xl text-left text-base space-y-3 max-h-[60vh] overflow-y-auto">
-                {seats.filter(s=>s.role).map(s=>(
-                  <div key={s.id} className="flex justify-between border-b border-gray-700 pb-2">
-                    <span>{s.id+1}号</span>
-                    <span className={s.role?.type==='demon'?'text-red-500 font-bold':''}>
-                      {s.role?.name} 
-                      {s.role?.id==='drunk' && `(伪:${s.charadeRole?.name})`} 
-                      {s.isRedHerring && '[红罗刹]'}
-                    </span>
-          </div>
-                ))}
+                {seats.filter(s=>s.role).map(s=>{
+                  // 酒鬼应该显示伪装角色的名称，而不是"酒鬼"
+                  const displayRole = s.role?.id === 'drunk' && s.charadeRole ? s.charadeRole : s.role;
+                  const displayName = displayRole?.name || '';
+                  return (
+                    <div key={s.id} className="flex justify-between border-b border-gray-700 pb-2">
+                      <span>{s.id+1}号</span>
+                      <span className={s.role?.type==='demon'?'text-red-500 font-bold':''}>
+                        {displayName}
+                        {s.role?.id==='drunk' && <span className="text-gray-400 text-sm">(酒鬼)</span>}
+                        {s.isRedHerring && ' [红罗刹]'}
+                      </span>
+                    </div>
+                  );
+                })}
           </div>
       </div>
           )}
@@ -3176,6 +4300,14 @@ export default function Home() {
                     }
                     // 小恶魔在非首夜可以选择任意活着的玩家
                     if (nightInfo.effectiveRole.id === 'imp' && gamePhase !== 'firstNight') {
+                      return s.role && !s.isDead;
+                    }
+                    // 僵怖可以选择任意活着的玩家（包括假死状态的僵怖自己）
+                    if (nightInfo.effectiveRole.id === 'zombuul') {
+                      // 僵怖假死状态算作存活
+                      if (s.role?.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
+                        return true;
+                      }
                       return s.role && !s.isDead;
                     }
                     // 其他角色根据规则过滤
@@ -3278,6 +4410,92 @@ export default function Home() {
               >
                 确认 / 下一步
               </button>
+              {/* 伪装身份识别列表 */}
+              {(() => {
+                const spySeats = seats.filter(s => s.role?.id === 'spy');
+                const chefSeat = seats.find(s => s.role?.id === 'chef');
+                const empathSeat = seats.find(s => s.role?.id === 'empath');
+                const hasInterferenceRoles = spySeats.length > 0 && (chefSeat || empathSeat);
+                
+                if (hasInterferenceRoles) {
+                  return (
+                    <div className="w-full mt-3 p-3 bg-gray-800 rounded-xl border border-gray-600">
+                      <h4 className="text-sm font-bold mb-2 text-yellow-400">🎭 伪装身份识别</h4>
+                      <div className="mb-2 text-xs text-gray-300">
+                        {spySeats.map(s => (
+                          <div key={s.id} className="mb-1">
+                            {s.id + 1}号 - 间谍
+                          </div>
+                        ))}
+                        {(chefSeat || empathSeat) && (
+                          <div className="mt-2 text-gray-400">
+                            可能受影响：{chefSeat && '厨师'} {chefSeat && empathSeat && '、'} {empathSeat && '共情者'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-300 flex-shrink-0">干扰模式：</label>
+                          <div className="flex gap-1 flex-1">
+                            <button
+                              onClick={() => setSpyDisguiseMode('off')}
+                              className={`flex-1 py-1 px-2 text-xs rounded ${
+                                spyDisguiseMode === 'off' 
+                                  ? 'bg-red-600 text-white' 
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              关闭干扰
+                            </button>
+                            <button
+                              onClick={() => setSpyDisguiseMode('default')}
+                              className={`flex-1 py-1 px-2 text-xs rounded ${
+                                spyDisguiseMode === 'default' 
+                                  ? 'bg-blue-600 text-white' 
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              默认
+                            </button>
+                            <button
+                              onClick={() => setSpyDisguiseMode('on')}
+                              className={`flex-1 py-1 px-2 text-xs rounded ${
+                                spyDisguiseMode === 'on' 
+                                  ? 'bg-green-600 text-white' 
+                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                              }`}
+                            >
+                              开启干扰
+                            </button>
+                          </div>
+                        </div>
+                        {spyDisguiseMode === 'on' && (
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs text-gray-300 flex-shrink-0">干扰概率：</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={spyDisguiseProbability * 100}
+                              onChange={(e) => setSpyDisguiseProbability(parseInt(e.target.value) / 100)}
+                              className="flex-1"
+                            />
+                            <span className="text-xs text-gray-300 w-12 text-right">
+                              {Math.round(spyDisguiseProbability * 100)}%
+                            </span>
+                          </div>
+                        )}
+                        {spyDisguiseMode === 'default' && (
+                          <div className="text-xs text-gray-400">
+                            默认概率：80%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </>
           )}
           {gamePhase==='day' && (
@@ -3429,7 +4647,16 @@ export default function Home() {
               {showDayActionModal.type==='slayer'?'💥 开枪':'🗣️ 提名'}
             </h2>
             <div className="flex flex-wrap gap-3 justify-center">
-              {seats.filter(s=>!s.isDead).map(s=>{
+              {seats.filter(s=>{
+                // 暗月初升剧本：存活玩家可以提名死人
+                // 其他剧本：只能提名存活玩家
+                if (showDayActionModal?.type === 'nominate' && selectedScript?.id === 'bad_moon_rising') {
+                  // 暗月初升：可以提名死人（包括僵怖假死状态）
+                  return s.role !== null;
+                }
+                // 其他情况：只能提名存活玩家
+                return !s.isDead;
+              }).map(s=>{
                 // 8. 提名限制：检查是否已被提名或被提名过
                 const isDisabled = showDayActionModal?.type === 'nominate' && (
                   nominationRecords.nominees.has(s.id) || 
@@ -3526,6 +4753,28 @@ export default function Home() {
             >
               确认
             </button>
+          </div>
+        </div>
+      )}
+
+      {showMoonchildKillModal && (
+        <div className="fixed inset-0 z-[3200] bg-black/90 flex items-center justify-center">
+          <div className="bg-gray-800 p-8 rounded-2xl w-[600px] border-2 border-purple-500 text-center">
+            <h2 className="text-3xl font-bold mb-4 text-purple-300">🌙 月之子已死</h2>
+            <p className="text-lg text-gray-200 mb-6">请选择一名玩家与其陪葬</p>
+            <div className="grid grid-cols-3 gap-3 max-h-[320px] overflow-y-auto">
+              {seats
+                .filter(s => !s.isDead && s.id !== showMoonchildKillModal.sourceId)
+                .map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => confirmMoonchildKill(s.id)}
+                    className="p-3 border-2 border-purple-400 rounded-xl text-lg font-bold hover:bg-purple-900 transition-colors"
+                  >
+                    {s.id + 1}号 {s.role?.name ?? ''}
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
       )}
@@ -4010,6 +5259,58 @@ export default function Home() {
                 className="px-8 py-4 bg-red-600 rounded-xl font-bold text-xl hover:bg-red-700 transition-colors"
               >
                 确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 市长被攻击时的死亡转移弹窗 */}
+      {showMayorRedirectModal && (
+        <div className="fixed inset-0 z-[5100] bg-black/80 flex items-center justify-center px-4">
+          <div className="bg-gray-800 border-4 border-yellow-500 rounded-2xl p-8 max-w-4xl w-full text-center">
+            <h2 className="text-4xl font-bold text-yellow-300 mb-4">🏛️ 市长被攻击</h2>
+            <p className="text-2xl text-white mb-2">
+              恶魔（{showMayorRedirectModal.demonName}）攻击了 {showMayorRedirectModal.targetId+1}号(市长)。
+            </p>
+            <p className="text-xl text-yellow-200 mb-6">是否要转移死亡目标？选择一名存活玩家代替死亡，或让市长死亡。</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[320px] overflow-y-auto mb-6">
+              {seats
+                .filter(s => !s.isDead && s.id !== showMayorRedirectModal.targetId)
+                .map(seat => (
+                  <button
+                    key={seat.id}
+                    onClick={() => setMayorRedirectTarget(seat.id)}
+                    className={`p-4 rounded-xl border-2 transition-colors text-left ${
+                      mayorRedirectTarget === seat.id ? 'border-yellow-400 bg-yellow-400/20' : 'border-gray-600 bg-gray-700/60'
+                    }`}
+                  >
+                    <div className="text-2xl font-bold text-white">{seat.id+1}号</div>
+                    <div className="text-sm text-gray-200">{seat.role?.name || '未分配'}</div>
+                    {seat.isProtected && <div className="text-xs text-green-300 mt-1">被保护</div>}
+                  </button>
+                ))}
+            </div>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <button
+                onClick={() => {
+                  setMayorRedirectTarget(null);
+                  confirmMayorRedirect(null);
+                }}
+                className="px-8 py-4 bg-red-600 rounded-xl font-bold text-xl hover:bg-red-700 transition-colors"
+              >
+                不转移，让市长死亡
+              </button>
+              <button
+                disabled={mayorRedirectTarget === null}
+                onClick={() => mayorRedirectTarget !== null && confirmMayorRedirect(mayorRedirectTarget)}
+                className={`px-8 py-4 rounded-xl font-bold text-xl transition-colors ${
+                  mayorRedirectTarget === null
+                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                    : 'bg-yellow-500 text-black hover:bg-yellow-400'
+                }`}
+              >
+                {mayorRedirectTarget !== null ? `转移给 ${mayorRedirectTarget+1}号` : '请选择替死玩家'}
               </button>
             </div>
           </div>

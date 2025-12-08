@@ -35,6 +35,12 @@ export interface Role {
   script?: string;
 }
 
+export interface StatusEffect {
+  effect: string;
+  duration?: string;
+  sourceId?: number | null;
+}
+
 export interface Seat {
   id: number;
   role: Role | null;
@@ -50,15 +56,18 @@ export interface Seat {
   masterId: number | null;
   hasUsedSlayerAbility: boolean;
   hasUsedVirginAbility: boolean;
+  hasBeenNominated?: boolean; // 处女是否已被提名过（无论是否触发处决）
   isDemonSuccessor: boolean;
   hasAbilityEvenDead: boolean; // 亡骨魔杀死的爪牙：死亡但保留能力
   statusDetails: string[]; 
+  statuses?: StatusEffect[];
   voteCount?: number;
   isCandidate?: boolean;
   grandchildId: number | null; // 记录哪个玩家是"祖母的孙子"（仅当该玩家是祖母时使用）
   isGrandchild: boolean; // 标记该玩家是否是"祖母的孙子"
   isFirstDeathForZombuul?: boolean; // 僵怖首次死亡标记（首次死亡后仍可发动技能，第二次被处决才真正死亡）
   isZombuulTrulyDead?: boolean; // 僵怖真正死亡标记（第二次被处决后）
+  zombuulLives?: number; // 僵怖剩余可“假死”次数（默认1）
 }
 
 export interface LogEntry {
@@ -1223,7 +1232,7 @@ export const roles: Role[] = [
     otherNight: true, 
     firstNightOrder: 8, 
     otherNightOrder: 8, 
-    nightActionType: "inspect", 
+    nightActionType: "none", 
     firstNightReminder: "查角色类型", 
     otherNightReminder: "查角色类型"
   },
