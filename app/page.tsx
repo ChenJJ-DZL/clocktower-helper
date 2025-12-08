@@ -92,7 +92,7 @@ const buildRegistrationCacheKey = (
   return `${options.cacheKey}-t${targetPlayer.id}-${targetRoleId}-v${viewerId}-${disguise}-${probability}-${successor}`;
 };
 
-export const getRegisteredAlignment = (
+const getRegisteredAlignment = (
   targetPlayer: Seat, 
   viewingRole?: Role | null,
   spyDisguiseMode?: 'off' | 'default' | 'on',
@@ -111,7 +111,7 @@ export const getRegisteredAlignment = (
 
 // 判断玩家是否被注册为恶魔（用于占卜师等角色）
 // 隐士可能被注册为恶魔，间谍不相关（占卜师检查的是恶魔，不是邪恶）
-export const isRegisteredAsDemon = (
+const isRegisteredAsDemon = (
   targetPlayer: Seat,
   options?: RegistrationCacheOptions
 ): boolean => {
@@ -128,7 +128,7 @@ export const isRegisteredAsDemon = (
 // 判断玩家是否被注册为爪牙（用于调查员等角色）
 // 间谍虽然是爪牙，但可能被注册为"Good"（善良），此时不应被调查员看到
 // viewingRole: 执行查验的角色，用于判断是否需要应用注册判定
-export const isRegisteredAsMinion = (
+const isRegisteredAsMinion = (
   targetPlayer: Seat,
   viewingRole?: Role | null,
   spyDisguiseMode?: 'off' | 'default' | 'on',
@@ -450,7 +450,8 @@ const calculateNightInfo = (
   vortoxWorld?: boolean,
   demonVotedToday?: boolean,
   minionNominatedToday?: boolean,
-  executedToday?: number | null
+  executedToday?: number | null,
+  hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean
 ): NightInfoResult | null => {
   // 使用传入的判定函数，如果没有则使用默认的isEvil
   const checkEvil = isEvilWithJudgmentFn || isEvil;
@@ -665,7 +666,7 @@ const calculateNightInfo = (
     speak = '"请选择一名玩家。"';
     action = "查验";
   } else if (effectiveRole.id === 'seamstress') {
-    if (hasUsedAbility('seamstress', currentSeatId)) {
+    if (hasUsedAbilityFn && hasUsedAbilityFn('seamstress', currentSeatId)) {
       guide = "一次性能力已用完。";
       speak = '"你的能力已用完。"';
       action = "跳过";
@@ -674,10 +675,6 @@ const calculateNightInfo = (
       speak = '"请选择两名玩家。"';
       action = "查验";
     }
-  } else if (effectiveRole.id === 'witch') {
-    guide = "🧙 选择一名玩家：若他明天白天发起提名则死亡（3人存活时失效）。";
-    speak = '"请选择一名玩家施加诅咒。"';
-    action = "标记";
   } else if (effectiveRole.id === 'washerwoman' && gamePhase==='firstNight') {
     try {
       // 洗衣妇：首夜得知一名村民的具体身份，并被告知该村民在X号或Y号（其中一个是真实的，另一个是干扰项）
@@ -1438,7 +1435,7 @@ const calculateNightInfo = (
   } else if (effectiveRole.id === 'cerenovus') {
     // 洗脑师：每晚选择一名玩家和一个善良角色，他明天白天和夜晚需要"疯狂"地证明自己是这个角色
     guide = "🧠 选择一名玩家和一个善良角色，他明天白天和夜晚需要\"疯狂\"地证明自己是这个角色，不然他可能被处决。"; 
-    speak = '"请选择一名玩家和一个善良角色。他明天白天和夜晚需要\"疯狂\"地证明自己是这个角色，不然他可能被处决。"'; 
+    speak = '"请选择一名玩家和一个善良角色。他明天白天和夜晚需要"疯狂"地证明自己是这个角色，不然他可能被处决。"'; 
     action = "mark";
   } else if (effectiveRole.id === 'pit_hag') {
     // 麻脸巫婆：每晚选择一名玩家和一个角色，如果该角色不在场，他变成该角色
@@ -1586,7 +1583,6 @@ export default function Home() {
   const [fangGuConverted, setFangGuConverted] = useState(false);
   const [jugglerGuesses, setJugglerGuesses] = useState<Record<number, { playerId: number; roleId: string }[]>>({});
   const [evilTwinPair, setEvilTwinPair] = useState<{ evilId: number; goodId: number } | null>(null);
-  const [usedOnceAbilities, setUsedOnceAbilities] = useState<Record<string, number[]>>({});
   
   // 保存每个角色的 hint 信息，用于"上一步"时恢复（不重新生成）
   const hintCacheRef = useRef<Map<string, NightHintState>>(new Map());
@@ -1831,6 +1827,7 @@ export default function Home() {
   // 从localStorage读取对局记录
   const loadGameRecords = useCallback(() => {
     try {
+      if (typeof window === 'undefined') return; // 服务器端不执行
       const stored = localStorage.getItem('clocktower_game_records');
       if (stored) {
         const records = JSON.parse(stored) as GameRecord[];
@@ -1844,6 +1841,7 @@ export default function Home() {
   // 保存对局记录到localStorage
   const saveGameRecord = useCallback((record: GameRecord) => {
     try {
+      if (typeof window === 'undefined') return; // 服务器端不执行
       const stored = localStorage.getItem('clocktower_game_records');
       let records: GameRecord[] = stored ? JSON.parse(stored) : [];
       // 将新记录添加到开头
@@ -1861,34 +1859,40 @@ export default function Home() {
 
   // --- Effects ---
   useEffect(() => {
-      setMounted(true);
-      loadGameRecords(); // 加载对局记录
-      setSeats(Array.from({ length: 15 }, (_, i) => ({ 
-      id: i, 
-      role: null, 
-      charadeRole: null, 
-      isDead: false, 
-      isDrunk: false, 
-      isPoisoned: false, 
-      isProtected: false, 
-      protectedBy: null,
-      isRedHerring: false, 
-      isFortuneTellerRedHerring: false, 
-      isSentenced: false, 
-      masterId: null, 
-      hasUsedSlayerAbility: false, 
-      hasUsedVirginAbility: false, 
-      hasBeenNominated: false,
-      isDemonSuccessor: false, 
-      hasAbilityEvenDead: false,
-      statusDetails: [],
-      statuses: [],
-      grandchildId: null,
-      isGrandchild: false,
-      zombuulLives: 1
-      })));
-      triggerIntroLoading();
-  }, [triggerIntroLoading]);
+      try {
+        setMounted(true);
+        loadGameRecords(); // 加载对局记录
+        setSeats(Array.from({ length: 15 }, (_, i) => ({ 
+        id: i, 
+        role: null, 
+        charadeRole: null, 
+        isDead: false, 
+        isDrunk: false, 
+        isPoisoned: false, 
+        isProtected: false, 
+        protectedBy: null,
+        isRedHerring: false, 
+        isFortuneTellerRedHerring: false, 
+        isSentenced: false, 
+        masterId: null, 
+        hasUsedSlayerAbility: false, 
+        hasUsedVirginAbility: false, 
+        hasBeenNominated: false,
+        isDemonSuccessor: false, 
+        hasAbilityEvenDead: false,
+        statusDetails: [],
+        statuses: [],
+        grandchildId: null,
+        isGrandchild: false,
+        zombuulLives: 1
+        })));
+        triggerIntroLoading();
+      } catch (error) {
+        console.error('初始化失败:', error);
+        // 即使出错也要设置 mounted，避免白屏
+        setMounted(true);
+      }
+  }, []); // 只在组件挂载时执行一次
 
   useEffect(() => {
     return () => {
@@ -2019,7 +2023,8 @@ export default function Home() {
         isVortoxWorld,
         todayDemonVoted,
         todayMinionNominated,
-        todayExecutedId
+        todayExecutedId,
+        hasUsedAbility
       );
     }
     return null;
@@ -3528,7 +3533,9 @@ export default function Home() {
               return s;
             }));
             setFangGuConverted(true);
-            addLog(`${nightInfo?.seat.id!+1}号(方古) 杀死外来者 ${targetId+1}号，目标转化为方古，原方古死亡`);
+            if (nightInfo?.seat.id !== undefined) {
+              addLog(`${nightInfo.seat.id+1}号(方古) 杀死外来者 ${targetId+1}号，目标转化为方古，原方古死亡`);
+            }
             onAfterKill?.(seatsToUse);
             return;
           }
@@ -4305,7 +4312,7 @@ export default function Home() {
       // 规则：当你第一次被提名时，如果提名你的玩家是镇民，他立刻被处决。
       // 关键点：无论提名者是谁，只要处女被提名，技能就必须永久失效（即使不触发处决）
       const target = seats.find(s => s.id === id);
-      const nominatorSeat = seats.find(s => s.id === sourceId);
+      // nominatorSeat 已在上面声明（第4298行）
       
       // 检查是否是处女且是首次被提名（无论提名者是谁，只要被提名过就标记）
       if (target?.role?.id === 'virgin' && !target.hasBeenNominated && !target.isPoisoned) {
@@ -4501,21 +4508,6 @@ export default function Home() {
       isZombuulTrulyDead: seat.isZombuulTrulyDead,
     });
   }, []);
-
-  // 将目标玩家转为邪恶阵营（灵言师关键词触发），保持原角色但计入邪恶胜负
-  const convertPlayerToEvil = useCallback((targetId: number) => {
-    setSeats(prev => prev.map(s => {
-      if (s.id !== targetId) return s;
-      const cleaned = cleanseSeatStatuses({
-        ...s,
-        isEvilConverted: true,
-        isDemonSuccessor: false,
-        charadeRole: null,
-      }, { keepDeathState: true });
-      return cleaned;
-    }));
-    insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}号(转为邪恶)` });
-  }, [insertIntoWakeQueueAfterCurrent]);
 
   const submitVotes = (v: number) => {
     if(showVoteInputModal===null) return;
@@ -4723,7 +4715,7 @@ export default function Home() {
       if (!roleSource) return prev;
       const order = gamePhase === 'firstNight' ? (roleSource.firstNightOrder ?? 0) : (roleSource.otherNightOrder ?? 0);
       if (order <= 0) return prev;
-      const processed = prev.slice(0, currentWakeIndex + 1);
+      // processed 已在上面声明（第4717行）
       const rest = prev.slice(currentWakeIndex + 1);
       const getOrder = (id: number) => {
         const s = seatsSnapshot.find(x => x.id === id);
@@ -4741,10 +4733,25 @@ export default function Home() {
       inserted = true;
       return [...processed, ...nextRest];
     });
-    if (inserted && opts?.logLabel) {
-      addLog(`${opts.logLabel} 已加入本夜唤醒队列`);
-    }
-  }, [gamePhase, currentWakeIndex, seats, addLog]);
+      if (inserted && opts?.logLabel) {
+        addLog(`${opts.logLabel} 已加入本夜唤醒队列`);
+      }
+    }, [gamePhase, currentWakeIndex, seats, addLog]);
+
+  // 将目标玩家转为邪恶阵营（灵言师关键词触发），保持原角色但计入邪恶胜负
+  const convertPlayerToEvil = useCallback((targetId: number) => {
+    setSeats(prev => prev.map(s => {
+      if (s.id !== targetId) return s;
+      const cleaned = cleanseSeatStatuses({
+        ...s,
+        isEvilConverted: true,
+        isDemonSuccessor: false,
+        charadeRole: null,
+      }, { keepDeathState: true });
+      return cleaned;
+    }));
+    insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}号(转为邪恶)` });
+  }, [insertIntoWakeQueueAfterCurrent]);
 
   const handleMenuAction = (action: string) => {
     if(!contextMenu) return;
@@ -5480,13 +5487,13 @@ export default function Home() {
                   <div className="mt-3 space-y-1 text-xs text-gray-300">
                     <div className="font-bold text-blue-200">今日反馈记录</div>
                     {dayAbilityLogs
-                      .filter(l => l.day === dayCount)
+                      .filter(l => l.day === nightCount)
                       .map((l, idx) => (
                         <div key={`${l.roleId}-${l.id}-${idx}`} className="px-2 py-1 bg-gray-800/60 rounded border border-gray-700">
                           {l.id+1}号 {getSeatRoleId(seats.find(s=>s.id===l.id)) === l.roleId ? '' : ''}{roles.find(r=>r.id===l.roleId)?.name || l.roleId}：{l.text}
                         </div>
                       ))}
-                    {dayAbilityLogs.filter(l => l.day === dayCount).length === 0 && (
+                    {dayAbilityLogs.filter(l => l.day === nightCount).length === 0 && (
                       <div className="text-gray-500">尚无记录</div>
                     )}
                   </div>
@@ -6304,7 +6311,7 @@ export default function Home() {
               return;
             }
             addLog(`${seat.id+1}号(博学者) 今日信息：${dayAbilityForm.info1} / ${dayAbilityForm.info2}`);
-            setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: dayCount, text: `${dayAbilityForm.info1} / ${dayAbilityForm.info2}` }]);
+            setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: nightCount, text: `${dayAbilityForm.info1} / ${dayAbilityForm.info2}` }]);
             markDailyAbilityUsed('savant_mr', seat.id);
             closeModal();
             return;
@@ -6315,7 +6322,7 @@ export default function Home() {
               return;
             }
             addLog(`${seat.id+1}号(失意者) 今日猜测：${dayAbilityForm.guess}；反馈：${dayAbilityForm.feedback}`);
-            setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: dayCount, text: `猜测：${dayAbilityForm.guess}；反馈：${dayAbilityForm.feedback}` }]);
+            setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: nightCount, text: `猜测：${dayAbilityForm.guess}；反馈：${dayAbilityForm.feedback}` }]);
             markDailyAbilityUsed('amnesiac', seat.id);
             closeModal();
             return;
@@ -6326,7 +6333,7 @@ export default function Home() {
               return;
             }
             addLog(`${seat.id+1}号(渔夫) 获得建议：${dayAbilityForm.advice}`);
-            setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: dayCount, text: `建议：${dayAbilityForm.advice}` }]);
+            setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: nightCount, text: `建议：${dayAbilityForm.advice}` }]);
             markAbilityUsed('fisherman', seat.id);
             closeModal();
             return;
