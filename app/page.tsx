@@ -1765,6 +1765,8 @@ export default function Home() {
   const [longPressingSeats, setLongPressingSeats] = useState<Set<number>>(new Set()); // 正在长按的座位
   const checkLongPressTimerRef = useRef<NodeJS.Timeout | null>(null); // 核对身份列表长按定时器
   const longPressTriggeredRef = useRef<Set<number>>(new Set()); // 座位长按是否已触发（避免短按被阻断）
+  const seatContainerRef = useRef<HTMLDivElement | null>(null); // 椭圆桌容器
+  const seatRefs = useRef<Record<number, HTMLDivElement | null>>({}); // 每个座位元素引用
   
   const [wakeQueueIds, setWakeQueueIds] = useState<number[]>([]);
   const [currentWakeIndex, setCurrentWakeIndex] = useState(0);
@@ -2370,6 +2372,7 @@ export default function Home() {
         clearTimeout(checkLongPressTimerRef.current);
         checkLongPressTimerRef.current = null;
       }
+      seatRefs.current = {};
     };
   }, []);
 
@@ -5041,9 +5044,39 @@ export default function Home() {
     // 如果无事发生，继续游戏流程
   };
 
+  const openContextMenuForSeat = (seatId: number, preferSeatCenter = false) => {
+    const containerRect = seatContainerRef.current?.getBoundingClientRect();
+    const seatRect = seatRefs.current[seatId]?.getBoundingClientRect();
+    // 默认使用点击位置，但触屏/竖屏时优先座位中心
+    let targetX = seatRect ? seatRect.left + seatRect.width / 2 : 0;
+    let targetY = seatRect ? seatRect.top + seatRect.height / 2 : 0;
+
+    if (!preferSeatCenter && containerRect) {
+      // 如果不强制中心，则保持当前位置（后续由调用方传入）
+    }
+
+    if (containerRect) {
+      const menuW = 192; // 12rem ≈ 192px
+      const menuH = 240; // 预估高度，稍大以避免遮挡
+      const pad = 6;
+      const minX = containerRect.left + pad + menuW / 2;
+      const maxX = containerRect.right - pad - menuW / 2;
+      const minY = containerRect.top + pad + menuH / 2;
+      const maxY = containerRect.bottom - pad - menuH / 2;
+      targetX = Math.min(Math.max(targetX, minX), maxX);
+      targetY = Math.min(Math.max(targetY, minY), maxY);
+    }
+
+    setContextMenu({ x: targetX, y: targetY, seatId });
+  };
+
   const handleContextMenu = (e: React.MouseEvent, seatId: number) => { 
     e.preventDefault(); 
-    setContextMenu({x:e.clientX,y:e.clientY,seatId}); 
+    if (isPortrait) {
+      openContextMenuForSeat(seatId, true);
+    } else {
+      setContextMenu({x:e.clientX,y:e.clientY,seatId}); 
+    }
   };
 
   // 触屏长按处理：开始长按
@@ -5062,7 +5095,7 @@ export default function Home() {
     const touch = e.touches[0];
     // 设置0.5秒后触发右键菜单
     const timer = setTimeout(() => {
-      setContextMenu({x:touch.clientX, y:touch.clientY, seatId});
+      openContextMenuForSeat(seatId, true);
       longPressTriggeredRef.current.add(seatId);
       longPressTimerRef.current.delete(seatId);
       setLongPressingSeats(prev => {
@@ -5702,7 +5735,9 @@ export default function Home() {
             <div className={`${isPortrait ? 'text-xl' : 'text-5xl'} font-mono text-yellow-300`}>{formatTimer(timer)}</div>
           )}
         </div>
-        <div className={`relative ${isPortrait ? 'w-[80vw] h-[95vw] max-w-[85vw] max-h-[100vw] mt-16' : 'w-[70vmin] h-[70vmin]'}`}>
+        <div 
+          ref={seatContainerRef}
+          className={`relative ${isPortrait ? 'w-[80vw] h-[95vw] max-w-[85vw] max-h-[100vw] mt-16' : 'w-[70vmin] h-[70vmin]'}`}>
               {seats.map((s,i)=>{
             const p=getSeatPosition(i, seats.length, isPortrait);
             const displayType = getDisplayRoleType(s);
@@ -5723,6 +5758,7 @@ export default function Home() {
                 onTouchStart={(e)=>handleTouchStart(e,s.id)}
                 onTouchEnd={(e)=>handleTouchEnd(e,s.id)}
                 onTouchMove={(e)=>handleTouchMove(e,s.id)}
+                ref={(el)=>{seatRefs.current[s.id]=el}}
                   style={{
                     left:`${p.x}%`,
                     top:`${p.y}%`,
