@@ -9,6 +9,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  -webkit-touch-callout: none; /* 禁用系统长按菜单，避免与游戏长按冲突 */
 }
 
 @keyframes breath-shadow {

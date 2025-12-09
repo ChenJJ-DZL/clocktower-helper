@@ -1763,6 +1763,7 @@ export default function Home() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; seatId: number } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [longPressingSeats, setLongPressingSeats] = useState<Set<number>>(new Set()); // 正在长按的座位
+  const checkLongPressTimerRef = useRef<NodeJS.Timeout | null>(null); // 核对身份列表长按定时器
   
   const [wakeQueueIds, setWakeQueueIds] = useState<number[]>([]);
   const [currentWakeIndex, setCurrentWakeIndex] = useState(0);
@@ -2363,6 +2364,10 @@ export default function Home() {
         clearTimeout(timer);
       });
       longPressTimerRef.current.clear();
+      if (checkLongPressTimerRef.current) {
+        clearTimeout(checkLongPressTimerRef.current);
+        checkLongPressTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -5042,6 +5047,7 @@ export default function Home() {
   // 触屏长按处理：开始长按
   const handleTouchStart = (e: React.TouchEvent, seatId: number) => {
     e.stopPropagation();
+    e.preventDefault();
     // 清除可能存在的旧定时器
     const existingTimer = longPressTimerRef.current.get(seatId);
     if (existingTimer) {
@@ -5067,6 +5073,7 @@ export default function Home() {
   // 触屏长按处理：结束触摸（取消长按）
   const handleTouchEnd = (e: React.TouchEvent, seatId: number) => {
     e.stopPropagation();
+    e.preventDefault();
     const timer = longPressTimerRef.current.get(seatId);
     if (timer) {
       clearTimeout(timer);
@@ -5083,6 +5090,7 @@ export default function Home() {
   // 触屏长按处理：触摸移动（取消长按）
   const handleTouchMove = (e: React.TouchEvent, seatId: number) => {
     e.stopPropagation();
+    e.preventDefault();
     const timer = longPressTimerRef.current.get(seatId);
     if (timer) {
       clearTimeout(timer);
@@ -5094,6 +5102,51 @@ export default function Home() {
       next.delete(seatId);
       return next;
     });
+  };
+
+  const canToggleRedHerring = useCallback((seatId: number) => {
+    const seat = seats.find(s => s.id === seatId);
+    if (!seat || !seat.role) return false;
+    if (['minion', 'demon'].includes(seat.role.type)) return false;
+    const hasFortuneTeller = seats.some(s => s.role?.id === 'fortune_teller');
+    return hasFortuneTeller;
+  }, [seats]);
+
+  const clearCheckLongPressTimer = () => {
+    if (checkLongPressTimerRef.current) {
+      clearTimeout(checkLongPressTimerRef.current);
+      checkLongPressTimerRef.current = null;
+    }
+  };
+
+  const handleCheckTouchStart = (e: React.TouchEvent, seatId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canToggleRedHerring(seatId)) return;
+    clearCheckLongPressTimer();
+    checkLongPressTimerRef.current = setTimeout(() => {
+      toggleStatus('redherring', seatId);
+      clearCheckLongPressTimer();
+    }, 500);
+  };
+
+  const handleCheckTouchEnd = (e: React.TouchEvent, seatId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearCheckLongPressTimer();
+  };
+
+  const handleCheckTouchMove = (e: React.TouchEvent, seatId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearCheckLongPressTimer();
+  };
+
+  const handleCheckContextMenu = (e: React.MouseEvent, seatId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canToggleRedHerring(seatId)) return;
+    toggleStatus('redherring', seatId);
   };
 
   const insertIntoWakeQueueAfterCurrent = useCallback((seatId: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => {
@@ -5169,14 +5222,15 @@ export default function Home() {
     setContextMenu(null);
   };
 
-  const toggleStatus = (type: string) => {
-    if(!contextMenu) return;
+  const toggleStatus = (type: string, seatId?: number) => {
+    const targetSeatId = seatId ?? contextMenu?.seatId;
+    if(targetSeatId === undefined || targetSeatId === null) return;
     setSeats(p => {
       let updated;
       if (type === 'redherring') {
         // 检查场上是否存在占卜师
         const hasFortuneTeller = p.some(s => s.role?.id === "fortune_teller");
-        const targetSeat = p.find(s => s.id === contextMenu.seatId);
+        const targetSeat = p.find(s => s.id === targetSeatId);
         const isRemoving = targetSeat?.isRedHerring === true;
         
         // 如果尝试添加红罗刹但场上没有占卜师，则不允许
@@ -5186,7 +5240,7 @@ export default function Home() {
         
         // 场上"红罗刹"唯一：选择新的红罗刹时，清除其他玩家的红罗刹标记和图标
         updated = p.map(s => {
-          if (s.id === contextMenu.seatId) {
+          if (s.id === targetSeatId) {
             const details = s.statusDetails || [];
             return {
               ...s,
@@ -5206,7 +5260,7 @@ export default function Home() {
         });
       } else {
         updated = p.map(s => {
-          if (s.id !== contextMenu.seatId) return s;
+          if (s.id !== targetSeatId) return s;
           if (type === 'dead') {
             if (s.isDead) {
               return reviveSeat(s);
@@ -5228,7 +5282,7 @@ export default function Home() {
       return updated;
     });
     if (type === 'dead') {
-      const target = seats.find(s => s.id === contextMenu.seatId);
+      const target = seats.find(s => s.id === targetSeatId);
       if (target && target.isDead && ['night','firstNight'].includes(gamePhase)) {
         insertIntoWakeQueueAfterCurrent(target.id);
       }
@@ -6180,14 +6234,24 @@ export default function Home() {
                   // 酒鬼应该显示伪装角色的名称，而不是"酒鬼"
                   const displayRole = s.role?.id === 'drunk' && s.charadeRole ? s.charadeRole : s.role;
                   const displayName = displayRole?.name || '';
+                  const canRedHerring = canToggleRedHerring(s.id);
                   return (
-                    <div key={s.id} className="flex flex-col gap-1 border-b border-gray-700 pb-2">
+                    <div 
+                      key={s.id} 
+                      className="flex flex-col gap-1 border-b border-gray-700 pb-2 select-none"
+                      style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
+                      onContextMenu={(e)=>handleCheckContextMenu(e, s.id)}
+                      onTouchStart={(e)=>handleCheckTouchStart(e, s.id)}
+                      onTouchEnd={(e)=>handleCheckTouchEnd(e, s.id)}
+                      onTouchMove={(e)=>handleCheckTouchMove(e, s.id)}
+                    >
                       <div className="flex justify-between">
                         <span>{s.id+1}号</span>
                         <span className={s.role?.type==='demon'?'text-red-500 font-bold':''}>
                           {displayName}
                           {s.role?.id==='drunk' && <span className="text-gray-400 text-sm">(酒鬼)</span>}
                           {s.isRedHerring && ' [红罗刹]'}
+                          {!canRedHerring && s.isRedHerring && <span className="text-xs text-gray-500 ml-1">(仅占卜师在场可更改)</span>}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2 text-[11px] text-gray-300">
@@ -7624,7 +7688,7 @@ export default function Home() {
             const isDisabled = ['minion','demon'].includes(targetSeat.role.type) || !hasFortuneTeller;
             return (
               <button
-                onClick={()=>!isDisabled && toggleStatus('redherring')}
+                onClick={()=>!isDisabled && toggleStatus('redherring', targetSeat.id)}
                 disabled={isDisabled}
                 className={`block w-full text-left px-6 py-3 text-lg font-medium border-t border-gray-700 whitespace-nowrap ${
                   isDisabled
