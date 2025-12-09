@@ -2254,7 +2254,7 @@ export default function Home() {
       );
     }
     return null;
-  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, gameLogs, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld]);
+  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld]);
 
   useEffect(() => {
     if (nightInfo) {
@@ -2571,8 +2571,21 @@ export default function Home() {
   //    作为新剧本的“游戏流程 / 剧本流程 / 通用流程”模板。
   // ======================================================================
   // --- Handlers ---
+  // 恶魔无技能夜晚（如首夜仅展示信息、跳过回合）时，禁止选择任何目标
+  const demonActionDisabled = useMemo(() => {
+    if (!nightInfo) return false;
+    if (nightInfo.effectiveRole.type !== 'demon') return false;
+    const act = nightInfo.action || '';
+    // 首夜且行为不是直接杀人时，视为无技能
+    if (gamePhase === 'firstNight' && !act.includes('杀')) return true;
+    // 明确的跳过/无信息/仅展示
+    if (['跳过', '无信息', '展示'].some(k => act.includes(k))) return true;
+    return false;
+  }, [nightInfo, gamePhase]);
+
   const isTargetDisabled = (s: Seat) => {
     if (!nightInfo) return true;
+    if (demonActionDisabled) return true;
     const rid = nightInfo.effectiveRole.id;
     if (rid === 'monk' && s.id === nightInfo.seat.id) return true;
     if (rid === 'poisoner' && s.isDead) return true;
@@ -2620,11 +2633,18 @@ export default function Home() {
       alert("请先安排座位");
       return;
     }
+    // 若酒鬼在场且未分配镇民伪装，强制弹窗选择后再继续
+    const pendingDrunk = active.find(s => s.role?.id === "drunk" && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
+    if (pendingDrunk) {
+      setAutoRedHerringInfo(null);
+      setShowDrunkModal(pendingDrunk.id);
+      return;
+    }
     // 清空上次自动分配的红罗刹提示
     setAutoRedHerringInfo(null);
     const compact = active.map((s, i) => ({ ...s, id: i }));
       
-    // 自动为酒鬼分配一个未被使用的镇民角色作为伪装
+    // 自动为酒鬼分配一个未被使用的镇民角色作为伪装（仅在已分配或无酒鬼时继续）
     let updatedCompact = [...compact];
     const drunk = updatedCompact.find(s => s.role?.id === "drunk" && !s.charadeRole);
     if(drunk) {
@@ -2909,6 +2929,8 @@ export default function Home() {
         const known = balloonistKnownTypes[s.id] || [];
         const allTypesKnown = ['镇民','外来者','爪牙','恶魔'].every(t => known.includes(t));
         if (allTypesKnown) return false;
+        // 首夜也需要按规则给出信息，避免被错误跳过
+        if (isFirst) return true;
       }
       return isFirst ? (r?.firstNightOrder ?? 0) > 0 : (r?.otherNightOrder ?? 0) > 0;
     });
@@ -3298,7 +3320,7 @@ export default function Home() {
         return;
       }
       // 气球驾驶员已改为被动信息技能，不再需要主动选择处理
-      if(action === 'kill' && (nightInfo.effectiveRole.id === 'vigormortis_mr' || nightInfo.effectiveRole.id === 'hadesia') && gamePhase !== 'firstNight' && newT.length === 1) {
+      if(action === 'kill' && nightInfo.effectiveRole.id === 'vigormortis_mr' && gamePhase !== 'firstNight' && newT.length === 1) {
         // 夜半狂欢恶魔：选择1名玩家后立即显示确认弹窗
         setShowKillConfirmModal(newT[0]);
         return;
@@ -3559,6 +3581,15 @@ export default function Home() {
         continueToNextAction();
         return;
       }
+      const availableReviveTargets = seats.filter(s => {
+        const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
+        return s.isDead && r && r.type === 'townsfolk' && !s.isDemonSuccessor;
+      });
+      if (availableReviveTargets.length === 0) {
+        addLog(`${nightInfo.seat.id+1}号(教授) 无可复活的镇民，跳过`);
+        continueToNextAction();
+        return;
+      }
       if (selectedActionTargets.length !== 1) {
         return; // 需选择一名死亡玩家
       }
@@ -3811,77 +3842,28 @@ export default function Home() {
       }
 
       const finalize = (latestSeats?: Seat[]) => {
-        // 使用最新的seats状态，优先使用传入的latestSeats，否则使用seatsRef.current，最后才使用updatedSeats
-        const seatsToUse = latestSeats || seatsRef.current || updatedSeats;
-        
-        // 防御性检查：确保seatsToUse不为空且是有效数组
+        // 使用最新的 seats 状态，按优先级选择：入参 → 最新引用 → 本次更新快照 → 状态闭包
+        const seatsToUse =
+          (latestSeats && latestSeats.length ? latestSeats : null) ??
+          (seatsRef.current && seatsRef.current.length ? seatsRef.current : null) ??
+          (updatedSeats && updatedSeats.length ? updatedSeats : null) ??
+          (seats && seats.length ? seats : null);
+
         if (!seatsToUse || seatsToUse.length === 0) {
-          console.error('killPlayer finalize: seatsToUse为空或无效，使用当前seats状态');
-          const fallbackSeats = seatsRef.current || seats;
-          if (!fallbackSeats || fallbackSeats.length === 0) {
-            console.error('killPlayer finalize: 所有seats状态都无效，跳过游戏结束检查');
-            onAfterKill?.(fallbackSeats);
-            return;
-          }
-          // 使用fallbackSeats继续执行
-          const finalSeats = fallbackSeats;
-          // 诺-达：杀人后邻近两名镇民中毒（永久，直到游戏结束）
-          if (killerRoleId === 'no_dashii') {
-            const neighbors = getAliveNeighbors(finalSeats, targetId).filter(s => s.role?.type === 'townsfolk');
-            const poisoned = neighbors.slice(0, 2);
-            if (poisoned.length > 0) {
-              setSeats(p => p.map(s => {
-                if (poisoned.some(pz => pz.id === s.id)) {
-                  // 诺-达中毒是永久的
-                  const clearTime = '永久';
-                  const { statusDetails, statuses } = addPoisonMark(s, 'no_dashii', clearTime);
-                  const nextSeat = { ...s, statusDetails, statuses };
-                  return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
-                }
-                return { ...s, isPoisoned: computeIsPoisoned(s) };
-              }));
-              addLog(`诺-达使 ${poisoned.map(p => `${p.id+1}号`).join('、')}号 中毒`);
-            }
-          }
-          // 方古：若杀死外来者且未转化过，则目标变恶魔，自己死亡
-          if (killerRoleId === 'fang_gu' && !fangGuConverted) {
-            const targetRole = targetSeat.role;
-            const isOutsider = targetRole?.type === 'outsider';
-            if (isOutsider) {
-              const fangGuRole = roles.find(r => r.id === 'fang_gu');
-              setSeats(p => p.map(s => {
-                if (s.id === targetId) {
-                  return cleanseSeatStatuses({ ...s, role: fangGuRole || s.role, isDemonSuccessor: false });
-                }
-                if (s.id === (nightInfo?.seat.id ?? -1)) {
-                  return { ...s, isDead: true };
-                }
-                return s;
-              }));
-              setFangGuConverted(true);
-              if (nightInfo?.seat.id !== undefined) {
-                addLog(`${nightInfo.seat.id+1}号(方古) 杀死外来者 ${targetId+1}号，目标转化为方古，原方古死亡`);
-              }
-              onAfterKill?.(finalSeats);
-              return;
-            }
-          }
-          if (!shouldSkipGameOver) {
-            moonchildChainPendingRef.current = false;
-            checkGameOver(finalSeats, executedPlayerId);
-          }
-          onAfterKill?.(finalSeats);
+          console.error('killPlayer finalize: seatsToUse为空或无效，跳过游戏结束检查');
+          onAfterKill?.(seatsToUse || []);
           return;
         }
-        
+
+        const finalSeats = seatsToUse;
+
         // 诺-达：杀人后邻近两名镇民中毒（永久，直到游戏结束）
         if (killerRoleId === 'no_dashii') {
-          const neighbors = getAliveNeighbors(seatsToUse, targetId).filter(s => s.role?.type === 'townsfolk');
+          const neighbors = getAliveNeighbors(finalSeats, targetId).filter(s => s.role?.type === 'townsfolk');
           const poisoned = neighbors.slice(0, 2);
           if (poisoned.length > 0) {
             setSeats(p => p.map(s => {
               if (poisoned.some(pz => pz.id === s.id)) {
-                // 诺-达中毒是永久的
                 const clearTime = '永久';
                 const { statusDetails, statuses } = addPoisonMark(s, 'no_dashii', clearTime);
                 const nextSeat = { ...s, statusDetails, statuses };
@@ -3892,6 +3874,7 @@ export default function Home() {
             addLog(`诺-达使 ${poisoned.map(p => `${p.id+1}号`).join('、')}号 中毒`);
           }
         }
+
         // 方古：若杀死外来者且未转化过，则目标变恶魔，自己死亡
         if (killerRoleId === 'fang_gu' && !fangGuConverted) {
           const targetRole = targetSeat.role;
@@ -3911,15 +3894,16 @@ export default function Home() {
             if (nightInfo?.seat.id !== undefined) {
               addLog(`${nightInfo.seat.id+1}号(方古) 杀死外来者 ${targetId+1}号，目标转化为方古，原方古死亡`);
             }
-            onAfterKill?.(seatsToUse);
+            onAfterKill?.(finalSeats);
             return;
           }
         }
+
         if (!shouldSkipGameOver) {
           moonchildChainPendingRef.current = false;
-          checkGameOver(seatsToUse, executedPlayerId);
+          checkGameOver(finalSeats, executedPlayerId);
         }
-        onAfterKill?.(seatsToUse);
+        onAfterKill?.(finalSeats);
       };
 
       if (targetSeat.role?.id === 'klutz' && !targetSeat.isDead && !(targetSeat.statusDetails || []).includes('呆瓜已触发')) {
@@ -4396,20 +4380,29 @@ export default function Home() {
     addLog(`${nightInfo.seat.id+1}号(${demonName}) 选择了 ${choiceDesc}`);
     if (allChooseLive) {
       addLog(`三名玩家都选择“生”，按规则三人全部死亡`);
+    } else if (finalTargets.length > 0) {
+      addLog(`选择“死”的玩家：${finalTargets.map(x=>x+1).join('、')}号将立即死亡`);
+    } else {
+      addLog('未选择“死”的玩家，未触发死亡');
     }
 
-    finalTargets.forEach((tid, idx) => {
-      const isLast = idx === finalTargets.length - 1;
-      killPlayer(tid, {
-        skipGameOverCheck: !isLast,
-        onAfterKill: latestSeats => {
-          if (isLast) {
-            addLog(`${nightInfo.seat.id+1}号(${demonName}) 处决了 ${finalTargets.map(x=>x+1).join('、')}号`);
-            continueToNextAction();
+    if (finalTargets.length > 0) {
+      let remaining = finalTargets.length;
+      finalTargets.forEach(tid => {
+        killPlayer(tid, {
+          onAfterKill: () => {
+            remaining -= 1;
+            if (remaining === 0) {
+              addLog(`${nightInfo.seat.id+1}号(${demonName}) 处决了 ${finalTargets.map(x=>x+1).join('、')}号`);
+              continueToNextAction();
+            }
           }
-        }
+        });
       });
-    });
+    } else {
+      continueToNextAction();
+    }
+
     setShowHadesiaKillConfirmModal(null);
     setSelectedActionTargets([]);
     setHadesiaChoices({});
@@ -6112,99 +6105,46 @@ export default function Home() {
             // - 总玩家数 = 村民数 + 外来者数 + 爪牙数 + 恶魔数
             
             const calculateRecommendations = (townsfolkCount: number) => {
-              const recommendations: Array<{
-                outsider: number;
-                minion: number;
-                demon: number;
-                total: number;
-                modifiers: string[];
-                note?: string;
-              }> = [];
-              
-              // 尝试不同的修正值组合
-              const modifierOptions = [
-                { value: 0, roles: [] },
-                { value: 2, roles: ['男爵'] },
-                { value: 1, roles: ['方古'] },
-                { value: 1, roles: ['气球驾驶员'] },
-                { value: -1, roles: ['亡骨魔'] },
-                { value: 3, roles: ['男爵', '方古'] },
-                { value: 3, roles: ['男爵', '气球驾驶员'] },
-                { value: 1, roles: ['方古', '气球驾驶员'] },
-                { value: 2, roles: ['方古', '亡骨魔'] },
-                { value: 2, roles: ['气球驾驶员', '亡骨魔'] },
-                { value: 4, roles: ['男爵', '方古', '气球驾驶员'] },
-                { value: 2, roles: ['男爵', '亡骨魔'] },
-                { value: 0, roles: ['方古', '气球驾驶员', '亡骨魔'] },
-              ];
-              
-              // 也考虑教父的±1情况
-              const godfatherOptions = [-1, 0, 1];
-              
-              for (const modifierOption of modifierOptions) {
-                for (const godfatherMod of godfatherOptions) {
-                  const totalModifier = modifierOption.value + godfatherMod;
-                  const allRoles = [...modifierOption.roles];
-                  if (godfatherMod !== 0) {
-                    allRoles.push('教父');
-                  }
-                  
-                  // 尝试不同的总玩家数（从最小到最大合理范围）
-                  for (let totalPlayers = townsfolkCount + 1; totalPlayers <= townsfolkCount + 10; totalPlayers++) {
-                    const baseOutsider = Math.floor(totalPlayers / 3);
-                    const adjustedOutsider = baseOutsider + totalModifier;
-                    const minion = Math.max(0, Math.floor((totalPlayers - 3) / 2));
-                    const demon = 1;
-                    
-                    // 检查是否匹配
-                    if (townsfolkCount + adjustedOutsider + minion + demon === totalPlayers && adjustedOutsider >= 0) {
-                      // 检查是否已存在相同配置
-                      const exists = recommendations.some(r => 
-                        r.outsider === adjustedOutsider && 
-                        r.minion === minion && 
-                        r.demon === demon
-                      );
-                      
-                      if (!exists) {
-                        let note = '';
-                        if (allRoles.length > 0) {
-                          // 如果教父在roles中，已经在allRoles里了，不需要额外备注
-                          const rolesWithoutGodfather = allRoles.filter(r => r !== '教父');
-                          if (rolesWithoutGodfather.length > 0) {
-                            note = `需${rolesWithoutGodfather.join('、')}在场`;
-                          }
-                          if (godfatherMod !== 0 && allRoles.includes('教父')) {
-                            note += note ? `、教父${godfatherMod > 0 ? '+1' : '-1'}` : `需教父${godfatherMod > 0 ? '+1' : '-1'}`;
-                          } else if (godfatherMod !== 0) {
-                            note += note ? `（教父${godfatherMod > 0 ? '+1' : '-1'}）` : `需教父${godfatherMod > 0 ? '+1' : '-1'}`;
-                          }
-                        } else if (godfatherMod !== 0) {
-                          note = `需教父${godfatherMod > 0 ? '+1' : '-1'}`;
-                        }
-                        
-                        recommendations.push({
-                          outsider: adjustedOutsider,
-                          minion,
-                          demon,
-                          total: totalPlayers,
-                          modifiers: allRoles,
-                          note: note || undefined
-                        });
-                      }
-                    }
-                  }
-                }
-              }
-              
-              // 按总玩家数排序，优先显示标准配置
-              recommendations.sort((a, b) => {
-                // 优先显示无特殊角色要求的配置
-                if (a.modifiers.length === 0 && b.modifiers.length > 0) return -1;
-                if (a.modifiers.length > 0 && b.modifiers.length === 0) return 1;
-                return a.total - b.total;
+            const recommendations: Array<{
+              outsider: number;
+              minion: number;
+              demon: number;
+              total: number;
+              modifiers: string[];
+              note?: string;
+            }> = [];
+
+            // 以村民数为基准的官方建议表
+            const presets = [
+              { total: 5, townsfolk: 3, outsider: 0, minion: 1, demon: 1 },
+              { total: 6, townsfolk: 3, outsider: 1, minion: 1, demon: 1 },
+              { total: 7, townsfolk: 5, outsider: 0, minion: 1, demon: 1 },
+              { total: 8, townsfolk: 5, outsider: 1, minion: 1, demon: 1 },
+              { total: 9, townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
+              { total: 10, townsfolk: 7, outsider: 0, minion: 2, demon: 1 },
+              { total: 11, townsfolk: 7, outsider: 1, minion: 2, demon: 1 },
+              { total: 12, townsfolk: 7, outsider: 2, minion: 2, demon: 1 },
+              { total: 13, townsfolk: 9, outsider: 0, minion: 3, demon: 1 },
+              { total: 14, townsfolk: 9, outsider: 1, minion: 3, demon: 1 },
+              { total: 15, townsfolk: 9, outsider: 2, minion: 3, demon: 1 },
+            ];
+
+            presets
+              .filter(p => p.townsfolk === townsfolkCount)
+              .forEach(p => {
+                recommendations.push({
+                  outsider: p.outsider,
+                  minion: p.minion,
+                  demon: p.demon,
+                  total: p.total,
+                  modifiers: [],
+                  note: `总人数${p.total}人`,
+                });
               });
-              
-              return recommendations.slice(0, 5); // 最多显示5个建议
+
+            recommendations.sort((a, b) => a.total - b.total);
+
+            return recommendations.slice(0, 5); // 最多显示5个建议
             };
             
             const recommendations = calculateRecommendations(actualTownsfolkCount);
@@ -6223,7 +6163,7 @@ export default function Home() {
                 {/* 阵营角色数量校验提示 */}
                 {actualTownsfolkCount > 0 && (
                   <div className={`p-4 rounded-lg border-2 ${isValid ? 'bg-green-900/30 border-green-500 text-green-200' : 'bg-yellow-900/30 border-yellow-500 text-yellow-200'}`}>
-                    <div className="font-bold mb-2">📊 阵营角色数量校验</div>
+                    <div className="font-bold mb-2">📊 阵营角色数量建议</div>
                     <div className="text-sm space-y-1">
                       <div>当前村民数：{actualTownsfolkCount}人（保持不变）</div>
                       <div className="mt-2 font-semibold">建议配置：</div>
@@ -6486,7 +6426,8 @@ export default function Home() {
             </button>
           )}
         {gamePhase==='check' && (() => {
-          const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && !s.charadeRole);
+          // 酒鬼必须先分配镇民伪装身份，未分配或分配非镇民时禁止入夜
+          const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
           return (
             <div className="w-full flex flex-col gap-2">
               <button 
@@ -6498,7 +6439,7 @@ export default function Home() {
               </button>
               {hasPendingDrunk && (
                 <div className="text-center text-yellow-300 text-sm font-semibold">
-                  场上有酒鬼未选择伪装身份，请长按其座位选择后再入夜
+                  场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜
                 </div>
               )}
             </div>
@@ -6645,8 +6586,8 @@ export default function Home() {
             <h2 className="mb-4 text-center text-3xl text-yellow-400">🍺 酒鬼伪装身份</h2>
             <p className="mb-4 text-center text-gray-300 text-sm">长按酒鬼座位后选择。只有确认伪装后才能进入下一步。</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto">
-              {groupedRoles['townsfolk'].map(r=>{
-                const isTaken=seats.some(s=>s.role?.id===r.id);
+              {(filteredGroupedRoles['townsfolk'] || []).map(r=>{
+                const isTaken = seats.some(s => s.role?.id === r.id);
                 return (
                   <button 
                     key={r.id} 
