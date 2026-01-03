@@ -6,17 +6,20 @@ interface GameStageProps {
   children: ReactNode;
 }
 
+// 基准尺寸：18:9 (2:1) 长宽比
+const BASE_WIDTH = 1536;
+const BASE_HEIGHT = 768;
+
 export default function GameStage({ children }: GameStageProps) {
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
     const calculateScale = () => {
-      const baseWidth = 1536;
-      const baseHeight = 768;
-      const scaleX = window.innerWidth / baseWidth;
-      const scaleY = window.innerHeight / baseHeight;
-      // 乘以 0.9 留出更多安全边距，避免圆桌溢出屏幕
-      const newScale = Math.min(scaleX, scaleY) * 0.9;
+      // 计算公式：取宽高缩放比例的最小值，乘以 0.98 留一点安全边距
+      const newScale = Math.min(
+        window.innerWidth / BASE_WIDTH,
+        window.innerHeight / BASE_HEIGHT
+      ) * 0.98;
       setScale(newScale);
     };
 
@@ -34,12 +37,12 @@ export default function GameStage({ children }: GameStageProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center">
+    <div className="fixed inset-0 bg-slate-950 flex items-center justify-center overflow-hidden">
       <div
         className="relative origin-center bg-slate-900 shadow-2xl"
         style={{
-          width: "1536px",
-          height: "768px",
+          width: `${BASE_WIDTH}px`,
+          height: `${BASE_HEIGHT}px`,
           transform: `scale(${scale})`,
           transformOrigin: "center center",
         }}

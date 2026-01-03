@@ -5281,7 +5281,7 @@ export default function Home() {
       {/* ===== 暗流涌动剧本（游戏第一部分）主界面 ===== */}
       <GameStage>
         {/* 使用 Grid 布局来精准切分 1536x768 的空间 */}
-        <div className="w-full h-full grid grid-rows-[60px_1fr_80px] grid-cols-[1fr_400px] text-white">
+        <div className="w-full h-full grid grid-rows-[60px_1fr_80px] grid-cols-[1fr_420px] text-white">
           
           {/* 区域 1: 顶部栏 (横跨两列) */}
           <header className="col-span-2 flex items-center justify-between px-4 border-b border-white/10 bg-slate-900/50 z-20">
@@ -5333,7 +5333,10 @@ export default function Home() {
           </header>
 
           {/* 区域 2: 左侧主战场 (圆桌) */}
-          <main className="relative w-full h-full flex items-center justify-center overflow-hidden">
+          <main className="relative flex items-center justify-center overflow-hidden bg-slate-950 col-span-1 h-full">
+            {/* 1. 全屏氛围层 (代替原本的圆圈背景) - 使用巨大的内阴影来营造聚光灯效果 */}
+            <div className="absolute inset-0 shadow-[inset_0_0_150px_100px_rgba(2,6,23,0.9)] z-0 pointer-events-none" />
+            
             {/* 万能上一步按钮和伪装身份识别按钮 */}
             {gamePhase !== 'scriptSelection' && (
               <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
@@ -5356,48 +5359,40 @@ export default function Home() {
                 </button>
               </div>
             )}
-            {/* 圆桌容器 (The Table Container) */}
+            
+            {/* 2. 隐形的逻辑容器 (用于定位座位) */}
             <div 
               ref={seatContainerRef}
-              className="relative w-[560px] h-[560px] rounded-full flex items-center justify-center"
+              className="relative w-[640px] h-[640px] flex items-center justify-center z-10"
             >
-              {/* 阶段名称和计时器 - 移动到圆桌容器内部中央 */}
-              <div className="absolute pointer-events-none text-center z-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="text-5xl font-bold opacity-50 mb-4">{phaseNames[gamePhase]}</div>
-                <div className="text-xs text-gray-500 opacity-40 mb-2">
+              {/* 中心文字 */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none select-none">
+                <div className="text-6xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+                  {phaseNames[gamePhase]}
+                </div>
+                <div className="text-sm text-slate-400/60 uppercase tracking-[0.3em] font-medium mt-4">
                   design by{" "}
                   <span className="font-bold italic">Bai  Gan Group</span>
                 </div>
                 {gamePhase==='scriptSelection' && (
-                  <div className="text-4xl font-mono text-yellow-300">请选择剧本</div>
+                  <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
+                    请选择剧本
+                  </div>
                 )}
                 {gamePhase!=='setup' && gamePhase!=='scriptSelection' && (
-                  <div className="text-4xl font-mono text-yellow-300">{formatTimer(timer)}</div>
+                  <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
+                    {formatTimer(timer)}
+                  </div>
                 )}
               </div>
-              {/* 装饰性背景：由内向外的径向渐变，模拟桌子 */}
-              <div 
-                className="absolute inset-0 rounded-full opacity-50"
-                style={{
-                  background: 'radial-gradient(circle, rgba(30, 41, 59, 0.5) 0%, rgba(30, 41, 59, 0.3) 50%, transparent 100%)'
-                }}
-              />
-              
-              {/* 座位渲染层 - 使用精确的坐标计算 */}
+
+              {/* 座位循环 */}
               {seats.map((s, i) => {
                 // 计算座位在圆上的位置
-                const radius = 230; // 半径（留出边距，缩小以适应更小的圆桌）
+                const radius = 260; // 半径（留出边距，适应 640px 圆桌）
                 const angle = (i / seats.length) * 2 * Math.PI - Math.PI / 2; // -90度开始(12点钟方向)
                 const x = radius * Math.cos(angle);
                 const y = radius * Math.sin(angle);
-                
-                // 计算相对于 560px 容器的百分比位置（中心点是 280, 280）
-                const centerX = 280;
-                const centerY = 280;
-                const absoluteX = centerX + x;
-                const absoluteY = centerY + y;
-                const percentX = (absoluteX / 560) * 100;
-                const percentY = (absoluteY / 560) * 100;
                 
                 return (
                   <div
