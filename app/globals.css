@@ -7,9 +7,39 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  @apply bg-slate-950 text-slate-200;
   -webkit-touch-callout: none; /* 禁用系统长按菜单，避免与游戏长按冲突 */
+  position: relative;
+  min-height: 100vh;
+}
+
+/* 全局径向渐变背景层 - 模拟桌面的聚光灯效果 */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(15, 23, 42, 0.4) 0%,
+    rgba(2, 6, 23, 0.8) 50%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 确保内容在背景层之上 */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 玻璃面板样式 - 用于所有浮动面板 */
+.glass-panel {
+  @apply bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl;
 }
 
 @keyframes breath-shadow {
@@ -29,6 +59,39 @@ body {
 
 .animate-breath-shadow {
   animation: breath-shadow 2s ease-in-out infinite;
+}
+
+/* 设备旋转动画 */
+@keyframes rotate-device {
+  0%, 100% {
+    transform: rotate(0deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: rotate(90deg);
+    opacity: 1;
+  }
+}
+
+@keyframes rotate-arrow {
+  0%, 100% {
+    transform: rotate(0deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: rotate(90deg);
+    opacity: 1;
+  }
+}
+
+.animate-rotate-device {
+  animation: rotate-device 2s ease-in-out infinite;
+  transform-origin: 60px 60px;
+}
+
+.animate-rotate-arrow {
+  animation: rotate-arrow 2s ease-in-out infinite;
+  transform-origin: 60px 60px;
 }
 
 /* 核对身份页面滚动条美化 */
@@ -68,4 +131,37 @@ body {
 .check-identity-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #eab308 transparent;
+}
+
+/* Modal 动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoom-in-95 {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation: fade-in 200ms ease-out;
+}
+
+.zoom-in-95 {
+  animation: zoom-in-95 200ms ease-out;
 }
