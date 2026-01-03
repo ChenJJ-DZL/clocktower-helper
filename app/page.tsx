@@ -5280,11 +5280,11 @@ export default function Home() {
       )}
       {/* ===== 暗流涌动剧本（游戏第一部分）主界面 ===== */}
       <GameStage>
-        {/* 使用 Grid 布局来精准切分 1536x768 的空间 */}
-        <div className="w-full h-full grid grid-rows-[60px_1fr_80px] grid-cols-[1fr_420px] text-white">
+        {/* 使用 Flex 布局，填满 1600x800 */}
+        <div className="w-full h-full flex flex-col bg-slate-950 text-white">
           
-          {/* 区域 1: 顶部栏 (横跨两列) */}
-          <header className="col-span-2 flex items-center justify-between px-4 border-b border-white/10 bg-slate-900/50 z-20">
+          {/* 区域 1: 顶部栏 */}
+          <header className="flex items-center justify-between px-4 h-16 border-b border-white/10 bg-slate-900/50 z-20 shrink-0">
             <span className="font-bold text-purple-400 text-xl flex items-center justify-center h-8 flex-shrink-0">控制台</span>
             <div className="flex items-center flex-shrink-0 gap-1">
               <button 
@@ -5332,104 +5332,109 @@ export default function Home() {
             </div>
           </header>
 
-          {/* 区域 2: 左侧主战场 (圆桌) */}
-          <main className="relative flex items-center justify-center overflow-hidden bg-slate-950 col-span-1 h-full">
-            {/* 1. 全屏氛围层 (代替原本的圆圈背景) - 使用巨大的内阴影来营造聚光灯效果 */}
-            <div className="absolute inset-0 shadow-[inset_0_0_150px_100px_rgba(2,6,23,0.9)] z-0 pointer-events-none" />
-            
-            {/* 万能上一步按钮和伪装身份识别按钮 */}
-            {gamePhase !== 'scriptSelection' && (
-              <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
-                <button
-                  onClick={handleGlobalUndo}
-                  className="px-4 py-2 text-sm bg-blue-600 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors"
-                >
-                  <div className="flex flex-col items-center">
-                    <div>⬅️ 万能上一步</div>
-                    <div className="text-xs font-normal opacity-80">（撤销当前动作）</div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setShowSpyDisguiseModal(true)}
-                  className="px-4 py-2 text-sm bg-purple-600 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-colors"
-                >
-                  <div className="flex items-center justify-center">
-                    <div>🎭 伪装身份识别</div>
-                  </div>
-                </button>
-              </div>
-            )}
-            
-            {/* 2. 隐形的逻辑容器 (用于定位座位) */}
-            <div 
-              ref={seatContainerRef}
-              className="relative w-[640px] h-[640px] flex items-center justify-center z-10"
-            >
-              {/* 中心文字 */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none select-none">
-                <div className="text-6xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
-                  {phaseNames[gamePhase]}
-                </div>
-                <div className="text-sm text-slate-400/60 uppercase tracking-[0.3em] font-medium mt-4">
-                  design by{" "}
-                  <span className="font-bold italic">Bai  Gan Group</span>
-                </div>
-                {gamePhase==='scriptSelection' && (
-                  <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
-                    请选择剧本
-                  </div>
-                )}
-                {gamePhase!=='setup' && gamePhase!=='scriptSelection' && (
-                  <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
-                    {formatTimer(timer)}
-                  </div>
-                )}
-              </div>
-
-              {/* 座位循环 */}
-              {seats.map((s, i) => {
-                // 计算座位在圆上的位置
-                const radius = 260; // 半径（留出边距，适应 640px 圆桌）
-                const angle = (i / seats.length) * 2 * Math.PI - Math.PI / 2; // -90度开始(12点钟方向)
-                const x = radius * Math.cos(angle);
-                const y = radius * Math.sin(angle);
-                
-                return (
-                  <div
-                    key={s.id}
-                    className="absolute left-1/2 top-1/2"
-                    style={{
-                      transform: `translate(calc(${x}px - 50%), calc(${y}px - 50%))`,
-                    }}
+          {/* 主内容区域：左右布局 */}
+          <div className="flex-1 flex min-h-0">
+            {/* === 左侧：圆桌区域 (自适应宽度，高度填满) === */}
+            <main className="flex-1 h-full relative flex items-center justify-center overflow-hidden p-4">
+              {/* 全屏氛围层 (保持不变) */}
+              <div className="absolute inset-0 shadow-[inset_0_0_200px_100px_rgba(0,0,0,0.8)] z-0 pointer-events-none" />
+              
+              {/* 万能上一步按钮和伪装身份识别按钮 */}
+              {gamePhase !== 'scriptSelection' && (
+                <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+                  <button
+                    onClick={handleGlobalUndo}
+                    className="px-4 py-2 text-sm bg-blue-600 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors"
                   >
-                    <SeatNode
-                      seat={s}
-                      index={i}
-                      seats={seats}
-                      isPortrait={isPortrait}
-                      seatScale={seatScale}
-                      nightInfo={nightInfo}
-                      selectedActionTargets={selectedActionTargets}
-                      longPressingSeats={longPressingSeats}
-                      onSeatClick={handleSeatClick}
-                      onContextMenu={handleContextMenu}
-                      onTouchStart={handleTouchStart}
-                      onTouchEnd={handleTouchEnd}
-                      onTouchMove={handleTouchMove}
-                      setSeatRef={(id, el) => { seatRefs.current[id] = el; }}
-                      getSeatPosition={getSeatPosition}
-                      getDisplayRoleType={getDisplayRoleType}
-                      typeColors={typeColors}
-                    />
+                    <div className="flex flex-col items-center">
+                      <div>⬅️ 万能上一步</div>
+                      <div className="text-xs font-normal opacity-80">（撤销当前动作）</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setShowSpyDisguiseModal(true)}
+                    className="px-4 py-2 text-sm bg-purple-600 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-center">
+                      <div>🎭 伪装身份识别</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+              
+              {/* === 核心修改：圆桌容器 === */}
+              <div 
+                ref={seatContainerRef}
+                className="relative h-full max-h-[90%] aspect-square flex items-center justify-center z-10"
+              >
+                {/* 中心文字 */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none select-none">
+                  <div className="text-6xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+                    {phaseNames[gamePhase]}
                   </div>
-                );
-              })}
-            </div>
-          </main>
+                  <div className="text-sm text-slate-400/60 uppercase tracking-[0.3em] font-medium mt-4">
+                    design by{" "}
+                    <span className="font-bold italic">Bai  Gan Group</span>
+                  </div>
+                  {gamePhase==='scriptSelection' && (
+                    <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
+                      请选择剧本
+                    </div>
+                  )}
+                  {gamePhase!=='setup' && gamePhase!=='scriptSelection' && (
+                    <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
+                      {formatTimer(timer)}
+                    </div>
+                  )}
+                </div>
 
-          {/* 区域 3: 右侧信息栏 (日志/状态) */}
-          <aside className="border-l border-white/10 bg-black/20 overflow-hidden flex flex-col">
-            <div className="px-4 py-2 border-b border-white/10 shrink-0">
+                {/* 座位循环 - 使用百分比定位 */}
+                {seats.map((s, i) => {
+                  // 计算座位在圆上的位置（使用百分比）
+                  // 15人圆桌：使用40%半径，确保座位均匀分布且不重叠
+                  const radiusPercent = 40; // 40% 的半径，适合15人圆桌
+                  const angle = (i / seats.length) * 2 * Math.PI - Math.PI / 2; // -90度开始(12点钟方向)
+                  const xPercent = 50 + radiusPercent * Math.cos(angle); // 中心点50% + 偏移
+                  const yPercent = 50 + radiusPercent * Math.sin(angle); // 中心点50% + 偏移
+                  
+                  return (
+                    <div
+                      key={s.id}
+                      className="absolute"
+                      style={{
+                        left: `${xPercent}%`,
+                        top: `${yPercent}%`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    >
+                      <SeatNode
+                        seat={s}
+                        index={i}
+                        seats={seats}
+                        isPortrait={isPortrait}
+                        seatScale={seatScale}
+                        nightInfo={nightInfo}
+                        selectedActionTargets={selectedActionTargets}
+                        longPressingSeats={longPressingSeats}
+                        onSeatClick={handleSeatClick}
+                        onContextMenu={handleContextMenu}
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                        onTouchMove={handleTouchMove}
+                        setSeatRef={(id, el) => { seatRefs.current[id] = el; }}
+                        getSeatPosition={getSeatPosition}
+                        getDisplayRoleType={getDisplayRoleType}
+                        typeColors={typeColors}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </main>
+
+            {/* === 右侧：侧边栏 (固定宽度) === */}
+            <aside className="w-[450px] h-full border-l border-white/10 bg-slate-900/50 flex flex-col relative z-20 shrink-0 overflow-hidden">
+            <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
               <h2 className="text-lg font-bold text-purple-300">📖 说书人控制台</h2>
             </div>
             {nightInfo && (
@@ -6052,8 +6057,10 @@ export default function Home() {
             </div>
           </aside>
 
-          {/* 区域 4: 底部控制栏 (横跨两列) */}
-          <footer className="col-span-2 flex items-center justify-center border-t border-white/10 bg-slate-900/50 z-20">
+          </div>
+          
+          {/* 区域 4: 底部控制栏 */}
+          <footer className="flex items-center justify-center h-20 border-t border-white/10 bg-slate-900/50 z-20 shrink-0">
             <ControlPanel
               gamePhase={gamePhase}
               seats={seats}
