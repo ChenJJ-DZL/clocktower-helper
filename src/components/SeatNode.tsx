@@ -116,6 +116,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   
   // 定义状态列表 - 自动推导所有异常状态
   const statusList: Array<{ text: string; color: 'red' | 'purple' | 'green' | 'blue' | 'gray' | 'yellow'; icon?: React.ReactNode; duration?: string }> = [];
+  
+  // 标记已处理的状态，避免重复
+  const processedStatuses = new Set<string>();
 
   // 1. 死亡状态
   if (s.isDead) {
@@ -125,38 +128,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
       icon: "💀",
       duration: "永久"
     });
+    processedStatuses.add('dead');
   }
 
-  // 2. 酒鬼状态（角色是酒鬼 或 有醉酒状态）
-  if (s.role?.id === 'drunk' || s.isDrunk) {
-    // 从 statusDetails 或 statuses 中提取醉酒时效信息
-    const drunkDetail = (s.statusDetails || []).find(d => d.includes('致醉'));
-    const drunkStatus = (s.statuses || []).find(st => st.effect === 'Drunk');
-    const drunkDuration = drunkDetail || drunkStatus?.duration || (s.role?.id === 'drunk' ? '永久' : '至下个黄昏');
-    
-    statusList.push({
-      text: "醉酒",
-      color: "purple",
-      icon: "🍷",
-      duration: drunkDuration
-    });
-  }
-
-  // 3. 中毒状态
-  if (s.isPoisoned) {
-    const poisonDetail = (s.statusDetails || []).find(d => d.includes('中毒'));
-    const poisonStatus = (s.statuses || []).find(st => st.effect === 'Poison');
-    const poisonDuration = poisonDetail || poisonStatus?.duration || '至下个黄昏';
-    
-    statusList.push({
-      text: "中毒",
-      color: "green",
-      icon: "🧪",
-      duration: poisonDuration
-    });
-  }
-
-  // 4. 受保护状态
   if (s.isProtected) {
     const protectionStatus = (s.statuses || []).find(st => st.effect === 'ExecutionProof' || st.effect === 'Protected');
     const protectionDuration = protectionStatus?.duration || '至天亮';
@@ -169,7 +143,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     });
   }
 
-  // 5. 红罗刹状态
+  // 6. 红罗刹状态
   if (s.isRedHerring) {
     statusList.push({
       text: "红罗刹",
@@ -179,24 +153,82 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     });
   }
 
-  // 6. 其他状态详情（排除已处理的中毒、醉酒）
+  // 2. 先处理statusDetails中的状态（优先显示详细信息）
   (s.statusDetails || []).forEach(st => {
-    // 跳过已经处理过的状态
-    if (st.includes('中毒') || st.includes('致醉')) return;
+    // 处理中毒状态（从statusDetails中提取详细信息）
+    if (st.includes('中毒') && !processedStatuses.has('poison')) {
+      const poisonStatus = (s.statuses || []).find(status => status.effect === 'Poison');
+      const poisonDuration = poisonStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
+      
+      statusList.push({
+        text: "中毒",
+        color: "green",
+        icon: "🧪",
+        duration: poisonDuration
+      });
+      processedStatuses.add('poison');
+      return; // 已处理，跳过后续逻辑
+    }
     
-    const matchingStatus = (s.statuses || []).find(status => {
-      if (st.includes('中毒') && status.effect === 'Poison') return true;
-      if (st.includes('致醉') && status.effect === 'Drunk') return true;
-      return false;
-    });
-    const duration = matchingStatus?.duration || st;
+    // 处理醉酒状态（从statusDetails中提取详细信息）
+    if (st.includes('致醉') && !processedStatuses.has('drunk')) {
+      const drunkStatus = (s.statuses || []).find(status => status.effect === 'Drunk');
+      const drunkDuration = drunkStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
+      
+      statusList.push({
+        text: "醉酒",
+        color: "purple",
+        icon: "🍷",
+        duration: drunkDuration
+      });
+      processedStatuses.add('drunk');
+      return; // 已处理，跳过后续逻辑
+    }
+    
+    // 处理其他状态（排除已处理的中毒、醉酒）
+    if (!st.includes('中毒') && !st.includes('致醉')) {
+      const matchingStatus = (s.statuses || []).find(status => {
+        return false; // 其他状态暂时不匹配
+      });
+      const duration = matchingStatus?.duration || st;
+      
+      statusList.push({
+        text: st.replace(/（.+?清除）/, '').trim(),
+        color: "yellow",
+        duration: duration
+      });
+    }
+  });
+
+  // 3. 处理通用的中毒状态（如果statusDetails中没有）
+  if (s.isPoisoned && !processedStatuses.has('poison')) {
+    const poisonStatus = (s.statuses || []).find(st => st.effect === 'Poison');
+    const poisonDuration = poisonStatus?.duration || '至下个黄昏';
     
     statusList.push({
-      text: st.replace(/（.+?清除）/, '').trim(),
-      color: "yellow",
-      duration: duration
+      text: "中毒",
+      color: "green",
+      icon: "🧪",
+      duration: poisonDuration
     });
-  });
+    processedStatuses.add('poison');
+  }
+
+  // 4. 处理通用的醉酒状态（如果statusDetails中没有）
+  if ((s.role?.id === 'drunk' || s.isDrunk) && !processedStatuses.has('drunk')) {
+    const drunkStatus = (s.statuses || []).find(st => st.effect === 'Drunk');
+    const drunkDuration = drunkStatus?.duration || (s.role?.id === 'drunk' ? '永久' : '至下个黄昏');
+    
+    statusList.push({
+      text: "醉酒",
+      color: "purple",
+      icon: "🍷",
+      duration: drunkDuration
+    });
+    processedStatuses.add('drunk');
+  }
+
+  // 5. 受保护状态
 
   // 7. 技能使用状态
   if (s.hasUsedSlayerAbility) {
@@ -277,9 +309,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
           </span>
         </div>
 
-        {/* 状态标签容器 - 位于座位圆圈正下方 */}
-        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 translate-y-full flex flex-col gap-1 items-center z-30 w-max pointer-events-none">
-          {/* 遍历渲染状态列表 */}
+        {/* 状态标签容器 - 位于座位内部，从下边缘向上排列 */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col-reverse gap-0.5 items-center z-30 w-full px-1 pointer-events-none" style={{ maxHeight: '60%' }}>
+          {/* 遍历渲染状态列表（反向，从下往上） */}
           {statusList.map((status, idx) => (
             <StatusPill
               key={`${status.text}-${idx}`}

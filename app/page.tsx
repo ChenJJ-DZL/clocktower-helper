@@ -4561,7 +4561,7 @@ export default function Home() {
     longPressTriggeredRef.current.delete(seatId);
     // 获取触摸位置
     const touch = e.touches[0];
-    // 设置1秒后触发右键菜单/酒鬼伪装
+    // 设置0.2秒后触发右键菜单/酒鬼伪装
     const timer = setTimeout(() => {
       const seat = seats.find(s => s.id === seatId);
       if (gamePhase === 'check' && seat?.role?.id === 'drunk') {
@@ -4576,7 +4576,7 @@ export default function Home() {
         next.delete(seatId);
         return next;
       });
-    }, 1000);
+    }, 200);
     longPressTimerRef.current.set(seatId, timer);
   };
 
@@ -4641,7 +4641,7 @@ export default function Home() {
     checkLongPressTimerRef.current = setTimeout(() => {
       toggleStatus('redherring', seatId);
       clearCheckLongPressTimer();
-    }, 1000);
+    }, 200);
   };
 
   const handleCheckTouchEnd = (e: React.TouchEvent, seatId: number) => {
