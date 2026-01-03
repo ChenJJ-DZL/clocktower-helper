@@ -238,7 +238,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         height: `calc(${isPortrait ? '3rem' : '6rem'} * ${seatScale})`,
         WebkitUserSelect: 'none',
         userSelect: 'none',
+        WebkitTouchCallout: 'none',
         touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
       }}
       className="absolute flex items-center justify-center"
     >

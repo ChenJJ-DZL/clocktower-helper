@@ -6,11 +6,43 @@
   --foreground: #ededed;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   @apply bg-slate-950 text-slate-200;
   -webkit-touch-callout: none; /* 禁用系统长按菜单，避免与游戏长按冲突 */
-  position: relative;
-  min-height: 100vh;
+  -webkit-user-select: none; /* 禁用文本选择 */
+  user-select: none; /* 禁用文本选择 */
+  -webkit-tap-highlight-color: transparent; /* 禁用点击高亮 */
+  touch-action: manipulation; /* 优化触摸响应，禁用双击缩放 */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* 防止移动设备上的留白 */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 全局屏蔽所有元素的长按菜单和文本选择 */
+* {
+  -webkit-touch-callout: none; /* iOS Safari 长按菜单 */
+  -webkit-user-select: none; /* 禁用文本选择 */
+  user-select: none; /* 禁用文本选择 */
+  -webkit-tap-highlight-color: transparent; /* 禁用点击高亮 */
+  touch-action: manipulation; /* 优化触摸响应 */
+}
+
+/* 允许输入框和文本区域选择文本 */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 /* 全局径向渐变背景层 - 模拟桌面的聚光灯效果 */

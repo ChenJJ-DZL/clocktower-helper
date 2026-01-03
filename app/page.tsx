@@ -1043,6 +1043,46 @@ export default function Home() {
     };
   }, []);
 
+  // 全局屏蔽系统默认的长按行为（contextmenu、文本选择等）
+  useEffect(() => {
+    const preventDefault = (e: Event) => {
+      // 阻止所有contextmenu事件（右键菜单）
+      if (e.type === 'contextmenu') {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+
+    const preventTouchCallout = (e: TouchEvent) => {
+      // 阻止触摸长按时的系统菜单
+      // 注意：这里不阻止所有touch事件，只阻止可能导致系统菜单的
+      // 实际的触摸处理由各个组件的onTouchStart/End/Move处理
+    };
+
+    // 阻止全局contextmenu
+    document.addEventListener('contextmenu', preventDefault, { passive: false, capture: true });
+    
+    // 阻止触摸长按时的系统行为（通过CSS已处理，这里作为额外保障）
+    document.addEventListener('touchstart', preventTouchCallout, { passive: true });
+    document.addEventListener('touchmove', preventTouchCallout, { passive: true });
+    document.addEventListener('touchend', preventTouchCallout, { passive: true });
+
+    // 阻止文本选择（通过CSS已处理，这里作为额外保障）
+    document.addEventListener('selectstart', (e) => {
+      e.preventDefault();
+      return false;
+    }, { passive: false });
+
+    return () => {
+      document.removeEventListener('contextmenu', preventDefault, { capture: true } as EventListenerOptions);
+      document.removeEventListener('touchstart', preventTouchCallout);
+      document.removeEventListener('touchmove', preventTouchCallout);
+      document.removeEventListener('touchend', preventTouchCallout);
+      document.removeEventListener('selectstart', preventDefault);
+    };
+  }, []);
+
   // 游戏结束时保存对局记录
   const gameRecordSavedRef = useRef(false);
   useEffect(() => {
@@ -4521,7 +4561,7 @@ export default function Home() {
     longPressTriggeredRef.current.delete(seatId);
     // 获取触摸位置
     const touch = e.touches[0];
-    // 设置0.5秒后触发右键菜单/酒鬼伪装
+    // 设置1秒后触发右键菜单/酒鬼伪装
     const timer = setTimeout(() => {
       const seat = seats.find(s => s.id === seatId);
       if (gamePhase === 'check' && seat?.role?.id === 'drunk') {
@@ -4536,7 +4576,7 @@ export default function Home() {
         next.delete(seatId);
         return next;
       });
-    }, 500);
+    }, 1000);
     longPressTimerRef.current.set(seatId, timer);
   };
 
@@ -4601,7 +4641,7 @@ export default function Home() {
     checkLongPressTimerRef.current = setTimeout(() => {
       toggleStatus('redherring', seatId);
       clearCheckLongPressTimer();
-    }, 500);
+    }, 1000);
   };
 
   const handleCheckTouchEnd = (e: React.TouchEvent, seatId: number) => {
@@ -5819,7 +5859,13 @@ export default function Home() {
                     <div 
                       key={s.id} 
                       className="flex flex-col gap-1 border-b border-gray-700 pb-2 select-none"
-                      style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
+                      style={{ 
+                        WebkitUserSelect: 'none', 
+                        userSelect: 'none',
+                        WebkitTouchCallout: 'none',
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
+                      }}
                       onContextMenu={(e)=>handleCheckContextMenu(e, s.id)}
                       onTouchStart={(e)=>handleCheckTouchStart(e, s.id)}
                       onTouchEnd={(e)=>handleCheckTouchEnd(e, s.id)}
