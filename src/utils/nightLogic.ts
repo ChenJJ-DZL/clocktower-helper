@@ -1,5 +1,4 @@
 import type { Seat, Role, GamePhase, LogEntry, Script, RoleType } from '../../app/data';
-import type { RegistrationResult, RegistrationCacheOptions } from '../../src/types/game';
 import { 
   computeIsPoisoned, 
   getPoisonSources, 
@@ -7,7 +6,9 @@ import {
   getRandom,
   isEvil,
   shouldShowFakeInfo,
-  getMisinformation
+  getMisinformation,
+  type RegistrationResult,
+  type RegistrationCacheOptions
 } from './gameRules';
 import { roles } from '../../app/data';
 
