@@ -43,6 +43,7 @@ export interface StatusEffect {
 
 export interface Seat {
   id: number;
+  playerName?: string; // 玩家名字（可选）
   role: Role | null;
   charadeRole: Role | null;
   isDead: boolean;
