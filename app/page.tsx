@@ -170,22 +170,22 @@ const addDrunkMark = (
       markText = `心上人致醉${clearTime}清除`;
       break;
     case 'goon':
-      markText = `莽夫使其醉酒{clearTime}清除`;
+      markText = `莽夫使其醉酒${clearTime}清除`;
       break;
     case 'sailor':
-      markText = `水手致醉{clearTime}清除`;
+      markText = `水手致醉${clearTime}清除`;
       break;
     case 'innkeeper':
-      markText = `旅店老板致醉{clearTime}清除`;
+      markText = `旅店老板致醉${clearTime}清除`;
       break;
     case 'courtier':
-      markText = `侍臣致醉{clearTime}清除`;
+      markText = `侍臣致醉${clearTime}清除`;
       break;
     case 'philosopher':
       markText = `哲学家致醉${clearTime}清除`;
       break;
     case 'minstrel':
-      markText = `吟游诗人致醉{clearTime}清除`;
+      markText = `吟游诗人致醉${clearTime}清除`;
       break;
   }
   
@@ -254,6 +254,7 @@ const hasExecutionProof = (seat?: Seat | null): boolean => {
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
 import { calculateNightInfo } from "@/src/utils/nightLogic";
+import { useNightLogic } from "../src/hooks/useNightLogic";
 import { SeatNode } from "@/src/components/SeatNode";
 import { ControlPanel } from "@/src/components/ControlPanel";
 import { GameRecordsModal } from "@/src/components/modals/GameRecordsModal";
@@ -515,16 +516,6 @@ export default function Home() {
     });
   }, [nightCount]);
 
-  const finalizeNightStart = useCallback((queue: Seat[], isFirst: boolean) => {
-    setWakeQueueIds(queue.map(s => s.id)); 
-    setCurrentWakeIndex(0); 
-    setSelectedActionTargets([]);
-    setInspectionResult(null);
-    setGamePhase(isFirst ? "firstNight" : "night"); 
-    if(!isFirst) setNightCount(n => n + 1);
-    setShowNightOrderModal(false);
-    setPendingNightQueue(null);
-  }, []);
 
   const getDisplayRoleForSeat = useCallback((seat?: Seat | null) => {
     if (!seat) return null;
@@ -737,7 +728,7 @@ export default function Home() {
     });
     if (newlyCompleted.length > 0) {
       newlyCompleted.forEach(id => {
-        addLog(`气球驾驶${id + 1}已在前几夜得知所有角色类型镇民外来者爪牙恶魔从今夜起将不再被唤醒这符合规则`);
+        addLog(`气球驾驶员${id + 1}号已在前几夜得知所有角色类型（镇民、外来者、爪牙、恶魔），从今夜起将不再被唤醒，这符合规则`);
       });
       setBalloonistCompletedIds(prev => [...prev, ...newlyCompleted]);
     }
@@ -893,16 +884,16 @@ export default function Home() {
       };
       
       // 气球驾驶员自动记录日志被动信息技能
-      if (nightInfo.effectiveRole.id === 'balloonist' && nightInfo.guide.includes('你得) && !nightInfo.isPoisoned) {
+      if (nightInfo.effectiveRole.id === 'balloonist' && nightInfo.guide.includes('你得') && !nightInfo.isPoisoned) {
         // guide 中提取信息格式" 你得X号角色类型镇
-        const match = nightInfo.guide.match(/你得(\d+)号角色类型[](.+)/);
+        const match = nightInfo.guide.match(/你得(\d+)号，角色类型：(.+)/);
         if (match) {
           const seatNum = match[1];
           const typeName = match[2].trim();
           addLogWithDeduplication(
-            `${nightInfo.seat.id+1}气球驾驶 得知 ${seatNum ?角色类型{typeName}`,
+            `${nightInfo.seat.id+1}号(气球驾驶员) 得知 ${seatNum}号，角色类型：${typeName}`,
             nightInfo.seat.id,
-            '气球驾驶
+            '气球驾驶员'
           );
           // 记录已知类型防止重
           setBalloonistKnownTypes(prev => {
@@ -1026,7 +1017,7 @@ export default function Home() {
   useEffect(() => {
     if (gamePhase === 'gameOver' && winResult !== null && selectedScript && !gameRecordSavedRef.current) {
       const endTime = new Date();
-      const duration = startTime : Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
+      const duration = startTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
       
       const record: GameRecord = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1054,7 +1045,7 @@ export default function Home() {
   const checkGameOver = useCallback((updatedSeats: Seat[], executedPlayerIdArg?: number | null, preserveWinReason?: boolean) => {
     // 防御性检查确保updatedSeats不为空且是有效数
     if (!updatedSeats || updatedSeats.length === 0) {
-      console.error('checkGameOver: updatedSeats为空或无);
+      console.error('checkGameOver: updatedSeats为空或无效');
       return false;
     }
     
@@ -1076,7 +1067,7 @@ export default function Home() {
       setWinResult('evil');
       setWinReason(`场上仅存${aliveCount}位存活玩家`);
       setGamePhase('gameOver');
-      addLog(`游戏结束场上仅{aliveCount}位存活玩家邪恶阵营获胜`);
+      addLog(`游戏结束：场上仅存${aliveCount}位存活玩家，邪恶阵营获胜`);
       return true;
     }
     
@@ -1087,14 +1078,14 @@ export default function Home() {
       const allEvil = aliveSeats.every(s => isEvilForWinCondition(s));
       if (allEvil) {
         setWinResult('evil');
-        setWinReason('场上所有存活玩家都是邪恶阵);
+        setWinReason('场上所有存活玩家都是邪恶阵营');
         setGamePhase('gameOver');
         addLog(`游戏结束场上所有存活玩家都是邪恶阵营邪恶阵营获胜`);
         return true;
       }
     }
 
-    const executionTargetId = executedPlayerIdArg  executedPlayerId;
+    const executionTargetId = executedPlayerIdArg ?? executedPlayerId;
     
     // 优先检查镜像双子evil_twin 如果善良双子被处决邪恶阵营获胜
     if (executionTargetId !== null && executionTargetId !== undefined && evilTwinPair) {
@@ -1103,7 +1094,7 @@ export default function Home() {
         setWinResult('evil');
         setWinReason('镜像双子善良双子被处决');
         setGamePhase('gameOver');
-        addLog("游戏结束镜像双子善良双子被处决邪恶阵营获);
+        addLog("游戏结束：镜像双子，善良双子被处决，邪恶阵营获胜");
         return true;
       }
     }
@@ -1120,9 +1111,9 @@ export default function Home() {
         executedPlayer.isDead;
       if (justExecutedSaint) {
         setWinResult('evil');
-        setWinReason('圣徒被处);
+        setWinReason('圣徒被处决');
         setGamePhase('gameOver');
-        addLog("游戏结束圣徒被处决邪恶胜);
+        addLog("游戏结束圣徒被处决邪恶阵营获胜");
         return true;
       }
     }
@@ -1172,8 +1163,8 @@ export default function Home() {
           setWinReason('小恶魔传死亡');
           addLog("游戏结束小恶魔传死亡好人胜利");
         } else {
-          setWinReason('小恶魔死);
-          addLog("游戏结束小恶魔死亡好人胜);
+          setWinReason('小恶魔死亡');
+          addLog("游戏结束：小恶魔死亡，好人胜利");
         }
       }
       setGamePhase('gameOver');
@@ -1201,9 +1192,9 @@ export default function Home() {
     const mayorAlive = aliveSeats.some(s => s.role?.id === 'mayor');
     if (aliveCount === 3 && mayorAlive && gamePhase === 'day') {
       setWinResult('good');
-      setWinReason('3人存活且无人被处决市长能力);
+      setWinReason('3人存活且无人被处决，市长能力');
       setGamePhase('gameOver');
-      addLog("因为场上只剩 3 名存活玩家且今天无人被处决市长 ? 触发能力好人立即获胜);
+      addLog("因为场上只剩 3 名存活玩家且今天无人被处决，市长触发能力，好人立即获胜");
       return true;
     }
     
@@ -1227,9 +1218,9 @@ export default function Home() {
     if (nightInfo.effectiveRole.type !== 'demon') return false;
     const act = nightInfo.action || '';
     // 首夜且行为不是直接杀人时视为无技
-    if (gamePhase === 'firstNight' && !act.includes('杀死)) return true;
-    // 明确的跳无信仅展
-    if (['跳过', '无信, '展示'].some(k => act.includes(k))) return true;
+    if (gamePhase === 'firstNight' && !act.includes('杀死')) return true;
+    // 明确的跳无信仅展示
+    if (['跳过', '无信息', '展示'].some(k => act.includes(k))) return true;
     return false;
   }, [nightInfo, gamePhase]);
 
@@ -1272,7 +1263,7 @@ export default function Home() {
         setSeats(p=>p.map(s=>s.id===id ? {...s,role:selectedRole}:s)); 
         setSelectedRole(null);
       } else {
-        setSeats(p=>p.map(s=>s.id===id : {...s,role:null}:s));
+        setSeats(p=>p.map(s=>s.id===id ? {...s,role:null}:s));
       }
     }
   };
@@ -1283,10 +1274,10 @@ export default function Home() {
     const fallbackOutsider = Math.max(0, Math.floor((playerCount - 3) / 3));
     const fallbackTownsfolk = Math.max(0, playerCount - fallbackOutsider - fallbackMinion - 1);
 
-    const minion = base?.minion  fallbackMinion;
-    const outsiderBase = base?.outsider  fallbackOutsider;
-    const townsfolkBase = base?.townsfolk  fallbackTownsfolk;
-    const demon = base?.demon  1;
+    const minion = base?.minion ?? fallbackMinion;
+    const outsiderBase = base?.outsider ?? fallbackOutsider;
+    const townsfolkBase = base?.townsfolk ?? fallbackTownsfolk;
+    const demon = base?.demon ?? 1;
 
     const outsider = outsiderBase + (hasBaron ? 2 : 0);
     const townsfolk = Math.max(0, townsfolkBase - (hasBaron ? 2 : 0));
@@ -1381,18 +1372,18 @@ export default function Home() {
           withRed[t.id] = { 
             ...withRed[t.id], 
             isRedHerring: true, 
-            statusDetails: [...(withRed[t.id].statusDetails || []), "红罗] 
+            statusDetails: [...(withRed[t.id].statusDetails || []), "红罗刹"] 
           };
           const redRoleName = withRed[t.id].role?.name || '未知角色';
-          addLog(`红罗刹分配${t.id+1 ?${redRoleName}`);
-          setAutoRedHerringInfo(`${t.id + 1 ?${redRoleName}`);
+          addLog(`红罗刹分配${t.id+1}号：${redRoleName}`);
+          setAutoRedHerringInfo(`${t.id + 1}号：${redRoleName}`);
         }
       }
       
       // 检查是否有送葬者如果有则添加说明日志
       const hasUndertaker = withRed.some(s => s.role?.id === "undertaker");
       if (hasUndertaker) {
-        addLog(`送葬者 ? 只在非首夜的夜晚被唤醒且只会看到"今天黄昏被处决并死亡的玩`);
+        addLog(`送葬者：只在非首夜的夜晚被唤醒，且只会看到"今天黄昏被处决并死亡的玩家"`);
       }
       
       setSeats(withRed); 
@@ -1492,7 +1483,7 @@ export default function Home() {
         );
       });
 
-      addLog('检测到男爵 ? 已自动将 2 名镇民改为外来者以满足配置 : );
+      addLog('检测到男爵，已自动将 2 名镇民改为外来者以满足配置');
       return nextSeats;
     };
 
@@ -1529,7 +1520,7 @@ export default function Home() {
         candidates.forEach(seat => {
           const newRole = pickRole(outsiderPool);
           if (!newRole) return;
-          updated = updated.map(s => s.id === seat.id : cleanseSeatStatuses({
+          updated = updated.map(s => s.id === seat.id ? cleanseSeatStatuses({
             ...s,
             role: newRole,
             charadeRole: null,
@@ -1568,9 +1559,9 @@ export default function Home() {
 
   const confirmDrunkCharade = (r: Role) => {
     if (showDrunkModal === null) return;
-    const updated = seats.map(s => s.id === showDrunkModal : { ...s, charadeRole: r, isDrunk: true } : s);
+    const updated = seats.map(s => s.id === showDrunkModal ? { ...s, charadeRole: r, isDrunk: true } : s);
     setShowDrunkModal(null);
-    addLog(`酒鬼伪装{showDrunkModal + 1号展示{r.name}卡实际是酒鬼请对其说你{r.name}`);
+    addLog(`酒鬼：${showDrunkModal + 1}号展示${r.name}卡，实际是酒鬼，请对其说你${r.name}`);
 
     const active = updated.filter(s => s.role);
     if (!validateBaronSetup(active)) {
@@ -1586,8 +1577,8 @@ export default function Home() {
       setShowNightOrderModal(false);
       return;
     }
-    finalizeNightStart(pendingNightQueue, true);
-  }, [pendingNightQueue, finalizeNightStart]);
+    nightLogic.finalizeNightStart(pendingNightQueue, true);
+  }, [pendingNightQueue, nightLogic]);
 
   const closeNightOrderPreview = useCallback(() => {
     setPendingNightQueue(null);
@@ -1596,117 +1587,6 @@ export default function Home() {
     setNightQueuePreviewTitle("");
   }, []);
 
-  const startNight = (isFirst: boolean) => {
-    // 保存历史记录
-    saveHistory();
-    // 白天事件与标记重
-    setTodayDemonVoted(false);
-    setTodayMinionNominated(false);
-    setTodayExecutedId(null);
-    setWitchCursedId(null);
-    setWitchActive(false);
-    setCerenovusTarget(null);
-    setVoteRecords([]); // 重置投票记录
-    resetRegistrationCache(`${isFirst ? 'firstNight' : 'night'}-${isFirst ? 1 : nightCount + 1}`);
-    setNominationMap({});
-    const nightlyDeaths: number[] = [];
-    setGoonDrunkedThisNight(false);
-    setNightQueuePreviewTitle(isFirst ? `夜叫醒顺位` : "");
-    
-    // 对于非首夜在进入夜晚前将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
-    // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
-    if (!isFirst) {
-      if (currentDuskExecution !== null) {
-        setLastDuskExecution(currentDuskExecution);
-        // 清空当前黄昏的处决记录准备记录新的处决
-        setCurrentDuskExecution(null);
-      }
-      // 如果当前黄昏没有处决保持上一个黄昏的记录如果有的话
-      // 如果上一个黄昏也没有处决lastDuskExecution保持为null
-    }
-    
-    if(isFirst) setStartTime(new Date());
-    
-    // 普卡特殊处理按队列推进中毒->死亡流程
-    const pukkaDeaths: number[] = [];
-    const nextPukkaQueue = pukkaPoisonQueue
-      .map(entry => {
-        const targetSeat = seats.find(s => s.id === entry.targetId);
-        // 如果目标已经死亡被处决或其他效果移出队
-        if (targetSeat?.isDead) return null;
-        const nightsLeft = entry.nightsUntilDeath - 1;
-        if (nightsLeft <= 0) {
-          pukkaDeaths.push(entry.targetId);
-          return null;
-        }
-        return { ...entry, nightsUntilDeath: nightsLeft };
-      })
-      .filter((v): v is { targetId: number; nightsUntilDeath: number } => !!v);
-    if (pukkaDeaths.length > 0) {
-      pukkaDeaths.forEach((id, idx) => {
-        nightlyDeaths.push(id);
-        const isLast = idx === pukkaDeaths.length - 1;
-        killPlayer(id, {
-          seatTransformer: seat => {
-            const filteredStatuses = (seat.statusDetails || []).filter(st => st !== '普卡中毒');
-            const nextSeat = { ...seat, statusDetails: filteredStatuses };
-            return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
-          },
-          skipGameOverCheck: !isLast, // 最后一次再检查游戏结束避免重复检
-        });
-        addLog(`${id+1}因普卡的中毒效果死亡并恢复健康`);
-      });
-    }
-    // 更新普卡队列存活者继续保持中毒状态
-    setPukkaPoisonQueue(nextPukkaQueue);
-    
-    setSeats(p => p.map(s => {
-      // 清除所有带清除时间的标记根据清除时间判断
-      const filteredStatusDetails = (s.statusDetails || []).filter(st => {
-        // 保留永久标记
-        if (st.includes('永久中毒') || st.includes('永久')) return true;
-        // 清除所有带"次日黄昏清除"下个黄昏清除"至下个黄昏清除
-        if (st.includes('次日黄昏清除') || st.includes('下个黄昏清除') || st.includes('至下个黄昏清除'ExecutionProof') return true;
-        // 清除所有带"Night+Day"1 Day"等标准清除时间的状
-        if (status.duration === '1 Day' || status.duration === 'Night+Day') return false;
-        // 保留其他状
-        return true;
-      });
-      
-      // 清除水手/旅店老板造成的醉酒状态这些状态持续到"下个黄昏"进入夜晚时清除
-      const filteredStatusDetailsForDrunk = filteredStatusDetails.filter(st => {
-        // 清除水手/旅店老板造成的醉酒标记这些标记包含"至下个黄昏清除"
-    if (validQueue.length === 0) {
-      setWakeQueueIds([]);
-      setCurrentWakeIndex(0);
-      // 无任何叫醒目标时直接进入夜晚结算弹
-      if (nightlyDeaths.length > 0) {
-        const deadNames = nightlyDeaths.map(id => `${id + 1 ?`).join(');
-        setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
-      } else {
-        setShowNightDeathReportModal("昨天是个平安);
-      }
-      // 直接进入夜晚报道阶段
-      setGamePhase('dawnReport');
-      return;
-    }
-
-    if (isFirst) {
-      setPendingNightQueue(validQueue);
-      setNightOrderPreview(
-        validQueue
-          .map(s => {
-            const r = s.role?.id === 'drunk' : s.charadeRole : s.role;
-            return { roleName: r?.name || '未知角色', seatNo: s.id + 1, order: r.firstNightOrder  999 };
-          })
-          .sort((a, b) => (a.order  999) - (b.order  999))
-      );
-      setShowNightOrderModal(true);
-      return;
-    }
-
-    finalizeNightStart(validQueue, isFirst);
-  };
 
   const toggleTarget = (id: number) => {
     if(!nightInfo) return;
@@ -1745,7 +1625,7 @@ export default function Home() {
       if (newT.length > 0) {
         const tid = newT[newT.length - 1];
         addLogWithDeduplication(
-          `${nightInfo.seat.id+1}${nightInfo.effectiveRole.name}) 处于中毒/醉酒状态本夜${tid+1}的行动无效无事发生`,
+          `${nightInfo.seat.id+1}号(${nightInfo.effectiveRole.name}) 处于中毒/醉酒状态，本夜${tid+1}号的行动无效，无事发生`,
           nightInfo.seat.id,
           nightInfo.effectiveRole.name
         );
@@ -1811,7 +1691,7 @@ export default function Home() {
                 { 
                   day: nightCount, 
                   phase: gamePhase, 
-                  message: `${nightInfo.seat.id+1}普卡) 今晚${tid+1}中毒他会在下一个夜晚开始前死亡并恢复健康`
+                  message: `${nightInfo.seat.id+1}号(普卡) 今晚${tid+1}号中毒，他会在下一个夜晚开始前死亡并恢复健康`
                 }
               ];
             });
@@ -1848,7 +1728,7 @@ export default function Home() {
           // 使用nightInfo.isPoisoned和seats状态双重检查确保判断准确
           const monkSeat = seats.find(s => s.id === nightInfo.seat.id);
           const isMonkPoisoned = nightInfo.isPoisoned || 
-                                 (monkSeat : (monkSeat.isPoisoned || monkSeat.isDrunk || monkSeat.role?.id === "drunk") : false);
+                                 (monkSeat ? (monkSeat.isPoisoned || monkSeat.isDrunk || monkSeat.role?.id === "drunk") : false);
           
           // 如果僧侣中毒/醉酒绝对不能设置保护效果但可以正常选择玩家
           if (isMonkPoisoned) {
@@ -1865,19 +1745,19 @@ export default function Home() {
               const filtered = prev.filter(log => 
                 !(log.message.includes(`${nightInfo.seat.id+1}僧侣)`) && log.phase === gamePhase)
               );
-              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}僧侣) 选择保护 ${tid+1 ?但中醉酒状态下无保护效果` }];
+              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(僧侣) 选择保护 ${tid+1}号，但中醉酒状态下无保护效果` }];
             });
           } else {
             // 健康状态下正常保护先清除所有保护然后只设置目标玩家的保护
             setSeats(p => {
               const updated = p.map(s => ({...s, isProtected: false, protectedBy: null}));
-              return updated.map(s => s.id === tid : {...s, isProtected: true, protectedBy: nightInfo.seat.id} : s);
+              return updated.map(s => s.id === tid ? {...s, isProtected: true, protectedBy: nightInfo.seat.id} : s);
             });
             setGameLogs(prev => {
               const filtered = prev.filter(log => 
                 !(log.message.includes(`${nightInfo.seat.id+1}僧侣)`) && log.phase === gamePhase)
               );
-              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}僧侣) 保护 ${tid+1 ?` }];
+              return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(僧侣) 保护 ${tid+1}号` }];
             });
           }
         }
@@ -1899,13 +1779,13 @@ export default function Home() {
               return { ...s, isDrunk: true, statusDetails, statuses };
             }
             if (s.id === targetSeat.id) {
-              const detail = '莽夫阵营暂随选择;
+              const detail = '莽夫阵营暂随选择';
               const statusDetails = Array.from(new Set([...(s.statusDetails || []), detail]));
               return { ...s, statusDetails };
             }
             return s;
           }));
-          addLog(`${chooserId+1}以能力选择${targetSeat.id+1}莽夫){chooserId+1}醉酒至下个黄昏莽夫阵营暂随选择者`);
+          addLog(`${chooserId+1}号以能力选择${targetSeat.id+1}号(莽夫)，${chooserId+1}号醉酒至下个黄昏，莽夫阵营暂随选择者`);
         }
       }
       if(action === 'mark' && nightInfo.effectiveRole.id === 'devils_advocate' && newT.length === 1) {
@@ -1974,7 +1854,7 @@ export default function Home() {
           setGameLogs(prev => [...prev, { 
             day: nightCount, 
             phase: gamePhase, 
-            message: `${snakeCharmerSeat.id+1}舞蛇 选择 ${targetSeat.id+1 ?交换角色和阵营${targetSeat.id+1 ?中毒舞蛇人转邪恶魔转善` 
+            message: `${snakeCharmerSeat.id+1}号(舞蛇人) 选择 ${targetSeat.id+1}号，交换角色和阵营，${targetSeat.id+1}号中毒，舞蛇人转邪恶，恶魔转善良` 
           }]);
         } else {
           // 没有选中恶魔只记录选择
@@ -1982,7 +1862,7 @@ export default function Home() {
             const filtered = prev.filter(log => 
               !(log.message.includes(`${nightInfo.seat.id+1}舞蛇`) && log.phase === gamePhase)
             );
-            return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}舞蛇 选择 ${newT[0]+1 ?` }];
+            return [...filtered, { day: nightCount, phase: gamePhase, message: `${nightInfo.seat.id+1}号(舞蛇人) 选择 ${newT[0]+1}号` }];
           });
         }
       }
@@ -1990,7 +1870,7 @@ export default function Home() {
       if(action === 'mark' && nightInfo.effectiveRole.id === 'philosopher' && newT.length === 1) {
         // 哲学家每局游戏限一次选择一个善良角色获得该角色的能力原角色醉酒
         if (hasUsedAbility('philosopher', nightInfo.seat.id)) {
-          addLog(`${nightInfo.seat.id+1}哲学 已用完一次性能力`);
+          addLog(`${nightInfo.seat.id+1}号(哲学家) 已用完一次性能力`);
           return;
         }
         setShowRoleSelectModal({
@@ -2009,13 +1889,13 @@ export default function Home() {
               }
               if (s.role?.id === targetRole.id) {
                 // 哲学家原角色从当晚开始醉酒三天三
-                const clearTime = '三天三夜;
+                const clearTime = '三天三夜';
                 const { statusDetails, statuses } = addDrunkMark(s, 'philosopher', clearTime);
                 return { ...s, isDrunk: true, statusDetails, statuses };
               }
               return s;
             }));
-            addLog(`${nightInfo.seat.id+1}哲学 获得 ${targetRole.name} 的能力`);
+            addLog(`${nightInfo.seat.id+1}号(哲学家) 获得 ${targetRole.name} 的能力`);
             markAbilityUsed('philosopher', nightInfo.seat.id);
             setShowRoleSelectModal(null);
             continueToNextAction();
@@ -2028,13 +1908,13 @@ export default function Home() {
         const targetId = newT[0];
         const aliveCount = seats.filter(s => !s.isDead).length;
         if (aliveCount <= 3) {
-          addLog(`${nightInfo.seat.id+1}女巫) 只有三名或更少存活的玩家失去此能力`);
+          addLog(`${nightInfo.seat.id+1}号(女巫) 只有三名或更少存活的玩家，失去此能力`);
           return;
         }
         setWitchCursedId(targetId);
         setWitchActive(true);
         addLogWithDeduplication(
-          `${nightInfo.seat.id+1}女巫) 诅咒 ${targetId+1 ?若其明天发起提名则死亡`,
+          `${nightInfo.seat.id+1}号(女巫) 诅咒 ${targetId+1}号，若其明天发起提名则死亡`,
           nightInfo.seat.id,
           '女巫'
         );
@@ -2047,11 +1927,11 @@ export default function Home() {
         // 验证目标必须是善良玩
         const isGood = targetSeat.role && (targetSeat.role.type === 'townsfolk' || targetSeat.role.type === 'outsider');
         if (!isGood) {
-          alert('镜像双子必须选择一名善良玩家作为对);
+          alert('镜像双子必须选择一名善良玩家作为对手');
           return;
         }
         setEvilTwinPair({ evilId: nightInfo.seat.id, goodId: targetId });
-        addLog(`${nightInfo.seat.id+1}镜像双子) 选择 ${targetId+1}作为对手`);
+        addLog(`${nightInfo.seat.id+1}号(镜像双子) 选择 ${targetId+1}号作为对手`);
         continueToNextAction();
         return;
       }
@@ -2068,7 +1948,7 @@ export default function Home() {
               return;
             }
             setCerenovusTarget({ targetId, roleName: targetRole.name });
-            addLogWithDeduplication(`${nightInfo.seat.id+1}洗脑 要求 ${targetId+1}疯狂扮演 ${targetRole.name}`, nightInfo.seat.id, '洗脑);
+            addLogWithDeduplication(`${nightInfo.seat.id+1}号(洗脑师) 要求 ${targetId+1}号疯狂扮演 ${targetRole.name}`, nightInfo.seat.id, '洗脑师');
             setShowRoleSelectModal(null);
           }
         });
@@ -2083,12 +1963,12 @@ export default function Home() {
           onConfirm: (roleId: string) => {
             const targetRole = roles.find(r => r.id === roleId);
             if (!targetRole) {
-              alert('角色不存);
+              alert('角色不存在');
               return;
             }
             const exists = seats.some(s => (getSeatRoleId(s) === targetRole.id) || (s.isDemonSuccessor && targetRole.type === 'demon'));
             if (exists) {
-              addLog(`${nightInfo.seat.id+1}麻脸巫婆) 选择 ${targetId+1}变为 ${targetRole.name} 失败场上已有该角色`);
+              addLog(`${nightInfo.seat.id+1}号(麻脸巫婆) 选择 ${targetId+1}号变为 ${targetRole.name} 失败，场上已有该角色`);
               setShowRoleSelectModal(null);
               continueToNextAction();
               return;
@@ -2098,19 +1978,19 @@ export default function Home() {
                 const cleaned = cleanseSeatStatuses({ ...s, isDemonSuccessor: false }, { keepDeathState: true });
                 const nextSeat = { ...cleaned, role: targetRole, charadeRole: null };
                 if (s.hasAbilityEvenDead) {
-                  addLog(`${s.id+1 ?因亡骨魔获得的死而有能效果在变身${targetRole.name} 时已失效`);
+                  addLog(`${s.id+1}号因亡骨魔获得的"死而有能"效果在变身${targetRole.name} 时已失效`);
                 }
                 return nextSeat;
               }
               return s;
             }));
-            addLog(`${nightInfo.seat.id+1}麻脸巫婆) ${targetId+1}变为 ${targetRole.name}`);
+            addLog(`${nightInfo.seat.id+1}号(麻脸巫婆) ${targetId+1}号变为 ${targetRole.name}`);
             setShowRoleSelectModal(null);
             if (targetRole.type === 'demon') {
               setShowStorytellerDeathModal({ sourceId: targetId });
             }
             // 新角色当夜按顺位加入唤醒队列可在本夜发动能
-            insertIntoWakeQueueAfterCurrent(targetId, { roleOverride: targetRole, logLabel: `${targetId+1}${targetRole.name})` });
+            insertIntoWakeQueueAfterCurrent(targetId, { roleOverride: targetRole, logLabel: `${targetId+1}号(${targetRole.name})` });
             continueToNextAction();
           }
         });
@@ -2202,14 +2082,14 @@ export default function Home() {
           setInspectionResult(resultText);
           setInspectionResultKey(k => k + 1);
           addLogWithDeduplication(
-            `${nightInfo.seat.id+1}筑梦 查验 ${target.id+1}-> ${resultText}${shouldFake : '假信息 : ''}`,
+            `${nightInfo.seat.id+1}号(筑梦者) 查验 ${target.id+1}号 -> ${resultText}${shouldFake ? '（假信息）' : ''}`,
             nightInfo.seat.id,
-            '筑梦
+            '筑梦者'
           );
         }
       } else if (rid === 'seamstress') {
         if (hasUsedAbility('seamstress', nightInfo.seat.id)) {
-          setInspectionResult("已用完一次性能);
+          setInspectionResult("已用完一次性能力");
           setInspectionResultKey(k => k + 1);
           return;
         }
@@ -2220,14 +2100,14 @@ export default function Home() {
           if (!a || !b) return;
           const same = isEvilForWinCondition(a) === isEvilForWinCondition(b);
           const shouldFake = currentHint.isPoisoned || isVortoxWorld;
-          const shownSame = shouldFake : !same : same;
-          const text = shownSame ? "同阵 : "不同阵营";
+          const shownSame = shouldFake ? !same : same;
+          const text = shownSame ? "同阵营" : "不同阵营";
           setInspectionResult(text);
           setInspectionResultKey(k => k + 1);
           addLogWithDeduplication(
-            `${nightInfo.seat.id+1}女裁 查验 ${aId+1}${bId+1}-> ${text}${shouldFake : '假信息 : ''}`,
+            `${nightInfo.seat.id+1}号(女裁缝) 查验 ${aId+1}号、${bId+1}号 -> ${text}${shouldFake ? '（假信息）' : ''}`,
             nightInfo.seat.id,
-            '女裁
+            '女裁缝'
           );
           markAbilityUsed('seamstress', nightInfo.seat.id);
         } else {
@@ -2241,7 +2121,7 @@ export default function Home() {
           if (!t || !t.role) return null;
           const registration = getRegistrationCached(t, nightInfo.effectiveRole);
           const isDemon = registration.registersAsDemon;
-          const isRedHerring = t.isRedHerring === true || (t.statusDetails || []).includes("红罗);
+          const isRedHerring = t.isRedHerring === true || (t.statusDetails || []).includes("红罗刹");
           return { seat: t, isDemon, isRedHerring };
         }).filter((t): t is { seat: Seat; isDemon: boolean; isRedHerring: boolean } => t !== null);
         
@@ -2251,33 +2131,33 @@ export default function Home() {
           const targetSeat = seats.find(s => s.id === nightInfo.seat.id);
           if (targetSeat) {
             const fakeInfoCheck = drunkFirstInfoRef.current 
-              : shouldShowFakeInfo(targetSeat, drunkFirstInfoRef.current, isVortoxWorld)
+              ? shouldShowFakeInfo(targetSeat, drunkFirstInfoRef.current, isVortoxWorld)
               : { showFake: currentHint.isPoisoned || isVortoxWorld, isFirstTime: false };
             if (fakeInfoCheck.showFake) {
               resultText = getMisinformation.fortuneTeller(hasEvil);
               fakeInspectionResultRef.current = resultText;
             } else {
-              resultText = hasEvil ? " : ";
+              resultText = hasEvil ? "是" : "否";
             }
           } else {
-            resultText = hasEvil : " : ";
+            resultText = hasEvil ? "是" : "否";
           }
         } else {
-          resultText = hasEvil ? " : ";
+          resultText = hasEvil ? "是" : "否";
         }
         setInspectionResult(resultText);
         setInspectionResultKey(k => k + 1);
         
         // 添加详细日志说明查验结果的原因说明为什么是/否
         const targetIds = newT.map(t => t + 1).join('号与');
-        const resultTextClean = resultText === " : " : ";
+        const resultTextClean = resultText === "是" ? "是" : "否";
         const reason = hasEvil 
           ? `因为其中有人被注册为恶魔可能是真恶魔也可能是隐士/红罗刹的误导`
           : `因为其中没有人被注册为恶魔`;
         addLogWithDeduplication(
-          `占卜师查${targetIds ?结果{resultTextClean}${reason}`,
+          `占卜师查验${targetIds}号，结果：${resultTextClean}，${reason}`,
           nightInfo.seat.id,
-          '占卜
+          '占卜师'
         );
       } else {
         setInspectionResult(null);
@@ -2289,14 +2169,14 @@ export default function Home() {
       if (!currentHint.isPoisoned) {
         // 健康状态在控制台显示真实身份
         if (t?.role) {
-          const resultText = `${newT[0]+1 ?玩家的真实身份{t.role.name}`;
+          const resultText = `${newT[0]+1}号玩家的真实身份：${t.role.name}`;
           setInspectionResult(resultText);
           setInspectionResultKey(k => k + 1);
           // 记录日志
           addLogWithDeduplication(
-            `${nightInfo.seat.id+1}守鸦 查验 ${newT[0]+1}-> ${t.role.name}`,
+            `${nightInfo.seat.id+1}号(守鸦人) 查验 ${newT[0]+1}号 -> ${t.role.name}`,
             nightInfo.seat.id,
-            '守鸦
+            '守鸦人'
           );
         }
       } else {
@@ -2319,8 +2199,8 @@ export default function Home() {
         const shuffled = [...aliveIds].sort(() => Math.random() - 0.5);
         infoIds = shuffled.slice(0, 2);
       }
-      addLog(`${nightInfo.seat.id+1}贤 得知 ${infoIds.map(x=>x+1).join(' ?) ?其中一人是杀死自己的恶魔${shouldFake : '假信息 : ''}`);
-      setInspectionResult(`你得知${infoIds.map(x=>`${x+1 ?`).join(')}其中一人为恶魔`);
+      addLog(`${nightInfo.seat.id+1}号(贤者) 得知 ${infoIds.map(x=>`${x+1}号`).join('、')}，其中一人是杀死自己的恶魔${shouldFake ? '（假信息）' : ''}`);
+      setInspectionResult(`你得知${infoIds.map(x=>`${x+1}号`).join('、')}，其中一人为恶魔`);
       setInspectionResultKey(k => k + 1);
       return;
     }
@@ -2343,7 +2223,7 @@ export default function Home() {
       // 不能变成场上已存在的角色
       const roleAlreadyInPlay = seats.some(s => getSeatRoleId(s) === newRole.id);
       if (roleAlreadyInPlay) {
-        alert('该角色已在场上无法变身为已存在角色);
+        alert('该角色已在场上，无法变身为已存在角色');
         return;
       }
 
@@ -2357,7 +2237,7 @@ export default function Home() {
         }, { keepDeathState: true });
         const nextSeat = { ...cleaned, role: newRole, charadeRole: null };
         if (s.hasAbilityEvenDead) {
-          addLog(`${s.id+1 ?因亡骨魔获得的死而有能效果在变身${newRole.name} 时已失效`);
+          addLog(`${s.id+1}号因亡骨魔获得的"死而有能"效果在变身${newRole.name} 时已失效`);
         }
         return nextSeat;
       }));
@@ -2365,13 +2245,13 @@ export default function Home() {
       const createdNewDemon = newRole.type === 'demon' && targetSeat?.role?.type !== 'demon';
       // 如果创造了新的恶魔提示说书人决定当晚死亡
       if (createdNewDemon) {
-        addLog(`${nightInfo.seat.id+1}麻脸巫婆) ${targetId+1}变为恶魔今晚的死亡由说书人决定`);
+        addLog(`${nightInfo.seat.id+1}号(麻脸巫婆) ${targetId+1}号变为恶魔，今晚的死亡由说书人决定`);
       } else {
-        addLog(`${nightInfo.seat.id+1}麻脸巫婆) ${targetId+1}变为 ${newRole.name}`);
+        addLog(`${nightInfo.seat.id+1}号(麻脸巫婆) ${targetId+1}号变为 ${newRole.name}`);
       }
 
       // 动态调整唤醒队列让目标在本夜后续按照行动顺序被唤
-      insertIntoWakeQueueAfterCurrent(targetId, { roleOverride: newRole, logLabel: `${targetId+1}${newRole.name})` });
+      insertIntoWakeQueueAfterCurrent(targetId, { roleOverride: newRole, logLabel: `${targetId+1}号(${newRole.name})` });
 
       setShowPitHagModal(null);
       setSelectedActionTargets([]);
@@ -2396,11 +2276,11 @@ export default function Home() {
         return;
       }
       const availableReviveTargets = seats.filter(s => {
-        const r = s.role?.id === 'drunk' : s.charadeRole : s.role;
+        const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
         return s.isDead && r && r.type === 'townsfolk' && !s.isDemonSuccessor;
       });
       if (availableReviveTargets.length === 0) {
-        addLog(`${nightInfo.seat.id+1}教授) 无可复活的镇民跳过`);
+        addLog(`${nightInfo.seat.id+1}号(教授) 无可复活的镇民，跳过`);
         continueToNextAction();
         return;
       }
@@ -2410,9 +2290,9 @@ export default function Home() {
       const targetId = selectedActionTargets[0];
       const targetSeat = seats.find(s => s.id === targetId);
       if (!targetSeat || !targetSeat.isDead) return;
-      const targetRole = targetSeat.role?.id === 'drunk' : targetSeat.charadeRole : targetSeat.role;
+      const targetRole = targetSeat.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat.role;
       if (!targetRole || targetSeat.isDemonSuccessor || targetRole.type !== 'townsfolk') {
-        alert('教授只能复活死亡的镇民);
+        alert('教授只能复活死亡的镇民');
         return;
       }
       const hadEvenDead = !!targetSeat.hasAbilityEvenDead;
@@ -2428,13 +2308,13 @@ export default function Home() {
       // 移除普卡队列中的目标
       setPukkaPoisonQueue(prev => prev.filter(entry => entry.targetId !== targetId));
       setDeadThisNight(prev => prev.filter(id => id !== targetId));
-      addLog(`${nightInfo.seat.id+1}教授) 复活${targetId+1 ?`);
+      addLog(`${nightInfo.seat.id+1}号(教授) 复活${targetId+1}号`);
       if (hadEvenDead) {
-        addLog(`${targetId+1 ?此前因亡骨魔获得的死而有能效果随着复活已失效`);
+        addLog(`${targetId+1}号此前因亡骨魔获得的"死而有能"效果随着复活已失效`);
       }
       markAbilityUsed('professor_mr', nightInfo.seat.id);
       setSelectedActionTargets([]);
-      insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}复活)` });
+      insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}号(复活)` });
       continueToNextAction();
       return;
     }
@@ -2452,7 +2332,7 @@ export default function Home() {
       markAbilityUsed('ranger', nightInfo.seat.id);
       setSelectedActionTargets([]);
       if (targetRoleId !== 'damsel') {
-        addLog(`${nightInfo.seat.id+1}巡山 选择${targetId+1 ?但未命中落难少女`);
+        addLog(`${nightInfo.seat.id+1}号(巡山人) 选择${targetId+1}号，但未命中落难少女`);
         continueToNextAction();
         return;
       }
@@ -2472,7 +2352,7 @@ export default function Home() {
           onAfterKill: () => {
             remaining -= 1;
             if (remaining === 0) {
-              addLog(`${nightInfo.seat.id+1}沙巴洛斯) 杀死了 ${targets.map(x=>x+1).join(') ?本工具暂未实现其复活效果请说书人按规则手动裁定是否复活`);
+              addLog(`${nightInfo.seat.id+1}号(沙巴洛斯) 杀死了 ${targets.map(x=>`${x+1}号`).join('、')}，本工具暂未实现其复活效果，请说书人按规则手动裁定是否复活`);
               continueToNextAction();
             }
           }
@@ -2493,7 +2373,7 @@ export default function Home() {
         if (uniqueTargets.length === 0) {
           // 本夜不杀人蓄力
           setPoChargeState(prev => ({ ...prev, [seatId]: true }));
-          addLog(`${seatId+1}珀) 本夜未杀人蓄力一次下一个夜晚将爆发杀 3 人`);
+          addLog(`${seatId+1}号(珀) 本夜未杀人，蓄力一次，下一个夜晚将爆发杀 3 人`);
           continueToNextAction();
           return;
         }
@@ -2502,7 +2382,7 @@ export default function Home() {
         setSelectedActionTargets([]);
         killPlayer(targetId, {
           onAfterKill: () => {
-            addLog(`${seatId+1}珀) 杀死了 ${targetId+1 ?`);
+            addLog(`${seatId+1}号(珀) 杀死了 ${targetId+1}号`);
             continueToNextAction();
           }
         });
@@ -2520,7 +2400,7 @@ export default function Home() {
           onAfterKill: () => {
             remaining -= 1;
             if (remaining === 0) {
-              addLog(`${seatId+1}珀) 爆发杀死了 ${uniqueTargets.map(x=>x+1).join(') ?`);
+              addLog(`${seatId+1}号(珀) 爆发杀死了 ${uniqueTargets.map(x=>`${x+1}号`).join('、')}`);
               continueToNextAction();
             }
           }
@@ -2548,7 +2428,7 @@ export default function Home() {
         }
         return s;
       }));
-      addLog(`${nightInfo.seat.id+1}旅店老板) 今晚保护${aId+1}${bId+1 ?他们不会被恶魔杀死其中一人醉酒到下个黄昏信息可能错误`);
+      addLog(`${nightInfo.seat.id+1}号(旅店老板) 今晚保护${aId+1}号、${bId+1}号，他们不会被恶魔杀死，其中一人醉酒到下个黄昏，信息可能错误`);
       continueToNextAction();
       return;
     }
@@ -2581,7 +2461,7 @@ export default function Home() {
     const currentId = wakeQueueIds[currentWakeIndex];
     const currentSeat = currentId !== undefined ? seats.find(s => s.id === currentId) : null;
     const currentRoleId = getSeatRoleId(currentSeat);
-    const currentDiedTonight = currentSeat : deadThisNight.includes(currentSeat.id) : false;
+    const currentDiedTonight = currentSeat ? deadThisNight.includes(currentSeat.id) : false;
     if (currentId !== undefined && currentSeat?.isDead && !currentSeat.hasAbilityEvenDead && !(currentRoleId === 'ravenkeeper' && currentDiedTonight)) {
         setCurrentWakeIndex(p => p + 1);
         setInspectionResult(null);
@@ -2622,10 +2502,10 @@ export default function Home() {
       // 夜晚结束显示死亡报
       // 检测夜晚期间死亡的玩家通过deadThisNight记录
       if(deadThisNight.length > 0) {
-        const deadNames = deadThisNight.map(id => `${id+1 ?`).join(');
+        const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
         setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
       } else {
-        setShowNightDeathReportModal("昨天是个平安);
+        setShowNightDeathReportModal("昨天是个平安夜");
       }
     }
   };
@@ -2648,10 +2528,10 @@ export default function Home() {
     setWakeQueueIds([]);
     setCurrentWakeIndex(0);
     if (deadThisNight.length > 0) {
-      const deadNames = deadThisNight.map(id => `${id + 1 ?`).join(');
+      const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
       setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
     } else {
-      setShowNightDeathReportModal("昨天是个平安);
+      setShowNightDeathReportModal("昨天是个平安夜");
     }
     setGamePhase('dawnReport');
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2676,7 +2556,7 @@ export default function Home() {
 
     if (roleId === 'professor_mr' && phase !== 'firstNight' && !hasUsedAbility('professor_mr', nightInfo.seat.id)) {
       const availableReviveTargets = seats.filter(s => {
-        const r = s.role?.id === 'drunk' : s.charadeRole : s.role;
+        const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
         return s.isDead && r && r.type === 'townsfolk' && !s.isDemonSuccessor;
       });
       if (availableReviveTargets.length > 0 && selectedActionTargets.length !== 1) return true;
@@ -2739,10 +2619,10 @@ export default function Home() {
       setPoppyGrowerDead(true);
       const minions = seats.filter(s => s.role?.type === 'minion' && !s.isDead);
       const demons = seats.filter(s => (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead);
-      const minionNames = minions.map(s => `${s.id+1 ?`).join(');
-      const demonNames = demons.map(s => `${s.id+1 ?`).join(');
+      const minionNames = minions.map(s => `${s.id+1}号`).join('、');
+      const demonNames = demons.map(s => `${s.id+1}号`).join('、');
       if (minions.length > 0 && demons.length > 0) {
-        addLog(`罂粟种植者已死亡爪${minionNames})和恶${demonNames})现在得知彼此`);
+        addLog(`罂粟种植者已死亡，爪牙(${minionNames})和恶魔(${demonNames})现在得知彼此`);
       }
     }
     
@@ -2763,7 +2643,7 @@ export default function Home() {
         setSeats(p => p.map(s => 
           s.id === newFarmer.id ? { ...s, role: farmerRole || s.role } : s
         ));
-        addLog(`${deadFarmer+1}农夫)在夜晚死亡${newFarmer.id+1 ?变成农夫`);
+        addLog(`${deadFarmer+1}号(农夫)在夜晚死亡，${newFarmer.id+1}号变成农夫`);
       }
     }
     
@@ -2780,13 +2660,13 @@ export default function Home() {
   const getDemonDisplayName = (roleId?: string, fallbackName?: string) => {
     switch (roleId) {
       case 'hadesia': return '哈迪寂亚';
-      case 'vigormortis_mr': return '亡骨;
-      case 'imp': return '小恶;
-      case 'zombuul': return '僵;
+      case 'vigormortis_mr': return '亡骨魔';
+      case 'imp': return '小恶魔';
+      case 'zombuul': return '僵怖';
       case 'shabaloth': return '沙巴洛斯';
       case 'fang_gu': return '方古';
-      case 'vigormortis': return '亡骨;
-      case 'no_dashii': return ';
+      case 'vigormortis': return '亡骨魔';
+      case 'no_dashii': return '诺-达';
       case 'vortox': return '涡流';
       case 'po': return '珀';
       default: return fallbackName || '恶魔';
@@ -2814,8 +2694,8 @@ export default function Home() {
         addLog(`${targetId + 1}被茶艺师保护未死亡`);
         setShowAttackBlockedModal({
           targetId,
-          reason: '茶艺师保,
-          demonName ? nightInfo : getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+          reason: '茶艺师保护',
+          demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
         });
         return;
       }
@@ -2843,7 +2723,7 @@ export default function Home() {
           }
           // 呆瓜死亡标记避免重复触
           if (s.role?.id === 'klutz') {
-            const details = Array.from(new Set([...(s.statusDetails || []), '呆瓜已触]));
+            const details = Array.from(new Set([...(s.statusDetails || []), '呆瓜已触发']));
             next = { ...next, statusDetails: details };
           }
           if (seatTransformer) {
@@ -2869,7 +2749,7 @@ export default function Home() {
         const demon = seatsSnapshot.find(s => (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead);
         if (demon) {
           setShowBarberSwapModal({ demonId: demon.id, firstId: null, secondId: null });
-          addLog(`${targetSeat.id + 1}理发死亡恶魔可选择两名玩家交换角色`);
+          addLog(`${targetSeat.id + 1}号(理发师)死亡，恶魔可选择两名玩家交换角色`);
         }
       }
 
@@ -2882,7 +2762,7 @@ export default function Home() {
           (seats && seats.length ? seats : null);
 
         if (!seatsToUse || seatsToUse.length === 0) {
-          console.error('killPlayer finalize: seatsToUse为空或无效跳过游戏结束检);
+          console.error('killPlayer finalize: seatsToUse为空或无效，跳过游戏结束检查');
           onAfterKill?.(seatsToUse || []);
           return;
         }
@@ -2903,7 +2783,7 @@ export default function Home() {
               }
               return { ...s, isPoisoned: computeIsPoisoned(s) };
             }));
-            addLog(`达使 ${poisoned.map(p => `${p.id+1 ?`).join(')}中毒`);
+            addLog(`诺-达使 ${poisoned.map(p => `${p.id+1}号`).join('、')}中毒`);
           }
         }
 
@@ -2924,9 +2804,9 @@ export default function Home() {
             }));
             setFangGuConverted(true);
             if (nightInfo?.seat.id !== undefined) {
-              addLog(`${nightInfo.seat.id+1}方古) 杀死外来者 ?目标转化为方古原方古死亡`);
+              addLog(`${nightInfo.seat.id+1}号(方古) 杀死外来者，目标转化为方古，原方古死亡`);
             }
-            onAfterKill.(finalSeats);
+            onAfterKill?.(finalSeats);
             return;
           }
         }
@@ -2938,12 +2818,12 @@ export default function Home() {
         onAfterKill?.(finalSeats);
       };
 
-      if (targetSeat.role?.id === 'klutz' && !targetSeat.isDead && !(targetSeat.statusDetails || []).includes('呆瓜已触)) {
+      if (targetSeat.role?.id === 'klutz' && !targetSeat.isDead && !(targetSeat.statusDetails || []).includes('呆瓜已触发')) {
         setShowKlutzChoiceModal({
           sourceId: targetId,
           onResolve: finalize,
         });
-        addLog(`${targetId + 1}呆瓜) 死亡必须选择一名存活玩家`);
+        addLog(`${targetId + 1}号(呆瓜) 死亡必须选择一名存活玩家`);
         return;
       }
 
@@ -2970,156 +2850,6 @@ export default function Home() {
     [seats, enqueueRavenkeeperIfNeeded, checkGameOver]
   );
 
-  type KillProcessResult = 'pending' | 'resolved';
-
-  const processDemonKill = (
-    targetId: number,
-    options: { skipMayorRedirectCheck?: boolean; mayorId?: number | null } = {}
-  ): KillProcessResult => {
-    if (!nightInfo) return 'resolved';
-    const killerRoleId = nightInfo.effectiveRole.id;
-    const seatsSnapshot = seatsRef.current || seats;
-    const target = seatsSnapshot.find(s => s.id === targetId);
-    if (!target) return 'resolved';
-
-    // 检查保护是否有效如果被保护必须检查保护者僧侣是否中醉酒
-    let isEffectivelyProtected = false;
-    if (target.isProtected && target.protectedBy !== null) {
-      const protector = seatsSnapshot.find(s => s.id === target.protectedBy);
-      if (protector) {
-        // 如果保护者中醉酒保护绝对无效无论isProtected是否为true
-        const isProtectorPoisoned = protector.isPoisoned || protector.isDrunk || protector.role?.id === "drunk";
-        if (isProtectorPoisoned) {
-          // 保护者中醉酒保护无效同时清除错误的保护状
-          isEffectivelyProtected = false;
-          setSeats(p => p.map(s => 
-            s.id === targetId : {...s, isProtected: false, protectedBy: null} : s
-          ));
-        } else {
-          // 保护者健康保护有效
-          isEffectivelyProtected = true;
-        }
-      } else {
-        // 保护者不存在保护无
-        isEffectivelyProtected = false;
-      }
-    }
-    const teaLadyProtected = hasTeaLadyProtection(target, seatsSnapshot);
-    
-    // 检查目标是否可以被杀死僵怖假死状态可以被杀死
-    const canBeKilled = target && !isEffectivelyProtected && !teaLadyProtected && target.role?.id !== 'soldier' && 
-      (!target.isDead || (target.role?.id === 'zombuul' && target.isFirstDeathForZombuul && !target.isZombuulTrulyDead));
-
-    // 如果因为保护或士兵能力导致无法杀死且目标存活添加统一日志说明
-  if (target && !target.isDead && !canBeKilled) {
-    const demonName = getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
-    let protectionReason = '';
-    
-    if (target.role?.id === 'soldier') {
-      protectionReason = '士兵能力';
-    } else if (isEffectivelyProtected) {
-      protectionReason = '僧侣保护';
-    } else if (teaLadyProtected) {
-      protectionReason = '茶艺师保;
-    }
-    
-    if (protectionReason) {
-      addLogWithDeduplication(
-        `恶魔(${demonName}) 攻击 ${targetId+1 ?但因为{protectionReason}${targetId+1 ?没有死亡`,
-        nightInfo.seat.id,
-        demonName
-      );
-      setShowAttackBlockedModal({
-        targetId,
-        reason: protectionReason,
-        demonName,
-      });
-    }
-  }
-
-    // 市长特殊处理允许死亡转
-    if (canBeKilled && !options.skipMayorRedirectCheck && target.role?.id === 'mayor') {
-      const aliveCandidates = seats.filter(s => !s.isDead && s.id !== targetId);
-      if (aliveCandidates.length > 0) {
-        setMayorRedirectTarget(null);
-        setShowKillConfirmModal(null);
-        setShowMayorRedirectModal({
-          targetId,
-          demonName: getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name)
-        });
-        return 'pending';
-      }
-    }
-    
-    const mayorNote = options.mayorId !== undefined && options.mayorId !== null 
-      : `由${options.mayorId + 1 ?市长转移`
-      : '';
-
-    if(canBeKilled) {
-      // 夜半狂欢亡骨魔特殊处理杀死爪牙时爪牙保留能力且邻近的两名镇民之一中毒
-      if (nightInfo.effectiveRole.id === 'vigormortis_mr' && target.role?.type === 'minion') {
-        // 找到邻近的两名镇
-        const targetIndex = seats.findIndex(s => s.id === targetId);
-        const totalSeats = seats.length;
-        const leftIndex = (targetIndex - 1 + totalSeats) % totalSeats;
-        const rightIndex = (targetIndex + 1) % totalSeats;
-        const leftNeighbor = seats[leftIndex];
-        const rightNeighbor = seats[rightIndex];
-        const townsfolkNeighbors = [leftNeighbor, rightNeighbor].filter(s => 
-          s.role?.type === 'townsfolk' && !s.isDead
-        );
-        
-        // 随机选择一名镇民中
-        const poisonedNeighbor = townsfolkNeighbors.length > 0 ? getRandom(townsfolkNeighbors) : null;
-        
-        if (poisonedNeighbor) {
-          setSeats(p => p.map(s => {
-            if (s.id === poisonedNeighbor.id) {
-              // 亡骨魔中毒是永久
-              const clearTime = '永久';
-              const { statusDetails, statuses } = addPoisonMark(s, 'vigormortis', clearTime);
-              const nextSeat = { ...s, statusDetails, statuses };
-              return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
-            }
-            return { ...s, isPoisoned: computeIsPoisoned(s) };
-          }));
-        }
-
-        killPlayer(targetId, {
-          keepInWakeQueue: true, // 保留能力需要夜晚继续唤
-          seatTransformer: seat => ({ ...seat, hasAbilityEvenDead: true }),
-          onAfterKill: () => {
-            if (nightInfo) {
-              addLogWithDeduplication(
-                `${nightInfo.seat.id+1}亡骨 杀死 ${targetId+1}爪牙)${mayorNote}爪牙保留能{poisonedNeighbor ? `{poisonedNeighbor.id+1}邻近镇民)中毒` : ''}`,
-                nightInfo.seat.id,
-                '亡骨
-              );
-            }
-          }
-        });
-      } else {
-        // 正常杀死其他玩
-        killPlayer(targetId, {
-          onAfterKill: () => {
-            if (nightInfo) {
-              // 涡流标记假信息环境
-              if (killerRoleId === 'vortox') {
-                setIsVortoxWorld(true);
-              }
-              const demonName = getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
-              addLogWithDeduplication(
-                `${nightInfo.seat.id+1}${demonName}) 杀死 ? ${targetId+1} : {mayorNote}{targetId+1号已在夜晚死亡`,
-                nightInfo.seat.id,
-                demonName
-              );
-            }
-          }
-        });
-      }
-    }
-    return 'resolved';
-  };
 
   // 确认杀死玩
   const confirmKill = () => {
@@ -3131,7 +2861,7 @@ export default function Home() {
     const actorSeat = seats.find(s => s.id === nightInfo.seat.id);
     if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned)) {
       addLogWithDeduplication(
-        `${nightInfo.seat.id+1}${nightInfo.effectiveRole.name}) 处于中毒/醉酒状态本夜${targetId+1}的攻击无效无事发生`,
+        `${nightInfo.seat.id+1}号(${nightInfo.effectiveRole.name}) 处于中毒/醉酒状态，本夜对${targetId+1}号的攻击无效，无事发生`,
         nightInfo.seat.id,
         nightInfo.effectiveRole.name
       );
@@ -3189,14 +2919,14 @@ export default function Home() {
         
         if (nightInfo) {
           addLogWithDeduplication(
-            `${impSeat.id+1}小恶 选择自己身份转移给 ${newImp.id+1}${newImp.role?.name}){impSeat.id+1号已在夜晚死亡`,
+            `${impSeat.id+1}号(小恶魔) 选择自己，身份转移给 ${newImp.id+1}号(${newImp.role?.name})，${impSeat.id+1}号已在夜晚死亡`,
             impSeat.id,
-            '小恶
+            '小恶魔'
           );
           
           // 显眼的高亮提示提醒说书人唤醒新恶魔玩家
           console.warn('%c 重要提醒小恶魔传位成功 ', 'color: #FFD700; font-size: 20px; font-weight: bold; background: #1a1a1a; padding: 10px; border: 3px solid #FFD700;');
-          console.warn(`%c请立即唤${newImp.id+1 ?玩家向其出示"你是小恶卡牌`, 'color: #FF6B6B; font-size: 16px; font-weight: bold; background: #1a1a1a; padding: 8px;');
+          console.warn(`%c请立即唤醒${newImp.id+1}号玩家，向其出示"你是小恶魔"卡牌`, 'color: #FF6B6B; font-size: 16px; font-weight: bold; background: #1a1a1a; padding: 8px;');
           console.warn(`%c注意新恶魔今晚不行动从下一夜开始才会进入唤醒队列`, 'color: #4ECDC4; font-size: 14px; background: #1a1a1a; padding: 5px;');
         }
         
@@ -3204,16 +2934,16 @@ export default function Home() {
         setDeadThisNight(p => [...p, impSeat.id]);
         enqueueRavenkeeperIfNeeded(impSeat.id);
       } else {
-        // 如果没有活着的爪牙小恶魔自杀但无法传位直接死亡结算游
+        // 如果没有活着的爪牙小恶魔自杀但无法传位直接死亡结算游戏
         addLogWithDeduplication(
-          `${impSeat.id+1}小恶 选择自己但场上无爪牙可传位 ${impSeat.id+1 ?直接死亡`,
+          `${impSeat.id+1}号(小恶魔) 选择自己但场上无爪牙可传位，${impSeat.id+1}号直接死亡`,
           impSeat.id,
-          '小恶
+          '小恶魔'
         );
-        // 使用通用杀人流程触发死亡与游戏结束判
+        // 使用通用杀人流程触发死亡与游戏结束判定
         killPlayer(impSeat.id, {
           onAfterKill: (latestSeats) => {
-            const finalSeats = latestSeats && latestSeats.length : latestSeats : (seatsRef.current || seats);
+            const finalSeats = latestSeats && latestSeats.length ? latestSeats : (seatsRef.current || seats);
             checkGameOver(finalSeats, impSeat.id);
           }
         });
@@ -3221,7 +2951,7 @@ export default function Home() {
         return;
       }
     } else {
-      const result = processDemonKill(targetId);
+      const result = nightLogic.processDemonKill(targetId);
       if (result === 'pending') return;
     }
     setShowKillConfirmModal(null);
@@ -3238,33 +2968,33 @@ export default function Home() {
 
     if (redirectTargetId === null) {
       // 不转移市长自己死亡
-      processDemonKill(mayorId, { skipMayorRedirectCheck: true });
+      nightLogic.processDemonKill(mayorId, { skipMayorRedirectCheck: true });
       setShowKillConfirmModal(null);
       continueToNextAction();
       return;
     }
 
     addLogWithDeduplication(
-      `${nightInfo.seat.id+1}${demonName}) 攻击市长 ${mayorId+1 ?死亡转移${redirectTargetId+1 ?`,
+      `${nightInfo.seat.id+1}号(${demonName}) 攻击市长 ${mayorId+1}号，死亡转移给${redirectTargetId+1}号`,
       nightInfo.seat.id,
       demonName
     );
 
-    processDemonKill(redirectTargetId, { skipMayorRedirectCheck: true, mayorId });
+    nightLogic.processDemonKill(redirectTargetId, { skipMayorRedirectCheck: true, mayorId });
     setShowKillConfirmModal(null);
     if (moonchildChainPendingRef.current) return;
     continueToNextAction();
   };
 
-  // 确认哈迪寂亚杀死 ? 名玩 : const confirmHadesiaKill = () => {
+  const confirmHadesiaKill = () => {
     if(!nightInfo || !showHadesiaKillConfirmModal || showHadesiaKillConfirmModal.length !== 3) return;
     const targetIds = showHadesiaKillConfirmModal;
     
     // 哈迪寂亚三名玩家秘密决定自己的命运如果他们全部存活他们全部死亡
     // 这里简化处理说书人需要手动决定哪些玩家死
     // 所有玩家都会得知哈迪寂亚选择了谁
-    const targetNames = targetIds.map(id => `${id+1 ?`).join(');
-    addLog(`${nightInfo.seat.id+1}哈迪寂亚) 选择${targetNames}所有玩家都会得知这个选择`);
+    const targetNames = targetIds.map(id => `${id+1}号`).join('、');
+    addLog(`${nightInfo.seat.id+1}号(哈迪寂亚) 选择${targetNames}，所有玩家都会得知这个选择`);
     addLog(`请说书人决定 ${targetNames} 的命运如果他们全部存活他们全部死亡`);
     
     // 这里需要说书人手动处理暂时只记录日志
@@ -3282,7 +3012,7 @@ export default function Home() {
     const isGood = targetSeat?.role && ['townsfolk', 'outsider'].includes(targetSeat.role.type);
 
     if (isGood) {
-      addLog(`${sourceId + 1}月之 选择 ${targetId + 1}与其陪葬善良今晚死亡`);
+      addLog(`${sourceId + 1}号(月之子) 选择 ${targetId + 1}号与其陪葬，善良今晚死亡`);
       killPlayer(targetId, {
         onAfterKill: latestSeats => {
           onResolve?.(latestSeats);
@@ -3293,9 +3023,9 @@ export default function Home() {
         }
       });
     } else {
-      addLog(`${sourceId + 1}月之 选择 ${targetId + 1 ?但该目标非善良未死亡`);
+      addLog(`${sourceId + 1}号(月之子) 选择 ${targetId + 1}号，但该目标非善良，未死亡`);
       moonchildChainPendingRef.current = false;
-      onResolve.();
+      onResolve?.();
       if (!moonchildChainPendingRef.current) {
         continueToNextAction();
       }
@@ -3314,9 +3044,9 @@ export default function Home() {
       const { statusDetails, statuses } = addDrunkMark(s, 'sweetheart', clearTime);
       return { ...s, isDrunk: true, statusDetails, statuses };
     }));
-    addLog(`${sourceId + 1}心上 死亡使 ${targetId + 1}今晚至次日黄昏醉酒`);
+    addLog(`${sourceId + 1}号(心上人) 死亡使 ${targetId + 1}号今晚至次日黄昏醉酒`);
 
-    onResolve.();
+    onResolve?.();
     continueToNextAction();
   };
 
@@ -3324,12 +3054,12 @@ export default function Home() {
     if (!showKlutzChoiceModal) return;
     const { sourceId, onResolve } = showKlutzChoiceModal;
     if (klutzChoiceTarget === null) {
-      alert('请选择一名存活玩);
+      alert('请选择一名存活玩家');
       return;
     }
     const target = seats.find(s => s.id === klutzChoiceTarget);
     if (!target || target.isDead) {
-      alert('必须选择一名存活玩);
+      alert('必须选择一名存活玩家');
       return;
     }
     setShowKlutzChoiceModal(null);
@@ -3337,13 +3067,13 @@ export default function Home() {
     const seatsToUse = seatsRef.current || seats;
     const isEvilPick = isEvilForWinCondition(target);
     if (isEvilPick) {
-      addLog(`${sourceId + 1}呆瓜) 选择${target.id + 1 ?邪恶善良阵营立即失败`);
+      addLog(`${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，邪恶，善良阵营立即失败`);
       setWinResult('evil');
       setWinReason('呆瓜误判');
       setGamePhase('gameOver');
       return;
     }
-    addLog(`${sourceId + 1}呆瓜) 选择${target.id + 1 ?非邪恶无事发生`);
+    addLog(`${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，非邪恶，无事发生`);
     if (onResolve) {
       onResolve(seatsToUse);
     } else {
@@ -3357,14 +3087,14 @@ export default function Home() {
     setShowStorytellerDeathModal(null);
 
     if (targetId === null) {
-      const confirmed = window.confirm('你确认要让本晚无人死亡吗这会让本局更偏离标准规则只建议在你非常确定时使用);
+      const confirmed = window.confirm('你确认要让本晚无人死亡吗？这会让本局更偏离标准规则，只建议在你非常确定时使用');
       if (!confirmed) return;
-      addLog(`说书人选择本晚无人死亡因${sourceId + 1 ?变为新恶魔这是一次偏离标准规则的特殊裁决`);
+      addLog(`说书人选择本晚无人死亡，因${sourceId + 1}号变为新恶魔，这是一次偏离标准规则的特殊裁决`);
       continueToNextAction();
       return;
     }
 
-    addLog(`说书人指${targetId + 1}当晚死亡因${sourceId + 1 ?变恶魔`);
+    addLog(`说书人指定${targetId + 1}号当晚死亡，因${sourceId + 1}号变恶魔`);
     killPlayer(targetId, {
       onAfterKill: () => {
         continueToNextAction();
@@ -3381,9 +3111,9 @@ export default function Home() {
     const actorSeat = seats.find(s => s.id === nightInfo.seat.id);
     if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned)) {
       addLogWithDeduplication(
-        `${nightInfo.seat.id+1}投毒 处于中毒/醉酒状态本夜${targetId+1}的下毒无效无事发生`,
+        `${nightInfo.seat.id+1}号(投毒者) 处于中毒/醉酒状态，本夜对${targetId+1}号的下毒无效，无事发生`,
         nightInfo.seat.id,
-        '投毒
+        '投毒者'
       );
       setShowPoisonConfirmModal(null);
       setSelectedActionTargets([]);
@@ -3394,10 +3124,10 @@ export default function Home() {
     // 注意保留永久中毒标记舞蛇人制造和亡骨魔中毒标记
     setSeats(p => p.map(s => {
       if (s.id === targetId) {
-        // 投毒者当晚和明天白天中毒在次日黄昏清
+        // 投毒者当晚和明天白天中毒在次日黄昏清除
         const clearTime = '次日黄昏';
         const { statusDetails, statuses } = addPoisonMark(s, 
-          nightInfo.effectiveRole.id === 'poisoner_mr' : 'poisoner_mr' : 'poisoner', 
+          nightInfo.effectiveRole.id === 'poisoner_mr' ? 'poisoner_mr' : 'poisoner', 
           clearTime
         );
         const nextSeat = { ...s, statusDetails, statuses };
@@ -3406,9 +3136,9 @@ export default function Home() {
       return { ...s, isPoisoned: computeIsPoisoned(s) };
     }));
     addLogWithDeduplication(
-      `${nightInfo.seat.id+1}投毒 ${targetId+1}下毒`,
+      `${nightInfo.seat.id+1}号(投毒者) 对 ${targetId+1}号下毒`,
       nightInfo.seat.id,
-      '投毒
+      '投毒者'
     );
     setShowPoisonConfirmModal(null);
     setSelectedActionTargets([]);
@@ -3424,9 +3154,9 @@ export default function Home() {
     const actorSeat = seats.find(s => s.id === nightInfo.seat.id);
     if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned)) {
       addLogWithDeduplication(
-        `${nightInfo.seat.id+1}投毒 处于中毒/醉酒状态本夜${targetId+1}队友) 的下毒无效无事发生`,
+        `${nightInfo.seat.id+1}号(投毒者) 处于中毒/醉酒状态，本夜对${targetId+1}号(队友)的下毒无效，无事发生`,
         nightInfo.seat.id,
-        '投毒
+        '投毒者'
       );
       setShowPoisonEvilConfirmModal(null);
       setSelectedActionTargets([]);
@@ -3449,9 +3179,9 @@ export default function Home() {
       return { ...s, isPoisoned: computeIsPoisoned(s) };
     }));
     addLogWithDeduplication(
-      `${nightInfo.seat.id+1}投毒 ${targetId+1}队友) 下毒`,
+      `${nightInfo.seat.id+1}号(投毒者) 对 ${targetId+1}号(队友)下毒`,
       nightInfo.seat.id,
-      '投毒
+      '投毒者'
     );
     setShowPoisonEvilConfirmModal(null);
     setSelectedActionTargets([]);
@@ -3475,14 +3205,14 @@ export default function Home() {
     const allChooseLive = baseTargets.every(id => choiceMap[id] === 'live');
     const finalTargets = allChooseLive ? baseTargets : baseTargets.filter(id => choiceMap[id] === 'die');
 
-    const choiceDesc = baseTargets.map(id => `[${id+1}${choiceMap[id] === 'die' ? ' : '}]`).join(');
-    addLog(`${nightInfo.seat.id+1}${demonName}) 选择${choiceDesc}`);
+    const choiceDesc = baseTargets.map(id => `[${id+1}号${choiceMap[id] === 'die' ? '死' : '生'}]`).join('、');
+    addLog(`${nightInfo.seat.id+1}号(${demonName}) 选择${choiceDesc}`);
     if (allChooseLive) {
-      addLog(`三名玩家都选择"按规则三人全部死亡`);
+      addLog(`三名玩家都选择"生"，按规则三人全部死亡`);
     } else if (finalTargets.length > 0) {
-      addLog(`选择"的玩家${finalTargets.map(x=>x+1).join(') ?将立即死亡`);
+      addLog(`选择"生"的玩家${finalTargets.map(x=>`${x+1}号`).join('、')}将立即死亡`);
     } else {
-      addLog('未选择"的玩家未触发死);
+      addLog('未选择"生"的玩家，未触发死亡');
     }
 
     // 保存当前唤醒索引用于后续继续流
@@ -3500,7 +3230,7 @@ export default function Home() {
           onAfterKill: (latestSeats) => {
             remaining -= 1;
             if (remaining === 0) {
-              addLog(`${nightInfo?.seat.id+1 || ''}${demonName}) 处决${finalTargets.map(x=>x+1).join(') ?`);
+              addLog(`${nightInfo?.seat.id+1 || ''}号(${demonName}) 处决${finalTargets.map(x=>`${x+1}号`).join('、')}`);
               // 延迟执行确保状态更新完
               setTimeout(() => {
                 // 使用 setWakeQueueIds 的回调形式来获取最新的队列状
@@ -3518,10 +3248,10 @@ export default function Home() {
                     // 延迟显示死亡报告确保状态更新完
                     setTimeout(() => {
                       if (deadThisNight.length > 0) {
-                        const deadNames = deadThisNight.map(id => `${id+1 ?`).join(');
+                        const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
                         setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
                       } else {
-                        setShowNightDeathReportModal("昨天是个平安);
+                        setShowNightDeathReportModal("昨天是个平安夜");
                       }
                     }, 50);
                     return [];
@@ -3555,9 +3285,9 @@ export default function Home() {
     }
 
     if (t.role?.id === 'lunatic_mr' && !skipLunaticRps) {
-      const nominatorId = nominationMap[id]  null;
+      const nominatorId = nominationMap[id] ?? null;
       setShowLunaticRpsModal({ targetId: id, nominatorId });
-      setShowExecutionResultModal({ message: `${id+1 ?等待石头剪刀布决定生死` });
+      setShowExecutionResultModal({ message: `${id+1}号等待石头剪刀布决定生死` });
       return;
     }
 
@@ -3578,7 +3308,7 @@ export default function Home() {
     }
     
     const isZombuul = t.role?.id === 'zombuul';
-    const zombuulLives = t.zombuulLives  1;
+    const zombuulLives = t.zombuulLives ?? 1;
     
     const markDeath = (overrides: Partial<Seat> = {}) =>
       seats.map(s => s.id === id ? { ...s, isDead: true, ...overrides } : s);
@@ -3588,7 +3318,7 @@ export default function Home() {
       const updatedSeats = seats.map(s => {
         if (s.id !== id) return s;
         const details = s.statusDetails || [];
-        const hasFakeDeathTag = details.includes('僵怖假);
+        const hasFakeDeathTag = details.includes('僵怖假死');
         return {
           ...s,
           // UI 可以通过状态标签体现假死但逻辑上仍视为存活
@@ -3596,7 +3326,7 @@ export default function Home() {
           isFirstDeathForZombuul: true,
           isZombuulTrulyDead: false,
           zombuulLives: Math.max(0, zombuulLives - 1),
-          statusDetails ? hasFakeDeathTag : details : [...details, '僵怖假]
+          statusDetails: hasFakeDeathTag ? details : [...details, '僵怖假死']
         };
       });
       
@@ -3612,13 +3342,13 @@ export default function Home() {
       }
       
       setTimeout(() => {
-        startNight(false);
+        nightLogic.startNight(false);
       }, 500);
       return;
     }
     
-    // 10. 检查小恶魔是否被处- 先检查红唇女
-    let newSeats = markDeath(isZombuul : { isZombuulTrulyDead: true, zombuulLives: 0 } : {});
+    // 10. 检查小恶魔是否被处决 - 先检查红唇女郎
+    let newSeats = markDeath(isZombuul ? { isZombuulTrulyDead: true, zombuulLives: 0 } : {});
     
     // 优先检查圣徒被处决导致邪恶方获胜优先级高于恶魔死亡判定
     // 这个检查必须在恶魔死亡检查之前确保圣徒被处决的判定优先级更
@@ -3629,9 +3359,9 @@ export default function Home() {
       setExecutedPlayerId(id);
       setCurrentDuskExecution(id);
       setWinResult('evil');
-      setWinReason('圣徒被处);
+      setWinReason('圣徒被处决');
       setGamePhase('gameOver');
-      addLog("游戏结束圣徒被处决邪恶胜);
+      addLog("游戏结束圣徒被处决邪恶胜");
       return;
     }
     
@@ -3647,7 +3377,7 @@ export default function Home() {
         setWinResult('good');
         setWinReason('僵怖被处决');
         setGamePhase('gameOver');
-        addLog("游戏结束僵怖被处决好人胜);
+        addLog("游戏结束僵怖被处决好人胜");
         setExecutedPlayerId(id);
         setCurrentDuskExecution(id);
         return;
@@ -3664,7 +3394,7 @@ export default function Home() {
           setExecutedPlayerId(id);
           setCurrentDuskExecution(id);
           setWinResult('evil');
-          setWinReason('主谋恶魔在首夜被处);
+          setWinReason('主谋恶魔在首夜被处决');
           setGamePhase('gameOver');
           addLog(`游戏结束主谋在场恶魔在首夜被处决邪恶阵营获胜`);
           return;
@@ -3687,7 +3417,7 @@ export default function Home() {
           // 将红唇女郎变成恶
           const updatedSeats = newSeats.map(s => {
             if (s.id === scarletWoman.id) {
-              const statusDetails = [...(s.statusDetails || []), '恶魔传];
+              const statusDetails = [...(s.statusDetails || []), '恶魔传位'];
               return {
                 ...s,
                 role: demonRole,
@@ -3699,8 +3429,8 @@ export default function Home() {
           });
           
           setSeats(updatedSeats);
-          addLog(`${id+1}${demonRole.name}) 被处决`);
-          addLog(`${scarletWoman.id+1}红唇女郎) 变成新的${demonRole.name}`);
+          addLog(`${id+1}号(${demonRole.name}) 被处决`);
+          addLog(`${scarletWoman.id+1}号(红唇女郎) 变成新的${demonRole.name}`);
           
           // 继续游戏不触发游戏结束
           setExecutedPlayerId(id);
@@ -3713,7 +3443,7 @@ export default function Home() {
           
           // 进入下一个夜
           setTimeout(() => {
-            startNight(false);
+            nightLogic.startNight(false);
           }, 500);
           return;
         }
@@ -3721,11 +3451,11 @@ export default function Home() {
       
       // 如果不满足红唇女郎变身条件判定好人胜利
       setSeats(newSeats);
-      addLog(`${id+1}${t.role?.name || '小恶}) 被处决`);
+      addLog(`${id+1}号(${t.role?.name || '小恶魔'}) 被处决`);
       setWinResult('good');
-      setWinReason(`${t.role?.name || '小恶}被处决`);
+      setWinReason(`${t.role?.name || '小恶魔'}被处决`);
       setGamePhase('gameOver');
-      addLog("游戏结束恶魔被处决好人胜);
+      addLog("游戏结束，恶魔被处决，好人胜利");
       return;
     }
     
@@ -3747,28 +3477,28 @@ export default function Home() {
       setSeats(p => p.map(s => {
         if (s.id === cannibal.id) {
           // 检查是否有永久中毒舞蛇人制造或亡骨魔中毒
-          // 这些永久中毒不能被食人族的能力清
+          // 这些永久中毒不能被食人族的能力清除
           const hasPermanentPoison = s.statusDetails?.some(d => d.includes('永久中毒')) || false;
-          const hasVigormortisPoison = s.statusDetails?.some(d => d.includes('亡骨魔中)) || false;
+          const hasVigormortisPoison = s.statusDetails?.some(d => d.includes('亡骨魔中毒')) || false;
           // 如果被处决的是善良玩家清除临时中毒食人族能力造成的中毒
-          // 但必须保留永久中毒和亡骨魔中
+          // 但必须保留永久中毒和亡骨魔中毒
           // 如果被处决的是邪恶玩家设置临时中毒但也要保留永久中毒
           if (isEvilExecuted) {
             // 食人族中毒直到下一个善良玩家被处决
-            const clearTime = '下一个善良玩家被处决;
+            const clearTime = '下一个善良玩家被处决';
             const { statusDetails, statuses } = addPoisonMark(s, 'cannibal', clearTime);
             const nextSeat = { ...s, statusDetails, statuses };
             return { 
               ...nextSeat, 
               isPoisoned: computeIsPoisoned(nextSeat),
-              // 记录最后被处决的玩家ID用于后续能力处
+              // 记录最后被处决的玩家ID用于后续能力处理
               masterId: id
             };
           } else {
-            // 清除食人族中毒但保留永久中毒和亡骨魔中
-            const filteredDetails = (s.statusDetails || []).filter(d => !d.includes('食人族中));
+            // 清除食人族中毒但保留永久中毒和亡骨魔中毒
+            const filteredDetails = (s.statusDetails || []).filter(d => !d.includes('食人族中毒'));
             const filteredStatuses = (s.statuses || []).filter(st => 
-              !(st.effect === 'Poison' && s.statusDetails?.some(d => d.includes('食人族中)))
+              !(st.effect === 'Poison' && s.statusDetails?.some(d => d.includes('食人族中毒')))
             );
             const nextSeat = { ...s, statusDetails: filteredDetails, statuses: filteredStatuses };
             return { 
@@ -3782,14 +3512,14 @@ export default function Home() {
         return s;
       }));
       if (isEvilExecuted) {
-        addLog(`${cannibal.id+1}食人 获得 ${id+1 ?的能力但因该玩家是邪恶的食人族中毒直到下一个善良玩家被处决`);
+        addLog(`${cannibal.id+1}号(食人魔) 获得 ${id+1}号的能力，但因该玩家是邪恶的，食人魔中毒直到下一个善良玩家被处决`);
       } else {
-        addLog(`${cannibal.id+1}食人 获得 ${id+1 ?的能力`);
+        addLog(`${cannibal.id+1}号(食人魔) 获得 ${id+1}号的能力`);
       }
     }
     
     setSeats(newSeats);
-    addLog(`${id+1}被处决`); 
+    addLog(`${id+1}号被处决`); 
     setExecutedPlayerId(id);
     setTodayExecutedId(id);
     // 10. 记录当前黄昏的处决用于送葬者
@@ -3808,7 +3538,7 @@ export default function Home() {
     
     // 5. 屏蔽浏览器弹窗直接进入夜晚
     setTimeout(() => { 
-      startNight(false); 
+      nightLogic.startNight(false); 
     }, 500);
   };
 
@@ -3855,7 +3585,7 @@ export default function Home() {
 
     // 贞洁者处女逻辑处理
     if (target?.role?.id === 'virgin' && !target.isPoisoned) {
-      const isFirstNomination = virginOverride?.isFirstTime  !target.hasBeenNominated;
+      const isFirstNomination = virginOverride?.isFirstTime ?? !target.hasBeenNominated;
       const currentSeats = seats;
 
       // 首次提名且未提供说书人确认时先弹窗询问提名者是否为镇民
@@ -3874,14 +3604,14 @@ export default function Home() {
           s.id === id ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
         );
         setSeats(updatedSeats);
-        // 已经提名过按普通提名继
-        addLog(`提示{id+1号贞洁者 ? 已在本局被提名过一次她的能力已经失效本次提名不会再立即处决提名者`);
+        // 已经提名过按普通提名继续
+        addLog(`提示：${id+1}号贞洁者已在本局被提名过一次，她的能力已经失效，本次提名不会再立即处决提名者`);
       } else {
         const updatedSeats = currentSeats.map(s =>
-          s.id === id : { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
+          s.id === id ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
         );
 
-        const isRealTownsfolk = virginOverride?.nominatorIsTownsfolk  :  (
+        const isRealTownsfolk = virginOverride?.nominatorIsTownsfolk ?? (
           nominatorSeat &&
           nominatorSeat.role?.type === 'townsfolk' &&
           nominatorSeat.role?.id !== 'drunk' &&
@@ -3893,20 +3623,20 @@ export default function Home() {
             s.id === sourceId ? { ...s, isDead: true } : s
           );
           setSeats(finalSeats);
-          addLog(`${sourceId+1}提名 ${id+1 ?`);
-          addLog(`${sourceId+1}提名贞洁者被处决`);
+          addLog(`${sourceId+1}号提名 ${id+1}号`);
+          addLog(`${sourceId+1}号提名贞洁者被处决`);
           const executedPlayer = finalSeats.find(s => s.id === sourceId);
           if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
             setWinResult('evil');
-            setWinReason('圣徒被处);
+            setWinReason('圣徒被处决');
             setGamePhase('gameOver');
-            addLog("游戏结束圣徒被处决邪恶胜);
+            addLog("游戏结束圣徒被处决邪恶胜");
             return;
           }
           if (checkGameOver(finalSeats, sourceId)) {
             return;
           }
-          setShowExecutionResultModal({ message: `${sourceId+1 ?玩家被处决`, isVirginTrigger: true });
+          setShowExecutionResultModal({ message: `${sourceId+1}号玩家被处决`, isVirginTrigger: true });
           return;
         } else {
           setSeats(updatedSeats);
@@ -3921,14 +3651,14 @@ export default function Home() {
       const isDemon = targetSeat && (targetSeat.role?.type === 'demon' || targetSeat.isDemonSuccessor);
       if (!isDemon) {
         setSeats(p => p.map(s => s.id === id ? { ...s, isDead: true } : s));
-        addLog(`${sourceId+1}魔像) 提名 ${id+1号${id+1 ?不是恶魔${id+1 ?死亡`);
+        addLog(`${sourceId+1}号(魔像) 提名 ${id+1}号，${id+1}号不是恶魔，${id+1}号死亡`);
         const updatedSeats = seats.map(s => s.id === id ? { ...s, isDead: true } : s);
         const executedPlayer = updatedSeats.find(s => s.id === id);
         if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
           setWinResult('evil');
-          setWinReason('圣徒被处);
+          setWinReason('圣徒被处决');
           setGamePhase('gameOver');
-          addLog("游戏结束圣徒被处决邪恶胜);
+          addLog("游戏结束圣徒被处决邪恶胜");
           return;
         }
         if (checkGameOver(updatedSeats, id)) {
@@ -3937,14 +3667,14 @@ export default function Home() {
         setSeats(p => p.map(s => s.id === sourceId ? { ...s, hasUsedSlayerAbility: true } : s));
         return;
       }
-      setSeats(p => p.map(s => s.id === sourceId : { ...s, hasUsedSlayerAbility: true } : s));
+      setSeats(p => p.map(s => s.id === sourceId ? { ...s, hasUsedSlayerAbility: true } : s));
     }
 
     setNominationRecords(prev => ({
       nominators: new Set(prev.nominators).add(sourceId),
       nominees: new Set(prev.nominees).add(id)
     }));
-    addLog(`${sourceId+1}提名 ${id+1 ?`); 
+    addLog(`${sourceId+1}号提名 ${id+1}号`); 
     setVoteInputValue('');
     setShowVoteErrorToast(false);
     setShowVoteInputModal(id);
@@ -3975,43 +3705,44 @@ export default function Home() {
       const killer = seats.find(s => s.id === sourceId);
       if (!killer || killer.role?.id !== 'lunatic_mr') return;
       if (hasUsedDailyAbility('lunatic_mr', sourceId)) {
-        addLog(`${sourceId+1 ?精神病患者 ? 尝试再次使用日杀能力但本局每名精神病患者只能日杀一次当前已用完`);
-        setShowExecutionResultModal({ message: "精神病患者每局只能日杀一次当前已用完 });
+        addLog(`${sourceId+1}号(精神病患者) 尝试再次使用日杀能力但本局每名精神病患者只能日杀一次当前已用完`);
+        setShowExecutionResultModal({ message: "精神病患者每局只能日杀一次当前已用完" });
         return;
       }
       const target = seats.find(s => s.id === id);
       if (!target) return;
       if (target.isDead) {
-        addLog(`${sourceId+1 ? : 精神病患者 试图在白天杀死 ${id+1 ?但对方已死亡`);
-        setShowExecutionResultModal({ message: `${id+1 ?已死亡未产生新的死亡` });
+        addLog(`${sourceId+1}号(精神病患者) 试图在白天杀死 ${id+1}号，但对方已死亡`);
+        setShowExecutionResultModal({ message: `${id+1}号已死亡，未产生新的死亡` });
       } else {
         const updatedSeats = seats.map(s => s.id === id ? { ...s, isDead: true, isSentenced: false } : s);
         setSeats(updatedSeats);
-        addLog(`${sourceId+1 ?精神病患者 ? 在提名前公开杀死 ${id+1 ?`);
+        addLog(`${sourceId+1}号(精神病患者) 在提名前公开杀死 ${id+1}号`);
         checkGameOver(updatedSeats, id);
       }
       markDailyAbilityUsed('lunatic_mr', sourceId);
-      addLog(`精神病患者本局的日杀能力已经使用完毕之后不能再发动`);
+      addLog(`精神病患者本局的日间击杀能力已经使用完毕，之后不能再发动`);
     } else if(type==='slayer') {
       // 开枪可以在任意环节但只有健康猎手选中恶魔才有
       const shooter = seats.find(s => s.id === sourceId);
       if (!shooter || shooter.hasUsedSlayerAbility) return;
-      // 死亡的猎手不能行 : if (shooter.isDead) {
-        addLog(`${sourceId+1}已死亡无法开枪`);
-        setShowShootResultModal({ message: "无事发生射手已死亡, isDemonDead: false });
+      // 死亡的猎手不能开枪
+      if (shooter.isDead) {
+        addLog(`${sourceId+1}号已死亡无法开枪`);
+        setShowShootResultModal({ message: "无事发生射手已死亡", isDemonDead: false });
         return;
       }
       
       const target = seats.find(s => s.id === id);
       if (!target) return;
       
-      // 标记为已使用开枪能
-      setSeats(p => p.map(s => s.id === sourceId : { ...s, hasUsedSlayerAbility: true } : s));
+      // 标记为已使用开枪能力
+      setSeats(p => p.map(s => s.id === sourceId ? { ...s, hasUsedSlayerAbility: true } : s));
       
       // 对尸体开枪能力被消耗但无效果
       if (target.isDead) {
-        addLog(`${sourceId+1}${id+1 ?的尸体开枪未产生效果`);
-        setShowShootResultModal({ message: "无事发生目标已死亡, isDemonDead: false });
+        addLog(`${sourceId+1}号对${id+1}号的尸体开枪未产生效果`);
+        setShowShootResultModal({ message: "无事发生目标已死亡", isDemonDead: false });
         return;
       }
       
@@ -4024,17 +3755,18 @@ export default function Home() {
         // 恶魔死亡游戏立即结
         setSeats(p => {
           const newSeats = p.map(s => s.id === id ? { ...s, isDead: true } : s);
-          addLog(`${sourceId+1}猎手) 开枪击杀 ${id+1}小恶`);
-          addLog(`猎手 ? 的子弹击中了恶魔按照规则游戏立即结束不再进行今天的处决和后续夜晚`);
-          // 先设置胜利原因然后调用 checkGameOver 并保winReason
+          addLog(`${sourceId+1}号(猎手) 开枪击杀 ${id+1}号(小恶魔)`);
+          addLog(`猎手的子弹击中了恶魔，按照规则游戏立即结束，不再进行今天的处决和后续夜晚`);
+          // 先设置胜利原因然后调用 checkGameOver 并保存 winReason
           setWinReason('猎手击杀恶魔');
           checkGameOver(newSeats, undefined, true);
           return newSeats;
         });
-        // 显示弹窗恶魔死 : setShowShootResultModal({ message: "恶魔死亡", isDemonDead: true });
+        // 显示弹窗恶魔死亡
+        setShowShootResultModal({ message: "恶魔死亡", isDemonDead: true });
       } else {
-        addLog(`${sourceId+1}{shooter.role?.id === 'slayer' ? '(猎手)' : ''} 开枪${id+1}不是恶魔或开枪者不是健康猎手`);
-        // 显示弹窗无事发
+        addLog(`${sourceId+1}号${shooter.role?.id === 'slayer' ? '(猎手)' : ''} 开枪，${id+1}号不是恶魔或开枪者不是健康猎手`);
+        // 显示弹窗无事发生
         setShowShootResultModal({ message: "无事发生", isDemonDead: false });
       }
     }
@@ -4115,7 +3847,7 @@ export default function Home() {
     const threshold = Math.ceil(alive/2);
     // 票数达到50%才会上处决台
     setSeats(p=>p.map(s=>s.id===showVoteInputModal ? {...s,voteCount:v,isCandidate:v>=threshold}:s));
-    addLog(`${showVoteInputModal+1} : 获得 ${v} {v>=threshold : ' (上台)' : ''}${isDemonVote ? '恶魔投票' : ''}`);
+    addLog(`${showVoteInputModal+1}号获得 ${v} 票${v>=threshold ? ' (上台)' : ''}${isDemonVote ? '，恶魔投票' : ''}`);
     setVoteInputValue('');
     setShowVoteErrorToast(false);
     setShowVoteInputModal(null);
@@ -4166,7 +3898,7 @@ export default function Home() {
       }
       executePlayer(executed.id);
       // 6. 弹窗公示处决结果
-      setShowExecutionResultModal({ message: `${executed.id+1 ?被处决` });
+      setShowExecutionResultModal({ message: `${executed.id+1}号被处决` });
     } else {
       // 6. 弹窗公示处决结果
       setShowExecutionResultModal({ message: `最高票 : ${max} 未达到半${threshold}无人被处决` });
@@ -4180,13 +3912,13 @@ export default function Home() {
     
     // 如果是贞洁者触发的处决点击确认后自动进入下一个黑
     if (isVirginTrigger) {
-      startNight(false);
+      nightLogic.startNight(false);
       return;
     }
     
     const cands = seats.filter(s=>s.isCandidate).sort((a,b)=>(b.voteCount||0)-(a.voteCount||0));
     if(cands.length===0) {
-      startNight(false);
+      nightLogic.startNight(false);
       return;
     }
     const max = cands[0].voteCount || 0;
@@ -4202,7 +3934,7 @@ export default function Home() {
         addLog('涡流在场且今日无人处决邪恶阵营胜利');
         return;
       }
-      startNight(false);
+      nightLogic.startNight(false);
     }
   };
 
@@ -4249,21 +3981,21 @@ export default function Home() {
   const resolveLunaticRps = (didLunaticLose: boolean) => {
     if (!showLunaticRpsModal) return;
     const { targetId, nominatorId } = showLunaticRpsModal;
-    const nominatorNote = nominatorId !== null ? `提名者${nominatorId+1 ?` : '';
+    const nominatorNote = nominatorId !== null ? `提名者${nominatorId+1}号` : '';
     if (didLunaticLose) {
-      addLog(`${targetId+1 ?精神病患者 ? 在石头剪刀布中落败${nominatorNote}被处决`);
+      addLog(`${targetId+1}号(精神病患者) 在石头剪刀布中落败${nominatorNote}，被处决`);
       executePlayer(targetId, { skipLunaticRps: true });
-      setShowExecutionResultModal({ message: `${targetId+1 ?被处决石头剪刀布落败` });
+      setShowExecutionResultModal({ message: `${targetId+1}号被处决，石头剪刀布落败` });
     } else {
       if (nominatorId !== null) {
-        addLog(`${targetId+1 ? : 精神病患者 在石头剪刀布中获胜或打{nominatorNote}提名者被处决`);
+        addLog(`${targetId+1}号(精神病患者) 在石头剪刀布中获胜或打平，${nominatorNote}提名者被处决`);
         const updatedSeats = seats.map(s => s.id === nominatorId ? { ...s, isDead: true, isSentenced: true } : s);
         setSeats(updatedSeats);
         checkGameOver(updatedSeats, nominatorId);
-        setShowExecutionResultModal({ message: `${nominatorId+1 ?被处决因精神病患者猜拳获胜` });
+        setShowExecutionResultModal({ message: `${nominatorId+1}号被处决，因精神病患者猜拳获胜` });
       } else {
-        addLog(`${targetId+1 ?精神病患者 ? 在石头剪刀布中获胜或打 : {nominatorNote}处决取消`);
-        setShowExecutionResultModal({ message: `${targetId+1 ?存活处决取消` });
+        addLog(`${targetId+1}号(精神病患者) 在石头剪刀布中获胜或打平${nominatorNote}，处决取消`);
+        setShowExecutionResultModal({ message: `${targetId+1}号存活，处决取消` });
       }
       setSeats(p => p.map(s => ({ ...s, isCandidate: false, voteCount: undefined })));
       setNominationRecords({ nominators: new Set(), nominees: new Set() });
@@ -4457,7 +4189,7 @@ export default function Home() {
         const s = seatsSnapshot.find(x => x.id === id);
         if (!s || !s.role) return Number.MAX_SAFE_INTEGER;
         const r = s.role.id === 'drunk' ? s.charadeRole || s.role : s.role;
-        return gamePhase === 'firstNight' : (r?.firstNightOrder  Number.MAX_SAFE_INTEGER) : (r?.otherNightOrder : Number.MAX_SAFE_INTEGER);
+        return gamePhase === 'firstNight' ? (r?.firstNightOrder ?? Number.MAX_SAFE_INTEGER) : (r?.otherNightOrder ?? Number.MAX_SAFE_INTEGER);
       };
       const insertAt = rest.findIndex(id => order < getOrder(id));
       const nextRest = [...rest];
@@ -4486,15 +4218,15 @@ export default function Home() {
       }, { keepDeathState: true });
       return cleaned;
     }));
-    insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}转为邪恶)` });
+    insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}号转为邪恶` });
   }, [insertIntoWakeQueueAfterCurrent]);
 
   const handleMenuAction = (action: string) => {
     if(!contextMenu) return;
     if(action==='nominate') { 
-      // 只能在黄昏环节提
+      // 只能在黄昏环节提名
       if (gamePhase !== 'dusk') {
-        // 5. 屏蔽浏览器弹窗使用控制台提
+        // 5. 屏蔽浏览器弹窗使用控制台提示
         setContextMenu(null);
         return;
       }
@@ -4521,7 +4253,7 @@ export default function Home() {
   };
 
   const toggleStatus = (type: string, seatId?: number) => {
-    const targetSeatId = seatId  contextMenu?.seatId;
+    const targetSeatId = seatId ?? contextMenu?.seatId;
     if(targetSeatId === undefined || targetSeatId === null) return;
     
     setSeats(p => {
@@ -4534,7 +4266,7 @@ export default function Home() {
         
         // 如果尝试添加红罗刹但场上没有占卜师则不允许
         if (!isRemoving && !hasFortuneTeller) {
-          return p; // 不进行任何更
+          return p; // 不进行任何更改
         }
         
         // 场上"红罗唯一选择新的红罗刹时清除其他玩家的红罗刹标记和图标
@@ -4544,25 +4276,25 @@ export default function Home() {
             return {
               ...s,
               isRedHerring: true,
-              statusDetails: details.includes("红罗)
+              statusDetails: details.includes("红罗刹")
                 ? details
-                : [...details, "红罗],
+                : [...details, "红罗刹"],
             };
           } else {
             const details = s.statusDetails || [];
             return {
               ...s,
               isRedHerring: false,
-              statusDetails: details.filter(d => d !== "红罗),
+              statusDetails: details.filter(d => d !== "红罗刹"),
             };
           }
         });
         
-        // 只有在成功设置而不是移除红罗刹时才添加日
-        // 注意这里使用setTimeout是为了在setSeats完成后再添加日志避免在回调中直接调
+        // 只有在成功设置而不是移除红罗刹时才添加日志
+        // 注意这里使用setTimeout是为了在setSeats完成后再添加日志避免在回调中直接调用
         if (!isRemoving) {
           setTimeout(() => {
-            addLog(`你将 ${targetSeatId + 1} 号玩家设为本局唯一的红罗刹 ? 占卜师永远视 ta 为邪恶`);
+            addLog(`你将 ${targetSeatId + 1} 号玩家设为本局唯一的红罗刹，占卜师永远视 ta 为邪恶`);
           }, 0);
         }
       } else {
@@ -4579,7 +4311,8 @@ export default function Home() {
           return s;
         });
       }
-      // 8. 恶魔可以死在任意环节当被标记死亡后游戏立即结 : if (type === 'dead') {
+      // 8. 恶魔可以死在任意环节，当被标记死亡后游戏立即结束
+      if (type === 'dead') {
         // 立即检查游戏结束条件包括存活人数和恶魔死亡
         if (checkGameOver(updated)) {
           return updated;
@@ -4600,14 +4333,14 @@ export default function Home() {
     // 选择假身份后在控制台显示假身份
     const targetId = showRavenkeeperFakeModal;
     if (targetId !== null && nightInfo) {
-      const resultText = `${targetId+1 ?玩家的真实身份{r.name}${currentHint.isPoisoned || isVortoxWorld : ' (中毒/醉酒状态此为假消' : ''}`;
+      const resultText = `${targetId+1}号玩家的真实身份：${r.name}${currentHint.isPoisoned || isVortoxWorld ? ' (中毒/醉酒状态，此为假信息)' : ''}`;
       setInspectionResult(resultText);
       setInspectionResultKey(k => k + 1);
       // 记录日志
       addLogWithDeduplication(
-        `${nightInfo.seat.id+1}守鸦 查验 ${targetId+1}-> 伪 ${r.name}`,
+        `${nightInfo.seat.id+1}号(守鸦人) 查验 ${targetId+1}号 -> 伪 ${r.name}`,
         nightInfo.seat.id,
-        '守鸦
+        '守鸦人'
       );
     }
     setShowRavenkeeperFakeModal(null);
@@ -4616,11 +4349,11 @@ export default function Home() {
   // 注意此函数已不再使用守鸦人的结果现在直接显示在控制台
   // 保留此函数仅为了兼容性但不会被调用
   const confirmRavenkeeperResult = () => {
-    // 此函数已废弃不再使
+    // 此函数已废弃不再使用
     setShowRavenkeeperResultModal(null);
   };
 
-  // 注意此函数已不再使用处女的逻辑现在handleDayAction 中直接处
+  // 注意此函数已不再使用处女的逻辑现在handleDayAction 中直接处理
   // 保留此函数仅为了兼容性但不会被调用
   const confirmVirginTrigger = () => {
     if (!showVirginTriggerModal) return;
@@ -4630,9 +4363,9 @@ export default function Home() {
       setSeats(p => {
         const newSeats = p.map(s => 
           s.id === source.id ? { ...s, isDead: true } : 
-          s.id === target.id : { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
+          s.id === target.id ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true } : s
         );
-        addLog(`${source.id+1}提名贞洁者被处决`);
+        addLog(`${source.id+1}号提名贞洁者被处决`);
         checkGameOver(newSeats);
         return newSeats;
       });
@@ -4649,12 +4382,12 @@ export default function Home() {
   const confirmRestart = () => {
     // 如果游戏正在进行不是scriptSelection阶段先保存对局记录
     if (gamePhase !== 'scriptSelection' && selectedScript) {
-      // 添加重开游戏的日
-      const updatedLogs = [...gameLogs, { day: nightCount, phase: gamePhase, message: "说书人重开了游 }];
+      // 添加重开游戏的日志
+      const updatedLogs = [...gameLogs, { day: nightCount, phase: gamePhase, message: "说书人重开了游戏" }];
       
       // 立即保存对局记录
       const endTime = new Date();
-      const duration = startTime : Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
+      const duration = startTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
       
       const record: GameRecord = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -4663,9 +4396,9 @@ export default function Home() {
         endTime: endTime.toISOString(),
         duration: duration,
         winResult: null, // 重开无胜负结果
-        winReason: "说书人重开了游,
-        seats: JSON.parse(JSON.stringify(seats)), // 深拷贝座位信
-        gameLogs: updatedLogs // 包含重开日志的完整日
+        winReason: "说书人重开了游戏",
+        seats: JSON.parse(JSON.stringify(seats)), // 深拷贝座位信息
+        gameLogs: updatedLogs // 包含重开日志的完整日志
       };
       
       saveGameRecord(record);
@@ -4678,12 +4411,12 @@ export default function Home() {
   const handleSwitchScript = () => {
     // 如果游戏正在进行不是scriptSelection阶段先结束游戏并保存记录
     if (gamePhase !== 'scriptSelection' && selectedScript) {
-      // 添加结束游戏的日
+      // 添加结束游戏的日志
       const updatedLogs = [...gameLogs, { day: nightCount, phase: gamePhase, message: "说书人结束了游戏" }];
       
       // 立即保存对局记录
       const endTime = new Date();
-      const duration = startTime : Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
+      const duration = startTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
       
       const record: GameRecord = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -4828,6 +4561,82 @@ export default function Home() {
     }]);
   };
 
+  // ===========================
+  //      使用夜晚逻辑 Hook
+  // ===========================
+  // 注意：此 Hook 必须在 killPlayer 定义之后调用，因为 killPlayer 被作为参数传入
+  const nightLogic = useNightLogic(
+    {
+      seats,
+      gamePhase,
+      nightCount,
+      executedPlayerId,
+      wakeQueueIds,
+      currentWakeIndex,
+      selectedActionTargets,
+      gameLogs,
+      selectedScript,
+      deadThisNight,
+      currentDuskExecution,
+      pukkaPoisonQueue,
+      todayDemonVoted,
+      todayMinionNominated,
+      todayExecutedId,
+      witchCursedId,
+      witchActive,
+      cerenovusTarget,
+      voteRecords,
+      nominationMap,
+      poChargeState,
+      goonDrunkedThisNight,
+      isVortoxWorld,
+      nightInfo,
+    },
+    {
+      setSeats,
+      setGamePhase,
+      setNightCount,
+      setWakeQueueIds,
+      setCurrentWakeIndex,
+      setSelectedActionTargets,
+      setInspectionResult,
+      setDeadThisNight,
+      setLastDuskExecution,
+      setCurrentDuskExecution,
+      setPukkaPoisonQueue,
+      setTodayDemonVoted,
+      setTodayMinionNominated,
+      setTodayExecutedId,
+      setWitchCursedId,
+      setWitchActive,
+      setCerenovusTarget,
+      setVoteRecords,
+      setNominationMap,
+      setGoonDrunkedThisNight,
+      setIsVortoxWorld,
+      setShowNightOrderModal,
+      setPendingNightQueue,
+      setNightOrderPreview,
+      setNightQueuePreviewTitle,
+      setShowNightDeathReportModal,
+      setShowKillConfirmModal,
+      setShowMayorRedirectModal,
+      setShowAttackBlockedModal,
+      setStartTime,
+      setMayorRedirectTarget,
+      addLog,
+      addLogWithDeduplication,
+      killPlayer,
+      saveHistory,
+      resetRegistrationCache,
+      getSeatRoleId,
+      getDemonDisplayName,
+      enqueueRavenkeeperIfNeeded,
+      continueToNextAction,
+      seatsRef,
+    }
+  );
+
   // 9.1 控制面板上一只退回流程不改变已生成的信
   // 支持无限次后退直到当前夜阶段的开
   const handleStepBack = () => {
@@ -4929,12 +4738,12 @@ export default function Home() {
 
   // --- Render ---
   // 人数小于等于 9 时放大座位及文字
-  const seatScale = seats.length <= 9 : 1.3 : 1;
+  const seatScale = seats.length <= 9 ? 1.3 : 1;
 
   const currentNightNumber = gamePhase === 'firstNight' ? 1 : nightCount;
-  const currentWakeSeat = nightInfo : seats.find(s => s.id === nightInfo.seat.id) : null;
+  const currentWakeSeat = nightInfo ? seats.find(s => s.id === nightInfo.seat.id) : null;
   const nextWakeSeatId = (gamePhase === 'firstNight' || gamePhase === 'night') && currentWakeIndex + 1 < wakeQueueIds.length ? wakeQueueIds[currentWakeIndex + 1] : null;
-  const nextWakeSeat = nextWakeSeatId !== null : seats.find(s => s.id === nextWakeSeatId) : null;
+  const nextWakeSeat = nextWakeSeatId !== null ? seats.find(s => s.id === nextWakeSeatId) : null;
   const getDisplayRole = (seat: Seat | null | undefined) => {
     if (!seat) return null;
     const base = seat.role?.id === 'drunk' : seat.charadeRole : seat.role;
@@ -4976,21 +4785,21 @@ export default function Home() {
             {compositionError.hasBaron ? (
               <div className="text-sm leading-6 text-gray-100 space-y-3">
                 <p className="font-semibold text-yellow-300">
-                  场上存在男爵 ?  : </p>
+                  场上存在男爵：</p>
                 <p>
                   {compositionError.playerCount} 人局时外来者应<span className="font-bold text-yellow-200">{compositionError.standard.outsider} </span>
                   {(() => {
                     // 从标准配置表中查找基础配置无男爵时的配置
                     const basePreset = troubleBrewingPresets.find(p => p.total === compositionError.playerCount);
-                    const baseOutsider = basePreset.outsider  0;
-                    return `而不${baseOutsider}`;
+                    const baseOutsider = basePreset?.outsider ?? 0;
+                    return `而不是${baseOutsider}名`;
                   })()}
                 </p>
                 <p className="font-semibold text-yellow-200">
-                  请增2 名外来者从镇民中替换或者移除男爵后再开始游戏
+                  请增加2名外来者从镇民中替换或者移除男爵后再开始游戏
                 </p>
                 <div className="text-sm text-gray-300 space-y-2 bg-gray-800/60 rounded-lg p-3 border border-gray-700 mt-3">
-                  <div className="font-semibold mb-1">当前配置/div>
+                  <div className="font-semibold mb-1">当前配置</div>
                   <div>
                     {compositionError.actual.townsfolk} 镇民 / {compositionError.actual.outsider} 外来者 {compositionError.actual.minion} 爪牙 / {compositionError.actual.demon} 恶魔
                   </div>
@@ -5063,7 +4872,7 @@ export default function Home() {
               </div>
             </div>
             <p className="text-sm text-gray-300">
-              你可以点击自动重排 ? 由系统重新分配点击 : 我手动调整后再继续或在说书人裁量下点击保持当前配置 ? 直接开始游戏
+              你可以点击"自动重排"由系统重新分配，点击"我手动调整"后再继续，或在说书人裁量下点击"保持当前配置"直接开始游戏
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
@@ -5191,7 +5000,7 @@ export default function Home() {
                   <br />
                   下一个将
                   <span className="text-cyan-300">
-                    {nextWakeSeat && nextWakeRole : `${nextWakeSeat.id+1}{nextWakeRole.name}` : '本夜结束'}
+                    {nextWakeSeat && nextWakeRole ? `${nextWakeSeat.id+1}号(${nextWakeRole.name})` : '本夜结束'}
                   </span>
                   
                 </span>
@@ -5236,15 +5045,15 @@ export default function Home() {
             const dayAbilityConfigs: DayAbilityConfig[] = [
               {
                 roleId: 'savant_mr',
-                title: '博学者每日提,
-                description: '每个白天一次向说书人索取一真一假的两条信息,
+                title: '博学者每日提问',
+                description: '每个白天一次向说书人索取一真一假的两条信息',
                 usage: 'daily',
-                logMessage: seat => `${seat.id+1}博学 使用今日提问请准备一真一假两条信息`
+                logMessage: seat => `${seat.id+1}号(博学者) 使用今日提问，请准备一真一假两条信息`
               },
               {
                 roleId: 'amnesiac',
-                title: '失意者每日猜,
-                description: '每个白天一次向说书人提交本回合的猜测并获得反馈,
+                title: '失意者每日猜测',
+                description: '每个白天一次向说书人提交本回合的猜测并获得反馈',
                 usage: 'daily',
                 logMessage: seat => `${seat.id+1}失意 提交今日猜测请给出反馈`
               },
@@ -5268,7 +5077,7 @@ export default function Home() {
                 description: '提名前公开杀死一名玩家处决时需与提名者猜拳决定生死',
                 usage: 'daily',
                 actionType: 'lunaticKill',
-                logMessage: seat => `${seat.id+1 ?精神病患者 ? 准备发动日间杀人`
+                logMessage: seat => `${seat.id+1}号(精神病患者) 准备发动日间杀人`
               }
             ];
             const entries = seats
@@ -5454,16 +5263,16 @@ export default function Home() {
                                             rec.minion === actualMinionCount && 
                                             rec.demon === actualDemonCount;
                             return (
-                              <div key={idx} className={isCurrent : 'text-green-300 font-bold' : ''}>
+                              <div key={idx} className={isCurrent ? 'text-green-300 font-bold' : ''}>
                                 {rec.outsider}外来者{rec.minion}爪牙{rec.demon}恶魔
-                                {rec.note && <span className="text-xs opacity-75 ml-1">{rec.note}/span>}
+                                {rec.note && <span className="text-xs opacity-75 ml-1">{rec.note}</span>}
                                 {isCurrent && <span className="ml-2">当前配置</span>}
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="text-xs opacity-75 ml-2">无有效配/div>
+                        <div className="text-xs opacity-75 ml-2">无有效配置</div>
                       )}
                       <div className="mt-2 text-xs opacity-75">
                         实际{actualOutsiderCount}外来者{actualMinionCount}爪牙{actualDemonCount}恶魔
@@ -5511,7 +5320,7 @@ export default function Home() {
               )}
               {selectedScript && (
                 <div className="mb-4 px-4 py-3 rounded-lg bg-gray-800/80 border border-yellow-500/70 text-left text-sm text-gray-100 space-y-1">
-                  <div className="font-bold text-yellow-300 mb-1"> 夜晚行动说明{selectedScript.name} : /div>
+                  <div className="font-bold text-yellow-300 mb-1"> 夜晚行动说明({selectedScript.name})</div>
                   {(() => {
                     const scriptRoles = roles.filter(r => {
                       if (selectedScript.id === 'trouble_brewing') return !r.script;
@@ -5530,7 +5339,7 @@ export default function Home() {
                         <div>
                           <span className="font-semibold">{label}</span>
                           <span className="text-gray-300">
-                            {list.map(r => r.name).join(')}
+                            {list.map(r => r.name).join('、')}
                           </span>
                         </div>
                       );
@@ -5539,8 +5348,8 @@ export default function Home() {
                       <>
                         {renderLine('只在首夜被唤醒的角色', onlyFirst)}
                         {renderLine('只在之后夜晚被唤醒的角色', onlyOther)}
-                        {renderLine('首夜和之后夜晚都会被唤醒的角, bothNights)}
-                        {renderLine('从不在夜里被唤醒但始终生效的角, passive)}
+                        {renderLine('首夜和之后夜晚都会被唤醒的角色', bothNights)}
+                        {renderLine('从不在夜里被唤醒但始终生效的角色', passive)}
                       </>
                     );
                   })()}
@@ -5551,7 +5360,7 @@ export default function Home() {
               )}
               <div className="bg-gray-800 p-4 rounded-xl text-left text-base space-y-3 max-h-[80vh] overflow-y-auto check-identity-scrollbar">
                 {seats.filter(s=>s.role).map(s=>{
-                  // 酒鬼应该显示伪装角色的名称而不酒鬼"
+                  // 酒鬼应该显示伪装角色的名称而不是酒鬼
                   const displayRole = s.role?.id === 'drunk' && s.charadeRole ? s.charadeRole : s.role;
                   const displayName = displayRole.name || '';
                   const canRedHerring = canToggleRedHerring(s.id);
@@ -5591,7 +5400,7 @@ export default function Home() {
                         {s.isDead && (
                           <button
                             type="button"
-                            onClick={() => setSeats(p => p.map(x => x.id === s.id : { ...x, hasGhostVote: x.hasGhostVote === false ? true : false } : x))}
+                            onClick={() => setSeats(p => p.map(x => x.id === s.id ? { ...x, hasGhostVote: x.hasGhostVote === false ? true : false } : x))}
                             className={`px-2 py-0.5 rounded border text-[11px] ${
                               s.hasGhostVote === false
                                 : 'bg-gray-700 border-gray-600 text-gray-400'
@@ -5653,10 +5462,10 @@ export default function Home() {
                       } else {
                         // 夜晚结束显示死亡报
                         if(deadThisNight.length > 0) {
-                          const deadNames = deadThisNight.map(id => `${id+1 ?`).join(');
+                          const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
                           setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
                         } else {
-                          setShowNightDeathReportModal("昨天是个平安);
+                          setShowNightDeathReportModal("昨天是个平安夜");
                         }
                       }
                     }}
@@ -5678,9 +5487,9 @@ export default function Home() {
                      {currentHint.reason}
                   </div>
                 )}
-                <div className="mb-2 text-sm text-gray-400 font-bold uppercase"> 指引/div>
+                <div className="mb-2 text-sm text-gray-400 font-bold uppercase"> 指引</div>
                 <p className="text-base mb-4 leading-relaxed whitespace-pre-wrap font-medium">{currentHint.guide}</p>
-                <div className="mb-2 text-sm text-yellow-400 font-bold uppercase">台词/div>
+                <div className="mb-2 text-sm text-yellow-400 font-bold uppercase">台词</div>
                 <p className="text-lg font-serif bg-black/40 p-3 rounded-xl border-l-4 border-yellow-500 italic text-yellow-100">
                   {currentHint.speak}
                 </p>
@@ -5693,7 +5502,7 @@ export default function Home() {
                     {seats.filter(s=>s.role).map(s => (
                       <div key={s.id} className="py-0.5 border-b border-gray-700 flex justify-between">
                         <span>{s.id+1}</span>
-                        <span className={s.role?.type==='demon''text-red-500':''}>
+                        <span className={s.role?.type==='demon' ? 'text-red-500' : ''}>
                           {s.role?.name}
                         </span>
     </div>
@@ -5714,10 +5523,10 @@ export default function Home() {
                         return Object.entries(logsByDay).reverse().map(([day, logs]) => (
                           <div key={day} className="mb-2">
                             <div className="text-yellow-300 font-bold mb-1 text-xs">
-                              {logs[0].phase === 'firstNight' ? ' : 
-                               logs[0].phase === 'night' ? `{day}夜` :
-                               logs[0]?.phase === 'day' : `{day}天` :
-                               logs[0].phase === 'dusk' ? `{day}天黄昏` : `{day}轮`}
+                              {logs[0].phase === 'firstNight' ? '首夜' : 
+                               logs[0].phase === 'night' ? `${day}夜` :
+                               logs[0]?.phase === 'day' ? `${day}天` :
+                               logs[0].phase === 'dusk' ? `${day}天黄昏` : `${day}轮`}
                             </div>
                             {logs.reverse().map((l, i) => (
                               <div key={i} className="py-1 border-b border-gray-700 text-gray-300 text-xs pl-2">
@@ -5746,7 +5555,7 @@ export default function Home() {
                     }
                     // 僵怖可以选择任意活着的玩家包括假死状态的僵怖自己
                     if (nightInfo.effectiveRole.id === 'zombuul') {
-                      // 僵怖假死状态算作存
+                      // 僵怖假死状态算作存活
                       if (s.role?.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
                         return true;
                       }
@@ -5791,7 +5600,7 @@ export default function Home() {
                 <div 
                   key={s.id} 
                   className={`flex justify-between p-2 border-b border-gray-600 ${
-                    i===0 ?text-red-400 font-bold':''
+                    i===0 ? 'text-red-400 font-bold' : ''
                   }`}
                 >
                   <span>{s.id+1}{s.role?.name}</span>
