@@ -441,3 +441,47 @@ export const getMisinformation = {
   }
 };
 
+// ======================================================================
+//  查茶女保护判定
+// ======================================================================
+
+/**
+ * 检查玩家是否受到查茶女保护
+ * 规则：如果查茶女的两名存活邻居都是善良阵营，则查茶女及其邻居都不会死亡。
+ * 
+ * @param seatId 目标玩家的座位ID
+ * @param seats 所有座位的数组
+ * @returns 如果目标玩家受到查茶女保护则返回 true，否则返回 false
+ */
+export function hasTeaLadyProtection(seatId: number, seats: Seat[]): boolean {
+  const targetSeat = seats.find(s => s.id === seatId);
+  if (!targetSeat || !targetSeat.role) return false;
+
+  // 查找所有查茶女
+  const teaLadies = seats.filter(s => 
+    s.role?.id === 'tea_lady' && 
+    !s.isDead && 
+    isGoodAlignment(s)
+  );
+
+  // 对每个查茶女检查其邻居
+  for (const teaLady of teaLadies) {
+    const neighbors = getAliveNeighbors(seats, teaLady.id);
+    
+    // 查茶女必须有两个存活邻居
+    if (neighbors.length < 2) continue;
+    
+    // 检查两个邻居是否都是善良阵营
+    const bothNeighborsGood = neighbors.every(neighbor => isGoodAlignment(neighbor));
+    
+    if (bothNeighborsGood) {
+      // 如果目标玩家是查茶女或其邻居，则受到保护
+      if (targetSeat.id === teaLady.id || neighbors.some(n => n.id === targetSeat.id)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+

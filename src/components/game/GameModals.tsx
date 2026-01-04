@@ -54,9 +54,10 @@ export interface GameModalsProps {
   showVoteInputModal: number | null;
   showRoleSelectModal: {
     type: 'philosopher' | 'cerenovus' | 'pit_hag';
+    targetId: number;
     onConfirm: (roleId: string) => void;
   } | null;
-  showMadnessCheckModal: { targetId: number; roleName: string } | null;
+  showMadnessCheckModal: { targetId: number; roleName: string; day: number } | null;
   showDayActionModal: { type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number } | null;
   virginGuideInfo: {
     targetId: number;
@@ -196,8 +197,9 @@ export interface GameModalsProps {
   setShowMayorThreeAliveModal: (value: boolean) => void;
   setShowDrunkModal: (value: number | null) => void;
   setShowVoteInputModal: (value: number | null) => void;
-  setShowRoleSelectModal: (value: { type: 'philosopher' | 'cerenovus' | 'pit_hag'; onConfirm: (roleId: string) => void } | null) => void;
-  setShowMadnessCheckModal: (value: { targetId: number; roleName: string } | null) => void;
+  setShowRoleSelectModal: (value: { type: 'philosopher' | 'cerenovus' | 'pit_hag'; targetId: number; onConfirm: (roleId: string) => void } | null) => void;
+  setShowMadnessCheckModal: (value: { targetId: number; roleName: string; day: number } | null) => void;
+  setShowAttackBlockedModal: (value: { targetId: number; reason: string; demonName?: string } | null) => void;
   setShowDayActionModal: (value: { type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number } | null) => void;
   setVirginGuideInfo: (value: { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null) => void;
   setShowDayAbilityModal: (value: { roleId: string; seatId: number } | null) => void;
@@ -415,9 +417,11 @@ export function GameModals(props: GameModalsProps) {
                   checked={props.voteRecords.some(r => r.voterId === props.showVoteInputModal && r.isDemon)}
                   onChange={(e) => {
                     const isDemon = e.target.checked;
-                    props.setVoteRecords(prev => {
-                      const filtered = prev.filter(r => r.voterId !== props.showVoteInputModal);
-                      const newRecords = [...filtered, { voterId: props.showVoteInputModal, isDemon }];
+                    props.setVoteRecords((prev: Array<{ voterId: number; isDemon: boolean }>) => {
+                      const voterId = props.showVoteInputModal;
+                      if (voterId === null) return prev;
+                      const filtered = prev.filter(r => r.voterId !== voterId);
+                      const newRecords = [...filtered, { voterId, isDemon }];
                       // 更新 todayDemonVoted 状态
                       if (isDemon) {
                         props.setTodayDemonVoted(true);
@@ -444,15 +448,17 @@ export function GameModals(props: GameModalsProps) {
         </div>
       )}
       
-      {props.showRoleSelectModal && (
+      {props.showRoleSelectModal && (() => {
+        const modal = props.showRoleSelectModal;
+        return (
         <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
           <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 max-w-4xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-3xl font-bold mb-4">
-              {props.showRoleSelectModal.type === 'philosopher' && '🎭 哲学家 - 选择善良角色'}
-              {props.showRoleSelectModal.type === 'cerenovus' && '🧠 洗脑师 - 选择善良角色'}
-              {props.showRoleSelectModal.type === 'pit_hag' && '🧙 麻脸巫婆 - 选择角色'}
+              {modal.type === 'philosopher' && '🎭 哲学家 - 选择善良角色'}
+              {modal.type === 'cerenovus' && '🧠 洗脑师 - 选择善良角色'}
+              {modal.type === 'pit_hag' && '🧙 麻脸巫婆 - 选择角色'}
             </h3>
-            {props.showRoleSelectModal.type === 'pit_hag' && (
+            {modal.type === 'pit_hag' && (
               <p className="text-sm text-gray-300 mb-3">
                 当前剧本所有角色与座位号如下（仅供参考）：请先在主界面点选一名玩家作为目标，
                 再在此选择一个<strong>当前场上尚未登场</strong>的角色身份，若合法则该玩家立刻变为该角色，并按夜晚顺位在本夜被叫醒。
@@ -461,7 +467,7 @@ export function GameModals(props: GameModalsProps) {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
               {props.roles
                 .filter((r: Role) => {
-                  if (props.showRoleSelectModal.type === 'philosopher' || props.showRoleSelectModal.type === 'cerenovus') {
+                  if (modal.type === 'philosopher' || modal.type === 'cerenovus') {
                     return r.type === 'townsfolk' || r.type === 'outsider';
                   }
                   // 麻脸巫婆：仅显示当前剧本的角色，方便查阅
@@ -477,7 +483,7 @@ export function GameModals(props: GameModalsProps) {
                     <button
                       key={role.id}
                       onClick={() => {
-                        props.showRoleSelectModal.onConfirm(role.id);
+                        modal.onConfirm(role.id);
                       }}
                       className={`p-4 rounded-xl border-2 ${typeColor} ${typeBgColor} transition-all text-left`}
                     >
@@ -488,7 +494,7 @@ export function GameModals(props: GameModalsProps) {
                   );
                 })}
             </div>
-            {props.showRoleSelectModal.type === 'pit_hag' && (
+            {modal.type === 'pit_hag' && (
               <div className="mt-2 mb-4 text-left text-xs text-gray-300 max-h-40 overflow-y-auto border border-gray-700 rounded-xl p-3 bg-gray-900/60">
                 <div className="font-bold mb-1">当前座位与角色一览：</div>
                 {props.seats.map(s => (
@@ -509,15 +515,18 @@ export function GameModals(props: GameModalsProps) {
             </button>
           </div>
         </div>
-      )}
+        );
+      })()}
       
-      {props.showMadnessCheckModal && (
+      {props.showMadnessCheckModal && (() => {
+        const modal = props.showMadnessCheckModal;
+        return (
         <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
           <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-purple-500 max-w-md">
             <h3 className="text-3xl font-bold mb-6">🧠 疯狂判定</h3>
             <div className="mb-6 text-left">
-              <p className="mb-2">目标：{props.showMadnessCheckModal.targetId + 1}号</p>
-              <p className="mb-2">要求扮演角色：{props.showMadnessCheckModal.roleName}</p>
+              <p className="mb-2">目标：{modal.targetId + 1}号</p>
+              <p className="mb-2">要求扮演角色：{modal.roleName}</p>
               <p className="text-sm text-gray-400 mb-4">
                 该玩家需要在白天和夜晚"疯狂"地证明自己是这个角色，否则可能被处决。
               </p>
@@ -525,7 +534,7 @@ export function GameModals(props: GameModalsProps) {
             <div className="flex gap-3 mb-4">
               <button
                 onClick={() => {
-                  props.addLog(`${props.showMadnessCheckModal.targetId + 1}号 疯狂判定：通过（正确扮演 ${props.showMadnessCheckModal.roleName}）`);
+                  props.addLog(`${modal.targetId + 1}号 疯狂判定：通过（正确扮演 ${modal.roleName}）`);
                   props.setShowMadnessCheckModal(null);
                 }}
                 className="flex-1 py-3 bg-green-600 rounded-xl font-bold text-lg"
@@ -534,14 +543,14 @@ export function GameModals(props: GameModalsProps) {
               </button>
               <button
                 onClick={() => {
-                  props.addLog(`${props.showMadnessCheckModal.targetId + 1}号 疯狂判定：失败（未正确扮演 ${props.showMadnessCheckModal.roleName}）`);
-                  const target = props.seats.find(s => s.id === props.showMadnessCheckModal.targetId);
+                  props.addLog(`${modal.targetId + 1}号 疯狂判定：失败（未正确扮演 ${modal.roleName}）`);
+                  const target = props.seats.find(s => s.id === modal.targetId);
                   if (target && !target.isDead) {
                     // 如果判定失败，说书人可以决定是否处决
-                    const shouldExecute = window.confirm(`是否处决 ${props.showMadnessCheckModal.targetId + 1}号？`);
+                    const shouldExecute = window.confirm(`是否处决 ${modal.targetId + 1}号？`);
                     if (shouldExecute) {
                       props.saveHistory();
-                      props.executePlayer(props.showMadnessCheckModal.targetId);
+                      props.executePlayer(modal.targetId);
                     }
                   }
                   props.setShowMadnessCheckModal(null);
@@ -559,7 +568,8 @@ export function GameModals(props: GameModalsProps) {
             </button>
           </div>
         </div>
-      )}
+        );
+      })()}
       
       {props.showDayActionModal && (
         <div className="fixed inset-0 z-[3000] bg-black/80 flex items-center justify-center">
@@ -663,13 +673,13 @@ export function GameModals(props: GameModalsProps) {
                 <div className="flex gap-3">
                   <button
                     className={`flex-1 py-3 rounded-xl font-bold transition ${isFirst ? 'bg-pink-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => props.setVirginGuideInfo(p => p ? { ...p, isFirstTime: true } : p)}
+                    onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, isFirstTime: true } : p)}
                   >
                     第一次
                   </button>
                   <button
                     className={`flex-1 py-3 rounded-xl font-bold transition ${!isFirst ? 'bg-pink-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => props.setVirginGuideInfo(p => p ? { ...p, isFirstTime: false } : p)}
+                    onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, isFirstTime: false } : p)}
                   >
                     不是第一次
                   </button>
@@ -682,13 +692,13 @@ export function GameModals(props: GameModalsProps) {
                   <div className="flex gap-3">
                     <button
                       className={`flex-1 py-3 rounded-xl font-bold transition ${nomIsTown ? 'bg-emerald-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                      onClick={() => props.setVirginGuideInfo(p => p ? { ...p, nominatorIsTownsfolk: true } : p)}
+                      onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, nominatorIsTownsfolk: true } : p)}
                     >
                       是镇民
                     </button>
                     <button
                       className={`flex-1 py-3 rounded-xl font-bold transition ${!nomIsTown ? 'bg-amber-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                      onClick={() => props.setVirginGuideInfo(p => p ? { ...p, nominatorIsTownsfolk: false } : p)}
+                      onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, nominatorIsTownsfolk: false } : p)}
                     >
                       不是镇民
                     </button>
@@ -863,13 +873,13 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="信息1"
                     value={props.dayAbilityForm.info1 || ''}
-                    onChange={e=>props.setDayAbilityForm(f=>({...f, info1: e.target.value}))}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info1: e.target.value}))}
                   />
                   <textarea
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="信息2"
                     value={props.dayAbilityForm.info2 || ''}
-                    onChange={e=>props.setDayAbilityForm(f=>({...f, info2: e.target.value}))}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info2: e.target.value}))}
                   />
                 </div>
               )}
@@ -880,13 +890,13 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="你的猜测"
                     value={props.dayAbilityForm.guess || ''}
-                    onChange={e=>props.setDayAbilityForm(f=>({...f, guess: e.target.value}))}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, guess: e.target.value}))}
                   />
                   <textarea
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="说书人反馈"
                     value={props.dayAbilityForm.feedback || ''}
-                    onChange={e=>props.setDayAbilityForm(f=>({...f, feedback: e.target.value}))}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, feedback: e.target.value}))}
                   />
                 </div>
               )}
@@ -897,7 +907,7 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="建议内容"
                     value={props.dayAbilityForm.advice || ''}
-                    onChange={e=>props.setDayAbilityForm(f=>({...f, advice: e.target.value}))}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, advice: e.target.value}))}
                   />
                 </div>
               )}
@@ -909,7 +919,7 @@ export function GameModals(props: GameModalsProps) {
                       <input
                         type="radio"
                         checked={props.dayAbilityForm.engineerMode === 'demon'}
-                        onChange={()=>props.setDayAbilityForm(f=>({...f, engineerMode: 'demon'}))}
+                        onChange={()=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, engineerMode: 'demon'}))}
                       />
                       改造恶魔
                     </label>
@@ -917,7 +927,7 @@ export function GameModals(props: GameModalsProps) {
                       <input
                         type="radio"
                         checked={props.dayAbilityForm.engineerMode === 'minion'}
-                        onChange={()=>props.setDayAbilityForm(f=>({...f, engineerMode: 'minion'}))}
+                        onChange={()=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, engineerMode: 'minion'}))}
                       />
                       改造所有爪牙
                     </label>
@@ -925,7 +935,7 @@ export function GameModals(props: GameModalsProps) {
                   <select
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     value={props.dayAbilityForm.engineerRoleId || ''}
-                    onChange={e=>props.setDayAbilityForm(f=>({...f, engineerRoleId: e.target.value || undefined}))}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, engineerRoleId: e.target.value || undefined}))}
                   >
                     <option value="">选择目标角色</option>
                     {(() => {
@@ -961,7 +971,13 @@ export function GameModals(props: GameModalsProps) {
         isOpen={!!props.showLunaticRpsModal}
         nominatorId={props.showLunaticRpsModal?.nominatorId || null}
         targetId={props.showLunaticRpsModal?.targetId || 0}
-        onResolve={props.resolveLunaticRps}
+        onResolve={(isLoss) => {
+          // 转换 boolean 到 'win' | 'lose' | 'tie'
+          // isLoss=true 表示精神病患者输，对应 'lose'
+          // isLoss=false 表示精神病患者赢/平，对应 'win' 或 'tie'
+          // 这里简化为：输=lose，赢/平=win（如果需要区分平局，需要修改 LunaticRpsModal）
+          props.resolveLunaticRps(isLoss ? 'lose' : 'win');
+        }}
       />
       
       <VirginTriggerModal
