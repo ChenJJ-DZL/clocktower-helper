@@ -1,0 +1,172 @@
+"use client";
+
+import React, { RefObject } from "react";
+import { Seat, Role, GamePhase } from "../../../app/data";
+import { NightInfoResult, phaseNames } from "../../types/game";
+import { SeatNode } from "../SeatNode";
+import { getSeatPosition } from "../../utils/gameRules";
+
+// 定义圆桌组件需要的 Props 接口
+export interface GameBoardProps {
+  // ========== 核心数据 ==========
+  seats: Seat[];
+  gamePhase: GamePhase;
+  timer: number;
+  nightInfo: NightInfoResult | null;
+  selectedActionTargets: number[];
+  isPortrait: boolean;
+  
+  // ========== UI状态 ==========
+  seatScale: number; // 座位缩放比例，通常为 seats.length <= 9 ? 1.3 : 1
+  longPressingSeats: Set<number>; // 正在长按的座位ID集合
+  
+  // ========== Refs ==========
+  seatContainerRef: RefObject<HTMLDivElement | null>; // 圆桌容器引用
+  seatRefs: RefObject<Record<number, HTMLDivElement | null>>; // 每个座位元素引用
+  
+  // ========== 交互函数 ==========
+  handleSeatClick: (id: number) => void;
+  handleContextMenu: (e: React.MouseEvent, seatId: number) => void;
+  handleTouchStart: (e: React.TouchEvent, seatId: number) => void;
+  handleTouchEnd: (e: React.TouchEvent, seatId: number) => void;
+  handleTouchMove: (e: React.TouchEvent, seatId: number) => void;
+  handleGlobalUndo: () => void;
+  
+  // ========== 工具函数 ==========
+  getSeatPosition: typeof getSeatPosition; // 获取座位位置函数
+  getDisplayRoleType: (seat: Seat) => string | null; // 获取显示角色类型
+  formatTimer: (s: number) => string; // 格式化计时器显示
+  setSeatRef: (id: number, el: HTMLDivElement | null) => void; // 设置座位元素引用
+  
+  // ========== 其他 ==========
+  typeColors: Record<string, string>; // 类型颜色映射
+  setShowSpyDisguiseModal: (value: boolean) => void; // 设置显示伪装身份识别弹窗
+}
+
+// 圆桌组件
+export function GameBoard(props: GameBoardProps) {
+  const {
+    seats,
+    gamePhase,
+    timer,
+    nightInfo,
+    selectedActionTargets,
+    isPortrait,
+    seatScale,
+    longPressingSeats,
+    seatContainerRef,
+    seatRefs,
+    handleSeatClick,
+    handleContextMenu,
+    handleTouchStart,
+    handleTouchEnd,
+    handleTouchMove,
+    handleGlobalUndo,
+    getSeatPosition,
+    getDisplayRoleType,
+    formatTimer,
+    setSeatRef,
+    typeColors,
+    setShowSpyDisguiseModal,
+  } = props;
+
+  return (
+    <main className="flex-1 h-full relative flex items-center justify-center overflow-hidden p-4">
+      {/* 全屏氛围层(保持不变) */}
+      <div className="absolute inset-0 shadow-[inset_0_0_200px_100px_rgba(0,0,0,0.8)] z-0 pointer-events-none" />
+      
+      {/* 万能上一步按钮和伪装身份识别按钮 */}
+      {gamePhase !== 'scriptSelection' && (
+        <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+          <button
+            onClick={handleGlobalUndo}
+            className="px-4 py-2 text-sm bg-blue-600 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors"
+          >
+            <div className="flex flex-col items-center">
+              <div>⬅️ 万能上一步</div>
+              <div className="text-xs font-normal opacity-80">（撤销当前动作）</div>
+            </div>
+          </button>
+          <button
+            onClick={() => setShowSpyDisguiseModal(true)}
+            className="px-4 py-2 text-sm bg-purple-600 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-colors"
+          >
+            <div className="flex items-center justify-center">
+              <div>🎭 伪装身份识别</div>
+            </div>
+          </button>
+        </div>
+      )}
+      
+      {/* === 核心修改：圆桌容器 === */}
+      <div 
+        ref={seatContainerRef}
+        className="relative h-full max-h-[90%] aspect-square flex items-center justify-center z-10"
+      >
+        {/* 中心文字 */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none select-none">
+          <div className="text-6xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
+            {phaseNames[gamePhase]}
+          </div>
+          <div className="text-sm text-slate-400/60 uppercase tracking-[0.3em] font-medium mt-4">
+            design by{" "}
+            <span className="font-bold italic">Bai  Gan Group</span>
+          </div>
+          {gamePhase==='scriptSelection' && (
+            <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
+              请选择剧本
+            </div>
+          )}
+          {gamePhase!=='setup' && gamePhase!=='scriptSelection' && (
+            <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
+              {formatTimer(timer)}
+            </div>
+          )}
+        </div>
+
+        {/* 座位循环 - 使用百分比定位 */}
+        {seats.map((s, i) => {
+          // 计算座位在圆上的位置（使用百分比）
+          // 15人圆桌：使用40%半径，确保座位均匀分布且不重叠
+          const radiusPercent = 40; // 40% 的半径，适合15人圆桌
+          const angle = (i / seats.length) * 2 * Math.PI - Math.PI / 2; // -90度开始(12点钟方向)
+          const xPercent = 50 + radiusPercent * Math.cos(angle); // 中心50% + 偏移
+          const yPercent = 50 + radiusPercent * Math.sin(angle); // 中心50% + 偏移
+          
+          return (
+            <div
+              key={s.id}
+              className="absolute"
+              style={{
+                left: `${xPercent}%`,
+                top: `${yPercent}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            >
+              <SeatNode
+                seat={s}
+                index={i}
+                seats={seats}
+                isPortrait={isPortrait}
+                seatScale={seatScale}
+                nightInfo={nightInfo}
+                selectedActionTargets={selectedActionTargets}
+                longPressingSeats={longPressingSeats}
+                onSeatClick={handleSeatClick}
+                onContextMenu={handleContextMenu}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchMove}
+                setSeatRef={setSeatRef}
+                getSeatPosition={getSeatPosition}
+                getDisplayRoleType={getDisplayRoleType}
+                typeColors={typeColors}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </main>
+  );
+}
+

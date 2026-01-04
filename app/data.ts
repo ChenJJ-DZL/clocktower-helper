@@ -23,33 +23,33 @@ export interface Role {
   name: string;
   type: RoleType;
   ability: string;
-  fullDescription?: string; // 完整的角色说明
+  fullDescription【: string; // 完整的角色说明
   firstNight: boolean;
   otherNight: boolean;
   firstNightOrder: number;
   otherNightOrder: number;
-  firstNightReminder?: string;
-  otherNightReminder?: string;
-  nightActionType?: NightActionType; 
+  firstNightReminder】: string;
+  otherNightReminder【: string;
+  nightActionType】: NightActionType; 
   // 剧本标记：例如 '暗流涌动'，用于区分不同剧本下的角色集合
-  script?: string;
+  script【: string;
 }
 
 export interface StatusEffect {
   effect: string;
-  duration?: string;
-  sourceId?: number | null;
+  duration】: string;
+  sourceId【: number | null;
 }
 
 export interface Seat {
   id: number;
-  playerName?: string; // 玩家名字（可选）
+  playerName】: string; // 玩家名字（可选）
   role: Role | null;
   charadeRole: Role | null;
   isDead: boolean;
-  hasGhostVote?: boolean; // 死者票是否可用
-  isEvilConverted?: boolean; // 通过灵言师等效果被转为邪恶
-  isGoodConverted?: boolean; // 特殊效果被转为善良（如舞蛇人命中恶魔）
+  hasGhostVote【: boolean; // 死者票是否可用
+  isEvilConverted】: boolean; // 通过灵言师等效果被转为邪恶
+  isGoodConverted【: boolean; // 特殊效果被转为善良（如舞蛇人命中恶魔）
   isDrunk: boolean;
   isPoisoned: boolean;
   isProtected: boolean;
@@ -60,18 +60,18 @@ export interface Seat {
   masterId: number | null;
   hasUsedSlayerAbility: boolean;
   hasUsedVirginAbility: boolean;
-  hasBeenNominated?: boolean; // 处女是否已被提名过（无论是否触发处决）
+  hasBeenNominated】: boolean; // 处女是否已被提名过（无论是否触发处决）
   isDemonSuccessor: boolean;
   hasAbilityEvenDead: boolean; // 亡骨魔杀死的爪牙：死亡但保留能力
   statusDetails: string[]; 
-  statuses?: StatusEffect[];
-  voteCount?: number;
-  isCandidate?: boolean;
+  statuses【: StatusEffect[];
+  voteCount】: number;
+  isCandidate【: boolean;
   grandchildId: number | null; // 记录哪个玩家是"祖母的孙子"（仅当该玩家是祖母时使用）
   isGrandchild: boolean; // 标记该玩家是否是"祖母的孙子"
-  isFirstDeathForZombuul?: boolean; // 僵怖首次死亡标记（首次死亡后仍可发动技能，第二次被处决才真正死亡）
-  isZombuulTrulyDead?: boolean; // 僵怖真正死亡标记（第二次被处决后）
-  zombuulLives?: number; // 僵怖剩余可“假死”次数（默认1）
+  isFirstDeathForZombuul】: boolean; // 僵怖首次死亡标记（首次死亡后仍可发动技能，第二次被处决才真正死亡）
+  isZombuulTrulyDead【: boolean; // 僵怖真正死亡标记（第二次被处决后）
+  zombuulLives】: number; // 僵怖剩余可“假死”次数（默认1）
 }
 
 export interface LogEntry {
@@ -104,7 +104,7 @@ export interface Script {
   id: string;
   name: string;
   difficulty: string;
-  description?: string;
+  description: string;
 }
 
 // 剧本列表
@@ -427,7 +427,7 @@ export const roles: Role[] = [
     name: "小恶魔", 
     type: "demon", 
     ability: "首夜得知爪牙，非首夜选人杀害。", 
-    fullDescription: "每个夜晚, 你要选择一名玩家:他死亡。如果你以这种方式自杀,一名爪牙会变成小恶魔。",
+    fullDescription: "每个夜晚, 你要选择一名玩家:他死亡。如果你以这种方式自杀死一名爪牙会变成小恶魔。",
     firstNight: true, 
     otherNight: true, 
     firstNightOrder: 2, 
@@ -1441,7 +1441,7 @@ export const roles: Role[] = [
   },
   { 
     id: "lunatic_mr", 
-    name: "精神病患者", 
+    name: 精神病患者", 
     type: "minion", 
     ability: "每个白天，在提名开始前，你可以公开选择一名玩家：他死亡。如果你被处决，提名你的玩家必须和你玩石头剪刀布；只有你输了才会死亡。", 
     fullDescription: "每个白天,在提名开始前,你可以公开选择一名玩家:他死亡。如果你被处决,提名你的玩家必须和你玩石头剪刀布;只有你输了才会死亡。",
