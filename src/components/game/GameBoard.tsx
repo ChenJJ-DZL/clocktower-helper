@@ -3,7 +3,7 @@
 import React, { RefObject } from "react";
 import { Seat, Role, GamePhase } from "../../../app/data";
 import { NightInfoResult, phaseNames } from "../../types/game";
-import { SeatNode } from "../SeatNode";
+import { SeatGrid } from "./board/SeatGrid";
 import { getSeatPosition } from "../../utils/gameRules";
 
 // 定义圆桌组件需要的 Props 接口
@@ -124,47 +124,24 @@ export function GameBoard(props: GameBoardProps) {
           )}
         </div>
 
-        {/* 座位循环 - 使用百分比定位 */}
-        {seats.map((s, i) => {
-          // 计算座位在圆上的位置（使用百分比）
-          // 15人圆桌：使用40%半径，确保座位均匀分布且不重叠
-          const radiusPercent = 40; // 40% 的半径，适合15人圆桌
-          const angle = (i / seats.length) * 2 * Math.PI - Math.PI / 2; // -90度开始(12点钟方向)
-          const xPercent = 50 + radiusPercent * Math.cos(angle); // 中心50% + 偏移
-          const yPercent = 50 + radiusPercent * Math.sin(angle); // 中心50% + 偏移
-          
-          return (
-            <div
-              key={s.id}
-              className="absolute"
-              style={{
-                left: `${xPercent}%`,
-                top: `${yPercent}%`,
-                transform: 'translate(-50%, -50%)',
-              }}
-            >
-              <SeatNode
-                seat={s}
-                index={i}
-                seats={seats}
-                isPortrait={isPortrait}
-                seatScale={seatScale}
-                nightInfo={nightInfo}
-                selectedActionTargets={selectedActionTargets}
-                longPressingSeats={longPressingSeats}
-                onSeatClick={handleSeatClick}
-                onContextMenu={handleContextMenu}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                onTouchMove={handleTouchMove}
-                setSeatRef={setSeatRef}
-                getSeatPosition={getSeatPosition}
-                getDisplayRoleType={getDisplayRoleType}
-                typeColors={typeColors}
-              />
-            </div>
-          );
-        })}
+        {/* 座位网格 */}
+        <SeatGrid
+          seats={seats}
+          nightInfo={nightInfo}
+          selectedActionTargets={selectedActionTargets}
+          isPortrait={isPortrait}
+          seatScale={seatScale}
+          longPressingSeats={longPressingSeats}
+          onSeatClick={(seat) => handleSeatClick(seat.id)}
+          onContextMenu={handleContextMenu}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchMove}
+          setSeatRef={setSeatRef}
+          getSeatPosition={getSeatPosition}
+          getDisplayRoleType={getDisplayRoleType}
+          typeColors={typeColors}
+        />
       </div>
     </main>
   );

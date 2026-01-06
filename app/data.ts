@@ -115,9 +115,9 @@ export const scripts: Script[] = [
     difficulty: "初学者",
     description: "当?男爵 (Baron)?在场时，系统会自动将 2 名镇民替换为 2 名外来者。"
   },
-  { id: "bad_moon_rising", name: "暗月初升", difficulty: "中等" },
-  { id: "sects_and_violets", name: "梦陨春宵", difficulty: "中等" },
-  { id: "midnight_revelry", name: "夜半狂欢", difficulty: "困难" },
+  { id: "bad_moon_rising", name: "暗月初升", difficulty: "中等", description: "" },
+  { id: "sects_and_violets", name: "梦陨春宵", difficulty: "中等", description: "" },
+  { id: "midnight_revelry", name: "夜半狂欢", difficulty: "困难", description: "" },
 ];
 
 // ======================================================================

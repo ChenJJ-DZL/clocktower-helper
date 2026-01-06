@@ -152,9 +152,9 @@ export interface GameModalsProps {
   confirmMayorRedirect: (targetId: number | null) => void;
   confirmStorytellerDeath: (targetId: number) => void;
   confirmSweetheartDrunk: (targetId: number) => void;
-  confirmKlutzChoice: (targetId: number | null) => void;
-  confirmMoonchildKill: () => void;
-  confirmRavenkeeperFake: (roleId: string) => void;
+  confirmKlutzChoice: () => void;
+  confirmMoonchildKill: (targetId: number) => void;
+  confirmRavenkeeperFake: (role: Role) => void;
   confirmVirginTrigger: () => void;
   resolveLunaticRps: (result: 'win' | 'lose' | 'tie') => void;
   confirmSaintExecution: () => void;
@@ -182,13 +182,13 @@ export interface GameModalsProps {
   setShowHadesiaKillConfirmModal: (value: number[] | null) => void;
   setShowRavenkeeperFakeModal: (value: number | null) => void;
   setShowMoonchildKillModal: (value: { sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null) => void;
-  setShowBarberSwapModal: (value: { demonId: number; firstId: number | null; secondId: number | null } | null) => void;
+  setShowBarberSwapModal: (value: { demonId: number; firstId: number | null; secondId: number | null } | null | ((prev: { demonId: number; firstId: number | null; secondId: number | null } | null) => { demonId: number; firstId: number | null; secondId: number | null } | null)) => void;
   setShowStorytellerDeathModal: (value: { sourceId: number } | null) => void;
   setShowSweetheartDrunkModal: (value: { sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null) => void;
   setShowKlutzChoiceModal: (value: { sourceId: number; onResolve?: (latestSeats?: Seat[]) => void } | null) => void;
-  setShowPitHagModal: (value: { targetId: number | null; roleId: string | null } | null) => void;
-  setShowRangerModal: (value: { targetId: number; roleId: string | null } | null) => void;
-  setShowDamselGuessModal: (value: { minionId: number | null; targetId: number | null } | null) => void;
+  setShowPitHagModal: (value: { targetId: number | null; roleId: string | null } | null | ((prev: { targetId: number | null; roleId: string | null } | null) => { targetId: number | null; roleId: string | null } | null)) => void;
+  setShowRangerModal: (value: { targetId: number; roleId: string | null } | null | ((prev: { targetId: number; roleId: string | null } | null) => { targetId: number; roleId: string | null } | null)) => void;
+  setShowDamselGuessModal: (value: { minionId: number | null; targetId: number | null } | null | ((prev: { minionId: number | null; targetId: number | null } | null) => { minionId: number | null; targetId: number | null } | null)) => void;
   setShowShamanConvertModal: (value: boolean) => void;
   setShowMayorRedirectModal: (value: { targetId: number; demonName: string } | null) => void;
   setShowNightDeathReportModal: (value: string | null) => void;
@@ -201,7 +201,7 @@ export interface GameModalsProps {
   setShowMadnessCheckModal: (value: { targetId: number; roleName: string; day: number } | null) => void;
   setShowAttackBlockedModal: (value: { targetId: number; reason: string; demonName?: string } | null) => void;
   setShowDayActionModal: (value: { type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number } | null) => void;
-  setVirginGuideInfo: (value: { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null) => void;
+  setVirginGuideInfo: (value: { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null | ((prev: { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null) => { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null)) => void;
   setShowDayAbilityModal: (value: { roleId: string; seatId: number } | null) => void;
   setShowSaintExecutionConfirmModal: (value: { targetId: number } | null) => void;
   setShowLunaticRpsModal: (value: { targetId: number; nominatorId: number | null } | null) => void;
@@ -594,9 +594,9 @@ export function GameModals(props: GameModalsProps) {
               }).map(s=>{
                 // 8. 提名限制：检查是否已被提名或被提名过
                 const isDisabled = props.showDayActionModal?.type === 'nominate'
-                  ? (props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(props.showDayActionModal.sourceId))
+                  ? (props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(props.showDayActionModal!.sourceId))
                   : props.showDayActionModal?.type === 'lunaticKill'
-                    ? s.id === props.showDayActionModal.sourceId
+                    ? s.id === props.showDayActionModal!.sourceId
                     : false;
                 return (
                   <button 
@@ -604,14 +604,14 @@ export function GameModals(props: GameModalsProps) {
                     onClick={()=>{
                       if (!isDisabled) {
                         if (props.showDayActionModal?.type === 'nominate' && s.role?.id === 'virgin') {
-                          const nominatorSeat = props.seats.find(seat => seat.id === props.showDayActionModal.sourceId);
+                          const nominatorSeat = props.seats.find(seat => seat.id === props.showDayActionModal?.sourceId);
                           const isRealTownsfolk = !!(nominatorSeat &&
                             nominatorSeat.role?.type === 'townsfolk' &&
                             nominatorSeat.role?.id !== 'drunk' &&
                             !nominatorSeat.isDrunk);
                           props.setVirginGuideInfo({
                             targetId: s.id,
-                            nominatorId: props.showDayActionModal.sourceId,
+                            nominatorId: props.showDayActionModal?.sourceId ?? 0,
                             isFirstTime: !s.hasBeenNominated,
                             nominatorIsTownsfolk: isRealTownsfolk
                           });
@@ -651,8 +651,8 @@ export function GameModals(props: GameModalsProps) {
       )}
 
       {props.virginGuideInfo && (() => {
-        const target = props.seats.find(s => s.id === props.virginGuideInfo.targetId);
-        const nominator = props.seats.find(s => s.id === props.virginGuideInfo.nominatorId);
+        const target = props.seats.find(s => s.id === props.virginGuideInfo?.targetId);
+        const nominator = props.seats.find(s => s.id === props.virginGuideInfo?.nominatorId);
         if (!target) return null;
         const isFirst = props.virginGuideInfo.isFirstTime;
         const nomIsTown = props.virginGuideInfo.nominatorIsTownsfolk;
@@ -673,13 +673,13 @@ export function GameModals(props: GameModalsProps) {
                 <div className="flex gap-3">
                   <button
                     className={`flex-1 py-3 rounded-xl font-bold transition ${isFirst ? 'bg-pink-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, isFirstTime: true } : p)}
+                    onClick={() => props.setVirginGuideInfo((prev: any) => prev ? { ...prev, isFirstTime: true } : null)}
                   >
                     第一次
                   </button>
                   <button
                     className={`flex-1 py-3 rounded-xl font-bold transition ${!isFirst ? 'bg-pink-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                    onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, isFirstTime: false } : p)}
+                    onClick={() => props.setVirginGuideInfo((prev: any) => prev ? { ...prev, isFirstTime: false } : null)}
                   >
                     不是第一次
                   </button>
@@ -692,13 +692,13 @@ export function GameModals(props: GameModalsProps) {
                   <div className="flex gap-3">
                     <button
                       className={`flex-1 py-3 rounded-xl font-bold transition ${nomIsTown ? 'bg-emerald-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                      onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, nominatorIsTownsfolk: true } : p)}
+                      onClick={() => props.setVirginGuideInfo((prev: any) => prev ? { ...prev, nominatorIsTownsfolk: true } : null)}
                     >
                       是镇民
                     </button>
                     <button
                       className={`flex-1 py-3 rounded-xl font-bold transition ${!nomIsTown ? 'bg-amber-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
-                      onClick={() => props.setVirginGuideInfo((p: typeof props.virginGuideInfo) => p ? { ...p, nominatorIsTownsfolk: false } : p)}
+                      onClick={() => props.setVirginGuideInfo((prev: any) => prev ? { ...prev, nominatorIsTownsfolk: false } : null)}
                     >
                       不是镇民
                     </button>
@@ -997,7 +997,7 @@ export function GameModals(props: GameModalsProps) {
         isOpen={!!props.showStorytellerDeathModal}
         sourceId={props.showStorytellerDeathModal?.sourceId || 0}
         seats={props.seats}
-        onConfirm={props.confirmStorytellerDeath}
+        onConfirm={(targetId) => props.confirmStorytellerDeath(targetId ?? 0)}
       />
 
       <SweetheartDrunkModal
@@ -1013,7 +1013,7 @@ export function GameModals(props: GameModalsProps) {
         seats={props.seats}
         selectedTarget={props.klutzChoiceTarget}
         onSelectTarget={props.setKlutzChoiceTarget}
-        onConfirm={props.confirmKlutzChoice}
+        onConfirm={() => props.confirmKlutzChoice()}
         onCancel={() => {
           props.setShowKlutzChoiceModal(null);
           props.setKlutzChoiceTarget(null);
@@ -1110,7 +1110,7 @@ export function GameModals(props: GameModalsProps) {
       />
 
       {props.contextMenu && (() => {
-        const targetSeat = props.seats.find(s => s.id === props.contextMenu.seatId);
+        const targetSeat = props.seats.find(s => s.id === props.contextMenu?.seatId);
         if (!targetSeat) return null;
         return (
         <div 
@@ -1120,9 +1120,9 @@ export function GameModals(props: GameModalsProps) {
           {props.gamePhase==='dusk' && !targetSeat.isDead && (
             <button 
               onClick={()=>props.handleMenuAction('nominate')} 
-              disabled={props.nominationRecords.nominators.has(props.contextMenu.seatId)}
+              disabled={props.contextMenu ? props.nominationRecords.nominators.has(props.contextMenu.seatId) : false}
               className={`block w-full text-left px-6 py-4 hover:bg-purple-900 text-purple-300 font-bold text-lg border-b border-gray-600 ${
-                props.nominationRecords.nominators.has(props.contextMenu.seatId) ? 'opacity-50 cursor-not-allowed' : ''
+                (props.contextMenu && props.nominationRecords.nominators.has(props.contextMenu.seatId)) ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
               🗣️ 提名
@@ -1221,11 +1221,11 @@ export function GameModals(props: GameModalsProps) {
         roleId={props.showPitHagModal?.roleId || null}
         seats={props.seats}
         roles={props.roles}
-        onRoleChange={(roleId) => props.setShowPitHagModal(m => m ? ({...m, roleId}) : m)}
+        onRoleChange={(roleId) => props.setShowPitHagModal((m: any) => m ? ({...m, roleId}) : null)}
         onCancel={() => props.setShowPitHagModal(null)}
         onContinue={() => {
           // 保持弹窗打开，由"确认/下一步"执行实际变更
-          props.setShowPitHagModal(m => m ? m : null);
+          props.setShowPitHagModal((m: any) => m ? m : null);
         }}
       />
 
@@ -1236,13 +1236,13 @@ export function GameModals(props: GameModalsProps) {
         seats={props.seats}
         roles={props.roles}
         selectedScript={props.selectedScript}
-        onRoleChange={(roleId) => props.setShowRangerModal(m => m ? ({...m, roleId}) : m)}
+        onRoleChange={(roleId) => props.setShowRangerModal((m: any) => m ? ({...m, roleId}) : null)}
         onConfirm={() => {
           if (!props.showRangerModal?.roleId) {
             alert('必须选择一个未在场的镇民角色');
             return;
           }
-          const newRole = props.roles.find(r => r.id === props.showRangerModal.roleId && r.type === 'townsfolk');
+          const newRole = props.roles.find(r => r.id === props.showRangerModal?.roleId && r.type === 'townsfolk');
           if (!newRole) {
             alert('角色无效，请重新选择');
             return;
@@ -1272,8 +1272,8 @@ export function GameModals(props: GameModalsProps) {
         targetId={props.showDamselGuessModal?.targetId || null}
         seats={props.seats}
         damselGuessUsedBy={props.damselGuessUsedBy}
-        onMinionChange={(minionId) => props.setShowDamselGuessModal(m => m ? ({...m, minionId}) : m)}
-        onTargetChange={(targetId) => props.setShowDamselGuessModal(m => m ? ({...m, targetId}) : m)}
+        onMinionChange={(minionId) => props.setShowDamselGuessModal((m: any) => m ? ({...m, minionId}) : null)}
+        onTargetChange={(targetId) => props.setShowDamselGuessModal((m: any) => m ? ({...m, targetId}) : null)}
         onCancel={() => props.setShowDamselGuessModal(null)}
         onConfirm={() => {
           if (props.showDamselGuessModal!.minionId === null || props.showDamselGuessModal!.targetId === null) return;
@@ -1355,8 +1355,8 @@ export function GameModals(props: GameModalsProps) {
             <div className="text-sm text-gray-300">恶魔（参考）：{props.showBarberSwapModal.demonId+1}号</div>
             <select
               className="w-full bg-gray-900 border border-gray-600 rounded p-2"
-              value={props.showBarberSwapModal.firstId ?? ''}
-              onChange={(e)=>props.setShowBarberSwapModal(m=> m ? ({...m, firstId: e.target.value===''?null:Number(e.target.value)}) : m)}
+              value={props.showBarberSwapModal?.firstId ?? ''}
+              onChange={(e)=>props.setShowBarberSwapModal((m: any)=> m ? ({...m, firstId: e.target.value===''?null:Number(e.target.value)}) : null)}
             >
               <option value="">选择玩家A</option>
               {props.seats.filter(s=>s.role?.type !== 'demon' && !s.isDemonSuccessor).map(s=>(
@@ -1365,8 +1365,8 @@ export function GameModals(props: GameModalsProps) {
             </select>
             <select
               className="w-full bg-gray-900 border border-gray-600 rounded p-2"
-              value={props.showBarberSwapModal.secondId ?? ''}
-              onChange={(e)=>props.setShowBarberSwapModal(m=> m ? ({...m, secondId: e.target.value===''?null:Number(e.target.value)}) : m)}
+              value={props.showBarberSwapModal?.secondId ?? ''}
+              onChange={(e)=>props.setShowBarberSwapModal((m: any)=> m ? ({...m, secondId: e.target.value===''?null:Number(e.target.value)}) : null)}
             >
               <option value="">选择玩家B</option>
               {props.seats.filter(s=>s.role?.type !== 'demon' && !s.isDemonSuccessor).map(s=>(
@@ -1376,7 +1376,7 @@ export function GameModals(props: GameModalsProps) {
             <div className="flex gap-3 justify-end">
               <button className="px-4 py-2 bg-gray-700 rounded" onClick={()=>props.setShowBarberSwapModal(null)}>取消</button>
               <button className="px-4 py-2 bg-indigo-600 rounded" onClick={()=>{
-                if (props.showBarberSwapModal.firstId === null || props.showBarberSwapModal.secondId === null || props.showBarberSwapModal.firstId === props.showBarberSwapModal.secondId) return;
+                if (!props.showBarberSwapModal || props.showBarberSwapModal.firstId === null || props.showBarberSwapModal.secondId === null || props.showBarberSwapModal.firstId === props.showBarberSwapModal.secondId) return;
                 const aId = props.showBarberSwapModal.firstId;
                 const bId = props.showBarberSwapModal.secondId;
                 const aSeat = props.seats.find(s => s.id === aId);

@@ -449,12 +449,11 @@ export const getMisinformation = {
  * 检查玩家是否受到查茶女保护
  * 规则：如果查茶女的两名存活邻居都是善良阵营，则查茶女及其邻居都不会死亡。
  * 
- * @param seatId 目标玩家的座位ID
+ * @param targetSeat 目标玩家的座位对象
  * @param seats 所有座位的数组
  * @returns 如果目标玩家受到查茶女保护则返回 true，否则返回 false
  */
-export function hasTeaLadyProtection(seatId: number, seats: Seat[]): boolean {
-  const targetSeat = seats.find(s => s.id === seatId);
+export function hasTeaLadyProtection(targetSeat: Seat, seats: Seat[]): boolean {
   if (!targetSeat || !targetSeat.role) return false;
 
   // 查找所有查茶女
