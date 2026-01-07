@@ -266,8 +266,8 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         left: `${p.x}%`,
         top: `${p.y}%`,
         transform: 'translate(-50%,-50%)',
-        width: `calc(${isPortrait ? '3rem' : '6rem'} * ${seatScale})`,
-        height: `calc(${isPortrait ? '3rem' : '6rem'} * ${seatScale})`,
+        width: `calc(${isPortrait ? '3rem' : '7rem'} * ${seatScale})`,
+        height: `calc(${isPortrait ? '3rem' : '7rem'} * ${seatScale})`,
         WebkitUserSelect: 'none',
         userSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -292,15 +292,15 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         
         {/* 座位序号 - 固定在左上角45度方向，圆心在圆圈上 */}
         <div 
-          className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] w-8 h-8 rounded-full ${s.isDead ? 'bg-gray-400 border-gray-500 text-gray-700' : 'bg-slate-800 border-slate-600'} border-2 flex items-center justify-center text-sm font-bold z-20 shadow-md`}
+          className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] ${isPortrait ? 'w-6 h-6' : 'w-10 h-10'} rounded-full ${s.isDead ? 'bg-gray-400 border-gray-500 text-gray-700' : 'bg-slate-800 border-slate-600'} border-2 flex items-center justify-center ${isPortrait ? 'text-xs' : 'text-xl'} font-bold z-20 shadow-md`}
         >
-          {s.id + 1}号
+          {s.id + 1}
         </div>
 
         {/* 角色名称 - 在座位圆圈内部绝对居中 */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <span 
-            className={`text-2xl font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? '' : 'whitespace-nowrap'} ${s.isDead ? 'text-gray-400 line-through' : 'text-white'}`}
+            className={`${isPortrait ? 'text-lg' : 'text-2xl'} font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? '' : 'whitespace-nowrap'} ${s.isDead ? 'text-gray-400 line-through' : 'text-white'}`}
             style={{ 
               textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 4px black',
             }}

@@ -97,7 +97,7 @@ export interface NightLogicActions {
 
 // 生成夜晚唤醒队列的辅助函数
 function getNightWakeQueue(seats: Seat[], isFirst: boolean): Seat[] {
-  return seats.filter(s => {
+  const activeSeats = seats.filter(s => {
     if (!s.role) return false;
     if (s.isDead && !s.hasAbilityEvenDead) return false; // 已死亡且不保留能力的玩家不唤醒
     
@@ -111,6 +111,19 @@ function getNightWakeQueue(seats: Seat[], isFirst: boolean): Seat[] {
       return effectiveRole.otherNight === true;
     }
   });
+
+  // Debug logging
+  if (isFirst) {
+    console.log('[getNightWakeQueue] First night - Active seats with roles:', seats.filter(s => s.role).map(s => ({
+      id: s.id,
+      roleId: s.role?.id,
+      roleName: s.role?.name,
+      firstNight: s.role?.id === 'drunk' ? s.charadeRole?.firstNight : s.role?.firstNight
+    })));
+    console.log('[getNightWakeQueue] First night - Wake queue length:', activeSeats.length);
+  }
+
+  return activeSeats;
 }
 
 /**
@@ -175,16 +188,25 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
   /**
    * 完成夜晚初始化
    * 设置唤醒队列、游戏阶段等状态
+   * IMPORTANT: This function sets wakeQueueIds SYNCHRONOUSLY before changing phase
    */
   const finalizeNightStart = useCallback((queue: Seat[], isFirst: boolean) => {
-    setWakeQueueIds(queue.map(s => s.id));
+    const queueIds = queue.map(s => s.id);
+    console.log('[finalizeNightStart] Setting wakeQueueIds:', queueIds, 'isFirst:', isFirst);
+    
+    // CRITICAL: Set wakeQueueIds FIRST, before phase change
+    setWakeQueueIds(queueIds);
     setCurrentWakeIndex(0);
     setSelectedActionTargets([]);
     setInspectionResult(null);
+    
+    // Then change phase
     setGamePhase(isFirst ? "firstNight" : "night");
     if (!isFirst) setNightCount(n => n + 1);
     setShowNightOrderModal(false);
     setPendingNightQueue(null);
+    
+    console.log('[finalizeNightStart] Phase changed to:', isFirst ? "firstNight" : "night", 'with', queueIds.length, 'wakeable roles');
   }, [
     setWakeQueueIds,
     setCurrentWakeIndex,
@@ -311,19 +333,49 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     // 生成夜晚唤醒队列
     const validQueue = getNightWakeQueue(seats, isFirst);
     
+    // Debug logging
+    console.log('[startNight] isFirst:', isFirst, 'validQueue length:', validQueue.length);
+    if (isFirst && validQueue.length === 0) {
+      console.warn('[startNight] First night queue is empty! Active seats:', seats.filter(s => s.role).map(s => ({
+        id: s.id,
+        roleId: s.role?.id,
+        roleName: s.role?.name,
+        firstNight: s.role?.id === 'drunk' ? s.charadeRole?.firstNight : s.role?.firstNight
+      })));
+    }
+    
     if (validQueue.length === 0) {
-      setWakeQueueIds([]);
-      setCurrentWakeIndex(0);
-      // 无任何叫醒目标时，直接进入夜晚结算弹窗
-      if (nightlyDeaths.length > 0) {
-        const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-        setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+      // For first night, if no roles wake, we should still proceed but with an empty queue
+      // This allows the game to continue to dawn
+      if (isFirst) {
+        console.warn('[startNight] First night has no wakeable roles. Proceeding with empty queue.');
+        // Set empty queue but still allow progression
+        setWakeQueueIds([]);
+        setCurrentWakeIndex(0);
+        setSelectedActionTargets([]);
+        setInspectionResult(null);
+        // For first night with no wakeable roles, go directly to dawn
+        if (nightlyDeaths.length > 0) {
+          const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
+          setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+        } else {
+          setShowNightDeathReportModal("昨天是个平安夜");
+        }
+        setGamePhase('dawnReport');
+        return;
       } else {
-        setShowNightDeathReportModal("昨天是个平安夜");
+        // For other nights, same behavior
+        setWakeQueueIds([]);
+        setCurrentWakeIndex(0);
+        if (nightlyDeaths.length > 0) {
+          const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
+          setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+        } else {
+          setShowNightDeathReportModal("昨天是个平安夜");
+        }
+        setGamePhase('dawnReport');
+        return;
       }
-      // 直接进入夜晚报道阶段
-      setGamePhase('dawnReport');
-      return;
     }
 
     if (isFirst) {

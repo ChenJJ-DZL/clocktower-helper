@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useCallback, useRef } from "react";
+import { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { roles, Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, Script } from "../../app/data";
 import { NightHintState, NightInfoResult, GameRecord } from "../types/game";
 import { useGameState } from "./useGameState";
@@ -562,15 +562,33 @@ export function useGameController() {
     };
   }, []);
 
+  // Timer running state
+  const [isTimerRunning, setIsTimerRunning] = useState(true);
+
   useEffect(() => { 
     setTimer(0); 
+    setIsTimerRunning(true); // Reset timer running state on phase change
   }, [gamePhase]);
   
   useEffect(() => { 
-    if(!mounted) return;
+    if(!mounted || !isTimerRunning) return;
     const i = setInterval(() => setTimer(t => t + 1), 1000); 
     return () => clearInterval(i); 
-  }, [mounted]);
+  }, [mounted, isTimerRunning]);
+
+  // Timer control functions
+  const handleTimerPause = useCallback(() => {
+    setIsTimerRunning(false);
+  }, []);
+
+  const handleTimerStart = useCallback(() => {
+    setIsTimerRunning(true);
+  }, []);
+
+  const handleTimerReset = useCallback(() => {
+    setTimer(0);
+    setIsTimerRunning(true);
+  }, [setTimer]);
 
   // 间谍/隐士查验结果在同一夜晚保持一致伪装参数变化时刷新缓存
   useEffect(() => {
@@ -1619,6 +1637,35 @@ export function useGameController() {
   const handlePreStartNight = useCallback(() => {
     proceedToCheckPhase(seats);
   }, [proceedToCheckPhase, seats]);
+
+  // 关闭夜晚顺序预览模态框
+  const closeNightOrderPreview = useCallback(() => {
+    setShowNightOrderModal(false);
+    setPendingNightQueue(null);
+  }, [setShowNightOrderModal, setPendingNightQueue]);
+
+  // 确认夜晚顺序预览，开始夜晚
+  const confirmNightOrderPreview = useCallback(() => {
+    if (!pendingNightQueue || pendingNightQueue.length === 0) {
+      console.error('[confirmNightOrderPreview] pendingNightQueue is empty or null:', pendingNightQueue);
+      console.warn('[confirmNightOrderPreview] This should not happen. Closing modal and allowing game to continue.');
+      // Close the modal and proceed with empty queue (game will handle it)
+      setShowNightOrderModal(false);
+      setPendingNightQueue(null);
+      // Set empty queue and proceed to firstNight phase
+      setWakeQueueIds([]);
+      setCurrentWakeIndex(0);
+      setSelectedActionTargets([]);
+      setInspectionResult(null);
+      setGamePhase('firstNight');
+      addLog('首夜：无需要唤醒的角色，直接进入天亮阶段');
+      return;
+    }
+    console.log('[confirmNightOrderPreview] Confirming night order with', pendingNightQueue.length, 'roles');
+    // 使用 nightLogic 的 finalizeNightStart 来正确设置 wakeQueueIds
+    // This is synchronous - wakeQueueIds will be set before phase changes
+    nightLogic.finalizeNightStart(pendingNightQueue, true);
+  }, [pendingNightQueue, nightLogic, setShowNightOrderModal, setPendingNightQueue, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, addLog]);
 
   // 确认酒鬼伪装角色选择
   const confirmDrunkCharade = useCallback((role: Role) => {
@@ -3889,11 +3936,19 @@ export function useGameController() {
     handleNewGame,
     handleStepBack,
     handleGlobalUndo,
+    closeNightOrderPreview,
+    confirmNightOrderPreview,
     
     // Group D: Seat Interaction functions
     onSeatClick,
     toggleStatus,
     setHadesiaChoice,
+    
+    // Timer control functions
+    handleTimerPause,
+    handleTimerStart,
+    handleTimerReset,
+    isTimerRunning,
     
     // Targeting functions
     toggleTarget,

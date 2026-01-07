@@ -45,6 +45,7 @@ interface GameSetupProps {
   ignoreBaronSetup: boolean;
   setIgnoreBaronSetup: (ignore: boolean) => void;
   handleBaronAutoRebalance?: () => void;
+  hideSeatingChart?: boolean;
 }
 
 const groupTitle: Record<string, string> = {
@@ -74,8 +75,8 @@ export default function GameSetup({
   ignoreBaronSetup,
   setIgnoreBaronSetup,
   handleBaronAutoRebalance,
+  hideSeatingChart = false,
 }: GameSetupProps) {
-  const [skipNameInput, setSkipNameInput] = useState(false);
   const [showCompositionModal, setShowCompositionModal] = useState(false);
   const seatRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -141,10 +142,8 @@ export default function GameSetup({
     setShowCompositionModal(false);
   };
 
-  const compositionSummary = `村民: ${counts.townsfolk}, 外来者: ${counts.outsider}, 爪牙: ${counts.minion}, 恶魔: ${counts.demon}`;
-
   const buildBadge = (label: string, value: number, color: string) => (
-    <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${color}`}>
+    <div className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm ${color}`}>
       <span className="font-semibold">{label}</span>
       <span className="text-base font-bold">{value}</span>
     </div>
@@ -179,64 +178,53 @@ export default function GameSetup({
   );
 
   return (
-    <div className="relative min-h-full flex flex-col">
-      <div className="px-4 md:px-6 py-6 space-y-6 pb-28">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="text-sm text-slate-400">当前剧本</div>
-            <div className="text-2xl font-black text-slate-50">{selectedScript?.name ?? "未选择"}</div>
-            <div className="text-xs text-slate-500">请分配角色并检查阵容后开始游戏</div>
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="text-base text-slate-400">当前剧本</div>
+            <div className="text-3xl font-black text-slate-50">{selectedScript?.name ?? "未选择"}</div>
+            <div className="text-sm text-slate-500">请分配角色并检查阵容后开始游戏</div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-sm text-slate-400">
-            <span className="inline-flex h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" />
+          <div className="flex items-center gap-3 text-base text-slate-400">
+            <span className="inline-flex h-4 w-4 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" />
             准备阶段
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-xl backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-400">游戏人数</div>
-                <div className="text-4xl font-black text-slate-50 mt-1">
+        {/* Player Count - Full Width */}
+        <div className="space-y-2">
+          <h3 className="text-lg font-bold text-slate-300">游戏人数</h3>
+          <div className="flex items-baseline gap-3">
+            <div className="text-4xl font-black text-slate-50">
                   {playerCount}
-                  <span className="text-base text-slate-500 ml-2">/ {seats.length}</span>
-                </div>
-              </div>
-              <div className="rounded-xl bg-slate-800/80 px-3 py-2 text-xs text-slate-300">
-                已分配角色
-              </div>
             </div>
-            <div className="mt-3 text-xs text-slate-500">
-              点击座位并为每位玩家选择角色后即可开始
+            <div className="text-base text-slate-400">
+              / {seats.length} 已分配角色
             </div>
           </div>
+          <div className="text-sm text-slate-500">
+            点击座位并为每位玩家选择角色后即可开始
+              </div>
+            </div>
 
-          <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-xl backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-400">当前配置</div>
-                <div className="text-lg font-bold text-slate-50 mt-1">{compositionSummary}</div>
-              </div>
-              <div className="text-xs text-purple-200 bg-purple-500/20 border border-purple-400/40 rounded-xl px-3 py-1">
-                阵营分布
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
-              {buildBadge("村民", counts.townsfolk, "border-emerald-500/40 bg-emerald-900/40 text-emerald-100")}
-              {buildBadge("外来者", counts.outsider, "border-cyan-400/40 bg-cyan-900/40 text-cyan-100")}
-              {buildBadge("爪牙", counts.minion, "border-amber-400/40 bg-amber-900/40 text-amber-100")}
-              {buildBadge("恶魔", counts.demon, "border-rose-400/40 bg-rose-900/40 text-rose-100")}
-            </div>
+        {/* Current Configuration - Single Row */}
+        <div className="space-y-2">
+          <h3 className="text-lg font-bold text-slate-300">阵营分布</h3>
+          <div className="flex gap-3">
+            {buildBadge("村民", counts.townsfolk, "border-emerald-500/40 bg-emerald-900/40 text-emerald-100")}
+            {buildBadge("外来者", counts.outsider, "border-cyan-400/40 bg-cyan-900/40 text-cyan-100")}
+            {buildBadge("爪牙", counts.minion, "border-amber-400/40 bg-amber-900/40 text-amber-100")}
+            {buildBadge("恶魔", counts.demon, "border-rose-400/40 bg-rose-900/40 text-rose-100")}
           </div>
         </div>
 
-        {circularSeats}
+        {!hideSeatingChart && circularSeats}
 
         {(compositionError || (baronSetupCheck && !ignoreBaronSetup)) && (
-          <div className="rounded-2xl border border-red-500/50 bg-red-900/30 p-4 text-sm text-red-100 shadow-lg">
+          <div className="border-l-4 border-red-500/50 bg-red-900/20 p-4 text-base text-red-100">
             {compositionError && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="font-bold text-red-200">阵容校验未通过</div>
                 <div>
                   建议：{compositionError.standard.townsfolk}村民 / {compositionError.standard.outsider}外来者 / {compositionError.standard.minion}爪牙 / {compositionError.standard.demon}恶魔
@@ -247,7 +235,7 @@ export default function GameSetup({
               </div>
             )}
             {baronSetupCheck && !ignoreBaronSetup && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-3">
                 <div className="font-bold text-yellow-200">检测到男爵影响</div>
                 <div>
                   建议：{baronSetupCheck.recommended.townsfolk}村民 / {baronSetupCheck.recommended.outsider}外来者
@@ -255,18 +243,18 @@ export default function GameSetup({
                 <div>
                   当前：{baronSetupCheck.current.townsfolk}村民 / {baronSetupCheck.current.outsider}外来者
                 </div>
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-wrap gap-3 pt-2">
                   {handleBaronAutoRebalance && (
                     <button
                       onClick={handleBaronAutoRebalance}
-                      className="rounded-lg bg-amber-500/90 px-3 py-2 text-xs font-bold text-slate-900 hover:bg-amber-400 transition"
+                      className="rounded-lg bg-amber-500/90 px-4 py-3 text-sm font-bold text-slate-900 hover:bg-amber-400 transition h-14"
                     >
                       自动配平
                     </button>
                   )}
                   <button
                     onClick={() => setIgnoreBaronSetup(true)}
-                    className="rounded-lg border border-yellow-400/60 px-3 py-2 text-xs font-bold text-yellow-50 hover:bg-yellow-400/10 transition"
+                    className="rounded-lg border border-yellow-400/60 px-4 py-3 text-sm font-bold text-yellow-50 hover:bg-yellow-400/10 transition h-14"
                   >
                     忽略此检查
                   </button>
@@ -276,90 +264,18 @@ export default function GameSetup({
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-1">
-            <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-xl backdrop-blur-md space-y-3">
-              <div className="text-sm font-semibold text-slate-200">选项</div>
-              <div className="space-y-3">
-                <button
-                  onClick={() => setSkipNameInput((v) => !v)}
-                  className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-                    skipNameInput
-                      ? "border-emerald-500/60 bg-emerald-900/40 text-emerald-100"
-                      : "border-white/10 bg-slate-800/70 text-slate-200 hover:border-emerald-400/50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold">跳过名字输入</div>
-                      <div className="text-xs text-slate-400 mt-1">无需逐个填写玩家名字</div>
-                    </div>
-                    <div
-                      className={`h-6 w-11 rounded-full p-1 transition ${
-                        skipNameInput ? "bg-emerald-500/80" : "bg-slate-600"
-                      }`}
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full bg-white shadow transition ${
-                          skipNameInput ? "translate-x-5" : ""
-                        }`}
-                      />
-                    </div>
-                  </div>
-                </button>
+        <div className="space-y-4">
+            <h3 className="text-lg font-bold text-slate-300">角色列表</h3>
+            <div className="text-sm text-slate-500 mb-3">点击卡片选择角色，已被选择的卡片将变灰</div>
 
-                <button
-                  onClick={() => {
-                    if (handleBaronAutoRebalance) {
-                      handleBaronAutoRebalance();
-                    }
-                  }}
-                  className="w-full rounded-xl border border-purple-400/60 bg-purple-900/30 px-4 py-3 text-left text-purple-50 shadow-lg transition hover:-translate-y-0.5 hover:shadow-purple-500/30"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold">自动配平（含男爵/教父）</div>
-                      <div className="text-xs text-purple-100/80 mt-1">快速调整至标准人数分布</div>
-                    </div>
-                    <span className="text-sm">⚡</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => proceedToCheckPhase(activeSeats)}
-                  disabled={!canStart}
-                  className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-                    canStart
-                      ? "border-cyan-400/60 bg-cyan-900/30 text-cyan-50 hover:-translate-y-0.5 hover:shadow-cyan-500/30"
-                      : "border-white/5 bg-slate-800/60 text-slate-500 cursor-not-allowed"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-bold">直接进入核对身份</div>
-                      <div className="text-xs text-slate-300/80 mt-1">跳过首夜流程前的等待</div>
-                    </div>
-                    <span className="text-sm">➡</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-200">角色列表</div>
-              <div className="text-xs text-slate-500">点击卡片选择角色，已被选择的卡片将变灰</div>
-            </div>
-
-            <div className="space-y-5">
+            <div className="space-y-4">
               {Object.entries(filteredGroupedRoles).map(([type, list]) => (
                 <div key={type} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="text-base font-bold text-slate-100">{groupTitle[type] || type}</div>
-                    <div className="text-xs text-slate-500">共 {list.length} 位角色</div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-lg font-bold text-slate-100">{groupTitle[type] || type}</div>
+                    <div className="text-sm text-slate-500">共 {list.length} 位角色</div>
                   </div>
-                  <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid gap-3 grid-cols-2">
                     {list.map((r) => {
                       const isTaken = seats.some((s) => s.role?.id === r.id);
                       return (
@@ -369,27 +285,20 @@ export default function GameSetup({
                             e.stopPropagation();
                             if (!isTaken) setSelectedRole(r);
                           }}
-                          className={`group relative overflow-hidden rounded-xl border text-left transition-all ${
+                          className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${
                             isTaken
                               ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
-                              : `${typeBgColors[r.type]} border-white/10 hover:-translate-y-1 hover:shadow-lg hover:shadow-purple-500/20`
+                              : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
                           } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
+                          title={r.ability || r.name}
                         >
-                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-white/5 transition" />
-                          <div className="relative p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="font-bold text-sm text-slate-50">{r.name}</div>
-                              <span className="rounded-full bg-black/20 px-2 py-1 text-[10px] text-slate-200">
-                                {groupTitle[r.type] || r.type}
-                              </span>
-                            </div>
-                            {r.ability && (
-                              <div className="text-[11px] leading-5 text-slate-200/80 line-clamp-3">
-                                {r.ability}
-                              </div>
-                            )}
+                          <div className="relative h-full flex flex-col items-center justify-center px-3 leading-tight py-2">
+                            <span className="text-sm font-bold text-slate-50 whitespace-nowrap">{r.name}</span>
+                            <span className="text-xs text-white/60 uppercase tracking-wide mt-1">
+                              {r.id.replace(/_/g, ' ')}
+                            </span>
                             {isTaken && (
-                              <div className="text-[11px] text-amber-200">已分配</div>
+                              <div className="absolute top-1 right-2 text-xs text-amber-200">✓</div>
                             )}
                           </div>
                         </button>
@@ -401,22 +310,20 @@ export default function GameSetup({
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent px-4 md:px-6 py-4">
-        <div className="mx-auto w-full max-w-4xl">
-          <button
-            onClick={handleAttemptStartGame}
-            disabled={activeSeats.length === 0}
-            className={`w-full rounded-2xl py-4 text-xl font-black tracking-wide transition ${
-              canStart
-                ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
-                : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
-            } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            开始游戏
-          </button>
-        </div>
+      {/* Fixed footer with Start Game button */}
+      <div className="shrink-0 border-t border-white/10 bg-slate-900/95 px-6 py-5">
+        <button
+          onClick={handleAttemptStartGame}
+          disabled={activeSeats.length === 0}
+          className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${
+            canStart
+              ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
+              : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
+          } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          开始游戏
+        </button>
       </div>
 
       {showCompositionModal && (

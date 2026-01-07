@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useEffect, useCallback, useRef } from "react";
+import { useMemo, useEffect, useCallback, useRef, useState } from "react";
 import { roles, Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, scripts, Script } from "./data";
 import { NightHintState, NightInfoResult, GameRecord, phaseNames } from "../src/types/game";
 import { useGameController, type DayAbilityConfig } from "../src/hooks/useGameController";
@@ -12,6 +12,7 @@ import { GameStage } from "../src/components/game/GameStage";
 import { ModalWrapper } from "../src/components/modals/ModalWrapper";
 import { GameHeader } from "../src/components/game/info/GameHeader";
 import { LogViewer } from "../src/components/game/info/LogViewer";
+import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import {
   getSeatPosition,
   getRandom,
@@ -125,6 +126,9 @@ import { calculateNightInfo } from "@/src/utils/nightLogic";
 import { useNightLogic } from "../src/hooks/useNightLogic";
 import { SeatNode } from "@/src/components/SeatNode";
 import { ControlPanel } from "@/src/components/ControlPanel";
+import { SeatGrid } from "@/src/components/game/board/SeatGrid";
+import { ScaleToFit } from "@/src/components/game/board/ScaleToFit";
+import { RoundTable } from "@/src/components/game/board/RoundTable";
 import { GameRecordsModal } from "@/src/components/modals/GameRecordsModal";
 import { ReviewModal } from "@/src/components/modals/ReviewModal";
 import { RoleInfoModal } from "@/src/components/modals/RoleInfoModal";
@@ -154,6 +158,7 @@ import { GameModals } from "@/src/components/game/GameModals";
 import { GameBoard } from "@/src/components/game/GameBoard";
 import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
 import GameSetup from "@/src/components/game/setup/GameSetup";
+import { GameLayout } from "@/src/components/game/GameLayout";
 
 // ======================================================================
 //  暗流涌动 / 暗流涌动剧本 / 游戏的第一部分
@@ -439,15 +444,7 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => { 
-    setTimer(0); 
-  }, [gamePhase]);
-  
-  useEffect(() => { 
-      if(!mounted) return;
-      const i = setInterval(() => setTimer(t => t + 1), 1000); 
-      return () => clearInterval(i); 
-  }, [mounted]);
+  // Timer is now managed in useGameController
 
   // 间谍/隐士查验结果在同一夜晚保持一致伪装参数变化时刷新缓
   useEffect(() => {
@@ -785,10 +782,10 @@ export default function Home() {
   if (!mounted) return null;
   
   return (
-    <>
+    <ScaleLayout>
       <PortraitLock />
       <div 
-        className="fixed inset-0 text-white overflow-hidden"
+        className="w-full h-full text-white overflow-hidden"
         style={{
           background: gamePhase==='day'?'rgb(12 74 110)':gamePhase==='dusk'?'rgb(28 25 23)':'rgb(3 7 18)'
         }}
@@ -796,20 +793,20 @@ export default function Home() {
       >
       {/* ===== 通用加载动画不属于暗流涌动等具体剧本===== */}
       {showIntroLoading && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black">
-          <div className="font-sans text-5xl md:text-7xl font-black tracking-[0.1em] text-red-400 animate-breath-shadow">
+        <div className="absolute inset-0 z-[9999] flex flex-col items-center justify-center bg-black">
+          <div className="font-sans text-7xl font-black tracking-[0.1em] text-red-400 animate-breath-shadow">
             拜甘教
           </div>
           <div className="mt-8 flex flex-col items-center gap-3">
             <div className="h-10 w-10 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
-            <div className="text-base md:text-lg font-semibold text-red-200/90 font-sans tracking-widest">
+            <div className="text-lg font-semibold text-red-200/90 font-sans tracking-widest">
               祈祷中…
             </div>
           </div>
         </div>
       )}
       {compositionError && (
-        <div className="fixed inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
+        <div className="absolute inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
           <div className="bg-gray-900 border-4 border-red-500 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl">
             <div className="text-xl font-bold text-red-400">阵容配置错误</div>
             {compositionError.hasBaron ? (
@@ -886,7 +883,7 @@ export default function Home() {
         </div>
       )}
       {baronSetupCheck && (
-        <div className="fixed inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
+        <div className="absolute inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
           <div className="bg-gray-900 border-4 border-yellow-500 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl">
             <div className="text-xl font-bold text-yellow-300"> Setup 校验</div>
             <p className="text-sm leading-6 text-gray-100">
@@ -904,7 +901,7 @@ export default function Home() {
             <p className="text-sm text-gray-300">
               你可以点击"自动重排"由系统重新分配，点击"我手动调整"后再继续，或在说书人裁量下点击"保持当前配置"直接开始游戏
             </p>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-row gap-3">
               <button
                 onClick={handleBaronAutoRebalance}
                 className="flex-1 py-3 rounded-xl bg-yellow-500 text-black font-bold hover:bg-yellow-400 transition"
@@ -937,7 +934,7 @@ export default function Home() {
             <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
               <h2 className="text-lg font-bold text-purple-300"> 说书人控制台</h2>
             </div>
-              <div className="flex-1 overflow-y-auto p-4 text-sm min-h-0">
+              <div className="flex-1 overflow-hidden text-sm min-h-0 w-full h-full flex items-center justify-center">
                 <ScriptSelection
                   onScriptSelect={setSelectedScript}
                   saveHistory={saveHistory}
@@ -950,11 +947,30 @@ export default function Home() {
         </GameStageWrapper>
       )}
       {gamePhase === 'setup' && (
-        <GameStageWrapper>
-          <div className="w-full h-full flex flex-col bg-slate-950 text-white">
-            <aside className="w-full h-full border-l border-white/10 bg-slate-900/50 flex flex-col relative z-20 shrink-0 overflow-hidden">
+        <GameLayout
+          leftPanel={
+            <div className="w-full h-full p-4">
+              <RoundTable
+                seats={seats}
+                nightInfo={null}
+                selectedActionTargets={[]}
+                isPortrait={false}
+                longPressingSeats={new Set()}
+                onSeatClick={(seat) => handleSeatClick(seat.id)}
+                onContextMenu={(e, _id) => e.preventDefault()}
+                onTouchStart={(e, _id) => e.preventDefault()}
+                onTouchEnd={(e, _id) => e.preventDefault()}
+                onTouchMove={(e, _id) => e.preventDefault()}
+                setSeatRef={() => {}}
+                getDisplayRoleType={(seat) => seat.role?.type || null}
+                typeColors={typeColors}
+              />
+            </div>
+          }
+          rightPanel={
+            <div className="h-full flex flex-col overflow-hidden">
               <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
-                <h2 className="text-lg font-bold text-purple-300"> 说书人控制台</h2>
+                <h2 className="text-lg font-bold text-purple-300">说书人控制台</h2>
                 </div>
               <div className="flex-1 overflow-y-auto p-4 text-sm min-h-0">
                 <GameSetup
@@ -977,19 +993,20 @@ export default function Home() {
                   ignoreBaronSetup={ignoreBaronSetup}
                   setIgnoreBaronSetup={setIgnoreBaronSetup}
                   handleBaronAutoRebalance={handleBaronAutoRebalance}
+                  hideSeatingChart={true}
                 />
                 </div>
-            </aside>
                         </div>
-        </GameStageWrapper>
+          }
+        />
       )}
       {gamePhase !== 'scriptSelection' && gamePhase !== 'setup' && (
         <GameStage controller={controller} />
-                )}
-              </div>
+      )}
 
       {/* Modals - Only setup-related modals remain here */}
       {/* Game modals are now in GameStage component */}
-    </>
+      </div>
+    </ScaleLayout>
   );
 }

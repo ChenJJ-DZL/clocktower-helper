@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { roles, type Role, type Seat, typeLabels, typeColors, typeBgColors } from "../../../app/data";
 import { GameHeader } from "./info/GameHeader";
 import { LogViewer } from "./info/LogViewer";
 import { ControlPanel } from "../ControlPanel";
 import { GameModals } from "./GameModals";
 import { SeatGrid } from "./board/SeatGrid";
+import { RoundTable } from "./board/RoundTable";
+import { GameConsole } from "./console/GameConsole";
 import { getSeatPosition } from "../../utils/gameRules";
+import { GameLayout } from "./GameLayout";
 
 // 全量重写的 GameStage 组件
 export function GameStage({ controller }: { controller: any }) {
@@ -108,18 +111,24 @@ export function GameStage({ controller }: { controller: any }) {
     confirmNightOrderPreview,
   } = controller;
 
-  // 固定画布缩放：以 1500 x 750 为基准
-  const [scale, setScale] = useState(1);
+  // 计算左侧面板的缩放比例，使座位表适应容器
+  const [seatScale, setSeatScale] = useState(1);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
-    const updateScale = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const next = Math.min(w / 1500, h / 750);
-      setScale(next);
+    const updateSeatScale = () => {
+      if (!leftPanelRef.current) return;
+      const container = leftPanelRef.current;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+      // 使用一个合理的基准尺寸来计算缩放
+      const baseSize = Math.min(containerWidth, containerHeight) * 0.8;
+      const scale = Math.min(1, baseSize / 800); // 800px 作为基准
+      setSeatScale(scale);
     };
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
+    updateSeatScale();
+    window.addEventListener("resize", updateSeatScale);
+    return () => window.removeEventListener("resize", updateSeatScale);
   }, []);
 
   // 供 ControlPanel 使用的禁用逻辑（保持最小必要逻辑）
@@ -150,24 +159,15 @@ export function GameStage({ controller }: { controller: any }) {
   const nextWakeRole = getDisplayRole(nextWakeSeat);
 
   return (
-    <div className="fixed inset-0 bg-slate-950 flex items-center justify-center overflow-hidden">
-      <div
-        style={{
-          width: 1500,
-          height: 750,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
-        }}
-        className="relative bg-slate-900 shadow-2xl overflow-hidden flex flex-row text-white"
-      >
-        {/* 左侧舞台（圆桌） */}
-        <main className="w-[60%] h-full relative flex items-center justify-center bg-slate-900 border-r border-white/10">
-          <SeatGrid
+    <>
+    <GameLayout
+      leftPanel={
+        <div className="w-full h-full p-4">
+          <RoundTable
             seats={seats}
             nightInfo={nightInfo}
             selectedActionTargets={selectedActionTargets}
             isPortrait={isPortrait}
-            seatScale={seats.length <= 9 ? 1.15 : 0.95}
             longPressingSeats={longPressingSeats}
             onSeatClick={(seat) => onSeatClick(seat.id)}
             onContextMenu={(e, seatId) => {
@@ -227,59 +227,70 @@ export function GameStage({ controller }: { controller: any }) {
             setSeatRef={(id, el) => {
               seatRefs.current[id] = el;
             }}
-                  getSeatPosition={(i, total) => getSeatPosition(i, total ?? seats.length, false)}
                   getDisplayRoleType={getDisplayRoleType}
                   typeColors={typeColors}
-                  layoutMode="circle"
+                  gamePhase={gamePhase}
+                  nightCount={nightCount}
+                  timer={timer}
+                  formatTimer={formatTimer}
+                  onTimerStart={controller.handleTimerStart}
+                  onTimerPause={controller.handleTimerPause}
+                  onTimerReset={controller.handleTimerReset}
                 />
-        </main>
-
-        {/* 右侧控制台 */}
-        <aside className="w-[40%] h-full flex flex-col bg-slate-800/50 relative z-10">
-              <GameHeader
-                onShowGameRecords={() => setShowGameRecordsModal(true)}
-                onShowReview={() => setShowReviewModal(true)}
-                onShowRoleInfo={() => setShowRoleInfoModal(true)}
-                onSwitchScript={handleSwitchScript}
-                onRestart={handleRestart}
-                showMenu={showMenu}
-            onToggleMenu={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-                onCloseMenu={() => setShowMenu(false)}
-              />
-
-          <div className="flex-1 overflow-y-auto p-4 relative">
-                  <ControlPanel
+        </div>
+      }
+      rightPanel={
+        <GameConsole
                     gamePhase={gamePhase}
+          nightCount={nightCount}
+          currentStep={currentWakeIndex + 1}
+          totalSteps={wakeQueueIds.length}
+          scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
+          guidancePoints={nightInfo?.guide ? [nightInfo.guide] : []}
+          selectedPlayers={selectedActionTargets}
                     seats={seats}
-                    currentWakeIndex={currentWakeIndex}
-                    history={history}
-                    isConfirmDisabled={isConfirmDisabled}
-                    evilTwinPair={evilTwinPair}
-                    remainingDays={remainingDays}
-                    setRemainingDays={setRemainingDays}
-                    cerenovusTarget={cerenovusTarget}
-                    nightCount={nightCount}
-                    onPreStartNight={handlePreStartNight}
-              onStartNight={(isFirst: boolean) => nightLogic.startNight(isFirst)}
-                    onStepBack={handleStepBack}
-                    onConfirmAction={handleConfirmAction}
-                    onDayEndTransition={handleDayEndTransition}
-                    onExecuteJudgment={executeJudgment}
-                    onSetGamePhase={setGamePhase}
-              onSetShowMadnessCheckModal={(show) => controller.setShowMadnessCheckModal(show)}
-                    onAddLog={addLog}
-                  />
-                </div>
+          nightInfo={nightInfo}
+          primaryAction={
+            (gamePhase === 'firstNight' || gamePhase === 'night')
+              ? {
+                  label: '确认 & 下一步',
+                  onClick: handleConfirmAction,
+                  disabled: isConfirmDisabled,
+                  variant: 'primary' as const,
+                }
+              : gamePhase === 'check'
+              ? {
+                  label: '确认无误，入夜',
+                  onClick: () => nightLogic.startNight(true),
+                  disabled: seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk')),
+                  variant: 'success' as const,
+                }
+              : undefined
+          }
+          secondaryActions={
+            (gamePhase === 'firstNight' || gamePhase === 'night')
+              ? [
+                  {
+                    label: '上一步',
+                    onClick: handleStepBack,
+                    disabled: currentWakeIndex === 0 && history.length === 0,
+                  },
+                ]
+              : []
+          }
+        />
+      }
+    />
+    {/* Modals rendered outside layout to ensure proper z-index */}
+    </>
+  );
+}
 
-          <div className="h-48 shrink-0 border-t border-white/10 bg-slate-950/50">
-                    <LogViewer logs={controller.gameLogs} className="h-full" />
-              </div>
-            </aside>
-
-        {/* 模态框放在末尾 */}
+// Keep GameModals outside the return statement
+export function GameStageWithModals({ controller }: { controller: any }) {
+  return (
+    <>
+      <GameStage controller={controller} />
       <GameModals
         showNightOrderModal={controller.showNightOrderModal}
         showExecutionResultModal={controller.showExecutionResultModal}
@@ -463,9 +474,7 @@ export function GameStage({ controller }: { controller: any }) {
         setHadesiaChoice={controller.setHadesiaChoice}
         setShowAttackBlockedModal={controller.setShowAttackBlockedModal}
       />
-      </div>
-    </div>
+    </>
   );
 }
-
 
