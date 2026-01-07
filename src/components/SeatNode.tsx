@@ -294,7 +294,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         <div 
           className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] w-8 h-8 rounded-full ${s.isDead ? 'bg-gray-400 border-gray-500 text-gray-700' : 'bg-slate-800 border-slate-600'} border-2 flex items-center justify-center text-sm font-bold z-20 shadow-md`}
         >
-          {s.id + 1}
+          {s.id + 1}号
         </div>
 
         {/* 角色名称 - 在座位圆圈内部绝对居中 */}

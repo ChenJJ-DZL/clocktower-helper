@@ -4,7 +4,6 @@ import React from "react";
 import { Seat } from "../../../../app/data";
 import { NightInfoResult } from "../../../types/game";
 import { SeatNode } from "../../SeatNode";
-import { getSeatPosition } from "../../../utils/gameRules";
 
 export interface SeatGridProps {
   seats: Seat[];
@@ -23,6 +22,7 @@ export interface SeatGridProps {
   getSeatPosition: (index: number, total?: number, isPortrait?: boolean) => { x: string; y: string };
   getDisplayRoleType: (seat: Seat) => string | null;
   typeColors: Record<string, string>;
+  layoutMode?: "circle" | "matrix";
 }
 
 export function SeatGrid(props: SeatGridProps) {
@@ -42,51 +42,71 @@ export function SeatGrid(props: SeatGridProps) {
     getSeatPosition,
     getDisplayRoleType,
     typeColors,
+    layoutMode = "circle",
   } = props;
 
-  return (
-    <>
-      {seats.map((seat, index) => {
-        const position = getSeatPosition(index, seats.length, isPortrait);
-        
-        return (
-          <div
+  // 圆桌模式：使用 SeatNode + 圆形布局
+  if (layoutMode === "circle") {
+    return (
+      <>
+        {seats.map((seat, index) => (
+          <SeatNode
             key={seat.id}
-            className="absolute"
-            style={{
-              left: `${position.x}%`,
-              top: `${position.y}%`,
-              transform: 'translate(-50%, -50%)',
+            seat={seat}
+            index={index}
+            seats={seats}
+            isPortrait={isPortrait}
+            seatScale={seatScale}
+            nightInfo={nightInfo}
+            selectedActionTargets={selectedActionTargets}
+            longPressingSeats={longPressingSeats}
+            onSeatClick={(id) => {
+              const clickedSeat = seats.find((s) => s.id === id);
+              if (clickedSeat) {
+                onSeatClick(clickedSeat);
+              }
             }}
+            onContextMenu={onContextMenu}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            onTouchMove={onTouchMove}
+            setSeatRef={setSeatRef}
+            getSeatPosition={getSeatPosition}
+            getDisplayRoleType={getDisplayRoleType}
+            typeColors={typeColors}
+          />
+        ))}
+      </>
+    );
+  }
+
+  // 矩阵模式：紧凑的座位卡片，用于配置界面
+  const cols = Math.min(8, Math.max(4, seats.length));
+
+  return (
+    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 w-full">
+      {seats.map((seat) => {
+        const isDead = seat.isDead;
+        const hasRole = !!seat.role;
+        return (
+          <button
+            key={seat.id}
+            onClick={() => onSeatClick(seat)}
+            onContextMenu={(e) => onContextMenu(e, seat.id)}
+            className={`flex flex-col items-center justify-center rounded-lg border px-2 py-1 text-xs transition ${
+              hasRole
+                ? "bg-slate-800/80 border-slate-500 text-slate-100"
+                : "bg-slate-900/60 border-slate-600 text-slate-500"
+            } ${isDead ? "opacity-60 line-through" : ""}`}
           >
-            <SeatNode
-              seat={seat}
-              index={index}
-              seats={seats}
-              isPortrait={isPortrait}
-              seatScale={seatScale}
-              nightInfo={nightInfo}
-              selectedActionTargets={selectedActionTargets}
-              longPressingSeats={longPressingSeats}
-              onSeatClick={(id) => {
-                const clickedSeat = seats.find(s => s.id === id);
-                if (clickedSeat) {
-                  onSeatClick(clickedSeat);
-                }
-              }}
-              onContextMenu={onContextMenu}
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
-              onTouchMove={onTouchMove}
-              setSeatRef={setSeatRef}
-              getSeatPosition={getSeatPosition}
-              getDisplayRoleType={getDisplayRoleType}
-              typeColors={typeColors}
-            />
-          </div>
+            <div className="font-bold mb-0.5">{seat.id + 1}号</div>
+            <div className="text-[10px] truncate max-w-[4rem]">
+              {seat.role?.name ?? "未分配"}
+            </div>
+          </button>
         );
       })}
-    </>
+    </div>
   );
 }
 

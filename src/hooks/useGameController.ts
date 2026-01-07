@@ -1634,68 +1634,94 @@ export function useGameController() {
     addLog(`${seatId + 1}号(酒鬼) 伪装为 ${role.name}`);
   }, [showDrunkModal, setSeats, setShowDrunkModal, addLog]);
 
-  // 验证Baron设置（检查男爵在场时镇民/外来者数量是否符合规则）
-  const validateBaronSetup = useCallback((activeSeats: Seat[]) => {
-    if (ignoreBaronSetup) return true;
-    const hasBaronInSeats = activeSeats.some(s => s.role?.id === "baron");
-    if (selectedScript?.id !== 'trouble_brewing' || !hasBaronInSeats) return true;
-
-    const recommended = getStandardComposition(activeSeats.length, true);
-    const actualCounts = {
-      townsfolk: activeSeats.filter(s => s.role?.type === 'townsfolk').length,
-      outsider: activeSeats.filter(s => s.role?.type === 'outsider').length,
-      minion: activeSeats.filter(s => s.role?.type === 'minion').length,
-      demon: activeSeats.filter(s => s.role?.type === 'demon').length,
-    };
-
-    if (actualCounts.townsfolk !== recommended.townsfolk || actualCounts.outsider !== recommended.outsider) {
-      setBaronSetupCheck({
-        recommended,
-        current: actualCounts,
-        playerCount: activeSeats.length,
-      });
-      return false;
-    }
-
-    return true;
-  }, [getStandardComposition, selectedScript, ignoreBaronSetup, setBaronSetupCheck]);
-
-  // 验证阵容配置（检查是否符合标准配置）
-  const validateCompositionSetup = useCallback((activeSeats: Seat[]) => {
-    if (selectedScript?.id !== 'trouble_brewing') return true;
-
+  // 纯计算：阵容配置校验结果
+  const getCompositionStatus = useCallback((activeSeats: Seat[]) => {
     const playerCount = activeSeats.length;
-    
-    if (playerCount < 7 || playerCount > 15) return true;
-
     const hasBaron = activeSeats.some(s => s.role?.id === "baron");
-    const standard = getStandardComposition(playerCount, hasBaron);
-    
+    const standard = selectedScript?.id === 'trouble_brewing' && playerCount >= 7 && playerCount <= 15
+      ? getStandardComposition(playerCount, hasBaron)
+      : null;
     const actual = {
       townsfolk: activeSeats.filter(s => s.role?.type === 'townsfolk').length,
       outsider: activeSeats.filter(s => s.role?.type === 'outsider').length,
       minion: activeSeats.filter(s => s.role?.type === 'minion').length,
       demon: activeSeats.filter(s => s.role?.type === 'demon').length,
     };
+    const valid =
+      selectedScript?.id !== 'trouble_brewing' ||
+      playerCount < 7 ||
+      playerCount > 15 ||
+      !standard ||
+      (
+        actual.townsfolk === standard.townsfolk &&
+        actual.outsider === standard.outsider &&
+        actual.minion === standard.minion &&
+        actual.demon === standard.demon
+      );
+    return {
+      valid,
+      standard,
+      actual,
+      playerCount,
+      hasBaron,
+    };
+  }, [getStandardComposition, selectedScript]);
 
-    if (
-      actual.townsfolk !== standard.townsfolk ||
-      actual.outsider !== standard.outsider ||
-      actual.minion !== standard.minion ||
-      actual.demon !== standard.demon
-    ) {
-      setCompositionError({
-        standard,
-        actual,
-        playerCount,
-        hasBaron,
+  // 纯计算：男爵配置校验结果
+  const getBaronStatus = useCallback((activeSeats: Seat[]) => {
+    const playerCount = activeSeats.length;
+    const hasBaronInSeats = activeSeats.some(s => s.role?.id === "baron");
+    const recommended = selectedScript?.id === 'trouble_brewing' && hasBaronInSeats
+      ? getStandardComposition(playerCount, true)
+      : null;
+    const current = {
+      townsfolk: activeSeats.filter(s => s.role?.type === 'townsfolk').length,
+      outsider: activeSeats.filter(s => s.role?.type === 'outsider').length,
+      minion: activeSeats.filter(s => s.role?.type === 'minion').length,
+      demon: activeSeats.filter(s => s.role?.type === 'demon').length,
+    };
+    const valid =
+      !recommended ||
+      current.townsfolk === recommended.townsfolk && current.outsider === recommended.outsider;
+    return {
+      valid,
+      recommended,
+      current,
+      playerCount,
+    };
+  }, [getStandardComposition, selectedScript]);
+
+  // 带状态更新：男爵配置校验
+  const validateBaronSetup = useCallback((activeSeats: Seat[]) => {
+    if (ignoreBaronSetup) return true;
+    const status = getBaronStatus(activeSeats);
+    if (!status.valid && status.recommended) {
+      setBaronSetupCheck({
+        recommended: status.recommended,
+        current: status.current,
+        playerCount: status.playerCount,
       });
       return false;
     }
+    setBaronSetupCheck(null);
+    return true;
+  }, [getBaronStatus, ignoreBaronSetup, setBaronSetupCheck]);
 
+  // 带状态更新：阵容配置校验
+  const validateCompositionSetup = useCallback((activeSeats: Seat[]) => {
+    const status = getCompositionStatus(activeSeats);
+    if (!status.valid && status.standard) {
+      setCompositionError({
+        standard: status.standard,
+        actual: status.actual,
+        playerCount: status.playerCount,
+        hasBaron: status.hasBaron,
+      });
+      return false;
+    }
     setCompositionError(null);
     return true;
-  }, [getStandardComposition, selectedScript, setCompositionError]);
+  }, [getCompositionStatus, setCompositionError]);
 
   // 复活座位（清理临时负面状态）
   const reviveSeat = useCallback((seat: Seat): Seat => {
@@ -3816,6 +3842,8 @@ export function useGameController() {
     getStandardComposition,
     validateBaronSetup,
     validateCompositionSetup,
+    getBaronStatus,
+    getCompositionStatus,
     reviveSeat,
     convertPlayerToEvil,
     insertIntoWakeQueueAfterCurrent,
@@ -3875,6 +3903,10 @@ export function useGameController() {
     groupedRoles,
     isGoodAlignment,
     getSeatPosition: getSeatPosition,
+    setCompositionError,
+    setBaronSetupCheck,
+    compositionError,
+    baronSetupCheck,
   };
 }
 

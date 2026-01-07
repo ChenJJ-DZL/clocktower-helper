@@ -5,10 +5,11 @@ import { LogEntry } from "../../../../app/data";
 
 export interface LogViewerProps {
   logs: LogEntry[];
+  className?: string;
 }
 
 export function LogViewer(props: LogViewerProps) {
-  const { logs } = props;
+  const { logs, className = "" } = props;
 
   // 按天数分开显示日志
   const logsByDay = logs.reduce((acc, log) => {
@@ -27,9 +28,9 @@ export function LogViewer(props: LogViewerProps) {
   };
 
   return (
-    <div className="w-1/2">
+    <div className={`w-full ${className}`}>
       <h4 className="text-yellow-400 mb-2 font-bold border-b pb-1 text-sm">行动日志</h4>
-      <div className="space-y-2 max-h-56 overflow-y-auto">
+      <div className="space-y-2 h-full max-h-full overflow-y-auto">
         {Object.entries(logsByDay).reverse().map(([day, dayLogs]) => (
           <div key={day} className="mb-2">
             <div className="text-yellow-300 font-bold mb-1 text-xs">

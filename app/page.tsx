@@ -8,7 +8,7 @@ import { useRoleAction } from "../src/hooks/useRoleAction";
 import { isRoleRegistered } from "../src/roles/index";
 import PortraitLock from "../src/components/PortraitLock";
 import GameStageWrapper from "../src/components/GameStage";
-import GameStage from "../src/components/game/GameStage";
+import { GameStage } from "../src/components/game/GameStage";
 import { ModalWrapper } from "../src/components/modals/ModalWrapper";
 import { GameHeader } from "../src/components/game/info/GameHeader";
 import { LogViewer } from "../src/components/game/info/LogViewer";
@@ -358,6 +358,8 @@ export default function Home() {
     hasExecutionProof,
     validateBaronSetup,
     validateCompositionSetup,
+    getBaronStatus,
+    getCompositionStatus,
     reviveSeat,
     convertPlayerToEvil,
     insertIntoWakeQueueAfterCurrent,
@@ -796,12 +798,12 @@ export default function Home() {
       {showIntroLoading && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black">
           <div className="font-sans text-5xl md:text-7xl font-black tracking-[0.1em] text-red-400 animate-breath-shadow">
-            拜甘
+            拜甘教
           </div>
           <div className="mt-8 flex flex-col items-center gap-3">
             <div className="h-10 w-10 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
             <div className="text-base md:text-lg font-semibold text-red-200/90 font-sans tracking-widest">
-              祈祷
+              祈祷中…
             </div>
           </div>
         </div>
@@ -964,12 +966,17 @@ export default function Home() {
                   handlePreStartNight={handlePreStartNight}
                   proceedToCheckPhase={proceedToCheckPhase}
                   filteredGroupedRoles={filteredGroupedRoles}
+                  getCompositionStatus={getCompositionStatus}
+                  getBaronStatus={getBaronStatus}
                   validateCompositionSetup={validateCompositionSetup}
                   validateBaronSetup={validateBaronSetup}
+                  setCompositionError={setCompositionError}
+                  setBaronSetupCheck={setBaronSetupCheck}
                   compositionError={compositionError}
                   baronSetupCheck={baronSetupCheck}
                   ignoreBaronSetup={ignoreBaronSetup}
                   setIgnoreBaronSetup={setIgnoreBaronSetup}
+                  handleBaronAutoRebalance={handleBaronAutoRebalance}
                 />
                 </div>
             </aside>

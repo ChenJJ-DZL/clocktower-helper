@@ -11,6 +11,7 @@ export interface GameBoardProps {
   // ========== 核心数据 ==========
   seats: Seat[];
   gamePhase: GamePhase;
+  nightCount: number;
   timer: number;
   nightInfo: NightInfoResult | null;
   selectedActionTargets: number[];
@@ -48,6 +49,7 @@ export function GameBoard(props: GameBoardProps) {
   const {
     seats,
     gamePhase,
+    nightCount,
     timer,
     nightInfo,
     selectedActionTargets,
@@ -69,6 +71,20 @@ export function GameBoard(props: GameBoardProps) {
     typeColors,
     setShowSpyDisguiseModal,
   } = props;
+
+  const phaseLabel =
+    gamePhase === "scriptSelection"
+      ? "选择剧本"
+      : gamePhase === "setup"
+        ? "准备阶段"
+        : phaseNames[gamePhase] ?? "游戏中";
+
+  const detailLabel =
+    gamePhase === "day" || gamePhase === "dusk"
+      ? `第 ${nightCount} 天`
+      : gamePhase === "firstNight" || gamePhase === "night"
+        ? `第 ${nightCount} 夜`
+        : "";
 
   return (
     <main className="flex-1 h-full relative flex items-center justify-center overflow-hidden p-4">
@@ -103,25 +119,26 @@ export function GameBoard(props: GameBoardProps) {
         ref={seatContainerRef}
         className="relative h-full max-h-[90%] aspect-square flex items-center justify-center z-10"
       >
-        {/* 中心文字 */}
+        {/* 中心区域：小镇广场信息 */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-0 pointer-events-none select-none">
-          <div className="text-6xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">
-            {phaseNames[gamePhase]}
-          </div>
-          <div className="text-sm text-slate-400/60 uppercase tracking-[0.3em] font-medium mt-4">
-            design by{" "}
-            <span className="font-bold italic">Bai  Gan Group</span>
-          </div>
-          {gamePhase==='scriptSelection' && (
-            <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
-              请选择剧本
+          <div className="px-6 py-4 rounded-3xl bg-slate-900/80 border border-white/10 shadow-2xl backdrop-blur-md flex flex-col items-center gap-2">
+            <div className="text-3xl md:text-4xl font-black tracking-wide bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]">
+              {phaseLabel}
             </div>
-          )}
-          {gamePhase!=='setup' && gamePhase!=='scriptSelection' && (
-            <div className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] mt-4">
-              {formatTimer(timer)}
+            {detailLabel && (
+              <div className="text-sm md:text-base text-slate-200 font-semibold">
+                {detailLabel}
+              </div>
+            )}
+            {gamePhase !== "scriptSelection" && (
+              <div className="mt-1 text-2xl md:text-3xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]">
+                {formatTimer(timer)}
+              </div>
+            )}
+            <div className="mt-1 text-[11px] md:text-xs text-slate-400">
+              当前玩家人数：{seats.filter((s) => s.role).length} / {seats.length}
             </div>
-          )}
+          </div>
         </div>
 
         {/* 座位网格 */}
