@@ -11,6 +11,7 @@ import {
   type RegistrationCacheOptions
 } from './gameRules';
 import { roles } from '../../app/data';
+import type { TimelineStep, TimelineInteraction } from '../types/game';
 
 export const calculateNightInfo = (
   selectedScript: Script | null,
@@ -1463,5 +1464,245 @@ export const calculateNightInfo = (
   }
 
   return null;
+};
+
+/**
+ * Determine interaction requirements for a role based on its capabilities
+ * @param role - The role to check
+ * @param isFirstNight - Whether this is the first night
+ * @returns Interaction metadata or undefined if no interaction needed
+ */
+const getRoleInteraction = (role: Role, isFirstNight: boolean): { type: 'choosePlayer' | 'chooseRole' | 'none'; amount: number; required: boolean } | undefined => {
+  // Roles that need to select players based on nightActionType
+  const actionType = role.nightActionType;
+  
+  // Skip first night for roles that don't act on first night
+  if (isFirstNight) {
+    // Some roles act on first night, others don't
+    if (role.id === 'imp' || role.id === 'pukka' || role.id === 'zombuul') {
+      // Demons show minions on first night, no selection needed
+      return undefined;
+    }
+  }
+  
+  // Roles that require player selection
+  if (actionType === 'kill' || actionType === 'poison' || actionType === 'protect' || actionType === 'mark' || actionType === 'kill_or_skip') {
+    // Single target roles
+    if (role.id === 'poisoner' || role.id === 'monk' || role.id === 'slayer' || 
+        role.id === 'imp' || role.id === 'pukka' || role.id === 'zombuul' ||
+        role.id === 'ravenkeeper' || role.id === 'butler' || role.id === 'chambermaid' ||
+        role.id === 'professor_mr' || role.id === 'innkeeper') {
+      return { type: 'choosePlayer', amount: 1, required: true };
+    }
+    
+    // Multiple target roles
+    if (role.id === 'fortune_teller') {
+      return { type: 'choosePlayer', amount: 2, required: true };
+    }
+    
+    if (role.id === 'washerwoman' && isFirstNight) {
+      return { type: 'choosePlayer', amount: 2, required: true };
+    }
+    
+    if (role.id === 'seamstress') {
+      return { type: 'choosePlayer', amount: 2, required: true };
+    }
+    
+    if (role.id === 'hadesia' && !isFirstNight) {
+      return { type: 'choosePlayer', amount: 3, required: true };
+    }
+  }
+  
+  // Roles that show information (no selection needed)
+  if (actionType === 'inspect' || actionType === 'show' || actionType === 'none') {
+    return undefined;
+  }
+  
+  return undefined;
+};
+
+/**
+ * Generate a pre-computed timeline of night steps
+ * This determines WHO wakes up, not WHAT they see.
+ * 
+ * @param seats - Array of all seats
+ * @param isFirstNight - Whether this is the first night
+ * @returns Array of TimelineStep objects sorted by wake order
+ */
+export const generateNightTimeline = (seats: Seat[], isFirstNight: boolean): TimelineStep[] => {
+  const steps: TimelineStep[] = [];
+  
+  // 1. Filter Active Roles (Alive or Dead w/ Ability)
+  const activeSeats = seats.filter(seat => {
+    if (!seat.role) return false;
+    // Basic check: Is Alive OR Has Ability Even Dead
+    return !seat.isDead || seat.hasAbilityEvenDead; 
+  });
+
+  // 2. Sort by Night Order
+  activeSeats.sort((a, b) => {
+    const roleA = a.role!;
+    const roleB = b.role!;
+    const orderA = isFirstNight ? (roleA.firstNightOrder || 999) : (roleA.otherNightOrder || 999);
+    const orderB = isFirstNight ? (roleB.firstNightOrder || 999) : (roleB.otherNightOrder || 999);
+    return orderA - orderB;
+  });
+
+  // 3. Build Steps
+  activeSeats.forEach((seat, index) => {
+    const role = seat.role!;
+    // Skip if order is 0 (means doesn't wake up)
+    const order = isFirstNight ? role.firstNightOrder : role.otherNightOrder;
+    if (!order || order <= 0) return;
+
+    const roleId = role.id;
+
+    // Define Interaction Rules (Simple Lookup)
+    let interaction: TimelineInteraction | undefined;
+
+    // === DEMONS (Kills) ===
+    if (role.type === 'demon' || roleId === 'imp' || roleId === 'zombuul' || roleId === 'pukka' || roleId === 'shabaloth' || roleId === 'po' || roleId === 'no_dashii' || roleId === 'vortox' || roleId === 'fang_gu' || roleId === 'vigormortis' || roleId === 'vigormortis_mr' || roleId === 'hadesia') {
+      // Most demons pick 1 player to kill
+      // Shabaloth picks 2, Po picks 1-3... simplify to 1 for now or handle specific logic
+      // Hadesia picks 3
+      let amount = 1;
+      if (roleId === 'shabaloth' && !isFirstNight) {
+        amount = 2;
+      } else if (roleId === 'hadesia' && !isFirstNight) {
+        amount = 3;
+      } else if (roleId === 'po' && !isFirstNight) {
+        // Po can pick 1 or 3 (if they skipped previous night), default to 1
+        amount = 1;
+      }
+      // Only add interaction for non-first night (first night demons just see minions)
+      if (!isFirstNight || (roleId === 'imp' && isFirstNight)) {
+        // Imp on first night doesn't kill, but other demons might have special first night logic
+        if (roleId === 'imp' && isFirstNight) {
+          // Imp first night: no interaction (just sees minions)
+          interaction = undefined;
+        } else {
+          interaction = { type: 'choosePlayer', amount: amount, required: true, canSelf: (roleId === 'imp') };
+        }
+      }
+    }
+    
+    // === MINIONS ===
+    else if (roleId === 'poisoner' || roleId === 'poisoner_mr') {
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'assassin' || roleId === 'godfather') {
+      // Assassin: one-time kill, Godfather: kills if outsider dies during day
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'devils_advocate') { // 魔鬼代言人
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'pit_hag' || roleId === 'pit_hag_mr') { // 麻脸巫婆
+      interaction = { type: 'choosePlayer', amount: 1, required: true }; 
+      // Note: Pit-hag technically needs Character choice too, but let's start with Player selection
+    }
+    else if (roleId === 'cerenovus') { // 塞拉诺
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'witch') {
+      // Witch: marks a player who will die if they nominate
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'evil_twin' && isFirstNight) {
+      // Evil Twin: picks opponent on first night
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'widow') {
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+
+    // === TOWNSFOLK (Info gatherers who PICK) ===
+    else if (roleId === 'fortune_teller') { // 占卜师
+      if (!isFirstNight) {
+        interaction = { type: 'choosePlayer', amount: 2, required: true };
+      }
+    }
+    else if (roleId === 'monk' || roleId === 'innkeeper' || roleId === 'seamstress') {
+      const amount = (roleId === 'innkeeper' || roleId === 'seamstress') ? 2 : 1;
+      interaction = { type: 'choosePlayer', amount: amount, required: true };
+    }
+    else if (roleId === 'chambermaid') { // 侍女
+      interaction = { type: 'choosePlayer', amount: 2, required: true };
+    }
+    else if (roleId === 'exorcist') { // 驱魔人
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'courtier') { // 侍臣
+      interaction = { type: 'choosePlayer', amount: 1, required: true }; // Picks character ideally, but player works for targeting
+    }
+    else if (roleId === 'butler') {
+      interaction = { type: 'choosePlayer', amount: 1, required: true, canSelf: false };
+    }
+    else if (roleId === 'dreamer') {
+      // Dreamer: picks one player to learn about
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'professor_mr' && !isFirstNight) {
+      // Professor (MR): revives a dead player
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'snake_charmer_mr') {
+      // Snake Charmer (MR): picks a player, swaps if demon
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'ranger') {
+      // Ranger: picks a player (triggers if damsel)
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    else if (roleId === 'sage' && !isFirstNight) {
+      // Sage: picks two players if killed by demon
+      // This is conditional (only if killed), but we'll add it for when they wake up
+      interaction = { type: 'choosePlayer', amount: 2, required: true };
+    }
+    else if (roleId === 'ravenkeeper' && !isFirstNight) {
+      // Ravenkeeper: picks one player if they die
+      // Conditional, but add for when they wake up
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    
+    // === OUTSIDERS ===
+    else if (roleId === 'lunatic' || roleId === 'lunatic_mr') {
+      // Lunatic usually picks an "attack" target if they think they are demon
+      interaction = { type: 'choosePlayer', amount: 1, required: true };
+    }
+    
+    // Info roles that don't need player selection (storyteller just tells them):
+    // washerwoman, librarian, investigator, chef, empath, etc. - no interaction needed
+
+    steps.push({
+      id: `step_${seat.id}_${role.id}`,
+      type: 'character',
+      seatId: seat.id,
+      roleId: role.id,
+      order: order,
+      isFirstNight: isFirstNight,
+      content: {
+        title: role.name,
+        script: `${role.name}，请睁眼...`,
+        instruction: interaction ? `请选择 ${interaction.amount} 名玩家` : '执行技能或确认信息'
+      },
+      interaction // <--- Inject here
+    });
+  });
+
+  // 4. Always add Dawn Step
+  steps.push({
+    id: 'dawn_step',
+    type: 'dawn',
+    order: 9999,
+    isFirstNight: isFirstNight,
+    content: {
+      title: '天亮了',
+      script: '天亮了，请大家睁眼。',
+      instruction: '结算死亡与处决。'
+    }
+  });
+
+  return steps;
 };
 

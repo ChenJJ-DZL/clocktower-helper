@@ -21,7 +21,8 @@ import {
   getSeatPosition,
   type RegistrationCacheOptions,
 } from "../utils/gameRules";
-import { calculateNightInfo } from "../utils/nightLogic";
+import { calculateNightInfo, generateNightTimeline } from "../utils/nightLogic";
+import type { TimelineStep } from "../types/game";
 
 // DayAbilityConfig type for day ability triggers
 export type DayAbilityConfig = {
@@ -228,8 +229,8 @@ export function useGameController() {
     longPressingSeats, setLongPressingSeats,
     
     // 夜晚行动状态
-    wakeQueueIds, setWakeQueueIds,
-    currentWakeIndex, setCurrentWakeIndex,
+    timeline, setTimeline,
+    currentStepIndex, setCurrentStepIndex,
     selectedActionTargets, setSelectedActionTargets,
     inspectionResult, setInspectionResult,
     inspectionResultKey, setInspectionResultKey,
@@ -362,8 +363,8 @@ export function useGameController() {
       gamePhase: state.gamePhase,
       nightCount: state.nightCount,
       executedPlayerId: state.executedPlayerId,
-      wakeQueueIds: [...state.wakeQueueIds],
-      currentWakeIndex: state.currentWakeIndex,
+      timeline: state.timeline && Array.isArray(state.timeline) ? [...state.timeline] : [],
+      currentStepIndex: state.currentStepIndex,
       selectedActionTargets: [...state.selectedActionTargets],
       gameLogs: [...state.gameLogs],
       currentHint: JSON.parse(JSON.stringify(currentHint)), // 保存当前 hint
@@ -508,13 +509,13 @@ export function useGameController() {
       gamePhase,
       nightCount,
       executedPlayerId,
-      wakeQueueIds,
-      currentWakeIndex,
+      timeline,
+      currentStepIndex,
       selectedActionTargets,
       gameLogs,
       selectedScript
     };
-  }, [seats, gamePhase, nightCount, executedPlayerId, wakeQueueIds, currentWakeIndex, selectedActionTargets, gameLogs, selectedScript]);
+  }, [seats, gamePhase, nightCount, executedPlayerId, timeline, currentStepIndex, selectedActionTargets, gameLogs, selectedScript]);
 
   // --- Effects ---
   useEffect(() => {
@@ -738,45 +739,45 @@ export function useGameController() {
   const enqueueRavenkeeperIfNeeded = useCallback((targetId: number) => {
     const targetSeat = seats.find(s => s.id === targetId);
     if (getSeatRoleId(targetSeat) !== 'ravenkeeper') return;
-    setWakeQueueIds(prev => {
-      if (prev.includes(targetId)) return prev;
-      const insertionIndex = Math.min(currentWakeIndex + 1, prev.length);
-      const next = [...prev];
-      next.splice(insertionIndex, 0, targetId);
-      return next;
-    });
-  }, [seats, currentWakeIndex]);
+    // TODO: This will need to be updated to insert into timeline when we handle dynamic timeline updates
+    // For now, this is a placeholder that does nothing
+    // The timeline architecture should handle ravenkeeper insertion differently
+  }, [seats]);
 
   // 计算 nightInfo - 必须在 useNightLogic 之前
   const nightInfo = useMemo(() => {
-    if ((gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && currentWakeIndex >= 0 && currentWakeIndex < wakeQueueIds.length) {
-      return calculateNightInfo(
-        selectedScript,
-        seats,
-        wakeQueueIds[currentWakeIndex],
-        gamePhase,
-        lastDuskExecution,
-        fakeInspectionResultRef.current || undefined,
-        drunkFirstInfoRef.current,
-        isEvilWithJudgment,
-        poppyGrowerDead,
-        gameLogs,
-        spyDisguiseMode,
-        spyDisguiseProbability,
-        deadThisNight,
-        balloonistKnownTypes,
-        addLog,
-        registrationCacheRef.current,
-        registrationCacheKeyRef.current || `${gamePhase}-${nightCount}`,
-        isVortoxWorld,
-        todayDemonVoted,
-        todayMinionNominated,
-        todayExecutedId,
-        hasUsedAbility
-      );
+    if ((gamePhase === "firstNight" || gamePhase === "night") && timeline.length > 0 && currentStepIndex >= 0 && currentStepIndex < timeline.length) {
+      const currentStep = timeline[currentStepIndex];
+      // Only calculate nightInfo for character steps, not dawn/announcement steps
+      if (currentStep.type === 'character' && currentStep.seatId !== undefined) {
+        return calculateNightInfo(
+          selectedScript,
+          seats,
+          currentStep.seatId,
+          gamePhase,
+          lastDuskExecution,
+          fakeInspectionResultRef.current || undefined,
+          drunkFirstInfoRef.current,
+          isEvilWithJudgment,
+          poppyGrowerDead,
+          gameLogs,
+          spyDisguiseMode,
+          spyDisguiseProbability,
+          deadThisNight,
+          balloonistKnownTypes,
+          addLog,
+          registrationCacheRef.current,
+          registrationCacheKeyRef.current || `${gamePhase}-${nightCount}`,
+          isVortoxWorld,
+          todayDemonVoted,
+          todayMinionNominated,
+          todayExecutedId,
+          hasUsedAbility
+        );
+      }
     }
     return null;
-  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility]);
+  }, [selectedScript, seats, currentStepIndex, gamePhase, timeline, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility]);
 
   // 检查游戏结束条件
   const checkGameOver = useCallback((updatedSeats: Seat[], executedPlayerIdArg?: number | null, preserveWinReason?: boolean) => {
@@ -950,19 +951,26 @@ export function useGameController() {
       if (roleId === 'ravenkeeper' && diedTonight) return false;
       return s.isDead && !s.hasAbilityEvenDead;
     });
-    setWakeQueueIds(prev => prev.filter(id => !currentDead.find(d => d.id === id)));
+    
+    // Filter timeline to remove dead players (except those with hasAbilityEvenDead)
+    setTimeline(prev => prev.filter(step => {
+      if (step.type !== 'character' || step.seatId === undefined) return true;
+      return !currentDead.find(d => d.id === step.seatId);
+    }));
     
     // 如果当前玩家已死亡且不保留能力跳过到下一个
-    const currentId = wakeQueueIds[currentWakeIndex];
-    const currentSeat = currentId !== undefined ? seats.find(s => s.id === currentId) : null;
-    const currentRoleId = getSeatRoleId(currentSeat);
-    const currentDiedTonight = currentSeat ? deadThisNight.includes(currentSeat.id) : false;
-    if (currentId !== undefined && currentSeat?.isDead && !currentSeat.hasAbilityEvenDead && !(currentRoleId === 'ravenkeeper' && currentDiedTonight)) {
-        setCurrentWakeIndex(p => p + 1);
+    const currentStep = timeline[currentStepIndex];
+    if (currentStep && currentStep.type === 'character' && currentStep.seatId !== undefined) {
+      const currentSeat = seats.find(s => s.id === currentStep.seatId);
+      const currentRoleId = getSeatRoleId(currentSeat);
+      const currentDiedTonight = currentSeat ? deadThisNight.includes(currentSeat.id) : false;
+      if (currentSeat?.isDead && !currentSeat.hasAbilityEvenDead && !(currentRoleId === 'ravenkeeper' && currentDiedTonight)) {
+        setCurrentStepIndex(p => p + 1);
         setInspectionResult(null);
         setSelectedActionTargets([]);
         fakeInspectionResultRef.current = null;
         return;
+      }
     }
     
     // 首晚恶魔行动后触发"爪牙认识恶魔"环节在控制台显示
@@ -988,13 +996,17 @@ export function useGameController() {
       }
     }
     
-    if(currentWakeIndex < wakeQueueIds.length - 1) { 
-      setCurrentWakeIndex(p => p + 1); 
+    // If currentStepIndex >= timeline.length - 1, transition to Day phase
+    console.log('[continueToNextAction] Current step:', currentStepIndex, 'Timeline length:', timeline.length);
+    if (currentStepIndex < timeline.length - 1) { 
+      console.log('[continueToNextAction] Moving to next step:', currentStepIndex + 1);
+      setCurrentStepIndex(p => p + 1); 
       setInspectionResult(null);
       setSelectedActionTargets([]);
       fakeInspectionResultRef.current = null;
     } else {
-      // 夜晚结束显示死亡报告
+      console.log('[continueToNextAction] End of timeline, creating dawn report or moving phase...');
+      // 夜晚结束显示死亡报告并过渡到白天
       // 检测夜晚期间死亡的玩家通过deadThisNight记录
       if(deadThisNight.length > 0) {
         const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
@@ -1002,8 +1014,10 @@ export function useGameController() {
       } else {
         setShowNightDeathReportModal("昨天是个平安夜");
       }
+      // Transition to day phase will be handled by the modal close handler
     }
-  }, [saveHistory, seats, deadThisNight, wakeQueueIds, currentWakeIndex, gamePhase, nightInfo, poppyGrowerDead, setCurrentWakeIndex, setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setShowMinionKnowDemonModal, setShowNightDeathReportModal]);
+  }, [saveHistory, seats, deadThisNight, timeline, currentStepIndex, gamePhase, nightInfo, poppyGrowerDead, setCurrentStepIndex, setInspectionResult, setSelectedActionTargets, setTimeline, setShowMinionKnowDemonModal, setShowNightDeathReportModal]);
+
 
   const currentNightRole = useMemo(() => {
     if (!nightInfo) return null;
@@ -1013,20 +1027,25 @@ export function useGameController() {
   }, [nightInfo, getDisplayRoleForSeat]);
 
   const nextNightRole = useMemo(() => {
-    if (!nightInfo) return null;
-    const nextId = wakeQueueIds[currentWakeIndex + 1];
-    if (nextId === undefined) return null;
+    if (!timeline || timeline.length === 0 || currentStepIndex < 0 || currentStepIndex >= timeline.length - 1) {
+      return null;
+    }
+    const nextStep = timeline[currentStepIndex + 1];
+    if (!nextStep || nextStep.type !== 'character' || nextStep.seatId === undefined) {
+      return null;
+    }
+    const nextId = nextStep.seatId;
     const seat = seats.find(s => s.id === nextId);
     const role = getDisplayRoleForSeat(seat);
     const seatNo = seat ? seat.id + 1 : nextId + 1;
     return { seatNo, roleName: role?.name || seat?.role?.name || '未知角色' };
-  }, [nightInfo, wakeQueueIds, currentWakeIndex, seats, getDisplayRoleForSeat]);
+  }, [timeline, currentStepIndex, seats, getDisplayRoleForSeat]);
 
   // 更新 nightInfo 相关的 hint
   useEffect(() => {
     if (nightInfo) {
       // 生成缓存 key用上一次恢复hint不重新生成
-      const hintKey = `${gamePhase}-${currentWakeIndex}-${nightInfo?.seat?.id}`;
+      const hintKey = `${gamePhase}-${currentStepIndex}-${nightInfo?.seat?.id}`;
       
       // 检查缓存中是否有该角色hint用上一次恢复
       const cachedHint = hintCacheRef.current.get(hintKey);
@@ -1080,31 +1099,33 @@ export function useGameController() {
       hintCacheRef.current.set(hintKey, newHint);
       setCurrentHint(newHint);
       
-      if (selectedActionTargets.length > 0 && seats.find(s=>s.id===selectedActionTargets[0])?.id !== wakeQueueIds[currentWakeIndex]) {
+      const currentStep = timeline[currentStepIndex];
+      const currentSeatId = currentStep?.type === 'character' ? currentStep.seatId : undefined;
+      if (selectedActionTargets.length > 0 && seats.find(s=>s.id===selectedActionTargets[0])?.id !== currentSeatId) {
         setSelectedActionTargets([]); 
         setInspectionResult(null);
         fakeInspectionResultRef.current = null;
       }
     }
-  }, [currentWakeIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult, addLogWithDeduplication]);
+  }, [currentStepIndex, timeline, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult, addLogWithDeduplication]);
 
-  // 安全兜底如果夜晚阶段存在叫醒队列但无法生成 nightInfo自动跳过当前环节或直接结束夜晚
+  // 安全兜底如果夜晚阶段存在时间线但无法生成 nightInfo自动跳过当前环节或直接结束夜晚
   useEffect(() => {
     if (!(gamePhase === 'firstNight' || gamePhase === 'night')) return;
-    if (wakeQueueIds.length === 0) return;
+    if (timeline.length === 0) return;
     // 只有在当前索引合法但 nightInfo 仍为 null 时才认为是异常卡住
-    if (currentWakeIndex < 0 || currentWakeIndex >= wakeQueueIds.length) return;
+    if (currentStepIndex < 0 || currentStepIndex >= timeline.length) return;
     if (nightInfo) return;
     
-    // 还有后续角色时直接跳到下一个夜晚行动
-    if (currentWakeIndex < wakeQueueIds.length - 1) {
+    // 还有后续步骤时直接跳到下一个夜晚行动
+    if (currentStepIndex < timeline.length - 1) {
       continueToNextAction();
       return;
     }
     
-    // 已经是最后一个角色且无法生成 nightInfo直接结束夜晚并进入天亮结算
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
+    // 已经是最后一个步骤且无法生成 nightInfo直接结束夜晚并进入天亮结算
+    setTimeline([]);
+    setCurrentStepIndex(0);
     if (deadThisNight.length > 0) {
       const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
       setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
@@ -1113,7 +1134,7 @@ export function useGameController() {
     }
     setGamePhase('dawnReport');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamePhase, nightInfo, wakeQueueIds, currentWakeIndex]);
+  }, [gamePhase, nightInfo, timeline, currentStepIndex]);
 
   // 游戏结束时保存对局记录
   const gameRecordSavedRef = useRef(false);
@@ -1280,7 +1301,11 @@ export function useGameController() {
       });
 
       if (!keepInWakeQueue) {
-        setWakeQueueIds(prev => prev.filter(id => id !== targetId));
+        // Remove from timeline if the dead player was in it
+        setTimeline(prev => prev.filter(step => {
+          if (step.type === 'character' && step.seatId === targetId) return false;
+          return true;
+        }));
       }
 
       if (recordNightDeath) {
@@ -1393,7 +1418,7 @@ export function useGameController() {
 
       finalize(updatedSeats);
     },
-    [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setWakeQueueIds, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted]
+    [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setTimeline, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted]
   );
 
   // 调用 useNightLogic - 必须在 executePlayer 之前定义
@@ -1403,8 +1428,8 @@ export function useGameController() {
       gamePhase,
       nightCount,
       executedPlayerId,
-      wakeQueueIds,
-      currentWakeIndex,
+      timeline,
+      currentStepIndex,
       selectedActionTargets,
       gameLogs,
       selectedScript,
@@ -1428,8 +1453,8 @@ export function useGameController() {
       setSeats,
       setGamePhase,
       setNightCount,
-      setWakeQueueIds,
-      setCurrentWakeIndex,
+      setTimeline,
+      setCurrentStepIndex,
       setSelectedActionTargets,
       setInspectionResult,
       setDeadThisNight,
@@ -1633,10 +1658,69 @@ export function useGameController() {
     }, 100);
   }, [addLog, setSeats, setInitialSeats, setGamePhase, setAutoRedHerringInfo]);
 
-  // 处理预开始夜晚（从setup阶段进入check阶段）
+  // 在游戏正式开始前移除空位并重新编号座位
+  const compactActiveSeats = useCallback((): Seat[] | null => {
+    const activeSeats = seats
+      .filter(s => s.role)
+      .map((s, index) => ({
+        ...s,
+        id: index,
+      }));
+
+    if (activeSeats.length === 0) {
+      console.error("No roles assigned!");
+      return null;
+    }
+
+    setSeats(activeSeats);
+    return activeSeats;
+  }, [seats, setSeats]);
+
+  // 处理预开始夜晚（从 setup 阶段直接进入首夜）
+  // 为了确保时间轴总是被正确生成，这里进行一次“强制”时间轴注入
   const handlePreStartNight = useCallback(() => {
-    proceedToCheckPhase(seats);
-  }, [proceedToCheckPhase, seats]);
+    console.log("🚀 Manually Starting Game via handlePreStartNight...");
+
+    // 1. Identify Active Players (must have a role)
+    const activeSeats = compactActiveSeats();
+    if (!activeSeats) return;
+
+    // 2. FORCE Generate Timeline (Bypassing useNightLogic queue)
+    let newTimeline = generateNightTimeline(activeSeats, true); // Treat as first night
+
+    // 3. ABSOLUTE FALLBACK (If generator fails)
+    if (!newTimeline || newTimeline.length === 0) {
+      console.warn("⚠️ Generator returned empty! Using Emergency Fallback.");
+      newTimeline = [
+        {
+          id: "dawn_emergency",
+          type: "dawn",
+          order: 999,
+          isFirstNight: true,
+          content: {
+            title: "天亮了 (Fallback)",
+            script: "系统未能生成有效剧本，请直接开始白天。",
+            instruction: "这是紧急兜底模式。"
+          }
+        }
+      ];
+    }
+
+    console.log("✅ Generated Timeline (handlePreStartNight):", newTimeline);
+
+    // 4. BATCH STATE UPDATES (Order matters!)
+    // Reset steps first
+    setCurrentStepIndex(0);
+
+    // Set the timeline data
+    setTimeline(newTimeline);
+
+    // Finally, switch the view into the first night phase
+    setGamePhase("firstNight");
+
+    // Save to history so we can step back if needed
+    saveHistory();
+  }, [compactActiveSeats, setCurrentStepIndex, setTimeline, setGamePhase, saveHistory]);
 
   // 关闭夜晚顺序预览模态框
   const closeNightOrderPreview = useCallback(() => {
@@ -1652,9 +1736,36 @@ export function useGameController() {
       // Close the modal and proceed with empty queue (game will handle it)
       setShowNightOrderModal(false);
       setPendingNightQueue(null);
-      // Set empty queue and proceed to firstNight phase
-      setWakeQueueIds([]);
-      setCurrentWakeIndex(0);
+      // Set empty timeline and proceed to firstNight phase
+      const activeSeats = compactActiveSeats();
+      if (!activeSeats) return;
+      let newTimeline = generateNightTimeline(activeSeats, true);
+      
+      // DIAGNOSTICS: Log timeline generation
+      console.log("STARTING GAME. Generated Timeline:", newTimeline);
+      
+      // CRITICAL FALLBACK: If generator returns empty (bug), add a Dawn step
+      if (!newTimeline || newTimeline.length === 0) {
+        console.warn('[confirmNightOrderPreview] Timeline was empty! Using fallback.');
+        newTimeline = [
+          {
+            id: 'dawn-step',
+            type: 'dawn',
+            order: 999,
+            isFirstNight: true,
+            content: {
+              title: '天亮了',
+              script: '大家都醒一醒，天亮了...',
+              instruction: '宣布昨晚的死亡情况。',
+            },
+          }
+        ];
+        console.log("STARTING GAME. Generated Timeline (FALLBACK):", newTimeline);
+      }
+      
+      console.log('[confirmNightOrderPreview] Setting Timeline:', newTimeline);
+      setTimeline(newTimeline);
+      setCurrentStepIndex(0);
       setSelectedActionTargets([]);
       setInspectionResult(null);
       setGamePhase('firstNight');
@@ -1662,10 +1773,50 @@ export function useGameController() {
       return;
     }
     console.log('[confirmNightOrderPreview] Confirming night order with', pendingNightQueue.length, 'roles');
-    // 使用 nightLogic 的 finalizeNightStart 来正确设置 wakeQueueIds
-    // This is synchronous - wakeQueueIds will be set before phase changes
-    nightLogic.finalizeNightStart(pendingNightQueue, true);
-  }, [pendingNightQueue, nightLogic, setShowNightOrderModal, setPendingNightQueue, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, addLog]);
+    // Generate timeline from active seats
+    const activeSeats = pendingNightQueue
+      .filter(s => s.role)
+      .map((s, index) => ({ ...s, id: index }));
+    if (activeSeats.length === 0) {
+      console.error("No roles assigned!");
+      setShowNightOrderModal(false);
+      setPendingNightQueue(null);
+      return;
+    }
+    setSeats(activeSeats);
+    let newTimeline = generateNightTimeline(activeSeats, true);
+    
+    // DIAGNOSTICS: Log timeline generation
+    console.log("STARTING GAME. Generated Timeline:", newTimeline);
+    
+    // CRITICAL FALLBACK: If generator returns empty (bug), add a Dawn step
+    if (!newTimeline || newTimeline.length === 0) {
+      console.warn('[confirmNightOrderPreview] Timeline was empty! Using fallback.');
+      newTimeline = [
+        {
+          id: 'dawn-step',
+          type: 'dawn',
+          order: 999,
+          isFirstNight: true,
+          content: {
+            title: '天亮了',
+            script: '大家都醒一醒，天亮了...',
+            instruction: '宣布昨晚的死亡情况。',
+          },
+        }
+      ];
+      console.log("STARTING GAME. Generated Timeline (FALLBACK):", newTimeline);
+    }
+    
+    console.log('[confirmNightOrderPreview] Setting Timeline:', newTimeline);
+    setTimeline(newTimeline);
+    setCurrentStepIndex(0);
+    setSelectedActionTargets([]);
+    setInspectionResult(null);
+    setGamePhase('firstNight');
+    setShowNightOrderModal(false);
+    setPendingNightQueue(null);
+  }, [pendingNightQueue, compactActiveSeats, setShowNightOrderModal, setPendingNightQueue, setTimeline, setCurrentStepIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, addLog, setSeats]);
 
   // 确认酒鬼伪装角色选择
   const confirmDrunkCharade = useCallback((role: Role) => {
@@ -1781,41 +1932,87 @@ export function useGameController() {
     });
   }, [cleanseSeatStatuses]);
 
-  // 将玩家插入到当前唤醒队列之后（按夜晚顺序）
+  // 将玩家插入到当前时间线之后（按夜晚顺序）
   const insertIntoWakeQueueAfterCurrent = useCallback((seatId: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => {
     if (!['night','firstNight'].includes(gamePhase)) return;
-    let inserted = false;
-    setWakeQueueIds(prev => {
-      if (prev.includes(seatId)) return prev;
-      const processed = prev.slice(0, currentWakeIndex + 1);
-      if (processed.includes(seatId)) return prev;
+    const isFirstNight = gamePhase === 'firstNight';
+    
+    setTimeline(prev => {
+      // 检查是否已经在时间线中
+      if (prev.some(step => step.type === 'character' && step.seatId === seatId)) {
+        return prev;
+      }
+      
+      // 检查是否已经在已处理的步骤中
+      const processedSteps = prev.slice(0, currentStepIndex + 1);
+      if (processedSteps.some(step => step.type === 'character' && step.seatId === seatId)) {
+        return prev;
+      }
+      
       const seatsSnapshot = seatsRef.current || seats;
       const target = seatsSnapshot.find(s => s.id === seatId);
       const roleSource = opts?.roleOverride || (target?.role?.id === 'drunk' ? target.charadeRole || target.role : target?.role);
       if (!roleSource) return prev;
-      const order = gamePhase === 'firstNight' ? (roleSource.firstNightOrder || 0) : (roleSource.otherNightOrder || 0);
+      
+      const order = isFirstNight ? (roleSource.firstNightOrder || 0) : (roleSource.otherNightOrder || 0);
       if (order <= 0) return prev;
-      const rest = prev.slice(currentWakeIndex + 1);
-      const getOrder = (id: number) => {
-        const s = seatsSnapshot.find(x => x.id === id);
+      
+      // 获取剩余未处理的步骤
+      const remainingSteps = prev.slice(currentStepIndex + 1).filter(step => step.type !== 'dawn');
+      const dawnStep = prev.find(step => step.type === 'dawn');
+      
+      // 创建新的时间线步骤
+      const title = roleSource.name || '未知角色';
+      const script = `${seatId + 1}号玩家，${roleSource.name}`;
+      const instruction = isFirstNight 
+        ? `首夜行动：${roleSource.name}`
+        : `夜晚行动：${roleSource.name}`;
+      
+      const newStep: TimelineStep = {
+        id: `step_dynamic_${seatId}_${Date.now()}`,
+        type: 'character',
+        roleId: roleSource.id,
+        seatId: seatId,
+        order: order,
+        isFirstNight: isFirstNight,
+        content: {
+          title: title,
+          script: script,
+          instruction: instruction,
+        },
+      };
+      
+      // 找到正确的插入位置（按order排序）
+      const getStepOrder = (step: TimelineStep) => {
+        if (step.type !== 'character' || step.seatId === undefined) return Number.MAX_SAFE_INTEGER;
+        const s = seatsSnapshot.find(x => x.id === step.seatId);
         if (!s || !s.role) return Number.MAX_SAFE_INTEGER;
         const r = s.role.id === 'drunk' ? s.charadeRole || s.role : s.role;
-        return gamePhase === 'firstNight' ? (r?.firstNightOrder ?? Number.MAX_SAFE_INTEGER) : (r?.otherNightOrder ?? Number.MAX_SAFE_INTEGER);
+        return isFirstNight ? (r?.firstNightOrder ?? Number.MAX_SAFE_INTEGER) : (r?.otherNightOrder ?? Number.MAX_SAFE_INTEGER);
       };
-      const insertAt = rest.findIndex(id => order < getOrder(id));
-      const nextRest = [...rest];
-      if (insertAt >= 0) {
-        nextRest.splice(insertAt, 0, seatId);
+      
+      const insertIndex = remainingSteps.findIndex(step => order < getStepOrder(step));
+      const newRemainingSteps = [...remainingSteps];
+      if (insertIndex >= 0) {
+        newRemainingSteps.splice(insertIndex, 0, newStep);
       } else {
-        nextRest.push(seatId);
+        newRemainingSteps.push(newStep);
       }
-      inserted = true;
-      return [...processed, ...nextRest];
+      
+      // 重建时间线：已处理的步骤 + 新的剩余步骤 + dawn步骤
+      const newTimeline = [
+        ...processedSteps,
+        ...newRemainingSteps,
+        ...(dawnStep ? [dawnStep] : [])
+      ];
+      
+      if (opts?.logLabel) {
+        addLog(`${opts.logLabel} 已加入本夜唤醒队列`);
+      }
+      
+      return newTimeline;
     });
-    if (inserted && opts?.logLabel) {
-      addLog(`${opts.logLabel} 已加入本夜唤醒队列`);
-    }
-  }, [gamePhase, currentWakeIndex, seats, addLog, setWakeQueueIds]);
+  }, [gamePhase, currentStepIndex, seats, addLog, setTimeline]);
 
   // 将目标玩家转为邪恶阵营（灵言师关键词触发）
   const convertPlayerToEvil = useCallback((targetId: number) => {
@@ -1837,8 +2034,26 @@ export function useGameController() {
   // ======================================================================
   
   // Handle confirm action for night actions
-  const handleConfirmAction = useCallback(() => {
-    if(!nightInfo) return;
+  const handleConfirmAction = useCallback((consoleSelectedIds?: number[]) => {
+    console.log('[handleConfirmAction] Triggered. Current step:', currentStepIndex, 'nightInfo:', nightInfo ? 'exists' : 'null', 'consoleSelectedIds:', consoleSelectedIds);
+    
+    // If console provided selections, use them to update selectedActionTargets
+    if (consoleSelectedIds && consoleSelectedIds.length > 0) {
+      console.log('[handleConfirmAction] Using console selections:', consoleSelectedIds);
+      setSelectedActionTargets(consoleSelectedIds);
+      // Continue processing with the new selections
+      // We'll process them in the next part of the function
+    }
+    
+    if(!nightInfo) {
+      console.warn('[handleConfirmAction] No nightInfo, returning early');
+      return;
+    }
+    
+    // Use console selections if provided, otherwise use existing selectedActionTargets
+    const targetIdsToUse = consoleSelectedIds && consoleSelectedIds.length > 0 
+      ? consoleSelectedIds 
+      : selectedActionTargets;
     
     // ===========================
     //      新架构：优先检查角色注册表
@@ -1855,7 +2070,7 @@ export function useGameController() {
         currentSeats: seats,
         roleId: currentRoleId,
         performerId: nightInfo.seat.id,
-        targetIds: selectedActionTargets,
+        targetIds: targetIdsToUse,
         gamePhase,
         nightCount,
       });
@@ -1893,12 +2108,125 @@ export function useGameController() {
     }
     
     // ===========================
+    //      处理控制台选择的目标（新交互系统）
+    // ===========================
+    // If console provided selections, apply effects immediately
+    if (consoleSelectedIds && consoleSelectedIds.length > 0) {
+      const actorSeatId = nightInfo.seat.id;
+      const actorRoleId = nightInfo.effectiveRole.id;
+      
+      // Log the action
+      const targetNames = consoleSelectedIds.map(id => `${id + 1}号`).join('、');
+      addLog(`${actorSeatId + 1}号(${nightInfo.effectiveRole.name}) 选择了 ${targetNames}`);
+      
+      // Apply effects based on role
+      if (actorRoleId === 'poisoner') {
+        // Poisoner: Poison the selected target
+        if (consoleSelectedIds.length === 1) {
+          const targetId = consoleSelectedIds[0];
+          const targetSeat = seats.find(s => s.id === targetId);
+          if (targetSeat && !targetSeat.isDead) {
+            // Check if target is evil (poisoner can't poison evil)
+            if (isEvil(targetSeat)) {
+              // This should trigger the poison evil confirmation modal
+              setShowPoisonEvilConfirmModal(targetId);
+              setSelectedActionTargets(consoleSelectedIds);
+              return;
+            }
+            // Apply poison
+            setSeats(prev => prev.map(s => {
+              if (s.id !== targetId) return s;
+              const details = s.statusDetails || [];
+              const hasPoisonMark = details.some(d => d.includes('投毒'));
+              return {
+                ...s,
+                isPoisoned: true,
+                statusDetails: hasPoisonMark ? details : [...details, '投毒（至下个夜晚清除）'],
+                statuses: [...(s.statuses || []), { effect: 'Poison', duration: 'until_dawn' }]
+              };
+            }));
+            addLog(`${targetId + 1}号被投毒，信息可能错误`);
+          }
+        }
+      } else if (actorRoleId === 'monk') {
+        // Monk: Protect the selected target
+        if (consoleSelectedIds.length === 1) {
+          const targetId = consoleSelectedIds[0];
+          setSeats(prev => prev.map(s => {
+            if (s.id !== targetId) return s;
+            return {
+              ...s,
+              isProtected: true,
+              protectedBy: actorSeatId,
+              statuses: [...(s.statuses || []), { effect: 'Protected', duration: 'until_dawn' }]
+            };
+          }));
+          addLog(`${actorSeatId + 1}号(僧侣) 保护了 ${targetId + 1}号，${targetId + 1}号今晚不会被恶魔杀死`);
+        }
+      } else if (actorRoleId === 'fortune_teller') {
+        // Fortune Teller: Inspect two targets (handled by existing logic, but log it)
+        if (consoleSelectedIds.length === 2) {
+          setSelectedActionTargets(consoleSelectedIds);
+          // The inspection result will be handled by existing logic
+        }
+      } else if (actorRoleId === 'washerwoman' && gamePhase === 'firstNight') {
+        // Washerwoman: Show two players (handled by existing logic)
+        if (consoleSelectedIds.length === 2) {
+          setSelectedActionTargets(consoleSelectedIds);
+        }
+      } else if (actorRoleId === 'seamstress') {
+        // Seamstress: Check if two players are same alignment
+        if (consoleSelectedIds.length === 2) {
+          setSelectedActionTargets(consoleSelectedIds);
+        }
+      } else if (actorRoleId === 'imp' && gamePhase !== 'firstNight') {
+        // Imp: Kill the selected target
+        if (consoleSelectedIds.length === 1) {
+          const targetId = consoleSelectedIds[0];
+          killPlayer(targetId, { sourceId: actorSeatId, sourceRole: 'imp' });
+        }
+      } else if (actorRoleId === 'pukka' && gamePhase !== 'firstNight') {
+        // Pukka: Poison the selected target
+        if (consoleSelectedIds.length === 1) {
+          const targetId = consoleSelectedIds[0];
+          setSeats(prev => prev.map(s => {
+            if (s.id !== targetId) return s;
+            const details = s.statusDetails || [];
+            const hasPoisonMark = details.some(d => d.includes('普卡中毒'));
+            return {
+              ...s,
+              isPoisoned: true,
+              statusDetails: hasPoisonMark ? details : [...details, '普卡中毒（至下个夜晚清除）'],
+              statuses: [...(s.statuses || []), { effect: 'Poison', duration: 'until_dawn' }]
+            };
+          }));
+          addLog(`${targetId + 1}号被普卡投毒，将在下一个夜晚开始前死亡并恢复健康`);
+        }
+      } else if (actorRoleId === 'hadesia' && gamePhase !== 'firstNight') {
+        // Hadesia: Kill up to 3 targets
+        if (consoleSelectedIds.length > 0 && consoleSelectedIds.length <= 3) {
+          setSelectedActionTargets(consoleSelectedIds);
+          // This will trigger the Hadesia kill confirmation modal
+          setShowHadesiaKillConfirmModal({ targetIds: consoleSelectedIds });
+          return;
+        }
+      }
+      
+      // Clear selections after applying effects
+      setSelectedActionTargets([]);
+      
+      // Continue to next action
+      continueToNextAction();
+      return;
+    }
+    
+    // ===========================
     //      旧架构：继续执行原有逻辑
     // ===========================
     // 麻脸巫婆选择玩家与目标角色进行变
     if (nightInfo.effectiveRole.id === 'pit_hag_mr') {
-      if (selectedActionTargets.length !== 1) return;
-      const targetId = selectedActionTargets[0];
+      if (targetIdsToUse.length !== 1) return;
+      const targetId = targetIdsToUse[0];
       if (!showPitHagModal) {
         setShowPitHagModal({ targetId, roleId: null });
         return;
@@ -1974,10 +2302,10 @@ export function useGameController() {
         continueToNextAction();
         return;
       }
-      if (selectedActionTargets.length !== 1) {
+      if (targetIdsToUse.length !== 1) {
         return; // 需选择一名死亡玩
       }
-      const targetId = selectedActionTargets[0];
+      const targetId = targetIdsToUse[0];
       const targetSeat = seats.find(s => s.id === targetId);
       if (!targetSeat || !targetSeat.isDead) return;
       const targetRole = targetSeat.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat.role;
@@ -2015,8 +2343,8 @@ export function useGameController() {
         continueToNextAction();
         return;
       }
-      if (selectedActionTargets.length !== 1) return;
-      const targetId = selectedActionTargets[0];
+      if (targetIdsToUse.length !== 1) return;
+      const targetId = targetIdsToUse[0];
       const targetSeat = seats.find(s => s.id === targetId);
       if (!targetSeat || targetSeat.isDead) return;
       const targetRoleId = getSeatRoleId(targetSeat);
@@ -2033,8 +2361,8 @@ export function useGameController() {
 
     // 沙巴洛斯每晚选择两名玩家杀死暂不实现复活效果
     if (nightInfo.effectiveRole.id === 'shabaloth' && gamePhase !== 'firstNight') {
-      if (selectedActionTargets.length !== 2) return;
-      const targets = [...selectedActionTargets];
+      if (targetIdsToUse.length !== 2) return;
+      const targets = [...targetIdsToUse];
       setSelectedActionTargets([]);
       let remaining = targets.length;
       targets.forEach((tid, idx) => {
@@ -2057,7 +2385,7 @@ export function useGameController() {
     if (nightInfo.effectiveRole.id === 'po' && gamePhase !== 'firstNight') {
       const seatId = nightInfo?.seat?.id ?? 0;
       const charged = poChargeState[seatId] === true;
-      const uniqueTargets = Array.from(new Set(selectedActionTargets));
+      const uniqueTargets = Array.from(new Set(targetIdsToUse));
 
       // 未蓄力允许0个目标0=本夜不杀死蓄力=普通杀一
       if (!charged) {
@@ -2103,8 +2431,8 @@ export function useGameController() {
 
     // 旅店老板确认两名目标给予保护并随机致醉一
     if (nightInfo.effectiveRole.id === 'innkeeper' && gamePhase !== 'firstNight') {
-      if (selectedActionTargets.length !== 2) return;
-      const [aId, bId] = selectedActionTargets;
+      if (targetIdsToUse.length !== 2) return;
+      const [aId, bId] = targetIdsToUse;
       setSelectedActionTargets([]);
       const drunkTargetId = Math.random() < 0.5 ? aId : bId;
       setSeats(prev => prev.map(s => {
@@ -2467,8 +2795,11 @@ export function useGameController() {
             return s;
           });
           
-          // 从唤醒队列中移除已死亡的原小恶魔
-          setWakeQueueIds(prev => prev.filter(id => id !== impSeat.id));
+          // 从时间线中移除已死亡的原小恶魔
+          setTimeline(prev => prev.filter(step => {
+            if (step.type === 'character' && step.seatId === impSeat.id) return false;
+            return true;
+          }));
           
           return updatedSeats;
         });
@@ -2520,7 +2851,7 @@ export function useGameController() {
     setShowKillConfirmModal(null);
     if (moonchildChainPendingRef.current) return;
     continueToNextAction();
-  }, [nightInfo, showKillConfirmModal, seats, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, setShowKillConfirmModal, setSelectedActionTargets, continueToNextAction, getRandom, roles, setSeats, setWakeQueueIds, seatsRef, checkGameOver, setDeadThisNight, enqueueRavenkeeperIfNeeded, killPlayer, nightLogic, moonchildChainPendingRef]);
+  }, [nightInfo, showKillConfirmModal, seats, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, setShowKillConfirmModal, setSelectedActionTargets, continueToNextAction, getRandom, roles, setSeats, setTimeline, seatsRef, checkGameOver, setDeadThisNight, enqueueRavenkeeperIfNeeded, killPlayer, nightLogic, moonchildChainPendingRef]);
 
   // Submit votes handler
   const submitVotes = useCallback((v: number) => {
@@ -2962,9 +3293,8 @@ export function useGameController() {
       addLog('未选择"生"的玩家，未触发死亡');
     }
 
-    // 保存当前唤醒索引用于后续继续流
-    const currentWakeIdx = currentWakeIndex;
-    const currentWakeQueue = [...wakeQueueIds];
+    // 保存当前步骤索引用于后续继续流
+    const currentStepIdx = currentStepIndex;
 
     setShowHadesiaKillConfirmModal(null);
     setSelectedActionTargets([]);
@@ -2980,18 +3310,19 @@ export function useGameController() {
               addLog(`${nightInfo?.seat.id+1 || ''}号(${demonName}) 处决${finalTargets.map(x=>`${x+1}号`).join('、')}`);
               // 延迟执行确保状态更新完
               setTimeout(() => {
-                // 使用 setWakeQueueIds 的回调形式来获取最新的队列状
-                setWakeQueueIds(prevQueue => {
+                // 使用 setTimeline 的回调形式来获取最新的时间线状态
+                setTimeline(prevTimeline => {
                   // 过滤掉已死亡的玩家killPlayer 已经移除了死亡的玩家但这里再次确认
-                  const filteredQueue = prevQueue.filter(id => {
-                    const seat = latestSeats?.find(s => s.id === id);
+                  const filteredTimeline = prevTimeline.filter(step => {
+                    if (step.type !== 'character' || step.seatId === undefined) return true;
+                    const seat = latestSeats?.find(s => s.id === step.seatId);
                     return seat && !seat.isDead;
                   });
                   
-                  // 如果当前索引超出范围或没有更多角色结束夜晚
-                  if (currentWakeIdx >= filteredQueue.length - 1 || filteredQueue.length === 0) {
-                    // 清空队列并重置索
-                    setCurrentWakeIndex(0);
+                  // 如果当前索引超出范围或没有更多步骤结束夜晚
+                  if (currentStepIdx >= filteredTimeline.length - 1 || filteredTimeline.length === 0) {
+                    // 清空时间线并重置索引
+                    setCurrentStepIndex(0);
                     // 延迟显示死亡报告确保状态更新完
                     setTimeout(() => {
                       if (deadThisNight.length > 0) {
@@ -3003,9 +3334,9 @@ export function useGameController() {
                     }, 50);
                     return [];
                   } else {
-                    // 继续下一个行
+                    // 继续下一个行动
                     setTimeout(() => continueToNextAction(), 50);
-                    return filteredQueue;
+                    return filteredTimeline;
                   }
                 });
               }, 100);
@@ -3016,7 +3347,7 @@ export function useGameController() {
     } else {
       continueToNextAction();
     }
-  }, [nightInfo, showHadesiaKillConfirmModal, hadesiaChoices, currentWakeIndex, wakeQueueIds, deadThisNight, killPlayer, continueToNextAction, getDemonDisplayName, addLog, setShowHadesiaKillConfirmModal, setSelectedActionTargets, setHadesiaChoices, setWakeQueueIds, setCurrentWakeIndex, setShowNightDeathReportModal]);
+  }, [nightInfo, showHadesiaKillConfirmModal, hadesiaChoices, currentStepIndex, deadThisNight, killPlayer, continueToNextAction, getDemonDisplayName, addLog, setShowHadesiaKillConfirmModal, setSelectedActionTargets, setHadesiaChoices, setTimeline, setCurrentStepIndex, setShowNightDeathReportModal]);
 
   const confirmSaintExecution = useCallback(() => {
     if (!showSaintExecutionConfirmModal) return;
@@ -3397,8 +3728,8 @@ export function useGameController() {
     setSelectedScript(null);
     setNightCount(1);
     setExecutedPlayerId(null);
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
+    setTimeline([]);
+    setCurrentStepIndex(0);
     setSelectedActionTargets([]);
     // 注意这里不清空gameLogs保留游戏记录用户可以在复盘时查看
     setWinResult(null);
@@ -3443,7 +3774,7 @@ export function useGameController() {
       zombuulLives: 1
     })));
     setInitialSeats([]);
-  }, [gamePhase, selectedScript, gameLogs, nightCount, startTime, timer, seats, saveGameRecord, triggerIntroLoading, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setWinResult, setDeadThisNight, setPukkaPoisonQueue, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setHistory, setWinReason, hintCacheRef, drunkFirstInfoRef, resetRegistrationCache, setAutoRedHerringInfo, setShowNightOrderModal, setNightOrderPreview, setPendingNightQueue, setSeats, setInitialSeats]);
+  }, [gamePhase, selectedScript, gameLogs, nightCount, startTime, timer, seats, saveGameRecord, triggerIntroLoading, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setTimeline, setCurrentStepIndex, setSelectedActionTargets, setWinResult, setDeadThisNight, setPukkaPoisonQueue, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setHistory, setWinReason, hintCacheRef, drunkFirstInfoRef, resetRegistrationCache, setAutoRedHerringInfo, setShowNightOrderModal, setNightOrderPreview, setPendingNightQueue, setSeats, setInitialSeats]);
 
   const handleNewGame = useCallback(() => {
     triggerIntroLoading();
@@ -3451,8 +3782,8 @@ export function useGameController() {
     setSelectedScript(null);
     setNightCount(1);
     setExecutedPlayerId(null);
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
+    setTimeline([]);
+    setCurrentStepIndex(0);
     setSelectedActionTargets([]);
     setGameLogs([]);
     setWinResult(null);
@@ -3499,30 +3830,33 @@ export function useGameController() {
       zombuulLives: 1
     })));
     setInitialSeats([]);
-  }, [triggerIntroLoading, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setGameLogs, setWinResult, setDeadThisNight, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setHistory, setWinReason, hintCacheRef, drunkFirstInfoRef, resetRegistrationCache, setAutoRedHerringInfo, setShowNightOrderModal, setNightOrderPreview, setPendingNightQueue, setBaronSetupCheck, setIgnoreBaronSetup, setShowMinionKnowDemonModal, setSeats, setInitialSeats]);
+  }, [triggerIntroLoading, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setTimeline, setCurrentStepIndex, setSelectedActionTargets, setGameLogs, setWinResult, setDeadThisNight, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setHistory, setWinReason, hintCacheRef, drunkFirstInfoRef, resetRegistrationCache, setAutoRedHerringInfo, setShowNightOrderModal, setNightOrderPreview, setPendingNightQueue, setBaronSetupCheck, setIgnoreBaronSetup, setShowMinionKnowDemonModal, setSeats, setInitialSeats]);
 
   const handleStepBack = useCallback(() => {
-    if (currentWakeIndex > 0) {
-      setCurrentWakeIndex(currentWakeIndex - 1);
+    console.log('[handleStepBack] Triggered. Current step:', currentStepIndex, 'History length:', history.length);
+    if (currentStepIndex > 0) {
+      console.log('[handleStepBack] Moving back to step:', currentStepIndex - 1);
+      setCurrentStepIndex(currentStepIndex - 1);
       // hint 会从缓存中恢复不重新生
     }
     // 如果已经是第一个但还有历史记录可以继续后退到上一个阶
     else if (history.length > 0) {
+      console.log('[handleStepBack] Restoring from history');
       const lastState = history[history.length - 1];
-      // 如果上一个状态是夜晚阶段恢复并设置到最后一个唤醒索
-      if (lastState.gamePhase === gamePhase && lastState.wakeQueueIds.length > 0) {
+      // 如果上一个状态是夜晚阶段恢复并设置到最后一个步骤索
+      if (lastState.gamePhase === gamePhase && lastState.timeline.length > 0) {
         setSeats(lastState.seats);
         setGamePhase(lastState.gamePhase);
         setNightCount(lastState.nightCount);
         setExecutedPlayerId(lastState.executedPlayerId);
-        setWakeQueueIds(lastState.wakeQueueIds);
-        setCurrentWakeIndex(Math.max(0, lastState.wakeQueueIds.length - 1));
+        setTimeline(lastState.timeline);
+        setCurrentStepIndex(Math.max(0, lastState.timeline.length - 1));
         setSelectedActionTargets(lastState.selectedActionTargets);
         setGameLogs(lastState.gameLogs);
         setHistory(prev => prev.slice(0, -1));
       }
     }
-  }, [currentWakeIndex, history, gamePhase, setCurrentWakeIndex, setSeats, setGamePhase, setNightCount, setExecutedPlayerId, setWakeQueueIds, setSelectedActionTargets, setGameLogs, setHistory]);
+  }, [currentStepIndex, history, gamePhase, setCurrentStepIndex, setSeats, setGamePhase, setNightCount, setExecutedPlayerId, setTimeline, setSelectedActionTargets, setGameLogs, setHistory]);
 
   const handleGlobalUndo = useCallback(() => {
     // 如果选择剧本"页面无
@@ -3536,8 +3870,8 @@ export function useGameController() {
       setSelectedScript(null);
       setNightCount(1);
       setExecutedPlayerId(null);
-      setWakeQueueIds([]);
-      setCurrentWakeIndex(0);
+      setTimeline([]);
+      setCurrentStepIndex(0);
       setSelectedActionTargets([]);
       setGameLogs([]);
       setWinResult(null);
@@ -3582,8 +3916,8 @@ export function useGameController() {
     setGamePhase(lastState.gamePhase);
     setNightCount(lastState.nightCount);
     setExecutedPlayerId(lastState.executedPlayerId);
-    setWakeQueueIds(lastState.wakeQueueIds);
-    setCurrentWakeIndex(lastState.currentWakeIndex);
+    setTimeline(lastState.timeline);
+    setCurrentStepIndex(lastState.currentStepIndex);
     setSelectedActionTargets(lastState.selectedActionTargets);
     setGameLogs(lastState.gameLogs);
     setSelectedScript(lastState.selectedScript); // 恢复选中的剧
@@ -3594,7 +3928,7 @@ export function useGameController() {
     // 不恢hint让 useEffect 重新计算这样信息会重新生成
     
     setHistory(prev => prev.slice(0, -1));
-  }, [gamePhase, history, hintCacheRef, drunkFirstInfoRef, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setGameLogs, setWinResult, setWinReason, setDeadThisNight, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setSeats, setInitialSeats, setHistory]);
+  }, [gamePhase, history, hintCacheRef, drunkFirstInfoRef, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setTimeline, setCurrentStepIndex, setSelectedActionTargets, setGameLogs, setWinResult, setWinReason, setDeadThisNight, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setSeats, setInitialSeats, setHistory]);
 
   // ===========================
   // Group D: Seat Interaction functions
@@ -3837,6 +4171,126 @@ export function useGameController() {
     isEvil
   ]);
 
+  // Handle next step with selected seat IDs
+  // NOTE: This function must be defined AFTER all its dependencies (killPlayer, continueToNextAction, etc.)
+  const handleNextStep = useCallback((selectedSeatIds: number[] = []) => {
+    // 1. Safety Checks
+    if (!timeline || currentStepIndex >= timeline.length) {
+      console.warn('[handleNextStep] Invalid timeline or step index');
+      return;
+    }
+
+    const currentStep = timeline[currentStepIndex];
+    if (!currentStep) {
+      console.warn('[handleNextStep] Current step is null');
+      return;
+    }
+
+    console.log(`[handleNextStep] Step ${currentStepIndex} Finished. Selection:`, selectedSeatIds);
+
+    // 2. APPLY SKILL EFFECTS (Interaction Logic)
+    // Example: Poisoner
+    if (currentStep.roleId === 'poisoner' && selectedSeatIds.length > 0) {
+      const targetId = selectedSeatIds[0];
+      const targetSeat = seats.find(s => s.id === targetId);
+      console.log(`🧪 Poisoner poisoned seat ${targetId}`);
+      
+      // Check if target is evil (poisoner can't poison evil)
+      if (targetSeat && !targetSeat.isDead && isEvil(targetSeat)) {
+        // This should trigger the poison evil confirmation modal
+        setShowPoisonEvilConfirmModal(targetId);
+        setSelectedActionTargets(selectedSeatIds);
+        return; // Return early to show modal
+      }
+      
+      // Update Seat Status (non-evil target)
+      setSeats(prev => prev.map(seat => {
+        if (seat.id === targetId && !seat.isDead) {
+          const clearTime = '次日黄昏'; // until_dusk
+          // Use helper if available, or manual update
+          // Ensuring we don't break existing structure
+          const details = [...(seat.statusDetails || []), '中毒(临时)'];
+          return { 
+            ...seat, 
+            isPoisoned: true, // Force poison for now
+            statusDetails: details
+          };
+        }
+        return seat;
+      }));
+      addLog(`投毒者对 ${targetId + 1} 号玩家下毒`);
+    } else if (currentStep.roleId === 'monk' && selectedSeatIds.length > 0) {
+      // Monk: Protect the selected target
+      const targetId = selectedSeatIds[0];
+      const actorSeatId = currentStep.seatId;
+      if (actorSeatId !== undefined) {
+        setSeats(prev => prev.map(s => {
+          if (s.id === targetId) {
+            return {
+              ...s,
+              isProtected: true,
+              protectedBy: actorSeatId,
+              statuses: [...(s.statuses || []), { effect: 'Protected', duration: 'until_dawn' }]
+            };
+          }
+          return s;
+        }));
+        addLog(`${actorSeatId + 1}号(僧侣) 保护了 ${targetId + 1}号，${targetId + 1}号今晚不会被恶魔杀死`);
+      }
+    } else if (currentStep.roleId === 'imp' && gamePhase !== 'firstNight' && selectedSeatIds.length > 0) {
+      // Imp: Kill the selected target
+      const targetId = selectedSeatIds[0];
+      const actorSeatId = currentStep.seatId;
+      if (actorSeatId !== undefined) {
+        killPlayer(targetId, { sourceId: actorSeatId, sourceRole: 'imp' });
+      }
+    } else if (currentStep.roleId === 'innkeeper' && selectedSeatIds.length === 2) {
+      // Innkeeper: Protect two players, one gets drunk
+      const actorSeatId = currentStep.seatId;
+      if (actorSeatId !== undefined) {
+        // Randomly select one to be drunk
+        const drunkTargetId = selectedSeatIds[Math.floor(Math.random() * selectedSeatIds.length)];
+        setSeats(prev => prev.map(s => {
+          if (selectedSeatIds.includes(s.id)) {
+            const isDrunk = s.id === drunkTargetId;
+            return {
+              ...s,
+              isProtected: true,
+              protectedBy: actorSeatId,
+              isDrunk: isDrunk ? true : s.isDrunk,
+              statuses: [...(s.statuses || []), { effect: 'Protected', duration: 'until_dawn' }]
+            };
+          }
+          return s;
+        }));
+        addLog(`${actorSeatId + 1}号(旅店老板) 保护了 ${selectedSeatIds.map(id => id + 1).join('、')}号，其中${drunkTargetId + 1}号醉酒到下个黄昏`);
+      }
+    } else if (currentStep.roleId === 'butler' && selectedSeatIds.length > 0) {
+      // Butler: Select master (just log for now, actual logic may be more complex)
+      const masterId = selectedSeatIds[0];
+      const actorSeatId = currentStep.seatId;
+      if (actorSeatId !== undefined) {
+        addLog(`${actorSeatId + 1}号(管家) 选择了 ${masterId + 1}号作为主人`);
+      }
+    } else if (currentStep.roleId === 'fortune_teller' && selectedSeatIds.length === 2) {
+      // Fortune Teller: Inspect two targets (handled by existing logic)
+      setSelectedActionTargets(selectedSeatIds);
+      // The inspection result will be handled by existing logic
+    }
+
+    // 3. Move to Next Step
+    // Use existing continueToNextAction logic if compatible, or manual increment
+    if (currentStepIndex < timeline.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+      // Reset selection for next step
+      setSelectedActionTargets([]);
+    } else {
+      // END OF NIGHT
+      console.log("☀️ Night Ended. Transitioning to Day.");
+      confirmNightDeathReport(); // Use existing handler to transition phase
+    }
+  }, [timeline, currentStepIndex, gamePhase, seats, setSeats, addLog, killPlayer, setSelectedActionTargets, setShowPoisonEvilConfirmModal, setCurrentStepIndex, confirmNightDeathReport, isEvil]);
+
   // Return all state and handlers needed by the UI
   return {
     // State
@@ -3897,6 +4351,7 @@ export function useGameController() {
     
     // Modal and action handlers
     handleConfirmAction,
+    handleNextStep,
     executePlayer,
     confirmKill,
     submitVotes,

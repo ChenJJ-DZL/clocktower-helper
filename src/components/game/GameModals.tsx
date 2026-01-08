@@ -133,7 +133,8 @@ export interface GameModalsProps {
   remainingDays: number | null;
   cerenovusTarget: number | null;
   nightCount: number;
-  currentWakeIndex: number;
+  currentStepIndex: number;
+  timeline: import("../../types/game").TimelineStep[];
   history: Array<{ seats: Seat[]; gamePhase: GamePhase }>;
   isConfirmDisabled: boolean;
   

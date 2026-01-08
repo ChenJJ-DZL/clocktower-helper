@@ -85,12 +85,14 @@ export function RoundTable({
       
       // Calculate radius: (availableSize / 2) - (seatSize / 2) - some margin
       // Convert to percentage for the 100x100 coordinate system
-      // Reduced margin to ensure seats don't get cut off
-      const availableRadius = (availableSize / 2) - (seatSizePx / 2) - 15; // 15px margin
+      // Reduced margin to ensure seats don't get cut off, and reduce radius by 20-30px to push seats inward
+      const margin = 20; // Increased margin for larger seats
+      const radiusReduction = 30; // Push seats inward by reducing radius
+      const availableRadius = (availableSize / 2) - (seatSizePx / 2) - margin - radiusReduction;
       const radiusPercent = (availableRadius / minDimension) * 100;
       
-      // Ensure radius is reasonable (between 20% and 35% - reduced to fit larger seats)
-      const clampedRadius = Math.max(20, Math.min(35, radiusPercent));
+      // Ensure radius is reasonable (between 15% and 30% - reduced to fit larger seats and push them inward)
+      const clampedRadius = Math.max(15, Math.min(30, radiusPercent));
       
       setRadius(clampedRadius);
       setSeatSize(seatSizePx);

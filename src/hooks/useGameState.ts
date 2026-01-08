@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Seat, Role, GamePhase, WinResult, LogEntry, Script } from "../../app/data";
-import { NightHintState, GameRecord } from "../types/game";
+import { NightHintState, GameRecord, TimelineStep } from "../types/game";
 import { RegistrationResult } from "../utils/gameRules";
 
 /**
@@ -40,8 +40,8 @@ export function useGameState() {
   const seatContainerRef = useRef<HTMLDivElement | null>(null); // 椭圆桌容器
   const seatRefs = useRef<Record<number, HTMLDivElement | null>>({}); // 每个座位元素引用
   
-  const [wakeQueueIds, setWakeQueueIds] = useState<number[]>([]);
-  const [currentWakeIndex, setCurrentWakeIndex] = useState(0);
+  const [timeline, setTimeline] = useState<TimelineStep[]>([]);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [selectedActionTargets, setSelectedActionTargets] = useState<number[]>([]);
   const [inspectionResult, setInspectionResult] = useState<string | null>(null);
   const [inspectionResultKey, setInspectionResultKey] = useState(0); // 占卜师结果刷新用，强制重新渲染结果弹窗
@@ -199,8 +199,8 @@ export function useGameState() {
     gamePhase: GamePhase;
     nightCount: number;
     executedPlayerId: number | null;
-    wakeQueueIds: number[];
-    currentWakeIndex: number;
+    timeline: TimelineStep[];
+    currentStepIndex: number;
     selectedActionTargets: number[];
     gameLogs: LogEntry[];
     currentHint?: NightHintState; // 保存 hint 信息
@@ -224,8 +224,8 @@ export function useGameState() {
     gamePhase,
     nightCount,
     executedPlayerId,
-    wakeQueueIds,
-    currentWakeIndex,
+    timeline,
+    currentStepIndex,
     selectedActionTargets,
     gameLogs,
     selectedScript
@@ -272,10 +272,10 @@ export function useGameState() {
     setShowMenu,
     longPressingSeats,
     setLongPressingSeats,
-    wakeQueueIds,
-    setWakeQueueIds,
-    currentWakeIndex,
-    setCurrentWakeIndex,
+    timeline,
+    setTimeline,
+    currentStepIndex,
+    setCurrentStepIndex,
     selectedActionTargets,
     setSelectedActionTargets,
     inspectionResult,

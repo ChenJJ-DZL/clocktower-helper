@@ -37,6 +37,37 @@ export interface GameRecord {
   gameLogs: LogEntry[]; // 游戏日志
 }
 
+// --- Timeline Architecture Types ---
+export type TimelineStepType = 'announcement' | 'character' | 'dawn';
+
+export interface TimelineInteraction {
+  type: 'choosePlayer' | 'chooseRole' | 'none';
+  amount: number; // How many to select (e.g., 1 for Poisoner, 2 for Seer)
+  required: boolean;
+  canSelf?: boolean; // Can they pick themselves?
+}
+
+export interface TimelineStep {
+  id: string;             // Unique ID (e.g., "step_1_poisoner")
+  type: TimelineStepType;
+  roleId?: string;        // The character associated (e.g., "poisoner")
+  seatId?: number;        // The seat number of the player (if applicable)
+  
+  // Static Metadata (Computed at generation time)
+  order: number;
+  isFirstNight: boolean;
+  
+  // Content for UI display
+  content: {
+    title: string;        // Step title (e.g., "投毒者")
+    script: string;       // Script text to speak (e.g., "请选择一名玩家投毒")
+    instruction: string;  // Instruction for storyteller (e.g., "等待说书人操作...")
+  };
+  
+  // Interaction Logic
+  interaction?: TimelineInteraction;
+}
+
 export const phaseNames: Record<string, string> = {
   setup: "准备阶段", 
   check: "核对身份", 

@@ -8,9 +8,10 @@ import { ControlPanel } from "../ControlPanel";
 import { GameModals } from "./GameModals";
 import { SeatGrid } from "./board/SeatGrid";
 import { RoundTable } from "./board/RoundTable";
-import { GameConsole } from "./console/GameConsole";
+import GameConsole from "./console/GameConsole";
 import { getSeatPosition } from "../../utils/gameRules";
 import { GameLayout } from "./GameLayout";
+import type { TimelineStep } from "../../types/game";
 
 // 全量重写的 GameStage 组件
 export function GameStage({ controller }: { controller: any }) {
@@ -29,8 +30,8 @@ export function GameStage({ controller }: { controller: any }) {
     longPressingSeats,
     contextMenu,
     showMenu,
-    currentWakeIndex,
-    wakeQueueIds,
+    timeline,
+    currentStepIndex,
     inspectionResult,
     inspectionResultKey,
     currentHint,
@@ -64,7 +65,6 @@ export function GameStage({ controller }: { controller: any }) {
     setShowMenu,
     setSelectedActionTargets,
     setInspectionResult,
-    setCurrentWakeIndex,
     setShowNightDeathReportModal,
     setShowDrunkModal,
     setShowDamselGuessModal,
@@ -92,6 +92,7 @@ export function GameStage({ controller }: { controller: any }) {
     handlePreStartNight,
     handleStepBack,
     handleConfirmAction,
+    handleNextStep,
     handleDayEndTransition,
     executeJudgment,
     addLog,
@@ -143,13 +144,17 @@ export function GameStage({ controller }: { controller: any }) {
     return false;
   }, [nightInfo, gamePhase, selectedActionTargets, hasUsedAbility, seats]);
 
+  // 当前步骤信息
+  const currentStep: TimelineStep | undefined = timeline && currentStepIndex >= 0 && currentStepIndex < timeline.length
+    ? timeline[currentStepIndex]
+    : undefined;
+  
   // 当前/下一个行动角色信息
   const currentWakeSeat = nightInfo ? seats.find((s: Seat) => s.id === nightInfo.seat.id) : null;
-  const nextWakeSeatId =
-    (gamePhase === "firstNight" || gamePhase === "night") && currentWakeIndex + 1 < wakeQueueIds.length
-      ? wakeQueueIds[currentWakeIndex + 1]
-      : null;
-  const nextWakeSeat = nextWakeSeatId !== null ? seats.find((s: Seat) => s.id === nextWakeSeatId) : null;
+  const nextStep: TimelineStep | undefined = timeline && currentStepIndex >= 0 && currentStepIndex + 1 < timeline.length
+    ? timeline[currentStepIndex + 1]
+    : undefined;
+  const nextWakeSeat = nextStep?.seatId !== undefined ? seats.find((s: Seat) => s.id === nextStep.seatId) : null;
   const getDisplayRole = (seat: Seat | null | undefined) => {
     if (!seat) return null;
     const base = seat.role?.id === "drunk" ? seat.charadeRole : seat.role;
@@ -157,6 +162,14 @@ export function GameStage({ controller }: { controller: any }) {
   };
   const currentWakeRole = getDisplayRole(currentWakeSeat);
   const nextWakeRole = getDisplayRole(nextWakeSeat);
+
+  // DIAGNOSTICS: Log what GameStage is receiving and passing
+  console.log('GAME STAGE RECEIVED:', { 
+    timeline: timeline, 
+    timelineLength: timeline?.length, 
+    currentStepIndex, 
+    seatsLength: seats?.length 
+  });
 
   return (
     <>
@@ -241,43 +254,11 @@ export function GameStage({ controller }: { controller: any }) {
       }
       rightPanel={
         <GameConsole
-                    gamePhase={gamePhase}
-          nightCount={nightCount}
-          currentStep={currentWakeIndex + 1}
-          totalSteps={wakeQueueIds.length}
-          scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
-          guidancePoints={nightInfo?.guide ? [nightInfo.guide] : []}
-          selectedPlayers={selectedActionTargets}
-                    seats={seats}
-          nightInfo={nightInfo}
-          primaryAction={
-            (gamePhase === 'firstNight' || gamePhase === 'night')
-              ? {
-                  label: '确认 & 下一步',
-                  onClick: handleConfirmAction,
-                  disabled: isConfirmDisabled,
-                  variant: 'primary' as const,
-                }
-              : gamePhase === 'check'
-              ? {
-                  label: '确认无误，入夜',
-                  onClick: () => nightLogic.startNight(true),
-                  disabled: seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk')),
-                  variant: 'success' as const,
-                }
-              : undefined
-          }
-          secondaryActions={
-            (gamePhase === 'firstNight' || gamePhase === 'night')
-              ? [
-                  {
-                    label: '上一步',
-                    onClick: handleStepBack,
-                    disabled: currentWakeIndex === 0 && history.length === 0,
-                  },
-                ]
-              : []
-          }
+          timeline={timeline}
+          currentStepIndex={currentStepIndex}
+          onNext={handleNextStep}
+          onPrev={handleStepBack}
+          seats={seats}
         />
       }
     />
@@ -288,6 +269,78 @@ export function GameStage({ controller }: { controller: any }) {
 
 // Keep GameModals outside the return statement
 export function GameStageWithModals({ controller }: { controller: any }) {
+  // 从控制器获取所需的状态与方法
+  const {
+    // 状态
+    seats,
+    gamePhase,
+    selectedScript,
+    nightCount,
+    deadThisNight,
+    selectedActionTargets,
+    nightInfo,
+    isPortrait,
+    contextMenu,
+    history,
+    evilTwinPair,
+    remainingDays,
+    cerenovusTarget,
+    timeline,
+    currentStepIndex,
+    inspectionResult,
+    inspectionResultKey,
+    currentHint,
+    
+    // setters
+    setContextMenu,
+    setShowMenu,
+    setSelectedActionTargets,
+    setInspectionResult,
+    setShowNightDeathReportModal,
+    setShowDrunkModal,
+    setShowDamselGuessModal,
+    setShowShamanConvertModal,
+    setShowDayActionModal,
+    setShowGameRecordsModal,
+    setShowReviewModal,
+    setShowRoleInfoModal,
+    setSeats,
+    setGamePhase,
+    setShowSpyDisguiseModal,
+    
+    // 方法
+    saveHistory,
+    getSeatRoleId,
+    isActionAbility,
+    isActorDisabledByPoisonOrDrunk,
+    addLogWithDeduplication,
+    onSeatClick,
+    toggleStatus,
+    handlePreStartNight,
+    handleStepBack,
+    handleConfirmAction,
+    handleNextStep,
+    handleDayEndTransition,
+    executeJudgment,
+    addLog,
+    handleDayAbilityTrigger,
+    handleSwitchScript,
+    handleRestart,
+    handleGlobalUndo,
+    nightLogic,
+    getSeatPosition,
+    toggleTarget,
+    isTargetDisabled,
+    executePlayer,
+    isGoodAlignment,
+    groupedRoles,
+    closeNightOrderPreview,
+    confirmNightOrderPreview,
+    
+    // 供 ControlPanel 使用的禁用逻辑
+    isConfirmDisabled,
+  } = controller;
+
   return (
     <>
       <GameStage controller={controller} />
@@ -368,7 +421,8 @@ export function GameStageWithModals({ controller }: { controller: any }) {
               : null
           }
         nightCount={nightCount}
-        currentWakeIndex={currentWakeIndex}
+        currentStepIndex={currentStepIndex}
+        timeline={timeline}
         history={history}
         isConfirmDisabled={isConfirmDisabled}
         closeNightOrderPreview={closeNightOrderPreview}

@@ -48,9 +48,9 @@ function StatusPill({ icon, text, color = 'red', isPortrait = false, duration }:
     yellow: 'bg-yellow-900/80 text-yellow-200 border-yellow-700',
   };
 
-  const sizeClass = isPortrait ? 'text-[8px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5';
-  const iconSize = isPortrait ? 'w-2.5 h-2.5' : 'w-3 h-3';
-  const durationSize = isPortrait ? 'text-[7px]' : 'text-[10px]';
+  const sizeClass = isPortrait ? 'text-[8px] px-1.5 py-0.5' : 'text-sm px-2 py-0.5';
+  const iconSize = isPortrait ? 'w-2.5 h-2.5' : 'w-4 h-4';
+  const durationSize = isPortrait ? 'text-[7px]' : 'text-xs';
 
   return (
     <div className={`flex items-center gap-1.5 ${sizeClass} rounded-md border shadow-lg font-bold whitespace-nowrap backdrop-blur-md ${colorClasses[color]}`}>
@@ -131,74 +131,72 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     processedStatuses.add('dead');
   }
 
-  if (s.isProtected) {
-    const protectionStatus = (s.statuses || []).find(st => st.effect === 'ExecutionProof' || st.effect === 'Protected');
-    const protectionDuration = protectionStatus?.duration || '至天亮';
-    
-    statusList.push({
-      text: "受保护",
-      color: "blue",
-      icon: "🛡️",
-      duration: protectionDuration
-    });
-  }
+  // 受保护状态将在 statuses 数组中处理，这里移除重复逻辑
 
-  // 6. 红罗刹状态
-  if (s.isRedHerring) {
+  // 2. 处理 statuses 数组中的状态（统一使用徽章格式）
+  (s.statuses || []).forEach(status => {
+    const effect = status.effect;
+    const duration = status.duration || '永久';
+    
+    // 跳过已经处理的状态
+    if (effect === 'Poison' && processedStatuses.has('poison')) return;
+    if (effect === 'Drunk' && processedStatuses.has('drunk')) return;
+    if (effect === 'Protected' && processedStatuses.has('protected')) return;
+    if (effect === 'ExecutionProof' && processedStatuses.has('protected')) return;
+    
+    switch (effect) {
+      case 'Poison':
+        statusList.push({
+          text: "中毒",
+          color: "green",
+          icon: "🧪",
+          duration: duration
+        });
+        processedStatuses.add('poison');
+        break;
+      case 'Drunk':
+        statusList.push({
+          text: "醉酒",
+          color: "purple",
+          icon: "🍷",
+          duration: duration
+        });
+        processedStatuses.add('drunk');
+        break;
+      case 'Protected':
+      case 'ExecutionProof':
+        if (!processedStatuses.has('protected')) {
+          statusList.push({
+            text: "受保护",
+            color: "blue",
+            icon: "🛡️",
+            duration: duration
+          });
+          processedStatuses.add('protected');
+        }
+        break;
+      case 'RedHerring':
+        statusList.push({
+          text: "红罗刹",
+          color: "red",
+          icon: "😈",
+          duration: duration
+        });
+        processedStatuses.add('redHerring');
+        break;
+    }
+  });
+
+  // 3. 处理红罗刹状态（如果不在 statuses 中）
+  if (s.isRedHerring && !processedStatuses.has('redHerring')) {
     statusList.push({
       text: "红罗刹",
       color: "red",
       icon: "😈",
       duration: "永久"
     });
+    processedStatuses.add('redHerring');
   }
-
-  // 2. 先处理statusDetails中的状态（优先显示详细信息）
-  (s.statusDetails || []).forEach(st => {
-    // 处理中毒状态（从statusDetails中提取详细信息）
-    if (st.includes('中毒') && !processedStatuses.has('poison')) {
-      const poisonStatus = (s.statuses || []).find(status => status.effect === 'Poison');
-      const poisonDuration = poisonStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
-      
-      statusList.push({
-        text: "中毒",
-        color: "green",
-        icon: "🧪",
-        duration: poisonDuration
-      });
-      processedStatuses.add('poison');
-      return; // 已处理，跳过后续逻辑
-    }
-    
-    // 处理醉酒状态（从statusDetails中提取详细信息）
-    if (st.includes('致醉') && !processedStatuses.has('drunk')) {
-      const drunkStatus = (s.statuses || []).find(status => status.effect === 'Drunk');
-      const drunkDuration = drunkStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
-      
-      statusList.push({
-        text: "醉酒",
-        color: "purple",
-        icon: "🍷",
-        duration: drunkDuration
-      });
-      processedStatuses.add('drunk');
-      return; // 已处理，跳过后续逻辑
-    }
-    
-    // 处理其他状态（排除已处理的中毒、醉酒）
-    if (!st.includes('中毒') && !st.includes('致醉')) {
-      const matchingStatus = (s.statuses || []).find(status => {
-        return false; // 其他状态暂时不匹配
-      });
-      const duration = matchingStatus?.duration || st;
-      
-      statusList.push({
-        text: st.replace(/（.+?清除）/, '').trim(),
-        color: "yellow",
-        duration: duration
-      });
-    }
-  });
 
   // 3. 处理通用的中毒状态（如果statusDetails中没有）
   if (s.isPoisoned && !processedStatuses.has('poison')) {
@@ -228,9 +226,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     processedStatuses.add('drunk');
   }
 
-  // 5. 受保护状态
-
-  // 7. 技能使用状态
+  // 4. 技能使用状态
   if (s.hasUsedSlayerAbility) {
     statusList.push({
       text: "猎手已用",
@@ -268,6 +264,8 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         transform: 'translate(-50%,-50%)',
         width: `calc(${isPortrait ? '3rem' : '7rem'} * ${seatScale})`,
         height: `calc(${isPortrait ? '3rem' : '7rem'} * ${seatScale})`,
+        minWidth: isPortrait ? '3rem' : '7rem',
+        minHeight: isPortrait ? '3rem' : '7rem',
         WebkitUserSelect: 'none',
         userSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -292,7 +290,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         
         {/* 座位序号 - 固定在左上角45度方向，圆心在圆圈上 */}
         <div 
-          className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] ${isPortrait ? 'w-6 h-6' : 'w-10 h-10'} rounded-full ${s.isDead ? 'bg-gray-400 border-gray-500 text-gray-700' : 'bg-slate-800 border-slate-600'} border-2 flex items-center justify-center ${isPortrait ? 'text-xs' : 'text-xl'} font-bold z-20 shadow-md`}
+          className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] ${isPortrait ? 'w-6 h-6' : 'w-12 h-12'} rounded-full ${s.isDead ? 'bg-gray-400 border-gray-500 text-gray-700' : 'bg-slate-800 border-slate-600'} border-2 flex items-center justify-center ${isPortrait ? 'text-xs' : 'text-2xl'} font-bold z-20 shadow-md`}
         >
           {s.id + 1}
         </div>
@@ -300,7 +298,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         {/* 角色名称 - 在座位圆圈内部绝对居中 */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <span 
-            className={`${isPortrait ? 'text-lg' : 'text-2xl'} font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? '' : 'whitespace-nowrap'} ${s.isDead ? 'text-gray-400 line-through' : 'text-white'}`}
+            className={`${isPortrait ? 'text-lg' : 'text-3xl'} font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? '' : 'whitespace-nowrap'} ${s.isDead ? 'text-gray-400 line-through' : 'text-white'}`}
             style={{ 
               textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 4px black',
             }}

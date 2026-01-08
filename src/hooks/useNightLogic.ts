@@ -3,7 +3,8 @@
 import { useCallback } from "react";
 import type { Seat, Role, GamePhase, LogEntry, Script } from "../../app/data";
 import { getRandom, computeIsPoisoned, addPoisonMark, hasTeaLadyProtection } from "../utils/gameRules";
-import type { NightInfoResult } from "../types/game";
+import type { NightInfoResult, TimelineStep } from "../types/game";
+import { generateNightTimeline } from "../utils/nightLogic";
 
 // 定义 Hook 的输入接口
 export interface NightLogicGameState {
@@ -11,8 +12,8 @@ export interface NightLogicGameState {
   gamePhase: GamePhase;
   nightCount: number;
   executedPlayerId: number | null;
-  wakeQueueIds: number[];
-  currentWakeIndex: number;
+  timeline: TimelineStep[];
+  currentStepIndex: number;
   selectedActionTargets: number[];
   gameLogs: LogEntry[];
   selectedScript: Script | null;
@@ -39,8 +40,8 @@ export interface NightLogicActions {
   setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
   setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>>;
   setNightCount: React.Dispatch<React.SetStateAction<number>>;
-  setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>>;
-  setCurrentWakeIndex: React.Dispatch<React.SetStateAction<number>>;
+  setTimeline: React.Dispatch<React.SetStateAction<TimelineStep[]>>;
+  setCurrentStepIndex: React.Dispatch<React.SetStateAction<number>>;
   setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>>;
   setInspectionResult: React.Dispatch<React.SetStateAction<string | null>>;
   setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>>;
@@ -145,8 +146,8 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setSeats,
     setGamePhase,
     setNightCount,
-    setWakeQueueIds,
-    setCurrentWakeIndex,
+    setTimeline,
+    setCurrentStepIndex,
     setSelectedActionTargets,
     setInspectionResult,
     setDeadThisNight,
@@ -187,29 +188,47 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
 
   /**
    * 完成夜晚初始化
-   * 设置唤醒队列、游戏阶段等状态
-   * IMPORTANT: This function sets wakeQueueIds SYNCHRONOUSLY before changing phase
+   * 设置时间线、游戏阶段等状态
+   * IMPORTANT: This function sets timeline SYNCHRONOUSLY before changing phase
    */
   const finalizeNightStart = useCallback((queue: Seat[], isFirst: boolean) => {
-    const queueIds = queue.map(s => s.id);
-    console.log('[finalizeNightStart] Setting wakeQueueIds:', queueIds, 'isFirst:', isFirst);
+    console.log('[finalizeNightStart] Generating timeline from queue:', queue.map(s => s.id), 'isFirst:', isFirst);
     
-    // CRITICAL: Set wakeQueueIds FIRST, before phase change
-    setWakeQueueIds(queueIds);
-    setCurrentWakeIndex(0);
+    // 1. Generate the Timeline Step List
+    let newTimeline = generateNightTimeline(queue, isFirst);
+    
+    // 2. Fallback for Safety (Prevents "Data Exception" screen)
+    if (!newTimeline || newTimeline.length === 0) {
+      console.warn("⚠️ Generated timeline was empty. Using fallback.");
+      newTimeline = [{
+        id: 'dawn_fallback',
+        type: 'dawn',
+        order: 999,
+        isFirstNight: isFirst,
+        content: { 
+          title: '天亮了', 
+          script: '天亮了，请大家睁眼...', 
+          instruction: '点击下一步结算昨晚死亡情况' 
+        }
+      }];
+    }
+    
+    // 3. Commit to State
+    setTimeline(newTimeline);
+    setCurrentStepIndex(0);
     setSelectedActionTargets([]);
     setInspectionResult(null);
     
-    // Then change phase
-    setGamePhase(isFirst ? "firstNight" : "night");
+    // 4. Change Phase
+    setGamePhase(isFirst ? 'firstNight' : 'night');
     if (!isFirst) setNightCount(n => n + 1);
     setShowNightOrderModal(false);
     setPendingNightQueue(null);
     
-    console.log('[finalizeNightStart] Phase changed to:', isFirst ? "firstNight" : "night", 'with', queueIds.length, 'wakeable roles');
+    console.log("🌙 Night Started with Timeline:", newTimeline);
   }, [
-    setWakeQueueIds,
-    setCurrentWakeIndex,
+    setTimeline,
+    setCurrentStepIndex,
     setSelectedActionTargets,
     setInspectionResult,
     setGamePhase,
@@ -348,10 +367,11 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       // For first night, if no roles wake, we should still proceed but with an empty queue
       // This allows the game to continue to dawn
       if (isFirst) {
-        console.warn('[startNight] First night has no wakeable roles. Proceeding with empty queue.');
-        // Set empty queue but still allow progression
-        setWakeQueueIds([]);
-        setCurrentWakeIndex(0);
+        console.warn('[startNight] First night has no wakeable roles. Proceeding with empty timeline.');
+        // Set empty timeline but still allow progression
+        const emptyTimeline = generateNightTimeline([], true);
+        setTimeline(emptyTimeline);
+        setCurrentStepIndex(0);
         setSelectedActionTargets([]);
         setInspectionResult(null);
         // For first night with no wakeable roles, go directly to dawn
@@ -365,8 +385,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         return;
       } else {
         // For other nights, same behavior
-        setWakeQueueIds([]);
-        setCurrentWakeIndex(0);
+        const emptyTimeline = generateNightTimeline([], false);
+        setTimeline(emptyTimeline);
+        setCurrentStepIndex(0);
         if (nightlyDeaths.length > 0) {
           const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
           setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
@@ -407,8 +428,8 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setSeats,
     setGamePhase,
     setNightCount,
-    setWakeQueueIds,
-    setCurrentWakeIndex,
+    setTimeline,
+    setCurrentStepIndex,
     setTodayDemonVoted,
     setTodayMinionNominated,
     setTodayExecutedId,

@@ -199,8 +199,8 @@ export default function Home() {
     longPressingSeats, setLongPressingSeats,
     
     // 夜晚行动状态
-    wakeQueueIds, setWakeQueueIds,
-    currentWakeIndex, setCurrentWakeIndex,
+    timeline,
+    currentStepIndex,
     selectedActionTargets, setSelectedActionTargets,
     inspectionResult, setInspectionResult,
     inspectionResultKey, setInspectionResultKey,
@@ -425,13 +425,13 @@ export default function Home() {
       gamePhase,
       nightCount,
       executedPlayerId,
-      wakeQueueIds,
-      currentWakeIndex,
+      timeline,
+      currentStepIndex,
       selectedActionTargets,
       gameLogs,
       selectedScript
     };
-  }, [seats, gamePhase, nightCount, executedPlayerId, wakeQueueIds, currentWakeIndex, selectedActionTargets, gameLogs, selectedScript]);
+  }, [seats, gamePhase, nightCount, executedPlayerId, timeline, currentStepIndex, selectedActionTargets, gameLogs, selectedScript]);
 
   // --- Effects ---
   // Note: 初始化逻辑已迁移到 useGameController，这里不再需要
@@ -513,7 +513,7 @@ export default function Home() {
   useEffect(() => {
     if (nightInfo) {
       // 生成缓存 key用上一时恢hint不重新生成
-      const hintKey = `${gamePhase}-${currentWakeIndex}-${nightInfo?.seat?.id}`;
+      const hintKey = `${gamePhase}-${currentStepIndex}-${nightInfo?.seat?.id}`;
       
       // 检查缓存中是否有该角色hint用上一时恢复
       const cachedHint = hintCacheRef.current.get(hintKey);
@@ -567,20 +567,21 @@ export default function Home() {
       hintCacheRef.current.set(hintKey, newHint);
       setCurrentHint(newHint);
       
-      if (selectedActionTargets.length > 0 && seats.find(s=>s.id===selectedActionTargets[0])?.id !== wakeQueueIds[currentWakeIndex]) {
+      const currentStep = timeline && currentStepIndex >= 0 && currentStepIndex < timeline.length ? timeline[currentStepIndex] : null;
+      if (selectedActionTargets.length > 0 && currentStep && currentStep.seatId !== undefined && seats.find(s=>s.id===selectedActionTargets[0])?.id !== currentStep.seatId) {
         setSelectedActionTargets([]); 
         setInspectionResult(null);
         fakeInspectionResultRef.current = null;
       }
     }
-  }, [currentWakeIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult, gameLogs, addLogWithDeduplication]);
+  }, [currentStepIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult, gameLogs, addLogWithDeduplication, timeline]);
 
   // 夜晚阶段切换角色时自动滚动控制台到顶部
   useEffect(() => {
     if ((gamePhase === 'firstNight' || gamePhase === 'night') && consoleContentRef.current) {
       consoleContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [currentWakeIndex, gamePhase]);
+  }, [currentStepIndex, gamePhase]);
 
   // 动态调当前是X号X角色在行的字体大小确保不超出容
   const adjustActionTextSize = useCallback(() => {
@@ -613,7 +614,7 @@ export default function Home() {
     return () => {
       window.removeEventListener('resize', adjustActionTextSize);
     };
-  }, [adjustActionTextSize, currentWakeIndex]);
+  }, [adjustActionTextSize, currentStepIndex]);
 
   // 组件卸载时清理所有长按定时器
   useEffect(() => {
@@ -703,23 +704,21 @@ export default function Home() {
 
   // handleConfirmAction moved to useGameController - using imported version
   
-  // 安全兜底如果夜晚阶段存在叫醒队列但无法生成 nightInfo自动跳过当前环节或直接结束夜晚
+  // 安全兜底如果夜晚阶段存在 timeline 但无法生成 nightInfo自动跳过当前环节或直接结束夜晚
   useEffect(() => {
     if (!(gamePhase === 'firstNight' || gamePhase === 'night')) return;
-    if (wakeQueueIds.length === 0) return;
+    if (!timeline || timeline.length === 0) return;
     // 只有在当前索引合法但 nightInfo 仍为 null 时才认为是异常卡住
-    if (currentWakeIndex < 0 || currentWakeIndex >= wakeQueueIds.length) return;
+    if (currentStepIndex < 0 || currentStepIndex >= timeline.length) return;
     if (nightInfo) return;
     
     // 还有后续角色时直接跳到下一个夜晚行
-    if (currentWakeIndex < wakeQueueIds.length - 1) {
+    if (currentStepIndex < timeline.length - 1) {
       continueToNextAction();
       return;
     }
     
     // 已经是最后一个角色且无法生成 nightInfo直接结束夜晚并进入天亮结算
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
     if (deadThisNight.length > 0) {
       const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
       setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
@@ -728,7 +727,7 @@ export default function Home() {
     }
     setGamePhase('dawnReport');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gamePhase, nightInfo, wakeQueueIds, currentWakeIndex]);
+  }, [gamePhase, nightInfo, timeline, currentStepIndex]);
   
   // isConfirmDisabled moved to GameStage component
   
@@ -928,23 +927,12 @@ export default function Home() {
       )}
       {/* ===== 暗流涌动剧本游戏第一部分主界面 ===== */}
       {gamePhase === 'scriptSelection' && (
-        <GameStageWrapper>
-        <div className="w-full h-full flex flex-col bg-slate-950 text-white">
-            <aside className="w-full h-full border-l border-white/10 bg-slate-900/50 flex flex-col relative z-20 shrink-0 overflow-hidden">
-            <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
-              <h2 className="text-lg font-bold text-purple-300"> 说书人控制台</h2>
-            </div>
-              <div className="flex-1 overflow-hidden text-sm min-h-0 w-full h-full flex items-center justify-center">
-                <ScriptSelection
-                  onScriptSelect={setSelectedScript}
-                  saveHistory={saveHistory}
-                  setGameLogs={setGameLogs}
-                  setGamePhase={setGamePhase}
-                />
-              </div>
-            </aside>
-              </div>
-        </GameStageWrapper>
+        <ScriptSelection
+          onScriptSelect={setSelectedScript}
+          saveHistory={saveHistory}
+          setGameLogs={setGameLogs}
+          setGamePhase={setGamePhase}
+        />
       )}
       {gamePhase === 'setup' && (
         <GameLayout

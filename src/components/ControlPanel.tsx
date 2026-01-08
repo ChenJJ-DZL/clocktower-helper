@@ -6,14 +6,14 @@ import type { Seat, GamePhase } from "@/app/data";
 export interface ControlPanelProps {
   gamePhase: GamePhase;
   seats: Seat[];
-  currentWakeIndex: number;
+  currentStepIndex: number;
   history: Array<{
     seats: Seat[];
     gamePhase: GamePhase;
     nightCount: number;
     executedPlayerId: number | null;
-    wakeQueueIds: number[];
-    currentWakeIndex: number;
+    timeline: import("../types/game").TimelineStep[];
+    currentStepIndex: number;
     selectedActionTargets: number[];
     gameLogs: any[];
     currentHint?: any;
@@ -38,7 +38,7 @@ export interface ControlPanelProps {
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   gamePhase,
   seats,
-  currentWakeIndex,
+  currentStepIndex,
   history,
   isConfirmDisabled,
   evilTwinPair,
@@ -91,7 +91,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           <button
             onClick={onStepBack}
             className="flex-1 py-3 bg-gray-700 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={currentWakeIndex === 0 && history.length === 0}
+            disabled={currentStepIndex === 0 && history.length === 0}
           >
             上一步
           </button>

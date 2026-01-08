@@ -4,16 +4,17 @@ import { Role, Seat, StatusEffect, RoleType } from '../../app/data';
 //  座位位置计算
 // ======================================================================
 
-export const getSeatPosition = (index: number, total: number = 15, isPortrait: boolean = false) => {
-  const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+export const getSeatPosition = (index: number, total?: number, isPortrait: boolean = false) => {
+  const totalSeats = Math.max(1, total ?? 1);
+  const angle = (index / totalSeats) * 2 * Math.PI - Math.PI / 2;
   // 竖屏时使用椭圆形布局（垂直方向更长）
   if (isPortrait) {
     // 计算座位13（index=12）和座位14（index=13）之间的纵向距离作为基准
     const seat13Index = 12; // 座位13（显示编号13，实际index是12）
     const seat14Index = 13; // 座位14（显示编号14，实际index是13）
     
-    const angle13 = (seat13Index / total) * 2 * Math.PI - Math.PI / 2;
-    const angle14 = (seat14Index / total) * 2 * Math.PI - Math.PI / 2;
+    const angle13 = (seat13Index / totalSeats) * 2 * Math.PI - Math.PI / 2;
+    const angle14 = (seat14Index / totalSeats) * 2 * Math.PI - Math.PI / 2;
     
     // 目标纵向距离：座位13和14之间的理想纵向间距（百分比）
     // 这个值可以根据实际显示效果调整，增大=拉长椭圆，减小=压缩椭圆
