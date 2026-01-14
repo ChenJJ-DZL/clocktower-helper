@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { roles, Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, Script } from "../../app/data";
-import { NightHintState, NightInfoResult, GameRecord } from "../types/game";
+import { NightHintState, NightInfoResult, GameRecord, TimelineStep } from "../types/game";
 import { useGameState } from "./useGameState";
 import { useRoleAction } from "./useRoleAction";
 import { useNightLogic } from "./useNightLogic";
@@ -1396,6 +1396,80 @@ export function useGameController() {
     [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setWakeQueueIds, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted]
   );
 
+  // --- 通用夜晚时间线步骤处理（基于 TimelineStep.interaction.effect） ---
+  const handleNextStep = useCallback(
+    (
+      timeline: TimelineStep[],
+      currentStepIndex: number,
+      selectedSeatIds: number[],
+      setCurrentStepIndex: React.Dispatch<React.SetStateAction<number>>,
+      onNightEnd: () => void,
+      clearSelection?: () => void
+    ) => {
+      const currentStep = timeline[currentStepIndex];
+      if (!currentStep) return;
+
+      const interaction = currentStep.interaction;
+      const effect = interaction?.effect;
+
+      // 1. 记录日志：本步选择了哪些目标
+      if (selectedSeatIds.length > 0) {
+        const targetNames = selectedSeatIds.map((id) => `${id + 1}号`).join(', ');
+        addLog(`[${currentStep.content.title}] 选择了: ${targetNames}`);
+      }
+
+      // 2. 处理效果
+      if (effect && selectedSeatIds.length > 0) {
+        // === A. 添加状态（投毒、保护等） ===
+        if (effect.type === 'add_status' && effect.value) {
+          setSeats((prev) =>
+            prev.map((seat) => {
+              if (!selectedSeatIds.includes(seat.id)) return seat;
+
+              const hasStatus = seat.statusDetails?.includes(effect.value!);
+              if (hasStatus) return seat;
+
+              return {
+                ...seat,
+                // 兼容旧字段
+                isPoisoned: effect.value === 'poisoned' ? true : seat.isPoisoned,
+                isProtected: effect.value === 'protected' ? true : seat.isProtected,
+                statusDetails: [...(seat.statusDetails || []), effect.value!],
+              };
+            })
+          );
+          console.log(`✅ Applied Status: ${effect.value} to`, selectedSeatIds);
+        }
+
+        // === B. 击杀（恶魔、刺客等） ===
+        else if (effect.type === 'kill') {
+          selectedSeatIds.forEach((targetId) => {
+            // 复用现有的 killPlayer 逻辑
+            killPlayer(targetId);
+          });
+          console.log(`💀 Executed Kill on`, selectedSeatIds);
+        }
+
+        // === C. 纯信息步骤（洗衣妇等） ===
+        else if (effect.type === 'info') {
+          // 信息本身由 UI 展示，这里仅做确认日志
+          console.log('ℹ️ Info step acknowledged.');
+        }
+      }
+
+      // 3. 进入下一步
+      if (currentStepIndex < timeline.length - 1) {
+        setCurrentStepIndex((prev) => prev + 1);
+        // 清空当前选择，交由上层 UI 控制
+        if (clearSelection) clearSelection();
+      } else {
+        // 夜晚结束，进入天亮/白天，由调用方决定如何切换
+        onNightEnd();
+      }
+    },
+    [addLog, killPlayer, setSeats]
+  );
+
   // 调用 useNightLogic - 必须在 executePlayer 之前定义
   const nightLogic = useNightLogic(
     {
@@ -1646,11 +1720,20 @@ export function useGameController() {
 
   // 确认夜晚顺序预览，开始夜晚
   const confirmNightOrderPreview = useCallback(() => {
+    console.log('[confirmNightOrderPreview] ========== FUNCTION CALLED ==========');
+    console.log('[confirmNightOrderPreview] pendingNightQueue:', pendingNightQueue);
+    console.log('[confirmNightOrderPreview] pendingNightQueue length:', pendingNightQueue?.length);
+    console.log('[confirmNightOrderPreview] nightLogic:', nightLogic);
+    console.log('[confirmNightOrderPreview] nightLogic.finalizeNightStart:', nightLogic?.finalizeNightStart);
+    console.log('[confirmNightOrderPreview] typeof nightLogic.finalizeNightStart:', typeof nightLogic?.finalizeNightStart);
+    
+    // 立即关闭弹窗，避免用户重复点击
+    setShowNightOrderModal(false);
+    
     if (!pendingNightQueue || pendingNightQueue.length === 0) {
       console.error('[confirmNightOrderPreview] pendingNightQueue is empty or null:', pendingNightQueue);
       console.warn('[confirmNightOrderPreview] This should not happen. Closing modal and allowing game to continue.');
       // Close the modal and proceed with empty queue (game will handle it)
-      setShowNightOrderModal(false);
       setPendingNightQueue(null);
       // Set empty queue and proceed to firstNight phase
       setWakeQueueIds([]);
@@ -1661,10 +1744,33 @@ export function useGameController() {
       addLog('首夜：无需要唤醒的角色，直接进入天亮阶段');
       return;
     }
+    
+    if (!nightLogic) {
+      console.error('[confirmNightOrderPreview] nightLogic is null or undefined!', nightLogic);
+      return;
+    }
+    
+    if (!nightLogic.finalizeNightStart) {
+      console.error('[confirmNightOrderPreview] nightLogic.finalizeNightStart is not available!', nightLogic);
+      console.error('[confirmNightOrderPreview] nightLogic keys:', Object.keys(nightLogic || {}));
+      return;
+    }
+    
     console.log('[confirmNightOrderPreview] Confirming night order with', pendingNightQueue.length, 'roles');
+    console.log('[confirmNightOrderPreview] Queue details:', pendingNightQueue.map(s => ({ id: s.id, roleId: s.role?.id, roleName: s.role?.name })));
+    
     // 使用 nightLogic 的 finalizeNightStart 来正确设置 wakeQueueIds
     // This is synchronous - wakeQueueIds will be set before phase changes
-    nightLogic.finalizeNightStart(pendingNightQueue, true);
+    try {
+      console.log('[confirmNightOrderPreview] Calling finalizeNightStart...');
+      nightLogic.finalizeNightStart(pendingNightQueue, true);
+      console.log('[confirmNightOrderPreview] ✅ finalizeNightStart called successfully');
+    } catch (error) {
+      console.error('[confirmNightOrderPreview] ❌ Error calling finalizeNightStart:', error);
+      console.error('[confirmNightOrderPreview] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      // 即使出错也要关闭弹窗
+      setPendingNightQueue(null);
+    }
   }, [pendingNightQueue, nightLogic, setShowNightOrderModal, setPendingNightQueue, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, addLog]);
 
   // 确认酒鬼伪装角色选择
@@ -1836,61 +1942,9 @@ export function useGameController() {
   //  Modal and Action Handlers - Moved from page.tsx
   // ======================================================================
   
-  // Handle confirm action for night actions
+  // Handle confirm action for night actions（暂时全部走旧架构逻辑，确保稳定）
   const handleConfirmAction = useCallback(() => {
-    if(!nightInfo) return;
-    
-    // ===========================
-    //      新架构：优先检查角色注册表
-    // ===========================
-    // 1. 获取当前正在行动的角色ID
-    const currentRoleId = nightInfo.effectiveRole.id;
-    
-    // 2. 检查该角色是否已迁移到新架构
-    if (currentRoleId && isRoleRegistered(currentRoleId)) {
-      console.log(`[NewArch] Role ${currentRoleId} handled by generic system.`);
-      
-      // 执行通用逻辑
-      const result = executeAction({
-        currentSeats: seats,
-        roleId: currentRoleId,
-        performerId: nightInfo.seat.id,
-        targetIds: selectedActionTargets,
-        gamePhase,
-        nightCount,
-      });
-      
-      if (result) {
-        // 应用结果
-        if (result.nextSeats) {
-          setSeats(result.nextSeats);
-        }
-        
-        // 记录日志
-        if (result.logs) {
-          if (result.logs.publicLog) {
-            addLog(result.logs.publicLog);
-          }
-          if (result.logs.privateLog) {
-            addLog(result.logs.privateLog);
-          }
-          // secretInfo 可以用于后续的玩家信息显示
-          if (result.logs.secretInfo) {
-            // 如果需要显示给玩家，可以在这里处理
-            // 例如：setInspectionResult(result.logs.secretInfo);
-          }
-        }
-        
-        // 清空选中的目标
-        setSelectedActionTargets([]);
-        
-        // 继续流程
-        continueToNextAction();
-        
-        // ⛔️ 拦截旧逻辑，直接返回
-        return;
-      }
-    }
+    if (!nightInfo) return;
     
     // ===========================
     //      旧架构：继续执行原有逻辑
@@ -3862,6 +3916,7 @@ export function useGameController() {
     hasUsedDailyAbility,
     markDailyAbilityUsed,
     getDisplayRoleForSeat,
+    handleNextStep,
     filteredGroupedRoles,
     triggerIntroLoading,
     loadGameRecords,

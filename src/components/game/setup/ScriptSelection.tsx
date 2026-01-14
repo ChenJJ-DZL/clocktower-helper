@@ -24,8 +24,8 @@ export default function ScriptSelection({
   };
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center px-4 py-6">
-      <div className="w-full max-w-5xl space-y-10">
+    <div className="w-full h-full flex flex-col items-center justify-center px-4 py-6 overflow-auto min-h-0">
+      <div className="w-full max-w-5xl space-y-10 flex-shrink-0 my-auto">
         <div className="text-center space-y-3">
           <h2 className="text-4xl md:text-5xl font-black tracking-wide text-slate-50 drop-shadow">
             请选择剧本

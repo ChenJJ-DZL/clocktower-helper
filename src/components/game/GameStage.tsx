@@ -131,17 +131,10 @@ export function GameStage({ controller }: { controller: any }) {
     return () => window.removeEventListener("resize", updateSeatScale);
   }, []);
 
-  // 供 ControlPanel 使用的禁用逻辑（保持最小必要逻辑）
+  // 供控制台 / ControlPanel 使用的禁用逻辑（简化为：只要有当前夜晚信息就允许点击）
   const isConfirmDisabled = useMemo(() => {
-    if (!nightInfo) return true;
-    const roleId = nightInfo.effectiveRole.id;
-    const actionType = nightInfo.effectiveRole.nightActionType;
-    const phase = gamePhase;
-    if (roleId === "fortune_teller" && selectedActionTargets.length !== 2) return true;
-    if (roleId === "imp" && phase !== "firstNight" && actionType !== "none" && selectedActionTargets.length !== 1) return true;
-    if (roleId === "poisoner" && actionType !== "none" && selectedActionTargets.length !== 1) return true;
-    return false;
-  }, [nightInfo, gamePhase, selectedActionTargets, hasUsedAbility, seats]);
+    return !nightInfo;
+  }, [nightInfo]);
 
   // 当前/下一个行动角色信息
   const currentWakeSeat = nightInfo ? seats.find((s: Seat) => s.id === nightInfo.seat.id) : null;
@@ -162,7 +155,29 @@ export function GameStage({ controller }: { controller: any }) {
     <>
     <GameLayout
       leftPanel={
-        <div className="w-full h-full p-4">
+        <div className="relative w-full h-full p-4">
+          {/* 夜晚时间线：桌面右上角，单列垂直显示 */}
+          {(gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && (
+            <div className="absolute top-4 right-4 z-20 max-h-[60%] overflow-y-auto flex flex-col gap-2 items-stretch">
+              {wakeQueueIds.map((seatId, index) => {
+                const seat = seats.find(s => s.id === seatId);
+                if (!seat || !seat.role) return null;
+                const isCurrent = index === currentWakeIndex;
+                return (
+                  <div
+                    key={seatId}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap shadow ${
+                      isCurrent
+                        ? "bg-purple-600/90 border-purple-200 text-white shadow-purple-500/40"
+                        : "bg-slate-800/80 border-slate-500 text-slate-100"
+                    }`}
+                  >
+                    第{index + 1}步：{seat.id + 1}号【{seat.role.name}】
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <RoundTable
             seats={seats}
             nightInfo={nightInfo}
@@ -245,11 +260,13 @@ export function GameStage({ controller }: { controller: any }) {
           nightCount={nightCount}
           currentStep={currentWakeIndex + 1}
           totalSteps={wakeQueueIds.length}
+          wakeQueueIds={wakeQueueIds}
           scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
           guidancePoints={nightInfo?.guide ? [nightInfo.guide] : []}
           selectedPlayers={selectedActionTargets}
                     seats={seats}
           nightInfo={nightInfo}
+          onTogglePlayer={toggleTarget}
           primaryAction={
             (gamePhase === 'firstNight' || gamePhase === 'night')
               ? {
@@ -261,7 +278,22 @@ export function GameStage({ controller }: { controller: any }) {
               : gamePhase === 'check'
               ? {
                   label: '确认无误，入夜',
-                  onClick: () => nightLogic.startNight(true),
+                  onClick: () => {
+                    console.log('[GameStage] 确认无误，入夜 button clicked');
+                    console.log('[GameStage] nightLogic:', nightLogic);
+                    console.log('[GameStage] nightLogic.startNight:', nightLogic?.startNight);
+                    console.log('[GameStage] seats:', seats.filter(s => s.role).map(s => ({ id: s.id, roleId: s.role?.id, roleName: s.role?.name })));
+                    try {
+                      if (nightLogic?.startNight) {
+                        nightLogic.startNight(true);
+                        console.log('[GameStage] startNight called successfully');
+                      } else {
+                        console.error('[GameStage] nightLogic.startNight is not available!');
+                      }
+                    } catch (error) {
+                      console.error('[GameStage] Error calling startNight:', error);
+                    }
+                  },
                   disabled: seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk')),
                   variant: 'success' as const,
                 }
@@ -328,7 +360,7 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         showReviewModal={controller.showReviewModal}
         showGameRecordsModal={controller.showGameRecordsModal}
         showRoleInfoModal={controller.showRoleInfoModal}
-        contextMenu={contextMenu}
+        contextMenu={controller.contextMenu}
         gamePhase={gamePhase}
         winResult={controller.winResult}
         winReason={controller.winReason}

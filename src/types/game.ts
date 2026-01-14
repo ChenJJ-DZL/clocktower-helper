@@ -1,8 +1,32 @@
 // 从 data.ts 导入相关类型
-import type { Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, RoleType } from '../../app/data';
+import type { 
+  Role, 
+  Seat, 
+  StatusEffect, 
+  LogEntry, 
+  GamePhase, 
+  WinResult, 
+  RoleType,
+  NightActionMeta,
+  SetupMeta,
+  DayActionMeta,
+  TriggerMeta
+} from '../../app/data';
 
 // 重新导出相关类型
-export type { Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, RoleType };
+export type { 
+  Role, 
+  Seat, 
+  StatusEffect, 
+  LogEntry, 
+  GamePhase, 
+  WinResult, 
+  RoleType,
+  NightActionMeta,
+  SetupMeta,
+  DayActionMeta,
+  TriggerMeta
+};
 
 // --- 辅助类型 ---
 export interface NightHintState { 
@@ -22,6 +46,37 @@ export interface NightInfoResult {
   guide: string;
   speak: string;
   action: string;
+}
+
+// 夜间时间线相关类型
+export interface TimelineInteractionEffect {
+  type: 'add_status' | 'kill' | 'protect' | 'info' | 'none';
+  value?: string;
+}
+
+export interface TimelineInteraction {
+  type: 'choosePlayer' | 'none';
+  amount: number;
+  required: boolean;
+  canSelectSelf: boolean;
+  canSelectDead: boolean;
+  effect: TimelineInteractionEffect;
+}
+
+export interface TimelineStepContent {
+  title: string;
+  script: string;
+  instruction: string;
+}
+
+export interface TimelineStep {
+  id: string;
+  type: 'character' | 'dawn';
+  seatId?: number;
+  roleId?: string;
+  order: number;
+  content: TimelineStepContent;
+  interaction?: TimelineInteraction;
 }
 
 // 对局记录数据结构

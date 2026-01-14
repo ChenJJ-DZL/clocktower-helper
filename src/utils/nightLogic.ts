@@ -1,4 +1,5 @@
 import type { Seat, Role, GamePhase, LogEntry, Script, RoleType } from '../../app/data';
+import type { TimelineStep } from '../types/game';
 import { 
   computeIsPoisoned, 
   getPoisonSources, 
@@ -1465,3 +1466,71 @@ export const calculateNightInfo = (
   return null;
 };
 
+// 通用的“哑巴引擎”夜间时间线生成器（基于角色元数据，无角色ID硬编码）
+export const generateNightTimeline = (
+  seats: Seat[], 
+  isFirstNight: boolean
+): TimelineStep[] => {
+  const steps: TimelineStep[] = [];
+
+  // 1. 识别需要在本夜被唤醒的角色（这里先简单处理：有角色即可）
+  const activeSeats = seats.filter((s) => s.role);
+
+  // 2. 按首夜 / 其他夜晚顺序排序
+  activeSeats.sort((a, b) => {
+    const orderA = isFirstNight
+      ? (a.role?.firstNightOrder ?? 9999)
+      : (a.role?.otherNightOrder ?? 9999);
+    const orderB = isFirstNight
+      ? (b.role?.firstNightOrder ?? 9999)
+      : (b.role?.otherNightOrder ?? 9999);
+    return orderA - orderB;
+  });
+
+  // 3. 生成时间线步骤
+  activeSeats.forEach((seat, index) => {
+    const role = seat.role!;
+    const meta = isFirstNight ? role.firstNightMeta : role.otherNightMeta;
+
+    // 没有对应夜晚的元数据，则本夜不唤醒该角色
+    if (!meta) return;
+
+    steps.push({
+      id: `step_${seat.id}_${role.id}_${isFirstNight ? '1' : 'n'}`,
+      type: 'character',
+      seatId: seat.id,
+      roleId: role.id,
+      order: index,
+      content: {
+        title: role.name,
+        script: meta.script,
+        instruction: meta.instruction,
+      },
+      interaction: {
+        type: meta.targetType === 'player' ? 'choosePlayer' : 'none',
+        amount: meta.amount,
+        required: meta.required,
+        canSelectSelf: meta.canSelectSelf,
+        canSelectDead: meta.canSelectDead,
+        effect: {
+          type: meta.effectType || 'none',
+          value: meta.effectValue,
+        },
+      },
+    });
+  });
+
+  // 4. 添加“天亮”步骤
+  steps.push({
+    id: 'dawn_step',
+    type: 'dawn',
+    order: 99999,
+    content: {
+      title: '天亮了',
+      script: '所有玩家请睁眼',
+      instruction: '准备进入白天',
+    },
+  });
+
+  return steps;
+};

@@ -18,19 +18,66 @@ export type NightActionType =
   | "kill_or_skip"  // 杀人或跳过 (珀)
   | "none";         // 无动作
 
+// NIGHT META: What happens when they wake up?
+export interface NightActionMeta {
+  script: string;        // e.g. "Poisoner, open your eyes..."
+  instruction: string;   // e.g. "Choose a player to poison."
+  targetType: 'player' | 'character' | 'none';
+  amount: number;        // How many targets? (0, 1, 2...)
+  required: boolean;     // Must they choose?
+  canSelectSelf: boolean;
+  canSelectDead: boolean;
+  effectType?: 'add_status' | 'kill' | 'protect' | 'info' | 'none'; // Generic effect tag
+  effectValue?: string;  // e.g. 'poisoned', 'protected'
+}
+
+// SETUP META: What happens before the game starts?
+export interface SetupMeta {
+  modifiesBag?: boolean;  // e.g. Baron adds Outsiders
+  isDrunk?: boolean;      // e.g. Drunk thinks he is Townsfolk
+  maskRole?: string;      // e.g. "imposter" logic
+}
+
+// DAY META: Active abilities used during the day
+export interface DayActionMeta {
+  abilityName: string;    // e.g. "Slayer Shot"
+  usesCount: number | 'infinity'; 
+  targetType: 'player' | 'none';
+  effectType: 'kill' | 'info';
+}
+
+// PASSIVE META: Triggers that happen automatically
+export interface TriggerMeta {
+  onNominated?: boolean;  // e.g. Virgin
+  onNightDeath?: boolean; // e.g. Mayor, Soldier
+  onDeath?: boolean;      // e.g. Ravenkeeper
+}
+
 export interface Role {
   id: string;
   name: string;
-  type: RoleType;
-  ability: string;
+  type: RoleType; // townsfolk, outsider, minion, demon, traveler
+
+  // Night Order
+  firstNightOrder?: number;
+  otherNightOrder?: number;
+
+  // NEW PROTOCOLS
+  setupMeta?: SetupMeta;
+  firstNightMeta?: NightActionMeta;
+  otherNightMeta?: NightActionMeta;
+  dayMeta?: DayActionMeta;
+  triggerMeta?: TriggerMeta;
+
+  // Legacy fields (kept for compatibility during migration)
+  ability?: string;
+  image?: string;
   fullDescription?: string; // 完整的角色说明
-  firstNight: boolean;
-  otherNight: boolean;
-  firstNightOrder: number;
-  otherNightOrder: number;
+  firstNight?: boolean;
+  otherNight?: boolean;
   firstNightReminder?: string;
   otherNightReminder?: string;
-  nightActionType?: NightActionType; 
+  nightActionType?: NightActionType;
   // 剧本标记：例如 '暗流涌动'，用于区分不同剧本下的角色集合
   script?: string;
 }
@@ -138,7 +185,17 @@ export const roles: Role[] = [
     firstNightOrder: 4, 
     otherNightOrder: 0, 
     nightActionType: "none", 
-    firstNightReminder: "查村民" 
+    firstNightReminder: "查村民",
+    firstNightMeta: {
+      script: "洗衣妇请睁眼...",
+      instruction: "确认身份信息",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "librarian", 
@@ -239,6 +296,17 @@ export const roles: Role[] = [
     nightActionType: "protect", 
     otherNightReminder: "保护",
     script: "暗流涌动", // 暗流涌动角色 
+    otherNightMeta: {
+      script: "僧侣请睁眼...",
+      instruction: "选择一名玩家保护",
+      targetType: 'player',
+      amount: 1,
+      required: true,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'protect',
+      effectValue: 'protected'
+    }
   },
   { 
     id: "ravenkeeper", 
@@ -378,6 +446,28 @@ export const roles: Role[] = [
     firstNightReminder: "投毒", 
     otherNightReminder: "投毒",
     script: "暗流涌动", // 暗流涌动角色 
+    firstNightMeta: {
+      script: "投毒者请睁眼...",
+      instruction: "选择一名玩家下毒",
+      targetType: 'player',
+      amount: 1,
+      required: true,
+      canSelectSelf: true,
+      canSelectDead: false,
+      effectType: 'add_status',
+      effectValue: 'poisoned'
+    },
+    otherNightMeta: {
+      script: "投毒者请睁眼...",
+      instruction: "选择一名玩家下毒",
+      targetType: 'player',
+      amount: 1,
+      required: true,
+      canSelectSelf: true,
+      canSelectDead: false,
+      effectType: 'add_status',
+      effectValue: 'poisoned'
+    }
   },
   { 
     id: "spy", 
@@ -406,6 +496,9 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    triggerMeta: {
+      onNightDeath: true
+    }
   },
   { 
     id: "baron", 
@@ -436,6 +529,16 @@ export const roles: Role[] = [
     firstNightReminder: "认队友", 
     otherNightReminder: "杀人",
     script: "暗流涌动", // 暗流涌动角色 
+    otherNightMeta: {
+      script: "小恶魔请睁眼...",
+      instruction: "选择一名玩家杀害",
+      targetType: 'player',
+      amount: 1,
+      required: true,
+      canSelectSelf: true,
+      canSelectDead: false,
+      effectType: 'kill'
+    }
   },
 
   // ======================================================================

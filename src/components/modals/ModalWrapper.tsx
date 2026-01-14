@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface ModalWrapperProps {
   title: string;
@@ -21,31 +22,30 @@ export function ModalWrapper({
   closeOnOverlayClick = true,
   className = "",
 }: ModalWrapperProps) {
-  return (
-    <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
-      style={{
-        width: '100vw',
-        height: '100vh',
-        margin: 0,
-        padding: 0,
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (typeof document === "undefined" || !mounted) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/50 animate-in fade-in duration-200 pointer-events-auto"
+      style={{ zIndex: 2147483647 }}
+      onClick={(e) => {
+        // 只有点击遮罩层本身时才关闭，点击弹窗内容时不关闭
+        if (closeOnOverlayClick && e.target === e.currentTarget) {
+          onClose();
+        }
       }}
     >
-      {/* 点击遮罩关闭 */}
-      {closeOnOverlayClick && (
-        <div 
-          className="absolute inset-0" 
-          onClick={onClose}
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-        />
-      )}
-
       {/* 弹窗主体 */}
       <div
-        className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-white/10 ${className}`}
+        className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-white/10 pointer-events-auto ${className}`}
         style={{
           width: 'min(90vw, 42rem)',
           maxWidth: '90vw',
@@ -90,7 +90,8 @@ export function ModalWrapper({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -10,6 +10,7 @@ interface GameConsoleProps {
   nightCount: number;
   currentStep?: number;
   totalSteps?: number;
+  wakeQueueIds?: number[];
   onToggleGrimoire?: () => void;
   
   // Zone B: Active Stage
@@ -18,6 +19,7 @@ interface GameConsoleProps {
   selectedPlayers?: number[];
   seats?: Seat[];
   nightInfo?: NightInfoResult | null;
+  onTogglePlayer?: (seatId: number) => void;
   
   // Zone C: Actions
   primaryAction?: {
@@ -50,6 +52,7 @@ export function GameConsole({
   selectedPlayers = [],
   seats = [],
   nightInfo,
+  onTogglePlayer,
   primaryAction,
   secondaryActions = [],
 }: GameConsoleProps) {
@@ -151,20 +154,27 @@ export function GameConsole({
           </div>
         )}
 
-        {/* Section 3: Selection Status */}
-        {selectedPlayers.length > 0 && seats.length > 0 && (
+        {/* Section 3: 玩家列表（夜晚交互用） */}
+        {(gamePhase === 'firstNight' || gamePhase === 'night') && seats.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-300">已选择</h3>
-            <div className="flex flex-wrap gap-3">
-              {selectedPlayers.map((playerId) => {
-                const seat = seats.find(s => s.id === playerId);
+            <h3 className="text-lg font-bold text-slate-300">玩家列表</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {seats.map((seat) => {
+                if (!seat.role || seat.isDead) return null;
+                const isSelected = selectedPlayers.includes(seat.id);
                 return (
-                  <div
-                    key={playerId}
-                    className="px-[2px] py-[2px] rounded bg-blue-900/50 text-sm font-semibold text-blue-200 whitespace-nowrap"
+                  <button
+                    key={seat.id}
+                    type="button"
+                    onClick={() => onTogglePlayer && onTogglePlayer(seat.id)}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${
+                      isSelected
+                        ? 'bg-blue-600/90 border-blue-300 text-white shadow shadow-blue-500/40'
+                        : 'bg-slate-800/80 border-slate-600 text-slate-100 hover:bg-slate-700/80'
+                    }`}
                   >
-                    {playerId + 1}号 {seat?.role?.name || '未知'}
-                  </div>
+                    {seat.id + 1}号 {seat.role.name}
+                  </button>
                 );
               })}
             </div>

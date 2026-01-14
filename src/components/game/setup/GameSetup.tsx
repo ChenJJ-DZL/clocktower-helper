@@ -144,7 +144,7 @@ export default function GameSetup({
 
   const buildBadge = (label: string, value: number, color: string) => (
     <div className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm ${color}`}>
-      <span className="font-semibold">{label}</span>
+      <span className="font-semibold whitespace-nowrap">{label}</span>
       <span className="text-base font-bold">{value}</span>
     </div>
   );

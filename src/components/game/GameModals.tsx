@@ -257,14 +257,33 @@ export function GameModals(props: GameModalsProps) {
           footer={
             <>
               <button
+                type="button"
                 onClick={props.closeNightOrderPreview}
                 className="px-6 py-3 rounded-xl bg-gray-700 text-gray-100 font-bold hover:bg-gray-600 transition"
               >
                 返回调整
               </button>
               <button
-                onClick={props.confirmNightOrderPreview}
-                className="px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-500 transition"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[GameModals] 确认无误，入夜 button clicked');
+                  console.log('[GameModals] confirmNightOrderPreview function:', props.confirmNightOrderPreview);
+                  console.log('[GameModals] typeof confirmNightOrderPreview:', typeof props.confirmNightOrderPreview);
+                  if (typeof props.confirmNightOrderPreview === 'function') {
+                    try {
+                      props.confirmNightOrderPreview();
+                      console.log('[GameModals] confirmNightOrderPreview called successfully');
+                    } catch (error) {
+                      console.error('[GameModals] Error calling confirmNightOrderPreview:', error);
+                    }
+                  } else {
+                    console.error('[GameModals] confirmNightOrderPreview is not a function!', props.confirmNightOrderPreview);
+                  }
+                }}
+                className="px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-500 transition cursor-pointer"
+                style={{ pointerEvents: 'auto' }}
               >
                 确认无误，入夜
               </button>

@@ -926,25 +926,16 @@ export default function Home() {
           </div>
         </div>
       )}
-      {/* ===== 暗流涌动剧本游戏第一部分主界面 ===== */}
+      {/* ===== 剧本选择页：占满整个舞台区域，禁止二次缩放 ===== */}
       {gamePhase === 'scriptSelection' && (
-        <GameStageWrapper>
         <div className="w-full h-full flex flex-col bg-slate-950 text-white">
-            <aside className="w-full h-full border-l border-white/10 bg-slate-900/50 flex flex-col relative z-20 shrink-0 overflow-hidden">
-            <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
-              <h2 className="text-lg font-bold text-purple-300"> 说书人控制台</h2>
-            </div>
-              <div className="flex-1 overflow-hidden text-sm min-h-0 w-full h-full flex items-center justify-center">
-                <ScriptSelection
-                  onScriptSelect={setSelectedScript}
-                  saveHistory={saveHistory}
-                  setGameLogs={setGameLogs}
-                  setGamePhase={setGamePhase}
-                />
-              </div>
-            </aside>
-              </div>
-        </GameStageWrapper>
+          <ScriptSelection
+            onScriptSelect={setSelectedScript}
+            saveHistory={saveHistory}
+            setGameLogs={setGameLogs}
+            setGamePhase={setGamePhase}
+          />
+        </div>
       )}
       {gamePhase === 'setup' && (
         <GameLayout
@@ -1001,11 +992,14 @@ export default function Home() {
         />
       )}
       {gamePhase !== 'scriptSelection' && gamePhase !== 'setup' && (
-        <GameStage controller={controller} />
+        <>
+          <GameStage controller={controller} />
+          {/* 全局游戏 Modals：直接使用 controller 上的所有状态与回调 */}
+          <GameModals {...controller} />
+        </>
       )}
 
-      {/* Modals - Only setup-related modals remain here */}
-      {/* Game modals are now in GameStage component */}
+      {/* Setup 相关的 Modals 仍然留在本组件中 */}
       </div>
     </ScaleLayout>
   );

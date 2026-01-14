@@ -105,11 +105,13 @@ function getNightWakeQueue(seats: Seat[], isFirst: boolean): Seat[] {
     if (!effectiveRole) return false;
     
     // 根据是否为首夜来决定唤醒哪些角色
-    if (isFirst) {
-      return effectiveRole.firstNight === true;
-    } else {
-      return effectiveRole.otherNight === true;
-    }
+    // NEW (data-driven): prefer Meta protocol
+    const metaWakeable = isFirst ? !!effectiveRole.firstNightMeta : !!effectiveRole.otherNightMeta;
+    if (metaWakeable) return true;
+
+    // Legacy fallback: old boolean flags
+    if (isFirst) return effectiveRole.firstNight === true;
+    return effectiveRole.otherNight === true;
   });
 
   // Debug logging
@@ -191,22 +193,45 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
    * IMPORTANT: This function sets wakeQueueIds SYNCHRONOUSLY before changing phase
    */
   const finalizeNightStart = useCallback((queue: Seat[], isFirst: boolean) => {
+    console.log('[finalizeNightStart] ========== FUNCTION CALLED ==========');
+    console.log('[finalizeNightStart] queue:', queue);
+    console.log('[finalizeNightStart] queue length:', queue?.length);
+    console.log('[finalizeNightStart] isFirst:', isFirst);
+    
+    if (!queue || queue.length === 0) {
+      console.error('[finalizeNightStart] Queue is empty!');
+      return;
+    }
+    
     const queueIds = queue.map(s => s.id);
     console.log('[finalizeNightStart] Setting wakeQueueIds:', queueIds, 'isFirst:', isFirst);
+    console.log('[finalizeNightStart] Queue IDs:', queueIds);
     
     // CRITICAL: Set wakeQueueIds FIRST, before phase change
+    console.log('[finalizeNightStart] Calling setWakeQueueIds...');
     setWakeQueueIds(queueIds);
+    console.log('[finalizeNightStart] Calling setCurrentWakeIndex(0)...');
     setCurrentWakeIndex(0);
+    console.log('[finalizeNightStart] Calling setSelectedActionTargets([])...');
     setSelectedActionTargets([]);
+    console.log('[finalizeNightStart] Calling setInspectionResult(null)...');
     setInspectionResult(null);
     
     // Then change phase
-    setGamePhase(isFirst ? "firstNight" : "night");
-    if (!isFirst) setNightCount(n => n + 1);
+    const targetPhase = isFirst ? "firstNight" : "night";
+    console.log('[finalizeNightStart] Calling setGamePhase to:', targetPhase);
+    setGamePhase(targetPhase);
+    if (!isFirst) {
+      console.log('[finalizeNightStart] Incrementing nightCount...');
+      setNightCount(n => n + 1);
+    }
+    console.log('[finalizeNightStart] Calling setShowNightOrderModal(false)...');
     setShowNightOrderModal(false);
+    console.log('[finalizeNightStart] Calling setPendingNightQueue(null)...');
     setPendingNightQueue(null);
     
-    console.log('[finalizeNightStart] Phase changed to:', isFirst ? "firstNight" : "night", 'with', queueIds.length, 'wakeable roles');
+    console.log('[finalizeNightStart] ✅ Phase changed to:', targetPhase, 'with', queueIds.length, 'wakeable roles');
+    console.log('[finalizeNightStart] ========== FUNCTION COMPLETED ==========');
   }, [
     setWakeQueueIds,
     setCurrentWakeIndex,
@@ -223,165 +248,171 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
    * 进行身份检查、排序、处理特殊效果等
    */
   const startNight = useCallback((isFirst: boolean) => {
-    // 保存历史记录
-    saveHistory();
-    
-    // 白天事件与标记重置
-    setTodayDemonVoted(false);
-    setTodayMinionNominated(false);
-    setTodayExecutedId(null);
-    setWitchCursedId(null);
-    setWitchActive(false);
-    setCerenovusTarget(null);
-    setVoteRecords([]); // 重置投票记录
-    resetRegistrationCache(`${isFirst ? 'firstNight' : 'night'}-${isFirst ? 1 : nightCount + 1}`);
-    setNominationMap({});
-    const nightlyDeaths: number[] = [];
-    setGoonDrunkedThisNight(false);
-    setNightQueuePreviewTitle(isFirst ? `首夜叫醒顺位` : "");
-    
-    // 对于非首夜，在进入夜晚前将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
-    // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
-    if (!isFirst) {
-      if (currentDuskExecution !== null) {
-        setLastDuskExecution(currentDuskExecution);
-        // 清空当前黄昏的处决记录，准备记录新的处决
-        setCurrentDuskExecution(null);
-      }
-      // 如果当前黄昏没有处决，保持上一个黄昏的记录（如果有的话）
-      // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
-    }
-    
-    if (isFirst) setStartTime(new Date());
-    
-    // 普卡特殊处理：按队列推进中毒->死亡流程
-    const pukkaDeaths: number[] = [];
-    const nextPukkaQueue = pukkaPoisonQueue
-      .map(entry => {
-        const targetSeat = seats.find(s => s.id === entry.targetId);
-        // 如果目标已经死亡、被处决或其他效果移出队列
-        if (targetSeat?.isDead) return null;
-        const nightsLeft = entry.nightsUntilDeath - 1;
-        if (nightsLeft <= 0) {
-          pukkaDeaths.push(entry.targetId);
-          return null;
+    console.log('[startNight] invoked with isFirst =', isFirst);
+    try {
+      // 保存历史记录
+      saveHistory();
+      console.log('[startNight] saveHistory completed');
+      
+      // 白天事件与标记重置
+      setTodayDemonVoted(false);
+      setTodayMinionNominated(false);
+      setTodayExecutedId(null);
+      setWitchCursedId(null);
+      setWitchActive(false);
+      setCerenovusTarget(null);
+      setVoteRecords([]); // 重置投票记录
+      resetRegistrationCache(`${isFirst ? 'firstNight' : 'night'}-${isFirst ? 1 : nightCount + 1}`);
+      setNominationMap({});
+      const nightlyDeaths: number[] = [];
+      setGoonDrunkedThisNight(false);
+      setNightQueuePreviewTitle(isFirst ? `首夜叫醒顺位` : "");
+      
+      // 对于非首夜，在进入夜晚前将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
+      // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
+      if (!isFirst) {
+        if (currentDuskExecution !== null) {
+          setLastDuskExecution(currentDuskExecution);
+          // 清空当前黄昏的处决记录，准备记录新的处决
+          setCurrentDuskExecution(null);
         }
-        return { ...entry, nightsUntilDeath: nightsLeft };
-      })
-      .filter((v): v is { targetId: number; nightsUntilDeath: number } => !!v);
-    
-    if (pukkaDeaths.length > 0) {
-      pukkaDeaths.forEach((id, idx) => {
-        nightlyDeaths.push(id);
-        const isLast = idx === pukkaDeaths.length - 1;
-        killPlayer(id, {
-          seatTransformer: seat => {
-            const filteredStatuses = (seat.statusDetails || []).filter(st => st !== '普卡中毒');
-            const nextSeat = { ...seat, statusDetails: filteredStatuses };
-            return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
-          },
-          skipGameOverCheck: !isLast, // 最后一次再检查游戏结束，避免重复检查
+        // 如果当前黄昏没有处决，保持上一个黄昏的记录（如果有的话）
+        // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
+      }
+      
+      if (isFirst) setStartTime(new Date());
+      
+      // 普卡特殊处理：按队列推进中毒->死亡流程
+      const pukkaDeaths: number[] = [];
+      const nextPukkaQueue = pukkaPoisonQueue
+        .map(entry => {
+          const targetSeat = seats.find(s => s.id === entry.targetId);
+          // 如果目标已经死亡、被处决或其他效果移出队列
+          if (targetSeat?.isDead) return null;
+          const nightsLeft = entry.nightsUntilDeath - 1;
+          if (nightsLeft <= 0) {
+            pukkaDeaths.push(entry.targetId);
+            return null;
+          }
+          return { ...entry, nightsUntilDeath: nightsLeft };
+        })
+        .filter((v): v is { targetId: number; nightsUntilDeath: number } => !!v);
+      
+      if (pukkaDeaths.length > 0) {
+        pukkaDeaths.forEach((id, idx) => {
+          nightlyDeaths.push(id);
+          const isLast = idx === pukkaDeaths.length - 1;
+          killPlayer(id, {
+            seatTransformer: seat => {
+              const filteredStatuses = (seat.statusDetails || []).filter(st => st !== '普卡中毒');
+              const nextSeat = { ...seat, statusDetails: filteredStatuses };
+              return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
+            },
+            skipGameOverCheck: !isLast, // 最后一次再检查游戏结束，避免重复检查
+          });
+          addLog(`${id + 1}号因普卡的中毒效果死亡并恢复健康`);
         });
-        addLog(`${id + 1}号因普卡的中毒效果死亡并恢复健康`);
-      });
-    }
-    // 更新普卡队列，存活者继续保持中毒状态
-    setPukkaPoisonQueue(nextPukkaQueue);
-    
-    // 清除状态标记
-    setSeats(p => p.map(s => {
-      // 清除所有带清除时间的标记，根据清除时间判断
-      const filteredStatusDetails = (s.statusDetails || []).filter(st => {
-        // 保留永久标记
-        if (st.includes('永久中毒') || st.includes('永久')) return true;
-        // 清除所有带"次日黄昏清除"、"下个黄昏清除"、"至下个黄昏清除"
-        if (st.includes('次日黄昏清除') || st.includes('下个黄昏清除') || st.includes('至下个黄昏清除')) return false;
-        // 清除所有带"Night+Day"、"1 Day"等标准清除时间的状态
-        const status = s.statuses?.find(st => st.effect && st.duration === '1 Day' || st.duration === 'Night+Day');
-        if (status && (status.duration === '1 Day' || status.duration === 'Night+Day')) return false;
-        // 保留其他状态
-        return true;
-      });
-      
-      // 清除水手/旅店老板造成的醉酒状态，这些状态持续到"下个黄昏"，进入夜晚时清除
-      const filteredStatusDetailsForDrunk = filteredStatusDetails.filter(st => {
-        // 清除水手/旅店老板造成的醉酒标记，这些标记包含"至下个黄昏清除"
-        if (st.includes('水手致醉') && st.includes('至下个黄昏清除')) return false;
-        if (st.includes('旅店老板致醉') && st.includes('至下个黄昏清除')) return false;
-        return true;
-      });
-      
-      const filteredStatuses = (s.statuses || []).filter(status => {
-        if (status.effect === 'Drunk' && (status.duration === '下个黄昏' || status.duration === '至下个黄昏清除')) {
-          return false;
-        }
-        if (status.effect === 'ExecutionProof' && status.duration === '1 Day') {
-          return false;
-        }
-        return true;
-      });
-      
-      return {
-        ...s,
-        statusDetails: filteredStatusDetailsForDrunk,
-        statuses: filteredStatuses,
-        isPoisoned: computeIsPoisoned({ ...s, statusDetails: filteredStatusDetailsForDrunk, statuses: filteredStatuses }),
-        isDrunk: filteredStatusDetailsForDrunk.some(st => st.includes('致醉')) ? s.isDrunk : false,
-      };
-    }));
-    
-    // 生成夜晚唤醒队列
-    const validQueue = getNightWakeQueue(seats, isFirst);
-    
-    // Debug logging
-    console.log('[startNight] isFirst:', isFirst, 'validQueue length:', validQueue.length);
-    if (isFirst && validQueue.length === 0) {
-      console.warn('[startNight] First night queue is empty! Active seats:', seats.filter(s => s.role).map(s => ({
-        id: s.id,
-        roleId: s.role?.id,
-        roleName: s.role?.name,
-        firstNight: s.role?.id === 'drunk' ? s.charadeRole?.firstNight : s.role?.firstNight
-      })));
-    }
-    
-    if (validQueue.length === 0) {
-      // For first night, if no roles wake, we should still proceed but with an empty queue
-      // This allows the game to continue to dawn
-      if (isFirst) {
-        console.warn('[startNight] First night has no wakeable roles. Proceeding with empty queue.');
-        // Set empty queue but still allow progression
-        setWakeQueueIds([]);
-        setCurrentWakeIndex(0);
-        setSelectedActionTargets([]);
-        setInspectionResult(null);
-        // For first night with no wakeable roles, go directly to dawn
-        if (nightlyDeaths.length > 0) {
-          const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-          setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
-        } else {
-          setShowNightDeathReportModal("昨天是个平安夜");
-        }
-        setGamePhase('dawnReport');
-        return;
-      } else {
-        // For other nights, same behavior
-        setWakeQueueIds([]);
-        setCurrentWakeIndex(0);
-        if (nightlyDeaths.length > 0) {
-          const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-          setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
-        } else {
-          setShowNightDeathReportModal("昨天是个平安夜");
-        }
-        setGamePhase('dawnReport');
-        return;
       }
-    }
-
-    if (isFirst) {
-      setPendingNightQueue(validQueue);
-      setNightOrderPreview(
-        validQueue
+      // 更新普卡队列，存活者继续保持中毒状态
+      setPukkaPoisonQueue(nextPukkaQueue);
+      
+      // 清除状态标记
+      setSeats(p => p.map(s => {
+        // 清除所有带清除时间的标记，根据清除时间判断
+        const filteredStatusDetails = (s.statusDetails || []).filter(st => {
+          // 保留永久标记
+          if (st.includes('永久中毒') || st.includes('永久')) return true;
+          // 清除所有带"次日黄昏清除"、"下个黄昏清除"、"至下个黄昏清除"
+          if (st.includes('次日黄昏清除') || st.includes('下个黄昏清除') || st.includes('至下个黄昏清除')) return false;
+          // 清除所有带"Night+Day"、"1 Day"等标准清除时间的状态
+          const status = s.statuses?.find(st => st.effect && st.duration === '1 Day' || st.duration === 'Night+Day');
+          if (status && (status.duration === '1 Day' || status.duration === 'Night+Day')) return false;
+          // 保留其他状态
+          return true;
+        });
+        
+        // 清除水手/旅店老板造成的醉酒状态，这些状态持续到"下个黄昏"，进入夜晚时清除
+        const filteredStatusDetailsForDrunk = filteredStatusDetails.filter(st => {
+          // 清除水手/旅店老板造成的醉酒标记，这些标记包含"至下个黄昏清除"
+          if (st.includes('水手致醉') && st.includes('至下个黄昏清除')) return false;
+          if (st.includes('旅店老板致醉') && st.includes('至下个黄昏清除')) return false;
+          return true;
+        });
+        
+        const filteredStatuses = (s.statuses || []).filter(status => {
+          if (status.effect === 'Drunk' && (status.duration === '下个黄昏' || status.duration === '至下个黄昏清除')) {
+            return false;
+          }
+          if (status.effect === 'ExecutionProof' && status.duration === '1 Day') {
+            return false;
+          }
+          return true;
+        });
+        
+        return {
+          ...s,
+          statusDetails: filteredStatusDetailsForDrunk,
+          statuses: filteredStatuses,
+          isPoisoned: computeIsPoisoned({ ...s, statusDetails: filteredStatusDetailsForDrunk, statuses: filteredStatuses }),
+          isDrunk: filteredStatusDetailsForDrunk.some(st => st.includes('致醉')) ? s.isDrunk : false,
+        };
+      }));
+      
+      // 生成夜晚唤醒队列
+      const validQueue = getNightWakeQueue(seats, isFirst);
+      
+      // Debug logging
+      console.log('[startNight] isFirst:', isFirst, 'validQueue length:', validQueue.length);
+      if (isFirst && validQueue.length === 0) {
+        console.warn('[startNight] First night queue is empty! Active seats:', seats.filter(s => s.role).map(s => ({
+          id: s.id,
+          roleId: s.role?.id,
+          roleName: s.role?.name,
+          firstNight: s.role?.id === 'drunk' ? s.charadeRole?.firstNight : s.role?.firstNight
+        })));
+      }
+      
+      if (validQueue.length === 0) {
+        // For first night, if no roles wake, we should still proceed but with an empty queue
+        // This allows the game to continue to dawn
+        if (isFirst) {
+          console.warn('[startNight] First night has no wakeable roles. Proceeding with empty queue.');
+          // Set empty queue but still allow progression
+          setWakeQueueIds([]);
+          setCurrentWakeIndex(0);
+          setSelectedActionTargets([]);
+          setInspectionResult(null);
+          // For first night with no wakeable roles, go directly to dawn
+          if (nightlyDeaths.length > 0) {
+            const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
+            setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+          } else {
+            setShowNightDeathReportModal("昨天是个平安夜");
+          }
+          setGamePhase('dawnReport');
+          return;
+        } else {
+          // For other nights, same behavior
+          setWakeQueueIds([]);
+          setCurrentWakeIndex(0);
+          if (nightlyDeaths.length > 0) {
+            const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
+            setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+          } else {
+            setShowNightDeathReportModal("昨天是个平安夜");
+          }
+          setGamePhase('dawnReport');
+          return;
+        }
+      }
+      
+      if (isFirst) {
+        console.log('[startNight] First night - Setting up preview modal');
+        console.log('[startNight] validQueue length:', validQueue.length);
+        console.log('[startNight] validQueue:', validQueue.map(s => ({ id: s.id, roleId: s.role?.id, roleName: s.role?.name })));
+        
+        setPendingNightQueue(validQueue);
+        const preview = validQueue
           .map(s => {
             const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
             return { 
@@ -390,13 +421,22 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
               order: r?.firstNightOrder ?? 999 
             };
           })
-          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999))
-      );
-      setShowNightOrderModal(true);
-      return;
+          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+        
+        console.log('[startNight] Preview data:', preview);
+        setNightOrderPreview(preview);
+        
+        console.log('[startNight] Calling setShowNightOrderModal(true)...');
+        setShowNightOrderModal(true);
+        console.log('[startNight] ✅ Modal should be visible now');
+        return;
+      }
+      
+      finalizeNightStart(validQueue, isFirst);
+    } catch (error) {
+      console.error('[startNight] Unhandled error:', error);
+      alert(`入夜时发生错误: ${error instanceof Error ? error.message : String(error)}`);
     }
-
-    finalizeNightStart(validQueue, isFirst);
   }, [
     seats,
     nightCount,
