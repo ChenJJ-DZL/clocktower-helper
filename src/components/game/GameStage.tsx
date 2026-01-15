@@ -11,6 +11,7 @@ import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
 import { getSeatPosition } from "../../utils/gameRules";
 import { GameLayout } from "./GameLayout";
+import { ScaleToFit } from "./board/ScaleToFit";
 
 // 全量重写的 GameStage 组件
 export function GameStage({ controller }: { controller: any }) {
@@ -109,11 +110,20 @@ export function GameStage({ controller }: { controller: any }) {
     setLongPressingSeats,
     closeNightOrderPreview,
     confirmNightOrderPreview,
+    executeNomination,
+    checkGameOverSimple,
+    nightLogic,
+    registerVotes,
+    votedThisRound,
   } = controller;
 
   // 计算左侧面板的缩放比例，使座位表适应容器
   const [seatScale, setSeatScale] = useState(1);
   const leftPanelRef = useRef<HTMLDivElement>(null);
+  
+  // Dusk Phase: Nomination state
+  const [nominator, setNominator] = useState<number | null>(null);
+  const [nominee, setNominee] = useState<number | null>(null);
   
   useEffect(() => {
     const updateSeatScale = () => {
@@ -150,6 +160,225 @@ export function GameStage({ controller }: { controller: any }) {
   };
   const currentWakeRole = getDisplayRole(currentWakeSeat);
   const nextWakeRole = getDisplayRole(nextWakeSeat);
+
+  // Handle Dusk Phase UI
+  if (gamePhase === 'dusk') {
+    return (
+      <div className="w-full h-full flex flex-col bg-slate-950">
+        {/* Layout: Left Table, Right Controls */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: Round Table */}
+          <div className="flex-1 bg-slate-950 relative flex items-center justify-center">
+            <ScaleToFit>
+              <RoundTable
+                seats={seats}
+                nightInfo={null}
+                selectedActionTargets={[]}
+                isPortrait={isPortrait}
+                longPressingSeats={new Set()}
+                onSeatClick={(seat) => {
+                  // Simple toggle logic for UI
+                  if (nominator === null) {
+                    setNominator(seat.id);
+                  } else if (nominee === null && seat.id !== nominator) {
+                    setNominee(seat.id);
+                  } else {
+                    setNominator(seat.id);
+                    setNominee(null);
+                  }
+                }}
+                onContextMenu={(e, seatId) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, seatId });
+                }}
+                onTouchStart={(e, seatId) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (nominator === null) {
+                    setNominator(seatId);
+                  } else if (nominee === null && seatId !== nominator) {
+                    setNominee(seatId);
+                  } else {
+                    setNominator(seatId);
+                    setNominee(null);
+                  }
+                }}
+                onTouchEnd={(e, seatId) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                onTouchMove={(e, seatId) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                setSeatRef={(id, el) => {
+                  seatRefs.current[id] = el;
+                }}
+                getDisplayRoleType={getDisplayRoleType}
+                typeColors={typeColors}
+                gamePhase={gamePhase}
+                nightCount={nightCount}
+                timer={timer}
+                formatTimer={formatTimer}
+                onTimerStart={controller.handleTimerStart}
+                onTimerPause={controller.handleTimerPause}
+                onTimerReset={controller.handleTimerReset}
+              />
+            </ScaleToFit>
+            
+            {/* Overlay Instruction */}
+            <div className="absolute top-4 left-0 right-0 text-center text-orange-500 font-bold text-lg drop-shadow-lg z-30">
+              {nominator === null 
+                ? "点击选择 提名者" 
+                : (nominee === null 
+                  ? `已选择提名者: ${nominator + 1}号，点击选择 被提名者` 
+                  : `准备提名: ${nominator + 1}号 → ${nominee + 1}号`)}
+            </div>
+          </div>
+
+          {/* Right: Dusk Control Panel */}
+          <div className="w-[450px] bg-slate-900 border-l border-white/10 flex flex-col p-6 gap-4 overflow-y-auto">
+            <h2 className="text-2xl font-black text-orange-500 uppercase tracking-wide">⚖️ 处决台</h2>
+            
+            {/* Selection Display */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">提名者:</span>
+                <span className="text-white font-bold text-lg">
+                  {nominator !== null ? `${nominator + 1}号` : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">被提名者:</span>
+                <span className="text-white font-bold text-lg">
+                  {nominee !== null ? `${nominee + 1}号` : '-'}
+                </span>
+              </div>
+            </div>
+
+            {/* Voting Recorder */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-3 border border-white/10">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>✋</span> 投票记录器
+              </h3>
+              <p className="text-xs text-gray-400">请记录所有举手的玩家，用于卖花女/城镇公告员的信息计算。</p>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const input = prompt("请输入所有举票玩家的座位号 (用逗号分隔，例如 1,3,5):");
+                    if (input) {
+                      const ids = input.split(/[,，]/).map(s => parseInt(s.trim()) - 1).filter(n => !isNaN(n) && n >= 0 && n < seats.length);
+                      if (ids.length > 0) {
+                        registerVotes(ids);
+                        alert(`已记录 ${ids.length} 名玩家投票。卖花女/城镇公告员将能读取此信息。`);
+                      } else {
+                        alert("无效的输入，请使用数字并用逗号分隔");
+                      }
+                    }
+                  }}
+                  className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
+                >
+                  📝 录入投票数据
+                </button>
+                <button
+                  onClick={() => {
+                    registerVotes([]);
+                    alert("已清空投票记录");
+                  }}
+                  className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm transition-colors"
+                >
+                  清空
+                </button>
+              </div>
+              {votedThisRound && votedThisRound.length > 0 && (
+                <div className="text-xs text-gray-300">
+                  已记录: {votedThisRound.map(id => `${id + 1}号`).join(', ')}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3">
+              <button 
+                disabled={nominator === null || nominee === null}
+                onClick={() => {
+                  if (nominator !== null && nominee !== null) {
+                    // Call executeNomination (which handles Virgin trigger from Step 4)
+                    executeNomination(nominator, nominee);
+                    addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
+                    // Reset selection
+                    setNominator(null);
+                    setNominee(null);
+                  }
+                }}
+                className="p-4 bg-orange-600/20 text-orange-500 border border-orange-600/50 rounded-lg hover:bg-orange-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              >
+                📣 发起提名 (触发技能检测)
+              </button>
+              
+              <div className="h-px bg-white/10 my-2"></div>
+
+              <button 
+                onClick={() => {
+                  const targetStr = prompt(`请输入要处决的玩家座位号 (1-${seats.length})，如果没有人被处决，点击取消:`);
+                  if (targetStr) {
+                    const tid = parseInt(targetStr) - 1;
+                    if (!isNaN(tid) && tid >= 0 && tid < seats.length) {
+                      const targetSeat = seats.find(s => s.id === tid);
+                      if (!targetSeat) {
+                        alert(`座位 ${tid + 1} 不存在`);
+                        return;
+                      }
+                      if (targetSeat.isDead) {
+                        alert(`座位 ${tid + 1} 已经死亡`);
+                        return;
+                      }
+                      
+                      // Execute player (this handles Saint check, etc.)
+                      executePlayer(tid);
+                      addLog(`⚖️ ${tid + 1}号 被处决死亡。`);
+                      
+                      // Check Game Over immediately after (with a small delay to let state update)
+                      setTimeout(() => {
+                        const updatedSeats = seats.map(s => s.id === tid ? { ...s, isDead: true } : s);
+                        const result = checkGameOverSimple(updatedSeats);
+                        if (result === 'good') {
+                          alert("🎉 恶魔已死，好人获胜！");
+                        } else if (result === 'evil') {
+                          alert("😈 只剩两人，邪恶获胜！");
+                        }
+                      }, 100);
+                    } else {
+                      alert(`无效的座位号，请输入 1-${seats.length} 之间的数字`);
+                    }
+                  }
+                }}
+                className="p-4 bg-red-600 text-white font-black rounded-lg text-xl shadow-lg hover:bg-red-500 transition-colors"
+              >
+                ☠️ 执行处决
+              </button>
+            </div>
+
+            <div className="mt-auto pt-4 border-t border-white/10">
+              <button 
+                onClick={() => {
+                  if (nightLogic?.startNight) {
+                    nightLogic.startNight(false);
+                  } else {
+                    alert("无法开始夜晚，请检查游戏状态");
+                  }
+                }}
+                className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow hover:bg-indigo-500 transition-colors"
+              >
+                入夜 (下一回合) 🌙
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -267,6 +496,7 @@ export function GameStage({ controller }: { controller: any }) {
                     seats={seats}
           nightInfo={nightInfo}
           onTogglePlayer={toggleTarget}
+          handleDayAbility={controller.handleDayAbility}
           primaryAction={
             (gamePhase === 'firstNight' || gamePhase === 'night')
               ? {

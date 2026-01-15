@@ -172,6 +172,8 @@ export function useGameState() {
     onConfirm: (roleId: string) => void;
   } | null>(null); // 角色选择弹窗（替代prompt）
   const [voteRecords, setVoteRecords] = useState<Array<{ voterId: number; isDemon: boolean }>>([]); // 投票记录（用于卖花女孩）
+  const [votedThisRound, setVotedThisRound] = useState<number[]>([]); // 本轮投票的玩家ID列表（用于卖花女/城镇公告员）
+  const [hasExecutedThisDay, setHasExecutedThisDay] = useState<boolean>(false); // 今日是否有人被处决（用于 Vortox）
   const [remainingDays, setRemainingDays] = useState<number | null>(null); // 剩余日间数（evil_twin 相关）
   const [showMadnessCheckModal, setShowMadnessCheckModal] = useState<{
     targetId: number;
@@ -450,6 +452,10 @@ export function useGameState() {
     setShowRoleSelectModal,
     voteRecords,
     setVoteRecords,
+    votedThisRound,
+    setVotedThisRound,
+    hasExecutedThisDay,
+    setHasExecutedThisDay,
     remainingDays,
     setRemainingDays,
     showMadnessCheckModal,

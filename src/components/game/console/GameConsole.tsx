@@ -33,6 +33,9 @@ interface GameConsoleProps {
     onClick: () => void;
     disabled?: boolean;
   }>;
+  
+  // Day Abilities Panel (for Day phase)
+  handleDayAbility?: (sourceSeatId: number, targetSeatId?: number) => void;
 }
 
 /**
@@ -55,6 +58,7 @@ export function GameConsole({
   onTogglePlayer,
   primaryAction,
   secondaryActions = [],
+  handleDayAbility,
 }: GameConsoleProps) {
   const getPhaseLabel = () => {
     switch (gamePhase) {
@@ -151,6 +155,65 @@ export function GameConsole({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Section 3: Day Abilities Panel (Day Phase Only) */}
+        {gamePhase === 'day' && handleDayAbility && (
+          <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5">
+            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+              <span>⚡️</span> 可用主动技能
+            </h3>
+            
+            {(() => {
+              // Filter players who are ALIVE and HAVE DAY ABILITIES and HAVEN'T USED THEM
+              const activeAbilitySeats = seats.filter(s => 
+                !s.isDead && 
+                s.role?.dayMeta && 
+                !s.hasUsedDayAbility
+              );
+
+              if (activeAbilitySeats.length === 0) {
+                return <p className="text-gray-500 text-sm">暂无可用技能</p>;
+              }
+
+              return (
+                <div className="space-y-3">
+                  {activeAbilitySeats.map(seat => (
+                    <div key={seat.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <span className="text-amber-500 font-bold">{seat.id + 1}号</span>
+                        <span className="text-white">{seat.role?.name}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!handleDayAbility) return;
+                          // Simple prompt for now. Ideally use a Modal.
+                          if (seat.role?.dayMeta?.targetType === 'player') {
+                            const targetStr = prompt(`请输入目标座位号 (1-${seats.length}):`);
+                            if (targetStr) {
+                              const targetId = parseInt(targetStr) - 1;
+                              if (!isNaN(targetId) && targetId >= 0 && targetId < seats.length) {
+                                handleDayAbility(seat.id, targetId);
+                              } else {
+                                alert(`无效的座位号，请输入 1-${seats.length} 之间的数字`);
+                              }
+                            }
+                          } else {
+                            if (confirm(`确定使用 ${seat.role?.dayMeta?.abilityName || '技能'} 吗？`)) {
+                              handleDayAbility(seat.id);
+                            }
+                          }
+                        }}
+                        className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
+                      >
+                        使用 {seat.role?.dayMeta?.abilityName}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
 

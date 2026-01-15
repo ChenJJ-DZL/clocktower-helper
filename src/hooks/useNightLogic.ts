@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { Seat, Role, GamePhase, LogEntry, Script } from "../../app/data";
+import type { Seat, Role, GamePhase, LogEntry, Script, WinResult } from "../../app/data";
 import { getRandom, computeIsPoisoned, addPoisonMark, hasTeaLadyProtection } from "../utils/gameRules";
 import type { NightInfoResult } from "../types/game";
 
@@ -54,6 +54,13 @@ export interface NightLogicActions {
   setWitchActive: React.Dispatch<React.SetStateAction<boolean>>;
   setCerenovusTarget: React.Dispatch<React.SetStateAction<{ targetId: number; roleName: string } | null>>;
   setVoteRecords: React.Dispatch<React.SetStateAction<Array<{ voterId: number; isDemon: boolean }>>>;
+  setVotedThisRound?: React.Dispatch<React.SetStateAction<number[]>>; // 本轮投票记录（用于卖花女/城镇公告员）
+  hasExecutedThisDay?: boolean; // 今日是否有人被处决（用于 Vortox）
+  setHasExecutedThisDay?: React.Dispatch<React.SetStateAction<boolean>>; // 设置今日处决标记
+  setGamePhase?: React.Dispatch<React.SetStateAction<GamePhase>>; // 用于 Vortox 游戏结束
+  setWinResult?: React.Dispatch<React.SetStateAction<WinResult>>; // 用于 Vortox 游戏结束
+  setWinReason?: React.Dispatch<React.SetStateAction<string | null>>; // 用于 Vortox 游戏结束
+  addLog?: (message: string) => void; // 用于 Vortox 日志
   setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>>;
   setGoonDrunkedThisNight: React.Dispatch<React.SetStateAction<boolean>>;
   setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>>;
@@ -86,6 +93,18 @@ export interface NightLogicActions {
       onAfterKill?: (latestSeats: Seat[]) => void;
     }
   ) => void;
+  tryKillPlayer?: (
+    targetId: number,
+    source: 'demon' | 'execution' | 'ability',
+    options?: {
+      recordNightDeath?: boolean;
+      keepInWakeQueue?: boolean;
+      seatTransformer?: (seat: Seat) => Seat;
+      skipGameOverCheck?: boolean;
+      executedPlayerId?: number | null;
+      onAfterKill?: (latestSeats: Seat[]) => void;
+    }
+  ) => void;
   saveHistory: () => void;
   resetRegistrationCache: (key: string) => void;
   getSeatRoleId: (seat?: Seat | null) => string | null;
@@ -99,12 +118,24 @@ export interface NightLogicActions {
 function getNightWakeQueue(seats: Seat[], isFirst: boolean): Seat[] {
   const activeSeats = seats.filter(s => {
     if (!s.role) return false;
-    if (s.isDead && !s.hasAbilityEvenDead) return false; // 已死亡且不保留能力的玩家不唤醒
     
     const effectiveRole = s.role.id === 'drunk' ? s.charadeRole : s.role;
     if (!effectiveRole) return false;
     
-    // 根据是否为首夜来决定唤醒哪些角色
+    // Check if dead - if so, need special permission to wake
+    if (s.isDead) {
+      // 1. Check metadata for wakesIfDead flag (NEW: data-driven approach)
+      const meta = isFirst ? effectiveRole.firstNightMeta : effectiveRole.otherNightMeta;
+      if (meta && meta.wakesIfDead === true) return true;
+      
+      // 2. Legacy fallback: hasAbilityEvenDead flag (for backward compatibility)
+      if (s.hasAbilityEvenDead) return true;
+      
+      // 3. No permission to wake if dead
+      return false;
+    }
+    
+    // If alive, check if they have night actions
     // NEW (data-driven): prefer Meta protocol
     const metaWakeable = isFirst ? !!effectiveRole.firstNightMeta : !!effectiveRole.otherNightMeta;
     if (metaWakeable) return true;
@@ -262,6 +293,10 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       setWitchActive(false);
       setCerenovusTarget(null);
       setVoteRecords([]); // 重置投票记录
+      // 清空本轮投票记录（用于卖花女/城镇公告员）
+      if (typeof setVotedThisRound === 'function') {
+        setVotedThisRound([]);
+      }
       resetRegistrationCache(`${isFirst ? 'firstNight' : 'night'}-${isFirst ? 1 : nightCount + 1}`);
       setNominationMap({});
       const nightlyDeaths: number[] = [];
@@ -271,6 +306,20 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       // 对于非首夜，在进入夜晚前将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
       // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
       if (!isFirst) {
+        // VORTOX CHECK: 如果 Vortox 在场且今日无人被处决，邪恶获胜
+        if (hasExecutedThisDay === false) {
+          const vortoxSeat = seats.find(s => s.role?.id === 'vortox' && !s.isDead);
+          if (vortoxSeat) {
+            addLog?.("😈 沃德在场且今日无人被处决！邪恶方获胜！");
+            setWinResult?.('evil');
+            setWinReason?.('沃德在场且今日无人被处决');
+            setGamePhase?.('gameOver');
+            // Reset execution flag before returning
+            setHasExecutedThisDay?.(false);
+            return; // Abort night start, game is over
+          }
+        }
+        
         if (currentDuskExecution !== null) {
           setLastDuskExecution(currentDuskExecution);
           // 清空当前黄昏的处决记录，准备记录新的处决
@@ -278,6 +327,11 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         }
         // 如果当前黄昏没有处决，保持上一个黄昏的记录（如果有的话）
         // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
+      }
+      
+      // Reset execution flag for next day (after Vortox check)
+      if (typeof setHasExecutedThisDay === 'function') {
+        setHasExecutedThisDay(false);
       }
       
       if (isFirst) setStartTime(new Date());

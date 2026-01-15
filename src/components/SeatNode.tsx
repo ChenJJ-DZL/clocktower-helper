@@ -107,12 +107,13 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   const p = getSeatPosition(i, seats.length, isPortrait);
   const displayType = getDisplayRoleType(s);
   const colorClass = displayType ? typeColors[displayType] : 'border-gray-600 text-gray-400';
+  const realRole = s.role;
+  const displayRole = s.displayRole || (s.role?.id === 'drunk' ? s.charadeRole || s.role : s.role);
+  const isMasked = !!(realRole && displayRole && realRole.id !== displayRole.id);
   const roleName =
-    s.role?.id === 'drunk'
-      ? `${s.charadeRole?.name || s.role?.name} (酒)`
-      : s.isDemonSuccessor && s.role?.id === 'imp'
-        ? `${s.role?.name} (传)`
-        : s.role?.name || "空";
+    s.isDemonSuccessor && realRole?.id === 'imp'
+      ? `${displayRole?.name || realRole?.name} (传)`
+      : displayRole?.name || realRole?.name || "空";
   
   // 定义状态列表 - 自动推导所有异常状态
   const statusList: Array<{ text: string; color: 'red' | 'purple' | 'green' | 'blue' | 'gray' | 'yellow'; icon?: React.ReactNode; duration?: string }> = [];
@@ -285,6 +286,16 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         ${longPressingSeats.has(s.id) ? 'ring-4 ring-blue-400 animate-pulse' : ''}
       `}
       >
+        {/* 真实身份指示徽章（仅说书人可见：role 与 displayRole 不一致时显示） */}
+        {isMasked && (
+          <div
+            className={`absolute ${isPortrait ? '-top-1.5 -right-1.5' : '-top-4 -right-4'} bg-purple-600 text-white ${
+              isPortrait ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5'
+            } rounded-full z-40 border border-white shadow-sm`}
+          >
+            实:{realRole?.name}
+          </div>
+        )}
         {/* 长按进度指示器 */}
         {longPressingSeats.has(s.id) && (
           <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
@@ -339,6 +350,16 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
             </span>
           )}
         </div>
+
+        {/* 幽灵票标记 - 显示在右下角 */}
+        {s.isDead && s.hasGhostVote && (
+          <div 
+            className={`absolute ${isPortrait ? '-bottom-1 -right-1' : '-bottom-1 -right-1'} ${isPortrait ? 'w-4 h-4' : 'w-5 h-5'} bg-white rounded-full border-2 border-slate-900 flex items-center justify-center shadow-md z-30`} 
+            title="该玩家还有一票"
+          >
+            <div className={`${isPortrait ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-black rounded-full`}></div>
+          </div>
+        )}
       </div>
     </div>
   );

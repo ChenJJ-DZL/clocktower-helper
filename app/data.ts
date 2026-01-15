@@ -1,5 +1,8 @@
 // by 拜甘教成员-大长老
-// app/data.ts - 血染钟楼 Trouble Brewing 角色数据与类型定义
+// app/data.ts - 血染钟楼 角色数据与类型定义
+
+// NEW: 数据驱动的「暗流涌动」基础元数据（夜晚顺序、Setup 标记等）
+import troubleBrewingRolesData from "../src/data/rolesData.json";
 
 export type RoleType = "townsfolk" | "outsider" | "minion" | "demon";
 
@@ -29,28 +32,32 @@ export interface NightActionMeta {
   canSelectDead: boolean;
   effectType?: 'add_status' | 'kill' | 'protect' | 'info' | 'none'; // Generic effect tag
   effectValue?: string;  // e.g. 'poisoned', 'protected'
+  wakesIfDead?: boolean; // NEW: For Zombuul/Bone Collector - allows dead players to wake up
 }
 
 // SETUP META: What happens before the game starts?
 export interface SetupMeta {
-  modifiesBag?: boolean;  // e.g. Baron adds Outsiders
-  isDrunk?: boolean;      // e.g. Drunk thinks he is Townsfolk
-  maskRole?: string;      // e.g. "imposter" logic
+  modifiesBag?: boolean;   // e.g. Baron adds Outsiders
+  isDrunk?: boolean;       // e.g. Drunk (needs a Townsfolk mask)
+  isLunatic?: boolean;     // e.g. Lunatic (needs a fake Demon mask)
+  maskRole?: string;       // Optional explicit mask role id (for advanced setups)
 }
 
 // DAY META: Active abilities used during the day
 export interface DayActionMeta {
   abilityName: string;    // e.g. "Slayer Shot"
   usesCount: number | 'infinity'; 
-  targetType: 'player' | 'none';
-  effectType: 'kill' | 'info';
+  targetType: 'player' | 'character' | 'none'; // 'character' for choosing a role (e.g. Philosopher)
+  effectType: 'kill' | 'info' | 'slayer_check' | 'transform_ability'; // 'transform_ability' for Philosopher
 }
 
 // PASSIVE META: Triggers that happen automatically
 export interface TriggerMeta {
-  onNominated?: boolean;  // e.g. Virgin
-  onNightDeath?: boolean; // e.g. Mayor, Soldier
-  onDeath?: boolean;      // e.g. Ravenkeeper
+  onNominated?: boolean;      // e.g. Virgin (checked during nomination)
+  onNightDeath?: boolean;     // e.g. Soldier, Monk-protected (checked before applying kill)
+  onDayDeath?: boolean;       // e.g. Mayor (if execution fails)
+  onDeath?: boolean;          // e.g. Ravenkeeper (general death trigger)
+  onExecution?: boolean;      // e.g. Saint (if executed, team loses)
 }
 
 export interface Role {
@@ -91,7 +98,16 @@ export interface StatusEffect {
 export interface Seat {
   id: number;
   playerName?: string; // 玩家名字（可选）
-  role: Role | null;
+  role: Role | null;          // REAL logic role (e.g. Drunk)
+  /**
+   * MASKED role shown to the player (e.g. Soldier when actually Drunk).
+   * If undefined, UI should fall back to `role` or legacy `charadeRole`.
+   */
+  displayRole?: Role | null;
+  /**
+   * Legacy field for Drunk mask before `displayRole` was introduced.
+   * Kept for backward compatibility with existing logic.
+   */
   charadeRole: Role | null;
   isDead: boolean;
   hasGhostVote?: boolean; // 死者票是否可用
@@ -105,7 +121,8 @@ export interface Seat {
   isFortuneTellerRedHerring: boolean; // 占卜师的红罗刹：一名镇民玩家始终被占卜师视为邪恶
   isSentenced: boolean;
   masterId: number | null;
-  hasUsedSlayerAbility: boolean;
+  hasUsedSlayerAbility: boolean; // Legacy field, kept for backward compatibility
+  hasUsedDayAbility?: boolean; // Track usage of dayMeta abilities (e.g. Slayer shot)
   hasUsedVirginAbility: boolean;
   hasBeenNominated?: boolean; // 处女是否已被提名过（无论是否触发处决）
   isDemonSuccessor: boolean;
@@ -169,7 +186,8 @@ export const scripts: Script[] = [
 
 // ======================================================================
 //  角色数据 - 22个角色 (Trouble Brewing)
-// 当前文件中定义的所有角色均为「暗流涌动角色」（暗流涌动剧本 / 游戏的第一部分）
+// 数据驱动元数据：见 src/data/rolesData.json
+// 下方仍保留完整描述与旧字段，后续可逐步迁移。
 // ======================================================================
 export const roles: Role[] = [
   // ========== 镇民 (Townsfolk) - 13个 ==========
@@ -182,13 +200,13 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色
     firstNight: true, 
     otherNight: false, 
-    firstNightOrder: 4, 
+    firstNightOrder: 20, 
     otherNightOrder: 0, 
     nightActionType: "none", 
     firstNightReminder: "查村民",
     firstNightMeta: {
       script: "洗衣妇请睁眼...",
-      instruction: "确认身份信息",
+      instruction: "确认已获得的身份信息",
       targetType: 'none',
       amount: 0,
       required: false,
@@ -206,10 +224,20 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色
     firstNight: true, 
     otherNight: false, 
-    firstNightOrder: 5, 
+    firstNightOrder: 21, 
     otherNightOrder: 0, 
     nightActionType: "none", 
-    firstNightReminder: "查外来者" 
+    firstNightReminder: "查外来者",
+    firstNightMeta: {
+      script: "图书管理员请睁眼...",
+      instruction: "确认已获得的身份信息",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "investigator", 
@@ -220,10 +248,20 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色
     firstNight: true, 
     otherNight: false, 
-    firstNightOrder: 6, 
+    firstNightOrder: 22, 
     otherNightOrder: 0, 
     nightActionType: "none", 
-    firstNightReminder: "查爪牙" 
+    firstNightReminder: "查爪牙",
+    firstNightMeta: {
+      script: "调查员请睁眼...",
+      instruction: "确认已获得的身份信息",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "chef", 
@@ -234,10 +272,20 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色
     firstNight: true, 
     otherNight: false, 
-    firstNightOrder: 7, 
+    firstNightOrder: 23, 
     otherNightOrder: 0, 
     nightActionType: "none", 
-    firstNightReminder: "查对数" 
+    firstNightReminder: "查对数",
+    firstNightMeta: {
+      script: "厨师请睁眼...",
+      instruction: "请用手指比出邪恶对数",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "empath", 
@@ -247,12 +295,32 @@ export const roles: Role[] = [
     fullDescription: "每个夜晚,你会得知与你邻近的两名存活的玩家中邪恶玩家的数量。",
     firstNight: true, 
     otherNight: true, 
-    firstNightOrder: 8, 
-    otherNightOrder: 8, 
+    firstNightOrder: 24, 
+    otherNightOrder: 24, 
     nightActionType: "none", 
     firstNightReminder: "查邻居", 
     otherNightReminder: "查邻居",
     script: "暗流涌动", // 暗流涌动角色 
+    firstNightMeta: {
+      script: "共情者请睁眼...",
+      instruction: "请用手指比出邻近邪恶数",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    },
+    otherNightMeta: {
+      script: "共情者请睁眼...",
+      instruction: "请用手指比出邻近邪恶数",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "fortune_teller", 
@@ -262,12 +330,32 @@ export const roles: Role[] = [
     fullDescription: "每个夜晚,你要选择两名玩家:你会得知他们之中是否有恶魔,会有一名镇民玩家始终被你的能力视为邪恶。",
     firstNight: true, 
     otherNight: true, 
-    firstNightOrder: 9, 
-    otherNightOrder: 9, 
+    firstNightOrder: 25, 
+    otherNightOrder: 25, 
     nightActionType: "inspect", 
     firstNightReminder: "查恶魔", 
     otherNightReminder: "查恶魔",
     script: "暗流涌动", // 暗流涌动角色 
+    firstNightMeta: {
+      script: "占卜师请睁眼...",
+      instruction: "选择两名玩家进行查验",
+      targetType: 'player',
+      amount: 2,
+      required: true,
+      canSelectSelf: true,
+      canSelectDead: false,
+      effectType: 'info'
+    },
+    otherNightMeta: {
+      script: "占卜师请睁眼...",
+      instruction: "选择两名玩家进行查验",
+      targetType: 'player',
+      amount: 2,
+      required: true,
+      canSelectSelf: true,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "undertaker", 
@@ -278,10 +366,20 @@ export const roles: Role[] = [
     firstNight: false, 
     otherNight: true, 
     firstNightOrder: 0, 
-    otherNightOrder: 10, 
+    otherNightOrder: 40, 
     nightActionType: "none", 
     otherNightReminder: "查死人",
     script: "暗流涌动", // 暗流涌动角色 
+    otherNightMeta: {
+      script: "掘墓人请睁眼...",
+      instruction: "确认处决玩家的身份",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "monk", 
@@ -292,19 +390,19 @@ export const roles: Role[] = [
     firstNight: false, 
     otherNight: true, 
     firstNightOrder: 0, 
-    otherNightOrder: 2, 
+    otherNightOrder: 15, 
     nightActionType: "protect", 
     otherNightReminder: "保护",
     script: "暗流涌动", // 暗流涌动角色 
     otherNightMeta: {
       script: "僧侣请睁眼...",
-      instruction: "选择一名玩家保护",
+      instruction: "选择一名玩家进行保护",
       targetType: 'player',
       amount: 1,
       required: true,
       canSelectSelf: false,
       canSelectDead: false,
-      effectType: 'protect',
+      effectType: 'add_status',
       effectValue: 'protected'
     }
   },
@@ -317,10 +415,23 @@ export const roles: Role[] = [
     firstNight: false, 
     otherNight: true, 
     firstNightOrder: 0, 
-    otherNightOrder: 11, 
+    otherNightOrder: 50, 
     nightActionType: "inspect_death", 
     otherNightReminder: "若死查验",
     script: "暗流涌动", // 暗流涌动角色 
+    otherNightMeta: {
+      script: "守鸦人请睁眼...",
+      instruction: "如果死亡，选择一名玩家查验身份",
+      targetType: 'player',
+      amount: 1,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    },
+    triggerMeta: {
+      onNightDeath: true
+    }
   },
   { 
     id: "virgin", 
@@ -334,6 +445,9 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    triggerMeta: {
+      onNominated: true
+    }
   },
   { 
     id: "slayer", 
@@ -347,6 +461,12 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    dayMeta: {
+      abilityName: "射击",
+      usesCount: 1,
+      targetType: 'player',
+      effectType: 'kill'
+    }
   },
   { 
     id: "soldier", 
@@ -360,6 +480,9 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    triggerMeta: {
+      onNightDeath: true
+    }
   },
   { 
     id: "mayor", 
@@ -373,6 +496,9 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    triggerMeta: {
+      onNightDeath: true
+    }
   },
   
   // ========== 外来者 (Outsider) - 4个 ==========
@@ -384,12 +510,34 @@ export const roles: Role[] = [
     fullDescription: "每个夜晚,你要选择除你以外的一名玩家:白天,只有他投票时你才能投票。",
     firstNight: true, 
     otherNight: true, 
-    firstNightOrder: 10, 
-    otherNightOrder: 12, 
+    firstNightOrder: 26, 
+    otherNightOrder: 26, 
     nightActionType: "mark", 
     firstNightReminder: "选主人", 
     otherNightReminder: "选主人",
     script: "暗流涌动", // 暗流涌动角色 
+    firstNightMeta: {
+      script: "管家请睁眼...",
+      instruction: "选择你的主人",
+      targetType: 'player',
+      amount: 1,
+      required: true,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'add_status',
+      effectValue: 'master'
+    },
+    otherNightMeta: {
+      script: "管家请睁眼...",
+      instruction: "选择你的主人",
+      targetType: 'player',
+      amount: 1,
+      required: true,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'add_status',
+      effectValue: 'master'
+    }
   },
   { 
     id: "drunk", 
@@ -402,6 +550,9 @@ export const roles: Role[] = [
     firstNightOrder: 0, 
     otherNightOrder: 0, 
     nightActionType: "none",
+    setupMeta: {
+      isDrunk: true,
+    },
     script: "暗流涌动", // 暗流涌动角色 
   },
   { 
@@ -429,6 +580,9 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    triggerMeta: {
+      onExecution: true
+    }
   },
   
   // ========== 爪牙 (Minion) - 4个 ==========
@@ -477,12 +631,32 @@ export const roles: Role[] = [
     fullDescription: "每个夜晚, 你能查看剧本. 你可能会被当作其他阵营、镇民角色或外来者角色, 即使你已死亡。",
     firstNight: true, 
     otherNight: true, 
-    firstNightOrder: 15, 
-    otherNightOrder: 15, 
+    firstNightOrder: 45, 
+    otherNightOrder: 45, 
     nightActionType: "spy_info", 
     firstNightReminder: "看书", 
     otherNightReminder: "看书",
     script: "暗流涌动", // 暗流涌动角色 
+    firstNightMeta: {
+      script: "间谍请睁眼...",
+      instruction: "查看魔法书",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    },
+    otherNightMeta: {
+      script: "间谍请睁眼...",
+      instruction: "查看魔法书",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'info'
+    }
   },
   { 
     id: "scarlet_woman", 
@@ -493,9 +667,19 @@ export const roles: Role[] = [
     firstNight: true, 
     otherNight: true, 
     firstNightOrder: 0, 
-    otherNightOrder: 0, 
+    otherNightOrder: 18, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    otherNightMeta: {
+      script: "红罗刹请睁眼...",
+      instruction: "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
+      targetType: 'none',
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effectType: 'none'
+    },
     triggerMeta: {
       onNightDeath: true
     }
@@ -512,6 +696,9 @@ export const roles: Role[] = [
     otherNightOrder: 0, 
     nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
+    setupMeta: {
+      modifiesBag: true
+    }
   },
   
   // ========== 恶魔 (Demon) - 1个 ==========
@@ -524,7 +711,7 @@ export const roles: Role[] = [
     firstNight: true, 
     otherNight: true, 
     firstNightOrder: 2, 
-    otherNightOrder: 3, 
+    otherNightOrder: 20, 
     nightActionType: "kill", 
     firstNightReminder: "认队友", 
     otherNightReminder: "杀人",
@@ -779,6 +966,9 @@ export const roles: Role[] = [
     firstNightOrder: 1, 
     otherNightOrder: 6, 
     nightActionType: "kill", 
+    setupMeta: {
+      isLunatic: true,
+    },
     firstNightReminder: "认队友",
     otherNightReminder: "杀人"
   },
@@ -1469,7 +1659,10 @@ export const roles: Role[] = [
     otherNight: true, 
     firstNightOrder: 0, 
     otherNightOrder: 0, 
-    nightActionType: "none"
+    nightActionType: "none",
+    setupMeta: {
+      isDrunk: true,
+    }
   },
   { 
     id: "barber_mr", 

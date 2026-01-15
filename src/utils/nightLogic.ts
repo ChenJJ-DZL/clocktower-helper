@@ -35,7 +35,8 @@ export const calculateNightInfo = (
   demonVotedToday?: boolean,
   minionNominatedToday?: boolean,
   executedToday?: number | null,
-  hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean
+  hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
+  votedThisRound?: number[] // NEW: List of seat IDs who voted this round (for Flowergirl/Town Crier)
 ): { seat: Seat; effectiveRole: Role; isPoisoned: boolean; reason?: string; guide: string; speak: string; action: string } | null => {
   // 使用传入的判定函数，如果没有则使用默认的isEvil
   const checkEvil = isEvilWithJudgmentFn || isEvil;
@@ -100,8 +101,16 @@ export const calculateNightInfo = (
   if (!effectiveRole) return null;
   const diedTonight = deadThisNight.includes(targetSeat.id);
 
+  // VORTOX CHECK: 如果 Vortox 在场且角色是镇民，强制提供错误信息
+  const vortoxActive = seats.some(s => s.role?.id === 'vortox' && !s.isDead);
+  
   // 实时检查是否中毒：使用computeIsPoisoned函数统一计算所有中毒来源
-  const isPoisoned = computeIsPoisoned(targetSeat);
+  let isPoisoned = computeIsPoisoned(targetSeat);
+  // VORTOX LOGIC: 如果 Vortox 在场且角色是镇民，强制视为"中毒"（提供错误信息）
+  if (vortoxActive && effectiveRole.type === 'townsfolk') {
+    isPoisoned = true; // Force false info for Townsfolk
+  }
+  
   // 实时检查是否酒鬼：包括永久酒鬼角色和临时酒鬼状态
   const isDrunk = targetSeat.isDrunk || targetSeat.role?.id === "drunk";
   
@@ -1086,19 +1095,31 @@ export const calculateNightInfo = (
       break;
 
     case 'mathematician':
-      let failCount = 0;
-      let shown = failCount;
-      if (shouldShowFake) {
-        shown = Math.max(0, failCount + (failCount === 0 ? 1 : (Math.random() < 0.5 ? -1 : 1)));
-      }
-      guide = `👀 本夜有 ${shown} 人能力未生效`;
-      speak = `"今晚有 ${shown} 人的能力未生效。"`;
+      // 计算异常数量：中毒/酒醉的善良玩家（镇民/外来者）
+      const abnormalCount = seats.filter(s => 
+        !s.isDead && 
+        (s.isPoisoned || s.isDrunk || s.role?.setupMeta?.isDrunk) && 
+        (s.role?.type === 'townsfolk' || s.role?.type === 'outsider') &&
+        s.role?.type !== 'minion' && s.role?.type !== 'demon'
+      ).length;
+      
+      const trueCount = abnormalCount;
+      const shown = shouldShowFake 
+        ? (trueCount === 0 ? 1 : Math.max(0, trueCount + (Math.random() < 0.5 ? -1 : 1)))
+        : trueCount;
+      guide = `👀 异常数量：真实 ${trueCount}，展示 ${shown} (基于中毒/酒醉统计)`;
+      speak = `"有 ${shown} 人的能力异常。"`;
       action = "告知";
-      addLogCb?.(`${currentSeatId+1}号(数学家) 得知 ${shown} 人未生效${shouldShowFake ? '（假信息）' : ''}`);
+      addLogCb?.(`${currentSeatId+1}号(数学家) 得知 ${shown} 人异常${shouldShowFake ? '（假信息）' : ''}`);
       break;
 
     case 'flowergirl':
-      const real = !!demonVotedToday;
+      // 使用 votedThisRound 计算：是否有恶魔投票
+      const demons = seats.filter(s => (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead);
+      const demonVoted = votedThisRound && votedThisRound.length > 0 
+        ? demons.some(d => votedThisRound.includes(d.id))
+        : (demonVotedToday || false); // Fallback to old parameter if votedThisRound not provided
+      const real = demonVoted;
       const shownFlower = shouldShowFake ? !real : real;
       guide = `👀 真实：${real ? '有' : '无'} 恶魔投票；展示：${shownFlower ? '有' : '无'}`;
       speak = `"今天${shownFlower ? '有' : '没有'}恶魔投过票。"`;
@@ -1107,12 +1128,17 @@ export const calculateNightInfo = (
       break;
 
     case 'town_crier':
-      const real2 = !!minionNominatedToday;
+      // 使用 votedThisRound 计算：是否有爪牙投票
+      const minions = seats.filter(s => s.role?.type === 'minion' && !s.isDead);
+      const minionVoted = votedThisRound && votedThisRound.length > 0
+        ? minions.some(m => votedThisRound.includes(m.id))
+        : (minionNominatedToday || false); // Fallback to old parameter if votedThisRound not provided
+      const real2 = minionVoted;
       const shown2 = shouldShowFake ? !real2 : real2;
-      guide = `👀 真实：${real2 ? '有' : '无'} 爪牙发起提名；展示：${shown2 ? '有' : '无'}`;
-      speak = `"今天${shown2 ? '有' : '没有'}爪牙发起提名。"`;
+      guide = `👀 真实：${real2 ? '有' : '无'} 爪牙投票；展示：${shown2 ? '有' : '无'}`;
+      speak = `"今天${shown2 ? '有' : '没有'}爪牙投过票。"`;
       action = "告知";
-      addLogCb?.(`${currentSeatId+1}号(城镇公告员) 得知今天${shown2 ? '有' : '无'}爪牙提名${shouldShowFake ? '（假信息）' : ''}`);
+      addLogCb?.(`${currentSeatId+1}号(城镇公告员) 得知今天${shown2 ? '有' : '无'}爪牙投票${shouldShowFake ? '（假信息）' : ''}`);
       break;
 
     case 'oracle':
@@ -1473,8 +1499,23 @@ export const generateNightTimeline = (
 ): TimelineStep[] => {
   const steps: TimelineStep[] = [];
 
-  // 1. 识别需要在本夜被唤醒的角色（这里先简单处理：有角色即可）
-  const activeSeats = seats.filter((s) => s.role);
+  // 1. 识别需要在本夜被唤醒的角色
+  // 支持死亡角色被唤醒（如果元数据允许，如 Zombuul）
+  const activeSeats = seats.filter((seat) => {
+    if (!seat.role) return false;
+    
+    // 1. If alive, always active (unless specific disabled flags exist, but standard is yes)
+    if (!seat.isDead) return true;
+
+    // 2. If dead, check if they have permission to wake via metadata
+    const meta = isFirstNight ? seat.role.firstNightMeta : seat.role.otherNightMeta;
+    if (meta && meta.wakesIfDead === true) return true;
+
+    // 3. Legacy fallback: hasAbilityEvenDead flag (for backward compatibility)
+    if (seat.hasAbilityEvenDead) return true;
+
+    return false;
+  });
 
   // 2. 按首夜 / 其他夜晚顺序排序
   activeSeats.sort((a, b) => {
