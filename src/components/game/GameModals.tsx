@@ -1461,14 +1461,20 @@ export function GameModals(props: GameModalsProps) {
       />
       
       {/* 投毒者确认下毒弹窗（善良玩家） */}
-      <PoisonConfirmModal
-        targetId={props.showPoisonConfirmModal}
-        onConfirm={props.confirmPoison}
-        onCancel={() => {
-          props.setShowPoisonConfirmModal(null);
-          props.setSelectedActionTargets([]);
-        }}
-      />
+      {(() => {
+        console.log('[GameModals] PoisonConfirmModal - showPoisonConfirmModal:', props.showPoisonConfirmModal);
+        return (
+          <PoisonConfirmModal
+            targetId={props.showPoisonConfirmModal}
+            onConfirm={props.confirmPoison}
+            onCancel={() => {
+              console.log('[GameModals] PoisonConfirmModal cancelled');
+              props.setShowPoisonConfirmModal(null);
+              props.setSelectedActionTargets([]);
+            }}
+          />
+        );
+      })()}
 
       <PoisonEvilConfirmModal
         targetId={props.showPoisonEvilConfirmModal}

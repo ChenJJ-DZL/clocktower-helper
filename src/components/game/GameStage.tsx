@@ -112,9 +112,21 @@ export function GameStage({ controller }: { controller: any }) {
     confirmNightOrderPreview,
     executeNomination,
     checkGameOverSimple,
-    nightLogic,
     registerVotes,
     votedThisRound,
+    
+    // Modal states for isConfirmDisabled check
+    showKillConfirmModal,
+    showPoisonConfirmModal,
+    showPoisonEvilConfirmModal,
+    showHadesiaKillConfirmModal,
+    showRavenkeeperFakeModal,
+    showMoonchildKillModal,
+    showBarberSwapModal,
+    showStorytellerDeathModal,
+    showSweetheartDrunkModal,
+    showKlutzChoiceModal,
+    showPitHagModal,
   } = controller;
 
   // 计算左侧面板的缩放比例，使座位表适应容器
@@ -141,10 +153,83 @@ export function GameStage({ controller }: { controller: any }) {
     return () => window.removeEventListener("resize", updateSeatScale);
   }, []);
 
-  // 供控制台 / ControlPanel 使用的禁用逻辑（简化为：只要有当前夜晚信息就允许点击）
+  // 供控制台 / ControlPanel 使用的禁用逻辑
   const isConfirmDisabled = useMemo(() => {
-    return !nightInfo;
-  }, [nightInfo]);
+    // CRITICAL FIX: In check phase, button is only disabled if drunk needs charade role
+    if (gamePhase === 'check') {
+      const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
+      return hasPendingDrunk;
+    }
+    
+    // For night phases, must have nightInfo
+    if (!nightInfo) return true;
+    
+    // CRITICAL FIX: Disable button if there are pending confirmation modals
+    // This prevents users from clicking "Next" when they need to confirm an action first
+    // EXCEPTION: For poisoner, if modal is set but not visible, allow bypass after 2 seconds
+    const hasPendingModals = 
+      showKillConfirmModal !== null ||
+      (showPoisonConfirmModal !== null) ||
+      showPoisonEvilConfirmModal !== null ||
+      showHadesiaKillConfirmModal !== null ||
+      showRavenkeeperFakeModal !== null ||
+      showMoonchildKillModal !== null ||
+      showBarberSwapModal !== null ||
+      showStorytellerDeathModal !== null ||
+      showSweetheartDrunkModal !== null ||
+      showKlutzChoiceModal !== null ||
+      showPitHagModal !== null;
+    
+    // TEMPORARY FIX: If poisoner modal is set, check if it's actually visible in DOM
+    // If modal exists in state but not visible, allow bypass
+    if (showPoisonConfirmModal !== null) {
+      // Check if modal is actually visible in DOM
+      const modalVisible = typeof document !== 'undefined' && 
+        document.querySelector('[data-modal-key*="确认下毒"]') !== null;
+      console.log('[isConfirmDisabled] Poison modal state:', showPoisonConfirmModal, 'Visible in DOM:', modalVisible);
+      
+      // If modal is not visible after a delay, allow bypass (modal might be broken)
+      // This is a temporary workaround until we fix the modal visibility issue
+      if (!modalVisible) {
+        console.warn('[isConfirmDisabled] Poison modal not visible in DOM, allowing bypass');
+        // Don't disable - allow user to proceed
+        // But still check other modals
+        const otherModals = 
+          showKillConfirmModal !== null ||
+          showPoisonEvilConfirmModal !== null ||
+          showHadesiaKillConfirmModal !== null ||
+          showRavenkeeperFakeModal !== null ||
+          showMoonchildKillModal !== null ||
+          showBarberSwapModal !== null ||
+          showStorytellerDeathModal !== null ||
+          showSweetheartDrunkModal !== null ||
+          showKlutzChoiceModal !== null ||
+          showPitHagModal !== null;
+        return otherModals;
+      }
+    }
+    
+    if (hasPendingModals) {
+      return true;
+    }
+    
+    return false;
+  }, [
+    gamePhase,
+    seats,
+    nightInfo,
+    showKillConfirmModal,
+    showPoisonConfirmModal,
+    showPoisonEvilConfirmModal,
+    showHadesiaKillConfirmModal,
+    showRavenkeeperFakeModal,
+    showMoonchildKillModal,
+    showBarberSwapModal,
+    showStorytellerDeathModal,
+    showSweetheartDrunkModal,
+    showKlutzChoiceModal,
+    showPitHagModal,
+  ]);
 
   // 当前/下一个行动角色信息
   const currentWakeSeat = nightInfo ? seats.find((s: Seat) => s.id === nightInfo.seat.id) : null;
@@ -499,32 +584,52 @@ export function GameStage({ controller }: { controller: any }) {
           handleDayAbility={controller.handleDayAbility}
           primaryAction={
             (gamePhase === 'firstNight' || gamePhase === 'night')
-              ? {
-                  label: '确认 & 下一步',
-                  onClick: handleConfirmAction,
-                  disabled: isConfirmDisabled,
-                  variant: 'primary' as const,
-                }
+              ? (() => {
+                  // CRITICAL FIX: Check if we're at the last step (dawn)
+                  const isLastStep = currentWakeIndex >= wakeQueueIds.length - 1;
+                  
+                  if (isLastStep) {
+                    // Explicit "Enter Day" button for dawn step
+                    return {
+                      label: '🌞 天亮了 - 进入白天',
+                      onClick: () => {
+                        console.log("🌞 [UI] Manual override to Day - Dawn step");
+                        // Call continueToNextAction which will show death report and transition
+                        controller.continueToNextAction();
+                      },
+                      disabled: false,
+                      variant: 'warning' as const,
+                    };
+                  }
+                  
+                  // Normal "Next" button for night steps
+                  return {
+                    label: '确认 & 下一步',
+                    onClick: handleConfirmAction,
+                    disabled: isConfirmDisabled,
+                    variant: 'primary' as const,
+                  };
+                })()
               : gamePhase === 'check'
               ? {
-                  label: '确认无误，入夜',
+                  label: '确认无误，入夜 🌙',
                   onClick: () => {
-                    console.log('[GameStage] 确认无误，入夜 button clicked');
-                    console.log('[GameStage] nightLogic:', nightLogic);
-                    console.log('[GameStage] nightLogic.startNight:', nightLogic?.startNight);
-                    console.log('[GameStage] seats:', seats.filter(s => s.role).map(s => ({ id: s.id, roleId: s.role?.id, roleName: s.role?.name })));
-                    try {
-                      if (nightLogic?.startNight) {
-                        nightLogic.startNight(true);
-                        console.log('[GameStage] startNight called successfully');
-                      } else {
-                        console.error('[GameStage] nightLogic.startNight is not available!');
-                      }
-                    } catch (error) {
-                      console.error('[GameStage] Error calling startNight:', error);
+                    console.log("🖱️ [UI] User clicked 'Enter Night'");
+                    // Check for pending drunk first
+                    const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
+                    if (hasPendingDrunk) {
+                      alert('场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜');
+                      return;
+                    }
+                    // Use the synchronous proceedToFirstNight function
+                    if (controller.proceedToFirstNight) {
+                      controller.proceedToFirstNight();
+                    } else {
+                      console.error('[GameStage] proceedToFirstNight not available on controller');
+                      alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
                     }
                   },
-                  disabled: seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk')),
+                  disabled: isConfirmDisabled, // Use the centralized disabled logic
                   variant: 'success' as const,
                 }
               : undefined

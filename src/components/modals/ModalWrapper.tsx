@@ -26,33 +26,85 @@ export function ModalWrapper({
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    console.log('[ModalWrapper] Mounted, title:', title);
+    console.log('[ModalWrapper] document.body:', document.body);
+    console.log('[ModalWrapper] document.body.children.length:', document.body?.children?.length);
+    
+    // Verify portal target exists
+    if (document.body) {
+      console.log('[ModalWrapper] ✅ Portal target (document.body) is available');
+    } else {
+      console.error('[ModalWrapper] ❌ Portal target (document.body) is NOT available!');
+    }
+  }, [title]);
 
   if (typeof document === "undefined" || !mounted) {
+    console.log('[ModalWrapper] Not mounted yet or no document');
     return null;
   }
 
+  console.log('[ModalWrapper] Rendering portal for:', title);
+  console.log('[ModalWrapper] document.body exists:', !!document.body);
+  
+  if (!document.body) {
+    console.error('[ModalWrapper] document.body is not available!');
+    return null;
+  }
+  
+  // CRITICAL: Add data attribute for debugging
+  const portalKey = `modal-${title}-${Date.now()}`;
+  console.log('[ModalWrapper] Creating portal with key:', portalKey);
+  
   return createPortal(
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/50 animate-in fade-in duration-200 pointer-events-auto"
-      style={{ zIndex: 2147483647 }}
+      data-modal-key={portalKey}
+      className="fixed inset-0 flex items-center justify-center bg-black/50 pointer-events-auto"
+      style={{ 
+        zIndex: 2147483647,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        opacity: 1,
+        visibility: 'visible',
+      } as React.CSSProperties}
       onClick={(e) => {
         // 只有点击遮罩层本身时才关闭，点击弹窗内容时不关闭
         if (closeOnOverlayClick && e.target === e.currentTarget) {
+          console.log('[ModalWrapper] Overlay clicked, closing modal');
           onClose();
         }
       }}
     >
       {/* 弹窗主体 */}
       <div
-        className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-white/10 pointer-events-auto ${className}`}
+        className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 pointer-events-auto ${className}`}
         style={{
           width: 'min(90vw, 42rem)',
           maxWidth: '90vw',
-          maxHeight: 'calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))', // 考虑iPhone安全区域
-          margin: 'max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto', // 上下安全区域
+          maxHeight: 'calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+          margin: 'max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto',
+          zIndex: 2147483647,
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'rgb(15 23 42)', // slate-900
+          borderRadius: '1rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          opacity: 1,
+          visibility: 'visible',
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          console.log('[ModalWrapper] Modal content clicked');
+        }}
       >
         {/* 1. 标题栏 */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-slate-900">

@@ -1561,7 +1561,8 @@ export const generateNightTimeline = (
     });
   });
 
-  // 4. 添加“天亮”步骤
+  // 4. FORCE DAWN STEP - Always add at the end
+  // Ensure the "Dawn" step is ALWAYS added at the end, even if no roles have night actions
   steps.push({
     id: 'dawn_step',
     type: 'dawn',
@@ -1569,9 +1570,26 @@ export const generateNightTimeline = (
     content: {
       title: '天亮了',
       script: '所有玩家请睁眼',
-      instruction: '准备进入白天',
+      instruction: '点击下方按钮进入白天阶段',
     },
+    interaction: { type: 'none', amount: 0, required: false }
   });
+
+  // Safety check: If somehow steps is still empty (shouldn't happen), return at least dawn
+  if (steps.length === 0) {
+    console.warn('[generateNightTimeline] No steps generated, returning minimal dawn step');
+    return [{
+      id: 'dawn_step',
+      type: 'dawn',
+      order: 99999,
+      content: {
+        title: '天亮了',
+        script: '所有玩家请睁眼',
+        instruction: '点击下方按钮进入白天阶段',
+      },
+      interaction: { type: 'none', amount: 0, required: false }
+    }];
+  }
 
   return steps;
 };

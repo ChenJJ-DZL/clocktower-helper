@@ -980,6 +980,8 @@ export function useGameController() {
     }
     
     // 首晚恶魔行动后触发"爪牙认识恶魔"环节在控制台显示
+    // 注意：这个模态框目前没有在GameModals中实现，所以暂时跳过，直接继续流程
+    // TODO: 如果将来需要实现这个模态框，可以在这里添加逻辑
     if (gamePhase === 'firstNight' && nightInfo && nightInfo.effectiveRole.type === 'demon') {
       // 找到恶魔座位
       const demonSeat = seats.find(s => 
@@ -996,26 +998,41 @@ export function useGameController() {
         const shouldHideDemon = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
         
         if (!shouldHideDemon) {
-          setShowMinionKnowDemonModal({ demonSeatId: demonSeat.id });
-          return;
+          // 暂时只在控制台显示信息，不阻止流程继续
+          // 如果将来需要模态框，可以在这里设置并return
+          const minionNames = minionSeats.map(s => `${s.id + 1}号`).join('、');
+          addLog(`👿 爪牙认识恶魔：${minionNames} 知道恶魔是 ${demonSeat.id + 1}号`);
+          // 不return，继续推进步骤
+          // setShowMinionKnowDemonModal({ demonSeatId: demonSeat.id });
+          // return;
         }
       }
     }
     
-    if(currentWakeIndex < wakeQueueIds.length - 1) { 
+    // CRITICAL FIX: Check if we're at the end of the night
+    const isLastStep = currentWakeIndex >= wakeQueueIds.length - 1;
+    
+    if (!isLastStep) {
+      // Normal progression to next step
       setCurrentWakeIndex(p => p + 1); 
       setInspectionResult(null);
       setSelectedActionTargets([]);
       fakeInspectionResultRef.current = null;
     } else {
-      // 夜晚结束显示死亡报告
-      // 检测夜晚期间死亡的玩家通过deadThisNight记录
+      // 2. CRITICAL TRANSITION LOGIC - Force transition to day
+      console.log("🌞 [Transition] Night ended - showing death report and transitioning to day.");
+      
+      // Show death report first, then transition to day
+      // The modal's onConfirm (confirmNightDeathReport) will handle the actual transition
       if(deadThisNight.length > 0) {
         const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
         setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
       } else {
         setShowNightDeathReportModal("昨天是个平安夜");
       }
+      
+      // Ensure we're still in night phase before transition (safety check)
+      // The modal callback will handle the actual transition
     }
   }, [saveHistory, seats, deadThisNight, wakeQueueIds, currentWakeIndex, gamePhase, nightInfo, poppyGrowerDead, setCurrentWakeIndex, setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setShowMinionKnowDemonModal, setShowNightDeathReportModal]);
 
@@ -1231,6 +1248,54 @@ export function useGameController() {
     }
   }, []);
 
+  /**
+   * 检查 Imp 星传逻辑
+   * 当 Imp 自杀时，如果存在活着的爪牙，将恶魔位传给爪牙
+   * @param deadSeat 死亡的座位
+   * @param source 死亡来源
+   */
+  const checkImpStarPass = useCallback((deadSeat: Seat, source: 'demon' | 'execution' | 'ability') => {
+    // 只有当 Imp 被恶魔攻击（自杀）时才触发传位
+    if (deadSeat.role?.id !== 'imp' || source !== 'demon') return;
+
+    const seatsSnapshot = seatsRef.current || seats;
+    const minions = seatsSnapshot.filter(s => 
+      s.role?.type === 'minion' && 
+      !s.isDead && 
+      s.id !== deadSeat.id // 不能传给自己
+    );
+
+    if (minions.length > 0) {
+      // 有活着的爪牙，传位给第一个（实际游戏中应由说书人选择）
+      // TODO: 未来可以添加 UI 让说书人选择传位目标
+      const newDemonSeat = minions[0];
+      
+      alert(`😈 小恶魔死亡！传位给 ${newDemonSeat.id+1}号 [${newDemonSeat.role?.name || '未知'}]`);
+      
+      // 将爪牙变成 Imp
+      const impRole = roles.find(r => r.id === 'imp');
+      if (impRole) {
+        setSeats(prev => prev.map(s => {
+          if (s.id === newDemonSeat.id) {
+            return {
+              ...s,
+              role: impRole,
+              displayRole: impRole,
+              isDemonSuccessor: true,
+              statusDetails: [...(s.statusDetails || []), '恶魔传位'],
+            };
+          }
+          return s;
+        }));
+        addLog(`😈 小恶魔传位：${newDemonSeat.id+1}号 [${newDemonSeat.role?.name}] 变成了小恶魔`);
+      }
+    } else {
+      // 没有活着的爪牙，游戏结束（好人胜利）
+      addLog(`😈 小恶魔死亡，且没有活着的爪牙可以接位，好人胜利`);
+      // checkGameOver 会在 killPlayer 的 finalize 中调用，无需手动处理
+    }
+  }, [seats, roles, setSeats, addLog]);
+
   type KillPlayerOptions = {
     recordNightDeath?: boolean;
     keepInWakeQueue?: boolean;
@@ -1240,54 +1305,7 @@ export function useGameController() {
     onAfterKill?: (latestSeats: Seat[]) => void;
   };
 
-  /**
-   * 尝试击杀玩家（检查免疫和保护）
-   * 在 killPlayer 之前调用，检查 Soldier、Monk 保护等被动触发
-   */
-  const tryKillPlayer = useCallback(
-    (targetId: number, source: 'demon' | 'execution' | 'ability', options: KillPlayerOptions = {}) => {
-      const seatsSnapshot = seatsRef.current || seats;
-      const targetSeat = seatsSnapshot.find(s => s.id === targetId);
-      if (!targetSeat || targetSeat.isDead) return;
-
-      // 1. CHECK IMMUNITY (For Night Deaths / Demon Kills)
-      if (source === 'demon') {
-        // A. Monk Protection (僧侣保护)
-        if (targetSeat.isProtected && targetSeat.protectedBy !== null) {
-          const protectorSeat = seatsSnapshot.find(s => s.id === targetSeat.protectedBy);
-          const protectorName = protectorSeat?.role?.name || '未知';
-          addLog(`🛡️ ${targetId + 1}号 被${protectorName}保护，免于死亡！`);
-          setShowAttackBlockedModal({
-            targetId,
-            reason: `${protectorName}保护`,
-            demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
-          });
-          return; // ABORT KILL
-        }
-
-        // B. Soldier Innate Immunity (士兵天生免疫)
-        if (targetSeat.role?.id === 'soldier' && !targetSeat.isPoisoned) {
-          // Check triggerMeta for explicit trigger flag (if available)
-          const hasTriggerMeta = targetSeat.role?.triggerMeta?.onNightDeath === true;
-          if (hasTriggerMeta || targetSeat.role?.id === 'soldier') {
-            addLog(`🛡️ ${targetId + 1}号 [士兵] 免疫了恶魔的攻击！`);
-            setShowAttackBlockedModal({
-              targetId,
-              reason: '士兵免疫',
-              demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
-            });
-            return; // ABORT KILL
-          }
-        }
-      }
-
-      // 2. EXECUTE KILL (If not immune)
-      killPlayer(targetId, options);
-    },
-    [seats, killPlayer, nightInfo, addLog, setShowAttackBlockedModal, getDemonDisplayName]
-  );
-
-  // 杀死玩家
+  // 杀死玩家（不做免疫/保护判断，直接处理死亡及后续效果）
   const killPlayer = useCallback(
     (targetId: number, options: KillPlayerOptions = {}) => {
       const seatsSnapshot = seatsRef.current || seats;
@@ -1469,6 +1487,51 @@ export function useGameController() {
       finalize(updatedSeats);
     },
     [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setWakeQueueIds, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted, checkImpStarPass]
+  );
+
+  /**
+   * 尝试击杀玩家（先检查 Monk 保护 / Soldier 免疫，再调用 killPlayer）
+   */
+  const tryKillPlayer = useCallback(
+    (targetId: number, source: 'demon' | 'execution' | 'ability', options: KillPlayerOptions = {}) => {
+      const seatsSnapshot = seatsRef.current || seats;
+      const targetSeat = seatsSnapshot.find((s) => s.id === targetId);
+      if (!targetSeat || targetSeat.isDead) return;
+
+      // 仅对恶魔夜袭进行免疫/保护判定
+      if (source === 'demon') {
+        // 僧侣保护
+        if (targetSeat.isProtected && targetSeat.protectedBy !== null) {
+          const protectorSeat = seatsSnapshot.find((s) => s.id === targetSeat.protectedBy);
+          const protectorName = protectorSeat?.role?.name || '未知';
+          addLog(`🛡️ ${targetId + 1}号 被${protectorName}保护，免于死亡！`);
+          setShowAttackBlockedModal({
+            targetId,
+            reason: `${protectorName}保护`,
+            demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+          });
+          return;
+        }
+
+        // 士兵天生免疫
+        if (targetSeat.role?.id === 'soldier' && !targetSeat.isPoisoned) {
+          const hasTriggerMeta = targetSeat.role?.triggerMeta?.onNightDeath === true;
+          if (hasTriggerMeta || targetSeat.role?.id === 'soldier') {
+            addLog(`🛡️ ${targetId + 1}号 [士兵] 免疫了恶魔的攻击！`);
+            setShowAttackBlockedModal({
+              targetId,
+              reason: '士兵免疫',
+              demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+            });
+            return;
+          }
+        }
+      }
+
+      // 通过所有检查，真正执行击杀
+      killPlayer(targetId, options);
+    },
+    [seats, nightInfo, addLog, setShowAttackBlockedModal, getDemonDisplayName, seatsRef, killPlayer]
   );
 
   // --- 通用夜晚时间线步骤处理（基于 TimelineStep.interaction.effect） ---
@@ -1848,6 +1911,99 @@ export function useGameController() {
     proceedToCheckPhase(seats);
   }, [proceedToCheckPhase, seats]);
 
+  // 处理开始夜晚（从check阶段或其他阶段进入夜晚）
+  const handleStartNight = useCallback((isFirst: boolean) => {
+    console.log('[handleStartNight] Called with isFirst:', isFirst);
+    console.log('[handleStartNight] nightLogic:', nightLogic);
+    console.log('[handleStartNight] nightLogic.startNight:', nightLogic?.startNight);
+    
+    if (!nightLogic) {
+      console.error('[handleStartNight] nightLogic is null or undefined!');
+      alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
+      return;
+    }
+    
+    if (!nightLogic.startNight) {
+      console.error('[handleStartNight] nightLogic.startNight is not available!');
+      console.error('[handleStartNight] nightLogic keys:', Object.keys(nightLogic || {}));
+      alert('游戏状态错误：夜晚逻辑未初始化。请刷新页面重试。');
+      return;
+    }
+    
+    try {
+      console.log('[handleStartNight] Calling nightLogic.startNight(', isFirst, ')...');
+      nightLogic.startNight(isFirst);
+      console.log('[handleStartNight] startNight called successfully');
+    } catch (error) {
+      console.error('[handleStartNight] Error calling startNight:', error);
+      console.error('[handleStartNight] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      alert(`入夜时发生错误: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [nightLogic]);
+
+  // CRITICAL FIX: Synchronous transition to First Night
+  // This function bypasses the complex async startNight logic and directly transitions
+  const proceedToFirstNight = useCallback(() => {
+    console.log("🚀 [System] Force Transitioning to First Night...");
+
+    // 1. Force verify seats exist
+    if (!seats || seats.length === 0) {
+      console.error("❌ [System] No seats found! Cannot start night.");
+      alert("错误：没有座位数据，无法入夜。");
+      return;
+    }
+
+    // 2. Generate Timeline IMMEDIATELY using current seats
+    // (Do not wait for a useEffect)
+    console.log("⚙️ [System] Generating First Night Timeline...");
+    let newTimeline: TimelineStep[];
+    try {
+      newTimeline = generateNightTimeline(seats, true); // true = firstNight
+      console.log(`✅ [System] Timeline Generated: ${newTimeline.length} steps.`);
+      if (newTimeline.length === 0) {
+        console.warn("⚠️ [System] Timeline is empty! Check Role Metadata.");
+        // Even if empty, ensure we have at least a dawn step
+        newTimeline = [{
+          id: 'dawn_step',
+          type: 'dawn',
+          order: 99999,
+          content: { 
+            title: '天亮了', 
+            script: '所有玩家请睁眼', 
+            instruction: '点击进入白天阶段' 
+          },
+          interaction: { type: 'none', amount: 0, required: false }
+        }];
+      }
+    } catch (error) {
+      console.error("❌ [System] Error generating timeline:", error);
+      alert(`生成时间轴失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      return;
+    }
+
+    // 3. Extract wakeQueueIds from timeline (character steps only)
+    const wakeQueueIds = newTimeline
+      .filter(step => step.type === 'character' && step.seatId !== undefined)
+      .map(step => step.seatId!)
+      .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
+
+    console.log(`📋 [System] Wake Queue IDs: [${wakeQueueIds.join(', ')}]`);
+
+    // 4. Batch Update State (The Critical Fix)
+    // We must set ALL these at once to prevent race conditions.
+    setWakeQueueIds(wakeQueueIds);
+    setCurrentWakeIndex(0); // Force reset to start
+    setSelectedActionTargets([]);
+    setInspectionResult(null);
+    setGamePhase('firstNight');
+    
+    // 5. Clear any blocking flags
+    setShowNightOrderModal(false);
+    setPendingNightQueue(null);
+
+    console.log("🌕 [System] Phase set to 'firstNight'. Loop should start.");
+  }, [seats, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, setShowNightOrderModal, setPendingNightQueue]);
+
   // 关闭夜晚顺序预览模态框
   const closeNightOrderPreview = useCallback(() => {
     setShowNightOrderModal(false);
@@ -2123,54 +2279,6 @@ export function useGameController() {
     addLog(`🔀 ${seatId1+1}号 和 ${seatId2+1}号 交换了角色`);
   }, [setSeats, addLog]);
 
-  /**
-   * 检查 Imp 星传逻辑
-   * 当 Imp 自杀时，如果存在活着的爪牙，将恶魔位传给爪牙
-   * @param deadSeat 死亡的座位
-   * @param source 死亡来源
-   */
-  const checkImpStarPass = useCallback((deadSeat: Seat, source: 'demon' | 'execution' | 'ability') => {
-    // 只有当 Imp 被恶魔攻击（自杀）时才触发传位
-    if (deadSeat.role?.id !== 'imp' || source !== 'demon') return;
-
-    const seatsSnapshot = seatsRef.current || seats;
-    const minions = seatsSnapshot.filter(s => 
-      s.role?.type === 'minion' && 
-      !s.isDead && 
-      s.id !== deadSeat.id // 不能传给自己
-    );
-
-    if (minions.length > 0) {
-      // 有活着的爪牙，传位给第一个（实际游戏中应由说书人选择）
-      // TODO: 未来可以添加 UI 让说书人选择传位目标
-      const newDemonSeat = minions[0];
-      
-      alert(`😈 小恶魔死亡！传位给 ${newDemonSeat.id+1}号 [${newDemonSeat.role?.name || '未知'}]`);
-      
-      // 将爪牙变成 Imp
-      const impRole = roles.find(r => r.id === 'imp');
-      if (impRole) {
-        setSeats(prev => prev.map(s => {
-          if (s.id === newDemonSeat.id) {
-            return {
-              ...s,
-              role: impRole,
-              displayRole: impRole,
-              isDemonSuccessor: true,
-              statusDetails: [...(s.statusDetails || []), '恶魔传位'],
-            };
-          }
-          return s;
-        }));
-        addLog(`😈 小恶魔传位：${newDemonSeat.id+1}号 [${newDemonSeat.role?.name}] 变成了小恶魔`);
-      }
-    } else {
-      // 没有活着的爪牙，游戏结束（好人胜利）
-      addLog(`😈 小恶魔死亡，且没有活着的爪牙可以接位，好人胜利`);
-      // checkGameOver 会在 killPlayer 的 finalize 中调用，无需手动处理
-    }
-  }, [seats, roles, setSeats, addLog]);
-
   // ======================================================================
   //  Modal and Action Handlers - Moved from page.tsx
   // ======================================================================
@@ -2416,14 +2524,73 @@ export function useGameController() {
     
     // 检查是否有待确认的操作投毒者和恶魔的确认弹窗已在toggleTarget中处理
     // 如果有打开的确认弹窗不继续流
-    if(showKillConfirmModal !== null || showPoisonConfirmModal !== null || showPoisonEvilConfirmModal !== null || showHadesiaKillConfirmModal !== null || 
+    // CRITICAL FIX: If poison modal is set but not visible, auto-confirm it
+    if (showPoisonConfirmModal !== null) {
+      // Check if modal is actually visible in DOM
+      const modalElement = typeof document !== 'undefined' && 
+        document.querySelector('[data-modal-key*="确认下毒"]');
+      const modalVisible = modalElement !== null;
+      
+      console.log('[handleConfirmAction] Poison modal state:', showPoisonConfirmModal, 'Visible:', modalVisible);
+      
+      if (!modalVisible) {
+        // Modal is set but not visible - auto-confirm to unblock the game
+        console.warn('[handleConfirmAction] Poison modal not visible, auto-confirming to unblock');
+        // Directly execute poison confirmation logic
+        const targetId = showPoisonConfirmModal;
+        if (nightInfo && targetId !== null) {
+          const actorSeat = seats.find(s => s.id === nightInfo?.seat?.id);
+          if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned)) {
+            addLogWithDeduplication(
+              `${nightInfo.seat.id+1}号(投毒者) 处于中毒/醉酒状态，本夜对${targetId+1}号的下毒无效，无事发生`,
+              nightInfo.seat.id,
+              '投毒者'
+            );
+            setShowPoisonConfirmModal(null);
+            setSelectedActionTargets([]);
+            continueToNextAction();
+            return;
+          }
+          
+          // Apply poison
+          setSeats(p => p.map(s => {
+            if (s.id === targetId) {
+              const clearTime = '次日黄昏';
+              const { statusDetails, statuses } = addPoisonMark(s, 
+                nightInfo.effectiveRole.id === 'poisoner_mr' ? 'poisoner_mr' : 'poisoner', 
+                clearTime
+              );
+              const nextSeat = { ...s, statusDetails, statuses };
+              return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
+            }
+            return { ...s, isPoisoned: computeIsPoisoned(s) };
+          }));
+          addLogWithDeduplication(
+            `${nightInfo.seat.id+1}号(投毒者) 对 ${targetId+1}号下毒`,
+            nightInfo.seat.id,
+            '投毒者'
+          );
+          setShowPoisonConfirmModal(null);
+          setSelectedActionTargets([]);
+          continueToNextAction();
+          return;
+        }
+      } else {
+        // Modal is visible, wait for user confirmation
+        console.log('[handleConfirmAction] Poison modal is visible, waiting for user confirmation');
+        return;
+      }
+    }
+    
+    // Check other modals
+    if(showKillConfirmModal !== null || showPoisonEvilConfirmModal !== null || showHadesiaKillConfirmModal !== null || 
        showRavenkeeperFakeModal !== null || showMoonchildKillModal !== null || showSweetheartDrunkModal !== null || showKlutzChoiceModal !== null) {
       return;
     }
     
     // 没有待确认的操作继续流
     continueToNextAction();
-  }, [nightInfo, seats, selectedActionTargets, gamePhase, nightCount, executeAction, isRoleRegistered, showPitHagModal, setShowPitHagModal, setSeats, cleanseSeatStatuses, getSeatRoleId, roles, insertIntoWakeQueueAfterCurrent, setSelectedActionTargets, continueToNextAction, setShowStorytellerDeathModal, showKillConfirmModal, showPoisonConfirmModal, showPoisonEvilConfirmModal, showHadesiaKillConfirmModal, showRavenkeeperFakeModal, showMoonchildKillModal, showBarberSwapModal, showStorytellerDeathModal, showSweetheartDrunkModal, showKlutzChoiceModal, hasUsedAbility, reviveSeat, setPukkaPoisonQueue, setDeadThisNight, markAbilityUsed, addLog, setShowRangerModal, killPlayer, poChargeState, setPoChargeState, addDrunkMark]);
+  }, [nightInfo, seats, selectedActionTargets, gamePhase, nightCount, executeAction, isRoleRegistered, showPitHagModal, setShowPitHagModal, setSeats, cleanseSeatStatuses, getSeatRoleId, roles, insertIntoWakeQueueAfterCurrent, setSelectedActionTargets, continueToNextAction, setShowStorytellerDeathModal, showKillConfirmModal, showPoisonConfirmModal, showPoisonEvilConfirmModal, showHadesiaKillConfirmModal, showRavenkeeperFakeModal, showMoonchildKillModal, showBarberSwapModal, showStorytellerDeathModal, showSweetheartDrunkModal, showKlutzChoiceModal, hasUsedAbility, reviveSeat, setPukkaPoisonQueue, setDeadThisNight, markAbilityUsed, addLog, setShowRangerModal, killPlayer, poChargeState, setPoChargeState, addDrunkMark, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, addPoisonMark, computeIsPoisoned, setShowPoisonConfirmModal]);
 
   // Execute player (execution logic)
   const executePlayer = useCallback((id: number, options?: { skipLunaticRps?: boolean; forceExecution?: boolean }) => {
@@ -3627,6 +3794,11 @@ export function useGameController() {
     }
   }, [showDayActionModal, seats, saveHistory, hasUsedDailyAbility, markDailyAbilityUsed, getRegistrationCached, checkGameOver, executeNomination, addLog, setShowDayActionModal, setSeats, setShowExecutionResultModal, setShowShootResultModal, setWinReason]);
 
+  // 注册投票记录（用于卖花女/城镇公告员）
+  const registerVotes = useCallback((seatIds: number[]) => {
+    setVotedThisRound(seatIds);
+  }, [setVotedThisRound]);
+
   const handleDayAbilityTrigger = useCallback((seat: Seat, config: DayAbilityConfig) => {
     if (!seat.role || seat.isDead) return;
     if (config.usage === 'once' && hasUsedAbility(config.roleId, seat.id)) return;
@@ -4206,7 +4378,12 @@ export function useGameController() {
 
   // Toggle target selection with full role-specific logic
   const toggleTarget = useCallback((targetId: number) => {
-    if (!nightInfo) return;
+    console.log('[toggleTarget] Called with targetId:', targetId);
+    if (!nightInfo) {
+      console.warn('[toggleTarget] No nightInfo available');
+      return;
+    }
+    console.log('[toggleTarget] Current role:', nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
     
     saveHistory();
     
@@ -4256,17 +4433,41 @@ export function useGameController() {
     }
     
     // Handle poisoner confirmation - show modal for evil targets
-    if (nightInfo.effectiveRole.id === 'poisoner' && newTargets.length === 1) {
+    // Check both 'poisoner' and check if role type is minion with poison ability
+    const isPoisoner = nightInfo.effectiveRole.id === 'poisoner' || nightInfo.effectiveRole.id === 'poisoner_mr';
+    
+    if (isPoisoner && newTargets.length === 1) {
+      console.log('[toggleTarget] Poisoner role detected:', nightInfo.effectiveRole.id);
+      console.log('[toggleTarget] Poisoner selected target:', newTargets[0]);
       const targetSeat = seats.find(s => s.id === newTargets[0]);
-      if (targetSeat && isEvil(targetSeat)) {
-        setShowPoisonEvilConfirmModal(newTargets[0]);
-        return;
+      console.log('[toggleTarget] Target seat found:', targetSeat ? `${targetSeat.id + 1}号 (${targetSeat.role?.name || '未知'})` : 'NOT FOUND');
+      
+      if (targetSeat) {
+        const isTargetEvil = isEvil(targetSeat);
+        console.log('[toggleTarget] Target is evil:', isTargetEvil, 'Target is dead:', targetSeat.isDead);
+        
+        // Only show evil confirmation modal for regular poisoner, not poisoner_mr
+        if (nightInfo.effectiveRole.id === 'poisoner' && isTargetEvil) {
+          console.log('[toggleTarget] Showing evil poison confirmation modal');
+          setShowPoisonEvilConfirmModal(newTargets[0]);
+          return;
+        }
+        
+        // For non-evil targets or poisoner_mr, show regular poison confirmation
+        if (!targetSeat.isDead) {
+          console.log('[toggleTarget] Showing regular poison confirmation modal');
+          setShowPoisonConfirmModal(newTargets[0]);
+          console.log('[toggleTarget] Modal state set to:', newTargets[0]);
+          return;
+        } else {
+          console.warn('[toggleTarget] Target is dead, cannot poison');
+        }
+      } else {
+        console.error('[toggleTarget] Target seat not found for ID:', newTargets[0]);
+        console.error('[toggleTarget] Available seats:', seats.map(s => `${s.id}号`).join(', '));
       }
-      // For non-evil targets, show regular poison confirmation
-      if (targetSeat && !targetSeat.isDead) {
-        setShowPoisonConfirmModal(newTargets[0]);
-        return;
-      }
+    } else if (isPoisoner) {
+      console.log('[toggleTarget] Poisoner detected but newTargets.length !== 1:', newTargets.length);
     }
   }, [
     nightInfo,
@@ -4333,6 +4534,7 @@ export function useGameController() {
     // Setup and validation handlers
     handleBaronAutoRebalance,
     handlePreStartNight,
+    handleStartNight,
     confirmDrunkCharade,
     proceedToCheckPhase,
     getStandardComposition,
@@ -4392,6 +4594,7 @@ export function useGameController() {
     handleGlobalUndo,
     closeNightOrderPreview,
     confirmNightOrderPreview,
+    proceedToFirstNight, // CRITICAL: Synchronous transition to first night
     
     // Group D: Seat Interaction functions
     onSeatClick,
