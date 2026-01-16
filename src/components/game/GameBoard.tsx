@@ -41,7 +41,7 @@ export interface GameBoardProps {
   
   // ========== 其他 ==========
   typeColors: Record<string, string>; // 类型颜色映射
-  setShowSpyDisguiseModal: (value: boolean) => void; // 设置显示伪装身份识别弹窗
+  setCurrentModal: (value: { type: 'SPY_DISGUISE'; data: null } | null) => void; // 设置显示伪装身份识别弹窗
 }
 
 // 圆桌组件
@@ -69,7 +69,7 @@ export function GameBoard(props: GameBoardProps) {
     formatTimer,
     setSeatRef,
     typeColors,
-    setShowSpyDisguiseModal,
+    setCurrentModal,
   } = props;
 
   const phaseLabel =
@@ -104,7 +104,7 @@ export function GameBoard(props: GameBoardProps) {
             </div>
           </button>
           <button
-            onClick={() => setShowSpyDisguiseModal(true)}
+            onClick={() => setCurrentModal({ type: 'SPY_DISGUISE', data: null })}
             className="px-4 py-2 text-sm bg-purple-600 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-colors"
           >
             <div className="flex items-center justify-center">

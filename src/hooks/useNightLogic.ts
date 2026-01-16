@@ -4,6 +4,8 @@ import { useCallback } from "react";
 import type { Seat, Role, GamePhase, LogEntry, Script, WinResult } from "../../app/data";
 import { getRandom, computeIsPoisoned, addPoisonMark, hasTeaLadyProtection } from "../utils/gameRules";
 import type { NightInfoResult } from "../types/game";
+import type { ModalType } from "../types/modal";
+import { getRoleDefinition } from "../roles";
 
 // 定义 Hook 的输入接口
 export interface NightLogicGameState {
@@ -64,7 +66,7 @@ export interface NightLogicActions {
   setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>>;
   setGoonDrunkedThisNight: React.Dispatch<React.SetStateAction<boolean>>;
   setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>>;
-  setShowNightOrderModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
   setPendingNightQueue: React.Dispatch<React.SetStateAction<Seat[] | null>>;
   setNightOrderPreview: React.Dispatch<React.SetStateAction<Array<{ roleName: string; seatNo: number; order: number }>>>;
   setNightQueuePreviewTitle: React.Dispatch<React.SetStateAction<string>>;
@@ -115,44 +117,64 @@ export interface NightLogicActions {
 }
 
 // 生成夜晚唤醒队列的辅助函数
+// 重构：统一使用新系统（RoleDefinition），不再依赖 app/data.ts 中的逻辑字段
 function getNightWakeQueue(seats: Seat[], isFirst: boolean): Seat[] {
   const activeSeats = seats.filter(s => {
     if (!s.role) return false;
     
-    const effectiveRole = s.role.id === 'drunk' ? s.charadeRole : s.role;
-    if (!effectiveRole) return false;
+    // 处理酒鬼：酒鬼的实际角色是 charadeRole（镇民角色）
+    const effectiveRoleId = s.role.id === 'drunk' 
+      ? (s.charadeRole?.id || null)
+      : s.role.id;
     
-    // Check if dead - if so, need special permission to wake
-    if (s.isDead) {
-      // 1. Check metadata for wakesIfDead flag (NEW: data-driven approach)
-      const meta = isFirst ? effectiveRole.firstNightMeta : effectiveRole.otherNightMeta;
-      if (meta && meta.wakesIfDead === true) return true;
-      
-      // 2. Legacy fallback: hasAbilityEvenDead flag (for backward compatibility)
-      if (s.hasAbilityEvenDead) return true;
-      
-      // 3. No permission to wake if dead
+    if (!effectiveRoleId) return false;
+    
+    // 从新系统（roleRegistry）获取角色定义
+    const roleDef = getRoleDefinition(effectiveRoleId);
+    
+    // 如果角色在新系统中没有定义，则不应该在夜晚行动
+    if (!roleDef) {
+      console.warn(`[getNightWakeQueue] 角色 ${effectiveRoleId} 在新系统中未找到定义，跳过夜晚行动`);
       return false;
     }
     
-    // If alive, check if they have night actions
-    // NEW (data-driven): prefer Meta protocol
-    const metaWakeable = isFirst ? !!effectiveRole.firstNightMeta : !!effectiveRole.otherNightMeta;
-    if (metaWakeable) return true;
-
-    // Legacy fallback: old boolean flags
-    if (isFirst) return effectiveRole.firstNight === true;
-    return effectiveRole.otherNight === true;
+    // 检查是否死亡 - 如果死亡，需要特殊权限才能唤醒
+    if (s.isDead) {
+      // 检查是否有死亡后仍可行动的能力（如亡骨魔杀死的爪牙）
+      // 这个逻辑暂时保留，因为新系统还没有完全覆盖所有特殊情况
+      if (s.hasAbilityEvenDead) return true;
+      
+      // 默认情况下，死亡的角色不应该被唤醒
+      return false;
+    }
+    
+    // 检查角色是否有夜晚行动配置
+    const hasFirstNightAction = !!roleDef.firstNight;
+    const hasNightAction = !!roleDef.night;
+    
+    if (isFirst) {
+      // 首夜：优先检查 firstNight，如果没有则检查 night
+      return hasFirstNightAction || hasNightAction;
+    } else {
+      // 后续夜晚：只检查 night（firstNight 只在首夜生效）
+      return hasNightAction;
+    }
   });
 
   // Debug logging
   if (isFirst) {
-    console.log('[getNightWakeQueue] First night - Active seats with roles:', seats.filter(s => s.role).map(s => ({
-      id: s.id,
-      roleId: s.role?.id,
-      roleName: s.role?.name,
-      firstNight: s.role?.id === 'drunk' ? s.charadeRole?.firstNight : s.role?.firstNight
-    })));
+    console.log('[getNightWakeQueue] First night - Active seats with roles:', seats.filter(s => s.role).map(s => {
+      const effectiveRoleId = s.role?.id === 'drunk' ? s.charadeRole?.id : s.role?.id;
+      const roleDef = effectiveRoleId ? getRoleDefinition(effectiveRoleId) : null;
+      return {
+        id: s.id,
+        roleId: s.role?.id,
+        effectiveRoleId,
+        roleName: s.role?.name,
+        hasFirstNight: !!roleDef?.firstNight,
+        hasNight: !!roleDef?.night,
+      };
+    }));
     console.log('[getNightWakeQueue] First night - Wake queue length:', activeSeats.length);
   }
 
@@ -256,8 +278,8 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       console.log('[finalizeNightStart] Incrementing nightCount...');
       setNightCount(n => n + 1);
     }
-    console.log('[finalizeNightStart] Calling setShowNightOrderModal(false)...');
-    setShowNightOrderModal(false);
+    console.log('[finalizeNightStart] Calling setCurrentModal(null)...');
+    setCurrentModal(null);
     console.log('[finalizeNightStart] Calling setPendingNightQueue(null)...');
     setPendingNightQueue(null);
     
@@ -270,7 +292,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setInspectionResult,
     setGamePhase,
     setNightCount,
-    setShowNightOrderModal,
+    setCurrentModal,
     setPendingNightQueue,
   ]);
 
@@ -480,8 +502,15 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         console.log('[startNight] Preview data:', preview);
         setNightOrderPreview(preview);
         
-        console.log('[startNight] Calling setShowNightOrderModal(true)...');
-        setShowNightOrderModal(true);
+        console.log('[startNight] Calling setCurrentModal for NIGHT_ORDER_PREVIEW...');
+        setCurrentModal({
+          type: 'NIGHT_ORDER_PREVIEW',
+          data: {
+            preview,
+            title: nightQueuePreviewTitle || (isFirst ? '首夜叫醒顺位' : '🌙 今晚要唤醒的顺序列表'),
+            pendingQueue: validQueue,
+          },
+        });
         console.log('[startNight] ✅ Modal should be visible now');
         return;
       }
@@ -517,7 +546,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setCurrentDuskExecution,
     setStartTime,
     setNightQueuePreviewTitle,
-    setShowNightOrderModal,
+    setCurrentModal,
     setPendingNightQueue,
     setNightOrderPreview,
     setShowNightDeathReportModal,

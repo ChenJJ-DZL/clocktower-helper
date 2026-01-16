@@ -180,35 +180,8 @@ export function GameStage({ controller }: { controller: any }) {
       showKlutzChoiceModal !== null ||
       showPitHagModal !== null;
     
-    // TEMPORARY FIX: If poisoner modal is set, check if it's actually visible in DOM
-    // If modal exists in state but not visible, allow bypass
-    if (showPoisonConfirmModal !== null) {
-      // Check if modal is actually visible in DOM
-      const modalVisible = typeof document !== 'undefined' && 
-        document.querySelector('[data-modal-key*="确认下毒"]') !== null;
-      console.log('[isConfirmDisabled] Poison modal state:', showPoisonConfirmModal, 'Visible in DOM:', modalVisible);
-      
-      // If modal is not visible after a delay, allow bypass (modal might be broken)
-      // This is a temporary workaround until we fix the modal visibility issue
-      if (!modalVisible) {
-        console.warn('[isConfirmDisabled] Poison modal not visible in DOM, allowing bypass');
-        // Don't disable - allow user to proceed
-        // But still check other modals
-        const otherModals = 
-          showKillConfirmModal !== null ||
-          showPoisonEvilConfirmModal !== null ||
-          showHadesiaKillConfirmModal !== null ||
-          showRavenkeeperFakeModal !== null ||
-          showMoonchildKillModal !== null ||
-          showBarberSwapModal !== null ||
-          showStorytellerDeathModal !== null ||
-          showSweetheartDrunkModal !== null ||
-          showKlutzChoiceModal !== null ||
-          showPitHagModal !== null;
-        return otherModals;
-      }
-    }
-    
+    // 重构：移除 DOM 检测逻辑，直接检查状态
+    // 如果有待确认的弹窗，禁用确认按钮
     if (hasPendingModals) {
       return true;
     }

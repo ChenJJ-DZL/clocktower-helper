@@ -60,33 +60,47 @@ export interface TriggerMeta {
   onExecution?: boolean;      // e.g. Saint (if executed, team loses)
 }
 
+/**
+ * 角色基础数据接口
+ * 重构后：只保留基础定义，所有逻辑行为从 src/roles/ 下的 RoleDefinition 读取
+ */
 export interface Role {
   id: string;
   name: string;
   type: RoleType; // townsfolk, outsider, minion, demon, traveler
 
-  // Night Order
-  firstNightOrder?: number;
-  otherNightOrder?: number;
-
-  // NEW PROTOCOLS
-  setupMeta?: SetupMeta;
-  firstNightMeta?: NightActionMeta;
-  otherNightMeta?: NightActionMeta;
-  dayMeta?: DayActionMeta;
-  triggerMeta?: TriggerMeta;
-
-  // Legacy fields (kept for compatibility during migration)
+  // 基础信息（用于显示和描述）
   ability?: string;
   image?: string;
   fullDescription?: string; // 完整的角色说明
-  firstNight?: boolean;
-  otherNight?: boolean;
-  firstNightReminder?: string;
-  otherNightReminder?: string;
-  nightActionType?: NightActionType;
   // 剧本标记：例如 '暗流涌动'，用于区分不同剧本下的角色集合
   script?: string;
+
+  // 已废弃：以下字段已迁移到 src/roles/ 下的 RoleDefinition
+  // 保留这些字段仅为了向后兼容，新代码不应使用
+  /** @deprecated 使用 RoleDefinition.night 和 RoleDefinition.firstNight 代替 */
+  firstNight?: boolean;
+  /** @deprecated 使用 RoleDefinition.night 代替 */
+  otherNight?: boolean;
+  /** @deprecated 使用 RoleDefinition.firstNight?.order 代替 */
+  firstNightOrder?: number;
+  /** @deprecated 使用 RoleDefinition.night?.order 代替 */
+  otherNightOrder?: number;
+  /** @deprecated 使用 RoleDefinition.firstNight 代替 */
+  firstNightMeta?: NightActionMeta;
+  /** @deprecated 使用 RoleDefinition.night 代替 */
+  otherNightMeta?: NightActionMeta;
+  /** @deprecated 使用 RoleDefinition 代替 */
+  firstNightReminder?: string;
+  /** @deprecated 使用 RoleDefinition 代替 */
+  otherNightReminder?: string;
+  /** @deprecated 使用 RoleDefinition 代替 */
+  nightActionType?: NightActionType;
+  
+  // 以下字段可能仍在使用，暂时保留
+  setupMeta?: SetupMeta;
+  dayMeta?: DayActionMeta;
+  triggerMeta?: TriggerMeta;
 }
 
 export interface StatusEffect {
@@ -198,22 +212,6 @@ export const roles: Role[] = [
     ability: "首夜得知一名村民的具体身份。", 
     fullDescription: "在你的首个夜晚,你会得知两名玩家和一个角色:这两名玩家之一是该角色。",
     script: "暗流涌动", // 暗流涌动角色
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 20, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查村民",
-    firstNightMeta: {
-      script: "洗衣妇请睁眼...",
-      instruction: "确认已获得的身份信息",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "librarian", 
@@ -222,22 +220,6 @@ export const roles: Role[] = [
     ability: "首夜得知一名外来者的具体身份。", 
     fullDescription: "在你的首个夜晚,你会得知两名玩家和一个外来者角色:这两名玩家之一是该角色(或者你会得知没有外来者在场)。",
     script: "暗流涌动", // 暗流涌动角色
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 21, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查外来者",
-    firstNightMeta: {
-      script: "图书管理员请睁眼...",
-      instruction: "确认已获得的身份信息",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "investigator", 
@@ -246,22 +228,6 @@ export const roles: Role[] = [
     ability: "首夜得知一名爪牙的具体身份。", 
     fullDescription: "在你的首个夜晚,你会得知两名玩家和一个爪牙角色:这两名玩家之一是该角色(或者你会得知没有爪牙在场)。",
     script: "暗流涌动", // 暗流涌动角色
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 22, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查爪牙",
-    firstNightMeta: {
-      script: "调查员请睁眼...",
-      instruction: "确认已获得的身份信息",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "chef", 
@@ -270,165 +236,46 @@ export const roles: Role[] = [
     ability: "首夜得知有多少对邪恶玩家相邻。", 
     fullDescription: "在你的首个夜晚,你会得知场上相邻的邪恶玩家有多少对。",
     script: "暗流涌动", // 暗流涌动角色
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 23, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查对数",
-    firstNightMeta: {
-      script: "厨师请睁眼...",
-      instruction: "请用手指比出邪恶对数",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "empath", 
     name: "共情者", 
     type: "townsfolk", 
     ability: "每晚得知存活邻居中邪恶玩家的数量。", 
-    fullDescription: "每个夜晚,你会得知与你邻近的两名存活的玩家中邪恶玩家的数量。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 24, 
-    otherNightOrder: 24, 
-    nightActionType: "none", 
-    firstNightReminder: "查邻居", 
-    otherNightReminder: "查邻居",
+    fullDescription: "每个夜晚,你会得知与你邻近的两名存活的玩家中邪恶玩家的数量。", 
     script: "暗流涌动", // 暗流涌动角色 
-    firstNightMeta: {
-      script: "共情者请睁眼...",
-      instruction: "请用手指比出邻近邪恶数",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    },
-    otherNightMeta: {
-      script: "共情者请睁眼...",
-      instruction: "请用手指比出邻近邪恶数",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "fortune_teller", 
     name: "占卜师", 
     type: "townsfolk", 
     ability: "每晚选择2名玩家，得知其中是否有恶魔或红罗刹。", 
-    fullDescription: "每个夜晚,你要选择两名玩家:你会得知他们之中是否有恶魔,会有一名镇民玩家始终被你的能力视为邪恶。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 25, 
-    otherNightOrder: 25, 
-    nightActionType: "inspect", 
-    firstNightReminder: "查恶魔", 
-    otherNightReminder: "查恶魔",
+    fullDescription: "每个夜晚,你要选择两名玩家:你会得知他们之中是否有恶魔,会有一名镇民玩家始终被你的能力视为邪恶。", 
     script: "暗流涌动", // 暗流涌动角色 
-    firstNightMeta: {
-      script: "占卜师请睁眼...",
-      instruction: "选择两名玩家进行查验",
-      targetType: 'player',
-      amount: 2,
-      required: true,
-      canSelectSelf: true,
-      canSelectDead: false,
-      effectType: 'info'
-    },
-    otherNightMeta: {
-      script: "占卜师请睁眼...",
-      instruction: "选择两名玩家进行查验",
-      targetType: 'player',
-      amount: 2,
-      required: true,
-      canSelectSelf: true,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "undertaker", 
     name: "送葬者", 
     type: "townsfolk", 
     ability: "非首夜得知今天被处决并死亡的玩家角色。", 
-    fullDescription: "每个夜晚,你会得知今天白天死于处决的玩家角色。",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 40, 
-    nightActionType: "none", 
-    otherNightReminder: "查死人",
+    fullDescription: "每个夜晚,你会得知今天白天死于处决的玩家角色。", 
     script: "暗流涌动", // 暗流涌动角色 
-    otherNightMeta: {
-      script: "掘墓人请睁眼...",
-      instruction: "确认处决玩家的身份",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "monk", 
     name: "僧侣", 
     type: "townsfolk", 
     ability: "非首夜保护一名玩家，防止恶魔杀害。", 
-    fullDescription: "每个夜晚,你要选择除你以外一名玩家:恶魔的能力对他们无效。",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 15, 
-    nightActionType: "protect", 
-    otherNightReminder: "保护",
+    fullDescription: "每个夜晚,你要选择除你以外一名玩家:恶魔的能力对他们无效。", 
     script: "暗流涌动", // 暗流涌动角色 
-    otherNightMeta: {
-      script: "僧侣请睁眼...",
-      instruction: "选择一名玩家进行保护",
-      targetType: 'player',
-      amount: 1,
-      required: true,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'add_status',
-      effectValue: 'protected'
-    }
   },
   { 
     id: "ravenkeeper", 
     name: "守鸦人", 
     type: "townsfolk", 
     ability: "夜晚死亡时唤醒，选择一名玩家，得知其真实角色。", 
-    fullDescription: "如果你在夜晚死亡,你会被复活,之后你要选择一名玩家:你会得知他的角色。",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 50, 
-    nightActionType: "inspect_death", 
-    otherNightReminder: "若死查验",
+    fullDescription: "如果你在夜晚死亡,你会被复活,之后你要选择一名玩家:你会得知他的角色。", 
     script: "暗流涌动", // 暗流涌动角色 
-    otherNightMeta: {
-      script: "守鸦人请睁眼...",
-      instruction: "如果死亡，选择一名玩家查验身份",
-      targetType: 'player',
-      amount: 1,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    },
     triggerMeta: {
       onNightDeath: true
     }
@@ -439,11 +286,6 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "首次被镇民提名的瞬间，提名者被处决。（无夜晚行动）", 
     fullDescription: "当你首次被提名时,如果提名你的玩家是镇民,他立刻被处决。",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
     triggerMeta: {
       onNominated: true
@@ -455,11 +297,6 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "白天可指定一名玩家，若为恶魔，恶魔死。", 
     fullDescription: "每局游戏一次,你可以在白天公开选择一名玩家:如果他是恶魔,他死亡。",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
     dayMeta: {
       abilityName: "射击",
@@ -474,11 +311,6 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "被恶魔攻击时不会死亡。（无夜晚行动）", 
     fullDescription: "恶魔的负面能力对你无效。",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
     triggerMeta: {
       onNightDeath: true
@@ -490,54 +322,19 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "若仅剩3人且无人被处决，好人获胜。（无夜晚行动）", 
     fullDescription: "如果只有三名玩家存活且白天没有人能被处决,你会被选为镇长. 如果你在夜晚即将死亡,可能会有一名其他玩家代替你死亡。",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
     triggerMeta: {
       onNightDeath: true
     }
-  },
-  
+  }
   // ========== 外来者 (Outsider) - 4个 ==========
   { 
     id: "butler", 
     name: "管家", 
     type: "outsider", 
     ability: "每晚选择一名主人，必须投票给主人。", 
-    fullDescription: "每个夜晚,你要选择除你以外的一名玩家:白天,只有他投票时你才能投票。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 26, 
-    otherNightOrder: 26, 
-    nightActionType: "mark", 
-    firstNightReminder: "选主人", 
-    otherNightReminder: "选主人",
+    fullDescription: "每个夜晚,你要选择除你以外的一名玩家:白天,只有他投票时你才能投票。", 
     script: "暗流涌动", // 暗流涌动角色 
-    firstNightMeta: {
-      script: "管家请睁眼...",
-      instruction: "选择你的主人",
-      targetType: 'player',
-      amount: 1,
-      required: true,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'add_status',
-      effectValue: 'master'
-    },
-    otherNightMeta: {
-      script: "管家请睁眼...",
-      instruction: "选择你的主人",
-      targetType: 'player',
-      amount: 1,
-      required: true,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'add_status',
-      effectValue: 'master'
-    }
   },
   { 
     id: "drunk", 
@@ -545,11 +342,6 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "误以为自己是镇民，实际是酒鬼。（首夜与其他夜晚行动）", 
     fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     setupMeta: {
       isDrunk: true,
     },
@@ -561,11 +353,6 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "判定阵营时可能被视为邪恶/爪牙/恶魔。（无夜晚行动）", 
     fullDescription: "你可能会被当作邪恶阵营、爪牙角色或恶魔角色,即使你已死亡。",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
   },
   { 
@@ -574,89 +361,27 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "若死于处决，邪恶方立即获胜。（无夜晚行动）", 
     fullDescription: "如果你死于处决,你的阵营立即失败。",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
     triggerMeta: {
       onExecution: true
     }
-  },
-  
+  }
   // ========== 爪牙 (Minion) - 4个 ==========
   { 
     id: "poisoner", 
     name: "投毒者", 
     type: "minion", 
     ability: "每晚选一名玩家中毒，中毒者获得错误信息。", 
-    fullDescription: "每个夜晚, 你要选择一名玩家, 他在当晚和明天白天中毒。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 1, 
-    otherNightOrder: 1, 
-    nightActionType: "poison", 
-    firstNightReminder: "投毒", 
-    otherNightReminder: "投毒",
+    fullDescription: "每个夜晚, 你要选择一名玩家, 他在当晚和明天白天中毒。", 
     script: "暗流涌动", // 暗流涌动角色 
-    firstNightMeta: {
-      script: "投毒者请睁眼...",
-      instruction: "选择一名玩家下毒",
-      targetType: 'player',
-      amount: 1,
-      required: true,
-      canSelectSelf: true,
-      canSelectDead: false,
-      effectType: 'add_status',
-      effectValue: 'poisoned'
-    },
-    otherNightMeta: {
-      script: "投毒者请睁眼...",
-      instruction: "选择一名玩家下毒",
-      targetType: 'player',
-      amount: 1,
-      required: true,
-      canSelectSelf: true,
-      canSelectDead: false,
-      effectType: 'add_status',
-      effectValue: 'poisoned'
-    }
   },
   { 
     id: "spy", 
     name: "间谍", 
     type: "minion", 
     ability: "每晚查看魔典（所有真实身份）和完整行动日志。", 
-    fullDescription: "每个夜晚, 你能查看剧本. 你可能会被当作其他阵营、镇民角色或外来者角色, 即使你已死亡。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 45, 
-    otherNightOrder: 45, 
-    nightActionType: "spy_info", 
-    firstNightReminder: "看书", 
-    otherNightReminder: "看书",
+    fullDescription: "每个夜晚, 你能查看剧本. 你可能会被当作其他阵营、镇民角色或外来者角色, 即使你已死亡。", 
     script: "暗流涌动", // 暗流涌动角色 
-    firstNightMeta: {
-      script: "间谍请睁眼...",
-      instruction: "查看魔法书",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    },
-    otherNightMeta: {
-      script: "间谍请睁眼...",
-      instruction: "查看魔法书",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'info'
-    }
   },
   { 
     id: "scarlet_woman", 
@@ -664,22 +389,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "若恶魔死时活人>=5，她变恶魔。（无夜晚行动）", 
     fullDescription: "如果大于等于五名玩家存活时(说书人不计算在内)恶魔死亡, 你变成新的恶魔。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 18, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
-    otherNightMeta: {
-      script: "红罗刹请睁眼...",
-      instruction: "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
-      targetType: 'none',
-      amount: 0,
-      required: false,
-      canSelectSelf: false,
-      canSelectDead: false,
-      effectType: 'none'
-    },
     triggerMeta: {
       onNightDeath: true
     }
@@ -690,44 +400,20 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "Setup阶段增加2个外来者替换镇民。（仅首夜行动）", 
     fullDescription: "场上有额外的外来者在场. [+2 外来者]",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     script: "暗流涌动", // 暗流涌动角色 
     setupMeta: {
       modifiesBag: true
     }
-  },
-  
+  }
   // ========== 恶魔 (Demon) - 1个 ==========
   { 
     id: "imp", 
     name: "小恶魔", 
     type: "demon", 
     ability: "首夜得知爪牙，非首夜选人杀害。", 
-    fullDescription: "每个夜晚, 你要选择一名玩家:他死亡。如果你以这种方式自杀死一名爪牙会变成小恶魔。",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 20, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "杀人",
+    fullDescription: "每个夜晚, 你要选择一名玩家:他死亡。如果你以这种方式自杀死一名爪牙会变成小恶魔。", 
     script: "暗流涌动", // 暗流涌动角色 
-    otherNightMeta: {
-      script: "小恶魔请睁眼...",
-      instruction: "选择一名玩家杀害",
-      targetType: 'player',
-      amount: 1,
-      required: true,
-      canSelectSelf: true,
-      canSelectDead: false,
-      effectType: 'kill'
-    }
-  },
-
+  }
   // ======================================================================
   //  角色数据 - 暗月初升 (Bad Moon Rising)
   // ======================================================================
@@ -739,13 +425,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "首夜得知一名善良玩家和他的角色。若恶魔杀死了他，你也会死亡。", 
     fullDescription: "在你的首个夜晚,你会得知一名善良玩家和他的角色。如果恶魔杀死了他,你也会死亡。",
-    script: "暗月初升",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 7, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查善良玩家" 
+    script: "暗月初升" 
   },
   { 
     id: "sailor", 
@@ -754,13 +434,6 @@ export const roles: Role[] = [
     ability: "每晚选择一名存活的玩家：你或他之一会醉酒直到下个黄昏。你不会死亡。", 
     fullDescription: "每个夜晚,你要选择一名存活的玩家:你或他之一会醉酒直到下个黄昏。你不会死亡。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 1, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标",
-    otherNightReminder: "选择目标"
   },
   { 
     id: "chambermaid", 
@@ -769,13 +442,6 @@ export const roles: Role[] = [
     ability: "每晚选择除你以外的两名存活的玩家：你会得知他们中有几人在当晚因其自身能力而被唤醒。", 
     fullDescription: "每个夜晚,你要选择除你以外的两名存活的玩家:你会得知他们中有几人在当晚因其自身能力而被唤醒。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 8, 
-    otherNightOrder: 15, 
-    nightActionType: "inspect", 
-    firstNightReminder: "选择两名玩家",
-    otherNightReminder: "选择两名玩家"
   },
   { 
     id: "exorcist", 
@@ -783,13 +449,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚选择一名玩家(与上个夜晚不同)：如果你选中了恶魔，他会得知你是驱魔人，但他当晚不会因其自身能力而被唤醒。", 
     fullDescription: "每个夜晚*,你要选择一名玩家(与上个夜晚不同):如果你选中了恶魔,他会得知你是驱魔人,但他当晚不会因其自身能力而被唤醒。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 7, 
-    nightActionType: "mark", 
-    otherNightReminder: "选择目标(与上个夜晚不同)"
+    script: "暗月初升", 
   },
   { 
     id: "innkeeper", 
@@ -797,13 +457,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚选择两名玩家：他们当晚不会死亡，但其中一人会醉酒到下个黄昏。", 
     fullDescription: "每个夜晚*,你要选择两名玩家:他们当晚不会死亡,但其中一人会醉酒到下个黄昏。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 2, 
-    nightActionType: "protect", 
-    otherNightReminder: "选择两名玩家"
+    script: "暗月初升", 
   },
   { 
     id: "gambler", 
@@ -811,13 +465,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚选择一名玩家并猜测他的角色：如果你猜错了，你会死亡。", 
     fullDescription: "每个夜晚*,你要选择一名玩家并猜测他的角色:如果你猜错了,你会死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 4, 
-    nightActionType: "inspect", 
-    otherNightReminder: "选择目标并猜测角色"
+    script: "暗月初升", 
   },
   { 
     id: "gossip", 
@@ -825,12 +473,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每个白天，你可以公开发表一个声明。如果该声明正确，在当晚会有一名玩家死亡。（无夜晚行动）", 
     fullDescription: "每个白天,你可以公开发表一个声明。如果该声明正确,在当晚会有一名玩家死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "courtier", 
@@ -839,13 +482,6 @@ export const roles: Role[] = [
     ability: "每局游戏限一次，在夜晚时，你可以选择一个角色：如果该角色在场，该角色之一从当晚开始醉酒三天三夜。", 
     fullDescription: "每局游戏限一次,在夜晚时,你可以选择一个角色:如果该角色在场,该角色之一从当晚开始醉酒三天三夜。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 3, 
-    otherNightOrder: 3, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择一个角色",
-    otherNightReminder: "选择一个角色"
   },
   { 
     id: "professor", 
@@ -853,13 +489,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏限一次，在夜晚时，你可以选择一名死亡的玩家；如果他是镇民，你会将他起死回生。", 
     fullDescription: "每局游戏限一次,在夜晚时*,你可以选择一名死亡的玩家;如果他是镇民,你会将他起死回生。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 14, 
-    nightActionType: "none", 
-    otherNightReminder: "选择死亡的镇民复活"
+    script: "暗月初升", 
   },
   { 
     id: "minstrel", 
@@ -867,12 +497,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "当一名爪牙死于处决时，除了你和旅行者以外的所有其他玩家醉酒直到明天黄昏。（无夜晚行动）", 
     fullDescription: "当一名爪牙死于处决时,除了你和旅行者以外的所有其他玩家醉酒直到明天黄昏。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "tea_lady", 
@@ -880,12 +505,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "如果与你邻近的两名存活的玩家是善良的，他们不会死亡。", 
     fullDescription: "如果与你邻近的两名存活的玩家是善良的，他们不会死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "pacifist", 
@@ -893,12 +513,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "被处决的善良玩家可能不会死亡。", 
     fullDescription: "被处决的善良玩家可能不会死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "fool", 
@@ -906,14 +521,8 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "当你首次将要死亡时，你不会死亡。", 
     fullDescription: "当你首次将要死亡时,你不会死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
-  },
-
+    script: "暗月初升"
+  }
   // ========== 外来者 (Outsider) - 4个 ==========
   { 
     id: "tinker", 
@@ -921,12 +530,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "你可能会在任何时候死亡，即使没有玩家选择你。", 
     fullDescription: "你可能会在任何时候死亡,即使没有玩家选择你。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "moonchild", 
@@ -934,12 +538,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "当你得知你死亡时，你要公开选择一名存活的玩家。如果他是善良的，在当晚他会死亡。", 
     fullDescription: "当你得知你死亡时,你要公开选择一名存活的玩家。如果他是善良的,在当晚他会死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "goon", 
@@ -947,12 +546,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。", 
     fullDescription: "每个夜晚,首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "暗月初升"
   },
   { 
     id: "lunatic", 
@@ -960,19 +554,11 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "你以为你是一个恶魔，但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。", 
     fullDescription: "你以为你是一个恶魔,但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
-    script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 1, 
-    otherNightOrder: 6, 
-    nightActionType: "kill", 
+    script: "暗月初升", 
     setupMeta: {
       isLunatic: true,
     },
-    firstNightReminder: "认队友",
-    otherNightReminder: "杀人"
-  },
-
+  }
   // ========== 爪牙 (Minion) - 4个 ==========
   { 
     id: "godfather", 
@@ -981,13 +567,6 @@ export const roles: Role[] = [
     ability: "首夜得知有哪些外来者角色在场。如果有外来者在白天死亡，你会在当晚被唤醒并且你要选择一名玩家：他死亡。[-1或+1外来者]", 
     fullDescription: "在你的首个夜晚,你会得知有哪些外来者角色在场。如果有外来者在白天死亡,你会在当晚被唤醒并且你要选择一名玩家:他死亡。[-1或+1外来者]",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 4, 
-    otherNightOrder: 13, 
-    nightActionType: "kill", 
-    firstNightReminder: "查外来者",
-    otherNightReminder: "选择目标(如果有外来者死亡)"
   },
   { 
     id: "devils_advocate", 
@@ -996,13 +575,6 @@ export const roles: Role[] = [
     ability: "每晚选择一名存活的玩家(与上个夜晚不同)：如果明天白天他被处决，他不会死亡。", 
     fullDescription: "每个夜晚,你要选择一名存活的玩家(与上个夜晚不同);如果明天白天他被处决,他不会死亡。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 5, 
-    otherNightOrder: 5, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标(与上个夜晚不同)",
-    otherNightReminder: "选择目标(与上个夜晚不同)"
   },
   { 
     id: "assassin", 
@@ -1010,13 +582,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每局游戏限一次，在夜晚时，你可以选择一名玩家：他死亡，即使因为任何原因让他不会死亡。", 
     fullDescription: "每局游戏限一次,在夜晚时*,你可以选择一名玩家:他死亡,即使因为任何原因让他不会死亡。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 12, 
-    nightActionType: "kill", 
-    otherNightReminder: "选择目标(每局一次)"
+    script: "暗月初升", 
   },
   { 
     id: "mastermind", 
@@ -1024,14 +590,8 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "如果恶魔死于处决而因此导致游戏结束时，再额外进行一个夜晚和一个白天。在那个白天如果有玩家被处决，他的阵营落败。", 
     fullDescription: "如果恶魔死于处决而因此导致游戏结束时,再额外进行一个夜晚和一个白天。在那个白天如果有玩家被处决,他的阵营落败。",
-    script: "暗月初升",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
-  },
-
+    script: "暗月初升"
+  }
   // ========== 恶魔 (Demon) - 4个 ==========
   { 
     id: "zombuul", 
@@ -1040,13 +600,6 @@ export const roles: Role[] = [
     ability: "每晚如果今天白天没有人死亡，你会被唤醒并要选择一名玩家：他死亡。当你首次死亡后，你仍存活，但会被当作死亡。", 
     fullDescription: "每个夜晚*,如果今天白天没有人死亡,你会被唤醒并要选择一名玩家:他死亡。当你首次死亡后,你仍存活,但会被当作死亡。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 8, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友",
-    otherNightReminder: "选择目标(如果白天有人死亡或处决)"
   },
   { 
     id: "pukka", 
@@ -1055,13 +608,6 @@ export const roles: Role[] = [
     ability: "每晚选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。", 
     fullDescription: "每个夜晚,你要选择一名玩家:他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 6, 
-    otherNightOrder: 9, 
-    nightActionType: "poison", 
-    firstNightReminder: "认队友",
-    otherNightReminder: "投毒"
   },
   { 
     id: "shabaloth", 
@@ -1070,13 +616,6 @@ export const roles: Role[] = [
     ability: "每晚选择两名玩家：他们死亡。你的上个夜晚选择过的且当前死亡的玩家可能会被你反刍。", 
     fullDescription: "每个夜晚*,你要选择两名玩家:他们死亡。你的上个夜晚选择过的且当前死亡的玩家可能会被你反刍。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 10, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友",
-    otherNightReminder: "选择两名目标"
   },
   { 
     id: "po", 
@@ -1085,15 +624,7 @@ export const roles: Role[] = [
     ability: "每晚你可以选择一名玩家：他死亡。如果你上次选择时没有选择任何玩家，当晚你要选择三名玩家：他们死亡。", 
     fullDescription: "每个夜晚*,你可以选择一名玩家:他死亡。如果你上次选择时没有选择任何玩家,当晚你要选择三名玩家:他们死亡。",
     script: "暗月初升",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 11, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友",
-    otherNightReminder: "选择目标(或三名)"
-  },
-
+  }
   // ======================================================================
   //  角色数据 - 梦陨春宵 (Sects & Violets)
   // ======================================================================
@@ -1105,13 +636,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "首夜得知恶魔与爪牙之间最近的距离。", 
     fullDescription: "在你的首个夜晚,你会得知恶魔与爪牙之间最近的距离。(邻座的玩家距离为1)",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 4, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查距离" 
+    script: "梦陨春宵" 
   },
   { 
     id: "dreamer", 
@@ -1119,14 +644,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚选择一名玩家，得知一个善良角色和一个邪恶角色，该玩家是其中一个角色。", 
     fullDescription: "每个夜晚,你要选择除你及旅行者以外的一名玩家:你会得知一个善良角色和一个邪恶角色,该玩家是其中一个角色。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 8, 
-    otherNightOrder: 8, 
-    nightActionType: "inspect", 
-    firstNightReminder: "查角色", 
-    otherNightReminder: "查角色"
+    script: "梦陨春宵", 
   },
   { 
     id: "snake_charmer", 
@@ -1134,14 +652,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚选择一名玩家，如果选中了恶魔，你和他交换角色和阵营，然后他中毒。", 
     fullDescription: "每个夜晚,你要选择一名存活的玩家:如果你选中了恶魔,你和他交换角色和阵营,然后他中毒。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 9, 
-    otherNightOrder: 9, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标", 
-    otherNightReminder: "选择目标"
+    script: "梦陨春宵", 
   },
   { 
     id: "mathematician", 
@@ -1149,14 +660,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚得知有多少名玩家的能力因为其他角色的能力而未正常生效。", 
     fullDescription: "每个夜晚,你会得知有多少名玩家的能力因为其他角色的能力而未正常生效。(从上个黎明到你被唤醒时)",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 10, 
-    otherNightOrder: 10, 
-    nightActionType: "none", 
-    firstNightReminder: "查数量", 
-    otherNightReminder: "查数量"
+    script: "梦陨春宵", 
   },
   { 
     id: "flowergirl", 
@@ -1164,13 +668,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚得知在今天白天时是否有恶魔投过票。", 
     fullDescription: "每个夜晚*,你会得知在今天白天时是否有恶魔投过票。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 11, 
-    nightActionType: "none", 
-    otherNightReminder: "查投票"
+    script: "梦陨春宵", 
   },
   { 
     id: "town_crier", 
@@ -1178,13 +676,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚得知在今天白天时是否有爪牙发起过提名。", 
     fullDescription: "每个夜晚*,你会得知在今天白天时是否有爪牙发起过提名。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 12, 
-    nightActionType: "none", 
-    otherNightReminder: "查提名"
+    script: "梦陨春宵", 
   },
   { 
     id: "oracle", 
@@ -1192,13 +684,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚得知有多少名死亡的玩家是邪恶的。", 
     fullDescription: "每个夜晚*,你会得知有多少名死亡的玩家是邪恶的。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 13, 
-    nightActionType: "none", 
-    otherNightReminder: "查死亡邪恶"
+    script: "梦陨春宵", 
   },
   { 
     id: "savant", 
@@ -1206,12 +692,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每个白天，你可以私下询问说书人以得知两条信息：一个是正确的，一个是错误的。", 
     fullDescription: "每个白天,你可以私下询问说书人以得知两条信息:一个是正确的,一个是错误的。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "梦陨春宵"
   },
   { 
     id: "seamstress", 
@@ -1219,14 +700,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：你会得知他们是否为同一阵营。", 
     fullDescription: "每局游戏限一次,在夜晚时,你可以选择除你以外的两名玩家:你会得知他们是否为同一阵营。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 11, 
-    otherNightOrder: 14, 
-    nightActionType: "inspect", 
-    firstNightReminder: "选择两名玩家", 
-    otherNightReminder: "选择两名玩家"
+    script: "梦陨春宵", 
   },
   { 
     id: "philosopher", 
@@ -1234,14 +708,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏限一次，在夜晚时，你可以选择一个善良角色：你获得该角色的能力。如果这个角色在场，他醉酒。", 
     fullDescription: "每局游戏限一次,在夜晚时,你可以选择一个善良角色:你获得该角色的能力。如果这个角色在场,他醉酒。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 12, 
-    otherNightOrder: 15, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择角色", 
-    otherNightReminder: "选择角色"
+    script: "梦陨春宵", 
   },
   { 
     id: "artist", 
@@ -1249,12 +716,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏限一次，在白天时，你可以私下询问说书人一个是非问题，你会得知该问题的答案。", 
     fullDescription: "每局游戏限一次,在白天时,你可以私下询问说书人一个是非问题,你会得知该问题的答案。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "梦陨春宵"
   },
   { 
     id: "juggler", 
@@ -1262,13 +724,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "在你的首个白天，你可以公开猜测任意玩家的角色最多五次，在当晚，你会得知猜测正确的角色数。", 
     fullDescription: "在你的首个白天,你可以公开猜测任意玩家的角色最多五次,在当晚,你会得知猜测正确的角色数。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 16, 
-    nightActionType: "none", 
-    otherNightReminder: "查猜测结果"
+    script: "梦陨春宵", 
   },
   { 
     id: "sage", 
@@ -1276,15 +732,8 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "如果恶魔杀死了你，在当晚你会被唤醒并得知两名玩家，其中一名是杀死你的那个恶魔。", 
     fullDescription: "如果恶魔杀死了你,在当晚你会被唤醒并得知两名玩家,其中一名是杀死你的那个恶魔。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 17, 
-    nightActionType: "inspect_death", 
-    otherNightReminder: "若死查验"
-  },
-
+    script: "梦陨春宵", 
+  }
   // ========== 外来者 (Outsider) - 4个 ==========
   { 
     id: "mutant", 
@@ -1292,12 +741,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "如果你\"疯狂\"地证明自己是外来者，你可能被处决。", 
     fullDescription: "如果你\"疯狂\"地证明自己是外来者,你可能被处决。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "梦陨春宵"
   },
   { 
     id: "sweetheart", 
@@ -1305,12 +749,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "当你死亡时，会有一名玩家开始醉酒。", 
     fullDescription: "当你死亡时,会有一名玩家开始醉酒。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "梦陨春宵"
   },
   { 
     id: "barber", 
@@ -1318,12 +757,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "如果你死亡，在当晚恶魔可以选择两名玩家(不能选择其他恶魔)交换角色。", 
     fullDescription: "如果你死亡,在当晚恶魔可以选择两名玩家(不能选择其他恶魔)交换角色。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "梦陨春宵"
   },
   { 
     id: "klutz", 
@@ -1331,14 +765,8 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "当你得知你死亡时，你要公开选择一名存活的玩家：如果他是邪恶的，你的阵营落败。", 
     fullDescription: "当你得知你死亡时,你要公开选择一名存活的玩家:如果他是邪恶的,你的阵营落败。",
-    script: "梦陨春宵",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
-  },
-
+    script: "梦陨春宵"
+  }
   // ========== 爪牙 (Minion) - 4个 ==========
   { 
     id: "evil_twin", 
@@ -1346,13 +774,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "你与一名对立阵营的玩家互相知道对方是什么角色。如果其中善良玩家被处决，邪恶阵营获胜。如果你们都存活，善良阵营无法获胜。", 
     fullDescription: "你与一名对立阵营的玩家互相知道对方是什么角色。如果其中善良玩家被处决,邪恶阵营获胜。如果你们都存活,善良阵营无法获胜。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 3, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "认对手"
+    script: "梦陨春宵"
   },
   { 
     id: "witch", 
@@ -1360,14 +782,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每晚选择一名玩家，如果他明天白天发起提名，他死亡。如果只有三名存活的玩家，你失去此能力。", 
     fullDescription: "每个夜晚,你要选择一名玩家;如果他明天白天发起提名,他死亡。如果只有三名存活的玩家,你失去此能力。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 13, 
-    otherNightOrder: 1, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标", 
-    otherNightReminder: "选择目标"
+    script: "梦陨春宵", 
   },
   { 
     id: "cerenovus", 
@@ -1375,14 +790,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每晚选择一名玩家和一个善良角色，他明天白天和夜晚需要\"疯狂\"地证明自己是这个角色，不然他可能被处决。", 
     fullDescription: "每个夜晚,你要选择一名玩家和一个善良角色,他明天白天和夜晚需要\"疯狂\"地证明自己是这个角色,不然他可能被处决。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 14, 
-    otherNightOrder: 2, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标和角色", 
-    otherNightReminder: "选择目标和角色"
+    script: "梦陨春宵", 
   },
   { 
     id: "pit_hag", 
@@ -1390,16 +798,8 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每晚选择一名玩家和一个角色，如果该角色不在场，他变成该角色。如果因此创造了一个恶魔，当晚的死亡由说书人决定。", 
     fullDescription: "每个夜晚*,你要选择一名玩家和一个角色,如果该角色不在场,他变成该角色。如果因此创造了一个恶魔,当晚的死亡由说书人决定。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 15, 
-    otherNightOrder: 3, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标和角色", 
-    otherNightReminder: "选择目标和角色"
-  },
-
+    script: "梦陨春宵", 
+  }
   // ========== 恶魔 (Demon) - 4个 ==========
   { 
     id: "fang_gu", 
@@ -1407,14 +807,7 @@ export const roles: Role[] = [
     type: "demon", 
     ability: "每晚选择一名玩家：他死亡。被该能力杀死的外来者改为变成邪恶的方古且你代替他死亡，但每局游戏仅能成功转化一次。", 
     fullDescription: "每个夜晚*,你要选择一名玩家:他死亡。被该能力杀死的外来者改为变成邪恶的方古且你代替他死亡,但每局游戏仅能成功转化一次。[+1外来者]",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 4, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "杀人"
+    script: "梦陨春宵", 
   },
   { 
     id: "vigormortis", 
@@ -1422,14 +815,7 @@ export const roles: Role[] = [
     type: "demon", 
     ability: "每晚选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。", 
     fullDescription: "每个夜晚*,你要选择一名玩家:他死亡。被你杀死的爪牙保留他的能力,且与他邻近的两名镇民之一中毒。[-1外来者]",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 5, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "杀人"
+    script: "梦陨春宵", 
   },
   { 
     id: "no_dashii", 
@@ -1437,14 +823,7 @@ export const roles: Role[] = [
     type: "demon", 
     ability: "每晚选择一名玩家：他死亡。与你邻近的两名镇民中毒。", 
     fullDescription: "每个夜晚*,你要选择一名玩家:他死亡。与你邻近的两名镇民中毒。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 6, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "杀人"
+    script: "梦陨春宵", 
   },
   { 
     id: "vortox", 
@@ -1452,16 +831,8 @@ export const roles: Role[] = [
     type: "demon", 
     ability: "每晚选择一名玩家：他死亡。镇民玩家的能力都会产生错误信息，如果白天没人被处决，邪恶阵营获胜。", 
     fullDescription: "每个夜晚*,你要选择一名玩家:他死亡。镇民玩家的能力都会产生错误信息,如果白天没人被处决,邪恶阵营获胜。",
-    script: "梦陨春宵",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 7, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "杀人"
-  },
-
+    script: "梦陨春宵", 
+  }
   // ======================================================================
   //  角色数据 - 夜半狂欢 (Midnight Revelry)
   // ======================================================================
@@ -1473,13 +844,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏一次，在夜晚时，可以选择一名死亡的玩家；如果他是镇民，你会将他起死回生。", 
     fullDescription: "每局游戏一次,在夜晚时*,你可以选择一名死亡的玩家;如果他是镇民,你会将他起死回生。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 14, 
-    nightActionType: "none", 
-    otherNightReminder: "选择死亡的镇民复活"
+    script: "夜半狂欢", 
   },
   { 
     id: "snake_charmer_mr", 
@@ -1487,14 +852,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚选择一名存活的玩家；如果选中了恶魔，你和他交换角色和阵营，然后他中毒。", 
     fullDescription: "每个夜晚,你要选择一名存活的玩家:如果你选中了恶魔,你和他交换角色和阵营,然后他中毒。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 9, 
-    otherNightOrder: 9, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标", 
-    otherNightReminder: "选择目标"
+    script: "夜半狂欢", 
   },
   { 
     id: "savant_mr", 
@@ -1502,12 +860,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每个白天，你可以私下询问说书人以得知两条信息：一个是正确的，一个是错误的。", 
     fullDescription: "每个白天,你可以私下询问说书人以得知两条信息:一个是正确的,一个是错误的。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "noble", 
@@ -1515,13 +868,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "首夜得知三名玩家，其中恰好有一名是邪恶的。", 
     fullDescription: "在你的首个夜晚,你会得知三名玩家。其中恰好有一名是邪恶的。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 7, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "查三名玩家"
+    script: "夜半狂欢"
   },
   { 
     id: "balloonist", 
@@ -1529,14 +876,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每晚得知一名不同角色类型的玩家，直到你得知了场上所有角色类型。", 
     fullDescription: "每个夜晚,你会得知一名不同角色类型的玩家,直到你得知了场上所有角色类型。[+1外来者]",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 8, 
-    otherNightOrder: 8, 
-    nightActionType: "none", 
-    firstNightReminder: "查角色类型", 
-    otherNightReminder: "查角色类型"
+    script: "夜半狂欢", 
   },
   { 
     id: "amnesiac", 
@@ -1544,12 +884,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "你不知道你的能力是什么。每个白天你可以询问说书人一次猜测，你会得知你的猜测有多准确。", 
     fullDescription: "你不知道你的能力是什么。每个白天你可以询问说书人一次猜测,你会得知你的猜测有多准确。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "engineer", 
@@ -1557,14 +892,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏一次，在夜晚时，你可以选择让恶魔变成你选择的一个恶魔角色，或让所有爪牙变成你选择的爪牙角色。", 
     fullDescription: "每局游戏一次,在夜晚时*,你可以选择让恶魔变成你选择的一个恶魔角色,或让所有爪牙变成你选择的爪牙角色。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 12, 
-    otherNightOrder: 15, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择角色类型", 
-    otherNightReminder: "选择角色类型"
+    script: "夜半狂欢", 
   },
   { 
     id: "fisherman", 
@@ -1572,12 +900,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏一次，在白天时，你可以询问说书人一些建议来帮助你的团队获胜。", 
     fullDescription: "每局游戏一次,在白天时,你可以询问说书人一些建议来帮助你的团队获胜。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "ranger", 
@@ -1585,14 +908,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "每局游戏一次，在夜晚时，可以选择一名存活的玩家；如果选中了落难少女，她会变成一个不在场的镇民角色。", 
     fullDescription: "每局游戏一次,在夜晚时*,你可以选择一名存活的玩家;如果选中了落难少女,她会变成一个不在场的镇民角色。[+落难少女]",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 11, 
-    otherNightOrder: 14, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标", 
-    otherNightReminder: "选择目标"
+    script: "夜半狂欢", 
   },
   { 
     id: "farmer", 
@@ -1600,12 +916,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "如果你在夜晚死亡，一名存活的善良玩家会变成农夫。", 
     fullDescription: "如果你在夜晚死亡,一名存活的善良玩家会变成农夫。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "poppy_grower", 
@@ -1613,12 +924,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "爪牙和恶魔不知道彼此。如果你死亡，他们会在当晚得知彼此。", 
     fullDescription: "爪牙和恶魔不知道彼此。如果你死亡,他们会在当晚得知彼此。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "atheist", 
@@ -1626,12 +932,7 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "说书人可以打破游戏规则。如果说书人被处决，好人阵营获胜，即使你已死亡。", 
     fullDescription: "说书人可以打破游戏规则。如果说书人被处决,好人阵营获胜,即使你已死亡。[场上没有邪恶角色]",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "cannibal", 
@@ -1639,14 +940,8 @@ export const roles: Role[] = [
     type: "townsfolk", 
     ability: "你拥有最后被处决的玩家的能力。如果该玩家是邪恶的，你会中毒直到下一个善良玩家被处决。", 
     fullDescription: "你拥有最后被处决的玩家的能力。如果该玩家是邪恶的,你会中毒直到下一个善良玩家被处决。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
-  },
-
+    script: "夜半狂欢"
+  }
   // ========== 外来者 (Outsider) - 4个 ==========
   { 
     id: "drunk_mr", 
@@ -1655,11 +950,6 @@ export const roles: Role[] = [
     ability: "你不知道你是酒鬼。你以为你是一个镇民角色，但其实你不是。", 
     fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
     script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none",
     setupMeta: {
       isDrunk: true,
     }
@@ -1670,12 +960,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "如果你死亡，在当晚恶魔可以选择两名玩家（不能选择其他恶魔）交换角色。", 
     fullDescription: "如果你死亡,在当晚恶魔可以选择两名玩家(不能选择其他恶魔)交换角色。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "damsel", 
@@ -1683,12 +968,7 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "所有爪牙都知道落难少女在场。每局游戏一次，任何爪牙可以公开猜测你是落难少女。如果他们猜对了，你的阵营落败。", 
     fullDescription: "所有爪牙都知道落难少女在场。每局游戏一次,任何爪牙可以公开猜测你是落难少女。如果他们猜对了,你的阵营落败。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "golem", 
@@ -1696,14 +976,8 @@ export const roles: Role[] = [
     type: "outsider", 
     ability: "每局游戏一次，你只能发起一次提名。当你发起提名时，如果你提名的玩家不是恶魔，他死亡。", 
     fullDescription: "每局游戏一次,你只能发起一次提名。当你发起提名时,如果你提名的玩家不是恶魔,他死亡。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
-  },
-
+    script: "夜半狂欢"
+  }
   // ========== 爪牙 (Minion) - 4个 ==========
   { 
     id: "poisoner_mr", 
@@ -1711,14 +985,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每晚选择一名玩家：他当晚和明天白天中毒。", 
     fullDescription: "每个夜晚,你要选择一名玩家:他当晚和明天白天中毒。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 1, 
-    otherNightOrder: 1, 
-    nightActionType: "poison", 
-    firstNightReminder: "投毒", 
-    otherNightReminder: "投毒"
+    script: "夜半狂欢", 
   },
   { 
     id: "pit_hag_mr", 
@@ -1726,14 +993,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每晚选择一名玩家和一个角色；如果该角色不在场，他变成该角色。如果因此创造了一个恶魔，当晚的死亡由说书人决定。", 
     fullDescription: "每个夜晚*,你要选择一名玩家和一个角色,如果该角色不在场,他变成该角色。如果因此创造了一个恶魔,当晚的死亡由说书人决定。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 15, 
-    otherNightOrder: 3, 
-    nightActionType: "mark", 
-    firstNightReminder: "选择目标和角色", 
-    otherNightReminder: "选择目标和角色"
+    script: "夜半狂欢", 
   },
   { 
     id: "lunatic_mr", 
@@ -1741,12 +1001,7 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "每个白天，在提名开始前，你可以公开选择一名玩家：他死亡。如果你被处决，提名你的玩家必须和你玩石头剪刀布；只有你输了才会死亡。", 
     fullDescription: "每个白天,在提名开始前,你可以公开选择一名玩家:他死亡。如果你被处决,提名你的玩家必须和你玩石头剪刀布;只有你输了才会死亡。",
-    script: "夜半狂欢",
-    firstNight: false, 
-    otherNight: false, 
-    firstNightOrder: 0, 
-    otherNightOrder: 0, 
-    nightActionType: "none"
+    script: "夜半狂欢"
   },
   { 
     id: "shaman", 
@@ -1754,15 +1009,8 @@ export const roles: Role[] = [
     type: "minion", 
     ability: "首夜得知一个关键词。第一个公开说出这个关键词的善良玩家会在当晚变成邪恶。", 
     fullDescription: "在你的首个夜晚,你会得知一个关键词。第一个公开说出这个关键词的善良玩家会在当晚变成邪恶。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: false, 
-    firstNightOrder: 13, 
-    otherNightOrder: 0, 
-    nightActionType: "none", 
-    firstNightReminder: "得知关键词"
-  },
-
+    script: "夜半狂欢"
+  }
   // ========== 恶魔 (Demon) - 2个 ==========
   { 
     id: "vigormortis_mr", 
@@ -1770,14 +1018,7 @@ export const roles: Role[] = [
     type: "demon", 
     ability: "每晚选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。", 
     fullDescription: "每个夜晚*,你要选择一名玩家:他死亡。被你杀死的爪牙保留他的能力,且与他邻近的两名镇民之一中毒。[-1外来者]",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 5, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "杀人"
+    script: "夜半狂欢", 
   },
   { 
     id: "hadesia", 
@@ -1785,14 +1026,7 @@ export const roles: Role[] = [
     type: "demon", 
     ability: "每晚选择三名玩家（所有玩家都会得知你选择了谁）：他们秘密决定自己的命运，如果他们全部存活，他们全部死亡。", 
     fullDescription: "每个夜晚*,你要选择三名玩家(所有玩家都会得知你选择了谁):他们秘密决定自己的命运,如果他们全部存活,他们全部死亡。",
-    script: "夜半狂欢",
-    firstNight: true, 
-    otherNight: true, 
-    firstNightOrder: 2, 
-    otherNightOrder: 4, 
-    nightActionType: "kill", 
-    firstNightReminder: "认队友", 
-    otherNightReminder: "选择三名目标"
+    script: "夜半狂欢", 
   }
 ];
 

@@ -166,6 +166,9 @@ export function useRoleAction() {
    * @param currentSeats 当前座位数组
    * @param selectedTargets 已选择的目标 ID 列表
    * @param isFirstNight 是否为首夜
+   * @param gamePhase 游戏阶段（用于特殊检查）
+   * @param deadThisNight 今晚死亡的玩家 ID 列表（用于守鸦人等）
+   * @param hasUsedAbility 检查能力是否已使用的函数
    * @returns 是否可选
    */
   const canSelectTarget = useCallback((
@@ -174,7 +177,10 @@ export function useRoleAction() {
     targetId: number,
     currentSeats: Seat[],
     selectedTargets: number[],
-    isFirstNight: boolean
+    isFirstNight: boolean,
+    gamePhase?: GamePhase,
+    deadThisNight?: number[],
+    hasUsedAbility?: (roleId: string, seatId: number) => boolean
   ): boolean => {
     // 1. 查找角色定义
     const roleDef = getRoleDefinition(roleId);
@@ -182,17 +188,7 @@ export function useRoleAction() {
       return false;
     }
 
-    // 2. 选择对应的行动配置
-    const actionConfig = isFirstNight && roleDef.firstNight
-      ? roleDef.firstNight
-      : roleDef.night;
-
-    if (!actionConfig || !actionConfig.target.canSelect) {
-      // 如果没有 canSelect 函数，默认允许选择
-      return true;
-    }
-
-    // 3. 查找执行者和目标座位
+    // 2. 查找执行者和目标座位
     const performerSeat = currentSeats.find(s => s.id === performerId);
     const targetSeat = currentSeats.find(s => s.id === targetId);
 
@@ -200,13 +196,64 @@ export function useRoleAction() {
       return false;
     }
 
-    // 4. 调用 canSelect 函数
-    return actionConfig.target.canSelect(
-      targetSeat,
-      performerSeat,
-      currentSeats,
-      selectedTargets
-    );
+    // 3. 选择对应的行动配置
+    const actionConfig = isFirstNight && roleDef.firstNight
+      ? roleDef.firstNight
+      : roleDef.night;
+
+    // 4. 如果有 canSelect 函数，优先使用
+    if (actionConfig?.target.canSelect) {
+      return actionConfig.target.canSelect(
+        targetSeat,
+        performerSeat,
+        currentSeats,
+        selectedTargets
+      );
+    }
+
+    // 5. 如果没有 canSelect 函数，使用默认的角色特定规则
+    // 这些规则应该逐步迁移到角色定义文件中，但暂时保留作为 fallback
+    
+    // Monk: Cannot target self
+    if (roleId === 'monk' && targetSeat.id === performerId) return false;
+    
+    // Poisoner: Cannot target dead players
+    if (roleId === 'poisoner' && targetSeat.isDead) return false;
+    
+    // Ravenkeeper: Can only target if they died tonight
+    if (roleId === 'ravenkeeper') {
+      if (deadThisNight && !deadThisNight.includes(performerId)) {
+        return false; // Disable all targets if ravenkeeper didn't die tonight
+      }
+    }
+    
+    // Evil Twin: First night restrictions - only townsfolk/outsider
+    if (roleId === 'evil_twin' && isFirstNight) {
+      if (!targetSeat.role) return false;
+      if (targetSeat.role.type !== 'townsfolk' && targetSeat.role.type !== 'outsider') {
+        return false;
+      }
+    }
+    
+    // Imp: Cannot target on first night
+    if (roleId === 'imp' && isFirstNight) return false;
+    
+    // Butler: Cannot target self
+    if (roleId === 'butler' && targetSeat.id === performerId) return false;
+    
+    // Chambermaid: Cannot target self
+    if (roleId === 'chambermaid' && targetSeat.id === performerId) return false;
+    
+    // Professor (MR): Can only revive dead townsfolk, and only if ability not used
+    if (roleId === 'professor_mr') {
+      if (hasUsedAbility && hasUsedAbility('professor_mr', performerId)) return false;
+      const targetRole = targetSeat.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat.role;
+      if (!targetSeat.isDead) return false;
+      if (!targetRole || targetRole.type !== 'townsfolk') return false;
+    }
+
+    // 默认允许选择
+    return true;
   }, []);
 
   /**
