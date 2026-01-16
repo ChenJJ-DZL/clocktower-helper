@@ -276,6 +276,9 @@ export function useGameController() {
     ignoreBaronSetup, setIgnoreBaronSetup,
     compositionError, setCompositionError,
     showRavenkeeperResultModal, setShowRavenkeeperResultModal,
+    showAttackBlockedModal, setShowAttackBlockedModal,
+    showBarberSwapModal, setShowBarberSwapModal,
+    showNightDeathReportModal, setShowNightDeathReportModal,
     voteInputValue, setVoteInputValue,
     showVoteErrorToast, setShowVoteErrorToast,
     gameRecords, setGameRecords,
@@ -286,16 +289,16 @@ export function useGameController() {
     firstNightOrder, setFirstNightOrder,
     poppyGrowerDead, setPoppyGrowerDead,
     klutzChoiceTarget, setKlutzChoiceTarget,
-    klutzChoiceTarget, setKlutzChoiceTarget,
+    showKlutzChoiceModal, setShowKlutzChoiceModal,
+    showSweetheartDrunkModal, setShowSweetheartDrunkModal,
+    showMoonchildKillModal, setShowMoonchildKillModal,
     lastExecutedPlayerId, setLastExecutedPlayerId,
     damselGuessed, setDamselGuessed,
     shamanKeyword, setShamanKeyword,
     shamanTriggered, setShamanTriggered,
-    showShamanConvertModal, setShowShamanConvertModal,
     shamanConvertTarget, setShamanConvertTarget,
     spyDisguiseMode, setSpyDisguiseMode,
     spyDisguiseProbability, setSpyDisguiseProbability,
-    showSpyDisguiseModal, setShowSpyDisguiseModal,
     pukkaPoisonQueue, setPukkaPoisonQueue,
     poChargeState, setPoChargeState,
     autoRedHerringInfo, setAutoRedHerringInfo,
@@ -304,18 +307,47 @@ export function useGameController() {
     usedOnceAbilities, setUsedOnceAbilities,
     usedDailyAbilities, setUsedDailyAbilities,
     nominationMap, setNominationMap,
-    showLunaticRpsModal, setShowLunaticRpsModal,
     balloonistKnownTypes, setBalloonistKnownTypes,
     balloonistCompletedIds, setBalloonistCompletedIds,
     hadesiaChoices, setHadesiaChoices,
     virginGuideInfo, setVirginGuideInfo,
-    showRoleSelectModal, setShowRoleSelectModal,
     voteRecords, setVoteRecords,
     votedThisRound, setVotedThisRound,
     hasExecutedThisDay, setHasExecutedThisDay,
     remainingDays, setRemainingDays,
+    goonDrunkedThisNight, setGoonDrunkedThisNight,
+    // 所有 Modal 显示状态
+    showKillConfirmModal, setShowKillConfirmModal,
+    showMayorRedirectModal, setShowMayorRedirectModal,
+    showPitHagModal, setShowPitHagModal,
+    showRangerModal, setShowRangerModal,
+    showDamselGuessModal, setShowDamselGuessModal,
+    showShamanConvertModal, setShowShamanConvertModal,
+    showHadesiaKillConfirmModal, setShowHadesiaKillConfirmModal,
+    showPoisonConfirmModal, setShowPoisonConfirmModal,
+    showPoisonEvilConfirmModal, setShowPoisonEvilConfirmModal,
+    showRestartConfirmModal, setShowRestartConfirmModal,
+    showSpyDisguiseModal, setShowSpyDisguiseModal,
+    showMayorThreeAliveModal, setShowMayorThreeAliveModal,
+    showDrunkModal, setShowDrunkModal,
+    showVoteInputModal, setShowVoteInputModal,
+    showRoleSelectModal, setShowRoleSelectModal,
     showMadnessCheckModal, setShowMadnessCheckModal,
+    showDayActionModal, setShowDayActionModal,
+    showDayAbilityModal, setShowDayAbilityModal,
     showSaintExecutionConfirmModal, setShowSaintExecutionConfirmModal,
+    showLunaticRpsModal, setShowLunaticRpsModal,
+    showVirginTriggerModal, setShowVirginTriggerModal,
+    showRavenkeeperFakeModal, setShowRavenkeeperFakeModal,
+    showStorytellerDeathModal, setShowStorytellerDeathModal,
+    showReviewModal, setShowReviewModal,
+    showGameRecordsModal, setShowGameRecordsModal,
+    showRoleInfoModal, setShowRoleInfoModal,
+    showExecutionResultModal, setShowExecutionResultModal,
+    showShootResultModal, setShowShootResultModal,
+    showNightOrderModal, setShowNightOrderModal,
+    showFirstNightOrderModal, setShowFirstNightOrderModal,
+    showMinionKnowDemonModal, setShowMinionKnowDemonModal,
     history, setHistory,
     nominationRecords, setNominationRecords,
     lastDuskExecution, setLastDuskExecution,
@@ -941,6 +973,19 @@ export function useGameController() {
     // 保存历史记录
     saveHistory();
     
+    // CRITICAL FIX: Handle empty wake queue (no roles to wake up)
+    // If wakeQueueIds is empty, directly transition to day
+    if (wakeQueueIds.length === 0) {
+      console.log('[continueToNextAction] Empty wake queue, transitioning directly to day');
+      if(deadThisNight.length > 0) {
+        const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
+        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
+      } else {
+        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
+      }
+      return;
+    }
+    
     // 检查是否有玩家在夜晚死亡需要跳过他们的环节但亡骨魔杀死的爪牙保留能力需要被唤醒
     const currentDead = seats.filter(s => {
       const roleId = getSeatRoleId(s);
@@ -1016,7 +1061,7 @@ export function useGameController() {
       // Ensure we're still in night phase before transition (safety check)
       // The modal callback will handle the actual transition
     }
-  }, [saveHistory, seats, deadThisNight, wakeQueueIds, currentWakeIndex, gamePhase, nightInfo, poppyGrowerDead, setCurrentWakeIndex, setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setCurrentModal]);
+  }, [saveHistory, seats, deadThisNight, wakeQueueIds, currentWakeIndex, gamePhase, nightInfo, poppyGrowerDead, setCurrentWakeIndex, setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setCurrentModal, addLog, getSeatRoleId]);
 
   const currentNightRole = useMemo(() => {
     if (!nightInfo) return null;
@@ -1678,10 +1723,16 @@ export function useGameController() {
       setPendingNightQueue,
       setNightOrderPreview,
       setNightQueuePreviewTitle,
-      setShowNightDeathReportModal,
-      setShowKillConfirmModal,
-      setShowMayorRedirectModal,
-      setShowAttackBlockedModal,
+      // ============ 适配器：将旧的 setShowXXX 转发到新的 setCurrentModal ============
+      setShowNightDeathReportModal: (text: string | null) => 
+        setCurrentModal(text ? { type: 'NIGHT_DEATH_REPORT', data: { message: text } } : null),
+      setShowKillConfirmModal: (targetId: number | null) => 
+        setCurrentModal(targetId !== null ? { type: 'KILL_CONFIRM', data: { targetId, isImpSelfKill: false } } : null),
+      setShowMayorRedirectModal: (data: { targetId: number; demonName: string } | null) => 
+        setCurrentModal(data ? { type: 'MAYOR_REDIRECT', data } : null),
+      setShowAttackBlockedModal: (data: { targetId: number; reason: string; demonName?: string } | null) => 
+        setCurrentModal(data ? { type: 'ATTACK_BLOCKED', data } : null),
+      // ============ 适配器结束 ============
       setStartTime,
       setMayorRedirectTarget,
       addLog,
@@ -1700,7 +1751,7 @@ export function useGameController() {
 
   // 确认夜晚死亡报告后进入白天
   const confirmNightDeathReport = useCallback(() => {
-    setShowNightDeathReportModal(null);
+    setCurrentModal(null);
     
     // 白天开始清理仅限夜晚的状态但保留魔鬼代言人的跨日保护
     cleanStatusesForNewDay();
@@ -1750,7 +1801,7 @@ export function useGameController() {
       return;
     }
     setGamePhase("day");
-  }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setShowNightDeathReportModal, setPoppyGrowerDead, setDeadThisNight, setGamePhase]);
+  }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setCurrentModal, setPoppyGrowerDead, setDeadThisNight, setGamePhase]);
 
   // 获取标准阵容配置（用于Baron自动重排）
   const getStandardComposition = useCallback((playerCount: number, hasBaron: boolean) => {

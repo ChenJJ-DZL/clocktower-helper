@@ -10,31 +10,54 @@ export const imp: RoleDefinition = {
   name: "小恶魔",
   type: "demon",
   
-  // 首夜和后续夜晚都行动
-  night: {
-    order: (isFirstNight) => isFirstNight ? 2 : 20,
+  // 首夜行动：认队友，不需要选择目标
+  firstNight: {
+    order: 2,
     
     target: {
       count: {
-        min: isFirstNight ? 0 : 1,
-        max: isFirstNight ? 0 : 1,
+        min: 0,
+        max: 0,
+      },
+    },
+    
+    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+      return {
+        wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
+        instruction: "认队友",
+        close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
+      };
+    },
+    
+    handler: (context) => {
+      // 小恶魔的认队友逻辑在 calculateNightInfo 中处理
+      // 这里只返回空更新
+      return {
+        updates: [],
+        logs: {
+          privateLog: `小恶魔（${context.selfId + 1}号）已被告知爪牙信息`,
+        },
+      };
+    },
+  },
+  
+  // 后续夜晚行动：选择一名玩家杀害
+  night: {
+    order: 20,
+    
+    target: {
+      count: {
+        min: 1,
+        max: 1,
       },
       
       canSelect: (target: Seat, self: Seat, allSeats: Seat[], selectedTargets: number[]) => {
-        // 首夜不需要选择目标（只是认队友）
-        // 非首夜可以选择任何人（包括自己）
+        // 可以选择任何人（包括自己）
         return true;
       },
     },
     
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
-      if (isFirstNight) {
-        return {
-          wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
-          instruction: "认队友",
-          close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
-        };
-      }
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
         instruction: "选择一名玩家杀害",
@@ -45,15 +68,6 @@ export const imp: RoleDefinition = {
     handler: (context) => {
       // 小恶魔的杀人逻辑在 calculateNightInfo 和 killPlayer 中处理
       // 这里只返回空更新
-      if (context.gamePhase === "firstNight") {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `小恶魔（${context.selfId + 1}号）已被告知爪牙信息`,
-          },
-        };
-      }
-      
       if (context.targets.length === 0) {
         return {
           updates: [],

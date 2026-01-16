@@ -218,6 +218,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setNominationMap,
     setGoonDrunkedThisNight,
     setIsVortoxWorld,
+    setCurrentModal,
     setPendingNightQueue,
     setNightOrderPreview,
     setNightQueuePreviewTitle,

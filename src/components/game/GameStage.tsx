@@ -560,15 +560,16 @@ export function GameStage({ controller }: { controller: any }) {
           primaryAction={
             (gamePhase === 'firstNight' || gamePhase === 'night')
               ? (() => {
-                  // CRITICAL FIX: Check if we're at the last step (dawn)
-                  const isLastStep = currentWakeIndex >= wakeQueueIds.length - 1;
+                  // CRITICAL FIX: Handle empty wake queue or last step
+                  const isEmpty = wakeQueueIds.length === 0;
+                  const isLastStep = !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
                   
-                  if (isLastStep) {
-                    // Explicit "Enter Day" button for dawn step
+                  if (isEmpty || isLastStep) {
+                    // Explicit "Enter Day" button for empty queue or dawn step
                     return {
                       label: '🌞 天亮了 - 进入白天',
                       onClick: () => {
-                        console.log("🌞 [UI] Manual override to Day - Dawn step");
+                        console.log("🌞 [UI] Manual override to Day - Empty queue or dawn step");
                         // Call continueToNextAction which will show death report and transition
                         controller.continueToNextAction();
                       },
