@@ -6,6 +6,7 @@ import { getRandom, computeIsPoisoned, addPoisonMark, hasTeaLadyProtection } fro
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { getRoleDefinition } from "../roles";
+import { generateNightActionQueue } from "../utils/nightQueueGenerator";
 
 // 定义 Hook 的输入接口
 export interface NightLogicGameState {
@@ -117,68 +118,10 @@ export interface NightLogicActions {
 }
 
 // 生成夜晚唤醒队列的辅助函数
-// 重构：统一使用新系统（RoleDefinition），不再依赖 app/data.ts 中的逻辑字段
+// 重构：使用新的动态队列生成器，根据角色定义自动生成排序后的队列
 function getNightWakeQueue(seats: Seat[], isFirst: boolean): Seat[] {
-  const activeSeats = seats.filter(s => {
-    if (!s.role) return false;
-    
-    // 处理酒鬼：酒鬼的实际角色是 charadeRole（镇民角色）
-    const effectiveRoleId = s.role.id === 'drunk' 
-      ? (s.charadeRole?.id || null)
-      : s.role.id;
-    
-    if (!effectiveRoleId) return false;
-    
-    // 从新系统（roleRegistry）获取角色定义
-    const roleDef = getRoleDefinition(effectiveRoleId);
-    
-    // 如果角色在新系统中没有定义，则不应该在夜晚行动
-    if (!roleDef) {
-      console.warn(`[getNightWakeQueue] 角色 ${effectiveRoleId} 在新系统中未找到定义，跳过夜晚行动`);
-      return false;
-    }
-    
-    // 检查是否死亡 - 如果死亡，需要特殊权限才能唤醒
-    if (s.isDead) {
-      // 检查是否有死亡后仍可行动的能力（如亡骨魔杀死的爪牙）
-      // 这个逻辑暂时保留，因为新系统还没有完全覆盖所有特殊情况
-      if (s.hasAbilityEvenDead) return true;
-      
-      // 默认情况下，死亡的角色不应该被唤醒
-      return false;
-    }
-    
-    // 检查角色是否有夜晚行动配置
-    const hasFirstNightAction = !!roleDef.firstNight;
-    const hasNightAction = !!roleDef.night;
-    
-    if (isFirst) {
-      // 首夜：优先检查 firstNight，如果没有则检查 night
-      return hasFirstNightAction || hasNightAction;
-    } else {
-      // 后续夜晚：只检查 night（firstNight 只在首夜生效）
-      return hasNightAction;
-    }
-  });
-
-  // Debug logging
-  if (isFirst) {
-    console.log('[getNightWakeQueue] First night - Active seats with roles:', seats.filter(s => s.role).map(s => {
-      const effectiveRoleId = s.role?.id === 'drunk' ? s.charadeRole?.id : s.role?.id;
-      const roleDef = effectiveRoleId ? getRoleDefinition(effectiveRoleId) : null;
-      return {
-        id: s.id,
-        roleId: s.role?.id,
-        effectiveRoleId,
-        roleName: s.role?.name,
-        hasFirstNight: !!roleDef?.firstNight,
-        hasNight: !!roleDef?.night,
-      };
-    }));
-    console.log('[getNightWakeQueue] First night - Wake queue length:', activeSeats.length);
-  }
-
-  return activeSeats;
+  // 使用新的队列生成器，它会自动根据角色定义的order排序
+  return generateNightActionQueue(seats, isFirst);
 }
 
 /**

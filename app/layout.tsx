@@ -1,6 +1,8 @@
 // by 拜甘教成员-大长老
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { GameProvider } from "@/src/contexts/GameContext";
+import { ModalProvider } from "@/src/contexts/ModalContext";
 
 export const metadata: Metadata = {
   title: "血染钟楼辅助工具",
@@ -24,7 +26,11 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased">
-        {children}
+        <GameProvider>
+          <ModalProvider>
+            {children}
+          </ModalProvider>
+        </GameProvider>
       </body>
     </html>
   );

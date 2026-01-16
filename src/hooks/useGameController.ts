@@ -6,6 +6,9 @@ import { NightHintState, NightInfoResult, GameRecord, TimelineStep } from "../ty
 import { useGameState } from "./useGameState";
 import { useRoleAction } from "./useRoleAction";
 import { useNightLogic } from "./useNightLogic";
+import { useGameContext, gameActions } from "../contexts/GameContext";
+import { useNightActionQueue } from "./useNightActionQueue";
+import { convertWakeQueueIdsToSeats } from "./useGameQueueAdapter";
 import { isRoleRegistered } from "../roles/index";
 import { getRoleConfirmHandler, handleImpSuicide, executePoisonAction, type RoleConfirmContext } from "./roleActionHandlers";
 import { useExecutionHandler, type ExecutionHandlerContext } from "./useExecutionHandler";
@@ -213,6 +216,19 @@ const hasExecutionProof = (seat?: Seat | null): boolean => {
 export function useGameController() {
   // Get all state from useGameState
   const gameState = useGameState();
+  
+  // 集成新的队列管理系统（可选，保持向后兼容）
+  // 注意：新系统可选，如果GameContext不可用，继续使用旧系统
+  let nightQueue: ReturnType<typeof useNightActionQueue> | null = null;
+  let gameContextDispatch: React.Dispatch<any> | null = null;
+  try {
+    const context = useGameContext();
+    gameContextDispatch = context.dispatch;
+    nightQueue = useNightActionQueue();
+  } catch (e) {
+    // GameContext不可用时，继续使用旧系统
+    // 这是正常的，因为在完全迁移前，新旧系统可以共存
+  }
   
   // Destructure all state variables
   const {
@@ -528,6 +544,19 @@ export function useGameController() {
       console.error('保存对局记录失败:', error);
     }
   }, []);
+
+  // 同步状态到GameContext（如果可用）
+  useEffect(() => {
+    if (gameContextDispatch && wakeQueueIds.length > 0) {
+      // 将wakeQueueIds转换为Seat[]
+      const queueSeats = convertWakeQueueIdsToSeats(wakeQueueIds, seats);
+      if (queueSeats.length > 0) {
+        // 同步队列和索引到GameContext
+        gameContextDispatch(gameActions.setNightActionQueue(queueSeats));
+        gameContextDispatch(gameActions.setCurrentQueueIndex(currentWakeIndex));
+      }
+    }
+  }, [wakeQueueIds, currentWakeIndex, seats, gameContextDispatch]);
 
   // 更新ref
   useEffect(() => {
