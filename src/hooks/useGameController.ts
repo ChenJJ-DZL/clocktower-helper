@@ -8,6 +8,8 @@ import { useRoleAction } from "./useRoleAction";
 import { useNightLogic } from "./useNightLogic";
 import { isRoleRegistered } from "../roles/index";
 import { getRoleConfirmHandler, handleImpSuicide, executePoisonAction, type RoleConfirmContext } from "./roleActionHandlers";
+import { useExecutionHandler, type ExecutionHandlerContext } from "./useExecutionHandler";
+import { useNightActionHandler, type NightActionHandlerContext } from "./useNightActionHandler";
 import { ModalType } from "../types/modal";
 import {
   getRandom,
@@ -343,6 +345,10 @@ export function useGameController() {
 
   // Get functions from useRoleAction
   const { executeAction, canSelectTarget: checkCanSelectTarget, getTargetCount: getRoleTargetCount } = useRoleAction();
+  
+  // Get functions from useExecutionHandler and useNightActionHandler
+  const { handleExecution } = useExecutionHandler();
+  const { handleNightAction } = useNightActionHandler();
 
   // 保存历史记录 - 改为普通函数使用ref避免Hook依赖问题
   const saveHistory = () => {
@@ -998,8 +1004,6 @@ export function useGameController() {
       fakeInspectionResultRef.current = null;
     } else {
       // 2. CRITICAL TRANSITION LOGIC - Force transition to day
-      console.log("🌞 [Transition] Night ended - showing death report and transitioning to day.");
-      
       // Show death report first, then transition to day
       // The modal's onConfirm (confirmNightDeathReport) will handle the actual transition
       if(deadThisNight.length > 0) {
@@ -1284,14 +1288,74 @@ export function useGameController() {
   };
 
   // 杀死玩家（不做免疫/保护判断，直接处理死亡及后续效果）
+  /**
+   * 统一的击杀入口
+   * 流程：检查是否已死 -> 检查是否免疫 -> 检查是否被保护 -> 执行死亡 -> 触发亡语
+   */
   const killPlayer = useCallback(
-    (targetId: number, options: KillPlayerOptions = {}) => {
+    (targetId: number, options: KillPlayerOptions & { source?: 'demon' | 'execution' | 'ability' } = {}) => {
       const seatsSnapshot = seatsRef.current || seats;
       const targetSeat = seatsSnapshot.find(s => s.id === targetId);
       if (!targetSeat) return;
+      
+      const {
+        source = 'ability',
+        recordNightDeath = true,
+        keepInWakeQueue = false,
+        seatTransformer,
+        skipGameOverCheck,
+        executedPlayerId = null,
+        onAfterKill,
+      } = options;
+      
       const killerRoleId = nightInfo?.effectiveRole.id;
 
-      // 茶艺师动态保护实时计算邻座是否提供保护
+      // ======================================================================
+      // 步骤 1: 检查是否已死
+      // ======================================================================
+      if (targetSeat.isDead) {
+        // 如果已经死亡，直接返回（除非是特殊处理，如僵怖假死）
+        if (targetSeat.role?.id !== 'zombuul' || targetSeat.isZombuulTrulyDead) {
+          return;
+        }
+      }
+
+      // ======================================================================
+      // 步骤 2: 检查是否免疫（仅对恶魔夜袭）
+      // ======================================================================
+      if (source === 'demon') {
+        // 士兵天生免疫恶魔攻击（除非中毒）
+        if (targetSeat.role?.id === 'soldier' && !targetSeat.isPoisoned) {
+          addLog(`🛡️ ${targetId + 1}号 [士兵] 免疫了恶魔的攻击！`);
+          setCurrentModal({
+            type: 'ATTACK_BLOCKED',
+            data: {
+              targetId,
+              reason: '士兵免疫',
+              demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+            },
+          });
+          return;
+        }
+      }
+
+      // ======================================================================
+      // 步骤 3: 检查是否被保护
+      // ======================================================================
+      // 3.1 僧侣保护（仅对恶魔夜袭）
+      if (source === 'demon' && targetSeat.isProtected && targetSeat.protectedBy !== null) {
+        const protectorSeat = seatsSnapshot.find((s) => s.id === targetSeat.protectedBy);
+        const protectorName = protectorSeat?.role?.name || '未知';
+        addLog(`🛡️ ${targetId + 1}号 被${protectorName}保护，免于死亡！`);
+        setShowAttackBlockedModal({
+          targetId,
+          reason: `${protectorName}保护`,
+          demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+        });
+        return;
+      }
+      
+      // 3.2 茶艺师动态保护（对所有攻击）
       if (hasTeaLadyProtection(targetSeat, seatsSnapshot)) {
         addLog(`${targetId + 1}被茶艺师保护未死亡`);
         setShowAttackBlockedModal({
@@ -1302,15 +1366,9 @@ export function useGameController() {
         return;
       }
 
-      const {
-        recordNightDeath = true,
-        keepInWakeQueue = false,
-        seatTransformer,
-        skipGameOverCheck,
-        executedPlayerId = null,
-        onAfterKill,
-      } = options;
-
+      // ======================================================================
+      // 步骤 4: 执行死亡
+      // ======================================================================
       // 默认月之子/呆瓜死亡不立刻结算等待后续选择
       const shouldSkipGameOver = skipGameOverCheck || (targetSeat.role?.id === 'moonchild' || targetSeat.role?.id === 'klutz');
 
@@ -1364,7 +1422,6 @@ export function useGameController() {
           (seats && seats.length ? seats : null);
 
         if (!seatsToUse || seatsToUse.length === 0) {
-          console.error('killPlayer finalize: seatsToUse为空或无效，跳过游戏结束检查');
           onAfterKill?.(seatsToUse || []);
           return;
         }
@@ -1464,55 +1521,18 @@ export function useGameController() {
 
       finalize(updatedSeats);
     },
-    [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setWakeQueueIds, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted, checkImpStarPass]
+    [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setWakeQueueIds, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted, checkImpStarPass, setCurrentModal]
   );
 
   /**
-   * 尝试击杀玩家（先检查 Monk 保护 / Soldier 免疫，再调用 killPlayer）
+   * 尝试击杀玩家（兼容旧接口，内部调用统一的 killPlayer）
+   * @deprecated 请直接使用 killPlayer，传入 source 参数
    */
   const tryKillPlayer = useCallback(
     (targetId: number, source: 'demon' | 'execution' | 'ability', options: KillPlayerOptions = {}) => {
-      const seatsSnapshot = seatsRef.current || seats;
-      const targetSeat = seatsSnapshot.find((s) => s.id === targetId);
-      if (!targetSeat || targetSeat.isDead) return;
-
-      // 仅对恶魔夜袭进行免疫/保护判定
-      if (source === 'demon') {
-        // 僧侣保护
-        if (targetSeat.isProtected && targetSeat.protectedBy !== null) {
-          const protectorSeat = seatsSnapshot.find((s) => s.id === targetSeat.protectedBy);
-          const protectorName = protectorSeat?.role?.name || '未知';
-          addLog(`🛡️ ${targetId + 1}号 被${protectorName}保护，免于死亡！`);
-          setShowAttackBlockedModal({
-            targetId,
-            reason: `${protectorName}保护`,
-            demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
-          });
-          return;
-        }
-
-        // 士兵天生免疫
-        if (targetSeat.role?.id === 'soldier' && !targetSeat.isPoisoned) {
-          const hasTriggerMeta = targetSeat.role?.triggerMeta?.onNightDeath === true;
-          if (hasTriggerMeta || targetSeat.role?.id === 'soldier') {
-            addLog(`🛡️ ${targetId + 1}号 [士兵] 免疫了恶魔的攻击！`);
-            setCurrentModal({
-              type: 'ATTACK_BLOCKED',
-              data: {
-                targetId,
-                reason: '士兵免疫',
-                demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
-              },
-            });
-            return;
-          }
-        }
-      }
-
-      // 通过所有检查，真正执行击杀
-      killPlayer(targetId, options);
+      killPlayer(targetId, { ...options, source });
     },
-    [seats, nightInfo, addLog, setCurrentModal, getDemonDisplayName, seatsRef, killPlayer]
+    [killPlayer]
   );
 
   // --- 通用夜晚时间线步骤处理（基于 TimelineStep.interaction.effect） ---
@@ -1557,13 +1577,12 @@ export function useGameController() {
               };
             })
           );
-          console.log(`✅ Applied Status: ${effect.value} to`, selectedSeatIds);
         }
 
         // === B. 击杀（恶魔、刺客等） ===
         else if (effect.type === 'kill') {
           selectedSeatIds.forEach((targetId) => {
-            // 使用 tryKillPlayer 检查免疫和保护（对于恶魔攻击）
+            // 使用 killPlayer 统一处理击杀（自动检查免疫和保护）
             // 判断是否为恶魔攻击：检查当前步骤的角色ID是否为恶魔类型
             const currentRoleId = currentStep.roleId;
             const isDemonAttack = currentRoleId && (
@@ -1579,15 +1598,13 @@ export function useGameController() {
               currentRoleId === 'hadesia'
             );
             const source: 'demon' | 'execution' | 'ability' = isDemonAttack ? 'demon' : 'ability';
-            tryKillPlayer(targetId, source);
+            killPlayer(targetId, { source });
           });
-          console.log(`💀 Executed Kill on`, selectedSeatIds);
         }
 
         // === C. 纯信息步骤（洗衣妇等） ===
         else if (effect.type === 'info') {
-          // 信息本身由 UI 展示，这里仅做确认日志
-          console.log('ℹ️ Info step acknowledged.');
+          // 信息本身由 UI 展示，这里仅做确认
         }
       }
 
@@ -1601,7 +1618,7 @@ export function useGameController() {
         onNightEnd();
       }
     },
-    [addLog, killPlayer, tryKillPlayer, setSeats]
+    [addLog, killPlayer, setSeats, roles, seats]
   );
 
   // 调用 useNightLogic - 必须在 executePlayer 之前定义
@@ -1677,7 +1694,7 @@ export function useGameController() {
       enqueueRavenkeeperIfNeeded,
       continueToNextAction,
       seatsRef,
-      tryKillPlayer, // Pass tryKillPlayer to nightLogic
+      killPlayer, // Pass killPlayer to nightLogic (unified kill entry)
     }
   );
 
@@ -1822,14 +1839,12 @@ export function useGameController() {
 
       // A. 处理酒鬼（真实为酒鬼，但需要一个镇民外壳）
       if (seat.role.setupMeta?.isDrunk || seat.role.id === 'drunk' || seat.role.id === 'drunk_mr') {
-        console.log(`🍺 Processing Drunk at Seat ${seat.id + 1}`);
-        // 优先使用已经通过“酒鬼伪装”流程选择的 charadeRole，其次回退到现有 displayRole 或真实角色
+        // 优先使用已经通过"酒鬼伪装"流程选择的 charadeRole，其次回退到现有 displayRole 或真实角色
         nextDisplayRole = seat.charadeRole || nextDisplayRole || seat.role;
       }
 
       // B. 处理疯子（认为自己是恶魔，需要一个恶魔外壳）
       if (seat.role.setupMeta?.isLunatic || seat.role.id === 'lunatic') {
-        console.log(`🤪 Processing Lunatic at Seat ${seat.id + 1}`);
         // TODO: 后续步骤中由说书人选择伪装的恶魔角色。
         // 目前占位：如果已经有人为设置了 displayRole，则保留；否则暂时使用自身角色。
         nextDisplayRole = nextDisplayRole || seat.displayRole || seat.role;
@@ -1851,10 +1866,9 @@ export function useGameController() {
 
     // 3. 预生成首夜时间线（基于真实角色，用于后续功能）
     try {
-      const timeline: TimelineStep[] = generateNightTimeline(compact, true);
-      console.log('[proceedToCheckPhase] Generated first-night timeline steps:', timeline.length);
+      generateNightTimeline(compact, true);
     } catch (e) {
-      console.error('[proceedToCheckPhase] Failed to generate first-night timeline:', e);
+      // 时间线生成失败，继续执行
     }
 
     setTimeout(() => {
@@ -1894,30 +1908,14 @@ export function useGameController() {
 
   // 处理开始夜晚（从check阶段或其他阶段进入夜晚）
   const handleStartNight = useCallback((isFirst: boolean) => {
-    console.log('[handleStartNight] Called with isFirst:', isFirst);
-    console.log('[handleStartNight] nightLogic:', nightLogic);
-    console.log('[handleStartNight] nightLogic.startNight:', nightLogic?.startNight);
-    
-    if (!nightLogic) {
-      console.error('[handleStartNight] nightLogic is null or undefined!');
+    if (!nightLogic?.startNight) {
       alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
       return;
     }
     
-    if (!nightLogic.startNight) {
-      console.error('[handleStartNight] nightLogic.startNight is not available!');
-      console.error('[handleStartNight] nightLogic keys:', Object.keys(nightLogic || {}));
-      alert('游戏状态错误：夜晚逻辑未初始化。请刷新页面重试。');
-      return;
-    }
-    
     try {
-      console.log('[handleStartNight] Calling nightLogic.startNight(', isFirst, ')...');
       nightLogic.startNight(isFirst);
-      console.log('[handleStartNight] startNight called successfully');
     } catch (error) {
-      console.error('[handleStartNight] Error calling startNight:', error);
-      console.error('[handleStartNight] Error stack:', error instanceof Error ? error.stack : 'No stack');
       alert(`入夜时发生错误: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, [nightLogic]);
@@ -1925,24 +1923,18 @@ export function useGameController() {
   // CRITICAL FIX: Synchronous transition to First Night
   // This function bypasses the complex async startNight logic and directly transitions
   const proceedToFirstNight = useCallback(() => {
-    console.log("🚀 [System] Force Transitioning to First Night...");
 
     // 1. Force verify seats exist
     if (!seats || seats.length === 0) {
-      console.error("❌ [System] No seats found! Cannot start night.");
       alert("错误：没有座位数据，无法入夜。");
       return;
     }
 
     // 2. Generate Timeline IMMEDIATELY using current seats
-    // (Do not wait for a useEffect)
-    console.log("⚙️ [System] Generating First Night Timeline...");
     let newTimeline: TimelineStep[];
     try {
       newTimeline = generateNightTimeline(seats, true); // true = firstNight
-      console.log(`✅ [System] Timeline Generated: ${newTimeline.length} steps.`);
       if (newTimeline.length === 0) {
-        console.warn("⚠️ [System] Timeline is empty! Check Role Metadata.");
         // Even if empty, ensure we have at least a dawn step
         newTimeline = [{
           id: 'dawn_step',
@@ -1957,7 +1949,6 @@ export function useGameController() {
         }];
       }
     } catch (error) {
-      console.error("❌ [System] Error generating timeline:", error);
       alert(`生成时间轴失败: ${error instanceof Error ? error.message : '未知错误'}`);
       return;
     }
@@ -1967,8 +1958,6 @@ export function useGameController() {
       .filter(step => step.type === 'character' && step.seatId !== undefined)
       .map(step => step.seatId!)
       .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
-
-    console.log(`📋 [System] Wake Queue IDs: [${wakeQueueIds.join(', ')}]`);
 
     // 4. Batch Update State (The Critical Fix)
     // We must set ALL these at once to prevent race conditions.
@@ -1982,7 +1971,6 @@ export function useGameController() {
     setCurrentModal(null);
     setPendingNightQueue(null);
 
-    console.log("🌕 [System] Phase set to 'firstNight'. Loop should start.");
   }, [seats, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, setCurrentModal, setPendingNightQueue]);
 
   // 关闭夜晚顺序预览模态框
@@ -1993,22 +1981,12 @@ export function useGameController() {
 
   // 确认夜晚顺序预览，开始夜晚
   const confirmNightOrderPreview = useCallback(() => {
-    console.log('[confirmNightOrderPreview] ========== FUNCTION CALLED ==========');
-    console.log('[confirmNightOrderPreview] pendingNightQueue:', pendingNightQueue);
-    console.log('[confirmNightOrderPreview] pendingNightQueue length:', pendingNightQueue?.length);
-    console.log('[confirmNightOrderPreview] nightLogic:', nightLogic);
-    console.log('[confirmNightOrderPreview] nightLogic.finalizeNightStart:', nightLogic?.finalizeNightStart);
-    console.log('[confirmNightOrderPreview] typeof nightLogic.finalizeNightStart:', typeof nightLogic?.finalizeNightStart);
-    
     // 立即关闭弹窗，避免用户重复点击
     setCurrentModal(null);
     
     if (!pendingNightQueue || pendingNightQueue.length === 0) {
-      console.error('[confirmNightOrderPreview] pendingNightQueue is empty or null:', pendingNightQueue);
-      console.warn('[confirmNightOrderPreview] This should not happen. Closing modal and allowing game to continue.');
-      // Close the modal and proceed with empty queue (game will handle it)
+      // 空队列：直接进入首夜阶段
       setPendingNightQueue(null);
-      // Set empty queue and proceed to firstNight phase
       setWakeQueueIds([]);
       setCurrentWakeIndex(0);
       setSelectedActionTargets([]);
@@ -2018,29 +1996,16 @@ export function useGameController() {
       return;
     }
     
-    if (!nightLogic) {
-      console.error('[confirmNightOrderPreview] nightLogic is null or undefined!', nightLogic);
+    if (!nightLogic?.finalizeNightStart) {
+      // 如果 nightLogic 不可用，关闭弹窗并返回
+      setPendingNightQueue(null);
       return;
     }
-    
-    if (!nightLogic.finalizeNightStart) {
-      console.error('[confirmNightOrderPreview] nightLogic.finalizeNightStart is not available!', nightLogic);
-      console.error('[confirmNightOrderPreview] nightLogic keys:', Object.keys(nightLogic || {}));
-      return;
-    }
-    
-    console.log('[confirmNightOrderPreview] Confirming night order with', pendingNightQueue.length, 'roles');
-    console.log('[confirmNightOrderPreview] Queue details:', pendingNightQueue.map(s => ({ id: s.id, roleId: s.role?.id, roleName: s.role?.name })));
     
     // 使用 nightLogic 的 finalizeNightStart 来正确设置 wakeQueueIds
-    // This is synchronous - wakeQueueIds will be set before phase changes
     try {
-      console.log('[confirmNightOrderPreview] Calling finalizeNightStart...');
       nightLogic.finalizeNightStart(pendingNightQueue, true);
-      console.log('[confirmNightOrderPreview] ✅ finalizeNightStart called successfully');
     } catch (error) {
-      console.error('[confirmNightOrderPreview] ❌ Error calling finalizeNightStart:', error);
-      console.error('[confirmNightOrderPreview] Error stack:', error instanceof Error ? error.stack : 'No stack');
       // 即使出错也要关闭弹窗
       setPendingNightQueue(null);
     }
@@ -2220,7 +2185,7 @@ export function useGameController() {
   const changeRole = useCallback((seatId: number, newRoleId: string) => {
     const newRole = roles.find(r => r.id === newRoleId);
     if (!newRole) {
-      console.warn(`[changeRole] Role not found: ${newRoleId}`);
+      // Role not found, skip
       return;
     }
 
@@ -2247,7 +2212,7 @@ export function useGameController() {
       const s1 = prev.find(s => s.id === seatId1);
       const s2 = prev.find(s => s.id === seatId2);
       if (!s1 || !s2) {
-        console.warn(`[swapRoles] One or both seats not found: ${seatId1}, ${seatId2}`);
+        // One or both seats not found, skip
         return prev;
       }
       
@@ -2327,22 +2292,83 @@ export function useGameController() {
   const executePlayer = useCallback((id: number, options?: { skipLunaticRps?: boolean; forceExecution?: boolean }) => {
     const seatsSnapshot = seatsRef.current || seats;
     const t = seatsSnapshot.find(s => s.id === id);
-    if (!t) return;
+    if (!t || !t.role) return;
     const skipLunaticRps = options?.skipLunaticRps;
     const forceExecution = options?.forceExecution;
 
-    // 圣徒处决前强提醒未确认时不继续后续逻辑
-    if (t.role?.id === 'saint' && !forceExecution) {
-      setCurrentModal({ type: 'SAINT_EXECUTION_CONFIRM', data: { targetId: id, skipLunaticRps } });
-      return;
+    // ======================================================================
+    // 重构：优先使用角色定义的 onExecution 方法
+    // ======================================================================
+    const execContext: ExecutionHandlerContext = {
+      executedSeat: t,
+      seats: seatsSnapshot,
+      gamePhase,
+      nightCount,
+      nominationMap,
+      forceExecution,
+      skipLunaticRps,
+      setSeats,
+      setWinResult,
+      setWinReason,
+      setGamePhase,
+      addLog,
+      checkGameOver,
+      setCurrentModal,
+    };
+    
+    const execResult = handleExecution(execContext);
+    
+    // 如果角色定义了 onExecution 且返回 handled: true
+    if (execResult && execResult.handled) {
+      // 如果需要等待（例如弹窗确认）
+      if (execResult.shouldWait) {
+        // 根据角色类型设置相应的弹窗
+        if (t.role.id === 'saint' && !forceExecution) {
+          setCurrentModal({ type: 'SAINT_EXECUTION_CONFIRM', data: { targetId: id, skipLunaticRps } });
+        } else if (t.role.id === 'lunatic_mr' && !skipLunaticRps) {
+          const nominatorId = nominationMap[id] ?? null;
+          setCurrentModal({ type: 'LUNATIC_RPS', data: { targetId: id, nominatorId } });
+        }
+        return;
+      }
+      
+      // 如果需要继续到下一个夜晚（例如僵怖假死）
+      if (execResult.shouldContinueToNight) {
+        setExecutedPlayerId(id);
+        setTodayExecutedId(id);
+        setCurrentDuskExecution(id);
+        
+        // 检查游戏结束
+        const updatedSeats = execResult.seatUpdates 
+          ? seatsSnapshot.map(s => {
+              const update = execResult.seatUpdates!.find(u => u.id === s.id);
+              return update ? { ...s, ...update } : s;
+            })
+          : seatsSnapshot;
+        
+        if (checkGameOver(updatedSeats, id)) {
+          return;
+        }
+        
+        setTimeout(() => {
+          nightLogic.startNight(false);
+        }, 500);
+        return;
+      }
+      
+      // 如果游戏已结束，直接返回
+      if (execResult.gameOver) {
+        setExecutedPlayerId(id);
+        setCurrentDuskExecution(id);
+        return;
+      }
+      
+      // 其他情况继续默认逻辑
     }
-
-    if (t.role?.id === 'lunatic_mr' && !skipLunaticRps) {
-      const nominatorId = nominationMap[id] ?? null;
-      setCurrentModal({ type: 'LUNATIC_RPS', data: { targetId: id, nominatorId } });
-      setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${id+1}号等待石头剪刀布决定生死` } });
-      return;
-    }
+    
+    // ======================================================================
+    // 保留的硬编码逻辑（逐步迁移到角色定义中）
+    // ======================================================================
 
     // 茶艺师动态保护邻座善良茶艺师保护的善良玩家无法被处
     if (hasTeaLadyProtection(t, seatsSnapshot)) {
@@ -2375,7 +2401,7 @@ export function useGameController() {
       // 和平主义者的保护应该由说书人在UI中手动标记
       // 如果有 execution_protected 状态，上面的 hasExecutionProof 已经处理了
       // 这里只是记录日志
-      console.log(`和平主义者 ${id+1}号 可能触发保护（需要说书人确认）`);
+      // 和平主义者可能触发保护（需要说书人确认）
     }
     
     const isZombuul = t.role?.id === 'zombuul';
@@ -3489,7 +3515,7 @@ export function useGameController() {
   const handleDayAbility = useCallback((sourceSeatId: number, targetSeatId?: number) => {
     const sourceSeat = seats.find(s => s.id === sourceSeatId);
     if (!sourceSeat || !sourceSeat.role?.dayMeta) {
-      console.warn(`[handleDayAbility] Seat ${sourceSeatId + 1} has no dayMeta`);
+      // Seat has no dayMeta, skip
       return;
     }
 
@@ -3666,7 +3692,7 @@ export function useGameController() {
     drunkFirstInfoRef.current.clear();
     resetRegistrationCache('idle');
     setAutoRedHerringInfo(null);
-    setShowNightOrderModal(false);
+    setCurrentModal(null);
     setNightOrderPreview([]);
     setPendingNightQueue(null);
     setSeats(Array.from({ length: 15 }, (_, i) => ({ 
@@ -3989,12 +4015,9 @@ export function useGameController() {
 
   // Toggle target selection with full role-specific logic
   const toggleTarget = useCallback((targetId: number) => {
-    console.log('[toggleTarget] Called with targetId:', targetId);
     if (!nightInfo) {
-      console.warn('[toggleTarget] No nightInfo available');
       return;
     }
-    console.log('[toggleTarget] Current role:', nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
     
     saveHistory();
     
@@ -4154,7 +4177,7 @@ export function useGameController() {
     handleDayAbility, // NEW: Generic dayMeta-based ability handler
     registerVotes, // Register votes for Flowergirl/Town Crier
     votedThisRound, // Current round's vote list
-    tryKillPlayer, // NEW: Kill player with immunity checks (Soldier, Monk protection)
+    killPlayer, // Unified kill entry with immunity and protection checks
     checkGameOverSimple, // NEW: Simplified game over check for Dusk phase
     
     // Group C: Phase/Control functions

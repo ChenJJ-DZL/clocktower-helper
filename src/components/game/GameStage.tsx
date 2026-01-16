@@ -61,6 +61,8 @@ export function GameStage({ controller }: { controller: any }) {
     checkLongPressTimerRef,
     
     // setters
+    currentModal,
+    setCurrentModal,
     setContextMenu,
     setShowMenu,
     setSelectedActionTargets,
@@ -669,10 +671,12 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         showGameRecordsModal={controller.showGameRecordsModal}
         showRoleInfoModal={controller.showRoleInfoModal}
         contextMenu={controller.contextMenu}
-        gamePhase={gamePhase}
+        currentModal={controller.currentModal}
+        setCurrentModal={controller.setCurrentModal}
+        gamePhase={controller.gamePhase}
         winResult={controller.winResult}
         winReason={controller.winReason}
-        deadThisNight={deadThisNight}
+        deadThisNight={controller.deadThisNight}
         nightOrderPreview={controller.nightOrderPreview}
         nightQueuePreviewTitle={controller.nightQueuePreviewTitle}
         shamanConvertTarget={controller.shamanConvertTarget}
@@ -686,33 +690,33 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         dayAbilityForm={controller.dayAbilityForm}
         damselGuessUsedBy={controller.damselGuessUsedBy}
         hadesiaChoices={controller.hadesiaChoices}
-        selectedScript={selectedScript}
-        seats={seats}
+        selectedScript={controller.selectedScript}
+        seats={controller.seats}
         roles={roles}
         filteredGroupedRoles={controller.filteredGroupedRoles}
-          groupedRoles={groupedRoles}
+        groupedRoles={controller.groupedRoles}
         gameLogs={controller.gameLogs}
         gameRecords={controller.gameRecords}
-        isPortrait={isPortrait}
-        nightInfo={nightInfo}
-        selectedActionTargets={selectedActionTargets}
+        isPortrait={controller.isPortrait}
+        nightInfo={controller.nightInfo}
+        selectedActionTargets={controller.selectedActionTargets}
         initialSeats={controller.initialSeats}
         nominationRecords={controller.nominationRecords}
-          evilTwinPair={evilTwinPair && "evilId" in evilTwinPair ? [evilTwinPair.evilId, evilTwinPair.goodId] : null}
-        remainingDays={remainingDays}
-          cerenovusTarget={
-            cerenovusTarget
-              ? typeof cerenovusTarget === "number"
-                ? cerenovusTarget
-                : cerenovusTarget.targetId
-              : null
-          }
-        nightCount={nightCount}
-        currentWakeIndex={currentWakeIndex}
-        history={history}
-        isConfirmDisabled={isConfirmDisabled}
-        closeNightOrderPreview={closeNightOrderPreview}
-        confirmNightOrderPreview={confirmNightOrderPreview}
+        evilTwinPair={controller.evilTwinPair && "evilId" in controller.evilTwinPair ? [controller.evilTwinPair.evilId, controller.evilTwinPair.goodId] : null}
+        remainingDays={controller.remainingDays}
+        cerenovusTarget={
+          controller.cerenovusTarget
+            ? typeof controller.cerenovusTarget === "number"
+              ? controller.cerenovusTarget
+              : controller.cerenovusTarget.targetId
+            : null
+        }
+        nightCount={controller.nightCount}
+        currentWakeIndex={controller.currentWakeIndex}
+        history={controller.history}
+        isConfirmDisabled={controller.isConfirmDisabled}
+        closeNightOrderPreview={controller.closeNightOrderPreview}
+        confirmNightOrderPreview={controller.confirmNightOrderPreview}
         confirmExecutionResult={controller.confirmExecutionResult}
         confirmShootResult={controller.confirmShootResult}
         confirmKill={controller.confirmKill}
@@ -738,13 +742,13 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         handleNewGame={controller.handleNewGame}
         enterDuskPhase={controller.enterDuskPhase}
         declareMayorImmediateWin={controller.declareMayorImmediateWin}
-        executePlayer={executePlayer}
-        saveHistory={saveHistory}
+        executePlayer={controller.executePlayer}
+        saveHistory={controller.saveHistory}
         markDailyAbilityUsed={controller.markDailyAbilityUsed}
         markAbilityUsed={controller.markAbilityUsed}
         insertIntoWakeQueueAfterCurrent={controller.insertIntoWakeQueueAfterCurrent}
         continueToNextAction={controller.continueToNextAction}
-        addLog={addLog}
+        addLog={controller.addLog}
         checkGameOver={controller.checkGameOver}
         setShowKillConfirmModal={controller.setShowKillConfirmModal}
         setShowPoisonConfirmModal={controller.setShowPoisonConfirmModal}
@@ -758,27 +762,27 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         setShowKlutzChoiceModal={controller.setShowKlutzChoiceModal}
         setShowPitHagModal={controller.setShowPitHagModal}
         setShowRangerModal={controller.setShowRangerModal}
-        setShowDamselGuessModal={setShowDamselGuessModal}
-        setShowShamanConvertModal={setShowShamanConvertModal}
+        setShowDamselGuessModal={controller.setShowDamselGuessModal}
+        setShowShamanConvertModal={controller.setShowShamanConvertModal}
         setShowMayorRedirectModal={controller.setShowMayorRedirectModal}
-        setShowNightDeathReportModal={setShowNightDeathReportModal}
+        setShowNightDeathReportModal={controller.setShowNightDeathReportModal}
         setShowRestartConfirmModal={controller.setShowRestartConfirmModal}
-        setShowSpyDisguiseModal={setShowSpyDisguiseModal}
+        setShowSpyDisguiseModal={controller.setShowSpyDisguiseModal}
         setShowMayorThreeAliveModal={controller.setShowMayorThreeAliveModal}
-        setShowDrunkModal={setShowDrunkModal}
+        setShowDrunkModal={controller.setShowDrunkModal}
         setShowVoteInputModal={controller.setShowVoteInputModal}
         setShowRoleSelectModal={controller.setShowRoleSelectModal}
         setShowMadnessCheckModal={controller.setShowMadnessCheckModal}
-        setShowDayActionModal={setShowDayActionModal}
+        setShowDayActionModal={controller.setShowDayActionModal}
         setVirginGuideInfo={controller.setVirginGuideInfo}
         setShowDayAbilityModal={controller.setShowDayAbilityModal}
         setShowSaintExecutionConfirmModal={controller.setShowSaintExecutionConfirmModal}
         setShowLunaticRpsModal={controller.setShowLunaticRpsModal}
         setShowVirginTriggerModal={controller.setShowVirginTriggerModal}
-        setShowReviewModal={setShowReviewModal}
-        setShowGameRecordsModal={setShowGameRecordsModal}
-        setShowRoleInfoModal={setShowRoleInfoModal}
-        setContextMenu={setContextMenu}
+        setShowReviewModal={controller.setShowReviewModal}
+        setShowGameRecordsModal={controller.setShowGameRecordsModal}
+        setShowRoleInfoModal={controller.setShowRoleInfoModal}
+        setContextMenu={controller.setContextMenu}
         setShamanConvertTarget={controller.setShamanConvertTarget}
         setMayorRedirectTarget={controller.setMayorRedirectTarget}
         setSpyDisguiseMode={controller.setSpyDisguiseMode}
@@ -792,18 +796,18 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         setHadesiaChoices={controller.setHadesiaChoices}
         setWinResult={controller.setWinResult}
         setWinReason={controller.setWinReason}
-        setSelectedActionTargets={setSelectedActionTargets}
+        setSelectedActionTargets={controller.setSelectedActionTargets}
         setTodayDemonVoted={controller.setTodayDemonVoted}
-        setSeats={setSeats}
-        setGamePhase={setGamePhase}
+        setSeats={controller.setSeats}
+        setGamePhase={controller.setGamePhase}
         setShowShootModal={controller.setShowShootModal}
         setShowNominateModal={controller.setShowNominateModal}
-        handleSeatClick={onSeatClick}
-        toggleStatus={toggleStatus}
-          handleMenuAction={controller.handleMenuAction}
+        handleSeatClick={controller.onSeatClick}
+        toggleStatus={controller.toggleStatus}
+        handleMenuAction={controller.handleMenuAction}
         getRegistrationCached={controller.getRegistrationCached}
         isGoodAlignment={controller.isGoodAlignment}
-        getSeatRoleId={getSeatRoleId}
+        getSeatRoleId={controller.getSeatRoleId}
         cleanseSeatStatuses={controller.cleanseSeatStatuses}
         typeLabels={typeLabels}
         typeColors={typeColors}

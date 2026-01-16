@@ -95,10 +95,10 @@ export interface NightLogicActions {
       onAfterKill?: (latestSeats: Seat[]) => void;
     }
   ) => void;
-  tryKillPlayer?: (
+  killPlayer: (
     targetId: number,
-    source: 'demon' | 'execution' | 'ability',
     options?: {
+      source?: 'demon' | 'execution' | 'ability';
       recordNightDeath?: boolean;
       keepInWakeQueue?: boolean;
       seatTransformer?: (seat: Seat) => Seat;
@@ -218,7 +218,6 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setNominationMap,
     setGoonDrunkedThisNight,
     setIsVortoxWorld,
-    setShowNightOrderModal,
     setPendingNightQueue,
     setNightOrderPreview,
     setNightQueuePreviewTitle,

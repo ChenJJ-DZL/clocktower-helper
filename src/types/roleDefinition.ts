@@ -124,6 +124,88 @@ export interface NightActionConfig {
 }
 
 /**
+ * 处决上下文信息
+ * 提供给 onExecution 函数的完整游戏状态
+ */
+export interface ExecutionContext {
+  /**
+   * 被处决的玩家座位
+   */
+  executedSeat: Seat;
+  
+  /**
+   * 所有座位
+   */
+  seats: Seat[];
+  
+  /**
+   * 游戏阶段
+   */
+  gamePhase: GamePhase;
+  
+  /**
+   * 当前夜晚计数
+   */
+  nightCount: number;
+  
+  /**
+   * 提名映射（谁提名了谁）
+   */
+  nominationMap: Record<number, number>;
+  
+  /**
+   * 是否强制处决（跳过确认弹窗）
+   */
+  forceExecution?: boolean;
+  
+  /**
+   * 是否跳过精神病患者石头剪刀布
+   */
+  skipLunaticRps?: boolean;
+}
+
+/**
+ * 处决处理结果
+ */
+export interface ExecutionResult {
+  /**
+   * 是否已处理（如果返回 true，默认处决逻辑将不再执行）
+   */
+  handled: boolean;
+  
+  /**
+   * 需要更新的座位状态列表
+   */
+  seatUpdates?: Array<Partial<Seat> & { id: number }>;
+  
+  /**
+   * 游戏是否结束
+   */
+  gameOver?: {
+    winResult: 'good' | 'evil';
+    winReason: string;
+  };
+  
+  /**
+   * 产生的日志信息
+   */
+  logs?: {
+    publicLog?: string;
+    privateLog?: string;
+  };
+  
+  /**
+   * 是否需要等待（例如需要弹窗确认）
+   */
+  shouldWait?: boolean;
+  
+  /**
+   * 是否需要继续到下一个夜晚
+   */
+  shouldContinueToNight?: boolean;
+}
+
+/**
  * 核心：角色定义接口
  * 用于描述任意角色的规则和行为
  */
@@ -155,5 +237,15 @@ export interface RoleDefinition {
    * 如果不提供，则使用 night 配置
    */
   firstNight?: NightActionConfig;
+  
+  /**
+   * 处决处理函数（可选）
+   * 当该角色被处决时调用，用于处理特殊的处决逻辑
+   * 如果返回 handled: true，默认处决逻辑将不再执行
+   * 
+   * @param context 处决上下文
+   * @returns 处决处理结果
+   */
+  onExecution?: (context: ExecutionContext) => ExecutionResult;
 }
 
