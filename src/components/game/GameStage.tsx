@@ -159,7 +159,7 @@ export function GameStage({ controller }: { controller: any }) {
   const isConfirmDisabled = useMemo(() => {
     // CRITICAL FIX: In check phase, button is only disabled if drunk needs charade role
     if (gamePhase === 'check') {
-      const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
+      const hasPendingDrunk = seats.some((s: Seat) => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
       return hasPendingDrunk;
     }
     
@@ -353,7 +353,7 @@ export function GameStage({ controller }: { controller: any }) {
               </div>
               {votedThisRound && votedThisRound.length > 0 && (
                 <div className="text-xs text-gray-300">
-                  已记录: {votedThisRound.map(id => `${id + 1}号`).join(', ')}
+                   已记录: {votedThisRound.map((id: number) => `${id + 1}号`).join(', ')}
                 </div>
               )}
             </div>
@@ -385,7 +385,7 @@ export function GameStage({ controller }: { controller: any }) {
                   if (targetStr) {
                     const tid = parseInt(targetStr) - 1;
                     if (!isNaN(tid) && tid >= 0 && tid < seats.length) {
-                      const targetSeat = seats.find(s => s.id === tid);
+                      const targetSeat = seats.find((s: Seat) => s.id === tid);
                       if (!targetSeat) {
                         alert(`座位 ${tid + 1} 不存在`);
                         return;
@@ -401,7 +401,7 @@ export function GameStage({ controller }: { controller: any }) {
                       
                       // Check Game Over immediately after (with a small delay to let state update)
                       setTimeout(() => {
-                        const updatedSeats = seats.map(s => s.id === tid ? { ...s, isDead: true } : s);
+                        const updatedSeats = seats.map((s: Seat) => s.id === tid ? { ...s, isDead: true } : s);
                         const result = checkGameOverSimple(updatedSeats);
                         if (result === 'good') {
                           alert("🎉 恶魔已死，好人获胜！");
@@ -448,8 +448,8 @@ export function GameStage({ controller }: { controller: any }) {
           {/* 夜晚时间线：桌面右上角，单列垂直显示 */}
           {(gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && (
             <div className="absolute top-4 right-4 z-20 max-h-[60%] overflow-y-auto flex flex-col gap-2 items-stretch">
-              {wakeQueueIds.map((seatId, index) => {
-                const seat = seats.find(s => s.id === seatId);
+              {wakeQueueIds.map((seatId: number, index: number) => {
+                const seat = seats.find((s: Seat) => s.id === seatId);
                 if (!seat || !seat.role) return null;
                 const isCurrent = index === currentWakeIndex;
                 return (
@@ -592,7 +592,7 @@ export function GameStage({ controller }: { controller: any }) {
                   onClick: () => {
                     console.log("🖱️ [UI] User clicked 'Enter Night'");
                     // Check for pending drunk first
-                    const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
+                    const hasPendingDrunk = seats.some((s: Seat) => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
                     if (hasPendingDrunk) {
                       alert('场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜');
                       return;
@@ -621,6 +621,16 @@ export function GameStage({ controller }: { controller: any }) {
                 ]
               : []
           }
+          onForceContinue={() => {
+            // 强制继续回调：当队列为空时，直接进入天亮阶段
+            console.log('[GameStage] onForceContinue called - forcing transition to day');
+            if (controller.continueToNextAction) {
+              controller.continueToNextAction();
+            } else {
+              // 备用方案：直接设置游戏阶段
+              controller.onSetGamePhase?.('dawnReport');
+            }
+          }}
         />
       }
     />

@@ -1457,10 +1457,10 @@ export function GameModals(props: GameModalsProps) {
                 props.addLog(`理发师触发：交换了 ${aId+1}号 与 ${bId+1}号 的角色`);
                 // 调整唤醒队列：如果当前在夜晚，将交换后的两名玩家插入唤醒队列
                 if (['night', 'firstNight'].includes(props.gamePhase)) {
-                  if (aRole && (aRole.firstNightOrder > 0 || aRole.otherNightOrder > 0)) {
+                  if (aRole && ((aRole.firstNightOrder ?? 0) > 0 || (aRole.otherNightOrder ?? 0) > 0)) {
                     props.insertIntoWakeQueueAfterCurrent(aId, { roleOverride: aRole, logLabel: `${aId+1}号(${aRole.name})` });
                   }
-                  if (bRole && (bRole.firstNightOrder > 0 || bRole.otherNightOrder > 0)) {
+                  if (bRole && ((bRole.firstNightOrder ?? 0) > 0 || (bRole.otherNightOrder ?? 0) > 0)) {
                     props.insertIntoWakeQueueAfterCurrent(bId, { roleOverride: bRole, logLabel: `${bId+1}号(${bRole.name})` });
                   }
                 }

@@ -983,7 +983,50 @@ export default function Home() {
         <>
           <GameStage controller={controller} />
           {/* 全局游戏 Modals：直接使用 controller 上的所有状态与回调 */}
-          <GameModals {...controller} />
+          <GameModals 
+            {...controller}
+            roles={roles}
+            handleSeatClick={controller.onSeatClick}
+            handleMenuAction={(action: string) => {
+              console.log('handleMenuAction called with:', action);
+              // TODO: Implement menu actions if needed
+            }}
+            isConfirmDisabled={(() => {
+              // 计算 isConfirmDisabled（类似 GameStage 中的逻辑）
+              if (gamePhase === 'check') {
+                const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
+                return hasPendingDrunk;
+              }
+              if (gamePhase === 'firstNight' || gamePhase === 'night') {
+                if (!controller.nightInfo) return true;
+                const hasPendingModals = 
+                  controller.showKillConfirmModal !== null ||
+                  controller.showPoisonConfirmModal !== null ||
+                  controller.showPoisonEvilConfirmModal !== null ||
+                  controller.showHadesiaKillConfirmModal !== null ||
+                  controller.showRavenkeeperFakeModal !== null ||
+                  controller.showMoonchildKillModal !== null ||
+                  controller.showBarberSwapModal !== null ||
+                  controller.showStorytellerDeathModal !== null ||
+                  controller.showSweetheartDrunkModal !== null ||
+                  controller.showKlutzChoiceModal !== null ||
+                  controller.showPitHagModal !== null;
+                return hasPendingModals;
+              }
+              return false;
+            })()}
+            typeLabels={typeLabels}
+            typeColors={typeColors}
+            typeBgColors={typeBgColors}
+            evilTwinPair={controller.evilTwinPair && "evilId" in controller.evilTwinPair ? [controller.evilTwinPair.evilId, controller.evilTwinPair.goodId] : null}
+            cerenovusTarget={
+              controller.cerenovusTarget
+                ? typeof controller.cerenovusTarget === "number"
+                  ? controller.cerenovusTarget
+                  : controller.cerenovusTarget.targetId
+                : null
+            }
+          />
         </>
       )}
 

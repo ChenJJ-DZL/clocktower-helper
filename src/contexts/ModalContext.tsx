@@ -131,7 +131,7 @@ export const modalHelpers = {
   /**
    * 显示确认击杀弹窗
    */
-  showKillConfirm: (targetId: number, isImpSelfKill: boolean = false, showModal: (modal: ModalType) => void) => {
+  showKillConfirm: (targetId: number, isImpSelfKill: boolean = false, showModal: (modal: ModalType, priority?: number) => void) => {
     showModal({
       type: 'KILL_CONFIRM',
       data: { targetId, isImpSelfKill },
@@ -141,7 +141,7 @@ export const modalHelpers = {
   /**
    * 显示投毒确认弹窗
    */
-  showPoisonConfirm: (targetId: number, showModal: (modal: ModalType) => void) => {
+  showPoisonConfirm: (targetId: number, showModal: (modal: ModalType, priority?: number) => void) => {
     showModal({
       type: 'POISON_CONFIRM',
       data: { targetId },
@@ -151,7 +151,7 @@ export const modalHelpers = {
   /**
    * 显示夜晚死亡报告
    */
-  showNightDeathReport: (message: string, showModal: (modal: ModalType) => void) => {
+  showNightDeathReport: (message: string, showModal: (modal: ModalType, priority?: number) => void) => {
     showModal({
       type: 'NIGHT_DEATH_REPORT',
       data: { message },
@@ -161,7 +161,7 @@ export const modalHelpers = {
   /**
    * 显示处决结果
    */
-  showExecutionResult: (message: string, isVirginTrigger?: boolean, showModal: (modal: ModalType) => void) => {
+  showExecutionResult: (message: string, showModal: (modal: ModalType, priority?: number) => void, isVirginTrigger?: boolean) => {
     showModal({
       type: 'EXECUTION_RESULT',
       data: { message, isVirginTrigger },
@@ -171,7 +171,7 @@ export const modalHelpers = {
   /**
    * 显示攻击被阻挡弹窗
    */
-  showAttackBlocked: (targetId: number, reason: string, demonName?: string, showModal: (modal: ModalType) => void) => {
+  showAttackBlocked: (targetId: number, reason: string, showModal: (modal: ModalType, priority?: number) => void, demonName?: string) => {
     showModal({
       type: 'ATTACK_BLOCKED',
       data: { targetId, reason, demonName },

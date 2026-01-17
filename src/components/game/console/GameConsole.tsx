@@ -36,6 +36,9 @@ interface GameConsoleProps {
   
   // Day Abilities Panel (for Day phase)
   handleDayAbility?: (sourceSeatId: number, targetSeatId?: number) => void;
+  
+  // Force continue callback (for empty queue scenarios)
+  onForceContinue?: () => void;
 }
 
 /**
@@ -59,6 +62,7 @@ export function GameConsole({
   primaryAction,
   secondaryActions = [],
   handleDayAbility,
+  onForceContinue,
 }: GameConsoleProps) {
   const getPhaseLabel = () => {
     switch (gamePhase) {
@@ -223,7 +227,8 @@ export function GameConsole({
             <h3 className="text-lg font-bold text-slate-300">玩家列表</h3>
             <div className="grid grid-cols-4 gap-2">
               {seats.map((seat) => {
-                if (!seat.role || seat.isDead) return null;
+                // 【小白模式】显示所有有角色的玩家，包括已死玩家（用于手动修正错误）
+                if (!seat.role) return null;
                 const isSelected = selectedPlayers.includes(seat.id);
                 return (
                   <button
@@ -233,10 +238,13 @@ export function GameConsole({
                     className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${
                       isSelected
                         ? 'bg-blue-600/90 border-blue-300 text-white shadow shadow-blue-500/40'
+                        : seat.isDead
+                        ? 'bg-gray-700/60 border-gray-500 text-gray-400 hover:bg-gray-600/60 line-through'
                         : 'bg-slate-800/80 border-slate-600 text-slate-100 hover:bg-slate-700/80'
                     }`}
+                    title={seat.isDead ? '已死亡（小白模式：仍可选择）' : undefined}
                   >
-                    {seat.id + 1}号 {seat.role.name}
+                    {seat.id + 1}号 {seat.role.name} {seat.isDead ? '💀' : ''}
                   </button>
                 );
               })}
@@ -247,25 +255,38 @@ export function GameConsole({
         {/* Error state when script is empty - only show if actually in night phase */}
         {totalSteps === 0 && (gamePhase === 'firstNight' || gamePhase === 'night') && (
           <div className="space-y-3">
-            <div className="text-sm font-semibold text-red-400 uppercase tracking-wide">错误</div>
-            <div className="bg-red-900/30 rounded-xl p-5 border border-red-700/50 text-base text-red-200">
-              错误：未为此配置生成脚本。请检查角色分配是否正确。
-              <div className="mt-3 text-sm text-red-300/80">
-                提示：某些角色配置可能没有首夜唤醒的角色。如果这是预期的，游戏将直接进入天亮阶段。
+            <div className="text-sm font-semibold text-amber-400 uppercase tracking-wide">⚠️ 提示</div>
+            <div className="bg-amber-900/30 rounded-xl p-5 border border-amber-700/50 text-base text-amber-200">
+              <div className="mb-2">
+                当前没有需要唤醒的角色。可能原因：
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-sm text-amber-300/80 mb-3">
+                <li>没有分配角色，或分配的角色都没有夜晚行动</li>
+                <li>所有有夜晚行动的角色都已死亡</li>
+                <li>这是正常的（某些配置确实没有首夜行动）</li>
+              </ul>
+              <div className="text-sm text-amber-300/80">
+                如果这是预期的，可以点击下方按钮直接进入天亮阶段。
               </div>
             </div>
-            {/* Manual Override Button for safety */}
-            {primaryAction && (
-              <button
-                onClick={() => {
-                  console.warn('[Manual Override] Attempting to force next phase');
+            {/* Manual Override Button - 改进：即使没有 primaryAction 也显示按钮 */}
+            <button
+              onClick={() => {
+                console.log('[Manual Override] 手动继续到天亮阶段');
+                if (primaryAction) {
                   primaryAction.onClick();
-                }}
-                className="w-full py-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-base"
-              >
-                手动继续（强制下一步）
-              </button>
-            )}
+                } else if (onForceContinue) {
+                  // 使用备用回调
+                  onForceContinue();
+                } else {
+                  console.warn('[Manual Override] primaryAction 和 onForceContinue 都不存在');
+                  alert('无法继续：请刷新页面重试');
+                }
+              }}
+              className="w-full py-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-base transition-colors"
+            >
+              🌞 直接进入天亮阶段
+            </button>
           </div>
         )}
 

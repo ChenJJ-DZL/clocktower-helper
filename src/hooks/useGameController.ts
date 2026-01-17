@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useCallback, useRef, useState } from "react";
+import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { roles, Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, Script } from "../../app/data";
 import { NightHintState, NightInfoResult, GameRecord, TimelineStep } from "../types/game";
 import { useGameState } from "./useGameState";
@@ -1387,10 +1387,21 @@ export function useGameController() {
       // ======================================================================
       // 步骤 1: 检查是否已死
       // ======================================================================
+      // 【小白模式】允许对已死玩家进行操作（用于手动修正错误，如重复击杀、鞭尸等）
+      // 注释掉死亡检查，允许说书人自由操作
+      // if (targetSeat.isDead) {
+      //   // 如果已经死亡，直接返回（除非是特殊处理，如僵怖假死）
+      //   if (targetSeat.role?.id !== 'zombuul' || targetSeat.isZombuulTrulyDead) {
+      //     return;
+      //   }
+      // }
+      
+      // 【小白模式】如果目标已死，记录日志但不阻止操作
       if (targetSeat.isDead) {
-        // 如果已经死亡，直接返回（除非是特殊处理，如僵怖假死）
+        console.log(`[小白模式] 允许对已死玩家 ${targetId + 1}号 进行操作`);
+        // 如果是僵怖假死状态，继续正常流程
         if (targetSeat.role?.id !== 'zombuul' || targetSeat.isZombuulTrulyDead) {
-          return;
+          // 不返回，允许继续操作（用于修正错误）
         }
       }
 
@@ -1722,6 +1733,7 @@ export function useGameController() {
       goonDrunkedThisNight,
       isVortoxWorld,
       nightInfo,
+      nightQueuePreviewTitle,
     },
     {
       setSeats,
@@ -1753,14 +1765,51 @@ export function useGameController() {
       setNightOrderPreview,
       setNightQueuePreviewTitle,
       // ============ 适配器：将旧的 setShowXXX 转发到新的 setCurrentModal ============
-      setShowNightDeathReportModal: (text: string | null) => 
-        setCurrentModal(text ? { type: 'NIGHT_DEATH_REPORT', data: { message: text } } : null),
-      setShowKillConfirmModal: (targetId: number | null) => 
-        setCurrentModal(targetId !== null ? { type: 'KILL_CONFIRM', data: { targetId, isImpSelfKill: false } } : null),
-      setShowMayorRedirectModal: (data: { targetId: number; demonName: string } | null) => 
-        setCurrentModal(data ? { type: 'MAYOR_REDIRECT', data } : null),
-      setShowAttackBlockedModal: (data: { targetId: number; reason: string; demonName?: string } | null) => 
-        setCurrentModal(data ? { type: 'ATTACK_BLOCKED', data } : null),
+      setShowNightDeathReportModal: ((text: React.SetStateAction<string | null>) => {
+        if (typeof text === 'function') {
+          // 如果是函数更新，需要先获取当前值
+          const currentValue = currentModal?.type === 'NIGHT_DEATH_REPORT' 
+            ? (currentModal.data as { message: string }).message 
+            : null;
+          const newValue = text(currentValue);
+          setCurrentModal(newValue ? { type: 'NIGHT_DEATH_REPORT', data: { message: newValue } } : null);
+        } else {
+          setCurrentModal(text ? { type: 'NIGHT_DEATH_REPORT', data: { message: text } } : null);
+        }
+      }) as React.Dispatch<React.SetStateAction<string | null>>,
+      setShowKillConfirmModal: ((targetId: React.SetStateAction<number | null>) => {
+        if (typeof targetId === 'function') {
+          const currentValue = currentModal?.type === 'KILL_CONFIRM' 
+            ? (currentModal.data as { targetId: number }).targetId 
+            : null;
+          const newValue = targetId(currentValue);
+          setCurrentModal(newValue !== null ? { type: 'KILL_CONFIRM', data: { targetId: newValue, isImpSelfKill: false } } : null);
+        } else {
+          setCurrentModal(targetId !== null ? { type: 'KILL_CONFIRM', data: { targetId, isImpSelfKill: false } } : null);
+        }
+      }) as React.Dispatch<React.SetStateAction<number | null>>,
+      setShowMayorRedirectModal: ((data: React.SetStateAction<{ targetId: number; demonName: string } | null>) => {
+        if (typeof data === 'function') {
+          const currentValue = currentModal?.type === 'MAYOR_REDIRECT' 
+            ? (currentModal.data as { targetId: number; demonName: string }) 
+            : null;
+          const newValue = data(currentValue);
+          setCurrentModal(newValue ? { type: 'MAYOR_REDIRECT', data: newValue } : null);
+        } else {
+          setCurrentModal(data ? { type: 'MAYOR_REDIRECT', data } : null);
+        }
+      }) as React.Dispatch<React.SetStateAction<{ targetId: number; demonName: string } | null>>,
+      setShowAttackBlockedModal: ((data: React.SetStateAction<{ targetId: number; reason: string; demonName?: string } | null>) => {
+        if (typeof data === 'function') {
+          const currentValue = currentModal?.type === 'ATTACK_BLOCKED' 
+            ? (currentModal.data as { targetId: number; reason: string; demonName?: string }) 
+            : null;
+          const newValue = data(currentValue);
+          setCurrentModal(newValue ? { type: 'ATTACK_BLOCKED', data: newValue } : null);
+        } else {
+          setCurrentModal(data ? { type: 'ATTACK_BLOCKED', data } : null);
+        }
+      }) as React.Dispatch<React.SetStateAction<{ targetId: number; reason: string; demonName?: string } | null>>,
       // ============ 适配器结束 ============
       setStartTime,
       setMayorRedirectTarget,
@@ -1774,7 +1823,6 @@ export function useGameController() {
       enqueueRavenkeeperIfNeeded,
       continueToNextAction,
       seatsRef,
-      killPlayer, // Pass killPlayer to nightLogic (unified kill entry)
     }
   );
 
@@ -2025,7 +2073,14 @@ export function useGameController() {
             script: '所有玩家请睁眼', 
             instruction: '点击进入白天阶段' 
           },
-          interaction: { type: 'none', amount: 0, required: false }
+          interaction: { 
+            type: 'none', 
+            amount: 0, 
+            required: false,
+            canSelectSelf: false,
+            canSelectDead: false,
+            effect: { type: 'none' }
+          }
         }];
       }
     } catch (error) {
@@ -2038,6 +2093,24 @@ export function useGameController() {
       .filter(step => step.type === 'character' && step.seatId !== undefined)
       .map(step => step.seatId!)
       .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
+
+    // 【调试日志】输出队列生成信息
+    console.log('[proceedToFirstNight] 生成的队列:', wakeQueueIds);
+    console.log('[proceedToFirstNight] 队列长度:', wakeQueueIds.length);
+    console.log('[proceedToFirstNight] 当前座位数:', seats.length);
+    console.log('[proceedToFirstNight] 有角色的座位:', seats.filter(s => s.role).map(s => ({
+      id: s.id,
+      roleId: s.role?.id,
+      roleName: s.role?.name,
+      isDead: s.isDead,
+    })));
+    
+    if (wakeQueueIds.length === 0) {
+      console.warn('[proceedToFirstNight] ⚠️ 警告：生成的队列为空！可能原因：');
+      console.warn('  1. 没有分配角色');
+      console.warn('  2. 分配的角色都没有夜晚行动（如全是村民）');
+      console.warn('  3. 所有角色都已死亡');
+    }
 
     // 4. Batch Update State (The Critical Fix)
     // We must set ALL these at once to prevent race conditions.
@@ -3233,9 +3306,9 @@ export function useGameController() {
 
   const confirmSaintExecution = useCallback(() => {
     if (!showSaintExecutionConfirmModal) return;
-    const { targetId, skipLunaticRps } = showSaintExecutionConfirmModal;
+    const { targetId } = showSaintExecutionConfirmModal;
     setShowSaintExecutionConfirmModal(null);
-    executePlayer(targetId, { skipLunaticRps, forceExecution: true });
+    executePlayer(targetId, { forceExecution: true });
   }, [showSaintExecutionConfirmModal, executePlayer, setShowSaintExecutionConfirmModal]);
 
   const cancelSaintExecution = useCallback(() => {
@@ -4062,36 +4135,12 @@ export function useGameController() {
   // ======================================================================
 
   // Check if a target seat should be disabled based on role-specific rules
-  // 重构：使用 useRoleAction 的 canSelectTarget，职责分离
+  // 【小白模式】移除所有点击限制，允许说书人点选任何人（包括已死玩家）
   const isTargetDisabled = useCallback((targetSeat: Seat): boolean => {
-    if (!nightInfo) return true;
-    
-    const roleId = nightInfo.effectiveRole.id;
-    const actorSeatId = nightInfo.seat.id;
-    const isFirstNight = gamePhase === 'firstNight';
-    
-    // Check if demon action is disabled (通用逻辑，保留)
-    if (nightInfo.effectiveRole.type === 'demon') {
-      const act = nightInfo.action || '';
-      if (gamePhase === 'firstNight' && !act.includes('杀死')) return true;
-      if (['跳过', '无信息', '展示'].some(k => act.includes(k))) return true;
-    }
-    
-    // 使用 useRoleAction 的 canSelectTarget 检查角色特定规则
-    const canSelect = checkCanSelectTarget(
-      roleId,
-      actorSeatId,
-      targetSeat.id,
-      seats,
-      selectedActionTargets,
-      isFirstNight,
-      gamePhase,
-      deadThisNight,
-      hasUsedAbility
-    );
-    
-    return !canSelect;
-  }, [nightInfo, gamePhase, deadThisNight, hasUsedAbility, seats, selectedActionTargets, checkCanSelectTarget]);
+    // 【小白模式】永远不禁用，允许说书人自由选择任何目标
+    // 这样可以手动修正错误，比如对已死玩家使用技能、重复击杀等
+    return false;
+  }, []);
 
   // Toggle target selection with full role-specific logic
   const toggleTarget = useCallback((targetId: number) => {
@@ -4257,7 +4306,6 @@ export function useGameController() {
     handleDayAbility, // NEW: Generic dayMeta-based ability handler
     registerVotes, // Register votes for Flowergirl/Town Crier
     votedThisRound, // Current round's vote list
-    killPlayer, // Unified kill entry with immunity and protection checks
     checkGameOverSimple, // NEW: Simplified game over check for Dusk phase
     
     // Group C: Phase/Control functions

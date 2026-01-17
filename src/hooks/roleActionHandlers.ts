@@ -41,7 +41,7 @@ export interface RoleConfirmContext {
   setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>>;
   poChargeState: Record<number, boolean>;
   setPoChargeState: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
-  addDrunkMark: (seat: Seat, source: string, clearTime: string) => { statusDetails: string[]; statuses: any[] };
+  addDrunkMark: (seat: Seat, drunkType: 'sweetheart' | 'goon' | 'sailor' | 'innkeeper' | 'courtier' | 'philosopher' | 'minstrel', clearTime: string) => { statusDetails: string[]; statuses: any[] };
   isEvil: (seat: Seat) => boolean;
 }
 
@@ -104,7 +104,7 @@ export function executePoisonAction(
     continueToNextAction: () => void;
     isActorDisabledByPoisonOrDrunk: (seat: Seat | undefined, knownIsPoisoned?: boolean) => boolean;
     addLogWithDeduplication: (msg: string, playerId: number, roleName: string) => void;
-    addPoisonMark: (seat: Seat, source: string, clearTime: string) => { statusDetails: string[]; statuses: any[] };
+    addPoisonMark: (seat: Seat, poisonType: 'permanent' | 'vigormortis' | 'pukka' | 'poisoner' | 'poisoner_mr' | 'no_dashii' | 'cannibal' | 'snake_charmer', clearTime: string) => { statusDetails: string[]; statuses: any[] };
     computeIsPoisoned: (seat: Seat) => boolean;
   }
 ): void {
@@ -660,7 +660,7 @@ export function handleImpSuicide(
     );
     // 使用通用杀人流程触发死亡与游戏结束判定
     killPlayer(impSeatId, {
-      onAfterKill: (latestSeats) => {
+      onAfterKill: (latestSeats?: Seat[]) => {
         const finalSeats = latestSeats && latestSeats.length ? latestSeats : (seatsRef.current || seats);
         checkGameOver(finalSeats, impSeatId);
       }

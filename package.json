@@ -10,7 +10,11 @@
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:tb": "playwright test tests/e2e_scenario_tb.spec.ts",
+    "test:monkey": "node tests/monkey_playwright.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -22,6 +26,7 @@
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",

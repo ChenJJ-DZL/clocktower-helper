@@ -34,6 +34,7 @@ export interface NightLogicGameState {
   goonDrunkedThisNight: boolean;
   isVortoxWorld: boolean;
   nightInfo: NightInfoResult | null;
+  nightQueuePreviewTitle: string;
 }
 
 // 定义 Hook 的 Actions 接口
@@ -60,10 +61,10 @@ export interface NightLogicActions {
   setVotedThisRound?: React.Dispatch<React.SetStateAction<number[]>>; // 本轮投票记录（用于卖花女/城镇公告员）
   hasExecutedThisDay?: boolean; // 今日是否有人被处决（用于 Vortox）
   setHasExecutedThisDay?: React.Dispatch<React.SetStateAction<boolean>>; // 设置今日处决标记
-  setGamePhase?: React.Dispatch<React.SetStateAction<GamePhase>>; // 用于 Vortox 游戏结束
+  // setGamePhase is already defined above (line 43), removed duplicate
   setWinResult?: React.Dispatch<React.SetStateAction<WinResult>>; // 用于 Vortox 游戏结束
   setWinReason?: React.Dispatch<React.SetStateAction<string | null>>; // 用于 Vortox 游戏结束
-  addLog?: (message: string) => void; // 用于 Vortox 日志
+  // addLog is already defined below (line 86), removed duplicate
   setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>>;
   setGoonDrunkedThisNight: React.Dispatch<React.SetStateAction<boolean>>;
   setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>>;
@@ -88,17 +89,6 @@ export interface NightLogicActions {
   killPlayer: (
     targetId: number,
     options?: {
-      recordNightDeath?: boolean;
-      keepInWakeQueue?: boolean;
-      seatTransformer?: (seat: Seat) => Seat;
-      skipGameOverCheck?: boolean;
-      executedPlayerId?: number | null;
-      onAfterKill?: (latestSeats: Seat[]) => void;
-    }
-  ) => void;
-  killPlayer: (
-    targetId: number,
-    options?: {
       source?: 'demon' | 'execution' | 'ability';
       recordNightDeath?: boolean;
       keepInWakeQueue?: boolean;
@@ -106,6 +96,10 @@ export interface NightLogicActions {
       skipGameOverCheck?: boolean;
       executedPlayerId?: number | null;
       onAfterKill?: (latestSeats: Seat[]) => void;
+      skipMayorRedirectCheck?: boolean;
+      mayorId?: number;
+      skipLunaticRps?: boolean;
+      forceExecution?: boolean;
     }
   ) => void;
   saveHistory: () => void;
@@ -137,6 +131,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     currentDuskExecution,
     pukkaPoisonQueue,
     nightInfo,
+    nightQueuePreviewTitle,
   } = gameState;
 
   const {
@@ -158,6 +153,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setWitchActive,
     setCerenovusTarget,
     setVoteRecords,
+    setVotedThisRound,
+    hasExecutedThisDay,
+    setHasExecutedThisDay,
     setNominationMap,
     setGoonDrunkedThisNight,
     setIsVortoxWorld,
@@ -171,6 +169,8 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setShowAttackBlockedModal,
     setStartTime,
     setMayorRedirectTarget,
+    setWinResult,
+    setWinReason,
     addLog,
     addLogWithDeduplication,
     killPlayer,

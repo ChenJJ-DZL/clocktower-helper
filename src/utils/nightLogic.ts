@@ -1099,8 +1099,7 @@ export const calculateNightInfo = (
       const abnormalCount = seats.filter(s => 
         !s.isDead && 
         (s.isPoisoned || s.isDrunk || s.role?.setupMeta?.isDrunk) && 
-        (s.role?.type === 'townsfolk' || s.role?.type === 'outsider') &&
-        s.role?.type !== 'minion' && s.role?.type !== 'demon'
+        (s.role?.type === 'townsfolk' || s.role?.type === 'outsider')
       ).length;
       
       const trueCount = abnormalCount;
@@ -1572,7 +1571,14 @@ export const generateNightTimeline = (
       script: '所有玩家请睁眼',
       instruction: '点击下方按钮进入白天阶段',
     },
-    interaction: { type: 'none', amount: 0, required: false }
+    interaction: { 
+      type: 'none', 
+      amount: 0, 
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effect: { type: 'none' }
+    }
   });
 
   // Safety check: If somehow steps is still empty (shouldn't happen), return at least dawn
@@ -1587,7 +1593,14 @@ export const generateNightTimeline = (
         script: '所有玩家请睁眼',
         instruction: '点击下方按钮进入白天阶段',
       },
-      interaction: { type: 'none', amount: 0, required: false }
+      interaction: { 
+      type: 'none', 
+      amount: 0, 
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effect: { type: 'none' }
+    }
     }];
   }
 
