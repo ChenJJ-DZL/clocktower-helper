@@ -972,7 +972,7 @@ export default function Home() {
                   ignoreBaronSetup={ignoreBaronSetup}
                   setIgnoreBaronSetup={setIgnoreBaronSetup}
                   handleBaronAutoRebalance={handleBaronAutoRebalance}
-                  hideSeatingChart={true}
+                  hideSeatingChart={false}
                 />
                 </div>
                         </div>

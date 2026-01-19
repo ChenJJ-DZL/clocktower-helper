@@ -12,6 +12,7 @@ import {
   type RegistrationCacheOptions
 } from './gameRules';
 import { roles } from '../../app/data';
+import troubleBrewingRolesData from '../data/rolesData.json';
 
 export const calculateNightInfo = (
   selectedScript: Script | null,
@@ -1493,24 +1494,60 @@ export const calculateNightInfo = (
 
 // 通用的“哑巴引擎”夜间时间线生成器（基于角色元数据，无角色ID硬编码）
 export const generateNightTimeline = (
-  seats: Seat[], 
+  seats: Seat[],
   isFirstNight: boolean
 ): TimelineStep[] => {
   const steps: TimelineStep[] = [];
 
+  // NOTE:
+  // 运行时的 seat.role 来自 app/data.ts 中的 roles 数组，
+  // 其中 **不包含** 首夜 / 其他夜晚的元数据与顺位。
+  // 真正的夜晚元数据保存在 src/data/rolesData.json 中。
+  //
+  // 这里通过 role.id 将这两份数据在内存中合并，保证夜晚时间线
+  // 与测试里的 getRole 合并逻辑保持一致。
+
+  type MetaRole = {
+    id: string;
+    firstNightMeta?: any;
+    otherNightMeta?: any;
+    firstNightOrder?: number;
+    otherNightOrder?: number;
+  };
+
+  const metaRoles = troubleBrewingRolesData as MetaRole[];
+
+  const getMergedRoleMeta = (baseRole: Role | null | undefined) => {
+    if (!baseRole) return { role: null as Role | null, firstMeta: null, otherMeta: null, firstOrder: 9999, otherOrder: 9999 };
+    const meta = metaRoles.find((r) => r.id === baseRole.id);
+    const firstMeta = meta?.firstNightMeta ?? (baseRole as any).firstNightMeta ?? null;
+    const otherMeta = meta?.otherNightMeta ?? (baseRole as any).otherNightMeta ?? null;
+    const firstOrder =
+      meta?.firstNightOrder ??
+      ((baseRole as any).firstNightOrder as number | undefined) ??
+      9999;
+    const otherOrder =
+      meta?.otherNightOrder ??
+      ((baseRole as any).otherNightOrder as number | undefined) ??
+      9999;
+    return { role: baseRole, firstMeta, otherMeta, firstOrder, otherOrder };
+  };
+
   // 1. 识别需要在本夜被唤醒的角色
-  // 支持死亡角色被唤醒（如果元数据允许，如 Zombuul）
+  //    支持死亡角色被唤醒（如果元数据允许，如 Zombuul）
   const activeSeats = seats.filter((seat) => {
     if (!seat.role) return false;
-    
-    // 1. If alive, always active (unless specific disabled flags exist, but standard is yes)
-    if (!seat.isDead) return true;
 
-    // 2. If dead, check if they have permission to wake via metadata
-    const meta = isFirstNight ? seat.role.firstNightMeta : seat.role.otherNightMeta;
-    if (meta && meta.wakesIfDead === true) return true;
+    const merged = getMergedRoleMeta(seat.role);
+    const meta = isFirstNight ? merged.firstMeta : merged.otherMeta;
 
-    // 3. Legacy fallback: hasAbilityEvenDead flag (for backward compatibility)
+    // 1. 存活的玩家，如果该夜有元数据则视为可唤醒
+    if (!seat.isDead && meta) return true;
+
+    // 2. 已死亡：检查元数据是否允许死亡时也被唤醒
+    if (seat.isDead && meta && meta.wakesIfDead === true) return true;
+
+    // 3. 兼容旧逻辑：hasAbilityEvenDead 标记
     if (seat.hasAbilityEvenDead) return true;
 
     return false;
@@ -1518,22 +1555,23 @@ export const generateNightTimeline = (
 
   // 2. 按首夜 / 其他夜晚顺序排序
   activeSeats.sort((a, b) => {
-    const orderA = isFirstNight
-      ? (a.role?.firstNightOrder ?? 9999)
-      : (a.role?.otherNightOrder ?? 9999);
-    const orderB = isFirstNight
-      ? (b.role?.firstNightOrder ?? 9999)
-      : (b.role?.otherNightOrder ?? 9999);
+    const aMerged = getMergedRoleMeta(a.role);
+    const bMerged = getMergedRoleMeta(b.role);
+
+    const orderA = isFirstNight ? aMerged.firstOrder : aMerged.otherOrder;
+    const orderB = isFirstNight ? bMerged.firstOrder : bMerged.otherOrder;
+
     return orderA - orderB;
   });
 
   // 3. 生成时间线步骤
   activeSeats.forEach((seat, index) => {
-    const role = seat.role!;
-    const meta = isFirstNight ? role.firstNightMeta : role.otherNightMeta;
+    const merged = getMergedRoleMeta(seat.role);
+    const role = merged.role;
+    const meta = isFirstNight ? merged.firstMeta : merged.otherMeta;
 
     // 没有对应夜晚的元数据，则本夜不唤醒该角色
-    if (!meta) return;
+    if (!role || !meta) return;
 
     steps.push({
       id: `step_${seat.id}_${role.id}_${isFirstNight ? '1' : 'n'}`,

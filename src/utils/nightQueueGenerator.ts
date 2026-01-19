@@ -65,13 +65,17 @@ export function generateNightActionQueue(
           ? (firstNightOrder !== 999 ? firstNightOrder : nightOrder)
           : nightOrder;
         
-        queueItems.push({
-          seat,
-          seatId: seat.id,
-          roleId: effectiveRoleId,
-          order,
-          isFirstNightOnly: !!roleDef.firstNight && !roleDef.night,
-        });
+        // CRITICAL FIX: Skip roles with order <= 0 (0 means "don't wake")
+        // Order 0 or negative means the role should not be awakened this night
+        if (order > 0 && order < 999) {
+          queueItems.push({
+            seat,
+            seatId: seat.id,
+            roleId: effectiveRoleId,
+            order,
+            isFirstNightOnly: !!roleDef.firstNight && !roleDef.night,
+          });
+        }
       }
       // 默认情况下，死亡的角色不应该被唤醒（除非有hasAbilityEvenDead标记）
       continue;
@@ -100,25 +104,33 @@ export function generateNightActionQueue(
           : 999;
         // 首夜优先使用firstNight的order，如果没有则使用night的order
         const order = hasFirstNightAction ? firstNightOrder : nightOrder;
-        queueItems.push({
-          seat,
-          seatId: seat.id,
-          roleId: effectiveRoleId,
-          order,
-          isFirstNightOnly: hasFirstNightAction && !hasNightAction,
-        });
+        // CRITICAL FIX: Skip roles with order <= 0 (0 means "don't wake")
+        // Order 0 or negative means the role should not be awakened this night
+        if (order > 0 && order < 999) {
+          queueItems.push({
+            seat,
+            seatId: seat.id,
+            roleId: effectiveRoleId,
+            order,
+            isFirstNightOnly: hasFirstNightAction && !hasNightAction,
+          });
+        }
       }
     } else {
       // 后续夜晚：只检查 night（firstNight 只在首夜生效）
       if (hasNightAction) {
         const order = getOrderValue(roleDef.night?.order);
-        queueItems.push({
-          seat,
-          seatId: seat.id,
-          roleId: effectiveRoleId,
-          order,
-          isFirstNightOnly: false,
-        });
+        // CRITICAL FIX: Skip roles with order <= 0 (0 means "don't wake")
+        // Order 0 or negative means the role should not be awakened this night
+        if (order > 0 && order < 999) {
+          queueItems.push({
+            seat,
+            seatId: seat.id,
+            roleId: effectiveRoleId,
+            order,
+            isFirstNightOnly: false,
+          });
+        }
       }
     }
   }
@@ -137,15 +149,52 @@ export function generateNightActionQueue(
   const sortedSeats = queueItems.map(item => item.seat);
   
   // Debug logging
-  if (isFirstNight) {
-    console.log('[generateNightActionQueue] First night - Generated queue:', 
-      queueItems.map(item => ({
-        seatId: item.seatId + 1,
-        roleId: item.roleId,
-        roleName: item.seat.role?.name,
-        order: item.order,
-      }))
-    );
+  console.log(`[generateNightActionQueue] ${isFirstNight ? 'First night' : 'Night'} - Processing ${seats.length} seats`);
+  console.log(`[generateNightActionQueue] Generated ${queueItems.length} queue items:`, 
+    queueItems.map(item => ({
+      seatId: item.seatId + 1,
+      roleId: item.roleId,
+      roleName: item.seat.role?.name,
+      order: item.order,
+    }))
+  );
+  
+  // If queue is empty, log detailed debug info
+  if (queueItems.length === 0) {
+    console.warn('[generateNightActionQueue] ⚠️ Queue is empty! Checking roles:');
+    seats.forEach(seat => {
+      if (!seat.role) {
+        console.warn(`  - Seat ${seat.id + 1}: No role`);
+        return;
+      }
+      const effectiveRoleId = seat.role.id === 'drunk' 
+        ? (seat.charadeRole?.id || null)
+        : seat.role.id;
+      if (!effectiveRoleId) {
+        console.warn(`  - Seat ${seat.id + 1}: No effective role (drunk without charadeRole)`);
+        return;
+      }
+      const roleDef = getRoleDefinition(effectiveRoleId);
+      if (!roleDef) {
+        console.warn(`  - Seat ${seat.id + 1} (${seat.role.name}): Role definition not found`);
+        return;
+      }
+      const hasFirstNight = !!roleDef.firstNight;
+      const hasNight = !!roleDef.night;
+      const getOrderValue = (orderConfig: number | ((isFirstNight: boolean) => number) | undefined): number => {
+        if (orderConfig === undefined) return 999;
+        if (typeof orderConfig === 'number') return orderConfig;
+        if (typeof orderConfig === 'function') return orderConfig(isFirstNight);
+        return 999;
+      };
+      const firstNightOrder = hasFirstNight ? getOrderValue(roleDef.firstNight?.order) : 999;
+      const nightOrder = hasNight ? getOrderValue(roleDef.night?.order) : 999;
+      const order = isFirstNight ? (hasFirstNight ? firstNightOrder : nightOrder) : nightOrder;
+      console.warn(`  - Seat ${seat.id + 1} (${seat.role.name}): firstNight=${hasFirstNight}(${firstNightOrder}), night=${hasNight}(${nightOrder}), finalOrder=${order}, isDead=${seat.isDead}, hasAbilityEvenDead=${seat.hasAbilityEvenDead}`);
+      if (order <= 0 || order >= 999) {
+        console.warn(`    ⚠️ Skipped: order ${order} is invalid (should be > 0 and < 999)`);
+      }
+    });
   }
   
   return sortedSeats;
