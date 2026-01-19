@@ -20,6 +20,8 @@ interface GameConsoleProps {
   seats?: Seat[];
   nightInfo?: NightInfoResult | null;
   onTogglePlayer?: (seatId: number) => void;
+  inspectionResult?: string | null;
+  inspectionResultKey?: number;
   
   // Zone C: Actions
   primaryAction?: {
@@ -59,6 +61,8 @@ export function GameConsole({
   seats = [],
   nightInfo,
   onTogglePlayer,
+  inspectionResult,
+  inspectionResultKey,
   primaryAction,
   secondaryActions = [],
   handleDayAbility,
@@ -137,6 +141,16 @@ export function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 min-h-0">
+        {/* Section: Inspection / Result (Night info reveal) */}
+        {inspectionResult && (
+          <div key={inspectionResultKey ?? 0} className="space-y-2">
+            <h3 className="text-lg font-bold text-slate-300">结果</h3>
+            <div className="bg-slate-800/50 p-5 rounded-2xl border border-white/10 text-base text-slate-100 whitespace-pre-wrap">
+              {inspectionResult}
+            </div>
+          </div>
+        )}
+
         {/* Section 1: Script Text */}
         {scriptText && (
           <div className="space-y-2">
@@ -192,21 +206,9 @@ export function GameConsole({
                       <button
                         onClick={() => {
                           if (!handleDayAbility) return;
-                          // Simple prompt for now. Ideally use a Modal.
-                          if (seat.role?.dayMeta?.targetType === 'player') {
-                            const targetStr = prompt(`请输入目标座位号 (1-${seats.length}):`);
-                            if (targetStr) {
-                              const targetId = parseInt(targetStr) - 1;
-                              if (!isNaN(targetId) && targetId >= 0 && targetId < seats.length) {
-                                handleDayAbility(seat.id, targetId);
-                              } else {
-                                alert(`无效的座位号，请输入 1-${seats.length} 之间的数字`);
-                              }
-                            }
-                          } else {
-                            if (confirm(`确定使用 ${seat.role?.dayMeta?.abilityName || '技能'} 吗？`)) {
-                              handleDayAbility(seat.id);
-                            }
+                          // TODO: 未来可做成专门的日间交互弹窗。当前统一走规则引导 + 简单确认。
+                          if (confirm(`确定使用 ${seat.role?.dayMeta?.abilityName || '技能'} 吗？`)) {
+                            handleDayAbility(seat.id);
                           }
                         }}
                         className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"

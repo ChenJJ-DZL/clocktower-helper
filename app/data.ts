@@ -4,7 +4,7 @@
 // NEW: 数据驱动的「暗流涌动」基础元数据（夜晚顺序、Setup 标记等）
 import troubleBrewingRolesData from "../src/data/rolesData.json";
 
-export type RoleType = "townsfolk" | "outsider" | "minion" | "demon";
+export type RoleType = "townsfolk" | "outsider" | "minion" | "demon" | "traveler";
 
 export type GamePhase = "scriptSelection" | "setup" | "check" | "firstNight" | "day" | "dusk" | "night" | "dawnReport" | "gameOver";
 

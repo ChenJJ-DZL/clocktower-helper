@@ -1,3 +1,4 @@
+import React, { useEffect, useState, useMemo } from "react";
 import { Role, Seat, GamePhase, WinResult, Script, RoleType } from "../../../app/data";
 import { NightInfoResult, GameRecord } from "../../types/game";
 import { ModalType } from "../../types/modal";
@@ -101,6 +102,7 @@ export interface GameModalsProps {
   voteInputValue: string;
   showVoteErrorToast: boolean;
   voteRecords: Array<{ voterId: number; isDemon: boolean }>;
+  registerVotes?: (seatIds: number[]) => void;
   dayAbilityForm: {
     info1?: string;
     info2?: string;
@@ -165,7 +167,7 @@ export interface GameModalsProps {
   cancelSaintExecution: () => void;
   handleVirginGuideConfirm: () => void;
   handleDayAction: (targetId: number) => void;
-  submitVotes: (voteCount: number) => void;
+  submitVotes: (voteCount: number, voters?: number[]) => void;
   confirmDrunkCharade: (role: Role) => void;
   handleNewGame: () => void;
   enterDuskPhase: () => void;
@@ -248,6 +250,137 @@ export interface GameModalsProps {
   typeBgColors: Record<string, string>;
 }
 
+// 独立的投票举手面板，避免在 JSX 中使用带 Hook 的 IIFE
+function VoteInputModalContent(props: {
+  voterId: number | null;
+  seats: Seat[];
+  registerVotes?: (seatIds: number[]) => void;
+  submitVotes: (count: number, voters?: number[]) => void;
+  setCurrentModal: (modal: ModalType | null) => void;
+  setShowVoteInputModal?: (value: number | null) => void;
+}) {
+  const { voterId, seats } = props;
+  const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSelectedVoters([]);
+  }, [voterId]);
+
+  if (voterId === null) return null;
+  const candidate = seats.find(s => s.id === voterId);
+  const aliveCore = seats.filter(s => {
+    if (!s.role) return false;
+    const roleType = (s.role as any).type;
+    return !s.isDead && roleType !== 'traveler';
+  });
+  const threshold = Math.ceil(aliveCore.length / 2);
+
+  const toggleVoter = (id: number) => {
+    setSelectedVoters(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const invalidDeadSelected = selectedVoters.some(id => {
+    const seat = seats.find(s => s.id === id);
+    return seat && seat.isDead && seat.hasGhostVote === false;
+  });
+
+  const selectedAlive = selectedVoters.filter(id => {
+    const seat = seats.find(s => s.id === id);
+    return seat && !seat.isDead;
+  }).length;
+  const selectedDead = selectedVoters.length - selectedAlive;
+
+  const ghostHolders = seats
+    .filter(s => s.isDead && s.hasGhostVote !== false)
+    .map(s => `${s.id + 1}号`);
+
+  return (
+    <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
+      <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 relative w-[720px] max-h-[90vh] overflow-y-auto">
+        <h3 className="text-3xl font-bold mb-4">🗳️ 选择举手玩家</h3>
+        <div className="mb-4 text-sm text-gray-200 leading-relaxed">
+          <div>当前被提名者：{candidate ? `${candidate.id + 1}号` : '未知'}</div>
+          <div className="text-xs text-yellow-300 mt-1">
+            规则：选中的死亡玩家会自动消耗幽灵票；没有幽灵票的死亡玩家无法再举手。
+          </div>
+          <div className="text-xs text-yellow-200 mt-1">
+            场上仍有死者票的玩家：{ghostHolders.length ? ghostHolders.join('、') : '无'}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {seats.filter(s => s.role).map(s => {
+            const ghostUsed = s.isDead && s.hasGhostVote === false;
+            const disabled = ghostUsed;
+            const isSelected = selectedVoters.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => toggleVoter(s.id)}
+                className={`p-3 rounded-xl border-2 text-left transition ${
+                  disabled
+                    ? 'border-gray-700 bg-gray-900/50 text-gray-500 cursor-not-allowed'
+                    : isSelected
+                      ? 'border-blue-400 bg-blue-900/60 text-white shadow-lg shadow-blue-500/30'
+                      : 'border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700'
+                }`}
+                title={ghostUsed ? '幽灵票已用尽' : (s.isDead ? '死亡玩家可用幽灵票' : '存活玩家')}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="font-bold">{s.id + 1}号 {s.playerName || ''}</div>
+                  <div className="text-xs text-gray-300">
+                    {s.isDead ? (ghostUsed ? '💀(无票)' : '💀 幽灵票') : '存活'}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mb-4 text-sm text-gray-100">
+          <div>当前选中的票数：<span className="font-bold text-blue-200 text-lg">{selectedVoters.length}</span></div>
+          <div className="text-xs text-gray-300 mt-1">存活：{selectedAlive} 张 / 死亡（消耗幽灵票）：{selectedDead} 张</div>
+          <div className="text-xs text-gray-300 mt-1">上台门槛：{threshold} 票</div>
+          {invalidDeadSelected && (
+            <div className="mt-2 text-red-400 text-xs">选择中包含已用完幽灵票的死亡玩家，请取消勾选</div>
+          )}
+        </div>
+
+        <div className="flex gap-3 justify-center">
+          <button 
+            onClick={() => {
+              if (invalidDeadSelected) {
+                alert('选择中包含已用完幽灵票的死亡玩家');
+                return;
+              }
+              props.registerVotes?.(selectedVoters);
+              props.submitVotes(selectedVoters.length, selectedVoters);
+              setSelectedVoters([]);
+            }}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            确认（{selectedVoters.length} 票）
+          </button>
+          <button 
+            onClick={()=>{
+              setSelectedVoters([]);
+              props.setCurrentModal(null);
+              if (props.setShowVoteInputModal) props.setShowVoteInputModal(null);
+            }}
+            className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold shadow"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 空的骨架组件
 export function GameModals(props: GameModalsProps) {
   // 从 currentModal 中提取数据
@@ -260,6 +393,32 @@ export function GameModals(props: GameModalsProps) {
   const dayAbilityModal = props.currentModal?.type === 'DAY_ABILITY' ? props.currentModal.data : null;
   const shamanConvertModal = props.currentModal?.type === 'SHAMAN_CONVERT' ? props.currentModal : null;
   const spyDisguiseModal = props.currentModal?.type === 'SPY_DISGUISE' ? props.currentModal : null;
+
+  // 伪装身份识别：避免在 render 中使用 IIFE（React 19 下可能触发内部断言）
+  const shouldShowSpyDisguise = !!(props.showSpyDisguiseModal || spyDisguiseModal);
+  const spySeats = props.seats.filter(s => s.role?.id === 'spy');
+  const recluseSeats = props.seats.filter(s => s.role?.id === 'recluse');
+  const chefSeat = props.seats.find(s => s.role?.id === 'chef');
+  const empathSeat = props.seats.find(s => s.role?.id === 'empath');
+  const investigatorSeat = props.seats.find(s => s.role?.id === 'investigator');
+  const fortuneTellerSeat = props.seats.find(s => s.role?.id === 'fortune_teller');
+  const hasInterferenceRoles =
+    (spySeats.length > 0 || recluseSeats.length > 0) &&
+    (chefSeat || empathSeat || investigatorSeat || fortuneTellerSeat);
+  // 注册结果展示：仅在伪装浮窗打开且存在干扰角色/信息查看者时计算
+  const registrationInfo = useMemo(() => {
+    if (!shouldShowSpyDisguise || !hasInterferenceRoles) return null;
+    const infoViewers = props.seats.filter(
+      (s) =>
+        s.role &&
+        ['chef', 'empath', 'investigator', 'fortune_teller'].includes(s.role.id)
+    );
+    const affected = props.seats.filter(
+      (s) => s.role && (s.role.id === 'spy' || s.role.id === 'recluse')
+    );
+    if (infoViewers.length === 0 || affected.length === 0) return null;
+    return { infoViewers, affected };
+  }, [shouldShowSpyDisguise, hasInterferenceRoles, props.seats]);
   
   return (
     <>
@@ -375,111 +534,16 @@ export function GameModals(props: GameModalsProps) {
         );
       })()}
       
-      {(props.showVoteInputModal !== null || voteInputModal) && (() => {
-        const voterId = voteInputModal?.voterId ?? props.showVoteInputModal;
-        if (voterId === null) return null;
-        return (
-        <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
-          <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 relative">
-            <h3 className="text-3xl font-bold mb-4">🗳️ 输入票数</h3>
-            <div className="mb-6 p-3 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-sm text-yellow-200">
-              <p className="font-semibold">注意：请自行确保每名死亡玩家在本局只使用一次"死人票"。本工具不会替你追踪死人票次数。</p>
-              {(() => {
-                const ghostHolders = props.seats
-                  .filter(s => s.isDead && s.hasGhostVote !== false)
-                  .map(s => `${s.id + 1}号`);
-                return (
-                  <div className="mt-2 text-xs text-yellow-100">
-                    场上仍有死者票的玩家：{ghostHolders.length ? ghostHolders.join('、') : '无'}
-                  </div>
-                );
-              })()}
-            </div>
-            <div className="mb-6">
-              <input 
-                autoFocus 
-                type="number" 
-                min="1"
-                max={props.initialSeats.length > 0 
-                  ? props.initialSeats.filter(s => s.role !== null).length 
-                  : props.seats.filter(s => s.role !== null).length}
-                step="1"
-                value={props.voteInputValue}
-                className="w-full p-4 bg-gray-700 rounded-xl text-center text-4xl font-mono" 
-                onChange={(e) => {
-                const value = e.target.value;
-                const initialPlayerCount = props.initialSeats.length > 0 
-                  ? props.initialSeats.filter(s => s.role !== null).length 
-                  : props.seats.filter(s => s.role !== null).length;
-                
-                // 如果输入为空，允许继续输入
-                if (value === '') {
-                  props.setVoteInputValue('');
-                  return;
-                }
-                
-                  const numValue = parseInt(value);
-                  // 检查是否符合要求：必须是有效数字，且不超过开局时的玩家数
-                  if (isNaN(numValue) || numValue < 1 || !Number.isInteger(numValue) || numValue > initialPlayerCount) {
-                    // 不符合要求，清空输入并显示浮窗
-                    props.setVoteInputValue('');
-                    props.setShowVoteErrorToast(true);
-                    // 3秒后自动消失
-                    setTimeout(() => {
-                      props.setShowVoteErrorToast(false);
-                    }, 3000);
-                  } else {
-                    // 符合要求，更新输入值
-                    props.setVoteInputValue(value);
-                  }
-                }}
-                onKeyDown={(e)=>{if(e.key==='Enter')props.submitVotes(parseInt(props.voteInputValue)||0)}} 
-              />
-              {props.showVoteErrorToast && (
-                <div 
-                  className="mt-2 bg-red-600/30 text-white text-sm px-4 py-2 rounded-lg shadow-lg"
-                >
-                  票数不得超过开局时的玩家数
-                </div>
-              )}
-            </div>
-            <div className="mb-4">
-              <label className="flex items-center gap-2 text-lg cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={props.voteRecords.some(r => r.voterId === voterId && r.isDemon)}
-                  onChange={(e) => {
-                    const isDemon = e.target.checked;
-                    props.setVoteRecords((prev: Array<{ voterId: number; isDemon: boolean }>) => {
-                      if (voterId === null) return prev;
-                      const filtered = prev.filter(r => r.voterId !== voterId);
-                      const newRecords = [...filtered, { voterId, isDemon }];
-                      // 更新 todayDemonVoted 状态
-                      if (isDemon) {
-                        props.setTodayDemonVoted(true);
-                      } else {
-                        // 检查是否还有其他恶魔投票
-                        const hasOtherDemonVote = filtered.some(r => r.isDemon);
-                        props.setTodayDemonVoted(hasOtherDemonVote);
-                      }
-                      return newRecords;
-                    });
-                  }}
-                  className="w-5 h-5"
-                />
-                <span>投票者是恶魔（用于卖花女孩）</span>
-              </label>
-            </div>
-            <button 
-              onClick={()=>props.submitVotes(parseInt(props.voteInputValue)||0)} 
-              className="w-full py-4 bg-indigo-600 rounded-xl text-2xl font-bold"
-            >
-              确认
-            </button>
-          </div>
-        </div>
-        );
-      })()}
+      {(props.showVoteInputModal !== null || voteInputModal) && (
+        <VoteInputModalContent
+          voterId={voteInputModal?.voterId ?? props.showVoteInputModal}
+          seats={props.seats}
+          registerVotes={props.registerVotes}
+          submitVotes={props.submitVotes}
+          setCurrentModal={props.setCurrentModal}
+          setShowVoteInputModal={props.setShowVoteInputModal}
+        />
+      )}
       
       {(props.showRoleSelectModal || roleSelectModal) && (() => {
         const modal = roleSelectModal || props.showRoleSelectModal;
@@ -1501,29 +1565,27 @@ export function GameModals(props: GameModalsProps) {
       />
       
       {/* 投毒者确认下毒弹窗（善良玩家） */}
-      {(() => {
-        console.log('[GameModals] PoisonConfirmModal - showPoisonConfirmModal:', props.showPoisonConfirmModal);
-        return (
-          <PoisonConfirmModal
-            targetId={props.showPoisonConfirmModal}
-            onConfirm={props.confirmPoison}
-            onCancel={() => {
-              console.log('[GameModals] PoisonConfirmModal cancelled');
-              props.setShowPoisonConfirmModal(null);
-              props.setSelectedActionTargets([]);
-            }}
-          />
-        );
-      })()}
+      {props.showPoisonConfirmModal !== null && (
+        <PoisonConfirmModal
+          targetId={props.showPoisonConfirmModal}
+          onConfirm={props.confirmPoison}
+          onCancel={() => {
+            props.setShowPoisonConfirmModal(null);
+            props.setSelectedActionTargets([]);
+          }}
+        />
+      )}
 
-      <PoisonEvilConfirmModal
-        targetId={props.showPoisonEvilConfirmModal}
-        onConfirm={props.confirmPoisonEvil}
-        onCancel={() => {
-          props.setShowPoisonEvilConfirmModal(null);
-          props.setSelectedActionTargets([]);
-        }}
-      />
+      {props.showPoisonEvilConfirmModal !== null && (
+        <PoisonEvilConfirmModal
+          targetId={props.showPoisonEvilConfirmModal}
+          onConfirm={props.confirmPoisonEvil}
+          onCancel={() => {
+            props.setShowPoisonEvilConfirmModal(null);
+            props.setSelectedActionTargets([]);
+          }}
+        />
+      )}
       
       <NightDeathReportModal
         message={props.showNightDeathReportModal}
@@ -1537,28 +1599,18 @@ export function GameModals(props: GameModalsProps) {
       />
 
       {/* 伪装身份识别浮窗 */}
-      {(props.showSpyDisguiseModal || spyDisguiseModal) && (() => {
-        const spySeats = props.seats.filter(s => s.role?.id === 'spy');
-        const recluseSeats = props.seats.filter(s => s.role?.id === 'recluse');
-        const chefSeat = props.seats.find(s => s.role?.id === 'chef');
-        const empathSeat = props.seats.find(s => s.role?.id === 'empath');
-        const investigatorSeat = props.seats.find(s => s.role?.id === 'investigator');
-        const fortuneTellerSeat = props.seats.find(s => s.role?.id === 'fortune_teller');
-        const hasInterferenceRoles = (spySeats.length > 0 || recluseSeats.length > 0) && 
-                                    (chefSeat || empathSeat || investigatorSeat || fortuneTellerSeat);
-        
-        return (
+      {shouldShowSpyDisguise && (
+        <div 
+          className="fixed inset-0 z-[5000] bg-black/50 flex items-center justify-center"
+          onClick={() => {
+            props.setCurrentModal(null);
+            if (props.setShowSpyDisguiseModal) props.setShowSpyDisguiseModal(false);
+          }}
+        >
           <div 
-            className="fixed inset-0 z-[5000] bg-black/50 flex items-center justify-center"
-            onClick={() => {
-              props.setCurrentModal(null);
-              if (props.setShowSpyDisguiseModal) props.setShowSpyDisguiseModal(false);
-            }}
+            className="bg-gray-800 border-2 border-purple-500 rounded-xl p-4 w-80 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div 
-              className="bg-gray-800 border-2 border-purple-500 rounded-xl p-4 w-80 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-lg font-bold text-purple-300">🎭 伪装身份识别</h3>
                 <button
@@ -1654,58 +1706,44 @@ export function GameModals(props: GameModalsProps) {
                       {fortuneTellerSeat && '占卜师'}
                     </div>
                   )}
-                  {(() => {
-                    const infoViewers = [
-                      { id: 'washerwoman', name: '洗衣妇' },
-                      { id: 'investigator', name: '调查员' },
-                      { id: 'chef', name: '厨师' },
-                      { id: 'empath', name: '共情者' },
-                      { id: 'fortune_teller', name: '占卜师' },
-                    ].map(v => {
-                      const seat = props.seats.find(s => s.role?.id === v.id);
-                      return seat?.role ? { ...v, role: seat.role } : null;
-                    }).filter(Boolean) as Array<{id: string; name: string; role: Role}>;
-                    const affected = props.seats.filter(s => s.role && (s.role.id === 'spy' || s.role.id === 'recluse'));
-                    const typeLabels: Record<RoleType, string> = { townsfolk: '镇民', outsider: '外来者', minion: '爪牙', demon: '恶魔' };
-                    if (affected.length === 0 || infoViewers.length === 0) return null;
-                    return (
-                      <div className="mt-3 border-t border-gray-700 pt-2 text-xs text-gray-300 space-y-2">
-                        <div className="text-purple-300 font-semibold">🧾 注册结果（仅说书人可见）</div>
-                        {affected.map(target => (
-                          <div key={target.id} className="bg-gray-750 rounded p-2 border border-gray-700">
-                            <div className="font-medium mb-1">{target.id + 1}号【{target.role?.name || '未知'}】</div>
-                            <div className="space-y-1">
-                              {infoViewers.map(viewer => {
-                                const reg = props.getRegistrationCached(target, viewer.role);
-                                const typeText = reg.roleType ? typeLabels[reg.roleType] || reg.roleType : '无类型';
-                                const status = reg.registersAsDemon
-                                  ? '视为恶魔'
-                                  : reg.registersAsMinion
-                                    ? '视为爪牙'
-                                    : `阵营=${reg.alignment === 'Evil' ? '邪恶' : '善良'}, 类型=${typeText}`;
-                                return (
-                                  <div key={`${viewer.id}-${target.id}`} className="flex items-center justify-between gap-2">
-                                    <span className="text-gray-400">在【{viewer.name}】眼中</span>
-                                    <span className="text-white">{status}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                  {registrationInfo && (
+                    <div className="mt-3 border-t border-gray-700 pt-2 text-xs text-gray-300 space-y-2">
+                      <div className="text-purple-300 font-semibold">🧾 注册结果（仅说书人可见）</div>
+                      {registrationInfo.affected.map(target => (
+                        <div key={target.id} className="bg-gray-750 rounded p-2 border border-gray-700">
+                          <div className="font-medium mb-1">{target.id + 1}号【{target.role?.name || '未知'}】</div>
+                          <div className="space-y-1">
+                            {registrationInfo.infoViewers.map(viewer => {
+                              if (!viewer.role) return null;
+                              const typeLabels: Record<RoleType, string> = { townsfolk: '镇民', outsider: '外来者', minion: '爪牙', demon: '恶魔', traveler: '旅人' };
+                              const reg = props.getRegistrationCached(target, viewer.role);
+                              const typeText = reg.roleType ? typeLabels[reg.roleType] || reg.roleType : '无类型';
+                              const status = reg.registersAsDemon
+                                ? '视为恶魔'
+                                : reg.registersAsMinion
+                                  ? '视为爪牙'
+                                  : `阵营=${reg.alignment === 'Evil' ? '邪恶' : '善良'}, 类型=${typeText}`;
+                              return (
+                                <div key={`${viewer.id}-${target.id}`} className="flex items-center justify-between gap-2">
+                                  <span className="text-gray-400">在【{viewer.role?.name}】眼中</span>
+                                  <span className="text-white">{status}</span>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-sm text-gray-400 text-center py-4">
                   当前无需要伪装身份识别的角色
                 </div>
               )}
-            </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
     </>
   );
 }

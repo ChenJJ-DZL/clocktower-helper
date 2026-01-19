@@ -616,6 +616,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         }
 
         killPlayer(targetId, {
+          source: 'demon',
           keepInWakeQueue: true, // 保留能力，需要夜晚继续唤醒
           seatTransformer: seat => ({ ...seat, hasAbilityEvenDead: true }),
           onAfterKill: () => {
@@ -631,6 +632,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       } else {
         // 正常杀死其他玩家
         killPlayer(targetId, {
+          source: 'demon',
           onAfterKill: () => {
             if (nightInfo) {
               // 涡流标记假信息环境

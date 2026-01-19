@@ -53,6 +53,7 @@ export const calculateNightInfo = (
       outsider: "外来者",
       minion: "爪牙",
       demon: "恶魔",
+      traveler: "旅人",
     };
     const affected = seats.filter(
       (s) => s.role && (s.role.id === "spy" || s.role.id === "recluse")
@@ -971,6 +972,7 @@ export const calculateNightInfo = (
             outsider: '外来者',
             minion: '爪牙',
             demon: '恶魔',
+            traveler: '旅人',
           };
           const lines = affectedNeighbors.map((s) => {
             const reg = getCachedRegistration(s, effectiveRole);

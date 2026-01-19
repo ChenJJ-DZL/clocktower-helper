@@ -138,6 +138,95 @@ export function GameStage({ controller }: { controller: any }) {
   // Dusk Phase: Nomination state
   const [nominator, setNominator] = useState<number | null>(null);
   const [nominee, setNominee] = useState<number | null>(null);
+  const [pendingVoteFor, setPendingVoteFor] = useState<number | null>(null);
+  const [defenseSecondsLeft, setDefenseSecondsLeft] = useState<number>(0);
+  const defenseTimerRef = useRef<number | null>(null);
+  const [lastCallSecondsLeft, setLastCallSecondsLeft] = useState<number>(0);
+  const lastCallTimerRef = useRef<number | null>(null);
+  const lastModalTypeRef = useRef<string | null>(null);
+  const [isNominationLocked, setIsNominationLocked] = useState<boolean>(false);
+  const aliveCoreCount = useMemo(
+    () => seats.filter((s: Seat) => !s.isDead && s.role && s.role.type !== 'traveler').length,
+    [seats]
+  );
+  const voteThreshold = useMemo(() => Math.ceil(aliveCoreCount / 2), [aliveCoreCount]);
+
+  const stopDefenseTimer = useCallback(() => {
+    if (defenseTimerRef.current !== null) {
+      window.clearInterval(defenseTimerRef.current);
+      defenseTimerRef.current = null;
+    }
+  }, []);
+
+  const stopLastCallTimer = useCallback(() => {
+    if (lastCallTimerRef.current !== null) {
+      window.clearInterval(lastCallTimerRef.current);
+      lastCallTimerRef.current = null;
+    }
+  }, []);
+
+  const startLastCall = useCallback((seconds: number) => {
+    stopLastCallTimer();
+    setIsNominationLocked(false);
+    setLastCallSecondsLeft(seconds);
+    lastCallTimerRef.current = window.setInterval(() => {
+      setLastCallSecondsLeft(prev => {
+        if (prev <= 1) {
+          stopLastCallTimer();
+          setIsNominationLocked(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [stopLastCallTimer]);
+
+  const startDefenseTimer = useCallback((seconds: number) => {
+    stopDefenseTimer();
+    setDefenseSecondsLeft(seconds);
+    defenseTimerRef.current = window.setInterval(() => {
+      setDefenseSecondsLeft(prev => {
+        if (prev <= 1) {
+          stopDefenseTimer();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [stopDefenseTimer]);
+
+  useEffect(() => {
+    return () => {
+      stopDefenseTimer();
+      stopLastCallTimer();
+    };
+  }, [stopDefenseTimer, stopLastCallTimer]);
+
+  // 每次进入黄昏阶段时，重置本地黄昏状态，避免历史遗留状态导致按钮长时间不可用
+  useEffect(() => {
+    if (gamePhase === 'dusk') {
+      console.log('[GameStage] 进入黄昏阶段，重置所有黄昏状态');
+      stopDefenseTimer();
+      stopLastCallTimer();
+      setNominator(null);
+      setNominee(null);
+      setPendingVoteFor(null);
+      setDefenseSecondsLeft(0);
+      setLastCallSecondsLeft(0);
+      setIsNominationLocked(false);
+    }
+  }, [gamePhase]); // 简化依赖项，只在 gamePhase 变化时执行
+
+  // 监听投票模态框关闭（仅当曾经打开过 VOTE_INPUT 时才清除）
+  useEffect(() => {
+    const prevType = lastModalTypeRef.current;
+    const currType = currentModal?.type ?? null;
+    if (gamePhase === 'dusk' && prevType === 'VOTE_INPUT' && currType === null && pendingVoteFor !== null) {
+      console.log('[GameStage] 投票模态关闭，清除 pendingVoteFor，允许下一次提名');
+      setPendingVoteFor(null);
+    }
+    lastModalTypeRef.current = currType;
+  }, [gamePhase, currentModal, pendingVoteFor]);
   
   useEffect(() => {
     const updateSeatScale = () => {
@@ -236,6 +325,8 @@ export function GameStage({ controller }: { controller: any }) {
                 selectedActionTargets={[]}
                 isPortrait={isPortrait}
                 longPressingSeats={new Set()}
+                nominator={nominator}
+                nominee={nominee}
                 onSeatClick={(seat) => {
                   // Simple toggle logic for UI
                   if (nominator === null) {
@@ -297,8 +388,19 @@ export function GameStage({ controller }: { controller: any }) {
           </div>
 
           {/* Right: Dusk Control Panel */}
-          <div className="w-[450px] bg-slate-900 border-l border-white/10 flex flex-col p-6 gap-4 overflow-y-auto">
+          <div className="w-[450px] bg-slate-900 border-l border-white/10 flex flex-col p-6 gap-4 overflow-y-auto relative z-40">
             <h2 className="text-2xl font-black text-orange-500 uppercase tracking-wide">⚖️ 处决台</h2>
+
+            {/* Last Call */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">最后一次提名:</span>
+                <span className="font-bold text-white">不限时（由说书人手动控制）</span>
+              </div>
+              <div className="text-xs text-gray-400 leading-relaxed">
+                规则映射：取消倒计时，不自动锁定提名。说书人可随时点击「开始投票」。
+              </div>
+            </div>
             
             {/* Selection Display */}
             <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
@@ -316,113 +418,219 @@ export function GameStage({ controller }: { controller: any }) {
               </div>
             </div>
 
-            {/* Voting Recorder */}
-            <div className="bg-slate-800 p-4 rounded-lg space-y-3 border border-white/10">
-              <h3 className="text-white font-bold flex items-center gap-2">
-                <span>✋</span> 投票记录器
-              </h3>
-              <p className="text-xs text-gray-400">请记录所有举手的玩家，用于卖花女/城镇公告员的信息计算。</p>
-              
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const input = prompt("请输入所有举票玩家的座位号 (用逗号分隔，例如 1,3,5):");
-                    if (input) {
-                      const ids = input.split(/[,，]/).map(s => parseInt(s.trim()) - 1).filter(n => !isNaN(n) && n >= 0 && n < seats.length);
-                      if (ids.length > 0) {
-                        registerVotes(ids);
-                        alert(`已记录 ${ids.length} 名玩家投票。卖花女/城镇公告员将能读取此信息。`);
-                      } else {
-                        alert("无效的输入，请使用数字并用逗号分隔");
-                      }
-                    }
-                  }}
-                  className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"
-                >
-                  📝 录入投票数据
-                </button>
-                <button
-                  onClick={() => {
-                    registerVotes([]);
-                    alert("已清空投票记录");
-                  }}
-                  className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm transition-colors"
-                >
-                  清空
-                </button>
+            {/* Voting Flow Status */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">待投票对象:</span>
+                <span className="text-white font-bold">
+                  {pendingVoteFor !== null ? `${pendingVoteFor + 1}号` : '-'}
+                </span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">辩护时间:</span>
+                <span className="text-white font-bold">不限时（手动）</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">上台门槛:</span>
+                <span className="text-white font-bold">{voteThreshold} 票 （存活非旅行者 {aliveCoreCount}）</span>
+              </div>
+              <div className="text-xs text-gray-400 leading-relaxed">
+                规则映射：提名后先给被提名者短暂辩护时间（建议 10~30s），随后由说书人点击「开始投票」打开举手名单面板。
+              </div>
+            </div>
+
+            {/* Voting Recorder / 简要提示：投票在弹窗中完成 */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>✋</span> 投票与记录
+              </h3>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                点击下方「开始投票」按钮会弹出举手名单面板，自动统计票数、消耗幽灵票，并记录本轮所有投票者（用于卖花女 / 城镇公告员）。
+              </p>
               {votedThisRound && votedThisRound.length > 0 && (
                 <div className="text-xs text-gray-300">
-                   已记录: {votedThisRound.map((id: number) => `${id + 1}号`).join(', ')}
+                  本轮已记录投票者：{votedThisRound.map((id: number) => `${id + 1}号`).join('、')}
                 </div>
               )}
             </div>
 
+            {/* Execution Block (Candidates) */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>🏛️</span> 处决台（上台者）
+              </h3>
+              {(() => {
+                const candidates: Array<{ id: number; voteCount: number }> = seats
+                  .filter((s: Seat) => s.isCandidate)
+                  .map((s: Seat) => ({ id: s.id, voteCount: s.voteCount || 0 }))
+                  .sort((a: { id: number; voteCount: number }, b: { id: number; voteCount: number }) => b.voteCount - a.voteCount);
+
+                if (candidates.length === 0) {
+                  return <div className="text-xs text-gray-400">暂无上台者（未达到半数门槛或尚未投票）</div>;
+                }
+
+                const topVotes = candidates[0].voteCount;
+                const tops = candidates.filter(c => c.voteCount === topVotes);
+                const isTie = tops.length >= 2;
+
+                return (
+                  <>
+                    <div className="text-xs text-gray-300">
+                      当前最高票：<span className="font-bold text-white">{topVotes}</span>
+                      {isTie ? <span className="ml-2 text-yellow-300">（平票：{tops.map(t => `${t.id + 1}号`).join('、')}）</span> : null}
+                    </div>
+                    <div className="space-y-1">
+                      {candidates.map(c => (
+                        <div
+                          key={c.id}
+                          className={`flex justify-between text-sm rounded px-2 py-1 border ${
+                            c.voteCount === topVotes
+                              ? (isTie ? 'border-yellow-500/60 bg-yellow-900/20 text-yellow-100' : 'border-red-500/60 bg-red-900/20 text-red-100')
+                              : 'border-white/10 bg-slate-900/40 text-slate-200'
+                          }`}
+                        >
+                          <span>{c.id + 1}号</span>
+                          <span className="font-mono font-bold">{c.voteCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-400 leading-relaxed">
+                      规则映射：只有处决台上最高票且不平票的玩家会被处决；若最高票平票则平安黄昏无人被处决。
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
             {/* Actions */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 relative z-50">
               <button 
-                disabled={nominator === null || nominee === null}
-                onClick={() => {
-                  if (nominator !== null && nominee !== null) {
+                type="button"
+                disabled={isNominationLocked}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[GameStage] 点击发起提名按钮', { nominator, nominee, isNominationLocked, pendingVoteFor, executeNomination: typeof executeNomination });
+                  try {
+                    // 移除 pendingVoteFor 检查，允许在投票完成后立即进行下一次提名
+                    // 投票完成后会自动清除 pendingVoteFor
+                    if (nominator === null || nominee === null) {
+                      alert('请先在圆桌上依次点击"提名者"和"被提名者"。');
+                      return;
+                    }
+                    if (typeof executeNomination !== 'function') {
+                      console.error('[GameStage] executeNomination is not a function:', executeNomination);
+                      alert('错误：executeNomination 函数不可用，请刷新页面重试。');
+                      return;
+                    }
                     // Call executeNomination (which handles Virgin trigger from Step 4)
-                    executeNomination(nominator, nominee);
+                    executeNomination(nominator, nominee, { openVoteModal: false });
                     addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
+                    setPendingVoteFor(nominee);
+                    // 取消自动辩护倒计时，由说书人手动控制节奏
                     // Reset selection
                     setNominator(null);
                     setNominee(null);
+                  } catch (error) {
+                    console.error('[GameStage] 发起提名时出错:', error);
+                    alert(`发起提名时出错: ${error instanceof Error ? error.message : String(error)}`);
                   }
                 }}
-                className="p-4 bg-orange-600/20 text-orange-500 border border-orange-600/50 rounded-lg hover:bg-orange-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                className="p-4 bg-orange-600/20 text-orange-500 border border-orange-600/50 rounded-lg hover:bg-orange-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold cursor-pointer relative z-50"
+                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
               >
                 📣 发起提名 (触发技能检测)
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[GameStage] 点击开始投票按钮', { pendingVoteFor, setCurrentModal: typeof setCurrentModal });
+                  try {
+                    if (pendingVoteFor === null) {
+                      alert('当前没有待投票的被提名者，请先发起一次有效提名。');
+                      return;
+                    }
+                    if (typeof setCurrentModal !== 'function') {
+                      console.error('[GameStage] setCurrentModal is not a function:', setCurrentModal);
+                      alert('错误：setCurrentModal 函数不可用，请刷新页面重试。');
+                      return;
+                    }
+                    stopDefenseTimer();
+                    setDefenseSecondsLeft(0);
+                    setCurrentModal({ type: 'VOTE_INPUT', data: { voterId: pendingVoteFor } });
+                  } catch (error) {
+                    console.error('[GameStage] 开始投票时出错:', error);
+                    alert(`开始投票时出错: ${error instanceof Error ? error.message : String(error)}`);
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                className="p-4 bg-blue-600/20 text-blue-200 border border-blue-500/40 rounded-lg hover:bg-blue-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold cursor-pointer relative z-50"
+                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+              >
+                🗳️ 开始投票（打开举手名单面板）
               </button>
               
               <div className="h-px bg-white/10 my-2"></div>
 
               <button 
-                onClick={() => {
-                  const targetStr = prompt(`请输入要处决的玩家座位号 (1-${seats.length})，如果没有人被处决，点击取消:`);
-                  if (targetStr) {
-                    const tid = parseInt(targetStr) - 1;
-                    if (!isNaN(tid) && tid >= 0 && tid < seats.length) {
-                      const targetSeat = seats.find((s: Seat) => s.id === tid);
-                      if (!targetSeat) {
-                        alert(`座位 ${tid + 1} 不存在`);
-                        return;
-                      }
-                      if (targetSeat.isDead) {
-                        alert(`座位 ${tid + 1} 已经死亡`);
-                        return;
-                      }
-                      
-                      // Execute player (this handles Saint check, etc.)
-                      executePlayer(tid);
-                      addLog(`⚖️ ${tid + 1}号 被处决死亡。`);
-                      
-                      // Check Game Over immediately after (with a small delay to let state update)
-                      setTimeout(() => {
-                        const updatedSeats = seats.map((s: Seat) => s.id === tid ? { ...s, isDead: true } : s);
-                        const result = checkGameOverSimple(updatedSeats);
-                        if (result === 'good') {
-                          alert("🎉 恶魔已死，好人获胜！");
-                        } else if (result === 'evil') {
-                          alert("😈 只剩两人，邪恶获胜！");
-                        }
-                      }, 100);
-                    } else {
-                      alert(`无效的座位号，请输入 1-${seats.length} 之间的数字`);
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[GameStage] 点击执行处决按钮', { executeJudgment: typeof executeJudgment });
+                  try {
+                    if (seats.every((s: Seat) => !s.isCandidate)) {
+                      alert('当前处决台为空（无人达成半数门槛），无法执行处决。');
+                      return;
                     }
+                    if (typeof executeJudgment !== 'function') {
+                      console.error('[GameStage] executeJudgment is not a function:', executeJudgment);
+                      alert('错误：executeJudgment 函数不可用，请刷新页面重试。');
+                      return;
+                    }
+                    // 直接使用标准处决结算流程（含平票/无人上台/胜负判断）
+                    executeJudgment();
+                  } catch (error) {
+                    console.error('[GameStage] 执行处决时出错:', error);
+                    alert(`执行处决时出错: ${error instanceof Error ? error.message : String(error)}`);
                   }
                 }}
-                className="p-4 bg-red-600 text-white font-black rounded-lg text-xl shadow-lg hover:bg-red-500 transition-colors"
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                className="p-4 bg-red-600 text-white font-black rounded-lg text-xl shadow-lg hover:bg-red-500 transition-colors cursor-pointer relative z-50"
+                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
               >
-                ☠️ 执行处决
+                ☠️ 执行处决（根据票数自动结算）
               </button>
             </div>
 
             <div className="mt-auto pt-4 border-t border-white/10">
               <button 
                 onClick={() => {
+                  const hasPendingVote = pendingVoteFor !== null;
+                  const hasCandidates = seats.some((s: Seat) => s.isCandidate);
+                  if (hasPendingVote || hasCandidates) {
+                    const ok = confirm("仍有提名/候选未结算，确认直接入夜吗？");
+                    if (!ok) return;
+                  }
                   if (nightLogic?.startNight) {
                     nightLogic.startNight(false);
                   } else {
@@ -555,6 +763,8 @@ export function GameStage({ controller }: { controller: any }) {
           selectedPlayers={selectedActionTargets}
                     seats={seats}
           nightInfo={nightInfo}
+          inspectionResult={inspectionResult}
+          inspectionResultKey={inspectionResultKey}
           onTogglePlayer={toggleTarget}
           handleDayAbility={controller.handleDayAbility}
           primaryAction={
@@ -607,6 +817,16 @@ export function GameStage({ controller }: { controller: any }) {
                   },
                   disabled: isConfirmDisabled, // Use the centralized disabled logic
                   variant: 'success' as const,
+                }
+              : gamePhase === 'day'
+              ? {
+                  label: '进入黄昏处决阶段',
+                  onClick: () => {
+                    console.log('[GameStage] Day phase primary action -> handleDayEndTransition');
+                    handleDayEndTransition();
+                  },
+                  disabled: false,
+                  variant: 'primary' as const,
                 }
               : undefined
           }

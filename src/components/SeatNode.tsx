@@ -8,7 +8,8 @@ import type { NightInfoResult } from "@/src/types/game";
 interface StatusPillProps {
   icon?: React.ReactNode;
   text: string;
-  color?: 'red' | 'purple' | 'green' | 'blue' | 'gray' | 'yellow';
+  // 统一为三色体系
+  color?: 'red' | 'green' | 'yellow';
   isPortrait?: boolean;
   duration?: string; // 时效提示，如 "永久"、"至下个黄昏"、"至天亮" 等
 }
@@ -41,10 +42,7 @@ function formatDuration(duration: string): string {
 function StatusPill({ icon, text, color = 'red', isPortrait = false, duration }: StatusPillProps) {
   const colorClasses = {
     red: 'bg-red-900/80 text-red-200 border-red-700',
-    purple: 'bg-purple-900/80 text-purple-200 border-purple-700',
     green: 'bg-green-900/80 text-green-200 border-green-700',
-    blue: 'bg-blue-900/80 text-blue-200 border-blue-700',
-    gray: 'bg-gray-800/80 text-gray-300 border-gray-600',
     yellow: 'bg-yellow-900/80 text-yellow-200 border-yellow-700',
   };
 
@@ -83,6 +81,9 @@ export interface SeatNodeProps {
   getSeatPosition: (index: number, total?: number, isPortrait?: boolean) => { x: string; y: string };
   getDisplayRoleType: (seat: Seat) => string | null;
   typeColors: Record<string, string>;
+  // Dusk phase selection indicators
+  nominator?: number | null;
+  nominee?: number | null;
 }
 
 export const SeatNode: React.FC<SeatNodeProps> = ({
@@ -103,6 +104,8 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   getSeatPosition,
   getDisplayRoleType,
   typeColors,
+  nominator = null,
+  nominee = null,
 }) => {
   const p = getSeatPosition(i, seats.length, isPortrait);
   const displayType = getDisplayRoleType(s);
@@ -110,13 +113,13 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   const realRole = s.role;
   const displayRole = s.displayRole || (s.role?.id === 'drunk' ? s.charadeRole || s.role : s.role);
   const isMasked = !!(realRole && displayRole && realRole.id !== displayRole.id);
-  const roleName =
-    s.isDemonSuccessor && realRole?.id === 'imp'
-      ? `${displayRole?.name || realRole?.name} (传)`
-      : displayRole?.name || realRole?.name || "空";
+  // 规则：死亡玩家的角色显示角色名称，但保留灰色和删除线效果
+  const roleName = s.isDemonSuccessor && realRole?.id === 'imp'
+    ? `${displayRole?.name || realRole?.name} (传)`
+    : displayRole?.name || realRole?.name || "空";
   
   // 定义状态列表 - 自动推导所有异常状态
-  const statusList: Array<{ text: string; color: 'red' | 'purple' | 'green' | 'blue' | 'gray' | 'yellow'; icon?: React.ReactNode; duration?: string }> = [];
+  const statusList: Array<{ key: string; text: string; color: 'red' | 'green' | 'yellow'; icon?: React.ReactNode; duration?: string }> = [];
   
   // 标记已处理的状态，避免重复
   const processedStatuses = new Set<string>();
@@ -124,8 +127,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   // 1. 死亡状态
   if (s.isDead) {
     statusList.push({
+      key: 'dead',
       text: "已死亡",
-      color: "gray",
+      color: "yellow",
       icon: "💀",
       duration: "永久"
     });
@@ -137,34 +141,45 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     const protectionDuration = protectionStatus?.duration || '至天亮';
     
     statusList.push({
+      key: 'protected',
       text: "受保护",
-      color: "blue",
+      color: "green",
       icon: "🛡️",
       duration: protectionDuration
     });
+    processedStatuses.add('protected');
   }
 
   // 6. 红罗刹状态
   if (s.isRedHerring) {
     statusList.push({
-      text: "红罗刹",
-      color: "red",
-      icon: "😈",
+      key: 'red_herring',
+      text: "天敌红罗刹",
+      color: "yellow",
+      icon: "🎯",
       duration: "永久"
     });
+    processedStatuses.add('red_herring');
   }
 
   // 2. 先处理statusDetails中的状态（优先显示详细信息）
   (s.statusDetails || []).forEach(st => {
     // 处理中毒状态（从statusDetails中提取详细信息）
     if (st.includes('中毒') && !processedStatuses.has('poison')) {
+      // 对于已经死亡的玩家，只保留真正永久性的中毒标记（例如“永久中毒”、“舞蛇人中毒”），
+      // 临时中毒不再显示，避免“死者长期带中毒标签”的视觉干扰
+      if (s.isDead && !st.includes('永久中毒') && !st.includes('舞蛇人中毒')) {
+        return;
+      }
+
       const poisonStatus = (s.statuses || []).find(status => status.effect === 'Poison');
       const poisonDuration = poisonStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
       
       statusList.push({
+        key: 'poison',
         text: "中毒",
-        color: "green",
-        icon: "🧪",
+        color: "red",
+        icon: "☠️",
         duration: poisonDuration
       });
       processedStatuses.add('poison');
@@ -173,57 +188,51 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     
     // 处理醉酒状态（从statusDetails中提取详细信息）
     if (st.includes('致醉') && !processedStatuses.has('drunk')) {
+      // 死亡后醉酒状态对游戏没有实际影响，这里直接不再显示
+      if (s.isDead) {
+        return;
+      }
+
       const drunkStatus = (s.statuses || []).find(status => status.effect === 'Drunk');
       const drunkDuration = drunkStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
       
       statusList.push({
+        key: 'drunk',
         text: "醉酒",
-        color: "purple",
-        icon: "🍷",
+        color: "yellow",
+        icon: "🍺",
         duration: drunkDuration
       });
       processedStatuses.add('drunk');
       return; // 已处理，跳过后续逻辑
     }
-    
-    // 处理其他状态（排除已处理的中毒、醉酒）
-    if (!st.includes('中毒') && !st.includes('致醉')) {
-      const matchingStatus = (s.statuses || []).find(status => {
-        return false; // 其他状态暂时不匹配
-      });
-      const duration = matchingStatus?.duration || st;
-      
-      statusList.push({
-        text: st.replace(/（.+?清除）/, '').trim(),
-        color: "yellow",
-        duration: duration
-      });
-    }
   });
 
   // 3. 处理通用的中毒状态（如果statusDetails中没有）
-  if (s.isPoisoned && !processedStatuses.has('poison')) {
+  if (!s.isDead && s.isPoisoned && !processedStatuses.has('poison')) {
     const poisonStatus = (s.statuses || []).find(st => st.effect === 'Poison');
     const poisonDuration = poisonStatus?.duration || '至下个黄昏';
     
     statusList.push({
+      key: 'poison',
       text: "中毒",
-      color: "green",
-      icon: "🧪",
+      color: "red",
+      icon: "☠️",
       duration: poisonDuration
     });
     processedStatuses.add('poison');
   }
 
   // 4. 处理通用的醉酒状态（如果statusDetails中没有）
-  if ((s.role?.id === 'drunk' || s.isDrunk) && !processedStatuses.has('drunk')) {
+  if (!s.isDead && (s.role?.id === 'drunk' || s.isDrunk) && !processedStatuses.has('drunk')) {
     const drunkStatus = (s.statuses || []).find(st => st.effect === 'Drunk');
     const drunkDuration = drunkStatus?.duration || (s.role?.id === 'drunk' ? '永久' : '至下个黄昏');
     
     statusList.push({
+      key: 'drunk',
       text: "醉酒",
-      color: "purple",
-      icon: "🍷",
+      color: "yellow",
+      icon: "🍺",
       duration: drunkDuration
     });
     processedStatuses.add('drunk');
@@ -234,22 +243,28 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   // 7. 技能使用状态
   if (s.hasUsedSlayerAbility) {
     statusList.push({
+      key: 'slayer_used',
       text: "猎手已用",
       color: "red",
+      icon: "🎯",
       duration: "永久"
     });
   }
   if (s.hasUsedVirginAbility) {
     statusList.push({
+      key: 'virgin_used',
       text: "处女失效",
-      color: "purple",
+      color: "yellow",
+      icon: "⛔",
       duration: "永久"
     });
   }
   if (s.hasAbilityEvenDead) {
     statusList.push({
+      key: 'ability_even_dead',
       text: "死而有能",
-      color: "green",
+      color: "yellow",
+      icon: "👻",
       duration: "永久"
     });
   }
@@ -284,6 +299,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         ${s.isDead ? 'grayscale brightness-75 bg-gray-300 border-gray-400' : ''} 
         ${selectedActionTargets.includes(s.id) ? 'ring-4 ring-green-500 scale-105' : ''}
         ${longPressingSeats.has(s.id) ? 'ring-4 ring-blue-400 animate-pulse' : ''}
+        ${nominator === s.id ? 'ring-4 ring-white scale-105 shadow-[0_0_20px_white]' : ''}
+        ${nominee === s.id ? 'ring-4 ring-yellow-400 scale-105 shadow-[0_0_20px_yellow]' : ''}
+        ${s.isCandidate ? 'ring-4 ring-red-500 scale-105 shadow-[0_0_20px_red]' : ''}
       `}
       >
         {/* 真实身份指示徽章（仅说书人可见：role 与 displayRole 不一致时显示） */}
@@ -323,9 +341,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         {/* 状态标签容器 - 位于座位内部，从下边缘向上排列 */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col-reverse gap-0.5 items-center z-30 w-full px-1 pointer-events-none" style={{ maxHeight: '60%' }}>
           {/* 遍历渲染状态列表（反向，从下往上） */}
-          {statusList.map((status, idx) => (
+          {statusList.map((status) => (
             <StatusPill
-              key={`${status.text}-${idx}`}
+              key={status.key}
               icon={status.icon}
               text={status.text}
               color={status.color}

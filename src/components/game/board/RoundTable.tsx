@@ -29,6 +29,9 @@ interface RoundTableProps {
   onTimerStart?: () => void;
   onTimerPause?: () => void;
   onTimerReset?: () => void;
+  // Dusk phase selection indicators
+  nominator?: number | null;
+  nominee?: number | null;
 }
 
 /**
@@ -56,6 +59,8 @@ export function RoundTable({
   onTimerStart,
   onTimerPause,
   onTimerReset,
+  nominator = null,
+  nominee = null,
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
@@ -142,6 +147,8 @@ export function RoundTable({
           getDisplayRoleType={getDisplayRoleType}
           typeColors={typeColors}
           layoutMode="circle"
+          nominator={nominator}
+          nominee={nominee}
         />
       </div>
 

@@ -23,6 +23,9 @@ export interface SeatGridProps {
   getDisplayRoleType: (seat: Seat) => string | null;
   typeColors: Record<string, string>;
   layoutMode?: "circle" | "matrix";
+  // Dusk phase selection indicators
+  nominator?: number | null;
+  nominee?: number | null;
 }
 
 export function SeatGrid(props: SeatGridProps) {
@@ -43,6 +46,8 @@ export function SeatGrid(props: SeatGridProps) {
     getDisplayRoleType,
     typeColors,
     layoutMode = "circle",
+    nominator = null,
+    nominee = null,
   } = props;
 
   // 圆桌模式：使用 SeatNode + 圆形布局
@@ -74,6 +79,8 @@ export function SeatGrid(props: SeatGridProps) {
             getSeatPosition={getSeatPosition}
             getDisplayRoleType={getDisplayRoleType}
             typeColors={typeColors}
+            nominator={nominator}
+            nominee={nominee}
           />
         ))}
       </>
