@@ -23,7 +23,9 @@ export type ModalType =
   
   // 白天相关弹窗
   | { type: 'EXECUTION_RESULT'; data: { message: string; isVirginTrigger?: boolean } }
+  | { type: 'PACIFIST_CONFIRM'; data: { targetId: number; onResolve: (saved: boolean) => void } }
   | { type: 'SHOOT_RESULT'; data: { message: string; isDemonDead: boolean } }
+  | { type: 'SLAYER_SELECT_TARGET'; data: { shooterId: number } }
   | { type: 'VOTE_INPUT'; data: { voterId: number } }
   | { type: 'DAY_ACTION'; data: { type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number } }
   | { type: 'DAY_ABILITY'; data: { roleId: string; seatId: number } }
@@ -44,6 +46,9 @@ export type ModalType =
   
   // 说书人选择弹窗（当能力描述中没有"选择"一词时）
   | { type: 'STORYTELLER_SELECT'; data: { sourceId: number; roleId: string; roleName: string; description: string; targetCount: number; onConfirm: (targetIds: number[]) => void } }
+
+  // BMR：侍臣（Courtier）选择角色弹窗
+  | { type: 'COURTIER_SELECT_ROLE'; data: { sourceId: number; roles: Role[]; seats: Seat[]; onConfirm: (roleId: string) => void; onCancel: () => void } }
   
   // 信息展示弹窗
   | { type: 'RAVENKEEPER_FAKE'; data: { targetId: number } }

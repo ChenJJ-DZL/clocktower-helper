@@ -33,6 +33,7 @@ export interface NightLogicGameState {
   poChargeState: Record<number, boolean>;
   goonDrunkedThisNight: boolean;
   isVortoxWorld: boolean;
+  outsiderDiedToday: boolean;
   nightInfo: NightInfoResult | null;
   nightQueuePreviewTitle: string;
 }
@@ -381,7 +382,28 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       }));
       
       // 生成夜晚唤醒队列
-      const validQueue = getNightWakeQueue(seats, isFirst);
+      let validQueue = getNightWakeQueue(seats, isFirst);
+
+      // 送葬者（Undertaker）唤醒条件（官方细则）：
+      // - 非首夜
+      // - 且“上一个黄昏有人因处决而死亡”时才会被唤醒
+      // 当前实现：`calculateNightInfo` 已能在无人处决时给出“不会被唤醒”的提示，
+      // 但队列层面仍会唤醒送葬者 -> 这会影响侍女等“是否被唤醒”类能力的准确性。
+      // 因此在队列生成后进行动态过滤：没有处决死亡 -> 本夜不叫醒送葬者。
+      if (!isFirst) {
+        const executedSeat =
+          currentDuskExecution !== null
+            ? seats.find((s) => s.id === currentDuskExecution)
+            : null;
+        const executedDied = !!executedSeat && executedSeat.isDead === true;
+        if (!executedDied) {
+          validQueue = validQueue.filter((s) => {
+            const effectiveId =
+              s.role?.id === "drunk" ? s.charadeRole?.id : s.role?.id;
+            return effectiveId !== "undertaker";
+          });
+        }
+      }
       
       // Debug logging
       console.log('[startNight] isFirst:', isFirst, 'validQueue length:', validQueue.length);
@@ -589,9 +611,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       : '';
 
     if (canBeKilled) {
-      // 夜半狂欢亡骨魔特殊处理：杀死爪牙时，爪牙保留能力且邻近的两名镇民之一中毒
-      if (nightInfo.effectiveRole.id === 'vigormortis_mr' && target.role?.type === 'minion') {
-        // 找到邻近的两名镇民
+      // 亡骨魔 / 夜半狂欢亡骨魔特殊处理：杀死爪牙时，爪牙保留能力且邻近的两名镇民之一中毒
+      if ((nightInfo.effectiveRole.id === 'vigormortis' || nightInfo.effectiveRole.id === 'vigormortis_mr') && target.role?.type === 'minion') {
+        // 找到邻近的两名镇民（包括已死亡的镇民，只跳过非镇民）
         const targetIndex = seats.findIndex(s => s.id === targetId);
         const totalSeats = seats.length;
         const leftIndex = (targetIndex - 1 + totalSeats) % totalSeats;
@@ -599,10 +621,10 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         const leftNeighbor = seats[leftIndex];
         const rightNeighbor = seats[rightIndex];
         const townsfolkNeighbors = [leftNeighbor, rightNeighbor].filter(s => 
-          s.role?.type === 'townsfolk' && !s.isDead
+          s.role?.type === 'townsfolk'
         );
         
-        // 随机选择一名镇民中毒
+        // 由说书人随机/裁定选择一名镇民中毒（当前实现为随机一名）
         const poisonedNeighbor = townsfolkNeighbors.length > 0 ? getRandom(townsfolkNeighbors) : null;
         
         if (poisonedNeighbor) {
@@ -624,10 +646,11 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           seatTransformer: seat => ({ ...seat, hasAbilityEvenDead: true }),
           onAfterKill: () => {
             if (nightInfo) {
+              const demonName = getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
               addLogWithDeduplication(
-                `${nightInfo.seat.id + 1}号(亡骨魔) 杀死 ${targetId + 1}号(爪牙)${mayorNote}，爪牙保留能力${poisonedNeighbor ? `，${poisonedNeighbor.id + 1}号(邻近镇民)中毒` : ''}`,
+                `${nightInfo.seat.id + 1}号(${demonName}) 杀死 ${targetId + 1}号(爪牙)${mayorNote}，爪牙保留能力${poisonedNeighbor ? `，${poisonedNeighbor.id + 1}号(邻近镇民)中毒` : ''}`,
                 nightInfo.seat.id,
-                '亡骨魔'
+                demonName
               );
             }
           }

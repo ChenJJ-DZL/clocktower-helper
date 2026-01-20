@@ -37,10 +37,12 @@ export const calculateNightInfo = (
   minionNominatedToday?: boolean,
   executedToday?: number | null,
   hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
-  votedThisRound?: number[] // NEW: List of seat IDs who voted this round (for Flowergirl/Town Crier)
+  votedThisRound?: number[], // NEW: List of seat IDs who voted this round (for Flowergirl/Town Crier)
+  outsiderDiedToday?: boolean // NEW: for Godfather/Gossip extra death triggers
 ): { seat: Seat; effectiveRole: Role; isPoisoned: boolean; reason?: string; guide: string; speak: string; action: string } | null => {
   // 使用传入的判定函数，如果没有则使用默认的isEvil
   const checkEvil = isEvilWithJudgmentFn || isEvil;
+  const isFirstNight = gamePhase === 'firstNight';
   const registrationOptions: RegistrationCacheOptions | undefined = registrationCache
     ? { cache: registrationCache, cacheKey: registrationCacheKey }
     : undefined;
@@ -73,11 +75,61 @@ export const calculateNightInfo = (
     return `📌 注册判定（仅说书人可见）：\n${lines.join("\n")}`;
   };
   
-  // 创建用于厨师/共情者查验的判断函数，考虑间谍和隐士的注册判定
-  const checkEvilForChefEmpath = (seat: Seat): boolean => {
-    // 使用统一注册判定，传入当前查看的角色（厨师或共情者）
-    const registration = getCachedRegistration(seat, effectiveRole);
-    return registration.alignment === 'Evil';
+  // === Perceived role helper (Spy/Recluse can "register as" a concrete role token) ===
+  // getRegistration() already gives alignment + roleType. For roles that *see a role token*
+  // (Washerwoman/Librarian/Investigator/Undertaker), TB spec requires Spy/Recluse can appear
+  // as a specific Townsfolk/Outsider/Minion/Demon role. We choose one from the script pool
+  // and cache it so it stays stable within the same calculation pass.
+  const getRolePoolByType = (type: RoleType): Role[] => {
+    const all = roles.filter((r) => r.type === type && !r.hidden);
+    if (!selectedScript) return all;
+    return all.filter((r) => {
+      return (
+        !r.script ||
+        r.script === selectedScript.name ||
+        (selectedScript.id === 'trouble_brewing' && !r.script) ||
+        (selectedScript.id === 'bad_moon_rising' && (!r.script || r.script === '暗月初升')) ||
+        (selectedScript.id === 'sects_and_violets' && (!r.script || r.script === '梦陨春宵')) ||
+        (selectedScript.id === 'midnight_revelry' && (!r.script || r.script === '夜半狂欢'))
+      );
+    });
+  };
+
+  const getPerceivedRoleForViewer = (
+    target: Seat,
+    viewer: Role,
+    expectedType?: RoleType
+  ): { perceivedRole: Role | null; perceivedType: RoleType | null } => {
+    if (!target.role) return { perceivedRole: null, perceivedType: null };
+
+    const reg = getCachedRegistration(target, viewer);
+    const regType = reg.roleType ?? target.role.type;
+
+    if (expectedType && regType !== expectedType) {
+      return { perceivedRole: null, perceivedType: regType };
+    }
+
+    // Normal roles: show real role token.
+    if (target.role.id !== 'spy' && target.role.id !== 'recluse') {
+      return { perceivedRole: target.role, perceivedType: target.role.type };
+    }
+
+    const perceivedType = expectedType ?? regType;
+    const cache = (registrationCache as unknown as Map<string, any>) ?? new Map<string, any>();
+    const keyBase =
+      (registrationCacheKey ?? 'local') +
+      `-perceivedRole-t${target.id}-v${viewer.id}-as${perceivedType}`;
+
+    const cached = cache.get(keyBase) as Role | undefined;
+    if (cached) return { perceivedRole: cached, perceivedType };
+
+    const pool = getRolePoolByType(perceivedType);
+    const pool2 = pool.filter((r) => r.id !== viewer.id);
+    const picked: Role | null =
+      pool2.length > 0 ? getRandom(pool2) : pool.length > 0 ? getRandom(pool) : null;
+
+    if (picked) cache.set(keyBase, picked);
+    return { perceivedRole: picked, perceivedType };
   };
   
   // 查找最近的存活邻居（跳过所有死亡玩家和自己）
@@ -103,10 +155,16 @@ export const calculateNightInfo = (
   if (!effectiveRole) return null;
   const diedTonight = deadThisNight.includes(targetSeat.id);
 
+  // 创建用于厨师/共情者查验的判断函数，考虑间谍和隐士的注册判定
+  const checkEvilForChefEmpath = (seat: Seat): boolean => {
+    const registration = getCachedRegistration(seat, effectiveRole);
+    return registration.alignment === 'Evil';
+  };
+
   // 检测能力描述中是否包含"选择"关键词
   // 规则：如果能力描述中没有"选择"一词，这项能力就由说书人来做出选择
   const abilityText = effectiveRole.ability || '';
-  const hasChoiceKeyword = abilityText.includes('选择') || abilityText.includes('选择');
+  const hasChoiceKeyword = abilityText.includes('选择');
 
   // VORTOX CHECK: 如果 Vortox 在场且角色是镇民，强制提供错误信息
   const vortoxActive = seats.some(s => s.role?.id === 'vortox' && !s.isDead);
@@ -501,18 +559,25 @@ export const calculateNightInfo = (
     case 'godfather':
       // 教父：首夜得知有哪些外来者角色在场。如果有外来者在白天死亡，你会在当晚被唤醒并且你要选择一名玩家：他死亡。
       if (gamePhase === 'firstNight') {
+        // 使用注册判定：间谍可能被当作外来者；陌客也可能不被当作外来者
         const outsiderRoles = seats
-          .filter(s => s.role?.type === 'outsider' && s.role)
-          .map(s => s.role!.name)
+          .filter((s) => s.role && !!getPerceivedRoleForViewer(s, effectiveRole, 'outsider').perceivedRole)
+          .map((s) => getPerceivedRoleForViewer(s, effectiveRole, 'outsider').perceivedRole!.name)
           .filter((name, idx, arr) => arr.indexOf(name) === idx); // 去重
         guide = `👔 首夜得知外来者角色：${outsiderRoles.length > 0 ? outsiderRoles.join('、') : '无外来者'}`;
         speak = `"场上的外来者角色是：${outsiderRoles.length > 0 ? outsiderRoles.join('、') : '没有外来者'}。"`;
         action = "告知";
       } else {
-        // 非首夜：如果有外来者在白天死亡，会被唤醒
-        guide = "⚔️ 如果有外来者在白天死亡，选择一名玩家：他死亡。";
-        speak = '"如果有外来者在白天死亡，请选择一名玩家。他死亡。"';
-        action = "kill";
+        // 非首夜：只有在白天有外来者死亡时才会被唤醒
+        if (!outsiderDiedToday) {
+          guide = "💤 今日白天没有外来者死亡，本夜你不会被唤醒执行额外杀人。";
+          speak = "（无）";
+          action = "跳过";
+        } else {
+          guide = "⚔️ 今日白天有外来者死亡：选择一名玩家，他死亡。若你是初始教父且该玩家是善良的，本夜再额外杀死1名玩家（说书人选择目标）。";
+          speak = '"今日白天有外来者死亡，请选择一名玩家。他死亡。若你是初始教父且该玩家是善良的，本夜再额外杀死1名玩家（你选择或说书人裁定）。"';
+          action = "kill";
+        }
       }
       break;
 
@@ -541,12 +606,27 @@ export const calculateNightInfo = (
       if (gamePhase === 'firstNight') {
         try {
           // 洗衣妇：首夜得知一名村民的具体身份，并被告知该村民在X号或Y号（其中一个是真实的，另一个是干扰项）
-          const townsfolkSeats = seats.filter(s => s.role?.type === 'townsfolk' && s.role && s.id !== currentSeatId);
+          const townsfolkSeats = seats.filter((s) => {
+            if (!s.role || s.id === currentSeatId) return false;
+            return !!getPerceivedRoleForViewer(s, effectiveRole, 'townsfolk').perceivedRole;
+          });
           
           if (townsfolkSeats.length === 0) {
-            guide = "🚫 根据当前角色配置，本局实际上没有镇民 (Townsfolk)。\n你应当告诉【洗衣妇】：'本局游戏中没有镇民。' 请直接使用这句台词，不要编造虚假的两名玩家。";
-            speak = '"本局游戏中没有镇民。"';
-            action = "告知";
+            // 官方细则：洗衣妇不同于图书管理员/调查员——她“永远不可能得知没有镇民在场”。
+            // 极端情况下（如5人局且有男爵在场）可用“你自己 vs 任意一人，其中一人是洗衣妇”来兜底。
+            const otherSeat = seats.find((s) => s.id !== currentSeatId) || seats[currentSeatId];
+            const selfNum = currentSeatId + 1;
+            const otherNum = otherSeat.id + 1;
+            const shouldSwap = Math.random() < 0.5;
+            const seat1Num = shouldSwap ? otherNum : selfNum;
+            const seat2Num = shouldSwap ? selfNum : otherNum;
+
+            guide =
+              `⚠️ 极端配置兜底：当前检测不到可用于展示的“镇民角色”。\n` +
+              `按官方建议：对【洗衣妇】展示「洗衣妇」并指向 ${seat1Num}号 / ${seat2Num}号（其中一人是洗衣妇）。\n` +
+              `（这通常等同于强烈暗示本局有男爵/配置异常，建议说书人调整阵容以提升体验。）`;
+            speak = `"你得知【洗衣妇】在 ${seat1Num}号 或 ${seat2Num}号。"`;
+            action = "展示";
           } else if(townsfolkSeats.length > 0 && seats.length >= 2) {
             // 正常时：从场上实际存在的村民中随机选择一个
             const validTownsfolk = townsfolkSeats.filter(s => s.role !== null);
@@ -556,7 +636,8 @@ export const calculateNightInfo = (
               action = "展示";
             } else {
               const realTownsfolk = getRandom(validTownsfolk);
-              const realRole = realTownsfolk.role!; // 此时确保不为null
+              const perceived = getPerceivedRoleForViewer(realTownsfolk, effectiveRole, 'townsfolk');
+              const realRole = perceived.perceivedRole ?? realTownsfolk.role!; // fallback
               
               // 真实村民的座位号
               const realSeatNum = realTownsfolk.id + 1;
@@ -653,18 +734,22 @@ export const calculateNightInfo = (
       if (gamePhase === 'firstNight') {
         try {
           // 图书管理员：首夜得知一名外来者的具体身份，并被告知该外来者在X号或Y号（其中一个是真实的，另一个是干扰项）
-          const outsiderSeats = seats.filter(s => s.role?.type === 'outsider' && s.role && s.id !== currentSeatId);
+          const outsiderSeats = seats.filter((s) => {
+            if (!s.role || s.id === currentSeatId) return false;
+            return !!getPerceivedRoleForViewer(s, effectiveRole, 'outsider').perceivedRole;
+          });
           
           if (outsiderSeats.length === 0) {
-            guide = "🚫 根据当前角色配置，本局实际上没有外来者 (Outsiders)。\n你应当告诉【图书管理员】：'本局游戏中没有外来者。' 请直接使用这句台词，不要编造虚假的两名玩家。";
-            speak = '"本局游戏中没有外来者。"';
+            // 官方：图书管理员允许得知“0”（没有外来者在场）
+            guide = "👀 真实信息：本局没有外来者。请对【图书管理员】示意“0”。";
+            speak = '"0"';
             action = "告知";
           } else if(outsiderSeats.length > 0 && seats.length >= 2) {
             // 正常时：从场上实际存在的外来者中随机选择一个
             const validOutsiders = outsiderSeats.filter(s => s.role !== null);
             if (validOutsiders.length === 0) {
-              guide = "🚫 根据当前角色配置，本局实际上没有外来者 (Outsiders)。\n你应当告诉【图书管理员】：'本局游戏中没有外来者。' 请直接使用这句台词，不要编造虚假的两名玩家。"; 
-              speak = '"本局游戏中没有外来者。"';
+              guide = "👀 真实信息：本局没有外来者。请对【图书管理员】示意“0”。";
+              speak = '"0"';
               action = "告知";
             } else {
               // 检查场上是否有酒鬼
@@ -682,7 +767,8 @@ export const calculateNightInfo = (
               }
               
               // 确保选择的角色确实在该座位上
-              const realRole = realOutsider.role!; // 此时确保不为null，且该角色确实在 realOutsider 座位上
+              const perceived = getPerceivedRoleForViewer(realOutsider, effectiveRole, 'outsider');
+              const realRole = perceived.perceivedRole ?? realOutsider.role!; // fallback
               const realSeatNum = realOutsider.id + 1; // 真实座位号
               
               // 选择干扰项座位（不能是自己，不能是真实外来者的座位）
@@ -788,19 +874,21 @@ export const calculateNightInfo = (
         );
         
         if (minionSeats.length === 0) {
-          guide = "🚫 根据当前角色配置，本局实际上没有爪牙 (Minions)。\n你应当告诉【调查员】：'本局游戏中没有爪牙。' 请直接使用这句台词，不要编造虚假的两名玩家。";
-          speak = '"本局游戏中没有爪牙。"';
+          // 官方：调查员允许得知“0”（没有爪牙在场）
+          guide = "👀 真实信息：本局没有爪牙。请对【调查员】示意“0”。";
+          speak = '"0"';
           action = "告知";
         } else if(minionSeats.length > 0 && seats.length >= 2) {
           // 正常时：随机选择一个实际存在的爪牙，确保角色存在
           const validMinions = minionSeats.filter(s => s.role !== null);
           if (validMinions.length === 0) {
-            guide = "🚫 根据当前角色配置，本局实际上没有爪牙 (Minions)。\n你应当告诉【调查员】：'本局游戏中没有爪牙。' 请直接使用这句台词，不要编造虚假的两名玩家。"; 
-            speak = '"本局游戏中没有爪牙。"';
+            guide = "👀 真实信息：本局没有爪牙。请对【调查员】示意“0”。";
+            speak = '"0"';
             action = "告知";
           } else {
             const realMinion = getRandom(validMinions);
-            const realRole = realMinion.role!; // 此时确保不为null
+            const perceived = getPerceivedRoleForViewer(realMinion, effectiveRole, 'minion');
+            const realRole = perceived.perceivedRole ?? realMinion.role!; // fallback
             
             // 真实爪牙的座位号
             const realSeatNum = realMinion.id + 1;
@@ -914,8 +1002,8 @@ export const calculateNightInfo = (
             action = "展示";
           }
         } else { 
-          guide = "🚫 根据当前角色配置，本局实际上没有爪牙 (Minions)。\n你应当告诉【调查员】：'本局游戏中没有爪牙。' 请直接使用这句台词，不要编造虚假的两名玩家。"; 
-          speak = '"本局游戏中没有爪牙。"'; 
+          guide = "👀 真实信息：本局没有爪牙。请对【调查员】示意“0”。";
+          speak = '"0"';
           action = "告知";
         }
         const regNote = buildRegistrationGuideNote(effectiveRole);
@@ -928,7 +1016,8 @@ export const calculateNightInfo = (
         let pairs = 0;
         for (let i = 0; i < seats.length; i++) {
           const next = (i + 1) % seats.length;
-          if (checkEvilForChefEmpath(seats[i]) && checkEvilForChefEmpath(seats[next]) && !seats[i].isDead && !seats[next].isDead) {
+          // TB 官方细则：厨师探查“相邻玩家”，不要求存活
+          if (checkEvilForChefEmpath(seats[i]) && checkEvilForChefEmpath(seats[next])) {
             pairs++;
           }
         }
@@ -1001,10 +1090,10 @@ export const calculateNightInfo = (
       break;
 
     case 'fortune_teller':
-      guide = "🔮 查验2人。若有恶魔/天敌红罗剎->是。";
+      guide = "🔮 查验2人（可选任意玩家：存活/死亡/自己）。非涡流世界：若选中恶魔或天敌红罗剎 -> “是”。";
       const regNote = buildRegistrationGuideNote(effectiveRole);
       if (regNote) guide += `\n${regNote}`;
-      speak = '"请选择两名玩家查验。如果其中一人是恶魔或天敌红罗剎，我会告诉你\\"是\\"，否则告诉你\\"否\\"。'; 
+      speak = '"请选择两名玩家查验。如果其中一人是恶魔或天敌红罗剎，我会告诉你\\"是\\"，否则告诉你\\"否\\"。"' ;
       action = "查验";
       break;
 
@@ -1016,7 +1105,8 @@ export const calculateNightInfo = (
           const executed = seats.find(s => s.id === lastDuskExecution);
           if (executed && executed.role) {
             const seatNum = executed.id + 1;
-            const realName = executed.role.name;
+            const perceived = getPerceivedRoleForViewer(executed, effectiveRole);
+            const realName = (perceived.perceivedRole ?? executed.role).name;
 
             if (shouldShowFake) {
               // 送葬者在中毒/醉酒/涡流世界下：给出错误的角色信息
@@ -1050,11 +1140,11 @@ export const calculateNightInfo = (
         break;
       }
       if (isPoisoned) {
-        guide = "⚠️ [异常] 中毒/醉酒状态下无法保护玩家，但可以正常选择。"; 
-        speak = '"请选择一名玩家。但由于你处于中毒/醉酒状态，无法提供保护效果。"'; 
+        guide = "⚠️ [异常] 中毒/醉酒状态下，僧侣今晚无法真正保护任何人，但仍照常选择目标。"; 
+        speak = '"请选择一名玩家进行“表面上的”保护。但由于你处于中毒/醉酒状态，实际上无法阻止任何死亡。"'; 
       } else {
-        guide = "🛡️ 选择一名玩家保护。不能保护自己，也不能保护死亡玩家。"; 
-        speak = '"请选择一名存活的其他玩家进行保护。被你保护的玩家今晚不会被恶魔杀害。"'; 
+        guide = "🛡️ 选择一名玩家保护：不能选自己，也不能选已死亡玩家。你只保护该玩家免于【恶魔的夜间攻击】；处决、普卡中毒致死、旅行者/爪牙/镇民等其他来源造成的死亡不在保护范围内。"; 
+        speak = '"请选择一名存活的其他玩家进行保护。若恶魔今晚攻击他，他将不会因此死亡；但处决或其他能力导致的死亡，你无法阻止。"'; 
       }
       action = "保护";
       break;

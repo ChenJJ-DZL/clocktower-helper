@@ -12,15 +12,16 @@ export const saint: RoleDefinition = {
   
   /**
    * 圣徒被处决时的特殊处理
-   * 如果圣徒被处决且未中毒，邪恶方立即获胜
+   * 如果圣徒被处决且未中毒/未醉酒，邪恶方立即获胜
    */
   onExecution: (context: ExecutionContext): ExecutionResult => {
     const { executedSeat, forceExecution } = context;
     
     // 如果强制处决（跳过确认），直接处理
     if (forceExecution) {
-      // 检查是否中毒（中毒时圣徒被处决不会导致邪恶获胜）
-      if (!executedSeat.isPoisoned) {
+      // 规则对齐：中毒或醉酒时圣徒能力失效
+      const disabled = executedSeat.isPoisoned || executedSeat.isDrunk;
+      if (!disabled) {
         return {
           handled: true,
           gameOver: {

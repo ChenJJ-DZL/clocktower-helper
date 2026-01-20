@@ -30,6 +30,9 @@ import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RegistrationResult } from "../../utils/gameRules";
 import { StorytellerSelectModal } from "../modals/StorytellerSelectModal";
+import { PacifistConfirmModal } from "../modals/PacifistConfirmModal";
+import { CourtierSelectRoleModal } from "../modals/CourtierSelectRoleModal";
+import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
 
 // 定义所有 Modal 组件需要的 Props 接口
 export interface GameModalsProps {
@@ -120,6 +123,10 @@ export interface GameModalsProps {
   setDamselGuessed: (value: boolean) => void;
   setShamanTriggered: (value: boolean) => void;
   setHadesiaChoice: (id: number, choice: 'live' | 'die') => void;
+  // BMR：造谣者记录/裁定
+  setGossipStatementToday?: (value: string) => void;
+  setGossipTrueTonight?: (value: boolean) => void;
+  setGossipSourceSeatId?: (value: number | null) => void;
   
   // 数据
   seats: Seat[];
@@ -150,6 +157,7 @@ export interface GameModalsProps {
   confirmNightOrderPreview: () => void;
   confirmExecutionResult: () => void;
   confirmShootResult: () => void;
+  handleSlayerTargetSelect: (targetId: number) => void;
   confirmKill: () => void;
   confirmPoison: () => void;
   confirmPoisonEvil: () => void;
@@ -395,6 +403,8 @@ export function GameModals(props: GameModalsProps) {
   const shamanConvertModal = props.currentModal?.type === 'SHAMAN_CONVERT' ? props.currentModal : null;
   const spyDisguiseModal = props.currentModal?.type === 'SPY_DISGUISE' ? props.currentModal : null;
   const storytellerSelectModal = props.currentModal?.type === 'STORYTELLER_SELECT' ? props.currentModal.data : null;
+  const pacifistConfirmModal = props.currentModal?.type === 'PACIFIST_CONFIRM' ? props.currentModal.data : null;
+  const courtierSelectRoleModal = props.currentModal?.type === 'COURTIER_SELECT_ROLE' ? props.currentModal.data : null;
 
   // 伪装身份识别：避免在 render 中使用 IIFE（React 19 下可能触发内部断言）
   const shouldShowSpyDisguise = !!(props.showSpyDisguiseModal || spyDisguiseModal);
@@ -425,6 +435,16 @@ export function GameModals(props: GameModalsProps) {
   return (
     <>
       {/* Modals */}
+      {courtierSelectRoleModal && (
+        <CourtierSelectRoleModal
+          isOpen={true}
+          sourceId={courtierSelectRoleModal.sourceId}
+          roles={courtierSelectRoleModal.roles}
+          seats={courtierSelectRoleModal.seats}
+          onConfirm={courtierSelectRoleModal.onConfirm}
+          onCancel={courtierSelectRoleModal.onCancel}
+        />
+      )}
       {(props.showNightOrderModal || nightOrderModal) && (
         <ModalWrapper
           title={nightOrderModal?.title || props.nightQueuePreviewTitle || '🌙 今晚要唤醒的顺序列表'}
@@ -837,6 +857,8 @@ export function GameModals(props: GameModalsProps) {
                       <div>• 立刻处决提名者，而不是贞洁者。</div>
                       <div>• 公告台词示例： "因为你提名了贞洁者，你被立即处决。"</div>
                       <div>• 将贞洁者技能标记为已用，今后再被提名不再触发。</div>
+                      <div>• 规则提示：这次“立刻处决”算作今日处决（影响涡流/送葬者等）。</div>
+                      <div>• 相克提示：若提名者同时被女巫诅咒，通常以“发起提名即因女巫死亡”为先；若你仍裁定提名成立，再处理贞洁者（请以说书人裁定为准）。</div>
                     </>
                   ) : (
                     <>
@@ -885,6 +907,26 @@ export function GameModals(props: GameModalsProps) {
           props.setDayAbilityForm({});
         };
         const submit = () => {
+          if (roleId === 'gossip') {
+            const statement = (props.dayAbilityForm.info1 || '').trim();
+            const verdict = props.dayAbilityForm.info2 || ''; // 'true' | 'false' | ''
+            if (!statement) {
+              alert('请填写造谣内容（说书人记录）。');
+              return;
+            }
+            const isTrue = verdict === 'true';
+            const isFalse = verdict === 'false';
+            props.addLog(
+              `${seat.id + 1}号(造谣者) 造谣：${statement}` +
+                (isTrue ? '（说书人裁定：为真，今晚额外死亡）' : isFalse ? '（说书人裁定：为假）' : '（未裁定真假）')
+            );
+            props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: statement }]);
+            props.setGossipStatementToday?.(statement);
+            props.setGossipSourceSeatId?.(seat.id);
+            props.setGossipTrueTonight?.(isTrue);
+            closeModal();
+            return;
+          }
           if (roleId === 'savant_mr') {
             if (!props.dayAbilityForm.info1 || !props.dayAbilityForm.info2) {
               alert('请填写两条信息（可真可假）。');
@@ -992,6 +1034,27 @@ export function GameModals(props: GameModalsProps) {
                 <h2 className="text-2xl font-bold text-blue-200">🌞 {roleName} 日间能力</h2>
                 <button className="text-gray-400 hover:text-white" onClick={closeModal}>✕</button>
               </div>
+              {roleId === 'gossip' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-300">记录造谣内容，并由说书人裁定真假（工具不自动判定）。</p>
+                  <textarea
+                    className="w-full bg-gray-800 border border-gray-700 rounded p-2"
+                    placeholder="造谣内容（说书人记录）"
+                    value={props.dayAbilityForm.info1 || ''}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info1: e.target.value}))}
+                  />
+                  <div className="text-sm text-gray-300">裁定结果：</div>
+                  <select
+                    className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
+                    value={props.dayAbilityForm.info2 || ''}
+                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info2: e.target.value}))}
+                  >
+                    <option value="">未裁定（稍后再定）</option>
+                    <option value="true">为真（今晚额外死亡 1 人）</option>
+                    <option value="false">为假（无事发生）</option>
+                  </select>
+                </div>
+              )}
               {roleId === 'savant_mr' && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-300">填写两条信息（其中一真一假）。</p>
@@ -1280,6 +1343,41 @@ export function GameModals(props: GameModalsProps) {
               🎯 猜测落难少女
             </button>
           )}
+          {/* 快捷状态标记：中毒 / 醉酒（说书人工具） */}
+          {props.gamePhase !== 'setup' && (
+            <>
+              <button
+                onClick={() => props.toggleStatus('poison', targetSeat.id)}
+                className="block w-full text-left px-6 py-3 hover:bg-green-900/80 text-green-200 text-lg font-medium border-t border-gray-700"
+              >
+                ☠️ 切换中毒标记
+              </button>
+              <button
+                onClick={() => props.toggleStatus('drunk', targetSeat.id)}
+                className="block w-full text-left px-6 py-3 hover:bg-yellow-900/80 text-yellow-200 text-lg font-medium border-t border-gray-700"
+              >
+                🍺 切换醉酒标记
+              </button>
+            </>
+          )}
+          {/* 修补匠：说书人可在任意时刻裁定其死亡 */}
+          {targetSeat.role?.id === 'tinker' && !targetSeat.isDead && props.gamePhase !== 'setup' && (
+            <button
+              onClick={() => props.handleMenuAction('tinker_die')}
+              className="block w-full text-left px-6 py-3 hover:bg-orange-900 text-orange-300 text-lg font-medium border-t border-gray-700"
+            >
+              🛠️ 修补匠：裁定死亡
+            </button>
+          )}
+          {/* 造谣者：白天记录造谣并由说书人裁定真假（若为真，今晚额外死一人） */}
+          {props.gamePhase === 'day' && targetSeat.role?.id === 'gossip' && !targetSeat.isDead && (
+            <button
+              onClick={() => props.handleMenuAction('gossip_record')}
+              className="block w-full text-left px-6 py-3 hover:bg-cyan-900 text-cyan-200 text-lg font-medium border-t border-gray-700"
+            >
+              🗣️ 造谣者：记录/裁定
+            </button>
+          )}
           <button 
             onClick={()=>props.toggleStatus('dead')} 
             className="block w-full text-left px-6 py-3 hover:bg-gray-700 text-lg font-medium"
@@ -1316,12 +1414,43 @@ export function GameModals(props: GameModalsProps) {
         onConfirm={props.confirmExecutionResult}
       />
 
+      <PacifistConfirmModal
+        isOpen={!!pacifistConfirmModal}
+        targetId={pacifistConfirmModal?.targetId ?? 0}
+        onSave={() => {
+          if (!pacifistConfirmModal) return;
+          const cb = pacifistConfirmModal.onResolve;
+          props.setCurrentModal(null);
+          cb(true);
+        }}
+        onDoNotSave={() => {
+          if (!pacifistConfirmModal) return;
+          const cb = pacifistConfirmModal.onResolve;
+          props.setCurrentModal(null);
+          cb(false);
+        }}
+      />
+
       <ShootResultModal
         isOpen={!!props.showShootResultModal}
         message={props.showShootResultModal?.message || ''}
         isDemonDead={props.showShootResultModal?.isDemonDead || false}
         onConfirm={props.confirmShootResult}
       />
+
+      {props.currentModal?.type === 'SLAYER_SELECT_TARGET' && (
+        <SlayerSelectTargetModal
+          isOpen={true}
+          shooterId={props.currentModal.data.shooterId}
+          seats={props.seats}
+          onConfirm={(targetId) => {
+            props.handleSlayerTargetSelect(targetId);
+          }}
+          onCancel={() => {
+            props.setCurrentModal(null);
+          }}
+        />
+      )}
 
       <KillConfirmModal
         targetId={props.showKillConfirmModal}

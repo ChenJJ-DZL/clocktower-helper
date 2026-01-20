@@ -2,8 +2,13 @@ import { RoleDefinition } from "../../types/roleDefinition";
 import { Seat } from "../../types/game";
 
 /**
- * 涡流
- * TODO: 添加角色描述
+ * 涡流 (Vortox)
+ * 每晚选一名玩家：他死亡。
+ * 镇民玩家的能力都会产生错误信息；若白天无人被处决（不含流放），邪恶阵营立即获胜。
+ *
+ * 说明：
+ * - 信息“必假”与“白天无人处决即邪恶胜利”的裁定在统一的夜晚信息生成与日落阶段逻辑中处理；
+ * - 这里仅用于夜晚顺位 & UI 交互（目标数量 / 提示文案）。
  */
 export const vortox: RoleDefinition = {
   id: "vortox",
@@ -15,15 +20,16 @@ export const vortox: RoleDefinition = {
     
     target: {
       count: {
-        min: 0,
-        max: 0,
+        // 每晚必须选择 1 名玩家作为攻击目标
+        min: 1,
+        max: 1,
       },
     },
     
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（涡流）。`,
-        instruction: "请执行行动",
+        instruction: "请选择一名玩家杀死。请记住：只要你存活，所有镇民通过能力获得的信息都会是错误的；若今天白天无人被处决，邪恶阵营将立即获胜。",
         close: `${playerSeatId + 1}号玩家（涡流），请闭眼。`,
       };
     },

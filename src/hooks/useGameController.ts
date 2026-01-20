@@ -29,6 +29,7 @@ import {
   type RegistrationCacheOptions,
 } from "../utils/gameRules";
 import { calculateNightInfo, generateNightTimeline } from "../utils/nightLogic";
+import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } from "../utils/antagonism";
 
 // DayAbilityConfig type for day ability triggers
 export type DayAbilityConfig = {
@@ -294,6 +295,10 @@ export function useGameController() {
     fangGuConverted, setFangGuConverted,
     jugglerGuesses, setJugglerGuesses,
     evilTwinPair, setEvilTwinPair,
+    outsiderDiedToday, setOutsiderDiedToday,
+    gossipStatementToday, setGossipStatementToday,
+    gossipTrueTonight, setGossipTrueTonight,
+    gossipSourceSeatId, setGossipSourceSeatId,
     
     // ===========================
     //  统一的弹窗状态
@@ -348,6 +353,7 @@ export function useGameController() {
     voteRecords, setVoteRecords,
     votedThisRound, setVotedThisRound,
     hasExecutedThisDay, setHasExecutedThisDay,
+    mastermindFinalDay, setMastermindFinalDay,
     remainingDays, setRemainingDays,
     goonDrunkedThisNight, setGoonDrunkedThisNight,
     // 所有 Modal 显示状态
@@ -408,7 +414,6 @@ export function useGameController() {
 
   // 相克规则（灯神在场时启用）
   // 说明：相克规则是规则而非能力；灯神只是允许说书人宣布这些规则。
-import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } from "../utils/antagonism";
   
   // 注意seatsRef 需要同步 seats 状态
   seatsRef.current = seats;
@@ -440,6 +445,23 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
   const resetRegistrationCache = useCallback((key: string) => {
     registrationCacheRef.current = new Map();
     registrationCacheKeyRef.current = key;
+  }, []);
+
+  // ============================================================================
+  // 关键：避免 “Cannot access 'killPlayer' before initialization”
+  //
+  // 说明：本文件内有不少 useCallback/useEffect 在 killPlayer 实现声明之前就引用了它。
+  // 在 JS 中，const 变量在声明前处于 TDZ（Temporal Dead Zone），会导致运行时崩溃。
+  //
+  // 解决：提前声明一个稳定的 killPlayer wrapper（永远已初始化），内部通过 ref
+  // 调用后面定义的真实实现 killPlayerImpl。
+  // ============================================================================
+  const killPlayerImplRef = useRef<
+    ((targetId: number, options?: any) => void) | null
+  >(null);
+
+  const killPlayer = useCallback((targetId: number, options: any = {}) => {
+    killPlayerImplRef.current?.(targetId, options);
   }, []);
 
   const getRegistrationCached = useCallback(
@@ -1163,11 +1185,12 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
         todayMinionNominated,
         todayExecutedId,
         hasUsedAbility,
-        votedThisRound // NEW: Pass votedThisRound for Flowergirl/Town Crier
+        votedThisRound, // NEW: Pass votedThisRound for Flowergirl/Town Crier
+        outsiderDiedToday // NEW: Pass outsiderDiedToday for Godfather/Gossip
       );
     }
     return null;
-  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility, votedThisRound]);
+  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility, votedThisRound, outsiderDiedToday]);
 
   // 检查游戏结束条件
   const checkGameOver = useCallback((updatedSeats: Seat[], executedPlayerIdArg?: number | null, preserveWinReason?: boolean) => {
@@ -1213,7 +1236,8 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       const justExecutedSaint =
         executedPlayer &&
         executedPlayer.role?.id === 'saint' &&
-        !executedPlayer.isPoisoned &&
+        // 规则对齐：中毒或醉酒时，圣徒能力失效
+        !isActorDisabledByPoisonOrDrunk(executedPlayer) &&
         executedPlayer.isDead;
       if (justExecutedSaint) {
         setWinResult('evil');
@@ -1284,14 +1308,9 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       // 如果存活玩家数量 >= 5 且有红唇女郎游戏继续红唇女郎的变身在 executePlayer 中处理
     }
     
-    const mayorAlive = aliveSeats.some(s => s.role?.id === 'mayor');
-    if (aliveCount === 3 && mayorAlive && gamePhase === 'day') {
-      setWinResult('good');
-      setWinReason('3人存活且无人被处决，市长能力');
-      setGamePhase('gameOver');
-      addLog("因为场上只剩 3 名存活玩家且今天无人被处决，市长触发能力，好人立即获胜");
-      return true;
-    }
+    // 注意：市长“三活且当日不处决好人胜”属于“白天结束时的选择/流程”，
+    // 不应在通用 checkGameOver 中任意时刻触发（否则白天任意一次死亡/检查都可能提前结束游戏）。
+    // 该逻辑在 handleDayEndTransition -> MAYOR_THREE_ALIVE -> declareMayorImmediateWin 中处理。
 
     // ------------------------------------------------------------
     // 核心胜负条件：善良 vs 邪恶
@@ -1300,6 +1319,17 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     const evilCoreWin = aliveCount <= 2; // 旅行者不计入
 
     if (goodCoreWin) {
+      // BMR：主谋（Mastermind）
+      // 恶魔死亡后，若主谋存活且未中毒/醉酒，游戏继续进行“额外一天”。
+      // 额外一天结束时：若无人处决 -> 邪恶获胜；否则 -> 善良获胜（恶魔已死）。
+      const mastermind = updatedSeats.find(s => s.role?.id === 'mastermind' && !s.isDead);
+      const mastermindActive = mastermind && !isActorDisabledByPoisonOrDrunk(mastermind);
+      if (mastermindActive && !mastermindFinalDay?.active) {
+        setMastermindFinalDay({ active: true, triggeredAtNight: nightCount });
+        addLog('🧠 主谋在场：恶魔已死，但游戏继续进行额外一天（若该天无人处决则邪恶获胜）');
+        return false;
+      }
+
       // 所有恶魔均死亡（含传位） => 善良阵营胜利
       setWinResult('good');
       if (!preserveWinReason) {
@@ -1324,7 +1354,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     }
     
     return false;
-  }, [addLog, gamePhase, evilTwinPair, executedPlayerId, setWinResult, setWinReason, setGamePhase]);
+  }, [addLog, gamePhase, evilTwinPair, executedPlayerId, setWinResult, setWinReason, setGamePhase, mastermindFinalDay, setMastermindFinalDay, nightCount]);
 
   // 继续到下一个夜晚行动
   const continueToNextAction = useCallback(() => {
@@ -1335,6 +1365,42 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     // If wakeQueueIds is empty, directly transition to day
     if (wakeQueueIds.length === 0) {
       console.log('[continueToNextAction] Empty wake queue, transitioning directly to day');
+      // BMR：造谣者造谣为真 → 本夜额外死亡（说书人裁定）
+      if (selectedScript?.id === 'bad_moon_rising' && gossipTrueTonight && gossipSourceSeatId !== null) {
+        const sourceId = gossipSourceSeatId;
+        const statement = gossipStatementToday ? `造谣：「${gossipStatementToday}」` : '造谣为真';
+        setCurrentModal({
+          type: 'STORYTELLER_SELECT',
+          data: {
+            sourceId,
+            roleId: 'gossip',
+            roleName: '造谣者',
+            description: `🗡️ ${statement}\n说书人：请选择 1 名玩家死亡（额外死亡）。`,
+            targetCount: 1,
+            onConfirm: (targetIds: number[]) => {
+              const tid = targetIds[0];
+              if (tid === undefined) return;
+              // 先关闭选择弹窗
+              setCurrentModal(null);
+              // 结算额外死亡（复用统一 killPlayer 逻辑）
+              killPlayer(tid, {
+                source: 'ability',
+                recordNightDeath: true,
+                onAfterKill: () => {
+                  addLog(`🗣️ ${sourceId + 1}号(造谣者) 造谣为真：说书人裁定 ${tid + 1}号 额外死亡`);
+                  setGossipTrueTonight(false);
+                  setGossipSourceSeatId(null);
+                  // 然后正常进入夜晚死亡报告
+                  const merged = Array.from(new Set([...(deadThisNight || []), tid]));
+                  const deadNames = merged.length > 0 ? merged.map(id => `${id + 1}号`).join('、') : '';
+                  setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: deadNames ? `昨晚${deadNames}玩家死亡` : "昨天是个平安夜" } });
+                },
+              });
+            },
+          },
+        });
+        return;
+      }
       if(deadThisNight.length > 0) {
         const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
         setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
@@ -1409,6 +1475,39 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       // 2. CRITICAL TRANSITION LOGIC - Force transition to day
       // Show death report first, then transition to day
       // The modal's onConfirm (confirmNightDeathReport) will handle the actual transition
+      // BMR：造谣者造谣为真 → 本夜额外死亡（说书人裁定）
+      if (selectedScript?.id === 'bad_moon_rising' && gossipTrueTonight && gossipSourceSeatId !== null) {
+        const sourceId = gossipSourceSeatId;
+        const statement = gossipStatementToday ? `造谣：「${gossipStatementToday}」` : '造谣为真';
+        setCurrentModal({
+          type: 'STORYTELLER_SELECT',
+          data: {
+            sourceId,
+            roleId: 'gossip',
+            roleName: '造谣者',
+            description: `🗡️ ${statement}\n说书人：请选择 1 名玩家死亡（额外死亡）。`,
+            targetCount: 1,
+            onConfirm: (targetIds: number[]) => {
+              const tid = targetIds[0];
+              if (tid === undefined) return;
+              setCurrentModal(null);
+              killPlayer(tid, {
+                source: 'ability',
+                recordNightDeath: true,
+                onAfterKill: () => {
+                  addLog(`🗣️ ${sourceId + 1}号(造谣者) 造谣为真：说书人裁定 ${tid + 1}号 额外死亡`);
+                  setGossipTrueTonight(false);
+                  setGossipSourceSeatId(null);
+                  const merged = Array.from(new Set([...(deadThisNight || []), tid]));
+                  const deadNames = merged.length > 0 ? merged.map(id => `${id + 1}号`).join('、') : '';
+                  setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: deadNames ? `昨晚${deadNames}玩家死亡` : "昨天是个平安夜" } });
+                },
+              });
+            },
+          },
+        });
+        return;
+      }
       if(deadThisNight.length > 0) {
         const deadNames = deadThisNight.map(id => `${id+1}号`).join('、');
         setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
@@ -1419,7 +1518,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       // Ensure we're still in night phase before transition (safety check)
       // The modal callback will handle the actual transition
     }
-  }, [saveHistory, seats, deadThisNight, wakeQueueIds, currentWakeIndex, gamePhase, nightInfo, poppyGrowerDead, setCurrentWakeIndex, setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setCurrentModal, addLog, getSeatRoleId]);
+  }, [saveHistory, seats, deadThisNight, wakeQueueIds, currentWakeIndex, gamePhase, nightInfo, poppyGrowerDead, selectedScript, gossipTrueTonight, gossipSourceSeatId, gossipStatementToday, setGossipTrueTonight, setGossipSourceSeatId, setCurrentWakeIndex, setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setCurrentModal, addLog, getSeatRoleId, killPlayer]);
 
   const currentNightRole = useMemo(() => {
     if (!nightInfo) return null;
@@ -1737,7 +1836,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
    * 统一的击杀入口
    * 流程：检查是否已死 -> 检查是否免疫 -> 检查是否被保护 -> 执行死亡 -> 触发亡语
    */
-  const killPlayer = useCallback(
+  const killPlayerImpl = useCallback(
     (targetId: number, options: KillPlayerOptions & { source?: 'demon' | 'execution' | 'ability' } = {}) => {
       const seatsSnapshot = seatsRef.current || seats;
       const targetSeat = seatsSnapshot.find(s => s.id === targetId);
@@ -1754,6 +1853,51 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       } = options;
       
       const killerRoleId = nightInfo?.effectiveRole.id;
+
+      // ======================================================================
+      // BMR：水手（Sailor）—— 健康时不会死亡（适用于所有死亡来源）
+      // 规则：水手中毒/醉酒时能力失效
+      // ======================================================================
+      if (targetSeat.role?.id === 'sailor') {
+        const disabled = isActorDisabledByPoisonOrDrunk(targetSeat);
+        if (!disabled) {
+          addLog(`🍺 ${targetId + 1}号 [水手] 健康时不会死亡，免于死亡`);
+          if (source === 'demon') {
+            setShowAttackBlockedModal({
+              targetId,
+              reason: '水手免死',
+              demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+            });
+          }
+          return;
+        }
+      }
+
+      // ======================================================================
+      // BMR：弄臣（Fool）首死免死 —— 适用于所有死亡来源
+      // 规则：第一次将要死亡时不死亡；若弄臣中毒/醉酒则能力无效
+      // 说明：放在“免疫/保护”之前，避免被后续逻辑改写；不影响刺客无视茶艺师（那是另一路保护逻辑）
+      // ======================================================================
+      if (targetSeat.role?.id === 'fool') {
+        const alreadyTriggered = (targetSeat.statusDetails || []).some((d) => d.includes('弄臣免死已触发'));
+        const disabled = isActorDisabledByPoisonOrDrunk(targetSeat);
+        if (!alreadyTriggered && !disabled) {
+          setSeats(prev => prev.map(s => {
+            if (s.id !== targetId) return s;
+            const details = Array.from(new Set([...(s.statusDetails || []), '弄臣免死已触发']));
+            return { ...s, statusDetails: details };
+          }));
+          addLog(`🃏 ${targetId + 1}号 [弄臣] 第一次将要死亡，免于死亡`);
+          if (source === 'demon') {
+            setShowAttackBlockedModal({
+              targetId,
+              reason: '弄臣免死',
+              demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+            });
+          }
+          return;
+        }
+      }
 
       // ======================================================================
       // 步骤 1: 检查是否已死
@@ -1784,7 +1928,8 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       // ======================================================================
       if (source === 'demon') {
         // 士兵天生免疫恶魔攻击（除非中毒）
-        if (targetSeat.role?.id === 'soldier' && !targetSeat.isPoisoned) {
+        // 规则对齐：士兵在“中毒或醉酒”时免疫失效
+        if (targetSeat.role?.id === 'soldier' && !isActorDisabledByPoisonOrDrunk(targetSeat)) {
           addLog(`🛡️ ${targetId + 1}号 [士兵] 免疫了恶魔的攻击！`);
           setCurrentModal({
             type: 'ATTACK_BLOCKED',
@@ -1801,21 +1946,33 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       // ======================================================================
       // 步骤 3: 检查是否被保护
       // ======================================================================
-      // 3.1 僧侣保护（仅对恶魔夜袭）
-      if (source === 'demon' && targetSeat.isProtected && targetSeat.protectedBy !== null) {
+      // 3.1 “不会死亡”类保护（僧侣/旅店老板等）
+      if (targetSeat.isProtected && targetSeat.protectedBy !== null) {
         const protectorSeat = seatsSnapshot.find((s) => s.id === targetSeat.protectedBy);
+        const protectorRoleId = protectorSeat?.role?.id;
         const protectorName = protectorSeat?.role?.name || '未知';
-        addLog(`🛡️ ${targetId + 1}号 被${protectorName}保护，免于死亡！`);
-        setShowAttackBlockedModal({
-          targetId,
-          reason: `${protectorName}保护`,
-          demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
-        });
-        return;
+
+        // 僧侣：仅对恶魔夜袭有效
+        const monkBlocks = protectorRoleId === 'monk' && source === 'demon';
+        // 旅店老板：当晚不会死亡（通常用于抵挡夜晚的各种死亡来源），但不影响处决
+        const innkeeperBlocks = protectorRoleId === 'innkeeper' && source !== 'execution';
+        // 其他保护：保持旧行为（只挡恶魔），避免影响 TB 既有逻辑
+        const defaultBlocks = protectorRoleId !== 'innkeeper' && protectorRoleId !== 'monk' && source === 'demon';
+
+        if (monkBlocks || innkeeperBlocks || defaultBlocks) {
+          addLog(`🛡️ ${targetId + 1}号 被${protectorName}保护，免于死亡！`);
+          setShowAttackBlockedModal({
+            targetId,
+            reason: `${protectorName}保护`,
+            demonName: nightInfo ? getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name) : undefined,
+          });
+          return;
+        }
       }
       
       // 3.2 茶艺师动态保护（对所有攻击）
-      if (hasTeaLadyProtection(targetSeat, seatsSnapshot)) {
+      // 规则：刺客可以无视“不会死亡”类保护（含茶艺师），因此刺客击杀不应被此处拦截
+      if (killerRoleId !== 'assassin' && hasTeaLadyProtection(targetSeat, seatsSnapshot)) {
         addLog(`${targetId + 1}被茶艺师保护未死亡`);
         setShowAttackBlockedModal({
           targetId,
@@ -1887,9 +2044,12 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
 
         const finalSeats = seatsToUse;
 
-        // 诺-达杀人后邻近两名镇民中毒永久直到游戏结束
+        // 诺-达杀人后邻近两名镇民中毒（直到诺-达失去能力 / 离场，这里近似为永久）
         if (killerRoleId === 'no_dashii') {
-          const neighbors = getAliveNeighbors(finalSeats, targetId).filter(s => s.role?.type === 'townsfolk');
+          // 规则：中毒的是"诺-达鲺本体"的两名邻近镇民，而非本次被杀死的目标
+          const noDashiiSeat = finalSeats.find(s => s.role?.id === 'no_dashii' && !s.isDead);
+          const originId = noDashiiSeat ? noDashiiSeat.id : targetId;
+          const neighbors = getAliveNeighbors(finalSeats, originId).filter(s => s.role?.type === 'townsfolk');
           const poisoned = neighbors.slice(0, 2);
           if (poisoned.length > 0) {
             setSeats(p => p.map(s => {
@@ -1905,25 +2065,28 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
           }
         }
 
-        // 方古若杀死外来者且未转化过则目标变恶魔自己死亡
+        // 方古：若被其能力杀死的目标为外来者且本局尚未成功转化，则目标变为新的方古，原方古死亡（仅首次成功转化生效）
         if (killerRoleId === 'fang_gu' && !fangGuConverted) {
           const targetRole = targetSeat.role;
           const isOutsider = targetRole?.type === 'outsider';
           if (isOutsider) {
             const fangGuRole = roles.find(r => r.id === 'fang_gu');
             setSeats(p => p.map(s => {
+              // 目标外来者：转化为恶魔方古，并清理其身上的暂存状态（仍保留死亡状态由上方逻辑控制）
               if (s.id === targetId) {
-                return cleanseSeatStatuses({ ...s, role: fangGuRole || s.role, isDemonSuccessor: false });
+                const next = cleanseSeatStatuses({ ...s, role: fangGuRole || s.role, isDemonSuccessor: false });
+                return { ...next, isDead: false };
               }
-              if (s.id === (nightInfo?.seat?.id ?? 0)) {
+              // 原方古：立即死亡（无论是否为继任恶魔）
+              if (nightInfo && s.id === nightInfo.seat.id) {
                 return { ...s, isDead: true };
               }
               return s;
             }));
             setFangGuConverted(true);
             if (nightInfo?.seat.id !== undefined) {
-              const seatId = nightInfo?.seat?.id ?? 0;
-              addLog(`${seatId+1}号(方古) 杀死外来者，目标转化为方古，原方古死亡`);
+              const seatId = nightInfo.seat.id;
+              addLog(`${seatId + 1}号(方古) 杀死外来者，目标转化为新的方古，原方古死亡（本局方古已完成一次转化）`);
             }
             onAfterKill?.(finalSeats);
             return;
@@ -1982,6 +2145,11 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     },
     [seats, nightInfo, enqueueRavenkeeperIfNeeded, checkGameOver, hasTeaLadyProtection, getDemonDisplayName, fangGuConverted, addLog, setSeats, setWakeQueueIds, setDeadThisNight, setShowAttackBlockedModal, setShowBarberSwapModal, setShowKlutzChoiceModal, setShowSweetheartDrunkModal, setShowMoonchildKillModal, setFangGuConverted, checkImpStarPass, setCurrentModal]
   );
+
+  // 将真实实现注入到稳定 wrapper 中
+  useEffect(() => {
+    killPlayerImplRef.current = killPlayerImpl;
+  }, [killPlayerImpl]);
 
   /**
    * 尝试击杀玩家（兼容旧接口，内部调用统一的 killPlayer）
@@ -2106,6 +2274,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       poChargeState,
       goonDrunkedThisNight,
       isVortoxWorld,
+      outsiderDiedToday,
       nightInfo,
       nightQueuePreviewTitle,
     },
@@ -2383,7 +2552,12 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       const withRed = [...compact];
       const hasFortuneTeller = withRed.some(s => s.role?.id === "fortune_teller");
       if (hasFortuneTeller && !withRed.some(s => s.isRedHerring)) {
-        const good = withRed.filter(s => ["townsfolk","outsider"].includes(s.role?.type || ""));
+        // 官方：天敌红罗剎必须是“善良玩家”；若未来阵营变化导致其变邪恶，需要重新指派
+        const good = withRed.filter(
+          (s) =>
+            ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+            isGoodAlignment(s)
+        );
         if (good.length > 0) {
           const t = getRandom(good);
           withRed[t.id] = { 
@@ -2422,11 +2596,53 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     }
     
     try {
+      // 占卜师的天敌红罗剎：若当前标记不在善良玩家身上（例如后续阵营变化），需要重新指派
+      setSeats((prev) => {
+        const hasFT = prev.some((s) => s.role?.id === "fortune_teller");
+        if (!hasFT) return prev;
+
+        const current = prev.find((s) => s.isRedHerring);
+        const currentIsValidGood = !!current && isGoodAlignment(current);
+        if (currentIsValidGood) return prev;
+
+        const candidates = prev.filter(
+          (s) =>
+            ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+            isGoodAlignment(s) &&
+            !s.isRedHerring
+        );
+        if (candidates.length === 0) return prev;
+
+        const chosen = getRandom(candidates);
+        const next = prev.map((s) => {
+          if (s.isRedHerring) {
+            return {
+              ...s,
+              isRedHerring: false,
+              statusDetails: (s.statusDetails || []).filter((x) => x !== "天敌红罗剎"),
+            };
+          }
+          if (s.id === chosen.id) {
+            return {
+              ...s,
+              isRedHerring: true,
+              statusDetails: [...(s.statusDetails || []), "天敌红罗剎"],
+            };
+          }
+          return s;
+        });
+
+        const redRoleName = chosen.role?.name || "未知角色";
+        addLog(`天敌红罗剎重新指派至${chosen.id + 1}号：${redRoleName}`);
+        setAutoRedHerringInfo(`${chosen.id + 1}号：${redRoleName}`);
+        return next;
+      });
+
       nightLogic.startNight(isFirst);
     } catch (error) {
       alert(`入夜时发生错误: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, [nightLogic]);
+  }, [addLog, nightLogic, setSeats, setAutoRedHerringInfo]);
 
   // CRITICAL FIX: Synchronous transition to First Night
   // This function bypasses the complex async startNight logic and directly transitions
@@ -2633,6 +2849,51 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
 
   // 带状态更新：阵容配置校验
   const validateCompositionSetup = useCallback((activeSeats: Seat[]) => {
+    // =========================================================
+    // TB 额外校验：唯一性与关键 Setup 约束（不影响其他剧本）
+    // =========================================================
+    if (selectedScript?.id === 'trouble_brewing') {
+      const countByRoleId = (roleId: string) =>
+        activeSeats.filter(s => s.role?.id === roleId).length;
+
+      const baronCount = countByRoleId('baron');
+      if (baronCount > 1) {
+        const msg = `暗流涌动规则：男爵只能有 1 名（当前 ${baronCount} 名）。请移除重复男爵后再开始。`;
+        addLog(`⛔ ${msg}`);
+        alert(msg);
+        return false;
+      }
+
+      const drunkCount = countByRoleId('drunk');
+      if (drunkCount > 1) {
+        const msg = `暗流涌动规则：酒鬼只能有 1 名（当前 ${drunkCount} 名）。请移除重复酒鬼后再开始。`;
+        addLog(`⛔ ${msg}`);
+        alert(msg);
+        return false;
+      }
+
+      const scarletCount = countByRoleId('scarlet_woman');
+      if (scarletCount > 1) {
+        const msg = `暗流涌动规则：红罗剎只能有 1 名（当前 ${scarletCount} 名）。请移除重复红罗剎后再开始。`;
+        addLog(`⛔ ${msg}`);
+        alert(msg);
+        return false;
+      }
+
+      // 酒鬼必须设置“伪装身份”，否则夜晚信息/提示会出现不一致
+      const drunkSeat = activeSeats.find(s => s.role?.id === 'drunk');
+      if (drunkSeat) {
+        const charade = drunkSeat.charadeRole;
+        const ok = !!charade && charade.id !== 'drunk' && charade.type === 'townsfolk';
+        if (!ok) {
+          const msg = `暗流涌动规则：酒鬼需要一个“镇民伪装身份”（已选：${charade?.name ?? '未选择'}）。请先为酒鬼选择伪装身份再开始。`;
+          addLog(`⛔ ${msg}`);
+          alert(msg);
+          return false;
+        }
+      }
+    }
+
     const status = getCompositionStatus(activeSeats);
     if (!status.valid && status.standard) {
       setCompositionError({
@@ -2645,7 +2906,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     }
     setCompositionError(null);
     return true;
-  }, [getCompositionStatus, setCompositionError]);
+  }, [getCompositionStatus, setCompositionError, selectedScript, addLog]);
 
   // 复活座位（清理临时负面状态）
   const reviveSeat = useCallback((seat: Seat): Seat => {
@@ -2950,6 +3211,53 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     // 保留的硬编码逻辑（逐步迁移到角色定义中）
     // ======================================================================
 
+    // 弄臣：第一次将要死亡时不死亡（若中毒/醉酒则无效）
+    // 这里处理“处决导致的死亡”，其他来源的死亡由 killPlayer 处理
+    if (t.role.id === 'fool') {
+      const alreadyTriggered = (t.statusDetails || []).some((d) => d.includes('弄臣免死已触发'));
+      const disabled = isActorDisabledByPoisonOrDrunk(t);
+      if (!alreadyTriggered && !disabled && !forceExecution) {
+        setSeats(prev => prev.map(s => {
+          if (s.id !== id) return s;
+          const details = Array.from(new Set([...(s.statusDetails || []), '弄臣免死已触发']));
+          return { ...s, statusDetails: details };
+        }));
+        addLog(`🃏 ${id+1}号 [弄臣] 第一次将要死亡，免于死亡（处决无效）`);
+        setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `🃏 ${id+1}号（弄臣）第一次将要死亡，本次不死亡` } });
+        setExecutedPlayerId(id);
+        setCurrentDuskExecution(id);
+        return;
+      }
+    }
+
+    // 和平主义者：被处决的镇民“可能”不死（由说书人裁定/随机）
+    // 仅在“处决一个镇民且将要死亡”时询问；若已有其他处决保护/茶艺师保护则不会走到这里
+    if (!forceExecution && t.role.type === 'townsfolk') {
+      const pacifists = seatsSnapshot.filter(s => s.role?.id === 'pacifist' && !s.isDead && isGoodAlignment(s));
+      const hasActivePacifist = pacifists.some(p => !isActorDisabledByPoisonOrDrunk(p));
+      if (hasActivePacifist) {
+        setCurrentModal({
+          type: 'PACIFIST_CONFIRM',
+          data: {
+            targetId: id,
+            onResolve: (saved: boolean) => {
+              if (saved) {
+                addLog(`🕊️ 和平主义者：${id+1}号 镇民本次处决不死亡`);
+                setExecutedPlayerId(id);
+                setCurrentDuskExecution(id);
+                setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `🕊️ 和平主义者：${id+1}号 镇民本次处决不死亡` } });
+                return;
+              }
+              // 未触发：继续正常处决流程（强制执行一次以避免递归弹窗）
+              executePlayer(id, { skipLunaticRps, forceExecution: true });
+              setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${id+1}号被处决` } });
+            }
+          }
+        });
+        return;
+      }
+    }
+
     // 茶艺师动态保护邻座善良茶艺师保护的善良玩家无法被处
     if (hasTeaLadyProtection(t, seatsSnapshot)) {
       addLog(`🛡️ ${id+1}号 被茶艺师保护，免于被处决！`);
@@ -2970,7 +3278,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       const protectionReason = protectionDetails || '技能保护';
       
       addLog(`🛡️ ${id+1}号 免于被处决！(${protectionReason})`);
-      alert(`🛡️ 处决失败！\n${id+1}号 受到技能保护，无法死亡。`);
+      setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `🛡️ 处决失败：${id+1}号 受到技能保护，无法死亡（${protectionReason}）` } });
       setExecutedPlayerId(id);
       setCurrentDuskExecution(id);
       return;
@@ -3032,7 +3340,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     // 优先检查圣徒被处决导致邪恶方获胜优先级高于恶魔死亡判定
     // 这个检查必须在恶魔死亡检查之前确保圣徒被处决的判定优先级更
     // 虽然通常不会同时发生但在复杂结算中要注意优先级
-    if (t?.role?.id === 'saint' && !t.isPoisoned) {
+    if (t?.role?.id === 'saint' && !isActorDisabledByPoisonOrDrunk(t)) {
       setSeats(newSeats);
       addLog(`${id+1}被处决`);
       setExecutedPlayerId(id);
@@ -3062,26 +3370,18 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
         return;
       }
       
-      // 主谋特殊处理如果主谋在游戏开始时存活且恶魔在首夜被处决邪恶阵营获
-      if (gamePhase === 'firstNight') {
-        const mastermind = seatsSnapshot.find(s => 
-          s.role?.id === 'mastermind' && !s.isDead
-        );
-        if (mastermind) {
-          setSeats(newSeats);
-          addLog(`${id+1}被处决`);
-          setExecutedPlayerId(id);
-          setCurrentDuskExecution(id);
-          setWinResult('evil');
-          setWinReason('主谋恶魔在首夜被处决');
-          setGamePhase('gameOver');
-          addLog(`游戏结束主谋在场恶魔在首夜被处决邪恶阵营获胜`);
-          return;
-        }
-      }
+      // 主谋（Mastermind）不在这里做“首夜处决恶魔直接邪恶胜”的硬编码裁定；
+      // 统一交由 checkGameOver 处理“恶魔死亡->额外一天”的规则。
       
-      // 计算处决后的存活玩家数量
-      const aliveCount = newSeats.filter(s => !s.isDead).length;
+      // 计算处决后的存活玩家数量（旅行者不计入；僵怖假死视为存活）
+      const aliveSeatsAfter = newSeats.filter(s => {
+        if (!s || !s.role) return false;
+        if (s.role.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
+          return true;
+        }
+        return !s.isDead;
+      });
+      const aliveCount = aliveSeatsAfter.filter(s => s.role && s.role.type !== 'traveler').length;
       
       // 检查红唇女郎是否可以变成恶
       const scarletWoman = newSeats.find(s => 
@@ -3104,7 +3404,8 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
                 statusDetails: statusDetails
               };
             }
-            return s;
+            // 保证全局只有一个“恶魔继任者”标记，避免后续胜负/注册出现分叉
+            return s.isDemonSuccessor ? { ...s, isDemonSuccessor: false } : s;
           });
           
           setSeats(updatedSeats);
@@ -3128,17 +3429,20 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
         }
       }
       
-      // 如果不满足红唇女郎变身条件判定好人胜利
+      // 如果不满足红唇女郎变身条件：恶魔确实死亡
+      // 注意：此处不要直接判定好人胜利（主谋可能让游戏继续额外一天），统一交由 checkGameOver 决定
       setSeats(newSeats);
       addLog(`${id+1}号(${t.role?.name || '小恶魔'}) 被处决`);
       setExecutedPlayerId(id);
       setTodayExecutedId(id);
       setCurrentDuskExecution(id);
       setHasExecutedThisDay(true); // Mark execution for Vortox check
-      setWinResult('good');
-      setWinReason(`${t.role?.name || '小恶魔'}被处决`);
-      setGamePhase('gameOver');
-      addLog("游戏结束，恶魔被处决，好人胜利");
+      if (checkGameOver(newSeats, id)) {
+        return;
+      }
+      setTimeout(() => {
+        nightLogic.startNight(false);
+      }, 500);
       return;
     }
     
@@ -3209,8 +3513,31 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     // 10. 记录当前黄昏的处决用于送葬者
     // 这个记录会在进入下一个黄昏时更新为lastDuskExecution
     setCurrentDuskExecution(id);
+
+    // BMR：吟游诗人（Minstrel）
+    // 若有爪牙被处决且吟游诗人存活且未中毒/醉酒，则所有存活玩家醉酒直到下个黄昏。
+    if (t.role?.type === 'minion') {
+      const minstrelSeat = seatsSnapshot.find(s => s.role?.id === 'minstrel' && !s.isDead);
+      if (minstrelSeat && !isActorDisabledByPoisonOrDrunk(minstrelSeat)) {
+        const clearTime = '下个黄昏';
+        setSeats(prev => prev.map(s => {
+          if (!s.role || s.isDead) return s;
+          const { statusDetails, statuses } = addDrunkMark(s, 'minstrel', clearTime);
+          const next = { ...s, statusDetails, statuses };
+          return { ...next, isDrunk: true };
+        }));
+        addLog(`🎻 吟游诗人能力触发：爪牙被处决，所有存活玩家醉酒直到下个黄昏`);
+      }
+    }
     
-    // 立即检查游戏结束条件包括存活人数和恶魔死亡
+    // 教父：记录今日是否有外来者被处决（供当夜教父额外杀人触发）
+    const executedRole = t.role;
+    if (executedRole?.type === 'outsider') {
+      setOutsiderDiedToday(true);
+      addLog(`📜 规则提示：今日有外来者被处决，若场上有教父且未醉/毒，当晚将被唤醒执行额外杀人`);
+    }
+    
+    // 立即检查游戏结束条件包括存活人数和恶魔死亡/主谋额外一天
     // 注意圣徒被处决的检查已经在前面优先处理了checkGameOver 内部也会检查作为双重保
     if (checkGameOver(newSeats, id)) {
       return;
@@ -3472,6 +3799,26 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       nightLogic.startNight(false);
       return;
     }
+
+    // BMR：主谋（Mastermind）额外一天的结算
+    // 在进入夜晚前裁定胜负：
+    // - 若额外一天无人处决 -> 邪恶获胜
+    // - 若额外一天发生处决 -> 善良获胜（恶魔已死）
+    if (mastermindFinalDay?.active) {
+      if (todayExecutedId === null) {
+        setWinResult('evil');
+        setWinReason('主谋翻盘：额外一天无人处决');
+        setGamePhase('gameOver');
+        addLog('🧠 主谋翻盘成功：额外一天无人处决，邪恶阵营获胜');
+      } else {
+        setWinResult('good');
+        setWinReason('主谋翻盘失败：额外一天发生处决且恶魔已死');
+        setGamePhase('gameOver');
+        addLog('🧠 主谋翻盘失败：额外一天发生处决，恶魔已死，善良阵营获胜');
+      }
+      setMastermindFinalDay(null);
+      return;
+    }
     
     const cands = seats.filter(s=>s.isCandidate).sort((a,b)=>(b.voteCount||0)-(a.voteCount||0));
     if(cands.length===0) {
@@ -3499,7 +3846,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       }
       nightLogic.startNight(false);
     }
-  }, [currentModal, setCurrentModal, nightLogic, seats, isVortoxWorld, todayExecutedId, setWinResult, setWinReason, setGamePhase, addLog]);
+  }, [currentModal, setCurrentModal, nightLogic, seats, isVortoxWorld, todayExecutedId, setWinResult, setWinReason, setGamePhase, addLog, mastermindFinalDay, setMastermindFinalDay]);
 
   // Enter dusk phase handler
   const enterDuskPhase = useCallback(() => {
@@ -3515,6 +3862,9 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     }
     // 清空当前黄昏的处决记录准备记录新的处决
     setCurrentDuskExecution(null);
+    
+    // 每个新黄昏开始时，重置“白天有外来者死亡”标记（教父额外杀人仅本夜生效）
+    setOutsiderDiedToday(false);
     
     // 清除应在“次日黄昏/下个黄昏”移除的中毒/醉酒等临时状态
     setSeats(prev => prev.map(s => {
@@ -3552,19 +3902,46 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
         if (isTempPoisonOrDrunk) return false;
         return true;
       });
+
+      // 侍臣：醉酒 3 天 3 夜（每个新黄昏开始时递减一次）
+      const decrementedStatuses = filteredStatuses
+        .map((status: any) => {
+          if (status.effect === 'Drunk' && status.duration === '侍臣3天3夜' && typeof status.remainingDays === 'number') {
+            return { ...status, remainingDays: Math.max(0, status.remainingDays - 1) };
+          }
+          return status;
+        })
+        .filter((status: any) => {
+          if (status.effect === 'Drunk' && status.duration === '侍臣3天3夜' && typeof status.remainingDays === 'number') {
+            return status.remainingDays > 0;
+          }
+          return true;
+        });
+
+      const filteredStatusDetailsWithCourtier = filteredStatusDetails.filter(st => {
+        // 若侍臣醉酒已到期，移除对应文本标记
+        if (st.includes('侍臣致醉') && !decrementedStatuses.some((x: any) => x.effect === 'Drunk' && x.duration === '侍臣3天3夜')) {
+          return false;
+        }
+        return true;
+      });
       
       // 重新计算状态
       const poisonedAfterClean = computeIsPoisoned({
         ...s,
-        statusDetails: filteredStatusDetails,
-        statuses: filteredStatuses,
+        statusDetails: filteredStatusDetailsWithCourtier,
+        statuses: decrementedStatuses,
       });
-      const drunkAfterClean = (s.role?.id === 'drunk') ? true : false;
+      // isDrunk：酒鬼本体永远醉；否则只要还有 Drunk 状态或“致醉/醉酒”标记就视为醉
+      const drunkAfterClean =
+        (s.role?.id === 'drunk') ||
+        decrementedStatuses.some((st: any) => st.effect === 'Drunk') ||
+        filteredStatusDetailsWithCourtier.some((d) => d.includes('致醉') || d.includes('醉酒'));
       
       return {
         ...s,
-        statusDetails: filteredStatusDetails,
-        statuses: filteredStatuses,
+        statusDetails: filteredStatusDetailsWithCourtier,
+        statuses: decrementedStatuses,
         isPoisoned: poisonedAfterClean,
         isDrunk: drunkAfterClean,
         voteCount: undefined,
@@ -3577,7 +3954,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     setNominationRecords({ nominators: new Set(), nominees: new Set() });
     setNominationMap({});
     setCurrentModal(null);
-  }, [saveHistory, currentDuskExecution, setLastDuskExecution, setCurrentDuskExecution, setGamePhase, setSeats, setNominationRecords, setNominationMap, setCurrentModal, computeIsPoisoned]);
+  }, [saveHistory, currentDuskExecution, setLastDuskExecution, setCurrentDuskExecution, setGamePhase, setSeats, setNominationRecords, setNominationMap, setCurrentModal, computeIsPoisoned, setOutsiderDiedToday]);
 
   // Resolve lunatic RPS handler
   const resolveLunaticRps = useCallback((result: 'win' | 'lose' | 'tie') => {
@@ -3612,6 +3989,64 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     // 如果恶魔死亡游戏已经结束不需要额外操
     // 如果无事发生继续游戏流
   }, [setCurrentModal]);
+
+  // Handle slayer target selection
+  const handleSlayerTargetSelect = useCallback((targetId: number) => {
+    if (currentModal?.type !== 'SLAYER_SELECT_TARGET') return;
+    const { shooterId } = currentModal.data;
+    
+    const shooter = seats.find(s => s.id === shooterId);
+    if (!shooter) return;
+    
+    // 标记为已使用开枪能力（无论结果如何，能力都被消耗）
+    saveHistory();
+    setSeats(p => p.map(s => s.id === shooterId ? { ...s, hasUsedSlayerAbility: true } : s));
+    
+    const target = seats.find(s => s.id === targetId);
+    if (!target) {
+      alert('目标不存在');
+      setCurrentModal(null);
+      return;
+    }
+    
+    // 对尸体开枪能力被消耗但无效果
+    if (target.isDead) {
+      addLog(`${shooterId+1}号对${targetId+1}号的尸体开枪未产生效果`);
+      setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "无事发生目标已死亡", isDemonDead: false } });
+      return;
+    }
+    
+    // 只有健康状态的真正猎手选中恶魔才有
+    // 规则对齐：中毒或醉酒的猎手能力失效（但能力依然会被消耗）
+    const isRealSlayer = shooter.role?.id === 'slayer' && !isActorDisabledByPoisonOrDrunk(shooter) && !shooter.isDead;
+    const targetRegistration = getRegistrationCached(target, shooter.role);
+    const isDemon = targetRegistration.registersAsDemon;
+    
+    if (isRealSlayer && isDemon) {
+      // 恶魔死亡游戏立即结束
+      setSeats(p => {
+        const newSeats = p.map(s => s.id === targetId ? { ...s, isDead: true } : s);
+        addLog(`${shooterId+1}号(猎手) 开枪击杀 ${targetId+1}号(恶魔)`);
+        addLog(`猎手的子弹击中了恶魔，按照规则游戏立即结束，不再进行今天的处决和后续夜晚`);
+        // 先设置胜利原因然后调用 checkGameOver 并保存 winReason
+        setWinReason('猎手击杀恶魔');
+        checkGameOver(newSeats, undefined, true);
+        return newSeats;
+      });
+      // 显示弹窗恶魔死亡
+      setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "恶魔死亡，善良阵营获胜", isDemonDead: true } });
+    } else {
+      // 如果猎手中毒或醉酒，或者目标不是恶魔，则无事发生
+      const isPoisonedOrDrunk = isActorDisabledByPoisonOrDrunk(shooter);
+      if (isPoisonedOrDrunk) {
+        addLog(`${shooterId+1}号(猎手) 开枪，但由于${shooter.isPoisoned ? '中毒' : '醉酒'}状态，能力失效`);
+      } else {
+        addLog(`${shooterId+1}号${shooter.role?.id === 'slayer' ? '(猎手)' : ''} 开枪，${targetId+1}号不是恶魔`);
+      }
+      // 显示弹窗无事发生
+      setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "无事发生", isDemonDead: false } });
+    }
+  }, [currentModal, seats, saveHistory, getRegistrationCached, checkGameOver, addLog, setCurrentModal, setSeats, setWinReason]);
 
   // ===========================
   // Group A: Confirm functions
@@ -3674,7 +4109,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     if (isGood) {
       addLog(`${sourceId + 1}号(月之子) 选择 ${targetId + 1}号与其陪葬，善良今晚死亡`);
       killPlayer(targetId, {
-        onAfterKill: latestSeats => {
+        onAfterKill: (latestSeats: Seat[]) => {
           onResolve?.(latestSeats);
           moonchildChainPendingRef.current = false;
           if (!moonchildChainPendingRef.current) {
@@ -3796,7 +4231,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       let remaining = finalTargets.length;
       finalTargets.forEach(tid => {
         killPlayer(tid, {
-          onAfterKill: (latestSeats) => {
+          onAfterKill: (latestSeats: Seat[]) => {
             remaining -= 1;
             if (remaining === 0) {
               addLog(`${nightInfo?.seat.id+1 || ''}号(${demonName}) 处决${finalTargets.map(x=>`${x+1}号`).join('、')}`);
@@ -3873,7 +4308,8 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     if (currentModal?.type !== 'VIRGIN_TRIGGER') return;
     const { source, target } = currentModal.data;
     // 使用 hasBeenNominated 而不hasUsedVirginAbility
-    if (target.role?.id === 'virgin' && !target.hasBeenNominated && !target.isPoisoned) {
+    // 规则对齐：贞洁者在“中毒或醉酒”时能力失效
+    if (target.role?.id === 'virgin' && !target.hasBeenNominated && !isActorDisabledByPoisonOrDrunk(target)) {
       setSeats(p => {
         const newSeats = p.map(s => 
           s.id === source.id ? { ...s, isDead: true } : 
@@ -3978,7 +4414,8 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     const virginOverride = options?.virginGuideOverride;
 
     // 贞洁者处女逻辑处理
-    if (target?.role?.id === 'virgin' && !target.isPoisoned) {
+    // 规则对齐：贞洁者在“中毒或醉酒”时能力失效（不触发处决）
+    if (target?.role?.id === 'virgin' && !isActorDisabledByPoisonOrDrunk(target)) {
       const isFirstNomination = virginOverride?.isFirstTime ?? !target.hasBeenNominated;
       const currentSeats = seats;
 
@@ -4013,24 +4450,50 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
         );
 
         if (isRealTownsfolk) {
-          const finalSeats = updatedSeats.map(s =>
+          const finalSeats = updatedSeats.map((s) =>
             s.id === sourceId ? { ...s, isDead: true } : s
           );
+
+          // 贞洁者触发的“立刻处决”在规则上属于一次处决：
+          // - 影响涡流“今日是否有人被处决”
+          // - 影响送葬者记录（本黄昏处决谁）
+          // - 终止本次提名流程（无需进入投票）
           setSeats(finalSeats);
-          addLog(`${sourceId+1}号提名 ${id+1}号`);
-          addLog(`${sourceId+1}号提名贞洁者被处决`);
-          const executedPlayer = finalSeats.find(s => s.id === sourceId);
-          if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
-            setWinResult('evil');
-            setWinReason('圣徒被处决');
-            setGamePhase('gameOver');
+          setExecutedPlayerId(sourceId);
+          setTodayExecutedId(sourceId);
+          setHasExecutedThisDay?.(true);
+          setCurrentDuskExecution(sourceId);
+
+          // 本次提名到此结束：清空“当前被提名者”占位，避免阻塞后续提名/流程
+          setNominationMap({});
+          setNominationRecords((prev) => ({
+            nominators: new Set(prev.nominators).add(sourceId),
+            nominees: new Set(prev.nominees).add(id),
+          }));
+
+          addLog(`${sourceId + 1}号提名 ${id + 1}号（贞洁者）`);
+          addLog(`因为你提名了贞洁者，${sourceId + 1}号被立即处决`);
+
+          const executedPlayer = finalSeats.find((s) => s.id === sourceId);
+          // 规则对齐：圣徒在“中毒或醉酒”时能力失效
+          if (
+            executedPlayer &&
+            executedPlayer.role?.id === "saint" &&
+            !isActorDisabledByPoisonOrDrunk(executedPlayer)
+          ) {
+            setWinResult("evil");
+            setWinReason("圣徒被处决");
+            setGamePhase("gameOver");
             addLog("游戏结束圣徒被处决邪恶胜");
             return;
           }
           if (checkGameOver(finalSeats, sourceId)) {
             return;
           }
-          setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${sourceId+1}号玩家被处决`, isVirginTrigger: true } });
+          setCurrentModal({
+            type: "EXECUTION_RESULT",
+            data: { message: `${sourceId + 1}号玩家被处决`, isVirginTrigger: true },
+          });
           return;
         } else {
           setSeats(updatedSeats);
@@ -4048,7 +4511,8 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
         addLog(`${sourceId+1}号(魔像) 提名 ${id+1}号，${id+1}号不是恶魔，${id+1}号死亡`);
         const updatedSeats = seats.map(s => s.id === id ? { ...s, isDead: true } : s);
         const executedPlayer = updatedSeats.find(s => s.id === id);
-        if (executedPlayer && executedPlayer.role?.id === 'saint' && !executedPlayer.isPoisoned) {
+        // 规则对齐：圣徒在“中毒或醉酒”时能力失效
+        if (executedPlayer && executedPlayer.role?.id === 'saint' && !isActorDisabledByPoisonOrDrunk(executedPlayer)) {
           setWinResult('evil');
           setWinReason('圣徒被处决');
           setGamePhase('gameOver');
@@ -4096,6 +4560,22 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     setCurrentModal(null);
     if(type==='nominate') {
       executeNomination(sourceId, id);
+    } else if(type==='slayer') {
+      // 猎手射击：先弹出选择目标的弹窗
+      const shooter = seats.find(s => s.id === sourceId);
+      if (!shooter) return;
+      if (shooter.hasUsedSlayerAbility) {
+        alert('该玩家已经使用过猎手能力了！');
+        return;
+      }
+      if (shooter.isDead) {
+        addLog(`${sourceId+1}号已死亡无法开枪`);
+        setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "无事发生射手已死亡", isDemonDead: false } });
+        return;
+      }
+      // 弹出选择目标的弹窗
+      setCurrentModal({ type: 'SLAYER_SELECT_TARGET', data: { shooterId: sourceId } });
+      return;
     } else if(type==='lunaticKill') {
       saveHistory();
       const killer = seats.find(s => s.id === sourceId);
@@ -4118,53 +4598,6 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
       }
       markDailyAbilityUsed('lunatic_mr', sourceId);
       addLog(`精神病患者本局的日间击杀能力已经使用完毕，之后不能再发动`);
-    } else if(type==='slayer') {
-      // 开枪可以在任意环节但只有健康猎手选中恶魔才有
-      const shooter = seats.find(s => s.id === sourceId);
-      if (!shooter || shooter.hasUsedSlayerAbility) return;
-      // 死亡的猎手不能开枪
-      if (shooter.isDead) {
-        addLog(`${sourceId+1}号已死亡无法开枪`);
-        setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "无事发生射手已死亡", isDemonDead: false } });
-        return;
-      }
-      
-      const target = seats.find(s => s.id === id);
-      if (!target) return;
-      
-      // 标记为已使用开枪能力
-      setSeats(p => p.map(s => s.id === sourceId ? { ...s, hasUsedSlayerAbility: true } : s));
-      
-      // 对尸体开枪能力被消耗但无效果
-      if (target.isDead) {
-        addLog(`${sourceId+1}号对${id+1}号的尸体开枪未产生效果`);
-        setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "无事发生目标已死亡", isDemonDead: false } });
-        return;
-      }
-      
-      // 只有健康状态的真正猎手选中恶魔才有
-      const isRealSlayer = shooter.role?.id === 'slayer' && !shooter.isPoisoned && !shooter.isDead;
-      const targetRegistration = getRegistrationCached(target, shooter.role);
-      const isDemon = targetRegistration.registersAsDemon;
-      
-      if (isRealSlayer && isDemon) {
-        // 恶魔死亡游戏立即结
-        setSeats(p => {
-          const newSeats = p.map(s => s.id === id ? { ...s, isDead: true } : s);
-          addLog(`${sourceId+1}号(猎手) 开枪击杀 ${id+1}号(小恶魔)`);
-          addLog(`猎手的子弹击中了恶魔，按照规则游戏立即结束，不再进行今天的处决和后续夜晚`);
-          // 先设置胜利原因然后调用 checkGameOver 并保存 winReason
-          setWinReason('猎手击杀恶魔');
-          checkGameOver(newSeats, undefined, true);
-          return newSeats;
-        });
-        // 显示弹窗恶魔死亡
-        setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "恶魔死亡", isDemonDead: true } });
-      } else {
-        addLog(`${sourceId+1}号${shooter.role?.id === 'slayer' ? '(猎手)' : ''} 开枪，${id+1}号不是恶魔或开枪者不是健康猎手`);
-        // 显示弹窗无事发生
-        setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "无事发生", isDemonDead: false } });
-      }
     }
   }, [currentModal, seats, saveHistory, hasUsedDailyAbility, markDailyAbilityUsed, getRegistrationCached, checkGameOver, executeNomination, addLog, setCurrentModal, setSeats, setWinReason]);
 
@@ -4219,7 +4652,14 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     }
 
     // 2. Check Living Count (Evil Win)
-    const livingCount = seatsToCheck.filter(s => !s.isDead).length;
+    // 规则：旅行者不计入“存活玩家人数”的胜负计算；僵怖假死视为存活
+    const livingCount = seatsToCheck.filter(s => {
+      if (!s || !s.role) return false;
+      if (s.role.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
+        return true;
+      }
+      return !s.isDead;
+    }).filter(s => s.role && s.role.type !== 'traveler').length;
     if (livingCount <= 2) return 'evil';
 
     return null; // Game continues
@@ -4355,16 +4795,22 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
 
   const declareMayorImmediateWin = useCallback(() => {
     setCurrentModal(null);
+    // 规则对齐：市长若中毒/醉酒，能力可能失效；此处作为说书人“宣告获胜”入口，保留提醒但不强制阻止（避免打断说书人裁定）。
+    const mayorSeat = (seatsRef.current || seats).find(s => s.role?.id === 'mayor' && !s.isDead);
+    if (mayorSeat && isActorDisabledByPoisonOrDrunk(mayorSeat)) {
+      addLog(`提示：市长处于中毒/醉酒状态，按规则其能力可能失效；若仍宣告获胜，请视为说书人裁定`);
+    }
     setWinResult('good');
     setWinReason('3人存活且今日不处决市长能力');
     setGamePhase('gameOver');
     addLog('市长在场且剩人今日选择不处决好人胜利');
-  }, [setCurrentModal, setWinResult, setWinReason, setGamePhase, addLog]);
+  }, [setCurrentModal, setWinResult, setWinReason, setGamePhase, addLog, seats, seatsRef]);
 
   const handleDayEndTransition = useCallback(() => {
     const aliveCount = seats.filter(s => !s.isDead).length;
-    const mayorAlive = seats.some(s => s.role?.id === 'mayor' && !s.isDead);
-    if (aliveCount === 3 && mayorAlive) {
+    const mayorSeat = seats.find(s => s.role?.id === 'mayor' && !s.isDead);
+    // 规则对齐：市长中毒/醉酒时能力失效，不弹“三活提醒”
+    if (aliveCount === 3 && mayorSeat && !isActorDisabledByPoisonOrDrunk(mayorSeat)) {
       setCurrentModal({ type: 'MAYOR_THREE_ALIVE', data: null });
       return;
     }
@@ -4614,6 +5060,57 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     setHadesiaChoices(prev => ({ ...prev, [id]: choice }));
   }, [setHadesiaChoices]);
 
+  /**
+   * 右键菜单动作处理（GameModals 中的 contextMenu）
+   * 统一把菜单点击翻译成 currentModal 或直接执行动作
+   */
+  const handleMenuAction = useCallback((action: string) => {
+    const seatId = contextMenu?.seatId;
+    if (seatId === undefined || seatId === null) return;
+    const seat = seats.find(s => s.id === seatId);
+    if (!seat) return;
+
+    // 关闭菜单
+    setContextMenu(null);
+
+    if (action === 'nominate') {
+      setCurrentModal({ type: 'DAY_ACTION', data: { type: 'nominate', sourceId: seatId } });
+      return;
+    }
+
+    if (action === 'slayer') {
+      setCurrentModal({ type: 'DAY_ACTION', data: { type: 'slayer', sourceId: seatId } });
+      return;
+    }
+
+    if (action === 'damselGuess') {
+      setCurrentModal({ type: 'DAMSEL_GUESS', data: { minionId: seatId, targetId: null } });
+      return;
+    }
+
+    if (action === 'tinker_die') {
+      // 修补匠：随时可能死（由说书人裁定）。这里提供“一键现在死亡”的入口。
+      if (seat.role?.id !== 'tinker' || seat.isDead) return;
+      saveHistory();
+      killPlayer(seatId, {
+        source: 'ability',
+        onAfterKill: () => {
+          addLog(`🛠️ ${seatId + 1}号(修补匠) 在说书人裁定下死亡`);
+        }
+      });
+      return;
+    }
+
+    if (action === 'gossip_record') {
+      // 造谣者：白天记录造谣并裁定真假（若为真，今晚额外死亡）
+      if (seat.role?.id !== 'gossip' || seat.isDead) return;
+      saveHistory();
+      setCurrentModal({ type: 'DAY_ABILITY', data: { roleId: 'gossip', seatId } });
+      setDayAbilityForm({ info1: gossipStatementToday || '' });
+      return;
+    }
+  }, [contextMenu, seats, gossipStatementToday, setContextMenu, setCurrentModal, setDayAbilityForm, saveHistory, killPlayer, addLog]);
+
   const toggleStatus = useCallback((type: string, seatId?: number) => {
     const targetSeatId = seatId ?? contextMenu?.seatId;
     if(targetSeatId === undefined || targetSeatId === null) return;
@@ -4779,15 +5276,20 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
           if (a && b) {
             const regA = getRegistrationCached(a, nightInfo.effectiveRole);
             const regB = getRegistrationCached(b, nightInfo.effectiveRole);
-            const isYesReal =
-              !!a.isRedHerring ||
-              !!b.isRedHerring ||
+            // 官方：占卜师的“是否选中了恶魔”与“天敌红罗剎”是两套概念。
+            // - 非涡流世界：选中红罗剎也会得到“是”
+            // - 涡流世界：占卜师应只判断“是否选中了恶魔”，然后整体给出错误信息；
+            //   也就是说：仅选中红罗剎时，真实应为“否”，涡流则会让其变为“是”。
+            const hasDemonSelected =
               !!regA.registersAsDemon ||
               !!regB.registersAsDemon ||
               a.role?.type === 'demon' ||
               b.role?.type === 'demon' ||
               !!a.isDemonSuccessor ||
               !!b.isDemonSuccessor;
+
+            const hasRedHerringSelected = !!a.isRedHerring || !!b.isRedHerring;
+            const isYesReal = hasDemonSelected || (!isVortoxWorld && hasRedHerringSelected);
 
             const realText = isYesReal ? '是' : '否';
             const shouldFake = nightInfo.isPoisoned || isVortoxWorld;
@@ -4925,6 +5427,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     enterDuskPhase,
     resolveLunaticRps,
     confirmShootResult,
+    handleSlayerTargetSelect,
     
     // Group A: Confirm functions
     confirmMayorRedirect,
@@ -4965,6 +5468,7 @@ import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } fro
     // Group D: Seat Interaction functions
     onSeatClick,
     toggleStatus,
+    handleMenuAction,
     setHadesiaChoice,
     
     // Timer control functions

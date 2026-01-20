@@ -580,6 +580,324 @@ export function handleInnkeeperConfirm(context: RoleConfirmContext): RoleConfirm
 }
 
 /**
+ * 水手确认处理（黯月初升）
+ * 规则要点：
+ * - 每晚选择 1 名存活玩家：水手或目标其中一人醉酒到下个黄昏
+ * - 水手健康时不会死亡（免死链路在 killPlayer 里统一处理）
+ */
+export function handleSailorConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const {
+    nightInfo,
+    selectedTargets,
+    gamePhase,
+    setSelectedActionTargets,
+    setSeats,
+    addDrunkMark,
+    continueToNextAction,
+    addLog,
+  } = context;
+
+  if (nightInfo.effectiveRole.id !== 'sailor' || gamePhase === 'firstNight') {
+    return { handled: false };
+  }
+
+  if (selectedTargets.length !== 1) {
+    return { handled: true, shouldWait: true };
+  }
+
+  const targetId = selectedTargets[0];
+  const sailorId = nightInfo.seat.id;
+  setSelectedActionTargets([]);
+
+  // 随机决定谁醉（由说书人裁定为“随机”）
+  const drunkSeatId = Math.random() < 0.5 ? sailorId : targetId;
+  const clearTime = '下个黄昏';
+
+  setSeats(prev => prev.map(s => {
+    if (s.id !== drunkSeatId) return s;
+    const { statusDetails, statuses } = addDrunkMark(s, 'sailor', clearTime);
+    return { ...s, statusDetails, statuses, isDrunk: true };
+  }));
+
+  addLog(`🍺 ${sailorId + 1}号(水手) 选择了 ${targetId + 1}号：水手或目标之一醉酒直到下个黄昏（随机裁定），信息可能错误`);
+  continueToNextAction();
+  return { handled: true };
+}
+
+/**
+ * 侍臣确认处理（黯月初升）
+ * - 每局限一次：选择一个“角色”
+ * - 若该角色在场，则其中一名该角色玩家从当晚开始醉酒 3 天 3 夜
+ *
+ * 说明：因为目标类型是“角色”而非“座位”，这里使用弹窗让说书人选择角色。
+ */
+export function handleCourtierConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const {
+    nightInfo,
+    seats,
+    roles,
+    selectedTargets,
+    gamePhase,
+    hasUsedAbility,
+    markAbilityUsed,
+    setCurrentModal,
+    setSelectedActionTargets,
+    setSeats,
+    continueToNextAction,
+    addLog,
+  } = context;
+
+  if (nightInfo.effectiveRole.id !== 'courtier' || gamePhase === 'firstNight') {
+    return { handled: false };
+  }
+
+  const courtierSeatId = nightInfo.seat.id;
+  if (hasUsedAbility('courtier', courtierSeatId)) {
+    addLog(`👑 ${courtierSeatId + 1}号(侍臣) 已使用过能力，本夜跳过`);
+    setSelectedActionTargets([]);
+    continueToNextAction();
+    return { handled: true };
+  }
+
+  // 侍臣不走“点座位选择”，直接弹窗选角色
+  if (selectedTargets.length === 0) {
+    setCurrentModal({
+      type: 'COURTIER_SELECT_ROLE',
+      data: {
+        sourceId: courtierSeatId,
+        roles,
+        seats,
+        onConfirm: (roleId: string) => {
+          setCurrentModal(null);
+          setSelectedActionTargets([]);
+
+          const chosenRole = roles.find(r => r.id === roleId);
+          // 先消耗能力（规则对齐：无论选中是否在场，都视为已用）
+          markAbilityUsed('courtier', courtierSeatId);
+
+          // 找到在场的该角色玩家（默认取第一位存活的）
+          const targetSeat = seats.find(s =>
+            !s.isDead &&
+            (s.role?.id === roleId || (s.role?.id === 'drunk' && s.charadeRole?.id === roleId))
+          );
+
+          if (!targetSeat) {
+            addLog(`👑 ${courtierSeatId + 1}号(侍臣) 选择了【${chosenRole?.name || roleId}】，但该角色不在场（能力已消耗）`);
+            continueToNextAction();
+            return;
+          }
+
+          // 从当晚开始醉酒 3 天 3 夜：在 enterDuskPhase 里每个黄昏递减 remainingDays
+          setSeats(prev => prev.map(s => {
+            if (s.id !== targetSeat.id) return s;
+            const nextStatuses = [...(s.statuses || []), { effect: 'Drunk', duration: '侍臣3天3夜', sourceId: courtierSeatId, remainingDays: 3 }];
+            const nextDetails = Array.from(new Set([...(s.statusDetails || []), `侍臣致醉：${chosenRole?.name || roleId}（3天3夜）`]));
+            return { ...s, statuses: nextStatuses, statusDetails: nextDetails, isDrunk: true };
+          }));
+
+          addLog(`👑 ${courtierSeatId + 1}号(侍臣) 选择【${chosenRole?.name || roleId}】：${targetSeat.id + 1}号从当晚开始醉酒 3 天 3 夜`);
+          continueToNextAction();
+        },
+        onCancel: () => {
+          setCurrentModal(null);
+          setSelectedActionTargets([]);
+          addLog(`👑 ${courtierSeatId + 1}号(侍臣) 取消本夜能力（不消耗）`);
+          continueToNextAction();
+        },
+      },
+    });
+    return { handled: true, shouldWait: true };
+  }
+
+  // 理论上不会走到这里（因为侍臣不需要点座位）
+  setSelectedActionTargets([]);
+  continueToNextAction();
+  return { handled: true };
+}
+
+/**
+ * 刺客确认处理（黯月初升）
+ * 规则要点：
+ * - 每局限一次，可选择 0（不使用）或 1 名玩家（使用并立即击杀）
+ * - 若刺客中毒/醉酒，本次击杀无效，但仍视为“已用过能力”（失去能力）
+ * - 刺客击杀可无视“不会死亡”类保护（在 killPlayer 中针对 tea_lady 做了例外放行）
+ */
+export function handleAssassinConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const {
+    nightInfo,
+    seats,
+    selectedTargets,
+    gamePhase,
+    hasUsedAbility,
+    markAbilityUsed,
+    setSelectedActionTargets,
+    killPlayer,
+    continueToNextAction,
+    addLog,
+  } = context;
+
+  if (nightInfo.effectiveRole.id !== 'assassin' || gamePhase === 'firstNight') {
+    return { handled: false };
+  }
+
+  const seatId = nightInfo.seat.id;
+
+  // 已用过能力：直接跳过
+  if (hasUsedAbility('assassin', seatId)) {
+    setSelectedActionTargets([]);
+    continueToNextAction();
+    return { handled: true };
+  }
+
+  const uniqueTargets = Array.from(new Set(selectedTargets));
+
+  // 允许 0（不使用）或 1（使用）
+  if (uniqueTargets.length > 1) {
+    return { handled: true, shouldWait: true };
+  }
+
+  if (uniqueTargets.length === 0) {
+    // 不使用能力
+    continueToNextAction();
+    return { handled: true };
+  }
+
+  const targetId = uniqueTargets[0];
+  setSelectedActionTargets([]);
+
+  // 使用能力一次（无论是否成功），都要消耗
+  markAbilityUsed('assassin', seatId);
+
+  const actorSeat = seats.find((s) => s.id === seatId);
+  const actorDisabled =
+    nightInfo.isPoisoned || !!actorSeat?.isDrunk || actorSeat?.role?.id === 'drunk';
+
+  if (actorDisabled) {
+    addLog(`${seatId + 1}号(刺客) 处于中毒/醉酒状态，本夜刺杀无效，但能力已消耗`);
+    continueToNextAction();
+    return { handled: true };
+  }
+
+  killPlayer(targetId, {
+    source: 'ability',
+    onAfterKill: () => {
+      addLog(`${seatId + 1}号(刺客) 刺杀了 ${targetId + 1}号（无视保护）`);
+      continueToNextAction();
+    },
+  });
+
+  return { handled: true, shouldWait: true };
+}
+
+/**
+ * 教父确认处理（黯月初升）
+ * 规则要点：
+ * - 前提：今日白天有外来者死亡（由夜序和唤醒队列控制，不在此重复判断）
+ * - 夜晚被唤醒时选择 1 名玩家：他死亡（若教父中毒/醉酒，本次杀人无效）
+ * - 若该玩家是善良阵营，且为“初始教父”（目前默认视为教父本体），则本夜再额外杀死 1 名玩家（说书人选择）
+ */
+export function handleGodfatherConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const {
+    nightInfo,
+    seats,
+    selectedTargets,
+    gamePhase,
+    setSelectedActionTargets,
+    setCurrentModal,
+    continueToNextAction,
+    addLog,
+    killPlayer,
+    isEvil,
+  } = context;
+
+  if (nightInfo.effectiveRole.id !== 'godfather' || gamePhase === 'firstNight') {
+    return { handled: false };
+  }
+
+  // 必须恰好选择 1 名目标
+  if (selectedTargets.length !== 1) {
+    return { handled: true, shouldWait: true };
+  }
+
+  const seatId = nightInfo.seat.id;
+  const targetId = selectedTargets[0];
+  const actorSeat = seats.find(s => s.id === seatId);
+  const targetSeat = seats.find(s => s.id === targetId);
+
+  if (!targetSeat || targetSeat.isDead) {
+    return { handled: true, shouldWait: true };
+  }
+
+  setSelectedActionTargets([]);
+
+  // 中毒/醉酒的教父：本次杀人无效（但仍视为“执行过一次唤醒”）
+  const actorDisabled =
+    nightInfo.isPoisoned || !!actorSeat?.isDrunk || actorSeat?.role?.id === 'drunk';
+
+  if (actorDisabled) {
+    addLog(`${seatId + 1}号(教父) 处于中毒/醉酒状态，本夜额外杀人无效`);
+    continueToNextAction();
+    return { handled: true };
+  }
+
+  // 正常结算：先杀死第一名目标
+  killPlayer(targetId, {
+    source: 'ability',
+    recordNightDeath: true,
+    onAfterKill: (latestSeats?: Seat[]) => {
+      const finalSeats = latestSeats && latestSeats.length ? latestSeats : seats;
+      const finalTarget = finalSeats.find(s => s.id === targetId);
+
+      // 若目标实际上未死亡（被保护等），仅记录日志并结束
+      if (!finalTarget || !finalTarget.isDead) {
+        addLog(`${seatId + 1}号(教父) 选择${targetId + 1}号，但该玩家最终未死亡（可能被保护）`);
+        continueToNextAction();
+        return;
+      }
+
+      const isGoodTarget = !isEvil(finalTarget);
+      addLog(`${seatId + 1}号(教父) 因白天外来者死亡，额外杀死 ${targetId + 1}号`);
+
+      // 若目标不是善良，能力到此结束
+      if (!isGoodTarget) {
+        continueToNextAction();
+        return;
+      }
+
+      // 杀死善良玩家 → 触发第二次额外杀人（说书人选择目标）
+      setCurrentModal({
+        type: 'STORYTELLER_SELECT',
+        data: {
+          sourceId: seatId,
+          roleId: 'godfather',
+          roleName: '教父',
+          description:
+            '👔 今日白天有外来者死亡，且你额外杀死了一名善良玩家。\n本夜你还可以令 1 名玩家死亡（请说书人选择目标）。',
+          targetCount: 1,
+          onConfirm: (secondTargets: number[]) => {
+            const secondId = secondTargets[0];
+            if (secondId === undefined) return;
+            setCurrentModal(null);
+            killPlayer(secondId, {
+              source: 'ability',
+              recordNightDeath: true,
+              onAfterKill: () => {
+                addLog(
+                  `${seatId + 1}号(教父) 因杀死善良玩家，本夜再次额外杀死 ${secondId + 1}号`
+                );
+                continueToNextAction();
+              },
+            });
+          },
+        },
+      });
+    },
+  });
+
+  return { handled: true, shouldWait: true };
+}
+
+/**
  * 小恶魔自杀确认处理（特殊：在 confirmKill 中调用）
  */
 export function handleImpSuicide(
@@ -697,6 +1015,10 @@ export const roleConfirmHandlers: Record<string, (context: RoleConfirmContext) =
   'shabaloth': handleShabalothConfirm,
   'po': handlePoConfirm,
   'innkeeper': handleInnkeeperConfirm,
+  'sailor': handleSailorConfirm,
+  'courtier': handleCourtierConfirm,
+  'assassin': handleAssassinConfirm,
+   'godfather': handleGodfatherConfirm,
 };
 
 /**

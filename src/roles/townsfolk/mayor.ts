@@ -6,7 +6,7 @@ import { RoleDefinition } from "../../types/roleDefinition";
  */
 export const mayor: RoleDefinition = {
   id: "mayor",
-  name: "市长",
+  name: "镇长",
   type: "townsfolk",
   // 无夜晚行动（被动能力）
 };

@@ -13,6 +13,7 @@ import { dreamer } from "./townsfolk/dreamer";
 import { empath } from "./townsfolk/empath";
 import { engineer } from "./townsfolk/engineer";
 import { exorcist } from "./townsfolk/exorcist";
+import { banshee } from "./townsfolk/banshee";
 import { farmer } from "./townsfolk/farmer";
 import { fisherman } from "./townsfolk/fisherman";
 import { flowergirl } from "./townsfolk/flowergirl";
@@ -21,9 +22,11 @@ import { fortune_teller } from "./townsfolk/fortune_teller";
 import { gambler } from "./townsfolk/gambler";
 import { gossip } from "./townsfolk/gossip";
 import { grandmother } from "./townsfolk/grandmother";
+import { half_ogre } from "./townsfolk/half_ogre";
 import { innkeeper } from "./townsfolk/innkeeper";
 import { investigator } from "./townsfolk/investigator";
 import { juggler } from "./townsfolk/juggler";
+import { knight } from "./townsfolk/knight";
 import { librarian } from "./townsfolk/librarian";
 import { mathematician } from "./townsfolk/mathematician";
 import { mayor } from "./townsfolk/mayor";
@@ -33,7 +36,10 @@ import { noble } from "./townsfolk/noble";
 import { oracle } from "./townsfolk/oracle";
 import { pacifist } from "./townsfolk/pacifist";
 import { philosopher } from "./townsfolk/philosopher";
+import { pilgrim } from "./townsfolk/pilgrim";
 import { poppy_grower } from "./townsfolk/poppy_grower";
+import { princess } from "./townsfolk/princess";
+import { priestess } from "./townsfolk/priestess";
 import { professor } from "./townsfolk/professor";
 import { professor_mr } from "./townsfolk/professor_mr";
 import { ranger } from "./townsfolk/ranger";
@@ -47,11 +53,14 @@ import { slayer } from "./townsfolk/slayer";
 import { snake_charmer } from "./townsfolk/snake_charmer";
 import { snake_charmer_mr } from "./townsfolk/snake_charmer_mr";
 import { soldier } from "./townsfolk/soldier";
+import { steward } from "./townsfolk/steward";
 import { tea_lady } from "./townsfolk/tea_lady";
 import { town_crier } from "./townsfolk/town_crier";
 import { undertaker } from "./townsfolk/undertaker";
 import { virgin } from "./townsfolk/virgin";
 import { washerwoman } from "./townsfolk/washerwoman";
+import { conjurer } from "./townsfolk/conjurer";
+import { villager } from "./townsfolk/villager";
 // Outsider
 import { barber } from "./outsider/barber";
 import { barber_mr } from "./outsider/barber_mr";
@@ -107,11 +116,13 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [amnesiac.id, amnesiac],
   [artist.id, artist],
   [atheist.id, atheist],
+  [banshee.id, banshee],
   [balloonist.id, balloonist],
   [cannibal.id, cannibal],
   [chambermaid.id, chambermaid],
   [chef.id, chef],
   [clockmaker.id, clockmaker],
+  [conjurer.id, conjurer],
   [courtier.id, courtier],
   [dreamer.id, dreamer],
   [empath.id, empath],
@@ -125,9 +136,11 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [gambler.id, gambler],
   [gossip.id, gossip],
   [grandmother.id, grandmother],
+  [half_ogre.id, half_ogre],
   [innkeeper.id, innkeeper],
   [investigator.id, investigator],
   [juggler.id, juggler],
+  [knight.id, knight],
   [librarian.id, librarian],
   [mathematician.id, mathematician],
   [mayor.id, mayor],
@@ -137,6 +150,9 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [oracle.id, oracle],
   [pacifist.id, pacifist],
   [philosopher.id, philosopher],
+  [pilgrim.id, pilgrim],
+  [princess.id, princess],
+  [priestess.id, priestess],
   [poppy_grower.id, poppy_grower],
   [professor.id, professor],
   [professor_mr.id, professor_mr],
@@ -151,10 +167,12 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [snake_charmer.id, snake_charmer],
   [snake_charmer_mr.id, snake_charmer_mr],
   [soldier.id, soldier],
+  [steward.id, steward],
   [tea_lady.id, tea_lady],
   [town_crier.id, town_crier],
   [undertaker.id, undertaker],
   [virgin.id, virgin],
+  [villager.id, villager],
   [washerwoman.id, washerwoman],
   [barber.id, barber],
   [barber_mr.id, barber_mr],

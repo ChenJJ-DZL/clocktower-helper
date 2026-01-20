@@ -15,8 +15,8 @@ export const sailor: RoleDefinition = {
     
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
     

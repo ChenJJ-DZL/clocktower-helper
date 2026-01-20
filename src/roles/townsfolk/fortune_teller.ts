@@ -22,8 +22,8 @@ export const fortune_teller: RoleDefinition = {
       
       canSelect: (target: Seat, self: Seat, allSeats: Seat[], selectedTargets: number[]) => {
         // 可以选择自己
-        // 不能选死人
-        return !target.isDead;
+        // 可选择已死亡玩家（官方规则允许选择任意玩家）
+        return true;
       },
     },
     

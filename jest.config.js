@@ -66,6 +66,8 @@ const customJestConfig = {
     '/node_modules/',
     '/.next/',
     '/out/',
+    // Playwright tests must not be executed by Jest
+    '/tests/.*\\.spec\\.ts$',
   ],
   
   // 模块路径

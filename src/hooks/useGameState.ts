@@ -58,6 +58,12 @@ export function useGameState() {
   const [fangGuConverted, setFangGuConverted] = useState(false);
   const [jugglerGuesses, setJugglerGuesses] = useState<Record<number, { playerId: number; roleId: string }[]>>({});
   const [evilTwinPair, setEvilTwinPair] = useState<{ evilId: number; goodId: number } | null>(null);
+  // 白天有外来者死亡：用于教父当夜额外杀人触发
+  const [outsiderDiedToday, setOutsiderDiedToday] = useState(false);
+  // 造谣者：白天记录的造谣文本 & 是否裁定为真（若为真，今晚额外死亡一次）
+  const [gossipStatementToday, setGossipStatementToday] = useState<string>("");
+  const [gossipTrueTonight, setGossipTrueTonight] = useState(false);
+  const [gossipSourceSeatId, setGossipSourceSeatId] = useState<number | null>(null);
   
   // 保存每个角色的 hint 信息，用于上一夜时恢复（不重新生成）
   const hintCacheRef = useRef<Map<string, NightHintState>>(new Map());
@@ -142,6 +148,8 @@ export function useGameState() {
   const [voteRecords, setVoteRecords] = useState<Array<{ voterId: number; isDemon: boolean }>>([]); // 投票记录（用于卖花女孩）
   const [votedThisRound, setVotedThisRound] = useState<number[]>([]); // 本轮投票的玩家ID列表（用于卖花女/城镇公告员）
   const [hasExecutedThisDay, setHasExecutedThisDay] = useState<boolean>(false); // 今日是否有人被处决（用于 Vortox）
+  // 主谋：恶魔死亡后进入“额外一天”，若该天无人处决则邪恶获胜
+  const [mastermindFinalDay, setMastermindFinalDay] = useState<{ active: boolean; triggeredAtNight: number } | null>(null);
   const [remainingDays, setRemainingDays] = useState<number | null>(null); // 剩余日间数（evil_twin 相关）
   const [goonDrunkedThisNight, setGoonDrunkedThisNight] = useState<boolean>(false); // 莽夫（Goon）今晚是否醉酒
 
@@ -301,6 +309,14 @@ export function useGameState() {
     setJugglerGuesses,
     evilTwinPair,
     setEvilTwinPair,
+    outsiderDiedToday,
+    setOutsiderDiedToday,
+    gossipStatementToday,
+    setGossipStatementToday,
+    gossipTrueTonight,
+    setGossipTrueTonight,
+    gossipSourceSeatId,
+    setGossipSourceSeatId,
     
     // ===========================
     //  统一的弹窗状态
@@ -401,6 +417,8 @@ export function useGameState() {
     setVotedThisRound,
     hasExecutedThisDay,
     setHasExecutedThisDay,
+    mastermindFinalDay,
+    setMastermindFinalDay,
     remainingDays,
     setRemainingDays,
     goonDrunkedThisNight,

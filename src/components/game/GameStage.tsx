@@ -932,6 +932,7 @@ export function GameStageWithModals({ controller }: { controller: any }) {
     <>
       <GameStage controller={controller} />
       <GameModals
+        handleSlayerTargetSelect={controller.handleSlayerTargetSelect}
         showNightOrderModal={controller.showNightOrderModal}
         showExecutionResultModal={controller.showExecutionResultModal}
         showShootResultModal={controller.showShootResultModal}

@@ -122,6 +122,8 @@ export interface StatusEffect {
   effect: string;
   duration?: string;
   sourceId?: number | null;
+  // 用于需要跨日递减的状态（例如侍臣 3 天 3 夜醉酒）
+  remainingDays?: number;
 }
 
 export interface Seat {
@@ -333,7 +335,7 @@ export const roles: Role[] = [
   },
   { 
     id: "mayor", 
-    name: "市长", 
+    name: "镇长", 
     type: "townsfolk", 
     ability: "若仅剩3人且无人被处决，好人获胜。（无夜晚行动）", 
     fullDescription: "如果只有三名玩家存活且白天没有人能被处决,你会被选为镇长. 如果你在夜晚即将死亡,可能会有一名其他玩家代替你死亡。",
@@ -640,6 +642,67 @@ export const roles: Role[] = [
     fullDescription: "每个夜晚*,你可以选择一名玩家:他死亡。如果你上次选择时没有选择任何玩家,当晚你要选择三名玩家:他们死亡。",
     script: "暗月初升",
   },
+  // ========== 暗月初升 - 实验性角色（卡牌版扩展，不在前台露出） ==========
+  {
+    id: "missionary",
+    name: "传教士",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
+    fullDescription: "",
+    script: "暗月初升",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E4%BC%A0%E6%95%99%E5%A3%AB",
+  },
+  {
+    id: "alchemist",
+    name: "炼金术士",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
+    fullDescription: "",
+    script: "暗月初升",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E7%82%BC%E9%87%91%E6%9C%AF%E5%A3%AB",
+  },
+  {
+    id: "magician",
+    name: "魔术师",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
+    fullDescription: "",
+    script: "暗月初升",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E9%AD%94%E6%9C%AF%E5%B8%88",
+  },
+  {
+    id: "acrobat",
+    name: "杂技演员",
+    type: "outsider",
+    hidden: true,
+    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
+    fullDescription: "",
+    script: "暗月初升",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E6%9D%82%E6%8A%80%E6%BC%94%E5%91%98",
+  },
+  {
+    id: "widow",
+    name: "寡妇",
+    type: "minion",
+    hidden: true,
+    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
+    fullDescription: "",
+    script: "暗月初升",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E5%AF%A1%E5%A6%87",
+  },
+  {
+    id: "leech",
+    name: "痢蛭",
+    type: "demon",
+    hidden: true,
+    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
+    fullDescription: "",
+    script: "暗月初升",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E7%97%A2%E8%9B%AD",
+  },
   // ======================================================================
   //  角色数据 - 梦陨春宵 (Sects & Violets)
   // ======================================================================
@@ -748,6 +811,101 @@ export const roles: Role[] = [
     ability: "如果恶魔杀死了你，在当晚你会被唤醒并得知两名玩家，其中一名是杀死你的那个恶魔。", 
     fullDescription: "如果恶魔杀死了你,在当晚你会被唤醒并得知两名玩家,其中一名是杀死你的那个恶魔。",
     script: "梦陨春宵", 
+  },
+ 
+  // ======================================================================
+  //  镇民扩展（隐藏，不在前台露出；仅用于角色库占位，避免影响现有判定）
+  //  来源：josn/blood_clocktower_所有镇民.json
+  // ======================================================================
+  {
+    id: "half_ogre",
+    name: "半兽人",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E5%8D%8A%E5%85%BD%E4%BA%BA",
+  },
+  {
+    id: "banshee",
+    name: "报丧女妖",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E6%8A%A5%E4%B8%A7%E5%A5%B3%E5%A6%96",
+  },
+  {
+    id: "villager",
+    name: "村夫",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E6%9D%91%E5%A4%AB",
+  },
+  {
+    id: "princess",
+    name: "公主",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E5%85%AC%E4%B8%BB",
+  },
+  {
+    id: "priestess",
+    name: "女祭司",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E5%A5%B3%E7%A5%AD%E5%8F%B8",
+  },
+  {
+    id: "knight",
+    name: "骑士",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E9%AA%91%E5%A3%AB",
+  },
+  {
+    id: "steward",
+    name: "事务官",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E4%BA%8B%E5%8A%A1%E5%AE%98",
+  },
+  {
+    id: "conjurer",
+    name: "戏法师",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E6%88%8F%E6%B3%95%E5%B8%88",
+  },
+  {
+    id: "pilgrim",
+    name: "修行者",
+    type: "townsfolk",
+    hidden: true,
+    ability: "【扩展镇民】详见官方角色说明。",
+    fullDescription: "",
+    script: "扩展",
+    docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E4%BF%AE%E8%A1%8C%E8%80%85",
   },
   // ========== 外来者 (Outsider) - 4个 ==========
   { 
