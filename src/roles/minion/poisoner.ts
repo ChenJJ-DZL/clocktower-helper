@@ -1,5 +1,6 @@
 import { RoleDefinition } from "../../types/roleDefinition";
 import { Seat } from "../../types/game";
+import { addPoisonMark, computeIsPoisoned } from "../../utils/gameRules";
 
 /**
  * 投毒者 (Poisoner)
@@ -59,31 +60,19 @@ export const poisoner: RoleDefinition = {
         };
       }
       
-      // 更新目标状态：中毒
-      // 注意：需要清除之前的中毒标记（如果有），然后添加新的
-      const existingStatusDetails = targetSeat.statusDetails || [];
-      const filteredStatusDetails = existingStatusDetails.filter(
-        detail => !detail.includes("投毒者毒")
-      );
-      
-      const existingStatuses = targetSeat.statuses || [];
-      const filteredStatuses = existingStatuses.filter(
-        status => status.effect !== "Poisoned" || status.sourceId !== selfId
+      // 投毒：当晚 + 次日白天中毒，黄昏清除
+      const { statusDetails, statuses } = addPoisonMark(
+        targetSeat,
+        'poisoner',
+        '次日黄昏清除'
       );
       
       const updates: Array<Partial<Seat> & { id: number }> = [
         {
           id: targetId,
-          isPoisoned: true,
-          statusDetails: [...filteredStatusDetails, "投毒者毒"],
-          statuses: [
-            ...filteredStatuses,
-            {
-              effect: "Poisoned",
-              duration: "至天亮",
-              sourceId: selfId,
-            },
-          ],
+          statusDetails,
+          statuses,
+          isPoisoned: computeIsPoisoned({ ...targetSeat, statusDetails, statuses }),
         },
       ];
       

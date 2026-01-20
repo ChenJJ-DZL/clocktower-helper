@@ -29,6 +29,7 @@ import { ReviewModal } from "../modals/ReviewModal";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RegistrationResult } from "../../utils/gameRules";
+import { StorytellerSelectModal } from "../modals/StorytellerSelectModal";
 
 // 定义所有 Modal 组件需要的 Props 接口
 export interface GameModalsProps {
@@ -393,6 +394,7 @@ export function GameModals(props: GameModalsProps) {
   const dayAbilityModal = props.currentModal?.type === 'DAY_ABILITY' ? props.currentModal.data : null;
   const shamanConvertModal = props.currentModal?.type === 'SHAMAN_CONVERT' ? props.currentModal : null;
   const spyDisguiseModal = props.currentModal?.type === 'SPY_DISGUISE' ? props.currentModal : null;
+  const storytellerSelectModal = props.currentModal?.type === 'STORYTELLER_SELECT' ? props.currentModal.data : null;
 
   // 伪装身份识别：避免在 render 中使用 IIFE（React 19 下可能触发内部断言）
   const shouldShowSpyDisguise = !!(props.showSpyDisguiseModal || spyDisguiseModal);
@@ -703,8 +705,15 @@ export function GameModals(props: GameModalsProps) {
                 return !s.isDead;
               }).map(s=>{
                 // 8. 提名限制：检查是否已被提名或被提名过
+                // 规则特例：玩家可以对自己发起提名（规则书中没有提及"不能对自己提名"）
+                const isSelfNomination = modal.type === 'nominate' && s.id === modal.sourceId;
                 const isDisabled = modal.type === 'nominate'
-                  ? (props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(modal.sourceId))
+                  ? (
+                      // 如果提名自己，检查自己是否已被提名过
+                      isSelfNomination 
+                        ? props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(modal.sourceId)
+                        : (props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(modal.sourceId))
+                    )
                   : modal.type === 'lunaticKill'
                     ? s.id === modal.sourceId
                     : false;
@@ -1277,7 +1286,7 @@ export function GameModals(props: GameModalsProps) {
           >
             💀 切换死亡
           </button>
-          {/* 在核对身份阶段，允许选择红罗刹（仅限善良阵营），爪牙和恶魔为灰色不可选，且需要场上有占卜师 */}
+          {/* 在核对身份阶段，允许选择天敌红罗剎（仅限善良阵营），爪牙和恶魔为灰色不可选，且需要场上有占卜师 */}
           {props.gamePhase === 'check' && targetSeat.role && (() => {
             const hasFortuneTeller = props.seats.some(s => s.role?.id === "fortune_teller");
             const isDisabled = ['minion','demon'].includes(targetSeat.role.type) || !hasFortuneTeller;
@@ -1291,7 +1300,7 @@ export function GameModals(props: GameModalsProps) {
                     : 'hover:bg-red-900 text-red-300'
                 }`}
               >
-                🎭 选为红罗刹
+                  🎭 选为天敌红罗剎
               </button>
             );
           })()}
@@ -1743,6 +1752,20 @@ export function GameModals(props: GameModalsProps) {
               )}
           </div>
         </div>
+      )}
+
+      {/* 说书人选择弹窗 */}
+      {storytellerSelectModal && (
+        <StorytellerSelectModal
+          sourceId={storytellerSelectModal.sourceId}
+          roleId={storytellerSelectModal.roleId}
+          roleName={storytellerSelectModal.roleName}
+          description={storytellerSelectModal.description}
+          targetCount={storytellerSelectModal.targetCount}
+          seats={props.seats}
+          onConfirm={storytellerSelectModal.onConfirm}
+          onCancel={() => props.setCurrentModal(null)}
+        />
       )}
     </>
   );

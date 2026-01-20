@@ -118,7 +118,7 @@ export function GameRecordsModal({ isOpen, onClose, gameRecords, isPortrait }: G
                             <span className={s.role?.type==='demon'?'text-red-500 font-bold':s.role?.type==='minion'?'text-orange-500':'text-blue-400'}>
                               {s.role?.name}
                               {s.role?.id==='drunk'&&` (伪:${s.charadeRole?.name})`}
-                              {s.isRedHerring && ' [红罗刹]'}
+                              {s.isRedHerring && ' [天敌红罗剎]'}
                             </span>
                             <div className="flex flex-wrap gap-1 justify-end text-[11px] leading-tight">
                               {s.isDead && <span className="px-2 py-0.5 rounded bg-gray-700 text-gray-300 border border-gray-600">💀 已死亡</span>}

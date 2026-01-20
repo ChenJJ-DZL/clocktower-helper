@@ -196,8 +196,26 @@ const hasTeaLadyProtection = (targetSeat: Seat | undefined, allSeats: Seat[]): b
   );
 };
 
-const hasExecutionProof = (seat?: Seat | null): boolean => {
+/**
+ * 检查玩家是否有处决保护
+ * 
+ * 隐性规则2：不能最大
+ * 禁止性规则优先于允许性规则。例如：
+ * - 弄臣等能力会造成免死效果
+ * - 刺客的能力会让"保护某人不会死亡"的能力无法产生效果
+ * - 因此刺客的攻击能够杀死具有保护效果的玩家
+ * 
+ * 注意：刺客等角色的攻击会覆盖保护效果，需要在调用此函数前检查攻击者角色
+ */
+const hasExecutionProof = (seat?: Seat | null, attackerRoleId?: string): boolean => {
   if (!seat) return false;
+  
+  // 隐性规则2：刺客等角色的能力会让保护无效
+  // 如果攻击者是刺客，保护无效
+  if (attackerRoleId === 'assassin') {
+    return false;
+  }
+  
   // Check statuses array for ExecutionProof effect
   if ((seat.statuses || []).some((status) => status.effect === 'ExecutionProof')) {
     return true;
@@ -387,6 +405,10 @@ export function useGameController() {
     introTimeoutRef,
     gameStateRef,
   } = gameState;
+
+  // 相克规则（灯神在场时启用）
+  // 说明：相克规则是规则而非能力；灯神只是允许说书人宣布这些规则。
+import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } from "../utils/antagonism";
   
   // 注意seatsRef 需要同步 seats 状态
   seatsRef.current = seats;
@@ -437,14 +459,16 @@ export function useGameController() {
   // 根据selectedScript过滤角色的辅助函数
   const getFilteredRoles = useCallback((roleList: Role[]): Role[] => {
     if (!selectedScript) return [];
-    return roleList.filter(r => 
-      !r.script || 
-      r.script === selectedScript.name ||
-      (selectedScript.id === 'trouble_brewing' && !r.script) ||
-      (selectedScript.id === 'bad_moon_rising' && (!r.script || r.script === '暗月初升')) ||
-      (selectedScript.id === 'sects_and_violets' && (!r.script || r.script === '梦陨春宵')) ||
-      (selectedScript.id === 'midnight_revelry' && (!r.script || r.script === '夜半狂欢'))
-    );
+    return roleList
+      .filter(r => !r.hidden) // 隐藏标记的角色不暴露到前台
+      .filter(r => 
+        !r.script || 
+        r.script === selectedScript.name ||
+        (selectedScript.id === 'trouble_brewing' && !r.script) ||
+        (selectedScript.id === 'bad_moon_rising' && (!r.script || r.script === '暗月初升')) ||
+        (selectedScript.id === 'sects_and_violets' && (!r.script || r.script === '梦陨春宵')) ||
+        (selectedScript.id === 'midnight_revelry' && (!r.script || r.script === '夜半狂欢'))
+      );
   }, [selectedScript]);
 
   const hasUsedAbility = useCallback((roleId: string, seatId: number) => {
@@ -1744,11 +1768,14 @@ export function useGameController() {
       // }
       
       // 【小白模式】如果目标已死，记录日志但不阻止操作
+      // 规则特例：恶魔可以攻击一名已死亡的玩家（如果规则书中没有提及"不能攻击已死亡的玩家"）
+      // 参考：官方规则细节说明 - "如果规则书中没有提及'你不能做某件事情'，那么你就可以做这件事情"
       if (targetSeat.isDead) {
         console.log(`[小白模式] 允许对已死玩家 ${targetId + 1}号 进行操作`);
         // 如果是僵怖假死状态，继续正常流程
         if (targetSeat.role?.id !== 'zombuul' || targetSeat.isZombuulTrulyDead) {
           // 不返回，允许继续操作（用于修正错误）
+          // 规则特例：已死亡的玩家无法再次死亡，但如果能力允许，可以对其进行操作
         }
       }
 
@@ -2218,6 +2245,12 @@ export function useGameController() {
     }
     
     setDeadThisNight([]); // 清空夜晚死亡记录
+    
+    // 规则：每个黄昏（白天）开始时重置提名记录
+    // 确保每名玩家在每个黄昏内只能提名一次，并且同个黄昏内也只能被提名一次
+    setNominationRecords({ nominators: new Set(), nominees: new Set() });
+    setNominationMap({});
+    
     // 使用seatsRef确保获取最新的seats状态然后检查游戏结束条件
     const currentSeats = seatsRef.current;
     // 检查游戏结束条件包括存活人数
@@ -2225,7 +2258,7 @@ export function useGameController() {
       return;
     }
     setGamePhase("day");
-  }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setCurrentModal, setPoppyGrowerDead, setDeadThisNight, setGamePhase]);
+  }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setCurrentModal, setPoppyGrowerDead, setDeadThisNight, setGamePhase, setNominationRecords, setNominationMap]);
 
   // 获取标准阵容配置（用于Baron自动重排）
   const getStandardComposition = useCallback((playerCount: number, hasBaron: boolean) => {
@@ -2356,10 +2389,10 @@ export function useGameController() {
           withRed[t.id] = { 
             ...withRed[t.id], 
             isRedHerring: true, 
-            statusDetails: [...(withRed[t.id].statusDetails || []), "红罗刹"] 
+            statusDetails: [...(withRed[t.id].statusDetails || []), "天敌红罗剎"] 
           };
           const redRoleName = withRed[t.id].role?.name || '未知角色';
-          addLog(`红罗刹分配${t.id+1}号：${redRoleName}`);
+          addLog(`天敌红罗剎分配${t.id+1}号：${redRoleName}`);
           setAutoRedHerringInfo(`${t.id + 1}号：${redRoleName}`);
         }
       }
@@ -2689,6 +2722,16 @@ export function useGameController() {
       return;
     }
 
+    // 相克规则：灯神在场时，互为克星的角色不能同时在场
+    if (isAntagonismEnabled(seats)) {
+      const decision = checkMutualExclusion({ seats, enteringRoleId: newRoleId, roles });
+      if (!decision.allowed) {
+        alert(decision.reason);
+        addLog(`⛔ ${decision.reason}`);
+        return;
+      }
+    }
+
     setSeats(prev => prev.map(s => {
       if (s.id !== seatId) return s;
       return {
@@ -2699,7 +2742,7 @@ export function useGameController() {
     }));
     
     addLog(`🔄 ${seatId+1}号 的身份变成了 [${newRole.name}]`);
-  }, [roles, setSeats, addLog]);
+  }, [roles, setSeats, addLog, seats]);
 
   /**
    * 交换角色（理发师/麻脸巫婆等）
@@ -2736,6 +2779,43 @@ export function useGameController() {
     
     // 首先检查是否有待确认的弹窗
     if (currentModal !== null) {
+      return;
+    }
+    
+    // 规则：如果能力描述中没有"选择"一词，这项能力就由说书人来做出选择
+    // 检测能力描述中是否包含"选择"关键词
+    const abilityText = nightInfo.effectiveRole.ability || '';
+    const hasChoiceKeyword = abilityText.includes('选择');
+    
+    // 如果能力描述中没有"选择"，且当前没有选中目标，触发说书人选择弹窗
+    if (!hasChoiceKeyword && selectedActionTargets.length === 0) {
+      const roleId = nightInfo.effectiveRole.id;
+      const roleName = nightInfo.effectiveRole.name;
+      const description = abilityText || `使用${roleName}的能力`;
+      
+      // 获取目标数量（从角色元数据或默认1）
+      const targetCount = getRoleTargetCount(roleId, gamePhase === 'firstNight')?.max ?? 1;
+      
+      // 触发说书人选择弹窗
+      setCurrentModal({
+        type: 'STORYTELLER_SELECT',
+        data: {
+          sourceId: nightInfo.seat.id,
+          roleId,
+          roleName,
+          description,
+          targetCount,
+          onConfirm: (targetIds: number[]) => {
+            // 设置选中的目标
+            setSelectedActionTargets(targetIds);
+            // 关闭弹窗
+            setCurrentModal(null);
+            // 注意：不需要递归调用，因为设置selectedActionTargets后，
+            // 用户需要再次点击"确认"按钮才会继续处理行动
+            // 这样可以避免无限递归，并让用户有机会确认选择
+          }
+        }
+      });
       return;
     }
     
@@ -2880,6 +2960,8 @@ export function useGameController() {
     }
     
     // 魔鬼代言人/和平主义者/水手保护 - 检查处决免疫状态
+    // 隐性规则2：不能最大 - 禁止性规则优先于允许性规则
+    // 注意：刺客等角色的能力会让保护无效，但此处是处决而非攻击，所以不需要传入攻击者角色
     if (hasExecutionProof(t)) {
       // 区分不同的保护来源
       const protectionDetails = (t.statusDetails || []).find((detail) => 
@@ -3200,6 +3282,8 @@ export function useGameController() {
   }, [nightInfo, showKillConfirmModal, seats, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, setShowKillConfirmModal, setSelectedActionTargets, continueToNextAction, getRandom, roles, setSeats, setWakeQueueIds, seatsRef, checkGameOver, setDeadThisNight, enqueueRavenkeeperIfNeeded, killPlayer, nightLogic, moonchildChainPendingRef, handleImpSuicide]);
 
   // Submit votes handler
+  // 规则特例：玩家可以在对自己的提名中投票（规则书中没有提及"不能在自己的提名中投票"）
+  // 规则：死亡玩家只能在有投票标记（hasGhostVote）时进行一次处决投票
   const submitVotes = useCallback((v: number, voters?: number[]) => {
     if(currentModal?.type !== 'VOTE_INPUT') return;
     const voterId = currentModal.data.voterId;
@@ -3220,7 +3304,8 @@ export function useGameController() {
       return;
     }
 
-    // 检查死亡玩家是否还有幽灵票
+    // 规则：检查死亡玩家是否还有幽灵票
+    // 规则说明：死亡玩家只能在有投票标记时进行一次处决投票
     if (voters && voters.length > 0) {
       const invalidDead = voters.some(id => {
         const seat = seats.find(s => s.id === id);
@@ -3837,12 +3922,15 @@ export function useGameController() {
   // ===========================
 
   const executeNomination = useCallback((sourceId: number, id: number, options?: { virginGuideOverride?: { isFirstTime: boolean; nominatorIsTownsfolk: boolean }; openVoteModal?: boolean }) => {
-    // 规则：只有存活的玩家可以发起提名
+    // 规则：只有存活的玩家可以发起提名（规则特例：死亡玩家不能发起提名）
     const nominatorSeat = seats.find(s => s.id === sourceId);
     if (!nominatorSeat || nominatorSeat.isDead) {
       addLog(`只有存活的玩家可以发起提名`);
       return;
     }
+    
+    // 规则特例：玩家可以对自己发起提名（规则书中没有提及"不能对自己提名"）
+    // 注意：虽然可以对自己提名，但投票规则仍然适用
     
     // 规则：同一时间只能有一名玩家被提名
     const currentNomineeCount = Object.keys(nominationMap).length;
@@ -3851,15 +3939,23 @@ export function useGameController() {
       return;
     }
     
-    // 规则：每名玩家每天只能发起一次提名
+    // 规则：每名玩家每个黄昏只能发起一次提名
     if (nominationRecords.nominators.has(sourceId)) {
-      addLog(`每名玩家每天只能发起一次提名`);
+      addLog(`每名玩家每个黄昏只能发起一次提名`);
       return;
     }
     
-    // 规则：每名玩家每天只能被提名一次
-    if (nominationRecords.nominees.has(id)) {
-      addLog(`每名玩家每天只能被提名一次`);
+    // 规则：每名玩家每个黄昏只能被提名一次（但允许提名自己，所以如果sourceId === id，需要特殊处理）
+    // 规则特例：玩家可以对自己发起提名（规则书中没有提及"不能对自己提名"）
+    if (sourceId !== id && nominationRecords.nominees.has(id)) {
+      addLog(`每名玩家每个黄昏只能被提名一次`);
+      return;
+    }
+    
+    // 规则特例：如果玩家提名自己，且自己已经被提名过，则不允许（因为每名玩家每个黄昏只能被提名一次）
+    // 注意：虽然可以对自己提名，但每名玩家每个黄昏只能被提名一次的规则仍然适用
+    if (sourceId === id && nominationRecords.nominees.has(id)) {
+      addLog(`每名玩家每个黄昏只能被提名一次`);
       return;
     }
     // 女巫若被诅咒者发起提名且仍有超过3名存活则其立即死亡
@@ -4220,6 +4316,21 @@ export function useGameController() {
             targetId: sourceSeatId,
             onConfirm: (roleId: string) => {
               // 确认后改变角色
+              // 相克规则：如果即将获得的能力会触发“互斥同场”，则提醒并阻止获得（哲学家视为已使用由外层已提前标记）。
+              if (isAntagonismEnabled(seats)) {
+                const decision = checkCannotGainAbility({
+                  seats,
+                  gainerRoleId: sourceSeat.role?.id || 'unknown',
+                  abilityRoleId: roleId,
+                  roles,
+                });
+                if (!decision.allowed) {
+                  alert(decision.reason);
+                  addLog(`⛔ ${decision.reason}（哲学家本次使用视作已消耗）`);
+                  return;
+                }
+              }
+
               changeRole(sourceSeatId, roleId);
               logMessage += ` 获得了 [${roles.find(r => r.id === roleId)?.name || roleId}] 的能力`;
               addLog(logMessage);
@@ -4515,37 +4626,37 @@ export function useGameController() {
         const targetSeat = p.find(s => s.id === targetSeatId);
         const isRemoving = targetSeat?.isRedHerring === true;
         
-        // 如果尝试添加红罗刹但场上没有占卜师则不允许
+        // 如果尝试添加天敌红罗剎但场上没有占卜师则不允许
         if (!isRemoving && !hasFortuneTeller) {
           return p; // 不进行任何更改
         }
         
-        // 场上"红罗唯一选择新的红罗刹时清除其他玩家的红罗刹标记和图标
+        // 场上"红罗唯一选择新的天敌红罗剎时清除其他玩家的标记和图标
         updated = p.map(s => {
           if (s.id === targetSeatId) {
             const details = s.statusDetails || [];
             return {
               ...s,
               isRedHerring: true,
-              statusDetails: details.includes("红罗刹")
+              statusDetails: details.includes("天敌红罗剎")
                 ? details
-                : [...details, "红罗刹"],
+                : [...details, "天敌红罗剎"],
             };
           } else {
             const details = s.statusDetails || [];
             return {
               ...s,
               isRedHerring: false,
-              statusDetails: details.filter(d => d !== "红罗刹"),
+              statusDetails: details.filter(d => d !== "天敌红罗剎"),
             };
           }
         });
         
-        // 只有在成功设置而不是移除红罗刹时才添加日志
+        // 只有在成功设置而不是移除天敌红罗剎时才添加日志
         // 注意这里使用setTimeout是为了在setSeats完成后再添加日志避免在回调中直接调用
         if (!isRemoving) {
           setTimeout(() => {
-            addLog(`你将 ${targetSeatId + 1} 号玩家设为本局唯一的红罗刹，占卜师永远视 ta 为邪恶`);
+            addLog(`你将 ${targetSeatId + 1} 号玩家设为本局唯一的天敌红罗剎，占卜师永远视 ta 为邪恶`);
           }, 0);
         }
       } else {
@@ -4604,9 +4715,14 @@ export function useGameController() {
 
   // Check if a target seat should be disabled based on role-specific rules
   // 【小白模式】移除所有点击限制，允许说书人点选任何人（包括已死玩家）
+  // 规则特例：
+  // 1. 在夜晚选择"任意玩家"时，可以选择自己或已死亡的玩家（如果规则书中没有明确禁止）
+  // 2. 恶魔可以攻击一名已死亡的玩家（如果能力允许）
+  // 3. 角色的 canSelectSelf 和 canSelectDead 元数据控制选择限制
   const isTargetDisabled = useCallback((targetSeat: Seat): boolean => {
     // 【小白模式】永远不禁用，允许说书人自由选择任何目标
     // 这样可以手动修正错误，比如对已死玩家使用技能、重复击杀等
+    // 规则特例：如果规则书中没有提及"不能做某件事情"，那么就可以做这件事情
     return false;
   }, []);
 

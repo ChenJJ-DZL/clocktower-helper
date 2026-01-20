@@ -103,6 +103,11 @@ export const calculateNightInfo = (
   if (!effectiveRole) return null;
   const diedTonight = deadThisNight.includes(targetSeat.id);
 
+  // 检测能力描述中是否包含"选择"关键词
+  // 规则：如果能力描述中没有"选择"一词，这项能力就由说书人来做出选择
+  const abilityText = effectiveRole.ability || '';
+  const hasChoiceKeyword = abilityText.includes('选择') || abilityText.includes('选择');
+
   // VORTOX CHECK: 如果 Vortox 在场且角色是镇民，强制提供错误信息
   const vortoxActive = seats.some(s => s.role?.id === 'vortox' && !s.isDead);
   
@@ -413,8 +418,8 @@ export const calculateNightInfo = (
 
     // ========== Minion (爪牙) ==========
     case 'poisoner':
-      guide = "🧪 选择一名玩家下毒。"; 
-      speak = '"请选择一名玩家下毒。被你下毒的玩家今晚会看到错误的信息。"'; 
+      guide = "🧪 选择一名玩家下毒（当晚+次日白天中毒，次日黄昏清除）。"; 
+      speak = '"请选择一名玩家下毒。他当晚和明天白天都会中毒，在次日黄昏清除。"' ; 
       action = "投毒";
       break;
 
@@ -695,7 +700,7 @@ export const calculateNightInfo = (
                 // 确保错误信息一定为假：选择的角色和座位号必须不匹配
                 
                 // 1. 获取所有可能的外来者角色列表（根据当前剧本过滤）
-                const allOutsiderRoles = roles.filter(r => r.type === 'outsider' && r.id !== effectiveRole.id);
+                const allOutsiderRoles = roles.filter(r => r.type === 'outsider' && r.id !== effectiveRole.id && !r.hidden);
                 const outsiderRoles = selectedScript 
                   ? allOutsiderRoles.filter(r => 
                       !r.script || 
@@ -815,7 +820,7 @@ export const calculateNightInfo = (
               // 确保错误信息一定为假：选择的角色和座位号必须不匹配
               
               // 1. 随机选择一个爪牙角色作为错误信息中的角色（根据当前剧本过滤）
-              const allMinionRoles = roles.filter(r => r.type === 'minion' && r.id !== effectiveRole.id);
+              const allMinionRoles = roles.filter(r => r.type === 'minion' && r.id !== effectiveRole.id && !r.hidden);
               const filteredMinionRoles = selectedScript 
                 ? allMinionRoles.filter(r => 
                     !r.script || 
@@ -996,10 +1001,10 @@ export const calculateNightInfo = (
       break;
 
     case 'fortune_teller':
-      guide = "🔮 查验2人。若有恶魔/红罗刹->是。";
+      guide = "🔮 查验2人。若有恶魔/天敌红罗剎->是。";
       const regNote = buildRegistrationGuideNote(effectiveRole);
       if (regNote) guide += `\n${regNote}`;
-      speak = '"请选择两名玩家查验。如果其中一人是恶魔或红罗刹，我会告诉你\\"是\\"，否则告诉你\\"否\\"。'; 
+      speak = '"请选择两名玩家查验。如果其中一人是恶魔或天敌红罗剎，我会告诉你\\"是\\"，否则告诉你\\"否\\"。'; 
       action = "查验";
       break;
 
@@ -1015,7 +1020,7 @@ export const calculateNightInfo = (
 
             if (shouldShowFake) {
               // 送葬者在中毒/醉酒/涡流世界下：给出错误的角色信息
-              const otherRoles = roles.filter(r => r.name !== realName);
+              const otherRoles = roles.filter(r => r.name !== realName && !r.hidden);
               const fakeRole = otherRoles.length > 0 ? getRandom(otherRoles) : executed.role;
               const fakeName = fakeRole.name;
 
@@ -1038,25 +1043,32 @@ export const calculateNightInfo = (
       break;
 
     case 'monk':
+      if (isFirstNight) {
+        guide = "首夜不唤醒僧侣。";
+        speak = "（首夜不行动）";
+        action = "跳过";
+        break;
+      }
       if (isPoisoned) {
         guide = "⚠️ [异常] 中毒/醉酒状态下无法保护玩家，但可以正常选择。"; 
         speak = '"请选择一名玩家。但由于你处于中毒/醉酒状态，无法提供保护效果。"'; 
       } else {
-        guide = "🛡️ 选择一名玩家保护。"; 
-        speak = '"请选择一名玩家保护。被你保护的玩家今晚不会被恶魔杀害，但不能保护自己。"'; 
+        guide = "🛡️ 选择一名玩家保护。不能保护自己，也不能保护死亡玩家。"; 
+        speak = '"请选择一名存活的其他玩家进行保护。被你保护的玩家今晚不会被恶魔杀害。"'; 
       }
       action = "保护";
       break;
 
     case 'ravenkeeper':
-      if (!targetSeat.isDead || !diedTonight) { 
-        guide = "你尚未在本夜死亡，不会被唤醒。"; 
+      // 仅当本夜死亡时才会被唤醒，死亡原因不限（恶魔/镇长替死等），中毒/醉酒照样被唤醒但信息可能错误
+      if (diedTonight) { 
+        guide = "查验一名玩家的真实角色（可能受中毒/醉酒影响）。"; 
+        speak = '"请选择一名玩家，我会告诉你他的角色。"' ; 
+        action = "查验";
+      } else { 
+        guide = "你本夜未死亡，不会被唤醒。"; 
         speak = "（摇头示意无效）"; 
         action = "跳过";
-      } else { 
-        guide = "查验一身份。"; 
-        speak = '"请选择一名玩家。"'; 
-        action = "查验";
       }
       break;
 

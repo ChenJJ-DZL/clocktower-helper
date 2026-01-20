@@ -150,11 +150,11 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     processedStatuses.add('protected');
   }
 
-  // 6. 红罗刹状态
+  // 6. 天敌红罗剎状态
   if (s.isRedHerring) {
     statusList.push({
       key: 'red_herring',
-      text: "天敌红罗刹",
+      text: "天敌红罗剎",
       color: "yellow",
       icon: "🎯",
       duration: "永久"
@@ -299,8 +299,8 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         ${s.isDead ? 'grayscale brightness-75 bg-gray-300 border-gray-400' : ''} 
         ${selectedActionTargets.includes(s.id) ? 'ring-4 ring-green-500 scale-105' : ''}
         ${longPressingSeats.has(s.id) ? 'ring-4 ring-blue-400 animate-pulse' : ''}
-        ${nominator === s.id ? 'ring-4 ring-white scale-105 shadow-[0_0_20px_white]' : ''}
-        ${nominee === s.id ? 'ring-4 ring-yellow-400 scale-105 shadow-[0_0_20px_yellow]' : ''}
+        ${nominator === s.id ? 'ring-8 ring-white scale-110 shadow-[0_0_40px_rgba(255,255,255,0.8)] animate-pulse' : ''}
+        ${nominee === s.id ? 'ring-8 ring-yellow-400 scale-110 shadow-[0_0_40px_rgba(250,204,21,0.8)] animate-pulse' : ''}
         ${s.isCandidate ? 'ring-4 ring-red-500 scale-105 shadow-[0_0_20px_red]' : ''}
       `}
       >
@@ -317,6 +317,24 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         {/* 长按进度指示器 */}
         {longPressingSeats.has(s.id) && (
           <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
+        )}
+        
+        {/* 提名者外圈光环特效 */}
+        {nominator === s.id && (
+          <>
+            <div className="absolute inset-0 rounded-full border-8 border-white/60 animate-ping opacity-50" style={{ animationDuration: '1.5s' }}></div>
+            <div className="absolute inset-0 rounded-full border-8 border-white/40 animate-ping opacity-30" style={{ animationDuration: '2s', animationDelay: '0.5s' }}></div>
+            <div className="absolute -inset-4 rounded-full border-4 border-white/30 animate-pulse"></div>
+          </>
+        )}
+        
+        {/* 被提名者外圈光环特效 */}
+        {nominee === s.id && (
+          <>
+            <div className="absolute inset-0 rounded-full border-8 border-yellow-400/60 animate-ping opacity-50" style={{ animationDuration: '1.5s' }}></div>
+            <div className="absolute inset-0 rounded-full border-8 border-yellow-400/40 animate-ping opacity-30" style={{ animationDuration: '2s', animationDelay: '0.5s' }}></div>
+            <div className="absolute -inset-4 rounded-full border-4 border-yellow-400/30 animate-pulse"></div>
+          </>
         )}
         
         {/* 座位序号 - 固定在左上角45度方向，圆心在圆圈上 */}

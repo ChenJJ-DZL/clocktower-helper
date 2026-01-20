@@ -275,9 +275,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         if (hasExecutedThisDay === false) {
           const vortoxSeat = seats.find(s => s.role?.id === 'vortox' && !s.isDead);
           if (vortoxSeat) {
-            addLog?.("😈 沃德在场且今日无人被处决！邪恶方获胜！");
+            addLog?.("😈 涡流在场且今日无人被处决！邪恶方获胜！");
             setWinResult?.('evil');
-            setWinReason?.('沃德在场且今日无人被处决');
+            setWinReason?.('涡流在场且今日无人被处决');
             setGamePhase?.('gameOver');
             // Reset execution flag before returning
             setHasExecutedThisDay?.(false);
@@ -302,6 +302,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       if (isFirst) setStartTime(new Date());
       
       // 普卡特殊处理：按队列推进中毒->死亡流程
+      // 隐性规则3：自我/循环的醉酒/中毒/失去能力
+      // 普卡攻击自身会让自己中毒，且因为中毒没有结束条件，普卡会因此永久中毒
+      // 注意：自我中毒时，只保留"让自己中毒"这一条能力的"中毒效果"和"中毒结束条件"
       const pukkaDeaths: number[] = [];
       const nextPukkaQueue = pukkaPoisonQueue
         .map(entry => {

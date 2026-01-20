@@ -69,6 +69,21 @@ export interface Role {
   name: string;
   type: RoleType; // townsfolk, outsider, minion, demon, traveler
 
+  /**
+   * UI隐藏标记：true时不在列表/分配中出现，但可留存于角色库
+   */
+  hidden?: boolean;
+
+  /**
+   * 规则要点摘要（供前端展示简化版说明）
+   */
+  ruleNotes?: string;
+
+  /**
+   * 长文档引用（如官方维基或本地文档路径）
+   */
+  docRef?: string;
+
   // 基础信息（用于显示和描述）
   ability?: string;
   image?: string;
@@ -1029,6 +1044,180 @@ export const roles: Role[] = [
     script: "夜半狂欢", 
   }
 ];
+
+// ======================================================================
+//  隐藏占位：旅行者与实验角色（默认不在前台展示/分配）
+//  仅保留规则要点/引用，等待未来启用
+// ======================================================================
+roles.push(
+  // 旅行者（暗流涌动）
+  {
+    id: "traveler_official",
+    name: "（旅行者占位）",
+    type: "traveler",
+    ability: "包含官员、乞丐、枪手、窃贼、替罪羊等，请参考官方长文档。",
+    fullDescription: "旅行者合集占位，参见官方文档详细规则。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "旅行者不计入角色配比，可随时加入/离开，详见官方文档。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#travelers"
+  },
+  // 实验性角色（暗流涌动卡牌版附带）
+  {
+    id: "experimental_sing_boy",
+    name: "唱诗男孩",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_king",
+    name: "国王",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_general",
+    name: "将军",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_balloonist",
+    name: "气球驾驶员",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_bounty_hunter",
+    name: "赏金猎人",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_nightwatchman",
+    name: "守夜人",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_pixie",
+    name: "小精灵",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_heretic",
+    name: "异教领袖",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_snitch",
+    name: "告密者",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_goblin",
+    name: "哥布林",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_puppet",
+    name: "提线木偶",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_boomdandy",
+    name: "炸弹人",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_leviathan",
+    name: "利维坦",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  },
+  {
+    id: "experimental_mafia",
+    name: "黑帮",
+    type: "traveler",
+    ability: "实验角色占位，详见官方长文档。",
+    fullDescription: "实验角色占位，详见官方长文档。",
+    script: "暗流涌动",
+    hidden: true,
+    ruleNotes: "实验性角色占位，未在当前引擎启用。",
+    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental"
+  }
+);
 
 export const groupedRoles = roles.reduce((acc, role) => {
   if (!acc[role.type]) acc[role.type] = [];

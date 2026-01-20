@@ -42,6 +42,9 @@ export type ModalType =
   | { type: 'SPY_DISGUISE'; data: null }
   | { type: 'BARBER_SWAP'; data: { demonId: number; firstId: number | null; secondId: number | null } }
   
+  // 说书人选择弹窗（当能力描述中没有"选择"一词时）
+  | { type: 'STORYTELLER_SELECT'; data: { sourceId: number; roleId: string; roleName: string; description: string; targetCount: number; onConfirm: (targetIds: number[]) => void } }
+  
   // 信息展示弹窗
   | { type: 'RAVENKEEPER_FAKE'; data: { targetId: number } }
   | { type: 'REVIEW'; data: null }

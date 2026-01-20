@@ -95,19 +95,30 @@ export function SeatGrid(props: SeatGridProps) {
       {seats.map((seat) => {
         const isDead = seat.isDead;
         const hasRole = !!seat.role;
+        const handleTouchEnd = (e: React.TouchEvent) => {
+          e.preventDefault();
+          onSeatClick(seat);
+        };
         return (
           <button
             key={seat.id}
             onClick={() => onSeatClick(seat)}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={handleTouchEnd}
             onContextMenu={(e) => onContextMenu(e, seat.id)}
-            className={`flex flex-col items-center justify-center rounded-lg border px-2 py-1 text-xs transition ${
+            className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-xs transition ${
               hasRole
                 ? "bg-slate-800/80 border-slate-500 text-slate-100"
                 : "bg-slate-900/60 border-slate-600 text-slate-500"
             } ${isDead ? "opacity-60 line-through" : ""}`}
+            style={{
+              touchAction: "manipulation",
+              WebkitTapHighlightColor: "transparent",
+            }}
           >
             <div className="font-bold mb-0.5">{seat.id + 1}号</div>
-            <div className="text-[10px] truncate max-w-[4rem]">
+            <div className="text-[10px] truncate max-w-[5rem]">
               {seat.role?.name ?? "未分配"}
             </div>
           </button>

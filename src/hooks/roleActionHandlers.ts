@@ -7,6 +7,7 @@ import React from "react";
 import { Seat, GamePhase, Role } from "../../app/data";
 import { NightInfoResult } from "../types/game";
 import { ModalType } from "../types/modal";
+import { isAntagonismEnabled, checkCannotCreate } from "../utils/antagonism";
 
 /**
  * 角色确认处理上下文
@@ -211,6 +212,20 @@ export function handlePitHagConfirm(context: RoleConfirmContext): RoleConfirmRes
   
   if (!targetSeat || !newRole) {
     return { handled: true, shouldWait: true };
+  }
+
+  // 相克规则：灯神在场时，麻脸巫婆“创造/变身”需遵守相克限制（例如无法创造某些角色、互斥同场）
+  if (isAntagonismEnabled(seats)) {
+    const decision = checkCannotCreate({
+      seats,
+      creatorRoleId: nightInfo.effectiveRole.id,
+      createdRoleId: newRole.id,
+      roles,
+    });
+    if (!decision.allowed) {
+      alert(decision.reason);
+      return { handled: true, shouldWait: true };
+    }
   }
   
   // 不能变成场上已存在的角色

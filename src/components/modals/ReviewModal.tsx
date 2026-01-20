@@ -41,7 +41,7 @@ export function ReviewModal({
                   <span className={s.role?.type==='demon'?'text-red-500 font-bold':s.role?.type==='minion'?'text-orange-500':'text-blue-400'}>
                     {s.role?.name}
                     {s.role?.id==='drunk'&&` (伪:${s.charadeRole?.name})`}
-                    {s.isRedHerring && ' [红罗刹]'}
+                  {s.isRedHerring && ' [天敌红罗剎]'}
                   </span>
                   {s.isDead && <span className={`${isPortrait ? 'text-[10px]' : 'text-xs'} text-gray-500 mt-1`}>💀 已死亡</span>}
                   {s.isPoisoned && <span className={`${isPortrait ? 'text-[10px]' : 'text-xs'} text-green-500 mt-1`}>🧪 中毒</span>}

@@ -3,7 +3,7 @@ import { Seat } from "../../types/game";
 
 /**
  * 占卜师 (Fortune Teller)
- * 每晚选择2名玩家，得知其中是否有恶魔或红罗刹
+ * 每晚选择2名玩家，得知其中是否有恶魔或天敌红罗剎
  */
 export const fortune_teller: RoleDefinition = {
   id: "fortune_teller",

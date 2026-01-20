@@ -12,6 +12,8 @@ import { GameConsole } from "./console/GameConsole";
 import { getSeatPosition } from "../../utils/gameRules";
 import { GameLayout } from "./GameLayout";
 import { ScaleToFit } from "./board/ScaleToFit";
+import { setAntagonismGlobalOverride } from "../../utils/antagonism";
+import { getStorytellerTips } from "../../utils/storytellerTips";
 
 // 全量重写的 GameStage 组件
 export function GameStage({ controller }: { controller: any }) {
@@ -134,6 +136,12 @@ export function GameStage({ controller }: { controller: any }) {
   // 计算左侧面板的缩放比例，使座位表适应容器
   const [seatScale, setSeatScale] = useState(1);
   const leftPanelRef = useRef<HTMLDivElement>(null);
+  const [antagonismEnabled, setAntagonismEnabled] = useState<boolean>(false); // 相克规则开关（默认关闭）
+
+  useEffect(() => {
+    // 同步到全局规则层；null 表示按灯神检测，这里明确使用布尔值
+    setAntagonismGlobalOverride(antagonismEnabled);
+  }, [antagonismEnabled]);
   
   // Dusk Phase: Nomination state
   const [nominator, setNominator] = useState<number | null>(null);
@@ -295,6 +303,30 @@ export function GameStage({ controller }: { controller: any }) {
     showPitHagModal,
   ]);
 
+  // 统一的说书人指引（夜晚脚本提示 + 阶段小操作提示）
+  const guidancePoints = useMemo(() => {
+    const base: string[] =
+      (gamePhase === "firstNight" || gamePhase === "night") && nightInfo?.guide
+        ? [nightInfo.guide]
+        : [];
+    const extra = getStorytellerTips({
+      gamePhase,
+      seats,
+      nightCount,
+      deadThisNight,
+      isGoodAlignment,
+    });
+    const merged: string[] = [];
+    const seen = new Set<string>();
+    [...base, ...extra].forEach((t) => {
+      if (!seen.has(t)) {
+        seen.add(t);
+        merged.push(t);
+      }
+    });
+    return merged;
+  }, [gamePhase, nightInfo?.guide, seats, nightCount, deadThisNight, isGoodAlignment]);
+
   // 当前/下一个行动角色信息
   const currentWakeSeat = nightInfo ? seats.find((s: Seat) => s.id === nightInfo.seat.id) : null;
   const nextWakeSeatId =
@@ -318,6 +350,15 @@ export function GameStage({ controller }: { controller: any }) {
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Round Table */}
           <div className="flex-1 bg-slate-950 relative flex items-center justify-center">
+            {/* 相克规则开关（左上角，小按钮） */}
+            <button
+              type="button"
+              onClick={() => setAntagonismEnabled((v) => !v)}
+              className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
+              title="相克规则开关（默认关闭，不产生影响）"
+            >
+              相克规则：{antagonismEnabled ? '开' : '关'}
+            </button>
             <ScaleToFit>
               <RoundTable
                 seats={seats}
@@ -417,6 +458,23 @@ export function GameStage({ controller }: { controller: any }) {
                 </span>
               </div>
             </div>
+
+            {/* Storyteller Tips */}
+            {guidancePoints.length > 0 && (
+              <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+                <h3 className="text-white font-bold flex items-center gap-2">
+                  <span>📒</span> 说书人建议
+                </h3>
+                <div className="space-y-1 text-xs text-gray-200 leading-relaxed">
+                  {guidancePoints.map((tip, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <span className="text-amber-400">•</span>
+                      <span>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Voting Flow Status */}
             <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
@@ -653,6 +711,15 @@ export function GameStage({ controller }: { controller: any }) {
     <GameLayout
       leftPanel={
         <div className="relative w-full h-full p-4">
+          {/* 相克规则开关（左上角，小按钮） */}
+          <button
+            type="button"
+            onClick={() => setAntagonismEnabled((v) => !v)}
+            className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
+            title="相克规则开关（默认关闭，不产生影响）"
+          >
+            相克规则：{antagonismEnabled ? '开' : '关'}
+          </button>
           {/* 夜晚时间线：桌面右上角，单列垂直显示 */}
           {(gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && (
             <div className="absolute top-4 right-4 z-20 max-h-[60%] overflow-y-auto flex flex-col gap-2 items-stretch">
@@ -759,7 +826,7 @@ export function GameStage({ controller }: { controller: any }) {
           totalSteps={wakeQueueIds.length}
           wakeQueueIds={wakeQueueIds}
           scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
-          guidancePoints={nightInfo?.guide ? [nightInfo.guide] : []}
+          guidancePoints={guidancePoints}
           selectedPlayers={selectedActionTargets}
                     seats={seats}
           nightInfo={nightInfo}

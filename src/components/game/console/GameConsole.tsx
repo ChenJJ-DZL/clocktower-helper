@@ -105,6 +105,9 @@ export function GameConsole({
     }
   };
 
+  // 高亮“直接告诉说书人做什么”的指令块：优先脚本文本，其次提示列表第一条
+  const primaryGuidance = scriptText || guidancePoints[0];
+
   return (
     <div className="h-full flex flex-col bg-slate-900">
       {/* Zone A: Header (Status) */}
@@ -141,6 +144,16 @@ export function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 min-h-0">
+        {/* Highlighted Primary Instruction */}
+        {primaryGuidance && (
+          <div className="rounded-2xl border border-emerald-400/70 bg-emerald-900/40 px-4 py-3 shadow-inner shadow-emerald-500/30">
+            <div className="text-sm font-semibold text-emerald-200 mb-1">提示 · 直接说/做</div>
+            <div className="text-lg text-emerald-50 leading-relaxed">
+              {primaryGuidance}
+            </div>
+          </div>
+        )}
+
         {/* Section: Inspection / Result (Night info reveal) */}
         {inspectionResult && (
           <div key={inspectionResultKey ?? 0} className="space-y-2">
