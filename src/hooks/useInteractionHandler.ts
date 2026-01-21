@@ -41,8 +41,8 @@ export interface InteractionDeps {
   reviveSeat: (seat: Seat) => Seat;
   setPukkaPoisonQueue: Dispatch<SetStateAction<{ targetId: number; nightsUntilDeath: number; }[]>>;
   setDeadThisNight: Dispatch<SetStateAction<number[]>>;
-  poChargeState: number;
-  setPoChargeState: Dispatch<SetStateAction<number>>;
+  poChargeState: Record<number, boolean>;
+  setPoChargeState: Dispatch<SetStateAction<Record<number, boolean>>>;
   addDrunkMark: (seatId: number) => void;
   isEvil: (seat: Seat) => boolean;
   getRoleConfirmHandler: (roleId: string) => ((context: any) => { handled: boolean; shouldWait?: boolean; shouldContinueToNight?: boolean; seatUpdates?: any[] }) | undefined;

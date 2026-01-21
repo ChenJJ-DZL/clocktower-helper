@@ -25,7 +25,7 @@ interface HistoryDeps {
   setSelectedRole: Dispatch<SetStateAction<any>>;
   setInspectionResult: Dispatch<SetStateAction<any>>;
   setTimer: Dispatch<SetStateAction<number>>;
-  setStartTime: Dispatch<SetStateAction<number | null>>;
+  setStartTime: Dispatch<SetStateAction<Date | null>>;
   setSeats: Dispatch<SetStateAction<any[]>>;
   setInitialSeats: Dispatch<SetStateAction<any[]>>;
   hintCacheRef: MutableRefObject<Map<any, any>>;

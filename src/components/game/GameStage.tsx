@@ -114,6 +114,9 @@ export function GameStage({ controller }: { controller: any }) {
     setLongPressingSeats,
     closeNightOrderPreview,
     confirmNightOrderPreview,
+    nightOrderPreview,
+    nightOrderPreviewLive,
+    setShowNightOrderModal,
     executeNomination,
     checkGameOverSimple,
     registerVotes,
@@ -827,6 +830,8 @@ export function GameStage({ controller }: { controller: any }) {
                   onTimerStart={controller.handleTimerStart}
                   onTimerPause={controller.handleTimerPause}
                   onTimerReset={controller.handleTimerReset}
+                  nightOrderPreview={nightOrderPreviewLive || nightOrderPreview}
+                  onOpenNightOrderPreview={() => setShowNightOrderModal(true)}
                 />
         </div>
       }

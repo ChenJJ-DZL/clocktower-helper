@@ -33,6 +33,10 @@ interface RoundTableProps {
   // Dusk phase selection indicators
   nominator?: number | null;
   nominee?: number | null;
+
+  // Night order preview panel (top-right)
+  nightOrderPreview?: Array<{ roleName: string; seatNo: number; order: number | null }>;
+  onOpenNightOrderPreview?: () => void;
 }
 
 /**
@@ -62,6 +66,8 @@ export function RoundTable({
   onTimerReset,
   nominator = null,
   nominee = null,
+  nightOrderPreview = [],
+  onOpenNightOrderPreview,
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
@@ -125,6 +131,37 @@ export function RoundTable({
       ref={containerRef}
       className="relative w-full h-full flex items-center justify-center overflow-hidden"
     >
+      {/* Top-right: Night order panel */}
+      <div className="absolute top-3 right-3 z-40 w-[280px] max-w-[40vw] pointer-events-auto">
+        <div className="rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+            <div className="text-xs font-bold text-slate-200">夜晚行动顺序</div>
+            <button
+              type="button"
+              onClick={() => onOpenNightOrderPreview?.()}
+              className="text-xs px-2 py-1 rounded-md bg-slate-700/80 hover:bg-slate-600/80 text-slate-100 border border-white/10"
+              title="展开完整顺序"
+            >
+              展开
+            </button>
+          </div>
+          <div className="max-h-[220px] overflow-auto px-3 py-2 space-y-2">
+            {nightOrderPreview.length === 0 ? (
+              <div className="text-xs text-slate-400">暂无（未生成顺序或不在夜晚阶段）</div>
+            ) : (
+              nightOrderPreview.slice(0, 10).map((item, idx) => (
+                <div key={`${item.roleName}-${item.seatNo}-${idx}`} className="flex items-center justify-between text-xs">
+                  <div className="text-slate-200 truncate">
+                    {idx + 1}. [{item.seatNo}号] {item.roleName}
+                  </div>
+                  <div className="text-slate-400 ml-2 shrink-0">#{item.order ?? '—'}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Decorative table ring - REMOVED borders per requirements */}
       
       {/* Subtle background circle for table surface - REMOVED borders per requirements */}

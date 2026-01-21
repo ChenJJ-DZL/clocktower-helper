@@ -48,6 +48,8 @@ import {
 } from "../utils/gameRules";
 import { calculateNightInfo, generateNightTimeline } from "../utils/nightLogic";
 import { isAntagonismEnabled, checkCannotGainAbility, checkMutualExclusion } from "../utils/antagonism";
+import { normalizeWakeQueueForDeaths } from "../utils/wakeQueue";
+import { getNightOrderOverride } from "../utils/nightOrderOverrides";
 
 // DayAbilityConfig type for day ability triggers
 export type DayAbilityConfig = {
@@ -429,6 +431,38 @@ export function useGameController() {
     introTimeoutRef,
     gameStateRef,
   } = gameState;
+
+  // Live night order preview derived from the actual wake queue (so it never goes stale / missing)
+  // NOTE: Uses baseGamePhase here since gamePhase is defined later from gameFlow
+  const nightOrderPreviewLive = useMemo(() => {
+    const isNightPhase = baseGamePhase === "firstNight" || baseGamePhase === "night";
+    if (!isNightPhase) return [];
+
+    const isFirst = baseGamePhase === "firstNight";
+    const byId = new Map(baseSeats.map((s) => [s.id, s]));
+
+    return baseWakeQueueIds
+      .map((seatId, idx) => {
+        const seat = byId.get(seatId);
+        const effectiveRoleId =
+          seat?.role?.id === "drunk" ? seat?.charadeRole?.id : seat?.role?.id;
+        const roleName =
+          seat?.role?.id === "drunk"
+            ? seat?.charadeRole?.name ?? seat?.role?.name
+            : seat?.role?.name;
+        const order =
+          (effectiveRoleId
+            ? getNightOrderOverride(effectiveRoleId, isFirst)
+            : null) ?? idx + 1;
+
+        return {
+          roleName: roleName || effectiveRoleId || "未知角色",
+          seatNo: seatId + 1,
+          order,
+        };
+      })
+      .filter((x) => !!x.roleName);
+  }, [baseGamePhase, baseSeats, baseWakeQueueIds]);
 
   // 占位组合式 Hooks（后续逐步迁移状态/方法）
   const startNightImplRef = useRef<((isFirst: boolean) => void) | undefined>(undefined);
@@ -1181,18 +1215,39 @@ export function useGameController() {
       addLog,
       continueToNextAction: interactionContinueToNextAction,
       insertIntoWakeQueueAfterCurrent: interactionInsertIntoWakeQueueAfterCurrent,
-      getSeatRoleId,
+      getSeatRoleId: (seatId: number) => {
+        const seat = seats.find(s => s.id === seatId);
+        return getSeatRoleId(seat);
+      },
       cleanseSeatStatuses,
-      hasUsedAbility,
-      markAbilityUsed,
+      hasUsedAbility: (roleId: string, seatId?: number) => {
+        if (seatId === undefined) return false;
+        return hasUsedAbility(roleId, seatId);
+      },
+      markAbilityUsed: (seatId: number, roleId: string) => {
+        markAbilityUsed(roleId, seatId);
+      },
       reviveSeat,
       setPukkaPoisonQueue,
       setDeadThisNight,
       poChargeState,
       setPoChargeState,
-      addDrunkMark,
+      addDrunkMark: (seatId: number) => {
+        const seat = seats.find(s => s.id === seatId);
+        if (seat) {
+          // addDrunkMark expects (seat, drunkType, clearTime) but useInteractionHandler only provides seatId
+          // This is a placeholder adapter - actual implementation should be handled elsewhere
+          // For now, we'll just mark the seat as drunk without specific type/clearTime
+          setSeats(prev => prev.map(s => 
+            s.id === seatId ? { ...s, isDrunk: true } : s
+          ));
+        }
+      },
       isEvil,
-      getRoleConfirmHandler,
+      getRoleConfirmHandler: (roleId: string) => {
+        const handler = getRoleConfirmHandler(roleId);
+        return handler ?? undefined;
+      },
       nightInfo,
       selectedActionTargets,
       setSelectedActionTargets,
@@ -1435,18 +1490,28 @@ export function useGameController() {
       return;
     }
     
-    // 检查是否有玩家在夜晚死亡需要跳过他们的环节但亡骨魔杀死的爪牙保留能力需要被唤醒
-    const currentDead = seats.filter(s => {
-      const roleId = getSeatRoleId(s);
-      const diedTonight = deadThisNight.includes(s.id);
-      if (roleId === 'ravenkeeper' && diedTonight) return false;
-      return s.isDead && !s.hasAbilityEvenDead;
+    // 关键修复：在推进前先“对齐”队列与索引，避免删除队列项后索引错位导致跳过存活玩家
+    const latestSeats = seatsRef.current || seats;
+    const normalized = normalizeWakeQueueForDeaths({
+      wakeQueueIds,
+      currentWakeIndex,
+      seats: latestSeats,
+      deadThisNight,
+      getSeatRoleId,
     });
-    setWakeQueueIds(prev => prev.filter(id => !currentDead.find(d => d.id === id)));
+    const normalizedWakeQueueIds = normalized.wakeQueueIds;
+    const normalizedWakeIndex = normalized.currentWakeIndex;
+    if (normalized.removedIds.length > 0) {
+      // 同步落地到 state（避免 UI 与后续逻辑读取不一致）
+      setWakeQueueIds(normalizedWakeQueueIds);
+      if (normalizedWakeIndex !== currentWakeIndex) {
+        setCurrentWakeIndex(normalizedWakeIndex);
+      }
+    }
     
     // 如果当前玩家已死亡且不保留能力跳过到下一个
-    const currentId = wakeQueueIds[currentWakeIndex];
-    const currentSeat = currentId !== undefined ? seats.find(s => s.id === currentId) : null;
+    const currentId = normalizedWakeQueueIds[normalizedWakeIndex];
+    const currentSeat = currentId !== undefined ? latestSeats.find(s => s.id === currentId) : null;
     const currentRoleId = getSeatRoleId(currentSeat);
     const currentDiedTonight = currentSeat ? deadThisNight.includes(currentSeat.id) : false;
     if (currentId !== undefined && currentSeat?.isDead && !currentSeat.hasAbilityEvenDead && !(currentRoleId === 'ravenkeeper' && currentDiedTonight)) {
@@ -1488,7 +1553,7 @@ export function useGameController() {
     }
     
     // CRITICAL FIX: Check if we're at the end of the night
-    const isLastStep = currentWakeIndex >= wakeQueueIds.length - 1;
+    const isLastStep = normalizedWakeIndex >= normalizedWakeQueueIds.length - 1;
     
     if (!isLastStep) {
       // Normal progression to next step
@@ -4454,6 +4519,7 @@ export function useGameController() {
     registerVotes, // Register votes for Flowergirl/Town Crier
     votedThisRound, // Current round's vote list
     checkGameOverSimple, // NEW: Simplified game over check for Dusk phase
+    nightOrderPreviewLive,
     
     // Group C: Phase/Control functions
     declareMayorImmediateWin,

@@ -2,6 +2,7 @@
 
 import type { Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
+import { getNightOrderOverride } from "./nightOrderOverrides";
 
 /**
  * 夜间行动队列项接口
@@ -106,6 +107,19 @@ export function generateNightActionQueue(
       return 999;
     };
     
+    // 优先使用全局夜晚顺序覆盖表
+    const overrideOrder = getNightOrderOverride(effectiveRoleId, isFirstNight);
+    if (overrideOrder !== null) {
+      queueItems.push({
+        seat,
+        seatId: seat.id,
+        roleId: effectiveRoleId,
+        order: overrideOrder,
+        isFirstNightOnly: !!roleDef.firstNight && !roleDef.night,
+      });
+      continue;
+    }
+
     if (isFirstNight) {
       // 首夜：优先检查 firstNight，如果没有则检查 night
       if (hasFirstNightAction || hasNightAction) {

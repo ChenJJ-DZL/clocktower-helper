@@ -120,6 +120,38 @@ export function GameConsole({
 
   const roleDoc = currentActorRoleName ? getRoleDocSummary(currentActorRoleName) : null;
 
+  const normalizeQuoted = (s: string) => {
+    const t = (s || "").trim();
+    if (!t) return "";
+    // nightInfo.speak in many places is wrapped in quotes like '"...内容..."'
+    return t.replace(/^['"]+/, "").replace(/['"]+$/, "");
+  };
+
+  const buildStorytellerInstruction = () => {
+    if (!isNightPhase || !currentActorSeat || !currentActorRoleName || !nightInfo) return null;
+
+    const seatNo = currentActorSeat.id + 1;
+    const roleName = currentActorRoleName;
+    const action = (nightInfo.action || "").trim();
+    const speak = normalizeQuoted(nightInfo.speak || "");
+
+    // Action can be a short token (kill/poison/展示爪牙/无信息/展示等) or descriptive text.
+    const actionSentence =
+      action && !["无", "无信息", "（无）"].includes(action)
+        ? `让他使用【${roleName}】的能力（${action}）。`
+        : `让他使用【${roleName}】的能力。`;
+
+    const speakSentence = speak ? `告诉他：${speak}` : null;
+
+    return {
+      headline: `唤醒 ${seatNo} 号【${roleName}】。`,
+      action: actionSentence,
+      speak: speakSentence,
+    };
+  };
+
+  const storytellerInstruction = buildStorytellerInstruction();
+
   // Remove "skill/instruction" style guidance that duplicates role ability text.
   // In this project, the first guidance point is often `nightInfo.guide` (what to do),
   // which the user wants removed from the "提示与脚本" section.
@@ -157,11 +189,23 @@ export function GameConsole({
             <div className="text-sm font-semibold text-emerald-200 mb-1">当前的行动</div>
             <div className="text-base text-emerald-50 leading-relaxed space-y-1">
               <div>
-                唤醒 {currentActorSeat.id + 1} 号【{currentActorRoleName}】。
+                {storytellerInstruction?.headline ?? `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`}
               </div>
-              <div className="text-sm text-emerald-100">
-                告知其本步要做的操作或信息（参考下方“提示与脚本”），等待对方完成/回应后再继续。
-              </div>
+              {storytellerInstruction && (
+                <>
+                  <div className="text-sm text-emerald-100">{storytellerInstruction.action}</div>
+                  {storytellerInstruction.speak && (
+                    <div className="text-sm text-emerald-100 whitespace-pre-wrap">
+                      {storytellerInstruction.speak}
+                    </div>
+                  )}
+                </>
+              )}
+              {!storytellerInstruction && (
+                <div className="text-sm text-emerald-100">
+                  告知其本步要做的操作或信息（参考下方“提示与脚本”），等待对方完成/回应后再继续。
+                </div>
+              )}
             </div>
           </div>
         )}
