@@ -10,11 +10,16 @@ import { useGameContext, gameActions } from "../contexts/GameContext";
 import { useNightActionQueue } from "./useNightActionQueue";
 import { convertWakeQueueIdsToSeats } from "./useGameQueueAdapter";
 import { isRoleRegistered } from "../roles/index";
-import { getRoleConfirmHandler, handleImpSuicide, executePoisonAction, type RoleConfirmContext } from "./roleActionHandlers";
+import { getRoleConfirmHandler, handleImpSuicide, executePoisonAction } from "./roleActionHandlers";
 import { useExecutionHandler, type ExecutionHandlerContext } from "./useExecutionHandler";
 import { useNightActionHandler, type NightActionHandlerContext } from "./useNightActionHandler";
 import { ModalType } from "../types/modal";
 import { DrunkCharadeSelectModal } from "../components/modals/DrunkCharadeSelectModal";
+import { useGameFlow } from "./useGameFlow";
+import { useSeatManager } from "./useSeatManager";
+import { useInteractionHandler } from "./useInteractionHandler";
+import { useModalManager } from "./useModalManager";
+import { useHistoryController } from "./useHistoryController";
 
 interface DrunkCharadeModalData {
   seatId: number;
@@ -270,12 +275,12 @@ export function useGameController() {
     isPortrait, setIsPortrait,
     
     // 座位和游戏核心状态
-    seats, setSeats,
+    seats: baseSeats, setSeats: setBaseSeats,
     initialSeats, setInitialSeats,
-    gamePhase, setGamePhase,
+    gamePhase: baseGamePhase, setGamePhase: setBaseGamePhase,
     selectedScript, setSelectedScript,
-    nightCount, setNightCount,
-    deadThisNight, setDeadThisNight,
+    nightCount: baseNightCount, setNightCount: setBaseNightCount,
+    deadThisNight: baseDeadThisNight, setDeadThisNight: setBaseDeadThisNight,
     executedPlayerId, setExecutedPlayerId,
     gameLogs, setGameLogs,
     winResult, setWinResult,
@@ -283,16 +288,16 @@ export function useGameController() {
     
     // 时间和UI状态
     startTime, setStartTime,
-    timer, setTimer,
+    timer: baseTimer, setTimer: setBaseTimer,
     selectedRole, setSelectedRole,
     contextMenu, setContextMenu,
     showMenu, setShowMenu,
     longPressingSeats, setLongPressingSeats,
     
     // 夜晚行动状态
-    wakeQueueIds, setWakeQueueIds,
-    currentWakeIndex, setCurrentWakeIndex,
-    selectedActionTargets, setSelectedActionTargets,
+    wakeQueueIds: baseWakeQueueIds, setWakeQueueIds: setBaseWakeQueueIds,
+    currentWakeIndex: baseCurrentWakeIndex, setCurrentWakeIndex: setBaseCurrentWakeIndex,
+    selectedActionTargets: baseSelectedActionTargets, setSelectedActionTargets: setBaseSelectedActionTargets,
     inspectionResult, setInspectionResult,
     inspectionResultKey, setInspectionResultKey,
     currentHint, setCurrentHint,
@@ -316,7 +321,7 @@ export function useGameController() {
     // ===========================
     //  统一的弹窗状态
     // ===========================
-    currentModal, setCurrentModal,
+    currentModal: baseCurrentModal, setCurrentModal: setBaseCurrentModal,
     
     // ===========================
     //  保留的辅助状态（非弹窗显示状态）
@@ -425,6 +430,262 @@ export function useGameController() {
     gameStateRef,
   } = gameState;
 
+  // 占位组合式 Hooks（后续逐步迁移状态/方法）
+  const startNightImplRef = useRef<((isFirst: boolean) => void) | undefined>(undefined);
+  const finalizeNightStartRef = useRef<((queue: any[], isFirst: boolean) => void) | undefined>(undefined);
+  const seatManagerLogRef = useRef<((msg: string) => void) | null>(null);
+  const seatManagerLog = useCallback((msg: string) => {
+    seatManagerLogRef.current?.(msg);
+  }, []);
+  const flowSaveHistoryRef = useRef<(() => void) | null>(null);
+  const flowSaveHistory = useCallback(() => {
+    flowSaveHistoryRef.current?.();
+  }, []);
+  const flowAddLogRef = useRef<((msg: string) => void) | null>(null);
+  const flowAddLog = useCallback((msg: string) => {
+    flowAddLogRef.current?.(msg);
+  }, []);
+  const flowSaveGameRecordRef = useRef<((record: GameRecord) => void) | null>(null);
+  const flowSaveGameRecord = useCallback((record: GameRecord) => {
+    flowSaveGameRecordRef.current?.(record);
+  }, []);
+  const flowTriggerIntroRef = useRef<(() => void) | null>(null);
+  const flowTriggerIntroLoading = useCallback(() => {
+    flowTriggerIntroRef.current?.();
+  }, []);
+  const flowResetRegistrationCache = useCallback(
+    (key: string) => {
+      registrationCacheRef.current = new Map();
+      registrationCacheKeyRef.current = key;
+    },
+    [registrationCacheRef, registrationCacheKeyRef]
+  );
+
+  const gameFlow = useGameFlow(
+    {
+      gamePhase: baseGamePhase,
+      setGamePhase: setBaseGamePhase,
+      nightCount: baseNightCount,
+      setNightCount: setBaseNightCount,
+      timer: baseTimer,
+      setTimer: setBaseTimer,
+    },
+    {
+      // 延迟注入的夜晚启动实现（来自 useNightLogic），避免调用顺序受限
+      startNightImpl: (isFirstNight: boolean) => {
+        startNightImplRef.current?.(isFirstNight);
+      },
+      mounted,
+      // dusk/day transitions deps (migrated from controller)
+      seats: baseSeats,
+      saveHistory: flowSaveHistory,
+      currentDuskExecution,
+      setLastDuskExecution,
+      setCurrentDuskExecution,
+      setOutsiderDiedToday,
+      setSeats: setBaseSeats,
+      setNominationRecords,
+      setNominationMap,
+      setCurrentModal: setBaseCurrentModal,
+      addLog: flowAddLog,
+      isActorDisabledByPoisonOrDrunk,
+      computeIsPoisoned,
+      // switch script / new game deps (migrated from controller)
+      selectedScript,
+      startTime,
+      nightCount: baseNightCount,
+      timer: baseTimer,
+      gameLogs,
+      seatsSnapshotForRecord: baseSeats,
+      saveGameRecord: flowSaveGameRecord,
+      triggerIntroLoading: flowTriggerIntroLoading,
+      setSelectedScript,
+      setExecutedPlayerId,
+      setWakeQueueIds: setBaseWakeQueueIds,
+      setCurrentWakeIndex: setBaseCurrentWakeIndex,
+      setSelectedActionTargets: setBaseSelectedActionTargets,
+      setGameLogs,
+      setWinResult,
+      setDeadThisNight: setBaseDeadThisNight,
+      setPukkaPoisonQueue,
+      setSelectedRole,
+      setInspectionResult,
+      setCurrentHint,
+      setStartTime,
+      setHistory,
+      setWinReason,
+      clearHintCaches: () => {
+        hintCacheRef.current.clear();
+        drunkFirstInfoRef.current.clear();
+      },
+      resetRegistrationCache: flowResetRegistrationCache,
+      setAutoRedHerringInfo,
+      setNightOrderPreview,
+      setPendingNightQueue,
+      pendingNightQueue,
+      setInitialSeats,
+      setBaronSetupCheck,
+      setIgnoreBaronSetup,
+      setShowMinionKnowDemonModal,
+      // night start entrypoints
+      roles,
+      isGoodAlignment,
+      generateNightTimeline,
+      getRandom,
+      finalizeNightStart: (queue: any[], isFirst: boolean) => {
+        finalizeNightStartRef.current?.(queue, isFirst);
+      },
+    }
+  );
+  const seatManager = useSeatManager(
+    {
+      seats: baseSeats,
+      setSeats: setBaseSeats,
+      deadThisNight: baseDeadThisNight,
+      setDeadThisNight: setBaseDeadThisNight,
+    },
+    {
+      cleanseSeatStatuses,
+      roles,
+      addLog: seatManagerLog,
+      isAntagonismEnabled,
+      checkMutualExclusion,
+    }
+  );
+  const modalManager = useModalManager(
+    {
+      currentModal: baseCurrentModal,
+      setCurrentModal: setBaseCurrentModal,
+    },
+    {
+      legacySync: {
+        setShowKillConfirmModal,
+        setShowPoisonConfirmModal,
+        setShowPoisonEvilConfirmModal,
+        setShowNightDeathReportModal,
+        setShowHadesiaKillConfirmModal,
+        setShowAttackBlockedModal,
+        setShowMayorRedirectModal,
+        setShowBarberSwapModal,
+        setShowPitHagModal,
+        setShowRangerModal,
+        setShowDamselGuessModal,
+        setShowStorytellerDeathModal,
+        setShowSweetheartDrunkModal,
+        setShowKlutzChoiceModal,
+        setShowMoonchildKillModal,
+        setShowRavenkeeperFakeModal,
+        setShowExecutionResultModal,
+        setShowShootResultModal,
+        setShowVoteInputModal,
+        setShowDayActionModal,
+        setShowDayAbilityModal,
+        setShowSaintExecutionConfirmModal,
+        setShowLunaticRpsModal,
+        setShowVirginTriggerModal,
+        setVirginGuideInfo,
+        setShowDrunkModal,
+        setShowRoleSelectModal,
+        setShowMadnessCheckModal,
+        setShowShamanConvertModal,
+        setShowSpyDisguiseModal,
+        setShowMayorThreeAliveModal,
+        setShowReviewModal,
+        setShowGameRecordsModal,
+        setShowRoleInfoModal,
+        setShowRestartConfirmModal,
+      },
+    }
+  );
+
+  // 将组合式 Hook 输出重新解构为本地变量，保持后续逻辑不变
+  const {
+    gamePhase,
+    setGamePhase,
+    nightCount,
+    setNightCount,
+    timer,
+    setTimer,
+    isTimerRunning,
+    handleTimerPause,
+    handleTimerStart,
+    handleTimerReset,
+    startNight,
+    enterDayPhase,
+    enterDuskPhase,
+    handleDayEndTransition,
+    handleSwitchScript,
+    handleNewGame,
+    closeNightOrderPreview,
+    confirmNightOrderPreview,
+    proceedToCheckPhase,
+    handlePreStartNight,
+    handleStartNight,
+    proceedToFirstNight,
+  } = gameFlow;
+
+  const {
+    seats,
+    setSeats,
+    deadThisNight,
+    setDeadThisNight,
+    reviveSeat,
+    changeRole,
+    swapRoles,
+  } = seatManager;
+
+  // 直接使用基础状态作为本地别名，方便下方逻辑与新域 hook 共享
+  const wakeQueueIds = baseWakeQueueIds;
+  const setWakeQueueIds = setBaseWakeQueueIds;
+  const currentWakeIndex = baseCurrentWakeIndex;
+  const setCurrentWakeIndex = setBaseCurrentWakeIndex;
+  const selectedActionTargets = baseSelectedActionTargets;
+  const setSelectedActionTargets = setBaseSelectedActionTargets;
+
+  const {
+    currentModal,
+    setCurrentModal,
+  } = modalManager;
+
+  const historyController = useHistoryController(
+    {
+      history,
+      setHistory,
+    },
+    {
+      gameStateRef,
+      currentHint,
+      setCurrentHint,
+      currentWakeIndex,
+      setCurrentWakeIndex,
+      gamePhase,
+      setGamePhase,
+      setNightCount,
+      setExecutedPlayerId,
+      setWakeQueueIds,
+      setSelectedActionTargets,
+      setGameLogs,
+      setSelectedScript,
+      setWinResult,
+      setWinReason,
+      setDeadThisNight,
+      setSelectedRole,
+      setInspectionResult,
+      setTimer,
+      setStartTime,
+      setSeats,
+      setInitialSeats,
+      hintCacheRef,
+      drunkFirstInfoRef,
+      saveHistoryRef: flowSaveHistoryRef,
+    }
+  );
+  const {
+    saveHistory,
+    handleStepBack,
+    handleGlobalUndo,
+  } = historyController;
+
   // 相克规则（灯神在场时启用）
   // 说明：相克规则是规则而非能力；灯神只是允许说书人宣布这些规则。
   
@@ -437,23 +698,6 @@ export function useGameController() {
   // Get functions from useExecutionHandler and useNightActionHandler
   const { handleExecution } = useExecutionHandler();
   const { handleNightAction } = useNightActionHandler();
-
-  // 保存历史记录 - 改为普通函数使用ref避免Hook依赖问题
-  const saveHistory = () => {
-    const state = gameStateRef.current;
-    setHistory(prev => [...prev, {
-      seats: JSON.parse(JSON.stringify(state.seats)),
-      gamePhase: state.gamePhase,
-      nightCount: state.nightCount,
-      executedPlayerId: state.executedPlayerId,
-      wakeQueueIds: [...state.wakeQueueIds],
-      currentWakeIndex: state.currentWakeIndex,
-      selectedActionTargets: [...state.selectedActionTargets],
-      gameLogs: [...state.gameLogs],
-      currentHint: JSON.parse(JSON.stringify(currentHint)), // 保存当前 hint
-      selectedScript: state.selectedScript // 保存选中的剧本
-    }]);
-  };
 
   const resetRegistrationCache = useCallback((key: string) => {
     registrationCacheRef.current = new Map();
@@ -626,314 +870,6 @@ export function useGameController() {
     }
   }, [wakeQueueIds, currentWakeIndex, seats, gameContextDispatch]);
 
-  // ==========================================================================
-  // CRITICAL: currentModal <-> legacy showXxxModal “同步器”
-  //
-  // 背景：
-  // - 新的弹窗系统使用 `currentModal` 作为单一数据源
-  // - 但 UI（`GameModals`）里仍有大量 legacy `showXxxModal` props（兼容期）
-  // - 如果某个流程只 setCurrentModal 而 UI 仍读 legacy，就会出现“弹窗不显示/按钮被禁用/流程卡死”
-  //
-  // 目标：
-  // - 让 currentModal 成为事实上的 source of truth
-  // - 当 currentModal 改变时，自动把对应 legacy 状态同步出来
-  // - 当 currentModal 关闭或切换到别的类型时，只清理“上一次由 currentModal 同步出来的那一种”legacy 状态
-  //   （避免误伤仍由旧逻辑直接驱动的 legacy 弹窗）
-  // ==========================================================================
-  const lastSyncedModalTypeRef = useRef<NonNullable<ModalType>['type'] | null>(null);
-  useEffect(() => {
-    const prevType = lastSyncedModalTypeRef.current;
-    const nextType = currentModal?.type ?? null;
-
-    const clearLegacyFor = (type: NonNullable<ModalType>['type']) => {
-      switch (type) {
-        case 'KILL_CONFIRM':
-          setShowKillConfirmModal(null);
-          break;
-        case 'POISON_CONFIRM':
-          setShowPoisonConfirmModal(null);
-          break;
-        case 'POISON_EVIL_CONFIRM':
-          setShowPoisonEvilConfirmModal(null);
-          break;
-        case 'NIGHT_DEATH_REPORT':
-          setShowNightDeathReportModal(null);
-          break;
-        case 'HADESIA_KILL_CONFIRM':
-          setShowHadesiaKillConfirmModal(null);
-          break;
-        case 'ATTACK_BLOCKED':
-          setShowAttackBlockedModal(null);
-          break;
-        case 'MAYOR_REDIRECT':
-          setShowMayorRedirectModal(null);
-          break;
-        case 'BARBER_SWAP':
-          setShowBarberSwapModal(null);
-          break;
-        case 'PIT_HAG':
-          setShowPitHagModal(null);
-          break;
-        case 'RANGER':
-          setShowRangerModal(null);
-          break;
-        case 'DAMSEL_GUESS':
-          setShowDamselGuessModal(null);
-          break;
-        case 'STORYTELLER_DEATH':
-          setShowStorytellerDeathModal(null);
-          break;
-        case 'SWEETHEART_DRUNK':
-          setShowSweetheartDrunkModal(null);
-          break;
-        case 'KLUTZ_CHOICE':
-          setShowKlutzChoiceModal(null);
-          break;
-        case 'MOONCHILD_KILL':
-          setShowMoonchildKillModal(null);
-          break;
-        case 'RAVENKEEPER_FAKE':
-          setShowRavenkeeperFakeModal(null);
-          break;
-        case 'EXECUTION_RESULT':
-          setShowExecutionResultModal(null);
-          break;
-        case 'SHOOT_RESULT':
-          setShowShootResultModal(null);
-          break;
-        case 'VOTE_INPUT':
-          setShowVoteInputModal(null);
-          break;
-        case 'DAY_ACTION':
-          setShowDayActionModal(null);
-          break;
-        case 'DAY_ABILITY':
-          setShowDayAbilityModal(null);
-          break;
-        case 'SAINT_EXECUTION_CONFIRM':
-          setShowSaintExecutionConfirmModal(null);
-          break;
-        case 'LUNATIC_RPS':
-          setShowLunaticRpsModal(null);
-          break;
-        case 'VIRGIN_TRIGGER':
-          setShowVirginTriggerModal(null);
-          break;
-        case 'VIRGIN_GUIDE':
-          setVirginGuideInfo(null);
-          break;
-        case 'DRUNK_CHARADE_SELECT':
-          // Drunk charade selection is handled by the modal itself
-          break;
-        case 'ROLE_SELECT':
-          setShowRoleSelectModal(null);
-          break;
-        case 'MADNESS_CHECK':
-          setShowMadnessCheckModal(null);
-          break;
-        case 'SHAMAN_CONVERT':
-          setShowShamanConvertModal(false);
-          break;
-        case 'SPY_DISGUISE':
-          setShowSpyDisguiseModal(false);
-          break;
-        case 'MAYOR_THREE_ALIVE':
-          setShowMayorThreeAliveModal(false);
-          break;
-        case 'REVIEW':
-          setShowReviewModal(false);
-          break;
-        case 'GAME_RECORDS':
-          setShowGameRecordsModal(false);
-          break;
-        case 'ROLE_INFO':
-          setShowRoleInfoModal(false);
-          break;
-        case 'RESTART_CONFIRM':
-          setShowRestartConfirmModal(false);
-          break;
-        // 这些 modal 在 UI 里已经直接从 currentModal 读（或压根不是 legacy 形态），无需同步清理
-        case 'NIGHT_ORDER_PREVIEW':
-        case 'RANGER': // handled above
-        case 'DAWN_REPORT':
-        case 'GAME_OVER':
-          break;
-        default:
-          break;
-      }
-    };
-
-    const syncLegacyFromCurrentModal = (modal: NonNullable<ModalType>) => {
-      switch (modal.type) {
-        case 'KILL_CONFIRM':
-          setShowKillConfirmModal(modal.data.targetId);
-          break;
-        case 'POISON_CONFIRM':
-          setShowPoisonConfirmModal(modal.data.targetId);
-          break;
-        case 'POISON_EVIL_CONFIRM':
-          setShowPoisonEvilConfirmModal(modal.data.targetId);
-          break;
-        case 'NIGHT_DEATH_REPORT':
-          setShowNightDeathReportModal(modal.data.message);
-          break;
-        case 'HADESIA_KILL_CONFIRM':
-          setShowHadesiaKillConfirmModal(modal.data.targetIds);
-          break;
-        case 'ATTACK_BLOCKED':
-          setShowAttackBlockedModal(modal.data);
-          break;
-        case 'MAYOR_REDIRECT':
-          setShowMayorRedirectModal(modal.data);
-          break;
-        case 'BARBER_SWAP':
-          setShowBarberSwapModal(modal.data);
-          break;
-        case 'PIT_HAG':
-          setShowPitHagModal(modal.data);
-          break;
-        case 'RANGER':
-          setShowRangerModal(modal.data);
-          break;
-        case 'DAMSEL_GUESS':
-          setShowDamselGuessModal(modal.data);
-          break;
-        case 'STORYTELLER_DEATH':
-          setShowStorytellerDeathModal(modal.data);
-          break;
-        case 'SWEETHEART_DRUNK':
-          setShowSweetheartDrunkModal(modal.data);
-          break;
-        case 'KLUTZ_CHOICE':
-          setShowKlutzChoiceModal(modal.data);
-          break;
-        case 'MOONCHILD_KILL':
-          setShowMoonchildKillModal(modal.data);
-          break;
-        case 'RAVENKEEPER_FAKE':
-          setShowRavenkeeperFakeModal(modal.data.targetId);
-          break;
-        case 'EXECUTION_RESULT':
-          setShowExecutionResultModal({ message: modal.data.message, isVirginTrigger: modal.data.isVirginTrigger });
-          break;
-        case 'SHOOT_RESULT':
-          setShowShootResultModal({ message: modal.data.message, isDemonDead: modal.data.isDemonDead });
-          break;
-        case 'VOTE_INPUT':
-          setShowVoteInputModal(modal.data.voterId);
-          break;
-        case 'DAY_ACTION':
-          setShowDayActionModal(modal.data);
-          break;
-        case 'DAY_ABILITY':
-          setShowDayAbilityModal(modal.data);
-          break;
-        case 'SAINT_EXECUTION_CONFIRM':
-          setShowSaintExecutionConfirmModal({ targetId: modal.data.targetId });
-          break;
-        case 'LUNATIC_RPS':
-          setShowLunaticRpsModal(modal.data);
-          break;
-        case 'VIRGIN_TRIGGER':
-          setShowVirginTriggerModal(modal.data);
-          break;
-        case 'VIRGIN_GUIDE':
-          setVirginGuideInfo(modal.data);
-          break;
-        case 'DRUNK_CHARADE_SELECT':
-          // Modal is handled directly in GameModals component
-          break;
-        case 'ROLE_SELECT':
-          setShowRoleSelectModal(modal.data);
-          break;
-        case 'MADNESS_CHECK':
-          setShowMadnessCheckModal(modal.data);
-          break;
-        case 'SHAMAN_CONVERT':
-          setShowShamanConvertModal(true);
-          break;
-        case 'SPY_DISGUISE':
-          setShowSpyDisguiseModal(true);
-          break;
-        case 'MAYOR_THREE_ALIVE':
-          setShowMayorThreeAliveModal(true);
-          break;
-        case 'REVIEW':
-          setShowReviewModal(true);
-          break;
-        case 'GAME_RECORDS':
-          setShowGameRecordsModal(true);
-          break;
-        case 'ROLE_INFO':
-          setShowRoleInfoModal(true);
-          break;
-        case 'RESTART_CONFIRM':
-          setShowRestartConfirmModal(true);
-          break;
-        // 这些在 GameModals 里本就从 currentModal 读取（无需依赖 legacy）
-        case 'NIGHT_ORDER_PREVIEW':
-        case 'SHAMAN_CONVERT':
-        case 'SPY_DISGUISE':
-        case 'DAWN_REPORT':
-        case 'GAME_OVER':
-          break;
-        default:
-          break;
-      }
-    };
-
-    // 1) 如果从一种 modal 切换到另一种 modal / 或关闭 modal，先清理上一种由 currentModal 同步出来的 legacy 状态
-    if (prevType && prevType !== nextType) {
-      clearLegacyFor(prevType);
-    }
-
-    // 2) 再同步当前 modal 对应的 legacy 状态
-    if (currentModal) {
-      syncLegacyFromCurrentModal(currentModal);
-      lastSyncedModalTypeRef.current = currentModal.type;
-      return;
-    }
-
-    lastSyncedModalTypeRef.current = null;
-  }, [
-    currentModal,
-    setShowKillConfirmModal,
-    setShowPoisonConfirmModal,
-    setShowPoisonEvilConfirmModal,
-    setShowNightDeathReportModal,
-    setShowHadesiaKillConfirmModal,
-    setShowAttackBlockedModal,
-    setShowMayorRedirectModal,
-    setShowBarberSwapModal,
-    setShowPitHagModal,
-    setShowRangerModal,
-    setShowDamselGuessModal,
-    setShowStorytellerDeathModal,
-    setShowSweetheartDrunkModal,
-    setShowKlutzChoiceModal,
-    setShowMoonchildKillModal,
-    setShowRavenkeeperFakeModal,
-    setShowExecutionResultModal,
-    setShowShootResultModal,
-    setShowVoteInputModal,
-    setShowDayActionModal,
-    setShowDayAbilityModal,
-    setShowSaintExecutionConfirmModal,
-    setShowLunaticRpsModal,
-    setShowVirginTriggerModal,
-    setVirginGuideInfo,
-    setShowDrunkModal,
-    setShowRoleSelectModal,
-    setShowMadnessCheckModal,
-    setShowShamanConvertModal,
-    setShowSpyDisguiseModal,
-    setShowMayorThreeAliveModal,
-    setShowReviewModal,
-    setShowGameRecordsModal,
-    setShowRoleInfoModal,
-    setShowRestartConfirmModal,
-  ]);
-
   // 更新ref
   useEffect(() => {
     gameStateRef.current = {
@@ -995,34 +931,6 @@ export function useGameController() {
       }
     };
   }, []);
-
-  // Timer running state
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
-
-  useEffect(() => { 
-    setTimer(0); 
-    setIsTimerRunning(true); // Reset timer running state on phase change
-  }, [gamePhase]);
-  
-  useEffect(() => { 
-    if(!mounted || !isTimerRunning) return;
-    const i = setInterval(() => setTimer(t => t + 1), 1000); 
-    return () => clearInterval(i); 
-  }, [mounted, isTimerRunning]);
-
-  // Timer control functions
-  const handleTimerPause = useCallback(() => {
-    setIsTimerRunning(false);
-  }, []);
-
-  const handleTimerStart = useCallback(() => {
-    setIsTimerRunning(true);
-  }, []);
-
-  const handleTimerReset = useCallback(() => {
-    setTimer(0);
-    setIsTimerRunning(true);
-  }, [setTimer]);
 
   // 间谍/隐士查验结果在同一夜晚保持一致伪装参数变化时刷新缓存
   useEffect(() => {
@@ -1091,6 +999,22 @@ export function useGameController() {
   const addLog = useCallback((msg: string) => {
     setGameLogs(p => [...p, { day: nightCount, phase: gamePhase, message: msg }]);
   }, [nightCount, gamePhase]);
+
+  useEffect(() => {
+    seatManagerLogRef.current = addLog;
+  }, [addLog]);
+
+  useEffect(() => {
+    flowAddLogRef.current = addLog;
+  }, [addLog]);
+
+  useEffect(() => {
+    flowSaveGameRecordRef.current = saveGameRecord;
+  }, [saveGameRecord]);
+
+  useEffect(() => {
+    flowTriggerIntroRef.current = triggerIntroLoading;
+  }, [triggerIntroLoading]);
 
   // 气球驾驶员当已知完所有类型时写说明日志只写一次
   useEffect(() => {
@@ -1214,8 +1138,87 @@ export function useGameController() {
     return null;
   }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility, votedThisRound, outsiderDiedToday]);
 
-  // 检查游戏结束条件
-  const checkGameOver = useCallback((updatedSeats: Seat[], executedPlayerIdArg?: number | null, preserveWinReason?: boolean) => {
+  // 交互域需要使用的延迟绑定函数，避免 TDZ
+  const continueToNextActionRef = useRef<(() => void) | null>(null);
+  const interactionContinueToNextAction = useCallback(() => {
+    continueToNextActionRef.current?.();
+  }, []);
+
+  const insertIntoWakeQueueAfterCurrentRef = useRef<((seatId: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => void) | null>(null);
+  const interactionInsertIntoWakeQueueAfterCurrent = useCallback(
+    (seatId: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => {
+      insertIntoWakeQueueAfterCurrentRef.current?.(seatId, opts);
+    },
+    []
+  );
+
+  const interaction = useInteractionHandler(
+    {
+      wakeQueueIds,
+      setWakeQueueIds,
+      currentWakeIndex,
+      setCurrentWakeIndex,
+      selectedActionTargets,
+      setSelectedActionTargets,
+    },
+    {
+      gamePhase,
+      seats,
+      setSeats,
+      checkGameOver,
+      saveHistory,
+      selectedRole,
+      setSelectedRole,
+      roles,
+      nightCount,
+      contextMenu,
+      setContextMenu,
+      currentModal,
+      setCurrentModal,
+      setDayAbilityForm,
+      gossipStatementToday,
+      killPlayer,
+      addLog,
+      continueToNextAction: interactionContinueToNextAction,
+      insertIntoWakeQueueAfterCurrent: interactionInsertIntoWakeQueueAfterCurrent,
+      getSeatRoleId,
+      cleanseSeatStatuses,
+      hasUsedAbility,
+      markAbilityUsed,
+      reviveSeat,
+      setPukkaPoisonQueue,
+      setDeadThisNight,
+      poChargeState,
+      setPoChargeState,
+      addDrunkMark,
+      isEvil,
+      getRoleConfirmHandler,
+      nightInfo,
+      selectedActionTargets,
+      setSelectedActionTargets,
+      setInspectionResult,
+      setInspectionResultKey,
+      isVortoxWorld,
+      isActorDisabledByPoisonOrDrunk,
+      isActionAbility,
+      addLogWithDeduplication,
+      getRoleTargetCount,
+      getRegistrationCached,
+      fakeInspectionResultRef,
+    }
+  );
+
+  const {
+    handleSeatClick: interactionHandleSeatClick,
+    toggleTarget: interactionToggleTarget,
+    handleMenuAction,
+    toggleStatus: interactionToggleStatus,
+    handleConfirmAction: interactionHandleConfirmAction,
+    isTargetDisabled,
+  } = interaction;
+
+  // 检查游戏结束条件（纯函数，不使用 Hook，避免 TDZ 问题）
+  function checkGameOver(updatedSeats: Seat[], executedPlayerIdArg?: number | null, preserveWinReason?: boolean) {
     // 防御性检查确保updatedSeats不为空且是有效数组
     if (!updatedSeats || updatedSeats.length === 0) {
       console.error('checkGameOver: updatedSeats为空或无效');
@@ -1376,7 +1379,7 @@ export function useGameController() {
     }
     
     return false;
-  }, [addLog, gamePhase, evilTwinPair, executedPlayerId, setWinResult, setWinReason, setGamePhase, mastermindFinalDay, setMastermindFinalDay, nightCount]);
+  }
 
   // 继续到下一个夜晚行动
   const continueToNextAction = useCallback(() => {
@@ -2402,6 +2405,15 @@ export function useGameController() {
     }
   );
 
+  // 将 useNightLogic 的 startNight 实现注入到 gameFlow 的入口（延迟绑定避免声明顺序影响）
+  useEffect(() => {
+    startNightImplRef.current = nightLogic.startNight;
+  }, [nightLogic.startNight]);
+
+  useEffect(() => {
+    finalizeNightStartRef.current = nightLogic.finalizeNightStart;
+  }, [nightLogic.finalizeNightStart]);
+
   // 确认夜晚死亡报告后进入白天
   const confirmNightDeathReport = useCallback(() => {
     setCurrentModal(null);
@@ -2459,8 +2471,8 @@ export function useGameController() {
     if (checkGameOver(currentSeats)) {
       return;
     }
-    setGamePhase("day");
-  }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setCurrentModal, setPoppyGrowerDead, setDeadThisNight, setGamePhase, setNominationRecords, setNominationMap]);
+    enterDayPhase();
+  }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setCurrentModal, setPoppyGrowerDead, setDeadThisNight, enterDayPhase, setNominationRecords, setNominationMap]);
 
   // 获取标准阵容配置（用于Baron自动重排）
   const getStandardComposition = useCallback((playerCount: number, hasBaron: boolean) => {
@@ -2535,305 +2547,6 @@ export function useGameController() {
     
     setBaronSetupCheck(null);
   }, [baronSetupCheck, seats, selectedScript, addLog, setSeats, setBaronSetupCheck]);
-
-  // 进入检查阶段（从setup阶段进入check阶段）
-  const proceedToCheckPhase = useCallback((seatsToUse: Seat[]) => {
-    setAutoRedHerringInfo(null);
-    const active = seatsToUse.filter(s => s.role);
-
-    // 1. 预处理：根据 SetupMeta / 旧字段生成 displayRole（用于 UI 展示）
-    const processedSeats = active.map((seat) => {
-      if (!seat.role) return seat;
-
-      let nextDisplayRole = seat.displayRole;
-
-      // A. 处理酒鬼（真实为酒鬼，但需要一个镇民外壳）
-      if (seat.role.setupMeta?.isDrunk || seat.role.id === 'drunk' || seat.role.id === 'drunk_mr') {
-        // 优先使用已经通过"酒鬼伪装"流程选择的 charadeRole，其次回退到现有 displayRole 或真实角色
-        nextDisplayRole = seat.charadeRole || nextDisplayRole || seat.role;
-      }
-
-      // B. 处理疯子（认为自己是恶魔，需要一个恶魔外壳）
-      if (seat.role.setupMeta?.isLunatic || seat.role.id === 'lunatic') {
-        // TODO: 后续步骤中由说书人选择伪装的恶魔角色。
-        // 目前占位：如果已经有人为设置了 displayRole，则保留；否则暂时使用自身角色。
-        nextDisplayRole = nextDisplayRole || seat.displayRole || seat.role;
-      }
-
-      // 默认情况：展示角色 = 真实角色
-      if (!nextDisplayRole) {
-        nextDisplayRole = seat.role;
-      }
-
-      return {
-        ...seat,
-        displayRole: nextDisplayRole,
-      };
-    });
-
-    // 2. 紧凑化座位 ID（仅用于游戏内部逻辑与展示）
-    const compact = processedSeats.map((s, i) => ({ ...s, id: i }));
-
-    // 3. 预生成首夜时间线（基于真实角色，用于后续功能）
-    try {
-      generateNightTimeline(compact, true);
-    } catch (e) {
-      // 时间线生成失败，继续执行
-    }
-
-    setTimeout(() => {
-      const withRed = [...compact];
-      const hasFortuneTeller = withRed.some(s => s.role?.id === "fortune_teller");
-      if (hasFortuneTeller && !withRed.some(s => s.isRedHerring)) {
-        // 官方：天敌红罗剎必须是“善良玩家”；若未来阵营变化导致其变邪恶，需要重新指派
-        const good = withRed.filter(
-          (s) =>
-            ["townsfolk", "outsider"].includes(s.role?.type || "") &&
-            isGoodAlignment(s)
-        );
-        if (good.length > 0) {
-          const t = getRandom(good);
-          withRed[t.id] = { 
-            ...withRed[t.id], 
-            isRedHerring: true, 
-            statusDetails: [...(withRed[t.id].statusDetails || []), "天敌红罗剎"] 
-          };
-          const redRoleName = withRed[t.id].role?.name || '未知角色';
-          addLog(`天敌红罗剎分配${t.id+1}号：${redRoleName}`);
-          setAutoRedHerringInfo(`${t.id + 1}号：${redRoleName}`);
-        }
-      }
-      
-      // 检查是否有送葬者如果有则添加说明日志
-      const hasUndertaker = withRed.some(s => s.role?.id === "undertaker");
-      if (hasUndertaker) {
-        addLog(`送葬者：只在非首夜的夜晚被唤醒，且只会看到"今天黄昏被处决并死亡的玩家"`);
-      }
-      
-      setSeats(withRed); 
-      setInitialSeats(JSON.parse(JSON.stringify(withRed))); 
-      setGamePhase("check");
-    }, 100);
-  }, [addLog, setSeats, setInitialSeats, setGamePhase, setAutoRedHerringInfo]);
-
-  // 处理预开始夜晚（从setup阶段进入check阶段）
-  const handlePreStartNight = useCallback(() => {
-    proceedToCheckPhase(seats);
-  }, [proceedToCheckPhase, seats]);
-
-  // 处理开始夜晚（从check阶段或其他阶段进入夜晚）
-  const handleStartNight = useCallback((isFirst: boolean) => {
-    if (!nightLogic?.startNight) {
-      alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
-      return;
-    }
-    
-    try {
-      // 占卜师的天敌红罗剎：若当前标记不在善良玩家身上（例如后续阵营变化），需要重新指派
-      setSeats((prev) => {
-        const hasFT = prev.some((s) => s.role?.id === "fortune_teller");
-        if (!hasFT) return prev;
-
-        const current = prev.find((s) => s.isRedHerring);
-        const currentIsValidGood = !!current && isGoodAlignment(current);
-        if (currentIsValidGood) return prev;
-
-        const candidates = prev.filter(
-          (s) =>
-            ["townsfolk", "outsider"].includes(s.role?.type || "") &&
-            isGoodAlignment(s) &&
-            !s.isRedHerring
-        );
-        if (candidates.length === 0) return prev;
-
-        const chosen = getRandom(candidates);
-        const next = prev.map((s) => {
-          if (s.isRedHerring) {
-            return {
-              ...s,
-              isRedHerring: false,
-              statusDetails: (s.statusDetails || []).filter((x) => x !== "天敌红罗剎"),
-            };
-          }
-          if (s.id === chosen.id) {
-            return {
-              ...s,
-              isRedHerring: true,
-              statusDetails: [...(s.statusDetails || []), "天敌红罗剎"],
-            };
-          }
-          return s;
-        });
-
-        const redRoleName = chosen.role?.name || "未知角色";
-        addLog(`天敌红罗剎重新指派至${chosen.id + 1}号：${redRoleName}`);
-        setAutoRedHerringInfo(`${chosen.id + 1}号：${redRoleName}`);
-        return next;
-      });
-
-      nightLogic.startNight(isFirst);
-    } catch (error) {
-      alert(`入夜时发生错误: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }, [addLog, nightLogic, setSeats, setAutoRedHerringInfo]);
-
-  // CRITICAL FIX: Synchronous transition to First Night
-  // This function bypasses the complex async startNight logic and directly transitions
-  const proceedToFirstNight = useCallback(() => {
-
-    // 0. 酒鬼伪装身份选择
-    // 检查是否有酒鬼需要选择伪装身份 (charadeRole)
-    console.log('[proceedToFirstNight] Checking for drunk seats...');
-    const drunkSeatsNeedingCharade = seats.filter(
-      (s) => s.role?.id === 'drunk' && !s.charadeRole
-    );
-    console.log('[proceedToFirstNight] Drunk seats needing charade:', drunkSeatsNeedingCharade);
-
-    if (drunkSeatsNeedingCharade.length > 0) {
-      const drunkSeat = drunkSeatsNeedingCharade[0]; // 每次只处理一个酒鬼
-
-      // 筛选可用的镇民角色：未被分配且非隐藏
-      const availableTownsfolkRoles = roles.filter(
-        (r) => r.type === 'townsfolk' && !r.hidden && !seats.some(s => s.role?.id === r.id)
-      );
-      console.log('[proceedToFirstNight] Available townsfolk roles:', availableTownsfolkRoles);
-
-      if (availableTownsfolkRoles.length > 0) {
-        console.log('[proceedToFirstNight] Setting DRUNK_CHARADE_SELECT modal.');
-        setCurrentModal({
-          type: 'DRUNK_CHARADE_SELECT',
-          data: {
-            seatId: drunkSeat.id,
-            availableRoles: availableTownsfolkRoles,
-            scriptId: selectedScript?.id || ''
-          },
-        });
-        return; // 暂停流程，等待说书人选择
-      } else {
-        alert('错误：没有可用的镇民角色作为酒鬼的伪装身份。');
-        // 强制为酒鬼设置一个默认的charadeRole，防止卡死
-        setSeats(prevSeats => prevSeats.map(s => {
-          if (s.id === drunkSeat.id) {
-            return { ...s, charadeRole: roles.find(r => r.id === 'villager') || null, isDrunk: true };
-          }
-          return s;
-        }));
-        addLog(`警告：没有可用的镇民角色作为${drunkSeat.id + 1}号酒鬼的伪装身份，自动设置为村民。`);
-      }
-    }
-
-    // 1. Force verify seats exist
-    if (!seats || seats.length === 0) {
-      alert("错误：没有座位数据，无法入夜。");
-      return;
-    }
-
-    // 2. Generate Timeline IMMEDIATELY using current seats
-    let newTimeline: TimelineStep[];
-    try {
-      newTimeline = generateNightTimeline(seats, true); // true = firstNight
-      if (newTimeline.length === 0) {
-        // Even if empty, ensure we have at least a dawn step
-        newTimeline = [{
-          id: 'dawn_step',
-          type: 'dawn',
-          order: 99999,
-          content: { 
-            title: '天亮了', 
-            script: '所有玩家请睁眼', 
-            instruction: '点击进入白天阶段' 
-          },
-          interaction: { 
-            type: 'none', 
-            amount: 0, 
-            required: false,
-            canSelectSelf: false,
-            canSelectDead: false,
-            effect: { type: 'none' }
-          }
-        }];
-      }
-    } catch (error) {
-      alert(`生成时间轴失败: ${error instanceof Error ? error.message : '未知错误'}`);
-      return;
-    }
-
-    // 3. Extract wakeQueueIds from timeline (character steps only)
-    const wakeQueueIds = newTimeline
-      .filter(step => step.type === 'character' && step.seatId !== undefined)
-      .map(step => step.seatId!)
-      .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
-
-    // 【调试日志】输出队列生成信息
-    console.log('[proceedToFirstNight] 生成的队列:', wakeQueueIds);
-    console.log('[proceedToFirstNight] 队列长度:', wakeQueueIds.length);
-    console.log('[proceedToFirstNight] 当前座位数:', seats.length);
-    console.log('[proceedToFirstNight] 有角色的座位:', seats.filter(s => s.role).map(s => ({
-      id: s.id,
-      roleId: s.role?.id,
-      roleName: s.role?.name,
-      isDead: s.isDead,
-    })));
-    
-    if (wakeQueueIds.length === 0) {
-      console.warn('[proceedToFirstNight] ⚠️ 警告：生成的队列为空！可能原因：');
-      console.warn('  1. 没有分配角色');
-      console.warn('  2. 分配的角色都没有夜晚行动（如全是村民）');
-      console.warn('  3. 所有角色都已死亡');
-    }
-
-    // 4. Batch Update State (The Critical Fix)
-    // We must set ALL these at once to prevent race conditions.
-    setWakeQueueIds(wakeQueueIds);
-    setCurrentWakeIndex(0); // Force reset to start
-    setSelectedActionTargets([]);
-    setInspectionResult(null);
-    setGamePhase('firstNight');
-    
-    // 5. Clear any blocking flags
-    setCurrentModal(null);
-    setPendingNightQueue(null);
-
-  }, [seats, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, setCurrentModal, setPendingNightQueue]);
-
-  // 关闭夜晚顺序预览模态框
-  const closeNightOrderPreview = useCallback(() => {
-    setCurrentModal(null);
-    setPendingNightQueue(null);
-  }, [setCurrentModal, setPendingNightQueue]);
-
-  // 确认夜晚顺序预览，开始夜晚
-  const confirmNightOrderPreview = useCallback(() => {
-    // 立即关闭弹窗，避免用户重复点击
-    setCurrentModal(null);
-    
-    if (!pendingNightQueue || pendingNightQueue.length === 0) {
-      // 空队列：直接进入首夜阶段
-      setPendingNightQueue(null);
-      setWakeQueueIds([]);
-      setCurrentWakeIndex(0);
-      setSelectedActionTargets([]);
-      setInspectionResult(null);
-      setGamePhase('firstNight');
-      addLog('首夜：无需要唤醒的角色，直接进入天亮阶段');
-      return;
-    }
-    
-    if (!nightLogic?.finalizeNightStart) {
-      // 如果 nightLogic 不可用，关闭弹窗并返回
-      setPendingNightQueue(null);
-      return;
-    }
-    
-    // 使用 nightLogic 的 finalizeNightStart 来正确设置 wakeQueueIds
-    try {
-      nightLogic.finalizeNightStart(pendingNightQueue, true);
-    } catch (error) {
-      // 即使出错也要关闭弹窗
-      setPendingNightQueue(null);
-    }
-  }, [pendingNightQueue, nightLogic, setCurrentModal, setPendingNightQueue, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, addLog]);
-
 
   // 纯计算：阵容配置校验结果
   const getCompositionStatus = useCallback((activeSeats: Seat[]) => {
@@ -2969,17 +2682,6 @@ export function useGameController() {
     return true;
   }, [getCompositionStatus, setCompositionError, selectedScript, addLog]);
 
-  // 复活座位（清理临时负面状态）
-  const reviveSeat = useCallback((seat: Seat): Seat => {
-    // 复活时清理所有临时负面状态与死而有能只保留永久中毒等持续效果
-    return cleanseSeatStatuses({
-      ...seat,
-      isEvilConverted: false,
-      isZombuulTrulyDead: seat.isZombuulTrulyDead,
-      hasGhostVote: true,
-    });
-  }, [cleanseSeatStatuses]);
-
   // 将玩家插入到当前唤醒队列之后（按夜晚顺序）
   const insertIntoWakeQueueAfterCurrent = useCallback((seatId: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => {
     if (!['night','firstNight'].includes(gamePhase)) return;
@@ -3016,6 +2718,15 @@ export function useGameController() {
     }
   }, [gamePhase, currentWakeIndex, seats, addLog, setWakeQueueIds]);
 
+  // 将夜晚流程控制函数注入交互域（避免 TDZ）
+  useEffect(() => {
+    continueToNextActionRef.current = continueToNextAction;
+  }, [continueToNextAction]);
+
+  useEffect(() => {
+    insertIntoWakeQueueAfterCurrentRef.current = insertIntoWakeQueueAfterCurrent;
+  }, [insertIntoWakeQueueAfterCurrent]);
+
   // 将目标玩家转为邪恶阵营（灵言师关键词触发）
   const convertPlayerToEvil = useCallback((targetId: number) => {
     setSeats(prev => prev.map(s => {
@@ -3031,173 +2742,10 @@ export function useGameController() {
     insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}号转为邪恶` });
   }, [setSeats, cleanseSeatStatuses, insertIntoWakeQueueAfterCurrent]);
 
-  /**
-   * 改变角色（转换）
-   * 用于玩家转变成另一个角色（如哲学家获得能力、方古跳转等）
-   * @param seatId 目标座位ID
-   * @param newRoleId 新角色ID
-   */
-  const changeRole = useCallback((seatId: number, newRoleId: string) => {
-    const newRole = roles.find(r => r.id === newRoleId);
-    if (!newRole) {
-      // Role not found, skip
-      return;
-    }
-
-    // 相克规则：灯神在场时，互为克星的角色不能同时在场
-    if (isAntagonismEnabled(seats)) {
-      const decision = checkMutualExclusion({ seats, enteringRoleId: newRoleId, roles });
-      if (!decision.allowed) {
-        alert(decision.reason);
-        addLog(`⛔ ${decision.reason}`);
-        return;
-      }
-    }
-
-    setSeats(prev => prev.map(s => {
-      if (s.id !== seatId) return s;
-      return {
-        ...s,
-        role: newRole, // Overwrite the REAL role
-        displayRole: newRole, // Update display role as well
-      };
-    }));
-    
-    addLog(`🔄 ${seatId+1}号 的身份变成了 [${newRole.name}]`);
-  }, [roles, setSeats, addLog, seats]);
-
-  /**
-   * 交换角色（理发师/麻脸巫婆等）
-   * 用于两个玩家交换角色
-   * @param seatId1 第一个座位ID
-   * @param seatId2 第二个座位ID
-   */
-  const swapRoles = useCallback((seatId1: number, seatId2: number) => {
-    setSeats(prev => {
-      const s1 = prev.find(s => s.id === seatId1);
-      const s2 = prev.find(s => s.id === seatId2);
-      if (!s1 || !s2) {
-        // One or both seats not found, skip
-        return prev;
-      }
-      
-      return prev.map(s => {
-        if (s.id === seatId1) return { ...s, role: s2.role, displayRole: s2.displayRole };
-        if (s.id === seatId2) return { ...s, role: s1.role, displayRole: s1.displayRole };
-        return s;
-      });
-    });
-    addLog(`🔀 ${seatId1+1}号 和 ${seatId2+1}号 交换了角色`);
-  }, [setSeats, addLog]);
-
   // ======================================================================
   //  Modal and Action Handlers - Moved from page.tsx
   // ======================================================================
   
-  // Handle confirm action for night actions
-  // 重构：使用角色特定的处理函数，职责分离
-  const handleConfirmAction = useCallback(() => {
-    if (!nightInfo) return;
-    console.log('[handleConfirmAction] called. Current Role:', nightInfo.effectiveRole.id, 'Actual Target Count:', getRoleTargetCount(nightInfo.effectiveRole.id, gamePhase === 'firstNight')?.max ?? 0);
-    
-    // 首先检查是否有待确认的弹窗
-    if (currentModal !== null) {
-      return;
-    }
-    
-    // 规则：如果能力描述中没有"选择"一词，这项能力就由说书人来做出选择
-    // 检测能力描述中是否包含"选择"关键词
-    const abilityText = nightInfo.effectiveRole.ability || '';
-    const hasChoiceKeyword = abilityText.includes('选择');
-    
-    // 如果能力描述中没有"选择"，且当前没有选中目标，
-    // 且角色需要选择目标（interaction.type 不是 'none' 或 actualTargetCount > 0），
-    // 才触发说书人选择弹窗
-    const actualTargetCount = getRoleTargetCount(nightInfo.effectiveRole.id, gamePhase === 'firstNight')?.max ?? 0; // 明确默认值是0
-
-    if (!hasChoiceKeyword && selectedActionTargets.length === 0 && actualTargetCount > 0) {
-      const roleId = nightInfo.effectiveRole.id;
-      const roleName = nightInfo.effectiveRole.name;
-      const description = abilityText || `使用${roleName}的能力`;
-      
-      // 触发说书人选择弹窗
-      setCurrentModal({
-        type: 'STORYTELLER_SELECT',
-        data: {
-          sourceId: nightInfo.seat.id,
-          roleId,
-          roleName,
-          description,
-          targetCount: actualTargetCount,
-          onConfirm: (targetIds: number[]) => {
-            // 设置选中的目标
-            setSelectedActionTargets(targetIds);
-            // 关闭弹窗
-            setCurrentModal(null);
-            // 注意：不需要递归调用，因为设置selectedActionTargets后，
-            // 用户需要再次点击"确认"按钮才会继续处理行动
-            // 这样可以避免无限递归，并让用户有机会确认选择
-          }
-        }
-      });
-      return;
-    } else if (actualTargetCount === 0) {
-      // 对于不需要选择目标的角色，直接清空选择并继续下一步
-      setSelectedActionTargets([]);
-      setCurrentModal(null);
-      continueToNextAction();
-      return;
-    }
-    
-    // 尝试使用角色特定的处理函数
-    const roleId = nightInfo.effectiveRole.id;
-    const handler = getRoleConfirmHandler(roleId);
-    
-    if (handler) {
-        const context: RoleConfirmContext = {
-          nightInfo,
-          seats,
-          selectedTargets: selectedActionTargets,
-          gamePhase,
-          nightCount,
-          roles,
-          setSeats,
-          setSelectedActionTargets,
-          currentModal,
-          setCurrentModal,
-          getSeatRoleId,
-          cleanseSeatStatuses,
-          insertIntoWakeQueueAfterCurrent,
-          continueToNextAction,
-          addLog,
-          killPlayer,
-          hasUsedAbility,
-          markAbilityUsed,
-          reviveSeat,
-          setPukkaPoisonQueue,
-          setDeadThisNight,
-          poChargeState,
-          setPoChargeState,
-          addDrunkMark,
-          isEvil,
-        };
-      
-      const result = handler(context);
-      if (result.handled) {
-        if (result.shouldWait) {
-          // 需要等待（例如弹窗确认）
-          return;
-        }
-        // 已处理且不需要等待，继续流程
-        return;
-      }
-    }
-    
-    // 如果没有角色特定的处理函数，使用通用逻辑继续流程
-    // 所有需要特殊处理的角色都应该在 roleActionHandlers.ts 中实现
-    continueToNextAction();
-  }, [nightInfo, seats, selectedActionTargets, gamePhase, nightCount, roles, currentModal, setSeats, setSelectedActionTargets, getSeatRoleId, cleanseSeatStatuses, insertIntoWakeQueueAfterCurrent, continueToNextAction, setCurrentModal, killPlayer, hasUsedAbility, markAbilityUsed, reviveSeat, setPukkaPoisonQueue, setDeadThisNight, addLog, poChargeState, setPoChargeState, addDrunkMark, isEvil, getRoleConfirmHandler]);
-
   // Execute player (execution logic)
   const executePlayer = useCallback((id: number, options?: { skipLunaticRps?: boolean; forceExecution?: boolean }) => {
     const seatsSnapshot = seatsRef.current || seats;
@@ -3261,7 +2809,7 @@ export function useGameController() {
         }
         
         setTimeout(() => {
-          nightLogic.startNight(false);
+          startNight(false);
         }, 500);
         return;
       }
@@ -3398,7 +2946,7 @@ export function useGameController() {
       }
       
       setTimeout(() => {
-        nightLogic.startNight(false);
+        startNight(false);
       }, 500);
       return;
     }
@@ -3492,7 +3040,7 @@ export function useGameController() {
           
           // 进入下一个夜
           setTimeout(() => {
-            nightLogic.startNight(false);
+            startNight(false);
           }, 500);
           return;
         }
@@ -3510,7 +3058,7 @@ export function useGameController() {
         return;
       }
       setTimeout(() => {
-        nightLogic.startNight(false);
+        startNight(false);
       }, 500);
       return;
     }
@@ -3618,7 +3166,7 @@ export function useGameController() {
     
     // 5. 屏蔽浏览器弹窗直接进入夜晚
     setTimeout(() => { 
-      nightLogic.startNight(false); 
+      startNight(false); 
     }, 500);
   }, [seats, seatsRef, nominationMap, hasTeaLadyProtection, hasExecutionProof, checkGameOver, setSeats, addLog, setExecutedPlayerId, setCurrentDuskExecution, setTodayExecutedId, setWinResult, setWinReason, setGamePhase, setShowSaintExecutionConfirmModal, setShowLunaticRpsModal, setShowExecutionResultModal, gamePhase, nightLogic, addPoisonMark, computeIsPoisoned]);
 
@@ -3865,7 +3413,7 @@ export function useGameController() {
     
     // 如果是贞洁者触发的处决点击确认后自动进入下一个黑
     if (isVirginTrigger) {
-      nightLogic.startNight(false);
+      startNight(false);
       return;
     }
 
@@ -3891,7 +3439,7 @@ export function useGameController() {
     
     const cands = seats.filter(s=>s.isCandidate).sort((a,b)=>(b.voteCount||0)-(a.voteCount||0));
     if(cands.length===0) {
-      nightLogic.startNight(false);
+      startNight(false);
       return;
     }
     
@@ -3913,117 +3461,9 @@ export function useGameController() {
         addLog('涡流在场且今日无人处决邪恶阵营胜利');
         return;
       }
-      nightLogic.startNight(false);
+      startNight(false);
     }
   }, [currentModal, setCurrentModal, nightLogic, seats, isVortoxWorld, todayExecutedId, setWinResult, setWinReason, setGamePhase, addLog, mastermindFinalDay, setMastermindFinalDay]);
-
-  // Enter dusk phase handler
-  const enterDuskPhase = useCallback(() => {
-    // 保存历史记录
-    saveHistory();
-    // 进入新黄昏时将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
-    // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
-    if (currentDuskExecution !== null) {
-      setLastDuskExecution(currentDuskExecution);
-    } else {
-      // 如果当前黄昏没有处决保持上一个黄昏的记录如果有的话
-      // 如果上一个黄昏也没有处决lastDuskExecution保持为null
-    }
-    // 清空当前黄昏的处决记录准备记录新的处决
-    setCurrentDuskExecution(null);
-    
-    // 每个新黄昏开始时，重置“白天有外来者死亡”标记（教父额外杀人仅本夜生效）
-    setOutsiderDiedToday(false);
-    
-    // 清除应在“次日黄昏/下个黄昏”移除的中毒/醉酒等临时状态
-    setSeats(prev => prev.map(s => {
-      const filteredStatusDetails = (s.statusDetails || []).filter(st => {
-        // 永久性标记直接保留
-        if (st.includes('永久中毒') || st.includes('永久')) return true;
-        // 普卡中毒由夜晚逻辑特殊处理，保留
-        if (st.includes('普卡中毒')) return true;
-
-        // 只要描述里包含“黄昏清除”或明确写了“次日黄昏/下个黄昏”，都视为本次黄昏应清理
-        if (
-          st.includes('次日黄昏清除') ||
-          st.includes('下个黄昏清除') ||
-          st.includes('至下个黄昏清除') ||
-          st.includes('次日黄昏') ||
-          st.includes('下个黄昏')
-        ) {
-          return false;
-        }
-        return true;
-      });
-      
-      const filteredStatuses = (s.statuses || []).filter(status => {
-        // 只要 effect 是 Poison/Drunk 且持续时间里写了“黄昏”相关，视为应在此刻清除
-        const isTempPoisonOrDrunk =
-          (status.effect === 'Poison' || status.effect === 'Drunk') &&
-          (typeof status.duration === 'string') &&
-          (
-            status.duration.includes('次日黄昏') ||
-            status.duration.includes('下个黄昏') ||
-            status.duration.includes('黄昏清除') ||
-            status.duration === 'Night+Day' ||
-            status.duration === '1 Day'
-          );
-        if (isTempPoisonOrDrunk) return false;
-        return true;
-      });
-
-      // 侍臣：醉酒 3 天 3 夜（每个新黄昏开始时递减一次）
-      const decrementedStatuses = filteredStatuses
-        .map((status: any) => {
-          if (status.effect === 'Drunk' && status.duration === '侍臣3天3夜' && typeof status.remainingDays === 'number') {
-            return { ...status, remainingDays: Math.max(0, status.remainingDays - 1) };
-          }
-          return status;
-        })
-        .filter((status: any) => {
-          if (status.effect === 'Drunk' && status.duration === '侍臣3天3夜' && typeof status.remainingDays === 'number') {
-            return status.remainingDays > 0;
-          }
-          return true;
-        });
-
-      const filteredStatusDetailsWithCourtier = filteredStatusDetails.filter(st => {
-        // 若侍臣醉酒已到期，移除对应文本标记
-        if (st.includes('侍臣致醉') && !decrementedStatuses.some((x: any) => x.effect === 'Drunk' && x.duration === '侍臣3天3夜')) {
-          return false;
-        }
-        return true;
-      });
-      
-      // 重新计算状态
-      const poisonedAfterClean = computeIsPoisoned({
-        ...s,
-        statusDetails: filteredStatusDetailsWithCourtier,
-        statuses: decrementedStatuses,
-      });
-      // isDrunk：酒鬼本体永远醉；否则只要还有 Drunk 状态或“致醉/醉酒”标记就视为醉
-      const drunkAfterClean =
-        (s.role?.id === 'drunk') ||
-        decrementedStatuses.some((st: any) => st.effect === 'Drunk') ||
-        filteredStatusDetailsWithCourtier.some((d) => d.includes('致醉') || d.includes('醉酒'));
-      
-      return {
-        ...s,
-        statusDetails: filteredStatusDetailsWithCourtier,
-        statuses: decrementedStatuses,
-        isPoisoned: poisonedAfterClean,
-        isDrunk: drunkAfterClean,
-        voteCount: undefined,
-        isCandidate: false,
-      };
-    }));
-    
-    setGamePhase('dusk');
-    // 重置提名记录
-    setNominationRecords({ nominators: new Set(), nominees: new Set() });
-    setNominationMap({});
-    setCurrentModal(null);
-  }, [saveHistory, currentDuskExecution, setLastDuskExecution, setCurrentDuskExecution, setGamePhase, setSeats, setNominationRecords, setNominationMap, setCurrentModal, computeIsPoisoned, setOutsiderDiedToday]);
 
   // Resolve lunatic RPS handler
   const resolveLunaticRps = useCallback((result: 'win' | 'lose' | 'tie') => {
@@ -4903,251 +4343,9 @@ export function useGameController() {
     addLog('市长在场且剩人今日选择不处决好人胜利');
   }, [setCurrentModal, setWinResult, setWinReason, setGamePhase, addLog, seats, seatsRef]);
 
-  const handleDayEndTransition = useCallback(() => {
-    const aliveCount = seats.filter(s => !s.isDead).length;
-    const mayorSeat = seats.find(s => s.role?.id === 'mayor' && !s.isDead);
-    // 规则对齐：市长中毒/醉酒时能力失效，不弹“三活提醒”
-    if (aliveCount === 3 && mayorSeat && !isActorDisabledByPoisonOrDrunk(mayorSeat)) {
-      setCurrentModal({ type: 'MAYOR_THREE_ALIVE', data: null });
-      return;
-    }
-    enterDuskPhase();
-  }, [seats, enterDuskPhase, setCurrentModal]);
-
   const handleRestart = useCallback(() => {
     setCurrentModal({ type: 'RESTART_CONFIRM', data: null });
   }, [setCurrentModal]);
-
-  const handleSwitchScript = useCallback(() => {
-    // 如果游戏正在进行不是scriptSelection阶段先结束游戏并保存记录
-    if (gamePhase !== 'scriptSelection' && selectedScript) {
-      // 添加结束游戏的日志
-      const updatedLogs = [...gameLogs, { day: nightCount, phase: gamePhase, message: "说书人结束了游戏" }];
-      
-      // 立即保存对局记录
-      const endTime = new Date();
-      const duration = startTime ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000) : timer;
-      
-      const record: GameRecord = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        scriptName: selectedScript.name,
-        startTime: startTime ? startTime.toISOString() : new Date().toISOString(),
-        endTime: endTime.toISOString(),
-        duration: duration,
-        winResult: null, // 说书人结束无胜负结
-        winReason: "说书人结束了游戏",
-        seats: JSON.parse(JSON.stringify(seats)), // 深拷贝座位信
-        gameLogs: updatedLogs // 包含结束日志的完整日
-      };
-      
-      saveGameRecord(record);
-    }
-    
-    // 切换到剧本选择页面
-    triggerIntroLoading();
-    setGamePhase('scriptSelection');
-    setSelectedScript(null);
-    setNightCount(1);
-    setExecutedPlayerId(null);
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
-    setSelectedActionTargets([]);
-    // 注意这里不清空gameLogs保留游戏记录用户可以在复盘时查看
-    setWinResult(null);
-    setDeadThisNight([]);
-    setPukkaPoisonQueue([]); // 清空普卡队列防止旧局状态泄
-    setSelectedRole(null);
-    setInspectionResult(null);
-    setCurrentHint({ isPoisoned: false, guide: "", speak: "" });
-    setTimer(0);
-    setStartTime(null);
-    setHistory([]);
-    setWinReason(null);
-    hintCacheRef.current.clear();
-    drunkFirstInfoRef.current.clear();
-    resetRegistrationCache('idle');
-    setAutoRedHerringInfo(null);
-    setCurrentModal(null);
-    setNightOrderPreview([]);
-    setPendingNightQueue(null);
-    setSeats(Array.from({ length: 15 }, (_, i) => ({ 
-      id: i, 
-      role: null, 
-      charadeRole: null, 
-      isDead: false, 
-      isDrunk: false, 
-      isPoisoned: false, 
-      isProtected: false, 
-      protectedBy: null,
-      isRedHerring: false, 
-      isFortuneTellerRedHerring: false, 
-      isSentenced: false, 
-      masterId: null, 
-      hasUsedSlayerAbility: false, 
-      hasUsedVirginAbility: false, 
-      hasBeenNominated: false,
-      isDemonSuccessor: false, 
-      hasAbilityEvenDead: false,
-      statusDetails: [],
-      statuses: [],
-      grandchildId: null,
-      isGrandchild: false,
-      zombuulLives: 1
-    })));
-    setInitialSeats([]);
-  }, [gamePhase, selectedScript, gameLogs, nightCount, startTime, timer, seats, saveGameRecord, triggerIntroLoading, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setWinResult, setDeadThisNight, setPukkaPoisonQueue, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setHistory, setWinReason, hintCacheRef, drunkFirstInfoRef, resetRegistrationCache, setAutoRedHerringInfo, setCurrentModal, setNightOrderPreview, setPendingNightQueue, setSeats, setInitialSeats]);
-
-  const handleNewGame = useCallback(() => {
-    triggerIntroLoading();
-    setGamePhase('scriptSelection');
-    setSelectedScript(null);
-    setNightCount(1);
-    setExecutedPlayerId(null);
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
-    setSelectedActionTargets([]);
-    setGameLogs([]);
-    setWinResult(null);
-    setDeadThisNight([]);
-    setSelectedRole(null);
-    setInspectionResult(null);
-    setCurrentHint({ isPoisoned: false, guide: "", speak: "" });
-    setTimer(0);
-    setStartTime(null);
-    setHistory([]);
-    setWinReason(null);
-    hintCacheRef.current.clear();
-    drunkFirstInfoRef.current.clear();
-    resetRegistrationCache('idle');
-    setAutoRedHerringInfo(null);
-    setCurrentModal(null);
-    setNightOrderPreview([]);
-    setPendingNightQueue(null);
-    setBaronSetupCheck(null);
-    setIgnoreBaronSetup(false);
-    setShowMinionKnowDemonModal(null);
-    setSeats(Array.from({ length: 15 }, (_, i) => ({ 
-      id: i, 
-      role: null, 
-      charadeRole: null, 
-      isDead: false, 
-      isDrunk: false, 
-      isPoisoned: false, 
-      isProtected: false, 
-      protectedBy: null,
-      isRedHerring: false, 
-      isFortuneTellerRedHerring: false, 
-      isSentenced: false, 
-      masterId: null, 
-      hasUsedSlayerAbility: false, 
-      hasUsedVirginAbility: false, 
-      hasBeenNominated: false,
-      isDemonSuccessor: false, 
-      hasAbilityEvenDead: false,
-      statusDetails: [],
-      statuses: [],
-      grandchildId: null,
-      isGrandchild: false,
-      zombuulLives: 1
-    })));
-    setInitialSeats([]);
-  }, [triggerIntroLoading, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setGameLogs, setWinResult, setDeadThisNight, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setHistory, setWinReason, hintCacheRef, drunkFirstInfoRef, resetRegistrationCache, setAutoRedHerringInfo, setCurrentModal, setNightOrderPreview, setPendingNightQueue, setBaronSetupCheck, setIgnoreBaronSetup, setShowMinionKnowDemonModal, setSeats, setInitialSeats]);
-
-  const handleStepBack = useCallback(() => {
-    if (currentWakeIndex > 0) {
-      setCurrentWakeIndex(currentWakeIndex - 1);
-      // hint 会从缓存中恢复不重新生
-    }
-    // 如果已经是第一个但还有历史记录可以继续后退到上一个阶
-    else if (history.length > 0) {
-      const lastState = history[history.length - 1];
-      // 如果上一个状态是夜晚阶段恢复并设置到最后一个唤醒索
-      if (lastState.gamePhase === gamePhase && lastState.wakeQueueIds.length > 0) {
-        setSeats(lastState.seats);
-        setGamePhase(lastState.gamePhase);
-        setNightCount(lastState.nightCount);
-        setExecutedPlayerId(lastState.executedPlayerId);
-        setWakeQueueIds(lastState.wakeQueueIds);
-        setCurrentWakeIndex(Math.max(0, lastState.wakeQueueIds.length - 1));
-        setSelectedActionTargets(lastState.selectedActionTargets);
-        setGameLogs(lastState.gameLogs);
-        setHistory(prev => prev.slice(0, -1));
-      }
-    }
-  }, [currentWakeIndex, history, gamePhase, setCurrentWakeIndex, setSeats, setGamePhase, setNightCount, setExecutedPlayerId, setWakeQueueIds, setSelectedActionTargets, setGameLogs, setHistory]);
-
-  const handleGlobalUndo = useCallback(() => {
-    // 如果选择剧本"页面无
-    if (gamePhase === 'scriptSelection') {
-      return;
-    }
-    
-    if (history.length === 0) {
-      // 如果历史记录为空尝试回选择剧本"页面
-      setGamePhase('scriptSelection');
-      setSelectedScript(null);
-      setNightCount(1);
-      setExecutedPlayerId(null);
-      setWakeQueueIds([]);
-      setCurrentWakeIndex(0);
-      setSelectedActionTargets([]);
-      setGameLogs([]);
-      setWinResult(null);
-      setWinReason(null);
-      setDeadThisNight([]);
-      setSelectedRole(null);
-      setInspectionResult(null);
-      setCurrentHint({ isPoisoned: false, guide: "", speak: "" });
-      setTimer(0);
-      setStartTime(null);
-      hintCacheRef.current.clear();
-      drunkFirstInfoRef.current.clear();
-      setSeats(Array.from({ length: 15 }, (_, i) => ({ 
-        id: i, 
-        role: null, 
-        charadeRole: null, 
-        isDead: false, 
-        isDrunk: false, 
-        isPoisoned: false, 
-        isProtected: false, 
-        protectedBy: null,
-        isRedHerring: false, 
-        isFortuneTellerRedHerring: false, 
-        isSentenced: false, 
-        masterId: null, 
-        hasUsedSlayerAbility: false,
-        hasUsedDayAbility: false, 
-        hasUsedVirginAbility: false, 
-        isDemonSuccessor: false, 
-        hasAbilityEvenDead: false,
-        statusDetails: [],
-        statuses: [],
-        grandchildId: null,
-      isGrandchild: false,
-      zombuulLives: 1
-      })));
-      setInitialSeats([]);
-      return;
-    }
-    
-    const lastState = history[history.length - 1];
-    setSeats(lastState.seats);
-    setGamePhase(lastState.gamePhase);
-    setNightCount(lastState.nightCount);
-    setExecutedPlayerId(lastState.executedPlayerId);
-    setWakeQueueIds(lastState.wakeQueueIds);
-    setCurrentWakeIndex(lastState.currentWakeIndex);
-    setSelectedActionTargets(lastState.selectedActionTargets);
-    setGameLogs(lastState.gameLogs);
-    setSelectedScript(lastState.selectedScript); // 恢复选中的剧
-    
-    // 清除 hint 缓存让信息重新生成符全局上一的需求
-    hintCacheRef.current.clear();
-    
-    // 不恢hint让 useEffect 重新计算这样信息会重新生成
-    
-    setHistory(prev => prev.slice(0, -1));
-  }, [gamePhase, history, hintCacheRef, drunkFirstInfoRef, setGamePhase, setSelectedScript, setNightCount, setExecutedPlayerId, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setGameLogs, setWinResult, setWinReason, setDeadThisNight, setSelectedRole, setInspectionResult, setCurrentHint, setTimer, setStartTime, setSeats, setInitialSeats, setHistory]);
 
   // ===========================
   // Group D: Seat Interaction functions
@@ -5156,306 +4354,6 @@ export function useGameController() {
   const setHadesiaChoice = useCallback((id: number, choice: 'live' | 'die') => {
     setHadesiaChoices(prev => ({ ...prev, [id]: choice }));
   }, [setHadesiaChoices]);
-
-  /**
-   * 右键菜单动作处理（GameModals 中的 contextMenu）
-   * 统一把菜单点击翻译成 currentModal 或直接执行动作
-   */
-  const handleMenuAction = useCallback((action: string) => {
-    const seatId = contextMenu?.seatId;
-    if (seatId === undefined || seatId === null) return;
-    const seat = seats.find(s => s.id === seatId);
-    if (!seat) return;
-
-    // 关闭菜单
-    setContextMenu(null);
-
-    if (action === 'nominate') {
-      setCurrentModal({ type: 'DAY_ACTION', data: { type: 'nominate', sourceId: seatId } });
-      return;
-    }
-
-    if (action === 'slayer') {
-      setCurrentModal({ type: 'DAY_ACTION', data: { type: 'slayer', sourceId: seatId } });
-      return;
-    }
-
-    if (action === 'damselGuess') {
-      setCurrentModal({ type: 'DAMSEL_GUESS', data: { minionId: seatId, targetId: null } });
-      return;
-    }
-
-    if (action === 'tinker_die') {
-      // 修补匠：随时可能死（由说书人裁定）。这里提供“一键现在死亡”的入口。
-      if (seat.role?.id !== 'tinker' || seat.isDead) return;
-      saveHistory();
-      killPlayer(seatId, {
-        source: 'ability',
-        onAfterKill: () => {
-          addLog(`🛠️ ${seatId + 1}号(修补匠) 在说书人裁定下死亡`);
-        }
-      });
-      return;
-    }
-
-    if (action === 'gossip_record') {
-      // 造谣者：白天记录造谣并裁定真假（若为真，今晚额外死亡）
-      if (seat.role?.id !== 'gossip' || seat.isDead) return;
-      saveHistory();
-      setCurrentModal({ type: 'DAY_ABILITY', data: { roleId: 'gossip', seatId } });
-      setDayAbilityForm({ info1: gossipStatementToday || '' });
-      return;
-    }
-  }, [contextMenu, seats, gossipStatementToday, setContextMenu, setCurrentModal, setDayAbilityForm, saveHistory, killPlayer, addLog]);
-
-  const toggleStatus = useCallback((type: string, seatId?: number) => {
-    const targetSeatId = seatId ?? contextMenu?.seatId;
-    if(targetSeatId === undefined || targetSeatId === null) return;
-    
-    setSeats(p => {
-      let updated;
-      if (type === 'redherring') {
-        // 检查场上是否存在占卜师
-        const hasFortuneTeller = p.some(s => s.role?.id === "fortune_teller");
-        const targetSeat = p.find(s => s.id === targetSeatId);
-        const isRemoving = targetSeat?.isRedHerring === true;
-        
-        // 如果尝试添加天敌红罗剎但场上没有占卜师则不允许
-        if (!isRemoving && !hasFortuneTeller) {
-          return p; // 不进行任何更改
-        }
-        
-        // 场上"红罗唯一选择新的天敌红罗剎时清除其他玩家的标记和图标
-        updated = p.map(s => {
-          if (s.id === targetSeatId) {
-            const details = s.statusDetails || [];
-            return {
-              ...s,
-              isRedHerring: true,
-              statusDetails: details.includes("天敌红罗剎")
-                ? details
-                : [...details, "天敌红罗剎"],
-            };
-          } else {
-            const details = s.statusDetails || [];
-            return {
-              ...s,
-              isRedHerring: false,
-              statusDetails: details.filter(d => d !== "天敌红罗剎"),
-            };
-          }
-        });
-        
-        // 只有在成功设置而不是移除天敌红罗剎时才添加日志
-        // 注意这里使用setTimeout是为了在setSeats完成后再添加日志避免在回调中直接调用
-        if (!isRemoving) {
-          setTimeout(() => {
-            addLog(`你将 ${targetSeatId + 1} 号玩家设为本局唯一的天敌红罗剎，占卜师永远视 ta 为邪恶`);
-          }, 0);
-        }
-      } else {
-        updated = p.map(s => {
-          if (s.id !== targetSeatId) return s;
-          if (type === 'dead') {
-            if (s.isDead) {
-              return reviveSeat(s);
-            }
-            return { ...s, isDead: true };
-          }
-          if (type === 'poison') return { ...s, isPoisoned: !s.isPoisoned };
-          if (type === 'drunk') return { ...s, isDrunk: !s.isDrunk };
-          return s;
-        });
-      }
-      // 8. 恶魔可以死在任意环节，当被标记死亡后游戏立即结束
-      if (type === 'dead') {
-        // 立即检查游戏结束条件包括存活人数和恶魔死亡
-        if (checkGameOver(updated)) {
-          return updated;
-        }
-      }
-      return updated;
-    });
-    if (type === 'dead') {
-      const target = seats.find(s => s.id === targetSeatId);
-      if (target && target.isDead && ['night','firstNight'].includes(gamePhase)) {
-        insertIntoWakeQueueAfterCurrent(target.id);
-      }
-    }
-    setContextMenu(null);
-  }, [contextMenu, seats, gamePhase, reviveSeat, checkGameOver, insertIntoWakeQueueAfterCurrent, addLog, setSeats, setContextMenu]);
-
-  // handleSeatClick logic part - extracted for controller
-  const onSeatClick = useCallback((id: number) => {
-    console.log('[onSeatClick] Called with seat id:', id, 'gamePhase:', gamePhase, 'selectedRole:', selectedRole?.name);
-    // 允许在选剧本阶段和准备阶段落座（当前流程未进入 setup，直接在 scriptSelection 完成分配）
-    if (gamePhase === 'setup' || gamePhase === 'scriptSelection') {
-      // 保存操作前的状态到历史记录
-      saveHistory();
-      if (selectedRole) {
-        if (seats.some(s => s.role?.id === selectedRole.id)) {
-          console.log('[onSeatClick] Role already seated:', selectedRole.name);
-          alert("该角色已入座");
-          return;
-        }
-        console.log('[onSeatClick] Assigning role:', selectedRole.name, 'to seat:', id);
-        setSeats((p) => p.map((s) => (s.id === id ? { ...s, role: selectedRole } : s)));
-        setSelectedRole(null);
-      } else {
-        console.log('[onSeatClick] Removing role from seat:', id);
-        setSeats((p) => p.map((s) => (s.id === id ? { ...s, role: null } : s)));
-      }
-    } else {
-      console.log('[onSeatClick] Ignored - wrong game phase:', gamePhase);
-    }
-  }, [gamePhase, selectedRole, seats, saveHistory, setSeats, setSelectedRole]);
-
-  // ======================================================================
-  //  Targeting Logic - Full implementation with all role-specific rules
-  // ======================================================================
-
-  // Check if a target seat should be disabled based on role-specific rules
-  // 【小白模式】移除所有点击限制，允许说书人点选任何人（包括已死玩家）
-  // 规则特例：
-  // 1. 在夜晚选择"任意玩家"时，可以选择自己或已死亡的玩家（如果规则书中没有明确禁止）
-  // 2. 恶魔可以攻击一名已死亡的玩家（如果能力允许）
-  // 3. 角色的 canSelectSelf 和 canSelectDead 元数据控制选择限制
-  const isTargetDisabled = useCallback((targetSeat: Seat): boolean => {
-    // 【小白模式】永远不禁用，允许说书人自由选择任何目标
-    // 这样可以手动修正错误，比如对已死玩家使用技能、重复击杀等
-    // 规则特例：如果规则书中没有提及"不能做某件事情"，那么就可以做这件事情
-    return false;
-  }, []);
-
-  // Toggle target selection with full role-specific logic
-  const toggleTarget = useCallback((targetId: number) => {
-    if (!nightInfo) {
-      return;
-    }
-    
-    saveHistory();
-    
-    // 重构：使用 useRoleAction 的 getTargetCount，职责分离
-    const isFirstNight = gamePhase === 'firstNight';
-    const targetCount = getRoleTargetCount(nightInfo.effectiveRole.id, isFirstNight);
-    const maxTargets = targetCount?.max ?? 1;
-    
-    // Update selected targets
-    let newTargets = [...selectedActionTargets];
-    if (newTargets.includes(targetId)) {
-      // Remove target if already selected
-      newTargets = newTargets.filter(t => t !== targetId);
-    } else {
-      // Add target
-      if (maxTargets === 1) {
-        // Single target: replace
-        newTargets = [targetId];
-      } else {
-        // Multiple targets: add to queue, remove oldest if at max
-        if (newTargets.length >= maxTargets) {
-          newTargets.shift();
-        }
-        newTargets.push(targetId);
-      }
-    }
-    
-    setSelectedActionTargets(newTargets);
-
-    // ==========================================================
-    // 自动生成“结果类”信息（占卜师等）并显示在控制台
-    // ==========================================================
-    try {
-      const roleId = nightInfo.effectiveRole.id;
-
-      // 占卜师：选满 2 人后立即生成“是/否”结果
-      if (roleId === 'fortune_teller') {
-        // 未选满则清空结果
-        if (newTargets.length !== 2) {
-          setInspectionResult(null);
-          fakeInspectionResultRef.current = null;
-        } else {
-          const [aId, bId] = newTargets;
-          const a = seats.find(s => s.id === aId);
-          const b = seats.find(s => s.id === bId);
-          if (a && b) {
-            const regA = getRegistrationCached(a, nightInfo.effectiveRole);
-            const regB = getRegistrationCached(b, nightInfo.effectiveRole);
-            // 官方：占卜师的“是否选中了恶魔”与“天敌红罗剎”是两套概念。
-            // - 非涡流世界：选中红罗剎也会得到“是”
-            // - 涡流世界：占卜师应只判断“是否选中了恶魔”，然后整体给出错误信息；
-            //   也就是说：仅选中红罗剎时，真实应为“否”，涡流则会让其变为“是”。
-            const hasDemonSelected =
-              !!regA.registersAsDemon ||
-              !!regB.registersAsDemon ||
-              a.role?.type === 'demon' ||
-              b.role?.type === 'demon' ||
-              !!a.isDemonSuccessor ||
-              !!b.isDemonSuccessor;
-
-            const hasRedHerringSelected = !!a.isRedHerring || !!b.isRedHerring;
-            const isYesReal = hasDemonSelected || (!isVortoxWorld && hasRedHerringSelected);
-
-            const realText = isYesReal ? '是' : '否';
-            const shouldFake = nightInfo.isPoisoned || isVortoxWorld;
-            let shownText = realText;
-
-            if (shouldFake) {
-              // 生成并缓存一次假结果，保证同一组选择下展示稳定
-              if (!fakeInspectionResultRef.current) {
-                fakeInspectionResultRef.current = isYesReal ? '否' : '是';
-              }
-              shownText = fakeInspectionResultRef.current;
-            } else {
-              fakeInspectionResultRef.current = null;
-            }
-
-            const note = shouldFake ? '（中毒/醉酒/涡流：此为假信息）' : '';
-            const resultText = `🔮 占卜师结果：${shownText}${note}`;
-            setInspectionResult(resultText);
-            setInspectionResultKey(k => k + 1);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('[toggleTarget] Failed to compute inspection result:', e);
-    }
-    
-    // Check if actor is disabled by poison/drunk
-    const actorSeat = seats.find(s => s.id === nightInfo.seat.id);
-    const actorDisabled = isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned);
-    const isActionalAbility = isActionAbility(nightInfo.effectiveRole);
-    
-    // Log if actor is disabled and this is an action ability
-    if (actorDisabled && isActionalAbility) {
-      if (newTargets.length > 0) {
-        const lastTargetId = newTargets[newTargets.length - 1];
-        addLogWithDeduplication(
-          `${nightInfo.seat.id ? nightInfo.seat.id + 1 : 0}号(${nightInfo.effectiveRole?.name ?? ''}) 处于中毒/醉酒状态，本夜${lastTargetId+1}号的行动无效，无事发生`,
-          nightInfo.seat.id ?? 0,
-          nightInfo.effectiveRole?.name ?? ''
-        );
-      }
-      return;
-    }
-    
-    // 重构：toggleTarget 只负责选中目标，不触发弹窗
-    // 弹窗逻辑移到 handleConfirmAction 中，在点击确认按钮时检查
-  }, [
-    nightInfo,
-    gamePhase,
-    selectedActionTargets,
-    seats,
-    saveHistory,
-    setSelectedActionTargets,
-    setInspectionResult,
-    setInspectionResultKey,
-    getRegistrationCached,
-    isVortoxWorld,
-    isActorDisabledByPoisonOrDrunk,
-    isActionAbility,
-    addLogWithDeduplication,
-    getRoleTargetCount
-  ]);
 
   // Return all state and handlers needed by the UI
   return {
@@ -5520,7 +4418,7 @@ export function useGameController() {
     insertIntoWakeQueueAfterCurrent,
     
     // Modal and action handlers
-    handleConfirmAction,
+    handleConfirmAction: interactionHandleConfirmAction,
     executePlayer,
     confirmKill,
     submitVotes,
@@ -5570,8 +4468,8 @@ export function useGameController() {
     proceedToFirstNight, // CRITICAL: Synchronous transition to first night
     
     // Group D: Seat Interaction functions
-    onSeatClick,
-    toggleStatus,
+    onSeatClick: interactionHandleSeatClick,
+    toggleStatus: interactionToggleStatus,
     handleMenuAction,
     setHadesiaChoice,
     
@@ -5582,7 +4480,7 @@ export function useGameController() {
     isTimerRunning,
     
     // Targeting functions
-    toggleTarget,
+    toggleTarget: interactionToggleTarget,
     isTargetDisabled,
     
     // Additional exports

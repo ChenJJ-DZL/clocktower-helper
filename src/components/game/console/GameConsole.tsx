@@ -3,6 +3,7 @@
 import React from "react";
 import { GamePhase, Seat } from "../../../../app/data";
 import { NightInfoResult } from "../../../types/game";
+import { getRoleDocSummary } from "../../../utils/roleDocLookup";
 
 interface GameConsoleProps {
   // Zone A: Header
@@ -105,8 +106,29 @@ export function GameConsole({
     }
   };
 
-  // 高亮“直接告诉说书人做什么”的指令块：优先脚本文本，其次提示列表第一条
-  const primaryGuidance = scriptText || guidancePoints[0];
+  const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
+  const currentActorRoleName =
+    nightInfo?.seat?.role?.id === "drunk"
+      ? nightInfo?.seat?.charadeRole?.name
+      : nightInfo?.seat?.role?.name;
+  const currentActorSeat = nightInfo?.seat;
+
+  const currentActorAbilityText =
+    (nightInfo?.seat?.role?.id === "drunk"
+      ? nightInfo?.seat?.charadeRole?.ability
+      : nightInfo?.seat?.role?.ability) || undefined;
+
+  const roleDoc = currentActorRoleName ? getRoleDocSummary(currentActorRoleName) : null;
+
+  // Remove "skill/instruction" style guidance that duplicates role ability text.
+  // In this project, the first guidance point is often `nightInfo.guide` (what to do),
+  // which the user wants removed from the "提示与脚本" section.
+  const skillLikeGuidance = new Set<string>(
+    [nightInfo?.guide, currentActorAbilityText, roleDoc?.abilityText]
+      .map((s) => (s || "").trim())
+      .filter(Boolean)
+  );
+  const filteredGuidancePoints = guidancePoints.filter((p) => !skillLikeGuidance.has((p || "").trim()));
 
   return (
     <div className="h-full flex flex-col bg-slate-900">
@@ -116,21 +138,6 @@ export function GameConsole({
           <div className={`px-[2px] py-[2px] rounded-lg text-base font-bold text-white whitespace-nowrap ${getPhaseColor()}`}>
             {getPhaseLabel()}
           </div>
-          {/* Step Debugger - Always visible for debugging */}
-          {currentStep !== undefined && totalSteps !== undefined && (
-            <div className="flex items-center gap-2">
-              <div className={`text-sm font-mono px-[2px] py-[2px] rounded bg-slate-700/50 whitespace-nowrap ${
-                totalSteps > 0 ? 'text-slate-300' : 'text-red-400'
-              }`}>
-                步骤: {currentStep} / {totalSteps}
-              </div>
-              {totalSteps === 0 && (gamePhase === 'firstNight' || gamePhase === 'night') && (
-                <div className="text-xs text-red-400 font-semibold px-[2px] py-[2px] rounded bg-red-900/30 whitespace-nowrap">
-                  错误：未生成脚本
-                </div>
-              )}
-            </div>
-          )}
         </div>
         {onToggleGrimoire && (
           <button
@@ -144,17 +151,22 @@ export function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 min-h-0">
-        {/* Highlighted Primary Instruction */}
-        {primaryGuidance && (
+        {/* Highlight: 当前行动（直接告诉说书人要做什么） */}
+        {isNightPhase && currentActorSeat && currentActorRoleName && (
           <div className="rounded-2xl border border-emerald-400/70 bg-emerald-900/40 px-4 py-3 shadow-inner shadow-emerald-500/30">
-            <div className="text-sm font-semibold text-emerald-200 mb-1">提示 · 直接说/做</div>
-            <div className="text-lg text-emerald-50 leading-relaxed">
-              {primaryGuidance}
+            <div className="text-sm font-semibold text-emerald-200 mb-1">当前的行动</div>
+            <div className="text-base text-emerald-50 leading-relaxed space-y-1">
+              <div>
+                唤醒 {currentActorSeat.id + 1} 号【{currentActorRoleName}】。
+              </div>
+              <div className="text-sm text-emerald-100">
+                告知其本步要做的操作或信息（参考下方“提示与脚本”），等待对方完成/回应后再继续。
+              </div>
             </div>
           </div>
         )}
 
-        {/* Section: Inspection / Result (Night info reveal) */}
+        {/* Section: Inspection / Result (Night info reveal) - 置顶显示 */}
         {inspectionResult && (
           <div key={inspectionResultKey ?? 0} className="space-y-2">
             <h3 className="text-lg font-bold text-slate-300">结果</h3>
@@ -164,28 +176,61 @@ export function GameConsole({
           </div>
         )}
 
-        {/* Section 1: Script Text */}
-        {scriptText && (
+        {/* Section: 玩家列表（夜晚交互用） */}
+        {isNightPhase && seats.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-300">脚本</h3>
-            <div className="text-lg leading-relaxed text-slate-100 font-medium">
-              {scriptText}
+            <h3 className="text-lg font-bold text-slate-300">玩家列表</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {seats.map((seat) => {
+                if (!seat.role) return null;
+                const isSelected = selectedPlayers.includes(seat.id);
+                return (
+                  <button
+                    key={seat.id}
+                    type="button"
+                    onClick={() => onTogglePlayer && onTogglePlayer(seat.id)}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${
+                      isSelected
+                        ? 'bg-blue-600/90 border-blue-300 text-white shadow shadow-blue-500/40'
+                        : seat.isDead
+                        ? 'bg-gray-700/60 border-gray-500 text-gray-400 hover:bg-gray-600/60 line-through'
+                        : 'bg-slate-800/80 border-slate-600 text-slate-100 hover:bg-slate-700/80'
+                    }`}
+                    title={seat.isDead ? '已死亡（小白模式：仍可选择）' : undefined}
+                  >
+                    {seat.id + 1}号 {seat.role.name} {seat.isDead ? '💀' : ''}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Section 2: Guidance Points */}
-        {guidancePoints.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-300">提示</h3>
-            <div className="space-y-2">
-              {guidancePoints.map((point, index) => (
-                <div key={index} className="flex items-start gap-3 text-base text-slate-200">
-                  <span className="text-slate-500 mt-1">•</span>
-                  <span>{point}</span>
+        {/* Section 3: 提示 + 脚本（合并） */}
+        {(scriptText || guidancePoints.length > 0 || currentActorRoleName) && (
+          <div className="space-y-3">
+            <h3 className="text-lg font-bold text-slate-300">提示与脚本</h3>
+
+            {/* 当前行动角色特性（来自 josn 角色文档的摘要） */}
+            {currentActorRoleName && roleDoc?.traits && roleDoc.traits.length > 0 && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
+                <div className="text-xs text-slate-400">
+                  特性：{roleDoc.traits.join(" / ")}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* 提示（过滤掉行动/技能说明类指引，避免重复） */}
+            {filteredGuidancePoints.length > 0 && (
+              <div className="space-y-2">
+                {filteredGuidancePoints.map((point, index) => (
+                  <div key={index} className="flex items-start gap-3 text-base text-slate-200">
+                    <span className="text-slate-500 mt-1">•</span>
+                    <span>{point}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -236,37 +281,6 @@ export function GameConsole({
           </div>
         )}
 
-        {/* Section 3: 玩家列表（夜晚交互用） */}
-        {(gamePhase === 'firstNight' || gamePhase === 'night') && seats.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-300">玩家列表</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {seats.map((seat) => {
-                // 【小白模式】显示所有有角色的玩家，包括已死玩家（用于手动修正错误）
-                if (!seat.role) return null;
-                const isSelected = selectedPlayers.includes(seat.id);
-                return (
-                  <button
-                    key={seat.id}
-                    type="button"
-                    onClick={() => onTogglePlayer && onTogglePlayer(seat.id)}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${
-                      isSelected
-                        ? 'bg-blue-600/90 border-blue-300 text-white shadow shadow-blue-500/40'
-                        : seat.isDead
-                        ? 'bg-gray-700/60 border-gray-500 text-gray-400 hover:bg-gray-600/60 line-through'
-                        : 'bg-slate-800/80 border-slate-600 text-slate-100 hover:bg-slate-700/80'
-                    }`}
-                    title={seat.isDead ? '已死亡（小白模式：仍可选择）' : undefined}
-                  >
-                    {seat.id + 1}号 {seat.role.name} {seat.isDead ? '💀' : ''}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Error state when script is empty - only show if actually in night phase */}
         {totalSteps === 0 && (gamePhase === 'firstNight' || gamePhase === 'night') && (
           <div className="space-y-3">
@@ -312,16 +326,7 @@ export function GameConsole({
           </div>
         )}
 
-        {/* Debug info for troubleshooting */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-3 bg-slate-800/50 rounded-lg text-xs text-slate-500 font-mono space-y-1">
-            <div>调试：阶段={gamePhase}，步骤={currentStep}/{totalSteps}</div>
-            <div>有主要操作：{primaryAction ? '是' : '否'}</div>
-            <div>主要操作已禁用：{primaryAction?.disabled ? '是' : '否'}</div>
-            <div>有脚本文本：{scriptText ? '是' : '否'}</div>
-            <div>已选择玩家：{selectedPlayers.length}</div>
-          </div>
-        )}
+        {/* intentionally removed: right-side navigation/progress indicators */}
       </div>
 
       {/* Zone C: Action Footer */}

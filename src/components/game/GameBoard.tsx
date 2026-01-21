@@ -91,29 +91,6 @@ export function GameBoard(props: GameBoardProps) {
       {/* 全屏氛围层(保持不变) */}
       <div className="absolute inset-0 shadow-[inset_0_0_200px_100px_rgba(0,0,0,0.8)] z-0 pointer-events-none" />
       
-      {/* 万能上一步按钮和伪装身份识别按钮 */}
-      {gamePhase !== 'scriptSelection' && (
-        <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
-          <button
-            onClick={handleGlobalUndo}
-            className="px-4 py-2 text-sm bg-blue-600 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-colors"
-          >
-            <div className="flex flex-col items-center">
-              <div>⬅️ 万能上一步</div>
-              <div className="text-xs font-normal opacity-80">（撤销当前动作）</div>
-            </div>
-          </button>
-          <button
-            onClick={() => setCurrentModal({ type: 'SPY_DISGUISE', data: null })}
-            className="px-4 py-2 text-sm bg-purple-600 rounded-xl font-bold shadow-lg hover:bg-purple-700 transition-colors"
-          >
-            <div className="flex items-center justify-center">
-              <div>🎭 伪装身份识别</div>
-            </div>
-          </button>
-        </div>
-      )}
-      
       {/* === 核心修改：圆桌容器 === */}
       <div 
         ref={seatContainerRef}

@@ -757,28 +757,6 @@ export function GameStage({ controller }: { controller: any }) {
           >
             相克规则：{antagonismEnabled ? '开' : '关'}
           </button>
-          {/* 夜晚时间线：桌面右上角，单列垂直显示 */}
-          {(gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && (
-            <div className="absolute top-4 right-4 z-20 max-h-[60%] overflow-y-auto flex flex-col gap-2 items-stretch">
-              {wakeQueueIds.map((seatId: number, index: number) => {
-                const seat = seats.find((s: Seat) => s.id === seatId);
-                if (!seat || !seat.role) return null;
-                const isCurrent = index === currentWakeIndex;
-                return (
-                  <div
-                    key={seatId}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap shadow ${
-                      isCurrent
-                        ? "bg-purple-600/90 border-purple-200 text-white shadow-purple-500/40"
-                        : "bg-slate-800/80 border-slate-500 text-slate-100"
-                    }`}
-                  >
-                    第{index + 1}步：{seat.id + 1}号【{seat.role.name}】
-                  </div>
-                );
-              })}
-            </div>
-          )}
           <RoundTable
             seats={seats}
             nightInfo={nightInfo}
