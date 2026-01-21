@@ -254,14 +254,21 @@ export function GameStage({ controller }: { controller: any }) {
 
   // 供控制台 / ControlPanel 使用的禁用逻辑
   const isConfirmDisabled = useMemo(() => {
-    // CRITICAL FIX: In check phase, button is only disabled if drunk needs charade role
+    let hasPendingDrunk = false; // Initialize to false
+
+    // CRITICAL FIX: In check phase, button should always be enabled to allow drunk charade selection
     if (gamePhase === 'check') {
-      const hasPendingDrunk = seats.some((s: Seat) => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
-      return hasPendingDrunk;
+      const finalDisabledState = false; // Always enable button in check phase to allow modal trigger
+      console.log('[GameStage] isConfirmDisabled (final - check phase) - returning:', finalDisabledState);
+      return finalDisabledState;
     }
     
     // For night phases, must have nightInfo
-    if (!nightInfo) return true;
+    if (!nightInfo) {
+      const finalDisabledState = true; // If no nightInfo, always disabled for night phases
+      console.log('[GameStage] isConfirmDisabled (final - no nightInfo) - returning:', finalDisabledState);
+      return finalDisabledState;
+    }
     
     // CRITICAL FIX: Disable button if there are pending confirmation modals
     // This prevents users from clicking "Next" when they need to confirm an action first
@@ -282,10 +289,15 @@ export function GameStage({ controller }: { controller: any }) {
     // 重构：移除 DOM 检测逻辑，直接检查状态
     // 如果有待确认的弹窗，禁用确认按钮
     if (hasPendingModals) {
-      return true;
+      console.log('[isConfirmDisabled] Has pending modals, returning true.');
+      const finalDisabledState = true; // If pending modals, always disabled
+      console.log('[GameStage] isConfirmDisabled (final - pending modals) - returning:', finalDisabledState);
+      return finalDisabledState;
     }
     
-    return false;
+    const finalDisabledState = false; // Default to false if no other conditions met for night phases
+    console.log('[GameStage] isConfirmDisabled (final - default) - returning:', finalDisabledState);
+    return finalDisabledState;
   }, [
     gamePhase,
     seats,
@@ -369,44 +381,49 @@ export function GameStage({ controller }: { controller: any }) {
                 nominator={nominator}
                 nominee={nominee}
                 onSeatClick={(seat) => {
-                  // Simple toggle logic for UI
+                  // Nomination logic for dusk phase
                   if (nominator === null) {
+                    // No nominator selected - select this seat as nominator
                     setNominator(seat.id);
                   } else if (nominee === null && seat.id !== nominator) {
+                    // Nominator selected but no nominee - select this seat as nominee
                     setNominee(seat.id);
-                  } else {
-                    setNominator(seat.id);
-                    setNominee(null);
+                  } else if (nominee === null && seat.id === nominator) {
+                    // Clicking the same nominator - allow deselection
+                    setNominator(null);
                   }
+                  // If both nominator and nominee are selected, ignore clicks
+                  // User must use the "发起提名" button or cancel nomination to change selection
                 }}
                 onContextMenu={(e, seatId) => {
-                  e.preventDefault();
                   setContextMenu({ x: e.clientX, y: e.clientY, seatId });
                 }}
                 onTouchStart={(e, seatId) => {
                   e.stopPropagation();
-                  e.preventDefault();
                   if (nominator === null) {
+                    // No nominator selected - select this seat as nominator
                     setNominator(seatId);
                   } else if (nominee === null && seatId !== nominator) {
+                    // Nominator selected but no nominee - select this seat as nominee
                     setNominee(seatId);
-                  } else {
-                    setNominator(seatId);
-                    setNominee(null);
+                  } else if (nominee === null && seatId === nominator) {
+                    // Clicking the same nominator - allow deselection
+                    setNominator(null);
                   }
+                  // If both nominator and nominee are selected, ignore touches
+                  // User must use the nomination button or cancel to change selection
                 }}
                 onTouchEnd={(e, seatId) => {
                   e.stopPropagation();
-                  e.preventDefault();
                 }}
                 onTouchMove={(e, seatId) => {
                   e.stopPropagation();
-                  e.preventDefault();
                 }}
                 setSeatRef={(id, el) => {
                   seatRefs.current[id] = el;
                 }}
                 getDisplayRoleType={getDisplayRoleType}
+                getDisplayRole={getDisplayRole}
                 typeColors={typeColors}
                 gamePhase={gamePhase}
                 nightCount={nightCount}
@@ -562,11 +579,33 @@ export function GameStage({ controller }: { controller: any }) {
 
             {/* Actions */}
             <div className="flex flex-col gap-3 relative z-50">
+              {/* Cancel Nomination Selection Button - only show if there are selections */}
+              {(nominator !== null || nominee !== null) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('[GameStage] 取消提名选择');
+                    setNominator(null);
+                    setNominee(null);
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="p-3 bg-red-600/20 text-red-400 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white transition-all font-semibold cursor-pointer relative z-50 text-sm"
+                  style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+                >
+                  ❌ 取消提名选择
+                </button>
+              )}
+
               <button 
                 type="button"
                 disabled={isNominationLocked}
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   console.log('[GameStage] 点击发起提名按钮', { nominator, nominee, isNominationLocked, pendingVoteFor, executeNomination: typeof executeNomination });
                   try {
@@ -609,7 +648,6 @@ export function GameStage({ controller }: { controller: any }) {
               <button
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   console.log('[GameStage] 点击开始投票按钮', { pendingVoteFor, setCurrentModal: typeof setCurrentModal });
                   try {
@@ -647,7 +685,6 @@ export function GameStage({ controller }: { controller: any }) {
               <button 
                 type="button"
                 onClick={(e) => {
-                  e.preventDefault();
                   e.stopPropagation();
                   console.log('[GameStage] 点击执行处决按钮', { executeJudgment: typeof executeJudgment });
                   try {
@@ -750,12 +787,10 @@ export function GameStage({ controller }: { controller: any }) {
             longPressingSeats={longPressingSeats}
             onSeatClick={(seat) => onSeatClick(seat.id)}
             onContextMenu={(e, seatId) => {
-    e.preventDefault(); 
               setContextMenu({ x: e.clientX, y: e.clientY, seatId });
             }}
             onTouchStart={(e, seatId) => {
     e.stopPropagation();
-    e.preventDefault();
     const existingTimer = longPressTimerRef.current.get(seatId);
               if (existingTimer) clearTimeout(existingTimer);
               setLongPressingSeats((prev: Set<number>) => new Set(prev).add(seatId));
@@ -774,7 +809,6 @@ export function GameStage({ controller }: { controller: any }) {
             }}
             onTouchEnd={(e, seatId) => {
     e.stopPropagation();
-    e.preventDefault();
     const timer = longPressTimerRef.current.get(seatId);
     if (timer) {
       clearTimeout(timer);
@@ -791,7 +825,6 @@ export function GameStage({ controller }: { controller: any }) {
             }}
             onTouchMove={(e, seatId) => {
     e.stopPropagation();
-    e.preventDefault();
     const timer = longPressTimerRef.current.get(seatId);
     if (timer) {
       clearTimeout(timer);
@@ -807,6 +840,7 @@ export function GameStage({ controller }: { controller: any }) {
               seatRefs.current[id] = el;
             }}
                   getDisplayRoleType={getDisplayRoleType}
+                  getDisplayRole={getDisplayRole}
                   typeColors={typeColors}
                   gamePhase={gamePhase}
                   nightCount={nightCount}
@@ -868,13 +902,7 @@ export function GameStage({ controller }: { controller: any }) {
                   label: '确认无误，入夜 🌙',
                   onClick: () => {
                     console.log("🖱️ [UI] User clicked 'Enter Night'");
-                    // Check for pending drunk first
-                    const hasPendingDrunk = seats.some((s: Seat) => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
-                    if (hasPendingDrunk) {
-                      alert('场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜');
-                      return;
-                    }
-                    // Use the synchronous proceedToFirstNight function
+                    // Use the synchronous proceedToFirstNight function which will handle drunk charade selection
                     if (controller.proceedToFirstNight) {
                       controller.proceedToFirstNight();
                     } else {
@@ -933,6 +961,7 @@ export function GameStageWithModals({ controller }: { controller: any }) {
       <GameStage controller={controller} />
       <GameModals
         handleSlayerTargetSelect={controller.handleSlayerTargetSelect}
+        handleDrunkCharadeSelect={controller.handleDrunkCharadeSelect}
         showNightOrderModal={controller.showNightOrderModal}
         showExecutionResultModal={controller.showExecutionResultModal}
         showShootResultModal={controller.showShootResultModal}
@@ -1037,7 +1066,6 @@ export function GameStageWithModals({ controller }: { controller: any }) {
         handleVirginGuideConfirm={controller.handleVirginGuideConfirm}
         handleDayAction={controller.handleDayAction}
         submitVotes={controller.submitVotes}
-        confirmDrunkCharade={controller.confirmDrunkCharade}
         handleNewGame={controller.handleNewGame}
         enterDuskPhase={controller.enterDuskPhase}
         declareMayorImmediateWin={controller.declareMayorImmediateWin}

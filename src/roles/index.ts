@@ -59,6 +59,12 @@ import { town_crier } from "./townsfolk/town_crier";
 import { undertaker } from "./townsfolk/undertaker";
 import { virgin } from "./townsfolk/virgin";
 import { washerwoman } from "./townsfolk/washerwoman";
+import { astrologer } from "./townsfolk/astrologer";
+import { bard } from "./townsfolk/bard";
+import { miner } from "./townsfolk/miner";
+import { professor_female } from "./townsfolk/professorFemale";
+import { monk_female } from "./townsfolk/monkFemale";
+import { saint_townsfolk } from "./townsfolk/saint";
 import { conjurer } from "./townsfolk/conjurer";
 import { villager } from "./townsfolk/villager";
 // Outsider
@@ -70,14 +76,23 @@ import { drunk } from "./outsider/drunk";
 import { drunk_mr } from "./outsider/drunk_mr";
 import { golem } from "./outsider/golem";
 import { goon } from "./outsider/goon";
+import { hatter } from "./outsider/hatter";
+import { heretic } from "./outsider/heretic";
+import { hermit } from "./outsider/hermit";
 import { klutz } from "./outsider/klutz";
 import { lunatic } from "./outsider/lunatic";
 import { moonchild } from "./outsider/moonchild";
 import { mutant } from "./outsider/mutant";
+import { ogre } from "./outsider/ogre";
+import { plague_doctor } from "./outsider/plague_doctor";
+import { politician } from "./outsider/politician";
+import { puzzlemaster } from "./outsider/puzzlemaster";
 import { recluse } from "./outsider/recluse";
 import { saint } from "./outsider/saint";
+import { snitch } from "./outsider/snitch";
 import { sweetheart } from "./outsider/sweetheart";
 import { tinker } from "./outsider/tinker";
+import { zealot } from "./outsider/zealot";
 // Minion
 import { assassin } from "./minion/assassin";
 import { baron } from "./minion/baron";
@@ -95,6 +110,18 @@ import { scarlet_woman } from "./minion/scarlet_woman";
 import { shaman } from "./minion/shaman";
 import { spy } from "./minion/spy";
 import { witch } from "./minion/witch";
+import { marionette } from "./minion/marionette";
+import { wraith } from "./minion/wraith";
+import { vizier } from "./minion/vizier";
+import { boomdandy } from "./minion/boomdandy";
+import { summoner } from "./minion/summoner";
+import { harpy } from "./minion/harpy";
+import { widow } from "./minion/widow";
+import { organ_grinder } from "./minion/organ_grinder";
+import { boffin } from "./minion/boffin";
+import { fearmonger } from "./minion/fearmonger";
+import { wizard } from "./minion/wizard";
+import { xaan } from "./minion/xaan";
 // Demon
 import { fang_gu } from "./demon/fang_gu";
 import { hadesia } from "./demon/hadesia";
@@ -107,6 +134,15 @@ import { vigormortis } from "./demon/vigormortis";
 import { vigormortis_mr } from "./demon/vigormortis_mr";
 import { vortox } from "./demon/vortox";
 import { zombuul } from "./demon/zombuul";
+import { legion } from "./demon/legion";
+import { riot } from "./demon/riot";
+import { lord_of_typhon } from "./demon/lord_of_typhon";
+import { kazali } from "./demon/kazali";
+import { lloam } from "./demon/lloam";
+import { saint as demon_saint } from "./demon/saint"; // Rename to avoid conflict with outsider saint
+import { titus } from "./demon/titus";
+import { leviathan } from "./demon/leviathan";
+import { liz } from "./demon/liz";
 
 /**
  * 角色注册表
@@ -173,7 +209,13 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [undertaker.id, undertaker],
   [virgin.id, virgin],
   [villager.id, villager],
-  [washerwoman.id, washerwoman],
+    [washerwoman.id, washerwoman],
+  [astrologer.id, astrologer],
+  [bard.id, bard],
+  [miner.id, miner],
+  [professor_female.id, professor_female],
+  [monk_female.id, monk_female],
+  [saint_townsfolk.id, saint_townsfolk],
   [barber.id, barber],
   [barber_mr.id, barber_mr],
   [butler.id, butler],
@@ -182,14 +224,23 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [drunk_mr.id, drunk_mr],
   [golem.id, golem],
   [goon.id, goon],
+  [hatter.id, hatter],
+  [heretic.id, heretic],
+  [hermit.id, hermit],
   [klutz.id, klutz],
   [lunatic.id, lunatic],
   [moonchild.id, moonchild],
   [mutant.id, mutant],
+  [ogre.id, ogre],
+  [plague_doctor.id, plague_doctor],
+  [politician.id, politician],
+  [puzzlemaster.id, puzzlemaster],
   [recluse.id, recluse],
   [saint.id, saint],
+  [snitch.id, snitch],
   [sweetheart.id, sweetheart],
   [tinker.id, tinker],
+  [zealot.id, zealot],
   [assassin.id, assassin],
   [baron.id, baron],
   [cerenovus.id, cerenovus],
@@ -206,6 +257,18 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [shaman.id, shaman],
   [spy.id, spy],
   [witch.id, witch],
+  [marionette.id, marionette],
+  [wraith.id, wraith],
+  [vizier.id, vizier],
+  [boomdandy.id, boomdandy],
+  [summoner.id, summoner],
+  [harpy.id, harpy],
+  [widow.id, widow],
+  [organ_grinder.id, organ_grinder],
+  [boffin.id, boffin],
+  [fearmonger.id, fearmonger],
+  [wizard.id, wizard],
+  [xaan.id, xaan],
   [fang_gu.id, fang_gu],
   [hadesia.id, hadesia],
   [imp.id, imp],
@@ -217,6 +280,15 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [vigormortis_mr.id, vigormortis_mr],
   [vortox.id, vortox],
   [zombuul.id, zombuul],
+  [legion.id, legion],
+  [riot.id, riot],
+  [lord_of_typhon.id, lord_of_typhon],
+  [kazali.id, kazali],
+  [lloam.id, lloam],
+  [demon_saint.id, demon_saint],
+  [titus.id, titus],
+  [leviathan.id, leviathan],
+  [liz.id, liz],
 ]);
 
 /**

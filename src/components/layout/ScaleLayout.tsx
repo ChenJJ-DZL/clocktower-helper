@@ -31,7 +31,7 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
       const scaleY = windowHeight / BASE_HEIGHT;
 
       // Use the smaller scale to ensure content fits entirely
-      const newScale = Math.min(scaleX, scaleY, 1); // Max scale is 1 (no upscaling)
+      const newScale = Math.min(scaleX, scaleY); // 移除最大缩放限制，允许内容放大以铺满屏幕
 
       setScale(newScale);
     };

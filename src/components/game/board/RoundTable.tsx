@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Seat, GamePhase } from "../../../../app/data";
+import { Seat, Role, GamePhase } from "../../../../app/data";
 import { NightInfoResult } from "../../../types/game";
 import { SeatGrid } from "./SeatGrid";
 import { getSeatPosition } from "../../../utils/gameRules";
@@ -20,6 +20,7 @@ interface RoundTableProps {
   onTouchMove: (e: React.TouchEvent, seatId: number) => void;
   setSeatRef: (id: number, el: HTMLDivElement | null) => void;
   getDisplayRoleType: (seat: Seat) => string | null;
+  getDisplayRole: (seat: Seat | null | undefined) => Role | null;
   typeColors: Record<string, string>;
   // Optional props for TableCenterHUD
   gamePhase?: GamePhase;

@@ -127,7 +127,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   // 1. 死亡状态
   if (s.isDead) {
     statusList.push({
-      key: 'dead',
+      key: `dead-${s.id}`,
       text: "已死亡",
       color: "yellow",
       icon: "💀",
@@ -141,7 +141,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     const protectionDuration = protectionStatus?.duration || '至天亮';
     
     statusList.push({
-      key: 'protected',
+      key: `protected-${s.id}`,
       text: "受保护",
       color: "green",
       icon: "🛡️",
@@ -153,7 +153,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   // 6. 天敌红罗剎状态
   if (s.isRedHerring) {
     statusList.push({
-      key: 'red_herring',
+      key: `red_herring-${s.id}`,
       text: "天敌红罗剎",
       color: "yellow",
       icon: "🎯",
@@ -176,7 +176,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
       const poisonDuration = poisonStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
       
       statusList.push({
-        key: 'poison',
+        key: `poison-${s.id}`,
         text: "中毒",
         color: "red",
         icon: "☠️",
@@ -197,7 +197,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
       const drunkDuration = drunkStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
       
       statusList.push({
-        key: 'drunk',
+        key: `drunk-${s.id}`,
         text: "醉酒",
         color: "yellow",
         icon: "🍺",
@@ -243,7 +243,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   // 7. 技能使用状态
   if (s.hasUsedSlayerAbility) {
     statusList.push({
-      key: 'slayer_used',
+      key: `slayer_used-${s.id}`,
       text: "猎手已用",
       color: "red",
       icon: "🎯",
@@ -252,7 +252,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   }
   if (s.hasUsedVirginAbility) {
     statusList.push({
-      key: 'virgin_used',
+      key: `virgin_used-${s.id}`,
       text: "处女失效",
       color: "yellow",
       icon: "⛔",
@@ -261,7 +261,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   }
   if (s.hasAbilityEvenDead) {
     statusList.push({
-      key: 'ability_even_dead',
+      key: `ability_even_dead-${s.id}`,
       text: "死而有能",
       color: "yellow",
       icon: "👻",

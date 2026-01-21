@@ -2,47 +2,22 @@ import { RoleDefinition } from "../../types/roleDefinition";
 import { Seat } from "../../types/game";
 
 /**
- * 落难少女
- * TODO: 添加角色描述
+ * 落难少女 (Damsel)
+ * 所有爪牙都知道落难少女在场。每局游戏限一次，任意爪牙可以公开猜测你是落难少女，如果猜对了，你的阵营落败。
+ * 
+ * 规则要点：
+ * - 在首个夜晚，所有爪牙会被告知落难少女在场（但不告知是谁）
+ * - 每局游戏限一次，任意爪牙可以公开猜测谁是落难少女
+ * - 如果猜对了，游戏立即结束，邪恶阵营获胜
+ * - 如果猜错了，后续所有猜测都无效
+ * - 如果落难少女死亡，她将不再承担被爪牙猜中的风险
+ * - 落难少女的能力是暴露角色、限次能力、公开触发能力、特殊胜利失败条件
  */
 export const damsel: RoleDefinition = {
   id: "damsel",
   name: "落难少女",
   type: "outsider",
   
-  night: {
-    order: (isFirstNight) => isFirstNight ? 0 : 0,
-    
-    target: {
-      count: {
-        min: 0,
-        max: 0,
-      },
-    },
-    
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
-      if (!isFirstNight) {
-        return {
-          wake: "",
-          instruction: "",
-          close: "",
-        };
-      }
-      return {
-        wake: `唤醒${playerSeatId + 1}号玩家（落难少女）。`,
-        instruction: "请执行行动",
-        close: `${playerSeatId + 1}号玩家（落难少女），请闭眼。`,
-      };
-    },
-    
-    handler: (context) => {
-      // TODO: 实现角色逻辑
-      return {
-        updates: [],
-        logs: {
-          privateLog: `落难少女（${context.selfId + 1}号）执行了行动`,
-        },
-      };
-    },
-  },
+  // 落难少女没有夜晚行动，但在首夜会告知所有爪牙
+  // 具体逻辑在首夜设置中处理
 };

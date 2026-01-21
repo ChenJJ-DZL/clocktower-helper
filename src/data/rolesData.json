@@ -107,7 +107,7 @@
   },
   {
     "id": "undertaker",
-    "name": "掘墓人",
+    "name": "送葬者",
     "type": "townsfolk",
     "otherNightOrder": 92,
     "otherNightMeta": {
@@ -157,7 +157,7 @@
   },
   {
     "id": "virgin",
-    "name": "圣女",
+    "name": "贞洁者",
     "type": "townsfolk",
     "triggerMeta": {
       "onNominated": true
@@ -165,7 +165,7 @@
   },
   {
     "id": "slayer",
-    "name": "杀手",
+    "name": "猎手",
     "type": "townsfolk",
     "dayMeta": {
       "abilityName": "射击",
@@ -184,7 +184,7 @@
   },
   {
     "id": "mayor",
-    "name": "市长",
+    "name": "镇长",
     "type": "townsfolk",
     "triggerMeta": {
       "onNightDeath": true
@@ -784,7 +784,7 @@
   },
   {
     "id": "flowergirl",
-    "name": "卖花女",
+    "name": "卖花女孩",
     "type": "townsfolk",
     "otherNightOrder": 40,
     "otherNightMeta": {

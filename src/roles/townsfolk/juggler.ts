@@ -1,48 +1,12 @@
 import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
 
 /**
- * 杂耍艺人
- * TODO: 添加角色描述
+ * 杂耍艺人 (Juggler)
+ * 说明：每个白天，你都可以公开宣布你将发动杂耍艺人的能力，之后选择三名玩家：你死亡，且你所选择的三名玩家之中有一个恶魔。
+ * 当前占位：已在 nightLogic 中实现。
  */
 export const juggler: RoleDefinition = {
   id: "juggler",
   name: "杂耍艺人",
   type: "townsfolk",
-  
-  night: {
-    order: (isFirstNight) => isFirstNight ? 0 : 16,
-    
-    target: {
-      count: {
-        min: 0,
-        max: 0,
-      },
-    },
-    
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
-      if (isFirstNight) {
-        return {
-          wake: "",
-          instruction: "",
-          close: "",
-        };
-      }
-      return {
-        wake: `唤醒${playerSeatId + 1}号玩家（杂耍艺人）。`,
-        instruction: "请执行行动",
-        close: `${playerSeatId + 1}号玩家（杂耍艺人），请闭眼。`,
-      };
-    },
-    
-    handler: (context) => {
-      // TODO: 实现角色逻辑
-      return {
-        updates: [],
-        logs: {
-          privateLog: `杂耍艺人（${context.selfId + 1}号）执行了行动`,
-        },
-      };
-    },
-  },
 };

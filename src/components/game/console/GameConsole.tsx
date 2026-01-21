@@ -329,9 +329,7 @@ export function GameConsole({
         <div className="shrink-0 border-t border-white/10 bg-slate-800/50 px-6 py-5 space-y-3">
           {primaryAction && (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              onClick={() => {
                 console.log('[GameConsole] Primary action clicked', {
                   label: primaryAction.label,
                   disabled: primaryAction.disabled,
@@ -361,9 +359,7 @@ export function GameConsole({
               {secondaryActions.map((action, index) => (
                 <button
                   key={index}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                  onClick={() => {
                     console.log('[GameConsole] Secondary action clicked', {
                       index,
                       label: action.label,

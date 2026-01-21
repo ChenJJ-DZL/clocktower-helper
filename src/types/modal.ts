@@ -38,7 +38,7 @@ export type ModalType =
   | { type: 'DAMSEL_GUESS'; data: { minionId: number | null; targetId: number | null } }
   
   // 设置相关弹窗
-  | { type: 'DRUNK_CHARADE'; data: { seatId: number } }
+  | { type: 'DRUNK_CHARADE_SELECT'; data: { seatId: number; availableRoles: Role[]; scriptId: string; } }
   | { type: 'ROLE_SELECT'; data: { type: 'philosopher' | 'cerenovus' | 'pit_hag'; targetId: number; onConfirm: (roleId: string) => void } }
   | { type: 'SHAMAN_CONVERT'; data: null }
   | { type: 'SPY_DISGUISE'; data: null }

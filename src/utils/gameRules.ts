@@ -225,7 +225,7 @@ export const computeIsPoisoned = (seat: Seat) => {
 // 统一添加中毒标记（带清除时间）
 export const addPoisonMark = (
   seat: Seat, 
-  poisonType: 'permanent' | 'vigormortis' | 'pukka' | 'poisoner' | 'poisoner_mr' | 'no_dashii' | 'cannibal' | 'snake_charmer',
+  poisonType: 'permanent' | 'vigormortis' | 'pukka' | 'poisoner' | 'poisoner_mr' | 'no_dashii' | 'cannibal' | 'snake_charmer' | 'widow',
   clearTime: string
 ): { statusDetails: string[], statuses: StatusEffect[] } => {
   const details = seat.statusDetails || [];
@@ -257,6 +257,9 @@ export const addPoisonMark = (
     case 'snake_charmer':
       markText = `舞蛇人中毒（永久）`;
       break;
+    case 'widow':
+      markText = `寡妇中毒（${clearTime}清除）`;
+      break;
   }
   
   // 移除同类型的旧标记，添加新标记
@@ -273,6 +276,8 @@ export const addPoisonMark = (
       return !d.includes('诺-达中毒');
     } else if (poisonType === 'cannibal') {
       return !d.includes('食人族中毒');
+    } else if (poisonType === 'widow') {
+      return !d.includes('寡妇中毒');
     }
     return true;
   });

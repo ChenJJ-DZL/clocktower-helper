@@ -14,6 +14,19 @@ import { getRoleConfirmHandler, handleImpSuicide, executePoisonAction, type Role
 import { useExecutionHandler, type ExecutionHandlerContext } from "./useExecutionHandler";
 import { useNightActionHandler, type NightActionHandlerContext } from "./useNightActionHandler";
 import { ModalType } from "../types/modal";
+import { DrunkCharadeSelectModal } from "../components/modals/DrunkCharadeSelectModal";
+
+interface DrunkCharadeModalData {
+  seatId: number;
+  availableRoles: Role[];
+  scriptId: string;
+}
+
+declare module "../types/modal" {
+  interface ModalTypeMapping {
+    DRUNK_CHARADE_SELECT: DrunkCharadeModalData;
+  }
+}
 import {
   getRandom,
   getRegistration,
@@ -540,12 +553,21 @@ export function useGameController() {
   const filteredGroupedRoles = useMemo(() => {
     if (!selectedScript) return {} as Record<string, Role[]>;
     const filtered = getFilteredRoles(roles);
-    return filtered.reduce((acc, role) => {
+    // 去重：基于角色 id 去除重复的角色
+    const seenIds = new Set<string>();
+    const uniqueFiltered = filtered.filter(role => {
+      if (seenIds.has(role.id)) {
+        return false; // 已存在，跳过
+      }
+      seenIds.add(role.id);
+      return true; // 首次出现，保留
+    });
+    return uniqueFiltered.reduce((acc, role) => {
       if (!acc[role.type]) acc[role.type] = [];
       acc[role.type].push(role);
       return acc;
     }, {} as Record<string, Role[]>);
-  }, [selectedScript, getFilteredRoles]);
+  }, [selectedScript, getFilteredRoles, roles]);
   
   const triggerIntroLoading = useCallback(() => {
     setShowIntroLoading(true);
@@ -700,8 +722,8 @@ export function useGameController() {
         case 'VIRGIN_GUIDE':
           setVirginGuideInfo(null);
           break;
-        case 'DRUNK_CHARADE':
-          setShowDrunkModal(null);
+        case 'DRUNK_CHARADE_SELECT':
+          // Drunk charade selection is handled by the modal itself
           break;
         case 'ROLE_SELECT':
           setShowRoleSelectModal(null);
@@ -818,8 +840,8 @@ export function useGameController() {
         case 'VIRGIN_GUIDE':
           setVirginGuideInfo(modal.data);
           break;
-        case 'DRUNK_CHARADE':
-          setShowDrunkModal(modal.data.seatId);
+        case 'DRUNK_CHARADE_SELECT':
+          // Modal is handled directly in GameModals component
           break;
         case 'ROLE_SELECT':
           setShowRoleSelectModal(modal.data);
@@ -2044,6 +2066,17 @@ export function useGameController() {
 
         const finalSeats = seatsToUse;
 
+        // 寡妇：其首夜投下的毒会持续到寡妇死亡/离场
+        if (targetSeat.role?.id === 'widow') {
+          setSeats(p => p.map(s => {
+            const filteredDetails = (s.statusDetails || []).filter(d => !d.includes('寡妇中毒'));
+            const filteredStatuses = (s.statuses || []).filter(st => !(st.effect === 'Poison' && st.duration === '寡妇死亡'));
+            const nextSeat = { ...s, statusDetails: filteredDetails, statuses: filteredStatuses };
+            return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
+          }));
+          addLog(`🕷️ 寡妇已死亡：移除全场“寡妇中毒”效果`);
+        }
+
         // 诺-达杀人后邻近两名镇民中毒（直到诺-达失去能力 / 离场，这里近似为永久）
         if (killerRoleId === 'no_dashii') {
           // 规则：中毒的是"诺-达鲺本体"的两名邻近镇民，而非本次被杀死的目标
@@ -2648,6 +2681,47 @@ export function useGameController() {
   // This function bypasses the complex async startNight logic and directly transitions
   const proceedToFirstNight = useCallback(() => {
 
+    // 0. 酒鬼伪装身份选择
+    // 检查是否有酒鬼需要选择伪装身份 (charadeRole)
+    console.log('[proceedToFirstNight] Checking for drunk seats...');
+    const drunkSeatsNeedingCharade = seats.filter(
+      (s) => s.role?.id === 'drunk' && !s.charadeRole
+    );
+    console.log('[proceedToFirstNight] Drunk seats needing charade:', drunkSeatsNeedingCharade);
+
+    if (drunkSeatsNeedingCharade.length > 0) {
+      const drunkSeat = drunkSeatsNeedingCharade[0]; // 每次只处理一个酒鬼
+
+      // 筛选可用的镇民角色：未被分配且非隐藏
+      const availableTownsfolkRoles = roles.filter(
+        (r) => r.type === 'townsfolk' && !r.hidden && !seats.some(s => s.role?.id === r.id)
+      );
+      console.log('[proceedToFirstNight] Available townsfolk roles:', availableTownsfolkRoles);
+
+      if (availableTownsfolkRoles.length > 0) {
+        console.log('[proceedToFirstNight] Setting DRUNK_CHARADE_SELECT modal.');
+        setCurrentModal({
+          type: 'DRUNK_CHARADE_SELECT',
+          data: {
+            seatId: drunkSeat.id,
+            availableRoles: availableTownsfolkRoles,
+            scriptId: selectedScript?.id || ''
+          },
+        });
+        return; // 暂停流程，等待说书人选择
+      } else {
+        alert('错误：没有可用的镇民角色作为酒鬼的伪装身份。');
+        // 强制为酒鬼设置一个默认的charadeRole，防止卡死
+        setSeats(prevSeats => prevSeats.map(s => {
+          if (s.id === drunkSeat.id) {
+            return { ...s, charadeRole: roles.find(r => r.id === 'villager') || null, isDrunk: true };
+          }
+          return s;
+        }));
+        addLog(`警告：没有可用的镇民角色作为${drunkSeat.id + 1}号酒鬼的伪装身份，自动设置为村民。`);
+      }
+    }
+
     // 1. Force verify seats exist
     if (!seats || seats.length === 0) {
       alert("错误：没有座位数据，无法入夜。");
@@ -2760,19 +2834,6 @@ export function useGameController() {
     }
   }, [pendingNightQueue, nightLogic, setCurrentModal, setPendingNightQueue, setWakeQueueIds, setCurrentWakeIndex, setSelectedActionTargets, setInspectionResult, setGamePhase, addLog]);
 
-  // 确认酒鬼伪装角色选择
-  const confirmDrunkCharade = useCallback((role: Role) => {
-    if (currentModal?.type !== 'DRUNK_CHARADE') return;
-    const seatId = currentModal.data.seatId;
-    setSeats(prev => prev.map(s => {
-      if (s.id === seatId && s.role?.id === 'drunk') {
-        return { ...s, charadeRole: role, displayRole: role };
-      }
-      return s;
-    }));
-    setCurrentModal(null);
-    addLog(`${seatId + 1}号(酒鬼) 伪装为 ${role.name}`);
-  }, [currentModal, setSeats, setCurrentModal, addLog]);
 
   // 纯计算：阵容配置校验结果
   const getCompositionStatus = useCallback((activeSeats: Seat[]) => {
@@ -3037,6 +3098,7 @@ export function useGameController() {
   // 重构：使用角色特定的处理函数，职责分离
   const handleConfirmAction = useCallback(() => {
     if (!nightInfo) return;
+    console.log('[handleConfirmAction] called. Current Role:', nightInfo.effectiveRole.id, 'Actual Target Count:', getRoleTargetCount(nightInfo.effectiveRole.id, gamePhase === 'firstNight')?.max ?? 0);
     
     // 首先检查是否有待确认的弹窗
     if (currentModal !== null) {
@@ -3048,14 +3110,15 @@ export function useGameController() {
     const abilityText = nightInfo.effectiveRole.ability || '';
     const hasChoiceKeyword = abilityText.includes('选择');
     
-    // 如果能力描述中没有"选择"，且当前没有选中目标，触发说书人选择弹窗
-    if (!hasChoiceKeyword && selectedActionTargets.length === 0) {
+    // 如果能力描述中没有"选择"，且当前没有选中目标，
+    // 且角色需要选择目标（interaction.type 不是 'none' 或 actualTargetCount > 0），
+    // 才触发说书人选择弹窗
+    const actualTargetCount = getRoleTargetCount(nightInfo.effectiveRole.id, gamePhase === 'firstNight')?.max ?? 0; // 明确默认值是0
+
+    if (!hasChoiceKeyword && selectedActionTargets.length === 0 && actualTargetCount > 0) {
       const roleId = nightInfo.effectiveRole.id;
       const roleName = nightInfo.effectiveRole.name;
       const description = abilityText || `使用${roleName}的能力`;
-      
-      // 获取目标数量（从角色元数据或默认1）
-      const targetCount = getRoleTargetCount(roleId, gamePhase === 'firstNight')?.max ?? 1;
       
       // 触发说书人选择弹窗
       setCurrentModal({
@@ -3065,7 +3128,7 @@ export function useGameController() {
           roleId,
           roleName,
           description,
-          targetCount,
+          targetCount: actualTargetCount,
           onConfirm: (targetIds: number[]) => {
             // 设置选中的目标
             setSelectedActionTargets(targetIds);
@@ -3077,6 +3140,12 @@ export function useGameController() {
           }
         }
       });
+      return;
+    } else if (actualTargetCount === 0) {
+      // 对于不需要选择目标的角色，直接清空选择并继续下一步
+      setSelectedActionTargets([]);
+      setCurrentModal(null);
+      continueToNextAction();
       return;
     }
     
@@ -4601,6 +4670,34 @@ export function useGameController() {
     }
   }, [currentModal, seats, saveHistory, hasUsedDailyAbility, markDailyAbilityUsed, getRegistrationCached, checkGameOver, executeNomination, addLog, setCurrentModal, setSeats, setWinReason]);
 
+  const handleDrunkCharadeSelect = useCallback((selectedCharadeRoleId: string) => {
+    const drunkSeat = seats.find(s => s.role?.id === 'drunk' && !s.charadeRole);
+    if (!drunkSeat) {
+      addLog('[handleDrunkCharadeSelect] 未找到需要设置伪装身份的酒鬼座位');
+      setCurrentModal(null);
+      continueToNextAction();
+      return;
+    }
+
+    const selectedRole = roles.find(r => r.id === selectedCharadeRoleId);
+    if (!selectedRole) {
+      alert('选择的伪装身份无效，请重试。');
+      setCurrentModal(null);
+      return;
+    }
+
+    setSeats(prevSeats => prevSeats.map(s => {
+      if (s.id === drunkSeat.id) {
+        addLog(`为 ${s.id + 1}号 酒鬼设置伪装身份：${selectedRole.name}`);
+        return { ...s, charadeRole: selectedRole, displayRole: selectedRole, isDrunk: true }; // 永久醉酒，设置显示角色
+      }
+      return s;
+    }));
+    setCurrentModal(null);
+    continueToNextAction(); // 继续处理下一个夜间行动
+  }, [seats, roles, setSeats, setCurrentModal, addLog, continueToNextAction]);
+
+
   // 注册投票记录（用于卖花女/城镇公告员）
   const registerVotes = useCallback((seatIds: number[]) => {
     setVotedThisRound(seatIds);
@@ -5190,19 +5287,26 @@ export function useGameController() {
 
   // handleSeatClick logic part - extracted for controller
   const onSeatClick = useCallback((id: number) => {
-    if(gamePhase==='setup') {
+    console.log('[onSeatClick] Called with seat id:', id, 'gamePhase:', gamePhase, 'selectedRole:', selectedRole?.name);
+    // 允许在选剧本阶段和准备阶段落座（当前流程未进入 setup，直接在 scriptSelection 完成分配）
+    if (gamePhase === 'setup' || gamePhase === 'scriptSelection') {
       // 保存操作前的状态到历史记录
       saveHistory();
-      if(selectedRole) {
-        if(seats.some(s=>s.role?.id===selectedRole.id)) {
+      if (selectedRole) {
+        if (seats.some(s => s.role?.id === selectedRole.id)) {
+          console.log('[onSeatClick] Role already seated:', selectedRole.name);
           alert("该角色已入座");
           return;
         }
-        setSeats(p=>p.map(s=>s.id===id ? {...s,role:selectedRole}:s)); 
+        console.log('[onSeatClick] Assigning role:', selectedRole.name, 'to seat:', id);
+        setSeats((p) => p.map((s) => (s.id === id ? { ...s, role: selectedRole } : s)));
         setSelectedRole(null);
       } else {
-        setSeats(p=>p.map(s=>s.id===id ? {...s,role:null}:s));
+        console.log('[onSeatClick] Removing role from seat:', id);
+        setSeats((p) => p.map((s) => (s.id === id ? { ...s, role: null } : s)));
       }
+    } else {
+      console.log('[onSeatClick] Ignored - wrong game phase:', gamePhase);
     }
   }, [gamePhase, selectedRole, seats, saveHistory, setSeats, setSelectedRole]);
 
@@ -5404,7 +5508,7 @@ export function useGameController() {
     handleBaronAutoRebalance,
     handlePreStartNight,
     handleStartNight,
-    confirmDrunkCharade,
+    handleDrunkCharadeSelect,
     proceedToCheckPhase,
     getStandardComposition,
     validateBaronSetup,

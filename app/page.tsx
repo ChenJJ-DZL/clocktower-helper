@@ -336,7 +336,6 @@ export default function Home() {
     confirmNightDeathReport,
     handleBaronAutoRebalance,
     handlePreStartNight,
-    confirmDrunkCharade,
     proceedToCheckPhase,
     getStandardComposition,
     cleanseSeatStatuses,
@@ -935,13 +934,26 @@ export default function Home() {
                 selectedActionTargets={[]}
                 isPortrait={false}
                 longPressingSeats={new Set()}
-                onSeatClick={(seat) => handleSeatClick(seat.id)}
+                onSeatClick={(seat) => {
+                  console.log('[app/page setup] RoundTable seat clicked:', seat.id);
+                  handleSeatClick(seat.id);
+                }}
                 onContextMenu={(e, _id) => e.preventDefault()}
-                onTouchStart={(e, _id) => e.preventDefault()}
-                onTouchEnd={(e, _id) => e.preventDefault()}
-                onTouchMove={(e, _id) => e.preventDefault()}
+                onTouchStart={(e, _id) => {
+                  // Don't preventDefault - let click events work normally
+                  e.stopPropagation();
+                }}
+                onTouchEnd={(e, _id) => {
+                  // Don't preventDefault - let click events work normally
+                  e.stopPropagation();
+                }}
+                onTouchMove={(e, _id) => {
+                  // Don't preventDefault - let click events work normally
+                  e.stopPropagation();
+                }}
                 setSeatRef={() => {}}
                 getDisplayRoleType={(seat) => seat.role?.type || null}
+                getDisplayRole={getDisplayRoleForSeat}
                 typeColors={typeColors}
               />
             </div>

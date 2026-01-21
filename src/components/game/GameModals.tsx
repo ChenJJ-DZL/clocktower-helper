@@ -33,6 +33,7 @@ import { StorytellerSelectModal } from "../modals/StorytellerSelectModal";
 import { PacifistConfirmModal } from "../modals/PacifistConfirmModal";
 import { CourtierSelectRoleModal } from "../modals/CourtierSelectRoleModal";
 import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
+import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 
 // 定义所有 Modal 组件需要的 Props 接口
 export interface GameModalsProps {
@@ -158,6 +159,7 @@ export interface GameModalsProps {
   confirmExecutionResult: () => void;
   confirmShootResult: () => void;
   handleSlayerTargetSelect: (targetId: number) => void;
+  handleDrunkCharadeSelect: (selectedCharadeRoleId: string) => void;
   confirmKill: () => void;
   confirmPoison: () => void;
   confirmPoisonEvil: () => void;
@@ -177,7 +179,6 @@ export interface GameModalsProps {
   handleVirginGuideConfirm: () => void;
   handleDayAction: (targetId: number) => void;
   submitVotes: (voteCount: number, voters?: number[]) => void;
-  confirmDrunkCharade: (role: Role) => void;
   handleNewGame: () => void;
   enterDuskPhase: () => void;
   declareMayorImmediateWin: () => void;
@@ -394,7 +395,7 @@ function VoteInputModalContent(props: {
 export function GameModals(props: GameModalsProps) {
   // 从 currentModal 中提取数据
   const nightOrderModal = props.currentModal?.type === 'NIGHT_ORDER_PREVIEW' ? props.currentModal.data : null;
-  const drunkModal = props.currentModal?.type === 'DRUNK_CHARADE' ? props.currentModal.data : null;
+  const drunkCharadeSelectModal = props.currentModal?.type === 'DRUNK_CHARADE_SELECT' ? props.currentModal.data : null;
   const voteInputModal = props.currentModal?.type === 'VOTE_INPUT' ? props.currentModal.data : null;
   const roleSelectModal = props.currentModal?.type === 'ROLE_SELECT' ? props.currentModal.data : null;
   const madnessCheckModal = props.currentModal?.type === 'MADNESS_CHECK' ? props.currentModal.data : null;
@@ -500,61 +501,6 @@ export function GameModals(props: GameModalsProps) {
         onDeclareWin={props.declareMayorImmediateWin}
         onCancel={() => props.setShowMayorThreeAliveModal(false)}
       />
-      {(props.showDrunkModal !== null || drunkModal) && (() => {
-        const seatId = drunkModal?.seatId ?? props.showDrunkModal;
-        if (seatId === null) return null;
-        return (
-        <div className="fixed inset-0 z-[3000] bg-black/95 flex items-center justify-center">
-          <div className="bg-gray-800 p-8 rounded-2xl w-[800px] max-w-[95vw] border-2 border-yellow-500">
-            <h2 className="mb-3 text-center text-3xl text-yellow-400">🍺 酒鬼伪装向导</h2>
-            <div className="space-y-2 text-sm text-gray-200 mb-4">
-              <p>请选择一张【镇民】卡作为酒鬼的伪装。选定后系统会自动记录为 charadeRole。</p>
-              <p className="text-yellow-300">给玩家看的台词：请把「所选镇民卡」给该玩家看，并说"你是 {`<所选镇民>`}”。</p>
-              <p className="text-gray-300">实际身份仍为【酒鬼】，后续信息系统会按中毒/酒鬼规则处理。</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto">
-              {(props.filteredGroupedRoles['townsfolk'] || []).map(r=>{
-                const isTaken = props.seats.some(s => s.role?.id === r.id);
-                return (
-                  <button 
-                    key={r.id}
-                    type="button"
-                    disabled={isTaken}
-                    onClick={()=>!isTaken && props.confirmDrunkCharade(r)} 
-                    className={`p-3 border-2 rounded-xl text-base font-bold text-left ${
-                      isTaken
-                        ? 'border-gray-700 bg-gray-900/70 text-gray-500 cursor-not-allowed opacity-60'
-                        : 'border-blue-500 bg-gray-900 hover:bg-blue-900 cursor-pointer'
-                    }`}
-                    title={isTaken ? '该角色已在本局中出现，不能作为酒鬼伪装' : ''}
-                  >
-                    <div className="flex flex-col">
-                      <span>{r.name}</span>
-                      {isTaken && (
-                        <span className="text-xs text-gray-500 mt-1">
-                          （该角色已在场上，规则：酒鬼不得伪装为已存在角色）
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button 
-                onClick={()=>{
-                  props.setCurrentModal(null);
-                  if (props.setShowDrunkModal) props.setShowDrunkModal(null);
-                }}
-                className="px-4 py-2 bg-gray-700 rounded-lg font-bold"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
       
       {(props.showVoteInputModal !== null || voteInputModal) && (
         <VoteInputModalContent
@@ -1894,6 +1840,17 @@ export function GameModals(props: GameModalsProps) {
           seats={props.seats}
           onConfirm={storytellerSelectModal.onConfirm}
           onCancel={() => props.setCurrentModal(null)}
+        />
+      )}
+
+      {drunkCharadeSelectModal && (
+        <DrunkCharadeSelectModal
+          isOpen={true}
+          onClose={() => props.setCurrentModal(null)}
+          onConfirm={props.handleDrunkCharadeSelect}
+          drunkSeat={props.seats.find(s => s.id === drunkCharadeSelectModal.seatId) || null}
+          availableTownsfolkRoles={drunkCharadeSelectModal.availableRoles}
+          selectedScriptId={drunkCharadeSelectModal.scriptId}
         />
       )}
     </>

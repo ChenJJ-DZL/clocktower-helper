@@ -95,16 +95,28 @@ export function SeatGrid(props: SeatGridProps) {
       {seats.map((seat) => {
         const isDead = seat.isDead;
         const hasRole = !!seat.role;
+        const handleClick = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          console.log('[SeatGrid matrix] Seat clicked:', seat.id, 'Selected role:', seat.role?.name);
+          onSeatClick(seat);
+        };
         const handleTouchEnd = (e: React.TouchEvent) => {
+          e.stopPropagation();
           e.preventDefault();
+          console.log('[SeatGrid matrix] Seat touched:', seat.id, 'Selected role:', seat.role?.name);
           onSeatClick(seat);
         };
         return (
           <button
             key={seat.id}
-            onClick={() => onSeatClick(seat)}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
+            onClick={handleClick}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              // Don't preventDefault here to allow click events to work
+            }}
+            onTouchMove={(e) => {
+              e.stopPropagation();
+            }}
             onTouchEnd={handleTouchEnd}
             onContextMenu={(e) => onContextMenu(e, seat.id)}
             className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-xs transition ${

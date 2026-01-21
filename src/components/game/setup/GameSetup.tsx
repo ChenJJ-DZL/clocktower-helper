@@ -1,9 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Seat, Role, Script, typeBgColors, typeColors } from "../../../../app/data";
-import { SeatGrid } from "../board/SeatGrid";
-import { getSeatPosition } from "../../../utils/gameRules";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -78,7 +76,6 @@ export default function GameSetup({
   hideSeatingChart = false,
 }: GameSetupProps) {
   const [showCompositionModal, setShowCompositionModal] = useState(false);
-  const seatRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const {
     playerCount,
@@ -149,33 +146,7 @@ export default function GameSetup({
     </div>
   );
 
-  const circularSeats = (
-    <div className="w-full">
-      <div className="mx-auto max-w-4xl">
-        <div className="relative w-full max-w-3xl mx-auto rounded-2xl bg-slate-900/60 border border-white/10 shadow-xl p-3">
-          <SeatGrid
-            seats={seats}
-            nightInfo={null}
-            selectedActionTargets={[]}
-            isPortrait={false}
-            seatScale={0.9}
-            longPressingSeats={new Set()}
-            onSeatClick={(seat) => handleSeatClick(seat.id)}
-            onContextMenu={(e, _id) => e.preventDefault()}
-            onTouchStart={(e, _id) => e.preventDefault()}
-            onTouchEnd={(e, _id) => e.preventDefault()}
-            onTouchMove={(e, _id) => e.preventDefault()}
-            setSeatRef={(id, el) => { seatRefs.current[id] = el; }}
-            getSeatPosition={(i, total) => getSeatPosition(i, total ?? seats.length, false)}
-            getDisplayRoleType={(seat) => seat.role?.type || null}
-            typeColors={typeColors}
-            layoutMode="matrix"
-          />
-        </div>
-        <div className="mt-2 text-center text-xs text-slate-400">点击座位选择或调整角色 / 名称</div>
-      </div>
-    </div>
-  );
+  // 简版座位视图已移除，使用左侧的大圆桌进行落座操作
 
   return (
     <div className="h-full flex flex-col">
@@ -219,7 +190,8 @@ export default function GameSetup({
           </div>
         </div>
 
-        {!hideSeatingChart && circularSeats}
+        {/* 已移除简版座位视图，使用左侧的大圆桌进行落座操作 */}
+        {/* {!hideSeatingChart && circularSeats} */}
 
         {(compositionError || (baronSetupCheck && !ignoreBaronSetup)) && (
           <div className="border-l-4 border-red-500/50 bg-red-900/20 p-4 text-base text-red-100">
@@ -276,11 +248,11 @@ export default function GameSetup({
                     <div className="text-sm text-slate-500">共 {list.length} 位角色</div>
                   </div>
                   <div className="grid gap-3 grid-cols-2">
-                    {list.map((r) => {
+                    {list.map((r, index) => {
                       const isTaken = seats.some((s) => s.role?.id === r.id);
                       return (
                         <button
-                          key={r.id}
+                          key={`${type}-${r.id}-${index}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isTaken) setSelectedRole(r);
