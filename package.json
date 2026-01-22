@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "clean:test-logs": "node tests/cleanup_simulation_logs.js --all",
+    "dev": "node tests/cleanup_simulation_logs.js --all && next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node tests/cleanup_simulation_logs.js --all && next start",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -14,7 +15,14 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:tb": "playwright test tests/e2e_scenario_tb.spec.ts",
-    "test:monkey": "node tests/monkey_playwright.js"
+    "test:monkey": "node tests/monkey_playwright.js",
+    "test:simulation": "jest tests/comprehensive_simulation.test.js",
+    "test:simulation:node": "node tests/comprehensive_simulation.test.js",
+    "test:simulation:tb": "jest tests/simulation_trouble_brewing.test.js --testTimeout=300000",
+    "test:simulation:bmr": "jest tests/simulation_bad_moon_rising.test.js --testTimeout=300000",
+    "test:simulation:sv": "jest tests/simulation_sects_violets.test.js --testTimeout=300000",
+    "test:simulation:mr": "jest tests/simulation_midnight_revelry.test.js --testTimeout=300000",
+    "test:simulation:all_roles": "jest tests/simulation_all_roles.test.js --testTimeout=300000"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -9,12 +9,18 @@ type RoleDocEntry = {
 // and contain long-form wiki-like role docs.
 import bmrDocs from "../../josn/血染钟楼-黯月初升-角色文档-副本.json";
 import savDocs from "../../josn/血染钟楼-梦殒春宵-角色文档.json";
+import townsfolkDocs from "../../josn/blood_clocktower_所有镇民.json";
 
 type RoleDocSummary = {
   abilityText?: string;
   storytellerTips?: string[];
   traits?: string[];
   url?: string;
+  rulesDetails?: string;
+  examples?: string[];
+  background?: string;
+  operation?: string;
+  prompts?: string;
 };
 
 function buildIndex(entries: RoleDocEntry[]): Map<string, RoleDocEntry> {
@@ -29,6 +35,7 @@ function buildIndex(entries: RoleDocEntry[]): Map<string, RoleDocEntry> {
 const INDEXES: Map<string, RoleDocEntry>[] = [
   buildIndex(bmrDocs as RoleDocEntry[]),
   buildIndex(savDocs as RoleDocEntry[]),
+  buildIndex(townsfolkDocs as RoleDocEntry[]),
 ];
 
 function extractSection(content: string, sectionTitle: string): string | undefined {
@@ -88,12 +95,27 @@ export function getRoleDocSummary(roleName: string): RoleDocSummary | null {
   if (!entry) return null;
 
   const abilityText = extractSection(entry.content, "角色能力");
+  const backgroundText = extractSection(entry.content, "背景故事");
+  const examplesText = extractSection(entry.content, "范例");
+  const operationText = extractSection(entry.content, "运作方式");
+  const promptsText = extractSection(entry.content, "提示标记");
+  const rulesDetailsText = extractSection(entry.content, "规则细节");
   const tipsText = extractSection(entry.content, "提示与技巧");
   const storytellerTips = tipsText ? toBullets(tipsText, 3) : undefined;
   const traits = extractRoleInfoTraits(entry.content);
 
+  // Process examples to extract individual examples
+  const examples = examplesText ? examplesText.split('\n').filter(line =>
+    line.trim().startsWith('> 范例:') || line.trim().startsWith('> 范例:')
+  ).map(line => line.trim().replace(/^>\s*/, '')) : undefined;
+
   return {
     abilityText,
+    background: backgroundText,
+    examples,
+    operation: operationText,
+    prompts: promptsText,
+    rulesDetails: rulesDetailsText,
     storytellerTips,
     traits,
     url: entry.url,

@@ -120,6 +120,16 @@ export function GameConsole({
 
   const roleDoc = currentActorRoleName ? getRoleDocSummary(currentActorRoleName) : null;
 
+  // Debug logging for role documentation
+  if (currentActorRoleName && roleDoc) {
+    console.log(`[RoleDoc] ${currentActorRoleName}:`, {
+      hasOperation: !!roleDoc.operation,
+      operationLength: roleDoc.operation?.length || 0,
+      hasRulesDetails: !!roleDoc.rulesDetails,
+      examplesCount: roleDoc.examples?.length || 0
+    });
+  }
+
   const normalizeQuoted = (s: string) => {
     const t = (s || "").trim();
     if (!t) return "";
@@ -135,7 +145,19 @@ export function GameConsole({
     const action = (nightInfo.action || "").trim();
     const speak = normalizeQuoted(nightInfo.speak || "");
 
-    // Action can be a short token (kill/poison/展示爪牙/无信息/展示等) or descriptive text.
+    // CRITICAL FIX: Always prioritize roleDoc.operation for documented roles
+    // This prevents incorrect speak content from being displayed
+    if (roleDoc?.operation) {
+      console.log(`[StorytellerInstruction] Using operation for ${roleName}:`, roleDoc.operation.substring(0, 100) + '...');
+      return {
+        headline: `按照【${roleName}】的运作方式进行操作：`,
+        operation: roleDoc.operation,
+        speak: null, // Explicitly null to prevent incorrect speak display
+      };
+    }
+
+    // Only use speak/action fallback for roles without proper documentation
+    console.warn(`[StorytellerInstruction] No operation found for ${roleName}, using fallback`);
     const actionSentence =
       action && !["无", "无信息", "（无）"].includes(action)
         ? `让他使用【${roleName}】的能力（${action}）。`
@@ -193,7 +215,14 @@ export function GameConsole({
               </div>
               {storytellerInstruction && (
                 <>
-                  <div className="text-sm text-emerald-100">{storytellerInstruction.action}</div>
+                  {storytellerInstruction.operation && (
+                    <div className="text-sm text-emerald-100 whitespace-pre-wrap">
+                      {storytellerInstruction.operation}
+                    </div>
+                  )}
+                  {!storytellerInstruction.operation && storytellerInstruction.action && (
+                    <div className="text-sm text-emerald-100">{storytellerInstruction.action}</div>
+                  )}
                   {storytellerInstruction.speak && (
                     <div className="text-sm text-emerald-100 whitespace-pre-wrap">
                       {storytellerInstruction.speak}
@@ -203,7 +232,7 @@ export function GameConsole({
               )}
               {!storytellerInstruction && (
                 <div className="text-sm text-emerald-100">
-                  告知其本步要做的操作或信息（参考下方“提示与脚本”），等待对方完成/回应后再继续。
+                  告知其本步要做的操作或信息（参考下方"提示与脚本"），等待对方完成/回应后再继续。
                 </div>
               )}
             </div>
@@ -260,6 +289,50 @@ export function GameConsole({
               <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
                 <div className="text-xs text-slate-400">
                   特性：{roleDoc.traits.join(" / ")}
+                </div>
+              </div>
+            )}
+
+            {/* 规则细节 - 严格按照文档规范显示 */}
+            {roleDoc?.rulesDetails && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
+                <div className="text-sm font-semibold text-slate-300 mb-2">规则细节</div>
+                <div className="text-sm text-slate-200 whitespace-pre-wrap">
+                  {roleDoc.rulesDetails}
+                </div>
+              </div>
+            )}
+
+            {/* 运作方式 */}
+            {roleDoc?.operation && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
+                <div className="text-sm font-semibold text-slate-300 mb-2">运作方式</div>
+                <div className="text-sm text-slate-200 whitespace-pre-wrap">
+                  {roleDoc.operation}
+                </div>
+              </div>
+            )}
+
+            {/* 提示标记 */}
+            {roleDoc?.prompts && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
+                <div className="text-sm font-semibold text-slate-300 mb-2">提示标记</div>
+                <div className="text-sm text-slate-200 whitespace-pre-wrap">
+                  {roleDoc.prompts}
+                </div>
+              </div>
+            )}
+
+            {/* 范例 - 严格按照文档规范显示 */}
+            {roleDoc?.examples && roleDoc.examples.length > 0 && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
+                <div className="text-sm font-semibold text-slate-300 mb-2">范例</div>
+                <div className="space-y-2">
+                  {roleDoc.examples.map((example, index) => (
+                    <div key={index} className="text-sm text-slate-200 whitespace-pre-wrap bg-slate-900/30 p-2 rounded border-l-2 border-slate-500">
+                      {example}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
