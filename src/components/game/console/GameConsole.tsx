@@ -13,7 +13,7 @@ interface GameConsoleProps {
   totalSteps?: number;
   wakeQueueIds?: number[];
   onToggleGrimoire?: () => void;
-  
+
   // Zone B: Active Stage
   scriptText?: string;
   guidancePoints?: string[];
@@ -23,7 +23,7 @@ interface GameConsoleProps {
   onTogglePlayer?: (seatId: number) => void;
   inspectionResult?: string | null;
   inspectionResultKey?: number;
-  
+
   // Zone C: Actions
   primaryAction?: {
     label: string;
@@ -36,10 +36,10 @@ interface GameConsoleProps {
     onClick: () => void;
     disabled?: boolean;
   }>;
-  
+
   // Day Abilities Panel (for Day phase)
   handleDayAbility?: (sourceSeatId: number, targetSeatId?: number) => void;
-  
+
   // Force continue callback (for empty queue scenarios)
   onForceContinue?: () => void;
 }
@@ -205,7 +205,6 @@ export function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 min-h-0">
-        {/* Highlight: 当前行动（直接告诉说书人要做什么） */}
         {isNightPhase && currentActorSeat && currentActorRoleName && (
           <div className="rounded-2xl border border-emerald-400/70 bg-emerald-900/40 px-4 py-3 shadow-inner shadow-emerald-500/30">
             <div className="text-sm font-semibold text-emerald-200 mb-1">当前的行动</div>
@@ -236,6 +235,35 @@ export function GameConsole({
                 </div>
               )}
             </div>
+
+            {/* Injected Player List */}
+            {seats.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-emerald-500/30">
+                <div className="text-sm font-bold text-emerald-200 mb-2">选择目标</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {seats.map((seat) => {
+                    if (!seat.role) return null;
+                    const isSelected = selectedPlayers.includes(seat.id);
+                    return (
+                      <button
+                        key={seat.id}
+                        type="button"
+                        onClick={() => onTogglePlayer && onTogglePlayer(seat.id)}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${isSelected
+                            ? 'bg-blue-500 border-blue-300 text-white shadow shadow-blue-500/40'
+                            : seat.isDead
+                              ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-600/70 line-through'
+                              : 'bg-emerald-950/60 border-emerald-700/50 text-emerald-100 hover:bg-emerald-800/60'
+                          }`}
+                        title={seat.isDead ? '已死亡（小白模式：仍可选择）' : undefined}
+                      >
+                        {seat.id + 1}号 {seat.role.name} {seat.isDead ? '💀' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -249,35 +277,7 @@ export function GameConsole({
           </div>
         )}
 
-        {/* Section: 玩家列表（夜晚交互用） */}
-        {isNightPhase && seats.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-300">玩家列表</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {seats.map((seat) => {
-                if (!seat.role) return null;
-                const isSelected = selectedPlayers.includes(seat.id);
-                return (
-                  <button
-                    key={seat.id}
-                    type="button"
-                    onClick={() => onTogglePlayer && onTogglePlayer(seat.id)}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${
-                      isSelected
-                        ? 'bg-blue-600/90 border-blue-300 text-white shadow shadow-blue-500/40'
-                        : seat.isDead
-                        ? 'bg-gray-700/60 border-gray-500 text-gray-400 hover:bg-gray-600/60 line-through'
-                        : 'bg-slate-800/80 border-slate-600 text-slate-100 hover:bg-slate-700/80'
-                    }`}
-                    title={seat.isDead ? '已死亡（小白模式：仍可选择）' : undefined}
-                  >
-                    {seat.id + 1}号 {seat.role.name} {seat.isDead ? '💀' : ''}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+
 
         {/* Section 3: 提示 + 脚本（合并） */}
         {(scriptText || guidancePoints.length > 0 || currentActorRoleName) && (
@@ -357,12 +357,12 @@ export function GameConsole({
             <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
               <span>⚡️</span> 可用主动技能
             </h3>
-            
+
             {(() => {
               // Filter players who are ALIVE and HAVE DAY ABILITIES and HAVEN'T USED THEM
-              const activeAbilitySeats = seats.filter(s => 
-                !s.isDead && 
-                s.role?.dayMeta && 
+              const activeAbilitySeats = seats.filter(s =>
+                !s.isDead &&
+                s.role?.dayMeta &&
                 !s.hasUsedDayAbility
               );
 
@@ -469,9 +469,8 @@ export function GameConsole({
                 }
               }}
               disabled={primaryAction.disabled}
-              className={`w-full h-16 rounded-xl text-xl font-bold shadow-lg transition ${
-                getActionVariantClass(primaryAction.variant)
-              } ${primaryAction.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
+              className={`w-full h-16 rounded-xl text-xl font-bold shadow-lg transition ${getActionVariantClass(primaryAction.variant)
+                } ${primaryAction.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
             >
               {primaryAction.label}
             </button>
@@ -497,9 +496,8 @@ export function GameConsole({
                     }
                   }}
                   disabled={action.disabled}
-                  className={`flex-1 h-14 rounded-lg text-base font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition ${
-                    action.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
-                  }`}
+                  className={`flex-1 h-14 rounded-lg text-base font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition ${action.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
+                    }`}
                 >
                   {action.label}
                 </button>

@@ -45,6 +45,17 @@ input, textarea, [contenteditable="true"] {
   -webkit-touch-callout: default;
 }
 
+/* 全局隐藏滚动条 */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+}
+
 /* 全局径向渐变背景层 - 模拟桌面的聚光灯效果 */
 body::before {
   content: '';

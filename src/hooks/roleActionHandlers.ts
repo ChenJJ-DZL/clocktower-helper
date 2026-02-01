@@ -19,15 +19,15 @@ export interface RoleConfirmContext {
   gamePhase: GamePhase;
   nightCount: number;
   roles: Role[];
-  
+
   // 状态更新函数
   setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
   setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>>;
-  
+
   // 统一的弹窗状态管理
   currentModal: ModalType;
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
-  
+
   // 辅助函数
   getSeatRoleId: (seat?: Seat | null) => string | null;
   cleanseSeatStatuses: (seat: Seat, options?: { keepDeathState?: boolean }) => Seat;
@@ -54,7 +54,7 @@ export interface RoleConfirmResult {
    * 是否已处理（如果返回 true，handleConfirmAction 将不再继续）
    */
   handled: boolean;
-  
+
   /**
    * 是否需要等待（例如需要弹窗确认）
    */
@@ -68,14 +68,25 @@ export function handlePoisonerConfirm(context: RoleConfirmContext): RoleConfirmR
   const { nightInfo, seats, selectedTargets, setCurrentModal, isEvil } = context;
   const roleId = nightInfo.effectiveRole.id;
   const isPoisoner = roleId === 'poisoner' || roleId === 'poisoner_mr';
-  
-  if (!isPoisoner || selectedTargets.length !== 1) {
+
+  if (!isPoisoner) {
     return { handled: false };
   }
-  
+
+  // 校验：必须选择且仅选择一名玩家
+  if (selectedTargets.length === 0) {
+    alert("请选择一名玩家进行下毒");
+    return { handled: true, shouldWait: true }; // 阻止后续逻辑，停留在当前步骤
+  }
+
+  if (selectedTargets.length > 1) {
+    alert("投毒者每晚只能选择一名玩家，请取消多余的选择");
+    return { handled: true, shouldWait: true }; // 阻止后续逻辑
+  }
+
   const targetId = selectedTargets[0];
   const targetSeat = seats.find(s => s.id === targetId);
-  
+
   if (targetSeat && !targetSeat.isDead) {
     // 投毒者选择邪恶目标需要特殊确认
     if (roleId === 'poisoner' && isEvil(targetSeat)) {
@@ -86,7 +97,13 @@ export function handlePoisonerConfirm(context: RoleConfirmContext): RoleConfirmR
     setCurrentModal({ type: 'POISON_CONFIRM', data: { targetId } });
     return { handled: true, shouldWait: true };
   }
-  
+
+  // 如果选中了已死亡玩家（理论上不应发生，因为UI层应限制，但做个保底）
+  if (targetSeat?.isDead) {
+    alert("无法对已死亡的玩家下毒");
+    return { handled: true, shouldWait: true };
+  }
+
   return { handled: false };
 }
 
@@ -109,26 +126,26 @@ export function executePoisonAction(
     computeIsPoisoned: (seat: Seat) => boolean;
   }
 ): void {
-  const { 
-    nightInfo, 
-    seats, 
-    setSeats, 
+  const {
+    nightInfo,
+    seats,
+    setSeats,
     setCurrentModal,
-    setSelectedActionTargets, 
+    setSelectedActionTargets,
     continueToNextAction,
     isActorDisabledByPoisonOrDrunk,
     addLogWithDeduplication,
     addPoisonMark,
     computeIsPoisoned
   } = context;
-  
+
   if (!nightInfo || targetId === null) return;
-  
+
   // 如果投毒者本身中毒/醉酒则本次下毒应视为无事发生
   const actorSeat = seats.find(s => s.id === nightInfo?.seat?.id);
   if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned)) {
     addLogWithDeduplication(
-      `${nightInfo.seat.id+1}号(投毒者) 处于中毒/醉酒状态，本夜对${targetId+1}号${isEvilTarget ? '(队友)' : ''}的下毒无效，无事发生`,
+      `${nightInfo.seat.id + 1}号(投毒者) 处于中毒/醉酒状态，本夜对${targetId + 1}号${isEvilTarget ? '(队友)' : ''}的下毒无效，无事发生`,
       nightInfo.seat.id,
       '投毒者'
     );
@@ -137,15 +154,15 @@ export function executePoisonAction(
     continueToNextAction();
     return;
   }
-  
+
   // 注意保留永久中毒标记舞蛇人制造和亡骨魔中毒标记
   setSeats(p => p.map(s => {
     if (s.id === targetId) {
       // 投毒者当晚和明天白天中毒在次日黄昏清除
       const clearTime = '次日黄昏';
       const roleId = nightInfo.effectiveRole.id;
-      const { statusDetails, statuses } = addPoisonMark(s, 
-        roleId === 'poisoner_mr' ? 'poisoner_mr' : 'poisoner', 
+      const { statusDetails, statuses } = addPoisonMark(s,
+        roleId === 'poisoner_mr' ? 'poisoner_mr' : 'poisoner',
         clearTime
       );
       const nextSeat = { ...s, statusDetails, statuses };
@@ -153,13 +170,13 @@ export function executePoisonAction(
     }
     return { ...s, isPoisoned: computeIsPoisoned(s) };
   }));
-  
+
   addLogWithDeduplication(
-    `${nightInfo.seat.id+1}号(投毒者) 对 ${targetId+1}号${isEvilTarget ? '(队友)' : ''}下毒`,
+    `${nightInfo.seat.id + 1}号(投毒者) 对 ${targetId + 1}号${isEvilTarget ? '(队友)' : ''}下毒`,
     nightInfo.seat.id,
     '投毒者'
   );
-  
+
   setCurrentModal(null);
   setSelectedActionTargets([]);
   continueToNextAction();
@@ -169,10 +186,10 @@ export function executePoisonAction(
  * 麻脸巫婆确认处理
  */
 export function handlePitHagConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { 
-    nightInfo, 
-    seats, 
-    selectedTargets, 
+  const {
+    nightInfo,
+    seats,
+    selectedTargets,
     currentModal,
     setCurrentModal,
     setSeats,
@@ -184,32 +201,34 @@ export function handlePitHagConfirm(context: RoleConfirmContext): RoleConfirmRes
     continueToNextAction,
     addLog
   } = context;
-  
+
   if (nightInfo.effectiveRole.id !== 'pit_hag_mr') {
     return { handled: false };
   }
-  
+
   if (selectedTargets.length !== 1) {
+    if (selectedTargets.length === 0) alert("请选择一名目标玩家");
+    else alert("麻脸巫婆每晚只能选择一名目标，请取消多余的选择");
     return { handled: true, shouldWait: true };
   }
-  
+
   const targetId = selectedTargets[0];
-  
+
   // 检查当前是否有 Pit-Hag modal，如果没有则创建
   const pitHagModal = currentModal?.type === 'PIT_HAG' ? currentModal.data : null;
-  
+
   if (!pitHagModal) {
     setCurrentModal({ type: 'PIT_HAG', data: { targetId, roleId: null } });
     return { handled: true, shouldWait: true };
   }
-  
+
   if (!pitHagModal.roleId) {
     return { handled: true, shouldWait: true };
   }
-  
+
   const targetSeat = seats.find(s => s.id === targetId);
   const newRole = roles.find(r => r.id === pitHagModal.roleId);
-  
+
   if (!targetSeat || !newRole) {
     return { handled: true, shouldWait: true };
   }
@@ -227,14 +246,14 @@ export function handlePitHagConfirm(context: RoleConfirmContext): RoleConfirmRes
       return { handled: true, shouldWait: true };
     }
   }
-  
+
   // 不能变成场上已存在的角色
   const roleAlreadyInPlay = seats.some(s => getSeatRoleId(s) === newRole.id);
   if (roleAlreadyInPlay) {
     alert('该角色已在场上，无法变身为已存在角色');
     return { handled: true, shouldWait: true };
   }
-  
+
   setSeats(prev => prev.map(s => {
     if (s.id !== targetId) return s;
     const cleaned = cleanseSeatStatuses({
@@ -244,30 +263,30 @@ export function handlePitHagConfirm(context: RoleConfirmContext): RoleConfirmRes
     }, { keepDeathState: true });
     const nextSeat = { ...cleaned, role: newRole, charadeRole: null };
     if (s.hasAbilityEvenDead) {
-      addLog(`${s.id+1}号因亡骨魔获得的"死而有能"效果在变身${newRole.name} 时已失效`);
+      addLog(`${s.id + 1}号因亡骨魔获得的"死而有能"效果在变身${newRole.name} 时已失效`);
     }
     return nextSeat;
   }));
-  
+
   const createdNewDemon = newRole.type === 'demon' && targetSeat?.role?.type !== 'demon';
   if (createdNewDemon) {
     const seatId = nightInfo?.seat?.id ?? 0;
-    addLog(`${seatId+1}号(麻脸巫婆) ${targetId+1}号变为恶魔，今晚的死亡由说书人决定`);
+    addLog(`${seatId + 1}号(麻脸巫婆) ${targetId + 1}号变为恶魔，今晚的死亡由说书人决定`);
   } else {
     const seatId = nightInfo?.seat?.id ?? 0;
-    addLog(`${seatId+1}号(麻脸巫婆) ${targetId+1}号变为 ${newRole?.name ?? ''}`);
+    addLog(`${seatId + 1}号(麻脸巫婆) ${targetId + 1}号变为 ${newRole?.name ?? ''}`);
   }
-  
-  insertIntoWakeQueueAfterCurrent(targetId, { roleOverride: newRole, logLabel: `${targetId+1}号(${newRole.name})` });
-  
+
+  insertIntoWakeQueueAfterCurrent(targetId, { roleOverride: newRole, logLabel: `${targetId + 1}号(${newRole.name})` });
+
   setCurrentModal(null);
   setSelectedActionTargets([]);
-  
+
   if (createdNewDemon) {
     setCurrentModal({ type: 'STORYTELLER_DEATH', data: { sourceId: targetId } });
     return { handled: true, shouldWait: true };
   }
-  
+
   continueToNextAction();
   return { handled: true };
 }
@@ -292,48 +311,50 @@ export function handleProfessorConfirm(context: RoleConfirmContext): RoleConfirm
     continueToNextAction,
     addLog
   } = context;
-  
+
   if (nightInfo.effectiveRole.id !== 'professor_mr' || gamePhase === 'firstNight') {
     return { handled: false };
   }
-  
+
   const seatId = nightInfo?.seat?.id ?? 0;
-  
+
   if (hasUsedAbility('professor_mr', seatId)) {
     continueToNextAction();
     return { handled: true };
   }
-  
+
   const availableReviveTargets = seats.filter(s => {
     const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
     return s.isDead && r && r.type === 'townsfolk' && !s.isDemonSuccessor;
   });
-  
+
   if (availableReviveTargets.length === 0) {
-    addLog(`${seatId+1}号(教授) 无可复活的镇民，跳过`);
+    addLog(`${seatId + 1}号(教授) 无可复活的镇民，跳过`);
     continueToNextAction();
     return { handled: true };
   }
-  
+
   if (selectedTargets.length !== 1) {
+    if (selectedTargets.length === 0) alert("请选择一名死亡的镇民复活（或点击确认跳过）");
+    else alert("教授每晚只能选择一名目标，请取消多余的选择");
     return { handled: true, shouldWait: true };
   }
-  
+
   const targetId = selectedTargets[0];
   const targetSeat = seats.find(s => s.id === targetId);
-  
+
   if (!targetSeat || !targetSeat.isDead) {
     return { handled: true, shouldWait: true };
   }
-  
+
   const targetRole = targetSeat.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat.role;
   if (!targetRole || targetSeat.isDemonSuccessor || targetRole.type !== 'townsfolk') {
     alert('教授只能复活死亡的镇民');
     return { handled: true, shouldWait: true };
   }
-  
+
   const hadEvenDead = !!targetSeat.hasAbilityEvenDead;
-  
+
   setSeats(prev => prev.map(s => {
     if (s.id !== targetId) return s;
     return reviveSeat({
@@ -342,18 +363,18 @@ export function handleProfessorConfirm(context: RoleConfirmContext): RoleConfirm
       isZombuulTrulyDead: s.isZombuulTrulyDead,
     });
   }));
-  
+
   setPukkaPoisonQueue(prev => prev.filter(entry => entry.targetId !== targetId));
   setDeadThisNight(prev => prev.filter(id => id !== targetId));
-  addLog(`${seatId+1}号(教授) 复活${targetId+1}号`);
-  
+  addLog(`${seatId + 1}号(教授) 复活${targetId + 1}号`);
+
   if (hadEvenDead) {
-    addLog(`${targetId+1}号此前因亡骨魔获得的"死而有能"效果随着复活已失效`);
+    addLog(`${targetId + 1}号此前因亡骨魔获得的"死而有能"效果随着复活已失效`);
   }
-  
+
   markAbilityUsed('professor_mr', seatId);
   setSelectedActionTargets([]);
-  insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId+1}号(复活)` });
+  insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId + 1}号(复活)` });
   continueToNextAction();
   return { handled: true };
 }
@@ -375,39 +396,41 @@ export function handleRangerConfirm(context: RoleConfirmContext): RoleConfirmRes
     continueToNextAction,
     addLog
   } = context;
-  
+
   if (nightInfo.effectiveRole.id !== 'ranger' || gamePhase === 'firstNight') {
     return { handled: false };
   }
-  
+
   const seatId = nightInfo?.seat?.id ?? 0;
-  
+
   if (hasUsedAbility('ranger', seatId)) {
     continueToNextAction();
     return { handled: true };
   }
-  
+
   if (selectedTargets.length !== 1) {
+    if (selectedTargets.length === 0) alert("请选择一名目标玩家");
+    else alert("巡山人每晚只能选择一名目标");
     return { handled: true, shouldWait: true };
   }
-  
+
   const targetId = selectedTargets[0];
   const targetSeat = seats.find(s => s.id === targetId);
-  
+
   if (!targetSeat || targetSeat.isDead) {
     return { handled: true, shouldWait: true };
   }
-  
+
   const targetRoleId = getSeatRoleId(targetSeat);
   markAbilityUsed('ranger', seatId);
   setSelectedActionTargets([]);
-  
+
   if (targetRoleId !== 'damsel') {
-    addLog(`${seatId+1}号(巡山人) 选择${targetId+1}号，但未命中落难少女`);
+    addLog(`${seatId + 1}号(巡山人) 选择${targetId + 1}号，但未命中落难少女`);
     continueToNextAction();
     return { handled: true };
   }
-  
+
   setCurrentModal({ type: 'RANGER', data: { targetId, roleId: null } });
   return { handled: true, shouldWait: true };
 }
@@ -425,18 +448,20 @@ export function handleShabalothConfirm(context: RoleConfirmContext): RoleConfirm
     continueToNextAction,
     addLog
   } = context;
-  
+
   if (nightInfo.effectiveRole.id !== 'shabaloth' || gamePhase === 'firstNight') {
     return { handled: false };
   }
-  
+
   if (selectedTargets.length !== 2) {
+    if (selectedTargets.length < 2) alert("请选择两名目标玩家");
+    else alert("沙巴洛斯每晚必须选择恰好两名目标");
     return { handled: true, shouldWait: true };
   }
-  
+
   const targets = [...selectedTargets];
   setSelectedActionTargets([]);
-  
+
   let remaining = targets.length;
   targets.forEach((tid, idx) => {
     killPlayer(tid, {
@@ -445,13 +470,13 @@ export function handleShabalothConfirm(context: RoleConfirmContext): RoleConfirm
         remaining -= 1;
         if (remaining === 0) {
           const seatId = nightInfo?.seat?.id ?? 0;
-          addLog(`${seatId+1}号(沙巴洛斯) 杀死了 ${targets.map(x=>`${x+1}号`).join('、')}，本工具暂未实现其复活效果，请说书人按规则手动裁定是否复活`);
+          addLog(`${seatId + 1}号(沙巴洛斯) 杀死了 ${targets.map(x => `${x + 1}号`).join('、')}，本工具暂未实现其复活效果，请说书人按规则手动裁定是否复活`);
           continueToNextAction();
         }
       }
     });
   });
-  
+
   return { handled: true, shouldWait: true };
 }
 
@@ -470,49 +495,51 @@ export function handlePoConfirm(context: RoleConfirmContext): RoleConfirmResult 
     continueToNextAction,
     addLog
   } = context;
-  
+
   if (nightInfo.effectiveRole.id !== 'po' || gamePhase === 'firstNight') {
     return { handled: false };
   }
-  
+
   const seatId = nightInfo?.seat?.id ?? 0;
   const charged = poChargeState[seatId] === true;
   const uniqueTargets = Array.from(new Set(selectedTargets));
-  
+
   // 未蓄力允许0个目标（本夜不杀死蓄力）或普通杀一
   if (!charged) {
     if (uniqueTargets.length > 1) {
+      alert("本夜未蓄力，只能选择 0 人（蓄力）或 1 人（普通击杀）");
       return { handled: true, shouldWait: true };
     }
-    
+
     if (uniqueTargets.length === 0) {
       // 本夜不杀人蓄力
       setPoChargeState(prev => ({ ...prev, [seatId]: true }));
-      addLog(`${seatId+1}号(珀) 本夜未杀人，蓄力一次，下一个夜晚将爆发杀 3 人`);
+      addLog(`${seatId + 1}号(珀) 本夜未杀人，蓄力一次，下一个夜晚将爆发杀 3 人`);
       continueToNextAction();
       return { handled: true };
     }
-    
+
     const targetId = uniqueTargets[0];
     setPoChargeState(prev => ({ ...prev, [seatId]: false }));
     setSelectedActionTargets([]);
     killPlayer(targetId, {
       onAfterKill: () => {
-        addLog(`${seatId+1}号(珀) 杀死了 ${targetId+1}号`);
+        addLog(`${seatId + 1}号(珀) 杀死了 ${targetId + 1}号`);
         continueToNextAction();
       }
     });
     return { handled: true, shouldWait: true };
   }
-  
+
   // 已蓄力必须选择3名不同目标本夜爆发杀 3
   if (uniqueTargets.length !== 3) {
+    alert("已蓄力！必须选择 3 名不同的目标");
     return { handled: true, shouldWait: true };
   }
-  
+
   setPoChargeState(prev => ({ ...prev, [seatId]: false }));
   setSelectedActionTargets([]);
-  
+
   let remaining = uniqueTargets.length;
   uniqueTargets.forEach((tid, idx) => {
     killPlayer(tid, {
@@ -520,13 +547,13 @@ export function handlePoConfirm(context: RoleConfirmContext): RoleConfirmResult 
       onAfterKill: () => {
         remaining -= 1;
         if (remaining === 0) {
-          addLog(`${seatId+1}号(珀) 爆发杀死了 ${uniqueTargets.map(x=>`${x+1}号`).join('、')}`);
+          addLog(`${seatId + 1}号(珀) 爆发杀死了 ${uniqueTargets.map(x => `${x + 1}号`).join('、')}`);
           continueToNextAction();
         }
       }
     });
   });
-  
+
   return { handled: true, shouldWait: true };
 }
 
@@ -545,19 +572,21 @@ export function handleInnkeeperConfirm(context: RoleConfirmContext): RoleConfirm
     continueToNextAction,
     addLog
   } = context;
-  
+
   if (nightInfo.effectiveRole.id !== 'innkeeper' || gamePhase === 'firstNight') {
     return { handled: false };
   }
-  
+
   if (selectedTargets.length !== 2) {
+    if (selectedTargets.length < 2) alert("请选择两名玩家进行保护");
+    else alert("旅店老板每晚必须选择恰好两名目标");
     return { handled: true, shouldWait: true };
   }
-  
+
   const [aId, bId] = selectedTargets;
   setSelectedActionTargets([]);
   const drunkTargetId = Math.random() < 0.5 ? aId : bId;
-  
+
   setSeats(prev => prev.map(s => {
     if (s.id === aId || s.id === bId) {
       const seatId = nightInfo?.seat?.id ?? 0;
@@ -572,9 +601,9 @@ export function handleInnkeeperConfirm(context: RoleConfirmContext): RoleConfirm
     }
     return s;
   }));
-  
+
   const seatId = nightInfo?.seat?.id ?? 0;
-  addLog(`${seatId+1}号(旅店老板) 今晚保护${aId+1}号、${bId+1}号，他们不会被恶魔杀死，其中一人醉酒到下个黄昏，信息可能错误`);
+  addLog(`${seatId + 1}号(旅店老板) 今晚保护${aId + 1}号、${bId + 1}号，他们不会被恶魔杀死，其中一人醉酒到下个黄昏，信息可能错误`);
   continueToNextAction();
   return { handled: true };
 }
@@ -602,6 +631,8 @@ export function handleSailorConfirm(context: RoleConfirmContext): RoleConfirmRes
   }
 
   if (selectedTargets.length !== 1) {
+    if (selectedTargets.length === 0) alert("请选择一名存活玩家");
+    else alert("水手每晚只能选择一名目标");
     return { handled: true, shouldWait: true };
   }
 
@@ -753,6 +784,7 @@ export function handleAssassinConfirm(context: RoleConfirmContext): RoleConfirmR
 
   // 允许 0（不使用）或 1（使用）
   if (uniqueTargets.length > 1) {
+    alert("刺客只能选择 0 人或 1 人");
     return { handled: true, shouldWait: true };
   }
 
@@ -816,6 +848,8 @@ export function handleGodfatherConfirm(context: RoleConfirmContext): RoleConfirm
 
   // 必须恰好选择 1 名目标
   if (selectedTargets.length !== 1) {
+    if (selectedTargets.length === 0) alert("教父必须选择一名玩家死亡");
+    else alert("教父只能选择一名目标");
     return { handled: true, shouldWait: true };
   }
 
@@ -923,19 +957,19 @@ export function handleImpSuicide(
   }
 
   const { seats, roles, setSeats, setWakeQueueIds, setDeadThisNight, checkGameOver, enqueueRavenkeeperIfNeeded, killPlayer, addLogWithDeduplication, getRandom, seatsRef } = context;
-  
+
   // 找到所有活着的爪牙
-  const aliveMinions = seats.filter(s => 
-    s.role?.type === 'minion' && 
-    !s.isDead && 
+  const aliveMinions = seats.filter(s =>
+    s.role?.type === 'minion' &&
+    !s.isDead &&
     s.id !== impSeatId
   );
-  
+
   if (aliveMinions.length > 0) {
     // 随机选择一个爪牙作为新的小恶魔
     const newImp = getRandom(aliveMinions);
     const newImpRole = roles.find(r => r.id === 'imp');
-    
+
     let updatedSeats: Seat[] = [];
     setSeats(p => {
       updatedSeats = p.map(s => {
@@ -945,8 +979,8 @@ export function handleImpSuicide(
         } else if (s.id === newImp.id) {
           // 新小恶魔标记为恶魔继任者更新角色为小恶魔添小恶魔传"标记
           const statusDetails = [...(s.statusDetails || []), '小恶魔传'];
-          return { 
-            ...s, 
+          return {
+            ...s,
             role: newImpRole || s.role,
             isDemonSuccessor: true,
             statusDetails: statusDetails
@@ -954,40 +988,40 @@ export function handleImpSuicide(
         }
         return s;
       });
-      
+
       // 从唤醒队列中移除已死亡的原小恶魔
       setWakeQueueIds(prev => prev.filter(id => id !== impSeatId));
-      
+
       return updatedSeats;
     });
-    
+
     // 正常传位给爪牙小恶魔自杀时优先传位给爪牙不检查红唇女郎
     // 检查游戏结束不应该结束因为新小恶魔还在
     setTimeout(() => {
       const currentSeats = seatsRef.current || updatedSeats;
       checkGameOver(currentSeats);
     }, 0);
-    
+
     addLogWithDeduplication(
-      `${impSeatId+1}号(小恶魔) 选择自己，身份转移给 ${newImp.id+1}号(${newImp.role?.name})，${impSeatId+1}号已在夜晚死亡`,
+      `${impSeatId + 1}号(小恶魔) 选择自己，身份转移给 ${newImp.id + 1}号(${newImp.role?.name})，${impSeatId + 1}号已在夜晚死亡`,
       impSeatId,
       '小恶魔'
     );
-    
+
     // 显眼的高亮提示提醒说书人唤醒新恶魔玩家
     console.warn('%c 重要提醒小恶魔传位成功 ', 'color: #FFD700; font-size: 20px; font-weight: bold; background: #1a1a1a; padding: 10px; border: 3px solid #FFD700;');
-    console.warn(`%c请立即唤醒${newImp.id+1}号玩家，向其出示"你是小恶魔"卡牌`, 'color: #FF6B6B; font-size: 16px; font-weight: bold; background: #1a1a1a; padding: 8px;');
+    console.warn(`%c请立即唤醒${newImp.id + 1}号玩家，向其出示"你是小恶魔"卡牌`, 'color: #FF6B6B; font-size: 16px; font-weight: bold; background: #1a1a1a; padding: 8px;');
     console.warn(`%c注意新恶魔今晚不行动从下一夜开始才会进入唤醒队列`, 'color: #4ECDC4; font-size: 14px; background: #1a1a1a; padding: 5px;');
-    
+
     // 记录原小恶魔的死亡
     setDeadThisNight(p => [...p, impSeatId]);
     enqueueRavenkeeperIfNeeded(impSeatId);
-    
+
     return { handled: true, shouldContinue: false };
   } else {
     // 如果没有活着的爪牙小恶魔自杀但无法传位直接死亡结算游戏
     addLogWithDeduplication(
-      `${impSeatId+1}号(小恶魔) 选择自己但场上无爪牙可传位，${impSeatId+1}号直接死亡`,
+      `${impSeatId + 1}号(小恶魔) 选择自己但场上无爪牙可传位，${impSeatId + 1}号直接死亡`,
       impSeatId,
       '小恶魔'
     );
@@ -998,7 +1032,7 @@ export function handleImpSuicide(
         checkGameOver(finalSeats, impSeatId);
       }
     });
-    
+
     return { handled: true, shouldContinue: false };
   }
 }
@@ -1018,7 +1052,7 @@ export const roleConfirmHandlers: Record<string, (context: RoleConfirmContext) =
   'sailor': handleSailorConfirm,
   'courtier': handleCourtierConfirm,
   'assassin': handleAssassinConfirm,
-   'godfather': handleGodfatherConfirm,
+  'godfather': handleGodfatherConfirm,
 };
 
 /**

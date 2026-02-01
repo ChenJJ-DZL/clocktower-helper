@@ -41,17 +41,14 @@ import { poppy_grower } from "./townsfolk/poppy_grower";
 import { princess } from "./townsfolk/princess";
 import { priestess } from "./townsfolk/priestess";
 import { professor } from "./townsfolk/professor";
-import { professor_mr } from "./townsfolk/professor_mr";
 import { ranger } from "./townsfolk/ranger";
 import { ravenkeeper } from "./townsfolk/ravenkeeper";
 import { sage } from "./townsfolk/sage";
 import { sailor } from "./townsfolk/sailor";
 import { savant } from "./townsfolk/savant";
-import { savant_mr } from "./townsfolk/savant_mr";
 import { seamstress } from "./townsfolk/seamstress";
 import { slayer } from "./townsfolk/slayer";
 import { snake_charmer } from "./townsfolk/snake_charmer";
-import { snake_charmer_mr } from "./townsfolk/snake_charmer_mr";
 import { soldier } from "./townsfolk/soldier";
 import { steward } from "./townsfolk/steward";
 import { tea_lady } from "./townsfolk/tea_lady";
@@ -69,11 +66,9 @@ import { conjurer } from "./townsfolk/conjurer";
 import { villager } from "./townsfolk/villager";
 // Outsider
 import { barber } from "./outsider/barber";
-import { barber_mr } from "./outsider/barber_mr";
 import { butler } from "./outsider/butler";
 import { damsel } from "./outsider/damsel";
 import { drunk } from "./outsider/drunk";
-import { drunk_mr } from "./outsider/drunk_mr";
 import { golem } from "./outsider/golem";
 import { goon } from "./outsider/goon";
 import { hatter } from "./outsider/hatter";
@@ -100,12 +95,10 @@ import { cerenovus } from "./minion/cerenovus";
 import { devils_advocate } from "./minion/devils_advocate";
 import { evil_twin } from "./minion/evil_twin";
 import { godfather } from "./minion/godfather";
-import { lunatic_mr } from "./minion/lunatic_mr";
+import { psychopath } from "./minion/psychopath";
 import { mastermind } from "./minion/mastermind";
 import { pit_hag } from "./minion/pit_hag";
-import { pit_hag_mr } from "./minion/pit_hag_mr";
 import { poisoner } from "./minion/poisoner";
-import { poisoner_mr } from "./minion/poisoner_mr";
 import { scarlet_woman } from "./minion/scarlet_woman";
 import { shaman } from "./minion/shaman";
 import { spy } from "./minion/spy";
@@ -131,7 +124,6 @@ import { po } from "./demon/po";
 import { pukka } from "./demon/pukka";
 import { shabaloth } from "./demon/shabaloth";
 import { vigormortis } from "./demon/vigormortis";
-import { vigormortis_mr } from "./demon/vigormortis_mr";
 import { vortox } from "./demon/vortox";
 import { zombuul } from "./demon/zombuul";
 import { legion } from "./demon/legion";
@@ -191,17 +183,14 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [priestess.id, priestess],
   [poppy_grower.id, poppy_grower],
   [professor.id, professor],
-  [professor_mr.id, professor_mr],
   [ranger.id, ranger],
   [ravenkeeper.id, ravenkeeper],
   [sage.id, sage],
   [sailor.id, sailor],
   [savant.id, savant],
-  [savant_mr.id, savant_mr],
   [seamstress.id, seamstress],
   [slayer.id, slayer],
   [snake_charmer.id, snake_charmer],
-  [snake_charmer_mr.id, snake_charmer_mr],
   [soldier.id, soldier],
   [steward.id, steward],
   [tea_lady.id, tea_lady],
@@ -209,7 +198,7 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [undertaker.id, undertaker],
   [virgin.id, virgin],
   [villager.id, villager],
-    [washerwoman.id, washerwoman],
+  [washerwoman.id, washerwoman],
   [astrologer.id, astrologer],
   [bard.id, bard],
   [miner.id, miner],
@@ -217,11 +206,9 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [monk_female.id, monk_female],
   [saint_townsfolk.id, saint_townsfolk],
   [barber.id, barber],
-  [barber_mr.id, barber_mr],
   [butler.id, butler],
   [damsel.id, damsel],
   [drunk.id, drunk],
-  [drunk_mr.id, drunk_mr],
   [golem.id, golem],
   [goon.id, goon],
   [hatter.id, hatter],
@@ -247,12 +234,10 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [devils_advocate.id, devils_advocate],
   [evil_twin.id, evil_twin],
   [godfather.id, godfather],
-  [lunatic_mr.id, lunatic_mr],
+  [psychopath.id, psychopath],
   [mastermind.id, mastermind],
   [pit_hag.id, pit_hag],
-  [pit_hag_mr.id, pit_hag_mr],
   [poisoner.id, poisoner],
-  [poisoner_mr.id, poisoner_mr],
   [scarlet_woman.id, scarlet_woman],
   [shaman.id, shaman],
   [spy.id, spy],
@@ -277,7 +262,6 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [pukka.id, pukka],
   [shabaloth.id, shabaloth],
   [vigormortis.id, vigormortis],
-  [vigormortis_mr.id, vigormortis_mr],
   [vortox.id, vortox],
   [zombuul.id, zombuul],
   [legion.id, legion],
@@ -354,17 +338,14 @@ export { pacifist } from "./townsfolk/pacifist";
 export { philosopher } from "./townsfolk/philosopher";
 export { poppy_grower } from "./townsfolk/poppy_grower";
 export { professor } from "./townsfolk/professor";
-export { professor_mr } from "./townsfolk/professor_mr";
 export { ranger } from "./townsfolk/ranger";
 export { ravenkeeper } from "./townsfolk/ravenkeeper";
 export { sage } from "./townsfolk/sage";
 export { sailor } from "./townsfolk/sailor";
 export { savant } from "./townsfolk/savant";
-export { savant_mr } from "./townsfolk/savant_mr";
 export { seamstress } from "./townsfolk/seamstress";
 export { slayer } from "./townsfolk/slayer";
 export { snake_charmer } from "./townsfolk/snake_charmer";
-export { snake_charmer_mr } from "./townsfolk/snake_charmer_mr";
 export { soldier } from "./townsfolk/soldier";
 export { tea_lady } from "./townsfolk/tea_lady";
 export { town_crier } from "./townsfolk/town_crier";
@@ -373,11 +354,9 @@ export { virgin } from "./townsfolk/virgin";
 export { washerwoman } from "./townsfolk/washerwoman";
 // Outsider
 export { barber } from "./outsider/barber";
-export { barber_mr } from "./outsider/barber_mr";
 export { butler } from "./outsider/butler";
 export { damsel } from "./outsider/damsel";
 export { drunk } from "./outsider/drunk";
-export { drunk_mr } from "./outsider/drunk_mr";
 export { golem } from "./outsider/golem";
 export { goon } from "./outsider/goon";
 export { klutz } from "./outsider/klutz";
@@ -395,12 +374,10 @@ export { cerenovus } from "./minion/cerenovus";
 export { devils_advocate } from "./minion/devils_advocate";
 export { evil_twin } from "./minion/evil_twin";
 export { godfather } from "./minion/godfather";
-export { lunatic_mr } from "./minion/lunatic_mr";
+export { psychopath } from "./minion/psychopath";
 export { mastermind } from "./minion/mastermind";
 export { pit_hag } from "./minion/pit_hag";
-export { pit_hag_mr } from "./minion/pit_hag_mr";
 export { poisoner } from "./minion/poisoner";
-export { poisoner_mr } from "./minion/poisoner_mr";
 export { scarlet_woman } from "./minion/scarlet_woman";
 export { shaman } from "./minion/shaman";
 export { spy } from "./minion/spy";
@@ -414,6 +391,5 @@ export { po } from "./demon/po";
 export { pukka } from "./demon/pukka";
 export { shabaloth } from "./demon/shabaloth";
 export { vigormortis } from "./demon/vigormortis";
-export { vigormortis_mr } from "./demon/vigormortis_mr";
 export { vortox } from "./demon/vortox";
 export { zombuul } from "./demon/zombuul";

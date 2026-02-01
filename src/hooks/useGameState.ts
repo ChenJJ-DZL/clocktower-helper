@@ -1,192 +1,359 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { Seat, Role, GamePhase, WinResult, LogEntry, Script } from "../../app/data";
 import { NightHintState, GameRecord } from "../types/game";
 import { RegistrationResult } from "../utils/gameRules";
 import { ModalType } from "../types/modal";
+import { useGameContext, gameActions } from "../contexts/GameContext";
 
 /**
  * 游戏状态管理 Hook
- * 包含所有游戏相关的状态定义（useState 和 useRef）
+ * 现已重构为 GameContext 的包装器，确保单一数据源
  */
 export function useGameState() {
+  const { state, dispatch } = useGameContext();
+
   // ===========================
-  //      STATE 定义 (完整，前置)
+  //      STATE 别名 (保持兼容)
   // ===========================
-  const [mounted, setMounted] = useState(false);
-  const [showIntroLoading, setShowIntroLoading] = useState(true); // Intro 加载动画（不属于具体剧本）
-  const [isPortrait, setIsPortrait] = useState(false); // 是否为竖屏设备
-  const [seats, setSeats] = useState<Seat[]>([]);
-  const [initialSeats, setInitialSeats] = useState<Seat[]>([]);
-  
-  const [gamePhase, setGamePhase] = useState<GamePhase>("scriptSelection");
-  const [selectedScript, setSelectedScript] = useState<Script | null>(null);
-  const [nightCount, setNightCount] = useState(1);
-  const [deadThisNight, setDeadThisNight] = useState<number[]>([]); // 改为存储玩家ID
-  const [executedPlayerId, setExecutedPlayerId] = useState<number | null>(null);
-  const [gameLogs, setGameLogs] = useState<LogEntry[]>([]);
-  const [winResult, setWinResult] = useState<WinResult>(null);
-  const [winReason, setWinReason] = useState<string | null>(null);
-  
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [timer, setTimer] = useState(0);
-  
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; seatId: number } | null>(null);
-  const [showMenu, setShowMenu] = useState(false);
-  const [longPressingSeats, setLongPressingSeats] = useState<Set<number>>(new Set()); // 正在长按的座位
+  const {
+    mounted, showIntroLoading, isPortrait, seats, initialSeats,
+    gamePhase, selectedScript, nightCount, deadThisNight, executedPlayerId,
+    gameLogs, winResult, winReason, startTime, timer,
+    selectedRole, contextMenu, showMenu, longPressingSeats,
+    wakeQueueIds, currentWakeIndex, selectedActionTargets, inspectionResult, inspectionResultKey,
+    currentHint, todayDemonVoted, todayMinionNominated, todayExecutedId,
+    witchCursedId, witchActive, cerenovusTarget, isVortoxWorld,
+    fangGuConverted, jugglerGuesses, evilTwinPair, outsiderDiedToday,
+    gossipStatementToday, gossipTrueTonight, gossipSourceSeatId,
+    currentModal, showShootModal, showNominateModal, dayAbilityForm,
+    baronSetupCheck, ignoreBaronSetup, compositionError, showRavenkeeperResultModal,
+    showAttackBlockedModal, showBarberSwapModal, showNightDeathReportModal,
+    voteInputValue, showVoteErrorToast, gameRecords, mayorRedirectTarget,
+    nightOrderPreview, pendingNightQueue, nightQueuePreviewTitle, firstNightOrder,
+    poppyGrowerDead, klutzChoiceTarget, showKlutzChoiceModal, showSweetheartDrunkModal,
+    showMoonchildKillModal, lastExecutedPlayerId, damselGuessed, shamanKeyword,
+    shamanTriggered, shamanConvertTarget, spyDisguiseMode, spyDisguiseProbability,
+    pukkaPoisonQueue, poChargeState, autoRedHerringInfo, dayAbilityLogs,
+    damselGuessUsedBy, usedOnceAbilities, usedDailyAbilities, nominationMap,
+    balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo,
+    voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay,
+    remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution,
+    currentDuskExecution, history, showKillConfirmModal, showMayorRedirectModal, showPitHagModal,
+    showRangerModal, showDamselGuessModal, showShamanConvertModal,
+    showHadesiaKillConfirmModal, showPoisonConfirmModal, showPoisonEvilConfirmModal,
+    showRestartConfirmModal, showSpyDisguiseModal, showMayorThreeAliveModal,
+    showDrunkModal, showVoteInputModal, showRoleSelectModal, showMadnessCheckModal,
+    showDayActionModal, showDayAbilityModal, showSaintExecutionConfirmModal,
+    showLunaticRpsModal, showVirginTriggerModal, showRavenkeeperFakeModal,
+    showStorytellerDeathModal, showReviewModal, showGameRecordsModal,
+    showRoleInfoModal, showExecutionResultModal, showShootResultModal,
+    showNightOrderModal, showFirstNightOrderModal, showMinionKnowDemonModal
+  } = state;
+
+  // ===========================
+  //      SETTER 包装器
+  // ===========================
+  const setMounted = (val: boolean) => dispatch(gameActions.updateState({ mounted: val }));
+  const setShowIntroLoading = (val: boolean) => dispatch(gameActions.updateState({ showIntroLoading: val }));
+  const setIsPortrait = (val: boolean) => dispatch(gameActions.updateState({ isPortrait: val }));
+  const setSeats = (val: Seat[] | ((prev: Seat[]) => Seat[])) => {
+    if (typeof val === 'function') {
+      dispatch(gameActions.setSeats(val(state.seats)));
+    } else {
+      dispatch(gameActions.setSeats(val));
+    }
+  };
+  const setInitialSeats = (val: Seat[]) => dispatch(gameActions.updateState({ initialSeats: val }));
+  const setGamePhase = (val: GamePhase) => dispatch(gameActions.setGamePhase(val));
+  const setSelectedScript = (val: Script | null) => dispatch(gameActions.updateState({ selectedScript: val }));
+  const setNightCount = (val: number | ((prev: number) => number)) => {
+    const next = typeof val === 'function' ? val(state.nightCount) : val;
+    dispatch(gameActions.updateState({ nightCount: next }));
+  };
+  const setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number[]) => number[])(state.deadThisNight) : val;
+    dispatch(gameActions.setDeadThisNight(next));
+  };
+  const setExecutedPlayerId: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.executedPlayerId) : val;
+    dispatch(gameActions.setExecutedPlayer(next));
+  };
+  const setGameLogs: React.Dispatch<React.SetStateAction<LogEntry[]>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: LogEntry[]) => LogEntry[])(state.gameLogs) : val;
+    dispatch(gameActions.updateState({ gameLogs: next }));
+  };
+  const setWinResult: React.Dispatch<React.SetStateAction<WinResult | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: WinResult | null) => WinResult | null)(state.winResult) : val;
+    dispatch(gameActions.setWinResult(next, state.winReason));
+  };
+  const setWinReason: React.Dispatch<React.SetStateAction<string | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: string | null) => string | null)(state.winReason) : val;
+    dispatch(gameActions.setWinResult(state.winResult, next));
+  };
+  const setStartTime: React.Dispatch<React.SetStateAction<Date | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Date | null) => Date | null)(state.startTime) : val;
+    dispatch(gameActions.setStartTime(next));
+  };
+  const setTimer: React.Dispatch<React.SetStateAction<number>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number) => number)(state.timer) : val;
+    dispatch(gameActions.setTimer(next));
+  };
+  const setSelectedRole: React.Dispatch<React.SetStateAction<Role | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Role | null) => Role | null)(state.selectedRole) : val;
+    dispatch(gameActions.updateState({ selectedRole: next }));
+  };
+  const setContextMenu: React.Dispatch<React.SetStateAction<any>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: any) => any)(state.contextMenu) : val;
+    dispatch(gameActions.updateState({ contextMenu: next }));
+  };
+  const setShowMenu: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.showMenu) : val;
+    dispatch(gameActions.updateState({ showMenu: next }));
+  };
+  const setLongPressingSeats: React.Dispatch<React.SetStateAction<Set<number>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Set<number>) => Set<number>)(state.longPressingSeats) : val;
+    dispatch(gameActions.updateState({ longPressingSeats: next }));
+  };
+  const setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number[]) => number[])(state.wakeQueueIds) : val;
+    dispatch(gameActions.updateState({ wakeQueueIds: next }));
+  };
+  const setCurrentWakeIndex: React.Dispatch<React.SetStateAction<number>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number) => number)(state.currentWakeIndex) : val;
+    dispatch(gameActions.setCurrentQueueIndex(next));
+  };
+  const setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number[]) => number[])(state.selectedActionTargets) : val;
+    dispatch(gameActions.setSelectedTargets(next));
+  };
+  const setInspectionResult: React.Dispatch<React.SetStateAction<string | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: string | null) => string | null)(state.inspectionResult) : val;
+    dispatch(gameActions.setInspectionResult(next));
+  };
+  const setInspectionResultKey: React.Dispatch<React.SetStateAction<number>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number) => number)(state.inspectionResultKey) : val;
+    dispatch(gameActions.updateState({ inspectionResultKey: next }));
+  };
+  const setCurrentHint: React.Dispatch<React.SetStateAction<NightHintState>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: NightHintState) => NightHintState)(state.currentHint) : val;
+    dispatch(gameActions.setCurrentHint(next));
+  };
+  const setTodayDemonVoted: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.todayDemonVoted) : val;
+    dispatch(gameActions.updateState({ todayDemonVoted: next }));
+  };
+  const setTodayMinionNominated: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.todayMinionNominated) : val;
+    dispatch(gameActions.updateState({ todayMinionNominated: next }));
+  };
+  const setTodayExecutedId: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.todayExecutedId) : val;
+    dispatch(gameActions.updateState({ todayExecutedId: next }));
+  };
+  const setWitchCursedId: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.witchCursedId) : val;
+    dispatch(gameActions.updateState({ witchCursedId: next }));
+  };
+  const setWitchActive: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.witchActive) : val;
+    dispatch(gameActions.updateState({ witchActive: next }));
+  };
+  const setCerenovusTarget: React.Dispatch<React.SetStateAction<any>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: any) => any)(state.cerenovusTarget) : val;
+    dispatch(gameActions.updateState({ cerenovusTarget: next }));
+  };
+  const setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.isVortoxWorld) : val;
+    dispatch(gameActions.updateState({ isVortoxWorld: next }));
+  };
+  const setFangGuConverted = (val: boolean) => dispatch(gameActions.updateState({ fangGuConverted: val }));
+  const setJugglerGuesses = (val: any) => dispatch(gameActions.updateState({ jugglerGuesses: val }));
+  const setEvilTwinPair = (val: any) => dispatch(gameActions.updateState({ evilTwinPair: val }));
+  const setOutsiderDiedToday = (val: boolean) => dispatch(gameActions.setOutsiderDiedToday(val));
+  const setGossipStatementToday = (val: string) => dispatch(gameActions.setGossipState(val, state.gossipTrueTonight, state.gossipSourceSeatId));
+  const setGossipTrueTonight = (val: boolean) => dispatch(gameActions.setGossipState(state.gossipStatementToday, val, state.gossipSourceSeatId));
+  const setGossipSourceSeatId = (val: number | null) => dispatch(gameActions.setGossipState(state.gossipStatementToday, state.gossipTrueTonight, val));
+  const setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: ModalType) => ModalType)(state.currentModal) : val;
+    dispatch(gameActions.setModal(next));
+  };
+  const setShowShootModal = (val: number | null) => dispatch(gameActions.updateState({ showShootModal: val }));
+  const setShowNominateModal = (val: number | null) => dispatch(gameActions.updateState({ showNominateModal: val }));
+  const setDayAbilityForm = (val: any) => dispatch(gameActions.updateState({ dayAbilityForm: val }));
+  const setBaronSetupCheck: React.Dispatch<React.SetStateAction<any>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: any) => any)(state.baronSetupCheck) : val;
+    dispatch(gameActions.updateState({ baronSetupCheck: next }));
+  };
+  const setIgnoreBaronSetup = (val: boolean) => dispatch(gameActions.updateState({ ignoreBaronSetup: val }));
+  const setCompositionError: React.Dispatch<React.SetStateAction<any>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: any) => any)(state.compositionError) : val;
+    dispatch(gameActions.updateState({ compositionError: next }));
+  };
+  const setShowRavenkeeperResultModal = (val: any) => dispatch(gameActions.updateState({ showRavenkeeperResultModal: val }));
+  const setShowAttackBlockedModal = (val: any) => dispatch(gameActions.updateState({ showAttackBlockedModal: val }));
+  const setShowBarberSwapModal = (val: any) => dispatch(gameActions.updateState({ showBarberSwapModal: val }));
+  const setShowNightDeathReportModal = (val: string | null) => dispatch(gameActions.updateState({ showNightDeathReportModal: val }));
+  const setVoteInputValue = (val: string) => dispatch(gameActions.setVoteInput(val));
+  const setShowVoteErrorToast = (val: boolean) => dispatch(gameActions.updateState({ showVoteErrorToast: val }));
+  const setGameRecords: React.Dispatch<React.SetStateAction<GameRecord[]>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: GameRecord[]) => GameRecord[])(state.gameRecords) : val;
+    dispatch(gameActions.setGameRecords(next));
+  };
+  const setMayorRedirectTarget: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.mayorRedirectTarget) : val;
+    dispatch(gameActions.updateState({ mayorRedirectTarget: next }));
+  };
+  const setNightOrderPreview: React.Dispatch<React.SetStateAction<{ roleName: string; seatNo: number; order: number; }[]>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: { roleName: string; seatNo: number; order: number; }[]) => { roleName: string; seatNo: number; order: number; }[])(state.nightOrderPreview) : val;
+    dispatch(gameActions.updateState({ nightOrderPreview: next }));
+  };
+  const setPendingNightQueue = (val: Seat[] | null | ((p: Seat[] | null) => Seat[] | null)) => {
+    const next = typeof val === 'function' ? (val as (p: Seat[] | null) => Seat[] | null)(state.pendingNightQueue) : val;
+    dispatch(gameActions.updateState({ pendingNightQueue: next }));
+  };
+  const setNightQueuePreviewTitle = (val: string | ((p: string) => string)) => {
+    const next = typeof val === 'function' ? (val as (p: string) => string)(state.nightQueuePreviewTitle) : val;
+    dispatch(gameActions.updateState({ nightQueuePreviewTitle: next }));
+  };
+  const setFirstNightOrder = (val: any[]) => dispatch(gameActions.updateState({ firstNightOrder: val }));
+  const setPoppyGrowerDead: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.poppyGrowerDead) : val;
+    dispatch(gameActions.updateState({ poppyGrowerDead: next }));
+  };
+  const setKlutzChoiceTarget = (val: number | null | ((p: number | null) => number | null)) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.klutzChoiceTarget) : val;
+    dispatch(gameActions.updateState({ klutzChoiceTarget: next }));
+  };
+  const setShowKlutzChoiceModal = (val: any) => dispatch(gameActions.updateState({ showKlutzChoiceModal: val }));
+  const setShowSweetheartDrunkModal = (val: any) => dispatch(gameActions.updateState({ showSweetheartDrunkModal: val }));
+  const setShowMoonchildKillModal = (val: any) => dispatch(gameActions.updateState({ showMoonchildKillModal: val }));
+  const setLastExecutedPlayerId = (val: number | null) => dispatch(gameActions.updateState({ lastExecutedPlayerId: val }));
+  const setDamselGuessed = (val: boolean) => dispatch(gameActions.updateState({ damselGuessed: val }));
+  const setShamanKeyword = (val: string | null) => dispatch(gameActions.updateState({ shamanKeyword: val }));
+  const setShamanTriggered = (val: boolean) => dispatch(gameActions.updateState({ shamanTriggered: val }));
+  const setShamanConvertTarget = (val: number | null) => dispatch(gameActions.updateState({ shamanConvertTarget: val }));
+  const setSpyDisguiseMode = (val: 'off' | 'default' | 'on') => dispatch(gameActions.updateState({ spyDisguiseMode: val }));
+  const setSpyDisguiseProbability = (val: number) => dispatch(gameActions.updateState({ spyDisguiseProbability: val }));
+  const setPukkaPoisonQueue = (val: any[] | ((prev: any[]) => any[])) => {
+    const next = typeof val === 'function' ? val(state.pukkaPoisonQueue) : val;
+    dispatch(gameActions.updatePukkaQueue(next));
+  };
+  const setPoChargeState = (val: any) => dispatch(gameActions.updateState({ poChargeState: val }));
+  const setAutoRedHerringInfo = (val: string | null) => dispatch(gameActions.updateState({ autoRedHerringInfo: val }));
+  const setDayAbilityLogs = (val: any) => dispatch(gameActions.updateState({ dayAbilityLogs: val }));
+  const setDamselGuessUsedBy = (val: number[] | ((prev: number[]) => number[])) => {
+    const next = typeof val === 'function' ? val(state.damselGuessUsedBy) : val;
+    dispatch(gameActions.updateState({ damselGuessUsedBy: next }));
+  };
+  const setUsedOnceAbilities: React.Dispatch<React.SetStateAction<Record<string, number[]>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Record<string, number[]>) => Record<string, number[]>)(state.usedOnceAbilities) : val;
+    dispatch(gameActions.updateState({ usedOnceAbilities: next }));
+  };
+  const setUsedDailyAbilities: React.Dispatch<React.SetStateAction<Record<string, { day: number; seats: number[] }>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Record<string, { day: number; seats: number[] }>) => Record<string, { day: number; seats: number[] }>)(state.usedDailyAbilities) : val;
+    dispatch(gameActions.updateState({ usedDailyAbilities: next }));
+  };
+  const setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Record<number, number>) => Record<number, number>)(state.nominationMap) : val;
+    dispatch(gameActions.updateState({ nominationMap: next }));
+  };
+  const setBalloonistKnownTypes: React.Dispatch<React.SetStateAction<Record<number, string[]>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Record<number, string[]>) => Record<number, string[]>)(state.balloonistKnownTypes) : val;
+    dispatch(gameActions.updateState({ balloonistKnownTypes: next }));
+  };
+  const setBalloonistCompletedIds = (val: number[] | ((prev: number[]) => number[])) => {
+    const next = typeof val === 'function' ? val(state.balloonistCompletedIds) : val;
+    dispatch(gameActions.updateState({ balloonistCompletedIds: next }));
+  };
+  const setHadesiaChoices: React.Dispatch<React.SetStateAction<Record<number, 'live' | 'die'>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Record<number, 'live' | 'die'>) => Record<number, 'live' | 'die'>)(state.hadesiaChoices) : val;
+    dispatch(gameActions.updateState({ hadesiaChoices: next }));
+  };
+  const setVirginGuideInfo: React.Dispatch<React.SetStateAction<any>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: any) => any)(state.virginGuideInfo) : val;
+    dispatch(gameActions.updateState({ virginGuideInfo: next }));
+  };
+  const setVoteRecords = (val: any[] | ((prev: any[]) => any[])) => {
+    const next = typeof val === 'function' ? val(state.voteRecords) : val;
+    dispatch(gameActions.updateState({ voteRecords: next }));
+  };
+  const setVotedThisRound = (val: number[] | ((prev: number[]) => number[])) => {
+    const next = typeof val === 'function' ? val(state.votedThisRound) : val;
+    dispatch(gameActions.updateState({ votedThisRound: next }));
+  };
+  const setHasExecutedThisDay: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.hasExecutedThisDay) : val;
+    dispatch(gameActions.updateState({ hasExecutedThisDay: next }));
+  };
+  const setMastermindFinalDay = (val: any) => dispatch(gameActions.updateState({ mastermindFinalDay: val }));
+  const setRemainingDays = (val: number | null | ((p: number | null) => number | null)) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.remainingDays) : val;
+    dispatch(gameActions.updateState({ remainingDays: next }));
+  };
+  const setGoonDrunkedThisNight = (val: boolean | ((p: boolean) => boolean)) => {
+    const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.goonDrunkedThisNight) : val;
+    dispatch(gameActions.updateState({ goonDrunkedThisNight: next }));
+  };
+  const setHistory = (val: any[]) => dispatch(gameActions.setHistory(val));
+  const setNominationRecords: React.Dispatch<React.SetStateAction<{ nominators: Set<number>; nominees: Set<number> }>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: { nominators: Set<number>; nominees: Set<number> }) => { nominators: Set<number>; nominees: Set<number> })(state.nominationRecords) : val;
+    dispatch(gameActions.setNominationRecords(next));
+  };
+  const setLastDuskExecution: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.lastDuskExecution) : val;
+    dispatch(gameActions.setDuskExecution(next, state.currentDuskExecution));
+  };
+  const setCurrentDuskExecution: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.currentDuskExecution) : val;
+    dispatch(gameActions.setDuskExecution(state.lastDuskExecution, next));
+  };
+
+  // ===========================
+  //  MODAL 显示状态 (包装器)
+  // ===========================
+  const setShowKillConfirmModal = (val: number | null) => dispatch(gameActions.updateState({ showKillConfirmModal: val }));
+  const setShowMayorRedirectModal = (val: any) => dispatch(gameActions.updateState({ showMayorRedirectModal: val }));
+  const setShowPitHagModal = (val: any) => dispatch(gameActions.updateState({ showPitHagModal: val }));
+  const setShowRangerModal = (val: any) => dispatch(gameActions.updateState({ showRangerModal: val }));
+  const setShowDamselGuessModal = (val: any) => dispatch(gameActions.updateState({ showDamselGuessModal: val }));
+  const setShowShamanConvertModal = (val: boolean) => dispatch(gameActions.updateState({ showShamanConvertModal: val }));
+  const setShowHadesiaKillConfirmModal = (val: number[] | null) => dispatch(gameActions.updateState({ showHadesiaKillConfirmModal: val }));
+  const setShowPoisonConfirmModal = (val: number | null) => dispatch(gameActions.updateState({ showPoisonConfirmModal: val }));
+  const setShowPoisonEvilConfirmModal = (val: number | null) => dispatch(gameActions.updateState({ showPoisonEvilConfirmModal: val }));
+  const setShowRestartConfirmModal = (val: boolean) => dispatch(gameActions.updateState({ showRestartConfirmModal: val }));
+  const setShowSpyDisguiseModal = (val: boolean) => dispatch(gameActions.updateState({ showSpyDisguiseModal: val }));
+  const setShowMayorThreeAliveModal = (val: boolean) => dispatch(gameActions.updateState({ showMayorThreeAliveModal: val }));
+  const setShowDrunkModal = (val: number | null) => dispatch(gameActions.updateState({ showDrunkModal: val }));
+  const setShowVoteInputModal = (val: number | null) => dispatch(gameActions.updateState({ showVoteInputModal: val }));
+  const setShowRoleSelectModal = (val: any) => dispatch(gameActions.updateState({ showRoleSelectModal: val }));
+  const setShowMadnessCheckModal = (val: any) => dispatch(gameActions.updateState({ showMadnessCheckModal: val }));
+  const setShowDayActionModal = (val: any) => dispatch(gameActions.updateState({ showDayActionModal: val }));
+  const setShowDayAbilityModal = (val: any) => dispatch(gameActions.updateState({ showDayAbilityModal: val }));
+  const setShowSaintExecutionConfirmModal = (val: any) => dispatch(gameActions.updateState({ showSaintExecutionConfirmModal: val }));
+  const setShowLunaticRpsModal = (val: any) => dispatch(gameActions.updateState({ showLunaticRpsModal: val }));
+  const setShowVirginTriggerModal = (val: any) => dispatch(gameActions.updateState({ showVirginTriggerModal: val }));
+  const setShowRavenkeeperFakeModal = (val: number | null) => dispatch(gameActions.updateState({ showRavenkeeperFakeModal: val }));
+  const setShowStorytellerDeathModal = (val: any) => dispatch(gameActions.updateState({ showStorytellerDeathModal: val }));
+  const setShowReviewModal = (val: boolean) => dispatch(gameActions.updateState({ showReviewModal: val }));
+  const setShowGameRecordsModal = (val: boolean) => dispatch(gameActions.updateState({ showGameRecordsModal: val }));
+  const setShowRoleInfoModal = (val: boolean) => dispatch(gameActions.updateState({ showRoleInfoModal: val }));
+  const setShowExecutionResultModal = (val: any) => dispatch(gameActions.updateState({ showExecutionResultModal: val }));
+  const setShowShootResultModal = (val: any) => dispatch(gameActions.updateState({ showShootResultModal: val }));
+  const setShowNightOrderModal = (val: boolean) => dispatch(gameActions.updateState({ showNightOrderModal: val }));
+  const setShowFirstNightOrderModal = (val: boolean) => dispatch(gameActions.updateState({ showFirstNightOrderModal: val }));
+  const setShowMinionKnowDemonModal = (val: any) => dispatch(gameActions.updateState({ showMinionKnowDemonModal: val }));
+
   const checkLongPressTimerRef = useRef<NodeJS.Timeout | null>(null); // 核对身份列表长按定时器
   const longPressTriggeredRef = useRef<Set<number>>(new Set()); // 座位长按是否已触发（避免短按被阻断）
   const seatContainerRef = useRef<HTMLDivElement | null>(null); // 椭圆桌容器
   const seatRefs = useRef<Record<number, HTMLDivElement | null>>({}); // 每个座位元素引用
-  
-  const [wakeQueueIds, setWakeQueueIds] = useState<number[]>([]);
-  const [currentWakeIndex, setCurrentWakeIndex] = useState(0);
-  const [selectedActionTargets, setSelectedActionTargets] = useState<number[]>([]);
-  const [inspectionResult, setInspectionResult] = useState<string | null>(null);
-  const [inspectionResultKey, setInspectionResultKey] = useState(0); // 占卜师结果刷新用，强制重新渲染结果弹窗
-  const [currentHint, setCurrentHint] = useState<NightHintState>({ isPoisoned: false, guide: "", speak: "" });
-  // ——记录白天事件 & 一次性全局状态（梦陨春宵新增角色需要） ——
-  const [todayDemonVoted, setTodayDemonVoted] = useState(false);
-  const [todayMinionNominated, setTodayMinionNominated] = useState(false);
-  const [todayExecutedId, setTodayExecutedId] = useState<number | null>(null);
-  const [witchCursedId, setWitchCursedId] = useState<number | null>(null);
-  const [witchActive, setWitchActive] = useState(false);
-  const [cerenovusTarget, setCerenovusTarget] = useState<{ targetId: number; roleName: string } | null>(null);
-  const [isVortoxWorld, setIsVortoxWorld] = useState(false);
-  const [fangGuConverted, setFangGuConverted] = useState(false);
-  const [jugglerGuesses, setJugglerGuesses] = useState<Record<number, { playerId: number; roleId: string }[]>>({});
-  const [evilTwinPair, setEvilTwinPair] = useState<{ evilId: number; goodId: number } | null>(null);
-  // 白天有外来者死亡：用于教父当夜额外杀人触发
-  const [outsiderDiedToday, setOutsiderDiedToday] = useState(false);
-  // 造谣者：白天记录的造谣文本 & 是否裁定为真（若为真，今晚额外死亡一次）
-  const [gossipStatementToday, setGossipStatementToday] = useState<string>("");
-  const [gossipTrueTonight, setGossipTrueTonight] = useState(false);
-  const [gossipSourceSeatId, setGossipSourceSeatId] = useState<number | null>(null);
-  
+
   // 保存每个角色的 hint 信息，用于上一夜时恢复（不重新生成）
   const hintCacheRef = useRef<Map<string, NightHintState>>(new Map());
   // 记录酒鬼是否首次获得信息（首次一定是假的）
   const drunkFirstInfoRef = useRef<Map<number, boolean>>(new Map());
-
-  // ===========================
-  //  统一的弹窗状态管理
-  // ===========================
-  const [currentModal, setCurrentModal] = useState<ModalType>(null);
-  
-  // ===========================
-  //  保留的辅助状态（非弹窗显示状态）
-  // ===========================
-  const [showShootModal, setShowShootModal] = useState<number | null>(null); // 用于触发开枪选择，不是弹窗本身
-  const [showNominateModal, setShowNominateModal] = useState<number | null>(null); // 用于触发提名选择，不是弹窗本身
-  const [dayAbilityForm, setDayAbilityForm] = useState<{
-    info1?: string;
-    info2?: string;
-    guess?: string;
-    feedback?: string;
-    advice?: string;
-    engineerMode?: 'demon' | 'minion';
-    engineerRoleId?: string;
-  }>({});
-  const [baronSetupCheck, setBaronSetupCheck] = useState<{
-    recommended: { townsfolk: number; outsider: number; minion: number; demon: number; total: number };
-    current: { townsfolk: number; outsider: number; minion: number; demon: number };
-    playerCount: number;
-  } | null>(null);
-  const [ignoreBaronSetup, setIgnoreBaronSetup] = useState(false);
-  const [compositionError, setCompositionError] = useState<{
-    standard: { townsfolk: number; outsider: number; minion: number; demon: number; total: number };
-    actual: { townsfolk: number; outsider: number; minion: number; demon: number };
-    playerCount: number;
-    hasBaron: boolean;
-  } | null>(null);
-  const [showRavenkeeperResultModal, setShowRavenkeeperResultModal] = useState<{targetId: number, roleName: string, isFake: boolean} | null>(null);
-  const [showAttackBlockedModal, setShowAttackBlockedModal] = useState<{targetId: number; reason: string; demonName?: string} | null>(null); // 攻击被阻挡弹窗
-  const [showBarberSwapModal, setShowBarberSwapModal] = useState<{demonId: number; firstId: number | null; secondId: number | null} | null>(null); // 理发师交换角色弹窗
-  const [showNightDeathReportModal, setShowNightDeathReportModal] = useState<string | null>(null); // 夜晚死亡报告弹窗
-  const [voteInputValue, setVoteInputValue] = useState<string>('');
-  const [showVoteErrorToast, setShowVoteErrorToast] = useState(false);
-  const [gameRecords, setGameRecords] = useState<GameRecord[]>([]);
-  const [mayorRedirectTarget, setMayorRedirectTarget] = useState<number | null>(null); // 市长转移的目标
-  const [nightOrderPreview, setNightOrderPreview] = useState<{ roleName: string; seatNo: number; order: number }[]>([]);
-  const [pendingNightQueue, setPendingNightQueue] = useState<Seat[] | null>(null);
-  const [nightQueuePreviewTitle, setNightQueuePreviewTitle] = useState<string>(""); // 预览标题文案
-  const [firstNightOrder, setFirstNightOrder] = useState<{seatId: number; role: Role}[]>([]);
-  const [poppyGrowerDead, setPoppyGrowerDead] = useState(false); // 罂粟种植者是否已死亡
-  const [klutzChoiceTarget, setKlutzChoiceTarget] = useState<number | null>(null);
-  const [showKlutzChoiceModal, setShowKlutzChoiceModal] = useState<{sourceId: number; onResolve?: (latestSeats?: Seat[]) => void} | null>(null); // 呆瓜选择弹窗
-  const [showSweetheartDrunkModal, setShowSweetheartDrunkModal] = useState<{sourceId: number; onResolve: (latestSeats?: Seat[]) => void} | null>(null); // 心上人醉酒弹窗
-  const [showMoonchildKillModal, setShowMoonchildKillModal] = useState<{sourceId: number; onResolve: (latestSeats?: Seat[]) => void} | null>(null); // 月之子杀人弹窗
-  const [lastExecutedPlayerId, setLastExecutedPlayerId] = useState<number | null>(null); // 最后被处决的玩家ID（用于食人族）
-  const [damselGuessed, setDamselGuessed] = useState(false); // 落难少女是否已被猜测
-  const [shamanKeyword, setShamanKeyword] = useState<string | null>(null); // 灵言师的关键词
-  const [shamanTriggered, setShamanTriggered] = useState(false); // 灵言师关键词是否已触发
-  const [shamanConvertTarget, setShamanConvertTarget] = useState<number | null>(null);
-  const [spyDisguiseMode, setSpyDisguiseMode] = useState<'off' | 'default' | 'on'>('default'); // 间谍伪装干扰模式：关闭干扰、默认、开启干扰
-  const [spyDisguiseProbability, setSpyDisguiseProbability] = useState(0.8); // 间谍伪装干扰概率（默认80%）
-  const [pukkaPoisonQueue, setPukkaPoisonQueue] = useState<{ targetId: number; nightsUntilDeath: number }[]>([]); // 普卡中毒->死亡队列
-  const [poChargeState, setPoChargeState] = useState<Record<number, boolean>>({}); // 珀：是否已蓄力（上夜未杀人）
-  const [autoRedHerringInfo, setAutoRedHerringInfo] = useState<string | null>(null); // 自动分配天敌红罗剎结果提示
-  const [dayAbilityLogs, setDayAbilityLogs] = useState<{ id: number; roleId: string; text: string; day: number }[]>([]);
-  const [damselGuessUsedBy, setDamselGuessUsedBy] = useState<number[]>([]); // 已进行过落难少女猜测的爪牙ID
-
-  // 通用一次性限次能力使用记录（按角色ID+座位ID存储）
-  const [usedOnceAbilities, setUsedOnceAbilities] = useState<Record<string, number[]>>({});
-  const [usedDailyAbilities, setUsedDailyAbilities] = useState<Record<string, { day: number; seats: number[] }>>({});
-  const [nominationMap, setNominationMap] = useState<Record<number, number>>({});
-  const [balloonistKnownTypes, setBalloonistKnownTypes] = useState<Record<number, string[]>>({});
-  const [balloonistCompletedIds, setBalloonistCompletedIds] = useState<number[]>([]); // 已知完所有类型的气球驾驶员
-  // 哈迪寂亚：记录三名目标的生死选择，默认"生"
-  const [hadesiaChoices, setHadesiaChoices] = useState<Record<number, 'live' | 'die'>>({});
-  const [virginGuideInfo, setVirginGuideInfo] = useState<{
-    targetId: number;
-    nominatorId: number;
-    isFirstTime: boolean;
-    nominatorIsTownsfolk: boolean;
-  } | null>(null);
-  const [voteRecords, setVoteRecords] = useState<Array<{ voterId: number; isDemon: boolean }>>([]); // 投票记录（用于卖花女孩）
-  const [votedThisRound, setVotedThisRound] = useState<number[]>([]); // 本轮投票的玩家ID列表（用于卖花女/城镇公告员）
-  const [hasExecutedThisDay, setHasExecutedThisDay] = useState<boolean>(false); // 今日是否有人被处决（用于 Vortox）
-  // 主谋：恶魔死亡后进入“额外一天”，若该天无人处决则邪恶获胜
-  const [mastermindFinalDay, setMastermindFinalDay] = useState<{ active: boolean; triggeredAtNight: number } | null>(null);
-  const [remainingDays, setRemainingDays] = useState<number | null>(null); // 剩余日间数（evil_twin 相关）
-  const [goonDrunkedThisNight, setGoonDrunkedThisNight] = useState<boolean>(false); // 莽夫（Goon）今晚是否醉酒
-
-  // ===========================
-  //  所有 Modal 显示状态
-  // ===========================
-  const [showKillConfirmModal, setShowKillConfirmModal] = useState<number | null>(null);
-  const [showMayorRedirectModal, setShowMayorRedirectModal] = useState<{targetId: number; demonName: string} | null>(null);
-  const [showPitHagModal, setShowPitHagModal] = useState<{targetId: number | null; roleId: string | null} | null>(null);
-  const [showRangerModal, setShowRangerModal] = useState<{targetId: number; roleId: string | null} | null>(null);
-  const [showDamselGuessModal, setShowDamselGuessModal] = useState<{minionId: number | null; targetId: number | null} | null>(null);
-  const [showShamanConvertModal, setShowShamanConvertModal] = useState<boolean>(false);
-  const [showHadesiaKillConfirmModal, setShowHadesiaKillConfirmModal] = useState<number[] | null>(null);
-  const [showPoisonConfirmModal, setShowPoisonConfirmModal] = useState<number | null>(null);
-  const [showPoisonEvilConfirmModal, setShowPoisonEvilConfirmModal] = useState<number | null>(null);
-  const [showRestartConfirmModal, setShowRestartConfirmModal] = useState<boolean>(false);
-  const [showSpyDisguiseModal, setShowSpyDisguiseModal] = useState<boolean>(false);
-  const [showMayorThreeAliveModal, setShowMayorThreeAliveModal] = useState<boolean>(false);
-  const [showDrunkModal, setShowDrunkModal] = useState<number | null>(null);
-  const [showVoteInputModal, setShowVoteInputModal] = useState<number | null>(null);
-  const [showRoleSelectModal, setShowRoleSelectModal] = useState<{type: 'philosopher' | 'cerenovus' | 'pit_hag'; targetId: number; onConfirm: (roleId: string) => void} | null>(null);
-  const [showMadnessCheckModal, setShowMadnessCheckModal] = useState<{targetId: number; roleName: string; day: number} | null>(null);
-  const [showDayActionModal, setShowDayActionModal] = useState<{type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number} | null>(null);
-  const [showDayAbilityModal, setShowDayAbilityModal] = useState<{roleId: string; seatId: number} | null>(null);
-  const [showSaintExecutionConfirmModal, setShowSaintExecutionConfirmModal] = useState<{targetId: number} | null>(null);
-  const [showLunaticRpsModal, setShowLunaticRpsModal] = useState<{targetId: number; nominatorId: number | null} | null>(null);
-  const [showVirginTriggerModal, setShowVirginTriggerModal] = useState<{source: Seat; target: Seat} | null>(null);
-  const [showRavenkeeperFakeModal, setShowRavenkeeperFakeModal] = useState<number | null>(null);
-  const [showStorytellerDeathModal, setShowStorytellerDeathModal] = useState<{sourceId: number} | null>(null);
-  const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
-  const [showGameRecordsModal, setShowGameRecordsModal] = useState<boolean>(false);
-  const [showRoleInfoModal, setShowRoleInfoModal] = useState<boolean>(false);
-  const [showExecutionResultModal, setShowExecutionResultModal] = useState<{message: string; isVirginTrigger?: boolean} | null>(null);
-  const [showShootResultModal, setShowShootResultModal] = useState<{message: string; isDemonDead: boolean} | null>(null);
-  const [showNightOrderModal, setShowNightOrderModal] = useState<boolean>(false);
-  const [showFirstNightOrderModal, setShowFirstNightOrderModal] = useState<boolean>(false);
-  const [showMinionKnowDemonModal, setShowMinionKnowDemonModal] = useState<{demonSeatId: number} | null>(null);
 
   const seatsRef = useRef(seats);
   const fakeInspectionResultRef = useRef<string | null>(null);
@@ -197,32 +364,9 @@ export function useGameState() {
   const registrationCacheRef = useRef<Map<string, RegistrationResult>>(new Map()); // 同夜查验结果缓存
   const registrationCacheKeyRef = useRef<string>('');
   const introTimeoutRef = useRef<any>(null);
-  
-  // 历史记录用于"上一步"功能
-  const [history, setHistory] = useState<Array<{
-    seats: Seat[];
-    gamePhase: GamePhase;
-    nightCount: number;
-    executedPlayerId: number | null;
-    wakeQueueIds: number[];
-    currentWakeIndex: number;
-    selectedActionTargets: number[];
-    gameLogs: LogEntry[];
-    currentHint?: NightHintState; // 保存 hint 信息
-    selectedScript: Script | null; // 保存选中的剧本
-  }>>([]);
-  
-  // 提名记录：记录谁提名了谁
-  const [nominationRecords, setNominationRecords] = useState<{
-    nominators: Set<number>; // 已经提名过的玩家
-    nominees: Set<number>; // 已经被提名过的玩家
-  }>({ nominators: new Set(), nominees: new Set() });
-  
-  // 上一个黄昏的处决记录（用于送葬者）
-  const [lastDuskExecution, setLastDuskExecution] = useState<number | null>(null);
-  // 当前黄昏的处决记录（在进入新黄昏时，会更新lastDuskExecution）
-  const [currentDuskExecution, setCurrentDuskExecution] = useState<number | null>(null);
-  
+
+  // 历史记录、提名记录、处决记录已从 state 中解构
+
   // 使用ref存储最新状态，避免Hook依赖问题
   const gameStateRef = useRef({
     seats,
@@ -317,13 +461,13 @@ export function useGameState() {
     setGossipTrueTonight,
     gossipSourceSeatId,
     setGossipSourceSeatId,
-    
+
     // ===========================
     //  统一的弹窗状态
     // ===========================
     currentModal,
     setCurrentModal,
-    
+
     // ===========================
     //  保留的辅助状态（非弹窗显示状态）
     // ===========================

@@ -132,6 +132,7 @@ const initGame = (playerCount) => {
     barberDiedToday: false, // 理发师今天是否死亡
     sweetheartDiedToday: false, // 心上人今天是否死亡
     klutzDiedToday: false, // 呆瓜今天是否死亡
+    noDashiiPoisonedPlayers: [], // 诺-达鲺中毒的玩家
   };
 };
 
@@ -141,7 +142,7 @@ const initGame = (playerCount) => {
 const simulateNight = (ctx) => {
   const phaseLabel = ctx.night === 1 ? '首夜' : `第${ctx.night}夜`;
   ctx.log.push(`=== ${phaseLabel} ===`);
-  
+
   const tips = base.getStorytellerTips(ctx);
   ctx.storytellerTips.push({
     phase: ctx.phase,
@@ -188,7 +189,7 @@ const simulateNight = (ctx) => {
   }
 
   // ========== 每夜行动角色 ==========
-  
+
   // 2. 哲学家 - 每局限一次，选择一个善良角色，获得该角色的能力
   const philosophers = alive.filter((s) => s.role?.id === 'philosopher' && !s.hasUsedPhilosopherAbility);
   philosophers.forEach((phil) => {
@@ -447,13 +448,13 @@ const simulateNight = (ctx) => {
   });
 
   // ========== 恶魔行动 ==========
-  
+
   // 13. 方古 - 每夜选择一名玩家死亡，如果选择外来者且未变身，则变身
   const fangGus = base.aliveDemons(ctx).filter(d => d.role?.id === 'fang_gu');
   fangGus.forEach((fg) => {
-    const target = base.randomAlive(ctx, (t) => 
-      t.id !== fg.id && 
-      !t.isProtected && 
+    const target = base.randomAlive(ctx, (t) =>
+      t.id !== fg.id &&
+      !t.isProtected &&
       !base.hasTeaLadyProtection(t, ctx.seats)
     );
     if (target) {
@@ -492,9 +493,9 @@ const simulateNight = (ctx) => {
   // 14. 亡骨魔 - 每夜选择一名玩家死亡，如果是爪牙则保留能力，邻近的镇民之一中毒
   const vigormortises = base.aliveDemons(ctx).filter(d => d.role?.id === 'vigormortis');
   vigormortises.forEach((vm) => {
-    const target = base.randomAlive(ctx, (t) => 
-      t.id !== vm.id && 
-      !t.isProtected && 
+    const target = base.randomAlive(ctx, (t) =>
+      t.id !== vm.id &&
+      !t.isProtected &&
       !base.hasTeaLadyProtection(t, ctx.seats)
     );
     if (target) {
@@ -534,9 +535,9 @@ const simulateNight = (ctx) => {
   // 15. 诺-达鲺 - 每夜选择一名玩家死亡，该玩家中毒
   const noDashiis = base.aliveDemons(ctx).filter(d => d.role?.id === 'no_dashii');
   noDashiis.forEach((nd) => {
-    const target = base.randomAlive(ctx, (t) => 
-      t.id !== nd.id && 
-      !t.isProtected && 
+    const target = base.randomAlive(ctx, (t) =>
+      t.id !== nd.id &&
+      !t.isProtected &&
       !base.hasTeaLadyProtection(t, ctx.seats)
     );
     if (target) {
@@ -557,9 +558,9 @@ const simulateNight = (ctx) => {
   // 16. 涡流 - 每夜选择一名玩家死亡，所有信息都是错误的
   const vortoxes = base.aliveDemons(ctx).filter(d => d.role?.id === 'vortox');
   vortoxes.forEach((v) => {
-    const target = base.randomAlive(ctx, (t) => 
-      t.id !== v.id && 
-      !t.isProtected && 
+    const target = base.randomAlive(ctx, (t) =>
+      t.id !== v.id &&
+      !t.isProtected &&
       !base.hasTeaLadyProtection(t, ctx.seats)
     );
     if (target) {
@@ -581,7 +582,7 @@ const simulateNight = (ctx) => {
     demons.forEach((d) => {
       // 30%概率使用能力
       if (base.randomFloat() < 0.3) {
-        const targets = base.randomAliveMultiple(ctx, 2, (t) => 
+        const targets = base.randomAliveMultiple(ctx, 2, (t) =>
           t.id !== d.id && t.role?.type !== 'demon'
         );
         if (targets.length === 2) {
@@ -619,9 +620,9 @@ const simulateNight = (ctx) => {
   }
 
   // 19. 检查贤者死亡 - 如果恶魔杀死了贤者，贤者得知两名玩家，其中一名是杀死他的恶魔
-  const deadSages = ctx.seats.filter(s => 
-    s.role?.id === 'sage' && 
-    s.isDead && 
+  const deadSages = ctx.seats.filter(s =>
+    s.role?.id === 'sage' &&
+    s.isDead &&
     deadThisNight.includes(s.id)
   );
   deadSages.forEach((sage) => {
@@ -668,7 +669,7 @@ const simulateNight = (ctx) => {
 const simulateDay = (ctx) => {
   const label = `第${ctx.day}天白天`;
   ctx.log.push(`=== ${label} ===`);
-  
+
   ctx.phase = 'day';
   const tips = base.getStorytellerTips(ctx);
   ctx.storytellerTips.push({
@@ -690,7 +691,7 @@ const simulateDay = (ctx) => {
   const actionOrder = [];
 
   // ========== 白天能力 ==========
-  
+
   // 1. 博学者 - 每个白天可以私下询问说书人以得知两条信息：一个是正确的，一个是错误的
   const savants = alive.filter((s) => s.role?.id === 'savant');
   savants.forEach((savant) => {
@@ -758,7 +759,7 @@ const simulateDay = (ctx) => {
   }
 
   // ========== 提名和投票 ==========
-  
+
   // 随机提名和投票（积极但随意）
   const proposer = alive[base.randomInt(0, alive.length - 1)];
   let target = proposer;
@@ -779,9 +780,9 @@ const simulateDay = (ctx) => {
   const needed = Math.floor(alive.length / 2) + 1;
 
   const executed = votes >= needed;
-  
+
   ctx.nominationMap[target.id] = proposer.id;
-  
+
   actionOrder.push({
     actor: `${proposer.id + 1}号-${proposer.role.name}`,
     action: '提名',
@@ -840,7 +841,7 @@ const simulateDay = (ctx) => {
     target.isDead = true;
     target.hasBeenNominated = true;
     ctx.executedToday = target.id;
-    
+
     ctx.modals.push({
       phase: ctx.phase,
       day: ctx.day,
@@ -848,7 +849,7 @@ const simulateDay = (ctx) => {
       type: 'EXECUTION_RESULT',
       data: `玩家${target.id + 1}号-${target.role.name}被处决`,
     });
-    
+
     ctx.log.push(
       `[提名] 玩家${proposer.id + 1}-${proposer.role.name} 提名 玩家${target.id + 1}-${target.role.name} | 票数 ${votes}/${alive.length} (需要 ${needed}) | 处决`
     );
@@ -880,7 +881,7 @@ const simulateDay = (ctx) => {
 const simulateGame = (gameNumber, maxRounds = 50) => {
   const playerCount = base.randomInt(9, 15);
   const ctx = initGame(playerCount);
-  
+
   ctx.log.push(`[初始化] 游戏 #${gameNumber} - 玩家数 ${ctx.seats.length}，阵容建议 ${JSON.stringify(ctx.preset)}`);
   ctx.log.push('[身份分配] ' + ctx.seats.map((s) => `${s.id + 1}:${s.role.name}`).join(' | '));
 
@@ -888,14 +889,14 @@ const simulateGame = (gameNumber, maxRounds = 50) => {
 
   let rounds = 0;
   let ended = false;
-  
+
   while (!ended && rounds < maxRounds) {
     ended = simulateNight(ctx);
     if (ended) break;
     ended = simulateDay(ctx);
     rounds += 1;
   }
-  
+
   if (!ended) {
     ctx.winner = '未结束/超时';
     ctx.log.push('[结算] 超过最大回合，强制终止');
@@ -914,23 +915,23 @@ const main = () => {
   if (cleanupResult.deleted > 0) {
     console.log(`已删除 ${cleanupResult.deleted} 个旧文件\n`);
   }
-  
+
   console.log('开始运行100次梦殒春宵游戏模拟测试...\n');
-  
+
   const results = [];
   const logDir = path.join(__dirname, 'simulation_logs', 'sects_violets');
-  
+
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
   }
 
   const startTime = Date.now();
-  
+
   for (let i = 1; i <= 100; i++) {
     const gameStart = Date.now();
     const gameResult = simulateGame(i);
     const gameDuration = ((Date.now() - gameStart) / 1000).toFixed(2);
-    
+
     results.push({
       gameNumber: i,
       playerCount: gameResult.seats.length,
@@ -945,7 +946,7 @@ const main = () => {
     fs.writeFileSync(logFile, detailedLog, 'utf8');
 
     console.log(`游戏 #${i}: ${gameResult.seats.length}人, ${gameResult.day - 1}天/${gameResult.night - 1}夜, 胜者: ${gameResult.winner}, 耗时: ${gameDuration}s`);
-    
+
     if (i % 10 === 0) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
       console.log(`\n进度: ${i}/100 (${elapsed}s)\n`);
@@ -953,7 +954,7 @@ const main = () => {
   }
 
   const totalDuration = ((Date.now() - startTime) / 1000).toFixed(2);
-  
+
   const summary = [];
   summary.push('='.repeat(80));
   summary.push('梦殒春宵游戏模拟测试汇总报告');
@@ -962,44 +963,44 @@ const main = () => {
   summary.push(`总测试次数: 100`);
   summary.push(`总耗时: ${totalDuration}秒`);
   summary.push('');
-  
+
   const winners = {};
   results.forEach(r => {
     winners[r.winner] = (winners[r.winner] || 0) + 1;
   });
-  
+
   summary.push('胜负统计:');
   Object.entries(winners).forEach(([winner, count]) => {
     summary.push(`  ${winner}: ${count}次 (${(count / 100 * 100).toFixed(1)}%)`);
   });
   summary.push('');
-  
+
   const playerCounts = {};
   results.forEach(r => {
     playerCounts[r.playerCount] = (playerCounts[r.playerCount] || 0) + 1;
   });
-  
+
   summary.push('玩家数量分布:');
   Object.entries(playerCounts).sort((a, b) => a[0] - b[0]).forEach(([count, num]) => {
     summary.push(`  ${count}人: ${num}次`);
   });
   summary.push('');
-  
+
   const avgDays = (results.reduce((sum, r) => sum + r.days, 0) / results.length).toFixed(2);
   const avgNights = (results.reduce((sum, r) => sum + r.nights, 0) / results.length).toFixed(2);
-  
+
   summary.push(`平均游戏天数: ${avgDays}天`);
   summary.push(`平均游戏夜数: ${avgNights}夜`);
   summary.push('');
   summary.push('详细日志文件保存在: tests/simulation_logs/sects_violets/');
   summary.push('');
-  
+
   const summaryText = summary.join('\n');
   console.log('\n' + summaryText);
-  
+
   const summaryFile = path.join(logDir, 'summary.txt');
   fs.writeFileSync(summaryFile, summaryText, 'utf8');
-  
+
   console.log(`\n汇总报告已保存到: ${summaryFile}`);
   console.log('测试完成！');
 };
@@ -1008,10 +1009,10 @@ const main = () => {
 describe('梦殒春宵完整游戏模拟测试系统', () => {
   test('运行100次模拟游戏对局并生成详细日志', () => {
     main();
-    
+
     const logDir = path.join(__dirname, 'simulation_logs', 'sects_violets');
     expect(fs.existsSync(logDir)).toBe(true);
-    
+
     const summaryFile = path.join(logDir, 'summary.txt');
     expect(fs.existsSync(summaryFile)).toBe(true);
   }, 300000);
