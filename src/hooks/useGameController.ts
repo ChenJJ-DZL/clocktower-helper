@@ -980,6 +980,7 @@ export function useGameController() {
 
   // 交互域需要使用的延迟绑定函数，避免 TDZ
   const continueToNextActionRef = useRef<(() => void) | null>(null);
+  const processingRef = useRef(false); // Flag to prevent race conditions during async transitions
   const interactionContinueToNextAction = useCallback(() => {
     continueToNextActionRef.current?.();
   }, []);
@@ -1346,6 +1347,16 @@ export function useGameController() {
   // CRITICAL FIX: handleConfirmActionImpl moved here to access continueToNextAction directly
   // ============================================================================
   const handleConfirmActionImpl = useCallback((explicitSelectedTargets?: number[]) => {
+    if (processingRef.current) {
+      console.warn("[Controller] Blocked handleConfirmActionImpl: Processing in progress");
+      return;
+    }
+    // Block if a blocking modal is open (Double check to prevent confused state)
+    if (currentModal && currentModal.type === 'POISON_CONFIRM') {
+      console.warn("[Controller] Blocked handleConfirmActionImpl: Poison modal is already open");
+      return;
+    }
+
     console.log("[Controller] handleConfirmActionImpl called (Direct)", {
       explicitTargets: explicitSelectedTargets,
       stateTargets: selectedActionTargets
@@ -3198,18 +3209,33 @@ export function useGameController() {
   }, [saveHistory, seats, setCurrentModal, getAliveNeighbors, isGoodAlignment, executePlayer, addLog]);
 
   // Confirm poison handler
-  // 重构：使用 roleActionHandlers 的执行逻辑，职责分离
   const confirmPoison = useCallback(() => {
     if (!nightInfo || currentModal?.type !== 'POISON_CONFIRM') return;
+
+    // Debounce/Race prevention
+    if (processingRef.current) return;
+    processingRef.current = true;
+
     const targetId = currentModal.data.targetId;
+
+    // Force cleanup UI state immediately
+    setCurrentModal(null);
+    setSelectedActionTargets([]);
+
+    const delayedContinue = () => {
+      setTimeout(() => {
+        continueToNextAction();
+        processingRef.current = false;
+      }, 50);
+    };
 
     executePoisonAction(targetId, false, {
       nightInfo,
       seats,
       setSeats,
-      setCurrentModal,
-      setSelectedActionTargets,
-      continueToNextAction,
+      setCurrentModal: () => { }, // No-op as we handled it
+      setSelectedActionTargets: () => { }, // No-op as we handled it
+      continueToNextAction: delayedContinue,
       isActorDisabledByPoisonOrDrunk,
       addLogWithDeduplication,
       addPoisonMark,
@@ -3218,18 +3244,31 @@ export function useGameController() {
   }, [currentModal, nightInfo, seats, setSeats, setCurrentModal, setSelectedActionTargets, continueToNextAction, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, addPoisonMark, computeIsPoisoned, executePoisonAction]);
 
   // Confirm poison evil handler
-  // 重构：使用 roleActionHandlers 的执行逻辑，职责分离
   const confirmPoisonEvil = useCallback(() => {
     if (!nightInfo || currentModal?.type !== 'POISON_EVIL_CONFIRM') return;
+
+    if (processingRef.current) return;
+    processingRef.current = true;
+
     const targetId = currentModal.data.targetId;
+
+    setCurrentModal(null);
+    setSelectedActionTargets([]);
+
+    const delayedContinue = () => {
+      setTimeout(() => {
+        continueToNextAction();
+        processingRef.current = false;
+      }, 50);
+    };
 
     executePoisonAction(targetId, true, {
       nightInfo,
       seats,
       setSeats,
-      setCurrentModal,
-      setSelectedActionTargets,
-      continueToNextAction,
+      setCurrentModal: () => { },
+      setSelectedActionTargets: () => { },
+      continueToNextAction: delayedContinue,
       isActorDisabledByPoisonOrDrunk,
       addLogWithDeduplication,
       addPoisonMark,
