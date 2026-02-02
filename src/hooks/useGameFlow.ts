@@ -302,8 +302,13 @@ export function useGameFlow(): UseGameFlowResult {
       // 修复：酒鬼的伪装身份只能从当前剧本中不在场的镇民中选择
       const availableCharades = r.filter(role =>
         role.type === 'townsfolk' &&
-        role.script === selectedScript?.name &&
-        !seats.some(s => s.role?.id === role.id)
+        !role.hidden && // Exclude hidden/experimental roles
+        (
+          (!role.script && selectedScript?.id === 'trouble_brewing') || // Trouble Brewing roles often have no script property
+          role.script === selectedScript?.name || // Match script name
+          (selectedScript?.id === 'trouble_brewing' && role.script === 'trouble_brewing') // Explicit match
+        ) &&
+        !seats.some(s => s.role?.id === role.id) // Cannot equal any role already in play
       );
 
       dispatch(gameActions.setModal({

@@ -80,30 +80,30 @@ export function RoundTable({
     const updateLayout = () => {
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
-      
+
       // Base resolution: 1600x900
       // Left panel takes remaining space after 450px right panel = ~1150px width
       // Use the smaller dimension to ensure it fits
       const minDimension = Math.min(containerWidth, containerHeight);
-      
+
       // Seat size: 112px (7rem = w-28 h-28) for "Big Seat" mode - touch-friendly
       const seatSizePx = 112;
-      
+
       // Padding: 50px on each side (increased to account for larger seats)
       const padding = 50;
-      
+
       // Calculate available space
       const availableSize = minDimension - (padding * 2);
-      
+
       // Calculate radius: (availableSize / 2) - (seatSize / 2) - some margin
       // Convert to percentage for the 100x100 coordinate system
       // Reduced margin to ensure seats don't get cut off
       const availableRadius = (availableSize / 2) - (seatSizePx / 2) - 15; // 15px margin
       const radiusPercent = (availableRadius / minDimension) * 100;
-      
+
       // Ensure radius is reasonable (between 20% and 35% - reduced to fit larger seats)
       const clampedRadius = Math.max(20, Math.min(35, radiusPercent));
-      
+
       setRadius(clampedRadius);
       setSeatSize(seatSizePx);
     };
@@ -127,12 +127,12 @@ export function RoundTable({
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="relative w-full h-full flex items-center justify-center overflow-hidden"
     >
       {/* Top-right: Night order panel */}
-      <div className="absolute top-3 right-3 z-40 w-[280px] max-w-[40vw] pointer-events-auto">
+      <div className="absolute top-3 right-3 z-40 w-[200px] max-w-[30vw] pointer-events-auto">
         <div className="rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md shadow-xl overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
             <div className="text-xs font-bold text-slate-200">夜晚行动顺序</div>
@@ -145,7 +145,7 @@ export function RoundTable({
               展开
             </button>
           </div>
-          <div className="max-h-[220px] overflow-auto px-3 py-2 space-y-2">
+          <div className="max-h-[180px] overflow-auto px-3 py-2 space-y-2">
             {nightOrderPreview.length === 0 ? (
               <div className="text-xs text-slate-400">暂无（未生成顺序或不在夜晚阶段）</div>
             ) : (
@@ -163,7 +163,7 @@ export function RoundTable({
       </div>
 
       {/* Decorative table ring - REMOVED borders per requirements */}
-      
+
       {/* Subtle background circle for table surface - REMOVED borders per requirements */}
 
       {/* Seats container */}

@@ -31,7 +31,7 @@ export interface UseInteractionHandlerResult {
  */
 export function useInteractionHandler(deps: {
   getRoleTargetCount: (roleId: string, isFirstNight: boolean) => { min: number; max: number } | null;
-  handleConfirmActionImpl?: () => void;
+  handleConfirmActionImpl?: (explicitSelectedTargets?: number[]) => void;
   [key: string]: any;
 }): UseInteractionHandlerResult {
   const { state, dispatch } = useGameContext();
@@ -40,6 +40,41 @@ export function useInteractionHandler(deps: {
     selectedActionTargets, nightCount, contextMenu, currentModal,
     isVortoxWorld, nightActionQueue
   } = state;
+
+  // ... (toggleTarget and handleSeatClick unchanged) ...
+
+  // To preserve context of unchanged code without repeating huge blocks, I assume replace_file_content will handle the block correctly if I include enough context or use multi_replace.
+  // Actually, I should use multi_replace or carefully targeted replace.
+  // I'll target the interface definition and the call site separately or in one block if close enough.
+  // They are far apart (lines 34 and 148). I'll use multi_replace_file_content.
+  // Wait, I am using replace_file_content. I should use multi_replace_file_content for non-contiguous edits.
+  // I will switch to multi_replace_file_content.
+
+  const toggleTarget = useCallback((targetId: number) => {
+    const nightInfo = nightActionQueue[currentWakeIndex];
+    if (!nightInfo) return;
+
+    const isFirstNight = gamePhase === 'firstNight';
+    // 这里暂时依赖外部传入的 getRoleTargetCount，后续可移入 roles/index.ts
+    const targetCount = deps.getRoleTargetCount(nightInfo.role?.id || '', isFirstNight);
+    const maxTargets = targetCount?.max ?? 1;
+
+    let newTargets = [...selectedActionTargets];
+    if (newTargets.includes(targetId)) {
+      newTargets = newTargets.filter(t => t !== targetId);
+    } else {
+      if (maxTargets === 1) {
+        newTargets = [targetId];
+      } else {
+        if (newTargets.length >= maxTargets) {
+          newTargets.shift();
+        }
+        newTargets.push(targetId);
+      }
+    }
+
+    dispatch(gameActions.setSelectedTargets(newTargets));
+  }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, seats, isVortoxWorld, dispatch, deps]);
 
   const handleSeatClick = useCallback((id: number, _options?: { force?: boolean }) => {
     if (gamePhase === 'setup' || gamePhase === 'scriptSelection') {
@@ -69,77 +104,39 @@ export function useInteractionHandler(deps: {
       } else {
         dispatch(gameActions.updateSeat(id, { role: null }));
       }
+    } else if (gamePhase === 'firstNight' || gamePhase === 'night') {
+      toggleTarget(id);
     }
-  }, [gamePhase, selectedRole, seats, dispatch]);
-
-  const toggleTarget = useCallback((targetId: number) => {
-    const nightInfo = nightActionQueue[currentWakeIndex];
-    if (!nightInfo) return;
-
-    const isFirstNight = gamePhase === 'firstNight';
-    // 这里暂时依赖外部传入的 getRoleTargetCount，后续可移入 roles/index.ts
-    const targetCount = deps.getRoleTargetCount(nightInfo.role?.id || '', isFirstNight);
-    const maxTargets = targetCount?.max ?? 1;
-
-    let newTargets = [...selectedActionTargets];
-    if (newTargets.includes(targetId)) {
-      newTargets = newTargets.filter(t => t !== targetId);
-    } else {
-      if (maxTargets === 1) {
-        newTargets = [targetId];
-      } else {
-        if (newTargets.length >= maxTargets) {
-          newTargets.shift();
-        }
-        newTargets.push(targetId);
-      }
-    }
-
-    dispatch(gameActions.setSelectedTargets(newTargets));
-
-    // 特殊逻辑：占卜师即时反馈
-    if (nightInfo.role?.id === 'fortune_teller' && newTargets.length === 2) {
-      const [aId, bId] = newTargets;
-      const a = seats.find(s => s.id === aId);
-      const b = seats.find(s => s.id === bId);
-      if (a && b) {
-        // 简化版判定逻辑，核心逻辑应在 verify 阶段
-        const hasDemon = a.role?.type === 'demon' || b.role?.type === 'demon' || a.isDemonSuccessor || b.isDemonSuccessor;
-        const hasRedHerring = a.isRedHerring || b.isRedHerring;
-        const isYes = hasDemon || (!isVortoxWorld && hasRedHerring);
-        const text = isYes ? '是' : '否';
-        dispatch(gameActions.setInspectionResult(text));
-      }
-    }
-  }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, seats, isVortoxWorld, dispatch, deps]);
+  }, [gamePhase, selectedRole, seats, dispatch, toggleTarget]);
 
   const isTargetDisabled = useCallback((_seat: Seat) => false, []);
 
   const handleConfirmAction = useCallback(() => {
     const nightInfo = nightActionQueue[currentWakeIndex];
-    console.log("[Interaction] Confirm clicked.", {
-      hasNightInfo: !!nightInfo,
-      currentModalType: currentModal?.type,
-      currentWakeIndex
-    });
 
     if (!nightInfo) return;
 
-    // 如果当前有弹窗，不处理确认
+    // 如果当前有弹窗，且不是允许的操作类弹窗（例如夜序浏览），则阻止确认
+    // CRITICAL FIX: Don't block if the modal is just informational (Review, Logs, Role Info, Night Order)
     if (currentModal) {
-      console.warn("[Interaction] Confirm blocked by modal:", currentModal.type);
-      return;
+      const isNonBlockingModal =
+        currentModal.type === 'NIGHT_ORDER_PREVIEW' ||
+        currentModal.type === 'REVIEW' ||
+        currentModal.type === 'GAME_RECORDS' ||
+        currentModal.type === 'ROLE_INFO';
+
+      if (!isNonBlockingModal) {
+        return;
+      }
     }
 
     // 调用外部传入的确认逻辑（暂时保持，因为这涉及到复杂的角色能力处理器）
     if (deps.handleConfirmActionImpl) {
-      console.log("[Interaction] Delegating to handleConfirmActionImpl");
-      deps.handleConfirmActionImpl();
+      deps.handleConfirmActionImpl(selectedActionTargets);
     } else {
-      console.log("[Interaction] Dispatching nextNightAction directly");
       dispatch(gameActions.nextNightAction());
     }
-  }, [nightActionQueue, currentWakeIndex, currentModal, dispatch, deps]);
+  }, [nightActionQueue, currentWakeIndex, currentModal, dispatch, deps, selectedActionTargets]);
 
   const handleMenuAction = useCallback((action: string) => {
     const seatId = contextMenu?.seatId;

@@ -22,14 +22,15 @@ export function ModalWrapper({
   closeOnOverlayClick = true,
   className = "",
 }: ModalWrapperProps) {
+  // CRITICAL: Use ref to ensure key remains stable across renders
+  // MOVED TO TOP to avoid "Rendered more hooks" error if early return happens
+  const portalKeyRef = React.useRef(`modal-${title}-${Date.now()}`);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     console.log('[ModalWrapper] Mounted, title:', title);
-    console.log('[ModalWrapper] document.body:', document.body);
-    console.log('[ModalWrapper] document.body.children.length:', document.body?.children?.length);
-    
+    // ... (rest of logging)
     // Verify portal target exists
     if (document.body) {
       console.log('[ModalWrapper] ✅ Portal target (document.body) is available');
@@ -38,6 +39,7 @@ export function ModalWrapper({
     }
   }, [title]);
 
+
   if (typeof document === "undefined" || !mounted) {
     console.log('[ModalWrapper] Not mounted yet or no document');
     return null;
@@ -45,21 +47,25 @@ export function ModalWrapper({
 
   console.log('[ModalWrapper] Rendering portal for:', title);
   console.log('[ModalWrapper] document.body exists:', !!document.body);
-  
+
   if (!document.body) {
     console.error('[ModalWrapper] document.body is not available!');
     return null;
   }
-  
-  // CRITICAL: Add data attribute for debugging
-  const portalKey = `modal-${title}-${Date.now()}`;
-  console.log('[ModalWrapper] Creating portal with key:', portalKey);
-  
+
+  // Use ref to ensure key remains stable across renders
+  const portalKey = portalKeyRef.current;
+
+  if (mounted && document.body) {
+    // Only log occasionally or on mount to reduce noise
+    // console.log('[ModalWrapper] Portal key:', portalKey);
+  }
+
   return createPortal(
     <div
       data-modal-key={portalKey}
       className="fixed inset-0 flex items-center justify-center bg-black/50 pointer-events-auto"
-      style={{ 
+      style={{
         zIndex: 2147483647,
         position: 'fixed',
         top: 0,
@@ -119,7 +125,7 @@ export function ModalWrapper({
         </div>
 
         {/* 2. 内容区 (可滚动) */}
-        <div 
+        <div
           className="flex-1 overflow-y-auto p-6 space-y-4"
           style={{
             maxHeight: 'calc(90vh - 8rem)', // 减去标题栏和底部按钮的高度
@@ -131,7 +137,7 @@ export function ModalWrapper({
 
         {/* 3. 底部按钮区 (固定) */}
         {footer && (
-          <div 
+          <div
             className="p-4 border-t border-white/10 bg-slate-950/50 shrink-0 flex flex-wrap justify-end gap-3"
             style={{
               minHeight: '4rem', // 确保按钮区域有足够高度

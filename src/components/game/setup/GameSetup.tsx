@@ -168,7 +168,7 @@ export default function GameSetup({
           <h3 className="text-lg font-bold text-slate-300">游戏人数</h3>
           <div className="flex items-baseline gap-3">
             <div className="text-4xl font-black text-slate-50">
-                  {playerCount}
+              {playerCount}
             </div>
             <div className="text-base text-slate-400">
               / {seats.length} 已分配角色
@@ -176,8 +176,8 @@ export default function GameSetup({
           </div>
           <div className="text-sm text-slate-500">
             点击座位并为每位玩家选择角色后即可开始
-              </div>
-            </div>
+          </div>
+        </div>
 
         {/* Current Configuration - Single Row */}
         <div className="space-y-2">
@@ -237,62 +237,60 @@ export default function GameSetup({
         )}
 
         <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-300">角色列表</h3>
-            <div className="text-sm text-slate-500 mb-3">点击卡片选择角色，已被选择的卡片将变灰</div>
+          <h3 className="text-lg font-bold text-slate-300">角色列表</h3>
+          <div className="text-sm text-slate-500 mb-3">点击卡片选择角色，已被选择的卡片将变灰</div>
 
-            <div className="space-y-4">
-              {Object.entries(filteredGroupedRoles).map(([type, list]) => (
-                <div key={type} className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-lg font-bold text-slate-100">{groupTitle[type] || type}</div>
-                    <div className="text-sm text-slate-500">共 {list.length} 位角色</div>
-                  </div>
-                  <div className="grid gap-3 grid-cols-2">
-                    {list.map((r, index) => {
-                      const isTaken = seats.some((s) => s.role?.id === r.id);
-                      return (
-                        <button
-                          key={`${type}-${r.id}-${index}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isTaken) setSelectedRole(r);
-                          }}
-                          className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${
-                            isTaken
-                              ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
-                              : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
-                          } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
-                          title={r.ability || r.name}
-                        >
-                          <div className="relative h-full flex flex-col items-center justify-center px-3 leading-tight py-2">
-                            <span className="text-sm font-bold text-slate-50 whitespace-nowrap">{r.name}</span>
-                            <span className="text-xs text-white/60 uppercase tracking-wide mt-1">
-                              {r.id.replace(/_/g, ' ')}
-                            </span>
-                            {isTaken && (
-                              <div className="absolute top-1 right-2 text-xs text-amber-200">✓</div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+          <div className="space-y-4">
+            {Object.entries(filteredGroupedRoles).map(([type, list]) => (
+              <div key={type} className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-lg font-bold text-slate-100">{groupTitle[type] || type}</div>
+                  <div className="text-sm text-slate-500">共 {list.length} 位角色</div>
                 </div>
-              ))}
-            </div>
+                <div className="grid gap-3 grid-cols-2">
+                  {list.map((r, index) => {
+                    const isTaken = seats.some((s) => s.role?.id === r.id);
+                    return (
+                      <button
+                        key={`${type}-${r.id}-${index}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isTaken) setSelectedRole(r);
+                        }}
+                        className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${isTaken
+                            ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                            : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
+                          } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
+                        title={r.ability || r.name}
+                      >
+                        <div className="relative h-full flex flex-col items-center justify-center px-3 leading-tight py-2">
+                          <span className="text-sm font-bold text-slate-50 whitespace-nowrap">{r.name}</span>
+                          <span className="text-xs text-white/60 uppercase tracking-wide mt-1">
+                            {r.id.replace(/_/g, ' ')}
+                          </span>
+                          {isTaken && (
+                            <div className="absolute top-1 right-2 text-xs text-amber-200">✓</div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
 
       {/* Fixed footer with Start Game button */}
       <div className="shrink-0 border-t border-white/10 bg-slate-900/95 px-6 py-5">
         <button
           onClick={handleAttemptStartGame}
           disabled={activeSeats.length === 0}
-          className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${
-            canStart
+          className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${canStart
               ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
               : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
-          } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+            } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           开始游戏
         </button>
@@ -332,7 +330,7 @@ export default function GameSetup({
                 onClick={handleCloseCompositionModal}
                 className="w-full rounded-xl border border-white/20 bg-slate-800 text-slate-100 font-bold py-3 hover:bg-slate-700 transition"
               >
-                我知道了
+                返回修改
               </button>
             </div>
           </div>

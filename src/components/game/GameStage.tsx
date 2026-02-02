@@ -51,7 +51,7 @@ export function GameStage({ controller }: { controller: any }) {
     autoRedHerringInfo,
     selectedRole,
     setSelectedRole,
-    
+
     // refs
     seatContainerRef,
     seatRefs,
@@ -61,7 +61,7 @@ export function GameStage({ controller }: { controller: any }) {
     longPressTimerRef,
     longPressTriggeredRef,
     checkLongPressTimerRef,
-    
+
     // setters
     currentModal,
     setCurrentModal,
@@ -81,7 +81,7 @@ export function GameStage({ controller }: { controller: any }) {
     setSeats,
     setGamePhase,
     setShowSpyDisguiseModal,
-    
+
     // 方法
     saveHistory,
     hasUsedAbility,
@@ -121,7 +121,7 @@ export function GameStage({ controller }: { controller: any }) {
     checkGameOverSimple,
     registerVotes,
     votedThisRound,
-    
+
     // Modal states for isConfirmDisabled check
     showKillConfirmModal,
     showPoisonConfirmModal,
@@ -145,7 +145,7 @@ export function GameStage({ controller }: { controller: any }) {
     // 同步到全局规则层；null 表示按灯神检测，这里明确使用布尔值
     setAntagonismGlobalOverride(antagonismEnabled);
   }, [antagonismEnabled]);
-  
+
   // Dusk Phase: Nomination state
   const [nominator, setNominator] = useState<number | null>(null);
   const [nominee, setNominee] = useState<number | null>(null);
@@ -238,7 +238,7 @@ export function GameStage({ controller }: { controller: any }) {
     }
     lastModalTypeRef.current = currType;
   }, [gamePhase, currentModal, pendingVoteFor]);
-  
+
   useEffect(() => {
     const updateSeatScale = () => {
       if (!leftPanelRef.current) return;
@@ -265,18 +265,26 @@ export function GameStage({ controller }: { controller: any }) {
       console.log('[GameStage] isConfirmDisabled (final - check phase) - returning:', finalDisabledState);
       return finalDisabledState;
     }
-    
+
     // For night phases, must have nightInfo
     if (!nightInfo) {
       const finalDisabledState = true; // If no nightInfo, always disabled for night phases
       console.log('[GameStage] isConfirmDisabled (final - no nightInfo) - returning:', finalDisabledState);
       return finalDisabledState;
     }
-    
+
     // CRITICAL FIX: Disable button if there are pending confirmation modals
     // This prevents users from clicking "Next" when they need to confirm an action first
-    // EXCEPTION: For poisoner, if modal is set but not visible, allow bypass after 2 seconds
-    const hasPendingModals = 
+    // EXCEPTION: Informational modals (Night Order Preview, Review, Records, Role Info) should NOT disable the button
+    const isBlockingModal = currentModal && !(
+      currentModal.type === 'NIGHT_ORDER_PREVIEW' ||
+      currentModal.type === 'REVIEW' ||
+      currentModal.type === 'GAME_RECORDS' ||
+      currentModal.type === 'ROLE_INFO'
+    );
+
+    const hasPendingModals =
+      isBlockingModal ||
       showKillConfirmModal !== null ||
       (showPoisonConfirmModal !== null) ||
       showPoisonEvilConfirmModal !== null ||
@@ -288,16 +296,16 @@ export function GameStage({ controller }: { controller: any }) {
       showSweetheartDrunkModal !== null ||
       showKlutzChoiceModal !== null ||
       showPitHagModal !== null;
-    
+
     // 重构：移除 DOM 检测逻辑，直接检查状态
     // 如果有待确认的弹窗，禁用确认按钮
     if (hasPendingModals) {
-      console.log('[isConfirmDisabled] Has pending modals, returning true.');
+      console.log('[isConfirmDisabled] Has pending modals, returning true.', { currentModalType: currentModal?.type });
       const finalDisabledState = true; // If pending modals, always disabled
       console.log('[GameStage] isConfirmDisabled (final - pending modals) - returning:', finalDisabledState);
       return finalDisabledState;
     }
-    
+
     const finalDisabledState = false; // Default to false if no other conditions met for night phases
     console.log('[GameStage] isConfirmDisabled (final - default) - returning:', finalDisabledState);
     return finalDisabledState;
@@ -305,6 +313,7 @@ export function GameStage({ controller }: { controller: any }) {
     gamePhase,
     seats,
     nightInfo,
+    currentModal,
     showKillConfirmModal,
     showPoisonConfirmModal,
     showPoisonEvilConfirmModal,
@@ -437,13 +446,13 @@ export function GameStage({ controller }: { controller: any }) {
                 onTimerReset={controller.handleTimerReset}
               />
             </ScaleToFit>
-            
+
             {/* Overlay Instruction */}
             <div className="absolute top-4 left-0 right-0 text-center text-orange-500 font-bold text-lg drop-shadow-lg z-30">
-              {nominator === null 
-                ? "点击选择 提名者" 
-                : (nominee === null 
-                  ? `已选择提名者: ${nominator + 1}号，点击选择 被提名者` 
+              {nominator === null
+                ? "点击选择 提名者"
+                : (nominee === null
+                  ? `已选择提名者: ${nominator + 1}号，点击选择 被提名者`
                   : `准备提名: ${nominator + 1}号 → ${nominee + 1}号`)}
             </div>
           </div>
@@ -462,7 +471,7 @@ export function GameStage({ controller }: { controller: any }) {
                 规则映射：取消倒计时，不自动锁定提名。说书人可随时点击「开始投票」。
               </div>
             </div>
-            
+
             {/* Selection Display */}
             <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
               <div className="flex justify-between items-center">
@@ -561,11 +570,10 @@ export function GameStage({ controller }: { controller: any }) {
                       {candidates.map(c => (
                         <div
                           key={c.id}
-                          className={`flex justify-between text-sm rounded px-2 py-1 border ${
-                            c.voteCount === topVotes
-                              ? (isTie ? 'border-yellow-500/60 bg-yellow-900/20 text-yellow-100' : 'border-red-500/60 bg-red-900/20 text-red-100')
-                              : 'border-white/10 bg-slate-900/40 text-slate-200'
-                          }`}
+                          className={`flex justify-between text-sm rounded px-2 py-1 border ${c.voteCount === topVotes
+                            ? (isTie ? 'border-yellow-500/60 bg-yellow-900/20 text-yellow-100' : 'border-red-500/60 bg-red-900/20 text-red-100')
+                            : 'border-white/10 bg-slate-900/40 text-slate-200'
+                            }`}
                         >
                           <span>{c.id + 1}号</span>
                           <span className="font-mono font-bold">{c.voteCount}</span>
@@ -605,7 +613,7 @@ export function GameStage({ controller }: { controller: any }) {
                 </button>
               )}
 
-              <button 
+              <button
                 type="button"
                 disabled={isNominationLocked}
                 onClick={(e) => {
@@ -682,10 +690,10 @@ export function GameStage({ controller }: { controller: any }) {
               >
                 🗳️ 开始投票（打开举手名单面板）
               </button>
-              
+
               <div className="h-px bg-white/10 my-2"></div>
 
-              <button 
+              <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -721,7 +729,7 @@ export function GameStage({ controller }: { controller: any }) {
             </div>
 
             <div className="mt-auto pt-4 border-t border-white/10">
-              <button 
+              <button
                 onClick={() => {
                   const hasPendingVote = pendingVoteFor !== null;
                   const hasCandidates = seats.some((s: Seat) => s.isCandidate);
@@ -748,116 +756,116 @@ export function GameStage({ controller }: { controller: any }) {
 
   return (
     <>
-    <GameLayout
-      leftPanel={
-        <div className="relative w-full h-full p-4">
-          {/* 相克规则开关（左上角，小按钮） */}
-          <button
-            type="button"
-            onClick={() => setAntagonismEnabled((v) => !v)}
-            className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
-            title="相克规则开关（默认关闭，不产生影响）"
-          >
-            相克规则：{antagonismEnabled ? '开' : '关'}
-          </button>
-          <RoundTable
+      <GameLayout
+        leftPanel={
+          <div className="relative w-full h-full p-4">
+            {/* 相克规则开关（左上角，小按钮） */}
+            <button
+              type="button"
+              onClick={() => setAntagonismEnabled((v) => !v)}
+              className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
+              title="相克规则开关（默认关闭，不产生影响）"
+            >
+              相克规则：{antagonismEnabled ? '开' : '关'}
+            </button>
+            <RoundTable
+              seats={seats}
+              nightInfo={nightInfo}
+              selectedActionTargets={selectedActionTargets}
+              isPortrait={isPortrait}
+              longPressingSeats={longPressingSeats}
+              onSeatClick={(seat) => onSeatClick(seat.id)}
+              onContextMenu={(e, seatId) => {
+                setContextMenu({ x: e.clientX, y: e.clientY, seatId });
+              }}
+              onTouchStart={(e, seatId) => {
+                e.stopPropagation();
+                const existingTimer = longPressTimerRef.current.get(seatId);
+                if (existingTimer) clearTimeout(existingTimer);
+                setLongPressingSeats((prev: Set<number>) => new Set(prev).add(seatId));
+                longPressTriggeredRef.current.delete(seatId);
+                const timer = setTimeout(() => {
+                  setContextMenu({ x: e.touches[0]?.clientX ?? 0, y: e.touches[0]?.clientY ?? 0, seatId });
+                  longPressTriggeredRef.current.add(seatId);
+                  longPressTimerRef.current.delete(seatId);
+                  setLongPressingSeats((prev: Set<number>) => {
+                    const next = new Set(prev);
+                    next.delete(seatId);
+                    return next;
+                  });
+                }, 200);
+                longPressTimerRef.current.set(seatId, timer as unknown as number);
+              }}
+              onTouchEnd={(e, seatId) => {
+                e.stopPropagation();
+                const timer = longPressTimerRef.current.get(seatId);
+                if (timer) {
+                  clearTimeout(timer);
+                  longPressTimerRef.current.delete(seatId);
+                  if (!longPressTriggeredRef.current.has(seatId)) {
+                    onSeatClick(seatId);
+                  }
+                }
+                setLongPressingSeats((prev: Set<number>) => {
+                  const next = new Set(prev);
+                  next.delete(seatId);
+                  return next;
+                });
+              }}
+              onTouchMove={(e, seatId) => {
+                e.stopPropagation();
+                const timer = longPressTimerRef.current.get(seatId);
+                if (timer) {
+                  clearTimeout(timer);
+                  longPressTimerRef.current.delete(seatId);
+                }
+                setLongPressingSeats((prev: Set<number>) => {
+                  const next = new Set(prev);
+                  next.delete(seatId);
+                  return next;
+                });
+              }}
+              setSeatRef={(id, el) => {
+                seatRefs.current[id] = el;
+              }}
+              getDisplayRoleType={getDisplayRoleType}
+              getDisplayRole={getDisplayRole}
+              typeColors={typeColors}
+              gamePhase={gamePhase}
+              nightCount={nightCount}
+              timer={timer}
+              formatTimer={formatTimer}
+              onTimerStart={controller.handleTimerStart}
+              onTimerPause={controller.handleTimerPause}
+              onTimerReset={controller.handleTimerReset}
+              nightOrderPreview={nightOrderPreviewLive || nightOrderPreview}
+              onOpenNightOrderPreview={() => setShowNightOrderModal(true)}
+            />
+          </div>
+        }
+        rightPanel={
+          <GameConsole
+            gamePhase={gamePhase}
+            nightCount={nightCount}
+            currentStep={currentWakeIndex + 1}
+            totalSteps={wakeQueueIds.length}
+            wakeQueueIds={wakeQueueIds}
+            scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
+            guidancePoints={guidancePoints}
+            selectedPlayers={selectedActionTargets}
             seats={seats}
             nightInfo={nightInfo}
-            selectedActionTargets={selectedActionTargets}
-            isPortrait={isPortrait}
-            longPressingSeats={longPressingSeats}
-            onSeatClick={(seat) => onSeatClick(seat.id)}
-            onContextMenu={(e, seatId) => {
-              setContextMenu({ x: e.clientX, y: e.clientY, seatId });
-            }}
-            onTouchStart={(e, seatId) => {
-    e.stopPropagation();
-    const existingTimer = longPressTimerRef.current.get(seatId);
-              if (existingTimer) clearTimeout(existingTimer);
-              setLongPressingSeats((prev: Set<number>) => new Set(prev).add(seatId));
-    longPressTriggeredRef.current.delete(seatId);
-    const timer = setTimeout(() => {
-                setContextMenu({ x: e.touches[0]?.clientX ?? 0, y: e.touches[0]?.clientY ?? 0, seatId });
-      longPressTriggeredRef.current.add(seatId);
-      longPressTimerRef.current.delete(seatId);
-                setLongPressingSeats((prev: Set<number>) => {
-        const next = new Set(prev);
-        next.delete(seatId);
-        return next;
-      });
-    }, 200);
-              longPressTimerRef.current.set(seatId, timer as unknown as number);
-            }}
-            onTouchEnd={(e, seatId) => {
-    e.stopPropagation();
-    const timer = longPressTimerRef.current.get(seatId);
-    if (timer) {
-      clearTimeout(timer);
-      longPressTimerRef.current.delete(seatId);
-      if (!longPressTriggeredRef.current.has(seatId)) {
-        onSeatClick(seatId);
-      }
-    }
-              setLongPressingSeats((prev: Set<number>) => {
-      const next = new Set(prev);
-      next.delete(seatId);
-      return next;
-    });
-            }}
-            onTouchMove={(e, seatId) => {
-    e.stopPropagation();
-    const timer = longPressTimerRef.current.get(seatId);
-    if (timer) {
-      clearTimeout(timer);
-      longPressTimerRef.current.delete(seatId);
-    }
-              setLongPressingSeats((prev: Set<number>) => {
-      const next = new Set(prev);
-      next.delete(seatId);
-      return next;
-    });
-            }}
-            setSeatRef={(id, el) => {
-              seatRefs.current[id] = el;
-            }}
-                  getDisplayRoleType={getDisplayRoleType}
-                  getDisplayRole={getDisplayRole}
-                  typeColors={typeColors}
-                  gamePhase={gamePhase}
-                  nightCount={nightCount}
-                  timer={timer}
-                  formatTimer={formatTimer}
-                  onTimerStart={controller.handleTimerStart}
-                  onTimerPause={controller.handleTimerPause}
-                  onTimerReset={controller.handleTimerReset}
-                  nightOrderPreview={nightOrderPreviewLive || nightOrderPreview}
-                  onOpenNightOrderPreview={() => setShowNightOrderModal(true)}
-                />
-        </div>
-      }
-      rightPanel={
-        <GameConsole
-                    gamePhase={gamePhase}
-          nightCount={nightCount}
-          currentStep={currentWakeIndex + 1}
-          totalSteps={wakeQueueIds.length}
-          wakeQueueIds={wakeQueueIds}
-          scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
-          guidancePoints={guidancePoints}
-          selectedPlayers={selectedActionTargets}
-                    seats={seats}
-          nightInfo={nightInfo}
-          inspectionResult={inspectionResult}
-          inspectionResultKey={inspectionResultKey}
-          onTogglePlayer={toggleTarget}
-          handleDayAbility={controller.handleDayAbility}
-          primaryAction={
-            (gamePhase === 'firstNight' || gamePhase === 'night')
-              ? (() => {
+            inspectionResult={inspectionResult}
+            inspectionResultKey={inspectionResultKey}
+            onTogglePlayer={toggleTarget}
+            handleDayAbility={controller.handleDayAbility}
+            primaryAction={
+              (gamePhase === 'firstNight' || gamePhase === 'night')
+                ? (() => {
                   // CRITICAL FIX: Handle empty wake queue or last step
                   const isEmpty = wakeQueueIds.length === 0;
                   const isLastStep = !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
-                  
+
                   if (isEmpty || isLastStep) {
                     // Explicit "Enter Day" button for empty queue or dawn step
                     return {
@@ -871,7 +879,7 @@ export function GameStage({ controller }: { controller: any }) {
                       variant: 'warning' as const,
                     };
                   }
-                  
+
                   // Normal "Next" button for night steps
                   return {
                     label: '确认 & 下一步',
@@ -880,59 +888,59 @@ export function GameStage({ controller }: { controller: any }) {
                     variant: 'primary' as const,
                   };
                 })()
-              : gamePhase === 'check'
-              ? {
-                  label: '确认无误，入夜 🌙',
-                  onClick: () => {
-                    console.log("🖱️ [UI] User clicked 'Enter Night'");
-                    // Use the synchronous proceedToFirstNight function which will handle drunk charade selection
-                    if (controller.proceedToFirstNight) {
-                      controller.proceedToFirstNight();
-                    } else {
-                      console.error('[GameStage] proceedToFirstNight not available on controller');
-                      alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
+                : gamePhase === 'check'
+                  ? {
+                    label: '确认无误，入夜 🌙',
+                    onClick: () => {
+                      console.log("🖱️ [UI] User clicked 'Enter Night'");
+                      // Use the synchronous proceedToFirstNight function which will handle drunk charade selection
+                      if (controller.proceedToFirstNight) {
+                        controller.proceedToFirstNight();
+                      } else {
+                        console.error('[GameStage] proceedToFirstNight not available on controller');
+                        alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
+                      }
+                    },
+                    disabled: isConfirmDisabled, // Use the centralized disabled logic
+                    variant: 'success' as const,
+                  }
+                  : gamePhase === 'day'
+                    ? {
+                      label: '进入黄昏处决阶段',
+                      onClick: () => {
+                        console.log('[GameStage] Day phase primary action -> handleDayEndTransition');
+                        handleDayEndTransition();
+                      },
+                      disabled: false,
+                      variant: 'primary' as const,
                     }
-                  },
-                  disabled: isConfirmDisabled, // Use the centralized disabled logic
-                  variant: 'success' as const,
-                }
-              : gamePhase === 'day'
-              ? {
-                  label: '进入黄昏处决阶段',
-                  onClick: () => {
-                    console.log('[GameStage] Day phase primary action -> handleDayEndTransition');
-                    handleDayEndTransition();
-                  },
-                  disabled: false,
-                  variant: 'primary' as const,
-                }
-              : undefined
-          }
-          secondaryActions={
-            (gamePhase === 'firstNight' || gamePhase === 'night')
-              ? [
+                    : undefined
+            }
+            secondaryActions={
+              (gamePhase === 'firstNight' || gamePhase === 'night')
+                ? [
                   {
                     label: '上一步',
                     onClick: handleStepBack,
                     disabled: currentWakeIndex === 0 && history.length === 0,
                   },
                 ]
-              : []
-          }
-          onForceContinue={() => {
-            // 强制继续回调：当队列为空时，直接进入天亮阶段
-            console.log('[GameStage] onForceContinue called - forcing transition to day');
-            if (controller.continueToNextAction) {
-              controller.continueToNextAction();
-            } else {
-              // 备用方案：直接设置游戏阶段
-              controller.onSetGamePhase?.('dawnReport');
+                : []
             }
-          }}
-        />
-      }
-    />
-    {/* Modals rendered outside layout to ensure proper z-index */}
+            onForceContinue={() => {
+              // 强制继续回调：当队列为空时，直接进入天亮阶段
+              console.log('[GameStage] onForceContinue called - forcing transition to day');
+              if (controller.continueToNextAction) {
+                controller.continueToNextAction();
+              } else {
+                // 备用方案：直接设置游戏阶段
+                controller.onSetGamePhase?.('dawnReport');
+              }
+            }}
+          />
+        }
+      />
+      {/* Modals rendered outside layout to ensure proper z-index */}
     </>
   );
 }

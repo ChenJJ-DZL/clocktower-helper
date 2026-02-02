@@ -7,9 +7,15 @@ type RoleDocEntry = {
 
 // NOTE: these json files are maintained manually under repo root `josn/`
 // and contain long-form wiki-like role docs.
+// NOTE: these json files are maintained manually under repo root `josn/`
+// and contain long-form wiki-like role docs.
 import bmrDocs from "../../josn/血染钟楼-黯月初升-角色文档-副本.json";
 import savDocs from "../../josn/血染钟楼-梦殒春宵-角色文档.json";
 import townsfolkDocs from "../../josn/blood_clocktower_所有镇民.json";
+import outsiderDocs from "../../josn/blood_clocktower_所有外来者.json";
+import minionDocs from "../../josn/blood_clocktower_所有爪牙.json";
+import demonDocs from "../../josn/blood_clocktower_所有恶魔.json";
+import travelerDocs from "../../josn/blood_clocktower_所有传奇角色.json";
 
 type RoleDocSummary = {
   abilityText?: string;
@@ -36,11 +42,16 @@ const INDEXES: Map<string, RoleDocEntry>[] = [
   buildIndex(bmrDocs as RoleDocEntry[]),
   buildIndex(savDocs as RoleDocEntry[]),
   buildIndex(townsfolkDocs as RoleDocEntry[]),
+  buildIndex(outsiderDocs as RoleDocEntry[]),
+  buildIndex(minionDocs as RoleDocEntry[]),
+  buildIndex(demonDocs as RoleDocEntry[]),
+  buildIndex(travelerDocs as RoleDocEntry[]),
 ];
 
 function extractSection(content: string, sectionTitle: string): string | undefined {
   // Match: 【角色能力】 ... (until next 【xxx】 or end)
-  const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=\\n【|$)`, "m");
+  // Improved to handle cases where there might not be a newline before the next header
+  const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`, "m");
   const m = content.match(re);
   if (!m) return undefined;
   return m[1].trim();

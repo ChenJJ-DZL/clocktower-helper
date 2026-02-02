@@ -130,6 +130,7 @@ export function useGameState() {
   };
   const setInspectionResult: React.Dispatch<React.SetStateAction<string | null>> = (val) => {
     const next = typeof val === 'function' ? (val as (p: string | null) => string | null)(state.inspectionResult) : val;
+    if (next === state.inspectionResult) return;
     dispatch(gameActions.setInspectionResult(next));
   };
   const setInspectionResultKey: React.Dispatch<React.SetStateAction<number>> = (val) => {
@@ -138,6 +139,7 @@ export function useGameState() {
   };
   const setCurrentHint: React.Dispatch<React.SetStateAction<NightHintState>> = (val) => {
     const next = typeof val === 'function' ? (val as (p: NightHintState) => NightHintState)(state.currentHint) : val;
+    if (next === state.currentHint) return;
     dispatch(gameActions.setCurrentHint(next));
   };
   const setTodayDemonVoted: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
@@ -261,6 +263,7 @@ export function useGameState() {
   };
   const setBalloonistKnownTypes: React.Dispatch<React.SetStateAction<Record<number, string[]>>> = (val) => {
     const next = typeof val === 'function' ? (val as (p: Record<number, string[]>) => Record<number, string[]>)(state.balloonistKnownTypes) : val;
+    if (next === state.balloonistKnownTypes) return;
     dispatch(gameActions.updateState({ balloonistKnownTypes: next }));
   };
   const setBalloonistCompletedIds = (val: number[] | ((prev: number[]) => number[])) => {
