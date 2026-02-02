@@ -51,16 +51,18 @@ const content = `【背景故事】
 - 你“应该”在第一个夜晚就获得信息。你“应该”得知的内容是两名玩家，和一个角色标记。
 【角色信息】
 - 英文名：Washerwoman
-- 所属剧本：暗流涌动
-- 角色类型：镇民\n- 角色能力类型：获取信息、进场能力`;
+- 所属剧本：暗流涌动\n- 角色类型：镇民
+- 角色能力类型：获取信息、进场能力`;
 
-function extractSection(content: string, sectionTitle: string): string | undefined {
-    // const re = new RegExp(\`【${sectionTitle}】([\\s\\S]*?)(?=(\\n\\s*【|$))\`, "m"); // Original
-    const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`, "m"); // New
+function extractSection(content: string, sectionTitle: string) {
+    const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`, "m");
     const m = content.match(re);
-    if (!m) return undefined;
-    return m[1].trim();
+    if (!m) return { match: null };
+    return {
+        match: m,
+        captured: m[1],
+        trimmed: m[1].trim()
+    };
 }
 
-console.log("Operation:", extractSection(content, "运作方式"));
-console.log("Rules Details:", extractSection(content, "规则细节"));
+console.log("Operation:", JSON.stringify(extractSection(content, "运作方式"), null, 2));
