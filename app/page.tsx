@@ -621,11 +621,11 @@ export default function Home() {
   // 全局屏蔽系统默认的长按行为contextmenu文本选择等
   useEffect(() => {
     const preventDefault = (e: Event) => {
-      // 阻止所有contextmenu事件右键菜单
+      // 阻止所有contextmenu事件（右键菜单）
       if (e.type === 'contextmenu') {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
+        // 如果是 setup 阶段，我们允许 contextmenu 事件传播，以便触发自定义菜单
+        // 或者我们可以直接在这里判断，如果不在此处阻止，组件内部的 preventDefault 也会生效
+        return;
       }
     };
 
@@ -862,7 +862,10 @@ export default function Home() {
                     console.log('[app/page setup] RoundTable seat clicked:', seat.id);
                     handleSeatClick(seat.id);
                   }}
-                  onContextMenu={(e, _id) => e.preventDefault()}
+                  onContextMenu={(e, seatId) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, seatId });
+                  }}
                   onTouchStart={(e, _id) => {
                     // Don't preventDefault - let click events work normally
                     e.stopPropagation();
@@ -967,6 +970,34 @@ export default function Home() {
         )}
 
         {/* Setup 相关的 Modals 仍然留在本组件中 */}
+
+        {/* 右键上下文菜单 (Setup 阶段专用) */}
+        {contextMenu && gamePhase === 'setup' && (
+          <div
+            className="fixed z-[9999] bg-slate-800 border border-slate-600 rounded shadow-xl py-1 min-w-[140px] flex flex-col"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onClick={(e) => e.stopPropagation()} // 防止点击菜单本身触发关闭
+          >
+            <div className="px-3 py-1 text-xs text-gray-500 border-b border-gray-700 mb-1">
+              {contextMenu.seatId + 1}号操作
+            </div>
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (controller.setRedNemesisTarget) {
+                  controller.setRedNemesisTarget(contextMenu.seatId);
+                } else {
+                  console.error("setRedNemesisTarget not found on controller");
+                }
+                setContextMenu(null); // 关闭菜单
+              }}
+            >
+              <span>🎯</span> 选为红罗刹
+            </button>
+            {/* 这里可以扩展更多选项，如“设为酒鬼”等 */}
+          </div>
+        )}
       </div>
     </ScaleLayout>
   );

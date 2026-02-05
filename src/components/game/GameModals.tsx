@@ -40,7 +40,7 @@ export interface GameModalsProps {
   // ========== 状态变量 ==========
   // 统一的弹窗状态
   currentModal: ModalType;
-  
+
   // Modal 显示状态（保留用于向后兼容，逐步迁移）
   showNightOrderModal: boolean;
   showExecutionResultModal: { message: string; isVirginTrigger?: boolean } | null;
@@ -91,7 +91,7 @@ export interface GameModalsProps {
   showGameRecordsModal: boolean;
   showRoleInfoModal: boolean;
   contextMenu: { seatId: number; x: number; y: number } | null;
-  
+
   // 游戏状态
   gamePhase: GamePhase;
   winResult: WinResult;
@@ -128,7 +128,7 @@ export interface GameModalsProps {
   setGossipStatementToday?: (value: string) => void;
   setGossipTrueTonight?: (value: boolean) => void;
   setGossipSourceSeatId?: (value: number | null) => void;
-  
+
   // 数据
   seats: Seat[];
   roles: Role[];
@@ -151,7 +151,7 @@ export interface GameModalsProps {
   currentWakeIndex: number;
   history: Array<{ seats: Seat[]; gamePhase: GamePhase }>;
   isConfirmDisabled: boolean;
-  
+
   // ========== 函数 ==========
   // Modal 控制函数
   closeNightOrderPreview: () => void;
@@ -189,8 +189,8 @@ export interface GameModalsProps {
   insertIntoWakeQueueAfterCurrent: (seatId: number, options?: { roleOverride?: Role; logLabel?: string }) => void;
   continueToNextAction: () => void;
   addLog: (message: string) => void;
-  checkGameOver: (updatedSeats: Seat[], deadPlayerId?: number) => void;
-  
+  checkGameOver: (updatedSeats: Seat[], executedPlayerId?: number | null, isEndOfDay?: boolean, damselGuessed?: boolean, klutzGuessedEvil?: boolean) => void;
+
   // Setter 函数
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
   setShowKillConfirmModal: (value: number | null) => void;
@@ -246,7 +246,7 @@ export interface GameModalsProps {
   setGamePhase: (value: GamePhase) => void;
   setShowShootModal: (value: number | null) => void;
   setShowNominateModal: (value: number | null) => void;
-  
+
   // 工具函数
   handleSeatClick: (seatId: number) => void;
   toggleStatus: (status: string, seatId?: number) => void;
@@ -331,13 +331,12 @@ function VoteInputModalContent(props: {
                 type="button"
                 disabled={disabled}
                 onClick={() => toggleVoter(s.id)}
-                className={`p-3 rounded-xl border-2 text-left transition ${
-                  disabled
-                    ? 'border-gray-700 bg-gray-900/50 text-gray-500 cursor-not-allowed'
-                    : isSelected
-                      ? 'border-blue-400 bg-blue-900/60 text-white shadow-lg shadow-blue-500/30'
-                      : 'border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700'
-                }`}
+                className={`p-3 rounded-xl border-2 text-left transition ${disabled
+                  ? 'border-gray-700 bg-gray-900/50 text-gray-500 cursor-not-allowed'
+                  : isSelected
+                    ? 'border-blue-400 bg-blue-900/60 text-white shadow-lg shadow-blue-500/30'
+                    : 'border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700'
+                  }`}
                 title={ghostUsed ? '幽灵票已用尽' : (s.isDead ? '死亡玩家可用幽灵票' : '存活玩家')}
               >
                 <div className="flex justify-between items-center">
@@ -361,7 +360,7 @@ function VoteInputModalContent(props: {
         </div>
 
         <div className="flex gap-3 justify-center">
-          <button 
+          <button
             onClick={() => {
               if (invalidDeadSelected) {
                 alert('选择中包含已用完幽灵票的死亡玩家');
@@ -375,8 +374,8 @@ function VoteInputModalContent(props: {
           >
             确认（{selectedVoters.length} 票）
           </button>
-          <button 
-            onClick={()=>{
+          <button
+            onClick={() => {
               setSelectedVoters([]);
               props.setCurrentModal(null);
               if (props.setShowVoteInputModal) props.setShowVoteInputModal(null);
@@ -432,7 +431,7 @@ export function GameModals(props: GameModalsProps) {
     if (infoViewers.length === 0 || affected.length === 0) return null;
     return { infoViewers, affected };
   }, [shouldShowSpyDisguise, hasInterferenceRoles, props.seats]);
-  
+
   return (
     <>
       {/* Modals */}
@@ -479,6 +478,33 @@ export function GameModals(props: GameModalsProps) {
           <p className="text-sm text-gray-200 text-center mb-4">
             请核对今晚要叫醒的所有角色顺序。你可以点击"返回调整"继续修改座位/身份，或点击"确认"正式进入夜晚流程。
           </p>
+
+          {/* 快捷设置红罗刹 */}
+          <div className="mb-6 p-4 rounded-xl bg-red-950/20 border border-red-500/30">
+            <h4 className="text-sm font-bold text-red-200 mb-3 flex items-center gap-2">
+              🎭 设置占卜师天敌 (红罗刹)
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {props.seats.map(seat => {
+                const isRH = !!(seat.isRedHerring || seat.isFortuneTellerRedHerring);
+                return (
+                  <button
+                    key={`rh-select-${seat.id}`}
+                    onClick={() => props.toggleStatus('redherring', seat.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isRH
+                        ? 'bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500/50 hover:text-red-200'
+                      }`}
+                  >
+                    {seat.id + 1}号 {seat.role?.name || '未设定'}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2 italic">
+              * 占卜师在查验时，若包含红罗刹，其结果将始终返回“是”。
+            </p>
+          </div>
           <div className="grid grid-cols-1 gap-3">
             {(nightOrderModal?.preview || props.nightOrderPreview).map((item, idx) => (
               <div key={`${item.roleName}-${item.seatNo}-${idx}`} className="p-3 rounded-xl border border-gray-700 bg-gray-800/80 flex items-center justify-between">
@@ -501,7 +527,7 @@ export function GameModals(props: GameModalsProps) {
         onDeclareWin={props.declareMayorImmediateWin}
         onCancel={() => props.setShowMayorThreeAliveModal(false)}
       />
-      
+
       {(props.showVoteInputModal !== null || voteInputModal) && (
         <VoteInputModalContent
           voterId={voteInputModal?.voterId ?? props.showVoteInputModal}
@@ -512,230 +538,229 @@ export function GameModals(props: GameModalsProps) {
           setShowVoteInputModal={props.setShowVoteInputModal}
         />
       )}
-      
+
       {(props.showRoleSelectModal || roleSelectModal) && (() => {
         const modal = roleSelectModal || props.showRoleSelectModal;
         if (!modal) return null;
         return (
-        <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
-          <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 max-w-4xl max-h-[80vh] overflow-y-auto">
-            <h3 className="text-3xl font-bold mb-4">
-              {modal.type === 'philosopher' && '🎭 哲学家 - 选择善良角色'}
-              {modal.type === 'cerenovus' && '🧠 洗脑师 - 选择善良角色'}
-              {modal.type === 'pit_hag' && '🧙 麻脸巫婆 - 选择角色'}
-            </h3>
-            {modal.type === 'pit_hag' && (
-              <p className="text-sm text-gray-300 mb-3">
-                当前剧本所有角色与座位号如下（仅供参考）：请先在主界面点选一名玩家作为目标，
-                再在此选择一个<strong>当前场上尚未登场</strong>的角色身份，若合法则该玩家立刻变为该角色，并按夜晚顺位在本夜被叫醒。
-              </p>
-            )}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
-              {props.roles
-                .filter((r: Role) => {
-                  if (modal.type === 'philosopher' || modal.type === 'cerenovus') {
-                    return r.type === 'townsfolk' || r.type === 'outsider';
-                  }
-                  // 麻脸巫婆：仅显示当前剧本的角色，方便查阅
-                  if (props.selectedScript) {
-                    return r.script === props.selectedScript.name;
-                  }
-                  return true;
-                })
-                .map((role: Role) => {
-                  const typeColor = props.typeColors[role.type] || 'border-gray-500 text-gray-400';
-                  const typeBgColor = props.typeBgColors[role.type] || 'bg-gray-900/50 hover:bg-gray-800';
-                  return (
-                    <button
-                      key={role.id}
-                      onClick={() => {
-                        modal.onConfirm(role.id);
-                      }}
-                      className={`p-4 rounded-xl border-2 ${typeColor} ${typeBgColor} transition-all text-left`}
-                    >
-                      <div className="font-bold text-lg">{role.name}</div>
-                      <div className="text-sm opacity-80 mt-1">{props.typeLabels[role.type]}</div>
-                      <div className="text-xs opacity-60 mt-1 line-clamp-2">{role.ability}</div>
-                    </button>
-                  );
-                })}
-            </div>
-            {modal.type === 'pit_hag' && (
-              <div className="mt-2 mb-4 text-left text-xs text-gray-300 max-h-40 overflow-y-auto border border-gray-700 rounded-xl p-3 bg-gray-900/60">
-                <div className="font-bold mb-1">当前座位与角色一览：</div>
-                {props.seats.map(s => (
-                  <div key={s.id} className="flex justify-between">
-                    <span>[{s.id + 1}号]</span>
-                    <span className="ml-2 flex-1 text-right">
-                      {props.getSeatRoleId(s) ? props.roles.find(r => r.id === props.getSeatRoleId(s))?.name || '未知角色' : '空位 / 未分配'}
-                    </span>
-                  </div>
-                ))}
+          <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
+            <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 max-w-4xl max-h-[80vh] overflow-y-auto">
+              <h3 className="text-3xl font-bold mb-4">
+                {modal.type === 'philosopher' && '🎭 哲学家 - 选择善良角色'}
+                {modal.type === 'cerenovus' && '🧠 洗脑师 - 选择善良角色'}
+                {modal.type === 'pit_hag' && '🧙 麻脸巫婆 - 选择角色'}
+              </h3>
+              {modal.type === 'pit_hag' && (
+                <p className="text-sm text-gray-300 mb-3">
+                  当前剧本所有角色与座位号如下（仅供参考）：请先在主界面点选一名玩家作为目标，
+                  再在此选择一个<strong>当前场上尚未登场</strong>的角色身份，若合法则该玩家立刻变为该角色，并按夜晚顺位在本夜被叫醒。
+                </p>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+                {props.roles
+                  .filter((r: Role) => {
+                    if (modal.type === 'philosopher' || modal.type === 'cerenovus') {
+                      return r.type === 'townsfolk' || r.type === 'outsider';
+                    }
+                    // 麻脸巫婆：仅显示当前剧本的角色，方便查阅
+                    if (props.selectedScript) {
+                      return r.script === props.selectedScript.name;
+                    }
+                    return true;
+                  })
+                  .map((role: Role) => {
+                    const typeColor = props.typeColors[role.type] || 'border-gray-500 text-gray-400';
+                    const typeBgColor = props.typeBgColors[role.type] || 'bg-gray-900/50 hover:bg-gray-800';
+                    return (
+                      <button
+                        key={role.id}
+                        onClick={() => {
+                          modal.onConfirm(role.id);
+                        }}
+                        className={`p-4 rounded-xl border-2 ${typeColor} ${typeBgColor} transition-all text-left`}
+                      >
+                        <div className="font-bold text-lg">{role.name}</div>
+                        <div className="text-sm opacity-80 mt-1">{props.typeLabels[role.type]}</div>
+                        <div className="text-xs opacity-60 mt-1 line-clamp-2">{role.ability}</div>
+                      </button>
+                    );
+                  })}
               </div>
-            )}
-            <button
-              onClick={() => {
-                props.setCurrentModal(null);
-                if (props.setShowRoleSelectModal) props.setShowRoleSelectModal(null);
-              }}
-              className="w-full py-3 bg-gray-600 rounded-xl text-xl font-bold hover:bg-gray-500"
-            >
-              取消
-            </button>
+              {modal.type === 'pit_hag' && (
+                <div className="mt-2 mb-4 text-left text-xs text-gray-300 max-h-40 overflow-y-auto border border-gray-700 rounded-xl p-3 bg-gray-900/60">
+                  <div className="font-bold mb-1">当前座位与角色一览：</div>
+                  {props.seats.map(s => (
+                    <div key={s.id} className="flex justify-between">
+                      <span>[{s.id + 1}号]</span>
+                      <span className="ml-2 flex-1 text-right">
+                        {props.getSeatRoleId(s) ? props.roles.find(r => r.id === props.getSeatRoleId(s))?.name || '未知角色' : '空位 / 未分配'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  props.setCurrentModal(null);
+                  if (props.setShowRoleSelectModal) props.setShowRoleSelectModal(null);
+                }}
+                className="w-full py-3 bg-gray-600 rounded-xl text-xl font-bold hover:bg-gray-500"
+              >
+                取消
+              </button>
+            </div>
           </div>
-        </div>
         );
       })()}
-      
+
       {(props.showMadnessCheckModal || madnessCheckModal) && (() => {
         const modal = madnessCheckModal || props.showMadnessCheckModal;
         if (!modal) return null;
         return (
-        <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
-          <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-purple-500 max-w-md">
-            <h3 className="text-3xl font-bold mb-6">🧠 疯狂判定</h3>
-            <div className="mb-6 text-left">
-              <p className="mb-2">目标：{modal.targetId + 1}号</p>
-              <p className="mb-2">要求扮演角色：{modal.roleName}</p>
-              <p className="text-sm text-gray-400 mb-4">
-                该玩家需要在白天和夜晚"疯狂"地证明自己是这个角色，否则可能被处决。
-              </p>
-            </div>
-            <div className="flex gap-3 mb-4">
-              <button
-                onClick={() => {
-                  props.addLog(`${modal.targetId + 1}号 疯狂判定：通过（正确扮演 ${modal.roleName}）`);
-                  props.setCurrentModal(null);
-                  if (props.setShowMadnessCheckModal) props.setShowMadnessCheckModal(null);
-                }}
-                className="flex-1 py-3 bg-green-600 rounded-xl font-bold text-lg"
-              >
-                通过
-              </button>
-              <button
-                onClick={() => {
-                  props.addLog(`${modal.targetId + 1}号 疯狂判定：失败（未正确扮演 ${modal.roleName}）`);
-                  const target = props.seats.find(s => s.id === modal.targetId);
-                  if (target && !target.isDead) {
-                    // 如果判定失败，说书人可以决定是否处决
-                    const shouldExecute = window.confirm(`是否处决 ${modal.targetId + 1}号？`);
-                    if (shouldExecute) {
-                      props.saveHistory();
-                      props.executePlayer(modal.targetId);
+          <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
+            <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-purple-500 max-w-md">
+              <h3 className="text-3xl font-bold mb-6">🧠 疯狂判定</h3>
+              <div className="mb-6 text-left">
+                <p className="mb-2">目标：{modal.targetId + 1}号</p>
+                <p className="mb-2">要求扮演角色：{modal.roleName}</p>
+                <p className="text-sm text-gray-400 mb-4">
+                  该玩家需要在白天和夜晚"疯狂"地证明自己是这个角色，否则可能被处决。
+                </p>
+              </div>
+              <div className="flex gap-3 mb-4">
+                <button
+                  onClick={() => {
+                    props.addLog(`${modal.targetId + 1}号 疯狂判定：通过（正确扮演 ${modal.roleName}）`);
+                    props.setCurrentModal(null);
+                    if (props.setShowMadnessCheckModal) props.setShowMadnessCheckModal(null);
+                  }}
+                  className="flex-1 py-3 bg-green-600 rounded-xl font-bold text-lg"
+                >
+                  通过
+                </button>
+                <button
+                  onClick={() => {
+                    props.addLog(`${modal.targetId + 1}号 疯狂判定：失败（未正确扮演 ${modal.roleName}）`);
+                    const target = props.seats.find(s => s.id === modal.targetId);
+                    if (target && !target.isDead) {
+                      // 如果判定失败，说书人可以决定是否处决
+                      const shouldExecute = window.confirm(`是否处决 ${modal.targetId + 1}号？`);
+                      if (shouldExecute) {
+                        props.saveHistory();
+                        props.executePlayer(modal.targetId);
+                      }
                     }
-                  }
+                    props.setCurrentModal(null);
+                    if (props.setShowMadnessCheckModal) props.setShowMadnessCheckModal(null);
+                  }}
+                  className="flex-1 py-3 bg-red-600 rounded-xl font-bold text-lg"
+                >
+                  失败
+                </button>
+              </div>
+              <button
+                onClick={() => {
                   props.setCurrentModal(null);
                   if (props.setShowMadnessCheckModal) props.setShowMadnessCheckModal(null);
                 }}
-                className="flex-1 py-3 bg-red-600 rounded-xl font-bold text-lg"
+                className="w-full py-2 bg-gray-600 rounded-xl font-bold hover:bg-gray-500"
               >
-                失败
+                取消
               </button>
             </div>
-            <button
-              onClick={() => {
-                props.setCurrentModal(null);
-                if (props.setShowMadnessCheckModal) props.setShowMadnessCheckModal(null);
-              }}
-              className="w-full py-2 bg-gray-600 rounded-xl font-bold hover:bg-gray-500"
-            >
-              取消
-            </button>
           </div>
-        </div>
         );
       })()}
-      
+
       {(props.showDayActionModal || dayActionModal) && (() => {
         const modal = dayActionModal || props.showDayActionModal;
         if (!modal) return null;
         return (
-        <div className="fixed inset-0 z-[3000] bg-black/80 flex items-center justify-center">
-          <div className="bg-gray-800 p-8 rounded-2xl w-[500px] text-center">
-            <h2 className="mb-6 text-3xl font-bold text-red-400">
-              {modal.type==='slayer'
-                ? '💥 开枪'
-                : modal.type==='lunaticKill'
-                  ? '🔪 精神病患者日杀'
-                  : '🗣️ 提名'}
-            </h2>
-            <div className="flex flex-wrap gap-3 justify-center">
-              {props.seats.filter(s=>{
-                // 暗月初升剧本：存活玩家可以提名死人
-                // 其他剧本：只能提名存活玩家
-                if (modal.type === 'nominate' && props.selectedScript?.id === 'bad_moon_rising') {
-                  // 暗月初升：可以提名死人（包括僵怖假死状态）
-                  return s.role !== null;
-                }
-                // 其他情况：只能提名存活玩家
-                return !s.isDead;
-              }).map(s=>{
-                // 8. 提名限制：检查是否已被提名或被提名过
-                // 规则特例：玩家可以对自己发起提名（规则书中没有提及"不能对自己提名"）
-                const isSelfNomination = modal.type === 'nominate' && s.id === modal.sourceId;
-                const isDisabled = modal.type === 'nominate'
-                  ? (
+          <div className="fixed inset-0 z-[3000] bg-black/80 flex items-center justify-center">
+            <div className="bg-gray-800 p-8 rounded-2xl w-[500px] text-center">
+              <h2 className="mb-6 text-3xl font-bold text-red-400">
+                {modal.type === 'slayer'
+                  ? '💥 开枪'
+                  : modal.type === 'lunaticKill'
+                    ? '🔪 精神病患者日杀'
+                    : '🗣️ 提名'}
+              </h2>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {props.seats.filter(s => {
+                  // 暗月初升剧本：存活玩家可以提名死人
+                  // 其他剧本：只能提名存活玩家
+                  if (modal.type === 'nominate' && props.selectedScript?.id === 'bad_moon_rising') {
+                    // 暗月初升：可以提名死人（包括僵怖假死状态）
+                    return s.role !== null;
+                  }
+                  // 其他情况：只能提名存活玩家
+                  return !s.isDead;
+                }).map(s => {
+                  // 8. 提名限制：检查是否已被提名或被提名过
+                  // 规则特例：玩家可以对自己发起提名（规则书中没有提及"不能对自己提名"）
+                  const isSelfNomination = modal.type === 'nominate' && s.id === modal.sourceId;
+                  const isDisabled = modal.type === 'nominate'
+                    ? (
                       // 如果提名自己，检查自己是否已被提名过
-                      isSelfNomination 
+                      isSelfNomination
                         ? props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(modal.sourceId)
                         : (props.nominationRecords.nominees.has(s.id) || props.nominationRecords.nominators.has(modal.sourceId))
                     )
-                  : modal.type === 'lunaticKill'
-                    ? s.id === modal.sourceId
-                    : false;
-                return (
-                  <button 
-                    key={s.id} 
-                    onClick={()=>{
-                      if (!isDisabled) {
-                        if (modal.type === 'nominate' && s.role?.id === 'virgin') {
-                          const nominatorSeat = props.seats.find(seat => seat.id === modal.sourceId);
-                          const isRealTownsfolk = !!(nominatorSeat &&
-                            nominatorSeat.role?.type === 'townsfolk' &&
-                            nominatorSeat.role?.id !== 'drunk' &&
-                            !nominatorSeat.isDrunk);
-                          props.setVirginGuideInfo({
-                            targetId: s.id,
-                            nominatorId: modal.sourceId ?? 0,
-                            isFirstTime: !s.hasBeenNominated,
-                            nominatorIsTownsfolk: isRealTownsfolk
-                          });
+                    : modal.type === 'lunaticKill'
+                      ? s.id === modal.sourceId
+                      : false;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          if (modal.type === 'nominate' && s.role?.id === 'virgin') {
+                            const nominatorSeat = props.seats.find(seat => seat.id === modal.sourceId);
+                            const isRealTownsfolk = !!(nominatorSeat &&
+                              nominatorSeat.role?.type === 'townsfolk' &&
+                              nominatorSeat.role?.id !== 'drunk' &&
+                              !nominatorSeat.isDrunk);
+                            props.setVirginGuideInfo({
+                              targetId: s.id,
+                              nominatorId: modal.sourceId ?? 0,
+                              isFirstTime: !s.hasBeenNominated,
+                              nominatorIsTownsfolk: isRealTownsfolk
+                            });
+                            props.setCurrentModal(null);
+                            if (props.setShowDayActionModal) props.setShowDayActionModal(null);
+                            if (props.setShowNominateModal) props.setShowNominateModal(null);
+                            return;
+                          }
+                          props.handleDayAction(s.id);
                           props.setCurrentModal(null);
                           if (props.setShowDayActionModal) props.setShowDayActionModal(null);
+                          if (props.setShowShootModal) props.setShowShootModal(null);
                           if (props.setShowNominateModal) props.setShowNominateModal(null);
-                          return;
                         }
-                        props.handleDayAction(s.id);
-                        props.setCurrentModal(null);
-                        if (props.setShowDayActionModal) props.setShowDayActionModal(null);
-                        if (props.setShowShootModal) props.setShowShootModal(null);
-                        if (props.setShowNominateModal) props.setShowNominateModal(null);
-                      }
-                    }} 
-                    disabled={isDisabled}
-                    className={`p-4 border-2 rounded-xl text-xl font-bold transition-all ${
-                      isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-700' : 
-                      'hover:bg-gray-700'
-                    }`}
-                  >
-                    {s.id+1}号 {s.role?.name}
-                  </button>
-                );
-              })}
+                      }}
+                      disabled={isDisabled}
+                      className={`p-4 border-2 rounded-xl text-xl font-bold transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed bg-gray-700' :
+                        'hover:bg-gray-700'
+                        }`}
+                    >
+                      {s.id + 1}号 {s.role?.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => {
+                  props.setCurrentModal(null);
+                  if (props.setShowDayActionModal) props.setShowDayActionModal(null);
+                  if (props.setShowShootModal) props.setShowShootModal(null);
+                  if (props.setShowNominateModal) props.setShowNominateModal(null);
+                }}
+                className="mt-8 w-full py-3 bg-gray-600 rounded-xl text-xl"
+              >
+                取消
+              </button>
             </div>
-            <button 
-              onClick={()=>{
-                props.setCurrentModal(null);
-                if (props.setShowDayActionModal) props.setShowDayActionModal(null);
-                if (props.setShowShootModal) props.setShowShootModal(null);
-                if (props.setShowNominateModal) props.setShowNominateModal(null);
-              }} 
-              className="mt-8 w-full py-3 bg-gray-600 rounded-xl text-xl"
-            >
-              取消
-            </button>
           </div>
-        </div>
         );
       })()}
 
@@ -864,7 +889,7 @@ export function GameModals(props: GameModalsProps) {
             const isFalse = verdict === 'false';
             props.addLog(
               `${seat.id + 1}号(造谣者) 造谣：${statement}` +
-                (isTrue ? '（说书人裁定：为真，今晚额外死亡）' : isFalse ? '（说书人裁定：为假）' : '（未裁定真假）')
+              (isTrue ? '（说书人裁定：为真，今晚额外死亡）' : isFalse ? '（说书人裁定：为假）' : '（未裁定真假）')
             );
             props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: statement }]);
             props.setGossipStatementToday?.(statement);
@@ -878,7 +903,7 @@ export function GameModals(props: GameModalsProps) {
               alert('请填写两条信息（可真可假）。');
               return;
             }
-            props.addLog(`${seat.id+1}号(博学者) 今日信息：${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}`);
+            props.addLog(`${seat.id + 1}号(博学者) 今日信息：${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}`);
             props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}` }]);
             props.markDailyAbilityUsed('savant_mr', seat.id);
             closeModal();
@@ -889,7 +914,7 @@ export function GameModals(props: GameModalsProps) {
               alert('请填写猜测和反馈。');
               return;
             }
-            props.addLog(`${seat.id+1}号(失意者) 今日猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}`);
+            props.addLog(`${seat.id + 1}号(失意者) 今日猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}`);
             props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}` }]);
             props.markDailyAbilityUsed('amnesiac', seat.id);
             closeModal();
@@ -900,7 +925,7 @@ export function GameModals(props: GameModalsProps) {
               alert('请填写说书人提供的建议。');
               return;
             }
-            props.addLog(`${seat.id+1}号(渔夫) 获得建议：${props.dayAbilityForm.advice}`);
+            props.addLog(`${seat.id + 1}号(渔夫) 获得建议：${props.dayAbilityForm.advice}`);
             props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `建议：${props.dayAbilityForm.advice}` }]);
             props.markAbilityUsed('fisherman', seat.id);
             closeModal();
@@ -941,10 +966,10 @@ export function GameModals(props: GameModalsProps) {
                   charadeRole: null,
                 }, { keepDeathState: true });
               }));
-              props.addLog(`${seat.id+1}号(工程师) 将恶魔改造成 ${newRole.name}`);
+              props.addLog(`${seat.id + 1}号(工程师) 将恶魔改造成 ${newRole.name}`);
               // 调整唤醒队列：如果当前在夜晚，将改造后的恶魔插入唤醒队列
               if (['night', 'firstNight'].includes(props.gamePhase)) {
-                props.insertIntoWakeQueueAfterCurrent(demonSeat.id, { roleOverride: newRole, logLabel: `${demonSeat.id+1}号(${newRole.name})` });
+                props.insertIntoWakeQueueAfterCurrent(demonSeat.id, { roleOverride: newRole, logLabel: `${demonSeat.id + 1}号(${newRole.name})` });
               }
             } else {
               const minions = props.seats.filter(s => s.role?.type === 'minion');
@@ -960,11 +985,11 @@ export function GameModals(props: GameModalsProps) {
                   charadeRole: null,
                 }, { keepDeathState: true });
               }));
-              props.addLog(`${seat.id+1}号(工程师) 将所有爪牙改造成 ${newRole.name}`);
+              props.addLog(`${seat.id + 1}号(工程师) 将所有爪牙改造成 ${newRole.name}`);
               // 调整唤醒队列：如果当前在夜晚，将所有改造后的爪牙插入唤醒队列
               if (['night', 'firstNight'].includes(props.gamePhase)) {
                 minions.forEach(m => {
-                  props.insertIntoWakeQueueAfterCurrent(m.id, { roleOverride: newRole, logLabel: `${m.id+1}号(${newRole.name})` });
+                  props.insertIntoWakeQueueAfterCurrent(m.id, { roleOverride: newRole, logLabel: `${m.id + 1}号(${newRole.name})` });
                 });
               }
             }
@@ -987,13 +1012,13 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="造谣内容（说书人记录）"
                     value={props.dayAbilityForm.info1 || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info1: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, info1: e.target.value }))}
                   />
                   <div className="text-sm text-gray-300">裁定结果：</div>
                   <select
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"
                     value={props.dayAbilityForm.info2 || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info2: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, info2: e.target.value }))}
                   >
                     <option value="">未裁定（稍后再定）</option>
                     <option value="true">为真（今晚额外死亡 1 人）</option>
@@ -1008,13 +1033,13 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="信息1"
                     value={props.dayAbilityForm.info1 || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info1: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, info1: e.target.value }))}
                   />
                   <textarea
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="信息2"
                     value={props.dayAbilityForm.info2 || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, info2: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, info2: e.target.value }))}
                   />
                 </div>
               )}
@@ -1025,13 +1050,13 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="你的猜测"
                     value={props.dayAbilityForm.guess || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, guess: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, guess: e.target.value }))}
                   />
                   <textarea
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="说书人反馈"
                     value={props.dayAbilityForm.feedback || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, feedback: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, feedback: e.target.value }))}
                   />
                 </div>
               )}
@@ -1042,7 +1067,7 @@ export function GameModals(props: GameModalsProps) {
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     placeholder="建议内容"
                     value={props.dayAbilityForm.advice || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, advice: e.target.value}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, advice: e.target.value }))}
                   />
                 </div>
               )}
@@ -1054,7 +1079,7 @@ export function GameModals(props: GameModalsProps) {
                       <input
                         type="radio"
                         checked={props.dayAbilityForm.engineerMode === 'demon'}
-                        onChange={()=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, engineerMode: 'demon'}))}
+                        onChange={() => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, engineerMode: 'demon' }))}
                       />
                       改造恶魔
                     </label>
@@ -1062,7 +1087,7 @@ export function GameModals(props: GameModalsProps) {
                       <input
                         type="radio"
                         checked={props.dayAbilityForm.engineerMode === 'minion'}
-                        onChange={()=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, engineerMode: 'minion'}))}
+                        onChange={() => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, engineerMode: 'minion' }))}
                       />
                       改造所有爪牙
                     </label>
@@ -1070,7 +1095,7 @@ export function GameModals(props: GameModalsProps) {
                   <select
                     className="w-full bg-gray-800 border border-gray-700 rounded p-2"
                     value={props.dayAbilityForm.engineerRoleId || ''}
-                    onChange={e=>props.setDayAbilityForm((f: typeof props.dayAbilityForm)=>({...f, engineerRoleId: e.target.value || undefined}))}
+                    onChange={e => props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({ ...f, engineerRoleId: e.target.value || undefined }))}
                   >
                     <option value="">选择目标角色</option>
                     {(() => {
@@ -1114,19 +1139,19 @@ export function GameModals(props: GameModalsProps) {
           props.resolveLunaticRps(isLoss ? 'lose' : 'win');
         }}
       />
-      
+
       <VirginTriggerModal
         isOpen={!!props.showVirginTriggerModal}
         onConfirm={props.confirmVirginTrigger}
         onCancel={() => props.setShowVirginTriggerModal(null)}
       />
-      
+
       <RavenkeeperFakeModal
         targetId={props.showRavenkeeperFakeModal}
         roles={props.roles}
         onSelect={props.confirmRavenkeeperFake}
       />
-      
+
 
       <StorytellerDeathModal
         isOpen={!!props.showStorytellerDeathModal}
@@ -1161,18 +1186,18 @@ export function GameModals(props: GameModalsProps) {
         seats={props.seats}
         onConfirm={props.confirmMoonchildKill}
       />
-      
-      {props.gamePhase==="dawnReport" && (
+
+      {props.gamePhase === "dawnReport" && (
         <div className="fixed inset-0 z-[3000] bg-black/95 flex items-center justify-center">
           <div className="bg-gray-800 p-12 rounded-3xl text-center border-4 border-yellow-500 min-w-[500px]">
             <h2 className="text-6xl mb-8">🌅 天亮了！</h2>
             <p className="text-3xl text-gray-300 mb-10">
               昨晚死亡：<span className="text-red-500 font-bold">
-                {props.deadThisNight.length>0 ? props.deadThisNight.map(id => `${id+1}号`).join('、') : "平安夜"}
+                {props.deadThisNight.length > 0 ? props.deadThisNight.map(id => `${id + 1}号`).join('、') : "平安夜"}
               </span>
             </p>
-            <button 
-              onClick={()=>props.setGamePhase('day')} 
+            <button
+              onClick={() => props.setGamePhase('day')}
               className="px-12 py-5 bg-yellow-500 text-black font-bold rounded-full text-3xl"
             >
               开始白天
@@ -1180,14 +1205,13 @@ export function GameModals(props: GameModalsProps) {
           </div>
         </div>
       )}
-      
-      {props.gamePhase==="gameOver" && (
+
+      {props.gamePhase === "gameOver" && (
         <div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center">
           <div className="text-center">
-            <h1 className={`text-8xl font-bold mb-10 ${
-              props.winResult==='good'?'text-blue-500':'text-red-500'
-            }`}>
-              {props.winResult==='good'?'🏆 善良阵营胜利':'👿 邪恶阵营获胜'}
+            <h1 className={`text-8xl font-bold mb-10 ${props.winResult === 'good' ? 'text-blue-500' : 'text-red-500'
+              }`}>
+              {props.winResult === 'good' ? '🏆 善良阵营胜利' : '👿 邪恶阵营获胜'}
             </h1>
             {props.winReason && (
               <p className="text-xl text-gray-400 mb-8">
@@ -1200,14 +1224,14 @@ export function GameModals(props: GameModalsProps) {
               </p>
             )}
             <div className="flex gap-6 justify-center">
-              <button 
-                onClick={props.handleNewGame} 
+              <button
+                onClick={props.handleNewGame}
                 className="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-3xl font-bold transition-colors"
               >
                 再来一局
               </button>
-              <button 
-                onClick={()=>props.setShowReviewModal(true)} 
+              <button
+                onClick={() => props.setShowReviewModal(true)}
                 className="px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-3xl font-bold transition-colors"
               >
                 本局复盘
@@ -1216,7 +1240,7 @@ export function GameModals(props: GameModalsProps) {
           </div>
         </div>
       )}
-      
+
       <ReviewModal
         isOpen={props.showReviewModal}
         onClose={() => props.setShowReviewModal(false)}
@@ -1248,111 +1272,100 @@ export function GameModals(props: GameModalsProps) {
         const targetSeat = props.seats.find(s => s.id === props.contextMenu?.seatId);
         if (!targetSeat) return null;
         return (
-        <div 
-          className="absolute bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden" 
-          style={{top:props.contextMenu.y,left:props.contextMenu.x}}
-        >
-          {props.gamePhase==='dusk' && !targetSeat.isDead && (
-            <button 
-              onClick={()=>props.handleMenuAction('nominate')} 
-              disabled={props.contextMenu ? props.nominationRecords.nominators.has(props.contextMenu.seatId) : false}
-              className={`block w-full text-left px-6 py-4 hover:bg-purple-900 text-purple-300 font-bold text-lg border-b border-gray-600 ${
-                (props.contextMenu && props.nominationRecords.nominators.has(props.contextMenu.seatId)) ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              🗣️ 提名
-            </button>
-          )}
-          {/* 开枪可以在任意环节（除了setup阶段） */}
-          {!targetSeat.isDead && props.gamePhase !== 'setup' && (
-            <button 
-              onClick={()=>props.handleMenuAction('slayer')} 
-              disabled={targetSeat.hasUsedSlayerAbility}
-              className={`block w-full text-left px-6 py-4 hover:bg-red-900 text-red-300 font-bold text-lg border-b border-gray-600 ${
-                targetSeat.hasUsedSlayerAbility ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              💥 开枪
-            </button>
-          )}
-          {/* 爪牙白天猜测落难少女 */}
-          {props.gamePhase === 'day' && targetSeat.role?.type === 'minion' && !targetSeat.isDead && props.seats.some(s => s.role?.id === 'damsel') && (
-            <button
-              onClick={()=>props.handleMenuAction('damselGuess')}
-              disabled={props.damselGuessUsedBy.includes(targetSeat.id)}
-              className={`block w-full text-left px-6 py-3 text-lg font-medium border-t border-gray-700 ${
-                props.damselGuessUsedBy.includes(targetSeat.id)
+          <div
+            className="absolute bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
+            style={{ top: props.contextMenu.y, left: props.contextMenu.x }}
+          >
+            {props.gamePhase === 'dusk' && !targetSeat.isDead && (
+              <button
+                onClick={() => props.handleMenuAction('nominate')}
+                disabled={props.contextMenu ? props.nominationRecords.nominators.has(props.contextMenu.seatId) : false}
+                className={`block w-full text-left px-6 py-4 hover:bg-purple-900 text-purple-300 font-bold text-lg border-b border-gray-600 ${(props.contextMenu && props.nominationRecords.nominators.has(props.contextMenu.seatId)) ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+              >
+                🗣️ 提名
+              </button>
+            )}
+            {/* 开枪可以在任意环节（除了setup阶段） */}
+            {!targetSeat.isDead && props.gamePhase !== 'setup' && (
+              <button
+                onClick={() => props.handleMenuAction('slayer')}
+                disabled={targetSeat.hasUsedSlayerAbility}
+                className={`block w-full text-left px-6 py-4 hover:bg-red-900 text-red-300 font-bold text-lg border-b border-gray-600 ${targetSeat.hasUsedSlayerAbility ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+              >
+                💥 开枪
+              </button>
+            )}
+            {/* 爪牙白天猜测落难少女 */}
+            {props.gamePhase === 'day' && targetSeat.role?.type === 'minion' && !targetSeat.isDead && props.seats.some(s => s.role?.id === 'damsel') && (
+              <button
+                onClick={() => props.handleMenuAction('damselGuess')}
+                disabled={props.damselGuessUsedBy.includes(targetSeat.id)}
+                className={`block w-full text-left px-6 py-3 text-lg font-medium border-t border-gray-700 ${props.damselGuessUsedBy.includes(targetSeat.id)
                   ? 'text-gray-500 cursor-not-allowed bg-gray-800'
                   : 'hover:bg-pink-900 text-pink-300'
-              }`}
-            >
-              🎯 猜测落难少女
-            </button>
-          )}
-          {/* 快捷状态标记：中毒 / 醉酒（说书人工具） */}
-          {props.gamePhase !== 'setup' && (
-            <>
-              <button
-                onClick={() => props.toggleStatus('poison', targetSeat.id)}
-                className="block w-full text-left px-6 py-3 hover:bg-green-900/80 text-green-200 text-lg font-medium border-t border-gray-700"
+                  }`}
               >
-                ☠️ 切换中毒标记
+                🎯 猜测落难少女
               </button>
+            )}
+            {/* 快捷状态标记：中毒 / 醉酒（说书人工具） */}
+            {props.gamePhase !== 'setup' && (
+              <>
+                <button
+                  onClick={() => props.toggleStatus('poison', targetSeat.id)}
+                  className="block w-full text-left px-6 py-3 hover:bg-green-900/80 text-green-200 text-lg font-medium border-t border-gray-700"
+                >
+                  ☠️ 切换中毒标记
+                </button>
+                <button
+                  onClick={() => props.toggleStatus('drunk', targetSeat.id)}
+                  className="block w-full text-left px-6 py-3 hover:bg-yellow-900/80 text-yellow-200 text-lg font-medium border-t border-gray-700"
+                >
+                  🍺 切换醉酒标记
+                </button>
+              </>
+            )}
+            {/* 修补匠：说书人可在任意时刻裁定其死亡 */}
+            {targetSeat.role?.id === 'tinker' && !targetSeat.isDead && props.gamePhase !== 'setup' && (
               <button
-                onClick={() => props.toggleStatus('drunk', targetSeat.id)}
-                className="block w-full text-left px-6 py-3 hover:bg-yellow-900/80 text-yellow-200 text-lg font-medium border-t border-gray-700"
+                onClick={() => props.handleMenuAction('tinker_die')}
+                className="block w-full text-left px-6 py-3 hover:bg-orange-900 text-orange-300 text-lg font-medium border-t border-gray-700"
               >
-                🍺 切换醉酒标记
+                🛠️ 修补匠：裁定死亡
               </button>
-            </>
-          )}
-          {/* 修补匠：说书人可在任意时刻裁定其死亡 */}
-          {targetSeat.role?.id === 'tinker' && !targetSeat.isDead && props.gamePhase !== 'setup' && (
+            )}
+            {/* 造谣者：白天记录造谣并由说书人裁定真假（若为真，今晚额外死一人） */}
+            {props.gamePhase === 'day' && targetSeat.role?.id === 'gossip' && !targetSeat.isDead && (
+              <button
+                onClick={() => props.handleMenuAction('gossip_record')}
+                className="block w-full text-left px-6 py-3 hover:bg-cyan-900 text-cyan-200 text-lg font-medium border-t border-gray-700"
+              >
+                🗣️ 造谣者：记录/裁定
+              </button>
+            )}
             <button
-              onClick={() => props.handleMenuAction('tinker_die')}
-              className="block w-full text-left px-6 py-3 hover:bg-orange-900 text-orange-300 text-lg font-medium border-t border-gray-700"
+              onClick={() => props.toggleStatus('dead')}
+              className="block w-full text-left px-6 py-3 hover:bg-gray-700 text-lg font-medium"
             >
-              🛠️ 修补匠：裁定死亡
+              💀 切换死亡
             </button>
-          )}
-          {/* 造谣者：白天记录造谣并由说书人裁定真假（若为真，今晚额外死一人） */}
-          {props.gamePhase === 'day' && targetSeat.role?.id === 'gossip' && !targetSeat.isDead && (
-            <button
-              onClick={() => props.handleMenuAction('gossip_record')}
-              className="block w-full text-left px-6 py-3 hover:bg-cyan-900 text-cyan-200 text-lg font-medium border-t border-gray-700"
-            >
-              🗣️ 造谣者：记录/裁定
-            </button>
-          )}
-          <button 
-            onClick={()=>props.toggleStatus('dead')} 
-            className="block w-full text-left px-6 py-3 hover:bg-gray-700 text-lg font-medium"
-          >
-            💀 切换死亡
-          </button>
-          {/* 在核对身份阶段，允许选择天敌红罗剎（仅限善良阵营），爪牙和恶魔为灰色不可选，且需要场上有占卜师 */}
-          {props.gamePhase === 'check' && targetSeat.role && (() => {
-            const hasFortuneTeller = props.seats.some(s => s.role?.id === "fortune_teller");
-            const isDisabled = ['minion','demon'].includes(targetSeat.role.type) || !hasFortuneTeller;
-            return (
+            {/* 在核对身份阶段及首夜刚开始时，允许选择红罗刹 */}
+            {(props.gamePhase === 'check' || (props.gamePhase === 'firstNight' && props.nightCount === 1)) && (
               <button
-                onClick={()=>!isDisabled && props.toggleStatus('redherring', targetSeat.id)}
-                disabled={isDisabled}
-                className={`block w-full text-left px-6 py-3 text-lg font-medium border-t border-gray-700 whitespace-nowrap ${
-                  isDisabled
-                    ? 'text-gray-500 cursor-not-allowed bg-gray-800'
-                    : 'hover:bg-red-900 text-red-300'
-                }`}
+                onClick={() => props.toggleStatus('redherring', targetSeat.id)}
+                className="block w-full text-left px-6 py-4 hover:bg-red-700 bg-red-900/30 text-red-100 text-lg font-bold border-t border-gray-700 transition-colors"
+                style={{ textShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }}
               >
-                  🎭 选为天敌红罗剎
+                🎭 选为红罗刹
               </button>
-            );
-          })()}
-        </div>
+            )}
+          </div>
         );
       })()}
-      
-      
+
+
       {/* 6. 处决结果弹窗 */}
       <ExecutionResultModal
         isOpen={!!props.showExecutionResultModal}
@@ -1422,7 +1435,7 @@ export function GameModals(props: GameModalsProps) {
         roleId={props.showPitHagModal?.roleId || null}
         seats={props.seats}
         roles={props.roles}
-        onRoleChange={(roleId) => props.setShowPitHagModal((m: any) => m ? ({...m, roleId}) : null)}
+        onRoleChange={(roleId) => props.setShowPitHagModal((m: any) => m ? ({ ...m, roleId }) : null)}
         onCancel={() => props.setShowPitHagModal(null)}
         onContinue={() => {
           // 保持弹窗打开，由"确认/下一步"执行实际变更
@@ -1437,7 +1450,7 @@ export function GameModals(props: GameModalsProps) {
         seats={props.seats}
         roles={props.roles}
         selectedScript={props.selectedScript}
-        onRoleChange={(roleId) => props.setShowRangerModal((m: any) => m ? ({...m, roleId}) : null)}
+        onRoleChange={(roleId) => props.setShowRangerModal((m: any) => m ? ({ ...m, roleId }) : null)}
         onConfirm={() => {
           if (!props.showRangerModal?.roleId) {
             alert('必须选择一个未在场的镇民角色');
@@ -1459,8 +1472,8 @@ export function GameModals(props: GameModalsProps) {
             }, { keepDeathState: true });
             return swapped;
           }));
-          props.addLog(`巡山人将 ${props.showRangerModal.targetId+1}号(落难少女) 变为 ${newRole.name}`);
-          props.insertIntoWakeQueueAfterCurrent(props.showRangerModal.targetId, { roleOverride: newRole, logLabel: `${props.showRangerModal.targetId+1}号(${newRole.name})` });
+          props.addLog(`巡山人将 ${props.showRangerModal.targetId + 1}号(落难少女) 变为 ${newRole.name}`);
+          props.insertIntoWakeQueueAfterCurrent(props.showRangerModal.targetId, { roleOverride: newRole, logLabel: `${props.showRangerModal.targetId + 1}号(${newRole.name})` });
           props.setShowRangerModal(null);
           props.continueToNextAction();
         }}
@@ -1473,8 +1486,8 @@ export function GameModals(props: GameModalsProps) {
         targetId={props.showDamselGuessModal?.targetId || null}
         seats={props.seats}
         damselGuessUsedBy={props.damselGuessUsedBy}
-        onMinionChange={(minionId) => props.setShowDamselGuessModal((m: any) => m ? ({...m, minionId}) : null)}
-        onTargetChange={(targetId) => props.setShowDamselGuessModal((m: any) => m ? ({...m, targetId}) : null)}
+        onMinionChange={(minionId) => props.setShowDamselGuessModal((m: any) => m ? ({ ...m, minionId }) : null)}
+        onTargetChange={(targetId) => props.setShowDamselGuessModal((m: any) => m ? ({ ...m, targetId }) : null)}
         onCancel={() => props.setShowDamselGuessModal(null)}
         onConfirm={() => {
           if (props.showDamselGuessModal!.minionId === null || props.showDamselGuessModal!.targetId === null) return;
@@ -1484,16 +1497,13 @@ export function GameModals(props: GameModalsProps) {
           props.setShowDamselGuessModal(null);
           props.setDamselGuessUsedBy(prev => prev.includes(minionId) ? prev : [...prev, minionId]);
           if (isCorrect) {
-            props.setDamselGuessed(true);
-            props.setWinResult('evil');
-            props.setWinReason('爪牙猜中落难少女');
-            props.setGamePhase('gameOver');
-            props.addLog(`爪牙猜测成功：${props.showDamselGuessModal!.targetId+1}号是落难少女，邪恶获胜`);
+            props.addLog(`爪牙猜测成功：${props.showDamselGuessModal!.targetId + 1}号是落难少女，邪恶获胜`);
+            props.checkGameOver(props.seats, undefined, undefined, true);
           } else {
             const updatedSeats = props.seats.map(s => s.id === minionId ? { ...s, isDead: true, isSentenced: false } : s);
             props.setSeats(updatedSeats);
-            props.addLog(`${minionId+1}号爪牙猜错落难少女，当场死亡。`);
-            props.addLog(`爪牙猜测失败：${props.showDamselGuessModal!.targetId+1}号不是落难少女`);
+            props.addLog(`${minionId + 1}号爪牙猜错落难少女，当场死亡。`);
+            props.addLog(`爪牙猜测失败：${props.showDamselGuessModal!.targetId + 1}号不是落难少女`);
             props.checkGameOver(updatedSeats, minionId);
           }
         }}
@@ -1510,26 +1520,26 @@ export function GameModals(props: GameModalsProps) {
             <select
               className="w-full bg-gray-900 border border-gray-700 rounded p-2"
               value={props.shamanConvertTarget ?? ''}
-              onChange={e=>props.setShamanConvertTarget(e.target.value===''?null:Number(e.target.value))}
+              onChange={e => props.setShamanConvertTarget(e.target.value === '' ? null : Number(e.target.value))}
             >
               <option value="">选择玩家</option>
-              {props.seats.filter(s => !s.isDead).map(s=>(
-                <option key={s.id} value={s.id}>[{s.id+1}] {s.role?.name}</option>
+              {props.seats.filter(s => !s.isDead).map(s => (
+                <option key={s.id} value={s.id}>[{s.id + 1}] {s.role?.name}</option>
               ))}
             </select>
             <div className="flex gap-3 justify-end">
-              <button className="px-4 py-2 bg-gray-700 rounded" onClick={()=>{
+              <button className="px-4 py-2 bg-gray-700 rounded" onClick={() => {
                 props.setCurrentModal(null);
                 if (props.setShowShamanConvertModal) props.setShowShamanConvertModal(false);
                 props.setShamanConvertTarget(null);
               }}>取消</button>
-              <button className="px-4 py-2 bg-purple-600 rounded" onClick={()=>{
+              <button className="px-4 py-2 bg-purple-600 rounded" onClick={() => {
                 if (props.shamanConvertTarget === null) return;
                 const target = props.seats.find(s => s.id === props.shamanConvertTarget);
                 if (!target || target.isDead) return;
                 const isGoodNow = props.isGoodAlignment(target);
                 if (!isGoodNow) {
-                  props.addLog(`灵言师关键词触发检查：${props.shamanConvertTarget+1}号本就为邪恶阵营，未产生额外效果`);
+                  props.addLog(`灵言师关键词触发检查：${props.shamanConvertTarget + 1}号本就为邪恶阵营，未产生额外效果`);
                   props.setShamanTriggered(true);
                   props.setCurrentModal(null);
                   if (props.setShowShamanConvertModal) props.setShowShamanConvertModal(false);
@@ -1542,8 +1552,8 @@ export function GameModals(props: GameModalsProps) {
                   const details = Array.from(new Set([...(next.statusDetails || []), '灵言转邪']));
                   return { ...next, statusDetails: details };
                 }));
-                props.addLog(`灵言师关键词触发：${props.shamanConvertTarget+1}号公开说出关键词，从今晚开始被视为邪恶阵营`);
-                props.insertIntoWakeQueueAfterCurrent(props.shamanConvertTarget, { logLabel: `${props.shamanConvertTarget+1}号(转邪恶)` });
+                props.addLog(`灵言师关键词触发：${props.shamanConvertTarget + 1}号公开说出关键词，从今晚开始被视为邪恶阵营`);
+                props.insertIntoWakeQueueAfterCurrent(props.shamanConvertTarget, { logLabel: `${props.shamanConvertTarget + 1}号(转邪恶)` });
                 props.setShamanTriggered(true);
                 props.setCurrentModal(null);
                 if (props.setShowShamanConvertModal) props.setShowShamanConvertModal(false);
@@ -1559,30 +1569,30 @@ export function GameModals(props: GameModalsProps) {
         <div className="fixed inset-0 z-[5000] bg-black/80 flex items-center justify-center px-4">
           <div className="bg-gray-800 border-4 border-blue-500 rounded-2xl p-6 max-w-xl w-full space-y-4">
             <h2 className="text-3xl font-bold text-blue-300">理发师：交换两名玩家角色</h2>
-            <div className="text-sm text-gray-300">恶魔（参考）：{props.showBarberSwapModal.demonId+1}号</div>
+            <div className="text-sm text-gray-300">恶魔（参考）：{props.showBarberSwapModal.demonId + 1}号</div>
             <select
               className="w-full bg-gray-900 border border-gray-600 rounded p-2"
               value={props.showBarberSwapModal?.firstId ?? ''}
-              onChange={(e)=>props.setShowBarberSwapModal((m: any)=> m ? ({...m, firstId: e.target.value===''?null:Number(e.target.value)}) : null)}
+              onChange={(e) => props.setShowBarberSwapModal((m: any) => m ? ({ ...m, firstId: e.target.value === '' ? null : Number(e.target.value) }) : null)}
             >
               <option value="">选择玩家A</option>
-              {props.seats.filter(s=>s.role?.type !== 'demon' && !s.isDemonSuccessor).map(s=>(
-                <option key={s.id} value={s.id}>[{s.id+1}] {s.role?.name}</option>
+              {props.seats.filter(s => s.role?.type !== 'demon' && !s.isDemonSuccessor).map(s => (
+                <option key={s.id} value={s.id}>[{s.id + 1}] {s.role?.name}</option>
               ))}
             </select>
             <select
               className="w-full bg-gray-900 border border-gray-600 rounded p-2"
               value={props.showBarberSwapModal?.secondId ?? ''}
-              onChange={(e)=>props.setShowBarberSwapModal((m: any)=> m ? ({...m, secondId: e.target.value===''?null:Number(e.target.value)}) : null)}
+              onChange={(e) => props.setShowBarberSwapModal((m: any) => m ? ({ ...m, secondId: e.target.value === '' ? null : Number(e.target.value) }) : null)}
             >
               <option value="">选择玩家B</option>
-              {props.seats.filter(s=>s.role?.type !== 'demon' && !s.isDemonSuccessor).map(s=>(
-                <option key={s.id} value={s.id}>[{s.id+1}] {s.role?.name}</option>
+              {props.seats.filter(s => s.role?.type !== 'demon' && !s.isDemonSuccessor).map(s => (
+                <option key={s.id} value={s.id}>[{s.id + 1}] {s.role?.name}</option>
               ))}
             </select>
             <div className="flex gap-3 justify-end">
-              <button className="px-4 py-2 bg-gray-700 rounded" onClick={()=>props.setShowBarberSwapModal(null)}>取消</button>
-              <button className="px-4 py-2 bg-indigo-600 rounded" onClick={()=>{
+              <button className="px-4 py-2 bg-gray-700 rounded" onClick={() => props.setShowBarberSwapModal(null)}>取消</button>
+              <button className="px-4 py-2 bg-indigo-600 rounded" onClick={() => {
                 if (!props.showBarberSwapModal || props.showBarberSwapModal.firstId === null || props.showBarberSwapModal.secondId === null || props.showBarberSwapModal.firstId === props.showBarberSwapModal.secondId) return;
                 const aId = props.showBarberSwapModal.firstId;
                 const bId = props.showBarberSwapModal.secondId;
@@ -1602,14 +1612,14 @@ export function GameModals(props: GameModalsProps) {
                   }
                   return s;
                 }));
-                props.addLog(`理发师触发：交换了 ${aId+1}号 与 ${bId+1}号 的角色`);
+                props.addLog(`理发师触发：交换了 ${aId + 1}号 与 ${bId + 1}号 的角色`);
                 // 调整唤醒队列：如果当前在夜晚，将交换后的两名玩家插入唤醒队列
                 if (['night', 'firstNight'].includes(props.gamePhase)) {
                   if (aRole && ((aRole.firstNightOrder ?? 0) > 0 || (aRole.otherNightOrder ?? 0) > 0)) {
-                    props.insertIntoWakeQueueAfterCurrent(aId, { roleOverride: aRole, logLabel: `${aId+1}号(${aRole.name})` });
+                    props.insertIntoWakeQueueAfterCurrent(aId, { roleOverride: aRole, logLabel: `${aId + 1}号(${aRole.name})` });
                   }
                   if (bRole && ((bRole.firstNightOrder ?? 0) > 0 || (bRole.otherNightOrder ?? 0) > 0)) {
-                    props.insertIntoWakeQueueAfterCurrent(bId, { roleOverride: bRole, logLabel: `${bId+1}号(${bRole.name})` });
+                    props.insertIntoWakeQueueAfterCurrent(bId, { roleOverride: bRole, logLabel: `${bId + 1}号(${bRole.name})` });
                   }
                 }
                 props.setShowBarberSwapModal(null);
@@ -1647,7 +1657,7 @@ export function GameModals(props: GameModalsProps) {
         }}
         onConfirmRedirect={(targetId) => props.confirmMayorRedirect(targetId)}
       />
-      
+
       {/* 投毒者确认下毒弹窗（善良玩家） */}
       {props.showPoisonConfirmModal !== null && (
         <PoisonConfirmModal
@@ -1670,7 +1680,7 @@ export function GameModals(props: GameModalsProps) {
           }}
         />
       )}
-      
+
       <NightDeathReportModal
         message={props.showNightDeathReportModal}
         onConfirm={props.confirmNightDeathReport}
@@ -1684,147 +1694,144 @@ export function GameModals(props: GameModalsProps) {
 
       {/* 伪装身份识别浮窗 */}
       {shouldShowSpyDisguise && (
-        <div 
+        <div
           className="fixed inset-0 z-[5000] bg-black/50 flex items-center justify-center"
           onClick={() => {
             props.setCurrentModal(null);
             if (props.setShowSpyDisguiseModal) props.setShowSpyDisguiseModal(false);
           }}
         >
-          <div 
+          <div
             className="bg-gray-800 border-2 border-purple-500 rounded-xl p-4 w-80 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-lg font-bold text-purple-300">🎭 伪装身份识别</h3>
-                <button
-                  onClick={() => {
-                    props.setCurrentModal(null);
-                    if (props.setShowSpyDisguiseModal) props.setShowSpyDisguiseModal(false);
-                  }}
-                  className="text-gray-400 hover:text-white text-xl"
-                >
-                  ×
-                </button>
-              </div>
-              
-              {hasInterferenceRoles ? (
-                <div className="space-y-3 text-sm">
-                  {spySeats.length > 0 && (
-                    <div>
-                      <div className="text-xs text-gray-400 mb-1">间谍：</div>
-                      {spySeats.map(s => (
-                        <div key={s.id} className="text-gray-300 ml-2">{s.id + 1}号</div>
-                      ))}
-                    </div>
-                  )}
-                  {recluseSeats.length > 0 && (
-                    <div>
-                      <div className="text-xs text-gray-400 mb-1">隐士：</div>
-                      {recluseSeats.map(s => (
-                        <div key={s.id} className="text-gray-300 ml-2">{s.id + 1}号</div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="pt-2 border-t border-gray-700">
-                    <div className="text-xs text-gray-400 mb-2">干扰模式：</div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => props.setSpyDisguiseMode('off')}
-                        className={`flex-1 py-1.5 px-2 text-xs rounded ${
-                          props.spyDisguiseMode === 'off' 
-                            ? 'bg-red-600 text-white' 
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        关闭
-                      </button>
-                      <button
-                        onClick={() => props.setSpyDisguiseMode('default')}
-                        className={`flex-1 py-1.5 px-2 text-xs rounded ${
-                          props.spyDisguiseMode === 'default' 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        默认
-                      </button>
-                      <button
-                        onClick={() => props.setSpyDisguiseMode('on')}
-                        className={`flex-1 py-1.5 px-2 text-xs rounded ${
-                          props.spyDisguiseMode === 'on' 
-                            ? 'bg-green-600 text-white' 
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        开启
-                      </button>
-                    </div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-bold text-purple-300">🎭 伪装身份识别</h3>
+              <button
+                onClick={() => {
+                  props.setCurrentModal(null);
+                  if (props.setShowSpyDisguiseModal) props.setShowSpyDisguiseModal(false);
+                }}
+                className="text-gray-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {hasInterferenceRoles ? (
+              <div className="space-y-3 text-sm">
+                {spySeats.length > 0 && (
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">间谍：</div>
+                    {spySeats.map(s => (
+                      <div key={s.id} className="text-gray-300 ml-2">{s.id + 1}号</div>
+                    ))}
                   </div>
-                  {props.spyDisguiseMode === 'on' && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-gray-300 flex-shrink-0">概率：</label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={props.spyDisguiseProbability * 100}
-                        onChange={(e) => props.setSpyDisguiseProbability(parseInt(e.target.value) / 100)}
-                        className="flex-1"
-                      />
-                      <span className="text-xs text-gray-300 w-10 text-right">
-                        {Math.round(props.spyDisguiseProbability * 100)}%
-                      </span>
-                    </div>
-                  )}
-                  {props.spyDisguiseMode === 'default' && (
-                    <div className="text-xs text-gray-400">
-                      默认概率：80%
-                    </div>
-                  )}
-                  {(chefSeat || empathSeat || investigatorSeat || fortuneTellerSeat) && (
-                    <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
-                      受影响角色：{chefSeat && '厨师'} {chefSeat && (empathSeat || investigatorSeat || fortuneTellerSeat) && '、'}
-                      {empathSeat && '共情者'} {(chefSeat || empathSeat) && (investigatorSeat || fortuneTellerSeat) && '、'}
-                      {investigatorSeat && '调查员'} {(chefSeat || empathSeat || investigatorSeat) && fortuneTellerSeat && '、'}
-                      {fortuneTellerSeat && '占卜师'}
-                    </div>
-                  )}
-                  {registrationInfo && (
-                    <div className="mt-3 border-t border-gray-700 pt-2 text-xs text-gray-300 space-y-2">
-                      <div className="text-purple-300 font-semibold">🧾 注册结果（仅说书人可见）</div>
-                      {registrationInfo.affected.map(target => (
-                        <div key={target.id} className="bg-gray-750 rounded p-2 border border-gray-700">
-                          <div className="font-medium mb-1">{target.id + 1}号【{target.role?.name || '未知'}】</div>
-                          <div className="space-y-1">
-                            {registrationInfo.infoViewers.map(viewer => {
-                              if (!viewer.role) return null;
-                              const typeLabels: Record<RoleType, string> = { townsfolk: '镇民', outsider: '外来者', minion: '爪牙', demon: '恶魔', traveler: '旅人' };
-                              const reg = props.getRegistrationCached(target, viewer.role);
-                              const typeText = reg.roleType ? typeLabels[reg.roleType] || reg.roleType : '无类型';
-                              const status = reg.registersAsDemon
-                                ? '视为恶魔'
-                                : reg.registersAsMinion
-                                  ? '视为爪牙'
-                                  : `阵营=${reg.alignment === 'Evil' ? '邪恶' : '善良'}, 类型=${typeText}`;
-                              return (
-                                <div key={`${viewer.id}-${target.id}`} className="flex items-center justify-between gap-2">
-                                  <span className="text-gray-400">在【{viewer.role?.name}】眼中</span>
-                                  <span className="text-white">{status}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
+                )}
+                {recluseSeats.length > 0 && (
+                  <div>
+                    <div className="text-xs text-gray-400 mb-1">隐士：</div>
+                    {recluseSeats.map(s => (
+                      <div key={s.id} className="text-gray-300 ml-2">{s.id + 1}号</div>
+                    ))}
+                  </div>
+                )}
+                <div className="pt-2 border-t border-gray-700">
+                  <div className="text-xs text-gray-400 mb-2">干扰模式：</div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => props.setSpyDisguiseMode('off')}
+                      className={`flex-1 py-1.5 px-2 text-xs rounded ${props.spyDisguiseMode === 'off'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                      关闭
+                    </button>
+                    <button
+                      onClick={() => props.setSpyDisguiseMode('default')}
+                      className={`flex-1 py-1.5 px-2 text-xs rounded ${props.spyDisguiseMode === 'default'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                      默认
+                    </button>
+                    <button
+                      onClick={() => props.setSpyDisguiseMode('on')}
+                      className={`flex-1 py-1.5 px-2 text-xs rounded ${props.spyDisguiseMode === 'on'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                      开启
+                    </button>
+                  </div>
+                </div>
+                {props.spyDisguiseMode === 'on' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-300 flex-shrink-0">概率：</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={props.spyDisguiseProbability * 100}
+                      onChange={(e) => props.setSpyDisguiseProbability(parseInt(e.target.value) / 100)}
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-gray-300 w-10 text-right">
+                      {Math.round(props.spyDisguiseProbability * 100)}%
+                    </span>
+                  </div>
+                )}
+                {props.spyDisguiseMode === 'default' && (
+                  <div className="text-xs text-gray-400">
+                    默认概率：80%
+                  </div>
+                )}
+                {(chefSeat || empathSeat || investigatorSeat || fortuneTellerSeat) && (
+                  <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
+                    受影响角色：{chefSeat && '厨师'} {chefSeat && (empathSeat || investigatorSeat || fortuneTellerSeat) && '、'}
+                    {empathSeat && '共情者'} {(chefSeat || empathSeat) && (investigatorSeat || fortuneTellerSeat) && '、'}
+                    {investigatorSeat && '调查员'} {(chefSeat || empathSeat || investigatorSeat) && fortuneTellerSeat && '、'}
+                    {fortuneTellerSeat && '占卜师'}
+                  </div>
+                )}
+                {registrationInfo && (
+                  <div className="mt-3 border-t border-gray-700 pt-2 text-xs text-gray-300 space-y-2">
+                    <div className="text-purple-300 font-semibold">🧾 注册结果（仅说书人可见）</div>
+                    {registrationInfo.affected.map(target => (
+                      <div key={target.id} className="bg-gray-750 rounded p-2 border border-gray-700">
+                        <div className="font-medium mb-1">{target.id + 1}号【{target.role?.name || '未知'}】</div>
+                        <div className="space-y-1">
+                          {registrationInfo.infoViewers.map(viewer => {
+                            if (!viewer.role) return null;
+                            const typeLabels: Record<RoleType, string> = { townsfolk: '镇民', outsider: '外来者', minion: '爪牙', demon: '恶魔', traveler: '旅人' };
+                            const reg = props.getRegistrationCached(target, viewer.role);
+                            const typeText = reg.roleType ? typeLabels[reg.roleType] || reg.roleType : '无类型';
+                            const status = reg.registersAsDemon
+                              ? '视为恶魔'
+                              : reg.registersAsMinion
+                                ? '视为爪牙'
+                                : `阵营=${reg.alignment === 'Evil' ? '邪恶' : '善良'}, 类型=${typeText}`;
+                            return (
+                              <div key={`${viewer.id}-${target.id}`} className="flex items-center justify-between gap-2">
+                                <span className="text-gray-400">在【{viewer.role?.name}】眼中</span>
+                                <span className="text-white">{status}</span>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-400 text-center py-4">
-                  当前无需要伪装身份识别的角色
-                </div>
-              )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-400 text-center py-4">
+                当前无需要伪装身份识别的角色
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect } from "react";
 import type { Role, Seat } from "../../app/data";
 import { useGameContext, gameActions } from "../contexts/GameContext";
 import {
@@ -8,7 +8,8 @@ import {
   isActionAbility,
   getRegistration,
   isGoodAlignment,
-  getRandom
+  getRandom,
+  isFortuneTellerTarget
 } from "../utils/gameRules";
 
 /**
@@ -38,7 +39,7 @@ export function useInteractionHandler(deps: {
   const {
     gamePhase, seats, selectedRole, wakeQueueIds, currentWakeIndex,
     selectedActionTargets, nightCount, contextMenu, currentModal,
-    isVortoxWorld, nightActionQueue
+    isVortoxWorld, nightActionQueue, deadThisNight
   } = state;
 
   // ... (toggleTarget and handleSeatClick unchanged) ...
@@ -55,8 +56,13 @@ export function useInteractionHandler(deps: {
     if (!nightInfo) return;
 
     const isFirstNight = gamePhase === 'firstNight';
-    // 这里暂时依赖外部传入的 getRoleTargetCount，后续可移入 roles/index.ts
-    const targetCount = deps.getRoleTargetCount(nightInfo.role?.id || '', isFirstNight);
+    const effectiveRole = nightInfo.role?.id === 'drunk'
+      ? nightInfo.charadeRole
+      : nightInfo.role;
+    if (!effectiveRole) return;
+
+    const roleId = effectiveRole.id;
+    const targetCount = deps.getRoleTargetCount(roleId || '', isFirstNight);
     const maxTargets = targetCount?.max ?? 1;
 
     let newTargets = [...selectedActionTargets];
@@ -74,7 +80,7 @@ export function useInteractionHandler(deps: {
     }
 
     dispatch(gameActions.setSelectedTargets(newTargets));
-  }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, seats, isVortoxWorld, dispatch, deps]);
+  }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, dispatch, deps]);
 
   const handleSeatClick = useCallback((id: number, _options?: { force?: boolean }) => {
     if (gamePhase === 'setup' || gamePhase === 'scriptSelection') {
@@ -109,7 +115,65 @@ export function useInteractionHandler(deps: {
     }
   }, [gamePhase, selectedRole, seats, dispatch, toggleTarget]);
 
-  const isTargetDisabled = useCallback((_seat: Seat) => false, []);
+  const isTargetDisabled = useCallback((targetSeat: Seat) => {
+    const activeSeat = nightActionQueue[currentWakeIndex];
+    if (!activeSeat) return false;
+
+    const roleId = activeSeat.role?.id === "drunk"
+      ? activeSeat.charadeRole?.id
+      : activeSeat.role?.id;
+    if (!roleId) return false;
+
+    const isFirstNight = gamePhase === 'firstNight';
+
+    // We use the passed canSelectTarget logic from useRoleAction via deps
+    if (deps.canSelectTarget) {
+      return !deps.canSelectTarget(
+        roleId,
+        activeSeat.id,
+        targetSeat.id,
+        seats,
+        selectedActionTargets,
+        isFirstNight,
+        gamePhase,
+        deadThisNight
+      );
+    }
+
+    return false;
+  }, [nightActionQueue, currentWakeIndex, gamePhase, seats, selectedActionTargets, deadThisNight, dispatch, deps]);
+
+  // 占卜师自动生成结果逻辑 (由 useEffect 驱动，确保红罗刹变更时也能同步)
+  useEffect(() => {
+    const nightInfo = nightActionQueue[currentWakeIndex];
+    if (!nightInfo) return;
+
+    const effectiveRole = nightInfo.effectiveRole;
+    if (!effectiveRole || effectiveRole.id !== 'fortune_teller') return;
+
+    if (selectedActionTargets.length === 2) {
+      const t1 = seats.find(s => s.id === selectedActionTargets[0]);
+      const t2 = seats.find(s => s.id === selectedActionTargets[1]);
+      if (t1 && t2) {
+        const isFT1 = isFortuneTellerTarget(t1);
+        const isFT2 = isFortuneTellerTarget(t2);
+        const isEvil = isFT1 || isFT2;
+
+        // 涡流环境判定
+        const resultValue = isVortoxWorld ? !isEvil : isEvil;
+        const resultText = resultValue ? "✅ 是" : "❌ 否";
+
+        const targetOutput = `🔮 占卜师信息：${resultText}`;
+        // 只有与当前 inspectionResult 不同时才更新，避免循环
+        if (state.inspectionResult !== targetOutput) {
+          dispatch(gameActions.updateState({
+            inspectionResult: targetOutput,
+            inspectionResultKey: Math.random()
+          }));
+        }
+      }
+    }
+  }, [nightActionQueue, currentWakeIndex, selectedActionTargets, seats, isVortoxWorld, state.inspectionResult, dispatch]);
 
   const handleConfirmAction = useCallback(() => {
     const nightInfo = nightActionQueue[currentWakeIndex];
@@ -158,12 +222,34 @@ export function useInteractionHandler(deps: {
     const seat = seats.find(s => s.id === targetId);
     if (!seat) return;
 
-    const updates: Partial<Seat> = {};
-    if (type === 'dead') updates.isDead = !seat.isDead;
-    if (type === 'poison') updates.isPoisoned = !seat.isPoisoned;
-    if (type === 'drunk') updates.isDrunk = !seat.isDrunk;
+    if (type === 'redherring') {
+      // 占卜师天敌红罗刹：全局唯一
+      const isCurrentlyRedHerring = !!seat.isRedHerring;
 
-    dispatch(gameActions.updateSeat(targetId, updates));
+      // 批量更新：清除所有人，然后给目标加上
+      seats.forEach(s => {
+        if (s.isRedHerring || s.isFortuneTellerRedHerring) {
+          dispatch(gameActions.updateSeat(s.id, {
+            isRedHerring: false,
+            isFortuneTellerRedHerring: false
+          }));
+        }
+      });
+
+      if (!isCurrentlyRedHerring) {
+        dispatch(gameActions.updateSeat(targetId, {
+          isRedHerring: true,
+          isFortuneTellerRedHerring: true
+        }));
+      }
+    } else {
+      const updates: Partial<Seat> = {};
+      if (type === 'dead') updates.isDead = !seat.isDead;
+      if (type === 'poison') updates.isPoisoned = !seat.isPoisoned;
+      if (type === 'drunk') updates.isDrunk = !seat.isDrunk;
+      dispatch(gameActions.updateSeat(targetId, updates));
+    }
+
     dispatch(gameActions.updateState({ contextMenu: null }));
   }, [contextMenu, seats, dispatch]);
 

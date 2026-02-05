@@ -9,17 +9,17 @@ export const hadesia: RoleDefinition = {
   id: "hadesia",
   name: "哈迪寂亚",
   type: "demon",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 2 : 4,
-    
+
     target: {
       count: {
         min: 0,
-        max: 0,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（哈迪寂亚）。`,
@@ -27,7 +27,7 @@ export const hadesia: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（哈迪寂亚），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

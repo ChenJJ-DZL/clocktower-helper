@@ -1,4 +1,5 @@
 import { Role, Seat, StatusEffect, RoleType } from '../../app/data';
+import { getJinx } from './jinxUtils';
 
 // ======================================================================
 //  座位位置计算
@@ -46,6 +47,45 @@ export const getSeatPosition = (index: number, total: number = 15, isPortrait: b
 // ======================================================================
 
 export const getRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+// ======================================================================
+//  能力与状态检查
+// ======================================================================
+
+/**
+ * 检查角色能力是否处于激活状态
+ * 规则来源：重要细节.json
+ * 1. 死亡玩家立即失去能力（除非有"死亡时触发"或"即使死亡"标记）
+ * 2. 醉酒/中毒玩家失去能力（但可能不知道）
+ */
+export const isAbilityActive = (seat: Seat, isFirstNight: boolean = false): boolean => {
+  if (!seat.role) return false;
+
+  // 1. 检查死亡状态
+  // 如果角色已死亡，且没有特殊的死后能力标记，则能力失效
+  // 注意：部分角色如守鸦人、贤者是在死亡"时"触发，这里视为在触发瞬间是有效的，或者由触发逻辑单独处理。
+  // 此函数主要用于持续性效果检查（如“保护”、“中毒”持续效果）。
+  if (seat.isDead && !seat.hasAbilityEvenDead) {
+    return false;
+  }
+
+  // 2. 检查醉酒/中毒
+  if (computeIsPoisoned(seat) || seat.isDrunk || seat.role.id === 'drunk') {
+    return false;
+  }
+
+  return true;
+};
+
+/**
+ * 检查是否受到因死亡/醉酒/中毒而立即终止的限制
+ */
+export const validateAbilityUsage = (seat: Seat): { isValid: boolean; reason?: string } => {
+  if (seat.isDead && !seat.hasAbilityEvenDead) return { isValid: false, reason: '已死亡' };
+  if (seat.isDrunk) return { isValid: false, reason: '醉酒' };
+  if (computeIsPoisoned(seat)) return { isValid: false, reason: '中毒' };
+  return { isValid: true };
+}
 
 // ======================================================================
 //  注册判定相关（用于查验类技能）
@@ -358,70 +398,95 @@ export const shouldScarletWomanTransform = (allSeats: Seat[], deadPlayerId?: num
 
 export type WinResult = { side: 'good' | 'evil'; reason: string } | null;
 
+/**
+ * 核心胜利条件判断
+ * 规则来源：游戏简要规则.json
+ * 1. 善良获胜：所有恶魔均死亡。
+ * 2. 邪恶获胜：场上仅剩 2 名存活玩家（除旅行者）。
+ * 3. 平局处理：如果两个阵营同时达成胜利条件，善良阵营获胜。
+ * 4. 角色干扰：红唇女郎、镜像双子、圣徒、市长、涡流等。
+ */
 export const checkWinCondition = (
   allSeats: Seat[],
   options: {
     executedPlayerId?: number | null;
     evilTwinPair?: { goodId: number; evilId: number } | null;
     isVortoxWorld?: boolean;
+    isEndOfDay?: boolean; // 是否处于黄昏结算（用于市长、涡流判定）
+    damselGuessed?: boolean; // 新增：爪牙猜中落难少女
+    klutzGuessedEvil?: boolean; // 新增：呆瓜误判
   } = {}
 ): WinResult => {
+  const { executedPlayerId = null, evilTwinPair, isVortoxWorld, isEndOfDay, damselGuessed, klutzGuessedEvil } = options;
+
+  // 0. 特殊即时胜利/失败触发
+  if (damselGuessed) {
+    return { side: 'evil', reason: '爪牙猜中落难少女' };
+  }
+  if (klutzGuessedEvil) {
+    return { side: 'evil', reason: '呆瓜误判' };
+  }
+
   const alivePlayers = allSeats.filter(s => !s.isDead);
   const aliveCorePlayers = alivePlayers.filter(s => s.role?.type !== 'traveler');
   const aliveCount = aliveCorePlayers.length;
 
+  // 1. 获取存活恶魔数量
   const aliveDemons = allSeats.filter(s =>
     !s.isDead && (s.role?.type === 'demon' || s.isDemonSuccessor)
   );
 
-  const { executedPlayerId, evilTwinPair } = options;
-
-  // 1. 优先检查：圣徒或善良双子被处决 -> 邪恶获胜
-  if (executedPlayerId !== null && executedPlayerId !== undefined) {
-    const executedPlayer = allSeats.find(s => s.id === executedPlayerId);
-    if (executedPlayer) {
-      // 圣徒
-      if (executedPlayer.role?.id === 'saint' && !isActorDisabledByPoisonOrDrunk(executedPlayer)) {
-        return { side: 'evil', reason: '圣徒被处决' };
-      }
-      // 善良双子
-      if (evilTwinPair && executedPlayer.id === evilTwinPair.goodId) {
-        return { side: 'evil', reason: '善良双子被处决' };
-      }
-    }
-  }
-
-  // 2. 双子判定：如果两个双子都活着，善良方不能获胜
+  // --- 特殊能力限制 ---
+  // 镜像双子：只要邪恶双子还活着且善良双子也活着，善良阵营不能通过杀死恶魔获胜
+  let goodCanWinByKillingDemon = true;
   if (evilTwinPair) {
     const evilTwin = allSeats.find(s => s.id === evilTwinPair.evilId);
     const goodTwin = allSeats.find(s => s.id === evilTwinPair.goodId);
     if (evilTwin && !evilTwin.isDead && goodTwin && !goodTwin.isDead) {
-      // 双子都在，即使恶魔由于其他原因死光，善良方也不判定获胜（直到只有一方存活）
-      // 但邪恶方依然可以由于存活人数过少获胜
-      if (aliveCount <= 2) {
-        return { side: 'evil', reason: '仅剩 2 名玩家' };
-      }
-      return null;
+      goodCanWinByKillingDemon = false;
     }
   }
 
-  // 3. 恶魔全局死亡 -> 善良获胜
-  if (aliveDemons.length === 0) {
+  // --- A. 善良阵营胜利判定 (优先级最高，用于处理平局) ---
+
+  // 1. 所有恶魔死亡
+  if (aliveDemons.length === 0 && goodCanWinByKillingDemon) {
     return { side: 'good', reason: '恶魔全部死亡' };
   }
 
-  // 4. 存活总数仅剩 2 人 -> 邪恶获胜
-  if (aliveCount <= 2) {
-    return { side: 'evil', reason: '仅剩 2 名玩家' };
-  }
-
-  // 5. 市长特殊获胜：仅剩3人且无恶魔死亡（即恶魔活过两个白天）
-  // 简化判断：如果是进入夜晚前或投票后，存活3人且市长未中毒/醉酒
-  if (executedPlayerId === null && aliveCount === 3) {
+  // 2. 市长特殊获胜（黄昏阶段且无人被处决且仅剩3人）
+  if (isEndOfDay && executedPlayerId === null && aliveCount === 3) {
     const aliveMayor = alivePlayers.find(s => s.role?.id === 'mayor' && !isActorDisabledByPoisonOrDrunk(s));
     if (aliveMayor) {
       return { side: 'good', reason: '市长特殊获胜' };
     }
+  }
+
+  // --- B. 邪恶阵营胜利判定 ---
+
+  // 1. 圣徒被处决 (且未中毒醉酒)
+  if (executedPlayerId !== null && executedPlayerId !== undefined) {
+    const executedPlayer = allSeats.find(s => s.id === executedPlayerId);
+    if (executedPlayer && executedPlayer.role?.id === 'saint' && !isActorDisabledByPoisonOrDrunk(executedPlayer)) {
+      return { side: 'evil', reason: '圣徒被处决' };
+    }
+  }
+
+  // 2. 善良双子被处决
+  if (executedPlayerId !== null && executedPlayerId !== undefined && evilTwinPair) {
+    if (executedPlayerId === evilTwinPair.goodId) {
+      return { side: 'evil', reason: '善良双子被处决' };
+    }
+  }
+
+  // 3. 仅剩 2 名存活玩家 (不计旅行者)
+  if (aliveCount <= 2) {
+    return { side: 'evil', reason: '仅剩 2 名玩家' };
+  }
+
+  // 4. 涡流：黄昏时无人被处决
+  if (isVortoxWorld && isEndOfDay && executedPlayerId === null) {
+    return { side: 'evil', reason: '涡流：今日无人被处决' };
   }
 
   return null;

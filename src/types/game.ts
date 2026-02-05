@@ -1,11 +1,11 @@
 // 从 data.ts 导入相关类型
-import type { 
-  Role, 
-  Seat, 
-  StatusEffect, 
-  LogEntry, 
-  GamePhase, 
-  WinResult, 
+import type {
+  Role,
+  Seat,
+  StatusEffect,
+  LogEntry,
+  GamePhase,
+  WinResult,
   RoleType,
   NightActionMeta,
   SetupMeta,
@@ -14,13 +14,13 @@ import type {
 } from '../../app/data';
 
 // 重新导出相关类型
-export type { 
-  Role, 
-  Seat, 
-  StatusEffect, 
-  LogEntry, 
-  GamePhase, 
-  WinResult, 
+export type {
+  Role,
+  Seat,
+  StatusEffect,
+  LogEntry,
+  GamePhase,
+  WinResult,
   RoleType,
   NightActionMeta,
   SetupMeta,
@@ -29,11 +29,11 @@ export type {
 };
 
 // --- 辅助类型 ---
-export interface NightHintState { 
-  isPoisoned: boolean; 
-  reason?: string; 
-  guide: string; 
-  speak: string; 
+export interface NightHintState {
+  isPoisoned: boolean;
+  reason?: string;
+  guide: string;
+  speak: string;
   action?: string;
   fakeInspectionResult?: string;
 }
@@ -46,6 +46,7 @@ export interface NightInfoResult {
   guide: string;
   speak: string;
   action: string;
+  logMessage?: string;
 }
 
 // 夜间时间线相关类型
@@ -93,13 +94,13 @@ export interface GameRecord {
 }
 
 export const phaseNames: Record<string, string> = {
-  setup: "准备阶段", 
-  check: "核对身份", 
-  firstNight: "首夜", 
-  day: "白天", 
-  dusk: "黄昏/处决", 
-  night: "夜晚", 
-  dawnReport: "天亮结算", 
+  setup: "准备阶段",
+  check: "核对身份",
+  firstNight: "首夜",
+  day: "白天",
+  dusk: "黄昏/处决",
+  night: "夜晚",
+  dawnReport: "天亮结算",
   gameOver: "游戏结束"
 };
 

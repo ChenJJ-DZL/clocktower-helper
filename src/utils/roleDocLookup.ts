@@ -51,7 +51,7 @@ const INDEXES: Map<string, RoleDocEntry>[] = [
 function extractSection(content: string, sectionTitle: string): string | undefined {
   // Match: 【角色能力】 ... (until next 【xxx】 or end)
   // Improved to handle cases where there might not be a newline before the next header
-  const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`, "m");
+  const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`);
   const m = content.match(re);
   if (!m) return undefined;
   return m[1].trim();

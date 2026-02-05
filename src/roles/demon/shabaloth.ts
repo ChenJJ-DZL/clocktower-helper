@@ -9,17 +9,17 @@ export const shabaloth: RoleDefinition = {
   id: "shabaloth",
   name: "沙巴洛斯",
   type: "demon",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 2 : 10,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 2,
+        max: 2,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（沙巴洛斯）。`,
@@ -27,7 +27,7 @@ export const shabaloth: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（沙巴洛斯），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

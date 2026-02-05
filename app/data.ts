@@ -131,6 +131,10 @@ export interface Seat {
   playerName?: string; // 玩家名字（可选）
   role: Role | null;          // REAL logic role (e.g. Drunk)
   /**
+   * RESOLVED role used for logic (charadeRole if Drunk, else role).
+   */
+  effectiveRole?: Role | null;
+  /**
    * MASKED role shown to the player (e.g. Soldier when actually Drunk).
    * If undefined, UI should fall back to `role` or legacy `charadeRole`.
    */

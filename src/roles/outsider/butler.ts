@@ -19,17 +19,10 @@ export const butler: RoleDefinition = {
   id: "butler",
   name: "管家",
   type: "outsider",
-  
-  // 首夜和后续夜晚都行动
   night: {
-    order: 26,
-    
+    order: 15,
     target: {
-      count: {
-        min: 1,
-        max: 1,
-      },
-      
+      count: { min: 1, max: 1 },
       canSelect: (target: Seat, self: Seat, allSeats: Seat[], selectedTargets: number[]) => {
         // 不能选自己
         if (target.id === self.id) {
@@ -39,7 +32,7 @@ export const butler: RoleDefinition = {
         return true;
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（管家）。`,
@@ -47,10 +40,10 @@ export const butler: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（管家），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       const { seats, targets, selfId } = context;
-      
+
       if (targets.length !== 1) {
         return {
           updates: [],
@@ -59,10 +52,10 @@ export const butler: RoleDefinition = {
           },
         };
       }
-      
+
       const targetId = targets[0];
       const targetSeat = seats.find(s => s.id === targetId);
-      
+
       if (!targetSeat) {
         return {
           updates: [],
@@ -71,26 +64,26 @@ export const butler: RoleDefinition = {
           },
         };
       }
-      
+
       // 更新管家状态：设置主人
       // 注意：如果管家醉酒中毒，不放置"主人"标记
       const selfSeat = seats.find(s => s.id === selfId);
       const isDrunkOrPoisoned = selfSeat?.isDrunk || selfSeat?.isPoisoned;
-      
+
       const updates: Array<Partial<Seat> & { id: number }> = [];
-      
+
       if (!isDrunkOrPoisoned) {
         // 移除旧的"主人"标记（如果有）
         const currentStatusDetails = (selfSeat?.statusDetails || []).filter(
           (detail: string) => !detail.includes("主人") && !detail.includes(`主人:${targetId + 1}`)
         );
-        
+
         updates.push({
           id: selfId,
           masterId: targetId,
           statusDetails: [...currentStatusDetails, `主人:${targetId + 1}`],
         });
-        
+
         return {
           updates,
           logs: {

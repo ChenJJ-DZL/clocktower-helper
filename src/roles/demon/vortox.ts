@@ -14,18 +14,17 @@ export const vortox: RoleDefinition = {
   id: "vortox",
   name: "涡流",
   type: "demon",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 2 : 7,
-    
+
     target: {
       count: {
-        // 每晚必须选择 1 名玩家作为攻击目标
         min: 1,
         max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（涡流）。`,
@@ -33,7 +32,7 @@ export const vortox: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（涡流），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

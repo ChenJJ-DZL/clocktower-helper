@@ -9,17 +9,17 @@ export const snake_charmer: RoleDefinition = {
   id: "snake_charmer",
   name: "舞蛇人",
   type: "townsfolk",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 9 : 9,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（舞蛇人）。`,
@@ -27,7 +27,7 @@ export const snake_charmer: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（舞蛇人），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

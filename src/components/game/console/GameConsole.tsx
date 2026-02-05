@@ -50,7 +50,9 @@ interface GameConsoleProps {
  * Zone B: Active Stage (scrollable instructions)
  * Zone C: Action Footer
  */
-export function GameConsole({
+
+// Use React.memo to prevent re-renders when props haven't changed
+export const GameConsole = React.memo(function GameConsole({
   gamePhase,
   nightCount,
   currentStep,
@@ -118,26 +120,33 @@ export function GameConsole({
       ? nightInfo?.seat?.charadeRole?.ability
       : nightInfo?.seat?.role?.ability) || undefined;
 
-  const roleDoc = currentActorRoleName ? getRoleDocSummary(currentActorRoleName) : null;
+  // Optimize: Memoize roleDoc lookup
+  const roleDoc = React.useMemo(() => {
+    return currentActorRoleName ? getRoleDocSummary(currentActorRoleName) : null;
+  }, [currentActorRoleName]);
 
   // Debug logging for role documentation
-  if (currentActorRoleName && roleDoc) {
-    console.log(`[RoleDoc] ${currentActorRoleName}:`, {
-      hasOperation: !!roleDoc.operation,
-      operationLength: roleDoc.operation?.length || 0,
-      hasRulesDetails: !!roleDoc.rulesDetails,
-      examplesCount: roleDoc.examples?.length || 0
-    });
-  }
+  React.useEffect(() => {
+    if (currentActorRoleName && roleDoc) {
+      console.log(`[RoleDoc] ${currentActorRoleName}:`, {
+        hasOperation: !!roleDoc.operation,
+        operationLength: roleDoc.operation?.length || 0,
+        hasRulesDetails: !!roleDoc.rulesDetails,
+        examplesCount: roleDoc.examples?.length || 0
+      });
+    }
+  }, [currentActorRoleName, roleDoc]);
 
   const normalizeQuoted = (s: string) => {
     const t = (s || "").trim();
     if (!t) return "";
     // nightInfo.speak in many places is wrapped in quotes like '"...内容..."'
-    return t.replace(/^['"]+/, "").replace(/['"]+$/, "");
+    // Also remove trailing periods/commas because we add them in the actionText template
+    return t.replace(/^['"]+/, "").replace(/['"]+$/, "").replace(/[。\.，,]+$/, "");
   };
 
-  const buildStorytellerInstruction = () => {
+  // Optimize: Memoize instructions
+  const storytellerInstruction = React.useMemo(() => {
     if (!isNightPhase || !currentActorSeat || !currentActorRoleName || !nightInfo) return null;
 
     const seatNo = currentActorSeat.id + 1;
@@ -145,34 +154,29 @@ export function GameConsole({
     const action = (nightInfo.action || "").trim();
     const speak = normalizeQuoted(nightInfo.speak || "");
 
-    // CRITICAL FIX: Always prioritize roleDoc.operation for documented roles
-    // This prevents incorrect speak content from being displayed
-    if (roleDoc?.operation) {
-      console.log(`[StorytellerInstruction] Using operation for ${roleName}:`, roleDoc.operation.substring(0, 100) + '...');
-      return {
-        headline: `按照【${roleName}】的运作方式进行操作：`,
-        operation: roleDoc.operation,
-        speak: null, // Explicitly null to prevent incorrect speak display
-      };
+    const hasAction = action && !["无", "无信息", "（无）", "跳过"].includes(action);
+    const actionPart = hasAction ? `让他选择${action}` : null;
+    const speakPart = speak ? `告诉他：${speak}` : null;
+
+    // Combine into specific format requested:
+    // 行动：唤醒x号玩家，告诉他xxx/让他选择xxx。
+    let actionText = `唤醒 ${seatNo} 号【${roleName}】玩家`;
+    if (speakPart && actionPart) {
+      actionText += `，${speakPart}并${actionPart}。`;
+    } else if (speakPart) {
+      actionText += `，${speakPart}。`;
+    } else if (actionPart) {
+      actionText += `，${actionPart}。`;
+    } else {
+      actionText += `。`;
     }
-
-    // Only use speak/action fallback for roles without proper documentation
-    console.warn(`[StorytellerInstruction] No operation found for ${roleName}, using fallback`);
-    const actionSentence =
-      action && !["无", "无信息", "（无）"].includes(action)
-        ? `让他使用【${roleName}】的能力（${action}）。`
-        : `让他使用【${roleName}】的能力。`;
-
-    const speakSentence = speak ? `告诉他：${speak}` : null;
 
     return {
       headline: `唤醒 ${seatNo} 号【${roleName}】。`,
-      action: actionSentence,
-      speak: speakSentence,
+      actionText,
     };
-  };
+  }, [isNightPhase, currentActorSeat, currentActorRoleName, nightInfo]);
 
-  const storytellerInstruction = buildStorytellerInstruction();
 
   // Remove "skill/instruction" style guidance that duplicates role ability text.
   // In this project, the first guidance point is often `nightInfo.guide` (what to do),
@@ -185,18 +189,18 @@ export function GameConsole({
   const filteredGuidancePoints = guidancePoints.filter((p) => !skillLikeGuidance.has((p || "").trim()));
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-slate-900 border-l border-white/10">
       {/* Zone A: Header (Status) */}
       <div className="shrink-0 h-20 border-b border-white/10 bg-slate-800/50 flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-4">
-          <div className={`px-[2px] py-[2px] rounded-lg text-base font-bold text-white whitespace-nowrap ${getPhaseColor()}`}>
+          <div className={`px-3 py-1.5 rounded-lg text-base font-bold text-white whitespace-nowrap shadow-lg ${getPhaseColor()}`}>
             {getPhaseLabel()}
           </div>
         </div>
         {onToggleGrimoire && (
           <button
             onClick={onToggleGrimoire}
-            className="px-[2px] py-[2px] rounded-lg text-sm font-semibold text-slate-300 bg-slate-700/50 hover:bg-slate-700 transition h-12 whitespace-nowrap"
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-700/50 hover:bg-slate-700 hover:text-white transition-all duration-200 border border-white/5 whitespace-nowrap"
           >
             查看手册
           </button>
@@ -204,42 +208,35 @@ export function GameConsole({
       </div>
 
       {/* Zone B: Active Stage (Scrollable) */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 min-h-0">
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0 bg-slate-900/50">
         {isNightPhase && currentActorSeat && currentActorRoleName && (
-          <div className="rounded-2xl border border-emerald-400/70 bg-emerald-900/40 px-4 py-3 shadow-inner shadow-emerald-500/30">
-            <div className="text-sm font-semibold text-emerald-200 mb-1">当前的行动</div>
-            <div className="text-base text-emerald-50 leading-relaxed space-y-1">
-              <div>
-                {storytellerInstruction?.headline ?? `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`}
-              </div>
-              {storytellerInstruction && (
-                <>
-                  {storytellerInstruction.operation && (
-                    <div className="text-sm text-emerald-100 whitespace-pre-wrap">
-                      {storytellerInstruction.operation}
-                    </div>
-                  )}
-                  {!storytellerInstruction.operation && storytellerInstruction.action && (
-                    <div className="text-sm text-emerald-100">{storytellerInstruction.action}</div>
-                  )}
-                  {storytellerInstruction.speak && (
-                    <div className="text-sm text-emerald-100 whitespace-pre-wrap">
-                      {storytellerInstruction.speak}
-                    </div>
-                  )}
-                </>
-              )}
-              {!storytellerInstruction && (
-                <div className="text-sm text-emerald-100">
-                  告知其本步要做的操作或信息（参考下方"提示与脚本"），等待对方完成/回应后再继续。
+          <div className="rounded-2xl border border-emerald-400/40 bg-emerald-950/30 px-5 py-4 shadow-xl shadow-emerald-900/10 backdrop-blur-sm">
+            <div className="text-[13px] font-bold uppercase tracking-wider text-emerald-400/80 mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              当前的行动
+            </div>
+
+            <div className="text-[17px] text-emerald-50 leading-relaxed font-medium">
+              {/* Formatted Action instruction */}
+              <div className="flex flex-col gap-2">
+                <div>
+                  <span className="font-bold text-emerald-300 tracking-wide">行动：</span>
+                  {storytellerInstruction?.actionText ?? `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`}
                 </div>
-              )}
+                {inspectionResult && (
+                  <div className="text-sm font-normal text-emerald-400/80 italic">
+                    （技能结果是：{inspectionResult}）
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Injected Player List */}
             {seats.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-emerald-500/30">
-                <div className="text-sm font-bold text-emerald-200 mb-2">选择目标</div>
+              <div className="mt-5 pt-4 border-t border-emerald-500/20">
+                <div className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1">
+                  选择目标
+                </div>
                 <div className="grid grid-cols-4 gap-2">
                   {seats.map((seat) => {
                     if (!seat.role) return null;
@@ -249,15 +246,15 @@ export function GameConsole({
                         key={seat.id}
                         type="button"
                         onClick={() => onTogglePlayer && onTogglePlayer(seat.id)}
-                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold text-left border transition ${isSelected
-                            ? 'bg-blue-500 border-blue-300 text-white shadow shadow-blue-500/40'
-                            : seat.isDead
-                              ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-600/70 line-through'
-                              : 'bg-emerald-950/60 border-emerald-700/50 text-emerald-100 hover:bg-emerald-800/60'
+                        className={`px-2 py-2 rounded-xl text-xs font-bold text-center border transition-all duration-200 ${isSelected
+                          ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50'
+                          : seat.isDead
+                            ? 'bg-slate-900/40 border-slate-800 text-slate-600 line-through opacity-60'
+                            : 'bg-emerald-900/40 border-emerald-800/50 text-emerald-100 hover:bg-emerald-800/60 hover:border-emerald-700 shadow-sm'
                           }`}
-                        title={seat.isDead ? '已死亡（小白模式：仍可选择）' : undefined}
+                        title={seat.isDead ? '已死亡（仍可选择）' : undefined}
                       >
-                        {seat.id + 1}号 {seat.role.name} {seat.isDead ? '💀' : ''}
+                        {seat.id + 1}<span className="text-[10px] opacity-60 font-normal">#</span> {seat.role.name}
                       </button>
                     );
                   })}
@@ -267,69 +264,31 @@ export function GameConsole({
           </div>
         )}
 
-        {/* Section: Inspection / Result (Night info reveal) - 置顶显示 */}
-        {inspectionResult && (
-          <div key={inspectionResultKey ?? 0} className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-300">结果</h3>
-            <div className="bg-slate-800/50 p-5 rounded-2xl border border-white/10 text-base text-slate-100 whitespace-pre-wrap">
-              {inspectionResult}
-            </div>
-          </div>
-        )}
-
-
-
-        {/* Section 3: 提示 + 脚本（合并） */}
+        {/* Reorganized Section: Role Description (角色说明) */}
         {(scriptText || guidancePoints.length > 0 || currentActorRoleName) && (
-          <div className="space-y-3">
-            <h3 className="text-lg font-bold text-slate-300">提示与脚本</h3>
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 mb-2 ml-1">
+              <span className="w-1.5 h-6 bg-blue-500 rounded-full" />
+              角色说明
+            </h3>
 
-            {/* 当前行动角色特性（来自 josn 角色文档的摘要） */}
-            {currentActorRoleName && roleDoc?.traits && roleDoc.traits.length > 0 && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
-                <div className="text-xs text-slate-400">
-                  特性：{roleDoc.traits.join(" / ")}
-                </div>
-              </div>
-            )}
-
-            {/* 规则细节 - 严格按照文档规范显示 */}
-            {roleDoc?.rulesDetails && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
-                <div className="text-sm font-semibold text-slate-300 mb-2">规则细节</div>
-                <div className="text-sm text-slate-200 whitespace-pre-wrap">
-                  {roleDoc.rulesDetails}
-                </div>
-              </div>
-            )}
-
-            {/* 运作方式 */}
+            {/* 运作方式 - Standardized Card Style */}
             {roleDoc?.operation && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
-                <div className="text-sm font-semibold text-slate-300 mb-2">运作方式</div>
-                <div className="text-sm text-slate-200 whitespace-pre-wrap">
+              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                <div className="text-[13px] font-bold uppercase tracking-widest text-blue-400 mb-3 group-hover:text-blue-300 transition">运作方式</div>
+                <div className="text-[15px] text-slate-200 whitespace-pre-wrap leading-relaxed">
                   {roleDoc.operation}
                 </div>
               </div>
             )}
 
-            {/* 提示标记 */}
-            {roleDoc?.prompts && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
-                <div className="text-sm font-semibold text-slate-300 mb-2">提示标记</div>
-                <div className="text-sm text-slate-200 whitespace-pre-wrap">
-                  {roleDoc.prompts}
-                </div>
-              </div>
-            )}
-
-            {/* 范例 - 严格按照文档规范显示 */}
+            {/* 范例 */}
             {roleDoc?.examples && roleDoc.examples.length > 0 && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/10 p-4">
-                <div className="text-sm font-semibold text-slate-300 mb-2">范例</div>
-                <div className="space-y-2">
+              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                <div className="text-[13px] font-bold uppercase tracking-widest text-emerald-400 mb-3 group-hover:text-emerald-300 transition">范例</div>
+                <div className="space-y-3">
                   {roleDoc.examples.map((example, index) => (
-                    <div key={index} className="text-sm text-slate-200 whitespace-pre-wrap bg-slate-900/30 p-2 rounded border-l-2 border-slate-500">
+                    <div key={index} className="text-[14px] text-slate-300 whitespace-pre-wrap leading-relaxed p-3 bg-white/5 rounded-xl border border-white/5 font-light">
                       {example}
                     </div>
                   ))}
@@ -337,15 +296,48 @@ export function GameConsole({
               </div>
             )}
 
-            {/* 提示（过滤掉行动/技能说明类指引，避免重复） */}
+            {/* 规则细节 */}
+            {roleDoc?.rulesDetails && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                <div className="text-[13px] font-bold uppercase tracking-widest text-amber-400 mb-3 group-hover:text-amber-300 transition">规则细节</div>
+                <div className="text-[14px] text-slate-200 whitespace-pre-wrap leading-relaxed font-light">
+                  {roleDoc.rulesDetails}
+                </div>
+              </div>
+            )}
+
+            {/* 提示标记 */}
+            {roleDoc?.prompts && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                <div className="text-[13px] font-bold uppercase tracking-widest text-purple-400 mb-3 group-hover:text-purple-300 transition">提示标记</div>
+                <div className="text-[14px] text-slate-200 whitespace-pre-wrap leading-relaxed font-light">
+                  {roleDoc.prompts}
+                </div>
+              </div>
+            )}
+
+            {/* 角色特性 */}
+            {currentActorRoleName && roleDoc?.traits && roleDoc.traits.length > 0 && (
+              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                <div className="text-[13px] font-bold uppercase tracking-widest text-cyan-400 mb-3 group-hover:text-cyan-300 transition">特性</div>
+                <div className="text-[14px] text-slate-300 font-medium">
+                  {roleDoc.traits.join(" / ")}
+                </div>
+              </div>
+            )}
+
+            {/* 其他提示 (filteredGuidancePoints) */}
             {filteredGuidancePoints.length > 0 && (
-              <div className="space-y-2">
-                {filteredGuidancePoints.map((point, index) => (
-                  <div key={index} className="flex items-start gap-3 text-base text-slate-200">
-                    <span className="text-slate-500 mt-1">•</span>
-                    <span>{point}</span>
-                  </div>
-                ))}
+              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                <div className="text-[13px] font-bold uppercase tracking-widest text-slate-400 mb-3 group-hover:text-slate-300 transition">其他提示</div>
+                <div className="space-y-2">
+                  {filteredGuidancePoints.map((point, index) => (
+                    <div key={index} className="flex items-start gap-3 text-[14px] text-slate-300">
+                      <span className="text-slate-500 mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                      <span className="leading-relaxed">{point}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -508,5 +500,5 @@ export function GameConsole({
       )}
     </div>
   );
-}
+});
 

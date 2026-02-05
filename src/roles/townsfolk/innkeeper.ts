@@ -9,17 +9,17 @@ export const innkeeper: RoleDefinition = {
   id: "innkeeper",
   name: "旅店老板",
   type: "townsfolk",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 0 : 2,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 2,
+        max: 2,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (isFirstNight) {
         return {
@@ -34,7 +34,7 @@ export const innkeeper: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（旅店老板），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

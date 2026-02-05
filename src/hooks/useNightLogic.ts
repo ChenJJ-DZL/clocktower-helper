@@ -194,16 +194,16 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     console.log('[finalizeNightStart] queue:', queue);
     console.log('[finalizeNightStart] queue length:', queue?.length);
     console.log('[finalizeNightStart] isFirst:', isFirst);
-    
+
     if (!queue || queue.length === 0) {
       console.error('[finalizeNightStart] Queue is empty!');
       return;
     }
-    
+
     const queueIds = queue.map(s => s.id);
     console.log('[finalizeNightStart] Setting wakeQueueIds:', queueIds, 'isFirst:', isFirst);
     console.log('[finalizeNightStart] Queue IDs:', queueIds);
-    
+
     // CRITICAL: Set wakeQueueIds FIRST, before phase change
     console.log('[finalizeNightStart] Calling setWakeQueueIds...');
     setWakeQueueIds(queueIds);
@@ -213,7 +213,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setSelectedActionTargets([]);
     console.log('[finalizeNightStart] Calling setInspectionResult(null)...');
     setInspectionResult(null);
-    
+
     // Then change phase
     const targetPhase = isFirst ? "firstNight" : "night";
     console.log('[finalizeNightStart] Calling setGamePhase to:', targetPhase);
@@ -226,7 +226,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setCurrentModal(null);
     console.log('[finalizeNightStart] Calling setPendingNightQueue(null)...');
     setPendingNightQueue(null);
-    
+
     console.log('[finalizeNightStart] ✅ Phase changed to:', targetPhase, 'with', queueIds.length, 'wakeable roles');
     console.log('[finalizeNightStart] ========== FUNCTION COMPLETED ==========');
   }, [
@@ -246,11 +246,19 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
    */
   const startNight = useCallback((isFirst: boolean) => {
     console.log('[startNight] invoked with isFirst =', isFirst);
+
+    // CRITICAL FIX: Prevent re-entry if already in night phase
+    // This prevents accidental queue regeneration/reset if the function is called multiple times
+    if (gamePhase === 'firstNight' || gamePhase === 'night') {
+      console.warn(`[startNight] Already in ${gamePhase}, ignoring request to start night again.`);
+      return;
+    }
+
     try {
       // 保存历史记录
       saveHistory();
       console.log('[startNight] saveHistory completed');
-      
+
       // 白天事件与标记重置
       setTodayDemonVoted(false);
       setTodayMinionNominated(false);
@@ -268,24 +276,10 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       const nightlyDeaths: number[] = [];
       setGoonDrunkedThisNight(false);
       setNightQueuePreviewTitle(isFirst ? `首夜叫醒顺位` : "");
-      
+
       // 对于非首夜，在进入夜晚前将当前黄昏的处决记录保存为"上一个黄昏的处决记录"
       // 这样送葬者在夜晚时就能看到上一个黄昏的处决信息
       if (!isFirst) {
-        // VORTOX CHECK: 如果 Vortox 在场且今日无人被处决，邪恶获胜
-        if (hasExecutedThisDay === false) {
-          const vortoxSeat = seats.find(s => s.role?.id === 'vortox' && !s.isDead);
-          if (vortoxSeat) {
-            addLog?.("😈 涡流在场且今日无人被处决！邪恶方获胜！");
-            setWinResult?.('evil');
-            setWinReason?.('涡流在场且今日无人被处决');
-            setGamePhase?.('gameOver');
-            // Reset execution flag before returning
-            setHasExecutedThisDay?.(false);
-            return; // Abort night start, game is over
-          }
-        }
-        
         if (currentDuskExecution !== null) {
           setLastDuskExecution(currentDuskExecution);
           // 清空当前黄昏的处决记录，准备记录新的处决
@@ -294,14 +288,14 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         // 如果当前黄昏没有处决，保持上一个黄昏的记录（如果有的话）
         // 如果上一个黄昏也没有处决，lastDuskExecution保持为null
       }
-      
+
       // Reset execution flag for next day (after Vortox check)
       if (typeof setHasExecutedThisDay === 'function') {
         setHasExecutedThisDay(false);
       }
-      
+
       if (isFirst) setStartTime(new Date());
-      
+
       // 普卡特殊处理：按队列推进中毒->死亡流程
       // 隐性规则3：自我/循环的醉酒/中毒/失去能力
       // 普卡攻击自身会让自己中毒，且因为中毒没有结束条件，普卡会因此永久中毒
@@ -320,7 +314,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           return { ...entry, nightsUntilDeath: nightsLeft };
         })
         .filter((v): v is { targetId: number; nightsUntilDeath: number } => !!v);
-      
+
       if (pukkaDeaths.length > 0) {
         pukkaDeaths.forEach((id, idx) => {
           nightlyDeaths.push(id);
@@ -338,7 +332,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       }
       // 更新普卡队列，存活者继续保持中毒状态
       setPukkaPoisonQueue(nextPukkaQueue);
-      
+
       // 清除状态标记
       setSeats(p => p.map(s => {
         // 清除所有带清除时间的标记，根据清除时间判断
@@ -353,7 +347,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           // 保留其他状态
           return true;
         });
-        
+
         // 清除水手/旅店老板造成的醉酒状态，这些状态持续到"下个黄昏"，进入夜晚时清除
         const filteredStatusDetailsForDrunk = filteredStatusDetails.filter(st => {
           // 清除水手/旅店老板造成的醉酒标记，这些标记包含"至下个黄昏清除"
@@ -361,7 +355,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           if (st.includes('旅店老板致醉') && st.includes('至下个黄昏清除')) return false;
           return true;
         });
-        
+
         const filteredStatuses = (s.statuses || []).filter(status => {
           if (status.effect === 'Drunk' && (status.duration === '下个黄昏' || status.duration === '至下个黄昏清除')) {
             return false;
@@ -371,7 +365,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           }
           return true;
         });
-        
+
         return {
           ...s,
           statusDetails: filteredStatusDetailsForDrunk,
@@ -380,7 +374,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           isDrunk: filteredStatusDetailsForDrunk.some(st => st.includes('致醉')) ? s.isDrunk : false,
         };
       }));
-      
+
       // 生成夜晚唤醒队列
       let validQueue = getNightWakeQueue(seats, isFirst);
 
@@ -404,7 +398,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           });
         }
       }
-      
+
       // Debug logging
       console.log('[startNight] isFirst:', isFirst, 'validQueue length:', validQueue.length);
       if (isFirst && validQueue.length === 0) {
@@ -415,7 +409,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           firstNight: s.role?.id === 'drunk' ? s.charadeRole?.firstNight : s.role?.firstNight
         })));
       }
-      
+
       if (validQueue.length === 0) {
         // For first night, if no roles wake, we should still proceed but with an empty queue
         // This allows the game to continue to dawn
@@ -449,27 +443,27 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           return;
         }
       }
-      
+
       if (isFirst) {
         console.log('[startNight] First night - Setting up preview modal');
         console.log('[startNight] validQueue length:', validQueue.length);
         console.log('[startNight] validQueue:', validQueue.map(s => ({ id: s.id, roleId: s.role?.id, roleName: s.role?.name })));
-        
+
         setPendingNightQueue(validQueue);
         const preview = validQueue
           .map(s => {
             const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
-            return { 
-              roleName: r?.name || '未知角色', 
-              seatNo: s.id + 1, 
-              order: r?.firstNightOrder ?? 999 
+            return {
+              roleName: r?.name || '未知角色',
+              seatNo: s.id + 1,
+              order: r?.firstNightOrder ?? 999
             };
           })
           .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-        
+
         console.log('[startNight] Preview data:', preview);
         setNightOrderPreview(preview);
-        
+
         console.log('[startNight] Calling setCurrentModal for NIGHT_ORDER_PREVIEW...');
         setCurrentModal({
           type: 'NIGHT_ORDER_PREVIEW',
@@ -482,7 +476,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         console.log('[startNight] ✅ Modal should be visible now');
         return;
       }
-      
+
       finalizeNightStart(validQueue, isFirst);
     } catch (error) {
       console.error('[startNight] Unhandled error:', error);
@@ -490,6 +484,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     }
   }, [
     seats,
+    gamePhase, // CRITICAL: Need to depend on gamePhase for the guard clause to work
     nightCount,
     currentDuskExecution,
     pukkaPoisonQueue,
@@ -547,8 +542,8 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         if (isProtectorPoisoned) {
           // 保护者中醉酒，保护无效，同时清除错误的保护状态
           isEffectivelyProtected = false;
-          setSeats(p => p.map(s => 
-            s.id === targetId ? {...s, isProtected: false, protectedBy: null} : s
+          setSeats(p => p.map(s =>
+            s.id === targetId ? { ...s, isProtected: false, protectedBy: null } : s
           ));
         } else {
           // 保护者健康，保护有效
@@ -560,16 +555,16 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       }
     }
     const teaLadyProtected = hasTeaLadyProtection(target, seatsSnapshot);
-    
+
     // 检查目标是否可以被杀死（僵怖假死状态可以被杀死）
-    const canBeKilled = target && !isEffectivelyProtected && !teaLadyProtected && target.role?.id !== 'soldier' && 
+    const canBeKilled = target && !isEffectivelyProtected && !teaLadyProtected && target.role?.id !== 'soldier' &&
       (!target.isDead || (target.role?.id === 'zombuul' && target.isFirstDeathForZombuul && !target.isZombuulTrulyDead));
 
     // 如果因为保护或士兵能力导致无法杀死且目标存活，添加统一日志说明
     if (target && !target.isDead && !canBeKilled) {
       const demonName = getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name);
       let protectionReason = '';
-      
+
       if (target.role?.id === 'soldier') {
         protectionReason = '士兵能力';
       } else if (isEffectivelyProtected) {
@@ -577,7 +572,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       } else if (teaLadyProtected) {
         protectionReason = '茶艺师保护';
       }
-      
+
       if (protectionReason) {
         addLogWithDeduplication(
           `恶魔(${demonName}) 攻击 ${targetId + 1}号，但因为${protectionReason}，${targetId + 1}号没有死亡`,
@@ -605,8 +600,8 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         return 'pending';
       }
     }
-    
-    const mayorNote = options.mayorId !== undefined && options.mayorId !== null 
+
+    const mayorNote = options.mayorId !== undefined && options.mayorId !== null
       ? `（由${options.mayorId + 1}号市长转移）`
       : '';
 
@@ -620,13 +615,13 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
         const rightIndex = (targetIndex + 1) % totalSeats;
         const leftNeighbor = seats[leftIndex];
         const rightNeighbor = seats[rightIndex];
-        const townsfolkNeighbors = [leftNeighbor, rightNeighbor].filter(s => 
+        const townsfolkNeighbors = [leftNeighbor, rightNeighbor].filter(s =>
           s.role?.type === 'townsfolk'
         );
-        
+
         // 由说书人随机/裁定选择一名镇民中毒（当前实现为随机一名）
         const poisonedNeighbor = townsfolkNeighbors.length > 0 ? getRandom(townsfolkNeighbors) : null;
-        
+
         if (poisonedNeighbor) {
           setSeats(p => p.map(s => {
             if (s.id === poisonedNeighbor.id) {

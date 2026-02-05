@@ -421,6 +421,9 @@ export function useGameController() {
     gameStateRef,
   } = gameState;
 
+  // CRITICAL FIX: Lock to prevent double-submission race conditions
+  const processingRef = useRef(false);
+
   // Live night order preview derived from the actual wake queue (so it never goes stale / missing)
   // NOTE: Uses baseGamePhase here since gamePhase is defined later from gameFlow
   const nightOrderPreviewLive = useMemo(() => {
@@ -509,13 +512,13 @@ export function useGameController() {
     enterDuskPhase,
     handleDayEndTransition,
     handleSwitchScript,
-    handleNewGame,
+    handleNewGame: gameFlowHandleNewGame,
     closeNightOrderPreview,
     confirmNightOrderPreview,
     proceedToCheckPhase,
     handlePreStartNight,
     handleStartNight,
-    proceedToFirstNight,
+    proceedToFirstNight: gameFlowProceedToFirstNight,
   } = gameFlow;
 
   const {
@@ -945,44 +948,307 @@ export function useGameController() {
     });
   }, [seats, currentWakeIndex]);
 
-  // 计算 nightInfo - 必须在 useNightLogic 之前
-  const nightInfo = useMemo(() => {
-    if ((gamePhase === "firstNight" || gamePhase === "night") && wakeQueueIds.length > 0 && currentWakeIndex >= 0 && currentWakeIndex < wakeQueueIds.length) {
-      return calculateNightInfo(
+  // ============================================================================
+  // CRITICAL REFACTOR: Night State Snapshot Pattern with Truth Ref
+  // ============================================================================
+  // Instead of calculating nightInfo on the fly (which causes re-renders and loops),
+  // we store a static snapshot of the current step's data.
+  // CRITICAL FIX: We added wakeIndexRef as the "Truth Ref" to prevent stale closures.
+  const wakeIndexRef = useRef(0);
+  const [activeNightStep, setActiveNightStep] = useState<NightInfoResult | null>(null);
+
+  // Expose activeNightStep as nightInfo for backward compatibility
+  const nightInfo = activeNightStep;
+
+  // ============================================================================
+  // CRITICAL FIX: "New Game" Hang
+  // ============================================================================
+  const handleNewGame = useCallback(() => {
+    console.log("[GameController] Handling New Game - Fully Resetting State");
+
+    // 1. Reset Local Refs (The Truth)
+    wakeIndexRef.current = 0;
+
+    // 2. Reset Local State (Snapshot)
+    setActiveNightStep(null);
+    setCurrentWakeIndex(0);
+
+    // 3. Reset Interaction State
+    setSelectedActionTargets([]);
+    setInspectionResult(null);
+    fakeInspectionResultRef.current = null;
+
+    // 4. Call upstream handler
+    gameFlowHandleNewGame();
+
+  }, [gameFlowHandleNewGame, setSelectedActionTargets, setInspectionResult, setCurrentWakeIndex]);
+
+  /**
+   * Override proceedToFirstNight to initialize the snapshot and Truth Ref
+   */
+  const proceedToFirstNight = useCallback((rolesToUse?: Role[]) => {
+    // 🛡️ Guard: If already in night phase, do NOT regenerate queue
+    if (gamePhase === 'firstNight' || gamePhase === 'night') {
+      console.warn(`[NightLogic] [proceedToFirstNight] Already in ${gamePhase}, ignoring request.`);
+      return;
+    }
+
+    // Call original flow to set up state
+    // Note: We might need to manually set wakeQueueIds if we want strict sync
+    // But gameFlow.proceedToFirstNight already sets it.
+    // To be perfectly safe, we let gameFlow do its thing, but we override the index.
+
+    // 1. 生成队列 (Generate Timeline locally to get queue IDs immediately)
+    const latestSeats = seatsRef.current || seats;
+    const newTimeline = generateNightTimeline(latestSeats, true);
+    const newQueueIds = newTimeline.map(step => step.seatId);
+
+    console.log("🌙 [NightLogic] Starting Night. Queue:", newQueueIds);
+
+    // 2. ⚡️ 批量重置所有状态 (Batch Reset)
+    // We update gameFlow state indirectly or directly if possible. 
+    // Since we use gameFlow hook, we should probably call its methods or dispatch actions.
+    // Calling gameFlowProceedToFirstNight does the setTimeline/setWakeQueueIds/setGamePhase.
+    gameFlowProceedToFirstNight(rolesToUse);
+
+    // 3. 关键：同步重置 Ref 和 State (Sync Ref and State)
+    wakeIndexRef.current = 0;
+    setCurrentWakeIndex(0);
+
+    // 4. 立即计算第一步数据 (Snapshot First Step)
+    if (newQueueIds.length > 0) {
+      console.log(`[NightLogic] Initializing First Night with seat ${newQueueIds[0]}`);
+      const firstInfo = calculateNightInfo(
         selectedScript,
-        seats,
-        wakeQueueIds[currentWakeIndex],
-        gamePhase,
-        lastDuskExecution,
-        fakeInspectionResultRef.current || undefined,
+        latestSeats,
+        newQueueIds[0]!,
+        'firstNight',
+        lastDuskExecution || 0,
+        undefined, // fakeInspectionResult
         drunkFirstInfoRef.current,
         isEvilWithJudgment,
         poppyGrowerDead,
-        gameLogs,
+        [],
         spyDisguiseMode,
         spyDisguiseProbability,
         deadThisNight,
         balloonistKnownTypes,
-        addLog,
         registrationCacheRef.current,
-        registrationCacheKeyRef.current || `${gamePhase}-${nightCount}`,
+        `${'firstNight'}-${nightCount}`,
         isVortoxWorld,
         todayDemonVoted,
         todayMinionNominated,
         todayExecutedId,
         hasUsedAbility,
-        votedThisRound, // NEW: Pass votedThisRound for Flowergirl/Town Crier
-        outsiderDiedToday // NEW: Pass outsiderDiedToday for Godfather/Gossip
+        votedThisRound,
+        outsiderDiedToday
       );
+      setActiveNightStep(firstInfo);
+    } else {
+      setActiveNightStep(null);
     }
-    return null;
-  }, [selectedScript, seats, currentWakeIndex, gamePhase, wakeQueueIds, lastDuskExecution, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, addLog, nightCount, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility, votedThisRound, outsiderDiedToday]);
+  }, [gameFlowProceedToFirstNight, seats, selectedScript, lastDuskExecution, drunkFirstInfoRef, isEvilWithJudgment, poppyGrowerDead, spyDisguiseMode, spyDisguiseProbability, deadThisNight, balloonistKnownTypes, isVortoxWorld, todayDemonVoted, todayMinionNominated, todayExecutedId, hasUsedAbility, votedThisRound, outsiderDiedToday, nightCount]);
+
+
+  // ============================================================================
+  // CRITICAL FIX: Robust continueToNextAction with Truth Ref
+  // ============================================================================
+  const continueToNextAction = useCallback(() => {
+    // 1. 立即读取当前真实的索引 (Read Truth Ref)
+    const currentIndex = wakeIndexRef.current;
+    const nextIndex = currentIndex + 1;
+
+    // 2. 边界检查：是否所有角色都动完了？ (Bounds Check)
+    // 注意：这里直接读 Ref，不需要依赖 wakeQueueIds 状态可能是好的，但 wakeQueueIds 是 state。
+    // In standard React, accessing state in callback is fine if dep array is correct.
+    const currentQueue = wakeQueueIds;
+    const queueLength = currentQueue.length;
+
+    console.log(`[NightLogic] continueToNextAction: Ref(${currentIndex}) -> ${nextIndex}. Queue len: ${queueLength}`);
+
+    if (nextIndex >= queueLength) {
+      console.log(`🌞 [NightLogic] End of Queue (${nextIndex}/${queueLength}). Transitioning to Day.`);
+
+      // End of Night Transition Logic
+      // We handle it here directly to avoid useEffect races
+
+      setGamePhase('dawnReport'); // Or whatever the exit phase is
+      // Reset Logic
+      wakeIndexRef.current = 0;
+      setCurrentWakeIndex(0);
+      setActiveNightStep(null);
+
+      // Trigger Death Report if needed (copied from previous logic)
+      if (deadThisNight.length > 0) {
+        const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
+        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
+      } else {
+        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
+      }
+
+      return;
+    }
+
+    // 3. ⚡️ 立即更新真实索引 (Update Truth Ref)
+    wakeIndexRef.current = nextIndex;
+
+    // 4. 通知 React 更新 UI (Sync State)
+    setCurrentWakeIndex(nextIndex);
+
+    // 5. ⚡️ 预计算并锁定下一步的数据 (Snapshot Next Step)
+    const nextSeatId = currentQueue[nextIndex];
+    if (nextSeatId !== undefined) {
+      const latestSeats = seatsRef.current || seats; // Ensure latest seats
+
+      const nextStepInfo = calculateNightInfo(
+        selectedScript,
+        latestSeats,
+        nextSeatId,
+        gamePhase,
+        lastDuskExecution || 0,
+        undefined, // Reset fake inspection
+        drunkFirstInfoRef.current,
+        isEvilWithJudgment,
+        poppyGrowerDead,
+        [], // gameLogs (empty to avoid side effects)
+        spyDisguiseMode,
+        spyDisguiseProbability,
+        deadThisNight,
+        balloonistKnownTypes,
+        registrationCacheRef.current,
+        `${gamePhase}-${nightCount}`,
+        isVortoxWorld,
+        todayDemonVoted,
+        todayMinionNominated,
+        todayExecutedId,
+        hasUsedAbility,
+        votedThisRound,
+        outsiderDiedToday
+      );
+      console.log(`🚀 [NightLogic] Advanced to Step ${nextIndex}: ${nextStepInfo?.effectiveRole?.name}`);
+      setActiveNightStep(nextStepInfo); // 👈 Force UI Update
+    }
+
+    // 6. 清理选中状态
+    setSelectedActionTargets([]);
+    setInspectionResult(null);
+    fakeInspectionResultRef.current = null;
+
+  }, [
+    wakeQueueIds,
+    // currentWakeIndex, // Removed from deps as we use Ref
+    seats,
+    gamePhase,
+    selectedScript,
+    lastDuskExecution,
+    drunkFirstInfoRef,
+    isEvilWithJudgment,
+    poppyGrowerDead,
+    // gameLogs, 
+    spyDisguiseMode,
+    spyDisguiseProbability,
+    deadThisNight,
+    balloonistKnownTypes,
+    nightCount,
+    isVortoxWorld,
+    todayDemonVoted,
+    todayMinionNominated,
+    todayExecutedId,
+    hasUsedAbility,
+    votedThisRound,
+    outsiderDiedToday,
+    setInspectionResult,
+    setSelectedActionTargets,
+    setCurrentWakeIndex,
+    setGamePhase,
+    setCurrentModal
+  ]);
+
+  // ============================================================================
+  // CRITICAL FIX: Interactive Role Logic (Snapshot Real-time Update)
+  // ============================================================================
+  // The Snapshot (activeNightStep) is static, but roles like Fortune Teller need to 
+  // calculate result based on USER SELECTION. We need a way to patch the snapshot 
+  // or calculate result separately.
+  // We already have `inspectionResult` state used by `GameConsole`.
+  // Ideally, we should update `inspectionResult` when selection changes.
+
+  useEffect(() => {
+    // Only run if we have an active step and user has selected targets
+    if (!activeNightStep || !activeNightStep.seat || !activeNightStep.effectiveRole) return;
+    if (selectedActionTargets.length === 0) return;
+
+    const roleId = activeNightStep.effectiveRole.id;
+
+    // 🔮 Fortune Teller Logic
+    if (roleId === 'fortune_teller' && selectedActionTargets.length === 2) {
+      console.log(`[InteractiveLogic] Fortune Teller calculating for targets: ${selectedActionTargets}`);
+
+      const t1 = seats.find(s => s.id === selectedActionTargets[0]);
+      const t2 = seats.find(s => s.id === selectedActionTargets[1]);
+
+      if (t1 && t2) {
+        // Use unified helper from gameRules
+        import('../utils/gameRules').then(({ isFortuneTellerTarget, shouldShowFakeInfo, getMisinformation }) => {
+          // Check if either is considered Demon
+          const isT1 = isFortuneTellerTarget(t1);
+          const isT2 = isFortuneTellerTarget(t2);
+          const realResult = isT1 || isT2;
+
+          // Check Droison (Drunk/Poison)
+          const { showFake } = shouldShowFakeInfo(activeNightStep.seat, drunkFirstInfoRef.current || new Map());
+
+          let finalResultText = "";
+          if (showFake) {
+            // Get misleading result
+            finalResultText = getMisinformation.fortuneTeller(realResult);
+            console.log(`[InteractiveLogic] FT Results: Real=${realResult}, ShowFake=TRUE, Output=${finalResultText}`);
+          } else {
+            finalResultText = realResult ? "✅ 是" : "❌ 否";
+            console.log(`[InteractiveLogic] FT Results: Real=${realResult}, Output=${finalResultText}`);
+          }
+
+          setInspectionResult(`🔮 占卜师信息：${finalResultText}`);
+          setInspectionResultKey(k => k + 1);
+        });
+      }
+    }
+
+    // 🧙‍♂️ Seamstress Logic (Example expansion)
+    // Add other roles here if needed
+
+  }, [selectedActionTargets, activeNightStep, seats, drunkFirstInfoRef, setInspectionResult, setInspectionResultKey]);
+
+  // Handle side-effect logging from snapshot state
+  useEffect(() => {
+    if (activeNightStep?.logMessage) {
+      addLog(activeNightStep.logMessage);
+    }
+  }, [activeNightStep, addLog]);
+
+  // Safe guard fallback (Legacy cleanup)
+  // Since continueToNextAction now handles transition, we might want to scale this back
+  // or keep it just for "stuck" detection but NOT for normal transition
+  useEffect(() => {
+    if (!(gamePhase === 'firstNight' || gamePhase === 'night')) return;
+    if (wakeQueueIds.length === 0) return;
+
+    // If index out of bounds, we assume continueToNextAction handled it OR we missed it.
+    // If we missed it (e.g. initial load out of bounds), we should transition.
+    // But continueToNextAction logic above resets index to 0 on exit.
+
+    // Let's keep a simple stuck check:
+    // If we have data but no activeNightStep, and we are not at end:
+    if (activeNightStep === null && currentWakeIndex < wakeQueueIds.length) {
+      // Try to recover?
+      // maybe just log or do nothing.
+      // Or if index is valid but step is null, maybe we initialized wrong.
+    }
+  }, [gamePhase, activeNightStep, wakeQueueIds, currentWakeIndex]);
 
   // 交互域需要使用的延迟绑定函数，避免 TDZ
   const continueToNextActionRef = useRef<(() => void) | null>(null);
-  const processingRef = useRef(false); // Flag to prevent race conditions during async transitions
   const interactionContinueToNextAction = useCallback(() => {
-    continueToNextActionRef.current?.();
   }, []);
 
   const insertIntoWakeQueueAfterCurrentRef = useRef<((seatId: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => void) | null>(null);
@@ -994,14 +1260,24 @@ export function useGameController() {
   );
 
 
-  // 检查游戏结束条件（纯函数，不使用 Hook，避免 TDZ 问题）
-  function checkGameOver(updatedSeats: Seat[], executedPlayerIdArg?: number | null, preserveWinReason?: boolean) {
+  // 检查游戏结束条件（统一使用 checkWinCondition 工具函数）
+  const checkGameOver = useCallback((
+    updatedSeats: Seat[],
+    executedPlayerIdArg?: number | null,
+    isEndOfDayArg?: boolean,
+    damselGuessed?: boolean,
+    klutzGuessedEvil?: boolean
+  ) => {
+    // 允许显式传入被处决玩家 ID，否则使用 state 中的
     const executionTargetId = executedPlayerIdArg !== undefined ? executedPlayerIdArg : executedPlayerId;
 
     const win = checkWinCondition(updatedSeats, {
       executedPlayerId: executionTargetId,
       evilTwinPair,
-      isVortoxWorld
+      isVortoxWorld,
+      isEndOfDay: isEndOfDayArg,
+      damselGuessed,
+      klutzGuessedEvil
     });
 
     if (win) {
@@ -1013,208 +1289,108 @@ export function useGameController() {
     }
 
     return false;
-  }
+  }, [executedPlayerId, evilTwinPair, isVortoxWorld, setWinResult, setWinReason, setGamePhase, addLog]);
 
-  // 继续到下一个夜晚行动
-  const continueToNextAction = useCallback(() => {
-    // 保存历史记录
-    saveHistory();
+  // 重写 handleDayEndTransition：进入黄昏结算前，先检查市长、涡流等基于日终的胜利条件
+  const handleDayEndTransitionOverride = useCallback(() => {
+    // 1. 检查是否存在日终触发的胜利（市长 3 人存活获胜、涡流无人处决获胜等）
+    // 使用 todayExecutedId 来判断今日是否有人被处决
+    if (checkGameOver(seats, todayExecutedId, true)) {
+      return;
+    }
 
-    // CRITICAL FIX: Handle empty wake queue (no roles to wake up)
-    // If wakeQueueIds is empty, directly transition to day
-    if (wakeQueueIds.length === 0) {
-      console.log('[continueToNextAction] Empty wake queue, transitioning directly to day');
+    // 2. 无人获胜，继续进入黄昏
+    enterDuskPhase();
+  }, [seats, todayExecutedId, checkGameOver, enterDuskPhase]);
+
+  // ============================================================================
+  // CRITICAL FIX: Robust continueToNextAction
+  // ============================================================================
+  // This block was refactored and moved above. The old content is removed.
+
+  // ============================================================================
+  // CRITICAL FIX: End of Night Transition Effect
+  // ============================================================================
+  useEffect(() => {
+    // 只在夜晚阶段生效
+    if (gamePhase !== 'firstNight' && gamePhase !== 'night') return;
+
+    // 检查是否到达队列末尾 (或者队列为空)
+    // 注意：normalizedWakeIndex 逻辑被移除，现在完全依赖 currentWakeIndex 是否越界
+    const isEndOfNight = currentWakeIndex >= wakeQueueIds.length;
+
+    if (isEndOfNight) {
+      console.log("[Controller] triggering End of Night Transition...");
+
       // BMR：造谣者造谣为真 → 本夜额外死亡（说书人裁定）
       if (selectedScript?.id === 'bad_moon_rising' && gossipTrueTonight && gossipSourceSeatId !== null) {
-        const sourceId = gossipSourceSeatId;
-        const statement = gossipStatementToday ? `造谣：「${gossipStatementToday}」` : '造谣为真';
-        setCurrentModal({
-          type: 'STORYTELLER_SELECT',
-          data: {
-            sourceId,
-            roleId: 'gossip',
-            roleName: '造谣者',
-            description: `🗡️ ${statement}\n说书人：请选择 1 名玩家死亡（额外死亡）。`,
-            targetCount: 1,
-            onConfirm: (targetIds: number[]) => {
-              const tid = targetIds[0];
-              if (tid === undefined) return;
-              // 先关闭选择弹窗
-              setCurrentModal(null);
-              // 结算额外死亡（复用统一 killPlayer 逻辑）
-              killPlayer(tid, {
-                source: 'ability',
-                recordNightDeath: true,
-                onAfterKill: () => {
-                  addLog(`🗣️ ${sourceId + 1}号(造谣者) 造谣为真：说书人裁定 ${tid + 1}号 额外死亡`);
-                  setGossipTrueTonight(false);
-                  setGossipSourceSeatId(null);
-                  // 然后正常进入夜晚死亡报告
-                  const merged = Array.from(new Set([...(deadThisNight || []), tid]));
-                  const deadNames = merged.length > 0 ? merged.map(id => `${id + 1}号`).join('、') : '';
-                  setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: deadNames ? `昨晚${deadNames}玩家死亡` : "昨天是个平安夜" } });
-                },
-              });
+        // Prevent re-triggering if modal is already open?
+        // But useEffect runs often. We should guard this?
+        // Ideally checking 'currentModal' prevents loop, but better to check if we handled it.
+        // For now, rely on `setGossipTrueTonight(false)` inside the modal confirm to break loop.
+
+        if (currentModal?.type !== 'STORYTELLER_SELECT') {
+          const sourceId = gossipSourceSeatId;
+          const statement = gossipStatementToday ? `造谣：「${gossipStatementToday}」` : '造谣为真';
+          setCurrentModal({
+            type: 'STORYTELLER_SELECT',
+            data: {
+              sourceId,
+              roleId: 'gossip',
+              roleName: '造谣者',
+              description: `🗡️ ${statement}\n说书人：请选择 1 名玩家死亡（额外死亡）。`,
+              targetCount: 1,
+              onConfirm: (targetIds: number[]) => {
+                const tid = targetIds[0];
+                if (tid === undefined) return;
+                setCurrentModal(null);
+                killPlayer(tid, {
+                  source: 'ability',
+                  recordNightDeath: true,
+                  onAfterKill: () => {
+                    addLog(`🗣️ ${sourceId + 1}号(造谣者) 造谣为真：说书人裁定 ${tid + 1}号 额外死亡`);
+                    setGossipTrueTonight(false);
+                    setGossipSourceSeatId(null);
+                    const merged = Array.from(new Set([...(deadThisNight || []), tid]));
+                    const deadNames = merged.length > 0 ? merged.map(id => `${id + 1}号`).join('、') : '';
+                    setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: deadNames ? `昨晚${deadNames}玩家死亡` : "昨天是个平安夜" } });
+                  },
+                });
+              },
             },
-          },
-        });
+          });
+        }
         return;
       }
-      if (deadThisNight.length > 0) {
-        const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
-        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
-      } else {
-        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
-      }
-      return;
-    }
 
-    // 关键修复：在推进前先“对齐”队列与索引，避免删除队列项后索引错位导致跳过存活玩家
-    const latestSeats = seatsRef.current || seats;
-    const normalized = normalizeWakeQueueForDeaths({
-      wakeQueueIds,
-      currentWakeIndex,
-      seats: latestSeats,
-      deadThisNight,
-      getSeatRoleId,
-    });
-    const normalizedWakeQueueIds = normalized.wakeQueueIds;
-    const normalizedWakeIndex = normalized.currentWakeIndex;
-    if (normalized.removedIds.length > 0) {
-      // 同步落地到 state（避免 UI 与后续逻辑读取不一致）
-      setWakeQueueIds(normalizedWakeQueueIds);
-      if (normalizedWakeIndex !== currentWakeIndex) {
-        setCurrentWakeIndex(normalizedWakeIndex);
-      }
-    }
-
-    // 如果当前玩家已死亡且不保留能力跳过到下一个
-    const currentId = normalizedWakeQueueIds[normalizedWakeIndex];
-    const currentSeat = currentId !== undefined ? latestSeats.find(s => s.id === currentId) : null;
-    const currentRoleId = getSeatRoleId(currentSeat);
-    const currentDiedTonight = currentSeat ? deadThisNight.includes(currentSeat.id) : false;
-    if (currentId !== undefined && currentSeat?.isDead && !currentSeat.hasAbilityEvenDead && !(currentRoleId === 'ravenkeeper' && currentDiedTonight)) {
-      setCurrentWakeIndex((p: number) => p + 1);
-      setInspectionResult(null);
-      setSelectedActionTargets([]);
-      fakeInspectionResultRef.current = null;
-      return;
-    }
-
-    // 首晚恶魔行动后触发"爪牙认识恶魔"环节在控制台显示
-    // 注意：这个模态框目前没有在GameModals中实现，所以暂时跳过，直接继续流程
-    // TODO: 如果将来需要实现这个模态框，可以在这里添加逻辑
-    if (gamePhase === 'firstNight' && nightInfo && nightInfo.effectiveRole.type === 'demon') {
-      // 找到恶魔座位
-      const demonSeat = seats.find(s =>
-        (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead
-      );
-      // 找到所有爪牙
-      const minionSeats = seats.filter(s =>
-        s.role?.type === 'minion' && !s.isDead
-      );
-
-      // 如果有恶魔和爪牙且罂粟种植者不在场或已死亡触发"爪牙认识恶魔"环节
-      if (demonSeat && minionSeats.length > 0) {
-        const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
-        const shouldHideDemon = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
-
-        if (!shouldHideDemon) {
-          // 暂时只在控制台显示信息，不阻止流程继续
-          // 如果将来需要模态框，可以在这里设置并return
-          const minionNames = minionSeats.map(s => `${s.id + 1}号`).join('、');
-          addLog(`👿 爪牙认识恶魔：${minionNames} 知道恶魔是 ${demonSeat.id + 1}号`);
-          // 不return，继续推进步骤
-          // setShowMinionKnowDemonModal({ demonSeatId: demonSeat.id });
-          // return;
+      // 常规死亡报告
+      // Guard against repeated modals
+      if (currentModal?.type !== 'NIGHT_DEATH_REPORT') {
+        if (deadThisNight.length > 0) {
+          const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
+          setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
+        } else {
+          setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
         }
       }
     }
-
-    // CRITICAL FIX: Check if we're at the end of the night
-    const isLastStep = normalizedWakeIndex >= normalizedWakeQueueIds.length - 1;
-
-    if (!isLastStep) {
-      // Normal progression to next step
-      setCurrentWakeIndex((p: number) => p + 1);
-      setInspectionResult(null);
-      setSelectedActionTargets([]);
-      fakeInspectionResultRef.current = null;
-    } else {
-      // 2. CRITICAL TRANSITION LOGIC - Force transition to day
-      // Show death report first, then transition to day
-      // The modal's onConfirm (confirmNightDeathReport) will handle the actual transition
-      // BMR：造谣者造谣为真 → 本夜额外死亡（说书人裁定）
-      if (selectedScript?.id === 'bad_moon_rising' && gossipTrueTonight && gossipSourceSeatId !== null) {
-        const sourceId = gossipSourceSeatId;
-        const statement = gossipStatementToday ? `造谣：「${gossipStatementToday}」` : '造谣为真';
-        setCurrentModal({
-          type: 'STORYTELLER_SELECT',
-          data: {
-            sourceId,
-            roleId: 'gossip',
-            roleName: '造谣者',
-            description: `🗡️ ${statement}\n说书人：请选择 1 名玩家死亡（额外死亡）。`,
-            targetCount: 1,
-            onConfirm: (targetIds: number[]) => {
-              const tid = targetIds[0];
-              if (tid === undefined) return;
-              setCurrentModal(null);
-              killPlayer(tid, {
-                source: 'ability',
-                recordNightDeath: true,
-                onAfterKill: () => {
-                  addLog(`🗣️ ${sourceId + 1}号(造谣者) 造谣为真：说书人裁定 ${tid + 1}号 额外死亡`);
-                  setGossipTrueTonight(false);
-                  setGossipSourceSeatId(null);
-                  const merged = Array.from(new Set([...(deadThisNight || []), tid]));
-                  const deadNames = merged.length > 0 ? merged.map(id => `${id + 1}号`).join('、') : '';
-                  setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: deadNames ? `昨晚${deadNames}玩家死亡` : "昨天是个平安夜" } });
-                },
-              });
-            },
-          },
-        });
-        return;
-      }
-      if (deadThisNight.length > 0) {
-        const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
-        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
-      } else {
-        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
-      }
-
-      // Ensure we're still in night phase before transition (safety check)
-      // The modal callback will handle the actual transition
-    }
   }, [
-    saveHistory,
-    seats,
-    deadThisNight,
-    wakeQueueIds,
     currentWakeIndex,
+    wakeQueueIds.length,
     gamePhase,
-    nightInfo,
-    poppyGrowerDead,
+    deadThisNight,
     selectedScript,
     gossipTrueTonight,
     gossipSourceSeatId,
     gossipStatementToday,
-    getSeatRoleId,
+    currentModal, // Need currentModal to prevent loop
     killPlayer,
-    addLog
-    // CRITICAL FIX: Removed unstable setters
-    // setGossipTrueTonight, setGossipSourceSeatId, setCurrentWakeIndex, 
-    // setInspectionResult, setSelectedActionTargets, setWakeQueueIds, setCurrentModal
+    addLog,
+    setGossipTrueTonight,
+    setGossipSourceSeatId,
+    setCurrentModal
   ]);
 
-  /* 
-  // DEBUG: Track why the effect above is re-running
-  const prevDepsRef = useRef<any>({});
-  useEffect(() => {
-     // ...
-  });
-  */
 
   const currentNightRole = useMemo(() => {
     if (!nightInfo) return null;
@@ -1409,7 +1585,11 @@ export function useGameController() {
     }
 
     console.log("[Controller] Proceeding to next action via Direct Call");
+    processingRef.current = true;
     continueToNextAction(); // Call directly
+    setTimeout(() => {
+      processingRef.current = false;
+    }, 500);
   }, [nightInfo, seats, selectedActionTargets, gamePhase, nightCount, roles, setSeats, setSelectedActionTargets, currentModal, setCurrentModal, getSeatRoleId, cleanseSeatStatuses, interactionInsertIntoWakeQueueAfterCurrent, continueToNextAction, addLogWithDeduplication, killPlayer, hasUsedAbility, markAbilityUsed, reviveSeat, setPukkaPoisonQueue, setDeadThisNight, poChargeState, setPoChargeState, isEvilWithJudgment]);
 
   const interaction = useInteractionHandler({
@@ -1443,6 +1623,18 @@ export function useGameController() {
     isTargetDisabled,
   } = interaction;
 
+  // 手动设置红罗刹（天敌）
+  const setRedNemesisTarget = useCallback((targetSeatId: number) => {
+    setSeats((prev: Seat[]) => {
+      // 先清除所有人的红罗刹标记，再给目标加上
+      return prev.map(s => ({
+        ...s,
+        isRedHerring: s.id === targetSeatId
+      }));
+    });
+    addLog(`说书人手动将 ${targetSeatId + 1}号 设置为 天敌红罗刹 (Red Nemesis)`);
+  }, [setSeats, addLog]);
+
 
   // 统一：对“纯信息类（无目标选择）查验/验证”角色，自动把结果同步到控制台结果区
   useEffect(() => {
@@ -1473,8 +1665,13 @@ export function useGameController() {
           : roleId === 'undertaker'
             ? '⚰️ 掘墓人结果：'
             : '📜 信息：';
-      setInspectionResult(`${prefix}${nightInfo.guide}`);
-      setInspectionResultKey(k => k + 1);
+
+      const newResult = `${prefix}${nightInfo.guide}`;
+      // CRITICAL FIX: Guard against redundant updates to prevent infinite loops
+      if (newResult !== inspectionResult) {
+        setInspectionResult(newResult);
+        setInspectionResultKey(k => k + 1);
+      }
     }
   }, [
     nightInfo,
@@ -1484,6 +1681,7 @@ export function useGameController() {
     isActorDisabledByPoisonOrDrunk,
     setInspectionResult,
     setInspectionResultKey,
+    inspectionResult, // Add inspectionResult to deps
   ]);
 
   // 安全兜底如果夜晚阶段存在叫醒队列但无法生成 nightInfo自动跳过当前环节或直接结束夜晚
@@ -2797,37 +2995,31 @@ export function useGameController() {
     // 10. 检查小恶魔是否被处决 - 先检查红唇女郎
     let newSeats = markDeath(isZombuul ? { isZombuulTrulyDead: true, zombuulLives: 0 } : {});
 
-    // 优先检查圣徒被处决导致邪恶方获胜优先级高于恶魔死亡判定
-    // 这个检查必须在恶魔死亡检查之前确保圣徒被处决的判定优先级更
-    // 虽然通常不会同时发生但在复杂结算中要注意优先级
-    if (t?.role?.id === 'saint' && !isActorDisabledByPoisonOrDrunk(t)) {
-      setSeats(newSeats);
-      addLog(`${id + 1}被处决`);
-      setExecutedPlayerId(id);
-      setCurrentDuskExecution(id);
-      setWinResult('evil');
-      setWinReason('圣徒被处决');
-      setGamePhase('gameOver');
-      addLog("游戏结束圣徒被处决邪恶胜");
+    // 检查处决导致的游戏结束（圣徒被处决等）
+    // 注意：在这里我们先计算出处决后的座位状态但不立即 setSeats，而是先透传给 checkGameOver
+    setSeats(newSeats);
+    setExecutedPlayerId(id);
+    setTodayExecutedId(id);
+    setCurrentDuskExecution(id);
+    setHasExecutedThisDay(true); // 标记今日有处决（用于涡流判定）
+
+    // 立即检查圣徒、双子处决等邪恶获胜或恶魔死亡获胜
+    if (checkGameOver(newSeats, id)) {
       return;
     }
 
-    // 10. 立即检查恶魔是否死亡包括所有恶魔类型
+    // 10. 立即检查恶魔是否死亡（包括所有恶魔类型）
     if ((t.role?.type === 'demon' || t.isDemonSuccessor)) {
-      // 僵怖特殊处理耗尽僵怖生命后再被处决才算真正死亡
+      // 僵怖特殊处理：耗尽僵怖生命后再被处决才算真正死亡
       if (isZombuul) {
-        const updatedSeats = newSeats.map(s =>
+        const updatedSeatsAfterZombuul = newSeats.map(s =>
           s.id === id ? { ...s, isZombuulTrulyDead: true, zombuulLives: 0 } : s
         );
-        setSeats(updatedSeats);
-        addLog(`${id + 1}僵 被处决真正死亡`);
-        setWinResult('good');
-        setWinReason('僵怖被处决');
-        setGamePhase('gameOver');
-        addLog("游戏结束僵怖被处决好人胜");
-        setExecutedPlayerId(id);
-        setCurrentDuskExecution(id);
-        return;
+        setSeats(updatedSeatsAfterZombuul);
+        addLog(`${id + 1}号(僵怖) 被处决真正死亡`);
+        if (checkGameOver(updatedSeatsAfterZombuul, id)) {
+          return;
+        }
       }
 
       // 主谋（Mastermind）不在这里做“首夜处决恶魔直接邪恶胜”的硬编码裁定；
@@ -3020,6 +3212,11 @@ export function useGameController() {
   // Confirm kill handler
   const confirmKill = useCallback(() => {
     if (!nightInfo || currentModal?.type !== 'KILL_CONFIRM') return;
+
+    // Prevent double-click / race conditions
+    if (processingRef.current) return;
+    processingRef.current = true;
+
     const targetId = currentModal.data.targetId;
     const impSeat = nightInfo.seat;
 
@@ -3064,8 +3261,15 @@ export function useGameController() {
       if (result === 'pending') return;
     }
     setShowKillConfirmModal(null);
-    if (moonchildChainPendingRef.current) return;
-    continueToNextAction();
+    if (moonchildChainPendingRef.current) {
+      processingRef.current = false;
+      return;
+    }
+
+    setTimeout(() => {
+      continueToNextAction();
+      processingRef.current = false;
+    }, 50);
   }, [nightInfo, showKillConfirmModal, seats, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, setShowKillConfirmModal, setSelectedActionTargets, continueToNextAction, getRandom, roles, setSeats, setWakeQueueIds, seatsRef, checkGameOver, setDeadThisNight, enqueueRavenkeeperIfNeeded, killPlayer, nightLogic, moonchildChainPendingRef, handleImpSuicide]);
 
   // Submit votes handler
@@ -3543,9 +3747,7 @@ export function useGameController() {
     const isEvilPick = isEvil(target);
     if (isEvilPick) {
       addLog(`${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，邪恶，善良阵营立即失败`);
-      setWinResult('evil');
-      setWinReason('呆瓜误判');
-      setGamePhase('gameOver');
+      checkGameOver(seats, undefined, undefined, undefined, true);
       return;
     }
     addLog(`${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，非邪恶，无事发生`);
@@ -4335,7 +4537,7 @@ export function useGameController() {
 
     // Group C: Phase/Control functions
     declareMayorImmediateWin,
-    handleDayEndTransition,
+    handleDayEndTransition: handleDayEndTransitionOverride,
     handleRestart,
     handleSwitchScript,
     handleNewGame,
@@ -4350,6 +4552,7 @@ export function useGameController() {
     toggleStatus: interactionToggleStatus,
     handleMenuAction,
     setHadesiaChoice,
+    setRedNemesisTarget,
 
     // Timer control functions
     handleTimerPause,

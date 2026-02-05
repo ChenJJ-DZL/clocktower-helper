@@ -9,17 +9,17 @@ export const assassin: RoleDefinition = {
   id: "assassin",
   name: "刺客",
   type: "minion",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 0 : 12,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (isFirstNight) {
         return {
@@ -34,7 +34,7 @@ export const assassin: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（刺客），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

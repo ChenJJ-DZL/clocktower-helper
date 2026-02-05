@@ -134,6 +134,7 @@ export function GameStage({ controller }: { controller: any }) {
     showSweetheartDrunkModal,
     showKlutzChoiceModal,
     showPitHagModal,
+    setRedNemesisTarget,
   } = controller;
 
   // 计算左侧面板的缩放比例，使座位表适应容器
@@ -408,6 +409,7 @@ export function GameStage({ controller }: { controller: any }) {
                   // User must use the "发起提名" button or cancel nomination to change selection
                 }}
                 onContextMenu={(e, seatId) => {
+                  e.preventDefault();
                   setContextMenu({ x: e.clientX, y: e.clientY, seatId });
                 }}
                 onTouchStart={(e, seatId) => {
@@ -444,6 +446,7 @@ export function GameStage({ controller }: { controller: any }) {
                 onTimerStart={controller.handleTimerStart}
                 onTimerPause={controller.handleTimerPause}
                 onTimerReset={controller.handleTimerReset}
+                onSetRedNemesis={setRedNemesisTarget}
               />
             </ScaleToFit>
 
@@ -776,6 +779,7 @@ export function GameStage({ controller }: { controller: any }) {
               longPressingSeats={longPressingSeats}
               onSeatClick={(seat) => onSeatClick(seat.id)}
               onContextMenu={(e, seatId) => {
+                e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, seatId });
               }}
               onTouchStart={(e, seatId) => {
@@ -793,7 +797,7 @@ export function GameStage({ controller }: { controller: any }) {
                     next.delete(seatId);
                     return next;
                   });
-                }, 200);
+                }, 500);
                 longPressTimerRef.current.set(seatId, timer as unknown as number);
               }}
               onTouchEnd={(e, seatId) => {
@@ -839,7 +843,8 @@ export function GameStage({ controller }: { controller: any }) {
               onTimerPause={controller.handleTimerPause}
               onTimerReset={controller.handleTimerReset}
               nightOrderPreview={nightOrderPreviewLive || nightOrderPreview}
-              onOpenNightOrderPreview={() => setShowNightOrderModal(true)}
+              onOpenNightOrderPreview={setShowNightOrderModal ? () => setShowNightOrderModal(true) : undefined}
+              onSetRedNemesis={setRedNemesisTarget}
             />
           </div>
         }

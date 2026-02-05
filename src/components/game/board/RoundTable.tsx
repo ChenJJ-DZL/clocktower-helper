@@ -37,6 +37,8 @@ interface RoundTableProps {
   // Night order preview panel (top-right)
   nightOrderPreview?: Array<{ roleName: string; seatNo: number; order: number | null }>;
   onOpenNightOrderPreview?: () => void;
+  // Red Nemesis action
+  onSetRedNemesis?: (seatId: number) => void;
 }
 
 /**
@@ -68,10 +70,24 @@ export function RoundTable({
   nominee = null,
   nightOrderPreview = [],
   onOpenNightOrderPreview,
+  onSetRedNemesis,
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
   const [seatSize, setSeatSize] = useState(72); // Seat size in pixels
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; seatId: number } | null>(null);
+
+  // Close context menu on any click outside
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
+  const handleSeatContextMenu = (e: React.MouseEvent, seatId: number) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, seatId });
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -176,7 +192,7 @@ export function RoundTable({
           seatScale={seatSize / 112} // Scale factor: 112px / base 112px (7rem) = 1.0 for "Big Seat" mode
           longPressingSeats={longPressingSeats}
           onSeatClick={onSeatClick}
-          onContextMenu={onContextMenu}
+          onContextMenu={handleSeatContextMenu}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
           onTouchMove={onTouchMove}
@@ -201,6 +217,36 @@ export function RoundTable({
           onTimerPause={onTimerPause}
           onTimerReset={onTimerReset}
         />
+      )}
+      {/* Custom Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-[100] bg-slate-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden min-w-[160px] animate-in fade-in zoom-in duration-100"
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              onSetRedNemesis?.(contextMenu.seatId);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-4 py-3 hover:bg-red-800/40 text-red-100 flex items-center gap-3 transition-colors border-b border-white/5"
+          >
+            <span className="text-lg">🔴</span>
+            <span className="font-bold">选为红罗刹</span>
+          </button>
+          <button
+            onClick={() => setContextMenu(null)}
+            className="w-full text-left px-4 py-2 hover:bg-slate-800 text-slate-400 text-xs flex items-center gap-3 transition-colors"
+          >
+            <span className="opacity-0 text-lg">🔴</span>
+            <span>取消</span>
+          </button>
+        </div>
       )}
     </div>
   );

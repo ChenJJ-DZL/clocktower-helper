@@ -9,17 +9,17 @@ export const witch: RoleDefinition = {
   id: "witch",
   name: "女巫",
   type: "minion",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 13 : 1,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（女巫）。`,
@@ -27,7 +27,7 @@ export const witch: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（女巫），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

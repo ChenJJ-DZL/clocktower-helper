@@ -117,10 +117,10 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   const roleName = s.isDemonSuccessor && realRole?.id === 'imp'
     ? `${displayRole?.name || realRole?.name} (传)`
     : displayRole?.name || realRole?.name || "空";
-  
+
   // 定义状态列表 - 自动推导所有异常状态
   const statusList: Array<{ key: string; text: string; color: 'red' | 'green' | 'yellow'; icon?: React.ReactNode; duration?: string }> = [];
-  
+
   // 标记已处理的状态，避免重复
   const processedStatuses = new Set<string>();
 
@@ -139,7 +139,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   if (s.isProtected) {
     const protectionStatus = (s.statuses || []).find(st => st.effect === 'ExecutionProof' || st.effect === 'Protected');
     const protectionDuration = protectionStatus?.duration || '至天亮';
-    
+
     statusList.push({
       key: `protected-${s.id}`,
       text: "受保护",
@@ -174,7 +174,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
 
       const poisonStatus = (s.statuses || []).find(status => status.effect === 'Poison');
       const poisonDuration = poisonStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
-      
+
       statusList.push({
         key: `poison-${s.id}`,
         text: "中毒",
@@ -185,7 +185,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
       processedStatuses.add('poison');
       return; // 已处理，跳过后续逻辑
     }
-    
+
     // 处理醉酒状态（从statusDetails中提取详细信息）
     if (st.includes('致醉') && !processedStatuses.has('drunk')) {
       // 死亡后醉酒状态对游戏没有实际影响，这里直接不再显示
@@ -195,7 +195,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
 
       const drunkStatus = (s.statuses || []).find(status => status.effect === 'Drunk');
       const drunkDuration = drunkStatus?.duration || st.match(/（(.+?)清除）/)?.[1] || '至下个黄昏';
-      
+
       statusList.push({
         key: `drunk-${s.id}`,
         text: "醉酒",
@@ -212,7 +212,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   if (!s.isDead && s.isPoisoned && !processedStatuses.has('poison')) {
     const poisonStatus = (s.statuses || []).find(st => st.effect === 'Poison');
     const poisonDuration = poisonStatus?.duration || '至下个黄昏';
-    
+
     statusList.push({
       key: 'poison',
       text: "中毒",
@@ -227,7 +227,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   if (!s.isDead && (s.role?.id === 'drunk' || s.isDrunk) && !processedStatuses.has('drunk')) {
     const drunkStatus = (s.statuses || []).find(st => st.effect === 'Drunk');
     const drunkDuration = drunkStatus?.duration || (s.role?.id === 'drunk' ? '永久' : '至下个黄昏');
-    
+
     statusList.push({
       key: 'drunk',
       text: "醉酒",
@@ -273,7 +273,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     <div
       key={s.id}
       onClick={(e) => { e.stopPropagation(); onSeatClick(s.id); }}
-      onContextMenu={(e) => onContextMenu(e, s.id)}
+      onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, s.id); }}
       onTouchStart={(e) => onTouchStart(e, s.id)}
       onTouchEnd={(e) => onTouchEnd(e, s.id)}
       onTouchMove={(e) => onTouchMove(e, s.id)}
@@ -307,9 +307,8 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         {/* 真实身份指示徽章（仅说书人可见：role 与 displayRole 不一致时显示） */}
         {isMasked && (
           <div
-            className={`absolute ${isPortrait ? '-top-1.5 -right-1.5' : '-top-4 -right-4'} bg-purple-600 text-white ${
-              isPortrait ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5'
-            } rounded-full z-40 border border-white shadow-sm`}
+            className={`absolute ${isPortrait ? '-top-1.5 -right-1.5' : '-top-4 -right-4'} bg-purple-600 text-white ${isPortrait ? 'text-[8px] px-1 py-0.5' : 'text-[10px] px-1.5 py-0.5'
+              } rounded-full z-40 border border-white shadow-sm`}
           >
             实:{realRole?.name}
           </div>
@@ -318,7 +317,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         {longPressingSeats.has(s.id) && (
           <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
         )}
-        
+
         {/* 提名者外圈光环特效 */}
         {nominator === s.id && (
           <>
@@ -327,7 +326,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
             <div className="absolute -inset-4 rounded-full border-4 border-white/30 animate-pulse"></div>
           </>
         )}
-        
+
         {/* 被提名者外圈光环特效 */}
         {nominee === s.id && (
           <>
@@ -336,9 +335,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
             <div className="absolute -inset-4 rounded-full border-4 border-yellow-400/30 animate-pulse"></div>
           </>
         )}
-        
+
         {/* 座位序号 - 固定在左上角45度方向，圆心在圆圈上 */}
-        <div 
+        <div
           className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] ${isPortrait ? 'w-6 h-6' : 'w-10 h-10'} rounded-full ${s.isDead ? 'bg-gray-400 border-gray-500 text-gray-700' : 'bg-slate-800 border-slate-600'} border-2 flex items-center justify-center ${isPortrait ? 'text-xs' : 'text-xl'} font-bold z-20 shadow-md`}
         >
           {s.id + 1}
@@ -346,9 +345,9 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
 
         {/* 角色名称 - 在座位圆圈内部绝对居中 */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <span 
+          <span
             className={`${isPortrait ? 'text-lg' : 'text-2xl'} font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? '' : 'whitespace-nowrap'} ${s.isDead ? 'text-gray-400 line-through' : 'text-white'}`}
-            style={{ 
+            style={{
               textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 4px black',
             }}
           >
@@ -389,8 +388,8 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
 
         {/* 幽灵票标记 - 显示在右下角 */}
         {s.isDead && s.hasGhostVote && (
-          <div 
-            className={`absolute ${isPortrait ? '-bottom-1 -right-1' : '-bottom-1 -right-1'} ${isPortrait ? 'w-4 h-4' : 'w-5 h-5'} bg-white rounded-full border-2 border-slate-900 flex items-center justify-center shadow-md z-30`} 
+          <div
+            className={`absolute ${isPortrait ? '-bottom-1 -right-1' : '-bottom-1 -right-1'} ${isPortrait ? 'w-4 h-4' : 'w-5 h-5'} bg-white rounded-full border-2 border-slate-900 flex items-center justify-center shadow-md z-30`}
             title="该玩家还有一票"
           >
             <div className={`${isPortrait ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-black rounded-full`}></div>

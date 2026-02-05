@@ -12,6 +12,7 @@
 
 const firstNightOrderList: string[] = [
   // Dusk & special preambles (non-role placeholders are skipped automatically)
+  "lord_of_typhon",
   "wraith",
   "boffin",
   "amnesiac",
@@ -66,7 +67,7 @@ const firstNightOrderList: string[] = [
   "empath",
   "fortune_teller",
   "butler",
-  "recluse", // 逆臣/隐士
+  "nichen", // 逆臣
   "grandmother",
   "clockmaker",
   "dreamer",

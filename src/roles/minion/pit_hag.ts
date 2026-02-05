@@ -9,17 +9,17 @@ export const pit_hag: RoleDefinition = {
   id: "pit_hag",
   name: "麻脸巫婆",
   type: "minion",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 15 : 3,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（麻脸巫婆）。`,
@@ -27,7 +27,7 @@ export const pit_hag: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（麻脸巫婆），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

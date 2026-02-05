@@ -9,17 +9,17 @@ export const devils_advocate: RoleDefinition = {
   id: "devils_advocate",
   name: "魔鬼代言人",
   type: "minion",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 5 : 5,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（魔鬼代言人）。`,
@@ -27,7 +27,7 @@ export const devils_advocate: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（魔鬼代言人），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {

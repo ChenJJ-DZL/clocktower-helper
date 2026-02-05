@@ -150,19 +150,9 @@ export function useGameFlow(): UseGameFlowResult {
   }, [currentDuskExecution, seats, dispatch]);
 
   const handleDayEndTransition = useCallback(() => {
-    const aliveCount = seats.filter(s => !s.isDead).length;
-    const mayorSeat = seats.find(s => s.role?.id === 'mayor' && !s.isDead);
-
-    // 市长特殊胜利检查
-    // 这里需要 isActorDisabledByPoisonOrDrunk，由于是工具函数，可以直接在 utils 中引用或定义
-    const isMayorDisabled = mayorSeat ? (computeIsPoisoned(mayorSeat) || mayorSeat.isDrunk || mayorSeat.role?.id === 'drunk') : true;
-
-    if (aliveCount === 3 && mayorSeat && !isMayorDisabled) {
-      dispatch(gameActions.setModal({ type: 'MAYOR_THREE_ALIVE', data: null }));
-      return;
-    }
+    // 胜利条件（市长、涡流等）现已统一迁移至 useGameController.handleDayEndTransitionOverride 处理
     enterDuskPhase();
-  }, [seats, enterDuskPhase, dispatch]);
+  }, [enterDuskPhase]);
 
   const handleSwitchScript = useCallback(() => {
     // 结束当前游戏并重置
@@ -266,6 +256,12 @@ export function useGameFlow(): UseGameFlowResult {
   }, [dispatch]);
 
   const confirmNightOrderPreview = useCallback(() => {
+    // 🛡️ Guard: If already in night phase, do NOT regenerate queue
+    if (gamePhase === 'firstNight') {
+      console.warn(`[confirmNightOrderPreview] Already in ${gamePhase}, ignoring request.`);
+      return;
+    }
+
     if (!pendingNightQueue || pendingNightQueue.length === 0) {
       dispatch(gameActions.setGamePhase('firstNight'));
       dispatch(gameActions.addLog({ day: 1, phase: 'night', message: '首夜：无需要唤醒的角色，直接进入天亮阶段' }));
@@ -295,6 +291,12 @@ export function useGameFlow(): UseGameFlowResult {
   }, [nightCount, dispatch]);
 
   const proceedToFirstNight = useCallback((rolesToUse?: Role[]) => {
+    // 🛡️ Guard: If already in night phase, do NOT regenerate queue
+    if (gamePhase === 'firstNight' || gamePhase === 'night') {
+      console.warn(`[proceedToFirstNight] Already in ${gamePhase}, ignoring request.`);
+      return;
+    }
+
     const r = rolesToUse || globalRoles || [];
     // 酒鬼伪装身份检查
     const drunkMissingCharade = seats.find(s => s.role?.id === 'drunk' && !s.charadeRole);

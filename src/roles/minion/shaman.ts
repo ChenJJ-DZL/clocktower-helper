@@ -9,17 +9,17 @@ export const shaman: RoleDefinition = {
   id: "shaman",
   name: "灵言师",
   type: "minion",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 13 : 0,
-    
+
     target: {
       count: {
-        min: 0,
-        max: 0,
+        min: 1,
+        max: 1,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (!isFirstNight) {
         return {
@@ -34,7 +34,7 @@ export const shaman: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（灵言师），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // TODO: 实现角色逻辑
       return {
