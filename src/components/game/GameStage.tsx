@@ -258,25 +258,22 @@ export function GameStage({ controller }: { controller: any }) {
 
   // 供控制台 / ControlPanel 使用的禁用逻辑
   const isConfirmDisabled = useMemo(() => {
-    let hasPendingDrunk = false; // Initialize to false
+    console.log('[isConfirmDisabled] Recalculating...');
+    console.log('[isConfirmDisabled] gamePhase:', gamePhase);
+    console.log('[isConfirmDisabled] nightInfo:', nightInfo);
 
     // CRITICAL FIX: In check phase, button should always be enabled to allow drunk charade selection
-    if (gamePhase === 'check') {
-      const finalDisabledState = false; // Always enable button in check phase to allow modal trigger
-      console.log('[GameStage] isConfirmDisabled (final - check phase) - returning:', finalDisabledState);
-      return finalDisabledState;
+    if (gamePhase === 'check' || gamePhase === 'day' || gamePhase === 'dusk') {
+      console.log(`[isConfirmDisabled] In "${gamePhase}" phase, returning false. (handled by specialized buttons)`);
+      return false;
     }
 
     // For night phases, must have nightInfo
     if (!nightInfo) {
-      const finalDisabledState = true; // If no nightInfo, always disabled for night phases
-      console.log('[GameStage] isConfirmDisabled (final - no nightInfo) - returning:', finalDisabledState);
-      return finalDisabledState;
+      console.log('[isConfirmDisabled] No nightInfo, returning true.');
+      return true;
     }
 
-    // CRITICAL FIX: Disable button if there are pending confirmation modals
-    // This prevents users from clicking "Next" when they need to confirm an action first
-    // EXCEPTION: Informational modals (Night Order Preview, Review, Records, Role Info) should NOT disable the button
     const isBlockingModal = currentModal && !(
       currentModal.type === 'NIGHT_ORDER_PREVIEW' ||
       currentModal.type === 'REVIEW' ||
@@ -287,8 +284,6 @@ export function GameStage({ controller }: { controller: any }) {
     const hasPendingModals =
       isBlockingModal ||
       showKillConfirmModal !== null ||
-      (showPoisonConfirmModal !== null) ||
-      showPoisonEvilConfirmModal !== null ||
       showHadesiaKillConfirmModal !== null ||
       showRavenkeeperFakeModal !== null ||
       showMoonchildKillModal !== null ||
@@ -298,26 +293,32 @@ export function GameStage({ controller }: { controller: any }) {
       showKlutzChoiceModal !== null ||
       showPitHagModal !== null;
 
-    // 重构：移除 DOM 检测逻辑，直接检查状态
-    // 如果有待确认的弹窗，禁用确认按钮
+    console.log('[isConfirmDisabled] isBlockingModal:', isBlockingModal, 'currentModal:', currentModal);
+    console.log('[isConfirmDisabled] hasPendingModals:', hasPendingModals);
+
     if (hasPendingModals) {
-      console.log('[isConfirmDisabled] Has pending modals, returning true.', { currentModalType: currentModal?.type });
-      const finalDisabledState = true; // If pending modals, always disabled
-      console.log('[GameStage] isConfirmDisabled (final - pending modals) - returning:', finalDisabledState);
-      return finalDisabledState;
+      console.log('[isConfirmDisabled] Has pending modals, returning true.');
+      return true;
     }
 
-    const finalDisabledState = false; // Default to false if no other conditions met for night phases
-    console.log('[GameStage] isConfirmDisabled (final - default) - returning:', finalDisabledState);
-    return finalDisabledState;
+    // 3. 检查当前目标选择是否符合要求
+    if (nightInfo.targetLimit) {
+      const { min } = nightInfo.targetLimit;
+      console.log(`[isConfirmDisabled] Checking targets: selected = ${selectedActionTargets.length}, min required = ${min}`);
+      if (selectedActionTargets.length < min) {
+        console.log('[isConfirmDisabled] Not enough targets selected, returning true.');
+        return true;
+      }
+    }
+
+    console.log('[isConfirmDisabled] All checks passed, returning false.');
+    return false;
   }, [
     gamePhase,
     seats,
     nightInfo,
     currentModal,
     showKillConfirmModal,
-    showPoisonConfirmModal,
-    showPoisonEvilConfirmModal,
     showHadesiaKillConfirmModal,
     showRavenkeeperFakeModal,
     showMoonchildKillModal,
@@ -326,6 +327,7 @@ export function GameStage({ controller }: { controller: any }) {
     showSweetheartDrunkModal,
     showKlutzChoiceModal,
     showPitHagModal,
+    selectedActionTargets,
   ]);
 
   // 统一的说书人指引（夜晚脚本提示 + 阶段小操作提示）
@@ -464,87 +466,7 @@ export function GameStage({ controller }: { controller: any }) {
           <div className="w-[450px] bg-slate-900 border-l border-white/10 flex flex-col p-6 gap-4 overflow-y-auto relative z-40">
             <h2 className="text-2xl font-black text-orange-500 uppercase tracking-wide">⚖️ 处决台</h2>
 
-            {/* Last Call */}
-            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">最后一次提名:</span>
-                <span className="font-bold text-white">不限时（由说书人手动控制）</span>
-              </div>
-              <div className="text-xs text-gray-400 leading-relaxed">
-                规则映射：取消倒计时，不自动锁定提名。说书人可随时点击「开始投票」。
-              </div>
-            </div>
-
-            {/* Selection Display */}
-            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">提名者:</span>
-                <span className="text-white font-bold text-lg">
-                  {nominator !== null ? `${nominator + 1}号` : '-'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">被提名者:</span>
-                <span className="text-white font-bold text-lg">
-                  {nominee !== null ? `${nominee + 1}号` : '-'}
-                </span>
-              </div>
-            </div>
-
-            {/* Storyteller Tips */}
-            {guidancePoints.length > 0 && (
-              <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
-                <h3 className="text-white font-bold flex items-center gap-2">
-                  <span>📒</span> 说书人建议
-                </h3>
-                <div className="space-y-1 text-xs text-gray-200 leading-relaxed">
-                  {guidancePoints.map((tip, idx) => (
-                    <div key={idx} className="flex gap-2 items-start">
-                      <span className="text-amber-400">•</span>
-                      <span>{tip}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Voting Flow Status */}
-            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">待投票对象:</span>
-                <span className="text-white font-bold">
-                  {pendingVoteFor !== null ? `${pendingVoteFor + 1}号` : '-'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">辩护时间:</span>
-                <span className="text-white font-bold">不限时（手动）</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">上台门槛:</span>
-                <span className="text-white font-bold">{voteThreshold} 票 （存活非旅行者 {aliveCoreCount}）</span>
-              </div>
-              <div className="text-xs text-gray-400 leading-relaxed">
-                规则映射：提名后先给被提名者短暂辩护时间（建议 10~30s），随后由说书人点击「开始投票」打开举手名单面板。
-              </div>
-            </div>
-
-            {/* Voting Recorder / 简要提示：投票在弹窗中完成 */}
-            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
-              <h3 className="text-white font-bold flex items-center gap-2">
-                <span>✋</span> 投票与记录
-              </h3>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                点击下方「开始投票」按钮会弹出举手名单面板，自动统计票数、消耗幽灵票，并记录本轮所有投票者（用于卖花女 / 城镇公告员）。
-              </p>
-              {votedThisRound && votedThisRound.length > 0 && (
-                <div className="text-xs text-gray-300">
-                  本轮已记录投票者：{votedThisRound.map((id: number) => `${id + 1}号`).join('、')}
-                </div>
-              )}
-            </div>
-
-            {/* Execution Block (Candidates) */}
+            {/* Execution Block (Candidates) - Refined UI */}
             <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>🏛️</span> 处决台（上台者）
@@ -589,112 +511,6 @@ export function GameStage({ controller }: { controller: any }) {
                   </>
                 );
               })()}
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-3 relative z-50">
-              {/* Cancel Nomination Selection Button - only show if there are selections */}
-              {(nominator !== null || nominee !== null) && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('[GameStage] 取消提名选择');
-                    setNominator(null);
-                    setNominee(null);
-                  }}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onTouchStart={(e) => {
-                    e.stopPropagation();
-                  }}
-                  className="p-3 bg-red-600/20 text-red-400 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white transition-all font-semibold cursor-pointer relative z-50 text-sm"
-                  style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
-                >
-                  ❌ 取消提名选择
-                </button>
-              )}
-
-              <button
-                type="button"
-                disabled={isNominationLocked}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log('[GameStage] 点击发起提名按钮', { nominator, nominee, isNominationLocked, pendingVoteFor, executeNomination: typeof executeNomination });
-                  try {
-                    // 移除 pendingVoteFor 检查，允许在投票完成后立即进行下一次提名
-                    // 投票完成后会自动清除 pendingVoteFor
-                    if (nominator === null || nominee === null) {
-                      alert('请先在圆桌上依次点击"提名者"和"被提名者"。');
-                      return;
-                    }
-                    if (typeof executeNomination !== 'function') {
-                      console.error('[GameStage] executeNomination is not a function:', executeNomination);
-                      alert('错误：executeNomination 函数不可用，请刷新页面重试。');
-                      return;
-                    }
-                    // Call executeNomination (which handles Virgin trigger from Step 4)
-                    executeNomination(nominator, nominee, { openVoteModal: false });
-                    addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
-                    setPendingVoteFor(nominee);
-                    // 取消自动辩护倒计时，由说书人手动控制节奏
-                    // Reset selection
-                    setNominator(null);
-                    setNominee(null);
-                  } catch (error) {
-                    console.error('[GameStage] 发起提名时出错:', error);
-                    alert(`发起提名时出错: ${error instanceof Error ? error.message : String(error)}`);
-                  }
-                }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                }}
-                className="p-4 bg-orange-600/20 text-orange-500 border border-orange-600/50 rounded-lg hover:bg-orange-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold cursor-pointer relative z-50"
-                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
-              >
-                📣 发起提名 (触发技能检测)
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log('[GameStage] 点击开始投票按钮', { pendingVoteFor, setCurrentModal: typeof setCurrentModal });
-                  try {
-                    if (pendingVoteFor === null) {
-                      alert('当前没有待投票的被提名者，请先发起一次有效提名。');
-                      return;
-                    }
-                    if (typeof setCurrentModal !== 'function') {
-                      console.error('[GameStage] setCurrentModal is not a function:', setCurrentModal);
-                      alert('错误：setCurrentModal 函数不可用，请刷新页面重试。');
-                      return;
-                    }
-                    stopDefenseTimer();
-                    setDefenseSecondsLeft(0);
-                    setCurrentModal({ type: 'VOTE_INPUT', data: { voterId: pendingVoteFor } });
-                  } catch (error) {
-                    console.error('[GameStage] 开始投票时出错:', error);
-                    alert(`开始投票时出错: ${error instanceof Error ? error.message : String(error)}`);
-                  }
-                }}
-                onMouseDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                }}
-                className="p-4 bg-blue-600/20 text-blue-200 border border-blue-500/40 rounded-lg hover:bg-blue-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold cursor-pointer relative z-50"
-                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
-              >
-                🗳️ 开始投票（打开举手名单面板）
-              </button>
-
-              <div className="h-px bg-white/10 my-2"></div>
 
               <button
                 type="button"
@@ -724,11 +540,208 @@ export function GameStage({ controller }: { controller: any }) {
                 onTouchStart={(e) => {
                   e.stopPropagation();
                 }}
-                className="p-4 bg-red-600 text-white font-black rounded-lg text-xl shadow-lg hover:bg-red-500 transition-colors cursor-pointer relative z-50"
+                className="w-full mt-2 p-3 bg-red-600 text-white font-bold rounded-lg text-lg shadow-lg hover:bg-red-500 transition-colors cursor-pointer relative z-50 h-12 flex items-center justify-center"
                 style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
               >
-                ☠️ 执行处决（根据票数自动结算）
+                ☠️ 执行处决
               </button>
+            </div>
+
+            {/* Combined Nomination & Voting Process Block */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-4 border border-white/10">
+              <h3 className="text-white font-bold flex items-center gap-2 border-b border-white/10 pb-2">
+                <span>⚖️</span> 提名与投票进程
+              </h3>
+
+              {/* Primary: Nominator -> Nominee */}
+              <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-lg border border-white/5">
+                {(nominator === null && nominee === null && pendingVoteFor === null) ? (
+                  <div className="text-gray-400 text-sm w-full text-center py-1">等待发启提名...</div>
+                ) : (
+                  <>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-gray-500 mb-1">提名者</span>
+                      <span className="text-amber-400 font-bold text-xl">
+                        {nominator !== null ? `${nominator + 1}号` : '-'}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 font-bold">➡️</div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-gray-500 mb-1">被提名者</span>
+                      <span className="text-amber-400 font-bold text-xl">
+                        {(nominee || pendingVoteFor) !== null
+                          ? `${(nominee || pendingVoteFor)! + 1}号`
+                          : '-'}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-slate-700/30 p-2 rounded border border-white/5">
+                  <div className="text-gray-400 text-xs mb-1">上台门槛</div>
+                  <div className="font-bold text-white">
+                    {voteThreshold} 票 <span className="text-xs font-normal text-gray-400">({aliveCoreCount}存活)</span>
+                  </div>
+                </div>
+                <div className="bg-slate-700/30 p-2 rounded border border-white/5">
+                  <div className="text-gray-400 text-xs mb-1">最后一次提名</div>
+                  <div className="font-bold text-white">不限时(手动)</div>
+                </div>
+                <div className="bg-slate-700/30 p-2 rounded border border-white/5 col-span-2">
+                  <div className="text-gray-400 text-xs mb-1">辩护时间 / 规则</div>
+                  <div className="font-bold text-white flex justify-between">
+                    <span>不限时(手动)</span>
+                    <span className="text-xs font-normal text-gray-400">提名后点「开始投票」</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Voting Recorder / 简要提示：投票在弹窗中完成 */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>✋</span> 投票与记录
+              </h3>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                点击下方「开始投票」按钮会弹出举手名单面板，自动统计票数、消耗幽灵票，并记录本轮所有投票者（用于卖花女 / 城镇公告员）。
+              </p>
+              {votedThisRound && votedThisRound.length > 0 && (
+                <div className="text-xs text-gray-300">
+                  本轮已记录投票者：{votedThisRound.map((id: number) => `${id + 1}号`).join('、')}
+                </div>
+              )}
+            </div>
+
+
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3 relative z-50">
+              {/* Cancel Nomination Selection Button - only show if there are selections */}
+              {(nominator !== null || nominee !== null) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('[GameStage] 取消提名选择');
+                    setNominator(null);
+                    setNominee(null);
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="p-3 bg-red-600/20 text-red-400 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white transition-all font-semibold cursor-pointer relative z-50 text-sm h-14 flex items-center justify-center"
+                  style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+                >
+                  ❌ 取消提名选择
+                </button>
+              )}
+
+              <button
+                type="button"
+                // 1. 发起提名按钮：在有待投票（pendingVoteFor !== null）时禁用
+                disabled={isNominationLocked || pendingVoteFor !== null}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('[GameStage] 点击发起提名按钮', { nominator, nominee, isNominationLocked, pendingVoteFor, executeNomination: typeof executeNomination });
+                  try {
+                    // Double check logic inside (UI should be disabled though)
+                    if (pendingVoteFor !== null) {
+                      alert("请先完成当前的投票流程");
+                      return;
+                    }
+
+                    if (nominator === null || nominee === null) {
+                      alert('请先在圆桌上依次点击"提名者"和"被提名者"。');
+                      return;
+                    }
+                    if (typeof executeNomination !== 'function') {
+                      console.error('[GameStage] executeNomination is not a function:', executeNomination);
+                      alert('错误：executeNomination 函数不可用，请刷新页面重试。');
+                      return;
+                    }
+                    // Call executeNomination (which handles Virgin trigger from Step 4)
+                    executeNomination(nominator, nominee, { openVoteModal: false });
+                    addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
+                    setPendingVoteFor(nominee);
+                    // 取消自动辩护倒计时，由说书人手动控制节奏
+                    // Reset selection
+                    setNominator(null);
+                    setNominee(null);
+                  } catch (error) {
+                    console.error('[GameStage] 发起提名时出错:', error);
+                    alert(`发起提名时出错: ${error instanceof Error ? error.message : String(error)}`);
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                // Dynamic Class: 
+                // Disabled: Grey/Dark
+                // Active: Orange/Normal
+                className={`p-4 rounded-lg font-semibold cursor-pointer relative z-50 h-14 flex items-center justify-center transition-all border
+                  ${(isNominationLocked || pendingVoteFor !== null)
+                    ? 'bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed opacity-70'
+                    : 'bg-orange-600/20 text-orange-500 border-orange-600/50 hover:bg-orange-600 hover:text-white'
+                  }`}
+                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+              >
+                📣 发起提名 (触发技能检测)
+              </button>
+
+              <button
+                type="button"
+                // 2. 开始投票按钮：只有在有待投票（pendingVoteFor !== null）时才启用
+                disabled={pendingVoteFor === null}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('[GameStage] 点击开始投票按钮', { pendingVoteFor, setCurrentModal: typeof setCurrentModal });
+                  try {
+                    if (pendingVoteFor === null) {
+                      // Should be blocked by disabled prop, but just in case
+                      return;
+                    }
+                    if (typeof setCurrentModal !== 'function') {
+                      console.error('[GameStage] setCurrentModal is not a function:', setCurrentModal);
+                      alert('错误：setCurrentModal 函数不可用，请刷新页面重试。');
+                      return;
+                    }
+                    stopDefenseTimer();
+                    setDefenseSecondsLeft(0);
+                    setCurrentModal({ type: 'VOTE_INPUT', data: { voterId: pendingVoteFor } });
+                  } catch (error) {
+                    console.error('[GameStage] 开始投票时出错:', error);
+                    alert(`开始投票时出错: ${error instanceof Error ? error.message : String(error)}`);
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                }}
+                // Dynamic Class:
+                // Disabled: Grey/Dark
+                // Active: Blue Solid + Pulse
+                className={`p-4 rounded-lg font-semibold cursor-pointer relative z-50 h-14 flex items-center justify-center transition-all border
+                   ${pendingVoteFor === null
+                    ? 'bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed opacity-70'
+                    : 'bg-blue-600 text-white border-blue-500 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.6)] animate-pulse'
+                  }`}
+                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+              >
+                🗳️ 开始投票（打开举手名单面板）
+              </button>
+
+
             </div>
 
             <div className="mt-auto pt-4 border-t border-white/10">
@@ -880,7 +893,7 @@ export function GameStage({ controller }: { controller: any }) {
                         // Call continueToNextAction which will show death report and transition
                         controller.continueToNextAction();
                       },
-                      disabled: false,
+                      disabled: !!controller.currentModal, // Disable if modal is open
                       variant: 'warning' as const,
                     };
                   }
@@ -889,7 +902,7 @@ export function GameStage({ controller }: { controller: any }) {
                   return {
                     label: '确认 & 下一步',
                     onClick: handleConfirmAction,
-                    disabled: isConfirmDisabled,
+                    disabled: isConfirmDisabled || !!controller.currentModal, // Disable if modal is open
                     variant: 'primary' as const,
                   };
                 })()
@@ -919,7 +932,17 @@ export function GameStage({ controller }: { controller: any }) {
                       disabled: false,
                       variant: 'primary' as const,
                     }
-                    : undefined
+                    : gamePhase === 'setup'
+                      ? {
+                        label: '确认 & 下一步',
+                        onClick: () => {
+                          console.log('[GameStage] Setup phase primary action -> Clear selectedRole');
+                          setSelectedRole(null);
+                        },
+                        disabled: !selectedRole,
+                        variant: 'primary' as const,
+                      }
+                      : undefined
             }
             secondaryActions={
               (gamePhase === 'firstNight' || gamePhase === 'night')

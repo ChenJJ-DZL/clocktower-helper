@@ -1,5 +1,5 @@
 import type { Seat, Role, GamePhase, LogEntry, Script, RoleType } from '../../app/data';
-import type { TimelineStep } from '../types/game';
+import type { TimelineStep, NightInfoResult } from '../types/game';
 import {
   computeIsPoisoned,
   getPoisonSources,
@@ -12,6 +12,7 @@ import {
   type RegistrationCacheOptions
 } from './gameRules';
 import { roles } from '../../app/data';
+import { getRoleDefinition } from '../roles';
 import troubleBrewingRolesData from '../data/rolesData.json';
 
 export const calculateNightInfo = (
@@ -38,7 +39,7 @@ export const calculateNightInfo = (
   hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
   votedThisRound?: number[], // NEW: List of seat IDs who voted this round (for Flowergirl/Town Crier)
   outsiderDiedToday?: boolean // NEW: for Godfather/Gossip extra death triggers
-): { seat: Seat; effectiveRole: Role; isPoisoned: boolean; reason?: string; guide: string; speak: string; action: string; logMessage?: string } | null => {
+): NightInfoResult | null => {
   // 使用传入的判定函数，如果没有则使用默认的isEvil
   const checkEvil = isEvilWithJudgmentFn || isEvil;
   const isFirstNight = gamePhase === 'firstNight';
@@ -228,6 +229,17 @@ export const calculateNightInfo = (
     isGrandchild: false,
   };
 
+  // --- Snapshot Defaults ---
+  let targetLimit = { min: 0, max: 0 };
+  let canSelectDead = false;
+  let canSelectSelf = false;
+  let validTargetIds: number[] = [];
+
+  // 默认有效的选择对象：全场存活玩家 (排除自己，后续 specific roles 可以覆盖)
+  const allAliveIds = seats.filter(s => !s.isDead).map(s => s.id);
+  const allAliveIdsExceptSelf = allAliveIds.filter(id => id !== currentSeatId);
+
+
   switch (effectiveRole.id) {
     // ========== Demon (恶魔) ==========
     case 'imp':
@@ -250,6 +262,8 @@ export const calculateNightInfo = (
         guide = "👹 每个夜晚*，你要选择一名玩家：他死亡。如果你以这种方式自杀，一名爪牙会变成小恶魔。";
         speak = '"请选择一名玩家。他死亡。你可以选择自杀来将恶魔血脉传递给一名爪牙。"';
         action = "kill";
+        targetLimit = { min: 1, max: 1 };
+        canSelectSelf = true;
       }
       break;
 
@@ -273,6 +287,8 @@ export const calculateNightInfo = (
         guide = "☠️ 每个夜晚，你要选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。";
         speak = '"请选择一名玩家。他现在中毒。上个因你的能力中毒的玩家会死亡并恢复健康。"';
         action = "poison";
+        targetLimit = { min: 1, max: 1 };
+        canSelectSelf = true;
       }
       break;
 
@@ -298,6 +314,7 @@ export const calculateNightInfo = (
           guide = "⚰️ 每个夜晚*，如果今天白天没有人死亡，你会被唤醒并要选择一名玩家：他死亡。当你首次死亡后，你仍存活，但会被当作死亡。";
           speak = '"请选择一名玩家。他死亡。"';
           action = "kill";
+          targetLimit = { min: 1, max: 1 };
         } else {
           // 如果上一个黄昏有处决，僵怖不应该被唤醒
           guide = "💤 今天白天有人死亡，你不会被唤醒。";
@@ -379,7 +396,7 @@ export const calculateNightInfo = (
     case 'vigormortis':
       // 亡骨魔：每晚选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒
       if (gamePhase === 'firstNight') {
-        // 检查罂粟种植者状态
+        // ...
         const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
         const shouldHideMinions = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
 
@@ -397,6 +414,8 @@ export const calculateNightInfo = (
         guide = "⚔️ 选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。";
         speak = '"请选择一名玩家。他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。"';
         action = "kill";
+        targetLimit = { min: 1, max: 1 };
+        canSelectSelf = true;
       }
       break;
 
@@ -542,6 +561,8 @@ export const calculateNightInfo = (
       guide = "🧪 每个夜晚，你要选择一名玩家：他在当晚和明天白天中毒。";
       speak = '"请选择一名玩家。他当晚和明天白天都会中毒。"';
       action = "投毒";
+      targetLimit = { min: 1, max: 1 };
+      canSelectSelf = true;
       break;
 
     case 'spy':
@@ -563,6 +584,7 @@ export const calculateNightInfo = (
       guide = "🧠 选择一名玩家和一个善良角色，他明天白天和夜晚需要\"疯狂\"地证明自己是这个角色，不然他可能被处决。";
       speak = '"请选择一名玩家和一个善良角色。他明天白天和夜晚需要\\"疯狂\\"地证明自己是这个角色，不然他可能被处决。"';
       action = "mark";
+      targetLimit = { min: 1, max: 1 };
       break;
 
     case 'pit_hag':
@@ -570,6 +592,7 @@ export const calculateNightInfo = (
       guide = "🧹 选择一名玩家和一个角色，如果该角色不在场，他变成该角色。如果因此创造了一个恶魔，当晚的死亡由说书人决定。";
       speak = '"请选择一名玩家和一个角色。如果该角色不在场，他变成该角色。如果因此创造了一个恶魔，当晚的死亡由说书人决定。"';
       action = "mark";
+      targetLimit = { min: 1, max: 1 };
       break;
 
 
@@ -580,8 +603,10 @@ export const calculateNightInfo = (
         guide = "👥 选择一名善良玩家作为你的对手。你与这名玩家互相知道对方是什么角色。如果其中善良玩家被处决，邪恶阵营获胜。如果你们都存活，善良阵营无法获胜。";
         speak = '"请选择一名善良玩家作为你的对手。你与这名玩家互相知道对方是什么角色。如果其中善良玩家被处决，邪恶阵营获胜。如果你们都存活，善良阵营无法获胜。"';
         action = "mark";
+        targetLimit = { min: 1, max: 1 };
       }
       break;
+
 
     case 'shaman':
       // 灵言师：首夜得知一个关键词
@@ -691,77 +716,29 @@ export const calculateNightInfo = (
         guide = "🗡️ 每局游戏限一次，在夜晚时，你可以选择一名玩家：他死亡，即使因为任何原因让他不会死亡。";
         speak = '"每局游戏限一次，请选择一名玩家。他死亡，即使因为任何原因让他不会死亡。"';
         action = "kill";
+        targetLimit = { min: 1, max: 1 };
       }
       break;
 
     // ========== Townsfolk (镇民) ==========
     case 'washerwoman':
+      // 洗衣妇：得知两名玩家中的一人是特定的镇民角色
       if (gamePhase === 'firstNight') {
-        // 规则：洗衣妇永远不会得知“场上没有镇民”，且只能看到【镇民角色标记】，不会看到爪牙/恶魔等真实身份
-        // 1. 找到在洗衣妇视角下“被当作镇民”的玩家（包含可能被当作镇民的间谍/隐士等）
-        let candidateSeats = seats.filter((s) => {
-          if (!s.role) return false;
-          const info = getPerceivedRoleForViewer(s, effectiveRole, 'townsfolk');
-          return !!info.perceivedRole;
-        });
-
-        // 优先不选洗衣妇本人作为“镇民玩家”
-        let filtered = candidateSeats.filter((s) => s.id !== currentSeatId);
-
-        // 如果这样过滤后为空（极端 5 人局+男爵 情况），则允许把洗衣妇自己也作为候选
-        if (filtered.length === 0) {
-          filtered = candidateSeats;
-        }
-
-        let realPlayer: Seat | undefined;
-        let perceivedRoleName = '镇民';
-
-        if (filtered.length > 0) {
-          realPlayer = getRandom(filtered);
-          const perceivedInfo = getPerceivedRoleForViewer(realPlayer, effectiveRole, 'townsfolk');
-          if (perceivedInfo.perceivedRole) {
-            // 使用“在洗衣妇眼中”的镇民角色名，而不是玩家真实角色名（避免泄露爪牙等信息）
-            perceivedRoleName = perceivedInfo.perceivedRole.name;
-          }
-        }
-
-        // 2. 选择另一个玩家作为干扰项（不能是真实持有者；如有可能也尽量不是洗衣妇自己）
-        const availablePlayers = seats.filter(
-          (s) => s.id !== realPlayer?.id && s.id !== currentSeatId
-        );
-        const fakePlayer = availablePlayers.length > 0
-          ? getRandom(availablePlayers)
-          : undefined;
-
-        const selfSeatNo = currentSeatId + 1;
-
-        if (realPlayer && fakePlayer) {
-          const player1 = realPlayer.id + 1;
-          const player2 = fakePlayer.id + 1;
-          const info = `${player1}号、${player2}号中存在（镇民）${perceivedRoleName}。`;
-          guide = `🧺 洗衣妇(${selfSeatNo}) 得知：${info}\n（注：其中一人是真正的${perceivedRoleName}，另一人可以是场上除开洗衣妇本人外任意阵营的玩家）`;
-          speak = `"[夜晚] 洗衣妇(${selfSeatNo}) 得知：${info}"`;
+        const potentialTownsfolk = seats.filter(s => s.role?.type === 'townsfolk' && s.id !== currentSeatId);
+        if (potentialTownsfolk.length > 0) {
+          const target = getRandom(potentialTownsfolk);
+          const other = getRandom(seats.filter(s => s.id !== target.id && s.id !== currentSeatId));
+          const players = [target, other].sort(() => Math.random() - 0.5);
+          guide = `🧺 ${players[0].id + 1}号、${players[1].id + 1}号中存在（镇民）${target.role?.name || ''}。`;
+          speak = `"${players[0].id + 1}号、${players[1].id + 1}号中存在（镇民）${target.role?.name || ''}。"`;
+          action = "查验";
+          targetLimit = { min: 1, max: 2 };
         } else {
-          // 理论上不应发生；兜底逻辑：随机挑两名玩家和任意一个镇民角色，仍然不给出“没有镇民”的信息
-          const alivePlayers = seats.filter((s) => !s.isDead && s.id !== currentSeatId);
-          if (alivePlayers.length >= 2) {
-            const shuffled = [...alivePlayers].sort(() => Math.random() - 0.5);
-            const p1 = shuffled[0].id + 1;
-            const p2 = shuffled[1].id + 1;
-            const townsfolkRoles = roles.filter((r) => r.type === 'townsfolk');
-            const fallbackRole = townsfolkRoles.length > 0 ? getRandom(townsfolkRoles) : null;
-            const roleName = fallbackRole?.name || '镇民';
-            const info = `${p1}号、${p2}号中存在（镇民）${roleName}。`;
-            guide = `🧺 洗衣妇(${selfSeatNo}) 得知：${info}`;
-            speak = `"[夜晚] 洗衣妇(${selfSeatNo}) 得知：${info}"`;
-            logMessage = guide;
-          } else {
-            guide = `🧺 洗衣妇(${selfSeatNo}) 得知：场上没有足够的玩家来提供信息。`;
-            speak = `"[夜晚] 洗衣妇(${selfSeatNo}) 得知：场上没有足够的玩家来提供信息"`;
-            logMessage = guide;
-          }
+          guide = "🧺 场上没有镇民，无法查验。";
+          speak = '"场上没有镇民，无法查验。"';
+          action = "无信息";
         }
-
+      } else {
         action = "无";
       }
       break;
@@ -807,7 +784,7 @@ export const calculateNightInfo = (
             const player1 = realPlayer.id + 1;
             const player2 = fakePlayer.id + 1;
             const info = `${player1}号、${player2}号中存在（外来者）${perceivedRoleName}。`;
-            guide = `📚 图书管理员(${selfSeatNo}) 得知：${info}\n（注：其中一人是真正的${perceivedRoleName}，另一人可以是场上除开图书管理员本人外任意阵营的玩家）`;
+            guide = `📚 图书管理员(${selfSeatNo}) 得知：${info}`;
             speak = `"[夜晚] 图书管理员(${selfSeatNo}) 得知：${info}"`;
             logMessage = guide;
           } else {
@@ -821,7 +798,8 @@ export const calculateNightInfo = (
           logMessage = guide;
         }
 
-        action = "无";
+        action = "查验";
+        targetLimit = { min: 1, max: 2 };
       }
       break;
 
@@ -871,7 +849,8 @@ export const calculateNightInfo = (
           speak = `"[夜晚] 调查员(${selfSeatNo}) 得知没有爪牙在场"`;
           logMessage = guide;
         }
-        action = "无";
+        action = "查验";
+        targetLimit = { min: 1, max: 2 };
       }
       break;
 
@@ -887,9 +866,9 @@ export const calculateNightInfo = (
           }
         }
         const selfSeatNo = currentSeatId + 1;
-        const info = `相邻邪恶玩家对数：${evilPairs}`;
-        guide = `👨‍🍳 厨师(${selfSeatNo}) 得知${info}`;
-        speak = `"[夜晚] 厨师(${selfSeatNo}) 得知${info}"`;
+        const info = `场上有${evilPairs}对邪恶玩家邻座。`;
+        guide = `👨‍🍳 厨师(${selfSeatNo}) 得知：${info}`;
+        speak = `"${info}"`;
         logMessage = guide;
         action = "无";
       }
@@ -921,9 +900,12 @@ export const calculateNightInfo = (
       break;
 
     case 'fortune_teller':
-      guide = "🔮 每个夜晚，你要选择两名玩家：你会得知他们之中是否有恶魔。会有一名善良玩家始终被你的能力当作恶魔。";
-      speak = '"每个夜晚，你要选择两名玩家：你会得知他们之中是否有恶魔。会有一名善良玩家始终被你的能力当作恶魔。"';
-      action = "查验";
+      // 占卜师：每晚选择两名玩家，得知其中是否含恶魔（红罗刹也被视为恶魔）
+      guide = "🔮 选择两名玩家，得知其中是否含恶魔。";
+      speak = '"请选择两名玩家。"';
+      action = "占卜";
+      targetLimit = { min: 2, max: 2 };
+      canSelectSelf = true;
       break;
 
     case 'undertaker':
@@ -931,8 +913,24 @@ export const calculateNightInfo = (
         if (executedToday !== null) {
           const executedPlayer = seats.find(s => s.id === executedToday);
           if (executedPlayer?.role) {
-            guide = `⚰️ 得知：今天被处决的玩家是${executedPlayer.role.name}。`;
-            speak = `"今天被处决的玩家是${executedPlayer.role.name}。"`;
+            // 注册判定：检查 Spy/Recluse 等是否改变了显示的身份
+            const viewer = seats.find(s => s.id === currentSeatId)?.role;
+            const reg = getCachedRegistration(executedPlayer, viewer);
+            let displayedRoleName = executedPlayer.role.name;
+            let actualRoleName = executedPlayer.role.name;
+
+            // 如果注册类型与真实类型不同（例如间谍被注册为镇民，或隐士被注册为爪牙）
+            if (reg.roleType && reg.roleType !== executedPlayer.role.type) {
+              const pool = getRolePoolByType(reg.roleType);
+              if (pool.length > 0) {
+                // 确定性伪随机选择（保证同一晚同一人看到的结果一致）
+                const idx = (executedPlayer.id * 17 + (executedToday || 0)) % pool.length;
+                displayedRoleName = pool[idx].name;
+              }
+            }
+
+            guide = `⚰️ 得知：今天被处决的玩家是${displayedRoleName}${displayedRoleName !== actualRoleName ? `（真实身份：${actualRoleName}）` : ''}。`;
+            speak = `"今天被处决的玩家是${displayedRoleName}。"`;
             logMessage = guide;
           } else {
             guide = "⚰️ 得知：今天有玩家被处决，但无法确定角色。";
@@ -953,6 +951,7 @@ export const calculateNightInfo = (
         guide = "🙏 选择除你以外的一名玩家：当晚恶魔的负面能力对他无效。";
         speak = '"请选择除你以外的一名玩家。当晚恶魔的负面能力对他无效。"';
         action = "保护";
+        targetLimit = { min: 1, max: 1 };
       }
       break;
 
@@ -961,6 +960,7 @@ export const calculateNightInfo = (
         guide = "🐦 如果你在夜晚死亡，你会被唤醒，然后你要选择一名玩家：你会得知他的角色。";
         speak = '"如果你在夜晚死亡，你会被唤醒，然后你要选择一名玩家：你会得知他的角色。"';
         action = "查验";
+        targetLimit = { min: 1, max: 1 };
       } else {
         guide = "💤 你本夜未死亡，不会被唤醒。";
         speak = "（无）";
@@ -1045,7 +1045,9 @@ export const calculateNightInfo = (
       guide = "💭 每个夜晚，你要选择一名玩家，得知一个善良角色和一个邪恶角色，该玩家是其中一个角色。";
       speak = '"每个夜晚，你要选择除你及旅行者以外的一名玩家：你会得知一个善良角色和一个邪恶角色，该玩家是其中一个角色。"';
       action = "查验";
+      targetLimit = { min: 1, max: 1 };
       break;
+
 
     case 'seamstress':
       if (hasUsedAbilityFn && hasUsedAbilityFn('seamstress', currentSeatId)) {
@@ -1056,8 +1058,10 @@ export const calculateNightInfo = (
         guide = "👗 每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：你会得知他们是否为同一阵营。";
         speak = '"每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：你会得知他们是否为同一阵营。"';
         action = "查验";
+        targetLimit = { min: 2, max: 2 };
       }
       break;
+
 
     case 'philosopher':
       guide = "🧘 每局游戏限一次，在夜晚时，你可以选择一个善良角色：你获得该角色的能力。如果这个角色在场，他醉酒。";
@@ -1238,11 +1242,16 @@ export const calculateNightInfo = (
       }
       break;
 
+    case 'snake_charmer':
     case 'snake_charmer_mr':
       guide = "🐍 选择一名存活的玩家，如果选中了恶魔，你和他交换角色和阵营，然后他中毒。";
       speak = '"请选择一名存活的玩家。如果你选中了恶魔，你和他交换角色和阵营，然后他中毒。"';
       action = "mark";
+      targetLimit = { min: 1, max: 1 };
       break;
+
+
+
 
     case 'savant_mr':
       guide = "📚 每个白天，你可以私下询问说书人以得知两条信息：一个是正确的，一个是错误的。";
@@ -1252,12 +1261,14 @@ export const calculateNightInfo = (
 
     // ========== Outsider (外来者) ==========
     case 'butler':
-      guide = "🛎️ 每个夜晚，要选择除你以外的一名玩家作为主人：明天白天，只有他投票时你才能投票。";
-      speak = '"请通过手势选择你的主人。指向你选择的玩家，我会确认。"';
-      action = "主人";
+      // 执事：每晚选择一名玩家作为主人，明天如果你主人没投票，你就不能投票
+      guide = "👔 选择一名玩家：明天如果你主人没投票，你就不能投票. ";
+      speak = '"请选择一名玩家作为你的主人。明天的投票阶段，如果他没有举手投票，你也不能投。"';
+      action = "选择主人";
+      targetLimit = { min: 1, max: 1 };
+      canSelectSelf = false;
       break;
 
-    case 'drunk':
     case 'drunk':
       // 酒鬼：不知道自己是酒鬼，以为自己是镇民（逻辑在 effectiveRole 中处理）
       // 这里不需要特殊处理，因为 effectiveRole 已经是伪装角色
@@ -1463,7 +1474,7 @@ export const calculateNightInfo = (
 
   // 首夜提示：镇民酒鬼的假信息说明
   if (gamePhase === 'firstNight' && targetSeat.role?.id === 'drunk' && effectiveRole.type === 'townsfolk') {
-    guide = `${guide}\n\n注意：此玩家真实身份是【酒鬼 (Drunk)】，本次为"假${effectiveRole.name}"信息，系统已按酒鬼中毒规则生成可能错误的信息。`;
+    // guide = `${guide}\n\n注意：此玩家真实身份是【酒鬼 (Drunk)】，本次为"假${effectiveRole.name}"信息，系统已按酒鬼中毒规则生成可能错误的信息。`;
   }
 
   // 修复：首晚小恶魔没有技能，将 nightActionType 设置为 'none'
@@ -1485,7 +1496,86 @@ export const calculateNightInfo = (
       guide = `${guide}\n\n⚠️ 此玩家处于中毒/醉酒状态，获得的信息可能是虚假的！`;
     }
 
-    return { seat: targetSeat, effectiveRole: finalEffectiveRole, isPoisoned, reason, guide, speak, action };
+    // 获取角色定义的原始行动数据
+    const roleDef = getRoleDefinition(effectiveRole.id);
+    const actionConfig = isFirstNight && roleDef?.firstNight ? roleDef.firstNight : roleDef?.night;
+    const targetCount = actionConfig?.target?.count;
+
+    // --- Snapshot: Final Logic Refinement ---
+
+    // 1. 如果角色数据中有明确的 amount (max)，优先使用它覆盖 targetLimit
+    // (Compatibility: Many roles defined in JSON, not switch cases)
+    if (targetCount?.max) {
+      targetLimit = { min: targetCount.min ?? 1, max: targetCount.max };
+      // Also infer constraints from JSON if not manually set
+      if (actionConfig?.target?.canSelect) canSelectSelf = true;
+    }
+
+    // 2. 如果 action 是 "无" 或 "跳过"，强制清零
+    if (action === "无" || action === "跳过" || action === "无信息") {
+      targetLimit = { min: 0, max: 0 };
+    }
+
+    // 3. Re-calculate validTargetIds based on final limits & constraints
+    // If specific case logic already populated validTargetIds, respect it.
+    // If it's empty but we need targets, populate it now (Lazy loading).
+    if (targetLimit.max > 0 && validTargetIds.length === 0) {
+      // Default set: All Alive
+      let candidates = seats.filter(s => !s.isDead);
+
+      // If dead allowed (e.g. Bone Collector/Professor), add them
+      if (canSelectDead) {
+        // If ONLY dead allowed? (Logic usually implies Dead+Alive unless restricted)
+        // Usually "Select a player" means alive. "Select a dead player" means dead.
+        // We need to be careful. For now, if canSelectDead is true, we allow ALL (dead + alive), 
+        // unless role specific logic restricted it (which should have populated validTargetIds).
+        candidates = seats;
+      }
+
+      validTargetIds = candidates.map(s => s.id);
+
+      if (!canSelectSelf) {
+        validTargetIds = validTargetIds.filter(id => id !== currentSeatId);
+      }
+    }
+
+    // 4. Construct Interaction Object (Legacy + New)
+    const interaction = {
+      type: targetLimit.max > 0 ? 'choose_player' : 'none',
+      amount: targetLimit.max,
+      required: true,
+      canSelectSelf,
+      canSelectDead,
+      effect: { type: 'none' }
+    };
+
+    return {
+      seat: targetSeat,
+      effectiveRole: finalEffectiveRole,
+      isPoisoned,
+      reason,
+      guide,
+      speak,
+      action,
+      meta: {
+        targetType: interaction.type === 'choose_player' ? 'player' : 'none',
+        amount: interaction.amount,
+        targetCount
+      },
+      interaction,
+
+      // --- Snapshot Fields ---
+      roleId: effectiveRole.id, // Meta
+      index: 0, // Will be set by controller (currentWakeIndex)
+
+      targetLimit,
+      canSelectDead,
+      canSelectSelf,
+      validTargetIds,
+
+      guideText: guide,
+      actionText: action
+    };
   }
 
   return null;
@@ -1511,7 +1601,7 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
           : roles;
 
         const availableTownsfolkRoles: Role[] = scriptRoles.filter(
-          (r: Role) => r.type === 'townsfolk' && !usedRoleIds.includes(r.id)
+          (r: Role) => r.type === 'townsfolk' && !usedRoleIds.includes(r.id) && !r.hidden
         );
 
         const fakeRole: Role | undefined = availableTownsfolkRoles.length > 0
@@ -1519,7 +1609,7 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
           : roles.find((r: Role) => r.type === 'townsfolk' && !usedRoleIds.includes(r.id)) || roles.find((r: Role) => r.type === 'townsfolk');
 
         return {
-          guide: `🧺 洗衣妇虚假信息：${player1}号、${player2}号中存在（镇民）${fakeRole?.name || '未知镇民'}。\n（注：错误的座位号 + 场上不存在的角色）`,
+          guide: `🧺 洗衣妇虚假信息：${player1}号、${player2}号中存在（镇民）${fakeRole?.name || '未知镇民'}。`,
           speak: `"${player1}号、${player2}号中存在（镇民）${fakeRole?.name || '未知镇民'}。"`
         };
       }
@@ -1540,7 +1630,7 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
           : roles;
 
         const availableOutsiderRoles: Role[] = scriptRoles.filter(
-          (r: Role) => r.type === 'outsider' && !usedRoleIds.includes(r.id)
+          (r: Role) => r.type === 'outsider' && !usedRoleIds.includes(r.id) && !r.hidden
         );
 
         const fakeRole: Role | undefined = availableOutsiderRoles.length > 0
@@ -1548,7 +1638,7 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
           : roles.find((r: Role) => r.type === 'outsider' && !usedRoleIds.includes(r.id)) || roles.find((r: Role) => r.type === 'outsider');
 
         return {
-          guide: `📚 图书管理员虚假信息：${player1}号、${player2}号中存在（外来者）${fakeRole?.name || '未知外来者'}。\n（注：错误的座位号 + 场上不存在的角色）`,
+          guide: `📚 图书管理员虚假信息：${player1}号、${player2}号中存在（外来者）${fakeRole?.name || '未知外来者'}。`,
           speak: `"${player1}号、${player2}号中存在（外来者）${fakeRole?.name || '未知外来者'}。"`
         };
       }
@@ -1569,7 +1659,7 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
           : roles;
 
         const availableMinionRoles: Role[] = scriptRoles.filter(
-          (r: Role) => r.type === 'minion' && !usedRoleIds.includes(r.id)
+          (r: Role) => r.type === 'minion' && !usedRoleIds.includes(r.id) && !r.hidden
         );
 
         const fakeRole: Role | undefined = availableMinionRoles.length > 0
@@ -1577,7 +1667,7 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
           : roles.find((r: Role) => r.type === 'minion' && !usedRoleIds.includes(r.id)) || roles.find((r: Role) => r.type === 'minion');
 
         return {
-          guide: `🔍 调查员虚假信息：${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || '未知爪牙'}。\n（注：错误的座位号 + 场上不存在的角色）`,
+          guide: `🔍 调查员虚假信息：${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || '未知爪牙'}。`,
           speak: `"${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || '未知爪牙'}。"`
         };
       }
@@ -1587,8 +1677,15 @@ function generateFakeNightInfo(roleId: string, originalGuide: string, originalSp
     case 'empath':
       // 厨师长/共情者：给出错误的邻座邪恶玩家数量（0、1或2中的随机值）
       const fakeEvilCount = Math.floor(Math.random() * 3); // 0, 1, 或 2
+      if (roleId === 'chef') {
+        return {
+          guide: `👨‍🍳 得知：场上有${fakeEvilCount}对邪恶玩家邻座。（虚假信息）`,
+          speak: `"场上有${fakeEvilCount}对邪恶玩家邻座。"`
+        };
+      }
+      // 共情者
       return {
-        guide: `👨‍🍳 得知：邻近的两名存活玩家中，有${fakeEvilCount}名邪恶玩家。（虚假信息）`,
+        guide: `💞 得知：邻近的两名存活玩家中，有${fakeEvilCount}名邪恶玩家。（虚假信息）`,
         speak: `"邻近的两名存活玩家中，有${fakeEvilCount}名邪恶玩家。"`
       };
 
@@ -1646,17 +1743,32 @@ export const generateNightTimeline = (
 
   const getMergedRoleMeta = (baseRole: Role | null | undefined) => {
     if (!baseRole) return { role: null as Role | null, firstMeta: null, otherMeta: null, firstOrder: 9999, otherOrder: 9999 };
+
+    // 1. Check legacy/json meta
     const meta = metaRoles.find((r) => r.id === baseRole.id);
-    const firstMeta = meta?.firstNightMeta ?? (baseRole as any).firstNightMeta ?? null;
-    const otherMeta = meta?.otherNightMeta ?? (baseRole as any).otherNightMeta ?? null;
+    const jsonFirstMeta = meta?.firstNightMeta ?? (baseRole as any).firstNightMeta ?? null;
+    const jsonOtherMeta = meta?.otherNightMeta ?? (baseRole as any).otherNightMeta ?? null;
+
+    // 2. Check modular registry
+    const def = getRoleDefinition(baseRole.id);
+    const modFirstMeta = def?.firstNight || def?.night || null;
+    const modOtherMeta = def?.night || null;
+
+    const firstMeta = modFirstMeta || jsonFirstMeta;
+    const otherMeta = modOtherMeta || jsonOtherMeta;
+
     const firstOrder =
-      meta?.firstNightOrder ??
-      ((baseRole as any).firstNightOrder as number | undefined) ??
-      9999;
+      (typeof def?.firstNight?.order === 'number' ? def.firstNight.order :
+        typeof def?.night?.order === 'number' ? def.night.order :
+          typeof def?.firstNight?.order === 'function' ? (def.firstNight.order as any)(true) :
+            typeof def?.night?.order === 'function' ? (def.night.order as any)(true) :
+              meta?.firstNightOrder ?? ((baseRole as any).firstNightOrder as number | undefined)) ?? 9999;
+
     const otherOrder =
-      meta?.otherNightOrder ??
-      ((baseRole as any).otherNightOrder as number | undefined) ??
-      9999;
+      (typeof def?.night?.order === 'number' ? def.night.order :
+        typeof def?.night?.order === 'function' ? (def.night.order as any)(false) :
+          meta?.otherNightOrder ?? ((baseRole as any).otherNightOrder as number | undefined)) ?? 9999;
+
     return { role: baseRole, firstMeta, otherMeta, firstOrder, otherOrder };
   };
 

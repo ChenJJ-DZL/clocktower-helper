@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { Script, GamePhase, scripts } from "../../../../app/data";
+import { useGameContext, gameActions } from "../../../contexts/GameContext";
 
 interface ScriptSelectionProps {
   onScriptSelect: (script: Script) => void;
@@ -15,6 +17,17 @@ export default function ScriptSelection({
   setGameLogs,
   setGamePhase,
 }: ScriptSelectionProps) {
+  const { dispatch } = useGameContext();
+
+  // 确保进入此页面时清除加载动画 (Fix for "Play Again" hang)
+  useEffect(() => {
+    // 短暂延迟以确保过渡动画平滑
+    const timer = setTimeout(() => {
+      dispatch(gameActions.updateState({ showIntroLoading: false }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [dispatch]);
+
   const handleScriptClick = (script: Script) => {
     // 保存选择剧本前的状态到历史记录
     saveHistory();
@@ -42,6 +55,7 @@ export default function ScriptSelection({
           {scripts.map((script) => (
             <button
               key={script.id}
+              data-testid={`script-card-${script.id}`}
               onClick={() => handleScriptClick(script)}
               className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-md px-6 py-8 text-left shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-purple-400/80 hover:bg-slate-800/90 hover:shadow-purple-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 min-h-[120px]"
             >

@@ -110,6 +110,7 @@ export interface NightLogicActions {
   enqueueRavenkeeperIfNeeded: (targetId: number) => void;
   continueToNextAction: () => void;
   seatsRef: React.MutableRefObject<Seat[]>;
+  currentWakeIndexRef: React.MutableRefObject<number>;
 }
 
 // 生成夜晚唤醒队列的辅助函数
@@ -182,6 +183,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     enqueueRavenkeeperIfNeeded,
     continueToNextAction,
     seatsRef,
+    currentWakeIndexRef,
   } = actions;
 
   /**

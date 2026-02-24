@@ -864,6 +864,7 @@ export default function Home() {
                   }}
                   onContextMenu={(e, seatId) => {
                     e.preventDefault();
+                    console.log("右键点击座位:", seatId);
                     setContextMenu({ x: e.clientX, y: e.clientY, seatId });
                   }}
                   onTouchStart={(e, _id) => {
@@ -940,8 +941,6 @@ export default function Home() {
                   if (!controller.nightInfo) return true;
                   const hasPendingModals =
                     controller.showKillConfirmModal !== null ||
-                    controller.showPoisonConfirmModal !== null ||
-                    controller.showPoisonEvilConfirmModal !== null ||
                     controller.showHadesiaKillConfirmModal !== null ||
                     controller.showRavenkeeperFakeModal !== null ||
                     controller.showMoonchildKillModal !== null ||

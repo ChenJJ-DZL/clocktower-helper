@@ -8,6 +8,8 @@ import { Seat, GamePhase, Role } from "../../app/data";
 import { NightInfoResult } from "../types/game";
 import { ModalType } from "../types/modal";
 import { isAntagonismEnabled, checkCannotCreate } from "../utils/antagonism";
+import { getRandom, getRegistration } from "../utils/gameRules";
+
 
 /**
  * 角色确认处理上下文
@@ -43,8 +45,12 @@ export interface RoleConfirmContext {
   poChargeState: Record<number, boolean>;
   setPoChargeState: React.Dispatch<React.SetStateAction<Record<number, boolean>>>;
   addDrunkMark: (seat: Seat, drunkType: 'sweetheart' | 'goon' | 'sailor' | 'innkeeper' | 'courtier' | 'philosopher' | 'minstrel', clearTime: string) => { statusDetails: string[]; statuses: any[] };
+  addPoisonMark: (seat: Seat, poisonType: 'permanent' | 'vigormortis' | 'pukka' | 'poisoner' | 'poisoner_mr' | 'no_dashii' | 'cannibal' | 'snake_charmer', clearTime: string) => { statusDetails: string[]; statuses: any[] };
   isEvil: (seat: Seat) => boolean;
+  todayDemonVoted: boolean;
+  todayMinionNominated: boolean;
 }
+
 
 /**
  * 角色确认处理结果
@@ -846,6 +852,13 @@ export function handleGodfatherConfirm(context: RoleConfirmContext): RoleConfirm
     return { handled: false };
   }
 
+  // 如果不需要执行额外杀人（跳过环节），直接继续
+  if (nightInfo.action === 'skip' || nightInfo.guide?.includes('不会被唤醒')) {
+    setSelectedActionTargets([]);
+    continueToNextAction();
+    return { handled: true };
+  }
+
   // 必须恰好选择 1 名目标
   if (selectedTargets.length !== 1) {
     if (selectedTargets.length === 0) alert("教父必须选择一名玩家死亡");
@@ -1036,6 +1049,172 @@ export function handleImpSuicide(
     return { handled: true, shouldContinue: false };
   }
 }
+/**
+ * 筑梦师确认处理
+ */
+export function handleDreamerConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const { nightInfo, selectedTargets, seats, roles, setCurrentModal, setSelectedActionTargets } = context;
+  if (nightInfo.effectiveRole.id !== 'dreamer') return { handled: false };
+
+  if (selectedTargets.length !== 1) {
+    alert("筑梦师必须选择且仅选择一名玩家");
+    return { handled: true, shouldWait: true };
+  }
+
+  const targetId = selectedTargets[0];
+  const targetSeat = seats.find(s => s.id === targetId);
+  if (!targetSeat) return { handled: true, shouldWait: true };
+
+  const actualRole = targetSeat.role;
+  if (!actualRole) return { handled: true, shouldWait: true };
+
+  // 1. 获取注册阵营（包含隐士/间谍的干扰效果）
+  const reg = getRegistration(targetSeat, { id: 'dreamer' } as Role);
+  const isGoodReg = reg.alignment === 'Good';
+
+  // 2. 根据注册阵营随机生成显示方案
+  const townsfolk = roles.filter(r => r.type === 'townsfolk');
+  const outsiders = roles.filter(r => r.type === 'outsider' || r.id === 'drunk');
+  const minions = roles.filter(r => r.type === 'minion');
+  const demons = roles.filter(r => r.type === 'demon');
+
+  const goodRoles = [...townsfolk, ...outsiders];
+  const evilRoles = [...minions, ...demons];
+
+  let roleA: Role;
+  let roleB: Role;
+  const isCorrectA = Math.random() < 0.5;
+
+  if (isGoodReg) {
+    // 玩家注册为善良，所以正确项必须是善良角色，迷惑项必须是邪恶角色
+    const correctGoodRole = (actualRole.type === 'townsfolk' || actualRole.type === 'outsider' || actualRole.id === 'drunk')
+      ? actualRole
+      : getRandom(goodRoles);
+
+    if (isCorrectA) {
+      roleA = correctGoodRole;
+      roleB = getRandom(evilRoles);
+    } else {
+      roleA = getRandom(evilRoles);
+      roleB = correctGoodRole;
+    }
+  } else {
+    // 玩家注册为邪恶，所以正确项必须是邪恶角色，迷惑项必须是善良角色
+    const correctEvilRole = (actualRole.type === 'minion' || actualRole.type === 'demon')
+      ? actualRole
+      : getRandom(evilRoles);
+
+    if (isCorrectA) {
+      roleA = correctEvilRole;
+      roleB = getRandom(goodRoles);
+    } else {
+      roleA = getRandom(goodRoles);
+      roleB = correctEvilRole;
+    }
+  }
+
+  setCurrentModal({ type: 'DREAMER_RESULT', data: { roleA, roleB } });
+  setSelectedActionTargets([]);
+  return { handled: true, shouldWait: true };
+}
+
+/**
+ * 舞蛇人确认处理
+ */
+export function handleSnakeCharmerConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const { nightInfo, selectedTargets, seats, setSeats, addLog, continueToNextAction, addPoisonMark, setSelectedActionTargets } = context;
+  if (nightInfo.effectiveRole.id !== 'snake_charmer') return { handled: false };
+
+  if (selectedTargets.length !== 1) {
+    alert("舞蛇人必须选择且仅选择一名玩家");
+    return { handled: true, shouldWait: true };
+  }
+
+  const targetId = selectedTargets[0];
+  const targetSeat = seats.find(s => s.id === targetId);
+  const scId = nightInfo.seat.id;
+
+  if (!targetSeat || targetSeat.isDead) {
+    alert("请选择一名存活玩家");
+    return { handled: true, shouldWait: true };
+  }
+
+  // 检查目标是否是恶魔
+  const isTargetDemon = targetSeat.role?.type === 'demon' || targetSeat.isDemonSuccessor;
+
+  if (isTargetDemon) {
+    const scRole = nightInfo.effectiveRole;
+    const demonRole = targetSeat.role!;
+
+    setSeats(prev => prev.map(s => {
+      if (s.id === scId) return { ...s, role: demonRole, isDemonSuccessor: true };
+      if (s.id === targetId) {
+        const { statusDetails, statuses } = addPoisonMark(s, 'snake_charmer', '永久');
+        return { ...s, role: scRole, isPoisoned: true, statusDetails, statuses };
+      }
+      return s;
+    }));
+
+    addLog(`❗ 舞蛇人命中恶魔！${scId + 1}号变为新恶魔(${demonRole.name})，${targetId + 1}号变为舞蛇人且中毒`);
+    alert(`🎉 你命中了恶魔！你现在是新恶魔(${demonRole.name})，原恶魔变为了中毒的舞蛇人。`);
+  } else {
+    addLog(`${scId + 1}号(舞蛇人) 选择 ${targetId + 1}号，未命中恶魔`);
+  }
+
+  setSelectedActionTargets([]);
+  continueToNextAction();
+  return { handled: true };
+}
+
+/**
+ * 花女确认处理
+ */
+export function handleFlowergirlConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const { nightInfo, todayDemonVoted, setCurrentModal, setSelectedActionTargets } = context;
+  if (nightInfo.effectiveRole.id !== 'flowergirl') return { handled: false };
+
+  setCurrentModal({
+    type: 'NIGHT_DEATH_REPORT',
+    data: { message: `花女信息：恶魔今天${todayDemonVoted ? '投票了' : '没有投票'}` }
+  });
+
+  setSelectedActionTargets([]);
+  return { handled: true, shouldWait: true };
+}
+
+/**
+ * 镇民传令官确认处理
+ */
+export function handleTownCrierConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const { nightInfo, todayMinionNominated, setCurrentModal, setSelectedActionTargets } = context;
+  if (nightInfo.effectiveRole.id !== 'town_crier') return { handled: false };
+
+  setCurrentModal({
+    type: 'NIGHT_DEATH_REPORT',
+    data: { message: `镇民传令官信息：爪牙今天${todayMinionNominated ? '提名了' : '没有提名'}` }
+  });
+
+  setSelectedActionTargets([]);
+  return { handled: true, shouldWait: true };
+}
+
+/**
+ * 神谕者确认处理
+ */
+export function handleOracleConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const { nightInfo, seats, isEvil, setCurrentModal, setSelectedActionTargets } = context;
+  if (nightInfo.effectiveRole.id !== 'oracle') return { handled: false };
+
+  const evilDeadCount = seats.filter(s => isEvil(s) && s.isDead).length;
+  setCurrentModal({
+    type: 'NIGHT_DEATH_REPORT',
+    data: { message: `神谕者信息：当前场上已有 ${evilDeadCount} 名邪恶玩家死亡` }
+  });
+
+  setSelectedActionTargets([]);
+  return { handled: true, shouldWait: true };
+}
+
 
 /**
  * 角色确认处理函数映射表
@@ -1053,7 +1232,13 @@ export const roleConfirmHandlers: Record<string, (context: RoleConfirmContext) =
   'courtier': handleCourtierConfirm,
   'assassin': handleAssassinConfirm,
   'godfather': handleGodfatherConfirm,
+  'dreamer': handleDreamerConfirm,
+  'snake_charmer': handleSnakeCharmerConfirm,
+  'flowergirl': handleFlowergirlConfirm,
+  'town_crier': handleTownCrierConfirm,
+  'oracle': handleOracleConfirm,
 };
+
 
 /**
  * 获取角色的确认处理函数

@@ -34,6 +34,9 @@ import { PacifistConfirmModal } from "../modals/PacifistConfirmModal";
 import { CourtierSelectRoleModal } from "../modals/CourtierSelectRoleModal";
 import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
 import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
+import { DreamerResultModal } from "../modals/DreamerResultModal";
+import { ArtistResultModal } from "../modals/ArtistResultModal";
+import { SavantResultModal } from "../modals/SavantResultModal";
 
 // 定义所有 Modal 组件需要的 Props 接口
 export interface GameModalsProps {
@@ -307,7 +310,7 @@ function VoteInputModalContent(props: {
     .map(s => `${s.id + 1}号`);
 
   return (
-    <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center">
+    <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center" role="dialog" aria-modal="true">
       <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 relative w-[720px] max-h-[90vh] overflow-y-auto">
         <h3 className="text-3xl font-bold mb-4">🗳️ 选择举手玩家</h3>
         <div className="mb-4 text-sm text-gray-200 leading-relaxed">
@@ -405,6 +408,13 @@ export function GameModals(props: GameModalsProps) {
   const storytellerSelectModal = props.currentModal?.type === 'STORYTELLER_SELECT' ? props.currentModal.data : null;
   const pacifistConfirmModal = props.currentModal?.type === 'PACIFIST_CONFIRM' ? props.currentModal.data : null;
   const courtierSelectRoleModal = props.currentModal?.type === 'COURTIER_SELECT_ROLE' ? props.currentModal.data : null;
+  const poisonConfirmModal = props.currentModal?.type === 'POISON_CONFIRM' ? props.currentModal.data : null;
+  const poisonEvilConfirmModal = props.currentModal?.type === 'POISON_EVIL_CONFIRM' ? props.currentModal.data : null;
+  const dreamerResultModal = props.currentModal?.type === 'DREAMER_RESULT' ? props.currentModal.data : null;
+  const artistResultModal = props.currentModal?.type === 'ARTIST_RESULT' ? props.currentModal.data : null;
+  const savantResultModal = props.currentModal?.type === 'SAVANT_RESULT' ? props.currentModal.data : null;
+  const nightDeathReportModal = props.currentModal?.type === 'NIGHT_DEATH_REPORT' ? props.currentModal.data : null;
+
 
   // 伪装身份识别：避免在 render 中使用 IIFE（React 19 下可能触发内部断言）
   const shouldShowSpyDisguise = !!(props.showSpyDisguiseModal || spyDisguiseModal);
@@ -492,8 +502,8 @@ export function GameModals(props: GameModalsProps) {
                     key={`rh-select-${seat.id}`}
                     onClick={() => props.toggleStatus('redherring', seat.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isRH
-                        ? 'bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500/50 hover:text-red-200'
+                      ? 'bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500/50 hover:text-red-200'
                       }`}
                   >
                     {seat.id + 1}号 {seat.role?.name || '未设定'}
@@ -1659,32 +1669,49 @@ export function GameModals(props: GameModalsProps) {
       />
 
       {/* 投毒者确认下毒弹窗（善良玩家） */}
-      {props.showPoisonConfirmModal !== null && (
+      {(props.showPoisonConfirmModal !== null || poisonConfirmModal) && (
         <PoisonConfirmModal
-          targetId={props.showPoisonConfirmModal}
+          targetId={poisonConfirmModal?.targetId ?? props.showPoisonConfirmModal}
           onConfirm={props.confirmPoison}
           onCancel={() => {
             props.setShowPoisonConfirmModal(null);
+            props.setCurrentModal(null);
             props.setSelectedActionTargets([]);
           }}
         />
       )}
 
-      {props.showPoisonEvilConfirmModal !== null && (
+      {(props.showPoisonEvilConfirmModal !== null || poisonEvilConfirmModal) && (
         <PoisonEvilConfirmModal
-          targetId={props.showPoisonEvilConfirmModal}
+          targetId={poisonEvilConfirmModal?.targetId ?? props.showPoisonEvilConfirmModal}
           onConfirm={props.confirmPoisonEvil}
           onCancel={() => {
             props.setShowPoisonEvilConfirmModal(null);
+            props.setCurrentModal(null);
             props.setSelectedActionTargets([]);
           }}
         />
       )}
 
-      <NightDeathReportModal
-        message={props.showNightDeathReportModal}
-        onConfirm={props.confirmNightDeathReport}
-      />
+      {(props.showNightDeathReportModal || nightDeathReportModal) && (
+        <NightDeathReportModal
+          message={nightDeathReportModal?.message ?? props.showNightDeathReportModal}
+          onConfirm={() => {
+            if (props.gamePhase === 'dawnReport') {
+              // 如果是黎明报告阶段，执行正常的黎明结算和进入白天逻辑
+              props.confirmNightDeathReport();
+            } else if (nightDeathReportModal) {
+              props.setCurrentModal(null);
+              // 如果是角色行动产生的弹窗，点击后继续下一个行动
+              props.continueToNextAction();
+            } else {
+              // 兼容旧逻辑
+              props.confirmNightDeathReport();
+            }
+          }}
+        />
+      )}
+
 
       <RestartConfirmModal
         isOpen={props.showRestartConfirmModal}
@@ -1858,6 +1885,39 @@ export function GameModals(props: GameModalsProps) {
           drunkSeat={props.seats.find(s => s.id === drunkCharadeSelectModal.seatId) || null}
           availableTownsfolkRoles={drunkCharadeSelectModal.availableRoles}
           selectedScriptId={drunkCharadeSelectModal.scriptId}
+        />
+      )}
+
+      {dreamerResultModal && (
+        <DreamerResultModal
+          roleA={dreamerResultModal.roleA}
+          roleB={dreamerResultModal.roleB}
+          onClose={() => {
+            props.setCurrentModal(null);
+            props.continueToNextAction();
+          }}
+        />
+      )}
+
+      {artistResultModal && (
+        <ArtistResultModal
+          onClose={(result) => {
+            if (result) {
+              props.addLog(result);
+            }
+            props.setCurrentModal(null);
+          }}
+        />
+      )}
+
+      {savantResultModal && (
+        <SavantResultModal
+          onClose={(infoA, infoB) => {
+            if (infoA && infoB) {
+              props.addLog(`博学者获得信息：\n1. ${infoA}\n2. ${infoB}`);
+            }
+            props.setCurrentModal(null);
+          }}
         />
       )}
     </>

@@ -160,8 +160,9 @@ export const getRegistration = (
   }
 
   // 占卜师红罗刹判定：红罗刹始终注册为恶魔（邪恶）
+  // 修正：此判定只对占卜师生效，对共情者/厨师等不生效
   const isRedHerring = targetPlayer.isRedHerring || targetPlayer.isFortuneTellerRedHerring;
-  if (isRedHerring) {
+  if (isRedHerring && viewingRole?.id === 'fortune_teller') {
     registeredAlignment = 'Evil';
     registeredRoleType = 'demon';
   }
@@ -435,6 +436,23 @@ export const checkWinCondition = (
   const aliveDemons = allSeats.filter(s =>
     !s.isDead && (s.role?.type === 'demon' || s.isDemonSuccessor)
   );
+
+  // DEBUG: Log win condition check details
+  console.log('[checkWinCondition] Check:', {
+    aliveDemonsCount: aliveDemons.length,
+    aliveDemonsIndices: aliveDemons.map(d => d.id),
+    aliveCount,
+    executedPlayerId,
+    goodCanWinByKillingDemon: !evilTwinPair || (evilTwinPair && /* logic check */ true), // Simple check for log
+    options
+  });
+
+  // 0.5. 检查场上是否根本没有恶魔（针对无恶魔的测试开局）
+  // 如果没有任何玩家是恶魔或恶魔继承者，善良阵营直接获胜
+  const hasDemonRole = allSeats.some(s => s.role?.type === 'demon' || s.isDemonSuccessor);
+  if (!hasDemonRole) {
+    return { side: 'good', reason: '无恶魔在场' };
+  }
 
   // --- 特殊能力限制 ---
   // 镜像双子：只要邪恶双子还活着且善良双子也活着，善良阵营不能通过杀死恶魔获胜
@@ -763,3 +781,36 @@ export function isActionAbility(role?: Role | null): boolean {
   return !!(role.firstNight || role.otherNight);
 }
 
+
+/**
+ * 检查玩家是否有处决保护
+ * 
+ * 隐性规则2：不能最大
+ * 禁止性规则优先于允许性规则。例如：
+ * - 弄臣等能力会造成免死效果
+ * - 刺客的能力会让"保护某人不会死亡"的能力无法产生效果
+ * - 因此刺客的攻击能够杀死具有保护效果的玩家
+ * 
+ * 注意：刺客等角色的攻击会覆盖保护效果，需要在调用此函数前检查攻击者角色
+ */
+export const hasExecutionProof = (seat?: Seat | null, attackerRoleId?: string): boolean => {
+  if (!seat) return false;
+
+  // 隐性规则2：刺客等角色的能力会让保护无效
+  // 如果攻击者是刺客，保护无效
+  if (attackerRoleId === 'assassin') {
+    return false;
+  }
+
+  // Check statuses array for ExecutionProof effect (e.g. Monk, Potion Master, Innkeeper)
+  // Note: Monk gives 'Safe' usually, but generic 'Protection' might be reused.
+  // We check generic 'Protected' or specific 'ExecutionProof'
+  if ((seat.statuses || []).some((status) => status.effect === 'ExecutionProof' || status.effect === 'Protected')) {
+    return true;
+  }
+  // Check statusDetails for execution_protected marker (from Devil's Advocate, etc.)
+  if ((seat.statusDetails || []).some((detail) => detail.includes('execution_protected') || detail.includes('处决保护'))) {
+    return true;
+  }
+  return false;
+};

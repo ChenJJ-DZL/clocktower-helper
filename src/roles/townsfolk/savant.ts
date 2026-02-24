@@ -8,5 +8,27 @@ export const savant: RoleDefinition = {
   id: "savant",
   name: "博学者",
   type: "townsfolk",
-  // 无夜晚行动
+  day: {
+    name: "获取信息",
+    maxUses: 'infinity',
+    target: {
+      min: 0,
+      max: 0
+    },
+    handler: (context) => {
+      return {
+        updates: [],
+        logs: {
+          privateLog: "博学者发动了技能"
+        },
+        modal: {
+          type: 'SAVANT_RESULT',
+          data: {
+            infoA: '',
+            infoB: ''
+          }
+        }
+      };
+    }
+  }
 };

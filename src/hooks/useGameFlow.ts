@@ -145,7 +145,7 @@ export function useGameFlow(): UseGameFlowResult {
     dispatch(gameActions.setSeats(cleanedSeats));
     dispatch(gameActions.setGamePhase('dusk'));
     dispatch(gameActions.setNominationRecords({ nominators: new Set(), nominees: new Set() }));
-    dispatch(gameActions.updateState({ nominationMap: {} }));
+    dispatch(gameActions.updateState({ nominationMap: {}, votedThisRound: [] }));
     dispatch(gameActions.setModal(null));
   }, [currentDuskExecution, seats, dispatch]);
 
@@ -326,9 +326,8 @@ export function useGameFlow(): UseGameFlowResult {
 
     const timeline = generateNightTimeline(seats, true);
     const wakeQueueIds = timeline
-      .filter((step: any) => step.type === 'character' && step.seatId !== undefined)
-      .map((step: any) => step.seatId)
-      .filter((id: number, index: number, arr: number[]) => arr.indexOf(id) === index);
+      .map((step: any) => (step.type === 'character' && step.seatId !== undefined) ? step.seatId : -1)
+      .filter((id: number, index: number, arr: number[]) => id !== -1 || arr.indexOf(id) === index);
 
     dispatch(gameActions.updateState({
       wakeQueueIds,

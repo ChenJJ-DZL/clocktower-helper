@@ -12,6 +12,7 @@ import type {
   DayActionMeta,
   TriggerMeta
 } from '../../app/data';
+import type { NightActionSnapshot } from '../../app/gameLogic';
 
 // 重新导出相关类型
 export type {
@@ -38,7 +39,7 @@ export interface NightHintState {
   fakeInspectionResult?: string;
 }
 
-export interface NightInfoResult {
+export interface NightInfoResult extends Partial<NightActionSnapshot> {
   seat: Seat;
   effectiveRole: Role;
   isPoisoned: boolean;
@@ -47,7 +48,23 @@ export interface NightInfoResult {
   speak: string;
   action: string;
   logMessage?: string;
+  meta?: {
+    targetType?: string; // ADDED: targetType
+    amount?: number; // ADDED: amount
+    targetCount?: {
+      min: number;
+      max: number;
+    };
+  };
+  interaction?: any; // ADDED: interaction object (using any for now to avoid circular deps or complex importing, or define Interaction interface above)
+
+  // Enforce these from NightActionSnapshot
+  targetLimit?: { min: number; max: number };
+  validTargetIds?: number[];
+  canSelectDead?: boolean;
+  canSelectSelf?: boolean;
 }
+
 
 // 夜间时间线相关类型
 export interface TimelineInteractionEffect {

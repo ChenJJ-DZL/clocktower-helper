@@ -20,7 +20,7 @@ export type ModalType =
   | { type: 'RANGER'; data: { targetId: number; roleId: string | null } }
   | { type: 'ATTACK_BLOCKED'; data: { targetId: number; reason: string; demonName?: string } }
   | { type: 'MAYOR_REDIRECT'; data: { targetId: number; demonName: string } }
-  
+
   // 白天相关弹窗
   | { type: 'EXECUTION_RESULT'; data: { message: string; isVirginTrigger?: boolean } }
   | { type: 'PACIFIST_CONFIRM'; data: { targetId: number; onResolve: (saved: boolean) => void } }
@@ -36,31 +36,34 @@ export type ModalType =
   | { type: 'SAINT_EXECUTION_CONFIRM'; data: { targetId: number; skipLunaticRps?: boolean } }
   | { type: 'MADNESS_CHECK'; data: { targetId: number; roleName: string; day: number } }
   | { type: 'DAMSEL_GUESS'; data: { minionId: number | null; targetId: number | null } }
-  
+
   // 设置相关弹窗
   | { type: 'DRUNK_CHARADE_SELECT'; data: { seatId: number; availableRoles: Role[]; scriptId: string; } }
   | { type: 'ROLE_SELECT'; data: { type: 'philosopher' | 'cerenovus' | 'pit_hag'; targetId: number; onConfirm: (roleId: string) => void } }
   | { type: 'SHAMAN_CONVERT'; data: null }
   | { type: 'SPY_DISGUISE'; data: null }
   | { type: 'BARBER_SWAP'; data: { demonId: number; firstId: number | null; secondId: number | null } }
-  
+
   // 说书人选择弹窗（当能力描述中没有"选择"一词时）
   | { type: 'STORYTELLER_SELECT'; data: { sourceId: number; roleId: string; roleName: string; description: string; targetCount: number; onConfirm: (targetIds: number[]) => void } }
 
   // BMR：侍臣（Courtier）选择角色弹窗
   | { type: 'COURTIER_SELECT_ROLE'; data: { sourceId: number; roles: Role[]; seats: Seat[]; onConfirm: (roleId: string) => void; onCancel: () => void } }
-  
+
   // 信息展示弹窗
+  | { type: 'DREAMER_RESULT'; data: { roleA: Role; roleB: Role } }
+  | { type: 'ARTIST_RESULT'; data: { result: string } }
+  | { type: 'SAVANT_RESULT'; data: { infoA: string; infoB: string } }
   | { type: 'RAVENKEEPER_FAKE'; data: { targetId: number } }
   | { type: 'REVIEW'; data: null }
   | { type: 'GAME_RECORDS'; data: null }
   | { type: 'ROLE_INFO'; data: null }
   | { type: 'RESTART_CONFIRM'; data: null }
-  
+
   // 游戏阶段弹窗
   | { type: 'DAWN_REPORT'; data: null }
   | { type: 'GAME_OVER'; data: null }
-  
+
   | null;
 
 /**

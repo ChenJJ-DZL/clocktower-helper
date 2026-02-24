@@ -91,6 +91,8 @@ export function ModalWrapper({
     >
       {/* 弹窗主体 */}
       <div
+        role="dialog"
+        aria-modal="true"
         className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 pointer-events-auto ${className}`}
         style={{
           width: 'min(90vw, 42rem)',

@@ -12,7 +12,10 @@ import { useGameContext, gameActions } from "../contexts/GameContext";
  * 现已重构为 GameContext 的包装器，确保单一数据源
  */
 export function useGameState() {
-  const { state, dispatch } = useGameContext();
+  const { state, dispatch, currentQueueIndexRef } = useGameContext();
+
+  // Alias for backward compatibility
+  const currentWakeIndexRef = currentQueueIndexRef;
 
   // ===========================
   //      STATE 别名 (保持兼容)
@@ -659,6 +662,7 @@ export function useGameState() {
     registrationCacheKeyRef,
     introTimeoutRef,
     gameStateRef,
+    currentWakeIndexRef,
   };
 }
 

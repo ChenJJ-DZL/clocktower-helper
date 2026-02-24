@@ -13,6 +13,8 @@ import { Seat, Role } from "../../app/data";
 import { NightInfoResult } from "../types/game";
 import { RoleDefinition, NightActionContext, NightActionResult } from "../types/roleDefinition";
 import { getRoleDefinition } from "../roles";
+import { ModalType } from "../types/modal";
+
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
@@ -21,14 +23,15 @@ export interface NightActionHandlerContext {
   gamePhase: string;
   nightCount: number;
   roles: Role[];
-  
+
   // 状态更新函数
   setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
   setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>>;
-  
+
   // 辅助函数
   addLog: (message: string) => void;
   continueToNextAction: () => void;
+  setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
 }
 
 /**
@@ -43,30 +46,30 @@ export function useNightActionHandler() {
     context: NightActionHandlerContext
   ): boolean => {
     const { nightInfo, seats, selectedTargets, gamePhase, nightCount } = context;
-    
+
     if (!nightInfo) {
       return false;
     }
-    
+
     const roleId = nightInfo.effectiveRole.id;
     const roleDef = getRoleDefinition(roleId);
-    
+
     if (!roleDef) {
       console.warn(`[useNightActionHandler] 未找到角色定义: ${roleId}`);
       return false;
     }
-    
+
     // 确定使用首夜还是普通夜晚的配置
     const isFirstNight = gamePhase === 'firstNight';
-    const nightConfig = isFirstNight 
+    const nightConfig = isFirstNight
       ? (roleDef.firstNight || roleDef.night)
       : roleDef.night;
-    
+
     if (!nightConfig || !nightConfig.handler) {
       // 该角色没有夜晚行动处理函数
       return false;
     }
-    
+
     // 构建夜晚行动上下文
     const actionContext: NightActionContext = {
       seats,
@@ -74,12 +77,13 @@ export function useNightActionHandler() {
       selfId: nightInfo.seat.id,
       gamePhase: gamePhase as any,
       nightCount,
+      roles: context.roles,
     };
-    
+
     // 调用角色定义的 handler
     try {
       const result: NightActionResult = nightConfig.handler(actionContext);
-      
+
       // 应用状态更新
       if (result.updates && result.updates.length > 0) {
         context.setSeats(prevSeats => {
@@ -94,7 +98,7 @@ export function useNightActionHandler() {
           });
         });
       }
-      
+
       // 记录日志
       if (result.logs) {
         if (result.logs.privateLog) {
@@ -104,17 +108,25 @@ export function useNightActionHandler() {
           context.addLog(result.logs.publicLog);
         }
       }
-      
+
       // 清空选中的目标
       context.setSelectedActionTargets([]);
-      
+
+      // 处理弹窗触发
+      if (result.modal) {
+        context.setCurrentModal(result.modal);
+      } else {
+        // 如果没有弹窗，自动进入下一个行动
+        context.continueToNextAction();
+      }
+
       return true;
     } catch (error) {
       console.error(`[useNightActionHandler] 处理角色 ${roleId} 的夜晚行动时出错:`, error);
       return false;
     }
   }, []);
-  
+
   return {
     handleNightAction,
   };

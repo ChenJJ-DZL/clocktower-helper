@@ -1,0 +1,302 @@
+游戏模拟日志报告
+测始于: 2/12/2026, 7:40:12 PM
+====================================
+[7:40:13 PM] [测试启动] 开始验证艺术家和博学者的昼间技能...
+[7:40:13 PM] [浏览器[info]] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[7:40:13 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:14 PM] [浏览器[log]] [Fast Refresh] done in 77ms
+[7:40:14 PM] [角色手动分配] 选取角色: 艺术家, 博学者, 女巫, 方古, 哲学家
+[7:40:15 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:15 PM] [浏览器[log]] [Fast Refresh] done in 84ms
+[7:40:15 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] done in 77ms
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] done in 8ms
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] done in 88ms
+[7:40:16 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:17 PM] [浏览器[log]] [Fast Refresh] done in 74ms
+[7:40:17 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:17 PM] [浏览器[log]] [Fast Refresh] done in 109ms
+[7:40:17 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:17 PM] [浏览器[log]] [Fast Refresh] done in 86ms
+[7:40:18 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:18 PM] [浏览器[log]] [Fast Refresh] done in 76ms
+[7:40:18 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:18 PM] [浏览器[log]] [Fast Refresh] done in 74ms
+[7:40:18 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] done in 73ms
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:19 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:20 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] done in 4ms
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] done in 100ms
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] done in 73ms
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:21 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:40:22 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:22 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:40:24 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:24 PM] [浏览器[log]] [Fast Refresh] done in 87ms
+[7:40:24 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:24 PM] [浏览器[log]] [Fast Refresh] done in 79ms
+[7:40:25 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:25 PM] [浏览器[log]] [Fast Refresh] done in 83ms
+[7:40:25 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:25 PM] [浏览器[log]] [Fast Refresh] done in 87ms
+[7:40:25 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:25 PM] [浏览器[log]] [Fast Refresh] done in 87ms
+[7:40:26 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:26 PM] [浏览器[log]] [Fast Refresh] done in 76ms
+[7:40:26 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:26 PM] [浏览器[log]] [Fast Refresh] done in 86ms
+[7:40:26 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:26 PM] [浏览器[log]] [Fast Refresh] done in 88ms
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] done in 87ms
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] done in 84ms
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] done in 94ms
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] done in 82ms
+[7:40:27 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] done in 83ms
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] done in 89ms
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:28 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] done in 84ms
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] done in 123ms
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:29 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:30 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:30 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:30 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:30 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:30 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:30 PM] [浏览器[log]] [Fast Refresh] done in 77ms
+[7:40:31 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:31 PM] [浏览器[log]] [Fast Refresh] done in 100ms
+[7:40:34 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896416773 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:34 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896421359 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:36 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:36 PM] [浏览器[log]] [Fast Refresh] done in 125ms
+[7:40:36 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] done in 75ms
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] done in 86ms
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:37 PM] [浏览器[log]] [Fast Refresh] done in 73ms
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] done in 83ms
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] done in 64ms
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:38 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] done in 65ms
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] done in 11ms
+[7:40:39 PM] [浏览器[log]] [Fast Refresh] done in 141ms
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] done in 93ms
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] done in 74ms
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:40 PM] [浏览器[log]] [Fast Refresh] done in 71ms
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] done in 114ms
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] done in 75ms
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:41 PM] [浏览器[log]] [Fast Refresh] done in 65ms
+[7:40:42 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:42 PM] [浏览器[log]] [Fast Refresh] done in 74ms
+[7:40:42 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:42 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:40:42 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:42 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:43 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:43 PM] [浏览器[log]] [Fast Refresh] done in 64ms
+[7:40:43 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:43 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:43 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:43 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] done in 71ms
+[7:40:44 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:45 PM] [浏览器[log]] [Fast Refresh] done in 73ms
+[7:40:47 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:48 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896421359 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:48 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896416773 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:48 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896439798 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:48 PM] [浏览器[log]] [Fast Refresh] done in 90ms
+[7:40:51 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896421359 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:51 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896416773 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:51 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896439798 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:40:57 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:57 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:57 PM] [浏览器[log]] [Fast Refresh] done in 11ms
+[7:40:57 PM] [浏览器[log]] [Fast Refresh] done in 165ms
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] done in 73ms
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] done in 78ms
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:58 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] done in 87ms
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:40:59 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] done in 79ms
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:41:00 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] done in 74ms
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] done in 83ms
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] done in 4ms
+[7:41:01 PM] [浏览器[log]] [Fast Refresh] done in 100ms
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] done in 75ms
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] done in 77ms
+[7:41:02 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] done in 75ms
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] done in 64ms
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] done in 75ms
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] done in 76ms
+[7:41:03 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:04 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:41:04 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:04 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:41:04 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:04 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] done in 68ms
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:05 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] done in 61ms
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] done in 69ms
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] done in 111ms
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:06 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:41:07 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:07 PM] [浏览器[log]] [Fast Refresh] done in 130ms
+[7:41:07 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:07 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:41:07 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:07 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] done in 65ms
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] done in 67ms
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] done in 115ms
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] done in 72ms
+[7:41:08 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] done in 64ms
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] done in 64ms
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] done in 65ms
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] done in 65ms
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:09 PM] [浏览器[log]] [Fast Refresh] done in 70ms
+[7:41:10 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:10 PM] [浏览器[log]] [Fast Refresh] done in 126ms
+[7:41:10 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:10 PM] [浏览器[log]] [Fast Refresh] done in 66ms
+[7:41:13 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896457726 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:13 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896421359 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:13 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896416773 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:13 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896461737 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:13 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896439798 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:41 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:41 PM] [浏览器[log]] [Fast Refresh] done in 98ms
+[7:41:42 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:41:42 PM] [浏览器[log]] [Fast Refresh] done in 143ms
+[7:41:45 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896457726 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:45 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896421359 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:45 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896416773 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:45 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896461737 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:41:45 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1770896439798 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.

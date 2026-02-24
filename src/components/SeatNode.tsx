@@ -269,17 +269,33 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     });
   }
 
+  // --- SSOT Visualization: Snapshot Enforcement ---
+  const isValidTarget = React.useMemo(() => {
+    if (!nightInfo) return true;
+    // Only enforce if we are in night/action phase and validTargetIds is populated
+    // Note: Setup phase might have nightInfo=null.
+    if (nightInfo.validTargetIds && nightInfo.validTargetIds.length > 0) {
+      return nightInfo.validTargetIds.includes(s.id);
+    }
+    return true;
+  }, [nightInfo, s.id]);
+
+
   return (
     <div
       key={s.id}
-      onClick={(e) => { e.stopPropagation(); onSeatClick(s.id); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (isValidTarget) onSeatClick(s.id);
+      }}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, s.id); }}
-      onTouchStart={(e) => onTouchStart(e, s.id)}
-      onTouchEnd={(e) => onTouchEnd(e, s.id)}
-      onTouchMove={(e) => onTouchMove(e, s.id)}
+      onTouchStart={(e) => { if (isValidTarget) onTouchStart(e, s.id); }}
+      onTouchEnd={(e) => { if (isValidTarget) onTouchEnd(e, s.id); }}
+      onTouchMove={(e) => { if (isValidTarget) onTouchMove(e, s.id); }}
       ref={(el) => { setSeatRef(s.id, el); }}
       style={{
         left: `${p.x}%`,
+        // ... kept original styles ...
         top: `${p.y}%`,
         transform: 'translate(-50%,-50%)',
         width: `calc(${isPortrait ? '3rem' : '7rem'} * ${seatScale})`,
@@ -289,8 +305,13 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         WebkitTouchCallout: 'none',
         touchAction: 'manipulation',
         WebkitTapHighlightColor: 'transparent',
+        // Apply visual dimming
+        opacity: isValidTarget ? 1 : 0.3,
+        filter: isValidTarget ? 'none' : 'grayscale(100%)',
+        pointerEvents: isValidTarget ? 'auto' : 'none',
       }}
-      className="absolute flex items-center justify-center"
+      className="absolute flex items-center justify-center seat-node"
+      data-seat-id={s.id}
     >
       <div
         className={`relative w-full h-full rounded-full ${isPortrait ? 'border-2' : 'border-4'} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300

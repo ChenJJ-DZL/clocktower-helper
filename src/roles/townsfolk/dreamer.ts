@@ -1,5 +1,6 @@
 import { RoleDefinition } from "../../types/roleDefinition";
 import { Seat } from "../../types/game";
+import { getRegistration, getRandom } from "../../utils/gameRules";
 
 /**
  * 筑梦师 (Dreamer)
@@ -13,10 +14,10 @@ export const dreamer: RoleDefinition = {
   id: "dreamer",
   name: "筑梦师",
   type: "townsfolk",
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 8 : 8,
-    
+
     target: {
       count: {
         // 每晚必须选择 1 名目标（除自己与旅行者外）
@@ -30,7 +31,7 @@ export const dreamer: RoleDefinition = {
         return true;
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（筑梦师）。`,
@@ -38,15 +39,55 @@ export const dreamer: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（筑梦师），请闭眼。`,
       };
     },
-    
+
     // 真正的信息生成与真假角色对由 nightLogic 处理，这里只做日志记录
-    handler: (context) => ({
-      updates: [],
-      logs: {
-        privateLog: context.targets.length > 0
-          ? `筑梦师（${context.selfId + 1}号）选择了${context.targets[0] + 1}号玩家`
-          : `筑梦师（${context.selfId + 1}号）本夜未选择目标`,
-      },
-    }),
+    handler: (context) => {
+      const { targets, seats, roles, selfId } = context;
+      if (targets.length === 0) return { updates: [], logs: { privateLog: "筑梦师未选择目标" } };
+
+      const targetId = targets[0];
+      const targetSeat = seats.find(s => s.id === targetId);
+      if (!targetSeat || !targetSeat.role) return { updates: [], logs: { privateLog: "无效目标" } };
+
+      const registrant = getRegistration(targetSeat, { id: 'dreamer' } as any);
+      const isGoodReg = registrant.alignment === 'Good';
+
+      const goodRoles = roles.filter(r => r.type === 'townsfolk' || r.type === 'outsider');
+      const evilRoles = roles.filter(r => r.type === 'minion' || r.type === 'demon');
+
+      let roleA, roleB;
+
+      if (isGoodReg) {
+        // 目标注册为善良，给一个正确的善良角色和一个虚假的邪恶角色
+        roleA = targetSeat.role;
+        roleB = getRandom(evilRoles);
+      } else {
+        // 目标注册为邪恶，给一个虚假的善良角色和一个正确的邪恶角色
+        roleA = getRandom(goodRoles);
+        roleB = targetSeat.role;
+      }
+
+      // 保证 roleA 总是善良，roleB 总是邪恶（即便其中一个是真实的）
+      // 如果目标是隐士（注册为邪恶），则 roleA 是随机好人，roleB 是隐士
+      // 如果目标是间谍（注册为善良），则 roleA 是间谍，roleB 是随机坏人
+
+      const resRoleA = roles.find(r => r.id === (isGoodReg ? roleA.id : roleA.id))!;
+      const resRoleB = roles.find(r => r.id === (isGoodReg ? roleB.id : roleB.id))!;
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `筑梦师选择了${targetId + 1}号位，得知：${resRoleA.name}, ${resRoleB.name}`,
+          secretInfo: `得知：${resRoleA.name}, ${resRoleB.name}`
+        },
+        modal: {
+          type: 'DREAMER_RESULT',
+          data: {
+            roleA: resRoleA,
+            roleB: resRoleB
+          }
+        }
+      };
+    },
   },
 };

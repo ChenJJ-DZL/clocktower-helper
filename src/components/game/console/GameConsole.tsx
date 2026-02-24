@@ -2,7 +2,8 @@
 
 import React from "react";
 import { GamePhase, Seat } from "../../../../app/data";
-import { NightInfoResult } from "../../../types/game";
+import { NightHintState, NightInfoResult, GameRecord, TimelineStep } from "../../../types/game";
+import { getRoleDefinition } from "../../../roles";
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
 
 interface GameConsoleProps {
@@ -120,6 +121,14 @@ export const GameConsole = React.memo(function GameConsole({
       ? nightInfo?.seat?.charadeRole?.ability
       : nightInfo?.seat?.role?.ability) || undefined;
 
+  const isDisturbed =
+    currentActorSeat?.isDrunk ||
+    currentActorSeat?.isPoisoned ||
+    nightInfo?.isPoisoned ||
+    currentActorSeat?.role?.id === 'drunk' ||
+    currentActorSeat?.role?.id === 'lunatic' ||
+    currentActorSeat?.role?.id === 'marionette';
+
   // Optimize: Memoize roleDoc lookup
   const roleDoc = React.useMemo(() => {
     return currentActorRoleName ? getRoleDocSummary(currentActorRoleName) : null;
@@ -161,21 +170,27 @@ export const GameConsole = React.memo(function GameConsole({
     // Combine into specific format requested:
     // 行动：唤醒x号玩家，告诉他xxx/让他选择xxx。
     let actionText = `唤醒 ${seatNo} 号【${roleName}】玩家`;
-    if (speakPart && actionPart) {
-      actionText += `，${speakPart}并${actionPart}。`;
-    } else if (speakPart) {
-      actionText += `，${speakPart}。`;
-    } else if (actionPart) {
-      actionText += `，${actionPart}。`;
+
+    // CRITICAL: If we have an interactive result (e.g. Fortune Teller Yes/No), override or append to speak
+    if (inspectionResult) {
+      actionText += `，并告诉他：${inspectionResult}`;
     } else {
-      actionText += `。`;
+      if (speakPart && actionPart) {
+        actionText += `，${speakPart}并${actionPart}。`;
+      } else if (speakPart) {
+        actionText += `，${speakPart}。`;
+      } else if (actionPart) {
+        actionText += `，${actionPart}。`;
+      } else {
+        actionText += `。`;
+      }
     }
 
     return {
       headline: `唤醒 ${seatNo} 号【${roleName}】。`,
       actionText,
     };
-  }, [isNightPhase, currentActorSeat, currentActorRoleName, nightInfo]);
+  }, [isNightPhase, currentActorSeat, currentActorRoleName, nightInfo, inspectionResult]);
 
 
   // Remove "skill/instruction" style guidance that duplicates role ability text.
@@ -220,21 +235,36 @@ export const GameConsole = React.memo(function GameConsole({
               {/* Formatted Action instruction */}
               <div className="flex flex-col gap-2">
                 <div>
-                  <span className="font-bold text-emerald-300 tracking-wide">行动：</span>
-                  {storytellerInstruction?.actionText ?? `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`}
-                </div>
-                {inspectionResult && (
-                  <div className="text-sm font-normal text-emerald-400/80 italic">
-                    （技能结果是：{inspectionResult}）
+                  <div className="active-character-instruction">
+                    <span className={`font-bold tracking-wide ${isDisturbed
+                      ? 'text-red-500'
+                      : 'text-emerald-300'
+                      }`}>
+                      {isDisturbed ? '行动（受干扰）：' : '行动：'}
+                    </span>
+                    {storytellerInstruction?.actionText ? (
+                      <span>{storytellerInstruction.actionText}</span>
+                    ) : (
+                      <span>
+                        唤醒 {currentActorSeat.id + 1} 号【
+                        <span className="active-character-name">{currentActorRoleName}</span>
+                        】。
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
+
               </div>
             </div>
 
             {/* Injected Player List */}
             {seats.length > 0 && (
               <div className="mt-5 pt-4 border-t border-emerald-500/20">
-                <div className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1">
+                <div
+                  className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"
+                  data-min={nightInfo?.targetLimit?.min ?? 1}
+                  data-max={nightInfo?.targetLimit?.max ?? 1}
+                >
                   选择目标
                 </div>
                 <div className="grid grid-cols-4 gap-2">
@@ -352,11 +382,23 @@ export const GameConsole = React.memo(function GameConsole({
 
             {(() => {
               // Filter players who are ALIVE and HAVE DAY ABILITIES and HAVEN'T USED THEM
-              const activeAbilitySeats = seats.filter(s =>
-                !s.isDead &&
-                s.role?.dayMeta &&
-                !s.hasUsedDayAbility
-              );
+              const activeAbilitySeats = seats.filter(s => {
+                if (s.isDead || !s.role) return false;
+
+                // Check legacy dayMeta
+                if (s.role.dayMeta && !s.hasUsedDayAbility) return true;
+
+                // Check modular day ability
+                const def = getRoleDefinition(s.role.id);
+                if (def?.day) {
+                  // For Savant, maxUses is 'infinity' so it's always available
+                  if (def.day.maxUses === 'infinity') return true;
+                  // For others (like Artist), check if used
+                  if (!s.hasUsedDayAbility) return true;
+                }
+
+                return false;
+              });
 
               if (activeAbilitySeats.length === 0) {
                 return <p className="text-gray-500 text-sm">暂无可用技能</p>;
@@ -364,26 +406,30 @@ export const GameConsole = React.memo(function GameConsole({
 
               return (
                 <div className="space-y-3">
-                  {activeAbilitySeats.map(seat => (
-                    <div key={seat.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-white/10">
-                      <div className="flex items-center gap-3">
-                        <span className="text-amber-500 font-bold">{seat.id + 1}号</span>
-                        <span className="text-white">{seat.role?.name}</span>
+                  {activeAbilitySeats.map(seat => {
+                    const def = getRoleDefinition(seat.role!.id);
+                    const abilityName = def?.day?.name || seat.role?.dayMeta?.abilityName || '技能';
+
+                    return (
+                      <div key={seat.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-white/10">
+                        <div className="flex items-center gap-3">
+                          <span className="text-amber-500 font-bold">{seat.id + 1}号</span>
+                          <span className="text-white">{seat.role?.name}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (!handleDayAbility) return;
+                            if (confirm(`确定使用 ${abilityName} 吗？`)) {
+                              handleDayAbility(seat.id);
+                            }
+                          }}
+                          className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
+                        >
+                          使用 {abilityName}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          if (!handleDayAbility) return;
-                          // TODO: 未来可做成专门的日间交互弹窗。当前统一走规则引导 + 简单确认。
-                          if (confirm(`确定使用 ${seat.role?.dayMeta?.abilityName || '技能'} 吗？`)) {
-                            handleDayAbility(seat.id);
-                          }
-                        }}
-                        className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
-                      >
-                        使用 {seat.role?.dayMeta?.abilityName}
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -439,66 +485,68 @@ export const GameConsole = React.memo(function GameConsole({
       </div>
 
       {/* Zone C: Action Footer */}
-      {(primaryAction || secondaryActions.length > 0) && (
-        <div className="shrink-0 border-t border-white/10 bg-slate-800/50 px-6 py-5 space-y-3">
-          {primaryAction && (
-            <button
-              onClick={() => {
-                console.log('[GameConsole] Primary action clicked', {
-                  label: primaryAction.label,
-                  disabled: primaryAction.disabled,
-                  variant: primaryAction.variant,
-                });
-                if (!primaryAction.disabled) {
-                  try {
-                    primaryAction.onClick();
-                  } catch (error) {
-                    console.error('[GameConsole] Error in primary action:', error);
-                    alert(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
-                  }
-                } else {
-                  console.warn('[GameConsole] Primary action is disabled');
-                }
-              }}
-              disabled={primaryAction.disabled}
-              className={`w-full h-16 rounded-xl text-xl font-bold shadow-lg transition ${getActionVariantClass(primaryAction.variant)
-                } ${primaryAction.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
-            >
-              {primaryAction.label}
-            </button>
-          )}
-          {secondaryActions.length > 0 && (
-            <div className="flex gap-3">
-              {secondaryActions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    console.log('[GameConsole] Secondary action clicked', {
-                      index,
-                      label: action.label,
-                      disabled: action.disabled,
-                    });
-                    if (!action.disabled) {
-                      try {
-                        action.onClick();
-                      } catch (error) {
-                        console.error('[GameConsole] Error in secondary action:', error);
-                        alert(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
-                      }
+      {
+        (primaryAction || secondaryActions.length > 0) && (
+          <div className="shrink-0 border-t border-white/10 bg-slate-800/50 px-6 py-5 space-y-3">
+            {primaryAction && (
+              <button
+                onClick={() => {
+                  console.log('[GameConsole] Primary action clicked', {
+                    label: primaryAction.label,
+                    disabled: primaryAction.disabled,
+                    variant: primaryAction.variant,
+                  });
+                  if (!primaryAction.disabled) {
+                    try {
+                      primaryAction.onClick();
+                    } catch (error) {
+                      console.error('[GameConsole] Error in primary action:', error);
+                      alert(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
                     }
-                  }}
-                  disabled={action.disabled}
-                  className={`flex-1 h-14 rounded-lg text-base font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition ${action.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
-                    }`}
-                >
-                  {action.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+                  } else {
+                    console.warn('[GameConsole] Primary action is disabled');
+                  }
+                }}
+                disabled={primaryAction.disabled}
+                className={`w-full h-16 rounded-xl text-xl font-bold shadow-lg transition ${getActionVariantClass(primaryAction.variant)
+                  } ${primaryAction.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
+              >
+                {primaryAction.label}
+              </button>
+            )}
+            {secondaryActions.length > 0 && (
+              <div className="flex gap-3">
+                {secondaryActions.map((action, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      console.log('[GameConsole] Secondary action clicked', {
+                        index,
+                        label: action.label,
+                        disabled: action.disabled,
+                      });
+                      if (!action.disabled) {
+                        try {
+                          action.onClick();
+                        } catch (error) {
+                          console.error('[GameConsole] Error in secondary action:', error);
+                          alert(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
+                        }
+                      }
+                    }}
+                    disabled={action.disabled}
+                    className={`flex-1 h-14 rounded-lg text-base font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition ${action.disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'
+                      }`}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 });
 

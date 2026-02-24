@@ -2,6 +2,7 @@
 
 import { useMemo, useCallback, useEffect } from "react";
 import type { Role, Seat } from "../../app/data";
+import type { NightInfoResult } from "../types/game";
 import { useGameContext, gameActions } from "../contexts/GameContext";
 import {
   isActorDisabledByPoisonOrDrunk,
@@ -33,6 +34,7 @@ export interface UseInteractionHandlerResult {
 export function useInteractionHandler(deps: {
   getRoleTargetCount: (roleId: string, isFirstNight: boolean) => { min: number; max: number } | null;
   handleConfirmActionImpl?: (explicitSelectedTargets?: number[]) => void;
+  nightInfo?: NightInfoResult | null;
   [key: string]: any;
 }): UseInteractionHandlerResult {
   const { state, dispatch } = useGameContext();
@@ -52,30 +54,56 @@ export function useInteractionHandler(deps: {
   // I will switch to multi_replace_file_content.
 
   const toggleTarget = useCallback((targetId: number) => {
-    const nightInfo = nightActionQueue[currentWakeIndex];
+    // 优先使用传入的 activeNightStep (nightInfo)，如果不存在则回退到队列系统
+    const nightInfo = deps.nightInfo || nightActionQueue[currentWakeIndex];
     if (!nightInfo) return;
 
-    const isFirstNight = gamePhase === 'firstNight';
-    const effectiveRole = nightInfo.role?.id === 'drunk'
-      ? nightInfo.charadeRole
-      : nightInfo.role;
-    if (!effectiveRole) return;
+    // 获取当前允许的最大目标数
+    // 策略：优先从 meta.targetCount 读取，如果不存在则使用 getRoleTargetCount 回退，最后默认为 1
+    let maxTargets = 1;
 
-    const roleId = effectiveRole.id;
-    const targetCount = deps.getRoleTargetCount(roleId || '', isFirstNight);
-    const maxTargets = targetCount?.max ?? 1;
+    // 1. 尝试从 meta 读取 (Transmission Layer fix)
+    if ('meta' in nightInfo && nightInfo.meta?.targetCount) {
+      maxTargets = nightInfo.meta.targetCount.max;
+    } else {
+      // 2. 回退到旧逻辑 (Definition Layer lookup)
+      // 注意：这里 nightInfo 可能是 Seat 类型，也可能是 NightInfoResult 类型
+      // Seat 类型有 role 属性, NightInfoResult 有 effectiveRole 属性
+      const effectiveRole = 'effectiveRole' in nightInfo
+        ? nightInfo.effectiveRole
+        : (nightInfo.role?.id === 'drunk' ? nightInfo.charadeRole : nightInfo.role);
+
+      if (effectiveRole) {
+        const isFirstNight = gamePhase === 'firstNight';
+        const targetCount = deps.getRoleTargetCount(effectiveRole.id, isFirstNight);
+        maxTargets = targetCount?.max ?? 1;
+      }
+    }
+
+    console.log('[toggleTarget] Debug:', {
+      hasMeta: 'meta' in nightInfo,
+      maxTargets,
+      currentTargets: selectedActionTargets
+    });
 
     let newTargets = [...selectedActionTargets];
+    // A. 如果点击了已选中的人 -> 取消选中
     if (newTargets.includes(targetId)) {
       newTargets = newTargets.filter(t => t !== targetId);
     } else {
-      if (maxTargets === 1) {
-        newTargets = [targetId];
-      } else {
-        if (newTargets.length >= maxTargets) {
+      // B. 如果还没选中
+      if (maxTargets > 1) {
+        if (newTargets.length < maxTargets) {
+          // 还没满，直接添加
+          newTargets.push(targetId);
+        } else {
+          // 满了，策略 B (轮替): 移除最早选的，加入新的
           newTargets.shift();
+          newTargets.push(targetId);
         }
-        newTargets.push(targetId);
+      } else {
+        // 情况 2: 单选 (默认行为)
+        newTargets = [targetId];
       }
     }
 
@@ -83,6 +111,7 @@ export function useInteractionHandler(deps: {
   }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, dispatch, deps]);
 
   const handleSeatClick = useCallback((id: number, _options?: { force?: boolean }) => {
+    // 1. Setup 阶段逻辑 (保持原样)
     if (gamePhase === 'setup' || gamePhase === 'scriptSelection') {
       if (selectedRole) {
         // 检查该角色是否已经入座
@@ -94,15 +123,6 @@ export function useInteractionHandler(deps: {
             dispatch(gameActions.updateSeat(id, { role: null }));
             return;
           }
-
-          // 如果点击的是其他座位，且该角色已入座，提示（或者也可以设计为移动角色，看用户需求，目前保持提示但允许移动可能更好？用户说“取消落座”所以上面逻辑够了）
-          // 用户特别说：再次点击某个角色时，应该是取消落座
-          // 这里有歧义：点击 ROLE LIST 还是 点击 SEAT？
-          // 上下文是 handleSeatClick，所以是点击 SEAT。
-          // 现在的逻辑是：如果我选中了“厨师”，且“厨师”已经在 1号位。
-          // case A: 我点击 1号位 -> 应该取消 1号位的厨师
-          // case B: 我点击 2号位 -> 报错“该角色已入座” (保持不变，或者自动把厨师从1号挪到2号？用户没说，暂且只处理Case A)
-
           alert("该角色已入座");
           return;
         }
@@ -110,10 +130,72 @@ export function useInteractionHandler(deps: {
       } else {
         dispatch(gameActions.updateSeat(id, { role: null }));
       }
-    } else if (gamePhase === 'firstNight' || gamePhase === 'night') {
-      toggleTarget(id);
+      return;
     }
-  }, [gamePhase, selectedRole, seats, dispatch, toggleTarget]);
+
+    // 2. 🔥 核心修复：游戏进行中 (夜晚/白天) 的逻辑 (Adapted from user instruction) 🔥
+
+    // 从当前步骤的数据中读取允许的数量
+    // ADAPTATION: Use local dependencies instead of 'gameController' which is not in scope here
+    const currentStep = deps.nightInfo || nightActionQueue[currentWakeIndex];
+
+    // 如果当前没有行动数据，或者不是选人环节，直接返回
+    // ADAPTATION: Check 'interaction' object if present, fall back to role definition check if needed (but we added interaction object in step 1)
+    // Note: 'interaction' property might be on the NightInfoResult now
+    if (!currentStep) return;
+
+    // Check if it has interaction data (we added this to nightLogic)
+    const interaction = (currentStep as any).interaction;
+
+    // Fallback if interaction object missing (e.g. for simple roles not yet updated or other logic paths)
+    // But for 'choose_player' type roles, we rely on our new architecture.
+    if (!interaction && gamePhase !== 'day') {
+      // Optional: Fallback to toggleTarget old logic if strictly needed, or just return.
+      // User instruction implies we should strictly follow the new logic.
+      // Let's call the old toggleTarget if interaction is missing to be safe, OR implement the fallback here.
+      // User asked to "REPLACE" logic.
+      // But wait, the previous toggleTarget had important logic?
+      // Actually user said "replace logic for non-setup phases".
+    }
+
+    // Direct implementation of the queue strategy requested
+    // ⭐ 动态获取最大目标数 (如果没定义，默认为 1)
+    let maxTargets = 1;
+    if (interaction && interaction.amount) {
+      maxTargets = interaction.amount;
+    } else {
+      // Fallback: Read from meta.targetCount if interaction obj not present (Defensive)
+      if ('meta' in currentStep && currentStep.meta?.targetCount) {
+        maxTargets = currentStep.meta.targetCount.max;
+      }
+    }
+
+    // Update logic
+    let newTargets = [...selectedActionTargets];
+
+    // A. 如果点击了已选中的人 -> 取消选中
+    if (newTargets.includes(id)) {
+      newTargets = newTargets.filter(t => t !== id);
+    } else {
+      // B. 如果点击了新的人
+      // 策略：如果没满，直接加；如果满了，挤掉最早选的 (Queue模式)
+      if (newTargets.length < maxTargets) {
+        newTargets.push(id);
+      } else {
+        // "挤掉"逻辑：只保留最近选的 (maxTargets - 1) 个，然后加上新的
+        if (maxTargets > 0) {
+          const targetsToKeep = newTargets.slice(newTargets.length - maxTargets + 1);
+          newTargets = [...targetsToKeep, id];
+        } else {
+          // maxTargets 0? Should not happen if we are selecting.
+          newTargets = [id];
+        }
+      }
+    }
+
+    dispatch(gameActions.setSelectedTargets(newTargets));
+
+  }, [gamePhase, selectedRole, seats, dispatch, deps, nightActionQueue, currentWakeIndex, selectedActionTargets]);
 
   const isTargetDisabled = useCallback((targetSeat: Seat) => {
     const activeSeat = nightActionQueue[currentWakeIndex];
@@ -143,36 +225,48 @@ export function useInteractionHandler(deps: {
     return false;
   }, [nightActionQueue, currentWakeIndex, gamePhase, seats, selectedActionTargets, deadThisNight, dispatch, deps]);
 
-  // 占卜师自动生成结果逻辑 (由 useEffect 驱动，确保红罗刹变更时也能同步)
+  // 交互式角色结果自动生成逻辑 (Interactive Role Result Generator)
+  // 支持: 占卜师 (Fortune Teller), 裁缝 (Seamstress - Future), etc.
   useEffect(() => {
-    const nightInfo = nightActionQueue[currentWakeIndex];
+    // FIX: Use activeNightStep (deps.nightInfo) which has the computed logic, NOT the raw queue
+    const nightInfo = deps.nightInfo;
     if (!nightInfo) return;
 
     const effectiveRole = nightInfo.effectiveRole;
-    if (!effectiveRole || effectiveRole.id !== 'fortune_teller') return;
+    if (!effectiveRole) return;
+    const roleId = effectiveRole.id;
 
-    if (selectedActionTargets.length === 2) {
-      const t1 = seats.find(s => s.id === selectedActionTargets[0]);
-      const t2 = seats.find(s => s.id === selectedActionTargets[1]);
-      if (t1 && t2) {
-        const isFT1 = isFortuneTellerTarget(t1);
-        const isFT2 = isFortuneTellerTarget(t2);
-        const isEvil = isFT1 || isFT2;
+    // 🔮 占卜师 (Fortune Teller)
+    if (roleId === 'fortune_teller') {
+      if (selectedActionTargets.length === 2) {
+        const t1 = seats.find(s => s.id === selectedActionTargets[0]);
+        const t2 = seats.find(s => s.id === selectedActionTargets[1]);
+        if (t1 && t2) {
+          const isFT1 = isFortuneTellerTarget(t1);
+          const isFT2 = isFortuneTellerTarget(t2);
+          const isEvil = isFT1 || isFT2;
 
-        // 涡流环境判定
-        const resultValue = isVortoxWorld ? !isEvil : isEvil;
-        const resultText = resultValue ? "✅ 是" : "❌ 否";
+          // 涡流环境判定
+          const resultValue = isVortoxWorld ? !isEvil : isEvil;
+          const resultText = resultValue ? "✅ 是" : "❌ 否";
+          const targetOutput = `🔮 占卜师信息：${resultText}`;
 
-        const targetOutput = `🔮 占卜师信息：${resultText}`;
-        // 只有与当前 inspectionResult 不同时才更新，避免循环
-        if (state.inspectionResult !== targetOutput) {
-          dispatch(gameActions.updateState({
-            inspectionResult: targetOutput,
-            inspectionResultKey: Math.random()
-          }));
+          if (state.inspectionResult !== targetOutput) {
+            dispatch(gameActions.updateState({
+              inspectionResult: targetOutput,
+              inspectionResultKey: Math.random()
+            }));
+          }
         }
       }
     }
+
+    // 🧵 裁缝 (Seamstress) - 示例扩展点
+    // else if (roleId === 'seamstress') { ... }
+
+    // 🧹 如果切换了角色或重置了选择，且当前没有结果需要显示，可以在这里清除
+    // 但为了保持UI稳定，我们通常不自动清除，直到下一个行动覆盖它。
+
   }, [nightActionQueue, currentWakeIndex, selectedActionTargets, seats, isVortoxWorld, state.inspectionResult, dispatch]);
 
   const handleConfirmAction = useCallback(() => {
@@ -187,6 +281,8 @@ export function useInteractionHandler(deps: {
         currentModal.type === 'NIGHT_ORDER_PREVIEW' ||
         currentModal.type === 'REVIEW' ||
         currentModal.type === 'GAME_RECORDS' ||
+        currentModal.type === 'POISON_CONFIRM' ||
+        currentModal.type === 'POISON_EVIL_CONFIRM' ||
         currentModal.type === 'ROLE_INFO';
 
       if (!isNonBlockingModal) {

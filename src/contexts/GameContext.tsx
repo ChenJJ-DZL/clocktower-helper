@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useReducer, useCallback, ReactNode, useRef, useEffect } from "react";
 import type { Seat, Role, GamePhase, WinResult, LogEntry, Script } from "../../app/data";
 import { NightHintState, GameRecord } from "../types/game";
 import { ModalType } from "../types/modal";
@@ -563,6 +563,7 @@ function getInitialState(): GameState {
 interface GameContextType {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
+  currentQueueIndexRef: React.MutableRefObject<number>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -572,9 +573,14 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
  */
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, getInitialState());
+  const currentQueueIndexRef = useRef(0);
+
+  useEffect(() => {
+    currentQueueIndexRef.current = state.currentQueueIndex;
+  }, [state.currentQueueIndex]);
 
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, dispatch, currentQueueIndexRef }}>
       {children}
     </GameContext.Provider>
   );
