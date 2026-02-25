@@ -243,9 +243,14 @@ const hasExecutionProof = (seat?: Seat | null, attackerRoleId?: string): boolean
  * Game Controller Hook
  * Extracts all state management and logic from Home component
  */
+export type VfxTrigger = { seatId: number; type: 'slayer' | 'virgin' } | null;
+
 export function useGameController() {
   // Get all state from useGameState
   const gameState = useGameState();
+
+  // --- NEW: VFX State Coordinator ---
+  const [vfxTrigger, setVfxTrigger] = useState<VfxTrigger>(null);
 
   // 集成新的队列管理系统（可选，保持向后兼容）
   // 注意：新系统可选，如果GameContext不可用，继续使用旧系统
@@ -411,7 +416,7 @@ export function useGameController() {
     seatRefs,
     hintCacheRef,
     drunkFirstInfoRef,
-    seatsRef,
+    // seatsRef removed (REFACTOR)
     fakeInspectionResultRef,
     consoleContentRef,
     currentActionTextRef,
@@ -420,7 +425,7 @@ export function useGameController() {
     registrationCacheRef,
     registrationCacheKeyRef,
     introTimeoutRef,
-    gameStateRef,
+    // gameStateRef removed (REFACTOR)
   } = gameState;
 
   // CRITICAL FIX: Lock to prevent double-submission race conditions
@@ -563,8 +568,7 @@ export function useGameController() {
     flowSaveHistoryRef.current = saveHistory;
   }, [saveHistory]);
 
-  // 注意seatsRef 需要同步 seats 状态
-  seatsRef.current = seats;
+  // [REFACTOR] seatsRef sync removed - seats is always read from Context
 
   // Get functions from useRoleAction
   const { executeAction, canSelectTarget: checkCanSelectTarget, getTargetCount: getRoleTargetCount } = useRoleAction();
@@ -717,20 +721,7 @@ export function useGameController() {
     }
   }, [wakeQueueIds, currentWakeIndex, seats, gameContextDispatch]);
 
-  // 更新ref
-  useEffect(() => {
-    gameStateRef.current = {
-      seats,
-      gamePhase,
-      nightCount,
-      executedPlayerId,
-      wakeQueueIds,
-      currentWakeIndex,
-      selectedActionTargets,
-      gameLogs,
-      selectedScript
-    };
-  }, [seats, gamePhase, nightCount, executedPlayerId, wakeQueueIds, currentWakeIndex, selectedActionTargets, gameLogs, selectedScript]);
+  // [REFACTOR] gameStateRef sync effect removed - all state reads go through Context
 
   // --- Effects ---
   useEffect(() => {
@@ -814,9 +805,7 @@ export function useGameController() {
     };
   }, [mounted]);
 
-  useEffect(() => {
-    seatsRef.current = seats;
-  }, [seats]);
+  // [REFACTOR] seatsRef sync effect removed
 
   // 自动识别当前是否处于涡流恶魔环境镇民信息应为假
   useEffect(() => {
@@ -1003,7 +992,7 @@ export function useGameController() {
     // To be perfectly safe, we let gameFlow do its thing, but we override the index.
 
     // 1. 生成队列 (Generate Timeline locally to get queue IDs immediately)
-    const latestSeats = seatsRef.current || seats;
+    const latestSeats = seats;
     const newTimeline = generateNightTimeline(latestSeats, true);
     const newQueueIds = newTimeline
       .map(step => (step.type === 'character' && step.seatId !== undefined) ? step.seatId : -1);
@@ -1103,7 +1092,7 @@ export function useGameController() {
     // 5. ⚡️ 预计算并锁定下一步的数据 (Snapshot Next Step)
     const nextSeatId = currentQueue[nextIndex];
     if (nextSeatId !== undefined) {
-      const latestSeats = seatsRef.current || seats; // Ensure latest seats
+      const latestSeats = seats;
 
       const nextStepInfo = calculateNightInfo(
         selectedScript,
@@ -1232,7 +1221,7 @@ export function useGameController() {
       return;
     }
 
-    const currentSeats = seatsRef.current || seats;
+    const currentSeats = seats;
     const currentPhase = gamePhase;
 
     // 2. Pure Logic
@@ -1244,7 +1233,7 @@ export function useGameController() {
     }
 
     // 4. Atomic Update
-    seatsRef.current = snapshot.seats;
+    // [REFACTOR] seatsRef mirror removed - setSeats below triggers Context update
     setSeats(snapshot.seats);
 
     // 5. Game Over Check
@@ -1664,7 +1653,6 @@ export function useGameController() {
     setSeats,
     checkGameOver,
     saveHistory,
-    selectedRole,
     setSelectedRole,
     nightCount,
     currentModal,
@@ -1757,7 +1745,7 @@ export function useGameController() {
     const currentSeatId = wakeQueueIds[currentWakeIndex];
     if (currentSeatId !== undefined) {
       console.log(`[NightLogic] Recovery: nightInfo is null for index ${currentWakeIndex}. Recalculating...`);
-      const latestSeats = seatsRef.current || seats;
+      const latestSeats = seats;
       const currentStepInfo = calculateNightInfo(
         selectedScript,
         latestSeats,
@@ -1908,8 +1896,7 @@ export function useGameController() {
     // 只有当 Imp 被恶魔攻击（自杀）时才触发传位
     if (deadSeat.role?.id !== 'imp' || source !== 'demon') return;
 
-    const seatsSnapshot = seatsRef.current || seats;
-    const minions = seatsSnapshot.filter(s =>
+    const minions = seats.filter(s =>
       s.role?.type === 'minion' &&
       !s.isDead &&
       s.id !== deadSeat.id // 不能传给自己
@@ -1922,29 +1909,18 @@ export function useGameController() {
 
       alert(`😈 小恶魔死亡！传位给 ${newDemonSeat.id + 1}号 [${newDemonSeat.role?.name || '未知'}]`);
 
-      // 将爪牙变成 Imp
-      const impRole = roles.find(r => r.id === 'imp');
-      if (impRole) {
-        setSeats((prev: Seat[]) => prev.map(s => {
-          if (s.id === newDemonSeat.id) {
-            return {
-              ...s,
-              role: impRole,
-              displayRole: impRole,
-              isDemonSuccessor: true,
-              statusDetails: [...(s.statusDetails || []), '恶魔传位'],
-            };
-          }
-          return s;
-        }));
-        addLog(`😈 小恶魔传位：${newDemonSeat.id + 1}号 [${newDemonSeat.role?.name}] 变成了小恶魔`);
-      }
+      // [REFACTOR] 通过 Atomic Dispatcher 路由，确保与 gameLogic.ts 逻辑一致
+      dispatch({
+        type: 'IMP_STAR_PASS',
+        oldImpId: deadSeat.id,
+        newImpId: newDemonSeat.id,
+      });
     } else {
       // 没有活着的爪牙，游戏结束（好人胜利）
       addLog(`😈 小恶魔死亡，且没有活着的爪牙可以接位，好人胜利`);
       // checkGameOver 会在 killPlayer 的 finalize 中调用，无需手动处理
     }
-  }, [seats, roles, setSeats, addLog]);
+  }, [seats, dispatch, addLog]);
 
   type KillPlayerOptions = {
     recordNightDeath?: boolean;
@@ -1986,7 +1962,7 @@ export function useGameController() {
 
       // Execute onAfterKill with latest state (Ref is updated inside dispatch synchronously-ish)
       if (onAfterKill) {
-        onAfterKill(seatsRef.current || []);
+        onAfterKill(seats);
       }
     },
     [dispatch, nightInfo]
@@ -2211,7 +2187,7 @@ export function useGameController() {
       getDemonDisplayName,
       enqueueRavenkeeperIfNeeded,
       continueToNextAction,
-      seatsRef,
+      // seatsRef removed (REFACTOR)
       currentWakeIndexRef: gameState.currentWakeIndexRef,
     }
   );
@@ -2277,10 +2253,9 @@ export function useGameController() {
     setNominationRecords({ nominators: new Set(), nominees: new Set() });
     setNominationMap({});
 
-    // 使用seatsRef确保获取最新的seats状态然后检查游戏结束条件
-    const currentSeats = seatsRef.current;
+    // [REFACTOR] 直接使用 seats（来自 Context）
     // 检查游戏结束条件包括存活人数
-    checkGameOver(currentSeats);
+    checkGameOver(seats);
     if (victoryRef.current) return;
     enterDayPhase();
   }, [seats, deadThisNight, poppyGrowerDead, cleanStatusesForNewDay, addLog, checkGameOver, setSeats, setCurrentModal, setPoppyGrowerDead, setDeadThisNight, enterDayPhase, setNominationRecords, setNominationMap]);
@@ -2501,7 +2476,7 @@ export function useGameController() {
       if (prev.includes(seatId)) return prev;
       const processed = prev.slice(0, currentWakeIndex + 1);
       if (processed.includes(seatId)) return prev;
-      const seatsSnapshot = seatsRef.current || seats;
+      const seatsSnapshot = seats;
       const target = seatsSnapshot.find(s => s.id === seatId);
       const roleSource = opts?.roleOverride || (target?.role?.id === 'drunk' ? target.charadeRole || target.role : target?.role);
       if (!roleSource) return prev;
@@ -2556,7 +2531,7 @@ export function useGameController() {
   // Execute player (execution logic)
   // Execute player (execution logic)
   const executePlayer = useCallback((id: number, options?: { skipLunaticRps?: boolean; forceExecution?: boolean }) => {
-    const seatsSnapshot = seatsRef.current || seats;
+    const seatsSnapshot = seats;
     const t = seatsSnapshot.find(s => s.id === id);
     if (!t || !t.role) return;
 
@@ -2663,7 +2638,7 @@ export function useGameController() {
       continueToNextAction();
       processingRef.current = false;
     }, 50);
-  }, [nightInfo, showKillConfirmModal, seats, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, setShowKillConfirmModal, setSelectedActionTargets, continueToNextAction, getRandom, roles, setSeats, setWakeQueueIds, seatsRef, checkGameOver, setDeadThisNight, enqueueRavenkeeperIfNeeded, killPlayer, nightLogic, moonchildChainPendingRef]);
+  }, [nightInfo, showKillConfirmModal, seats, isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, setShowKillConfirmModal, setSelectedActionTargets, continueToNextAction, getRandom, roles, setSeats, setWakeQueueIds, checkGameOver, setDeadThisNight, enqueueRavenkeeperIfNeeded, killPlayer, nightLogic, moonchildChainPendingRef]);
 
   // Submit votes handler
   // 规则特例：玩家可以在对自己的提名中投票（规则书中没有提及"不能在自己的提名中投票"）
@@ -3141,7 +3116,7 @@ export function useGameController() {
     }
     setShowKlutzChoiceModal(null);
     setKlutzChoiceTarget(null);
-    const seatsToUse = seatsRef.current || seats;
+    const seatsToUse = seats;
     const isEvilPick = isEvil(target);
     if (isEvilPick) {
       addLog(`${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，邪恶，善良阵营立即失败`);
@@ -3154,7 +3129,7 @@ export function useGameController() {
     } else {
       checkGameOver(seatsToUse);
     }
-  }, [showKlutzChoiceModal, klutzChoiceTarget, seats, seatsRef, isEvil, checkGameOver, setShowKlutzChoiceModal, setKlutzChoiceTarget, setWinResult, setWinReason, setGamePhase, addLog]);
+  }, [showKlutzChoiceModal, klutzChoiceTarget, seats, isEvil, checkGameOver, setShowKlutzChoiceModal, setKlutzChoiceTarget, setWinResult, setWinReason, setGamePhase, addLog]);
 
   const confirmStorytellerDeath = useCallback((targetId: number | null) => {
     if (currentModal?.type !== 'STORYTELLER_DEATH') return;
@@ -3545,6 +3520,11 @@ export function useGameController() {
         addLog(`${sourceId + 1}号(精神病患者) 试图在白天杀死 ${id + 1}号，但对方已死亡`);
         setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${id + 1}号已死亡，未产生新的死亡` } });
       } else {
+        // Slayer VFX trigger
+        setVfxTrigger({ seatId: id, type: 'slayer' });
+        // Clear it after duration
+        setTimeout(() => setVfxTrigger(null), 1000);
+
         const updatedSeats = seats.map(s => s.id === id ? { ...s, isDead: true, isSentenced: false } : s);
         setSeats(updatedSeats);
         addLog(`${sourceId + 1}号(精神病患者) 在提名前公开杀死 ${id + 1}号`);
@@ -3832,7 +3812,7 @@ export function useGameController() {
   const declareMayorImmediateWin = useCallback(() => {
     setCurrentModal(null);
     // 规则对齐：市长若中毒/醉酒，能力可能失效；此处作为说书人“宣告获胜”入口，保留提醒但不强制阻止（避免打断说书人裁定）。
-    const mayorSeat = (seatsRef.current || seats).find(s => s.role?.id === 'mayor' && !s.isDead);
+    const mayorSeat = seats.find(s => s.role?.id === 'mayor' && !s.isDead);
     if (mayorSeat && isActorDisabledByPoisonOrDrunk(mayorSeat)) {
       addLog(`提示：市长处于中毒/醉酒状态，按规则其能力可能失效；若仍宣告获胜，请视为说书人裁定`);
     }
@@ -3840,7 +3820,7 @@ export function useGameController() {
     setWinReason('3人存活且今日不处决市长能力');
     setGamePhase('gameOver');
     addLog('市长在场且剩人今日选择不处决好人胜利');
-  }, [setCurrentModal, setWinResult, setWinReason, setGamePhase, addLog, seats, seatsRef]);
+  }, [setCurrentModal, setWinResult, setWinReason, setGamePhase, addLog, seats]);
 
   const handleRestart = useCallback(() => {
     setCurrentModal({ type: 'RESTART_CONFIRM', data: null });
@@ -3859,6 +3839,8 @@ export function useGameController() {
     // State
     ...gameState,
 
+    vfxTrigger,
+    setVfxTrigger,
     // Helper functions
     formatTimer,
     getSeatRoleId,

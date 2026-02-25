@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import type { Seat } from "@/app/data";
 import type { NightInfoResult } from "@/src/types/game";
+import { useGameActions } from '../contexts/GameActionsContext';
 
 // 状态标签组件 - 统一的状态标记样式
 interface StatusPillProps {
@@ -84,6 +85,11 @@ export interface SeatNodeProps {
   // Dusk phase selection indicators
   nominator?: number | null;
   nominee?: number | null;
+  voteThreshold?: number;
+  aliveCoreCount?: number;
+  topVotes?: number[];
+  isTie?: boolean;
+  seatNote?: string;
 }
 
 export const SeatNode: React.FC<SeatNodeProps> = ({
@@ -106,7 +112,15 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
   typeColors,
   nominator = null,
   nominee = null,
+  voteThreshold,
+  aliveCoreCount,
+  topVotes,
+  isTie,
+  seatNote,
 }) => {
+  // Global Context based  
+  const ctx = useGameActions();
+
   const p = getSeatPosition(i, seats.length, isPortrait);
   const displayType = getDisplayRoleType(s);
   const colorClass = displayType ? typeColors[displayType] : 'border-gray-600 text-gray-400';
@@ -118,7 +132,7 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
     ? `${displayRole?.name || realRole?.name} (传)`
     : displayRole?.name || realRole?.name || "空";
 
-  // 定义状态列表 - 自动推导所有异常状态
+  // Define status list - implicitly handled
   const statusList: Array<{ key: string; text: string; color: 'red' | 'green' | 'yellow'; icon?: React.ReactNode; duration?: string }> = [];
 
   // 标记已处理的状态，避免重复
@@ -325,6 +339,14 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
         ${s.isCandidate ? 'ring-4 ring-red-500 scale-105 shadow-[0_0_20px_red]' : ''}
       `}
       >
+        {/* === VFX Layers === */}
+        {ctx.vfxTrigger?.seatId === s.id && ctx.vfxTrigger.type === 'slayer' && (
+          <div className="absolute inset-0 rounded-full bg-red-500 z-50 animate-vfx-particle shadow-[0_0_80px_red]"></div>
+        )}
+        {ctx.vfxTrigger?.seatId === s.id && ctx.vfxTrigger.type === 'virgin' && (
+          <div className="absolute inset-0 rounded-full bg-yellow-300 z-50 animate-vfx-particle shadow-[0_0_60px_yellow]"></div>
+        )}
+
         {/* 真实身份指示徽章（仅说书人可见：role 与 displayRole 不一致时显示） */}
         {isMasked && (
           <div
@@ -414,6 +436,13 @@ export const SeatNode: React.FC<SeatNodeProps> = ({
             title="该玩家还有一票"
           >
             <div className={`${isPortrait ? 'w-1.5 h-1.5' : 'w-2 h-2'} bg-black rounded-full`}></div>
+          </div>
+        )}
+
+        {/* 备忘录提示标记 - 显示在下方外部 */}
+        {seatNote && (
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-yellow-900/90 text-yellow-200 border border-yellow-700/50 rounded pointer-events-none px-2 py-0.5 text-xs font-medium shadow-lg z-50">
+            {seatNote.length > 8 ? seatNote.slice(0, 8) + '...' : seatNote}
           </div>
         )}
       </div>

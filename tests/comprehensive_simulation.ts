@@ -1,15 +1,15 @@
 
 import fs from 'fs';
 import path from 'path';
-import { roles, Role, Seat, GamePhase, Script, RoleType } from '../app/data.ts';
-import { generateNightActionQueue } from '../src/utils/nightQueueGenerator.ts';
-import { calculateNightInfo } from '../src/utils/nightLogic.ts';
+import { roles, Role, Seat, GamePhase, Script, RoleType } from '../app/data';
+import { generateNightActionQueue } from '../src/utils/nightQueueGenerator';
+import { calculateNightInfo } from '../src/utils/nightLogic';
 import {
     getRandom,
     isEvil,
     computeIsPoisoned,
     addPoisonMark,
-} from '../src/utils/gameRules.ts';
+} from '../src/utils/gameRules';
 
 // --- Constants & Types ---
 const SIMULATION_COUNT = 100;

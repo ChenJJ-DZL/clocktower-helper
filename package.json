@@ -4,10 +4,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "clean:test-logs": "node tests/cleanup_simulation_logs.js --all",
-    "dev": "node tests/cleanup_simulation_logs.js --all && next dev",
+    "dev": "next dev",
     "build": "next build",
-    "start": "node tests/cleanup_simulation_logs.js --all && next start",
+    "start": "next start",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -315,6 +315,10 @@ export function useGameState() {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.currentDuskExecution) : val;
     dispatch(gameActions.setDuskExecution(state.lastDuskExecution, next));
   };
+  const setSeatNotes: React.Dispatch<React.SetStateAction<Record<number, string>>> = (val) => {
+    const next = typeof val === 'function' ? (val as (p: Record<number, string>) => Record<number, string>)(state.seatNotes) : val;
+    dispatch(gameActions.updateState({ seatNotes: next }));
+  };
 
   // ===========================
   //  MODAL 显示状态 (包装器)
@@ -361,7 +365,7 @@ export function useGameState() {
   // 记录酒鬼是否首次获得信息（首次一定是假的）
   const drunkFirstInfoRef = useRef<Map<number, boolean>>(new Map());
 
-  const seatsRef = useRef(seats);
+  // [REFACTOR] seatsRef removed - all state reads must go through Context
   const fakeInspectionResultRef = useRef<string | null>(null);
   const consoleContentRef = useRef<HTMLDivElement>(null);
   const currentActionTextRef = useRef<HTMLSpanElement>(null);
@@ -373,18 +377,7 @@ export function useGameState() {
 
   // 历史记录、提名记录、处决记录已从 state 中解构
 
-  // 使用ref存储最新状态，避免Hook依赖问题
-  const gameStateRef = useRef({
-    seats,
-    gamePhase,
-    nightCount,
-    executedPlayerId,
-    wakeQueueIds,
-    currentWakeIndex,
-    selectedActionTargets,
-    gameLogs,
-    selectedScript
-  });
+  // [REFACTOR] gameStateRef removed - all state reads must go through Context
 
   // 返回所有状态和 setter
   return {
@@ -652,7 +645,7 @@ export function useGameState() {
     seatRefs,
     hintCacheRef,
     drunkFirstInfoRef,
-    seatsRef,
+    // seatsRef removed - use seats from Context directly
     fakeInspectionResultRef,
     consoleContentRef,
     currentActionTextRef,
@@ -661,7 +654,7 @@ export function useGameState() {
     registrationCacheRef,
     registrationCacheKeyRef,
     introTimeoutRef,
-    gameStateRef,
+    // gameStateRef removed - use state from Context directly
     currentWakeIndexRef,
   };
 }

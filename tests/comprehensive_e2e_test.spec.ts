@@ -1,14 +1,12 @@
 
 import { test, expect, Page } from "@playwright/test";
-import { troubles } from "../src/data/troubleBrewing";
-import { Role } from "../src/types/roleDefinition";
+import { Role, roles as ROLES_DATA } from "../app/data";
 
 // --- 常量与配置 ---
 const MIN_PLAYERS = 9;
 const MAX_PLAYERS = 15;
 const SCRIPT_NAME = "Trouble Brewing";
 const LOG_FILE_PATH = "detailed_game_log.txt";
-const ROLES_DATA: Role[] = troubles;
 
 // --- 类型定义 ---
 interface SeatedPlayer {
@@ -66,7 +64,7 @@ test.describe("Comprehensive E2E Game Simulation", () => {
     // TODO: 在这里添加规则预检测逻辑
     log("--- 规则预检测 ---");
     log("（此功能待实现）");
-    
+
     const fs = require("fs");
     fs.writeFileSync(LOG_FILE_PATH, gameLog.join("\n"), "utf-8");
     log(`\n✅ 详细游戏日志已生成: ${LOG_FILE_PATH}`);
@@ -86,7 +84,7 @@ test.describe("Comprehensive E2E Game Simulation", () => {
     const rolePool = shuffleArray([...ROLES_DATA]);
 
     const selectRolesFromTeam = (team: 'townsfolk' | 'outsider' | 'minion' | 'demon', count: number) => {
-      const teamRoles = rolePool.filter(r => r.team === team).map(r => r.id);
+      const teamRoles = rolePool.filter(r => r.type === team).map(r => r.id);
       selectedRoles.push(...teamRoles.slice(0, count));
     };
 
@@ -113,7 +111,7 @@ test.describe("Comprehensive E2E Game Simulation", () => {
 
     // 3. 进入夜晚
     await page.click('button:has-text("确认无误，入夜")');
-    
+
     // 4. 游戏主循环
     for (let day = 1; day <= 10; day++) {
       // 夜晚阶段
@@ -121,7 +119,7 @@ test.describe("Comprehensive E2E Game Simulation", () => {
 
       // 白天阶段
       await handleDayPhase(day);
-      
+
       const gameEndElement = page.locator("[data-testid='game-over-modal']");
       if (await gameEndElement.isVisible({ timeout: 1000 })) {
         const winnerText = await gameEndElement.locator("[data-winner-team]").textContent() || "未知";
@@ -134,66 +132,66 @@ test.describe("Comprehensive E2E Game Simulation", () => {
       log(`\n第 ${day} 天结束，进入黄昏...`);
       const duskButton = page.locator('button:has-text("进入黄昏处决阶段")');
       if (await duskButton.isVisible()) await duskButton.click();
-      
+
       await sleep(500);
       const executionModal = page.locator("h2:has-text('处决结果')");
       if (await executionModal.isVisible()) {
-          log("关闭处决结果报告。");
-          await page.locator('div[aria-modal="true"] button:has-text("确认")').click();
+        log("关闭处决结果报告。");
+        await page.locator('div[aria-modal="true"] button:has-text("确认")').click();
       }
     }
   });
 
   async function handleNightPhase(day: number) {
     log(`\n--- 第 ${day} 夜 ---`);
-    await sleep(1000); 
+    await sleep(1000);
 
     let lastActivePlayer = -1;
     for (let i = 0; i < getLivingPlayers().length + 2; i++) { // Safety break
-        const nightPhaseActive = await page.locator('div[data-testid="night-phase-active"]').isVisible();
-        if(!nightPhaseActive) break;
+      const nightPhaseActive = await page.locator('div[data-testid="night-phase-active"]').isVisible();
+      if (!nightPhaseActive) break;
 
-        const activePlayerElement = page.locator('[data-active-player-seat]');
-        if (!await activePlayerElement.isVisible()) break;
+      const activePlayerElement = page.locator('[data-active-player-seat]');
+      if (!await activePlayerElement.isVisible()) break;
 
-        const seatIndex = parseInt(await activePlayerElement.getAttribute('data-active-player-seat') || "-1", 10);
-        if (seatIndex === lastActivePlayer) {
-          await sleep(500);
-          continue;
-        }
-        lastActivePlayer = seatIndex;
-        
-        const player = seatedRoles.find(p => p.seatIndex === seatIndex);
-        if (!player || !player.isAlive) {
-          await page.click('button:has-text("确认 & 下一步")');
-          continue;
-        };
+      const seatIndex = parseInt(await activePlayerElement.getAttribute('data-active-player-seat') || "-1", 10);
+      if (seatIndex === lastActivePlayer) {
+        await sleep(500);
+        continue;
+      }
+      lastActivePlayer = seatIndex;
 
-        const role = getRoleById(player.roleId);
-        if (!role) continue;
-
-        log(`行动中: ${player.player} (${role.name})`);
-
-        const needsTarget = role.meta?.targetType === 'player' && role.meta.amount > 0;
-        if (needsTarget) {
-            const targets = shuffleArray(getLivingPlayers().filter(p => p.seatIndex !== seatIndex));
-            const targetCount = role.meta.amount || 1;
-            for(let j=0; j<targetCount; j++){
-                if(targets[j]){
-                    await page.click(`[data-seat-id="${targets[j].seatIndex}"]`);
-                    log(` -> 目标: ${targets[j].player} (${getRoleById(targets[j].roleId)?.name})`);
-                }
-            }
-        }
-        
+      const player = seatedRoles.find(p => p.seatIndex === seatIndex);
+      if (!player || !player.isAlive) {
         await page.click('button:has-text("确认 & 下一步")');
-        await sleep(500); 
+        continue;
+      };
+
+      const role = getRoleById(player.roleId);
+      if (!role) continue;
+
+      log(`行动中: ${player.player} (${role.name})`);
+
+      const needsTarget = role.type !== 'outsider';
+      if (needsTarget) {
+        const targets = shuffleArray(getLivingPlayers().filter(p => p.seatIndex !== seatIndex));
+        const targetCount = 1;
+        for (let j = 0; j < targetCount; j++) {
+          if (targets[j]) {
+            await page.click(`[data-seat-id="${targets[j].seatIndex}"]`);
+            log(` -> 目标: ${targets[j].player} (${getRoleById(targets[j].roleId)?.name})`);
+          }
+        }
+      }
+
+      await page.click('button:has-text("确认 & 下一步")');
+      await sleep(500);
     }
-    
+
     const nightReport = page.locator("h2:has-text('夜晚报告')");
     if (await nightReport.isVisible()) {
-        log("夜晚结束，关闭夜晚报告。");
-        await page.locator('div[aria-modal="true"] button:has-text("确认")').click();
+      log("夜晚结束，关闭夜晚报告。");
+      await page.locator('div[aria-modal="true"] button:has-text("确认")').click();
     }
   }
 
@@ -206,7 +204,7 @@ test.describe("Comprehensive E2E Game Simulation", () => {
 
     const nominator = shuffleArray(livingPlayers)[0];
     const nominee = shuffleArray(livingPlayers.filter(p => p.seatIndex !== nominator.seatIndex))[0];
-    
+
     log(`${nominator.player} (${getRoleById(nominator.roleId)?.name}) 发起提名。`);
     await page.click('[data-testid="start-nomination-button"]');
     await page.click(`[data-seat-id="${nominator.seatIndex}"]`); // 选择提名者
@@ -223,19 +221,19 @@ test.describe("Comprehensive E2E Game Simulation", () => {
     const livingVoters = getLivingPlayers();
     let votesFor = 0;
     for (const voter of livingVoters) {
-        // 随机投票
-        const voteButton = Math.random() > 0.5 
-          ? voteModal.locator(`~ button:has-text("${voter.player}")`) 
-          : null;
-        if (voteButton) {
-            await voteButton.click();
-            log(` -> ${voter.player} 投票给 ${nominee.player}`);
-            votesFor++;
-        } else {
-             log(` -> ${voter.player} 没有投票`);
-        }
+      // 随机投票
+      const voteButton = Math.random() > 0.5
+        ? voteModal.locator(`~ button:has-text("${voter.player}")`)
+        : null;
+      if (voteButton) {
+        await voteButton.click();
+        log(` -> ${voter.player} 投票给 ${nominee.player}`);
+        votesFor++;
+      } else {
+        log(` -> ${voter.player} 没有投票`);
+      }
     }
-    
+
     await page.click('button:has-text("确认投票结果")');
     log(`投票结束. ${nominee.player} 获得 ${votesFor} 票。`);
 
@@ -243,16 +241,16 @@ test.describe("Comprehensive E2E Game Simulation", () => {
     if (votesFor > livingPlayers.length / 2) {
       log(`${nominee.player} 被放上处决台。`);
       const executeButton = page.locator('button:has-text("执行处决")');
-      if (await executeButton.isVisible()){
+      if (await executeButton.isVisible()) {
         await executeButton.click();
         log(` -> 确认处决 ${nominee.player}。`);
         const executedPlayer = seatedRoles.find(p => p.seatIndex === nominee.seatIndex);
-        if(executedPlayer) executedPlayer.isAlive = false;
+        if (executedPlayer) executedPlayer.isAlive = false;
       }
     } else {
       log("票数不足，无人被处决。");
       const continueButton = page.locator('button:has-text("继续提名")');
-      if(await continueButton.isVisible()) await continueButton.click();
+      if (await continueButton.isVisible()) await continueButton.click();
     }
   }
 });

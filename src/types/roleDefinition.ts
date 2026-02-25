@@ -25,7 +25,7 @@ export interface NightActionContext {
   selfId: number;      // 发动技能的玩家ID
   gamePhase: GamePhase;
   nightCount: number;  // 当前是第几夜（首夜为0）
-  roles: Role[];       // 当前剧本的所有角色列表
+  roles?: Role[];       // 当前剧本的所有角色列表
 }
 
 /**

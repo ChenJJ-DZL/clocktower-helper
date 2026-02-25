@@ -4,6 +4,7 @@ import React from "react";
 import { Seat } from "../../../../app/data";
 import { NightInfoResult } from "../../../types/game";
 import { SeatNode } from "../../SeatNode";
+import { StaggerContainer, StaggerItem } from "../../common/AnimationWrapper";
 
 export interface SeatGridProps {
   seats: Seat[];
@@ -26,6 +27,7 @@ export interface SeatGridProps {
   // Dusk phase selection indicators
   nominator?: number | null;
   nominee?: number | null;
+  seatNotes?: Record<number, string>;
 }
 
 export function SeatGrid(props: SeatGridProps) {
@@ -48,42 +50,46 @@ export function SeatGrid(props: SeatGridProps) {
     layoutMode = "circle",
     nominator = null,
     nominee = null,
+    seatNotes = {},
   } = props;
 
   // 圆桌模式：使用 SeatNode + 圆形布局
   if (layoutMode === "circle") {
     return (
-      <>
+      <StaggerContainer>
         {seats.map((seat, index) => (
-          <SeatNode
-            key={seat.id}
-            seat={seat}
-            index={index}
-            seats={seats}
-            isPortrait={isPortrait}
-            seatScale={seatScale}
-            nightInfo={nightInfo}
-            selectedActionTargets={selectedActionTargets}
-            longPressingSeats={longPressingSeats}
-            onSeatClick={(id) => {
-              const clickedSeat = seats.find((s) => s.id === id);
-              if (clickedSeat) {
-                onSeatClick(clickedSeat);
-              }
-            }}
-            onContextMenu={onContextMenu}
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEnd}
-            onTouchMove={onTouchMove}
-            setSeatRef={setSeatRef}
-            getSeatPosition={getSeatPosition}
-            getDisplayRoleType={getDisplayRoleType}
-            typeColors={typeColors}
-            nominator={nominator}
-            nominee={nominee}
-          />
+          <StaggerItem key={seat.id} className="absolute inset-0 block w-full h-full pointer-events-none">
+            <SeatNode
+              key={seat.id}
+              seat={seat}
+              index={index}
+              seats={seats}
+              isPortrait={isPortrait}
+              seatScale={seatScale}
+              nightInfo={nightInfo}
+              selectedActionTargets={selectedActionTargets}
+              longPressingSeats={longPressingSeats}
+              onSeatClick={(id: number) => {
+                const clickedSeat = seats.find((s) => s.id === id);
+                if (clickedSeat) {
+                  onSeatClick(clickedSeat);
+                }
+              }}
+              onContextMenu={onContextMenu}
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+              onTouchMove={onTouchMove}
+              setSeatRef={setSeatRef}
+              getSeatPosition={getSeatPosition}
+              getDisplayRoleType={getDisplayRoleType}
+              typeColors={typeColors}
+              nominator={nominator}
+              nominee={nominee}
+              seatNote={seatNotes[seat.id]}
+            />
+          </StaggerItem>
         ))}
-      </>
+      </StaggerContainer>
     );
   }
 
@@ -119,11 +125,10 @@ export function SeatGrid(props: SeatGridProps) {
             }}
             onTouchEnd={handleTouchEnd}
             onContextMenu={(e) => onContextMenu(e, seat.id)}
-            className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-xs transition ${
-              hasRole
-                ? "bg-slate-800/80 border-slate-500 text-slate-100"
-                : "bg-slate-900/60 border-slate-600 text-slate-500"
-            } ${isDead ? "opacity-60 line-through" : ""}`}
+            className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-xs transition ${hasRole
+              ? "bg-slate-800/80 border-slate-500 text-slate-100"
+              : "bg-slate-900/60 border-slate-600 text-slate-500"
+              } ${isDead ? "opacity-60 line-through" : ""}`}
             style={{
               touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",

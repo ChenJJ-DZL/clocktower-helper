@@ -4,10 +4,10 @@ import { Seat, Role } from '../app/data';
 import { hasTeaLadyProtection } from '../src/utils/gameRules';
 
 // Mock Roles
-const zombuul: Role = { id: 'zombuul', name: '僵怖', type: 'demon', firstNight: null, otherNight: null };
-const imp: Role = { id: 'imp', name: '小恶魔', type: 'demon', firstNight: null, otherNight: null };
-const teaLady: Role = { id: 'tea_lady', name: '茶艺师', type: 'townsfolk', firstNight: null, otherNight: null };
-const villager: Role = { id: 'villager', name: '村民', type: 'townsfolk', firstNight: null, otherNight: null };
+const zombuul: Role = { id: 'zombuul', name: '僵怖', type: 'demon' };
+const imp: Role = { id: 'imp', name: '小恶魔', type: 'demon' };
+const teaLady: Role = { id: 'tea_lady', name: '茶艺师', type: 'townsfolk' };
+const villager: Role = { id: 'villager', name: '村民', type: 'townsfolk' };
 
 describe('Pure Game Logic Core', () => {
     let seats: Seat[];

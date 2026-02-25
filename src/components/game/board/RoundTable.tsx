@@ -6,6 +6,7 @@ import { NightInfoResult } from "../../../types/game";
 import { SeatGrid } from "./SeatGrid";
 import { getSeatPosition } from "../../../utils/gameRules";
 import { TableCenterHUD } from "./TableCenterHUD";
+import { motion, useAnimation, useMotionValue } from "framer-motion";
 
 interface RoundTableProps {
   seats: Seat[];
@@ -39,6 +40,9 @@ interface RoundTableProps {
   onOpenNightOrderPreview?: () => void;
   // Red Nemesis action
   onSetRedNemesis?: (seatId: number) => void;
+  // Notes action
+  onEditNote?: (seatId: number) => void;
+  seatNotes?: Record<number, string>;
 }
 
 /**
@@ -71,11 +75,41 @@ export function RoundTable({
   nightOrderPreview = [],
   onOpenNightOrderPreview,
   onSetRedNemesis,
+  onEditNote,
+  seatNotes = {},
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
   const [seatSize, setSeatSize] = useState(72); // Seat size in pixels
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; seatId: number } | null>(null);
+
+  // Pan and Zoom states
+  const [scale, setScale] = useState(1);
+  const controls = useAnimation();
+  const panX = useMotionValue(0);
+  const panY = useMotionValue(0);
+  const boardRef = useRef<HTMLDivElement>(null);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    // Only zoom if pressing ctrl/cmd or if on a trackpad
+    e.preventDefault();
+    const zoomSensitivity = 0.002;
+    const minScale = 0.5;
+    const maxScale = 2.5;
+
+    setScale(prev => {
+      let newScale = prev - (e.deltaY * zoomSensitivity);
+      if (newScale < minScale) newScale = minScale;
+      if (newScale > maxScale) newScale = maxScale;
+      return newScale;
+    });
+  };
+
+  const handleResetView = () => {
+    setScale(1);
+    panX.set(0);
+    panY.set(0);
+  };
 
   // Close context menu on any click outside
   useEffect(() => {
@@ -146,7 +180,69 @@ export function RoundTable({
     <div
       ref={containerRef}
       className="relative w-full h-full flex items-center justify-center overflow-hidden"
+      onWheel={handleWheel}
     >
+      <motion.div
+        ref={boardRef}
+        className="relative w-full h-full flex items-center justify-center origin-center"
+        style={{ x: panX, y: panY }}
+        animate={{ scale }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        drag
+        dragConstraints={containerRef}
+        dragElastic={0.2}
+      >
+        <div className="absolute inset-0">
+          <SeatGrid
+            layoutMode="circle"
+            seatScale={1}
+            seats={seats}
+            nightInfo={nightInfo}
+            selectedActionTargets={selectedActionTargets}
+            isPortrait={isPortrait}
+            longPressingSeats={longPressingSeats}
+            onSeatClick={onSeatClick}
+            onContextMenu={handleSeatContextMenu}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            onTouchMove={onTouchMove}
+            setSeatRef={setSeatRef}
+            getSeatPosition={(i: number) => getDynamicSeatPosition(i, seats.length, isPortrait)}
+            getDisplayRoleType={getDisplayRoleType}
+            typeColors={typeColors}
+            nominator={nominator}
+            nominee={nominee}
+            seatNotes={seatNotes}
+          />
+        </div>
+
+        {/* Center UI */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <TableCenterHUD
+            gamePhase={gamePhase || "setup"}
+            nightCount={nightCount || 0}
+            timer={timer || 0}
+            formatTimer={formatTimer || ((s) => `${s}`)}
+            onTimerStart={onTimerStart}
+            onTimerPause={onTimerPause}
+            onTimerReset={onTimerReset}
+          />
+        </div>
+      </motion.div>
+
+      {/* Control Overlay */}
+      <div className="absolute bottom-4 right-4 z-40 flex flex-col gap-2">
+        {(scale !== 1 || panX.get() !== 0 || panY.get() !== 0) && (
+          <button
+            onClick={handleResetView}
+            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-full border border-white/20 shadow-xl backdrop-blur-sm text-white"
+            title="复位视角"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+          </button>
+        )}
+      </div>
+
       {/* Top-right: Night order panel */}
       <div className="absolute top-3 right-3 z-40 w-[200px] max-w-[30vw] pointer-events-auto">
         <div className="rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md shadow-xl overflow-hidden">
@@ -229,15 +325,26 @@ export function RoundTable({
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="text-xs text-slate-400 p-2 border-b border-slate-700 mb-1">
+            Seat {contextMenu.seatId + 1}
+          </div>
           <button
+            className="w-full text-left px-3 py-2 text-sm text-yellow-400 hover:bg-slate-700 rounded border-b border-slate-700"
             onClick={() => {
-              onSetRedNemesis?.(contextMenu.seatId);
+              if (onEditNote) onEditNote(contextMenu.seatId);
               setContextMenu(null);
             }}
-            className="w-full text-left px-4 py-3 hover:bg-red-800/40 text-red-100 flex items-center gap-3 transition-colors border-b border-white/5"
           >
-            <span className="text-lg">🔴</span>
-            <span className="font-bold">选为红罗刹</span>
+            📝 编辑备忘录
+          </button>
+          <button
+            className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-slate-700 rounded"
+            onClick={() => {
+              if (onSetRedNemesis) onSetRedNemesis(contextMenu.seatId);
+              setContextMenu(null);
+            }}
+          >
+            设为红罗刹目标 (天敌)
           </button>
           <button
             onClick={() => setContextMenu(null)}

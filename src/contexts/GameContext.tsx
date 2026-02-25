@@ -85,6 +85,9 @@ export interface GameState {
   pendingNightQueue: Seat[] | null;
   nightQueuePreviewTitle: string;
   firstNightOrder: any[];
+  pastGames: any[];
+  seatNotes: Record<number, string>;
+  hadesiaChoiceEnabled: boolean;
   poppyGrowerDead: boolean;
   klutzChoiceTarget: number | null;
   showKlutzChoiceModal: any;
@@ -431,6 +434,9 @@ function getInitialState(): GameState {
   return {
     mounted: false,
     showIntroLoading: true,
+    hadesiaChoiceEnabled: false,
+    pastGames: [],
+    seatNotes: {},
     isPortrait: false,
     seats: [],
     initialSeats: [],

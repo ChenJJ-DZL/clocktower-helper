@@ -63,33 +63,33 @@ test.describe("高级游戏模拟器", () => {
     logger.log("首夜", `夜晚行动顺序: ${nightQueue.join(" -> ")}`);
 
     for (const roleName of nightQueue) {
-        const cleanRoleName = roleName.replace(/\s*\d+号\s*/, '').trim();
-        const roleMeta = ROLE_ACTIONS[cleanRoleName];
-        
-        if (roleMeta) {
-            await expect(page.getByText(`轮到 ${cleanRoleName} 行动`)).toBeVisible({ timeout: 15000 });
+      const cleanRoleName = roleName.replace(/\s*\d+号\s*/, '').trim();
+      const roleMeta = ROLE_ACTIONS[cleanRoleName];
 
-            if (roleMeta.targetCount > 0) {
-                const alivePlayers = await getAlivePlayerIndexes(page);
-                const targets = getRandomElement(alivePlayers.filter(i => i + 1 !== parseInt(roleName))); // 避免选择自己
-                const targetSeat = page.locator('.seat-wrapper').nth(targets);
-                await targetSeat.click();
-                logger.log('首夜', `${roleName}(${cleanRoleName}) 对 ${targets + 1}号玩家 使用了技能。`);
-                 // 等待可能的模态框
-                if (roleMeta.type === 'poison' || roleMeta.type === 'kill') {
-                    const modal = page.getByRole('dialog');
-                    await expect(modal).toBeVisible({timeout: 2000});
-                    await modal.getByRole('button', {name: '确认'}).click();
-                }
-            } else {
-                 logger.log('首夜', `${roleName}(${cleanRoleName}) 无目标行动，直接确认。`);
-            }
+      if (roleMeta) {
+        await expect(page.getByText(`轮到 ${cleanRoleName} 行动`)).toBeVisible({ timeout: 15000 });
+
+        if (roleMeta.targetCount > 0) {
+          const alivePlayers = await getAlivePlayerIndexes(page);
+          const targets = getRandomElement(alivePlayers.filter(i => i + 1 !== parseInt(roleName))); // 避免选择自己
+          const targetSeat = page.locator('.seat-wrapper').nth(targets);
+          await targetSeat.click();
+          logger.log('首夜', `${roleName}(${cleanRoleName}) 对 ${targets + 1}号玩家 使用了技能。`);
+          // 等待可能的模态框
+          if (roleMeta.type === 'poison' || roleMeta.type === 'kill') {
+            const modal = page.getByRole('dialog');
+            await expect(modal).toBeVisible({ timeout: 2000 });
+            await modal.getByRole('button', { name: '确认' }).click();
+          }
+        } else {
+          logger.log('首夜', `${roleName}(${cleanRoleName}) 无目标行动，直接确认。`);
         }
-        
-        const confirmBtn = page.getByRole("button", { name: /确认|Confirm|下一步/ });
-        await expect(confirmBtn).toBeEnabled();
-        await confirmBtn.click();
-        await page.waitForTimeout(200);
+      }
+
+      const confirmBtn = page.getByRole("button", { name: /确认|Confirm|下一步/ });
+      await expect(confirmBtn).toBeEnabled();
+      await confirmBtn.click();
+      await page.waitForTimeout(200);
     }
 
     logger.log("游戏流程", "首夜结束。");
@@ -105,12 +105,12 @@ test.describe("高级游戏模拟器", () => {
     // --- 随机提名 ---
     await expect(page.getByText(/发起提名/)).toBeVisible();
     const alivePlayers = await getAlivePlayerIndexes(page);
-    const [nominatorIndex, nomineeIndex] = getRandomElements(alivePlayers, 2);
-    
+    const nominatorIndex = getRandomElement(alivePlayers);
+    const nomineeIndex = getRandomElement(alivePlayers.filter(i => i !== nominatorIndex));
     logger.log("提名阶段", `${nominatorIndex + 1}号玩家 发起提名。`);
     await page.locator(".seat-wrapper").nth(nominatorIndex).click();
     await page.getByRole("button", { name: "发起提名" }).click();
-    
+
     logger.log("提名阶段", `提名为 ${nomineeIndex + 1}号玩家。`);
     await page.locator('.seat-wrapper').nth(nomineeIndex).click();
     await page.getByRole("button", { name: "确认" }).click();
@@ -118,7 +118,7 @@ test.describe("高级游戏模拟器", () => {
     // --- 随机投票 ---
     await expect(page.getByText(/开始投票/)).toBeVisible();
     await page.getByRole("button", { name: /开始投票/i }).click();
-    
+
     await expect(page.getByText(/请输入票数/)).toBeVisible();
     const voteCount = getRandomInt(1, Math.floor(alivePlayers.length / 2) + 1);
     logger.log("投票阶段", `对 ${nomineeIndex + 1}号玩家 投出 ${voteCount} 票。`);
@@ -129,7 +129,7 @@ test.describe("高级游戏模拟器", () => {
     await expect(page.getByText(/执行处决/)).toBeVisible();
     await page.getByRole("button", { name: /执行处决/i }).click();
 
-    const executionResultModal = page.getByRole('dialog', {name: /处决结果/});
+    const executionResultModal = page.getByRole('dialog', { name: /处决结果/ });
     await expect(executionResultModal).toBeVisible();
     const executionResult = await executionResultModal.textContent();
     logger.log("处决阶段", `处决结果: ${executionResult?.trim()}`);

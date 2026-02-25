@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { FadeIn, SlideUp } from "../common/AnimationWrapper";
 
 export interface ModalWrapperProps {
   title: string;
@@ -89,67 +90,73 @@ export function ModalWrapper({
         }
       }}
     >
-      {/* 弹窗主体 */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 pointer-events-auto ${className}`}
-        style={{
-          width: 'min(90vw, 42rem)',
-          maxWidth: '90vw',
-          maxHeight: 'calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
-          margin: 'max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto',
-          zIndex: 2147483647,
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: 'rgb(15 23 42)', // slate-900
-          borderRadius: '1rem',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          opacity: 1,
-          visibility: 'visible',
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          console.log('[ModalWrapper] Modal content clicked');
-        }}
-      >
-        {/* 1. 标题栏 */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-slate-900">
-          <h2 className="text-xl font-bold text-white">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
-            aria-label="关闭"
-          >
-            ✕
-          </button>
-        </div>
+      <FadeIn duration={0.2} className="absolute inset-0 bg-black/50">
+        <div />
+      </FadeIn>
 
-        {/* 2. 内容区 (可滚动) */}
+      {/* 弹窗主体 */}
+      <SlideUp duration={0.3} className="relative z-10 w-full flex justify-center">
         <div
-          className="flex-1 overflow-y-auto p-6 space-y-4"
+          role="dialog"
+          aria-modal="true"
+          className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 pointer-events-auto ${className}`}
           style={{
-            maxHeight: 'calc(90vh - 8rem)', // 减去标题栏和底部按钮的高度
-            WebkitOverflowScrolling: 'touch', // iOS平滑滚动
+            width: 'min(90vw, 42rem)',
+            maxWidth: '90vw',
+            maxHeight: 'calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
+            margin: 'max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto',
+            zIndex: 2147483647,
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'rgb(15 23 42)', // slate-900
+            borderRadius: '1rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            opacity: 1,
+            visibility: 'visible',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            console.log('[ModalWrapper] Modal content clicked');
           }}
         >
-          {children}
-        </div>
+          {/* 1. 标题栏 */}
+          <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-slate-900">
+            <h2 className="text-xl font-bold text-white">{title}</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+              aria-label="关闭"
+            >
+              ✕
+            </button>
+          </div>
 
-        {/* 3. 底部按钮区 (固定) */}
-        {footer && (
+          {/* 2. 内容区 (可滚动) */}
           <div
-            className="p-4 border-t border-white/10 bg-slate-950/50 shrink-0 flex flex-wrap justify-end gap-3"
+            className="flex-1 overflow-y-auto p-6 space-y-4"
             style={{
-              minHeight: '4rem', // 确保按钮区域有足够高度
-              paddingBottom: 'max(1rem, env(safe-area-inset-bottom))', // iPhone底部安全区域
+              maxHeight: 'calc(90vh - 8rem)', // 减去标题栏和底部按钮的高度
+              WebkitOverflowScrolling: 'touch', // iOS平滑滚动
             }}
           >
-            {footer}
+            {children}
           </div>
-        )}
-      </div>
+
+          {/* 3. 底部按钮区 (固定) */}
+          {footer && (
+            <div
+              className="p-4 border-t border-white/10 bg-slate-950/50 shrink-0 flex flex-wrap justify-end gap-3"
+              style={{
+                minHeight: '4rem', // 确保按钮区域有足够高度
+                paddingBottom: 'max(1rem, env(safe-area-inset-bottom))', // iPhone底部安全区域
+              }}
+            >
+              {footer}
+            </div>
+          )}
+        </div>
+      </SlideUp>
     </div>,
     document.body
   );

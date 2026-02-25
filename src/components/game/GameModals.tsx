@@ -36,232 +36,8 @@ import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
 import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 import { DreamerResultModal } from "../modals/DreamerResultModal";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
-import { SavantResultModal } from "../modals/SavantResultModal";
-
-// 定义所有 Modal 组件需要的 Props 接口
-export interface GameModalsProps {
-  // ========== 状态变量 ==========
-  // 统一的弹窗状态
-  currentModal: ModalType;
-
-  // Modal 显示状态（保留用于向后兼容，逐步迁移）
-  showNightOrderModal: boolean;
-  showExecutionResultModal: { message: string; isVirginTrigger?: boolean } | null;
-  showShootResultModal: { message: string; isDemonDead: boolean } | null;
-  showKillConfirmModal: number | null;
-  showAttackBlockedModal: { targetId: number; reason: string; demonName?: string } | null;
-  showPitHagModal: { targetId: number | null; roleId: string | null } | null;
-  showRangerModal: { targetId: number; roleId: string | null } | null;
-  showDamselGuessModal: { minionId: number | null; targetId: number | null } | null;
-  showShamanConvertModal: boolean;
-  showBarberSwapModal: { demonId: number; firstId: number | null; secondId: number | null } | null;
-  showHadesiaKillConfirmModal: number[] | null;
-  showMayorRedirectModal: { targetId: number; demonName: string } | null;
-  showPoisonConfirmModal: number | null;
-  showPoisonEvilConfirmModal: number | null;
-  showNightDeathReportModal: string | null;
-  showRestartConfirmModal: boolean;
-  showSpyDisguiseModal: boolean;
-  showMayorThreeAliveModal: boolean;
-  showDrunkModal: number | null;
-  showVoteInputModal: number | null;
-  showRoleSelectModal: {
-    type: 'philosopher' | 'cerenovus' | 'pit_hag';
-    targetId: number;
-    onConfirm: (roleId: string) => void;
-  } | null;
-  showMadnessCheckModal: { targetId: number; roleName: string; day: number } | null;
-  showDayActionModal: { type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number } | null;
-  virginGuideInfo: {
-    targetId: number;
-    nominatorId: number;
-    isFirstTime: boolean;
-    nominatorIsTownsfolk: boolean;
-  } | null;
-  showDayAbilityModal: {
-    roleId: string;
-    seatId: number;
-  } | null;
-  showSaintExecutionConfirmModal: { targetId: number } | null;
-  showLunaticRpsModal: { targetId: number; nominatorId: number | null } | null;
-  showVirginTriggerModal: { source: Seat; target: Seat } | null;
-  showRavenkeeperFakeModal: number | null;
-  showStorytellerDeathModal: { sourceId: number } | null;
-  showSweetheartDrunkModal: { sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null;
-  showKlutzChoiceModal: { sourceId: number; onResolve?: (latestSeats?: Seat[]) => void } | null;
-  showMoonchildKillModal: { sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null;
-  showReviewModal: boolean;
-  showGameRecordsModal: boolean;
-  showRoleInfoModal: boolean;
-  contextMenu: { seatId: number; x: number; y: number } | null;
-
-  // 游戏状态
-  gamePhase: GamePhase;
-  winResult: WinResult;
-  winReason: string | null;
-  deadThisNight: number[];
-  nightOrderPreview: Array<{ roleName: string; seatNo: number; order: number | null }>;
-  nightQueuePreviewTitle: string | null;
-  shamanConvertTarget: number | null;
-  mayorRedirectTarget: number | null;
-  spyDisguiseMode: 'off' | 'default' | 'on';
-  spyDisguiseProbability: number;
-  klutzChoiceTarget: number | null;
-  voteInputValue: string;
-  showVoteErrorToast: boolean;
-  voteRecords: Array<{ voterId: number; isDemon: boolean }>;
-  registerVotes?: (seatIds: number[]) => void;
-  dayAbilityForm: {
-    info1?: string;
-    info2?: string;
-    guess?: string;
-    feedback?: string;
-    advice?: string;
-    engineerMode?: 'demon' | 'minion';
-    engineerRoleId?: string;
-  };
-  damselGuessUsedBy: number[];
-  hadesiaChoices: Record<number, 'live' | 'die'>;
-  selectedScript: Script | null;
-  setDayAbilityLogs: (value: Array<{ id: number; roleId: string; text: string; day: number }> | ((prev: Array<{ id: number; roleId: string; text: string; day: number }>) => Array<{ id: number; roleId: string; text: string; day: number }>)) => void;
-  setDamselGuessed: (value: boolean) => void;
-  setShamanTriggered: (value: boolean) => void;
-  setHadesiaChoice: (id: number, choice: 'live' | 'die') => void;
-  // BMR：造谣者记录/裁定
-  setGossipStatementToday?: (value: string) => void;
-  setGossipTrueTonight?: (value: boolean) => void;
-  setGossipSourceSeatId?: (value: number | null) => void;
-
-  // 数据
-  seats: Seat[];
-  roles: Role[];
-  filteredGroupedRoles: Record<string, Role[]>;
-  groupedRoles: Record<string, Role[]>;
-  gameLogs: Array<{ day: number; phase: string; message: string }>;
-  gameRecords: GameRecord[];
-  isPortrait: boolean;
-  nightInfo: NightInfoResult | null;
-  selectedActionTargets: number[];
-  initialSeats: Seat[];
-  nominationRecords: {
-    nominees: Set<number>;
-    nominators: Set<number>;
-  };
-  evilTwinPair: [number, number] | null;
-  remainingDays: number | null;
-  cerenovusTarget: number | null;
-  nightCount: number;
-  currentWakeIndex: number;
-  history: Array<{ seats: Seat[]; gamePhase: GamePhase }>;
-  isConfirmDisabled: boolean;
-
-  // ========== 函数 ==========
-  // Modal 控制函数
-  closeNightOrderPreview: () => void;
-  confirmNightOrderPreview: () => void;
-  confirmExecutionResult: () => void;
-  confirmShootResult: () => void;
-  handleSlayerTargetSelect: (targetId: number) => void;
-  handleDrunkCharadeSelect: (selectedCharadeRoleId: string) => void;
-  confirmKill: () => void;
-  confirmPoison: () => void;
-  confirmPoisonEvil: () => void;
-  confirmNightDeathReport: () => void;
-  confirmRestart: () => void;
-  confirmHadesia: () => void;
-  confirmMayorRedirect: (targetId: number | null) => void;
-  confirmStorytellerDeath: (targetId: number) => void;
-  confirmSweetheartDrunk: (targetId: number) => void;
-  confirmKlutzChoice: () => void;
-  confirmMoonchildKill: (targetId: number) => void;
-  confirmRavenkeeperFake: (role: Role) => void;
-  confirmVirginTrigger: () => void;
-  resolveLunaticRps: (result: 'win' | 'lose' | 'tie') => void;
-  confirmSaintExecution: () => void;
-  cancelSaintExecution: () => void;
-  handleVirginGuideConfirm: () => void;
-  handleDayAction: (targetId: number) => void;
-  submitVotes: (voteCount: number, voters?: number[]) => void;
-  handleNewGame: () => void;
-  enterDuskPhase: () => void;
-  declareMayorImmediateWin: () => void;
-  executePlayer: (playerId: number) => void;
-  saveHistory: () => void;
-  markDailyAbilityUsed: (roleId: string, seatId: number) => void;
-  markAbilityUsed: (roleId: string, seatId: number) => void;
-  insertIntoWakeQueueAfterCurrent: (seatId: number, options?: { roleOverride?: Role; logLabel?: string }) => void;
-  continueToNextAction: () => void;
-  addLog: (message: string) => void;
-  checkGameOver: (updatedSeats: Seat[], executedPlayerId?: number | null, isEndOfDay?: boolean, damselGuessed?: boolean, klutzGuessedEvil?: boolean) => void;
-
-  // Setter 函数
-  setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
-  setShowKillConfirmModal: (value: number | null) => void;
-  setShowPoisonConfirmModal: (value: number | null) => void;
-  setShowPoisonEvilConfirmModal: (value: number | null) => void;
-  setShowHadesiaKillConfirmModal: (value: number[] | null) => void;
-  setShowRavenkeeperFakeModal: (value: number | null) => void;
-  setShowMoonchildKillModal: (value: { sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null) => void;
-  setShowBarberSwapModal: (value: { demonId: number; firstId: number | null; secondId: number | null } | null | ((prev: { demonId: number; firstId: number | null; secondId: number | null } | null) => { demonId: number; firstId: number | null; secondId: number | null } | null)) => void;
-  setShowStorytellerDeathModal: (value: { sourceId: number } | null) => void;
-  setShowSweetheartDrunkModal: (value: { sourceId: number; onResolve: (latestSeats?: Seat[]) => void } | null) => void;
-  setShowKlutzChoiceModal: (value: { sourceId: number; onResolve?: (latestSeats?: Seat[]) => void } | null) => void;
-  setShowPitHagModal: (value: { targetId: number | null; roleId: string | null } | null | ((prev: { targetId: number | null; roleId: string | null } | null) => { targetId: number | null; roleId: string | null } | null)) => void;
-  setShowRangerModal: (value: { targetId: number; roleId: string | null } | null | ((prev: { targetId: number; roleId: string | null } | null) => { targetId: number; roleId: string | null } | null)) => void;
-  setShowDamselGuessModal: (value: { minionId: number | null; targetId: number | null } | null | ((prev: { minionId: number | null; targetId: number | null } | null) => { minionId: number | null; targetId: number | null } | null)) => void;
-  setShowShamanConvertModal: (value: boolean) => void;
-  setShowMayorRedirectModal: (value: { targetId: number; demonName: string } | null) => void;
-  setShowNightDeathReportModal: (value: string | null) => void;
-  setShowRestartConfirmModal: (value: boolean) => void;
-  setShowSpyDisguiseModal: (value: boolean) => void;
-  setShowMayorThreeAliveModal: (value: boolean) => void;
-  setShowDrunkModal: (value: number | null) => void;
-  setShowVoteInputModal: (value: number | null) => void;
-  setShowRoleSelectModal: (value: { type: 'philosopher' | 'cerenovus' | 'pit_hag'; targetId: number; onConfirm: (roleId: string) => void } | null) => void;
-  setShowMadnessCheckModal: (value: { targetId: number; roleName: string; day: number } | null) => void;
-  setShowAttackBlockedModal: (value: { targetId: number; reason: string; demonName?: string } | null) => void;
-  setShowDayActionModal: (value: { type: 'slayer' | 'nominate' | 'lunaticKill'; sourceId: number } | null) => void;
-  setVirginGuideInfo: (value: { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null | ((prev: { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null) => { targetId: number; nominatorId: number; isFirstTime: boolean; nominatorIsTownsfolk: boolean } | null)) => void;
-  setShowDayAbilityModal: (value: { roleId: string; seatId: number } | null) => void;
-  setShowSaintExecutionConfirmModal: (value: { targetId: number } | null) => void;
-  setShowLunaticRpsModal: (value: { targetId: number; nominatorId: number | null } | null) => void;
-  setShowVirginTriggerModal: (value: { source: Seat; target: Seat } | null) => void;
-  setShowReviewModal: (value: boolean) => void;
-  setShowGameRecordsModal: (value: boolean) => void;
-  setShowRoleInfoModal: (value: boolean) => void;
-  setContextMenu: (value: { seatId: number; x: number; y: number } | null) => void;
-  setShamanConvertTarget: (value: number | null) => void;
-  setMayorRedirectTarget: (value: number | null) => void;
-  setSpyDisguiseMode: (value: 'off' | 'default' | 'on') => void;
-  setSpyDisguiseProbability: (value: number) => void;
-  setKlutzChoiceTarget: (value: number | null) => void;
-  setVoteInputValue: (value: string) => void;
-  setShowVoteErrorToast: (value: boolean) => void;
-  setVoteRecords: (value: Array<{ voterId: number; isDemon: boolean }> | ((prev: Array<{ voterId: number; isDemon: boolean }>) => Array<{ voterId: number; isDemon: boolean }>)) => void;
-  setDayAbilityForm: (value: { info1?: string; info2?: string; guess?: string; feedback?: string; advice?: string; engineerMode?: 'demon' | 'minion'; engineerRoleId?: string } | ((prev: { info1?: string; info2?: string; guess?: string; feedback?: string; advice?: string; engineerMode?: 'demon' | 'minion'; engineerRoleId?: string }) => { info1?: string; info2?: string; guess?: string; feedback?: string; advice?: string; engineerMode?: 'demon' | 'minion'; engineerRoleId?: string })) => void;
-  setDamselGuessUsedBy: (value: number[] | ((prev: number[]) => number[])) => void;
-  setHadesiaChoices: (value: Record<number, 'live' | 'die'> | ((prev: Record<number, 'live' | 'die'>) => Record<number, 'live' | 'die'>)) => void;
-  setWinResult: (value: WinResult) => void;
-  setWinReason: (value: string | null) => void;
-  setSelectedActionTargets: (value: number[] | ((prev: number[]) => number[])) => void;
-  setTodayDemonVoted: (value: boolean) => void;
-  setSeats: (value: Seat[] | ((prev: Seat[]) => Seat[])) => void;
-  setGamePhase: (value: GamePhase) => void;
-  setShowShootModal: (value: number | null) => void;
-  setShowNominateModal: (value: number | null) => void;
-
-  // 工具函数
-  handleSeatClick: (seatId: number) => void;
-  toggleStatus: (status: string, seatId?: number) => void;
-  handleMenuAction: (action: string) => void;
-  getRegistrationCached: (target: Seat, viewingRole: Role) => RegistrationResult;
-  isGoodAlignment: (seat: Seat) => boolean;
-  getSeatRoleId: (seat?: Seat | null) => string | null;
-  cleanseSeatStatuses: (seat: Seat, opts?: { keepDeathState?: boolean }) => Seat;
-  typeLabels: Record<string, string>;
-  typeColors: Record<string, string>;
-  typeBgColors: Record<string, string>;
-}
+import { SavantResultModal } from "../modals/SavantResultModal"; import { useGameActions } from "../../contexts/GameActionsContext";
+import { typeLabels, typeColors, typeBgColors, roles } from "../../../app/data";
 
 // 独立的投票举手面板，避免在 JSX 中使用带 Hook 的 IIFE
 function VoteInputModalContent(props: {
@@ -394,7 +170,8 @@ function VoteInputModalContent(props: {
 }
 
 // 空的骨架组件
-export function GameModals(props: GameModalsProps) {
+export function GameModals() {
+  const props = useGameActions();
   // 从 currentModal 中提取数据
   const nightOrderModal = props.currentModal?.type === 'NIGHT_ORDER_PREVIEW' ? props.currentModal.data : null;
   const drunkCharadeSelectModal = props.currentModal?.type === 'DRUNK_CHARADE_SELECT' ? props.currentModal.data : null;
@@ -567,7 +344,7 @@ export function GameModals(props: GameModalsProps) {
                 </p>
               )}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
-                {props.roles
+                {roles
                   .filter((r: Role) => {
                     if (modal.type === 'philosopher' || modal.type === 'cerenovus') {
                       return r.type === 'townsfolk' || r.type === 'outsider';
@@ -579,8 +356,8 @@ export function GameModals(props: GameModalsProps) {
                     return true;
                   })
                   .map((role: Role) => {
-                    const typeColor = props.typeColors[role.type] || 'border-gray-500 text-gray-400';
-                    const typeBgColor = props.typeBgColors[role.type] || 'bg-gray-900/50 hover:bg-gray-800';
+                    const typeColor = typeColors[role.type] || 'border-gray-500 text-gray-400';
+                    const typeBgColor = typeBgColors[role.type] || 'bg-gray-900/50 hover:bg-gray-800';
                     return (
                       <button
                         key={role.id}
@@ -590,7 +367,7 @@ export function GameModals(props: GameModalsProps) {
                         className={`p-4 rounded-xl border-2 ${typeColor} ${typeBgColor} transition-all text-left`}
                       >
                         <div className="font-bold text-lg">{role.name}</div>
-                        <div className="text-sm opacity-80 mt-1">{props.typeLabels[role.type]}</div>
+                        <div className="text-sm opacity-80 mt-1">{typeLabels[role.type]}</div>
                         <div className="text-xs opacity-60 mt-1 line-clamp-2">{role.ability}</div>
                       </button>
                     );
@@ -603,7 +380,7 @@ export function GameModals(props: GameModalsProps) {
                     <div key={s.id} className="flex justify-between">
                       <span>[{s.id + 1}号]</span>
                       <span className="ml-2 flex-1 text-right">
-                        {props.getSeatRoleId(s) ? props.roles.find(r => r.id === props.getSeatRoleId(s))?.name || '未知角色' : '空位 / 未分配'}
+                        {props.getSeatRoleId(s) ? roles.find(r => r.id === props.getSeatRoleId(s))?.name || '未知角色' : '空位 / 未分配'}
                       </span>
                     </div>
                   ))}
@@ -736,6 +513,10 @@ export function GameModals(props: GameModalsProps) {
                               isFirstTime: !s.hasBeenNominated,
                               nominatorIsTownsfolk: isRealTownsfolk
                             });
+                            // Trigger VFX on Virgin
+                            props.setVfxTrigger({ seatId: s.id, type: 'virgin' });
+                            setTimeout(() => props.setVfxTrigger(null), 1000);
+
                             props.setCurrentModal(null);
                             if (props.setShowDayActionModal) props.setShowDayActionModal(null);
                             if (props.setShowNominateModal) props.setShowNominateModal(null);
@@ -901,7 +682,7 @@ export function GameModals(props: GameModalsProps) {
               `${seat.id + 1}号(造谣者) 造谣：${statement}` +
               (isTrue ? '（说书人裁定：为真，今晚额外死亡）' : isFalse ? '（说书人裁定：为假）' : '（未裁定真假）')
             );
-            props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: statement }]);
+            props.setDayAbilityLogs((prev: any[]) => [...prev, { id: seat.id, roleId, day: props.nightCount, text: statement }]);
             props.setGossipStatementToday?.(statement);
             props.setGossipSourceSeatId?.(seat.id);
             props.setGossipTrueTonight?.(isTrue);
@@ -914,7 +695,7 @@ export function GameModals(props: GameModalsProps) {
               return;
             }
             props.addLog(`${seat.id + 1}号(博学者) 今日信息：${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}`);
-            props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}` }]);
+            props.setDayAbilityLogs((prev: any[]) => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}` }]);
             props.markDailyAbilityUsed('savant_mr', seat.id);
             closeModal();
             return;
@@ -925,7 +706,7 @@ export function GameModals(props: GameModalsProps) {
               return;
             }
             props.addLog(`${seat.id + 1}号(失意者) 今日猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}`);
-            props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}` }]);
+            props.setDayAbilityLogs((prev: any[]) => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}` }]);
             props.markDailyAbilityUsed('amnesiac', seat.id);
             closeModal();
             return;
@@ -936,7 +717,7 @@ export function GameModals(props: GameModalsProps) {
               return;
             }
             props.addLog(`${seat.id + 1}号(渔夫) 获得建议：${props.dayAbilityForm.advice}`);
-            props.setDayAbilityLogs(prev => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `建议：${props.dayAbilityForm.advice}` }]);
+            props.setDayAbilityLogs((prev: any[]) => [...prev, { id: seat.id, roleId, day: props.nightCount, text: `建议：${props.dayAbilityForm.advice}` }]);
             props.markAbilityUsed('fisherman', seat.id);
             closeModal();
             return;
@@ -952,7 +733,7 @@ export function GameModals(props: GameModalsProps) {
               alert('请选择要改造成为的角色。');
               return;
             }
-            const newRole = props.roles.find(r => r.id === newRoleId);
+            const newRole = roles.find(r => r.id === newRoleId);
             if (!newRole) return;
             if (mode === 'demon' && newRole.type !== 'demon') {
               alert('请选择一个恶魔角色。');
@@ -1112,7 +893,7 @@ export function GameModals(props: GameModalsProps) {
                       const usedRoleIds = new Set(
                         props.seats.map(s => props.getSeatRoleId(s)).filter(Boolean) as string[]
                       );
-                      return props.roles
+                      return roles
                         .filter(r => r.type === (props.dayAbilityForm.engineerMode === 'demon' ? 'demon' : props.dayAbilityForm.engineerMode === 'minion' ? 'minion' : undefined))
                         .filter(r => !usedRoleIds.has(r.id))
                         .map(r => (
@@ -1158,7 +939,7 @@ export function GameModals(props: GameModalsProps) {
 
       <RavenkeeperFakeModal
         targetId={props.showRavenkeeperFakeModal}
-        roles={props.roles}
+        roles={roles}
         onSelect={props.confirmRavenkeeperFake}
       />
 
@@ -1274,7 +1055,7 @@ export function GameModals(props: GameModalsProps) {
         onClose={() => props.setShowRoleInfoModal(false)}
         selectedScript={props.selectedScript}
         filteredGroupedRoles={props.filteredGroupedRoles}
-        roles={props.roles}
+        roles={roles}
         groupedRoles={props.groupedRoles}
       />
 
@@ -1444,7 +1225,7 @@ export function GameModals(props: GameModalsProps) {
         targetId={props.showPitHagModal?.targetId || null}
         roleId={props.showPitHagModal?.roleId || null}
         seats={props.seats}
-        roles={props.roles}
+        roles={roles}
         onRoleChange={(roleId) => props.setShowPitHagModal((m: any) => m ? ({ ...m, roleId }) : null)}
         onCancel={() => props.setShowPitHagModal(null)}
         onContinue={() => {
@@ -1458,7 +1239,7 @@ export function GameModals(props: GameModalsProps) {
         targetId={props.showRangerModal?.targetId || 0}
         roleId={props.showRangerModal?.roleId || null}
         seats={props.seats}
-        roles={props.roles}
+        roles={roles}
         selectedScript={props.selectedScript}
         onRoleChange={(roleId) => props.setShowRangerModal((m: any) => m ? ({ ...m, roleId }) : null)}
         onConfirm={() => {
@@ -1466,7 +1247,7 @@ export function GameModals(props: GameModalsProps) {
             alert('必须选择一个未在场的镇民角色');
             return;
           }
-          const newRole = props.roles.find(r => r.id === props.showRangerModal?.roleId && r.type === 'townsfolk');
+          const newRole = roles.find(r => r.id === props.showRangerModal?.roleId && r.type === 'townsfolk');
           if (!newRole) {
             alert('角色无效，请重新选择');
             return;

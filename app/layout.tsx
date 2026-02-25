@@ -2,7 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { GameProvider } from "@/src/contexts/GameContext";
-import { ModalProvider } from "@/src/contexts/ModalContext";
+import { AudioProvider } from "@/src/hooks/useAudio";
 
 export const metadata: Metadata = {
   title: "血染钟楼辅助工具",
@@ -26,11 +26,11 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased">
-        <GameProvider>
-          <ModalProvider>
+        <AudioProvider>
+          <GameProvider>
             {children}
-          </ModalProvider>
-        </GameProvider>
+          </GameProvider>
+        </AudioProvider>
       </body>
     </html>
   );

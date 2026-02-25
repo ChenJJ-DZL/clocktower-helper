@@ -6,6 +6,8 @@ import { GameHeader } from "./info/GameHeader";
 import { LogViewer } from "./info/LogViewer";
 import { ControlPanel } from "../ControlPanel";
 import { GameModals } from "./GameModals";
+import { SeatNode } from '../SeatNode';
+import { useAudio } from '../../hooks/useAudio';
 import { SeatGrid } from "./board/SeatGrid";
 import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
@@ -14,9 +16,13 @@ import { GameLayout } from "./GameLayout";
 import { ScaleToFit } from "./board/ScaleToFit";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { getStorytellerTips } from "../../utils/storytellerTips";
+import { useGameActions } from "../../contexts/GameActionsContext";
 
 // 全量重写的 GameStage 组件
-export function GameStage({ controller }: { controller: any }) {
+export const GameStage = () => {
+  const { playSound } = useAudio();
+  // [REFACTOR] 通过 Context 获取所有 action 函数，不再通过 props 接收
+  const controller = useGameActions();
   // 从控制器获取所需的状态与方法
   const {
     // 状态
@@ -152,6 +158,14 @@ export function GameStage({ controller }: { controller: any }) {
   const [nominee, setNominee] = useState<number | null>(null);
   const [pendingVoteFor, setPendingVoteFor] = useState<number | null>(null);
   const [defenseSecondsLeft, setDefenseSecondsLeft] = useState<number>(0);
+
+  // VFX State
+  const [isShaking, setIsShaking] = useState(false);
+
+  const triggerShake = useCallback(() => {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 600);
+  }, []);
   const defenseTimerRef = useRef<number | null>(null);
   const [lastCallSecondsLeft, setLastCallSecondsLeft] = useState<number>(0);
   const lastCallTimerRef = useRef<number | null>(null);
@@ -211,8 +225,9 @@ export function GameStage({ controller }: { controller: any }) {
     return () => {
       stopDefenseTimer();
       stopLastCallTimer();
+      playSound('vote');
     };
-  }, [stopDefenseTimer, stopLastCallTimer]);
+  }, [stopDefenseTimer, stopLastCallTimer, playSound]);
 
   // 每次进入黄昏阶段时，重置本地黄昏状态，避免历史遗留状态导致按钮长时间不可用
   useEffect(() => {
@@ -227,7 +242,7 @@ export function GameStage({ controller }: { controller: any }) {
       setLastCallSecondsLeft(0);
       setIsNominationLocked(false);
     }
-  }, [gamePhase]); // 简化依赖项，只在 gamePhase 变化时执行
+  }, [gamePhase, stopDefenseTimer, stopLastCallTimer]); // 简化依赖项，只在 gamePhase 变化时执行
 
   // 监听投票模态框关闭（仅当曾经打开过 VOTE_INPUT 时才清除）
   useEffect(() => {
@@ -527,6 +542,8 @@ export function GameStage({ controller }: { controller: any }) {
                       alert('错误：executeJudgment 函数不可用，请刷新页面重试。');
                       return;
                     }
+                    // Trigger visual effect
+                    triggerShake();
                     // 直接使用标准处决结算流程（含平票/无人上台/胜负判断）
                     executeJudgment();
                   } catch (error) {
@@ -668,6 +685,7 @@ export function GameStage({ controller }: { controller: any }) {
                     // Call executeNomination (which handles Virgin trigger from Step 4)
                     executeNomination(nominator, nominee, { openVoteModal: false });
                     addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
+                    playSound('execute');
                     setPendingVoteFor(nominee);
                     // 取消自动辩护倒计时，由说书人手动控制节奏
                     // Reset selection
@@ -811,7 +829,7 @@ export function GameStage({ controller }: { controller: any }) {
                     return next;
                   });
                 }, 500);
-                longPressTimerRef.current.set(seatId, timer as unknown as number);
+                longPressTimerRef.current.set(seatId, timer as any);
               }}
               onTouchEnd={(e, seatId) => {
                 e.stopPropagation();
@@ -868,7 +886,7 @@ export function GameStage({ controller }: { controller: any }) {
             currentStep={currentWakeIndex + 1}
             totalSteps={wakeQueueIds.length}
             wakeQueueIds={wakeQueueIds}
-            scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : gamePhase === 'dusk' ? '黄昏处决阶段' : undefined)}
+            scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : (gamePhase as string) === 'dusk' ? '黄昏处决阶段' : undefined)}
             guidancePoints={guidancePoints}
             selectedPlayers={selectedActionTargets}
             seats={seats}
@@ -961,8 +979,8 @@ export function GameStage({ controller }: { controller: any }) {
               if (controller.continueToNextAction) {
                 controller.continueToNextAction();
               } else {
-                // 备用方案：直接设置游戏阶段
-                controller.onSetGamePhase?.('dawnReport');
+                // 备用方案：通过 context 或者直接放弃备用方案
+                console.warn('Fallback: no setGamePhase available without props');
               }
             }}
           />
@@ -973,198 +991,13 @@ export function GameStage({ controller }: { controller: any }) {
   );
 }
 
-// Keep GameModals outside the return statement
-export function GameStageWithModals({ controller }: { controller: any }) {
+// [REFACTOR] GameStageWithModals 不再需要 prop drilling
+// GameStage 和 GameModals 都通过 Context 获取所需的 state 和 action
+export function GameStageWithModals() {
   return (
     <>
-      <GameStage controller={controller} />
-      <GameModals
-        handleSlayerTargetSelect={controller.handleSlayerTargetSelect}
-        handleDrunkCharadeSelect={controller.handleDrunkCharadeSelect}
-        showNightOrderModal={controller.showNightOrderModal}
-        showExecutionResultModal={controller.showExecutionResultModal}
-        showShootResultModal={controller.showShootResultModal}
-        showKillConfirmModal={controller.showKillConfirmModal}
-        showAttackBlockedModal={controller.showAttackBlockedModal}
-        showPitHagModal={controller.showPitHagModal}
-        showRangerModal={controller.showRangerModal}
-        showDamselGuessModal={controller.showDamselGuessModal}
-        showShamanConvertModal={controller.showShamanConvertModal}
-        showBarberSwapModal={controller.showBarberSwapModal}
-        showHadesiaKillConfirmModal={controller.showHadesiaKillConfirmModal}
-        showMayorRedirectModal={controller.showMayorRedirectModal}
-        showPoisonConfirmModal={controller.showPoisonConfirmModal}
-        showPoisonEvilConfirmModal={controller.showPoisonEvilConfirmModal}
-        showNightDeathReportModal={controller.showNightDeathReportModal}
-        showRestartConfirmModal={controller.showRestartConfirmModal}
-        showSpyDisguiseModal={controller.showSpyDisguiseModal}
-        showMayorThreeAliveModal={controller.showMayorThreeAliveModal}
-        showDrunkModal={controller.showDrunkModal}
-        showVoteInputModal={controller.showVoteInputModal}
-        showRoleSelectModal={controller.showRoleSelectModal}
-        showMadnessCheckModal={controller.showMadnessCheckModal}
-        showDayActionModal={controller.showDayActionModal}
-        virginGuideInfo={controller.virginGuideInfo}
-        showDayAbilityModal={controller.showDayAbilityModal}
-        showSaintExecutionConfirmModal={controller.showSaintExecutionConfirmModal}
-        showLunaticRpsModal={controller.showLunaticRpsModal}
-        showVirginTriggerModal={controller.showVirginTriggerModal}
-        showRavenkeeperFakeModal={controller.showRavenkeeperFakeModal}
-        showStorytellerDeathModal={controller.showStorytellerDeathModal}
-        showSweetheartDrunkModal={controller.showSweetheartDrunkModal}
-        showKlutzChoiceModal={controller.showKlutzChoiceModal}
-        showMoonchildKillModal={controller.showMoonchildKillModal}
-        showReviewModal={controller.showReviewModal}
-        showGameRecordsModal={controller.showGameRecordsModal}
-        showRoleInfoModal={controller.showRoleInfoModal}
-        contextMenu={controller.contextMenu}
-        currentModal={controller.currentModal}
-        setCurrentModal={controller.setCurrentModal}
-        gamePhase={controller.gamePhase}
-        winResult={controller.winResult}
-        winReason={controller.winReason}
-        deadThisNight={controller.deadThisNight}
-        nightOrderPreview={controller.nightOrderPreview}
-        nightQueuePreviewTitle={controller.nightQueuePreviewTitle}
-        shamanConvertTarget={controller.shamanConvertTarget}
-        mayorRedirectTarget={controller.mayorRedirectTarget}
-        spyDisguiseMode={controller.spyDisguiseMode}
-        spyDisguiseProbability={controller.spyDisguiseProbability}
-        klutzChoiceTarget={controller.klutzChoiceTarget}
-        voteInputValue={controller.voteInputValue}
-        showVoteErrorToast={controller.showVoteErrorToast}
-        voteRecords={controller.voteRecords}
-        dayAbilityForm={controller.dayAbilityForm}
-        damselGuessUsedBy={controller.damselGuessUsedBy}
-        hadesiaChoices={controller.hadesiaChoices}
-        selectedScript={controller.selectedScript}
-        seats={controller.seats}
-        roles={roles}
-        filteredGroupedRoles={controller.filteredGroupedRoles}
-        groupedRoles={controller.groupedRoles}
-        gameLogs={controller.gameLogs}
-        gameRecords={controller.gameRecords}
-        isPortrait={controller.isPortrait}
-        nightInfo={controller.nightInfo}
-        selectedActionTargets={controller.selectedActionTargets}
-        initialSeats={controller.initialSeats}
-        nominationRecords={controller.nominationRecords}
-        evilTwinPair={controller.evilTwinPair && "evilId" in controller.evilTwinPair ? [controller.evilTwinPair.evilId, controller.evilTwinPair.goodId] : null}
-        remainingDays={controller.remainingDays}
-        cerenovusTarget={
-          controller.cerenovusTarget
-            ? typeof controller.cerenovusTarget === "number"
-              ? controller.cerenovusTarget
-              : controller.cerenovusTarget.targetId
-            : null
-        }
-        nightCount={controller.nightCount}
-        currentWakeIndex={controller.currentWakeIndex}
-        history={controller.history}
-        isConfirmDisabled={controller.isConfirmDisabled}
-        closeNightOrderPreview={controller.closeNightOrderPreview}
-        confirmNightOrderPreview={controller.confirmNightOrderPreview}
-        confirmExecutionResult={controller.confirmExecutionResult}
-        confirmShootResult={controller.confirmShootResult}
-        confirmKill={controller.confirmKill}
-        confirmPoison={controller.confirmPoison}
-        confirmPoisonEvil={controller.confirmPoisonEvil}
-        confirmNightDeathReport={controller.confirmNightDeathReport}
-        confirmRestart={controller.confirmRestart}
-        confirmHadesia={controller.confirmHadesia}
-        confirmMayorRedirect={controller.confirmMayorRedirect}
-        confirmStorytellerDeath={controller.confirmStorytellerDeath}
-        confirmSweetheartDrunk={controller.confirmSweetheartDrunk}
-        confirmKlutzChoice={controller.confirmKlutzChoice}
-        confirmMoonchildKill={controller.confirmMoonchildKill}
-        confirmRavenkeeperFake={controller.confirmRavenkeeperFake}
-        confirmVirginTrigger={controller.confirmVirginTrigger}
-        resolveLunaticRps={controller.resolveLunaticRps}
-        confirmSaintExecution={controller.confirmSaintExecution}
-        cancelSaintExecution={controller.cancelSaintExecution}
-        handleVirginGuideConfirm={controller.handleVirginGuideConfirm}
-        handleDayAction={controller.handleDayAction}
-        submitVotes={controller.submitVotes}
-        handleNewGame={controller.handleNewGame}
-        enterDuskPhase={controller.enterDuskPhase}
-        declareMayorImmediateWin={controller.declareMayorImmediateWin}
-        executePlayer={controller.executePlayer}
-        saveHistory={controller.saveHistory}
-        markDailyAbilityUsed={controller.markDailyAbilityUsed}
-        markAbilityUsed={controller.markAbilityUsed}
-        insertIntoWakeQueueAfterCurrent={controller.insertIntoWakeQueueAfterCurrent}
-        continueToNextAction={controller.continueToNextAction}
-        addLog={controller.addLog}
-        checkGameOver={controller.checkGameOver}
-        setShowKillConfirmModal={controller.setShowKillConfirmModal}
-        setShowPoisonConfirmModal={controller.setShowPoisonConfirmModal}
-        setShowPoisonEvilConfirmModal={controller.setShowPoisonEvilConfirmModal}
-        setShowHadesiaKillConfirmModal={controller.setShowHadesiaKillConfirmModal}
-        setShowRavenkeeperFakeModal={controller.setShowRavenkeeperFakeModal}
-        setShowMoonchildKillModal={controller.setShowMoonchildKillModal}
-        setShowBarberSwapModal={controller.setShowBarberSwapModal}
-        setShowStorytellerDeathModal={controller.setShowStorytellerDeathModal}
-        setShowSweetheartDrunkModal={controller.setShowSweetheartDrunkModal}
-        setShowKlutzChoiceModal={controller.setShowKlutzChoiceModal}
-        setShowPitHagModal={controller.setShowPitHagModal}
-        setShowRangerModal={controller.setShowRangerModal}
-        setShowDamselGuessModal={controller.setShowDamselGuessModal}
-        setShowShamanConvertModal={controller.setShowShamanConvertModal}
-        setShowMayorRedirectModal={controller.setShowMayorRedirectModal}
-        setShowNightDeathReportModal={controller.setShowNightDeathReportModal}
-        setShowRestartConfirmModal={controller.setShowRestartConfirmModal}
-        setShowSpyDisguiseModal={controller.setShowSpyDisguiseModal}
-        setShowMayorThreeAliveModal={controller.setShowMayorThreeAliveModal}
-        setShowDrunkModal={controller.setShowDrunkModal}
-        setShowVoteInputModal={controller.setShowVoteInputModal}
-        setShowRoleSelectModal={controller.setShowRoleSelectModal}
-        setShowMadnessCheckModal={controller.setShowMadnessCheckModal}
-        setShowDayActionModal={controller.setShowDayActionModal}
-        setVirginGuideInfo={controller.setVirginGuideInfo}
-        setShowDayAbilityModal={controller.setShowDayAbilityModal}
-        setShowSaintExecutionConfirmModal={controller.setShowSaintExecutionConfirmModal}
-        setShowLunaticRpsModal={controller.setShowLunaticRpsModal}
-        setShowVirginTriggerModal={controller.setShowVirginTriggerModal}
-        setShowReviewModal={controller.setShowReviewModal}
-        setShowGameRecordsModal={controller.setShowGameRecordsModal}
-        setShowRoleInfoModal={controller.setShowRoleInfoModal}
-        setContextMenu={controller.setContextMenu}
-        setShamanConvertTarget={controller.setShamanConvertTarget}
-        setMayorRedirectTarget={controller.setMayorRedirectTarget}
-        setSpyDisguiseMode={controller.setSpyDisguiseMode}
-        setSpyDisguiseProbability={controller.setSpyDisguiseProbability}
-        setKlutzChoiceTarget={controller.setKlutzChoiceTarget}
-        setVoteInputValue={controller.setVoteInputValue}
-        setShowVoteErrorToast={controller.setShowVoteErrorToast}
-        setVoteRecords={controller.setVoteRecords}
-        setDayAbilityForm={controller.setDayAbilityForm}
-        setDamselGuessUsedBy={controller.setDamselGuessUsedBy}
-        setHadesiaChoices={controller.setHadesiaChoices}
-        setWinResult={controller.setWinResult}
-        setWinReason={controller.setWinReason}
-        setSelectedActionTargets={controller.setSelectedActionTargets}
-        setTodayDemonVoted={controller.setTodayDemonVoted}
-        setSeats={controller.setSeats}
-        setGamePhase={controller.setGamePhase}
-        setShowShootModal={controller.setShowShootModal}
-        setShowNominateModal={controller.setShowNominateModal}
-        handleSeatClick={controller.onSeatClick}
-        toggleStatus={controller.toggleStatus}
-        handleMenuAction={controller.handleMenuAction}
-        getRegistrationCached={controller.getRegistrationCached}
-        isGoodAlignment={controller.isGoodAlignment}
-        getSeatRoleId={controller.getSeatRoleId}
-        cleanseSeatStatuses={controller.cleanseSeatStatuses}
-        typeLabels={typeLabels}
-        typeColors={typeColors}
-        typeBgColors={typeBgColors}
-        setDayAbilityLogs={controller.setDayAbilityLogs}
-        setDamselGuessed={controller.setDamselGuessed}
-        setShamanTriggered={controller.setShamanTriggered}
-        setHadesiaChoice={controller.setHadesiaChoice}
-        setShowAttackBlockedModal={controller.setShowAttackBlockedModal}
-      />
+      <GameStage />
+      <GameModals />
     </>
   );
 }
-

@@ -52,8 +52,8 @@ export const dreamer: RoleDefinition = {
       const registrant = getRegistration(targetSeat, { id: 'dreamer' } as any);
       const isGoodReg = registrant.alignment === 'Good';
 
-      const goodRoles = roles.filter(r => r.type === 'townsfolk' || r.type === 'outsider');
-      const evilRoles = roles.filter(r => r.type === 'minion' || r.type === 'demon');
+      const goodRoles = roles!.filter(r => r.type === 'townsfolk' || r.type === 'outsider');
+      const evilRoles = roles!.filter(r => r.type === 'minion' || r.type === 'demon');
 
       let roleA, roleB;
 
@@ -71,8 +71,8 @@ export const dreamer: RoleDefinition = {
       // 如果目标是隐士（注册为邪恶），则 roleA 是随机好人，roleB 是隐士
       // 如果目标是间谍（注册为善良），则 roleA 是间谍，roleB 是随机坏人
 
-      const resRoleA = roles.find(r => r.id === (isGoodReg ? roleA.id : roleA.id))!;
-      const resRoleB = roles.find(r => r.id === (isGoodReg ? roleB.id : roleB.id))!;
+      const resRoleA = roles!.find(r => r.id === (isGoodReg ? roleA.id : roleA.id))!;
+      const resRoleB = roles!.find(r => r.id === (isGoodReg ? roleB.id : roleB.id))!;
 
       return {
         updates: [],

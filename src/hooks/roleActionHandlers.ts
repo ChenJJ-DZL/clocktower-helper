@@ -961,7 +961,7 @@ export function handleImpSuicide(
     killPlayer: (targetId: number, options?: any) => void;
     addLogWithDeduplication: (msg: string, playerId: number, roleName: string) => void;
     getRandom: <T>(arr: T[]) => T;
-    seatsRef: React.MutableRefObject<Seat[]>;
+    // seatsRef removed (REFACTOR)
   }
 ): { handled: boolean; shouldContinue?: boolean } {
   // 只有小恶魔选择自己时才处理
@@ -969,7 +969,7 @@ export function handleImpSuicide(
     return { handled: false };
   }
 
-  const { seats, roles, setSeats, setWakeQueueIds, setDeadThisNight, checkGameOver, enqueueRavenkeeperIfNeeded, killPlayer, addLogWithDeduplication, getRandom, seatsRef } = context;
+  const { seats, roles, setSeats, setWakeQueueIds, setDeadThisNight, checkGameOver, enqueueRavenkeeperIfNeeded, killPlayer, addLogWithDeduplication, getRandom } = context;
 
   // 找到所有活着的爪牙
   const aliveMinions = seats.filter(s =>
@@ -1011,7 +1011,7 @@ export function handleImpSuicide(
     // 正常传位给爪牙小恶魔自杀时优先传位给爪牙不检查红唇女郎
     // 检查游戏结束不应该结束因为新小恶魔还在
     setTimeout(() => {
-      const currentSeats = seatsRef.current || updatedSeats;
+      const currentSeats = updatedSeats;
       checkGameOver(currentSeats);
     }, 0);
 
@@ -1041,7 +1041,7 @@ export function handleImpSuicide(
     // 使用通用杀人流程触发死亡与游戏结束判定
     killPlayer(impSeatId, {
       onAfterKill: (latestSeats?: Seat[]) => {
-        const finalSeats = latestSeats && latestSeats.length ? latestSeats : (seatsRef.current || seats);
+        const finalSeats = latestSeats && latestSeats.length ? latestSeats : seats;
         checkGameOver(finalSeats, impSeatId);
       }
     });

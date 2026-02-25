@@ -109,7 +109,7 @@ export interface NightLogicActions {
   getDemonDisplayName: (roleId?: string, fallbackName?: string) => string;
   enqueueRavenkeeperIfNeeded: (targetId: number) => void;
   continueToNextAction: () => void;
-  seatsRef: React.MutableRefObject<Seat[]>;
+  // seatsRef removed (REFACTOR) - use seats from gameState directly
   currentWakeIndexRef: React.MutableRefObject<number>;
 }
 
@@ -182,7 +182,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     getDemonDisplayName,
     enqueueRavenkeeperIfNeeded,
     continueToNextAction,
-    seatsRef,
+    // seatsRef removed (REFACTOR)
     currentWakeIndexRef,
   } = actions;
 
@@ -530,7 +530,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
   ): 'pending' | 'resolved' => {
     if (!nightInfo) return 'resolved';
     const killerRoleId = nightInfo.effectiveRole.id;
-    const seatsSnapshot = seatsRef.current || seats;
+    const seatsSnapshot = seats;
     const target = seatsSnapshot.find(s => s.id === targetId);
     if (!target) return 'resolved';
 
@@ -677,7 +677,6 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
   }, [
     nightInfo,
     seats,
-    seatsRef,
     setSeats,
     setIsVortoxWorld,
     setShowKillConfirmModal,

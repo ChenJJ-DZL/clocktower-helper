@@ -49,7 +49,7 @@ describe('Role Architecture Consistency', () => {
             // Test First Night
             if (firstNightTarget) {
                 // Correct signature: seat, seats, history, phase, roles, script
-                const info = calculateNightInfo(mockSeat, mockSeats, [], 'firstNight', globalRoles, null as any);
+                const info = calculateNightInfo(null, mockSeats, mockSeat.id, 'firstNight', null);
                 if (info) {
                     expect(info.meta?.targetCount).toBeDefined();
                     expect(info.meta?.targetCount?.max).toBe(firstNightTarget.max);
@@ -63,7 +63,7 @@ describe('Role Architecture Consistency', () => {
 
             // Test Other Night
             if (nightTarget) {
-                const info = calculateNightInfo(mockSeat, mockSeats, [], 'night', globalRoles, null as any);
+                const info = calculateNightInfo(null, mockSeats, mockSeat.id, 'night', null);
                 if (info) {
                     expect(info.meta?.targetCount).toBeDefined();
                     expect(info.meta?.targetCount?.max).toBe(nightTarget.max);
