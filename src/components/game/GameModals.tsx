@@ -36,7 +36,9 @@ import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
 import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 import { DreamerResultModal } from "../modals/DreamerResultModal";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
-import { SavantResultModal } from "../modals/SavantResultModal"; import { useGameActions } from "../../contexts/GameActionsContext";
+import { SavantResultModal } from "../modals/SavantResultModal";
+import { SpyGrimoireModal } from "../modals/SpyGrimoireModal";
+import { useGameActions } from "../../contexts/GameActionsContext";
 import { typeLabels, typeColors, typeBgColors, roles } from "../../../app/data";
 
 // 独立的投票举手面板，避免在 JSX 中使用带 Hook 的 IIFE
@@ -191,6 +193,7 @@ export function GameModals() {
   const artistResultModal = props.currentModal?.type === 'ARTIST_RESULT' ? props.currentModal.data : null;
   const savantResultModal = props.currentModal?.type === 'SAVANT_RESULT' ? props.currentModal.data : null;
   const nightDeathReportModal = props.currentModal?.type === 'NIGHT_DEATH_REPORT' ? props.currentModal.data : null;
+  const spyGrimoireModal = props.currentModal?.type === 'SPY_GRIMOIRE' ? props.currentModal.data : null;
 
 
   // 伪装身份识别：避免在 render 中使用 IIFE（React 19 下可能触发内部断言）

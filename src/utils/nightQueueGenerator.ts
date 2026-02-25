@@ -41,26 +41,26 @@ export function generateNightActionQueue(
   isFirstNight: boolean
 ): Seat[] {
   const queueItems: NightQueueItem[] = [];
-  
+
   // 遍历所有座位，收集需要唤醒的角色
   for (const seat of seats) {
     if (!seat.role) continue;
-    
+
     // 处理酒鬼：酒鬼的实际角色是 charadeRole（镇民角色）
-    const effectiveRoleId = seat.role.id === 'drunk' 
+    const effectiveRoleId = seat.role.id === 'drunk'
       ? (seat.charadeRole?.id || null)
       : seat.role.id;
-    
+
     if (!effectiveRoleId) continue;
-    
+
     // 从角色定义系统获取角色信息
     const roleDef = getRoleDefinition(effectiveRoleId);
-    
+
     if (!roleDef) {
       console.warn(`[generateNightActionQueue] 角色 ${effectiveRoleId} 未找到定义，跳过`);
       continue;
     }
-    
+
     // 检查是否死亡 - 如果死亡，需要特殊权限才能唤醒
     if (seat.isDead) {
       if (seat.hasAbilityEvenDead) {
@@ -72,13 +72,13 @@ export function generateNightActionQueue(
           if (typeof orderConfig === 'function') return orderConfig(isFirstNight);
           return 999;
         };
-        
+
         const firstNightOrder = roleDef.firstNight ? getOrderValue(roleDef.firstNight.order) : 999;
         const nightOrder = roleDef.night ? getOrderValue(roleDef.night.order) : 999;
-        const order = isFirstNight 
+        const order = isFirstNight
           ? (firstNightOrder !== 999 ? firstNightOrder : nightOrder)
           : nightOrder;
-        
+
         // CRITICAL FIX: Skip roles with order <= 0 (0 means "don't wake")
         // Order 0 or negative means the role should not be awakened this night
         if (order > 0 && order < 999) {
@@ -94,11 +94,11 @@ export function generateNightActionQueue(
       // 默认情况下，死亡的角色不应该被唤醒（除非有hasAbilityEvenDead标记）
       continue;
     }
-    
+
     // 检查角色是否有夜晚行动配置
     const hasFirstNightAction = !!roleDef.firstNight;
     const hasNightAction = !!roleDef.night;
-    
+
     // 获取order值（order可以是number或函数）
     const getOrderValue = (orderConfig: number | ((isFirstNight: boolean) => number) | undefined): number => {
       if (orderConfig === undefined) return 999;
@@ -106,7 +106,7 @@ export function generateNightActionQueue(
       if (typeof orderConfig === 'function') return orderConfig(isFirstNight);
       return 999;
     };
-    
+
     // 优先使用全局夜晚顺序覆盖表
     const overrideOrder = getNightOrderOverride(effectiveRoleId, isFirstNight);
     if (overrideOrder !== null) {
@@ -121,25 +121,17 @@ export function generateNightActionQueue(
     }
 
     if (isFirstNight) {
-      // 首夜：优先检查 firstNight，如果没有则检查 night
-      if (hasFirstNightAction || hasNightAction) {
-        const firstNightOrder = hasFirstNightAction 
-          ? getOrderValue(roleDef.firstNight?.order)
-          : 999;
-        const nightOrder = hasNightAction
-          ? getOrderValue(roleDef.night?.order)
-          : 999;
-        // 首夜优先使用firstNight的order，如果没有则使用night的order
-        const order = hasFirstNightAction ? firstNightOrder : nightOrder;
-        // CRITICAL FIX: Skip roles with order <= 0 (0 means "don't wake")
-        // Order 0 or negative means the role should not be awakened this night
+      // 首夜：优先检查 firstNight
+      // 如果没有 firstNight 且该角色没有在全局首夜表 (overrideOrder) 中被捕获，则表示不应在首夜唤醒
+      if (hasFirstNightAction) {
+        const order = getOrderValue(roleDef.firstNight?.order);
         if (order > 0 && order < 999) {
           queueItems.push({
             seat,
             seatId: seat.id,
             roleId: effectiveRoleId,
             order,
-            isFirstNightOnly: hasFirstNightAction && !hasNightAction,
+            isFirstNightOnly: !hasNightAction,
           });
         }
       }
@@ -161,7 +153,7 @@ export function generateNightActionQueue(
       }
     }
   }
-  
+
   // 按优先级排序（order 越小越靠前）
   queueItems.sort((a, b) => {
     // 首先按 order 排序
@@ -171,13 +163,13 @@ export function generateNightActionQueue(
     // order 相同时，按座位ID排序（保持稳定性）
     return a.seatId - b.seatId;
   });
-  
+
   // 提取排序后的座位
   const sortedSeats = queueItems.map(item => item.seat);
-  
+
   // Debug logging
   console.log(`[generateNightActionQueue] ${isFirstNight ? 'First night' : 'Night'} - Processing ${seats.length} seats`);
-  console.log(`[generateNightActionQueue] Generated ${queueItems.length} queue items:`, 
+  console.log(`[generateNightActionQueue] Generated ${queueItems.length} queue items:`,
     queueItems.map(item => ({
       seatId: item.seatId + 1,
       roleId: item.roleId,
@@ -185,7 +177,7 @@ export function generateNightActionQueue(
       order: item.order,
     }))
   );
-  
+
   // If queue is empty, log detailed debug info
   if (queueItems.length === 0) {
     console.warn('[generateNightActionQueue] ⚠️ Queue is empty! Checking roles:');
@@ -194,7 +186,7 @@ export function generateNightActionQueue(
         console.warn(`  - Seat ${seat.id + 1}: No role`);
         return;
       }
-      const effectiveRoleId = seat.role.id === 'drunk' 
+      const effectiveRoleId = seat.role.id === 'drunk'
         ? (seat.charadeRole?.id || null)
         : seat.role.id;
       if (!effectiveRoleId) {
@@ -223,7 +215,7 @@ export function generateNightActionQueue(
       }
     });
   }
-  
+
   return sortedSeats;
 }
 
@@ -242,12 +234,12 @@ export function filterValidNightQueue(
     // 从最新座位状态中查找
     const currentSeat = seats.find(s => s.id === queuedSeat.id);
     if (!currentSeat) return false;
-    
+
     // 如果已死亡且无能力，则过滤掉（亡骨魔杀死的爪牙等保留能力的除外）
     if (currentSeat.isDead && !currentSeat.hasAbilityEvenDead) {
       return false;
     }
-    
+
     return true;
   });
 }
@@ -281,19 +273,19 @@ export function getNextValidQueueIndex(
   seats: Seat[]
 ): number {
   let nextIndex = currentIndex + 1;
-  
+
   while (nextIndex < queue.length) {
     const nextSeat = queue[nextIndex];
     const currentSeat = seats.find(s => s.id === nextSeat.id);
-    
+
     // 检查是否为有效队列项
     if (currentSeat && (!currentSeat.isDead || currentSeat.hasAbilityEvenDead)) {
       return nextIndex;
     }
-    
+
     nextIndex++;
   }
-  
+
   // 如果没有找到下一个有效项，返回队列长度（表示队列结束）
   return queue.length;
 }

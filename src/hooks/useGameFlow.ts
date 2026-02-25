@@ -324,13 +324,10 @@ export function useGameFlow(): UseGameFlowResult {
       return;
     }
 
-    const timeline = generateNightTimeline(seats, true);
-    const wakeQueueIds = timeline
-      .map((step: any) => (step.type === 'character' && step.seatId !== undefined) ? step.seatId : -1)
-      .filter((id: number, index: number, arr: number[]) => id !== -1 || arr.indexOf(id) === index);
-
+    // 这里清除队列以便触发 useNightLogic 里的 startNight，
+    // startNight 会使用新的 queue 算法并弹窗确认
     dispatch(gameActions.updateState({
-      wakeQueueIds,
+      wakeQueueIds: [],
       currentWakeIndex: 0,
       selectedActionTargets: [],
       inspectionResult: null

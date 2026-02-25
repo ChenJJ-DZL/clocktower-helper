@@ -7,6 +7,7 @@ import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { getRoleDefinition } from "../roles";
 import { generateNightActionQueue } from "../utils/nightQueueGenerator";
+import { getNightOrderOverride } from "../utils/nightOrderOverrides";
 
 // 定义 Hook 的输入接口
 export interface NightLogicGameState {
@@ -453,15 +454,28 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
 
         setPendingNightQueue(validQueue);
         const preview = validQueue
-          .map(s => {
+          .map((s, idx) => {
             const r = s.role?.id === 'drunk' ? s.charadeRole : s.role;
+            const roleDef = getRoleDefinition(r?.id || '');
+            let orderNum = idx + 1;
+            if (r?.id) {
+              const override = getNightOrderOverride(r.id, isFirst);
+              if (override !== null) {
+                orderNum = override;
+              } else {
+                if (isFirst) {
+                  orderNum = roleDef?.firstNight?.order ?? (r as any).firstNightOrder ?? 999;
+                } else {
+                  orderNum = roleDef?.night?.order ?? (r as any).nightOrder ?? 999;
+                }
+              }
+            }
             return {
               roleName: r?.name || '未知角色',
               seatNo: s.id + 1,
-              order: r?.firstNightOrder ?? 999
+              order: orderNum
             };
-          })
-          .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+          });
 
         console.log('[startNight] Preview data:', preview);
         setNightOrderPreview(preview);

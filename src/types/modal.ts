@@ -42,6 +42,7 @@ export type ModalType =
   | { type: 'ROLE_SELECT'; data: { type: 'philosopher' | 'cerenovus' | 'pit_hag'; targetId: number; onConfirm: (roleId: string) => void } }
   | { type: 'SHAMAN_CONVERT'; data: null }
   | { type: 'SPY_DISGUISE'; data: null }
+  | { type: 'SPY_GRIMOIRE'; data: null }
   | { type: 'BARBER_SWAP'; data: { demonId: number; firstId: number | null; secondId: number | null } }
 
   // 说书人选择弹窗（当能力描述中没有"选择"一词时）

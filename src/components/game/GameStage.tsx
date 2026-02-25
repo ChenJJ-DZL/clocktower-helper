@@ -17,6 +17,7 @@ import { ScaleToFit } from "./board/ScaleToFit";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { getStorytellerTips } from "../../utils/storytellerTips";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { NoteEditModal } from "./modals/NoteEditModal"; // Added import
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
@@ -57,6 +58,8 @@ export const GameStage = () => {
     autoRedHerringInfo,
     selectedRole,
     setSelectedRole,
+    seatNotes, // Added seatNotes from context
+    setSeatNotes, // Added setSeatNotes from context
 
     // refs
     seatContainerRef,
@@ -111,7 +114,7 @@ export const GameStage = () => {
     handleRestart,
     handleGlobalUndo,
     nightLogic,
-    getSeatPosition,
+    // getSeatPosition, // Already imported, no need to get from controller
     toggleTarget,
     isTargetDisabled,
     executePlayer,
@@ -158,6 +161,9 @@ export const GameStage = () => {
   const [nominee, setNominee] = useState<number | null>(null);
   const [pendingVoteFor, setPendingVoteFor] = useState<number | null>(null);
   const [defenseSecondsLeft, setDefenseSecondsLeft] = useState<number>(0);
+
+  // Notes state
+  const [editingNoteTarget, setEditingNoteTarget] = useState<number | null>(null); // Added state for NoteEditModal
 
   // VFX State
   const [isShaking, setIsShaking] = useState(false);
@@ -397,7 +403,7 @@ export const GameStage = () => {
               type="button"
               onClick={() => setAntagonismEnabled((v) => !v)}
               className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
-              title="相克规则开关（默认关闭，不产生影响）"
+              title="相克规则：{antagonismEnabled ? '开' : '关'}"
             >
               相克规则：{antagonismEnabled ? '开' : '关'}
             </button>
@@ -464,6 +470,8 @@ export const GameStage = () => {
                 onTimerPause={controller.handleTimerPause}
                 onTimerReset={controller.handleTimerReset}
                 onSetRedNemesis={setRedNemesisTarget}
+                onEditNote={(seatId) => setEditingNoteTarget(seatId)} // Added onEditNote
+                seatNotes={seatNotes} // Added seatNotes
               />
             </ScaleToFit>
 
@@ -876,6 +884,8 @@ export const GameStage = () => {
               nightOrderPreview={nightOrderPreviewLive || nightOrderPreview}
               onOpenNightOrderPreview={setShowNightOrderModal ? () => setShowNightOrderModal(true) : undefined}
               onSetRedNemesis={setRedNemesisTarget}
+              onEditNote={(seatId) => setEditingNoteTarget(seatId)} // Added onEditNote
+              seatNotes={seatNotes} // Added seatNotes
             />
           </div>
         }

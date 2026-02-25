@@ -605,6 +605,12 @@ export function useGameController() {
   // 根据selectedScript过滤角色的辅助函数
   const getFilteredRoles = useCallback((roleList: Role[]): Role[] => {
     if (!selectedScript) return [];
+
+    // 自定义/导入的剧本逻辑
+    if (selectedScript.isCustom && selectedScript.roleIds) {
+      return roleList.filter(r => selectedScript.roleIds!.includes(r.id));
+    }
+
     return roleList
       .filter(r => !r.hidden) // 隐藏标记的角色不暴露到前台
       .filter(r =>
@@ -3838,6 +3844,9 @@ export function useGameController() {
   return {
     // State
     ...gameState,
+
+    seatNotes: gameState.seatNotes,
+    setSeatNotes: gameState.setSeatNotes,
 
     vfxTrigger,
     setVfxTrigger,

@@ -274,46 +274,6 @@ export function RoundTable({
         </div>
       </div>
 
-      {/* Decorative table ring - REMOVED borders per requirements */}
-
-      {/* Subtle background circle for table surface - REMOVED borders per requirements */}
-
-      {/* Seats container */}
-      <div className="relative w-full h-full" style={{ position: 'relative' }}>
-        <SeatGrid
-          seats={seats}
-          nightInfo={nightInfo}
-          selectedActionTargets={selectedActionTargets}
-          isPortrait={isPortrait}
-          seatScale={seatSize / 112} // Scale factor: 112px / base 112px (7rem) = 1.0 for "Big Seat" mode
-          longPressingSeats={longPressingSeats}
-          onSeatClick={onSeatClick}
-          onContextMenu={handleSeatContextMenu}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-          onTouchMove={onTouchMove}
-          setSeatRef={setSeatRef}
-          getSeatPosition={getDynamicSeatPosition}
-          getDisplayRoleType={getDisplayRoleType}
-          typeColors={typeColors}
-          layoutMode="circle"
-          nominator={nominator}
-          nominee={nominee}
-        />
-      </div>
-
-      {/* Table Center HUD */}
-      {gamePhase !== undefined && nightCount !== undefined && timer !== undefined && formatTimer && (
-        <TableCenterHUD
-          gamePhase={gamePhase}
-          nightCount={nightCount}
-          timer={timer}
-          formatTimer={formatTimer}
-          onTimerStart={onTimerStart}
-          onTimerPause={onTimerPause}
-          onTimerReset={onTimerReset}
-        />
-      )}
       {/* Custom Context Menu */}
       {contextMenu && (
         <div

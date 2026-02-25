@@ -204,6 +204,8 @@ export interface Script {
   name: string;
   difficulty: string;
   description: string;
+  isCustom?: boolean; // 是否是自定义/导入的剧本
+  roleIds?: string[]; // 剧本包含的角色 ID 列表
 }
 
 // 剧本列表

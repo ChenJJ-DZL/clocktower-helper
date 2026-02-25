@@ -8,18 +8,18 @@ export const spy: RoleDefinition = {
   id: "spy",
   name: "间谍",
   type: "minion",
-  
+
   // 首夜和后续夜晚都行动
   night: {
     order: 45,
-    
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（间谍）。`,
@@ -27,12 +27,15 @@ export const spy: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（间谍），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
-      // 间谍是被动获取信息，不需要处理逻辑
-      // 说书人根据 dialog 提示手动告知信息
+      // 触发间谍查看魔典的弹窗
       return {
         updates: [],
+        modal: {
+          type: 'SPY_GRIMOIRE',
+          data: null,
+        },
         logs: {
           privateLog: `间谍（${context.selfId + 1}号）已查看魔典`,
         },
