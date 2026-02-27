@@ -1,31 +1,17 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 ﻿"use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useMemo, useEffect, useCallback, useRef, useState } from "react";
-import { roles, Role, Seat, StatusEffect, LogEntry, GamePhase, WinResult, groupedRoles, typeLabels, typeColors, typeBgColors, RoleType, scripts, Script } from "./data";
-import { NightHintState, NightInfoResult, GameRecord, phaseNames } from "../src/types/game";
-import { useGameController, type DayAbilityConfig } from "../src/hooks/useGameController";
+import { motion } from "framer-motion";
+import { useEffect, useCallback } from "react";
+import { typeColors } from "./data";
+import { NightHintState } from "../src/types/game";
+import { useGameController } from "../src/hooks/useGameController";
 import { GameActionsProvider } from "../src/contexts/GameActionsContext";
 import PortraitLock from "../src/components/PortraitLock";
 import { GameStage } from "../src/components/game/GameStage";
-import { GameHeader } from "../src/components/game/info/GameHeader";
-import { LogViewer } from "../src/components/game/info/LogViewer";
+
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
-import {
-  getSeatPosition,
-  getRandom,
-  getRegistration,
-  getRegisteredAlignment,
-  computeIsPoisoned,
-  addPoisonMark,
-  isEvil,
-  isGoodAlignment,
-  getAliveNeighbors,
-  shouldShowFakeInfo,
-  getMisinformation,
-  type RegistrationCacheOptions,
-  type RegistrationResult
-} from "../src/utils/gameRules";
+
 
 // getSeatRoleId is now imported from useGameController
 
@@ -38,9 +24,7 @@ import {
 
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
-import { calculateNightInfo } from "@/src/utils/nightLogic";
 import { GameModals } from "@/src/components/game/GameModals";
-import { GameBoard } from "@/src/components/game/GameBoard";
 import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
 import GameSetup from "@/src/components/game/setup/GameSetup";
 import { GameLayout } from "@/src/components/game/GameLayout";
@@ -58,236 +42,39 @@ export default function Home() {
   //      使用 useGameController Hook 获取所有状态和逻辑
   // ===========================
   const controller = useGameController();
-  const { playSound, isMuted, toggleMute } = useAudio();
-  // 解构所有状态变量和函数
+  const { playSound } = useAudio();
+  // 仅解构本文件直接使用的变量；其余通过 controller={controller} 传递给 GameActionsProvider
   const {
-    // 基础状态
-    mounted, setMounted,
-    showIntroLoading, setShowIntroLoading,
-    isPortrait, setIsPortrait,
-
-    // 座位和游戏核心状态
-    seats, setSeats,
-    initialSeats, setInitialSeats,
-    gamePhase, setGamePhase,
-    selectedScript, setSelectedScript,
-    nightCount, setNightCount,
-    deadThisNight, setDeadThisNight,
-    executedPlayerId, setExecutedPlayerId,
-    gameLogs, setGameLogs,
-    winResult, setWinResult,
-    winReason, setWinReason,
-
-    // 时间和UI状态
-    startTime, setStartTime,
-    timer, setTimer,
-    selectedRole, setSelectedRole,
-    contextMenu, setContextMenu,
-    showMenu, setShowMenu,
-    longPressingSeats, setLongPressingSeats,
-
-    // 夜晚行动状态
-    wakeQueueIds, setWakeQueueIds,
-    currentWakeIndex, setCurrentWakeIndex,
-    selectedActionTargets, setSelectedActionTargets,
-    inspectionResult, setInspectionResult,
-    inspectionResultKey, setInspectionResultKey,
-    currentHint, setCurrentHint,
-
-    // 白天事件状态
-    todayDemonVoted, setTodayDemonVoted,
-    todayMinionNominated, setTodayMinionNominated,
-    todayExecutedId, setTodayExecutedId,
-    witchCursedId, setWitchCursedId,
-    witchActive, setWitchActive,
-    cerenovusTarget, setCerenovusTarget,
-    isVortoxWorld, setIsVortoxWorld,
-    fangGuConverted, setFangGuConverted,
-    jugglerGuesses, setJugglerGuesses,
-    evilTwinPair, setEvilTwinPair,
-
-    // Modal 状态
-    showShootModal, setShowShootModal,
-    showNominateModal, setShowNominateModal,
-    showDayActionModal, setShowDayActionModal,
-    showDayAbilityModal, setShowDayAbilityModal,
-    dayAbilityForm, setDayAbilityForm,
-    showDrunkModal, setShowDrunkModal,
-    baronSetupCheck, setBaronSetupCheck,
-    ignoreBaronSetup, setIgnoreBaronSetup,
+    // 基础状态 & UI
+    mounted, setMounted, showIntroLoading, setIsPortrait,
+    gamePhase, setGamePhase, seats, setGameLogs,
+    selectedScript, setSelectedScript, nightCount,
+    deadThisNight, gameLogs,
+    // Modal & Setup
+    baronSetupCheck, setBaronSetupCheck, ignoreBaronSetup, setIgnoreBaronSetup,
     compositionError, setCompositionError,
-    showRavenkeeperResultModal, setShowRavenkeeperResultModal,
-    voteInputValue, setVoteInputValue,
-    showVoteErrorToast, setShowVoteErrorToast,
-    gameRecords, setGameRecords,
-    showKillConfirmModal, setShowKillConfirmModal,
-    showAttackBlockedModal, setShowAttackBlockedModal,
-    showMayorRedirectModal, setShowMayorRedirectModal,
-    mayorRedirectTarget, setMayorRedirectTarget,
-    showPoisonConfirmModal, setShowPoisonConfirmModal,
-    showPoisonEvilConfirmModal, setShowPoisonEvilConfirmModal,
-    showNightDeathReportModal, setShowNightDeathReportModal,
-    showHadesiaKillConfirmModal, setShowHadesiaKillConfirmModal,
-    showMoonchildKillModal, setShowMoonchildKillModal,
-    showSweetheartDrunkModal, setShowSweetheartDrunkModal,
-    goonDrunkedThisNight, setGoonDrunkedThisNight,
-    showPitHagModal, setShowPitHagModal,
-    showBarberSwapModal, setShowBarberSwapModal,
-    showRangerModal, setShowRangerModal,
-    showDamselGuessModal, setShowDamselGuessModal,
-    nightOrderPreview, setNightOrderPreview,
-    pendingNightQueue, setPendingNightQueue,
-    nightQueuePreviewTitle, setNightQueuePreviewTitle,
-    showFirstNightOrderModal, setShowFirstNightOrderModal,
-    firstNightOrder, setFirstNightOrder,
-    showRestartConfirmModal, setShowRestartConfirmModal,
-    poppyGrowerDead, setPoppyGrowerDead,
-    showKlutzChoiceModal, setShowKlutzChoiceModal,
-    klutzChoiceTarget, setKlutzChoiceTarget,
-    lastExecutedPlayerId, setLastExecutedPlayerId,
-    damselGuessed, setDamselGuessed,
-    shamanKeyword, setShamanKeyword,
-    shamanTriggered, setShamanTriggered,
-    showShamanConvertModal, setShowShamanConvertModal,
-    shamanConvertTarget, setShamanConvertTarget,
-    spyDisguiseMode, setSpyDisguiseMode,
-    spyDisguiseProbability, setSpyDisguiseProbability,
-    showSpyDisguiseModal, setShowSpyDisguiseModal,
-    pukkaPoisonQueue, setPukkaPoisonQueue,
-    poChargeState, setPoChargeState,
-    autoRedHerringInfo, setAutoRedHerringInfo,
-    dayAbilityLogs, setDayAbilityLogs,
-    damselGuessUsedBy, setDamselGuessUsedBy,
-    usedOnceAbilities, setUsedOnceAbilities,
-    usedDailyAbilities, setUsedDailyAbilities,
-    nominationMap, setNominationMap,
-    showLunaticRpsModal, setShowLunaticRpsModal,
-    balloonistKnownTypes, setBalloonistKnownTypes,
-    balloonistCompletedIds, setBalloonistCompletedIds,
-    hadesiaChoices, setHadesiaChoices,
-    virginGuideInfo, setVirginGuideInfo,
-    showRoleSelectModal, setShowRoleSelectModal,
-    voteRecords, setVoteRecords,
-    remainingDays, setRemainingDays,
-    showMadnessCheckModal, setShowMadnessCheckModal,
-    showSaintExecutionConfirmModal, setShowSaintExecutionConfirmModal,
-    history, setHistory,
-    nominationRecords, setNominationRecords,
-    lastDuskExecution, setLastDuskExecution,
-    currentDuskExecution, setCurrentDuskExecution,
-
+    currentModal, setCurrentModal, contextMenu, setContextMenu, setShowMenu,
+    // 夜晚行动
+    wakeQueueIds, setWakeQueueIds, currentWakeIndex, setCurrentWakeIndex,
+    selectedActionTargets, setSelectedActionTargets, setInspectionResult,
+    currentHint, setCurrentHint, nightInfo,
+    // 白天事件（仅 effect 中引用的变量）
+    spyDisguiseMode, spyDisguiseProbability,
+    fangGuConverted, jugglerGuesses, evilTwinPair, usedOnceAbilities,
+    witchActive, cerenovusTarget, witchCursedId, todayExecutedId,
+    setIsVortoxWorld, setBalloonistKnownTypes, setTimer,
     // Refs
-    checkLongPressTimerRef,
-    longPressTriggeredRef,
-    seatContainerRef,
-    seatRefs,
-    hintCacheRef,
-    drunkFirstInfoRef,
-    // seatsRef removed (REFACTOR)
-    fakeInspectionResultRef,
-    consoleContentRef,
-    currentActionTextRef,
-    moonchildChainPendingRef,
-    longPressTimerRef,
-    registrationCacheRef,
-    registrationCacheKeyRef,
-    introTimeoutRef,
-    // gameStateRef removed (REFACTOR)
-
-    // Helper functions from useGameController
-    saveHistory,
-    resetRegistrationCache,
-    getRegistrationCached,
-    getFilteredRoles,
-    hasUsedAbility,
-    markAbilityUsed,
-    hasUsedDailyAbility,
-    markDailyAbilityUsed,
+    introTimeoutRef, hintCacheRef, fakeInspectionResultRef,
+    consoleContentRef, currentActionTextRef,
+    longPressTimerRef, longPressTriggeredRef, checkLongPressTimerRef, seatRefs,
+    // Helper functions
+    resetRegistrationCache, addLogWithDeduplication, continueToNextAction,
+    saveHistory, onSeatClick,
+    selectedRole, setSelectedRole,
+    handleBaronAutoRebalance, handlePreStartNight, proceedToCheckPhase,
+    filteredGroupedRoles, getCompositionStatus, getBaronStatus,
+    validateCompositionSetup, validateBaronSetup,
     getDisplayRoleForSeat,
-    filteredGroupedRoles,
-    triggerIntroLoading,
-    loadGameRecords,
-    saveGameRecord,
-    addLog,
-    addLogWithDeduplication,
-    cleanStatusesForNewDay,
-    isEvilWithJudgment,
-    enqueueRavenkeeperIfNeeded,
-    checkGameOver,
-    continueToNextAction,
-    currentNightRole,
-    nextNightRole,
-    nightInfo,
-    getDemonDisplayName,
-    killPlayer,
-    nightLogic,
-    confirmNightDeathReport,
-    handleBaronAutoRebalance,
-    handlePreStartNight,
-    proceedToCheckPhase,
-    getStandardComposition,
-    cleanseSeatStatuses,
-    formatTimer,
-    getSeatRoleId,
-    isActionAbility,
-    isActorDisabledByPoisonOrDrunk,
-    addDrunkMark,
-    isEvil,
-    getDisplayRoleType,
-    hasTeaLadyProtection,
-    hasExecutionProof,
-    validateBaronSetup,
-    validateCompositionSetup,
-    getBaronStatus,
-    getCompositionStatus,
-    reviveSeat,
-    convertPlayerToEvil,
-    insertIntoWakeQueueAfterCurrent,
-    handleConfirmAction,
-    executePlayer,
-    confirmKill,
-    submitVotes,
-    executeJudgment,
-    confirmPoison,
-    confirmPoisonEvil,
-    confirmExecutionResult,
-    enterDuskPhase,
-    resolveLunaticRps,
-    confirmShootResult,
-
-    // Group A: Confirm functions
-    confirmMayorRedirect,
-    confirmHadesiaKill,
-    confirmMoonchildKill,
-    confirmSweetheartDrunk,
-    confirmKlutzChoice,
-    confirmStorytellerDeath,
-    confirmHadesia,
-    confirmSaintExecution,
-    cancelSaintExecution,
-    confirmRavenkeeperFake,
-    confirmVirginTrigger,
-    confirmRestart,
-
-    // Group B: Action functions
-    executeNomination,
-    handleDayAction,
-    handleVirginGuideConfirm,
-    handleDayAbilityTrigger,
-
-    // Group C: Phase/Control functions
-    declareMayorImmediateWin,
-    handleDayEndTransition,
-    handleRestart,
-    handleSwitchScript,
-    handleNewGame,
-    handleStepBack,
-    handleGlobalUndo,
-
-    // Group D: Seat Interaction functions
-    onSeatClick,
-    toggleStatus,
-    setHadesiaChoice,
   } = controller;
 
   // [REFACTOR] seatsRef and gameStateRef sync removed - all state reads go through Context
@@ -580,9 +367,9 @@ export default function Home() {
     setCurrentWakeIndex(0);
     if (deadThisNight.length > 0) {
       const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
-      setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+      setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
     } else {
-      setShowNightDeathReportModal("昨天是个平安夜");
+      setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
     }
     setGamePhase('dawnReport');
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -35,14 +35,7 @@ export const assassin: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      // TODO: 实现角色逻辑
-      return {
-        updates: [],
-        logs: {
-          privateLog: `刺客（${context.selfId + 1}号）执行了行动`,
-        },
-      };
-    },
+    handler: undefined, /* TODO: Migrate to OOP */
+
   },
 };

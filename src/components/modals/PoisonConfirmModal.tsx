@@ -12,22 +12,17 @@ export function PoisonConfirmModal({ targetId, onConfirm, onCancel }: PoisonConf
   console.log('[PoisonConfirmModal] targetId type:', typeof targetId);
   console.log('[PoisonConfirmModal] targetId === null:', targetId === null);
   console.log('[PoisonConfirmModal] targetId !== null:', targetId !== null);
-  
-  // CRITICAL FIX: Ensure we handle both null and undefined
-  if (targetId === null || targetId === undefined) {
-    console.log('[PoisonConfirmModal] targetId is null/undefined, not rendering');
-    return null;
-  }
 
-  console.log('[PoisonConfirmModal] ✅ Rendering modal for target:', targetId, '(Player', targetId + 1, ')');
-  
   // CRITICAL: Use useEffect to verify modal is actually in DOM
   useEffect(() => {
+    // Only run if we are actually rendering the modal (targetId is not null)
+    if (targetId === null || targetId === undefined) return;
+
     const checkModal = () => {
       // Check for modal by data attribute
       const modalsByKey = document.querySelectorAll('[data-modal-key]');
       console.log('[PoisonConfirmModal] Found modals by data-modal-key:', modalsByKey.length);
-      
+
       // Check for modal by z-index
       const allDivs = document.querySelectorAll('div');
       const modalsByZIndex = Array.from(allDivs).filter(div => {
@@ -35,12 +30,12 @@ export function PoisonConfirmModal({ targetId, onConfirm, onCancel }: PoisonConf
         return style.zIndex === '2147483647' || parseInt(style.zIndex) === 2147483647;
       });
       console.log('[PoisonConfirmModal] Found modals by z-index:', modalsByZIndex.length);
-      
+
       // Check for modal by title text
       const modalsByTitle = document.querySelectorAll('h2');
       const poisonModals = Array.from(modalsByTitle).filter(h2 => h2.textContent?.includes('确认下毒'));
       console.log('[PoisonConfirmModal] Found modals by title:', poisonModals.length);
-      
+
       // Log all found modals
       [...modalsByKey, ...modalsByZIndex].forEach((modal, idx) => {
         const rect = modal.getBoundingClientRect();
@@ -66,7 +61,7 @@ export function PoisonConfirmModal({ targetId, onConfirm, onCancel }: PoisonConf
         });
       });
     };
-    
+
     // Check immediately and after delays
     checkModal();
     const timer1 = setTimeout(checkModal, 100);
@@ -76,7 +71,9 @@ export function PoisonConfirmModal({ targetId, onConfirm, onCancel }: PoisonConf
       clearTimeout(timer2);
     };
   }, [targetId]);
-  
+
+  if (targetId === null || targetId === undefined) return null;
+
   return (
     <ModalWrapper
       title="🧪 确认下毒"
@@ -105,7 +102,7 @@ export function PoisonConfirmModal({ targetId, onConfirm, onCancel }: PoisonConf
       }
       className="max-w-md"
     >
-      <p className="text-2xl font-bold text-white text-center">确认对{targetId+1}号玩家下毒吗？</p>
+      <p className="text-2xl font-bold text-white text-center">确认对{targetId + 1}号玩家下毒吗？</p>
     </ModalWrapper>
   );
 }

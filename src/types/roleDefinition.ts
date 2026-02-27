@@ -26,6 +26,18 @@ export interface NightActionContext {
   gamePhase: GamePhase;
   nightCount: number;  // 当前是第几夜（首夜为0）
   roles?: Role[];       // 当前剧本的所有角色列表
+
+  /**
+   * 是否已通过二次确认弹窗
+   * 用于需要二次确认的角色（如投毒者毒邪恶玩家）
+   */
+  isConfirmed?: boolean;
+
+  /**
+   * 弹窗回调传递的额外数据
+   * 用于需要弹窗选择特殊数据的角色（如麻脸巫婆选择变换角色）
+   */
+  actionData?: any;
 }
 
 /**
@@ -42,7 +54,7 @@ export interface NightActionResult {
   /**
    * 产生的日志信息
    */
-  logs: ActionLog;
+  logs?: ActionLog;
 
   /**
    * 需要触发的弹窗（可选）
@@ -129,7 +141,7 @@ export interface NightActionConfig {
    * @param context 夜晚行动上下文
    * @returns 状态更新和日志信息
    */
-  handler: (context: NightActionContext) => NightActionResult;
+  handler?: (context: NightActionContext) => NightActionResult | null;
 }
 
 /**

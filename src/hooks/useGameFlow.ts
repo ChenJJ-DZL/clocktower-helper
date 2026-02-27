@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -251,7 +252,6 @@ export function useGameFlow(): UseGameFlowResult {
     dispatch(gameActions.setModal(null));
     dispatch(gameActions.updateState({
       pendingNightQueue: null,
-      showNightOrderModal: false
     }));
   }, [dispatch]);
 
@@ -265,7 +265,6 @@ export function useGameFlow(): UseGameFlowResult {
     if (!pendingNightQueue || pendingNightQueue.length === 0) {
       dispatch(gameActions.setGamePhase('firstNight'));
       dispatch(gameActions.addLog({ day: 1, phase: 'night', message: '首夜：无需要唤醒的角色，直接进入天亮阶段' }));
-      dispatch(gameActions.updateState({ showNightOrderModal: false }));
       return;
     }
 
@@ -276,7 +275,6 @@ export function useGameFlow(): UseGameFlowResult {
       currentWakeIndex: 0,
       selectedActionTargets: [],
       inspectionResult: null,
-      showNightOrderModal: false
     }));
     dispatch(gameActions.setGamePhase('firstNight'));
     dispatch(gameActions.setModal(null));

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -53,8 +54,6 @@ export const GameStage = () => {
     damselGuessed,
     shamanKeyword,
     shamanTriggered,
-    showMinionKnowDemonModal,
-    setShowMinionKnowDemonModal,
     autoRedHerringInfo,
     selectedRole,
     setSelectedRole,
@@ -79,17 +78,8 @@ export const GameStage = () => {
     setSelectedActionTargets,
     setInspectionResult,
     setCurrentWakeIndex,
-    setShowNightDeathReportModal,
-    setShowDrunkModal,
-    setShowDamselGuessModal,
-    setShowShamanConvertModal,
-    setShowDayActionModal,
-    setShowGameRecordsModal,
-    setShowReviewModal,
-    setShowRoleInfoModal,
     setSeats,
     setGamePhase,
-    setShowSpyDisguiseModal,
 
     // 方法
     saveHistory,
@@ -125,24 +115,11 @@ export const GameStage = () => {
     confirmNightOrderPreview,
     nightOrderPreview,
     nightOrderPreviewLive,
-    setShowNightOrderModal,
     executeNomination,
     checkGameOverSimple,
     registerVotes,
     votedThisRound,
 
-    // Modal states for isConfirmDisabled check
-    showKillConfirmModal,
-    showPoisonConfirmModal,
-    showPoisonEvilConfirmModal,
-    showHadesiaKillConfirmModal,
-    showRavenkeeperFakeModal,
-    showMoonchildKillModal,
-    showBarberSwapModal,
-    showStorytellerDeathModal,
-    showSweetheartDrunkModal,
-    showKlutzChoiceModal,
-    showPitHagModal,
     setRedNemesisTarget,
   } = controller;
 
@@ -302,22 +279,9 @@ export const GameStage = () => {
       currentModal.type === 'ROLE_INFO'
     );
 
-    const hasPendingModals =
-      isBlockingModal ||
-      showKillConfirmModal !== null ||
-      showHadesiaKillConfirmModal !== null ||
-      showRavenkeeperFakeModal !== null ||
-      showMoonchildKillModal !== null ||
-      showBarberSwapModal !== null ||
-      showStorytellerDeathModal !== null ||
-      showSweetheartDrunkModal !== null ||
-      showKlutzChoiceModal !== null ||
-      showPitHagModal !== null;
-
     console.log('[isConfirmDisabled] isBlockingModal:', isBlockingModal, 'currentModal:', currentModal);
-    console.log('[isConfirmDisabled] hasPendingModals:', hasPendingModals);
 
-    if (hasPendingModals) {
+    if (isBlockingModal) {
       console.log('[isConfirmDisabled] Has pending modals, returning true.');
       return true;
     }
@@ -339,15 +303,6 @@ export const GameStage = () => {
     seats,
     nightInfo,
     currentModal,
-    showKillConfirmModal,
-    showHadesiaKillConfirmModal,
-    showRavenkeeperFakeModal,
-    showMoonchildKillModal,
-    showBarberSwapModal,
-    showStorytellerDeathModal,
-    showSweetheartDrunkModal,
-    showKlutzChoiceModal,
-    showPitHagModal,
     selectedActionTargets,
   ]);
 
@@ -882,7 +837,7 @@ export const GameStage = () => {
               onTimerPause={controller.handleTimerPause}
               onTimerReset={controller.handleTimerReset}
               nightOrderPreview={nightOrderPreviewLive || nightOrderPreview}
-              onOpenNightOrderPreview={setShowNightOrderModal ? () => setShowNightOrderModal(true) : undefined}
+              onOpenNightOrderPreview={undefined}
               onSetRedNemesis={setRedNemesisTarget}
               onEditNote={(seatId) => setEditingNoteTarget(seatId)} // Added onEditNote
               seatNotes={seatNotes} // Added seatNotes

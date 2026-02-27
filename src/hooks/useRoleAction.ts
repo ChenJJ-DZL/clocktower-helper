@@ -11,7 +11,7 @@ export interface RoleActionResult {
    * 更新后的座位数组
    */
   nextSeats: Seat[];
-  
+
   /**
    * 行动产生的日志
    */
@@ -30,27 +30,27 @@ export interface ExecuteActionOptions {
    * 当前座位数组
    */
   currentSeats: Seat[];
-  
+
   /**
    * 角色 ID
    */
   roleId: string;
-  
+
   /**
    * 执行行动的玩家 ID
    */
   performerId: number;
-  
+
   /**
    * 选中的目标 ID 列表
    */
   targetIds: number[];
-  
+
   /**
    * 游戏阶段
    */
   gamePhase: GamePhase;
-  
+
   /**
    * 当前夜晚计数（首夜为 0 或 1）
    */
@@ -90,7 +90,7 @@ export function useRoleAction() {
 
     // 2. 判断是首夜还是后续夜晚
     const isFirstNight = gamePhase === "firstNight" || nightCount === 0;
-    
+
     // 3. 选择对应的行动配置（优先使用 firstNight，否则使用 night）
     const actionConfig = isFirstNight && roleDef.firstNight
       ? roleDef.firstNight
@@ -113,7 +113,10 @@ export function useRoleAction() {
     // 5. 执行 handler
     let result: NightActionResult;
     try {
-      result = actionConfig.handler(context);
+      if (!actionConfig.handler) return null;
+      const rawResult = actionConfig.handler(context);
+      if (!rawResult) return null;
+      result = rawResult;
     } catch (error) {
       console.error(`执行角色行动失败 (${roleId}):`, error);
       return null;
@@ -129,17 +132,17 @@ export function useRoleAction() {
 
       // 合并更新，注意需要处理数组类型的字段（如 statusDetails, statuses）
       const mergedSeat: Seat = { ...seat };
-      
+
       // 处理 statusDetails（字符串数组）
       if (update.statusDetails !== undefined) {
         mergedSeat.statusDetails = update.statusDetails;
       }
-      
+
       // 处理 statuses（StatusEffect 数组）
       if (update.statuses !== undefined) {
         mergedSeat.statuses = update.statuses;
       }
-      
+
       // 处理其他字段（直接覆盖）
       Object.keys(update).forEach(key => {
         if (key !== 'id' && key !== 'statusDetails' && key !== 'statuses') {
@@ -153,7 +156,7 @@ export function useRoleAction() {
     // 7. 返回结果
     return {
       nextSeats,
-      logs: result.logs,
+      logs: result.logs || {},
     };
   }, []);
 
@@ -213,20 +216,20 @@ export function useRoleAction() {
 
     // 5. 如果没有 canSelect 函数，使用默认的角色特定规则
     // 这些规则应该逐步迁移到角色定义文件中，但暂时保留作为 fallback
-    
+
     // Monk: Cannot target self
     if (roleId === 'monk' && targetSeat.id === performerId) return false;
-    
+
     // Poisoner: Cannot target dead players
     if (roleId === 'poisoner' && targetSeat.isDead) return false;
-    
+
     // Ravenkeeper: Can only target if they died tonight
     if (roleId === 'ravenkeeper') {
       if (deadThisNight && !deadThisNight.includes(performerId)) {
         return false; // Disable all targets if ravenkeeper didn't die tonight
       }
     }
-    
+
     // Evil Twin: First night restrictions - only townsfolk/outsider
     if (roleId === 'evil_twin' && isFirstNight) {
       if (!targetSeat.role) return false;
@@ -234,16 +237,16 @@ export function useRoleAction() {
         return false;
       }
     }
-    
+
     // Imp: Cannot target on first night
     if (roleId === 'imp' && isFirstNight) return false;
-    
+
     // Butler: Cannot target self
     if (roleId === 'butler' && targetSeat.id === performerId) return false;
-    
+
     // Chambermaid: Cannot target self
     if (roleId === 'chambermaid' && targetSeat.id === performerId) return false;
-    
+
     // Professor (MR): Can only revive dead townsfolk, and only if ability not used
     if (roleId === 'professor_mr') {
       if (hasUsedAbility && hasUsedAbility('professor_mr', performerId)) return false;

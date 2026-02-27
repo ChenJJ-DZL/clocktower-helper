@@ -23,6 +23,8 @@ export interface NightActionHandlerContext {
   gamePhase: string;
   nightCount: number;
   roles: Role[];
+  isConfirmed?: boolean;
+  actionData?: any;
 
   // 状态更新函数
   setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
@@ -78,11 +80,15 @@ export function useNightActionHandler() {
       gamePhase: gamePhase as any,
       nightCount,
       roles: context.roles,
+      isConfirmed: context.isConfirmed,
+      actionData: context.actionData,
     };
 
     // 调用角色定义的 handler
     try {
-      const result: NightActionResult = nightConfig.handler(actionContext);
+      if (!nightConfig.handler) return false;
+      const result = nightConfig.handler(actionContext);
+      if (!result) return false;
 
       // 应用状态更新
       if (result.updates && result.updates.length > 0) {

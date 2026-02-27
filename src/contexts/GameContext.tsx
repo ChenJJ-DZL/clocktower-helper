@@ -67,16 +67,10 @@ export interface GameState {
 
   // 模态框及辅助显示状态
   currentModal: ModalType;
-  showShootModal: number | null;
-  showNominateModal: number | null;
   dayAbilityForm: any;
   baronSetupCheck: any;
   ignoreBaronSetup: boolean;
   compositionError: any;
-  showRavenkeeperResultModal: any;
-  showAttackBlockedModal: any;
-  showBarberSwapModal: any;
-  showNightDeathReportModal: string | null;
   voteInputValue: string;
   showVoteErrorToast: boolean;
   gameRecords: GameRecord[];
@@ -90,9 +84,7 @@ export interface GameState {
   hadesiaChoiceEnabled: boolean;
   poppyGrowerDead: boolean;
   klutzChoiceTarget: number | null;
-  showKlutzChoiceModal: any;
-  showSweetheartDrunkModal: any;
-  showMoonchildKillModal: any;
+
   lastExecutedPlayerId: number | null;
   damselGuessed: boolean;
   shamanKeyword: string | null;
@@ -122,37 +114,6 @@ export interface GameState {
   lastDuskExecution: number | null;
   currentDuskExecution: number | null;
   history: Array<any>; // 存储历史快照用于撤销
-  showKillConfirmModal: number | null;
-  showMayorRedirectModal: any;
-  showPitHagModal: any;
-  showRangerModal: any;
-  showDamselGuessModal: any;
-  showShamanConvertModal: boolean;
-  showHadesiaKillConfirmModal: number[] | null;
-  showPoisonConfirmModal: number | null;
-  showPoisonEvilConfirmModal: number | null;
-  showRestartConfirmModal: boolean;
-  showSpyDisguiseModal: boolean;
-  showMayorThreeAliveModal: boolean;
-  showDrunkModal: number | null;
-  showVoteInputModal: number | null;
-  showRoleSelectModal: any;
-  showMadnessCheckModal: any;
-  showDayActionModal: any;
-  showDayAbilityModal: any;
-  showSaintExecutionConfirmModal: any;
-  showLunaticRpsModal: any;
-  showVirginTriggerModal: any;
-  showRavenkeeperFakeModal: number | null;
-  showStorytellerDeathModal: any;
-  showReviewModal: boolean;
-  showGameRecordsModal: boolean;
-  showRoleInfoModal: boolean;
-  showExecutionResultModal: any;
-  showShootResultModal: any;
-  showNightOrderModal: boolean;
-  showFirstNightOrderModal: boolean;
-  showMinionKnowDemonModal: any;
 }
 
 /**
@@ -473,16 +434,10 @@ function getInitialState(): GameState {
     showMenu: false,
     longPressingSeats: new Set(),
     currentModal: null,
-    showShootModal: null,
-    showNominateModal: null,
     dayAbilityForm: {},
     baronSetupCheck: null,
     ignoreBaronSetup: false,
     compositionError: null,
-    showRavenkeeperResultModal: null,
-    showAttackBlockedModal: null,
-    showBarberSwapModal: null,
-    showNightDeathReportModal: null,
     voteInputValue: '',
     showVoteErrorToast: false,
     gameRecords: [],
@@ -493,9 +448,7 @@ function getInitialState(): GameState {
     firstNightOrder: [],
     poppyGrowerDead: false,
     klutzChoiceTarget: null,
-    showKlutzChoiceModal: null,
-    showSweetheartDrunkModal: null,
-    showMoonchildKillModal: null,
+
     lastExecutedPlayerId: null,
     damselGuessed: false,
     shamanKeyword: null,
@@ -525,37 +478,6 @@ function getInitialState(): GameState {
     lastDuskExecution: null,
     currentDuskExecution: null,
     history: [],
-    showKillConfirmModal: null,
-    showMayorRedirectModal: null,
-    showPitHagModal: null,
-    showRangerModal: null,
-    showDamselGuessModal: null,
-    showShamanConvertModal: false,
-    showHadesiaKillConfirmModal: null,
-    showPoisonConfirmModal: null,
-    showPoisonEvilConfirmModal: null,
-    showRestartConfirmModal: false,
-    showSpyDisguiseModal: false,
-    showMayorThreeAliveModal: false,
-    showDrunkModal: null,
-    showVoteInputModal: null,
-    showRoleSelectModal: null,
-    showMadnessCheckModal: null,
-    showDayActionModal: null,
-    showDayAbilityModal: null,
-    showSaintExecutionConfirmModal: null,
-    showLunaticRpsModal: null,
-    showVirginTriggerModal: null,
-    showRavenkeeperFakeModal: null,
-    showStorytellerDeathModal: null,
-    showReviewModal: false,
-    showGameRecordsModal: false,
-    showRoleInfoModal: false,
-    showExecutionResultModal: null,
-    showShootResultModal: null,
-    showNightOrderModal: false,
-    showFirstNightOrderModal: false,
-    showMinionKnowDemonModal: null,
     outsiderDiedToday: false,
     gossipStatementToday: "",
     gossipTrueTonight: false,

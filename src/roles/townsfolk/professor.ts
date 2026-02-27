@@ -34,14 +34,7 @@ export const professor: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      // Logic handled in game controller/roleActionHandlers for revival
-      return {
-        updates: [],
-        logs: {
-          privateLog: `教授（${context.selfId + 1}号）执行了行动`,
-        },
-      };
-    },
+    handler: undefined, /* TODO: Migrate to OOP */
+
   },
 };

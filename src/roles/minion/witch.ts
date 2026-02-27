@@ -28,14 +28,7 @@ export const witch: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      // TODO: 实现角色逻辑
-      return {
-        updates: [],
-        logs: {
-          privateLog: `女巫（${context.selfId + 1}号）执行了行动`,
-        },
-      };
-    },
+    handler: undefined, /* TODO: Migrate to OOP */
+
   },
 };

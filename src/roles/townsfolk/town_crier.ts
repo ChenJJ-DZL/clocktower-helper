@@ -35,14 +35,7 @@ export const town_crier: RoleDefinition = {
       };
     },
     
-    handler: (context) => {
-      // TODO: 实现角色逻辑
-      return {
-        updates: [],
-        logs: {
-          privateLog: `城镇公告员（${context.selfId + 1}号）执行了行动`,
-        },
-      };
-    },
+    handler: undefined, /* TODO: Migrate to OOP */
+
   },
 };

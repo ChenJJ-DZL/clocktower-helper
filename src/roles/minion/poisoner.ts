@@ -1,6 +1,6 @@
 import { RoleDefinition } from "../../types/roleDefinition";
 import { Seat } from "../../types/game";
-import { addPoisonMark, computeIsPoisoned } from "../../utils/gameRules";
+import { addPoisonMark, computeIsPoisoned, isEvil } from "../../utils/gameRules";
 
 /**
  * 投毒者 (Poisoner)
@@ -10,23 +10,23 @@ export const poisoner: RoleDefinition = {
   id: "poisoner",
   name: "投毒者",
   type: "minion",
-  
+
   // 投毒者首夜和后续夜晚都行动
   night: {
     order: (isFirstNight) => isFirstNight ? 1 : 1,
-    
+
     target: {
       count: {
         min: 1,
         max: 1,
       },
-      
+
       canSelect: (target: Seat, self: Seat, allSeats: Seat[], selectedTargets: number[]) => {
         // 可以选任何人（包括自己）
         return true;
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（投毒者）。`,
@@ -34,10 +34,10 @@ export const poisoner: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（投毒者），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       const { seats, targets, selfId } = context;
-      
+
       if (targets.length !== 1) {
         // 无效目标数量
         return {
@@ -47,10 +47,10 @@ export const poisoner: RoleDefinition = {
           },
         };
       }
-      
+
       const targetId = targets[0];
       const targetSeat = seats.find(s => s.id === targetId);
-      
+
       if (!targetSeat) {
         return {
           updates: [],
@@ -59,14 +59,25 @@ export const poisoner: RoleDefinition = {
           },
         };
       }
-      
+
+      // 防呆设计：如果误选了邪恶阵营玩家，必须中断动作并弹出二次警告确认框
+      if (!context.isConfirmed && isEvil(targetSeat)) {
+        return {
+          updates: [],
+          modal: {
+            type: 'POISON_EVIL_CONFIRM',
+            data: { targetId }
+          }
+        };
+      }
+
       // 投毒：当晚 + 次日白天中毒，黄昏清除
       const { statusDetails, statuses } = addPoisonMark(
         targetSeat,
         'poisoner',
         '次日黄昏清除'
       );
-      
+
       const updates: Array<Partial<Seat> & { id: number }> = [
         {
           id: targetId,
@@ -75,7 +86,7 @@ export const poisoner: RoleDefinition = {
           isPoisoned: computeIsPoisoned({ ...targetSeat, statusDetails, statuses }),
         },
       ];
-      
+
       return {
         updates,
         logs: {

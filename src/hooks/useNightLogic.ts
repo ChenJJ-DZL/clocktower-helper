@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useCallback } from "react";
@@ -74,14 +75,6 @@ export interface NightLogicActions {
   setPendingNightQueue: React.Dispatch<React.SetStateAction<Seat[] | null>>;
   setNightOrderPreview: React.Dispatch<React.SetStateAction<Array<{ roleName: string; seatNo: number; order: number }>>>;
   setNightQueuePreviewTitle: React.Dispatch<React.SetStateAction<string>>;
-  setShowNightDeathReportModal: React.Dispatch<React.SetStateAction<string | null>>;
-  setShowKillConfirmModal: React.Dispatch<React.SetStateAction<number | null>>;
-  setShowMayorRedirectModal: React.Dispatch<React.SetStateAction<{ targetId: number; demonName: string } | null>>;
-  setShowAttackBlockedModal: React.Dispatch<React.SetStateAction<{
-    targetId: number;
-    reason: string;
-    demonName?: string;
-  } | null>>;
   setStartTime: React.Dispatch<React.SetStateAction<Date | null>>;
   setMayorRedirectTarget: React.Dispatch<React.SetStateAction<number | null>>;
 
@@ -166,10 +159,6 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setPendingNightQueue,
     setNightOrderPreview,
     setNightQueuePreviewTitle,
-    setShowNightDeathReportModal,
-    setShowKillConfirmModal,
-    setShowMayorRedirectModal,
-    setShowAttackBlockedModal,
     setStartTime,
     setMayorRedirectTarget,
     setWinResult,
@@ -426,9 +415,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           // For first night with no wakeable roles, go directly to dawn
           if (nightlyDeaths.length > 0) {
             const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-            setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
           } else {
-            setShowNightDeathReportModal("昨天是个平安夜");
+            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
           }
           setGamePhase('dawnReport');
           return;
@@ -438,9 +427,9 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           setCurrentWakeIndex(0);
           if (nightlyDeaths.length > 0) {
             const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-            setShowNightDeathReportModal(`昨晚${deadNames}玩家死亡`);
+            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
           } else {
-            setShowNightDeathReportModal("昨天是个平安夜");
+            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
           }
           setGamePhase('dawnReport');
           return;
@@ -528,7 +517,6 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     setCurrentModal,
     setPendingNightQueue,
     setNightOrderPreview,
-    setShowNightDeathReportModal,
     killPlayer,
     addLog,
     finalizeNightStart,
@@ -595,10 +583,13 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           nightInfo.seat.id,
           demonName
         );
-        setShowAttackBlockedModal({
-          targetId,
-          reason: protectionReason,
-          demonName,
+        setCurrentModal({
+          type: 'ATTACK_BLOCKED',
+          data: {
+            targetId,
+            reason: protectionReason,
+            demonName,
+          }
         });
       }
     }
@@ -608,10 +599,12 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       const aliveCandidates = seats.filter(s => !s.isDead && s.id !== targetId);
       if (aliveCandidates.length > 0) {
         setMayorRedirectTarget(null);
-        setShowKillConfirmModal(null);
-        setShowMayorRedirectModal({
-          targetId,
-          demonName: getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name)
+        setCurrentModal({
+          type: 'MAYOR_REDIRECT',
+          data: {
+            targetId,
+            demonName: getDemonDisplayName(nightInfo.effectiveRole.id, nightInfo.effectiveRole.name)
+          }
         });
         return 'pending';
       }
@@ -693,9 +686,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     seats,
     setSeats,
     setIsVortoxWorld,
-    setShowKillConfirmModal,
-    setShowMayorRedirectModal,
-    setShowAttackBlockedModal,
+    setCurrentModal,
     setMayorRedirectTarget,
     killPlayer,
     addLogWithDeduplication,

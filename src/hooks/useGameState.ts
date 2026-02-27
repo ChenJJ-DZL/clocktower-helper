@@ -30,29 +30,19 @@ export function useGameState() {
     witchCursedId, witchActive, cerenovusTarget, isVortoxWorld,
     fangGuConverted, jugglerGuesses, evilTwinPair, outsiderDiedToday,
     gossipStatementToday, gossipTrueTonight, gossipSourceSeatId,
-    currentModal, showShootModal, showNominateModal, dayAbilityForm,
-    baronSetupCheck, ignoreBaronSetup, compositionError, showRavenkeeperResultModal,
-    showAttackBlockedModal, showBarberSwapModal, showNightDeathReportModal,
+    currentModal, dayAbilityForm,
+    baronSetupCheck, ignoreBaronSetup, compositionError,
     voteInputValue, showVoteErrorToast, gameRecords, mayorRedirectTarget,
     nightOrderPreview, pendingNightQueue, nightQueuePreviewTitle, firstNightOrder,
-    poppyGrowerDead, klutzChoiceTarget, showKlutzChoiceModal, showSweetheartDrunkModal,
-    showMoonchildKillModal, lastExecutedPlayerId, damselGuessed, shamanKeyword,
+    poppyGrowerDead, klutzChoiceTarget,
+    lastExecutedPlayerId, damselGuessed, shamanKeyword,
     shamanTriggered, shamanConvertTarget, spyDisguiseMode, spyDisguiseProbability,
     pukkaPoisonQueue, poChargeState, autoRedHerringInfo, dayAbilityLogs,
     damselGuessUsedBy, usedOnceAbilities, usedDailyAbilities, nominationMap,
     balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo, seatNotes,
     voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay,
     remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution,
-    currentDuskExecution, history, showKillConfirmModal, showMayorRedirectModal, showPitHagModal,
-    showRangerModal, showDamselGuessModal, showShamanConvertModal,
-    showHadesiaKillConfirmModal, showPoisonConfirmModal, showPoisonEvilConfirmModal,
-    showRestartConfirmModal, showSpyDisguiseModal, showMayorThreeAliveModal,
-    showDrunkModal, showVoteInputModal, showRoleSelectModal, showMadnessCheckModal,
-    showDayActionModal, showDayAbilityModal, showSaintExecutionConfirmModal,
-    showLunaticRpsModal, showVirginTriggerModal, showRavenkeeperFakeModal,
-    showStorytellerDeathModal, showReviewModal, showGameRecordsModal,
-    showRoleInfoModal, showExecutionResultModal, showShootResultModal,
-    showNightOrderModal, showFirstNightOrderModal, showMinionKnowDemonModal
+    currentDuskExecution, history
   } = state;
 
   // ===========================
@@ -184,8 +174,6 @@ export function useGameState() {
     const next = typeof val === 'function' ? (val as (p: ModalType) => ModalType)(state.currentModal) : val;
     dispatch(gameActions.setModal(next));
   };
-  const setShowShootModal = (val: number | null) => dispatch(gameActions.updateState({ showShootModal: val }));
-  const setShowNominateModal = (val: number | null) => dispatch(gameActions.updateState({ showNominateModal: val }));
   const setDayAbilityForm = (val: any) => dispatch(gameActions.updateState({ dayAbilityForm: val }));
   const setBaronSetupCheck: React.Dispatch<React.SetStateAction<any>> = (val) => {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.baronSetupCheck) : val;
@@ -196,10 +184,6 @@ export function useGameState() {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.compositionError) : val;
     dispatch(gameActions.updateState({ compositionError: next }));
   };
-  const setShowRavenkeeperResultModal = (val: any) => dispatch(gameActions.updateState({ showRavenkeeperResultModal: val }));
-  const setShowAttackBlockedModal = (val: any) => dispatch(gameActions.updateState({ showAttackBlockedModal: val }));
-  const setShowBarberSwapModal = (val: any) => dispatch(gameActions.updateState({ showBarberSwapModal: val }));
-  const setShowNightDeathReportModal = (val: string | null) => dispatch(gameActions.updateState({ showNightDeathReportModal: val }));
   const setVoteInputValue = (val: string) => dispatch(gameActions.setVoteInput(val));
   const setShowVoteErrorToast = (val: boolean) => dispatch(gameActions.updateState({ showVoteErrorToast: val }));
   const setGameRecords: React.Dispatch<React.SetStateAction<GameRecord[]>> = (val) => {
@@ -231,9 +215,6 @@ export function useGameState() {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.klutzChoiceTarget) : val;
     dispatch(gameActions.updateState({ klutzChoiceTarget: next }));
   };
-  const setShowKlutzChoiceModal = (val: any) => dispatch(gameActions.updateState({ showKlutzChoiceModal: val }));
-  const setShowSweetheartDrunkModal = (val: any) => dispatch(gameActions.updateState({ showSweetheartDrunkModal: val }));
-  const setShowMoonchildKillModal = (val: any) => dispatch(gameActions.updateState({ showMoonchildKillModal: val }));
   const setLastExecutedPlayerId = (val: number | null) => dispatch(gameActions.updateState({ lastExecutedPlayerId: val }));
   const setDamselGuessed = (val: boolean) => dispatch(gameActions.updateState({ damselGuessed: val }));
   const setShamanKeyword = (val: string | null) => dispatch(gameActions.updateState({ shamanKeyword: val }));
@@ -320,40 +301,6 @@ export function useGameState() {
     dispatch(gameActions.updateState({ seatNotes: next }));
   };
 
-  // ===========================
-  //  MODAL 显示状态 (包装器)
-  // ===========================
-  const setShowKillConfirmModal = (val: number | null) => dispatch(gameActions.updateState({ showKillConfirmModal: val }));
-  const setShowMayorRedirectModal = (val: any) => dispatch(gameActions.updateState({ showMayorRedirectModal: val }));
-  const setShowPitHagModal = (val: any) => dispatch(gameActions.updateState({ showPitHagModal: val }));
-  const setShowRangerModal = (val: any) => dispatch(gameActions.updateState({ showRangerModal: val }));
-  const setShowDamselGuessModal = (val: any) => dispatch(gameActions.updateState({ showDamselGuessModal: val }));
-  const setShowShamanConvertModal = (val: boolean) => dispatch(gameActions.updateState({ showShamanConvertModal: val }));
-  const setShowHadesiaKillConfirmModal = (val: number[] | null) => dispatch(gameActions.updateState({ showHadesiaKillConfirmModal: val }));
-  const setShowPoisonConfirmModal = (val: number | null) => dispatch(gameActions.updateState({ showPoisonConfirmModal: val }));
-  const setShowPoisonEvilConfirmModal = (val: number | null) => dispatch(gameActions.updateState({ showPoisonEvilConfirmModal: val }));
-  const setShowRestartConfirmModal = (val: boolean) => dispatch(gameActions.updateState({ showRestartConfirmModal: val }));
-  const setShowSpyDisguiseModal = (val: boolean) => dispatch(gameActions.updateState({ showSpyDisguiseModal: val }));
-  const setShowMayorThreeAliveModal = (val: boolean) => dispatch(gameActions.updateState({ showMayorThreeAliveModal: val }));
-  const setShowDrunkModal = (val: number | null) => dispatch(gameActions.updateState({ showDrunkModal: val }));
-  const setShowVoteInputModal = (val: number | null) => dispatch(gameActions.updateState({ showVoteInputModal: val }));
-  const setShowRoleSelectModal = (val: any) => dispatch(gameActions.updateState({ showRoleSelectModal: val }));
-  const setShowMadnessCheckModal = (val: any) => dispatch(gameActions.updateState({ showMadnessCheckModal: val }));
-  const setShowDayActionModal = (val: any) => dispatch(gameActions.updateState({ showDayActionModal: val }));
-  const setShowDayAbilityModal = (val: any) => dispatch(gameActions.updateState({ showDayAbilityModal: val }));
-  const setShowSaintExecutionConfirmModal = (val: any) => dispatch(gameActions.updateState({ showSaintExecutionConfirmModal: val }));
-  const setShowLunaticRpsModal = (val: any) => dispatch(gameActions.updateState({ showLunaticRpsModal: val }));
-  const setShowVirginTriggerModal = (val: any) => dispatch(gameActions.updateState({ showVirginTriggerModal: val }));
-  const setShowRavenkeeperFakeModal = (val: number | null) => dispatch(gameActions.updateState({ showRavenkeeperFakeModal: val }));
-  const setShowStorytellerDeathModal = (val: any) => dispatch(gameActions.updateState({ showStorytellerDeathModal: val }));
-  const setShowReviewModal = (val: boolean) => dispatch(gameActions.updateState({ showReviewModal: val }));
-  const setShowGameRecordsModal = (val: boolean) => dispatch(gameActions.updateState({ showGameRecordsModal: val }));
-  const setShowRoleInfoModal = (val: boolean) => dispatch(gameActions.updateState({ showRoleInfoModal: val }));
-  const setShowExecutionResultModal = (val: any) => dispatch(gameActions.updateState({ showExecutionResultModal: val }));
-  const setShowShootResultModal = (val: any) => dispatch(gameActions.updateState({ showShootResultModal: val }));
-  const setShowNightOrderModal = (val: boolean) => dispatch(gameActions.updateState({ showNightOrderModal: val }));
-  const setShowFirstNightOrderModal = (val: boolean) => dispatch(gameActions.updateState({ showFirstNightOrderModal: val }));
-  const setShowMinionKnowDemonModal = (val: any) => dispatch(gameActions.updateState({ showMinionKnowDemonModal: val }));
 
   const checkLongPressTimerRef = useRef<NodeJS.Timeout | null>(null); // 核对身份列表长按定时器
   const longPressTriggeredRef = useRef<Set<number>>(new Set()); // 座位长按是否已触发（避免短按被阻断）
@@ -470,10 +417,6 @@ export function useGameState() {
     // ===========================
     //  保留的辅助状态（非弹窗显示状态）
     // ===========================
-    showShootModal,
-    setShowShootModal,
-    showNominateModal,
-    setShowNominateModal,
     dayAbilityForm,
     setDayAbilityForm,
     baronSetupCheck,
@@ -482,14 +425,6 @@ export function useGameState() {
     setIgnoreBaronSetup,
     compositionError,
     setCompositionError,
-    showRavenkeeperResultModal,
-    setShowRavenkeeperResultModal,
-    showAttackBlockedModal,
-    setShowAttackBlockedModal,
-    showBarberSwapModal,
-    setShowBarberSwapModal,
-    showNightDeathReportModal,
-    setShowNightDeathReportModal,
     voteInputValue,
     setVoteInputValue,
     showVoteErrorToast,
@@ -510,12 +445,6 @@ export function useGameState() {
     setPoppyGrowerDead,
     klutzChoiceTarget,
     setKlutzChoiceTarget,
-    showKlutzChoiceModal,
-    setShowKlutzChoiceModal,
-    showSweetheartDrunkModal,
-    setShowSweetheartDrunkModal,
-    showMoonchildKillModal,
-    setShowMoonchildKillModal,
     lastExecutedPlayerId,
     setLastExecutedPlayerId,
     damselGuessed,
@@ -568,69 +497,6 @@ export function useGameState() {
     setRemainingDays,
     goonDrunkedThisNight,
     setGoonDrunkedThisNight,
-    // 所有 Modal 显示状态
-    showKillConfirmModal,
-    setShowKillConfirmModal,
-    showMayorRedirectModal,
-    setShowMayorRedirectModal,
-    showPitHagModal,
-    setShowPitHagModal,
-    showRangerModal,
-    setShowRangerModal,
-    showDamselGuessModal,
-    setShowDamselGuessModal,
-    showShamanConvertModal,
-    setShowShamanConvertModal,
-    showHadesiaKillConfirmModal,
-    setShowHadesiaKillConfirmModal,
-    showPoisonConfirmModal,
-    setShowPoisonConfirmModal,
-    showPoisonEvilConfirmModal,
-    setShowPoisonEvilConfirmModal,
-    showRestartConfirmModal,
-    setShowRestartConfirmModal,
-    showSpyDisguiseModal,
-    setShowSpyDisguiseModal,
-    showMayorThreeAliveModal,
-    setShowMayorThreeAliveModal,
-    showDrunkModal,
-    setShowDrunkModal,
-    showVoteInputModal,
-    setShowVoteInputModal,
-    showRoleSelectModal,
-    setShowRoleSelectModal,
-    showMadnessCheckModal,
-    setShowMadnessCheckModal,
-    showDayActionModal,
-    setShowDayActionModal,
-    showDayAbilityModal,
-    setShowDayAbilityModal,
-    showSaintExecutionConfirmModal,
-    setShowSaintExecutionConfirmModal,
-    showLunaticRpsModal,
-    setShowLunaticRpsModal,
-    showVirginTriggerModal,
-    setShowVirginTriggerModal,
-    showRavenkeeperFakeModal,
-    setShowRavenkeeperFakeModal,
-    showStorytellerDeathModal,
-    setShowStorytellerDeathModal,
-    showReviewModal,
-    setShowReviewModal,
-    showGameRecordsModal,
-    setShowGameRecordsModal,
-    showRoleInfoModal,
-    setShowRoleInfoModal,
-    showExecutionResultModal,
-    setShowExecutionResultModal,
-    showShootResultModal,
-    setShowShootResultModal,
-    showNightOrderModal,
-    setShowNightOrderModal,
-    showFirstNightOrderModal,
-    setShowFirstNightOrderModal,
-    showMinionKnowDemonModal,
-    setShowMinionKnowDemonModal,
     history,
     setHistory,
     nominationRecords,
