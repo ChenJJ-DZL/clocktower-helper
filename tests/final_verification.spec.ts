@@ -176,11 +176,12 @@ test.describe("Final Verification of Day Abilities (Artist & Savant)", () => {
 
         // --- Verify Artist ---
         logger.log("艺术家验证", "点击艺术家技能按钮...");
-        const artistAbilityBtn = page.getByRole("button", { name: /使用 提问/ });
+        const artistAbilityBtn = page.getByRole("button", { name: /使用 艺术家/ });
         await expect(artistAbilityBtn).toBeVisible({ timeout: 10000 });
         await artistAbilityBtn.click();
 
         const artistModal = page.locator('div[role="dialog"]');
+        // The modal title might have an emoji
         await page.waitForSelector('text=艺术家提问', { timeout: 10000 }).catch(() => logger.log("警告", "未通过文本找到艺术家弹窗"));
         await expect(artistModal).toBeVisible({ timeout: 5000 });
         logger.log("弹窗验证", "艺术家结果弹窗显示成功。");
@@ -193,7 +194,7 @@ test.describe("Final Verification of Day Abilities (Artist & Savant)", () => {
 
         // --- Verify Savant ---
         logger.log("博学者验证", "点击博学者技能按钮...");
-        const savantAbilityBtn = page.getByRole("button", { name: /使用 获取信息/ });
+        const savantAbilityBtn = page.getByRole("button", { name: /使用 博学者/ });
         await expect(savantAbilityBtn).toBeVisible({ timeout: 10000 });
         await savantAbilityBtn.click();
 
@@ -202,8 +203,8 @@ test.describe("Final Verification of Day Abilities (Artist & Savant)", () => {
         await expect(savantModal).toBeVisible({ timeout: 5000 });
         logger.log("弹窗验证", "博学者结果弹窗显示成功。");
 
-        await savantModal.locator('button').filter({ hasText: "确认并记录" }).first().click();
-        logger.log("博学者验证", "点击确认并记录完成操作。");
+        await savantModal.locator('button').filter({ hasText: "记录" }).first().click();
+        logger.log("博学者验证", "点击记录完成操作。");
         await page.waitForTimeout(1000);
 
         logger.log("最终结果", "✅ 所有验证步骤顺利完成！");

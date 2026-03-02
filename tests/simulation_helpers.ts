@@ -3,6 +3,42 @@
 import { Page, expect } from "@playwright/test";
 import fs from "fs";
 import type { Writable } from "stream";
+import { roles as ROLES_DATA } from "../app/data";
+
+export { ROLES_DATA };
+
+/**
+ * Helper to get role by ID from the central roles data
+ */
+export function getRoleById(id: string) {
+  return ROLES_DATA.find(r => r.id === id);
+}
+/**
+ * Utility functions for tests
+ */
+export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const shuffleArray = <T>(array: T[]): T[] => {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+};
+
+// Common constants for tests
+export const MIN_PLAYERS = 9;
+export const MAX_PLAYERS = 15;
+export const SCRIPT_NAME = "Trouble Brewing";
+export const LOG_FILE_PATH = "detailed_game_log.txt";
+
+export interface SeatedPlayer {
+  roleId: string;
+  seatIndex: number;
+  player: string;
+  isAlive: boolean;
+}
 
 // =============================================
 // --- 数据与配置 ---
@@ -161,22 +197,22 @@ export function getRoleListForPlayerCount(playerCount: number, scriptId: string 
 
   const allRoles: Record<string, Record<string, string[]>> = {
     trouble_brewing: {
-      townsfolk: ['洗衣妇', '图书管理员', '调查员', '厨师', '共情者', '占卜师', '送葬者', '僧侣', '猎手', '士兵', '镇长', '贞洁者'],
-      outsider: ['管家', '酒鬼', '圣徒', '陌客'],
-      minion: ['投毒者', '间谍', '红唇女郎', '男爵'],
-      demon: ['小恶魔']
+      townsfolk: ['washerwoman', 'librarian', 'investigator', 'chef', 'empath', 'fortune_teller', 'undertaker', 'monk', 'ravenkeeper', 'slayer', 'soldier', 'mayor', 'virgin'],
+      outsider: ['butler', 'drunk', 'saint', 'recluse'],
+      minion: ['poisoner', 'spy', 'scarlet_woman', 'baron'],
+      demon: ['imp']
     },
     bad_moon_rising: {
-      townsfolk: ['祖母', '水手', '侍女', '驱魔人', '旅店老板', '赌徒', '造谣者', '侍臣', '教授', '吟游诗人', '茶艺师', '和平主义者', '弄臣'],
-      outsider: ['修补匠', '月之子', '莽夫', '疯子'],
-      minion: ['教父', '魔鬼代言人', '刺客', '主谋'],
-      demon: ['僵怖', '普卡', '沙巴洛斯', '珀']
+      townsfolk: ['grandmother', 'sailor', 'chambermaid', 'exorcist', 'innkeeper', 'gambler', 'gossip', 'courtier', 'professor', 'minstrel', 'tea_lady', 'pacifist', 'fool'],
+      outsider: ['tinker', 'moonchild', 'goon', 'lunatic'],
+      minion: ['godfather', 'devils_advocate', 'assassin', 'mastermind'],
+      demon: ['zombuul', 'pukka', 'shabaloth', 'po']
     },
     sects_and_violets: {
-      townsfolk: ['钟表匠', '筑梦师', '舞蛇人', '数学家', '卖花女孩', '城镇公告员', '神谕者', '博学者', '女裁缝', '哲学家', '艺术家', '杂耍艺人', '贤者'],
-      outsider: ['畸形秀演员', '心上人', '理发师', '呆瓜'],
-      minion: ['镜像双子', '女巫', '洗脑师', '麻脸巫婆'],
-      demon: ['方古', '亡骨魔', '诺-达', '涡流']
+      townsfolk: ['clockmaker', 'dreamer', 'snake_charmer', 'mathematician', 'flowergirl', 'town_crier', 'oracle', 'savant', 'seamstress', 'philosopher', 'artist', 'juggler', 'sage'],
+      outsider: ['mutant', 'sweetheart', 'barber', 'klutz'],
+      minion: ['evil_twin', 'witch', 'cerenovus', 'pit-hag'],
+      demon: ['fang_gu', 'vigormortis', 'no-dashii', 'vortox']
     }
   };
 
@@ -191,8 +227,17 @@ export function getRoleListForPlayerCount(playerCount: number, scriptId: string 
   return [...townsfolk, ...outsiders, ...minions, ...demons];
 }
 
+export const TB_PRESETS = {
+  trouble_brewing: {
+    townsfolk: ['washerwoman', 'librarian', 'investigator', 'chef', 'empath', 'fortune_teller', 'undertaker', 'monk', 'ravenkeeper', 'slayer', 'soldier', 'mayor', 'virgin'],
+    outsider: ['butler', 'drunk', 'saint', 'recluse'],
+    minion: ['poisoner', 'spy', 'scarlet_woman', 'baron'],
+    demon: ['imp']
+  }
+};
+
 // 辅助常量：暗流涌动标准人数配比
-const TROUBLE_BREWING_PRESETS: Record<number, { townsfolk: number; outsider: number; minion: number; demon: number }> = {
+export const TROUBLE_BREWING_PRESETS: Record<number, { townsfolk: number; outsider: number; minion: number; demon: number }> = {
   9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
   10: { townsfolk: 7, outsider: 0, minion: 2, demon: 1 },
   11: { townsfolk: 7, outsider: 1, minion: 2, demon: 1 },
@@ -218,10 +263,44 @@ export async function assignRandomRoles(page: Page, logger: StorytellerLogger, p
     const seatIndex = shuffledSeatIndexes[i];
 
     await page.getByRole("button", { name: new RegExp(roleName, "i") }).click();
-    await page.locator('.seat-wrapper').nth(seatIndex).click();
+    await page.locator('.seat-node').nth(seatIndex).click();
 
     logger.log('角色分配', `${roleName} 落座于 ${seatIndex + 1} 号位。`);
     await page.waitForTimeout(50);
+  }
+}
+
+/**
+ * Handle Drunk Charade Selection if the modal appears
+ */
+export async function handleDrunkCharadeIfPresent(page: Page, logger: StorytellerLogger) {
+  const modalSelector = 'text=/为.*选择伪装身份/';
+  const isModalVisible = await page.locator(modalSelector).isVisible({ timeout: 2000 }).catch(() => false);
+
+  if (isModalVisible) {
+    logger.log('系统', '检测到酒鬼伪装身份选择弹窗');
+
+    // Select the first available role in the grid
+    const roleButtons = page.locator('div.grid button');
+    const roleCount = await roleButtons.count();
+
+    if (roleCount > 0) {
+      const firstRoleButton = roleButtons.first();
+      const roleName = await firstRoleButton.locator('span.text-sm').textContent();
+
+      logger.log('系统', `选择酒鬼伪装身份: ${roleName}`);
+      await firstRoleButton.click();
+
+      // Click confirm
+      const confirmButton = page.locator('button:has-text("确认选择")');
+      await confirmButton.click();
+      logger.log('系统', '已确认酒鬼伪装身份');
+
+      // Wait for modal to close
+      await expect(page.locator(modalSelector)).not.toBeVisible();
+    } else {
+      logger.log('错误', '未找到可选的伪装身份按钮');
+    }
   }
 }
 

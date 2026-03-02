@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { Seat, Role, GamePhase } from "../../app/data";
 import type { ModalType } from "../types/modal";
 import { getRoleDefinition } from "../roles";
@@ -518,7 +518,7 @@ export function useDayActions(deps: DayActionsDeps) {
         }
     }, [seats, saveHistory, killPlayer, setSeats, addLog, setWinReason, changeRole, roles, setCurrentModal]);
 
-    return {
+    return useMemo(() => ({
         executeNomination,
         handleVirginGuideConfirm,
         handleDayAction,
@@ -527,5 +527,9 @@ export function useDayActions(deps: DayActionsDeps) {
         handleDayAbilityTrigger,
         checkGameOverSimple,
         handleDayAbility,
-    };
+    }), [
+        executeNomination, handleVirginGuideConfirm, handleDayAction,
+        handleDrunkCharadeSelect, registerVotes, handleDayAbilityTrigger,
+        checkGameOverSimple, handleDayAbility
+    ]);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback, useMemo } from 'react';
 
 export type AudioType = 'night' | 'day' | 'vote' | 'execute' | 'click' | 'bell';
 
@@ -53,9 +53,9 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
-    const toggleMute = () => setIsMuted(prev => !prev);
+    const toggleMute = useCallback(() => setIsMuted(prev => !prev), []);
 
-    const playSound = (type: AudioType) => {
+    const playSound = useCallback((type: AudioType) => {
         if (isMuted) return;
         const audio = audioRefs.current[type];
         if (audio) {
@@ -66,10 +66,12 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 // console.warn(`Failed to play ${type} audio`);
             });
         }
-    };
+    }, [isMuted]);
+
+    const value = useMemo(() => ({ isMuted, toggleMute, playSound }), [isMuted, toggleMute, playSound]);
 
     return (
-        <AudioContext.Provider value={{ isMuted, toggleMute, playSound }}>
+        <AudioContext.Provider value={value}>
             {children}
         </AudioContext.Provider>
     );

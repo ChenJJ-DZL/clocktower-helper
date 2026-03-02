@@ -45,18 +45,13 @@ export function useInteractionHandler(deps: {
     isVortoxWorld, nightActionQueue, deadThisNight
   } = state;
 
-  // ... (toggleTarget and handleSeatClick unchanged) ...
+  const { getRoleTargetCount, handleConfirmActionImpl, nightInfo: depsNightInfo, canSelectTarget } = deps;
 
-  // To preserve context of unchanged code without repeating huge blocks, I assume replace_file_content will handle the block correctly if I include enough context or use multi_replace.
-  // Actually, I should use multi_replace or carefully targeted replace.
-  // I'll target the interface definition and the call site separately or in one block if close enough.
-  // They are far apart (lines 34 and 148). I'll use multi_replace_file_content.
-  // Wait, I am using replace_file_content. I should use multi_replace_file_content for non-contiguous edits.
-  // I will switch to multi_replace_file_content.
+  // ... (toggleTarget and handleSeatClick unchanged) ...
 
   const toggleTarget = useCallback((targetId: number) => {
     // 优先使用传入的 activeNightStep (nightInfo)，如果不存在则回退到队列系统
-    const nightInfo = deps.nightInfo || nightActionQueue[currentWakeIndex];
+    const nightInfo = depsNightInfo || nightActionQueue[currentWakeIndex];
     if (!nightInfo) return;
 
     // 获取当前允许的最大目标数
@@ -76,7 +71,7 @@ export function useInteractionHandler(deps: {
 
       if (effectiveRole) {
         const isFirstNight = gamePhase === 'firstNight';
-        const targetCount = deps.getRoleTargetCount(effectiveRole.id, isFirstNight);
+        const targetCount = getRoleTargetCount(effectiveRole.id, isFirstNight);
         maxTargets = targetCount?.max ?? 1;
       }
     }
@@ -109,7 +104,7 @@ export function useInteractionHandler(deps: {
     }
 
     dispatch(gameActions.setSelectedTargets(newTargets));
-  }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, dispatch, deps]);
+  }, [nightActionQueue, currentWakeIndex, gamePhase, selectedActionTargets, dispatch, depsNightInfo, getRoleTargetCount]);
 
   const handleSeatClick = useCallback((id: number, _options?: { force?: boolean }) => {
     // 1. Setup 阶段逻辑 (保持原样)
@@ -138,7 +133,7 @@ export function useInteractionHandler(deps: {
 
     // 从当前步骤的数据中读取允许的数量
     // ADAPTATION: Use local dependencies instead of 'gameController' which is not in scope here
-    const currentStep = deps.nightInfo || nightActionQueue[currentWakeIndex];
+    const currentStep = depsNightInfo || nightActionQueue[currentWakeIndex];
 
     // 如果当前没有行动数据，或者不是选人环节，直接返回
     // ADAPTATION: Check 'interaction' object if present, fall back to role definition check if needed (but we added interaction object in step 1)
@@ -152,8 +147,6 @@ export function useInteractionHandler(deps: {
     // But for 'choose_player' type roles, we rely on our new architecture.
     if (!interaction && gamePhase !== 'day') {
       // Optional: Fallback to toggleTarget old logic if strictly needed, or just return.
-      // User instruction implies we should strictly follow the new logic.
-      // Let's call the old toggleTarget if interaction is missing to be safe, OR implement the fallback here.
       // User asked to "REPLACE" logic.
       // But wait, the previous toggleTarget had important logic?
       // Actually user said "replace logic for non-setup phases".
@@ -196,7 +189,7 @@ export function useInteractionHandler(deps: {
 
     dispatch(gameActions.setSelectedTargets(newTargets));
 
-  }, [gamePhase, selectedRole, seats, dispatch, deps, nightActionQueue, currentWakeIndex, selectedActionTargets]);
+  }, [gamePhase, selectedRole, seats, dispatch, depsNightInfo, nightActionQueue, currentWakeIndex, selectedActionTargets]);
 
   const isTargetDisabled = useCallback((targetSeat: Seat) => {
     const activeSeat = nightActionQueue[currentWakeIndex];
@@ -210,8 +203,8 @@ export function useInteractionHandler(deps: {
     const isFirstNight = gamePhase === 'firstNight';
 
     // We use the passed canSelectTarget logic from useRoleAction via deps
-    if (deps.canSelectTarget) {
-      return !deps.canSelectTarget(
+    if (canSelectTarget) {
+      return !canSelectTarget(
         roleId,
         activeSeat.id,
         targetSeat.id,
@@ -224,13 +217,13 @@ export function useInteractionHandler(deps: {
     }
 
     return false;
-  }, [nightActionQueue, currentWakeIndex, gamePhase, seats, selectedActionTargets, deadThisNight, dispatch, deps]);
+  }, [nightActionQueue, currentWakeIndex, gamePhase, seats, selectedActionTargets, deadThisNight, canSelectTarget]);
 
   // 交互式角色结果自动生成逻辑 (Interactive Role Result Generator)
   // 支持: 占卜师 (Fortune Teller), 裁缝 (Seamstress - Future), etc.
   useEffect(() => {
     // FIX: Use activeNightStep (deps.nightInfo) which has the computed logic, NOT the raw queue
-    const nightInfo = deps.nightInfo;
+    const nightInfo = depsNightInfo;
     if (!nightInfo) return;
 
     const effectiveRole = nightInfo.effectiveRole;
@@ -268,7 +261,7 @@ export function useInteractionHandler(deps: {
     // 🧹 如果切换了角色或重置了选择，且当前没有结果需要显示，可以在这里清除
     // 但为了保持UI稳定，我们通常不自动清除，直到下一个行动覆盖它。
 
-  }, [nightActionQueue, currentWakeIndex, selectedActionTargets, seats, isVortoxWorld, state.inspectionResult, dispatch]);
+  }, [nightActionQueue, currentWakeIndex, selectedActionTargets, seats, isVortoxWorld, state.inspectionResult, dispatch, depsNightInfo]);
 
   const handleConfirmAction = useCallback(() => {
     const nightInfo = nightActionQueue[currentWakeIndex];
@@ -292,12 +285,12 @@ export function useInteractionHandler(deps: {
     }
 
     // 调用外部传入的确认逻辑（暂时保持，因为这涉及到复杂的角色能力处理器）
-    if (deps.handleConfirmActionImpl) {
-      deps.handleConfirmActionImpl(selectedActionTargets);
+    if (handleConfirmActionImpl) {
+      handleConfirmActionImpl(selectedActionTargets);
     } else {
       dispatch(gameActions.nextNightAction());
     }
-  }, [nightActionQueue, currentWakeIndex, currentModal, dispatch, deps, selectedActionTargets]);
+  }, [nightActionQueue, currentWakeIndex, currentModal, dispatch, handleConfirmActionImpl, selectedActionTargets]);
 
   const handleMenuAction = useCallback((action: string) => {
     const seatId = contextMenu?.seatId;

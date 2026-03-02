@@ -1,4 +1,167 @@
 游戏模拟日志报告
-测始于: 2/24/2026, 10:40:27 PM
+测始于: 3/2/2026, 7:36:56 PM
 ====================================
-[10:40:28 PM] [测试启动] 开始验证艺术家和博学者的昼间技能...
+[7:36:57 PM] [测试启动] 开始验证艺术家和博学者的昼间技能...
+[7:36:58 PM] [浏览器[info]] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[7:37:00 PM] [角色手动分配] 选取角色: 艺术家, 博学者, 女巫, 方古, 哲学家
+[7:37:00 PM] [浏览器[log]] [app/page setup] RoundTable seat clicked: 0
+[7:37:00 PM] [角色分配] 艺术家 落座于 1 号位。
+[7:37:00 PM] [浏览器[log]] [app/page setup] RoundTable seat clicked: 1
+[7:37:00 PM] [角色分配] 博学者 落座于 2 号位。
+[7:37:00 PM] [浏览器[log]] [app/page setup] RoundTable seat clicked: 2
+[7:37:00 PM] [角色分配] 女巫 落座于 3 号位。
+[7:37:00 PM] [浏览器[log]] [app/page setup] RoundTable seat clicked: 3
+[7:37:00 PM] [角色分配] 方古 落座于 4 号位。
+[7:37:00 PM] [浏览器[log]] [app/page setup] RoundTable seat clicked: 4
+[7:37:00 PM] [角色分配] 哲学家 落座于 5 号位。
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: check
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: null
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] In "check" phase, returning false. (handled by specialized buttons)
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: check
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: null
+[7:37:00 PM] [浏览器[log]] [isConfirmDisabled] In "check" phase, returning false. (handled by specialized buttons)
+[7:37:02 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:37:02 PM] [第一夜] 确认无误，入夜...
+[7:37:02 PM] [浏览器[log]] [GameConsole] Primary action clicked {label: 确认无误，入夜 🌙, disabled: false, variant: success}
+[7:37:02 PM] [浏览器[log]] 🖱️ [UI] User clicked 'Enter Night'
+[7:37:02 PM] [浏览器[log]] [generateNightTimeline] Role: 方古, meta.targetType: undefined, meta.amount: undefined
+[7:37:02 PM] [浏览器[log]] [generateNightTimeline] Role: 哲学家, meta.targetType: undefined, meta.amount: undefined
+[7:37:02 PM] [浏览器[log]] [generateNightTimeline] Role: 女巫, meta.targetType: undefined, meta.amount: undefined
+[7:37:02 PM] [浏览器[log]] 🌙 [NightLogic] Starting Night. Queue: [3, 4, 2, -1]
+[7:37:02 PM] [浏览器[log]] [NightLogic] Initializing First Night with seat 3
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: firstNight
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] isBlockingModal: null currentModal: null
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] Checking targets: selected = 0, min required = 0
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] All checks passed, returning false.
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: firstNight
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] isBlockingModal: null currentModal: null
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] Checking targets: selected = 0, min required = 0
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] All checks passed, returning false.
+[7:37:02 PM] [浏览器[log]] [RoleDoc] 方古: {hasOperation: true, operationLength: 341, hasRulesDetails: true, examplesCount: 2}
+[7:37:02 PM] [浏览器[log]] [Controller] triggering End of Night Transition...
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: dawnReport
+[7:37:02 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] isBlockingModal: true currentModal: {type: NIGHT_DEATH_REPORT, data: Object}
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] Has pending modals, returning true.
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: dawnReport
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] isBlockingModal: true currentModal: {type: NIGHT_DEATH_REPORT, data: Object}
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] Has pending modals, returning true.
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Not mounted yet or no document
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Not mounted yet or no document
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Mounted, title: 🌙 夜晚报告
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] ✅ Portal target (document.body) is available
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Mounted, title: 🌙 夜晚报告
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] ✅ Portal target (document.body) is available
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 🌙 夜晚报告
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 🌙 夜晚报告
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:03 PM] [Debug] Loop 0: isDawnVisible=true, isNightReport=true
+[7:37:03 PM] [第一夜] 夜晚行动结束，准备切入白天。
+[7:37:03 PM] [浏览器[log]] [ModalWrapper] Modal content clicked
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:03 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:03 PM] [浏览器[log]] [Fast Refresh] rebuilding
+[7:37:03 PM] [浏览器[log]] [Fast Refresh] done in 121ms
+[7:37:03 PM] [浏览器[log]] [Fast Refresh] done in 198ms
+[7:37:04 PM] [游戏流程] 处理天亮结算...
+[7:37:06 PM] [浏览器[warning]] The resource http://localhost:3000/_next/static/css/app/layout.css?v=1772451423416 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+[7:37:14 PM] [游戏流程] 开始验证日间技能...
+[7:37:14 PM] [艺术家验证] 尝试发动艺术家技能...
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:14 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Not mounted yet or no document
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Not mounted yet or no document
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Mounted, title: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] ✅ Portal target (document.body) is available
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Mounted, title: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] ✅ Portal target (document.body) is available
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [艺术家验证] 验证艺术家结果弹窗...
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 艺术家提问
+[7:37:14 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Modal content clicked
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:15 PM] [博学者验证] 尝试发动博学者技能...
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:15 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Not mounted yet or no document
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Not mounted yet or no document
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Mounted, title: 博学者信息
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] ✅ Portal target (document.body) is available
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Mounted, title: 博学者信息
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] ✅ Portal target (document.body) is available
+[7:37:15 PM] [博学者验证] 验证博学者结果弹窗...
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:15 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Rendering portal for: 博学者信息
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] document.body exists: true
+[7:37:16 PM] [浏览器[log]] [ModalWrapper] Modal content clicked
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] Recalculating...
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] gamePhase: day
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] nightInfo: {seat: Object, effectiveRole: Object, isPoisoned: false, reason: , guide: 👿 爪牙列表：3号。}
+[7:37:16 PM] [浏览器[log]] [isConfirmDisabled] In "day" phase, returning false. (handled by specialized buttons)
+[7:37:17 PM] [测试完毕] ✅ 艺术家和博学者昼间技能验证成功！

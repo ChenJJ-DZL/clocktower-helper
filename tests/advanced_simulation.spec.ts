@@ -1,16 +1,17 @@
-// tests/advanced_simulation.spec.ts
-
 import { test, expect, Page } from "@playwright/test";
 import {
   GAME_URL,
-  REPORT_FILE_PATH,
   StorytellerLogger,
+  assignRandomRoles,
+  analyzeLog,
+  REPORT_FILE_PATH,
+  getRoleById,
+  sleep,
+  shuffleArray,
   getRandomInt,
   getAlivePlayerIndexes,
-  assignRandomRoles,
   ROLE_ACTIONS,
-  getRandomElement,
-  analyzeLog,
+  getRandomElement
 } from "./simulation_helpers";
 
 // --- 测试主流程 ---
@@ -37,6 +38,7 @@ test.describe("高级游戏模拟器", () => {
     await page
       .getByRole("button", { name: new RegExp(SCRIPT_NAME, "i") })
       .click();
+    await page.waitForSelector('text="游戏人数"', { timeout: 10000 });
     await expect(page.getByText("游戏人数")).toBeVisible();
     logger.log("设置阶段", "进入角色分配界面。");
 
@@ -72,7 +74,7 @@ test.describe("高级游戏模拟器", () => {
         if (roleMeta.targetCount > 0) {
           const alivePlayers = await getAlivePlayerIndexes(page);
           const targets = getRandomElement(alivePlayers.filter(i => i + 1 !== parseInt(roleName))); // 避免选择自己
-          const targetSeat = page.locator('.seat-wrapper').nth(targets);
+          const targetSeat = page.locator('.seat-node').nth(targets);
           await targetSeat.click();
           logger.log('首夜', `${roleName}(${cleanRoleName}) 对 ${targets + 1}号玩家 使用了技能。`);
           // 等待可能的模态框
@@ -108,11 +110,11 @@ test.describe("高级游戏模拟器", () => {
     const nominatorIndex = getRandomElement(alivePlayers);
     const nomineeIndex = getRandomElement(alivePlayers.filter(i => i !== nominatorIndex));
     logger.log("提名阶段", `${nominatorIndex + 1}号玩家 发起提名。`);
-    await page.locator(".seat-wrapper").nth(nominatorIndex).click();
+    await page.locator(".seat-node").nth(nominatorIndex).click();
     await page.getByRole("button", { name: "发起提名" }).click();
 
     logger.log("提名阶段", `提名为 ${nomineeIndex + 1}号玩家。`);
-    await page.locator('.seat-wrapper').nth(nomineeIndex).click();
+    await page.locator('.seat-node').nth(nomineeIndex).click();
     await page.getByRole("button", { name: "确认" }).click();
 
     // --- 随机投票 ---

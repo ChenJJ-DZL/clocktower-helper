@@ -16,7 +16,7 @@ export function SavantResultModal({ onClose }: SavantResultModalProps) {
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold">信息 A (真或假):</label>
+                        <label className="text-sm font-semibold">信息 A</label>
                         <textarea
                             value={infoA}
                             onChange={(e) => setInfoA(e.target.value)}
@@ -27,7 +27,7 @@ export function SavantResultModal({ onClose }: SavantResultModalProps) {
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold">信息 B (反之):</label>
+                        <label className="text-sm font-semibold">信息 B</label>
                         <textarea
                             value={infoB}
                             onChange={(e) => setInfoB(e.target.value)}

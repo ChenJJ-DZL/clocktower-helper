@@ -423,9 +423,10 @@ export const GameConsole = React.memo(function GameConsole({
                               handleDayAbility(seat.id);
                             }
                           }}
+                          data-testid="start-day-ability-button"
                           className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
                         >
-                          使用 {abilityName}
+                          使用 {seat.role?.name}
                         </button>
                       </div>
                     );

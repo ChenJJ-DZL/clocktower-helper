@@ -296,6 +296,16 @@ export interface RoleDefinition {
   type: 'townsfolk' | 'outsider' | 'minion' | 'demon' | 'traveler';
 
   /**
+   * 角色长描述（官方维基上的详细技能说明，支持Markdown）
+   */
+  detailedDescription?: string;
+
+  /**
+   * 补充说明/细节澄清（官方规则或特例提醒）
+   */
+  clarifications?: string[];
+
+  /**
    * 夜晚行动配置
    * 如果角色没有夜晚行动，则不需要此字段
    */

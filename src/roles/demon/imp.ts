@@ -9,18 +9,24 @@ export const imp: RoleDefinition = {
   id: "imp",
   name: "小恶魔",
   type: "demon",
-  
+  detailedDescription: "每个夜晚*，你要选择一名玩家：他死亡。如果你以这种方式自杀，一名爪牙会变成小恶魔。\n\n**运作方式:**\n除首个夜晚以外的每个夜晚，唤醒小恶魔。让小恶魔指向任意一名玩家。让小恶魔重新入睡。被选择的玩家死亡。如果小恶魔选择在夜里自杀，用多出来的小恶魔标记替换一名存活的爪牙玩家的角色标记，让那名玩家的角色改变为小恶魔。唤醒新的小恶魔，向他展示“你是”信息标记，然后向他展示小恶魔角色标记。\n在黎明时，宣布有哪名玩家在夜晚死去。（不要说明死亡原因。）\n\n**提示与技巧:**\n- 努力活过白天。就算场上有三名爪牙，你也没法保证红唇女郎在场。\n- 如果你被怀疑了，在晚上自杀永远可以作为选择之一。杀死自己并且将恶魔血脉传递给一名更受信任的爪牙虽然会让你失去继续投票的权利，但让场上一直有恶魔存活更加重要。\n- 你的爪牙就是被用来牺牲的马前卒！\n- 选择攻击目标的时候，你通常希望尽早选那些强大、棘手、能够获取信息的镇民。有些时候，你也可以故意留一个这样的镇民，让他一直活到最后一天，这样也会让其他人怀疑他的真实角色。\n- 注意在最后一天留下比你看起来嫌疑更大的人！\n- 如果你不想在晚上杀任何人，选择一个已经死亡的玩家（空刀）能伪装成有人受到保护。\n- 确保你的新爪牙明白他变成了恶魔的事实，私下要早作沟通。",
+  clarifications: [
+    "由于小恶魔的能力描述是“一名爪牙会变成小恶魔”，所以在自杀后，必须选择一名*存活的爪牙*玩家变为恶魔。",
+    "变成新小恶魔的爪牙会在当晚被唤醒以告知身份变化，但是无法在当晚接着杀人。",
+    "如果小恶魔选择攻击一名已死亡的玩家（如果需要的话），是允许的，虽然会导致“空刀”但是可能帮助小恶魔伪装成士兵或僧侣被攻击等情形。"
+  ],
+
   // 首夜行动：认队友，不需要选择目标
   firstNight: {
     order: 2,
-    
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
@@ -28,7 +34,7 @@ export const imp: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // 小恶魔的认队友逻辑在 calculateNightInfo 中处理
       // 这里只返回空更新
@@ -40,23 +46,23 @@ export const imp: RoleDefinition = {
       };
     },
   },
-  
+
   // 后续夜晚行动：选择一名玩家杀害
   night: {
     order: 20,
-    
+
     target: {
       count: {
         min: 1,
         max: 1,
       },
-      
+
       canSelect: (target: Seat, self: Seat, allSeats: Seat[], selectedTargets: number[]) => {
         // 可以选择任何人（包括自己）
         return true;
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
@@ -64,7 +70,7 @@ export const imp: RoleDefinition = {
         close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       // 小恶魔的杀人逻辑在 calculateNightInfo 和 killPlayer 中处理
       // 这里只返回空更新
@@ -76,7 +82,7 @@ export const imp: RoleDefinition = {
           },
         };
       }
-      
+
       return {
         updates: [],
         logs: {

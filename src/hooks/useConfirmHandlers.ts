@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { Seat, Role, GamePhase } from "../../app/data";
 import type { NightInfoResult, GameRecord } from "../types/game";
 import type { ModalType } from "../types/modal";
@@ -361,7 +361,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         window.location.reload();
     }, [gamePhase, selectedScript, gameLogs, nightCount, startTime, timer, seats, saveGameRecord]);
 
-    return {
+    return useMemo(() => ({
         confirmMayorRedirect,
         confirmHadesiaKill,
         confirmMoonchildKill,
@@ -374,5 +374,10 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         confirmRavenkeeperFake,
         confirmVirginTrigger,
         confirmRestart,
-    };
+    }), [
+        confirmMayorRedirect, confirmHadesiaKill, confirmMoonchildKill,
+        confirmSweetheartDrunk, confirmKlutzChoice, confirmStorytellerDeath,
+        confirmHadesia, confirmSaintExecution, cancelSaintExecution,
+        confirmRavenkeeperFake, confirmVirginTrigger, confirmRestart
+    ]);
 }

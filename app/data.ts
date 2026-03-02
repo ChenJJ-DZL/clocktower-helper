@@ -162,6 +162,7 @@ export interface Seat {
   hasBeenNominated?: boolean; // 处女是否已被提名过（无论是否触发处决）
   isDemonSuccessor: boolean;
   hasAbilityEvenDead: boolean; // 亡骨魔杀死的爪牙：死亡但保留能力
+  isMad?: boolean; // 新增：是否处于疯狂状态（例如洗脑师、鹰身女妖效果）
   statusDetails: string[];
   statuses?: StatusEffect[];
   voteCount?: number;

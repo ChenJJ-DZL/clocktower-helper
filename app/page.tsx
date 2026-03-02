@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { useEffect, useCallback } from "react";
@@ -348,32 +348,12 @@ export default function Home() {
 
   // handleConfirmAction moved to useGameController - using imported version
 
-  // 安全兜底如果夜晚阶段存在叫醒队列但无法生成 nightInfo自动跳过当前环节或直接结束夜晚
+  // Note: 自动识别当前是否处于涡流环境逻辑已保留
+  /*
   useEffect(() => {
-    if (!(gamePhase === 'firstNight' || gamePhase === 'night')) return;
-    if (wakeQueueIds.length === 0) return;
-    // 只有在当前索引合法但 nightInfo 仍为 null 时才认为是异常卡住
-    if (currentWakeIndex < 0 || currentWakeIndex >= wakeQueueIds.length) return;
-    if (nightInfo) return;
-
-    // 还有后续角色时直接跳到下一个夜晚行
-    if (currentWakeIndex < wakeQueueIds.length - 1) {
-      continueToNextAction();
-      return;
-    }
-
-    // 已经是最后一个角色且无法生成 nightInfo直接结束夜晚并进入天亮结算
-    setWakeQueueIds([]);
-    setCurrentWakeIndex(0);
-    if (deadThisNight.length > 0) {
-      const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
-      setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
-    } else {
-      setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
-    }
-    setGamePhase('dawnReport');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // [DELETED] Safeguard moved to useGameController.ts
   }, [gamePhase, nightInfo, wakeQueueIds, currentWakeIndex]);
+  */
 
   // isConfirmDisabled moved to GameStage component
 

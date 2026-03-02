@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { Seat, Role, GamePhase } from "../../app/data";
 import type { NightInfoResult, GameRecord } from "../types/game";
 import type { ModalType } from "../types/modal";
@@ -99,6 +99,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         const seatsSnapshot = seats;
         const t = seatsSnapshot.find(s => s.id === id);
         if (!t || !t.role) return;
+
+        // Mad execution force override (If a player is executed due to madness, skip ability confirmations)
+        if (t.isMad && options?.forceExecution) {
+            // Log it
+            addLog(`⚖️ ${t.id + 1}号因为处于疯狂状态，说书人决定强制执行处决！`);
+            dispatch({ type: 'EXECUTE_PLAYER', targetId: id });
+            return;
+        }
 
         // Saint: Confirm if not forced
         if (t.role.id === 'saint' && !options?.forceExecution) {
@@ -544,7 +552,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         }
     }, [currentModal, seats, saveHistory, getRegistrationCached, checkGameOver, addLog, setCurrentModal, setSeats, setWinReason]);
 
-    return {
+    return useMemo(() => ({
         executePlayer,
         confirmKill,
         submitVotes,
@@ -556,5 +564,9 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         resolveLunaticRps,
         confirmShootResult,
         handleSlayerTargetSelect,
-    };
+    }), [
+        executePlayer, confirmKill, submitVotes, executeJudgment, confirmPoison,
+        confirmPoisonEvil, startSubsequentNight, confirmExecutionResult,
+        resolveLunaticRps, confirmShootResult, handleSlayerTargetSelect
+    ]);
 }

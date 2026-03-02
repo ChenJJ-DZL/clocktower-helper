@@ -236,205 +236,17 @@ export type VfxTrigger = { seatId: number; type: 'slayer' | 'virgin' } | null;
 
 export function useGameController() {
   // Get all state from useGameState
-  const gameState = useGameState();
-
   // --- NEW: VFX State Coordinator ---
   const [vfxTrigger, setVfxTrigger] = useState<VfxTrigger>(null);
-
-  // 集成新的队列管理系统
-  // Always call hooks unconditionally to respect React Rules of Hooks
-  const context = useGameContext();
-  const gameContextDispatch: React.Dispatch<any> = context.dispatch;
-  const nightQueue = useNightActionQueue();  // Destructure all state variables
-  const {
-    mounted,
-    setMounted,
-    setShowIntroLoading,
-    setIsPortrait,
-    seats: baseSeats,
-    initialSeats,
-    gamePhase: baseGamePhase,
-    selectedScript,
-    executedPlayerId,
-    setExecutedPlayerId,
-    gameLogs,
-    setGameLogs,
-    winResult,
-    setWinResult,
-    winReason,
-    setWinReason,
-    startTime,
-    setStartTime,
-    wakeQueueIds: baseWakeQueueIds,
-    inspectionResult,
-    setInspectionResult,
-    setInspectionResultKey,
-    currentHint,
-    setCurrentHint,
-    todayDemonVoted,
-    setTodayDemonVoted,
-    todayMinionNominated,
-    setTodayMinionNominated,
-    todayExecutedId,
-    setTodayExecutedId,
-    witchCursedId,
-    setWitchCursedId,
-    witchActive,
-    setWitchActive,
-    cerenovusTarget,
-    setCerenovusTarget,
-    isVortoxWorld,
-    setIsVortoxWorld,
-    outsiderDiedToday,
-    setOutsiderDiedToday,
-    gossipTrueTonight,
-    setGossipTrueTonight,
-    gossipSourceSeatId,
-    setGossipSourceSeatId,
-    gossipStatementToday,
-    dayAbilityForm,
-    setDayAbilityForm,
-    baronSetupCheck,
-    setBaronSetupCheck,
-    ignoreBaronSetup,
-    compositionError,
-    setCompositionError,
-    setVoteInputValue,
-    setShowVoteErrorToast,
-    setGameRecords,
-    setMayorRedirectTarget,
-    setNightOrderPreview,
-    setPendingNightQueue,
-    nightQueuePreviewTitle,
-    setNightQueuePreviewTitle,
-    poppyGrowerDead,
-    setPoppyGrowerDead,
-    klutzChoiceTarget,
-    setKlutzChoiceTarget,
-    spyDisguiseMode,
-    spyDisguiseProbability,
-    pukkaPoisonQueue,
-    setPukkaPoisonQueue,
-    poChargeState,
-    setPoChargeState,
-    usedOnceAbilities,
-    setUsedOnceAbilities,
-    usedDailyAbilities,
-    setUsedDailyAbilities,
-    nominationMap,
-    setNominationMap,
-    balloonistKnownTypes,
-    setBalloonistKnownTypes,
-    balloonistCompletedIds,
-    setBalloonistCompletedIds,
-    hadesiaChoices,
-    setHadesiaChoices,
-    virginGuideInfo,
-    setVirginGuideInfo,
-    voteRecords,
-    setVoteRecords,
-    votedThisRound,
-    setVotedThisRound,
-    hasExecutedThisDay,
-    setHasExecutedThisDay,
-    mastermindFinalDay,
-    setMastermindFinalDay,
-    setSelectedRole,
-    goonDrunkedThisNight,
-    setGoonDrunkedThisNight,
-    nominationRecords,
-    setNominationRecords,
-    lastDuskExecution,
-    setLastDuskExecution,
-    currentDuskExecution,
-    setCurrentDuskExecution,
-    checkLongPressTimerRef,
-    longPressTriggeredRef,
-    seatRefs,
-    hintCacheRef,
-    drunkFirstInfoRef,
-    fakeInspectionResultRef,
-    moonchildChainPendingRef,
-    longPressTimerRef,
-    registrationCacheRef,
-    registrationCacheKeyRef,
-    introTimeoutRef,
-    evilTwinPair,
-    fangGuConverted,
-    jugglerGuesses,
-  } = gameState;
-
-  // CRITICAL FIX: Lock to prevent double-submission race conditions
-  const processingRef = useRef(false);
-
-  // Live night order preview derived from the actual wake queue (so it never goes stale / missing)
-  // NOTE: Uses baseGamePhase here since gamePhase is defined later from gameFlow
-  const nightOrderPreviewLive = useMemo(() => {
-    const isNightPhase = baseGamePhase === "firstNight" || baseGamePhase === "night";
-    if (!isNightPhase) return [];
-
-    const isFirst = baseGamePhase === "firstNight";
-    const byId = new Map(baseSeats.map((s) => [s.id, s]));
-
-    return baseWakeQueueIds
-      .map((seatId, idx) => {
-        const seat = byId.get(seatId);
-        const effectiveRoleId =
-          seat?.role?.id === "drunk" ? seat?.charadeRole?.id : seat?.role?.id;
-        const roleName =
-          seat?.role?.id === "drunk"
-            ? seat?.charadeRole?.name ?? seat?.role?.name
-            : seat?.role?.name;
-        const order =
-          (effectiveRoleId
-            ? getNightOrderOverride(effectiveRoleId, isFirst)
-            : null) ?? idx + 1;
-
-        return {
-          roleName: roleName || effectiveRoleId || "未知角色",
-          seatNo: seatId + 1,
-          order,
-        };
-      })
-      .filter((x) => !!x.roleName);
-  }, [baseGamePhase, baseSeats, baseWakeQueueIds]);
-
-  // 占位组合式 Hooks（后续逐步迁移状态/方法）
-  const startNightImplRef = useRef<((isFirst: boolean) => void) | undefined>(undefined);
-  const finalizeNightStartRef = useRef<((queue: any[], isFirst: boolean) => void) | undefined>(undefined);
-
-
-
-
-  const flowSaveHistoryRef = useRef<(() => void) | null>(null);
-
-
-
-  const flowAddLogRef = useRef<((msg: string) => void) | null>(null);
-
-
-
-  const flowSaveGameRecordRef = useRef<((record: GameRecord) => void) | null>(null);
-
-
-
-  const flowTriggerIntroRef = useRef<(() => void) | null>(null);
-
-
-
-  const flowResetRegistrationCache = useCallback(
-    (key: string) => {
-      registrationCacheRef.current = new Map();
-      registrationCacheKeyRef.current = key;
-    },
-    [registrationCacheRef, registrationCacheKeyRef]
-  );
 
   // --- Initialize Sub-hooks (Refactored to use GameContext natively) ---
   const gameFlow = useGameFlow();
   const seatManager = useSeatManager();
   const modalManager = useModalManager();
   const historyController = useHistoryController();
+
+  // Get all state from useGameState
+  const gameState = useGameState();
 
   // 将组合式 Hook 输出解构为本地变量，保持后续逻辑不变（兼容性桥接）
   // 注意：优先使用 sub-hooks 提供的状态和方法，它们已与 GameContext 深度集成
@@ -489,13 +301,196 @@ export function useGameController() {
     handleGlobalUndo,
   } = historyController;
 
+  // 集成新的队列管理系统
+  // Always call hooks unconditionally to respect React Rules of Hooks
+  const context = useGameContext();
+  const gameContextDispatch: React.Dispatch<any> = context.dispatch;
+  const nightQueue = useNightActionQueue();  // Use for queue-specific logic
+  const {
+    // 基础状态和 Setter
+    mounted, setMounted,
+    showIntroLoading, setShowIntroLoading,
+    isPortrait, setIsPortrait,
+
+    // 核心游戏状态
+    initialSeats, setInitialSeats,
+    selectedScript, setSelectedScript,
+    executedPlayerId, setExecutedPlayerId,
+    gameLogs, setGameLogs,
+    winResult, setWinResult,
+    winReason, setWinReason,
+    startTime, setStartTime,
+    // (timer, nightCount, gamePhase are from gameFlow)
+    // (seats, deadThisNight are from seatManager)
+    // (currentModal is from modalManager)
+    setTimer, // gameFlow doesn't provide setTimer directly
+
+    // 角色和 UI 状态
+    selectedRole, setSelectedRole,
+    contextMenu, setContextMenu,
+    showMenu, setShowMenu,
+    longPressingSeats, setLongPressingSeats,
+
+    // 行动队列和提示
+    wakeQueueIds, setWakeQueueIds,
+    currentWakeIndex, setCurrentWakeIndex,
+    selectedActionTargets, setSelectedActionTargets,
+    inspectionResult, setInspectionResult,
+    inspectionResultKey, setInspectionResultKey,
+    currentHint, setCurrentHint,
+
+    // 角色特定状态
+    todayDemonVoted, setTodayDemonVoted,
+    todayMinionNominated, setTodayMinionNominated,
+    todayExecutedId, setTodayExecutedId,
+    witchCursedId, setWitchCursedId,
+    witchActive, setWitchActive,
+    cerenovusTarget, setCerenovusTarget,
+    isVortoxWorld, setIsVortoxWorld,
+    fangGuConverted, setFangGuConverted,
+    jugglerGuesses, setJugglerGuesses,
+    evilTwinPair, setEvilTwinPair,
+    outsiderDiedToday, setOutsiderDiedToday,
+    gossipStatementToday, setGossipStatementToday,
+    gossipTrueTonight, setGossipTrueTonight,
+    gossipSourceSeatId, setGossipSourceSeatId,
+
+    // 辅助状态
+    dayAbilityForm, setDayAbilityForm,
+    baronSetupCheck, setBaronSetupCheck,
+    ignoreBaronSetup, setIgnoreBaronSetup,
+    compositionError, setCompositionError,
+    voteInputValue, setVoteInputValue,
+    showVoteErrorToast, setShowVoteErrorToast,
+    gameRecords, setGameRecords,
+    mayorRedirectTarget, setMayorRedirectTarget,
+    nightOrderPreview, setNightOrderPreview,
+    pendingNightQueue, setPendingNightQueue,
+    nightQueuePreviewTitle, setNightQueuePreviewTitle,
+    firstNightOrder, setFirstNightOrder,
+    seatNotes, setSeatNotes,
+    hadesiaChoiceEnabled, setHadesiaChoiceEnabled,
+    poppyGrowerDead, setPoppyGrowerDead,
+    klutzChoiceTarget, setKlutzChoiceTarget,
+    lastExecutedPlayerId, setLastExecutedPlayerId,
+    damselGuessed, setDamselGuessed,
+    shamanKeyword, setShamanKeyword,
+    shamanTriggered, setShamanTriggered,
+    shamanConvertTarget, setShamanConvertTarget,
+    spyDisguiseMode, setSpyDisguiseMode,
+    spyDisguiseProbability, setSpyDisguiseProbability,
+    pukkaPoisonQueue, setPukkaPoisonQueue,
+    poChargeState, setPoChargeState,
+    autoRedHerringInfo, setAutoRedHerringInfo,
+    dayAbilityLogs, setDayAbilityLogs,
+    damselGuessUsedBy, setDamselGuessUsedBy,
+    usedOnceAbilities, setUsedOnceAbilities,
+    usedDailyAbilities, setUsedDailyAbilities,
+    nominationMap, setNominationMap,
+    balloonistKnownTypes, setBalloonistKnownTypes,
+    balloonistCompletedIds, setBalloonistCompletedIds,
+    hadesiaChoices, setHadesiaChoices,
+    virginGuideInfo, setVirginGuideInfo,
+    voteRecords, setVoteRecords,
+    votedThisRound, setVotedThisRound,
+    hasExecutedThisDay, setHasExecutedThisDay,
+    mastermindFinalDay, setMastermindFinalDay,
+    remainingDays, setRemainingDays,
+    goonDrunkedThisNight, setGoonDrunkedThisNight,
+    nominationRecords, setNominationRecords,
+    lastDuskExecution, setLastDuskExecution,
+    currentDuskExecution, setCurrentDuskExecution,
+    history, setHistory,
+
+    // Actions & Refs
+    // addLog is local
+    // dispatch is from context
+    drunkFirstInfoRef,
+    registrationCacheRef,
+    registrationCacheKeyRef,
+    introTimeoutRef,
+    fakeInspectionResultRef,
+    moonchildChainPendingRef,
+    longPressTimerRef,
+    checkLongPressTimerRef,
+    longPressTriggeredRef,
+    seatRefs,
+    seatContainerRef,
+    hintCacheRef,
+    consoleContentRef,
+    currentActionTextRef,
+  } = gameState;
+
+  // baseDispatch comes from context natively
+  const baseDispatch = gameContextDispatch;
+
+  // CRITICAL FIX: Lock to prevent double-submission race conditions
+  const processingRef = useRef(false);
+
+  // Live night order preview derived from the actual wake queue (so it never goes stale / missing)
+  // NOTE: Uses baseGamePhase here since gamePhase is defined later from gameFlow
+  const nightOrderPreviewLive = useMemo(() => {
+    const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
+    if (!isNightPhase) return [];
+
+    const isFirst = gamePhase === "firstNight";
+    const byId = new Map(seats.map((s) => [s.id, s]));
+
+    return (wakeQueueIds || [])
+      .map((seatId, idx) => {
+        const seat = byId.get(seatId);
+        const effectiveRoleId =
+          seat?.role?.id === "drunk" ? seat?.charadeRole?.id : seat?.role?.id;
+        const roleName =
+          seat?.role?.id === "drunk"
+            ? seat?.charadeRole?.name ?? seat?.role?.name
+            : seat?.role?.name;
+        const order =
+          (effectiveRoleId
+            ? getNightOrderOverride(effectiveRoleId, isFirst)
+            : null) ?? idx + 1;
+
+        return {
+          roleName: roleName || effectiveRoleId || "未知角色",
+          seatNo: seatId + 1,
+          order,
+        };
+      })
+      .filter((x) => !!x.roleName);
+  }, [gamePhase, seats, wakeQueueIds]);
+
+  // 占位组合式 Hooks（后续逐步迁移状态/方法）
+  const startNightImplRef = useRef<((isFirst: boolean) => void) | undefined>(undefined);
+  const finalizeNightStartRef = useRef<((queue: any[], isFirst: boolean) => void) | undefined>(undefined);
+
+
+
+
+  const flowSaveHistoryRef = useRef<(() => void) | null>(null);
+
+
+
+  const flowAddLogRef = useRef<((msg: string) => void) | null>(null);
+
+
+
+  const flowSaveGameRecordRef = useRef<((record: GameRecord) => void) | null>(null);
+
+
+
+  const flowTriggerIntroRef = useRef<(() => void) | null>(null);
+
+
+
+  const flowResetRegistrationCache = useCallback(
+    (key: string) => {
+      registrationCacheRef.current = new Map();
+      registrationCacheKeyRef.current = key;
+    },
+    [registrationCacheRef, registrationCacheKeyRef]
+  );
+
   // 别名还原 (兼容旧逻辑中大量直接引用的变量名)
-  const wakeQueueIds = gameState.wakeQueueIds;
-  const setWakeQueueIds = gameState.setWakeQueueIds;
-  const currentWakeIndex = gameState.currentWakeIndex;
-  const setCurrentWakeIndex = gameState.setCurrentWakeIndex;
-  const selectedActionTargets = gameState.selectedActionTargets;
-  const setSelectedActionTargets = gameState.setSelectedActionTargets;
   const nightActionQueue = nightQueue?.nightActionQueue || [];
   const resetRegistrationCache = flowResetRegistrationCache;
 
@@ -652,7 +647,7 @@ export function useGameController() {
 
   // 同步状态到GameContext（如果可用）
   useEffect(() => {
-    if (gameContextDispatch && wakeQueueIds.length > 0) {
+    if (gameContextDispatch && (wakeQueueIds || []).length > 0) {
       // 将wakeQueueIds转换为Seat[]
       const queueSeats = convertWakeQueueIdsToSeats(wakeQueueIds, seats);
       if (queueSeats.length > 0) {
@@ -1121,7 +1116,7 @@ export function useGameController() {
   // or keep it just for "stuck" detection but NOT for normal transition
   useEffect(() => {
     if (!(gamePhase === 'firstNight' || gamePhase === 'night')) return;
-    if (wakeQueueIds.length === 0) return;
+    if ((wakeQueueIds || []).length === 0) return;
 
     // If index out of bounds, we assume continueToNextAction handled it OR we missed it.
     // If we missed it (e.g. initial load out of bounds), we should transition.
@@ -1154,7 +1149,7 @@ export function useGameController() {
   const victoryRef = useRef<{ winner: 'good' | 'evil'; reason: string } | null>(null);
 
   // --- ATOMIC DISPATCHER ---
-  const dispatch = useCallback((action: GameAction) => {
+  const logicDispatch = useCallback((action: GameAction) => {
     // If game is already over (atomically), ignore further logic-changing actions
     // allowing only pure UI actions if needed, but generally we stop.
     if (victoryRef.current && action.type !== 'CHECK_GAME_OVER') {
@@ -1220,7 +1215,7 @@ export function useGameController() {
     klutzGuessedEvil: boolean = false
   ) => {
     // We pass the context via the action now
-    dispatch({
+    logicDispatch({
       type: 'CHECK_GAME_OVER',
       executedId: executedPlayerId || undefined,
       lastAction: executedPlayerId ? 'execution' : 'check_phase',
@@ -1231,7 +1226,7 @@ export function useGameController() {
         isMastermindActive: false, // You might need to derive this from state if needed
       }
     });
-  }, [dispatch, isVortoxWorld]);
+  }, [logicDispatch, isVortoxWorld]);
 
   // 重写 handleDayEndTransition：进入黄昏结算前，先检查市长、涡流等基于日终的胜利条件
   const handleDayEndTransitionOverride = useCallback(() => {
@@ -1305,14 +1300,16 @@ export function useGameController() {
       }
 
       // 常规死亡报告
-      // Guard against repeated modals
+      // Guard against repeated modals. (At this point gamePhase is 'firstNight' or 'night')
       if (currentModal?.type !== 'NIGHT_DEATH_REPORT') {
-        if (deadThisNight.length > 0) {
-          const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
-          setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
-        } else {
-          setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
-        }
+        const message = deadThisNight.length > 0
+          ? `昨晚${deadThisNight.map(id => `${id + 1}号`).join('、')}玩家死亡`
+          : "昨天是个平安夜";
+
+        baseDispatch(gameActions.updateState({
+          gamePhase: 'dawnReport',
+          currentModal: { type: 'NIGHT_DEATH_REPORT', data: { message } }
+        }));
       }
     }
   }, [
@@ -1324,12 +1321,15 @@ export function useGameController() {
     gossipTrueTonight,
     gossipSourceSeatId,
     gossipStatementToday,
-    currentModal, // Need currentModal to prevent loop
+    currentModal,
     killPlayer,
     addLog,
     setGossipTrueTonight,
     setGossipSourceSeatId,
-    setCurrentModal
+    setCurrentModal,
+    setGamePhase,
+    logicDispatch,
+    baseDispatch
   ]);
 
 
@@ -1894,7 +1894,7 @@ export function useGameController() {
         killerRoleId = nightInfo.effectiveRole.id;
       }
 
-      dispatch({
+      logicDispatch({
         type: 'KILL_PLAYER',
         targetId,
         source,
@@ -1906,7 +1906,7 @@ export function useGameController() {
         onAfterKill(seats);
       }
     },
-    [dispatch, nightInfo]
+    [logicDispatch, nightInfo]
   );
 
   // 将真实实现注入到稳定 wrapper 中
@@ -2423,7 +2423,7 @@ export function useGameController() {
     setVoteInputValue, setShowVoteErrorToast,
     addLog, addLogWithDeduplication, killPlayer, continueToNextAction,
     checkGameOver, isActorDisabledByPoisonOrDrunk, getRegistrationCached,
-    saveHistory, dispatch, getRandom,
+    saveHistory, dispatch: logicDispatch, getRandom,
     getAliveNeighbors, isGoodAlignment,
     addPoisonMark, computeIsPoisoned,
     handleNightAction, executePoisonActionFn: executePoisonAction,
@@ -2478,7 +2478,7 @@ export function useGameController() {
     addLog, killPlayer, checkGameOver, isActorDisabledByPoisonOrDrunk,
     getRegistrationCached, saveHistory, hasUsedAbility, hasUsedDailyAbility,
     markAbilityUsed, markDailyAbilityUsed, continueToNextAction, proceedToFirstNight,
-    changeRole, dispatch,
+    changeRole, dispatch: logicDispatch,
   });
   const {
     executeNomination, handleVirginGuideConfirm, handleDayAction,
@@ -2516,47 +2516,120 @@ export function useGameController() {
   }, [setHadesiaChoices]);
 
   // Return all state and handlers needed by the UI
-  return {
-    // State
-    ...gameState,
+  // CRITICAL PERFORMANCE: Memoize the entire return object to prevent cascading re-renders
+  return useMemo(() => ({
+    // States from stateManager / gameState
+    mounted, setMounted,
+    showIntroLoading, setShowIntroLoading,
+    isPortrait, setIsPortrait,
+    seats, setSeats,
+    initialSeats, setInitialSeats,
+    gamePhase, setGamePhase,
+    selectedScript, setSelectedScript,
+    nightCount, setNightCount,
+    deadThisNight, setDeadThisNight,
+    executedPlayerId, setExecutedPlayerId,
+    gameLogs, setGameLogs,
+    winResult, setWinResult,
+    winReason, setWinReason,
+    startTime, setStartTime,
+    timer, setTimer,
+    wakeQueueIds, setWakeQueueIds,
+    currentWakeIndex, setCurrentWakeIndex,
+    selectedActionTargets, setSelectedActionTargets,
+    currentHint, setCurrentHint,
+    inspectionResult, setInspectionResult,
+    inspectionResultKey, setInspectionResultKey,
+    todayDemonVoted, setTodayDemonVoted,
+    todayMinionNominated, setTodayMinionNominated,
+    todayExecutedId, setTodayExecutedId,
+    witchCursedId, setWitchCursedId,
+    witchActive, setWitchActive,
+    cerenovusTarget, setCerenovusTarget,
+    isVortoxWorld, setIsVortoxWorld,
+    fangGuConverted, setFangGuConverted,
+    jugglerGuesses, setJugglerGuesses,
+    evilTwinPair, setEvilTwinPair,
+    outsiderDiedToday, setOutsiderDiedToday,
+    gossipStatementToday, setGossipStatementToday,
+    gossipTrueTonight, setGossipTrueTonight,
+    gossipSourceSeatId, setGossipSourceSeatId,
+    selectedRole, setSelectedRole,
+    contextMenu, setContextMenu,
+    showMenu, setShowMenu,
+    longPressingSeats, setLongPressingSeats,
+    currentModal, setCurrentModal,
+    dayAbilityForm, setDayAbilityForm,
+    baronSetupCheck, setBaronSetupCheck,
+    ignoreBaronSetup, setIgnoreBaronSetup,
+    compositionError, setCompositionError,
+    voteInputValue, setVoteInputValue,
+    showVoteErrorToast, setShowVoteErrorToast,
+    gameRecords, setGameRecords,
+    mayorRedirectTarget, setMayorRedirectTarget,
+    nightOrderPreview, setNightOrderPreview,
+    pendingNightQueue, setPendingNightQueue,
+    nightQueuePreviewTitle, setNightQueuePreviewTitle,
+    firstNightOrder, setFirstNightOrder,
+    seatNotes, setSeatNotes,
+    hadesiaChoiceEnabled, setHadesiaChoiceEnabled,
+    poppyGrowerDead, setPoppyGrowerDead,
+    klutzChoiceTarget, setKlutzChoiceTarget,
+    lastExecutedPlayerId, setLastExecutedPlayerId,
+    damselGuessed, setDamselGuessed,
+    shamanKeyword, setShamanKeyword,
+    shamanTriggered, setShamanTriggered,
+    shamanConvertTarget, setShamanConvertTarget,
+    spyDisguiseMode, setSpyDisguiseMode,
+    spyDisguiseProbability, setSpyDisguiseProbability,
+    pukkaPoisonQueue, setPukkaPoisonQueue,
+    poChargeState, setPoChargeState,
+    autoRedHerringInfo, setAutoRedHerringInfo,
+    dayAbilityLogs, setDayAbilityLogs,
+    damselGuessUsedBy, setDamselGuessUsedBy,
+    usedOnceAbilities, setUsedOnceAbilities,
+    usedDailyAbilities, setUsedDailyAbilities,
+    nominationMap, setNominationMap,
+    balloonistKnownTypes, setBalloonistKnownTypes,
+    balloonistCompletedIds, setBalloonistCompletedIds,
+    hadesiaChoices, setHadesiaChoices,
+    virginGuideInfo, setVirginGuideInfo,
+    voteRecords, setVoteRecords,
+    votedThisRound, setVotedThisRound,
+    hasExecutedThisDay, setHasExecutedThisDay,
+    mastermindFinalDay, setMastermindFinalDay,
+    remainingDays, setRemainingDays,
+    goonDrunkedThisNight, setGoonDrunkedThisNight,
+    nominationRecords, setNominationRecords,
+    lastDuskExecution, setLastDuskExecution,
+    currentDuskExecution, setCurrentDuskExecution,
+    history, setHistory,
+    vfxTrigger, setVfxTrigger,
 
-    seatNotes: gameState.seatNotes,
-    setSeatNotes: gameState.setSeatNotes,
+    // Refs
+    drunkFirstInfoRef,
+    registrationCacheRef,
+    registrationCacheKeyRef,
+    introTimeoutRef,
+    hintCacheRef,
+    fakeInspectionResultRef,
+    moonchildChainPendingRef,
+    longPressTimerRef,
+    checkLongPressTimerRef,
+    longPressTriggeredRef,
+    seatRefs,
+    seatContainerRef,
+    consoleContentRef,
+    currentActionTextRef,
 
-    vfxTrigger,
-    setVfxTrigger,
-    // Helper functions
-    formatTimer,
-    getSeatRoleId,
-    cleanseSeatStatuses,
-    isActionAbility,
-    isActorDisabledByPoisonOrDrunk,
-    addDrunkMark,
-    isEvil,
-    getDisplayRoleType,
-    hasTeaLadyProtection,
-    hasExecutionProof,
-    saveHistory,
-    resetRegistrationCache,
-    getRegistrationCached,
-    getFilteredRoles,
-    hasUsedAbility,
-    markAbilityUsed,
-    hasUsedDailyAbility,
-    markDailyAbilityUsed,
-    getDisplayRoleForSeat,
-    handleNextStep,
-    filteredGroupedRoles,
-    triggerIntroLoading,
-    loadGameRecords,
-    saveGameRecord,
+    // Methods
     addLog,
     addLogWithDeduplication,
-    cleanStatusesForNewDay,
-    isEvilWithJudgment,
-    enqueueRavenkeeperIfNeeded,
-    checkGameOver,
-    continueToNextAction,
+    baseDispatch,
+    dispatch: logicDispatch,
+    logicDispatch,
+    formatTimer,
+    getSeatRoleId,
     currentNightRole,
     nextNightRole,
     nightInfo,
@@ -2566,8 +2639,6 @@ export function useGameController() {
     confirmNightDeathReport,
     changeRole,
     swapRoles,
-
-    // Setup and validation handlers
     handleBaronAutoRebalance,
     handlePreStartNight,
     handleStartNight,
@@ -2581,9 +2652,6 @@ export function useGameController() {
     reviveSeat,
     convertPlayerToEvil,
     insertIntoWakeQueueAfterCurrent,
-
-    // Modal and action handlers
-    handleConfirmAction: interactionHandleConfirmAction,
     executePlayer,
     confirmKill,
     submitVotes,
@@ -2595,8 +2663,6 @@ export function useGameController() {
     resolveLunaticRps,
     confirmShootResult,
     handleSlayerTargetSelect,
-
-    // Group A: Confirm functions
     confirmMayorRedirect,
     confirmHadesiaKill,
     confirmMoonchildKill,
@@ -2609,19 +2675,14 @@ export function useGameController() {
     confirmRavenkeeperFake,
     confirmVirginTrigger,
     confirmRestart,
-
-    // Group B: Action functions
     executeNomination,
     handleDayAction,
     handleVirginGuideConfirm,
     handleDayAbilityTrigger,
-    handleDayAbility, // NEW: Generic dayMeta-based ability handler
-    registerVotes, // Register votes for Flowergirl/Town Crier
-    votedThisRound, // Current round's vote list
-    checkGameOverSimple, // NEW: Simplified game over check for Dusk phase
+    handleDayAbility,
+    registerVotes,
+    checkGameOverSimple,
     nightOrderPreviewLive,
-
-    // Group C: Phase/Control functions
     declareMayorImmediateWin,
     handleDayEndTransition: handleDayEndTransitionOverride,
     handleRestart,
@@ -2631,32 +2692,117 @@ export function useGameController() {
     handleGlobalUndo,
     closeNightOrderPreview,
     confirmNightOrderPreview,
-    proceedToFirstNight, // CRITICAL: Synchronous transition to first night
-
-    // Group D: Seat Interaction functions
+    proceedToFirstNight,
     onSeatClick: (id: number, options?: { force?: boolean }) => interactionHandleSeatClick(id, options),
     toggleStatus: interactionToggleStatus,
     handleMenuAction,
     setHadesiaChoice,
     setRedNemesisTarget,
-
-    // Timer control functions
     handleTimerPause,
     handleTimerStart,
     handleTimerReset,
     isTimerRunning,
-
-    // Targeting functions
     toggleTarget: interactionToggleTarget,
     isTargetDisabled,
-
-    // Additional exports
     groupedRoles,
     isGoodAlignment,
-    getSeatPosition: getSeatPosition,
-
-    compositionError,
-    baronSetupCheck,
-  };
+    getSeatPosition,
+    hasUsedAbility,
+    hasUsedDailyAbility,
+    isActionAbility,
+    isActorDisabledByPoisonOrDrunk,
+    getDisplayRoleType,
+    handleConfirmAction: interactionHandleConfirmAction,
+    continueToNextAction,
+    saveHistory,
+    enterDayPhase,
+    triggerIntroLoading,
+    loadGameRecords,
+    saveGameRecord,
+    cleanStatusesForNewDay,
+    isEvilWithJudgment,
+    enqueueRavenkeeperIfNeeded,
+    checkGameOver,
+    resetRegistrationCache,
+    getRegistrationCached,
+    getFilteredRoles,
+    markAbilityUsed,
+    markDailyAbilityUsed,
+    getDisplayRoleForSeat,
+    handleNextStep,
+    filteredGroupedRoles,
+    isEvil,
+    cleanseSeatStatuses,
+    hasTeaLadyProtection,
+    hasExecutionProof
+  }), [
+    mounted, setMounted, showIntroLoading, setShowIntroLoading, isPortrait, setIsPortrait,
+    seats, setSeats, initialSeats, setInitialSeats, gamePhase, setGamePhase,
+    selectedScript, setSelectedScript, nightCount, setNightCount, deadThisNight, setDeadThisNight,
+    executedPlayerId, setExecutedPlayerId, gameLogs, setGameLogs, winResult, setWinResult,
+    winReason, setWinReason, startTime, setStartTime, timer, setTimer,
+    wakeQueueIds, setWakeQueueIds, currentWakeIndex, setCurrentWakeIndex,
+    selectedActionTargets, setSelectedActionTargets, currentHint, setCurrentHint,
+    inspectionResult, setInspectionResult, inspectionResultKey, setInspectionResultKey,
+    todayDemonVoted, setTodayDemonVoted, todayMinionNominated, setTodayMinionNominated,
+    todayExecutedId, setTodayExecutedId, witchCursedId, setWitchCursedId,
+    witchActive, setWitchActive, cerenovusTarget, setCerenovusTarget,
+    isVortoxWorld, setIsVortoxWorld, fangGuConverted, setFangGuConverted,
+    jugglerGuesses, setJugglerGuesses, evilTwinPair, setEvilTwinPair,
+    outsiderDiedToday, setOutsiderDiedToday, gossipStatementToday, setGossipStatementToday,
+    gossipTrueTonight, setGossipTrueTonight, gossipSourceSeatId, setGossipSourceSeatId,
+    selectedRole, setSelectedRole, contextMenu, setContextMenu, showMenu, setShowMenu,
+    longPressingSeats, setLongPressingSeats, currentModal, setCurrentModal,
+    dayAbilityForm, setDayAbilityForm, baronSetupCheck, setBaronSetupCheck,
+    ignoreBaronSetup, setIgnoreBaronSetup, compositionError, setCompositionError,
+    voteInputValue, setVoteInputValue, showVoteErrorToast, setShowVoteErrorToast,
+    gameRecords, setGameRecords, mayorRedirectTarget, setMayorRedirectTarget,
+    nightOrderPreview, setNightOrderPreview, pendingNightQueue, setPendingNightQueue,
+    nightQueuePreviewTitle, setNightQueuePreviewTitle, firstNightOrder, setFirstNightOrder,
+    seatNotes, setSeatNotes, hadesiaChoiceEnabled, setHadesiaChoiceEnabled,
+    poppyGrowerDead, setPoppyGrowerDead, klutzChoiceTarget, setKlutzChoiceTarget,
+    lastExecutedPlayerId, setLastExecutedPlayerId, damselGuessed, setDamselGuessed,
+    shamanKeyword, setShamanKeyword, shamanTriggered, setShamanTriggered,
+    shamanConvertTarget, setShamanConvertTarget, spyDisguiseMode, setSpyDisguiseMode,
+    spyDisguiseProbability, setSpyDisguiseProbability, pukkaPoisonQueue, setPukkaPoisonQueue,
+    poChargeState, setPoChargeState, autoRedHerringInfo, setAutoRedHerringInfo,
+    dayAbilityLogs, setDayAbilityLogs, damselGuessUsedBy, setDamselGuessUsedBy,
+    usedOnceAbilities, setUsedOnceAbilities, usedDailyAbilities, setUsedDailyAbilities,
+    nominationMap, setNominationMap, balloonistKnownTypes, setBalloonistKnownTypes,
+    balloonistCompletedIds, setBalloonistCompletedIds, hadesiaChoices, setHadesiaChoices,
+    virginGuideInfo, setVirginGuideInfo, voteRecords, setVoteRecords,
+    votedThisRound, setVotedThisRound, hasExecutedThisDay, setHasExecutedThisDay,
+    mastermindFinalDay, setMastermindFinalDay, remainingDays, setRemainingDays,
+    goonDrunkedThisNight, setGoonDrunkedThisNight, nominationRecords, setNominationRecords,
+    lastDuskExecution, setLastDuskExecution, currentDuskExecution, setCurrentDuskExecution,
+    history, setHistory, vfxTrigger, setVfxTrigger,
+    addLog, baseDispatch, logicDispatch, drunkFirstInfoRef, registrationCacheRef, registrationCacheKeyRef,
+    introTimeoutRef, hintCacheRef, fakeInspectionResultRef, consoleContentRef, currentActionTextRef,
+    longPressTimerRef, longPressTriggeredRef, checkLongPressTimerRef, seatRefs, seatContainerRef,
+    moonchildChainPendingRef,
+    formatTimer, getSeatRoleId, currentNightRole, nextNightRole, nightInfo,
+    getDemonDisplayName, killPlayer, nightLogic, confirmNightDeathReport, changeRole, swapRoles,
+    handleBaronAutoRebalance, handlePreStartNight, handleStartNight, handleDrunkCharadeSelect,
+    proceedToCheckPhase, getStandardComposition, validateBaronSetup, validateCompositionSetup,
+    getBaronStatus, getCompositionStatus, reviveSeat, convertPlayerToEvil,
+    insertIntoWakeQueueAfterCurrent, executePlayer, confirmKill, submitVotes, executeJudgment,
+    confirmPoison, confirmPoisonEvil, confirmExecutionResult, enterDuskPhase, resolveLunaticRps,
+    confirmShootResult, handleSlayerTargetSelect, confirmMayorRedirect, confirmHadesiaKill,
+    confirmMoonchildKill, confirmSweetheartDrunk, confirmKlutzChoice, confirmStorytellerDeath,
+    confirmHadesia, confirmSaintExecution, cancelSaintExecution, confirmRavenkeeperFake,
+    confirmVirginTrigger, confirmRestart, executeNomination, handleDayAction,
+    handleVirginGuideConfirm, handleDayAbilityTrigger, handleDayAbility, registerVotes,
+    checkGameOverSimple, nightOrderPreviewLive, declareMayorImmediateWin,
+    handleDayEndTransitionOverride, handleRestart, handleSwitchScript, handleNewGame, handleStepBack, handleGlobalUndo,
+    closeNightOrderPreview, confirmNightOrderPreview, proceedToFirstNight, interactionHandleSeatClick,
+    interactionToggleStatus, handleMenuAction, setHadesiaChoice, setRedNemesisTarget,
+    handleTimerPause, handleTimerStart, handleTimerReset, isTimerRunning, interactionToggleTarget,
+    isTargetDisabled, groupedRoles, isGoodAlignment, getSeatPosition,
+    hasUsedAbility, hasUsedDailyAbility, isActionAbility, isActorDisabledByPoisonOrDrunk,
+    getDisplayRoleType, addLogWithDeduplication, interactionHandleConfirmAction, continueToNextAction,
+    saveHistory, enterDayPhase, triggerIntroLoading, loadGameRecords, saveGameRecord,
+    cleanStatusesForNewDay, isEvilWithJudgment, enqueueRavenkeeperIfNeeded, checkGameOver,
+    resetRegistrationCache, getRegistrationCached, getFilteredRoles, markAbilityUsed,
+    markDailyAbilityUsed, getDisplayRoleForSeat, handleNextStep, filteredGroupedRoles
+  ]);
 }
-

@@ -258,9 +258,10 @@ export default function GameSetup({
                           if (!isTaken) setSelectedRole(r);
                         }}
                         className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${isTaken
-                            ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
-                            : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
+                          ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                          : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
                           } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
+                        data-role-id={r.id}
                         title={r.ability || r.name}
                       >
                         <div className="relative h-full flex flex-col items-center justify-center px-3 leading-tight py-2">
@@ -288,8 +289,8 @@ export default function GameSetup({
           onClick={handleAttemptStartGame}
           disabled={activeSeats.length === 0}
           className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${canStart
-              ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
-              : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
+            ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
+            : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
             } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           开始游戏

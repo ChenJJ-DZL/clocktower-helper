@@ -80,7 +80,7 @@ async function assignRole(page: Page, roleName: string, seatIndex: number) {
     .all();
   if (emptySeats.length <= seatIndex) {
     throw new Error(
-      `座位数量不足：找到 ${emptySeats.length} 个空位，但需要分配第 ${ seatIndex + 1 } 个。`
+      `座位数量不足：找到 ${emptySeats.length} 个空位，但需要分配第 ${seatIndex + 1} 个。`
     );
   }
   const seatElement = emptySeats[seatIndex];
@@ -153,9 +153,9 @@ test("游戏模拟与日志记录", async ({ page }) => {
 
   // 投毒者 (2号) -> 毒 3号
   await performNightAction(page, "投毒者", "选择 3 号玩家", async () => {
-    await page.locator('.seat-wrapper').nth(2).click(); // 点击3号座位
+    await page.locator('.seat-node').nth(2).click(); // 点击3号座位
   });
-  
+
   // 等待毒药确认模态框
   console.log("[TEST] 投毒者: 确认下毒");
   const poisonConfirmModal = page.getByRole('dialog', { name: /确认下毒/i });
@@ -168,7 +168,7 @@ test("游戏模拟与日志记录", async ({ page }) => {
     page,
     "洗衣妇",
     "无目标，直接确认",
-    async () => {}
+    async () => { }
   );
 
   // 图书管理员 (4号) - 无目标
@@ -176,7 +176,7 @@ test("游戏模拟与日志记录", async ({ page }) => {
     page,
     "图书管理员",
     "无目标，直接确认",
-    async () => {}
+    async () => { }
   );
 
   // 调查员 (5号) - 无目标
@@ -184,20 +184,20 @@ test("游戏模拟与日志记录", async ({ page }) => {
     page,
     "调查员",
     "无目标，直接确认",
-    async () => {}
+    async () => { }
   );
 
   // 小恶魔 (1号) -> 杀 4号
   await performNightAction(page, "小恶魔", "选择 4 号玩家", async () => {
-    await page.locator('.seat-wrapper').nth(3).click(); // 点击4号座位
+    await page.locator('.seat-node').nth(3).click(); // 点击4号座位
   });
-  
+
   // 等待击杀确认模态框
   console.log("[TEST] 小恶魔: 确认击杀");
   const killConfirmModal = page.getByRole('dialog', { name: /确认击杀/i });
   await expect(killConfirmModal).toBeVisible();
   await killConfirmModal.getByRole('button', { name: '确认' }).click();
-  
+
 
   // --- 6. 白天阶段 ---
   console.log("[TEST] --- 白天阶段开始 ---");
@@ -210,10 +210,10 @@ test("游戏模拟与日志记录", async ({ page }) => {
   // 提名阶段
   await expect(page.getByText(/发起提名/)).toBeVisible();
   console.log("[TEST] 1号 提名 2号");
-  await page.locator('.seat-wrapper').nth(0).click(); // 点击1号座位
-  await page.getByRole("button", { name: "发起提名" }).click();
-  await page.locator('.seat-wrapper').nth(1).click(); // 点击2号作为被提名人
-  await page.getByRole("button", { name: "确认" }).click();
+  await page.locator('.seat-node').nth(0).click(); // 点击1号座位
+  await page.locator('.seat-node').nth(1).click(); // 点击2号作为被提名人
+  await page.getByRole("button", { name: /发起提名/ }).click();
+  await page.waitForTimeout(500);
 
 
   // 投票阶段
@@ -231,12 +231,13 @@ test("游戏模拟与日志记录", async ({ page }) => {
   await expect(page.getByText(/执行处决/)).toBeVisible();
   console.log("[TEST] 点击执行处决");
   await page.getByRole("button", { name: /执行处决/i }).click();
+  await page.waitForTimeout(500);
 
   // 确认处决结果
   await expect(page.getByText(/处决结果/)).toBeVisible();
   console.log("[TEST] 确认处决结果");
   await page.getByRole("button", { name: "确认" }).click();
-  
+
   console.log("[TEST] --- 模拟结束 ---");
   await page.waitForTimeout(5000); // 等待最后的日志
 });

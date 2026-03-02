@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { Seat, Role, GamePhase, LogEntry, Script, WinResult } from "../../app/data";
 import { getRandom, computeIsPoisoned, addPoisonMark, hasTeaLadyProtection } from "../utils/gameRules";
 import type { NightInfoResult } from "../types/game";
@@ -403,37 +403,14 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
       }
 
       if (validQueue.length === 0) {
-        // For first night, if no roles wake, we should still proceed but with an empty queue
-        // This allows the game to continue to dawn
-        if (isFirst) {
-          console.warn('[startNight] First night has no wakeable roles. Proceeding with empty queue.');
-          // Set empty queue but still allow progression
-          setWakeQueueIds([]);
-          setCurrentWakeIndex(0);
-          setSelectedActionTargets([]);
-          setInspectionResult(null);
-          // For first night with no wakeable roles, go directly to dawn
-          if (nightlyDeaths.length > 0) {
-            const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
-          } else {
-            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
-          }
-          setGamePhase('dawnReport');
-          return;
-        } else {
-          // For other nights, same behavior
-          setWakeQueueIds([]);
-          setCurrentWakeIndex(0);
-          if (nightlyDeaths.length > 0) {
-            const deadNames = nightlyDeaths.map(id => `${id + 1}号`).join('、');
-            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
-          } else {
-            setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
-          }
-          setGamePhase('dawnReport');
-          return;
-        }
+        console.warn(`[startNight] ${isFirst ? 'First' : 'Regular'} night has no wakeable roles. Setting empty queue.`);
+        setWakeQueueIds([]);
+        setCurrentWakeIndex(0);
+        setSelectedActionTargets([]);
+        setInspectionResult(null);
+        // The End of Night transition in useGameController will detect currentWakeIndex >= wakeQueueIds.length
+        // and trigger the dawnReport transition automatically.
+        return;
       }
 
       if (isFirst) {
@@ -693,10 +670,10 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
     getDemonDisplayName,
   ]);
 
-  return {
+  return useMemo(() => ({
     startNight,
     finalizeNightStart,
     processDemonKill,
-  };
+  }), [startNight, finalizeNightStart, processDemonKill]);
 }
 

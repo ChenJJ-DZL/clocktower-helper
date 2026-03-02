@@ -849,7 +849,7 @@ export const GameStage = () => {
             gamePhase={gamePhase}
             nightCount={nightCount}
             currentStep={currentWakeIndex + 1}
-            totalSteps={wakeQueueIds.length}
+            totalSteps={(wakeQueueIds || []).length}
             wakeQueueIds={wakeQueueIds}
             scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : (gamePhase as string) === 'dusk' ? '黄昏处决阶段' : undefined)}
             guidancePoints={guidancePoints}

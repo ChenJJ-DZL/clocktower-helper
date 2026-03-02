@@ -15,7 +15,7 @@ export function ArtistResultModal({ onClose }: ArtistResultModalProps) {
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold">提问内容 (可选):</label>
+                        <label className="text-sm font-semibold">提问：</label>
                         <textarea
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useMemo, useCallback } from "react";
 import { Seat, Role, GamePhase, WinResult, LogEntry, Script } from "../../app/data";
 import { NightHintState, GameRecord } from "../types/game";
 import { RegistrationResult } from "../utils/gameRules";
@@ -42,264 +42,265 @@ export function useGameState() {
     balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo, seatNotes,
     voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay,
     remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution,
-    currentDuskExecution, history
+    currentDuskExecution, history, hadesiaChoiceEnabled
   } = state;
 
   // ===========================
   //      SETTER 包装器
   // ===========================
-  const setMounted = (val: boolean) => dispatch(gameActions.updateState({ mounted: val }));
-  const setShowIntroLoading = (val: boolean) => dispatch(gameActions.updateState({ showIntroLoading: val }));
-  const setIsPortrait = (val: boolean) => dispatch(gameActions.updateState({ isPortrait: val }));
-  const setSeats = (val: Seat[] | ((prev: Seat[]) => Seat[])) => {
+  const setMounted = useCallback((val: boolean) => dispatch(gameActions.updateState({ mounted: val })), [dispatch]);
+  const setShowIntroLoading = useCallback((val: boolean) => dispatch(gameActions.updateState({ showIntroLoading: val })), [dispatch]);
+  const setIsPortrait = useCallback((val: boolean) => dispatch(gameActions.updateState({ isPortrait: val })), [dispatch]);
+  const setSeats = useCallback((val: Seat[] | ((prev: Seat[]) => Seat[])) => {
     if (typeof val === 'function') {
       dispatch(gameActions.setSeats(val(state.seats)));
     } else {
       dispatch(gameActions.setSeats(val));
     }
-  };
-  const setInitialSeats = (val: Seat[]) => dispatch(gameActions.updateState({ initialSeats: val }));
-  const setGamePhase = (val: GamePhase) => dispatch(gameActions.setGamePhase(val));
-  const setSelectedScript = (val: Script | null) => dispatch(gameActions.updateState({ selectedScript: val }));
-  const setNightCount = (val: number | ((prev: number) => number)) => {
+  }, [dispatch, state.seats]);
+  const setInitialSeats = useCallback((val: Seat[]) => dispatch(gameActions.updateState({ initialSeats: val })), [dispatch]);
+  const setGamePhase = useCallback((val: GamePhase) => dispatch(gameActions.setGamePhase(val)), [dispatch]);
+  const setSelectedScript = useCallback((val: Script | null) => dispatch(gameActions.updateState({ selectedScript: val })), [dispatch]);
+  const setNightCount = useCallback((val: number | ((prev: number) => number)) => {
     const next = typeof val === 'function' ? val(state.nightCount) : val;
     dispatch(gameActions.updateState({ nightCount: next }));
-  };
-  const setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>> = (val) => {
+  }, [dispatch, state.nightCount]);
+  const setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number[]) => number[])(state.deadThisNight) : val;
     dispatch(gameActions.setDeadThisNight(next));
-  };
-  const setExecutedPlayerId: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+  }, [dispatch, state.deadThisNight]);
+  const setExecutedPlayerId: React.Dispatch<React.SetStateAction<number | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.executedPlayerId) : val;
     dispatch(gameActions.setExecutedPlayer(next));
-  };
-  const setGameLogs: React.Dispatch<React.SetStateAction<LogEntry[]>> = (val) => {
+  }, [dispatch, state.executedPlayerId]);
+  const setGameLogs: React.Dispatch<React.SetStateAction<LogEntry[]>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: LogEntry[]) => LogEntry[])(state.gameLogs) : val;
     dispatch(gameActions.updateState({ gameLogs: next }));
-  };
-  const setWinResult: React.Dispatch<React.SetStateAction<WinResult | null>> = (val) => {
+  }, [dispatch, state.gameLogs]);
+  const setWinResult: React.Dispatch<React.SetStateAction<WinResult | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: WinResult | null) => WinResult | null)(state.winResult) : val;
     dispatch(gameActions.setWinResult(next, state.winReason));
-  };
-  const setWinReason: React.Dispatch<React.SetStateAction<string | null>> = (val) => {
+  }, [dispatch, state.winResult, state.winReason]);
+  const setWinReason: React.Dispatch<React.SetStateAction<string | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: string | null) => string | null)(state.winReason) : val;
     dispatch(gameActions.setWinResult(state.winResult, next));
-  };
-  const setStartTime: React.Dispatch<React.SetStateAction<Date | null>> = (val) => {
+  }, [dispatch, state.winResult, state.winReason]);
+  const setStartTime: React.Dispatch<React.SetStateAction<Date | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Date | null) => Date | null)(state.startTime) : val;
     dispatch(gameActions.setStartTime(next));
-  };
-  const setTimer: React.Dispatch<React.SetStateAction<number>> = (val) => {
+  }, [dispatch, state.startTime]);
+  const setTimer: React.Dispatch<React.SetStateAction<number>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number) => number)(state.timer) : val;
     dispatch(gameActions.setTimer(next));
-  };
-  const setSelectedRole: React.Dispatch<React.SetStateAction<Role | null>> = (val) => {
+  }, [dispatch, state.timer]);
+  const setSelectedRole: React.Dispatch<React.SetStateAction<Role | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Role | null) => Role | null)(state.selectedRole) : val;
     dispatch(gameActions.updateState({ selectedRole: next }));
-  };
-  const setContextMenu: React.Dispatch<React.SetStateAction<any>> = (val) => {
+  }, [dispatch, state.selectedRole]);
+  const setContextMenu: React.Dispatch<React.SetStateAction<any>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.contextMenu) : val;
     dispatch(gameActions.updateState({ contextMenu: next }));
-  };
-  const setShowMenu: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.contextMenu]);
+  const setShowMenu: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.showMenu) : val;
     dispatch(gameActions.updateState({ showMenu: next }));
-  };
-  const setLongPressingSeats: React.Dispatch<React.SetStateAction<Set<number>>> = (val) => {
+  }, [dispatch, state.showMenu]);
+  const setLongPressingSeats: React.Dispatch<React.SetStateAction<Set<number>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Set<number>) => Set<number>)(state.longPressingSeats) : val;
     dispatch(gameActions.updateState({ longPressingSeats: next }));
-  };
-  const setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>> = (val) => {
+  }, [dispatch, state.longPressingSeats]);
+  const setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number[]) => number[])(state.wakeQueueIds) : val;
     dispatch(gameActions.updateState({ wakeQueueIds: next }));
-  };
-  const setCurrentWakeIndex: React.Dispatch<React.SetStateAction<number>> = (val) => {
+  }, [dispatch, state.wakeQueueIds]);
+  const setCurrentWakeIndex: React.Dispatch<React.SetStateAction<number>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number) => number)(state.currentWakeIndex) : val;
     dispatch(gameActions.setCurrentQueueIndex(next));
-  };
-  const setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>> = (val) => {
+  }, [dispatch, state.currentWakeIndex]);
+  const setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number[]) => number[])(state.selectedActionTargets) : val;
     dispatch(gameActions.setSelectedTargets(next));
-  };
-  const setInspectionResult: React.Dispatch<React.SetStateAction<string | null>> = (val) => {
+  }, [dispatch, state.selectedActionTargets]);
+  const setInspectionResult: React.Dispatch<React.SetStateAction<string | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: string | null) => string | null)(state.inspectionResult) : val;
     if (next === state.inspectionResult) return;
     dispatch(gameActions.setInspectionResult(next));
-  };
-  const setInspectionResultKey: React.Dispatch<React.SetStateAction<number>> = (val) => {
+  }, [dispatch, state.inspectionResult]);
+  const setInspectionResultKey: React.Dispatch<React.SetStateAction<number>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number) => number)(state.inspectionResultKey) : val;
     dispatch(gameActions.updateState({ inspectionResultKey: next }));
-  };
-  const setCurrentHint: React.Dispatch<React.SetStateAction<NightHintState>> = (val) => {
+  }, [dispatch, state.inspectionResultKey]);
+  const setCurrentHint: React.Dispatch<React.SetStateAction<NightHintState>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: NightHintState) => NightHintState)(state.currentHint) : val;
     if (next === state.currentHint) return;
     dispatch(gameActions.setCurrentHint(next));
-  };
-  const setTodayDemonVoted: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.currentHint]);
+  const setTodayDemonVoted: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.todayDemonVoted) : val;
     dispatch(gameActions.updateState({ todayDemonVoted: next }));
-  };
-  const setTodayMinionNominated: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.todayDemonVoted]);
+  const setTodayMinionNominated: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.todayMinionNominated) : val;
     dispatch(gameActions.updateState({ todayMinionNominated: next }));
-  };
-  const setTodayExecutedId: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+  }, [dispatch, state.todayMinionNominated]);
+  const setTodayExecutedId: React.Dispatch<React.SetStateAction<number | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.todayExecutedId) : val;
     dispatch(gameActions.updateState({ todayExecutedId: next }));
-  };
-  const setWitchCursedId: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+  }, [dispatch, state.todayExecutedId]);
+  const setWitchCursedId: React.Dispatch<React.SetStateAction<number | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.witchCursedId) : val;
     dispatch(gameActions.updateState({ witchCursedId: next }));
-  };
-  const setWitchActive: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.witchCursedId]);
+  const setWitchActive: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.witchActive) : val;
     dispatch(gameActions.updateState({ witchActive: next }));
-  };
-  const setCerenovusTarget: React.Dispatch<React.SetStateAction<any>> = (val) => {
+  }, [dispatch, state.witchActive]);
+  const setCerenovusTarget: React.Dispatch<React.SetStateAction<any>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.cerenovusTarget) : val;
     dispatch(gameActions.updateState({ cerenovusTarget: next }));
-  };
-  const setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.cerenovusTarget]);
+  const setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.isVortoxWorld) : val;
     dispatch(gameActions.updateState({ isVortoxWorld: next }));
-  };
-  const setFangGuConverted = (val: boolean) => dispatch(gameActions.updateState({ fangGuConverted: val }));
-  const setJugglerGuesses = (val: any) => dispatch(gameActions.updateState({ jugglerGuesses: val }));
-  const setEvilTwinPair = (val: any) => dispatch(gameActions.updateState({ evilTwinPair: val }));
-  const setOutsiderDiedToday = (val: boolean) => dispatch(gameActions.setOutsiderDiedToday(val));
-  const setGossipStatementToday = (val: string) => dispatch(gameActions.setGossipState(val, state.gossipTrueTonight, state.gossipSourceSeatId));
-  const setGossipTrueTonight = (val: boolean) => dispatch(gameActions.setGossipState(state.gossipStatementToday, val, state.gossipSourceSeatId));
-  const setGossipSourceSeatId = (val: number | null) => dispatch(gameActions.setGossipState(state.gossipStatementToday, state.gossipTrueTonight, val));
-  const setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>> = (val) => {
+  }, [dispatch, state.isVortoxWorld]);
+  const setFangGuConverted = useCallback((val: boolean) => dispatch(gameActions.updateState({ fangGuConverted: val })), [dispatch]);
+  const setJugglerGuesses = useCallback((val: any) => dispatch(gameActions.updateState({ jugglerGuesses: val })), [dispatch]);
+  const setEvilTwinPair = useCallback((val: any) => dispatch(gameActions.updateState({ evilTwinPair: val })), [dispatch]);
+  const setOutsiderDiedToday = useCallback((val: boolean) => dispatch(gameActions.setOutsiderDiedToday(val)), [dispatch]);
+  const setGossipStatementToday = useCallback((val: string) => dispatch(gameActions.setGossipState(val, state.gossipTrueTonight, state.gossipSourceSeatId)), [dispatch, state.gossipTrueTonight, state.gossipSourceSeatId]);
+  const setGossipTrueTonight = useCallback((val: boolean) => dispatch(gameActions.setGossipState(state.gossipStatementToday, val, state.gossipSourceSeatId)), [dispatch, state.gossipStatementToday, state.gossipSourceSeatId]);
+  const setGossipSourceSeatId = useCallback((val: number | null) => dispatch(gameActions.setGossipState(state.gossipStatementToday, state.gossipTrueTonight, val)), [dispatch, state.gossipStatementToday, state.gossipTrueTonight]);
+  const setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: ModalType) => ModalType)(state.currentModal) : val;
     dispatch(gameActions.setModal(next));
-  };
-  const setDayAbilityForm = (val: any) => dispatch(gameActions.updateState({ dayAbilityForm: val }));
-  const setBaronSetupCheck: React.Dispatch<React.SetStateAction<any>> = (val) => {
+  }, [dispatch, state.currentModal]);
+  const setDayAbilityForm = useCallback((val: any) => dispatch(gameActions.updateState({ dayAbilityForm: val })), [dispatch]);
+  const setBaronSetupCheck: React.Dispatch<React.SetStateAction<any>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.baronSetupCheck) : val;
     dispatch(gameActions.updateState({ baronSetupCheck: next }));
-  };
-  const setIgnoreBaronSetup = (val: boolean) => dispatch(gameActions.updateState({ ignoreBaronSetup: val }));
-  const setCompositionError: React.Dispatch<React.SetStateAction<any>> = (val) => {
+  }, [dispatch, state.baronSetupCheck]);
+  const setIgnoreBaronSetup = useCallback((val: boolean) => dispatch(gameActions.updateState({ ignoreBaronSetup: val })), [dispatch]);
+  const setCompositionError: React.Dispatch<React.SetStateAction<any>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.compositionError) : val;
     dispatch(gameActions.updateState({ compositionError: next }));
-  };
-  const setVoteInputValue = (val: string) => dispatch(gameActions.setVoteInput(val));
-  const setShowVoteErrorToast = (val: boolean) => dispatch(gameActions.updateState({ showVoteErrorToast: val }));
-  const setGameRecords: React.Dispatch<React.SetStateAction<GameRecord[]>> = (val) => {
+  }, [dispatch, state.compositionError]);
+  const setVoteInputValue = useCallback((val: string) => dispatch(gameActions.setVoteInput(val)), [dispatch]);
+  const setShowVoteErrorToast = useCallback((val: boolean) => dispatch(gameActions.updateState({ showVoteErrorToast: val })), [dispatch]);
+  const setGameRecords: React.Dispatch<React.SetStateAction<GameRecord[]>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: GameRecord[]) => GameRecord[])(state.gameRecords) : val;
     dispatch(gameActions.setGameRecords(next));
-  };
-  const setMayorRedirectTarget: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+  }, [dispatch, state.gameRecords]);
+  const setMayorRedirectTarget: React.Dispatch<React.SetStateAction<number | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.mayorRedirectTarget) : val;
     dispatch(gameActions.updateState({ mayorRedirectTarget: next }));
-  };
-  const setNightOrderPreview: React.Dispatch<React.SetStateAction<{ roleName: string; seatNo: number; order: number; }[]>> = (val) => {
+  }, [dispatch, state.mayorRedirectTarget]);
+  const setNightOrderPreview: React.Dispatch<React.SetStateAction<{ roleName: string; seatNo: number; order: number; }[]>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: { roleName: string; seatNo: number; order: number; }[]) => { roleName: string; seatNo: number; order: number; }[])(state.nightOrderPreview) : val;
     dispatch(gameActions.updateState({ nightOrderPreview: next }));
-  };
-  const setPendingNightQueue = (val: Seat[] | null | ((p: Seat[] | null) => Seat[] | null)) => {
+  }, [dispatch, state.nightOrderPreview]);
+  const setPendingNightQueue = useCallback((val: Seat[] | null | ((p: Seat[] | null) => Seat[] | null)) => {
     const next = typeof val === 'function' ? (val as (p: Seat[] | null) => Seat[] | null)(state.pendingNightQueue) : val;
     dispatch(gameActions.updateState({ pendingNightQueue: next }));
-  };
-  const setNightQueuePreviewTitle = (val: string | ((p: string) => string)) => {
+  }, [dispatch, state.pendingNightQueue]);
+  const setNightQueuePreviewTitle = useCallback((val: string | ((p: string) => string)) => {
     const next = typeof val === 'function' ? (val as (p: string) => string)(state.nightQueuePreviewTitle) : val;
     dispatch(gameActions.updateState({ nightQueuePreviewTitle: next }));
-  };
-  const setFirstNightOrder = (val: any[]) => dispatch(gameActions.updateState({ firstNightOrder: val }));
-  const setPoppyGrowerDead: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.nightQueuePreviewTitle]);
+  const setFirstNightOrder = useCallback((val: any[]) => dispatch(gameActions.updateState({ firstNightOrder: val })), [dispatch]);
+  const setPoppyGrowerDead: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.poppyGrowerDead) : val;
     dispatch(gameActions.updateState({ poppyGrowerDead: next }));
-  };
-  const setKlutzChoiceTarget = (val: number | null | ((p: number | null) => number | null)) => {
+  }, [dispatch, state.poppyGrowerDead]);
+  const setKlutzChoiceTarget = useCallback((val: number | null | ((p: number | null) => number | null)) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.klutzChoiceTarget) : val;
     dispatch(gameActions.updateState({ klutzChoiceTarget: next }));
-  };
-  const setLastExecutedPlayerId = (val: number | null) => dispatch(gameActions.updateState({ lastExecutedPlayerId: val }));
-  const setDamselGuessed = (val: boolean) => dispatch(gameActions.updateState({ damselGuessed: val }));
-  const setShamanKeyword = (val: string | null) => dispatch(gameActions.updateState({ shamanKeyword: val }));
-  const setShamanTriggered = (val: boolean) => dispatch(gameActions.updateState({ shamanTriggered: val }));
-  const setShamanConvertTarget = (val: number | null) => dispatch(gameActions.updateState({ shamanConvertTarget: val }));
-  const setSpyDisguiseMode = (val: 'off' | 'default' | 'on') => dispatch(gameActions.updateState({ spyDisguiseMode: val }));
-  const setSpyDisguiseProbability = (val: number) => dispatch(gameActions.updateState({ spyDisguiseProbability: val }));
-  const setPukkaPoisonQueue = (val: any[] | ((prev: any[]) => any[])) => {
+  }, [dispatch, state.klutzChoiceTarget]);
+  const setLastExecutedPlayerId = useCallback((val: number | null) => dispatch(gameActions.updateState({ lastExecutedPlayerId: val })), [dispatch]);
+  const setDamselGuessed = useCallback((val: boolean) => dispatch(gameActions.updateState({ damselGuessed: val })), [dispatch]);
+  const setShamanKeyword = useCallback((val: string | null) => dispatch(gameActions.updateState({ shamanKeyword: val })), [dispatch]);
+  const setShamanTriggered = useCallback((val: boolean) => dispatch(gameActions.updateState({ shamanTriggered: val })), [dispatch]);
+  const setShamanConvertTarget = useCallback((val: number | null) => dispatch(gameActions.updateState({ shamanConvertTarget: val })), [dispatch]);
+  const setSpyDisguiseMode = useCallback((val: 'off' | 'default' | 'on') => dispatch(gameActions.updateState({ spyDisguiseMode: val })), [dispatch]);
+  const setSpyDisguiseProbability = useCallback((val: number) => dispatch(gameActions.updateState({ spyDisguiseProbability: val })), [dispatch]);
+  const setPukkaPoisonQueue = useCallback((val: any[] | ((prev: any[]) => any[])) => {
     const next = typeof val === 'function' ? val(state.pukkaPoisonQueue) : val;
     dispatch(gameActions.updatePukkaQueue(next));
-  };
-  const setPoChargeState = (val: any) => dispatch(gameActions.updateState({ poChargeState: val }));
-  const setAutoRedHerringInfo = (val: string | null) => dispatch(gameActions.updateState({ autoRedHerringInfo: val }));
-  const setDayAbilityLogs = (val: any) => dispatch(gameActions.updateState({ dayAbilityLogs: val }));
-  const setDamselGuessUsedBy = (val: number[] | ((prev: number[]) => number[])) => {
+  }, [dispatch, state.pukkaPoisonQueue]);
+  const setPoChargeState = useCallback((val: any) => dispatch(gameActions.updateState({ poChargeState: val })), [dispatch]);
+  const setAutoRedHerringInfo = useCallback((val: string | null) => dispatch(gameActions.updateState({ autoRedHerringInfo: val })), [dispatch]);
+  const setDayAbilityLogs = useCallback((val: any) => dispatch(gameActions.updateState({ dayAbilityLogs: val })), [dispatch]);
+  const setDamselGuessUsedBy = useCallback((val: number[] | ((prev: number[]) => number[])) => {
     const next = typeof val === 'function' ? val(state.damselGuessUsedBy) : val;
     dispatch(gameActions.updateState({ damselGuessUsedBy: next }));
-  };
-  const setUsedOnceAbilities: React.Dispatch<React.SetStateAction<Record<string, number[]>>> = (val) => {
+  }, [dispatch, state.damselGuessUsedBy]);
+  const setUsedOnceAbilities: React.Dispatch<React.SetStateAction<Record<string, number[]>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Record<string, number[]>) => Record<string, number[]>)(state.usedOnceAbilities) : val;
     dispatch(gameActions.updateState({ usedOnceAbilities: next }));
-  };
-  const setUsedDailyAbilities: React.Dispatch<React.SetStateAction<Record<string, { day: number; seats: number[] }>>> = (val) => {
+  }, [dispatch, state.usedOnceAbilities]);
+  const setUsedDailyAbilities: React.Dispatch<React.SetStateAction<Record<string, { day: number; seats: number[] }>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Record<string, { day: number; seats: number[] }>) => Record<string, { day: number; seats: number[] }>)(state.usedDailyAbilities) : val;
     dispatch(gameActions.updateState({ usedDailyAbilities: next }));
-  };
-  const setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>> = (val) => {
+  }, [dispatch, state.usedDailyAbilities]);
+  const setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Record<number, number>) => Record<number, number>)(state.nominationMap) : val;
     dispatch(gameActions.updateState({ nominationMap: next }));
-  };
-  const setBalloonistKnownTypes: React.Dispatch<React.SetStateAction<Record<number, string[]>>> = (val) => {
+  }, [dispatch, state.nominationMap]);
+  const setBalloonistKnownTypes: React.Dispatch<React.SetStateAction<Record<number, string[]>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Record<number, string[]>) => Record<number, string[]>)(state.balloonistKnownTypes) : val;
     if (next === state.balloonistKnownTypes) return;
     dispatch(gameActions.updateState({ balloonistKnownTypes: next }));
-  };
-  const setBalloonistCompletedIds = (val: number[] | ((prev: number[]) => number[])) => {
+  }, [dispatch, state.balloonistKnownTypes]);
+  const setBalloonistCompletedIds = useCallback((val: number[] | ((prev: number[]) => number[])) => {
     const next = typeof val === 'function' ? val(state.balloonistCompletedIds) : val;
     dispatch(gameActions.updateState({ balloonistCompletedIds: next }));
-  };
-  const setHadesiaChoices: React.Dispatch<React.SetStateAction<Record<number, 'live' | 'die'>>> = (val) => {
+  }, [dispatch, state.balloonistCompletedIds]);
+  const setHadesiaChoices: React.Dispatch<React.SetStateAction<Record<number, 'live' | 'die'>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Record<number, 'live' | 'die'>) => Record<number, 'live' | 'die'>)(state.hadesiaChoices) : val;
     dispatch(gameActions.updateState({ hadesiaChoices: next }));
-  };
-  const setVirginGuideInfo: React.Dispatch<React.SetStateAction<any>> = (val) => {
+  }, [dispatch, state.hadesiaChoices]);
+  const setVirginGuideInfo: React.Dispatch<React.SetStateAction<any>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: any) => any)(state.virginGuideInfo) : val;
     dispatch(gameActions.updateState({ virginGuideInfo: next }));
-  };
-  const setVoteRecords = (val: any[] | ((prev: any[]) => any[])) => {
+  }, [dispatch, state.virginGuideInfo]);
+  const setVoteRecords = useCallback((val: any[] | ((prev: any[]) => any[])) => {
     const next = typeof val === 'function' ? val(state.voteRecords) : val;
     dispatch(gameActions.updateState({ voteRecords: next }));
-  };
-  const setVotedThisRound = (val: number[] | ((prev: number[]) => number[])) => {
+  }, [dispatch, state.voteRecords]);
+  const setVotedThisRound = useCallback((val: number[] | ((prev: number[]) => number[])) => {
     const next = typeof val === 'function' ? val(state.votedThisRound) : val;
     dispatch(gameActions.updateState({ votedThisRound: next }));
-  };
-  const setHasExecutedThisDay: React.Dispatch<React.SetStateAction<boolean>> = (val) => {
+  }, [dispatch, state.votedThisRound]);
+  const setHasExecutedThisDay: React.Dispatch<React.SetStateAction<boolean>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.hasExecutedThisDay) : val;
     dispatch(gameActions.updateState({ hasExecutedThisDay: next }));
-  };
-  const setMastermindFinalDay = (val: any) => dispatch(gameActions.updateState({ mastermindFinalDay: val }));
-  const setRemainingDays = (val: number | null | ((p: number | null) => number | null)) => {
+  }, [dispatch, state.hasExecutedThisDay]);
+  const setMastermindFinalDay = useCallback((val: any) => dispatch(gameActions.updateState({ mastermindFinalDay: val })), [dispatch]);
+  const setRemainingDays = useCallback((val: number | null | ((p: number | null) => number | null)) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.remainingDays) : val;
     dispatch(gameActions.updateState({ remainingDays: next }));
-  };
-  const setGoonDrunkedThisNight = (val: boolean | ((p: boolean) => boolean)) => {
+  }, [dispatch, state.remainingDays]);
+  const setGoonDrunkedThisNight = useCallback((val: boolean | ((p: boolean) => boolean)) => {
     const next = typeof val === 'function' ? (val as (p: boolean) => boolean)(state.goonDrunkedThisNight) : val;
     dispatch(gameActions.updateState({ goonDrunkedThisNight: next }));
-  };
-  const setHistory = (val: any[]) => dispatch(gameActions.setHistory(val));
-  const setNominationRecords: React.Dispatch<React.SetStateAction<{ nominators: Set<number>; nominees: Set<number> }>> = (val) => {
+  }, [dispatch, state.goonDrunkedThisNight]);
+  const setHistory = useCallback((val: any[]) => dispatch(gameActions.setHistory(val)), [dispatch]);
+  const setNominationRecords: React.Dispatch<React.SetStateAction<{ nominators: Set<number>; nominees: Set<number> }>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: { nominators: Set<number>; nominees: Set<number> }) => { nominators: Set<number>; nominees: Set<number> })(state.nominationRecords) : val;
     dispatch(gameActions.setNominationRecords(next));
-  };
-  const setLastDuskExecution: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+  }, [dispatch, state.nominationRecords]);
+  const setLastDuskExecution: React.Dispatch<React.SetStateAction<number | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.lastDuskExecution) : val;
     dispatch(gameActions.setDuskExecution(next, state.currentDuskExecution));
-  };
-  const setCurrentDuskExecution: React.Dispatch<React.SetStateAction<number | null>> = (val) => {
+  }, [dispatch, state.currentDuskExecution]);
+  const setCurrentDuskExecution: React.Dispatch<React.SetStateAction<number | null>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: number | null) => number | null)(state.currentDuskExecution) : val;
     dispatch(gameActions.setDuskExecution(state.lastDuskExecution, next));
-  };
-  const setSeatNotes: React.Dispatch<React.SetStateAction<Record<number, string>>> = (val) => {
+  }, [dispatch, state.lastDuskExecution]);
+  const setSeatNotes: React.Dispatch<React.SetStateAction<Record<number, string>>> = useCallback((val) => {
     const next = typeof val === 'function' ? (val as (p: Record<number, string>) => Record<number, string>)(state.seatNotes) : val;
     dispatch(gameActions.updateState({ seatNotes: next }));
-  };
+  }, [dispatch, state.seatNotes]);
+  const setHadesiaChoiceEnabled = useCallback((val: boolean) => dispatch(gameActions.updateState({ hadesiaChoiceEnabled: val })), [dispatch]);
 
 
   const checkLongPressTimerRef = useRef<NodeJS.Timeout | null>(null); // 核对身份列表长按定时器
@@ -327,7 +328,8 @@ export function useGameState() {
   // [REFACTOR] gameStateRef removed - all state reads must go through Context
 
   // 返回所有状态和 setter
-  return {
+  // CRITICAL PERFORMANCE: Memoize the entire return object to prevent cascading re-renders
+  return useMemo(() => ({
     // useState 状态
     mounted,
     setMounted,
@@ -497,14 +499,16 @@ export function useGameState() {
     setRemainingDays,
     goonDrunkedThisNight,
     setGoonDrunkedThisNight,
-    history,
-    setHistory,
+    currentDuskExecution,
+    setCurrentDuskExecution,
+    hadesiaChoiceEnabled,
+    setHadesiaChoiceEnabled,
     nominationRecords,
     setNominationRecords,
     lastDuskExecution,
     setLastDuskExecution,
-    currentDuskExecution,
-    setCurrentDuskExecution,
+    history,
+    setHistory,
 
     // useRef
     checkLongPressTimerRef,
@@ -513,7 +517,6 @@ export function useGameState() {
     seatRefs,
     hintCacheRef,
     drunkFirstInfoRef,
-    // seatsRef removed - use seats from Context directly
     fakeInspectionResultRef,
     consoleContentRef,
     currentActionTextRef,
@@ -522,8 +525,6 @@ export function useGameState() {
     registrationCacheRef,
     registrationCacheKeyRef,
     introTimeoutRef,
-    // gameStateRef removed - use state from Context directly
     currentWakeIndexRef,
-  };
+  }), [state, dispatch, mounted, isPortrait, seats, initialSeats, gamePhase, selectedScript, nightCount, deadThisNight, executedPlayerId, gameLogs, winResult, winReason, startTime, timer, selectedRole, contextMenu, showMenu, longPressingSeats, wakeQueueIds, currentWakeIndex, selectedActionTargets, inspectionResult, inspectionResultKey, currentHint, todayDemonVoted, todayMinionNominated, todayExecutedId, witchCursedId, witchActive, cerenovusTarget, isVortoxWorld, fangGuConverted, jugglerGuesses, evilTwinPair, outsiderDiedToday, gossipStatementToday, gossipTrueTonight, gossipSourceSeatId, currentModal, dayAbilityForm, baronSetupCheck, ignoreBaronSetup, compositionError, voteInputValue, showVoteErrorToast, gameRecords, mayorRedirectTarget, nightOrderPreview, pendingNightQueue, nightQueuePreviewTitle, firstNightOrder, poppyGrowerDead, klutzChoiceTarget, lastExecutedPlayerId, damselGuessed, shamanKeyword, shamanTriggered, shamanConvertTarget, spyDisguiseMode, spyDisguiseProbability, pukkaPoisonQueue, poChargeState, autoRedHerringInfo, dayAbilityLogs, damselGuessUsedBy, usedOnceAbilities, usedDailyAbilities, nominationMap, balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo, seatNotes, voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay, remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution, currentDuskExecution, history, hadesiaChoiceEnabled]);
 }
-

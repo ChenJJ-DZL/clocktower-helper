@@ -23,6 +23,14 @@ test.describe("Targeted Role Verification (Artist & Savant)", () => {
 
     test("Verify Artist and Savant Day Abilities", async ({ page }) => {
         test.setTimeout(300000); // 5 minutes
+
+        // Auto-accept all window dialogs (alerts, confirms)
+        page.on('dialog', dialog => dialog.accept());
+
+        page.on('pageerror', exception => {
+            logger.log(`浏览器[pageerror]`, `Uncaught exception: "${exception}"`);
+        });
+
         logger.log("测试启动", "开始验证艺术家和博学者的昼间技能...");
 
         page.on('console', msg => {
@@ -34,8 +42,11 @@ test.describe("Targeted Role Verification (Artist & Savant)", () => {
         await page.waitForLoadState('load');
 
         // Choose S&V (or any script containing them)
-        await page.locator('[data-testid=script-card-sects_and_violets]').click();
-        await expect(page.getByText("当前剧本")).toBeVisible();
+        const scriptCard = page.locator('[data-testid=script-card-sects_and_violets]');
+        await scriptCard.waitFor({ state: 'visible', timeout: 10000 });
+        await scriptCard.click();
+
+        await expect(page.getByText("当前剧本")).toBeVisible({ timeout: 10000 });
 
         // 2. Setup (5 players for speed)
         const playerCount = 5;
@@ -49,38 +60,94 @@ test.describe("Targeted Role Verification (Artist & Savant)", () => {
 
         for (let i = 0; i < targetRoles.length; i++) {
             const roleName = targetRoles[i];
-            await page.getByRole("button", { name: new RegExp(`^${roleName}$`, "i") }).click();
-            await page.locator('.seat-wrapper').nth(i).click();
+            const roleBtn = page.locator(`button:has-text("${roleName}")`);
+            await roleBtn.waitFor({ state: 'visible', timeout: 10000 });
+            await roleBtn.click();
+            await page.locator('.seat-node').nth(i).click();
             logger.log("角色分配", `${roleName} 落座于 ${i + 1} 号位。`);
         }
 
         // Start game
-        const startBtn = page.getByRole("button", { name: "开始游戏" });
+        const startBtn = page.getByRole("button", { name: "开始游戏", exact: true });
+        await startBtn.waitFor({ state: 'visible', timeout: 5000 });
         if (await startBtn.isVisible()) {
             await startBtn.click();
         }
 
-        const stillStartBtn = page.getByRole("button", { name: "仍然开始游戏" });
-        if (await stillStartBtn.isVisible()) {
+        try {
+            const stillStartBtn = page.getByRole("button", { name: "仍然开始游戏" });
+            await stillStartBtn.waitFor({ state: 'visible', timeout: 2000 });
             await stillStartBtn.click();
+        } catch (e) {
+            // It's okay if it doesn't appear
         }
 
         // 3. First Night
-        logger.log("游戏流程", "进入首夜...");
-        await page.waitForSelector('text=确认并开始首夜');
-        await page.click('text=确认并开始首夜');
+        logger.log("第一夜", "确认无误，入夜...");
+        await page.waitForSelector('text=确认无误，入夜');
+        await page.click('text=确认无误，入夜');
 
-        // Skip night actions for speed
-        while (await page.locator('text=确认 & 下一步').isVisible()) {
-            await page.click('text=确认 & 下一步');
-            await page.waitForTimeout(500);
+        let nightSafety = 0;
+        while (nightSafety < 30) {
+            const nextActionBtn = page.locator('button').filter({ hasText: /确认(&\s*下一步)?/ });
+            const dawnBtn = page.getByRole('button', { name: '开始白天' });
+            const dawnText = page.locator('text=天亮了').first();
+            const nightReportConfirmBtn = page.getByRole('button', { name: '确认', exact: true }).first();
+
+            const isDawnVisible = await dawnBtn.isVisible() || await dawnText.isVisible();
+            const isNightReportVisible = await nightReportConfirmBtn.isVisible();
+
+            logger.log("Debug", `Loop ${nightSafety}: isDawnVisible=${isDawnVisible}, isNightReport=${isNightReportVisible}`);
+
+            if (isDawnVisible || isNightReportVisible) {
+                logger.log("第一夜", "夜晚行动结束，准备切入白天。");
+                if (isNightReportVisible) {
+                    console.log("TESTING: CLICKING NIGHT REPORT CONFIRM");
+                    await nightReportConfirmBtn.click({ force: true, timeout: 5000 });
+                    await page.waitForTimeout(1000); // 确保等待 React 状态更新
+                }
+
+                // Clicking nightReportConfirm transitions to day, so checking dawnBtn again might fail!
+                // We should break if we hit either dawn OR night report!
+                break;
+            }
+
+            if (await nextActionBtn.isVisible()) {
+                const targetChoice = page.locator('.target-choice, .seat-node, button.role-item').filter({ hasNotText: '确认选择' }).first();
+                if (await targetChoice.isVisible()) {
+                    await targetChoice.click({ force: true, timeout: 2000 }).catch(() => { });
+                    await page.waitForTimeout(500);
+                }
+                const confirmChoice = page.locator('button').filter({ hasText: '确认选择' }).first();
+                if (await confirmChoice.isVisible()) {
+                    await confirmChoice.click({ force: true, timeout: 2000 }).catch(() => { });
+                    await page.waitForTimeout(500);
+                }
+                await nextActionBtn.click({ force: true, timeout: 2000 }).catch(() => { });
+                await page.waitForTimeout(1000);
+            } else {
+                await page.waitForTimeout(1000);
+            }
+            nightSafety++;
         }
 
         // 4. Dawn
-        logger.log("游戏流程", "进入天亮...");
-        const dawnBtn = page.locator('text=天亮了');
-        if (await dawnBtn.isVisible()) {
-            await dawnBtn.click();
+        logger.log("游戏流程", "处理天亮结算...");
+
+        // Wait for and click Night Death Report Modal (confirmation)
+        const nightDeathBtn = page.getByRole('button', { name: '确认' });
+        await nightDeathBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+        if (await nightDeathBtn.isVisible()) {
+            await nightDeathBtn.click();
+            await page.waitForTimeout(500);
+        }
+
+        // Wait for and click Dawn Report Overlay (Start Day)
+        const startDayBtn = page.getByRole('button', { name: '开始白天' });
+        await startDayBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+        if (await startDayBtn.isVisible()) {
+            await startDayBtn.click();
+            await page.waitForTimeout(500);
         }
 
         // 5. Day Actions

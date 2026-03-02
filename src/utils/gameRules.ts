@@ -1,5 +1,6 @@
 import { Role, Seat, StatusEffect, RoleType } from '../../app/data';
 import { getJinx } from './jinxUtils';
+import { JinxManager } from './JinxManager';
 
 // ======================================================================
 //  座位位置计算
@@ -148,6 +149,9 @@ export const getRegistration = (
     return options.cache.get(cacheKey)!;
   }
 
+  // Use JinxManager if we can pass allSeats. For getRegistration, the generic fallback is below.
+  // We'll calculate the base registration, then apply generic character modifiers.
+
   // 真实基准
   let registeredRoleType: RoleType | null = targetPlayer.isDemonSuccessor ? 'demon' : role.type;
   // 基准阵营注册（包含红罗刹判定）
@@ -201,12 +205,21 @@ export const getRegistration = (
     }
   }
 
-  const result: RegistrationResult = {
+  let result: RegistrationResult = {
     alignment: registeredAlignment,
     roleType: registeredRoleType,
     registersAsDemon: registeredRoleType === 'demon',
     registersAsMinion: registeredRoleType === 'minion',
   };
+
+  // If a viewer is provided, apply JinxManager interception
+  // Note: JinxManager needs viewingSeat but we only have viewingRole here in the generic getRegistration.
+  // We'll map viewingRole to a dummy seat just to satisfy the type, as most jinxes rely on the role ID.
+  if (viewingRole) {
+    const dummyViewer = { id: -1, role: viewingRole, isDead: false, isDrunk: false, isPoisoned: false } as Seat;
+    result = JinxManager.interceptInspection(targetPlayer, dummyViewer, result, []);
+  }
+
   if (cacheKey && options?.cache) {
     options.cache.set(cacheKey, result);
   }

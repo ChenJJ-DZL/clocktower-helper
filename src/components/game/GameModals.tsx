@@ -112,6 +112,33 @@ export function GameModals() {
       {props.virginGuideInfo && <VirginGuideModal />}
       {dayAbilityModal && <DayAbilityModal modal={dayAbilityModal} />}
 
+      {poisonConfirmModal && (
+        <PoisonConfirmModal
+          targetId={poisonConfirmModal.targetId}
+          onConfirm={props.confirmPoison}
+          onCancel={() => {
+            props.setCurrentModal(null);
+            props.setSelectedActionTargets([]);
+          }}
+        />
+      )}
+
+      {poisonEvilConfirmModal && (
+        <PoisonEvilConfirmModal
+          targetId={poisonEvilConfirmModal.targetId}
+          onConfirm={() => {
+            if (poisonEvilConfirmModal.targetId !== undefined) {
+              props.confirmPoisonEvil();
+              props.setCurrentModal(null);
+            }
+          }}
+          onCancel={() => {
+            props.setCurrentModal(null);
+            props.setSelectedActionTargets([]);
+          }}
+        />
+      )}
+
       <SaintExecutionConfirmModal
         isOpen={props.currentModal?.type === 'SAINT_EXECUTION_CONFIRM'}
         onConfirm={props.confirmSaintExecution}
@@ -133,11 +160,13 @@ export function GameModals() {
         onCancel={() => props.setCurrentModal(null)}
       />
 
-      <RavenkeeperFakeModal
-        targetId={props.currentModal?.type === 'RAVENKEEPER_FAKE' ? props.currentModal.data.targetId : null}
-        roles={roles}
-        onSelect={props.confirmRavenkeeperFake}
-      />
+      {props.currentModal?.type === 'RAVENKEEPER_FAKE' && (
+        <RavenkeeperFakeModal
+          targetId={props.currentModal.data.targetId}
+          roles={roles}
+          onSelect={props.confirmRavenkeeperFake}
+        />
+      )}
 
       <StorytellerDeathModal
         isOpen={props.currentModal?.type === 'STORYTELLER_DEATH'}
@@ -244,15 +273,17 @@ export function GameModals() {
         />
       )}
 
-      <KillConfirmModal
-        targetId={props.currentModal?.type === 'KILL_CONFIRM' ? props.currentModal.data.targetId : null}
-        isImpSelfKill={!!(props.nightInfo && props.nightInfo.effectiveRole.id === 'imp' && props.currentModal?.type === 'KILL_CONFIRM' && props.currentModal.data.targetId === props.nightInfo.seat.id)}
-        onConfirm={props.confirmKill}
-        onCancel={() => {
-          props.setCurrentModal(null);
-          props.setSelectedActionTargets([]);
-        }}
-      />
+      {props.currentModal?.type === 'KILL_CONFIRM' && (
+        <KillConfirmModal
+          targetId={props.currentModal.data.targetId}
+          isImpSelfKill={!!(props.nightInfo && props.nightInfo.effectiveRole.id === 'imp' && props.currentModal.data.targetId === props.nightInfo.seat.id)}
+          onConfirm={props.confirmKill}
+          onCancel={() => {
+            props.setCurrentModal(null);
+            props.setSelectedActionTargets([]);
+          }}
+        />
+      )}
 
       <AttackBlockedModal
         isOpen={props.currentModal?.type === 'ATTACK_BLOCKED'}

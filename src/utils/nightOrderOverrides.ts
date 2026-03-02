@@ -11,7 +11,7 @@
  */
 
 const firstNightOrderList: string[] = [
-  // Dusk & special preambles (non-role placeholders are skipped automatically)
+  // Dusk & special preambles
   "lord_of_typhon",
   "wraith",
   "boffin",
@@ -21,23 +21,25 @@ const firstNightOrderList: string[] = [
   "poppy_grower",
   "kazali",
   "magician",
+  // Minion info (handled automatically, but snitch/summoner etc around here)
   "snitch",
   "damsel",
   "summoner",
   "lunatic",
   "taowu",
+  // Demon info (handled automatically, but king/marionette etc around here)
   "king",
   "marionette",
-  "scholar", // 书生 → scholar (if present)
-  "actor", // 戏子 → actor (if present)
-  "broker", // 掮客 → broker/qianke (if present)
+  "shusheng", // 书生 instead of scholar
+  "xizi", // 戏子 instead of actor
+  "qianke", // 掮客 instead of broker
   "sailor",
   "engineer",
   "preacher",
   "lilmonsta",
   "lleech",
-  "huapi", // 画皮
-  "xaan", // 限
+  "huapi",
+  "xaan",
   "poisoner",
   "widow",
   "courtier",
@@ -52,12 +54,12 @@ const firstNightOrderList: string[] = [
   "fearmonger",
   "harpy",
   "mezepheles",
-  "humeiniang", // 狐媚娘
+  "humeiniang",
   "pukka",
   "yaggababble",
-  "niangjiushi", // 酿酒师
-  "yongjiang", // 俑匠
-  "xionghaizi", // 熊孩子
+  "niangjiushi",
+  "yongjiang",
+  "xionghaizi",
   "pixie",
   "huntsman",
   "washerwoman",
@@ -67,7 +69,7 @@ const firstNightOrderList: string[] = [
   "empath",
   "fortune_teller",
   "butler",
-  "nichen", // 逆臣
+  "nichen",
   "grandmother",
   "clockmaker",
   "dreamer",
@@ -76,10 +78,10 @@ const firstNightOrderList: string[] = [
   "knight",
   "noble",
   "balloonist",
-  "yinyangshi", // 阴阳师
-  "langzhong", // 郎中
-  "dianxiaoer", // 店小二
-  "village_idiot", // 村夫
+  "yinyangshi",
+  "langzhong",
+  "dianxiaoer",
+  "village_idiot",
   "bounty_hunter",
   "nightwatchman",
   "cult_leader",
@@ -91,7 +93,7 @@ const firstNightOrderList: string[] = [
   "general",
   "fangshi",
   "chambermaid",
-  "guide", // 引路人
+  "guide",
   "mathematician",
   "leviathan",
   "vizier",
@@ -104,7 +106,7 @@ const otherNightOrderList: string[] = [
   "philosopher",
   "hatter",
   "poppy_grower",
-  "broker",
+  "qianke", // 掮客
   "sailor",
   "engineer",
   "preacher",
@@ -114,10 +116,10 @@ const otherNightOrderList: string[] = [
   "innkeeper",
   "courtier",
   "wizard",
-  "dagengren", // 打更人
-  "jinyiwei", // 锦衣卫
-  "limao", // 狸猫
-  "patrol", // 巡察
+  "dagengren",
+  "jinyiwei",
+  "limao",
+  "xuncha", // 巡察
   "gambler",
   "acrobat",
   "snake_charmer",
@@ -162,22 +164,24 @@ const otherNightOrderList: string[] = [
   "qiongqi",
   "taotie",
   "taowu",
-  "warlord", // 暴君/baojun
+  "baojun", // 暴君
   "guhuoniao",
+  "shusheng", // 书生
   "assassin",
   "godfather",
-  "yangguren",
-  "geling",
-  "zhen",
+  "yangguren", // 养蛊人
+  "geling", // 歌伶
+  "zhen", // 鸩
   "gossip",
   "tinker",
   "moonchild",
-  "shaxing",
+  "shaxing", // 煞星
+  "grandmother",
   "barber",
   "sweetheart",
   "ravenkeeper",
   "sage",
-  "bingbi",
+  "bingbi", // 秉笔
   "plague_doctor",
   "choirboy",
   "farmer",
@@ -189,7 +193,7 @@ const otherNightOrderList: string[] = [
   "fortune_teller",
   "butler",
   "undertaker",
-  "tixingguan", // 提刑官
+  "tixingguan",
   "dreamer",
   "flowergirl",
   "town_crier",
@@ -207,10 +211,10 @@ const otherNightOrderList: string[] = [
   "priestess",
   "general",
   "fangshi",
-  "historian", // 史官
+  "shiguan", // 史官
   "zhifu", // 知府
   "chambermaid",
-  "guide",
+  "yinluren", // 引路人
   "mathematician",
   "leviathan",
 ];
