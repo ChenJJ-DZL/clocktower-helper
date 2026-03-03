@@ -396,10 +396,18 @@ export function useDayActions(deps: DayActionsDeps) {
             const result = modularHandler.day.handler(dayContext);
 
             if (result.updates.length > 0) {
+                const refreshedSeats = seats.map(s => {
+                    const update = result.updates.find((upd: { id: number; }) => upd.id === s.id);
+                    return update ? { ...s, ...update } : s;
+                });
+
                 setSeats(prev => prev.map(s => {
                     const update = result.updates.find((upd: { id: number; }) => upd.id === s.id);
                     return update ? { ...s, ...update } : s;
                 }));
+
+                // Trigger game over check if state changed
+                checkGameOver(refreshedSeats);
             }
 
             if (modularHandler.day.maxUses !== 'infinity') {

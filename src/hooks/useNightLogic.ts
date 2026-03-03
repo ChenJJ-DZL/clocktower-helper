@@ -362,7 +362,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
           ...s,
           statusDetails: filteredStatusDetailsForDrunk,
           statuses: filteredStatuses,
-          isPoisoned: computeIsPoisoned({ ...s, statusDetails: filteredStatusDetailsForDrunk, statuses: filteredStatuses }),
+          isPoisoned: computeIsPoisoned({ ...s, statusDetails: filteredStatusDetailsForDrunk, statuses: filteredStatuses }, seats),
           isDrunk: filteredStatusDetailsForDrunk.some(st => st.includes('致醉')) ? s.isDrunk : false,
         };
       }));
@@ -617,7 +617,7 @@ export function useNightLogic(gameState: NightLogicGameState, actions: NightLogi
               const nextSeat = { ...s, statusDetails, statuses };
               return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat) };
             }
-            return { ...s, isPoisoned: computeIsPoisoned(s) };
+            return { ...s, isPoisoned: computeIsPoisoned(s, seats) };
           }));
         }
 

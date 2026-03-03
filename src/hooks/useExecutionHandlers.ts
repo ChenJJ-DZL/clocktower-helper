@@ -7,6 +7,7 @@ import type { NightInfoResult, GameRecord } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { executePoisonAction } from "./roleActionHandlers";
 import { type NightActionHandlerContext } from "./useNightActionHandler";
+import { useExecutionHandler } from "./useExecutionHandler";
 
 /**
  * 处决/击杀/投票处理函数的依赖接口
@@ -25,6 +26,8 @@ export interface ExecutionHandlersDeps {
     isVortoxWorld: boolean;
     todayExecutedId: number | null;
     mastermindFinalDay: { active: boolean } | null;
+    winResult: 'good' | 'evil' | null;
+    winReason: string | null;
 
     // Setters
     setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
@@ -38,6 +41,8 @@ export interface ExecutionHandlersDeps {
     setNominationRecords: React.Dispatch<React.SetStateAction<{ nominators: Set<number>; nominees: Set<number> }>>;
     setNominationMap: React.Dispatch<React.SetStateAction<Record<number, number>>>;
     setWinReason: React.Dispatch<React.SetStateAction<string | null>>;
+    setWinResult: React.Dispatch<React.SetStateAction<'good' | 'evil' | null>>;
+    setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>>;
     setMastermindFinalDay: React.Dispatch<React.SetStateAction<{ active: boolean } | null>>;
     setVoteInputValue: (val: string) => void;
     setShowVoteErrorToast: (val: boolean) => void;
@@ -92,7 +97,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         handleNightAction, executePoisonActionFn,
         enqueueRavenkeeperIfNeeded,
         nightLogic, processingRef, moonchildChainPendingRef,
+        setWinResult, setGamePhase,
     } = deps;
+
+    const { handleExecution } = useExecutionHandler();
 
     // Execute player (execution logic)
     const executePlayer = useCallback((id: number, options?: { skipLunaticRps?: boolean; forceExecution?: boolean }) => {
@@ -100,7 +108,31 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         const t = seatsSnapshot.find(s => s.id === id);
         if (!t || !t.role) return;
 
-        // Mad execution force override (If a player is executed due to madness, skip ability confirmations)
+        // --- Modular onExecution Support ---
+        const execResult = handleExecution({
+            executedSeat: t,
+            seats,
+            gamePhase,
+            nightCount,
+            nominationMap,
+            forceExecution: options?.forceExecution,
+            skipLunaticRps: options?.skipLunaticRps,
+            setSeats,
+            setWinResult,
+            setWinReason,
+            setGamePhase,
+            addLog,
+            checkGameOver,
+            setCurrentModal,
+        });
+
+        // If modular logic handled it or returned shouldWait, stop here
+        if (execResult && (execResult.handled || execResult.shouldWait)) {
+            return;
+        }
+
+        // --- Legacy/Standard Execution Logic ---
+        // Mid execution force override (If a player is executed due to madness, skip ability confirmations)
         if (t.isMad && options?.forceExecution) {
             // Log it
             addLog(`⚖️ ${t.id + 1}号因为处于疯狂状态，说书人决定强制执行处决！`);
@@ -128,7 +160,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             setOutsiderDiedToday(true);
             addLog('📜 规则提示：今日有外来者被处决，若场上有教父且未醉/毒，当晚将被唤醒执行额外杀人');
         }
-    }, [dispatch, seats, nominationMap, setCurrentModal, setOutsiderDiedToday, addLog]);
+    }, [dispatch, seats, nominationMap, setCurrentModal, setOutsiderDiedToday, addLog, handleExecution, setSeats, setWinResult, setWinReason, setGamePhase, checkGameOver]);
 
     // Confirm kill handler
     const confirmKill = useCallback(() => {

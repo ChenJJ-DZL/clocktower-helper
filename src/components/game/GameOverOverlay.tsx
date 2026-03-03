@@ -8,9 +8,9 @@ export function GameOverOverlay() {
     return (
         <div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center">
             <div className="text-center">
-                <h1 className={`text-8xl font-bold mb-10 ${props.winResult === 'good' ? 'text-blue-500' : 'text-red-500'
+                <h1 className={`text-8xl font-bold mb-10 ${props.winResult?.toLowerCase() === 'good' ? 'text-blue-500' : 'text-red-500'
                     }`}>
-                    {props.winResult === 'good' ? '🏆 善良阵营胜利' : '👿 邪恶阵营获胜'}
+                    {props.winResult?.toLowerCase() === 'good' ? '🏆 善良阵营胜利' : '👿 邪恶阵营获胜'}
                 </h1>
                 {props.winReason && (
                     <p className="text-xl text-gray-400 mb-8">

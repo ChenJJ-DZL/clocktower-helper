@@ -1214,7 +1214,9 @@ export function useGameController() {
     damselGuessed: boolean = false,
     klutzGuessedEvil: boolean = false
   ) => {
-    // We pass the context via the action now
+    const mastermind = seats.find(s => s.role?.id === 'mastermind' && !s.isDead && !computeIsPoisoned(s, seats));
+    const isMastermindActive = !!mastermind;
+
     logicDispatch({
       type: 'CHECK_GAME_OVER',
       executedId: executedPlayerId || undefined,
@@ -1223,10 +1225,10 @@ export function useGameController() {
         damselGuessed,
         klutzGuessedEvil,
         isVortoxWorld,
-        isMastermindActive: false, // You might need to derive this from state if needed
+        isMastermindActive,
       }
     });
-  }, [logicDispatch, isVortoxWorld]);
+  }, [logicDispatch, isVortoxWorld, seats]);
 
   // 重写 handleDayEndTransition：进入黄昏结算前，先检查市长、涡流等基于日终的胜利条件
   const handleDayEndTransitionOverride = useCallback(() => {
@@ -1551,6 +1553,9 @@ export function useGameController() {
         insertIntoWakeQueueAfterCurrent: interactionInsertIntoWakeQueueAfterCurrent,
         continueToNextAction: continueToNextAction, // Use direct function
         addLog: addLogWithDeduplication,
+        addLogWithDeduplication,
+        computeIsPoisoned,
+        getAliveNeighbors,
         killPlayer,
         hasUsedAbility,
         markAbilityUsed,
@@ -1564,6 +1569,8 @@ export function useGameController() {
         isEvil: isEvilWithJudgment,
         todayDemonVoted,
         todayMinionNominated,
+        todayExecutedId,
+        jugglerGuesses,
       };
 
 
@@ -2415,11 +2422,13 @@ export function useGameController() {
     seats, roles, nightInfo, currentModal, gamePhase, nightCount,
     nominationMap, initialSeats, voteRecords, isVortoxWorld,
     todayExecutedId, mastermindFinalDay,
+    winResult, winReason,
     setCurrentModal, setSeats, setSelectedActionTargets,
     setOutsiderDiedToday, setWakeQueueIds, setDeadThisNight,
     setTodayDemonVoted, setVotedThisRound,
     setNominationRecords, setNominationMap,
-    setWinReason, setMastermindFinalDay,
+    setWinResult, setWinReason, setGamePhase,
+    setMastermindFinalDay,
     setVoteInputValue, setShowVoteErrorToast,
     addLog, addLogWithDeduplication, killPlayer, continueToNextAction,
     checkGameOver, isActorDisabledByPoisonOrDrunk, getRegistrationCached,

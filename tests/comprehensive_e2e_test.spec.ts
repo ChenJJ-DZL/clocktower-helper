@@ -15,7 +15,8 @@ import {
   LOG_FILE_PATH,
   SeatedPlayer,
   TROUBLE_BREWING_PRESETS,
-  handleDrunkCharadeIfPresent
+  handleDrunkCharadeIfPresent,
+  getAlivePlayerIndexes
 } from "./simulation_helpers";
 
 
@@ -225,31 +226,93 @@ test.describe("Comprehensive E2E Game Simulation", () => {
   async function handleDayPhase(day: number) {
     log(`\n--- 第 ${day} 天 ---`);
     await sleep(500);
-    // 提名阶段 - 快速通过白天进入黄昏，或者测试如果有处决选项则执行
-    log("白天阶段: 检测到UI变动，跳过完整提名投票流，直接寻路至黄昏或下一夜。");
 
-    // 如果有“进入黄昏处决阶段”按钮，则直接进入黄昏以防卡死
+    // 1. Enter Dusk
     const toDuskBtn = page.getByRole('button', { name: /进入黄昏/ });
     if (await toDuskBtn.isVisible({ timeout: 5000 })) {
       await toDuskBtn.click();
       log(" -> 已点击进入黄昏处决阶段。");
+      await sleep(1000);
     }
 
-    // 处决阶段确认框处理
+    // 2. Perform Nomination
+    const aliveIndexes = await getAlivePlayerIndexes(page);
+    if (day > 1 && aliveIndexes.length >= 3) {
+      const nominator = aliveIndexes[0];
+      const nominee = aliveIndexes[1];
+
+      const nominatorRole = seatedRoles.find(r => r.seatIndex === nominator)?.player || `${nominator}号`;
+      const nomineeRole = seatedRoles.find(r => r.seatIndex === nominee)?.player || `${nominee}号`;
+
+      log(` -> 尝试提名: ${nominatorRole} 提名 ${nomineeRole}`);
+      await page.locator(`.seat-node[data-seat-id="${nominator}"]`).click({ force: true });
+      await sleep(300);
+      await page.locator(`.seat-node[data-seat-id="${nominee}"]`).click({ force: true });
+      await sleep(300);
+
+      const launchBtn = page.getByRole("button", { name: /发起提名/ });
+      if (await launchBtn.isVisible() && await launchBtn.isEnabled()) {
+        await launchBtn.click();
+        log(` -> 提名发起成功`);
+        await sleep(1000);
+
+        // 3. Voting
+        const startVoteBtn = page.getByRole("button", { name: /开始投票/ });
+        if (await startVoteBtn.isVisible()) {
+          await startVoteBtn.click();
+          await sleep(1000);
+
+          const voteModal = page.locator('div[role="dialog"]');
+          if (await voteModal.isVisible()) {
+            let yesVotes = 0;
+            for (const voter of aliveIndexes) {
+              if (Math.random() > 0.4) {
+                const voterBtn = voteModal.locator('button').filter({ hasText: new RegExp(`^${voter + 1}号`) }).first();
+                if (await voterBtn.isVisible() && !await voterBtn.isDisabled()) {
+                  await voterBtn.click();
+                  yesVotes++;
+                }
+              }
+            }
+            log(` -> 计票完成: ${yesVotes} 票`);
+
+            const confirmVoteBtn = voteModal.locator('button').filter({ hasText: /确认（.*票）/ }).first();
+            if (await confirmVoteBtn.isVisible()) {
+              await confirmVoteBtn.click();
+              await sleep(1000);
+            }
+          }
+        }
+      }
+    }
+
+    // Check execution
     const executeButton = page.getByRole('button', { name: /执行处决/ });
     if (await executeButton.isVisible({ timeout: 2000 })) {
       await executeButton.click();
       log(` -> 确认处决。`);
 
-      // Handle execution result modal
-      const confirmBtn = page.getByRole('button', { name: '确认' });
-      if (await confirmBtn.isVisible({ timeout: 5000 })) {
-        await confirmBtn.click();
-      }
+      const confirmBtn = page.locator('div[role="dialog"] button').filter({ hasText: /确认|确定/ }).first();
+      try {
+        if (await confirmBtn.isVisible({ timeout: 3000 })) {
+          await confirmBtn.click();
+        }
+      } catch (e) { }
     } else {
-      log("无人被处决或未达到处决条件。");
+      log("无处决或处决失败。");
       const continueButton = page.getByRole('button', { name: /继续提名|入夜/ });
-      if (await continueButton.isVisible()) await continueButton.click();
+      if (await continueButton.isVisible()) {
+        await continueButton.click();
+      }
+
+      const toNightButton = page.getByRole('button', { name: /入夜 \(下一回合\) 🌙/ });
+      if (await toNightButton.isVisible()) {
+        await toNightButton.click();
+        const confirmBtn = page.locator('div[role="dialog"] button').filter({ hasText: /确认|确定/ }).first();
+        if (await confirmBtn.isVisible({ timeout: 2000 })) {
+          await confirmBtn.click();
+        }
+      }
     }
   }
 });

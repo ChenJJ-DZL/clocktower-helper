@@ -284,7 +284,7 @@ export const getPoisonSources = (seat: Seat) => {
     vigormortis: details.some(d => d.includes('亡骨魔中毒')),
     pukka: details.some(d => d.includes('普卡中毒')),
     dayPoison: details.some(d => d.includes('投毒') && d.includes('清除')),
-    noDashii: details.some(d => d.includes('诺-达中毒')),
+    noDashiiMark: details.some(d => d.includes('诺-达中毒')), // 这里的 noDashiiMark 指的是手动或遗留的标记
     cannibal: details.some(d => d.includes('食人族中毒')),
     snakeCharmer: details.some(d => d.includes('舞蛇人中毒')),
     statusPoison: statuses.some(st => st.effect === 'Poison' && st.duration !== 'expired'),
@@ -293,11 +293,67 @@ export const getPoisonSources = (seat: Seat) => {
   };
 };
 
-export const computeIsPoisoned = (seat: Seat) => {
+/**
+ * 获取场上所有因诺-达（No-Dashii）能力而中毒的玩家ID
+ */
+export const getNoDashiiPoisonedPlayers = (allSeats: Seat[]): number[] => {
+  const poisonedIds: number[] = [];
+  const total = allSeats.length;
+  if (total <= 1) return poisonedIds;
+
+  // 1. 找到所有活着的、未失能的诺-达
+  const activeNoDashis = allSeats.filter(s =>
+    s.role?.id === 'no_dashii' &&
+    !s.isDead &&
+    !isActorDisabledByPoisonOrDrunk(s)
+  );
+
+  for (const noDashii of activeNoDashis) {
+    const originIndex = allSeats.findIndex(s => s.id === noDashii.id);
+
+    // 2. 顺时针（向右）寻找第一个存活镇民
+    for (let i = 1; i < total; i++) {
+      const idx = (originIndex + i) % total;
+      const s = allSeats[idx];
+      if (s.isDead) continue;
+      if (s.role?.type === 'townsfolk') {
+        poisonedIds.push(s.id);
+        break;
+      }
+    }
+
+    // 3. 逆时针（向左）寻找第一个存活镇民
+    for (let i = 1; i < total; i++) {
+      const idx = (originIndex - i + total) % total;
+      const s = allSeats[idx];
+      if (s.isDead) continue;
+      if (s.role?.type === 'townsfolk') {
+        if (!poisonedIds.includes(s.id)) {
+          poisonedIds.push(s.id);
+        }
+        break;
+      }
+    }
+  }
+
+  return poisonedIds;
+};
+
+export const computeIsPoisoned = (seat: Seat, allSeats?: Seat[]) => {
   const src = getPoisonSources(seat);
-  return src.permanent || src.vigormortis || src.pukka || src.dayPoison ||
-    src.noDashii || src.cannibal || src.snakeCharmer ||
+  let poisoned = src.permanent || src.vigormortis || src.pukka || src.dayPoison ||
+    src.noDashiiMark || src.cannibal || src.snakeCharmer ||
     src.statusPoison || src.direct || src.anyMark;
+
+  // 诺-达动态中毒逻辑：如果当前玩家是镇民且活着，且没有其他中毒来源，检查诺-达
+  if (!poisoned && allSeats && seat.role?.type === 'townsfolk' && !seat.isDead) {
+    const noDashiiPoisonedIds = getNoDashiiPoisonedPlayers(allSeats);
+    if (noDashiiPoisonedIds.includes(seat.id)) {
+      poisoned = true;
+    }
+  }
+
+  return poisoned;
 };
 
 // 统一添加中毒标记（带清除时间）

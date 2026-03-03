@@ -88,6 +88,15 @@ export interface NightTargetConfig {
     allSeats: Seat[],
     selectedTargets: number[]
   ) => boolean;
+
+  /**
+   * 动态生成合法目标ID列表（可选）
+   */
+  validTargetIds?: (
+    currentSeatId: number,
+    seats: Seat[],
+    gamePhase: GamePhase
+  ) => number[];
 }
 
 /**

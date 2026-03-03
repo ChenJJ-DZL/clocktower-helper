@@ -65,6 +65,7 @@ export interface GameContext {
   isVortoxWorld?: boolean;
   evilTwinPair?: { goodId: number; evilId: number } | null;
   executedSeatId?: number | null; // For historical context if needed
+  isMoonchildActive?: boolean;
 }
 
 export type GameAction =
@@ -429,7 +430,10 @@ export function checkGameEnd(
   if (totalEffectiveDemons === 0) {
     // 特例：主谋 (Mastermind) 触发用于在处决导致恶魔死亡时延续游戏
     if (isMastermindActive && lastAction === 'execution') {
-      return { isGameOver: false, winner: null, reason: '主谋使游戏在恶魔死后继续' };
+      const demonDied = seats.find(s => s.id === executedPlayerId)?.role?.type === 'demon';
+      if (demonDied) {
+        return { isGameOver: false, winner: null, reason: '主谋使游戏在恶魔死后继续' };
+      }
     }
 
     // 检查邪恶双子阻挡
@@ -524,5 +528,11 @@ function handlePostDeathTriggers(target: Seat, seats: Seat[], logs: string[], de
         logs.push(`💋 ${sw.id + 1}号(红唇女郎) 😈 恶魔死亡，场上存活≥5人，继任成为新的恶魔！`);
       }
     }
+  }
+
+  // 3. Moonchild Trigger (moonchild)
+  // 如果月之子死亡，标记触发陪葬状态（实际死亡在夜晚执行或立即执行取决于逻辑，此处标记日志）
+  if (target.role?.id === 'moonchild') {
+    logs.push(`🌙 ${target.id + 1}号(月之子) 死亡，请让其公开选择一名存活玩家诅咒`);
   }
 }

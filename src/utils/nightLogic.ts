@@ -170,7 +170,7 @@ export const calculateNightInfo = (
   const vortoxActive = seats.some(s => s.role?.id === 'vortox' && !s.isDead);
 
   // 实时检查是否中毒：使用computeIsPoisoned函数统一计算所有中毒来源
-  let isPoisoned = computeIsPoisoned(targetSeat);
+  let isPoisoned = computeIsPoisoned(targetSeat, seats);
   // VORTOX LOGIC: 如果 Vortox 在场且角色是镇民，强制视为"中毒"（提供错误信息）
   if (vortoxActive && effectiveRole.type === 'townsfolk') {
     isPoisoned = true; // Force false info for Townsfolk
@@ -1455,6 +1455,29 @@ export const calculateNightInfo = (
       break;
 
     default:
+      // 尝试从模块化角色定义中读取配置 (如: 梦殒春宵、黯月初升的新角色)
+      const def = getRoleDefinition(effectiveRole.id);
+      const meta = isFirstNight ? (def?.firstNight || def?.night) : def?.night;
+
+      if (meta && meta.dialog) {
+        try {
+          const dialog = meta.dialog(currentSeatId, isFirstNight);
+          guide = dialog.wake;
+          speak = dialog.instruction || dialog.wake;
+          action = "请根据描述操作";
+
+          if (meta.target) {
+            targetLimit = meta.target.count;
+            if (meta.target.validTargetIds) {
+              validTargetIds = meta.target.validTargetIds(currentSeatId, seats, gamePhase);
+            }
+          }
+          break; // 成功解析模块化定义，跳出 switch
+        } catch (e) {
+          console.error("[NightLogic] Error reading modular dialog for", effectiveRole.id, e);
+        }
+      }
+
       // 处理通用的爪牙首夜逻辑（对于没有特定处理的爪牙角色）
       if (effectiveRole.type === 'minion' && gamePhase === 'firstNight') {
         // 爪牙首夜：集中唤醒所有爪牙，互认恶魔与彼此（除非罂粟种植者在场且存活）
@@ -1797,7 +1820,11 @@ export const generateNightTimeline = (
     const meta = isFirstNight ? merged.firstMeta : merged.otherMeta;
 
     // 1. 存活的玩家，如果该夜有元数据则视为可唤醒
-    if (!seat.isDead && meta) return true;
+    if (!seat.isDead && meta) {
+      // 驱魔人特殊效果：被选中的恶魔今晚不叫醒
+      if (seat.statusDetails?.includes('驱魔者选中')) return false;
+      return true;
+    }
 
     // 2. 已死亡：检查元数据是否允许死亡时也被唤醒
     if (seat.isDead && meta && meta.wakesIfDead === true) return true;
