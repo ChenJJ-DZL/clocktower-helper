@@ -3,28 +3,27 @@ import { ModalWrapper } from './ModalWrapper';
 interface PacifistConfirmModalProps {
   isOpen: boolean;
   targetId: number;
-  onSave: () => void;
-  onDoNotSave: () => void;
+  onResolve: (saved: boolean) => void;
 }
 
-export function PacifistConfirmModal({ isOpen, targetId, onSave, onDoNotSave }: PacifistConfirmModalProps) {
+export function PacifistConfirmModal({ isOpen, targetId, onResolve }: PacifistConfirmModalProps) {
   if (!isOpen) return null;
 
   return (
     <ModalWrapper
       title="🕊️ 和平主义者"
-      onClose={onDoNotSave}
+      onClose={() => onResolve(false)}
       closeOnOverlayClick={false}
       footer={
         <div className="flex gap-4">
           <button
-            onClick={onSave}
+            onClick={() => onResolve(true)}
             className="px-10 py-4 bg-green-600 rounded-xl font-bold text-xl hover:bg-green-700 transition-colors"
           >
             本次处决不死
           </button>
           <button
-            onClick={onDoNotSave}
+            onClick={() => onResolve(false)}
             className="px-10 py-4 bg-gray-600 rounded-xl font-bold text-xl hover:bg-gray-700 transition-colors"
           >
             正常处决

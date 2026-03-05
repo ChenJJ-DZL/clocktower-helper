@@ -1,5 +1,6 @@
 import type { Seat, Role, GamePhase, LogEntry, Script, RoleType } from '../../app/data';
 import type { TimelineStep, NightInfoResult } from '../types/game';
+import type { NightActionContext } from '../types/roleDefinition';
 import {
   computeIsPoisoned,
   getPoisonSources,
@@ -21,6 +22,7 @@ export const calculateNightInfo = (
   currentSeatId: number,
   gamePhase: GamePhase,
   lastDuskExecution: number | null,
+  nightCount: number, // ADDED
   fakeInspectionResult?: string,
   drunkFirstInfoMap?: Map<number, boolean>,
   isEvilWithJudgmentFn?: (seat: Seat) => boolean,
@@ -149,6 +151,7 @@ export const calculateNightInfo = (
   };
 
   const targetSeat = seats.find(s => s.id === currentSeatId);
+  console.log(`[NightLogic] calculateNightInfo - Role: ${targetSeat?.role?.id}, Phase: ${gamePhase}, lastDusk: ${lastDuskExecution}`);
   if (!targetSeat || !targetSeat.role) return null;
 
   const effectiveRole = targetSeat.role.id === "drunk" ? targetSeat.charadeRole : targetSeat.role;
@@ -188,7 +191,7 @@ export const calculateNightInfo = (
     reason = "亡骨魔中毒";
   } else if (poisonSources.pukka) {
     reason = "普卡中毒";
-  } else if (poisonSources.dayPoison || poisonSources.noDashii) {
+  } else if (poisonSources.dayPoison || poisonSources.noDashiiMark) {
     reason = "投毒";
   } else if (poisonSources.cannibal) {
     reason = "食人族中毒";
@@ -239,33 +242,54 @@ export const calculateNightInfo = (
   const allAliveIds = seats.filter(s => !s.isDead).map(s => s.id);
   const allAliveIdsExceptSelf = allAliveIds.filter(id => id !== currentSeatId);
 
+  // === UNIFIED ARCHITECTURE: Get from RoleDefinition ===
+  const roleDef = getRoleDefinition(effectiveRole.id);
+  const nightConfig = isFirstNight ? (roleDef?.firstNight || roleDef?.night) : roleDef?.night;
+
+  // 构造完整的 NightActionContext
+  const context: NightActionContext = {
+    seats,
+    targets: [],
+    selfId: currentSeatId,
+    gamePhase,
+    nightCount,
+    vortoxWorld,
+    poppyGrowerDead,
+    lastDuskExecution,
+    outsiderDiedToday,
+    deadThisNight,
+    executedToday,
+    isPoisoned,
+    shouldShowFake,
+    isEvilWithJudgmentFn,
+    drunkFirstInfoMap,
+    roles: roles as Role[]
+  };
+
+  if (nightConfig) {
+    // 提取台词和指引
+    const dialog = nightConfig.dialog(currentSeatId, isFirstNight, context);
+    guide = dialog.wake + (dialog.instruction ? "\n" + dialog.instruction : "");
+    speak = dialog.instruction;
+
+    // 提取目标配置
+    if (nightConfig.target) {
+      targetLimit = nightConfig.target.count;
+
+      // 处理 canSelectSelf
+      if (nightConfig.target.canSelect) {
+        canSelectSelf = nightConfig.target.canSelect(targetSeat, targetSeat, seats, []);
+      }
+
+      // 如果有动态计算合法目标的函数，优先使用
+      if (nightConfig.target.validTargetIds) {
+        validTargetIds = nightConfig.target.validTargetIds(currentSeatId, seats, gamePhase);
+      }
+    }
+  }
 
   switch (effectiveRole.id) {
     // ========== Demon (恶魔) ==========
-    case 'imp':
-      if (gamePhase === 'firstNight') {
-        // 检查罂粟种植者状态：如果罂粟种植者在场且存活，恶魔不知道爪牙是谁
-        const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
-        const shouldHideMinions = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
-
-        if (shouldHideMinions) {
-          guide = `🌺 罂粟种植者在场，你不知道你的爪牙是谁。`;
-          speak = `"（向其展示【你是】信息标记，并展示【小恶魔】角色标记）"`;
-          action = "（保持沉默）";
-        } else {
-          const minions = seats.filter(s => s.role?.type === 'minion').map(s => `${s.id + 1}号`);
-          guide = `👿 爪牙列表：${minions.length > 0 ? minions.join('、') : '无'}。`;
-          speak = `（向其展示【这些是你的爪牙】信息标记，并指向：${minions.length > 0 ? minions.join('、') : '无爪牙'}。再展示【这些角色不在场】信息标记，并展示三个提示标记。）`;
-          action = "（无额外行动）";
-        }
-      } else {
-        guide = "👹 小恶魔夜晚杀人或自杀传位。";
-        speak = "（无）";
-        action = "任意一名玩家";
-        targetLimit = { min: 1, max: 1 };
-        canSelectSelf = true;
-      }
-      break;
 
     case 'pukka':
       if (gamePhase === 'firstNight') {
@@ -310,6 +334,7 @@ export const calculateNightInfo = (
         }
       } else {
         // 非首夜：如果上一个黄昏没有处决（lastDuskExecution === null），僵怖应该被唤醒
+        console.log(`[NightLogic] Zombuul check day death. lastDuskExecution:`, lastDuskExecution);
         if (lastDuskExecution === null) {
           guide = "⚰️ 每个夜晚*，如果今天白天没有人死亡，你会被唤醒并要选择一名玩家：他死亡。当你首次死亡后，你仍存活，但会被当作死亡。";
           speak = '"请选择一名玩家。他死亡。"';
@@ -557,26 +582,11 @@ export const calculateNightInfo = (
       break;
 
     // ========== Minion (爪牙) ==========
-    case 'poisoner':
-      guide = "🧪 投毒者下毒。";
-      speak = "（无）";
-      action = "任意一名玩家（将被投毒）";
-      targetLimit = { min: 1, max: 1 };
-      canSelectSelf = true;
-      break;
-
-    case 'spy':
-      guide = "📖 间谍查看魔典。";
-      speak = "（向其展示魔典，供其查看一段时间）";
-      action = "（无额外行动）";
-      break;
 
 
 
     case 'scarlet_woman':
-      guide = "💋 红唇女郎知晓其能力效果。首夜不唤醒红唇女郎进行能力互动（除互认环节外），此角色通常由游戏系统自动判定生效。";
-      speak = "（无）";
-      action = "（不需要选择玩家）";
+      // Handled by RoleDefinition
       break;
 
     case 'cerenovus':
@@ -721,273 +731,8 @@ export const calculateNightInfo = (
       break;
 
     // ========== Townsfolk (镇民) ==========
-    case 'washerwoman':
-      // 洗衣妇：得知两名玩家中的一人是特定的镇民角色
-      if (gamePhase === 'firstNight') {
-        const candidateSeats = seats.filter((s) => {
-          if (!s.role || s.id === currentSeatId) return false;
-          const info = getPerceivedRoleForViewer(s, effectiveRole, 'townsfolk');
-          return !!info.perceivedRole;
-        });
-
-        if (candidateSeats.length > 0) {
-          const target = getRandom(candidateSeats);
-          const perceivedInfo = getPerceivedRoleForViewer(target, effectiveRole, 'townsfolk');
-          const perceivedRoleName = perceivedInfo.perceivedRole?.name || '';
-
-          const availablePlayers = seats.filter(s => s.id !== currentSeatId && s.id !== target.id);
-          const other = getRandom(availablePlayers);
-
-          if (other) {
-            const players = [target, other].sort(() => Math.random() - 0.5);
-            guide = `🧺 洗衣妇查验：${players[0].id + 1}号、${players[1].id + 1}号中存在（镇民）${perceivedRoleName}。`;
-            speak = `（向其分别指向 ${players[0].id + 1}号 和 ${players[1].id + 1}号。展示【${perceivedRoleName}】角色标记）`;
-            logMessage = guide;
-            action = "（无额外行动）";
-          } else {
-            guide = `🧺 场上没有足够的玩家来提供信息。`;
-            speak = `（摇头示意无信息）`;
-            logMessage = guide;
-            action = "（保持沉默）";
-          }
-        } else {
-          guide = "🧺 场上没有镇民在场，无法产生查验信息。";
-          speak = "（向其展示零的手势或摇头）";
-          logMessage = guide;
-          action = "（保持沉默）";
-        }
-      } else {
-        action = "无";
-      }
-      break;
-
-    case 'librarian':
-      if (gamePhase === 'firstNight') {
-        // 规则：图书管理员视角下，间谍/隐士等可能“注册”为外来者
-        // 1. 找到在图书管理员视角下“被当作外来者”的玩家
-        let candidateSeats = seats.filter((s) => {
-          if (!s.role) return false;
-          const info = getPerceivedRoleForViewer(s, effectiveRole, 'outsider');
-          return !!info.perceivedRole;
-        });
-
-        const selfSeatNo = currentSeatId + 1;
-
-        // 优先不选图书管理员自己作为“外来者玩家”
-        let filtered = candidateSeats.filter((s) => s.id !== currentSeatId);
-        if (filtered.length === 0) {
-          filtered = candidateSeats;
-        }
-
-        let realPlayer: Seat | undefined;
-        let perceivedRoleName = '外来者';
-
-        if (filtered.length > 0) {
-          realPlayer = getRandom(filtered);
-          const perceivedInfo = getPerceivedRoleForViewer(realPlayer, effectiveRole, 'outsider');
-          if (perceivedInfo.perceivedRole) {
-            perceivedRoleName = perceivedInfo.perceivedRole.name;
-          }
-        }
-
-        if (realPlayer) {
-          // 选择另一个玩家作为干扰项（不能是图书管理员自己，也不能是真实的持有者）
-          const availablePlayers = seats.filter(
-            (s) => s.id !== currentSeatId && s.id !== realPlayer!.id
-          );
-          const fakePlayer =
-            availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-
-          if (fakePlayer) {
-            const player1 = realPlayer.id + 1;
-            const player2 = fakePlayer.id + 1;
-            const info = `${player1}号、${player2}号中存在（外来者）${perceivedRoleName}。`;
-            guide = `📚 图书管理员(${selfSeatNo}) 得知：${info}`;
-            speak = `（向其分别指向 ${player1}号 和 ${player2}号。展示【${perceivedRoleName}】角色标记）`;
-            logMessage = guide;
-          } else {
-            guide = `📚 图书管理员(${selfSeatNo}) 得知：场上没有足够的玩家来提供信息。`;
-            speak = "（摇头示意无信息）";
-            logMessage = guide;
-          }
-        } else {
-          guide = `📚 图书管理员(${currentSeatId + 1}) 得知：没有外来者在场`;
-          speak = "（向其展示【零】的手势）";
-          logMessage = guide;
-        }
-
-        action = "（无额外行动）";
-      }
-      break;
-
-    case 'investigator':
-      if (gamePhase === 'firstNight') {
-        const selfSeatNo = currentSeatId + 1;
-
-        // 遍历所有玩家，找出在调查员视角下“被当作爪牙”的玩家
-        const perceivedMinions = seats
-          .filter((s) => s.role) // 仅考虑有角色的玩家
-          .map((s) => ({
-            seat: s,
-            info: getPerceivedRoleForViewer(s, effectiveRole, 'minion'),
-          }))
-          .filter((x) => !!x.info.perceivedRole);
-
-        if (perceivedMinions.length > 0) {
-          // 从这些玩家中选择一个作为“真实爪牙玩家”
-          const picked = getRandom(perceivedMinions);
-          const realPlayer = picked.seat;
-          const minionRole = picked.info.perceivedRole!;
-
-          // 再选择一个不同的玩家作为干扰项，不能是调查员自己，也不能是真实爪牙
-          const availablePlayers = seats.filter(
-            (s) => s.id !== currentSeatId && s.id !== realPlayer.id
-          );
-          const fakePlayer =
-            availablePlayers.length > 0
-              ? availablePlayers[Math.floor(Math.random() * availablePlayers.length)]
-              : null;
-
-          if (fakePlayer) {
-            const player1 = realPlayer.id + 1;
-            const player2 = fakePlayer.id + 1;
-            const info = `${player1}号、${player2}号中存在（爪牙）${minionRole.name}。`;
-            guide = `🕵️ 调查员(${selfSeatNo}) 得知：${info}`;
-            speak = `（向其分别指向 ${player1}号 和 ${player2}号。展示【${minionRole.name}】角色标记）`;
-            logMessage = guide;
-          } else {
-            guide = `🕵️ 调查员(${selfSeatNo}) 得知：场上没有足够的玩家来提供信息。`;
-            speak = "（摇头示意无信息）";
-            logMessage = guide;
-          }
-        } else {
-          // 在调查员视角下，没有任何玩家注册为“爪牙” → 视为场上没有爪牙
-          guide = `🕵️ 调查员(${selfSeatNo}) 得知没有爪牙在场`;
-          speak = "（向其展示【零】的手势）";
-          logMessage = guide;
-        }
-        action = "（无额外行动）";
-      }
-      break;
-
-    case 'chef':
-      if (gamePhase === 'firstNight') {
-        // 计算相邻的邪恶玩家对数
-        let evilPairs = 0;
-        for (let i = 0; i < seats.length; i++) {
-          const current = seats[i];
-          const next = seats[(i + 1) % seats.length];
-          if (checkEvilForChefEmpath(current) && checkEvilForChefEmpath(next)) {
-            evilPairs++;
-          }
-        }
-        const selfSeatNo = currentSeatId + 1;
-        const info = `场上有${evilPairs}对邪恶玩家邻座。`;
-        guide = `👨‍🍳 厨师(${selfSeatNo}) 得知：${info}`;
-        speak = `（用手指表示数字 ${evilPairs}。如果是 0，则展示手势【零】）`;
-        logMessage = guide;
-        action = "（无额外行动）";
-      }
-      break;
-
-    case 'empath':
-      // 找到当前玩家的邻座
-      const currentIndex = seats.findIndex(s => s.id === currentSeatId);
-      if (currentIndex !== -1) {
-        const leftNeighbor = findNearestAliveNeighbor(currentSeatId, -1);
-        const rightNeighbor = findNearestAliveNeighbor(currentSeatId, 1);
-
-        let evilCount = 0;
-        if (leftNeighbor && checkEvilForChefEmpath(leftNeighbor)) evilCount++;
-        if (rightNeighbor && checkEvilForChefEmpath(rightNeighbor)) evilCount++;
-
-        const selfSeatNo = currentSeatId + 1;
-        const info = `邻近的两名存活玩家中，有${evilCount}名邪恶玩家。`;
-        guide = `🤝 共情者(${selfSeatNo}) 得知：${info}`;
-        speak = `（用手指表示数字 ${evilCount}。如果是 0，则展示手势【零】）`;
-        logMessage = guide;
-      } else {
-        const selfSeatNo = currentSeatId + 1;
-        guide = `🤝 共情者(${selfSeatNo}) 得知：无法确定邻座玩家。`;
-        speak = "（摇头示意无信息）";
-        logMessage = guide;
-      }
-      action = "（无额外行动）";
-      break;
-
-    case 'fortune_teller':
-      guide = "🔮 占卜师查验。";
-      speak = "（无）";
-      action = "任意两名玩家";
-      targetLimit = { min: 2, max: 2 };
-      canSelectSelf = true;
-      break;
-
-    case 'undertaker':
-      if (gamePhase !== 'firstNight') {
-        if (executedToday !== null) {
-          const executedPlayer = seats.find(s => s.id === executedToday);
-          if (executedPlayer?.role) {
-            // 注册判定：检查 Spy/Recluse 等是否改变了显示的身份
-            const viewer = seats.find(s => s.id === currentSeatId)?.role;
-            const reg = getCachedRegistration(executedPlayer, viewer);
-            let displayedRoleName = executedPlayer.role.name;
-            let actualRoleName = executedPlayer.role.name;
-
-            // 如果注册类型与真实类型不同（例如间谍被注册为镇民，或隐士被注册为爪牙）
-            if (reg.roleType && reg.roleType !== executedPlayer.role.type) {
-              const pool = getRolePoolByType(reg.roleType);
-              if (pool.length > 0) {
-                // 确定性伪随机选择（保证同一晚同一人看到的结果一致）
-                const idx = (executedPlayer.id * 17 + (executedToday || 0)) % pool.length;
-                displayedRoleName = pool[idx].name;
-              }
-            }
-
-            guide = `⚰️ 得知：今天被处决的玩家是${displayedRoleName}${displayedRoleName !== actualRoleName ? `（真实身份：${actualRoleName}）` : ''}。`;
-            speak = `（向其展示【${displayedRoleName}】角色标记）`;
-            logMessage = guide;
-          } else {
-            guide = "⚰️ 得知：今天有玩家被处决，但无法确定角色。";
-            speak = "（摇头示意无信息）";
-            logMessage = guide;
-          }
-        } else {
-          guide = "⚰️ 得知：今天白天没有玩家被处决。";
-          speak = "（保持沉默或摇头示意无信息）";
-          logMessage = guide;
-        }
-        action = "（无额外行动）";
-      }
-      break;
-
-    case 'monk':
-      if (gamePhase !== 'firstNight') {
-        guide = "🙏 僧侣保护。";
-        speak = "（无）";
-        action = "除自己外的任意一名玩家";
-        targetLimit = { min: 1, max: 1 };
-      }
-      break;
-
-    case 'ravenkeeper':
-      if (diedTonight) {
-        guide = "🐦 守鸦人查验。";
-        speak = "（无）";
-        action = "任意一名玩家";
-        targetLimit = { min: 1, max: 1 };
-      } else {
-        guide = "💤 你本夜未死亡，不会被唤醒。";
-        speak = "（无）";
-        action = "（保持沉默）";
-      }
-      break;
-
-    case 'innkeeper':
-      guide = "🏨 旅店老板保护。";
-      speak = "（无）";
-      action = "任意两名玩家";
-      break;
+    // Trouble Brewing roles are now handled by RoleDefinition handlers
+    // See src/roles/townsfolk/ and src/roles/outsider/
 
     case 'clockmaker':
       if (gamePhase === 'firstNight') {
@@ -1324,38 +1069,18 @@ export const calculateNightInfo = (
       action = "无";
       break;
 
-    case 'virgin':
-    case 'slayer':
-    case 'soldier':
-    case 'mayor':
     case 'grandmother':
+    // Grandmother logic is mostly passive until death occurs, but first night is informational.
+    // Already handled by RoleDefinition if migrated.
+
     case 'sailor':
     case 'chambermaid':
     case 'exorcist':
     case 'gambler':
-    case 'gossip':
     case 'courtier':
     case 'professor':
-    case 'minstrel':
-    case 'tea_lady':
-    case 'pacifist':
-    case 'fool':
-    case 'mutant':
-    case 'sweetheart':
-    case 'barber':
-    case 'barber_mr':
-    case 'klutz':
-    case 'damsel':
-      // 落难少女：所有爪牙都知道落难少女在场
-      if (effectiveRole.id === 'damsel' && gamePhase === 'firstNight') {
-        guide = "👸 所有爪牙都知道落难少女在场。";
-        speak = '"所有爪牙都知道落难少女在场。"';
-        action = "告知";
-      } else {
-        guide = "💤 无行动。";
-        speak = "（无）";
-        action = "跳过";
-      }
+      // These will be handled by their role definition actions or generic choose_player logic
+      action = "选择";
       break;
 
     case 'golem':
@@ -1461,7 +1186,7 @@ export const calculateNightInfo = (
 
       if (meta && meta.dialog) {
         try {
-          const dialog = meta.dialog(currentSeatId, isFirstNight);
+          const dialog = meta.dialog(currentSeatId, isFirstNight, context);
           guide = dialog.wake;
           speak = dialog.instruction || dialog.wake;
           action = "请根据描述操作";

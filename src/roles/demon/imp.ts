@@ -30,18 +30,31 @@ export const imp: RoleDefinition = {
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
-        instruction: "认队友",
+        instruction: "查看爪牙与不在场角色信息（受罂粟种植者影响）",
         close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
       };
     },
 
     handler: (context) => {
-      // 小恶魔的认队友逻辑在 calculateNightInfo 中处理
-      // 这里只返回空更新
+      const { seats, poppyGrowerDead, selfId } = context;
+
+      const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
+      const shouldHideMinions = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
+
+      if (shouldHideMinions) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `小恶魔（${selfId + 1}号）：因罂粟种植者在场，未告知爪牙信息`,
+          },
+        };
+      }
+
+      const minions = seats.filter(s => s.role?.type === 'minion' && s.id !== selfId).map(s => `${s.id + 1}号`);
       return {
         updates: [],
         logs: {
-          privateLog: `小恶魔（${context.selfId + 1}号）已被告知爪牙信息`,
+          privateLog: `小恶魔（${selfId + 1}号）得知爪牙：${minions.length > 0 ? minions.join('、') : '无'}`,
         },
       };
     },
@@ -72,21 +85,33 @@ export const imp: RoleDefinition = {
     },
 
     handler: (context) => {
-      // 小恶魔的杀人逻辑在 calculateNightInfo 和 killPlayer 中处理
-      // 这里只返回空更新
-      if (context.targets.length === 0) {
+      const { targets, selfId } = context;
+
+      if (targets.length === 0) {
         return {
           updates: [],
           logs: {
-            privateLog: `小恶魔（${context.selfId + 1}号）未选择目标`,
+            privateLog: `小恶魔（${selfId + 1}号）未选择目标`,
           },
         };
       }
 
+      const targetId = targets[0];
+
+      // 注意：实际的死亡逻辑和属性变更（如 isDead）应该在这里返回
+      // 如果自杀，则 targetId === selfId
+      const updates: Array<Partial<Seat> & { id: number }> = [
+        {
+          id: targetId,
+          isDead: true,
+          // 这里可以添加更多死亡相关的标记，但核心逻辑在 handlePostDeathTriggers
+        },
+      ];
+
       return {
-        updates: [],
+        updates,
         logs: {
-          privateLog: `小恶魔（${context.selfId + 1}号）选择了${context.targets[0] + 1}号玩家`,
+          privateLog: `小恶魔（${selfId + 1}号）攻击了 ${targetId + 1}号玩家${targetId === selfId ? "（自杀传位）" : ""}`,
         },
       };
     },

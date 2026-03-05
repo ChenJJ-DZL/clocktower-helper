@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 import type { Seat, Role } from "../../app/data";
 import { useGameContext, gameActions } from "../contexts/GameContext";
 import { isAntagonismEnabled, checkMutualExclusion } from "../utils/antagonism";
+import { getRoleDefinition } from "../roles";
 
 /**
  * UseSeatManagerResult - 座位管理 Hook 的返回结果
@@ -76,7 +77,6 @@ export function useSeatManager(): UseSeatManagerResult {
       });
       if (!decision.allowed) {
         if (decision.reason) {
-          alert(decision.reason);
           dispatch(gameActions.addLog({ day: state.nightCount, phase: state.gamePhase, message: `⛔ ${decision.reason}` }));
         }
         return;
@@ -84,6 +84,30 @@ export function useSeatManager(): UseSeatManagerResult {
     }
 
     dispatch(gameActions.updateSeat(seatId, { role: newRole, displayRole: newRole }));
+
+    // NEW: Trigger automated onSetup for the role
+    const def = getRoleDefinition(newRoleId);
+    console.log(`[useSeatManager] Triggering onSetup for ${newRoleId} (Seat ${seatId + 1})`);
+    if (def?.onSetup) {
+      const setupResult = def.onSetup({ seats, selfId: seatId });
+      if (setupResult && setupResult.updates) {
+        setupResult.updates.forEach((update: any) => {
+          const { id, ...patch } = update;
+          dispatch(gameActions.updateSeat(id, patch));
+        });
+      }
+      if (setupResult && setupResult.logs) {
+        const logMsg = setupResult.logs.privateLog || setupResult.logs.publicLog;
+        if (logMsg) {
+          dispatch(gameActions.addLog({
+            day: state.nightCount,
+            phase: state.gamePhase,
+            message: `⚙️ [Setup] ${logMsg}`
+          }));
+        }
+      }
+    }
+
     dispatch(gameActions.addLog({ day: state.nightCount, phase: state.gamePhase, message: `🔄 ${seatId + 1}号 的身份变成了 [${newRole.name}]` }));
   }, [seats, state.nightCount, state.gamePhase, dispatch]);
 

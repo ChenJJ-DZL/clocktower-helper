@@ -55,5 +55,11 @@ export const saint: RoleDefinition = {
       handled: false,
     };
   },
+  night: {
+    order: 0,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId) => ({ wake: "", instruction: "", close: "" }),
+    handler: (context) => ({ updates: [], logs: { privateLog: "圣徒(被动能力)" } }),
+  },
 };
 

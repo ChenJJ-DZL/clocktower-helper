@@ -788,6 +788,58 @@ export const getMisinformation = {
 // ======================================================================
 
 /**
+ * 查找最近的存活邻居（跳过所有死亡玩家和自己）
+ */
+export const findNearestAliveNeighbor = (
+  originId: number,
+  direction: 1 | -1,
+  seats: Seat[]
+): Seat | null => {
+  const originIndex = seats.findIndex((s) => s.id === originId);
+  if (originIndex === -1 || seats.length <= 1) return null;
+  for (let step = 1; step < seats.length; step++) {
+    const seat = seats[(originIndex + direction * step + seats.length) % seats.length];
+    if (!seat.isDead && seat.id !== originId) {
+      return seat;
+    }
+  }
+  return null;
+};
+
+/**
+ * 获取查验视角下的伪装角色（处理间谍/隐士的影响）
+ */
+export const getPerceivedRoleForViewer = (
+  target: Seat,
+  viewer: Role,
+  expectedType?: RoleType,
+  options?: RegistrationCacheOptions
+): { perceivedRole: Role | null; perceivedType: RoleType | null } => {
+  if (!target.role) return { perceivedRole: null, perceivedType: null };
+
+  const reg = getRegistration(target, viewer, 'default', 0.8, options);
+  const regType = reg.roleType ?? target.role.type;
+
+  if (expectedType && regType !== expectedType) {
+    return { perceivedRole: null, perceivedType: regType };
+  }
+
+  // Normal roles: show real role token.
+  if (target.role.id !== 'spy' && target.role.id !== 'recluse') {
+    return { perceivedRole: target.role, perceivedType: target.role.type };
+  }
+
+  // Spy/Recluse special handling - logic moved to a helper if needed or kept simple here
+  // For now, let's just return the registered type's pool
+  const perceivedType = expectedType ?? regType;
+
+  // Note: For a truly robust implementation, we'd need the full roles list to pick a random one.
+  // But since RoleDefinitions are modular, maybe we should pass the role pool?
+  // Let's assume for now the handler/dialog has access to roles via context.
+  return { perceivedRole: null, perceivedType };
+};
+
+/**
  * 检查玩家是否受到查茶女保护
  * 规则：如果查茶女的两名存活邻居都是善良阵营，则查茶女及其邻居都不会死亡。
  * 
@@ -802,7 +854,8 @@ export function hasTeaLadyProtection(targetSeat: Seat, seats: Seat[]): boolean {
   const teaLadies = seats.filter(s =>
     s.role?.id === 'tea_lady' &&
     !s.isDead &&
-    isGoodAlignment(s)
+    isGoodAlignment(s) &&
+    !isActorDisabledByPoisonOrDrunk(s)
   );
 
   // 对每个查茶女检查其邻居

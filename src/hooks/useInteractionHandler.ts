@@ -264,7 +264,7 @@ export function useInteractionHandler(deps: {
   }, [nightActionQueue, currentWakeIndex, selectedActionTargets, seats, isVortoxWorld, state.inspectionResult, dispatch, depsNightInfo]);
 
   const handleConfirmAction = useCallback(() => {
-    const nightInfo = nightActionQueue[currentWakeIndex];
+    const nightInfo = depsNightInfo || nightActionQueue[currentWakeIndex];
 
     if (!nightInfo) return;
 

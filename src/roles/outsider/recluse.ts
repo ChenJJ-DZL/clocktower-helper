@@ -23,5 +23,11 @@ export const recluse: RoleDefinition = {
   // 无夜晚行动（被动干扰能力）
   // 陌客的能力在阵营/角色探查时被动触发
   // 具体逻辑在相关探查函数中由说书人手动决定
+  night: {
+    order: 0,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId) => ({ wake: "", instruction: "", close: "" }),
+    handler: (context) => ({ updates: [], logs: { privateLog: "陌客(被动能力)" } }),
+  },
 };
 

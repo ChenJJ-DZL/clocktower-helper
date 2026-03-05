@@ -112,6 +112,11 @@ export function useExecutionHandler() {
         }
       }
 
+      // 处理弹窗
+      if (result.modal && context.setCurrentModal) {
+        context.setCurrentModal(result.modal);
+      }
+
       return result;
     } catch (error) {
       console.error(`[useExecutionHandler] 处理角色 ${roleId} 的处决时出错:`, error);

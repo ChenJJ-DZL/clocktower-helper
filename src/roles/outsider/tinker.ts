@@ -80,12 +80,15 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:133-0!canonical and tim
     name: "猝死",
     maxUses: 'infinity',
     target: { min: 0, max: 0 },
-    handler: (context) => ({
-      updates: [{ id: context.selfId, isDead: true }],
-      logs: {
-        publicLog: `${context.selfId + 1}号(修补匠) 突然暴毙死亡`,
-        privateLog: `说书人发动修补匠技能使其死亡`
-      }
-    })
+    handler: (context) => {
+      context.killPlayer(context.selfId);
+      return {
+        updates: [],
+        logs: {
+          publicLog: `${context.selfId + 1}号(修补匠) 突然暴毙死亡`,
+          privateLog: `说书人发动修补匠技能使其死亡`
+        }
+      };
+    }
   }
 };

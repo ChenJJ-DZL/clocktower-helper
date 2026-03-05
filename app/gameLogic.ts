@@ -13,7 +13,8 @@ import { roles } from "./data";
 import {
   hasExecutionProof,
   hasTeaLadyProtection,
-  isActorDisabledByPoisonOrDrunk
+  isActorDisabledByPoisonOrDrunk,
+  isGoodAlignment
 } from "../src/utils/gameRules";
 
 // --- 类型定义 ---
@@ -66,6 +67,7 @@ export interface GameContext {
   evilTwinPair?: { goodId: number; evilId: number } | null;
   executedSeatId?: number | null; // For historical context if needed
   isMoonchildActive?: boolean;
+  pacifistSaves?: boolean;
 }
 
 export type GameAction =
@@ -194,14 +196,29 @@ export function processGameEvent(
       const target = nextSeats.find(s => s.id === action.targetId);
       if (!target) break;
 
-      // Protection Checks for Execution
       // 1. Tea Lady
       if (hasTeaLadyProtection(target, nextSeats)) {
         logs.push(`🛡️ ${target.id + 1}号 被茶艺师保护，免于处决`);
         nextActionHint = 'EXECUTION_BLOCKED';
         break;
       }
-      // 2. Generic Execution Proof
+
+      // 2. Pacifist
+      const activePacifist = nextSeats.find(s =>
+        s.role?.id === 'pacifist' &&
+        !s.isDead &&
+        !isActorDisabledByPoisonOrDrunk(s)
+      );
+      if (activePacifist && isGoodAlignment(target)) {
+        // Pure logic heuristic: Use context flag
+        if (context.pacifistSaves) {
+          logs.push(`☮️ ${target.id + 1}号 被和平主义者救下`);
+          nextActionHint = 'PACIFIST_SAVED';
+          break;
+        }
+      }
+
+      // 3. Generic Execution Proof
       if (hasExecutionProof(target)) {
         logs.push(`🛡️ ${target.id + 1}号 免于处决`);
         nextActionHint = 'EXECUTION_BLOCKED';
@@ -499,16 +516,22 @@ export function checkGameEnd(
 // ======================================================================
 
 function handlePostDeathTriggers(target: Seat, seats: Seat[], logs: string[], deathSource: string = 'unknown') {
-  // 1. Grandmother Trigger (grandmother)
-  // 规则：如果孙子被恶魔杀死，老祖母死亡。
-  if (target.isGrandchild && deathSource === 'demon') {
-    const grandmother = seats.find(s => s.role?.id === 'grandmother' && !s.isDead && s.grandchildId === target.id);
-    if (grandmother) {
-      grandmother.isDead = true;
-      logs.push(`${grandmother.id + 1}号(老祖母) 👵 因孙子被恶魔杀死而殉情`);
-      // Recursively trigger for Grandmother death (safe to prevent infinite loop by source check)
-      handlePostDeathTriggers(grandmother, seats, logs, 'grandmother_death');
-    }
+  // 1. 祖母 (Grandmother) 孙子连带死亡
+  if (deathSource === 'demon') {
+    // 找出所有活着的祖母，检查被杀死的玩家是否是她们的孙子
+    seats.forEach((grandmaSeat) => {
+      if (grandmaSeat.role?.id === 'grandmother' && !grandmaSeat.isDead && grandmaSeat.grandchildId === target.id) {
+        // Assuming onKillPlayer and onAddLog are defined elsewhere or need to be adapted
+        // For this context, we'll simulate the effect on the seats array and logs
+        const killedGrandma = seats.find(s => s.id === grandmaSeat.id);
+        if (killedGrandma) {
+          killedGrandma.isDead = true;
+          logs.push(`祖母技能：孙子 ${target.id + 1} 号位被恶魔杀害，${grandmaSeat.id + 1}号(老祖母) 👵 殉情`);
+          // Recursively trigger for Grandmother death (safe to prevent infinite loop by source check)
+          handlePostDeathTriggers(killedGrandma, seats, logs, 'grandmother_death');
+        }
+      }
+    });
   }
 
   // 2. Scarlet Woman Trigger (scarlet_woman)

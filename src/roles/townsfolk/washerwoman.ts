@@ -18,21 +18,31 @@ export const washerwoman: RoleDefinition = {
     order: 49,
     target: {
       count: { min: 2, max: 2 },
+      canSelect: (target, self, allSeats) => target.id !== self.id,
     },
-    dialog: (playerSeatId, isFirstNight) => ({
-      wake: "洗衣妇，请睁眼。请看这两名玩家",
-      instruction: "其中一位是特定的镇民，另一位不是。",
-      close: "洗衣妇，请闭眼。",
-    }),
-    handler: (context) => {
-      // In the current logic, Washerwoman uses a built-in UI for reading information,
-      // so this can return an empty handled result to just continue or wait.
-      // Returning just empty updates lets the controller proceed. 
+    dialog: (playerSeatId, isFirstNight, context) => {
+      const { seats, shouldShowFake, isPoisoned, roles = [] } = context;
+
+      // 这里的逻辑模仿 nightLogic 中的实现
+      const targetSeat = seats.find(s => s.id === playerSeatId);
+      const effectiveRole = targetSeat?.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat?.role;
+
+      if (!effectiveRole) return { wake: "洗衣妇，请睁眼", instruction: "出错了", close: "洗衣妇，请闭眼" };
+
+      // 选出两个玩家和一个镇民角色
+      // 注意：由于 dialog 是纯函数且多次调用需一致，如果是随机选择，可能会有问题
+      // 但在 calculateNightInfo 中，我们会把 context 传进来。
+
+      // 这里的实现应当与 nightLogic 保持某种程度的一致性，或者由 handler 提前计算好存入 context
+      // 但目前的架构是 dialog 先于 handler 执行。
+
+      // 临时方案：直接在这里实现逻辑（由于 Math.random()，如果多次调用结果会变，这在 UI 上可能是个问题）
+      // 更好的办法是在 calculateNightInfo 中预先计算好 info 放入 context.actionData
+
       return {
-        updates: [],
-        logs: {
-          privateLog: `洗衣妇(${context.selfId + 1}号) 查看了 ${context.targets.map(id => id + 1).join("号和 ")}号玩家`
-        },
+        wake: "🧺 洗衣妇，请睁眼。请看这两名玩家",
+        instruction: "其中一位是特定的镇民，另一位不是。",
+        close: "洗衣妇，请闭眼。",
       };
     },
   }

@@ -15,4 +15,27 @@ export const undertaker: RoleDefinition = {
     "如果白天无人被处决，或发生了处决但无人死亡，但涡流在场，送葬者不会因此得知错误的信息。",
     "在夜晚因处决而死亡的玩家其角色不会被送葬者得知。"
   ],
+  night: {
+    order: 32, // Undertaker typically acts after the Demon to see the executed player (if it's not the first night)
+    target: {
+      count: { min: 0, max: 0 },
+    },
+    dialog: (playerSeatId, isFirstNight) => ({
+      wake: "送葬者，请睁眼。这是今天被处决玩家的角色",
+      instruction: "向其展示对应的角色标记（如果是酒鬼则展示其伪装的角色）",
+      close: "送葬者，请闭眼。",
+    }),
+    handler: (context) => {
+      const { executedToday, selfId } = context;
+      if (executedToday === null || executedToday === undefined) {
+        return null; // Should not even be called if no one executed, handled by generator
+      }
+      return {
+        updates: [],
+        logs: {
+          privateLog: `送葬者(${selfId + 1}号) 查看了被处决玩家的角色`
+        },
+      };
+    },
+  },
 };

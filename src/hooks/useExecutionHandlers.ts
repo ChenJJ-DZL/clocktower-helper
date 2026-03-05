@@ -8,6 +8,7 @@ import type { ModalType } from "../types/modal";
 import { executePoisonAction } from "./roleActionHandlers";
 import { type NightActionHandlerContext } from "./useNightActionHandler";
 import { useExecutionHandler } from "./useExecutionHandler";
+import { hasTeaLadyProtection } from "../utils/gameRules";
 
 /**
  * 处决/击杀/投票处理函数的依赖接口
@@ -128,7 +129,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
 
         // If modular logic handled it or returned shouldWait, stop here
         if (execResult && (execResult.handled || execResult.shouldWait)) {
-            return;
+            return true;
         }
 
         // --- Legacy/Standard Execution Logic ---
@@ -137,19 +138,19 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             // Log it
             addLog(`⚖️ ${t.id + 1}号因为处于疯狂状态，说书人决定强制执行处决！`);
             dispatch({ type: 'EXECUTE_PLAYER', targetId: id });
-            return;
+            return true;
         }
 
         // Saint: Confirm if not forced
         if (t.role.id === 'saint' && !options?.forceExecution) {
             setCurrentModal({ type: 'SAINT_EXECUTION_CONFIRM', data: { targetId: id, skipLunaticRps: options?.skipLunaticRps } });
-            return;
+            return true;
         }
         // Psychopath: RPS if not skipped
         if (t.role.id === 'psychopath' && !options?.skipLunaticRps) {
             const nominatorId = nominationMap[id] ?? null;
             setCurrentModal({ type: 'LUNATIC_RPS', data: { targetId: id, nominatorId } });
-            return;
+            return true;
         }
 
         // Atomic Dispatch
@@ -160,6 +161,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             setOutsiderDiedToday(true);
             addLog('📜 规则提示：今日有外来者被处决，若场上有教父且未醉/毒，当晚将被唤醒执行额外杀人');
         }
+
+        return !!execResult?.modal;
     }, [dispatch, seats, nominationMap, setCurrentModal, setOutsiderDiedToday, addLog, handleExecution, setSeats, setWinResult, setWinReason, setGamePhase, checkGameOver]);
 
     // Confirm kill handler
@@ -317,30 +320,47 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `平票（${tops.length}人并列最高票 ${maxVoteCount}），平安日无人被处决` } });
         } else if (tops.length === 1) {
             const executed = tops[0];
-            // 茶艺师保护逻辑
-            const teaLady = seats.find(s => s.role?.id === 'tea_lady' && !s.isDead);
-            if (teaLady) {
-                const neighbors = getAliveNeighbors(seats, teaLady.id);
-                const left = neighbors[0];
-                const right = neighbors[1];
-                const protectsNeighbor =
-                    left && right &&
-                    (executed.id === left.id || executed.id === right.id) &&
-                    isGoodAlignment(left) &&
-                    isGoodAlignment(right);
-                if (protectsNeighbor) {
-                    const msg = `由于茶艺师 ? 能力，${executed.id + 1}号是茶艺师的善良邻居，本次处决无效，请重新计票或宣布平安日`;
-                    addLog(msg);
-                    setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: msg } });
-                    return;
-                }
-            }
-            if (executed.role?.id === 'psychopath') {
-                executePlayer(executed.id);
+
+            // 1. 茶艺师保护逻辑
+            if (hasTeaLadyProtection(executed, seats)) {
+                const msg = `由于茶艺师保护，${executed.id + 1}号免于处决`;
+                addLog(msg);
+                setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: msg } });
                 return;
             }
-            executePlayer(executed.id);
-            setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${executed.id + 1}号被处决` } });
+
+            // 2. 和平主义者逻辑
+            const activePacifist = seats.find(s =>
+                s.role?.id === 'pacifist' &&
+                !s.isDead &&
+                !isActorDisabledByPoisonOrDrunk(s)
+            );
+            if (activePacifist && isGoodAlignment(executed)) {
+                setCurrentModal({
+                    type: 'PACIFIST_CONFIRM',
+                    data: {
+                        targetId: executed.id,
+                        onResolve: (saved: boolean) => {
+                            if (saved) {
+                                const msg = `由于和平主义者能力，${executed.id + 1}号免于死亡`;
+                                addLog(msg);
+                                setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: msg } });
+                            } else {
+                                const modalShown = executePlayer(executed.id);
+                                if (!modalShown) {
+                                    setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${executed.id + 1}号被处决` } });
+                                }
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            const modalShown = executePlayer(executed.id);
+            if (!modalShown) {
+                setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${executed.id + 1}号被处决` } });
+            }
         }
     }, [saveHistory, seats, setCurrentModal, getAliveNeighbors, isGoodAlignment, executePlayer, addLog]);
 
@@ -515,9 +535,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         } else {
             if (nominatorId !== null) {
                 addLog(`${targetId + 1}号(精神病患者) 在石头剪刀布中获胜或打平，${nominatorNote}提名者被处决`);
-                const updatedSeats = seats.map(s => s.id === nominatorId ? { ...s, isDead: true, isSentenced: true } : s);
-                setSeats(updatedSeats);
-                checkGameOver(updatedSeats, nominatorId);
+                killPlayer(nominatorId);
                 setCurrentModal({ type: 'EXECUTION_RESULT', data: { message: `${nominatorId + 1}号被处决，因精神病患者猜拳获胜` } });
             } else {
                 addLog(`${targetId + 1}号(精神病患者) 在石头剪刀布中获胜或打平${nominatorNote}，处决取消`);
@@ -564,14 +582,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         const isDemon = targetRegistration.registersAsDemon;
 
         if (isRealSlayer && isDemon) {
-            setSeats(p => {
-                const newSeats = p.map(s => s.id === targetId ? { ...s, isDead: true } : s);
-                addLog(`${shooterId + 1}号(猎手) 开枪击杀 ${targetId + 1}号(恶魔)`);
-                addLog(`猎手的子弹击中了恶魔，按照规则游戏立即结束，不再进行今天的处决和后续夜晚`);
-                setWinReason('猎手击杀恶魔');
-                checkGameOver(newSeats, undefined, true);
-                return newSeats;
-            });
+            addLog(`${shooterId + 1}号(猎手) 开枪击杀 ${targetId + 1}号(恶魔)`);
+            addLog(`猎手的子弹击中了恶魔，按照规则游戏立即结束，不再进行今天的处决和后续夜晚`);
+            setWinReason('猎手击杀恶魔');
+            killPlayer(targetId, { skipGameOverCheck: false, isEndOfDay: true });
             setCurrentModal({ type: 'SHOOT_RESULT', data: { message: "恶魔死亡，善良阵营获胜", isDemonDead: true } });
         } else {
             const isPoisonedOrDrunk = isActorDisabledByPoisonOrDrunk(shooter);

@@ -14,5 +14,11 @@ export const baron: RoleDefinition = {
     "相克规则：瘟疫医生：如果说书人获得了男爵的能力，至多两名玩家会变成不在场的外来者。"
   ],
   // 无夜晚行动（Setup阶段能力）
+  night: {
+    order: 0,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId) => ({ wake: "", instruction: "", close: "" }),
+    handler: (context) => ({ updates: [], logs: { privateLog: "男爵(被动能力)" } }),
+  },
 };
 

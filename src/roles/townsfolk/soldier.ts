@@ -15,4 +15,10 @@ export const soldier: RoleDefinition = {
     "如果小鬼选择了士兵，没有人会死亡。说书人不能另选一名玩家代替士兵死亡。",
     "如果士兵中毒或醉酒，他将失去免疫能力并不再安全，能被恶魔杀死。"
   ],
+  night: {
+    order: 0,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId) => ({ wake: "", instruction: "", close: "" }),
+    handler: (context) => ({ updates: [], logs: { privateLog: "士兵(被动能力)" } }),
+  },
 };

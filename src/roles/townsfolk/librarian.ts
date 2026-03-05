@@ -19,18 +19,23 @@ export const librarian: RoleDefinition = {
     order: 50,
     target: {
       count: { min: 2, max: 2 },
+      canSelect: (target, self, allSeats) => target.id !== self.id,
     },
-    dialog: (playerSeatId, isFirstNight) => ({
-      wake: "图书管理员，请睁眼。请看这两名玩家",
-      instruction: "其中一位是特定的外来者，另一位不确定。",
-      close: "图书管理员，请闭眼。",
-    }),
+    dialog: (playerSeatId, isFirstNight, context) => {
+      const { seats, shouldShowFake, roles = [] } = context;
+
+      return {
+        wake: "📚 图书管理员，请睁眼。请看这两名玩家",
+        instruction: "其中一位是特定的外来者，另一位不确定。或者得知没有外来者。",
+        close: "图书管理员，请闭眼。",
+      };
+    },
     handler: (context) => {
-      // librarian uses built-in UI
+      const { targets, selfId } = context;
       return {
         updates: [],
         logs: {
-          privateLog: `图书管理员(${context.selfId + 1}号) 查看了 ${context.targets.map(id => id + 1).join("号和 ")}号玩家`
+          privateLog: `图书管理员(${selfId + 1}号) 查看了 ${targets.map(id => id + 1).join("号和 ")}号玩家`
         },
       };
     },

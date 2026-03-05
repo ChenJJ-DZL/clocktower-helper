@@ -1,9 +1,8 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import { RoleDefinition, NightActionContext, NightActionResult } from "../../types/roleDefinition";
 
 /**
  * 水手 (Sailor)
  * 说明：每个夜晚，你要选择一名存活的玩家：你或他之一会醉酒直到下个黄昏。你不会死亡。
- * 当前占位：已在 nightLogic 中实现。
  */
 export const sailor: RoleDefinition = {
   id: "sailor",
@@ -23,8 +22,6 @@ export const sailor: RoleDefinition = {
 - 在水手清醒时，他不会死亡，即使水手还没在夜晚被唤醒。
 【范例】
 > 范例: 水手选择了驱魔人，于是说书人决定让驱魔人醉酒。在这个夜晚，水手被沙巴洛斯攻击。水手依然存活。在下一个白天，水手被处决，但依然存活。
-> 范例: 在白天，造谣者发表了一个公开声明，他以为是错误的，但其实是正确的。在当晚，造谣者的能力将会杀死一名玩家。水手让自己醉酒了，于是说书人决定让水手死亡。
-> 范例: 水手选择了主谋，但是说书人决定让水手醉酒。在下一个白天，水手要求处决自己来“证明自己是水手”，但是因为他醉酒，所以死亡了。
 【运作方式】
 每个夜晚，唤醒水手。让水手指向任意一名存活玩家。让水手重新入睡。水手或他选择的玩家两者之一会进入醉酒状态——将“醉酒”提示标记放置到该玩家的角色标记旁。
 如果清醒的水手将要死亡，他会依然存活。如果清醒的水手被处决，宣布该玩家被处决但依然存活。（不要说明原因。）
@@ -33,39 +30,57 @@ export const sailor: RoleDefinition = {
 放置时机：在水手夜晚行动并选择了玩家后。
 放置条件：由说书人来选择水手醉酒还是水手选择的玩家醉酒，并在对应角色标记旁放置醉酒提示标记。水手无法选择已死亡的玩家。若此时水手醉酒中毒，不放置该标记。
 移除时机：在黄昏时。
-【提示与技巧】
-- 显而易见...如果你在晚上选择了一个镇民，你很可能不会醉酒。如果你选择了一个外来者，爪牙，或恶魔，你可能醉酒。水手的生存能力非常强大，说书人通常会抓住一切机会让善良阵营玩家为水手的存活付出代价，只要有可能就会让镇民醉酒，而你选择了非镇民玩家就会让你醉酒。
-- 选择你想醉酒的玩家，比如你怀疑的邪恶玩家，或者是目前没有其他人有用的镇民。一个醉酒的祖母或一个醉酒的弄臣可能比一个醉酒的驱魔人或一个醉酒的侍臣危害要小。
-- 通过让其他玩家醉酒来最大化你的生存能力。如果你一直选择镇民，特别是能力强大的镇民，你可以比其他玩家更容易活到最后一天。
-- 告诉玩家晚上你选了谁，让他们知道他们可能喝醉了。这是至关重要的。例如，一个醉酒的旅店老板需要知道他们的能力可能在没有玩家死亡的晚上其实没起作用，或者醉酒的侍女需要知道他们的信息可能是假的。
-- 与其他玩家交流，寻找好的买醉对象。你不会想和你不清楚角色的玩家买醉的...你要喝就要找知晓的那几个。如果你能分辨出一些玩家的角色，你就能更好地为善良阵营团队工作。有些人，醉了会更好。
-- 你可以通过故意被处决来证明你就是那个水手。如果你没有醉酒，你就不会死。从这一点开始，如果团队确信你确实是水手，而不是简单地受到魔鬼代言人的保护，那么你应该能够活到最后一天，这使善良阵营的团队找到恶魔的机会大大增加。毕竟...他们知道恶魔不是你。
-【伪装成水手】
-当你要伪装成水手的时候，这里有几件事你应该记住：
-- 你毕竟不是一个真正的水手，你被处决了很可能会死！除非你有一个老谋深算的魔鬼代言人帮助你，否则最好避免仅仅为了证明一个观点而被处决。有些对局中会特别热衷于此，所以小心行事，给你的团队更好的选择来消磨这一个白天。
-- 尽量让有强力能力的玩家相信，他们是因为你才醉酒的。如果有人刚刚透露他们是怀疑茶艺师的邻座是一个坏人，你这时候说，哦不！你每天晚上都在和茶艺师拼酒，所以这可能就是他们的能力没有发挥作用的原因。甚至他们知道他们有醉酒的可能性也会动摇一个善良玩家的信念。
-- 用你的“导致玩家醉酒”来掩护其他邪恶的玩家。例如，如果一个爪牙虚张声势自己是侍女，但拿出一个与镇上所知不符的数字？嗯，他们当然是喝醉了——难怪他们的信息全错了！
 【角色信息】
 - 英文名：Sailor
 - 所属剧本：黯月初升
 - 角色类型：镇民
-- 角色能力类型：免死、醉酒
-- 角色背景相关：水手口中的那个“老太婆”应该就是“那个”有孙子的祖母。（然后喝醉了的祖母对孙子的死活毫不关心……）另外，根据造谣者的背景描述，水手口中的“话痨”应该指的就是他。
-NewPP limit report
-Cached time: 20260120024813
-Cache expiry: 86400
-Reduced expiry: false
-Complications: []
-CPU time usage: 0.029 seconds
-Real time usage: 0.050 seconds
-Preprocessor visited node count: 62/1000000
-Post‐expand include size: 0/2097152 bytes
-Template argument size: 0/2097152 bytes
-Highest expansion depth: 2/40
-Expensive parser function count: 0/100
-Unstrip recursion depth: 0/20
-Unstrip post‐expand size: 0/5000000 bytes
-Transclusion expansion time report (%,ms,calls,template)
-100.00%    0.000      1 -total
-Saved in parser cache with key gstone_wiki:pcache:idhash:12-0!canonical and timestamp 20260120024813 and revision id 3148. Serialized with JSON.`,
+- 角色能力类型：免死、醉酒`,
+  night: {
+    order: 25,
+    target: {
+      count: { min: 1, max: 1 },
+      canSelect: () => true,
+    },
+    dialog: (playerSeatId: number) => ({
+      wake: `唤醒${playerSeatId + 1}号玩家（水手）。`,
+      instruction: "请指向一名存活玩家（包括你自己）。你或他之一会醉酒至下个黄昏。",
+      close: `${playerSeatId + 1}号玩家（水手），请闭眼。`,
+    }),
+    handler: (context: NightActionContext): NightActionResult | null => {
+      const { seats, targets, selfId } = context;
+      if (targets.length === 0) return { updates: [] };
+
+      const targetId = targets[0];
+      const targetSeat = seats.find(s => s.id === targetId);
+      const sailorSeat = seats.find(s => s.id === selfId);
+
+      if (!targetSeat || !sailorSeat) return { updates: [] };
+
+      // 逻辑：如果目标是镇民，则目标醉酒；否则自身醉酒。
+      // 这是说书人在自动化环境下的典型推荐选择。
+      const targetIsTownsfolk = targetSeat.role?.type === 'townsfolk';
+      const drunkId = targetIsTownsfolk ? targetId : selfId;
+      const drunkSeat = seats.find(s => s.id === drunkId);
+
+      const updates = [];
+      if (drunkSeat) {
+        // 清理旧的水手醉酒标记
+        const details = (drunkSeat.statusDetails || []).filter(d => !d.includes('水手致醉'));
+        const statuses = (drunkSeat.statuses || []).filter(s => s.effect !== 'Drunk' || s.duration !== '黄昏');
+
+        updates.push({
+          id: drunkId,
+          statusDetails: [...details, '水手致醉（黄昏清除）'],
+          statuses: [...statuses, { effect: 'Drunk', duration: '黄昏' }]
+        });
+      }
+
+      return {
+        updates,
+        logs: {
+          privateLog: `🍷 水手选择了 ${targetId + 1}号，导致 ${drunkId + 1}号 醉酒至下个黄昏。`
+        }
+      };
+    }
+  }
 };

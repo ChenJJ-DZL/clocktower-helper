@@ -217,7 +217,7 @@ export const scripts: Script[] = [
     difficulty: "初学者",
     description: "当?男爵 (Baron)?在场时，系统会自动将 2 名镇民替换为 2 名外来者。"
   },
-  { id: "bad_moon_rising", name: "暗月初升", difficulty: "中等", description: "" },
+  { id: "bad_moon_rising", name: "黯月初升", difficulty: "中等", description: "" },
   { id: "sects_and_violets", name: "梦陨春宵", difficulty: "中等", description: "" },
   { id: "midnight_revelry", name: "夜半狂欢", difficulty: "困难", description: "" },
 ];
@@ -609,7 +609,7 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色 
   },
   // ======================================================================
-  //  角色数据 - 暗月初升 (Bad Moon Rising)
+  //  角色数据 - 黯月初升 (Bad Moon Rising)
   // ======================================================================
 
   // ========== 镇民 (Townsfolk) - 12个 ==========
@@ -619,7 +619,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "首夜得知一名善良玩家和他的角色。若恶魔杀死了他，你也会死亡。",
     fullDescription: "在你的首个夜晚,你会得知一名善良玩家和他的角色。如果恶魔杀死了他,你也会死亡。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "sailor",
@@ -627,7 +627,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每晚选择一名存活的玩家：你或他之一会醉酒直到下个黄昏。你不会死亡。",
     fullDescription: "每个夜晚,你要选择一名存活的玩家:你或他之一会醉酒直到下个黄昏。你不会死亡。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "chambermaid",
@@ -635,7 +635,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每晚选择除你以外的两名存活的玩家：你会得知他们中有几人在当晚因其自身能力而被唤醒。",
     fullDescription: "每个夜晚,你要选择除你以外的两名存活的玩家:你会得知他们中有几人在当晚因其自身能力而被唤醒。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "exorcist",
@@ -643,7 +643,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每晚选择一名玩家(与上个夜晚不同)：如果你选中了恶魔，他会得知你是驱魔人，但他当晚不会因其自身能力而被唤醒。",
     fullDescription: "每个夜晚*,你要选择一名玩家(与上个夜晚不同):如果你选中了恶魔,他会得知你是驱魔人,但他当晚不会因其自身能力而被唤醒。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "innkeeper",
@@ -651,7 +651,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每晚选择两名玩家：他们当晚不会死亡，但其中一人会醉酒到下个黄昏。",
     fullDescription: "每个夜晚*,你要选择两名玩家:他们当晚不会死亡,但其中一人会醉酒到下个黄昏。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "gambler",
@@ -659,7 +659,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每晚选择一名玩家并猜测他的角色：如果你猜错了，你会死亡。",
     fullDescription: "每个夜晚*,你要选择一名玩家并猜测他的角色:如果你猜错了,你会死亡。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "gossip",
@@ -667,7 +667,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每个白天，你可以公开发表一个声明。如果该声明正确，在当晚会有一名玩家死亡。（无夜晚行动）",
     fullDescription: "每个白天,你可以公开发表一个声明。如果该声明正确,在当晚会有一名玩家死亡。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "courtier",
@@ -675,7 +675,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每局游戏限一次，在夜晚时，你可以选择一个角色：如果该角色在场，该角色之一从当晚开始醉酒三天三夜。",
     fullDescription: "每局游戏限一次,在夜晚时,你可以选择一个角色:如果该角色在场,该角色之一从当晚开始醉酒三天三夜。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "professor",
@@ -683,7 +683,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每局游戏限一次，在夜晚时，你可以选择一名死亡的玩家；如果他是镇民，你会将他起死回生。",
     fullDescription: "每局游戏限一次,在夜晚时*,你可以选择一名死亡的玩家;如果他是镇民,你会将他起死回生。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "minstrel",
@@ -691,7 +691,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "当一名爪牙死于处决时，除了你和旅行者以外的所有其他玩家醉酒直到明天黄昏。（无夜晚行动）",
     fullDescription: "当一名爪牙死于处决时,除了你和旅行者以外的所有其他玩家醉酒直到明天黄昏。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "tea_lady",
@@ -699,7 +699,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "如果与你邻近的两名存活的玩家是善良的，他们不会死亡。",
     fullDescription: "如果与你邻近的两名存活的玩家是善良的，他们不会死亡。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "pacifist",
@@ -707,7 +707,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "被处决的善良玩家可能不会死亡。",
     fullDescription: "被处决的善良玩家可能不会死亡。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "fool",
@@ -715,7 +715,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "当你首次将要死亡时，你不会死亡。",
     fullDescription: "当你首次将要死亡时,你不会死亡。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   // ========== 外来者 (Outsider) - 4个 ==========
   {
@@ -724,7 +724,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "你可能会在任何时候死亡，即使没有玩家选择你。",
     fullDescription: "你可能会在任何时候死亡,即使没有玩家选择你。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "moonchild",
@@ -732,7 +732,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "当你得知你死亡时，你要公开选择一名存活的玩家。如果他是善良的，在当晚他会死亡。",
     fullDescription: "当你得知你死亡时,你要公开选择一名存活的玩家。如果他是善良的,在当晚他会死亡。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "goon",
@@ -740,7 +740,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。",
     fullDescription: "每个夜晚,首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   {
     id: "lunatic",
@@ -748,7 +748,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "你以为你是一个恶魔，但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
     fullDescription: "你以为你是一个恶魔,但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
-    script: "暗月初升",
+    script: "黯月初升",
     setupMeta: {
       isLunatic: true,
     },
@@ -760,7 +760,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "首夜得知有哪些外来者角色在场。如果有外来者在白天死亡，你会在当晚被唤醒并且你要选择一名玩家：他死亡。[-1或+1外来者]",
     fullDescription: "在你的首个夜晚,你会得知有哪些外来者角色在场。如果有外来者在白天死亡,你会在当晚被唤醒并且你要选择一名玩家:他死亡。[-1或+1外来者]",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "devils_advocate",
@@ -768,7 +768,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "每晚选择一名存活的玩家(与上个夜晚不同)：如果明天白天他被处决，他不会死亡。",
     fullDescription: "每个夜晚,你要选择一名存活的玩家(与上个夜晚不同);如果明天白天他被处决,他不会死亡。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "assassin",
@@ -776,7 +776,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "每局游戏限一次，在夜晚时，你可以选择一名玩家：他死亡，即使因为任何原因让他不会死亡。",
     fullDescription: "每局游戏限一次,在夜晚时*,你可以选择一名玩家:他死亡,即使因为任何原因让他不会死亡。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "mastermind",
@@ -784,7 +784,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "如果恶魔死于处决而因此导致游戏结束时，再额外进行一个夜晚和一个白天。在那个白天如果有玩家被处决，他的阵营落败。",
     fullDescription: "如果恶魔死于处决而因此导致游戏结束时,再额外进行一个夜晚和一个白天。在那个白天如果有玩家被处决,他的阵营落败。",
-    script: "暗月初升"
+    script: "黯月初升"
   },
   // ========== 恶魔 (Demon) - 4个 ==========
   {
@@ -793,7 +793,7 @@ export const roles: Role[] = [
     type: "demon",
     ability: "每晚如果今天白天没有人死亡，你会被唤醒并要选择一名玩家：他死亡。当你首次死亡后，你仍存活，但会被当作死亡。",
     fullDescription: "每个夜晚*,如果今天白天没有人死亡,你会被唤醒并要选择一名玩家:他死亡。当你首次死亡后,你仍存活,但会被当作死亡。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "pukka",
@@ -801,7 +801,7 @@ export const roles: Role[] = [
     type: "demon",
     ability: "每晚选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。",
     fullDescription: "每个夜晚,你要选择一名玩家:他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "shabaloth",
@@ -809,7 +809,7 @@ export const roles: Role[] = [
     type: "demon",
     ability: "每晚选择两名玩家：他们死亡。你的上个夜晚选择过的且当前死亡的玩家可能会被你反刍。",
     fullDescription: "每个夜晚*,你要选择两名玩家:他们死亡。你的上个夜晚选择过的且当前死亡的玩家可能会被你反刍。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
   {
     id: "po",
@@ -817,9 +817,9 @@ export const roles: Role[] = [
     type: "demon",
     ability: "每晚你可以选择一名玩家：他死亡。如果你上次选择时没有选择任何玩家，当晚你要选择三名玩家：他们死亡。",
     fullDescription: "每个夜晚*,你可以选择一名玩家:他死亡。如果你上次选择时没有选择任何玩家,当晚你要选择三名玩家:他们死亡。",
-    script: "暗月初升",
+    script: "黯月初升",
   },
-  // ========== 暗月初升 - 实验性角色（卡牌版扩展，不在前台露出） ==========
+  // ========== 黯月初升 - 实验性角色（卡牌版扩展，不在前台露出） ==========
   {
     id: "missionary",
     name: "传教士",
@@ -827,7 +827,7 @@ export const roles: Role[] = [
     hidden: true,
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
-    script: "暗月初升",
+    script: "黯月初升",
     docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E4%BC%A0%E6%95%99%E5%A3%AB",
   },
   {
@@ -837,7 +837,7 @@ export const roles: Role[] = [
     hidden: true,
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
-    script: "暗月初升",
+    script: "黯月初升",
     docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E7%82%BC%E9%87%91%E6%9C%AF%E5%A3%AB",
   },
   {
@@ -847,7 +847,7 @@ export const roles: Role[] = [
     hidden: true,
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
-    script: "暗月初升",
+    script: "黯月初升",
     docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E9%AD%94%E6%9C%AF%E5%B8%88",
   },
   {
@@ -857,7 +857,7 @@ export const roles: Role[] = [
     hidden: true,
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
-    script: "暗月初升",
+    script: "黯月初升",
     docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E6%9D%82%E6%8A%80%E6%BC%94%E5%91%98",
   },
   {
@@ -867,7 +867,7 @@ export const roles: Role[] = [
     hidden: true,
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
-    script: "暗月初升",
+    script: "黯月初升",
     docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E5%AF%A1%E5%A6%87",
   },
   {
@@ -927,7 +927,7 @@ export const roles: Role[] = [
     hidden: true,
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
-    script: "暗月初升",
+    script: "黯月初升",
     docRef: "https://clocktower-wiki.gstonegames.com/index.php?title=%E7%97%A2%E8%9B%AD",
   },
   // ======================================================================

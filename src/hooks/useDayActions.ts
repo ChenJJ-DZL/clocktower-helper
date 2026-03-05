@@ -279,10 +279,8 @@ export function useDayActions(deps: DayActionsDeps) {
                 setVfxTrigger({ seatId: id, type: 'slayer' });
                 setTimeout(() => setVfxTrigger(null), 1000);
 
-                const updatedSeats = seats.map(s => s.id === id ? { ...s, isDead: true, isSentenced: false } : s);
-                setSeats(updatedSeats);
                 addLog(`${sourceId + 1}号(精神病患者) 在提名前公开杀死 ${id + 1}号`);
-                checkGameOver(updatedSeats, id);
+                killPlayer(id);
             }
             markDailyAbilityUsed('psychopath', sourceId);
             addLog(`精神病患者本局的日间击杀能力已经使用完毕，之后不能再发动`);
@@ -390,7 +388,8 @@ export function useDayActions(deps: DayActionsDeps) {
                 selfId: sourceSeatId,
                 targets: targetSeatId !== undefined ? [targetSeatId] : [],
                 gamePhase,
-                roles
+                roles,
+                killPlayer
             };
 
             const result = modularHandler.day.handler(dayContext);

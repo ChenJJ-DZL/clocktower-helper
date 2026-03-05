@@ -1243,8 +1243,16 @@ export function handleExorcistConfirm(context: RoleConfirmContext): RoleConfirmR
  * 僵怖（Zombuul）确认处理
  */
 export function handleZombuulConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, selectedTargets, addLog, continueToNextAction, killPlayer, setSelectedActionTargets, todayExecutedId } = context;
+  const { nightInfo, selectedTargets, addLog, continueToNextAction, killPlayer, setSelectedActionTargets, todayExecutedId, nightCount } = context;
   if (nightInfo.effectiveRole.id !== 'zombuul') return { handled: false };
+
+  console.log("[DEBUG] handleZombuulConfirm - nightCount:", nightCount, "todayExecutedId:", todayExecutedId, "selectedTargets:", selectedTargets);
+
+  // 僵怖首夜特殊处理：首夜醒来仅确认爪牙，不进行击杀
+  if (nightCount === 1) {
+    continueToNextAction();
+    return { handled: true };
+  }
 
   // 僵怖特殊顺位：只有在今天没有人被处决的情况下才能杀人
   if (todayExecutedId !== null) {

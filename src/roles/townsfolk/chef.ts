@@ -25,11 +25,11 @@ export const chef: RoleDefinition = {
       close: "厨师，请闭眼。",
     }),
     handler: (context) => {
-      // chef uses built-in UI
+      const { selfId } = context;
       return {
         updates: [],
         logs: {
-          privateLog: `厨师(${context.selfId + 1}号) 本局得知结果`
+          privateLog: `厨师(${selfId + 1}号) 获取了相邻邪恶玩家信息`
         },
       };
     },

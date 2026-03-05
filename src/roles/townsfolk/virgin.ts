@@ -15,4 +15,10 @@ export const virgin: RoleDefinition = {
     "如果旅行者提名了贞洁者，旅行者不会因为贞洁者的能力被处决。因为旅行者既不是镇民，不论任何情况旅行者只能被流放。",
     "提名贞洁者的镇民即使在此之前已经死亡了，也会被贞洁者的能力处决。在此前提下，会消耗掉这次已经被死亡玩家使用过的提名权，而且当天白天将不能再进行提名！不过既然已经是死亡状态，当然什么都不会发生了。"
   ],
+  night: {
+    order: 0,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId) => ({ wake: "", instruction: "", close: "" }),
+    handler: (context) => ({ updates: [], logs: { privateLog: "贞洁者(被动能力)" } }),
+  },
 };

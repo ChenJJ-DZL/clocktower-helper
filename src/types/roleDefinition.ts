@@ -38,6 +38,26 @@ export interface NightActionContext {
    * 用于需要弹窗选择特殊数据的角色（如麻脸巫婆选择变换角色）
    */
   actionData?: any;
+
+  /**
+   * 环境状态标志
+   */
+  vortoxWorld?: boolean;
+  poppyGrowerDead?: boolean;
+  lastDuskExecution?: number | null;
+  outsiderDiedToday?: boolean;
+  deadThisNight?: number[];
+  demonVotedToday?: boolean;
+  minionNominatedToday?: boolean;
+  executedToday?: number | null;
+
+  /**
+   * 查验相关上下文
+   */
+  isPoisoned?: boolean;
+  shouldShowFake?: boolean;
+  isEvilWithJudgmentFn?: (seat: Seat) => boolean;
+  drunkFirstInfoMap?: Map<number, boolean>;
 }
 
 /**
@@ -139,8 +159,9 @@ export interface NightActionConfig {
    * 给说书人的台词/指引
    * @param playerSeatId 玩家座位ID
    * @param isFirstNight 是否为首夜
+   * @param context 夜晚行动上下文（可选，用于生成动态对话）
    */
-  dialog: (playerSeatId: number, isFirstNight: boolean) => NightDialog;
+  dialog: (playerSeatId: number, isFirstNight: boolean, context: NightActionContext) => NightDialog;
 
   /**
    * 核心逻辑处理函数
@@ -162,6 +183,7 @@ export interface DayActionContext {
   targets: number[];
   gamePhase: GamePhase;
   roles: Role[];
+  killPlayer: (targetId: number, options?: any) => void;
 }
 
 /**
@@ -282,6 +304,11 @@ export interface ExecutionResult {
    * 是否需要继续到下一个夜晚
    */
   shouldContinueToNight?: boolean;
+
+  /**
+   * 需要触发的弹窗（可选）
+   */
+  modal?: ModalType;
 }
 
 /**
@@ -336,6 +363,15 @@ export interface RoleDefinition {
    * @returns 处决处理结果
    */
   onExecution?: (context: ExecutionContext) => ExecutionResult;
+
+  /**
+   * 角色初始化处理函数（可选）
+   * 在游戏开始设置座位角色时调用，用于初始化特殊的角色状态（如祖母绑定孙子）
+   * 
+   * @param context 设置上下文
+   * @returns 初始化的状态更新
+   */
+  onSetup?: (context: { seats: Seat[]; selfId: number }) => ExecutionResult | { handled: boolean } | any;
 
   /**
    * 白天行动配置（可选）

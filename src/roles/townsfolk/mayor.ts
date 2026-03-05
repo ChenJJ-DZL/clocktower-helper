@@ -16,4 +16,23 @@ export const mayor: RoleDefinition = {
     "旅行者的数量也会被计入存活玩家总数中，因此如果算上旅行者超过三人，镇长无法发动能力胜利",
     "相克规则：利维坦：如果利维坦在场，镇长存活且第五天没有处决发生，则善良阵营获胜。暴乱：镇长可以停止提名。如果他这样做了，并且场上只有一名暴乱存活，善良阵营获胜；否则，邪恶阵营获胜。"
   ],
+  night: {
+    order: 0, // Mayor doesn't act
+    target: {
+      count: { min: 0, max: 0 },
+    },
+    dialog: (playerSeatId, isFirstNight) => ({
+      wake: "",
+      instruction: "",
+      close: "",
+    }),
+    handler: (context) => {
+      return {
+        updates: [],
+        logs: {
+          privateLog: "市长(被动能力)"
+        }
+      };
+    },
+  },
 };

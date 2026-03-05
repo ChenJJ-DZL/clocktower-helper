@@ -358,6 +358,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, nominationRecords: action.records };
 
     case 'SET_DUSK_EXECUTION':
+      console.log('[Reducer] SET_DUSK_EXECUTION last:', action.last, 'current:', action.current);
       return { ...state, lastDuskExecution: action.last, currentDuskExecution: action.current };
 
     case 'SET_TIMER':
