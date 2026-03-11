@@ -6,6 +6,8 @@ import { NightHintState, GameRecord } from "../types/game";
 import { RegistrationResult } from "../utils/gameRules";
 import { ModalType } from "../types/modal";
 import { useGameContext, gameActions } from "../contexts/GameContext";
+import { useVillageState } from "./useVillageState";
+import { useGameRoleState } from "./useGameRoleState";
 
 /**
  * 游戏状态管理 Hook
@@ -13,6 +15,11 @@ import { useGameContext, gameActions } from "../contexts/GameContext";
  */
 export function useGameState() {
   const { state, dispatch, currentQueueIndexRef } = useGameContext();
+
+  // Village and Role specific state (for localized logic, though SSOT is in Context)
+  // [REFACTOR] Moving towards these sub-hooks for specific controller logic
+  const village = useVillageState();
+  const roleEffects = useGameRoleState();
 
   // Alias for backward compatibility
   const currentWakeIndexRef = currentQueueIndexRef;

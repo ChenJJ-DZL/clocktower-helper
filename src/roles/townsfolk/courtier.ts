@@ -105,7 +105,52 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:18-0!canonical and time
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
+    handler: (context) => {
+      const { selfId, roles, seats, helpers } = context;
+
+      if (helpers?.hasUsedAbility('courtier', selfId)) {
+        return {
+          updates: [],
+          logs: { privateLog: "你已经使用过侍臣能力了" }
+        };
+      }
+
+      return {
+        updates: [],
+        modal: {
+          type: 'COURTIER_SELECT_ROLE',
+          data: {
+            sourceId: selfId,
+            roles: roles || [],
+            seats: seats,
+            onConfirm: (roleId: string) => {
+              if (!helpers) return;
+              helpers.setCurrentModal(null);
+
+              helpers.setSeats(prev => prev.map(s => {
+                if (s.role?.id === roleId) {
+                  return {
+                    ...s,
+                    isDrunk: true,
+                    drunkNights: 3,
+                    statusDetails: [...(s.statusDetails || []), '侍臣使你醉酒（3晚）']
+                  };
+                }
+                return s;
+              }));
+
+              const roleName = roles?.find(r => r.id === roleId)?.name || roleId;
+              helpers.addLog(`🍷 ${selfId + 1}号(侍臣) 选择角色 【${roleName}】 醉酒3晚`);
+              helpers.markAbilityUsed('courtier', selfId);
+              helpers.continueToNextAction();
+            },
+            onCancel: () => {
+              helpers?.setCurrentModal(null);
+            }
+          }
+        }
+      };
+    },
 
   },
 };

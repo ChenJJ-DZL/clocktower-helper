@@ -82,7 +82,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:134-0!canonical and tim
     handled: false,
     modal: {
       type: 'MOONCHILD_KILL',
-      data: { sourceId: context.executedSeat.id }
+      data: {
+        sourceId: context.executedSeat.id,
+        onResolve: () => { } // Added to satisfy type
+      }
     }
   })
 };

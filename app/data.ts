@@ -91,26 +91,12 @@ export interface Role {
   // 剧本标记：例如 '暗流涌动'，用于区分不同剧本下的角色集合
   script?: string;
 
-  // 已废弃：以下字段已迁移到 src/roles/ 下的 RoleDefinition
-  // 保留这些字段仅为了向后兼容，新代码不应使用
-  /** @deprecated 使用 RoleDefinition.night 和 RoleDefinition.firstNight 代替 */
-  firstNight?: boolean;
-  /** @deprecated 使用 RoleDefinition.night 代替 */
-  otherNight?: boolean;
-  /** @deprecated 使用 RoleDefinition.firstNight?.order 代替 */
+  // 兼容性字段：衔接 legacy 逻辑与 RoleDefinition
   firstNightOrder?: number;
-  /** @deprecated 使用 RoleDefinition.night?.order 代替 */
   otherNightOrder?: number;
-  /** @deprecated 使用 RoleDefinition.firstNight 代替 */
-  firstNightMeta?: NightActionMeta;
-  /** @deprecated 使用 RoleDefinition.night 代替 */
-  otherNightMeta?: NightActionMeta;
-  /** @deprecated 使用 RoleDefinition 代替 */
-  firstNightReminder?: string;
-  /** @deprecated 使用 RoleDefinition 代替 */
-  otherNightReminder?: string;
-  /** @deprecated 使用 RoleDefinition 代替 */
-  nightActionType?: NightActionType;
+  firstNight?: any;
+  otherNight?: any;
+  nightActionType?: string;
 
   // 以下字段可能仍在使用，暂时保留
   setupMeta?: SetupMeta;
@@ -300,9 +286,6 @@ export const roles: Role[] = [
     ability: "夜晚死亡时唤醒，选择一名玩家，得知其真实角色。",
     fullDescription: "如果你在夜晚死亡,你会被复活,之后你要选择一名玩家:你会得知他的角色。",
     script: "暗流涌动", // 暗流涌动角色 
-    triggerMeta: {
-      onNightDeath: true
-    }
   },
   {
     id: "virgin",
@@ -311,9 +294,6 @@ export const roles: Role[] = [
     ability: "首次被镇民提名的瞬间，提名者被处决。（无夜晚行动）",
     fullDescription: "当你首次被提名时,如果提名你的玩家是镇民,他立刻被处决。",
     script: "暗流涌动", // 暗流涌动角色 
-    triggerMeta: {
-      onNominated: true
-    }
   },
   {
     id: "slayer",
@@ -321,13 +301,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "白天可指定一名玩家，若为恶魔，恶魔死。",
     fullDescription: "每局游戏一次,你可以在白天公开选择一名玩家:如果他是恶魔,他死亡。",
-    script: "暗流涌动", // 暗流涌动角色 
-    dayMeta: {
-      abilityName: "射击",
-      usesCount: 1,
-      targetType: 'player',
-      effectType: 'kill'
-    }
+    script: "暗流涌动" // 暗流涌动角色 
   },
   {
     id: "soldier",
@@ -335,10 +309,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "被恶魔攻击时不会死亡。（无夜晚行动）",
     fullDescription: "恶魔的负面能力对你无效。",
-    script: "暗流涌动", // 暗流涌动角色 
-    triggerMeta: {
-      onNightDeath: true
-    }
+    script: "暗流涌动" // 暗流涌动角色 
   },
   {
     id: "mayor",
@@ -346,10 +317,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "若仅剩3人且无人被处决，好人获胜。（无夜晚行动）",
     fullDescription: "如果只有三名玩家存活且白天没有人能被处决,你会被选为镇长. 如果你在夜晚即将死亡,可能会有一名其他玩家代替你死亡。",
-    script: "暗流涌动", // 暗流涌动角色 
-    triggerMeta: {
-      onNightDeath: true
-    }
+    script: "暗流涌动" // 暗流涌动角色 
   },
   {
     id: "grandmother",
@@ -536,10 +504,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "误以为自己是镇民，实际是酒鬼。（首夜与其他夜晚行动）",
     fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
-    setupMeta: {
-      isDrunk: true,
-    },
-    script: "暗流涌动", // 暗流涌动角色 
+    script: "暗流涌动" // 暗流涌动角色 
   },
   {
     id: "recluse",
@@ -555,10 +520,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "若死于处决，邪恶方立即获胜。（无夜晚行动）",
     fullDescription: "如果你死于处决,你的阵营立即失败。",
-    script: "暗流涌动", // 暗流涌动角色 
-    triggerMeta: {
-      onExecution: true
-    }
+    script: "暗流涌动" // 暗流涌动角色 
   },
   // ========== 爪牙 (Minion) - 4个 ==========
   {
@@ -583,10 +545,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "若恶魔死时活人>=5，她变恶魔。（无夜晚行动）",
     fullDescription: "如果大于等于五名玩家存活时(说书人不计算在内)恶魔死亡, 你变成新的恶魔。",
-    script: "暗流涌动", // 暗流涌动角色 
-    triggerMeta: {
-      onNightDeath: true
-    }
+    script: "暗流涌动" // 暗流涌动角色 
   },
   {
     id: "baron",
@@ -594,10 +553,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "Setup阶段增加2个外来者替换镇民。（仅首夜行动）",
     fullDescription: "场上有额外的外来者在场. [+2 外来者]",
-    script: "暗流涌动", // 暗流涌动角色 
-    setupMeta: {
-      modifiesBag: true
-    }
+    script: "暗流涌动" // 暗流涌动角色 
   },
   // ========== 恶魔 (Demon) - 1个 ==========
   {
@@ -749,9 +705,6 @@ export const roles: Role[] = [
     ability: "你以为你是一个恶魔，但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
     fullDescription: "你以为你是一个恶魔,但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
     script: "黯月初升",
-    setupMeta: {
-      isLunatic: true,
-    },
   },
   // ========== 爪牙 (Minion) - 4个 ==========
   {
@@ -1403,10 +1356,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "你不知道你是酒鬼。你以为你是一个镇民角色，但其实你不是。",
     fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
-    script: "暗流涌动",
-    setupMeta: {
-      isDrunk: true,
-    }
+    script: "暗流涌动"
   },
   {
     id: "recluse",
@@ -1454,10 +1404,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "你以为你是一个恶魔，但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
     fullDescription: "你以为你是一个恶魔,但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
-    script: "黯月初升",
-    setupMeta: {
-      isLunatic: true,
-    }
+    script: "黯月初升"
   },
   {
     id: "mutant",
@@ -1523,10 +1470,7 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "你不知道你是酒鬼。你以为你是一个镇民角色，但其实你不是。",
     fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
-    script: "夜半狂欢",
-    setupMeta: {
-      isDrunk: true,
-    }
+    script: "夜半狂欢"
   },
   {
     id: "barber",
@@ -1551,8 +1495,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每个夜晚，你会得知一名不同角色类型的玩家，直到场上所有的角色类型都得知过一次。[+1 外来者]",
     fullDescription: "每个夜晚，你会得知一名不同角色类型的玩家，直到场上所有的角色类型都得知过一次。[+1 外来者]",
-    script: "夜半狂欢",
-    setupMeta: { modifiesBag: true }
+    script: "夜半狂欢"
   },
   {
     id: "ranger",
@@ -1560,8 +1503,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "每局游戏限一次，在夜晚时，你可以选择一名存活的玩家：如果你选中了落难少女，她会变成一个不在场的镇民角色。[+落难少女]",
     fullDescription: "每局游戏限一次，在夜晚时，你可以选择一名存活的玩家：如果你选中了落难少女，她会变成一个不在场的镇民角色。[+落难少女]",
-    script: "夜半狂欢",
-    setupMeta: { modifiesBag: true }
+    script: "夜半狂欢"
   },
   {
     id: "engineer",
@@ -1585,8 +1527,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "如果你在夜晚死亡，一名存活的善良玩家会变成农夫。",
     fullDescription: "如果你在夜晚死亡，一名存活的善良玩家会变成农夫。",
-    script: "夜半狂欢",
-    triggerMeta: { onNightDeath: true }
+    script: "夜半狂欢"
   },
   {
     id: "professor",
@@ -1610,8 +1551,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "爪牙和恶魔互相不认识。如果你死亡，当晚他们会互相认识。",
     fullDescription: "爪牙和恶魔互相不认识。如果你死亡，当晚他们会互相认识。",
-    script: "夜半狂欢",
-    triggerMeta: { onNightDeath: true }
+    script: "夜半狂欢"
   },
   {
     id: "snake_charmer",
@@ -1669,8 +1609,7 @@ export const roles: Role[] = [
     type: "demon",
     ability: "每晚选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。",
     fullDescription: "每个夜晚*,你要选择一名玩家:他死亡。被你杀死的爪牙保留他的能力,且与他邻近的两名镇民之一中毒。[-1外来者]",
-    script: "夜半狂欢",
-    setupMeta: { modifiesBag: true }
+    script: "夜半狂欢"
   },
   {
     id: "hadesia",
@@ -1687,8 +1626,7 @@ export const roles: Role[] = [
     type: "traveler",
     ability: "在初始设置时，可能会额外增加或减少一个外来者。",
     fullDescription: "在初始设置时，可能会额外增加或减少一个外来者。",
-    script: "夜半狂欢",
-    setupMeta: { modifiesBag: true }
+    script: "夜半狂欢"
   },
   {
     id: "spirit_of_ivory",

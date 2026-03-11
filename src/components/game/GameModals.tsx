@@ -238,17 +238,11 @@ export function GameModals() {
       <PacifistConfirmModal
         isOpen={!!pacifistConfirmModal}
         targetId={pacifistConfirmModal?.targetId ?? 0}
-        onSave={() => {
+        onResolve={(saved: boolean) => {
           if (!pacifistConfirmModal) return;
           const cb = pacifistConfirmModal.onResolve;
           props.setCurrentModal(null);
-          cb(true);
-        }}
-        onDoNotSave={() => {
-          if (!pacifistConfirmModal) return;
-          const cb = pacifistConfirmModal.onResolve;
-          props.setCurrentModal(null);
-          cb(false);
+          cb(saved);
         }}
       />
 

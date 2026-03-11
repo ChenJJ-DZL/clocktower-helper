@@ -169,6 +169,7 @@ class GameSimulation {
                 seat.id,
                 this.currentPhase,
                 null, // lastDuskExecution
+                this.nightCount, // Pass nightCount here
                 undefined, // fakeInspection
                 undefined, // drunkFirstInfo
                 isEvil // isEvil fn

@@ -1,21 +1,7 @@
-type RoleDocEntry = {
-  id: number;
-  name: string;
-  url?: string;
-  content: string;
-};
+import { getAllRoleDefinitions } from "../roles";
 
-// NOTE: these json files are maintained manually under repo root `josn/`
-// and contain long-form wiki-like role docs.
-// NOTE: these json files are maintained manually under repo root `josn/`
-// and contain long-form wiki-like role docs.
-import bmrDocs from "../../josn/血染钟楼-黯月初升-角色文档-副本.json";
-import savDocs from "../../josn/血染钟楼-梦殒春宵-角色文档.json";
-import townsfolkDocs from "../../josn/blood_clocktower_所有镇民.json";
-import outsiderDocs from "../../josn/blood_clocktower_所有外来者.json";
-import minionDocs from "../../josn/blood_clocktower_所有爪牙.json";
-import demonDocs from "../../josn/blood_clocktower_所有恶魔.json";
-import travelerDocs from "../../josn/blood_clocktower_所有传奇角色.json";
+// No longer using manual JSON files as documentation is now injected into RoleDefinitions.
+// For non-migrated roles, we fall back to existing data if available.
 
 type RoleDocSummary = {
   abilityText?: string;
@@ -29,24 +15,12 @@ type RoleDocSummary = {
   prompts?: string;
 };
 
-function buildIndex(entries: RoleDocEntry[]): Map<string, RoleDocEntry> {
-  const map = new Map<string, RoleDocEntry>();
-  for (const e of entries) {
-    if (!e?.name) continue;
-    map.set(e.name.trim(), e);
-  }
-  return map;
-}
-
-const INDEXES: Map<string, RoleDocEntry>[] = [
-  buildIndex(bmrDocs as RoleDocEntry[]),
-  buildIndex(savDocs as RoleDocEntry[]),
-  buildIndex(townsfolkDocs as RoleDocEntry[]),
-  buildIndex(outsiderDocs as RoleDocEntry[]),
-  buildIndex(minionDocs as RoleDocEntry[]),
-  buildIndex(demonDocs as RoleDocEntry[]),
-  buildIndex(travelerDocs as RoleDocEntry[]),
-];
+// Build a name -> detailedDescription mapping from all registered role definitions.
+const getRoleDocFromRegistry = (roleName: string): string | undefined => {
+  const allDefs = getAllRoleDefinitions();
+  const def = allDefs.find(d => d.name === roleName || d.id === roleName);
+  return def?.detailedDescription;
+};
 
 function extractSection(content: string, sectionTitle: string): string | undefined {
   // Match: 【角色能力】 ... (until next 【xxx】 or end)
@@ -95,29 +69,22 @@ export function getRoleDocSummary(roleName: string): RoleDocSummary | null {
   const name = (roleName || "").trim();
   if (!name) return null;
 
-  let entry: RoleDocEntry | undefined;
-  for (const idx of INDEXES) {
-    const hit = idx.get(name);
-    if (hit) {
-      entry = hit;
-      break;
-    }
-  }
-  if (!entry) return null;
+  const content = getRoleDocFromRegistry(name);
+  if (!content) return null;
 
-  const abilityText = extractSection(entry.content, "角色能力");
-  const backgroundText = extractSection(entry.content, "背景故事");
-  const examplesText = extractSection(entry.content, "范例");
-  const operationText = extractSection(entry.content, "运作方式");
-  const promptsText = extractSection(entry.content, "提示标记");
-  const rulesDetailsText = extractSection(entry.content, "规则细节");
-  const tipsText = extractSection(entry.content, "提示与技巧");
+  const abilityText = extractSection(content, "角色能力");
+  const backgroundText = extractSection(content, "背景故事");
+  const examplesText = extractSection(content, "范例");
+  const operationText = extractSection(content, "运作方式");
+  const promptsText = extractSection(content, "提示标记");
+  const rulesDetailsText = extractSection(content, "规则细节");
+  const tipsText = extractSection(content, "提示与技巧");
   const storytellerTips = tipsText ? toBullets(tipsText, 3) : undefined;
-  const traits = extractRoleInfoTraits(entry.content);
+  const traits = extractRoleInfoTraits(content);
 
   // Process examples to extract individual examples
   const examples = examplesText ? examplesText.split('\n').filter(line =>
-    line.trim().startsWith('> 范例:') || line.trim().startsWith('> 范例:')
+    line.trim().startsWith('> 范例:') || line.trim().startsWith('> 示例:')
   ).map(line => line.trim().replace(/^>\s*/, '')) : undefined;
 
   return {
@@ -129,7 +96,6 @@ export function getRoleDocSummary(roleName: string): RoleDocSummary | null {
     rulesDetails: rulesDetailsText,
     storytellerTips,
     traits,
-    url: entry.url,
   };
 }
 

@@ -82,17 +82,17 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:81-0!canonical and time
   clarifications: [
     `无`
   ],
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 0 : 11,
-    
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (isFirstNight) {
         return {
@@ -107,8 +107,22 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:81-0!canonical and time
         close: `${playerSeatId + 1}号玩家（卖花女孩），请闭眼。`,
       };
     },
-    
-    handler: undefined, /* TODO: Migrate to OOP */
+
+    handler: (context) => {
+      const { demonVotedToday, shouldShowFake } = context;
+
+      // 如果没有 Vortox 且未中毒，显示真实信息
+      // context 中已经处理了 shouldShowFake (包含中毒和 Vortox 逻辑)
+      const hasVoted = shouldShowFake ? !demonVotedToday : !!demonVotedToday;
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `卖花女孩得知：今天白天恶魔${hasVoted ? '有' : '没有'}投过票。`,
+          secretInfo: `恶魔投票：${hasVoted ? '是' : '否'}`
+        }
+      };
+    },
 
   },
 };

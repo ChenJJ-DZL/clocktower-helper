@@ -116,7 +116,57 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:152-0!canonical and tim
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
+    handler: (context) => {
+      const { selfId, roles, seats, helpers } = context;
+
+      if (helpers?.hasUsedAbility('philosopher', selfId)) {
+        return {
+          updates: [],
+          logs: { privateLog: "你已经使用过哲学家能力了" }
+        };
+      }
+
+      return {
+        updates: [],
+        modal: {
+          type: 'ROLE_SELECT',
+          data: {
+            type: 'philosopher',
+            targetId: selfId,
+            onConfirm: (roleId: string) => {
+              if (!helpers) return;
+              const selectedRole = roles?.find(r => r.id === roleId);
+              if (!selectedRole) return;
+
+              const targetSeat = seats.find(s => s.role?.id === roleId);
+
+              helpers.setSeats((prev: any) => prev.map((s: any) => {
+                if (s.id === selfId) {
+                  return {
+                    ...s,
+                    statusDetails: [...(s.statusDetails || []), `哲学家学习为${selectedRole.name}`],
+                    charadeRole: selectedRole
+                  };
+                }
+                if (targetSeat && s.id === targetSeat.id) {
+                  return {
+                    ...s,
+                    isDrunk: true,
+                    statusDetails: [...(s.statusDetails || []), '因哲学家在场且学习该角色而醉酒']
+                  };
+                }
+                return s;
+              }));
+
+              helpers.addLog(`🧘 ${selfId + 1}号(哲学家) 学习为 【${selectedRole.name}】`);
+              helpers.markAbilityUsed('philosopher', selfId);
+              helpers.setCurrentModal(null);
+              helpers.continueToNextAction();
+            }
+          }
+        }
+      };
+    },
 
   },
 };

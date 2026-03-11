@@ -297,7 +297,8 @@ export function useRoleAction() {
   const getDialog = useCallback((
     roleId: string,
     performerId: number,
-    isFirstNight: boolean
+    isFirstNight: boolean,
+    context: NightActionContext
   ) => {
     const roleDef = getRoleDefinition(roleId);
     if (!roleDef) {
@@ -312,7 +313,7 @@ export function useRoleAction() {
       return null;
     }
 
-    return actionConfig.dialog(performerId, isFirstNight);
+    return actionConfig.dialog(performerId, isFirstNight, context);
   }, []);
 
   /**

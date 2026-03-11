@@ -100,7 +100,33 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:15-0!canonical and time
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
+    handler: (context) => {
+      const { targets, selfId, seats } = context;
+      if (targets.length !== 2) return null;
+
+      const [aId, bId] = targets;
+      // 模拟说书人随机选择（或固定逻辑，正式版可出弹窗）
+      const drunkTargetId = Math.random() < 0.5 ? aId : bId;
+      const clearTime = '次日黄昏';
+
+      const updates = [aId, bId].map(id => {
+        const seat = seats.find(s => s.id === id);
+        const update: any = { id, isProtected: true, protectedBy: selfId };
+        if (id === drunkTargetId) {
+          update.isDrunk = true;
+          update.statusDetails = [...(seat?.statusDetails || []), `旅店老板致醉${clearTime}清除`];
+          update.statuses = [...(seat?.statuses || []), { effect: 'Drunk', duration: clearTime }];
+        }
+        return update;
+      });
+
+      return {
+        updates,
+        logs: {
+          privateLog: `旅店老板本夜保护了 ${aId + 1}号 和 ${bId + 1}号玩家，其中 ${drunkTargetId + 1}号 醉酒。`
+        }
+      };
+    },
 
   },
 };

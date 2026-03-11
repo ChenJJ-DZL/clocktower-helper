@@ -61,17 +61,17 @@ Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:129-0!canonical and timestamp 20260120031138 and revision id 3768. Serialized with JSON.`,
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 0 : 13,
-    
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (isFirstNight) {
         return {
@@ -86,8 +86,25 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:129-0!canonical and tim
         close: `${playerSeatId + 1}号玩家（神谕者），请闭眼。`,
       };
     },
-    
-    handler: undefined, /* TODO: Migrate to OOP */
+
+    handler: (context) => {
+      const { seats, deadThisNight } = context;
+      // 计算所有已死亡玩家（包括当晚刚刚死去的）中属于邪恶阵营的人数
+      const deadEvilCount = seats.filter(s => s.isDead || deadThisNight?.includes(s.id))
+        .filter(s => {
+          // 角色类型为爪牙或恶魔，或者被转化标记为邪恶
+          const isEvilType = s.role && (s.role.type === 'minion' || s.role.type === 'demon');
+          return isEvilType || s.isEvilConverted;
+        }).length;
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `神谕者得知：当前共有 ${deadEvilCount} 名死亡玩家为邪恶阵营。`,
+          secretInfo: `死去的邪恶玩家数量：${deadEvilCount}`
+        }
+      };
+    },
 
   },
 };

@@ -34,6 +34,10 @@ export interface NightActionHandlerContext {
   addLog: (message: string) => void;
   continueToNextAction: () => void;
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
+  markAbilityUsed: (roleId: string, seatId: number) => void;
+  hasUsedAbility: (roleId: string, seatId: number) => boolean;
+  reviveSeat: (seat: Seat) => Seat;
+  insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
 }
 
 /**
@@ -82,6 +86,16 @@ export function useNightActionHandler() {
       roles: context.roles,
       isConfirmed: context.isConfirmed,
       actionData: context.actionData,
+      helpers: {
+        setSeats: context.setSeats,
+        addLog: context.addLog,
+        setCurrentModal: context.setCurrentModal,
+        continueToNextAction: context.continueToNextAction,
+        markAbilityUsed: context.markAbilityUsed,
+        hasUsedAbility: context.hasUsedAbility,
+        reviveSeat: context.reviveSeat,
+        insertIntoWakeQueueAfterCurrent: context.insertIntoWakeQueueAfterCurrent,
+      },
     };
 
     // 调用角色定义的 handler

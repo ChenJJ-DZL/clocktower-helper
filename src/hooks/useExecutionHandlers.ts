@@ -66,6 +66,10 @@ export interface ExecutionHandlersDeps {
     handleNightAction: (ctx: NightActionHandlerContext) => boolean;
     executePoisonActionFn: typeof executePoisonAction;
     enqueueRavenkeeperIfNeeded: (targetId: number) => void;
+    markAbilityUsed: (roleId: string, seatId: number) => void;
+    hasUsedAbility: (roleId: string, seatId: number) => boolean;
+    reviveSeat: (seat: Seat) => Seat;
+    insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
 
     // Sub-hook results
     nightLogic: { processDemonKill: (targetId: number, options?: any) => 'pending' | 'resolved'; startNight: (isFirstNight: boolean) => void };
@@ -99,6 +103,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         enqueueRavenkeeperIfNeeded,
         nightLogic, processingRef, moonchildChainPendingRef,
         setWinResult, setGamePhase,
+        markAbilityUsed, hasUsedAbility, reviveSeat, insertIntoWakeQueueAfterCurrent,
     } = deps;
 
     const { handleExecution } = useExecutionHandler();
@@ -387,6 +392,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             continueToNextAction,
             setCurrentModal,
             isConfirmed: true,
+            markAbilityUsed,
+            hasUsedAbility,
+            reviveSeat,
+            insertIntoWakeQueueAfterCurrent,
         };
 
         if (!handleNightAction(nightActionHandlerContext)) {
@@ -438,6 +447,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             continueToNextAction,
             setCurrentModal,
             isConfirmed: true,
+            markAbilityUsed,
+            hasUsedAbility,
+            reviveSeat,
+            insertIntoWakeQueueAfterCurrent,
         };
 
         if (!handleNightAction(nightActionHandlerContext)) {

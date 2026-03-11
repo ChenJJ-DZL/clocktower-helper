@@ -103,7 +103,67 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:20-0!canonical and time
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
+    handler: (context) => {
+      const { selfId, targets, seats, helpers } = context;
+
+      if (!helpers) return null;
+
+      // 检查是否已使用能力
+      if (helpers.hasUsedAbility('professor', selfId)) {
+        return {
+          updates: [],
+          logs: { privateLog: "你已经使用过复活能力了" }
+        };
+      }
+
+      if (targets.length !== 1) {
+        return {
+          updates: [],
+          logs: { privateLog: "请选择一名死亡的玩家进行复活" }
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find(s => s.id === targetId);
+
+      if (!targetSeat || !targetSeat.isDead) {
+        return {
+          updates: [],
+          logs: { privateLog: "只能选择死亡的玩家" }
+        };
+      }
+
+      // 获取其实际角色（处理醉酒/洗脑影响的情况）
+      const actualRole = targetSeat.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat.role;
+
+      // 成功条件：目标是镇民且不是恶魔继任者
+      const isSuccess = actualRole?.type === 'townsfolk' && !targetSeat.isDemonSuccessor;
+
+      if (isSuccess) {
+        // 复活逻辑
+        helpers.setSeats(prev => prev.map(s => {
+          if (s.id !== targetId) return s;
+          return helpers.reviveSeat({
+            ...s,
+            isEvilConverted: false, // 复活后回归原本阵营（通常是善良）
+          });
+        }));
+
+        helpers.addLog(`🎓 ${selfId + 1}号(教授) 复活了 ${targetId + 1}号(${actualRole?.name})`);
+
+        // 如果该角色 tonight 还没醒过且在教授之后，加入队列
+        helpers.insertIntoWakeQueueAfterCurrent(targetId, { logLabel: `${targetId + 1}号(复活)` });
+      } else {
+        helpers.addLog(`🎓 ${selfId + 1}号(教授) 尝试复活 ${targetId + 1}号，但失败了（非镇民或由于其他原因）`);
+      }
+
+      // 无论成功与否，一旦执行行动（点击确认），都标记为已使用
+      helpers.markAbilityUsed('professor', selfId);
+
+      return {
+        updates: [],
+      };
+    },
 
   },
 };

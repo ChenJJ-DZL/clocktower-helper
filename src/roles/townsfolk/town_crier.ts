@@ -78,17 +78,17 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:128-0!canonical and tim
   clarifications: [
     `无`
   ],
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 0 : 12,
-    
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (isFirstNight) {
         return {
@@ -103,8 +103,20 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:128-0!canonical and tim
         close: `${playerSeatId + 1}号玩家（城镇公告员），请闭眼。`,
       };
     },
-    
-    handler: undefined, /* TODO: Migrate to OOP */
+
+    handler: (context) => {
+      const { minionNominatedToday, shouldShowFake } = context;
+
+      const hasNominated = shouldShowFake ? !minionNominatedToday : !!minionNominatedToday;
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `城镇公告员得知：今天白天爪牙${hasNominated ? '有' : '没有'}发起过提名。`,
+          secretInfo: `爪牙提名：${hasNominated ? '是' : '否'}`
+        }
+      };
+    },
 
   },
 };

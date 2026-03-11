@@ -58,6 +58,20 @@ export interface NightActionContext {
   shouldShowFake?: boolean;
   isEvilWithJudgmentFn?: (seat: Seat) => boolean;
   drunkFirstInfoMap?: Map<number, boolean>;
+
+  /**
+   * 辅助函数（主要用于需要弹窗回调更新状态的角色）
+   */
+  helpers?: {
+    setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
+    addLog: (msg: string) => void;
+    setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
+    continueToNextAction: () => void;
+    markAbilityUsed: (roleId: string, seatId: number) => void;
+    hasUsedAbility: (roleId: string, seatId: number) => boolean;
+    reviveSeat: (seat: Seat) => Seat;
+    insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
+  }
 }
 
 /**
