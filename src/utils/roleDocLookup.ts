@@ -15,8 +15,17 @@ type RoleDocSummary = {
   prompts?: string;
 };
 
-// Build a name -> detailedDescription mapping from all registered role definitions.
+import officialDocs from "../data/officialRoleDocs.json";
+
+// We first try to get the official verbatim doc from officialRoleDocs.json.
+// If it's not present (e.g. custom roles), we fall back to the RoleDefinition.
 const getRoleDocFromRegistry = (roleName: string): string | undefined => {
+  // Direct lookup in official docs by name
+  if (officialDocs && (officialDocs as Record<string, string>)[roleName]) {
+    return (officialDocs as Record<string, string>)[roleName];
+  }
+
+  // Fallback to RoleDefinitions using ID or name
   const allDefs = getAllRoleDefinitions();
   const def = allDefs.find(d => d.name === roleName || d.id === roleName);
   return def?.detailedDescription;
