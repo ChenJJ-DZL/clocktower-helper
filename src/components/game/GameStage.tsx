@@ -18,14 +18,17 @@ import { ScaleToFit } from "./board/ScaleToFit";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { getStorytellerTips } from "../../utils/storytellerTips";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { useGameState } from "../../hooks/useGameState";
 import { NoteEditModal } from "./modals/NoteEditModal"; // Added import
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
   const { playSound } = useAudio();
-  // [REFACTOR] 通过 Context 获取所有 action 函数，不再通过 props 接收
+  // [REFACTOR] 分离方法和状态
   const controller = useGameActions();
-  // 从控制器获取所需的状态与方法
+  const gameState = useGameState();
+  
+  // 从 gameState 获取状态
   const {
     // 状态
     seats,
@@ -35,7 +38,6 @@ export const GameStage = () => {
     deadThisNight,
     timer,
     selectedActionTargets,
-    nightInfo,
     isPortrait,
     longPressingSeats,
     contextMenu,
@@ -59,18 +61,6 @@ export const GameStage = () => {
     setSelectedRole,
     seatNotes, // Added seatNotes from context
     setSeatNotes, // Added setSeatNotes from context
-
-    // refs
-    seatContainerRef,
-    seatRefs,
-    fakeInspectionResultRef,
-    consoleContentRef,
-    currentActionTextRef,
-    longPressTimerRef,
-    longPressTriggeredRef,
-    checkLongPressTimerRef,
-
-    // setters
     currentModal,
     setCurrentModal,
     setContextMenu,
@@ -80,6 +70,20 @@ export const GameStage = () => {
     setCurrentWakeIndex,
     setSeats,
     setGamePhase,
+  } = gameState;
+
+  // 从 controller 获取方法和 ref
+  const {
+    nightInfo,
+    // refs
+    seatContainerRef,
+    seatRefs,
+    fakeInspectionResultRef,
+    consoleContentRef,
+    currentActionTextRef,
+    longPressTimerRef,
+    longPressTriggeredRef,
+    checkLongPressTimerRef,
 
     // 方法
     saveHistory,
@@ -116,7 +120,6 @@ export const GameStage = () => {
     nightOrderPreview,
     nightOrderPreviewLive,
     executeNomination,
-    checkGameOverSimple,
     registerVotes,
     votedThisRound,
 

@@ -244,9 +244,8 @@ export type VfxTrigger = { seatId: number; type: 'slayer' | 'virgin' } | null;
 export function useGameController() {
   // Get all state from useGameState
   // --- NEW: VFX State Coordinator ---
-  const [vfxTrigger, setVfxTrigger] = useState<VfxTrigger>(null);
 
-  // --- Initialize Sub-hooks (Refactored to use GameContext natively) ---
+
   // --- Sub-hook Initialization ---
   const gameFlow = useGameFlow();
   const seatManager = useSeatManager();
@@ -254,7 +253,7 @@ export function useGameController() {
   const historyController = useHistoryController();
   const gameState = useGameState();
   const context = useGameContext();
-  const gameContextDispatch: React.Dispatch<any> = context.dispatch;
+  const gameContextDispatch = context.dispatch;
   const nightQueue = useNightActionQueue();
 
   // --- Distributed State & Logic Hooks ---
@@ -273,7 +272,7 @@ export function useGameController() {
     seatManager.setSeats,
     gameState.gamePhase,
     gameFlow.setGamePhase,
-    (msg) => village.setGameLogs(p => [...p, { day: gameState.nightCount, phase: gameState.gamePhase, message: msg }]),
+    (msg) => village.setGameLogs(p => [...p as any, { day: gameState.nightCount, phase: gameState.gamePhase, message: msg }]),
     village.setWinResult,
     village.setWinReason,
     modalManager.setCurrentModal,
@@ -281,7 +280,8 @@ export function useGameController() {
     roleEffects.setTodayExecutedId,
     gameState.setCurrentDuskExecution,
     gameState.setHasExecutedThisDay,
-    roleEffects.isVortoxWorld
+    roleEffects.isVortoxWorld,
+    gameState.setVictorySnapshot
   );
 
   const night = useNightSnapshot(
@@ -307,7 +307,7 @@ export function useGameController() {
     roleEffects.outsiderDiedToday,
     gameState.wakeQueueIds,
     gameState.setCurrentWakeIndex,
-    (msg) => village.setGameLogs(p => [...p, { day: gameState.nightCount, phase: gameState.gamePhase, message: msg }]),
+    (msg) => village.setGameLogs(p => [...p as any, { day: gameState.nightCount, phase: gameState.gamePhase, message: msg }]),
     modalManager.setCurrentModal
   );
 
@@ -317,22 +317,11 @@ export function useGameController() {
   const killPlayer = useCallback((targetId: number, options: any = {}) => {
     killPlayerImplRef.current?.(targetId, options);
   }, []);
-  // 集成新的队列管理系统
-  // Always call hooks unconditionally to respect React Rules of Hooks
-  // Bridge props to existing logic (keeping names for compatibility)
-  const { wakeQueueIds, setCurrentWakeIndex, selectedActionTargets, setSelectedActionTargets, setInspectionResult, currentHint, setCurrentHint, setExecutedPlayerId, setCurrentDuskExecution, setHasExecutedThisDay, setNightCount, setUsedOnceAbilities, setUsedDailyAbilities, setGameRecords, setWakeQueueIds, setInspectionResultKey, setStartTime, setPoppyGrowerDead, setNominationRecords, setNominationMap, setTodayMinionNominated, setVirginGuideInfo, setWitchCursedId, setWitchActive, setVoteInputValue, setShowVoteErrorToast, setTodayExecutedId, setTodayDemonVoted, setVotedThisRound, setMastermindFinalDay, setRemainingDays, setGoonDrunkedThisNight, history, setHistory, setBaronSetupCheck, setIgnoreBaronSetup, setCompositionError, setMayorRedirectTarget, setNightOrderPreview, setPendingNightQueue, setNightQueuePreviewTitle, setFirstNightOrder, setSeatNotes, setHadesiaChoiceEnabled, setKlutzChoiceTarget, setLastExecutedPlayerId, setDamselGuessed, setShamanKeyword, setShamanTriggered, setShamanConvertTarget, setSpyDisguiseMode, setSpyDisguiseProbability, setPukkaPoisonQueue, setPoChargeState, setAutoRedHerringInfo, setDayAbilityLogs, setDamselGuessUsedBy, setBalloonistKnownTypes, setBalloonistCompletedIds, setHadesiaChoices, gossipTrueTonight, gossipSourceSeatId, gossipStatementToday, setGossipTrueTonight, setGossipSourceSeatId, poChargeState, selectedRole, setSelectedRole, setTimer, timer, inspectionResult, setOutsiderDiedToday, executedPlayerId, currentDuskExecution, pukkaPoisonQueue, goonDrunkedThisNight, nightQueuePreviewTitle, setLastDuskExecution, setCerenovusTarget, setVoteRecords, hasExecutedThisDay, baronSetupCheck, ignoreBaronSetup, moonchildChainPendingRef, dayAbilityForm, setDayAbilityForm, klutzChoiceTarget, hadesiaChoices, virginGuideInfo, longPressTimerRef, checkLongPressTimerRef, longPressTriggeredRef, seatRefs, initialSeats, setInitialSeats, selectedScript: selectedScriptBridge, setSelectedScript, inspectionResultKey, setFangGuConverted, setJugglerGuesses, setEvilTwinPair, setGossipStatementToday, voteInputValue, showVoteErrorToast, gameRecords, longPressingSeats, setLongPressingSeats, compositionError, mayorRedirectTarget, nightOrderPreview, pendingNightQueue, firstNightOrder, seatNotes, hadesiaChoiceEnabled, lastExecutedPlayerId, damselGuessed, shamanKeyword, shamanTriggered, shamanConvertTarget, voteRecords, mastermindFinalDay, nominationMap, nominationRecords, startTime, usedOnceAbilities, usedDailyAbilities, currentWakeIndex, autoRedHerringInfo, dayAbilityLogs, damselGuessUsedBy, remainingDays, seatContainerRef, consoleContentRef, currentActionTextRef, seats, setSeats, deadThisNight, setDeadThisNight, reviveSeat, changeRole, swapRoles, currentModal, setCurrentModal, gamePhase, setGamePhase, nightCount, handleTimerPause, handleTimerStart, handleTimerReset, isTimerRunning, enterDayPhase, enterDuskPhase, handleSwitchScript, closeNightOrderPreview, confirmNightOrderPreview, proceedToCheckPhase, handlePreStartNight, handleStartNight } = { ...gameState, ...seatManager, ...modalManager, ...gameFlow };
-  const { registrationCacheRef, registrationCacheKeyRef, resetRegistrationCache, getRegistrationCached } = registration;
-  const { hasUsedAbility, markAbilityUsed, hasUsedDailyAbility, markDailyAbilityUsed } = abilities;
-  const { activeNightStep: subActiveNightStep, wakeIndexRef: subWakeIndexRef, drunkFirstInfoRef, continueToNextAction: subContinueToNextAction } = night;
-  const { logicDispatch: subLogicDispatch, checkGameOver: subCheckGameOver, victoryRef: subVictoryRef } = logic;
-  const { showIntroLoading, setShowIntroLoading, isPortrait, setIsPortrait, mounted, setMounted, contextMenu, setContextMenu, showMenu, setShowMenu, introTimeoutRef, triggerIntroLoading } = ui;
-  const { gameLogs, setGameLogs, winResult, setWinResult, winReason, setWinReason, poppyGrowerDead, balloonistKnownTypes, balloonistCompletedIds, spyDisguiseMode, spyDisguiseProbability, selectedScript, roles = [], votedThisRound, lastDuskExecution, fakeInspectionResultRef, hintCacheRef } = { ...gameState };
-  const { todayDemonVoted, todayMinionNominated, todayExecutedId, isVortoxWorld, setIsVortoxWorld, outsiderDiedToday, jugglerGuesses, fangGuConverted, evilTwinPair, witchActive, cerenovusTarget, witchCursedId } = { ...roleEffects };
-  const { saveHistory, handleStepBack, handleGlobalUndo } = { ...historyController };
 
-  const { getTargetCount: getRoleTargetCount } = useRoleAction();
-  const { } = useExecutionHandler();
-  const { handleNightAction } = useNightActionHandler();
+  const { registrationCacheRef, resetRegistrationCache } = registration;
+  const { hasUsedAbility } = abilities;
+  const { drunkFirstInfoRef } = night;
+  const { triggerIntroLoading, introTimeoutRef } = ui;
 
   const nightActionQueue = nightQueue?.nightActionQueue || [];
 
@@ -808,12 +797,12 @@ export function useGameController() {
   const continueToNextAction = useCallback(() => {
     // 1. 立即读取当前真实的索引 (Read Truth Ref)
     const currentIndex = wakeIndexRef.current;
-    const nextIndex = currentIndex + 1;
+    const nextIndex = wakeIndexRef.current + 1;
 
     // 2. 边界检查：是否所有角色都动完了？ (Bounds Check)
     // 注意：这里直接读 Ref，不需要依赖 wakeQueueIds 状态可能是好的，但 wakeQueueIds 是 state。
     // In standard React, accessing state in callback is fine if dep array is correct.
-    const currentQueue = wakeQueueIds;
+    const currentQueue = gameState.wakeQueueIds;
     const queueLength = currentQueue.length;
 
     console.log(`[NightLogic] continueToNextAction: Ref(${currentIndex}) -> ${nextIndex}. Queue len: ${queueLength}`);
@@ -824,18 +813,18 @@ export function useGameController() {
       // End of Night Transition Logic
       // We handle it here directly to avoid useEffect races
 
-      setGamePhase('dawnReport'); // Or whatever the exit phase is
+      gameFlow.setGamePhase('dawnReport'); // Or whatever the exit phase is
       // Reset Logic
       wakeIndexRef.current = 0;
-      setCurrentWakeIndex(0);
+      gameState.setCurrentWakeIndex(0);
       setActiveNightStep(null);
 
       // Trigger Death Report if needed (copied from previous logic)
-      if (deadThisNight.length > 0) {
-        const deadNames = deadThisNight.map(id => `${id + 1}号`).join('、');
-        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
+      if (seatManager.deadThisNight.length > 0) {
+        const deadNames = seatManager.deadThisNight.map(id => `${id + 1}号`).join('、');
+        modalManager.setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: `昨晚${deadNames}玩家死亡` } });
       } else {
-        setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
+        modalManager.setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: "昨天是个平安夜" } });
       }
 
       return;
@@ -936,28 +925,28 @@ export function useGameController() {
 
   // NEW FIX: Ensure activeNightStep is cleared when leaving night phases or when nightCount changes
   useEffect(() => {
-    if (gamePhase === 'day' || gamePhase === 'dusk' || gamePhase === 'dawnReport' || gamePhase === 'scriptSelection') {
+    if (gameState.gamePhase === 'day' || gameState.gamePhase === 'dusk' || gameState.gamePhase === 'dawnReport' || gameState.gamePhase === 'scriptSelection') {
       if (activeNightStep !== null) {
-        console.log(`[NightLogic] Auto-clearing activeNightStep for phase: ${gamePhase}`);
+        console.log(`[NightLogic] Auto-clearing activeNightStep for phase: ${gameState.gamePhase}`);
         setActiveNightStep(null);
       }
     }
-  }, [gamePhase]);
+  }, [gameState.gamePhase]);
 
   // Safe guard fallback (Legacy cleanup)
   useEffect(() => {
-    if (!(gamePhase === 'firstNight' || gamePhase === 'night')) return;
+    if (!(gameState.gamePhase === 'firstNight' || gameState.gamePhase === 'night')) return;
 
     // Explicit check for Night 2+ transition if still null
-    if (activeNightStep === null && (wakeQueueIds || []).length > 0 && currentWakeIndex < wakeQueueIds.length) {
-      console.log(`[NightLogic] Initializing night step for phase ${gamePhase}, index ${currentWakeIndex}`);
+    if (activeNightStep === null && (gameState.wakeQueueIds || []).length > 0 && gameState.currentWakeIndex < gameState.wakeQueueIds.length) {
+      console.log(`[NightLogic] Initializing night step for phase ${gameState.gamePhase}, index ${gameState.currentWakeIndex}`);
     }
 
-    console.log(`[NightLogic] Recovery Check. Phase: ${gamePhase}, QueueLen: ${wakeQueueIds.length}, HasNightInfo: ${!!activeNightStep}, index: ${currentWakeIndex}`);
+    console.log(`[NightLogic] Recovery Check. Phase: ${gameState.gamePhase}, QueueLen: ${gameState.wakeQueueIds.length}, HasNightInfo: ${!!activeNightStep}, index: ${gameState.currentWakeIndex}`);
 
-    if (wakeQueueIds.length === 0 || activeNightStep) return;
-    if (currentWakeIndex < 0 || currentWakeIndex >= wakeQueueIds.length) return;
-  }, [gamePhase, activeNightStep, wakeQueueIds, currentWakeIndex]);
+    if (gameState.wakeQueueIds.length === 0 || activeNightStep) return;
+    if (gameState.currentWakeIndex < 0 || gameState.currentWakeIndex >= gameState.wakeQueueIds.length) return;
+  }, [gameState.gamePhase, activeNightStep, gameState.wakeQueueIds, gameState.currentWakeIndex]);
 
   // 交互域需要使用的延迟绑定函数，避免 TDZ
 
@@ -985,8 +974,8 @@ export function useGameController() {
       return;
     }
 
-    const currentSeats = seats;
-    const currentPhase = gamePhase;
+    const currentSeats = seatManager.seats;
+    const currentPhase = gameState.gamePhase;
 
     // 2. Pure Logic
     const snapshot = processGameEvent(currentSeats, currentPhase, action);
@@ -998,7 +987,7 @@ export function useGameController() {
 
     // 4. Atomic Update
     // [REFACTOR] seatsRef mirror removed - setSeats below triggers Context update
-    setSeats(snapshot.seats);
+    seatManager.setSeats(snapshot.seats);
 
     // 5. Game Over Check
     if (snapshot.winner) {
@@ -1009,10 +998,10 @@ export function useGameController() {
       victoryRef.current = { winner: w, reason };
 
       // React State Update
-      setWinResult(w);
-      setWinReason(reason);
-      setGamePhase('gameOver'); // Force phase switch
-      setCurrentModal({ type: 'GAME_OVER', data: null });
+      village.setWinResult(w);
+      village.setWinReason(reason);
+      gameFlow.setGamePhase('gameOver'); // Force phase switch
+      modalManager.setCurrentModal({ type: 'GAME_OVER', data: null });
     }
 
     // 6. Hints / UI Triggers (Only if game not over)
@@ -1020,75 +1009,91 @@ export function useGameController() {
       if (snapshot.nextActionHint === 'BARBER_SWAP_NEEDED') {
         const demon = snapshot.seats.find(s => (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead);
         if (demon) {
-          setCurrentModal({ type: 'BARBER_SWAP', data: { demonId: demon.id, firstId: null, secondId: null } });
-        }
-      }
-    }
-
-    // 7. Metadata Side Effects
-    if (action.type === 'EXECUTE_PLAYER') {
-      setExecutedPlayerId(action.targetId);
-      setTodayExecutedId(action.targetId);
-      setCurrentDuskExecution(action.targetId);
-      setHasExecutedThisDay(true);
-    }
-  }, [seats, gamePhase, addLog, setSeats, setWinResult, setWinReason, setCurrentModal, setExecutedPlayerId, setTodayExecutedId, setCurrentDuskExecution, setHasExecutedThisDay]);
-
-  // Refactor checkGameOver to use dispatch
-  const checkGameOver = useCallback((
-    updatedSeats: Seat[],
-    executedPlayerId: number | null = null,
-    _isEndOfDay: boolean = false,
-    damselGuessed: boolean = false,
-    klutzGuessedEvil: boolean = false
-  ) => {
-    const mastermind = seats.find(s => s.role?.id === 'mastermind' && !s.isDead && !computeIsPoisoned(s, seats));
-    const isMastermindActive = !!mastermind;
-
-    logicDispatch({
-      type: 'CHECK_GAME_OVER',
-      executedId: executedPlayerId || undefined,
-      lastAction: executedPlayerId ? 'execution' : 'check_phase',
-      context: {
-        damselGuessed,
-        klutzGuessedEvil,
-        isVortoxWorld,
-        isMastermindActive,
-      }
-    });
-  }, [logicDispatch, isVortoxWorld, seats]);
-
-  // 重写 handleDayEndTransition：进入黄昏结算前，先检查市长、涡流等基于日终的胜利条件
-  const handleDayEndTransitionOverride = useCallback(() => {
-    // 1. 检查是否存在日终触发的胜利（市长 3 人存活获胜、涡流无人处决获胜等）
-    // 使用 todayExecutedId 来判断今日是否有人被处决
-    checkGameOver(seats, todayExecutedId, true);
-    if (victoryRef.current) return;
-
-    // 2. 无人获胜，继续进入黄昏
-    enterDuskPhase();
-  }, [seats, todayExecutedId, checkGameOver, enterDuskPhase]);
-
-  // ============================================================================
-  // CRITICAL FIX: Robust continueToNextAction
-  // ============================================================================
-  // This block was refactored and moved above. The old content is removed.
-
-  // ============================================================================
-  // CRITICAL FIX: End of Night Transition Effect
-  // ============================================================================
-  useEffect(() => {
+          modalManager.setCurrentModal({ type: 'BARBER_SWAP', data: { demonId: demon.id, firstId: null, s  useEffect(() => {
     // 只在夜晚阶段生效
-    if (gamePhase !== 'firstNight' && gamePhase !== 'night') return;
+    if (gameState.gamePhase !== 'firstNight' && gameState.gamePhase !== 'night') return;
 
     // 检查是否到达队列末尾 (或者队列为空)
     // 注意：normalizedWakeIndex 逻辑被移除，现在完全依赖 currentWakeIndex 是否越界
-    const isEndOfNight = currentWakeIndex >= wakeQueueIds.length;
+    const isEndOfNight = gameState.currentWakeIndex >= gameState.wakeQueueIds.length;
 
     if (isEndOfNight) {
       console.log("[Controller] triggering End of Night Transition...");
 
       // BMR：造谣者造谣为真 → 本夜额外死亡（说书人裁定）
+      if (gameState.selectedScript?.id === 'bad_moon_rising' && roleEffects.gossipTrueTonight && roleEffects.gossipSourceSeatId !== null) {
+        // Prevent re-triggering if modal is already open?
+        // But useEffect runs often. We should guard this?
+        // Ideally checking 'currentModal' prevents loop, but better to check if we handled it.
+        // For now, rely on `setGossipTrueTonight(false)` inside the modal confirm to break loop.
+
+        if (modalManager.currentModal?.type !== 'STORYTELLER_SELECT') {
+          const sourceId = roleEffects.gossipSourceSeatId;
+          const statement = roleEffects.gossipStatementToday ? `造谣：「${roleEffects.gossipStatementToday}」` : '造谣为真';
+          modalManager.setCurrentModal({
+            type: 'STORYTELLER_SELECT',
+            data: {
+              sourceId,
+              roleId: 'gossip',
+              roleName: '造谣者',
+              description: `🗡️ ${statement}\n说书人：请选择 1 名玩家死亡（额外死亡）。`,
+              targetCount: 1,
+              onConfirm: (targetIds: number[]) => {
+                const tid = targetIds[0];
+                if (tid === undefined) return;
+                modalManager.setCurrentModal(null);
+                killPlayer(tid, {
+                  source: 'ability',
+                  recordNightDeath: true,
+                  onAfterKill: () => {
+                    addLog(`🗣️ ${sourceId + 1}号(造谣者) 造谣为真：说书人裁定 ${tid + 1}号 额外死亡`);
+                    roleEffects.setGossipTrueTonight(false);
+                    roleEffects.setGossipSourceSeatId(null);
+                    const merged = Array.from(new Set([...(seatManager.deadThisNight || []), tid]));
+                    const deadNames = merged.length > 0 ? merged.map(id => `${id + 1}号`).join('、') : '';
+                    modalManager.setCurrentModal({ type: 'NIGHT_DEATH_REPORT', data: { message: deadNames ? `昨晚${deadNames}玩家死亡` : "昨天是个平安夜" } });
+                  },
+                });
+              },
+            },
+          });
+        }
+        return;
+      }
+
+      // 常规死亡报告
+      // Guard against repeated modals. (At this point gamePhase is 'firstNight' or 'night')
+      if (modalManager.currentModal?.type !== 'NIGHT_DEATH_REPORT') {
+        const message = seatManager.deadThisNight.length > 0
+          ? `昨晚${seatManager.deadThisNight.map(id => `${id + 1}号`).join('、')}玩家死亡`
+          : "昨天是个平安夜";
+
+        baseDispatch(gameActions.updateState({
+          gamePhase: 'dawnReport',
+          currentModal: { type: 'NIGHT_DEATH_REPORT', data: { message } }
+        }));
+      }
+    }
+  }, [
+    gameState.currentWakeIndex,
+    gameState.wakeQueueIds.length,
+    gameState.gamePhase,
+    seatManager.deadThisNight,
+    gameState.selectedScript,
+    roleEffects.gossipTrueTonight,
+    roleEffects.gossipSourceSeatId,
+    roleEffects.gossipStatementToday,
+    modalManager.currentModal,
+    killPlayer,
+    addLog,
+    roleEffects.setGossipTrueTonight,
+    roleEffects.setGossipSourceSeatId,
+    modalManager.setCurrentModal,
+    gameState.setGamePhase,
+    logicDispatch,
+    baseDispatch
+  ]);
+为真 → 本夜额外死亡（说书人裁定）
       if (selectedScript?.id === 'bad_moon_rising' && gossipTrueTonight && gossipSourceSeatId !== null) {
         // Prevent re-triggering if modal is already open?
         // But useEffect runs often. We should guard this?
@@ -2359,7 +2364,7 @@ export function useGameController() {
   const {
     executeNomination, handleVirginGuideConfirm, handleDayAction,
     handleDrunkCharadeSelect, registerVotes, handleDayAbilityTrigger,
-    checkGameOverSimple, handleDayAbility,
+    handleDayAbility,
   } = dayActions;
 
 
@@ -2557,7 +2562,6 @@ export function useGameController() {
     handleDayAbilityTrigger,
     handleDayAbility,
     registerVotes,
-    checkGameOverSimple,
     nightOrderPreviewLive,
     declareMayorImmediateWin,
     handleDayEndTransition: handleDayEndTransitionOverride,
@@ -2668,7 +2672,7 @@ export function useGameController() {
     confirmHadesia, confirmSaintExecution, cancelSaintExecution, confirmRavenkeeperFake,
     confirmVirginTrigger, confirmRestart, executeNomination, handleDayAction,
     handleVirginGuideConfirm, handleDayAbilityTrigger, handleDayAbility, registerVotes,
-    checkGameOverSimple, nightOrderPreviewLive, declareMayorImmediateWin,
+    checkGameOver, nightOrderPreviewLive, declareMayorImmediateWin,
     handleDayEndTransitionOverride, handleRestart, handleSwitchScript, handleNewGame, handleStepBack, handleGlobalUndo,
     closeNightOrderPreview, confirmNightOrderPreview, proceedToFirstNight, interactionHandleSeatClick,
     interactionToggleStatus, handleMenuAction, setHadesiaChoice, setRedNemesisTarget,

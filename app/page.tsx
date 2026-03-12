@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useEffect, useCallback } from "react";
 import { typeColors } from "./data";
 import { NightHintState } from "../src/types/game";
+import { useGameState } from "../src/hooks/useGameState";
 import { useGameController } from "../src/hooks/useGameController";
 import { GameActionsProvider } from "../src/contexts/GameActionsContext";
 import PortraitLock from "../src/components/PortraitLock";
@@ -42,6 +43,7 @@ export default function Home() {
   //      使用 useGameController Hook 获取所有状态和逻辑
   // ===========================
   const controller = useGameController();
+  const gameState = useGameState();
   const { playSound } = useAudio();
   // 仅解构本文件直接使用的变量；其余通过 controller={controller} 传递给 GameActionsProvider
   const {
@@ -53,16 +55,20 @@ export default function Home() {
     // Modal & Setup
     baronSetupCheck, setBaronSetupCheck, ignoreBaronSetup, setIgnoreBaronSetup,
     compositionError, setCompositionError,
-    currentModal, setCurrentModal, contextMenu, setContextMenu, setShowMenu,
+    currentModal, setCurrentModal, contextMenu, setContextMenu, setShowMenu, selectedRole, setSelectedRole,
     // 夜晚行动
     wakeQueueIds, setWakeQueueIds, currentWakeIndex, setCurrentWakeIndex,
     selectedActionTargets, setSelectedActionTargets, setInspectionResult,
-    currentHint, setCurrentHint, nightInfo,
+    currentHint, setCurrentHint,
     // 白天事件（仅 effect 中引用的变量）
     spyDisguiseMode, spyDisguiseProbability,
     fangGuConverted, jugglerGuesses, evilTwinPair, usedOnceAbilities,
     witchActive, cerenovusTarget, witchCursedId, todayExecutedId,
     setIsVortoxWorld, setBalloonistKnownTypes, setTimer,
+  } = gameState;
+
+  const {
+    nightInfo,
     // Refs
     introTimeoutRef, hintCacheRef, fakeInspectionResultRef,
     consoleContentRef, currentActionTextRef,
@@ -70,11 +76,10 @@ export default function Home() {
     // Helper functions
     resetRegistrationCache, addLogWithDeduplication, continueToNextAction,
     saveHistory, onSeatClick,
-    selectedRole, setSelectedRole,
     handleBaronAutoRebalance, handlePreStartNight, proceedToCheckPhase,
     filteredGroupedRoles, getCompositionStatus, getBaronStatus,
     validateCompositionSetup, validateBaronSetup,
-    getDisplayRoleForSeat,
+    getDisplayRoleForSeat, setRedNemesisTarget,
   } = controller;
 
   // [REFACTOR] seatsRef and gameStateRef sync removed - all state reads go through Context

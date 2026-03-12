@@ -1,29 +1,47 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { useGameContext, gameActions } from '../contexts/GameContext';
 
 export function useGameRoleState() {
-    const [todayDemonVoted, setTodayDemonVoted] = useState(false);
-    const [todayMinionNominated, setTodayMinionNominated] = useState(false);
-    const [todayExecutedId, setTodayExecutedId] = useState<number | null>(null);
-    const [witchCursedId, setWitchCursedId] = useState<number | null>(null);
-    const [witchActive, setWitchActive] = useState(true);
-    const [cerenovusTarget, setCerenovusTarget] = useState<{ targetId: number; roleName: string } | null>(null);
-    const [isVortoxWorld, setIsVortoxWorld] = useState(false);
-    const [fangGuConverted, setFangGuConverted] = useState(false);
-    const [jugglerGuesses, setJugglerGuesses] = useState<Record<number, string>>({});
-    const [evilTwinPair, setEvilTwinPair] = useState<[number, number] | null>(null);
-    const [outsiderDiedToday, setOutsiderDiedToday] = useState(false);
+    const { state, dispatch } = useGameContext();
+    const {
+        todayDemonVoted,
+        todayMinionNominated,
+        todayExecutedId,
+        witchCursedId,
+        witchActive,
+        cerenovusTarget,
+        isVortoxWorld,
+        fangGuConverted,
+        jugglerGuesses,
+        evilTwinPair,
+        outsiderDiedToday,
+    } = state;
 
-    return {
-        todayDemonVoted, setTodayDemonVoted,
-        todayMinionNominated, setTodayMinionNominated,
-        todayExecutedId, setTodayExecutedId,
-        witchCursedId, setWitchCursedId,
-        witchActive, setWitchActive,
-        cerenovusTarget, setCerenovusTarget,
-        isVortoxWorld, setIsVortoxWorld,
-        fangGuConverted, setFangGuConverted,
-        jugglerGuesses, setJugglerGuesses,
-        evilTwinPair, setEvilTwinPair,
-        outsiderDiedToday, setOutsiderDiedToday,
-    };
+    return useMemo(() => ({
+        todayDemonVoted,
+        setTodayDemonVoted: (v: boolean) => dispatch(gameActions.updateState({ todayDemonVoted: v })),
+        todayMinionNominated,
+        setTodayMinionNominated: (v: boolean) => dispatch(gameActions.updateState({ todayMinionNominated: v })),
+        todayExecutedId,
+        setTodayExecutedId: (id: number | null) => dispatch(gameActions.updateState({ todayExecutedId: id })),
+        witchCursedId,
+        setWitchCursedId: (id: number | null) => dispatch(gameActions.updateState({ witchCursedId: id })),
+        witchActive,
+        setWitchActive: (v: boolean) => dispatch(gameActions.updateState({ witchActive: v })),
+        cerenovusTarget,
+        setCerenovusTarget: (target: { targetId: number; roleName: string } | null) => dispatch(gameActions.updateState({ cerenovusTarget: target })),
+        isVortoxWorld,
+        setIsVortoxWorld: (v: boolean) => dispatch(gameActions.updateState({ isVortoxWorld: v })),
+        fangGuConverted,
+        setFangGuConverted: (v: boolean) => dispatch(gameActions.updateState({ fangGuConverted: v })),
+        jugglerGuesses,
+        setJugglerGuesses: (guesses: any) => dispatch(gameActions.updateState({ jugglerGuesses: guesses })),
+        evilTwinPair: evilTwinPair ? [evilTwinPair.evilId, evilTwinPair.goodId] as [number, number] : null,
+        setEvilTwinPair: (pair: [number, number] | null) => {
+            const next = pair ? { evilId: pair[0], goodId: pair[1] } : null;
+            dispatch(gameActions.updateState({ evilTwinPair: next }));
+        },
+        outsiderDiedToday,
+        setOutsiderDiedToday: (v: boolean) => dispatch(gameActions.setOutsiderDiedToday(v)),
+    }), [state, dispatch, todayDemonVoted, todayMinionNominated, todayExecutedId, witchCursedId, witchActive, cerenovusTarget, isVortoxWorld, fangGuConverted, jugglerGuesses, evilTwinPair, outsiderDiedToday]);
 }

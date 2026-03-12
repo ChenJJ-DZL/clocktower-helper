@@ -5,7 +5,7 @@ import { Seat, Role, GamePhase, WinResult, LogEntry, Script } from "../../app/da
 import { NightHintState, GameRecord } from "../types/game";
 import { RegistrationResult } from "../utils/gameRules";
 import { ModalType } from "../types/modal";
-import { useGameContext, gameActions } from "../contexts/GameContext";
+import { useGameContext, gameActions, VfxTrigger } from "../contexts/GameContext";
 import { useVillageState } from "./useVillageState";
 import { useGameRoleState } from "./useGameRoleState";
 
@@ -16,11 +16,6 @@ import { useGameRoleState } from "./useGameRoleState";
 export function useGameState() {
   const { state, dispatch, currentQueueIndexRef } = useGameContext();
 
-  // Village and Role specific state (for localized logic, though SSOT is in Context)
-  // [REFACTOR] Moving towards these sub-hooks for specific controller logic
-  const village = useVillageState();
-  const roleEffects = useGameRoleState();
-
   // Alias for backward compatibility
   const currentWakeIndexRef = currentQueueIndexRef;
 
@@ -28,7 +23,7 @@ export function useGameState() {
   //      STATE 别名 (保持兼容)
   // ===========================
   const {
-    mounted, showIntroLoading, isPortrait, seats, initialSeats,
+    mounted, showIntroLoading, isPortrait, seats, initialSeats, victorySnapshot,
     gamePhase, selectedScript, nightCount, deadThisNight, executedPlayerId,
     gameLogs, winResult, winReason, startTime, timer,
     selectedRole, contextMenu, showMenu, longPressingSeats,
@@ -49,7 +44,7 @@ export function useGameState() {
     balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo, seatNotes,
     voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay,
     remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution,
-    currentDuskExecution, history, hadesiaChoiceEnabled
+    currentDuskExecution, history, hadesiaChoiceEnabled, vfxTrigger
   } = state;
 
   // ===========================
@@ -66,6 +61,7 @@ export function useGameState() {
     }
   }, [dispatch, state.seats]);
   const setInitialSeats = useCallback((val: Seat[]) => dispatch(gameActions.updateState({ initialSeats: val })), [dispatch]);
+  const setVictorySnapshot = useCallback((val: Seat[]) => dispatch(gameActions.updateState({ victorySnapshot: val })), [dispatch]);
   const setGamePhase = useCallback((val: GamePhase) => dispatch(gameActions.setGamePhase(val)), [dispatch]);
   const setSelectedScript = useCallback((val: Script | null) => dispatch(gameActions.updateState({ selectedScript: val })), [dispatch]);
   const setNightCount = useCallback((val: number | ((prev: number) => number)) => {
@@ -308,6 +304,7 @@ export function useGameState() {
     dispatch(gameActions.updateState({ seatNotes: next }));
   }, [dispatch, state.seatNotes]);
   const setHadesiaChoiceEnabled = useCallback((val: boolean) => dispatch(gameActions.updateState({ hadesiaChoiceEnabled: val })), [dispatch]);
+  const setVfxTrigger = useCallback((val: VfxTrigger) => dispatch({ type: 'SET_VFX_TRIGGER', trigger: val }), [dispatch]);
 
 
   const checkLongPressTimerRef = useRef<NodeJS.Timeout | null>(null); // 核对身份列表长按定时器
@@ -348,6 +345,8 @@ export function useGameState() {
     setSeats,
     initialSeats,
     setInitialSeats,
+    victorySnapshot,
+    setVictorySnapshot,
     gamePhase,
     setGamePhase,
     selectedScript,
@@ -388,6 +387,8 @@ export function useGameState() {
     setInspectionResultKey,
     currentHint,
     setCurrentHint,
+    vfxTrigger,
+    setVfxTrigger,
     todayDemonVoted,
     setTodayDemonVoted,
     todayMinionNominated,
@@ -533,5 +534,5 @@ export function useGameState() {
     registrationCacheKeyRef,
     introTimeoutRef,
     currentWakeIndexRef,
-  }), [state, dispatch, mounted, isPortrait, seats, initialSeats, gamePhase, selectedScript, nightCount, deadThisNight, executedPlayerId, gameLogs, winResult, winReason, startTime, timer, selectedRole, contextMenu, showMenu, longPressingSeats, wakeQueueIds, currentWakeIndex, selectedActionTargets, inspectionResult, inspectionResultKey, currentHint, todayDemonVoted, todayMinionNominated, todayExecutedId, witchCursedId, witchActive, cerenovusTarget, isVortoxWorld, fangGuConverted, jugglerGuesses, evilTwinPair, outsiderDiedToday, gossipStatementToday, gossipTrueTonight, gossipSourceSeatId, currentModal, dayAbilityForm, baronSetupCheck, ignoreBaronSetup, compositionError, voteInputValue, showVoteErrorToast, gameRecords, mayorRedirectTarget, nightOrderPreview, pendingNightQueue, nightQueuePreviewTitle, firstNightOrder, poppyGrowerDead, klutzChoiceTarget, lastExecutedPlayerId, damselGuessed, shamanKeyword, shamanTriggered, shamanConvertTarget, spyDisguiseMode, spyDisguiseProbability, pukkaPoisonQueue, poChargeState, autoRedHerringInfo, dayAbilityLogs, damselGuessUsedBy, usedOnceAbilities, usedDailyAbilities, nominationMap, balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo, seatNotes, voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay, remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution, currentDuskExecution, history, hadesiaChoiceEnabled]);
+  }), [state, dispatch, mounted, isPortrait, seats, initialSeats, victorySnapshot, gamePhase, selectedScript, nightCount, deadThisNight, executedPlayerId, gameLogs, winResult, winReason, startTime, timer, selectedRole, contextMenu, showMenu, longPressingSeats, wakeQueueIds, currentWakeIndex, selectedActionTargets, inspectionResult, inspectionResultKey, currentHint, todayDemonVoted, todayMinionNominated, todayExecutedId, witchCursedId, witchActive, cerenovusTarget, isVortoxWorld, fangGuConverted, jugglerGuesses, evilTwinPair, outsiderDiedToday, gossipStatementToday, gossipTrueTonight, gossipSourceSeatId, currentModal, dayAbilityForm, baronSetupCheck, ignoreBaronSetup, compositionError, voteInputValue, showVoteErrorToast, gameRecords, mayorRedirectTarget, nightOrderPreview, pendingNightQueue, nightQueuePreviewTitle, firstNightOrder, poppyGrowerDead, klutzChoiceTarget, lastExecutedPlayerId, damselGuessed, shamanKeyword, shamanTriggered, shamanConvertTarget, spyDisguiseMode, spyDisguiseProbability, pukkaPoisonQueue, poChargeState, autoRedHerringInfo, dayAbilityLogs, damselGuessUsedBy, usedOnceAbilities, usedDailyAbilities, nominationMap, balloonistKnownTypes, balloonistCompletedIds, hadesiaChoices, virginGuideInfo, seatNotes, voteRecords, votedThisRound, hasExecutedThisDay, mastermindFinalDay, remainingDays, goonDrunkedThisNight, nominationRecords, lastDuskExecution, currentDuskExecution, history, hadesiaChoiceEnabled]);
 }

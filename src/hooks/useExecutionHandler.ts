@@ -47,6 +47,7 @@ export function useExecutionHandler() {
   const handleExecution = useCallback((
     context: ExecutionHandlerContext
   ): ExecutionResult | null => {
+    const updatedSeats = [...context.seats];
     const { executedSeat, seats, gamePhase, nightCount, nominationMap, forceExecution, skipLunaticRps } = context;
 
     if (!executedSeat.role) {
@@ -69,7 +70,7 @@ export function useExecutionHandler() {
     // 构建处决上下文
     const execContext: ExecutionContext = {
       executedSeat,
-      seats,
+      seats: updatedSeats,
       gamePhase,
       nightCount,
       nominationMap,

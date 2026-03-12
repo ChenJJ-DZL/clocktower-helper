@@ -48,27 +48,49 @@ import { DawnReportOverlay } from "./DawnReportOverlay";
 import { GameOverOverlay } from "./GameOverOverlay";
 import { PlayerContextMenu } from "./PlayerContextMenu";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { useGameState } from "../../hooks/useGameState";
 
 export function GameModals() {
-  const props = useGameActions();
+  const actions = useGameActions();
+  const gameState = useGameState();
+
+  const {
+    currentModal,
+    seats,
+    victorySnapshot,
+    virginGuideInfo,
+    klutzChoiceTarget,
+    gameLogs,
+    gamePhase,
+    winResult,
+    winReason,
+    isPortrait,
+    gameRecords,
+    selectedScript,
+    damselGuessUsedBy,
+  } = gameState;
+
+  const {
+    nightInfo,
+  } = actions;
 
   // Modal data extraction
-  const nightOrderModal = props.currentModal?.type === 'NIGHT_ORDER_PREVIEW' ? props.currentModal.data : null;
-  const drunkCharadeSelectModal = props.currentModal?.type === 'DRUNK_CHARADE_SELECT' ? props.currentModal.data : null;
-  const voteInputModal = props.currentModal?.type === 'VOTE_INPUT' ? props.currentModal.data : null;
-  const roleSelectModal = props.currentModal?.type === 'ROLE_SELECT' ? props.currentModal.data : null;
-  const madnessCheckModal = props.currentModal?.type === 'MADNESS_CHECK' ? props.currentModal.data : null;
-  const dayActionModal = props.currentModal?.type === 'DAY_ACTION' ? props.currentModal.data : null;
-  const dayAbilityModal = props.currentModal?.type === 'DAY_ABILITY' ? props.currentModal.data : null;
-  const storytellerSelectModal = props.currentModal?.type === 'STORYTELLER_SELECT' ? props.currentModal.data : null;
-  const pacifistConfirmModal = props.currentModal?.type === 'PACIFIST_CONFIRM' ? props.currentModal.data : null;
-  const courtierSelectRoleModal = props.currentModal?.type === 'COURTIER_SELECT_ROLE' ? props.currentModal.data : null;
-  const poisonConfirmModal = props.currentModal?.type === 'POISON_CONFIRM' ? props.currentModal.data : null;
-  const poisonEvilConfirmModal = props.currentModal?.type === 'POISON_EVIL_CONFIRM' ? props.currentModal.data : null;
-  const dreamerResultModal = props.currentModal?.type === 'DREAMER_RESULT' ? props.currentModal.data : null;
-  const artistResultModal = props.currentModal?.type === 'ARTIST_RESULT' ? props.currentModal.data : null;
-  const savantResultModal = props.currentModal?.type === 'SAVANT_RESULT' ? props.currentModal.data : null;
-  const nightDeathReportModal = props.currentModal?.type === 'NIGHT_DEATH_REPORT' ? props.currentModal.data : null;
+  const nightOrderModal = currentModal?.type === 'NIGHT_ORDER_PREVIEW' ? currentModal.data : null;
+  const drunkCharadeSelectModal = currentModal?.type === 'DRUNK_CHARADE_SELECT' ? currentModal.data : null;
+  const voteInputModal = currentModal?.type === 'VOTE_INPUT' ? currentModal.data : null;
+  const roleSelectModal = currentModal?.type === 'ROLE_SELECT' ? currentModal.data : null;
+  const madnessCheckModal = currentModal?.type === 'MADNESS_CHECK' ? currentModal.data : null;
+  const dayActionModal = currentModal?.type === 'DAY_ACTION' ? currentModal.data : null;
+  const dayAbilityModal = currentModal?.type === 'DAY_ABILITY' ? currentModal.data : null;
+  const storytellerSelectModal = currentModal?.type === 'STORYTELLER_SELECT' ? currentModal.data : null;
+  const pacifistConfirmModal = currentModal?.type === 'PACIFIST_CONFIRM' ? currentModal.data : null;
+  const courtierSelectRoleModal = currentModal?.type === 'COURTIER_SELECT_ROLE' ? currentModal.data : null;
+  const poisonConfirmModal = currentModal?.type === 'POISON_CONFIRM' ? currentModal.data : null;
+  const poisonEvilConfirmModal = currentModal?.type === 'POISON_EVIL_CONFIRM' ? currentModal.data : null;
+  const dreamerResultModal = currentModal?.type === 'DREAMER_RESULT' ? currentModal.data : null;
+  const artistResultModal = currentModal?.type === 'ARTIST_RESULT' ? currentModal.data : null;
+  const savantResultModal = currentModal?.type === 'SAVANT_RESULT' ? currentModal.data : null;
+  const nightDeathReportModal = currentModal?.type === 'NIGHT_DEATH_REPORT' ? currentModal.data : null;
 
   return (
     <>
@@ -87,38 +109,38 @@ export function GameModals() {
       {nightOrderModal && <NightOrderPreviewModal nightOrderModal={nightOrderModal} />}
 
       <MayorThreeAliveModal
-        isOpen={props.currentModal?.type === 'MAYOR_THREE_ALIVE'}
+        isOpen={currentModal?.type === 'MAYOR_THREE_ALIVE'}
         onContinue={() => {
-          props.setCurrentModal(null);
-          props.enterDuskPhase();
+          actions.setCurrentModal(null);
+          actions.enterDuskPhase();
         }}
-        onDeclareWin={props.declareMayorImmediateWin}
-        onCancel={() => props.setCurrentModal(null)}
+        onDeclareWin={actions.declareMayorImmediateWin}
+        onCancel={() => actions.setCurrentModal(null)}
       />
 
       {voteInputModal && (
         <VoteInputModalContent
           voterId={voteInputModal.voterId}
-          seats={props.seats}
-          registerVotes={props.registerVotes}
-          submitVotes={props.submitVotes}
-          setCurrentModal={props.setCurrentModal}
+          seats={seats}
+          registerVotes={actions.registerVotes}
+          submitVotes={actions.submitVotes}
+          setCurrentModal={actions.setCurrentModal}
         />
       )}
 
       {roleSelectModal && <RoleSelectModal modal={roleSelectModal} />}
       {madnessCheckModal && <MadnessCheckModal modal={madnessCheckModal} />}
       {dayActionModal && <DayActionModal modal={dayActionModal} />}
-      {props.virginGuideInfo && <VirginGuideModal />}
+      {virginGuideInfo && <VirginGuideModal />}
       {dayAbilityModal && <DayAbilityModal modal={dayAbilityModal} />}
 
       {poisonConfirmModal && (
         <PoisonConfirmModal
           targetId={poisonConfirmModal.targetId}
-          onConfirm={props.confirmPoison}
+          onConfirm={actions.confirmPoison}
           onCancel={() => {
-            props.setCurrentModal(null);
-            props.setSelectedActionTargets([]);
+            actions.setCurrentModal(null);
+            actions.setSelectedActionTargets([]);
           }}
         />
       )}
@@ -128,111 +150,114 @@ export function GameModals() {
           targetId={poisonEvilConfirmModal.targetId}
           onConfirm={() => {
             if (poisonEvilConfirmModal.targetId !== undefined) {
-              props.confirmPoisonEvil();
-              props.setCurrentModal(null);
+              actions.confirmPoisonEvil();
+              actions.setCurrentModal(null);
             }
           }}
           onCancel={() => {
-            props.setCurrentModal(null);
-            props.setSelectedActionTargets([]);
+            actions.setCurrentModal(null);
+            actions.setSelectedActionTargets([]);
           }}
         />
       )}
 
       <SaintExecutionConfirmModal
-        isOpen={props.currentModal?.type === 'SAINT_EXECUTION_CONFIRM'}
-        onConfirm={props.confirmSaintExecution}
-        onCancel={props.cancelSaintExecution}
+        isOpen={currentModal?.type === 'SAINT_EXECUTION_CONFIRM'}
+        onConfirm={actions.confirmSaintExecution}
+        onCancel={actions.cancelSaintExecution}
       />
 
       <LunaticRpsModal
-        isOpen={props.currentModal?.type === 'LUNATIC_RPS'}
-        nominatorId={props.currentModal?.type === 'LUNATIC_RPS' ? props.currentModal.data.nominatorId : null}
-        targetId={props.currentModal?.type === 'LUNATIC_RPS' ? props.currentModal.data.targetId : 0}
+        isOpen={currentModal?.type === 'LUNATIC_RPS'}
+        nominatorId={currentModal?.type === 'LUNATIC_RPS' ? currentModal.data.nominatorId : null}
+        targetId={currentModal?.type === 'LUNATIC_RPS' ? currentModal.data.targetId : 0}
         onResolve={(isLoss) => {
-          props.resolveLunaticRps(isLoss ? 'lose' : 'win');
+          actions.resolveLunaticRps(isLoss ? 'lose' : 'win');
         }}
       />
 
       <VirginTriggerModal
-        isOpen={props.currentModal?.type === 'VIRGIN_TRIGGER'}
-        onConfirm={props.confirmVirginTrigger}
-        onCancel={() => props.setCurrentModal(null)}
+        isOpen={currentModal?.type === 'VIRGIN_TRIGGER'}
+        onConfirm={actions.confirmVirginTrigger}
+        onCancel={() => actions.setCurrentModal(null)}
       />
 
-      {props.currentModal?.type === 'RAVENKEEPER_FAKE' && (
+      {currentModal?.type === 'RAVENKEEPER_FAKE' && (
         <RavenkeeperFakeModal
-          targetId={props.currentModal.data.targetId}
+          targetId={currentModal.data.targetId}
           roles={roles}
-          onSelect={props.confirmRavenkeeperFake}
+          onSelect={actions.confirmRavenkeeperFake}
         />
       )}
 
       <StorytellerDeathModal
-        isOpen={props.currentModal?.type === 'STORYTELLER_DEATH'}
-        sourceId={props.currentModal?.type === 'STORYTELLER_DEATH' ? props.currentModal.data.sourceId : 0}
-        seats={props.seats}
-        onConfirm={(targetId) => props.confirmStorytellerDeath(targetId ?? 0)}
+        isOpen={currentModal?.type === 'STORYTELLER_DEATH'}
+        sourceId={currentModal?.type === 'STORYTELLER_DEATH' ? currentModal.data.sourceId : 0}
+        seats={seats}
+        onConfirm={(targetId) => actions.confirmStorytellerDeath(targetId ?? 0)}
       />
 
       <SweetheartDrunkModal
-        isOpen={props.currentModal?.type === 'SWEETHEART_DRUNK'}
-        sourceId={props.currentModal?.type === 'SWEETHEART_DRUNK' ? props.currentModal.data.sourceId : 0}
-        seats={props.seats}
-        onConfirm={props.confirmSweetheartDrunk}
+        isOpen={currentModal?.type === 'SWEETHEART_DRUNK'}
+        sourceId={currentModal?.type === 'SWEETHEART_DRUNK' ? currentModal.data.sourceId : 0}
+        seats={seats}
+        onConfirm={actions.confirmSweetheartDrunk}
       />
 
       <KlutzChoiceModal
-        isOpen={props.currentModal?.type === 'KLUTZ_CHOICE'}
-        sourceId={props.currentModal?.type === 'KLUTZ_CHOICE' ? props.currentModal.data.sourceId : 0}
-        seats={props.seats}
-        selectedTarget={props.klutzChoiceTarget}
-        onSelectTarget={props.setKlutzChoiceTarget}
-        onConfirm={() => props.confirmKlutzChoice()}
+        isOpen={currentModal?.type === 'KLUTZ_CHOICE'}
+        sourceId={currentModal?.type === 'KLUTZ_CHOICE' ? currentModal.data.sourceId : 0}
+        seats={seats}
+        selectedTarget={klutzChoiceTarget}
+        onSelectTarget={actions.setKlutzChoiceTarget}
+        onConfirm={() => actions.confirmKlutzChoice()}
         onCancel={() => {
-          props.setCurrentModal(null);
-          props.setKlutzChoiceTarget(null);
+          actions.setCurrentModal(null);
+          actions.setKlutzChoiceTarget(null);
         }}
       />
 
       <MoonchildKillModal
-        isOpen={props.currentModal?.type === 'MOONCHILD_KILL'}
-        sourceId={props.currentModal?.type === 'MOONCHILD_KILL' ? props.currentModal.data.sourceId : 0}
-        seats={props.seats}
-        onConfirm={props.confirmMoonchildKill}
+        isOpen={currentModal?.type === 'MOONCHILD_KILL'}
+        sourceId={currentModal?.type === 'MOONCHILD_KILL' ? currentModal.data.sourceId : 0}
+        seats={seats}
+        onConfirm={actions.confirmMoonchildKill}
       />
 
-      <ReviewModal
-        isOpen={props.currentModal?.type === 'REVIEW'}
-        onClose={() => props.setCurrentModal(null)}
-        seats={props.seats}
-        gameLogs={props.gameLogs}
-        gamePhase={props.gamePhase}
-        winResult={props.winResult}
-        winReason={props.winReason}
-        isPortrait={props.isPortrait}
-      />
+      {currentModal?.type === 'REVIEW' && victorySnapshot.length > 0 && (
+        <ReviewModal
+          isOpen={true}
+          onClose={() => actions.setCurrentModal(null)}
+          seats={seats}
+          victorySnapshot={victorySnapshot}
+          gameLogs={gameLogs}
+          gamePhase={gamePhase}
+          winResult={winResult}
+          winReason={winReason}
+          isPortrait={isPortrait}
+        />
+      )}
 
       <GameRecordsModal
-        isOpen={props.currentModal?.type === 'GAME_RECORDS'}
-        onClose={() => props.setCurrentModal(null)}
-        gameRecords={props.gameRecords}
-        isPortrait={props.isPortrait}
+        isOpen={currentModal?.type === 'GAME_RECORDS'}
+        onClose={() => actions.setCurrentModal(null)}
+        gameRecords={gameRecords}
+        isPortrait={isPortrait}
       />
 
       <RoleInfoModal
-        isOpen={props.currentModal?.type === 'ROLE_INFO'}
-        onClose={() => props.setCurrentModal(null)}
-        selectedScript={props.selectedScript}
-        filteredGroupedRoles={props.filteredGroupedRoles}
+        isOpen={currentModal?.type === 'ROLE_INFO'}
+        onClose={() => actions.setCurrentModal(null)}
+        selectedScript={selectedScript}
+        filteredGroupedRoles={actions.filteredGroupedRoles}
         roles={roles}
-        groupedRoles={props.groupedRoles}
+        groupedRoles={actions.groupedRoles}
       />
 
       <ExecutionResultModal
-        isOpen={props.currentModal?.type === 'EXECUTION_RESULT'}
-        message={props.currentModal?.type === 'EXECUTION_RESULT' ? props.currentModal.data.message : ''}
-        onConfirm={props.confirmExecutionResult}
+        isOpen={currentModal?.type === 'EXECUTION_RESULT'}
+        message={currentModal?.type === 'EXECUTION_RESULT' ? currentModal.data.message : ''}
+        onConfirm={actions.confirmExecutionResult}
       />
 
       <PacifistConfirmModal
@@ -241,83 +266,83 @@ export function GameModals() {
         onResolve={(saved: boolean) => {
           if (!pacifistConfirmModal) return;
           const cb = pacifistConfirmModal.onResolve;
-          props.setCurrentModal(null);
+          actions.setCurrentModal(null);
           cb(saved);
         }}
       />
 
       <ShootResultModal
-        isOpen={props.currentModal?.type === 'SHOOT_RESULT'}
-        message={props.currentModal?.type === 'SHOOT_RESULT' ? props.currentModal.data.message : ''}
-        isDemonDead={props.currentModal?.type === 'SHOOT_RESULT' ? props.currentModal.data.isDemonDead : false}
-        onConfirm={props.confirmShootResult}
+        isOpen={currentModal?.type === 'SHOOT_RESULT'}
+        message={currentModal?.type === 'SHOOT_RESULT' ? currentModal.data.message : ''}
+        isDemonDead={currentModal?.type === 'SHOOT_RESULT' ? currentModal.data.isDemonDead : false}
+        onConfirm={actions.confirmShootResult}
       />
 
-      {props.currentModal?.type === 'SLAYER_SELECT_TARGET' && (
+      {currentModal?.type === 'SLAYER_SELECT_TARGET' && (
         <SlayerSelectTargetModal
           isOpen={true}
-          shooterId={props.currentModal.data.shooterId}
-          seats={props.seats}
+          shooterId={currentModal.data.shooterId}
+          seats={seats}
           onConfirm={(targetId) => {
-            props.handleSlayerTargetSelect(targetId);
+            actions.handleSlayerTargetSelect(targetId);
           }}
           onCancel={() => {
-            props.setCurrentModal(null);
+            actions.setCurrentModal(null);
           }}
         />
       )}
 
-      {props.currentModal?.type === 'KILL_CONFIRM' && (
+      {currentModal?.type === 'KILL_CONFIRM' && (
         <KillConfirmModal
-          targetId={props.currentModal.data.targetId}
-          isImpSelfKill={!!(props.nightInfo && props.nightInfo.effectiveRole.id === 'imp' && props.currentModal.data.targetId === props.nightInfo.seat.id)}
-          onConfirm={props.confirmKill}
+          targetId={currentModal.data.targetId}
+          isImpSelfKill={!!(nightInfo && nightInfo.effectiveRole.id === 'imp' && currentModal.data.targetId === nightInfo.seat.id)}
+          onConfirm={actions.confirmKill}
           onCancel={() => {
-            props.setCurrentModal(null);
-            props.setSelectedActionTargets([]);
+            actions.setCurrentModal(null);
+            actions.setSelectedActionTargets([]);
           }}
         />
       )}
 
       <AttackBlockedModal
-        isOpen={props.currentModal?.type === 'ATTACK_BLOCKED'}
-        targetId={props.currentModal?.type === 'ATTACK_BLOCKED' ? props.currentModal.data.targetId : 0}
-        reason={props.currentModal?.type === 'ATTACK_BLOCKED' ? props.currentModal.data.reason : ''}
-        demonName={props.currentModal?.type === 'ATTACK_BLOCKED' ? props.currentModal.data.demonName : undefined}
-        onClose={() => props.setCurrentModal(null)}
+        isOpen={currentModal?.type === 'ATTACK_BLOCKED'}
+        targetId={currentModal?.type === 'ATTACK_BLOCKED' ? currentModal.data.targetId : 0}
+        reason={currentModal?.type === 'ATTACK_BLOCKED' ? currentModal.data.reason : ''}
+        demonName={currentModal?.type === 'ATTACK_BLOCKED' ? currentModal.data.demonName : undefined}
+        onClose={() => actions.setCurrentModal(null)}
       />
 
       <PitHagModal
-        isOpen={props.currentModal?.type === 'PIT_HAG'}
-        targetId={props.currentModal?.type === 'PIT_HAG' ? props.currentModal.data.targetId : null}
-        roleId={props.currentModal?.type === 'PIT_HAG' ? props.currentModal.data.roleId : null}
-        seats={props.seats}
+        isOpen={currentModal?.type === 'PIT_HAG'}
+        targetId={currentModal?.type === 'PIT_HAG' ? currentModal.data.targetId : null}
+        roleId={currentModal?.type === 'PIT_HAG' ? currentModal.data.roleId : null}
+        seats={seats}
         roles={roles}
         onRoleChange={(roleId) => {
-          const current = props.currentModal;
+          const current = currentModal;
           if (current?.type === 'PIT_HAG') {
-            props.setCurrentModal({ ...current, data: { ...current.data, roleId } });
+            actions.setCurrentModal({ ...current, data: { ...current.data, roleId } });
           }
         }}
-        onCancel={() => props.setCurrentModal(null)}
+        onCancel={() => actions.setCurrentModal(null)}
         onContinue={() => { }}
       />
 
       <RangerModal
-        isOpen={props.currentModal?.type === 'RANGER'}
-        targetId={props.currentModal?.type === 'RANGER' ? props.currentModal.data.targetId : 0}
-        roleId={props.currentModal?.type === 'RANGER' ? props.currentModal.data.roleId : null}
-        seats={props.seats}
+        isOpen={currentModal?.type === 'RANGER'}
+        targetId={currentModal?.type === 'RANGER' ? currentModal.data.targetId : 0}
+        roleId={currentModal?.type === 'RANGER' ? currentModal.data.roleId : null}
+        seats={seats}
         roles={roles}
-        selectedScript={props.selectedScript}
+        selectedScript={selectedScript}
         onRoleChange={(roleId) => {
-          const current = props.currentModal;
+          const current = currentModal;
           if (current?.type === 'RANGER') {
-            props.setCurrentModal({ ...current, data: { ...current.data, roleId } });
+            actions.setCurrentModal({ ...current, data: { ...current.data, roleId } });
           }
         }}
         onConfirm={() => {
-          const rangerModalData = props.currentModal?.type === 'RANGER' ? props.currentModal.data : null;
+          const rangerModalData = currentModal?.type === 'RANGER' ? currentModal.data : null;
           if (!rangerModalData?.roleId) {
             alert('必须选择一个未在场的镇民角色');
             return;
@@ -328,58 +353,58 @@ export function GameModals() {
             return;
           }
           const targetId = rangerModalData.targetId;
-          props.setSeats((prev: any[]) => prev.map((s: any) => {
+          actions.setSeats((prev: any[]) => prev.map((s: any) => {
             if (s.id !== targetId) return s;
-            return props.cleanseSeatStatuses({
+            return actions.cleanseSeatStatuses({
               ...s,
               role: newRole,
               charadeRole: null,
               isDemonSuccessor: false,
             }, { keepDeathState: true });
           }));
-          props.addLog(`巡山人将 ${rangerModalData.targetId + 1}号(落难少女) 变为 ${newRole.name}`);
-          props.insertIntoWakeQueueAfterCurrent(rangerModalData.targetId, { roleOverride: newRole, logLabel: `${rangerModalData.targetId + 1}号(${newRole.name})` });
-          props.setCurrentModal(null);
-          props.continueToNextAction();
+          actions.addLog(`巡山人将 ${rangerModalData.targetId + 1}号(落难少女) 变为 ${newRole.name}`);
+          actions.insertIntoWakeQueueAfterCurrent(rangerModalData.targetId, { roleOverride: newRole, logLabel: `${rangerModalData.targetId + 1}号(${newRole.name})` });
+          actions.setCurrentModal(null);
+          actions.continueToNextAction();
         }}
       />
 
       <DamselGuessModal
-        isOpen={props.currentModal?.type === 'DAMSEL_GUESS'}
-        minionId={props.currentModal?.type === 'DAMSEL_GUESS' ? props.currentModal.data.minionId : null}
-        targetId={props.currentModal?.type === 'DAMSEL_GUESS' ? props.currentModal.data.targetId : null}
-        seats={props.seats}
-        damselGuessUsedBy={props.damselGuessUsedBy}
+        isOpen={currentModal?.type === 'DAMSEL_GUESS'}
+        minionId={currentModal?.type === 'DAMSEL_GUESS' ? currentModal.data.minionId : null}
+        targetId={currentModal?.type === 'DAMSEL_GUESS' ? currentModal.data.targetId : null}
+        seats={seats}
+        damselGuessUsedBy={damselGuessUsedBy}
         onMinionChange={(minionId) => {
-          const current = props.currentModal;
+          const current = currentModal;
           if (current?.type === 'DAMSEL_GUESS') {
-            props.setCurrentModal({ ...current, data: { ...current.data, minionId } });
+            actions.setCurrentModal({ ...current, data: { ...current.data, minionId } });
           }
         }}
         onTargetChange={(targetId) => {
-          const current = props.currentModal;
+          const current = currentModal;
           if (current?.type === 'DAMSEL_GUESS') {
-            props.setCurrentModal({ ...current, data: { ...current.data, targetId } });
+            actions.setCurrentModal({ ...current, data: { ...current.data, targetId } });
           }
         }}
-        onCancel={() => props.setCurrentModal(null)}
+        onCancel={() => actions.setCurrentModal(null)}
         onConfirm={() => {
-          const damselModalData = props.currentModal?.type === 'DAMSEL_GUESS' ? props.currentModal.data : null;
+          const damselModalData = currentModal?.type === 'DAMSEL_GUESS' ? currentModal.data : null;
           if (!damselModalData || damselModalData.minionId === null || damselModalData.targetId === null) return;
           const minionId = damselModalData.minionId;
-          const guessSeat = props.seats.find((s: any) => s.id === damselModalData.targetId);
+          const guessSeat = seats.find((s: any) => s.id === damselModalData.targetId);
           const isCorrect = guessSeat?.role?.id === 'damsel' && !guessSeat.isDead;
-          props.setCurrentModal(null);
-          props.setDamselGuessUsedBy((prev: any[]) => prev.includes(minionId) ? prev : [...prev, minionId]);
+          actions.setCurrentModal(null);
+          actions.setDamselGuessUsedBy((prev: any[]) => prev.includes(minionId) ? prev : [...prev, minionId]);
           if (isCorrect) {
-            props.addLog(`爪牙猜测成功：${damselModalData.targetId + 1}号是落难少女，邪恶获胜`);
-            props.checkGameOver(props.seats, undefined, undefined, true);
+            actions.addLog(`爪牙猜测成功：${damselModalData.targetId + 1}号是落难少女，邪恶获胜`);
+            actions.checkGameOver(seats, undefined, undefined, true);
           } else {
-            const updatedSeats = props.seats.map((s: any) => s.id === minionId ? { ...s, isDead: true, isSentenced: false } : s);
-            props.setSeats(updatedSeats);
-            props.addLog(`${minionId + 1}号爪牙猜错落难少女，当场死亡。`);
-            props.addLog(`爪牙猜测失败：${damselModalData.targetId + 1}号不是落难少女`);
-            props.checkGameOver(updatedSeats, minionId);
+            const updatedSeats = seats.map((s: any) => s.id === minionId ? { ...s, isDead: true, isSentenced: false } : s);
+            actions.setSeats(updatedSeats);
+            actions.addLog(`${minionId + 1}号爪牙猜错落难少女，当场死亡。`);
+            actions.addLog(`爪牙猜测失败：${damselModalData.targetId + 1}号不是落难少女`);
+            actions.checkGameOver(updatedSeats, minionId);
           }
         }}
       />
@@ -395,18 +420,18 @@ export function GameModals() {
           roleName={storytellerSelectModal.roleName}
           description={storytellerSelectModal.description}
           targetCount={storytellerSelectModal.targetCount}
-          seats={props.seats}
+          seats={seats}
           onConfirm={storytellerSelectModal.onConfirm}
-          onCancel={() => props.setCurrentModal(null)}
+          onCancel={() => actions.setCurrentModal(null)}
         />
       )}
 
       {drunkCharadeSelectModal && (
         <DrunkCharadeSelectModal
           isOpen={true}
-          onClose={() => props.setCurrentModal(null)}
-          onConfirm={props.handleDrunkCharadeSelect}
-          drunkSeat={props.seats.find((s: any) => s.id === drunkCharadeSelectModal.seatId) || null}
+          onClose={() => actions.setCurrentModal(null)}
+          onConfirm={actions.handleDrunkCharadeSelect}
+          drunkSeat={seats.find((s: any) => s.id === drunkCharadeSelectModal.seatId) || null}
           availableTownsfolkRoles={drunkCharadeSelectModal.availableRoles}
           selectedScriptId={drunkCharadeSelectModal.scriptId}
         />
@@ -417,8 +442,8 @@ export function GameModals() {
           roleA={dreamerResultModal.roleA}
           roleB={dreamerResultModal.roleB}
           onClose={() => {
-            props.setCurrentModal(null);
-            props.continueToNextAction();
+            actions.setCurrentModal(null);
+            actions.continueToNextAction();
           }}
         />
       )}
@@ -427,9 +452,9 @@ export function GameModals() {
         <ArtistResultModal
           onClose={(result) => {
             if (result) {
-              props.addLog(result);
+              actions.addLog(result);
             }
-            props.setCurrentModal(null);
+            actions.setCurrentModal(null);
           }}
         />
       )}
@@ -438,28 +463,28 @@ export function GameModals() {
         <SavantResultModal
           onClose={(infoA, infoB) => {
             if (infoA && infoB) {
-              props.addLog(`博学者获得信息：\n1. ${infoA}\n2. ${infoB}`);
+              actions.addLog(`博学者获得信息：\n1. ${infoA}\n2. ${infoB}`);
             }
-            props.setCurrentModal(null);
+            actions.setCurrentModal(null);
           }}
         />
       )}
 
       <RestartConfirmModal
-        isOpen={props.currentModal?.type === 'RESTART_CONFIRM'}
-        onConfirm={props.confirmRestart}
-        onCancel={() => props.setCurrentModal(null)}
+        isOpen={currentModal?.type === 'RESTART_CONFIRM'}
+        onConfirm={actions.confirmRestart}
+        onCancel={() => actions.setCurrentModal(null)}
       />
 
       {nightDeathReportModal && (
         <NightDeathReportModal
           message={nightDeathReportModal.message}
           onConfirm={() => {
-            if (props.gamePhase === 'dawnReport') {
-              props.confirmNightDeathReport();
+            if (gamePhase === 'dawnReport') {
+              actions.confirmNightDeathReport();
             } else {
-              props.setCurrentModal(null);
-              props.continueToNextAction();
+              actions.setCurrentModal(null);
+              actions.continueToNextAction();
             }
           }}
         />

@@ -1,22 +1,29 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { useGameContext, gameActions } from '../contexts/GameContext';
 import { GamePhase, WinResult, LogEntry } from '@/app/data';
 
 export function useVillageState() {
-    const [gamePhase, setGamePhase] = useState<GamePhase>("setup");
-    const [nightCount, setNightCount] = useState(0);
-    const [timer, setTimer] = useState(0);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [gameLogs, setGameLogs] = useState<LogEntry[]>([]);
-    const [winResult, setWinResult] = useState<WinResult>(null);
-    const [winReason, setWinReason] = useState("");
+    const { state, dispatch } = useGameContext();
+    const { gamePhase, nightCount, timer, gameLogs, winResult, winReason } = state;
 
-    return {
-        gamePhase, setGamePhase,
-        nightCount, setNightCount,
-        timer, setTimer,
-        isTimerRunning, setIsTimerRunning,
-        gameLogs, setGameLogs,
-        winResult, setWinResult,
-        winReason, setWinReason,
-    };
+    return useMemo(() => ({
+        gamePhase,
+        setGamePhase: (phase: GamePhase) => dispatch(gameActions.setGamePhase(phase)),
+        nightCount,
+        setNightCount: (count: number) => dispatch(gameActions.updateState({ nightCount: count })),
+        timer,
+        setTimer: (t: number) => dispatch(gameActions.setTimer(t)),
+        // timer running state is handled in useGameFlow or separately, keeping compatibility
+        isTimerRunning: true, 
+        setIsTimerRunning: () => {}, 
+        gameLogs,
+        setGameLogs: (logs: LogEntry[] | ((prev: LogEntry[]) => LogEntry[])) => {
+            const next = typeof logs === 'function' ? logs(state.gameLogs) : logs;
+            dispatch(gameActions.updateState({ gameLogs: next }));
+        },
+        winResult,
+        setWinResult: (res: WinResult) => dispatch(gameActions.setWinResult(res, state.winReason)),
+        winReason: winReason || "",
+        setWinReason: (reason: string) => dispatch(gameActions.setWinResult(state.winResult, reason)),
+    }), [state, dispatch, gamePhase, nightCount, timer, gameLogs, winResult, winReason]);
 }

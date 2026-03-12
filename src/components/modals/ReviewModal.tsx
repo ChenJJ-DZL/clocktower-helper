@@ -5,6 +5,7 @@ interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   seats: Seat[];
+  victorySnapshot: Seat[];
   gameLogs: LogEntry[];
   gamePhase: GamePhase;
   winResult: WinResult;
@@ -16,6 +17,7 @@ export function ReviewModal({
   isOpen, 
   onClose, 
   seats, 
+  victorySnapshot, 
   gameLogs, 
   gamePhase, 
   winResult, 
@@ -34,7 +36,7 @@ export function ReviewModal({
         <div className={`${isPortrait ? 'w-full' : 'w-1/3'}`}>
           <h4 className={`text-purple-400 ${isPortrait ? 'mb-2 text-sm' : 'mb-4 text-xl'} font-bold border-b pb-2`}>📖 当前座位信息</h4>
           <div className={`space-y-2 ${isPortrait ? 'max-h-64' : 'max-h-[calc(100vh-16rem)]'} overflow-y-auto`}>
-            {seats.filter(s=>s.role).map(s => (
+            {victorySnapshot.map(s => (
               <div key={s.id} className={`py-2 border-b border-gray-700 flex justify-between items-center ${isPortrait ? 'text-xs' : ''}`}>
                 <span className="font-bold">{s.id+1}号</span>
                 <div className="flex flex-col items-end">

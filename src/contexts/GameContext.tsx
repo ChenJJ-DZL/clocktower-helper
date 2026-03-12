@@ -6,6 +6,11 @@ import { NightHintState, GameRecord } from "../types/game";
 import { ModalType } from "../types/modal";
 
 /**
+ * VFX 触发器状态
+ */
+export type VfxTrigger = { seatId: number; type: 'slayer' | 'virgin' } | null;
+
+/**
  * 游戏状态接口 - 单一数据源
  * 所有游戏状态都存储在这里
  */
@@ -18,6 +23,7 @@ export interface GameState {
   // 座位和游戏核心状态
   seats: Seat[];
   initialSeats: Seat[];
+  victorySnapshot: Seat[]; // 游戏结束时的座位快照，用于复盘
   gamePhase: GamePhase;
   selectedScript: Script | null;
   nightCount: number;
@@ -114,6 +120,7 @@ export interface GameState {
   lastDuskExecution: number | null;
   currentDuskExecution: number | null;
   history: Array<any>; // 存储历史快照用于撤销
+  vfxTrigger: VfxTrigger;
 }
 
 /**
@@ -155,6 +162,7 @@ export type GameAction =
   | { type: 'SET_GAME_RECORDS'; records: GameRecord[] }
   | { type: 'UPDATE_USED_ONCE_ABILITIES'; roleId: string; seatId: number }
   | { type: 'UPDATE_PUKKA_QUEUE'; queue: { targetId: number; nightsUntilDeath: number }[] }
+  | { type: 'SET_VFX_TRIGGER'; trigger: VfxTrigger }
 // ... 可以继续添加更多Action
 
 /**
@@ -384,6 +392,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'UPDATE_PUKKA_QUEUE':
       return { ...state, pukkaPoisonQueue: action.queue };
 
+    case 'SET_VFX_TRIGGER':
+      return { ...state, vfxTrigger: action.trigger };
+
     default:
       return state;
   }
@@ -401,6 +412,7 @@ function getInitialState(): GameState {
     seatNotes: {},
     isPortrait: false,
     seats: [],
+    victorySnapshot: [],
     initialSeats: [],
     gamePhase: 'scriptSelection',
     selectedScript: null,
@@ -483,6 +495,7 @@ function getInitialState(): GameState {
     gossipStatementToday: "",
     gossipTrueTonight: false,
     gossipSourceSeatId: null,
+    vfxTrigger: null,
   };
 }
 

@@ -16,7 +16,8 @@ export function useLogicDispatcher(
     setTodayExecutedId: (id: number | null) => void,
     setCurrentDuskExecution: (id: number | null) => void,
     setHasExecutedThisDay: (b: boolean) => void,
-    isVortoxWorld: boolean
+    isVortoxWorld: boolean,
+    setVictorySnapshot: (seats: Seat[]) => void
 ) {
     const victoryRef = useRef<{ winner: 'good' | 'evil'; reason: string } | null>(null);
 
@@ -41,6 +42,8 @@ export function useLogicDispatcher(
             setWinResult(w);
             setWinReason(reason);
             setGamePhase('gameOver');
+            // 冻结此时的座位状态作为复盘快照（只保留有角色的座位）
+            setVictorySnapshot(snapshot.seats.filter(s => s.role));
             setCurrentModal({ type: 'GAME_OVER', data: null });
         }
 
@@ -59,7 +62,7 @@ export function useLogicDispatcher(
             setCurrentDuskExecution(action.targetId);
             setHasExecutedThisDay(true);
         }
-    }, [seats, gamePhase, addLog, setSeats, setWinResult, setWinReason, setCurrentModal, setExecutedPlayerId, setTodayExecutedId, setCurrentDuskExecution, setHasExecutedThisDay]);
+    }, [seats, gamePhase, addLog, setSeats, setWinResult, setWinReason, setCurrentModal, setExecutedPlayerId, setTodayExecutedId, setCurrentDuskExecution, setHasExecutedThisDay, setVictorySnapshot]);
 
     const checkGameOver = useCallback((
         updatedSeats: Seat[],

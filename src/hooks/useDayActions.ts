@@ -345,33 +345,6 @@ export function useDayActions(deps: DayActionsDeps) {
         }
     }, [hasUsedAbility, hasUsedDailyAbility, saveHistory, markAbilityUsed, markDailyAbilityUsed, addLog, setCurrentModal, setDayAbilityForm]);
 
-    const checkGameOverSimple = useCallback((seatsToCheck: Seat[]): 'good' | 'evil' | null => {
-        const livingDemon = seatsToCheck.find(s =>
-            (s.role?.type === 'demon' || s.isDemonSuccessor) && !s.isDead
-        );
-        if (!livingDemon) {
-            const aliveCount = seatsToCheck.filter(s => !s.isDead).length;
-            const scarletWoman = seatsToCheck.find(s =>
-                s.role?.id === 'scarlet_woman' && !s.isDead && !s.isDemonSuccessor
-            );
-            if (aliveCount < 5 || !scarletWoman) {
-                return 'good';
-            }
-            return null;
-        }
-
-        const livingCount = seatsToCheck.filter(s => {
-            if (!s || !s.role) return false;
-            if (s.role.id === 'zombuul' && s.isFirstDeathForZombuul && !s.isZombuulTrulyDead) {
-                return true;
-            }
-            return !s.isDead;
-        }).filter(s => s.role && s.role.type !== 'traveler').length;
-        if (livingCount <= 2) return 'evil';
-
-        return null;
-    }, []);
-
     const handleDayAbility = useCallback((sourceSeatId: number, targetSeatId?: number) => {
         const sourceSeat = seats.find(s => s.id === sourceSeatId);
         if (!sourceSeat || !sourceSeat.role) return;
@@ -532,11 +505,10 @@ export function useDayActions(deps: DayActionsDeps) {
         handleDrunkCharadeSelect,
         registerVotes,
         handleDayAbilityTrigger,
-        checkGameOverSimple,
         handleDayAbility,
     }), [
         executeNomination, handleVirginGuideConfirm, handleDayAction,
         handleDrunkCharadeSelect, registerVotes, handleDayAbilityTrigger,
-        checkGameOverSimple, handleDayAbility
+        handleDayAbility
     ]);
 }
