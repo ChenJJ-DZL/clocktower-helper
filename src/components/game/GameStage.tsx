@@ -415,7 +415,7 @@ export const GameStage = () => {
                   e.stopPropagation();
                 }}
                 setSeatRef={(id, el) => {
-                  seatRefs.current[id] = el;
+                  if (el) seatRefs.current[id] = el;
                 }}
                 getDisplayRoleType={getDisplayRoleType}
                 getDisplayRole={getDisplayRole}
@@ -827,7 +827,7 @@ export const GameStage = () => {
                 });
               }}
               setSeatRef={(id, el) => {
-                seatRefs.current[id] = el;
+                if (el) seatRefs.current[id] = el;
               }}
               getDisplayRoleType={getDisplayRoleType}
               getDisplayRole={getDisplayRole}

@@ -2,6 +2,16 @@ import { GamePhase, Seat, Role } from "./game";
 import { ModalType } from "./modal";
 
 /**
+ * 注册判定结果结构
+ */
+export interface RegistrationResult {
+  alignment: 'Good' | 'Evil';
+  roleType: string | null; // RoleType
+  registersAsDemon: boolean;
+  registersAsMinion: boolean;
+}
+
+/**
  * 描述行动结果的日志
 
 
@@ -26,6 +36,9 @@ export interface NightActionContext {
   gamePhase: GamePhase;
   nightCount: number;  // 当前是第几夜（首夜为0）
   roles?: Role[];       // 当前剧本的所有角色列表
+  isActorDisabledByPoisonOrDrunk?: (seat: Seat) => boolean;
+  addLog?: (msg: string) => void;
+  findNearestAliveNeighbor?: (originId: number, direction: 1 | -1) => Seat | null;
 
   /**
    * 是否已通过二次确认弹窗
@@ -42,7 +55,12 @@ export interface NightActionContext {
   /**
    * 环境状态标志
    */
-  vortoxWorld?: boolean;
+  vortoxWorld: boolean;
+  isVortoxWorld?: boolean; // 保持向后兼容
+  getRegistration: (seat: Seat, viewer?: Role | null) => RegistrationResult;
+  getMisinformation: {
+    [roleId: string]: (data: any) => any;
+  };
   poppyGrowerDead?: boolean;
   lastDuskExecution?: number | null;
   outsiderDiedToday?: boolean;

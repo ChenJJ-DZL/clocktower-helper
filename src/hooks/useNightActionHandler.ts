@@ -14,6 +14,7 @@ import { NightInfoResult } from "../types/game";
 import { RoleDefinition, NightActionContext, NightActionResult } from "../types/roleDefinition";
 import { getRoleDefinition } from "../roles";
 import { ModalType } from "../types/modal";
+import { computeIsPoisoned } from "../utils/gameRules";
 
 
 export interface NightActionHandlerContext {
@@ -25,6 +26,10 @@ export interface NightActionHandlerContext {
   roles: Role[];
   isConfirmed?: boolean;
   actionData?: any;
+  vortoxWorld: boolean;
+  getRegistration: (seat: Seat, viewer?: Role | null) => any;
+  getMisinformation: { [key: string]: (data: any) => any };
+  findNearestAliveNeighbor: (originId: number, direction: 1 | -1) => Seat | null;
 
   // 状态更新函数
   setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
@@ -86,6 +91,12 @@ export function useNightActionHandler() {
       roles: context.roles,
       isConfirmed: context.isConfirmed,
       actionData: context.actionData,
+      vortoxWorld: context.vortoxWorld,
+      getRegistration: context.getRegistration,
+      getMisinformation: context.getMisinformation,
+      findNearestAliveNeighbor: context.findNearestAliveNeighbor,
+      isActorDisabledByPoisonOrDrunk: (seat: Seat) => computeIsPoisoned(seat, seats) || seat.isDrunk || seat.role?.id === 'drunk',
+      addLog: context.addLog,
       helpers: {
         setSeats: context.setSeats,
         addLog: context.addLog,

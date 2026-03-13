@@ -70,6 +70,8 @@ export interface ExecutionHandlersDeps {
     hasUsedAbility: (roleId: string, seatId: number) => boolean;
     reviveSeat: (seat: Seat) => Seat;
     insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
+    getMisinformation: { [roleId: string]: (data: any) => any };
+    findNearestAliveNeighbor: (originId: number, direction: 1 | -1) => Seat | null;
 
     // Sub-hook results
     nightLogic: { processDemonKill: (targetId: number, options?: any) => 'pending' | 'resolved'; startNight: (isFirstNight: boolean) => void };
@@ -104,6 +106,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         nightLogic, processingRef, moonchildChainPendingRef,
         setWinResult, setGamePhase,
         markAbilityUsed, hasUsedAbility, reviveSeat, insertIntoWakeQueueAfterCurrent,
+        getMisinformation, findNearestAliveNeighbor,
     } = deps;
 
     const { handleExecution } = useExecutionHandler();
@@ -396,6 +399,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             hasUsedAbility,
             reviveSeat,
             insertIntoWakeQueueAfterCurrent,
+            vortoxWorld: isVortoxWorld,
+            getRegistration: getRegistrationCached,
+            getMisinformation,
+            findNearestAliveNeighbor,
         };
 
         if (!handleNightAction(nightActionHandlerContext)) {
@@ -451,6 +458,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             hasUsedAbility,
             reviveSeat,
             insertIntoWakeQueueAfterCurrent,
+            vortoxWorld: isVortoxWorld,
+            getRegistration: getRegistrationCached,
+            getMisinformation,
+            findNearestAliveNeighbor,
         };
 
         if (!handleNightAction(nightActionHandlerContext)) {

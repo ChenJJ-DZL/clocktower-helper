@@ -228,7 +228,8 @@ export function GameModals() {
         <ReviewModal
           isOpen={true}
           onClose={() => actions.setCurrentModal(null)}
-          seats={victorySnapshot}
+          seats={seats}
+          victorySnapshot={victorySnapshot}
           gameLogs={gameLogs}
           gamePhase={gamePhase}
           winResult={winResult}

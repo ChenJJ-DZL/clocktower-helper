@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Seat, GamePhase } from "../../app/data";
+import { Seat, GamePhase, Role } from "../../app/data";
 import { RoleDefinition, NightActionContext, NightActionResult } from "../types/roleDefinition";
 import { getRoleDefinition } from "../roles/index";
 
@@ -55,6 +55,10 @@ export interface ExecuteActionOptions {
    * 当前夜晚计数（首夜为 0 或 1）
    */
   nightCount: number;
+  vortoxWorld?: boolean;
+  getRegistration?: (seat: Seat, viewer?: Role | null) => any;
+  getMisinformation?: { [key: string]: (data: any) => any };
+  findNearestAliveNeighbor?: (originId: number, direction: 1 | -1) => Seat | null;
 }
 
 /**
@@ -108,6 +112,12 @@ export function useRoleAction() {
       selfId: performerId,
       gamePhase,
       nightCount,
+      vortoxWorld: options.vortoxWorld || false,
+      getRegistration: options.getRegistration || ((s: Seat) => ({ registersAsDemon: s.role?.type === 'demon' || s.isDemonSuccessor, registersAsMinion: s.role?.type === 'minion', registersAsSpy: false })),
+      getMisinformation: options.getMisinformation || {},
+      findNearestAliveNeighbor: options.findNearestAliveNeighbor,
+      addLog: (msg: string) => console.log(msg),
+      isActorDisabledByPoisonOrDrunk: (s: Seat) => s.isPoisoned || s.isDrunk,
     };
 
     // 5. 执行 handler

@@ -8,11 +8,20 @@ export function useVillageState() {
 
     return useMemo(() => ({
         gamePhase,
-        setGamePhase: (phase: GamePhase) => dispatch(gameActions.setGamePhase(phase)),
+        setGamePhase: (val: GamePhase | ((prev: GamePhase) => GamePhase)) => {
+            const next = typeof val === 'function' ? val(state.gamePhase) : val;
+            dispatch(gameActions.setGamePhase(next));
+        },
         nightCount,
-        setNightCount: (count: number) => dispatch(gameActions.updateState({ nightCount: count })),
+        setNightCount: (val: number | ((prev: number) => number)) => {
+            const next = typeof val === 'function' ? val(state.nightCount) : val;
+            dispatch(gameActions.updateState({ nightCount: next }));
+        },
         timer,
-        setTimer: (t: number) => dispatch(gameActions.setTimer(t)),
+        setTimer: (val: number | ((prev: number) => number)) => {
+            const next = typeof val === 'function' ? val(state.timer) : val;
+            dispatch(gameActions.setTimer(next));
+        },
         // timer running state is handled in useGameFlow or separately, keeping compatibility
         isTimerRunning: true, 
         setIsTimerRunning: () => {}, 
@@ -22,8 +31,14 @@ export function useVillageState() {
             dispatch(gameActions.updateState({ gameLogs: next }));
         },
         winResult,
-        setWinResult: (res: WinResult) => dispatch(gameActions.setWinResult(res, state.winReason)),
+        setWinResult: (val: WinResult | ((prev: WinResult) => WinResult)) => {
+            const next = typeof val === 'function' ? val(state.winResult) : val;
+            dispatch(gameActions.setWinResult(next, state.winReason));
+        },
         winReason: winReason || "",
-        setWinReason: (reason: string) => dispatch(gameActions.setWinResult(state.winResult, reason)),
+        setWinReason: (val: string | ((prev: string | null) => string | null)) => {
+            const next = typeof val === 'function' ? (val(state.winReason) || "") : val;
+            dispatch(gameActions.setWinResult(state.winResult, next));
+        },
     }), [state, dispatch, gamePhase, nightCount, timer, gameLogs, winResult, winReason]);
 }

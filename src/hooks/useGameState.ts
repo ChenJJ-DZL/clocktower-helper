@@ -62,7 +62,10 @@ export function useGameState() {
   }, [dispatch, state.seats]);
   const setInitialSeats = useCallback((val: Seat[]) => dispatch(gameActions.updateState({ initialSeats: val })), [dispatch]);
   const setVictorySnapshot = useCallback((val: Seat[]) => dispatch(gameActions.updateState({ victorySnapshot: val })), [dispatch]);
-  const setGamePhase = useCallback((val: GamePhase) => dispatch(gameActions.setGamePhase(val)), [dispatch]);
+  const setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>> = useCallback((val) => {
+    const next = typeof val === 'function' ? (val as (p: GamePhase) => GamePhase)(state.gamePhase) : val;
+    dispatch(gameActions.setGamePhase(next));
+  }, [dispatch, state.gamePhase]);
   const setSelectedScript = useCallback((val: Script | null) => dispatch(gameActions.updateState({ selectedScript: val })), [dispatch]);
   const setNightCount = useCallback((val: number | ((prev: number) => number)) => {
     const next = typeof val === 'function' ? val(state.nightCount) : val;

@@ -12,7 +12,8 @@ import React, { createContext, useContext, ReactNode } from "react";
  * 因此由 page.tsx 调用并通过此 Context 下发。
  */
 
-import type { useGameController, VfxTrigger } from "../hooks/useGameController";
+import type { useGameController } from "../hooks/useGameController";
+import type { VfxTrigger } from "./GameContext";
 
 // 实际类型安全由 useGameController 的返回值保证
 export type GameActionsType = ReturnType<typeof useGameController>;

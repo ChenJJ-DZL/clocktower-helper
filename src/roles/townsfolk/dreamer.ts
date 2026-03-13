@@ -1,5 +1,5 @@
 import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import { Seat, Role } from "../../types/game";
 import { getRegistration, getRandom } from "../../utils/gameRules";
 
 /**

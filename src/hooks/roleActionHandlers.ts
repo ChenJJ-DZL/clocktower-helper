@@ -1012,6 +1012,75 @@ export function handleDevilsAdvocateConfirm(context: RoleConfirmContext): RoleCo
 }
 
 /**
+ * 下毒行动执行函数
+ */
+export function executePoisonAction(
+  targetId: number,
+  isEvil: boolean,
+  context: {
+    nightInfo: NightInfoResult;
+    seats: Seat[];
+    setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
+    setCurrentModal: (modal: any) => void;
+    setSelectedActionTargets: (targets: number[]) => void;
+    continueToNextAction: () => void;
+    isActorDisabledByPoisonOrDrunk: (seat: Seat | undefined, isPoisoned: boolean) => boolean;
+    addLogWithDeduplication: (msg: string, playerId?: number, roleName?: string) => void;
+    addPoisonMark: (seat: Seat, type: any, time: string) => any;
+    computeIsPoisoned: (seat: Seat, seats: Seat[]) => boolean;
+  }
+) {
+  const {
+    nightInfo, seats, setSeats, continueToNextAction, 
+    isActorDisabledByPoisonOrDrunk, addLogWithDeduplication, 
+    addPoisonMark
+  } = context;
+  
+  const actorId = nightInfo?.seat?.id;
+  const actorSeat = actorId !== undefined ? seats.find(s => s.id === actorId) : undefined;
+  if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo?.isPoisoned ?? false)) {
+    addLogWithDeduplication(
+      `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? '未知'}) 处于中毒/醉酒状态，下毒失效`,
+      actorId,
+      nightInfo?.effectiveRole?.name
+    );
+    continueToNextAction();
+    return;
+  }
+
+  setSeats((prev: any) => prev.map((s: any) => {
+    if (s.id === targetId) {
+      const { statusDetails, statuses } = addPoisonMark(s, 'poisoner', '永久');
+      return { ...s, isPoisoned: true, statusDetails, statuses };
+    }
+    return s;
+  }));
+
+  addLogWithDeduplication(
+     `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? '未知'}) 使 ${targetId + 1}号 中毒`,
+    actorId,
+    nightInfo?.effectiveRole?.name
+  );
+  continueToNextAction();
+}
+
+/**
+ * 下毒者确认处理
+ */
+export function handlePoisonerConfirm(context: RoleConfirmContext): RoleConfirmResult {
+  const { nightInfo, selectedTargets } = context;
+  if (nightInfo.effectiveRole.id !== 'poisoner') return { handled: false };
+
+  if (selectedTargets.length !== 1) {
+    alert("下毒者必须选择一名玩家");
+    return { handled: true, shouldWait: true };
+  }
+
+  // 真正的执行由 executePoisonAction 处理（由 useExecutionHandlers 调用）
+  return { handled: false };
+}
+
+/**
  * 角色确认处理函数映射表
  */
 export const roleConfirmHandlers: Record<string, (context: RoleConfirmContext) => RoleConfirmResult> = {
@@ -1028,6 +1097,7 @@ export const roleConfirmHandlers: Record<string, (context: RoleConfirmContext) =
 
 
 
+  'poisoner': handlePoisonerConfirm,
   'pukka': handlePukkaConfirm,
 
 

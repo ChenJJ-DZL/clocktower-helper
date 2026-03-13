@@ -75,9 +75,9 @@ export type GameAction =
   | { type: 'EXECUTE_PLAYER'; targetId: number }
   | { type: 'REVIVE_PLAYER'; targetId: number }
   | { type: 'NIGHT_ACTION'; roleId: string; targets: number[]; info?: any }
-  | { type: 'NIGHT_ACTION'; roleId: string; targets: number[]; info?: any }
   | { type: 'CHECK_GAME_OVER'; executedId?: number; lastAction?: 'execution' | 'night_death' | 'check_phase'; context?: GameContext }
-  | { type: 'IMP_STAR_PASS'; oldImpId: number; newImpId: number };
+  | { type: 'IMP_STAR_PASS'; oldImpId: number; newImpId: number }
+  | { type: 'DECLARE_MAYOR_WIN' };
 
 export function processGameEvent(
   currentSeats: Seat[],
@@ -276,6 +276,11 @@ export function processGameEvent(
         }
       }
       // Note: Wake Queue cleanup and DeadThisNight update must be handled by Controller side effects
+      break;
+    }
+    case 'DECLARE_MAYOR_WIN': {
+      winner = 'Good';
+      winReason = '市长身份获胜';
       break;
     }
   }

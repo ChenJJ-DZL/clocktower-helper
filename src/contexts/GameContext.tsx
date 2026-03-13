@@ -163,6 +163,7 @@ export type GameAction =
   | { type: 'UPDATE_USED_ONCE_ABILITIES'; roleId: string; seatId: number }
   | { type: 'UPDATE_PUKKA_QUEUE'; queue: { targetId: number; nightsUntilDeath: number }[] }
   | { type: 'SET_VFX_TRIGGER'; trigger: VfxTrigger }
+  | { type: 'DECLARE_MAYOR_WIN' }
 // ... 可以继续添加更多Action
 
 /**
@@ -395,6 +396,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_VFX_TRIGGER':
       return { ...state, vfxTrigger: action.trigger };
 
+    case 'DECLARE_MAYOR_WIN':
+      return {
+        ...state,
+        winResult: 'good',
+        winReason: '市长身份获胜',
+        gamePhase: 'gameOver'
+      };
+
     default:
       return state;
   }
@@ -579,5 +588,6 @@ export const gameActions = {
   setGameRecords: (records: GameRecord[]): GameAction => ({ type: 'SET_GAME_RECORDS', records }),
   updateUsedOnceAbilities: (roleId: string, seatId: number): GameAction => ({ type: 'UPDATE_USED_ONCE_ABILITIES', roleId, seatId }),
   updatePukkaQueue: (queue: { targetId: number; nightsUntilDeath: number }[]): GameAction => ({ type: 'UPDATE_PUKKA_QUEUE', queue }),
+  declareMayorWin: (): GameAction => ({ type: 'DECLARE_MAYOR_WIN' }),
 };
 

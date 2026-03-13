@@ -87,9 +87,19 @@ export function useLogicDispatcher(
         });
     }, [logicDispatch, isVortoxWorld]);
 
+    const declareMayorImmediateWin = useCallback(() => {
+        addLog("市长发动能力：宣布善良阵营获胜！");
+        setWinResult('good');
+        setWinReason('市长能力发动');
+        setGamePhase('gameOver');
+        setVictorySnapshot(seats.filter(s => s.role));
+        setCurrentModal({ type: 'GAME_OVER', data: null });
+    }, [addLog, setWinResult, setWinReason, setGamePhase, setVictorySnapshot, seats, setCurrentModal]);
+
     return {
         victoryRef,
         logicDispatch,
         checkGameOver,
+        declareMayorImmediateWin
     };
 }

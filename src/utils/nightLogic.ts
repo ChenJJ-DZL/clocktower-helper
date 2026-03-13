@@ -232,11 +232,15 @@ export const calculateNightInfo = (
     demonVotedToday: !!demonVotedToday,
     minionNominatedToday: !!minionNominatedToday,
     executedToday,
-    isEvil: checkEvil,
+    isEvilWithJudgmentFn: checkEvil,
+    targets: [],
+    selfId: currentSeatId,
     getRegistration: getCachedRegistration,
     findNearestAliveNeighbor,
     shouldShowFake,
     getMisinformation,
+    isActorDisabledByPoisonOrDrunk: (seat: Seat) => computeIsPoisoned(seat, seats) || seat.isDrunk || seat.role?.id === 'drunk',
+    addLog: (msg: string) => {}, // Dummy during calculation
   };
 
   if (nightConfig) {

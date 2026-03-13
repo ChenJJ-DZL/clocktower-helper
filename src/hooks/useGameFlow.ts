@@ -34,6 +34,7 @@ export interface UseGameFlowResult {
   handlePreStartNight: () => void;
   handleStartNight: (isFirst: boolean) => void;
   proceedToFirstNight: (roles?: Role[]) => void;
+  confirmNightDeathReport: () => void;
   tickTimer: (delta: number) => void;
 }
 
@@ -91,6 +92,11 @@ export function useGameFlow(): UseGameFlowResult {
   const enterDayPhase = useCallback(() => {
     dispatch(gameActions.setGamePhase('day'));
   }, [dispatch]);
+
+  const confirmNightDeathReport = useCallback(() => {
+    enterDayPhase();
+    dispatch(gameActions.updateState({ currentModal: null }));
+  }, [enterDayPhase, dispatch]);
 
   const enterDuskPhase = useCallback(() => {
     // 保存历史 (这里需要实现 saveHistory 的 Action，目前先用 updateState 模拟)
@@ -370,6 +376,7 @@ export function useGameFlow(): UseGameFlowResult {
     handlePreStartNight,
     handleStartNight,
     proceedToFirstNight,
+    confirmNightDeathReport,
     tickTimer,
   }), [
     gamePhase, nightCount, timer, isTimerRunning,
