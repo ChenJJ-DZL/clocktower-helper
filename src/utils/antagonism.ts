@@ -30,21 +30,14 @@ const MUTUAL_EXCLUSIVE_PAIRS: Array<[string, string]> = [
   ["heretic", "baron"],
   ["heretic", "leech"],
   ["heretic", "pit_hag"],
-  // Actor antagonisms (戏子) - many partners listed by user
+  ["heretic", "humeiniang"], // 狐媚娘
+  // Actor antagonisms (vs Minions)
   ["actor", "spy"],
   ["actor", "godfather"],
   ["actor", "evil_twin"],
   ["actor", "widow"],
   ["actor", "ghost"],
   ["actor", "summoner"],
-  ["actor", "riot"],
-  ["actor", "legion"],
-  ["actor", "leviathan"],
-  ["actor", "lil_monsta"],
-  ["actor", "pukka"],
-  ["actor", "zombuul"],
-  ["actor", "yaggababble"],
-  ["actor", "kazali"],
 ];
 
 // Creator cannot create specific roles (subset we can enforce generically now).

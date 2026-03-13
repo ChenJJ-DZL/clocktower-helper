@@ -2373,16 +2373,10 @@ export function useGameController() {
 
   const declareMayorImmediateWin = useCallback(() => {
     setCurrentModal(null);
-    // 规则对齐：市长若中毒/醉酒，能力可能失效；此处作为说书人“宣告获胜”入口，保留提醒但不强制阻止（避免打断说书人裁定）。
-    const mayorSeat = seats.find(s => s.role?.id === 'mayor' && !s.isDead);
-    if (mayorSeat && isActorDisabledByPoisonOrDrunk(mayorSeat)) {
-      addLog(`提示：市长处于中毒/醉酒状态，按规则其能力可能失效；若仍宣告获胜，请视为说书人裁定`);
-    }
-    setWinResult('good');
-    setWinReason('3人存活且今日不处决市长能力');
-    setGamePhase('gameOver');
-    addLog('市长在场且剩人今日选择不处决好人胜利');
-  }, [setCurrentModal, setWinResult, setWinReason, setGamePhase, addLog, seats]);
+    // 通过中央逻辑分发器处理市长胜利，而不是直接修改状态
+    logicDispatch({ type: 'DECLARE_MAYOR_WIN' });
+    addLog('市长宣告胜利，游戏结束。');
+  }, [setCurrentModal, logicDispatch, addLog]);
 
   const handleRestart = useCallback(() => {
     setCurrentModal({ type: 'RESTART_CONFIRM', data: null });

@@ -108,49 +108,73 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:37-0!canonical and time
 
     // 真正的信息生成与真假角色对由 nightLogic 处理，这里只做日志记录
     handler: (context) => {
-      const { targets, seats, roles, selfId } = context;
-      if (targets.length === 0) return { updates: [], logs: { privateLog: "筑梦师未选择目标" } };
+      const { targets, seats, roles, selfId, isVortoxWorld, shouldShowFake, getMisinformation } = context;
+      if (targets.length !== 1) {
+        // This should be caught by target validation, but as a fallback:
+        return { updates: [], logs: { privateLog: "筑梦师必须选择且仅选择一名玩家" } };
+      }
 
       const targetId = targets[0];
       const targetSeat = seats.find(s => s.id === targetId);
-      if (!targetSeat || !targetSeat.role) return { updates: [], logs: { privateLog: "无效目标" } };
-
-      const registrant = getRegistration(targetSeat, { id: 'dreamer' } as any);
-      const isGoodReg = registrant.alignment === 'Good';
-
-      const goodRoles = roles!.filter(r => r.type === 'townsfolk' || r.type === 'outsider');
-      const evilRoles = roles!.filter(r => r.type === 'minion' || r.type === 'demon');
-
-      let roleA, roleB;
-
-      if (isGoodReg) {
-        // 目标注册为善良，给一个正确的善良角色和一个虚假的邪恶角色
-        roleA = targetSeat.role;
-        roleB = getRandom(evilRoles);
-      } else {
-        // 目标注册为邪恶，给一个虚假的善良角色和一个正确的邪恶角色
-        roleA = getRandom(goodRoles);
-        roleB = targetSeat.role;
+      if (!targetSeat || !targetSeat.role) {
+        return { updates: [], logs: { privateLog: `无效目标: ${targetId}` } };
       }
 
-      // 保证 roleA 总是善良，roleB 总是邪恶（即便其中一个是真实的）
-      // 如果目标是隐士（注册为邪恶），则 roleA 是随机好人，roleB 是隐士
-      // 如果目标是间谍（注册为善良），则 roleA 是间谍，roleB 是随机坏人
+      const actualRole = targetSeat.role;
+      const reg = getRegistration(targetSeat, { id: 'dreamer' } as any);
+      let isGoodReg = reg.alignment === 'Good';
 
-      const resRoleA = roles!.find(r => r.id === (isGoodReg ? roleA.id : roleA.id))!;
-      const resRoleB = roles!.find(r => r.id === (isGoodReg ? roleB.id : roleB.id))!;
+      // Vortox world inverts townsfolk info. If dreamer is a townsfolk and not disabled, their info is wrong.
+      if (isVortoxWorld) {
+        isGoodReg = !isGoodReg;
+      }
+      
+      // Handle poison/drunk fake info
+      if (shouldShowFake) {
+        isGoodReg = !isGoodReg;
+      }
+
+      const townsfolk = roles!.filter(r => r.type === 'townsfolk');
+      const outsiders = roles!.filter(r => r.type === 'outsider' || r.id === 'drunk');
+      const minions = roles!.filter(r => r.type === 'minion');
+      const demons = roles!.filter(r => r.type === 'demon');
+
+      const goodRoles = [...townsfolk, ...outsiders];
+      const evilRoles = [...minions, ...demons];
+
+      let roleA: Role;
+      let roleB: Role;
+
+      if (isGoodReg) {
+        const correctGoodRole = (actualRole.type === 'townsfolk' || actualRole.type === 'outsider' || actualRole.id === 'drunk')
+          ? actualRole
+          : getRandom(goodRoles);
+        roleA = correctGoodRole;
+        roleB = getRandom(evilRoles);
+      } else {
+        const correctEvilRole = (actualRole.type === 'minion' || actualRole.type === 'demon')
+          ? actualRole
+          : getRandom(evilRoles);
+        roleA = getRandom(goodRoles);
+        roleB = correctEvilRole;
+      }
+      
+      // Randomize position
+      if (Math.random() < 0.5) {
+        [roleA, roleB] = [roleB, roleA];
+      }
 
       return {
         updates: [],
         logs: {
-          privateLog: `筑梦师选择了${targetId + 1}号位，得知：${resRoleA.name}, ${resRoleB.name}`,
-          secretInfo: `得知：${resRoleA.name}, ${resRoleB.name}`
+          privateLog: `筑梦师选择了${targetId + 1}号位，得知：${roleA.name}, ${roleB.name}`,
+          secretInfo: `得知：${roleA.name}, ${roleB.name}`
         },
         modal: {
           type: 'DREAMER_RESULT',
           data: {
-            roleA: resRoleA,
-            roleB: resRoleB
+            roleA: roleA,
+            roleB: roleB
           }
         }
       };

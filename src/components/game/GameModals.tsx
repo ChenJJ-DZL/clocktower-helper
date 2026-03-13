@@ -224,12 +224,11 @@ export function GameModals() {
         onConfirm={actions.confirmMoonchildKill}
       />
 
-      {currentModal?.type === 'REVIEW' && victorySnapshot.length > 0 && (
+      {currentModal?.type === 'REVIEW' && victorySnapshot && victorySnapshot.length > 0 && (
         <ReviewModal
           isOpen={true}
           onClose={() => actions.setCurrentModal(null)}
-          seats={seats}
-          victorySnapshot={victorySnapshot}
+          seats={victorySnapshot}
           gameLogs={gameLogs}
           gamePhase={gamePhase}
           winResult={winResult}

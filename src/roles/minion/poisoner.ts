@@ -41,32 +41,28 @@ export const poisoner: RoleDefinition = {
     },
 
     handler: (context) => {
-      const { seats, targets, selfId } = context;
+      const { seats, targets, selfId, isConfirmed, isActorDisabledByPoisonOrDrunk, addLog } = context;
 
+      const selfSeat = seats.find(s => s.id === selfId);
+      if (!selfSeat) return null;
+
+      if (isActorDisabledByPoisonOrDrunk?.(selfSeat)) {
+        addLog?.(`投毒者（${selfId + 1}号）中毒或醉酒，能力失效。`);
+        return { updates: [] };
+      }
+      
       if (targets.length !== 1) {
-        // 无效目标数量
-        return {
-          updates: [],
-          logs: {
-            privateLog: `投毒者（${selfId + 1}号）未选择有效目标`,
-          },
-        };
+        return { updates: [], logs: { privateLog: "投毒者必须选择一名玩家" } };
       }
 
       const targetId = targets[0];
       const targetSeat = seats.find(s => s.id === targetId);
 
       if (!targetSeat) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `投毒者（${selfId + 1}号）选择了无效目标`,
-          },
-        };
+        return { updates: [], logs: { privateLog: `投毒者选择了无效目标: ${targetId}` } };
       }
 
-      // 防呆设计：如果误选了邪恶阵营玩家，必须中断动作并弹出二次警告确认框
-      if (!context.isConfirmed && isEvil(targetSeat)) {
+      if (!isConfirmed && isEvil(targetSeat)) {
         return {
           updates: [],
           modal: {
@@ -75,12 +71,21 @@ export const poisoner: RoleDefinition = {
           }
         };
       }
+      
+      if (!isConfirmed) {
+        return {
+          updates: [],
+          modal: {
+            type: 'POISON_CONFIRM',
+            data: { targetId }
+          }
+        };
+      }
 
-      // 投毒：当晚 + 次日白天中毒，黄昏清除
       const { statusDetails, statuses } = addPoisonMark(
         targetSeat,
         'poisoner',
-        '次日黄昏清除'
+        '次日黄昏'
       );
 
       const updates: Array<Partial<Seat> & { id: number }> = [
@@ -88,14 +93,14 @@ export const poisoner: RoleDefinition = {
           id: targetId,
           statusDetails,
           statuses,
-          isPoisoned: computeIsPoisoned({ ...targetSeat, statusDetails, statuses }),
+          isPoisoned: computeIsPoisoned({ ...targetSeat, statusDetails, statuses }, seats),
         },
       ];
 
       return {
         updates,
         logs: {
-          privateLog: `投毒者（${selfId + 1}号）对${targetId + 1}号玩家下毒`,
+          privateLog: `投毒者（${selfId + 1}号）对 ${targetId + 1}号 玩家下毒`,
         },
       };
     },

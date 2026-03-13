@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import { RoleDefinition, NightActionContext } from "../../types/roleDefinition";
 import { Seat } from "../../types/game";
 
 /**
@@ -7,7 +7,6 @@ import { Seat } from "../../types/game";
  * 在你的首个夜晚，你会得知恶魔与爪牙之间最近的距离（邻座为 1）。
  * - 只在首夜获得一次信息，之后不再唤醒；
  * - 距离按环形座位计算，取所有“恶魔-爪牙”组合中的最小值；
- * - 具体数值的计算与真 / 假信息、涡流环境等，委托给统一的 `nightLogic` 信息管线。
  */
 export const clockmaker: RoleDefinition = {
   id: "clockmaker",
@@ -43,7 +42,7 @@ export const clockmaker: RoleDefinition = {
 - 提供正确的钟表匠信息实际上对于邪恶阵营也非常有帮助。如果大家认为你是善良的，选择相信你的信息，那么他们可能就不会在使用钟表匠信息的时候把你当做是爪牙或者恶魔，也因此他们无法发现谁实际上会是恶魔。如果他们认为你是邪恶的，那么他们很有可能会认为你给出的是错误的信息，因此也会阻碍他们找到真正的恶魔。
 - 如果你是恶魔选择要伪装成钟表匠，那么在第一天活下来显得尤为重要。作为梦殒春宵中唯一一个在首夜就能得到信息的角色，并且无法再获取任何信息，善良阵营的玩家们将更倾向于在第一天将钟表匠处决掉。等到第二天或之后，你再揭示你钟表匠的角色，将有助于你从游戏早期、风险更大的时期中活下来。
 - 提供假信息时，选择提供小数字可能更好。如果你提供的数字快要到人数的一半了，这就暗示了恶魔和爪牙实际基本面对面而坐了。此外，如果本局有多个爪牙，那么较大的数字就意味着这些爪牙都坐在一起了，而玩家们很可能不会相信这一点。较小的数字可以和较大数字一样令人困惑。所以，请慎重考虑你将要选择的数字。
-- 由于善良阵营的玩家们很容易通过爪牙能力所表现的现象消失来推测谁是爪牙，所以在夜晚杀死爪牙不是一个明智的选择。例如，善良阵营的玩家会认为他们处决了麻脸巫婆（因为他们发现没有人再发生角色改变），那么去杀死可能证明或反驳你的钟表匠信息的会是恶魔的玩家会让你很难受，然而如果你在晚上杀死了麻脸巫婆，那么善良玩家们更倾向于认为他们在白天确实处决了麻脸巫婆。这可能会帮助或阻碍你的目标，取决于善良玩家们相信什么，尤其是是否相信涡流在场。
+- 由于善良阵营的玩家们很容易通过爪牙能力所表现的现象消失来推测谁是爪牙，所以在夜晚杀死爪牙不是一个明智的选择。例如，善良阵营的玩家会认为他们处决了麻脸巫婆（因为他们发现没有人再发生角色改变），那么去杀死可能证明或反驳你的钟表匠信息的会是恶魔的玩家会让你很难受，然而如果你在晚上杀死了麻脸巫巫婆，那么善良玩家们更倾向于认为他们在白天确实处决了麻脸巫婆。这可能会帮助或阻碍你的目标，取决于善良玩家们相信什么，尤其是是否相信涡流在场。
 【角色信息】
 - 英文名：Clockmaker
 - 所属剧本：梦殒春宵
@@ -65,7 +64,7 @@ Unstrip recursion depth: 0/20
 Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
-Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and timestamp 20260119184652 and revision id 4896. Serialized with JSON.`,
+Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and timestamp 20260119184652 and revision id 4896. Serialized with JSON。`,
   clarifications: [
     `当钟表匠即将被唤醒之前，说书人会根据当前场上的情况给出实时的信息。这意味着钟表匠得知的信息可能会与游戏初始时的情况有所不同，因为有一些角色的能力能够在游戏的过程中改变玩家的角色（如麻脸巫婆和理发师等）。`,
     `钟表匠在获得信息时，说书人需要每次抽取两名玩家（其中一名为恶魔，另一名为爪牙，必须是两名不同的玩家）进行距离计算，直到将场上所有的“恶魔-爪牙”组合遍历完毕。这一过程类似于厨师，会进行多次判断，因此某些角色可能会在不同的玩家组合中被当作为不同的结果（如间谍、陌客、照看小怪宝的爪牙等）。最后，说书人会将这些距离值中的最小值作为信息提供给钟表匠。`,
@@ -73,20 +72,19 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
     `在抽取两名玩家的组合时，即使是已死亡的玩家也依然会被钟表匠进行探查。`,
     `相克规则：召唤师：如果召唤师在场，在创造恶魔之后钟表匠才会得知信息。`
   ],
-  
+
   night: {
     order: (isFirstNight) => isFirstNight ? 4 : 0,
-    
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+
+    dialog: (playerSeatId: number, isFirstNight: boolean, context: NightActionContext) => {
       if (!isFirstNight) {
-        // 非首夜不再唤醒，由夜晚队列控制
         return { wake: "", instruction: "", close: "" };
       }
       return {
@@ -95,13 +93,49 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
         close: `${playerSeatId + 1}号玩家（钟表匠），请闭眼。`,
       };
     },
-    
-    // 具体信息在 nightLogic 中计算与记录，这里无需额外 handler
-    handler: (context) => ({
-      updates: [],
-      logs: {
-        privateLog: `钟表匠（${context.selfId + 1}号）在首夜获得了距离信息`,
-      },
-    }),
+
+    handler: (context: NightActionContext) => {
+      const { seats, gamePhase, selfId } = context;
+      if (gamePhase !== 'firstNight') {
+        return null;
+      }
+
+      // Jinx: If Summoner is in play, they are considered a demon.
+      const summonerInPlay = seats.some(s => s.role?.id === 'summoner');
+
+      const demons = seats.filter(s => s.role?.type === 'demon' || (summonerInPlay && s.role?.id === 'summoner'));
+      const minions = seats.filter(s => s.role?.type === 'minion');
+
+      if (demons.length === 0 || minions.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `钟表匠（${selfId + 1}号）得知距离为 0（无恶魔或爪牙）。`
+          },
+          speak: ["说书人手势：0"],
+        };
+      }
+
+      let minDistance = seats.length;
+
+      for (const demon of demons) {
+        for (const minion of minions) {
+          if (demon.id === minion.id) continue;
+          const diff = Math.abs(demon.id - minion.id);
+          const distance = Math.min(diff, seats.length - diff);
+          if (distance < minDistance) {
+            minDistance = distance;
+          }
+        }
+      }
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `钟表匠（${selfId + 1}号）得知恶魔与爪牙的最近距离为 ${minDistance}`
+        },
+        speak: [`说书人手势：${minDistance}`],
+      };
+    },
   },
 };

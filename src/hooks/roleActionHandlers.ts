@@ -72,126 +72,9 @@ export interface RoleConfirmResult {
   shouldWait?: boolean;
 }
 
-/**
- * 投毒者确认处理（检查是否需要弹窗）
- */
-export function handlePoisonerConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, seats, selectedTargets, setCurrentModal, isEvil } = context;
-  const roleId = nightInfo.effectiveRole.id;
-  const isPoisoner = roleId === 'poisoner' || roleId === 'poisoner_mr';
 
-  if (!isPoisoner) {
-    return { handled: false };
-  }
 
-  // 校验：必须选择且仅选择一名玩家
-  if (selectedTargets.length === 0) {
-    alert("请选择一名玩家进行下毒");
-    return { handled: true, shouldWait: true }; // 阻止后续逻辑，停留在当前步骤
-  }
 
-  if (selectedTargets.length > 1) {
-    alert("投毒者每晚只能选择一名玩家，请取消多余的选择");
-    return { handled: true, shouldWait: true }; // 阻止后续逻辑
-  }
-
-  const targetId = selectedTargets[0];
-  const targetSeat = seats.find(s => s.id === targetId);
-
-  if (targetSeat && !targetSeat.isDead) {
-    // 投毒者选择邪恶目标需要特殊确认
-    if (roleId === 'poisoner' && isEvil(targetSeat)) {
-      setCurrentModal({ type: 'POISON_EVIL_CONFIRM', data: { targetId } });
-      return { handled: true, shouldWait: true };
-    }
-    // 其他情况显示普通确认弹窗
-    setCurrentModal({ type: 'POISON_CONFIRM', data: { targetId } });
-    return { handled: true, shouldWait: true };
-  }
-
-  // 如果选中了已死亡玩家（理论上不应发生，因为UI层应限制，但做个保底）
-  if (targetSeat?.isDead) {
-    alert("无法对已死亡的玩家下毒");
-    return { handled: true, shouldWait: true };
-  }
-
-  return { handled: false };
-}
-
-/**
- * 投毒者执行下毒（确认弹窗后的执行逻辑）
- */
-export function executePoisonAction(
-  targetId: number,
-  isEvilTarget: boolean,
-  context: {
-    nightInfo: NightInfoResult;
-    seats: Seat[];
-    setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
-    setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
-    setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>>;
-    continueToNextAction: () => void;
-    isActorDisabledByPoisonOrDrunk: (seat: Seat | undefined, knownIsPoisoned?: boolean) => boolean;
-    addLogWithDeduplication: (msg: string, playerId?: number, roleName?: string) => void;
-    addPoisonMark: (seat: Seat, poisonType: 'permanent' | 'vigormortis' | 'pukka' | 'poisoner' | 'poisoner_mr' | 'no_dashii' | 'cannibal' | 'snake_charmer', clearTime: string) => { statusDetails: string[]; statuses: any[] };
-    computeIsPoisoned: (seat: Seat, allSeats?: Seat[]) => boolean;
-  }
-): void {
-  const {
-    nightInfo,
-    seats,
-    setSeats,
-    setCurrentModal,
-    setSelectedActionTargets,
-    continueToNextAction,
-    isActorDisabledByPoisonOrDrunk,
-    addLogWithDeduplication,
-    addPoisonMark,
-    computeIsPoisoned
-  } = context;
-
-  if (!nightInfo || targetId === null) return;
-
-  // 如果投毒者本身中毒/醉酒则本次下毒应视为无事发生
-  const actorSeat = seats.find(s => s.id === nightInfo?.seat?.id);
-  if (isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo.isPoisoned)) {
-    addLogWithDeduplication(
-      `${nightInfo.seat.id + 1}号(投毒者) 处于中毒/醉酒状态，本夜对${targetId + 1}号${isEvilTarget ? '(队友)' : ''}的下毒无效，无事发生`,
-      nightInfo.seat.id,
-      '投毒者'
-    );
-    setCurrentModal(null);
-    setSelectedActionTargets([]);
-    continueToNextAction();
-    return;
-  }
-
-  // 注意保留永久中毒标记舞蛇人制造和亡骨魔中毒标记
-  setSeats(p => p.map(s => {
-    if (s.id === targetId) {
-      // 投毒者当晚和明天白天中毒在次日黄昏清除
-      const clearTime = '次日黄昏';
-      const roleId = nightInfo.effectiveRole.id;
-      const { statusDetails, statuses } = addPoisonMark(s,
-        roleId === 'poisoner_mr' ? 'poisoner_mr' : 'poisoner',
-        clearTime
-      );
-      const nextSeat = { ...s, statusDetails, statuses };
-      return { ...nextSeat, isPoisoned: computeIsPoisoned(nextSeat, context.seats) };
-    }
-    return { ...s, isPoisoned: computeIsPoisoned(s, context.seats) };
-  }));
-
-  addLogWithDeduplication(
-    `${nightInfo.seat.id + 1}号(投毒者) 对 ${targetId + 1}号${isEvilTarget ? '(队友)' : ''}下毒`,
-    nightInfo.seat.id,
-    '投毒者'
-  );
-
-  setCurrentModal(null);
-  setSelectedActionTargets([]);
-  continueToNextAction();
-}
 
 
 /**
@@ -465,194 +348,11 @@ export function handlePoConfirm(context: RoleConfirmContext): RoleConfirmResult 
   return { handled: true, shouldWait: true };
 }
 
-/**
- * 旅店老板确认处理
- */
-export function handleInnkeeperConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const {
-    nightInfo,
-    seats,
-    selectedTargets,
-    gamePhase,
-    setSelectedActionTargets,
-    setSeats,
-    addDrunkMark,
-    continueToNextAction,
-    addLog
-  } = context;
 
-  if (nightInfo.effectiveRole.id !== 'innkeeper' || gamePhase === 'firstNight') {
-    return { handled: false };
-  }
 
-  if (selectedTargets.length !== 2) {
-    if (selectedTargets.length < 2) alert("请选择两名玩家进行保护");
-    else alert("旅店老板每晚必须选择恰好两名目标");
-    return { handled: true, shouldWait: true };
-  }
 
-  const [aId, bId] = selectedTargets;
-  setSelectedActionTargets([]);
-  const drunkTargetId = Math.random() < 0.5 ? aId : bId;
 
-  setSeats(prev => prev.map(s => {
-    if (s.id === aId || s.id === bId) {
-      const seatId = nightInfo?.seat?.id ?? 0;
-      const base = { ...s, isProtected: true, protectedBy: seatId };
-      if (s.id === drunkTargetId) {
-        const clearTime = '次日黄昏';
-        const { statusDetails, statuses } = addDrunkMark(base, 'innkeeper', clearTime);
-        const nextSeat = { ...base, statusDetails, statuses };
-        return { ...nextSeat, isDrunk: true };
-      }
-      return base;
-    }
-    return s;
-  }));
 
-  const seatId = nightInfo?.seat?.id ?? 0;
-  addLog(`${seatId + 1}号(旅店老板) 今晚保护${aId + 1}号、${bId + 1}号，他们不会被恶魔杀死，其中一人醉酒到下个黄昏，信息可能错误`);
-  continueToNextAction();
-  return { handled: true };
-}
-
-/**
- * 水手确认处理（黯月初升）
- * 规则要点：
- * - 每晚选择 1 名存活玩家：水手或目标其中一人醉酒到下个黄昏
- * - 水手健康时不会死亡（免死链路在 killPlayer 里统一处理）
- */
-export function handleSailorConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const {
-    nightInfo,
-    selectedTargets,
-    gamePhase,
-    setSelectedActionTargets,
-    setSeats,
-    addDrunkMark,
-    continueToNextAction,
-    addLog,
-  } = context;
-
-  if (nightInfo.effectiveRole.id !== 'sailor' || gamePhase === 'firstNight') {
-    return { handled: false };
-  }
-
-  if (selectedTargets.length !== 1) {
-    if (selectedTargets.length === 0) alert("请选择一名存活玩家");
-    else alert("水手每晚只能选择一名目标");
-    return { handled: true, shouldWait: true };
-  }
-
-  const targetId = selectedTargets[0];
-  const sailorId = nightInfo.seat.id;
-  setSelectedActionTargets([]);
-
-  // 随机决定谁醉（由说书人裁定为“随机”）
-  const drunkSeatId = Math.random() < 0.5 ? sailorId : targetId;
-  const clearTime = '下个黄昏';
-
-  setSeats(prev => prev.map(s => {
-    if (s.id !== drunkSeatId) return s;
-    const { statusDetails, statuses } = addDrunkMark(s, 'sailor', clearTime);
-    return { ...s, statusDetails, statuses, isDrunk: true };
-  }));
-
-  addLog(`🍺 ${sailorId + 1}号(水手) 选择了 ${targetId + 1}号：水手或目标之一醉酒直到下个黄昏（随机裁定），信息可能错误`);
-  continueToNextAction();
-  return { handled: true };
-}
-
-/**
- * 侍臣确认处理（黯月初升）
- * - 每局限一次：选择一个“角色”
- * - 若该角色在场，则其中一名该角色玩家从当晚开始醉酒 3 天 3 夜
- *
- * 说明：因为目标类型是“角色”而非“座位”，这里使用弹窗让说书人选择角色。
- */
-export function handleCourtierConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const {
-    nightInfo,
-    seats,
-    roles,
-    selectedTargets,
-    gamePhase,
-    hasUsedAbility,
-    markAbilityUsed,
-    setCurrentModal,
-    setSelectedActionTargets,
-    setSeats,
-    continueToNextAction,
-    addLog,
-  } = context;
-
-  if (nightInfo.effectiveRole.id !== 'courtier' || gamePhase === 'firstNight') {
-    return { handled: false };
-  }
-
-  const courtierSeatId = nightInfo.seat.id;
-  if (hasUsedAbility('courtier', courtierSeatId)) {
-    addLog(`👑 ${courtierSeatId + 1}号(侍臣) 已使用过能力，本夜跳过`);
-    setSelectedActionTargets([]);
-    continueToNextAction();
-    return { handled: true };
-  }
-
-  // 侍臣不走“点座位选择”，直接弹窗选角色
-  if (selectedTargets.length === 0) {
-    setCurrentModal({
-      type: 'COURTIER_SELECT_ROLE',
-      data: {
-        sourceId: courtierSeatId,
-        roles,
-        seats,
-        onConfirm: (roleId: string) => {
-          setCurrentModal(null);
-          setSelectedActionTargets([]);
-
-          const chosenRole = roles.find(r => r.id === roleId);
-          // 先消耗能力（规则对齐：无论选中是否在场，都视为已用）
-          markAbilityUsed('courtier', courtierSeatId);
-
-          // 找到在场的该角色玩家（默认取第一位存活的）
-          const targetSeat = seats.find(s =>
-            !s.isDead &&
-            (s.role?.id === roleId || (s.role?.id === 'drunk' && s.charadeRole?.id === roleId))
-          );
-
-          if (!targetSeat) {
-            addLog(`👑 ${courtierSeatId + 1}号(侍臣) 选择了【${chosenRole?.name || roleId}】，但该角色不在场（能力已消耗）`);
-            continueToNextAction();
-            return;
-          }
-
-          // 从当晚开始醉酒 3 天 3 夜：在 enterDuskPhase 里每个黄昏递减 remainingDays
-          setSeats(prev => prev.map(s => {
-            if (s.id !== targetSeat.id) return s;
-            const nextStatuses = [...(s.statuses || []), { effect: 'Drunk', duration: '侍臣3天3夜', sourceId: courtierSeatId, remainingDays: 3 }];
-            const nextDetails = Array.from(new Set([...(s.statusDetails || []), `侍臣致醉：${chosenRole?.name || roleId}（3天3夜）`]));
-            return { ...s, statuses: nextStatuses, statusDetails: nextDetails, isDrunk: true };
-          }));
-
-          addLog(`👑 ${courtierSeatId + 1}号(侍臣) 选择【${chosenRole?.name || roleId}】：${targetSeat.id + 1}号从当晚开始醉酒 3 天 3 夜`);
-          continueToNextAction();
-        },
-        onCancel: () => {
-          setCurrentModal(null);
-          setSelectedActionTargets([]);
-          addLog(`👑 ${courtierSeatId + 1}号(侍臣) 取消本夜能力（不消耗）`);
-          continueToNextAction();
-        },
-      },
-    });
-    return { handled: true, shouldWait: true };
-  }
-
-  // 理论上不会走到这里（因为侍臣不需要点座位）
-  setSelectedActionTargets([]);
-  continueToNextAction();
-  return { handled: true };
-}
 
 /**
  * 刺客确认处理（黯月初升）
@@ -951,171 +651,15 @@ export function handleImpSuicide(
     return { handled: true, shouldContinue: false };
   }
 }
-/**
- * 筑梦师确认处理
- */
-export function handleDreamerConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, selectedTargets, seats, roles, setCurrentModal, setSelectedActionTargets } = context;
-  if (nightInfo.effectiveRole.id !== 'dreamer') return { handled: false };
 
-  if (selectedTargets.length !== 1) {
-    alert("筑梦师必须选择且仅选择一名玩家");
-    return { handled: true, shouldWait: true };
-  }
 
-  const targetId = selectedTargets[0];
-  const targetSeat = seats.find(s => s.id === targetId);
-  if (!targetSeat) return { handled: true, shouldWait: true };
 
-  const actualRole = targetSeat.role;
-  if (!actualRole) return { handled: true, shouldWait: true };
 
-  // 1. 获取注册阵营（包含隐士/间谍的干扰效果）
-  const reg = getRegistration(targetSeat, { id: 'dreamer' } as Role);
-  const isGoodReg = reg.alignment === 'Good';
 
-  // 2. 根据注册阵营随机生成显示方案
-  const townsfolk = roles.filter(r => r.type === 'townsfolk');
-  const outsiders = roles.filter(r => r.type === 'outsider' || r.id === 'drunk');
-  const minions = roles.filter(r => r.type === 'minion');
-  const demons = roles.filter(r => r.type === 'demon');
 
-  const goodRoles = [...townsfolk, ...outsiders];
-  const evilRoles = [...minions, ...demons];
 
-  let roleA: Role;
-  let roleB: Role;
-  const isCorrectA = Math.random() < 0.5;
 
-  if (isGoodReg) {
-    // 玩家注册为善良，所以正确项必须是善良角色，迷惑项必须是邪恶角色
-    const correctGoodRole = (actualRole.type === 'townsfolk' || actualRole.type === 'outsider' || actualRole.id === 'drunk')
-      ? actualRole
-      : getRandom(goodRoles);
 
-    if (isCorrectA) {
-      roleA = correctGoodRole;
-      roleB = getRandom(evilRoles);
-    } else {
-      roleA = getRandom(evilRoles);
-      roleB = correctGoodRole;
-    }
-  } else {
-    // 玩家注册为邪恶，所以正确项必须是邪恶角色，迷惑项必须是善良角色
-    const correctEvilRole = (actualRole.type === 'minion' || actualRole.type === 'demon')
-      ? actualRole
-      : getRandom(evilRoles);
-
-    if (isCorrectA) {
-      roleA = correctEvilRole;
-      roleB = getRandom(goodRoles);
-    } else {
-      roleA = getRandom(goodRoles);
-      roleB = correctEvilRole;
-    }
-  }
-
-  setCurrentModal({ type: 'DREAMER_RESULT', data: { roleA, roleB } });
-  setSelectedActionTargets([]);
-  return { handled: true, shouldWait: true };
-}
-
-/**
- * 舞蛇人确认处理
- */
-export function handleSnakeCharmerConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, selectedTargets, seats, setSeats, addLog, continueToNextAction, addPoisonMark, setSelectedActionTargets } = context;
-  if (nightInfo.effectiveRole.id !== 'snake_charmer') return { handled: false };
-
-  if (selectedTargets.length !== 1) {
-    alert("舞蛇人必须选择且仅选择一名玩家");
-    return { handled: true, shouldWait: true };
-  }
-
-  const targetId = selectedTargets[0];
-  const targetSeat = seats.find(s => s.id === targetId);
-  const scId = nightInfo.seat.id;
-
-  if (!targetSeat || targetSeat.isDead) {
-    alert("请选择一名存活玩家");
-    return { handled: true, shouldWait: true };
-  }
-
-  // 检查目标是否是恶魔
-  const isTargetDemon = targetSeat.role?.type === 'demon' || targetSeat.isDemonSuccessor;
-
-  if (isTargetDemon) {
-    const scRole = nightInfo.effectiveRole;
-    const demonRole = targetSeat.role!;
-
-    setSeats(prev => prev.map(s => {
-      if (s.id === scId) return { ...s, role: demonRole, isDemonSuccessor: true };
-      if (s.id === targetId) {
-        const { statusDetails, statuses } = addPoisonMark(s, 'snake_charmer', '永久');
-        return { ...s, role: scRole, isPoisoned: true, statusDetails, statuses };
-      }
-      return s;
-    }));
-
-    addLog(`❗ 舞蛇人命中恶魔！${scId + 1}号变为新恶魔(${demonRole.name})，${targetId + 1}号变为舞蛇人且中毒`);
-    alert(`🎉 你命中了恶魔！你现在是新恶魔(${demonRole.name})，原恶魔变为了中毒的舞蛇人。`);
-  } else {
-    addLog(`${scId + 1}号(舞蛇人) 选择 ${targetId + 1}号，未命中恶魔`);
-  }
-
-  setSelectedActionTargets([]);
-  continueToNextAction();
-  return { handled: true };
-}
-
-/**
- * 花女确认处理
- */
-export function handleFlowergirlConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, todayDemonVoted, setCurrentModal, setSelectedActionTargets } = context;
-  if (nightInfo.effectiveRole.id !== 'flowergirl') return { handled: false };
-
-  setCurrentModal({
-    type: 'NIGHT_DEATH_REPORT',
-    data: { message: `花女信息：恶魔今天${todayDemonVoted ? '投票了' : '没有投票'}` }
-  });
-
-  setSelectedActionTargets([]);
-  return { handled: true, shouldWait: true };
-}
-
-/**
- * 镇民传令官确认处理
- */
-export function handleTownCrierConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, todayMinionNominated, setCurrentModal, setSelectedActionTargets } = context;
-  if (nightInfo.effectiveRole.id !== 'town_crier') return { handled: false };
-
-  setCurrentModal({
-    type: 'NIGHT_DEATH_REPORT',
-    data: { message: `镇民传令官信息：爪牙今天${todayMinionNominated ? '提名了' : '没有提名'}` }
-  });
-
-  setSelectedActionTargets([]);
-  return { handled: true, shouldWait: true };
-}
-
-/**
- * 神谕者确认处理
- */
-export function handleOracleConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, seats, isEvil, setCurrentModal, setSelectedActionTargets } = context;
-  if (nightInfo.effectiveRole.id !== 'oracle') return { handled: false };
-
-  const evilDeadCount = seats.filter(s => isEvil(s) && s.isDead).length;
-  setCurrentModal({
-    type: 'NIGHT_DEATH_REPORT',
-    data: { message: `神谕者信息：当前场上已有 ${evilDeadCount} 名邪恶玩家死亡` }
-  });
-
-  setSelectedActionTargets([]);
-  return { handled: true, shouldWait: true };
-}
 
 
 /**
@@ -1151,93 +695,9 @@ export function handlePukkaConfirm(context: RoleConfirmContext): RoleConfirmResu
   return { handled: true };
 }
 
-/**
- * 哲学家（Philosopher）确认处理
- */
-export function handlePhilosopherConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, seats, setSeats, roles, setCurrentModal, addLog, continueToNextAction, markAbilityUsed, hasUsedAbility, addDrunkMark, setSelectedActionTargets } = context;
-  const selfId = nightInfo.seat.id;
 
-  if (nightInfo.effectiveRole.id !== 'philosopher') return { handled: false };
 
-  if (hasUsedAbility('philosopher', selfId)) {
-    continueToNextAction();
-    return { handled: true };
-  }
 
-  setCurrentModal({
-    type: 'ROLE_SELECT',
-    data: {
-      type: 'philosopher',
-      targetId: selfId,
-      onConfirm: (roleId: string) => {
-        const selectedRole = roles.find(r => r.id === roleId);
-        if (!selectedRole) return;
-
-        markAbilityUsed('philosopher', selfId);
-
-        const originalPlayer = seats.find(s => s.role?.id === roleId && !s.isDead && s.id !== selfId);
-
-        setSeats(prev => prev.map(s => {
-          if (s.id === selfId) {
-            return {
-              ...s,
-              statusDetails: [...(s.statusDetails || []), `获得${selectedRole.name}能力`],
-            };
-          }
-          if (originalPlayer && s.id === originalPlayer.id) {
-            const { statusDetails, statuses } = addDrunkMark(s, 'philosopher', '永久');
-            return { ...s, isDrunk: true, statusDetails, statuses };
-          }
-          return s;
-        }));
-
-        addLog(`🧠 ${selfId + 1}号(哲学家) 选择了【${selectedRole.name}】能力${originalPlayer ? `，使得 ${originalPlayer.id + 1}号(${selectedRole.name}) 真正拥有者醉酒` : ''}`);
-        setSelectedActionTargets([]);
-        continueToNextAction();
-      }
-    }
-  });
-
-  return { handled: true, shouldWait: true };
-}
-
-/**
- * 驱魔人（Exorcist）确认处理
- */
-export function handleExorcistConfirm(context: RoleConfirmContext): RoleConfirmResult {
-  const { nightInfo, selectedTargets, setSeats, addLog, continueToNextAction, setSelectedActionTargets } = context;
-  if (nightInfo.effectiveRole.id !== 'exorcist') return { handled: false };
-
-  if (selectedTargets.length !== 1) {
-    alert("驱魔人必须选择且仅选择一名玩家");
-    return { handled: true, shouldWait: true };
-  }
-
-  const targetId = selectedTargets[0];
-  const exorcistId = nightInfo.seat.id;
-  const targetSeat = context.seats.find(s => s.id === targetId);
-  const isTargetDemon = targetSeat?.role?.type === 'demon' || targetSeat?.isDemonSuccessor;
-
-  if (isTargetDemon && targetSeat) {
-    setSeats(prev => prev.map(s => {
-      if (s.id === targetId) {
-        return {
-          ...s,
-          statusDetails: [...(s.statusDetails || []), '驱魔者选中']
-        };
-      }
-      return s;
-    }));
-    addLog(`✨ ${exorcistId + 1}号(驱魔人) 选中了恶魔(${targetId + 1}号)，恶魔今晚将不会被唤醒`);
-  } else {
-    addLog(`${exorcistId + 1}号(驱魔人) 选择了 ${targetId + 1}号`);
-  }
-
-  setSelectedActionTargets([]);
-  continueToNextAction();
-  return { handled: true };
-}
 
 /**
  * 僵怖（Zombuul）确认处理
@@ -1555,25 +1015,22 @@ export function handleDevilsAdvocateConfirm(context: RoleConfirmContext): RoleCo
  * 角色确认处理函数映射表
  */
 export const roleConfirmHandlers: Record<string, (context: RoleConfirmContext) => RoleConfirmResult> = {
-  'poisoner': handlePoisonerConfirm,
-  'poisoner_mr': handlePoisonerConfirm,
+
   'professor_mr': handleProfessorConfirm,
   'ranger': handleRangerConfirm,
   'shabaloth': handleShabalothConfirm,
   'po': handlePoConfirm,
-  'innkeeper': handleInnkeeperConfirm,
-  'sailor': handleSailorConfirm,
-  'courtier': handleCourtierConfirm,
+
+
+
   'assassin': handleAssassinConfirm,
   'godfather': handleGodfatherConfirm,
-  'dreamer': handleDreamerConfirm,
-  'snake_charmer': handleSnakeCharmerConfirm,
-  'flowergirl': handleFlowergirlConfirm,
-  'town_crier': handleTownCrierConfirm,
-  'oracle': handleOracleConfirm,
+
+
+
   'pukka': handlePukkaConfirm,
-  'philosopher': handlePhilosopherConfirm,
-  'exorcist': handleExorcistConfirm,
+
+
   'zombuul': handleZombuulConfirm,
   'juggler': handleJugglerConfirm,
   'professor': handleProfessorConfirm,

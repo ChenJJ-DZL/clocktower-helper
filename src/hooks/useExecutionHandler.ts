@@ -47,8 +47,8 @@ export function useExecutionHandler() {
   const handleExecution = useCallback((
     context: ExecutionHandlerContext
   ): ExecutionResult | null => {
-    const updatedSeats = [...context.seats];
-    const { executedSeat, seats, gamePhase, nightCount, nominationMap, forceExecution, skipLunaticRps } = context;
+    const updatedSeats = JSON.parse(JSON.stringify(context.seats));
+    const { executedSeat, gamePhase, nightCount, nominationMap, forceExecution, skipLunaticRps } = context;
 
     if (!executedSeat.role) {
       return null;

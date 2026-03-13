@@ -95,7 +95,69 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:38-0!canonical and time
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
+    handler: (context) => {
+      const { targets, seats, selfId, isActorDisabledByPoisonOrDrunk, addLog } = context;
+      
+      const selfSeat = seats.find(s => s.id === selfId);
+      if (!selfSeat) return null;
+
+      if (isActorDisabledByPoisonOrDrunk?.(selfSeat)) {
+        addLog?.(`🐍 ${selfId + 1}号(舞蛇人) 中毒或醉酒，能力失效`);
+        return null;
+      }
+
+      if (targets.length !== 1) {
+        return { updates: [], logs: { privateLog: "舞蛇人必须选择一名玩家" } };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find(s => s.id === targetId);
+
+      if (!targetSeat || targetSeat.isDead) {
+        return { updates: [], logs: { privateLog: "舞蛇人选择了无效或死亡的目标" } };
+      }
+
+      const isTargetDemon = targetSeat.role?.type === 'demon' || targetSeat.isDemonSuccessor;
+
+      if (isTargetDemon) {
+        const scRole = selfSeat.role!;
+        const demonRole = targetSeat.role!;
+        
+        const updates = [
+          // New Demon (Old Snake Charmer)
+          {
+            id: selfId,
+            role: demonRole,
+            isDemonSuccessor: true,
+          },
+          // New Snake Charmer (Old Demon), now poisoned
+          {
+            id: targetId,
+            role: scRole,
+            isPoisoned: true,
+            statusDetails: [...(targetSeat.statusDetails || []).filter(d => !d.includes('舞蛇人中毒')), '舞蛇人中毒（永久）'],
+            statuses: [...(targetSeat.statuses || []), { effect: 'Poison', duration: '永久' }],
+            isDemonSuccessor: false,
+          }
+        ];
+
+        return {
+            updates,
+            logs: {
+                privateLog: `❗ 舞蛇人命中恶魔！${selfId + 1}号变为新恶魔(${demonRole.name})，${targetId + 1}号变为舞蛇人且中毒`,
+                publicLog: `🎉 舞蛇人命中了恶魔！说书人请注意处理角色交换。`
+            }
+        };
+
+      } else {
+        return {
+            updates: [],
+            logs: {
+                privateLog: `${selfId + 1}号(舞蛇人) 选择 ${targetId + 1}号，未命中恶魔`
+            }
+        };
+      }
+    },
 
   },
 };

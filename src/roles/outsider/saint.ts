@@ -20,25 +20,55 @@ export const saint: RoleDefinition = {
    * 如果圣徒被处决且未中毒/未醉酒，邪恶方立即获胜
    */
   onExecution: (context: ExecutionContext): ExecutionResult => {
-    const { executedSeat, forceExecution } = context;
+    const { executedSeat, seats, forceExecution } = context;
 
-    // 如果强制处决（跳过确认），直接处理
+    // 如果中毒或醉酒，能力失效，走默认处决流程
+    if (executedSeat.isPoisoned || executedSeat.isDrunk) {
+      return {
+        handled: false,
+      };
+    }
+
+    // --- 相克规则：圣徒 & 小怪宝 ---
+    // 规则：照看小怪宝的圣徒如果作为场上最后一名存活的恶魔被处决，善良阵营获胜。
+    const isCaringForLilMonsta = !!executedSeat.statusDetails?.includes("is_lil_monsta");
+    
+    // 查找除当前被处决圣徒外的其他存活恶魔
+    const livingDemons = seats.filter(s =>
+      s.id !== executedSeat.id &&
+      !s.isDead &&
+      (s.role?.type === 'demon' || !!s.statusDetails?.includes("is_lil_monsta"))
+    );
+
+    if (isCaringForLilMonsta && livingDemons.length === 0) {
+      // 满足相克规则，善良阵营胜利
+      return {
+        handled: true,
+        gameOver: {
+          winResult: 'good',
+          winReason: '照看小怪宝的圣徒作为最后一名恶魔被处决',
+        },
+        logs: {
+          publicLog: `${executedSeat.id + 1}号（圣徒）被处决，但由于小怪宝相克规则，善良阵营获胜！`,
+          privateLog: '游戏结束：圣徒（小怪宝看护者）作为最后恶魔被处决，善良阵营获胜',
+        },
+      };
+    }
+
+    // --- 默认圣徒逻辑 ---
+    // 如果不满足相克规则，则执行圣徒的常规失败逻辑
     if (forceExecution) {
-      // 规则对齐：中毒或醉酒时圣徒能力失效
-      const disabled = executedSeat.isPoisoned || executedSeat.isDrunk;
-      if (!disabled) {
-        return {
-          handled: true,
-          gameOver: {
-            winResult: 'evil',
-            winReason: '圣徒被处决',
-          },
-          logs: {
-            publicLog: `${executedSeat.id + 1}号被处决`,
-            privateLog: '游戏结束：圣徒被处决，邪恶阵营获胜',
-          },
-        };
-      }
+      return {
+        handled: true,
+        gameOver: {
+          winResult: 'evil',
+          winReason: '圣徒被处决',
+        },
+        logs: {
+          publicLog: `${executedSeat.id + 1}号被处决`,
+          privateLog: '游戏结束：圣徒被处决，邪恶阵营获胜',
+        },
+      };
     } else {
       // 需要确认弹窗（由控制器处理）
       return {
@@ -49,11 +79,6 @@ export const saint: RoleDefinition = {
         },
       };
     }
-
-    // 默认处理（如果中毒）
-    return {
-      handled: false,
-    };
   },
   night: {
     order: 0,
