@@ -14,7 +14,7 @@ interface RoundTableProps {
   isPortrait: boolean;
   longPressingSeats: Set<number>;
   onSeatClick: (seat: Seat) => void;
-  onContextMenu: (e: React.MouseEvent, seatId: number) => void;
+  onContextMenu?: (e: React.MouseEvent, seatId: number) => void;
   onTouchStart: (e: React.TouchEvent, seatId: number) => void;
   onTouchEnd: (e: React.TouchEvent, seatId: number) => void;
   onTouchMove: (e: React.TouchEvent, seatId: number) => void;
@@ -59,7 +59,6 @@ export function RoundTable({
   isPortrait,
   longPressingSeats,
   onSeatClick,
-  onContextMenu,
   onTouchStart,
   onTouchEnd,
   onTouchMove,
@@ -289,13 +288,13 @@ export function RoundTable({
                 暂无（未生成顺序或不在夜晚阶段）
               </div>
             ) : (
-              nightOrderPreview.slice(0, 10).map((item, idx) => (
+              nightOrderPreview.slice(0, 10).map((item) => (
                 <div
-                  key={`${item.roleName}-${item.seatNo}-${idx}`}
+                  key={`${item.roleName}-${item.seatNo}`}
                   className="flex items-center justify-between text-xs"
                 >
                   <div className="text-slate-200 truncate">
-                    {idx + 1}. [{item.seatNo}号] {item.roleName}
+                    {item.order ?? "?"}. [{item.seatNo}号] {item.roleName}
                   </div>
                   <div className="text-slate-400 ml-2 shrink-0">
                     #{item.order ?? "—"}

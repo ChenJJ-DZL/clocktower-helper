@@ -399,73 +399,71 @@ export const GameStage = () => {
             >
               相克规则：{antagonismEnabled ? "开" : "关"}
             </button>
-            <ScaleToFit>
-              <RoundTable
-                seats={seats}
-                nightInfo={null}
-                selectedActionTargets={[]}
-                isPortrait={isPortrait}
-                longPressingSeats={new Set()}
-                nominator={nominator}
-                nominee={nominee}
-                onSeatClick={(seat) => {
-                  // Nomination logic for dusk phase
-                  if (nominator === null) {
-                    // No nominator selected - select this seat as nominator
-                    setNominator(seat.id);
-                  } else if (nominee === null && seat.id !== nominator) {
-                    // Nominator selected but no nominee - select this seat as nominee
-                    setNominee(seat.id);
-                  } else if (nominee === null && seat.id === nominator) {
-                    // Clicking the same nominator - allow deselection
-                    setNominator(null);
-                  }
-                  // If both nominator and nominee are selected, ignore clicks
-                  // User must use the "发起提名" button or cancel nomination to change selection
-                }}
-                onContextMenu={(e, seatId) => {
-                  e.preventDefault();
-                  setContextMenu({ x: e.clientX, y: e.clientY, seatId });
-                }}
-                onTouchStart={(e, seatId) => {
-                  e.stopPropagation();
-                  if (nominator === null) {
-                    // No nominator selected - select this seat as nominator
-                    setNominator(seatId);
-                  } else if (nominee === null && seatId !== nominator) {
-                    // Nominator selected but no nominee - select this seat as nominee
-                    setNominee(seatId);
-                  } else if (nominee === null && seatId === nominator) {
-                    // Clicking the same nominator - allow deselection
-                    setNominator(null);
-                  }
-                  // If both nominator and nominee are selected, ignore touches
-                  // User must use the nomination button or cancel to change selection
-                }}
-                onTouchEnd={(e, _seatId) => {
-                  e.stopPropagation();
-                }}
-                onTouchMove={(e, _seatId) => {
-                  e.stopPropagation();
-                }}
-                setSeatRef={(id, el) => {
-                  if (el) seatRefs.current[id] = el;
-                }}
-                getDisplayRoleType={getDisplayRoleType}
-                getDisplayRole={getDisplayRole}
-                typeColors={typeColors}
-                gamePhase={gamePhase}
-                nightCount={nightCount}
-                timer={timer}
-                formatTimer={formatTimer}
-                onTimerStart={controller.handleTimerStart}
-                onTimerPause={controller.handleTimerPause}
-                onTimerReset={controller.handleTimerReset}
-                onSetRedNemesis={setRedNemesisTarget}
-                onEditNote={(seatId) => setEditingNoteTarget(seatId)} // Added onEditNote
-                seatNotes={seatNotes} // Added seatNotes
-              />
-            </ScaleToFit>
+            <RoundTable
+              seats={seats}
+              nightInfo={null}
+              selectedActionTargets={[]}
+              isPortrait={isPortrait}
+              longPressingSeats={new Set()}
+              nominator={nominator}
+              nominee={nominee}
+              onSeatClick={(seat) => {
+                // Nomination logic for dusk phase
+                if (nominator === null) {
+                  // No nominator selected - select this seat as nominator
+                  setNominator(seat.id);
+                } else if (nominee === null && seat.id !== nominator) {
+                  // Nominator selected but no nominee - select this seat as nominee
+                  setNominee(seat.id);
+                } else if (nominee === null && seat.id === nominator) {
+                  // Clicking the same nominator - allow deselection
+                  setNominator(null);
+                }
+                // If both nominator and nominee are selected, ignore clicks
+                // User must use the "发起提名" button or cancel nomination to change selection
+              }}
+              onContextMenu={(e, seatId) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, seatId });
+              }}
+              onTouchStart={(e, seatId) => {
+                e.stopPropagation();
+                if (nominator === null) {
+                  // No nominator selected - select this seat as nominator
+                  setNominator(seatId);
+                } else if (nominee === null && seatId !== nominator) {
+                  // Nominator selected but no nominee - select this seat as nominee
+                  setNominee(seatId);
+                } else if (nominee === null && seatId === nominator) {
+                  // Clicking the same nominator - allow deselection
+                  setNominator(null);
+                }
+                // If both nominator and nominee are selected, ignore touches
+                // User must use the nomination button or cancel to change selection
+              }}
+              onTouchEnd={(e, _seatId) => {
+                e.stopPropagation();
+              }}
+              onTouchMove={(e, _seatId) => {
+                e.stopPropagation();
+              }}
+              setSeatRef={(id, el) => {
+                if (el) seatRefs.current[id] = el;
+              }}
+              getDisplayRoleType={getDisplayRoleType}
+              getDisplayRole={getDisplayRole}
+              typeColors={typeColors}
+              gamePhase={gamePhase}
+              nightCount={nightCount}
+              timer={timer}
+              formatTimer={formatTimer}
+              onTimerStart={controller.handleTimerStart}
+              onTimerPause={controller.handleTimerPause}
+              onTimerReset={controller.handleTimerReset}
+              onSetRedNemesis={setRedNemesisTarget}
+              onEditNote={(seatId) => setEditingNoteTarget(seatId)} // Added onEditNote
+              seatNotes={seatNotes} // Added seatNotes
+            />
 
             {/* Overlay Instruction */}
             <div className="absolute top-4 left-0 right-0 text-center text-orange-500 font-bold text-lg drop-shadow-lg z-30">

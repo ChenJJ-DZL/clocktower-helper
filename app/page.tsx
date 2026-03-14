@@ -20,6 +20,7 @@ import { typeColors } from "./data";
 // getDisplayRoleType, hasTeaLadyProtection, hasExecutionProof are now imported from useGameController
 
 import { RoundTable } from "@/src/components/game/board/RoundTable";
+import { ScaleToFit } from "@/src/components/game/board/ScaleToFit";
 import { GameLayout } from "@/src/components/game/GameLayout";
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
@@ -96,6 +97,20 @@ export default function Home() {
     setBalloonistKnownTypes,
     setTimer,
   } = gameState;
+
+  // 调试UI渲染问题 - 仅在开发环境启用
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "DEBUG_UI: Seats length is",
+        seats.length,
+        "Phase is",
+        gamePhase
+      );
+      console.log("DEBUG_UI: Seats data:", seats);
+      console.log("DEBUG_UI: RoundTable import path:", RoundTable);
+    }
+  }, [seats, gamePhase]);
 
   const {
     nightInfo,
@@ -197,8 +212,10 @@ export default function Home() {
     // 目前仅用于保持状态引用防止未使用警
   }, []);
 
-  // 清理已离场的气球驾驶员记
+  // 清理已离场的气球驾驶员记 - 仅在夜晚阶段执行
   useEffect(() => {
+    if (gamePhase !== "night" && gamePhase !== "firstNight") return;
+
     setBalloonistKnownTypes((prev) => {
       const activeIds = new Set(
         seats.filter((s) => s.role?.id === "balloonist").map((s) => s.id)
@@ -209,7 +226,7 @@ export default function Home() {
       });
       return next;
     });
-  }, [seats, setBalloonistKnownTypes]);
+  }, [seats, setBalloonistKnownTypes, gamePhase]);
 
   useEffect(() => {
     if (nightInfo) {
@@ -623,42 +640,54 @@ export default function Home() {
           {gamePhase === "setup" && (
             <GameLayout
               leftPanel={
-                <div className="w-full h-full p-4">
-                  <RoundTable
-                    seats={seats}
-                    nightInfo={null}
-                    selectedActionTargets={[]}
-                    isPortrait={false}
-                    longPressingSeats={new Set()}
-                    onSeatClick={(seat) => {
-                      console.log(
-                        "[app/page setup] RoundTable seat clicked:",
-                        seat.id
-                      );
-                      handleSeatClick(seat.id);
-                    }}
-                    onContextMenu={(e, seatId) => {
-                      e.preventDefault();
-                      console.log("右键点击座位:", seatId);
-                      setContextMenu({ x: e.clientX, y: e.clientY, seatId });
-                    }}
-                    onTouchStart={(e, _id) => {
-                      // Don't preventDefault - let click events work normally
-                      e.stopPropagation();
-                    }}
-                    onTouchEnd={(e, _id) => {
-                      // Don't preventDefault - let click events work normally
-                      e.stopPropagation();
-                    }}
-                    onTouchMove={(e, _id) => {
-                      // Don't preventDefault - let click events work normally
-                      e.stopPropagation();
-                    }}
-                    setSeatRef={() => {}}
-                    getDisplayRoleType={(seat) => seat.role?.type || null}
-                    getDisplayRole={getDisplayRoleForSeat}
-                    typeColors={typeColors}
-                  />
+                <div className="w-full h-full p-4 bg-transparent">
+                  <div className="w-full h-full flex items-center justify-center">
+                    {/* 调试信息 */}
+                    <div className="absolute top-2 left-2 z-50 text-xs bg-black/80 p-2 rounded">
+                      座位数: {seats.length}
+                    </div>
+                    <div className="w-full h-full">
+                      <RoundTable
+                        seats={seats}
+                        nightInfo={null}
+                        selectedActionTargets={[]}
+                        isPortrait={false}
+                        longPressingSeats={new Set()}
+                        onSeatClick={(seat) => {
+                          console.log(
+                            "[app/page setup] RoundTable seat clicked:",
+                            seat.id
+                          );
+                          handleSeatClick(seat.id);
+                        }}
+                        onContextMenu={(e, seatId) => {
+                          e.preventDefault();
+                          console.log("右键点击座位:", seatId);
+                          setContextMenu({
+                            x: e.clientX,
+                            y: e.clientY,
+                            seatId,
+                          });
+                        }}
+                        onTouchStart={(e, _id) => {
+                          // Don't preventDefault - let click events work normally
+                          e.stopPropagation();
+                        }}
+                        onTouchEnd={(e, _id) => {
+                          // Don't preventDefault - let click events work normally
+                          e.stopPropagation();
+                        }}
+                        onTouchMove={(e, _id) => {
+                          // Don't preventDefault - let click events work normally
+                          e.stopPropagation();
+                        }}
+                        setSeatRef={() => {}}
+                        getDisplayRoleType={(seat) => seat.role?.type || null}
+                        getDisplayRole={getDisplayRoleForSeat}
+                        typeColors={typeColors}
+                      />
+                    </div>
+                  </div>
                 </div>
               }
               rightPanel={

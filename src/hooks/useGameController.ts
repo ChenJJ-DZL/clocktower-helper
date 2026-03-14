@@ -87,6 +87,7 @@ export function useGameController() {
     seats,
     setSeats,
     initialSeats,
+    setInitialSeats,
     gamePhase,
     setGamePhase,
     nightCount,
@@ -976,6 +977,43 @@ export function useGameController() {
     addLog,
     setBalloonistCompletedIds,
   ]);
+
+  // 初始化座位：当进入setup阶段且座位为空时，创建10个默认座位
+  useEffect(() => {
+    if (gamePhase === "setup" && seats.length === 0) {
+      const defaultSeats: Seat[] = Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        playerName: `玩家 ${i + 1}`,
+        role: null,
+        charadeRole: null,
+        isDead: false,
+        isDrunk: false,
+        isPoisoned: false,
+        isProtected: false,
+        protectedBy: null,
+        isRedHerring: false,
+        isFortuneTellerRedHerring: false,
+        isSentenced: false,
+        masterId: null,
+        hasUsedSlayerAbility: false,
+        hasUsedVirginAbility: false,
+        isDemonSuccessor: false,
+        hasAbilityEvenDead: false,
+        statusDetails: [],
+        statuses: [],
+        voteCount: 0,
+        isCandidate: false,
+        grandchildId: null,
+        isGrandchild: false,
+        isFirstDeathForZombuul: false,
+        isZombuulTrulyDead: false,
+        zombuulLives: 1,
+      }));
+      setSeats(defaultSeats);
+      setInitialSeats(defaultSeats);
+      console.log("DEBUG: 初始化了10个默认座位");
+    }
+  }, [gamePhase, seats.length, setSeats, setInitialSeats]);
 
   return useMemo(
     () => ({

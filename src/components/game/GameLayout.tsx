@@ -17,10 +17,10 @@ interface GameLayoutProps {
  */
 export function GameLayout({ leftPanel, rightPanel }: GameLayoutProps) {
   return (
-    <div className="h-full w-full overflow-hidden bg-slate-950 flex flex-row">
+    <div className="h-full w-full overflow-hidden bg-transparent flex flex-row">
       {/* Left Panel - Table/Seating Chart */}
-      <main className="flex-1 relative overflow-hidden bg-slate-900">
-        <div className="absolute inset-0 flex items-center justify-center">
+      <main className="flex-1 relative overflow-hidden bg-transparent">
+        <div className="absolute inset-0 flex items-center justify-center bg-blue-900/20">
           {leftPanel}
         </div>
       </main>
