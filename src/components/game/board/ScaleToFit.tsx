@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 interface ScaleToFitProps {
   children: ReactNode;
@@ -13,11 +13,11 @@ interface ScaleToFitProps {
  * ScaleToFit - Wraps content and scales it to fit within the container
  * Uses ResizeObserver to detect container size changes and calculates scale
  */
-export function ScaleToFit({ 
-  children, 
-  baseWidth = 800, 
+export function ScaleToFit({
+  children,
+  baseWidth = 800,
   baseHeight = 800,
-  padding = 32 
+  padding = 32,
 }: ScaleToFitProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -31,10 +31,10 @@ export function ScaleToFit({
     const updateScale = () => {
       const containerWidth = container.clientWidth - padding * 2;
       const containerHeight = container.clientHeight - padding * 2;
-      
+
       const scaleX = containerWidth / baseWidth;
       const scaleY = containerHeight / baseHeight;
-      
+
       // Use the smaller scale to ensure content fits in both dimensions
       const newScale = Math.min(scaleX, scaleY, 1); // Cap at 1 to prevent upscaling
       setScale(newScale);
@@ -60,7 +60,10 @@ export function ScaleToFit({
   }, [baseWidth, baseHeight, padding]);
 
   return (
-    <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-hidden">
+    <div
+      ref={containerRef}
+      className="w-full h-full flex items-center justify-center overflow-hidden"
+    >
       <div
         ref={contentRef}
         style={{
@@ -76,4 +79,3 @@ export function ScaleToFit({
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 修行者 (Pilgrim) - 扩展镇民（隐藏占位）
@@ -82,5 +82,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:485-0!canonical and tim
     }),
   },
 };
-
-

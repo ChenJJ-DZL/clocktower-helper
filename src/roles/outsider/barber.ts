@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 理发师 (Barber)
  * 如果你死亡，在当晚恶魔可以选择两名玩家（不能选择其他恶魔）交换角色。
- * 
+ *
  * 规则要点：
  * - 玩家阵营在交换角色时保持不变
  * - 恶魔可以选择不进行角色交换
@@ -82,7 +82,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:146-0!canonical and timestamp 20260120031158 and revision id 5403. Serialized with JSON.`,
   clarifications: [
-    `相克规则（与华灯系列角色）：梼杌：如果梼杌的角色发生了交换，不会因此移除原本梼杌的“失去能力”提示标记。`
+    "相克规则（与华灯系列角色）：梼杌：如果梼杌的角色发生了交换，不会因此移除原本梼杌的“失去能力”提示标记。",
   ],
   // 无夜晚行动（死亡触发能力）
   // 理发师的能力在死亡时触发，由恶魔选择交换目标

@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 矿工 (Miner)
@@ -10,4 +10,3 @@ export const miner: RoleDefinition = {
   name: "矿工",
   type: "townsfolk",
 };
-

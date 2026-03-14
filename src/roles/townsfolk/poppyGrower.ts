@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 和事佬 (Poppy Grower)
@@ -10,4 +10,3 @@ export const poppy_grower: RoleDefinition = {
   name: "和事佬",
   type: "townsfolk",
 };
-

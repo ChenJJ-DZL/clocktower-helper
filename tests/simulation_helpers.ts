@@ -1,8 +1,8 @@
 // tests/simulation_helpers.ts
 
-import { Page, expect } from "@playwright/test";
-import fs from "fs";
-import type { Writable } from "stream";
+import fs from "node:fs";
+import type { Writable } from "node:stream";
+import { expect, type Page } from "@playwright/test";
 import { roles as ROLES_DATA } from "../app/data";
 
 export { ROLES_DATA };
@@ -11,12 +11,13 @@ export { ROLES_DATA };
  * Helper to get role by ID from the central roles data
  */
 export function getRoleById(id: string) {
-  return ROLES_DATA.find(r => r.id === id);
+  return ROLES_DATA.find((r) => r.id === id);
 }
 /**
  * Utility functions for tests
  */
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 export const shuffleArray = <T>(array: T[]): T[] => {
   const result = [...array];
@@ -49,10 +50,58 @@ export const REPORT_FILE_PATH = "simulation_report.txt";
 
 // 剧本 11 人局标准阵容预设
 export const SCRIPT_11_PLAYER_PRESETS: Record<string, string[]> = {
-  trouble_brewing: ['洗衣妇', '图书管理员', '调查员', '厨师', '共情者', '占卜师', '送葬者', '管家', '圣徒', '投毒者', '小恶魔'],
-  bad_moon_rising: ['祖母', '水手', '侍女', '驱魔人', '旅店老板', '赌徒', '造谣者', '修补匠', '月之子', '教父', '僵怖'],
-  sects_and_violets: ['钟表匠', '筑梦师', '舞蛇人', '数学家', '卖花女孩', '城镇公告员', '神谕者', '畸形秀演员', '心上人', '洗脑师', '方古'],
-  midnight_revelry: ['贵族', '气球驾驶员', '失意者', '工程师', '渔夫', '巡山人', '农夫', '管家', '酒鬼', '刺客', '小恶魔'],
+  trouble_brewing: [
+    "洗衣妇",
+    "图书管理员",
+    "调查员",
+    "厨师",
+    "共情者",
+    "占卜师",
+    "送葬者",
+    "管家",
+    "圣徒",
+    "投毒者",
+    "小恶魔",
+  ],
+  bad_moon_rising: [
+    "祖母",
+    "水手",
+    "侍女",
+    "驱魔人",
+    "旅店老板",
+    "赌徒",
+    "造谣者",
+    "修补匠",
+    "月之子",
+    "教父",
+    "僵怖",
+  ],
+  sects_and_violets: [
+    "钟表匠",
+    "筑梦师",
+    "舞蛇人",
+    "数学家",
+    "卖花女孩",
+    "城镇公告员",
+    "神谕者",
+    "畸形秀演员",
+    "心上人",
+    "洗脑师",
+    "方古",
+  ],
+  midnight_revelry: [
+    "贵族",
+    "气球驾驶员",
+    "失意者",
+    "工程师",
+    "渔夫",
+    "巡山人",
+    "农夫",
+    "管家",
+    "酒鬼",
+    "刺客",
+    "小恶魔",
+  ],
 };
 
 // 角色及其行动元数据
@@ -111,9 +160,9 @@ export class StorytellerLogger {
     this.logStream = fs.createWriteStream(logFilePath, { flags: "w" });
     const startTime = new Date();
 
-    this.writeHeader(`游戏模拟日志报告`);
+    this.writeHeader("游戏模拟日志报告");
     this.writeHeader(`测始于: ${startTime.toLocaleString()}`);
-    this.writeHeader(`====================================`);
+    this.writeHeader("====================================");
   }
 
   private writeHeader(line: string) {
@@ -171,49 +220,94 @@ export function getRandomElements<T>(arr: T[], count: number): T[] {
 export async function getAlivePlayerIndexes(page: Page): Promise<number[]> {
   // Use evaluate for speed and to avoid locator flakes
   return await page.evaluate(() => {
-    const nodes = Array.from(document.querySelectorAll('.seat-node'));
+    const nodes = Array.from(document.querySelectorAll(".seat-node"));
     return nodes
-      .filter(node => !node.textContent?.includes('已死亡'))
-      .map(node => {
-        const id = node.getAttribute('data-seat-id');
-        return id ? parseInt(id) : -1;
+      .filter((node) => !node.textContent?.includes("已死亡"))
+      .map((node) => {
+        const id = node.getAttribute("data-seat-id");
+        return id ? parseInt(id, 10) : -1;
       })
-      .filter(id => id !== -1);
+      .filter((id) => id !== -1);
   });
 }
-
 
 /**
  * 根据阵容推荐，为指定玩家数生成角色列表
  */
-export function getRoleListForPlayerCount(playerCount: number, scriptId: string = 'trouble_brewing'): string[] {
+export function getRoleListForPlayerCount(
+  playerCount: number,
+  scriptId: string = "trouble_brewing"
+): string[] {
   // 优先返回预设的 11 人局阵容
   if (playerCount === 11 && SCRIPT_11_PLAYER_PRESETS[scriptId]) {
     return SCRIPT_11_PLAYER_PRESETS[scriptId];
   }
 
   // 默认使用暗流涌动的配比逻辑
-  const preset = TROUBLE_BREWING_PRESETS[playerCount] || TROUBLE_BREWING_PRESETS[11];
+  const preset =
+    TROUBLE_BREWING_PRESETS[playerCount] || TROUBLE_BREWING_PRESETS[11];
 
   const allRoles: Record<string, Record<string, string[]>> = {
     trouble_brewing: {
-      townsfolk: ['washerwoman', 'librarian', 'investigator', 'chef', 'empath', 'fortune_teller', 'undertaker', 'monk', 'ravenkeeper', 'slayer', 'soldier', 'mayor', 'virgin'],
-      outsider: ['butler', 'drunk', 'saint', 'recluse'],
-      minion: ['poisoner', 'spy', 'scarlet_woman', 'baron'],
-      demon: ['imp']
+      townsfolk: [
+        "washerwoman",
+        "librarian",
+        "investigator",
+        "chef",
+        "empath",
+        "fortune_teller",
+        "undertaker",
+        "monk",
+        "ravenkeeper",
+        "slayer",
+        "soldier",
+        "mayor",
+        "virgin",
+      ],
+      outsider: ["butler", "drunk", "saint", "recluse"],
+      minion: ["poisoner", "spy", "scarlet_woman", "baron"],
+      demon: ["imp"],
     },
     bad_moon_rising: {
-      townsfolk: ['grandmother', 'sailor', 'chambermaid', 'exorcist', 'innkeeper', 'gambler', 'gossip', 'courtier', 'professor', 'minstrel', 'tea_lady', 'pacifist', 'fool'],
-      outsider: ['tinker', 'moonchild', 'goon', 'lunatic'],
-      minion: ['godfather', 'devils_advocate', 'assassin', 'mastermind'],
-      demon: ['zombuul', 'pukka', 'shabaloth', 'po']
+      townsfolk: [
+        "grandmother",
+        "sailor",
+        "chambermaid",
+        "exorcist",
+        "innkeeper",
+        "gambler",
+        "gossip",
+        "courtier",
+        "professor",
+        "minstrel",
+        "tea_lady",
+        "pacifist",
+        "fool",
+      ],
+      outsider: ["tinker", "moonchild", "goon", "lunatic"],
+      minion: ["godfather", "devils_advocate", "assassin", "mastermind"],
+      demon: ["zombuul", "pukka", "shabaloth", "po"],
     },
     sects_and_violets: {
-      townsfolk: ['clockmaker', 'dreamer', 'snake_charmer', 'mathematician', 'flowergirl', 'town_crier', 'oracle', 'savant', 'seamstress', 'philosopher', 'artist', 'juggler', 'sage'],
-      outsider: ['mutant', 'sweetheart', 'barber', 'klutz'],
-      minion: ['evil_twin', 'witch', 'cerenovus', 'pit-hag'],
-      demon: ['fang_gu', 'vigormortis', 'no-dashii', 'vortox']
-    }
+      townsfolk: [
+        "clockmaker",
+        "dreamer",
+        "snake_charmer",
+        "mathematician",
+        "flowergirl",
+        "town_crier",
+        "oracle",
+        "savant",
+        "seamstress",
+        "philosopher",
+        "artist",
+        "juggler",
+        "sage",
+      ],
+      outsider: ["mutant", "sweetheart", "barber", "klutz"],
+      minion: ["evil_twin", "witch", "cerenovus", "pit-hag"],
+      demon: ["fang_gu", "vigormortis", "no-dashii", "vortox"],
+    },
   };
 
   const currentRoles = allRoles[scriptId] || allRoles.trouble_brewing;
@@ -229,15 +323,32 @@ export function getRoleListForPlayerCount(playerCount: number, scriptId: string 
 
 export const TB_PRESETS = {
   trouble_brewing: {
-    townsfolk: ['washerwoman', 'librarian', 'investigator', 'chef', 'empath', 'fortune_teller', 'undertaker', 'monk', 'ravenkeeper', 'slayer', 'soldier', 'mayor', 'virgin'],
-    outsider: ['butler', 'drunk', 'saint', 'recluse'],
-    minion: ['poisoner', 'spy', 'scarlet_woman', 'baron'],
-    demon: ['imp']
-  }
+    townsfolk: [
+      "washerwoman",
+      "librarian",
+      "investigator",
+      "chef",
+      "empath",
+      "fortune_teller",
+      "undertaker",
+      "monk",
+      "ravenkeeper",
+      "slayer",
+      "soldier",
+      "mayor",
+      "virgin",
+    ],
+    outsider: ["butler", "drunk", "saint", "recluse"],
+    minion: ["poisoner", "spy", "scarlet_woman", "baron"],
+    demon: ["imp"],
+  },
 };
 
 // 辅助常量：暗流涌动标准人数配比
-export const TROUBLE_BREWING_PRESETS: Record<number, { townsfolk: number; outsider: number; minion: number; demon: number }> = {
+export const TROUBLE_BREWING_PRESETS: Record<
+  number,
+  { townsfolk: number; outsider: number; minion: number; demon: number }
+> = {
   9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
   10: { townsfolk: 7, outsider: 0, minion: 2, demon: 1 },
   11: { townsfolk: 7, outsider: 1, minion: 2, demon: 1 },
@@ -247,13 +358,20 @@ export const TROUBLE_BREWING_PRESETS: Record<number, { townsfolk: number; outsid
   15: { townsfolk: 9, outsider: 2, minion: 3, demon: 1 },
 };
 
-
 /**
  * 随机分配角色
  */
-export async function assignRandomRoles(page: Page, logger: StorytellerLogger, playerCount: number, scriptId: string = 'trouble_brewing') {
+export async function assignRandomRoles(
+  page: Page,
+  logger: StorytellerLogger,
+  playerCount: number,
+  scriptId: string = "trouble_brewing"
+) {
   const rolesToAssign = getRoleListForPlayerCount(playerCount, scriptId);
-  logger.log('角色分配', `本次对局人数: ${playerCount}人, 随机阵容: ${rolesToAssign.join(', ')}`);
+  logger.log(
+    "角色分配",
+    `本次对局人数: ${playerCount}人, 随机阵容: ${rolesToAssign.join(", ")}`
+  );
 
   const seatIndexes = Array.from({ length: playerCount }, (_, i) => i);
   const shuffledSeatIndexes = getRandomElements(seatIndexes, playerCount);
@@ -263,9 +381,9 @@ export async function assignRandomRoles(page: Page, logger: StorytellerLogger, p
     const seatIndex = shuffledSeatIndexes[i];
 
     await page.getByRole("button", { name: new RegExp(roleName, "i") }).click();
-    await page.locator('.seat-node').nth(seatIndex).click();
+    await page.locator(".seat-node").nth(seatIndex).click();
 
-    logger.log('角色分配', `${roleName} 落座于 ${seatIndex + 1} 号位。`);
+    logger.log("角色分配", `${roleName} 落座于 ${seatIndex + 1} 号位。`);
     await page.waitForTimeout(50);
   }
 }
@@ -273,33 +391,41 @@ export async function assignRandomRoles(page: Page, logger: StorytellerLogger, p
 /**
  * Handle Drunk Charade Selection if the modal appears
  */
-export async function handleDrunkCharadeIfPresent(page: Page, logger: StorytellerLogger) {
-  const modalSelector = 'text=/为.*选择伪装身份/';
-  const isModalVisible = await page.locator(modalSelector).isVisible({ timeout: 2000 }).catch(() => false);
+export async function handleDrunkCharadeIfPresent(
+  page: Page,
+  logger: StorytellerLogger
+) {
+  const modalSelector = "text=/为.*选择伪装身份/";
+  const isModalVisible = await page
+    .locator(modalSelector)
+    .isVisible({ timeout: 2000 })
+    .catch(() => false);
 
   if (isModalVisible) {
-    logger.log('系统', '检测到酒鬼伪装身份选择弹窗');
+    logger.log("系统", "检测到酒鬼伪装身份选择弹窗");
 
     // Select the first available role in the grid
-    const roleButtons = page.locator('div.grid button');
+    const roleButtons = page.locator("div.grid button");
     const roleCount = await roleButtons.count();
 
     if (roleCount > 0) {
       const firstRoleButton = roleButtons.first();
-      const roleName = await firstRoleButton.locator('span.text-sm').textContent();
+      const roleName = await firstRoleButton
+        .locator("span.text-sm")
+        .textContent();
 
-      logger.log('系统', `选择酒鬼伪装身份: ${roleName}`);
+      logger.log("系统", `选择酒鬼伪装身份: ${roleName}`);
       await firstRoleButton.click();
 
       // Click confirm
       const confirmButton = page.locator('button:has-text("确认选择")');
       await confirmButton.click();
-      logger.log('系统', '已确认酒鬼伪装身份');
+      logger.log("系统", "已确认酒鬼伪装身份");
 
       // Wait for modal to close
       await expect(page.locator(modalSelector)).not.toBeVisible();
     } else {
-      logger.log('错误', '未找到可选的伪装身份按钮');
+      logger.log("错误", "未找到可选的伪装身份按钮");
     }
   }
 }
@@ -312,12 +438,15 @@ export function analyzeLog(logFilePath: string, logger: StorytellerLogger) {
   logger.log("日志分析", "--- 开始对本次对局日志进行规则预检测 ---");
   const logs = fs.readFileSync(logFilePath, "utf-8").split("\n");
 
-  let findings: string[] = [];
-  let nightActions: Record<number, { night: number, actor: string, action: string }[]> = {};
+  const findings: string[] = [];
+  const nightActions: Record<
+    number,
+    { night: number; actor: string; action: string }[]
+  > = {};
 
   // 规则1：死亡玩家不应在夜晚行动（除非特殊能力）
-  const deadPlayerActions = logs.filter(line =>
-    line.includes("[夜晚行动]") && line.match(/玩家 \d+ \(已死亡\)/)
+  const deadPlayerActions = logs.filter(
+    (line) => line.includes("[夜晚行动]") && line.match(/玩家 \d+ \(已死亡\)/)
   );
   if (deadPlayerActions.length > 0) {
     findings.push(
@@ -326,31 +455,45 @@ export function analyzeLog(logFilePath: string, logger: StorytellerLogger) {
   }
 
   // 规则2：恶魔在同一夜只能动一次
-  logs.forEach((line, index) => {
-    if (line.includes('[首夜]') || line.includes('[夜晚')) {
+  logs.forEach((line, _index) => {
+    if (line.includes("[首夜]") || line.includes("[夜晚")) {
       const nightMatch = line.match(/\[(首夜|夜晚 \d+)/);
-      const night = nightMatch ? (nightMatch[1] === '首夜' ? 1 : parseInt(nightMatch[1].replace('夜晚 ', ''))) : -1;
+      const night = nightMatch
+        ? nightMatch[1] === "首夜"
+          ? 1
+          : parseInt(nightMatch[1].replace("夜晚 ", ""), 10)
+        : -1;
 
-      const actionMatch = line.match(/(\d+号玩家)\(.*?\) (杀死了|投毒了|保护了) (\d+号玩家)/);
+      const actionMatch = line.match(
+        /(\d+号玩家)\(.*?\) (杀死了|投毒了|保护了) (\d+号玩家)/
+      );
       if (night > 0 && actionMatch) {
-        const [, actor, role, action, target] = actionMatch;
+        const [, actor, _role, action, target] = actionMatch;
         if (!nightActions[night]) nightActions[night] = [];
-        nightActions[night].push({ night, actor, action: `${action} ${target}` });
+        nightActions[night].push({
+          night,
+          actor,
+          action: `${action} ${target}`,
+        });
       }
     }
   });
 
   for (const night in nightActions) {
-    const demonActions = nightActions[night].filter(a => a.actor.includes('小恶魔'));
+    const demonActions = nightActions[night].filter((a) =>
+      a.actor.includes("小恶魔")
+    );
     if (demonActions.length > 1) {
-      findings.push(`[发现] 在第 ${night} 夜, 恶魔行动了 ${demonActions.length} 次，不符合规则。`);
+      findings.push(
+        `[发现] 在第 ${night} 夜, 恶魔行动了 ${demonActions.length} 次，不符合规则。`
+      );
     }
   }
 
   // 规则3：白天提名阶段，一个玩家只能被提名一次
   const nominations: Record<string, number> = {};
-  logs.forEach(line => {
-    if (line.includes('[提名阶段]')) {
+  logs.forEach((line) => {
+    if (line.includes("[提名阶段]")) {
       const match = line.match(/提名了 (\d+号玩家)/);
       if (match) {
         const nominee = match[1];
@@ -361,15 +504,16 @@ export function analyzeLog(logFilePath: string, logger: StorytellerLogger) {
 
   for (const nominee in nominations) {
     if (nominations[nominee] > 1) {
-      findings.push(`[发现] 在白天, ${nominee} 被提名了 ${nominations[nominee]} 次，不符合规则。`);
+      findings.push(
+        `[发现] 在白天, ${nominee} 被提名了 ${nominations[nominee]} 次，不符合规则。`
+      );
     }
   }
-
 
   // --- 输出总结 ---
   if (findings.length > 0) {
     logger.log("分析总结", "发现潜在的规则不一致项:");
-    findings.forEach(finding => logger.log("分析总结", finding));
+    findings.forEach((finding) => logger.log("分析总结", finding));
   } else {
     logger.log("分析总结", "未在日志中发现明显的规则不一致项。");
   }

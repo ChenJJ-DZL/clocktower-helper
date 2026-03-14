@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface AttackBlockedModalProps {
   isOpen: boolean;
@@ -8,7 +8,13 @@ interface AttackBlockedModalProps {
   onClose: () => void;
 }
 
-export function AttackBlockedModal({ isOpen, targetId, reason, demonName, onClose }: AttackBlockedModalProps) {
+export function AttackBlockedModal({
+  isOpen,
+  targetId,
+  reason,
+  demonName,
+  onClose,
+}: AttackBlockedModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -36,4 +42,3 @@ export function AttackBlockedModal({ isOpen, targetId, reason, demonName, onClos
     </ModalWrapper>
   );
 }
-

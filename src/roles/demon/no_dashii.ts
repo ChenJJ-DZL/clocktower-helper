@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
@@ -18,7 +17,7 @@ export const no_dashii: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "诺-达", context);
     },
 
@@ -35,7 +34,7 @@ export const no_dashii: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
       return {
         wake: "⚔️ 选择一名玩家：他死亡。与你邻近的两名镇民中毒。",
         instruction: '"请选择一名玩家。他死亡。与你邻近的两名镇民中毒。"',
@@ -43,7 +42,6 @@ export const no_dashii: RoleDefinition = {
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

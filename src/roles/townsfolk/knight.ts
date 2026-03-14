@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 骑士 (Knight) - 扩展镇民（隐藏占位）
@@ -88,5 +88,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:403-0!canonical and tim
     }),
   },
 };
-
-

@@ -27,11 +27,14 @@ const getRoleDocFromRegistry = (roleName: string): string | undefined => {
 
   // Fallback to RoleDefinitions using ID or name
   const allDefs = getAllRoleDefinitions();
-  const def = allDefs.find(d => d.name === roleName || d.id === roleName);
+  const def = allDefs.find((d) => d.name === roleName || d.id === roleName);
   return def?.detailedDescription;
 };
 
-function extractSection(content: string, sectionTitle: string): string | undefined {
+function extractSection(
+  content: string,
+  sectionTitle: string
+): string | undefined {
   // Match: 【角色能力】 ... (until next 【xxx】 or end)
   // Improved to handle cases where there might not be a newline before the next header
   const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`);
@@ -47,7 +50,9 @@ function toBullets(text: string, maxItems: number): string[] {
     .filter(Boolean);
 
   // Prefer bullet-like lines, but fall back to sentences.
-  const bulletLike = lines.filter((l) => l.startsWith("- ") || l.startsWith("•"));
+  const bulletLike = lines.filter(
+    (l) => l.startsWith("- ") || l.startsWith("•")
+  );
   const chosen = (bulletLike.length > 0 ? bulletLike : lines)
     .slice(0, maxItems)
     .map((l) => l.replace(/^[-•]\s*/, "").trim())
@@ -92,9 +97,16 @@ export function getRoleDocSummary(roleName: string): RoleDocSummary | null {
   const traits = extractRoleInfoTraits(content);
 
   // Process examples to extract individual examples
-  const examples = examplesText ? examplesText.split('\n').filter(line =>
-    line.trim().startsWith('> 范例:') || line.trim().startsWith('> 示例:')
-  ).map(line => line.trim().replace(/^>\s*/, '')) : undefined;
+  const examples = examplesText
+    ? examplesText
+        .split("\n")
+        .filter(
+          (line) =>
+            line.trim().startsWith("> 范例:") ||
+            line.trim().startsWith("> 示例:")
+        )
+        .map((line) => line.trim().replace(/^>\s*/, ""))
+    : undefined;
 
   return {
     abilityText,
@@ -107,5 +119,3 @@ export function getRoleDocSummary(roleName: string): RoleDocSummary | null {
     traits,
   };
 }
-
-

@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface LunaticRpsModalProps {
   isOpen: boolean;
@@ -7,7 +7,12 @@ interface LunaticRpsModalProps {
   onResolve: (lunaticLoses: boolean) => void;
 }
 
-export function LunaticRpsModal({ isOpen, nominatorId, targetId, onResolve }: LunaticRpsModalProps) {
+export function LunaticRpsModal({
+  isOpen,
+  nominatorId,
+  targetId,
+  onResolve,
+}: LunaticRpsModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -37,7 +42,8 @@ export function LunaticRpsModal({ isOpen, nominatorId, targetId, onResolve }: Lu
         【精神病患者被处决】——现在你需要与提名者进行一次"石头剪刀布"的裁决。
       </p>
       <p className="text-sm text-gray-400 mt-2">
-        提名者：{nominatorId !== null ? `${nominatorId+1}号` : '未知'} VS {targetId+1}号(精神病患者)
+        提名者：{nominatorId !== null ? `${nominatorId + 1}号` : "未知"} VS{" "}
+        {targetId + 1}号(精神病患者)
       </p>
       <p className="text-sm text-gray-400 mt-2">
         若精神病患者赢：他不死，提名他的人死亡；若精神病患者输：他才会被正常处决。
@@ -45,4 +51,3 @@ export function LunaticRpsModal({ isOpen, nominatorId, targetId, onResolve }: Lu
     </ModalWrapper>
   );
 }
-

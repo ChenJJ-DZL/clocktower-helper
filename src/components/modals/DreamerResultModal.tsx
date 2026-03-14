@@ -1,7 +1,5 @@
-
-import React from 'react';
-import { Role } from '../../../app/data';
-import { ModalWrapper } from './ModalWrapper';
+import type { Role } from "../../../app/data";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface DreamerResultModalProps {
   roleA: Role;
@@ -9,7 +7,11 @@ interface DreamerResultModalProps {
   onClose: () => void;
 }
 
-export function DreamerResultModal({ roleA, roleB, onClose }: DreamerResultModalProps) {
+export function DreamerResultModal({
+  roleA,
+  roleB,
+  onClose,
+}: DreamerResultModalProps) {
   return (
     <ModalWrapper title="筑梦师信息" onClose={onClose}>
       <div className="p-4 text-white">

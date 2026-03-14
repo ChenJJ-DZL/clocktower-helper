@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 驱魔人 (Exorcist)
@@ -73,8 +73,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:14-0!canonical and timestamp 20260120025734 and revision id 5684. Serialized with JSON.`,
   clarifications: [
-    `相克规则：利维坦：如果驱魔人存活并且成功选中过利维坦，即使有多于一名善良玩家被处决，邪恶阵营也不会获胜。暴乱：如果驱魔人在第三个夜晚选中了暴乱，爪牙不会变成暴乱。牙噶巴卜：如果驱魔人选中了牙噶巴卜，那么牙噶巴卜的能力在当晚无法造成死亡。`,
-    `相克规则（与华灯系列角色）：姑获鸟：一名已获得过爪牙能力的姑获鸟被驱魔人选中，他能够因为爪牙的能力被唤醒。`
+    "相克规则：利维坦：如果驱魔人存活并且成功选中过利维坦，即使有多于一名善良玩家被处决，邪恶阵营也不会获胜。暴乱：如果驱魔人在第三个夜晚选中了暴乱，爪牙不会变成暴乱。牙噶巴卜：如果驱魔人选中了牙噶巴卜，那么牙噶巴卜的能力在当晚无法造成死亡。",
+    "相克规则（与华灯系列角色）：姑获鸟：一名已获得过爪牙能力的姑获鸟被驱魔人选中，他能够因为爪牙的能力被唤醒。",
   ],
   night: {
     order: 10,
@@ -90,27 +90,33 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:14-0!canonical and time
     handler: (context) => {
       const { targets, seats, selfId } = context;
       if (targets.length !== 1) return { updates: [] };
-      
+
       const targetId = targets[0];
-      const targetSeat = seats.find(s => s.id === targetId);
-      const isTargetDemon = targetSeat?.role?.type === 'demon' || targetSeat?.isDemonSuccessor;
+      const targetSeat = seats.find((s) => s.id === targetId);
+      const isTargetDemon =
+        targetSeat?.role?.type === "demon" || targetSeat?.isDemonSuccessor;
 
       if (isTargetDemon && targetSeat) {
         return {
-          updates: [{
-            id: targetId,
-            statusDetails: [...(targetSeat.statusDetails || []), '驱魔者选中']
-          }],
+          updates: [
+            {
+              id: targetId,
+              statusDetails: [
+                ...(targetSeat.statusDetails || []),
+                "驱魔者选中",
+              ],
+            },
+          ],
           logs: {
-            privateLog: `✨ ${selfId + 1}号(驱魔人) 选中了恶魔(${targetId + 1}号)，恶魔今晚将不会被唤醒`
-          }
+            privateLog: `✨ ${selfId + 1}号(驱魔人) 选中了恶魔(${targetId + 1}号)，恶魔今晚将不会被唤醒`,
+          },
         };
       } else {
         return {
           updates: [],
           logs: {
-            privateLog: `${selfId + 1}号(驱魔人) 选择了 ${targetId + 1}号`
-          }
+            privateLog: `${selfId + 1}号(驱魔人) 选择了 ${targetId + 1}号`,
+          },
         };
       }
     },

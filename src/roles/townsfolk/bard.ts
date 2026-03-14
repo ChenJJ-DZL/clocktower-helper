@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 吟游诗人 (Bard)
@@ -70,7 +70,6 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:22-0!canonical and timestamp 20260119174058 and revision id 5429. Serialized with JSON.`,
   clarifications: [
-    `相克规则：军团：如果军团死于处决，所有军团保留能力，但吟游诗人可能会在当晚得知今天白天死于处决的玩家是军团。`
+    "相克规则：军团：如果军团死于处决，所有军团保留能力，但吟游诗人可能会在当晚得知今天白天死于处决的玩家是军团。",
   ],
 };
-

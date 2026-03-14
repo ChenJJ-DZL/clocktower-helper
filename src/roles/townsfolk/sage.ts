@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 贤者 (Sage)
@@ -58,6 +58,6 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:156-0!canonical and timestamp 20260120031151 and revision id 4871. Serialized with JSON.`,
   clarifications: [
-    `相克规则：利维坦：每个夜晚*，利维坦要选择一名存活的善良玩家（与之前的每个夜晚不同）：如果贤者被选择，他的能力生效但不会死亡。暴乱：每个夜晚*，暴乱要选择一名存活的善良玩家（与之前的每个夜晚不同）：如果贤者被选择，他的能力生效但不会死亡。`
+    "相克规则：利维坦：每个夜晚*，利维坦要选择一名存活的善良玩家（与之前的每个夜晚不同）：如果贤者被选择，他的能力生效但不会死亡。暴乱：每个夜晚*，暴乱要选择一名存活的善良玩家（与之前的每个夜晚不同）：如果贤者被选择，他的能力生效但不会死亡。",
   ],
 };

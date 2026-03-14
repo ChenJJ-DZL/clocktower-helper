@@ -1,15 +1,6 @@
-import { GamePhase, Seat, Role } from "./game";
-import { ModalType } from "./modal";
-
-/**
- * 注册判定结果结构
- */
-export interface RegistrationResult {
-  alignment: 'Good' | 'Evil';
-  roleType: string | null; // RoleType
-  registersAsDemon: boolean;
-  registersAsMinion: boolean;
-}
+import type { GamePhase, Role, Seat } from "./game";
+import type { ModalType } from "./modal";
+import type { RegistrationResult } from "./registration";
 
 /**
  * 描述行动结果的日志
@@ -31,14 +22,17 @@ export interface ActionLog {
  */
 export interface NightActionContext {
   seats: Seat[];
-  targets: number[];   // 选中的座位ID列表
-  selfId: number;      // 发动技能的玩家ID
+  targets: number[]; // 选中的座位ID列表
+  selfId: number; // 发动技能的玩家ID
   gamePhase: GamePhase;
-  nightCount: number;  // 当前是第几夜（首夜为0）
-  roles?: Role[];       // 当前剧本的所有角色列表
+  nightCount: number; // 当前是第几夜（首夜为0）
+  roles?: Role[]; // 当前剧本的所有角色列表
   isActorDisabledByPoisonOrDrunk?: (seat: Seat) => boolean;
   addLog?: (msg: string) => void;
-  findNearestAliveNeighbor?: (originId: number, direction: 1 | -1) => Seat | null;
+  findNearestAliveNeighbor?: (
+    originId: number,
+    direction: 1 | -1
+  ) => Seat | null;
 
   /**
    * 是否已通过二次确认弹窗
@@ -89,7 +83,7 @@ export interface NightActionContext {
     hasUsedAbility: (roleId: string, seatId: number) => boolean;
     reviveSeat: (seat: Seat) => Seat;
     insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
-  }
+  };
 }
 
 /**
@@ -193,13 +187,17 @@ export interface NightActionConfig {
    * @param isFirstNight 是否为首夜
    * @param context 夜晚行动上下文（可选，用于生成动态对话）
    */
-  dialog: (playerSeatId: number, isFirstNight: boolean, context: NightActionContext) => NightDialog;
+  dialog: (
+    playerSeatId: number,
+    isFirstNight: boolean,
+    context: NightActionContext
+  ) => NightDialog;
 
   /**
    * 核心逻辑处理函数
    * 输入当前状态和目标，返回状态变更
    * 注意：这里不要直接修改 state，而是返回需要更新的数据
-   * 
+   *
    * @param context 夜晚行动上下文
    * @returns 状态更新和日志信息
    */
@@ -239,7 +237,7 @@ export interface DayActionConfig {
   /**
    * 最大使用次数 (1 或 'infinity')
    */
-  maxUses: number | 'infinity';
+  maxUses: number | "infinity";
 
   /**
    * 目标配置
@@ -315,7 +313,7 @@ export interface ExecutionResult {
    * 游戏是否结束
    */
   gameOver?: {
-    winResult: 'good' | 'evil';
+    winResult: "good" | "evil";
     winReason: string;
   };
 
@@ -361,7 +359,7 @@ export interface RoleDefinition {
   /**
    * 角色类型
    */
-  type: 'townsfolk' | 'outsider' | 'minion' | 'demon' | 'traveler';
+  type: "townsfolk" | "outsider" | "minion" | "demon" | "traveler";
 
   /**
    * 角色长描述（官方维基上的详细技能说明，支持Markdown）
@@ -390,7 +388,7 @@ export interface RoleDefinition {
    * 处决处理函数（可选）
    * 当该角色被处决时调用，用于处理特殊的处决逻辑
    * 如果返回 handled: true，默认处决逻辑将不再执行
-   * 
+   *
    * @param context 处决上下文
    * @returns 处决处理结果
    */
@@ -399,11 +397,14 @@ export interface RoleDefinition {
   /**
    * 角色初始化处理函数（可选）
    * 在游戏开始设置座位角色时调用，用于初始化特殊的角色状态（如祖母绑定孙子）
-   * 
+   *
    * @param context 设置上下文
    * @returns 初始化的状态更新
    */
-  onSetup?: (context: { seats: Seat[]; selfId: number }) => ExecutionResult | { handled: boolean } | any;
+  onSetup?: (context: {
+    seats: Seat[];
+    selfId: number;
+  }) => ExecutionResult | { handled: boolean } | any;
 
   /**
    * 白天行动配置（可选）
@@ -411,4 +412,3 @@ export interface RoleDefinition {
    */
   day?: DayActionConfig;
 }
-

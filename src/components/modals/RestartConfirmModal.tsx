@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface RestartConfirmModalProps {
   isOpen: boolean;
@@ -6,7 +6,11 @@ interface RestartConfirmModalProps {
   onCancel: () => void;
 }
 
-export function RestartConfirmModal({ isOpen, onConfirm, onCancel }: RestartConfirmModalProps) {
+export function RestartConfirmModal({
+  isOpen,
+  onConfirm,
+  onCancel,
+}: RestartConfirmModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -31,8 +35,9 @@ export function RestartConfirmModal({ isOpen, onConfirm, onCancel }: RestartConf
       }
       className="max-w-md"
     >
-      <p className="text-2xl font-bold text-white text-center">确定重开游戏吗？</p>
+      <p className="text-2xl font-bold text-white text-center">
+        确定重开游戏吗？
+      </p>
     </ModalWrapper>
   );
 }
-

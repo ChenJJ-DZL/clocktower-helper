@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 舞蛇人
@@ -74,11 +73,11 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:38-0!canonical and timestamp 20260120025508 and revision id 3981. Serialized with JSON.`,
   clarifications: [
-    `相克规则（与华灯系列角色）：梼杌：如果梼杌的角色发生了交换，不会因此移除原本梼杌的“失去能力”提示标记。`
+    "相克规则（与华灯系列角色）：梼杌：如果梼杌的角色发生了交换，不会因此移除原本梼杌的“失去能力”提示标记。",
   ],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 9 : 9,
+    order: (isFirstNight) => (isFirstNight ? 9 : 9),
 
     target: {
       count: {
@@ -87,7 +86,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:38-0!canonical and time
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（舞蛇人）。`,
         instruction: "请执行行动",
@@ -96,9 +95,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:38-0!canonical and time
     },
 
     handler: (context) => {
-      const { targets, seats, selfId, isActorDisabledByPoisonOrDrunk, addLog } = context;
-      
-      const selfSeat = seats.find(s => s.id === selfId);
+      const { targets, seats, selfId, isActorDisabledByPoisonOrDrunk, addLog } =
+        context;
+
+      const selfSeat = seats.find((s) => s.id === selfId);
       if (!selfSeat) return null;
 
       if (isActorDisabledByPoisonOrDrunk?.(selfSeat)) {
@@ -111,18 +111,22 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:38-0!canonical and time
       }
 
       const targetId = targets[0];
-      const targetSeat = seats.find(s => s.id === targetId);
+      const targetSeat = seats.find((s) => s.id === targetId);
 
       if (!targetSeat || targetSeat.isDead) {
-        return { updates: [], logs: { privateLog: "舞蛇人选择了无效或死亡的目标" } };
+        return {
+          updates: [],
+          logs: { privateLog: "舞蛇人选择了无效或死亡的目标" },
+        };
       }
 
-      const isTargetDemon = targetSeat.role?.type === 'demon' || targetSeat.isDemonSuccessor;
+      const isTargetDemon =
+        targetSeat.role?.type === "demon" || targetSeat.isDemonSuccessor;
 
       if (isTargetDemon) {
         const scRole = selfSeat.role!;
         const demonRole = targetSeat.role!;
-        
+
         const updates = [
           // New Demon (Old Snake Charmer)
           {
@@ -135,29 +139,35 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:38-0!canonical and time
             id: targetId,
             role: scRole,
             isPoisoned: true,
-            statusDetails: [...(targetSeat.statusDetails || []).filter(d => !d.includes('舞蛇人中毒')), '舞蛇人中毒（永久）'],
-            statuses: [...(targetSeat.statuses || []), { effect: 'Poison', duration: '永久' }],
+            statusDetails: [
+              ...(targetSeat.statusDetails || []).filter(
+                (d) => !d.includes("舞蛇人中毒")
+              ),
+              "舞蛇人中毒（永久）",
+            ],
+            statuses: [
+              ...(targetSeat.statuses || []),
+              { effect: "Poison", duration: "永久" },
+            ],
             isDemonSuccessor: false,
-          }
+          },
         ];
 
         return {
-            updates,
-            logs: {
-                privateLog: `❗ 舞蛇人命中恶魔！${selfId + 1}号变为新恶魔(${demonRole.name})，${targetId + 1}号变为舞蛇人且中毒`,
-                publicLog: `🎉 舞蛇人命中了恶魔！说书人请注意处理角色交换。`
-            }
+          updates,
+          logs: {
+            privateLog: `❗ 舞蛇人命中恶魔！${selfId + 1}号变为新恶魔(${demonRole.name})，${targetId + 1}号变为舞蛇人且中毒`,
+            publicLog: "🎉 舞蛇人命中了恶魔！说书人请注意处理角色交换。",
+          },
         };
-
       } else {
         return {
-            updates: [],
-            logs: {
-                privateLog: `${selfId + 1}号(舞蛇人) 选择 ${targetId + 1}号，未命中恶魔`
-            }
+          updates: [],
+          logs: {
+            privateLog: `${selfId + 1}号(舞蛇人) 选择 ${targetId + 1}号，未命中恶魔`,
+          },
         };
       }
     },
-
   },
 };

@@ -24,7 +24,13 @@ export interface NormalizeWakeQueueResult {
 export function normalizeWakeQueueForDeaths(
   input: NormalizeWakeQueueInput
 ): NormalizeWakeQueueResult {
-  const { wakeQueueIds, currentWakeIndex, seats, deadThisNight, getSeatRoleId } = input;
+  const {
+    wakeQueueIds,
+    currentWakeIndex,
+    seats,
+    deadThisNight,
+    getSeatRoleId,
+  } = input;
 
   const shouldRemoveFromWakeQueue = (s: Seat) => {
     const roleId = getSeatRoleId(s);
@@ -35,7 +41,9 @@ export function normalizeWakeQueueForDeaths(
     return s.isDead && !s.hasAbilityEvenDead;
   };
 
-  const removeIds = new Set(seats.filter(shouldRemoveFromWakeQueue).map((s) => s.id));
+  const removeIds = new Set(
+    seats.filter(shouldRemoveFromWakeQueue).map((s) => s.id)
+  );
   if (removeIds.size === 0) {
     return { wakeQueueIds, currentWakeIndex, removedIds: [] };
   }
@@ -53,5 +61,3 @@ export function normalizeWakeQueueForDeaths(
     removedIds: Array.from(removeIds),
   };
 }
-
-

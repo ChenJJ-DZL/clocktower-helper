@@ -1,12 +1,16 @@
-import { Role, Seat, StatusEffect, RoleType } from '../../app/data';
-import { getJinx } from './jinxUtils';
-import { JinxManager } from './JinxManager';
+import type { Role, RoleType, Seat, StatusEffect } from "../../app/data";
+import type { RegistrationResult } from "../types/registration";
+import { JinxManager } from "./JinxManager";
 
 // ======================================================================
 //  座位位置计算
 // ======================================================================
 
-export const getSeatPosition = (index: number, total: number = 15, isPortrait: boolean = false) => {
+export const getSeatPosition = (
+  index: number,
+  total: number = 15,
+  isPortrait: boolean = false
+) => {
   const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
   // 竖屏时使用椭圆形布局（垂直方向更长）
   if (isPortrait) {
@@ -25,7 +29,8 @@ export const getSeatPosition = (index: number, total: number = 15, isPortrait: b
     // 公式：distance = radiusY * |sin(angle14) - sin(angle13)|
     // 所以：radiusY = distance / |sin(angle14) - sin(angle13)|
     const sinDiff = Math.abs(Math.sin(angle14) - Math.sin(angle13));
-    const calculatedRadiusY = sinDiff > 0 ? targetVerticalDistance / sinDiff : 54;
+    const calculatedRadiusY =
+      sinDiff > 0 ? targetVerticalDistance / sinDiff : 54;
 
     // 使用计算出的radiusY，但设置合理的范围限制
     const radiusX = 44; // 水平半径保持不变
@@ -47,7 +52,8 @@ export const getSeatPosition = (index: number, total: number = 15, isPortrait: b
 //  随机工具函数
 // ======================================================================
 
-export const getRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+export const getRandom = <T>(arr: T[]): T =>
+  arr[Math.floor(Math.random() * arr.length)];
 
 // ======================================================================
 //  能力与状态检查
@@ -59,7 +65,10 @@ export const getRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr
  * 1. 死亡玩家立即失去能力（除非有"死亡时触发"或"即使死亡"标记）
  * 2. 醉酒/中毒玩家失去能力（但可能不知道）
  */
-export const isAbilityActive = (seat: Seat, isFirstNight: boolean = false): boolean => {
+export const isAbilityActive = (
+  seat: Seat,
+  _isFirstNight: boolean = false
+): boolean => {
   if (!seat.role) return false;
 
   // 1. 检查死亡状态
@@ -71,7 +80,7 @@ export const isAbilityActive = (seat: Seat, isFirstNight: boolean = false): bool
   }
 
   // 2. 检查醉酒/中毒
-  if (computeIsPoisoned(seat) || seat.isDrunk || seat.role.id === 'drunk') {
+  if (computeIsPoisoned(seat) || seat.isDrunk || seat.role.id === "drunk") {
     return false;
   }
 
@@ -81,12 +90,15 @@ export const isAbilityActive = (seat: Seat, isFirstNight: boolean = false): bool
 /**
  * 检查是否受到因死亡/醉酒/中毒而立即终止的限制
  */
-export const validateAbilityUsage = (seat: Seat): { isValid: boolean; reason?: string } => {
-  if (seat.isDead && !seat.hasAbilityEvenDead) return { isValid: false, reason: '已死亡' };
-  if (seat.isDrunk) return { isValid: false, reason: '醉酒' };
-  if (computeIsPoisoned(seat)) return { isValid: false, reason: '中毒' };
+export const validateAbilityUsage = (
+  seat: Seat
+): { isValid: boolean; reason?: string } => {
+  if (seat.isDead && !seat.hasAbilityEvenDead)
+    return { isValid: false, reason: "已死亡" };
+  if (seat.isDrunk) return { isValid: false, reason: "醉酒" };
+  if (computeIsPoisoned(seat)) return { isValid: false, reason: "中毒" };
   return { isValid: true };
-}
+};
 
 // ======================================================================
 //  注册判定相关（用于查验类技能）
@@ -103,39 +115,39 @@ export type RegistrationCacheOptions = {
 
 // 统一的身份注册判定：返回"此刻在查看者眼中"的阵营/类型
 // 包含隐士/间谍的干扰效果，并在一次调用内保持一致的随机结果
-export type RegistrationResult = {
-  alignment: 'Good' | 'Evil';
-  roleType: RoleType | null;
-  registersAsDemon: boolean;
-  registersAsMinion: boolean;
-};
+// 类型 RegistrationResult 已从 ../types/registration 导入
 
 export const buildRegistrationCacheKey = (
   targetPlayer: Seat,
   viewingRole?: Role | null,
-  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseMode?: "off" | "default" | "on",
   spyDisguiseProbability?: number,
   options?: RegistrationCacheOptions
 ): string | null => {
   if (!options?.cache || !options.cacheKey) return null;
-  const targetRoleId = targetPlayer.role?.id ?? 'none';
-  const viewerId = viewingRole?.id ?? 'none';
-  const disguise = spyDisguiseMode ?? 'default';
-  const probability = spyDisguiseProbability ?? 'default';
-  const successor = targetPlayer.isDemonSuccessor ? 'succ' : 'normal';
+  const targetRoleId = targetPlayer.role?.id ?? "none";
+  const viewerId = viewingRole?.id ?? "none";
+  const disguise = spyDisguiseMode ?? "default";
+  const probability = spyDisguiseProbability ?? "default";
+  const successor = targetPlayer.isDemonSuccessor ? "succ" : "normal";
   return `${options.cacheKey}-t${targetPlayer.id}-${targetRoleId}-v${viewerId}-${disguise}-${probability}-${successor}`;
 };
 
 export const getRegistration = (
   targetPlayer: Seat,
   viewingRole?: Role | null,
-  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseMode?: "off" | "default" | "on",
   spyDisguiseProbability?: number,
   options?: RegistrationCacheOptions
 ): RegistrationResult => {
   const role = targetPlayer.role;
   if (!role) {
-    return { alignment: 'Good', roleType: null, registersAsDemon: false, registersAsMinion: false };
+    return {
+      alignment: "Good",
+      roleType: null,
+      registersAsDemon: false,
+      registersAsMinion: false,
+    };
   }
 
   const cacheKey = buildRegistrationCacheKey(
@@ -153,71 +165,88 @@ export const getRegistration = (
   // We'll calculate the base registration, then apply generic character modifiers.
 
   // 真实基准
-  let registeredRoleType: RoleType | null = targetPlayer.isDemonSuccessor ? 'demon' : role.type;
+  let registeredRoleType: RoleType | null = targetPlayer.isDemonSuccessor
+    ? "demon"
+    : role.type;
   // 基准阵营注册（包含红罗刹判定）
-  let registeredAlignment: 'Good' | 'Evil' =
-    registeredRoleType === 'demon' || registeredRoleType === 'minion' ? 'Evil' : 'Good';
+  let registeredAlignment: "Good" | "Evil" =
+    registeredRoleType === "demon" || registeredRoleType === "minion"
+      ? "Evil"
+      : "Good";
 
   // 灵言师等效果转换为邪恶阵营时，保持原角色类型但阵营视为邪恶
   if (targetPlayer.isEvilConverted) {
-    registeredAlignment = 'Evil';
+    registeredAlignment = "Evil";
   }
 
   // 占卜师红罗刹判定：红罗刹始终注册为恶魔（邪恶）
   // 修正：此判定只对占卜师生效，对共情者/厨师等不生效
-  const isRedHerring = targetPlayer.isRedHerring || targetPlayer.isFortuneTellerRedHerring;
-  if (isRedHerring && viewingRole?.id === 'fortune_teller') {
-    registeredAlignment = 'Evil';
-    registeredRoleType = 'demon';
+  const isRedHerring =
+    targetPlayer.isRedHerring || targetPlayer.isFortuneTellerRedHerring;
+  if (isRedHerring && viewingRole?.id === "fortune_teller") {
+    registeredAlignment = "Evil";
+    registeredRoleType = "demon";
   }
 
   // 间谍：可能注册为善良镇民/外来者
-  if (role.id === 'spy') {
-    if (viewingRole && spyDisguiseMode !== 'off') {
-      const probability = spyDisguiseMode === 'on' ? (spyDisguiseProbability ?? 0.8) : 0.8;
+  if (role.id === "spy") {
+    if (viewingRole && spyDisguiseMode !== "off") {
+      const probability =
+        spyDisguiseMode === "on" ? (spyDisguiseProbability ?? 0.8) : 0.8;
       const looksGood = Math.random() < probability;
       if (looksGood) {
-        registeredAlignment = 'Good';
-        registeredRoleType = Math.random() < 0.5 ? 'townsfolk' : 'outsider';
+        registeredAlignment = "Good";
+        registeredRoleType = Math.random() < 0.5 ? "townsfolk" : "outsider";
       } else {
-        registeredAlignment = 'Evil';
-        registeredRoleType = 'minion';
+        registeredAlignment = "Evil";
+        registeredRoleType = "minion";
       }
     } else {
-      registeredAlignment = 'Evil';
-      registeredRoleType = 'minion';
+      registeredAlignment = "Evil";
+      registeredRoleType = "minion";
     }
   }
 
   // 隐士：可能注册为爪牙或恶魔
-  if (role.id === 'recluse') {
+  if (role.id === "recluse") {
     // 只有在被查验阵营或类型时才触发注册判定
     const roll = Math.random();
     if (roll < 0.33) {
-      registeredAlignment = 'Evil';
-      registeredRoleType = 'minion';
+      registeredAlignment = "Evil";
+      registeredRoleType = "minion";
     } else if (roll < 0.66) {
-      registeredAlignment = 'Evil';
-      registeredRoleType = 'demon';
+      registeredAlignment = "Evil";
+      registeredRoleType = "demon";
     } else {
-      registeredAlignment = 'Good';
-      registeredRoleType = 'outsider';
+      registeredAlignment = "Good";
+      registeredRoleType = "outsider";
     }
   }
 
   let result: RegistrationResult = {
     alignment: registeredAlignment,
     roleType: registeredRoleType,
-    registersAsDemon: registeredRoleType === 'demon',
-    registersAsMinion: registeredRoleType === 'minion',
+    registersAsDemon: registeredRoleType === "demon",
+    registersAsMinion: registeredRoleType === "minion",
   };
 
   // If a viewer is provided, apply JinxManager interception
   // Note: JinxManager needs viewingSeat but we only have viewingRole here in the generic getRegistration.
   // We'll map viewingRole to a dummy seat just to satisfy the type, as most jinxes rely on the role ID.
   if (viewingRole) {
-    const dummyViewer = { id: -1, role: viewingRole, isDead: false, isDrunk: false, isPoisoned: false } as Seat;
-    result = JinxManager.interceptInspection(targetPlayer, dummyViewer, result, []);
+    const dummyViewer = {
+      id: -1,
+      role: viewingRole,
+      isDead: false,
+      isDrunk: false,
+      isPoisoned: false,
+    } as Seat;
+    result = JinxManager.interceptInspection(
+      targetPlayer,
+      dummyViewer,
+      result,
+      []
+    );
   }
 
   if (cacheKey && options?.cache) {
@@ -237,17 +266,23 @@ export const isFortuneTellerTarget = (
 ): boolean => {
   // 占卜师查验需要特殊逻辑：只看是否注册为恶魔
   // 注意：占卜师查看爪牙应该返回“否”，除非该爪牙是红罗刹或因为其他规则注册为恶魔
-  const reg = getRegistration(targetPlayer, { id: 'fortune_teller' } as Role, 'default', 0.8, options);
+  const reg = getRegistration(
+    targetPlayer,
+    { id: "fortune_teller" } as Role,
+    "default",
+    0.8,
+    options
+  );
   return reg.registersAsDemon;
 };
 
 export const getRegisteredAlignment = (
   targetPlayer: Seat,
   viewingRole?: Role | null,
-  spyDisguiseMode?: 'off' | 'default' | 'on',
+  spyDisguiseMode?: "off" | "default" | "on",
   spyDisguiseProbability?: number,
   options?: RegistrationCacheOptions
-): 'Good' | 'Evil' => {
+): "Good" | "Evil" => {
   const registration = getRegistration(
     targetPlayer,
     viewingRole,
@@ -274,20 +309,22 @@ export const getPoisonSources = (seat: Seat) => {
     /投毒（.*清除）/,
     /诺-达中毒（.*清除）/,
     /食人族中毒（.*清除）/,
-    /舞蛇人中毒（.*清除）/
+    /舞蛇人中毒（.*清除）/,
   ];
-  const hasAnyPoisonMark = poisonPatterns.some(pattern =>
-    details.some(d => pattern.test(d))
+  const hasAnyPoisonMark = poisonPatterns.some((pattern) =>
+    details.some((d) => pattern.test(d))
   );
   return {
-    permanent: details.some(d => d.includes('永久中毒')),
-    vigormortis: details.some(d => d.includes('亡骨魔中毒')),
-    pukka: details.some(d => d.includes('普卡中毒')),
-    dayPoison: details.some(d => d.includes('投毒') && d.includes('清除')),
-    noDashiiMark: details.some(d => d.includes('诺-达中毒')), // 这里的 noDashiiMark 指的是手动或遗留的标记
-    cannibal: details.some(d => d.includes('食人族中毒')),
-    snakeCharmer: details.some(d => d.includes('舞蛇人中毒')),
-    statusPoison: statuses.some(st => st.effect === 'Poison' && st.duration !== 'expired'),
+    permanent: details.some((d) => d.includes("永久中毒")),
+    vigormortis: details.some((d) => d.includes("亡骨魔中毒")),
+    pukka: details.some((d) => d.includes("普卡中毒")),
+    dayPoison: details.some((d) => d.includes("投毒") && d.includes("清除")),
+    noDashiiMark: details.some((d) => d.includes("诺-达中毒")), // 这里的 noDashiiMark 指的是手动或遗留的标记
+    cannibal: details.some((d) => d.includes("食人族中毒")),
+    snakeCharmer: details.some((d) => d.includes("舞蛇人中毒")),
+    statusPoison: statuses.some(
+      (st) => st.effect === "Poison" && st.duration !== "expired"
+    ),
     direct: seat.isPoisoned,
     anyMark: hasAnyPoisonMark,
   };
@@ -302,21 +339,22 @@ export const getNoDashiiPoisonedPlayers = (allSeats: Seat[]): number[] => {
   if (total <= 1) return poisonedIds;
 
   // 1. 找到所有活着的、未失能的诺-达
-  const activeNoDashis = allSeats.filter(s =>
-    s.role?.id === 'no_dashii' &&
-    !s.isDead &&
-    !isActorDisabledByPoisonOrDrunk(s)
+  const activeNoDashis = allSeats.filter(
+    (s) =>
+      s.role?.id === "no_dashii" &&
+      !s.isDead &&
+      !isActorDisabledByPoisonOrDrunk(s)
   );
 
   for (const noDashii of activeNoDashis) {
-    const originIndex = allSeats.findIndex(s => s.id === noDashii.id);
+    const originIndex = allSeats.findIndex((s) => s.id === noDashii.id);
 
     // 2. 顺时针（向右）寻找第一个存活镇民
     for (let i = 1; i < total; i++) {
       const idx = (originIndex + i) % total;
       const s = allSeats[idx];
       if (s.isDead) continue;
-      if (s.role?.type === 'townsfolk') {
+      if (s.role?.type === "townsfolk") {
         poisonedIds.push(s.id);
         break;
       }
@@ -327,7 +365,7 @@ export const getNoDashiiPoisonedPlayers = (allSeats: Seat[]): number[] => {
       const idx = (originIndex - i + total) % total;
       const s = allSeats[idx];
       if (s.isDead) continue;
-      if (s.role?.type === 'townsfolk') {
+      if (s.role?.type === "townsfolk") {
         if (!poisonedIds.includes(s.id)) {
           poisonedIds.push(s.id);
         }
@@ -341,12 +379,25 @@ export const getNoDashiiPoisonedPlayers = (allSeats: Seat[]): number[] => {
 
 export const computeIsPoisoned = (seat: Seat, allSeats?: Seat[]) => {
   const src = getPoisonSources(seat);
-  let poisoned = src.permanent || src.vigormortis || src.pukka || src.dayPoison ||
-    src.noDashiiMark || src.cannibal || src.snakeCharmer ||
-    src.statusPoison || src.direct || src.anyMark;
+  let poisoned =
+    src.permanent ||
+    src.vigormortis ||
+    src.pukka ||
+    src.dayPoison ||
+    src.noDashiiMark ||
+    src.cannibal ||
+    src.snakeCharmer ||
+    src.statusPoison ||
+    src.direct ||
+    src.anyMark;
 
   // 诺-达动态中毒逻辑：如果当前玩家是镇民且活着，且没有其他中毒来源，检查诺-达
-  if (!poisoned && allSeats && seat.role?.type === 'townsfolk' && !seat.isDead) {
+  if (
+    !poisoned &&
+    allSeats &&
+    seat.role?.type === "townsfolk" &&
+    !seat.isDead
+  ) {
     const noDashiiPoisonedIds = getNoDashiiPoisonedPlayers(allSeats);
     if (noDashiiPoisonedIds.includes(seat.id)) {
       poisoned = true;
@@ -359,65 +410,74 @@ export const computeIsPoisoned = (seat: Seat, allSeats?: Seat[]) => {
 // 统一添加中毒标记（带清除时间）
 export const addPoisonMark = (
   seat: Seat,
-  poisonType: 'permanent' | 'vigormortis' | 'pukka' | 'poisoner' | 'poisoner_mr' | 'no_dashii' | 'cannibal' | 'snake_charmer' | 'widow',
+  poisonType:
+    | "permanent"
+    | "vigormortis"
+    | "pukka"
+    | "poisoner"
+    | "poisoner_mr"
+    | "no_dashii"
+    | "cannibal"
+    | "snake_charmer"
+    | "widow",
   clearTime: string
-): { statusDetails: string[], statuses: StatusEffect[] } => {
+): { statusDetails: string[]; statuses: StatusEffect[] } => {
   const details = seat.statusDetails || [];
   const statuses = seat.statuses || [];
 
-  let markText = '';
+  let markText = "";
   switch (poisonType) {
-    case 'permanent':
-      markText = '永久中毒';
+    case "permanent":
+      markText = "永久中毒";
       break;
-    case 'vigormortis':
+    case "vigormortis":
       markText = `亡骨魔中毒（${clearTime}清除）`;
       break;
-    case 'pukka':
+    case "pukka":
       markText = `普卡中毒（${clearTime}清除）`;
       break;
-    case 'poisoner':
+    case "poisoner":
       markText = `投毒（${clearTime}清除）`;
       break;
-    case 'poisoner_mr':
+    case "poisoner_mr":
       markText = `投毒（${clearTime}清除）`;
       break;
-    case 'no_dashii':
+    case "no_dashii":
       markText = `诺-达中毒（${clearTime}清除）`;
       break;
-    case 'cannibal':
+    case "cannibal":
       markText = `食人族中毒（${clearTime}清除）`;
       break;
-    case 'snake_charmer':
-      markText = `舞蛇人中毒（永久）`;
+    case "snake_charmer":
+      markText = "舞蛇人中毒（永久）";
       break;
-    case 'widow':
+    case "widow":
       markText = `寡妇中毒（${clearTime}清除）`;
       break;
   }
 
   // 移除同类型的旧标记，添加新标记
-  const filteredDetails = details.filter(d => {
-    if (poisonType === 'permanent' || poisonType === 'snake_charmer') {
-      return !d.includes('永久中毒') && !d.includes('舞蛇人中毒');
-    } else if (poisonType === 'vigormortis') {
-      return !d.includes('亡骨魔中毒');
-    } else if (poisonType === 'pukka') {
-      return !d.includes('普卡中毒');
-    } else if (poisonType === 'poisoner' || poisonType === 'poisoner_mr') {
-      return !d.includes('投毒');
-    } else if (poisonType === 'no_dashii') {
-      return !d.includes('诺-达中毒');
-    } else if (poisonType === 'cannibal') {
-      return !d.includes('食人族中毒');
-    } else if (poisonType === 'widow') {
-      return !d.includes('寡妇中毒');
+  const filteredDetails = details.filter((d) => {
+    if (poisonType === "permanent" || poisonType === "snake_charmer") {
+      return !d.includes("永久中毒") && !d.includes("舞蛇人中毒");
+    } else if (poisonType === "vigormortis") {
+      return !d.includes("亡骨魔中毒");
+    } else if (poisonType === "pukka") {
+      return !d.includes("普卡中毒");
+    } else if (poisonType === "poisoner" || poisonType === "poisoner_mr") {
+      return !d.includes("投毒");
+    } else if (poisonType === "no_dashii") {
+      return !d.includes("诺-达中毒");
+    } else if (poisonType === "cannibal") {
+      return !d.includes("食人族中毒");
+    } else if (poisonType === "widow") {
+      return !d.includes("寡妇中毒");
     }
     return true;
   });
 
   const newDetails = [...filteredDetails, markText];
-  const newStatuses = [...statuses, { effect: 'Poison', duration: clearTime }];
+  const newStatuses = [...statuses, { effect: "Poison", duration: clearTime }];
 
   return { statusDetails: newDetails, statuses: newStatuses };
 };
@@ -430,10 +490,12 @@ export const addPoisonMark = (
 export const isEvil = (seat: Seat): boolean => {
   if (!seat.role) return false;
   if (seat.isGoodConverted) return false;
-  return seat.isEvilConverted === true ||
-    seat.role.type === 'demon' ||
-    seat.role.type === 'minion' ||
-    seat.isDemonSuccessor;
+  return (
+    seat.isEvilConverted === true ||
+    seat.role.type === "demon" ||
+    seat.role.type === "minion" ||
+    seat.isDemonSuccessor
+  );
 };
 
 export const isGoodAlignment = (seat: Seat): boolean => {
@@ -441,33 +503,37 @@ export const isGoodAlignment = (seat: Seat): boolean => {
   const roleType = seat.role.type;
   if (seat.isEvilConverted) return false;
   if (seat.isGoodConverted) return true;
-  return roleType !== 'demon' && roleType !== 'minion' && !seat.isDemonSuccessor;
+  return (
+    roleType !== "demon" && roleType !== "minion" && !seat.isDemonSuccessor
+  );
 };
 
 /**
  * 检查红唇女郎是否触发变身
  * 规则：如果恶魔死亡且场上存活玩家 >= 5，红唇女郎立即变成恶魔
  */
-export const shouldScarletWomanTransform = (allSeats: Seat[], deadPlayerId?: number): Seat | null => {
-  const alivePlayers = allSeats.filter(s => !s.isDead);
+export const shouldScarletWomanTransform = (
+  allSeats: Seat[],
+  _deadPlayerId?: number
+): Seat | null => {
+  const alivePlayers = allSeats.filter((s) => !s.isDead);
   if (alivePlayers.length < 5) return null;
 
   // 检查是否有活着的恶魔
-  const hasAliveDemon = allSeats.some(s =>
-    !s.isDead && (s.role?.type === 'demon' || s.isDemonSuccessor)
+  const hasAliveDemon = allSeats.some(
+    (s) => !s.isDead && (s.role?.type === "demon" || s.isDemonSuccessor)
   );
   if (hasAliveDemon) return null;
 
   // 查找符合条件的红唇女郎
-  const sw = allSeats.find(s =>
-    !s.isDead && s.role?.id === 'scarlet_woman' && !s.isDemonSuccessor
+  const sw = allSeats.find(
+    (s) => !s.isDead && s.role?.id === "scarlet_woman" && !s.isDemonSuccessor
   );
 
   return sw || null;
 };
 
-export type WinResult = { side: 'good' | 'evil'; reason: string } | null;
-
+export type WinResult = { side: "good" | "evil"; reason: string } | null;
 
 // ======================================================================
 //  邻居相关
@@ -477,7 +543,10 @@ export type WinResult = { side: 'good' | 'evil'; reason: string } | null;
  * 获取玩家的存活邻居（跳过死者）
  * 在血染钟楼中，大部分角色的“邻居”定义为物理位置上最近的存活玩家
  */
-export const getAliveNeighbors = (allSeats: Seat[], targetId: number): Seat[] => {
+export const getAliveNeighbors = (
+  allSeats: Seat[],
+  targetId: number
+): Seat[] => {
   const total = allSeats.length;
   if (total <= 1) return [];
 
@@ -502,7 +571,7 @@ export const getAliveNeighbors = (allSeats: Seat[], targetId: number): Seat[] =>
     const s = allSeats[idx];
     if (!s.isDead) {
       // 避免在人数极少时重复添加同一个邻居
-      if (!neighbors.some(n => n.id === s.id)) {
+      if (!neighbors.some((n) => n.id === s.id)) {
         neighbors.push(s);
       }
       break;
@@ -522,18 +591,22 @@ export const clearRoleStatus = (seat: Seat, time: string): Seat => {
   // 1. 清理 statusDetails 中带当前清除标记的内容
   if (nextSeat.statusDetails) {
     const pattern = new RegExp(`（${time}清除）`);
-    nextSeat.statusDetails = nextSeat.statusDetails.filter(d => !pattern.test(d));
+    nextSeat.statusDetails = nextSeat.statusDetails.filter(
+      (d) => !pattern.test(d)
+    );
   }
 
   // 2. 清理 statuses 数组中已到期的状态
   if (nextSeat.statuses) {
-    nextSeat.statuses = nextSeat.statuses.filter(st => st.duration !== time && st.duration !== 'expired');
+    nextSeat.statuses = nextSeat.statuses.filter(
+      (st) => st.duration !== time && st.duration !== "expired"
+    );
   }
 
   // 3. 处理手动标记位 (isPoisoned/isDrunk 如果是由带清除标记的详情触发的，需要联动)
   // 注意：这里逻辑需要谨慎，通常由 computeIsPoisoned 实时计算更好
   // 但为了兼容现有 UI 状态显示，这里做一下基础重置
-  if (time === '黄昏' || time === '夜晚结算') {
+  if (time === "黄昏" || time === "夜晚结算") {
     nextSeat.isProtected = false;
     nextSeat.protectedBy = null;
   }
@@ -545,11 +618,16 @@ export const clearRoleStatus = (seat: Seat, time: string): Seat => {
  * 查找镇长死亡时的弹射目标
  * 规则：如果镇长在夜晚被杀且未中毒/醉酒，说书人可以选择一名其他玩家代替其死亡。
  */
-export const getMayorRedirectTarget = (allSeats: Seat[], mayorId: number): Seat | null => {
-  const mayor = allSeats.find(s => s.id === mayorId);
+export const getMayorRedirectTarget = (
+  allSeats: Seat[],
+  mayorId: number
+): Seat | null => {
+  const mayor = allSeats.find((s) => s.id === mayorId);
   if (!mayor || isActorDisabledByPoisonOrDrunk(mayor)) return null;
 
-  const otherAlivePlayers = allSeats.filter(s => !s.isDead && s.id !== mayorId);
+  const otherAlivePlayers = allSeats.filter(
+    (s) => !s.isDead && s.id !== mayorId
+  );
   if (otherAlivePlayers.length === 0) return null;
 
   // 随机选择一个作为建议（实际由说书人决定）
@@ -561,7 +639,7 @@ export const getMayorRedirectTarget = (allSeats: Seat[], mayorId: number): Seat 
  * 规则：男爵在场时，减少2个镇民，增加2个外来者
  */
 export const canApplyBaronSetup = (allSeats: Seat[]): boolean => {
-  return allSeats.some(s => s.role?.id === 'baron');
+  return allSeats.some((s) => s.role?.id === "baron");
 };
 
 // ======================================================================
@@ -597,9 +675,10 @@ export const shouldShowFakeInfo = (
 
   // 仅酒鬼、不中毒时：根据伪装角色/自身角色的夜晚行动频率来决定
   if (isDrunk) {
-    const effectiveRole = targetSeat.role?.id === "drunk"
-      ? targetSeat.charadeRole
-      : targetSeat.role;
+    const effectiveRole =
+      targetSeat.role?.id === "drunk"
+        ? targetSeat.charadeRole
+        : targetSeat.role;
 
     // 如果没有可用的有效角色信息，退化为：第一次必假，之后 50% 假
     if (!effectiveRole) {
@@ -663,14 +742,14 @@ export const getMisinformation = {
   // 确保返回一个合理的错误值（0、1或2），而不是返回0或null
   empath: (realCount: number): number => {
     // 真实数字是0、1或2，生成一个不同的错误数字
-    const possibleValues = [0, 1, 2].filter(v => v !== realCount);
+    const possibleValues = [0, 1, 2].filter((v) => v !== realCount);
     if (possibleValues.length === 0) {
       // 理论上不会发生，但作为保险
       return realCount === 0 ? 1 : 0;
     }
     // 从可能的错误值中随机选择一个
     return getRandom(possibleValues);
-  }
+  },
 };
 
 // ======================================================================
@@ -688,7 +767,8 @@ export const findNearestAliveNeighbor = (
   const originIndex = seats.findIndex((s) => s.id === originId);
   if (originIndex === -1 || seats.length <= 1) return null;
   for (let step = 1; step < seats.length; step++) {
-    const seat = seats[(originIndex + direction * step + seats.length) % seats.length];
+    const seat =
+      seats[(originIndex + direction * step + seats.length) % seats.length];
     if (!seat.isDead && seat.id !== originId) {
       return seat;
     }
@@ -707,7 +787,7 @@ export const getPerceivedRoleForViewer = (
 ): { perceivedRole: Role | null; perceivedType: RoleType | null } => {
   if (!target.role) return { perceivedRole: null, perceivedType: null };
 
-  const reg = getRegistration(target, viewer, 'default', 0.8, options);
+  const reg = getRegistration(target, viewer, "default", 0.8, options);
   const regType = reg.roleType ?? target.role.type;
 
   if (expectedType && regType !== expectedType) {
@@ -715,7 +795,7 @@ export const getPerceivedRoleForViewer = (
   }
 
   // Normal roles: show real role token.
-  if (target.role.id !== 'spy' && target.role.id !== 'recluse') {
+  if (target.role.id !== "spy" && target.role.id !== "recluse") {
     return { perceivedRole: target.role, perceivedType: target.role.type };
   }
 
@@ -732,7 +812,7 @@ export const getPerceivedRoleForViewer = (
 /**
  * 检查玩家是否受到查茶女保护
  * 规则：如果查茶女的两名存活邻居都是善良阵营，则查茶女及其邻居都不会死亡。
- * 
+ *
  * @param targetSeat 目标玩家的座位对象
  * @param seats 所有座位的数组
  * @returns 如果目标玩家受到查茶女保护则返回 true，否则返回 false
@@ -741,11 +821,12 @@ export function hasTeaLadyProtection(targetSeat: Seat, seats: Seat[]): boolean {
   if (!targetSeat || !targetSeat.role) return false;
 
   // 查找所有查茶女
-  const teaLadies = seats.filter(s =>
-    s.role?.id === 'tea_lady' &&
-    !s.isDead &&
-    isGoodAlignment(s) &&
-    !isActorDisabledByPoisonOrDrunk(s)
+  const teaLadies = seats.filter(
+    (s) =>
+      s.role?.id === "tea_lady" &&
+      !s.isDead &&
+      isGoodAlignment(s) &&
+      !isActorDisabledByPoisonOrDrunk(s)
   );
 
   // 对每个查茶女检查其邻居
@@ -756,11 +837,16 @@ export function hasTeaLadyProtection(targetSeat: Seat, seats: Seat[]): boolean {
     if (neighbors.length < 2) continue;
 
     // 检查两个邻居是否都是善良阵营
-    const bothNeighborsGood = neighbors.every(neighbor => isGoodAlignment(neighbor));
+    const bothNeighborsGood = neighbors.every((neighbor) =>
+      isGoodAlignment(neighbor)
+    );
 
     if (bothNeighborsGood) {
       // 如果目标玩家是查茶女或其邻居，则受到保护
-      if (targetSeat.id === teaLady.id || neighbors.some(n => n.id === targetSeat.id)) {
+      if (
+        targetSeat.id === teaLady.id ||
+        neighbors.some((n) => n.id === targetSeat.id)
+      ) {
         return true;
       }
     }
@@ -778,9 +864,17 @@ export function hasTeaLadyProtection(targetSeat: Seat, seats: Seat[]): boolean {
  * @param seat 目标玩家座位
  * @param knownByNightAction 是否已知中毒（可选）
  */
-export function isActorDisabledByPoisonOrDrunk(seat: Seat | undefined, knownByNightAction?: boolean): boolean {
+export function isActorDisabledByPoisonOrDrunk(
+  seat: Seat | undefined,
+  knownByNightAction?: boolean
+): boolean {
   if (!seat) return false;
-  return !!knownByNightAction || computeIsPoisoned(seat) || seat.isDrunk || seat.role?.id === 'drunk';
+  return (
+    !!knownByNightAction ||
+    computeIsPoisoned(seat) ||
+    seat.isDrunk ||
+    seat.role?.id === "drunk"
+  );
 }
 
 /**
@@ -793,35 +887,47 @@ export function isActionAbility(role?: Role | null): boolean {
   return !!(role.firstNight || role.otherNight);
 }
 
-
 /**
  * 检查玩家是否有处决保护
- * 
+ *
  * 隐性规则2：不能最大
  * 禁止性规则优先于允许性规则。例如：
  * - 弄臣等能力会造成免死效果
  * - 刺客的能力会让"保护某人不会死亡"的能力无法产生效果
  * - 因此刺客的攻击能够杀死具有保护效果的玩家
- * 
+ *
  * 注意：刺客等角色的攻击会覆盖保护效果，需要在调用此函数前检查攻击者角色
  */
-export const hasExecutionProof = (seat?: Seat | null, attackerRoleId?: string): boolean => {
+export const hasExecutionProof = (
+  seat?: Seat | null,
+  attackerRoleId?: string
+): boolean => {
   if (!seat) return false;
 
   // 隐性规则2：刺客等角色的能力会让保护无效
   // 如果攻击者是刺客，保护无效
-  if (attackerRoleId === 'assassin') {
+  if (attackerRoleId === "assassin") {
     return false;
   }
 
   // Check statuses array for ExecutionProof effect (e.g. Monk, Potion Master, Innkeeper)
   // Note: Monk gives 'Safe' usually, but generic 'Protection' might be reused.
   // We check generic 'Protected' or specific 'ExecutionProof'
-  if ((seat.statuses || []).some((status) => status.effect === 'ExecutionProof' || status.effect === 'Protected')) {
+  if (
+    (seat.statuses || []).some(
+      (status) =>
+        status.effect === "ExecutionProof" || status.effect === "Protected"
+    )
+  ) {
     return true;
   }
   // Check statusDetails for execution_protected marker (from Devil's Advocate, etc.)
-  if ((seat.statusDetails || []).some((detail) => detail.includes('execution_protected') || detail.includes('处决保护'))) {
+  if (
+    (seat.statusDetails || []).some(
+      (detail) =>
+        detail.includes("execution_protected") || detail.includes("处决保护")
+    )
+  ) {
     return true;
   }
   return false;

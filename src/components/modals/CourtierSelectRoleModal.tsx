@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { Role, Seat } from "../../../app/data";
+import { useMemo, useState } from "react";
+import type { Role, Seat } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface CourtierSelectRoleModalProps {
@@ -71,11 +71,10 @@ export function CourtierSelectRoleModal({
         </>
       }
     >
-      <div className="text-gray-200 mb-2">
-        来源：{sourceId + 1}号（侍臣）
-      </div>
+      <div className="text-gray-200 mb-2">来源：{sourceId + 1}号（侍臣）</div>
       <div className="text-xs text-purple-200/90 mb-4">
-        说明：侍臣选择一个角色；若该角色在场，则其中一名该角色玩家从当晚开始醉酒 3 天 3 夜。
+        说明：侍臣选择一个角色；若该角色在场，则其中一名该角色玩家从当晚开始醉酒
+        3 天 3 夜。
       </div>
 
       <select
@@ -106,5 +105,3 @@ export function CourtierSelectRoleModal({
     </ModalWrapper>
   );
 }
-
-

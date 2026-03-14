@@ -1,20 +1,27 @@
-import type { Seat, Role, GamePhase, LogEntry, Script, RoleType } from '../../app/data';
-import type { TimelineStep, NightInfoResult } from '../types/game';
-import type { NightActionContext } from '../types/roleDefinition';
+import type {
+  GamePhase,
+  LogEntry,
+  Role,
+  RoleType,
+  Script,
+  Seat,
+} from "../../app/data";
+import { roles } from "../../app/data";
+import troubleBrewingRolesData from "../data/rolesData.json";
+import { getRoleDefinition } from "../roles";
+import type { NightInfoResult, TimelineStep } from "../types/game";
+import type { RegistrationResult } from "../types/registration";
+import type { NightActionContext } from "../types/roleDefinition";
 import {
   computeIsPoisoned,
-  getPoisonSources,
-  getRegistration,
-  getRandom,
-  isEvil,
-  shouldShowFakeInfo,
   getMisinformation,
-  type RegistrationResult,
-  type RegistrationCacheOptions
-} from './gameRules';
-import { roles } from '../../app/data';
-import { getRoleDefinition } from '../roles';
-import troubleBrewingRolesData from '../data/rolesData.json';
+  getPoisonSources,
+  getRandom,
+  getRegistration,
+  isEvil,
+  type RegistrationCacheOptions,
+  shouldShowFakeInfo,
+} from "./gameRules";
 
 export const calculateNightInfo = (
   selectedScript: Script | null,
@@ -23,35 +30,42 @@ export const calculateNightInfo = (
   gamePhase: GamePhase,
   lastDuskExecution: number | null,
   nightCount: number, // ADDED
-  fakeInspectionResult?: string,
+  _fakeInspectionResult?: string,
   drunkFirstInfoMap?: Map<number, boolean>,
   isEvilWithJudgmentFn?: (seat: Seat) => boolean,
   poppyGrowerDead?: boolean,
-  gameLogs?: LogEntry[],
-  spyDisguiseMode?: 'off' | 'default' | 'on',
+  _gameLogs?: LogEntry[],
+  spyDisguiseMode?: "off" | "default" | "on",
   spyDisguiseProbability?: number,
   deadThisNight: number[] = [],
-  balloonistKnownTypes?: Record<number, string[]>,
+  _balloonistKnownTypes?: Record<number, string[]>,
   registrationCache?: Map<string, RegistrationResult>,
   registrationCacheKey?: string,
   vortoxWorld?: boolean,
   demonVotedToday?: boolean,
   minionNominatedToday?: boolean,
   executedToday?: number | null,
-  hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
-  votedThisRound?: number[], // NEW: List of seat IDs who voted this round (for Flowergirl/Town Crier)
-  outsiderDiedToday?: boolean // NEW: for Godfather/Gossip extra death triggers
+  _hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
+  _votedThisRound?: number[], // NEW: List of seat IDs who voted this round (for Flowergirl/Town Crier)
+  _outsiderDiedToday?: boolean // NEW: for Godfather/Gossip extra death triggers
 ): NightInfoResult | null => {
   // 使用传入的判定函数，如果没有则使用默认的isEvil
   const checkEvil = isEvilWithJudgmentFn || isEvil;
-  const isFirstNight = gamePhase === 'firstNight';
-  const registrationOptions: RegistrationCacheOptions | undefined = registrationCache
-    ? { cache: registrationCache, cacheKey: registrationCacheKey }
-    : undefined;
+  const isFirstNight = gamePhase === "firstNight";
+  const registrationOptions: RegistrationCacheOptions | undefined =
+    registrationCache
+      ? { cache: registrationCache, cacheKey: registrationCacheKey }
+      : undefined;
   const getCachedRegistration = (player: Seat, viewer?: Role | null) =>
-    getRegistration(player, viewer, spyDisguiseMode, spyDisguiseProbability, registrationOptions);
+    getRegistration(
+      player,
+      viewer,
+      spyDisguiseMode,
+      spyDisguiseProbability,
+      registrationOptions
+    );
 
-  const buildRegistrationGuideNote = (viewer: Role): string | null => {
+  const _buildRegistrationGuideNote = (viewer: Role): string | null => {
     const typeLabels: Record<RoleType, string> = {
       townsfolk: "镇民",
       outsider: "外来者",
@@ -65,13 +79,14 @@ export const calculateNightInfo = (
     if (affected.length === 0) return null;
     const lines = affected.map((s) => {
       const reg = getCachedRegistration(s, viewer);
-      const typeLabel = reg.roleType ? typeLabels[reg.roleType] || reg.roleType : "无类型";
-      const status =
-        reg.registersAsDemon
-          ? "在眼中 = 恶魔"
-          : reg.registersAsMinion
-            ? "在眼中 = 爪牙"
-            : `在眼中 = ${reg.alignment === "Evil" ? "邪恶" : "善良"} / 类型 ${typeLabel}`;
+      const typeLabel = reg.roleType
+        ? typeLabels[reg.roleType] || reg.roleType
+        : "无类型";
+      const status = reg.registersAsDemon
+        ? "在眼中 = 恶魔"
+        : reg.registersAsMinion
+          ? "在眼中 = 爪牙"
+          : `在眼中 = ${reg.alignment === "Evil" ? "邪恶" : "善良"} / 类型 ${typeLabel}`;
       return `${s.id + 1}号【${s.role?.name ?? "未知"}】：${status}`;
     });
     return `📌 注册判定（仅说书人可见）：\n${lines.join("\n")}`;
@@ -84,15 +99,18 @@ export const calculateNightInfo = (
       return (
         !r.script ||
         r.script === selectedScript.name ||
-        (selectedScript.id === 'trouble_brewing' && !r.script) ||
-        (selectedScript.id === 'bad_moon_rising' && (!r.script || r.script === '黯月初升')) ||
-        (selectedScript.id === 'sects_and_violets' && (!r.script || r.script === '梦陨春宵')) ||
-        (selectedScript.id === 'midnight_revelry' && (!r.script || r.script === '夜半狂欢'))
+        (selectedScript.id === "trouble_brewing" && !r.script) ||
+        (selectedScript.id === "bad_moon_rising" &&
+          (!r.script || r.script === "黯月初升")) ||
+        (selectedScript.id === "sects_and_violets" &&
+          (!r.script || r.script === "梦陨春宵")) ||
+        (selectedScript.id === "midnight_revelry" &&
+          (!r.script || r.script === "夜半狂欢"))
       );
     });
   };
 
-  const getPerceivedRoleForViewer = (
+  const _getPerceivedRoleForViewer = (
     target: Seat,
     viewer: Role,
     expectedType?: RoleType
@@ -106,14 +124,16 @@ export const calculateNightInfo = (
       return { perceivedRole: null, perceivedType: regType };
     }
 
-    if (target.role.id !== 'spy' && target.role.id !== 'recluse') {
+    if (target.role.id !== "spy" && target.role.id !== "recluse") {
       return { perceivedRole: target.role, perceivedType: target.role.type };
     }
 
     const perceivedType = expectedType ?? regType;
-    const cache = (registrationCache as unknown as Map<string, any>) ?? new Map<string, any>();
+    const cache =
+      (registrationCache as unknown as Map<string, any>) ??
+      new Map<string, any>();
     const keyBase =
-      (registrationCacheKey ?? 'local') +
+      (registrationCacheKey ?? "local") +
       `-perceivedRole-t${target.id}-v${viewer.id}-as${perceivedType}`;
 
     const cached = cache.get(keyBase) as Role | undefined;
@@ -122,7 +142,11 @@ export const calculateNightInfo = (
     const pool = getRolePoolByType(perceivedType);
     const pool2 = pool.filter((r) => r.id !== viewer.id);
     const picked: Role | null =
-      pool2.length > 0 ? getRandom(pool2) : pool.length > 0 ? getRandom(pool) : null;
+      pool2.length > 0
+        ? getRandom(pool2)
+        : pool.length > 0
+          ? getRandom(pool)
+          : null;
 
     if (picked) cache.set(keyBase, picked);
     return { perceivedRole: picked, perceivedType };
@@ -135,7 +159,8 @@ export const calculateNightInfo = (
     const originIndex = seats.findIndex((s) => s.id === originId);
     if (originIndex === -1 || seats.length <= 1) return null;
     for (let step = 1; step < seats.length; step++) {
-      const seat = seats[(originIndex + direction * step + seats.length) % seats.length];
+      const seat =
+        seats[(originIndex + direction * step + seats.length) % seats.length];
       if (!seat.isDead && seat.id !== originId) {
         return seat;
       }
@@ -143,26 +168,29 @@ export const calculateNightInfo = (
     return null;
   };
 
-  const targetSeat = seats.find(s => s.id === currentSeatId);
-  console.log(`[NightLogic] calculateNightInfo - Role: ${targetSeat?.role?.id}, Phase: ${gamePhase}, lastDusk: ${lastDuskExecution}`);
+  const targetSeat = seats.find((s) => s.id === currentSeatId);
+  console.log(
+    `[NightLogic] calculateNightInfo - Role: ${targetSeat?.role?.id}, Phase: ${gamePhase}, lastDusk: ${lastDuskExecution}`
+  );
   if (!targetSeat || !targetSeat.role) return null;
 
-  const effectiveRole = targetSeat.role.id === "drunk" ? targetSeat.charadeRole : targetSeat.role;
+  const effectiveRole =
+    targetSeat.role.id === "drunk" ? targetSeat.charadeRole : targetSeat.role;
   if (!effectiveRole) return null;
-  const diedTonight = deadThisNight.includes(targetSeat.id);
+  const _diedTonight = deadThisNight.includes(targetSeat.id);
 
-  const checkEvilForChefEmpath = (seat: Seat): boolean => {
+  const _checkEvilForChefEmpath = (seat: Seat): boolean => {
     const registration = getCachedRegistration(seat, effectiveRole);
-    return registration.alignment === 'Evil';
+    return registration.alignment === "Evil";
   };
 
-  const abilityText = effectiveRole.ability || '';
-  const hasChoiceKeyword = abilityText.includes('选择');
+  const abilityText = effectiveRole.ability || "";
+  const _hasChoiceKeyword = abilityText.includes("选择");
 
-  const vortoxActive = seats.some(s => s.role?.id === 'vortox' && !s.isDead);
+  const vortoxActive = seats.some((s) => s.role?.id === "vortox" && !s.isDead);
 
   let isPoisoned = computeIsPoisoned(targetSeat, seats);
-  if (vortoxActive && effectiveRole.type === 'townsfolk') {
+  if (vortoxActive && effectiveRole.type === "townsfolk") {
     isPoisoned = true; // Force false info for Townsfolk
   }
 
@@ -190,9 +218,12 @@ export const calculateNightInfo = (
     ? shouldShowFakeInfo(targetSeat, drunkFirstInfoMap, vortoxWorld)
     : { showFake: isPoisoned || !!vortoxWorld, isFirstTime: false };
   const shouldShowFake = fakeInfoCheck.showFake;
-  let guide = "", speak = "", action = "", logMessage: string | undefined;
+  let guide = "",
+    speak = "",
+    action = "",
+    _logMessage: string | undefined;
 
-  const dummySeat: Seat = {
+  const _dummySeat: Seat = {
     id: -1,
     role: null,
     charadeRole: null,
@@ -216,12 +247,14 @@ export const calculateNightInfo = (
   };
 
   let targetLimit = { min: 0, max: 0 };
-  let canSelectDead = false;
+  const canSelectDead = false;
   let canSelectSelf = false;
   let validTargetIds: number[] = [];
 
   const roleDef = getRoleDefinition(effectiveRole.id);
-  const nightConfig = isFirstNight ? (roleDef?.firstNight || roleDef?.night) : roleDef?.night;
+  const nightConfig = isFirstNight
+    ? roleDef?.firstNight || roleDef?.night
+    : roleDef?.night;
 
   const context: NightActionContext = {
     seats,
@@ -239,43 +272,60 @@ export const calculateNightInfo = (
     findNearestAliveNeighbor,
     shouldShowFake,
     getMisinformation,
-    isActorDisabledByPoisonOrDrunk: (seat: Seat) => computeIsPoisoned(seat, seats) || seat.isDrunk || seat.role?.id === 'drunk',
-    addLog: (msg: string) => {}, // Dummy during calculation
+    isActorDisabledByPoisonOrDrunk: (seat: Seat) =>
+      computeIsPoisoned(seat, seats) ||
+      seat.isDrunk ||
+      seat.role?.id === "drunk",
+    addLog: (_msg: string) => {}, // Dummy during calculation
   };
 
   if (nightConfig) {
     const dialog = nightConfig.dialog(currentSeatId, isFirstNight, context);
     guide = dialog.wake;
     speak = dialog.instruction;
-    action = dialog.close; 
+    action = dialog.close;
 
     if (nightConfig.target) {
       targetLimit = nightConfig.target.count;
 
       if (nightConfig.target.canSelect) {
-        canSelectSelf = nightConfig.target.canSelect(targetSeat, targetSeat, seats, []);
+        canSelectSelf = nightConfig.target.canSelect(
+          targetSeat,
+          targetSeat,
+          seats,
+          []
+        );
       }
 
       if (nightConfig.target.validTargetIds) {
-        validTargetIds = nightConfig.target.validTargetIds(currentSeatId, seats, gamePhase);
+        validTargetIds = nightConfig.target.validTargetIds(
+          currentSeatId,
+          seats,
+          gamePhase
+        );
       }
     }
   } else {
-    if (effectiveRole.type === 'minion' && gamePhase === 'firstNight') {
-      const poppyGrower = seats.find(s => s.role?.id === 'poppy_grower');
-      const shouldHideDemon = poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
+    if (effectiveRole.type === "minion" && gamePhase === "firstNight") {
+      const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
+      const shouldHideDemon =
+        poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
 
       if (shouldHideDemon) {
-        guide = `🌺 罂粟种植者在场，本局爪牙和恶魔互相不知道彼此身份。\n\n操作提示：你现在不需要叫醒爪牙。`;
+        guide =
+          "🌺 罂粟种植者在场，本局爪牙和恶魔互相不知道彼此身份。\n\n操作提示：你现在不需要叫醒爪牙。";
         speak = `"罂粟种植者在场，你不知道恶魔是谁，也不会在本局中得知爪牙和恶魔的具体位置。"`;
         action = "无信息";
       } else {
-        const demons = seats.filter(s =>
-          (s.role?.type === 'demon' || s.isDemonSuccessor)
-        ).map(s => `${s.id + 1}号`);
-        const fallbackMinions = seats.filter(s => s.role?.type === 'minion').map(s => `${s.id + 1}号`);
-        const demonText = demons.length > 0 ? demons.join('、') : '无';
-        const minionText = fallbackMinions.length > 0 ? fallbackMinions.join('、') : '无';
+        const demons = seats
+          .filter((s) => s.role?.type === "demon" || s.isDemonSuccessor)
+          .map((s) => `${s.id + 1}号`);
+        const fallbackMinions = seats
+          .filter((s) => s.role?.type === "minion")
+          .map((s) => `${s.id + 1}号`);
+        const demonText = demons.length > 0 ? demons.join("、") : "无";
+        const minionText =
+          fallbackMinions.length > 0 ? fallbackMinions.join("、") : "无";
         guide = `👿 爪牙认恶魔环节（集中唤醒）：\n1. 现在请一次性叫醒所有爪牙座位：${minionText}。\n2. 用手指向恶魔座位：${demonText}，让所有爪牙知道恶魔的座位号。\n3. （可选）如果你希望他们彼此也知道谁是爪牙，可同时指示爪牙的座位号：${minionText}。\n4. 确认所有爪牙都清楚恶魔的座位号，然后同时让他们闭眼。`;
         speak = `"现在请你一次性叫醒所有爪牙，并指向恶魔。恶魔在 ${demonText} 号。确认所有爪牙都知道恶魔的座位号后，再让他们一起闭眼。"`;
         action = "展示恶魔";
@@ -288,13 +338,21 @@ export const calculateNightInfo = (
   }
 
   let finalEffectiveRole = effectiveRole;
-  if (effectiveRole.id === 'imp' && gamePhase === 'firstNight') {
-    finalEffectiveRole = { ...effectiveRole, nightActionType: 'none' };
+  if (effectiveRole.id === "imp" && gamePhase === "firstNight") {
+    finalEffectiveRole = { ...effectiveRole, nightActionType: "none" };
   }
 
   if (guide || speak || action) {
     if (shouldShowFake && (isPoisoned || isDrunk)) {
-      const fakeInfo = generateFakeNightInfo(effectiveRole.id, guide, speak, seats, currentSeatId, roles, selectedScript);
+      const fakeInfo = generateFakeNightInfo(
+        effectiveRole.id,
+        guide,
+        speak,
+        seats,
+        currentSeatId,
+        roles,
+        selectedScript
+      );
       if (fakeInfo) {
         guide = fakeInfo.guide;
         speak = fakeInfo.speak;
@@ -302,7 +360,8 @@ export const calculateNightInfo = (
       guide = `${guide}\n\n⚠️ 此玩家处于中毒/醉酒状态，获得的信息可能是虚假的！`;
     }
 
-    const actionConfig = isFirstNight && roleDef?.firstNight ? roleDef.firstNight : roleDef?.night;
+    const actionConfig =
+      isFirstNight && roleDef?.firstNight ? roleDef.firstNight : roleDef?.night;
     const targetCount = actionConfig?.target?.count;
 
     if (targetCount?.max) {
@@ -315,26 +374,26 @@ export const calculateNightInfo = (
     }
 
     if (targetLimit.max > 0 && validTargetIds.length === 0) {
-      let candidates = seats.filter(s => !s.isDead);
+      let candidates = seats.filter((s) => !s.isDead);
 
       if (canSelectDead) {
         candidates = seats;
       }
 
-      validTargetIds = candidates.map(s => s.id);
+      validTargetIds = candidates.map((s) => s.id);
 
       if (!canSelectSelf) {
-        validTargetIds = validTargetIds.filter(id => id !== currentSeatId);
+        validTargetIds = validTargetIds.filter((id) => id !== currentSeatId);
       }
     }
 
     const interaction = {
-      type: targetLimit.max > 0 ? 'choose_player' : 'none',
+      type: targetLimit.max > 0 ? "choose_player" : "none",
       amount: targetLimit.max,
       required: true,
       canSelectSelf,
       canSelectDead,
-      effect: { type: 'none' }
+      effect: { type: "none" },
     };
 
     return {
@@ -346,14 +405,14 @@ export const calculateNightInfo = (
       speak,
       action,
       meta: {
-        targetType: interaction.type === 'choose_player' ? 'player' : 'none',
+        targetType: interaction.type === "choose_player" ? "player" : "none",
         amount: interaction.amount,
-        targetCount
+        targetCount,
       },
       interaction,
 
-      roleId: effectiveRole.id, 
-      index: 0, 
+      roleId: effectiveRole.id,
+      index: 0,
 
       targetLimit,
       canSelectDead,
@@ -361,129 +420,180 @@ export const calculateNightInfo = (
       validTargetIds,
 
       guideText: guide,
-      actionText: action
+      actionText: action,
     };
   }
 
   return null;
 };
 
-function generateFakeNightInfo(roleId: string, originalGuide: string, originalSpeak: string, seats: Seat[], currentSeatId: number, roles: Role[], selectedScript: Script | null): { guide: string, speak: string } | null {
+function generateFakeNightInfo(
+  roleId: string,
+  originalGuide: string,
+  originalSpeak: string,
+  seats: Seat[],
+  currentSeatId: number,
+  roles: Role[],
+  selectedScript: Script | null
+): { guide: string; speak: string } | null {
   switch (roleId) {
-    case 'washerwoman':
-      const potentialFakePlayers = seats.filter(s => s.id !== currentSeatId);
+    case "washerwoman": {
+      const potentialFakePlayers = seats.filter((s) => s.id !== currentSeatId);
       if (potentialFakePlayers.length >= 2) {
-        const shuffled = [...potentialFakePlayers].sort(() => Math.random() - 0.5);
+        const shuffled = [...potentialFakePlayers].sort(
+          () => Math.random() - 0.5
+        );
         const player1 = shuffled[0].id + 1;
         const player2 = shuffled[1].id + 1;
 
-        const usedRoleIds = seats.map(s => s.role?.id).filter(Boolean);
+        const usedRoleIds = seats.map((s) => s.role?.id).filter(Boolean);
         const scriptRoles: Role[] = selectedScript
-          ? roles.filter(r => r.script === selectedScript.name || r.script === selectedScript.id)
+          ? roles.filter(
+              (r) =>
+                r.script === selectedScript.name ||
+                r.script === selectedScript.id
+            )
           : roles;
 
         const availableTownsfolkRoles: Role[] = scriptRoles.filter(
-          (r: Role) => r.type === 'townsfolk' && !usedRoleIds.includes(r.id) && !r.hidden
+          (r: Role) =>
+            r.type === "townsfolk" && !usedRoleIds.includes(r.id) && !r.hidden
         );
 
-        const fakeRole: Role | undefined = availableTownsfolkRoles.length > 0
-          ? getRandom(availableTownsfolkRoles)
-          : roles.find((r: Role) => r.type === 'townsfolk' && !usedRoleIds.includes(r.id)) || roles.find((r: Role) => r.type === 'townsfolk');
+        const fakeRole: Role | undefined =
+          availableTownsfolkRoles.length > 0
+            ? getRandom(availableTownsfolkRoles)
+            : roles.find(
+                (r: Role) =>
+                  r.type === "townsfolk" && !usedRoleIds.includes(r.id)
+              ) || roles.find((r: Role) => r.type === "townsfolk");
 
         return {
-          guide: `🧺 洗衣妇虚假信息：${player1}号、${player2}号中存在（镇民）${fakeRole?.name || '未知镇民'}。`,
-          speak: `"${player1}号、${player2}号中存在（镇民）${fakeRole?.name || '未知镇民'}。"`
+          guide: `🧺 洗衣妇虚假信息：${player1}号、${player2}号中存在（镇民）${fakeRole?.name || "未知镇民"}。`,
+          speak: `"${player1}号、${player2}号中存在（镇民）${fakeRole?.name || "未知镇民"}。"`,
         };
       }
       break;
+    }
 
-    case 'librarian':
-      const potentialFakePlayersLib = seats.filter(s => s.id !== currentSeatId);
+    case "librarian": {
+      const potentialFakePlayersLib = seats.filter(
+        (s) => s.id !== currentSeatId
+      );
       if (potentialFakePlayersLib.length >= 2) {
-        const shuffled = [...potentialFakePlayersLib].sort(() => Math.random() - 0.5);
+        const shuffled = [...potentialFakePlayersLib].sort(
+          () => Math.random() - 0.5
+        );
         const player1 = shuffled[0].id + 1;
         const player2 = shuffled[1].id + 1;
 
-        const usedRoleIds = seats.map(s => s.role?.id).filter(Boolean);
+        const usedRoleIds = seats.map((s) => s.role?.id).filter(Boolean);
         const scriptRoles: Role[] = selectedScript
-          ? roles.filter(r => r.script === selectedScript.name || r.script === selectedScript.id)
+          ? roles.filter(
+              (r) =>
+                r.script === selectedScript.name ||
+                r.script === selectedScript.id
+            )
           : roles;
 
         const availableOutsiderRoles: Role[] = scriptRoles.filter(
-          (r: Role) => r.type === 'outsider' && !usedRoleIds.includes(r.id) && !r.hidden
+          (r: Role) =>
+            r.type === "outsider" && !usedRoleIds.includes(r.id) && !r.hidden
         );
 
-        const fakeRole: Role | undefined = availableOutsiderRoles.length > 0
-          ? getRandom(availableOutsiderRoles)
-          : roles.find((r: Role) => r.type === 'outsider' && !usedRoleIds.includes(r.id)) || roles.find((r: Role) => r.type === 'outsider');
+        const fakeRole: Role | undefined =
+          availableOutsiderRoles.length > 0
+            ? getRandom(availableOutsiderRoles)
+            : roles.find(
+                (r: Role) =>
+                  r.type === "outsider" && !usedRoleIds.includes(r.id)
+              ) || roles.find((r: Role) => r.type === "outsider");
 
         return {
-          guide: `📚 图书管理员虚假信息：${player1}号、${player2}号中存在（外来者）${fakeRole?.name || '未知外来者'}。`,
-          speak: `"${player1}号、${player2}号中存在（外来者）${fakeRole?.name || '未知外来者'}。"`
+          guide: `📚 图书管理员虚假信息：${player1}号、${player2}号中存在（外来者）${fakeRole?.name || "未知外来者"}。`,
+          speak: `"${player1}号、${player2}号中存在（外来者）${fakeRole?.name || "未知外来者"}。"`,
         };
       }
       break;
+    }
 
-    case 'investigator':
-      const potentialFakePlayersInv = seats.filter(s => s.id !== currentSeatId);
+    case "investigator": {
+      const potentialFakePlayersInv = seats.filter(
+        (s) => s.id !== currentSeatId
+      );
       if (potentialFakePlayersInv.length >= 2) {
-        const shuffled = [...potentialFakePlayersInv].sort(() => Math.random() - 0.5);
+        const shuffled = [...potentialFakePlayersInv].sort(
+          () => Math.random() - 0.5
+        );
         const player1 = shuffled[0].id + 1;
         const player2 = shuffled[1].id + 1;
 
-        const usedRoleIds = seats.map(s => s.role?.id).filter(Boolean);
+        const usedRoleIds = seats.map((s) => s.role?.id).filter(Boolean);
         const scriptRoles: Role[] = selectedScript
-          ? roles.filter(r => r.script === selectedScript.name || r.script === selectedScript.id)
+          ? roles.filter(
+              (r) =>
+                r.script === selectedScript.name ||
+                r.script === selectedScript.id
+            )
           : roles;
 
         const availableMinionRoles: Role[] = scriptRoles.filter(
-          (r: Role) => r.type === 'minion' && !usedRoleIds.includes(r.id) && !r.hidden
+          (r: Role) =>
+            r.type === "minion" && !usedRoleIds.includes(r.id) && !r.hidden
         );
 
-        const fakeRole: Role | undefined = availableMinionRoles.length > 0
-          ? getRandom(availableMinionRoles)
-          : roles.find((r: Role) => r.type === 'minion' && !usedRoleIds.includes(r.id)) || roles.find((r: Role) => r.type === 'minion');
+        const fakeRole: Role | undefined =
+          availableMinionRoles.length > 0
+            ? getRandom(availableMinionRoles)
+            : roles.find(
+                (r: Role) => r.type === "minion" && !usedRoleIds.includes(r.id)
+              ) || roles.find((r: Role) => r.type === "minion");
 
         return {
-          guide: `🔍 调查员虚假信息：${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || '未知爪牙'}。`,
-          speak: `"${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || '未知爪牙'}。"`
+          guide: `🔍 调查员虚假信息：${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || "未知爪牙"}。`,
+          speak: `"${player1}号、${player2}号中存在（爪牙）${fakeRole?.name || "未知爪牙"}。"`,
         };
       }
       break;
+    }
 
-    case 'chef':
-    case 'empath':
+    case "chef":
+    case "empath": {
       const fakeEvilCount = Math.floor(Math.random() * 3);
-      if (roleId === 'chef') {
+      if (roleId === "chef") {
         return {
           guide: `👨‍🍳 得知：场上有${fakeEvilCount}对邪恶玩家邻座。（虚假信息）`,
-          speak: `"场上有${fakeEvilCount}对邪恶玩家邻座。"`
+          speak: `"场上有${fakeEvilCount}对邪恶玩家邻座。"`,
         };
       }
       return {
         guide: `💞 得知：邻近的两名存活玩家中，有${fakeEvilCount}名邪恶玩家。（虚假信息）`,
-        speak: `"邻近的两名存活玩家中，有${fakeEvilCount}名邪恶玩家。"`
+        speak: `"邻近的两名存活玩家中，有${fakeEvilCount}名邪恶玩家。"`,
       };
+    }
 
-    case 'fortune_teller':
+    case "fortune_teller": {
       const isFakeDemon = Math.random() < 0.5;
       return {
-        guide: `🔮 得知：${isFakeDemon ? '✅ 是' : '❌ 否'}，两名玩家之中有恶魔。（虚假信息）`,
-        speak: `"${isFakeDemon ? '是' : '否'}，两名玩家之中有恶魔。"`
+        guide: `🔮 得知：${isFakeDemon ? "✅ 是" : "❌ 否"}，两名玩家之中有恶魔。（虚假信息）`,
+        speak: `"${isFakeDemon ? "是" : "否"}，两名玩家之中有恶魔。"`,
       };
+    }
 
-    case 'undertaker':
-      const allRoles = roles.filter(r => r.type !== 'traveler');
-      const fakeExecutedRole = allRoles[Math.floor(Math.random() * allRoles.length)];
+    case "undertaker": {
+      const allRoles = roles.filter((r) => r.type !== "traveler");
+      const fakeExecutedRole =
+        allRoles[Math.floor(Math.random() * allRoles.length)];
       return {
         guide: `⚰️ 得知：今天被处决的玩家是${fakeExecutedRole.name}。（虚假信息）`,
-        speak: `"今天被处决的玩家是${fakeExecutedRole.name}。"`
+        speak: `"今天被处决的玩家是${fakeExecutedRole.name}。"`,
       };
+    }
 
     default:
       return {
         guide: `${originalGuide}（可能为虚假信息）`,
-        speak: originalSpeak
+        speak: originalSpeak,
       };
   }
   return null;
@@ -506,11 +616,20 @@ export const generateNightTimeline = (
   const metaRoles = troubleBrewingRolesData as MetaRole[];
 
   const getMergedRoleMeta = (baseRole: Role | null | undefined) => {
-    if (!baseRole) return { role: null as Role | null, firstMeta: null, otherMeta: null, firstOrder: 9999, otherOrder: 9999 };
+    if (!baseRole)
+      return {
+        role: null as Role | null,
+        firstMeta: null,
+        otherMeta: null,
+        firstOrder: 9999,
+        otherOrder: 9999,
+      };
 
     const meta = metaRoles.find((r) => r.id === baseRole.id);
-    const jsonFirstMeta = meta?.firstNightMeta ?? (baseRole as any).firstNightMeta ?? null;
-    const jsonOtherMeta = meta?.otherNightMeta ?? (baseRole as any).otherNightMeta ?? null;
+    const jsonFirstMeta =
+      meta?.firstNightMeta ?? (baseRole as any).firstNightMeta ?? null;
+    const jsonOtherMeta =
+      meta?.otherNightMeta ?? (baseRole as any).otherNightMeta ?? null;
 
     const def = getRoleDefinition(baseRole.id);
     const modFirstMeta = def?.firstNight || def?.night || null;
@@ -520,16 +639,25 @@ export const generateNightTimeline = (
     const otherMeta = modOtherMeta || jsonOtherMeta;
 
     const firstOrder =
-      (typeof def?.firstNight?.order === 'number' ? def.firstNight.order :
-        typeof def?.night?.order === 'number' ? def.night.order :
-          typeof def?.firstNight?.order === 'function' ? (def.firstNight.order as any)(true) :
-            typeof def?.night?.order === 'function' ? (def.night.order as any)(true) :
-              meta?.firstNightOrder ?? ((baseRole as any).firstNightOrder as number | undefined)) ?? 9999;
+      (typeof def?.firstNight?.order === "number"
+        ? def.firstNight.order
+        : typeof def?.night?.order === "number"
+          ? def.night.order
+          : typeof def?.firstNight?.order === "function"
+            ? (def.firstNight.order as any)(true)
+            : typeof def?.night?.order === "function"
+              ? (def.night.order as any)(true)
+              : (meta?.firstNightOrder ??
+                ((baseRole as any).firstNightOrder as number | undefined))) ??
+      9999;
 
     const otherOrder =
-      (typeof def?.night?.order === 'number' ? def.night.order :
-        typeof def?.night?.order === 'function' ? (def.night.order as any)(false) :
-          meta?.otherNightOrder ?? ((baseRole as any).otherNightOrder as number | undefined)) ?? 9999;
+      (typeof def?.night?.order === "number"
+        ? def.night.order
+        : typeof def?.night?.order === "function"
+          ? (def.night.order as any)(false)
+          : (meta?.otherNightOrder ??
+            ((baseRole as any).otherNightOrder as number | undefined))) ?? 9999;
 
     return { role: baseRole, firstMeta, otherMeta, firstOrder, otherOrder };
   };
@@ -537,12 +665,15 @@ export const generateNightTimeline = (
   const activeSeats = seats.filter((seat) => {
     if (!seat.role) return false;
 
-    const effectiveRole = seat.role.id === 'drunk' && seat.charadeRole ? seat.charadeRole : seat.role;
+    const effectiveRole =
+      seat.role.id === "drunk" && seat.charadeRole
+        ? seat.charadeRole
+        : seat.role;
     const merged = getMergedRoleMeta(effectiveRole);
     const meta = isFirstNight ? merged.firstMeta : merged.otherMeta;
 
     if (!seat.isDead && meta) {
-      if (seat.statusDetails?.includes('驱魔者选中')) return false;
+      if (seat.statusDetails?.includes("驱魔者选中")) return false;
       return true;
     }
 
@@ -554,8 +685,10 @@ export const generateNightTimeline = (
   });
 
   activeSeats.sort((a, b) => {
-    const aEffectiveRole = a.role && a.role.id === 'drunk' && a.charadeRole ? a.charadeRole : a.role;
-    const bEffectiveRole = b.role && b.role.id === 'drunk' && b.charadeRole ? b.charadeRole : b.role;
+    const aEffectiveRole =
+      a.role && a.role.id === "drunk" && a.charadeRole ? a.charadeRole : a.role;
+    const bEffectiveRole =
+      b.role && b.role.id === "drunk" && b.charadeRole ? b.charadeRole : b.role;
 
     const aMerged = getMergedRoleMeta(aEffectiveRole);
     const bMerged = getMergedRoleMeta(bEffectiveRole);
@@ -567,17 +700,22 @@ export const generateNightTimeline = (
   });
 
   activeSeats.forEach((seat, index) => {
-    const effectiveRole = seat.role && seat.role.id === 'drunk' && seat.charadeRole ? seat.charadeRole : seat.role;
+    const effectiveRole =
+      seat.role && seat.role.id === "drunk" && seat.charadeRole
+        ? seat.charadeRole
+        : seat.role;
     const merged = getMergedRoleMeta(effectiveRole);
     const role = merged.role;
     const meta = isFirstNight ? merged.firstMeta : merged.otherMeta;
 
     if (!role || !meta || !effectiveRole) return;
-    console.log(`[generateNightTimeline] Role: ${role.name}, meta.targetType: ${meta.targetType}, meta.amount: ${meta.amount}`);
+    console.log(
+      `[generateNightTimeline] Role: ${role.name}, meta.targetType: ${meta.targetType}, meta.amount: ${meta.amount}`
+    );
 
     steps.push({
-      id: `step_${seat.id}_${effectiveRole.id}_${isFirstNight ? '1' : 'n'}`,
-      type: 'character',
+      id: `step_${seat.id}_${effectiveRole.id}_${isFirstNight ? "1" : "n"}`,
+      type: "character",
       seatId: seat.id,
       roleId: effectiveRole.id,
       order: index,
@@ -587,13 +725,13 @@ export const generateNightTimeline = (
         instruction: meta.instruction,
       },
       interaction: {
-        type: meta.targetType === 'player' ? 'choosePlayer' : 'none',
+        type: meta.targetType === "player" ? "choosePlayer" : "none",
         amount: meta.amount,
         required: meta.required,
         canSelectSelf: meta.canSelectSelf,
         canSelectDead: meta.canSelectDead,
         effect: {
-          type: meta.effectType || 'none',
+          type: meta.effectType || "none",
           value: meta.effectValue,
         },
       },
@@ -601,44 +739,48 @@ export const generateNightTimeline = (
   });
 
   steps.push({
-    id: 'dawn_step',
-    type: 'dawn',
+    id: "dawn_step",
+    type: "dawn",
     order: 99999,
     content: {
-      title: '天亮了',
-      script: '所有玩家请睁眼',
-      instruction: '点击下方按钮进入白天阶段',
+      title: "天亮了",
+      script: "所有玩家请睁眼",
+      instruction: "点击下方按钮进入白天阶段",
     },
     interaction: {
-      type: 'none',
+      type: "none",
       amount: 0,
       required: false,
       canSelectSelf: false,
       canSelectDead: false,
-      effect: { type: 'none' }
-    }
+      effect: { type: "none" },
+    },
   });
 
   if (steps.length === 0) {
-    console.warn('[generateNightTimeline] No steps generated, returning minimal dawn step');
-    return [{
-      id: 'dawn_step',
-      type: 'dawn',
-      order: 99999,
-      content: {
-        title: '天亮了',
-        script: '所有玩家请睁眼',
-        instruction: '点击下方按钮进入白天阶段',
+    console.warn(
+      "[generateNightTimeline] No steps generated, returning minimal dawn step"
+    );
+    return [
+      {
+        id: "dawn_step",
+        type: "dawn",
+        order: 99999,
+        content: {
+          title: "天亮了",
+          script: "所有玩家请睁眼",
+          instruction: "点击下方按钮进入白天阶段",
+        },
+        interaction: {
+          type: "none",
+          amount: 0,
+          required: false,
+          canSelectSelf: false,
+          canSelectDead: false,
+          effect: { type: "none" },
+        },
       },
-      interaction: {
-        type: 'none',
-        amount: 0,
-        required: false,
-        canSelectSelf: false,
-        canSelectDead: false,
-        effect: { type: 'none' }
-      }
-    }];
+    ];
   }
 
   return steps;

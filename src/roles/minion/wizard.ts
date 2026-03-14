@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 巫师 (Wizard)
@@ -90,6 +90,3 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:651-0!canonical and timestamp 20260120050158 and revision id 5332. Serialized with JSON.`,
 };
-
-
-

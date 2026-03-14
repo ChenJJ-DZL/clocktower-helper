@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 恐惧之灵 (Fearmonger)
@@ -79,10 +79,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:64-0!canonical and timestamp 20260120031300 and revision id 5578. Serialized with JSON.`,
   clarifications: [
-    `相克规则：瘟疫医生：如果瘟疫医生死亡且说书人会因此获得恐惧之灵的能力，改为一名存活的爪牙玩家获得此能力，且他会得知此事。维齐尔：在恐惧之灵因为自己的能力被唤醒时，维齐尔会一同被唤醒。他会得知恐惧之灵选择了哪名玩家，并且无法使用自己的能力让那名玩家立即被处决。`,
-    `相克规则（与华灯系列角色）：戏子：戏子无法反转由恐惧之灵的能力产生的胜负结果。戏子（改）：戏子（改）无法反转由恐惧之灵的能力产生的胜负结果。`
+    "相克规则：瘟疫医生：如果瘟疫医生死亡且说书人会因此获得恐惧之灵的能力，改为一名存活的爪牙玩家获得此能力，且他会得知此事。维齐尔：在恐惧之灵因为自己的能力被唤醒时，维齐尔会一同被唤醒。他会得知恐惧之灵选择了哪名玩家，并且无法使用自己的能力让那名玩家立即被处决。",
+    "相克规则（与华灯系列角色）：戏子：戏子无法反转由恐惧之灵的能力产生的胜负结果。戏子（改）：戏子（改）无法反转由恐惧之灵的能力产生的胜负结果。",
   ],
 };
-
-
-

@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 
 // 按 Next.js 新规范单独导出 viewport，避免 metadata 中的 viewport 警告
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: 'cover',
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -27,9 +27,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased">
         <AudioProvider>
-          <GameProvider>
-            {children}
-          </GameProvider>
+          <GameProvider>{children}</GameProvider>
         </AudioProvider>
       </body>
     </html>

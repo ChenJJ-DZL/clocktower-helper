@@ -1,16 +1,16 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Playwright 配置文件
  * 用于运行 E2E 测试
- * 
+ *
  * 运行测试：
  *   npx playwright test
  *   npx playwright test --ui
  *   npx playwright test tests/e2e_scenario_tb.spec.ts
  */
 export default defineConfig({
-  testDir: './tests',
+  testDir: "./tests",
   timeout: 300000,
   testMatch: /.*\.spec\.ts$/,
 
@@ -27,31 +27,28 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
 
   // 报告器
-  reporter: [
-    ['html'],
-    ['list'],
-  ],
+  reporter: [["html"], ["list"]],
 
   // 共享设置
   use: {
     // 基础 URL
-    baseURL: process.env.E2E_URL || 'http://localhost:3000',
+    baseURL: process.env.E2E_URL || "http://localhost:3000",
 
     // 收集追踪信息（失败时）
-    trace: 'on-first-retry',
+    trace: "on-first-retry",
 
     // 截图（失败时）
-    screenshot: 'only-on-failure',
+    screenshot: "only-on-failure",
 
     // 视频（失败时）
-    video: 'retain-on-failure',
+    video: "retain-on-failure",
   },
 
   // 项目配置
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
 
@@ -62,63 +59,3 @@ export default defineConfig({
   //   reuseExistingServer: !process.env.CI,
   // },
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

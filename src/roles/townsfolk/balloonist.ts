@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 气球驾驶员
@@ -78,28 +77,27 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:36-0!canonical and timestamp 20260120025354 and revision id 5426. Serialized with JSON.`,
   clarifications: [
-    `相克规则：提线木偶：如果提线木偶抽到了气球驾驶员，也可能会+1外来者。`
+    "相克规则：提线木偶：如果提线木偶抽到了气球驾驶员，也可能会+1外来者。",
   ],
-  
+
   night: {
-    order: (isFirstNight) => isFirstNight ? 8 : 8,
-    
+    order: (isFirstNight) => (isFirstNight ? 8 : 8),
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（气球驾驶员）。`,
         instruction: "请执行行动",
         close: `${playerSeatId + 1}号玩家（气球驾驶员），请闭眼。`,
       };
     },
-    
-    handler: undefined, /* TODO: Migrate to OOP */
 
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

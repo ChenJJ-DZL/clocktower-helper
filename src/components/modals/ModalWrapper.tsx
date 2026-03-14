@@ -30,27 +30,30 @@ export function ModalWrapper({
 
   useEffect(() => {
     setMounted(true);
-    console.log('[ModalWrapper] Mounted, title:', title);
+    console.log("[ModalWrapper] Mounted, title:", title);
     // ... (rest of logging)
     // Verify portal target exists
     if (document.body) {
-      console.log('[ModalWrapper] ✅ Portal target (document.body) is available');
+      console.log(
+        "[ModalWrapper] ✅ Portal target (document.body) is available"
+      );
     } else {
-      console.error('[ModalWrapper] ❌ Portal target (document.body) is NOT available!');
+      console.error(
+        "[ModalWrapper] ❌ Portal target (document.body) is NOT available!"
+      );
     }
   }, [title]);
 
-
   if (typeof document === "undefined" || !mounted) {
-    console.log('[ModalWrapper] Not mounted yet or no document');
+    console.log("[ModalWrapper] Not mounted yet or no document");
     return null;
   }
 
-  console.log('[ModalWrapper] Rendering portal for:', title);
-  console.log('[ModalWrapper] document.body exists:', !!document.body);
+  console.log("[ModalWrapper] Rendering portal for:", title);
+  console.log("[ModalWrapper] document.body exists:", !!document.body);
 
   if (!document.body) {
-    console.error('[ModalWrapper] document.body is not available!');
+    console.error("[ModalWrapper] document.body is not available!");
     return null;
   }
 
@@ -66,26 +69,28 @@ export function ModalWrapper({
     <div
       data-modal-key={portalKey}
       className="fixed inset-0 flex items-center justify-center bg-black/50 pointer-events-auto"
-      style={{
-        zIndex: 2147483647,
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        opacity: 1,
-        visibility: 'visible',
-      } as React.CSSProperties}
+      style={
+        {
+          zIndex: 2147483647,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          opacity: 1,
+          visibility: "visible",
+        } as React.CSSProperties
+      }
       onClick={(e) => {
         // 只有点击遮罩层本身时才关闭，点击弹窗内容时不关闭
         if (closeOnOverlayClick && e.target === e.currentTarget) {
-          console.log('[ModalWrapper] Overlay clicked, closing modal');
+          console.log("[ModalWrapper] Overlay clicked, closing modal");
           onClose();
         }
       }}
@@ -95,29 +100,34 @@ export function ModalWrapper({
       </FadeIn>
 
       {/* 弹窗主体 */}
-      <SlideUp duration={0.3} className="relative z-10 w-full flex justify-center">
+      <SlideUp
+        duration={0.3}
+        className="relative z-10 w-full flex justify-center"
+      >
         <div
           role="dialog"
           aria-modal="true"
           className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 pointer-events-auto ${className}`}
           style={{
-            width: 'min(90vw, 42rem)',
-            maxWidth: '90vw',
-            maxHeight: 'calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))',
-            margin: 'max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto',
+            width: "min(90vw, 42rem)",
+            maxWidth: "90vw",
+            maxHeight:
+              "calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+            margin:
+              "max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto",
             zIndex: 2147483647,
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: 'rgb(15 23 42)', // slate-900
-            borderRadius: '1rem',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "rgb(15 23 42)", // slate-900
+            borderRadius: "1rem",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             opacity: 1,
-            visibility: 'visible',
+            visibility: "visible",
           }}
           onClick={(e) => {
             e.stopPropagation();
-            console.log('[ModalWrapper] Modal content clicked');
+            console.log("[ModalWrapper] Modal content clicked");
           }}
         >
           {/* 1. 标题栏 */}
@@ -136,8 +146,8 @@ export function ModalWrapper({
           <div
             className="flex-1 overflow-y-auto p-6 space-y-4"
             style={{
-              maxHeight: 'calc(90vh - 8rem)', // 减去标题栏和底部按钮的高度
-              WebkitOverflowScrolling: 'touch', // iOS平滑滚动
+              maxHeight: "calc(90vh - 8rem)", // 减去标题栏和底部按钮的高度
+              WebkitOverflowScrolling: "touch", // iOS平滑滚动
             }}
           >
             {children}
@@ -148,8 +158,8 @@ export function ModalWrapper({
             <div
               className="p-4 border-t border-white/10 bg-slate-950/50 shrink-0 flex flex-wrap justify-end gap-3"
               style={{
-                minHeight: '4rem', // 确保按钮区域有足够高度
-                paddingBottom: 'max(1rem, env(safe-area-inset-bottom))', // iPhone底部安全区域
+                minHeight: "4rem", // 确保按钮区域有足够高度
+                paddingBottom: "max(1rem, env(safe-area-inset-bottom))", // iPhone底部安全区域
               }}
             >
               {footer}
@@ -161,4 +171,3 @@ export function ModalWrapper({
     document.body
   );
 }
-

@@ -1,104 +1,104 @@
 [
-    {
-        "id": "chambermaid_mathematician",
-        "character1": "chambermaid",
-        "character2": "mathematician",
-        "description": "侍女会得知数学家是否醒来，即使她是在数学家之前醒来。"
-    },
-    {
-        "id": "mathematician_drunk",
-        "character1": "mathematician",
-        "character2": "drunk",
-        "description": "数学家可能会得知酒鬼产生了错误信息或“能力未正常生效”。"
-    },
-    {
-        "id": "mathematician_lunatic",
-        "character1": "mathematician",
-        "character2": "lunatic",
-        "description": "数学家可能会得知疯子是否攻击了与真正的恶魔不同的目标。"
-    },
-    {
-        "id": "mathematician_marionette",
-        "character1": "mathematician",
-        "character2": "marionette",
-        "description": "数学家可能会得知提线木偶产生了错误信息或“能力未正常生效”。"
-    },
-    {
-        "id": "philosopher_bounty_hunter",
-        "character1": "philosopher",
-        "character2": "bounty_hunter",
-        "description": "如果哲学家获得了赏金猎人的能力，可能会有一名镇民玩家转变为邪恶。"
-    },
-    {
-        "id": "cannibal_poppy_grower",
-        "character1": "cannibal",
-        "character2": "poppy_grower",
-        "description": "如果食人族获得了罂粟种植者的能力，当他获得下一个能力时，爪牙和恶魔也会互相认识。"
-    },
-    {
-        "id": "cannibal_juggler",
-        "character1": "cannibal",
-        "character2": "juggler",
-        "description": "如果杂耍艺人在自己的首个白天猜测后在当天死于处决，当晚食人族会替杂耍艺人得知对应的信息。"
-    },
-    {
-        "id": "cannibal_butler",
-        "character1": "cannibal",
-        "character2": "butler",
-        "description": "如果食人族获得了管家的能力，他会得知这一信息。"
-    },
-    {
-        "id": "cannibal_zealot",
-        "character1": "cannibal",
-        "character2": "zealot",
-        "description": "如果食人族获得了狂热者的能力，他会得知这一信息。"
-    },
-    {
-        "id": "cannibal_princess",
-        "character1": "cannibal",
-        "character2": "princess",
-        "description": "如果食人族提名并处决了公主且公主因此死亡，当晚恶魔不会造成死亡。"
-    },
-    {
-        "id": "alchemist_spy",
-        "character1": "alchemist",
-        "character2": "spy",
-        "description": "如果炼金术士本应获得间谍的能力，那么他不会拥有该能力并改为间谍一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是间谍：如果猜对了，恶魔今晚必须选择间谍。"
-    },
-    {
-        "id": "alchemist_widow",
-        "character1": "alchemist",
-        "character2": "widow",
-        "description": "如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇：如果猜对了，恶魔今晚必须选择寡妇。"
-    },
-    {
-        "id": "alchemist_wraith",
-        "character1": "alchemist",
-        "character2": "wraith",
-        "description": "如果炼金术士本应获得亡魂的能力，那么他不会拥有该能力并改为亡魂一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是亡魂：如果猜对了，恶魔当晚必须选择亡魂。"
-    },
-    {
-        "id": "alchemist_summoner",
-        "character1": "alchemist",
-        "character2": "summoner",
-        "description": "获得召唤师能力的炼金术士不会获得伪装。他要选择一个恶魔角色，但不选择玩家，由说书人决定哪一名玩家变成邪恶的恶魔。如果他在选择之前死亡，邪恶阵营获胜。[无恶魔在场]"
-    },
-    {
-        "id": "alchemist_organ_grinder",
-        "character1": "alchemist",
-        "character2": "organ_grinder",
-        "description": "如果炼金术士获得街头风琴手的能力，街头风琴手一定在场。如果炼金术士和街头风琴手都是清醒的，改为他们都醉酒。"
-    },
-    {
-        "id": "alchemist_marionette",
-        "character1": "alchemist",
-        "character2": "marionette",
-        "description": "如果炼金术士本应获得提线木偶的能力，那么他不会拥有该能力并改为提线木偶一定在场。"
-    },
-    {
-        "id": "alchemist_mastermind",
-        "character1": "alchemist",
-        "character2": "mastermind",
-        "description": "如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。"
-    }
+  {
+    "id": "chambermaid_mathematician",
+    "character1": "chambermaid",
+    "character2": "mathematician",
+    "description": "侍女会得知数学家是否醒来，即使她是在数学家之前醒来。"
+  },
+  {
+    "id": "mathematician_drunk",
+    "character1": "mathematician",
+    "character2": "drunk",
+    "description": "数学家可能会得知酒鬼产生了错误信息或“能力未正常生效”。"
+  },
+  {
+    "id": "mathematician_lunatic",
+    "character1": "mathematician",
+    "character2": "lunatic",
+    "description": "数学家可能会得知疯子是否攻击了与真正的恶魔不同的目标。"
+  },
+  {
+    "id": "mathematician_marionette",
+    "character1": "mathematician",
+    "character2": "marionette",
+    "description": "数学家可能会得知提线木偶产生了错误信息或“能力未正常生效”。"
+  },
+  {
+    "id": "philosopher_bounty_hunter",
+    "character1": "philosopher",
+    "character2": "bounty_hunter",
+    "description": "如果哲学家获得了赏金猎人的能力，可能会有一名镇民玩家转变为邪恶。"
+  },
+  {
+    "id": "cannibal_poppy_grower",
+    "character1": "cannibal",
+    "character2": "poppy_grower",
+    "description": "如果食人族获得了罂粟种植者的能力，当他获得下一个能力时，爪牙和恶魔也会互相认识。"
+  },
+  {
+    "id": "cannibal_juggler",
+    "character1": "cannibal",
+    "character2": "juggler",
+    "description": "如果杂耍艺人在自己的首个白天猜测后在当天死于处决，当晚食人族会替杂耍艺人得知对应的信息。"
+  },
+  {
+    "id": "cannibal_butler",
+    "character1": "cannibal",
+    "character2": "butler",
+    "description": "如果食人族获得了管家的能力，他会得知这一信息。"
+  },
+  {
+    "id": "cannibal_zealot",
+    "character1": "cannibal",
+    "character2": "zealot",
+    "description": "如果食人族获得了狂热者的能力，他会得知这一信息。"
+  },
+  {
+    "id": "cannibal_princess",
+    "character1": "cannibal",
+    "character2": "princess",
+    "description": "如果食人族提名并处决了公主且公主因此死亡，当晚恶魔不会造成死亡。"
+  },
+  {
+    "id": "alchemist_spy",
+    "character1": "alchemist",
+    "character2": "spy",
+    "description": "如果炼金术士本应获得间谍的能力，那么他不会拥有该能力并改为间谍一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是间谍：如果猜对了，恶魔今晚必须选择间谍。"
+  },
+  {
+    "id": "alchemist_widow",
+    "character1": "alchemist",
+    "character2": "widow",
+    "description": "如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇：如果猜对了，恶魔今晚必须选择寡妇。"
+  },
+  {
+    "id": "alchemist_wraith",
+    "character1": "alchemist",
+    "character2": "wraith",
+    "description": "如果炼金术士本应获得亡魂的能力，那么他不会拥有该能力并改为亡魂一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是亡魂：如果猜对了，恶魔当晚必须选择亡魂。"
+  },
+  {
+    "id": "alchemist_summoner",
+    "character1": "alchemist",
+    "character2": "summoner",
+    "description": "获得召唤师能力的炼金术士不会获得伪装。他要选择一个恶魔角色，但不选择玩家，由说书人决定哪一名玩家变成邪恶的恶魔。如果他在选择之前死亡，邪恶阵营获胜。[无恶魔在场]"
+  },
+  {
+    "id": "alchemist_organ_grinder",
+    "character1": "alchemist",
+    "character2": "organ_grinder",
+    "description": "如果炼金术士获得街头风琴手的能力，街头风琴手一定在场。如果炼金术士和街头风琴手都是清醒的，改为他们都醉酒。"
+  },
+  {
+    "id": "alchemist_marionette",
+    "character1": "alchemist",
+    "character2": "marionette",
+    "description": "如果炼金术士本应获得提线木偶的能力，那么他不会拥有该能力并改为提线木偶一定在场。"
+  },
+  {
+    "id": "alchemist_mastermind",
+    "character1": "alchemist",
+    "character2": "mastermind",
+    "description": "如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。"
+  }
 ]

@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 女祭司 (Priestess) - 扩展镇民（隐藏占位）
@@ -86,5 +86,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:418-0!canonical and tim
     }),
   },
 };
-
-

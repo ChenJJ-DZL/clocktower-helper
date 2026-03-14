@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 数学家 (Mathematician)
@@ -76,7 +76,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:80-0!canonical and timestamp 20260120025100 and revision id 4775. Serialized with JSON.`,
   clarifications: [
-    `相克规则：侍女：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。疯子：数学家会得知疯子是否攻击了与真正的恶魔不同的目标。`,
-    `相克规则（与华灯系列角色）：引路人：引路人会得知数学家是否被影响，即使他是在数学家之前醒来。`
+    "相克规则：侍女：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。疯子：数学家会得知疯子是否攻击了与真正的恶魔不同的目标。",
+    "相克规则（与华灯系列角色）：引路人：引路人会得知数学家是否被影响，即使他是在数学家之前醒来。",
   ],
 };

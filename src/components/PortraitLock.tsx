@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function PortraitLock() {
   const [shouldShow, setShouldShow] = useState(false);
@@ -10,7 +10,7 @@ export default function PortraitLock() {
       const width = window.innerWidth;
       const height = window.innerHeight;
       const aspectRatio = width / height;
-      
+
       // 仅在竖屏（宽高比 < 1）且宽度 < 1024px（移动端）时显示
       setShouldShow(aspectRatio < 1 && width < 1024);
     };
@@ -98,11 +98,10 @@ export default function PortraitLock() {
       <h2 className="text-2xl md:text-3xl font-bold text-slate-200 mb-4">
         请将设备旋转至横屏以获得最佳体验
       </h2>
-      
+
       <p className="text-lg md:text-xl text-slate-400">
         推荐使用 iPad 或平板电脑游玩
       </p>
     </div>
   );
 }
-

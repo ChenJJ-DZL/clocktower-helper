@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { ModalWrapper } from './ModalWrapper';
-import { Role, Seat } from '../../../app/data';
+import { useState } from "react";
+import type { Role, Seat } from "../../../app/data";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface DrunkCharadeSelectModalProps {
   isOpen: boolean;
@@ -23,7 +23,6 @@ export function DrunkCharadeSelectModal({
 }: DrunkCharadeSelectModalProps) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
-
   if (!isOpen || !drunkSeat) return null;
 
   const canConfirm = !!selectedRole;
@@ -39,12 +38,13 @@ export function DrunkCharadeSelectModal({
 
   return (
     <ModalWrapper
-      title={"为 " + currentDrunkRoleName + " 选择伪装身份"}
+      title={`为 ${currentDrunkRoleName} 选择伪装身份`}
       onClose={onClose}
     >
       <div className="space-y-4 p-4 text-white">
         <p className="text-sm text-slate-300">
-          请为编号 **{drunkSeat.id + 1}** 的 {currentDrunkRoleName} 选择一个未被分配的“镇民”角色作为其伪装身份。
+          请为编号 **{drunkSeat.id + 1}** 的 {currentDrunkRoleName}{" "}
+          选择一个未被分配的“镇民”角色作为其伪装身份。
           一旦选定，该身份将贯穿整场游戏，且无法更改。
         </p>
 
@@ -56,7 +56,9 @@ export function DrunkCharadeSelectModal({
               className={`relative flex items-center justify-center p-3 rounded-lg border transition ${selectedRole?.id === role.id ? "border-purple-500 bg-purple-900/50 ring-2 ring-purple-500" : "border-slate-700 bg-slate-800/50 hover:bg-slate-700/50"}`}
             >
               <span className="text-sm font-bold">{role.name}</span>
-              <span className="text-xs text-slate-400 absolute bottom-1 right-2">{role.id}</span>
+              <span className="text-xs text-slate-400 absolute bottom-1 right-2">
+                {role.id}
+              </span>
             </button>
           ))}
         </div>
@@ -72,4 +74,3 @@ export function DrunkCharadeSelectModal({
     </ModalWrapper>
   );
 }
-

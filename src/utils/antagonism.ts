@@ -1,4 +1,4 @@
-import type { Seat, Role } from "../../app/data";
+import type { Role, Seat } from "../../app/data";
 
 export type AntagonismDecision =
   | { allowed: true }
@@ -11,7 +11,12 @@ export type AntagonismDecision =
 // - This file only implements the shared mechanics: block + explain + (optionally) consume-use handled by callers.
 
 // Heuristic id for Djinn / 灯神. If your project uses a different id, add it here.
-const DJINN_ROLE_IDS = new Set<string>(["djinn", "lamp_djinn", "lamp_spirit", "灯神"]);
+const DJINN_ROLE_IDS = new Set<string>([
+  "djinn",
+  "lamp_djinn",
+  "lamp_spirit",
+  "灯神",
+]);
 
 // Global override: allow enabling antagonism even when Djinn is not in play (方案 C)
 // null  -> use Djinn presence to decide
@@ -25,7 +30,7 @@ export function setAntagonismGlobalOverride(value: boolean | null) {
 
 // Mutual-exclusion pairs: "only one of them can be in play at the same time".
 // (We only list ids; if an id doesn't exist in current script, it simply never triggers.)
-const MUTUAL_EXCLUSIVE_PAIRS: Array<[string, string]> = [
+const MUTUAL_EXCLUSIVE_PAIRS: [string, string][] = [
   // Heretic antagonisms
   ["heretic", "baron"],
   ["heretic", "leech"],
@@ -122,7 +127,11 @@ export function checkCannotGainAbility(params: {
   const { seats, gainerRoleId, abilityRoleId, roles } = params;
   // Generic: if gaining that ability would violate mutual exclusion, block it.
   // Caller should still consume the "use" for roles like Philosopher, per rule text.
-  const mutual = checkMutualExclusion({ seats, enteringRoleId: abilityRoleId, roles });
+  const mutual = checkMutualExclusion({
+    seats,
+    enteringRoleId: abilityRoleId,
+    roles,
+  });
   if (!mutual.allowed) return mutual;
 
   // Example from user: Frankenstein's Monster cannot gain Drunk ability.
@@ -136,5 +145,3 @@ export function checkCannotGainAbility(params: {
 
   return { allowed: true };
 }
-
-

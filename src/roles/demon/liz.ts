@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 利兹 (Liz)
@@ -10,4 +10,3 @@ export const liz: RoleDefinition = {
   name: "利兹",
   type: "demon",
 };
-

@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface PoisonEvilConfirmModalProps {
   targetId: number | null;
@@ -6,7 +6,11 @@ interface PoisonEvilConfirmModalProps {
   onCancel: () => void;
 }
 
-export function PoisonEvilConfirmModal({ targetId, onConfirm, onCancel }: PoisonEvilConfirmModalProps) {
+export function PoisonEvilConfirmModal({
+  targetId,
+  onConfirm,
+  onCancel,
+}: PoisonEvilConfirmModalProps) {
   if (targetId === null) return null;
 
   return (
@@ -31,9 +35,12 @@ export function PoisonEvilConfirmModal({ targetId, onConfirm, onCancel }: Poison
       }
       className="max-w-md"
     >
-      <p className="text-xl font-bold text-white mb-4 text-center">该玩家是邪恶阵营</p>
-      <p className="text-lg font-bold text-yellow-400 text-center">确认对{targetId+1}号玩家下毒吗？</p>
+      <p className="text-xl font-bold text-white mb-4 text-center">
+        该玩家是邪恶阵营
+      </p>
+      <p className="text-lg font-bold text-yellow-400 text-center">
+        确认对{targetId + 1}号玩家下毒吗？
+      </p>
     </ModalWrapper>
   );
 }
-

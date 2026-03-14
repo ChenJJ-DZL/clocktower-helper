@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 魔鬼代言人
@@ -66,12 +65,10 @@ Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:140-0!canonical and timestamp 20260120025743 and revision id 4894. Serialized with JSON.`,
-  clarifications: [
-    `无`
-  ],
+  clarifications: ["无"],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 5 : 5,
+    order: (isFirstNight) => (isFirstNight ? 5 : 5),
 
     target: {
       count: {
@@ -80,7 +77,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:140-0!canonical and tim
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（魔鬼代言人）。`,
         instruction: "请执行行动",
@@ -88,7 +85,6 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:140-0!canonical and tim
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

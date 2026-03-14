@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 政客 (Politician)
  * 如果你是对你的阵营落败负最大责任的人，你转变阵营并获胜，即使你已死亡。
- * 
+ *
  * 规则要点：
  * - 当游戏结束时，如果政客是善良阵营落败负最大责任的人，政客会加入邪恶阵营并一起获胜
  * - 当决定谁获胜的关键时候，政客玩家应当非常有影响力
@@ -82,10 +82,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:60-0!canonical and timestamp 20260120031250 and revision id 4590. Serialized with JSON.`,
   clarifications: [
-    `相克规则：麻脸巫婆：被麻脸巫婆创造的邪恶政客无法因为自身能力转变为善良阵营。维齐尔：维齐尔的能力可能会将政客当作邪恶阵营。科学怪人：恶魔无法拥有政客的能力。`
+    "相克规则：麻脸巫婆：被麻脸巫婆创造的邪恶政客无法因为自身能力转变为善良阵营。维齐尔：维齐尔的能力可能会将政客当作邪恶阵营。科学怪人：恶魔无法拥有政客的能力。",
   ],
   // 无夜晚行动（特殊胜利失败条件、死后能力保留）
   // 政客的能力在游戏结束时触发，由说书人判断是否转变阵营
 };
-
-

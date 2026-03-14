@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Seat, Role, GamePhase } from "../../../../app/data";
-import { NightInfoResult } from "../../../types/game";
-import { SeatGrid } from "./SeatGrid";
-import { getSeatPosition } from "../../../utils/gameRules";
-import { TableCenterHUD } from "./TableCenterHUD";
 import { motion, useAnimation, useMotionValue } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import type { GamePhase, Role, Seat } from "../../../../app/data";
+import type { NightInfoResult } from "../../../types/game";
+import { SeatGrid } from "./SeatGrid";
+import { TableCenterHUD } from "./TableCenterHUD";
 
 interface RoundTableProps {
   seats: Seat[];
@@ -36,7 +35,11 @@ interface RoundTableProps {
   nominee?: number | null;
 
   // Night order preview panel (top-right)
-  nightOrderPreview?: Array<{ roleName: string; seatNo: number; order: number | null }>;
+  nightOrderPreview?: Array<{
+    roleName: string;
+    seatNo: number;
+    order: number | null;
+  }>;
   onOpenNightOrderPreview?: () => void;
   // Red Nemesis action
   onSetRedNemesis?: (seatId: number) => void;
@@ -80,12 +83,16 @@ export function RoundTable({
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
-  const [seatSize, setSeatSize] = useState(72); // Seat size in pixels
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; seatId: number } | null>(null);
+  const [_seatSize, setSeatSize] = useState(72); // Seat size in pixels
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    seatId: number;
+  } | null>(null);
 
   // Pan and Zoom states
   const [scale, setScale] = useState(1);
-  const controls = useAnimation();
+  const _controls = useAnimation();
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -97,8 +104,8 @@ export function RoundTable({
     const minScale = 0.5;
     const maxScale = 2.5;
 
-    setScale(prev => {
-      let newScale = prev - (e.deltaY * zoomSensitivity);
+    setScale((prev) => {
+      let newScale = prev - e.deltaY * zoomSensitivity;
       if (newScale < minScale) newScale = minScale;
       if (newScale > maxScale) newScale = maxScale;
       return newScale;
@@ -114,8 +121,8 @@ export function RoundTable({
   // Close context menu on any click outside
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
-    window.addEventListener('click', handleClick);
-    return () => window.removeEventListener('click', handleClick);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
   }, []);
 
   const handleSeatContextMenu = (e: React.MouseEvent, seatId: number) => {
@@ -143,12 +150,12 @@ export function RoundTable({
       const padding = 50;
 
       // Calculate available space
-      const availableSize = minDimension - (padding * 2);
+      const availableSize = minDimension - padding * 2;
 
       // Calculate radius: (availableSize / 2) - (seatSize / 2) - some margin
       // Convert to percentage for the 100x100 coordinate system
       // Reduced margin to ensure seats don't get cut off
-      const availableRadius = (availableSize / 2) - (seatSizePx / 2) - 15; // 15px margin
+      const availableRadius = availableSize / 2 - seatSizePx / 2 - 15; // 15px margin
       const radiusPercent = (availableRadius / minDimension) * 100;
 
       // Ensure radius is reasonable (between 20% and 35% - reduced to fit larger seats)
@@ -169,7 +176,11 @@ export function RoundTable({
   }, []);
 
   // Create a custom getSeatPosition function that uses the dynamic radius
-  const getDynamicSeatPosition = (index: number, total?: number, isPortrait?: boolean) => {
+  const getDynamicSeatPosition = (
+    index: number,
+    total?: number,
+    _isPortrait?: boolean
+  ) => {
     const angle = (index / (total ?? seats.length)) * 2 * Math.PI - Math.PI / 2;
     const x = 50 + radius * Math.cos(angle);
     const y = 50 + radius * Math.sin(angle);
@@ -207,7 +218,9 @@ export function RoundTable({
             onTouchEnd={onTouchEnd}
             onTouchMove={onTouchMove}
             setSeatRef={setSeatRef}
-            getSeatPosition={(i: number) => getDynamicSeatPosition(i, seats.length, isPortrait)}
+            getSeatPosition={(i: number) =>
+              getDynamicSeatPosition(i, seats.length, isPortrait)
+            }
             getDisplayRoleType={getDisplayRoleType}
             typeColors={typeColors}
             nominator={nominator}
@@ -238,7 +251,20 @@ export function RoundTable({
             className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-full border border-white/20 shadow-xl backdrop-blur-sm text-white"
             title="复位视角"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
           </button>
         )}
       </div>
@@ -259,14 +285,21 @@ export function RoundTable({
           </div>
           <div className="max-h-[180px] overflow-auto px-3 py-2 space-y-2">
             {nightOrderPreview.length === 0 ? (
-              <div className="text-xs text-slate-400">暂无（未生成顺序或不在夜晚阶段）</div>
+              <div className="text-xs text-slate-400">
+                暂无（未生成顺序或不在夜晚阶段）
+              </div>
             ) : (
               nightOrderPreview.slice(0, 10).map((item, idx) => (
-                <div key={`${item.roleName}-${item.seatNo}-${idx}`} className="flex items-center justify-between text-xs">
+                <div
+                  key={`${item.roleName}-${item.seatNo}-${idx}`}
+                  className="flex items-center justify-between text-xs"
+                >
                   <div className="text-slate-200 truncate">
                     {idx + 1}. [{item.seatNo}号] {item.roleName}
                   </div>
-                  <div className="text-slate-400 ml-2 shrink-0">#{item.order ?? '—'}</div>
+                  <div className="text-slate-400 ml-2 shrink-0">
+                    #{item.order ?? "—"}
+                  </div>
                 </div>
               ))
             )}
@@ -281,7 +314,8 @@ export function RoundTable({
           style={{
             left: contextMenu.x,
             top: contextMenu.y,
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
+            boxShadow:
+              "0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -318,4 +352,3 @@ export function RoundTable({
     </div>
   );
 }
-

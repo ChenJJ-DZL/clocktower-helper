@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 公主 (Princess) - 扩展镇民（隐藏占位）
@@ -73,8 +73,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:683-0!canonical and timestamp 20260120022025 and revision id 5304. Serialized with JSON.`,
   clarifications: [
-    `公主在其首个白天提名了一名玩家后，该玩家不论由于何种原因被处决（例如洗脑师或贞洁者等），都会满足公主的“提名并处决了一名玩家”的要求，从而导致当晚恶魔无法造成死亡。`,
-    `相克规则：食人族：如果食人族提名并处决了公主且公主因此死亡，当晚恶魔不会造成死亡。哈迪寂亚：如果公主在首个白天提名并处决了一名玩家，没有人会因为哈迪寂亚的能力而死亡。(公主与哈迪寂亚角色互动结果本应如此，此条仅做说明)`
+    "公主在其首个白天提名了一名玩家后，该玩家不论由于何种原因被处决（例如洗脑师或贞洁者等），都会满足公主的“提名并处决了一名玩家”的要求，从而导致当晚恶魔无法造成死亡。",
+    "相克规则：食人族：如果食人族提名并处决了公主且公主因此死亡，当晚恶魔不会造成死亡。哈迪寂亚：如果公主在首个白天提名并处决了一名玩家，没有人会因为哈迪寂亚的能力而死亡。(公主与哈迪寂亚角色互动结果本应如此，此条仅做说明)",
   ],
   night: {
     order: 0,
@@ -90,5 +90,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:683-0!canonical and tim
     }),
   },
 };
-
-

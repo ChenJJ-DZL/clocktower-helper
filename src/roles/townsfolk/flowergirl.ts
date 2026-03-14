@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 卖花女孩
@@ -79,12 +78,10 @@ Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:81-0!canonical and timestamp 20260120014327 and revision id 4890. Serialized with JSON.`,
-  clarifications: [
-    `无`
-  ],
+  clarifications: ["无"],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 0 : 11,
+    order: (isFirstNight) => (isFirstNight ? 0 : 11),
 
     target: {
       count: {
@@ -118,11 +115,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:81-0!canonical and time
       return {
         updates: [],
         logs: {
-          privateLog: `卖花女孩得知：今天白天恶魔${hasVoted ? '有' : '没有'}投过票。`,
-          secretInfo: `恶魔投票：${hasVoted ? '是' : '否'}`
-        }
+          privateLog: `卖花女孩得知：今天白天恶魔${hasVoted ? "有" : "没有"}投过票。`,
+          secretInfo: `恶魔投票：${hasVoted ? "是" : "否"}`,
+        },
       };
     },
-
   },
 };

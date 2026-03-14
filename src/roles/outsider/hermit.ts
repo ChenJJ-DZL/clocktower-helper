@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 隐士 (Hermit)
  * 你拥有所有外来者能力。[-0~1外来者]
- * 
+ *
  * 规则要点：
  * - 隐士同时拥有角色列表中所有其他外来者的能力
  * - 他不会拥有不存在于角色列表中的外来者能力
@@ -77,11 +77,9 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:678-0!canonical and timestamp 20260120030806 and revision id 5249. Serialized with JSON.`,
   clarifications: [
-    `相克规则：（如同角色简介中所写）如果隐士获得了具有相克规则的角色能力，那么这条相克规则对隐士也适用。`
+    "相克规则：（如同角色简介中所写）如果隐士获得了具有相克规则的角色能力，那么这条相克规则对隐士也适用。",
   ],
   // 隐士拥有所有外来者的能力
   // 具体能力由说书人在设置时决定
   // 隐士的夜晚行动根据其拥有的外来者能力而定
 };
-
-

@@ -6,7 +6,8 @@
   --foreground: #ededed;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -39,7 +40,9 @@ body {
 }
 
 /* 允许输入框和文本区域选择文本 */
-input, textarea, [contenteditable="true"] {
+input,
+textarea,
+[contenteditable="true"] {
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: default;
@@ -58,7 +61,7 @@ input, textarea, [contenteditable="true"] {
 
 /* 全局径向渐变背景层 - 模拟桌面的聚光灯效果 */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;
@@ -87,16 +90,19 @@ body > * {
 
 @keyframes breath-shadow {
   0% {
-    text-shadow: 0 0 10px rgba(248, 113, 113, 0.5),
-                 0 0 18px rgba(248, 113, 113, 0.7);
+    text-shadow:
+      0 0 10px rgba(248, 113, 113, 0.5),
+      0 0 18px rgba(248, 113, 113, 0.7);
   }
   50% {
-    text-shadow: 0 0 14px rgba(248, 113, 113, 0.8),
-                 0 0 24px rgba(248, 113, 113, 0.9);
+    text-shadow:
+      0 0 14px rgba(248, 113, 113, 0.8),
+      0 0 24px rgba(248, 113, 113, 0.9);
   }
   100% {
-    text-shadow: 0 0 10px rgba(248, 113, 113, 0.5),
-                 0 0 18px rgba(248, 113, 113, 0.7);
+    text-shadow:
+      0 0 10px rgba(248, 113, 113, 0.5),
+      0 0 18px rgba(248, 113, 113, 0.7);
   }
 }
 
@@ -106,7 +112,8 @@ body > * {
 
 /* 设备旋转动画 */
 @keyframes rotate-device {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(0deg);
     opacity: 0.6;
   }
@@ -117,7 +124,8 @@ body > * {
 }
 
 @keyframes rotate-arrow {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(0deg);
     opacity: 0.8;
   }
@@ -149,25 +157,29 @@ body > * {
 }
 
 .check-identity-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom,
+  background: linear-gradient(
+    to bottom,
     #eab308 0%,
     #eab308 35%,
     #ca8a04 35%,
     #ca8a04 65%,
     #eab308 65%,
-    #eab308 100%);
+    #eab308 100%
+  );
   border-radius: 3px;
   border: none;
 }
 
 .check-identity-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom,
+  background: linear-gradient(
+    to bottom,
     #facc15 0%,
     #facc15 35%,
     #eab308 35%,
     #eab308 65%,
     #facc15 65%,
-    #facc15 100%);
+    #facc15 100%
+  );
 }
 
 /* Firefox 滚动条样式 */
@@ -211,27 +223,58 @@ body > * {
 
 /* VFX Animations */
 @keyframes shake {
-  0% { transform: translate(1px, 1px) rotate(0deg); }
-  10% { transform: translate(-1px, -2px) rotate(-1deg); }
-  20% { transform: translate(-3px, 0px) rotate(1deg); }
-  30% { transform: translate(3px, 2px) rotate(0deg); }
-  40% { transform: translate(1px, -1px) rotate(1deg); }
-  50% { transform: translate(-1px, 2px) rotate(-1deg); }
-  60% { transform: translate(-3px, 1px) rotate(0deg); }
-  70% { transform: translate(3px, 1px) rotate(-1deg); }
-  80% { transform: translate(-1px, -1px) rotate(1deg); }
-  90% { transform: translate(1px, 2px) rotate(0deg); }
-  100% { transform: translate(1px, -2px) rotate(-1deg); }
+  0% {
+    transform: translate(1px, 1px) rotate(0deg);
+  }
+  10% {
+    transform: translate(-1px, -2px) rotate(-1deg);
+  }
+  20% {
+    transform: translate(-3px, 0px) rotate(1deg);
+  }
+  30% {
+    transform: translate(3px, 2px) rotate(0deg);
+  }
+  40% {
+    transform: translate(1px, -1px) rotate(1deg);
+  }
+  50% {
+    transform: translate(-1px, 2px) rotate(-1deg);
+  }
+  60% {
+    transform: translate(-3px, 1px) rotate(0deg);
+  }
+  70% {
+    transform: translate(3px, 1px) rotate(-1deg);
+  }
+  80% {
+    transform: translate(-1px, -1px) rotate(1deg);
+  }
+  90% {
+    transform: translate(1px, 2px) rotate(0deg);
+  }
+  100% {
+    transform: translate(1px, -2px) rotate(-1deg);
+  }
 }
 
 .animate-vfx-shake {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
 @keyframes particle-burst {
-  0% { transform: scale(0); opacity: 1; }
-  50% { transform: scale(1.5); opacity: 0.8; }
-  100% { transform: scale(2); opacity: 0; }
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
 }
 
 .animate-vfx-particle {

@@ -1,5 +1,5 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
@@ -27,8 +27,8 @@ export const pukka: RoleDefinition = {
 - 所属剧本：黯月初升
 - 角色类型：恶魔`,
   clarifications: [
-    `相克规则：召唤师：召唤师可以选择在第二个夜晚将一名玩家变成普卡。`,
-    `相克规则（与华灯系列角色）：戏子：在戏子存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己"想要死亡"。说书人会在当晚杀死这名玩家。戏子（改）：在戏子（改）存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己"想要死亡"。说书人会在当晚杀死这名玩家。`
+    "相克规则：召唤师：召唤师可以选择在第二个夜晚将一名玩家变成普卡。",
+    `相克规则（与华灯系列角色）：戏子：在戏子存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己"想要死亡"。说书人会在当晚杀死这名玩家。戏子（改）：在戏子（改）存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己"想要死亡"。说书人会在当晚杀死这名玩家。`,
   ],
 
   firstNight: {
@@ -38,7 +38,7 @@ export const pukka: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "普卡", context);
     },
 
@@ -53,21 +53,26 @@ export const pukka: RoleDefinition = {
         min: 1,
         max: 1,
       },
-      canSelect: (_target: Seat, _self: Seat, _allSeats: Seat[], _selectedTargets: number[]) => {
+      canSelect: (
+        _target: Seat,
+        _self: Seat,
+        _allSeats: Seat[],
+        _selectedTargets: number[]
+      ) => {
         // 普卡可以选择任何人（包括自己）
         return true;
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
       return {
         wake: "☠️ 每个夜晚，你要选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。",
-        instruction: '"请选择一名玩家。他现在中毒。上个因你的能力中毒的玩家会死亡并恢复健康。"',
+        instruction:
+          '"请选择一名玩家。他现在中毒。上个因你的能力中毒的玩家会死亡并恢复健康。"',
         close: "poison",
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

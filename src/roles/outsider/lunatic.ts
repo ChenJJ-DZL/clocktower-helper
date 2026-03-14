@@ -1,11 +1,10 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 疯子 (Lunatic)
  * 你以为你是一个恶魔，但其实你不是。
  * 恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。
- * 
+ *
  * 规则要点：
  * - 疯子不知道自己的真实角色和真实阵营
  * - 疯子每个夜晚都会被唤醒来发动攻击，就如同他是场上真正的恶魔
@@ -84,25 +83,26 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:138-0!canonical and timestamp 20260120024821 and revision id 5579. Serialized with JSON.`,
   clarifications: [
-    `相克规则：数学家：数学家会得知疯子是否攻击了与真正的恶魔不同的目标。`,
-    `相克规则（与华灯系列角色）：戏子（改）：疯子不会因为戏子（改）能力参与互认，也不会因为戏子（改）的能力醉酒。`
+    "相克规则：数学家：数学家会得知疯子是否攻击了与真正的恶魔不同的目标。",
+    "相克规则（与华灯系列角色）：戏子（改）：疯子不会因为戏子（改）能力参与互认，也不会因为戏子（改）的能力醉酒。",
   ],
-  
+
   night: {
-    order: (isFirstNight) => isFirstNight ? 1 : 6,
-    
+    order: (isFirstNight) => (isFirstNight ? 1 : 6),
+
     target: {
       count: {
         min: 0,
         max: 1, // 根据实际恶魔类型决定，这里先设为0-1
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (isFirstNight) {
         return {
           wake: `唤醒${playerSeatId + 1}号玩家（疯子）。`,
-          instruction: "请执行恶魔行动（假）- 你会得知三个不在场的角色和爪牙信息",
+          instruction:
+            "请执行恶魔行动（假）- 你会得知三个不在场的角色和爪牙信息",
           close: `${playerSeatId + 1}号玩家（疯子），请闭眼。`,
         };
       } else {
@@ -113,7 +113,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:138-0!canonical and tim
         };
       }
     },
-    
+
     handler: (context) => {
       // 疯子的攻击没有实际效果，但真正的恶魔会知道疯子的选择
       // 首夜会显示三个不在场的角色和爪牙信息（由说书人决定）

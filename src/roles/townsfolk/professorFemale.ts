@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 教授 (Professor - Female)
@@ -10,4 +10,3 @@ export const professor_female: RoleDefinition = {
   name: "教授（女）",
   type: "townsfolk",
 };
-

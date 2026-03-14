@@ -1,14 +1,29 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, ReactNode, useRef, useEffect } from "react";
-import type { Seat, Role, GamePhase, WinResult, LogEntry, Script } from "../../app/data";
-import { NightHintState, GameRecord } from "../types/game";
-import { ModalType } from "../types/modal";
+import type React from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+} from "react";
+import type {
+  GamePhase,
+  LogEntry,
+  Role,
+  Script,
+  Seat,
+  WinResult,
+} from "../../app/data";
+import type { GameRecord, NightHintState } from "../types/game";
+import type { ModalType } from "../types/modal";
 
 /**
  * VFX 触发器状态
  */
-export type VfxTrigger = { seatId: number; type: 'slayer' | 'virgin' } | null;
+export type VfxTrigger = { seatId: number; type: "slayer" | "virgin" } | null;
 
 /**
  * 游戏状态接口 - 单一数据源
@@ -36,8 +51,8 @@ export interface GameState {
   // 夜间行动队列 - 核心状态
   nightActionQueue: Seat[]; // 动态生成的夜间行动队列
   currentQueueIndex: number; // 当前队列索引
-  wakeQueueIds: number[];    // 兼容旧系统的ID列表
-  currentWakeIndex: number;  // 兼容旧系统的索引
+  wakeQueueIds: number[]; // 兼容旧系统的ID列表
+  currentWakeIndex: number; // 兼容旧系统的索引
   selectedActionTargets: number[]; // 当前选中的行动目标
 
   // 夜晚提示状态
@@ -96,7 +111,7 @@ export interface GameState {
   shamanKeyword: string | null;
   shamanTriggered: boolean;
   shamanConvertTarget: number | null;
-  spyDisguiseMode: 'off' | 'default' | 'on';
+  spyDisguiseMode: "off" | "default" | "on";
   spyDisguiseProbability: number;
   pukkaPoisonQueue: { targetId: number; nightsUntilDeath: number }[];
   poChargeState: Record<number, boolean>;
@@ -108,7 +123,7 @@ export interface GameState {
   nominationMap: Record<number, number>;
   balloonistKnownTypes: Record<number, string[]>;
   balloonistCompletedIds: number[];
-  hadesiaChoices: Record<number, 'live' | 'die'>;
+  hadesiaChoices: Record<number, "live" | "die">;
   virginGuideInfo: any;
   voteRecords: any[];
   votedThisRound: number[];
@@ -119,7 +134,7 @@ export interface GameState {
   nominationRecords: { nominators: Set<number>; nominees: Set<number> };
   lastDuskExecution: number | null;
   currentDuskExecution: number | null;
-  history: Array<any>; // 存储历史快照用于撤销
+  history: any[]; // 存储历史快照用于撤销
   vfxTrigger: VfxTrigger;
 }
 
@@ -127,43 +142,54 @@ export interface GameState {
  * Action类型 - 所有状态修改都通过Action
  */
 export type GameAction =
-  | { type: 'SET_GAME_PHASE'; phase: GamePhase }
-  | { type: 'SET_NIGHT_ACTION_QUEUE'; queue: Seat[] }
-  | { type: 'NEXT_NIGHT_ACTION' }
-  | { type: 'PREV_NIGHT_ACTION' }
-  | { type: 'SET_CURRENT_QUEUE_INDEX'; index: number }
-  | { type: 'SET_SELECTED_TARGETS'; targets: number[] }
-  | { type: 'SET_SEATS'; seats: Seat[] }
-  | { type: 'UPDATE_SEAT'; seatId: number; updates: Partial<Seat> }
-  | { type: 'INCREMENT_NIGHT_COUNT' }
-  | { type: 'SET_DEAD_THIS_NIGHT'; deadIds: number[] }
-  | { type: 'ADD_DEAD_THIS_NIGHT'; deadId: number }
-  | { type: 'SET_EXECUTED_PLAYER'; playerId: number | null }
-  | { type: 'ADD_LOG'; log: LogEntry }
-  | { type: 'SET_WIN_RESULT'; result: WinResult; reason: string | null }
-  | { type: 'SET_CURRENT_HINT'; hint: NightHintState }
-  | { type: 'SET_INSPECTION_RESULT'; result: string | null }
-  | { type: 'CLEAR_NIGHT_STATE' }
-  | { type: 'START_NIGHT'; queue: Seat[]; isFirst: boolean }
-  | { type: 'RESET_GAME' }
-  | { type: 'FILTER_DEAD_FROM_QUEUE' } // 从队列中移除已死亡且无能力的角色
-  | { type: 'SET_HISTORY'; history: Array<any> } // 设置历史记录
-  | { type: 'UPDATE_STATE'; updates: Partial<GameState> } // 通用更新Action
-  | { type: 'SET_OUTSIDER_DIED_TODAY'; died: boolean }
-  | { type: 'SET_GOSSIP_STATE'; statement: string; isTrue: boolean; sourceId: number | null }
-  | { type: 'SET_MODAL'; modal: ModalType }
-  | { type: 'SET_VOTE_INPUT'; value: string }
-  | { type: 'UPDATE_VOTED_THIS_ROUND'; voterId: number; remove?: boolean }
-  | { type: 'SET_HAS_EXECUTED_THIS_DAY'; hasExecuted: boolean }
-  | { type: 'SET_NOMINATION_RECORDS'; records: { nominators: Set<number>; nominees: Set<number> } }
-  | { type: 'SET_DUSK_EXECUTION'; last: number | null; current: number | null }
-  | { type: 'SET_TIMER'; timer: number }
-  | { type: 'SET_START_TIME'; time: Date | null }
-  | { type: 'SET_GAME_RECORDS'; records: GameRecord[] }
-  | { type: 'UPDATE_USED_ONCE_ABILITIES'; roleId: string; seatId: number }
-  | { type: 'UPDATE_PUKKA_QUEUE'; queue: { targetId: number; nightsUntilDeath: number }[] }
-  | { type: 'SET_VFX_TRIGGER'; trigger: VfxTrigger }
-  | { type: 'DECLARE_MAYOR_WIN' }
+  | { type: "SET_GAME_PHASE"; phase: GamePhase }
+  | { type: "SET_NIGHT_ACTION_QUEUE"; queue: Seat[] }
+  | { type: "NEXT_NIGHT_ACTION" }
+  | { type: "PREV_NIGHT_ACTION" }
+  | { type: "SET_CURRENT_QUEUE_INDEX"; index: number }
+  | { type: "SET_SELECTED_TARGETS"; targets: number[] }
+  | { type: "SET_SEATS"; seats: Seat[] }
+  | { type: "UPDATE_SEAT"; seatId: number; updates: Partial<Seat> }
+  | { type: "INCREMENT_NIGHT_COUNT" }
+  | { type: "SET_DEAD_THIS_NIGHT"; deadIds: number[] }
+  | { type: "ADD_DEAD_THIS_NIGHT"; deadId: number }
+  | { type: "SET_EXECUTED_PLAYER"; playerId: number | null }
+  | { type: "ADD_LOG"; log: LogEntry }
+  | { type: "SET_WIN_RESULT"; result: WinResult; reason: string | null }
+  | { type: "SET_CURRENT_HINT"; hint: NightHintState }
+  | { type: "SET_INSPECTION_RESULT"; result: string | null }
+  | { type: "CLEAR_NIGHT_STATE" }
+  | { type: "START_NIGHT"; queue: Seat[]; isFirst: boolean }
+  | { type: "RESET_GAME" }
+  | { type: "FILTER_DEAD_FROM_QUEUE" } // 从队列中移除已死亡且无能力的角色
+  | { type: "SET_HISTORY"; history: any[] } // 设置历史记录
+  | { type: "UPDATE_STATE"; updates: Partial<GameState> } // 通用更新Action
+  | { type: "SET_OUTSIDER_DIED_TODAY"; died: boolean }
+  | {
+      type: "SET_GOSSIP_STATE";
+      statement: string;
+      isTrue: boolean;
+      sourceId: number | null;
+    }
+  | { type: "SET_MODAL"; modal: ModalType }
+  | { type: "SET_VOTE_INPUT"; value: string }
+  | { type: "UPDATE_VOTED_THIS_ROUND"; voterId: number; remove?: boolean }
+  | { type: "SET_HAS_EXECUTED_THIS_DAY"; hasExecuted: boolean }
+  | {
+      type: "SET_NOMINATION_RECORDS";
+      records: { nominators: Set<number>; nominees: Set<number> };
+    }
+  | { type: "SET_DUSK_EXECUTION"; last: number | null; current: number | null }
+  | { type: "SET_TIMER"; timer: number }
+  | { type: "SET_START_TIME"; time: Date | null }
+  | { type: "SET_GAME_RECORDS"; records: GameRecord[] }
+  | { type: "UPDATE_USED_ONCE_ABILITIES"; roleId: string; seatId: number }
+  | {
+      type: "UPDATE_PUKKA_QUEUE";
+      queue: { targetId: number; nightsUntilDeath: number }[];
+    }
+  | { type: "SET_VFX_TRIGGER"; trigger: VfxTrigger }
+  | { type: "DECLARE_MAYOR_WIN" };
 // ... 可以继续添加更多Action
 
 /**
@@ -171,10 +197,10 @@ export type GameAction =
  */
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
-    case 'SET_GAME_PHASE':
+    case "SET_GAME_PHASE":
       return { ...state, gamePhase: action.phase };
 
-    case 'SET_NIGHT_ACTION_QUEUE':
+    case "SET_NIGHT_ACTION_QUEUE":
       return {
         ...state,
         nightActionQueue: action.queue,
@@ -182,23 +208,27 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         selectedActionTargets: [], // 清空选中目标
       };
 
-    case 'NEXT_NIGHT_ACTION': {
+    case "NEXT_NIGHT_ACTION": {
       // 自动跳过已死亡且无能力的角色
       let nextIndex = state.currentQueueIndex + 1;
       while (nextIndex < state.nightActionQueue.length) {
         const nextSeat = state.nightActionQueue[nextIndex];
         // 检查座位是否仍然存在且有效
-        const currentSeat = state.seats.find(s => s.id === nextSeat.id);
+        const currentSeat = state.seats.find((s) => s.id === nextSeat.id);
         if (!currentSeat) {
           nextIndex++;
           continue;
         }
         // 排除已死亡且无能力的角色（特殊：乌鸦守护者即使死亡也要执行）
-        const roleId = currentSeat.role?.id === 'drunk'
-          ? currentSeat.charadeRole?.id
-          : currentSeat.role?.id;
-        const isDeadAndNoAbility = currentSeat.isDead && !currentSeat.hasAbilityEvenDead;
-        const isRavenkeeper = roleId === 'ravenkeeper' && state.deadThisNight.includes(currentSeat.id);
+        const roleId =
+          currentSeat.role?.id === "drunk"
+            ? currentSeat.charadeRole?.id
+            : currentSeat.role?.id;
+        const isDeadAndNoAbility =
+          currentSeat.isDead && !currentSeat.hasAbilityEvenDead;
+        const isRavenkeeper =
+          roleId === "ravenkeeper" &&
+          state.deadThisNight.includes(currentSeat.id);
         if (!isDeadAndNoAbility || isRavenkeeper) {
           break;
         }
@@ -212,7 +242,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'PREV_NIGHT_ACTION': {
+    case "PREV_NIGHT_ACTION": {
       const prevIndex = Math.max(0, state.currentQueueIndex - 1);
       return {
         ...state,
@@ -222,63 +252,63 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'SET_CURRENT_QUEUE_INDEX':
+    case "SET_CURRENT_QUEUE_INDEX":
       return { ...state, currentQueueIndex: action.index };
 
-    case 'SET_SELECTED_TARGETS':
+    case "SET_SELECTED_TARGETS":
       return { ...state, selectedActionTargets: action.targets };
 
-    case 'SET_SEATS':
+    case "SET_SEATS":
       return { ...state, seats: action.seats };
 
-    case 'UPDATE_SEAT': {
-      const updatedSeats = state.seats.map(seat =>
+    case "UPDATE_SEAT": {
+      const updatedSeats = state.seats.map((seat) =>
         seat.id === action.seatId ? { ...seat, ...action.updates } : seat
       );
       return { ...state, seats: updatedSeats };
     }
 
-    case 'INCREMENT_NIGHT_COUNT':
+    case "INCREMENT_NIGHT_COUNT":
       return { ...state, nightCount: state.nightCount + 1 };
 
-    case 'SET_DEAD_THIS_NIGHT':
+    case "SET_DEAD_THIS_NIGHT":
       return { ...state, deadThisNight: action.deadIds };
 
-    case 'ADD_DEAD_THIS_NIGHT':
+    case "ADD_DEAD_THIS_NIGHT":
       return {
         ...state,
         deadThisNight: [...state.deadThisNight, action.deadId],
       };
 
-    case 'SET_EXECUTED_PLAYER':
+    case "SET_EXECUTED_PLAYER":
       return { ...state, executedPlayerId: action.playerId };
 
-    case 'ADD_LOG':
+    case "ADD_LOG":
       return { ...state, gameLogs: [...state.gameLogs, action.log] };
 
-    case 'SET_WIN_RESULT':
+    case "SET_WIN_RESULT":
       return {
         ...state,
         winResult: action.result,
         winReason: action.reason,
-        gamePhase: 'gameOver',
+        gamePhase: "gameOver",
       };
 
-    case 'SET_CURRENT_HINT':
+    case "SET_CURRENT_HINT":
       return { ...state, currentHint: action.hint };
 
-    case 'SET_INSPECTION_RESULT':
+    case "SET_INSPECTION_RESULT":
       return { ...state, inspectionResult: action.result };
 
-    case 'CLEAR_NIGHT_STATE':
+    case "CLEAR_NIGHT_STATE":
       return {
         ...state,
         selectedActionTargets: [],
         inspectionResult: null,
-        currentHint: { isPoisoned: false, guide: '', speak: '' },
+        currentHint: { isPoisoned: false, guide: "", speak: "" },
       };
 
-    case 'START_NIGHT': {
+    case "START_NIGHT": {
       // 进入夜晚时，设置队列并重置索引
       return {
         ...state,
@@ -286,26 +316,30 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         currentQueueIndex: 0,
         selectedActionTargets: [],
         inspectionResult: null,
-        gamePhase: action.isFirst ? 'firstNight' : 'night',
+        gamePhase: action.isFirst ? "firstNight" : "night",
         nightCount: action.isFirst ? state.nightCount : state.nightCount + 1,
       };
     }
 
-    case 'RESET_GAME':
+    case "RESET_GAME":
       // 重置游戏状态到初始值
       return getInitialState();
 
-    case 'FILTER_DEAD_FROM_QUEUE': {
+    case "FILTER_DEAD_FROM_QUEUE": {
       // 从队列中移除已死亡且无能力的角色（保留亡骨魔杀死的爪牙等）
-      const filteredQueue = state.nightActionQueue.filter(queuedSeat => {
-        const currentSeat = state.seats.find(s => s.id === queuedSeat.id);
+      const filteredQueue = state.nightActionQueue.filter((queuedSeat) => {
+        const currentSeat = state.seats.find((s) => s.id === queuedSeat.id);
         if (!currentSeat) return false;
 
         // 特殊处理：乌鸦守护者即使死亡也要执行（如果是今晚死亡的）
-        const roleId = currentSeat.role?.id === 'drunk'
-          ? currentSeat.charadeRole?.id
-          : currentSeat.role?.id;
-        if (roleId === 'ravenkeeper' && state.deadThisNight.includes(currentSeat.id)) {
+        const roleId =
+          currentSeat.role?.id === "drunk"
+            ? currentSeat.charadeRole?.id
+            : currentSeat.role?.id;
+        if (
+          roleId === "ravenkeeper" &&
+          state.deadThisNight.includes(currentSeat.id)
+        ) {
           return true;
         }
 
@@ -318,9 +352,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       });
 
       // 如果当前索引超出队列长度，调整索引
-      const adjustedIndex = state.currentQueueIndex >= filteredQueue.length
-        ? Math.max(0, filteredQueue.length - 1)
-        : state.currentQueueIndex;
+      const adjustedIndex =
+        state.currentQueueIndex >= filteredQueue.length
+          ? Math.max(0, filteredQueue.length - 1)
+          : state.currentQueueIndex;
 
       return {
         ...state,
@@ -329,17 +364,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'SET_HISTORY':
+    case "SET_HISTORY":
       // 历史记录暂不存储在state中，可以在需要时添加
       return state;
 
-    case 'UPDATE_STATE':
+    case "UPDATE_STATE":
       return { ...state, ...action.updates };
 
-    case 'SET_OUTSIDER_DIED_TODAY':
+    case "SET_OUTSIDER_DIED_TODAY":
       return { ...state, outsiderDiedToday: action.died };
 
-    case 'SET_GOSSIP_STATE':
+    case "SET_GOSSIP_STATE":
       return {
         ...state,
         gossipStatementToday: action.statement,
@@ -347,61 +382,70 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         gossipSourceSeatId: action.sourceId,
       };
 
-    case 'SET_MODAL':
+    case "SET_MODAL":
       return { ...state, currentModal: action.modal };
 
-    case 'SET_VOTE_INPUT':
+    case "SET_VOTE_INPUT":
       return { ...state, voteInputValue: action.value };
 
-    case 'UPDATE_VOTED_THIS_ROUND': {
+    case "UPDATE_VOTED_THIS_ROUND": {
       const newList = action.remove
-        ? state.votedThisRound.filter(id => id !== action.voterId)
+        ? state.votedThisRound.filter((id) => id !== action.voterId)
         : [...state.votedThisRound, action.voterId];
       return { ...state, votedThisRound: newList };
     }
 
-    case 'SET_HAS_EXECUTED_THIS_DAY':
+    case "SET_HAS_EXECUTED_THIS_DAY":
       return { ...state, hasExecutedThisDay: action.hasExecuted };
 
-    case 'SET_NOMINATION_RECORDS':
+    case "SET_NOMINATION_RECORDS":
       return { ...state, nominationRecords: action.records };
 
-    case 'SET_DUSK_EXECUTION':
-      console.log('[Reducer] SET_DUSK_EXECUTION last:', action.last, 'current:', action.current);
-      return { ...state, lastDuskExecution: action.last, currentDuskExecution: action.current };
+    case "SET_DUSK_EXECUTION":
+      console.log(
+        "[Reducer] SET_DUSK_EXECUTION last:",
+        action.last,
+        "current:",
+        action.current
+      );
+      return {
+        ...state,
+        lastDuskExecution: action.last,
+        currentDuskExecution: action.current,
+      };
 
-    case 'SET_TIMER':
+    case "SET_TIMER":
       return { ...state, timer: action.timer };
 
-    case 'SET_START_TIME':
+    case "SET_START_TIME":
       return { ...state, startTime: action.time };
 
-    case 'SET_GAME_RECORDS':
+    case "SET_GAME_RECORDS":
       return { ...state, gameRecords: action.records };
 
-    case 'UPDATE_USED_ONCE_ABILITIES': {
+    case "UPDATE_USED_ONCE_ABILITIES": {
       const current = state.usedOnceAbilities[action.roleId] || [];
       return {
         ...state,
         usedOnceAbilities: {
           ...state.usedOnceAbilities,
-          [action.roleId]: [...current, action.seatId]
-        }
+          [action.roleId]: [...current, action.seatId],
+        },
       };
     }
 
-    case 'UPDATE_PUKKA_QUEUE':
+    case "UPDATE_PUKKA_QUEUE":
       return { ...state, pukkaPoisonQueue: action.queue };
 
-    case 'SET_VFX_TRIGGER':
+    case "SET_VFX_TRIGGER":
       return { ...state, vfxTrigger: action.trigger };
 
-    case 'DECLARE_MAYOR_WIN':
+    case "DECLARE_MAYOR_WIN":
       return {
         ...state,
-        winResult: 'good',
-        winReason: '市长身份获胜',
-        gamePhase: 'gameOver'
+        winResult: "good",
+        winReason: "市长身份获胜",
+        gamePhase: "gameOver",
       };
 
     default:
@@ -423,7 +467,7 @@ function getInitialState(): GameState {
     seats: [],
     victorySnapshot: [],
     initialSeats: [],
-    gamePhase: 'scriptSelection',
+    gamePhase: "scriptSelection",
     selectedScript: null,
     nightCount: 1,
     deadThisNight: [],
@@ -436,7 +480,7 @@ function getInitialState(): GameState {
     wakeQueueIds: [],
     currentWakeIndex: 0,
     selectedActionTargets: [],
-    currentHint: { isPoisoned: false, guide: '', speak: '' },
+    currentHint: { isPoisoned: false, guide: "", speak: "" },
     inspectionResult: null,
     inspectionResultKey: 0,
     todayDemonVoted: false,
@@ -460,7 +504,7 @@ function getInitialState(): GameState {
     baronSetupCheck: null,
     ignoreBaronSetup: false,
     compositionError: null,
-    voteInputValue: '',
+    voteInputValue: "",
     showVoteErrorToast: false,
     gameRecords: [],
     mayorRedirectTarget: null,
@@ -476,7 +520,7 @@ function getInitialState(): GameState {
     shamanKeyword: null,
     shamanTriggered: false,
     shamanConvertTarget: null,
-    spyDisguiseMode: 'default',
+    spyDisguiseMode: "default",
     spyDisguiseProbability: 0.8,
     pukkaPoisonQueue: [],
     poChargeState: {},
@@ -543,7 +587,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 export function useGameContext() {
   const context = useContext(GameContext);
   if (context === undefined) {
-    throw new Error('useGameContext must be used within a GameProvider');
+    throw new Error("useGameContext must be used within a GameProvider");
   }
   return context;
 }
@@ -552,42 +596,120 @@ export function useGameContext() {
  * 便捷的Action创建函数
  */
 export const gameActions = {
-  setGamePhase: (phase: GamePhase): GameAction => ({ type: 'SET_GAME_PHASE', phase }),
-  setNightActionQueue: (queue: Seat[]): GameAction => ({ type: 'SET_NIGHT_ACTION_QUEUE', queue }),
-  nextNightAction: (): GameAction => ({ type: 'NEXT_NIGHT_ACTION' }),
-  prevNightAction: (): GameAction => ({ type: 'PREV_NIGHT_ACTION' }),
-  setCurrentQueueIndex: (index: number): GameAction => ({ type: 'SET_CURRENT_QUEUE_INDEX', index }),
-  setSelectedTargets: (targets: number[]): GameAction => ({ type: 'SET_SELECTED_TARGETS', targets }),
-  setSeats: (seats: Seat[]): GameAction => ({ type: 'SET_SEATS', seats }),
-  updateSeat: (seatId: number, updates: Partial<Seat>): GameAction => ({ type: 'UPDATE_SEAT', seatId, updates }),
-  incrementNightCount: (): GameAction => ({ type: 'INCREMENT_NIGHT_COUNT' }),
-  setDeadThisNight: (deadIds: number[]): GameAction => ({ type: 'SET_DEAD_THIS_NIGHT', deadIds }),
-  addDeadThisNight: (deadId: number): GameAction => ({ type: 'ADD_DEAD_THIS_NIGHT', deadId }),
-  setExecutedPlayer: (playerId: number | null): GameAction => ({ type: 'SET_EXECUTED_PLAYER', playerId }),
-  addLog: (log: LogEntry): GameAction => ({ type: 'ADD_LOG', log }),
-  setWinResult: (result: WinResult, reason: string | null): GameAction => ({ type: 'SET_WIN_RESULT', result, reason }),
-  setCurrentHint: (hint: NightHintState): GameAction => ({ type: 'SET_CURRENT_HINT', hint }),
-  setInspectionResult: (result: string | null): GameAction => ({ type: 'SET_INSPECTION_RESULT', result }),
-  clearNightState: (): GameAction => ({ type: 'CLEAR_NIGHT_STATE' }),
-  startNight: (queue: Seat[], isFirst: boolean): GameAction => ({ type: 'START_NIGHT', queue, isFirst }),
-  resetGame: (): GameAction => ({ type: 'RESET_GAME' }),
-  filterDeadFromQueue: (): GameAction => ({ type: 'FILTER_DEAD_FROM_QUEUE' }),
-  setHistory: (history: Array<any>): GameAction => ({ type: 'SET_HISTORY', history }),
-  updateState: (updates: Partial<GameState>): GameAction => ({ type: 'UPDATE_STATE', updates }),
-  setOutsiderDiedToday: (died: boolean): GameAction => ({ type: 'SET_OUTSIDER_DIED_TODAY', died }),
-  setGossipState: (statement: string, isTrue: boolean, sourceId: number | null): GameAction =>
-    ({ type: 'SET_GOSSIP_STATE', statement, isTrue, sourceId }),
-  setModal: (modal: ModalType): GameAction => ({ type: 'SET_MODAL', modal }),
-  setVoteInput: (value: string): GameAction => ({ type: 'SET_VOTE_INPUT', value }),
-  updateVotedThisRound: (voterId: number, remove?: boolean): GameAction => ({ type: 'UPDATE_VOTED_THIS_ROUND', voterId, remove }),
-  setHasExecutedThisDay: (hasExecuted: boolean): GameAction => ({ type: 'SET_HAS_EXECUTED_THIS_DAY', hasExecuted }),
-  setNominationRecords: (records: { nominators: Set<number>; nominees: Set<number> }): GameAction => ({ type: 'SET_NOMINATION_RECORDS', records }),
-  setDuskExecution: (last: number | null, current: number | null): GameAction => ({ type: 'SET_DUSK_EXECUTION', last, current }),
-  setTimer: (timer: number): GameAction => ({ type: 'SET_TIMER', timer }),
-  setStartTime: (time: Date | null): GameAction => ({ type: 'SET_START_TIME', time }),
-  setGameRecords: (records: GameRecord[]): GameAction => ({ type: 'SET_GAME_RECORDS', records }),
-  updateUsedOnceAbilities: (roleId: string, seatId: number): GameAction => ({ type: 'UPDATE_USED_ONCE_ABILITIES', roleId, seatId }),
-  updatePukkaQueue: (queue: { targetId: number; nightsUntilDeath: number }[]): GameAction => ({ type: 'UPDATE_PUKKA_QUEUE', queue }),
-  declareMayorWin: (): GameAction => ({ type: 'DECLARE_MAYOR_WIN' }),
+  setGamePhase: (phase: GamePhase): GameAction => ({
+    type: "SET_GAME_PHASE",
+    phase,
+  }),
+  setNightActionQueue: (queue: Seat[]): GameAction => ({
+    type: "SET_NIGHT_ACTION_QUEUE",
+    queue,
+  }),
+  nextNightAction: (): GameAction => ({ type: "NEXT_NIGHT_ACTION" }),
+  prevNightAction: (): GameAction => ({ type: "PREV_NIGHT_ACTION" }),
+  setCurrentQueueIndex: (index: number): GameAction => ({
+    type: "SET_CURRENT_QUEUE_INDEX",
+    index,
+  }),
+  setSelectedTargets: (targets: number[]): GameAction => ({
+    type: "SET_SELECTED_TARGETS",
+    targets,
+  }),
+  setSeats: (seats: Seat[]): GameAction => ({ type: "SET_SEATS", seats }),
+  updateSeat: (seatId: number, updates: Partial<Seat>): GameAction => ({
+    type: "UPDATE_SEAT",
+    seatId,
+    updates,
+  }),
+  incrementNightCount: (): GameAction => ({ type: "INCREMENT_NIGHT_COUNT" }),
+  setDeadThisNight: (deadIds: number[]): GameAction => ({
+    type: "SET_DEAD_THIS_NIGHT",
+    deadIds,
+  }),
+  addDeadThisNight: (deadId: number): GameAction => ({
+    type: "ADD_DEAD_THIS_NIGHT",
+    deadId,
+  }),
+  setExecutedPlayer: (playerId: number | null): GameAction => ({
+    type: "SET_EXECUTED_PLAYER",
+    playerId,
+  }),
+  addLog: (log: LogEntry): GameAction => ({ type: "ADD_LOG", log }),
+  setWinResult: (result: WinResult, reason: string | null): GameAction => ({
+    type: "SET_WIN_RESULT",
+    result,
+    reason,
+  }),
+  setCurrentHint: (hint: NightHintState): GameAction => ({
+    type: "SET_CURRENT_HINT",
+    hint,
+  }),
+  setInspectionResult: (result: string | null): GameAction => ({
+    type: "SET_INSPECTION_RESULT",
+    result,
+  }),
+  clearNightState: (): GameAction => ({ type: "CLEAR_NIGHT_STATE" }),
+  startNight: (queue: Seat[], isFirst: boolean): GameAction => ({
+    type: "START_NIGHT",
+    queue,
+    isFirst,
+  }),
+  resetGame: (): GameAction => ({ type: "RESET_GAME" }),
+  filterDeadFromQueue: (): GameAction => ({ type: "FILTER_DEAD_FROM_QUEUE" }),
+  setHistory: (history: any[]): GameAction => ({
+    type: "SET_HISTORY",
+    history,
+  }),
+  updateState: (updates: Partial<GameState>): GameAction => ({
+    type: "UPDATE_STATE",
+    updates,
+  }),
+  setOutsiderDiedToday: (died: boolean): GameAction => ({
+    type: "SET_OUTSIDER_DIED_TODAY",
+    died,
+  }),
+  setGossipState: (
+    statement: string,
+    isTrue: boolean,
+    sourceId: number | null
+  ): GameAction => ({ type: "SET_GOSSIP_STATE", statement, isTrue, sourceId }),
+  setModal: (modal: ModalType): GameAction => ({ type: "SET_MODAL", modal }),
+  setVoteInput: (value: string): GameAction => ({
+    type: "SET_VOTE_INPUT",
+    value,
+  }),
+  updateVotedThisRound: (voterId: number, remove?: boolean): GameAction => ({
+    type: "UPDATE_VOTED_THIS_ROUND",
+    voterId,
+    remove,
+  }),
+  setHasExecutedThisDay: (hasExecuted: boolean): GameAction => ({
+    type: "SET_HAS_EXECUTED_THIS_DAY",
+    hasExecuted,
+  }),
+  setNominationRecords: (records: {
+    nominators: Set<number>;
+    nominees: Set<number>;
+  }): GameAction => ({ type: "SET_NOMINATION_RECORDS", records }),
+  setDuskExecution: (
+    last: number | null,
+    current: number | null
+  ): GameAction => ({ type: "SET_DUSK_EXECUTION", last, current }),
+  setTimer: (timer: number): GameAction => ({ type: "SET_TIMER", timer }),
+  setStartTime: (time: Date | null): GameAction => ({
+    type: "SET_START_TIME",
+    time,
+  }),
+  setGameRecords: (records: GameRecord[]): GameAction => ({
+    type: "SET_GAME_RECORDS",
+    records,
+  }),
+  updateUsedOnceAbilities: (roleId: string, seatId: number): GameAction => ({
+    type: "UPDATE_USED_ONCE_ABILITIES",
+    roleId,
+    seatId,
+  }),
+  updatePukkaQueue: (
+    queue: { targetId: number; nightsUntilDeath: number }[]
+  ): GameAction => ({ type: "UPDATE_PUKKA_QUEUE", queue }),
+  declareMayorWin: (): GameAction => ({ type: "DECLARE_MAYOR_WIN" }),
 };
-

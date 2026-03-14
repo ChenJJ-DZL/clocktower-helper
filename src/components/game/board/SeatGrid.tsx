@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
-import { Seat } from "../../../../app/data";
-import { NightInfoResult } from "../../../types/game";
-import { SeatNode } from "../../SeatNode";
+import type React from "react";
+import type { Seat } from "../../../../app/data";
+import type { NightInfoResult } from "../../../types/game";
 import { StaggerContainer, StaggerItem } from "../../common/AnimationWrapper";
+import { SeatNode } from "../../SeatNode";
 
 export interface SeatGridProps {
   seats: Seat[];
@@ -20,7 +20,11 @@ export interface SeatGridProps {
   onTouchEnd: (e: React.TouchEvent, seatId: number) => void;
   onTouchMove: (e: React.TouchEvent, seatId: number) => void;
   setSeatRef: (id: number, el: HTMLDivElement | null) => void;
-  getSeatPosition: (index: number, total?: number, isPortrait?: boolean) => { x: string; y: string };
+  getSeatPosition: (
+    index: number,
+    total?: number,
+    isPortrait?: boolean
+  ) => { x: string; y: string };
   getDisplayRoleType: (seat: Seat) => string | null;
   typeColors: Record<string, string>;
   layoutMode?: "circle" | "matrix";
@@ -58,7 +62,10 @@ export function SeatGrid(props: SeatGridProps) {
     return (
       <StaggerContainer>
         {seats.map((seat, index) => (
-          <StaggerItem key={seat.id} className="absolute inset-0 block w-full h-full pointer-events-none">
+          <StaggerItem
+            key={seat.id}
+            className="absolute inset-0 block w-full h-full pointer-events-none"
+          >
             <SeatNode
               key={seat.id}
               seat={seat}
@@ -94,7 +101,7 @@ export function SeatGrid(props: SeatGridProps) {
   }
 
   // 矩阵模式：紧凑的座位卡片，用于配置界面
-  const cols = Math.min(8, Math.max(4, seats.length));
+  const _cols = Math.min(8, Math.max(4, seats.length));
 
   return (
     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 w-full">
@@ -103,13 +110,23 @@ export function SeatGrid(props: SeatGridProps) {
         const hasRole = !!seat.role;
         const handleClick = (e: React.MouseEvent) => {
           e.stopPropagation();
-          console.log('[SeatGrid matrix] Seat clicked:', seat.id, 'Selected role:', seat.role?.name);
+          console.log(
+            "[SeatGrid matrix] Seat clicked:",
+            seat.id,
+            "Selected role:",
+            seat.role?.name
+          );
           onSeatClick(seat);
         };
         const handleTouchEnd = (e: React.TouchEvent) => {
           e.stopPropagation();
           e.preventDefault();
-          console.log('[SeatGrid matrix] Seat touched:', seat.id, 'Selected role:', seat.role?.name);
+          console.log(
+            "[SeatGrid matrix] Seat touched:",
+            seat.id,
+            "Selected role:",
+            seat.role?.name
+          );
           onSeatClick(seat);
         };
         return (
@@ -125,10 +142,11 @@ export function SeatGrid(props: SeatGridProps) {
             }}
             onTouchEnd={handleTouchEnd}
             onContextMenu={(e) => onContextMenu(e, seat.id)}
-            className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-xs transition ${hasRole
-              ? "bg-slate-800/80 border-slate-500 text-slate-100"
-              : "bg-slate-900/60 border-slate-600 text-slate-500"
-              } ${isDead ? "opacity-60 line-through" : ""}`}
+            className={`flex flex-col items-center justify-center rounded-lg border px-3 py-2 text-xs transition ${
+              hasRole
+                ? "bg-slate-800/80 border-slate-500 text-slate-100"
+                : "bg-slate-900/60 border-slate-600 text-slate-500"
+            } ${isDead ? "opacity-60 line-through" : ""}`}
             style={{
               touchAction: "manipulation",
               WebkitTapHighlightColor: "transparent",
@@ -144,4 +162,3 @@ export function SeatGrid(props: SeatGridProps) {
     </div>
   );
 }
-

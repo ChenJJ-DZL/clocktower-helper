@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 堤丰之首 (Lord of Typhon)
@@ -81,10 +81,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:603-0!canonical and timestamp 20260120044305 and revision id 5035. Serialized with JSON.`,
   clarifications: [
-    `虽然在运作方式中没有提到，然而堤丰之首在设置时也可以移除一部分原有的外来者，并用对应数量的镇民进行替换。`,
-    `相克规则：召唤师：如果召唤师创造了堤丰之首，则堤丰之首必须与一名爪牙相邻，且堤丰之首另一侧的玩家变成一个不在场的邪恶爪牙。`
+    "虽然在运作方式中没有提到，然而堤丰之首在设置时也可以移除一部分原有的外来者，并用对应数量的镇民进行替换。",
+    "相克规则：召唤师：如果召唤师创造了堤丰之首，则堤丰之首必须与一名爪牙相邻，且堤丰之首另一侧的玩家变成一个不在场的邪恶爪牙。",
   ],
 };
-
-
-

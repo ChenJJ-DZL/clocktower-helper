@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 interface ScaleLayoutProps {
   children: React.ReactNode;
@@ -8,7 +9,7 @@ interface ScaleLayoutProps {
 
 /**
  * ScaleLayout - Fixed-resolution scaling viewport
- * 
+ *
  * Base resolution: 1600x900 (16:9 aspect ratio)
  * Scales content to fit any viewport while maintaining aspect ratio
  */
@@ -85,4 +86,3 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
     </div>
   );
 }
-

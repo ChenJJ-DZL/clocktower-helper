@@ -1,10 +1,10 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 食人魔 (Ogre)
  * 在你的首个夜晚，你要选择除你以外的一名玩家：你转变为他的阵营，即使你已醉酒或中毒，但你不知道你转变后的阵营。
- * 
+ *
  * 规则要点：
  * - 食人魔选定了玩家之后，他的目标就不会发生变化，即使他在选择时醉酒或中毒也是如此
  * - 食人魔会在他的首个夜晚选择玩家后立即转变为那名玩家的阵营
@@ -94,19 +94,24 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and timestamp 20260120044536 and revision id 5148. Serialized with JSON.`,
   clarifications: [
-    `相克规则：陌客：如果陌客被食人魔当作邪恶阵营，食人魔会得知自己转变为邪恶。间谍：间谍必定被食人魔当作邪恶阵营。麻脸巫婆：被麻脸巫婆创造的邪恶食人魔无法因为自身能力转变为善良阵营。科学怪人：恶魔无法拥有食人魔的能力。`
+    "相克规则：陌客：如果陌客被食人魔当作邪恶阵营，食人魔会得知自己转变为邪恶。间谍：间谍必定被食人魔当作邪恶阵营。麻脸巫婆：被麻脸巫婆创造的邪恶食人魔无法因为自身能力转变为善良阵营。科学怪人：恶魔无法拥有食人魔的能力。",
   ],
-  
+
   firstNight: {
     order: 27,
-    
+
     target: {
       count: {
         min: 1,
         max: 1,
       },
-      
-      canSelect: (target: Seat, self: Seat, allSeats: Seat[], selectedTargets: number[]) => {
+
+      canSelect: (
+        target: Seat,
+        self: Seat,
+        _allSeats: Seat[],
+        _selectedTargets: number[]
+      ) => {
         // 不能选自己
         if (target.id === self.id) {
           return false;
@@ -114,18 +119,18 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and tim
         return true;
       },
     },
-    
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（食人魔）。`,
         instruction: "选择除你以外的一名玩家作为你的挚友",
         close: `${playerSeatId + 1}号玩家（食人魔），请闭眼。`,
       };
     },
-    
+
     handler: (context) => {
       const { seats, targets, selfId } = context;
-      
+
       if (targets.length !== 1) {
         return {
           updates: [],
@@ -134,10 +139,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and tim
           },
         };
       }
-      
+
       const targetId = targets[0];
-      const targetSeat = seats.find(s => s.id === targetId);
-      
+      const targetSeat = seats.find((s) => s.id === targetId);
+
       if (!targetSeat) {
         return {
           updates: [],
@@ -146,16 +151,17 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and tim
           },
         };
       }
-      
+
       // 食人魔转变为目标玩家的阵营
       // 如果目标是邪恶玩家，食人魔转为邪恶；否则保持善良
-      const targetIsEvil = targetSeat.role?.type === 'demon' || targetSeat.role?.type === 'minion';
-      
-      const selfSeat = seats.find(s => s.id === selfId);
+      const targetIsEvil =
+        targetSeat.role?.type === "demon" || targetSeat.role?.type === "minion";
+
+      const selfSeat = seats.find((s) => s.id === selfId);
       const currentStatusDetails = (selfSeat?.statusDetails || []).filter(
         (detail: string) => !detail.includes("挚友")
       );
-      
+
       const updates: Array<Partial<Seat> & { id: number }> = [
         {
           id: selfId,
@@ -165,14 +171,13 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and tim
           isEvilConverted: targetIsEvil ? true : undefined,
         },
       ];
-      
+
       return {
         updates,
         logs: {
-          privateLog: `食人魔（${selfId + 1}号）选择了${targetId + 1}号玩家作为挚友，转变为${targetIsEvil ? '邪恶' : '善良'}阵营（不告知食人魔）`,
+          privateLog: `食人魔（${selfId + 1}号）选择了${targetId + 1}号玩家作为挚友，转变为${targetIsEvil ? "邪恶" : "善良"}阵营（不告知食人魔）`,
         },
       };
     },
   },
 };
-

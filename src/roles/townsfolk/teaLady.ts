@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 圣女 (Tea Lady)
@@ -10,4 +10,3 @@ export const tea_lady: RoleDefinition = {
   name: "圣女",
   type: "townsfolk",
 };
-

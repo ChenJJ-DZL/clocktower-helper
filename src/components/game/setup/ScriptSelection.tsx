@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { Script, GamePhase, scripts, roles } from "../../../../app/data";
-import { useGameContext, gameActions } from "../../../contexts/GameContext";
+import { useEffect, useRef, useState } from "react";
+import {
+  type GamePhase,
+  roles,
+  type Script,
+  scripts,
+} from "../../../../app/data";
+import { gameActions, useGameContext } from "../../../contexts/GameContext";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
 
 interface ScriptSelectionProps {
@@ -26,12 +31,12 @@ export default function ScriptSelection({
   // 加载本地自定义剧本
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('customScripts');
+      const stored = localStorage.getItem("customScripts");
       if (stored) {
         setCustomScripts(JSON.parse(stored));
       }
     } catch (e) {
-      console.error('Failed to load custom scripts', e);
+      console.error("Failed to load custom scripts", e);
     }
   }, []);
 
@@ -49,15 +54,15 @@ export default function ScriptSelection({
     saveHistory();
     onScriptSelect(script);
     setGameLogs([]); // 选择新剧本时清空之前的游戏记录
-    setGamePhase('setup');
+    setGamePhase("setup");
   };
 
   const handleDeleteCustomScript = (e: React.MouseEvent, scriptId: string) => {
     e.stopPropagation();
     if (confirm("确定要删除这个自定义剧本吗？")) {
-      const updated = customScripts.filter(s => s.id !== scriptId);
+      const updated = customScripts.filter((s) => s.id !== scriptId);
       setCustomScripts(updated);
-      localStorage.setItem('customScripts', JSON.stringify(updated));
+      localStorage.setItem("customScripts", JSON.stringify(updated));
     }
   };
 
@@ -71,20 +76,20 @@ export default function ScriptSelection({
         const text = event.target?.result as string;
         const data = JSON.parse(text);
 
-        let scriptName = file.name.replace('.json', '');
+        let scriptName = file.name.replace(".json", "");
         let roleIds: string[] = [];
 
         // 官方 JSON 通常是一个数组
         if (Array.isArray(data)) {
           // 查找是否有 _meta 对象获取剧本名
-          const metaInfo = data.find(item => item.id === '_meta');
-          if (metaInfo && metaInfo.name) {
+          const metaInfo = data.find((item) => item.id === "_meta");
+          if (metaInfo?.name) {
             scriptName = metaInfo.name;
           }
 
           roleIds = data
-            .filter(item => item.id && item.id !== '_meta')
-            .map(item => item.id);
+            .filter((item) => item.id && item.id !== "_meta")
+            .map((item) => item.id);
         } else if (data.id && data.roles) {
           // 其他可能的格式
           scriptName = data.name || scriptName;
@@ -92,41 +97,45 @@ export default function ScriptSelection({
         }
 
         if (roleIds.length === 0) {
-          alert('解析失败：未找到角色列表');
+          alert("解析失败：未找到角色列表");
           return;
         }
 
         // 过滤出我们系统里支持的角色
-        const validRoleIds = roleIds.filter(id => roles.some(r => r.id === id));
+        const validRoleIds = roleIds.filter((id) =>
+          roles.some((r) => r.id === id)
+        );
 
         if (validRoleIds.length === 0) {
-          alert('导入失败：该剧本中的角色均不支持');
+          alert("导入失败：该剧本中的角色均不支持");
           return;
         }
 
         const missingCount = roleIds.length - validRoleIds.length;
         if (missingCount > 0) {
-          alert(`提示：剧本中有 ${missingCount} 个角色当前系统暂不支持，部分角色会被忽略。`);
+          alert(
+            `提示：剧本中有 ${missingCount} 个角色当前系统暂不支持，部分角色会被忽略。`
+          );
         }
 
         const newScript: Script = {
           id: `custom_${Date.now()}`,
           name: scriptName,
-          difficulty: '自定义',
+          difficulty: "自定义",
           description: `包含 ${validRoleIds.length} 个角色`,
           isCustom: true,
-          roleIds: validRoleIds
+          roleIds: validRoleIds,
         };
 
         const updated = [...customScripts, newScript];
         setCustomScripts(updated);
-        localStorage.setItem('customScripts', JSON.stringify(updated));
+        localStorage.setItem("customScripts", JSON.stringify(updated));
       } catch (err) {
-        console.error('JSON parsing error', err);
-        alert('解析失败：剧本文件格式不正确');
+        console.error("JSON parsing error", err);
+        alert("解析失败：剧本文件格式不正确");
       } finally {
         if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+          fileInputRef.current.value = "";
         }
       }
     };
@@ -137,15 +146,15 @@ export default function ScriptSelection({
     const newScript: Script = {
       id: `custom_${Date.now()}`,
       name: scriptName,
-      difficulty: '自定义',
+      difficulty: "自定义",
       description: `自由组合剧本 (${roleIds.length} 个角色)`,
       isCustom: true,
-      roleIds
+      roleIds,
     };
 
     const updated = [...customScripts, newScript];
     setCustomScripts(updated);
-    localStorage.setItem('customScripts', JSON.stringify(updated));
+    localStorage.setItem("customScripts", JSON.stringify(updated));
     setShowBuilderModal(false);
   };
 
@@ -161,9 +170,7 @@ export default function ScriptSelection({
           <p className="text-base md:text-lg text-slate-400">
             点击下方卡片选择本局要使用的剧本
           </p>
-          <p className="text-sm text-slate-500">
-            更多剧本开发中
-          </p>
+          <p className="text-sm text-slate-500">更多剧本开发中</p>
           <div className="pt-4 flex justify-center gap-4">
             <button
               onClick={() => setShowBuilderModal(true)}
@@ -239,4 +246,3 @@ export default function ScriptSelection({
     </div>
   );
 }
-

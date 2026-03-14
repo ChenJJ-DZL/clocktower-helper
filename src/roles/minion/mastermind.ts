@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 主谋
@@ -67,8 +67,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:143-0!canonical and timestamp 20260120025725 and revision id 5685. Serialized with JSON.`,
   clarifications: [
-    `相克规则：哈迪寂亚：如果哈迪寂亚死于处决，且主谋存活，当晚哈迪寂亚要选择三名善良玩家：如果他们都选择存活，邪恶阵营获胜。否则，善良阵营获胜。痢蛭：如果主谋存活且痢蛭的宿主死于处决，痢蛭存活但失去能力。炼金术士：如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。`,
-    `相克规则（与华灯系列角色）：梼杌：主谋在梼杌的能力判断中被当作“不具有能力”。姑获鸟：如果姑获鸟死亡，获得主谋能力的姑获鸟保留主谋的能力。`
+    "相克规则：哈迪寂亚：如果哈迪寂亚死于处决，且主谋存活，当晚哈迪寂亚要选择三名善良玩家：如果他们都选择存活，邪恶阵营获胜。否则，善良阵营获胜。痢蛭：如果主谋存活且痢蛭的宿主死于处决，痢蛭存活但失去能力。炼金术士：如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。",
+    "相克规则（与华灯系列角色）：梼杌：主谋在梼杌的能力判断中被当作“不具有能力”。姑获鸟：如果姑获鸟死亡，获得主谋能力的姑获鸟保留主谋的能力。",
   ],
   // 无夜晚行动
 };

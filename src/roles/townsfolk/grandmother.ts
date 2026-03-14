@@ -1,5 +1,8 @@
-import { RoleDefinition, NightActionContext } from "../../types/roleDefinition";
-import { Seat } from "../../../app/data";
+import type { Seat } from "../../../app/data";
+import type {
+  NightActionContext,
+  RoleDefinition,
+} from "../../types/roleDefinition";
 
 /**
  * 祖母 (Grandmother)
@@ -75,8 +78,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and timestamp 20260120025745 and revision id 4877. Serialized with JSON.`,
   clarifications: [
-    `在绝大多数情况下，祖母得知的角色都应该是善良角色。因为如果祖母得知了邪恶角色，这会带来祖母能力之外的额外信息（有处于善良阵营的邪恶角色，又或者在剧本条件不允许的情况下作为了祖母醉酒中毒的明确提示）。`,
-    `相克规则：利维坦：如果利维坦在场，孙子死于处决，邪恶阵营获胜。暴乱：如果暴乱在场，孙子在白天死亡，祖母会一同死亡。`
+    "在绝大多数情况下，祖母得知的角色都应该是善良角色。因为如果祖母得知了邪恶角色，这会带来祖母能力之外的额外信息（有处于善良阵营的邪恶角色，又或者在剧本条件不允许的情况下作为了祖母醉酒中毒的明确提示）。",
+    "相克规则：利维坦：如果利维坦在场，孙子死于处决，邪恶阵营获胜。暴乱：如果暴乱在场，孙子在白天死亡，祖母会一同死亡。",
   ],
 
   // 祖母的首夜需要得知孙子，我们在 setup 阶段随机指定一个善良玩家作为孙子
@@ -84,9 +87,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
     const { seats, selfId } = context;
 
     // 孙子必须是善良玩家（镇民或外来者），且不是祖母自己
-    const goodCandidates = seats.filter((s: Seat) =>
-      s.id !== selfId &&
-      (s.role?.type === 'townsfolk' || s.role?.type === 'outsider')
+    const goodCandidates = seats.filter(
+      (s: Seat) =>
+        s.id !== selfId &&
+        (s.role?.type === "townsfolk" || s.role?.type === "outsider")
     );
 
     if (goodCandidates.length > 0) {
@@ -97,11 +101,11 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
       return {
         updates: [
           { id: selfId, grandchildId: grandchild.id },
-          { id: grandchild.id, isGrandchild: true }
+          { id: grandchild.id, isGrandchild: true },
         ],
         logs: {
-          privateLog: `祖母(${selfId + 1}号)的孙子是${grandchild.id + 1}号(${grandchild.role?.name})`
-        }
+          privateLog: `祖母(${selfId + 1}号)的孙子是${grandchild.id + 1}号(${grandchild.role?.name})`,
+        },
       } as any;
     }
 
@@ -112,29 +116,34 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
   firstNight: {
     order: 24, // 祖母在首夜较晚唤醒
     target: {
-      count: { min: 0, max: 0 }
+      count: { min: 0, max: 0 },
     },
-    dialog: (playerSeatId: number) => ({
+    dialog: (_playerSeatId: number) => ({
       wake: "祖母，请醒来。",
       instruction: "这就是你的孙子和他的角色。",
-      close: "祖母，请闭眼。"
+      close: "祖母，请闭眼。",
     }),
     handler: (context: NightActionContext) => {
       const { seats, selfId } = context;
       const selfSeat = seats.find((s: Seat) => s.id === selfId);
 
-      if (selfSeat?.grandchildId !== undefined && selfSeat.grandchildId !== null) {
-        const grandchild = seats.find((s: Seat) => s.id === selfSeat.grandchildId);
+      if (
+        selfSeat?.grandchildId !== undefined &&
+        selfSeat.grandchildId !== null
+      ) {
+        const grandchild = seats.find(
+          (s: Seat) => s.id === selfSeat.grandchildId
+        );
         if (grandchild) {
           return {
             updates: [],
             logs: {
-              privateLog: `说书人告知祖母：${grandchild.id + 1}号是你的孙子，他的角色是${grandchild.role?.name}`
-            }
+              privateLog: `说书人告知祖母：${grandchild.id + 1}号是你的孙子，他的角色是${grandchild.role?.name}`,
+            },
           };
         }
       }
       return null;
-    }
-  }
+    },
+  },
 };

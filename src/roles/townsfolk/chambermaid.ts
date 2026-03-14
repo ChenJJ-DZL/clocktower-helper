@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 侍女 (Chambermaid)
@@ -69,8 +69,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:13-0!canonical and timestamp 20260120024806 and revision id 4776. Serialized with JSON.`,
   clarifications: [
-    `相克规则：数学家：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。`,
-    `相克规则（与华灯系列角色）：引路人：侍女会得知引路人是否醒来，即使她是在引路人之前醒来。`
+    "相克规则：数学家：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。",
+    "相克规则（与华灯系列角色）：引路人：侍女会得知引路人是否醒来，即使她是在引路人之前醒来。",
   ],
   night: {
     order: 51,
@@ -85,7 +85,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:13-0!canonical and time
     }),
     handler: (context) => ({
       updates: [],
-      logs: { privateLog: `侍女（${context.selfId + 1}号）查验了${context.targets.map(t => t + 1).join('、')}号玩家` },
+      logs: {
+        privateLog: `侍女（${context.selfId + 1}号）查验了${context.targets.map((t) => t + 1).join("、")}号玩家`,
+      },
     }),
   },
 };

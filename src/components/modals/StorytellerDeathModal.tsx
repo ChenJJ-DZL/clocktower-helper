@@ -1,5 +1,5 @@
-import { Seat } from '@/app/data';
-import { ModalWrapper } from './ModalWrapper';
+import type { Seat } from "@/app/data";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface StorytellerDeathModalProps {
   isOpen: boolean;
@@ -8,7 +8,12 @@ interface StorytellerDeathModalProps {
   onConfirm: (targetId: number | null) => void;
 }
 
-export function StorytellerDeathModal({ isOpen, sourceId, seats, onConfirm }: StorytellerDeathModalProps) {
+export function StorytellerDeathModal({
+  isOpen,
+  sourceId,
+  seats,
+  onConfirm,
+}: StorytellerDeathModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -34,18 +39,17 @@ export function StorytellerDeathModal({ isOpen, sourceId, seats, onConfirm }: St
       </p>
       <div className="grid grid-cols-3 gap-3 max-h-[360px] overflow-y-auto">
         {seats
-          .filter(s => !s.isDead)
-          .map(s => (
+          .filter((s) => !s.isDead)
+          .map((s) => (
             <button
               key={s.id}
               onClick={() => onConfirm(s.id)}
               className="p-3 border-2 border-red-400 rounded-xl text-lg font-bold hover:bg-red-900 transition-colors"
             >
-              {s.id + 1}号 {s.role?.name ?? ''}
+              {s.id + 1}号 {s.role?.name ?? ""}
             </button>
           ))}
       </div>
     </ModalWrapper>
   );
 }
-

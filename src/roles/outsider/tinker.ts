@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 修补匠 (Tinker)
  * 你随时可能死亡。
- * 
+ *
  * 规则要点：
  * - 说书人随时可以杀死修补匠，不需要任何理由
  * - 修补匠在受到免于死亡的能力保护时，不能因自己的能力而死亡
@@ -78,7 +78,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:133-0!canonical and tim
   // 具体逻辑在说书人控制面板中实现
   day: {
     name: "猝死",
-    maxUses: 'infinity',
+    maxUses: "infinity",
     target: { min: 0, max: 0 },
     handler: (context) => {
       context.killPlayer(context.selfId);
@@ -86,9 +86,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:133-0!canonical and tim
         updates: [],
         logs: {
           publicLog: `${context.selfId + 1}号(修补匠) 突然暴毙死亡`,
-          privateLog: `说书人发动修补匠技能使其死亡`
-        }
+          privateLog: "说书人发动修补匠技能使其死亡",
+        },
       };
-    }
-  }
+    },
+  },
 };

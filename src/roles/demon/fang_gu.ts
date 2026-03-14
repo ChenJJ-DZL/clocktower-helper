@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
@@ -21,7 +20,7 @@ export const fang_gu: RoleDefinition = {
 - 所属剧本：梦殒春宵
 - 角色类型：恶魔`,
   clarifications: [
-    `相克规则：红唇女郎：如果方古成功转化了外来者并因此死去，红唇女郎不会变成方古。`
+    "相克规则：红唇女郎：如果方古成功转化了外来者并因此死去，红唇女郎不会变成方古。",
   ],
 
   firstNight: {
@@ -31,7 +30,7 @@ export const fang_gu: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "方古", context);
     },
 
@@ -48,15 +47,15 @@ export const fang_gu: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
       return {
         wake: "⚔️ 选择一名玩家：他死亡。被该能力杀死的外来者改为变成邪恶的方古且你代替他死亡，但每局游戏仅能成功转化一次。",
-        instruction: '"请选择一名玩家。他死亡。被该能力杀死的外来者改为变成邪恶的方古且你代替他死亡，但每局游戏仅能成功转化一次。"',
+        instruction:
+          '"请选择一名玩家。他死亡。被该能力杀死的外来者改为变成邪恶的方古且你代替他死亡，但每局游戏仅能成功转化一次。"',
         close: "kill",
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

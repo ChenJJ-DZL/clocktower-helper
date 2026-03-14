@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 莽夫 (Goon)
  * 每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。
- * 
+ *
  * 规则要点：
  * - 每个夜晚，首个选择莽夫的玩家会立即醉酒
  * - 莽夫会转变为该玩家的阵营
@@ -74,7 +74,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:137-0!canonical and timestamp 20260119163633 and revision id 4616. Serialized with JSON.`,
   clarifications: [
-    `相克规则：麻脸巫婆：被麻脸巫婆创造的邪恶莽夫无法因为自身能力转变为善良阵营。科学怪人：如果恶魔拥有莽夫的能力，他无法因为该能力转变为善良阵营。卡扎力：卡扎力可以把莽夫变成邪恶的爪牙。`
+    "相克规则：麻脸巫婆：被麻脸巫婆创造的邪恶莽夫无法因为自身能力转变为善良阵营。科学怪人：如果恶魔拥有莽夫的能力，他无法因为该能力转变为善良阵营。卡扎力：卡扎力可以把莽夫变成邪恶的爪牙。",
   ],
   // 无夜晚行动（被动触发能力）
   // 莽夫的能力在夜晚被其他角色选择时被动触发

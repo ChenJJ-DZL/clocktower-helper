@@ -1,5 +1,5 @@
-import { Role } from '@/app/data';
-import { ModalWrapper } from './ModalWrapper';
+import type { Role } from "@/app/data";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface RavenkeeperFakeModalProps {
   targetId: number | null;
@@ -7,7 +7,11 @@ interface RavenkeeperFakeModalProps {
   onSelect: (role: Role) => void;
 }
 
-export function RavenkeeperFakeModal({ targetId, roles, onSelect }: RavenkeeperFakeModalProps) {
+export function RavenkeeperFakeModal({
+  targetId,
+  roles,
+  onSelect,
+}: RavenkeeperFakeModalProps) {
   if (targetId === null) return null;
 
   return (
@@ -18,10 +22,10 @@ export function RavenkeeperFakeModal({ targetId, roles, onSelect }: RavenkeeperF
       className="max-w-2xl border-purple-500"
     >
       <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
-        {roles.map(r=>(
-          <button 
-            key={r.id} 
-            onClick={()=>onSelect(r)} 
+        {roles.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => onSelect(r)}
             className="p-3 border rounded-lg text-sm font-medium hover:bg-purple-900 transition-colors"
           >
             {r.name}
@@ -31,4 +35,3 @@ export function RavenkeeperFakeModal({ targetId, roles, onSelect }: RavenkeeperF
     </ModalWrapper>
   );
 }
-

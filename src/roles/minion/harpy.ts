@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 鹰身女妖 (Harpy)
@@ -88,5 +88,3 @@ Transclusion expansion time report (%,ms,calls,template)
 Saved in parser cache with key gstone_wiki:pcache:idhash:419-0!canonical and timestamp 20260120031831 and revision id 4456. Serialized with JSON.`,
   // 夜选+白天公开声明，具体逻辑待实现
 };
-
-

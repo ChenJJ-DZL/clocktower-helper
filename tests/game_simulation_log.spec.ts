@@ -1,12 +1,12 @@
-import { test, expect, Page } from "@playwright/test";
-import fs from "fs";
+import fs from "node:fs";
+import { expect, type Page, test } from "@playwright/test";
 
 // =============================================
 // --- 测试配置 ---
 // =============================================
 const GAME_URL = "http://localhost:3000";
 const LOG_FILE_PATH = "simulation-log.txt";
-const PLAYER_COUNT = 5;
+const _PLAYER_COUNT = 5;
 const SCRIPT_NAME = /暗流涌动|Trouble Brewing/i;
 const ROLES_TO_ASSIGN = [
   { roleName: "小恶魔", seatIndex: 0 },
@@ -153,51 +153,39 @@ test("游戏模拟与日志记录", async ({ page }) => {
 
   // 投毒者 (2号) -> 毒 3号
   await performNightAction(page, "投毒者", "选择 3 号玩家", async () => {
-    await page.locator('.seat-node').nth(2).click(); // 点击3号座位
+    await page.locator(".seat-node").nth(2).click(); // 点击3号座位
   });
 
   // 等待毒药确认模态框
   console.log("[TEST] 投毒者: 确认下毒");
-  const poisonConfirmModal = page.getByRole('dialog', { name: /确认下毒/i });
+  const poisonConfirmModal = page.getByRole("dialog", { name: /确认下毒/i });
   await expect(poisonConfirmModal).toBeVisible();
-  await poisonConfirmModal.getByRole('button', { name: '确认' }).click();
-
+  await poisonConfirmModal.getByRole("button", { name: "确认" }).click();
 
   // 洗衣妇 (3号) - 无目标
-  await performNightAction(
-    page,
-    "洗衣妇",
-    "无目标，直接确认",
-    async () => { }
-  );
+  await performNightAction(page, "洗衣妇", "无目标，直接确认", async () => {});
 
   // 图书管理员 (4号) - 无目标
   await performNightAction(
     page,
     "图书管理员",
     "无目标，直接确认",
-    async () => { }
+    async () => {}
   );
 
   // 调查员 (5号) - 无目标
-  await performNightAction(
-    page,
-    "调查员",
-    "无目标，直接确认",
-    async () => { }
-  );
+  await performNightAction(page, "调查员", "无目标，直接确认", async () => {});
 
   // 小恶魔 (1号) -> 杀 4号
   await performNightAction(page, "小恶魔", "选择 4 号玩家", async () => {
-    await page.locator('.seat-node').nth(3).click(); // 点击4号座位
+    await page.locator(".seat-node").nth(3).click(); // 点击4号座位
   });
 
   // 等待击杀确认模态框
   console.log("[TEST] 小恶魔: 确认击杀");
-  const killConfirmModal = page.getByRole('dialog', { name: /确认击杀/i });
+  const killConfirmModal = page.getByRole("dialog", { name: /确认击杀/i });
   await expect(killConfirmModal).toBeVisible();
-  await killConfirmModal.getByRole('button', { name: '确认' }).click();
-
+  await killConfirmModal.getByRole("button", { name: "确认" }).click();
 
   // --- 6. 白天阶段 ---
   console.log("[TEST] --- 白天阶段开始 ---");
@@ -210,11 +198,10 @@ test("游戏模拟与日志记录", async ({ page }) => {
   // 提名阶段
   await expect(page.getByText(/发起提名/)).toBeVisible();
   console.log("[TEST] 1号 提名 2号");
-  await page.locator('.seat-node').nth(0).click(); // 点击1号座位
-  await page.locator('.seat-node').nth(1).click(); // 点击2号作为被提名人
+  await page.locator(".seat-node").nth(0).click(); // 点击1号座位
+  await page.locator(".seat-node").nth(1).click(); // 点击2号作为被提名人
   await page.getByRole("button", { name: /发起提名/ }).click();
   await page.waitForTimeout(500);
-
 
   // 投票阶段
   await expect(page.getByText(/开始投票/)).toBeVisible();

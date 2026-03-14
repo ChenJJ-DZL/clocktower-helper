@@ -199,7 +199,9 @@ export function getStorytellerTips(ctx: TipContext): string[] {
 
   // 动态胜负提醒：全员邪恶
   if (aliveCore.length > 0 && aliveGood.length === 0 && aliveEvil.length > 0) {
-    pushTip("⚠️ 全部存活玩家为邪恶阵营，恶魔无法再被提名，可考虑直接宣布邪恶获胜。");
+    pushTip(
+      "⚠️ 全部存活玩家为邪恶阵营，恶魔无法再被提名，可考虑直接宣布邪恶获胜。"
+    );
   }
 
   // 动态胜负提醒：四人局末日情形
@@ -209,7 +211,9 @@ export function getStorytellerTips(ctx: TipContext): string[] {
     aliveGood.length > 0 &&
     aliveEvil.length > 0
   ) {
-    pushTip("⚠️ 仅剩4名存活时若善良处决的不是恶魔，夜里恶魔可直接收割结束；若僧侣或士兵仍活着则需再判一次。");
+    pushTip(
+      "⚠️ 仅剩4名存活时若善良处决的不是恶魔，夜里恶魔可直接收割结束；若僧侣或士兵仍活着则需再判一次。"
+    );
   }
 
   // 选择与阶段匹配的基础提示
@@ -229,4 +233,3 @@ export function getStorytellerTips(ctx: TipContext): string[] {
 
   return result;
 }
-

@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import type { Seat, GamePhase } from "@/app/data";
+import type React from "react";
+import type { GamePhase, Seat } from "@/app/data";
 
 export interface ControlPanelProps {
   gamePhase: GamePhase;
@@ -31,7 +31,9 @@ export interface ControlPanelProps {
   onDayEndTransition: () => void;
   onExecuteJudgment: () => void;
   onSetGamePhase: (phase: GamePhase) => void;
-  onSetShowMadnessCheckModal: (modal: { targetId: number; roleName: string; day: number } | null) => void;
+  onSetShowMadnessCheckModal: (
+    modal: { targetId: number; roleName: string; day: number } | null
+  ) => void;
   onAddLog: (msg: string) => void;
 }
 
@@ -58,7 +60,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 }) => {
   return (
     <div className="w-full p-4 flex gap-3 justify-center">
-      {gamePhase === 'setup' && (
+      {gamePhase === "setup" && (
         <button
           onClick={onPreStartNight}
           className="w-full py-3 bg-indigo-600 rounded-xl font-bold text-base shadow-xl"
@@ -66,27 +68,32 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           开始游戏 (首夜)
         </button>
       )}
-      {gamePhase === 'check' && (() => {
-        // 酒鬼必须先分配镇民伪装身份，未分配或分配非镇民时禁止入夜
-        const hasPendingDrunk = seats.some(s => s.role?.id === 'drunk' && (!s.charadeRole || s.charadeRole.type !== 'townsfolk'));
-        return (
-          <div className="w-full flex flex-col gap-2">
-            <button
-              onClick={() => !hasPendingDrunk && onStartNight(true)}
-              disabled={hasPendingDrunk}
-              className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              确认无误，入夜
-            </button>
-            {hasPendingDrunk && (
-              <div className="text-center text-yellow-300 text-sm font-semibold">
-                场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜
-              </div>
-            )}
-          </div>
-        );
-      })()}
-      {(gamePhase === 'firstNight' || gamePhase === 'night') && (
+      {gamePhase === "check" &&
+        (() => {
+          // 酒鬼必须先分配镇民伪装身份，未分配或分配非镇民时禁止入夜
+          const hasPendingDrunk = seats.some(
+            (s) =>
+              s.role?.id === "drunk" &&
+              (!s.charadeRole || s.charadeRole.type !== "townsfolk")
+          );
+          return (
+            <div className="w-full flex flex-col gap-2">
+              <button
+                onClick={() => !hasPendingDrunk && onStartNight(true)}
+                disabled={hasPendingDrunk}
+                className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                确认无误，入夜
+              </button>
+              {hasPendingDrunk && (
+                <div className="text-center text-yellow-300 text-sm font-semibold">
+                  场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      {(gamePhase === "firstNight" || gamePhase === "night") && (
         <>
           <button
             onClick={onStepBack}
@@ -104,7 +111,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </button>
         </>
       )}
-      {gamePhase === 'day' && (
+      {gamePhase === "day" && (
         <>
           {/* 剩余日间按钮（evil_twin 相关） */}
           {evilTwinPair && (
@@ -112,8 +119,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <input
                 type="number"
                 min="0"
-                value={remainingDays ?? ''}
-                onChange={(e) => setRemainingDays(e.target.value ? parseInt(e.target.value) : null)}
+                value={remainingDays ?? ""}
+                onChange={(e) =>
+                  setRemainingDays(
+                    e.target.value ? parseInt(e.target.value, 10) : null
+                  )
+                }
                 placeholder="剩余日间数"
                 className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-center"
               />
@@ -135,18 +146,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           {cerenovusTarget && (
             <button
               onClick={() => {
-                const target = seats.find(s => s.id === cerenovusTarget.targetId);
+                const target = seats.find(
+                  (s) => s.id === cerenovusTarget.targetId
+                );
                 if (target) {
                   onSetShowMadnessCheckModal({
                     targetId: cerenovusTarget.targetId,
                     roleName: cerenovusTarget.roleName,
-                    day: nightCount
+                    day: nightCount,
                   });
                 }
               }}
               className="w-full mb-2 py-2 bg-purple-600 rounded-xl font-bold text-sm"
             >
-              🧠 检查 {cerenovusTarget.targetId + 1}号 是否疯狂扮演 {cerenovusTarget.roleName}
+              🧠 检查 {cerenovusTarget.targetId + 1}号 是否疯狂扮演{" "}
+              {cerenovusTarget.roleName}
             </button>
           )}
           <button
@@ -157,7 +171,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </button>
         </>
       )}
-      {gamePhase === 'dusk' && (
+      {gamePhase === "dusk" && (
         <>
           <button
             onClick={onExecuteJudgment}
@@ -173,9 +187,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </button>
         </>
       )}
-      {gamePhase === 'dawnReport' && (
+      {gamePhase === "dawnReport" && (
         <button
-          onClick={() => onSetGamePhase('day')}
+          onClick={() => onSetGamePhase("day")}
           className="w-full py-3 bg-yellow-500 text-black rounded-xl font-bold text-base"
         >
           进入白天
@@ -184,4 +198,3 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     </div>
   );
 };
-

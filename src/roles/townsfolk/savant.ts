@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 博学者
@@ -71,30 +71,30 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:150-0!canonical and timestamp 20260120031140 and revision id 5128. Serialized with JSON.`,
   clarifications: [
-    `博学者在中文社区内的“谜题”式信息方式引起了设计师的兴趣，对于“是否应该给博学者提供谜题类信息”，设计师的回复如下（原文翻译）：“从规则上来讲，给出这样的信息是不允许的，因为这种含糊不清的内容并不能算是‘正确’或是‘错误’的信息。然而，如果说书人愿意以这样的方式给出信息，也没有任何问题。因为这允许了新人玩家在伪装自己是博学者时有更为宽松的要求——他们不需要编造明显正确或是错误的信息便能成功地伪装。说书人能够在一定限度内去‘犯一些错’，而这会使得玩家们也因此在伪装上更为容易。编造谜题也会让游戏变得更加有趣。”`,
-    `如果你在作为说书人时想要给出谜题类的信息，那么你需要注意适时给出更为严肃的信息来“以假乱真”，或是适当协助邪恶玩家进行一些谜题的伪造，来帮助他们显得更像是真正从你这里获得了谜题类信息一样。`
+    "博学者在中文社区内的“谜题”式信息方式引起了设计师的兴趣，对于“是否应该给博学者提供谜题类信息”，设计师的回复如下（原文翻译）：“从规则上来讲，给出这样的信息是不允许的，因为这种含糊不清的内容并不能算是‘正确’或是‘错误’的信息。然而，如果说书人愿意以这样的方式给出信息，也没有任何问题。因为这允许了新人玩家在伪装自己是博学者时有更为宽松的要求——他们不需要编造明显正确或是错误的信息便能成功地伪装。说书人能够在一定限度内去‘犯一些错’，而这会使得玩家们也因此在伪装上更为容易。编造谜题也会让游戏变得更加有趣。”",
+    "如果你在作为说书人时想要给出谜题类的信息，那么你需要注意适时给出更为严肃的信息来“以假乱真”，或是适当协助邪恶玩家进行一些谜题的伪造，来帮助他们显得更像是真正从你这里获得了谜题类信息一样。",
   ],
   day: {
     name: "获取信息",
-    maxUses: 'infinity',
+    maxUses: "infinity",
     target: {
       min: 0,
-      max: 0
+      max: 0,
     },
-    handler: (context) => {
+    handler: (_context) => {
       return {
         updates: [],
         logs: {
-          privateLog: "博学者发动了技能"
+          privateLog: "博学者发动了技能",
         },
         modal: {
-          type: 'SAVANT_RESULT',
+          type: "SAVANT_RESULT",
           data: {
-            infoA: '',
-            infoB: ''
-          }
-        }
+            infoA: "",
+            infoB: "",
+          },
+        },
       };
-    }
-  }
+    },
+  },
 };

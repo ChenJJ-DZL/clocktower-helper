@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 洗脑师
@@ -75,12 +74,10 @@ Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:159-0!canonical and timestamp 20260119163916 and revision id 4198. Serialized with JSON.`,
-  clarifications: [
-    `相克规则：哥布林：洗脑师可以选择将玩家洗脑成哥布林。`
-  ],
+  clarifications: ["相克规则：哥布林：洗脑师可以选择将玩家洗脑成哥布林。"],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 14 : 2,
+    order: (isFirstNight) => (isFirstNight ? 14 : 2),
 
     target: {
       count: {
@@ -89,7 +86,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:159-0!canonical and tim
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（洗脑师）。`,
         instruction: "请执行行动",
@@ -97,7 +94,6 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:159-0!canonical and tim
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

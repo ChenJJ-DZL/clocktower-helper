@@ -1,9 +1,9 @@
-import { RoleDefinition, ExecutionContext, ExecutionResult } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 呆瓜 (Klutz)
  * 当你得知你死亡时，你要公开选择一名存活的玩家：如果他是邪恶的，你的阵营落败。
- * 
+ *
  * 规则要点：
  * - 呆瓜死亡时必须公开选择一名玩家
  * - 如果选择邪恶玩家，游戏立即结束，善良阵营落败

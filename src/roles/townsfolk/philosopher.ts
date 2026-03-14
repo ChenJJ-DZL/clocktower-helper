@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 哲学家
@@ -94,12 +93,12 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:152-0!canonical and timestamp 20260119164242 and revision id 5125. Serialized with JSON.`,
   clarifications: [
-    `与侍臣相似的是，如果哲学家所选择的角色的在场数量超过1人，那么哲学家的能力只会使得其中一名玩家醉酒。但通常来说，说书人应该倾向于优先让存活的玩家醉酒。`,
-    `相克规则：赏金猎人：如果哲学家获得了赏金猎人的能力，可能会有一名镇民玩家转变为邪恶。`
+    "与侍臣相似的是，如果哲学家所选择的角色的在场数量超过1人，那么哲学家的能力只会使得其中一名玩家醉酒。但通常来说，说书人应该倾向于优先让存活的玩家醉酒。",
+    "相克规则：赏金猎人：如果哲学家获得了赏金猎人的能力，可能会有一名镇民玩家转变为邪恶。",
   ],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 12 : 15,
+    order: (isFirstNight) => (isFirstNight ? 12 : 15),
 
     target: {
       count: {
@@ -108,7 +107,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:152-0!canonical and tim
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（哲学家）。`,
         instruction: "请执行行动",
@@ -119,54 +118,63 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:152-0!canonical and tim
     handler: (context) => {
       const { selfId, roles, seats, helpers } = context;
 
-      if (helpers?.hasUsedAbility('philosopher', selfId)) {
+      if (helpers?.hasUsedAbility("philosopher", selfId)) {
         return {
           updates: [],
-          logs: { privateLog: "你已经使用过哲学家能力了" }
+          logs: { privateLog: "你已经使用过哲学家能力了" },
         };
       }
 
       return {
         updates: [],
         modal: {
-          type: 'ROLE_SELECT',
+          type: "ROLE_SELECT",
           data: {
-            type: 'philosopher',
+            type: "philosopher",
             targetId: selfId,
             onConfirm: (roleId: string) => {
               if (!helpers) return;
-              const selectedRole = roles?.find(r => r.id === roleId);
+              const selectedRole = roles?.find((r) => r.id === roleId);
               if (!selectedRole) return;
 
-              const targetSeat = seats.find(s => s.role?.id === roleId);
+              const targetSeat = seats.find((s) => s.role?.id === roleId);
 
-              helpers.setSeats((prev: any) => prev.map((s: any) => {
-                if (s.id === selfId) {
-                  return {
-                    ...s,
-                    statusDetails: [...(s.statusDetails || []), `哲学家学习为${selectedRole.name}`],
-                    charadeRole: selectedRole
-                  };
-                }
-                if (targetSeat && s.id === targetSeat.id) {
-                  return {
-                    ...s,
-                    isDrunk: true,
-                    statusDetails: [...(s.statusDetails || []), '因哲学家在场且学习该角色而醉酒']
-                  };
-                }
-                return s;
-              }));
+              helpers.setSeats((prev: any) =>
+                prev.map((s: any) => {
+                  if (s.id === selfId) {
+                    return {
+                      ...s,
+                      statusDetails: [
+                        ...(s.statusDetails || []),
+                        `哲学家学习为${selectedRole.name}`,
+                      ],
+                      charadeRole: selectedRole,
+                    };
+                  }
+                  if (targetSeat && s.id === targetSeat.id) {
+                    return {
+                      ...s,
+                      isDrunk: true,
+                      statusDetails: [
+                        ...(s.statusDetails || []),
+                        "因哲学家在场且学习该角色而醉酒",
+                      ],
+                    };
+                  }
+                  return s;
+                })
+              );
 
-              helpers.addLog(`🧘 ${selfId + 1}号(哲学家) 学习为 【${selectedRole.name}】`);
-              helpers.markAbilityUsed('philosopher', selfId);
+              helpers.addLog(
+                `🧘 ${selfId + 1}号(哲学家) 学习为 【${selectedRole.name}】`
+              );
+              helpers.markAbilityUsed("philosopher", selfId);
               helpers.setCurrentModal(null);
               helpers.continueToNextAction();
-            }
-          }
-        }
+            },
+          },
+        },
       };
     },
-
   },
 };

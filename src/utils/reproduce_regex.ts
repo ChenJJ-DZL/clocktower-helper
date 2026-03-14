@@ -1,4 +1,3 @@
-
 const content = `【背景故事】
 “晚礼服上的血渍？
 才不是呢，这只是洒上了雪莉酒。真粗心！”
@@ -55,14 +54,20 @@ const content = `【背景故事】
 - 角色能力类型：获取信息、进场能力`;
 
 function extractSection(content: string, sectionTitle: string) {
-    const re = new RegExp(`【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`, "m");
-    const m = content.match(re);
-    if (!m) return { match: null };
-    return {
-        match: m,
-        captured: m[1],
-        trimmed: m[1].trim()
-    };
+  const re = new RegExp(
+    `【${sectionTitle}】([\\s\\S]*?)(?=(\\n?\\s*【|$))`,
+    "m"
+  );
+  const m = content.match(re);
+  if (!m) return { match: null };
+  return {
+    match: m,
+    captured: m[1],
+    trimmed: m[1].trim(),
+  };
 }
 
-console.log("Operation:", JSON.stringify(extractSection(content, "运作方式"), null, 2));
+console.log(
+  "Operation:",
+  JSON.stringify(extractSection(content, "运作方式"), null, 2)
+);

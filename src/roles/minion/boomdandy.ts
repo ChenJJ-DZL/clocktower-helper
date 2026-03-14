@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 炸弹人 (Boomdandy)
@@ -83,9 +83,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:63-0!canonical and timestamp 20260119163444 and revision id 4673. Serialized with JSON.`,
   clarifications: [
-    `相克规则：瘟疫医生：如果瘟疫医生死于处决且说书人会因此获得炸弹人的能力，那么炸弹人的能力会立即被触发。`
+    "相克规则：瘟疫医生：如果瘟疫医生死于处决且说书人会因此获得炸弹人的能力，那么炸弹人的能力会立即被触发。",
   ],
   // 处决触发群体死亡，具体结算逻辑待实现
 };
-
-

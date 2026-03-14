@@ -2,34 +2,30 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useCallback } from "react";
-import { typeColors } from "./data";
-import { NightHintState } from "../src/types/game";
-import { useGameState } from "../src/hooks/useGameState";
-import { useGameController } from "../src/hooks/useGameController";
-import { GameActionsProvider } from "../src/contexts/GameActionsContext";
-import PortraitLock from "../src/components/PortraitLock";
+import { useCallback, useEffect } from "react";
 import { GameStage } from "../src/components/game/GameStage";
-
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
-
+import PortraitLock from "../src/components/PortraitLock";
+import { GameActionsProvider } from "../src/contexts/GameActionsContext";
+import { useGameController } from "../src/hooks/useGameController";
+import { useGameState } from "../src/hooks/useGameState";
+import type { NightHintState } from "../src/types/game";
+import { typeColors } from "./data";
 
 // getSeatRoleId is now imported from useGameController
 
 // cleanseSeatStatuses is now imported from useGameController
 
-
 // isActionAbility, isActorDisabledByPoisonOrDrunk, addDrunkMark, isEvilForWinCondition,
 // getDisplayRoleType, hasTeaLadyProtection, hasExecutionProof are now imported from useGameController
 
-
+import { RoundTable } from "@/src/components/game/board/RoundTable";
+import { GameLayout } from "@/src/components/game/GameLayout";
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
 import { GameModals } from "@/src/components/game/GameModals";
-import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
 import GameSetup from "@/src/components/game/setup/GameSetup";
-import { GameLayout } from "@/src/components/game/GameLayout";
-import { RoundTable } from "@/src/components/game/board/RoundTable";
+import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
 import { useAudio } from "@/src/hooks/useAudio";
 
 // ======================================================================
@@ -48,38 +44,87 @@ export default function Home() {
   // 仅解构本文件直接使用的变量；其余通过 controller={controller} 传递给 GameActionsProvider
   const {
     // 基础状态 & UI
-    mounted, setMounted, showIntroLoading, setIsPortrait,
-    gamePhase, setGamePhase, seats, setGameLogs,
-    selectedScript, setSelectedScript, nightCount,
-    deadThisNight, gameLogs,
+    mounted,
+    setMounted,
+    showIntroLoading,
+    setIsPortrait,
+    gamePhase,
+    setGamePhase,
+    seats,
+    setGameLogs,
+    selectedScript,
+    setSelectedScript,
+    nightCount,
+    deadThisNight,
+    gameLogs,
     // Modal & Setup
-    baronSetupCheck, setBaronSetupCheck, ignoreBaronSetup, setIgnoreBaronSetup,
-    compositionError, setCompositionError,
-    currentModal, setCurrentModal, contextMenu, setContextMenu, setShowMenu, selectedRole, setSelectedRole,
+    baronSetupCheck,
+    setBaronSetupCheck,
+    ignoreBaronSetup,
+    setIgnoreBaronSetup,
+    compositionError,
+    setCompositionError,
+    currentModal,
+    setCurrentModal,
+    contextMenu,
+    setContextMenu,
+    setShowMenu,
+    selectedRole,
+    setSelectedRole,
     // 夜晚行动
-    wakeQueueIds, setWakeQueueIds, currentWakeIndex, setCurrentWakeIndex,
-    selectedActionTargets, setSelectedActionTargets, setInspectionResult,
-    currentHint, setCurrentHint,
+    wakeQueueIds,
+    setWakeQueueIds,
+    currentWakeIndex,
+    setCurrentWakeIndex,
+    selectedActionTargets,
+    setSelectedActionTargets,
+    setInspectionResult,
+    currentHint,
+    setCurrentHint,
     // 白天事件（仅 effect 中引用的变量）
-    spyDisguiseMode, spyDisguiseProbability,
-    fangGuConverted, jugglerGuesses, evilTwinPair, usedOnceAbilities,
-    witchActive, cerenovusTarget, witchCursedId, todayExecutedId,
-    setIsVortoxWorld, setBalloonistKnownTypes, setTimer,
+    spyDisguiseMode,
+    spyDisguiseProbability,
+    fangGuConverted,
+    jugglerGuesses,
+    evilTwinPair,
+    usedOnceAbilities,
+    witchActive,
+    cerenovusTarget,
+    witchCursedId,
+    todayExecutedId,
+    setIsVortoxWorld,
+    setBalloonistKnownTypes,
+    setTimer,
   } = gameState;
 
   const {
     nightInfo,
     // Refs
-    introTimeoutRef, hintCacheRef, fakeInspectionResultRef,
-    consoleContentRef, currentActionTextRef,
-    longPressTimerRef, longPressTriggeredRef, checkLongPressTimerRef, seatRefs,
+    introTimeoutRef,
+    hintCacheRef,
+    fakeInspectionResultRef,
+    consoleContentRef,
+    currentActionTextRef,
+    longPressTimerRef,
+    longPressTriggeredRef,
+    checkLongPressTimerRef,
+    seatRefs,
     // Helper functions
-    resetRegistrationCache, addLogWithDeduplication, continueToNextAction,
-    saveHistory, onSeatClick,
-    handleBaronAutoRebalance, handlePreStartNight, proceedToCheckPhase,
-    filteredGroupedRoles, getCompositionStatus, getBaronStatus,
-    validateCompositionSetup, validateBaronSetup,
-    getDisplayRoleForSeat, setRedNemesisTarget,
+    resetRegistrationCache,
+    addLogWithDeduplication,
+    continueToNextAction,
+    saveHistory,
+    onSeatClick,
+    handleBaronAutoRebalance,
+    handlePreStartNight,
+    proceedToCheckPhase,
+    filteredGroupedRoles,
+    getCompositionStatus,
+    getBaronStatus,
+    validateCompositionSetup,
+    validateBaronSetup,
+    getDisplayRoleForSeat,
+    setRedNemesisTarget,
   } = controller;
 
   // [REFACTOR] seatsRef and gameStateRef sync removed - all state reads go through Context
@@ -94,20 +139,20 @@ export default function Home() {
         clearTimeout(introTimeoutRef.current);
       }
     };
-  }, []);
+  }, [introTimeoutRef.current, setMounted]);
 
   // Timer is now managed in useGameController
 
   // 间谍/隐士查验结果在同一夜晚保持一致伪装参数变化时刷新缓
   useEffect(() => {
-    if (gamePhase === 'firstNight' || gamePhase === 'night') {
+    if (gamePhase === "firstNight" || gamePhase === "night") {
       resetRegistrationCache(`${gamePhase}-${nightCount}-disguise`);
     }
-  }, [spyDisguiseMode, spyDisguiseProbability, resetRegistrationCache, gamePhase, nightCount]);
+  }, [resetRegistrationCache, gamePhase, nightCount]);
 
   // 进入新的夜晚阶段时重置同夜查验结果缓存保证当晚内一致跨夜独
   useEffect(() => {
-    if (gamePhase === 'firstNight' || gamePhase === 'night') {
+    if (gamePhase === "firstNight" || gamePhase === "night") {
       resetRegistrationCache(`${gamePhase}-${nightCount}`);
     }
   }, [gamePhase, nightCount, resetRegistrationCache]);
@@ -118,47 +163,53 @@ export default function Home() {
 
     const checkOrientation = () => {
       // 检测是否为竖屏高度大于宽度或者使用媒体查
-      const isPortraitMode = window.innerHeight > window.innerWidth ||
-        window.matchMedia('(orientation: portrait)').matches;
+      const isPortraitMode =
+        window.innerHeight > window.innerWidth ||
+        window.matchMedia("(orientation: portrait)").matches;
       setIsPortrait(isPortraitMode);
     };
 
     checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
 
     return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
     };
-  }, [mounted]);
+  }, [mounted, setIsPortrait]);
 
   // [REFACTOR] seatsRef sync effect removed
 
   // 自动识别当前是否处于涡流恶魔环境镇民信息应为假
   useEffect(() => {
     const aliveVortox = seats.some(
-      s => !s.isDead && ((s.role?.id === 'vortox') || (s.isDemonSuccessor && s.role?.id === 'vortox'))
+      (s) =>
+        !s.isDead &&
+        (s.role?.id === "vortox" ||
+          (s.isDemonSuccessor && s.role?.id === "vortox"))
     );
     setIsVortoxWorld(aliveVortox);
-  }, [seats]);
+  }, [seats, setIsVortoxWorld]);
 
   // 预留的一次配对状态后续在梦陨春宵角色逻辑中使
   useEffect(() => {
     // 目前仅用于保持状态引用防止未使用警
-  }, [fangGuConverted, jugglerGuesses, evilTwinPair, usedOnceAbilities, witchActive, cerenovusTarget, witchCursedId, todayExecutedId]);
+  }, []);
 
   // 清理已离场的气球驾驶员记
   useEffect(() => {
-    setBalloonistKnownTypes(prev => {
-      const activeIds = new Set(seats.filter(s => s.role?.id === 'balloonist').map(s => s.id));
+    setBalloonistKnownTypes((prev) => {
+      const activeIds = new Set(
+        seats.filter((s) => s.role?.id === "balloonist").map((s) => s.id)
+      );
       const next: Record<number, string[]> = {};
-      activeIds.forEach(id => {
+      activeIds.forEach((id) => {
         if (prev[id]) next[id] = prev[id];
       });
       return next;
     });
-  }, [seats]);
+  }, [seats, setBalloonistKnownTypes]);
 
   useEffect(() => {
     if (nightInfo) {
@@ -176,10 +227,13 @@ export default function Home() {
       }
 
       // 没有缓存重新计hint
-      let fakeResult = currentHint.fakeInspectionResult;
+      const fakeResult = currentHint.fakeInspectionResult;
       // 占卜师的假信息现在在玩家选择后根据真实结果生成toggleTarget 函数中
       // 这里不再预先生成假信息因为需要先知道玩家选择了谁才能计算真实结果
-      if (nightInfo.effectiveRole.id !== 'fortune_teller' || !nightInfo.isPoisoned) {
+      if (
+        nightInfo.effectiveRole.id !== "fortune_teller" ||
+        !nightInfo.isPoisoned
+      ) {
         fakeInspectionResultRef.current = null;
       }
 
@@ -188,11 +242,15 @@ export default function Home() {
         reason: nightInfo.reason,
         guide: nightInfo.guide,
         speak: nightInfo.speak,
-        fakeInspectionResult: fakeResult
+        fakeInspectionResult: fakeResult,
       };
 
       // 气球驾驶员自动记录日志被动信息技能
-      if (nightInfo.effectiveRole.id === 'balloonist' && nightInfo.guide.includes('你得') && !nightInfo.isPoisoned) {
+      if (
+        nightInfo.effectiveRole.id === "balloonist" &&
+        nightInfo.guide.includes("你得") &&
+        !nightInfo.isPoisoned
+      ) {
         // guide 中提取信息格式" 你得X号角色类型镇
         const match = nightInfo.guide.match(/你得(\d+)号，角色类型：(.+)/);
         if (match) {
@@ -201,10 +259,10 @@ export default function Home() {
           addLogWithDeduplication(
             `${nightInfo?.seat?.id ? nightInfo.seat.id + 1 : 0}号(气球驾驶员) 得知 ${seatNum}号，角色类型：${typeName}`,
             nightInfo?.seat?.id ?? 0,
-            '气球驾驶员'
+            "气球驾驶员"
           );
           // 记录已知类型防止重
-          setBalloonistKnownTypes(prev => {
+          setBalloonistKnownTypes((prev) => {
             const seatId = nightInfo?.seat?.id ?? 0;
             const known = prev[seatId] || [];
             if (known.includes(typeName)) return prev;
@@ -217,20 +275,43 @@ export default function Home() {
       hintCacheRef.current.set(hintKey, newHint);
       setCurrentHint(newHint);
 
-      if (selectedActionTargets.length > 0 && seats.find(s => s.id === selectedActionTargets[0])?.id !== wakeQueueIds[currentWakeIndex]) {
+      if (
+        selectedActionTargets.length > 0 &&
+        seats.find((s) => s.id === selectedActionTargets[0])?.id !==
+          wakeQueueIds[currentWakeIndex]
+      ) {
         setSelectedActionTargets([]);
         setInspectionResult(null);
         fakeInspectionResultRef.current = null;
       }
     }
-  }, [currentWakeIndex, gamePhase, nightInfo, seats, selectedActionTargets, currentHint.fakeInspectionResult, gameLogs, addLogWithDeduplication, wakeQueueIds]);
+  }, [
+    currentWakeIndex,
+    gamePhase,
+    nightInfo,
+    seats,
+    selectedActionTargets,
+    currentHint.fakeInspectionResult,
+    addLogWithDeduplication,
+    wakeQueueIds,
+    fakeInspectionResultRef,
+    hintCacheRef.current.get, // 保存到缓
+    hintCacheRef.current.set, // 记录已知类型防止重
+    setBalloonistKnownTypes,
+    setCurrentHint,
+    setInspectionResult,
+    setSelectedActionTargets,
+  ]);
 
   // 夜晚阶段切换角色时自动滚动控制台到顶部
   useEffect(() => {
-    if ((gamePhase === 'firstNight' || gamePhase === 'night') && consoleContentRef.current) {
-      consoleContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    if (
+      (gamePhase === "firstNight" || gamePhase === "night") &&
+      consoleContentRef.current
+    ) {
+      consoleContentRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [currentWakeIndex, gamePhase]);
+  }, [gamePhase, consoleContentRef.current]);
 
   // 动态调当前是X号X角色在行的字体大小确保不超出容
   const adjustActionTextSize = useCallback(() => {
@@ -240,7 +321,7 @@ export default function Home() {
       if (!container) return;
 
       // 重置字体大小
-      textElement.style.fontSize = '';
+      textElement.style.fontSize = "";
 
       // 获取容器宽度和文本宽
       const containerWidth = container.offsetWidth;
@@ -254,16 +335,16 @@ export default function Home() {
         textElement.style.fontSize = `${newFontSize}px`;
       }
     }
-  }, [nightInfo]);
+  }, [nightInfo, currentActionTextRef.current]);
 
   useEffect(() => {
     adjustActionTextSize();
     // 窗口大小改变时重新计
-    window.addEventListener('resize', adjustActionTextSize);
+    window.addEventListener("resize", adjustActionTextSize);
     return () => {
-      window.removeEventListener('resize', adjustActionTextSize);
+      window.removeEventListener("resize", adjustActionTextSize);
     };
-  }, [adjustActionTextSize, currentWakeIndex]);
+  }, [adjustActionTextSize]);
 
   // 组件卸载时清理所有长按定时器
   useEffect(() => {
@@ -279,45 +360,66 @@ export default function Home() {
       }
       seatRefs.current = {};
     };
-  }, []);
+  }, [
+    checkLongPressTimerRef,
+    longPressTimerRef.current.clear,
+    longPressTimerRef.current.forEach,
+    longPressTriggeredRef.current.clear,
+    seatRefs,
+  ]);
 
   // 全局屏蔽系统默认的长按行为contextmenu文本选择等
   useEffect(() => {
     const preventDefault = (e: Event) => {
       // 阻止所有contextmenu事件（右键菜单）
-      if (e.type === 'contextmenu') {
+      if (e.type === "contextmenu") {
         // 如果是 setup 阶段，我们允许 contextmenu 事件传播，以便触发自定义菜单
         // 或者我们可以直接在这里判断，如果不在此处阻止，组件内部的 preventDefault 也会生效
         return;
       }
     };
 
-    const preventTouchCallout = (e: TouchEvent) => {
+    const preventTouchCallout = (_e: TouchEvent) => {
       // 阻止触摸长按时的系统菜单
       // 注意这里不阻止所有touch事件只阻止可能导致系统菜单
       // 实际的触摸处理由各个组件的onTouchStart/End/Move处理
     };
 
     // 阻止全局contextmenu
-    document.addEventListener('contextmenu', preventDefault, { passive: false, capture: true });
+    document.addEventListener("contextmenu", preventDefault, {
+      passive: false,
+      capture: true,
+    });
 
     // 阻止触摸长按时的系统行为通过CSS已处理这里作为额外保障
-    document.addEventListener('touchstart', preventTouchCallout, { passive: true });
-    document.addEventListener('touchmove', preventTouchCallout, { passive: true });
-    document.addEventListener('touchend', preventTouchCallout, { passive: true });
+    document.addEventListener("touchstart", preventTouchCallout, {
+      passive: true,
+    });
+    document.addEventListener("touchmove", preventTouchCallout, {
+      passive: true,
+    });
+    document.addEventListener("touchend", preventTouchCallout, {
+      passive: true,
+    });
 
     // 阻止文本选择通过CSS已处理这里作为额外保障
-    document.addEventListener('selectstart', (e) => {
-      e.preventDefault();
-      return false;
-    }, { passive: false });
+    document.addEventListener(
+      "selectstart",
+      (e) => {
+        e.preventDefault();
+        return false;
+      },
+      { passive: false }
+    );
 
     return () => {
-      document.removeEventListener('contextmenu', preventDefault, { capture: true } as EventListenerOptions);
-      document.removeEventListener('touchstart', preventTouchCallout);
-      document.removeEventListener('touchmove', preventTouchCallout);
-      document.removeEventListener('touchend', preventTouchCallout);
-      document.removeEventListener('selectstart', preventDefault);
+      document.removeEventListener("contextmenu", preventDefault, {
+        capture: true,
+      } as EventListenerOptions);
+      document.removeEventListener("touchstart", preventTouchCallout);
+      document.removeEventListener("touchmove", preventTouchCallout);
+      document.removeEventListener("touchend", preventTouchCallout);
+      document.removeEventListener("selectstart", preventDefault);
     };
   }, []);
 
@@ -366,13 +468,13 @@ export default function Home() {
 
   // confirmKill moved to useGameController - using imported version
 
-  // confirmMayorRedirect, confirmHadesiaKill, confirmMoonchildKill, confirmSweetheartDrunk, 
-  // confirmKlutzChoice, confirmStorytellerDeath, confirmHadesia, confirmSaintExecution, 
+  // confirmMayorRedirect, confirmHadesiaKill, confirmMoonchildKill, confirmSweetheartDrunk,
+  // confirmKlutzChoice, confirmStorytellerDeath, confirmHadesia, confirmSaintExecution,
   // cancelSaintExecution moved to useGameController - using imported versions
 
   // setHadesiaChoice moved to useGameController - using imported version
 
-  // executeNomination, handleVirginGuideConfirm, handleDayAction, handleDayAbilityTrigger 
+  // executeNomination, handleVirginGuideConfirm, handleDayAction, handleDayAbilityTrigger
   // moved to useGameController - using imported versions
 
   // reviveSeat is now imported from useGameController
@@ -400,7 +502,7 @@ export default function Home() {
   // 保留此函数仅为了兼容性但不会被调用
   // confirmRavenkeeperResult deleted (dead code)
 
-  // handleRestart, confirmRestart, handleSwitchScript, handleNewGame 
+  // handleRestart, confirmRestart, handleSwitchScript, handleNewGame
   // moved to useGameController - using imported versions
 
   // executeAction from useRoleAction moved to GameStage component
@@ -408,11 +510,11 @@ export default function Home() {
 
   // Day/Night transition sound effects
   useEffect(() => {
-    if (gamePhase === 'day') {
+    if (gamePhase === "day") {
       setTimer(480); // Default to 8 mins discussion
-      playSound('day');
-    } else if (gamePhase === 'night' || gamePhase === 'firstNight') {
-      playSound('night');
+      playSound("day");
+    } else if (gamePhase === "night" || gamePhase === "firstNight") {
+      playSound("night");
     }
   }, [gamePhase, playSound, setTimer]);
 
@@ -424,12 +526,20 @@ export default function Home() {
         <PortraitLock />
         <motion.div
           className="w-full h-full text-white overflow-hidden"
-          initial={{ backgroundColor: '#030712' }}
+          initial={{ backgroundColor: "#030712" }}
           animate={{
-            backgroundColor: gamePhase === 'day' ? 'rgb(12, 74, 110)' : gamePhase === 'dusk' ? 'rgb(28, 25, 23)' : 'rgb(3, 7, 18)'
+            backgroundColor:
+              gamePhase === "day"
+                ? "rgb(12, 74, 110)"
+                : gamePhase === "dusk"
+                  ? "rgb(28, 25, 23)"
+                  : "rgb(3, 7, 18)",
           }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
-          onClick={() => { setContextMenu(null); setShowMenu(false); }}
+          onClick={() => {
+            setContextMenu(null);
+            setShowMenu(false);
+          }}
         >
           {/* ===== 通用加载动画不属于暗流涌动等具体剧本===== */}
           {showIntroLoading && (
@@ -449,17 +559,25 @@ export default function Home() {
           {baronSetupCheck && (
             <div className="absolute inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
               <div className="bg-gray-900 border-4 border-yellow-500 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl">
-                <div className="text-xl font-bold text-yellow-300"> Setup 校验</div>
+                <div className="text-xl font-bold text-yellow-300">
+                  {" "}
+                  Setup 校验
+                </div>
                 <p className="text-sm leading-6 text-gray-100">
                   检测到你选择了男(Baron)但当前镇外来者 ? 数量不符规则
                 </p>
                 <div className="text-sm text-gray-200 space-y-2 bg-gray-800/60 rounded-lg p-3 border border-gray-700">
-                  <div>当前{baronSetupCheck.current.townsfolk} 个镇民{baronSetupCheck.current.outsider} 个外来者</div>
+                  <div>
+                    当前{baronSetupCheck.current.townsfolk} 个镇民
+                    {baronSetupCheck.current.outsider} 个外来者
+                  </div>
                   <div className="font-semibold text-yellow-200">
-                    建议调整为{baronSetupCheck.recommended.townsfolk} 个镇民{baronSetupCheck.recommended.outsider} 个外来者
+                    建议调整为{baronSetupCheck.recommended.townsfolk} 个镇民
+                    {baronSetupCheck.recommended.outsider} 个外来者
                   </div>
                   <div className="text-xs text-gray-400">
-                    共 {baronSetupCheck.recommended.total} 人局含男爵自动2 名镇民替换为 2 名外来者
+                    共 {baronSetupCheck.recommended.total} 人局含男爵自动2
+                    名镇民替换为 2 名外来者
                   </div>
                 </div>
                 <p className="text-sm text-gray-300">
@@ -476,7 +594,8 @@ export default function Home() {
                     onClick={() => setBaronSetupCheck(null)}
                     className="flex-1 py-3 rounded-xl bg-gray-700 text-gray-100 font-bold hover:bg-gray-600 transition"
                   >
-                    我手动调 : </button>
+                    我手动调 :{" "}
+                  </button>
                   <button
                     onClick={() => {
                       setIgnoreBaronSetup(true);
@@ -491,7 +610,7 @@ export default function Home() {
             </div>
           )}
           {/* ===== 剧本选择页：占满整个舞台区域，禁止二次缩放 ===== */}
-          {gamePhase === 'scriptSelection' && (
+          {gamePhase === "scriptSelection" && (
             <div className="w-full h-full flex flex-col bg-slate-950 text-white">
               <ScriptSelection
                 onScriptSelect={setSelectedScript}
@@ -501,7 +620,7 @@ export default function Home() {
               />
             </div>
           )}
-          {gamePhase === 'setup' && (
+          {gamePhase === "setup" && (
             <GameLayout
               leftPanel={
                 <div className="w-full h-full p-4">
@@ -512,7 +631,10 @@ export default function Home() {
                     isPortrait={false}
                     longPressingSeats={new Set()}
                     onSeatClick={(seat) => {
-                      console.log('[app/page setup] RoundTable seat clicked:', seat.id);
+                      console.log(
+                        "[app/page setup] RoundTable seat clicked:",
+                        seat.id
+                      );
                       handleSeatClick(seat.id);
                     }}
                     onContextMenu={(e, seatId) => {
@@ -532,7 +654,7 @@ export default function Home() {
                       // Don't preventDefault - let click events work normally
                       e.stopPropagation();
                     }}
-                    setSeatRef={() => { }}
+                    setSeatRef={() => {}}
                     getDisplayRoleType={(seat) => seat.role?.type || null}
                     getDisplayRole={getDisplayRoleForSeat}
                     typeColors={typeColors}
@@ -542,7 +664,9 @@ export default function Home() {
               rightPanel={
                 <div className="h-full flex flex-col overflow-hidden">
                   <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
-                    <h2 className="text-lg font-bold text-purple-300">说书人控制台</h2>
+                    <h2 className="text-lg font-bold text-purple-300">
+                      说书人控制台
+                    </h2>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 text-sm min-h-0">
                     <GameSetup
@@ -572,7 +696,7 @@ export default function Home() {
               }
             />
           )}
-          {gamePhase !== 'scriptSelection' && gamePhase !== 'setup' && (
+          {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
             <>
               <GameStage />
               <GameModals />
@@ -582,7 +706,7 @@ export default function Home() {
           {/* Setup 相关的 Modals 仍然留在本组件中 */}
 
           {/* 右键上下文菜单 (Setup 阶段专用) */}
-          {contextMenu && gamePhase === 'setup' && (
+          {contextMenu && gamePhase === "setup" && (
             <div
               className="fixed z-[9999] bg-slate-800 border border-slate-600 rounded shadow-xl py-1 min-w-[140px] flex flex-col"
               style={{ left: contextMenu.x, top: contextMenu.y }}
@@ -598,7 +722,9 @@ export default function Home() {
                   if (controller.setRedNemesisTarget) {
                     controller.setRedNemesisTarget(contextMenu.seatId);
                   } else {
-                    console.error("setRedNemesisTarget not found on controller");
+                    console.error(
+                      "setRedNemesisTarget not found on controller"
+                    );
                   }
                   setContextMenu(null); // 关闭菜单
                 }}

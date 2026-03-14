@@ -1,4 +1,8 @@
-import { RoleDefinition, NightActionContext, NightActionResult } from "../../types/roleDefinition";
+import type {
+  NightActionContext,
+  NightActionResult,
+  RoleDefinition,
+} from "../../types/roleDefinition";
 
 /**
  * 水手 (Sailor)
@@ -43,7 +47,8 @@ export const sailor: RoleDefinition = {
     },
     dialog: (playerSeatId: number) => ({
       wake: `唤醒${playerSeatId + 1}号玩家（水手）。`,
-      instruction: "请指向一名存活玩家（包括你自己）。你或他之一会醉酒至下个黄昏。",
+      instruction:
+        "请指向一名存活玩家（包括你自己）。你或他之一会醉酒至下个黄昏。",
       close: `${playerSeatId + 1}号玩家（水手），请闭眼。`,
     }),
     handler: (context: NightActionContext): NightActionResult | null => {
@@ -51,36 +56,40 @@ export const sailor: RoleDefinition = {
       if (targets.length === 0) return { updates: [] };
 
       const targetId = targets[0];
-      const targetSeat = seats.find(s => s.id === targetId);
-      const sailorSeat = seats.find(s => s.id === selfId);
+      const targetSeat = seats.find((s) => s.id === targetId);
+      const sailorSeat = seats.find((s) => s.id === selfId);
 
       if (!targetSeat || !sailorSeat) return { updates: [] };
 
       // 逻辑：如果目标是镇民，则目标醉酒；否则自身醉酒。
       // 这是说书人在自动化环境下的典型推荐选择。
-      const targetIsTownsfolk = targetSeat.role?.type === 'townsfolk';
+      const targetIsTownsfolk = targetSeat.role?.type === "townsfolk";
       const drunkId = targetIsTownsfolk ? targetId : selfId;
-      const drunkSeat = seats.find(s => s.id === drunkId);
+      const drunkSeat = seats.find((s) => s.id === drunkId);
 
       const updates = [];
       if (drunkSeat) {
         // 清理旧的水手醉酒标记
-        const details = (drunkSeat.statusDetails || []).filter(d => !d.includes('水手致醉'));
-        const statuses = (drunkSeat.statuses || []).filter(s => s.effect !== 'Drunk' || s.duration !== '黄昏');
+        const details = (drunkSeat.statusDetails || []).filter(
+          (d) => !d.includes("水手致醉")
+        );
+        const statuses = (drunkSeat.statuses || []).filter(
+          (s) => s.effect !== "Drunk" || s.duration !== "黄昏"
+        );
 
         updates.push({
           id: drunkId,
-          statusDetails: [...details, '水手致醉（黄昏清除）'],
-          statuses: [...statuses, { effect: 'Drunk', duration: '黄昏' }]
+          statusDetails: [...details, "水手致醉（黄昏清除）"],
+          statuses: [...statuses, { effect: "Drunk", duration: "黄昏" }],
         });
       }
 
       return {
         updates,
         logs: {
-          privateLog: `🍷 水手选择了 ${targetId + 1}号，导致 ${drunkId + 1}号 醉酒至下个黄昏。`
-        }
+          privateLog: `🍷 水手选择了 ${targetId + 1}号，导致 ${drunkId + 1}号 醉酒至下个黄昏。`,
+        },
       };
-    }
-  }
+    },
+  },
 };

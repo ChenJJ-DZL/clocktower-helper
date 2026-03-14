@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 星象师 (Astrologer)
@@ -10,4 +10,3 @@ export const astrologer: RoleDefinition = {
   name: "星象师",
   type: "townsfolk",
 };
-

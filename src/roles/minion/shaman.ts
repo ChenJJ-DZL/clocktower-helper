@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 灵言师
@@ -89,7 +88,7 @@ Transclusion expansion time report (%,ms,calls,template)
 Saved in parser cache with key gstone_wiki:pcache:idhash:67-0!canonical and timestamp 20260119164858 and revision id 3769. Serialized with JSON.`,
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 13 : 0,
+    order: (isFirstNight) => (isFirstNight ? 13 : 0),
 
     target: {
       count: {
@@ -113,7 +112,6 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:67-0!canonical and time
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

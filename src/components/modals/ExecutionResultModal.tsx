@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface ExecutionResultModalProps {
   isOpen: boolean;
@@ -6,7 +6,11 @@ interface ExecutionResultModalProps {
   onConfirm: () => void;
 }
 
-export function ExecutionResultModal({ isOpen, message, onConfirm }: ExecutionResultModalProps) {
+export function ExecutionResultModal({
+  isOpen,
+  message,
+  onConfirm,
+}: ExecutionResultModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -27,4 +31,3 @@ export function ExecutionResultModal({ isOpen, message, onConfirm }: ExecutionRe
     </ModalWrapper>
   );
 }
-

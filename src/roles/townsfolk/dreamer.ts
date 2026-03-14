@@ -1,6 +1,6 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat, Role } from "../../types/game";
-import { getRegistration, getRandom } from "../../utils/gameRules";
+import type { Role, Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
+import { getRandom, getRegistration } from "../../utils/gameRules";
 
 /**
  * 筑梦师 (Dreamer)
@@ -82,7 +82,7 @@ Transclusion expansion time report (%,ms,calls,template)
 Saved in parser cache with key gstone_wiki:pcache:idhash:37-0!canonical and timestamp 20260119175950 and revision id 3046. Serialized with JSON.`,
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 8 : 8,
+    order: (isFirstNight) => (isFirstNight ? 8 : 8),
 
     target: {
       count: {
@@ -93,51 +93,64 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:37-0!canonical and time
       canSelect: (target: Seat, self: Seat) => {
         if (!target.role) return false;
         if (target.id === self.id) return false;
-        if (target.role.type === 'traveler') return false;
+        if (target.role.type === "traveler") return false;
         return true;
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（筑梦师）。`,
-        instruction: "请选择除你及旅行者以外的一名玩家，说书人会告知你：一个善良角色和一个邪恶角色，其中一个是该玩家的真实角色。",
+        instruction:
+          "请选择除你及旅行者以外的一名玩家，说书人会告知你：一个善良角色和一个邪恶角色，其中一个是该玩家的真实角色。",
         close: `${playerSeatId + 1}号玩家（筑梦师），请闭眼。`,
       };
     },
 
     // 真正的信息生成与真假角色对由 nightLogic 处理，这里只做日志记录
     handler: (context) => {
-      const { targets, seats, roles, selfId, isVortoxWorld, shouldShowFake, getMisinformation } = context;
+      const {
+        targets,
+        seats,
+        roles,
+        selfId,
+        isVortoxWorld,
+        shouldShowFake,
+        getMisinformation,
+      } = context;
       if (targets.length !== 1) {
         // This should be caught by target validation, but as a fallback:
-        return { updates: [], logs: { privateLog: "筑梦师必须选择且仅选择一名玩家" } };
+        return {
+          updates: [],
+          logs: { privateLog: "筑梦师必须选择且仅选择一名玩家" },
+        };
       }
 
       const targetId = targets[0];
-      const targetSeat = seats.find(s => s.id === targetId);
+      const targetSeat = seats.find((s) => s.id === targetId);
       if (!targetSeat || !targetSeat.role) {
         return { updates: [], logs: { privateLog: `无效目标: ${targetId}` } };
       }
 
       const actualRole = targetSeat.role;
-      const reg = getRegistration(targetSeat, { id: 'dreamer' } as any);
-      let isGoodReg = reg.alignment === 'Good';
+      const reg = getRegistration(targetSeat, { id: "dreamer" } as any);
+      let isGoodReg = reg.alignment === "Good";
 
       // Vortox world inverts townsfolk info. If dreamer is a townsfolk and not disabled, their info is wrong.
       if (isVortoxWorld) {
         isGoodReg = !isGoodReg;
       }
-      
+
       // Handle poison/drunk fake info
       if (shouldShowFake) {
         isGoodReg = !isGoodReg;
       }
 
-      const townsfolk = roles!.filter(r => r.type === 'townsfolk');
-      const outsiders = roles!.filter(r => r.type === 'outsider' || r.id === 'drunk');
-      const minions = roles!.filter(r => r.type === 'minion');
-      const demons = roles!.filter(r => r.type === 'demon');
+      const townsfolk = roles?.filter((r) => r.type === "townsfolk") ?? [];
+      const outsiders =
+        roles?.filter((r) => r.type === "outsider" || r.id === "drunk") ?? [];
+      const minions = roles?.filter((r) => r.type === "minion") ?? [];
+      const demons = roles?.filter((r) => r.type === "demon") ?? [];
 
       const goodRoles = [...townsfolk, ...outsiders];
       const evilRoles = [...minions, ...demons];
@@ -146,19 +159,23 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:37-0!canonical and time
       let roleB: Role;
 
       if (isGoodReg) {
-        const correctGoodRole = (actualRole.type === 'townsfolk' || actualRole.type === 'outsider' || actualRole.id === 'drunk')
-          ? actualRole
-          : getRandom(goodRoles);
+        const correctGoodRole =
+          actualRole.type === "townsfolk" ||
+          actualRole.type === "outsider" ||
+          actualRole.id === "drunk"
+            ? actualRole
+            : getRandom(goodRoles);
         roleA = correctGoodRole;
         roleB = getRandom(evilRoles);
       } else {
-        const correctEvilRole = (actualRole.type === 'minion' || actualRole.type === 'demon')
-          ? actualRole
-          : getRandom(evilRoles);
+        const correctEvilRole =
+          actualRole.type === "minion" || actualRole.type === "demon"
+            ? actualRole
+            : getRandom(evilRoles);
         roleA = getRandom(goodRoles);
         roleB = correctEvilRole;
       }
-      
+
       // Randomize position
       if (Math.random() < 0.5) {
         [roleA, roleB] = [roleB, roleA];
@@ -168,15 +185,15 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:37-0!canonical and time
         updates: [],
         logs: {
           privateLog: `筑梦师选择了${targetId + 1}号位，得知：${roleA.name}, ${roleB.name}`,
-          secretInfo: `得知：${roleA.name}, ${roleB.name}`
+          secretInfo: `得知：${roleA.name}, ${roleB.name}`,
         },
         modal: {
-          type: 'DREAMER_RESULT',
+          type: "DREAMER_RESULT",
           data: {
             roleA: roleA,
-            roleB: roleB
-          }
-        }
+            roleB: roleB,
+          },
+        },
       };
     },
   },

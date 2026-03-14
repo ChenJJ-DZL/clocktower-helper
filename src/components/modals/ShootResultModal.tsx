@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface ShootResultModalProps {
   isOpen: boolean;
@@ -7,12 +7,17 @@ interface ShootResultModalProps {
   onConfirm: () => void;
 }
 
-export function ShootResultModal({ isOpen, message, isDemonDead, onConfirm }: ShootResultModalProps) {
+export function ShootResultModal({
+  isOpen,
+  message,
+  isDemonDead,
+  onConfirm,
+}: ShootResultModalProps) {
   if (!isOpen) return null;
 
   return (
     <ModalWrapper
-      title={isDemonDead ? '💥 恶魔死亡' : '💥 开枪结果'}
+      title={isDemonDead ? "💥 恶魔死亡" : "💥 开枪结果"}
       onClose={onConfirm}
       footer={
         <button
@@ -22,10 +27,9 @@ export function ShootResultModal({ isOpen, message, isDemonDead, onConfirm }: Sh
           确认
         </button>
       }
-      className={`max-w-md ${isDemonDead ? 'border-red-500' : 'border-yellow-500'}`}
+      className={`max-w-md ${isDemonDead ? "border-red-500" : "border-yellow-500"}`}
     >
       <p className="text-2xl font-bold text-white text-center">{message}</p>
     </ModalWrapper>
   );
 }
-

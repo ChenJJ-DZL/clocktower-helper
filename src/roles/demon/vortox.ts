@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
@@ -21,7 +20,7 @@ export const vortox: RoleDefinition = {
 - 所属剧本：梦殒春宵
 - 角色类型：恶魔`,
   clarifications: [
-    `相克规则：报丧女妖：如果恶魔杀死报丧女妖时涡流在场，玩家仍然会得知正确信息。（中文百科上的"通用简化原则"已涵盖包括多角色互动下的涡流信息的简化处理方式，此条仅做说明。）`
+    `相克规则：报丧女妖：如果恶魔杀死报丧女妖时涡流在场，玩家仍然会得知正确信息。（中文百科上的"通用简化原则"已涵盖包括多角色互动下的涡流信息的简化处理方式，此条仅做说明。）`,
   ],
 
   firstNight: {
@@ -31,7 +30,7 @@ export const vortox: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "涡流", context);
     },
 
@@ -48,15 +47,15 @@ export const vortox: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
       return {
         wake: "⚔️ 选择一名玩家：他死亡。镇民玩家的能力都会产生错误信息，如果白天没人被处决，邪恶阵营获胜。",
-        instruction: '"请选择一名玩家。他死亡。镇民玩家的能力都会产生错误信息，如果白天没人被处决，邪恶阵营获胜。"',
+        instruction:
+          '"请选择一名玩家。他死亡。镇民玩家的能力都会产生错误信息，如果白天没人被处决，邪恶阵营获胜。"',
         close: "kill",
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

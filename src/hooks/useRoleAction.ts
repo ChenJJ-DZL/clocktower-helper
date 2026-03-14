@@ -1,7 +1,10 @@
 import { useCallback } from "react";
-import { Seat, GamePhase, Role } from "../../app/data";
-import { RoleDefinition, NightActionContext, NightActionResult } from "../types/roleDefinition";
+import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles/index";
+import type {
+  NightActionContext,
+  NightActionResult,
+} from "../types/roleDefinition";
 
 /**
  * 角色行动执行结果
@@ -58,7 +61,10 @@ export interface ExecuteActionOptions {
   vortoxWorld?: boolean;
   getRegistration?: (seat: Seat, viewer?: Role | null) => any;
   getMisinformation?: { [key: string]: (data: any) => any };
-  findNearestAliveNeighbor?: (originId: number, direction: 1 | -1) => Seat | null;
+  findNearestAliveNeighbor?: (
+    originId: number,
+    direction: 1 | -1
+  ) => Seat | null;
 }
 
 /**
@@ -69,110 +75,116 @@ export function useRoleAction() {
   /**
    * 执行角色行动
    * 这是一个纯函数，不直接修改 state，返回计算后的新状态
-   * 
+   *
    * @param options 执行选项
    * @returns 执行结果，如果角色未注册或没有夜晚行动则返回 null
    */
-  const executeAction = useCallback((
-    options: ExecuteActionOptions
-  ): RoleActionResult | null => {
-    const {
-      currentSeats,
-      roleId,
-      performerId,
-      targetIds,
-      gamePhase,
-      nightCount,
-    } = options;
+  const executeAction = useCallback(
+    (options: ExecuteActionOptions): RoleActionResult | null => {
+      const {
+        currentSeats,
+        roleId,
+        performerId,
+        targetIds,
+        gamePhase,
+        nightCount,
+      } = options;
 
-    // 1. 查找角色定义
-    const roleDef = getRoleDefinition(roleId);
-    if (!roleDef) {
-      console.warn(`角色定义未找到: ${roleId}`);
-      return null;
-    }
-
-    // 2. 判断是首夜还是后续夜晚
-    const isFirstNight = gamePhase === "firstNight" || nightCount === 0;
-
-    // 3. 选择对应的行动配置（优先使用 firstNight，否则使用 night）
-    const actionConfig = isFirstNight && roleDef.firstNight
-      ? roleDef.firstNight
-      : roleDef.night;
-
-    if (!actionConfig) {
-      // 该角色在当前夜晚没有行动
-      return null;
-    }
-
-    // 4. 构建夜晚行动上下文
-    const context: NightActionContext = {
-      seats: currentSeats,
-      targets: targetIds,
-      selfId: performerId,
-      gamePhase,
-      nightCount,
-      vortoxWorld: options.vortoxWorld || false,
-      getRegistration: options.getRegistration || ((s: Seat) => ({ registersAsDemon: s.role?.type === 'demon' || s.isDemonSuccessor, registersAsMinion: s.role?.type === 'minion', registersAsSpy: false })),
-      getMisinformation: options.getMisinformation || {},
-      findNearestAliveNeighbor: options.findNearestAliveNeighbor,
-      addLog: (msg: string) => console.log(msg),
-      isActorDisabledByPoisonOrDrunk: (s: Seat) => s.isPoisoned || s.isDrunk,
-    };
-
-    // 5. 执行 handler
-    let result: NightActionResult;
-    try {
-      if (!actionConfig.handler) return null;
-      const rawResult = actionConfig.handler(context);
-      if (!rawResult) return null;
-      result = rawResult;
-    } catch (error) {
-      console.error(`执行角色行动失败 (${roleId}):`, error);
-      return null;
-    }
-
-    // 6. 应用状态更新
-    // 将 updates 合并到对应的座位上
-    const nextSeats = currentSeats.map(seat => {
-      const update = result.updates.find(u => u.id === seat.id);
-      if (!update) {
-        return seat;
+      // 1. 查找角色定义
+      const roleDef = getRoleDefinition(roleId);
+      if (!roleDef) {
+        console.warn(`角色定义未找到: ${roleId}`);
+        return null;
       }
 
-      // 合并更新，注意需要处理数组类型的字段（如 statusDetails, statuses）
-      const mergedSeat: Seat = { ...seat };
+      // 2. 判断是首夜还是后续夜晚
+      const isFirstNight = gamePhase === "firstNight" || nightCount === 0;
 
-      // 处理 statusDetails（字符串数组）
-      if (update.statusDetails !== undefined) {
-        mergedSeat.statusDetails = update.statusDetails;
+      // 3. 选择对应的行动配置（优先使用 firstNight，否则使用 night）
+      const actionConfig =
+        isFirstNight && roleDef.firstNight ? roleDef.firstNight : roleDef.night;
+
+      if (!actionConfig) {
+        // 该角色在当前夜晚没有行动
+        return null;
       }
 
-      // 处理 statuses（StatusEffect 数组）
-      if (update.statuses !== undefined) {
-        mergedSeat.statuses = update.statuses;
+      // 4. 构建夜晚行动上下文
+      const context: NightActionContext = {
+        seats: currentSeats,
+        targets: targetIds,
+        selfId: performerId,
+        gamePhase,
+        nightCount,
+        vortoxWorld: options.vortoxWorld || false,
+        getRegistration:
+          options.getRegistration ||
+          ((s: Seat) => ({
+            registersAsDemon: s.role?.type === "demon" || s.isDemonSuccessor,
+            registersAsMinion: s.role?.type === "minion",
+            registersAsSpy: false,
+          })),
+        getMisinformation: options.getMisinformation || {},
+        findNearestAliveNeighbor: options.findNearestAliveNeighbor,
+        addLog: (msg: string) => console.log(msg),
+        isActorDisabledByPoisonOrDrunk: (s: Seat) => s.isPoisoned || s.isDrunk,
+      };
+
+      // 5. 执行 handler
+      let result: NightActionResult;
+      try {
+        if (!actionConfig.handler) return null;
+        const rawResult = actionConfig.handler(context);
+        if (!rawResult) return null;
+        result = rawResult;
+      } catch (error) {
+        console.error(`执行角色行动失败 (${roleId}):`, error);
+        return null;
       }
 
-      // 处理其他字段（直接覆盖）
-      Object.keys(update).forEach(key => {
-        if (key !== 'id' && key !== 'statusDetails' && key !== 'statuses') {
-          (mergedSeat as any)[key] = (update as any)[key];
+      // 6. 应用状态更新
+      // 将 updates 合并到对应的座位上
+      const nextSeats = currentSeats.map((seat) => {
+        const update = result.updates.find((u) => u.id === seat.id);
+        if (!update) {
+          return seat;
         }
+
+        // 合并更新，注意需要处理数组类型的字段（如 statusDetails, statuses）
+        const mergedSeat: Seat = { ...seat };
+
+        // 处理 statusDetails（字符串数组）
+        if (update.statusDetails !== undefined) {
+          mergedSeat.statusDetails = update.statusDetails;
+        }
+
+        // 处理 statuses（StatusEffect 数组）
+        if (update.statuses !== undefined) {
+          mergedSeat.statuses = update.statuses;
+        }
+
+        // 处理其他字段（直接覆盖）
+        Object.keys(update).forEach((key) => {
+          if (key !== "id" && key !== "statusDetails" && key !== "statuses") {
+            (mergedSeat as any)[key] = (update as any)[key];
+          }
+        });
+
+        return mergedSeat;
       });
 
-      return mergedSeat;
-    });
-
-    // 7. 返回结果
-    return {
-      nextSeats,
-      logs: result.logs || {},
-    };
-  }, []);
+      // 7. 返回结果
+      return {
+        nextSeats,
+        logs: result.logs || {},
+      };
+    },
+    []
+  );
 
   /**
    * 检查目标是否可选
-   * 
+   *
    * @param roleId 角色 ID
    * @param performerId 执行行动的玩家 ID
    * @param targetId 目标玩家 ID
@@ -184,178 +196,190 @@ export function useRoleAction() {
    * @param hasUsedAbility 检查能力是否已使用的函数
    * @returns 是否可选
    */
-  const canSelectTarget = useCallback((
-    roleId: string,
-    performerId: number,
-    targetId: number,
-    currentSeats: Seat[],
-    selectedTargets: number[],
-    isFirstNight: boolean,
-    gamePhase?: GamePhase,
-    deadThisNight?: number[],
-    hasUsedAbility?: (roleId: string, seatId: number) => boolean
-  ): boolean => {
-    // 1. 查找角色定义
-    const roleDef = getRoleDefinition(roleId);
-    if (!roleDef) {
-      return false;
-    }
-
-    // 2. 查找执行者和目标座位
-    const performerSeat = currentSeats.find(s => s.id === performerId);
-    const targetSeat = currentSeats.find(s => s.id === targetId);
-
-    if (!performerSeat || !targetSeat) {
-      return false;
-    }
-
-    // 3. 选择对应的行动配置
-    const actionConfig = isFirstNight && roleDef.firstNight
-      ? roleDef.firstNight
-      : roleDef.night;
-
-    // 4. 如果有 canSelect 函数，优先使用
-    if (actionConfig?.target.canSelect) {
-      return actionConfig.target.canSelect(
-        targetSeat,
-        performerSeat,
-        currentSeats,
-        selectedTargets
-      );
-    }
-
-    // 5. 如果没有 canSelect 函数，使用默认的角色特定规则
-    // 这些规则应该逐步迁移到角色定义文件中，但暂时保留作为 fallback
-
-    // Monk: Cannot target self
-    if (roleId === 'monk' && targetSeat.id === performerId) return false;
-
-    // Poisoner: Cannot target dead players
-    if (roleId === 'poisoner' && targetSeat.isDead) return false;
-
-    // Ravenkeeper: Can only target if they died tonight
-    if (roleId === 'ravenkeeper') {
-      if (deadThisNight && !deadThisNight.includes(performerId)) {
-        return false; // Disable all targets if ravenkeeper didn't die tonight
-      }
-    }
-
-    // Evil Twin: First night restrictions - only townsfolk/outsider
-    if (roleId === 'evil_twin' && isFirstNight) {
-      if (!targetSeat.role) return false;
-      if (targetSeat.role.type !== 'townsfolk' && targetSeat.role.type !== 'outsider') {
+  const canSelectTarget = useCallback(
+    (
+      roleId: string,
+      performerId: number,
+      targetId: number,
+      currentSeats: Seat[],
+      selectedTargets: number[],
+      isFirstNight: boolean,
+      _gamePhase?: GamePhase,
+      deadThisNight?: number[],
+      hasUsedAbility?: (roleId: string, seatId: number) => boolean
+    ): boolean => {
+      // 1. 查找角色定义
+      const roleDef = getRoleDefinition(roleId);
+      if (!roleDef) {
         return false;
       }
-    }
 
-    // Imp: Cannot target on first night
-    if (roleId === 'imp' && isFirstNight) return false;
+      // 2. 查找执行者和目标座位
+      const performerSeat = currentSeats.find((s) => s.id === performerId);
+      const targetSeat = currentSeats.find((s) => s.id === targetId);
 
-    // Butler: Cannot target self
-    if (roleId === 'butler' && targetSeat.id === performerId) return false;
+      if (!performerSeat || !targetSeat) {
+        return false;
+      }
 
-    // Chambermaid: Cannot target self
-    if (roleId === 'chambermaid' && targetSeat.id === performerId) return false;
+      // 3. 选择对应的行动配置
+      const actionConfig =
+        isFirstNight && roleDef.firstNight ? roleDef.firstNight : roleDef.night;
 
-    // Professor (MR): Can only revive dead townsfolk, and only if ability not used
-    if (roleId === 'professor_mr') {
-      if (hasUsedAbility && hasUsedAbility('professor_mr', performerId)) return false;
-      const targetRole = targetSeat.role?.id === 'drunk' ? targetSeat.charadeRole : targetSeat.role;
-      if (!targetSeat.isDead) return false;
-      if (!targetRole || targetRole.type !== 'townsfolk') return false;
-    }
+      // 4. 如果有 canSelect 函数，优先使用
+      if (actionConfig?.target.canSelect) {
+        return actionConfig.target.canSelect(
+          targetSeat,
+          performerSeat,
+          currentSeats,
+          selectedTargets
+        );
+      }
 
-    // 默认允许选择
-    return true;
-  }, []);
+      // 5. 如果没有 canSelect 函数，使用默认的角色特定规则
+      // 这些规则应该逐步迁移到角色定义文件中，但暂时保留作为 fallback
+
+      // Monk: Cannot target self
+      if (roleId === "monk" && targetSeat.id === performerId) return false;
+
+      // Poisoner: Cannot target dead players
+      if (roleId === "poisoner" && targetSeat.isDead) return false;
+
+      // Ravenkeeper: Can only target if they died tonight
+      if (roleId === "ravenkeeper") {
+        if (deadThisNight && !deadThisNight.includes(performerId)) {
+          return false; // Disable all targets if ravenkeeper didn't die tonight
+        }
+      }
+
+      // Evil Twin: First night restrictions - only townsfolk/outsider
+      if (roleId === "evil_twin" && isFirstNight) {
+        if (!targetSeat.role) return false;
+        if (
+          targetSeat.role.type !== "townsfolk" &&
+          targetSeat.role.type !== "outsider"
+        ) {
+          return false;
+        }
+      }
+
+      // Imp: Cannot target on first night
+      if (roleId === "imp" && isFirstNight) return false;
+
+      // Butler: Cannot target self
+      if (roleId === "butler" && targetSeat.id === performerId) return false;
+
+      // Chambermaid: Cannot target self
+      if (roleId === "chambermaid" && targetSeat.id === performerId)
+        return false;
+
+      // Professor (MR): Can only revive dead townsfolk, and only if ability not used
+      if (roleId === "professor_mr") {
+        if (hasUsedAbility?.("professor_mr", performerId)) return false;
+        const targetRole =
+          targetSeat.role?.id === "drunk"
+            ? targetSeat.charadeRole
+            : targetSeat.role;
+        if (!targetSeat.isDead) return false;
+        if (!targetRole || targetRole.type !== "townsfolk") return false;
+      }
+
+      // 默认允许选择
+      return true;
+    },
+    []
+  );
 
   /**
    * 获取目标选择数量要求
-   * 
+   *
    * @param roleId 角色 ID
    * @param isFirstNight 是否为首夜
    * @returns 目标数量要求，如果角色未注册或没有夜晚行动则返回 null
    */
-  const getTargetCount = useCallback((
-    roleId: string,
-    isFirstNight: boolean
-  ): { min: number; max: number } | null => {
-    const roleDef = getRoleDefinition(roleId);
-    if (!roleDef) {
-      return null;
-    }
+  const getTargetCount = useCallback(
+    (
+      roleId: string,
+      isFirstNight: boolean
+    ): { min: number; max: number } | null => {
+      const roleDef = getRoleDefinition(roleId);
+      if (!roleDef) {
+        return null;
+      }
 
-    const actionConfig = isFirstNight && roleDef.firstNight
-      ? roleDef.firstNight
-      : roleDef.night;
+      const actionConfig =
+        isFirstNight && roleDef.firstNight ? roleDef.firstNight : roleDef.night;
 
-    if (!actionConfig) {
-      return null;
-    }
+      if (!actionConfig) {
+        return null;
+      }
 
-    return actionConfig.target.count;
-  }, []);
+      return actionConfig.target.count;
+    },
+    []
+  );
 
   /**
    * 获取角色对话
-   * 
+   *
    * @param roleId 角色 ID
    * @param performerId 执行行动的玩家 ID
    * @param isFirstNight 是否为首夜
    * @returns 对话内容，如果角色未注册或没有夜晚行动则返回 null
    */
-  const getDialog = useCallback((
-    roleId: string,
-    performerId: number,
-    isFirstNight: boolean,
-    context: NightActionContext
-  ) => {
-    const roleDef = getRoleDefinition(roleId);
-    if (!roleDef) {
-      return null;
-    }
+  const getDialog = useCallback(
+    (
+      roleId: string,
+      performerId: number,
+      isFirstNight: boolean,
+      context: NightActionContext
+    ) => {
+      const roleDef = getRoleDefinition(roleId);
+      if (!roleDef) {
+        return null;
+      }
 
-    const actionConfig = isFirstNight && roleDef.firstNight
-      ? roleDef.firstNight
-      : roleDef.night;
+      const actionConfig =
+        isFirstNight && roleDef.firstNight ? roleDef.firstNight : roleDef.night;
 
-    if (!actionConfig) {
-      return null;
-    }
+      if (!actionConfig) {
+        return null;
+      }
 
-    return actionConfig.dialog(performerId, isFirstNight, context);
-  }, []);
+      return actionConfig.dialog(performerId, isFirstNight, context);
+    },
+    []
+  );
 
   /**
    * 获取角色唤醒顺序
-   * 
+   *
    * @param roleId 角色 ID
    * @param isFirstNight 是否为首夜
    * @returns 唤醒顺序，如果角色未注册或没有夜晚行动则返回 null
    */
-  const getWakeOrder = useCallback((
-    roleId: string,
-    isFirstNight: boolean
-  ): number | null => {
-    const roleDef = getRoleDefinition(roleId);
-    if (!roleDef) {
-      return null;
-    }
+  const getWakeOrder = useCallback(
+    (roleId: string, isFirstNight: boolean): number | null => {
+      const roleDef = getRoleDefinition(roleId);
+      if (!roleDef) {
+        return null;
+      }
 
-    const actionConfig = isFirstNight && roleDef.firstNight
-      ? roleDef.firstNight
-      : roleDef.night;
+      const actionConfig =
+        isFirstNight && roleDef.firstNight ? roleDef.firstNight : roleDef.night;
 
-    if (!actionConfig) {
-      return null;
-    }
+      if (!actionConfig) {
+        return null;
+      }
 
-    if (typeof actionConfig.order === 'function') {
-      return actionConfig.order(isFirstNight);
-    }
+      if (typeof actionConfig.order === "function") {
+        return actionConfig.order(isFirstNight);
+      }
 
-    return actionConfig.order;
-  }, []);
+      return actionConfig.order;
+    },
+    []
+  );
 
   return {
     executeAction,
@@ -365,4 +389,3 @@ export function useRoleAction() {
     getWakeOrder,
   };
 }
-

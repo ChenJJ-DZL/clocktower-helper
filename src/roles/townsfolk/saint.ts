@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 圣徒 (Saint)
@@ -66,7 +66,6 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:122-0!canonical and timestamp 20260120012434 and revision id 4886. Serialized with JSON.`,
   clarifications: [
-    `特定角色互动：小怪宝：照看小怪宝的圣徒如果作为场上最后一名存活的恶魔被处决，善良阵营会获胜。`
+    "特定角色互动：小怪宝：照看小怪宝的圣徒如果作为场上最后一名存活的恶魔被处决，善良阵营会获胜。",
   ],
 };
-

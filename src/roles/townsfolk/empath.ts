@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 共情者 (Empath)
@@ -69,15 +69,17 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and timestamp 20260120020240 and revision id 2957. Serialized with JSON.`,
   clarifications: [
-    `共情者得知的信息是当晚黎明时的状况，而非黄昏时的，因此在当晚复活的角色（通常会是在共情者行动之前复活），也可能会因为成为与共情者邻近的存活玩家，从而影响共情者获取的信息。`
+    "共情者得知的信息是当晚黎明时的状况，而非黄昏时的，因此在当晚复活的角色（通常会是在共情者行动之前复活），也可能会因为成为与共情者邻近的存活玩家，从而影响共情者获取的信息。",
   ],
   night: {
     order: 53,
     target: {
       count: { min: 0, max: 0 },
     },
-    dialog: (playerSeatId, isFirstNight) => ({
-      wake: isFirstNight ? "共情者，请睁眼。这是你的初始信息" : "共情者，请睁眼。这是你今晚的信息",
+    dialog: (_playerSeatId, isFirstNight) => ({
+      wake: isFirstNight
+        ? "共情者，请睁眼。这是你的初始信息"
+        : "共情者，请睁眼。这是你今晚的信息",
       instruction: "请向其比划邻座邪恶玩家的数量（0, 1, 或 2）",
       close: "共情者，请闭眼。",
     }),
@@ -86,7 +88,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
       return {
         updates: [],
         logs: {
-          privateLog: `共情者(${selfId + 1}号) 获取了邻座邪恶玩家信息`
+          privateLog: `共情者(${selfId + 1}号) 获取了邻座邪恶玩家信息`,
         },
       };
     },

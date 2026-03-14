@@ -1,32 +1,32 @@
 // 从 data.ts 导入相关类型
 import type {
-  Role,
-  Seat,
-  StatusEffect,
-  LogEntry,
-  GamePhase,
-  WinResult,
-  RoleType,
-  NightActionMeta,
-  SetupMeta,
   DayActionMeta,
-  TriggerMeta
-} from '../../app/data';
-import type { NightActionSnapshot } from '../../app/gameLogic';
+  GamePhase,
+  LogEntry,
+  NightActionMeta,
+  Role,
+  RoleType,
+  Seat,
+  SetupMeta,
+  StatusEffect,
+  TriggerMeta,
+  WinResult,
+} from "../../app/data";
+import type { NightActionSnapshot } from "../../app/gameLogic";
 
 // 重新导出相关类型
 export type {
-  Role,
-  Seat,
-  StatusEffect,
-  LogEntry,
-  GamePhase,
-  WinResult,
-  RoleType,
-  NightActionMeta,
-  SetupMeta,
   DayActionMeta,
-  TriggerMeta
+  GamePhase,
+  LogEntry,
+  NightActionMeta,
+  Role,
+  RoleType,
+  Seat,
+  SetupMeta,
+  StatusEffect,
+  TriggerMeta,
+  WinResult,
 };
 
 // --- 辅助类型 ---
@@ -65,15 +65,14 @@ export interface NightInfoResult extends Partial<NightActionSnapshot> {
   canSelectSelf?: boolean;
 }
 
-
 // 夜间时间线相关类型
 export interface TimelineInteractionEffect {
-  type: 'add_status' | 'kill' | 'protect' | 'info' | 'none';
+  type: "add_status" | "kill" | "protect" | "info" | "none";
   value?: string;
 }
 
 export interface TimelineInteraction {
-  type: 'choosePlayer' | 'none';
+  type: "choosePlayer" | "none";
   amount: number;
   required: boolean;
   canSelectSelf: boolean;
@@ -89,7 +88,7 @@ export interface TimelineStepContent {
 
 export interface TimelineStep {
   id: string;
-  type: 'character' | 'dawn';
+  type: "character" | "dawn";
   seatId?: number;
   roleId?: string;
   order: number;
@@ -118,6 +117,5 @@ export const phaseNames: Record<string, string> = {
   dusk: "黄昏/处决",
   night: "夜晚",
   dawnReport: "天亮结算",
-  gameOver: "游戏结束"
+  gameOver: "游戏结束",
 };
-

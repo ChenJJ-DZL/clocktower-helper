@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 心上人 (Sweetheart)
  * 当你死亡时，会有一名玩家开始醉酒。
- * 
+ *
  * 规则要点：
  * - 由说书人选择哪名玩家醉酒
  * - 这项能力当心上人死亡时才会被触发

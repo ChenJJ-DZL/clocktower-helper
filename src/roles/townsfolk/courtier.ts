@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 侍臣
@@ -84,11 +83,11 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:18-0!canonical and timestamp 20260120025736 and revision id 4343. Serialized with JSON.`,
   clarifications: [
-    `相克规则：维齐尔：如果维齐尔失去能力，他会得知这一信息。如果侍臣在剧本列表中，且维齐尔在具有能力时被处决，他的阵营获胜。召唤师：如果召唤师因为侍臣的能力在第三个夜晚醉酒，由召唤师来选择创造哪种恶魔，由说书人来决定哪名玩家发生转变。`
+    "相克规则：维齐尔：如果维齐尔失去能力，他会得知这一信息。如果侍臣在剧本列表中，且维齐尔在具有能力时被处决，他的阵营获胜。召唤师：如果召唤师因为侍臣的能力在第三个夜晚醉酒，由召唤师来选择创造哪种恶魔，由说书人来决定哪名玩家发生转变。",
   ],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 3 : 3,
+    order: (isFirstNight) => (isFirstNight ? 3 : 3),
 
     target: {
       count: {
@@ -97,7 +96,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:18-0!canonical and time
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（侍臣）。`,
         instruction: "请执行行动",
@@ -108,17 +107,17 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:18-0!canonical and time
     handler: (context) => {
       const { selfId, roles, seats, helpers } = context;
 
-      if (helpers?.hasUsedAbility('courtier', selfId)) {
+      if (helpers?.hasUsedAbility("courtier", selfId)) {
         return {
           updates: [],
-          logs: { privateLog: "你已经使用过侍臣能力了" }
+          logs: { privateLog: "你已经使用过侍臣能力了" },
         };
       }
 
       return {
         updates: [],
         modal: {
-          type: 'COURTIER_SELECT_ROLE',
+          type: "COURTIER_SELECT_ROLE",
           data: {
             sourceId: selfId,
             roles: roles || [],
@@ -127,30 +126,37 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:18-0!canonical and time
               if (!helpers) return;
               helpers.setCurrentModal(null);
 
-              helpers.setSeats(prev => prev.map(s => {
-                if (s.role?.id === roleId) {
-                  return {
-                    ...s,
-                    isDrunk: true,
-                    drunkNights: 3,
-                    statusDetails: [...(s.statusDetails || []), '侍臣使你醉酒（3晚）']
-                  };
-                }
-                return s;
-              }));
+              helpers.setSeats((prev) =>
+                prev.map((s) => {
+                  if (s.role?.id === roleId) {
+                    return {
+                      ...s,
+                      isDrunk: true,
+                      drunkNights: 3,
+                      statusDetails: [
+                        ...(s.statusDetails || []),
+                        "侍臣使你醉酒（3晚）",
+                      ],
+                    };
+                  }
+                  return s;
+                })
+              );
 
-              const roleName = roles?.find(r => r.id === roleId)?.name || roleId;
-              helpers.addLog(`🍷 ${selfId + 1}号(侍臣) 选择角色 【${roleName}】 醉酒3晚`);
-              helpers.markAbilityUsed('courtier', selfId);
+              const roleName =
+                roles?.find((r) => r.id === roleId)?.name || roleId;
+              helpers.addLog(
+                `🍷 ${selfId + 1}号(侍臣) 选择角色 【${roleName}】 醉酒3晚`
+              );
+              helpers.markAbilityUsed("courtier", selfId);
               helpers.continueToNextAction();
             },
             onCancel: () => {
               helpers?.setCurrentModal(null);
-            }
-          }
-        }
+            },
+          },
+        },
       };
     },
-
   },
 };

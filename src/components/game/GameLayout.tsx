@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface GameLayoutProps {
   leftPanel: ReactNode;
@@ -9,10 +9,10 @@ interface GameLayoutProps {
 
 /**
  * GameLayout - Enforces a strict split-screen layout for the game
- * 
+ *
  * Left Panel: Flexible width, contains the seating chart/table
  * Right Panel: Fixed width (400px), contains the control console
- * 
+ *
  * Both panels are contained within a full-viewport container with no overflow
  */
 export function GameLayout({ leftPanel, rightPanel }: GameLayoutProps) {
@@ -32,4 +32,3 @@ export function GameLayout({ leftPanel, rightPanel }: GameLayoutProps) {
     </div>
   );
 }
-

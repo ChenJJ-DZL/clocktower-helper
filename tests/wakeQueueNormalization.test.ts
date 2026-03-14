@@ -6,7 +6,12 @@ describe("normalizeWakeQueueForDeaths", () => {
   test("removing the first (dead) queue item should not cause skipping the next alive player", () => {
     const seats = [
       { id: 0, role: { id: "monk" }, isDead: true, hasAbilityEvenDead: false },
-      { id: 1, role: { id: "poisoner" }, isDead: false, hasAbilityEvenDead: false },
+      {
+        id: 1,
+        role: { id: "poisoner" },
+        isDead: false,
+        hasAbilityEvenDead: false,
+      },
       { id: 2, role: { id: "imp" }, isDead: false, hasAbilityEvenDead: false },
     ];
 
@@ -25,7 +30,12 @@ describe("normalizeWakeQueueForDeaths", () => {
   test("if currentWakeIndex points to seat 1, removing a dead seat 0 should shift index back to keep current seat consistent", () => {
     const seats = [
       { id: 0, role: { id: "monk" }, isDead: true, hasAbilityEvenDead: false },
-      { id: 1, role: { id: "poisoner" }, isDead: false, hasAbilityEvenDead: false },
+      {
+        id: 1,
+        role: { id: "poisoner" },
+        isDead: false,
+        hasAbilityEvenDead: false,
+      },
       { id: 2, role: { id: "imp" }, isDead: false, hasAbilityEvenDead: false },
     ];
 
@@ -43,7 +53,12 @@ describe("normalizeWakeQueueForDeaths", () => {
 
   test("ravenkeeper that died tonight should NOT be removed from queue", () => {
     const seats = [
-      { id: 0, role: { id: "ravenkeeper" }, isDead: true, hasAbilityEvenDead: false },
+      {
+        id: 0,
+        role: { id: "ravenkeeper" },
+        isDead: true,
+        hasAbilityEvenDead: false,
+      },
       { id: 1, role: { id: "imp" }, isDead: false, hasAbilityEvenDead: false },
     ];
 
@@ -59,5 +74,3 @@ describe("normalizeWakeQueueForDeaths", () => {
     expect(res.currentWakeIndex).toBe(0);
   });
 });
-
-

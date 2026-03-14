@@ -1,5 +1,5 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 import { addPoisonMark, computeIsPoisoned } from "../../utils/gameRules";
 
 /**
@@ -93,8 +93,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:69-0!canonical and timestamp 20260119171116 and revision id 5821. Serialized with JSON.`,
   clarifications: [
-    `相克规则：魔术师：当寡妇查看魔典时，魔术师和恶魔的标记会被说书人移除。罂粟种植者：如果罂粟种植者在场，直到其死亡前寡妇无法查看魔典。寡妇会在罂粟种植者死后的首个夜晚触发自身的能力。炼金术士：如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每个白天发生处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇：如果猜对了，恶魔今晚必须选择寡妇。落难少女：如果寡妇正在场或曾经在场，落难少女中毒。异端分子：异端分子会被寡妇当作一个不在场的外来者，异端分子会知道是哪个外来者。`,
-    `相克规则（与华灯系列角色）：戏子：互为克星的角色在同一时间里只能有其中一个角色在场。戏子（改）：互为克星的角色在同一时间里只能有其中一个角色在场。`
+    "相克规则：魔术师：当寡妇查看魔典时，魔术师和恶魔的标记会被说书人移除。罂粟种植者：如果罂粟种植者在场，直到其死亡前寡妇无法查看魔典。寡妇会在罂粟种植者死后的首个夜晚触发自身的能力。炼金术士：如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每个白天发生处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇：如果猜对了，恶魔今晚必须选择寡妇。落难少女：如果寡妇正在场或曾经在场，落难少女中毒。异端分子：异端分子会被寡妇当作一个不在场的外来者，异端分子会知道是哪个外来者。",
+    "相克规则（与华灯系列角色）：戏子：互为克星的角色在同一时间里只能有其中一个角色在场。戏子（改）：互为克星的角色在同一时间里只能有其中一个角色在场。",
   ],
 
   night: {
@@ -119,20 +119,33 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:69-0!canonical and time
 
     handler: (context) => {
       const { seats, targets, selfId, gamePhase } = context;
-      if (gamePhase !== 'firstNight') {
-        return { updates: [], logs: { privateLog: `寡妇（${selfId + 1}号）非首夜不行动` } };
+      if (gamePhase !== "firstNight") {
+        return {
+          updates: [],
+          logs: { privateLog: `寡妇（${selfId + 1}号）非首夜不行动` },
+        };
       }
       if (targets.length !== 1) {
-        return { updates: [], logs: { privateLog: `寡妇（${selfId + 1}号）未选择有效目标` } };
+        return {
+          updates: [],
+          logs: { privateLog: `寡妇（${selfId + 1}号）未选择有效目标` },
+        };
       }
 
       const targetId = targets[0];
       const targetSeat = seats.find((s) => s.id === targetId);
       if (!targetSeat) {
-        return { updates: [], logs: { privateLog: `寡妇（${selfId + 1}号）选择了无效目标` } };
+        return {
+          updates: [],
+          logs: { privateLog: `寡妇（${selfId + 1}号）选择了无效目标` },
+        };
       }
 
-      const { statusDetails, statuses } = addPoisonMark(targetSeat, "widow", "寡妇死亡");
+      const { statusDetails, statuses } = addPoisonMark(
+        targetSeat,
+        "widow",
+        "寡妇死亡"
+      );
       const nextSeat = { ...targetSeat, statusDetails, statuses };
 
       return {
@@ -151,6 +164,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:69-0!canonical and time
     },
   },
 };
-
-
-

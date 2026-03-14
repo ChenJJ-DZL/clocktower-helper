@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 戏法师 (Conjurer) - 扩展镇民（隐藏占位）
@@ -82,7 +82,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:596-0!canonical and timestamp 20260120025511 and revision id 4672. Serialized with JSON.`,
   clarifications: [
-    `相克规则：维齐尔：如果维齐尔在场，戏法师在进行猜测时还需要猜测恶魔的具体角色。`
+    "相克规则：维齐尔：如果维齐尔在场，戏法师在进行猜测时还需要猜测恶魔的具体角色。",
   ],
   night: {
     order: 0,
@@ -98,5 +98,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:596-0!canonical and tim
     }),
   },
 };
-
-

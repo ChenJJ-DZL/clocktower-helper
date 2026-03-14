@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 旅店老板
@@ -72,11 +71,11 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:15-0!canonical and timestamp 20260119180304 and revision id 4869. Serialized with JSON.`,
   clarifications: [
-    `相克规则：利维坦：如果利维坦在场，旅店老板保护的玩家免疫所有邪恶阵营的负面效果。暴乱：如果暴乱在场，旅店老板保护的玩家免疫所有邪恶阵营的负面效果。`
+    "相克规则：利维坦：如果利维坦在场，旅店老板保护的玩家免疫所有邪恶阵营的负面效果。暴乱：如果暴乱在场，旅店老板保护的玩家免疫所有邪恶阵营的负面效果。",
   ],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 0 : 2,
+    order: (isFirstNight) => (isFirstNight ? 0 : 2),
 
     target: {
       count: {
@@ -107,15 +106,21 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:15-0!canonical and time
       const [aId, bId] = targets;
       // 模拟说书人随机选择（或固定逻辑，正式版可出弹窗）
       const drunkTargetId = Math.random() < 0.5 ? aId : bId;
-      const clearTime = '次日黄昏';
+      const clearTime = "次日黄昏";
 
-      const updates = [aId, bId].map(id => {
-        const seat = seats.find(s => s.id === id);
+      const updates = [aId, bId].map((id) => {
+        const seat = seats.find((s) => s.id === id);
         const update: any = { id, isProtected: true, protectedBy: selfId };
         if (id === drunkTargetId) {
           update.isDrunk = true;
-          update.statusDetails = [...(seat?.statusDetails || []), `旅店老板致醉${clearTime}清除`];
-          update.statuses = [...(seat?.statuses || []), { effect: 'Drunk', duration: clearTime }];
+          update.statusDetails = [
+            ...(seat?.statusDetails || []),
+            `旅店老板致醉${clearTime}清除`,
+          ];
+          update.statuses = [
+            ...(seat?.statuses || []),
+            { effect: "Drunk", duration: clearTime },
+          ];
         }
         return update;
       });
@@ -123,10 +128,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:15-0!canonical and time
       return {
         updates,
         logs: {
-          privateLog: `旅店老板本夜保护了 ${aId + 1}号 和 ${bId + 1}号玩家，其中 ${drunkTargetId + 1}号 醉酒。`
-        }
+          privateLog: `旅店老板本夜保护了 ${aId + 1}号 和 ${bId + 1}号玩家，其中 ${drunkTargetId + 1}号 醉酒。`,
+        },
       };
     },
-
   },
 };

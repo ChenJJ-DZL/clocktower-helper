@@ -1,11 +1,14 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface NightDeathReportModalProps {
   message: string | null;
   onConfirm: () => void;
 }
 
-export function NightDeathReportModal({ message, onConfirm }: NightDeathReportModalProps) {
+export function NightDeathReportModal({
+  message,
+  onConfirm,
+}: NightDeathReportModalProps) {
   if (!message) return null;
 
   return (
@@ -26,4 +29,3 @@ export function NightDeathReportModal({ message, onConfirm }: NightDeathReportMo
     </ModalWrapper>
   );
 }
-

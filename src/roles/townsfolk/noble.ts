@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 贵族
@@ -66,19 +65,19 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:52-0!canonical and timestamp 20260120025826 and revision id 3117. Serialized with JSON.`,
   clarifications: [
-    `特定角色互动：异教领袖：就算在首夜因为自身能力就变为邪恶，也不会被贵族当做邪恶玩家得知。因为异教领袖的首夜行动顺序在贵族之后，他在贵族在被唤醒时始终都是善良的。舞蛇人：可能在贵族醒来之前阵营发生交换，所以在贵族信息中需要展示新的阵营状态。莽夫：在贵族醒来时，莽夫的阵营可能已经变为邪恶，所以可以将莽夫作为邪恶玩家展示。注意，贵族没有使用自身能力选择莽夫。陌客/间谍：可以被贵族当作邪恶或善良。`
+    "特定角色互动：异教领袖：就算在首夜因为自身能力就变为邪恶，也不会被贵族当做邪恶玩家得知。因为异教领袖的首夜行动顺序在贵族之后，他在贵族在被唤醒时始终都是善良的。舞蛇人：可能在贵族醒来之前阵营发生交换，所以在贵族信息中需要展示新的阵营状态。莽夫：在贵族醒来时，莽夫的阵营可能已经变为邪恶，所以可以将莽夫作为邪恶玩家展示。注意，贵族没有使用自身能力选择莽夫。陌客/间谍：可以被贵族当作邪恶或善良。",
   ],
-  
+
   night: {
-    order: (isFirstNight) => isFirstNight ? 7 : 0,
-    
+    order: (isFirstNight) => (isFirstNight ? 7 : 0),
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (!isFirstNight) {
         return {
@@ -93,8 +92,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:52-0!canonical and time
         close: `${playerSeatId + 1}号玩家（贵族），请闭眼。`,
       };
     },
-    
-    handler: undefined, /* TODO: Migrate to OOP */
 
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

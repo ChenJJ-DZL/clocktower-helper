@@ -227,5 +227,3 @@ export function getNightOrderOverride(
   const idx = list.indexOf(roleId);
   return idx >= 0 ? idx + 1 : null;
 }
-
-

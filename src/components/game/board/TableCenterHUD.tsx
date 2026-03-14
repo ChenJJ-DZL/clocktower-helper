@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { GamePhase } from "../../../../app/data";
+import type React from "react";
+import { useCallback, useState } from "react";
+import type { GamePhase } from "../../../../app/data";
 
 interface TableCenterHUDProps {
   gamePhase: GamePhase;
@@ -38,44 +39,66 @@ export function TableCenterHUD({
     }
   }, [isTimerRunning, onTimerPause, onTimerStart]);
 
-  const handleTimerReset = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsTimerRunning(false);
-    onTimerReset?.();
-  }, [onTimerReset]);
+  const handleTimerReset = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsTimerRunning(false);
+      onTimerReset?.();
+    },
+    [onTimerReset]
+  );
 
   const getPhaseLabel = () => {
     switch (gamePhase) {
-      case 'setup': return '准备阶段';
-      case 'check': return '核对身份';
-      case 'firstNight': return '首夜';
-      case 'night': return `第 ${nightCount} 夜`;
-      case 'day': return `第 ${nightCount} 天`;
-      case 'dusk': return '黄昏';
-      case 'dawnReport': return '天亮结算';
-      case 'gameOver': return '游戏结束';
-      case 'scriptSelection': return '选择剧本';
-      default: return gamePhase;
+      case "setup":
+        return "准备阶段";
+      case "check":
+        return "核对身份";
+      case "firstNight":
+        return "首夜";
+      case "night":
+        return `第 ${nightCount} 夜`;
+      case "day":
+        return `第 ${nightCount} 天`;
+      case "dusk":
+        return "黄昏";
+      case "dawnReport":
+        return "天亮结算";
+      case "gameOver":
+        return "游戏结束";
+      case "scriptSelection":
+        return "选择剧本";
+      default:
+        return gamePhase;
     }
   };
 
   const getPhaseColor = () => {
     switch (gamePhase) {
-      case 'setup': return 'text-slate-400';
-      case 'check': return 'text-blue-400';
-      case 'firstNight':
-      case 'night': return 'text-purple-400';
-      case 'day': return 'text-cyan-400';
-      case 'dusk': return 'text-orange-400';
-      case 'dawnReport': return 'text-yellow-400';
-      case 'gameOver': return 'text-red-400';
-      case 'scriptSelection': return 'text-slate-300';
-      default: return 'text-gray-400';
+      case "setup":
+        return "text-slate-400";
+      case "check":
+        return "text-blue-400";
+      case "firstNight":
+      case "night":
+        return "text-purple-400";
+      case "day":
+        return "text-cyan-400";
+      case "dusk":
+        return "text-orange-400";
+      case "dawnReport":
+        return "text-yellow-400";
+      case "gameOver":
+        return "text-red-400";
+      case "scriptSelection":
+        return "text-slate-300";
+      default:
+        return "text-gray-400";
     }
   };
 
   // Don't show during script selection
-  if (gamePhase === 'scriptSelection') {
+  if (gamePhase === "scriptSelection") {
     return null;
   }
 
@@ -83,7 +106,9 @@ export function TableCenterHUD({
     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
       <div className="px-8 py-6 rounded-3xl bg-slate-900/90 shadow-2xl backdrop-blur-md flex flex-col items-center gap-3 pointer-events-auto">
         {/* Phase Indicator */}
-        <div className={`text-4xl font-black tracking-wide ${getPhaseColor()} drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]`}>
+        <div
+          className={`text-4xl font-black tracking-wide ${getPhaseColor()} drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]`}
+        >
           {getPhaseLabel()}
         </div>
 
@@ -118,4 +143,3 @@ export function TableCenterHUD({
     </div>
   );
 }
-

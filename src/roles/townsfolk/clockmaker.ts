@@ -1,5 +1,7 @@
-import { RoleDefinition, NightActionContext } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type {
+  NightActionContext,
+  RoleDefinition,
+} from "../../types/roleDefinition";
 
 /**
  * 钟表匠 (Clockmaker)
@@ -66,15 +68,15 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and timestamp 20260119184652 and revision id 4896. Serialized with JSON。`,
   clarifications: [
-    `当钟表匠即将被唤醒之前，说书人会根据当前场上的情况给出实时的信息。这意味着钟表匠得知的信息可能会与游戏初始时的情况有所不同，因为有一些角色的能力能够在游戏的过程中改变玩家的角色（如麻脸巫婆和理发师等）。`,
-    `钟表匠在获得信息时，说书人需要每次抽取两名玩家（其中一名为恶魔，另一名为爪牙，必须是两名不同的玩家）进行距离计算，直到将场上所有的“恶魔-爪牙”组合遍历完毕。这一过程类似于厨师，会进行多次判断，因此某些角色可能会在不同的玩家组合中被当作为不同的结果（如间谍、陌客、照看小怪宝的爪牙等）。最后，说书人会将这些距离值中的最小值作为信息提供给钟表匠。`,
-    `在计算距离时，距离值等同于：恶魔与爪牙这两名玩家之间的玩家数量+1。因此，钟表匠能得知的最小数字为“1”。（然而，在极端情况下，如果场上缺乏某种类型的角色，如无恶魔或无爪牙的时候，钟表匠会得知“0”。）`,
-    `在抽取两名玩家的组合时，即使是已死亡的玩家也依然会被钟表匠进行探查。`,
-    `相克规则：召唤师：如果召唤师在场，在创造恶魔之后钟表匠才会得知信息。`
+    "当钟表匠即将被唤醒之前，说书人会根据当前场上的情况给出实时的信息。这意味着钟表匠得知的信息可能会与游戏初始时的情况有所不同，因为有一些角色的能力能够在游戏的过程中改变玩家的角色（如麻脸巫婆和理发师等）。",
+    "钟表匠在获得信息时，说书人需要每次抽取两名玩家（其中一名为恶魔，另一名为爪牙，必须是两名不同的玩家）进行距离计算，直到将场上所有的“恶魔-爪牙”组合遍历完毕。这一过程类似于厨师，会进行多次判断，因此某些角色可能会在不同的玩家组合中被当作为不同的结果（如间谍、陌客、照看小怪宝的爪牙等）。最后，说书人会将这些距离值中的最小值作为信息提供给钟表匠。",
+    "在计算距离时，距离值等同于：恶魔与爪牙这两名玩家之间的玩家数量+1。因此，钟表匠能得知的最小数字为“1”。（然而，在极端情况下，如果场上缺乏某种类型的角色，如无恶魔或无爪牙的时候，钟表匠会得知“0”。）",
+    "在抽取两名玩家的组合时，即使是已死亡的玩家也依然会被钟表匠进行探查。",
+    "相克规则：召唤师：如果召唤师在场，在创造恶魔之后钟表匠才会得知信息。",
   ],
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 4 : 0,
+    order: (isFirstNight) => (isFirstNight ? 4 : 0),
 
     target: {
       count: {
@@ -83,34 +85,43 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context: NightActionContext) => {
+    dialog: (
+      playerSeatId: number,
+      isFirstNight: boolean,
+      _context: NightActionContext
+    ) => {
       if (!isFirstNight) {
         return { wake: "", instruction: "", close: "" };
       }
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（钟表匠）。`,
-        instruction: "说书人将用手势告知：恶魔与任一爪牙之间最近的距离（邻座为1）。",
+        instruction:
+          "说书人将用手势告知：恶魔与任一爪牙之间最近的距离（邻座为1）。",
         close: `${playerSeatId + 1}号玩家（钟表匠），请闭眼。`,
       };
     },
 
     handler: (context: NightActionContext) => {
       const { seats, gamePhase, selfId } = context;
-      if (gamePhase !== 'firstNight') {
+      if (gamePhase !== "firstNight") {
         return null;
       }
 
       // Jinx: If Summoner is in play, they are considered a demon.
-      const summonerInPlay = seats.some(s => s.role?.id === 'summoner');
+      const summonerInPlay = seats.some((s) => s.role?.id === "summoner");
 
-      const demons = seats.filter(s => s.role?.type === 'demon' || (summonerInPlay && s.role?.id === 'summoner'));
-      const minions = seats.filter(s => s.role?.type === 'minion');
+      const demons = seats.filter(
+        (s) =>
+          s.role?.type === "demon" ||
+          (summonerInPlay && s.role?.id === "summoner")
+      );
+      const minions = seats.filter((s) => s.role?.type === "minion");
 
       if (demons.length === 0 || minions.length === 0) {
         return {
           updates: [],
           logs: {
-            privateLog: `钟表匠（${selfId + 1}号）得知距离为 0（无恶魔或爪牙）。`
+            privateLog: `钟表匠（${selfId + 1}号）得知距离为 0（无恶魔或爪牙）。`,
           },
           speak: ["说书人手势：0"],
         };
@@ -132,7 +143,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
       return {
         updates: [],
         logs: {
-          privateLog: `钟表匠（${selfId + 1}号）得知恶魔与爪牙的最近距离为 ${minDistance}`
+          privateLog: `钟表匠（${selfId + 1}号）得知恶魔与爪牙的最近距离为 ${minDistance}`,
         },
         speak: [`说书人手势：${minDistance}`],
       };

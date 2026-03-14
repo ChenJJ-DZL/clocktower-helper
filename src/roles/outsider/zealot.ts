@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 狂热者 (Zealot)
  * 如果有大于等于五名玩家存活，你必须在所有提名中投票。
- * 
+ *
  * 规则要点：
  * - 如果存活玩家数量为五人或更多，狂热者必须在所有提名中投票
  * - 如果只有四名或更少的玩家存活，狂热者可以自由选择是否参与投票
@@ -74,11 +74,9 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:599-0!canonical and timestamp 20260120030631 and revision id 4888. Serialized with JSON.`,
   clarifications: [
-    `相克规则：食人族：如果食人族获得了狂热者的能力，他会得知这一信息。维齐尔：维齐尔的能力可能会将狂热者当作邪恶阵营。军团：军团的能力可能会将狂热者当作邪恶阵营。`
+    "相克规则：食人族：如果食人族获得了狂热者的能力，他会得知这一信息。维齐尔：维齐尔的能力可能会将狂热者当作邪恶阵营。军团：军团的能力可能会将狂热者当作邪恶阵营。",
   ],
   // 无夜晚行动（投票强制能力）
   // 狂热者的能力在白天投票时触发，强制参与所有投票
   // 具体逻辑在投票处理中实现
 };
-
-

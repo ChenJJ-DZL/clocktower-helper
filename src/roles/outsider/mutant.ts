@@ -1,9 +1,9 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 畸形秀演员 (Mutant)
  * 如果你"疯狂"地证明自己是外来者，你可能被处决。
- * 
+ *
  * 规则要点：
  * - "疯狂"指试图说服他人相信某件事情
  * - 如果畸形秀演员试图证明自己是外来者，说书人可以处决他

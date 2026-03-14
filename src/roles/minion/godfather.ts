@@ -1,5 +1,4 @@
-import { RoleDefinition, NightActionContext, NightActionResult } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 教父
@@ -76,8 +75,8 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:139-0!canonical and timestamp 20260119183822 and revision id 5459. Serialized with JSON.`,
   clarifications: [
-    `相克规则：异端分子：异端分子会被教父当作一个不在场的外来者，异端分子会知道是哪个外来者。`,
-    `相克规则（与华灯系列角色）：戏子：互为克星的角色在同一时间里只能有其中一个角色在场。`
+    "相克规则：异端分子：异端分子会被教父当作一个不在场的外来者，异端分子会知道是哪个外来者。",
+    "相克规则（与华灯系列角色）：戏子：互为克星的角色在同一时间里只能有其中一个角色在场。",
   ],
   // 教父的夜晚具体逻辑在 nightLogic 中由 trigger 条件驱动，这里只保留占位，
   // 避免与 nightLogic 中的引导/顺序重复定义。

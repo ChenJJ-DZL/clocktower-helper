@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
@@ -28,7 +27,7 @@ export const po: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "珀", context);
     },
 
@@ -45,15 +44,15 @@ export const po: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
       return {
         wake: "🌸 每个夜晚*，你可以选择一名玩家：他死亡。如果你上次选择时没有选择任何玩家，当晚你要选择三名玩家：他们死亡。",
-        instruction: '"你可以选择一名玩家杀死；如果你上次选择时没有选择任何玩家，当晚你要选择三名玩家杀死。"',
+        instruction:
+          '"你可以选择一名玩家杀死；如果你上次选择时没有选择任何玩家，当晚你要选择三名玩家杀死。"',
         close: "kill",
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

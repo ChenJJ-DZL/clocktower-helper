@@ -1,5 +1,8 @@
-import { RoleDefinition, ExecutionContext, ExecutionResult } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type {
+  ExecutionContext,
+  ExecutionResult,
+  RoleDefinition,
+} from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
@@ -21,7 +24,7 @@ export const zombuul: RoleDefinition = {
 - 角色类型：恶魔`,
   clarifications: [
     `相克规则：召唤师：如果召唤师将一名已死亡的玩家变成了僵怖，该玩家会变成"已经死过一次"的僵怖。`,
-    `相克规则（与华灯系列角色）：戏子：在戏子存在于剧本中时，僵怖可以在游戏中任意时候向说书人示意自己"想要死亡"。无论僵怖是否触发过"假死"，当晚僵怖会变为死亡状态。戏子（改）：在戏子（改）存在于剧本中时，僵怖可以在游戏中任意时候向说书人示意自己"想要死亡"。无论僵怖是否触发过"假死"，当晚僵怖会变为死亡状态。`
+    `相克规则（与华灯系列角色）：戏子：在戏子存在于剧本中时，僵怖可以在游戏中任意时候向说书人示意自己"想要死亡"。无论僵怖是否触发过"假死"，当晚僵怖会变为死亡状态。戏子（改）：在戏子（改）存在于剧本中时，僵怖可以在游戏中任意时候向说书人示意自己"想要死亡"。无论僵怖是否触发过"假死"，当晚僵怖会变为死亡状态。`,
   ],
 
   firstNight: {
@@ -31,7 +34,7 @@ export const zombuul: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "僵怖", context);
     },
 
@@ -48,7 +51,7 @@ export const zombuul: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean, context) => {
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, context) => {
       const { lastDuskExecution } = context;
 
       if (lastDuskExecution === null) {
@@ -68,8 +71,7 @@ export const zombuul: RoleDefinition = {
       }
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 
   /**
@@ -81,20 +83,26 @@ export const zombuul: RoleDefinition = {
     const zombuulLives = executedSeat.zombuulLives ?? 1;
 
     // 如果还有生命且是第一次假死
-    if (zombuulLives > 0 && !executedSeat.isZombuulTrulyDead && !executedSeat.isFirstDeathForZombuul) {
+    if (
+      zombuulLives > 0 &&
+      !executedSeat.isZombuulTrulyDead &&
+      !executedSeat.isFirstDeathForZombuul
+    ) {
       const details = executedSeat.statusDetails || [];
-      const hasFakeDeathTag = details.includes('僵怖假死');
+      const hasFakeDeathTag = details.includes("僵怖假死");
 
       return {
         handled: true,
-        seatUpdates: [{
-          id: executedSeat.id,
-          isDead: false, // 假死，逻辑上仍视为存活
-          isFirstDeathForZombuul: true,
-          isZombuulTrulyDead: false,
-          zombuulLives: Math.max(0, zombuulLives - 1),
-          statusDetails: hasFakeDeathTag ? details : [...details, '僵怖假死'],
-        }],
+        seatUpdates: [
+          {
+            id: executedSeat.id,
+            isDead: false, // 假死，逻辑上仍视为存活
+            isFirstDeathForZombuul: true,
+            isZombuulTrulyDead: false,
+            zombuulLives: Math.max(0, zombuulLives - 1),
+            statusDetails: hasFakeDeathTag ? details : [...details, "僵怖假死"],
+          },
+        ],
         logs: {
           publicLog: `${executedSeat.id + 1}号僵 被处决假死游戏继续`,
         },
@@ -106,19 +114,21 @@ export const zombuul: RoleDefinition = {
     if (zombuulLives <= 0 || executedSeat.isZombuulTrulyDead) {
       return {
         handled: true,
-        seatUpdates: [{
-          id: executedSeat.id,
-          isDead: true,
-          isZombuulTrulyDead: true,
-          zombuulLives: 0,
-        }],
+        seatUpdates: [
+          {
+            id: executedSeat.id,
+            isDead: true,
+            isZombuulTrulyDead: true,
+            zombuulLives: 0,
+          },
+        ],
         gameOver: {
-          winResult: 'good',
-          winReason: '僵怖被处决',
+          winResult: "good",
+          winReason: "僵怖被处决",
         },
         logs: {
           publicLog: `${executedSeat.id + 1}号僵 被处决真正死亡`,
-          privateLog: '游戏结束：僵怖被处决，好人阵营获胜',
+          privateLog: "游戏结束：僵怖被处决，好人阵营获胜",
         },
       };
     }

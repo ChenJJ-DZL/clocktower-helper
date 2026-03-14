@@ -10,6 +10,3 @@ import troubleBrewingRolesData from "./rolesData.json";
  * - 能力文字说明、旧字段等仍由 app/data.ts 中的大 roles 数组提供，后续可按需合并。
  */
 export const troubleBrewingRoles: Role[] = troubleBrewingRolesData as Role[];
-
-
-

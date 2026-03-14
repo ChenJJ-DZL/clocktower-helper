@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
+import { gameActions, useGameContext } from "../contexts/GameContext";
 import type { ModalType } from "../types/modal";
-import { useGameContext, gameActions } from "../contexts/GameContext";
 
 /**
  * UseModalManagerResult - 弹窗管理 Hook 的返回结果
@@ -22,23 +22,30 @@ export function useModalManager(): UseModalManagerResult {
   const { state, dispatch } = useGameContext();
   const { currentModal } = state;
 
-  const openModal = useCallback((modal: ModalType) => {
-    dispatch(gameActions.setModal(modal));
-  }, [dispatch]);
+  const openModal = useCallback(
+    (modal: ModalType) => {
+      dispatch(gameActions.setModal(modal));
+    },
+    [dispatch]
+  );
 
   const closeModal = useCallback(() => {
     dispatch(gameActions.setModal(null));
   }, [dispatch]);
 
-
-
-  return useMemo(() => ({
-    currentModal,
-    openModal,
-    closeModal,
-    setCurrentModal: (val: React.SetStateAction<ModalType>) => {
-      const next = typeof val === 'function' ? (val as (p: ModalType) => ModalType)(state.currentModal) : val;
-      dispatch(gameActions.setModal(next));
-    },
-  }), [currentModal, openModal, closeModal, state.currentModal, dispatch]);
+  return useMemo(
+    () => ({
+      currentModal,
+      openModal,
+      closeModal,
+      setCurrentModal: (val: React.SetStateAction<ModalType>) => {
+        const next =
+          typeof val === "function"
+            ? (val as (p: ModalType) => ModalType)(state.currentModal)
+            : val;
+        dispatch(gameActions.setModal(next));
+      },
+    }),
+    [currentModal, openModal, closeModal, state.currentModal, dispatch]
+  );
 }

@@ -1,25 +1,18 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { roles, type Role, type Seat, typeLabels, typeColors, typeBgColors } from "../../../app/data";
-import { GameHeader } from "./info/GameHeader";
-import { LogViewer } from "./info/LogViewer";
-import { ControlPanel } from "../ControlPanel";
-import { GameModals } from "./GameModals";
-import { SeatNode } from '../SeatNode';
-import { useAudio } from '../../hooks/useAudio';
-import { SeatGrid } from "./board/SeatGrid";
-import { RoundTable } from "./board/RoundTable";
-import { GameConsole } from "./console/GameConsole";
-import { getSeatPosition } from "../../utils/gameRules";
-import { GameLayout } from "./GameLayout";
-import { ScaleToFit } from "./board/ScaleToFit";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Seat, typeColors } from "../../../app/data";
+import { useGameActions } from "../../contexts/GameActionsContext";
+import { useAudio } from "../../hooks/useAudio";
+import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { getStorytellerTips } from "../../utils/storytellerTips";
-import { useGameActions } from "../../contexts/GameActionsContext";
-import { useGameState } from "../../hooks/useGameState";
-import { NoteEditModal } from "./modals/NoteEditModal"; // Added import
+import { RoundTable } from "./board/RoundTable";
+import { ScaleToFit } from "./board/ScaleToFit";
+import { GameConsole } from "./console/GameConsole";
+import { GameLayout } from "./GameLayout";
+import { GameModals } from "./GameModals";
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
@@ -27,7 +20,7 @@ export const GameStage = () => {
   // [REFACTOR] 分离方法和状态
   const controller = useGameActions();
   const gameState = useGameState();
-  
+
   // 从 gameState 获取状态
   const {
     // 状态
@@ -127,7 +120,7 @@ export const GameStage = () => {
   } = controller;
 
   // 计算左侧面板的缩放比例，使座位表适应容器
-  const [seatScale, setSeatScale] = useState(1);
+  const [_seatScale, setSeatScale] = useState(1);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const [antagonismEnabled, setAntagonismEnabled] = useState<boolean>(false); // 相克规则开关（默认关闭）
 
@@ -140,28 +133,36 @@ export const GameStage = () => {
   const [nominator, setNominator] = useState<number | null>(null);
   const [nominee, setNominee] = useState<number | null>(null);
   const [pendingVoteFor, setPendingVoteFor] = useState<number | null>(null);
-  const [defenseSecondsLeft, setDefenseSecondsLeft] = useState<number>(0);
+  const [_defenseSecondsLeft, setDefenseSecondsLeft] = useState<number>(0);
 
   // Notes state
-  const [editingNoteTarget, setEditingNoteTarget] = useState<number | null>(null); // Added state for NoteEditModal
+  const [_editingNoteTarget, setEditingNoteTarget] = useState<number | null>(
+    null
+  ); // Added state for NoteEditModal
 
   // VFX State
-  const [isShaking, setIsShaking] = useState(false);
+  const [_isShaking, setIsShaking] = useState(false);
 
   const triggerShake = useCallback(() => {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 600);
   }, []);
   const defenseTimerRef = useRef<number | null>(null);
-  const [lastCallSecondsLeft, setLastCallSecondsLeft] = useState<number>(0);
+  const [_lastCallSecondsLeft, setLastCallSecondsLeft] = useState<number>(0);
   const lastCallTimerRef = useRef<number | null>(null);
   const lastModalTypeRef = useRef<string | null>(null);
   const [isNominationLocked, setIsNominationLocked] = useState<boolean>(false);
   const aliveCoreCount = useMemo(
-    () => seats.filter((s: Seat) => !s.isDead && s.role && s.role.type !== 'traveler').length,
+    () =>
+      seats.filter(
+        (s: Seat) => !s.isDead && s.role && s.role.type !== "traveler"
+      ).length,
     [seats]
   );
-  const voteThreshold = useMemo(() => Math.ceil(aliveCoreCount / 2), [aliveCoreCount]);
+  const voteThreshold = useMemo(
+    () => Math.ceil(aliveCoreCount / 2),
+    [aliveCoreCount]
+  );
 
   const stopDefenseTimer = useCallback(() => {
     if (defenseTimerRef.current !== null) {
@@ -177,48 +178,54 @@ export const GameStage = () => {
     }
   }, []);
 
-  const startLastCall = useCallback((seconds: number) => {
-    stopLastCallTimer();
-    setIsNominationLocked(false);
-    setLastCallSecondsLeft(seconds);
-    lastCallTimerRef.current = window.setInterval(() => {
-      setLastCallSecondsLeft(prev => {
-        if (prev <= 1) {
-          stopLastCallTimer();
-          setIsNominationLocked(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [stopLastCallTimer]);
+  const _startLastCall = useCallback(
+    (seconds: number) => {
+      stopLastCallTimer();
+      setIsNominationLocked(false);
+      setLastCallSecondsLeft(seconds);
+      lastCallTimerRef.current = window.setInterval(() => {
+        setLastCallSecondsLeft((prev) => {
+          if (prev <= 1) {
+            stopLastCallTimer();
+            setIsNominationLocked(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    },
+    [stopLastCallTimer]
+  );
 
-  const startDefenseTimer = useCallback((seconds: number) => {
-    stopDefenseTimer();
-    setDefenseSecondsLeft(seconds);
-    defenseTimerRef.current = window.setInterval(() => {
-      setDefenseSecondsLeft(prev => {
-        if (prev <= 1) {
-          stopDefenseTimer();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [stopDefenseTimer]);
+  const _startDefenseTimer = useCallback(
+    (seconds: number) => {
+      stopDefenseTimer();
+      setDefenseSecondsLeft(seconds);
+      defenseTimerRef.current = window.setInterval(() => {
+        setDefenseSecondsLeft((prev) => {
+          if (prev <= 1) {
+            stopDefenseTimer();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    },
+    [stopDefenseTimer]
+  );
 
   useEffect(() => {
     return () => {
       stopDefenseTimer();
       stopLastCallTimer();
-      playSound('vote');
+      playSound("vote");
     };
   }, [stopDefenseTimer, stopLastCallTimer, playSound]);
 
   // 每次进入黄昏阶段时，重置本地黄昏状态，避免历史遗留状态导致按钮长时间不可用
   useEffect(() => {
-    if (gamePhase === 'dusk') {
-      console.log('[GameStage] 进入黄昏阶段，重置所有黄昏状态');
+    if (gamePhase === "dusk") {
+      console.log("[GameStage] 进入黄昏阶段，重置所有黄昏状态");
       stopDefenseTimer();
       stopLastCallTimer();
       setNominator(null);
@@ -234,8 +241,15 @@ export const GameStage = () => {
   useEffect(() => {
     const prevType = lastModalTypeRef.current;
     const currType = currentModal?.type ?? null;
-    if (gamePhase === 'dusk' && prevType === 'VOTE_INPUT' && currType === null && pendingVoteFor !== null) {
-      console.log('[GameStage] 投票模态关闭，清除 pendingVoteFor，允许下一次提名');
+    if (
+      gamePhase === "dusk" &&
+      prevType === "VOTE_INPUT" &&
+      currType === null &&
+      pendingVoteFor !== null
+    ) {
+      console.log(
+        "[GameStage] 投票模态关闭，清除 pendingVoteFor，允许下一次提名"
+      );
       setPendingVoteFor(null);
     }
     lastModalTypeRef.current = currType;
@@ -259,55 +273,62 @@ export const GameStage = () => {
 
   // 供控制台 / ControlPanel 使用的禁用逻辑
   const isConfirmDisabled = useMemo(() => {
-    console.log('[isConfirmDisabled] Recalculating...');
-    console.log('[isConfirmDisabled] gamePhase:', gamePhase);
-    console.log('[isConfirmDisabled] nightInfo:', nightInfo);
+    console.log("[isConfirmDisabled] Recalculating...");
+    console.log("[isConfirmDisabled] gamePhase:", gamePhase);
+    console.log("[isConfirmDisabled] nightInfo:", nightInfo);
 
     // CRITICAL FIX: In check phase, button should always be enabled to allow drunk charade selection
-    if (gamePhase === 'check' || gamePhase === 'day' || gamePhase === 'dusk') {
-      console.log(`[isConfirmDisabled] In "${gamePhase}" phase, returning false. (handled by specialized buttons)`);
+    if (gamePhase === "check" || gamePhase === "day" || gamePhase === "dusk") {
+      console.log(
+        `[isConfirmDisabled] In "${gamePhase}" phase, returning false. (handled by specialized buttons)`
+      );
       return false;
     }
 
     // For night phases, must have nightInfo
     if (!nightInfo) {
-      console.log('[isConfirmDisabled] No nightInfo, returning true.');
+      console.log("[isConfirmDisabled] No nightInfo, returning true.");
       return true;
     }
 
-    const isBlockingModal = currentModal && !(
-      currentModal.type === 'NIGHT_ORDER_PREVIEW' ||
-      currentModal.type === 'REVIEW' ||
-      currentModal.type === 'GAME_RECORDS' ||
-      currentModal.type === 'ROLE_INFO'
+    const isBlockingModal =
+      currentModal &&
+      !(
+        currentModal.type === "NIGHT_ORDER_PREVIEW" ||
+        currentModal.type === "REVIEW" ||
+        currentModal.type === "GAME_RECORDS" ||
+        currentModal.type === "ROLE_INFO"
+      );
+
+    console.log(
+      "[isConfirmDisabled] isBlockingModal:",
+      isBlockingModal,
+      "currentModal:",
+      currentModal
     );
 
-    console.log('[isConfirmDisabled] isBlockingModal:', isBlockingModal, 'currentModal:', currentModal);
-
     if (isBlockingModal) {
-      console.log('[isConfirmDisabled] Has pending modals, returning true.');
+      console.log("[isConfirmDisabled] Has pending modals, returning true.");
       return true;
     }
 
     // 3. 检查当前目标选择是否符合要求
     if (nightInfo.targetLimit) {
       const { min } = nightInfo.targetLimit;
-      console.log(`[isConfirmDisabled] Checking targets: selected = ${selectedActionTargets.length}, min required = ${min}`);
+      console.log(
+        `[isConfirmDisabled] Checking targets: selected = ${selectedActionTargets.length}, min required = ${min}`
+      );
       if (selectedActionTargets.length < min) {
-        console.log('[isConfirmDisabled] Not enough targets selected, returning true.');
+        console.log(
+          "[isConfirmDisabled] Not enough targets selected, returning true."
+        );
         return true;
       }
     }
 
-    console.log('[isConfirmDisabled] All checks passed, returning false.');
+    console.log("[isConfirmDisabled] All checks passed, returning false.");
     return false;
-  }, [
-    gamePhase,
-    seats,
-    nightInfo,
-    currentModal,
-    selectedActionTargets,
-  ]);
+  }, [gamePhase, nightInfo, currentModal, selectedActionTargets]);
 
   // 统一的说书人指引（夜晚脚本提示 + 阶段小操作提示）
   const guidancePoints = useMemo(() => {
@@ -331,25 +352,38 @@ export const GameStage = () => {
       }
     });
     return merged;
-  }, [gamePhase, nightInfo?.guide, seats, nightCount, deadThisNight, isGoodAlignment]);
+  }, [
+    gamePhase,
+    nightInfo?.guide,
+    seats,
+    nightCount,
+    deadThisNight,
+    isGoodAlignment,
+  ]);
 
   // 当前/下一个行动角色信息
-  const currentWakeSeat = nightInfo ? seats.find((s: Seat) => s.id === nightInfo.seat.id) : null;
+  const currentWakeSeat = nightInfo
+    ? seats.find((s: Seat) => s.id === nightInfo.seat.id)
+    : null;
   const nextWakeSeatId =
-    (gamePhase === "firstNight" || gamePhase === "night") && currentWakeIndex + 1 < wakeQueueIds.length
+    (gamePhase === "firstNight" || gamePhase === "night") &&
+    currentWakeIndex + 1 < wakeQueueIds.length
       ? wakeQueueIds[currentWakeIndex + 1]
       : null;
-  const nextWakeSeat = nextWakeSeatId !== null ? seats.find((s: Seat) => s.id === nextWakeSeatId) : null;
+  const nextWakeSeat =
+    nextWakeSeatId !== null
+      ? seats.find((s: Seat) => s.id === nextWakeSeatId)
+      : null;
   const getDisplayRole = (seat: Seat | null | undefined) => {
     if (!seat) return null;
     const base = seat.role?.id === "drunk" ? seat.charadeRole : seat.role;
     return base;
   };
-  const currentWakeRole = getDisplayRole(currentWakeSeat);
-  const nextWakeRole = getDisplayRole(nextWakeSeat);
+  const _currentWakeRole = getDisplayRole(currentWakeSeat);
+  const _nextWakeRole = getDisplayRole(nextWakeSeat);
 
   // Handle Dusk Phase UI
-  if (gamePhase === 'dusk') {
+  if (gamePhase === "dusk") {
     return (
       <div className="w-full h-full flex flex-col bg-slate-950">
         {/* Layout: Left Table, Right Controls */}
@@ -363,7 +397,7 @@ export const GameStage = () => {
               className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
               title="相克规则：{antagonismEnabled ? '开' : '关'}"
             >
-              相克规则：{antagonismEnabled ? '开' : '关'}
+              相克规则：{antagonismEnabled ? "开" : "关"}
             </button>
             <ScaleToFit>
               <RoundTable
@@ -408,10 +442,10 @@ export const GameStage = () => {
                   // If both nominator and nominee are selected, ignore touches
                   // User must use the nomination button or cancel to change selection
                 }}
-                onTouchEnd={(e, seatId) => {
+                onTouchEnd={(e, _seatId) => {
                   e.stopPropagation();
                 }}
-                onTouchMove={(e, seatId) => {
+                onTouchMove={(e, _seatId) => {
                   e.stopPropagation();
                 }}
                 setSeatRef={(id, el) => {
@@ -437,15 +471,17 @@ export const GameStage = () => {
             <div className="absolute top-4 left-0 right-0 text-center text-orange-500 font-bold text-lg drop-shadow-lg z-30">
               {nominator === null
                 ? "点击选择 提名者"
-                : (nominee === null
+                : nominee === null
                   ? `已选择提名者: ${nominator + 1}号，点击选择 被提名者`
-                  : `准备提名: ${nominator + 1}号 → ${nominee + 1}号`)}
+                  : `准备提名: ${nominator + 1}号 → ${nominee + 1}号`}
             </div>
           </div>
 
           {/* Right: Dusk Control Panel */}
           <div className="w-[450px] bg-slate-900 border-l border-white/10 flex flex-col p-6 gap-4 overflow-y-auto relative z-40">
-            <h2 className="text-2xl font-black text-orange-500 uppercase tracking-wide">⚖️ 处决台</h2>
+            <h2 className="text-2xl font-black text-orange-500 uppercase tracking-wide">
+              ⚖️ 处决台
+            </h2>
 
             {/* Execution Block (Candidates) - Refined UI */}
             <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
@@ -453,36 +489,60 @@ export const GameStage = () => {
                 <span>🏛️</span> 处决台（上台者）
               </h3>
               {(() => {
-                const candidates: Array<{ id: number; voteCount: number }> = seats
-                  .filter((s: Seat) => s.isCandidate)
-                  .map((s: Seat) => ({ id: s.id, voteCount: s.voteCount || 0 }))
-                  .sort((a: { id: number; voteCount: number }, b: { id: number; voteCount: number }) => b.voteCount - a.voteCount);
+                const candidates: Array<{ id: number; voteCount: number }> =
+                  seats
+                    .filter((s: Seat) => s.isCandidate)
+                    .map((s: Seat) => ({
+                      id: s.id,
+                      voteCount: s.voteCount || 0,
+                    }))
+                    .sort(
+                      (
+                        a: { id: number; voteCount: number },
+                        b: { id: number; voteCount: number }
+                      ) => b.voteCount - a.voteCount
+                    );
 
                 if (candidates.length === 0) {
-                  return <div className="text-xs text-gray-400">暂无上台者（未达到半数门槛或尚未投票）</div>;
+                  return (
+                    <div className="text-xs text-gray-400">
+                      暂无上台者（未达到半数门槛或尚未投票）
+                    </div>
+                  );
                 }
 
                 const topVotes = candidates[0].voteCount;
-                const tops = candidates.filter(c => c.voteCount === topVotes);
+                const tops = candidates.filter((c) => c.voteCount === topVotes);
                 const isTie = tops.length >= 2;
 
                 return (
                   <>
                     <div className="text-xs text-gray-300">
-                      当前最高票：<span className="font-bold text-white">{topVotes}</span>
-                      {isTie ? <span className="ml-2 text-yellow-300">（平票：{tops.map(t => `${t.id + 1}号`).join('、')}）</span> : null}
+                      当前最高票：
+                      <span className="font-bold text-white">{topVotes}</span>
+                      {isTie ? (
+                        <span className="ml-2 text-yellow-300">
+                          （平票：{tops.map((t) => `${t.id + 1}号`).join("、")}
+                          ）
+                        </span>
+                      ) : null}
                     </div>
                     <div className="space-y-1">
-                      {candidates.map(c => (
+                      {candidates.map((c) => (
                         <div
                           key={c.id}
-                          className={`flex justify-between text-sm rounded px-2 py-1 border ${c.voteCount === topVotes
-                            ? (isTie ? 'border-yellow-500/60 bg-yellow-900/20 text-yellow-100' : 'border-red-500/60 bg-red-900/20 text-red-100')
-                            : 'border-white/10 bg-slate-900/40 text-slate-200'
-                            }`}
+                          className={`flex justify-between text-sm rounded px-2 py-1 border ${
+                            c.voteCount === topVotes
+                              ? isTie
+                                ? "border-yellow-500/60 bg-yellow-900/20 text-yellow-100"
+                                : "border-red-500/60 bg-red-900/20 text-red-100"
+                              : "border-white/10 bg-slate-900/40 text-slate-200"
+                          }`}
                         >
                           <span>{c.id + 1}号</span>
-                          <span className="font-mono font-bold">{c.voteCount}</span>
+                          <span className="font-mono font-bold">
+                            {c.voteCount}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -497,15 +557,24 @@ export const GameStage = () => {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('[GameStage] 点击执行处决按钮', { executeJudgment: typeof executeJudgment });
+                  console.log("[GameStage] 点击执行处决按钮", {
+                    executeJudgment: typeof executeJudgment,
+                  });
                   try {
                     if (seats.every((s: Seat) => !s.isCandidate)) {
-                      alert('当前处决台为空（无人达成半数门槛），无法执行处决。');
+                      alert(
+                        "当前处决台为空（无人达成半数门槛），无法执行处决。"
+                      );
                       return;
                     }
-                    if (typeof executeJudgment !== 'function') {
-                      console.error('[GameStage] executeJudgment is not a function:', executeJudgment);
-                      alert('错误：executeJudgment 函数不可用，请刷新页面重试。');
+                    if (typeof executeJudgment !== "function") {
+                      console.error(
+                        "[GameStage] executeJudgment is not a function:",
+                        executeJudgment
+                      );
+                      alert(
+                        "错误：executeJudgment 函数不可用，请刷新页面重试。"
+                      );
                       return;
                     }
                     // Trigger visual effect
@@ -513,8 +582,10 @@ export const GameStage = () => {
                     // 直接使用标准处决结算流程（含平票/无人上台/胜负判断）
                     executeJudgment();
                   } catch (error) {
-                    console.error('[GameStage] 执行处决时出错:', error);
-                    alert(`执行处决时出错: ${error instanceof Error ? error.message : String(error)}`);
+                    console.error("[GameStage] 执行处决时出错:", error);
+                    alert(
+                      `执行处决时出错: ${error instanceof Error ? error.message : String(error)}`
+                    );
                   }
                 }}
                 onMouseDown={(e) => {
@@ -524,7 +595,12 @@ export const GameStage = () => {
                   e.stopPropagation();
                 }}
                 className="w-full mt-2 p-3 bg-red-600 text-white font-bold rounded-lg text-lg shadow-lg hover:bg-red-500 transition-colors cursor-pointer relative z-50 h-12 flex items-center justify-center"
-                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+                style={{
+                  pointerEvents: "auto",
+                  touchAction: "auto",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                }}
               >
                 ☠️ 执行处决
               </button>
@@ -538,23 +614,29 @@ export const GameStage = () => {
 
               {/* Primary: Nominator -> Nominee */}
               <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-lg border border-white/5">
-                {(nominator === null && nominee === null && pendingVoteFor === null) ? (
-                  <div className="text-gray-400 text-sm w-full text-center py-1">等待发启提名...</div>
+                {nominator === null &&
+                nominee === null &&
+                pendingVoteFor === null ? (
+                  <div className="text-gray-400 text-sm w-full text-center py-1">
+                    等待发启提名...
+                  </div>
                 ) : (
                   <>
                     <div className="flex flex-col items-center">
                       <span className="text-xs text-gray-500 mb-1">提名者</span>
                       <span className="text-amber-400 font-bold text-xl">
-                        {nominator !== null ? `${nominator + 1}号` : '-'}
+                        {nominator !== null ? `${nominator + 1}号` : "-"}
                       </span>
                     </div>
                     <div className="text-gray-600 font-bold">➡️</div>
                     <div className="flex flex-col items-center">
-                      <span className="text-xs text-gray-500 mb-1">被提名者</span>
+                      <span className="text-xs text-gray-500 mb-1">
+                        被提名者
+                      </span>
                       <span className="text-amber-400 font-bold text-xl">
                         {(nominee || pendingVoteFor) !== null
                           ? `${(nominee || pendingVoteFor)! + 1}号`
-                          : '-'}
+                          : "-"}
                       </span>
                     </div>
                   </>
@@ -566,7 +648,10 @@ export const GameStage = () => {
                 <div className="bg-slate-700/30 p-2 rounded border border-white/5">
                   <div className="text-gray-400 text-xs mb-1">上台门槛</div>
                   <div className="font-bold text-white">
-                    {voteThreshold} 票 <span className="text-xs font-normal text-gray-400">({aliveCoreCount}存活)</span>
+                    {voteThreshold} 票{" "}
+                    <span className="text-xs font-normal text-gray-400">
+                      ({aliveCoreCount}存活)
+                    </span>
                   </div>
                 </div>
                 <div className="bg-slate-700/30 p-2 rounded border border-white/5">
@@ -574,10 +659,14 @@ export const GameStage = () => {
                   <div className="font-bold text-white">不限时(手动)</div>
                 </div>
                 <div className="bg-slate-700/30 p-2 rounded border border-white/5 col-span-2">
-                  <div className="text-gray-400 text-xs mb-1">辩护时间 / 规则</div>
+                  <div className="text-gray-400 text-xs mb-1">
+                    辩护时间 / 规则
+                  </div>
                   <div className="font-bold text-white flex justify-between">
                     <span>不限时(手动)</span>
-                    <span className="text-xs font-normal text-gray-400">提名后点「开始投票」</span>
+                    <span className="text-xs font-normal text-gray-400">
+                      提名后点「开始投票」
+                    </span>
                   </div>
                 </div>
               </div>
@@ -589,16 +678,16 @@ export const GameStage = () => {
                 <span>✋</span> 投票与记录
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                点击下方「开始投票」按钮会弹出举手名单面板，自动统计票数、消耗幽灵票，并记录本轮所有投票者（用于卖花女 / 城镇公告员）。
+                点击下方「开始投票」按钮会弹出举手名单面板，自动统计票数、消耗幽灵票，并记录本轮所有投票者（用于卖花女
+                / 城镇公告员）。
               </p>
               {votedThisRound && votedThisRound.length > 0 && (
                 <div className="text-xs text-gray-300">
-                  本轮已记录投票者：{votedThisRound.map((id: number) => `${id + 1}号`).join('、')}
+                  本轮已记录投票者：
+                  {votedThisRound.map((id: number) => `${id + 1}号`).join("、")}
                 </div>
               )}
             </div>
-
-
 
             {/* Actions */}
             <div className="flex flex-col gap-3 relative z-50">
@@ -608,7 +697,7 @@ export const GameStage = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('[GameStage] 取消提名选择');
+                    console.log("[GameStage] 取消提名选择");
                     setNominator(null);
                     setNominee(null);
                   }}
@@ -619,7 +708,12 @@ export const GameStage = () => {
                     e.stopPropagation();
                   }}
                   className="p-3 bg-red-600/20 text-red-400 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white transition-all font-semibold cursor-pointer relative z-50 text-sm h-14 flex items-center justify-center"
-                  style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+                  style={{
+                    pointerEvents: "auto",
+                    touchAction: "auto",
+                    WebkitUserSelect: "none",
+                    userSelect: "none",
+                  }}
                 >
                   ❌ 取消提名选择
                 </button>
@@ -631,7 +725,13 @@ export const GameStage = () => {
                 disabled={isNominationLocked || pendingVoteFor !== null}
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('[GameStage] 点击发起提名按钮', { nominator, nominee, isNominationLocked, pendingVoteFor, executeNomination: typeof executeNomination });
+                  console.log("[GameStage] 点击发起提名按钮", {
+                    nominator,
+                    nominee,
+                    isNominationLocked,
+                    pendingVoteFor,
+                    executeNomination: typeof executeNomination,
+                  });
                   try {
                     // Double check logic inside (UI should be disabled though)
                     if (pendingVoteFor !== null) {
@@ -643,23 +743,32 @@ export const GameStage = () => {
                       alert('请先在圆桌上依次点击"提名者"和"被提名者"。');
                       return;
                     }
-                    if (typeof executeNomination !== 'function') {
-                      console.error('[GameStage] executeNomination is not a function:', executeNomination);
-                      alert('错误：executeNomination 函数不可用，请刷新页面重试。');
+                    if (typeof executeNomination !== "function") {
+                      console.error(
+                        "[GameStage] executeNomination is not a function:",
+                        executeNomination
+                      );
+                      alert(
+                        "错误：executeNomination 函数不可用，请刷新页面重试。"
+                      );
                       return;
                     }
                     // Call executeNomination (which handles Virgin trigger from Step 4)
-                    executeNomination(nominator, nominee, { openVoteModal: false });
+                    executeNomination(nominator, nominee, {
+                      openVoteModal: false,
+                    });
                     addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
-                    playSound('execute');
+                    playSound("execute");
                     setPendingVoteFor(nominee);
                     // 取消自动辩护倒计时，由说书人手动控制节奏
                     // Reset selection
                     setNominator(null);
                     setNominee(null);
                   } catch (error) {
-                    console.error('[GameStage] 发起提名时出错:', error);
-                    alert(`发起提名时出错: ${error instanceof Error ? error.message : String(error)}`);
+                    console.error("[GameStage] 发起提名时出错:", error);
+                    alert(
+                      `发起提名时出错: ${error instanceof Error ? error.message : String(error)}`
+                    );
                   }
                 }}
                 onMouseDown={(e) => {
@@ -668,15 +777,21 @@ export const GameStage = () => {
                 onTouchStart={(e) => {
                   e.stopPropagation();
                 }}
-                // Dynamic Class: 
+                // Dynamic Class:
                 // Disabled: Grey/Dark
                 // Active: Orange/Normal
                 className={`p-4 rounded-lg font-semibold cursor-pointer relative z-50 h-14 flex items-center justify-center transition-all border
-                  ${(isNominationLocked || pendingVoteFor !== null)
-                    ? 'bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed opacity-70'
-                    : 'bg-orange-600/20 text-orange-500 border-orange-600/50 hover:bg-orange-600 hover:text-white'
+                  ${
+                    isNominationLocked || pendingVoteFor !== null
+                      ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed opacity-70"
+                      : "bg-orange-600/20 text-orange-500 border-orange-600/50 hover:bg-orange-600 hover:text-white"
                   }`}
-                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+                style={{
+                  pointerEvents: "auto",
+                  touchAction: "auto",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                }}
               >
                 📣 发起提名 (触发技能检测)
               </button>
@@ -687,23 +802,36 @@ export const GameStage = () => {
                 disabled={pendingVoteFor === null}
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('[GameStage] 点击开始投票按钮', { pendingVoteFor, setCurrentModal: typeof setCurrentModal });
+                  console.log("[GameStage] 点击开始投票按钮", {
+                    pendingVoteFor,
+                    setCurrentModal: typeof setCurrentModal,
+                  });
                   try {
                     if (pendingVoteFor === null) {
                       // Should be blocked by disabled prop, but just in case
                       return;
                     }
-                    if (typeof setCurrentModal !== 'function') {
-                      console.error('[GameStage] setCurrentModal is not a function:', setCurrentModal);
-                      alert('错误：setCurrentModal 函数不可用，请刷新页面重试。');
+                    if (typeof setCurrentModal !== "function") {
+                      console.error(
+                        "[GameStage] setCurrentModal is not a function:",
+                        setCurrentModal
+                      );
+                      alert(
+                        "错误：setCurrentModal 函数不可用，请刷新页面重试。"
+                      );
                       return;
                     }
                     stopDefenseTimer();
                     setDefenseSecondsLeft(0);
-                    setCurrentModal({ type: 'VOTE_INPUT', data: { voterId: pendingVoteFor } });
+                    setCurrentModal({
+                      type: "VOTE_INPUT",
+                      data: { voterId: pendingVoteFor },
+                    });
                   } catch (error) {
-                    console.error('[GameStage] 开始投票时出错:', error);
-                    alert(`开始投票时出错: ${error instanceof Error ? error.message : String(error)}`);
+                    console.error("[GameStage] 开始投票时出错:", error);
+                    alert(
+                      `开始投票时出错: ${error instanceof Error ? error.message : String(error)}`
+                    );
                   }
                 }}
                 onMouseDown={(e) => {
@@ -716,16 +844,20 @@ export const GameStage = () => {
                 // Disabled: Grey/Dark
                 // Active: Blue Solid + Pulse
                 className={`p-4 rounded-lg font-semibold cursor-pointer relative z-50 h-14 flex items-center justify-center transition-all border
-                   ${pendingVoteFor === null
-                    ? 'bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed opacity-70'
-                    : 'bg-blue-600 text-white border-blue-500 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.6)] animate-pulse'
-                  }`}
-                style={{ pointerEvents: 'auto', touchAction: 'auto', WebkitUserSelect: 'none', userSelect: 'none' }}
+                   ${
+                     pendingVoteFor === null
+                       ? "bg-slate-800 text-slate-600 border-slate-700 cursor-not-allowed opacity-70"
+                       : "bg-blue-600 text-white border-blue-500 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.6)] animate-pulse"
+                   }`}
+                style={{
+                  pointerEvents: "auto",
+                  touchAction: "auto",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                }}
               >
                 🗳️ 开始投票（打开举手名单面板）
               </button>
-
-
             </div>
 
             <div className="mt-auto pt-4 border-t border-white/10">
@@ -766,7 +898,7 @@ export const GameStage = () => {
               className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
               title="相克规则开关（默认关闭，不产生影响）"
             >
-              相克规则：{antagonismEnabled ? '开' : '关'}
+              相克规则：{antagonismEnabled ? "开" : "关"}
             </button>
             <RoundTable
               seats={seats}
@@ -783,10 +915,16 @@ export const GameStage = () => {
                 e.stopPropagation();
                 const existingTimer = longPressTimerRef.current.get(seatId);
                 if (existingTimer) clearTimeout(existingTimer);
-                setLongPressingSeats((prev: Set<number>) => new Set(prev).add(seatId));
+                setLongPressingSeats((prev: Set<number>) =>
+                  new Set(prev).add(seatId)
+                );
                 longPressTriggeredRef.current.delete(seatId);
                 const timer = setTimeout(() => {
-                  setContextMenu({ x: e.touches[0]?.clientX ?? 0, y: e.touches[0]?.clientY ?? 0, seatId });
+                  setContextMenu({
+                    x: e.touches[0]?.clientX ?? 0,
+                    y: e.touches[0]?.clientY ?? 0,
+                    seatId,
+                  });
                   longPressTriggeredRef.current.add(seatId);
                   longPressTimerRef.current.delete(seatId);
                   setLongPressingSeats((prev: Set<number>) => {
@@ -854,7 +992,14 @@ export const GameStage = () => {
             currentStep={currentWakeIndex + 1}
             totalSteps={(wakeQueueIds || []).length}
             wakeQueueIds={wakeQueueIds}
-            scriptText={nightInfo?.speak || (gamePhase === 'day' ? '白天讨论阶段' : (gamePhase as string) === 'dusk' ? '黄昏处决阶段' : undefined)}
+            scriptText={
+              nightInfo?.speak ||
+              (gamePhase === "day"
+                ? "白天讨论阶段"
+                : (gamePhase as string) === "dusk"
+                  ? "黄昏处决阶段"
+                  : undefined)
+            }
             guidancePoints={guidancePoints}
             selectedPlayers={selectedActionTargets}
             seats={seats}
@@ -864,91 +1009,104 @@ export const GameStage = () => {
             onTogglePlayer={toggleTarget}
             handleDayAbility={controller.handleDayAbility}
             primaryAction={
-              (gamePhase === 'firstNight' || gamePhase === 'night')
+              gamePhase === "firstNight" || gamePhase === "night"
                 ? (() => {
-                  // CRITICAL FIX: Handle empty wake queue or last step
-                  const isEmpty = wakeQueueIds.length === 0;
-                  const isLastStep = !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
+                    // CRITICAL FIX: Handle empty wake queue or last step
+                    const isEmpty = wakeQueueIds.length === 0;
+                    const isLastStep =
+                      !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
 
-                  if (isEmpty || isLastStep) {
-                    // Explicit "Enter Day" button for empty queue or dawn step
-                    return {
-                      label: '🌞 天亮了 - 进入白天',
-                      onClick: () => {
-                        console.log("🌞 [UI] Manual override to Day - Empty queue or dawn step");
-                        // Call continueToNextAction which will show death report and transition
-                        controller.continueToNextAction();
-                      },
-                      disabled: !!controller.currentModal, // Disable if modal is open
-                      variant: 'warning' as const,
-                    };
-                  }
-
-                  // Normal "Next" button for night steps
-                  return {
-                    label: '确认 & 下一步',
-                    onClick: handleConfirmAction,
-                    disabled: isConfirmDisabled || !!controller.currentModal, // Disable if modal is open
-                    variant: 'primary' as const,
-                  };
-                })()
-                : gamePhase === 'check'
-                  ? {
-                    label: '确认无误，入夜 🌙',
-                    onClick: () => {
-                      console.log("🖱️ [UI] User clicked 'Enter Night'");
-                      // Use the synchronous proceedToFirstNight function which will handle drunk charade selection
-                      if (controller.proceedToFirstNight) {
-                        controller.proceedToFirstNight();
-                      } else {
-                        console.error('[GameStage] proceedToFirstNight not available on controller');
-                        alert('游戏状态错误：无法开始夜晚。请刷新页面重试。');
-                      }
-                    },
-                    disabled: isConfirmDisabled, // Use the centralized disabled logic
-                    variant: 'success' as const,
-                  }
-                  : gamePhase === 'day'
-                    ? {
-                      label: '进入黄昏处决阶段',
-                      onClick: () => {
-                        console.log('[GameStage] Day phase primary action -> handleDayEndTransition');
-                        handleDayEndTransition();
-                      },
-                      disabled: false,
-                      variant: 'primary' as const,
-                    }
-                    : gamePhase === 'setup'
-                      ? {
-                        label: '确认 & 下一步',
+                    if (isEmpty || isLastStep) {
+                      // Explicit "Enter Day" button for empty queue or dawn step
+                      return {
+                        label: "🌞 天亮了 - 进入白天",
                         onClick: () => {
-                          console.log('[GameStage] Setup phase primary action -> Clear selectedRole');
-                          setSelectedRole(null);
+                          console.log(
+                            "🌞 [UI] Manual override to Day - Empty queue or dawn step"
+                          );
+                          // Call continueToNextAction which will show death report and transition
+                          controller.continueToNextAction();
                         },
-                        disabled: !selectedRole,
-                        variant: 'primary' as const,
+                        disabled: !!controller.currentModal, // Disable if modal is open
+                        variant: "warning" as const,
+                      };
+                    }
+
+                    // Normal "Next" button for night steps
+                    return {
+                      label: "确认 & 下一步",
+                      onClick: handleConfirmAction,
+                      disabled: isConfirmDisabled || !!controller.currentModal, // Disable if modal is open
+                      variant: "primary" as const,
+                    };
+                  })()
+                : gamePhase === "check"
+                  ? {
+                      label: "确认无误，入夜 🌙",
+                      onClick: () => {
+                        console.log("🖱️ [UI] User clicked 'Enter Night'");
+                        // Use the synchronous proceedToFirstNight function which will handle drunk charade selection
+                        if (controller.proceedToFirstNight) {
+                          controller.proceedToFirstNight();
+                        } else {
+                          console.error(
+                            "[GameStage] proceedToFirstNight not available on controller"
+                          );
+                          alert("游戏状态错误：无法开始夜晚。请刷新页面重试。");
+                        }
+                      },
+                      disabled: isConfirmDisabled, // Use the centralized disabled logic
+                      variant: "success" as const,
+                    }
+                  : gamePhase === "day"
+                    ? {
+                        label: "进入黄昏处决阶段",
+                        onClick: () => {
+                          console.log(
+                            "[GameStage] Day phase primary action -> handleDayEndTransition"
+                          );
+                          handleDayEndTransition();
+                        },
+                        disabled: false,
+                        variant: "primary" as const,
                       }
+                    : gamePhase === "setup"
+                      ? {
+                          label: "确认 & 下一步",
+                          onClick: () => {
+                            console.log(
+                              "[GameStage] Setup phase primary action -> Clear selectedRole"
+                            );
+                            setSelectedRole(null);
+                          },
+                          disabled: !selectedRole,
+                          variant: "primary" as const,
+                        }
                       : undefined
             }
             secondaryActions={
-              (gamePhase === 'firstNight' || gamePhase === 'night')
+              gamePhase === "firstNight" || gamePhase === "night"
                 ? [
-                  {
-                    label: '上一步',
-                    onClick: handleStepBack,
-                    disabled: currentWakeIndex === 0 && history.length === 0,
-                  },
-                ]
+                    {
+                      label: "上一步",
+                      onClick: handleStepBack,
+                      disabled: currentWakeIndex === 0 && history.length === 0,
+                    },
+                  ]
                 : []
             }
             onForceContinue={() => {
               // 强制继续回调：当队列为空时，直接进入天亮阶段
-              console.log('[GameStage] onForceContinue called - forcing transition to day');
+              console.log(
+                "[GameStage] onForceContinue called - forcing transition to day"
+              );
               if (controller.continueToNextAction) {
                 controller.continueToNextAction();
               } else {
                 // 备用方案：通过 context 或者直接放弃备用方案
-                console.warn('Fallback: no setGamePhase available without props');
+                console.warn(
+                  "Fallback: no setGamePhase available without props"
+                );
               }
             }}
           />
@@ -957,7 +1115,7 @@ export const GameStage = () => {
       {/* Modals rendered outside layout to ensure proper z-index */}
     </>
   );
-}
+};
 
 // [REFACTOR] GameStageWithModals 不再需要 prop drilling
 // GameStage 和 GameModals 都通过 Context 获取所需的 state 和 action

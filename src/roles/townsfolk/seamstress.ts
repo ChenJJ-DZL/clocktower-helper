@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 女裁缝
@@ -69,7 +68,7 @@ Transclusion expansion time report (%,ms,calls,template)
 Saved in parser cache with key gstone_wiki:pcache:idhash:151-0!canonical and timestamp 20260120024217 and revision id 5160. Serialized with JSON.`,
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 11 : 14,
+    order: (isFirstNight) => (isFirstNight ? 11 : 14),
 
     target: {
       count: {
@@ -78,7 +77,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:151-0!canonical and tim
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（女裁缝）。`,
         instruction: "请执行行动",
@@ -86,7 +85,6 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:151-0!canonical and tim
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

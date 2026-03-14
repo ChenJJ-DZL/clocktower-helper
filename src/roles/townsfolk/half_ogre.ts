@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 半兽人 (Half-Ogre) - 扩展镇民（隐藏占位）
@@ -94,5 +94,3 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:43-0!canonical and time
     }),
   },
 };
-
-

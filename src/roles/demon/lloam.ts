@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 罗姆 (Lloam)
@@ -10,4 +10,3 @@ export const lloam: RoleDefinition = {
   name: "罗姆",
   type: "demon",
 };
-

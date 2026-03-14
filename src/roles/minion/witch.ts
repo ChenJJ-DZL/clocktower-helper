@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 女巫
@@ -69,7 +68,7 @@ Transclusion expansion time report (%,ms,calls,template)
 Saved in parser cache with key gstone_wiki:pcache:idhash:158-0!canonical and timestamp 20260119171627 and revision id 4971. Serialized with JSON.`,
 
   night: {
-    order: (isFirstNight) => isFirstNight ? 13 : 1,
+    order: (isFirstNight) => (isFirstNight ? 13 : 1),
 
     target: {
       count: {
@@ -78,7 +77,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:158-0!canonical and tim
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（女巫）。`,
         instruction: "请执行行动",
@@ -86,7 +85,6 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:158-0!canonical and tim
       };
     },
 
-    handler: undefined, /* TODO: Migrate to OOP */
-
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

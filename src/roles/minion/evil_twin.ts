@@ -1,5 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
-import { Seat } from "../../types/game";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 镜像双子
@@ -82,21 +81,21 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and timestamp 20260119165553 and revision id 5686. Serialized with JSON.`,
   clarifications: [
-    `在游玩梦殒春宵剧本时，以上述运作方式来唤醒镜像双子与对立双子是没有任何问题的，但是这一方式在扩展到其他混合剧本的时候可能会出现问题。（例如镜像双子被传教士影响，或有涡流在场时炼金术士获得了镜像双子的能力，等等。）我们建议说书人在熟悉镜像双子的角色能力逻辑之后，分别单独唤醒镜像双子和其对立双子，并用原本的提示方式对两名玩家单独进行提示，而不是让他们进行眼神接触来确认。`,
-    `相克规则：瘟疫医生：说书人无法在瘟疫医生死亡时获得镜像双子的能力。`,
-    `相克规则（与华灯系列角色）：戏子：互为克星的角色在同一时间里只能有其中一个角色在场。梼杌：镜像双子在梼杌的能力判断中被当作“不具有能力”。戏子（改）：互为克星的角色在同一时间里只能有其中一个角色在场。姑获鸟：如果姑获鸟获得了镜像双子的能力，新对立双子会知道“姑获鸟在场”，但不会知道姑获鸟是谁。`
+    "在游玩梦殒春宵剧本时，以上述运作方式来唤醒镜像双子与对立双子是没有任何问题的，但是这一方式在扩展到其他混合剧本的时候可能会出现问题。（例如镜像双子被传教士影响，或有涡流在场时炼金术士获得了镜像双子的能力，等等。）我们建议说书人在熟悉镜像双子的角色能力逻辑之后，分别单独唤醒镜像双子和其对立双子，并用原本的提示方式对两名玩家单独进行提示，而不是让他们进行眼神接触来确认。",
+    "相克规则：瘟疫医生：说书人无法在瘟疫医生死亡时获得镜像双子的能力。",
+    "相克规则（与华灯系列角色）：戏子：互为克星的角色在同一时间里只能有其中一个角色在场。梼杌：镜像双子在梼杌的能力判断中被当作“不具有能力”。戏子（改）：互为克星的角色在同一时间里只能有其中一个角色在场。姑获鸟：如果姑获鸟获得了镜像双子的能力，新对立双子会知道“姑获鸟在场”，但不会知道姑获鸟是谁。",
   ],
-  
+
   night: {
-    order: (isFirstNight) => isFirstNight ? 3 : 0,
-    
+    order: (isFirstNight) => (isFirstNight ? 3 : 0),
+
     target: {
       count: {
         min: 0,
         max: 0,
       },
     },
-    
+
     dialog: (playerSeatId: number, isFirstNight: boolean) => {
       if (!isFirstNight) {
         return {
@@ -111,8 +110,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
         close: `${playerSeatId + 1}号玩家（镜像双子），请闭眼。`,
       };
     },
-    
-    handler: undefined, /* TODO: Migrate to OOP */
 
+    handler: undefined /* TODO: Migrate to OOP */,
   },
 };

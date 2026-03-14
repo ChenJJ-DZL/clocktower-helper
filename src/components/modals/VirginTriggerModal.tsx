@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface VirginTriggerModalProps {
   isOpen: boolean;
@@ -6,7 +6,11 @@ interface VirginTriggerModalProps {
   onCancel: () => void;
 }
 
-export function VirginTriggerModal({ isOpen, onConfirm, onCancel }: VirginTriggerModalProps) {
+export function VirginTriggerModal({
+  isOpen,
+  onConfirm,
+  onCancel,
+}: VirginTriggerModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -15,14 +19,14 @@ export function VirginTriggerModal({ isOpen, onConfirm, onCancel }: VirginTrigge
       onClose={onCancel}
       footer={
         <>
-          <button 
-            onClick={onCancel} 
+          <button
+            onClick={onCancel}
             className="px-6 py-4 bg-gray-600 rounded-xl text-xl hover:bg-gray-700 transition-colors"
           >
             取消
           </button>
-          <button 
-            onClick={onConfirm} 
+          <button
+            onClick={onConfirm}
             className="px-6 py-4 bg-red-600 rounded-xl text-xl font-bold hover:bg-red-700 transition-colors"
           >
             处决提名者
@@ -31,8 +35,9 @@ export function VirginTriggerModal({ isOpen, onConfirm, onCancel }: VirginTrigge
       }
       className="max-w-md bg-indigo-900 border-white"
     >
-      <p className="text-lg text-white text-center">贞洁者被提名，是否处决提名者？</p>
+      <p className="text-lg text-white text-center">
+        贞洁者被提名，是否处决提名者？
+      </p>
     </ModalWrapper>
   );
 }
-

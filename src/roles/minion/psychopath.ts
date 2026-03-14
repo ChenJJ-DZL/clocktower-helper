@@ -1,13 +1,17 @@
-import { RoleDefinition, ExecutionContext, ExecutionResult } from "../../types/roleDefinition";
+import type {
+  ExecutionContext,
+  ExecutionResult,
+  RoleDefinition,
+} from "../../types/roleDefinition";
 
 /**
  * 精神病患者
  * 被提名时，与提名者进行石头剪刀布，输则死亡
  */
 export const psychopath: RoleDefinition = {
-    id: "psychopath",
-    name: "精神病患者",
-    type: "minion",
+  id: "psychopath",
+  name: "精神病患者",
+  type: "minion",
   detailedDescription: `【背景故事】
 “惊不惊喜？！”
 【角色能力】
@@ -77,33 +81,33 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:68-0!canonical and timestamp 20260119171300 and revision id 5701. Serialized with JSON.`,
   clarifications: [
-    `特定角色互动：炼金术士：如果炼金术士获得精神病患者的能力并提名贞洁者而因此被处决，他将会和说书人猜拳。咖啡师：“行动两次”的效果将允许精神病患者在白天杀死2人（咖啡师可能会被立即流放），但如果在接下来的这个白天精神病患者被处决，仍然只会进行一次猜拳。屠夫：每天都可以重新提名精神病患者来进行第二次处决并尝试杀死他。魔鬼代言人：即使受到魔鬼代言人的保护，精神病患者仍然应该进行猜拳，只有当他输了时，善良阵营才会发现精神病患者受到了魔鬼代言人的保护，因为精神病患者没有死于一次“猜拳胜利”的处决。弄臣/水手/茶艺师：如果精神病患者的目标不能死亡，目标不会死亡。这会被数学家记录。法官：如果法官强制使对精神病患者的提名通过，这只能确保精神病患者被处决，并且将需要进行猜拳来确定他是否会死亡。呆瓜/月之子：如果精神病患者杀死他，他会在白天得知他的死亡，因此必须在同一天做出选择。亡骨魔：如果精神病患者被亡骨魔杀死并因此在死亡状态保留了他的能力，如果他在死亡状态被处决，则没有必要进行猜拳——他已经死亡，因此无论猜拳的结果如何都不会再次死亡。`,
-    `相克规则（与华灯系列角色）：姑获鸟：如果姑获鸟获得了精神病患者的能力，他会在被处决时死亡。`
+    "特定角色互动：炼金术士：如果炼金术士获得精神病患者的能力并提名贞洁者而因此被处决，他将会和说书人猜拳。咖啡师：“行动两次”的效果将允许精神病患者在白天杀死2人（咖啡师可能会被立即流放），但如果在接下来的这个白天精神病患者被处决，仍然只会进行一次猜拳。屠夫：每天都可以重新提名精神病患者来进行第二次处决并尝试杀死他。魔鬼代言人：即使受到魔鬼代言人的保护，精神病患者仍然应该进行猜拳，只有当他输了时，善良阵营才会发现精神病患者受到了魔鬼代言人的保护，因为精神病患者没有死于一次“猜拳胜利”的处决。弄臣/水手/茶艺师：如果精神病患者的目标不能死亡，目标不会死亡。这会被数学家记录。法官：如果法官强制使对精神病患者的提名通过，这只能确保精神病患者被处决，并且将需要进行猜拳来确定他是否会死亡。呆瓜/月之子：如果精神病患者杀死他，他会在白天得知他的死亡，因此必须在同一天做出选择。亡骨魔：如果精神病患者被亡骨魔杀死并因此在死亡状态保留了他的能力，如果他在死亡状态被处决，则没有必要进行猜拳——他已经死亡，因此无论猜拳的结果如何都不会再次死亡。",
+    "相克规则（与华灯系列角色）：姑获鸟：如果姑获鸟获得了精神病患者的能力，他会在被处决时死亡。",
   ],
-    // 无夜晚行动
+  // 无夜晚行动
 
-    /**
-     * 精神病患者被处决时的特殊处理
-     * 需要与提名者进行石头剪刀布
-     */
-    onExecution: (context: ExecutionContext): ExecutionResult => {
-        const { executedSeat, nominationMap, skipLunaticRps } = context;
+  /**
+   * 精神病患者被处决时的特殊处理
+   * 需要与提名者进行石头剪刀布
+   */
+  onExecution: (context: ExecutionContext): ExecutionResult => {
+    const { executedSeat, nominationMap, skipLunaticRps } = context;
 
-        // 如果跳过石头剪刀布，直接处决
-        if (skipLunaticRps) {
-            return {
-                handled: false, // 使用默认处决逻辑
-            };
-        }
+    // 如果跳过石头剪刀布，直接处决
+    if (skipLunaticRps) {
+      return {
+        handled: false, // 使用默认处决逻辑
+      };
+    }
 
-        // 需要石头剪刀布确认（由控制器处理弹窗）
-        const nominatorId = nominationMap[executedSeat.id] ?? null;
-        return {
-            handled: true,
-            shouldWait: true,
-            logs: {
-                privateLog: `精神病患者（${executedSeat.id + 1}号）被处决，需要与提名者进行石头剪刀布`,
-            },
-        };
-    },
+    // 需要石头剪刀布确认（由控制器处理弹窗）
+    const _nominatorId = nominationMap[executedSeat.id] ?? null;
+    return {
+      handled: true,
+      shouldWait: true,
+      logs: {
+        privateLog: `精神病患者（${executedSeat.id + 1}号）被处决，需要与提名者进行石头剪刀布`,
+      },
+    };
+  },
 };

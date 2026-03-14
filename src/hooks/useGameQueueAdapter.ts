@@ -6,7 +6,6 @@
  * 提供向后兼容的接口
  */
 
-import { useMemo } from "react";
 import type { Seat } from "../../app/data";
 
 /**
@@ -17,11 +16,11 @@ export interface QueueAdapterState {
   // 旧系统接口（用于兼容）
   wakeQueueIds: number[];
   currentWakeIndex: number;
-  
+
   // 新系统接口
   nightActionQueue: Seat[];
   currentQueueIndex: number;
-  
+
   // 队列状态
   isQueueEmpty: boolean;
   isAtEndOfQueue: boolean;
@@ -36,19 +35,22 @@ export function createQueueAdapter(
   nightActionQueue: Seat[],
   inputIndex: number
 ): QueueAdapterState {
-  const wakeQueueIds = nightActionQueue.map(seat => seat.id);
-  const currentQueueIndex = Math.max(0, Math.min(inputIndex, nightActionQueue.length - 1));
+  const wakeQueueIds = nightActionQueue.map((seat) => seat.id);
+  const currentQueueIndex = Math.max(
+    0,
+    Math.min(inputIndex, nightActionQueue.length - 1)
+  );
   const currentQueueItem = nightActionQueue[currentQueueIndex];
-  
+
   return {
     // 旧系统
     wakeQueueIds,
     currentWakeIndex: currentQueueIndex,
-    
+
     // 新系统
     nightActionQueue,
     currentQueueIndex,
-    
+
     // 状态
     isQueueEmpty: nightActionQueue.length === 0,
     isAtEndOfQueue: currentQueueIndex >= nightActionQueue.length - 1,
@@ -65,7 +67,7 @@ export function convertWakeQueueIdsToSeats(
   seats: Seat[]
 ): Seat[] {
   return wakeQueueIds
-    .map(id => seats.find(s => s.id === id))
+    .map((id) => seats.find((s) => s.id === id))
     .filter((seat): seat is Seat => seat !== undefined);
 }
 
@@ -77,18 +79,17 @@ export function validateQueueSync(
   wakeQueueIds: number[],
   nightActionQueue: Seat[]
 ): boolean {
-  const queueIds = nightActionQueue.map(seat => seat.id);
-  
+  const queueIds = nightActionQueue.map((seat) => seat.id);
+
   if (wakeQueueIds.length !== queueIds.length) {
     return false;
   }
-  
+
   for (let i = 0; i < wakeQueueIds.length; i++) {
     if (wakeQueueIds[i] !== queueIds[i]) {
       return false;
     }
   }
-  
+
   return true;
 }
-

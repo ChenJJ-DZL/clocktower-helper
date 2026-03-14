@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 提图斯 (Titus)
@@ -10,4 +10,3 @@ export const titus: RoleDefinition = {
   name: "提图斯",
   type: "demon",
 };
-

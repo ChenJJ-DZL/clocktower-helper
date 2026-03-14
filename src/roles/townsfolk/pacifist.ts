@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 和平主义者
@@ -62,8 +62,6 @@ Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:131-0!canonical and timestamp 20260120025718 and revision id 4893. Serialized with JSON.`,
-  clarifications: [
-    `无`
-  ],
+  clarifications: ["无"],
   // 无夜晚行动
 };

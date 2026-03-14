@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Seat, Role, Script, typeBgColors, typeColors } from "../../../../app/data";
+import {
+  type Role,
+  type Script,
+  type Seat,
+  typeBgColors,
+} from "../../../../app/data";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -14,15 +19,37 @@ interface GameSetupProps {
   filteredGroupedRoles: Record<string, Role[]>;
   getCompositionStatus: (activeSeats: Seat[]) => {
     valid: boolean;
-    standard: { townsfolk: number; outsider: number; minion: number; demon: number; total?: number } | null;
-    actual: { townsfolk: number; outsider: number; minion: number; demon: number };
+    standard: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+      total?: number;
+    } | null;
+    actual: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+    };
     playerCount: number;
     hasBaron: boolean;
   };
   getBaronStatus: (activeSeats: Seat[]) => {
     valid: boolean;
-    recommended: { townsfolk: number; outsider: number; minion: number; demon: number; total?: number } | null;
-    current: { townsfolk: number; outsider: number; minion: number; demon: number };
+    recommended: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+      total?: number;
+    } | null;
+    current: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+    };
     playerCount: number;
   };
   validateCompositionSetup: (activeSeats: Seat[]) => boolean;
@@ -30,14 +57,36 @@ interface GameSetupProps {
   setCompositionError: (val: GameSetupProps["compositionError"]) => void;
   setBaronSetupCheck: (val: GameSetupProps["baronSetupCheck"]) => void;
   compositionError: {
-    standard: { townsfolk: number; outsider: number; minion: number; demon: number; total: number };
-    actual: { townsfolk: number; outsider: number; minion: number; demon: number };
+    standard: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+      total: number;
+    };
+    actual: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+    };
     playerCount: number;
     hasBaron: boolean;
   } | null;
   baronSetupCheck: {
-    recommended: { townsfolk: number; outsider: number; minion: number; demon: number; total: number };
-    current: { townsfolk: number; outsider: number; minion: number; demon: number };
+    recommended: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+      total: number;
+    };
+    current: {
+      townsfolk: number;
+      outsider: number;
+      minion: number;
+      demon: number;
+    };
     playerCount: number;
   } | null;
   ignoreBaronSetup: boolean;
@@ -99,7 +148,9 @@ export default function GameSetup({
       activeSeats: active,
       compositionStatus: compStatus,
       baronStatus: baronStat,
-      canStart: (compStatus.valid || ignoreBaronSetup) && (baronStat.valid || ignoreBaronSetup),
+      canStart:
+        (compStatus.valid || ignoreBaronSetup) &&
+        (baronStat.valid || ignoreBaronSetup),
     };
   }, [seats, getCompositionStatus, getBaronStatus, ignoreBaronSetup]);
 
@@ -140,7 +191,9 @@ export default function GameSetup({
   };
 
   const buildBadge = (label: string, value: number, color: string) => (
-    <div className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm ${color}`}>
+    <div
+      className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm ${color}`}
+    >
       <span className="font-semibold whitespace-nowrap">{label}</span>
       <span className="text-base font-bold">{value}</span>
     </div>
@@ -154,8 +207,12 @@ export default function GameSetup({
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="text-base text-slate-400">当前剧本</div>
-            <div className="text-3xl font-black text-slate-50">{selectedScript?.name ?? "未选择"}</div>
-            <div className="text-sm text-slate-500">请分配角色并检查阵容后开始游戏</div>
+            <div className="text-3xl font-black text-slate-50">
+              {selectedScript?.name ?? "未选择"}
+            </div>
+            <div className="text-sm text-slate-500">
+              请分配角色并检查阵容后开始游戏
+            </div>
           </div>
           <div className="flex items-center gap-3 text-base text-slate-400">
             <span className="inline-flex h-4 w-4 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" />
@@ -183,10 +240,26 @@ export default function GameSetup({
         <div className="space-y-2">
           <h3 className="text-lg font-bold text-slate-300">阵营分布</h3>
           <div className="flex gap-3">
-            {buildBadge("村民", counts.townsfolk, "border-emerald-500/40 bg-emerald-900/40 text-emerald-100")}
-            {buildBadge("外来者", counts.outsider, "border-cyan-400/40 bg-cyan-900/40 text-cyan-100")}
-            {buildBadge("爪牙", counts.minion, "border-amber-400/40 bg-amber-900/40 text-amber-100")}
-            {buildBadge("恶魔", counts.demon, "border-rose-400/40 bg-rose-900/40 text-rose-100")}
+            {buildBadge(
+              "村民",
+              counts.townsfolk,
+              "border-emerald-500/40 bg-emerald-900/40 text-emerald-100"
+            )}
+            {buildBadge(
+              "外来者",
+              counts.outsider,
+              "border-cyan-400/40 bg-cyan-900/40 text-cyan-100"
+            )}
+            {buildBadge(
+              "爪牙",
+              counts.minion,
+              "border-amber-400/40 bg-amber-900/40 text-amber-100"
+            )}
+            {buildBadge(
+              "恶魔",
+              counts.demon,
+              "border-rose-400/40 bg-rose-900/40 text-rose-100"
+            )}
           </div>
         </div>
 
@@ -199,10 +272,16 @@ export default function GameSetup({
               <div className="space-y-2">
                 <div className="font-bold text-red-200">阵容校验未通过</div>
                 <div>
-                  建议：{compositionError.standard.townsfolk}村民 / {compositionError.standard.outsider}外来者 / {compositionError.standard.minion}爪牙 / {compositionError.standard.demon}恶魔
+                  建议：{compositionError.standard.townsfolk}村民 /{" "}
+                  {compositionError.standard.outsider}外来者 /{" "}
+                  {compositionError.standard.minion}爪牙 /{" "}
+                  {compositionError.standard.demon}恶魔
                 </div>
                 <div>
-                  当前：{compositionError.actual.townsfolk}村民 / {compositionError.actual.outsider}外来者 / {compositionError.actual.minion}爪牙 / {compositionError.actual.demon}恶魔
+                  当前：{compositionError.actual.townsfolk}村民 /{" "}
+                  {compositionError.actual.outsider}外来者 /{" "}
+                  {compositionError.actual.minion}爪牙 /{" "}
+                  {compositionError.actual.demon}恶魔
                 </div>
               </div>
             )}
@@ -210,10 +289,12 @@ export default function GameSetup({
               <div className="mt-4 space-y-3">
                 <div className="font-bold text-yellow-200">检测到男爵影响</div>
                 <div>
-                  建议：{baronSetupCheck.recommended.townsfolk}村民 / {baronSetupCheck.recommended.outsider}外来者
+                  建议：{baronSetupCheck.recommended.townsfolk}村民 /{" "}
+                  {baronSetupCheck.recommended.outsider}外来者
                 </div>
                 <div>
-                  当前：{baronSetupCheck.current.townsfolk}村民 / {baronSetupCheck.current.outsider}外来者
+                  当前：{baronSetupCheck.current.townsfolk}村民 /{" "}
+                  {baronSetupCheck.current.outsider}外来者
                 </div>
                 <div className="flex flex-wrap gap-3 pt-2">
                   {handleBaronAutoRebalance && (
@@ -238,14 +319,20 @@ export default function GameSetup({
 
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-300">角色列表</h3>
-          <div className="text-sm text-slate-500 mb-3">点击卡片选择角色，已被选择的卡片将变灰</div>
+          <div className="text-sm text-slate-500 mb-3">
+            点击卡片选择角色，已被选择的卡片将变灰
+          </div>
 
           <div className="space-y-4">
             {Object.entries(filteredGroupedRoles).map(([type, list]) => (
               <div key={type} className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="text-lg font-bold text-slate-100">{groupTitle[type] || type}</div>
-                  <div className="text-sm text-slate-500">共 {list.length} 位角色</div>
+                  <div className="text-lg font-bold text-slate-100">
+                    {groupTitle[type] || type}
+                  </div>
+                  <div className="text-sm text-slate-500">
+                    共 {list.length} 位角色
+                  </div>
                 </div>
                 <div className="grid gap-3 grid-cols-2">
                   {list.map((r, index) => {
@@ -257,20 +344,25 @@ export default function GameSetup({
                           e.stopPropagation();
                           if (!isTaken) setSelectedRole(r);
                         }}
-                        className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${isTaken
-                          ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
-                          : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
-                          } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
+                        className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${
+                          isTaken
+                            ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                            : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
+                        } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
                         data-role-id={r.id}
                         title={r.ability || r.name}
                       >
                         <div className="relative h-full flex flex-col items-center justify-center px-3 leading-tight py-2">
-                          <span className="text-sm font-bold text-slate-50 whitespace-nowrap">{r.name}</span>
+                          <span className="text-sm font-bold text-slate-50 whitespace-nowrap">
+                            {r.name}
+                          </span>
                           <span className="text-xs text-white/60 uppercase tracking-wide mt-1">
-                            {r.id.replace(/_/g, ' ')}
+                            {r.id.replace(/_/g, " ")}
                           </span>
                           {isTaken && (
-                            <div className="absolute top-1 right-2 text-xs text-amber-200">✓</div>
+                            <div className="absolute top-1 right-2 text-xs text-amber-200">
+                              ✓
+                            </div>
                           )}
                         </div>
                       </button>
@@ -288,10 +380,11 @@ export default function GameSetup({
         <button
           onClick={handleAttemptStartGame}
           disabled={activeSeats.length === 0}
-          className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${canStart
-            ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
-            : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
-            } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${
+            canStart
+              ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
+              : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
+          } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           开始游戏
         </button>
@@ -305,19 +398,33 @@ export default function GameSetup({
               <div className="space-y-2 text-sm text-slate-100">
                 <div className="font-semibold text-red-300">标准</div>
                 <div>
-                  {compositionError.standard.townsfolk} 村民 / {compositionError.standard.outsider} 外来者 / {compositionError.standard.minion} 爪牙 / {compositionError.standard.demon} 恶魔
+                  {compositionError.standard.townsfolk} 村民 /{" "}
+                  {compositionError.standard.outsider} 外来者 /{" "}
+                  {compositionError.standard.minion} 爪牙 /{" "}
+                  {compositionError.standard.demon} 恶魔
                 </div>
                 <div className="font-semibold text-red-300">当前</div>
                 <div>
-                  {compositionError.actual.townsfolk} 村民 / {compositionError.actual.outsider} 外来者 / {compositionError.actual.minion} 爪牙 / {compositionError.actual.demon} 恶魔
+                  {compositionError.actual.townsfolk} 村民 /{" "}
+                  {compositionError.actual.outsider} 外来者 /{" "}
+                  {compositionError.actual.minion} 爪牙 /{" "}
+                  {compositionError.actual.demon} 恶魔
                 </div>
               </div>
             )}
             {baronSetupCheck && !ignoreBaronSetup && (
               <div className="space-y-2 text-sm text-yellow-100">
-                <div className="font-semibold text-yellow-300">男爵配置不符</div>
-                <div>建议：{baronSetupCheck.recommended.townsfolk} 村民 / {baronSetupCheck.recommended.outsider} 外来者</div>
-                <div>当前：{baronSetupCheck.current.townsfolk} 村民 / {baronSetupCheck.current.outsider} 外来者</div>
+                <div className="font-semibold text-yellow-300">
+                  男爵配置不符
+                </div>
+                <div>
+                  建议：{baronSetupCheck.recommended.townsfolk} 村民 /{" "}
+                  {baronSetupCheck.recommended.outsider} 外来者
+                </div>
+                <div>
+                  当前：{baronSetupCheck.current.townsfolk} 村民 /{" "}
+                  {baronSetupCheck.current.outsider} 外来者
+                </div>
               </div>
             )}
             <div className="flex flex-col gap-2 pt-2">
@@ -340,4 +447,3 @@ export default function GameSetup({
     </div>
   );
 }
-

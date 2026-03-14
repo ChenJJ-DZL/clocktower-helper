@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 艺术家
@@ -69,28 +69,28 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:154-0!canonical and timestamp 20260120030844 and revision id 5126. Serialized with JSON.`,
   clarifications: [
-    `请注意说书人有权回答“我不知道”，且这样会使得艺术家的能力被浪费掉。针对含糊不清的问题，或者玩家尝试用多个问题嵌套成一个问题，或是如果说书人认为让玩家“重新再问一个问题”会导致对现在的问题有一定程度的暗示作用，那么这种时候，说书人都可以回答“我不知道”。`
+    "请注意说书人有权回答“我不知道”，且这样会使得艺术家的能力被浪费掉。针对含糊不清的问题，或者玩家尝试用多个问题嵌套成一个问题，或是如果说书人认为让玩家“重新再问一个问题”会导致对现在的问题有一定程度的暗示作用，那么这种时候，说书人都可以回答“我不知道”。",
   ],
   day: {
     name: "提问",
     maxUses: 1,
     target: {
       min: 0,
-      max: 0
+      max: 0,
     },
-    handler: (context) => {
+    handler: (_context) => {
       return {
         updates: [],
         logs: {
-          privateLog: "艺术家发动了提问技能"
+          privateLog: "艺术家发动了提问技能",
         },
         modal: {
-          type: 'ARTIST_RESULT',
+          type: "ARTIST_RESULT",
           data: {
-            result: ''
-          }
-        }
+            result: "",
+          },
+        },
       };
-    }
-  }
+    },
+  },
 };

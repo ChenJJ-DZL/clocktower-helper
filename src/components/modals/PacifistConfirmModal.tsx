@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface PacifistConfirmModalProps {
   isOpen: boolean;
@@ -6,7 +6,11 @@ interface PacifistConfirmModalProps {
   onResolve: (saved: boolean) => void;
 }
 
-export function PacifistConfirmModal({ isOpen, targetId, onResolve }: PacifistConfirmModalProps) {
+export function PacifistConfirmModal({
+  isOpen,
+  targetId,
+  onResolve,
+}: PacifistConfirmModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -43,5 +47,3 @@ export function PacifistConfirmModal({ isOpen, targetId, onResolve }: PacifistCo
     </ModalWrapper>
   );
 }
-
-

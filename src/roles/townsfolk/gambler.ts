@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 赌徒
@@ -64,7 +64,7 @@ Unstrip post‐expand size: 0/5000000 bytes
 Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:16-0!canonical and timestamp 20260120025721 and revision id 5419. Serialized with JSON.`,
-  
+
   // 赌徒的具体夜晚结算逻辑由 nightLogic + 说书人手动裁定（通过 UI 记录猜测与结果）完成
   // 这里不实现自动判定，只保留角色元数据（夜序等）在 rolesData.json 中配置
 };

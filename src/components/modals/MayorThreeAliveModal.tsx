@@ -1,4 +1,4 @@
-import { ModalWrapper } from './ModalWrapper';
+import { ModalWrapper } from "./ModalWrapper";
 
 interface MayorThreeAliveModalProps {
   isOpen: boolean;
@@ -7,7 +7,12 @@ interface MayorThreeAliveModalProps {
   onCancel: () => void;
 }
 
-export function MayorThreeAliveModal({ isOpen, onContinue, onDeclareWin, onCancel }: MayorThreeAliveModalProps) {
+export function MayorThreeAliveModal({
+  isOpen,
+  onContinue,
+  onDeclareWin,
+  onCancel,
+}: MayorThreeAliveModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -54,4 +59,3 @@ export function MayorThreeAliveModal({ isOpen, onContinue, onDeclareWin, onCance
     </ModalWrapper>
   );
 }
-

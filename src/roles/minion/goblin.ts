@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 哥布林
@@ -84,9 +84,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:65-0!canonical and timestamp 20260120025623 and revision id 5687. Serialized with JSON.`,
   clarifications: [
-    `相克规则：瘟疫医生：如果瘟疫医生死亡且说书人会因此获得哥布林的能力，改为一名存活的爪牙玩家获得此能力，且他会得知此事。洗脑师：洗脑师可以选择将玩家洗脑成哥布林。`,
-    `相克规则（与华灯系列角色）：戏子：戏子无法反转由哥布林的能力产生的胜负结果。戏子（改）：戏子（改）无法反转由哥布林的能力产生的胜负结果。姑获鸟：姑获鸟无法获得哥布林的能力。`
+    "相克规则：瘟疫医生：如果瘟疫医生死亡且说书人会因此获得哥布林的能力，改为一名存活的爪牙玩家获得此能力，且他会得知此事。洗脑师：洗脑师可以选择将玩家洗脑成哥布林。",
+    "相克规则（与华灯系列角色）：戏子：戏子无法反转由哥布林的能力产生的胜负结果。戏子（改）：戏子（改）无法反转由哥布林的能力产生的胜负结果。姑获鸟：姑获鸟无法获得哥布林的能力。",
   ],
 };
-
-

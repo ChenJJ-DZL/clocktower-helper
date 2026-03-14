@@ -1,4 +1,4 @@
-import { RoleDefinition } from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 告密者 (Butler)
@@ -62,8 +62,7 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:62-0!canonical and timestamp 20260120025621 and revision id 5583. Serialized with JSON.`,
   clarifications: [
-    `相克规则：提线木偶：提线木偶不会得知三个不在场的角色，如果提线木偶与告密者均在场，改为由恶魔额外得知三个不在场角色。`,
-    `相克规则（与华灯系列角色）：戏子（改）：告密者不会因为戏子（改）的能力醉酒。`
+    "相克规则：提线木偶：提线木偶不会得知三个不在场的角色，如果提线木偶与告密者均在场，改为由恶魔额外得知三个不在场角色。",
+    "相克规则（与华灯系列角色）：戏子（改）：告密者不会因为戏子（改）的能力醉酒。",
   ],
 };
-
