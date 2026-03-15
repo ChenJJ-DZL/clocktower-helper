@@ -1015,6 +1015,37 @@ export function useGameController() {
     }
   }, [gamePhase, seats.length, setSeats, setInitialSeats]);
 
+  // 监听首夜启动事件，触发首夜队列生成
+  useEffect(() => {
+    const handleStartFirstNight = () => {
+      console.log("[GameController] Received startFirstNight event");
+      nightLogic.startNight(true);
+    };
+    window.addEventListener("startFirstNight", handleStartFirstNight);
+    return () =>
+      window.removeEventListener("startFirstNight", handleStartFirstNight);
+  }, [nightLogic]);
+
+  // 初始化夜晚第一步信息
+  useEffect(() => {
+    if (
+      (gamePhase === "firstNight" || gamePhase === "night") &&
+      wakeQueueIds.length > 0 &&
+      currentWakeIndex === 0 &&
+      !nightInfo
+    ) {
+      console.log("[GameController] Initializing first night step");
+      nightSnapshot.updateSnapshot(0, seats, gamePhase);
+    }
+  }, [
+    gamePhase,
+    wakeQueueIds,
+    currentWakeIndex,
+    nightInfo,
+    seats,
+    nightSnapshot,
+  ]);
+
   return useMemo(
     () => ({
       ...gameState,

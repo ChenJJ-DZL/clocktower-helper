@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   GamePhase,
   LogEntry,
@@ -27,6 +27,18 @@ export function useGameState() {
 
   // Alias for backward compatibility
   const currentWakeIndexRef = currentQueueIndexRef;
+
+  // Stable ref for nightQueuePreviewTitle to avoid dependency changes
+  const nightQueuePreviewTitleRef = useRef(state.nightQueuePreviewTitle);
+  useEffect(() => {
+    nightQueuePreviewTitleRef.current = state.nightQueuePreviewTitle;
+  }, [state.nightQueuePreviewTitle]);
+
+  // Stable ref for balloonistKnownTypes to avoid dependency changes
+  const balloonistKnownTypesRef = useRef(state.balloonistKnownTypes);
+  useEffect(() => {
+    balloonistKnownTypesRef.current = state.balloonistKnownTypes;
+  }, [state.balloonistKnownTypes]);
 
   // ===========================
   //      STATE 别名 (保持兼容)
@@ -605,14 +617,14 @@ export function useGameState() {
     [dispatch, state.pendingNightQueue]
   );
   const setNightQueuePreviewTitle = useCallback(
-    (val: string | ((p: string) => string)) => {
-      const next =
+    (val: React.SetStateAction<string>) => {
+      const nextVal =
         typeof val === "function"
-          ? (val as (p: string) => string)(state.nightQueuePreviewTitle)
+          ? val(nightQueuePreviewTitleRef.current)
           : val;
-      dispatch(gameActions.updateState({ nightQueuePreviewTitle: next }));
+      dispatch(gameActions.updateState({ nightQueuePreviewTitle: nextVal }));
     },
-    [dispatch, state.nightQueuePreviewTitle]
+    [dispatch]
   );
   const setFirstNightOrder = useCallback(
     (val: any[]) => dispatch(gameActions.updateState({ firstNightOrder: val })),
@@ -755,13 +767,12 @@ export function useGameState() {
       const next =
         typeof val === "function"
           ? (val as (p: Record<number, string[]>) => Record<number, string[]>)(
-              state.balloonistKnownTypes
+              balloonistKnownTypesRef.current
             )
           : val;
-      if (next === state.balloonistKnownTypes) return;
       dispatch(gameActions.updateState({ balloonistKnownTypes: next }));
     },
-    [dispatch, state.balloonistKnownTypes]
+    [dispatch]
   );
   const setBalloonistCompletedIds = useCallback(
     (val: number[] | ((prev: number[]) => number[])) => {
@@ -1239,93 +1250,6 @@ export function useGameState() {
       history,
       hadesiaChoiceEnabled,
       currentWakeIndexRef,
-      setAutoRedHerringInfo,
-      setBalloonistCompletedIds,
-      setBalloonistKnownTypes,
-      setBaronSetupCheck,
-      setCerenovusTarget,
-      setCompositionError,
-      setContextMenu,
-      setCurrentDuskExecution,
-      setCurrentHint,
-      setCurrentModal,
-      setCurrentWakeIndex,
-      setDamselGuessUsedBy,
-      setDamselGuessed,
-      setDayAbilityForm,
-      setDayAbilityLogs,
-      setDeadThisNight,
-      setEvilTwinPair,
-      setExecutedPlayerId,
-      setFangGuConverted,
-      setFirstNightOrder,
-      setGameLogs,
-      setGamePhase,
-      setGameRecords,
-      setGoonDrunkedThisNight,
-      setGossipSourceSeatId,
-      setGossipStatementToday,
-      setGossipTrueTonight,
-      setHadesiaChoiceEnabled,
-      setHadesiaChoices,
-      setHasExecutedThisDay,
-      setHistory,
-      setIgnoreBaronSetup,
-      setInitialSeats,
-      setInspectionResult,
-      setInspectionResultKey,
-      setIsPortrait,
-      setIsVortoxWorld,
-      setJugglerGuesses,
-      setKlutzChoiceTarget,
-      setLastDuskExecution,
-      setLastExecutedPlayerId,
-      setLongPressingSeats,
-      setMastermindFinalDay,
-      setMayorRedirectTarget,
-      setMounted,
-      setNightCount,
-      setNightOrderPreview,
-      setNightQueuePreviewTitle,
-      setNominationMap,
-      setNominationRecords,
-      setOutsiderDiedToday,
-      setPendingNightQueue,
-      setPoChargeState,
-      setPoppyGrowerDead,
-      setPukkaPoisonQueue,
-      setRemainingDays,
-      setSeatNotes,
-      setSeats,
-      setSelectedActionTargets,
-      setSelectedRole,
-      setSelectedScript,
-      setShamanConvertTarget,
-      setShamanKeyword,
-      setShamanTriggered,
-      setShowIntroLoading,
-      setShowMenu,
-      setShowVoteErrorToast,
-      setSpyDisguiseMode,
-      setSpyDisguiseProbability,
-      setStartTime,
-      setTimer,
-      setTodayDemonVoted,
-      setTodayExecutedId,
-      setTodayMinionNominated,
-      setUsedDailyAbilities,
-      setUsedOnceAbilities,
-      setVfxTrigger,
-      setVictorySnapshot,
-      setVirginGuideInfo,
-      setVoteInputValue,
-      setVoteRecords,
-      setVotedThisRound,
-      setWakeQueueIds,
-      setWinReason,
-      setWinResult,
-      setWitchActive,
-      setWitchCursedId,
       showIntroLoading,
       vfxTrigger,
     ]

@@ -59,13 +59,12 @@ export function NightOrderPreviewModal({
             );
             return (
               <button
-                key={`rh-select-${seat.id}`}
+                key={`rh-select-seat-${seat.id}`}
                 onClick={() => props.toggleStatus("redherring", seat.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                  isRH
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isRH
                     ? "bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"
                     : "bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500/50 hover:text-red-200"
-                }`}
+                  }`}
               >
                 {seat.id + 1}号 {seat.role?.name || "未设定"}
               </button>
@@ -80,7 +79,7 @@ export function NightOrderPreviewModal({
         {(nightOrderModal?.preview || props.nightOrderPreview).map(
           (item: any, idx: number) => (
             <div
-              key={`${item.roleName}-${item.seatNo}-${idx}`}
+              key={`night-order-preview-${idx}`}
               className="p-3 rounded-xl border border-gray-700 bg-gray-800/80 flex items-center justify-between night-order-preview-item"
             >
               <div className="flex flex-col">

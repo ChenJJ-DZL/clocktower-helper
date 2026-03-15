@@ -144,10 +144,10 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
 
   // 分配角色
   await assignRole("小恶魔", 0); // 1号位
-  await assignRole("投毒者", 1); // 2号位
+  await assignRole("毒药师", 1); // 2号位（修正：角色名称是"毒药师"不是"投毒者"）
   await assignRole("洗衣妇", 2); // 3号位
   await assignRole("图书管理员", 3); // 4号位
-  await assignRole("猎手", 4); // 5号位 (修正：根据数据应该是"猎手"不是"杀手")
+  await assignRole("猎手", 4); // 5号位
 
   // --- 3. 开始游戏 ---
   console.log("点击开始游戏...");
@@ -165,11 +165,72 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
   // --- 5. 验证控制台交互 ---
   console.log("检查控制台...");
 
-  // 验证确认按钮是否出现
-  const confirmBtn = page
-    .getByRole("button", { name: /确认|Confirm/i })
-    .first();
-  await expect(confirmBtn).toBeVisible({ timeout: 10000 });
+  // 验证首夜第一个行动：毒药师
+  await expect(page.getByText(/毒药师|Poisoner/i)).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(
+    page.getByText("唤醒 2 号【毒药师】玩家，选择1名玩家下毒。")
+  ).toBeVisible();
+  console.log("✅ 毒药师Prompt文本正确");
 
-  console.log("✅ 测试通过：成功分配角色并进入夜晚，控制台响应正常！");
+  // 毒药师选择3号洗衣妇下毒
+  await page.getByRole("button", { name: "3 # 洗衣妇" }).click();
+  await page
+    .getByRole("button", { name: /确认|Confirm/i })
+    .first()
+    .click();
+  console.log("✅ 毒药师下毒操作完成");
+
+  // 验证切换到下一个角色：洗衣妇
+  await expect(page.getByText(/洗衣妇|Washerwoman/i)).toBeVisible({
+    timeout: 5000,
+  });
+  await expect(
+    page.getByText("唤醒 3 号【洗衣妇】玩家，告诉他2名镇民的其中1名身份。")
+  ).toBeVisible();
+  console.log("✅ 洗衣妇Prompt文本正确，状态机切换正常");
+
+  // 点击确认继续
+  await page
+    .getByRole("button", { name: /确认|Confirm/i })
+    .first()
+    .click();
+
+  // 验证后续角色依次出现：图书管理员 -> 猎手 -> 小恶魔
+  await expect(page.getByText(/图书管理员|Librarian/i)).toBeVisible({
+    timeout: 5000,
+  });
+  await page
+    .getByRole("button", { name: /确认|Confirm/i })
+    .first()
+    .click();
+  console.log("✅ 图书管理员行动完成");
+
+  await expect(page.getByText(/猎手|Slayer/i)).toBeVisible({ timeout: 5000 });
+  await page
+    .getByRole("button", { name: /确认|Confirm/i })
+    .first()
+    .click();
+  console.log("✅ 猎手行动完成");
+
+  // 验证小恶魔行动
+  await expect(page.getByText(/小恶魔|Imp/i)).toBeVisible({ timeout: 5000 });
+  await expect(
+    page.getByText("唤醒 1 号【小恶魔】玩家，选择1名玩家杀死。")
+  ).toBeVisible();
+  // 小恶魔杀死5号猎手
+  await page.getByRole("button", { name: "5 # 猎手" }).click();
+  await page
+    .getByRole("button", { name: /确认|Confirm/i })
+    .first()
+    .click();
+  console.log("✅ 小恶魔杀人操作完成");
+
+  // 验证夜晚结束，进入天亮阶段
+  await expect(page.getByText(/天亮|Dawn/i)).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText(/5号.*猎手.*死亡/i)).toBeVisible();
+  console.log("✅ 夜晚结算正常，进入白天阶段");
+
+  console.log("✅ 全流程测试通过：UI与底层逻辑完全同步，所有角色交互正常！");
 });

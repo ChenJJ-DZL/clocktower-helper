@@ -620,18 +620,18 @@ export function useNightLogic(
       setLastDuskExecution,
       setCurrentDuskExecution,
       setStartTime,
-      setNightQueuePreviewTitle,
+      // setNightQueuePreviewTitle, 移除依赖，避免循环调用
       setCurrentModal,
       setPendingNightQueue,
       setNightOrderPreview,
       killPlayer,
       addLog,
       finalizeNightStart,
-      nightQueuePreviewTitle,
       setHasExecutedThisDay,
       setInspectionResult,
       setSelectedActionTargets,
       setVotedThisRound,
+      // 移除nightQueuePreviewTitle依赖，避免循环调用，因为函数内部会修改这个值，导致无限重渲染
     ]
   );
 

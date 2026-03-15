@@ -285,8 +285,10 @@ export const calculateNightInfo = (
     speak = dialog.instruction;
     action = dialog.close;
 
+    let defaultTargetLimit = { min: 0, max: 0 };
     if (nightConfig.target) {
-      targetLimit = nightConfig.target.count;
+      defaultTargetLimit = nightConfig.target.count;
+      targetLimit = defaultTargetLimit;
 
       if (nightConfig.target.canSelect) {
         canSelectSelf = nightConfig.target.canSelect(
@@ -303,6 +305,136 @@ export const calculateNightInfo = (
           seats,
           gamePhase
         );
+      }
+    }
+
+    // 🚩 被动信息型角色自动推演逻辑，无需手动选择目标
+    const isPassiveRoleAutoHandled = false;
+    if (isFirstNight && !shouldShowFake) {
+      switch (effectiveRole.id) {
+        case "washerwoman": {
+          // 洗衣妇：自动随机生成镇民和另一个玩家
+          const townsfolkSeats = seats.filter(
+            (s) =>
+              s.role &&
+              s.role.type === "townsfolk" &&
+              !s.isDead &&
+              s.id !== currentSeatId
+          );
+          const targetTownsfolk = getRandom(townsfolkSeats);
+          if (targetTownsfolk?.role) {
+            const otherSeats = seats.filter(
+              (s) =>
+                s.id !== targetTownsfolk.id &&
+                !s.isDead &&
+                s.id !== currentSeatId
+            );
+            const targetOther = getRandom(otherSeats);
+            if (targetOther) {
+              const shuffledTargets =
+                Math.random() > 0.5
+                  ? [targetTownsfolk, targetOther]
+                  : [targetOther, targetTownsfolk];
+              guide = `🧺 洗衣妇，请睁眼。请向Ta出示【${targetTownsfolk.role.name}】的角色标记，并指向 ${shuffledTargets[0].id + 1}号 和 ${shuffledTargets[1].id + 1}号 玩家。（系统随机抽取）`;
+              speak = `"${shuffledTargets[0].id + 1}号、${shuffledTargets[1].id + 1}号中存在（镇民）${targetTownsfolk.role.name}。"`;
+              // 无需选择目标
+              targetLimit = { min: 0, max: 0 };
+            }
+          }
+          break;
+        }
+        case "librarian": {
+          // 图书管理员：自动随机生成外来者和另一个玩家
+          const outsiderSeats = seats.filter(
+            (s) =>
+              s.role &&
+              s.role.type === "outsider" &&
+              !s.isDead &&
+              s.id !== currentSeatId
+          );
+          const targetOutsider = getRandom(outsiderSeats);
+          if (targetOutsider?.role) {
+            const otherSeats = seats.filter(
+              (s) =>
+                s.id !== targetOutsider.id &&
+                !s.isDead &&
+                s.id !== currentSeatId
+            );
+            const targetOther = getRandom(otherSeats);
+            if (targetOther) {
+              const shuffledTargets =
+                Math.random() > 0.5
+                  ? [targetOutsider, targetOther]
+                  : [targetOther, targetOutsider];
+              guide = `📚 图书管理员，请睁眼。请向Ta出示【${targetOutsider.role.name}】的角色标记，并指向 ${shuffledTargets[0].id + 1}号 和 ${shuffledTargets[1].id + 1}号 玩家。（系统随机抽取）`;
+              speak = `"${shuffledTargets[0].id + 1}号、${shuffledTargets[1].id + 1}号中存在（外来者）${targetOutsider.role.name}。"`;
+              // 无需选择目标
+              targetLimit = { min: 0, max: 0 };
+            }
+          }
+          break;
+        }
+        case "investigator": {
+          // 调查员：自动随机生成爪牙和另一个玩家
+          const minionSeats = seats.filter(
+            (s) =>
+              s.role &&
+              s.role.type === "minion" &&
+              !s.isDead &&
+              s.id !== currentSeatId
+          );
+          const targetMinion = getRandom(minionSeats);
+          if (targetMinion?.role) {
+            const otherSeats = seats.filter(
+              (s) =>
+                s.id !== targetMinion.id && !s.isDead && s.id !== currentSeatId
+            );
+            const targetOther = getRandom(otherSeats);
+            if (targetOther) {
+              const shuffledTargets =
+                Math.random() > 0.5
+                  ? [targetMinion, targetOther]
+                  : [targetOther, targetMinion];
+              guide = `🔍 调查员，请睁眼。请向Ta出示【${targetMinion.role.name}】的角色标记，并指向 ${shuffledTargets[0].id + 1}号 和 ${shuffledTargets[1].id + 1}号 玩家。（系统随机抽取）`;
+              speak = `"${shuffledTargets[0].id + 1}号、${shuffledTargets[1].id + 1}号中存在（爪牙）${targetMinion.role.name}。"`;
+              // 无需选择目标
+              targetLimit = { min: 0, max: 0 };
+            }
+          }
+          break;
+        }
+        case "chef": {
+          // 厨师：自动计算邪恶邻座对数
+          let evilPairs = 0;
+          for (let i = 0; i < seats.length; i++) {
+            const s1 = seats[i];
+            const s2 = seats[(i + 1) % seats.length];
+            if (
+              !s1.isDead &&
+              !s2.isDead &&
+              _checkEvilForChefEmpath(s1) &&
+              _checkEvilForChefEmpath(s2)
+            ) {
+              evilPairs++;
+            }
+          }
+          guide = `👨‍🍳 厨师，请睁眼。告诉Ta："场上有${evilPairs}对邪恶玩家邻座。"（系统自动计算）`;
+          speak = `"场上有${evilPairs}对邪恶玩家邻座。"`;
+          targetLimit = { min: 0, max: 0 };
+          break;
+        }
+        case "empath": {
+          // 共情者：自动计算相邻邪恶玩家数量
+          const left = findNearestAliveNeighbor(currentSeatId, -1);
+          const right = findNearestAliveNeighbor(currentSeatId, 1);
+          let evilCount = 0;
+          if (left && _checkEvilForChefEmpath(left)) evilCount++;
+          if (right && _checkEvilForChefEmpath(right)) evilCount++;
+          guide = `💞 共情者，请睁眼。告诉Ta："你邻近的两名存活玩家中，有${evilCount}名邪恶玩家。"（系统自动计算）`;
+          speak = `"你邻近的两名存活玩家中，有${evilCount}名邪恶玩家。"`;
+          targetLimit = { min: 0, max: 0 };
+          break;
+        }
       }
     }
   } else {
@@ -364,7 +496,8 @@ export const calculateNightInfo = (
       isFirstNight && roleDef?.firstNight ? roleDef.firstNight : roleDef?.night;
     const targetCount = actionConfig?.target?.count;
 
-    if (targetCount?.max) {
+    // 被动信息角色已经设置了targetLimit=0，不需要再覆盖
+    if (targetCount?.max && targetLimit.min !== 0) {
       targetLimit = { min: targetCount.min ?? 1, max: targetCount.max };
       if (actionConfig?.target?.canSelect) canSelectSelf = true;
     }

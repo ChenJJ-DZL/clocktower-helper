@@ -288,9 +288,9 @@ export function RoundTable({
                 暂无（未生成顺序或不在夜晚阶段）
               </div>
             ) : (
-              nightOrderPreview.slice(0, 10).map((item) => (
+              nightOrderPreview.slice(0, 10).map((item, idx) => (
                 <div
-                  key={`${item.roleName}-${item.seatNo}`}
+                  key={`night-order-${idx}`}
                   className="flex items-center justify-between text-xs"
                 >
                   <div className="text-slate-200 truncate">

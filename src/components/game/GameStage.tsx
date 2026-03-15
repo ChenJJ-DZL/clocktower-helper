@@ -579,6 +579,15 @@ export const GameStage = () => {
                     triggerShake();
                     // 直接使用标准处决结算流程（含平票/无人上台/胜负判断）
                     executeJudgment();
+                    // 执行处决后重置所有提名和候选状态
+                    setPendingVoteFor(null);
+                    setSeats((prev) =>
+                      prev.map((s) => ({
+                        ...s,
+                        isCandidate: false,
+                        voteCount: 0,
+                      }))
+                    );
                   } catch (error) {
                     console.error("[GameStage] 执行处决时出错:", error);
                     alert(

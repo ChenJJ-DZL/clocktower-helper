@@ -302,15 +302,16 @@ export const GameConsole = React.memo(function GameConsole({
               </div>
             </div>
 
-            {/* Injected Player List */}
-            {seats.length > 0 && (
+            {/* Injected Player List - 只有需要选择目标时才显示 */}
+            {seats.length > 0 && nightInfo?.targetLimit?.min > 0 && (
               <div className="mt-5 pt-4 border-t border-emerald-500/20">
                 <div
                   className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"
-                  data-min={nightInfo?.targetLimit?.min ?? 1}
-                  data-max={nightInfo?.targetLimit?.max ?? 1}
+                  data-min={nightInfo.targetLimit.min}
+                  data-max={nightInfo.targetLimit.max}
                 >
-                  选择目标
+                  选择目标（最少{nightInfo.targetLimit.min}个，最多
+                  {nightInfo.targetLimit.max}个）
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {seats.map((seat) => {

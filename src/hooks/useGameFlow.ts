@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type GamePhase,
   roles as globalRoles,
@@ -64,21 +64,28 @@ export function useGameFlow(): UseGameFlowResult {
 
   // Timer running state
   const [isTimerRunning, setIsTimerRunning] = useState(true);
+  // 使用Ref保存最新timer值，避免依赖导致无限循环
+  const timerRef = useRef<number>(timer);
+
+  // 同步timer到Ref
+  useEffect(() => {
+    timerRef.current = timer;
+  }, [timer]);
 
   // 当相位切换时自动重置计时器
   useEffect(() => {
     dispatch(gameActions.setTimer(0));
     setIsTimerRunning(true);
-  }, [dispatch]);
+  }, [dispatch, gamePhase]);
 
   // 计时器逻辑
   useEffect(() => {
     if (!mounted || !isTimerRunning) return;
     const i = setInterval(() => {
-      dispatch(gameActions.setTimer(state.timer + 1));
+      dispatch(gameActions.setTimer(timerRef.current + 1));
     }, 1000);
     return () => clearInterval(i);
-  }, [mounted, isTimerRunning, dispatch, state.timer]);
+  }, [mounted, isTimerRunning, dispatch]);
 
   const handleTimerPause = useCallback(() => setIsTimerRunning(false), []);
   const handleTimerStart = useCallback(() => setIsTimerRunning(true), []);
@@ -312,22 +319,20 @@ export function useGameFlow(): UseGameFlowResult {
 
   const confirmNightOrderPreview = useCallback(() => {
     // 🛡️ Guard: If already in night phase, do NOT regenerate queue
-    if (gamePhase === "firstNight") {
+    if (gamePhase === "firstNight" || gamePhase === "night") {
       console.warn(
         `[confirmNightOrderPreview] Already in ${gamePhase}, ignoring request.`
       );
       return;
     }
 
+    // 如果队列不存在，说明预览模态框没有正确弹出，直接派发事件重新生成队列
     if (!pendingNightQueue || pendingNightQueue.length === 0) {
-      dispatch(gameActions.setGamePhase("firstNight"));
-      dispatch(
-        gameActions.addLog({
-          day: 1,
-          phase: "night",
-          message: "首夜：无需要唤醒的角色，直接进入天亮阶段",
-        })
+      console.warn(
+        "[confirmNightOrderPreview] pendingNightQueue为空，重新触发首夜队列生成"
       );
+      const event = new CustomEvent("startFirstNight", {});
+      window.dispatchEvent(event);
       return;
     }
 
@@ -343,6 +348,7 @@ export function useGameFlow(): UseGameFlowResult {
     );
     dispatch(gameActions.setGamePhase("firstNight"));
     dispatch(gameActions.setModal(null));
+    dispatch(gameActions.updateState({ pendingNightQueue: null }));
   }, [pendingNightQueue, dispatch, gamePhase]);
 
   const handleStartNight = useCallback(
@@ -397,17 +403,11 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
-      // 这里清除队列以便触发 useNightLogic 里的 startNight，
-      // startNight 会使用新的 queue 算法并弹窗确认
-      dispatch(
-        gameActions.updateState({
-          wakeQueueIds: [],
-          currentWakeIndex: 0,
-          selectedActionTargets: [],
-          inspectionResult: null,
-        })
-      );
-      dispatch(gameActions.setGamePhase("firstNight"));
+      // 调用 startNight 生成首夜队列并弹出预览
+      // 注意：需要从外部传入 startNight 引用，因为 useGameFlow 不直接依赖 useNightLogic
+      // 临时修复：直接通过 GameContext 触发 startNight 逻辑
+      const event = new CustomEvent("startFirstNight", {});
+      window.dispatchEvent(event);
     },
     [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.name]
   );
