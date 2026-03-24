@@ -146,6 +146,21 @@ export function handleProfessorConfirm(
     return { handled: true };
   }
 
+  const actorSeat = seats.find((s) => s.id === seatId);
+  const actorDisabled =
+    nightInfo.isPoisoned ||
+    !!actorSeat?.isDrunk ||
+    actorSeat?.role?.id === "drunk";
+
+  // 无论是否中毒/醉酒，使用能力就消耗次数
+  markAbilityUsed("professor_mr", seatId);
+
+  if (actorDisabled) {
+    addLog(`${seatId + 1}号(教授) 处于中毒/醉酒状态，复活无效，能力已消耗`);
+    continueToNextAction();
+    return { handled: true };
+  }
+
   const availableReviveTargets = seats.filter((s) => {
     const r = s.role?.id === "drunk" ? s.charadeRole : s.role;
     return s.isDead && r && r.type === "townsfolk" && !s.isDemonSuccessor;
@@ -205,7 +220,6 @@ export function handleProfessorConfirm(
     addLog(`${targetId + 1}号此前因亡骨魔获得的"死而有能"效果随着复活已失效`);
   }
 
-  markAbilityUsed("professor_mr", seatId);
   setSelectedActionTargets([]);
   insertIntoWakeQueueAfterCurrent(targetId, {
     logLabel: `${targetId + 1}号(复活)`,
@@ -258,9 +272,24 @@ export function handleRangerConfirm(
     return { handled: true, shouldWait: true };
   }
 
-  const targetRoleId = getSeatRoleId(targetSeat);
+  const actorSeat = seats.find((s) => s.id === seatId);
+  const actorDisabled =
+    nightInfo.isPoisoned ||
+    !!actorSeat?.isDrunk ||
+    actorSeat?.role?.id === "drunk";
+  // 无论是否中毒/醉酒，使用能力就消耗次数
   markAbilityUsed("ranger", seatId);
   setSelectedActionTargets([]);
+
+  if (actorDisabled) {
+    addLog(
+      `${seatId + 1}号(巡山人) 处于中毒/醉酒状态，能力无效，已消耗使用次数`
+    );
+    continueToNextAction();
+    return { handled: true };
+  }
+
+  const targetRoleId = getSeatRoleId(targetSeat);
 
   if (targetRoleId !== "damsel") {
     addLog(`${seatId + 1}号(巡山人) 选择${targetId + 1}号，但未命中落难少女`);
@@ -1251,6 +1280,7 @@ export function handleDevilsAdvocateConfirm(
 
 /**
  * 下毒行动执行函数
+ * 官方规则：中毒/醉酒仅影响能力结果，不影响触发时机，且限次能力使用即消耗
  */
 export function executePoisonAction(
   targetId: number,
@@ -1273,6 +1303,7 @@ export function executePoisonAction(
     ) => void;
     addPoisonMark: (seat: Seat, type: any, time: string) => any;
     computeIsPoisoned: (seat: Seat, seats: Seat[]) => boolean;
+    markAbilityUsed: (roleId: string, seatId: number) => void;
   }
 ) {
   const {
@@ -1283,16 +1314,25 @@ export function executePoisonAction(
     isActorDisabledByPoisonOrDrunk,
     addLogWithDeduplication,
     addPoisonMark,
+    markAbilityUsed,
   } = context;
 
   const actorId = nightInfo?.seat?.id;
   const actorSeat =
     actorId !== undefined ? seats.find((s) => s.id === actorId) : undefined;
-  if (
-    isActorDisabledByPoisonOrDrunk(actorSeat, nightInfo?.isPoisoned ?? false)
-  ) {
+  const isDisabled = isActorDisabledByPoisonOrDrunk(
+    actorSeat,
+    nightInfo?.isPoisoned ?? false
+  );
+
+  // 无论是否中毒/醉酒，限次能力都正常消耗
+  if (nightInfo.effectiveRole.id === "poisoner" && actorId !== undefined) {
+    markAbilityUsed("poisoner", actorId);
+  }
+
+  if (isDisabled) {
     addLogWithDeduplication(
-      `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? "未知"}) 处于中毒/醉酒状态，下毒失效`,
+      `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? "未知"}) 处于中毒/醉酒状态，下毒无效，能力已消耗`,
       actorId,
       nightInfo?.effectiveRole?.name
     );
@@ -1306,7 +1346,7 @@ export function executePoisonAction(
         const { statusDetails, statuses } = addPoisonMark(
           s,
           "poisoner",
-          "永久"
+          "次日黄昏"
         );
         return { ...s, isPoisoned: true, statusDetails, statuses };
       }
@@ -1315,7 +1355,7 @@ export function executePoisonAction(
   );
 
   addLogWithDeduplication(
-    `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? "未知"}) 使 ${targetId + 1}号 中毒`,
+    `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? "未知"}) 使 ${targetId + 1}号 中毒（持续至次日黄昏）`,
     actorId,
     nightInfo?.effectiveRole?.name
   );

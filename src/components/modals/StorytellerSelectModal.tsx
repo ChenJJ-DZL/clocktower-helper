@@ -19,7 +19,6 @@ interface StorytellerSelectModalProps {
  */
 export function StorytellerSelectModal({
   sourceId,
-  roleId,
   roleName,
   description,
   targetCount,

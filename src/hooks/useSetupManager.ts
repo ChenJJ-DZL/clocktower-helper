@@ -45,12 +45,27 @@ export function useSetupManager(
         demon: activeSeats.filter((s) => s.role?.type === "demon").length,
       };
       const hasBaron = activeSeats.some((s) => s.role?.id === "baron");
-      const valid = standard
-        ? actual.townsfolk === standard.townsfolk &&
-          actual.outsider === standard.outsider &&
-          actual.minion === standard.minion &&
-          actual.demon === standard.demon
-        : false;
+
+      let valid = false;
+      if (standard) {
+        if (hasBaron) {
+          // 有男爵时，按照男爵规则验证：减少2镇民，增加2外来者
+          const expectedTownsfolk = standard.townsfolk - 2;
+          const expectedOutsider = standard.outsider + 2;
+          valid =
+            actual.townsfolk === expectedTownsfolk &&
+            actual.outsider === expectedOutsider &&
+            actual.minion === standard.minion &&
+            actual.demon === standard.demon;
+        } else {
+          // 无男爵时，按标准配置验证
+          valid =
+            actual.townsfolk === standard.townsfolk &&
+            actual.outsider === standard.outsider &&
+            actual.minion === standard.minion &&
+            actual.demon === standard.demon;
+        }
+      }
 
       return { valid, standard, actual, playerCount, hasBaron };
     },

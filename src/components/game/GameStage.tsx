@@ -9,7 +9,6 @@ import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { getStorytellerTips } from "../../utils/storytellerTips";
 import { RoundTable } from "./board/RoundTable";
-import { ScaleToFit } from "./board/ScaleToFit";
 import { GameConsole } from "./console/GameConsole";
 import { GameLayout } from "./GameLayout";
 import { GameModals } from "./GameModals";

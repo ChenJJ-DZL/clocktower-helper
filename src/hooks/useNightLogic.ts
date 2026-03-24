@@ -631,6 +631,8 @@ export function useNightLogic(
       setInspectionResult,
       setSelectedActionTargets,
       setVotedThisRound,
+      nightQueuePreviewTitle,
+      setNightQueuePreviewTitle,
       // 移除nightQueuePreviewTitle依赖，避免循环调用，因为函数内部会修改这个值，导致无限重渲染
     ]
   );

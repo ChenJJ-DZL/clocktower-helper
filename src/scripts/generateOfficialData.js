@@ -1,13 +1,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const josnDir = path.join(__dirname, "../../josn");
+const jsonDir = path.join(__dirname, "../../json");
 const outRoles = path.join(__dirname, "../data/officialRoleDocs.json");
 const outRules = path.join(__dirname, "../data/officialRules.json");
 
 function processRoleFiles() {
   const result = {};
-  const files = fs.readdirSync(josnDir);
+  const files = fs.readdirSync(jsonDir);
 
   files.forEach((file) => {
     // Only process role definition files
@@ -19,7 +19,7 @@ function processRoleFiles() {
       !file.includes("角色能力总览")
     ) {
       console.log(`Processing roles from: ${file}`);
-      const content = fs.readFileSync(path.join(josnDir, file), "utf8");
+      const content = fs.readFileSync(path.join(jsonDir, file), "utf8");
       try {
         const data = JSON.parse(content);
         data.forEach((role) => {
@@ -32,7 +32,7 @@ function processRoleFiles() {
       }
     } else if (file.includes("角色文档") && file.endsWith(".json")) {
       console.log(`Processing expansion roles from: ${file}`);
-      const content = fs.readFileSync(path.join(josnDir, file), "utf8");
+      const content = fs.readFileSync(path.join(jsonDir, file), "utf8");
       try {
         const data = JSON.parse(content);
         data.forEach((role) => {
@@ -62,7 +62,7 @@ function processRuleFiles() {
   ];
 
   ruleFiles.forEach(({ source, key }) => {
-    const fPath = path.join(josnDir, source);
+    const fPath = path.join(jsonDir, source);
     if (fs.existsSync(fPath)) {
       console.log(`Processing rule: ${source}`);
       const content = fs.readFileSync(fPath, "utf8");

@@ -102,6 +102,31 @@ export function PlayerContextMenu() {
             🗣️ 造谣者：记录/裁定
           </button>
         )}
+      {/* 拜访说书人：白天主动触发私密能力交互 */}
+      {props.gamePhase === "day" &&
+        !targetSeat.isDead &&
+        targetSeat.role?.dayMeta &&
+        !targetSeat.hasUsedDayAbility && (
+          <button
+            onClick={() => props.handleMenuAction("visit_storyteller")}
+            className="block w-full text-left px-6 py-3 hover:bg-indigo-900 text-indigo-200 text-lg font-medium border-t border-gray-700"
+          >
+            📜 拜访说书人
+          </button>
+        )}
+      {/* 公开声明使用能力：所有玩家可见 */}
+      {props.gamePhase === "day" &&
+        !targetSeat.isDead &&
+        targetSeat.role?.dayMeta &&
+        !targetSeat.hasUsedDayAbility &&
+        targetSeat.role.dayMeta.publicActivation && (
+          <button
+            onClick={() => props.handleMenuAction("public_activate_ability")}
+            className="block w-full text-left px-6 py-3 hover:bg-amber-900 text-amber-200 text-lg font-medium border-t border-gray-700"
+          >
+            📣 公开使用能力
+          </button>
+        )}
       <button
         onClick={() => props.toggleStatus("dead")}
         className="block w-full text-left px-6 py-3 hover:bg-gray-700 text-lg font-medium transition-colors"

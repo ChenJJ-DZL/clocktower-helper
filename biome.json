@@ -145,7 +145,7 @@
       "!**/coverage",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/josn"
+      "!**/json"
     ]
   }
 }

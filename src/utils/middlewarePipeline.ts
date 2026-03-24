@@ -3,6 +3,7 @@
  * 技能执行的标准流程抽象，实现职责链模式，支持灵活扩展中间件
  */
 
+import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 
 // 中间件上下文
@@ -92,11 +93,14 @@ export async function runFullAbilityPipeline(
     postProcess = [defaultMiddleware],
   } = middlewareSet;
 
+  // 注入全局优先级中间件到calculate阶段最前面
+  const enhancedCalculate = [abilityPriorityCalculation, ...calculate];
+
   // 按顺序执行四个阶段
   let context = await runMiddlewarePipeline(preCheck, initialContext);
   if (context.aborted) return context;
 
-  context = await runMiddlewarePipeline(calculate, context);
+  context = await runMiddlewarePipeline(enhancedCalculate, context);
   if (context.aborted) return context;
 
   context = await runMiddlewarePipeline(stateUpdate, context);

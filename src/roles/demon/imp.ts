@@ -94,7 +94,7 @@ export const imp: RoleDefinition = {
     },
 
     handler: (context) => {
-      const { targets, selfId } = context;
+      const { targets, selfId, seats } = context;
 
       if (targets.length === 0) {
         return {
@@ -106,6 +106,20 @@ export const imp: RoleDefinition = {
       }
 
       const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+      const isTargetProtected =
+        targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
+        targetSeat?.isProtected;
+
+      // 如果目标被僧侣保护，攻击无效
+      if (isTargetProtected) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `小恶魔（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，但目标被僧侣保护，攻击无效`,
+          },
+        };
+      }
 
       // 注意：实际的死亡逻辑和属性变更（如 isDead）应该在这里返回
       // 如果自杀，则 targetId === selfId

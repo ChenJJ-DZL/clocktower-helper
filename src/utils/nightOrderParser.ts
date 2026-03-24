@@ -1,12 +1,21 @@
 /**
  * 官方夜晚行动顺序解析器
- * 统一解析 josn/夜晚行动顺序.json，提供强类型的顺序映射
+ * 统一解析 json/夜晚行动顺序.json，提供强类型的顺序映射
  */
 
-import nightOrderDataRaw from "../../josn/夜晚行动顺序.json";
+// 动态导入JSON文件，避免TypeScript编译错误
+const loadNightOrderData = () => {
+  try {
+    // 使用require在运行时加载JSON
+    const nightOrderData = require("../../json/夜晚行动顺序.json");
+    return nightOrderData;
+  } catch (error) {
+    console.error("Failed to load 夜晚行动顺序.json:", error);
+    return { firstNight: [], otherNight: [] };
+  }
+};
 
-// 类型断言适配实际JSON结构
-const nightOrderData = nightOrderDataRaw as any;
+const nightOrderData = loadNightOrderData();
 
 export interface NightOrderItem {
   /** 角色ID（与角色定义中的roleId对应） */

@@ -147,6 +147,10 @@ export const getRegistration = (
       roleType: null,
       registersAsDemon: false,
       registersAsMinion: false,
+      registersAsOutsider: false,
+      registersAsTownsfolk: false,
+      registeredRole: null,
+      overrides: [],
     };
   }
 
@@ -190,6 +194,7 @@ export const getRegistration = (
 
   // 间谍：可能注册为善良镇民/外来者
   if (role.id === "spy") {
+    // 间谍死亡后身份仍可被当作邪恶/爪牙/恶魔
     if (viewingRole && spyDisguiseMode !== "off") {
       const probability =
         spyDisguiseMode === "on" ? (spyDisguiseProbability ?? 0.8) : 0.8;
@@ -228,6 +233,10 @@ export const getRegistration = (
     roleType: registeredRoleType,
     registersAsDemon: registeredRoleType === "demon",
     registersAsMinion: registeredRoleType === "minion",
+    registersAsOutsider: registeredRoleType === "outsider",
+    registersAsTownsfolk: registeredRoleType === "townsfolk",
+    registeredRole: null,
+    overrides: [],
   };
 
   // If a viewer is provided, apply JinxManager interception

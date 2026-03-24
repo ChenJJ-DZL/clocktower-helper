@@ -15,7 +15,7 @@ const preCheckIfExecuted = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive && seat?.executedToday) {
+  if (seat?.executedToday) {
     const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
     const isPoisoned = seat.statusEffects.some(
       (e: any) => e.type === "poisoned"

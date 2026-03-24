@@ -107,14 +107,10 @@ export default function GameSetup({
   selectedScript,
   selectedRole,
   setSelectedRole,
-  handleSeatClick,
   handlePreStartNight,
-  proceedToCheckPhase,
   filteredGroupedRoles,
   getCompositionStatus,
   getBaronStatus,
-  validateCompositionSetup,
-  validateBaronSetup,
   setCompositionError,
   setBaronSetupCheck,
   compositionError,
@@ -122,7 +118,6 @@ export default function GameSetup({
   ignoreBaronSetup,
   setIgnoreBaronSetup,
   handleBaronAutoRebalance,
-  hideSeatingChart = false,
 }: GameSetupProps) {
   const [showCompositionModal, setShowCompositionModal] = useState(false);
 

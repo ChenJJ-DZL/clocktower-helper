@@ -8,40 +8,15 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活、是否醉酒/中毒
-const preCheckAliveAndStatus = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
-  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
-  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
-
-  return {
-    ...context,
-    meta: {
-      ...context.meta,
-      isDrunk,
-      isPoisoned,
-      isAbilityActive: !(isDrunk || isPoisoned),
-    },
-  };
-};
-
 // 状态更新：为目标玩家添加中毒效果
 const updatePoisonStatus = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, targetIds, meta, actionNode } = context;
-  const isAbilityActive = meta.isAbilityActive ?? true;
+  const abilityEffective = meta.abilityEffective ?? true;
   const targetId = targetIds?.[0];
 
-  if (!isAbilityActive || !targetId) {
+  if (!abilityEffective || !targetId) {
     return context;
   }
 
@@ -86,14 +61,14 @@ export const poisonerAbility = createRoleAbility({
     allowSelf: false,
     allowDead: false,
   },
-  preCheck: [preCheckAliveAndStatus],
+  preCheck: [], // 默认使用commonPreCheckAlive
   calculate: [],
   stateUpdate: [updatePoisonStatus],
   postProcess: [
     async (context) => {
       const { meta, targetIds } = context;
       const targetId = targetIds?.[0];
-      if (meta.isAbilityActive && targetId) {
+      if (meta.abilityEffective && targetId) {
         console.log(
           `毒药师选择对${targetId}号玩家下毒，该玩家技能将失效直至下一个夜晚结束`
         );

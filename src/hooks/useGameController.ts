@@ -351,13 +351,52 @@ export function useGameController() {
         recordNightDeath = true,
         onAfterKill,
       } = options;
-      setSeats((prev: Seat[]) =>
-        prev.map((s) =>
+
+      // 首先处理死亡逻辑
+      setSeats((prev: Seat[]) => {
+        let updatedSeats = prev.map((s) =>
           s.id === targetId && !s.isDead
             ? { ...s, isDead: true, diedOnDay: nightCount, deathSource: source }
             : s
-        )
-      );
+        );
+
+        // 红罗刹死亡自动转移逻辑
+        const targetSeat = updatedSeats.find((s) => s.id === targetId);
+        if (targetSeat?.isRedHerring) {
+          // 检查是否存在存活的占卜师
+          const hasFortuneTeller = updatedSeats.some(
+            (s) => s.role?.id === "fortune_teller" && !s.isDead
+          );
+          if (hasFortuneTeller) {
+            // 筛选所有存活的善良玩家（镇民/外来者），排除刚死亡的红罗刹
+            const goodCandidates = updatedSeats.filter(
+              (s) =>
+                !s.isDead &&
+                ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+                isGoodAlignment(s) &&
+                s.id !== targetId
+            );
+            if (goodCandidates.length > 0) {
+              const newRedHerring = getRandom(goodCandidates);
+              updatedSeats = updatedSeats.map((s) => ({
+                ...s,
+                isRedHerring: s.id === newRedHerring.id,
+                isFortuneTellerRedHerring: s.id === newRedHerring.id,
+                statusDetails:
+                  s.id === newRedHerring.id
+                    ? [...(s.statusDetails || []), "天敌红罗剎"]
+                    : (s.statusDetails || []).filter((d) => d !== "天敌红罗剎"),
+              }));
+              addLog(
+                `天敌红罗剎已从${targetId + 1}号转移至${newRedHerring.id + 1}号玩家`
+              );
+            }
+          }
+        }
+
+        return updatedSeats;
+      });
+
       if (recordNightDeath)
         setDeadThisNight((prev: number[]) =>
           prev.includes(targetId) ? prev : [...prev, targetId]
@@ -371,6 +410,7 @@ export function useGameController() {
       nightCount,
       setOutsiderDiedToday,
       getSeatRoleId,
+      addLog,
     ]
   );
 

@@ -470,7 +470,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       continueToNextAction();
     }
   }, [
-    currentModal?.type,
+    currentModal,
     hadesiaChoices,
     addLog,
     setHadesiaChoices,
@@ -491,8 +491,18 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       return;
     const { targetId } = currentModal.data;
     setCurrentModal(null);
+    addLog(`${targetId + 1}号(圣徒) 被处决，善良阵营直接落败`);
+    setWinResult("evil");
+    setWinReason("圣徒被处决");
     executePlayer(targetId, { forceExecution: true });
-  }, [currentModal, setCurrentModal, executePlayer]);
+  }, [
+    currentModal,
+    setCurrentModal,
+    executePlayer,
+    addLog,
+    setWinResult,
+    setWinReason,
+  ]);
 
   const cancelSaintExecution = useCallback(() => {
     setCurrentModal(null);

@@ -1,18 +1,18 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const josnDir = path.join(__dirname, "..", "josn");
+const jsonDir = path.join(__dirname, "..", "json");
 const srcRolesDir = path.join(__dirname, "..", "src", "roles");
 
 // 1. Load all JSON data
 const roleDocs = new Map();
 
-const files = fs.readdirSync(josnDir);
+const files = fs.readdirSync(jsonDir);
 for (const file of files) {
   if (file.endsWith(".json")) {
     try {
       const data = JSON.parse(
-        fs.readFileSync(path.join(josnDir, file), "utf8")
+        fs.readFileSync(path.join(jsonDir, file), "utf8")
       );
       if (Array.isArray(data)) {
         for (const item of data) {

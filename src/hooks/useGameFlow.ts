@@ -76,7 +76,7 @@ export function useGameFlow(): UseGameFlowResult {
   useEffect(() => {
     dispatch(gameActions.setTimer(0));
     setIsTimerRunning(true);
-  }, [dispatch, gamePhase]);
+  }, [dispatch]);
 
   // 计时器逻辑
   useEffect(() => {

@@ -76,9 +76,30 @@ export function useExecutionHandler() {
         return null;
       }
 
+      // 首先将被处决玩家标记为死亡
+      const executedSeatIndex = updatedSeats.findIndex(
+        (s: Seat) => s.id === executedSeat.id
+      );
+      if (executedSeatIndex !== -1) {
+        updatedSeats[executedSeatIndex] = {
+          ...updatedSeats[executedSeatIndex],
+          isDead: true,
+        };
+      }
+
+      // 官方规则：处决结算优先级 - 先判断游戏结束再结算其他能力
+      // 第一步：先检查游戏是否已经因为本次处决结束
+      context.checkGameOver(updatedSeats, executedSeat.id);
+
+      // 如果游戏已经结束，不需要再执行任何其他处决逻辑
+      if (context.gamePhase === "gameOver") {
+        return null;
+      }
+
+      // 游戏未结束，才继续执行角色的处决逻辑
       // 构建处决上下文
       const execContext: ExecutionContext = {
-        executedSeat,
+        executedSeat: updatedSeats[executedSeatIndex],
         seats: updatedSeats,
         gamePhase,
         nightCount,
@@ -105,26 +126,27 @@ export function useExecutionHandler() {
           });
         }
 
-        // 处理游戏结束
+        // 再次检查游戏结束（因为角色处决逻辑可能导致游戏结束）
         if (result.gameOver) {
           context.setWinResult(result.gameOver.winResult);
           context.setWinReason(result.gameOver.winReason);
           context.setGamePhase("gameOver");
-        }
-
-        // 记录日志
-        if (result.logs) {
-          if (result.logs.privateLog) {
-            context.addLog(result.logs.privateLog);
+        } else {
+          // 只有在游戏仍未结束时才处理日志和弹窗
+          // 记录日志
+          if (result.logs) {
+            if (result.logs.privateLog) {
+              context.addLog(result.logs.privateLog);
+            }
+            if (result.logs.publicLog) {
+              context.addLog(result.logs.publicLog);
+            }
           }
-          if (result.logs.publicLog) {
-            context.addLog(result.logs.publicLog);
-          }
-        }
 
-        // 处理弹窗
-        if (result.modal && context.setCurrentModal) {
-          context.setCurrentModal(result.modal);
+          // 处理弹窗
+          if (result.modal && context.setCurrentModal) {
+            context.setCurrentModal(result.modal);
+          }
         }
 
         return result;

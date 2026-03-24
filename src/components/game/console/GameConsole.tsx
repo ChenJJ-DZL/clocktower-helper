@@ -56,7 +56,6 @@ interface GameConsoleProps {
 export const GameConsole = React.memo(function GameConsole({
   gamePhase,
   nightCount,
-  currentStep,
   totalSteps,
   onToggleGrimoire,
   scriptText,
@@ -66,7 +65,6 @@ export const GameConsole = React.memo(function GameConsole({
   nightInfo,
   onTogglePlayer,
   inspectionResult,
-  inspectionResultKey,
   primaryAction,
   secondaryActions = [],
   handleDayAbility,
@@ -303,45 +301,47 @@ export const GameConsole = React.memo(function GameConsole({
             </div>
 
             {/* Injected Player List - 只有需要选择目标时才显示 */}
-            {seats.length > 0 && nightInfo?.targetLimit?.min > 0 && (
-              <div className="mt-5 pt-4 border-t border-emerald-500/20">
-                <div
-                  className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"
-                  data-min={nightInfo.targetLimit.min}
-                  data-max={nightInfo.targetLimit.max}
-                >
-                  选择目标（最少{nightInfo.targetLimit.min}个，最多
-                  {nightInfo.targetLimit.max}个）
+            {seats.length > 0 &&
+              nightInfo?.targetLimit?.min &&
+              nightInfo.targetLimit.min > 0 && (
+                <div className="mt-5 pt-4 border-t border-emerald-500/20">
+                  <div
+                    className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"
+                    data-min={nightInfo.targetLimit?.min}
+                    data-max={nightInfo.targetLimit?.max}
+                  >
+                    选择目标（最少{nightInfo.targetLimit?.min}个，最多
+                    {nightInfo.targetLimit?.max}个）
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {seats.map((seat) => {
+                      if (!seat.role) return null;
+                      const isSelected = selectedPlayers.includes(seat.id);
+                      return (
+                        <button
+                          key={seat.id}
+                          type="button"
+                          onClick={() => onTogglePlayer?.(seat.id)}
+                          className={`px-2 py-2 rounded-xl text-xs font-bold text-center border transition-all duration-200 ${
+                            isSelected
+                              ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50"
+                              : seat.isDead
+                                ? "bg-slate-900/40 border-slate-800 text-slate-600 line-through opacity-60"
+                                : "bg-emerald-900/40 border-emerald-800/50 text-emerald-100 hover:bg-emerald-800/60 hover:border-emerald-700 shadow-sm"
+                          }`}
+                          title={seat.isDead ? "已死亡（仍可选择）" : undefined}
+                        >
+                          {seat.id + 1}
+                          <span className="text-[10px] opacity-60 font-normal">
+                            #
+                          </span>{" "}
+                          {seat.role.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {seats.map((seat) => {
-                    if (!seat.role) return null;
-                    const isSelected = selectedPlayers.includes(seat.id);
-                    return (
-                      <button
-                        key={seat.id}
-                        type="button"
-                        onClick={() => onTogglePlayer?.(seat.id)}
-                        className={`px-2 py-2 rounded-xl text-xs font-bold text-center border transition-all duration-200 ${
-                          isSelected
-                            ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50"
-                            : seat.isDead
-                              ? "bg-slate-900/40 border-slate-800 text-slate-600 line-through opacity-60"
-                              : "bg-emerald-900/40 border-emerald-800/50 text-emerald-100 hover:bg-emerald-800/60 hover:border-emerald-700 shadow-sm"
-                        }`}
-                        title={seat.isDead ? "已死亡（仍可选择）" : undefined}
-                      >
-                        {seat.id + 1}
-                        <span className="text-[10px] opacity-60 font-normal">
-                          #
-                        </span>{" "}
-                        {seat.role.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+              )}
           </div>
         )}
 

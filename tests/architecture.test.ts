@@ -118,6 +118,9 @@ describe("新架构核心验证", () => {
         roleType: null,
         registersAsDemon: false,
         registersAsMinion: false,
+        registersAsOutsider: false,
+        registersAsTownsfolk: false,
+        overrides: [],
       }),
       getMisinformation: {},
     };
@@ -170,6 +173,9 @@ describe("新架构核心验证", () => {
         roleType: null,
         registersAsDemon: false,
         registersAsMinion: false,
+        registersAsOutsider: false,
+        registersAsTownsfolk: false,
+        overrides: [],
       }),
       getMisinformation: {},
     };
@@ -191,6 +197,9 @@ describe("新架构核心验证", () => {
         roleType: null,
         registersAsDemon: false,
         registersAsMinion: false,
+        registersAsOutsider: false,
+        registersAsTownsfolk: false,
+        overrides: [],
       }),
       getMisinformation: {},
     };

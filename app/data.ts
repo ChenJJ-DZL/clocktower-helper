@@ -60,6 +60,7 @@ export interface DayActionMeta {
   usesCount: number | "infinity";
   targetType: "player" | "character" | "none"; // 'character' for choosing a role (e.g. Philosopher)
   effectType: "kill" | "info" | "slayer_check" | "transform_ability"; // 'transform_ability' for Philosopher
+  publicActivation?: boolean; // 是否需要公开声明使用能力（所有玩家可见）
 }
 
 // PASSIVE META: Triggers that happen automatically
@@ -364,7 +365,6 @@ export const roles: Role[] = [
     id: "grandmother",
     name: "祖母",
     type: "townsfolk",
-    hidden: true,
     ability:
       "【扩展镇民】在你的首个夜晚，你会得知一名善良玩家和他的角色。如果恶魔杀死了他，你也会死亡。",
     fullDescription:
@@ -376,7 +376,7 @@ export const roles: Role[] = [
     id: "sailor",
     name: "水手",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚，你要选择一名存活的玩家：你或他之一会醉酒直到下个黄昏。你不会死亡。",
     fullDescription:
@@ -388,7 +388,7 @@ export const roles: Role[] = [
     id: "chambermaid",
     name: "侍女",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚，你要选择除你以外的两名存活的玩家：你会得知他们中有几人在当晚因其自身能力而被唤醒。",
     fullDescription:
@@ -400,7 +400,7 @@ export const roles: Role[] = [
     id: "exorcist",
     name: "驱魔人",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚*，你要选择一名存活的玩家：恶魔的负面能力对该玩家无效。",
     fullDescription:
@@ -412,7 +412,7 @@ export const roles: Role[] = [
     id: "butler",
     name: "告密者",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚*，你要选择一名存活的玩家：第二天白天时你必须提名他。",
     fullDescription:
@@ -424,7 +424,7 @@ export const roles: Role[] = [
     id: "tea_lady",
     name: "圣女",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】如果你的两名存活的邻座玩家都是善良，则恶魔的负面能力对他们无效。",
     fullDescription:
@@ -436,7 +436,7 @@ export const roles: Role[] = [
     id: "poppy_grower",
     name: "和事佬",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】如果只有三名玩家存活，且你被恶魔杀死，则直到下一个黄昏所有玩家都可能会被视为恶魔，且恶魔的负面能力对所有玩家无效。",
     fullDescription:
@@ -448,7 +448,7 @@ export const roles: Role[] = [
     id: "professor",
     name: "教授",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每局游戏限一次，你可以在夜晚选择一名已死亡的善良玩家：他立刻复活。",
     fullDescription:
@@ -460,7 +460,7 @@ export const roles: Role[] = [
     id: "astrologer",
     name: "星象师",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚*，你要选择一名玩家：你会得知一个其所没有的善良角色。每局游戏限一次，你可以选择不使用能力。",
     fullDescription:
@@ -472,7 +472,7 @@ export const roles: Role[] = [
     id: "saint_townsfolk",
     name: "圣徒",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】如果你因被提名而死亡，游戏结束且善良阵营获胜。",
     fullDescription: "如果你因被提名而死亡,游戏结束且善良阵营获胜。",
     script: "暗流涌动",
@@ -482,7 +482,7 @@ export const roles: Role[] = [
     id: "bard",
     name: "吟游诗人",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】你的能力只有在没有吟游诗人在场时才能生效。每个夜晚*，你的一名存活的邻座玩家不会死亡。",
     fullDescription:
@@ -494,7 +494,7 @@ export const roles: Role[] = [
     id: "sage",
     name: "贤者",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】如果你因恶魔的能力而死亡，你会被唤醒，然后你要选择三名玩家：其中一名是恶魔。",
     fullDescription:
@@ -506,7 +506,7 @@ export const roles: Role[] = [
     id: "juggler",
     name: "杂耍艺人",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个白天，你都可以公开宣布你将发动杂耍艺人的能力，之后选择三名玩家：你死亡，且你所选择的三名玩家之中有一个恶魔。",
     fullDescription:
@@ -518,7 +518,7 @@ export const roles: Role[] = [
     id: "mathematician",
     name: "数学家",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】每个夜晚*，你会得知有多少角色能力未能正常生效。",
     fullDescription: "每个夜晚*,你会得知有多少角色能力未能正常生效。",
     script: "暗流涌动",
@@ -528,7 +528,7 @@ export const roles: Role[] = [
     id: "miner",
     name: "矿工",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚*，你要选择一名玩家：你会被唤醒并得知他的角色，如果他是酒鬼、投毒者或恶魔，你也会醉酒。",
     fullDescription:
@@ -540,7 +540,7 @@ export const roles: Role[] = [
     id: "professor_female",
     name: "教授（女）",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每局游戏限一次，你可以在夜晚选择一名已死亡的善良玩家：他立刻复活。",
     fullDescription:
@@ -552,7 +552,7 @@ export const roles: Role[] = [
     id: "monk_female",
     name: "僧侣（女）",
     type: "townsfolk",
-    hidden: true,
+
     ability:
       "【扩展镇民】每个夜晚*，你要选择除你以外的一名玩家：当晚恶魔的负面能力对他无效。",
     fullDescription:
@@ -892,7 +892,7 @@ export const roles: Role[] = [
     id: "missionary",
     name: "传教士",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
     script: "黯月初升",
@@ -903,7 +903,7 @@ export const roles: Role[] = [
     id: "alchemist",
     name: "炼金术士",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
     script: "黯月初升",
@@ -914,7 +914,7 @@ export const roles: Role[] = [
     id: "magician",
     name: "魔术师",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
     script: "黯月初升",
@@ -925,7 +925,7 @@ export const roles: Role[] = [
     id: "acrobat",
     name: "杂技演员",
     type: "outsider",
-    hidden: true,
+
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
     script: "黯月初升",
@@ -936,7 +936,7 @@ export const roles: Role[] = [
     id: "widow",
     name: "寡妇",
     type: "minion",
-    hidden: true,
+
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
     script: "黯月初升",
@@ -947,7 +947,7 @@ export const roles: Role[] = [
     id: "organ_grinder",
     name: "街头风琴手",
     type: "minion",
-    hidden: true,
+
     ability:
       "【实验性角色】所有玩家投票闭眼，票数秘密统计；每晚可选择自己是否醉酒到下个黄昏（醉酒则投票恢复公开）。",
     fullDescription: "",
@@ -959,7 +959,7 @@ export const roles: Role[] = [
     id: "boffin",
     name: "科学怪人",
     type: "minion",
-    hidden: true,
+
     ability:
       "【实验性角色】恶魔拥有一个不在场善良角色的能力（即使恶魔醉酒/中毒）；你与恶魔都知道获得了什么能力。",
     fullDescription: "",
@@ -971,7 +971,7 @@ export const roles: Role[] = [
     id: "fearmonger",
     name: "恐惧之灵",
     type: "minion",
-    hidden: true,
+
     ability:
       "【实验性角色】每晚选择一名玩家；若你提名他且他被处决，则该玩家阵营落败（首次/更换目标会广播）。",
     fullDescription: "",
@@ -983,7 +983,7 @@ export const roles: Role[] = [
     id: "wizard",
     name: "巫师",
     type: "minion",
-    hidden: true,
+
     ability:
       "【实验性角色】每局限一次：向说书人许愿；愿望可能实现并伴随代价和线索。",
     fullDescription: "",
@@ -995,7 +995,7 @@ export const roles: Role[] = [
     id: "xaan",
     name: "限",
     type: "minion",
-    hidden: true,
+
     ability:
       "【实验性角色】在等同于初始外来者数量的夜晚，所有镇民中毒直到下个黄昏；且外来者数量可被调整。",
     fullDescription: "",
@@ -1006,7 +1006,7 @@ export const roles: Role[] = [
     id: "leech",
     name: "痢蛭",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",
     script: "黯月初升",
@@ -1143,13 +1143,13 @@ export const roles: Role[] = [
 
   // ======================================================================
   //  镇民扩展（隐藏，不在前台露出；仅用于角色库占位，避免影响现有判定）
-  //  来源：josn/blood_clocktower_所有镇民.json
+  //  来源：json/blood_clocktower_所有镇民.json
   // ======================================================================
   {
     id: "half_ogre",
     name: "半兽人",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1160,7 +1160,7 @@ export const roles: Role[] = [
     id: "banshee",
     name: "报丧女妖",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1171,7 +1171,7 @@ export const roles: Role[] = [
     id: "villager",
     name: "村夫",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1182,7 +1182,7 @@ export const roles: Role[] = [
     id: "princess",
     name: "公主",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1193,7 +1193,7 @@ export const roles: Role[] = [
     id: "priestess",
     name: "女祭司",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1204,7 +1204,7 @@ export const roles: Role[] = [
     id: "knight",
     name: "骑士",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1215,7 +1215,7 @@ export const roles: Role[] = [
     id: "steward",
     name: "事务官",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1226,7 +1226,7 @@ export const roles: Role[] = [
     id: "conjurer",
     name: "戏法师",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1237,7 +1237,7 @@ export const roles: Role[] = [
     id: "pilgrim",
     name: "修行者",
     type: "townsfolk",
-    hidden: true,
+
     ability: "【扩展镇民】详见官方角色说明。",
     fullDescription: "",
     script: "扩展",
@@ -1329,7 +1329,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "你看起来像镇民/外来者，但实际是爪牙；恶魔知道你是谁。",
     fullDescription: "你看起来像镇民/外来者，但实际是爪牙；恶魔知道你是谁。",
-    hidden: true,
+
     script: "实验性",
     docRef: "blood_clocktower_所有爪牙.json#提线木偶",
   },
@@ -1339,7 +1339,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "夜晚可旁观，获取当夜部分信息（占位，需说书人裁定）。",
     fullDescription: "夜晚可旁观，获取当夜部分信息（占位，需说书人裁定）。",
-    hidden: true,
+
     script: "实验性",
     docRef: "blood_clocktower_所有爪牙.json#亡魂",
   },
@@ -1349,7 +1349,7 @@ export const roles: Role[] = [
     type: "minion",
     ability: "公开存在的爪牙，可能影响提名/投票（占位，待实现）。",
     fullDescription: "公开存在的爪牙，可能影响提名/投票（占位，待实现）。",
-    hidden: true,
+
     script: "实验性",
     docRef: "blood_clocktower_所有爪牙.json#维齐尔",
   },
@@ -1360,7 +1360,7 @@ export const roles: Role[] = [
     ability: "若被处决，除三名玩家外其他人死亡，随后按指向再死一人（占位）。",
     fullDescription:
       "若被处决，除三名玩家外其他人死亡，随后按指向再死一人（占位）。",
-    hidden: true,
+
     script: "实验性",
     docRef: "blood_clocktower_所有爪牙.json#炸弹人",
   },
@@ -1371,7 +1371,7 @@ export const roles: Role[] = [
     ability: "首夜得知3个伪装；第三夜可令一名玩家变成你指定的恶魔（占位）。",
     fullDescription:
       "首夜得知3个伪装；第三夜可令一名玩家变成你指定的恶魔（占位）。",
-    hidden: true,
+
     script: "实验性",
     docRef: "blood_clocktower_所有爪牙.json#召唤师",
   },
@@ -1383,7 +1383,7 @@ export const roles: Role[] = [
       "每晚选两人，首位需白天公开称次位为爪牙，否则你们之一会死（占位）。",
     fullDescription:
       "每晚选两人，首位需白天公开称次位为爪牙，否则你们之一会死（占位）。",
-    hidden: true,
+
     script: "实验性",
     docRef: "blood_clocktower_所有爪牙.json#鹰身女妖",
   },
@@ -1884,7 +1884,7 @@ export const roles: Role[] = [
     id: "legion",
     name: "军团",
     type: "demon",
-    hidden: true,
+
     ability:
       "【实验性角色】多数玩家为军团，提名只有邪恶投票则记 0 票，夜晚可能有 1 人死亡。",
     fullDescription: "",
@@ -1895,7 +1895,7 @@ export const roles: Role[] = [
     id: "riot",
     name: "暴乱",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】第三天提名链式强制处决。",
     fullDescription: "",
     script: "实验性角色",
@@ -1905,7 +1905,7 @@ export const roles: Role[] = [
     id: "lord_of_typhon",
     name: "堤丰之首",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】邪恶玩家连座，+1爪牙，外来者可变。",
     fullDescription: "",
     script: "实验性角色",
@@ -1915,7 +1915,7 @@ export const roles: Role[] = [
     id: "kazali",
     name: "卡扎力",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】首夜自定义分配爪牙，可调整外来者。",
     fullDescription: "",
     script: "实验性角色",
@@ -1925,7 +1925,7 @@ export const roles: Role[] = [
     id: "lloam",
     name: "罗姆",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】夜晚中毒玩家死亡。",
     fullDescription: "",
     script: "实验性角色",
@@ -1935,7 +1935,7 @@ export const roles: Role[] = [
     id: "saint_demon",
     name: "圣徒",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】白天首次被处决，所有玩家都死亡。",
     fullDescription: "",
     script: "实验性角色",
@@ -1945,7 +1945,7 @@ export const roles: Role[] = [
     id: "titus",
     name: "提图斯",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】恶魔处决，获得邪恶玩家阵营。",
     fullDescription: "",
     script: "实验性角色",
@@ -1955,7 +1955,7 @@ export const roles: Role[] = [
     id: "leviathan",
     name: "利维坦",
     type: "demon",
-    hidden: true,
+
     ability: "【实验性角色】每晚说出非恶魔角色，该角色死亡。",
     fullDescription: "",
     script: "实验性角色",
@@ -1965,7 +1965,7 @@ export const roles: Role[] = [
     id: "liz",
     name: "利兹",
     type: "demon",
-    hidden: true,
+
     ability:
       "【实验性角色】夜晚可选择是否死亡，选择死亡后，一个爪牙成为利兹，活到最后即胜利。",
     fullDescription: "",
@@ -1987,7 +1987,7 @@ roles.push(
     ability: "包含官员、乞丐、枪手、窃贼、替罪羊等，请参考官方长文档。",
     fullDescription: "旅行者合集占位，参见官方文档详细规则。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "旅行者不计入角色配比，可随时加入/离开，详见官方文档。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#travelers",
   },
@@ -2000,7 +2000,7 @@ roles.push(
     fullDescription:
       "告密者使得爪牙能够在游戏的首个夜晚得知三个不在场的角色,如同恶魔一样。",
     script: "实验性角色、暗流涌动卡牌版",
-    hidden: true,
+
     ruleNotes: "爪牙得知的三个不在场角色可能与恶魔得知的相同,也可能不同。",
     docRef: "blood_clocktower_所有外来者.json#告密者",
   },
@@ -2013,7 +2013,7 @@ roles.push(
     fullDescription:
       '一名玩家醉酒,即使你已死亡。每局游戏限一次,你可以猜测谁是那个醉酒的玩家,如果猜对了,你会得知谁是恶魔,但如果猜错了,你会得知错误的"谁是恶魔"信息。',
     script: "实验性角色、梦殒春宵卡牌版",
-    hidden: true,
+
     ruleNotes:
       "会有一名玩家因为解谜大师的能力在整局游戏中醉酒。解谜大师不会得知自己的猜测正确与否。",
     docRef: "blood_clocktower_所有外来者.json#解谜大师",
@@ -2025,7 +2025,7 @@ roles.push(
     ability: "如果有大于等于五名玩家存活,你必须在所有提名中投票。",
     fullDescription: "如果有大于等于五名玩家存活,你必须在所有提名中投票。",
     script: "实验性角色",
-    hidden: true,
+
     ruleNotes:
       "如果存活玩家数量为五人或更多,狂热者必须在所有提名中投票。如果只有四名或更少的玩家存活,狂热者可以自由选择是否参与投票。",
     docRef: "blood_clocktower_所有外来者.json#狂热者",
@@ -2038,7 +2038,7 @@ roles.push(
     fullDescription:
       "如果你死亡,当晚爪牙和恶魔玩家可以选择变成新的爪牙和恶魔角色。",
     script: "实验性角色、无何有之乡（快速上手剧本）",
-    hidden: true,
+
     ruleNotes:
       "帽匠的能力使得所有邪恶角色的玩家可以选择变成与自己原本角色类型相同的角色。这些玩家可以选择不改变自己的角色。",
     docRef: "blood_clocktower_所有外来者.json#帽匠",
@@ -2052,7 +2052,7 @@ roles.push(
     fullDescription:
       "在你的首个夜晚,你要选择除你以外的一名玩家:你转变为他的阵营,即使你已醉酒或中毒,但你不知道你转变后的阵营。",
     script: "实验性角色",
-    hidden: true,
+
     ruleNotes:
       "食人魔选定了玩家之后,他的目标就不会发生变化。食人魔会在他的首个夜晚选择玩家后立即转变为那名玩家的阵营,但说书人不会告知食人魔转变后的阵营。",
     docRef: "blood_clocktower_所有外来者.json#食人魔",
@@ -2064,7 +2064,7 @@ roles.push(
     ability: "当你死亡时,说书人会获得一个爪牙能力。",
     fullDescription: "当你死亡时,说书人会获得一个爪牙能力。",
     script: "实验性角色、无何有之乡（快速上手剧本）",
-    hidden: true,
+
     ruleNotes:
       "由说书人来选择获得哪一个爪牙的能力。瘟疫医生的能力效果会在剩余的游戏时间里持续生效。如果瘟疫医生在死亡时醉酒中毒,说书人不会获得爪牙能力。",
     docRef: "blood_clocktower_所有外来者.json#瘟疫医生",
@@ -2076,7 +2076,7 @@ roles.push(
     ability: "对调胜负结果,即使你已死亡。",
     fullDescription: "对调胜负结果,即使你已死亡。",
     script: "实验性角色、梦殒春宵卡牌版",
-    hidden: true,
+
     ruleNotes:
       "如果一局游戏会使得善良阵营获胜,异端分子会导致所有善良玩家落败,且邪恶玩家获胜。反之亦然。异端分子的能力在他死亡时仍然正常生效,但在他醉酒中毒时不会生效。",
     docRef: "blood_clocktower_所有外来者.json#异端分子",
@@ -2088,7 +2088,7 @@ roles.push(
     ability: "你拥有所有外来者能力。[-0~1外来者]",
     fullDescription: "你拥有所有外来者能力。[-0~1外来者]",
     script: "实验性角色",
-    hidden: true,
+
     ruleNotes:
       "隐士同时拥有角色列表中所有其他外来者的能力。他不会拥有不存在于角色列表中的外来者能力。由于隐士的设置调整,在初始设置需要移除一名外来者角色时,你可以移除隐士。",
     docRef: "blood_clocktower_所有外来者.json#隐士",
@@ -2102,7 +2102,7 @@ roles.push(
     fullDescription:
       "如果你是对你的阵营落败负最大责任的人,你转变阵营并获胜,即使你已死亡。",
     script: "实验性角色、梦殒春宵卡牌版",
-    hidden: true,
+
     ruleNotes:
       "当游戏结束时,如果政客是善良阵营落败负最大责任的人,政客会加入邪恶阵营并一起获胜。政客也可以和其他角色一样,以善良阵营获胜。中毒或醉酒的政客不能转变阵营。",
     docRef: "blood_clocktower_所有外来者.json#政客",
@@ -2115,7 +2115,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2126,7 +2126,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2137,7 +2137,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2148,7 +2148,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2159,7 +2159,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2170,7 +2170,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2181,7 +2181,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2192,7 +2192,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2203,7 +2203,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2214,7 +2214,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2225,7 +2225,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2236,7 +2236,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2247,7 +2247,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   },
@@ -2258,7 +2258,7 @@ roles.push(
     ability: "实验角色占位，详见官方长文档。",
     fullDescription: "实验角色占位，详见官方长文档。",
     script: "暗流涌动",
-    hidden: true,
+
     ruleNotes: "实验性角色占位，未在当前引擎启用。",
     docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   }

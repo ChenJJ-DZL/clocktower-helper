@@ -19,7 +19,6 @@ export function DrunkCharadeSelectModal({
   onConfirm,
   drunkSeat,
   availableTownsfolkRoles,
-  selectedScriptId,
 }: DrunkCharadeSelectModalProps) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 

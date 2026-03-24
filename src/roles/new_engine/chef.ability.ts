@@ -45,10 +45,12 @@ const calculateResult = async (
   if (!isAbilityActive) {
     // 醉酒/中毒时返回虚假信息，由说书人输入或生成看起来合理的错误值
     const realCount = meta.initialNightInfo?.chefInfo ?? 0;
-    const possibleFakeValues = [0, 1, 2, 3].filter(v => v !== realCount);
+    const possibleFakeValues = [0, 1, 2, 3].filter((v) => v !== realCount);
     evilPairCount =
       context.storytellerInput?.fakeResult ??
-      possibleFakeValues[Math.floor(Math.random() * possibleFakeValues.length)] ??
+      possibleFakeValues[
+        Math.floor(Math.random() * possibleFakeValues.length)
+      ] ??
       Math.floor(Math.random() * 3);
   } else {
     // 正常情况：计算相邻的邪恶玩家对数

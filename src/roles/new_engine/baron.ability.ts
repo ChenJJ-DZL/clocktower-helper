@@ -44,12 +44,16 @@ const addOutsiderSlots = async (
     return context;
   }
 
-  // 创建新快照：增加两个外来者名额
+  // 创建新快照：增加两个外来者名额，减少两个镇民名额
   const newSnapshot = {
     ...snapshot,
     setupConfig: {
       ...(snapshot as any).setupConfig,
       outsiderCount: ((snapshot as any).setupConfig?.outsiderCount ?? 0) + 2,
+      townsfolkCount: Math.max(
+        0,
+        ((snapshot as any).setupConfig?.townsfolkCount ?? 0) - 2
+      ),
     },
   };
 

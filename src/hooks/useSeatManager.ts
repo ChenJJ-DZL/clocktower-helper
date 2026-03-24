@@ -102,8 +102,27 @@ export function useSeatManager(): UseSeatManagerResult {
         }
       }
 
+      // 酒鬼特殊处理：随机分配一个镇民作为伪装身份
+      let displayRole = newRole;
+      let charadeRole = null;
+      if (newRoleId === "drunk") {
+        const townsfolkRoles = roles.filter(
+          (r) => r.type === "townsfolk" && !r.hidden
+        );
+        if (townsfolkRoles.length > 0) {
+          const randomTownsfolk =
+            townsfolkRoles[Math.floor(Math.random() * townsfolkRoles.length)];
+          displayRole = randomTownsfolk;
+          charadeRole = randomTownsfolk;
+        }
+      }
+
       dispatch(
-        gameActions.updateSeat(seatId, { role: newRole, displayRole: newRole })
+        gameActions.updateSeat(seatId, {
+          role: newRole,
+          displayRole,
+          charadeRole,
+        })
       );
 
       // NEW: Trigger automated onSetup for the role

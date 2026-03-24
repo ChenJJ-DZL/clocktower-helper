@@ -8,15 +8,15 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
+// 前置校验：检查玩家是否存在（死亡仍可使用间谍能力）
+const preCheckSpy = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
+  if (!seat) {
+    return { ...context, aborted: true, abortReason: "玩家不存在" };
   }
 
   const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
@@ -29,11 +29,13 @@ const preCheckAlive = async (
       isDrunk,
       isPoisoned,
       isAbilityActive: !(isDrunk || isPoisoned),
+      // 间谍死亡后仍可被当作邪恶/爪牙/恶魔
+      isDead: !seat.isAlive,
     },
   };
 };
 
-// 被动效果：被查验时显示为善良阵营
+// 被动效果：被查验时显示为善良阵营（醉酒/中毒时效果被干扰）
 const disguiseAsGood = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
@@ -41,9 +43,18 @@ const disguiseAsGood = async (
   const isAbilityActive = meta.isAbilityActive ?? true;
 
   if (!isAbilityActive) {
-    return context;
+    // 醉酒/中毒时，说书人可决定是否显示真实身份或随机伪装
+    return {
+      ...context,
+      meta: {
+        ...context.meta,
+        // 醉酒/中毒时，说书人可以决定是否显示为善良阵营
+        overrideAlignment: Math.random() < 0.5 ? "good" : "evil",
+      },
+    };
   }
 
+  // 正常状态下，间谍总是被当作善良阵营
   return {
     ...context,
     meta: {
@@ -71,7 +82,7 @@ export const spyAbility = createRoleAbility({
     allowSelf: false,
     allowDead: true,
   },
-  preCheck: [preCheckAlive],
+  preCheck: [preCheckSpy],
   calculate: [disguiseAsGood],
   stateUpdate: [],
   postProcess: [

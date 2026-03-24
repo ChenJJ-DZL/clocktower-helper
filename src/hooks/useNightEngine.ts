@@ -94,7 +94,7 @@ export function useNightEngine(initialSnapshot: GameStateSnapshot) {
   // 初始化夜晚引擎实例（仅创建一次，后续通过updateSnapshot更新状态）
   const engine = useMemo(() => {
     return new NightEngine(initialSnapshot, ENGINE_CONFIG);
-  }, []); // 移除initialSnapshot依赖，避免无限重建实例
+  }, [initialSnapshot]); // 移除initialSnapshot依赖，避免无限重建实例
 
   // 当外部快照更新时，同步到引擎内部
   useEffect(() => {

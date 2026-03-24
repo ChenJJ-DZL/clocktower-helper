@@ -17,8 +17,11 @@ export function ArtistResultModal({ onClose }: ArtistResultModalProps) {
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">提问：</label>
+            <label htmlFor="artist-question" className="text-sm font-semibold">
+              提问：
+            </label>
             <textarea
+              id="artist-question"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               className="w-full p-2 text-white bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
@@ -28,10 +31,16 @@ export function ArtistResultModal({ onClose }: ArtistResultModalProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-center">
+            <label
+              htmlFor="artist-answer-options"
+              className="text-sm font-semibold text-center"
+            >
               选择你的回答:
             </label>
-            <div className="flex justify-between gap-2">
+            <div
+              id="artist-answer-options"
+              className="flex justify-between gap-2"
+            >
               {["是", "否", "不知道"].map((v) => (
                 <button
                   key={v}

@@ -16,7 +16,6 @@ interface ReviewModalProps {
 export function ReviewModal({
   isOpen,
   onClose,
-  seats,
   victorySnapshot,
   gameLogs,
   gamePhase,

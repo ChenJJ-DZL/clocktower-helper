@@ -10,7 +10,6 @@ interface StorytellerDeathModalProps {
 
 export function StorytellerDeathModal({
   isOpen,
-  sourceId,
   seats,
   onConfirm,
 }: StorytellerDeathModalProps) {

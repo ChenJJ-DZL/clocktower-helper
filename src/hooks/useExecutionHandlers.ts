@@ -605,6 +605,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         addLogWithDeduplication,
         addPoisonMark,
         computeIsPoisoned,
+        markAbilityUsed,
       });
     } else {
       setTimeout(() => {
@@ -695,6 +696,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         addLogWithDeduplication,
         addPoisonMark,
         computeIsPoisoned,
+        markAbilityUsed,
       });
     } else {
       setTimeout(() => {

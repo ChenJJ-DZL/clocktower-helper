@@ -3,10 +3,7 @@
  * 支持变量替换、简单条件判断，动态生成说书人指引
  */
 
-import {
-  getPromptTemplate,
-  type PromptTemplate,
-} from "../data/promptDictionary";
+import { getPromptTemplate } from "../data/promptDictionary";
 
 export interface PromptContext {
   [key: string]: string | number | boolean | undefined;
@@ -25,7 +22,7 @@ function parseTemplate(template: string, context: PromptContext): string {
   // 处理简单三元条件 {{condition ? trueValue : falseValue}}
   result = result.replace(
     /\{\{(\w+)\s*\?\s*"([^"]+)"\s*:\s*"([^"]+)"\}\}/g,
-    (match, condition, trueVal, falseVal) => {
+    (_match, condition, trueVal, falseVal) => {
       return context[condition] ? trueVal : falseVal;
     }
   );

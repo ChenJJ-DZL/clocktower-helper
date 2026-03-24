@@ -5,10 +5,40 @@
 
 import type {
   CalculateMiddleware,
+  MiddlewareContext,
   PostProcessMiddleware,
   PreCheckMiddleware,
   StateUpdateMiddleware,
 } from "../../utils/middlewarePipeline";
+
+/**
+ * 通用前置校验中间件：仅检查是否存活，不阻止醉酒/中毒玩家触发能力
+ * 官方规则：醉酒/中毒仅影响能力结果，不影响触发时机和能力消耗
+ */
+export const commonPreCheckAlive = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const { snapshot, actionNode } = context;
+  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+
+  if (!seat?.isAlive) {
+    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
+  }
+
+  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
+  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
+
+  return {
+    ...context,
+    meta: {
+      ...context.meta,
+      isDrunk,
+      isPoisoned,
+      // 能力是否有效（false表示醉酒/中毒，效果需要被干扰）
+      abilityEffective: !(isDrunk || isPoisoned),
+    },
+  };
+};
 
 // 技能触发时机
 export enum AbilityTriggerTiming {
@@ -74,7 +104,7 @@ export const DefaultRoleAbility: Omit<
     allowSelf: false,
     allowDead: false,
   },
-  preCheck: [],
+  preCheck: [commonPreCheckAlive],
   calculate: [],
   stateUpdate: [],
   postProcess: [],

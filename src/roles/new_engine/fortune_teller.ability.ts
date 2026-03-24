@@ -1,15 +1,17 @@
 /**
  * 占卜师（Fortune Teller）新引擎技能实现
+ * 集成持续检测型干扰项自动转移逻辑
  */
 
+import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活、是否已使用过技能
-const preCheckAliveAndUnused = async (
+// 前置校验：检查是否醉酒/中毒，是否存活
+const preCheckAliveAndStatus = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, actionNode } = context;
@@ -19,12 +21,9 @@ const preCheckAliveAndUnused = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
+  // 检查是否醉酒或中毒
   const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
   const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
-  const targetIds = (actionNode as any).targetIds ?? [];
-  const targets = targetIds
-    .map((id: string) => snapshot.seats.find((s) => s.id === id))
-    .filter(Boolean);
 
   return {
     ...context,
@@ -33,82 +32,95 @@ const preCheckAliveAndUnused = async (
       isDrunk,
       isPoisoned,
       isAbilityActive: !(isDrunk || isPoisoned),
-      targets,
     },
   };
 };
 
-// 计算占卜结果
-const calculateFortuneResult = async (
+// 计算结果：真实判断目标是否为恶魔，醉酒/中毒时返回伪造结果
+const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
+  const { snapshot, targetIds, meta } = context;
+  const targetSeat = snapshot.seats.find((s) => s.id === targetIds[0]);
   const isAbilityActive = meta.isAbilityActive ?? true;
-  const targets = meta.targets ?? [];
 
-  if (!isAbilityActive || targets.length !== 2) {
-    // 醉酒/中毒时随机给出结果
-    return {
-      ...context,
-      meta: {
-        ...context.meta,
-        result: Math.random() < 0.5,
-      },
-    };
+  let result: boolean;
+
+  if (!isAbilityActive) {
+    // 醉酒/中毒时随机返回结果或根据说书人输入
+    result = context.storytellerInput?.fakeResult ?? Math.random() > 0.5;
+  } else {
+    // 正常情况：判断目标是否是恶魔，或者是干扰项
+    const isDemon = targetSeat?.role.type === "demon";
+
+    // 使用干扰项管理器检查是否为干扰项
+    const isBoon = fortuneTellerBoonManager.isPlayerBoon(
+      snapshot.gameId,
+      targetSeat?.id ?? -1
+    );
+
+    result = isDemon || isBoon;
   }
 
-  // 检查目标中是否有恶魔，或隐士被判定为恶魔，或干扰项
-  let hasDemon = false;
-  for (const target of targets) {
-    if (target.role.type === "demon") {
-      hasDemon = true;
-      break;
-    }
-    if (target.role.id === "recluse" && Math.random() < 0.5) {
-      hasDemon = true;
-      break;
-    }
-    // 检查是否是占卜师的干扰项
-    if (target.id === (snapshot as any).fortuneTellerBaneId) {
-      hasDemon = true;
-      break;
+  return { ...context, meta: { ...context.meta, abilityResult: result } };
+};
+
+// 后置处理：记录结果到日志，并初始化干扰项（如果是第一夜）
+const postProcess = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const { snapshot, actionNode, meta } = context;
+  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+
+  console.log(`占卜师结果：${meta.abilityResult ? "是恶魔" : "不是恶魔"}`);
+
+  // 如果是第一夜，初始化干扰项
+  if (snapshot.nightCount === 1 && seat?.isAlive) {
+    // 选择一个善良玩家作为初始干扰项（不能是占卜师自己）
+    const goodPlayers = snapshot.seats.filter(
+      (s) => s.role.alignment === "good" && s.id !== seat.id
+    );
+
+    if (goodPlayers.length > 0) {
+      // 随机选择一个善良玩家作为干扰项
+      const randomIndex = Math.floor(Math.random() * goodPlayers.length);
+      const initialBoonSeatId = goodPlayers[randomIndex].id;
+
+      // 初始化干扰项
+
+      fortuneTellerBoonManager.initializeBoon(
+        snapshot.gameId,
+        seat.id,
+        initialBoonSeatId
+      );
+
+      console.log(`占卜师干扰项初始化: 玩家 ${initialBoonSeatId} 被选为干扰项`);
     }
   }
 
-  return {
-    ...context,
-    meta: {
-      ...context.meta,
-      result: hasDemon,
-    },
-  };
+  return context;
 };
 
 export const fortuneTellerAbility = createRoleAbility({
   roleId: "fortune_teller",
-  abilityId: "fortune_teller_night_scry",
-  abilityName: "预知",
-  triggerTiming: [
-    AbilityTriggerTiming.FIRST_NIGHT,
-    AbilityTriggerTiming.EVERY_NIGHT,
-  ],
-  wakePriority: 5,
+  abilityId: "fortune_teller_night_ability",
+  abilityName: "占卜",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  wakePriority: 30,
   firstNightOnly: false,
-  wakePromptId: "role.fortune_teller.wake",
+  wakePromptId: "fortune_teller_wake",
   targetConfig: {
-    min: 2,
-    max: 2,
+    min: 1,
+    max: 1,
     allowSelf: true,
     allowDead: false,
   },
-  preCheck: [preCheckAliveAndUnused],
-  calculate: [calculateFortuneResult],
+  preCheck: [preCheckAliveAndStatus],
+  calculate: [calculateResult],
+  // 占卜师不需要修改状态，stateUpdate留空
+
   stateUpdate: [],
-  postProcess: [
-    async (context) => {
-      const { meta } = context;
-      console.log(`占卜师得到结果：${meta.result ? "存在恶魔" : "不存在恶魔"}`);
-      return context;
-    },
-  ],
+  // 后置处理：记录结果到日志
+
+  postProcess: [postProcess],
 });

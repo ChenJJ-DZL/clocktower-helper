@@ -20,7 +20,6 @@ import { typeColors } from "./data";
 // getDisplayRoleType, hasTeaLadyProtection, hasExecutionProof are now imported from useGameController
 
 import { RoundTable } from "@/src/components/game/board/RoundTable";
-import { ScaleToFit } from "@/src/components/game/board/ScaleToFit";
 import { GameLayout } from "@/src/components/game/GameLayout";
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
