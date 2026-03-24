@@ -33,7 +33,9 @@ export function useLogicDispatcher(
       const snapshot = processGameEvent(seats, gamePhase, action);
 
       if (snapshot.logs.length > 0) {
-        snapshot.logs.forEach((msg) => addLog(msg));
+        for (const msg of snapshot.logs) {
+          addLog(msg);
+        }
       }
 
       setSeats(snapshot.seats);

@@ -176,7 +176,7 @@ class UnifiedNightOrder {
   /**
    * 估算唤醒时间
    */
-  private estimateWakeTime(order: number, isFirstNight: boolean): string {
+  private estimateWakeTime(order: number, _isFirstNight: boolean): string {
     if (order <= 0) return "不唤醒";
     if (order >= 999) return "未知";
 

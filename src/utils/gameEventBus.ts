@@ -279,9 +279,11 @@ class GameEventBus {
    */
   removeAllContinuousListeners(): void {
     // 使用Array.from()避免downlevelIteration问题
-    Array.from(this.continuousListeners.entries()).forEach(([id, listener]) => {
-      this.removeContinuousListener(id);
-    });
+    Array.from(this.continuousListeners.entries()).forEach(
+      ([id, _listener]) => {
+        this.removeContinuousListener(id);
+      }
+    );
   }
 
   /**

@@ -340,7 +340,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     }, 50);
   }, [
     nightInfo,
-    currentModal?.type,
+    currentModal,
     seats,
     isActorDisabledByPoisonOrDrunk,
     addLogWithDeduplication,

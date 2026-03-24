@@ -79,10 +79,14 @@ export function CustomScriptBuilderModal({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-300">
+            <label
+              htmlFor="script-name-input"
+              className="text-sm font-semibold text-slate-300"
+            >
               剧本名称 <span className="text-red-400">*</span>
             </label>
             <input
+              id="script-name-input"
               type="text"
               value={scriptName}
               onChange={(e) => setScriptName(e.target.value)}
@@ -94,9 +98,9 @@ export function CustomScriptBuilderModal({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-slate-300">
+              <div className="text-sm font-semibold text-slate-300">
                 选择角色 (已选 {selectedRoleIds.size} 个)
-              </label>
+              </div>
             </div>
 
             <div className="space-y-6">

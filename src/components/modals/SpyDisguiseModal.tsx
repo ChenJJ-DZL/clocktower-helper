@@ -121,10 +121,14 @@ export function SpyDisguiseModal() {
             </div>
             {props.spyDisguiseMode === "on" && (
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-300 flex-shrink-0">
+                <label
+                  htmlFor="spy-disguise-probability"
+                  className="text-xs text-gray-300 flex-shrink-0"
+                >
                   概率：
                 </label>
                 <input
+                  id="spy-disguise-probability"
                   type="range"
                   min="0"
                   max="100"

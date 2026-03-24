@@ -288,19 +288,22 @@ export function RoundTable({
                 暂无（未生成顺序或不在夜晚阶段）
               </div>
             ) : (
-              nightOrderPreview.slice(0, 10).map((item, idx) => (
-                <div
-                  key={`night-order-${idx}`}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <div className="text-slate-200 truncate">
-                    {item.order ?? "?"}. [{item.seatNo}号] {item.roleName}
+              nightOrderPreview.slice(0, 10).map((item, idx) => {
+                const uniqueKey = `night-order-${item.seatNo}-${item.roleName}-${item.order ?? idx}`;
+                return (
+                  <div
+                    key={uniqueKey}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <div className="text-slate-200 truncate">
+                      {item.order ?? "?"}. [{item.seatNo}号] {item.roleName}
+                    </div>
+                    <div className="text-slate-400 ml-2 shrink-0">
+                      #{item.order ?? "—"}
+                    </div>
                   </div>
-                  <div className="text-slate-400 ml-2 shrink-0">
-                    #{item.order ?? "—"}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

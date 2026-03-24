@@ -80,7 +80,7 @@ export function NightOrderPreviewModal({
         {(nightOrderModal?.preview || props.nightOrderPreview).map(
           (item: any, idx: number) => (
             <div
-              key={`night-order-preview-${idx}`}
+              key={`night-order-preview-${item.seatNo}-${item.roleName}-${item.order}`}
               className="p-3 rounded-xl border border-gray-700 bg-gray-800/80 flex items-center justify-between night-order-preview-item"
             >
               <div className="flex flex-col">

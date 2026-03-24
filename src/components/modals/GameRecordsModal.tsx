@@ -253,9 +253,9 @@ export function GameRecordsModal({
                               {phaseName}
                             </div>
                             <div className="space-y-1">
-                              {logs.map((l, i) => (
+                              {logs.map((l) => (
                                 <div
-                                  key={i}
+                                  key={`${l.day}-${l.phase}-${l.message}`}
                                   className={`text-gray-300 pl-2 ${isPortrait ? "text-[10px]" : "text-xs"}`}
                                 >
                                   {l.message}

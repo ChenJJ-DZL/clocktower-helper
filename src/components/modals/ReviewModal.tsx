@@ -152,9 +152,9 @@ export function ReviewModal({
                       {phaseName}
                     </div>
                     <div className="space-y-2">
-                      {logs.map((l, i) => (
+                      {logs.map((l) => (
                         <div
-                          key={i}
+                          key={`${l.day}-${l.phase}-${l.message}`}
                           className={`py-2 border-b border-gray-700 text-gray-300 ${isPortrait ? "text-xs" : "text-sm"} pl-2`}
                         >
                           {l.message}

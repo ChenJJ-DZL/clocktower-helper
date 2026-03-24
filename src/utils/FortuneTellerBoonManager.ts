@@ -95,7 +95,7 @@ class FortuneTellerBoonManager {
     gameId: string,
     boonSeatId: number,
     payload: any,
-    context: any
+    _context: any
   ): Promise<void> {
     const config = this.boonConfigs.get(gameId);
     if (!config) {
@@ -169,8 +169,8 @@ class FortuneTellerBoonManager {
    * 选择新的干扰项
    */
   private async selectNewBoon(
-    gameId: string,
-    oldBoonSeatId: number
+    _gameId: string,
+    _oldBoonSeatId: number
   ): Promise<number | null> {
     // 这里需要从游戏状态中获取所有善良玩家
     // 暂时返回null，实际实现需要游戏状态信息

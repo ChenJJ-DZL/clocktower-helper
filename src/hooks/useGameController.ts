@@ -880,7 +880,10 @@ export function useGameController() {
       new Map(getFilteredRoles(roles).map((r) => [r.id, r])).values()
     ).reduce(
       (acc, r) => {
-        (acc[r.type] = acc[r.type] || []).push(r);
+        if (!acc[r.type]) {
+          acc[r.type] = [];
+        }
+        acc[r.type].push(r);
         return acc;
       },
       {} as Record<string, Role[]>
@@ -998,17 +1001,18 @@ export function useGameController() {
   useEffect(() => {
     const all = ["镇民", "外来者", "爪牙", "恶魔"];
     const newly: number[] = [];
-    Object.entries(balloonistKnownTypes).forEach(([id, known]) => {
+    for (const [id, known] of Object.entries(balloonistKnownTypes)) {
       if (
         all.every((l) => known.includes(l)) &&
         !balloonistCompletedIds.includes(Number(id))
-      )
+      ) {
         newly.push(Number(id));
-    });
+      }
+    }
     if (newly.length > 0) {
-      newly.forEach((id) =>
-        addLog(`气球驾驶员${id + 1}号得知所有类型，今后不再被唤醒`)
-      );
+      for (const id of newly) {
+        addLog(`气球驾驶员${id + 1}号得知所有类型，今后不再被唤醒`);
+      }
       setBalloonistCompletedIds((prev: number[]) => [...prev, ...newly]);
     }
   }, [

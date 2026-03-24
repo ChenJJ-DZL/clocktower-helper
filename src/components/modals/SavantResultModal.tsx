@@ -18,8 +18,11 @@ export function SavantResultModal({ onClose }: SavantResultModalProps) {
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">信息 A</label>
+            <label htmlFor="info-a" className="text-sm font-semibold">
+              信息 A
+            </label>
             <textarea
+              id="info-a"
               value={infoA}
               onChange={(e) => setInfoA(e.target.value)}
               className="w-full p-2 text-white bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"
@@ -29,8 +32,11 @@ export function SavantResultModal({ onClose }: SavantResultModalProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">信息 B</label>
+            <label htmlFor="info-b" className="text-sm font-semibold">
+              信息 B
+            </label>
             <textarea
+              id="info-b"
               value={infoB}
               onChange={(e) => setInfoB(e.target.value)}
               className="w-full p-2 text-white bg-gray-800 border border-gray-700 rounded focus:border-blue-500 focus:outline-none"

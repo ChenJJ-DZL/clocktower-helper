@@ -167,7 +167,7 @@ export const GameConsole = React.memo(function GameConsole({
     }
   }, [currentActorRoleName, roleDoc]);
 
-  const normalizeQuoted = (s: string) => {
+  const normalizeQuoted = React.useCallback((s: string) => {
     const t = (s || "").trim();
     if (!t) return "";
     // nightInfo.speak in many places is wrapped in quotes like '"...内容..."'
@@ -176,7 +176,7 @@ export const GameConsole = React.memo(function GameConsole({
       .replace(/^['"]+/, "")
       .replace(/['"]+$/, "")
       .replace(/[。.，,]+$/, "");
-  };
+  }, []);
 
   // Optimize: Memoize instructions
   const storytellerInstruction = React.useMemo(() => {
@@ -372,14 +372,17 @@ export const GameConsole = React.memo(function GameConsole({
                   范例
                 </div>
                 <div className="space-y-3">
-                  {roleDoc.examples.map((example, index) => (
-                    <div
-                      key={index}
-                      className="text-[14px] text-slate-300 whitespace-pre-wrap leading-relaxed p-3 bg-white/5 rounded-xl border border-white/5 font-light"
-                    >
-                      {example}
-                    </div>
-                  ))}
+                  {roleDoc.examples.map((example, index) => {
+                    const exampleKey = `example-${index}-${example.substring(0, 20).replace(/\s+/g, "-")}`;
+                    return (
+                      <div
+                        key={exampleKey}
+                        className="text-[14px] text-slate-300 whitespace-pre-wrap leading-relaxed p-3 bg-white/5 rounded-xl border border-white/5 font-light"
+                      >
+                        {example}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -429,15 +432,18 @@ export const GameConsole = React.memo(function GameConsole({
                   其他提示
                 </div>
                 <div className="space-y-2">
-                  {filteredGuidancePoints.map((point, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-3 text-[14px] text-slate-300"
-                    >
-                      <span className="text-slate-500 mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
-                      <span className="leading-relaxed">{point}</span>
-                    </div>
-                  ))}
+                  {filteredGuidancePoints.map((point, index) => {
+                    const pointKey = `guidance-${index}-${point.substring(0, 20).replace(/\s+/g, "-")}`;
+                    return (
+                      <div
+                        key={pointKey}
+                        className="flex items-start gap-3 text-[14px] text-slate-300"
+                      >
+                        <span className="text-slate-500 mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                        <span className="leading-relaxed">{point}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -611,39 +617,42 @@ export const GameConsole = React.memo(function GameConsole({
           )}
           {secondaryActions.length > 0 && (
             <div className="flex gap-3">
-              {secondaryActions.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    console.log("[GameConsole] Secondary action clicked", {
-                      index,
-                      label: action.label,
-                      disabled: action.disabled,
-                    });
-                    if (!action.disabled) {
-                      try {
-                        action.onClick();
-                      } catch (error) {
-                        console.error(
-                          "[GameConsole] Error in secondary action:",
-                          error
-                        );
-                        alert(
-                          `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
-                        );
+              {secondaryActions.map((action, index) => {
+                const actionKey = `secondary-action-${index}-${action.label.substring(0, 20).replace(/\s+/g, "-")}`;
+                return (
+                  <button
+                    key={actionKey}
+                    onClick={() => {
+                      console.log("[GameConsole] Secondary action clicked", {
+                        index,
+                        label: action.label,
+                        disabled: action.disabled,
+                      });
+                      if (!action.disabled) {
+                        try {
+                          action.onClick();
+                        } catch (error) {
+                          console.error(
+                            "[GameConsole] Error in secondary action:",
+                            error
+                          );
+                          alert(
+                            `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
+                          );
+                        }
                       }
-                    }
-                  }}
-                  disabled={action.disabled}
-                  className={`flex-1 h-14 rounded-lg text-base font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition ${
-                    action.disabled
-                      ? "opacity-50 cursor-not-allowed"
-                      : "active:scale-95"
-                  }`}
-                >
-                  {action.label}
-                </button>
-              ))}
+                    }}
+                    disabled={action.disabled}
+                    className={`flex-1 h-14 rounded-lg text-base font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition ${
+                      action.disabled
+                        ? "opacity-50 cursor-not-allowed"
+                        : "active:scale-95"
+                    }`}
+                  >
+                    {action.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

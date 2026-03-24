@@ -10,7 +10,6 @@ interface SweetheartDrunkModalProps {
 
 export function SweetheartDrunkModal({
   isOpen,
-  sourceId,
   seats,
   onConfirm,
 }: SweetheartDrunkModalProps) {

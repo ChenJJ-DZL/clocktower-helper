@@ -47,7 +47,7 @@ const calculateResult = async (
   const targetSeat = snapshot.seats.find((s) => s.id === targetIds[0]);
   const isAbilityActive = meta.isAbilityActive ?? true;
 
-  let resultRole;
+  let resultRole: any = null;
 
   if (!isAbilityActive) {
     // 醉酒/中毒时返回随机伪造身份或说书人输入

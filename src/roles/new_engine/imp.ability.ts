@@ -2,7 +2,7 @@
  * 小恶魔（Imp）新引擎技能实现
  */
 
-import { addPoisonMark, getRandom } from "../../utils/gameRules";
+import { getRandom } from "../../utils/gameRules";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,

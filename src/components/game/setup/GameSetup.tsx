@@ -330,11 +330,11 @@ export default function GameSetup({
                   </div>
                 </div>
                 <div className="grid gap-3 grid-cols-2">
-                  {list.map((r, index) => {
+                  {list.map((r) => {
                     const isTaken = seats.some((s) => s.role?.id === r.id);
                     return (
                       <button
-                        key={`${type}-${r.id}-${index}`}
+                        key={`${type}-${r.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!isTaken) setSelectedRole(r);

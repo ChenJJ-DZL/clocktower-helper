@@ -85,7 +85,7 @@ class ContinuousDetectionManager {
    */
   private async handleEvent(
     detectorId: string,
-    eventType: keyof GameEventMap,
+    _eventType: keyof GameEventMap,
     payload: any
   ): Promise<void> {
     const config = this.detectors.get(detectorId);

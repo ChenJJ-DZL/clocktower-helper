@@ -42,14 +42,17 @@ export function LogViewer(props: LogViewerProps) {
               <div className="text-yellow-300 font-bold mb-1 text-xs">
                 {formatPhaseLabel(dayLogs[0].phase, parseInt(day, 10))}
               </div>
-              {dayLogs.reverse().map((log, i) => (
-                <div
-                  key={i}
-                  className="py-1 border-b border-gray-700 text-gray-300 text-xs pl-2"
-                >
-                  {log.message}
-                </div>
-              ))}
+              {dayLogs.reverse().map((log, i) => {
+                const logKey = `log-${day}-${i}-${log.message.substring(0, 20).replace(/\s+/g, "-")}`;
+                return (
+                  <div
+                    key={logKey}
+                    className="py-1 border-b border-gray-700 text-gray-300 text-xs pl-2"
+                  >
+                    {log.message}
+                  </div>
+                );
+              })}
             </div>
           ))}
       </div>
