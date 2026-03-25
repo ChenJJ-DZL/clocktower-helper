@@ -100,48 +100,15 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:44-0!canonical and time
     },
 
     handler: (context) => {
-      const { selfId, selectedRoles, gameState } = context;
+      const { selfId } = context;
 
-      // 检查工程师是否已经使用过能力
-      if (gameState?.engineerUsed) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `工程师（${selfId + 1}号）已经使用过能力`,
-          },
-        };
-      }
-
-      // 检查是否选择了角色
-      if (!selectedRoles || selectedRoles.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `工程师（${selfId + 1}号）未选择角色，不使用能力`,
-          },
-        };
-      }
-
-      const selectedRole = selectedRoles[0];
-
-      // 检查选择的角色是恶魔还是爪牙
-      if (selectedRole.type !== "demon" && selectedRole.type !== "minion") {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `工程师（${selfId + 1}号）只能选择恶魔或爪牙角色，选择了${selectedRole.name}（${selectedRole.type}）`,
-          },
-        };
-      }
+      // 工程师的能力由说书人处理，这里只记录日志
+      // 实际游戏中，说书人会处理角色变化
 
       return {
         updates: [],
         logs: {
-          privateLog: `工程师（${selfId + 1}号）选择将${selectedRole.type === "demon" ? "恶魔" : "所有爪牙"}变为${selectedRole.name}`,
-        },
-        gameStateUpdates: {
-          engineerUsed: true,
-          engineerSelectedRole: selectedRole,
+          privateLog: `工程师（${selfId + 1}号）可以选择让恶魔变成选择的恶魔角色，或让所有爪牙变成选择的爪牙角色`,
         },
       };
     },

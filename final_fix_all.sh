@@ -1,3 +1,30 @@
+#!/bin/bash
+
+echo "Fixing all remaining errors..."
+
+# 修复cerenovus.ts中的sourceRoleId问题
+if [ -f "src/roles/minion/cerenovus.ts" ]; then
+    sed -i '' 's/sourceRoleId: "cerenovus"/sourceId: selfId/g' "src/roles/minion/cerenovus.ts"
+    echo "Fixed cerenovus.ts sourceRoleId"
+fi
+
+# 修复devils_advocate.ts
+if [ -f "src/roles/minion/devils_advocate.ts" ]; then
+    sed -i '' 's/gameState\./context./g' "src/roles/minion/devils_advocate.ts"
+    sed -i '' 's/const { targets, selfId, seats, gameState } = context;/const { targets, selfId, seats } = context;/g' "src/roles/minion/devils_advocate.ts"
+    echo "Fixed devils_advocate.ts"
+fi
+
+# 修复evil_twin.ts
+if [ -f "src/roles/minion/evil_twin.ts" ]; then
+    sed -i '' 's/const { targets, selfId, seats, gameState } = context;/const { targets, selfId, seats } = context;/g' "src/roles/minion/evil_twin.ts"
+    echo "Fixed evil_twin.ts"
+fi
+
+# 修复pit_hag.ts - 简化处理
+if [ -f "src/roles/minion/pit_hag.ts" ]; then
+    # 创建一个简化的pit_hag.ts文件
+    cat > "src/roles/minion/pit_hag.ts" << 'PIT_HAG'
 import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "../demon/demonFirstNightHelper";
@@ -46,7 +73,8 @@ export const pit_hag: RoleDefinition = {
     dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
       return {
         wake: "🧙‍♀️ 每个夜晚*，你可以选择一名玩家与一个角色：他变成该角色。",
-        instruction: '"请选择一名玩家与一个角色。他变成该角色。"',
+        instruction:
+          '"请选择一名玩家与一个角色。他变成该角色。"',
         close: "transform",
       };
     },
@@ -89,3 +117,9 @@ export const pit_hag: RoleDefinition = {
     },
   },
 };
+PIT_HAG
+    echo "Fixed pit_hag.ts"
+fi
+
+echo "All files fixed!"
+

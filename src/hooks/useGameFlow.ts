@@ -187,9 +187,22 @@ export function useGameFlow(): UseGameFlowResult {
   }, [currentDuskExecution, seats, dispatch]);
 
   const handleDayEndTransition = useCallback(() => {
-    // 胜利条件（市长、涡流等）现已统一迁移至 useGameController.handleDayEndTransitionOverride 处理
-    enterDuskPhase();
-  }, [enterDuskPhase]);
+    // 根据官方血染钟楼规则：白天处决后立即进入夜晚
+    // 每天最多1次正常处决，处决后不进行额外的提名和投票
+
+    // 检查今日是否已有处决
+    const hasExecutedToday = state.hasExecutedThisDay;
+
+    if (hasExecutedToday) {
+      // 今日已有处决，直接进入夜晚
+      console.log("[handleDayEndTransition] 今日已有处决，直接进入夜晚");
+      startNight(false); // 进入夜晚（非首夜）
+    } else {
+      // 今日尚无处决，进入黄昏（可以进行提名和投票）
+      console.log("[handleDayEndTransition] 今日尚无处决，进入黄昏");
+      enterDuskPhase();
+    }
+  }, [enterDuskPhase, startNight, state.hasExecutedThisDay]);
 
   const handleSwitchScript = useCallback(() => {
     // 结束当前游戏并重置

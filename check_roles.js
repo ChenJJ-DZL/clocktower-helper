@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 检查角色文件的函数
 function checkRoleFile(filePath) {
@@ -97,19 +97,21 @@ function main() {
   const problematicFiles = results.filter((r) => r.hasIssues);
   if (problematicFiles.length > 0) {
     console.log("=== 有问题的文件 ===");
-    problematicFiles.forEach((result) => {
+    for (const result of problematicFiles) {
       console.log(`\n${result.file}:`);
-      result.issues.forEach((issue) => console.log(`  - ${issue}`));
-    });
+      for (const issue of result.issues) {
+        console.log(`  - ${issue}`);
+      }
+    }
   }
 
   // 显示处理程序为undefined的文件
   const undefinedHandlerFiles = results.filter((r) => r.hasUndefinedHandler);
   if (undefinedHandlerFiles.length > 0) {
     console.log("\n=== 处理程序为undefined的文件 ===");
-    undefinedHandlerFiles.forEach((result) => {
+    for (const result of undefinedHandlerFiles) {
       console.log(`  - ${result.file}`);
-    });
+    }
   }
 
   console.log("\n检查完成！");

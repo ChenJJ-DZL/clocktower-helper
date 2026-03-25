@@ -112,11 +112,11 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
     },
 
     handler: (context) => {
-      const { selfId, seats, gameState } = context;
+      const { selfId, seats } = context;
 
       // 镜像双子只在首个夜晚有行动
       // 获取对立双子（由说书人选择）
-      const evilTwinCounterpart = gameState?.evilTwinCounterpart;
+      const evilTwinCounterpart = null;
 
       if (!evilTwinCounterpart) {
         return {

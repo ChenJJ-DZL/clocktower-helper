@@ -1,3 +1,5 @@
+import type { Seat } from "../../../app/data";
+
 import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
@@ -94,19 +96,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:141-0!canonical and tim
     },
 
     handler: (context) => {
-      const { targets, selfId, seats, gameState } = context;
-
-      // 检查刺客是否已经使用过能力
-      const assassinUsed = gameState?.assassinUsed ?? false;
-
-      if (assassinUsed) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `刺客（${selfId + 1}号）已经使用过能力，无法再次使用`,
-          },
-        };
-      }
+      const { targets, selfId, seats } = context;
 
       if (targets.length === 0) {
         return {
@@ -129,14 +119,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:141-0!canonical and tim
         isDead: true,
       });
 
-      // 标记刺客已使用能力
       return {
         updates,
         logs: {
           privateLog: `刺客（${selfId + 1}号）使用能力杀死了 ${targetId + 1}号玩家（无视任何保护）`,
-        },
-        gameStateUpdates: {
-          assassinUsed: true,
         },
       };
     },

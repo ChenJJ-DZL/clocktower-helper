@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取相克规则文件
 const jinxRulesPath = path.join(__dirname, "..", "json", "相克规则.json");
@@ -67,7 +67,7 @@ for (let i = 0; i < lines.length; i++) {
   } else if (currentJinx && line) {
     // 如果当前有相克规则，且这一行不是空行，可能是描述的延续
     if (currentJinx.description) {
-      currentJinx.description += " " + line.trim();
+      currentJinx.description += ` ${line.trim()}`;
     } else {
       currentJinx.description = line.trim();
     }

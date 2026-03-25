@@ -1,3 +1,8 @@
+#!/bin/bash
+
+echo "Fixing devils_advocate.ts..."
+
+cat > "src/roles/minion/devils_advocate.ts" << 'DEVILS_ADVOCATE'
 import type { Seat } from "../../../app/data";
 
 import type { RoleDefinition } from "../../types/roleDefinition";
@@ -71,6 +76,7 @@ export const devils_advocate: RoleDefinition = {
           {
             effect: "ExecutionImmune",
             sourceId: selfId,
+            expiresAt: "next_day",
           },
         ],
       });
@@ -84,3 +90,7 @@ export const devils_advocate: RoleDefinition = {
     },
   },
 };
+DEVILS_ADVOCATE
+
+echo "Fixed devils_advocate.ts"
+

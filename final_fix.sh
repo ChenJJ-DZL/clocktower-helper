@@ -1,3 +1,37 @@
+#!/bin/bash
+
+echo "Fixing remaining errors..."
+
+# 修复assassin.ts
+if [ -f "src/roles/minion/assassin.ts" ]; then
+    sed -i '' 's/gameState\./context./g' "src/roles/minion/assassin.ts"
+    sed -i '' 's/const { targets, selfId, seats, gameState } = context;/const { targets, selfId, seats } = context;/g' "src/roles/minion/assassin.ts"
+    echo "Fixed assassin.ts"
+fi
+
+# 修复devils_advocate.ts
+if [ -f "src/roles/minion/devils_advocate.ts" ]; then
+    sed -i '' 's/gameState\./context./g' "src/roles/minion/devils_advocate.ts"
+    sed -i '' 's/const { targets, selfId, seats, gameState } = context;/const { targets, selfId, seats } = context;/g' "src/roles/minion/devils_advocate.ts"
+    echo "Fixed devils_advocate.ts"
+fi
+
+# 修复evil_twin.ts
+if [ -f "src/roles/minion/evil_twin.ts" ]; then
+    sed -i '' 's/const { targets, selfId, seats, gameState } = context;/const { targets, selfId, seats } = context;/g' "src/roles/minion/evil_twin.ts"
+    echo "Fixed evil_twin.ts"
+fi
+
+# 修复pit_hag.ts
+if [ -f "src/roles/minion/pit_hag.ts" ]; then
+    sed -i '' 's/const { targets, selfId, seats, selectedRole, allRolesInGame } = context;/const { targets, selfId, seats } = context;/g' "src/roles/minion/pit_hag.ts"
+    echo "Fixed pit_hag.ts"
+fi
+
+# 修复cerenovus.ts - 简化处理
+if [ -f "src/roles/minion/cerenovus.ts" ]; then
+    # 创建一个简化的处理函数
+    cat > "src/roles/minion/cerenovus.ts" << 'CERENOVUS'
 import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "../demon/demonFirstNightHelper";
@@ -76,6 +110,8 @@ export const cerenovus: RoleDefinition = {
           ...(targetSeat?.statuses || []),
           {
             effect: "Madness",
+            sourceId: selfId,
+            sourceRoleId: "cerenovus",
           },
         ],
       });
@@ -89,3 +125,9 @@ export const cerenovus: RoleDefinition = {
     },
   },
 };
+CERENOVUS
+    echo "Fixed cerenovus.ts"
+fi
+
+echo "All files fixed!"
+

@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取现有角色数据
 const rolesDataPath = path.join(
@@ -29,17 +29,23 @@ const jinxes = JSON.parse(fs.readFileSync(jinxesPath, "utf-8"));
 const allRoleIds = new Set();
 
 // 从现有角色数据中添加
-rolesData.forEach((role) => allRoleIds.add(role.id));
+for (const role of rolesData) {
+  allRoleIds.add(role.id);
+}
 
 // 从夜晚行动顺序中添加
-nightOrder.firstNight.forEach((action) => allRoleIds.add(action.id));
-nightOrder.otherNights.forEach((action) => allRoleIds.add(action.id));
+for (const action of nightOrder.firstNight) {
+  allRoleIds.add(action.id);
+}
+for (const action of nightOrder.otherNights) {
+  allRoleIds.add(action.id);
+}
 
 // 从相克规则中添加
-jinxes.forEach((jinx) => {
+for (const jinx of jinxes) {
   allRoleIds.add(jinx.character1);
   allRoleIds.add(jinx.character2);
-});
+}
 
 // 角色类型映射（根据角色ID推断类型）
 const roleTypeMap = {
@@ -204,15 +210,15 @@ const roleNameMap = {
 const newRoles = [];
 
 // 首先添加现有角色
-rolesData.forEach((role) => {
+for (const role of rolesData) {
   newRoles.push(role);
-});
+}
 
 // 为缺失的角色创建基本数据
-allRoleIds.forEach((roleId) => {
+for (const roleId of allRoleIds) {
   // 检查是否已存在
   const exists = newRoles.some((role) => role.id === roleId);
-  if (exists) return;
+  if (exists) continue;
 
   // 推断角色类型
   let type = roleTypeMap[roleId] || "townsfolk"; // 默认为镇民
@@ -302,7 +308,7 @@ allRoleIds.forEach((roleId) => {
   };
 
   newRoles.push(newRole);
-});
+}
 
 // 按角色类型和ID排序
 newRoles.sort((a, b) => {
@@ -331,9 +337,9 @@ const typeCounts = {
   demon: 0,
 };
 
-newRoles.forEach((role) => {
+for (const role of newRoles) {
   typeCounts[role.type]++;
-});
+}
 
 console.log("\n角色类型分布：");
 console.log(`镇民：${typeCounts.townsfolk}`);

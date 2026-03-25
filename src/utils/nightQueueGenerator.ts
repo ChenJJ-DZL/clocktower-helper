@@ -393,15 +393,14 @@ export function insertNewRoleIntoQueue(
   for (let i = currentWakeIndex; i < queue.length; i++) {
     const item = queue[i];
     // 修复：Seat类型没有order属性，我们需要获取队列中每个座位的角色夜晚行动顺序
-    const itemRoleId = item.role?.id === "drunk" 
-      ? item.charadeRole?.id || null 
-      : item.role?.id;
-    
+    const itemRoleId =
+      item.role?.id === "drunk" ? item.charadeRole?.id || null : item.role?.id;
+
     if (!itemRoleId) continue;
-    
+
     const itemRoleDef = getRoleDefinition(itemRoleId);
     if (!itemRoleDef) continue;
-    
+
     // 获取队列中座位的夜晚行动顺序
     const getItemOrderValue = (
       orderConfig: number | ((isFirstNight: boolean) => number) | undefined
@@ -411,9 +410,9 @@ export function insertNewRoleIntoQueue(
       if (typeof orderConfig === "function") return orderConfig(isFirstNight);
       return 999;
     };
-    
+
     let itemOrder = 999;
-    
+
     if (isFirstNight && itemRoleDef.firstNight) {
       itemOrder = getItemOrderValue(itemRoleDef.firstNight.order);
     } else if (itemRoleDef.night) {
