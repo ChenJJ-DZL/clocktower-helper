@@ -1,9 +1,525 @@
 [
   {
+    "id": "actor_atheist",
+    "character1": "actor",
+    "character2": "atheist",
+    "description": "无神论者在剧本中时，处决说书人导致的胜负结果不会被反转。"
+  },
+  {
+    "id": "actor_fearmonger",
+    "character1": "actor",
+    "character2": "fearmonger",
+    "description": "戏子无法反转由恐惧之灵的能力产生的胜负结果。"
+  },
+  {
+    "id": "actor_goblin",
+    "character1": "actor",
+    "character2": "goblin",
+    "description": "戏子无法反转由哥布林的能力产生的胜负结果。"
+  },
+  {
+    "id": "actor_godfather",
+    "character1": "actor",
+    "character2": "godfather",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "actor_kazali",
+    "character1": "actor",
+    "character2": "kazali",
+    "description": "卡扎力和戏子不能在初始时同时在场。如果有角色能力能够使得善良玩家在第一个夜晚变成戏子，卡扎力会在这一效果生效之前先进行转变爪牙的行动。"
+  },
+  {
+    "id": "actor_legion",
+    "character1": "actor",
+    "character2": "legion",
+    "description": "在戏子存在于剧本中时，军团可以在游戏中任意时候向说书人示意自己“想要死亡”。说书人会在夜晚一同唤醒所有军团，并询问他们是否要一同死亡。"
+  },
+  {
+    "id": "actor_leviathan",
+    "character1": "actor",
+    "character2": "leviathan",
+    "description": "在戏子存在于剧本中时，利维坦可以在游戏中任意时候向说书人示意自己“想要死亡”。说书人会在当晚杀死这名玩家。"
+  },
+  {
+    "id": "actor_pukka",
+    "character1": "actor",
+    "character2": "pukka",
+    "description": "在戏子存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己“想要死亡”。说书人会在当晚杀死这名玩家。"
+  },
+  {
+    "id": "actor_riot",
+    "character1": "actor",
+    "character2": "riot",
+    "description": "在戏子存在于剧本中时，暴乱可以在游戏中任意时候向说书人示意自己“想要死亡”。说书人会在当晚杀死这名玩家。"
+  },
+  {
+    "id": "actor_spy",
+    "character1": "actor",
+    "character2": "spy",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "actor_summoner",
+    "character1": "actor",
+    "character2": "summoner",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "actor_widow",
+    "character1": "actor",
+    "character2": "widow",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "actor_wraith",
+    "character1": "actor",
+    "character2": "wraith",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "actor_yaggababble",
+    "character1": "actor",
+    "character2": "yaggababble",
+    "description": "在戏子存在于剧本中时，牙噶巴卜可以在游戏中任意时候向说书人示意自己“想要死亡”。不论他是否说过秘密短语，说书人都会在当晚杀死这名玩家。"
+  },
+  {
+    "id": "actor_zombuul",
+    "character1": "actor",
+    "character2": "zombuul",
+    "description": "在戏子存在于剧本中时，僵怖可以在游戏中任意时候向说书人示意自己“想要死亡”。无论僵怖是否触发过“假死”，当晚僵怖会变为死亡状态。"
+  },
+  {
+    "id": "alchemist_marionette",
+    "character1": "alchemist",
+    "character2": "marionette",
+    "description": "如果炼金术士本应获得提线木偶的能力，那么他不会拥有该能力并改为提线木偶一定在场。"
+  },
+  {
+    "id": "alchemist_mastermind",
+    "character1": "alchemist",
+    "character2": "mastermind",
+    "description": "如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。"
+  },
+  {
+    "id": "alchemist_spy",
+    "character1": "alchemist",
+    "character2": "spy",
+    "description": "如果炼金术士本应获得间谍的能力，那么他不会拥有该能力并改为间谍一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是间谍：如果猜对了，恶魔今晚必须选择间谍。"
+  },
+  {
+    "id": "alchemist_summoner",
+    "character1": "alchemist",
+    "character2": "summoner",
+    "description": "获得召唤师能力的炼金术士不会获得伪装。他要选择一个恶魔角色，但不选择玩家，由说书人决定哪一名玩家变成邪恶的恶魔。如果他在选择之前死亡，邪恶阵营获胜。[无恶魔在场]"
+  },
+  {
+    "id": "alchemist_widow",
+    "character1": "alchemist",
+    "character2": "widow",
+    "description": "如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇：如果猜对了，恶魔今晚必须选择寡妇。"
+  },
+  {
+    "id": "alchemist_wraith",
+    "character1": "alchemist",
+    "character2": "wraith",
+    "description": "如果炼金术士本应获得亡魂的能力，那么他不会拥有该能力并改为亡魂一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是亡魂：如果猜对了，恶魔当晚必须选择亡魂。"
+  },
+  {
+    "id": "baron_heretic",
+    "character1": "baron",
+    "character2": "heretic",
+    "description": "如果异端分子在剧本中，男爵的效果可能会只增加一个而非两个外来者。"
+  },
+  {
+    "id": "cannibal_butler",
+    "character1": "cannibal",
+    "character2": "butler",
+    "description": "如果食人族获得了管家的能力，他会得知这一信息。"
+  },
+  {
+    "id": "cannibal_juggler",
+    "character1": "cannibal",
+    "character2": "juggler",
+    "description": "如果杂耍艺人在自己的首个白天猜测后在当天死于处决，当晚食人族会替杂耍艺人得知对应的信息。"
+  },
+  {
+    "id": "cannibal_princess",
+    "character1": "cannibal",
+    "character2": "princess",
+    "description": "如果食人族提名并处决了公主且公主因此死亡，当晚恶魔不会造成死亡。"
+  },
+  {
+    "id": "cannibal_zealot",
+    "character1": "cannibal",
+    "character2": "zealot",
+    "description": "如果食人族获得了狂热者的能力，他会得知这一信息。"
+  },
+  {
+    "id": "cerenovus_goblin",
+    "character1": "cerenovus",
+    "character2": "goblin",
+    "description": "洗脑师可以选择将玩家洗脑成哥布林。"
+  },
+  {
     "id": "chambermaid_mathematician",
     "character1": "chambermaid",
     "character2": "mathematician",
     "description": "侍女会得知数学家是否醒来，即使她是在数学家之前醒来。"
+  },
+  {
+    "id": "enlightened_villager",
+    "character1": "enlightened",
+    "character2": "villager",
+    "description": "如果村夫在场数量不足3人，悟道者可以变成新的村夫。如果因此使得村夫的在场数量超过1人，会有一名村夫醉酒。"
+  },
+  {
+    "id": "frankenstein_alchemist",
+    "character1": "frankenstein",
+    "character2": "alchemist",
+    "description": "如果炼金术士拥有科学怪人的能力，炼金术士不会得知恶魔因此获得了哪个角色的能力。"
+  },
+  {
+    "id": "frankenstein_drunk",
+    "character1": "frankenstein",
+    "character2": "drunk",
+    "description": "恶魔不能获得酒鬼的能力。"
+  },
+  {
+    "id": "frankenstein_goon",
+    "character1": "frankenstein",
+    "character2": "goon",
+    "description": "如果恶魔拥有莽夫的能力，他无法因为该能力转变为善良阵营。"
+  },
+  {
+    "id": "frankenstein_heretic",
+    "character1": "frankenstein",
+    "character2": "heretic",
+    "description": "恶魔无法拥有异端分子的能力。"
+  },
+  {
+    "id": "frankenstein_ogre",
+    "character1": "frankenstein",
+    "character2": "ogre",
+    "description": "恶魔无法拥有食人魔的能力。"
+  },
+  {
+    "id": "frankenstein_politician",
+    "character1": "frankenstein",
+    "character2": "politician",
+    "description": "恶魔无法拥有政客的能力。"
+  },
+  {
+    "id": "frankenstein_villager",
+    "character1": "frankenstein",
+    "character2": "villager",
+    "description": "如果村夫在场数量不足3人，科学怪人可以让恶魔拥有村夫的能力。"
+  },
+  {
+    "id": "godfather_heretic",
+    "character1": "godfather",
+    "character2": "heretic",
+    "description": "异端分子会被教父当作一个不在场的外来者，异端分子会知道是哪个外来者。"
+  },
+  {
+    "id": "hadesia_mastermind",
+    "character1": "hadesia",
+    "character2": "mastermind",
+    "description": "如果哈迪寂亚死于处决，且主谋存活，当晚哈迪寂亚要选择三名善良玩家"
+  },
+  {
+    "id": "hadesia_princess",
+    "character1": "hadesia",
+    "character2": "princess",
+    "description": "如果公主在首个白天提名并处决了一名玩家，没有人会因为哈迪寂亚而死亡。(公主与哈迪寂亚角色互动结果本应如此，此条仅做说明)"
+  },
+  {
+    "id": "hatter_hatter",
+    "character1": "hatter",
+    "character2": "hatter",
+    "description": "如果帽匠创造了军团，所有邪恶玩家会变成军团。如果军团在场，帽匠不会拥有能力。"
+  },
+  {
+    "id": "hatter_legion",
+    "character1": "hatter",
+    "character2": "legion",
+    "description": "如果工程师创造了军团，所有邪恶玩家会变成军团。如果军团在场，工程师不会拥有能力并改为得知这一信息。"
+  },
+  {
+    "id": "heretic_baron",
+    "character1": "heretic",
+    "character2": "baron",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "heretic_lleech",
+    "character1": "heretic",
+    "character2": "lleech",
+    "description": "互为克星的角色在同一时间里只能有其中一个角色在场。"
+  },
+  {
+    "id": "kazali_choirboy",
+    "character1": "kazali",
+    "character2": "choirboy",
+    "description": "如果唱诗男孩在场，卡扎力在选择国王后无法将他变成爪牙。"
+  },
+  {
+    "id": "kazali_goon",
+    "character1": "kazali",
+    "character2": "goon",
+    "description": "卡扎力可以把莽夫变成邪恶的爪牙。"
+  },
+  {
+    "id": "kazali_huntsman",
+    "character1": "kazali",
+    "character2": "huntsman",
+    "description": "如果卡扎力将落难少女变成了爪牙，并且巡山人在场，一名善良的玩家会变成落难少女。"
+  },
+  {
+    "id": "kazali_marionette",
+    "character1": "kazali",
+    "character2": "marionette",
+    "description": "如果卡扎力选择创造提线木偶，他只能选择将自己的邻座玩家变成提线木偶。"
+  },
+  {
+    "id": "kazali_monk",
+    "character1": "kazali",
+    "character2": "monk",
+    "description": "卡扎力可以把与和尚邻近的玩家转变成邪恶的爪牙。"
+  },
+  {
+    "id": "kazali_soldier",
+    "character1": "kazali",
+    "character2": "soldier",
+    "description": "卡扎力可以把士兵转变成邪恶的爪牙。"
+  },
+  {
+    "id": "legion_engineer",
+    "character1": "legion",
+    "character2": "engineer",
+    "description": "如果工程师创造了军团，所有邪恶玩家会变成军团。如果军团在场，工程师不会拥有能力并改为得知这一信息。"
+  },
+  {
+    "id": "legion_hatter",
+    "character1": "legion",
+    "character2": "hatter",
+    "description": "如果帽匠创造了军团，所有邪恶玩家会变成军团。如果军团在场，帽匠不会拥有能力。"
+  },
+  {
+    "id": "legion_minstrel",
+    "character1": "legion",
+    "character2": "minstrel",
+    "description": "如果军团死于处决，所有军团保留能力，但吟游诗人可能会在当晚得知今天白天死于处决的玩家是军团。"
+  },
+  {
+    "id": "legion_politician",
+    "character1": "legion",
+    "character2": "politician",
+    "description": "政客可能会被军团当作邪恶玩家。"
+  },
+  {
+    "id": "legion_preacher",
+    "character1": "legion",
+    "character2": "preacher",
+    "description": "如果传教士选中了军团，军团仍然保留能力，但传教士可能会得知自己选中了军团。"
+  },
+  {
+    "id": "legion_summoner",
+    "character1": "legion",
+    "character2": "summoner",
+    "description": "如果召唤师创造了军团，包括所有邪恶玩家在内的绝大多数玩家都会变成邪恶的军团。"
+  },
+  {
+    "id": "legion_zealot",
+    "character1": "legion",
+    "character2": "zealot",
+    "description": "狂热者可能会被军团当作邪恶玩家。"
+  },
+  {
+    "id": "leviathan_banshee",
+    "character1": "leviathan",
+    "character2": "banshee",
+    "description": "每个夜晚*，利维坦要选择一名存活的善良玩家（与之前的每个夜晚不同）"
+  },
+  {
+    "id": "leviathan_exorcist",
+    "character1": "leviathan",
+    "character2": "exorcist",
+    "description": "如果利维坦提名并处决了驱魔人选择的那名玩家，善良阵营获胜。"
+  },
+  {
+    "id": "leviathan_farmer",
+    "character1": "leviathan",
+    "character2": "farmer",
+    "description": "每个夜晚*，利维坦要选择一名存活玩家（与之前的每个夜晚不同）"
+  },
+  {
+    "id": "leviathan_grandmother",
+    "character1": "leviathan",
+    "character2": "grandmother",
+    "description": "如果利维坦在场，孙子死于处决，邪恶阵营获胜。"
+  },
+  {
+    "id": "leviathan_hatter",
+    "character1": "leviathan",
+    "character2": "hatter",
+    "description": "利维坦不能在第五天之后加入游戏。"
+  },
+  {
+    "id": "leviathan_innkeeper",
+    "character1": "leviathan",
+    "character2": "innkeeper",
+    "description": "如果利维坦提名并处决了旅店老板上个夜晚保护的其中一名玩家，善良阵营获胜。"
+  },
+  {
+    "id": "leviathan_king",
+    "character1": "leviathan",
+    "character2": "king",
+    "description": "如果利维坦在场，当至少一名玩家死亡时，国王每晚就会得知一个存活的角色。"
+  },
+  {
+    "id": "leviathan_mayor",
+    "character1": "leviathan",
+    "character2": "mayor",
+    "description": "如果利维坦和镇长在第五天存活且没有处决发生，善良阵营获胜。"
+  },
+  {
+    "id": "leviathan_monk",
+    "character1": "leviathan",
+    "character2": "monk",
+    "description": "如果利维坦提名并处决了僧侣上个夜晚保护的那名玩家，善良阵营获胜。"
+  },
+  {
+    "id": "leviathan_ravenkeeper",
+    "character1": "leviathan",
+    "character2": "ravenkeeper",
+    "description": "每个夜晚*，利维坦要选择一名存活的善良玩家（与之前的每个夜晚不同）"
+  },
+  {
+    "id": "leviathan_sage",
+    "character1": "leviathan",
+    "character2": "sage",
+    "description": "每个夜晚*，利维坦要选择一名存活的善良玩家（与之前的每个夜晚不同）"
+  },
+  {
+    "id": "leviathan_soldier",
+    "character1": "leviathan",
+    "character2": "soldier",
+    "description": "如果利维坦提名并处决了士兵，善良阵营获胜。"
+  },
+  {
+    "id": "lleech_broker",
+    "character1": "lleech",
+    "character2": "broker",
+    "description": "痢蛭的宿主及其中毒效果无法被转移。"
+  },
+  {
+    "id": "lleech_envoy",
+    "character1": "lleech",
+    "character2": "envoy",
+    "description": "痢蛭的宿主及其中毒效果无法被转移。"
+  },
+  {
+    "id": "lleech_heretic",
+    "character1": "lleech",
+    "character2": "heretic",
+    "description": "如果痢蛭选择异端分子作为宿主，痢蛭死亡时异端分子仍会中毒。"
+  },
+  {
+    "id": "lleech_mastermind",
+    "character1": "lleech",
+    "character2": "mastermind",
+    "description": "如果主谋存活且痢蛭的宿主死于处决，痢蛭存活但失去能力。"
+  },
+  {
+    "id": "lleech_slayer",
+    "character1": "lleech",
+    "character2": "slayer",
+    "description": "如果猎手选择了痢蛭的宿主，则宿主会死亡。"
+  },
+  {
+    "id": "lunatic_mathematician",
+    "character1": "lunatic",
+    "character2": "mathematician",
+    "description": "数学家会得知疯子是否攻击了与真正的恶魔不同的目标。"
+  },
+  {
+    "id": "magician_legion",
+    "character1": "magician",
+    "character2": "legion",
+    "description": "魔术师会和军团一同被唤醒，并可能被当作邪恶阵营。军团会知道魔术师是否在场，但不会得知具体是哪一名玩家。"
+  },
+  {
+    "id": "magician_marionette",
+    "character1": "magician",
+    "character2": "marionette",
+    "description": "如果魔术师存活，恶魔不会得知谁是提线木偶。"
+  },
+  {
+    "id": "magician_vizier",
+    "character1": "magician",
+    "character2": "vizier",
+    "description": "如果维齐尔在场，魔术师不会拥有能力，但他会免疫维齐尔的能力。"
+  },
+  {
+    "id": "magician_wraith",
+    "character1": "magician",
+    "character2": "wraith",
+    "description": "每次处决后，存活的魔术师可以公开猜测一名存活玩家是亡魂"
+  },
+  {
+    "id": "marionette_alchemist",
+    "character1": "marionette",
+    "character2": "alchemist",
+    "description": "如果炼金术士本应获得提线木偶的能力，那么他不会拥有该能力并改为提线木偶一定在场。"
+  },
+  {
+    "id": "marionette_balloonist",
+    "character1": "marionette",
+    "character2": "balloonist",
+    "description": "如果提线木偶抽到了气球驾驶员，在设置调整阶段可能会+1外来者。"
+  },
+  {
+    "id": "marionette_damsel",
+    "character1": "marionette",
+    "character2": "damsel",
+    "description": "提线木偶不会得知落难少女在场。"
+  },
+  {
+    "id": "marionette_huntsman",
+    "character1": "marionette",
+    "character2": "huntsman",
+    "description": "如果提线木偶抽到了巡山人，在设置调整阶段会增加落难少女。"
+  },
+  {
+    "id": "marionette_kazali",
+    "character1": "marionette",
+    "character2": "kazali",
+    "description": "如果提线木偶本应初始在场，他们会在恶魔之后进场并与恶魔邻座。"
+  },
+  {
+    "id": "marionette_snitch",
+    "character1": "marionette",
+    "character2": "snitch",
+    "description": "提线木偶不会得知三个不在场的角色，如果提线木偶与告密者均在场，改为由恶魔额外得知三个不在场角色。"
+  },
+  {
+    "id": "marionette_wraith",
+    "character1": "marionette",
+    "character2": "wraith",
+    "description": "亡魂不会和提线木偶一同被唤醒。"
+  },
+  {
+    "id": "mastermind_alchemist",
+    "character1": "mastermind",
+    "character2": "alchemist",
+    "description": "如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。"
+  },
+  {
+    "id": "mastermind_vigormortis",
+    "character1": "mastermind",
+    "character2": "vigormortis",
+    "description": "如果亡骨魔死亡，被亡骨魔杀死的主谋依然保留能力。"
   },
   {
     "id": "mathematician_drunk",
@@ -24,81 +540,291 @@
     "description": "数学家可能会得知提线木偶产生了错误信息或“能力未正常生效”。"
   },
   {
-    "id": "philosopher_bounty_hunter",
-    "character1": "philosopher",
-    "character2": "bounty_hunter",
-    "description": "如果哲学家获得了赏金猎人的能力，可能会有一名镇民玩家转变为邪恶。"
+    "id": "outsider_ogre",
+    "character1": "outsider",
+    "character2": "ogre",
+    "description": "如果陌客被食人魔当作邪恶阵营，食人魔会得知自己转变为邪恶。"
   },
   {
-    "id": "cannibal_poppy_grower",
-    "character1": "cannibal",
-    "character2": "poppy_grower",
-    "description": "如果食人族获得了罂粟种植者的能力，当他获得下一个能力时，爪牙和恶魔也会互相认识。"
+    "id": "outsider_sage",
+    "character1": "outsider",
+    "character2": "sage",
+    "description": "陌客可能会被贤者当作杀死他的恶魔。"
   },
   {
-    "id": "cannibal_juggler",
-    "character1": "cannibal",
-    "character2": "juggler",
-    "description": "如果杂耍艺人在自己的首个白天猜测后在当天死于处决，当晚食人族会替杂耍艺人得知对应的信息。"
+    "id": "riot_atheist",
+    "character1": "riot",
+    "character2": "atheist",
+    "description": "在暴乱的提名链中，如果说书人被提名，玩家要进行投票。如果说书人“即将被处决”，游戏结束；否则，说书人要重新发起提名。"
   },
   {
-    "id": "cannibal_butler",
-    "character1": "cannibal",
-    "character2": "butler",
-    "description": "如果食人族获得了管家的能力，他会得知这一信息。"
+    "id": "riot_banshee",
+    "character1": "riot",
+    "character2": "banshee",
+    "description": "每个夜晚*，暴乱要选择一名存活玩家（与之前的每个夜晚不同）"
   },
   {
-    "id": "cannibal_zealot",
-    "character1": "cannibal",
-    "character2": "zealot",
-    "description": "如果食人族获得了狂热者的能力，他会得知这一信息。"
+    "id": "riot_exorcist",
+    "character1": "riot",
+    "character2": "exorcist",
+    "description": "如果暴乱提名并处决了驱魔人上个夜晚选择的那名玩家，善良阵营获胜。"
   },
   {
-    "id": "cannibal_princess",
-    "character1": "cannibal",
-    "character2": "princess",
-    "description": "如果食人族提名并处决了公主且公主因此死亡，当晚恶魔不会造成死亡。"
+    "id": "riot_farmer",
+    "character1": "riot",
+    "character2": "farmer",
+    "description": "每个夜晚*，暴乱要选择一名存活的善良玩家（与之前的每个夜晚不同）"
   },
   {
-    "id": "alchemist_spy",
-    "character1": "alchemist",
-    "character2": "spy",
-    "description": "如果炼金术士本应获得间谍的能力，那么他不会拥有该能力并改为间谍一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是间谍：如果猜对了，恶魔今晚必须选择间谍。"
+    "id": "riot_grandmother",
+    "character1": "riot",
+    "character2": "grandmother",
+    "description": "如果暴乱在场，孙子死于处决，邪恶阵营获胜。"
   },
   {
-    "id": "alchemist_widow",
-    "character1": "alchemist",
-    "character2": "widow",
-    "description": "如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇：如果猜对了，恶魔今晚必须选择寡妇。"
+    "id": "riot_innkeeper",
+    "character1": "riot",
+    "character2": "innkeeper",
+    "description": "如果暴乱提名并处决了旅店老板上个夜晚保护的其中一名玩家，善良阵营获胜。"
   },
   {
-    "id": "alchemist_wraith",
-    "character1": "alchemist",
-    "character2": "wraith",
-    "description": "如果炼金术士本应获得亡魂的能力，那么他不会拥有该能力并改为亡魂一定在场。每次处决后，存活的炼金术士可以公开猜测一名存活玩家是亡魂：如果猜对了，恶魔当晚必须选择亡魂。"
+    "id": "riot_king",
+    "character1": "riot",
+    "character2": "king",
+    "description": "如果暴乱在场，当至少一名玩家死亡时，国王每晚就会得知一个存活的角色。"
   },
   {
-    "id": "alchemist_summoner",
-    "character1": "alchemist",
-    "character2": "summoner",
-    "description": "获得召唤师能力的炼金术士不会获得伪装。他要选择一个恶魔角色，但不选择玩家，由说书人决定哪一名玩家变成邪恶的恶魔。如果他在选择之前死亡，邪恶阵营获胜。[无恶魔在场]"
+    "id": "riot_mayor",
+    "character1": "riot",
+    "character2": "mayor",
+    "description": "镇长可以停止暴乱的提名链。如果他这样做了，并且场上只有一名暴乱存活，善良阵营获胜；否则，邪恶阵营获胜。"
   },
   {
-    "id": "alchemist_organ_grinder",
-    "character1": "alchemist",
-    "character2": "organ_grinder",
-    "description": "如果炼金术士获得街头风琴手的能力，街头风琴手一定在场。如果炼金术士和街头风琴手都是清醒的，改为他们都醉酒。"
+    "id": "riot_monk",
+    "character1": "riot",
+    "character2": "monk",
+    "description": "如果暴乱提名并处决了僧侣上个夜晚保护的那名玩家，善良阵营获胜。"
   },
   {
-    "id": "alchemist_marionette",
-    "character1": "alchemist",
+    "id": "riot_ravenkeeper",
+    "character1": "riot",
+    "character2": "ravenkeeper",
+    "description": "每个夜晚*，暴乱要选择一名存活的善良玩家（与之前的每个夜晚不同）"
+  },
+  {
+    "id": "riot_sage",
+    "character1": "riot",
+    "character2": "sage",
+    "description": "每个夜晚*，暴乱要选择一名存活的善良玩家（与之前的每个夜晚不同）"
+  },
+  {
+    "id": "riot_soldier",
+    "character1": "riot",
+    "character2": "soldier",
+    "description": "如果暴乱提名并处决了士兵，善良阵营获胜。"
+  },
+  {
+    "id": "spy_alchemist",
+    "character1": "spy",
+    "character2": "alchemist",
+    "description": "如果炼金术士本应获得间谍的能力，那么他不会拥有该能力并改为间谍一定在场。每个白天发生处决后，存活的炼金术士可以公开猜测一名存活玩家是间谍"
+  },
+  {
+    "id": "spy_damsel",
+    "character1": "spy",
+    "character2": "damsel",
+    "description": "如果间谍正在场或曾经在场，落难少女中毒。"
+  },
+  {
+    "id": "spy_heretic",
+    "character1": "spy",
+    "character2": "heretic",
+    "description": "异端分子会被间谍当作一个不在场的外来者，异端分子会知道是哪个外来者。"
+  },
+  {
+    "id": "spy_ogre",
+    "character1": "spy",
+    "character2": "ogre",
+    "description": "间谍必定被食人魔当作邪恶阵营。"
+  },
+  {
+    "id": "summoner_alchemist",
+    "character1": "summoner",
+    "character2": "alchemist",
+    "description": "获得召唤师能力的炼金术士不会获得伪装。他要选择一个恶魔角色，但不选择玩家，由说书人决定哪一名玩家变成邪恶的恶魔。如果他在选择之前死亡，邪恶阵营获胜。[无恶魔在场"
+  },
+  {
+    "id": "summoner_clockmaker",
+    "character1": "summoner",
+    "character2": "clockmaker",
+    "description": "召唤师会被钟表匠当作恶魔。"
+  },
+  {
+    "id": "summoner_courtier",
+    "character1": "summoner",
+    "character2": "courtier",
+    "description": "如果存活的召唤师失去能力，说书人会获得召唤师能力。"
+  },
+  {
+    "id": "summoner_engineer",
+    "character1": "summoner",
+    "character2": "engineer",
+    "description": "如果存活的召唤师从游戏中离场，说书人会获得召唤师的能力。"
+  },
+  {
+    "id": "summoner_hatter",
+    "character1": "summoner",
+    "character2": "hatter",
+    "description": "如果召唤师创造了第二个存活的恶魔，当晚的死亡由说书人决定。"
+  },
+  {
+    "id": "summoner_kazali",
+    "character1": "summoner",
+    "character2": "kazali",
+    "description": "如果召唤师创造了第二个存活的恶魔，当晚的死亡由说书人决定。"
+  },
+  {
+    "id": "summoner_legion",
+    "character1": "summoner",
+    "character2": "legion",
+    "description": "如果召唤师召唤了军团，所有邪恶玩家会变成军团。"
+  },
+  {
+    "id": "summoner_marionette",
+    "character1": "summoner",
     "character2": "marionette",
-    "description": "如果炼金术士本应获得提线木偶的能力，那么他不会拥有该能力并改为提线木偶一定在场。"
+    "description": "如果提线木偶本应初始在场，他们会在恶魔之后进场并与恶魔邻座。"
   },
   {
-    "id": "alchemist_mastermind",
-    "character1": "alchemist",
+    "id": "summoner_preacher",
+    "character1": "summoner",
+    "character2": "preacher",
+    "description": "如果存活的召唤师失去能力，说书人会获得召唤师能力。"
+  },
+  {
+    "id": "summoner_pukka",
+    "character1": "summoner",
+    "character2": "pukka",
+    "description": "召唤师可以在第二个夜晚召唤普卡来替代第三个夜晚的召唤。"
+  },
+  {
+    "id": "summoner_zombuul",
+    "character1": "summoner",
+    "character2": "zombuul",
+    "description": "如果召唤师将一名已死亡的玩家变成了僵怖，该玩家会变成“已经死过一次”的僵怖。"
+  },
+  {
+    "id": "taowu_engineer",
+    "character1": "taowu",
+    "character2": "engineer",
+    "description": "如果梼杌变成了其他恶魔，因为梼杌而失去能力的爪牙会立即死亡。"
+  },
+  {
+    "id": "taowu_hatter",
+    "character1": "taowu",
+    "character2": "hatter",
+    "description": "如果梼杌变成了其他角色，因为梼杌而失去能力的爪牙会立即死亡。"
+  },
+  {
+    "id": "taowu_marionette",
+    "character1": "taowu",
+    "character2": "marionette",
+    "description": "梼杌不会得知谁是提线木偶。在梼杌使得提线木偶失去能力后，梼杌会得知对应的那一名提线木偶是谁，但提线木偶会仍然以为自己是一个善良角色。"
+  },
+  {
+    "id": "taowu_mastermind",
+    "character1": "taowu",
     "character2": "mastermind",
-    "description": "如果炼金术士本应获得主谋的能力，那么他不会拥有该能力并改为主谋一定不在场。"
+    "description": "主谋在梼杌的能力判断中被当作“不具有能力”。"
+  },
+  {
+    "id": "vizier_courtier",
+    "character1": "vizier",
+    "character2": "courtier",
+    "description": "如果维齐尔失去能力，他会得知此事，但不会在白天死亡。"
+  },
+  {
+    "id": "vizier_fearmonger",
+    "character1": "vizier",
+    "character2": "fearmonger",
+    "description": "在恐惧之灵因为自己的能力被唤醒时，维齐尔会一同被唤醒。他会得知恐惧之灵选择了哪名玩家，并且无法使用自己的能力让那名玩家立即被处决。"
+  },
+  {
+    "id": "vizier_investigator",
+    "character1": "vizier",
+    "character2": "investigator",
+    "description": "说书人不会宣布维齐尔在场。"
+  },
+  {
+    "id": "vizier_jester",
+    "character1": "vizier",
+    "character2": "jester",
+    "description": "说书人不会宣布维齐尔在场。"
+  },
+  {
+    "id": "vizier_magician",
+    "character1": "vizier",
+    "character2": "magician",
+    "description": "如果维齐尔和魔术师都在场，恶魔不会得知谁是爪牙。"
+  },
+  {
+    "id": "vizier_politician",
+    "character1": "vizier",
+    "character2": "politician",
+    "description": "维齐尔的能力可能会将政客当作邪恶阵营。"
+  },
+  {
+    "id": "vizier_preacher",
+    "character1": "vizier",
+    "character2": "preacher",
+    "description": "如果维齐尔失去能力，他会得知此事，但不会在白天死亡。"
+  },
+  {
+    "id": "vizier_zealot",
+    "character1": "vizier",
+    "character2": "zealot",
+    "description": "维齐尔的能力可能会将狂热者当作邪恶阵营。"
+  },
+  {
+    "id": "vortox_banshee",
+    "character1": "vortox",
+    "character2": "banshee",
+    "description": "如果涡流杀死了报丧女妖，玩家仍然会得知正确信息。（中文百科上的‘通用简化原则’已涵盖包括多角色互动下的涡流信息的简化处理方式，此条仅做说明。）"
+  },
+  {
+    "id": "widow_alchemist",
+    "character1": "widow",
+    "character2": "alchemist",
+    "description": "如果炼金术士本应获得寡妇的能力，那么他不会拥有该能力并改为寡妇一定在场。每个白天发生处决后，存活的炼金术士可以公开猜测一名存活玩家是寡妇"
+  },
+  {
+    "id": "widow_damsel",
+    "character1": "widow",
+    "character2": "damsel",
+    "description": "如果寡妇正在场或曾经在场，落难少女中毒。"
+  },
+  {
+    "id": "widow_heretic",
+    "character1": "widow",
+    "character2": "heretic",
+    "description": "异端分子会被寡妇当作一个不在场的外来者，异端分子会知道是哪个外来者。"
+  },
+  {
+    "id": "wraith_alchemist",
+    "character1": "wraith",
+    "character2": "alchemist",
+    "description": "如果炼金术士本应获得亡魂的能力，那么他不会拥有该能力并改为亡魂一定在场。每个白天发生处决后，存活的炼金术士可以公开猜测一名存活玩家是亡魂"
+  },
+  {
+    "id": "wraith_magician",
+    "character1": "wraith",
+    "character2": "magician",
+    "description": "每个白天发生处决后，存活的魔术师可以公开猜测一名存活玩家是亡魂"
+  },
+  {
+    "id": "yaggababble_exorcist",
+    "character1": "yaggababble",
+    "character2": "exorcist",
+    "description": "如果驱魔人选中了牙噶巴卜，那么牙噶巴卜在当晚无法造成死亡。"
   }
 ]

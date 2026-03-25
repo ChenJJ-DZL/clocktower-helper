@@ -93,6 +93,12 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:48-0!canonical and time
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { selfId } = context;
+      return {
+        updates: [],
+        logs: { privateLog: `${selfId + 1}号（巡山人）执行夜晚行动` },
+      };
+    },
   },
 };

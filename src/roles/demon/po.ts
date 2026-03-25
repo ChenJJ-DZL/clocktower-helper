@@ -53,6 +53,57 @@ export const po: RoleDefinition = {
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats, gameState } = context;
+
+      // 获取珀的上次选择状态
+      const poLastSelected = gameState?.poLastSelected ?? false;
+
+      // 检查目标数量是否符合规则
+      const expectedMin = poLastSelected ? 0 : 1;
+      const expectedMax = poLastSelected ? 1 : 3;
+
+      if (targets.length < expectedMin || targets.length > expectedMax) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `珀（${selfId + 1}号）选择目标数量不符合规则：上次选择=${poLastSelected}，需要${expectedMin}-${expectedMax}个目标，实际${targets.length}个`,
+          },
+        };
+      }
+
+      // 处理攻击逻辑
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      for (const targetId of targets) {
+        const targetSeat = seats.find((s) => s.id === targetId);
+        const isTargetProtected =
+          targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
+          targetSeat?.isProtected;
+
+        // 如果目标被僧侣保护，攻击无效
+        if (isTargetProtected) {
+          continue;
+        }
+
+        updates.push({
+          id: targetId,
+          isDead: true,
+        });
+      }
+
+      // 更新珀的选择状态
+      const currentSelected = targets.length > 0;
+
+      return {
+        updates,
+        logs: {
+          privateLog: `珀（${selfId + 1}号）攻击了 ${targets.map((t) => t + 1).join("、")}号玩家，上次选择=${poLastSelected}，本次选择=${currentSelected}`,
+        },
+        gameStateUpdates: {
+          poLastSelected: currentSelected,
+        },
+      };
+    },
   },
 };

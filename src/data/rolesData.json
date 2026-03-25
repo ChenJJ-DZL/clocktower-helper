@@ -1,43 +1,83 @@
 [
   {
-    "id": "washerwoman",
-    "name": "洗衣妇",
+    "id": "acrobat",
+    "name": "acrobat",
+    "type": "townsfolk"
+  },
+  {
+    "id": "actor",
+    "name": "actor",
+    "type": "townsfolk"
+  },
+  {
+    "id": "alchemist",
+    "name": "alchemist",
+    "type": "townsfolk"
+  },
+  {
+    "id": "artist",
+    "name": "艺人",
     "type": "townsfolk",
-    "firstNightOrder": 51,
-    "firstNightMeta": {
-      "script": "洗衣妇请睁眼...",
-      "instruction": "确认已获得的身份信息",
+    "dayMeta": {
+      "abilityName": "提问",
+      "usesCount": 1,
       "targetType": "none",
-      "amount": 0,
-      "required": false,
       "effectType": "info"
     }
   },
   {
-    "id": "librarian",
-    "name": "图书管理员",
-    "type": "townsfolk",
-    "firstNightOrder": 52,
-    "firstNightMeta": {
-      "script": "图书管理员请睁眼...",
-      "instruction": "确认已获得的身份信息",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
+    "id": "astronomer",
+    "name": "astronomer",
+    "type": "townsfolk"
   },
   {
-    "id": "investigator",
-    "name": "调查员",
+    "id": "atheist",
+    "name": "atheist",
+    "type": "townsfolk"
+  },
+  {
+    "id": "balloonist",
+    "name": "balloonist",
+    "type": "townsfolk"
+  },
+  {
+    "id": "banshee",
+    "name": "banshee",
+    "type": "townsfolk"
+  },
+  {
+    "id": "bounty_hunter",
+    "name": "bounty hunter",
+    "type": "townsfolk"
+  },
+  {
+    "id": "brewer",
+    "name": "brewer",
+    "type": "townsfolk"
+  },
+  {
+    "id": "broker",
+    "name": "broker",
+    "type": "townsfolk"
+  },
+  {
+    "id": "cannibal",
+    "name": "cannibal",
+    "type": "townsfolk"
+  },
+  {
+    "id": "chambermaid",
+    "name": "侍女",
     "type": "townsfolk",
-    "firstNightOrder": 53,
-    "firstNightMeta": {
-      "script": "调查员请睁眼...",
-      "instruction": "确认已获得的身份信息",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
+    "otherNightOrder": 113,
+    "otherNightMeta": {
+      "script": "侍女请睁眼...",
+      "instruction": "选择两名玩家，得知他们是否因技能醒来过",
+      "targetType": "player",
+      "amount": 2,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
       "effectType": "info"
     }
   },
@@ -54,6 +94,101 @@
       "required": false,
       "effectType": "info"
     }
+  },
+  {
+    "id": "choirboy",
+    "name": "choirboy",
+    "type": "townsfolk"
+  },
+  {
+    "id": "clockmaker",
+    "name": "钟表匠",
+    "type": "townsfolk",
+    "firstNightOrder": 20,
+    "firstNightMeta": {
+      "script": "钟表匠请睁眼...",
+      "instruction": "示数：恶魔与最近爪牙的距离",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "courtier",
+    "name": "廷臣",
+    "type": "townsfolk",
+    "firstNightOrder": 31,
+    "otherNightOrder": 14,
+    "otherNightMeta": {
+      "script": "廷臣请睁眼...",
+      "instruction": "选择一个角色，使其醉酒3晚（如果你还没使用过技能）",
+      "targetType": "character",
+      "amount": 1,
+      "required": false,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "add_status",
+      "effectValue": "drunk_3_nights"
+    }
+  },
+  {
+    "id": "cuckoo_bird",
+    "name": "cuckoo bird",
+    "type": "townsfolk"
+  },
+  {
+    "id": "cult_leader",
+    "name": "cult leader",
+    "type": "townsfolk"
+  },
+  {
+    "id": "dawn",
+    "name": "dawn",
+    "type": "townsfolk"
+  },
+  {
+    "id": "di",
+    "name": "di",
+    "type": "townsfolk"
+  },
+  {
+    "id": "diviner",
+    "name": "diviner",
+    "type": "townsfolk"
+  },
+  {
+    "id": "doctor",
+    "name": "doctor",
+    "type": "townsfolk"
+  },
+  {
+    "id": "dreamer",
+    "name": "筑梦师",
+    "type": "townsfolk",
+    "firstNightOrder": 30,
+    "otherNightOrder": 30,
+    "firstNightMeta": {
+      "script": "筑梦师请睁眼...",
+      "instruction": "选择一名玩家，得知其角色（1真1假）",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "筑梦师请睁眼...",
+      "instruction": "选择一名玩家，得知其角色（1真1假）",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "dusk",
+    "name": "dusk",
+    "type": "townsfolk"
   },
   {
     "id": "empath",
@@ -76,6 +211,71 @@
       "amount": 0,
       "required": false,
       "effectType": "info"
+    }
+  },
+  {
+    "id": "engineer",
+    "name": "engineer",
+    "type": "townsfolk"
+  },
+  {
+    "id": "enlightened",
+    "name": "enlightened",
+    "type": "townsfolk"
+  },
+  {
+    "id": "envoy",
+    "name": "envoy",
+    "type": "townsfolk"
+  },
+  {
+    "id": "executioner",
+    "name": "executioner",
+    "type": "townsfolk"
+  },
+  {
+    "id": "exorcist",
+    "name": "驱魔人",
+    "type": "townsfolk",
+    "otherNightOrder": 39,
+    "otherNightMeta": {
+      "script": "驱魔人请睁眼...",
+      "instruction": "选择一名玩家（恶魔），该恶魔今晚无法行动",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "add_status",
+      "effectValue": "blocked"
+    }
+  },
+  {
+    "id": "farmer",
+    "name": "farmer",
+    "type": "townsfolk"
+  },
+  {
+    "id": "flowergirl",
+    "name": "卖花女孩",
+    "type": "townsfolk",
+    "otherNightOrder": 40,
+    "otherNightMeta": {
+      "script": "卖花女请睁眼...",
+      "instruction": "恶魔今天投票了吗？",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "fool",
+    "name": "愚人",
+    "type": "townsfolk",
+    "triggerMeta": {
+      "onNightDeath": true,
+      "onExecution": true
     }
   },
   {
@@ -106,17 +306,234 @@
     }
   },
   {
-    "id": "undertaker",
-    "name": "送葬者",
+    "id": "frankenstein",
+    "name": "frankenstein",
+    "type": "townsfolk"
+  },
+  {
+    "id": "gambler",
+    "name": "赌徒",
     "type": "townsfolk",
-    "otherNightOrder": 92,
+    "otherNightOrder": 20,
     "otherNightMeta": {
-      "script": "掘墓人请睁眼...",
-      "instruction": "确认处决玩家的身份",
+      "script": "赌徒请睁眼...",
+      "instruction": "选择一名玩家并猜测其身份",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "general",
+    "name": "general",
+    "type": "townsfolk"
+  },
+  {
+    "id": "goblin",
+    "name": "goblin",
+    "type": "townsfolk"
+  },
+  {
+    "id": "gossip",
+    "name": "造谣者",
+    "type": "townsfolk",
+    "dayMeta": {
+      "abilityName": "造谣",
+      "usesCount": "infinity",
+      "targetType": "none",
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "grandmother",
+    "name": "祖母",
+    "type": "townsfolk",
+    "firstNightOrder": 59,
+    "firstNightMeta": {
+      "script": "祖母请睁眼...",
+      "instruction": "确认你的孙子（一名玩家）",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "info"
+    },
+    "triggerMeta": {
+      "onNightDeath": true
+    }
+  },
+  {
+    "id": "guide",
+    "name": "guide",
+    "type": "townsfolk"
+  },
+  {
+    "id": "hatter",
+    "name": "hatter",
+    "type": "townsfolk"
+  },
+  {
+    "id": "high_priestess",
+    "name": "high priestess",
+    "type": "townsfolk"
+  },
+  {
+    "id": "historian",
+    "name": "historian",
+    "type": "townsfolk"
+  },
+  {
+    "id": "huntsman",
+    "name": "huntsman",
+    "type": "townsfolk"
+  },
+  {
+    "id": "inn_attendant",
+    "name": "inn attendant",
+    "type": "townsfolk"
+  },
+  {
+    "id": "innkeeper",
+    "name": "旅店老板",
+    "type": "townsfolk",
+    "otherNightOrder": 13,
+    "otherNightMeta": {
+      "script": "旅店老板请睁眼...",
+      "instruction": "选择两名玩家保护（其中一人变酒鬼）",
+      "targetType": "player",
+      "amount": 2,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "add_status",
+      "effectValue": "protected"
+    }
+  },
+  {
+    "id": "inspector",
+    "name": "inspector",
+    "type": "townsfolk"
+  },
+  {
+    "id": "investigator",
+    "name": "调查员",
+    "type": "townsfolk",
+    "firstNightOrder": 53,
+    "firstNightMeta": {
+      "script": "调查员请睁眼...",
+      "instruction": "确认已获得的身份信息",
       "targetType": "none",
       "amount": 0,
       "required": false,
       "effectType": "info"
+    }
+  },
+  {
+    "id": "jester",
+    "name": "jester",
+    "type": "townsfolk"
+  },
+  {
+    "id": "jinx_star",
+    "name": "jinx star",
+    "type": "townsfolk"
+  },
+  {
+    "id": "juggler",
+    "name": "杂耍艺人",
+    "type": "townsfolk",
+    "dayMeta": {
+      "abilityName": "猜测",
+      "usesCount": 1,
+      "targetType": "none",
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "king",
+    "name": "king",
+    "type": "townsfolk"
+  },
+  {
+    "id": "knight",
+    "name": "knight",
+    "type": "townsfolk"
+  },
+  {
+    "id": "legion",
+    "name": "legion",
+    "type": "townsfolk"
+  },
+  {
+    "id": "leviathan",
+    "name": "leviathan",
+    "type": "townsfolk"
+  },
+  {
+    "id": "librarian",
+    "name": "图书管理员",
+    "type": "townsfolk",
+    "firstNightOrder": 52,
+    "firstNightMeta": {
+      "script": "图书管理员请睁眼...",
+      "instruction": "确认已获得的身份信息",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "lycanthrope",
+    "name": "lycanthrope",
+    "type": "townsfolk"
+  },
+  {
+    "id": "magician",
+    "name": "magician",
+    "type": "townsfolk"
+  },
+  {
+    "id": "mathematician",
+    "name": "数学家",
+    "type": "townsfolk",
+    "firstNightOrder": 49,
+    "otherNightOrder": 49,
+    "firstNightMeta": {
+      "script": "数学家请睁眼...",
+      "instruction": "示数：也就是多少人因自身能力而得不到正常结果",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "数学家请睁眼...",
+      "instruction": "示数：异常数量",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "mayor",
+    "name": "镇长",
+    "type": "townsfolk",
+    "triggerMeta": {
+      "onNightDeath": true
+    }
+  },
+  {
+    "id": "minstrel",
+    "name": "吟游诗人",
+    "type": "townsfolk",
+    "triggerMeta": {
+      "onExecution": true
     }
   },
   {
@@ -135,6 +552,115 @@
       "effectType": "add_status",
       "effectValue": "protected"
     }
+  },
+  {
+    "id": "mortician",
+    "name": "mortician",
+    "type": "townsfolk"
+  },
+  {
+    "id": "naughty_child",
+    "name": "naughty child",
+    "type": "townsfolk"
+  },
+  {
+    "id": "night_watchman",
+    "name": "night watchman",
+    "type": "townsfolk"
+  },
+  {
+    "id": "nightwatchman",
+    "name": "nightwatchman",
+    "type": "townsfolk"
+  },
+  {
+    "id": "noble",
+    "name": "noble",
+    "type": "townsfolk"
+  },
+  {
+    "id": "ojo",
+    "name": "ojo",
+    "type": "townsfolk"
+  },
+  {
+    "id": "oracle",
+    "name": "神谕者",
+    "type": "townsfolk",
+    "otherNightOrder": 42,
+    "otherNightMeta": {
+      "script": "神谕者请睁眼...",
+      "instruction": "示数：死去的邪恶阵营玩家数量",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "pacifist",
+    "name": "和平主义者",
+    "type": "townsfolk",
+    "triggerMeta": {
+      "onExecution": true
+    }
+  },
+  {
+    "id": "philosopher",
+    "name": "哲学家",
+    "type": "townsfolk",
+    "dayMeta": {
+      "abilityName": "获得能力",
+      "usesCount": 1,
+      "targetType": "character",
+      "effectType": "transform_ability"
+    }
+  },
+  {
+    "id": "pixie",
+    "name": "pixie",
+    "type": "townsfolk"
+  },
+  {
+    "id": "plague_doctor",
+    "name": "plague doctor",
+    "type": "townsfolk"
+  },
+  {
+    "id": "preacher",
+    "name": "preacher",
+    "type": "townsfolk"
+  },
+  {
+    "id": "prefect",
+    "name": "prefect",
+    "type": "townsfolk"
+  },
+  {
+    "id": "princess",
+    "name": "princess",
+    "type": "townsfolk"
+  },
+  {
+    "id": "professor",
+    "name": "教授",
+    "type": "townsfolk",
+    "otherNightOrder": 43,
+    "otherNightMeta": {
+      "script": "教授请睁眼...",
+      "instruction": "选择一名死亡玩家复活（限一次）",
+      "targetType": "player",
+      "amount": 1,
+      "required": false,
+      "canSelectSelf": false,
+      "canSelectDead": true,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "raccoon_dog",
+    "name": "raccoon dog",
+    "type": "townsfolk"
   },
   {
     "id": "ravenkeeper",
@@ -156,12 +682,87 @@
     }
   },
   {
-    "id": "virgin",
-    "name": "贞洁者",
+    "id": "riot",
+    "name": "riot",
+    "type": "townsfolk"
+  },
+  {
+    "id": "sage",
+    "name": "哲人",
     "type": "townsfolk",
     "triggerMeta": {
-      "onNominated": true
+      "onNightDeath": true
     }
+  },
+  {
+    "id": "sailor",
+    "name": "水手",
+    "type": "townsfolk",
+    "dayMeta": {
+      "abilityName": "拼酒",
+      "usesCount": "infinity",
+      "targetType": "player",
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "savant",
+    "name": "博学者",
+    "type": "townsfolk",
+    "dayMeta": {
+      "abilityName": "咨询",
+      "usesCount": "infinity",
+      "targetType": "none",
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "scholar",
+    "name": "scholar",
+    "type": "townsfolk"
+  },
+  {
+    "id": "scribe",
+    "name": "scribe",
+    "type": "townsfolk"
+  },
+  {
+    "id": "seamstress",
+    "name": "女裁缝",
+    "type": "townsfolk",
+    "firstNightOrder": 37,
+    "otherNightOrder": 71,
+    "firstNightMeta": {
+      "script": "女裁缝请睁眼...",
+      "instruction": "选择两名玩家，得知其是否同一阵营（限一次）",
+      "targetType": "player",
+      "amount": 2,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "女裁缝请睁眼...",
+      "instruction": "选择两名玩家，得知其是否同一阵营（限一次）",
+      "targetType": "player",
+      "amount": 2,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "shugenja",
+    "name": "shugenja",
+    "type": "townsfolk"
+  },
+  {
+    "id": "singer",
+    "name": "singer",
+    "type": "townsfolk"
+  },
+  {
+    "id": "skin_painter",
+    "name": "skin painter",
+    "type": "townsfolk"
   },
   {
     "id": "slayer",
@@ -175,6 +776,29 @@
     }
   },
   {
+    "id": "snake_charmer",
+    "name": "弄蛇人",
+    "type": "townsfolk",
+    "firstNightOrder": 18,
+    "otherNightOrder": 18,
+    "firstNightMeta": {
+      "script": "弄蛇人请睁眼...",
+      "instruction": "选择一名玩家，如果是恶魔则交换角色",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "弄蛇人请睁眼...",
+      "instruction": "选择一名玩家，如果是恶魔则交换角色",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info"
+    }
+  },
+  {
     "id": "soldier",
     "name": "士兵",
     "type": "townsfolk",
@@ -183,9 +807,118 @@
     }
   },
   {
-    "id": "mayor",
-    "name": "镇长",
+    "id": "steward",
+    "name": "steward",
+    "type": "townsfolk"
+  },
+  {
+    "id": "taoist",
+    "name": "taoist",
+    "type": "townsfolk"
+  },
+  {
+    "id": "tea_lady",
+    "name": "茶女",
     "type": "townsfolk",
+    "triggerMeta": {
+      "onExecution": true,
+      "onNightDeath": true
+    }
+  },
+  {
+    "id": "terracotta_artisan",
+    "name": "terracotta artisan",
+    "type": "townsfolk"
+  },
+  {
+    "id": "town_crier",
+    "name": "城镇公告员",
+    "type": "townsfolk",
+    "otherNightOrder": 41,
+    "otherNightMeta": {
+      "script": "城镇公告员请睁眼...",
+      "instruction": "有爪牙今天投票了吗？",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "traitorous_minister",
+    "name": "traitorous minister",
+    "type": "townsfolk"
+  },
+  {
+    "id": "undertaker",
+    "name": "送葬者",
+    "type": "townsfolk",
+    "otherNightOrder": 92,
+    "otherNightMeta": {
+      "script": "掘墓人请睁眼...",
+      "instruction": "确认处决玩家的身份",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "virgin",
+    "name": "贞洁者",
+    "type": "townsfolk",
+    "triggerMeta": {
+      "onNominated": true
+    }
+  },
+  {
+    "id": "vizier",
+    "name": "vizier",
+    "type": "townsfolk"
+  },
+  {
+    "id": "washerwoman",
+    "name": "洗衣妇",
+    "type": "townsfolk",
+    "firstNightOrder": 51,
+    "firstNightMeta": {
+      "script": "洗衣妇请睁眼...",
+      "instruction": "确认已获得的身份信息",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "wizard",
+    "name": "wizard",
+    "type": "townsfolk"
+  },
+  {
+    "id": "worm_breeder",
+    "name": "worm breeder",
+    "type": "townsfolk"
+  },
+  {
+    "id": "xaan",
+    "name": "xaan",
+    "type": "townsfolk"
+  },
+  {
+    "id": "yin_yang_master",
+    "name": "yin yang master",
+    "type": "townsfolk"
+  },
+  {
+    "id": "zhen",
+    "name": "zhen",
+    "type": "townsfolk"
+  },
+  {
+    "id": "barber",
+    "name": "理发师",
+    "type": "outsider",
     "triggerMeta": {
       "onNightDeath": true
     }
@@ -220,6 +953,11 @@
     }
   },
   {
+    "id": "damsel",
+    "name": "damsel",
+    "type": "outsider"
+  },
+  {
     "id": "drunk",
     "name": "酒鬼",
     "type": "outsider",
@@ -228,310 +966,24 @@
     }
   },
   {
-    "id": "recluse",
-    "name": "隐士",
-    "type": "outsider"
-  },
-  {
-    "id": "saint",
-    "name": "圣徒",
-    "type": "outsider",
-    "triggerMeta": {
-      "onExecution": true
-    }
-  },
-  {
-    "id": "poisoner",
-    "name": "投毒者",
-    "type": "minion",
-    "firstNightOrder": 29,
-    "otherNightOrder": 12,
-    "firstNightMeta": {
-      "script": "投毒者请睁眼...",
-      "instruction": "选择一名玩家投毒",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "canSelectSelf": true,
-      "canSelectDead": false,
-      "effectType": "add_status",
-      "effectValue": "poisoned"
-    },
-    "otherNightMeta": {
-      "script": "投毒者请睁眼...",
-      "instruction": "选择一名玩家投毒",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "canSelectSelf": true,
-      "canSelectDead": false,
-      "effectType": "add_status",
-      "effectValue": "poisoned"
-    }
-  },
-  {
-    "id": "spy",
-    "name": "间谍",
-    "type": "minion",
-    "firstNightOrder": 74,
-    "otherNightOrder": 107,
-    "firstNightMeta": {
-      "script": "间谍请睁眼...",
-      "instruction": "查看魔法书",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    },
-    "otherNightMeta": {
-      "script": "间谍请睁眼...",
-      "instruction": "查看魔法书",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "scarlet_woman",
-    "name": "红罗刹",
-    "type": "minion",
-    "otherNightOrder": 36,
-    "otherNightMeta": {
-      "script": "红罗刹请睁眼...",
-      "instruction": "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "none"
-    },
-    "triggerMeta": {
-      "onNightDeath": true
-    }
-  },
-  {
-    "id": "baron",
-    "name": "男爵",
-    "type": "minion",
-    "setupMeta": {
-      "modifiesBag": true
-    },
-    "firstNightOrder": 33
-  },
-  {
-    "id": "imp",
-    "name": "小恶魔",
-    "type": "demon",
-    "otherNightOrder": 44,
-    "otherNightMeta": {
-      "script": "小恶魔请睁眼...",
-      "instruction": "选择一名玩家杀害",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "canSelectSelf": true,
-      "canSelectDead": false,
-      "effectType": "kill"
-    }
-  },
-  {
-    "id": "zombuul",
-    "name": "僵怖",
-    "type": "demon",
-    "otherNightOrder": 45,
-    "otherNightMeta": {
-      "script": "僵怖请睁眼...",
-      "instruction": "如果没人死亡，请选择一名玩家杀害",
-      "targetType": "player",
-      "amount": 1,
-      "required": false,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "kill",
-      "wakesIfDead": true
-    }
-  },
-  {
-    "id": "grandmother",
-    "name": "祖母",
-    "type": "townsfolk",
-    "firstNightOrder": 59,
-    "firstNightMeta": {
-      "script": "祖母请睁眼...",
-      "instruction": "确认你的孙子（一名玩家）",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "info"
-    },
-    "triggerMeta": {
-      "onNightDeath": true
-    }
-  },
-  {
-    "id": "sailor",
-    "name": "水手",
-    "type": "townsfolk",
-    "dayMeta": {
-      "abilityName": "拼酒",
-      "usesCount": "infinity",
-      "targetType": "player",
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "chambermaid",
-    "name": "侍女",
-    "type": "townsfolk",
-    "otherNightOrder": 113,
-    "otherNightMeta": {
-      "script": "侍女请睁眼...",
-      "instruction": "选择两名玩家，得知他们是否因技能醒来过",
-      "targetType": "player",
-      "amount": 2,
-      "required": true,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "exorcist",
-    "name": "驱魔人",
-    "type": "townsfolk",
-    "otherNightOrder": 39,
-    "otherNightMeta": {
-      "script": "驱魔人请睁眼...",
-      "instruction": "选择一名玩家（恶魔），该恶魔今晚无法行动",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "add_status",
-      "effectValue": "blocked"
-    }
-  },
-  {
-    "id": "innkeeper",
-    "name": "旅店老板",
-    "type": "townsfolk",
-    "otherNightOrder": 13,
-    "otherNightMeta": {
-      "script": "旅店老板请睁眼...",
-      "instruction": "选择两名玩家保护（其中一人变酒鬼）",
-      "targetType": "player",
-      "amount": 2,
-      "required": true,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "add_status",
-      "effectValue": "protected"
-    }
-  },
-  {
-    "id": "gambler",
-    "name": "赌徒",
-    "type": "townsfolk",
-    "otherNightOrder": 20,
-    "otherNightMeta": {
-      "script": "赌徒请睁眼...",
-      "instruction": "选择一名玩家并猜测其身份",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "gossip",
-    "name": "造谣者",
-    "type": "townsfolk",
-    "dayMeta": {
-      "abilityName": "造谣",
-      "usesCount": "infinity",
-      "targetType": "none",
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "courtier",
-    "name": "廷臣",
-    "type": "townsfolk",
-    "firstNightOrder": 31,
-    "otherNightOrder": 14,
-    "otherNightMeta": {
-      "script": "廷臣请睁眼...",
-      "instruction": "选择一个角色，使其醉酒3晚（如果你还没使用过技能）",
-      "targetType": "character",
-      "amount": 1,
-      "required": false,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "add_status",
-      "effectValue": "drunk_3_nights"
-    }
-  },
-  {
-    "id": "professor",
-    "name": "教授",
-    "type": "townsfolk",
-    "otherNightOrder": 43,
-    "otherNightMeta": {
-      "script": "教授请睁眼...",
-      "instruction": "选择一名死亡玩家复活（限一次）",
-      "targetType": "player",
-      "amount": 1,
-      "required": false,
-      "canSelectSelf": false,
-      "canSelectDead": true,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "minstrel",
-    "name": "吟游诗人",
-    "type": "townsfolk",
-    "triggerMeta": {
-      "onExecution": true
-    }
-  },
-  {
-    "id": "tea_lady",
-    "name": "茶女",
-    "type": "townsfolk",
-    "triggerMeta": {
-      "onExecution": true,
-      "onNightDeath": true
-    }
-  },
-  {
-    "id": "pacifist",
-    "name": "和平主义者",
-    "type": "townsfolk",
-    "triggerMeta": {
-      "onExecution": true
-    }
-  },
-  {
-    "id": "fool",
-    "name": "愚人",
-    "type": "townsfolk",
-    "triggerMeta": {
-      "onNightDeath": true,
-      "onExecution": true
-    }
-  },
-  {
     "id": "goon",
     "name": "暴徒",
     "type": "outsider",
     "triggerMeta": {
       "onSelected": true
+    }
+  },
+  {
+    "id": "heretic",
+    "name": "heretic",
+    "type": "outsider"
+  },
+  {
+    "id": "klutz",
+    "name": "笨蛋",
+    "type": "outsider",
+    "triggerMeta": {
+      "onDeath": true
     }
   },
   {
@@ -565,11 +1017,6 @@
     }
   },
   {
-    "id": "tinker",
-    "name": "修补匠",
-    "type": "outsider"
-  },
-  {
     "id": "moonchild",
     "name": "月之子",
     "type": "outsider",
@@ -578,23 +1025,107 @@
     }
   },
   {
-    "id": "godfather",
-    "name": "教父",
+    "id": "mutant",
+    "name": "变种人",
+    "type": "outsider",
+    "triggerMeta": {
+      "onExecution": true
+    }
+  },
+  {
+    "id": "ogre",
+    "name": "ogre",
+    "type": "outsider"
+  },
+  {
+    "id": "outsider",
+    "name": "outsider",
+    "type": "outsider"
+  },
+  {
+    "id": "recluse",
+    "name": "隐士",
+    "type": "outsider"
+  },
+  {
+    "id": "saint",
+    "name": "圣徒",
+    "type": "outsider",
+    "triggerMeta": {
+      "onExecution": true
+    }
+  },
+  {
+    "id": "sweetheart",
+    "name": "心上人",
+    "type": "outsider",
+    "triggerMeta": {
+      "onDeath": true
+    }
+  },
+  {
+    "id": "tinker",
+    "name": "修补匠",
+    "type": "outsider"
+  },
+  {
+    "id": "villager",
+    "name": "villager",
+    "type": "outsider"
+  },
+  {
+    "id": "zealot",
+    "name": "zealot",
+    "type": "outsider"
+  },
+  {
+    "id": "assassin",
+    "name": "刺客",
     "type": "minion",
-    "setupMeta": {
-      "modifiesBag": true
-    },
-    "firstNightOrder": 34,
-    "otherNightOrder": 68,
+    "otherNightOrder": 36,
     "otherNightMeta": {
-      "script": "教父请睁眼...",
-      "instruction": "如果有外来者死亡，杀一人",
+      "script": "刺客请睁眼...",
+      "instruction": "选择一名玩家杀害（限一次，无视保护）",
       "targetType": "player",
       "amount": 1,
       "required": false,
       "canSelectSelf": false,
       "canSelectDead": false,
       "effectType": "kill"
+    }
+  },
+  {
+    "id": "baron",
+    "name": "男爵",
+    "type": "minion",
+    "setupMeta": {
+      "modifiesBag": true
+    },
+    "firstNightOrder": 33
+  },
+  {
+    "id": "cerenovus",
+    "name": "洗脑师",
+    "type": "minion",
+    "firstNightOrder": 38,
+    "otherNightOrder": 72,
+    "firstNightMeta": {
+      "script": "洗脑师请睁眼...",
+      "instruction": "选择一名玩家使其疯狂",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "add_status",
+      "effectValue": "mad"
+    },
+    "otherNightMeta": {
+      "script": "洗脑师请睁眼...",
+      "instruction": "选择一名玩家使其疯狂",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "add_status",
+      "effectValue": "mad"
     }
   },
   {
@@ -627,13 +1158,41 @@
     }
   },
   {
-    "id": "assassin",
-    "name": "刺客",
+    "id": "evil_twin",
+    "name": "邪恶双子",
     "type": "minion",
-    "otherNightOrder": 36,
+    "firstNightOrder": 23,
+    "firstNightMeta": {
+      "script": "邪恶双子请睁眼...",
+      "instruction": "醒来查看你的双胞胎",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "fearmonger",
+    "name": "fearmonger",
+    "type": "minion"
+  },
+  {
+    "id": "fox_spirit",
+    "name": "fox spirit",
+    "type": "minion"
+  },
+  {
+    "id": "godfather",
+    "name": "教父",
+    "type": "minion",
+    "setupMeta": {
+      "modifiesBag": true
+    },
+    "firstNightOrder": 34,
+    "otherNightOrder": 68,
     "otherNightMeta": {
-      "script": "刺客请睁眼...",
-      "instruction": "选择一名玩家杀害（限一次，无视保护）",
+      "script": "教父请睁眼...",
+      "instruction": "如果有外来者死亡，杀一人",
       "targetType": "player",
       "amount": 1,
       "required": false,
@@ -643,12 +1202,265 @@
     }
   },
   {
+    "id": "harpy",
+    "name": "harpy",
+    "type": "minion"
+  },
+  {
+    "id": "marionette",
+    "name": "marionette",
+    "type": "minion"
+  },
+  {
     "id": "mastermind",
     "name": "主谋",
     "type": "minion",
     "triggerMeta": {
       "onExecution": true
     }
+  },
+  {
+    "id": "mezepheles",
+    "name": "mezepheles",
+    "type": "minion"
+  },
+  {
+    "id": "organ_grinder",
+    "name": "organ grinder",
+    "type": "minion"
+  },
+  {
+    "id": "pit_hag",
+    "name": "麻脸巫婆",
+    "type": "minion",
+    "otherNightOrder": 10,
+    "otherNightMeta": {
+      "script": "麻脸巫婆请睁眼...",
+      "instruction": "选择一名玩家并选择一个角色进行变更",
+      "targetType": "player",
+      "amount": 1,
+      "required": false,
+      "effectType": "none"
+    }
+  },
+  {
+    "id": "poisoner",
+    "name": "投毒者",
+    "type": "minion",
+    "firstNightOrder": 29,
+    "otherNightOrder": 12,
+    "firstNightMeta": {
+      "script": "投毒者请睁眼...",
+      "instruction": "选择一名玩家投毒",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": true,
+      "canSelectDead": false,
+      "effectType": "add_status",
+      "effectValue": "poisoned"
+    },
+    "otherNightMeta": {
+      "script": "投毒者请睁眼...",
+      "instruction": "选择一名玩家投毒",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": true,
+      "canSelectDead": false,
+      "effectType": "add_status",
+      "effectValue": "poisoned"
+    }
+  },
+  {
+    "id": "scarlet_woman",
+    "name": "红罗刹",
+    "type": "minion",
+    "otherNightOrder": 36,
+    "otherNightMeta": {
+      "script": "红罗刹请睁眼...",
+      "instruction": "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "none"
+    },
+    "triggerMeta": {
+      "onNightDeath": true
+    }
+  },
+  {
+    "id": "snitch",
+    "name": "snitch",
+    "type": "minion"
+  },
+  {
+    "id": "spy",
+    "name": "间谍",
+    "type": "minion",
+    "firstNightOrder": 74,
+    "otherNightOrder": 107,
+    "firstNightMeta": {
+      "script": "间谍请睁眼...",
+      "instruction": "查看魔法书",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "间谍请睁眼...",
+      "instruction": "查看魔法书",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    }
+  },
+  {
+    "id": "summoner",
+    "name": "summoner",
+    "type": "minion"
+  },
+  {
+    "id": "widow",
+    "name": "widow",
+    "type": "minion"
+  },
+  {
+    "id": "witch",
+    "name": "女巫",
+    "type": "minion",
+    "firstNightOrder": 36,
+    "otherNightOrder": 70,
+    "firstNightMeta": {
+      "script": "女巫请睁眼...",
+      "instruction": "诅咒一名玩家",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "add_status",
+      "effectValue": "cursed"
+    },
+    "otherNightMeta": {
+      "script": "女巫请睁眼...",
+      "instruction": "诅咒一名玩家",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "add_status",
+      "effectValue": "cursed"
+    }
+  },
+  {
+    "id": "wraith",
+    "name": "wraith",
+    "type": "minion"
+  },
+  {
+    "id": "chaos",
+    "name": "chaos",
+    "type": "demon"
+  },
+  {
+    "id": "fang_gu",
+    "name": "方古",
+    "type": "demon",
+    "otherNightOrder": 49,
+    "otherNightMeta": {
+      "script": "方古请睁眼...",
+      "instruction": "选择一名玩家杀害（若是外来者则其变身）",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "kill"
+    }
+  },
+  {
+    "id": "hadesia",
+    "name": "hadesia",
+    "type": "demon"
+  },
+  {
+    "id": "imp",
+    "name": "小恶魔",
+    "type": "demon",
+    "otherNightOrder": 44,
+    "otherNightMeta": {
+      "script": "小恶魔请睁眼...",
+      "instruction": "选择一名玩家杀害",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": true,
+      "canSelectDead": false,
+      "effectType": "kill"
+    }
+  },
+  {
+    "id": "imperial_guard",
+    "name": "imperial guard",
+    "type": "demon"
+  },
+  {
+    "id": "kazali",
+    "name": "kazali",
+    "type": "demon"
+  },
+  {
+    "id": "lil_monsta",
+    "name": "lil monsta",
+    "type": "demon"
+  },
+  {
+    "id": "lleech",
+    "name": "lleech",
+    "type": "demon"
+  },
+  {
+    "id": "lord_of_typhon",
+    "name": "lord of typhon",
+    "type": "demon"
+  },
+  {
+    "id": "no_dashii",
+    "name": "诺-达",
+    "type": "demon",
+    "otherNightOrder": 51,
+    "otherNightMeta": {
+      "script": "诺-达请睁眼...",
+      "instruction": "选择一名玩家杀害",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "kill"
+    }
+  },
+  {
+    "id": "po",
+    "name": "珀",
+    "type": "demon",
+    "otherNightOrder": 55,
+    "otherNightMeta": {
+      "script": "珀请睁眼...",
+      "instruction": "选择一名玩家杀害（或选择空过，明晚杀3人）",
+      "targetType": "player",
+      "amount": 1,
+      "required": false,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "kill"
+    }
+  },
+  {
+    "id": "politician",
+    "name": "politician",
+    "type": "demon"
+  },
+  {
+    "id": "poppy_grower",
+    "name": "poppy grower",
+    "type": "demon"
   },
   {
     "id": "pukka",
@@ -680,6 +1492,11 @@
     }
   },
   {
+    "id": "qiongqi",
+    "name": "qiongqi",
+    "type": "demon"
+  },
+  {
     "id": "shabaloth",
     "name": "沙巴洛斯",
     "type": "demon",
@@ -696,339 +1513,23 @@
     }
   },
   {
-    "id": "po",
-    "name": "珀",
+    "id": "taotie",
+    "name": "taotie",
+    "type": "demon"
+  },
+  {
+    "id": "taowu",
+    "name": "taowu",
+    "type": "demon"
+  },
+  {
+    "id": "vigormortis",
+    "name": "亡骨魔",
     "type": "demon",
-    "otherNightOrder": 55,
+    "otherNightOrder": 52,
     "otherNightMeta": {
-      "script": "珀请睁眼...",
-      "instruction": "选择一名玩家杀害（或选择空过，明晚杀3人）",
-      "targetType": "player",
-      "amount": 1,
-      "required": false,
-      "canSelectSelf": false,
-      "canSelectDead": false,
-      "effectType": "kill"
-    }
-  },
-  {
-    "id": "philosopher",
-    "name": "哲学家",
-    "type": "townsfolk",
-    "dayMeta": {
-      "abilityName": "获得能力",
-      "usesCount": 1,
-      "targetType": "character",
-      "effectType": "transform_ability"
-    }
-  },
-  {
-    "id": "clockmaker",
-    "name": "钟表匠",
-    "type": "townsfolk",
-    "firstNightOrder": 20,
-    "firstNightMeta": {
-      "script": "钟表匠请睁眼...",
-      "instruction": "示数：恶魔与最近爪牙的距离",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "dreamer",
-    "name": "筑梦师",
-    "type": "townsfolk",
-    "firstNightOrder": 30,
-    "otherNightOrder": 30,
-    "firstNightMeta": {
-      "script": "筑梦师请睁眼...",
-      "instruction": "选择一名玩家，得知其角色（1真1假）",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "info"
-    },
-    "otherNightMeta": {
-      "script": "筑梦师请睁眼...",
-      "instruction": "选择一名玩家，得知其角色（1真1假）",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "snake_charmer",
-    "name": "弄蛇人",
-    "type": "townsfolk",
-    "firstNightOrder": 18,
-    "otherNightOrder": 18,
-    "firstNightMeta": {
-      "script": "弄蛇人请睁眼...",
-      "instruction": "选择一名玩家，如果是恶魔则交换角色",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "info"
-    },
-    "otherNightMeta": {
-      "script": "弄蛇人请睁眼...",
-      "instruction": "选择一名玩家，如果是恶魔则交换角色",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "flowergirl",
-    "name": "卖花女孩",
-    "type": "townsfolk",
-    "otherNightOrder": 40,
-    "otherNightMeta": {
-      "script": "卖花女请睁眼...",
-      "instruction": "恶魔今天投票了吗？",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "town_crier",
-    "name": "城镇公告员",
-    "type": "townsfolk",
-    "otherNightOrder": 41,
-    "otherNightMeta": {
-      "script": "城镇公告员请睁眼...",
-      "instruction": "有爪牙今天投票了吗？",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "mathematician",
-    "name": "数学家",
-    "type": "townsfolk",
-    "firstNightOrder": 49,
-    "otherNightOrder": 49,
-    "firstNightMeta": {
-      "script": "数学家请睁眼...",
-      "instruction": "示数：也就是多少人因自身能力而得不到正常结果",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    },
-    "otherNightMeta": {
-      "script": "数学家请睁眼...",
-      "instruction": "示数：异常数量",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "oracle",
-    "name": "神谕者",
-    "type": "townsfolk",
-    "otherNightOrder": 42,
-    "otherNightMeta": {
-      "script": "神谕者请睁眼...",
-      "instruction": "示数：死去的邪恶阵营玩家数量",
-      "targetType": "none",
-      "amount": 0,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "savant",
-    "name": "博学者",
-    "type": "townsfolk",
-    "dayMeta": {
-      "abilityName": "咨询",
-      "usesCount": "infinity",
-      "targetType": "none",
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "seamstress",
-    "name": "女裁缝",
-    "type": "townsfolk",
-    "firstNightOrder": 37,
-    "otherNightOrder": 71,
-    "firstNightMeta": {
-      "script": "女裁缝请睁眼...",
-      "instruction": "选择两名玩家，得知其是否同一阵营（限一次）",
-      "targetType": "player",
-      "amount": 2,
-      "required": false,
-      "effectType": "info"
-    },
-    "otherNightMeta": {
-      "script": "女裁缝请睁眼...",
-      "instruction": "选择两名玩家，得知其是否同一阵营（限一次）",
-      "targetType": "player",
-      "amount": 2,
-      "required": false,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "artist",
-    "name": "艺人",
-    "type": "townsfolk",
-    "dayMeta": {
-      "abilityName": "提问",
-      "usesCount": 1,
-      "targetType": "none",
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "juggler",
-    "name": "杂耍艺人",
-    "type": "townsfolk",
-    "dayMeta": {
-      "abilityName": "猜测",
-      "usesCount": 1,
-      "targetType": "none",
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "sage",
-    "name": "哲人",
-    "type": "townsfolk",
-    "triggerMeta": {
-      "onNightDeath": true
-    }
-  },
-  {
-    "id": "mutant",
-    "name": "变种人",
-    "type": "outsider",
-    "triggerMeta": {
-      "onExecution": true
-    }
-  },
-  {
-    "id": "sweetheart",
-    "name": "心上人",
-    "type": "outsider",
-    "triggerMeta": {
-      "onDeath": true
-    }
-  },
-  {
-    "id": "barber",
-    "name": "理发师",
-    "type": "outsider",
-    "triggerMeta": {
-      "onNightDeath": true
-    }
-  },
-  {
-    "id": "klutz",
-    "name": "笨蛋",
-    "type": "outsider",
-    "triggerMeta": {
-      "onDeath": true
-    }
-  },
-  {
-    "id": "witch",
-    "name": "女巫",
-    "type": "minion",
-    "firstNightOrder": 36,
-    "otherNightOrder": 70,
-    "firstNightMeta": {
-      "script": "女巫请睁眼...",
-      "instruction": "诅咒一名玩家",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "add_status",
-      "effectValue": "cursed"
-    },
-    "otherNightMeta": {
-      "script": "女巫请睁眼...",
-      "instruction": "诅咒一名玩家",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "add_status",
-      "effectValue": "cursed"
-    }
-  },
-  {
-    "id": "cerenovus",
-    "name": "洗脑师",
-    "type": "minion",
-    "firstNightOrder": 38,
-    "otherNightOrder": 72,
-    "firstNightMeta": {
-      "script": "洗脑师请睁眼...",
-      "instruction": "选择一名玩家使其疯狂",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "add_status",
-      "effectValue": "mad"
-    },
-    "otherNightMeta": {
-      "script": "洗脑师请睁眼...",
-      "instruction": "选择一名玩家使其疯狂",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "add_status",
-      "effectValue": "mad"
-    }
-  },
-  {
-    "id": "pit_hag",
-    "name": "麻脸巫婆",
-    "type": "minion",
-    "otherNightOrder": 10,
-    "otherNightMeta": {
-      "script": "麻脸巫婆请睁眼...",
-      "instruction": "选择一名玩家并选择一个角色进行变更",
-      "targetType": "player",
-      "amount": 1,
-      "required": false,
-      "effectType": "none"
-    }
-  },
-  {
-    "id": "evil_twin",
-    "name": "邪恶双子",
-    "type": "minion",
-    "firstNightOrder": 23,
-    "firstNightMeta": {
-      "script": "邪恶双子请睁眼...",
-      "instruction": "醒来查看你的双胞胎",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "info"
-    }
-  },
-  {
-    "id": "fang_gu",
-    "name": "方古",
-    "type": "demon",
-    "otherNightOrder": 49,
-    "otherNightMeta": {
-      "script": "方古请睁眼...",
-      "instruction": "选择一名玩家杀害（若是外来者则其变身）",
+      "script": "亡骨魔请睁眼...",
+      "instruction": "选择一名玩家杀害（若是爪牙则保留能力）",
       "targetType": "player",
       "amount": 1,
       "required": true,
@@ -1050,31 +1551,25 @@
     }
   },
   {
-    "id": "no_dashii",
-    "name": "诺-达",
-    "type": "demon",
-    "otherNightOrder": 51,
-    "otherNightMeta": {
-      "script": "诺-达请睁眼...",
-      "instruction": "选择一名玩家杀害",
-      "targetType": "player",
-      "amount": 1,
-      "required": true,
-      "effectType": "kill"
-    }
+    "id": "yaggababble",
+    "name": "yaggababble",
+    "type": "demon"
   },
   {
-    "id": "vigormortis",
-    "name": "亡骨魔",
+    "id": "zombuul",
+    "name": "僵怖",
     "type": "demon",
-    "otherNightOrder": 52,
+    "otherNightOrder": 45,
     "otherNightMeta": {
-      "script": "亡骨魔请睁眼...",
-      "instruction": "选择一名玩家杀害（若是爪牙则保留能力）",
+      "script": "僵怖请睁眼...",
+      "instruction": "如果没人死亡，请选择一名玩家杀害",
       "targetType": "player",
       "amount": 1,
-      "required": true,
-      "effectType": "kill"
+      "required": false,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "kill",
+      "wakesIfDead": true
     }
   }
 ]

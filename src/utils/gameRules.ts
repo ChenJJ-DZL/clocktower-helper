@@ -1,6 +1,6 @@
 import type { Role, RoleType, Seat, StatusEffect } from "../../app/data";
 import type { RegistrationResult } from "../types/registration";
-import { JinxManager } from "./JinxManager";
+import { interceptInspection } from "./JinxManager";
 
 // ======================================================================
 //  座位位置计算
@@ -250,12 +250,7 @@ export const getRegistration = (
       isDrunk: false,
       isPoisoned: false,
     } as Seat;
-    result = JinxManager.interceptInspection(
-      targetPlayer,
-      dummyViewer,
-      result,
-      []
-    );
+    result = interceptInspection(targetPlayer, dummyViewer, result, []);
   }
 
   if (cacheKey && options?.cache) {

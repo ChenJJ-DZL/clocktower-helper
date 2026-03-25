@@ -73,6 +73,60 @@ export const pukka: RoleDefinition = {
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats, gameState } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `普卡（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+
+      // 获取普卡上次中毒的玩家
+      const pukkaLastPoisoned = gameState?.pukkaLastPoisoned;
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 处理上个中毒玩家的死亡
+      if (pukkaLastPoisoned !== undefined && pukkaLastPoisoned !== null) {
+        const lastPoisonedSeat = seats.find((s) => s.id === pukkaLastPoisoned);
+        if (lastPoisonedSeat && !lastPoisonedSeat.isDead) {
+          // 检查是否被旅店老板保护
+          const isProtectedByInnkeeper = lastPoisonedSeat.statuses?.some(
+            (s) => s.effect === "ProtectedByInnkeeper"
+          );
+
+          if (!isProtectedByInnkeeper) {
+            updates.push({
+              id: pukkaLastPoisoned,
+              isDead: true,
+              isPoisoned: false, // 死亡后恢复健康
+            });
+          }
+        }
+      }
+
+      // 使新目标中毒
+      updates.push({
+        id: targetId,
+        isPoisoned: true,
+      });
+
+      return {
+        updates,
+        logs: {
+          privateLog: `普卡（${selfId + 1}号）使 ${targetId + 1}号玩家中毒，上个中毒玩家${pukkaLastPoisoned !== undefined ? pukkaLastPoisoned + 1 : "无"}死亡`,
+        },
+        gameStateUpdates: {
+          pukkaLastPoisoned: targetId,
+        },
+      };
+    },
   },
 };

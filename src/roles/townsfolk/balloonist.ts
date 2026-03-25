@@ -98,6 +98,50 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:36-0!canonical and time
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { selfId, seats, gameState } = context;
+
+      // 获取上次得知的玩家角色类型
+      const lastBalloonistTarget = gameState?.lastBalloonistTarget;
+      const lastTargetSeat =
+        lastBalloonistTarget !== undefined
+          ? seats.find((s) => s.id === lastBalloonistTarget)
+          : null;
+      const lastTargetRoleType = lastTargetSeat?.role?.type;
+
+      // 选择一名与上次角色类型不同的玩家
+      const availableSeats = seats.filter((seat) => {
+        if (seat.id === selfId) return false; // 不能选择自己
+        // 如果这是首个夜晚，可以选择任何玩家
+        if (lastTargetRoleType === undefined) return true;
+
+        // 否则必须选择角色类型不同的玩家
+        return seat.role?.type !== lastTargetRoleType;
+      });
+
+      if (availableSeats.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `气球驾驶员（${selfId + 1}号）无法找到合适的玩家，所有玩家角色类型都与上次相同`,
+          },
+        };
+      }
+
+      // 随机选择一名玩家（实际游戏中由说书人决定）
+      const randomIndex = Math.floor(Math.random() * availableSeats.length);
+      const targetSeat = availableSeats[randomIndex];
+      const targetId = targetSeat.id;
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `气球驾驶员（${selfId + 1}号）得知了 ${targetId + 1}号玩家（角色类型：${targetSeat.role?.type || "未知"}）`,
+        },
+        gameStateUpdates: {
+          lastBalloonistTarget: targetId,
+        },
+      };
+    },
   },
 };

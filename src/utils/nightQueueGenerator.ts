@@ -184,7 +184,7 @@ export function generateNightActionQueue(
     `[generateNightActionQueue] ${isFirstNight ? "First night" : "Night"} - Processing ${seats.length} seats`
   );
   console.log(
-    `[generateNightActionQueue] Generated ${queueItems.length} queue items:`,
+    `[generateNightActionGenerator] Generated ${queueItems.length} queue items:`,
     queueItems.map((item) => ({
       seatId: item.seatId + 1,
       roleId: item.roleId,
@@ -317,4 +317,125 @@ export function getNextValidQueueIndex(
 
   // 如果没有找到下一个有效项，返回队列长度（表示队列结束）
   return queue.length;
+}
+
+/**
+ * 动态插入新的角色到夜晚行动队列
+ * 支持中途角色变化时插入结算
+ *
+ * 规则：
+ * 1. 如果角色在夜晚过程中获得新能力，需要插入到队列中
+ * 2. 插入位置根据角色的夜晚行动顺序决定
+ * 3. 如果当前已经处理过该角色的行动顺序，则不插入
+ *
+ * @param queue 当前队列
+ * @param newSeat 新角色座位
+ * @param isFirstNight 是否为首夜
+ * @param currentWakeIndex 当前唤醒索引
+ * @returns 更新后的队列
+ */
+export function insertNewRoleIntoQueue(
+  queue: Seat[],
+  newSeat: Seat,
+  isFirstNight: boolean,
+  currentWakeIndex: number
+): Seat[] {
+  if (!newSeat.role) return queue;
+
+  // 获取角色的夜晚行动顺序
+  const effectiveRoleId =
+    newSeat.role.id === "drunk"
+      ? newSeat.charadeRole?.id || null
+      : newSeat.role.id;
+
+  if (!effectiveRoleId) return queue;
+
+  const roleDef = getRoleDefinition(effectiveRoleId);
+  if (!roleDef) return queue;
+
+  // 检查角色是否已经在队列中
+  const alreadyInQueue = queue.some((seat) => seat.id === newSeat.id);
+  if (alreadyInQueue) return queue;
+
+  // 获取角色的夜晚行动顺序
+  const getOrderValue = (
+    orderConfig: number | ((isFirstNight: boolean) => number) | undefined
+  ): number => {
+    if (orderConfig === undefined) return 999;
+    if (typeof orderConfig === "number") return orderConfig;
+    if (typeof orderConfig === "function") return orderConfig(isFirstNight);
+    return 999;
+  };
+
+  let order = 999;
+
+  if (isFirstNight && roleDef.firstNight) {
+    order = getOrderValue(roleDef.firstNight.order);
+  } else if (roleDef.night) {
+    order = getOrderValue(roleDef.night.order);
+  }
+
+  // 如果order <= 0或>= 999，表示角色不应该在当晚行动
+  if (order <= 0 || order >= 999) return queue;
+
+  // 创建新的队列项
+  const newQueueItem = {
+    seat: newSeat,
+    seatId: newSeat.id,
+    roleId: effectiveRoleId,
+    order,
+    isFirstNightOnly: !!roleDef.firstNight && !roleDef.night,
+  };
+
+  // 查找插入位置
+  let insertIndex = queue.length;
+
+  for (let i = currentWakeIndex; i < queue.length; i++) {
+    const item = queue[i];
+    // 修复：Seat类型没有order属性，我们需要获取队列中每个座位的角色夜晚行动顺序
+    const itemRoleId = item.role?.id === "drunk" 
+      ? item.charadeRole?.id || null 
+      : item.role?.id;
+    
+    if (!itemRoleId) continue;
+    
+    const itemRoleDef = getRoleDefinition(itemRoleId);
+    if (!itemRoleDef) continue;
+    
+    // 获取队列中座位的夜晚行动顺序
+    const getItemOrderValue = (
+      orderConfig: number | ((isFirstNight: boolean) => number) | undefined
+    ): number => {
+      if (orderConfig === undefined) return 999;
+      if (typeof orderConfig === "number") return orderConfig;
+      if (typeof orderConfig === "function") return orderConfig(isFirstNight);
+      return 999;
+    };
+    
+    let itemOrder = 999;
+    
+    if (isFirstNight && itemRoleDef.firstNight) {
+      itemOrder = getItemOrderValue(itemRoleDef.firstNight.order);
+    } else if (itemRoleDef.night) {
+      itemOrder = getItemOrderValue(itemRoleDef.night.order);
+    }
+
+    if (order < itemOrder) {
+      insertIndex = i;
+      break;
+    } else if (order === itemOrder && newSeat.id < item.id) {
+      insertIndex = i;
+      break;
+    }
+  }
+
+  // 插入到队列中
+  const newQueue = [...queue];
+  newQueue.splice(insertIndex, 0, newSeat);
+
+  console.log(
+    `[insertNewRoleIntoQueue] 插入新角色到队列: 座位${newSeat.id + 1}号, 角色${newSeat.role.name}, 顺序${order}, 插入位置${insertIndex}`
+  );
+
+  return newQueue;
 }

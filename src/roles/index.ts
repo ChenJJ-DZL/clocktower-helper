@@ -92,7 +92,7 @@ import { farmer } from "./townsfolk/farmer";
 import { fisherman } from "./townsfolk/fisherman";
 import { flowergirl } from "./townsfolk/flowergirl";
 import { fool } from "./townsfolk/fool";
-import { fortune_teller } from "./townsfolk/fortune_teller";
+import { fortune_teller } from "./townsfolk/fortuneTeller";
 import { gambler } from "./townsfolk/gambler";
 import { gossip } from "./townsfolk/gossip";
 import { grandmother } from "./townsfolk/grandmother";
@@ -107,7 +107,7 @@ import { mayor } from "./townsfolk/mayor";
 import { miner } from "./townsfolk/miner";
 import { minstrel } from "./townsfolk/minstrel";
 import { monk } from "./townsfolk/monk";
-import { monk_female } from "./townsfolk/monkFemale";
+// import { monk_female } from "./townsfolk/monkFemale"; // 文件已删除
 import { noble } from "./townsfolk/noble";
 import { oracle } from "./townsfolk/oracle";
 import { pacifist } from "./townsfolk/pacifist";
@@ -203,7 +203,7 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [bard.id, bard],
   [miner.id, miner],
   [professor_female.id, professor_female],
-  [monk_female.id, monk_female],
+  // [monk_female.id, monk_female], // 文件已删除
   [saint_townsfolk.id, saint_townsfolk],
   [barber.id, barber],
   [butler.id, butler],
@@ -361,7 +361,7 @@ export { farmer } from "./townsfolk/farmer";
 export { fisherman } from "./townsfolk/fisherman";
 export { flowergirl } from "./townsfolk/flowergirl";
 export { fool } from "./townsfolk/fool";
-export { fortune_teller } from "./townsfolk/fortune_teller";
+export { fortune_teller } from "./townsfolk/fortuneTeller";
 export { gambler } from "./townsfolk/gambler";
 export { gossip } from "./townsfolk/gossip";
 export { grandmother } from "./townsfolk/grandmother";

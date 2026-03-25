@@ -85,6 +85,80 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:140-0!canonical and tim
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats, gameState } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `魔鬼代言人（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+
+      // 检查目标是否存活
+      if (targetSeat?.isDead) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `魔鬼代言人（${selfId + 1}号）选择了已死亡的 ${targetId + 1}号玩家，目标必须存活`,
+          },
+        };
+      }
+
+      // 检查目标是否是僵怖且被当作死亡
+      const isZombuulDead =
+        targetSeat?.role?.id === "zombuul" && targetSeat?.isDead;
+      if (isZombuulDead) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `魔鬼代言人（${selfId + 1}号）选择了被当作死亡的僵怖 ${targetId + 1}号玩家，目标不能是被当作死亡的僵怖`,
+          },
+        };
+      }
+
+      // 获取魔鬼代言人上次选择的玩家
+      const devilsAdvocateLastTarget = gameState?.devilsAdvocateLastTarget;
+
+      // 检查不能连续两个夜晚选择同一名玩家
+      if (devilsAdvocateLastTarget === targetId) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `魔鬼代言人（${selfId + 1}号）不能连续两个夜晚选择同一名玩家，上次选择了 ${targetId + 1}号`,
+          },
+        };
+      }
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 为目标添加处决不死状态
+      updates.push({
+        id: targetId,
+        statuses: [
+          {
+            effect: "ExecutionImmune",
+            sourceRoleId: "devils_advocate",
+            sourcePlayerId: selfId,
+            expiresAt: "next_day",
+          },
+        ],
+      });
+
+      return {
+        updates,
+        logs: {
+          privateLog: `魔鬼代言人（${selfId + 1}号）保护了 ${targetId + 1}号玩家，明天处决不会死亡`,
+        },
+        gameStateUpdates: {
+          devilsAdvocateLastTarget: targetId,
+        },
+      };
+    },
   },
 };

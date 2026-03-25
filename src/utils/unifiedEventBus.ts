@@ -55,8 +55,7 @@ export interface EventMonitorConfig {
  * 统一游戏事件总线管理器
  */
 class UnifiedEventBus {
-  private listeners: Map<GameEventType, Array<EventListenerConfig<any>>> =
-    new Map();
+  private listeners: Map<GameEventType, EventListenerConfig<any>[]> = new Map();
   private eventHistory: EventHistoryItem[] = [];
   private monitorConfig: EventMonitorConfig = {
     enableHistory: true,

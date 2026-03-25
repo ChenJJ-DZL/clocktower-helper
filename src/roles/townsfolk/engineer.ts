@@ -99,6 +99,51 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:44-0!canonical and time
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { selfId, selectedRoles, gameState } = context;
+
+      // 检查工程师是否已经使用过能力
+      if (gameState?.engineerUsed) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `工程师（${selfId + 1}号）已经使用过能力`,
+          },
+        };
+      }
+
+      // 检查是否选择了角色
+      if (!selectedRoles || selectedRoles.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `工程师（${selfId + 1}号）未选择角色，不使用能力`,
+          },
+        };
+      }
+
+      const selectedRole = selectedRoles[0];
+
+      // 检查选择的角色是恶魔还是爪牙
+      if (selectedRole.type !== "demon" && selectedRole.type !== "minion") {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `工程师（${selfId + 1}号）只能选择恶魔或爪牙角色，选择了${selectedRole.name}（${selectedRole.type}）`,
+          },
+        };
+      }
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `工程师（${selfId + 1}号）选择将${selectedRole.type === "demon" ? "恶魔" : "所有爪牙"}变为${selectedRole.name}`,
+        },
+        gameStateUpdates: {
+          engineerUsed: true,
+          engineerSelectedRole: selectedRole,
+        },
+      };
+    },
   },
 };

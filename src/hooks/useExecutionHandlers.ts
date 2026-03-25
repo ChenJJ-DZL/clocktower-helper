@@ -451,6 +451,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
   const executeJudgment = useCallback(() => {
     saveHistory();
 
+    // 检查今天是否已经有过处决
+    if (todayExecutedId !== null) {
+      setCurrentModal({
+        type: "EXECUTION_RESULT",
+        data: { message: "今天已经有过处决，不能再进行处决" },
+      });
+      return;
+    }
+
     const cands = seats
       .filter((s) => s.isCandidate)
       .sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0));
@@ -551,6 +560,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     executePlayer,
     addLog,
     isActorDisabledByPoisonOrDrunk,
+    todayExecutedId,
   ]);
 
   // Confirm poison handler

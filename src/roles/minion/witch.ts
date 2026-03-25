@@ -85,6 +85,52 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:158-0!canonical and tim
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `女巫（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+
+      // 检查是否只剩三名存活的玩家
+      const alivePlayers = seats.filter((s) => !s.isDead);
+      if (alivePlayers.length <= 3) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `女巫（${selfId + 1}号）无法诅咒，因为只剩${alivePlayers.length}名存活的玩家`,
+          },
+        };
+      }
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 为目标添加诅咒状态
+      updates.push({
+        id: targetId,
+        statuses: [
+          {
+            effect: "Cursed",
+            sourceRoleId: "witch",
+            sourcePlayerId: selfId,
+            expiresAt: "next_day",
+          },
+        ],
+      });
+
+      return {
+        updates,
+        logs: {
+          privateLog: `女巫（${selfId + 1}号）诅咒了 ${targetId + 1}号玩家，明天白天发起提名会死亡`,
+        },
+      };
+    },
   },
 };

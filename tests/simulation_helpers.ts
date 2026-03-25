@@ -513,7 +513,9 @@ export function analyzeLog(logFilePath: string, logger: StorytellerLogger) {
   // --- 输出总结 ---
   if (findings.length > 0) {
     logger.log("分析总结", "发现潜在的规则不一致项:");
-    findings.forEach((finding) => logger.log("分析总结", finding));
+    for (const finding of findings) {
+      logger.log("分析总结", finding);
+    }
   } else {
     logger.log("分析总结", "未在日志中发现明显的规则不一致项。");
   }

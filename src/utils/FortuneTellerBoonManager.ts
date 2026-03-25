@@ -201,7 +201,7 @@ class FortuneTellerBoonManager {
    */
   getBoonHistory(
     gameId: string
-  ): Array<FortuneTellerBoonConfig["history"][0]> | null {
+  ): FortuneTellerBoonConfig["history"][0][] | null {
     const config = this.boonConfigs.get(gameId);
     return config?.history ?? null;
   }

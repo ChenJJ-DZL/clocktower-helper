@@ -71,7 +71,61 @@ export const zombuul: RoleDefinition = {
       }
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats, lastDuskExecution } = context;
+
+      // 如果白天有人死亡，僵怖不应该被唤醒（由dialog处理）
+      if (lastDuskExecution !== null) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `僵怖（${selfId + 1}号）：今天白天有人死亡，未被唤醒`,
+          },
+        };
+      }
+
+      // 检查是否应该被唤醒（白天无人死亡）
+      if (targets.length === 0) {
+        // 没有选择目标（可能是空刀）
+        return {
+          updates: [],
+          logs: {
+            privateLog: `僵怖（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+      const isTargetProtected =
+        targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
+        targetSeat?.isProtected;
+
+      // 如果目标被僧侣保护，攻击无效
+      if (isTargetProtected) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `僵怖（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，但目标被僧侣保护，攻击无效`,
+          },
+        };
+      }
+
+      // 僵怖的攻击逻辑
+      const updates: Array<Partial<Seat> & { id: number }> = [
+        {
+          id: targetId,
+          isDead: true,
+        },
+      ];
+
+      return {
+        updates,
+        logs: {
+          privateLog: `僵怖（${selfId + 1}号）攻击了 ${targetId + 1}号玩家`,
+        },
+      };
+    },
   },
 
   /**

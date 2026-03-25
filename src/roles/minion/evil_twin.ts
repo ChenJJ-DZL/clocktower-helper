@@ -111,6 +111,42 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { selfId, seats, gameState } = context;
+
+      // 镜像双子只在首个夜晚有行动
+      // 获取对立双子（由说书人选择）
+      const evilTwinCounterpart = gameState?.evilTwinCounterpart;
+
+      if (!evilTwinCounterpart) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `镜像双子（${selfId + 1}号）未设置对立双子`,
+          },
+        };
+      }
+
+      const counterpartSeat = seats.find((s) => s.id === evilTwinCounterpart);
+
+      if (!counterpartSeat) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `镜像双子（${selfId + 1}号）的对立双子 ${evilTwinCounterpart + 1}号玩家不存在`,
+          },
+        };
+      }
+
+      // 镜像双子和对立双子互相知道对方的角色
+      // 这通常通过游戏状态更新来实现
+
+      return {
+        updates: [],
+        logs: {
+          privateLog: `镜像双子（${selfId + 1}号）与对立双子 ${evilTwinCounterpart + 1}号玩家（${counterpartSeat.role?.name || "未知角色"}）互相知晓对方角色`,
+        },
+      };
+    },
   },
 };

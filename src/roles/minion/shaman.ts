@@ -112,6 +112,33 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:67-0!canonical and time
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { selfId, gameState, isFirstNight } = context;
+
+      // 灵言师只在首个夜晚有行动，用于获取关键词
+      if (isFirstNight) {
+        // 生成或获取关键词（由说书人提供）
+        const keyword = gameState?.shamanKeyword || "神秘词语";
+
+        return {
+          updates: [],
+          logs: {
+            privateLog: `灵言师（${selfId + 1}号）在首个夜晚得知关键词："${keyword}"`,
+          },
+          gameStateUpdates: {
+            shamanKeyword: keyword,
+            shamanUsed: false,
+          },
+        };
+      }
+
+      // 非首个夜晚，灵言师没有行动（能力在玩家说出关键词时触发）
+      return {
+        updates: [],
+        logs: {
+          privateLog: `灵言师（${selfId + 1}号）在非首个夜晚无行动`,
+        },
+      };
+    },
   },
 };

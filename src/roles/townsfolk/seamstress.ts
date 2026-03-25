@@ -85,6 +85,12 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:151-0!canonical and tim
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { selfId } = context;
+      return {
+        updates: [],
+        logs: { privateLog: `${selfId + 1}号（女裁缝）执行夜晚行动` },
+      };
+    },
   },
 };

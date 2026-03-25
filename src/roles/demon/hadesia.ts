@@ -57,6 +57,82 @@ export const hadesia: RoleDefinition = {
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `哈迪寂亚（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      // 哈迪寂亚需要选择3名玩家
+      if (targets.length !== 3) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `哈迪寂亚（${selfId + 1}号）需要选择3名玩家，实际选择了${targets.length}名`,
+          },
+        };
+      }
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 模拟玩家秘密选择：随机决定每个玩家选择"活着"还是"死去"
+      const choices = targets.map((targetId) => {
+        const targetSeat = seats.find((s) => s.id === targetId);
+        const isCurrentlyDead = targetSeat?.isDead ?? false;
+
+        // 随机选择：50%概率选择"活着"，50%概率选择"死去"
+        const chooseToLive = Math.random() > 0.5;
+
+        return {
+          targetId,
+          chooseToLive,
+          isCurrentlyDead,
+        };
+      });
+
+      // 检查是否所有玩家都选择"活着"
+      const allChooseToLive = choices.every((c) => c.chooseToLive);
+
+      if (allChooseToLive) {
+        // 如果所有玩家都选择"活着"，则他们都死亡
+        for (const choice of choices) {
+          updates.push({
+            id: choice.targetId,
+            isDead: true,
+          });
+        }
+      } else {
+        // 否则，根据选择处理
+        for (const choice of choices) {
+          if (choice.chooseToLive && choice.isCurrentlyDead) {
+            // 已死亡的玩家选择"活着"：复活
+            updates.push({
+              id: choice.targetId,
+              isDead: false,
+            });
+          } else if (!choice.chooseToLive && !choice.isCurrentlyDead) {
+            // 存活的玩家选择"死去"：死亡
+            updates.push({
+              id: choice.targetId,
+              isDead: true,
+            });
+          }
+          // 其他情况：已死亡的玩家选择"死去"（保持死亡），存活的玩家选择"活着"（保持存活）
+        }
+      }
+
+      return {
+        updates,
+        logs: {
+          privateLog: `哈迪寂亚（${selfId + 1}号）选择了 ${targets.map((t) => t + 1).join("、")}号玩家，选择结果：${choices.map((c) => `${c.targetId + 1}号选择${c.chooseToLive ? "活着" : "死去"}`).join("，")}，最终处理：${allChooseToLive ? "全部死亡" : "根据选择处理"}`,
+        },
+      };
+    },
   },
 };

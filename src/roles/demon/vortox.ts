@@ -56,6 +56,48 @@ export const vortox: RoleDefinition = {
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `涡流（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+      const isTargetProtected =
+        targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
+        targetSeat?.isProtected;
+
+      // 如果目标被僧侣保护，攻击无效
+      if (isTargetProtected) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `涡流（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，但目标被僧侣保护，攻击无效`,
+          },
+        };
+      }
+
+      // 涡流的攻击逻辑
+      const updates: Array<Partial<Seat> & { id: number }> = [
+        {
+          id: targetId,
+          isDead: true,
+        },
+      ];
+
+      return {
+        updates,
+        logs: {
+          privateLog: `涡流（${selfId + 1}号）攻击了 ${targetId + 1}号玩家`,
+        },
+      };
+    },
   },
 };

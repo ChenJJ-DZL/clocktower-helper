@@ -94,6 +94,65 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:159-0!canonical and tim
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats, selectedRole } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `洗脑师（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+
+      // 检查是否选择了善良角色
+      if (!selectedRole) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `洗脑师（${selfId + 1}号）需要选择一个善良角色，但未选择`,
+          },
+        };
+      }
+
+      // 检查选择的角色是否是善良角色（镇民或外来者）
+      if (
+        selectedRole.type !== "townsfolk" &&
+        selectedRole.type !== "outsider"
+      ) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `洗脑师（${selfId + 1}号）选择的角色${selectedRole.name}不是善良角色（必须是镇民或外来者）`,
+          },
+        };
+      }
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 为目标添加疯狂状态
+      updates.push({
+        id: targetId,
+        statuses: [
+          {
+            effect: "Mad",
+            sourceRoleId: "cerenovus",
+            sourcePlayerId: selfId,
+            targetRoleId: selectedRole.id,
+            expiresAt: "next_day",
+          },
+        ],
+      });
+
+      return {
+        updates,
+        logs: {
+          privateLog: `洗脑师（${selfId + 1}号）使 ${targetId + 1}号玩家对${selectedRole.name}角色疯狂，明天必须证明自己是该角色否则可能被处决`,
+        },
+      };
+    },
   },
 };

@@ -662,6 +662,8 @@ function analyzeLogNarrative(filePath: string, logger: StorytellerLogger) {
   if (issues.length === 0) {
     logger.log("规则预检测", "未发现明显的规则违约行为。对局似乎是合法的。");
   } else {
-    issues.forEach((issue) => logger.log("规则预检测警告", issue));
+    for (const issue of issues) {
+      logger.log("规则预检测警告", issue);
+    }
   }
 }

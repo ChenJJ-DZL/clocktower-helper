@@ -98,6 +98,76 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:160-0!canonical and tim
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats, selectedRole, allRolesInGame } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `麻脸巫婆（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+
+      // 检查是否选择了角色
+      if (!selectedRole) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `麻脸巫婆（${selfId + 1}号）需要选择一个角色，但未选择`,
+          },
+        };
+      }
+
+      // 检查选择的角色是否已在场
+      const isRoleInGame = allRolesInGame?.some(
+        (role) => role.id === selectedRole.id
+      );
+
+      if (isRoleInGame) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `麻脸巫婆（${selfId + 1}号）选择的角色${selectedRole.name}已在场，无事发生`,
+          },
+        };
+      }
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 将目标玩家变为新角色
+      updates.push({
+        id: targetId,
+        role: selectedRole,
+        // 阵营保持不变（由说书人决定）
+      });
+
+      // 检查是否创造了恶魔
+      const isDemonCreated = selectedRole.type === "demon";
+
+      let logs = {
+        privateLog: `麻脸巫婆（${selfId + 1}号）将 ${targetId + 1}号玩家变为${selectedRole.name}（${isDemonCreated ? "创造了恶魔" : "非恶魔角色"}）`,
+      };
+
+      // 如果创造了恶魔，需要特殊处理
+      if (isDemonCreated) {
+        logs = {
+          privateLog: `麻脸巫婆（${selfId + 1}号）将 ${targetId + 1}号玩家变为${selectedRole.name}（创造了恶魔，当晚的死亡由说书人决定）`,
+        };
+      }
+
+      return {
+        updates,
+        logs,
+        // 如果创造了恶魔，需要特殊标记以便后续处理
+        gameStateUpdates: isDemonCreated
+          ? { demonCreatedByPitHag: true }
+          : undefined,
+      };
+    },
   },
 };

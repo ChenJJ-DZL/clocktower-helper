@@ -42,6 +42,71 @@ export const no_dashii: RoleDefinition = {
       };
     },
 
-    handler: undefined /* TODO: Migrate to OOP */,
+    handler: (context) => {
+      const { targets, selfId, seats } = context;
+
+      if (targets.length === 0) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `僵怖（${selfId + 1}号）未选择目标`,
+          },
+        };
+      }
+
+      const targetId = targets[0];
+      const targetSeat = seats.find((s) => s.id === targetId);
+      const isTargetProtected =
+        targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
+        targetSeat?.isProtected;
+
+      // 如果目标被僧侣保护，攻击无效
+      if (isTargetProtected) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `僵怖（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，但目标被僧侣保护，攻击无效`,
+          },
+        };
+      }
+
+      const updates: Array<Partial<Seat> & { id: number }> = [];
+
+      // 使目标死亡
+      updates.push({
+        id: targetId,
+        isDead: true,
+      });
+
+      // 查找邻近的两名镇民
+      const totalSeats = seats.length;
+      const leftNeighborId = (selfId - 1 + totalSeats) % totalSeats;
+      const rightNeighborId = (selfId + 1) % totalSeats;
+
+      const leftNeighbor = seats.find((s) => s.id === leftNeighborId);
+      const rightNeighbor = seats.find((s) => s.id === rightNeighborId);
+
+      // 使邻近的镇民中毒
+      if (leftNeighbor && leftNeighbor.role?.type === "townsfolk") {
+        updates.push({
+          id: leftNeighborId,
+          isPoisoned: true,
+        });
+      }
+
+      if (rightNeighbor && rightNeighbor.role?.type === "townsfolk") {
+        updates.push({
+          id: rightNeighborId,
+          isPoisoned: true,
+        });
+      }
+
+      return {
+        updates,
+        logs: {
+          privateLog: `僵怖（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，并使邻近镇民${leftNeighbor && leftNeighbor.role?.type === "townsfolk" ? leftNeighborId + 1 + "号" : ""}${leftNeighbor && leftNeighbor.role?.type === "townsfolk" && rightNeighbor && rightNeighbor.role?.type === "townsfolk" ? "、" : ""}${rightNeighbor && rightNeighbor.role?.type === "townsfolk" ? rightNeighborId + 1 + "号" : ""}中毒`,
+        },
+      };
+    },
   },
 };
