@@ -585,6 +585,7 @@ export function useNightLogic(
             },
           });
           console.log("[startNight] ✅ Modal should be visible now");
+          // 注意：这里不调用 finalizeNightStart，等待用户确认预览后开始夜晚
           return;
         }
 

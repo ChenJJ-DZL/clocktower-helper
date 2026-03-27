@@ -190,11 +190,30 @@ export function useSeatView(
 
   const isValidTarget = useMemo(() => {
     if (!nightInfo) return true;
+
+    // 如果有有效目标ID列表，且列表不为空，则只允许列表中的目标
     if (nightInfo.validTargetIds && nightInfo.validTargetIds.length > 0) {
       return nightInfo.validTargetIds.includes(s.id);
     }
+
+    // 如果没有有效目标ID列表，或者列表为空，则检查是否需要选择目标
+    // 如果targetLimit.max > 0，表示需要选择目标，则所有座位都是有效目标
+    // 除非有特殊限制（如不能选择自己）
+    if (nightInfo.targetLimit && nightInfo.targetLimit.max > 0) {
+      // 检查是否可以选中自己
+      if (s.id === nightInfo.seat.id && !nightInfo.canSelectSelf) {
+        return false;
+      }
+      // 检查是否可以选中死亡玩家
+      if (s.isDead && !nightInfo.canSelectDead) {
+        return false;
+      }
+      return true;
+    }
+
+    // 默认情况下，所有座位都是有效目标
     return true;
-  }, [nightInfo, s.id]);
+  }, [nightInfo, s.id, s.isDead]);
 
   const containerStyle = {
     left: `${p.x}%`,

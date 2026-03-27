@@ -4,7 +4,7 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { groupedRoles, type Role, roles, type Seat } from "../../app/data";
-import { gameActions, useGameContext } from "../contexts/GameContext";
+import { useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
 import {
@@ -391,6 +391,24 @@ export function useGameController() {
                 `天敌红罗剎已从${targetId + 1}号转移至${newRedHerring.id + 1}号玩家`
               );
             }
+          }
+        }
+
+        // 占卜师死亡时，移除所有红罗刹状态
+        if (targetSeat?.role?.id === "fortune_teller") {
+          const hadRedHerring = updatedSeats.some(
+            (s) => s.isRedHerring || s.isFortuneTellerRedHerring
+          );
+          if (hadRedHerring) {
+            updatedSeats = updatedSeats.map((s) => ({
+              ...s,
+              isRedHerring: false,
+              isFortuneTellerRedHerring: false,
+              statusDetails: (s.statusDetails || []).filter(
+                (d) => d !== "天敌红罗剎"
+              ),
+            }));
+            addLog("占卜师已死亡，红罗刹状态已移除");
           }
         }
 
@@ -861,15 +879,49 @@ export function useGameController() {
   const getFilteredRoles = useCallback(
     (list: Role[]) => {
       if (!selectedScript) return [];
-      if (selectedScript.isCustom && selectedScript.roleIds)
-        return list.filter((r) => selectedScript.roleIds?.includes(r.id));
-      return list.filter(
-        (r) =>
-          !r.hidden &&
-          (!r.script ||
-            r.script === selectedScript.name ||
-            (selectedScript.id === "trouble_brewing" && !r.script))
+
+      // 如果剧本有 roleIds 字段（包括自定义和官方剧本），直接使用它过滤
+      if (selectedScript.roleIds && selectedScript.roleIds.length > 0) {
+        const filtered = list.filter((r) =>
+          selectedScript.roleIds?.includes(r.id)
+        );
+        console.log(
+          `[DEBUG] Script "${selectedScript.name}" filtered ${filtered.length} roles via roleIds`
+        );
+        return filtered;
+      }
+
+      // 否则回退到旧的 script 字段过滤（向后兼容）
+      // 跳过隐藏角色
+      const filtered = list.filter((r) => {
+        if (r.hidden) return false;
+
+        // 如果没有 script 字段，检查是否属于暗流涌动剧本
+        if (!r.script) {
+          return selectedScript.id === "trouble_brewing";
+        }
+
+        // 有 script 字段：检查是否匹配当前剧本名称
+        const matches = r.script === selectedScript.name;
+        if (!matches && process.env.NODE_ENV === "development") {
+          console.log(
+            `[DEBUG] Role ${r.id} (script: "${r.script}") doesn't match script "${selectedScript.name}"`
+          );
+        }
+        return matches;
+      });
+
+      console.log(
+        `[DEBUG] Official script "${selectedScript.name}" (id: "${selectedScript.id}") filtered ${filtered.length} roles via script field`
       );
+      if (process.env.NODE_ENV === "development" && filtered.length === 0) {
+        console.log("[DEBUG] Available roles with script fields:");
+        list.slice(0, 10).forEach((r) => {
+          console.log(`  ${r.id}: script="${r.script}", hidden=${r.hidden}`);
+        });
+      }
+
+      return filtered;
     },
     [selectedScript]
   );
@@ -956,19 +1008,18 @@ export function useGameController() {
           } as any);
         }
       } else if (currentModal?.type !== "NIGHT_DEATH_REPORT") {
+        // 夜晚结束，进入黎明报告阶段
         const msg =
           deadThisNight.length > 0
             ? `昨晚${deadThisNight.map((id) => `${id + 1}号`).join("、")}玩家死亡`
             : "昨天是个平安夜";
-        baseDispatch?.(
-          gameActions.updateState({
-            gamePhase: "dawnReport",
-            currentModal: {
-              type: "NIGHT_DEATH_REPORT",
-              data: { message: msg },
-            },
-          })
-        );
+
+        // 直接设置游戏阶段和模态框，避免使用baseDispatch可能导致的冲突
+        setGamePhase("dawnReport");
+        setCurrentModal({
+          type: "NIGHT_DEATH_REPORT",
+          data: { message: msg },
+        });
       }
     }
   }, [
@@ -980,7 +1031,7 @@ export function useGameController() {
     gossipSourceSeatId,
     selectedScript,
     currentModal,
-    baseDispatch,
+    setGamePhase,
     setCurrentModal,
   ]);
 
@@ -1022,10 +1073,10 @@ export function useGameController() {
     setBalloonistCompletedIds,
   ]);
 
-  // 初始化座位：当进入setup阶段且座位为空时，创建10个默认座位
+  // 初始化座位：当进入setup阶段且座位为空时，创建16个默认座位
   useEffect(() => {
     if (gamePhase === "setup" && seats.length === 0) {
-      const defaultSeats: Seat[] = Array.from({ length: 10 }, (_, i) => ({
+      const defaultSeats: Seat[] = Array.from({ length: 16 }, (_, i) => ({
         id: i,
         playerName: `玩家 ${i + 1}`,
         role: null,
@@ -1055,7 +1106,7 @@ export function useGameController() {
       }));
       setSeats(defaultSeats);
       setInitialSeats(defaultSeats);
-      console.log("DEBUG: 初始化了10个默认座位");
+      console.log("DEBUG: 初始化了16个默认座位");
     }
   }, [gamePhase, seats.length, setSeats, setInitialSeats]);
 
@@ -1152,7 +1203,26 @@ export function useGameController() {
       handleStepBack,
       handleGlobalUndo,
       closeNightOrderPreview,
-      confirmNightOrderPreview,
+      confirmNightOrderPreview: () => {
+        // 首先调用原始的confirmNightOrderPreview函数
+        confirmNightOrderPreview();
+
+        // 然后调用nightLogic.finalizeNightStart来开始夜晚
+        // 注意：我们需要从pendingNightQueue中获取队列
+        if (
+          gameState.pendingNightQueue &&
+          gameState.pendingNightQueue.length > 0
+        ) {
+          console.log(
+            "[GameController] Calling finalizeNightStart with pending queue"
+          );
+          nightLogic.finalizeNightStart(gameState.pendingNightQueue, true);
+        } else {
+          console.warn(
+            "[GameController] No pendingNightQueue found, cannot start night"
+          );
+        }
+      },
       proceedToFirstNight,
       onSeatClick,
       toggleStatus: interactionToggleStatus,
@@ -1167,7 +1237,15 @@ export function useGameController() {
         setHadesiaChoices((prev: any) => ({ ...prev, [id]: c })),
       setRedNemesisTarget: (tid: number) =>
         setSeats((prev) =>
-          prev.map((s) => ({ ...s, isRedHerring: s.id === tid }))
+          prev.map((s) => ({
+            ...s,
+            isRedHerring: s.id === tid,
+            isFortuneTellerRedHerring: s.id === tid,
+            statusDetails:
+              s.id === tid
+                ? [...(s.statusDetails || []), "天敌红罗剎"]
+                : (s.statusDetails || []).filter((d) => d !== "天敌红罗剎"),
+          }))
         ),
       handleTimerPause,
       handleTimerStart,

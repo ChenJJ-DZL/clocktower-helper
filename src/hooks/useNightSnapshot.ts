@@ -96,19 +96,42 @@ export function useNightSnapshot(
     const nextIndex = currentIndex + 1;
     const queueLength = wakeQueueIds.length;
 
+    console.log(
+      "[continueToNextAction] currentIndex:",
+      currentIndex,
+      "nextIndex:",
+      nextIndex,
+      "queueLength:",
+      queueLength
+    );
+    console.log("[continueToNextAction] wakeQueueIds:", wakeQueueIds);
+
     if (nextIndex >= queueLength) {
-      setGamePhase("dawnReport");
+      // 夜晚结束，重置索引
+      console.log("[continueToNextAction] Night ended, resetting index");
       wakeIndexRef.current = 0;
       setCurrentWakeIndex(0);
       setActiveNightStep(null);
 
+      // 设置游戏阶段为黎明报告
+      console.log("[continueToNextAction] Setting gamePhase to dawnReport");
+      setGamePhase("dawnReport");
+
+      // 设置夜晚死亡报告模态框
       if (deadThisNight.length > 0) {
         const deadNames = deadThisNight.map((id) => `${id + 1}号`).join("、");
+        console.log(
+          "[continueToNextAction] Setting NIGHT_DEATH_REPORT modal for deaths:",
+          deadNames
+        );
         setCurrentModal({
           type: "NIGHT_DEATH_REPORT",
           data: { message: `昨晚${deadNames}玩家死亡` },
         });
       } else {
+        console.log(
+          "[continueToNextAction] Setting NIGHT_DEATH_REPORT modal for peaceful night"
+        );
         setCurrentModal({
           type: "NIGHT_DEATH_REPORT",
           data: { message: "昨天是个平安夜" },
@@ -117,6 +140,7 @@ export function useNightSnapshot(
       return;
     }
 
+    console.log("[continueToNextAction] Moving to next index:", nextIndex);
     wakeIndexRef.current = nextIndex;
     setCurrentWakeIndex(nextIndex);
     updateSnapshot(nextIndex, seats, gamePhase);
@@ -125,10 +149,10 @@ export function useNightSnapshot(
     seats,
     gamePhase,
     updateSnapshot,
-    setGamePhase,
     setCurrentWakeIndex,
     deadThisNight,
     setCurrentModal,
+    setGamePhase,
   ]);
 
   // Handle side-effect logging

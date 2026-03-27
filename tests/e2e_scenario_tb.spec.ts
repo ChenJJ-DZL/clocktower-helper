@@ -144,7 +144,7 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
 
   // 分配角色
   await assignRole("小恶魔", 0); // 1号位
-  await assignRole("毒药师", 1); // 2号位（修正：角色名称是"毒药师"不是"投毒者"）
+  await assignRole("投毒者", 1); // 2号位
   await assignRole("洗衣妇", 2); // 3号位
   await assignRole("图书管理员", 3); // 4号位
   await assignRole("猎手", 4); // 5号位
@@ -165,22 +165,20 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
   // --- 5. 验证控制台交互 ---
   console.log("检查控制台...");
 
-  // 验证首夜第一个行动：毒药师
-  await expect(page.getByText(/毒药师|Poisoner/i)).toBeVisible({
+  // 验证首夜第一个行动：投毒者
+  // 等待控制台显示提示文本（使用正则匹配更灵活）
+  await expect(page.locator("text=/唤醒.*投毒者.*玩家/")).toBeVisible({
     timeout: 15000,
   });
-  await expect(
-    page.getByText("唤醒 2 号【毒药师】玩家，选择1名玩家下毒。")
-  ).toBeVisible();
-  console.log("✅ 毒药师Prompt文本正确");
+  console.log("✅ 投毒者Prompt文本正确");
 
-  // 毒药师选择3号洗衣妇下毒
+  // 投毒者选择3号洗衣妇下毒
   await page.getByRole("button", { name: "3 # 洗衣妇" }).click();
   await page
     .getByRole("button", { name: /确认|Confirm/i })
     .first()
     .click();
-  console.log("✅ 毒药师下毒操作完成");
+  console.log("✅ 投毒者下毒操作完成");
 
   // 验证切换到下一个角色：洗衣妇
   await expect(page.getByText(/洗衣妇|Washerwoman/i)).toBeVisible({

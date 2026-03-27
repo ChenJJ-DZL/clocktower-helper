@@ -291,6 +291,7 @@ export function useGameFlow(): UseGameFlowResult {
           const t = getRandom(goodCandidates);
           if (t) {
             withRed[t.id].isRedHerring = true;
+            withRed[t.id].isFortuneTellerRedHerring = true;
             withRed[t.id].statusDetails = [
               ...(withRed[t.id].statusDetails || []),
               "天敌红罗剎",
@@ -351,6 +352,10 @@ export function useGameFlow(): UseGameFlowResult {
 
     // 转换并启动夜晚
     const wakeIds = pendingNightQueue.map((s) => s.id);
+    console.log("[confirmNightOrderPreview] Setting wakeQueueIds:", wakeIds);
+    console.log("[confirmNightOrderPreview] Setting gamePhase: firstNight");
+
+    // 首先设置队列和索引
     dispatch(
       gameActions.updateState({
         wakeQueueIds: wakeIds,
@@ -359,9 +364,18 @@ export function useGameFlow(): UseGameFlowResult {
         inspectionResult: null,
       })
     );
+
+    // 然后设置游戏阶段
     dispatch(gameActions.setGamePhase("firstNight"));
+
+    // 清除模态框和待处理队列
     dispatch(gameActions.setModal(null));
     dispatch(gameActions.updateState({ pendingNightQueue: null }));
+
+    console.log(
+      "[confirmNightOrderPreview] ✅ Night started with queue:",
+      wakeIds
+    );
   }, [pendingNightQueue, dispatch, gamePhase]);
 
   const handleStartNight = useCallback(

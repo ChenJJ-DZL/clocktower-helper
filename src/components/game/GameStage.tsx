@@ -284,8 +284,19 @@ export const GameStage = () => {
       return false;
     }
 
-    // For night phases, must have nightInfo
+    // 特殊处理：夜晚结束后，应该允许用户点击"天亮了"按钮
+    // 当夜晚队列为空或已处理完所有夜晚行动时，nightInfo可能为null
     if (!nightInfo) {
+      // 检查是否是夜晚阶段且队列已处理完
+      if (gamePhase === "firstNight" || gamePhase === "night") {
+        // 如果当前唤醒索引已经达到或超过队列长度，说明夜晚已结束
+        if (currentWakeIndex >= (wakeQueueIds?.length || 0)) {
+          console.log(
+            "[isConfirmDisabled] Night ended, allowing 'Enter Day' button"
+          );
+          return false;
+        }
+      }
       console.log("[isConfirmDisabled] No nightInfo, returning true.");
       return true;
     }
@@ -296,7 +307,8 @@ export const GameStage = () => {
         currentModal.type === "NIGHT_ORDER_PREVIEW" ||
         currentModal.type === "REVIEW" ||
         currentModal.type === "GAME_RECORDS" ||
-        currentModal.type === "ROLE_INFO"
+        currentModal.type === "ROLE_INFO" ||
+        currentModal.type === "NIGHT_DEATH_REPORT"
       );
 
     console.log(
@@ -327,7 +339,14 @@ export const GameStage = () => {
 
     console.log("[isConfirmDisabled] All checks passed, returning false.");
     return false;
-  }, [gamePhase, nightInfo, currentModal, selectedActionTargets]);
+  }, [
+    gamePhase,
+    nightInfo,
+    currentModal,
+    selectedActionTargets,
+    currentWakeIndex,
+    wakeQueueIds,
+  ]);
 
   // 统一的说书人指引（夜晚脚本提示 + 阶段小操作提示）
   const guidancePoints = useMemo(() => {
