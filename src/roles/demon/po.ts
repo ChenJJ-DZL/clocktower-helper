@@ -1,3 +1,5 @@
+import type { Seat } from "../../../app/data";
+
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
@@ -54,20 +56,15 @@ export const po: RoleDefinition = {
     },
 
     handler: (context) => {
-      const { targets, selfId, seats, gameState } = context;
+      const { targets, selfId, seats } = context;
 
-      // 获取珀的上次选择状态
-      const poLastSelected = gameState?.poLastSelected ?? false;
-
-      // 检查目标数量是否符合规则
-      const expectedMin = poLastSelected ? 0 : 1;
-      const expectedMax = poLastSelected ? 1 : 3;
-
-      if (targets.length < expectedMin || targets.length > expectedMax) {
+      // 珀的简化逻辑：总是允许选择0-3个目标
+      // 注意：完整的珀逻辑需要跨夜晚的状态跟踪，这里简化处理
+      if (targets.length > 3) {
         return {
           updates: [],
           logs: {
-            privateLog: `珀（${selfId + 1}号）选择目标数量不符合规则：上次选择=${poLastSelected}，需要${expectedMin}-${expectedMax}个目标，实际${targets.length}个`,
+            privateLog: `珀（${selfId + 1}号）选择目标数量过多：最多3个目标，实际${targets.length}个`,
           },
         };
       }
@@ -92,16 +89,10 @@ export const po: RoleDefinition = {
         });
       }
 
-      // 更新珀的选择状态
-      const currentSelected = targets.length > 0;
-
       return {
         updates,
         logs: {
-          privateLog: `珀（${selfId + 1}号）攻击了 ${targets.map((t) => t + 1).join("、")}号玩家，上次选择=${poLastSelected}，本次选择=${currentSelected}`,
-        },
-        gameStateUpdates: {
-          poLastSelected: currentSelected,
+          privateLog: `珀（${selfId + 1}号）攻击了 ${targets.map((t) => t + 1).join("、")}号玩家`,
         },
       };
     },

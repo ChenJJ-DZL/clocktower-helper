@@ -1,3 +1,5 @@
+import type { Seat } from "../../../app/data";
+
 import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
@@ -118,9 +120,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:158-0!canonical and tim
         statuses: [
           {
             effect: "Cursed",
-            sourceRoleId: "witch",
-            sourcePlayerId: selfId,
-            expiresAt: "next_day",
+            sourceId: selfId,
           },
         ],
       });

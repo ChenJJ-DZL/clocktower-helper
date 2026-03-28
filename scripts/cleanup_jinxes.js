@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取jinxes.json
 const jinxesPath = path.join(__dirname, "..", "src", "data", "jinxes.json");

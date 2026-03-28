@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取夜晚行动顺序文件
 const nightOrderPath = path.join(__dirname, "..", "json", "夜晚行动顺序.json");

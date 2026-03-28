@@ -397,7 +397,23 @@ export function useInteractionHandler(deps: {
       if (!seat) return;
 
       if (type === "redherring") {
-        // 占卜师天敌红罗刹：全局唯一
+        // 占卜师天敌红罗刹：全局唯一，只有占卜师在场时才能设置
+        const hasFortuneTeller = seats.some(
+          (s) => s.role?.id === "fortune_teller" && !s.isDead
+        );
+        if (!hasFortuneTeller) {
+          // 没有占卜师，不允许设置红罗刹
+          dispatch(
+            gameActions.addLog({
+              day: 0,
+              phase: "setup",
+              message: "⚠️ 无法设置红罗刹：场上没有存活的占卜师。",
+            })
+          );
+          dispatch(gameActions.updateState({ contextMenu: null }));
+          return;
+        }
+
         const isCurrentlyRedHerring = !!seat.isRedHerring;
 
         // 批量更新：清除所有人，然后给目标加上

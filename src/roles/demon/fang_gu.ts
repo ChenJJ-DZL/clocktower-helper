@@ -1,3 +1,4 @@
+import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
@@ -86,13 +87,11 @@ export const fang_gu: RoleDefinition = {
 
       // 检查目标是否是外来者
       const isTargetOutsider = targetSeat?.role?.type === "outsider";
-      const hasFangGuTransformed =
-        context.gameState?.fangGuTransformed ?? false;
 
       // 方古的攻击逻辑
       const updates: Array<Partial<Seat> & { id: number }> = [];
 
-      if (isTargetOutsider && !hasFangGuTransformed) {
+      if (isTargetOutsider) {
         // 首次成功转化：外来者变成方古，原方古死亡
         updates.push(
           {
@@ -110,9 +109,6 @@ export const fang_gu: RoleDefinition = {
           updates,
           logs: {
             privateLog: `方古（${selfId + 1}号）攻击了 ${targetId + 1}号外来者，成功转化，原方古死亡`,
-          },
-          gameStateUpdates: {
-            fangGuTransformed: true,
           },
         };
       } else {

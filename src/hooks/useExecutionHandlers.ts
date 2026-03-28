@@ -209,6 +209,11 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         // Log it
         addLog(`⚖️ ${t.id + 1}号因为处于疯狂状态，说书人决定强制执行处决！`);
         dispatch({ type: "EXECUTE_PLAYER", targetId: id });
+        // 实际杀死玩家
+        killPlayer(id, { source: "execution", recordNightDeath: false });
+        addLog(`⚖️ ${id + 1}号玩家被处决死亡`);
+        // 检查游戏是否结束
+        checkGameOver(seatsSnapshot, id, false);
         return true;
       }
 
@@ -233,6 +238,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       // Atomic Dispatch
       dispatch({ type: "EXECUTE_PLAYER", targetId: id });
 
+      // 实际杀死玩家（关键修复：处决必须实际杀死玩家）
+      killPlayer(id, { source: "execution", recordNightDeath: false });
+      addLog(`⚖️ ${id + 1}号玩家被处决死亡`);
+
       // Godfather: If outsider executed, trigger night ability
       if (t.role.type === "outsider") {
         setOutsiderDiedToday(true);
@@ -240,6 +249,9 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           "📜 规则提示：今日有外来者被处决，若场上有教父且未醉/毒，当晚将被唤醒执行额外杀人"
         );
       }
+
+      // 检查游戏是否结束（处决后立即检查）
+      checkGameOver(seatsSnapshot, id, false);
 
       return !!execResult?.modal;
     },
@@ -258,6 +270,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       checkGameOver,
       gamePhase,
       nightCount,
+      killPlayer,
     ]
   );
 

@@ -184,14 +184,45 @@ export function generateNightActionQueue(
     `[generateNightActionQueue] ${isFirstNight ? "First night" : "Night"} - Processing ${seats.length} seats`
   );
   console.log(
-    `[generateNightActionGenerator] Generated ${queueItems.length} queue items:`,
+    `[generateNightActionQueue] Generated ${queueItems.length} queue items:`,
     queueItems.map((item) => ({
       seatId: item.seatId + 1,
       roleId: item.roleId,
       roleName: item.seat.role?.name,
       order: item.order,
+      isFirstNightOnly: item.isFirstNightOnly,
     }))
   );
+
+  // 记录详细的调试信息
+  if (process.env.NODE_ENV === "development") {
+    console.log("[generateNightActionQueue] Detailed debug info:");
+    seats.forEach((seat) => {
+      if (!seat.role) return;
+      const effectiveRoleId =
+        seat.role.id === "drunk" ? seat.charadeRole?.id || null : seat.role.id;
+      if (!effectiveRoleId) return;
+      const roleDef = getRoleDefinition(effectiveRoleId);
+      if (!roleDef) return;
+
+      const hasFirstNight = !!roleDef.firstNight;
+      const hasNight = !!roleDef.night;
+      const firstNightOrder = hasFirstNight
+        ? typeof roleDef.firstNight?.order === "function"
+          ? roleDef.firstNight.order(true)
+          : roleDef.firstNight?.order
+        : 999;
+      const nightOrder = hasNight
+        ? typeof roleDef.night?.order === "function"
+          ? roleDef.night.order(false)
+          : roleDef.night?.order
+        : 999;
+
+      console.log(
+        `  Seat ${seat.id + 1} (${seat.role.name}): firstNight=${hasFirstNight}(${firstNightOrder}), night=${hasNight}(${nightOrder}), isDead=${seat.isDead}, hasAbilityEvenDead=${seat.hasAbilityEvenDead}`
+      );
+    });
+  }
 
   // If queue is empty, log detailed debug info
   if (queueItems.length === 0) {

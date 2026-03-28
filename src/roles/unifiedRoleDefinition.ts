@@ -1,10 +1,11 @@
+import type { Seat } from "../../app/data";
+
 /**
  * 统一角色能力定义机制
  * 整合roleAbility.types.ts、角色定义系统等组件
  * 提供统一的能力定义、注册和执行接口
  */
 
-import type { Seat } from "../../app/data";
 import { gameEventBus } from "../utils/gameEventBus";
 import type {
   AbilityTriggerTiming,

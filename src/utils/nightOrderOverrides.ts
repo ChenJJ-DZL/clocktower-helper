@@ -21,8 +21,7 @@ const firstNightOrderList: string[] = [
   "poppy_grower",
   "kazali",
   "magician",
-  // Minion info (handled automatically, but snitch/summoner etc around here)
-  "snitch",
+  // Minion info (handled automatically, but summoner etc around here)
   "damsel",
   "summoner",
   "lunatic",

@@ -1,3 +1,5 @@
+import type { Seat } from "../../../app/data";
+
 import type {
   ExecutionContext,
   ExecutionResult,

@@ -77,8 +77,8 @@ export function NightOrderPreviewModal({
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3">
-        {(nightOrderModal?.preview || props.nightOrderPreview).map(
-          (item: any, idx: number) => (
+        {(nightOrderModal?.preview || props.nightOrderPreview || []).map(
+          (item: any) => (
             <div
               key={`night-order-preview-${item.seatNo}-${item.roleName}-${item.order}`}
               className="p-3 rounded-xl border border-gray-700 bg-gray-800/80 flex items-center justify-between night-order-preview-item"
@@ -91,7 +91,9 @@ export function NightOrderPreviewModal({
                   [{item.seatNo}号] {item.roleName}
                 </span>
               </div>
-              <span className="text-xs text-gray-500">第{idx + 1} 唤醒</span>
+              <span className="text-xs text-gray-500">
+                第{item.order || "—"} 唤醒
+              </span>
             </div>
           )
         )}

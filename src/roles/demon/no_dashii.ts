@@ -1,3 +1,5 @@
+import type { Seat } from "../../../app/data";
+
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
@@ -104,7 +106,7 @@ export const no_dashii: RoleDefinition = {
       return {
         updates,
         logs: {
-          privateLog: `僵怖（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，并使邻近镇民${leftNeighbor && leftNeighbor.role?.type === "townsfolk" ? leftNeighborId + 1 + "号" : ""}${leftNeighbor && leftNeighbor.role?.type === "townsfolk" && rightNeighbor && rightNeighbor.role?.type === "townsfolk" ? "、" : ""}${rightNeighbor && rightNeighbor.role?.type === "townsfolk" ? rightNeighborId + 1 + "号" : ""}中毒`,
+          privateLog: `僵怖（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，并使邻近镇民${leftNeighbor && leftNeighbor.role?.type === "townsfolk" ? `${leftNeighborId + 1}号` : ""}${leftNeighbor && leftNeighbor.role?.type === "townsfolk" && rightNeighbor && rightNeighbor.role?.type === "townsfolk" ? "、" : ""}${rightNeighbor && rightNeighbor.role?.type === "townsfolk" ? `${rightNeighborId + 1}号` : ""}中毒`,
         },
       };
     },

@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取相克规则文件
 const jinxRulesPath = path.join(__dirname, "..", "json", "相克规则.json");
@@ -52,8 +52,6 @@ const roleNameMap = {
   红唇女郎: "scarlet_woman",
   维齐尔: "vizier",
   魔术师: "magician",
-  气球驾驶员: "balloonist",
-  巡山人: "huntsman",
   亡骨魔: "vigormortis",
   科学怪人: "frankenstein",
   报丧女妖: "banshee",
@@ -116,7 +114,6 @@ const roleNameMap = {
   圣徒: "saint",
   贞洁者: "virgin",
   猎手: "slayer",
-  水手: "sailor",
   造谣者: "gossip",
   赌徒: "gambler",
   吟游诗人: "minstrel",
