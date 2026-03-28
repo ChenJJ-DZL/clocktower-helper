@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const data = fs.readFileSync("app/data.ts", "utf8");
 
@@ -8,7 +8,9 @@ const roleRegex = /\{\s*id:\s*"([^"]+)"[^}]*script:\s*"([^"]+)"/g;
 const scriptToRoleIds = {};
 
 let match;
-while ((match = roleRegex.exec(data)) !== null) {
+while (true) {
+  match = roleRegex.exec(data);
+  if (match === null) break;
   const id = match[1];
   const script = match[2];
   if (!scriptToRoleIds[script]) scriptToRoleIds[script] = [];
