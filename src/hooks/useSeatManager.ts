@@ -34,7 +34,9 @@ export function useSeatManager(): UseSeatManagerResult {
 
   const killSeatOnly = useCallback(
     (seatId: number) => {
-      dispatch(gameActions.updateSeat(seatId, { isDead: true }));
+      dispatch(
+        gameActions.updateSeat(seatId, { isDead: true, hasGhostVote: true })
+      );
       dispatch(gameActions.addDeadThisNight(seatId));
     },
     [dispatch]

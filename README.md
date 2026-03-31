@@ -1,6 +1,31 @@
 
-by 拜甘教成员-大长老  
+# 血染钟楼说书人助手
+
+by 拜甘教成员-大长老
 在线网页（点开即食）：baigangroup.fun
+
+## 项目简介
+
+这是一个血染钟楼（Blood on the Clocktower）说书人助手项目，基于Next.js框架开发。项目旨在为血染钟楼游戏提供完整的说书人辅助工具，包括角色管理、夜晚行动顺序、游戏流程控制等功能。
+
+## 游戏规则文档
+
+详细的游戏规则说明请参阅：[血染钟楼游戏规则说明](./docs/血染钟楼游戏规则说明.md)
+
+该文档包含：
+- 游戏基本规则和胜利条件
+- 邪恶阵营所有特殊胜利条件详细说明
+- 游戏流程和阶段说明
+- 角色能力实现状态
+- 项目实现差距分析
+
+## 规则自查报告
+
+项目规则自查报告：[规则自查表](./规则自查表.md)
+
+该报告详细分析了项目代码与官方规则的差异，并提出了具体的修改建议。
+
+## 技术栈
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
