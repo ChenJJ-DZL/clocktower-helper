@@ -104,20 +104,11 @@ export function useSeatManager(): UseSeatManagerResult {
         }
       }
 
-      // 酒鬼特殊处理：随机分配一个镇民作为伪装身份
+      // 酒鬼特殊处理：不要自动设置伪装身份，等用户在确认阶段手动选择
       let displayRole = newRole;
       let charadeRole = null;
-      if (newRoleId === "drunk") {
-        const townsfolkRoles = roles.filter(
-          (r) => r.type === "townsfolk" && !r.hidden
-        );
-        if (townsfolkRoles.length > 0) {
-          const randomTownsfolk =
-            townsfolkRoles[Math.floor(Math.random() * townsfolkRoles.length)];
-          displayRole = randomTownsfolk;
-          charadeRole = randomTownsfolk;
-        }
-      }
+      // 移除自动随机选择逻辑，确保酒鬼的 charadeRole 保持 null
+      // 这样在进入首夜前会弹出选择对话框让说书人手动选择
 
       dispatch(
         gameActions.updateSeat(seatId, {

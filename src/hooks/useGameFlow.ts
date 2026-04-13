@@ -405,16 +405,18 @@ export function useGameFlow(): UseGameFlowResult {
         (s) => s.role?.id === "drunk" && !s.charadeRole
       );
       if (drunkMissingCharade) {
-        // 修复：酒鬼的伪装身份只能从当前剧本中不在场的镇民中选择
+        // 酒鬼的伪装身份只能从当前剧本中不在场的镇民中选择
+        // 首先获取当前剧本的所有角色ID
+        const currentScriptRoleIds = selectedScript?.roleIds || [];
+        
         const availableCharades = r.filter(
           (role) =>
             role.type === "townsfolk" &&
-            !role.hidden && // Exclude hidden/experimental roles
-            ((!role.script && selectedScript?.id === "trouble_brewing") || // Trouble Brewing roles often have no script property
-              role.script === selectedScript?.name || // Match script name
-              (selectedScript?.id === "trouble_brewing" &&
-                role.script === "trouble_brewing")) && // Explicit match
-            !seats.some((s) => s.role?.id === role.id) // Cannot equal any role already in play
+            !role.hidden &&
+            // 角色必须在当前剧本的角色列表中
+            currentScriptRoleIds.includes(role.id) &&
+            // 不能是已经在场的角色
+            !seats.some((s) => s.role?.id === role.id)
         );
 
         dispatch(
