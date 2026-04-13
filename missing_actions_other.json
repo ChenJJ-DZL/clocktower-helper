@@ -1,0 +1,76 @@
+{
+  "entries": [
+    {
+      "id": "dusk",
+      "chineseName": "黄昏（旅行者）",
+      "englishName": "dusk",
+      "description": "检查所有玩家是否闭上眼睛。部分旅行者和传奇角色会在这时行动。（官员、窃贼、学徒、咖啡师、流莺、集骨者、公爵夫人）"
+    },
+    {
+      "id": "amnesiac",
+      "chineseName": "失忆者",
+      "englishName": "amnesiac",
+      "description": "根据失忆者的具体能力决定是否需要唤醒失忆者、何时唤醒、唤醒后让他做出什么操作或得知什么信息。（调整理由：与首夜相同，根据失忆者的能力，失忆者的夜晚顺序会相应地进行调整。）"
+    },
+    {
+      "id": "hatter",
+      "chineseName": "帽匠",
+      "englishName": "hatter",
+      "description": "如果帽匠死于白天，（建议分别）唤醒恶魔和爪牙并让他们选择是否改变角色。如果帽匠死于夜晚，则在当前玩家行动结束后立即开始茶会。"
+    },
+    {
+      "id": "pockmarked_witch",
+      "chineseName": "麻脸巫婆",
+      "englishName": "pockmarked_witch",
+      "description": "唤醒麻脸巫婆，让她选择一名玩家和角色列表上的一个角色。如果该角色不在场，则在麻脸巫婆入睡后通知该玩家角色变化。根据实际情况，可以将相关通知合并，例如玩家变成了恶魔，则在恶魔行动时一并唤醒，通知角色变化并让他执行相应行动。（调整理由：使得麻脸巫婆在创造出任意爪牙时，都能够在当晚能够立即行动，避免与原本比麻脸巫婆先行动的角色在参与麻脸巫婆的变化时，会有一天的时间不具有任何能力，从而导致非良性互动。请注意：即使麻脸巫婆的顺序改变，她的能力造成死亡的时机仍然需要等到首个能够造成死亡的恶魔角色行动之前。）"
+    },
+    {
+      "id": "no_dashi",
+      "chineseName": "诺-达鲺",
+      "englishName": "nodashi",
+      "description": "唤醒诺-达鲺，让他攻击一名玩家。"
+    },
+    {
+      "id": "hadesia",
+      "chineseName": "哈迪寂亚",
+      "englishName": "hadesia",
+      "description": "唤醒哈迪寂亚，让他选择三名玩家。执行哈迪寂亚的能力流程（参考哈迪寂亚的百科页面）。"
+    },
+    {
+      "id": "tyrant",
+      "chineseName": "暴君",
+      "englishName": "tyrant",
+      "description": "唤醒暴君，他可以选择不攻击或者至多攻击两名玩家，他不能选择与上个夜晚死亡玩家数量相同的人数（超过两名玩家死亡则算作两名玩家）。"
+    },
+    {
+      "id": "rumor_monger",
+      "chineseName": "造谣者",
+      "englishName": "rumormonger",
+      "description": "如果造谣者今天白天的声明正确，一名玩家死亡。（调整理由：会造成死亡的能力效果，放在死亡触发能力效果之前，避免错过了死亡触发能力的最终提示时机。注：根据规则，死亡触发能力的夜晚顺序并不重要，仅作为能力遗漏触发时的提示，下同。）"
+    },
+    {
+      "id": "tinker",
+      "chineseName": "修补匠",
+      "englishName": "tinker",
+      "description": "在夜晚的任意时机，你都可以决定杀死修补匠。这里只是一个提示以免遗忘修补匠。（调整理由：会造成死亡的能力效果，放在死亡触发能力效果之前，避免错过了死亡触发能力的最终提示时机。）"
+    },
+    {
+      "id": "moonchild",
+      "chineseName": "月之子",
+      "englishName": "moonchild",
+      "description": "如果月之子在今天白天的时候使用自己的能力选择了一名善良玩家，那名玩家死亡。（调整理由：会造成死亡的能力效果，放在死亡触发能力效果之前，避免错过了死亡触发能力的最终提示时机。）"
+    },
+    {
+      "id": "grandmother",
+      "chineseName": "祖母",
+      "englishName": "grandmother",
+      "description": "如果恶魔杀死了孙子，祖母死亡。（调整理由：为“由死亡触发能力”而触发的死亡效果，顺序提前到所有其他死亡触发能力之前。）"
+    },
+    {
+      "id": "info_roles_start",
+      "chineseName": "信息类角色行动开始",
+      "englishName": "info_roles_start",
+      "description": "如果是一项首夜会获取信息的能力，且在游戏中途由于角色变化或获得能力而导致该能力需要在非首夜触发，则该能力会在此时被触发。如果有多项能力在同一个夜晚被触发，则由说书人来决定这些能力的触发顺序。"
+    }
+  ]
+}

@@ -41,6 +41,7 @@ import { StorytellerSelectModal } from "../modals/StorytellerSelectModal";
 import { SweetheartDrunkModal } from "../modals/SweetheartDrunkModal";
 import { VirginGuideModal } from "../modals/VirginGuideModal";
 import { VirginTriggerModal } from "../modals/VirginTriggerModal";
+import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
 import { DawnReportOverlay } from "./DawnReportOverlay";
 import { GameOverOverlay } from "./GameOverOverlay";
@@ -87,6 +88,8 @@ export function GameModals() {
     currentModal?.type === "STORYTELLER_SELECT" ? currentModal.data : null;
   const pacifistConfirmModal =
     currentModal?.type === "PACIFIST_CONFIRM" ? currentModal.data : null;
+  const vizierExecutionModal =
+    currentModal?.type === "VIZIER_EXECUTION" ? currentModal.data : null;
   const courtierSelectRoleModal =
     currentModal?.type === "COURTIER_SELECT_ROLE" ? currentModal.data : null;
   const poisonConfirmModal =
@@ -306,6 +309,18 @@ export function GameModals() {
           const cb = pacifistConfirmModal.onResolve;
           actions.setCurrentModal(null);
           cb(saved);
+        }}
+      />
+
+      <VizierExecutionModal
+        isOpen={!!vizierExecutionModal}
+        targetId={vizierExecutionModal?.targetId ?? 0}
+        vizierId={vizierExecutionModal?.vizierId ?? 0}
+        onResolve={(execute: boolean) => {
+          if (!vizierExecutionModal) return;
+          const cb = vizierExecutionModal.onResolve;
+          actions.setCurrentModal(null);
+          cb(execute);
         }}
       />
 

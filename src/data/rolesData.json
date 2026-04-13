@@ -873,8 +873,10 @@
   },
   {
     "id": "vizier",
-    "name": "vizier",
-    "type": "townsfolk"
+    "name": "维齐尔",
+    "type": "minion",
+    "hidden": false,
+    "ability": "所有玩家都知道你是维齐尔。你在白天时不会死亡。如果一次提名中有善良玩家投票，你可以让被提名者立即被处决。"
   },
   {
     "id": "washerwoman",

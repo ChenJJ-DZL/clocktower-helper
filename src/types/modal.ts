@@ -56,6 +56,14 @@ export type ModalType =
       type: "PACIFIST_CONFIRM";
       data: { targetId: number; onResolve: (saved: boolean) => void };
     }
+  | {
+      type: "VIZIER_EXECUTION";
+      data: {
+        targetId: number;
+        vizierId: number;
+        onResolve: (execute: boolean) => void;
+      };
+    }
   | { type: "SHOOT_RESULT"; data: { message: string; isDemonDead: boolean } }
   | { type: "SLAYER_SELECT_TARGET"; data: { shooterId: number } }
   | { type: "VOTE_INPUT"; data: { voterId: number } }

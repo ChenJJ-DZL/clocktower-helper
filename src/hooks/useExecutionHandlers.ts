@@ -38,6 +38,7 @@ export interface ExecutionHandlersDeps {
   setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>>;
   setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>>;
   setTodayDemonVoted: React.Dispatch<React.SetStateAction<boolean>>;
+  setTodayExecutedId: React.Dispatch<React.SetStateAction<number | null>>;
   setVotedThisRound: React.Dispatch<React.SetStateAction<number[]>>;
   setNominationRecords: React.Dispatch<
     React.SetStateAction<{ nominators: Set<number>; nominees: Set<number> }>
@@ -131,6 +132,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     setWakeQueueIds,
     setDeadThisNight,
     setTodayDemonVoted,
+    setTodayExecutedId,
     setVotedThisRound,
     setNominationRecords,
     setNominationMap,
@@ -414,7 +416,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         (s) => !s.isDead && s.role && s.role.type !== "traveler"
       );
       const aliveCount = aliveCoreSeats.length;
-      const threshold = Math.ceil(aliveCount / 2);
+      const threshold = Math.floor(aliveCount / 2) + 1;
 
       setSeats((prev) =>
         prev.map((s) => {
@@ -443,6 +445,55 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       setVoteInputValue("");
       setShowVoteErrorToast(false);
       setCurrentModal(null);
+
+      // 检查维齐尔强制处决能力
+      const activeVizier = seats.find(
+        (s) =>
+          s.role?.id === "vizier" &&
+          !s.isDead &&
+          !isActorDisabledByPoisonOrDrunk(s)
+      );
+
+      if (activeVizier && voters && voters.length > 0) {
+        // 检查是否有善良玩家参与投票
+        const hasGoodVoter = voters.some((voterId) => {
+          const voterSeat = seats.find((s) => s.id === voterId);
+          return voterSeat && isGoodAlignment(voterSeat);
+        });
+
+        if (hasGoodVoter) {
+          // 维齐尔可以选择强制处决
+          setCurrentModal({
+            type: "VIZIER_EXECUTION",
+            data: {
+              targetId: voterId,
+              vizierId: activeVizier.id,
+              onResolve: (execute: boolean) => {
+                if (execute) {
+                  // 维齐尔选择强制处决
+                  addLog(
+                    `维齐尔(${activeVizier.id + 1}号)使用能力强制处决${voterId + 1}号`
+                  );
+                  const modalShown = executePlayer(voterId);
+                  if (!modalShown) {
+                    setCurrentModal({
+                      type: "EXECUTION_RESULT",
+                      data: { message: `${voterId + 1}号被维齐尔强制处决` },
+                    });
+                  }
+                  // 维齐尔强制处决后，当天不再有更多提名、投票和处决
+                  setTodayExecutedId(voterId);
+                } else {
+                  // 维齐尔选择不使用能力
+                  addLog(
+                    `维齐尔(${activeVizier.id + 1}号)选择不使用强制处决能力`
+                  );
+                }
+              },
+            },
+          });
+        }
+      }
     },
     [
       currentModal,
@@ -457,6 +508,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       setShowVoteErrorToast,
       setCurrentModal,
       setVotedThisRound,
+      executePlayer,
+      isGoodAlignment,
+      isActorDisabledByPoisonOrDrunk,
+      setTodayExecutedId,
     ]
   );
 
@@ -488,7 +543,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       (s) => !s.isDead && s.role && s.role.type !== "traveler"
     );
     const aliveCount = aliveCoreSeats.length;
-    const threshold = Math.ceil(aliveCount / 2);
+    const threshold = Math.floor(aliveCount / 2) + 1;
 
     const max = cands[0].voteCount || 0;
 
@@ -795,7 +850,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       (s) => !s.isDead && s.role && s.role.type !== "traveler"
     );
     const aliveCount = aliveCoreSeats.length;
-    const threshold = Math.ceil(aliveCount / 2);
+    const threshold = Math.floor(aliveCount / 2) + 1;
 
     const _max = cands[0].voteCount || 0;
     const qualifiedCands = cands.filter((c) => (c.voteCount || 0) >= threshold);

@@ -668,6 +668,7 @@ export function useGameController() {
     setWakeQueueIds,
     setDeadThisNight,
     setTodayDemonVoted,
+    setTodayExecutedId,
     setVotedThisRound,
     setNominationRecords,
     setNominationMap,

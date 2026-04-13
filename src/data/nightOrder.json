@@ -25,6 +25,12 @@
       "description": "（分别或同时）唤醒科学怪人和恶魔，通知他们恶魔因为科学怪人而获得的善良角色的能力。"
     },
     {
+      "id": "amnesiac",
+      "chineseName": "失忆者",
+      "englishName": "amnesiac",
+      "description": "决定失忆者的能力，并根据具体能力决定是否需要唤醒失忆者、何时唤醒、唤醒后让他做出什么操作或得知什么信息。（调整理由：根据失忆者的能力，失忆者的夜晚顺序会相应地进行调整。因此，将失忆者放在夜晚顺序的最开始部分，以便提醒说书人在此时决定失忆者的唤醒时机，并在当晚的合适时机下唤醒失忆者并令其进行行动。）"
+    },
+    {
       "id": "philosopher",
       "chineseName": "哲学家",
       "englishName": "philosopher",
@@ -55,10 +61,22 @@
       "description": "如果告密者在场，对爪牙展示三个不在场的善良角色标记。"
     },
     {
+      "id": "magician",
+      "chineseName": "魔术师",
+      "englishName": "magician",
+      "description": "如果魔术师在场，则需要对爪牙信息环节和恶魔信息环节的相关内容进行调整。（添加理由：在爪牙信息开始前添加魔术师的行动顺序，用以提醒说书人在提供给爪牙和恶魔信息时，不要出错。因为魔术师与罂粟种植者同属对首夜邪恶信息的干扰，因此将魔术师的行动放在了这里。）"
+    },
+    {
       "id": "summoner",
       "chineseName": "召唤师",
       "englishName": "summoner",
       "description": "唤醒召唤师，对他展示三个不在场的善良角色标记。"
+    },
+    {
+      "id": "minion_info",
+      "chineseName": "爪牙信息",
+      "englishName": "minion_info",
+      "description": "如果有七名或更多玩家，唤醒所有爪牙：展示“他是恶魔”信息标记。指向恶魔。如果下方的其他对爪牙暴露的角色在场，不要让爪牙入睡，而是一并给出相关信息后再让爪牙入睡。"
     },
     {
       "id": "lunatic",
@@ -71,6 +89,12 @@
       "chineseName": "梼杌",
       "englishName": "taowu",
       "description": "如果梼杌在场，跳过他的恶魔信息环节。"
+    },
+    {
+      "id": "damsel",
+      "chineseName": "落难少女",
+      "englishName": "damsel",
+      "description": "如果落难少女在场，对爪牙展示落难少女角色标记。（调整理由：原本的落难少女行动顺序只涉及到巡山人相关，而巡山人的夜晚行动中本身已经提示了说书人需要对落难少女进行角色变更和唤醒操作，故原本的落难少女行动提示略显累赘。因为落难少女本身具有对爪牙的暴露能力，因此将其首夜行动调整到这里，并删除其他夜晚行动，同时也可以对“暴露角色”相关能力解释优化以便于理解。）"
     },
     {
       "id": "di",
@@ -107,6 +131,12 @@
       "chineseName": "水手",
       "englishName": "sailor",
       "description": "唤醒水手，让他选择一名玩家。决定他俩其中谁因为水手能力醉酒。"
+    },
+    {
+      "id": "puppet",
+      "chineseName": "提线木偶",
+      "englishName": "puppet",
+      "description": "如果提线木偶在场，对恶魔展示提线木偶角色标记并指向提线木偶玩家。（调整理由：与疯子和国王同属暴露给恶魔的角色，因此调整顺序使得说书人方便一次性向恶魔展示所有信息。）"
     },
     {
       "id": "engineer",
@@ -507,6 +537,12 @@
       "description": "从现在开始，亡魂可以在夜晚睁眼。每当你要在夜晚唤醒一名邪恶玩家时，先唤醒亡魂。当你让这名邪恶玩家重新入睡时，也让亡魂入睡。"
     },
     {
+      "id": "amnesiac",
+      "chineseName": "失忆者",
+      "englishName": "amnesiac",
+      "description": "根据失忆者的具体能力决定是否需要唤醒失忆者、何时唤醒、唤醒后让他做出什么操作或得知什么信息。（调整理由：与首夜相同，根据失忆者的能力，失忆者的夜晚顺序会相应地进行调整。）"
+    },
+    {
       "id": "philosopher",
       "chineseName": "哲学家",
       "englishName": "philosopher",
@@ -517,6 +553,12 @@
       "chineseName": "罂粟种植者",
       "englishName": "poppygrower",
       "description": "如果罂粟种植者死于白天，插入执行爪牙信息和恶魔信息（不包含恶魔伪装）流程。如果罂粟种植者死于夜晚，则在当前玩家行动结束后立即执行相关流程。"
+    },
+    {
+      "id": "hatter",
+      "chineseName": "帽匠",
+      "englishName": "hatter",
+      "description": "如果帽匠死于白天，（建议分别）唤醒恶魔和爪牙并让他们选择是否改变角色。如果帽匠死于夜晚，则在当前玩家行动结束后立即开始茶会。"
     },
     {
       "id": "broker",
@@ -553,6 +595,12 @@
       "chineseName": "投毒者",
       "englishName": "poisoner",
       "description": "唤醒投毒者，让他选择一名玩家，那名玩家中毒。"
+    },
+    {
+      "id": "pockmarked_witch",
+      "chineseName": "麻脸巫婆",
+      "englishName": "pockmarked_witch",
+      "description": "唤醒麻脸巫婆，让她选择一名玩家和角色列表上的一个角色。如果该角色不在场，则在麻脸巫婆入睡后通知该玩家角色变化。根据实际情况，可以将相关通知合并，例如玩家变成了恶魔，则在恶魔行动时一并唤醒，通知角色变化并让他执行相应行动。（调整理由：使得麻脸巫婆在创造出任意爪牙时，都能够在当晚能够立即行动，避免与原本比麻脸巫婆先行动的角色在参与麻脸巫婆的变化时，会有一天的时间不具有任何能力，从而导致非良性互动。请注意：即使麻脸巫婆的顺序改变，她的能力造成死亡的时机仍然需要等到首个能够造成死亡的恶魔角色行动之前。）"
     },
     {
       "id": "innkeeper",
@@ -795,6 +843,12 @@
       "description": "唤醒奥赫，让他选择角色列表上的一个角色。该角色对应的玩家死亡，如果该角色不在场，替奥赫决定今晚谁会因为奥赫能力死亡。"
     },
     {
+      "id": "no_dashi",
+      "chineseName": "诺-达鲺",
+      "englishName": "nodashi",
+      "description": "唤醒诺-达鲺，让他攻击一名玩家。"
+    },
+    {
       "id": "lord_of_typhon",
       "chineseName": "堤丰之首",
       "englishName": "lordoftyphon",
@@ -823,6 +877,12 @@
       "chineseName": "卡扎力",
       "englishName": "kazali",
       "description": "唤醒卡扎力，让他攻击一名玩家。"
+    },
+    {
+      "id": "hadesia",
+      "chineseName": "哈迪寂亚",
+      "englishName": "hadesia",
+      "description": "唤醒哈迪寂亚，让他选择三名玩家。执行哈迪寂亚的能力流程（参考哈迪寂亚的百科页面）。"
     },
     {
       "id": "chaos",
@@ -879,6 +939,12 @@
       "description": "今天白天提名了存活的养蛊人的玩家死亡。"
     },
     {
+      "id": "tyrant",
+      "chineseName": "暴君",
+      "englishName": "tyrant",
+      "description": "唤醒暴君，他可以选择不攻击或者至多攻击两名玩家，他不能选择与上个夜晚死亡玩家数量相同的人数（超过两名玩家死亡则算作两名玩家）。"
+    },
+    {
       "id": "singer",
       "chineseName": "歌伶",
       "englishName": "geling",
@@ -927,16 +993,34 @@
       "description": "如果秉笔在白天死亡，唤醒秉笔，对他指向一名善良玩家；如果秉笔在夜晚死亡，唤醒秉笔，对他指向一名邪恶玩家。"
     },
     {
+      "id": "rumor_monger",
+      "chineseName": "造谣者",
+      "englishName": "rumormonger",
+      "description": "如果造谣者今天白天的声明正确，一名玩家死亡。（调整理由：会造成死亡的能力效果，放在死亡触发能力效果之前，避免错过了死亡触发能力的最终提示时机。注：根据规则，死亡触发能力的夜晚顺序并不重要，仅作为能力遗漏触发时的提示，下同。）"
+    },
+    {
       "id": "plague_doctor",
       "chineseName": "瘟疫医生",
       "englishName": "plaguedoctor",
       "description": "如果瘟疫医生死亡，说书人获得一项爪牙能力。"
     },
     {
+      "id": "tinker",
+      "chineseName": "修补匠",
+      "englishName": "tinker",
+      "description": "在夜晚的任意时机，你都可以决定杀死修补匠。这里只是一个提示以免遗忘修补匠。（调整理由：会造成死亡的能力效果，放在死亡触发能力效果之前，避免错过了死亡触发能力的最终提示时机。）"
+    },
+    {
       "id": "choirboy",
       "chineseName": "唱诗男孩",
       "englishName": "choirboy",
       "description": "如果恶魔杀死了国王，唤醒唱诗男孩，对他指向恶魔。"
+    },
+    {
+      "id": "moonchild",
+      "chineseName": "月之子",
+      "englishName": "moonchild",
+      "description": "如果月之子在今天白天的时候使用自己的能力选择了一名善良玩家，那名玩家死亡。（调整理由：会造成死亡的能力效果，放在死亡触发能力效果之前，避免错过了死亡触发能力的最终提示时机。）"
     },
     {
       "id": "farmer",
@@ -949,6 +1033,12 @@
       "chineseName": "报丧女妖",
       "englishName": "banshee",
       "description": "如果恶魔杀死了报丧女妖，宣布“报丧女妖觉醒了”，并使用“具有能力”标记报丧女妖。"
+    },
+    {
+      "id": "grandmother",
+      "chineseName": "祖母",
+      "englishName": "grandmother",
+      "description": "如果恶魔杀死了孙子，祖母死亡。（调整理由：为“由死亡触发能力”而触发的死亡效果，顺序提前到所有其他死亡触发能力之前。）"
     },
     {
       "id": "professor",
@@ -1021,6 +1111,12 @@
       "chineseName": "女裁缝",
       "englishName": "seamstress",
       "description": "如果女裁缝未曾使用能力，唤醒女裁缝，她可以摇头不使用能力，或选择除自己以外的两名玩家。以点头或摇头告知她选择的玩家是否为同一阵营。"
+    },
+    {
+      "id": "info_roles_start",
+      "chineseName": "信息类角色行动开始",
+      "englishName": "info_roles_start",
+      "description": "如果是一项首夜会获取信息的能力，且在游戏中途由于角色变化或获得能力而导致该能力需要在非首夜触发，则该能力会在此时被触发。如果有多项能力在同一个夜晚被触发，则由说书人来决定这些能力的触发顺序。"
     },
     {
       "id": "juggler",

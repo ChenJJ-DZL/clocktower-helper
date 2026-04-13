@@ -67,6 +67,22 @@ export interface GameContext {
   executedSeatId?: number | null; // For historical context if needed
   isMoonchildActive?: boolean;
   pacifistSaves?: boolean;
+  // 利维坦相关状态
+  leviathanDay?: number; // 当前是第几个白天（从1开始）
+  goodExecutionsCount?: number; // 善良玩家被处决的数量
+  // 恐惧之灵相关状态
+  fearmongerTargetId?: number | null; // 恐惧之灵选定的目标
+  fearmongerNominated?: boolean; // 恐惧之灵是否已提名目标
+  // 异端分子相关状态
+  hereticActive?: boolean; // 异端分子是否在场且生效
+  // 无神论者相关状态
+  atheistPresent?: boolean; // 无神论者是否在场
+  storytellerExecuted?: boolean; // 说书人是否被处决
+  // 炸弹人相关状态
+  boomdandyExploded?: boolean; // 炸弹人是否已爆炸
+  boomdandyVoteTied?: boolean; // 炸弹人爆炸后的投票是否平局
+  // 祖母与利维坦
+  grandmotherGrandchildId?: number | null; // 祖母的孙子ID（用于检查）
 }
 
 export type GameAction =
@@ -460,13 +476,7 @@ export function checkGameEnd(
   seats: Seat[],
   lastAction: "execution" | "night_death" | "check_phase",
   executedPlayerId: number | null = null,
-  options: {
-    isMastermindActive?: boolean;
-    damselGuessed?: boolean;
-    klutzGuessedEvil?: boolean;
-    isVortoxWorld?: boolean;
-    evilTwinPair?: { goodId: number; evilId: number } | null;
-  } = {}
+  options: GameContext = {}
 ): GameEndResult {
   const {
     isMastermindActive = false,
@@ -474,6 +484,16 @@ export function checkGameEnd(
     klutzGuessedEvil = false,
     isVortoxWorld = false,
     evilTwinPair,
+    leviathanDay = 0,
+    goodExecutionsCount = 0,
+    fearmongerTargetId = null,
+    fearmongerNominated = false,
+    hereticActive = false,
+    atheistPresent = false,
+    storytellerExecuted = false,
+    boomdandyExploded = false,
+    boomdandyVoteTied = false,
+    grandmotherGrandchildId = null,
   } = options;
 
   // 0. 特殊即时胜利/失败触发 (未在金字塔中明确列出，但属于即时结算，置于顶层)
@@ -592,6 +612,86 @@ export function checkGameEnd(
         };
       }
     }
+  }
+
+  // --- 5. 【特殊角色胜利条件】利维坦、恐惧之灵、异端分子、无神论者、炸弹人等 ---
+  // 5.1 利维坦 (Leviathan) 胜利条件
+  const leviathanPresent = seats.some(
+    (s) => s.role?.id === "leviathan" && !s.isDead
+  );
+  if (leviathanPresent) {
+    // 条件1: 多于一名善良玩家被处决
+    if (goodExecutionsCount > 1) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "利维坦：多于一名善良玩家被处决",
+      };
+    }
+    // 条件2: 第五个白天结束时利维坦存活
+    if (leviathanDay >= 5) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "利维坦：第五个白天结束时存活",
+      };
+    }
+  }
+
+  // 5.2 恐惧之灵 (Fearmonger) 胜利条件
+  if (
+    fearmongerTargetId !== null &&
+    fearmongerNominated &&
+    lastAction === "execution" &&
+    executedPlayerId === fearmongerTargetId
+  ) {
+    const executedSeat = seats.find((s) => s.id === executedPlayerId);
+    if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "恐惧之灵：选定的目标被处决",
+      };
+    }
+  }
+
+  // 5.3 异端分子 (Heretic) 反转胜利条件
+  if (hereticActive) {
+    // 异端分子在场时，如果游戏即将结束且好人获胜，则反转结果为邪恶获胜
+    // 这个检查需要在所有其他胜利条件之后执行，但为了简化，我们在这里处理
+    // 注意：实际实现中，异端分子应该在游戏结束检查的最后一步进行反转
+    // 由于实现复杂，暂时标记为TODO
+  }
+
+  // 5.4 无神论者 (Atheist) 胜利条件
+  if (!atheistPresent && storytellerExecuted) {
+    return {
+      isGameOver: true,
+      winner: "Evil",
+      reason: "无神论者：说书人被处决且无神论者不在场",
+    };
+  }
+
+  // 5.5 炸弹人 (Boomdandy) 胜利条件
+  if (boomdandyExploded && boomdandyVoteTied) {
+    // 炸弹人爆炸后投票平局，进入夜晚阶段，邪恶阵营极有可能获胜
+    // 这里我们只标记游戏未结束，让夜晚继续
+    // 实际实现可能需要特殊处理
+  }
+
+  // 5.6 祖母与利维坦特殊条件
+  if (
+    leviathanPresent &&
+    grandmotherGrandchildId !== null &&
+    lastAction === "execution" &&
+    executedPlayerId === grandmotherGrandchildId
+  ) {
+    // 孙子死于处决且利维坦在场，邪恶获胜
+    return {
+      isGameOver: true,
+      winner: "Evil",
+      reason: "祖母与利维坦：孙子被处决",
+    };
   }
 
   return { isGameOver: false, winner: null, reason: null };
