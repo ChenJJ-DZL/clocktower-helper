@@ -44,6 +44,11 @@ export type PostProcessMiddleware = (
   context: MiddlewareContext
 ) => Promise<MiddlewareContext>;
 
+// 通用中间件函数类型
+export type MiddlewareFunction = (
+  context: MiddlewareContext
+) => Promise<MiddlewareContext>;
+
 // 技能执行中间件集合
 export interface AbilityMiddlewareSet {
   preCheck: PreCheckMiddleware[];
@@ -51,6 +56,9 @@ export interface AbilityMiddlewareSet {
   stateUpdate: StateUpdateMiddleware[];
   postProcess: PostProcessMiddleware[];
 }
+
+// 导出 abilityPriorityCalculation
+export { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 
 // 默认空中间件，直接通过
 const defaultMiddleware = async (

@@ -7,10 +7,10 @@
 const loadNightOrderData = () => {
   try {
     // 使用require在运行时加载JSON
-    const nightOrderData = require("../../json/夜晚行动顺序.json");
+    const nightOrderData = require("../data/nightOrder.json");
     return nightOrderData;
   } catch (error) {
-    console.error("Failed to load 夜晚行动顺序.json:", error);
+    console.error("Failed to load nightOrder.json:", error);
     return { firstNight: [], otherNight: [] };
   }
 };
@@ -49,12 +49,12 @@ class NightOrderParser {
       this.firstNightOrder = nightOrderData.firstNight.map(
         (item: any, index: number) => {
           const orderItem: NightOrderItem = {
-            roleId: item.roleId || item.id,
-            roleName: item.roleName || item.name,
-            firstNightOrder: item.order || index + 1,
-            otherNightOrder: item.otherNightOrder || 0,
-            script: item.script || "通用",
-            wakeCondition: item.wakeCondition,
+            roleId: item.id,
+            roleName: item.chineseName || item.englishName,
+            firstNightOrder: index + 1,
+            otherNightOrder: 0,
+            script: "通用",
+            wakeCondition: item.description,
           };
           this.roleOrderMap.set(orderItem.roleId, {
             roleName: orderItem.roleName,
@@ -73,12 +73,12 @@ class NightOrderParser {
       this.otherNightOrder = nightOrderData.otherNight.map(
         (item: any, index: number) => {
           const orderItem: NightOrderItem = {
-            roleId: item.roleId || item.id,
-            roleName: item.roleName || item.name,
-            firstNightOrder: item.firstNightOrder || 0,
-            otherNightOrder: item.order || index + 1,
-            script: item.script || "通用",
-            wakeCondition: item.wakeCondition,
+            roleId: item.id,
+            roleName: item.chineseName || item.englishName,
+            firstNightOrder: 0,
+            otherNightOrder: index + 1,
+            script: "通用",
+            wakeCondition: item.description,
           };
           // 更新映射表，如果已有则补充otherNightOrder
           if (this.roleOrderMap.has(orderItem.roleId)) {

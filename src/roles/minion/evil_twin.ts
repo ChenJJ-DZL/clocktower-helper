@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 镜像双子
- * TODO: 添加角色描述
  */
 export const evil_twin: RoleDefinition = {
   id: "evil_twin",

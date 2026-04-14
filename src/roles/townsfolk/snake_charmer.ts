@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 舞蛇人
- * TODO: 添加角色描述
  */
 export const snake_charmer: RoleDefinition = {
   id: "snake_charmer",

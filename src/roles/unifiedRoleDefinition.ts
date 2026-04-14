@@ -6,7 +6,7 @@ import type { Seat } from "../../app/data";
  * 提供统一的能力定义、注册和执行接口
  */
 
-import { gameEventBus } from "../utils/gameEventBus";
+import { gameEventBus } from "../utils/unifiedEventBus";
 import type {
   AbilityTriggerTiming,
   IRoleAbility,

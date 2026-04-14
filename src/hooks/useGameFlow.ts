@@ -9,8 +9,8 @@ import {
   type Seat,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
-import { gameEventBus } from "../utils/gameEventBus";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
+import { gameEventBus } from "../utils/unifiedEventBus";
 
 /**
  * UseGameFlowResult - 流程控制 Hook 的返回结果

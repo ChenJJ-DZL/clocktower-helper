@@ -384,3 +384,5 @@ export const unifiedEventBus = new UnifiedEventBus();
 
 // 导出类型
 export type { GameEventMap, GameEventType } from "./gameEventBus";
+// 重新导出 gameEventBus
+export { gameEventBus } from "./gameEventBus";

@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 灵言师
- * TODO: 添加角色描述
  */
 export const shaman: RoleDefinition = {
   id: "shaman",

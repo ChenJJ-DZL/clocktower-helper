@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 贵族
- * TODO: 添加角色描述
  */
 export const noble: RoleDefinition = {
   id: "noble",

@@ -142,35 +142,6 @@ export function getNominationRecords(
       s.timestamp <= endTime
   );
 
-  // 辅助函数：从日志消息中提取玩家ID
-  const extractPlayerIdsFromLog = (
-    message: string
-  ): { nominatorId: number; nominatedId: number } => {
-    // 匹配 "玩家X" 格式，X为数字
-    const playerPattern = /玩家(\d+)/g;
-    const matches = [...message.matchAll(playerPattern)];
-
-    if (matches.length >= 2) {
-      // 第一个匹配是提名者，第二个是被提名者
-      const nominatorId = parseInt(matches[0][1], 10);
-      const nominatedId = parseInt(matches[1][1], 10);
-      return { nominatorId, nominatedId };
-    }
-
-    // 如果无法解析，尝试从消息中查找 "提名了" 前后的数字
-    const alternativePattern = /(\d+)\s*号.*提名.*(\d+)\s*号/;
-    const altMatch = message.match(alternativePattern);
-    if (altMatch) {
-      return {
-        nominatorId: parseInt(altMatch[1], 10),
-        nominatedId: parseInt(altMatch[2], 10),
-      };
-    }
-
-    // 无法解析，返回0
-    return { nominatorId: 0, nominatedId: 0 };
-  };
-
   for (const snapshot of nominationSnapshots) {
     // 从日志中提取提名信息，日志message格式："玩家A提名了玩家B，获得X票，提名成功/失败"
     const nominateLog = snapshot.gameLogs.find((log) =>
@@ -182,28 +153,23 @@ export function getNominationRecords(
       const voteCount = voteMatch ? parseInt(voteMatch[1], 10) : 0;
       const succeeded = nominateLog.message.includes("提名成功");
 
-      // 解析提名者和被提名者ID
-      const { nominatorId, nominatedId } = extractPlayerIdsFromLog(
-        nominateLog.message
-      );
-
-      // 如果日志解析失败，尝试从快照元数据中获取
-      const finalNominatorId =
-        nominatorId > 0
-          ? nominatorId
+      // 优先使用 nominationRecords 字段
+      const nominatorId =
+        snapshot.nominationRecords?.nominators.size > 0
+          ? Array.from(snapshot.nominationRecords.nominators)[0]
           : snapshot.nominatorPlayers.size > 0
             ? Array.from(snapshot.nominatorPlayers)[0]
             : 0;
-      const finalNominatedId =
-        nominatedId > 0
-          ? nominatedId
+      const nominatedId =
+        snapshot.nominationRecords?.nominees.size > 0
+          ? Array.from(snapshot.nominationRecords.nominees)[0]
           : snapshot.nominatedPlayers.size > 0
             ? Array.from(snapshot.nominatedPlayers)[0]
             : snapshot.todayExecutedId || 0;
 
       records.push({
-        nominatorId: finalNominatorId,
-        nominatedId: finalNominatedId,
+        nominatorId,
+        nominatedId,
         timestamp: snapshot.timestamp,
         nightCount: snapshot.nightCount,
         dayCount: snapshot.dayCount,

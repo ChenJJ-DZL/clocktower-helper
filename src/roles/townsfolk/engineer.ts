@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 工程师
- * TODO: 添加角色描述
  */
 export const engineer: RoleDefinition = {
   id: "engineer",

@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 城镇公告员
- * TODO: 添加角色描述
  */
 export const town_crier: RoleDefinition = {
   id: "town_crier",

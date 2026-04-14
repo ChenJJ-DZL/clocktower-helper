@@ -29,6 +29,7 @@ export interface GameStateSnapshot {
   todayExecutedId: number | null; // 今日处决的玩家ID
   nominatedPlayers: Set<number>; // 今日被提名的玩家
   nominatorPlayers: Set<number>; // 今日发起提名的玩家
+  nominationRecords: { nominators: Set<number>; nominees: Set<number> }; // 完整的提名记录
   deadThisNight: number[]; // 本夜死亡的玩家ID列表
   hasUsedGhostVotePlayers: Set<number>; // 已使用幽灵票的死亡玩家
 }
@@ -71,6 +72,10 @@ export class HistorySnapshotManager {
       gameLogs: JSON.parse(JSON.stringify(state.gameLogs)),
       nominatedPlayers: new Set(state.nominatedPlayers),
       nominatorPlayers: new Set(state.nominatorPlayers),
+      nominationRecords: {
+        nominators: new Set(state.nominationRecords?.nominators || []),
+        nominees: new Set(state.nominationRecords?.nominees || []),
+      },
       deadThisNight: [...state.deadThisNight],
       hasUsedGhostVotePlayers: new Set(state.hasUsedGhostVotePlayers),
     };
@@ -210,3 +215,54 @@ export const SNAPSHOT_TRIGGERS = {
   // 游戏结束
   GAME_OVER: "game_over",
 } as const;
+
+/**
+ * 从 NightLogicGameState 创建游戏状态快照
+ * 用于新夜晚引擎的状态转换
+ */
+import type { NightLogicGameState } from "../hooks/useNightLogic";
+
+export function createSnapshotFromGameState(
+  gameState: NightLogicGameState
+): GameStateSnapshot {
+  // 计算白天计数（首夜后是第一天，每两个夜晚之间算一个白天）
+  const dayCount = Math.max(1, gameState.nightCount);
+
+  // 从 nominationMap 提取提名记录
+  const nominators = new Set<number>();
+  const nominees = new Set<number>();
+
+  Object.entries(gameState.nominationMap || {}).forEach(
+    ([nominatorId, nomineeId]) => {
+      nominators.add(parseInt(nominatorId));
+      nominees.add(nomineeId);
+    }
+  );
+
+  return {
+    id: `snap_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: Date.now(),
+    phase: gameState.gamePhase,
+    nightCount: gameState.nightCount,
+    dayCount,
+    description: `状态快照 - ${gameState.gamePhase}`,
+    triggerAction: "state_sync",
+
+    // 游戏核心状态
+    seats: JSON.parse(JSON.stringify(gameState.seats)),
+    gameLogs: JSON.parse(JSON.stringify(gameState.gameLogs)),
+    winResult: null,
+    winReason: null,
+
+    // 其他关键状态
+    todayExecutedId: gameState.todayExecutedId,
+    nominatedPlayers: nominees,
+    nominatorPlayers: nominators,
+    nominationRecords: {
+      nominators,
+      nominees,
+    },
+    deadThisNight: [...(gameState.deadThisNight || [])],
+    hasUsedGhostVotePlayers: new Set(),
+  };
+}

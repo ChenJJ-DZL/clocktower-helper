@@ -1,6 +1,13 @@
 /**
  * 新夜晚引擎外观（Facade）
  * 封装所有内部复杂度，对外提供极简的操作接口，是未来替换旧系统的唯一桥梁
+ *
+ * ⚠️ 实验性质警告：
+ * - 当前系统状态：实验开发阶段，未完全集成
+ * - 生产使用系统：nightLogic.ts（旧系统）
+ * - 迁移计划：根据架构文档逐步迁移
+ * - 引用位置：仅在 useNightEngine.ts 中被引用
+ * - 不建议：当前不要在生产代码中使用此系统
  */
 
 import type { IRoleAbility } from "../roles/core/roleAbility.types";

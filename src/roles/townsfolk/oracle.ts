@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 神谕者
- * TODO: 添加角色描述
  */
 export const oracle: RoleDefinition = {
   id: "oracle",

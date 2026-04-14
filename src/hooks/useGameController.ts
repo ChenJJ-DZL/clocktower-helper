@@ -7,7 +7,6 @@ import { groupedRoles, type Role, roles, type Seat } from "../../app/data";
 import { useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
-import { gameEventBus } from "../utils/gameEventBus";
 import {
   addPoisonMark,
   computeIsPoisoned,
@@ -20,6 +19,7 @@ import {
   isEvil,
   isGoodAlignment,
 } from "../utils/gameRules";
+import { gameEventBus } from "../utils/unifiedEventBus";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -32,7 +32,7 @@ import { useHistoryController } from "./useHistoryController";
 import { useInteractionHandler } from "./useInteractionHandler";
 import { useLogicDispatcher } from "./useLogicDispatcher";
 import { useNightActionHandler } from "./useNightActionHandler";
-import { useNightLogic } from "./useNightLogic";
+import { useNightEngine } from "./useNightEngine";
 import { useNightSnapshot } from "./useNightSnapshot";
 import { useRegistrationManager } from "./useRegistrationManager";
 import { useSeatManager } from "./useSeatManager";
@@ -564,7 +564,7 @@ export function useGameController() {
     wakeIndexRef,
   } = nightSnapshot;
 
-  const nightLogic = useNightLogic(
+  const nightLogic = useNightEngine(
     {
       seats,
       gamePhase,

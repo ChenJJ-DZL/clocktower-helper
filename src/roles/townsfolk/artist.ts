@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 艺术家
- * TODO: 添加角色描述
  */
 export const artist: RoleDefinition = {
   id: "artist",

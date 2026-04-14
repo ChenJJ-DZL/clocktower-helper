@@ -3,7 +3,32 @@
  * 纯函数式状态管理，严格控制夜晚流程流转，所有状态变更均为不可变
  */
 
-import { gameEventBus } from "./gameEventBus";
+import {
+  baronAbility,
+  butlerAbility,
+  chefAbility,
+  drunkAbility,
+  empathAbility,
+  fortuneTellerAbility,
+  impAbility,
+  investigatorAbility,
+  librarianAbility,
+  mayorAbility,
+  monkAbility,
+  poisonerAbility,
+  ravenkeeperAbility,
+  recluseAbility,
+  saintAbility,
+  savantAbility,
+  scarletWomanAbility,
+  slayerAbility,
+  soldierAbility,
+  spyAbility,
+  undertakerAbility,
+  virginAbility,
+  washerwomanAbility,
+} from "../roles/new_engine/abilityRegistry";
+import { gameEventBus } from "./unifiedEventBus";
 
 // 游戏状态快照接口（与现有系统兼容，新引擎独立定义）
 export interface GameStateSnapshot {
@@ -56,17 +81,29 @@ const ALLOWED_TRANSITIONS: Record<NightState, NightState[]> = {
 
 // 已迁移的能力ID列表（从新引擎配置中获取）
 const MIGRATED_ABILITY_IDS = new Set([
-  "washerwoman:ability",
-  "librarian:ability",
-  "investigator:ability",
-  "chef:ability",
-  "empath:ability",
-  "fortune_teller:ability",
-  "ravenkeeper:ability",
-  "imp:ability",
-  "baron:ability",
-  "butler:ability",
-  "drunk:ability",
+  washerwomanAbility.abilityId,
+  librarianAbility.abilityId,
+  investigatorAbility.abilityId,
+  chefAbility.abilityId,
+  empathAbility.abilityId,
+  fortuneTellerAbility.abilityId,
+  ravenkeeperAbility.abilityId,
+  impAbility.abilityId,
+  baronAbility.abilityId,
+  butlerAbility.abilityId,
+  drunkAbility.abilityId,
+  mayorAbility.abilityId,
+  monkAbility.abilityId,
+  poisonerAbility.abilityId,
+  recluseAbility.abilityId,
+  saintAbility.abilityId,
+  savantAbility.abilityId,
+  scarletWomanAbility.abilityId,
+  slayerAbility.abilityId,
+  soldierAbility.abilityId,
+  spyAbility.abilityId,
+  undertakerAbility.abilityId,
+  virginAbility.abilityId,
 ]);
 
 // 状态变更事件映射

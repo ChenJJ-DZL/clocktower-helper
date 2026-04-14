@@ -4,7 +4,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 魔鬼代言人
- * TODO: 添加角色描述
  */
 export const devils_advocate: RoleDefinition = {
   id: "devils_advocate",

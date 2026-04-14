@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 失意者
- * TODO: 添加角色描述
  */
 export const amnesiac: RoleDefinition = {
   id: "amnesiac",

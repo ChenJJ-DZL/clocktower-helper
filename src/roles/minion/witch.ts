@@ -4,7 +4,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 女巫
- * TODO: 添加角色描述
  */
 export const witch: RoleDefinition = {
   id: "witch",

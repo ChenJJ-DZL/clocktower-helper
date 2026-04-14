@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 侍臣
- * TODO: 添加角色描述
  */
 export const courtier: RoleDefinition = {
   id: "courtier",

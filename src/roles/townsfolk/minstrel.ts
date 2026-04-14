@@ -2,7 +2,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 吟游诗人
- * TODO: 添加角色描述
  */
 export const minstrel: RoleDefinition = {
   id: "minstrel",
