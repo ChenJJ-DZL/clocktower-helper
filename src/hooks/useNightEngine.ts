@@ -14,7 +14,7 @@ import type {
   NightActionNode,
 } from "../utils/nightStateMachine";
 
-// 临时测试配置，包含暗流涌动核心角色的夜晚顺序
+// 夜晚顺序配置（暗流涌动核心角色）
 const mockNightOrder: NightOrderEntry[] = [
   {
     roleId: "washerwoman",

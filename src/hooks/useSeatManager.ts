@@ -105,8 +105,8 @@ export function useSeatManager(): UseSeatManagerResult {
       }
 
       // 酒鬼特殊处理：不要自动设置伪装身份，等用户在确认阶段手动选择
-      let displayRole = newRole;
-      let charadeRole = null;
+      const displayRole = newRole;
+      const charadeRole = null;
       // 移除自动随机选择逻辑，确保酒鬼的 charadeRole 保持 null
       // 这样在进入首夜前会弹出选择对话框让说书人手动选择
 

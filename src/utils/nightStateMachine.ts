@@ -54,8 +54,20 @@ const ALLOWED_TRANSITIONS: Record<NightState, NightState[]> = {
   [NightState.ENDED]: [NightState.IDLE],
 };
 
-// 已迁移的能力ID列表（临时，后续动态从引擎配置获取）
-const MIGRATED_ABILITY_IDS = new Set(["fortune_teller:ability", "imp:ability"]);
+// 已迁移的能力ID列表（从新引擎配置中获取）
+const MIGRATED_ABILITY_IDS = new Set([
+  "washerwoman:ability",
+  "librarian:ability",
+  "investigator:ability",
+  "chef:ability",
+  "empath:ability",
+  "fortune_teller:ability",
+  "ravenkeeper:ability",
+  "imp:ability",
+  "baron:ability",
+  "butler:ability",
+  "drunk:ability",
+]);
 
 // 状态变更事件映射
 const STATE_CHANGE_EVENTS: Partial<Record<NightState, string>> = {

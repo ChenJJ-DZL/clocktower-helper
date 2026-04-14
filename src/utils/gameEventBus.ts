@@ -122,6 +122,7 @@ export interface GameEventMap {
     oldPhase: string;
     newPhase: string;
   };
+  startFirstNight: {}; // 首夜启动事件（无负载）
   "game:over": {
     winSide: "good" | "evil";
     reason: string;

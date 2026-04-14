@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 临时目录
+/logs/
+/temp/
+
+# 数据生成目录（可选的生成数据）
+/data/
+
+# 其他临时文件
+*.log
+*.tmp
+*.temp

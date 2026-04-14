@@ -9,6 +9,7 @@ import {
   type Seat,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
+import { gameEventBus } from "../utils/gameEventBus";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
 
 /**
@@ -345,8 +346,7 @@ export function useGameFlow(): UseGameFlowResult {
       console.warn(
         "[confirmNightOrderPreview] pendingNightQueue为空，重新触发首夜队列生成"
       );
-      const event = new CustomEvent("startFirstNight", {});
-      window.dispatchEvent(event);
+      gameEventBus.emit("startFirstNight", {});
       return;
     }
 
@@ -408,7 +408,7 @@ export function useGameFlow(): UseGameFlowResult {
         // 酒鬼的伪装身份只能从当前剧本中不在场的镇民中选择
         // 首先获取当前剧本的所有角色ID
         const currentScriptRoleIds = selectedScript?.roleIds || [];
-        
+
         const availableCharades = r.filter(
           (role) =>
             role.type === "townsfolk" &&
@@ -434,9 +434,8 @@ export function useGameFlow(): UseGameFlowResult {
 
       // 调用 startNight 生成首夜队列并弹出预览
       // 注意：需要从外部传入 startNight 引用，因为 useGameFlow 不直接依赖 useNightLogic
-      // 临时修复：直接通过 GameContext 触发 startNight 逻辑
-      const event = new CustomEvent("startFirstNight", {});
-      window.dispatchEvent(event);
+      // 使用游戏事件总线触发 startNight 逻辑
+      gameEventBus.emit("startFirstNight", {});
     },
     [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.name]
   );

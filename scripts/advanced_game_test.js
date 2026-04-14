@@ -494,4 +494,7 @@ test.describe('自动化游戏测试 #${this.testNumber}', () => {
       '剧本使用统计:',
     ];
 
-// 这里可以添加更详细的
+    // 这里可以添加更详细的
+    fs.writeFileSync(summaryPath, summary.join('\n'), 'utf8');
+    console.log(`测试总结报告已生成: ${summaryPath}`);
+  }

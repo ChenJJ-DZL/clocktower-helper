@@ -7,6 +7,7 @@ import { groupedRoles, type Role, roles, type Seat } from "../../app/data";
 import { useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
+import { gameEventBus } from "../utils/gameEventBus";
 import {
   addPoisonMark,
   computeIsPoisoned,
@@ -1117,9 +1118,8 @@ export function useGameController() {
       console.log("[GameController] Received startFirstNight event");
       nightLogic.startNight(true);
     };
-    window.addEventListener("startFirstNight", handleStartFirstNight);
-    return () =>
-      window.removeEventListener("startFirstNight", handleStartFirstNight);
+    gameEventBus.on("startFirstNight", handleStartFirstNight);
+    return () => gameEventBus.off("startFirstNight", handleStartFirstNight);
   }, [nightLogic]);
 
   // 初始化夜晚第一步信息

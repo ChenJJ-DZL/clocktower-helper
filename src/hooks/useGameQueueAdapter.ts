@@ -10,7 +10,7 @@ import type { Seat } from "../../app/data";
 
 /**
  * 将旧系统的 wakeQueueIds 和 currentWakeIndex 转换为新的队列系统
- * 这是一个临时适配器，用于逐步迁移
+ * 提供向后兼容的接口
  */
 export interface QueueAdapterState {
   // 旧系统接口（用于兼容）

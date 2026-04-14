@@ -45,8 +45,8 @@ export const washerwoman: RoleDefinition = {
       // 这里的实现应当与 nightLogic 保持某种程度的一致性，或者由 handler 提前计算好存入 context
       // 但目前的架构是 dialog 先于 handler 执行。
 
-      // 临时方案：直接在这里实现逻辑（由于 Math.random()，如果多次调用结果会变，这在 UI 上可能是个问题）
-      // 更好的办法是在 calculateNightInfo 中预先计算好 info 放入 context.actionData
+      // 实际逻辑在 nightLogic.ts 的 calculateNightInfo 函数中实现
+      // 这里返回标准提示文本，具体信息由 calculateNightInfo 生成
 
       return {
         wake: "🧺 洗衣妇，请睁眼。请看这两名玩家",
