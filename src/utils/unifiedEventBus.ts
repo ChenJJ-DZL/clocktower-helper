@@ -1,14 +1,10 @@
 /**
  * 统一游戏事件总线机制
- * 整合gameEventBus并添加更多高级功能
  * 提供统一的事件发布、订阅、过滤和监控接口
+ * 这是项目中唯一的事件总线系统
  */
 
-import {
-  type GameEventMap,
-  type GameEventType,
-  gameEventBus,
-} from "./gameEventBus";
+import type { GameEventMap, GameEventType } from "./gameEventBus";
 
 export interface EventListenerConfig<T extends GameEventType> {
   /** 监听器ID（用于取消监听） */
@@ -107,19 +103,6 @@ class UnifiedEventBus {
     listeners.push(listenerConfig);
     listeners.sort((a, b) => (a.priority || 10) - (b.priority || 10));
 
-    // 同时注册到基础事件总线
-    const wrappedCallback = (payload: GameEventMap[T]) => {
-      if (listenerConfig.filter && !listenerConfig.filter(payload)) {
-        return;
-      }
-      callback(payload);
-      if (listenerConfig.once) {
-        this.off(eventType, listenerId);
-      }
-    };
-
-    gameEventBus.on(eventType, wrappedCallback);
-
     if (this.monitorConfig.enableDebug) {
       console.log(`[UnifiedEventBus] 注册监听器: ${listenerId} (${eventType})`);
     }
@@ -142,8 +125,6 @@ class UnifiedEventBus {
     );
     this.listeners.set(eventType, filteredListeners);
 
-    // 从基础事件总线移除（需要特殊处理，因为基础总线没有按ID移除的功能）
-    // 这里我们无法直接从基础总线移除，但可以通过包装函数来避免重复调用
     const removed = initialLength !== filteredListeners.length;
 
     if (this.monitorConfig.enableDebug && removed) {
@@ -181,11 +162,36 @@ class UnifiedEventBus {
       }
     }
 
-    // 发布到基础事件总线
-    gameEventBus.emit(eventType, payload);
+    // 执行所有监听器
+    const listeners = this.listeners.get(eventType);
+    if (listeners) {
+      // 创建监听器副本以避免在迭代过程中修改
+      const listenersToExecute = [...listeners];
+
+      for (const listenerConfig of listenersToExecute) {
+        try {
+          // 检查过滤条件
+          if (listenerConfig.filter && !listenerConfig.filter(payload)) {
+            continue;
+          }
+
+          // 执行回调
+          listenerConfig.callback(payload);
+
+          // 如果是一次性监听器，移除它
+          if (listenerConfig.once) {
+            this.off(eventType, listenerConfig.listenerId);
+          }
+        } catch (error) {
+          console.error(
+            `[UnifiedEventBus] 监听器执行错误: ${listenerConfig.listenerId}`,
+            error
+          );
+        }
+      }
+    }
 
     // 更新性能统计
-
     if (this.monitorConfig.enablePerformance) {
       const endTime = performance.now();
       const duration = endTime - startTime;
@@ -270,7 +276,6 @@ class UnifiedEventBus {
   > {
     const stats: Record<string, any> = {};
 
-    // 使用Array.from()避免downlevelIteration问题
     Array.from(this.performanceStats.entries()).forEach(([eventType, data]) => {
       stats[eventType] = {
         totalTime: data.totalTime,
@@ -301,7 +306,6 @@ class UnifiedEventBus {
     }
 
     let total = 0;
-    // 使用Array.from()避免downlevelIteration问题
     Array.from(this.listeners.values()).forEach((listeners) => {
       total += listeners.length;
     });
@@ -313,11 +317,6 @@ class UnifiedEventBus {
    */
   clearAllListeners(): void {
     this.listeners.clear();
-    // 基础事件总线无法直接清除，但我们可以通过移除所有监听器来模拟
-
-    // 重新初始化基础事件总线（通过创建新实例）
-    // 注意：这会影响其他使用基础事件总线的模块
-    // 这里我们只清除自己的监听器，基础总线保持原样
 
     if (this.monitorConfig.enableDebug) {
       console.log("[UnifiedEventBus] 已清除所有监听器");
@@ -384,5 +383,5 @@ export const unifiedEventBus = new UnifiedEventBus();
 
 // 导出类型
 export type { GameEventMap, GameEventType } from "./gameEventBus";
-// 重新导出 gameEventBus
-export { gameEventBus } from "./gameEventBus";
+// 为了向后兼容，导出 gameEventBus 作为 unifiedEventBus 的别名
+export const gameEventBus = unifiedEventBus;

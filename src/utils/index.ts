@@ -60,12 +60,13 @@ export * from "./nightQueueGenerator";
 // export * from './reproduce_regex'; // Not a module
 export * from "./roleDocLookup";
 export * from "./storytellerTips";
-// 统一事件总线导出
+// 统一事件总线导出 - 主要使用 unifiedEventBus
 export { gameEventBus, unifiedEventBus } from "./unifiedEventBus";
 export type {
   NightOrderResult,
   UnifiedNightOrderConfig,
 } from "./unifiedNightOrder";
-// 统一夜晚顺序导出
+// 统一夜晚顺序导出 - 主要使用 unifiedNightOrder
 export { unifiedNightOrder } from "./unifiedNightOrder";
+// 旧模块保留用于向后兼容
 export * from "./wakeQueue";

@@ -1,0 +1,1370 @@
+{
+  "totalCharacters": 180,
+  "totalMigrated": 24,
+  "totalPending": 156,
+  "migrationRate": "13.3%",
+  "byType": {
+    "。 然而，数学家会检测到罂粟种植者在死亡时中毒/醉酒并因此不允许恶魔/爪牙互认": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "罂粟种植者（实验角色）",
+          "englishName": "Poppy Grower",
+          "roleId": "poppy_grower",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "。如果大家想要处决只有一次性能力的角色，因为他们认为这样做更安全，那么不要伪装成只有一次性能力的角色。如果团队想要处决每晚行动的角色，因为那是恶魔应该在": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "利维坦（实验角色）",
+          "englishName": "Leviathan",
+          "roleId": "leviathan",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "不同的玩家。[+0~1外来者]": {
+      "total": 1,
+      "migrated": 1,
+      "characters": [
+        {
+          "name": "气球驾驶员（实验角色）",
+          "englishName": "Balloonist",
+          "roleId": "balloonist",
+          "script": "",
+          "migrated": true
+        }
+      ]
+    },
+    "也会跟着改变，而不仅仅只是获得镇民的能力": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "巡山人（实验角色）",
+          "englishName": "Huntsman",
+          "roleId": "huntsman",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "传奇角色": {
+      "total": 14,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "末日预言者",
+          "englishName": "Doomsayer",
+          "roleId": "doomsayer",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "玩具匠",
+          "englishName": "Toymaker",
+          "roleId": "toymaker",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "天使",
+          "englishName": "Angel",
+          "roleId": "angel",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "佛教徒",
+          "englishName": "Buddhist",
+          "roleId": "buddhist",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "革命者",
+          "englishName": "Revolutionary",
+          "roleId": "revolutionary",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "地狱藏书员",
+          "englishName": "Hell's Librarian",
+          "roleId": "hell_s_librarian",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "小提琴手",
+          "englishName": "Fiddler",
+          "roleId": "fiddler",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "骗人精",
+          "englishName": "Fibbin",
+          "roleId": "fibbin",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "公爵夫人",
+          "englishName": "Duchess",
+          "roleId": "duchess",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "哨兵",
+          "englishName": "Sentinel",
+          "roleId": "sentinel",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "圣洁之魂",
+          "englishName": "Spirit Of Ivory",
+          "roleId": "spirit_of_ivory",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "灯神",
+          "englishName": "Djinn",
+          "roleId": "djinn",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "失败的上帝（实验角色）",
+          "englishName": "Deus Ex Fiasco",
+          "roleId": "deus_ex_fiasco",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "摆渡人（实验角色）",
+          "englishName": "Ferryman",
+          "roleId": "ferryman",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "外来者": {
+      "total": 22,
+      "migrated": 4,
+      "characters": [
+        {
+          "name": "管家",
+          "englishName": "Butler",
+          "roleId": "butler",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "酒鬼",
+          "englishName": "Drunk",
+          "roleId": "drunk",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "陌客",
+          "englishName": "Recluse",
+          "roleId": "recluse",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "圣徒",
+          "englishName": "Saint",
+          "roleId": "saint",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "修补匠",
+          "englishName": "Tinker",
+          "roleId": "tinker",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "月之子",
+          "englishName": "Moonchild",
+          "roleId": "moonchild",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "莽夫",
+          "englishName": "Goon",
+          "roleId": "goon",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "疯子",
+          "englishName": "Lunatic",
+          "roleId": "lunatic",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "畸形秀演员",
+          "englishName": "Mutant",
+          "roleId": "mutant",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "心上人",
+          "englishName": "Sweetheart",
+          "roleId": "sweetheart",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "理发师",
+          "englishName": "Barber",
+          "roleId": "barber",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "呆瓜",
+          "englishName": "Klutz",
+          "roleId": "klutz",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "告密者（实验角色）",
+          "englishName": "Snitch",
+          "roleId": "snitch",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "解谜大师（实验角色）",
+          "englishName": "Puzzlemaster",
+          "roleId": "puzzlemaster",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "狂热者（实验角色）",
+          "englishName": "Zealot",
+          "roleId": "zealot",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "落难少女（实验角色）",
+          "englishName": "Damsel",
+          "roleId": "damsel",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "魔像（实验角色）",
+          "englishName": "Golem",
+          "roleId": "golem",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "食人魔（实验角色）",
+          "englishName": "Ogre",
+          "roleId": "ogre",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "瘟疫医生（实验角色）",
+          "englishName": "Plague Doctor",
+          "roleId": "plague_doctor",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "异端分子（实验角色）",
+          "englishName": "Heretic",
+          "roleId": "heretic",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "隐士（实验角色）",
+          "englishName": "Hermit",
+          "roleId": "hermit",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "政客（实验角色）",
+          "englishName": "Politician",
+          "roleId": "politician",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "奇遇角色": {
+      "total": 11,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "暴风捕手（实验角色）",
+          "englishName": "Storm Catcher",
+          "roleId": "storm_catcher",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "腹语师（实验角色）",
+          "englishName": "Ventriloquist",
+          "roleId": "ventriloquist",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "诡诈杰克（实验角色）",
+          "englishName": "Knaves",
+          "roleId": "knaves",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "教皇（实验角色）",
+          "englishName": "Pope",
+          "roleId": "pope",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "讷神（实验角色）",
+          "englishName": "God of Ug",
+          "roleId": "god_of_ug",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "首席律师（实验角色）",
+          "englishName": "Big Wig",
+          "roleId": "big_wig",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "私货商人（实验角色）",
+          "englishName": "Bootlegger",
+          "roleId": "bootlegger",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "印度教教徒（实验角色）",
+          "englishName": "Hindu",
+          "roleId": "hindu",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "异术士（实验角色）",
+          "englishName": "Zenomancer",
+          "roleId": "zenomancer",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "遗忘之门（实验角色）",
+          "englishName": "Tor",
+          "roleId": "tor",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "园丁（实验角色）",
+          "englishName": "Gardener",
+          "roleId": "gardener",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "恶魔": {
+      "total": 15,
+      "migrated": 1,
+      "characters": [
+        {
+          "name": "小恶魔",
+          "englishName": "Imp",
+          "roleId": "imp",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "僵怖",
+          "englishName": "Zombuul",
+          "roleId": "zombuul",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "普卡",
+          "englishName": "Pukka",
+          "roleId": "pukka",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "沙巴洛斯",
+          "englishName": "Shabaloth",
+          "roleId": "shabaloth",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "方古",
+          "englishName": "Fang Gu",
+          "roleId": "fang_gu",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "亡骨魔",
+          "englishName": "Vigormortis",
+          "roleId": "vigormortis",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "诺-达鲺",
+          "englishName": "No Dashii",
+          "roleId": "no_dashii",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "涡流",
+          "englishName": "Vortox",
+          "roleId": "vortox",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "奥赫（实验角色）",
+          "englishName": "Ojo",
+          "roleId": "ojo",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "暴乱（实验角色）",
+          "englishName": "Riot",
+          "roleId": "riot",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "堤丰之首（实验角色）",
+          "englishName": "Lord of Typhon",
+          "roleId": "lord_of_typhon",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "哈迪寂亚（实验角色）",
+          "englishName": "Al",
+          "roleId": "al",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "卡扎力（实验角色）",
+          "englishName": "Kazali",
+          "roleId": "kazali",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "小怪宝（实验角色）",
+          "englishName": "Lil",
+          "roleId": "lil",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "牙噶巴卜（实验角色）",
+          "englishName": "Yaggababble",
+          "roleId": "yaggababble",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "旅行者": {
+      "total": 18,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "官员",
+          "englishName": "Bureaucrat",
+          "roleId": "bureaucrat",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "乞丐",
+          "englishName": "Beggar",
+          "roleId": "beggar",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "枪手",
+          "englishName": "Gunslinger",
+          "roleId": "gunslinger",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "窃贼",
+          "englishName": "Thief",
+          "roleId": "thief",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "替罪羊",
+          "englishName": "Scapegoat",
+          "roleId": "scapegoat",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "法官",
+          "englishName": "Judge",
+          "roleId": "judge",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "女舍监",
+          "englishName": "Matron",
+          "roleId": "matron",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "巫毒师",
+          "englishName": "Voudon",
+          "roleId": "voudon",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "学徒",
+          "englishName": "Apprentice",
+          "roleId": "apprentice",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "主教",
+          "englishName": "Bishop",
+          "roleId": "bishop",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "怪咖",
+          "englishName": "Deviant",
+          "roleId": "deviant",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "集骨者",
+          "englishName": "Bone Collector",
+          "roleId": "bone_collector",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "咖啡师",
+          "englishName": "Barista",
+          "roleId": "barista",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "流莺",
+          "englishName": "Harlot",
+          "roleId": "harlot",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "屠夫",
+          "englishName": "Butcher",
+          "roleId": "butcher",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "黑帮（实验角色）",
+          "englishName": "Gangster",
+          "roleId": "gangster",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "笑匠（实验角色）",
+          "englishName": "Cacklejack",
+          "roleId": "cacklejack",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "侏儒（实验角色）",
+          "englishName": "Gnome",
+          "roleId": "gnome",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "暴露角色": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "亡魂（实验角色）",
+          "englishName": "Wraith",
+          "roleId": "wraith",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "爪牙": {
+      "total": 26,
+      "migrated": 4,
+      "characters": [
+        {
+          "name": "投毒者",
+          "englishName": "Poisoner",
+          "roleId": "poisoner",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "间谍",
+          "englishName": "Spy",
+          "roleId": "spy",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "红唇女郎",
+          "englishName": "Scarlet Woman",
+          "roleId": "scarlet_woman",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "男爵",
+          "englishName": "Baron",
+          "roleId": "baron",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "教父",
+          "englishName": "Godfather",
+          "roleId": "godfather",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "魔鬼代言人",
+          "englishName": "Devil's Advocate",
+          "roleId": "devil_s_advocate",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "刺客",
+          "englishName": "Assassin",
+          "roleId": "assassin",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "主谋",
+          "englishName": "Mastermind",
+          "roleId": "mastermind",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "镜像双子",
+          "englishName": "Evil Twin",
+          "roleId": "evil_twin",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "女巫",
+          "englishName": "Witch",
+          "roleId": "witch",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "洗脑师",
+          "englishName": "Cerenovus",
+          "roleId": "cerenovus",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "麻脸巫婆",
+          "englishName": "Pit-Hag",
+          "roleId": "pit_hag",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "哥布林（实验角色）",
+          "englishName": "Goblin",
+          "roleId": "goblin",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "寡妇（实验角色）",
+          "englishName": "Widow",
+          "roleId": "widow",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "街头风琴手（实验角色）",
+          "englishName": "Organ Grinder",
+          "roleId": "organ_grinder",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "精神病患者（实验角色）",
+          "englishName": "Psychopath",
+          "roleId": "psychopath",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "科学怪人（实验角色）",
+          "englishName": "Boffin",
+          "roleId": "boffin",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "恐惧之灵（实验角色）",
+          "englishName": "Fearmonger",
+          "roleId": "fearmonger",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "灵言师（实验角色）",
+          "englishName": "Mezepheles",
+          "roleId": "mezepheles",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "提线木偶（实验角色）",
+          "englishName": "Marionette",
+          "roleId": "marionette",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "维齐尔（实验角色）",
+          "englishName": "Vizier",
+          "roleId": "vizier",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "巫师（实验角色）",
+          "englishName": "Wizard",
+          "roleId": "wizard",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "鹰身女妖（实验角色）",
+          "englishName": "Harpy",
+          "roleId": "harpy",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "炸弹人（实验角色）",
+          "englishName": "Boomdandy",
+          "roleId": "boomdandy",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "召唤师（实验角色）",
+          "englishName": "Summoner",
+          "roleId": "summoner",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "限（实验角色）",
+          "englishName": "Xaan",
+          "roleId": "xaan",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "的角色(也就是不再是爪牙)，那么他不再受到传教士能力的影响。此外，邪恶玩家不会仅仅因为属于邪恶阵营就受到传教士能力的影响，他需要明确地作为爪牙角色才能受到影响": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "传教士（实验角色）",
+          "englishName": "Preacher",
+          "roleId": "preacher",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "相同的角色": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "帽匠（实验角色）",
+          "englishName": "Hatter",
+          "roleId": "hatter",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "组合方式": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "军团（实验角色）",
+          "englishName": "Legion",
+          "roleId": "legion",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "镇民": {
+      "total": 64,
+      "migrated": 14,
+      "characters": [
+        {
+          "name": "洗衣妇",
+          "englishName": "Washerwoman",
+          "roleId": "washerwoman",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "图书管理员",
+          "englishName": "Librarian",
+          "roleId": "librarian",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "调查员",
+          "englishName": "Investigator",
+          "roleId": "investigator",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "厨师",
+          "englishName": "Chef",
+          "roleId": "chef",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "共情者",
+          "englishName": "Empath",
+          "roleId": "empath",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "占卜师",
+          "englishName": "Fortune Teller",
+          "roleId": "fortune_teller",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "送葬者",
+          "englishName": "Undertaker",
+          "roleId": "undertaker",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "僧侣",
+          "englishName": "Monk",
+          "roleId": "monk",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "守鸦人",
+          "englishName": "Ravenkeeper",
+          "roleId": "ravenkeeper",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "贞洁者",
+          "englishName": "Virgin",
+          "roleId": "virgin",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "猎手",
+          "englishName": "Slayer",
+          "roleId": "slayer",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "士兵",
+          "englishName": "Soldier",
+          "roleId": "soldier",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "镇长",
+          "englishName": "Mayor",
+          "roleId": "mayor",
+          "script": "暗流涌动",
+          "migrated": true
+        },
+        {
+          "name": "祖母",
+          "englishName": "Grandmother",
+          "roleId": "grandmother",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "水手",
+          "englishName": "Sailor",
+          "roleId": "sailor",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "侍女",
+          "englishName": "Chambermaid",
+          "roleId": "chambermaid",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "驱魔人",
+          "englishName": "Exorcist",
+          "roleId": "exorcist",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "旅店老板",
+          "englishName": "Innkeeper",
+          "roleId": "innkeeper",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "赌徒",
+          "englishName": "Gambler",
+          "roleId": "gambler",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "造谣者",
+          "englishName": "Gossip",
+          "roleId": "gossip",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "侍臣",
+          "englishName": "Courtier",
+          "roleId": "courtier",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "教授",
+          "englishName": "Professor",
+          "roleId": "professor",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "吟游诗人",
+          "englishName": "Minstrel",
+          "roleId": "minstrel",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "茶艺师",
+          "englishName": "Tea Lady",
+          "roleId": "tea_lady",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "和平主义者",
+          "englishName": "Pacifist",
+          "roleId": "pacifist",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "弄臣",
+          "englishName": "Fool",
+          "roleId": "fool",
+          "script": "黯月初升",
+          "migrated": false
+        },
+        {
+          "name": "钟表匠",
+          "englishName": "Clockmaker",
+          "roleId": "clockmaker",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "筑梦师",
+          "englishName": "Dreamer",
+          "roleId": "dreamer",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "舞蛇人",
+          "englishName": "Snake Charmer",
+          "roleId": "snake_charmer",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "数学家",
+          "englishName": "Mathematician",
+          "roleId": "mathematician",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "卖花女孩",
+          "englishName": "Flowergirl",
+          "roleId": "flowergirl",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "城镇公告员",
+          "englishName": "Town Crier",
+          "roleId": "town_crier",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "神谕者",
+          "englishName": "Oracle",
+          "roleId": "oracle",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "博学者",
+          "englishName": "Savant",
+          "roleId": "savant",
+          "script": "梦殒春宵",
+          "migrated": true
+        },
+        {
+          "name": "女裁缝",
+          "englishName": "Seamstress",
+          "roleId": "seamstress",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "哲学家",
+          "englishName": "Philosopher",
+          "roleId": "philosopher",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "艺术家",
+          "englishName": "Artist",
+          "roleId": "artist",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "杂耍艺人",
+          "englishName": "Juggler",
+          "roleId": "juggler",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "贤者",
+          "englishName": "Sage",
+          "roleId": "sage",
+          "script": "梦殒春宵",
+          "migrated": false
+        },
+        {
+          "name": "半兽人（实验角色）",
+          "englishName": "Lycanthrope",
+          "roleId": "lycanthrope",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "报丧女妖（实验角色）",
+          "englishName": "Banshee",
+          "roleId": "banshee",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "唱诗男孩（实验角色）",
+          "englishName": "Choirboy",
+          "roleId": "choirboy",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "村夫（实验角色）",
+          "englishName": "Village Idiot",
+          "roleId": "village_idiot",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "工程师（实验角色）",
+          "englishName": "Engineer",
+          "roleId": "engineer",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "贵族（实验角色）",
+          "englishName": "Noble",
+          "roleId": "noble",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "公主（实验角色）",
+          "englishName": "Princess",
+          "roleId": "princess",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "国王（实验角色）",
+          "englishName": "King",
+          "roleId": "king",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "将军（实验角色）",
+          "englishName": "General",
+          "roleId": "general",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "炼金术士（实验角色）",
+          "englishName": "Alchemist",
+          "roleId": "alchemist",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "魔术师（实验角色）",
+          "englishName": "Magician",
+          "roleId": "magician",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "农夫（实验角色）",
+          "englishName": "Farmer",
+          "roleId": "farmer",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "女祭司（实验角色）",
+          "englishName": "High Priestess",
+          "roleId": "high_priestess",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "骑士（实验角色）",
+          "englishName": "Knight",
+          "roleId": "knight",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "赏金猎人（实验角色）",
+          "englishName": "Bounty Hunter",
+          "roleId": "bounty_hunter",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "食人族（实验角色）",
+          "englishName": "Cannibal",
+          "roleId": "cannibal",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "事务官（实验角色）",
+          "englishName": "Steward",
+          "roleId": "steward",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "守夜人（实验角色）",
+          "englishName": "Nightwatchman",
+          "roleId": "nightwatchman",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "无神论者（实验角色）",
+          "englishName": "Atheist",
+          "roleId": "atheist",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "戏法师（实验角色）",
+          "englishName": "Alsaahir",
+          "roleId": "alsaahir",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "小精灵（实验角色）",
+          "englishName": "Pixie",
+          "roleId": "pixie",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "修行者（实验角色）",
+          "englishName": "Shugenja",
+          "roleId": "shugenja",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "异教领袖（实验角色）",
+          "englishName": "Cult Leader",
+          "roleId": "cult_leader",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "渔夫（实验角色）",
+          "englishName": "Fisherman",
+          "roleId": "fisherman",
+          "script": "",
+          "migrated": false
+        },
+        {
+          "name": "杂技演员（实验角色）",
+          "englishName": "Acrobat",
+          "roleId": "acrobat",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "，例如外来者或爪牙吗？是得知角色名字是不是以特定的字母开头或结尾吗？是得知角色在剧本页面中的位置吗？": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "失忆者（实验角色）",
+          "englishName": "Amnesiac",
+          "roleId": "amnesiac",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    },
+    "，痢蛭对宿主的选择不会对他的角色产生任何改变。注意，宿主可以是任何存活玩家，不管是什么角色类型": {
+      "total": 1,
+      "migrated": 0,
+      "characters": [
+        {
+          "name": "痢蛭（实验角色）",
+          "englishName": "Lleech",
+          "roleId": "lleech",
+          "script": "",
+          "migrated": false
+        }
+      ]
+    }
+  }
+}

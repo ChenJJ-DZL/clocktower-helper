@@ -28,7 +28,7 @@ import {
   virginAbility,
   washerwomanAbility,
 } from "../roles/new_engine/abilityRegistry";
-import { gameEventBus } from "./unifiedEventBus";
+import { unifiedEventBus } from "./unifiedEventBus";
 
 // 游戏状态快照接口（与现有系统兼容，新引擎独立定义）
 export interface GameStateSnapshot {
@@ -199,7 +199,7 @@ export class NightStateMachine {
     }
 
     // 触发状态变更事件
-    gameEventBus.emit("game:phase_changed", {
+    unifiedEventBus.emit("game:phase_changed", {
       oldPhase: oldState,
       newPhase: targetState,
     });
@@ -207,7 +207,7 @@ export class NightStateMachine {
     // 触发对应状态的业务事件
     const eventName = STATE_CHANGE_EVENTS[targetState];
     if (eventName && payload) {
-      (gameEventBus.emit as any)(eventName, payload);
+      (unifiedEventBus.emit as any)(eventName, payload);
     }
 
     return true;

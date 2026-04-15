@@ -6,7 +6,7 @@ import type { Seat } from "../../app/data";
  * 提供统一的能力定义、注册和执行接口
  */
 
-import { gameEventBus } from "../utils/unifiedEventBus";
+import { unifiedEventBus } from "../utils/unifiedEventBus";
 import type {
   AbilityTriggerTiming,
   IRoleAbility,
@@ -158,7 +158,7 @@ class UnifiedRoleDefinition {
     }
 
     // 发布能力触发事件
-    gameEventBus.emit("ability:triggered", {
+    unifiedEventBus.emit("ability:triggered", {
       seatId: context.actor.id,
       roleId,
       abilityId,
@@ -170,7 +170,7 @@ class UnifiedRoleDefinition {
       const result = await ability.execute(context);
 
       // 发布能力完成事件
-      gameEventBus.emit("ability:resolved", {
+      unifiedEventBus.emit("ability:resolved", {
         seatId: context.actor.id,
         roleId,
         abilityId,
@@ -256,7 +256,7 @@ class UnifiedRoleDefinition {
         );
 
         // 发布状态更新事件
-        gameEventBus.emit("state:updated", {
+        unifiedEventBus.emit("state:updated", {
           entity: "seat",
           id: seat.id,
           changes: {

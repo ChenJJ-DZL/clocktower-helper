@@ -7,6 +7,7 @@ import {
   type UnifiedAbilityConfig,
   unifiedRoleDefinition,
 } from "../unifiedRoleDefinition";
+import { balloonistAbility } from "./balloonist.ability";
 import { baronAbility } from "./baron.ability";
 import { butlerAbility } from "./butler.ability";
 import { chefAbility } from "./chef.ability";
@@ -18,16 +19,21 @@ import { investigatorAbility } from "./investigator.ability";
 import { librarianAbility } from "./librarian.ability";
 import { mayorAbility } from "./mayor.ability";
 import { monkAbility } from "./monk.ability";
+import { moonchildAbility } from "./moonchild.ability";
 import { poisonerAbility } from "./poisoner.ability";
 import { ravenkeeperAbility } from "./ravenkeeper.ability";
 import { recluseAbility } from "./recluse.ability";
+import { sailorAbility } from "./sailor.ability";
 import { saintAbility } from "./saint.ability";
 import { savantAbility } from "./savant.ability";
 import { scarletWomanAbility } from "./scarlet_woman.ability";
 import { slayerAbility } from "./slayer.ability";
 import { soldierAbility } from "./soldier.ability";
 import { spyAbility } from "./spy.ability";
+import { teaLadyAbility } from "./tea_lady.ability";
+import { tinkerAbility } from "./tinker.ability";
 import { undertakerAbility } from "./undertaker.ability";
+import { villagerAbility } from "./villager.ability";
 import { virginAbility } from "./virgin.ability";
 import { washerwomanAbility } from "./washerwoman.ability";
 
@@ -88,6 +94,12 @@ export function registerAllNewEngineAbilities(): void {
     undertakerAbility,
     virginAbility,
     washerwomanAbility,
+    balloonistAbility,
+    villagerAbility,
+    tinkerAbility,
+    sailorAbility,
+    moonchildAbility,
+    teaLadyAbility,
   ];
 
   abilities.forEach((ability) => {
@@ -136,6 +148,7 @@ export function initializeAbilityRegistry(): void {
   );
 }
 
+export { balloonistAbility } from "./balloonist.ability";
 // 导出所有能力
 export { baronAbility } from "./baron.ability";
 export { butlerAbility } from "./butler.ability";
@@ -148,15 +161,20 @@ export { investigatorAbility } from "./investigator.ability";
 export { librarianAbility } from "./librarian.ability";
 export { mayorAbility } from "./mayor.ability";
 export { monkAbility } from "./monk.ability";
+export { moonchildAbility } from "./moonchild.ability";
 export { poisonerAbility } from "./poisoner.ability";
 export { ravenkeeperAbility } from "./ravenkeeper.ability";
 export { recluseAbility } from "./recluse.ability";
+export { sailorAbility } from "./sailor.ability";
 export { saintAbility } from "./saint.ability";
 export { savantAbility } from "./savant.ability";
 export { scarletWomanAbility } from "./scarlet_woman.ability";
 export { slayerAbility } from "./slayer.ability";
 export { soldierAbility } from "./soldier.ability";
 export { spyAbility } from "./spy.ability";
+export { teaLadyAbility } from "./tea_lady.ability";
+export { tinkerAbility } from "./tinker.ability";
 export { undertakerAbility } from "./undertaker.ability";
+export { villagerAbility } from "./villager.ability";
 export { virginAbility } from "./virgin.ability";
 export { washerwomanAbility } from "./washerwoman.ability";

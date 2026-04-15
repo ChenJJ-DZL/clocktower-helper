@@ -10,7 +10,7 @@ import {
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
-import { gameEventBus } from "../utils/unifiedEventBus";
+import { unifiedEventBus } from "../utils/unifiedEventBus";
 
 /**
  * UseGameFlowResult - 流程控制 Hook 的返回结果
@@ -346,7 +346,7 @@ export function useGameFlow(): UseGameFlowResult {
       console.warn(
         "[confirmNightOrderPreview] pendingNightQueue为空，重新触发首夜队列生成"
       );
-      gameEventBus.emit("startFirstNight", {});
+      unifiedEventBus.emit("startFirstNight", {});
       return;
     }
 
@@ -435,7 +435,7 @@ export function useGameFlow(): UseGameFlowResult {
       // 调用 startNight 生成首夜队列并弹出预览
       // 注意：需要从外部传入 startNight 引用，因为 useGameFlow 不直接依赖 useNightLogic
       // 使用游戏事件总线触发 startNight 逻辑
-      gameEventBus.emit("startFirstNight", {});
+      unifiedEventBus.emit("startFirstNight", {});
     },
     [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.name]
   );

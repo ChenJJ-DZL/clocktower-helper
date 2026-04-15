@@ -19,7 +19,7 @@ import {
   isEvil,
   isGoodAlignment,
 } from "../utils/gameRules";
-import { gameEventBus } from "../utils/unifiedEventBus";
+import { unifiedEventBus } from "../utils/unifiedEventBus";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -1118,8 +1118,13 @@ export function useGameController() {
       console.log("[GameController] Received startFirstNight event");
       nightLogic.startNight(true);
     };
-    gameEventBus.on("startFirstNight", handleStartFirstNight);
-    return () => gameEventBus.off("startFirstNight", handleStartFirstNight);
+    const listenerId = unifiedEventBus.on(
+      "startFirstNight",
+      handleStartFirstNight
+    );
+    return () => {
+      unifiedEventBus.off("startFirstNight", listenerId);
+    };
   }, [nightLogic]);
 
   // 初始化夜晚第一步信息
