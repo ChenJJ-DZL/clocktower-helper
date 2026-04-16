@@ -1,82 +1,56 @@
-import { createRoleAbility } from "../core/roleAbility.types";
-import type { AbilityTriggerTiming, MiddlewareContext } from "../../utils/middlewarePipeline";
-
 /**
- * 侍女 (Chambermaid) - 新引擎能力实现
- * 
- * 每个夜晚，你要选择除你以外的两名存活的玩家：你会得知他们中有几人在当晚因其自身能力而被唤醒。
+ * 侍女（Chambermaid）新引擎技能实现
  */
-const preCheckAliveAndStatus = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { gameState, selfSeat } = context;
 
-  if (!selfSeat) {
-    throw new Error("侍女座位不存在");
-  }
+import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import {
+  AbilityTriggerTiming,
+  commonPreCheckAlive,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
-  if (selfSeat.isDead) {
-    throw new Error("侍女已死亡");
-  }
-
-  if (selfSeat.isDrunk || selfSeat.isPoisoned) {
-    return {
-      ...context,
-      result: {
-        success: false,
-        message: "侍女醉酒或中毒",
-      },
-    };
-  }
-
-  return context;
-};
-
+// 计算结果：选择两名玩家并计算被唤醒数量
 const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { gameState, selfSeat, selectedTargets } = context;
+  const { snapshot, actionNode, meta, targetIds } = context;
+  const isAbilityActive = meta.abilityEffective ?? true;
 
-  if (!selfSeat || !selectedTargets || selectedTargets.length !== 2) {
-    return {
-      ...context,
-      result: {
-        success: false,
-        message: "无效的目标选择",
-      },
-    };
+  // 获取侍女座位
+  const chambermaidSeat = snapshot.seats.find(
+    (s) => s.id === actionNode.seatId
+  );
+  if (!chambermaidSeat) {
+    return { ...context, aborted: true, abortReason: "未找到侍女座位" };
   }
 
-  // 计算被选中玩家中当晚被唤醒的数量
+  // 验证目标数量
+  if (!targetIds || targetIds.length !== 2) {
+    return { ...context, aborted: true, abortReason: "需要选择2名玩家" };
+  }
+
+  // 计算被唤醒数量（这里简化实现，实际需要根据nightOrderParser来判断）
   let wokenCount = 0;
 
-  for (const targetId of selectedTargets) {
-    const targetSeat = gameState.seats.find((s) => s.id === targetId);
-    if (targetSeat && !targetSeat.isDead) {
-      // 检查该角色是否会在今晚被唤醒使用能力
-      const roleId = targetSeat.role?.id;
-      if (roleId) {
-        // 这里需要通过 nightOrderParser 来判断该角色是否会在今晚被唤醒
-        // 暂时简化处理：假设有一个方式可以判断
-        // 实际实现需要整合 nightOrderParser
-        wokenCount += 0; // 占位，实际需要实现
-      }
-    }
+  if (isAbilityActive) {
+    // 正常逻辑：需要实际查询夜晚顺序系统来判断目标是否会被唤醒
+    // 暂时返回0作为占位，实际实现需要整合nightOrderParser
+    wokenCount = 0;
+  } else {
+    // 醉酒/中毒时，可能返回错误结果
+    wokenCount = Math.floor(Math.random() * 3); // 0-2的随机数
   }
 
-  return {
-    ...context,
-    result: {
-      success: true,
-      data: {
-        wokenCount,
-        targets: selectedTargets,
-      },
-      message: `侍女得知被唤醒的玩家数量：${wokenCount}`,
-    },
+  const result = {
+    targetIds,
+    wokenCount,
+    isDrunk: !isAbilityActive,
   };
+
+  return { ...context, meta: { ...context.meta, abilityResult: result } };
 };
 
+// 状态更新：侍女能力不需要修改游戏状态
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
@@ -86,21 +60,28 @@ const stateUpdate = async (
 
 export const chambermaidAbility = createRoleAbility({
   roleId: "chambermaid",
-  roleName: "侍女",
-  description: "每个夜晚，选择两名玩家，得知他们中有几人在当晚因其自身能力而被唤醒。",
-  triggerTiming: "EVERY_NIGHT" as AbilityTriggerTiming,
+  abilityId: "chambermaid_night_ability",
+  abilityName: "夜间查验",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  wakePriority: 51,
+  firstNightOnly: false,
+  wakePromptId: "role.chambermaid.wake",
   targetConfig: {
     min: 2,
     max: 2,
-    canTargetSelf: false,
-    canTargetDead: false,
+    allowSelf: false,
+    allowDead: false,
   },
-  preCheck: [preCheckAliveAndStatus],
+  preCheck: [commonPreCheckAlive],
   calculate: [calculateResult],
   stateUpdate: [stateUpdate],
   postProcess: [
     async (context) => {
-      console.log("侍女能力执行完成", context.result);
+      const { meta } = context;
+      const result = meta.abilityResult;
+      console.log(
+        `侍女${result.isDrunk ? "（醉酒）" : ""}查验了${result.targetIds.map((t: number) => t + 1).join("、")}号，得知${result.wokenCount}人被唤醒`
+      );
       return context;
     },
   ],

@@ -69,6 +69,22 @@ const predefinedDefinitions: LimitedAbilityDefinition[] = [
     global: true,
     resetOnRoleChange: false,
   },
+  // 侍臣：每局游戏一次
+  {
+    abilityId: "courtier_drunk",
+    maxUses: 1,
+    global: false,
+    consumeWhenDrunkOrPoisoned: true, // 醉酒/中毒时也消耗次数
+    resetOnRoleChange: true,
+  },
+  // 刺客：每局游戏一次
+  {
+    abilityId: "assassin_kill",
+    maxUses: 1,
+    global: false,
+    consumeWhenDrunkOrPoisoned: true, // 醉酒/中毒时也消耗次数（官方规则：选择目标后就消耗能力）
+    resetOnRoleChange: true,
+  },
 ];
 
 /**

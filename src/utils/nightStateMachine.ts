@@ -7,6 +7,7 @@ import {
   baronAbility,
   butlerAbility,
   chefAbility,
+  courtierAbility,
   drunkAbility,
   empathAbility,
   fortuneTellerAbility,
@@ -104,6 +105,7 @@ const MIGRATED_ABILITY_IDS = new Set([
   spyAbility.abilityId,
   undertakerAbility.abilityId,
   virginAbility.abilityId,
+  courtierAbility.abilityId,
 ]);
 
 // 状态变更事件映射

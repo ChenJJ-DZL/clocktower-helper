@@ -1,5 +1,13 @@
 /**
- * 间谍（Spy）新引擎技能实现
+ * 间谍 (Spy) - 黯月初升剧本
+ *
+ * 角色能力：
+ * - 每个夜晚，你能查看魔典
+ * - 你可能会被当作善良阵营、镇民角色或外来者角色，即使你已死亡
+ *
+ * 夜晚行动：
+ * - 首夜和后续夜晚都行动
+ * - 唤醒间谍查看魔典
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -8,86 +16,52 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查玩家是否存在（死亡仍可使用间谍能力）
-const preCheckSpy = async (
+// 前置校验：检查是否存活
+const preCheckAliveAndStatus = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat) {
-    return { ...context, aborted: true, abortReason: "玩家不存在" };
+  if (!seat?.isAlive) {
+    return { ...context, aborted: true, abortReason: "间谍已死亡" };
   }
 
-  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
-  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
-
-  return {
-    ...context,
-    meta: {
-      ...context.meta,
-      isDrunk,
-      isPoisoned,
-      isAbilityActive: !(isDrunk || isPoisoned),
-      // 间谍死亡后仍可被当作邪恶/爪牙/恶魔
-      isDead: !seat.isAlive,
-    },
-  };
+  return context;
 };
 
-// 被动效果：被查验时显示为善良阵营（醉酒/中毒时效果被干扰）
-const disguiseAsGood = async (
+// 计算结果：间谍只需要查看魔典
+const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const isAbilityActive = meta.isAbilityActive ?? true;
-
-  if (!isAbilityActive) {
-    // 醉酒/中毒时，说书人可决定是否显示真实身份或随机伪装
-    return {
-      ...context,
-      meta: {
-        ...context.meta,
-        // 醉酒/中毒时，说书人可以决定是否显示为善良阵营
-        overrideAlignment: Math.random() < 0.5 ? "good" : "evil",
-      },
-    };
-  }
-
-  // 正常状态下，间谍总是被当作善良阵营
-  return {
-    ...context,
-    meta: {
-      ...context.meta,
-      overrideAlignment: "good",
-      overrideRoleType: "townsfolk",
-    },
-  };
+  // 间谍不需要计算结果，只需要查看魔典
+  return context;
 };
 
 export const spyAbility = createRoleAbility({
   roleId: "spy",
-  abilityId: "spy_grimoire_access",
-  abilityName: "渗透者",
+  abilityId: "spy_night_ability",
+  abilityName: "查看魔典",
   triggerTiming: [
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  wakePriority: 2, // 爪牙中优先级最高
+  wakePriority: 45,
   firstNightOnly: false,
   wakePromptId: "role.spy.wake",
   targetConfig: {
     min: 0,
     max: 0,
     allowSelf: false,
-    allowDead: true,
+    allowDead: false,
   },
-  preCheck: [preCheckSpy],
-  calculate: [disguiseAsGood],
+  preCheck: [preCheckAliveAndStatus],
+  calculate: [calculateResult],
   stateUpdate: [],
   postProcess: [
     async (context) => {
-      console.log("间谍查看了魔法书，获取了所有玩家的角色信息");
+      const { actionNode } = context;
+      console.log(`间谍（${actionNode.seatId + 1}号）已查看魔典`);
       return context;
     },
   ],
