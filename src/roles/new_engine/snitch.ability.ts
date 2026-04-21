@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 告密者（Snitch）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,39 +9,40 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 告密者是被动能力角色
+// 爪牙会在其首个夜晚得知三个伪装
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
+export const snitchAbility = createRoleAbility({
+  roleId: "snitch",
+  abilityId: "snitch_passive_ability",
+  abilityName: "爪牙获伪装",
   triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.snitch.wake",
   targetConfig: {
     min: 0,
-    max: 1,
+    max: 0,
     allowSelf: false,
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 告密者是被动能力，不需要主动计算逻辑
+      // 他的效果是让爪牙在首夜得知三个伪装
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 告密者的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("告密者能力（被动）被调用");
       return context;
     },
   ],

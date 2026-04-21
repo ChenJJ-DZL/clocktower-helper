@@ -7,33 +7,83 @@ import {
   type UnifiedAbilityConfig,
   unifiedRoleDefinition,
 } from "../unifiedRoleDefinition";
+import { angelAbility } from "./angel.ability";
+import { doomsayerAbility } from "./doomsayer.ability";
+import { toymakerAbility } from "./toymaker.ability";
+import { buddhistAbility } from "./buddhist.ability";
+import { revolutionaryAbility } from "./revolutionary.ability";
+import { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
+import { ferrymanAbility } from "./ferryman.ability";
+import { stormcatcherAbility } from "./stormcatcher.ability";
+import { ventriloquistAbility } from "./ventriloquist.ability";
+import { tricksterJackAbility } from "./trickster_jack.ability";
+import { bureaucratAbility } from "./bureaucrat.ability";
+import { mathematicianAbility } from "./mathematician.ability";
+import { minerAbility } from "./miner.ability";
+import { sageAbility } from "./sage.ability";
+import { snake_charmerAbility } from "./snake_charmer.ability";
+import { cannibalAbility } from "./cannibal.ability";
+import { engineerAbility } from "./engineer.ability";
+import { philosopherAbility } from "./philosopher.ability";
+import { rangerAbility } from "./ranger.ability";
+import { beggarAbility } from "./beggar.ability";
+import { gunslingerAbility } from "./gunslinger.ability";
+import { thiefAbility } from "./thief.ability";
+import { scapegoatAbility } from "./scapegoat.ability";
 import { artistAbility } from "./artist.ability";
 import { assassinAbility } from "./assassin.ability";
+import { astrologerAbility } from "./astrologer.ability";
 import { balloonistAbility } from "./balloonist.ability";
+import { bansheeAbility } from "./banshee.ability";
 import { baronAbility } from "./baron.ability";
 import { butlerAbility } from "./butler.ability";
 import { chambermaidAbility } from "./chambermaid.ability";
 import { chefAbility } from "./chef.ability";
+import { choirBoyAbility } from "./choir_boy.ability";
+import { princessAbility } from "./princess.ability";
+import { farmerAbility } from "./farmer.ability";
+import { amnesiacAbility } from "./amnesiac.ability";
+import { atheistAbility } from "./atheist.ability";
+import { jesterAbility } from "./jester.ability";
+import { fishermanAbility } from "./fisherman.ability";
+import { acrobatAbility } from "./acrobat.ability";
+import { snitchAbility } from "./snitch.ability";
+import { puzzlemasterAbility } from "./puzzlemaster.ability";
 import { clockmakerAbility } from "./clockmaker.ability";
 import { courtierAbility } from "./courtier.ability";
+import { devil_s_advocateAbility } from "./devil_s_advocate.ability";
 import { dreamerAbility } from "./dreamer.ability";
 import { drunkAbility } from "./drunk.ability";
 import { empathAbility } from "./empath.ability";
 import { exorcistAbility } from "./exorcist.ability";
+import { fang_guAbility } from "./fang_gu.ability";
 import { flowergirlAbility } from "./flowergirl.ability";
 import { foolAbility } from "./fool.ability";
 import { fortuneTellerAbility } from "./fortune_teller.ability";
+import { gamblerAbility } from "./gambler.ability";
+import { godfatherAbility } from "./godfather.ability";
+import { goonAbility } from "./goon.ability";
+import { gossipAbility } from "./gossip.ability";
 import { grandmotherAbility } from "./grandmother.ability";
+import { halfOgreAbility } from "./half_ogre.ability";
 import { impAbility } from "./imp.ability";
 import { innkeeperAbility } from "./innkeeper.ability";
 import { investigatorAbility } from "./investigator.ability";
+import { knightAbility } from "./knight.ability";
 import { librarianAbility } from "./librarian.ability";
+import { lunaticAbility } from "./lunatic.ability";
+import { mastermindAbility } from "./mastermind.ability";
 import { mayorAbility } from "./mayor.ability";
+import { minstrelAbility } from "./minstrel.ability";
 import { monkAbility } from "./monk.ability";
 import { moonchildAbility } from "./moonchild.ability";
+import { nobleAbility } from "./noble.ability";
 import { oracleAbility } from "./oracle.ability";
+import { pacifistAbility } from "./pacifist.ability";
+import { pilgrimAbility } from "./pilgrim.ability";
 import { poAbility } from "./po.ability";
 import { poisonerAbility } from "./poisoner.ability";
+import { priestessAbility } from "./priestess.ability";
 import { professorAbility } from "./professor.ability";
 import { pukkaAbility } from "./pukka.ability";
 import { ravenkeeperAbility } from "./ravenkeeper.ability";
@@ -89,6 +139,29 @@ export function registerAllNewEngineAbilities(): void {
 
   // 注册所有能力
   const abilities = [
+    angelAbility,
+    doomsayerAbility,
+    toymakerAbility,
+    buddhistAbility,
+    revolutionaryAbility,
+    deusExFiascoAbility,
+    ferrymanAbility,
+    stormcatcherAbility,
+    ventriloquistAbility,
+    tricksterJackAbility,
+    bureaucratAbility,
+    mathematicianAbility,
+    minerAbility,
+    sageAbility,
+    snake_charmerAbility,
+    cannibalAbility,
+    engineerAbility,
+    philosopherAbility,
+    rangerAbility,
+    beggarAbility,
+    gunslingerAbility,
+    thiefAbility,
+    scapegoatAbility,
     baronAbility,
     butlerAbility,
     chefAbility,
@@ -136,6 +209,33 @@ export function registerAllNewEngineAbilities(): void {
     shabalothAbility,
     pukkaAbility,
     zombuulAbility,
+    gamblerAbility,
+    gossipAbility,
+    minstrelAbility,
+    pacifistAbility,
+    goonAbility,
+    lunaticAbility,
+    godfatherAbility,
+    devil_s_advocateAbility,
+    mastermindAbility,
+    fang_guAbility,
+    halfOgreAbility,
+    bansheeAbility,
+    astrologerAbility,
+    knightAbility,
+    nobleAbility,
+    pilgrimAbility,
+    priestessAbility,
+    choirBoyAbility,
+    princessAbility,
+    farmerAbility,
+    amnesiacAbility,
+    atheistAbility,
+    jesterAbility,
+    fishermanAbility,
+    acrobatAbility,
+    snitchAbility,
+    puzzlemasterAbility,
   ];
 
   abilities.forEach((ability) => {
@@ -184,34 +284,83 @@ export function initializeAbilityRegistry(): void {
   );
 }
 
+export { angelAbility } from "./angel.ability";
+export { doomsayerAbility } from "./doomsayer.ability";
+export { toymakerAbility } from "./toymaker.ability";
+export { buddhistAbility } from "./buddhist.ability";
+export { revolutionaryAbility } from "./revolutionary.ability";
+export { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
+export { ferrymanAbility } from "./ferryman.ability";
+export { stormcatcherAbility } from "./stormcatcher.ability";
+export { ventriloquistAbility } from "./ventriloquist.ability";
+export { tricksterJackAbility } from "./trickster_jack.ability";
+export { bureaucratAbility } from "./bureaucrat.ability";
+export { mathematicianAbility } from "./mathematician.ability";
+export { minerAbility } from "./miner.ability";
+export { sageAbility } from "./sage.ability";
+export { snake_charmerAbility } from "./snake_charmer.ability";
+export { cannibalAbility } from "./cannibal.ability";
+export { engineerAbility } from "./engineer.ability";
+export { philosopherAbility } from "./philosopher.ability";
+export { rangerAbility } from "./ranger.ability";
+export { beggarAbility } from "./beggar.ability";
+export { gunslingerAbility } from "./gunslinger.ability";
+export { thiefAbility } from "./thief.ability";
+export { scapegoatAbility } from "./scapegoat.ability";
 export { artistAbility } from "./artist.ability";
 export { assassinAbility } from "./assassin.ability";
+export { astrologerAbility } from "./astrologer.ability";
 export { balloonistAbility } from "./balloonist.ability";
-// 导出所有能力
+export { bansheeAbility } from "./banshee.ability";
 export { baronAbility } from "./baron.ability";
 export { butlerAbility } from "./butler.ability";
 export { chambermaidAbility } from "./chambermaid.ability";
 export { chefAbility } from "./chef.ability";
+export { choirBoyAbility } from "./choir_boy.ability";
+export { princessAbility } from "./princess.ability";
+export { farmerAbility } from "./farmer.ability";
+export { amnesiacAbility } from "./amnesiac.ability";
+export { atheistAbility } from "./atheist.ability";
+export { jesterAbility } from "./jester.ability";
+export { fishermanAbility } from "./fisherman.ability";
+export { acrobatAbility } from "./acrobat.ability";
+export { snitchAbility } from "./snitch.ability";
+export { puzzlemasterAbility } from "./puzzlemaster.ability";
 export { clockmakerAbility } from "./clockmaker.ability";
 export { courtierAbility } from "./courtier.ability";
+export { devil_s_advocateAbility } from "./devil_s_advocate.ability";
 export { dreamerAbility } from "./dreamer.ability";
 export { drunkAbility } from "./drunk.ability";
 export { empathAbility } from "./empath.ability";
 export { exorcistAbility } from "./exorcist.ability";
+export { fang_guAbility } from "./fang_gu.ability";
 export { flowergirlAbility } from "./flowergirl.ability";
 export { foolAbility } from "./fool.ability";
 export { fortuneTellerAbility } from "./fortune_teller.ability";
+export { gamblerAbility } from "./gambler.ability";
+export { godfatherAbility } from "./godfather.ability";
+export { goonAbility } from "./goon.ability";
+export { gossipAbility } from "./gossip.ability";
 export { grandmotherAbility } from "./grandmother.ability";
+export { halfOgreAbility } from "./half_ogre.ability";
 export { impAbility } from "./imp.ability";
 export { innkeeperAbility } from "./innkeeper.ability";
 export { investigatorAbility } from "./investigator.ability";
+export { knightAbility } from "./knight.ability";
 export { librarianAbility } from "./librarian.ability";
+export { lunaticAbility } from "./lunatic.ability";
+export { mastermindAbility } from "./mastermind.ability";
 export { mayorAbility } from "./mayor.ability";
+export { minstrelAbility } from "./minstrel.ability";
 export { monkAbility } from "./monk.ability";
 export { moonchildAbility } from "./moonchild.ability";
+export { nobleAbility } from "./noble.ability";
 export { oracleAbility } from "./oracle.ability";
+export { pacifistAbility } from "./pacifist.ability";
+export { pilgrimAbility } from "./pilgrim.ability";
 export { poAbility } from "./po.ability";
 export { poisonerAbility } from "./poisoner.ability";
+export { priestessAbility } from "./priestess.ability";
 export { professorAbility } from "./professor.ability";
 export { pukkaAbility } from "./pukka.ability";
 export { ravenkeeperAbility } from "./ravenkeeper.ability";

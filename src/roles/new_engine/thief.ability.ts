@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 窃贼（Thief）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,19 +9,19 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 窃贼是旅行者角色
+// 每个夜晚，你可以选择一名玩家，偷取他的能力，直到下一个夜晚。
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
+export const thiefAbility = createRoleAbility({
+  roleId: "thief",
+  abilityId: "thief_special_ability",
+  abilityName: "妙手空空",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.thief.wake",
   targetConfig: {
-    min: 0,
+    min: 1,
     max: 1,
     allowSelf: false,
     allowDead: false,
@@ -29,19 +29,19 @@ export const mayorAbility = createRoleAbility({
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 窃贼的能力逻辑：偷取目标玩家的能力
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 窃贼的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("窃贼能力被调用");
       return context;
     },
   ],

@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 腹语师（Ventriloquist）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,19 +9,19 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 腹语师是特殊能力角色
+// 每夜，你会选择一个玩家，说书人会通过你说话，使用你的声音。
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
+export const ventriloquistAbility = createRoleAbility({
+  roleId: "ventriloquist",
+  abilityId: "ventriloquist_special_ability",
+  abilityName: "声音传递",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.ventriloquist.wake",
   targetConfig: {
-    min: 0,
+    min: 1,
     max: 1,
     allowSelf: false,
     allowDead: false,
@@ -29,19 +29,19 @@ export const mayorAbility = createRoleAbility({
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 腹语师的能力逻辑：选择一个玩家，通过他说话
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 腹语师的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("腹语师能力被调用");
       return context;
     },
   ],

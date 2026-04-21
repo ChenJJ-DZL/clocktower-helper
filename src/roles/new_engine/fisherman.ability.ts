@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 渔夫（Fisherman）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,39 +9,41 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 渔夫是白天能力角色
+// 他的能力在白天时拜访说书人获取建议
+// 这是一个限次能力，每局游戏限一次
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
+export const fishermanAbility = createRoleAbility({
+  roleId: "fisherman",
+  abilityId: "fisherman_day_ability",
+  abilityName: "获取建议",
+  triggerTiming: [AbilityTriggerTiming.DAY], // 白天能力
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.fisherman.wake",
   targetConfig: {
     min: 0,
-    max: 1,
+    max: 0,
     allowSelf: false,
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 渔夫的能力不需要计算逻辑
+      // 说书人会给渔夫提供建议
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 渔夫使用能力后标记失去能力
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("渔夫能力被调用");
       return context;
     },
   ],

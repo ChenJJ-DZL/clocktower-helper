@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 矿工（Miner）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,39 +9,39 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 矿工是镇民角色
+// 首夜，你会得知3个不在场角色。如果有任何爪牙在你旁边，你会得知其中一个。
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
+export const minerAbility = createRoleAbility({
+  roleId: "miner",
+  abilityId: "miner_special_ability",
+  abilityName: "地质勘探",
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
   wakePriority: 0,
-  firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  firstNightOnly: true,
+  wakePromptId: "role.miner.wake",
   targetConfig: {
     min: 0,
-    max: 1,
+    max: 0,
     allowSelf: false,
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 矿工的能力逻辑：获取3个不在场角色和邻座爪牙信息
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 矿工的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("矿工能力被调用");
       return context;
     },
   ],

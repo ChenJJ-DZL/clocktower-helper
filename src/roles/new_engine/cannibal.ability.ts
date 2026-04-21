@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 食人族（Cannibal）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,39 +9,39 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 食人族是镇民角色
+// 每个夜晚，你会得知今天被处决的玩家的角色。如果你处决了镇民，你会获得他的能力，直到下一次处决。
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
+export const cannibalAbility = createRoleAbility({
+  roleId: "cannibal",
+  abilityId: "cannibal_special_ability",
+  abilityName: "吞噬能力",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.cannibal.wake",
   targetConfig: {
     min: 0,
-    max: 1,
+    max: 0,
     allowSelf: false,
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 食人族的能力逻辑：获取被处决玩家角色，吞噬镇民能力
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 食人族的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("食人族能力被调用");
       return context;
     },
   ],

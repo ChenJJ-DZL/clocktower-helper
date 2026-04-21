@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 暴风捕手（Stormcatcher）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,39 +9,39 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 暴风捕手是特殊能力角色
+// 你会选择一个角色。如果那个角色在场上，说书人会大声宣布一个类似的角色。你会知道这与你的选择有关。
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
+export const stormcatcherAbility = createRoleAbility({
+  roleId: "stormcatcher",
+  abilityId: "stormcatcher_special_ability",
+  abilityName: "角色宣告",
   triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.stormcatcher.wake",
   targetConfig: {
     min: 0,
-    max: 1,
+    max: 0,
     allowSelf: false,
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 暴风捕手的能力逻辑：选择一个角色，如果在场上会有宣告
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 暴风捕手的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("暴风捕手能力（被动）被调用");
       return context;
     },
   ],

@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 天使（Angel）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,19 +9,20 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 天使是夜间能力角色
+// 首个夜晚，选择一名玩家：他今晚不会死亡
+// 如果他是好人，他会得知你
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
-  wakePriority: 0,
-  firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+export const angelAbility = createRoleAbility({
+  roleId: "angel",
+  abilityId: "angel_night_ability",
+  abilityName: "保护玩家",
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
+  wakePriority: 35,
+  firstNightOnly: true,
+  wakePromptId: "role.angel.wake",
   targetConfig: {
-    min: 0,
+    min: 1,
     max: 1,
     allowSelf: false,
     allowDead: false,
@@ -29,19 +30,19 @@ export const mayorAbility = createRoleAbility({
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 天使的能力逻辑：保护玩家不死亡，并让好人得知自己
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 天使的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("天使能力被调用");
       return context;
     },
   ],

@@ -1,4 +1,51 @@
+/**
+ * 角色系统入口
+ * 现已全面迁移到新引擎架构
+ * 旧代码已注释作为备份，非必要不启用
+ */
 import type { RoleDefinition } from "../types/roleDefinition";
+// 导入新引擎角色注册系统
+import { registerAllNewEngineAbilities } from "./new_engine/abilityRegistry";
+import { unifiedRoleDefinition } from "./unifiedRoleDefinition";
+
+// 初始化新引擎角色注册
+registerAllNewEngineAbilities();
+
+/**
+ * 角色注册表 - 兼容旧接口
+ */
+export const roleRegistry: Map<string, RoleDefinition> = new Map();
+
+/**
+ * 根据角色 ID 获取角色定义
+ * @param roleId 角色 ID
+ * @returns 角色定义，如果不存在则返回 undefined
+ */
+export function getRoleDefinition(roleId: string): RoleDefinition | undefined {
+  return roleRegistry.get(roleId);
+}
+
+/**
+ * 获取所有已注册的角色定义
+ * @returns 所有角色定义的数组
+ */
+export function getAllRoleDefinitions(): RoleDefinition[] {
+  return Array.from(roleRegistry.values());
+}
+
+/**
+ * 检查角色是否已注册
+ * @param roleId 角色 ID
+ * @returns 是否已注册
+ */
+export function isRoleRegistered(roleId: string): boolean {
+  return roleRegistry.has(roleId) || unifiedRoleDefinition.getRoleAbilities(roleId).length > 0;
+}
+
+// 导出所有新引擎角色能力
+export * from "./new_engine/abilityRegistry";
+
+/* ===================== 旧代码备份 - 非必要不启用 =====================
 // Demon
 import { fang_gu } from "./demon/fang_gu";
 import { hadesia } from "./demon/hadesia";
@@ -140,6 +187,7 @@ import { washerwoman } from "./townsfolk/washerwoman";
  * 角色注册表
  * 使用 Map 结构，以角色 ID 为键，方便快速查找
  */
+/*
 export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [amnesiac.id, amnesiac],
   [artist.id, artist],
@@ -275,32 +323,6 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [liz.id, liz],
 ]);
 
-/**
- * 根据角色 ID 获取角色定义
- * @param roleId 角色 ID
- * @returns 角色定义，如果不存在则返回 undefined
- */
-export function getRoleDefinition(roleId: string): RoleDefinition | undefined {
-  return roleRegistry.get(roleId);
-}
-
-/**
- * 获取所有已注册的角色定义
- * @returns 所有角色定义的数组
- */
-export function getAllRoleDefinitions(): RoleDefinition[] {
-  return Array.from(roleRegistry.values());
-}
-
-/**
- * 检查角色是否已注册
- * @param roleId 角色 ID
- * @returns 是否已注册
- */
-export function isRoleRegistered(roleId: string): boolean {
-  return roleRegistry.has(roleId);
-}
-
 // Demon
 export { fang_gu } from "./demon/fang_gu";
 export { hadesia } from "./demon/hadesia";
@@ -325,71 +347,4 @@ export { poisoner } from "./minion/poisoner";
 export { psychopath } from "./minion/psychopath";
 export { scarlet_woman } from "./minion/scarlet_woman";
 export { shaman } from "./minion/shaman";
-export { spy } from "./minion/spy";
-export { witch } from "./minion/witch";
-// Outsider
-export { barber } from "./outsider/barber";
-export { butler } from "./outsider/butler";
-export { damsel } from "./outsider/damsel";
-export { drunk } from "./outsider/drunk";
-export { golem } from "./outsider/golem";
-export { goon } from "./outsider/goon";
-export { klutz } from "./outsider/klutz";
-export { lunatic } from "./outsider/lunatic";
-export { moonchild } from "./outsider/moonchild";
-export { mutant } from "./outsider/mutant";
-export { recluse } from "./outsider/recluse";
-export { saint } from "./outsider/saint";
-export { sweetheart } from "./outsider/sweetheart";
-export { tinker } from "./outsider/tinker";
-// 导出所有角色定义（方便按类型导入）
-// Townsfolk
-export { amnesiac } from "./townsfolk/amnesiac";
-export { artist } from "./townsfolk/artist";
-export { atheist } from "./townsfolk/atheist";
-export { balloonist } from "./townsfolk/balloonist";
-export { cannibal } from "./townsfolk/cannibal";
-export { chambermaid } from "./townsfolk/chambermaid";
-export { chef } from "./townsfolk/chef";
-export { clockmaker } from "./townsfolk/clockmaker";
-export { courtier } from "./townsfolk/courtier";
-export { dreamer } from "./townsfolk/dreamer";
-export { empath } from "./townsfolk/empath";
-export { engineer } from "./townsfolk/engineer";
-export { exorcist } from "./townsfolk/exorcist";
-export { farmer } from "./townsfolk/farmer";
-export { fisherman } from "./townsfolk/fisherman";
-export { flowergirl } from "./townsfolk/flowergirl";
-export { fool } from "./townsfolk/fool";
-export { fortune_teller } from "./townsfolk/fortuneTeller";
-export { gambler } from "./townsfolk/gambler";
-export { gossip } from "./townsfolk/gossip";
-export { grandmother } from "./townsfolk/grandmother";
-export { innkeeper } from "./townsfolk/innkeeper";
-export { investigator } from "./townsfolk/investigator";
-export { juggler } from "./townsfolk/juggler";
-export { librarian } from "./townsfolk/librarian";
-export { mathematician } from "./townsfolk/mathematician";
-export { mayor } from "./townsfolk/mayor";
-export { minstrel } from "./townsfolk/minstrel";
-export { monk } from "./townsfolk/monk";
-export { noble } from "./townsfolk/noble";
-export { oracle } from "./townsfolk/oracle";
-export { pacifist } from "./townsfolk/pacifist";
-export { philosopher } from "./townsfolk/philosopher";
-export { poppy_grower } from "./townsfolk/poppy_grower";
-export { professor } from "./townsfolk/professor";
-export { ranger } from "./townsfolk/ranger";
-export { ravenkeeper } from "./townsfolk/ravenkeeper";
-export { sage } from "./townsfolk/sage";
-export { sailor } from "./townsfolk/sailor";
-export { savant } from "./townsfolk/savant";
-export { seamstress } from "./townsfolk/seamstress";
-export { slayer } from "./townsfolk/slayer";
-export { snake_charmer } from "./townsfolk/snake_charmer";
-export { soldier } from "./townsfolk/soldier";
-export { tea_lady } from "./townsfolk/tea_lady";
-export { town_crier } from "./townsfolk/town_crier";
-export { undertaker } from "./townsfolk/undertaker";
-export { virgin } from "./townsfolk/virgin";
-export { washerwoman } from "./townsfolk/washerwoman";
+*/

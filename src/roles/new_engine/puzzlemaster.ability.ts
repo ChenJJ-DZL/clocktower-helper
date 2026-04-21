@@ -1,5 +1,5 @@
 /**
- * 市长（Mayor）新引擎技能实现
+ * 解谜大师（Puzzlemaster）新引擎技能实现
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -9,39 +9,40 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 市长是被动能力角色
-// 如果你在最终提名中被判死亡：你可以选择让一名活着的玩家死亡
+// 解谜大师是混合能力角色
+// 被动：一名玩家醉酒，即使你已死亡
+// 主动：每局游戏限一次，可以猜测谁是那个醉酒的玩家
 
-export const mayorAbility = createRoleAbility({
-  roleId: "mayor",
-  abilityId: "mayor_passive_ability",
-  abilityName: "最终提名存活",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
+export const puzzlemasterAbility = createRoleAbility({
+  roleId: "puzzlemaster",
+  abilityId: "puzzlemaster_hybrid_ability",
+  abilityName: "醉酒玩家与猜测",
+  triggerTiming: [AbilityTriggerTiming.PASSIVE, AbilityTriggerTiming.DAY],
   wakePriority: 0,
   firstNightOnly: false,
-  wakePromptId: "role.mayor.wake",
+  wakePromptId: "role.puzzlemaster.wake",
   targetConfig: {
     min: 0,
     max: 1,
-    allowSelf: false,
+    allowSelf: true,
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive],
   calculate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的能力逻辑
+      // 解谜大师的能力逻辑
       return context;
     },
   ],
   stateUpdate: [
     async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 市长的状态更新逻辑
+      // 解谜大师的状态更新逻辑
       return context;
     },
   ],
   postProcess: [
     async (context) => {
-      console.log("市长能力（被动）被调用");
+      console.log("解谜大师能力被调用");
       return context;
     },
   ],
