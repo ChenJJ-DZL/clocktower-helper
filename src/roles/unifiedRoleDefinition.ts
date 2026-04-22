@@ -11,7 +11,6 @@ import type {
   AbilityTriggerTiming,
   IRoleAbility,
 } from "./core/roleAbility.types";
-import { getRoleDefinition } from "./index";
 
 export interface UnifiedAbilityConfig {
   /** 角色ID */
@@ -204,12 +203,6 @@ class UnifiedRoleDefinition {
     }
   }
 
-  /**
-   * 获取角色定义
-   */
-  getRoleDefinition(roleId: string): any {
-    return getRoleDefinition(roleId);
-  }
 
   /**
    * 转换旧版能力定义到新版

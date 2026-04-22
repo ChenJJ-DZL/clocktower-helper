@@ -9,7 +9,7 @@ import type {
   PostProcessMiddleware,
   PreCheckMiddleware,
   StateUpdateMiddleware,
-} from "../../utils/middlewarePipeline";
+} from "../../utils/middlewareTypes";
 
 /**
  * 通用前置校验中间件：仅检查是否存活，不阻止醉酒/中毒玩家触发能力

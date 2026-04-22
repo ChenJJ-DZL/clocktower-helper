@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取规则文件
 const ruleFirstNight = JSON.parse(
@@ -43,7 +43,7 @@ console.log("=== 首夜行动顺序比较 ===");
 console.log(`规则文件数量: ${ruleFirstIds.length}`);
 console.log(`项目实现数量: ${projectFirstIds.length}`);
 console.log("规则文件中的行动:");
-ruleFirstNight.行动顺序.forEach((item, idx) => {
+ruleFirstNight.行动顺序.forEach((item, _idx) => {
   console.log(`  ${item.序号}: ${item.描述.substring(0, 50)}...`);
 });
 
@@ -69,7 +69,7 @@ console.log("\n=== 其他夜晚行动顺序比较 ===");
 console.log(`规则文件数量: ${ruleOtherIds.length}`);
 console.log(`项目实现数量: ${projectOtherIds.length}`);
 console.log("规则文件中的行动（前10个）:");
-ruleOtherNights.行动顺序.slice(0, 10).forEach((item, idx) => {
+ruleOtherNights.行动顺序.slice(0, 10).forEach((item, _idx) => {
   console.log(`  ${item.序号}: ${item.描述.substring(0, 50)}...`);
 });
 

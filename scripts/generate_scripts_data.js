@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 角色名称到ID的映射 - 更完整的版本
 const nameToId = {
@@ -93,12 +93,10 @@ const nameToId = {
   疫医: "plague_doctor",
   小偷: "thief",
   法官: "judge",
-  乞丐: "beggar",
   提琴手: "violinist",
 
   // 无名之墓
   掘墓人: "gravedigger",
-  替罪羊: "scapegoat",
   变种人: "mutant",
   侍僧: "acolyte",
   学者: "savant",
@@ -109,14 +107,12 @@ const nameToId = {
   沙布拉尔: "shabaloth",
   流亡者: "exile",
   巫医: "witch_doctor",
-  枪手: "gunslinger",
 
   // 无上愉悦
   渡鸦守护者: "ravenkeeper",
   猩红女士: "scarlet_woman",
   僵尸: "zombuul",
   噬魂怪: "soul_eater",
-  官员: "official",
 
   // 凶宅魅影
   预言家: "prophet",
@@ -131,16 +127,13 @@ const nameToId = {
   魔术师: "magician",
   走私犯: "smuggler",
 
-  // 游园惊梦
-  窃贼: "thief",
-  气球驾驶员: "balloonist",
-  赏金猎人: "bounty_hunter",
-  守夜人: "nightwatchman",
-
   // 旅行者通用
   官员: "traveler_official",
   乞丐: "traveler_beggar",
   枪手: "traveler_gunslinger",
+
+  // 游园惊梦
+
   窃贼: "traveler_thief",
   替罪羊: "traveler_scapegoat",
   唱诗男孩: "traveler_choir_boy",

@@ -358,11 +358,11 @@ async function runFullCoverageTest() {
   }
 
   // 生成报告内容
-  let reportContent = "=".repeat(80) + "\n";
+  let reportContent = `${"=".repeat(80)}\n`;
   reportContent += "血染钟楼全量测试报告 (JavaScript版)\n";
   reportContent += `生成时间: ${new Date().toISOString()}\n`;
   reportContent += `报告编号: ${date}+${roundNumber}\n`;
-  reportContent += "=".repeat(80) + "\n\n";
+  reportContent += `${"=".repeat(80)}\n\n`;
 
   // 总体统计
   reportContent += "=== 总体统计 ===\n";
@@ -452,15 +452,15 @@ async function runFullCoverageTest() {
   reportContent += `✅ 游戏流程完整，平均 ${Math.round(totalRounds / totalTests)} 回合结束游戏\n`;
   reportContent += "✅ 胜利条件判断正确，好人/邪恶胜利分布合理\n";
 
-  reportContent += "\n" + "=".repeat(80) + "\n";
+  reportContent += `\n${"=".repeat(80)}\n`;
   reportContent += "报告结束\n";
-  reportContent += "=".repeat(80) + "\n";
+  reportContent += `${"=".repeat(80)}\n`;
 
   // 写入文件
   fs.writeFileSync(reportPath, reportContent, "utf-8");
 
   // 控制台输出
-  console.log("\n" + "=".repeat(70));
+  console.log(`\n${"=".repeat(70)}`);
   console.log("📊 全量测试完成");
   console.log(`总测试次数: ${totalTests}`);
   console.log(`技能触发: ${totalSkillTriggers} 次`);

@@ -234,7 +234,7 @@ export function createSnapshotFromGameState(
 
   Object.entries(gameState.nominationMap || {}).forEach(
     ([nominatorId, nomineeId]) => {
-      nominators.add(parseInt(nominatorId));
+      nominators.add(parseInt(nominatorId, 10));
       nominees.add(nomineeId);
     }
   );

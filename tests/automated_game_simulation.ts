@@ -473,7 +473,7 @@ class AutomatedGameSimulation {
   }
 
   // 杀死玩家
-  private killPlayer(seatId: number, options: any = {}): void {
+  private killPlayer(seatId: number, _options: any = {}): void {
     const seatIndex = this.seats.findIndex((s) => s.id === seatId);
     if (seatIndex >= 0) {
       this.seats[seatIndex] = { ...this.seats[seatIndex], isDead: true };
@@ -541,7 +541,7 @@ class AutomatedGameSimulation {
   // 生成报告文本
   private generateReportText(): string {
     const report = this.report;
-    let content = "=".repeat(60) + "\n";
+    let content = `${"=".repeat(60)}\n`;
     content += "血染钟楼自动化测试报告\n";
     content += `生成时间: ${new Date().toISOString()}\n`;
     content += `测试ID: ${report.testId}\n`;
@@ -549,7 +549,7 @@ class AutomatedGameSimulation {
     content += `玩家人数: ${report.playerCount}\n`;
     content += `游戏时长: ${report.duration}ms\n`;
     content += `胜利方: ${report.winner === "good" ? "好人阵营" : report.winner === "evil" ? "邪恶阵营" : "平局"}\n`;
-    content += "=".repeat(60) + "\n\n";
+    content += `${"=".repeat(60)}\n\n`;
 
     // 角色分配
     content += "=== 角色分配 ===\n";
@@ -592,9 +592,9 @@ class AutomatedGameSimulation {
       });
     }
 
-    content += "\n" + "=".repeat(60) + "\n";
+    content += `\n${"=".repeat(60)}\n`;
     content += "报告结束\n";
-    content += "=".repeat(60) + "\n";
+    content += `${"=".repeat(60)}\n`;
 
     return content;
   }

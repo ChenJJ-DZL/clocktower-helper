@@ -103,7 +103,7 @@ function buildAbilityMap() {
   ];
 
   abilities.forEach((ability) => {
-    if (ability && ability.abilityId) {
+    if (ability?.abilityId) {
       map[ability.abilityId] = ability;
     }
   });
@@ -131,7 +131,7 @@ function convertToNightStateMachineSnapshot(
 
 export function useNightEngine(
   gameState: NightLogicGameState,
-  actions: NightLogicActions
+  _actions: NightLogicActions
 ) {
   // 从 gameState 创建初始快照
   const initialSnapshot = useMemo(() => {

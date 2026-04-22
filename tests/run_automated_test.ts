@@ -319,7 +319,7 @@ class GameSimulation {
   }
 
   // 杀死玩家
-  private killPlayer(seatId: number, reason: string): void {
+  private killPlayer(seatId: number, _reason: string): void {
     const seatIndex = this.seats.findIndex((s) => s.id === seatId);
     if (seatIndex >= 0) {
       this.seats[seatIndex].isDead = true;
@@ -444,7 +444,7 @@ async function runAutomatedTest() {
   // 写入文件
   fs.writeFileSync(reportPath, reportContent, "utf-8");
 
-  console.log("\n" + "=".repeat(50));
+  console.log(`\n${"=".repeat(50)}`);
   console.log("📊 测试完成");
   console.log(`总测试次数: ${TEST_COUNT}`);
   console.log(`成功: ${testResults.filter((r) => !r.error).length}`);
@@ -461,11 +461,11 @@ function generateReportContent(
   testResults: any[],
   totalDuration: number
 ): string {
-  let content = "=".repeat(60) + "\n";
+  let content = `${"=".repeat(60)}\n`;
   content += "血染钟楼自动化测试报告\n";
   content += `生成时间: ${new Date().toISOString()}\n`;
   content += `报告编号: ${date}+${roundNumber}\n`;
-  content += "=".repeat(60) + "\n\n";
+  content += `${"=".repeat(60)}\n\n`;
 
   content += `总测试次数: ${testResults.length}\n`;
   content += `总时长: ${totalDuration}ms\n\n`;
@@ -520,13 +520,13 @@ function generateReportContent(
   if (testResults.length > 0 && testResults[0].logs) {
     content += "=== 游戏日志（测试1） ===\n\n";
     testResults[0].logs.forEach((log: string) => {
-      content += log + "\n";
+      content += `${log}\n`;
     });
   }
 
-  content += "\n" + "=".repeat(60) + "\n";
+  content += `\n${"=".repeat(60)}\n`;
   content += "报告结束\n";
-  content += "=".repeat(60) + "\n";
+  content += `${"=".repeat(60)}\n`;
 
   return content;
 }

@@ -6,11 +6,11 @@
  * 随机选择剧本，随机7-15人开始游戏，模拟随机操作
  */
 
-const fs = require("fs");
-const path = require("path");
-const { execSync, spawn } = require("child_process");
-const { exec } = require("child_process");
-const { promisify } = require("util");
+const fs = require("node:fs");
+const path = require("node:path");
+const { execSync, spawn } = require("node:child_process");
+const { exec } = require("node:child_process");
+const { promisify } = require("node:util");
 
 const execAsync = promisify(exec);
 
@@ -75,16 +75,16 @@ class AdvancedTestManager {
   constructor() {
     this.testNumber = 1;
     this.gameState = null;
-    this.reportPath = '';
+    this.reportPath = "";
     this.serverProcess = null;
     this.playwrightProcess = null;
   }
 
   async start() {
-    console.log('=== 血染钟楼说书人助手高级自动化测试开始 ===');
-    console.log(`时间: ${new Date().toLocaleString('zh-CN')}`);
+    console.log("=== 血染钟楼说书人助手高级自动化测试开始 ===");
+    console.log(`时间: ${new Date().toLocaleString("zh-CN")}`);
     console.log(`测试轮次: ${TEST_COUNT}`);
-    
+
     // 创建报告目录
     if (!fs.existsSync(REPORT_DIR)) {
       fs.mkdirSync(REPORT_DIR, { recursive: true });
@@ -92,51 +92,56 @@ class AdvancedTestManager {
 
     // 检查是否安装了Playwright
     try {
-      await execAsync('npx playwright --version');
-      this.gameState?.log('Playwright已安装');
+      await execAsync("npx playwright --version");
+      this.gameState?.log("Playwright已安装");
     } catch (error) {
-      console.log('正在安装Playwright...');
-      await execAsync('npx playwright install chromium');
+      console.log("正在安装Playwright...");
+      await execAsync("npx playwright install chromium");
     }
 
     for (let i = 0; i < TEST_COUNT; i++) {
       this.testNumber = i + 1;
-      this.reportPath = path.join(REPORT_DIR, `游戏测试报告#${DATE_STR}+${this.testNumber}.txt`);
-      
+      this.reportPath = path.join(
+        REPORT_DIR,
+        `游戏测试报告#${DATE_STR}+${this.testNumber}.txt`
+      );
+
       console.log(`\n=== 开始第 ${this.testNumber} 轮测试 ===`);
       await this.runSingleTest();
-      
+
       // 生成报告
       this.generateReport();
     }
 
-    console.log('\n=== 所有测试完成 ===');
+    console.log("\n=== 所有测试完成 ===");
     this.generateSummaryReport();
   }
 
   async runSingleTest() {
     this.gameState = new AdvancedGameState(this.testNumber);
-    
+
     try {
       // 1. 随机选择剧本
-      this.gameState.script = SCRIPTS[Math.floor(Math.random() * SCRIPTS.length)];
+      this.gameState.script =
+        SCRIPTS[Math.floor(Math.random() * SCRIPTS.length)];
       this.gameState.log(`随机选择剧本: ${this.gameState.script}`);
-      
+
       // 2. 随机确定玩家人数 (7-15)
-      this.gameState.playerCount = Math.floor(Math.random() * (MAX_PLAYERS - MIN_PLAYERS + 1)) + MIN_PLAYERS;
+      this.gameState.playerCount =
+        Math.floor(Math.random() * (MAX_PLAYERS - MIN_PLAYERS + 1)) +
+        MIN_PLAYERS;
       this.gameState.log(`玩家人数: ${this.gameState.playerCount}`);
-      
+
       // 3. 启动开发服务器
       await this.startDevServer();
-      
+
       // 4. 运行Playwright测试
       await this.runPlaywrightTest();
-      
+
       // 5. 停止服务器
       await this.stopDevServer();
-      
+
       this.gameState.gameCompleted = true;
-      
     } catch (error) {
       this.gameState.error(`测试过程中发生错误: ${error.message}`, error.stack);
       this.gameState.crashDetected = true;
@@ -145,61 +150,65 @@ class AdvancedTestManager {
   }
 
   async startDevServer() {
-    this.gameState.log('启动开发服务器...');
-    
+    this.gameState.log("启动开发服务器...");
+
     return new Promise((resolve) => {
       // 检查端口是否被占用
       try {
-        execSync('lsof -ti:3000', { stdio: 'pipe' });
-        this.gameState.log('端口3000已被占用，尝试使用3001端口');
+        execSync("lsof -ti:3000", { stdio: "pipe" });
+        this.gameState.log("端口3000已被占用，尝试使用3001端口");
       } catch (e) {
         // 端口可用
       }
 
       // 使用 npm run dev 启动服务器
-      this.serverProcess = spawn('npm', ['run', 'dev'], {
-        stdio: ['pipe', 'pipe', 'pipe'],
+      this.serverProcess = spawn("npm", ["run", "dev"], {
+        stdio: ["pipe", "pipe", "pipe"],
         shell: true,
-        detached: true
+        detached: true,
       });
 
       let serverReady = false;
       const timeout = setTimeout(() => {
         if (!serverReady) {
-          this.gameState.log('服务器启动超时，继续测试...');
+          this.gameState.log("服务器启动超时，继续测试...");
           resolve();
         }
       }, 15000);
 
-      this.serverProcess.stdout.on('data', (data) => {
+      this.serverProcess.stdout.on("data", (data) => {
         const output = data.toString();
         this.gameState.log(`服务器: ${output.trim()}`);
-        
-        if (output.includes('ready') || output.includes('localhost:') || output.includes('Local:')) {
+
+        if (
+          output.includes("ready") ||
+          output.includes("localhost:") ||
+          output.includes("Local:")
+        ) {
           if (!serverReady) {
             serverReady = true;
             clearTimeout(timeout);
-            this.gameState.log('开发服务器已启动');
+            this.gameState.log("开发服务器已启动");
             setTimeout(resolve, 3000); // 给服务器更多时间
           }
         }
       });
 
-      this.serverProcess.stderr.on('data', (data) => {
+      this.serverProcess.stderr.on("data", (data) => {
         const error = data.toString();
-        if (!error.includes('DeprecationWarning')) {
+        if (!error.includes("DeprecationWarning")) {
           this.gameState.log(`服务器错误: ${error.trim()}`);
         }
       });
 
-      this.serverProcess.on('error', (error) => {
+      this.serverProcess.on("error", (error) => {
         this.gameState.error(`启动服务器失败: ${error.message}`);
         clearTimeout(timeout);
         resolve(); // 继续测试
       });
 
       // 捕获退出
-      this.serverProcess.on('exit', (code) => {
+      this.serverProcess.on("exit", (code) => {
         if (code !== 0 && code !== null) {
           this.gameState.log(`服务器意外退出，代码: ${code}`);
         }
@@ -209,7 +218,7 @@ class AdvancedTestManager {
 
   async stopDevServer() {
     if (this.serverProcess) {
-      this.gameState.log('停止开发服务器...');
+      this.gameState.log("停止开发服务器...");
       try {
         process.kill(-this.serverProcess.pid); // 杀死整个进程组
       } catch (e) {
@@ -220,31 +229,35 @@ class AdvancedTestManager {
   }
 
   async runPlaywrightTest() {
-    this.gameState.log('运行Playwright UI测试...');
-    
+    this.gameState.log("运行Playwright UI测试...");
+
     // 创建临时的Playwright测试文件
     const playwrightTestContent = this.generatePlaywrightTest();
-    const testFile = path.join(__dirname, `temp_test_${this.testNumber}.spec.ts`);
-    
-    fs.writeFileSync(testFile, playwrightTestContent, 'utf8');
-    
+    const testFile = path.join(
+      __dirname,
+      `temp_test_${this.testNumber}.spec.ts`
+    );
+
+    fs.writeFileSync(testFile, playwrightTestContent, "utf8");
+
     try {
       // 运行Playwright测试
-      const { stdout, stderr } = await execAsync(`npx playwright test ${testFile} --reporter=line --timeout=120000`);
-      
+      const { stdout, stderr } = await execAsync(
+        `npx playwright test ${testFile} --reporter=line --timeout=120000`
+      );
+
       this.gameState.playwrightLog(`Playwright测试输出: ${stdout}`);
-      
+
       if (stderr) {
         this.gameState.log(`Playwright错误: ${stderr}`);
       }
-      
+
       // 检查测试结果
-      if (stdout.includes('passed') || stdout.includes('PASS')) {
-        this.gameState.log('Playwright测试通过');
-      } else if (stdout.includes('failed') || stdout.includes('FAIL')) {
-        this.gameState.error('Playwright测试失败');
+      if (stdout.includes("passed") || stdout.includes("PASS")) {
+        this.gameState.log("Playwright测试通过");
+      } else if (stdout.includes("failed") || stdout.includes("FAIL")) {
+        this.gameState.error("Playwright测试失败");
       }
-      
     } catch (error) {
       this.gameState.error(`Playwright测试执行失败: ${error.message}`);
       this.gameState.playwrightLog(`标准错误: ${error.stderr}`);
@@ -393,108 +406,109 @@ test.describe('自动化游戏测试 #${this.testNumber}', () => {
 
   generateReport() {
     const report = [
-      '='.repeat(70),
+      "=".repeat(70),
       "血染钟楼说书人助手高级自动化测试报告",
       `测试轮次: 游戏测试报告#${DATE_STR}+${this.testNumber}`,
-      `生成时间: ${new Date().toLocaleString('zh-CN')}`,
-      '='.repeat(70),
-      '',
-      '一、测试概要',
+      `生成时间: ${new Date().toLocaleString("zh-CN")}`,
+      "=".repeat(70),
+      "",
+      "一、测试概要",
       `测试编号: ${this.testNumber}`,
       `剧本: ${this.gameState.script}`,
       `玩家人数: ${this.gameState.playerCount}`,
-      `测试开始: ${this.gameState.logs[0] || '未知'}`,
-      `测试结束: ${new Date().toLocaleTimeString('zh-CN')}`,
-      `游戏结果: ${this.gameState.winner || '未完成'}`,
-      `测试状态: ${this.gameState.gameCompleted ? '完成' : '未完成'}`,
-      `是否崩溃: ${this.gameState.crashDetected ? '是' : '否'}`,
-      '',
-      '二、测试配置',
+      `测试开始: ${this.gameState.logs[0] || "未知"}`,
+      `测试结束: ${new Date().toLocaleTimeString("zh-CN")}`,
+      `游戏结果: ${this.gameState.winner || "未完成"}`,
+      `测试状态: ${this.gameState.gameCompleted ? "完成" : "未完成"}`,
+      `是否崩溃: ${this.gameState.crashDetected ? "是" : "否"}`,
+      "",
+      "二、测试配置",
       `最小玩家数: ${MIN_PLAYERS}`,
       `最大玩家数: ${MAX_PLAYERS}`,
-      `可用剧本: ${SCRIPTS.join(', ')}`,
-      '',
-      '三、测试过程日志',
-      ...this.gameState.logs.map(log => log),
-      '',
-      '四、Playwright交互日志',
-      ...(this.gameState.playwrightLogs.length > 0 
-        ? this.gameState.playwrightLogs.map(log => log)
-        : ['无Playwright交互日志']),
-      '',
-      '五、截图记录',
+      `可用剧本: ${SCRIPTS.join(", ")}`,
+      "",
+      "三、测试过程日志",
+      ...this.gameState.logs.map((log) => log),
+      "",
+      "四、Playwright交互日志",
+      ...(this.gameState.playwrightLogs.length > 0
+        ? this.gameState.playwrightLogs.map((log) => log)
+        : ["无Playwright交互日志"]),
+      "",
+      "五、截图记录",
     ];
 
     if (this.gameState.screenshots.length > 0) {
-      this.gameState.screenshots.forEach(screenshot => {
+      this.gameState.screenshots.forEach((screenshot) => {
         report.push(`${screenshot.timestamp} - ${screenshot.name}`);
       });
     } else {
-      report.push('无截图记录');
+      report.push("无截图记录");
     }
 
-    report.push('');
-    report.push('六、错误与问题');
+    report.push("");
+    report.push("六、错误与问题");
 
     if (this.gameState.errors.length > 0) {
-      report.push(...this.gameState.errors.map(error => error));
-      report.push('');
-      report.push('控制台输出:');
-      report.push(this.gameState.consoleOutput || '无');
+      report.push(...this.gameState.errors.map((error) => error));
+      report.push("");
+      report.push("控制台输出:");
+      report.push(this.gameState.consoleOutput || "无");
     } else {
-      report.push('无错误发生');
+      report.push("无错误发生");
     }
 
-    report.push('');
-    report.push('七、测试结论');
+    report.push("");
+    report.push("七、测试结论");
     if (this.gameState.errors.length === 0 && this.gameState.gameCompleted) {
-      report.push('✅ 测试通过：游戏流程正常，无崩溃或卡死');
+      report.push("✅ 测试通过：游戏流程正常，无崩溃或卡死");
     } else if (this.gameState.crashDetected) {
-      report.push('❌ 测试失败：检测到崩溃或卡死');
+      report.push("❌ 测试失败：检测到崩溃或卡死");
     } else {
-      report.push('⚠️  测试部分完成：存在一些问题但未崩溃');
+      report.push("⚠️  测试部分完成：存在一些问题但未崩溃");
     }
 
-    report.push('');
-    report.push('八、建议与改进');
+    report.push("");
+    report.push("八、建议与改进");
     if (this.gameState.errors.length > 0) {
-      report.push('1. 检查服务器启动过程');
-      report.push('2. 验证Playwright测试配置');
-      report.push('3. 查看具体错误信息进行修复');
+      report.push("1. 检查服务器启动过程");
+      report.push("2. 验证Playwright测试配置");
+      report.push("3. 查看具体错误信息进行修复");
     } else {
-      report.push('1. 测试流程正常，可增加更多测试轮次');
-      report.push('2. 可扩展更多角色交互测试');
-      report.push('3. 增加游戏结局验证');
+      report.push("1. 测试流程正常，可增加更多测试轮次");
+      report.push("2. 可扩展更多角色交互测试");
+      report.push("3. 增加游戏结局验证");
     }
 
-    report.push('');
-    report.push('='.repeat(70));
+    report.push("");
+    report.push("=".repeat(70));
 
-    fs.writeFileSync(this.reportPath, report.join('\n'), 'utf8');
+    fs.writeFileSync(this.reportPath, report.join("\n"), "utf8");
     console.log(`测试报告已生成: ${this.reportPath}`);
   }
 
   generateSummaryReport() {
     const summaryPath = path.join(REPORT_DIR, `测试总结报告#${DATE_STR}.txt`);
-    
+
     const summary = [
-      '='.repeat(70),
+      "=".repeat(70),
       "血染钟楼说书人助手自动化测试总结报告",
       `测试日期: ${DATE_STR}`,
-      `生成时间: ${new Date().toLocaleString('zh-CN')}`,
+      `生成时间: ${new Date().toLocaleString("zh-CN")}`,
       `总测试轮次: ${TEST_COUNT}`,
-      '='.repeat(70),
-      '',
-      '测试统计:',
+      "=".repeat(70),
+      "",
+      "测试统计:",
       `总测试轮次: ${TEST_COUNT}`,
       `成功轮次: ${TEST_COUNT} (基于模拟测试)`,
       "失败轮次: 0",
       "崩溃次数: 0",
-      '',
-      '剧本使用统计:',
+      "",
+      "剧本使用统计:",
     ];
 
     // 这里可以添加更详细的
-    fs.writeFileSync(summaryPath, summary.join('\n'), 'utf8');
+    fs.writeFileSync(summaryPath, summary.join("\n"), "utf8");
     console.log(`测试总结报告已生成: ${summaryPath}`);
   }
+}

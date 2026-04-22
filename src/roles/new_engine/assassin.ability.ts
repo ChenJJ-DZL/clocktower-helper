@@ -4,7 +4,7 @@
 
 import {
   canUseLimitedAbility,
-  useLimitedAbility,
+  consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -86,7 +86,7 @@ const updateAssassinationStatus = async (
   }
 
   // 无论成功与否，只要选择了目标就标记能力已使用
-  useLimitedAbility(actionNode.seatId, "assassin_kill");
+  consumeLimitedAbility(actionNode.seatId, "assassin_kill");
 
   return {
     ...context,

@@ -418,11 +418,11 @@ async function runExtendedFullCoverageTest() {
   }
 
   // 生成报告内容
-  let reportContent = "=".repeat(80) + "\n";
+  let reportContent = `${"=".repeat(80)}\n`;
   reportContent += "血染钟楼扩展全量测试报告\n";
   reportContent += `生成时间: ${new Date().toISOString()}\n`;
   reportContent += `报告编号: ${date}+${roundNumber}\n`;
-  reportContent += "=".repeat(80) + "\n\n";
+  reportContent += `${"=".repeat(80)}\n\n`;
 
   // 总体统计
   reportContent += "=== 总体统计 ===\n";
@@ -542,15 +542,15 @@ async function runExtendedFullCoverageTest() {
   reportContent += `✅ 胜利条件判断正确，好人/邪恶胜利分布合理 (${Math.round((totalGoodWins / totalTests) * 100)}%好人胜率)\n`;
   reportContent += `✅ 测试覆盖广泛：${rolesToTest.length}个角色，${totalTests}次完整游戏模拟\n`;
 
-  reportContent += "\n" + "=".repeat(80) + "\n";
+  reportContent += `\n${"=".repeat(80)}\n`;
   reportContent += "报告结束\n";
-  reportContent += "=".repeat(80) + "\n";
+  reportContent += `${"=".repeat(80)}\n`;
 
   // 写入文件
   fs.writeFileSync(reportPath, reportContent, "utf-8");
 
   // 控制台输出
-  console.log("\n" + "=".repeat(70));
+  console.log(`\n${"=".repeat(70)}`);
   console.log("📊 扩展全量测试完成");
   console.log(`总测试次数: ${totalTests}`);
   console.log(`技能触发: ${totalSkillTriggers} 次`);

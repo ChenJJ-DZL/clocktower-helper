@@ -14,7 +14,6 @@ registerAllNewEngineAbilities();
 /**
  * 角色注册表 - 兼容旧接口
  */
-export const roleRegistry: Map<string, RoleDefinition> = new Map();
 
 /**
  * 根据角色 ID 获取角色定义
@@ -39,13 +38,16 @@ export function getAllRoleDefinitions(): RoleDefinition[] {
  * @returns 是否已注册
  */
 export function isRoleRegistered(roleId: string): boolean {
-  return roleRegistry.has(roleId) || unifiedRoleDefinition.getRoleAbilities(roleId).length > 0;
+  return (
+    roleRegistry.has(roleId) ||
+    unifiedRoleDefinition.getRoleAbilities(roleId).length > 0
+  );
 }
 
 // 导出所有新引擎角色能力
 export * from "./new_engine/abilityRegistry";
 
-/* ===================== 旧代码备份 - 非必要不启用 =====================
+// ===================== 旧代码备份 - 非必要不启用 =====================
 // Demon
 import { fang_gu } from "./demon/fang_gu";
 import { hadesia } from "./demon/hadesia";
@@ -187,7 +189,6 @@ import { washerwoman } from "./townsfolk/washerwoman";
  * 角色注册表
  * 使用 Map 结构，以角色 ID 为键，方便快速查找
  */
-/*
 export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [amnesiac.id, amnesiac],
   [artist.id, artist],
@@ -347,4 +348,3 @@ export { poisoner } from "./minion/poisoner";
 export { psychopath } from "./minion/psychopath";
 export { scarlet_woman } from "./minion/scarlet_woman";
 export { shaman } from "./minion/shaman";
-*/

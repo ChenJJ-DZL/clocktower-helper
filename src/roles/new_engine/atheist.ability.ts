@@ -1,4 +1,3 @@
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -24,7 +23,9 @@ export const atheistAbility = createRoleAbility({
   stateUpdate: [],
   postProcess: [
     async (context) => {
-      console.log("无神论者在善良阵营获胜时，邪恶阵营获胜；在邪恶阵营获胜时，善良阵营获胜");
+      console.log(
+        "无神论者在善良阵营获胜时，邪恶阵营获胜；在邪恶阵营获胜时，善良阵营获胜"
+      );
       return context;
     },
   ],

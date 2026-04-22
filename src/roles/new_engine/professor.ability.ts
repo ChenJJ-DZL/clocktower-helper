@@ -4,7 +4,7 @@
 
 import {
   canUseLimitedAbility,
-  useLimitedAbility,
+  consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -113,7 +113,7 @@ const updateResurrectionStatus = async (
   }
 
   // 无论成功与否，都标记能力已使用
-  useLimitedAbility(actionNode.seatId, "professor_resurrect");
+  consumeLimitedAbility(actionNode.seatId, "professor_resurrect");
 
   return {
     ...context,

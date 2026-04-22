@@ -7,7 +7,7 @@
 import type { Seat } from "../../../app/data";
 import {
   canUseLimitedAbility,
-  useLimitedAbility,
+  consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -121,7 +121,7 @@ const markAbilityUsed = async (
   const { actionNode, meta } = context;
 
   if (meta.abilityResult && !context.aborted) {
-    useLimitedAbility(actionNode.seatId, "seamstress_check");
+    consumeLimitedAbility(actionNode.seatId, "seamstress_check");
   }
 
   return context;

@@ -380,7 +380,7 @@ class EnhancedGameSimulation {
   }
 
   // 杀死玩家
-  private killPlayer(seatId: number, reason: string): void {
+  private killPlayer(seatId: number, _reason: string): void {
     const seatIndex = this.seats.findIndex((s) => s.id === seatId);
     if (seatIndex >= 0) {
       this.seats[seatIndex].isDead = true;
@@ -421,7 +421,7 @@ class EnhancedGameSimulation {
     return {
       winner: this.winner,
       rounds: this.currentRound,
-      duration: new Date().getTime() - this.startTime.getTime(),
+      duration: Date.now() - this.startTime.getTime(),
       testRoleInfo: testRole
         ? {
             id: testRole.id,

@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取app/data.ts文件
 const dataPath = path.join(__dirname, "..", "app", "data.ts");
@@ -10,7 +10,9 @@ const rolePattern = /id:\s*["']([^"']+)["'][^}]*name:\s*["']([^"']+)["']/g;
 const allRoles = [];
 let match;
 
-while ((match = rolePattern.exec(dataContent)) !== null) {
+while (true) {
+  match = rolePattern.exec(dataContent);
+  if (match === null) break;
   allRoles.push({
     id: match[1],
     name: match[2],

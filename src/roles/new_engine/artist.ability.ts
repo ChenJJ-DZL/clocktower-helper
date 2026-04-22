@@ -6,7 +6,7 @@
 
 import {
   canUseLimitedAbility,
-  useLimitedAbility,
+  consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -40,7 +40,7 @@ const markAbilityUsed = async (
   const { actionNode } = context;
 
   if (!context.aborted) {
-    useLimitedAbility(actionNode.seatId, "artist_question");
+    consumeLimitedAbility(actionNode.seatId, "artist_question");
   }
 
   return context;

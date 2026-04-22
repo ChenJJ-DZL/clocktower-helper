@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取所有角色数据
 const allCharactersPath = path.join(
@@ -25,7 +25,7 @@ console.log("=== 角色能力迁移状态分析 ===\n");
 // 按类型分组
 const types = {};
 characters.forEach((char) => {
-  const type = char["类型"];
+  const type = char.类型;
   if (!types[type]) types[type] = [];
   types[type].push(char);
 });
@@ -49,7 +49,7 @@ Object.keys(types)
 
     chars.forEach((char) => {
       totalCharacters++;
-      const englishName = char["英文名"];
+      const englishName = char.英文名;
       const roleId = englishName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 
       const isMigrated = migratedFiles.includes(roleId);
@@ -59,15 +59,15 @@ Object.keys(types)
       }
 
       typeStatus.characters.push({
-        name: char["名称"],
+        name: char.名称,
         englishName: englishName,
         roleId: roleId,
-        script: char["所属剧本"],
+        script: char.所属剧本,
         migrated: isMigrated,
       });
 
       console.log(
-        `  ${isMigrated ? "✅" : "❌"} ${char["名称"]} (${englishName}) - ${char["所属剧本"]}`
+        `  ${isMigrated ? "✅" : "❌"} ${char.名称} (${englishName}) - ${char.所属剧本}`
       );
     });
 
@@ -99,7 +99,7 @@ const result = {
   totalCharacters,
   totalMigrated,
   totalPending: totalCharacters - totalMigrated,
-  migrationRate: ((totalMigrated / totalCharacters) * 100).toFixed(1) + "%",
+  migrationRate: `${((totalMigrated / totalCharacters) * 100).toFixed(1)}%`,
   byType: migrationStatus,
 };
 

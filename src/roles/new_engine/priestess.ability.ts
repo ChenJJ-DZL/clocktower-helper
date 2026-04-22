@@ -1,4 +1,3 @@
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

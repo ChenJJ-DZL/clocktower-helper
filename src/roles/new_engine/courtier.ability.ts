@@ -4,7 +4,7 @@
 
 import {
   canUseLimitedAbility,
-  useLimitedAbility,
+  consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../../utils/nightStateMachine";
@@ -88,7 +88,7 @@ const updateDrunkStatus = async (
   const isAbilityEffective = meta.abilityEffective ?? true;
 
   // 无论成功与否，都标记能力已使用
-  useLimitedAbility(actionNode.seatId, "courtier_drunk");
+  consumeLimitedAbility(actionNode.seatId, "courtier_drunk");
 
   if (!isAbilityEffective || !targetPlayerId) {
     // 醉酒/中毒或者角色不在场，不产生效果

@@ -3,42 +3,9 @@
  * 纯函数式状态管理，严格控制夜晚流程流转，所有状态变更均为不可变
  */
 
-import {
-  baronAbility,
-  butlerAbility,
-  chefAbility,
-  courtierAbility,
-  drunkAbility,
-  empathAbility,
-  fortuneTellerAbility,
-  impAbility,
-  investigatorAbility,
-  librarianAbility,
-  mayorAbility,
-  monkAbility,
-  poisonerAbility,
-  ravenkeeperAbility,
-  recluseAbility,
-  saintAbility,
-  savantAbility,
-  scarletWomanAbility,
-  slayerAbility,
-  soldierAbility,
-  spyAbility,
-  undertakerAbility,
-  virginAbility,
-  washerwomanAbility,
-} from "../roles/new_engine/abilityRegistry";
 import { unifiedEventBus } from "./unifiedEventBus";
-
-// 游戏状态快照接口（与现有系统兼容，新引擎独立定义）
-export interface GameStateSnapshot {
-  nightCount: number;
-  seats: any[];
-  statusEffects: Record<number, any[]>;
-  gamePhase: string;
-  [key: string]: any;
-}
+import type { GameStateSnapshot, NightActionNode } from "./middlewareTypes";
+export type { GameStateSnapshot, NightActionNode };
 
 // 夜晚状态枚举
 export enum NightState {
@@ -59,15 +26,6 @@ export enum NightState {
 }
 
 // 夜间行动节点接口
-export interface NightActionNode {
-  seatId: number;
-  roleId: string;
-  roleName: string;
-  priority: number;
-  isFirstNightOnly: boolean;
-  abilityId: string;
-  wakeMessage: string;
-}
 
 // 状态转移规则：允许的状态流转路径
 const ALLOWED_TRANSITIONS: Record<NightState, NightState[]> = {
@@ -81,32 +39,8 @@ const ALLOWED_TRANSITIONS: Record<NightState, NightState[]> = {
 };
 
 // 已迁移的能力ID列表（从新引擎配置中获取）
-const MIGRATED_ABILITY_IDS = new Set([
-  washerwomanAbility.abilityId,
-  librarianAbility.abilityId,
-  investigatorAbility.abilityId,
-  chefAbility.abilityId,
-  empathAbility.abilityId,
-  fortuneTellerAbility.abilityId,
-  ravenkeeperAbility.abilityId,
-  impAbility.abilityId,
-  baronAbility.abilityId,
-  butlerAbility.abilityId,
-  drunkAbility.abilityId,
-  mayorAbility.abilityId,
-  monkAbility.abilityId,
-  poisonerAbility.abilityId,
-  recluseAbility.abilityId,
-  saintAbility.abilityId,
-  savantAbility.abilityId,
-  scarletWomanAbility.abilityId,
-  slayerAbility.abilityId,
-  soldierAbility.abilityId,
-  spyAbility.abilityId,
-  undertakerAbility.abilityId,
-  virginAbility.abilityId,
-  courtierAbility.abilityId,
-]);
+// 所有能力均已迁移到新引擎，无需显式列出
+const MIGRATED_ABILITY_IDS = new Set<string>();
 
 // 状态变更事件映射
 const STATE_CHANGE_EVENTS: Partial<Record<NightState, string>> = {
@@ -190,9 +124,7 @@ export class NightStateMachine {
     if (payload?.currentNode) {
       let node = { ...payload.currentNode };
       // Fallback机制：未迁移角色生成空白节点
-      if (!MIGRATED_ABILITY_IDS.has(node.abilityId)) {
-        node = createFallbackNode(node);
-      }
+      // 所有能力均已迁移到新引擎，无需fallback
       this._currentNode = node;
     }
 

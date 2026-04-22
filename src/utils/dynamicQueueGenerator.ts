@@ -77,6 +77,11 @@ export function generateDynamicNightQueue(
       isFirstNightOnly: entry.firstNightOnly,
       abilityId: entry.abilityId,
       wakeMessage: entry.wakeMessage,
+      wakePriority: entry.priority,
+      targetIds: [],
+      processed: false,
+      success: false,
+      meta: {},
     };
   });
 

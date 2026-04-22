@@ -437,7 +437,7 @@ export function useGameFlow(): UseGameFlowResult {
       // 使用游戏事件总线触发 startNight 逻辑
       unifiedEventBus.emit("startFirstNight", {});
     },
-    [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.name]
+    [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.roleIds]
   );
 
   const tickTimer = useCallback(

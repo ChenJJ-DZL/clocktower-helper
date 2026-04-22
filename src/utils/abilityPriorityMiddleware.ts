@@ -3,7 +3,7 @@
  * 实现官方规则的优先级判定：咖啡师>酿酒师>涡流>醉酒/中毒>自身能力限制
  */
 
-import type { MiddlewareContext } from "./middlewarePipeline";
+import type { MiddlewareContext } from "./middlewareTypes";
 
 /**
  * 全局优先级计算中间件

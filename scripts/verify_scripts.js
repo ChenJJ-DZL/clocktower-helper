@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 console.log("检查剧本数据...\n");
 
@@ -21,9 +21,9 @@ if (scriptsMatch) {
 
   if (idMatches) {
     console.log("剧本列表:");
-    idMatches.forEach((id) =>
-      console.log(`  - ${id.replace(/id:\s*"/, "").replace(/"/, "")}`)
-    );
+    idMatches.forEach((id) => {
+      console.log(`  - ${id.replace(/id:\s*"/, "").replace(/"/, "")}`);
+    });
   }
 }
 

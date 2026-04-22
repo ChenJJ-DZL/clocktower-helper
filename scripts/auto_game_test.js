@@ -6,10 +6,10 @@
  * 测试游戏流程、UI状态、逻辑正确性
  */
 
-const fs = require("fs");
-const path = require("path");
-const { execSync, spawn } = require("child_process");
-const readline = require("readline");
+const fs = require("node:fs");
+const path = require("node:path");
+const { execSync, spawn } = require("node:child_process");
+const readline = require("node:readline");
 
 // 配置
 const TEST_COUNT = 1; // 首次测试只运行1轮

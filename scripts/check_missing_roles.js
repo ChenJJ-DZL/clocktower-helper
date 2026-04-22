@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // 读取 app/data.ts 文件
 const dataPath = path.join(__dirname, "..", "app", "data.ts");
@@ -14,7 +14,9 @@ const allRoleIds = [];
 const roleIdsSectionRegex = /roleIds:\s*\[[\s\S]*?\]/g;
 let match;
 
-while ((match = roleIdsSectionRegex.exec(tempContent)) !== null) {
+while (true) {
+  match = roleIdsSectionRegex.exec(tempContent);
+  if (match === null) break;
   const section = match[0];
   // 从 section 中提取引号中的内容
   const ids = section.match(/"[a-z0-9_]+"/g);
@@ -64,5 +66,7 @@ console.log("\n缺失数量:", missingRoles.length);
 
 if (missingRoles.length > 0) {
   console.log("\n需要添加的角色:");
-  missingRoles.forEach((id) => console.log(`- ${id}`));
+  missingRoles.forEach((id) => {
+    console.log(`- ${id}`);
+  });
 }

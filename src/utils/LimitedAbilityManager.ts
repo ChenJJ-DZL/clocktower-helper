@@ -143,7 +143,7 @@ export function canUseLimitedAbility(
  * @param customDefinition 可选的自定义定义
  * @returns 是否成功使用
  */
-export function useLimitedAbility(
+export function consumeLimitedAbility(
   seatId: number,
   abilityId: string,
   customDefinition?: LimitedAbilityDefinition
@@ -251,7 +251,7 @@ export const checkLimitedAbilityUsage = canUseLimitedAbility;
 /**
  * 使用限次能力（便利函数）
  */
-export const useLimitedAbilityFunc = useLimitedAbility;
+export const useLimitedAbilityFunc = consumeLimitedAbility;
 
 /**
  * 获取限次能力已使用次数（便利函数）
