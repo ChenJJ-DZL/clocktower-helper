@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Script, Seat } from "@/app/data";
 import type { NightInfoResult } from "@/src/types/game";
-import { calculateNightInfo } from "../utils/nightLogic";
+import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 
 export function useNightSnapshot(
   seats: Seat[],
@@ -38,7 +38,7 @@ export function useNightSnapshot(
     (index: number, currentSeats: Seat[], currentPhase: string) => {
       const nextSeatId = wakeQueueIds[index];
       if (nextSeatId !== undefined) {
-        const nextStepInfo = calculateNightInfo(
+        const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
           currentSeats,
           nextSeatId,

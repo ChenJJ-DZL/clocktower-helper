@@ -238,12 +238,39 @@ export function registerAllNewEngineAbilities(): void {
     puzzlemasterAbility,
   ];
 
+  // 同时构建原始 IRoleAbility 映射（供 NightEngine 使用中间件管道）
   abilities.forEach((ability) => {
     const unifiedAbility = convertToUnifiedAbility(ability);
     unifiedRoleDefinition.registerAbility(unifiedAbility);
+    // 以 abilityId 为键存储原始 IRoleAbility
+    rawAbilityMap.set(ability.abilityId, ability);
   });
 
   console.log(`[AbilityRegistry] 已注册 ${abilities.length} 个新引擎能力`);
+}
+
+/**
+ * 原始 IRoleAbility 映射表（保留 preCheck/calculate/stateUpdate/postProcess 中间件）
+ * NightEngine 通过此映射获取完整的中间件管道
+ */
+const rawAbilityMap: Map<
+  string,
+  import("../core/roleAbility.types").IRoleAbility
+> = new Map();
+
+/**
+ * 获取原始 IRoleAbility 映射（供 NightEngine 使用）
+ */
+export function getRawAbilityMap(): Record<
+  string,
+  import("../core/roleAbility.types").IRoleAbility
+> {
+  const map: Record<string, import("../core/roleAbility.types").IRoleAbility> =
+    {};
+  rawAbilityMap.forEach((ability, key) => {
+    map[key] = ability;
+  });
+  return map;
 }
 
 /**

@@ -12,10 +12,6 @@ import { unifiedRoleDefinition } from "./unifiedRoleDefinition";
 registerAllNewEngineAbilities();
 
 /**
- * 角色注册表 - 兼容旧接口
- */
-
-/**
  * 根据角色 ID 获取角色定义
  * @param roleId 角色 ID
  * @returns 角色定义，如果不存在则返回 undefined

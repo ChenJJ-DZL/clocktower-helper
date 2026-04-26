@@ -231,9 +231,7 @@ export class NightEngine {
   updateSnapshot(newSnapshot: GameStateSnapshot): void {
     // 仅在夜晚未开始时更新快照，夜晚进行中不允许外部修改状态
     if (this._stateMachine.currentState === NightState.IDLE) {
-      this._stateMachine.transitionTo(NightState.IDLE, {
-        snapshot: newSnapshot,
-      });
+      this._stateMachine.updateSnapshot(newSnapshot);
     }
   }
 

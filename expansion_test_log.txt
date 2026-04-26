@@ -1,0 +1,132 @@
+游戏模拟日志报告
+测始于: 4/27/2026, 1:20:07 AM
+====================================
+[1:20:07 AM] [应用] [AbilityRegistry] 开始注册新引擎能力...
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 保护玩家 (angel:angel_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 公开触发死亡 (doomsayer:doomsayer_public_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔放弃攻击 (toymaker:toymaker_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 白天发言限制 (buddhist:buddhist_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 邻座同阵营 (revolutionary:revolutionary_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 说书人失误 (deus_ex_fiasco:deus_ex_fiasco_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 死亡导致失败 (ferryman:ferryman_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 角色宣告 (stormcatcher:stormcatcher_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 声音传递 (ventriloquist:ventriloquist_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 身份揭露 (trickster_jack:trickster_jack_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 三倍选票 (bureaucrat:bureaucrat_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 异常统计 (mathematician:mathematician_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 地质勘探 (miner:miner_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 临终启示 (sage:sage_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 蛇吻魅惑 (snake_charmer:snake_charmer_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 吞噬能力 (cannibal:cannibal_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 爪牙改造 (engineer:engineer_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 智慧汲取 (philosopher:philosopher_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 守护互换 (ranger:ranger_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 乞讨选票 (beggar:beggar_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 正义枪击 (gunslinger:gunslinger_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 妙手空空 (thief:thief_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 替死转嫁 (scapegoat:scapegoat_special_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 外来者增幅 (baron:baron_outsider_boost)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 仆从效忠 (butler:butler_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 邪恶邻座感知 (chef:chef_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 烂醉如泥 (drunk:drunk_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 邪恶邻座感知 (empath:empath_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 免死一次 (fool:fool_passive_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 占卜 (fortune_teller:fortune_teller_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔杀人与传刀 (imp:imp_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 爪牙识别 (investigator:investigator_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 外来者识别 (librarian:librarian_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 最终提名存活 (mayor:mayor_passive_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 神圣保护 (monk:monk_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 致命毒药 (poisoner:poisoner_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 亡者低语 (ravenkeeper:ravenkeeper_death_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 伪装者 (recluse:recluse_disguise)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 圣洁诅咒 (saint:saint_execution_curse)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 每日信息 (savant:savant_day_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔继承者 (scarlet_woman:scarlet_woman_demon_successor)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 狩魔 (slayer:slayer_day_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 坚韧不拔 (soldier:soldier_passive_immunity)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 查看魔典 (spy:spy_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 殓尸人 (undertaker:undertaker_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 纯洁之身 (virgin:virgin_nomination_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 身份识别 (washerwoman:washerwoman_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 类型追踪 (balloonist:balloonist_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 阵营感知 (villager:villager_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 猝死 (tinker:tinker_passive_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 醉酒保护 (sailor:sailor_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 死亡诅咒 (moonchild:moonchild_death_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 邻近善良保护 (tea_lady:tea_lady_passive_protection)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 夜间查验 (chambermaid:chambermaid_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 孙子识别 (grandmother:grandmother_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔驱逐 (exorcist:exorcist_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 起死回生 (professor:professor_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 朝臣醉酒 (courtier:courtier_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 旅店保护 (innkeeper:innkeeper_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 致命暗杀 (assassin:assassin_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔爪牙距离感知 (clockmaker:clockmaker_first_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 梦境窥探 (dreamer:dreamer_nightly_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 投票侦测 (flowergirl:flowergirl_nightly_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 邪恶亡灵侦测 (oracle:oracle_nightly_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 阵营辨识 (seamstress:seamstress_once_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 提问 (artist:artist_once_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔击杀 (po:po_night_kill)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔击杀 (shabaloth:shabaloth_night_kill)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 普卡毒杀 (pukka:pukka_poison)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 僵怖击杀 (zombuul:zombuul_kill)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 豪赌 (gambler:gambler_guess_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 谣言 (gossip:gossip_statement_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 醉人的乐章 (minstrel:minstrel_execution_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 和平守护 (pacifist:pacifist_execution_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 阵营转换 (goon:goon_passive_alignment)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 恶魔幻想 (lunatic:lunatic_fake_demon)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 替身选择 (godfather:godfather_decoy)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 死亡豁免 (devil_s_advocate:devils_advocate_protection)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 棋局延续 (mastermind:mastermind_game_extension)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 外来者猎杀 (fang_gu:fang_gu_kill)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 夜晚攻击 (half_ogre:half_ogre_night_attack)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 报丧女妖觉醒 (banshee:banshee_awake)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 夜晚学习 (astrologer:astrologer_night_learn)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 首夜得知 (knight:knight_first_night_info)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 首夜得知 (noble:noble_first_night_info)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 首夜得知 (pilgrim:pilgrim_first_night_info)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 每夜得知 (priestess:priestess_nightly_info)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 死亡触发得知恶魔 (choir_boy:choir_boy_death_trigger)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 首日处决免死 (princess:princess_first_day_execution)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 死亡角色转移 (farmer:farmer_death_transfer)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 学习角色能力 (amnesiac:amnesiac_learn_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 无神论者胜利条件 (atheist:atheist_game_ending)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 处决胜利 (jester:jester_execution_win)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 获取建议 (fisherman:fisherman_day_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 检测醉酒中毒 (acrobat:acrobat_night_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 爪牙获伪装 (snitch:snitch_passive_ability)
+[1:20:07 AM] [应用] [UnifiedRoleDefinition] 注册能力: 醉酒玩家与猜测 (puzzlemaster:puzzlemaster_hybrid_ability)
+[1:20:07 AM] [应用] [AbilityRegistry] 已注册 97 个新引擎能力
+[1:20:07 AM] [应用] [NightEngine] 构建能力映射表，共 97 个能力
+[1:20:07 AM] [测试] --- 开始验证祖母孙子连带死亡逻辑 ---
+[1:20:07 AM] [应用] [DEBUG] Script "黯月初升" filtered 36 roles via roleIds
+[1:20:08 AM] [测试] 点击座位 2
+[1:20:08 AM] [应用] [app/page setup] RoundTable seat clicked: 1
+[1:20:08 AM] [应用] [useSeatManager] Triggering onSetup for minstrel (Seat 2)
+[1:20:09 AM] [测试] 点击座位 1
+[1:20:09 AM] [应用] [app/page setup] RoundTable seat clicked: 0
+[1:20:09 AM] [应用] [useSeatManager] Triggering onSetup for grandmother (Seat 1)
+[1:20:09 AM] [测试] 点击座位 3
+[1:20:09 AM] [应用] [app/page setup] RoundTable seat clicked: 2
+[1:20:09 AM] [应用] [useSeatManager] Triggering onSetup for zombuul (Seat 3)
+[1:20:10 AM] [测试] 点击座位 4
+[1:20:10 AM] [应用] [app/page setup] RoundTable seat clicked: 3
+[1:20:10 AM] [应用] [useSeatManager] Triggering onSetup for chambermaid (Seat 4)
+[1:20:11 AM] [测试] 点击座位 5
+[1:20:11 AM] [应用] [app/page setup] RoundTable seat clicked: 4
+[1:20:11 AM] [应用] [useSeatManager] Triggering onSetup for exorcist (Seat 5)
+[1:20:12 AM] [测试] 点击座位 6
+[1:20:12 AM] [应用] [app/page setup] RoundTable seat clicked: 5
+[1:20:12 AM] [应用] [useSeatManager] Triggering onSetup for innkeeper (Seat 6)
+[1:20:12 AM] [测试] 点击座位 7
+[1:20:12 AM] [应用] [app/page setup] RoundTable seat clicked: 6
+[1:20:12 AM] [应用] [useSeatManager] Triggering onSetup for gambler (Seat 7)
+[1:20:13 AM] [测试] 点击座位 8
+[1:20:13 AM] [应用] [app/page setup] RoundTable seat clicked: 7
+[1:20:13 AM] [应用] [useSeatManager] Triggering onSetup for pacifist (Seat 8)
+[1:20:14 AM] [测试] 点击座位 9
+[1:20:14 AM] [应用] [app/page setup] RoundTable seat clicked: 8
+[1:20:14 AM] [应用] [useSeatManager] Triggering onSetup for tea_lady (Seat 9)

@@ -13,6 +13,9 @@ import type {
   PreCheckMiddleware,
   StateUpdateMiddleware,
 } from "./middlewareTypes";
+
+// 导出 abilityPriorityCalculation
+export { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 export type {
   AbilityMiddlewareSet,
   CalculateMiddleware,
@@ -22,9 +25,6 @@ export type {
   PreCheckMiddleware,
   StateUpdateMiddleware,
 };
-
-// 导出 abilityPriorityCalculation
-export { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 
 // 默认空中间件，直接通过
 const defaultMiddleware = async (

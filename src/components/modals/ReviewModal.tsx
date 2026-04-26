@@ -95,12 +95,14 @@ export function ReviewModal({
             className={`space-y-4 ${isPortrait ? "max-h-96" : "max-h-[calc(100vh-16rem)]"} overflow-y-auto`}
           >
             {(() => {
-              // 按阶段顺序组织日志：firstNight -> night -> day -> dusk
+              // 按时间线顺序组织日志：setup -> firstNight -> day -> dusk -> night
+              // 注意：firstNight 的 day=0，第1天 day=0，第1天黄昏 day=0，第2夜 day=1，第2天 day=1，...
               const phaseOrder: Record<string, number> = {
+                setup: 0,
                 firstNight: 1,
-                night: 2,
-                day: 3,
-                dusk: 4,
+                day: 2,
+                dusk: 3,
+                night: 4,
               };
 
               // 按天数和阶段分组
@@ -130,16 +132,19 @@ export function ReviewModal({
 
               return sortedLogs.map(([key, logs]) => {
                 const [day, phase] = key.split("_");
+                const dayNum = parseInt(day, 10);
                 const phaseName =
-                  phase === "firstNight"
-                    ? "第1夜"
-                    : phase === "night"
-                      ? `第${day}夜`
+                  phase === "setup"
+                    ? "⚙️ 开局"
+                    : phase === "firstNight"
+                      ? "🌙 首夜"
                       : phase === "day"
-                        ? `第${day}天`
+                        ? `☀️ 第${dayNum + 1}天`
                         : phase === "dusk"
-                          ? `第${day}天黄昏`
-                          : `第${day}轮`;
+                          ? `🌆 第${dayNum + 1}天黄昏`
+                          : phase === "night"
+                            ? `🌙 第${dayNum + 1}夜`
+                            : `第${day}轮`;
 
                 return (
                   <div

@@ -69,8 +69,9 @@ class NightOrderParser {
     }
 
     // 解析其他夜晚顺序
-    if (Array.isArray(nightOrderData.otherNight)) {
-      this.otherNightOrder = nightOrderData.otherNight.map(
+    const otherNightData = nightOrderData.otherNights || nightOrderData.otherNight;
+    if (Array.isArray(otherNightData)) {
+      this.otherNightOrder = otherNightData.map(
         (item: any, index: number) => {
           const orderItem: NightOrderItem = {
             roleId: item.id,

@@ -54,7 +54,8 @@ export {
 export type { NightEngineConfig, NightEngineState } from "./nightEngineFacade";
 // 新夜晚引擎导出
 export { NightEngine } from "./nightEngineFacade";
-export * from "./nightLogic";
+// nightLogic 已废弃，由 nightInfoAdapter + nightInfoGenerator 替代
+// export * from "./nightLogic";
 export * from "./nightOrderOverrides";
 export * from "./nightQueueGenerator";
 // export * from './reproduce_regex'; // Not a module

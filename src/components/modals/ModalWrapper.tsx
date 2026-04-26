@@ -27,30 +27,19 @@ export function ModalWrapper({
   // MOVED TO TOP to avoid "Rendered more hooks" error if early return happens
   const portalKeyRef = React.useRef(`modal-${title}-${Date.now()}`);
   const [mounted, setMounted] = useState(false);
+  const hasLoggedRef = React.useRef(false);
 
   useEffect(() => {
     setMounted(true);
-    console.log("[ModalWrapper] Mounted, title:", title);
-    // ... (rest of logging)
-    // Verify portal target exists
-    if (document.body) {
-      console.log(
-        "[ModalWrapper] ✅ Portal target (document.body) is available"
-      );
-    } else {
-      console.error(
-        "[ModalWrapper] ❌ Portal target (document.body) is NOT available!"
-      );
+    if (!hasLoggedRef.current) {
+      console.log("[ModalWrapper] Mounted, title:", title);
+      hasLoggedRef.current = true;
     }
   }, [title]);
 
   if (typeof document === "undefined" || !mounted) {
-    console.log("[ModalWrapper] Not mounted yet or no document");
     return null;
   }
-
-  console.log("[ModalWrapper] Rendering portal for:", title);
-  console.log("[ModalWrapper] document.body exists:", !!document.body);
 
   if (!document.body) {
     console.error("[ModalWrapper] document.body is not available!");
@@ -59,11 +48,6 @@ export function ModalWrapper({
 
   // Use ref to ensure key remains stable across renders
   const portalKey = portalKeyRef.current;
-
-  if (mounted && document.body) {
-    // Only log occasionally or on mount to reduce noise
-    // console.log('[ModalWrapper] Portal key:', portalKey);
-  }
 
   return createPortal(
     <div

@@ -1,7 +1,62 @@
 # Page snapshot
 
 ```yaml
-- generic [ref=e3]:
-  - heading "404" [level=1] [ref=e4]
-  - heading "This page could not be found." [level=2] [ref=e6]
+- generic [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e6]:
+    - main [ref=e7]:
+      - generic [ref=e9]:
+        - button "相克规则：关" [ref=e10]
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - generic [ref=e13]:
+              - generic:
+                - generic [ref=e15] [cursor=pointer]:
+                  - generic [ref=e16]: "1"
+                  - generic:
+                    - generic: 小恶魔
+                - generic [ref=e18] [cursor=pointer]:
+                  - generic [ref=e19]: "2"
+                  - generic:
+                    - generic: 投毒者
+                - generic [ref=e21] [cursor=pointer]:
+                  - generic [ref=e22]: "3"
+                  - generic:
+                    - generic: 洗衣妇
+                - generic [ref=e24] [cursor=pointer]:
+                  - generic [ref=e25]: "4"
+                  - generic:
+                    - generic: 图书管理员
+                - generic [ref=e27] [cursor=pointer]:
+                  - generic [ref=e28]: "5"
+                  - generic:
+                    - generic: 猎手
+            - generic [ref=e29]:
+              - generic [ref=e30]: 核对身份
+              - generic [ref=e31]:
+                - button "4:55" [ref=e32] [cursor=pointer]
+                - generic [ref=e33]:
+                  - button "重置" [ref=e34]
+                  - generic [ref=e35]: 运行中
+              - generic [ref=e36]: 拜甘教设计
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - generic [ref=e40]: 夜晚行动顺序
+              - button "展开" [ref=e41]
+            - generic [ref=e43]: 暂无（未生成顺序或不在夜晚阶段）
+    - complementary [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e48]: 核对身份
+        - generic [ref=e50]:
+          - heading "角色说明" [level=3] [ref=e51]: 角色说明
+          - generic [ref=e53]:
+            - generic [ref=e54]: 其他提示
+            - generic [ref=e55]:
+              - generic [ref=e58]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
+              - generic [ref=e61]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
+              - generic [ref=e64]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
+              - generic [ref=e67]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
+              - generic [ref=e70]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
+              - generic [ref=e73]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
+        - button "确认无误，入夜 🌙" [active] [ref=e75]
 ```

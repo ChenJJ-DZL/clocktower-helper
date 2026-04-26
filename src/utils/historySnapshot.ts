@@ -219,8 +219,9 @@ export const SNAPSHOT_TRIGGERS = {
 /**
  * 从 NightLogicGameState 创建游戏状态快照
  * 用于新夜晚引擎的状态转换
+ * 类型定义来自新引擎 useNightEngine（旧引擎 useNightLogic 已废弃）
  */
-import type { NightLogicGameState } from "../hooks/useNightLogic";
+import type { NightLogicGameState } from "../hooks/useNightEngine";
 
 export function createSnapshotFromGameState(
   gameState: NightLogicGameState

@@ -4,7 +4,7 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { groupedRoles, type Role, roles, type Seat } from "../../app/data";
-import { useGameContext } from "../contexts/GameContext";
+import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
 import {
@@ -1112,11 +1112,53 @@ export function useGameController() {
     }
   }, [gamePhase, seats.length, setSeats, setInitialSeats]);
 
-  // 监听首夜启动事件，触发首夜队列生成
+  // 监听首夜启动事件，触发首夜队列生成并弹出预览模态框
   useEffect(() => {
     const handleStartFirstNight = () => {
       console.log("[GameController] Received startFirstNight event");
       nightLogic.startNight(true);
+
+      // 从 nightLogic 获取新引擎生成的队列
+      const queue = nightLogic.queue || [];
+      if (queue.length === 0) {
+        console.warn("[GameController] Night queue is empty after startNight");
+        return;
+      }
+
+      // 将 NightActionNode[] 转换为 Seat[] 作为 pendingNightQueue
+      const pendingSeats: Seat[] = queue
+        .map((node: any) => seats.find((s: Seat) => s.id === node.seatId))
+        .filter((s: Seat | undefined): s is Seat => !!s);
+
+      if (pendingSeats.length === 0) {
+        console.warn(
+          "[GameController] No matching seats found for night queue nodes"
+        );
+        return;
+      }
+
+      // 设置 pendingNightQueue
+      setPendingNightQueue(pendingSeats);
+
+      // 生成预览数据
+      const preview = queue.map((node: any, idx: number) => ({
+        roleName: node.roleName || "未知角色",
+        seatNo: (node.seatId ?? 0) + 1,
+        order: idx + 1,
+      }));
+
+      console.log("[GameController] Night order preview:", preview);
+      setNightOrderPreview(preview);
+
+      // 弹出预览模态框
+      setCurrentModal({
+        type: "NIGHT_ORDER_PREVIEW",
+        data: {
+          preview,
+          title: "首夜唤醒顺序预览",
+          pendingQueue: pendingSeats,
+        },
+      });
     };
     const listenerId = unifiedEventBus.on(
       "startFirstNight",
@@ -1125,7 +1167,7 @@ export function useGameController() {
     return () => {
       unifiedEventBus.off("startFirstNight", listenerId);
     };
-  }, [nightLogic]);
+  }, [nightLogic, seats, setPendingNightQueue, setNightOrderPreview, setCurrentModal]);
 
   // 初始化夜晚第一步信息
   useEffect(() => {

@@ -203,7 +203,6 @@ class UnifiedRoleDefinition {
     }
   }
 
-
   /**
    * 转换旧版能力定义到新版
    */

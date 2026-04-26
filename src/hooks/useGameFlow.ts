@@ -77,7 +77,7 @@ export function useGameFlow(): UseGameFlowResult {
   useEffect(() => {
     dispatch(gameActions.setTimer(0));
     setIsTimerRunning(true);
-  }, [dispatch]);
+  }, [dispatch, state.gamePhase]);
 
   // 计时器逻辑
   useEffect(() => {
@@ -408,13 +408,19 @@ export function useGameFlow(): UseGameFlowResult {
         // 酒鬼的伪装身份只能从当前剧本中不在场的镇民中选择
         // 首先获取当前剧本的所有角色ID
         const currentScriptRoleIds = selectedScript?.roleIds || [];
+        // 先筛选出当前剧本的所有角色（去重，防止 roles 数组中有重复 id）
+        const seenIds = new Set<string>();
+        const currentScriptRoles = r.filter((role) => {
+          if (!currentScriptRoleIds.includes(role.id)) return false;
+          if (seenIds.has(role.id)) return false;
+          seenIds.add(role.id);
+          return true;
+        });
 
-        const availableCharades = r.filter(
+        const availableCharades = currentScriptRoles.filter(
           (role) =>
             role.type === "townsfolk" &&
             !role.hidden &&
-            // 角色必须在当前剧本的角色列表中
-            currentScriptRoleIds.includes(role.id) &&
             // 不能是已经在场的角色
             !seats.some((s) => s.role?.id === role.id)
         );

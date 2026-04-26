@@ -2,6 +2,9 @@
 
 import type { Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
+import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
+import type { UnifiedAbilityConfig } from "../roles/unifiedRoleDefinition";
+import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { getNightOrderOverride } from "./nightOrderOverrides";
 
 /**
@@ -52,10 +55,23 @@ export function generateNightActionQueue(
 
     if (!effectiveRoleId) continue;
 
-    // 从角色定义系统获取角色信息
+    // 从角色定义系统获取角色信息（旧引擎）
     const roleDef = getRoleDefinition(effectiveRoleId);
 
-    if (!roleDef) {
+    // 从新引擎获取能力信息
+    const newEngineAbilities =
+      unifiedRoleDefinition.getRoleAbilities(effectiveRoleId);
+    const hasNewEngineFirstNight = newEngineAbilities.some(
+      (a: UnifiedAbilityConfig) =>
+        a.triggerTiming.includes(AbilityTriggerTiming.FIRST_NIGHT)
+    );
+    const hasNewEngineEveryNight = newEngineAbilities.some(
+      (a: UnifiedAbilityConfig) =>
+        a.triggerTiming.includes(AbilityTriggerTiming.EVERY_NIGHT)
+    );
+
+    // 如果旧引擎和新引擎都没有定义，跳过
+    if (!roleDef && newEngineAbilities.length === 0) {
       console.warn(
         `[generateNightActionQueue] 角色 ${effectiveRoleId} 未找到定义，跳过`
       );
@@ -77,12 +93,20 @@ export function generateNightActionQueue(
           return 999;
         };
 
-        const firstNightOrder = roleDef.firstNight
+        const firstNightOrder = roleDef?.firstNight
           ? getOrderValue(roleDef.firstNight.order)
-          : 999;
-        const nightOrder = roleDef.night
+          : hasNewEngineFirstNight
+            ? (newEngineAbilities.find((a: UnifiedAbilityConfig) =>
+                a.triggerTiming.includes(AbilityTriggerTiming.FIRST_NIGHT)
+              )?.wakePriority ?? 999)
+            : 999;
+        const nightOrder = roleDef?.night
           ? getOrderValue(roleDef.night.order)
-          : 999;
+          : hasNewEngineEveryNight
+            ? (newEngineAbilities.find((a: UnifiedAbilityConfig) =>
+                a.triggerTiming.includes(AbilityTriggerTiming.EVERY_NIGHT)
+              )?.wakePriority ?? 999)
+            : 999;
         const order = isFirstNight
           ? firstNightOrder !== 999
             ? firstNightOrder
@@ -97,7 +121,7 @@ export function generateNightActionQueue(
             seatId: seat.id,
             roleId: effectiveRoleId,
             order,
-            isFirstNightOnly: !!roleDef.firstNight && !roleDef.night,
+            isFirstNightOnly: !!roleDef?.firstNight && !roleDef?.night,
           });
         }
       }
@@ -105,9 +129,9 @@ export function generateNightActionQueue(
       continue;
     }
 
-    // 检查角色是否有夜晚行动配置
-    const hasFirstNightAction = !!roleDef.firstNight;
-    const hasNightAction = !!roleDef.night;
+    // 检查角色是否有夜晚行动配置（合并新旧引擎）
+    const hasFirstNightAction = !!roleDef?.firstNight || hasNewEngineFirstNight;
+    const hasNightAction = !!roleDef?.night || hasNewEngineEveryNight;
 
     // 获取order值（order可以是number或函数）
     const getOrderValue = (
@@ -127,7 +151,7 @@ export function generateNightActionQueue(
         seatId: seat.id,
         roleId: effectiveRoleId,
         order: overrideOrder,
-        isFirstNightOnly: !!roleDef.firstNight && !roleDef.night,
+        isFirstNightOnly: !!roleDef?.firstNight && !roleDef?.night,
       });
       continue;
     }
@@ -136,7 +160,17 @@ export function generateNightActionQueue(
       // 首夜：优先检查 firstNight
       // 如果没有 firstNight 且该角色没有在全局首夜表 (overrideOrder) 中被捕获，则表示不应在首夜唤醒
       if (hasFirstNightAction) {
-        const order = getOrderValue(roleDef.firstNight?.order);
+        let order: number;
+        if (roleDef?.firstNight) {
+          order = getOrderValue(roleDef.firstNight.order);
+        } else if (hasNewEngineFirstNight) {
+          order =
+            newEngineAbilities.find((a: UnifiedAbilityConfig) =>
+              a.triggerTiming.includes(AbilityTriggerTiming.FIRST_NIGHT)
+            )?.wakePriority ?? 999;
+        } else {
+          order = 999;
+        }
         if (order > 0 && order < 999) {
           queueItems.push({
             seat,
@@ -150,7 +184,17 @@ export function generateNightActionQueue(
     } else {
       // 后续夜晚：只检查 night（firstNight 只在首夜生效）
       if (hasNightAction) {
-        const order = getOrderValue(roleDef.night?.order);
+        let order: number;
+        if (roleDef?.night) {
+          order = getOrderValue(roleDef.night.order);
+        } else if (hasNewEngineEveryNight) {
+          order =
+            newEngineAbilities.find((a: UnifiedAbilityConfig) =>
+              a.triggerTiming.includes(AbilityTriggerTiming.EVERY_NIGHT)
+            )?.wakePriority ?? 999;
+        } else {
+          order = 999;
+        }
         // CRITICAL FIX: Skip roles with order <= 0 (0 means "don't wake")
         // Order 0 or negative means the role should not be awakened this night
         if (order > 0 && order < 999) {

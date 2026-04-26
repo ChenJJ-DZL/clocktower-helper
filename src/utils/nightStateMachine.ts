@@ -3,8 +3,9 @@
  * 纯函数式状态管理，严格控制夜晚流程流转，所有状态变更均为不可变
  */
 
-import { unifiedEventBus } from "./unifiedEventBus";
 import type { GameStateSnapshot, NightActionNode } from "./middlewareTypes";
+import { unifiedEventBus } from "./unifiedEventBus";
+
 export type { GameStateSnapshot, NightActionNode };
 
 // 夜晚状态枚举
@@ -122,7 +123,7 @@ export class NightStateMachine {
     }
 
     if (payload?.currentNode) {
-      let node = { ...payload.currentNode };
+      const node = { ...payload.currentNode };
       // Fallback机制：未迁移角色生成空白节点
       // 所有能力均已迁移到新引擎，无需fallback
       this._currentNode = node;
@@ -145,6 +146,16 @@ export class NightStateMachine {
     }
 
     return true;
+  }
+
+  /**
+   * 更新游戏状态快照（仅在IDLE状态下允许）
+   * @param newSnapshot 新的游戏状态快照
+   */
+  updateSnapshot(newSnapshot: GameStateSnapshot): void {
+    if (this._currentState === NightState.IDLE) {
+      this._stateSnapshot = Object.freeze({ ...newSnapshot });
+    }
   }
 
   /**

@@ -543,7 +543,9 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       (s) => !s.isDead && s.role && s.role.type !== "traveler"
     );
     const aliveCount = aliveCoreSeats.length;
-    const threshold = Math.floor(aliveCount / 2) + 1;
+    // 正确规则：达到半数（≥50%）即可上处决台
+    // 例如 6 人存活，Math.ceil(6/2) = 3，3 票即可
+    const threshold = Math.ceil(aliveCount / 2);
 
     const max = cands[0].voteCount || 0;
 

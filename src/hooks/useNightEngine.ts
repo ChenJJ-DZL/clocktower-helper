@@ -1,6 +1,6 @@
 /**
  * 新夜晚引擎 React 适配器 Hook
- * 对外暴露与旧版 useNightLogic 兼容的接口，实现无缝替换
+ * 已完全替代旧版 useNightLogic，所有夜晚逻辑由新引擎管理
  *
  * ✅ 生产就绪状态：
  * - 当前状态：正式生产版本，已在主流程中使用
@@ -10,7 +10,17 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import * as abilityRegistry from "../roles/new_engine/abilityRegistry";
+import type {
+  GamePhase,
+  LogEntry,
+  Script,
+  Seat,
+  WinResult,
+} from "../../app/data";
+import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
+import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
+import type { NightInfoResult } from "../types/game";
+import type { ModalType } from "../types/modal";
 import type { NightOrderEntry } from "../utils/dynamicQueueGenerator";
 import { createSnapshotFromGameState } from "../utils/historySnapshot";
 import { NightEngine, type NightEngineState } from "../utils/nightEngineFacade";
@@ -20,7 +30,117 @@ import type {
   GameStateSnapshot as NightStateMachineSnapshot,
 } from "../utils/nightStateMachine";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
-import type { NightLogicActions, NightLogicGameState } from "./useNightLogic";
+
+// ============================================================
+// 类型定义（原 useNightLogic 中的类型已内联至此，旧引擎已废弃）
+// ============================================================
+
+/** 新引擎 Hook 的输入接口 */
+export interface NightLogicGameState {
+  seats: Seat[];
+  gamePhase: GamePhase;
+  nightCount: number;
+  executedPlayerId: number | null;
+  wakeQueueIds: number[];
+  currentWakeIndex: number;
+  selectedActionTargets: number[];
+  gameLogs: LogEntry[];
+  selectedScript: Script | null;
+  deadThisNight: number[];
+  currentDuskExecution: number | null;
+  pukkaPoisonQueue: Array<{ targetId: number; nightsUntilDeath: number }>;
+  todayDemonVoted: boolean;
+  todayMinionNominated: boolean;
+  todayExecutedId: number | null;
+  witchCursedId: number | null;
+  witchActive: boolean;
+  cerenovusTarget: { targetId: number; roleName: string } | null;
+  voteRecords: Array<{ voterId: number; isDemon: boolean }>;
+  nominationMap: Record<number, number>;
+  poChargeState: Record<number, boolean>;
+  goonDrunkedThisNight: boolean;
+  isVortoxWorld: boolean;
+  outsiderDiedToday: boolean;
+  nightInfo: NightInfoResult | null;
+  nightQueuePreviewTitle: string;
+}
+
+/** 新引擎 Hook 的 Actions 接口 */
+export interface NightLogicActions {
+  setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
+  setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>>;
+  setNightCount: React.Dispatch<React.SetStateAction<number>>;
+  setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>>;
+  setCurrentWakeIndex: React.Dispatch<React.SetStateAction<number>>;
+  setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>>;
+  setInspectionResult: React.Dispatch<React.SetStateAction<string | null>>;
+  setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>>;
+  setLastDuskExecution: React.Dispatch<React.SetStateAction<number | null>>;
+  setCurrentDuskExecution: React.Dispatch<React.SetStateAction<number | null>>;
+  setPukkaPoisonQueue: React.Dispatch<
+    React.SetStateAction<Array<{ targetId: number; nightsUntilDeath: number }>>
+  >;
+  setTodayDemonVoted: React.Dispatch<React.SetStateAction<boolean>>;
+  setTodayMinionNominated: React.Dispatch<React.SetStateAction<boolean>>;
+  setTodayExecutedId: React.Dispatch<React.SetStateAction<number | null>>;
+  setWitchCursedId: React.Dispatch<React.SetStateAction<number | null>>;
+  setWitchActive: React.Dispatch<React.SetStateAction<boolean>>;
+  setCerenovusTarget: React.Dispatch<
+    React.SetStateAction<{ targetId: number; roleName: string } | null>
+  >;
+  setVoteRecords: React.Dispatch<
+    React.SetStateAction<Array<{ voterId: number; isDemon: boolean }>>
+  >;
+  setVotedThisRound?: React.Dispatch<React.SetStateAction<number[]>>;
+  hasExecutedThisDay?: boolean;
+  setHasExecutedThisDay?: React.Dispatch<React.SetStateAction<boolean>>;
+  setWinResult?: React.Dispatch<React.SetStateAction<WinResult>>;
+  setWinReason?: React.Dispatch<React.SetStateAction<string | null>>;
+  setNominationMap: React.Dispatch<
+    React.SetStateAction<Record<number, number>>
+  >;
+  setGoonDrunkedThisNight: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsVortoxWorld: React.Dispatch<React.SetStateAction<boolean>>;
+  setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
+  setPendingNightQueue: React.Dispatch<React.SetStateAction<Seat[] | null>>;
+  setNightOrderPreview: React.Dispatch<
+    React.SetStateAction<
+      Array<{ roleName: string; seatNo: number; order: number }>
+    >
+  >;
+  setNightQueuePreviewTitle: React.Dispatch<React.SetStateAction<string>>;
+  setStartTime: React.Dispatch<React.SetStateAction<Date | null>>;
+  setMayorRedirectTarget: React.Dispatch<React.SetStateAction<number | null>>;
+  addLog: (message: string) => void;
+  addLogWithDeduplication: (
+    msg: string,
+    playerId?: number,
+    roleName?: string
+  ) => void;
+  killPlayer: (
+    targetId: number,
+    options?: {
+      source?: "demon" | "execution" | "ability";
+      recordNightDeath?: boolean;
+      keepInWakeQueue?: boolean;
+      seatTransformer?: (seat: Seat) => Seat;
+      skipGameOverCheck?: boolean;
+      executedPlayerId?: number | null;
+      onAfterKill?: (latestSeats: Seat[]) => void;
+      skipMayorRedirectCheck?: boolean;
+      mayorId?: number;
+      skipLunaticRps?: boolean;
+      forceExecution?: boolean;
+    }
+  ) => void;
+  saveHistory: () => void;
+  resetRegistrationCache: (key: string) => void;
+  getSeatRoleId: (seat?: Seat | null) => string | null;
+  getDemonDisplayName: (roleId?: string, fallbackName?: string) => string;
+  enqueueRavenkeeperIfNeeded: (targetId: number) => void;
+  continueToNextAction: () => void;
+  currentWakeIndexRef: React.MutableRefObject<number>;
+}
 
 /**
  * 从官方夜晚顺序配置生成 NightOrderEntry
@@ -46,9 +166,9 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
     const firstNightOrderVal = firstNightItem?.firstNightOrder || 0;
     const otherNightOrderVal = otherNightItem?.otherNightOrder || 0;
 
-    // 获取能力配置（如果存在）
-    const abilityKey = `${roleId}:ability` as keyof typeof abilityRegistry;
-    const ability = abilityRegistry[abilityKey] as any;
+    // 获取能力配置（如果存在）- 使用 unifiedRoleDefinition 查找
+    const roleAbilities = unifiedRoleDefinition.getRoleAbilities(roleId);
+    const ability = roleAbilities.length > 0 ? roleAbilities[0] : null;
 
     if (firstNightOrderVal > 0 || otherNightOrderVal > 0) {
       entries.push({
@@ -72,43 +192,14 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
 }
 
 /**
- * 构建能力映射表
+ * 构建能力映射表 - 从 abilityRegistry 获取原始 IRoleAbility（保留中间件管道）
+ * NightEngine.submitAction 需要 preCheck/calculate/stateUpdate/postProcess 中间件
  */
 function buildAbilityMap() {
-  const map: Record<string, any> = {};
-  const abilities = [
-    abilityRegistry.baronAbility,
-    abilityRegistry.butlerAbility,
-    abilityRegistry.chefAbility,
-    abilityRegistry.drunkAbility,
-    abilityRegistry.empathAbility,
-    abilityRegistry.fortuneTellerAbility,
-    abilityRegistry.impAbility,
-    abilityRegistry.investigatorAbility,
-    abilityRegistry.librarianAbility,
-    abilityRegistry.mayorAbility,
-    abilityRegistry.monkAbility,
-    abilityRegistry.poisonerAbility,
-    abilityRegistry.ravenkeeperAbility,
-    abilityRegistry.recluseAbility,
-    abilityRegistry.saintAbility,
-    abilityRegistry.savantAbility,
-    abilityRegistry.scarletWomanAbility,
-    abilityRegistry.slayerAbility,
-    abilityRegistry.soldierAbility,
-    abilityRegistry.spyAbility,
-    abilityRegistry.undertakerAbility,
-    abilityRegistry.virginAbility,
-    abilityRegistry.washerwomanAbility,
-  ];
-
-  abilities.forEach((ability) => {
-    if (ability?.abilityId) {
-      map[ability.abilityId] = ability;
-    }
-  });
-
-  return map;
+  const rawMap = getRawAbilityMap();
+  const keys = Object.keys(rawMap);
+  console.log(`[NightEngine] 构建能力映射表，共 ${keys.length} 个能力`);
+  return rawMap;
 }
 
 // 从正式配置源动态获取

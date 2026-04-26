@@ -638,7 +638,7 @@ export const roles: Role[] = [
       "【扩展镇民】每个夜晚*，你要选择一名存活的玩家：第二天白天时你必须提名他。",
     fullDescription:
       "每个夜晚*,你要选择一名存活的玩家:第二天白天时你必须提名他。",
-    script: "暗流涌动",
+    script: "实验性角色",
     docRef: "blood_clocktower_所有镇民.json#告密者",
   },
   {
