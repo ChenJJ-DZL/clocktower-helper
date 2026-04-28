@@ -9,7 +9,7 @@
  * 3. 构建完整的 NightInfoResult 对象
  */
 
-import type { Script, Seat } from "@/app/data";
+import { roles as allRoles, type Script, type Seat } from "@/app/data";
 import type { NightInfoResult } from "@/src/types/game";
 import type { GamePhase, Role } from "../../app/data";
 import { getRoleDefinition } from "../roles";
@@ -88,6 +88,11 @@ export function generateNightInfo(
     return null;
   }
 
+  // 从 selectedScript 获取角色列表（通过 roleIds 过滤全局角色列表）
+  const scriptRoles = selectedScript?.roleIds
+    ? allRoles.filter((r) => selectedScript.roleIds!.includes(r.id))
+    : [];
+
   // 构建 NightActionContext（供 dialog 函数使用）
   const context: NightActionContext = {
     seats,
@@ -95,6 +100,7 @@ export function generateNightInfo(
     selfId: currentSeatId,
     gamePhase,
     nightCount,
+    roles: scriptRoles,
     vortoxWorld: !!vortoxWorld,
     isVortoxWorld: !!vortoxWorld,
     demonVotedToday: !!demonVotedToday,

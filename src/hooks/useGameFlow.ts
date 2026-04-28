@@ -355,7 +355,7 @@ export function useGameFlow(): UseGameFlowResult {
     console.log("[confirmNightOrderPreview] Setting wakeQueueIds:", wakeIds);
     console.log("[confirmNightOrderPreview] Setting gamePhase: firstNight");
 
-    // 首先设置队列和索引
+    // 首先设置队列和索引（同时同步 nightActionQueue 和 wakeQueueIds）
     dispatch(
       gameActions.updateState({
         wakeQueueIds: wakeIds,
@@ -364,6 +364,8 @@ export function useGameFlow(): UseGameFlowResult {
         inspectionResult: null,
       })
     );
+    // 同步设置 nightActionQueue，确保新老系统一致
+    dispatch(gameActions.setNightActionQueue(pendingNightQueue));
 
     // 然后设置游戏阶段
     dispatch(gameActions.setGamePhase("firstNight"));

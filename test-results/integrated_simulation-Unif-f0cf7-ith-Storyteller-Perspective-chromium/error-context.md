@@ -2,90 +2,92 @@
 
 ```yaml
 - generic [ref=e1]:
-  - alert [ref=e2]
-  - generic [ref=e6]:
-    - main [ref=e7]:
-      - generic [ref=e9]:
-        - button "相克规则：关" [ref=e10]
-        - generic [ref=e11]:
-          - generic [ref=e12]:
-            - generic [ref=e13]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e15]:
+    - main [ref=e16]:
+      - generic [ref=e18]:
+        - button "相克规则：关" [ref=e19]
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
               - generic:
-                - generic [ref=e15] [cursor=pointer]:
-                  - generic [ref=e16]: "1"
+                - generic [ref=e24] [cursor=pointer]:
+                  - generic [ref=e25]: "1"
                   - generic:
                     - generic: 洗衣妇
-                - generic [ref=e18] [cursor=pointer]:
-                  - generic [ref=e19]: "2"
-                  - generic:
-                    - generic: 占卜师
                   - generic:
                     - generic:
                       - generic: 🎯
                       - generic: 天敌红罗剎
                       - generic: (永久)
-                - generic [ref=e21] [cursor=pointer]:
-                  - generic [ref=e22]: "3"
-                  - generic:
-                    - generic: 小恶魔
-                - generic [ref=e24] [cursor=pointer]:
-                  - generic [ref=e25]: "4"
-                  - generic:
-                    - generic: 送葬者
                 - generic [ref=e27] [cursor=pointer]:
-                  - generic [ref=e28]: "5"
-                  - generic:
-                    - generic: 图书管理员
-                - generic [ref=e30] [cursor=pointer]:
-                  - generic [ref=e31]: "6"
-                  - generic:
-                    - generic: 告密者
-                - generic [ref=e33] [cursor=pointer]:
-                  - generic [ref=e34]: "7"
-                  - generic:
-                    - generic: 调查员
-                - generic [ref=e36] [cursor=pointer]:
-                  - generic [ref=e37]: "8"
+                  - generic [ref=e28]: "2"
                   - generic:
                     - generic: 共情者
+                - generic [ref=e30] [cursor=pointer]:
+                  - generic [ref=e31]: "3"
+                  - generic:
+                    - generic: 调查员
+                - generic [ref=e33] [cursor=pointer]:
+                  - generic [ref=e34]: "4"
+                  - generic:
+                    - generic: 小恶魔
+                - generic [ref=e36] [cursor=pointer]:
+                  - generic [ref=e37]: "5"
+                  - generic:
+                    - generic: 送葬者
                 - generic [ref=e39] [cursor=pointer]:
-                  - generic [ref=e40]: "9"
+                  - generic [ref=e40]: "6"
                   - generic:
-                    - generic: 圣徒
+                    - generic: 管家
                 - generic [ref=e42] [cursor=pointer]:
-                  - generic [ref=e43]: "10"
-                  - generic:
-                    - generic: 投毒者
-                - generic [ref=e45] [cursor=pointer]:
-                  - generic [ref=e46]: "11"
+                  - generic [ref=e43]: "7"
                   - generic:
                     - generic: 厨师
-            - generic [ref=e47]:
-              - generic [ref=e48]: 核对身份
-              - generic [ref=e49]:
-                - button "0:15" [ref=e50] [cursor=pointer]
-                - generic [ref=e51]:
-                  - button "重置" [ref=e52]
-                  - generic [ref=e53]: 运行中
-              - generic [ref=e54]: 拜甘教设计
-          - generic [ref=e56]:
-            - generic [ref=e57]:
-              - generic [ref=e58]: 夜晚行动顺序
-              - button "展开" [ref=e59]
-            - generic [ref=e61]: 暂无（未生成顺序或不在夜晚阶段）
-    - complementary [ref=e62]:
-      - generic [ref=e63]:
-        - generic [ref=e66]: 核对身份
-        - generic [ref=e68]:
-          - heading "角色说明" [level=3] [ref=e69]: 角色说明
-          - generic [ref=e71]:
-            - generic [ref=e72]: 其他提示
-            - generic [ref=e73]:
-              - generic [ref=e76]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
-              - generic [ref=e79]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
-              - generic [ref=e82]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
-              - generic [ref=e85]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
-              - generic [ref=e88]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
-              - generic [ref=e91]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
-        - button "确认无误，入夜 🌙" [active] [ref=e93]
+                - generic [ref=e45] [cursor=pointer]:
+                  - generic [ref=e46]: "8"
+                  - generic:
+                    - generic: 圣徒
+                - generic [ref=e48] [cursor=pointer]:
+                  - generic [ref=e49]: "9"
+                  - generic:
+                    - generic: 占卜师
+                - generic [ref=e51] [cursor=pointer]:
+                  - generic [ref=e52]: "10"
+                  - generic:
+                    - generic: 投毒者
+                - generic [ref=e54] [cursor=pointer]:
+                  - generic [ref=e55]: "11"
+                  - generic:
+                    - generic: 图书管理员
+            - generic [ref=e56]:
+              - generic [ref=e57]: 核对身份
+              - generic [ref=e58]:
+                - button "0:15" [ref=e59] [cursor=pointer]
+                - generic [ref=e60]:
+                  - button "重置" [ref=e61]
+                  - generic [ref=e62]: 运行中
+              - generic [ref=e63]: 拜甘教设计
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: 夜晚行动顺序
+              - button "展开" [ref=e68]
+            - generic [ref=e70]: 暂无（未生成顺序或不在夜晚阶段）
+    - complementary [ref=e71]:
+      - generic [ref=e72]:
+        - generic [ref=e75]: 核对身份
+        - generic [ref=e77]:
+          - heading "角色说明" [level=3] [ref=e78]: 角色说明
+          - generic [ref=e80]:
+            - generic [ref=e81]: 其他提示
+            - generic [ref=e82]:
+              - generic [ref=e85]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
+              - generic [ref=e88]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
+              - generic [ref=e91]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
+              - generic [ref=e94]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
+              - generic [ref=e97]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
+              - generic [ref=e100]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
+        - button "确认无误，入夜 🌙" [active] [ref=e102]
 ```

@@ -103,7 +103,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:37-0!canonical and time
         wake: `唤醒${playerSeatId + 1}号玩家（筑梦师）。`,
         instruction:
           "请选择除你及旅行者以外的一名玩家，说书人会告知你：一个善良角色和一个邪恶角色，其中一个是该玩家的真实角色。",
-        close: `${playerSeatId + 1}号玩家（筑梦师），请闭眼。`,
+        close: "",
       };
     },
 

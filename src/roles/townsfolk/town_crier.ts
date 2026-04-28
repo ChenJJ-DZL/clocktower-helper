@@ -96,7 +96,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:128-0!canonical and tim
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（城镇公告员）。`,
         instruction: "请执行行动",
-        close: `${playerSeatId + 1}号玩家（城镇公告员），请闭眼。`,
+        close: "",
       };
     },
 

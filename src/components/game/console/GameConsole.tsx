@@ -195,7 +195,9 @@ export const GameConsole = React.memo(function GameConsole({
 
     const hasAction =
       action && !["无", "无信息", "（无）", "跳过"].includes(action);
-    const actionPart = hasAction ? `让他选择${action}` : null;
+    // 去除 action 末尾已有的句号，避免拼接时重复
+    const cleanAction = action.replace(/[。！]+$/, "");
+    const actionPart = hasAction ? `让他选择${cleanAction}` : null;
     const speakPart = speak ? `告诉他：${speak}` : null;
 
     // Combine into specific format requested:

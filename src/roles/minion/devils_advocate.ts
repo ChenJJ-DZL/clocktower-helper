@@ -32,7 +32,7 @@ export const devils_advocate: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（魔鬼代言人）。`,
         instruction: "请执行行动",
-        close: `${playerSeatId + 1}号玩家（魔鬼代言人），请闭眼。`,
+        close: "",
       };
     },
 

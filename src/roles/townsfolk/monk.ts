@@ -29,7 +29,7 @@ export const monk: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（僧侣）。`,
         instruction: "请选择一名其他存活玩家进行保护（当晚恶魔无法杀死他）。",
-        close: `${playerSeatId + 1}号玩家（僧侣），请闭眼。`,
+        close: "",
       };
     },
     handler: (context) => {

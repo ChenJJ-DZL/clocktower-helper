@@ -46,9 +46,9 @@ export function generateDynamicNightQueue(
       return false;
     }
 
-    // 找到对应的存活玩家
+    // 找到对应的存活玩家（Seat 使用 isDead 字段，isAlive = !isDead）
     const seat = snapshot.seats.find(
-      (s) => s.role.id === entry.roleId && (includeDead || s.isAlive)
+      (s) => s.role?.id === entry.roleId && (includeDead || !s.isDead)
     );
 
     if (!seat) {
@@ -68,7 +68,7 @@ export function generateDynamicNightQueue(
 
   // 3. 转换为NightActionNode格式
   const queue: NightActionNode[] = validEntries.map((entry) => {
-    const seat = snapshot.seats.find((s) => s.role.id === entry.roleId)!;
+    const seat = snapshot.seats.find((s) => s.role?.id === entry.roleId)!;
     return {
       seatId: seat.id,
       roleId: entry.roleId,

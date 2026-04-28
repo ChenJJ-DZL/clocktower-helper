@@ -121,7 +121,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
     dialog: (_playerSeatId: number) => ({
       wake: "祖母，请醒来。",
       instruction: "这就是你的孙子和他的角色。",
-      close: "祖母，请闭眼。",
+      close: "",
     }),
     handler: (context: NightActionContext) => {
       const { seats, selfId } = context;

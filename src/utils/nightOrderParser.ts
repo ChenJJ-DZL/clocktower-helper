@@ -69,37 +69,36 @@ class NightOrderParser {
     }
 
     // 解析其他夜晚顺序
-    const otherNightData = nightOrderData.otherNights || nightOrderData.otherNight;
+    const otherNightData =
+      nightOrderData.otherNights || nightOrderData.otherNight;
     if (Array.isArray(otherNightData)) {
-      this.otherNightOrder = otherNightData.map(
-        (item: any, index: number) => {
-          const orderItem: NightOrderItem = {
-            roleId: item.id,
-            roleName: item.chineseName || item.englishName,
-            firstNightOrder: 0,
-            otherNightOrder: index + 1,
-            script: "通用",
-            wakeCondition: item.description,
-          };
-          // 更新映射表，如果已有则补充otherNightOrder
-          if (this.roleOrderMap.has(orderItem.roleId)) {
-            const existing = this.roleOrderMap.get(orderItem.roleId)!;
-            this.roleOrderMap.set(orderItem.roleId, {
-              ...existing,
-              otherNightOrder: orderItem.otherNightOrder,
-            });
-          } else {
-            this.roleOrderMap.set(orderItem.roleId, {
-              roleName: orderItem.roleName,
-              firstNightOrder: orderItem.firstNightOrder,
-              otherNightOrder: orderItem.otherNightOrder,
-              script: orderItem.script,
-              wakeCondition: orderItem.wakeCondition,
-            });
-          }
-          return orderItem;
+      this.otherNightOrder = otherNightData.map((item: any, index: number) => {
+        const orderItem: NightOrderItem = {
+          roleId: item.id,
+          roleName: item.chineseName || item.englishName,
+          firstNightOrder: 0,
+          otherNightOrder: index + 1,
+          script: "通用",
+          wakeCondition: item.description,
+        };
+        // 更新映射表，如果已有则补充otherNightOrder
+        if (this.roleOrderMap.has(orderItem.roleId)) {
+          const existing = this.roleOrderMap.get(orderItem.roleId)!;
+          this.roleOrderMap.set(orderItem.roleId, {
+            ...existing,
+            otherNightOrder: orderItem.otherNightOrder,
+          });
+        } else {
+          this.roleOrderMap.set(orderItem.roleId, {
+            roleName: orderItem.roleName,
+            firstNightOrder: orderItem.firstNightOrder,
+            otherNightOrder: orderItem.otherNightOrder,
+            script: orderItem.script,
+            wakeCondition: orderItem.wakeCondition,
+          });
         }
-      );
+        return orderItem;
+      });
     }
 
     // 排序

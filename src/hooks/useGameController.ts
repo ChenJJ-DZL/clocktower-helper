@@ -4,7 +4,7 @@
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { groupedRoles, type Role, roles, type Seat } from "../../app/data";
-import { gameActions, useGameContext } from "../contexts/GameContext";
+import { useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
 import {
@@ -1118,10 +1118,16 @@ export function useGameController() {
       console.log("[GameController] Received startFirstNight event");
       nightLogic.startNight(true);
 
-      // 从 nightLogic 获取新引擎生成的队列
-      const queue = nightLogic.queue || [];
+      // 重要：nightLogic.queue 来自 React state (engineState.queue)，
+      // 在 startNight 调用后可能尚未同步。因此直接从 engine 实例读取实时队列。
+      // nightLogic.engine 是 NightEngine 实例，其 state getter 返回实时数据。
+      const engineState = nightLogic.engine?.state;
+      const queue = engineState?.queue || [];
       if (queue.length === 0) {
-        console.warn("[GameController] Night queue is empty after startNight");
+        console.warn(
+          "[GameController] Night queue is empty after startNight (engine state)",
+          engineState
+        );
         return;
       }
 
@@ -1167,18 +1173,28 @@ export function useGameController() {
     return () => {
       unifiedEventBus.off("startFirstNight", listenerId);
     };
-  }, [nightLogic, seats, setPendingNightQueue, setNightOrderPreview, setCurrentModal]);
+  }, [
+    nightLogic,
+    seats,
+    setPendingNightQueue,
+    setNightOrderPreview,
+    setCurrentModal,
+  ]);
 
-  // 初始化夜晚第一步信息
+  // 初始化/刷新夜晚步骤信息
   useEffect(() => {
     if (
       (gamePhase === "firstNight" || gamePhase === "night") &&
       wakeQueueIds.length > 0 &&
-      currentWakeIndex === 0 &&
+      currentWakeIndex >= 0 &&
+      currentWakeIndex < wakeQueueIds.length &&
       !nightInfo
     ) {
-      console.log("[GameController] Initializing first night step");
-      nightSnapshot.updateSnapshot(0, seats, gamePhase);
+      console.log(
+        "[GameController] Refreshing night step for index:",
+        currentWakeIndex
+      );
+      nightSnapshot.updateSnapshot(currentWakeIndex, seats, gamePhase);
     }
   }, [
     gamePhase,
@@ -1197,9 +1213,7 @@ export function useGameController() {
       checkGameOver,
       currentNightRole: nightInfo?.effectiveRole?.name,
       nextNightRole: (nightInfo as any)?.nextRoleName,
-      nightOrderPreviewLive: (gameState.nightOrderPreview || []).map(
-        (s) => s.role?.name || "未知"
-      ),
+      nightOrderPreviewLive: gameState.nightOrderPreview || [],
       nightInfo,
       getDemonDisplayName,
       killPlayer,

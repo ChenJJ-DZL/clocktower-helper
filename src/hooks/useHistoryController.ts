@@ -45,7 +45,11 @@ export function useHistoryController(): UseHistoryControllerResult {
   const handleStepBack = useCallback(() => {
     if (currentWakeIndex > 0) {
       dispatch(
-        gameActions.updateState({ currentWakeIndex: currentWakeIndex - 1 })
+        gameActions.updateState({
+          currentWakeIndex: currentWakeIndex - 1,
+          selectedActionTargets: [],
+          inspectionResult: null,
+        })
       );
       return;
     }

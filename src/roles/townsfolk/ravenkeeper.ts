@@ -24,7 +24,7 @@ export const ravenkeeper: RoleDefinition = {
     dialog: (_playerSeatId, _isFirstNight) => ({
       wake: "守鸦人，请睁眼。请选择一名玩家查看角色",
       instruction: "向其展示该名玩家的角色标记",
-      close: "守鸦人，请闭眼。",
+      close: "",
     }),
     handler: (context) => {
       const { targets, selfId, deadThisNight } = context;

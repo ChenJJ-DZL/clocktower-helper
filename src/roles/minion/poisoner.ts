@@ -46,7 +46,7 @@ export const poisoner: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（投毒者）。`,
         instruction: "请选择一名玩家进行下毒。",
-        close: `${playerSeatId + 1}号玩家（投毒者），请闭眼。`,
+        close: "",
       };
     },
 

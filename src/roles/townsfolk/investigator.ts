@@ -3,7 +3,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 /**
  * 调查员 (Investigator)
  * 说明：首夜得知一名爪牙的具体身份。
- * 当前占位：已在 nightLogic 中实现。
  */
 export const investigator: RoleDefinition = {
   id: "investigator",
@@ -19,23 +18,32 @@ export const investigator: RoleDefinition = {
   firstNight: {
     order: 51,
     target: {
-      count: { min: 2, max: 2 },
-      canSelect: (target, self, _allSeats) => target.id !== self.id,
+      count: { min: 0, max: 0 },
     },
-    dialog: (_playerSeatId, _isFirstNight, _context) => {
+    dialog: (playerSeatId, _isFirstNight, context) => {
+      const { seats, roles = [] } = context;
+
+      // 随机选择两个其他玩家和一个爪牙角色（说书人准备的信息）
+      const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
+      const minionRoles = roles.filter((r) => r.type === "minion");
+
+      const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+      const seat1 = shuffled[0];
+      const seat2 = shuffled[1] || shuffled[0];
+
+      const randomRole =
+        minionRoles.length > 0
+          ? minionRoles[Math.floor(Math.random() * minionRoles.length)]
+          : null;
+
+      const seat1No = seat1 ? seat1.id + 1 : "?";
+      const seat2No = seat2 ? seat2.id + 1 : "?";
+      const roleName = randomRole?.name || "未知爪牙";
+
       return {
-        wake: "🔍 调查员，请睁眼。请看这两名玩家",
-        instruction: "其中一位是特定的爪牙，另一位不确定。或者得知没有爪牙。",
-        close: "调查员，请闭眼。",
-      };
-    },
-    handler: (context) => {
-      const { targets, selfId } = context;
-      return {
-        updates: [],
-        logs: {
-          privateLog: `调查员(${selfId + 1}号) 查看了 ${targets.map((id) => id + 1).join("号和 ")}号玩家`,
-        },
+        wake: `🔍 调查员，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
+        instruction: `其中一位是【${roleName}】`,
+        close: "",
       };
     },
   },

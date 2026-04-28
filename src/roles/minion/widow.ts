@@ -113,7 +113,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:69-0!canonical and time
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（寡妇）。`,
         instruction: "你可以查看魔典，然后选择一名玩家：他中毒直到寡妇死亡。",
-        close: `${playerSeatId + 1}号玩家（寡妇），请闭眼。`,
+        close: "",
       };
     },
 

@@ -81,7 +81,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
         ? "共情者，请睁眼。这是你的初始信息"
         : "共情者，请睁眼。这是你今晚的信息",
       instruction: "请向其比划邻座邪恶玩家的数量（0, 1, 或 2）",
-      close: "共情者，请闭眼。",
+      close: "",
     }),
     handler: (context) => {
       const { selfId } = context;

@@ -24,7 +24,7 @@ export const undertaker: RoleDefinition = {
     dialog: (_playerSeatId, _isFirstNight) => ({
       wake: "送葬者，请睁眼。这是今天被处决玩家的角色",
       instruction: "向其展示对应的角色标记（如果是酒鬼则展示‘酒鬼’身份）",
-      close: "送葬者，请闭眼。",
+      close: "",
     }),
     handler: (context) => {
       const { executedToday, selfId } = context;

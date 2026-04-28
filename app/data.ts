@@ -630,18 +630,6 @@ export const roles: Role[] = [
     docRef: "blood_clocktower_所有镇民.json#驱魔人",
   },
   {
-    id: "butler",
-    name: "告密者",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】每个夜晚*，你要选择一名存活的玩家：第二天白天时你必须提名他。",
-    fullDescription:
-      "每个夜晚*,你要选择一名存活的玩家:第二天白天时你必须提名他。",
-    script: "实验性角色",
-    docRef: "blood_clocktower_所有镇民.json#告密者",
-  },
-  {
     id: "tea_lady",
     name: "圣女",
     type: "townsfolk",
@@ -1759,16 +1747,6 @@ export const roles: Role[] = [
     script: "夜半狂欢",
   },
   // ========== 外来者 (Outsider) - 暗流涌动 + 黯月初升 + 梦殒春宵 + 实验性角色 ==========
-  {
-    id: "butler",
-    name: "管家",
-    type: "outsider",
-    ability:
-      "每个夜晚，你要选择除你以外的一名玩家：明天白天，只有他投票时你才能投票。",
-    fullDescription:
-      "每个夜晚,你要选择除你以外的一名玩家:明天白天,只有他投票时你才能投票。",
-    script: "暗流涌动",
-  },
   {
     id: "drunk",
     name: "酒鬼",

@@ -215,6 +215,8 @@ export function useSeatView(
     return true;
   }, [nightInfo, s.id, s.isDead]);
 
+  // 当前行动玩家强制高亮（覆盖 isValidTarget 的灰色效果）
+  const isActivePlayer = nightInfo?.seat.id === s.id;
   const containerStyle = {
     left: `${p.x}%`,
     top: `${p.y}%`,
@@ -226,8 +228,12 @@ export function useSeatView(
     WebkitTouchCallout: "none",
     touchAction: "manipulation",
     WebkitTapHighlightColor: "transparent",
-    opacity: isValidTarget ? 1 : 0.3,
-    filter: isValidTarget ? "none" : "grayscale(100%)",
+    opacity: isActivePlayer ? 1 : isValidTarget ? 1 : 0.3,
+    filter: isActivePlayer
+      ? "none"
+      : isValidTarget
+        ? "none"
+        : "grayscale(100%)",
     pointerEvents: isValidTarget ? "auto" : "none",
   } as React.CSSProperties;
 

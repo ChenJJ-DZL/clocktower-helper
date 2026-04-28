@@ -3,7 +3,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 /**
  * 图书管理员 (Librarian)
  * 说明：首夜得知一名外来者的具体身份。
- * 当前占位：已在 nightLogic 中实现。
  */
 export const librarian: RoleDefinition = {
   id: "librarian",
@@ -19,26 +18,31 @@ export const librarian: RoleDefinition = {
   firstNight: {
     order: 50,
     target: {
-      count: { min: 2, max: 2 },
-      canSelect: (target, self, _allSeats) => target.id !== self.id,
+      count: { min: 0, max: 0 },
     },
-    dialog: (_playerSeatId, _isFirstNight, context) => {
-      const { seats, shouldShowFake, roles = [] } = context;
+    dialog: (playerSeatId, _isFirstNight, context) => {
+      const { seats, roles = [] } = context;
+
+      const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
+      const outsiderRoles = roles.filter((r) => r.type === "outsider");
+
+      const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+      const seat1 = shuffled[0];
+      const seat2 = shuffled[1] || shuffled[0];
+
+      const randomRole =
+        outsiderRoles.length > 0
+          ? outsiderRoles[Math.floor(Math.random() * outsiderRoles.length)]
+          : null;
+
+      const seat1No = seat1 ? seat1.id + 1 : "?";
+      const seat2No = seat2 ? seat2.id + 1 : "?";
+      const roleName = randomRole?.name || "未知外来者";
 
       return {
-        wake: "📚 图书管理员，请睁眼。请看这两名玩家",
-        instruction:
-          "其中一位是特定的外来者，另一位不确定。或者得知没有外来者。",
-        close: "图书管理员，请闭眼。",
-      };
-    },
-    handler: (context) => {
-      const { targets, selfId } = context;
-      return {
-        updates: [],
-        logs: {
-          privateLog: `图书管理员(${selfId + 1}号) 查看了 ${targets.map((id) => id + 1).join("号和 ")}号玩家`,
-        },
+        wake: `📚 图书管理员，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
+        instruction: `其中一位是【${roleName}】`,
+        close: "",
       };
     },
   },

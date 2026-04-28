@@ -58,7 +58,7 @@ export const gossip: RoleDefinition = {
       wake: `唤醒${playerSeatId + 1}号玩家（造谣者）。`,
       instruction:
         "如果该玩家今日发表了正确的传闻，说书人应选择一名玩家额外死亡。",
-      close: `${playerSeatId + 1}号玩家（造谣者），请闭眼。`,
+      close: "",
     }),
     handler: (context: NightActionContext): NightActionResult | null => {
       const { seats, selfId, gamePhase } = context;

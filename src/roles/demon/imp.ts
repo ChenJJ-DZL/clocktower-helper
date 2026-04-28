@@ -28,11 +28,64 @@ export const imp: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
+      const { seats, poppyGrowerDead, roles = [] } = context;
+
+      const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
+      const shouldHideMinions =
+        poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
+
+      if (shouldHideMinions) {
+        return {
+          wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
+          instruction: "因罂粟种植者在场，无法告知爪牙信息",
+          close: "",
+        };
+      }
+
+      const minions = seats
+        .filter((s) => s.role?.type === "minion" && s.id !== playerSeatId)
+        .map((s) => `${s.id + 1}号`);
+      const minionText =
+        minions.length > 0 ? `爪牙：${minions.join("、")}` : "无爪牙";
+
+      // 不在场角色：剧本中有但未分配给任何玩家的角色
+      // 规则：恶魔只能看到3个不在场的镇民角色（最多可包括1名外来者）
+      const assignedRoleIds = new Set(
+        seats.filter((s) => s.role).map((s) => s.role!.id)
+      );
+      const absentRoles = roles.filter(
+        (r) => !assignedRoleIds.has(r.id) && r.id !== "drunk"
+      );
+
+      // 按类型分组：镇民优先，外来者最多1个
+      const absentTownsfolk = absentRoles.filter((r) => r.type === "townsfolk");
+      const absentOutsider = absentRoles.filter((r) => r.type === "outsider");
+
+      // 随机打乱并选取
+      const shuffledTownsfolk = [...absentTownsfolk].sort(() => Math.random() - 0.5);
+      const shuffledOutsider = [...absentOutsider].sort(() => Math.random() - 0.5);
+
+      const selectedAbsent: string[] = [];
+      // 先取镇民，最多3个
+      const townsfolkCount = Math.min(shuffledTownsfolk.length, 3);
+      for (let i = 0; i < townsfolkCount; i++) {
+        selectedAbsent.push(shuffledTownsfolk[i].name);
+      }
+      // 如果不足3个，用外来者补充（最多1个）
+      if (selectedAbsent.length < 3 && shuffledOutsider.length > 0) {
+        selectedAbsent.push(shuffledOutsider[0].name);
+      }
+
+      const absentText =
+        selectedAbsent.length > 0
+          ? `不在场角色：${selectedAbsent.join("、")}`
+          : "无不在场角色";
+
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
-        instruction: "查看爪牙与不在场角色信息（受罂粟种植者影响）",
-        close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
+        instruction: `${minionText}；${absentText}`,
+        close: "",
       };
     },
 
@@ -89,7 +142,7 @@ export const imp: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
         instruction: "选择一名玩家杀害",
-        close: `${playerSeatId + 1}号玩家（小恶魔），请闭眼。`,
+        close: "",
       };
     },
 

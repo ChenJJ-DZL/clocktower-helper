@@ -88,7 +88,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:48-0!canonical and time
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（巡山人）。`,
         instruction: "请执行行动",
-        close: `${playerSeatId + 1}号玩家（巡山人），请闭眼。`,
+        close: "",
       };
     },
 

@@ -88,16 +88,31 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
     dialog: (
       playerSeatId: number,
       isFirstNight: boolean,
-      _context: NightActionContext
+      context: NightActionContext
     ) => {
       if (!isFirstNight) {
         return { wake: "", instruction: "", close: "" };
       }
+      const { seats } = context;
+      // 计算恶魔与爪牙最近距离
+      const demons = seats.filter((s) => s.role?.type === "demon");
+      const minions = seats.filter((s) => s.role?.type === "minion");
+      let minDistance = 0;
+      if (demons.length > 0 && minions.length > 0) {
+        minDistance = seats.length;
+        for (const demon of demons) {
+          for (const minion of minions) {
+            if (demon.id === minion.id) continue;
+            const diff = Math.abs(demon.id - minion.id);
+            const distance = Math.min(diff, seats.length - diff);
+            if (distance < minDistance) minDistance = distance;
+          }
+        }
+      }
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（钟表匠）。`,
-        instruction:
-          "说书人将用手势告知：恶魔与任一爪牙之间最近的距离（邻座为1）。",
-        close: `${playerSeatId + 1}号玩家（钟表匠），请闭眼。`,
+        instruction: `说书人告知：恶魔与爪牙最近距离为 ${minDistance}（邻座为1）。`,
+        close: "",
       };
     },
 

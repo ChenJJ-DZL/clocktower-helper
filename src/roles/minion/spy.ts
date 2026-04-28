@@ -31,7 +31,7 @@ export const spy: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（间谍）。`,
         instruction: "查看魔法书",
-        close: `${playerSeatId + 1}号玩家（间谍），请闭眼。`,
+        close: "",
       };
     },
 

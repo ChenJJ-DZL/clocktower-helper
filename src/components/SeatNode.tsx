@@ -155,9 +155,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     >
       <div
         className={`relative w-full h-full rounded-full ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300
-        ${colorClass} 
-        ${nightInfo?.seat.id === s.id ? "ring-4 ring-yellow-400 scale-110 shadow-[0_0_30px_yellow]" : ""} 
-        ${s.isDead ? "grayscale brightness-75 bg-gray-300 border-gray-400" : ""} 
+        ${colorClass}
+        ${nightInfo?.seat.id === s.id ? "!ring-[6px] !ring-yellow-300 !scale-125 !shadow-[0_0_50px_rgba(253,224,71,0.9)] !brightness-100 !grayscale-0 !bg-gray-900 !border-yellow-300" : ""}
+        ${s.isDead && nightInfo?.seat.id !== s.id ? "grayscale brightness-75 bg-gray-300 border-gray-400" : ""}
         ${selectedActionTargets.includes(s.id) ? "ring-4 ring-green-500 scale-105" : ""}
         ${longPressingSeats.has(s.id) ? "ring-4 ring-blue-400 animate-pulse" : ""}
         ${nominator === s.id ? "ring-8 ring-white scale-110 shadow-[0_0_40px_rgba(255,255,255,0.8)] animate-pulse" : ""}
@@ -186,6 +186,14 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           >
             实:{realRole?.name}
           </div>
+        )}
+
+        {/* 当前行动玩家高亮标签 - 金色脉冲光环（仅光环呼吸，内部保持清晰） */}
+        {nightInfo?.seat.id === s.id && (
+          <>
+            <div className="absolute -inset-3 rounded-full border-[3px] border-yellow-300/60 animate-ping opacity-60"></div>
+            <div className="absolute -inset-5 rounded-full border-2 border-yellow-300/30 animate-pulse"></div>
+          </>
         )}
 
         {/* 长按进度指示器 */}
@@ -268,6 +276,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             </span>
           )}
         </div>
+
+        {/* 当前行动玩家 - 顶部"行动中"标签 */}
+        {nightInfo?.seat.id === s.id && (
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap z-50">
+            <span
+              className={`${isPortrait ? "text-[9px] px-1.5 py-0.5" : "text-sm px-3 py-1"} bg-yellow-400/90 text-black rounded-full shadow-lg shadow-yellow-400/70 font-black animate-pulse border border-yellow-300`}
+            >
+              👤 行动中
+            </span>
+          </div>
+        )}
 
         {/* 幽灵票标记 */}
         {s.isDead && s.hasGhostVote && (

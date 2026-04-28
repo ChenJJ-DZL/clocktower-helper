@@ -124,7 +124,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and tim
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（食人魔）。`,
         instruction: "选择除你以外的一名玩家作为你的挚友",
-        close: `${playerSeatId + 1}号玩家（食人魔），请闭眼。`,
+        close: "",
       };
     },
 

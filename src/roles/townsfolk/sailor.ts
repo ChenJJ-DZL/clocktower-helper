@@ -49,7 +49,7 @@ export const sailor: RoleDefinition = {
       wake: `唤醒${playerSeatId + 1}号玩家（水手）。`,
       instruction:
         "请指向一名存活玩家（包括你自己）。你或他之一会醉酒至下个黄昏。",
-      close: `${playerSeatId + 1}号玩家（水手），请闭眼。`,
+      close: "",
     }),
     handler: (context: NightActionContext): NightActionResult | null => {
       const { seats, targets, selfId } = context;

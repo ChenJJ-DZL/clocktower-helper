@@ -103,13 +103,13 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:138-0!canonical and tim
           wake: `唤醒${playerSeatId + 1}号玩家（疯子）。`,
           instruction:
             "请执行恶魔行动（假）- 你会得知三个不在场的角色和爪牙信息",
-          close: `${playerSeatId + 1}号玩家（疯子），请闭眼。`,
+          close: "",
         };
       } else {
         return {
           wake: `唤醒${playerSeatId + 1}号玩家（疯子）。`,
           instruction: "请执行恶魔行动（假）- 选择攻击目标",
-          close: `${playerSeatId + 1}号玩家（疯子），请闭眼。`,
+          close: "",
         };
       }
     },

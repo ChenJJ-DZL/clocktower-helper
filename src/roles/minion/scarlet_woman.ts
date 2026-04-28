@@ -38,7 +38,7 @@ export const scarlet_woman: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（红唇女郎）。`,
         instruction: "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
-        close: `${playerSeatId + 1}号玩家（红唇女郎），请闭眼。`,
+        close: "",
       };
     },
 

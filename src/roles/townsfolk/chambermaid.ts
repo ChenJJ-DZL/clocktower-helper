@@ -81,7 +81,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:13-0!canonical and time
     dialog: (playerSeatId) => ({
       wake: `唤醒${playerSeatId + 1}号玩家（侍女）。`,
       instruction: "选择两名除你以外的存活玩家。",
-      close: `${playerSeatId + 1}号玩家（侍女），请闭眼。`,
+      close: "",
     }),
     handler: (context) => ({
       updates: [],

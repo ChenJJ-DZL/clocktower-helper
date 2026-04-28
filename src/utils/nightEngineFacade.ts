@@ -96,8 +96,7 @@ export class NightEngine {
     // 3. 创建队列迭代器
     this._queueIterator = new NightQueueIterator(queue);
 
-    // 4. 状态转移到唤醒中，开始处理第一个节点
-    this._stateMachine.transitionTo(NightState.WAKING);
+    // 4. 开始处理第一个节点（nextAction 内部会转移到 WAKING）
     this.nextAction();
   }
 

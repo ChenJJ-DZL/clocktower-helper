@@ -51,7 +51,7 @@ export const butler: RoleDefinition = {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（管家）。`,
         instruction: "选择你的主人（除你以外的任意一名玩家）",
-        close: `${playerSeatId + 1}号玩家（管家），请闭眼。`,
+        close: "",
       };
     },
 

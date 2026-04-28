@@ -3,7 +3,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 /**
  * 洗衣妇 (Washerwoman)
  * 说明：首夜得知一名村民的具体身份。
- * 当前占位：已在 nightLogic 中实现。
  */
 export const washerwoman: RoleDefinition = {
   id: "washerwoman",
@@ -18,13 +17,11 @@ export const washerwoman: RoleDefinition = {
   firstNight: {
     order: 49,
     target: {
-      count: { min: 2, max: 2 },
-      canSelect: (target, self, _allSeats) => target.id !== self.id,
+      count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats, shouldShowFake, isPoisoned, roles = [] } = context;
+      const { seats, roles = [], isActorDisabledByPoisonOrDrunk } = context;
 
-      // 这里的逻辑模仿 nightLogic 中的实现
       const targetSeat = seats.find((s) => s.id === playerSeatId);
       const effectiveRole =
         targetSeat?.role?.id === "drunk"
@@ -35,23 +32,52 @@ export const washerwoman: RoleDefinition = {
         return {
           wake: "洗衣妇，请睁眼",
           instruction: "出错了",
-          close: "洗衣妇，请闭眼",
+          close: "",
         };
 
-      // 选出两个玩家和一个镇民角色
-      // 注意：由于 dialog 是纯函数且多次调用需一致，如果是随机选择，可能会有问题
-      // 但在 calculateNightInfo 中，我们会把 context 传进来。
+      // 检查是否中毒/醉酒
+      const isDisabled =
+        targetSeat &&
+        typeof isActorDisabledByPoisonOrDrunk === "function" &&
+        isActorDisabledByPoisonOrDrunk(targetSeat);
 
-      // 这里的实现应当与 nightLogic 保持某种程度的一致性，或者由 handler 提前计算好存入 context
-      // 但目前的架构是 dialog 先于 handler 执行。
+      // 随机选择两个其他玩家
+      const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
+      const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+      const seat1 = shuffled[0];
+      const seat2 = shuffled[1] || shuffled[0];
 
-      // 实际逻辑在 nightLogic.ts 的 calculateNightInfo 函数中实现
-      // 这里返回标准提示文本，具体信息由 calculateNightInfo 生成
+      const seat1No = seat1 ? seat1.id + 1 : "?";
+      const seat2No = seat2 ? seat2.id + 1 : "?";
+
+      if (isDisabled) {
+        // 中毒/醉酒：随机选镇民角色（可以是剧本中但不在场的）
+        const allTownsfolk = roles.filter((r) => r.type === "townsfolk");
+        const fakeRole =
+          allTownsfolk.length > 0
+            ? allTownsfolk[Math.floor(Math.random() * allTownsfolk.length)]
+            : null;
+        const fakeRoleName = fakeRole?.name || "未知镇民";
+
+        return {
+          wake: `🧺 洗衣妇，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
+          instruction: `其中一位是【${fakeRoleName}】`,
+          close: "",
+        };
+      }
+
+      // 正常情况：随机选一个镇民角色
+      const townsfolkRoles = roles.filter((r) => r.type === "townsfolk");
+      const randomRole =
+        townsfolkRoles.length > 0
+          ? townsfolkRoles[Math.floor(Math.random() * townsfolkRoles.length)]
+          : null;
+      const roleName = randomRole?.name || "未知镇民";
 
       return {
-        wake: "🧺 洗衣妇，请睁眼。请看这两名玩家",
-        instruction: "其中一位是特定的镇民，另一位不是。",
-        close: "洗衣妇，请闭眼。",
+        wake: `🧺 洗衣妇，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
+        instruction: `其中一位是【${roleName}】`,
+        close: "",
       };
     },
   },

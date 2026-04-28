@@ -20,18 +20,25 @@ export const chef: RoleDefinition = {
     target: {
       count: { min: 0, max: 0 },
     },
-    dialog: (_playerSeatId, _isFirstNight) => ({
-      wake: "厨师，请睁眼。这是相邻邪恶玩家的对数",
-      instruction: "请出示手指告诉厨师（0对应点头，1、2等对应数字）",
-      close: "厨师，请闭眼。",
-    }),
-    handler: (context) => {
-      const { selfId } = context;
+    dialog: (playerSeatId, _isFirstNight, context) => {
+      const { seats } = context;
+      // 计算相邻邪恶玩家对数
+      let evilPairs = 0;
+      for (let i = 0; i < seats.length; i++) {
+        const current = seats[i];
+        const next = seats[(i + 1) % seats.length];
+        if (current.id === playerSeatId || next.id === playerSeatId) continue;
+        const currentIsEvil =
+          current.role?.type === "minion" || current.role?.type === "demon";
+        const nextIsEvil =
+          next.role?.type === "minion" || next.role?.type === "demon";
+        if (currentIsEvil && nextIsEvil) evilPairs++;
+      }
       return {
-        updates: [],
-        logs: {
-          privateLog: `厨师(${selfId + 1}号) 获取了相邻邪恶玩家信息`,
-        },
+        wake: `厨师，请睁眼。相邻邪恶玩家有 ${evilPairs} 对`,
+        instruction:
+          evilPairs === 0 ? "（点头表示0）" : `（出示 ${evilPairs} 根手指）`,
+        close: "",
       };
     },
   },
