@@ -1209,6 +1209,8 @@ export function useGameController() {
     () => ({
       ...gameState,
       addLog,
+      updateSnapshot: nightSnapshot.updateSnapshot,
+      refreshSnapshot: nightSnapshot.refreshSnapshot,
       logicDispatch,
       checkGameOver,
       currentNightRole: nightInfo?.effectiveRole?.name,
@@ -1436,6 +1438,7 @@ export function useGameController() {
       submitVotes,
       swapRoles,
       victorySnapshot,
+      nightSnapshot,
     ]
   );
 }

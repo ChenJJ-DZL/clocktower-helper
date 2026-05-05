@@ -48,7 +48,9 @@ export function buildDemonFirstNightDialog(
   const absentOutsider = absentRoles.filter((r) => r.type === "outsider");
 
   // 随机打乱并选取（使用简单的随机选择）
-  const shuffledTownsfolk = [...absentTownsfolk].sort(() => Math.random() - 0.5);
+  const shuffledTownsfolk = [...absentTownsfolk].sort(
+    () => Math.random() - 0.5
+  );
   const shuffledOutsider = [...absentOutsider].sort(() => Math.random() - 0.5);
 
   const selectedAbsent: string[] = [];

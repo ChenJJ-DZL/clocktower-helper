@@ -43,6 +43,9 @@ interface GameConsoleProps {
 
   // Force continue callback (for empty queue scenarios)
   onForceContinue?: () => void;
+
+  // Refresh current night step info (re-randomize prepared content)
+  onRefreshNightStep?: () => void;
 }
 
 /**
@@ -69,6 +72,7 @@ export const GameConsole = React.memo(function GameConsole({
   secondaryActions = [],
   handleDayAbility,
   onForceContinue,
+  onRefreshNightStep,
 }: GameConsoleProps) {
   const getPhaseLabel = () => {
     switch (gamePhase) {
@@ -198,24 +202,22 @@ export const GameConsole = React.memo(function GameConsole({
     // 去除 action 末尾已有的句号，避免拼接时重复
     const cleanAction = action.replace(/[。！]+$/, "");
     const actionPart = hasAction ? `让他选择${cleanAction}` : null;
-    const speakPart = speak ? `告诉他：${speak}` : null;
+    const speakPart = speak ? `告诉他${speak}` : null;
 
     // Combine into specific format requested:
-    // 行动：唤醒x号玩家，告诉他xxx/让他选择xxx。
-    let actionText = `唤醒 ${seatNo} 号【${roleName}】玩家`;
+    // 行动：唤醒x号【角色名】，告诉他xxx/让他选择xxx。
+    let actionText = `唤醒 ${seatNo} 号【${roleName}】`;
 
     // CRITICAL: If we have an interactive result (e.g. Fortune Teller Yes/No), override or append to speak
     if (inspectionResult) {
-      actionText += `，并告诉他：${inspectionResult}`;
+      actionText += `，并告诉他${inspectionResult}`;
     } else {
       if (speakPart && actionPart) {
-        actionText += `，${speakPart}并${actionPart}。`;
+        actionText += `，${speakPart}并${actionPart}`;
       } else if (speakPart) {
-        actionText += `，${speakPart}。`;
+        actionText += `，${speakPart}`;
       } else if (actionPart) {
-        actionText += `，${actionPart}。`;
-      } else {
-        actionText += "。";
+        actionText += `，${actionPart}`;
       }
     }
 
@@ -269,9 +271,34 @@ export const GameConsole = React.memo(function GameConsole({
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0 bg-slate-900/50">
         {isNightPhase && currentActorSeat && currentActorRoleName && (
           <div className="rounded-2xl border border-emerald-400/40 bg-emerald-950/30 px-5 py-4 shadow-xl shadow-emerald-900/10 backdrop-blur-sm">
-            <div className="text-[13px] font-bold uppercase tracking-wider text-emerald-400/80 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              当前的行动
+            <div className="text-[13px] font-bold uppercase tracking-wider text-emerald-400/80 mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                当前的行动
+              </div>
+              {onRefreshNightStep && (
+                <button
+                  type="button"
+                  onClick={onRefreshNightStep}
+                  title="刷新说书人提前准备好的内容"
+                  className="p-1.5 rounded-md bg-emerald-900/40 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-800/60 hover:text-emerald-100 transition"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <div className="text-[17px] text-emerald-50 leading-relaxed font-medium">
@@ -304,8 +331,7 @@ export const GameConsole = React.memo(function GameConsole({
 
             {/* Injected Player List - 只有需要选择目标时才显示 */}
             {seats.length > 0 &&
-              nightInfo?.targetLimit?.min &&
-              nightInfo.targetLimit.min > 0 && (
+              (nightInfo?.targetLimit?.min ?? 0) > 0 && (
                 <div className="mt-5 pt-4 border-t border-emerald-500/20">
                   <div
                     className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"

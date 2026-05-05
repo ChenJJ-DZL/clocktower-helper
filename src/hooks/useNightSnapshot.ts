@@ -91,6 +91,64 @@ export function useNightSnapshot(
     ]
   );
 
+  const refreshSnapshot = useCallback(
+    (currentSeats: Seat[], currentPhase: string) => {
+      const index = wakeIndexRef.current;
+      const nextSeatId = wakeQueueIds[index];
+      if (nextSeatId !== undefined) {
+        const nextStepInfo = calculateNightInfoViaNewEngine(
+          selectedScript,
+          currentSeats,
+          nextSeatId,
+          currentPhase as any,
+          lastDuskExecution,
+          nightCount,
+          undefined,
+          drunkFirstInfoRef.current,
+          isEvilWithJudgment,
+          poppyGrowerDead,
+          [],
+          spyDisguiseMode,
+          spyDisguiseProbability,
+          deadThisNight,
+          balloonistKnownTypes,
+          registrationCache,
+          `${currentPhase}-${nightCount}`,
+          isVortoxWorld,
+          todayDemonVoted,
+          todayMinionNominated,
+          todayExecutedId,
+          hasUsedAbility,
+          votedThisRound,
+          outsiderDiedToday
+        );
+        setActiveNightStep(nextStepInfo);
+        return nextStepInfo;
+      }
+      return null;
+    },
+    [
+      wakeQueueIds,
+      selectedScript,
+      lastDuskExecution,
+      nightCount,
+      isEvilWithJudgment,
+      poppyGrowerDead,
+      spyDisguiseMode,
+      spyDisguiseProbability,
+      deadThisNight,
+      balloonistKnownTypes,
+      registrationCache,
+      isVortoxWorld,
+      todayDemonVoted,
+      todayMinionNominated,
+      todayExecutedId,
+      hasUsedAbility,
+      votedThisRound,
+      outsiderDiedToday,
+    ]
+  );
+
   const continueToNextAction = useCallback(() => {
     const currentIndex = wakeIndexRef.current;
     const nextIndex = currentIndex + 1;
@@ -169,5 +227,6 @@ export function useNightSnapshot(
     drunkFirstInfoRef,
     continueToNextAction,
     updateSnapshot,
+    refreshSnapshot,
   };
 }

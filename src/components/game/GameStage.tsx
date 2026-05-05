@@ -1033,6 +1033,14 @@ export const GameStage = () => {
             inspectionResultKey={inspectionResultKey}
             onTogglePlayer={toggleTarget}
             handleDayAbility={controller.handleDayAbility}
+            onRefreshNightStep={() => {
+              if (
+                controller.refreshSnapshot &&
+                (gamePhase === "firstNight" || gamePhase === "night")
+              ) {
+                controller.refreshSnapshot(seats, gamePhase);
+              }
+            }}
             primaryAction={
               gamePhase === "firstNight" || gamePhase === "night"
                 ? (() => {

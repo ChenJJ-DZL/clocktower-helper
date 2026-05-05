@@ -47,35 +47,37 @@ export function NightOrderPreviewModal({
         请核对今晚要叫醒的所有角色顺序。你可以点击"返回调整"继续修改座位/身份，或点击"确认"正式进入夜晚流程。
       </p>
 
-      {/* 快捷设置红罗刹 */}
-      <div className="mb-6 p-4 rounded-xl bg-red-950/20 border border-red-500/30">
-        <h4 className="text-sm font-bold text-red-200 mb-3 flex items-center gap-2">
-          🎭 设置占卜师天敌 (红罗刹)
-        </h4>
-        <div className="flex flex-wrap gap-2">
-          {props.seats.map((seat) => {
-            const isRH = !!(
-              seat.isRedHerring || seat.isFortuneTellerRedHerring
-            );
-            return (
-              <button
-                key={`rh-select-seat-${seat.id}`}
-                onClick={() => props.toggleStatus("redherring", seat.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                  isRH
-                    ? "bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500/50 hover:text-red-200"
-                }`}
-              >
-                {seat.id + 1}号 {seat.role?.name || "未设定"}
-              </button>
-            );
-          })}
+      {/* 当场上有占卜师时才显示红罗刹设置 */}
+      {props.seats.some((seat) => seat.role?.id === "fortune_teller") && (
+        <div className="mb-6 p-4 rounded-xl bg-red-950/20 border border-red-500/30">
+          <h4 className="text-sm font-bold text-red-200 mb-3 flex items-center gap-2">
+            🎭 设置占卜师天敌 (红罗刹)
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {props.seats.map((seat) => {
+              const isRH = !!(
+                seat.isRedHerring || seat.isFortuneTellerRedHerring
+              );
+              return (
+                <button
+                  key={`rh-select-seat-${seat.id}`}
+                  onClick={() => props.toggleStatus("redherring", seat.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                    isRH
+                      ? "bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"
+                      : "bg-gray-800 border-gray-700 text-gray-400 hover:border-red-500/50 hover:text-red-200"
+                  }`}
+                >
+                  {seat.id + 1}号 {seat.role?.name || "未设定"}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-gray-500 mt-2 italic">
+            * 占卜师在查验时，若包含红罗刹，其结果将始终返回“是”。
+          </p>
         </div>
-        <p className="text-[10px] text-gray-500 mt-2 italic">
-          * 占卜师在查验时，若包含红罗刹，其结果将始终返回“是”。
-        </p>
-      </div>
+      )}
       <div className="grid grid-cols-1 gap-3">
         {(nightOrderModal?.preview || props.nightOrderPreview || []).map(
           (item: any) => (

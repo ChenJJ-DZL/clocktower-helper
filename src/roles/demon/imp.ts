@@ -63,8 +63,12 @@ export const imp: RoleDefinition = {
       const absentOutsider = absentRoles.filter((r) => r.type === "outsider");
 
       // 随机打乱并选取
-      const shuffledTownsfolk = [...absentTownsfolk].sort(() => Math.random() - 0.5);
-      const shuffledOutsider = [...absentOutsider].sort(() => Math.random() - 0.5);
+      const shuffledTownsfolk = [...absentTownsfolk].sort(
+        () => Math.random() - 0.5
+      );
+      const shuffledOutsider = [...absentOutsider].sort(
+        () => Math.random() - 0.5
+      );
 
       const selectedAbsent: string[] = [];
       // 先取镇民，最多3个
