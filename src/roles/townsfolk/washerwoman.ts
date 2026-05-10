@@ -43,9 +43,7 @@ export const washerwoman: RoleDefinition = {
 
       if (isDisabled) {
         // 中毒/醉酒：随机选两个其他有角色的座位，角色从剧本镇民中随机（可不在场）
-        const otherSeats = seats.filter(
-          (s) => s.id !== playerSeatId && s.role
-        );
+        const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
         const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
         const seat1 = shuffled[0];
         const seat2 = shuffled[1] || shuffled[0];
@@ -74,9 +72,7 @@ export const washerwoman: RoleDefinition = {
       );
 
       if (townsfolkSeats.length === 0) {
-        const otherSeats = seats.filter(
-          (s) => s.id !== playerSeatId && s.role
-        );
+        const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
         const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
         const seat1 = shuffled[0];
         const seat2 = shuffled[1] || shuffled[0];
@@ -94,8 +90,7 @@ export const washerwoman: RoleDefinition = {
         townsfolkSeats[Math.floor(Math.random() * townsfolkSeats.length)];
 
       const otherSeats = seats.filter(
-        (s) =>
-          s.id !== playerSeatId && s.id !== targetTownsfolk.id && s.role
+        (s) => s.id !== playerSeatId && s.id !== targetTownsfolk.id && s.role
       );
 
       const targetOther =

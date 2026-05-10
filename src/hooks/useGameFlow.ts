@@ -401,40 +401,19 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
-      const r = rolesToUse || globalRoles || [];
-      // 酒鬼伪装身份检查
+      // 酒鬼伪装身份检查 - 现在通过右键菜单设置，这里只做安全兜底
       const drunkMissingCharade = seats.find(
         (s) => s.role?.id === "drunk" && !s.charadeRole
       );
       if (drunkMissingCharade) {
-        // 酒鬼的伪装身份只能从当前剧本中不在场的镇民中选择
-        // 首先获取当前剧本的所有角色ID
-        const currentScriptRoleIds = selectedScript?.roleIds || [];
-        // 先筛选出当前剧本的所有角色（去重，防止 roles 数组中有重复 id）
-        const seenIds = new Set<string>();
-        const currentScriptRoles = r.filter((role) => {
-          if (!currentScriptRoleIds.includes(role.id)) return false;
-          if (seenIds.has(role.id)) return false;
-          seenIds.add(role.id);
-          return true;
-        });
-
-        const availableCharades = currentScriptRoles.filter(
-          (role) =>
-            role.type === "townsfolk" &&
-            !role.hidden &&
-            // 不能是已经在场的角色
-            !seats.some((s) => s.role?.id === role.id)
+        console.warn(
+          `[proceedToFirstNight] 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，请通过右键菜单设置后再入夜`
         );
-
         dispatch(
-          gameActions.setModal({
-            type: "DRUNK_CHARADE_SELECT",
-            data: {
-              seatId: drunkMissingCharade.id,
-              availableRoles: availableCharades,
-              scriptId: selectedScript?.id || "default",
-            },
+          gameActions.addLog({
+            day: 0,
+            phase: "setup",
+            message: `⚠️ 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，请右键点击该座位选择"设置伪装身份"`,
           })
         );
         return;

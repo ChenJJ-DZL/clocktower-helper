@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { GameRecord, LogEntry } from "@/src/types/game";
+import { deleteGameRecord } from "@/src/utils/persistence";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface GameRecordsModalProps {
@@ -6,6 +8,7 @@ interface GameRecordsModalProps {
   onClose: () => void;
   gameRecords: GameRecord[];
   isPortrait: boolean;
+  onContinue?: (record: GameRecord) => void; // 继续未完成对局
 }
 
 // 工具函数：格式化时间
@@ -22,8 +25,25 @@ export function GameRecordsModal({
   onClose,
   gameRecords,
   isPortrait,
+  onContinue,
 }: GameRecordsModalProps) {
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleDelete = (recordId: string) => {
+    deleteGameRecord(recordId);
+    setDeleteConfirmId(null);
+    // 触发页面刷新（通过关闭弹窗再打开的方式让父组件重新加载）
+    // 简单做法：直接 reload 页面数据
+    window.location.reload();
+  };
+
+  const handleContinue = (record: GameRecord) => {
+    if (onContinue) {
+      onContinue(record);
+    }
+  };
 
   return (
     <ModalWrapper title="📚 对局记录" onClose={onClose} className="max-w-6xl">
@@ -60,6 +80,10 @@ export function GameRecordsModal({
               hour12: false,
             });
             const durationStr = formatTimer(record.duration);
+
+            // 判断是否可继续（未完成且有快照）
+            const canContinue =
+              !record.isCompleted && record.snapshot && onContinue;
 
             // 按阶段顺序组织日志
             const phaseOrder: Record<string, number> = {
@@ -100,7 +124,7 @@ export function GameRecordsModal({
                 <div
                   className={`flex ${isPortrait ? "flex-col" : "justify-between"} items-start ${isPortrait ? "gap-3" : "mb-4"}`}
                 >
-                  <div>
+                  <div className="flex-1">
                     <h3
                       className={`${isPortrait ? "text-lg" : "text-2xl"} font-bold text-white ${isPortrait ? "mb-1" : "mb-2"}`}
                     >
@@ -114,20 +138,57 @@ export function GameRecordsModal({
                       <p>游戏时长：{durationStr}</p>
                     </div>
                   </div>
-                  <div
-                    className={`${isPortrait ? "text-sm" : "text-xl"} font-bold ${isPortrait ? "px-3 py-1.5" : "px-4 py-2"} rounded ${
-                      record.winResult === "good"
-                        ? "bg-blue-900/50 text-blue-400 border border-blue-500"
+                  <div className="flex items-center gap-2">
+                    {/* 继续按钮 - 仅未完成对局 */}
+                    {canContinue && (
+                      <button
+                        onClick={() => handleContinue(record)}
+                        className={`${isPortrait ? "text-sm px-3 py-1.5" : "text-base px-4 py-2"} font-bold rounded-lg bg-green-700/60 text-green-300 border border-green-600 hover:bg-green-600/80 transition`}
+                        title="继续此对局"
+                      >
+                        ▶ 继续
+                      </button>
+                    )}
+                    {/* 删除按钮 */}
+                    {deleteConfirmId === record.id ? (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleDelete(record.id)}
+                          className={`${isPortrait ? "text-xs px-2 py-1" : "text-sm px-3 py-1.5"} font-bold rounded-lg bg-red-700 text-white border border-red-500 hover:bg-red-600 transition`}
+                        >
+                          确认删除
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className={`${isPortrait ? "text-xs px-2 py-1" : "text-sm px-3 py-1.5"} font-bold rounded-lg bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 transition`}
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(record.id)}
+                        className={`${isPortrait ? "text-sm px-3 py-1.5" : "text-base px-4 py-2"} font-bold rounded-lg bg-red-900/40 text-red-400 border border-red-800/60 hover:bg-red-800/60 transition`}
+                        title="删除此记录"
+                      >
+                        🗑 删除
+                      </button>
+                    )}
+                    <div
+                      className={`${isPortrait ? "text-sm" : "text-xl"} font-bold ${isPortrait ? "px-3 py-1.5" : "px-4 py-2"} rounded ${
+                        record.winResult === "good"
+                          ? "bg-blue-900/50 text-blue-400 border border-blue-500"
+                          : record.winResult === "evil"
+                            ? "bg-red-900/50 text-red-400 border border-red-500"
+                            : "bg-gray-700/50 text-gray-300 border border-gray-500"
+                      }`}
+                    >
+                      {record.winResult === "good"
+                        ? "🏆 善良阵营胜利"
                         : record.winResult === "evil"
-                          ? "bg-red-900/50 text-red-400 border border-red-500"
-                          : "bg-gray-700/50 text-gray-300 border border-gray-500"
-                    }`}
-                  >
-                    {record.winResult === "good"
-                      ? "🏆 善良阵营胜利"
-                      : record.winResult === "evil"
-                        ? "👿 邪恶阵营获胜"
-                        : "🔄 游戏未完成"}
+                          ? "👿 邪恶阵营获胜"
+                          : "🔄 游戏未完成"}
+                    </div>
                   </div>
                 </div>
                 {record.winReason && (
@@ -253,9 +314,9 @@ export function GameRecordsModal({
                               {phaseName}
                             </div>
                             <div className="space-y-1">
-                              {logs.map((l) => (
+                              {logs.map((l, idx) => (
                                 <div
-                                  key={`${l.day}-${l.phase}-${l.message}`}
+                                  key={`${l.day}-${l.phase}-${idx}-${l.message.substring(0, 20)}`}
                                   className={`text-gray-300 pl-2 ${isPortrait ? "text-[10px]" : "text-xs"}`}
                                 >
                                   {l.message}

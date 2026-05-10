@@ -45,6 +45,7 @@ import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
 import { DawnReportOverlay } from "./DawnReportOverlay";
 import { GameOverOverlay } from "./GameOverOverlay";
+import { GlobalNavBar } from "./GlobalNavBar";
 import { PlayerContextMenu } from "./PlayerContextMenu";
 
 export function GameModals() {
@@ -280,6 +281,7 @@ export function GameModals() {
         onClose={() => actions.setCurrentModal(null)}
         gameRecords={gameRecords}
         isPortrait={isPortrait}
+        onContinue={(actions as any).handleContinueGame}
       />
 
       <RoleInfoModal
@@ -632,6 +634,7 @@ export function GameModals() {
       <DawnReportOverlay />
       <GameOverOverlay />
       <PlayerContextMenu />
+      <GlobalNavBar />
     </>
   );
 }

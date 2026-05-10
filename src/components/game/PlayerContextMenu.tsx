@@ -144,6 +144,18 @@ export function PlayerContextMenu() {
           🎭 选为红罗刹
         </button>
       )}
+      {/* 在核对身份阶段，酒鬼可以设置伪装身份 */}
+      {props.gamePhase === "check" &&
+        targetSeat.role?.id === "drunk" &&
+        !targetSeat.charadeRole && (
+          <button
+            onClick={() => props.toggleStatus("charade", targetSeat.id)}
+            className="block w-full text-left px-6 py-4 hover:bg-purple-700 bg-purple-900/30 text-purple-100 text-lg font-bold border-t border-gray-700 transition-colors"
+            style={{ textShadow: "0 0 8px rgba(168, 85, 247, 0.5)" }}
+          >
+            🎭 设置伪装身份
+          </button>
+        )}
     </div>
   );
 }

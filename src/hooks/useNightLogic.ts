@@ -529,7 +529,7 @@ export function useNightLogic(
         }
 
         if (isFirst) {
-          console.log("[startNight] First night - Setting up preview modal");
+          console.log("[startNight] First night - directly starting night");
           console.log("[startNight] validQueue length:", validQueue.length);
           console.log(
             "[startNight] validQueue:",
@@ -540,52 +540,9 @@ export function useNightLogic(
             }))
           );
 
-          setPendingNightQueue(validQueue);
-          const preview = validQueue.map((s, idx) => {
-            const r = s.role?.id === "drunk" ? s.charadeRole : s.role;
-            const roleDef = getRoleDefinition(r?.id || "");
-            let orderNum = idx + 1;
-            if (r?.id) {
-              const override = getNightOrderOverride(r.id, isFirst);
-              if (override !== null) {
-                orderNum = override;
-              } else {
-                if (isFirst) {
-                  orderNum =
-                    roleDef?.firstNight?.order ??
-                    (r as any).firstNightOrder ??
-                    999;
-                } else {
-                  orderNum =
-                    roleDef?.night?.order ?? (r as any).nightOrder ?? 999;
-                }
-              }
-            }
-            return {
-              roleName: r?.name || "未知角色",
-              seatNo: s.id + 1,
-              order: orderNum,
-            };
-          });
-
-          console.log("[startNight] Preview data:", preview);
-          setNightOrderPreview(preview);
-
-          console.log(
-            "[startNight] Calling setCurrentModal for NIGHT_ORDER_PREVIEW..."
-          );
-          setCurrentModal({
-            type: "NIGHT_ORDER_PREVIEW",
-            data: {
-              preview,
-              title:
-                nightQueuePreviewTitle ||
-                (isFirst ? "首夜叫醒顺位" : "🌙 今晚要唤醒的顺序列表"),
-              pendingQueue: validQueue,
-            },
-          });
-          console.log("[startNight] ✅ Modal should be visible now");
-          // 注意：这里不调用 finalizeNightStart，等待用户确认预览后开始夜晚
+          // 不再弹出 NIGHT_ORDER_PREVIEW 模态框（右上角会自动生成行动顺序）
+          // 直接进入首夜流程
+          finalizeNightStart(validQueue, isFirst);
           return;
         }
 

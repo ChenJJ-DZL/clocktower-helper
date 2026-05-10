@@ -7,10 +7,11 @@ import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
 import { GameActionsProvider } from "../src/contexts/GameActionsContext";
+import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
-import type { NightHintState } from "../src/types/game";
-import { typeColors } from "./data";
+import type { GameRecord, NightHintState } from "../src/types/game";
+import { typeColors, scripts } from "./data";
 
 // getSeatRoleId is now imported from useGameController
 
@@ -40,6 +41,7 @@ export default function Home() {
   // ===========================
   const controller = useGameController();
   const gameState = useGameState();
+  const { dispatch } = useGameContext();
   const { playSound } = useAudio();
   // 仅解构本文件直接使用的变量；其余通过 controller={controller} 传递给 GameActionsProvider
   const {
@@ -140,6 +142,100 @@ export default function Home() {
     getDisplayRoleForSeat,
     setRedNemesisTarget,
   } = controller;
+
+  // 从对局记录快照恢复游戏
+  const handleContinueGame = useCallback(
+    (record: GameRecord) => {
+      if (!record.snapshot) return;
+      const snap = record.snapshot;
+
+      // 查找剧本
+      const script = scripts.find((s) => s.name === record.scriptName);
+      if (script) {
+        dispatch(gameActions.updateState({ selectedScript: script }));
+      }
+
+      // 恢复游戏状态
+      dispatch(
+        gameActions.updateState({
+          gamePhase: snap.gamePhase || "setup",
+          nightCount: snap.nightCount ?? 1,
+          seats: snap.seats || [],
+          initialSeats: snap.initialSeats || [],
+          victorySnapshot: snap.victorySnapshot || [],
+          gameLogs: record.gameLogs || [],
+          winResult: snap.winResult || null,
+          winReason: snap.winReason || null,
+          deadThisNight: snap.deadThisNight || [],
+          executedPlayerId: snap.executedPlayerId ?? null,
+          wakeQueueIds: snap.wakeQueueIds || [],
+          currentWakeIndex: snap.currentWakeIndex ?? 0,
+          selectedActionTargets: snap.selectedActionTargets || [],
+          inspectionResult: snap.inspectionResult ?? null,
+          inspectionResultKey: snap.inspectionResultKey ?? 0,
+          currentHint: snap.currentHint || {
+            isPoisoned: false,
+            guide: "",
+            speak: "",
+          },
+          todayDemonVoted: snap.todayDemonVoted ?? false,
+          todayMinionNominated: snap.todayMinionNominated ?? false,
+          todayExecutedId: snap.todayExecutedId ?? null,
+          witchCursedId: snap.witchCursedId ?? null,
+          witchActive: snap.witchActive ?? false,
+          cerenovusTarget: snap.cerenovusTarget ?? null,
+          isVortoxWorld: snap.isVortoxWorld ?? false,
+          fangGuConverted: snap.fangGuConverted ?? false,
+          jugglerGuesses: snap.jugglerGuesses ?? null,
+          evilTwinPair: snap.evilTwinPair ?? null,
+          outsiderDiedToday: snap.outsiderDiedToday ?? false,
+          gossipStatementToday: snap.gossipStatementToday ?? "",
+          gossipTrueTonight: snap.gossipTrueTonight ?? false,
+          gossipSourceSeatId: snap.gossipSourceSeatId ?? null,
+          timer: snap.timer ?? 0,
+          startTime: snap.startTime ? new Date(snap.startTime) : null,
+          selectedRole: snap.selectedRole ?? null,
+          spyDisguiseMode: snap.spyDisguiseMode ?? "off",
+          spyDisguiseProbability: snap.spyDisguiseProbability ?? 0,
+          poppyGrowerDead: snap.poppyGrowerDead ?? false,
+          pukkaPoisonQueue: snap.pukkaPoisonQueue || [],
+          poChargeState: snap.poChargeState ?? null,
+          usedOnceAbilities: snap.usedOnceAbilities || {},
+          usedDailyAbilities: snap.usedDailyAbilities || {},
+          balloonistKnownTypes: snap.balloonistKnownTypes || {},
+          hasExecutedThisDay: snap.hasExecutedThisDay ?? false,
+          votedThisRound: snap.votedThisRound || [],
+          lastDuskExecution: snap.lastDuskExecution ?? null,
+          currentDuskExecution: snap.currentDuskExecution ?? null,
+          history: snap.history || [],
+          mayorRedirectTarget: snap.mayorRedirectTarget ?? null,
+          damselGuessed: snap.damselGuessed ?? false,
+          damselGuessUsedBy: snap.damselGuessUsedBy || [],
+          klutzChoiceTarget: snap.klutzChoiceTarget ?? null,
+          shamanKeyword: snap.shamanKeyword ?? null,
+          shamanTriggered: snap.shamanTriggered ?? false,
+          shamanConvertTarget: snap.shamanConvertTarget ?? null,
+          autoRedHerringInfo: snap.autoRedHerringInfo ?? null,
+          dayAbilityLogs: snap.dayAbilityLogs || [],
+          nominationMap: snap.nominationMap || {},
+          nominationRecords: snap.nominationRecords || {
+            nominators: [],
+            nominees: [],
+          },
+          mastermindFinalDay: snap.mastermindFinalDay ?? null,
+          remainingDays: snap.remainingDays ?? null,
+          goonDrunkedThisNight: snap.goonDrunkedThisNight ?? false,
+          hadesiaChoices: snap.hadesiaChoices || {},
+          virginGuideInfo: snap.virginGuideInfo ?? null,
+          voteRecords: snap.voteRecords || [],
+          seatNotes: snap.seatNotes || {},
+          hadesiaChoiceEnabled: snap.hadesiaChoiceEnabled ?? false,
+          lastExecutedPlayerId: snap.lastExecutedPlayerId ?? null,
+        })
+      );
+    },
+    [dispatch]
+  );
 
   // [REFACTOR] seatsRef and gameStateRef sync removed - all state reads go through Context
 
@@ -633,6 +729,7 @@ export default function Home() {
                 saveHistory={saveHistory}
                 setGameLogs={setGameLogs}
                 setGamePhase={setGamePhase}
+                onContinue={handleContinueGame}
               />
             </div>
           )}
@@ -724,7 +821,7 @@ export default function Home() {
               }
             />
           )}
-          {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
+          {gamePhase !== "scriptSelection" && (
             <>
               <GameStage />
               <GameModals />

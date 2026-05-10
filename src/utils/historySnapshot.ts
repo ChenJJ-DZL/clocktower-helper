@@ -4,6 +4,7 @@
  */
 
 import type { GamePhase, LogEntry, Seat, WinResult } from "../../app/data";
+import type { NightInfoResult } from "../types/game";
 
 /**
  * 游戏状态快照接口
@@ -219,12 +220,35 @@ export const SNAPSHOT_TRIGGERS = {
 /**
  * 从 NightLogicGameState 创建游戏状态快照
  * 用于新夜晚引擎的状态转换
- * 类型定义来自新引擎 useNightEngine（旧引擎 useNightLogic 已废弃）
+ * 内联定义 NightLogicGameState 的必需字段，避免与 useNightEngine 的循环依赖
  */
-import type { NightLogicGameState } from "../hooks/useNightEngine";
+interface NightLogicGameStateInput {
+  seats: Seat[];
+  gamePhase: GamePhase;
+  nightCount: number;
+  executedPlayerId: number | null;
+  gameLogs: LogEntry[];
+  deadThisNight: number[];
+  currentDuskExecution: number | null;
+  pukkaPoisonQueue: Array<{ targetId: number; nightsUntilDeath: number }>;
+  todayDemonVoted: boolean;
+  todayMinionNominated: boolean;
+  todayExecutedId: number | null;
+  witchCursedId: number | null;
+  witchActive: boolean;
+  cerenovusTarget: { targetId: number; roleName: string } | null;
+  voteRecords: Array<{ voterId: number; isDemon: boolean }>;
+  nominationMap: Record<number, number>;
+  poChargeState: Record<number, boolean>;
+  goonDrunkedThisNight: boolean;
+  isVortoxWorld: boolean;
+  outsiderDiedToday: boolean;
+  nightInfo: NightInfoResult | null;
+  nightQueuePreviewTitle: string;
+}
 
 export function createSnapshotFromGameState(
-  gameState: NightLogicGameState
+  gameState: NightLogicGameStateInput
 ): GameStateSnapshot {
   // 计算白天计数（首夜后是第一天，每两个夜晚之间算一个白天）
   const dayCount = Math.max(1, gameState.nightCount);

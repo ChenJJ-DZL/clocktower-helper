@@ -2,7 +2,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import type { Seat } from "../../app/data";
+import type { Role, Seat } from "../../app/data";
+import { roles } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
 import { isFortuneTellerTarget } from "../utils/gameRules";
@@ -436,6 +437,36 @@ export function useInteractionHandler(deps: {
             })
           );
         }
+      } else if (type === "charade") {
+        // 酒鬼伪装身份设置：弹出 DRUNK_CHARADE_SELECT 模态框
+        const { selectedScript } = state;
+        const currentScriptRoleIds = selectedScript?.roleIds || [];
+        const seenIds = new Set<string>();
+        const currentScriptRoles = roles.filter((role) => {
+          if (!currentScriptRoleIds.includes(role.id)) return false;
+          if (seenIds.has(role.id)) return false;
+          seenIds.add(role.id);
+          return true;
+        });
+
+        const availableCharades = currentScriptRoles.filter(
+          (role) =>
+            role.type === "townsfolk" &&
+            !role.hidden &&
+            // 不能是已经在场的角色
+            !seats.some((s) => s.role?.id === role.id)
+        );
+
+        dispatch(
+          gameActions.setModal({
+            type: "DRUNK_CHARADE_SELECT",
+            data: {
+              seatId: targetId,
+              availableRoles: availableCharades,
+              scriptId: selectedScript?.id || "default",
+            },
+          })
+        );
       } else {
         const updates: Partial<Seat> = {};
         if (type === "dead") updates.isDead = !seat.isDead;
@@ -446,7 +477,7 @@ export function useInteractionHandler(deps: {
 
       dispatch(gameActions.updateState({ contextMenu: null }));
     },
-    [contextMenu, seats, dispatch]
+    [contextMenu, seats, dispatch, state]
   );
 
   return useMemo(

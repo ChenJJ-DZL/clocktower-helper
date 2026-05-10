@@ -1,0 +1,90 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e15]:
+    - main [ref=e16]:
+      - generic [ref=e18]:
+        - button "相克规则：关" [ref=e19]
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - generic:
+                - generic [ref=e24] [cursor=pointer]:
+                  - generic [ref=e25]: "1"
+                  - generic:
+                    - generic: 艺术家
+                - generic [ref=e27] [cursor=pointer]:
+                  - generic [ref=e28]: "2"
+                  - generic:
+                    - generic: 博学者
+                - generic [ref=e30] [cursor=pointer]:
+                  - generic [ref=e31]: "3"
+                  - generic:
+                    - generic: 麻脸巫婆
+                - generic [ref=e33] [cursor=pointer]:
+                  - generic [ref=e34]: "4"
+                  - generic:
+                    - generic: 涡流
+                - generic [ref=e36] [cursor=pointer]:
+                  - generic [ref=e37]: "5"
+                  - generic:
+                    - generic: 哲学家
+            - generic [ref=e38]:
+              - generic [ref=e39]: 核对身份
+              - generic [ref=e40]:
+                - button "0:00" [ref=e41] [cursor=pointer]
+                - generic [ref=e42]:
+                  - button "重置" [ref=e43]
+                  - generic [ref=e44]: 运行中
+              - generic [ref=e45]: 拜甘教设计
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - generic [ref=e49]: 夜晚行动顺序
+              - button "展开" [ref=e50]
+            - generic [ref=e51]:
+              - generic [ref=e52]:
+                - generic [ref=e53]: 1. [5号] 哲学家
+                - generic [ref=e54]: "#1"
+              - generic [ref=e55]:
+                - generic [ref=e56]: 2. [4号] 涡流
+                - generic [ref=e57]: "#2"
+    - complementary [ref=e58]:
+      - generic [ref=e59]:
+        - generic [ref=e62]: 核对身份
+        - generic [ref=e64]:
+          - heading "角色说明" [level=3] [ref=e65]: 角色说明
+          - generic [ref=e67]:
+            - generic [ref=e68]: 其他提示
+            - generic [ref=e69]:
+              - generic [ref=e72]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
+              - generic [ref=e75]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
+              - generic [ref=e78]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
+              - generic [ref=e81]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
+              - generic [ref=e84]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
+              - generic [ref=e87]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
+        - button "确认无误，入夜 🌙" [active] [ref=e89]
+  - dialog [ref=e93]:
+    - generic [ref=e94]:
+      - heading "首夜唤醒顺序预览" [level=2] [ref=e95]
+      - button "关闭" [ref=e96]: ✕
+    - generic [ref=e97]:
+      - paragraph [ref=e98]: 请核对今晚要叫醒的所有角色顺序。你可以点击"返回调整"继续修改座位/身份，或点击"确认"正式进入夜晚流程。
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e101]:
+            - generic [ref=e102]: 顺位 1
+            - generic [ref=e103]: "[5号] 哲学家"
+          - generic [ref=e104]: 第1 唤醒
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e107]: 顺位 2
+            - generic [ref=e108]: "[4号] 涡流"
+          - generic [ref=e109]: 第2 唤醒
+    - generic [ref=e110]:
+      - button "返回调整" [ref=e111]
+      - button "确认无误，入夜" [ref=e112] [cursor=pointer]
+```

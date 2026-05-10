@@ -76,18 +76,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               s.role?.id === "drunk" &&
               (!s.charadeRole || s.charadeRole.type !== "townsfolk")
           );
+          // 红罗刹检查：有占卜师时必须设置红罗刹
+          const hasFortuneTeller = seats.some(
+            (s) => s.role?.id === "fortune_teller" && !s.isDead
+          );
+          const hasRedHerring = seats.some((s) => s.isRedHerring);
+          const needsRedHerring = hasFortuneTeller && !hasRedHerring;
           return (
             <div className="w-full flex flex-col gap-2">
               <button
-                onClick={() => !hasPendingDrunk && onStartNight(true)}
-                disabled={hasPendingDrunk}
+                onClick={() => onStartNight(true)}
+                disabled={hasPendingDrunk || needsRedHerring}
                 className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 确认无误，入夜
               </button>
               {hasPendingDrunk && (
                 <div className="text-center text-yellow-300 text-sm font-semibold">
-                  场上有酒鬼未选择镇民伪装身份，请长按其座位分配后再入夜
+                  场上有酒鬼未选择镇民伪装身份，请右键点击酒鬼座位选择"设置伪装身份"
+                </div>
+              )}
+              {needsRedHerring && (
+                <div className="text-center text-yellow-300 text-sm font-semibold">
+                  场上有占卜师但未设置红罗刹，请右键点击一个座位选择"选为红罗刹"
                 </div>
               )}
             </div>

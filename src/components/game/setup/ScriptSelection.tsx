@@ -8,6 +8,9 @@ import {
   scripts,
 } from "../../../../app/data";
 import { gameActions, useGameContext } from "../../../contexts/GameContext";
+import { useGameState } from "../../../hooks/useGameState";
+import { loadGameRecords } from "../../../utils/persistence";
+import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
 
 interface ScriptSelectionProps {
@@ -15,6 +18,7 @@ interface ScriptSelectionProps {
   saveHistory: () => void;
   setGameLogs: (logs: any[]) => void;
   setGamePhase: (phase: GamePhase) => void;
+  onContinue?: (record: any) => void;
 }
 
 export default function ScriptSelection({
@@ -22,10 +26,13 @@ export default function ScriptSelection({
   saveHistory,
   setGameLogs,
   setGamePhase,
+  onContinue,
 }: ScriptSelectionProps) {
   const { dispatch } = useGameContext();
+  const { gameRecords } = useGameState();
   const [customScripts, setCustomScripts] = useState<Script[]>([]);
   const [showBuilderModal, setShowBuilderModal] = useState(false);
+  const [showRecords, setShowRecords] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 加载本地自定义剧本
@@ -184,6 +191,17 @@ export default function ScriptSelection({
             >
               <span>📥</span> 导入线上 JSON
             </button>
+            <button
+              onClick={() => {
+                // 从 localStorage 重新加载以确保数据最新
+                const records = loadGameRecords();
+                dispatch(gameActions.setGameRecords(records));
+                setShowRecords(true);
+              }}
+              className="px-6 py-2 rounded-full border border-green-500/30 bg-green-500/10 text-green-300 font-medium hover:bg-green-500/20 hover:border-green-500/50 transition flex items-center gap-2"
+            >
+              <span>📚</span> 对局记录
+            </button>
             <input
               type="file"
               accept=".json"
@@ -241,6 +259,16 @@ export default function ScriptSelection({
         <CustomScriptBuilderModal
           onClose={() => setShowBuilderModal(false)}
           onSave={handleSaveCustomScript}
+        />
+      )}
+
+      {showRecords && (
+        <GameRecordsModal
+          isOpen={true}
+          onClose={() => setShowRecords(false)}
+          gameRecords={gameRecords}
+          isPortrait={false}
+          onContinue={onContinue}
         />
       )}
     </div>

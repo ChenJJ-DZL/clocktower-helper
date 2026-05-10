@@ -1,93 +1,89 @@
 # Page snapshot
 
 ```yaml
-- generic [ref=e1]:
+- generic [active] [ref=e1]:
   - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
     - img [ref=e8]
   - alert [ref=e11]
-  - generic [ref=e15]:
-    - main [ref=e16]:
-      - generic [ref=e18]:
-        - button "相克规则：关" [ref=e19]
-        - generic [ref=e20]:
-          - generic [ref=e21]:
-            - generic [ref=e22]:
-              - generic:
-                - generic [ref=e24] [cursor=pointer]:
-                  - generic [ref=e25]: "1"
-                  - generic:
-                    - generic: 洗衣妇
-                  - generic:
-                    - generic:
-                      - generic: 🎯
-                      - generic: 天敌红罗剎
-                      - generic: (永久)
-                - generic [ref=e27] [cursor=pointer]:
-                  - generic [ref=e28]: "2"
-                  - generic:
-                    - generic: 共情者
-                - generic [ref=e30] [cursor=pointer]:
-                  - generic [ref=e31]: "3"
-                  - generic:
-                    - generic: 调查员
-                - generic [ref=e33] [cursor=pointer]:
-                  - generic [ref=e34]: "4"
-                  - generic:
-                    - generic: 小恶魔
-                - generic [ref=e36] [cursor=pointer]:
-                  - generic [ref=e37]: "5"
-                  - generic:
-                    - generic: 送葬者
-                - generic [ref=e39] [cursor=pointer]:
-                  - generic [ref=e40]: "6"
-                  - generic:
-                    - generic: 管家
-                - generic [ref=e42] [cursor=pointer]:
-                  - generic [ref=e43]: "7"
-                  - generic:
-                    - generic: 厨师
-                - generic [ref=e45] [cursor=pointer]:
-                  - generic [ref=e46]: "8"
-                  - generic:
-                    - generic: 圣徒
-                - generic [ref=e48] [cursor=pointer]:
-                  - generic [ref=e49]: "9"
-                  - generic:
-                    - generic: 占卜师
-                - generic [ref=e51] [cursor=pointer]:
-                  - generic [ref=e52]: "10"
-                  - generic:
-                    - generic: 投毒者
-                - generic [ref=e54] [cursor=pointer]:
-                  - generic [ref=e55]: "11"
-                  - generic:
-                    - generic: 图书管理员
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: 拜甘教
+      - generic [ref=e19]: 祈祷中…
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - heading "请选择剧本" [level=2] [ref=e24]
+        - paragraph [ref=e25]: 点击下方卡片选择本局要使用的剧本
+        - paragraph [ref=e26]: 更多剧本开发中
+        - generic [ref=e27]:
+          - button "🛠️ 自建剧本" [ref=e28]:
+            - generic [ref=e29]: 🛠️
+            - text: 自建剧本
+          - button "📥 导入线上 JSON" [ref=e30]:
+            - generic [ref=e31]: 📥
+            - text: 导入线上 JSON
+      - generic [ref=e32]:
+        - button "暗流涌动 难度：初学者 点击选择 进入配置 »" [ref=e33]:
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: 暗流涌动
+              - generic [ref=e38]: 难度：初学者
+            - generic [ref=e39]:
+              - generic [ref=e40]: 点击选择
+              - generic [ref=e42]: 进入配置 »
+        - button "黯月初升 难度：中等 点击选择 进入配置 »" [ref=e43]:
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - generic [ref=e47]: 黯月初升
+              - generic [ref=e48]: 难度：中等
+            - generic [ref=e49]:
+              - generic [ref=e50]: 点击选择
+              - generic [ref=e52]: 进入配置 »
+        - button "梦殒春宵 难度：中等 点击选择 进入配置 »" [ref=e53]:
+          - generic [ref=e55]:
             - generic [ref=e56]:
-              - generic [ref=e57]: 核对身份
-              - generic [ref=e58]:
-                - button "0:15" [ref=e59] [cursor=pointer]
-                - generic [ref=e60]:
-                  - button "重置" [ref=e61]
-                  - generic [ref=e62]: 运行中
-              - generic [ref=e63]: 拜甘教设计
+              - generic [ref=e57]: 梦殒春宵
+              - generic [ref=e58]: 难度：中等
+            - generic [ref=e59]:
+              - generic [ref=e60]: 点击选择
+              - generic [ref=e62]: 进入配置 »
+        - button "窃窃私语 难度：中等 点击选择 进入配置 »" [ref=e63]:
           - generic [ref=e65]:
             - generic [ref=e66]:
-              - generic [ref=e67]: 夜晚行动顺序
-              - button "展开" [ref=e68]
-            - generic [ref=e70]: 暂无（未生成顺序或不在夜晚阶段）
-    - complementary [ref=e71]:
-      - generic [ref=e72]:
-        - generic [ref=e75]: 核对身份
-        - generic [ref=e77]:
-          - heading "角色说明" [level=3] [ref=e78]: 角色说明
-          - generic [ref=e80]:
-            - generic [ref=e81]: 其他提示
-            - generic [ref=e82]:
-              - generic [ref=e85]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
-              - generic [ref=e88]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
-              - generic [ref=e91]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
-              - generic [ref=e94]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
-              - generic [ref=e97]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
-              - generic [ref=e100]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
-        - button "确认无误，入夜 🌙" [active] [ref=e102]
+              - generic [ref=e67]: 窃窃私语
+              - generic [ref=e68]: 难度：中等
+            - generic [ref=e69]:
+              - generic [ref=e70]: 点击选择
+              - generic [ref=e72]: 进入配置 »
+        - button "无名之墓 难度：中等偏难 点击选择 进入配置 »" [ref=e73]:
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]: 无名之墓
+              - generic [ref=e78]: 难度：中等偏难
+            - generic [ref=e79]:
+              - generic [ref=e80]: 点击选择
+              - generic [ref=e82]: 进入配置 »
+        - button "无上愉悦 难度：简单 点击选择 进入配置 »" [ref=e83]:
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]: 无上愉悦
+              - generic [ref=e88]: 难度：简单
+            - generic [ref=e89]:
+              - generic [ref=e90]: 点击选择
+              - generic [ref=e92]: 进入配置 »
+        - button "凶宅魅影 难度：困难 点击选择 进入配置 »" [ref=e93]:
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - generic [ref=e97]: 凶宅魅影
+              - generic [ref=e98]: 难度：困难
+            - generic [ref=e99]:
+              - generic [ref=e100]: 点击选择
+              - generic [ref=e102]: 进入配置 »
+        - button "游园惊梦 难度：中等 点击选择 进入配置 »" [ref=e103]:
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]: 游园惊梦
+              - generic [ref=e108]: 难度：中等
+            - generic [ref=e109]:
+              - generic [ref=e110]: 点击选择
+              - generic [ref=e112]: 进入配置 »
 ```

@@ -1,0 +1,150 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e15]:
+    - main [ref=e16]:
+      - generic [ref=e18]:
+        - button "相克规则：关" [ref=e19]
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - generic:
+                - generic [ref=e24] [cursor=pointer]:
+                  - generic [ref=e25]: "1"
+                  - generic:
+                    - generic: 洗衣妇
+                - generic [ref=e27] [cursor=pointer]:
+                  - generic [ref=e28]: "2"
+                  - generic:
+                    - generic: 贞洁者
+                - generic [ref=e30] [cursor=pointer]:
+                  - generic [ref=e31]: "3"
+                  - generic:
+                    - generic: 小恶魔
+                - generic [ref=e33] [cursor=pointer]:
+                  - generic [ref=e34]: "4"
+                  - generic:
+                    - generic: 图书管理员
+                - generic [ref=e36] [cursor=pointer]:
+                  - generic [ref=e37]: "5"
+                  - generic:
+                    - generic: 管家
+                - generic [ref=e39] [cursor=pointer]:
+                  - generic [ref=e40]: "6"
+                  - generic:
+                    - generic: 男爵
+                - generic [ref=e42] [cursor=pointer]:
+                  - generic [ref=e43]: "7"
+                  - generic:
+                    - generic: 镇长
+                - generic [ref=e45] [cursor=pointer]:
+                  - generic [ref=e46]: "8"
+                  - generic:
+                    - generic: 僧侣
+                - generic [ref=e48] [cursor=pointer]:
+                  - generic [ref=e49]: "9"
+                  - generic:
+                    - generic: 守鸦人
+                - generic [ref=e51] [cursor=pointer]:
+                  - generic [ref=e52]: "10"
+                  - generic:
+                    - generic: 间谍
+            - generic [ref=e53]:
+              - generic [ref=e54]: 核对身份
+              - generic [ref=e55]:
+                - button "0:02" [ref=e56] [cursor=pointer]
+                - generic [ref=e57]:
+                  - button "重置" [ref=e58]
+                  - generic [ref=e59]: 运行中
+              - generic [ref=e60]: 拜甘教设计
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]: 夜晚行动顺序
+              - button "展开" [ref=e65]
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: 1. [8号] 僧侣
+                - generic [ref=e69]: "#1"
+              - generic [ref=e70]:
+                - generic [ref=e71]: 2. [3号] 小恶魔
+                - generic [ref=e72]: "#2"
+              - generic [ref=e73]:
+                - generic [ref=e74]: 3. [1号] 洗衣妇
+                - generic [ref=e75]: "#3"
+              - generic [ref=e76]:
+                - generic [ref=e77]: 4. [4号] 图书管理员
+                - generic [ref=e78]: "#4"
+              - generic [ref=e79]:
+                - generic [ref=e80]: 5. [5号] 管家
+                - generic [ref=e81]: "#5"
+              - generic [ref=e82]:
+                - generic [ref=e83]: 6. [10号] 间谍
+                - generic [ref=e84]: "#6"
+              - generic [ref=e85]:
+                - generic [ref=e86]: 7. [9号] 守鸦人
+                - generic [ref=e87]: "#7"
+    - complementary [ref=e88]:
+      - generic [ref=e89]:
+        - generic [ref=e92]: 核对身份
+        - generic [ref=e94]:
+          - heading "角色说明" [level=3] [ref=e95]: 角色说明
+          - generic [ref=e97]:
+            - generic [ref=e98]: 其他提示
+            - generic [ref=e99]:
+              - generic [ref=e102]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
+              - generic [ref=e105]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
+              - generic [ref=e108]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
+              - generic [ref=e111]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
+              - generic [ref=e114]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
+              - generic [ref=e117]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
+        - button "确认无误，入夜 🌙" [active] [ref=e119]
+  - dialog [ref=e123]:
+    - generic [ref=e124]:
+      - heading "首夜唤醒顺序预览" [level=2] [ref=e125]
+      - button "关闭" [ref=e126]: ✕
+    - generic [ref=e127]:
+      - paragraph [ref=e128]: 请核对今晚要叫醒的所有角色顺序。你可以点击"返回调整"继续修改座位/身份，或点击"确认"正式进入夜晚流程。
+      - generic [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - generic [ref=e132]: 顺位 1
+            - generic [ref=e133]: "[8号] 僧侣"
+          - generic [ref=e134]: 第1 唤醒
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - generic [ref=e137]: 顺位 2
+            - generic [ref=e138]: "[3号] 小恶魔"
+          - generic [ref=e139]: 第2 唤醒
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - generic [ref=e142]: 顺位 3
+            - generic [ref=e143]: "[1号] 洗衣妇"
+          - generic [ref=e144]: 第3 唤醒
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - generic [ref=e147]: 顺位 4
+            - generic [ref=e148]: "[4号] 图书管理员"
+          - generic [ref=e149]: 第4 唤醒
+        - generic [ref=e150]:
+          - generic [ref=e151]:
+            - generic [ref=e152]: 顺位 5
+            - generic [ref=e153]: "[5号] 管家"
+          - generic [ref=e154]: 第5 唤醒
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]: 顺位 6
+            - generic [ref=e158]: "[10号] 间谍"
+          - generic [ref=e159]: 第6 唤醒
+        - generic [ref=e160]:
+          - generic [ref=e161]:
+            - generic [ref=e162]: 顺位 7
+            - generic [ref=e163]: "[9号] 守鸦人"
+          - generic [ref=e164]: 第7 唤醒
+    - generic [ref=e165]:
+      - button "返回调整" [ref=e166]
+      - button "确认无误，入夜" [ref=e167] [cursor=pointer]
+```

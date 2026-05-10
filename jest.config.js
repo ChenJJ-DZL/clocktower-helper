@@ -68,6 +68,8 @@ const customJestConfig = {
     "/out/",
     // Playwright tests must not be executed by Jest
     "/tests/.*\\.spec\\.ts$",
+    // Vitest tests must not be executed by Jest
+    "/tests/.*\\.test\\.ts$",
   ],
 
   // 模块路径
