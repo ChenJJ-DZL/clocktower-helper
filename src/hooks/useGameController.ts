@@ -562,6 +562,7 @@ export function useGameController() {
     activeNightStep: nightInfo,
     continueToNextAction,
     wakeIndexRef,
+    setActiveNightStep,
   } = nightSnapshot;
 
   const nightLogic = useNightEngine(
@@ -1204,6 +1205,14 @@ export function useGameController() {
     seats,
     nightSnapshot,
   ]);
+
+  // 离开夜间阶段时清除 nightInfo（避免 check/day/dusk 残留"行动中"高亮）
+  useEffect(() => {
+    if (gamePhase !== "firstNight" && gamePhase !== "night" && nightInfo) {
+      console.log("[GameController] 离开夜间阶段，清除 nightInfo");
+      setActiveNightStep(null);
+    }
+  }, [gamePhase, nightInfo, setActiveNightStep]);
 
   return useMemo(
     () => ({

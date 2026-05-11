@@ -401,19 +401,28 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
-      // 酒鬼伪装身份检查 - 现在通过右键菜单设置，这里只做安全兜底
+      // 酒鬼伪装身份检查 - 弹出模态框引导设置
       const drunkMissingCharade = seats.find(
         (s) => s.role?.id === "drunk" && !s.charadeRole
       );
       if (drunkMissingCharade) {
         console.warn(
-          `[proceedToFirstNight] 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，请通过右键菜单设置后再入夜`
+          `[proceedToFirstNight] 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，弹出设置窗口`
         );
+        // 收集可选镇民角色
+        const availableRoles =
+          (selectedScript?.roleIds ?? [])
+            .map((rid) => globalRoles.find((r) => r.id === rid))
+            .filter((r): r is Role => !!r && r.type === "townsfolk") ?? [];
+
         dispatch(
-          gameActions.addLog({
-            day: 0,
-            phase: "setup",
-            message: `⚠️ 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，请右键点击该座位选择"设置伪装身份"`,
+          gameActions.setModal({
+            type: "DRUNK_CHARADE_SELECT",
+            data: {
+              seatId: drunkMissingCharade.id,
+              availableRoles,
+              scriptId: selectedScript?.id ?? "",
+            },
           })
         );
         return;

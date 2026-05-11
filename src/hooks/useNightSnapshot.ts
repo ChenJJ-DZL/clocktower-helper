@@ -149,7 +149,8 @@ export function useNightSnapshot(
     ]
   );
 
-  const continueToNextAction = useCallback(() => {
+  const continueToNextAction = useCallback(
+    (latestSeats?: Seat[]) => {
     const currentIndex = wakeIndexRef.current;
     const nextIndex = currentIndex + 1;
     const queueLength = wakeQueueIds.length;
@@ -201,7 +202,7 @@ export function useNightSnapshot(
     console.log("[continueToNextAction] Moving to next index:", nextIndex);
     wakeIndexRef.current = nextIndex;
     setCurrentWakeIndex(nextIndex);
-    updateSnapshot(nextIndex, seats, gamePhase);
+    updateSnapshot(nextIndex, latestSeats ?? seats, gamePhase);
   }, [
     wakeQueueIds,
     seats,

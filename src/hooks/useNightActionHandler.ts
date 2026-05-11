@@ -39,7 +39,7 @@ export interface NightActionHandlerContext {
 
   // 辅助函数
   addLog: (message: string) => void;
-  continueToNextAction: () => void;
+  continueToNextAction: (latestSeats?: Seat[]) => void;
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
   markAbilityUsed: (roleId: string, seatId: number) => void;
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
@@ -122,17 +122,18 @@ export function useNightActionHandler() {
         if (!result) return false;
 
         // 应用状态更新
+        let updatedSeats: Seat[] | null = null;
         if (result.updates && result.updates.length > 0) {
           context.setSeats((prevSeats) => {
-            return prevSeats.map((seat) => {
+            updatedSeats = prevSeats.map((seat) => {
               const update = result.updates.find((u) => u.id === seat.id);
               if (update) {
-                // 合并更新，保留原有状态
                 const { id, ...updates } = update;
                 return { ...seat, ...updates };
               }
               return seat;
             });
+            return updatedSeats!;
           });
         }
 
@@ -153,8 +154,8 @@ export function useNightActionHandler() {
         if (result.modal) {
           context.setCurrentModal(result.modal);
         } else {
-          // 如果没有弹窗，自动进入下一个行动
-          context.continueToNextAction();
+          // 如果没有弹窗，自动进入下一个行动，传入最新座位以避免异步状态陈旧
+          context.continueToNextAction(updatedSeats ?? undefined);
         }
 
         return true;

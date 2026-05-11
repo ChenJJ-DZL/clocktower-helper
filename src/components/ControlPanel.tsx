@@ -93,7 +93,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </button>
               {hasPendingDrunk && (
                 <div className="text-center text-yellow-300 text-sm font-semibold">
-                  场上有酒鬼未选择镇民伪装身份，请右键点击酒鬼座位选择"设置伪装身份"
+                  场上有酒鬼未选择镇民伪装身份。
                 </div>
               )}
               {needsRedHerring && (

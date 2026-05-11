@@ -384,6 +384,35 @@ export function useInteractionHandler(deps: {
             data: { type: "slayer", sourceId: seatId },
           })
         );
+      } else if (action === "charade") {
+        // 酒鬼设置伪装身份
+        const targetSeat = seats.find((s) => s.id === seatId);
+        if (!targetSeat || targetSeat.role?.id !== "drunk") return;
+        const { selectedScript } = state;
+        const currentScriptRoleIds = selectedScript?.roleIds || [];
+        const seenIds = new Set<string>();
+        const currentScriptRoles = roles.filter((role) => {
+          if (!currentScriptRoleIds.includes(role.id)) return false;
+          if (seenIds.has(role.id)) return false;
+          seenIds.add(role.id);
+          return true;
+        });
+        const availableCharades = currentScriptRoles.filter(
+          (role) =>
+            role.type === "townsfolk" &&
+            !role.hidden &&
+            !seats.some((s) => s.role?.id === role.id)
+        );
+        dispatch(
+          gameActions.setModal({
+            type: "DRUNK_CHARADE_SELECT",
+            data: {
+              seatId,
+              availableRoles: availableCharades,
+              scriptId: selectedScript?.id || "default",
+            },
+          })
+        );
       }
     },
     [contextMenu, dispatch]

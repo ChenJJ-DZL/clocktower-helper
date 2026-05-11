@@ -216,6 +216,11 @@ export function calculateNightInfoViaNewEngine(
   _votedThisRound?: number[],
   _outsiderDiedToday?: boolean
 ): NightInfoResult | null {
+  // 非夜间阶段不生成夜间信息（避免 check/day/dusk 等阶段残留 nightInfo）
+  if (gamePhase !== "firstNight" && gamePhase !== "night") {
+    return null;
+  }
+
   const targetSeat = seats.find((s) => s.id === currentSeatId);
   if (!targetSeat || !targetSeat.role) {
     console.warn(

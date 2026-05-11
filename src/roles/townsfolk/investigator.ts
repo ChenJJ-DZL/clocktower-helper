@@ -2,7 +2,17 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 调查员 (Investigator)
- * 说明：首夜得知一名爪牙的具体身份。
+ * 说明：首夜得知两名玩家和一个爪牙角色：这两名玩家之一是该角色（或者得知没有爪牙在场）。
+ *
+ * 实现依据：参考 json/full/all_characters.json 调查员条目
+ * - "在你的首个夜晚，你会得知两名玩家和一个爪牙角色：这两名玩家之一是该角色
+ *   （或者你会得知没有爪牙在场）。"
+ * - "在为首个夜晚进行准备时，将调查员的'爪牙'提示标记放置在任意一个爪牙角色
+ *   标记旁，然后将调查员的'错误'提示标记放置在任意其他角色标记旁。"
+ * - "放置条件：放置在一个对应爪牙角色或能被当作爪牙角色的角色标记旁边。"
+ *   间谍（spy）和陌客（recluse）可被当作爪牙。
+ * - "在仅有一名爪牙且为间谍的情况下，调查员可能会将间谍当作非爪牙角色，
+ *   从而得知没有爪牙在场。"
  */
 export const investigator: RoleDefinition = {
   id: "investigator",
@@ -21,28 +31,55 @@ export const investigator: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats, roles = [] } = context;
+      const { seats } = context;
 
-      // 随机选择两个其他玩家和一个爪牙角色（说书人准备的信息）
+      // 排除自己
       const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
-      const minionRoles = roles.filter((r) => r.type === "minion");
 
-      const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
-      const seat1 = shuffled[0];
-      const seat2 = shuffled[1] || shuffled[0];
+      // 找可被当作爪牙的玩家：真正的爪牙 + 间谍/陌客（可注册为爪牙）
+      const minionCandidates = otherSeats.filter((s) => {
+        if (!s.role) return false;
+        if (s.role.type === "minion") return true;
+        // 间谍和陌客可以被当作爪牙
+        if (s.role.id === "spy" || s.role.id === "recluse") return true;
+        return false;
+      });
 
-      const randomRole =
-        minionRoles.length > 0
-          ? minionRoles[Math.floor(Math.random() * minionRoles.length)]
-          : null;
+      // 无爪牙候选 → 手势 0
+      if (minionCandidates.length === 0) {
+        return {
+          wake: `🔍 调查员，请睁眼。场上没有爪牙在场。`,
+          instruction: `（手势 0）`,
+          close: "",
+        };
+      }
 
-      const seat1No = seat1 ? seat1.id + 1 : "?";
-      const seat2No = seat2 ? seat2.id + 1 : "?";
-      const roleName = randomRole?.name || "未知爪牙";
+      // 随机选一名真·爪牙（或可当作爪牙的玩家）
+      const targetMinion =
+        minionCandidates[Math.floor(Math.random() * minionCandidates.length)];
+
+      // 随机选一名干扰项（不能与目标相同，不能是自己）
+      const decoyPool = otherSeats.filter((s) => s.id !== targetMinion.id);
+      const decoyPlayer =
+        decoyPool.length > 0
+          ? decoyPool[Math.floor(Math.random() * decoyPool.length)]
+          : targetMinion; // 兜底
+
+      // 获取爪牙的角色名称（使用 effectiveRole 以防酒鬼）
+      const targetRoleName = targetMinion.effectiveRole?.name ?? targetMinion.role?.name ?? "爪牙";
+
+      // 随机打乱展示顺序
+      const shuffled =
+        Math.random() < 0.5
+          ? [targetMinion, decoyPlayer]
+          : [decoyPlayer, targetMinion];
+
+      const seat1No = shuffled[0].id + 1;
+      const seat2No = shuffled[1].id + 1;
 
       return {
         wake: `🔍 调查员，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
-        instruction: `其中一位是【${roleName}】`,
+        instruction: `其中一位是【${targetRoleName}】`,
         close: "",
       };
     },
