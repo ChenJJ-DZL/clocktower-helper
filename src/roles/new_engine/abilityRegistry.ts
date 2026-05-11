@@ -49,6 +49,7 @@ import { gossipAbility } from "./gossip.ability";
 import { grandmotherAbility } from "./grandmother.ability";
 import { gunslingerAbility } from "./gunslinger.ability";
 import { halfOgreAbility } from "./half_ogre.ability";
+import { hunterAbility } from "./hunter.ability";
 import { impAbility } from "./imp.ability";
 import { innkeeperAbility } from "./innkeeper.ability";
 import { investigatorAbility } from "./investigator.ability";
@@ -169,6 +170,7 @@ export function registerAllNewEngineAbilities(): void {
     empathAbility,
     foolAbility,
     fortuneTellerAbility,
+    hunterAbility,
     impAbility,
     investigatorAbility,
     librarianAbility,

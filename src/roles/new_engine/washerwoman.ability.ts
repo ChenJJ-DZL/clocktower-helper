@@ -35,6 +35,11 @@
  *   → 间谍（spy）可注册为镇民，本实现中将其纳入镇民候选池。
  *   → 隐士（recluse）同理，可被当作镇民。
  *
+ * 【提示与技巧（相关片段）】
+ *   "洗衣妇……将决定游戏的最终结果。记得在这个节点让你的队伍
+ *    仔细思考你的信息。"
+ *   → 作为信息类角色，洗衣机获知的信息可用于缩小嫌疑范围。
+ *
  * ============================================================
  * 夜晚顺序（引自 json/rule/夜晚行动顺序一览（首夜）.json）
  *   序号 52：洗衣妇 → wakePriority = 10（52 - 42）
@@ -58,6 +63,7 @@ interface WasherwomanInfo {
   roleName: string;
 }
 
+/** 兼容 snapshot.seats 中各种可能的数据结构 */
 interface PlayerLookup {
   id: number;
   isDead: boolean;
