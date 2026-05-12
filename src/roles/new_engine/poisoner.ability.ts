@@ -37,7 +37,8 @@
  *    放置条件：在投毒者选择的玩家角色标记旁放置。
  *    若此时投毒者醉酒中毒，不放置该标记。"
  *   → 关键规则：投毒者自身醉酒/中毒时不下毒。
- *     abilityEffective = false 时 stateUpdate 跳过。
+ *     规则要求投毒者仍然正常唤醒、正常选择目标、正常交互，
+ *     只是实际的中毒效果不生效（不放置提示标记）。
  *
  * 【规则细节】
  *   "实际上，投毒者的能力描述同样可以写为：
@@ -49,7 +50,7 @@
  *   → 投毒者知道恶魔身份，可策略性选择目标。
  *
  * ============================================================
- * 夜晚顺序
+ * 夜晚顺序（引自 json/rule/夜晚行动顺序一览（首夜）.json）
  *   首夜 #30 → wakePriority 10（30 - 20 = 10）
  *   其他夜：nightOrderOverrides index 114 → priority 115
  *   投毒者在爪牙中较早行动，在洗衣妇/共情者/占卜师等
@@ -90,6 +91,11 @@ interface PlayerLookup {
  * 对应规则：投毒者死亡时技能不应触发；自身醉酒/中毒时，
  * "若此时投毒者醉酒中毒，不放置该标记" —— stateUpdate 中
  * 通过 abilityEffective 跳过。
+ *
+ * 注意：只设置 isAbilityActive，不修改 abilityEffective。
+ * abilityEffective 由 abilityPriorityCalculation 中间件在
+ * calculate 阶段前自动注入（处理 Vortox、咖啡师、酿酒师、
+ * 醉酒/中毒等覆盖）。
  */
 const preCheckAliveAndStatus = async (
   context: MiddlewareContext
@@ -126,21 +132,36 @@ const preCheckAliveAndStatus = async (
 // ─── 计算中间件 ───────────────────────────────────────────────────────
 
 /**
- * calculate 阶段：验证目标合法性。
+ * calculate 阶段：生成投毒者下毒结果。
  *
- * 投毒者必须选择一名存活玩家（不可选自己，不可选死亡玩家）。
- * 优先级：
- * 1. storytellerInput 覆盖目标
- * 2. 验证 targetIds[0] 的合法性
+ * 优先级（从高到低）：
+ * 1. storytellerInput.overrideResult   — 说书人手动完全覆盖目标 ID
+ * 2. storytellerInput.fakeResult       — 说书人预设假目标（醉酒/中毒时）
+ * 3. targetIds[0]                      — 玩家正常选择的目标
+ *
+ * abilityEffective 由 abilityPriorityCalculation 中间件在 calculate
+ * 阶段前自动注入（处理 Vortox、咖啡师、酿酒师、醉酒/中毒等覆盖）。
  */
-const calculateTarget = async (
+const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, targetIds, storytellerInput } = context;
-  const abilityEffective = context.meta.abilityEffective ?? true;
+  const { snapshot, targetIds, meta, storytellerInput } = context;
+  const abilityEffective = meta.abilityEffective ?? true;
 
-  // 获取最终目标 ID
-  const targetId = storytellerInput?.overrideTarget ?? targetIds?.[0];
+  let targetId: number | undefined;
+
+  // 优先级 1：说书人手动完全覆盖
+  if (storytellerInput?.overrideResult !== undefined) {
+    targetId = storytellerInput.overrideResult as number;
+  }
+  // 优先级 2：说书人预设假信息（仅能力被干扰时）
+  else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
+    targetId = storytellerInput.fakeResult as number;
+  }
+  // 优先级 3：玩家正常选择的目标
+  else {
+    targetId = targetIds?.[0];
+  }
 
   if (targetId === undefined || targetId === null) {
     return {
@@ -150,6 +171,7 @@ const calculateTarget = async (
     };
   }
 
+  // 验证目标合法性（存活玩家）
   const targetSeat: PlayerLookup | undefined = snapshot.seats.find(
     (s: any) => s.id === targetId
   );
@@ -162,7 +184,7 @@ const calculateTarget = async (
     };
   }
 
-  if (targetSeat.isDead) {
+  if (targetSeat.isDead && abilityEffective) {
     return {
       ...context,
       aborted: true,
@@ -174,7 +196,7 @@ const calculateTarget = async (
     ...context,
     meta: {
       ...context.meta,
-      poisonTargetId: targetId,
+      abilityResult: targetId,
       isCorrupted: !abilityEffective,
     },
   };
@@ -199,29 +221,56 @@ const calculateTarget = async (
  *   { type: "poisoned", source: "poisoner", sourceSeatId, expiresAtNight }
  *
  * 同一目标上已有的投毒者中毒标记会被替换（重新刷新持续时间）。
+ *
+ * 存储位置：
+ * - actionNode.meta.poisonerResult   — 当前行动节点元数据
+ * - snapshot._abilityResults.poisoner — 全局能力结果记录
  */
-const applyPoisonStatus = async (
+const stateUpdateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, actionNode } = context;
   const abilityEffective = meta.abilityEffective ?? true;
-  const targetId = meta.poisonTargetId as number | undefined;
+  const targetId = meta.abilityResult as number | undefined;
 
-  if (targetId === undefined) {
-    return context;
-  }
+  if (targetId === undefined) return context;
 
-  // 醉酒/中毒：正常交互已发生（calculate 已验证目标），但不下毒
+  const currentNight = snapshot.nightCount ?? 0;
+
+  // 构建持久化记录
+  const record = {
+    targetId,
+    poisoned: abilityEffective,
+    nightCount: currentNight,
+    timestamp: Date.now(),
+  };
+
+  // 醉酒/中毒：不下毒，但记录选择
   if (!abilityEffective) {
     return {
       ...context,
-      meta: { ...context.meta, poisonApplied: false },
+      actionNode: {
+        ...context.actionNode,
+        meta: {
+          ...context.actionNode.meta,
+          poisonerResult: record,
+        },
+      },
+      snapshot: {
+        ...snapshot,
+        _abilityResults: {
+          ...((snapshot as any)._abilityResults ?? {}),
+          poisoner: record,
+        },
+      },
+      meta: {
+        ...context.meta,
+        poisonerResult: record,
+      },
     };
   }
 
   // 正常：为目标添加中毒效果
-  const currentNight = snapshot.nightCount ?? 0;
-
   const newSnapshot = {
     ...snapshot,
     seats: snapshot.seats.map((seat: any) => {
@@ -247,14 +296,25 @@ const applyPoisonStatus = async (
       }
       return seat;
     }),
+    _abilityResults: {
+      ...((snapshot as any)._abilityResults ?? {}),
+      poisoner: record,
+    },
   };
 
   return {
     ...context,
     snapshot: newSnapshot,
+    actionNode: {
+      ...context.actionNode,
+      meta: {
+        ...context.actionNode.meta,
+        poisonerResult: record,
+      },
+    },
     meta: {
       ...context.meta,
-      poisonApplied: true,
+      poisonerResult: record,
     },
   };
 };
@@ -263,18 +323,26 @@ const applyPoisonStatus = async (
 
 /**
  * postProcess 阶段：生成日志、说书人提示词、UI 展示数据。
+ *
+ * 输出内容：
+ * 1. console.log   — 英文 simulation log（含干扰标记）
+ * 2. meta.prompt   — 说书人看到的唤醒提示词
+ * 3. meta.abilityLog — 中文游戏日志
+ * 4. meta.displayInfo — UI 消费的结构化数据
  */
 const postProcessResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { meta, actionNode } = context;
-  const targetId = meta.poisonTargetId as number | undefined;
+  const { meta } = context;
+  const record = meta.poisonerResult as
+    | { targetId: number; poisoned: boolean; nightCount: number }
+    | undefined;
 
-  if (targetId === undefined) return context;
+  if (!record) return context;
 
   const tag = meta.isCorrupted ? "【受干扰】" : "";
 
-  // 查找目标玩家显示名称
+  // 查找玩家显示名称
   const findLabel = (seatId: number): string => {
     const seat: PlayerLookup | undefined = context.snapshot.seats.find(
       (s: any) => s.id === seatId
@@ -284,21 +352,20 @@ const postProcessResult = async (
       : `${seatId + 1}号`;
   };
 
-  const targetLabel = findLabel(targetId);
-  const abilityApplied = meta.poisonApplied === true;
+  const targetLabel = findLabel(record.targetId);
 
   // 英文 simulation log
-  const simLog = abilityApplied
-    ? `[Poisoner]${tag} Poisoned: ${targetLabel} (night ${context.snapshot.nightCount})`
-    : `[Poisoner]${tag} FAILED to poison ${targetLabel} (drunk/poisoned)`;
+  const simLog = record.poisoned
+    ? `[Poisoner]${tag} Poisoned: ${targetLabel} (night ${record.nightCount})`
+    : `[Poisoner]${tag} Drunk/poisoned — no poison applied (target: ${targetLabel})`;
 
   // 说书人提示词
-  const storytellerPrompt = abilityApplied
-    ? `投毒者，请睁眼。你已对 ${targetId + 1} 号玩家下毒，该玩家将在今晚和明天白天中毒。`
+  const storytellerPrompt = record.poisoned
+    ? `投毒者，请睁眼。你已对 ${record.targetId + 1} 号玩家下毒，该玩家将在今晚和明天白天中毒。`
     : `投毒者，请睁眼。但由于你自身醉酒/中毒，下毒失败。`;
 
   // 中文游戏日志
-  const abilityLog = abilityApplied
+  const abilityLog = record.poisoned
     ? `投毒者对【${targetLabel}】下了毒`
     : `投毒者${tag}试图下毒【${targetLabel}】，但自身醉酒/中毒未生效`;
 
@@ -310,13 +377,14 @@ const postProcessResult = async (
       ...context.meta,
       prompt: storytellerPrompt,
       abilityLog,
+      // 为 NightEngine / UI 提供标准化数据
       displayInfo: {
         type: "poisoner_action",
-        targetId,
-        targetLabel: targetId + 1,
-        abilityApplied,
+        targetId: record.targetId,
+        targetLabel: record.targetId + 1,
+        poisoned: record.poisoned,
         isCorrupted: meta.isCorrupted ?? false,
-        nightCount: context.snapshot.nightCount ?? 0,
+        nightCount: record.nightCount,
         log: abilityLog,
       },
     },
@@ -337,7 +405,7 @@ export const poisonerAbility = createRoleAbility({
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /**
    * 唤醒优先级（越小越先唤醒）
-   * 首夜 #30 → wakePriority 10
+   * 首夜 #30 → wakePriority 10（30 - 20 = 10）
    * 其他夜：nightOrderOverrides index 114 → priority 115
    * 投毒者在信息类角色之前行动，确保信息类当晚获取错误信息。
    */
@@ -367,11 +435,11 @@ export const poisonerAbility = createRoleAbility({
   /** preCheck：前置条件检查（存活 + 状态标记） */
   preCheck: [preCheckAliveAndStatus],
 
-  /** calculate：核心计算（验证目标合法性） */
-  calculate: [calculateTarget],
+  /** calculate：核心效果计算（验证目标合法性 + 支持覆盖） */
+  calculate: [calculateResult],
 
-  /** stateUpdate：状态持久化（为目标添加中毒标记） */
-  stateUpdate: [applyPoisonStatus],
+  /** stateUpdate：状态持久化（目标中毒标记 + 双持久化记录） */
+  stateUpdate: [stateUpdateResult],
 
   /** postProcess：后处理（日志 + 提示词 + UI 数据） */
   postProcess: [postProcessResult],

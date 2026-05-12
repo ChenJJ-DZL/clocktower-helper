@@ -410,6 +410,10 @@ const stateUpdateResult = async (
         washerwoman: result,
       },
     },
+    meta: {
+      ...context.meta,
+      washerwomanResult: persistedRecord,
+    },
   };
 };
 

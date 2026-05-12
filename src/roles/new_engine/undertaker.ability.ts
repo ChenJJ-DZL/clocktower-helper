@@ -73,6 +73,11 @@ interface PlayerLookup {
  *
  * 对应规则：只有存活且未被干扰的送葬者才能获取正确信息。
  * 醉酒/中毒时仍允许技能触发，但效果在 calculate 阶段被替换为假信息。
+ *
+ * 注意：只设置 isAbilityActive，不修改 abilityEffective。
+ * abilityEffective 由 abilityPriorityCalculation 中间件在
+ * calculate 阶段前自动注入（处理 Vortox、咖啡师、酿酒师、
+ * 醉酒/中毒等覆盖）。
  */
 const preCheckAliveAndStatus = async (
   context: MiddlewareContext
@@ -107,7 +112,7 @@ const preCheckAliveAndStatus = async (
  *
  * 对应规则：送葬者的能力标有 *（每个夜晚*），表示首夜不唤醒。
  */
-const skipFirstNightCheck = async (
+const otherNightOnlyCheck = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot } = context;
@@ -207,7 +212,8 @@ function generateFakeRoleName(
  * 优先级：
  * 1. storytellerInput.overrideResult   — 说书人手动完全覆盖
  * 2. storytellerInput.fakeResult        — 说书人预设假信息（仅 !abilityEffective）
- * 3. 动态生成（resolveExecutedRole / generateFakeRoleName）
+ * 3. initialNightInfo.undertakerInfo    — 预置首夜信息
+ * 4. 动态生成（resolveExecutedRole / generateFakeRoleName）
  */
 const calculateResult = async (
   context: MiddlewareContext
@@ -251,7 +257,33 @@ const calculateResult = async (
     };
   }
 
-  // 优先级 3：动态计算
+  // 优先级 3：预置首夜信息
+  if (meta.initialNightInfo?.undertakerInfo) {
+    const preset = meta.initialNightInfo.undertakerInfo as UndertakerInfo;
+    if (!abilityEffective) {
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityResult: {
+            executedSeatId: preset.executedSeatId,
+            roleName: generateFakeRoleName(preset.executedSeatId, snapshot.seats),
+          } as UndertakerInfo,
+          isCorrupted: true,
+        },
+      };
+    }
+    return {
+      ...context,
+      meta: {
+        ...context.meta,
+        abilityResult: preset,
+        isCorrupted: false,
+      },
+    };
+  }
+
+  // 优先级 4：动态计算
   const roleName = abilityEffective
     ? resolveExecutedRole(executedSeat, snapshot.seats)
     : generateFakeRoleName(executedSeatId, snapshot.seats);
@@ -274,11 +306,12 @@ const calculateResult = async (
 // ─── 状态更新中间件 ──────────────────────────────────────────────────
 
 /**
- * stateUpdate 阶段：将送葬者信息持久化到 actionNode 和 snapshot 中
+ * stateUpdate 阶段：将送葬者信息持久化到 actionNode 和 snapshot 中。
  *
  * 存储位置：
  * - actionNode.meta.undertakerResult — 当前行动节点元数据
  * - snapshot._abilityResults.undertaker — 全局能力结果记录
+ * - meta.undertakerResult — 上下文中间件数据
  */
 const stateUpdateResult = async (
   context: MiddlewareContext
@@ -310,6 +343,10 @@ const stateUpdateResult = async (
         ...((context.snapshot as any)._abilityResults ?? {}),
         undertaker: result,
       },
+    },
+    meta: {
+      ...context.meta,
+      undertakerResult: persistedRecord,
     },
   };
 };
@@ -415,7 +452,7 @@ export const undertakerAbility = createRoleAbility({
   // Pipeline 执行顺序：preCheck → calculate → stateUpdate → postProcess
 
   /** preCheck：前置条件检查（存活 + 状态标记 + 首夜跳过 + 今日处决检测） */
-  preCheck: [preCheckAliveAndStatus, skipFirstNightCheck, executedTodayCheck],
+  preCheck: [preCheckAliveAndStatus, otherNightOnlyCheck, executedTodayCheck],
 
   /** calculate：核心效果计算（获取被处决玩家的角色） */
   calculate: [calculateResult],

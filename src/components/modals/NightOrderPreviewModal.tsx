@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -8,6 +9,16 @@ export function NightOrderPreviewModal({
 }) {
   const props = useGameActions();
   if (!nightOrderModal) return null;
+
+  // 如果 autoConfirm 为 true，自动确认入夜（不再需要说书人手动点击）
+  useEffect(() => {
+    if (nightOrderModal?.autoConfirm) {
+      const timer = setTimeout(() => {
+        props.confirmNightOrderPreview();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [nightOrderModal?.autoConfirm, props.confirmNightOrderPreview]);
 
   return (
     <ModalWrapper

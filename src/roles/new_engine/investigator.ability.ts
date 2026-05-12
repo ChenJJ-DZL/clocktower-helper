@@ -82,6 +82,11 @@ interface PlayerLookup {
  *
  * 对应规则：只有存活且未被干扰的调查员才能获取正确信息。
  * 醉酒/中毒时仍允许技能触发，但效果在 calculate 阶段被替换为假信息。
+ *
+ * 注意：只设置 isAbilityActive，不修改 abilityEffective。
+ * abilityEffective 由 abilityPriorityCalculation 中间件在
+ * calculate 阶段前自动注入（处理 Vortox、咖啡师、酿酒师、
+ * 醉酒/中毒等覆盖）。
  */
 const preCheckAliveAndStatus = async (
   context: MiddlewareContext
@@ -106,7 +111,7 @@ const preCheckAliveAndStatus = async (
       ...context.meta,
       isDrunk,
       isPoisoned,
-      abilityEffective: !(isDrunk || isPoisoned),
+      isAbilityActive: !(isDrunk || isPoisoned),
     },
   };
 };
@@ -205,7 +210,7 @@ function generateRealInfo(
   const minionCandidates = getMinionCandidates(seats, selfSeatId);
 
   if (minionCandidates.length === 0) {
-    return { seat1: 0, seat2: 0, roleName: "" };
+    return { seat1: -1, seat2: -1, roleName: "" };
   }
 
   const targetIdx = Math.floor(Math.random() * minionCandidates.length);
@@ -246,7 +251,7 @@ function generateFakeInfo(
   );
 
   if (others.length === 0) {
-    return { seat1: 0, seat2: 0, roleName: "" };
+    return { seat1: -1, seat2: -1, roleName: "" };
   }
 
   const shuffled = shuffleArray(others);
@@ -357,11 +362,15 @@ const calculateResult = async (
 // ─── 状态更新中间件 ──────────────────────────────────────────────────
 
 /**
- * stateUpdate 阶段：将调查员信息持久化到 actionNode 和 snapshot 中
+ * stateUpdate 阶段：将调查员信息持久化到 actionNode 和 snapshot 中。
+ *
+ * 对应规则：
+ * - "将标记有'爪牙'的玩家的角色标记展示给调查员"
+ * - "如果说书人由于场上无爪牙而未放置这两个标记，则对调查员展示手势'0'"
  *
  * 存储位置：
- * - actionNode.meta.investigatorResult
- * - snapshot._abilityResults.investigator
+ * - actionNode.meta.investigatorResult    — 当前行动节点元数据
+ * - snapshot._abilityResults.investigator — 全局能力结果记录
  */
 const stateUpdateResult = async (
   context: MiddlewareContext
@@ -369,14 +378,13 @@ const stateUpdateResult = async (
   const { meta } = context;
   const result = meta.abilityResult as InvestigatorInfo | undefined;
 
-  if (!result?.roleName && result?.seat1 === 0 && result?.seat2 === 0) {
-    return context;
-  }
+  if (!result) return context;
 
-  const persistedRecord = {
-    seat1: result?.seat1,
-    seat2: result?.seat2,
-    roleName: result?.roleName ?? "",
+  const record = {
+    seat1: result.seat1,
+    seat2: result.seat2,
+    roleName: result.roleName ?? "",
+    hasMinion: !!result.roleName,
     isCorrupted: meta.isCorrupted ?? false,
     timestamp: Date.now(),
   };
@@ -387,7 +395,7 @@ const stateUpdateResult = async (
       ...context.actionNode,
       meta: {
         ...context.actionNode.meta,
-        investigatorResult: persistedRecord,
+        investigatorResult: record,
       },
     },
     snapshot: {
@@ -396,6 +404,10 @@ const stateUpdateResult = async (
         ...((context.snapshot as any)._abilityResults ?? {}),
         investigator: result,
       },
+    },
+    meta: {
+      ...context.meta,
+      investigatorResult: record,
     },
   };
 };
@@ -417,25 +429,36 @@ const postProcessResult = async (
   const { meta } = context;
   const result = meta.abilityResult as InvestigatorInfo | undefined;
 
-  if (!result?.roleName && result?.seat1 === 0 && result?.seat2 === 0) {
-    console.log("[Investigator] 无爪牙在场（0）");
+  if (!result) return context;
+
+  const tag = meta.isCorrupted ? "【受干扰】" : "";
+
+  // 无爪牙在场（手势 0）
+  if (!result.roleName) {
+    const simLog = `[Investigator]${tag} No minions in play (0)`;
+    const storytellerPrompt =
+      "调查员，请睁眼。场上没有爪牙在场。（手势 0）";
+    const abilityLog = `调查员${tag}得知：场上没有爪牙在场`;
+
+    console.log(simLog);
+
     return {
       ...context,
       meta: {
         ...context.meta,
-        prompt: "调查员，请睁眼。场上没有爪牙在场。（手势 0）",
-        abilityLog: "调查员得知：场上没有爪牙在场。",
+        prompt: storytellerPrompt,
+        abilityLog,
         displayInfo: {
           type: "investigator_info",
           hasMinion: false,
+          players: [],
+          roleName: "",
           isCorrupted: meta.isCorrupted ?? false,
-          log: "调查员得知：场上没有爪牙在场。",
+          log: abilityLog,
         },
       },
     };
   }
-
-  if (!result?.roleName) return context;
 
   const findLabel = (seatId: number): string => {
     const seat: PlayerLookup | undefined = context.snapshot.seats.find(
@@ -448,7 +471,6 @@ const postProcessResult = async (
 
   const label1 = findLabel(result.seat1);
   const label2 = findLabel(result.seat2);
-  const tag = meta.isCorrupted ? "【受干扰】" : "";
 
   const simLog = `[Investigator]${tag} ${label1} & ${label2} → ${result.roleName}`;
 
@@ -468,6 +490,7 @@ const postProcessResult = async (
       abilityLog,
       displayInfo: {
         type: "investigator_info",
+        hasMinion: true,
         players: [result.seat1, result.seat2],
         roleName: result.roleName,
         isCorrupted: meta.isCorrupted ?? false,

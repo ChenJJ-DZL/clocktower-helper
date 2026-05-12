@@ -41,21 +41,12 @@
  *   → allowDead: true，允许选已死亡玩家实现"空刀"。
  *
  * 【规则细节】
- *   "小恶魔选择在夜里自杀，用多出来的小恶魔标记替换一名存活的爪牙
- *    玩家的角色标记，让那名玩家的角色改变为小恶魔。"
+ *   "小恶魔选择在夜里自杀，用多出来的小恶魔标记替换一名存活的
+ *    爪牙玩家的角色标记，让那名玩家的角色改变为小恶魔。"
  *   → 自杀时随机选择一名存活爪牙（role.type === "minion"）继承恶魔。
  *
  *   "新小恶魔在当晚无法进行行动。"
  *   → 传刀发生在小恶魔的行动阶段，新小恶魔当晚不再额外唤醒。
- *
- *   "如果小恶魔选择在夜晚杀死自己，他会死亡并且会有一名存活的爪牙
- *    变成小恶魔。新的小恶魔在当晚无法进行行动。"
- *   → 新恶魔的 `isDemonSuccessor: true` 供引擎识别传刀来源。
- *
- *   "如果你不想在夜晚杀死任何人，你可以选择一名已经死亡的玩家。
- *    这也可以帮你伪装成士兵或者僧侣，因为无人死亡的夜晚看起来就
- *    像是士兵或僧侣的能力生效了。"
- *   → allowDead: true，选已死亡玩家实现"空刀"。
  *
  * ============================================================
  * 夜晚顺序
@@ -81,8 +72,8 @@ interface PlayerLookup {
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
-  roleType?: string; // 扁平化字段（某些快照）
-  roleName?: string; // 扁平化字段
+  roleType?: string;
+  roleName?: string;
   isEvilConverted?: boolean;
   isGoodConverted?: boolean;
   isDemonSuccessor?: boolean;
@@ -101,6 +92,10 @@ interface PlayerLookup {
  *
  * 对应规则：小恶魔死亡时技能不应触发；自身醉酒/中毒时不下杀手
  * （"小恶魔未醉酒中毒"才能放置死亡标记）。
+ *
+ * 注意：只设置 isAbilityActive，不修改 abilityEffective。
+ * abilityEffective 由 abilityPriorityCalculation 中间件在
+ * calculate 阶段前自动注入。
  */
 const preCheckAliveAndStatus = async (
   context: MiddlewareContext
@@ -142,7 +137,6 @@ const otherNightOnlyCheck = async (
   const nightCount = snapshot.nightCount ?? 0;
   const gamePhase = snapshot.gamePhase ?? "";
 
-  // 首夜时跳过（nightCount === 1 或 gamePhase === "firstNight"）
   if (nightCount === 1 || gamePhase === "firstNight") {
     return {
       ...context,
@@ -155,14 +149,6 @@ const otherNightOnlyCheck = async (
 };
 
 // ─── 辅助函数 ─────────────────────────────────────────────────────────
-
-/**
- * 从座位对象安全获取角色 ID。
- * 兼容 seat.role.id 和 seat.roleId 两种存储位置。
- */
-function getRoleId(seat: PlayerLookup): string {
-  return seat.role?.id ?? seat.roleId ?? "";
-}
 
 /**
  * 从座位对象安全获取角色类型。
@@ -199,7 +185,6 @@ function createSuccessorSeat(
 ): PlayerLookup {
   return {
     ...originalSeat,
-    // 同时设置 seat.role 和扁平字段以保证兼容
     role: {
       ...(originalSeat.role ?? {}),
       id: newRoleId,
@@ -220,20 +205,36 @@ function createSuccessorSeat(
 // ─── 计算中间件 ───────────────────────────────────────────────────────
 
 /**
- * calculate 阶段：验证目标合法性。
+ * calculate 阶段：生成小恶魔杀戮/自杀传刀结果。
  *
- * 小恶魔必须选择一名玩家（可自杀、可选死亡"空刀"）。
- * 优先级：
- * 1. storytellerInput.overrideTarget — 说书人手动覆盖目标
- * 2. targetIds[0] — 玩家正常选择
+ * 优先级（从高到低）：
+ * 1. storytellerInput.overrideResult   — 说书人手动完全覆盖目标 ID
+ * 2. storytellerInput.fakeResult       — 说书人预设假目标（醉酒/中毒时）
+ * 3. targetIds[0]                      — 玩家正常选择的目标
+ *
+ * abilityEffective 由 abilityPriorityCalculation 中间件在 calculate
+ * 阶段前自动注入（处理 Vortox、咖啡师、酿酒师、醉酒/中毒等覆盖）。
  */
-const calculateTarget = async (
+const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { targetIds, storytellerInput } = context;
-  const abilityEffective = context.meta.abilityEffective ?? true;
+  const { targetIds, meta, storytellerInput, actionNode } = context;
+  const abilityEffective = meta.abilityEffective ?? true;
 
-  const targetId = storytellerInput?.overrideTarget ?? targetIds?.[0];
+  let targetId: number | undefined;
+
+  // 优先级 1：说书人手动完全覆盖
+  if (storytellerInput?.overrideResult !== undefined) {
+    targetId = storytellerInput.overrideResult as number;
+  }
+  // 优先级 2：说书人预设假信息（仅能力被干扰时）
+  else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
+    targetId = storytellerInput.fakeResult as number;
+  }
+  // 优先级 3：玩家正常选择的目标
+  else {
+    targetId = targetIds?.[0];
+  }
 
   if (targetId === undefined || targetId === null) {
     return {
@@ -247,8 +248,10 @@ const calculateTarget = async (
     ...context,
     meta: {
       ...context.meta,
-      killTargetId: targetId,
-      isSuicide: targetId === context.actionNode.seatId,
+      abilityResult: {
+        targetId,
+        isSuicide: targetId === actionNode.seatId,
+      },
       isCorrupted: !abilityEffective,
     },
   };
@@ -275,24 +278,56 @@ const calculateTarget = async (
  * 2. 如果目标是自己（自杀）→
  *    a. 随机选一名存活爪牙成为新小恶魔
  *    b. 原小恶魔标记为已死亡
+ *
+ * 存储位置：
+ * - actionNode.meta.impResult        — 当前行动节点元数据
+ * - snapshot._abilityResults.imp     — 全局能力结果记录
  */
-const applyKillOrSuccession = async (
+const stateUpdateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, actionNode } = context;
   const abilityEffective = meta.abilityEffective ?? true;
-  const targetId = meta.killTargetId as number | undefined;
-  const isSuicide = meta.isSuicide === true;
+  const abilityResult = meta.abilityResult as
+    | { targetId: number; isSuicide: boolean }
+    | undefined;
 
-  if (targetId === undefined) {
-    return context;
-  }
+  if (!abilityResult) return context;
 
-  // 醉酒/中毒：正常交互已发生，但不执行杀戮（不放置死亡标记）
+  const { targetId, isSuicide } = abilityResult;
+  const currentNight = snapshot.nightCount ?? 0;
+
+  // 构建持久化记录
+  const record = {
+    targetId,
+    isSuicide,
+    killed: abilityEffective,
+    nightCount: currentNight,
+    timestamp: Date.now(),
+  };
+
+  // 醉酒/中毒：不下杀手，但记录选择
   if (!abilityEffective) {
     return {
       ...context,
-      meta: { ...context.meta, killExecuted: false },
+      actionNode: {
+        ...actionNode,
+        meta: {
+          ...actionNode.meta,
+          impResult: record,
+        },
+      },
+      snapshot: {
+        ...snapshot,
+        _abilityResults: {
+          ...((snapshot as any)._abilityResults ?? {}),
+          imp: record,
+        },
+      },
+      meta: {
+        ...context.meta,
+        impResult: record,
+      },
     };
   }
 
@@ -303,7 +338,6 @@ const applyKillOrSuccession = async (
     const aliveMinions = findAliveMinions(updatedSeats, actionNode.seatId);
 
     if (aliveMinions.length > 0) {
-      // 随机选一名存活爪牙继任恶魔
       const successor =
         aliveMinions[Math.floor(Math.random() * aliveMinions.length)];
       const successorIdx = updatedSeats.findIndex(
@@ -319,8 +353,6 @@ const applyKillOrSuccession = async (
         );
       }
     }
-    // 注：如果没有存活爪牙（极端情况），小恶魔自杀后邪恶阵营落败，
-    // 但此处理由黎明系统判断。
 
     // 自杀者（原小恶魔）标记为死亡
     const selfIdx = updatedSeats.findIndex(
@@ -342,7 +374,6 @@ const applyKillOrSuccession = async (
       (s: any) => s.id === targetId
     );
     if (targetIdx !== -1) {
-      // 标记死亡（由黎明系统结算）
       updatedSeats[targetIdx] = {
         ...updatedSeats[targetIdx],
         markedForDeath: true,
@@ -352,15 +383,28 @@ const applyKillOrSuccession = async (
     }
   }
 
+  const newSnapshot = {
+    ...snapshot,
+    seats: updatedSeats,
+    _abilityResults: {
+      ...((snapshot as any)._abilityResults ?? {}),
+      imp: record,
+    },
+  };
+
   return {
     ...context,
-    snapshot: {
-      ...snapshot,
-      seats: updatedSeats,
+    snapshot: newSnapshot,
+    actionNode: {
+      ...actionNode,
+      meta: {
+        ...actionNode.meta,
+        impResult: record,
+      },
     },
     meta: {
       ...context.meta,
-      killExecuted: true,
+      impResult: record,
     },
   };
 };
@@ -369,16 +413,28 @@ const applyKillOrSuccession = async (
 
 /**
  * postProcess 阶段：生成日志、说书人提示词、UI 展示数据。
+ *
+ * 输出内容：
+ * 1. console.log   — 英文 simulation log（含干扰标记）
+ * 2. meta.prompt   — 说书人看到的唤醒提示词
+ * 3. meta.abilityLog — 中文游戏日志
+ * 4. meta.displayInfo — UI 消费的结构化数据
  */
 const postProcessResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { meta, actionNode } = context;
-  const targetId = meta.killTargetId as number | undefined;
+  const { meta } = context;
+  const record = meta.impResult as
+    | {
+        targetId: number;
+        isSuicide: boolean;
+        killed: boolean;
+        nightCount: number;
+      }
+    | undefined;
 
-  if (targetId === undefined) return context;
+  if (!record) return context;
 
-  const isSuicide = meta.isSuicide === true;
   const tag = meta.isCorrupted ? "【受干扰】" : "";
 
   // 查找玩家显示名称
@@ -391,9 +447,9 @@ const postProcessResult = async (
       : `${seatId + 1}号`;
   };
 
-  const targetLabel = findLabel(targetId);
+  const targetLabel = findLabel(record.targetId);
   const isDeadTarget = context.snapshot.seats.find(
-    (s: any) => s.id === targetId
+    (s: any) => s.id === record.targetId
   )?.isDead;
 
   // 英文 simulation log
@@ -401,21 +457,31 @@ const postProcessResult = async (
   let storytellerPrompt: string;
   let abilityLog: string;
 
-  if (isSuicide) {
-    simLog = `[Imp]${tag} Committed suicide — demon passed to a living minion`;
+  if (record.isSuicide && record.killed) {
+    simLog =
+      `[Imp]${tag} Committed suicide — demon passed to a living minion`;
     storytellerPrompt =
-      `小恶魔，请睁眼。你选择了自杀（${targetId + 1}号），已有一名存活爪牙继任恶魔。`;
+      `小恶魔，请睁眼。你选择了自杀（${record.targetId + 1}号），已有一名存活爪牙继任恶魔。`;
     abilityLog = `小恶魔${tag}自杀了，恶魔血脉已传递给一名存活爪牙`;
-  } else if (isDeadTarget) {
-    simLog = `[Imp]${tag} Selected dead player ${targetLabel} — no kill tonight (faking Soldier/Monk)`;
+  } else if (record.killed && isDeadTarget) {
+    simLog =
+      `[Imp]${tag} Selected dead player ${targetLabel} — no kill tonight (faking Soldier/Monk)`;
     storytellerPrompt =
-      `小恶魔，请睁眼。你选择了 ${targetId + 1} 号（已死亡），今晚无人死亡。`;
-    abilityLog = `小恶魔${tag}选择了已死亡的【${targetLabel}】，今晚无人死亡`;
-  } else {
+      `小恶魔，请睁眼。你选择了 ${record.targetId + 1} 号（已死亡），今晚无人死亡。`;
+    abilityLog =
+      `小恶魔${tag}选择了已死亡的【${targetLabel}】，今晚无人死亡`;
+  } else if (record.killed) {
     simLog = `[Imp]${tag} Killed: ${targetLabel}`;
     storytellerPrompt =
-      `小恶魔，请睁眼。你选择了 ${targetId + 1} 号玩家，他将在今晚死亡。`;
+      `小恶魔，请睁眼。你选择了 ${record.targetId + 1} 号玩家，他将在今晚死亡。`;
     abilityLog = `小恶魔${tag}杀死了【${targetLabel}】`;
+  } else {
+    simLog =
+      `[Imp]${tag} Drunk/poisoned — no kill (target: ${targetLabel})`;
+    storytellerPrompt =
+      `小恶魔，请睁眼。但由于醉酒/中毒，杀戮未执行。`;
+    abilityLog =
+      `小恶魔${tag}试图杀死【${targetLabel}】，但自身醉酒/中毒未生效`;
   }
 
   console.log(simLog);
@@ -426,15 +492,15 @@ const postProcessResult = async (
       ...context.meta,
       prompt: storytellerPrompt,
       abilityLog,
+      // 为 NightEngine / UI 提供标准化数据
       displayInfo: {
         type: "imp_action",
-        targetId,
-        targetLabel: targetId + 1,
-        isSuicide,
-        isDeadTarget: !!isDeadTarget,
-        killExecuted: meta.killExecuted === true,
+        targetId: record.targetId,
+        targetLabel: record.targetId + 1,
+        isSuicide: record.isSuicide,
+        killed: record.killed,
         isCorrupted: meta.isCorrupted ?? false,
-        nightCount: context.snapshot.nightCount ?? 0,
+        nightCount: record.nightCount,
         log: abilityLog,
       },
     },
@@ -460,10 +526,7 @@ export const impAbility = createRoleAbility({
    * 其他夜：nightOrderOverrides index 146 → priority 147。
    */
   wakePriority: 40,
-  /**
-   * 首夜是否唤醒：否。小恶魔规则明确"除首个夜晚以外"。
-   * preCheck 中有 otherNightOnlyCheck 作为防御性校验。
-   */
+  /** 首夜不唤醒（preCheck 中有 otherNightOnlyCheck 防御性校验） */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */
   wakePromptId: "role.imp.wake",
@@ -488,11 +551,11 @@ export const impAbility = createRoleAbility({
   /** preCheck：前置条件检查（存活 + 非首夜 + 状态标记） */
   preCheck: [preCheckAliveAndStatus, otherNightOnlyCheck],
 
-  /** calculate：核心计算（验证目标合法性） */
-  calculate: [calculateTarget],
+  /** calculate：核心计算（杀戮/传刀 目标确定） */
+  calculate: [calculateResult],
 
-  /** stateUpdate：状态持久化（标记死亡 / 自杀传刀） */
-  stateUpdate: [applyKillOrSuccession],
+  /** stateUpdate：状态持久化（标记死亡 / 自杀传刀 + 双持久化记录） */
+  stateUpdate: [stateUpdateResult],
 
   /** postProcess：后处理（日志 + 提示词 + UI 数据） */
   postProcess: [postProcessResult],

@@ -391,6 +391,9 @@ export function useGameFlow(): UseGameFlowResult {
     [nightCount, dispatch]
   );
 
+  // 使用 ref 存储 proceedToFirstNight 以便在模态框回调中重新调用
+  const proceedToFirstNightRef = useRef<typeof proceedToFirstNight>(() => {});
+
   const proceedToFirstNight = useCallback(
     (rolesToUse?: Role[]) => {
       // 🛡️ Guard: If already in night phase, do NOT regenerate queue
@@ -409,7 +412,6 @@ export function useGameFlow(): UseGameFlowResult {
         console.warn(
           `[proceedToFirstNight] 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，弹出设置窗口`
         );
-        // 收集可选镇民角色
         const availableRoles =
           (selectedScript?.roleIds ?? [])
             .map((rid) => globalRoles.find((r) => r.id === rid))
@@ -428,13 +430,62 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
-      // 调用 startNight 生成首夜队列并弹出预览
-      // 注意：需要从外部传入 startNight 引用，因为 useGameFlow 不直接依赖 useNightLogic
-      // 使用游戏事件总线触发 startNight 逻辑
+      // 红罗刹检查：有占卜师时必须设置红罗刹
+      const hasFortuneTeller = seats.some(
+        (s) => s.role?.id === "fortune_teller"
+      );
+      const hasRedHerring = seats.some(
+        (s) => s.isRedHerring || s.isFortuneTellerRedHerring
+      );
+      if (hasFortuneTeller && !hasRedHerring) {
+        console.warn(
+          "[proceedToFirstNight] 有占卜师但未设置红罗刹，弹出设置窗口"
+        );
+        const eligiblePlayers = seats.filter(
+          (s) =>
+            s.role &&
+            s.role.type !== "demon" &&
+            s.role.type !== "minion" &&
+            !s.isDead
+        );
+        dispatch(
+          gameActions.setModal({
+            type: "STORYTELLER_SELECT",
+            data: {
+              sourceId: -1,
+              roleId: "fortune_teller",
+              roleName: "占卜师",
+              description: "请选择一位玩家作为红罗刹（占卜师的天敌）：",
+              targetCount: 1,
+              onConfirm: (selectedIds: number[]) => {
+                if (selectedIds.length > 0) {
+                  dispatch(
+                    gameActions.updateState({
+                      seats: seats.map((s) =>
+                        s.id === selectedIds[0]
+                          ? { ...s, isRedHerring: true, isFortuneTellerRedHerring: true }
+                          : s
+                      ),
+                    })
+                  );
+                }
+                dispatch(gameActions.setModal(null));
+                // 设置完成后重新尝试入夜
+                setTimeout(() => proceedToFirstNightRef.current?.(), 100);
+              },
+            },
+          })
+        );
+        return;
+      }
+
+      // 直接启动首夜（不再弹预览窗口）
       unifiedEventBus.emit("startFirstNight", {});
     },
     [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.roleIds]
   );
+
+  proceedToFirstNightRef.current = proceedToFirstNight;
 
   const tickTimer = useCallback(
     (delta: number) => {

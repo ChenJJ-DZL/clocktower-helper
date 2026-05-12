@@ -16,6 +16,7 @@ export type ModalType =
         }>;
         title: string;
         pendingQueue: Seat[] | null;
+        autoConfirm?: boolean;
       };
     }
   | { type: "KILL_CONFIRM"; data: { targetId: number; isImpSelfKill: boolean } }

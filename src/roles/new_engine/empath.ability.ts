@@ -82,6 +82,11 @@ interface PlayerLookup {
  *
  * 对应规则：共情者死亡时技能不应触发；醉酒/中毒时允许触发，
  * 但效果在 calculate 中被替换为假数字。
+ *
+ * 注意：只设置 isAbilityActive，不修改 abilityEffective。
+ * abilityEffective 由 abilityPriorityCalculation 中间件在
+ * calculate 阶段前自动注入（处理 Vortox、咖啡师、酿酒师、
+ * 醉酒/中毒等覆盖）。
  */
 const preCheckAliveAndStatus = async (
   context: MiddlewareContext
@@ -106,7 +111,7 @@ const preCheckAliveAndStatus = async (
       ...context.meta,
       isDrunk,
       isPoisoned,
-      abilityEffective: !(isDrunk || isPoisoned),
+      isAbilityActive: !(isDrunk || isPoisoned),
     },
   };
 };
@@ -292,7 +297,7 @@ function generateFakeEvilCount(
  * 优先级（从高到低）：
  * 1. storytellerInput.overrideResult   — 说书人手动完全覆盖（无条件采用）
  * 2. storytellerInput.fakeResult       — 说书人预设假信息（仅 !abilityEffective 时）
- * 3. meta.empathResult                 — 预置能力结果
+ * 3. meta.initialNightInfo.empathInfo  — 预置首夜信息
  * 4. countEvilNeighbors                — 动态计算（最终兜底）
  *
  * abilityEffective 由 abilityPriorityCalculation 中间件在 calculate
@@ -325,9 +330,9 @@ const calculateResult = async (
   else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
     evilNeighborCount = storytellerInput.fakeResult as number;
   }
-  // 优先级 3：预置能力结果
-  else if (meta.empathResult !== undefined) {
-    const realCount = meta.empathResult as number;
+  // 优先级 3：预置首夜信息
+  else if (meta.initialNightInfo?.empathInfo !== undefined) {
+    const realCount = meta.initialNightInfo.empathInfo as number;
     evilNeighborCount = abilityEffective
       ? realCount
       : generateFakeEvilCount(seats, selfIdx);

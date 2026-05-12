@@ -249,10 +249,10 @@ export const GameConsole = React.memo(function GameConsole({
   return (
     <div className="h-full flex flex-col bg-slate-900 border-l border-white/10">
       {/* Zone A: Header (Status) */}
-      <div className="shrink-0 h-20 border-b border-white/10 bg-slate-800/50 flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-4">
+      <div className="shrink-0 h-14 border-b border-white/10 bg-slate-800/50 flex items-center justify-between px-4 py-2">
+        <div className="flex items-center gap-3">
           <div
-            className={`px-3 py-1.5 rounded-lg text-base font-bold text-white whitespace-nowrap shadow-lg ${getPhaseColor()}`}
+            className={`px-3 py-1 rounded-lg text-sm font-bold text-white whitespace-nowrap shadow-lg ${getPhaseColor()}`}
           >
             {getPhaseLabel()}
           </div>
@@ -260,7 +260,7 @@ export const GameConsole = React.memo(function GameConsole({
         {onToggleGrimoire && (
           <button
             onClick={onToggleGrimoire}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 bg-slate-700/50 hover:bg-slate-700 hover:text-white transition-all duration-200 border border-white/5 whitespace-nowrap"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-slate-700/50 hover:bg-slate-700 hover:text-white transition-all duration-200 border border-white/5 whitespace-nowrap"
           >
             查看手册
           </button>

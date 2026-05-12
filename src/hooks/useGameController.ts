@@ -1157,13 +1157,14 @@ export function useGameController() {
       console.log("[GameController] Night order preview:", preview);
       setNightOrderPreview(preview);
 
-      // 弹出预览模态框
+      // 弹出预览模态框（但会自动确认，不再需要说书人点击）
       setCurrentModal({
         type: "NIGHT_ORDER_PREVIEW",
         data: {
           preview,
           title: "首夜唤醒顺序预览",
           pendingQueue: pendingSeats,
+          autoConfirm: true,
         },
       });
     };

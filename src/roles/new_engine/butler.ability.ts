@@ -23,7 +23,7 @@
  *    因为角色能力不能以任何形式影响流放流程，管家可以在流放表决中
  *    自由参与表决。"
  *
- *   → 投票合法性由 `isButlerVoteLegal()` 检查。
+ *   → 投票合法性由 `isButlerVoteLegal()` 检查（导出函数）。
  *   → 流放（exile）不受限制。
  *
  * 【运作方式】
@@ -32,29 +32,29 @@
  *    在一次提名中，管家只能在主人举手投票，或主人的投票已经被统计
  *    时，才能举手投票。"
  *
- *   → 标记存储方式：seat.statusEffects 中 type === "butler_master"
- *     记录 masterId。
+ *   → 标记存储：seat.masterId（扁平字段）+ seat.statusEffects 中
+ *     type === "butler_master"。
  *
  * 【提示标记】
  *   "放置条件：在管家选择的玩家角色标记旁放置。管家无法选择自己。
  *    若此时管家醉酒中毒，不放置该标记。"
- *   → 醉酒/中毒时但管家不受限（abilityEffective = false 时不存储 master）。
+ *   → 醉酒/中毒时仍然正常唤醒、正常选择、正常交互，
+ *     但不放置主人标记（次日可自由投票）。
  *
  * 【规则细节】
  *   "已死亡的玩家只能在拥有投票标记时才能举手投票。如果管家选择了
  *    一名已死亡玩家作为主人，这种情况仍然适用。"
- *   → 主人是死亡玩家时，主人有 ghost vote 才能投票 → 管家才能跟投。
+ *   → allowDead: true — 允许选已死玩家（但需考虑 ghost vote 限制）。
  *
  *   "管家的能力从不会被强制必须投票。"
  *   → 主人投票时管家可以投票但不是必须。
  *
  *   "流放流程不受影响"
- *   → 流放投票时管家自由参与，`isButlerVoteLegal` 返回 true。
+ *   → isButlerVoteLegal 在 isExile 时直接返回 true。
  *
  * 【提示与技巧（相关片段）】
  *   "被你选为'主人'的那名玩家非常重要。你的投票依然按照正常的
  *    投票计数，只不过在你的主人不举手的情况下你不能投票。"
- *   → 投票权受主人控制，但计票权重不变。
  *
  * ============================================================
  * 夜晚顺序
@@ -85,10 +85,14 @@ interface PlayerLookup {
   isEvilConverted?: boolean;
   isGoodConverted?: boolean;
   isDemonSuccessor?: boolean;
-  /** 管家当前的主人（由 night 能力设置） */
+  /** 管家当前的主人（由 stateUpdate 设置） */
   masterId?: number;
-  statusEffects?: Array<{ type: string; source?: string; masterId?: number; [key: string]: any }>;
-  statuses?: Array<{ effect: string; [key: string]: any }>;
+  statusEffects?: Array<{
+    type: string;
+    source?: string;
+    masterId?: number;
+    [key: string]: any;
+  }>;
   [key: string]: any;
 }
 
@@ -99,6 +103,10 @@ interface PlayerLookup {
  *
  * 对应规则：管家死亡时技能不应触发；自身醉酒/中毒时"不放置该标记"
  * （即无主人限制，次日可自由投票）。
+ *
+ * 注意：只设置 isAbilityActive，不修改 abilityEffective。
+ * abilityEffective 由 abilityPriorityCalculation 中间件在
+ * calculate 阶段前自动注入。
  */
 const preCheckAliveAndStatus = async (
   context: MiddlewareContext
@@ -133,11 +141,10 @@ const preCheckAliveAndStatus = async (
 /**
  * 提取管家当前主人的 ID。
  *
- * 优先从 seat.masterId 读取（stateUpdate 中设臵的扁平字段），
+ * 优先从 seat.masterId 读取（stateUpdate 中设置的扁平字段），
  * 兜底从 statusEffects 中查找 type === "butler_master"。
  *
- * @param seat 管家座位
- * @returns 主人 ID（无主人时返回 null）
+ * 导出供日间投票系统调用。
  */
 export function getButlerMasterId(seat: PlayerLookup): number | null {
   if (seat.masterId !== undefined && seat.masterId !== null) {
@@ -159,11 +166,13 @@ export function getButlerMasterId(seat: PlayerLookup): number | null {
  * - "管家可以在流放表决中自由参与表决。"
  * - "若此时管家醉酒中毒，不放置该标记。"（即无限制）
  *
- * @param butlerSeat   管家座位
- * @param masterVoting 主人当前是否在投票 true/false
- * @param isExile      是否为流放表决（不受主人限制）
+ * 导出供日间投票系统调用。
+ *
+ * @param butlerSeat        管家座位
+ * @param masterVoting      主人当前是否在投票
+ * @param isExile           是否为流放表决（不受主人限制）
  * @param isDrunkOrPoisoned 管家是否醉酒/中毒（不受限制）
- * @returns true = 允许投票, false = 不允许
+ * @returns true = 允许投票
  */
 export function isButlerVoteLegal(
   butlerSeat: PlayerLookup,
@@ -171,48 +180,53 @@ export function isButlerVoteLegal(
   isExile: boolean,
   isDrunkOrPoisoned: boolean
 ): boolean {
-  // 流放不受限制
   if (isExile) return true;
-
-  // 醉酒/中毒不受限制
   if (isDrunkOrPoisoned) return true;
 
-  // 没有主人 → 管家本人不受限（理论上不存在这种情况，但防御性处理）
   const masterId = getButlerMasterId(butlerSeat);
   if (masterId === null) return true;
 
-  // 主人投票时管家才能投票
   return masterVoting;
-}
-
-/**
- * 生成管家的主人选择摘要。
- */
-function buildMasterSummary(
-  masterId: number,
-  masterName: string,
-  nightCount: number
-): string {
-  return `管家选择${masterName}（${masterId + 1}号）作为第 ${nightCount} 夜后的主人`;
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
 
 /**
- * calculate 阶段：验证目标合法性。
+ * calculate 阶段：生成管家主人选择结果。
  *
- * 管家必须选择一名除自己以外的玩家作为主人。
- * 优先级：
- * 1. storytellerInput.overrideTarget — 说书人手动覆盖目标
- * 2. targetIds[0] — 玩家正常选择
+ * 优先级（从高到低）：
+ * 1. storytellerInput.overrideResult   — 说书人手动完全覆盖目标 ID
+ * 2. storytellerInput.fakeResult       — 说书人预设假目标（醉酒/中毒时）
+ * 3. initialNightInfo.butlerInfo       — 预置首夜信息
+ * 4. targetIds[0]                      — 玩家正常选择的目标
+ *
+ * abilityEffective 由 abilityPriorityCalculation 中间件在 calculate
+ * 阶段前自动注入。
  */
-const calculateTarget = async (
+const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { targetIds, storytellerInput, actionNode } = context;
-  const abilityEffective = context.meta.abilityEffective ?? true;
+  const { targetIds, meta, storytellerInput, actionNode } = context;
+  const abilityEffective = meta.abilityEffective ?? true;
 
-  const targetId = storytellerInput?.overrideTarget ?? targetIds?.[0];
+  let targetId: number | undefined;
+
+  // 优先级 1：说书人手动完全覆盖
+  if (storytellerInput?.overrideResult !== undefined) {
+    targetId = storytellerInput.overrideResult as number;
+  }
+  // 优先级 2：说书人预设假信息（仅能力被干扰时）
+  else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
+    targetId = storytellerInput.fakeResult as number;
+  }
+  // 优先级 3：预置首夜信息
+  else if (meta.initialNightInfo?.butlerInfo !== undefined) {
+    targetId = meta.initialNightInfo.butlerInfo as number;
+  }
+  // 优先级 4：玩家正常选择的目标
+  else {
+    targetId = targetIds?.[0];
+  }
 
   if (targetId === undefined || targetId === null) {
     return {
@@ -234,7 +248,7 @@ const calculateTarget = async (
     ...context,
     meta: {
       ...context.meta,
-      masterTargetId: targetId,
+      abilityResult: targetId,
       isCorrupted: !abilityEffective,
     },
   };
@@ -260,64 +274,101 @@ const calculateTarget = async (
  * - seat.statusEffects 中 type === "butler_master" 的条目
  *
  * 同一目标上已有的管家主人标记会被替换（重新选择覆盖旧主人）。
+ *
+ * 存储位置：
+ * - actionNode.meta.butlerResult    — 当前行动节点元数据
+ * - snapshot._abilityResults.butler — 全局能力结果记录
  */
-const updateMasterStatus = async (
+const stateUpdateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, actionNode } = context;
   const abilityEffective = meta.abilityEffective ?? true;
-  const masterId = meta.masterTargetId as number | undefined;
+  const targetId = meta.abilityResult as number | undefined;
 
-  if (masterId === undefined) {
-    return context;
-  }
-
-  // 醉酒/中毒：正常交互已发生，但不放置主人标记（自由投票）
-  if (!abilityEffective) {
-    return {
-      ...context,
-      meta: { ...context.meta, masterSet: false },
-    };
-  }
+  if (targetId === undefined) return context;
 
   const currentNight = snapshot.nightCount ?? 0;
 
+  // 构建持久化记录
+  const record = {
+    masterId: targetId,
+    masterSet: abilityEffective,
+    nightCount: currentNight,
+    timestamp: Date.now(),
+  };
+
+  // 醉酒/中毒：主人标记不放置，但记录选择
+  if (!abilityEffective) {
+    return {
+      ...context,
+      actionNode: {
+        ...actionNode,
+        meta: {
+          ...actionNode.meta,
+          butlerResult: record,
+        },
+      },
+      snapshot: {
+        ...snapshot,
+        _abilityResults: {
+          ...((snapshot as any)._abilityResults ?? {}),
+          butler: record,
+        },
+      },
+      meta: {
+        ...context.meta,
+        butlerResult: record,
+      },
+    };
+  }
+
+  // 正常：存储主人标记
   const newSnapshot = {
     ...snapshot,
     seats: snapshot.seats.map((seat: any) => {
       if (seat.id === actionNode.seatId) {
         const currentEffects = seat.statusEffects ?? [];
-        // 移除该管家上已有的主人标记
         const filteredEffects = currentEffects.filter(
           (e: any) => e.type !== "butler_master"
         );
-        // 添加新的主人标记
         return {
           ...seat,
-          masterId,
+          masterId: targetId,
           statusEffects: [
             ...filteredEffects,
             {
               type: "butler_master",
               source: "butler",
-              masterId,
+              masterId: targetId,
               sourceSeatId: actionNode.seatId,
               appliedAtNight: currentNight,
-              expiresAtNight: currentNight + 1, // 每天黄昏移除
+              expiresAtNight: currentNight + 1,
             },
           ],
         };
       }
       return seat;
     }),
+    _abilityResults: {
+      ...((snapshot as any)._abilityResults ?? {}),
+      butler: record,
+    },
   };
 
   return {
     ...context,
     snapshot: newSnapshot,
+    actionNode: {
+      ...actionNode,
+      meta: {
+        ...actionNode.meta,
+        butlerResult: record,
+      },
+    },
     meta: {
       ...context.meta,
-      masterSet: true,
+      butlerResult: record,
     },
   };
 };
@@ -326,14 +377,22 @@ const updateMasterStatus = async (
 
 /**
  * postProcess 阶段：生成日志、说书人提示词、UI 展示数据。
+ *
+ * 输出内容：
+ * 1. console.log   — 英文 simulation log（含干扰标记）
+ * 2. meta.prompt   — 说书人看到的唤醒提示词
+ * 3. meta.abilityLog — 中文游戏日志
+ * 4. meta.displayInfo — UI 消费的结构化数据
  */
 const postProcessResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { meta, actionNode } = context;
-  const masterId = meta.masterTargetId as number | undefined;
+  const record = meta.butlerResult as
+    | { masterId: number; masterSet: boolean; nightCount: number }
+    | undefined;
 
-  if (masterId === undefined) return context;
+  if (!record) return context;
 
   const tag = meta.isCorrupted ? "【受干扰】" : "";
 
@@ -345,21 +404,20 @@ const postProcessResult = async (
       : `${seatId + 1}号`;
   };
 
-  const masterLabel = findLabel(masterId);
-  const masterSet = meta.masterSet === true;
+  const masterLabel = findLabel(record.masterId);
 
   // 英文 simulation log
-  const simLog = masterSet
-    ? `[Butler]${tag} Master: ${masterLabel} (night ${context.snapshot.nightCount})`
-    : `[Butler]${tag} No master set (drunk/poisoned) — free vote tomorrow`;
+  const simLog = record.masterSet
+    ? `[Butler]${tag} Master: ${masterLabel} (night ${record.nightCount})`
+    : `[Butler]${tag} Drunk/poisoned — no master set (free vote tomorrow)`;
 
   // 说书人提示词
-  const storytellerPrompt = masterSet
-    ? `管家，请睁眼。你选择了 ${masterId + 1} 号玩家作为明天的主人，他投票时你才能投票。`
-    : `管家，请睁眼。但由于你醉酒/中毒，今夜未选择主人，明天你可以自由投票。`;
+  const storytellerPrompt = record.masterSet
+    ? `管家，请睁眼。你选择了 ${record.masterId + 1} 号玩家作为明天的主人，他投票时你才能投票。`
+    : `管家，请睁眼。但由于你自身醉酒/中毒，今夜未选择主人，明天你可以自由投票。`;
 
   // 中文游戏日志
-  const abilityLog = masterSet
+  const abilityLog = record.masterSet
     ? `管家（${actionNode.seatId + 1}号）选择【${masterLabel}】作为主人`
     : `管家${tag}未选择主人（醉酒/中毒），明日可自由投票`;
 
@@ -371,13 +429,14 @@ const postProcessResult = async (
       ...context.meta,
       prompt: storytellerPrompt,
       abilityLog,
+      // 为 NightEngine / UI 提供标准化数据
       displayInfo: {
         type: "butler_master_selection",
-        masterId,
-        masterLabel: masterId + 1,
-        masterSet,
+        masterId: record.masterId,
+        masterLabel: record.masterId + 1,
+        masterSet: record.masterSet,
         isCorrupted: meta.isCorrupted ?? false,
-        nightCount: context.snapshot.nightCount ?? 0,
+        nightCount: record.nightCount,
         log: abilityLog,
       },
     },
@@ -412,7 +471,7 @@ export const butlerAbility = createRoleAbility({
    * 管家每晚必须选择一名除自己以外的玩家作为主人。
    * min: 1, max: 1 — 必须选恰好一名
    * allowSelf: false — 不能选自己
-   * allowDead: true — 可选已死亡玩家（规则："已死亡的玩家...如果管家
+   * allowDead: true — 可选已死亡玩家（规则："已死亡的玩家…如果管家
    *   选择了一名已死亡玩家作为主人，这种情况仍然适用"）
    */
   targetConfig: {
@@ -428,11 +487,11 @@ export const butlerAbility = createRoleAbility({
   /** preCheck：前置条件检查（存活 + 状态标记） */
   preCheck: [preCheckAliveAndStatus],
 
-  /** calculate：核心计算（验证目标合法性） */
-  calculate: [calculateTarget],
+  /** calculate：核心计算（验证目标合法性 + 支持覆盖） */
+  calculate: [calculateResult],
 
-  /** stateUpdate：状态持久化（记录主人标记） */
-  stateUpdate: [updateMasterStatus],
+  /** stateUpdate：状态持久化（主人标记 + 双持久化记录） */
+  stateUpdate: [stateUpdateResult],
 
   /** postProcess：后处理（日志 + 提示词 + UI 数据） */
   postProcess: [postProcessResult],
