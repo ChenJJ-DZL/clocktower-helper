@@ -1,6 +1,8 @@
+import { useEffect, useRef } from "react";
 import { roles } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { useGameState } from "../../hooks/useGameState";
+import type { GameRecord } from "@/src/types/game";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
 import { AttackBlockedModal } from "../modals/AttackBlockedModal";
 import { BarberSwapModal } from "../modals/BarberSwapModal";
@@ -69,6 +71,45 @@ export function GameModals() {
   } = gameState;
 
   const { nightInfo } = actions;
+
+  // 在打开对局记录弹窗前自动保存当前游戏状态，确保记录实时更新
+  const prevModalTypeRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currType = currentModal?.type ?? null;
+    if ((currType === "GAME_RECORDS" || currType === "SPY_RECORDS") && prevModalTypeRef.current !== currType) {
+      try {
+        const now = new Date();
+        const record: GameRecord = {
+          id: `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          scriptName: selectedScript?.name ?? "未知剧本",
+          startTime: (actions as any).startTime?.toISOString?.() ?? now.toISOString(),
+          endTime: now.toISOString(),
+          duration: (actions as any).timer ?? 0,
+          winResult: null,
+          winReason: null,
+          seats: JSON.parse(JSON.stringify(seats)),
+          gameLogs: gameLogs as any[],
+          snapshot: {
+            gamePhase,
+            nightCount: (actions as any).nightCount ?? 1,
+            seats: JSON.parse(JSON.stringify(seats)),
+            initialSeats: (actions as any).initialSeats ?? [],
+            victorySnapshot: victorySnapshot ?? [],
+            gameLogs: gameLogs ?? [],
+            winResult: null,
+            winReason: null,
+            deadThisNight: (actions as any).deadThisNight ?? [],
+            wakeQueueIds: (actions as any).wakeQueueIds ?? [],
+            currentWakeIndex: (actions as any).currentWakeIndex ?? 0,
+          },
+        };
+        (actions as any).saveGameRecord?.(record);
+      } catch (e) {
+        console.error("[GameModals] 自动保存对局记录失败:", e);
+      }
+    }
+    prevModalTypeRef.current = currType;
+  }, [currentModal, selectedScript, seats, gameLogs, gamePhase, victorySnapshot, actions]);
 
   // Modal data extraction
   const nightOrderModal =
@@ -549,6 +590,33 @@ export function GameModals() {
       <ShamanConvertModal />
       <BarberSwapModal />
       <SpyDisguiseModal />
+      {currentModal?.type === "SPY_RECORDS" && (() => {
+        const currentRecord: GameRecord = {
+          id: "current",
+          scriptName: selectedScript?.name ?? "未知剧本",
+          startTime: (actions as any).startTime?.toISOString?.() ?? new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          duration: (actions as any).timer ?? 0,
+          winResult: null,
+          winReason: null,
+          seats: JSON.parse(JSON.stringify(seats)),
+          gameLogs: gameLogs as any[],
+          isCompleted: false,
+          snapshot: null,
+        };
+        return (
+          <GameRecordsModal
+            isOpen={true}
+            onClose={() => {
+              actions.setCurrentModal(null);
+              actions.continueToNextAction();
+            }}
+            gameRecords={[currentRecord]}
+            isPortrait={isPortrait}
+            onContinue={(actions as any).handleContinueGame}
+          />
+        );
+      })()}
 
       {storytellerSelectModal && (
         <StorytellerSelectModal
@@ -630,8 +698,8 @@ export function GameModals() {
         />
       )}
 
-      {/* Overlays */}
-      <DawnReportOverlay />
+      {/* Overlays: 当有NIGHT_DEATH_REPORT弹窗时不重复显示DawnReportOverlay */}
+      {!nightDeathReportModal && <DawnReportOverlay />}
       <GameOverOverlay />
       <PlayerContextMenu />
       <GlobalNavBar />

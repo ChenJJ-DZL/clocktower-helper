@@ -15,8 +15,15 @@ export const ravenkeeper: RoleDefinition = {
     "如果守鸦人在白天死亡，他在这局游戏就永远失去了他的能力。",
     "如果守鸦人在夜晚因为恶魔之外的原因死亡（例如刺客或月之子）守鸦人依然能在死亡的当晚被唤醒并使用能力。",
   ],
+  // 首夜不应被唤醒（守鸦人只在夜晚死亡后触发）
+  firstNight: {
+    order: 0,
+    target: { count: { min: 0, max: 0 } },
+    dialog: () => ({ wake: "", instruction: "", close: "" }),
+  },
+
   night: {
-    order: 45, // Ravenkeeper acts late, after most deaths have occurred
+    order: 0, // 守鸦人不在基础队列中，只通过 insertIntoWakeQueueAfterCurrent 在死亡后被加入
     target: {
       count: { min: 1, max: 1 },
       canSelect: (_target, _self) => true, // Can select anyone, including dead or self
@@ -27,13 +34,15 @@ export const ravenkeeper: RoleDefinition = {
       close: "",
     }),
     handler: (context) => {
-      const { targets, selfId, deadThisNight } = context;
-      // Note: In a real implementation, the generator would only wake the Ravenkeeper
-      // if they died tonight. The handler just logs the action.
+      const { targets, selfId, seats } = context;
+      if (targets.length === 0) return null;
+      const targetId = targets[0];
+      const targetSeat = seats?.find((s: any) => s.id === targetId);
+      const targetRoleName = targetSeat?.effectiveRole?.name ?? targetSeat?.role?.name ?? "未知角色";
       return {
         updates: [],
         logs: {
-          privateLog: `守鸦人(${selfId + 1}号) 查验了 ${targets.map((id) => id + 1).join("号")}玩家`,
+          privateLog: `守鸦人(${selfId + 1}号) 查验了 ${targetId + 1}号，角色是【${targetRoleName}】`,
         },
       };
     },

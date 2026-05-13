@@ -385,9 +385,11 @@ const postProcessResult = async (
   // 详细 simulation log
   const simLog = `[Undertaker]${tag} Today executed: ${label} → ${result.roleName}`;
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 说书人提示词
   const storytellerPrompt =
-    `送葬者，请睁眼。今天被处决的 ${result.executedSeatId + 1} 号玩家的角色是【${result.roleName}】`;
+    `唤醒${selfSeatId + 1}号【送葬者】，告诉他上一个白天被处决的玩家是${result.roleName}。`;
 
   // 中文日志
   const abilityLog =

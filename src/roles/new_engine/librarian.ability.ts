@@ -419,11 +419,13 @@ const postProcessResult = async (
 
   const tag = meta.isCorrupted ? "【受干扰】" : "";
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 无外来者在场（手势 0）
   if (!result.roleName) {
     const simLog = `[Librarian]${tag} No outsiders in play (0)`;
     const storytellerPrompt =
-      "图书管理员，请睁眼。场上没有外来者在场。（手势 0）";
+      `唤醒${selfSeatId + 1}号【图书管理员】，告诉他场上没有外来者在场（手势 0）。`;
     const abilityLog = `图书管理员${tag}得知：场上没有外来者在场`;
 
     console.log(simLog);
@@ -465,8 +467,7 @@ const postProcessResult = async (
 
   // 说书人提示词
   const storytellerPrompt =
-    `图书管理员，请睁眼。请查看 ${result.seat1 + 1} 号` +
-    `和 ${result.seat2 + 1} 号玩家，其中有一名是【${result.roleName}】`;
+    `唤醒${selfSeatId + 1}号【图书管理员】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
 
   // 中文游戏日志
   const abilityLog =

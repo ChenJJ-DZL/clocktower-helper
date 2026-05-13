@@ -21,11 +21,25 @@ export const undertaker: RoleDefinition = {
     target: {
       count: { min: 0, max: 0 },
     },
-    dialog: (_playerSeatId, _isFirstNight) => ({
-      wake: "送葬者，请睁眼。这是今天被处决玩家的角色",
-      instruction: "向其展示对应的角色标记（如果是酒鬼则展示‘酒鬼’身份）",
-      close: "",
-    }),
+    dialog: (playerSeatId, _isFirstNight, context) => {
+      const { seats = [], isActorDisabledByPoisonOrDrunk = () => false } = context;
+      const selfSeat = seats.find((s: any) => s.id === playerSeatId);
+      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+      let roleName: string;
+
+      if (isDisabled) {
+        const otherRoles = seats.filter((s: any) => s.role && s.id !== playerSeatId).map((s: any) => s.role?.name).filter(Boolean);
+        roleName = otherRoles.length > 0 ? otherRoles[Math.floor(Math.random() * otherRoles.length)] : "未知角色";
+      } else {
+        const executedSeat = seats?.find((s: any) => s.executedToday);
+        roleName = executedSeat?.role?.name ?? "未知角色";
+      }
+      return {
+        wake: `唤醒${playerSeatId + 1}号【送葬者】，告诉他上一个白天被处决的玩家是${roleName}。`,
+        instruction: "向其展示对应的角色标记（如果是酒鬼则展示'酒鬼'身份）",
+        close: "",
+      };
+    },
     handler: (context) => {
       const { executedToday, selfId } = context;
       if (executedToday === null || executedToday === undefined) {

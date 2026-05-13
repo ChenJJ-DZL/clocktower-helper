@@ -390,10 +390,12 @@ const postProcessResult = async (
     ? `[Monk]${tag} Protects: ${targetLabel} (night ${record.nightCount})`
     : `[Monk]${tag} Drunk/poisoned — no protection (target: ${targetLabel})`;
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 说书人提示词
   const storytellerPrompt = record.isProtected
-    ? `僧侣，请睁眼。今晚 ${record.targetId + 1} 号玩家受到保护，恶魔的负面能力对其无效。`
-    : `僧侣，请睁眼。但由于你自身醉酒/中毒，保护未生效。`;
+    ? `唤醒${selfSeatId + 1}号【僧侣】，让他选择一名其他存活玩家进行保护。（选择了${record.targetId + 1}号，今晚恶魔的负面能力对其无效）`
+    : `唤醒${selfSeatId + 1}号【僧侣】，让他选择一名其他存活玩家进行保护。（由于醉酒/中毒，保护未生效）`;
 
   // 中文游戏日志
   const abilityLog = record.isProtected

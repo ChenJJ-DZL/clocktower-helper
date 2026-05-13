@@ -419,8 +419,9 @@ const postProcessResult = async (
 
   const simLog = `[Empath]${tag} Evil neighbors: ${result}`;
 
+  const selfSeatId = context.actionNode.seatId;
   const storytellerPrompt =
-    `共情者，请睁眼。与你邻近的邪恶玩家有 ${result} 名。`;
+    `唤醒${selfSeatId + 1}号【共情者】，告诉他邻近邪恶玩家有 ${result} 名。`;
 
   const abilityLog =
     `共情者${tag}获得信息：你的邻座中有 ${result} 名邪恶玩家`;

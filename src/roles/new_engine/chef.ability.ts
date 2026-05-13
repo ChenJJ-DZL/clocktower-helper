@@ -468,9 +468,11 @@ const postProcessResult = async (
   // 英文 simulation log
   const simLog = `[Chef]${tag} Evil pairs: ${result} (total seats: ${totalSeats})`;
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 说书人提示词（用手势比划数字）
   const storytellerPrompt =
-    `厨师，请睁眼。场上互为邻座的邪恶玩家有 ${result} 对。`;
+    `唤醒${selfSeatId + 1}号【厨师】，告诉他相邻邪恶玩家有 ${result} 对。`;
 
   // 中文游戏日志
   const abilityLog =

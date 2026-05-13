@@ -3,8 +3,8 @@
 
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { groupedRoles, type Role, roles, type Seat } from "../../app/data";
-import { useGameContext } from "../contexts/GameContext";
+import { groupedRoles, type Role, roles, type Seat, scripts } from "../../app/data";
+import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
 import {
@@ -252,7 +252,15 @@ export function useGameController() {
   });
 
   const { changeRole, swapRoles, reviveSeat } = seatManager;
-  const { saveHistory, handleStepBack, handleGlobalUndo } = historyController;
+  const {
+    saveHistory,
+    handleStepBack: rawHandleStepBack,
+    handleGlobalUndo,
+  } = historyController;
+  const wrappedHandleStepBack = useCallback(() => {
+    nightPreviewConfirmedRef.current = false;
+    rawHandleStepBack();
+  }, [rawHandleStepBack]);
   const {
     hasUsedAbility,
     markAbilityUsed,
@@ -514,6 +522,85 @@ export function useGameController() {
     return map[id || ""] || f || "恶魔";
   }, []);
 
+  // 从对局记录快照恢复游戏
+  const handleContinueGame = useCallback(
+    (record: GameRecord) => {
+      if (!record.snapshot) return;
+      const snap = record.snapshot;
+
+      const script = scripts.find((s) => s.name === record.scriptName);
+      const updates: Record<string, any> = {
+        gamePhase: snap.gamePhase || "setup",
+        nightCount: snap.nightCount ?? 1,
+        seats: snap.seats || [],
+        initialSeats: snap.initialSeats || [],
+        victorySnapshot: snap.victorySnapshot || [],
+        winResult: snap.winResult || null,
+        winReason: snap.winReason || null,
+        deadThisNight: snap.deadThisNight || [],
+        executedPlayerId: snap.executedPlayerId ?? null,
+        wakeQueueIds: snap.wakeQueueIds || [],
+        currentWakeIndex: snap.currentWakeIndex ?? 0,
+        selectedActionTargets: snap.selectedActionTargets || [],
+        inspectionResult: snap.inspectionResult ?? null,
+        inspectionResultKey: snap.inspectionResultKey ?? 0,
+        todayDemonVoted: snap.todayDemonVoted ?? false,
+        todayMinionNominated: snap.todayMinionNominated ?? false,
+        todayExecutedId: snap.todayExecutedId ?? null,
+        witchCursedId: snap.witchCursedId ?? null,
+        witchActive: snap.witchActive ?? false,
+        cerenovusTarget: snap.cerenovusTarget ?? null,
+        isVortoxWorld: snap.isVortoxWorld ?? false,
+        fangGuConverted: snap.fangGuConverted ?? false,
+        jugglerGuesses: snap.jugglerGuesses ?? null,
+        evilTwinPair: snap.evilTwinPair ?? null,
+        outsiderDiedToday: snap.outsiderDiedToday ?? false,
+        gossipStatementToday: snap.gossipStatementToday ?? "",
+        gossipTrueTonight: snap.gossipTrueTonight ?? false,
+        gossipSourceSeatId: snap.gossipSourceSeatId ?? null,
+        timer: snap.timer ?? 0,
+        startTime: snap.startTime ? new Date(snap.startTime) : null,
+        selectedRole: snap.selectedRole ?? null,
+        spyDisguiseMode: snap.spyDisguiseMode ?? "off",
+        spyDisguiseProbability: snap.spyDisguiseProbability ?? 0,
+        poppyGrowerDead: snap.poppyGrowerDead ?? false,
+        pukkaPoisonQueue: snap.pukkaPoisonQueue || [],
+        poChargeState: snap.poChargeState ?? null,
+        usedOnceAbilities: snap.usedOnceAbilities || {},
+        usedDailyAbilities: snap.usedDailyAbilities || {},
+        balloonistKnownTypes: snap.balloonistKnownTypes || {},
+        hasExecutedThisDay: snap.hasExecutedThisDay ?? false,
+        votedThisRound: snap.votedThisRound || [],
+        lastDuskExecution: snap.lastDuskExecution ?? null,
+        currentDuskExecution: snap.currentDuskExecution ?? null,
+        history: snap.history || [],
+        mayorRedirectTarget: snap.mayorRedirectTarget ?? null,
+        damselGuessed: snap.damselGuessed ?? false,
+        damselGuessUsedBy: snap.damselGuessUsedBy || [],
+        klutzChoiceTarget: snap.klutzChoiceTarget ?? null,
+        shamanKeyword: snap.shamanKeyword ?? null,
+        shamanTriggered: snap.shamanTriggered ?? false,
+        shamanConvertTarget: snap.shamanConvertTarget ?? null,
+        autoRedHerringInfo: snap.autoRedHerringInfo ?? null,
+        dayAbilityLogs: snap.dayAbilityLogs || [],
+        nominationMap: snap.nominationMap || {},
+        nominationRecords: snap.nominationRecords || { nominators: [], nominees: [] },
+        mastermindFinalDay: snap.mastermindFinalDay ?? null,
+        remainingDays: snap.remainingDays ?? null,
+        goonDrunkedThisNight: snap.goonDrunkedThisNight ?? false,
+        hadesiaChoices: snap.hadesiaChoices || {},
+        virginGuideInfo: snap.virginGuideInfo ?? null,
+        voteRecords: snap.voteRecords || [],
+        seatNotes: snap.seatNotes || {},
+        hadesiaChoiceEnabled: snap.hadesiaChoiceEnabled ?? false,
+        lastExecutedPlayerId: snap.lastExecutedPlayerId ?? null,
+      };
+      if (script) updates.selectedScript = script;
+      baseDispatch(gameActions.updateState(updates));
+    },
+    [baseDispatch]
+  );
+
   const { logicDispatch, checkGameOver, declareMayorImmediateWin } =
     useLogicDispatcher(
       seats,
@@ -560,10 +647,19 @@ export function useGameController() {
   );
   const {
     activeNightStep: nightInfo,
-    continueToNextAction,
+    continueToNextAction: rawContinueToNextAction,
     wakeIndexRef,
     setActiveNightStep,
   } = nightSnapshot;
+
+  // 包装 continueToNextAction，在推进队列前重置预览状态
+  const continueToNextAction = useCallback(
+    (latestSeats?: Seat[]) => {
+      nightPreviewConfirmedRef.current = false;
+      rawContinueToNextAction(latestSeats);
+    },
+    [rawContinueToNextAction]
+  );
 
   const nightLogic = useNightEngine(
     {
@@ -834,9 +930,46 @@ export function useGameController() {
     handleDayAbility,
   } = dayActions;
 
+  // 行动预览状态：第一次点击处理行动，第二次点击才推进队列
+  const nightPreviewConfirmedRef = useRef(false);
+
   const interactionHandlers = useInteractionHandler({
     getRoleTargetCount,
     handleConfirmActionImpl: (selectedTargets?: number[]) => {
+      // 保存历史快照，用于"上一步"撤销
+      saveHistory();
+
+      const hasTargets = (nightInfo?.targetLimit?.max ?? 0) > 0;
+
+      // 有目标的角色：第一次点击预览行动结果，第二次点击才推进
+      if (hasTargets && !nightPreviewConfirmedRef.current) {
+        nightActionHandler.handleNightAction({
+          nightInfo,
+          seats,
+          selectedTargets: selectedTargets || [],
+          gamePhase,
+          nightCount,
+          roles: roles || [],
+          vortoxWorld: isVortoxWorld,
+          getRegistration: getRegistrationCached,
+          getMisinformation: getMisinformation,
+          findNearestAliveNeighbor,
+          setSeats,
+          setSelectedActionTargets,
+          addLog,
+          continueToNextAction,
+          setCurrentModal,
+          markAbilityUsed,
+          hasUsedAbility,
+          reviveSeat,
+          insertIntoWakeQueueAfterCurrent,
+          preview: true, // 预览模式：执行但不推进
+        });
+        nightPreviewConfirmedRef.current = true;
+        return;
+      }
+
+      // 第二次点击或无目标角色：正常处理并推进
       const result = nightActionHandler.handleNightAction({
         nightInfo,
         seats,
@@ -858,6 +991,7 @@ export function useGameController() {
         reviveSeat,
         insertIntoWakeQueueAfterCurrent,
       });
+      nightPreviewConfirmedRef.current = false;
       if (!result) continueToNextAction();
     },
     nightInfo,
@@ -1209,11 +1343,24 @@ export function useGameController() {
 
   // 离开夜间阶段时清除 nightInfo（避免 check/day/dusk 残留"行动中"高亮）
   useEffect(() => {
-    if (gamePhase !== "firstNight" && gamePhase !== "night" && nightInfo) {
-      console.log("[GameController] 离开夜间阶段，清除 nightInfo");
-      setActiveNightStep(null);
+    if (gamePhase !== "firstNight" && gamePhase !== "night") {
+      nightPreviewConfirmedRef.current = false;
+      if (nightInfo) {
+        console.log("[GameController] 离开夜间阶段，清除 nightInfo");
+        setActiveNightStep(null);
+      }
     }
   }, [gamePhase, nightInfo, setActiveNightStep]);
+
+  // 安全网：夜间阶段nightInfo为空且队列未耗尽时，自动推进
+  useEffect(() => {
+    if (gamePhase !== "firstNight" && gamePhase !== "night") return;
+    if (currentWakeIndex >= (wakeQueueIds?.length || 0)) return;
+    if (nightInfo === null && !currentModal) {
+      console.log("[GameController] 安全网：nightInfo为空，自动推进到下一步");
+      continueToNextAction();
+    }
+  }, [gamePhase, currentWakeIndex, wakeQueueIds, nightInfo, currentModal, continueToNextAction]);
 
   return useMemo(
     () => ({
@@ -1267,6 +1414,7 @@ export function useGameController() {
       handleVirginGuideConfirm,
       handleDayAbilityTrigger,
       handleDayAbility,
+      handleContinueGame,
       registerVotes,
       confirmNightDeathReport,
       victorySnapshot,
@@ -1274,7 +1422,7 @@ export function useGameController() {
         setCurrentModal({ type: "RESTART_CONFIRM", data: null }),
       handleSwitchScript,
       handleNewGame,
-      handleStepBack,
+      handleStepBack: wrappedHandleStepBack,
       handleGlobalUndo,
       closeNightOrderPreview,
       confirmNightOrderPreview: () => {
@@ -1335,6 +1483,7 @@ export function useGameController() {
       isActorDisabledByPoisonOrDrunk,
       addLogWithDeduplication,
       continueToNextAction,
+      nightPreviewConfirmed: nightPreviewConfirmedRef.current,
       saveHistory,
       enterDayPhase,
       loadGameRecords,
@@ -1420,6 +1569,7 @@ export function useGameController() {
       getDisplayRoleType,
       getSeatRoleId,
       handleDayAbility,
+      handleContinueGame,
       handleDayAbilityTrigger,
       handleDayAction,
       handleDayEndTransition,
@@ -1429,7 +1579,7 @@ export function useGameController() {
       handlePreStartNight,
       handleSlayerTargetSelect,
       handleStartNight,
-      handleStepBack,
+      wrappedHandleStepBack,
       handleSwitchScript,
       handleTimerPause,
       handleTimerReset,

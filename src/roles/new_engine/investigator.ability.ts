@@ -157,10 +157,7 @@ function getMinionCandidates(
     const realRole = seat.role;
     const displayRole = seat.effectiveRole ?? seat.charadeRole ?? realRole;
 
-    const canRegisterAsMinion =
-      realRole.id === "spy" || realRole.id === "recluse";
-
-    if (realRole.type === "minion" || canRegisterAsMinion) {
+    if (realRole.type === "minion") {
       candidates.push({ seat, roleName: displayRole.name ?? realRole.name });
     }
   }
@@ -431,13 +428,14 @@ const postProcessResult = async (
 
   if (!result) return context;
 
+  const selfSeatId = context.actionNode.seatId;
   const tag = meta.isCorrupted ? "【受干扰】" : "";
 
   // 无爪牙在场（手势 0）
   if (!result.roleName) {
     const simLog = `[Investigator]${tag} No minions in play (0)`;
     const storytellerPrompt =
-      "调查员，请睁眼。场上没有爪牙在场。（手势 0）";
+      `唤醒${selfSeatId + 1}号【调查员】，告诉他场上没有爪牙在场（手势 0）。`;
     const abilityLog = `调查员${tag}得知：场上没有爪牙在场`;
 
     console.log(simLog);
@@ -475,8 +473,7 @@ const postProcessResult = async (
   const simLog = `[Investigator]${tag} ${label1} & ${label2} → ${result.roleName}`;
 
   const storytellerPrompt =
-    `调查员，请睁眼。请查看 ${result.seat1 + 1} 号` +
-    `和 ${result.seat2 + 1} 号玩家，其中有一名是【${result.roleName}】`;
+    `唤醒${selfSeatId + 1}号【调查员】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
 
   const abilityLog = `调查员${tag}获得信息：${label1}和${label2}之中有一名是【${result.roleName}】`;
 

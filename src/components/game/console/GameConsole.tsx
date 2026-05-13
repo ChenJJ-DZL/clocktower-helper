@@ -182,7 +182,8 @@ export const GameConsole = React.memo(function GameConsole({
       .replace(/[。.，,]+$/, "");
   }, []);
 
-  // Optimize: Memoize instructions
+  // 直接使用 nightInfo.guide 作为行动文案（来自 dialog.wake，格式如"唤醒X号【角色名】，告诉他..."）
+  // 每个夜间角色必定有完整的 guide 文案，不应出现空值
   const storytellerInstruction = React.useMemo(() => {
     if (
       !isNightPhase ||
@@ -192,47 +193,12 @@ export const GameConsole = React.memo(function GameConsole({
     )
       return null;
 
-    const seatNo = currentActorSeat.id + 1;
-    const roleName = currentActorRoleName;
-    const action = (nightInfo.action || "").trim();
-    const speak = normalizeQuoted(nightInfo.speak || "");
-
-    const hasAction =
-      action && !["无", "无信息", "（无）", "跳过"].includes(action);
-    // 去除 action 末尾已有的句号，避免拼接时重复
-    const cleanAction = action.replace(/[。！]+$/, "");
-    const actionPart = hasAction ? `让他选择${cleanAction}` : null;
-    const speakPart = speak ? `告诉他${speak}` : null;
-
-    // Combine into specific format requested:
-    // 行动：唤醒x号【角色名】，告诉他xxx/让他选择xxx。
-    let actionText = `唤醒 ${seatNo} 号【${roleName}】`;
-
-    // CRITICAL: If we have an interactive result (e.g. Fortune Teller Yes/No), override or append to speak
-    if (inspectionResult) {
-      actionText += `，并告诉他${inspectionResult}`;
-    } else {
-      if (speakPart && actionPart) {
-        actionText += `，${speakPart}并${actionPart}`;
-      } else if (speakPart) {
-        actionText += `，${speakPart}`;
-      } else if (actionPart) {
-        actionText += `，${actionPart}`;
-      }
-    }
-
+    const guideText = (nightInfo.guide || "").trim();
     return {
-      headline: `唤醒 ${seatNo} 号【${roleName}】。`,
-      actionText,
+      headline: guideText || `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`,
+      actionText: guideText,
     };
-  }, [
-    isNightPhase,
-    currentActorSeat,
-    currentActorRoleName,
-    nightInfo,
-    inspectionResult,
-    normalizeQuoted,
-  ]);
+  }, [isNightPhase, currentActorSeat, currentActorRoleName, nightInfo]);
 
   // Remove "skill/instruction" style guidance that duplicates role ability text.
   // In this project, the first guidance point is often `nightInfo.guide` (what to do),

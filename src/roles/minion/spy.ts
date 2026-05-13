@@ -16,36 +16,52 @@ export const spy: RoleDefinition = {
     "相克规则：罂粟种植者：如果罂粟种植者在场，直到其死亡前间谍无法查看魔典。食人魔：间谍必定被食人魔当作邪恶阵营。",
   ],
 
-  // 首夜和后续夜晚都行动
-  night: {
-    order: 45,
-
+  // 首夜：爪牙先互认指认恶魔，再查看魔典
+  firstNight: {
+    order: 1,
     target: {
-      count: {
-        min: 0,
-        max: 0,
-      },
+      count: { min: 0, max: 0 },
     },
-
-    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context: any) => {
+      const seatNo = playerSeatId + 1;
+      let demonInfo = "";
+      if (context?.seats) {
+        const sorted = [...context.seats].sort((a: any, b: any) => a.id - b.id);
+        const demonNos = sorted.filter((s: any) => s.role?.type === "demon").map((s: any) => `${s.id + 1}号`);
+        const minionNos = sorted.filter((s: any) => s.role?.type === "minion" && s.id !== playerSeatId).map((s: any) => `${s.id + 1}号`);
+        demonInfo = `，告知恶魔及爪牙座位号：恶魔 ${demonNos.join("、")}，爪牙 ${minionNos.join("、")}`;
+      }
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（间谍）。`,
-        instruction: "查看魔法书",
+        wake: `唤醒${seatNo}号【间谍】${demonInfo}。让他查看魔典。`,
+        instruction: "查看魔典",
         close: "",
       };
     },
-
     handler: (context) => {
-      // 触发间谍查看魔典的弹窗
       return {
         updates: [],
-        modal: {
-          type: "SPY_GRIMOIRE",
-          data: null,
-        },
-        logs: {
-          privateLog: `间谍（${context.selfId + 1}号）已查看魔典`,
-        },
+        modal: { type: "SPY_RECORDS", data: null },
+        logs: { privateLog: `间谍（${context.selfId + 1}号）已查看对局记录` },
+      };
+    },
+  },
+
+  // 后续夜晚：直接查看魔典
+  night: {
+    order: 45,
+    target: {
+      count: { min: 0, max: 0 },
+    },
+    dialog: (playerSeatId: number) => ({
+      wake: `唤醒${playerSeatId + 1}号【间谍】，让他查看魔典。`,
+      instruction: "查看魔典",
+      close: "",
+    }),
+    handler: (context) => {
+      return {
+        updates: [],
+        modal: { type: "SPY_RECORDS", data: null },
+        logs: { privateLog: `间谍（${context.selfId + 1}号）已查看对局记录` },
       };
     },
   },

@@ -76,13 +76,55 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
     target: {
       count: { min: 0, max: 0 },
     },
-    dialog: (_playerSeatId, isFirstNight) => ({
-      wake: isFirstNight
-        ? "共情者，请睁眼。这是你的初始信息"
-        : "共情者，请睁眼。这是你今晚的信息",
-      instruction: "请向其比划邻座邪恶玩家的数量（0, 1, 或 2）",
-      close: "",
-    }),
+    dialog: (playerSeatId, isFirstNight, context) => {
+      const seatNo = playerSeatId + 1;
+      const { seats, isActorDisabledByPoisonOrDrunk } = context;
+
+      // 计算共情者最近的存活邻座
+      const selfIdx = seats.findIndex((s) => s.id === playerSeatId);
+      const count = seats.length;
+
+      // 向左查找最近的存活玩家
+      let leftSeat = null;
+      for (let i = 1; i < count; i++) {
+        const idx = (selfIdx - i + count) % count;
+        if (!seats[idx].isDead) { leftSeat = seats[idx]; break; }
+      }
+      // 向右查找最近的存活玩家
+      let rightSeat = null;
+      for (let i = 1; i < count; i++) {
+        const idx = (selfIdx + i) % count;
+        if (!seats[idx].isDead) { rightSeat = seats[idx]; break; }
+      }
+
+      // 判断玩家是否邪恶
+      const isEvil = (s: any) => {
+        if (s.isGoodConverted) return false;
+        if (s.isEvilConverted) return true;
+        const t = s.role?.type;
+        return t === "demon" || t === "minion";
+      };
+
+      let evilCount = 0;
+      if (leftSeat && isEvil(leftSeat)) evilCount++;
+      if (rightSeat && isEvil(rightSeat)) evilCount++;
+
+      // 醉酒/中毒时给出随机值（可能和真实值不同）
+      const selfSeat = seats.find((s) => s.id === playerSeatId);
+      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function"
+        ? isActorDisabledByPoisonOrDrunk(selfSeat)
+        : false;
+
+      const resultCount = isDisabled
+        ? Math.floor(Math.random() * 3)
+        : evilCount;
+
+      return {
+        wake: `唤醒${seatNo}号【共情者】，告诉他邻近邪恶玩家有 ${resultCount} 名。`,
+        instruction: "请向其比划邻座邪恶玩家的数量（0, 1, 或 2）",
+        close: "",
+      };
+    },
     handler: (context) => {
       const { selfId } = context;
       return {

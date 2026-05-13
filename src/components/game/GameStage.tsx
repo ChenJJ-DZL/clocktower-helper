@@ -131,6 +131,7 @@ export const GameStage = () => {
   // Dusk Phase: Nomination state
   const [nominator, setNominator] = useState<number | null>(null);
   const [nominee, setNominee] = useState<number | null>(null);
+  const [lastNominator, setLastNominator] = useState<number | null>(null);
   const [pendingVoteFor, setPendingVoteFor] = useState<number | null>(null);
   const [_defenseSecondsLeft, setDefenseSecondsLeft] = useState<number>(0);
 
@@ -230,6 +231,7 @@ export const GameStage = () => {
       setNominator(null);
       setNominee(null);
       setPendingVoteFor(null);
+      setLastNominator(null);
       setDefenseSecondsLeft(0);
       setLastCallSecondsLeft(0);
       setIsNominationLocked(false);
@@ -250,6 +252,7 @@ export const GameStage = () => {
         "[GameStage] 投票模态关闭，清除 pendingVoteFor，允许下一次提名"
       );
       setPendingVoteFor(null);
+      setLastNominator(null);
     }
     lastModalTypeRef.current = currType;
   }, [gamePhase, currentModal, pendingVoteFor]);
@@ -284,18 +287,13 @@ export const GameStage = () => {
       return false;
     }
 
-    // 特殊处理：夜晚结束后，应该允许用户点击"天亮了"按钮
-    // 当夜晚队列为空或已处理完所有夜晚行动时，nightInfo可能为null
+    // 特殊处理：nightInfo为空时，仍允许用户点击按钮推进
     if (!nightInfo) {
-      // 检查是否是夜晚阶段且队列已处理完
       if (gamePhase === "firstNight" || gamePhase === "night") {
-        // 如果当前唤醒索引已经达到或超过队列长度，说明夜晚已结束
-        if (currentWakeIndex >= (wakeQueueIds?.length || 0)) {
-          console.log(
-            "[isConfirmDisabled] Night ended, allowing 'Enter Day' button"
-          );
-          return false;
-        }
+        console.log(
+          "[isConfirmDisabled] Night step with no nightInfo, allowing button (may be role with missing legacy config)"
+        );
+        return false;
       }
       console.log("[isConfirmDisabled] No nightInfo, returning true.");
       return true;
@@ -643,14 +641,18 @@ export const GameStage = () => {
                 nominee === null &&
                 pendingVoteFor === null ? (
                   <div className="text-gray-400 text-sm w-full text-center py-1">
-                    等待发启提名...
+                    等待发起提名...
                   </div>
                 ) : (
                   <>
                     <div className="flex flex-col items-center">
                       <span className="text-xs text-gray-500 mb-1">提名者</span>
                       <span className="text-amber-400 font-bold text-xl">
-                        {nominator !== null ? `${nominator + 1}号` : "-"}
+                        {nominator !== null
+                          ? `${nominator + 1}号`
+                          : lastNominator !== null
+                            ? `${lastNominator + 1}号`
+                            : "-"}
                       </span>
                     </div>
                     <div className="text-gray-600 font-bold">➡️</div>
@@ -667,6 +669,37 @@ export const GameStage = () => {
                   </>
                 )}
               </div>
+
+              {/* Process Steps - Storyteller Guidance */}
+              {pendingVoteFor !== null ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-400 text-sm">
+                    <span className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold">✓</span>
+                    <span className="font-bold">提名发起成功</span>
+                    <span className="text-gray-400">({lastNominator !== null ? `${lastNominator + 1}号` : ""} 提名了 {pendingVoteFor + 1}号)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                    <span className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs font-bold">1</span>
+                    <span>让 <strong className="text-white">{lastNominator !== null ? `${lastNominator + 1}号` : "提名者"}</strong> 说明提名理由</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                    <span className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs font-bold">2</span>
+                    <span>让 <strong className="text-white">{pendingVoteFor + 1}号</strong> 进行辩护</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-400 text-sm">
+                    <span className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold">3</span>
+                    <span>点击下方「开始投票」进行投票计数</span>
+                  </div>
+                </div>
+              ) : nominator !== null && nominee !== null ? (
+                <div className="text-yellow-400 text-sm text-center py-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                  确认无误后点击「发起提名」
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm text-center py-2">
+                  在圆桌依次点击选中「提名者」和「被提名者」
+                </div>
+              )}
 
               {/* Details Grid */}
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -685,12 +718,12 @@ export const GameStage = () => {
                 </div>
                 <div className="bg-slate-700/30 p-2 rounded border border-white/5 col-span-2">
                   <div className="text-gray-400 text-xs mb-1">
-                    辩护时间 / 规则
+                    提名与辩护指引
                   </div>
                   <div className="font-bold text-white flex justify-between">
-                    <span>不限时(手动)</span>
+                    <span>不限时，说书人手动控制节奏</span>
                     <span className="text-xs font-normal text-gray-400">
-                      提名后点「开始投票」
+                      提名者说明理由 → 被提名者辩护 → 开始投票
                     </span>
                   </div>
                 </div>
@@ -785,6 +818,7 @@ export const GameStage = () => {
                     addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
                     playSound("execute");
                     setPendingVoteFor(nominee);
+                    setLastNominator(nominator);
                     // 取消自动辩护倒计时，由说书人手动控制节奏
                     // Reset selection
                     setNominator(null);
@@ -1062,6 +1096,27 @@ export const GameStage = () => {
                           },
                           disabled: !!controller.currentModal, // Disable if modal is open
                           variant: "warning" as const,
+                        };
+                      }
+
+                      // 间谍环节：显示"展开对局记录"，点击后弹窗关闭时自动推进
+                      const isSpyTurn = nightInfo?.effectiveRole?.id === "spy";
+                      if (isSpyTurn && !controller.currentModal) {
+                        return {
+                          label: "展开对局记录",
+                          onClick: handleConfirmAction,
+                          disabled: isConfirmDisabled,
+                          variant: "primary" as const,
+                        };
+                      }
+
+                      // 预览确认阶段：显示"确认结果 & 下一步"
+                      if (controller.nightPreviewConfirmed) {
+                        return {
+                          label: "确认结果 & 下一步",
+                          onClick: handleConfirmAction,
+                          disabled: isConfirmDisabled || !!controller.currentModal,
+                          variant: "success" as const,
                         };
                       }
 

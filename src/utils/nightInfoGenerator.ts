@@ -84,8 +84,27 @@ export function generateNightInfo(
     : roleDef?.night;
 
   if (!nightConfig) {
-    // 该角色没有夜晚行动配置
-    return null;
+    // 该角色没有 legacy 夜晚行动配置时，尝试从 effectiveRole 生成基础信息
+    // 确保 UI 不会因 nightInfo 为空而卡死
+    const defaultGuide = `唤醒${currentSeatId + 1}号【${effectiveRole.name}】，准备执行技能。`;
+    return {
+      seat: targetSeat,
+      effectiveRole,
+      isPoisoned: effectivePoisoned,
+      reason,
+      guide: defaultGuide,
+      speak: "",
+      action: "",
+      roleId: effectiveRole.id,
+      index: 0,
+      targetLimit: { min: 0, max: 0 },
+      canSelectDead: false,
+      canSelectSelf: false,
+      validTargetIds: [],
+      guideText: defaultGuide,
+      actionText: "",
+      interaction: { type: "none", amount: 0, required: false, canSelectSelf: false, canSelectDead: false, effect: { type: "none" } },
+    };
   }
 
   // 从 selectedScript 获取角色列表（通过 roleIds 过滤全局角色列表）

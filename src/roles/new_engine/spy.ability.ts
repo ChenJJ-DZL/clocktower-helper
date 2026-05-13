@@ -528,10 +528,12 @@ const postProcessGrimoire = async (
     `[Spy]${tag}${isDeadTag} Viewed grimoire (night ${grimoireData.nightCount}): ` +
     `${playerCount} players, ${evilCount} evil, ${flippedCount} alignment-flipped`;
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 说书人提示词
   const storytellerPrompt =
-    `间谍${isDeadTag}，请睁眼。你可以查看魔典。` +
-    `当前共 ${playerCount} 名玩家，其中 ${evilCount} 名邪恶阵营。`;
+    `唤醒${selfSeatId + 1}号【间谍】，让他查看魔典。` +
+    `（当前共 ${playerCount} 名玩家，其中 ${evilCount} 名邪恶阵营）`;
 
   // 中文日志
   const abilityLog =

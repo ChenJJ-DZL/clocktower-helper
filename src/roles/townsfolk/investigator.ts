@@ -31,24 +31,43 @@ export const investigator: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats } = context;
+      const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
+      const selfSeat = seats.find((s) => s.id === playerSeatId);
+      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+
+      const seatNo = playerSeatId + 1;
+
+      if (isDisabled) {
+        // 中毒/醉酒：随机返回虚假信息
+        const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
+        const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+        const seat1 = shuffled[0];
+        const seat2 = shuffled[1] || shuffled[0];
+        const seat1No = seat1 ? seat1.id + 1 : "?";
+        const seat2No = seat2 ? seat2.id + 1 : "?";
+        const minions = seats.filter((s) => s.role?.type === "minion");
+        const fakeRole = minions.length > 0 ? minions[Math.floor(Math.random() * minions.length)].role : null;
+        const fakeRoleName = fakeRole?.name || "投毒者";
+        return {
+          wake: `唤醒${seatNo}号【调查员】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,
+          instruction: "受干扰状态，信息可能不准确",
+          close: "",
+        };
+      }
 
       // 排除自己
       const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
 
-      // 找可被当作爪牙的玩家：真正的爪牙 + 间谍/陌客（可注册为爪牙）
+      // 找可被当作爪牙的玩家：真正的爪牙
       const minionCandidates = otherSeats.filter((s) => {
         if (!s.role) return false;
-        if (s.role.type === "minion") return true;
-        // 间谍和陌客可以被当作爪牙
-        if (s.role.id === "spy" || s.role.id === "recluse") return true;
-        return false;
+        return s.role.type === "minion";
       });
 
       // 无爪牙候选 → 手势 0
       if (minionCandidates.length === 0) {
         return {
-          wake: `🔍 调查员，请睁眼。场上没有爪牙在场。`,
+          wake: `唤醒${seatNo}号【调查员】，告诉他场上没有爪牙在场（手势 0）。`,
           instruction: `（手势 0）`,
           close: "",
         };
@@ -78,8 +97,8 @@ export const investigator: RoleDefinition = {
       const seat2No = shuffled[1].id + 1;
 
       return {
-        wake: `🔍 调查员，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
-        instruction: `其中一位是【${targetRoleName}】`,
+        wake: `唤醒${seatNo}号【调查员】，告诉他${seat1No}号和${seat2No}号其中一位是【${targetRoleName}】。`,
+        instruction: "",
         close: "",
       };
     },

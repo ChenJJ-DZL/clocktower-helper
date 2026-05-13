@@ -11,7 +11,7 @@ import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
 import type { GameRecord, NightHintState } from "../src/types/game";
-import { typeColors, scripts } from "./data";
+import { roles, typeColors, scripts } from "./data";
 
 // getSeatRoleId is now imported from useGameController
 
@@ -236,6 +236,56 @@ export default function Home() {
     },
     [dispatch]
   );
+
+  // 快速测试：自动随机分配15人标准阵容
+  const handleQuickTest = useCallback(() => {
+    if (!selectedScript || !selectedScript.roleIds || selectedScript.roleIds.length === 0) return;
+
+    const allRoles = [...new Map(roles.filter(r => selectedScript.roleIds!.includes(r.id)).map(r => [r.id, r])).values()];
+    const groups = { townsfolk: allRoles.filter(r => r.type === "townsfolk"), outsider: allRoles.filter(r => r.type === "outsider"), minion: allRoles.filter(r => r.type === "minion"), demon: allRoles.filter(r => r.type === "demon") };
+
+    const shuffle = <T,>(arr: T[]) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+    const pick = <T,>(pool: T[], n: number) => shuffle(pool).slice(0, Math.min(n, pool.length));
+
+    // 先随机选爪牙，检查是否有男爵
+    const pickedMinions = pick(groups.minion, 3);
+    const hasBaron = pickedMinions.some((r: any) => r.id === "baron");
+
+    // 15人标准：9村民 / 2外来者 / 3爪牙 / 1恶魔
+    // 有男爵时：7村民 / 4外来者 / 3爪牙 / 1恶魔
+    const townsfolkCount = hasBaron ? 7 : 9;
+    const outsiderCount = hasBaron ? 4 : 2;
+
+    const selected: Array<{ id: string; name: string; type: string }> = [
+      ...pick(groups.townsfolk, townsfolkCount),
+      ...pick(groups.outsider, outsiderCount),
+      ...pickedMinions,
+      ...pick(groups.demon, 1),
+    ];
+
+    const totalCount = selected.length;
+
+    const newSeats = seats.map((s, i) => {
+      const roleData = selected[i] || null;
+      return {
+        ...s,
+        role: roleData ? { id: roleData.id, name: roleData.name, type: roleData.type } : null,
+        charadeRole: null,
+        displayRole: null,
+        isDead: false,
+        isDrunk: false,
+        isPoisoned: false,
+      };
+    }) as any;
+
+    if (hasBaron) {
+      addLogWithDeduplication?.(`🏚️ 检测到男爵，已自动调整阵容：${townsfolkCount}村民 / ${outsiderCount}外来者`);
+    }
+    addLogWithDeduplication?.(`⚡ 快速测试：已为${totalCount}名玩家随机分配角色`);
+    // 直接进入核对阶段，跳过阵容校验
+    proceedToCheckPhase(newSeats);
+  }, [selectedScript, seats, addLogWithDeduplication, proceedToCheckPhase]);
 
   // [REFACTOR] seatsRef and gameStateRef sync removed - all state reads go through Context
 
@@ -815,6 +865,7 @@ export default function Home() {
                       setIgnoreBaronSetup={setIgnoreBaronSetup}
                       handleBaronAutoRebalance={handleBaronAutoRebalance}
                       hideSeatingChart={false}
+                      onQuickTest={handleQuickTest}
                     />
                   </div>
                 </div>

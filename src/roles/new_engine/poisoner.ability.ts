@@ -359,10 +359,12 @@ const postProcessResult = async (
     ? `[Poisoner]${tag} Poisoned: ${targetLabel} (night ${record.nightCount})`
     : `[Poisoner]${tag} Drunk/poisoned — no poison applied (target: ${targetLabel})`;
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 说书人提示词
   const storytellerPrompt = record.poisoned
-    ? `投毒者，请睁眼。你已对 ${record.targetId + 1} 号玩家下毒，该玩家将在今晚和明天白天中毒。`
-    : `投毒者，请睁眼。但由于你自身醉酒/中毒，下毒失败。`;
+    ? `唤醒${selfSeatId + 1}号【投毒者】，让他选择一名玩家下毒。（已选择${record.targetId + 1}号，该玩家将在今晚和明天白天中毒）`
+    : `唤醒${selfSeatId + 1}号【投毒者】，让他选择一名玩家下毒。（由于醉酒/中毒，下毒未生效）`;
 
   // 中文游戏日志
   const abilityLog = record.poisoned

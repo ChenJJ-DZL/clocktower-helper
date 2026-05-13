@@ -43,25 +43,23 @@ export function useHistoryController(): UseHistoryControllerResult {
   }, [state, dispatch]);
 
   const handleStepBack = useCallback(() => {
-    if (currentWakeIndex > 0) {
-      dispatch(
-        gameActions.updateState({
-          currentWakeIndex: currentWakeIndex - 1,
-          selectedActionTargets: [],
-          inspectionResult: null,
-        })
-      );
+    // 优先从历史快照恢复（每个 action 执行前都保存了完整快照）
+    if (history.length === 0) {
+      // 没有历史记录时，仅在队列内后退一步（不恢复状态）
+      if (currentWakeIndex > 0) {
+        dispatch(
+          gameActions.updateState({
+            currentWakeIndex: currentWakeIndex - 1,
+            selectedActionTargets: [],
+            inspectionResult: null,
+          })
+        );
+      }
       return;
     }
 
-    if (history.length === 0) return;
-
     const lastState = history[history.length - 1];
-    if (
-      lastState.gamePhase !== gamePhase ||
-      lastState.wakeQueueIds.length === 0
-    )
-      return;
+    if (lastState.wakeQueueIds.length === 0) return;
 
     dispatch(
       gameActions.updateState({
@@ -70,13 +68,15 @@ export function useHistoryController(): UseHistoryControllerResult {
         nightCount: lastState.nightCount,
         executedPlayerId: lastState.executedPlayerId,
         wakeQueueIds: lastState.wakeQueueIds,
-        currentWakeIndex: Math.max(0, lastState.wakeQueueIds.length - 1),
+        currentWakeIndex: lastState.currentWakeIndex,
         selectedActionTargets: lastState.selectedActionTargets,
         gameLogs: lastState.gameLogs,
+        currentHint: lastState.currentHint,
+        selectedScript: lastState.selectedScript,
         history: history.slice(0, -1),
       })
     );
-  }, [currentWakeIndex, gamePhase, history, dispatch]);
+  }, [currentWakeIndex, history, dispatch]);
 
   const handleGlobalUndo = useCallback(() => {
     if (gamePhase === "scriptSelection") return;

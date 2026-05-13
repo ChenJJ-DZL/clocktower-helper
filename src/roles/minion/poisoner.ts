@@ -21,9 +21,36 @@ export const poisoner: RoleDefinition = {
     "如果一名中毒的玩家在他中毒的期间里使用了“每局游戏限一次”的能力，他无法再次使用这项能力。",
   ],
 
-  // 投毒者首夜和后续夜晚都行动
+  // 首夜：爪牙先互认指认恶魔，再执行下毒行动
+  firstNight: {
+    order: 1,
+    target: {
+      count: {
+        min: 1,
+        max: 1,
+      },
+      canSelect: (_target: Seat, _self: Seat, _allSeats: Seat[], _selectedTargets: number[]) => true,
+    },
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context: any) => {
+      const seatNo = playerSeatId + 1;
+      let demonInfo = "";
+      if (context?.seats) {
+        const sorted = [...context.seats].sort((a: any, b: any) => a.id - b.id);
+        const demonNos = sorted.filter((s: any) => s.role?.type === "demon").map((s: any) => `${s.id + 1}号`);
+        const minionNos = sorted.filter((s: any) => s.role?.type === "minion" && s.id !== playerSeatId).map((s: any) => `${s.id + 1}号`);
+        demonInfo = `，告知恶魔及爪牙座位号：恶魔 ${demonNos.join("、")}，爪牙 ${minionNos.join("、")}`;
+      }
+      return {
+        wake: `唤醒${seatNo}号【投毒者】${demonInfo}。让他选择一名玩家进行下毒。`,
+        instruction: "请选择一名玩家进行下毒",
+        close: "",
+      };
+    },
+  },
+
+  // 投毒者后续夜晚行动
   night: {
-    order: (isFirstNight) => (isFirstNight ? 1 : 1),
+    order: 1,
 
     target: {
       count: {
@@ -42,13 +69,11 @@ export const poisoner: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
-      return {
-        wake: `唤醒${playerSeatId + 1}号玩家（投毒者）。`,
-        instruction: "请选择一名玩家进行下毒。",
-        close: "",
-      };
-    },
+    dialog: (playerSeatId: number) => ({
+      wake: `唤醒${playerSeatId + 1}号【投毒者】，让他选择一名玩家进行下毒。`,
+      instruction: "请选择一名玩家进行下毒",
+      close: "",
+    }),
 
     handler: (context) => {
       const {

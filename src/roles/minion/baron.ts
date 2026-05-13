@@ -14,7 +14,29 @@ export const baron: RoleDefinition = {
     "外来者的数量变化会发生在初始设置时，且不会因为男爵死亡而恢复成原本的数量。",
     "相克规则：瘟疫医生：如果说书人获得了男爵的能力，至多两名玩家会变成不在场的外来者。",
   ],
-  // 无夜晚行动（Setup阶段能力）
+  // 首夜：爪牙一同醒来指认恶魔
+  firstNight: {
+    order: 1,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context: any) => {
+      const seatNo = playerSeatId + 1;
+      let demonInfo = "无恶魔";
+      let minionInfo = "无其他爪牙";
+      if (context?.seats) {
+        const sorted = [...context.seats].sort((a: any, b: any) => a.id - b.id);
+        const demonNos = sorted.filter((s: any) => s.role?.type === "demon").map((s: any) => `${s.id + 1}号`);
+        const minionNos = sorted.filter((s: any) => s.role?.type === "minion" && s.id !== playerSeatId).map((s: any) => `${s.id + 1}号`);
+        if (demonNos.length) demonInfo = demonNos.join("、");
+        if (minionNos.length) minionInfo = minionNos.join("、");
+      }
+      return {
+        wake: `唤醒${seatNo}号【男爵】，告知恶魔及爪牙座位号：恶魔 ${demonInfo}，爪牙 ${minionInfo}。`,
+        instruction: "首夜无其他行动",
+        close: "",
+      };
+    },
+  },
+
   night: {
     order: 0,
     target: { count: { min: 0, max: 0 } },

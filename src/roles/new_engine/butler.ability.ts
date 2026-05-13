@@ -411,10 +411,12 @@ const postProcessResult = async (
     ? `[Butler]${tag} Master: ${masterLabel} (night ${record.nightCount})`
     : `[Butler]${tag} Drunk/poisoned — no master set (free vote tomorrow)`;
 
+  const selfSeatId = context.actionNode.seatId;
+
   // 说书人提示词
   const storytellerPrompt = record.masterSet
-    ? `管家，请睁眼。你选择了 ${record.masterId + 1} 号玩家作为明天的主人，他投票时你才能投票。`
-    : `管家，请睁眼。但由于你自身醉酒/中毒，今夜未选择主人，明天你可以自由投票。`;
+    ? `唤醒${selfSeatId + 1}号【管家】，让他选择一名玩家作为主人。（选择了${record.masterId + 1}号，明天他投票时你才能投票）`
+    : `唤醒${selfSeatId + 1}号【管家】，让他选择一名玩家作为主人。（由于醉酒/中毒，未选择主人，明天可以自由投票）`;
 
   // 中文游戏日志
   const abilityLog = record.masterSet

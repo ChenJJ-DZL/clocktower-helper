@@ -35,9 +35,11 @@ export const imp: RoleDefinition = {
       const shouldHideMinions =
         poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
 
+      const seatNo = playerSeatId + 1;
+
       if (shouldHideMinions) {
         return {
-          wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
+          wake: `唤醒${seatNo}号【小恶魔】，告知爪牙信息：因罂粟种植者在场，无法告知。`,
           instruction: "因罂粟种植者在场，无法告知爪牙信息",
           close: "",
         };
@@ -87,7 +89,7 @@ export const imp: RoleDefinition = {
           : "无不在场角色";
 
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
+        wake: `唤醒${seatNo}号【小恶魔】，告知爪牙身份：${minionText}；${absentText}。`,
         instruction: `${minionText}；${absentText}`,
         close: "",
       };
@@ -144,7 +146,7 @@ export const imp: RoleDefinition = {
 
     dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（小恶魔）。`,
+        wake: `唤醒${playerSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。`,
         instruction: "选择一名玩家杀害",
         close: "",
       };

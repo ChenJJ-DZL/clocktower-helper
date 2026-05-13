@@ -16,7 +16,30 @@ export const scarlet_woman: RoleDefinition = {
     "特定角色互动：痢蛭：当宿主死亡时，如果在宿主死亡之前，场上除旅行者外存活玩家人数为5人，红唇女郎不会因此变成痢蛭。因为在痢蛭死亡时，场上的存活玩家的人数已经不足5人。（宿主与痢蛭的死亡并非同时进行的）",
   ],
 
-  // 非首夜可能被唤醒（如果变成恶魔）
+  // 首夜：爪牙一同醒来指认恶魔（得知恶魔和爪牙的座位号，不暴露具体角色）
+  firstNight: {
+    order: 1,
+    target: {
+      count: { min: 0, max: 0 },
+    },
+    dialog: (playerSeatId, _isFirstNight, context) => {
+      const seatNo = playerSeatId + 1;
+      const { seats } = context || {};
+      const sorted = [...(seats || [])].sort((a: any, b: any) => a.id - b.id);
+      const demonSeats = sorted.filter((s: any) => s.role?.type === "demon");
+      const minionSeats = sorted.filter(
+        (s: any) => s.role?.type === "minion" && s.id !== playerSeatId
+      );
+      const demonText = demonSeats.length > 0 ? `${demonSeats.map((s: any) => `${s.id + 1}号`).join("、")}` : "无";
+      const minionText = minionSeats.length > 0 ? `${minionSeats.map((s: any) => `${s.id + 1}号`).join("、")}` : "无";
+      return {
+        wake: `唤醒${seatNo}号【红唇女郎】，告知恶魔及爪牙座位号：恶魔 ${demonText}，爪牙 ${minionText}。`,
+        instruction: "",
+        close: "",
+      };
+    },
+  },
+
   night: {
     order: (isFirstNight) => (isFirstNight ? 0 : 18),
 
@@ -27,20 +50,11 @@ export const scarlet_woman: RoleDefinition = {
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
-      if (isFirstNight) {
-        return {
-          wake: "",
-          instruction: "",
-          close: "",
-        };
-      }
-      return {
-        wake: `唤醒${playerSeatId + 1}号玩家（红唇女郎）。`,
-        instruction: "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
-        close: "",
-      };
-    },
+    dialog: (playerSeatId: number) => ({
+      wake: `唤醒${playerSeatId + 1}号【红唇女郎】。`,
+      instruction: "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
+      close: "",
+    }),
 
     handler: (context) => {
       // 红唇女郎变成恶魔的逻辑在其他地方处理

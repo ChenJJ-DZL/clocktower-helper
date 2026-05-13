@@ -117,6 +117,7 @@ export type ModalType =
   | { type: "SHAMAN_CONVERT"; data: null }
   | { type: "SPY_DISGUISE"; data: null }
   | { type: "SPY_GRIMOIRE"; data: null }
+  | { type: "SPY_RECORDS"; data: null }
   | {
       type: "BARBER_SWAP";
       data: {

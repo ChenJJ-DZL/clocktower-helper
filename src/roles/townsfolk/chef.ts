@@ -21,7 +21,19 @@ export const chef: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats } = context;
+      const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
+      const selfSeat = seats.find((s) => s.id === playerSeatId);
+      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+      const seatNo = playerSeatId + 1;
+
+      if (isDisabled) {
+        return {
+          wake: `唤醒${seatNo}号【厨师】，告诉他相邻邪恶玩家有 ${Math.floor(Math.random() * 5)} 对。`,
+          instruction: "受干扰状态，信息可能不准确",
+          close: "",
+        };
+      }
+
       // 计算相邻邪恶玩家对数
       let evilPairs = 0;
       for (let i = 0; i < seats.length; i++) {
@@ -35,7 +47,7 @@ export const chef: RoleDefinition = {
         if (currentIsEvil && nextIsEvil) evilPairs++;
       }
       return {
-        wake: `厨师，请睁眼。相邻邪恶玩家有 ${evilPairs} 对`,
+        wake: `唤醒${seatNo}号【厨师】，告诉他相邻邪恶玩家有 ${evilPairs} 对。`,
         instruction:
           evilPairs === 0 ? "（点头表示0）" : `（出示 ${evilPairs} 根手指）`,
         close: "",

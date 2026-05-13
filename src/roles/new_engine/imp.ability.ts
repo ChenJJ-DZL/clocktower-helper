@@ -457,29 +457,31 @@ const postProcessResult = async (
   let storytellerPrompt: string;
   let abilityLog: string;
 
+  const selfSeatId = context.actionNode.seatId;
+
   if (record.isSuicide && record.killed) {
     simLog =
       `[Imp]${tag} Committed suicide — demon passed to a living minion`;
     storytellerPrompt =
-      `小恶魔，请睁眼。你选择了自杀（${record.targetId + 1}号），已有一名存活爪牙继任恶魔。`;
+      `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了自杀（${record.targetId + 1}号），已有一名存活爪牙继任恶魔）`;
     abilityLog = `小恶魔${tag}自杀了，恶魔血脉已传递给一名存活爪牙`;
   } else if (record.killed && isDeadTarget) {
     simLog =
       `[Imp]${tag} Selected dead player ${targetLabel} — no kill tonight (faking Soldier/Monk)`;
     storytellerPrompt =
-      `小恶魔，请睁眼。你选择了 ${record.targetId + 1} 号（已死亡），今晚无人死亡。`;
+      `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了已死亡的${record.targetId + 1}号，今晚无人死亡）`;
     abilityLog =
       `小恶魔${tag}选择了已死亡的【${targetLabel}】，今晚无人死亡`;
   } else if (record.killed) {
     simLog = `[Imp]${tag} Killed: ${targetLabel}`;
     storytellerPrompt =
-      `小恶魔，请睁眼。你选择了 ${record.targetId + 1} 号玩家，他将在今晚死亡。`;
+      `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了${record.targetId + 1}号，他将在今晚死亡）`;
     abilityLog = `小恶魔${tag}杀死了【${targetLabel}】`;
   } else {
     simLog =
       `[Imp]${tag} Drunk/poisoned — no kill (target: ${targetLabel})`;
     storytellerPrompt =
-      `小恶魔，请睁眼。但由于醉酒/中毒，杀戮未执行。`;
+      `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（由于醉酒/中毒，杀戮未执行）`;
     abilityLog =
       `小恶魔${tag}试图杀死【${targetLabel}】，但自身醉酒/中毒未生效`;
   }

@@ -27,7 +27,7 @@ export const monk: RoleDefinition = {
     },
     dialog: (playerSeatId: number) => {
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（僧侣）。`,
+        wake: `唤醒${playerSeatId + 1}号【僧侣】，让他选择一名其他存活玩家进行保护。`,
         instruction: "请选择一名其他存活玩家进行保护（当晚恶魔无法杀死他）。",
         close: "",
       };

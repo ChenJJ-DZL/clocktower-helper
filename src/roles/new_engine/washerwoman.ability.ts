@@ -453,9 +453,9 @@ const postProcessResult = async (
   const simLog = `[Washerwoman]${tag} ${label1} & ${label2} → ${result.roleName}`;
 
   // 说书人提示词（使用 +1 显示给玩家看的座位号）
+  const selfSeatId = context.actionNode.seatId;
   const storytellerPrompt =
-    `洗衣妇，请睁眼。请查看 ${result.seat1 + 1} 号` +
-    `和 ${result.seat2 + 1} 号玩家，其中有一名是【${result.roleName}】`;
+    `唤醒${selfSeatId + 1}号【洗衣妇】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
 
   // 中文日志（供游戏日志系统使用）
   const abilityLog = `洗衣妇${tag}获得信息：${label1}和${label2}之中有一名是【${result.roleName}】`;

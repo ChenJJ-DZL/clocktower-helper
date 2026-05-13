@@ -41,6 +41,7 @@ export interface NightActionHandlerContext {
   addLog: (message: string) => void;
   continueToNextAction: (latestSeats?: Seat[]) => void;
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
+  preview?: boolean; // 预览模式：执行行动但不推进队列
   markAbilityUsed: (roleId: string, seatId: number) => void;
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
   reviveSeat: (seat: Seat) => Seat;
@@ -153,10 +154,11 @@ export function useNightActionHandler() {
         // 处理弹窗触发
         if (result.modal) {
           context.setCurrentModal(result.modal);
-        } else {
-          // 如果没有弹窗，自动进入下一个行动，传入最新座位以避免异步状态陈旧
+        } else if (!context.preview) {
+          // 如果没有弹窗且非预览模式，自动进入下一个行动
           context.continueToNextAction(updatedSeats ?? undefined);
         }
+        // 预览模式下不推进队列，由调用方决定何时推进
 
         return true;
       } catch (error) {

@@ -41,6 +41,8 @@ export const washerwoman: RoleDefinition = {
         typeof isActorDisabledByPoisonOrDrunk === "function" &&
         isActorDisabledByPoisonOrDrunk(targetSeat);
 
+      const seatNo = playerSeatId + 1;
+
       if (isDisabled) {
         // 中毒/醉酒：随机选两个其他有角色的座位，角色从剧本镇民中随机（可不在场）
         const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
@@ -60,8 +62,8 @@ export const washerwoman: RoleDefinition = {
         const fakeRoleName = fakeRole?.name || "未知镇民";
 
         return {
-          wake: `🧺 洗衣妇，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
-          instruction: `【${seat1No}号】和【${seat2No}号】玩家中其中一位是【${fakeRoleName}】`,
+          wake: `唤醒${seatNo}号【洗衣妇】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,
+          instruction: `受干扰状态，信息可能不准确`,
           close: "",
         };
       }
@@ -80,8 +82,8 @@ export const washerwoman: RoleDefinition = {
         const seat2No = seat2 ? seat2.id + 1 : "?";
 
         return {
-          wake: `🧺 洗衣妇，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
-          instruction: `【${seat1No}号】和【${seat2No}号】玩家中其中一位是【未知镇民】`,
+          wake: `唤醒${seatNo}号【洗衣妇】，告诉他${seat1No}号和${seat2No}号其中一位是【未知镇民】。`,
+          instruction: `（场上无镇民时的兜底处理）`,
           close: "",
         };
       }
@@ -108,8 +110,8 @@ export const washerwoman: RoleDefinition = {
       const roleName = targetTownsfolk.role?.name || "未知镇民";
 
       return {
-        wake: `🧺 洗衣妇，请睁眼。请看 ${seat1No} 号和 ${seat2No} 号玩家`,
-        instruction: `【${seat1No}号】和【${seat2No}号】玩家中其中一位是【${roleName}】`,
+        wake: `唤醒${seatNo}号【洗衣妇】，告诉他${seat1No}号和${seat2No}号其中一位是【${roleName}】。`,
+        instruction: "",
         close: "",
       };
     },
