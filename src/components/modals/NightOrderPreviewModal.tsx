@@ -8,7 +8,6 @@ export function NightOrderPreviewModal({
   nightOrderModal: any;
 }) {
   const props = useGameActions();
-  if (!nightOrderModal) return null;
 
   // 如果 autoConfirm 为 true，自动确认入夜（不再需要说书人手动点击）
   useEffect(() => {
@@ -19,6 +18,8 @@ export function NightOrderPreviewModal({
       return () => clearTimeout(timer);
     }
   }, [nightOrderModal?.autoConfirm, props.confirmNightOrderPreview]);
+
+  if (!nightOrderModal) return null;
 
   return (
     <ModalWrapper
