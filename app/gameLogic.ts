@@ -178,11 +178,12 @@ export function processGameEvent(
         const protector = nextSeats.find((s) => s.id === target.protectedBy);
         if (protector) {
           const pid = protector.role?.id;
-          if (pid === "monk" && source === "demon") {
+          // 保护者自己中毒/醉酒时，保护不生效
+          if (pid === "monk" && source === "demon" && !isActorDisabledByPoisonOrDrunk(protector)) {
             logs.push(`🛡️ ${target.id + 1}号 被僧侣保护`);
             break;
           }
-          if (pid === "innkeeper" && source !== "execution") {
+          if (pid === "innkeeper" && source !== "execution" && !isActorDisabledByPoisonOrDrunk(protector)) {
             logs.push(`🛡️ ${target.id + 1}号 被旅店老板保护`);
             break;
           }
