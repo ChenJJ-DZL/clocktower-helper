@@ -1,48 +1,6 @@
-/**
- * 矿工（Miner）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  commonPreCheckAlive,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-// 矿工是镇民角色
-// 首夜，你会得知3个不在场角色。如果有任何爪牙在你旁边，你会得知其中一个。
-
-export const minerAbility = createRoleAbility({
-  roleId: "miner",
-  abilityId: "miner_special_ability",
-  abilityName: "地质勘探",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
-  wakePriority: 0,
-  firstNightOnly: true,
-  wakePromptId: "role.miner.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [commonPreCheckAlive],
-  calculate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 矿工的能力逻辑：获取3个不在场角色和邻座爪牙信息
-      return context;
-    },
-  ],
-  stateUpdate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 矿工的状态更新逻辑
-      return context;
-    },
-  ],
-  postProcess: [
-    async (context) => {
-      console.log("矿工能力被调用");
-      return context;
-    },
-  ],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const t=ctx.targetIds?.[0]??null;return{...ctx,meta:{...ctx.meta,abilityResult:{targetId:t}}};};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,meta:{...ctx.meta,minerResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{console.log("[Miner] 矿工");return{...ctx,meta:{...ctx.meta,abilityLog:"矿工行动"}};};
+export const minerAbility=createRoleAbility({roleId:"miner",abilityId:"miner_night",abilityName:"矿工",triggerTiming:[AbilityTriggerTiming.EVERY_NIGHT],wakePriority:50,firstNightOnly:false,wakePromptId:"role.miner.wake",targetConfig:{min:1,max:1,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
