@@ -11,7 +11,7 @@ import { DamselGuessModal } from "../modals/DamselGuessModal";
 import { DayAbilityModal } from "../modals/DayAbilityModal";
 import { DayActionModal } from "../modals/DayActionModal";
 import { DreamerResultModal } from "../modals/DreamerResultModal";
-import { FortuneTellerResultModal } from "../modals/FortuneTellerResultModal";
+import { InfoResultModal } from "../modals/InfoResultModal";
 import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 import { ExecutionResultModal } from "../modals/ExecutionResultModal";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
@@ -155,6 +155,8 @@ export function GameModals() {
     currentModal?.type === "DREAMER_RESULT" ? currentModal.data : null;
   const fortuneTellerResultModal =
     currentModal?.type === "FORTUNE_TELLER_RESULT" ? currentModal.data : null;
+  const infoResultModal =
+    currentModal?.type === "INFO_RESULT" ? currentModal.data : null;
   const artistResultModal =
     currentModal?.type === "ARTIST_RESULT" ? currentModal.data : null;
   const savantResultModal =
@@ -675,16 +677,30 @@ export function GameModals() {
       )}
 
       {fortuneTellerResultModal && (
-        <FortuneTellerResultModal
-          result={fortuneTellerResultModal.result}
-          targetLabels={fortuneTellerResultModal.targetLabels}
+        <InfoResultModal
+          roleName="占卜师"
+          resultText={fortuneTellerResultModal.result ? "有" : "没有"}
           onConfirm={() => {
             actions.setCurrentModal(null);
             actions.continueToNextAction();
           }}
           onModify={() => {
             actions.setCurrentModal(null);
-            // 清除当前角色的目标选择，使其可以重新选择
+            actions.setSelectedActionTargets([]);
+          }}
+        />
+      )}
+
+      {infoResultModal && (
+        <InfoResultModal
+          roleName={infoResultModal.roleName}
+          resultText={infoResultModal.resultText}
+          onConfirm={() => {
+            actions.setCurrentModal(null);
+            actions.continueToNextAction();
+          }}
+          onModify={() => {
+            actions.setCurrentModal(null);
             actions.setSelectedActionTargets([]);
           }}
         />

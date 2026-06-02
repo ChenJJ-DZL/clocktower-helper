@@ -398,39 +398,42 @@ export const GameStage = () => {
   const _currentWakeRole = getDisplayRole(currentWakeSeat);
   const _nextWakeRole = getDisplayRole(nextWakeSeat);
 
-  // 占卜师结果弹窗触发器：选中2名目标后自动弹出结果
+  // 通用信息结果弹窗：获取信息的角色在行动完成后弹出结果
+  const infoRoleIds = new Set([
+    "chef","empath","fortune_teller","washerwoman","librarian","investigator",
+    "clockmaker","knight","noble","balloonist","town_crier","flowergirl",
+    "oracle","mathematician","undertaker","seamstress","dreamer","chambermaid",
+    "grandmother","gambler","sage","savant","artist","slayer","ravenkeeper",
+    "bounty_hunter","astrologer","general","fighter","engineer","courtier",
+    "professor","farmer","banshee","juggler","high_priestess","snake_charmer",
+  ]);
   useEffect(() => {
-    const isFortuneTellerNight =
-      (gamePhase === "firstNight" || gamePhase === "night") &&
-      currentWakeSeat?.role?.id === "fortune_teller";
-    if (
-      isFortuneTellerNight &&
-      selectedActionTargets &&
-      selectedActionTargets.length >= 2 &&
-      !currentModal
-    ) {
-      // 生成占卜结果（从snapshot中读取或直接计算）
-      const targetIds = selectedActionTargets.slice(0, 2);
-      const targetLabels = targetIds.map((id: number) => String(id + 1));
-      const demon = seats.find(
-        (s: any) => !s.isDead && s.role?.type === "demon"
-      );
-      const result = demon
-        ? targetIds.some((id: number) => id === demon.id)
-        : false;
+    if (!currentWakeSeat || currentModal || !(gamePhase === "firstNight" || gamePhase === "night")) return;
+    const roleId = currentWakeSeat.role?.id;
+    if (!roleId || !infoRoleIds.has(roleId)) return;
 
-      setCurrentModal({
-        type: "FORTUNE_TELLER_RESULT",
-        data: { result, targetLabels },
-      });
-    }
+    // 判断是否需要目标选择（0目标=自动触发，>0目标=等选完触发）
+    const meta = roleId === "fortune_teller" ? null : null; // placeholder
+    const nightActionMeta = seats.length > 0 ? null : null;
+    // 对于需要选目标的角色，等选完再弹窗
+    const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
+      "grandmother","chambermaid","snake_charmer","artist","slayer"];
+    if (needsTargets.includes(roleId) && (!selectedActionTargets || selectedActionTargets.length < 1)) return;
+
+    // 对于0目标角色（自动获取信息），仅当首次轮到该角色时弹窗
+    if (!needsTargets.includes(roleId) && nightInfo?.seat?.id !== currentWakeSeat.id) return;
+
+    // 构造结果文本
+    const roleName = currentWakeSeat.role?.name || roleId;
+    const resultText = nightInfo?.guide?.replace(/[。！？]/g, "。") || `${roleName}已完成行动`;
+
+    setCurrentModal({
+      type: "INFO_RESULT",
+      data: { roleName, resultText },
+    });
   }, [
-    selectedActionTargets,
-    gamePhase,
-    currentWakeSeat,
-    currentModal,
-    seats,
-    setCurrentModal,
+    selectedActionTargets, gamePhase, currentWakeSeat, currentModal,
+    seats, setCurrentModal, nightInfo,
   ]);
 
   // Handle Dusk Phase UI
