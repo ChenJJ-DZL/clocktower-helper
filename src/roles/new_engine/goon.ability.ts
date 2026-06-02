@@ -1,54 +1,51 @@
 /**
- * 莽夫（Goon）新引擎技能实现
+ * 暴徒（Goon）新引擎技能实现
+ *
+ * 【角色能力】"当你第一次在私下被邪恶玩家选择时，你变成邪恶。"
+ *
+ * PASSIVE 触发：被邪恶玩家私下选择时转换阵营。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat) return ctx;
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const selectedByEvil = ctx.meta.selectedByEvil === true;
   return {
-    ...context,
-    meta: {
-      ...context.meta,
-      isAlive: true,
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: {
+        alignmentChanged: selectedByEvil,
+        newAlignment: selectedByEvil ? "evil" : "good",
+        goonConverted: selectedByEvil,
+      },
     },
   };
 };
 
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.alignmentChanged) return ctx;
+  return {
+    ...ctx,
+    snapshot: { ...ctx.snapshot, _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), goon: r } },
+    meta: { ...ctx.meta, goonResult: r },
+  };
+};
+
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (r?.alignmentChanged) console.log("[Goon] 暴徒被邪恶玩家选中，转换为邪恶阵营");
+  return ctx;
+};
+
 export const goonAbility = createRoleAbility({
-  roleId: "goon",
-  abilityId: "goon_passive_alignment",
-  abilityName: "阵营转换",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 0,
-  firstNightOnly: false,
-  wakePromptId: "",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [],
-  stateUpdate: [],
-  postProcess: [
-    async (context) => {
-      console.log("莽夫能力：等待第一个私下交流的邪恶玩家");
-      return context;
-    },
-  ],
+  roleId: "goon", abilityId: "goon_alignment_change", abilityName: "阵营转换",
+  triggerTiming: [AbilityTriggerTiming.PASSIVE], wakePriority: 0, firstNightOnly: false,
+  wakePromptId: "", targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });
