@@ -207,7 +207,7 @@ export function useNightActionHandler() {
         return executeViaNewEngine(context, roleId);
       }
 
-      // ====== 旧引擎回退（仅限无双引擎角色） ======
+      // ====== UI配置层回退（仅限无新引擎能力的角色） ======
       if (!roleDef) {
         console.warn(`[useNightActionHandler] 未找到角色定义: ${roleId}`);
         return false;

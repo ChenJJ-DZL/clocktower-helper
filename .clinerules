@@ -1,4 +1,4 @@
-# Cline 项目治理与成本优化协议 (Board Game Engine Refactor)
+# Cline 项目治理与成本优化协议 (新引擎 + UI配置层双层架构)
 
 ## 1. 自动化授权 (Autonomous Authority)
 - **免点 SAVE**: 你已获得完全授权，可以直接写入文件、创建新文件及执行终端命令。无需等待我的手动确认或点击 "SAVE"。
