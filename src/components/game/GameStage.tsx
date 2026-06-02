@@ -417,7 +417,7 @@ export const GameStage = () => {
     const nightActionMeta = seats.length > 0 ? null : null;
     // 对于需要选目标的角色，等选完再弹窗
     const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
-      "grandmother","chambermaid","snake_charmer","artist","slayer"];
+      "grandmother","chambermaid","snake_charmer","artist","slayer","ravenkeeper","butler"];
     if (needsTargets.includes(roleId) && (!selectedActionTargets || selectedActionTargets.length < 1)) return;
 
     // 对于0目标角色（自动获取信息），仅当首次轮到该角色时弹窗
