@@ -20,7 +20,7 @@ describe("New Engine Ability Bridge", () => {
     const abilityMap = getRawAbilityMap();
     const keys = Object.keys(abilityMap);
     expect(keys.length).toBeGreaterThan(0);
-    expect(keys.length).toBe(98); // 当前注册数
+    expect(keys.length).toBe(198); // 98 + 8 (Phase 1) // 当前注册数
   });
 
   test("key roles have abilities registered", () => {
