@@ -1,7 +1,8 @@
 import { useCallback, useRef } from "react";
 import type { GamePhase, Seat } from "@/app/data";
-import { type GameAction, processGameEvent } from "@/app/gameLogic";
+import { processGameEvent } from "@/app/gameLogic";
 import { computeIsPoisoned } from "../utils/gameRules";
+import type { GameAction } from "@/app/gameLogic";
 
 export function useLogicDispatcher(
   seats: Seat[],
@@ -106,7 +107,8 @@ export function useLogicDispatcher(
       );
       const isMastermindActive = !!mastermind;
 
-      logicDispatch({
+      // 使用传入的 updatedSeats 而不是闭包中的 stale seats
+      const action: GameAction = {
         type: "CHECK_GAME_OVER",
         executedId: executedPlayerId || undefined,
         lastAction: executedPlayerId ? "execution" : "check_phase",
@@ -116,9 +118,29 @@ export function useLogicDispatcher(
           isVortoxWorld,
           isMastermindActive,
         },
-      });
+      };
+      const snapshot = processGameEvent(updatedSeats, gamePhase, action);
+
+      if (snapshot.logs.length > 0) {
+        for (const msg of snapshot.logs) {
+          addLog(msg);
+        }
+      }
+
+      setSeats(snapshot.seats);
+
+      if (snapshot.winner) {
+        const w = snapshot.winner === "Good" ? "good" : "evil";
+        const reason = snapshot.winReason || "未知原因";
+        victoryRef.current = { winner: w, reason };
+        setWinResult(w);
+        setWinReason(reason);
+        setGamePhase("gameOver");
+        setVictorySnapshot(snapshot.seats.filter((s) => s.role));
+        setCurrentModal({ type: "GAME_OVER", data: null });
+      }
     },
-    [logicDispatch, isVortoxWorld]
+    [gamePhase, addLog, setSeats, setWinResult, setWinReason, setGamePhase, setVictorySnapshot, setCurrentModal, isVortoxWorld]
   );
 
   const declareMayorImmediateWin = useCallback(() => {
