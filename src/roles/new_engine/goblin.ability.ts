@@ -1,48 +1,10 @@
 /**
- * goblin（goblin）新引擎技能实现
+ * 哥布林（Goblin）新引擎技能实现
+ * 【角色能力】"如果你被处决，邪恶阵营获胜。"
  */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "goblin" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "goblin已完成行动" } };
-};
-
-export const goblinAbility = createRoleAbility({
-  roleId: "goblin",
-  abilityId: "goblin_ability",
-  abilityName: "goblin能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.goblin.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,meta:{...ctx.meta,abilityResult:{evilWinsIfExecuted:true}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,snapshot:{...ctx.snapshot,goblinExecutedWin:true},meta:{...ctx.meta,goblinResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{console.log("[Goblin] 若被处决邪恶获胜");return ctx;};
+export const goblinAbility=createRoleAbility({roleId:"goblin",abilityId:"goblin_execution",abilityName:"哥布林处决",triggerTiming:[AbilityTriggerTiming.PASSIVE],wakePriority:0,firstNightOnly:false,wakePromptId:"",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
