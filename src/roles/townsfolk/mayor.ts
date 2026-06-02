@@ -27,13 +27,5 @@ export const mayor: RoleDefinition = {
       instruction: "",
       close: "",
     }),
-    handler: (_context) => {
-      return {
-        updates: [],
-        logs: {
-          privateLog: "市长(被动能力)",
-        },
-      };
-    },
   },
 };

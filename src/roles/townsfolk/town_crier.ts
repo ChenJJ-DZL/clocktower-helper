@@ -100,20 +100,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:128-0!canonical and tim
       };
     },
 
-    handler: (context) => {
-      const { minionNominatedToday, shouldShowFake } = context;
-
-      const hasNominated = shouldShowFake
-        ? !minionNominatedToday
-        : !!minionNominatedToday;
-
-      return {
-        updates: [],
-        logs: {
-          privateLog: `城镇公告员得知：今天白天爪牙${hasNominated ? "有" : "没有"}发起过提名。`,
-          secretInfo: `爪牙提名：${hasNominated ? "是" : "否"}`,
-        },
-      };
-    },
   },
 };

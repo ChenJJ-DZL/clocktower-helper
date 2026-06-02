@@ -35,7 +35,6 @@ export const shabaloth: RoleDefinition = {
       return buildDemonFirstNightDialog(playerSeatId, "沙巴洛斯", context);
     },
 
-    handler: undefined,
   },
 
   night: {
@@ -57,44 +56,5 @@ export const shabaloth: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length !== 2) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `沙巴洛斯（${selfId + 1}号）需要选择2名玩家，实际选择了${targets.length}名`,
-          },
-        };
-      }
-
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      // 使新目标死亡
-      for (const targetId of targets) {
-        const targetSeat = seats.find((s) => s.id === targetId);
-        const isTargetProtected =
-          targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
-          targetSeat?.isProtected;
-
-        // 如果目标被僧侣保护，攻击无效
-        if (isTargetProtected) {
-          continue;
-        }
-
-        updates.push({
-          id: targetId,
-          isDead: true,
-        });
-      }
-
-      return {
-        updates,
-        logs: {
-          privateLog: `沙巴洛斯（${selfId + 1}号）攻击了 ${targets.map((t: any) => t + 1).join("、")}号玩家`,
-        },
-      };
-    },
   },
 };

@@ -93,9 +93,5 @@ export const saint: RoleDefinition = {
     order: 0,
     target: { count: { min: 0, max: 0 } },
     dialog: (_playerSeatId) => ({ wake: "", instruction: "", close: "" }),
-    handler: (_context) => ({
-      updates: [],
-      logs: { privateLog: "圣徒(被动能力)" },
-    }),
   },
 };

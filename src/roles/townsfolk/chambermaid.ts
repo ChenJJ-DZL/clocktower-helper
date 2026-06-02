@@ -83,11 +83,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:13-0!canonical and time
       instruction: "选择两名除你以外的存活玩家。",
       close: "",
     }),
-    handler: (context) => ({
-      updates: [],
-      logs: {
-        privateLog: `侍女（${context.selfId + 1}号）查验了${context.targets.map((t) => t + 1).join("、")}号玩家`,
-      },
-    }),
   },
 };

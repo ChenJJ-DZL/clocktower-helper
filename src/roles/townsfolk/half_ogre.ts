@@ -88,9 +88,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:43-0!canonical and time
       instruction: "",
       close: "",
     }),
-    handler: () => ({
-      updates: [],
-      logs: {},
-    }),
   },
 };

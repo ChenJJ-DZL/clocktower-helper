@@ -36,50 +36,5 @@ export const devils_advocate: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `魔鬼代言人（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      // 检查目标是否存活
-      if (targetSeat?.isDead) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `魔鬼代言人（${selfId + 1}号）选择了已死亡的 ${targetId + 1}号玩家，目标必须存活`,
-          },
-        };
-      }
-
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      // 为目标添加处决不死状态
-      updates.push({
-        id: targetId,
-        statuses: [
-          {
-            effect: "ExecutionImmune",
-            sourceId: selfId,
-          },
-        ],
-      });
-
-      return {
-        updates,
-        logs: {
-          privateLog: `魔鬼代言人（${selfId + 1}号）保护了 ${targetId + 1}号玩家，明天处决不会死亡`,
-        },
-      };
-    },
   },
 };

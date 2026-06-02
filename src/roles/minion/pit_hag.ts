@@ -30,7 +30,6 @@ export const pit_hag: RoleDefinition = {
       return buildDemonFirstNightDialog(playerSeatId, "坑道巫婆", context);
     },
 
-    handler: undefined,
   },
 
   night: {
@@ -51,41 +50,5 @@ export const pit_hag: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `坑道巫婆（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      // 简化的坑道巫婆逻辑：为目标添加转换标记
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      updates.push({
-        id: targetId,
-        statuses: [
-          ...(targetSeat?.statuses || []),
-          {
-            effect: "Transformed",
-            sourceId: selfId,
-          },
-        ],
-      });
-
-      return {
-        updates,
-        logs: {
-          privateLog: `坑道巫婆（${selfId + 1}号）转换了 ${targetId + 1}号玩家`,
-        },
-      };
-    },
   },
 };

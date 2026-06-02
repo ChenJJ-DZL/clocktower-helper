@@ -128,56 +128,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:590-0!canonical and tim
       };
     },
 
-    handler: (context) => {
-      const { seats, targets, selfId } = context;
-
-      if (targets.length !== 1) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `食人魔（${selfId + 1}号）未选择有效目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      if (!targetSeat) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `食人魔（${selfId + 1}号）选择了无效目标`,
-          },
-        };
-      }
-
-      // 食人魔转变为目标玩家的阵营
-      // 如果目标是邪恶玩家，食人魔转为邪恶；否则保持善良
-      const targetIsEvil =
-        targetSeat.role?.type === "demon" || targetSeat.role?.type === "minion";
-
-      const selfSeat = seats.find((s) => s.id === selfId);
-      const currentStatusDetails = (selfSeat?.statusDetails || []).filter(
-        (detail: string) => !detail.includes("挚友")
-      );
-
-      const updates: Array<Partial<Seat> & { id: number }> = [
-        {
-          id: selfId,
-          statusDetails: [...currentStatusDetails, `挚友:${targetId + 1}`],
-          // 如果转为邪恶，需要翻转阵营
-          // 注意：阵营翻转在游戏逻辑中通过角色标记翻转来处理
-          isEvilConverted: targetIsEvil ? true : undefined,
-        },
-      ];
-
-      return {
-        updates,
-        logs: {
-          privateLog: `食人魔（${selfId + 1}号）选择了${targetId + 1}号玩家作为挚友，转变为${targetIsEvil ? "邪恶" : "善良"}阵营（不告知食人魔）`,
-        },
-      };
-    },
   },
 };

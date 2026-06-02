@@ -42,7 +42,6 @@ export const pukka: RoleDefinition = {
       return buildDemonFirstNightDialog(playerSeatId, "普卡", context);
     },
 
-    handler: undefined,
   },
 
   night: {
@@ -73,36 +72,5 @@ export const pukka: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `普卡（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      // 普卡的简化逻辑：使目标中毒
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      // 使新目标中毒
-      updates.push({
-        id: targetId,
-        isPoisoned: true,
-      });
-
-      return {
-        updates,
-        logs: {
-          privateLog: `普卡（${selfId + 1}号）使 ${targetId + 1}号玩家中毒`,
-        },
-      };
-    },
   },
 };

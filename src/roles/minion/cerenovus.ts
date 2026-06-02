@@ -30,7 +30,6 @@ export const cerenovus: RoleDefinition = {
       return buildDemonFirstNightDialog(playerSeatId, "塞壬", context);
     },
 
-    handler: undefined,
   },
 
   night: {
@@ -52,40 +51,5 @@ export const cerenovus: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `塞壬（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      // 简化的塞壬逻辑：为目标添加疯狂状态
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      updates.push({
-        id: targetId,
-        statuses: [
-          ...(targetSeat?.statuses || []),
-          {
-            effect: "Madness",
-          },
-        ],
-      });
-
-      return {
-        updates,
-        logs: {
-          privateLog: `塞壬（${selfId + 1}号）使 ${targetId + 1}号玩家陷入疯狂`,
-        },
-      };
-    },
   },
 };

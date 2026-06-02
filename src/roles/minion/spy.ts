@@ -43,13 +43,6 @@ export const spy: RoleDefinition = {
         close: "",
       };
     },
-    handler: (context) => {
-      return {
-        updates: [],
-        modal: { type: "SPY_RECORDS", data: null },
-        logs: { privateLog: `间谍（${context.selfId + 1}号）已查看对局记录` },
-      };
-    },
   },
 
   // 后续夜晚：直接查看魔典
@@ -63,12 +56,5 @@ export const spy: RoleDefinition = {
       instruction: "查看魔典",
       close: "",
     }),
-    handler: (context) => {
-      return {
-        updates: [],
-        modal: { type: "SPY_RECORDS", data: null },
-        logs: { privateLog: `间谍（${context.selfId + 1}号）已查看对局记录` },
-      };
-    },
   },
 };

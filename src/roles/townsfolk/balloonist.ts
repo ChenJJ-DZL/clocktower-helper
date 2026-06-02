@@ -97,18 +97,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:36-0!canonical and time
       };
     },
 
-    handler: (context) => {
-      const { selfId, seats } = context;
-
-      // 气球驾驶员的能力由说书人处理，这里只记录日志
-      // 实际游戏中，说书人会选择一名与上次角色类型不同的玩家
-
-      return {
-        updates: [],
-        logs: {
-          privateLog: `气球驾驶员（${selfId + 1}号）得知了一名与上次角色类型不同的玩家`,
-        },
-      };
-    },
   },
 };

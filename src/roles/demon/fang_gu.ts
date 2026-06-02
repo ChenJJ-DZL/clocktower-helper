@@ -35,7 +35,6 @@ export const fang_gu: RoleDefinition = {
       return buildDemonFirstNightDialog(playerSeatId, "方古", context);
     },
 
-    handler: undefined,
   },
 
   night: {
@@ -57,74 +56,5 @@ export const fang_gu: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `方古（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-      const isTargetProtected =
-        targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
-        targetSeat?.isProtected;
-
-      // 如果目标被僧侣保护，攻击无效
-      if (isTargetProtected) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `方古（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，但目标被僧侣保护，攻击无效`,
-          },
-        };
-      }
-
-      // 检查目标是否是外来者
-      const isTargetOutsider = targetSeat?.role?.type === "outsider";
-
-      // 方古的攻击逻辑
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      if (isTargetOutsider) {
-        // 首次成功转化：外来者变成方古，原方古死亡
-        updates.push(
-          {
-            id: targetId,
-            role: { id: "fang_gu", name: "方古", type: "demon" },
-            isDead: false,
-          },
-          {
-            id: selfId,
-            isDead: true,
-          }
-        );
-
-        return {
-          updates,
-          logs: {
-            privateLog: `方古（${selfId + 1}号）攻击了 ${targetId + 1}号外来者，成功转化，原方古死亡`,
-          },
-        };
-      } else {
-        // 普通攻击或转化已使用
-        updates.push({
-          id: targetId,
-          isDead: true,
-        });
-
-        return {
-          updates,
-          logs: {
-            privateLog: `方古（${selfId + 1}号）攻击了 ${targetId + 1}号玩家`,
-          },
-        };
-      }
-    },
   },
 };

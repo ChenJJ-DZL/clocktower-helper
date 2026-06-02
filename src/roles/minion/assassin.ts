@@ -94,36 +94,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:141-0!canonical and tim
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `刺客（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      // 刺客的攻击无视任何保护
-      const updates: Array<Partial<Seat> & { id: number }> = [];
-
-      // 使目标死亡（无视任何保护）
-      updates.push({
-        id: targetId,
-        isDead: true,
-      });
-
-      return {
-        updates,
-        logs: {
-          privateLog: `刺客（${selfId + 1}号）使用能力杀死了 ${targetId + 1}号玩家（无视任何保护）`,
-        },
-      };
-    },
   },
 };

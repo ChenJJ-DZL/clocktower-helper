@@ -50,17 +50,5 @@ export const undertaker: RoleDefinition = {
         close: "",
       };
     },
-    handler: (context) => {
-      const { executedToday, selfId } = context;
-      if (executedToday === null || executedToday === undefined) {
-        return null; // Should not even be called if no one executed, handled by generator
-      }
-      return {
-        updates: [],
-        logs: {
-          privateLog: `送葬者(${selfId + 1}号) 查看了被处决玩家的角色`,
-        },
-      };
-    },
   },
 };

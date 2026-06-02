@@ -62,14 +62,5 @@ export const scarlet_woman: RoleDefinition = {
       close: "",
     }),
 
-    handler: (context) => {
-      // 红唇女郎变成恶魔的逻辑在其他地方处理
-      return {
-        updates: [],
-        logs: {
-          privateLog: `红唇女郎（${context.selfId + 1}号）检查是否变成恶魔`,
-        },
-      };
-    },
   },
 };

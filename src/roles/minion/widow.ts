@@ -117,50 +117,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:69-0!canonical and time
       };
     },
 
-    handler: (context) => {
-      const { seats, targets, selfId, gamePhase } = context;
-      if (gamePhase !== "firstNight") {
-        return {
-          updates: [],
-          logs: { privateLog: `寡妇（${selfId + 1}号）非首夜不行动` },
-        };
-      }
-      if (targets.length !== 1) {
-        return {
-          updates: [],
-          logs: { privateLog: `寡妇（${selfId + 1}号）未选择有效目标` },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-      if (!targetSeat) {
-        return {
-          updates: [],
-          logs: { privateLog: `寡妇（${selfId + 1}号）选择了无效目标` },
-        };
-      }
-
-      const { statusDetails, statuses } = addPoisonMark(
-        targetSeat,
-        "widow",
-        "寡妇死亡"
-      );
-      const nextSeat = { ...targetSeat, statusDetails, statuses };
-
-      return {
-        updates: [
-          {
-            id: targetId,
-            statusDetails,
-            statuses,
-            isPoisoned: computeIsPoisoned(nextSeat),
-          },
-        ],
-        logs: {
-          privateLog: `寡妇（${selfId + 1}号）使${targetId + 1}号中毒（直到寡妇死亡）`,
-        },
-      };
-    },
   },
 };

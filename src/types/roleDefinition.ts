@@ -251,7 +251,7 @@ export interface DayActionConfig {
   /**
    * 核心逻辑处理函数
    */
-  handler: (context: DayActionContext) => DayActionResult;
+  handler?: (context: DayActionContext) => DayActionResult;
 }
 
 /**

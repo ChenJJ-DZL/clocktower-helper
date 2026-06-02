@@ -198,24 +198,31 @@ export function useNightActionHandler() {
       const roleId = nightInfo.effectiveRole.id;
       const roleDef = getRoleDefinition(roleId);
 
-      if (!roleDef) {
-        console.warn(`[useNightActionHandler] 未找到角色定义: ${roleId}`);
-        // 尝试新引擎能力
+      // ====== 新引擎优先：只要有新引擎能力就直接走新引擎 ======
+      const abilityMap = getRawAbilityMap();
+      const hasNewEngine = Object.values(abilityMap).some(
+        (a: any) => a.roleId === roleId
+      );
+      if (hasNewEngine) {
         return executeViaNewEngine(context, roleId);
       }
 
-      // 确定使用首夜还是普通夜晚的配置
+      // ====== 旧引擎回退（仅限无双引擎角色） ======
+      if (!roleDef) {
+        console.warn(`[useNightActionHandler] 未找到角色定义: ${roleId}`);
+        return false;
+      }
+
       const isFirstNight = context.gamePhase === "firstNight";
       const nightConfig = isFirstNight
         ? roleDef.firstNight || roleDef.night
         : roleDef.night;
 
-      // 旧 handler 不存在 → 桥接到新引擎
       if (!nightConfig || !nightConfig.handler) {
-        return executeViaNewEngine(context, roleId);
+        return false;
       }
 
-      // ====== 旧 handler 路径（向后兼容） ======
+      // ====== 旧 handler 路径（仅兼容无双引擎角色） ======
       const { seats, selectedTargets, gamePhase, nightCount } = context;
 
       // 构建夜晚行动上下文

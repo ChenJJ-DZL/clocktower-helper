@@ -95,32 +95,6 @@ export const imp: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { seats, poppyGrowerDead, selfId } = context;
-
-      const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
-      const shouldHideMinions =
-        poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
-
-      if (shouldHideMinions) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `小恶魔（${selfId + 1}号）：因罂粟种植者在场，未告知爪牙信息`,
-          },
-        };
-      }
-
-      const minions = seats
-        .filter((s) => s.role?.type === "minion" && s.id !== selfId)
-        .map((s) => `${s.id + 1}号`);
-      return {
-        updates: [],
-        logs: {
-          privateLog: `小恶魔（${selfId + 1}号）得知爪牙：${minions.length > 0 ? minions.join("、") : "无"}`,
-        },
-      };
-    },
   },
 
   // 后续夜晚行动：选择一名玩家杀害
@@ -152,50 +126,5 @@ export const imp: RoleDefinition = {
       };
     },
 
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-
-      if (targets.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `小恶魔（${selfId + 1}号）未选择目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-      const isTargetProtected =
-        targetSeat?.statuses?.some((s) => s.effect === "Protected") ||
-        targetSeat?.isProtected;
-
-      // 如果目标被僧侣保护，攻击无效
-      if (isTargetProtected) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `小恶魔（${selfId + 1}号）攻击了 ${targetId + 1}号玩家，但目标被僧侣保护，攻击无效`,
-          },
-        };
-      }
-
-      // 注意：实际的死亡逻辑和属性变更（如 isDead）应该在这里返回
-      // 如果自杀，则 targetId === selfId
-      const updates: Array<Partial<Seat> & { id: number }> = [
-        {
-          id: targetId,
-          isDead: true,
-          // 这里可以添加更多死亡相关的标记，但核心逻辑在 handlePostDeathTriggers
-        },
-      ];
-
-      return {
-        updates,
-        logs: {
-          privateLog: `小恶魔（${selfId + 1}号）攻击了 ${targetId + 1}号玩家${targetId === selfId ? "（自杀传位）" : ""}`,
-        },
-      };
-    },
   },
 };

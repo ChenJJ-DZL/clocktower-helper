@@ -33,19 +33,5 @@ export const ravenkeeper: RoleDefinition = {
       instruction: "向其展示该名玩家的角色标记",
       close: "",
     }),
-    handler: (context) => {
-      const { targets, selfId, seats } = context;
-      if (targets.length === 0) return null;
-      const targetId = targets[0];
-      const targetSeat = seats?.find((s: any) => s.id === targetId);
-      const targetRoleName =
-        targetSeat?.effectiveRole?.name ?? targetSeat?.role?.name ?? "未知角色";
-      return {
-        updates: [],
-        logs: {
-          privateLog: `守鸦人(${selfId + 1}号) 查验了 ${targetId + 1}号，角色是【${targetRoleName}】`,
-        },
-      };
-    },
   },
 };

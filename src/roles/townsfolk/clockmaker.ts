@@ -116,52 +116,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
       };
     },
 
-    handler: (context: NightActionContext) => {
-      const { seats, gamePhase, selfId } = context;
-      if (gamePhase !== "firstNight") {
-        return null;
-      }
-
-      // Jinx: If Summoner is in play, they are considered a demon.
-      const summonerInPlay = seats.some((s) => s.role?.id === "summoner");
-
-      const demons = seats.filter(
-        (s) =>
-          s.role?.type === "demon" ||
-          (summonerInPlay && s.role?.id === "summoner")
-      );
-      const minions = seats.filter((s) => s.role?.type === "minion");
-
-      if (demons.length === 0 || minions.length === 0) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `钟表匠（${selfId + 1}号）得知距离为 0（无恶魔或爪牙）。`,
-          },
-          speak: ["说书人手势：0"],
-        };
-      }
-
-      let minDistance = seats.length;
-
-      for (const demon of demons) {
-        for (const minion of minions) {
-          if (demon.id === minion.id) continue;
-          const diff = Math.abs(demon.id - minion.id);
-          const distance = Math.min(diff, seats.length - diff);
-          if (distance < minDistance) {
-            minDistance = distance;
-          }
-        }
-      }
-
-      return {
-        updates: [],
-        logs: {
-          privateLog: `钟表匠（${selfId + 1}号）得知恶魔与爪牙的最近距离为 ${minDistance}`,
-        },
-        speak: [`说书人手势：${minDistance}`],
-      };
-    },
   },
 };

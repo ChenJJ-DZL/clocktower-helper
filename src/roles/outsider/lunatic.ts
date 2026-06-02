@@ -114,16 +114,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:138-0!canonical and tim
       }
     },
 
-    handler: (context) => {
-      // 疯子的攻击没有实际效果，但真正的恶魔会知道疯子的选择
-      // 首夜会显示三个不在场的角色和爪牙信息（由说书人决定）
-      // 后续夜晚会记录疯子的攻击目标（供真恶魔参考）
-      return {
-        updates: [],
-        logs: {
-          privateLog: `疯子（${context.selfId + 1}号）执行了行动（无效）`,
-        },
-      };
-    },
   },
 };

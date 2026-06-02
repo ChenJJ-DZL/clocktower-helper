@@ -87,38 +87,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:14-0!canonical and time
       instruction: "选择一名除你以外的存活玩家。",
       close: "",
     }),
-    handler: (context) => {
-      const { targets, seats, selfId } = context;
-      if (targets.length !== 1) return { updates: [] };
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-      const isTargetDemon =
-        targetSeat?.role?.type === "demon" || targetSeat?.isDemonSuccessor;
-
-      if (isTargetDemon && targetSeat) {
-        return {
-          updates: [
-            {
-              id: targetId,
-              statusDetails: [
-                ...(targetSeat.statusDetails || []),
-                "驱魔者选中",
-              ],
-            },
-          ],
-          logs: {
-            privateLog: `✨ ${selfId + 1}号(驱魔人) 选中了恶魔(${targetId + 1}号)，恶魔今晚将不会被唤醒`,
-          },
-        };
-      } else {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `${selfId + 1}号(驱魔人) 选择了 ${targetId + 1}号`,
-          },
-        };
-      }
-    },
   },
 };

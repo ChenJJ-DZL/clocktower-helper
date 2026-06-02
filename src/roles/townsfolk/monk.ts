@@ -32,50 +32,5 @@ export const monk: RoleDefinition = {
         close: "",
       };
     },
-    handler: (context) => {
-      const { seats, targets, selfId } = context;
-
-      if (targets.length !== 1) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `僧侣（${selfId + 1}号）未选择有效目标`,
-          },
-        };
-      }
-
-      const targetId = targets[0];
-      const targetSeat = seats.find((s) => s.id === targetId);
-
-      if (!targetSeat) {
-        return {
-          updates: [],
-          logs: {
-            privateLog: `僧侣（${selfId + 1}号）选择了无效目标`,
-          },
-        };
-      }
-
-      const statusDetails = [...(targetSeat.statusDetails || []), "僧侣保护"];
-      const statuses = [
-        ...(targetSeat.statuses || []),
-        { effect: "Protected", duration: "至天亮", sourceId: selfId },
-      ];
-
-      return {
-        updates: [
-          {
-            id: targetId,
-            isProtected: true,
-            protectedBy: selfId,
-            statusDetails,
-            statuses,
-          },
-        ],
-        logs: {
-          privateLog: `僧侣（${selfId + 1}号）保护了${targetId + 1}号玩家`,
-        },
-      };
-    },
   },
 };

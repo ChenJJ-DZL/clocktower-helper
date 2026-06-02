@@ -98,18 +98,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:44-0!canonical and time
       };
     },
 
-    handler: (context) => {
-      const { selfId } = context;
-
-      // 工程师的能力由说书人处理，这里只记录日志
-      // 实际游戏中，说书人会处理角色变化
-
-      return {
-        updates: [],
-        logs: {
-          privateLog: `工程师（${selfId + 1}号）可以选择让恶魔变成选择的恶魔角色，或让所有爪牙变成选择的爪牙角色`,
-        },
-      };
-    },
   },
 };

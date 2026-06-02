@@ -568,7 +568,8 @@ export function useDayActions(deps: DayActionsDeps) {
           killPlayer,
         };
 
-        const result = modularHandler.day.handler(dayContext);
+        const result = modularHandler.day.handler?.(dayContext);
+        if (!result) return false;
 
         if (result.updates.length > 0) {
           const refreshedSeats = seats.map((s) => {

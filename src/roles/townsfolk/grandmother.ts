@@ -123,27 +123,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
       instruction: "这就是你的孙子和他的角色。",
       close: "",
     }),
-    handler: (context: NightActionContext) => {
-      const { seats, selfId } = context;
-      const selfSeat = seats.find((s: Seat) => s.id === selfId);
-
-      if (
-        selfSeat?.grandchildId !== undefined &&
-        selfSeat.grandchildId !== null
-      ) {
-        const grandchild = seats.find(
-          (s: Seat) => s.id === selfSeat.grandchildId
-        );
-        if (grandchild) {
-          return {
-            updates: [],
-            logs: {
-              privateLog: `说书人告知祖母：${grandchild.id + 1}号是你的孙子，他的角色是${grandchild.role?.name}`,
-            },
-          };
-        }
-      }
-      return null;
-    },
   },
 };

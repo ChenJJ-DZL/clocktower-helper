@@ -132,14 +132,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
         close: "",
       };
     },
-    handler: (context) => {
-      const { selfId } = context;
-      return {
-        updates: [],
-        logs: {
-          privateLog: `共情者(${selfId + 1}号) 获取了邻座邪恶玩家信息`,
-        },
-      };
-    },
   },
 };
