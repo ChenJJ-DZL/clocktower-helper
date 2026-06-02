@@ -1,69 +1,72 @@
 /**
- * 诺-达鲺（no_dashii）新引擎技能实现
+ * 诺-达鲺（No Dashii）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚*，你要选择一名玩家：他死亡。
+ *   与你邻近的两名镇民中毒。"
+ *
+ * 每夜杀一人。邻近镇民中毒。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  // 标记邻近镇民中毒
+  const seats = ctx.snapshot.seats;
+  const selfIdx = seats.findIndex((s: any) => s.id === ctx.actionNode.seatId);
+  const adjacentIds = [];
+  if (selfIdx > 0) adjacentIds.push(seats[selfIdx - 1]?.id);
+  if (selfIdx < seats.length - 1) adjacentIds.push(seats[selfIdx + 1]?.id);
+  const poisonedAdjacent = adjacentIds.filter((id: number) => {
+    const s = seats.find((x: any) => x.id === id);
+    return s?.isAlive && s?.role?.type === "townsfolk";
+  });
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: { targetId, killed: true, poisonedAdjacent },
+    },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  return { ...context, meta: { ...context.meta, abilityResult: { targetId: context.targetIds[0], killed: true } } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.killed) return ctx;
+  return {
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      lastKill: { demonId: ctx.actionNode.seatId, targetId: r.targetId, demonRole: "no_dashii" },
+      noDashiiPoisoned: r.poisonedAdjacent,
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), no_dashii: r },
+    },
+    meta: { ...ctx.meta, noDashiiResult: r },
+  };
 };
 
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const r = meta.abilityResult;
-console.log('[NoDashii] 诺-达鲺击杀:', r?.targetId != null ? '玩家' + (r.targetId + 1) : '无');
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  const log = r?.targetId != null
+    ? `[NoDashii] 击杀${r.targetId + 1}号，邻近${r.poisonedAdjacent?.length ?? 0}名镇民中毒`
+    : "[NoDashii] 无目标";
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "诺-达鲺已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta, prompt: `唤醒${ctx.actionNode.seatId + 1}号【诺-达鲺】，选择一名玩家杀害。`,
+      abilityLog: log,
+    },
   };
 };
 
 export const no_dashiiAbility = createRoleAbility({
-  roleId: "no_dashii",
-  abilityId: "no_dashii_ability",
-  abilityName: "毒素杀",
+  roleId: "no_dashii", abilityId: "no_dashii_kill", abilityName: "毒素杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 51,
-  firstNightOnly: false,
-  wakePromptId: "role.no_dashii.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  wakePriority: 51, firstNightOnly: false, wakePromptId: "role.no_dashii.wake",
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

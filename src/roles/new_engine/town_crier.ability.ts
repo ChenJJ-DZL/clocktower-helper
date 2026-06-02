@@ -1,72 +1,60 @@
 /**
- * 城镇公告员（town_crier）新引擎技能实现
+ * 城镇公告员（Town Crier）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚*，你会得知在今天白天时是否有爪牙发起过提名。"
+ *
+ * 每夜得知白天是否有爪牙提名过。纯信息类能力。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  const effects = seat.statusEffects ?? ctx.snapshot.statusEffects?.[seat.id] ?? [];
+  return { ...ctx, meta: { ...ctx.meta, isPoisoned: effects.some((e: any) => e.type === "poisoned" || e.type === "drunk") } };
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const minionNominated = ctx.snapshot.minionNominatedToday ?? false;
+  const isCorrupted = ctx.meta.isPoisoned === true;
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx, meta: {
+      ...ctx.meta,
+      abilityResult: { minionNominated: isCorrupted ? !minionNominated : minionNominated },
+      isCorrupted,
+    },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  // 记录今日是否有爪牙提名
-const todayMinionNominated = snapshot.minionNominatedToday ?? false;
-return { ...context, meta: { ...context.meta, abilityResult: { minionNominated: todayMinionNominated }, isCorrupted: false } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  return {
+    ...ctx,
+    snapshot: { ...ctx.snapshot, _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), town_crier: r } },
+    meta: { ...ctx.meta, townCrierResult: r },
+  };
 };
 
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const result = meta.abilityResult;
-const log = '[TownCrier] ' + (result?.minionNominated ? '白天有爪牙发起过提名' : '白天没有爪牙发起提名');
-console.log(log);
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  const tag = ctx.meta.isCorrupted ? "【受干扰】" : "";
+  const status = r?.minionNominated ? "有爪牙提名" : "无爪牙提名";
+  const log = `[TownCrier]${tag} ${status}`;
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "城镇公告员已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta, prompt: `唤醒${ctx.actionNode.seatId + 1}号【城镇公告员】，告知${status}。`,
+      abilityLog: log,
+      displayInfo: { type: "town_crier_info", minionNominated: r?.minionNominated, isCorrupted: ctx.meta.isCorrupted, log },
+    },
   };
 };
 
 export const town_crierAbility = createRoleAbility({
-  roleId: "town_crier",
-  abilityId: "town_crier_ability",
-  abilityName: "提名侦测",
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 41,
-  firstNightOnly: false,
+  roleId: "town_crier", abilityId: "town_crier_nightly", abilityName: "提名侦测",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT], wakePriority: 41, firstNightOnly: false,
   wakePromptId: "role.town_crier.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

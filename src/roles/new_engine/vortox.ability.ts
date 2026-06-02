@@ -1,69 +1,63 @@
 /**
- * 涡流（vortox）新引擎技能实现
+ * 涡流（Vortox）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚*，你要选择一名玩家：他死亡。
+ *   镇民玩家的能力都会产生错误信息。
+ *   如果白天没人被处决，邪恶阵营获胜。"
+ *
+ * 每夜杀一人。所有镇民能力结果反转。无处决日邪恶获胜。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: { targetId, killed: true, vortoxActive: true },
+    },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  return { ...context, meta: { ...context.meta, abilityResult: { targetId: context.targetIds[0], killed: true } } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.killed) return ctx;
+  return {
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      lastKill: { demonId: ctx.actionNode.seatId, targetId: r.targetId, demonRole: "vortox" },
+      vortoxActive: true,
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), vortox: r },
+    },
+    meta: { ...ctx.meta, vortoxResult: r },
+  };
 };
 
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const r = meta.abilityResult;
-console.log('[Vortox] 涡流击杀:', r?.targetId != null ? '玩家' + (r.targetId + 1) : '无');
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  const log = r?.targetId != null
+    ? `[Vortox] 击杀${r.targetId + 1}号（涡流在场，镇民信息均反转）`
+    : "[Vortox] 无目标";
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "涡流已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta, prompt: `唤醒${ctx.actionNode.seatId + 1}号【涡流】，选择一名玩家杀害。`,
+      abilityLog: log,
+    },
   };
 };
 
 export const vortoxAbility = createRoleAbility({
-  roleId: "vortox",
-  abilityId: "vortox_ability",
-  abilityName: "混沌杀",
+  roleId: "vortox", abilityId: "vortox_kill", abilityName: "混沌杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 50,
-  firstNightOnly: false,
-  wakePromptId: "role.vortox.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  wakePriority: 50, firstNightOnly: false, wakePromptId: "role.vortox.wake",
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

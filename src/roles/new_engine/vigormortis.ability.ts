@@ -1,69 +1,66 @@
 /**
- * 亡骨魔（vigormortis）新引擎技能实现
+ * 亡骨魔（Vigormortis）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚*，你要选择一名玩家：他死亡。
+ *   被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。
+ *   [-1外来者]"
+ *
+ * 每夜杀一人。被杀的爪牙保留能力。邻近镇民中毒。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  // 检查目标是否为爪牙
+  const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
+  const isMinion = target?.role?.type === "minion";
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: { targetId, killed: true, minionKeepsAbility: isMinion },
+    },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  return { ...context, meta: { ...context.meta, abilityResult: { targetId: context.targetIds[0], killed: true } } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.killed) return ctx;
+  return {
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      lastKill: { demonId: ctx.actionNode.seatId, targetId: r.targetId, demonRole: "vigormortis", minionKeepsAbility: r.minionKeepsAbility },
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), vigormortis: r },
+    },
+    meta: { ...ctx.meta, vigormortisResult: r },
+  };
 };
 
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const r = meta.abilityResult;
-console.log('[Vigormortis] 亡骨魔击杀:', r?.targetId != null ? '玩家' + (r.targetId + 1) : '无');
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  const minionNote = r?.minionKeepsAbility ? "（爪牙保留能力）" : "";
+  const log = r?.targetId != null
+    ? `[Vigormortis] 击杀${r.targetId + 1}号${minionNote}`
+    : "[Vigormortis] 无目标";
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "亡骨魔已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta, prompt: `唤醒${ctx.actionNode.seatId + 1}号【亡骨魔】，选择一名玩家杀害。`,
+      abilityLog: log,
+    },
   };
 };
 
 export const vigormortisAbility = createRoleAbility({
-  roleId: "vigormortis",
-  abilityId: "vigormortis_ability",
-  abilityName: "锁魂杀",
+  roleId: "vigormortis", abilityId: "vigormortis_kill", abilityName: "锁魂杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 52,
-  firstNightOnly: false,
-  wakePromptId: "role.vigormortis.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  wakePriority: 52, firstNightOnly: false, wakePromptId: "role.vigormortis.wake",
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

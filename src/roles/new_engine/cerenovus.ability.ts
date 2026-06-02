@@ -1,70 +1,58 @@
 /**
- * 洗脑师（cerenovus）新引擎技能实现
+ * 洗脑师（Cerenovus）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚，你要选择一名玩家和一个善良角色。
+ *   他明天白天和夜晚需要'疯狂'地证明自己是这个角色，不然他可能被处决。"
+ *
+ * 每夜选择目标+角色，目标需疯狂扮演该角色。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  const roleName = ctx.storytellerInput?.roleName ?? "镇民";
+  return { ...ctx, meta: { ...ctx.meta, abilityResult: { targetId, roleName, mad: true } } };
+};
 
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      madRoles: { ...((ctx.snapshot as any).madRoles ?? {}), [r.targetId]: r.roleName },
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), cerenovus: r },
+    },
+    meta: { ...ctx.meta, cerenovusResult: r },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  const targetId = context.targetIds[0];
-return { ...context, meta: { ...context.meta, abilityResult: { targetId, roleName: context.storytellerInput?.roleName || '未知' } } };
-};
-
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const r = meta.abilityResult;
-console.log('[Cerenovus] 洗脑目标:', r?.targetId != null ? '玩家' + (r.targetId + 1) : '无');
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
+  const log = `[Cerenovus] ${r.targetId + 1}号需疯狂扮演【${r.roleName}】`;
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "洗脑师已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【洗脑师】，选择一名玩家和一个善良角色。`,
+      abilityLog: log,
+    },
   };
 };
 
 export const cerenovusAbility = createRoleAbility({
-  roleId: "cerenovus",
-  abilityId: "cerenovus_ability",
-  abilityName: "疯狂洗脑",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 38,
-  firstNightOnly: true,
-  wakePromptId: "role.cerenovus.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  roleId: "cerenovus", abilityId: "cerenovus_madness", abilityName: "疯狂洗脑",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  wakePriority: 38, firstNightOnly: false, wakePromptId: "role.cerenovus.wake",
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

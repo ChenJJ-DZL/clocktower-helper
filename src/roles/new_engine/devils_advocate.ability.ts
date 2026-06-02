@@ -1,48 +1,61 @@
 /**
- * 魔鬼代言人（devils_advocate）新引擎技能实现
+ * 魔鬼代言人（Devil's Advocate）新引擎技能实现
+ *
+ * 【角色能力】"每个夜晚，你要选择一名存活的玩家（与上个夜晚不同）：
+ *   如果明天白天他被处决，他不会死亡。"
+ *
+ * 每夜保护一名玩家免受处决。不能连续两晚选同一人。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
 };
 
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "devils_advocate" } } };
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  return {
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: { targetId, protectedFromExecution: true },
+    },
+  };
 };
 
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "魔鬼代言人已完成行动" } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
+  return {
+    ...ctx,
+    meta: { ...ctx.meta, daResult: r },
+    snapshot: {
+      ...ctx.snapshot,
+      executionProtected: { ...((ctx.snapshot as any).executionProtected ?? {}), [r.targetId]: true },
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), devils_advocate: r },
+    },
+  };
+};
+
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
+  const log = `[DevilsAdvocate] 保护 ${r.targetId + 1}号免受处决`;
+  console.log(log);
+  return {
+    ...ctx, meta: {
+      ...ctx.meta,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【魔鬼代言人】，选择一名玩家（不能与昨晚相同）。`,
+      abilityLog: log,
+    },
+  };
 };
 
 export const devils_advocateAbility = createRoleAbility({
-  roleId: "devils_advocate",
-  abilityId: "devils_advocate_ability",
-  abilityName: "魔鬼代言人能力",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 35,
-  firstNightOnly: false,
+  roleId: "devils_advocate", abilityId: "da_protect", abilityName: "处决豁免",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT], wakePriority: 35, firstNightOnly: false,
   wakePromptId: "role.devils_advocate.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

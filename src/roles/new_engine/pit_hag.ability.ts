@@ -1,69 +1,62 @@
 /**
- * 麻脸巫婆（pit_hag）新引擎技能实现
+ * 麻脸巫婆（Pit-Hag）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚*，你要选择一名玩家和一个角色，如果该角色不在场，
+ *   他变成该角色。如果因此创造了一个恶魔，当晚的死亡由说书人决定。"
+ *
+ * 每夜选择目标+角色，进行角色变换。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  const newRoleId = ctx.storytellerInput?.newRoleId ?? ctx.storytellerInput?.roleId ?? null;
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: { targetId, newRoleId, transformed: targetId !== null && newRoleId !== null },
+    },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  return { ...context, meta: { ...context.meta, abilityResult: { targetId: context.targetIds[0] } } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.transformed) return ctx;
+  return {
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      roleChanges: [...((ctx.snapshot as any).roleChanges ?? []), { seatId: r.targetId, newRole: r.newRoleId }],
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), pit_hag: r },
+    },
+    meta: { ...ctx.meta, pitHagResult: r },
+  };
 };
 
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const r = meta.abilityResult;
-console.log('[PitHag] 麻脸巫婆选择:', r?.targetId != null ? '玩家' + (r.targetId + 1) : '无');
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) { console.log("[PitHag] 无操作"); return ctx; }
+  const log = `[PitHag] ${r.targetId + 1}号 → ${r.newRoleId ?? "未指定角色"}`;
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "麻脸巫婆已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【麻脸巫婆】，选择一名玩家和一个角色进行变换。`,
+      abilityLog: log,
+    },
   };
 };
 
 export const pit_hagAbility = createRoleAbility({
-  roleId: "pit_hag",
-  abilityId: "pit_hag_ability",
-  abilityName: "角色变换",
+  roleId: "pit_hag", abilityId: "pit_hag_transform", abilityName: "角色变换",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 10,
-  firstNightOnly: false,
-  wakePromptId: "role.pit_hag.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: true,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  wakePriority: 10, firstNightOnly: false, wakePromptId: "role.pit_hag.wake",
+  targetConfig: { min: 1, max: 1, allowSelf: true, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });

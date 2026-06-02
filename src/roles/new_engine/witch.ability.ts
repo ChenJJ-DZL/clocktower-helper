@@ -1,69 +1,61 @@
 /**
- * 女巫（witch）新引擎技能实现
+ * 女巫（Witch）新引擎技能实现
  *
- * 角色能力：undefined
+ * 【角色能力】"每个夜晚，你要选择一名玩家：如果他明天白天发起提名，他死亡。
+ *   如果只有三名存活的玩家，你失去此能力。"
+ *
+ * 每夜诅咒一名玩家，被诅咒者若发起提名则死亡。
+ * targetConfig: min=1, max=1 需要玩家选择目标
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  // 三人局失去能力
+  const aliveCount = ctx.snapshot.seats.filter((s: any) => s.isAlive).length;
+  if (aliveCount <= 3) return { ...ctx, aborted: true, abortReason: "仅剩3名存活玩家，女巫失去能力" };
+  return ctx;
+};
 
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  return { ...ctx, meta: { ...ctx.meta, abilityResult: { targetId, cursed: true } } };
+};
 
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
   return {
-    ...context,
-    meta: { ...context.meta, isAlive: true },
+    ...ctx,
+    meta: { ...ctx.meta, witchResult: r },
+    snapshot: {
+      ...ctx.snapshot,
+      witchCurse: { ...((ctx.snapshot as any).witchCurse ?? {}), [r.targetId]: true },
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), witch: r },
+    },
   };
 };
 
-// 计算中间件
-const calculate = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
-  return { ...context, meta: { ...context.meta, abilityResult: { targetId: context.targetIds[0] } } };
-};
-
-// 后置处理
-const postProcess = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const r = meta.abilityResult;
-console.log('[Witch] 女巫诅咒:', r?.targetId != null ? '玩家' + (r.targetId + 1) : '无');
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
+  const log = `[Witch] 诅咒 ${r.targetId + 1}号`;
+  console.log(log);
   return {
-    ...context,
-    meta: { ...context.meta, abilityLog: "女巫已完成夜间行动" },
+    ...ctx, meta: {
+      ...ctx.meta, prompt: `唤醒${ctx.actionNode.seatId + 1}号【女巫】，选择一名玩家进行诅咒。`,
+      abilityLog: log,
+    },
   };
 };
 
 export const witchAbility = createRoleAbility({
-  roleId: "witch",
-  abilityId: "witch_ability",
-  abilityName: "恶咒",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 36,
-  firstNightOnly: true,
+  roleId: "witch", abilityId: "witch_curse", abilityName: "恶咒",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  wakePriority: 36, firstNightOnly: false,
   wakePromptId: "role.witch.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });
