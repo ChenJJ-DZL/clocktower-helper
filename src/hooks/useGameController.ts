@@ -1019,7 +1019,7 @@ export function useGameController() {
       );
       nightPreviewConfirmedRef.current = false;
       if (!report.handlerResult && !report.preCheck.blocked) {
-        addLog(`[系统] ⚠️ 能力 ${report.roleId} 执行返回失败，跳过`);
+        console.warn(`[系统] ⚠️ 能力 ${report.roleId} 执行返回失败，跳过`);
         continueToNextAction();
       }
       // 执行后验证游戏状态一致性（开发环境捕获状态异常）

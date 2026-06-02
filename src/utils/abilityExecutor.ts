@@ -170,9 +170,9 @@ export function postProcessAbility(
     result: { targetIds },
   });
 
-  // 2. 记录执行日志
+  // 2. 记录执行日志（仅控制台，不写入游戏日志以免干扰UI）
   if (success) {
-    addLog(
+    console.log(
       `[能力执行] ${roleId} 的夜间行动完成，目标: ${targetIds.length > 0 ? targetIds.map((t) => `玩家${t + 1}`).join(", ") : "无目标"}`
     );
   }
@@ -222,7 +222,7 @@ export async function executeNightAbility(
     report.preCheck = preProcessAbility(actorSeat, seats, nightInfo);
 
     if (report.preCheck.blocked) {
-      context.addLog(`[系统] ⚠️ ${report.preCheck.reason || "能力被跳过"}`);
+      console.log(`[系统] ⚠️ ${report.preCheck.reason || "能力被跳过"}`);
       report.logs.push(report.preCheck.reason || "能力被前置校验阻止");
       if (trackingEnabled) globalExecutionReports.push(report);
       return report;
