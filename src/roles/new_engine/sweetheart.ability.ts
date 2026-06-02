@@ -1,48 +1,11 @@
 /**
- * 心上人（sweetheart）新引擎技能实现
+ * 心上人（Sweetheart）新引擎技能实现
+ * 【角色能力】"当你死亡时，一名玩家醉酒。"
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "sweetheart" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "心上人已完成行动" } };
-};
-
-export const sweetheartAbility = createRoleAbility({
-  roleId: "sweetheart",
-  abilityId: "sweetheart_ability",
-  abilityName: "心上人能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.sweetheart.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
+const preCheck=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const target=ctx.storytellerInput?.drunkTarget??null;return{...ctx,meta:{...ctx.meta,abilityResult:{drunkTarget:target,causesDrunk:true}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;if(!r?.causesDrunk)return ctx;return{...ctx,snapshot:{...ctx.snapshot,_abilityResults:{...((ctx.snapshot as any)._abilityResults??{}),sweetheart:r}},meta:{...ctx.meta,sweetheartResult:r}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{console.log("[Sweetheart] 死亡，使1名玩家醉酒");return ctx;};
+export const sweetheartAbility=createRoleAbility({roleId:"sweetheart",abilityId:"sweetheart_death",abilityName:"香消玉殒",triggerTiming:[AbilityTriggerTiming.PASSIVE],wakePriority:0,firstNightOnly:false,wakePromptId:"",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[preCheck],calculate:[calc],stateUpdate:[su],postProcess:[pp]});

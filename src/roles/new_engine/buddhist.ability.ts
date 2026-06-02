@@ -1,48 +1,11 @@
 /**
  * 佛教徒（Buddhist）新引擎技能实现
+ * 【角色能力】"每天的前两分钟，老玩家不能发言。新人可以。"
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  commonPreCheckAlive,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-// 佛教徒是特殊能力角色
-// 每个白天的前两分钟老玩家不能发言。
-
-export const buddhistAbility = createRoleAbility({
-  roleId: "buddhist",
-  abilityId: "buddhist_special_ability",
-  abilityName: "白天发言限制",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], // 被动能力
-  wakePriority: 0,
-  firstNightOnly: false,
-  wakePromptId: "role.buddhist.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [commonPreCheckAlive],
-  calculate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 佛教徒的能力逻辑：限制白天前两分钟老玩家发言
-      return context;
-    },
-  ],
-  stateUpdate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 佛教徒的状态更新逻辑
-      return context;
-    },
-  ],
-  postProcess: [
-    async (context) => {
-      console.log("佛教徒能力（被动）被调用");
-      return context;
-    },
-  ],
-});
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
+const preCheck=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,meta:{...ctx.meta,abilityResult:{speechRestricted:true,duration:"2分钟"}}};};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,snapshot:{...ctx.snapshot,speechRestricted:true},meta:{...ctx.meta,buddhistResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{console.log("[Buddhist] 前2分钟限制老玩家发言");return{...ctx,meta:{...ctx.meta,abilityLog:"佛教徒限制老玩家发言"}};};
+export const buddhistAbility=createRoleAbility({roleId:"buddhist",abilityId:"buddhist_speech",abilityName:"静默",triggerTiming:[AbilityTriggerTiming.PASSIVE],wakePriority:0,firstNightOnly:false,wakePromptId:"",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[preCheck],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
