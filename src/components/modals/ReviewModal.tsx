@@ -105,8 +105,15 @@ export function ReviewModal({
                 night: 4,
               };
 
+              // 过滤掉内部调试日志，只保留玩家可读的操作记录
+              const filteredLogs = gameLogs.filter(
+                (log) =>
+                  !log.message?.startsWith("[系统]") &&
+                  !log.message?.startsWith("[能力执行]")
+              );
+
               // 按天数和阶段分组
-              const logsByDayAndPhase = gameLogs.reduce(
+              const logsByDayAndPhase = filteredLogs.reduce(
                 (acc, log) => {
                   const key = `${log.day}_${log.phase}`;
                   if (!acc[key]) acc[key] = [];

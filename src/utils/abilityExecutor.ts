@@ -260,7 +260,7 @@ export async function executeNightAbility(
     report.success = report.handlerResult;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "未知执行错误";
-    context.addLog(`[系统] ❌ 能力执行异常: ${errorMsg}`);
+    console.error(`[系统] ❌ 能力执行异常: ${errorMsg}`);
     report.success = false;
     report.logs.push(`执行异常: ${errorMsg}`);
     if (trackingEnabled) globalExecutionReports.push(report);
