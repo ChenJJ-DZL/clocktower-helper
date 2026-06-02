@@ -1,48 +1,56 @@
 /**
- * 理发师（barber）新引擎技能实现
+ * 理发师（Barber）新引擎技能实现
+ *
+ * 【角色能力】"如果你在夜晚死亡，你可以交换两名玩家的角色。"
+ *
+ * PASSIVE 触发：夜晚死亡时触发，可交换两名玩家角色。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
+import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat) return ctx;
+  return ctx;
 };
 
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "barber" } } };
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const swapA = ctx.storytellerInput?.swapA ?? null;
+  const swapB = ctx.storytellerInput?.swapB ?? null;
+  return {
+    ...ctx, meta: {
+      ...ctx.meta, abilityResult: {
+        barberDied: true,
+        swapA, swapB, swapped: swapA !== null && swapB !== null,
+      },
+    },
+  };
 };
 
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "理发师已完成行动" } };
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.swapped) return ctx;
+  return {
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      barberSwap: { a: r.swapA, b: r.swapB },
+      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), barber: r },
+    },
+    meta: { ...ctx.meta, barberResult: r },
+  };
+};
+
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (r?.swapped) console.log(`[Barber] 交换 ${r.swapA + 1}号 和 ${r.swapB + 1}号角色`);
+  else console.log("[Barber] 理发师死亡但未交换角色");
+  return ctx;
 };
 
 export const barberAbility = createRoleAbility({
-  roleId: "barber",
-  abilityId: "barber_ability",
-  abilityName: "理发师能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.barber.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
+  roleId: "barber", abilityId: "barber_swap", abilityName: "角色交换",
+  triggerTiming: [AbilityTriggerTiming.PASSIVE], wakePriority: 0, firstNightOnly: false,
+  wakePromptId: "", targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
 });
