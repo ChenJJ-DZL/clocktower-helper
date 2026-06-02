@@ -154,6 +154,10 @@ export type ModalType =
 
   // 信息展示弹窗
   | { type: "DREAMER_RESULT"; data: { roleA: Role; roleB: Role } }
+  | {
+      type: "FORTUNE_TELLER_RESULT";
+      data: { result: boolean; targetLabels: string[] };
+    }
   | { type: "ARTIST_RESULT"; data: { result: string } }
   | { type: "SAVANT_RESULT"; data: { infoA: string; infoB: string } }
   | { type: "RAVENKEEPER_FAKE"; data: { targetId: number } }

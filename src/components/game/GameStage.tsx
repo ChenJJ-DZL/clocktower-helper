@@ -398,6 +398,41 @@ export const GameStage = () => {
   const _currentWakeRole = getDisplayRole(currentWakeSeat);
   const _nextWakeRole = getDisplayRole(nextWakeSeat);
 
+  // 占卜师结果弹窗触发器：选中2名目标后自动弹出结果
+  useEffect(() => {
+    const isFortuneTellerNight =
+      (gamePhase === "firstNight" || gamePhase === "night") &&
+      currentWakeSeat?.role?.id === "fortune_teller";
+    if (
+      isFortuneTellerNight &&
+      selectedActionTargets &&
+      selectedActionTargets.length >= 2 &&
+      !currentModal
+    ) {
+      // 生成占卜结果（从snapshot中读取或直接计算）
+      const targetIds = selectedActionTargets.slice(0, 2);
+      const targetLabels = targetIds.map((id: number) => String(id + 1));
+      const demon = seats.find(
+        (s: any) => !s.isDead && s.role?.type === "demon"
+      );
+      const result = demon
+        ? targetIds.some((id: number) => id === demon.id)
+        : false;
+
+      setCurrentModal({
+        type: "FORTUNE_TELLER_RESULT",
+        data: { result, targetLabels },
+      });
+    }
+  }, [
+    selectedActionTargets,
+    gamePhase,
+    currentWakeSeat,
+    currentModal,
+    seats,
+    setCurrentModal,
+  ]);
+
   // Handle Dusk Phase UI
   if (gamePhase === "dusk") {
     return (
