@@ -105,8 +105,7 @@ const preCheckDeathAndStatus = async (
     };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -323,12 +322,11 @@ const postProcessResult = async (
 
   // 说书人提示词
   const storytellerPrompt =
-    `守鸦人，请睁眼。今晚你已死亡，可以选择一名玩家得知其角色。` +
+    "守鸦人，请睁眼。今晚你已死亡，可以选择一名玩家得知其角色。" +
     `（${result.targetId + 1} 号玩家的角色是【${result.roleName}】）`;
 
   // 中文日志
-  const abilityLog =
-    `守鸦人${tag}在死亡前夜得知：${label} 的角色是【${result.roleName}】`;
+  const abilityLog = `守鸦人${tag}在死亡前夜得知：${label} 的角色是【${result.roleName}】`;
 
   console.log(simLog);
 

@@ -3,16 +3,15 @@
  * 解决双系统并行问题：所有能力执行都经过此统一入口
  *
  * 设计思想：
- * - 不替换旧 handler 的执行逻辑（避免大规模回归）
- * - 在旧 handler 执行前后加上系统性校验层
+ * - 支持同步旧 handler 和异步新引擎能力
  * - preProcess: 死亡/中毒/醉酒/保护检查
  * - postProcess: 连锁反应/事件发布/日志记录
  * - 所有校验失败都会产生明确日志，不再"静默跳过"
  */
 
 import type { Role, Seat } from "../../app/data";
-import type { NightInfoResult } from "../types/game";
 import type { NightActionHandlerContext } from "../hooks/useNightActionHandler";
+import type { NightInfoResult } from "../types/game";
 import {
   computeIsPoisoned,
   hasTeaLadyProtection,
@@ -192,15 +191,16 @@ export function postProcessAbility(
  *
  * 新的执行路径：
  *   useGameController → executeNightAbility() → preProcess → handleNightAction() → postProcess
+ *   handleNightAction 现已支持回退到新引擎中间件管道（异步）
  *
- * @param handlerFn 旧系统的 handleNightAction 函数
+ * @param handlerFn 旧系统的 handleNightAction 函数（可同步或异步）
  * @param context handler 需要的上下文
- * @returns 执行报告
+ * @returns 执行报告（Promise 包裹）
  */
-export function executeNightAbility(
-  handlerFn: (context: NightActionHandlerContext) => boolean,
+export async function executeNightAbility(
+  handlerFn: (context: NightActionHandlerContext) => boolean | Promise<boolean>,
   context: NightActionHandlerContext
-): AbilityExecutionReport {
+): Promise<AbilityExecutionReport> {
   const { nightInfo, seats, selectedTargets } = context;
   const roleId = nightInfo?.effectiveRole?.id || "unknown";
   const actorSeat = nightInfo?.seat;
@@ -222,9 +222,7 @@ export function executeNightAbility(
     report.preCheck = preProcessAbility(actorSeat, seats, nightInfo);
 
     if (report.preCheck.blocked) {
-      context.addLog(
-        `[系统] ⚠️ ${report.preCheck.reason || "能力被跳过"}`
-      );
+      context.addLog(`[系统] ⚠️ ${report.preCheck.reason || "能力被跳过"}`);
       report.logs.push(report.preCheck.reason || "能力被前置校验阻止");
       if (trackingEnabled) globalExecutionReports.push(report);
       return report;
@@ -248,15 +246,20 @@ export function executeNightAbility(
     }
   }
 
-  // Step 3: 执行旧 handler（不改变原有逻辑）
+  // Step 3: 执行 handler（支持同步旧 handler 和异步新引擎能力）
   report.handlerInvoked = true;
 
   try {
-    report.handlerResult = handlerFn(context);
+    const handlerResult = handlerFn(context);
+    // 处理异步 handler（新引擎桥接）和同步 handler（旧系统）
+    if (handlerResult instanceof Promise) {
+      report.handlerResult = await handlerResult;
+    } else {
+      report.handlerResult = handlerResult;
+    }
     report.success = report.handlerResult;
   } catch (error) {
-    const errorMsg =
-      error instanceof Error ? error.message : "未知执行错误";
+    const errorMsg = error instanceof Error ? error.message : "未知执行错误";
     context.addLog(`[系统] ❌ 能力执行异常: ${errorMsg}`);
     report.success = false;
     report.logs.push(`执行异常: ${errorMsg}`);
@@ -288,9 +291,7 @@ export function executeNightAbility(
  * 在每次能力执行前后调用，捕获状态不一致问题
  * 这是血染钟楼的通用游戏规则断言，不依赖特定角色逻辑
  */
-export function validateGameStateConsistency(
-  seats: Seat[]
-): string[] {
+export function validateGameStateConsistency(seats: Seat[]): string[] {
   const violations: string[] = [];
 
   // 不变性 1: 总玩家人数守恒
@@ -307,9 +308,7 @@ export function validateGameStateConsistency(
     (s) => !s.isDead && (s.role?.type === "demon" || s.isDemonSuccessor)
   );
   if (aliveDemons.length > 1) {
-    violations.push(
-      `恶魔数量异常: 存在 ${aliveDemons.length} 个存活恶魔`
-    );
+    violations.push(`恶魔数量异常: 存在 ${aliveDemons.length} 个存活恶魔`);
   }
 
   // 不变性 3: 死亡玩家不应该有保护标记
@@ -317,19 +316,13 @@ export function validateGameStateConsistency(
     (s) => s.isDead && (s.isProtected || s.protectedBy)
   );
   for (const seat of deadWithProtection) {
-    violations.push(
-      `保护标记异常: 已死亡玩家 ${seat.id + 1} 仍有保护标记`
-    );
+    violations.push(`保护标记异常: 已死亡玩家 ${seat.id + 1} 仍有保护标记`);
   }
 
   // 不变性 4: 存活玩家必须有角色
-  const aliveWithoutRole = seats.filter(
-    (s) => !s.isDead && !s.role
-  );
+  const aliveWithoutRole = seats.filter((s) => !s.isDead && !s.role);
   for (const seat of aliveWithoutRole) {
-    violations.push(
-      `角色缺失: 存活玩家 ${seat.id + 1} 没有角色`
-    );
+    violations.push(`角色缺失: 存活玩家 ${seat.id + 1} 没有角色`);
   }
 
   // 不变性 5: 标记死亡(isDead)和标记死亡状态(isDead true)的玩家应该一致

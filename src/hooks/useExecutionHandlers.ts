@@ -80,7 +80,9 @@ export interface ExecutionHandlersDeps {
   isGoodAlignment: (seat: Seat) => boolean;
   addPoisonMark: (...args: any[]) => any;
   computeIsPoisoned: (...args: any[]) => boolean;
-  handleNightAction: (ctx: NightActionHandlerContext) => boolean;
+  handleNightAction: (
+    ctx: NightActionHandlerContext
+  ) => boolean | Promise<boolean>;
   executePoisonActionFn: typeof executePoisonAction;
   enqueueRavenkeeperIfNeeded: (targetId: number) => void;
   markAbilityUsed: (roleId: string, seatId: number) => void;
@@ -634,7 +636,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
   ]);
 
   // Confirm poison handler
-  const confirmPoison = useCallback(() => {
+  const confirmPoison = useCallback(async () => {
     if (!nightInfo || !currentModal || currentModal.type !== "POISON_CONFIRM")
       return;
 
@@ -667,7 +669,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       findNearestAliveNeighbor,
     };
 
-    if (!handleNightAction(nightActionHandlerContext)) {
+    const handled = await handleNightAction(nightActionHandlerContext);
+    if (!handled) {
       const delayedContinue = () => {
         setTimeout(() => {
           continueToNextAction();
@@ -721,7 +724,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
   ]);
 
   // Confirm poison evil handler
-  const confirmPoisonEvil = useCallback(() => {
+  const confirmPoisonEvil = useCallback(async () => {
     if (
       !nightInfo ||
       !currentModal ||
@@ -758,7 +761,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       findNearestAliveNeighbor,
     };
 
-    if (!handleNightAction(nightActionHandlerContext)) {
+    const handled = await handleNightAction(nightActionHandlerContext);
+    if (!handled) {
       const delayedContinue = () => {
         setTimeout(() => {
           continueToNextAction();

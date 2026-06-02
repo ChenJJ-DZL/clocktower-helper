@@ -109,11 +109,14 @@ const preCheckAliveAndStatus = async (
   );
 
   if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "红唇女郎已死亡，技能失效" };
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "红唇女郎已死亡，技能失效",
+    };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -189,9 +192,7 @@ function findDeadDemonRoleId(seats: PlayerLookup[]): string {
     const roleType = s.role?.type ?? s.roleType ?? "";
     return roleType === "demon" && (s.isDead || s.isAlive === false);
   });
-  return deadDemon
-    ? getRoleId(deadDemon) || "imp"
-    : "imp";
+  return deadDemon ? getRoleId(deadDemon) || "imp" : "imp";
 }
 
 /**
@@ -202,9 +203,7 @@ function findDeadDemonRoleId(seats: PlayerLookup[]): string {
  * 2. 恶魔已死亡
  * 3. 存活玩家（排除旅行者）≥ 5
  */
-function shouldTransform(
-  meta: Record<string, any>
-): boolean {
+function shouldTransform(meta: Record<string, any>): boolean {
   const abilityEffective = meta.abilityEffective ?? true;
   const demonDead = meta.demonDead ?? false;
   const aliveNonTravelerCount = meta.aliveNonTravelerCount ?? 0;
@@ -242,7 +241,8 @@ const calculateTransformCondition = async (
     const roleType = s.role?.type ?? s.roleType ?? "";
     return roleType === "demon" && (s.isDead || s.isAlive === false);
   });
-  const demonName = deadDemonSeat?.role?.name ?? deadDemonSeat?.roleName ?? "小恶魔";
+  const demonName =
+    deadDemonSeat?.role?.name ?? deadDemonSeat?.roleName ?? "小恶魔";
 
   return {
     ...context,
@@ -272,8 +272,8 @@ const transformToDemon = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, actionNode } = context;
-  const demonRoleId = meta.demonRoleId as string ?? "imp";
-  const demonName = meta.demonName as string ?? "小恶魔";
+  const demonRoleId = (meta.demonRoleId as string) ?? "imp";
+  const demonName = (meta.demonName as string) ?? "小恶魔";
 
   const newSnapshot = {
     ...snapshot,
@@ -326,7 +326,7 @@ const postProcessResult = async (
 ): Promise<MiddlewareContext> => {
   const { meta, actionNode } = context;
   const transformed = meta.transformed === true;
-  const demonName = meta.demonName as string ?? "小恶魔";
+  const demonName = (meta.demonName as string) ?? "小恶魔";
 
   // 英文 simulation log
   const simLog = transformed
@@ -336,7 +336,7 @@ const postProcessResult = async (
   // 说书人提示词
   const storytellerPrompt = transformed
     ? `红唇女郎的变身已被触发。${actionNode.seatId + 1} 号玩家现在是${demonName}。请唤醒她并告知她的新角色。`
-    : ``;
+    : "";
 
   // 中文游戏日志
   const abilityLog = transformed
@@ -354,7 +354,7 @@ const postProcessResult = async (
       displayInfo: {
         type: "scarlet_woman_transform",
         transformed,
-        demonRoleId: meta.demonRoleId as string ?? "imp",
+        demonRoleId: (meta.demonRoleId as string) ?? "imp",
         demonName,
         aliveNonTravelerCount: meta.aliveNonTravelerCount ?? 0,
         demonDead: meta.demonDead ?? false,

@@ -102,8 +102,7 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -424,8 +423,7 @@ const postProcessResult = async (
   // 无外来者在场（手势 0）
   if (!result.roleName) {
     const simLog = `[Librarian]${tag} No outsiders in play (0)`;
-    const storytellerPrompt =
-      `唤醒${selfSeatId + 1}号【图书管理员】，告诉他场上没有外来者在场（手势 0）。`;
+    const storytellerPrompt = `唤醒${selfSeatId + 1}号【图书管理员】，告诉他场上没有外来者在场（手势 0）。`;
     const abilityLog = `图书管理员${tag}得知：场上没有外来者在场`;
 
     console.log(simLog);
@@ -462,16 +460,13 @@ const postProcessResult = async (
   const label2 = findLabel(result.seat2);
 
   // 英文 simulation log
-  const simLog =
-    `[Librarian]${tag} ${label1} & ${label2} → ${result.roleName}`;
+  const simLog = `[Librarian]${tag} ${label1} & ${label2} → ${result.roleName}`;
 
   // 说书人提示词
-  const storytellerPrompt =
-    `唤醒${selfSeatId + 1}号【图书管理员】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
+  const storytellerPrompt = `唤醒${selfSeatId + 1}号【图书管理员】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
 
   // 中文游戏日志
-  const abilityLog =
-    `图书管理员${tag}获得信息：${label1}和${label2}之中有一名是【${result.roleName}】`;
+  const abilityLog = `图书管理员${tag}获得信息：${label1}和${label2}之中有一名是【${result.roleName}】`;
 
   console.log(simLog);
 

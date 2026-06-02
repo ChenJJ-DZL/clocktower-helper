@@ -326,7 +326,7 @@ export function useInteractionHandler(deps: {
     depsNightInfo,
   ]);
 
-  const handleConfirmAction = useCallback(() => {
+  const handleConfirmAction = useCallback(async () => {
     const nightInfo = depsNightInfo || nightActionQueue[currentWakeIndex];
 
     if (!nightInfo) return;
@@ -349,7 +349,7 @@ export function useInteractionHandler(deps: {
 
     // 调用外部传入的确认逻辑（暂时保持，因为这涉及到复杂的角色能力处理器）
     if (handleConfirmActionImpl) {
-      handleConfirmActionImpl(selectedActionTargets);
+      await handleConfirmActionImpl(selectedActionTargets);
     } else {
       dispatch(gameActions.nextNightAction());
     }

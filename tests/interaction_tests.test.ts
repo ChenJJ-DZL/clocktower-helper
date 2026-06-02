@@ -6,8 +6,8 @@
 
 import type { Role, Seat } from "../app/data";
 import { initializeSeats, processGameEvent } from "../app/gameLogic";
-import { isActorDisabledByPoisonOrDrunk } from "../src/utils/gameRules";
 import { validateAbilityPreConditions } from "../src/utils/abilityExecutor";
+import { isActorDisabledByPoisonOrDrunk } from "../src/utils/gameRules";
 
 // ============================================================
 // 角色定义
@@ -21,7 +21,11 @@ const empath: Role = { id: "empath", name: "共情者", type: "townsfolk" };
 const teaLady: Role = { id: "tea_lady", name: "茶艺师", type: "townsfolk" };
 const fool: Role = { id: "fool", name: "弄臣", type: "townsfolk" };
 const zombuul: Role = { id: "zombuul", name: "僵怖", type: "demon" };
-const innkeeper: Role = { id: "innkeeper", name: "旅店老板", type: "townsfolk" };
+const innkeeper: Role = {
+  id: "innkeeper",
+  name: "旅店老板",
+  type: "townsfolk",
+};
 const townsfolk: Role = { id: "villager", name: "村民", type: "townsfolk" };
 
 function makeSeats(roles: Role[]): Seat[] {

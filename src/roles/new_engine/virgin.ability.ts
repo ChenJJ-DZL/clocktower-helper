@@ -100,8 +100,7 @@ const preCheckAliveAndUnused = async (
     };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -333,13 +332,12 @@ const postProcessResult = async (
   if (result.shouldExecute && result.executedSeatId !== undefined) {
     const targetLabel = findLabel(result.executedSeatId);
     simLog = `[Virgin]${tag} ${selfLabel} nominated → nominator (${targetLabel}) executed`;
-    storytellerPrompt =
-      `贞洁者被提名！提名者 ${result.executedSeatId + 1} 号是镇民，已被立即处决。`;
+    storytellerPrompt = `贞洁者被提名！提名者 ${result.executedSeatId + 1} 号是镇民，已被立即处决。`;
     abilityLog = `贞洁者${tag}被提名，提名者${targetLabel}是镇民，已被处决`;
   } else {
     simLog = `[Virgin]${tag} ${selfLabel} nominated → no execution (non-townsfolk)`;
     storytellerPrompt =
-      `贞洁者被提名！提名者不是镇民，无事发生（贞洁者能力已消耗）。`;
+      "贞洁者被提名！提名者不是镇民，无事发生（贞洁者能力已消耗）。";
     abilityLog = `贞洁者${tag}被提名，但提名者不是镇民，无人被处决`;
   }
 

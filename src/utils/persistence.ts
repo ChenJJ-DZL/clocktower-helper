@@ -104,7 +104,9 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     poChargeState: { ...state.poChargeState },
     usedOnceAbilities: JSON.parse(JSON.stringify(state.usedOnceAbilities)),
     usedDailyAbilities: JSON.parse(JSON.stringify(state.usedDailyAbilities)),
-    balloonistKnownTypes: JSON.parse(JSON.stringify(state.balloonistKnownTypes)),
+    balloonistKnownTypes: JSON.parse(
+      JSON.stringify(state.balloonistKnownTypes)
+    ),
     hasExecutedThisDay: state.hasExecutedThisDay,
     votedThisRound: [...state.votedThisRound],
     lastDuskExecution: state.lastDuskExecution,

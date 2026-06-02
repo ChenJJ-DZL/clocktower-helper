@@ -131,9 +131,10 @@ function getSetupConfig(snapshot: any): SetupConfig {
  * 规则："增加的外来者角色总是会替换掉原本的镇民角色"
  * → townsfolk - 2, outsider + 2
  */
-function calculateAdjustedCounts(
-  config: SetupConfig
-): { townsfolkCount: number; outsiderCount: number } {
+function calculateAdjustedCounts(config: SetupConfig): {
+  townsfolkCount: number;
+  outsiderCount: number;
+} {
   return {
     townsfolkCount: Math.max(0, (config.townsfolkCount ?? 0) - 2),
     outsiderCount: (config.outsiderCount ?? 0) + 2,
@@ -149,11 +150,9 @@ function buildReplacementSummary(
   storytellerInput?: any
 ): { removedTownsfolk: string[]; addedOutsiders: string[] } {
   const removedTownsfolk =
-    storytellerInput?.removedTownsfolk ??
-    (config.removedTownsfolk ?? []);
+    storytellerInput?.removedTownsfolk ?? config.removedTownsfolk ?? [];
   const addedOutsiders =
-    storytellerInput?.addedOutsiders ??
-    (config.addedOutsiders ?? []);
+    storytellerInput?.addedOutsiders ?? config.addedOutsiders ?? [];
   return { removedTownsfolk, addedOutsiders };
 }
 
@@ -173,7 +172,11 @@ const calculateSetupAdjustment = async (
 
   const config = getSetupConfig(snapshot);
   const adjusted = calculateAdjustedCounts(config);
-  const replacement = buildReplacementSummary(config, adjusted, storytellerInput);
+  const replacement = buildReplacementSummary(
+    config,
+    adjusted,
+    storytellerInput
+  );
 
   return {
     ...context,
@@ -243,17 +246,17 @@ const postProcessResult = async (
   // 英文 simulation log
   const simLog = applied
     ? `[Baron] Setup adjustment applied: townsfolk ${meta.adjustedTownsfolkCount}, outsiders ${meta.adjustedOutsiderCount}`
-    : `[Baron] No setup adjustment (skipped)`;
+    : "[Baron] No setup adjustment (skipped)";
 
   // 说书人提示词
   const storytellerPrompt = applied
     ? `男爵在场，游戏设置已调整：镇民 -2 → ${meta.adjustedTownsfolkCount}，外来者 +2 → ${meta.adjustedOutsiderCount}。${(meta.removedTownsfolk as string[])?.length ? `移除镇民: ${(meta.removedTownsfolk as string[]).join(", ")}。` : ""}${(meta.addedOutsiders as string[])?.length ? `新增外来者: ${(meta.addedOutsiders as string[]).join(", ")}。` : ""}`
-    : ``;
+    : "";
 
   // 中文游戏日志
   const abilityLog = applied
     ? `男爵设置调整：镇民 -2（当前 ${meta.adjustedTownsfolkCount}），外来者 +2（当前 ${meta.adjustedOutsiderCount}）`
-    : `男爵未触发设置调整`;
+    : "男爵未触发设置调整";
 
   console.log(simLog);
 

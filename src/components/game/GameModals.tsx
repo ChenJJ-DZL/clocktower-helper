@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
+import type { GameRecord } from "@/src/types/game";
 import { roles } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { useGameState } from "../../hooks/useGameState";
-import type { GameRecord } from "@/src/types/game";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
 import { AttackBlockedModal } from "../modals/AttackBlockedModal";
 import { BarberSwapModal } from "../modals/BarberSwapModal";
@@ -76,13 +76,17 @@ export function GameModals() {
   const prevModalTypeRef = useRef<string | null>(null);
   useEffect(() => {
     const currType = currentModal?.type ?? null;
-    if ((currType === "GAME_RECORDS" || currType === "SPY_RECORDS") && prevModalTypeRef.current !== currType) {
+    if (
+      (currType === "GAME_RECORDS" || currType === "SPY_RECORDS") &&
+      prevModalTypeRef.current !== currType
+    ) {
       try {
         const now = new Date();
         const record: GameRecord = {
           id: `auto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           scriptName: selectedScript?.name ?? "未知剧本",
-          startTime: (actions as any).startTime?.toISOString?.() ?? now.toISOString(),
+          startTime:
+            (actions as any).startTime?.toISOString?.() ?? now.toISOString(),
           endTime: now.toISOString(),
           duration: (actions as any).timer ?? 0,
           winResult: null,
@@ -109,7 +113,15 @@ export function GameModals() {
       }
     }
     prevModalTypeRef.current = currType;
-  }, [currentModal, selectedScript, seats, gameLogs, gamePhase, victorySnapshot, actions]);
+  }, [
+    currentModal,
+    selectedScript,
+    seats,
+    gameLogs,
+    gamePhase,
+    victorySnapshot,
+    actions,
+  ]);
 
   // Modal data extraction
   const nightOrderModal =
@@ -590,33 +602,36 @@ export function GameModals() {
       <ShamanConvertModal />
       <BarberSwapModal />
       <SpyDisguiseModal />
-      {currentModal?.type === "SPY_RECORDS" && (() => {
-        const currentRecord: GameRecord = {
-          id: "current",
-          scriptName: selectedScript?.name ?? "未知剧本",
-          startTime: (actions as any).startTime?.toISOString?.() ?? new Date().toISOString(),
-          endTime: new Date().toISOString(),
-          duration: (actions as any).timer ?? 0,
-          winResult: null,
-          winReason: null,
-          seats: JSON.parse(JSON.stringify(seats)),
-          gameLogs: gameLogs as any[],
-          isCompleted: false,
-          snapshot: null,
-        };
-        return (
-          <GameRecordsModal
-            isOpen={true}
-            onClose={() => {
-              actions.setCurrentModal(null);
-              actions.continueToNextAction();
-            }}
-            gameRecords={[currentRecord]}
-            isPortrait={isPortrait}
-            onContinue={(actions as any).handleContinueGame}
-          />
-        );
-      })()}
+      {currentModal?.type === "SPY_RECORDS" &&
+        (() => {
+          const currentRecord: GameRecord = {
+            id: "current",
+            scriptName: selectedScript?.name ?? "未知剧本",
+            startTime:
+              (actions as any).startTime?.toISOString?.() ??
+              new Date().toISOString(),
+            endTime: new Date().toISOString(),
+            duration: (actions as any).timer ?? 0,
+            winResult: null,
+            winReason: null,
+            seats: JSON.parse(JSON.stringify(seats)),
+            gameLogs: gameLogs as any[],
+            isCompleted: false,
+            snapshot: null,
+          };
+          return (
+            <GameRecordsModal
+              isOpen={true}
+              onClose={() => {
+                actions.setCurrentModal(null);
+                actions.continueToNextAction();
+              }}
+              gameRecords={[currentRecord]}
+              isPortrait={isPortrait}
+              onContinue={(actions as any).handleContinueGame}
+            />
+          );
+        })()}
 
       {storytellerSelectModal && (
         <StorytellerSelectModal

@@ -23,7 +23,10 @@ export const chef: RoleDefinition = {
     dialog: (playerSeatId, _isFirstNight, context) => {
       const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
-      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+      const isDisabled =
+        selfSeat &&
+        typeof isActorDisabledByPoisonOrDrunk === "function" &&
+        isActorDisabledByPoisonOrDrunk(selfSeat);
       const seatNo = playerSeatId + 1;
 
       if (isDisabled) {

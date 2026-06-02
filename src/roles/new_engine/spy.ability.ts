@@ -287,17 +287,23 @@ function shuffleIndices(n: number): number[] {
 /**
  * 交换 players 中两个索引处的角色信息（保留阵营/存活/状态等字段不变）。
  */
-function swapRoles(
-  players: GrimoirePlayerEntry[],
-  i: number,
-  j: number
-): void {
+function swapRoles(players: GrimoirePlayerEntry[], i: number, j: number): void {
   const tempId = players[i].roleId;
   const tempName = players[i].roleName;
   const tempType = players[i].roleType;
 
-  players[i] = { ...players[i], roleId: players[j].roleId, roleName: players[j].roleName, roleType: players[j].roleType };
-  players[j] = { ...players[j], roleId: tempId, roleName: tempName, roleType: tempType };
+  players[i] = {
+    ...players[i],
+    roleId: players[j].roleId,
+    roleName: players[j].roleName,
+    roleType: players[j].roleType,
+  };
+  players[j] = {
+    ...players[j],
+    roleId: tempId,
+    roleName: tempName,
+    roleType: tempType,
+  };
 }
 
 /**

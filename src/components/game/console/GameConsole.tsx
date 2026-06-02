@@ -195,7 +195,9 @@ export const GameConsole = React.memo(function GameConsole({
 
     const guideText = (nightInfo.guide || "").trim();
     return {
-      headline: guideText || `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`,
+      headline:
+        guideText ||
+        `唤醒 ${currentActorSeat.id + 1} 号【${currentActorRoleName}】。`,
       actionText: guideText,
     };
   }, [isNightPhase, currentActorSeat, currentActorRoleName, nightInfo]);

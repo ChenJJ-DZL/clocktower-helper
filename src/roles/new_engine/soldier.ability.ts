@@ -99,8 +99,7 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -241,8 +240,7 @@ const postProcessResult = async (
 
   const simLog = `[Soldier]${tag} ${selfLabel} immune to demon kill (killer: ${meta.killerRoleId})`;
 
-  const storytellerPrompt =
-    `士兵免疫了恶魔的杀戮，今晚无人死亡。`;
+  const storytellerPrompt = "士兵免疫了恶魔的杀戮，今晚无人死亡。";
 
   const abilityLog = `士兵${tag}免疫了恶魔的攻击，存活了下来`;
 

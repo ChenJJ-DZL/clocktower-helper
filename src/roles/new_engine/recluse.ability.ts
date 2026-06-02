@@ -137,7 +137,9 @@ export function resolveRecluseRegistration(
 
   // 说书人手动覆盖
   if (storytellerInput?.recluseOverride?.[seatId]) {
-    const override = storytellerInput.recluseOverride[seatId] as RecluseRegistration;
+    const override = storytellerInput.recluseOverride[
+      seatId
+    ] as RecluseRegistration;
     meta[cacheKey] = override;
     return override;
   }
@@ -148,9 +150,9 @@ export function resolveRecluseRegistration(
     registersAsRoleType:
       Math.random() < 0.5
         ? Math.random() < 0.7
-          ? "minion"  // 70% 爪牙
-          : "demon"   // 30% 恶魔
-        : null,       // 50% 不当作特定角色
+          ? "minion" // 70% 爪牙
+          : "demon" // 30% 恶魔
+        : null, // 50% 不当作特定角色
   };
 
   meta[cacheKey] = registration;
@@ -256,8 +258,7 @@ const postProcessResult = async (
   const { actionNode } = context;
 
   const simLog = `[Recluse] Passive active for seat ${actionNode.seatId} — may register as evil/minion/demon`;
-  const storytellerPrompt =
-    `陌客（${actionNode.seatId + 1}号）的被动干扰已激活，可被当作邪恶阵营/爪牙/恶魔。`;
+  const storytellerPrompt = `陌客（${actionNode.seatId + 1}号）的被动干扰已激活，可被当作邪恶阵营/爪牙/恶魔。`;
   const abilityLog = `陌客（${actionNode.seatId + 1}号）被动干扰已激活，可被当作邪恶阵营/爪牙/恶魔`;
 
   console.log(simLog);

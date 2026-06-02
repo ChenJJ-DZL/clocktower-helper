@@ -81,12 +81,12 @@
  * ============================================================
  */
 
+import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
-import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -134,8 +134,7 @@ const preCheckAliveAndStatus = async (
   }
 
   // 检查 statusEffects（兼容 seat 自身和 snapshot 顶层两种存储位置）
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -427,7 +426,9 @@ const postProcessResult = async (
       : `${seatId + 1}号`;
   };
 
-  const targetLabels = targetIds.map((id: number) => findLabel(id)).join(" 和 ");
+  const targetLabels = targetIds
+    .map((id: number) => findLabel(id))
+    .join(" 和 ");
   const resultDesc = result ? "有恶魔" : "没有恶魔";
 
   // 英文 simulation log
@@ -437,9 +438,9 @@ const postProcessResult = async (
 
   // 说书人提示词（点头 = 是，摇头 = 否）
   const storytellerPrompt =
-    `占卜师，请睁眼。你选择了 ${
-      targetIds.map((id: number) => `${id + 1}号`).join(" 和 ")
-    }。` +
+    `占卜师，请睁眼。你选择了 ${targetIds
+      .map((id: number) => `${id + 1}号`)
+      .join(" 和 ")}。` +
     (result
       ? "【点头】—— 这两名玩家之中有恶魔。"
       : "【摇头】—— 这两名玩家之中没有恶魔。");

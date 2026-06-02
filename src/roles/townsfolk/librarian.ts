@@ -33,7 +33,10 @@ export const librarian: RoleDefinition = {
     dialog: (playerSeatId, _isFirstNight, context) => {
       const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
-      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+      const isDisabled =
+        selfSeat &&
+        typeof isActorDisabledByPoisonOrDrunk === "function" &&
+        isActorDisabledByPoisonOrDrunk(selfSeat);
 
       const seatNo = playerSeatId + 1;
 
@@ -68,14 +71,16 @@ export const librarian: RoleDefinition = {
       if (outsiderCandidates.length === 0) {
         return {
           wake: `唤醒${seatNo}号【图书管理员】，告诉他场上没有外来者在场（手势 0）。`,
-          instruction: `（手势 0）`,
+          instruction: "（手势 0）",
           close: "",
         };
       }
 
       // 随机选一名真·外来者（或可当作外来者的玩家）
       const targetOutsider =
-        outsiderCandidates[Math.floor(Math.random() * outsiderCandidates.length)];
+        outsiderCandidates[
+          Math.floor(Math.random() * outsiderCandidates.length)
+        ];
 
       // 随机选一名干扰项（不能与目标相同，不能是自己）
       const decoyPool = otherSeats.filter((s) => s.id !== targetOutsider.id);
@@ -85,7 +90,10 @@ export const librarian: RoleDefinition = {
           : targetOutsider; // 兜底
 
       // 获取外来者的角色名称
-      const targetRoleName = targetOutsider.effectiveRole?.name ?? targetOutsider.role?.name ?? "外来者";
+      const targetRoleName =
+        targetOutsider.effectiveRole?.name ??
+        targetOutsider.role?.name ??
+        "外来者";
 
       // 随机打乱展示顺序
       const shuffled =

@@ -63,7 +63,7 @@ export const washerwoman: RoleDefinition = {
 
         return {
           wake: `唤醒${seatNo}号【洗衣妇】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,
-          instruction: `受干扰状态，信息可能不准确`,
+          instruction: "受干扰状态，信息可能不准确",
           close: "",
         };
       }
@@ -83,7 +83,7 @@ export const washerwoman: RoleDefinition = {
 
         return {
           wake: `唤醒${seatNo}号【洗衣妇】，告诉他${seat1No}号和${seat2No}号其中一位是【未知镇民】。`,
-          instruction: `（场上无镇民时的兜底处理）`,
+          instruction: "（场上无镇民时的兜底处理）",
           close: "",
         };
       }

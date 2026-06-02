@@ -100,8 +100,7 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -278,10 +277,7 @@ function countEvilNeighbors(
  *
  * 规则：给出一个看似合理的数字（0-2），可能与真实值不同。
  */
-function generateFakeEvilCount(
-  seats: PlayerLookup[],
-  selfIdx: number
-): number {
+function generateFakeEvilCount(seats: PlayerLookup[], selfIdx: number): number {
   const candidates: number[] = [];
   for (let v = 0; v <= 2; v++) {
     candidates.push(v);
@@ -420,11 +416,9 @@ const postProcessResult = async (
   const simLog = `[Empath]${tag} Evil neighbors: ${result}`;
 
   const selfSeatId = context.actionNode.seatId;
-  const storytellerPrompt =
-    `唤醒${selfSeatId + 1}号【共情者】，告诉他邻近邪恶玩家有 ${result} 名。`;
+  const storytellerPrompt = `唤醒${selfSeatId + 1}号【共情者】，告诉他邻近邪恶玩家有 ${result} 名。`;
 
-  const abilityLog =
-    `共情者${tag}获得信息：你的邻座中有 ${result} 名邪恶玩家`;
+  const abilityLog = `共情者${tag}获得信息：你的邻座中有 ${result} 名邪恶玩家`;
 
   console.log(simLog);
 

@@ -120,8 +120,7 @@ const preCheckAliveAndStatus = async (
   }
 
   // 检查 statusEffects（兼容 seat 自身和 snapshot 顶层两种存储位置）
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -236,10 +235,7 @@ function resolveRecluseForChef(
  * 一致性保证：使用 meta 缓存首次判定结果。
  * 返回 true 表示「被当作善良，不记为邪恶」。
  */
-function resolveSpyForChef(
-  seatId: number,
-  meta: Record<string, any>
-): boolean {
+function resolveSpyForChef(seatId: number, meta: Record<string, any>): boolean {
   const key = `chef_spy_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
@@ -471,8 +467,7 @@ const postProcessResult = async (
   const selfSeatId = context.actionNode.seatId;
 
   // 说书人提示词（用手势比划数字）
-  const storytellerPrompt =
-    `唤醒${selfSeatId + 1}号【厨师】，告诉他相邻邪恶玩家有 ${result} 对。`;
+  const storytellerPrompt = `唤醒${selfSeatId + 1}号【厨师】，告诉他相邻邪恶玩家有 ${result} 对。`;
 
   // 中文游戏日志
   const abilityLog =

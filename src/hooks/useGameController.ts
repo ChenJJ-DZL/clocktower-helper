@@ -3,10 +3,20 @@
 
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { groupedRoles, type Role, roles, type Seat, scripts } from "../../app/data";
+import {
+  groupedRoles,
+  type Role,
+  roles,
+  type Seat,
+  scripts,
+} from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
+import {
+  executeNightAbility,
+  validateGameStateConsistency,
+} from "../utils/abilityExecutor";
 import {
   addPoisonMark,
   computeIsPoisoned,
@@ -20,7 +30,6 @@ import {
   isGoodAlignment,
 } from "../utils/gameRules";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
-import { executeNightAbility, validateGameStateConsistency } from "../utils/abilityExecutor";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -585,7 +594,10 @@ export function useGameController() {
         autoRedHerringInfo: snap.autoRedHerringInfo ?? null,
         dayAbilityLogs: snap.dayAbilityLogs || [],
         nominationMap: snap.nominationMap || {},
-        nominationRecords: snap.nominationRecords || { nominators: [], nominees: [] },
+        nominationRecords: snap.nominationRecords || {
+          nominators: [],
+          nominees: [],
+        },
         mastermindFinalDay: snap.mastermindFinalDay ?? null,
         remainingDays: snap.remainingDays ?? null,
         goonDrunkedThisNight: snap.goonDrunkedThisNight ?? false,
@@ -936,7 +948,7 @@ export function useGameController() {
 
   const interactionHandlers = useInteractionHandler({
     getRoleTargetCount,
-    handleConfirmActionImpl: (selectedTargets?: number[]) => {
+    handleConfirmActionImpl: async (selectedTargets?: number[]) => {
       // 保存历史快照，用于"上一步"撤销
       saveHistory();
 
@@ -944,7 +956,7 @@ export function useGameController() {
 
       // 有目标的角色：第一次点击预览行动结果，第二次点击才推进
       if (hasTargets && !nightPreviewConfirmedRef.current) {
-        const report = executeNightAbility(
+        const report = await executeNightAbility(
           (ctx) => nightActionHandler.handleNightAction(ctx),
           {
             nightInfo,
@@ -971,7 +983,7 @@ export function useGameController() {
         );
         // 如果前置校验阻止了执行，跳过并推进到下一个行动
         if (report.preCheck.blocked) {
-          addLog(`[系统] ${report.preCheck.reason || '能力被跳过'}`);
+          addLog(`[系统] ${report.preCheck.reason || "能力被跳过"}`);
           nightPreviewConfirmedRef.current = false;
           continueToNextAction();
           return;
@@ -981,7 +993,7 @@ export function useGameController() {
       }
 
       // 第二次点击或无目标角色：正常处理并推进
-      const report = executeNightAbility(
+      const report = await executeNightAbility(
         (ctx) => nightActionHandler.handleNightAction(ctx),
         {
           nightInfo,
@@ -1014,7 +1026,10 @@ export function useGameController() {
       if (process.env.NODE_ENV === "development") {
         const violations = validateGameStateConsistency(seats);
         if (violations.length > 0) {
-          console.warn(`[GameState] 能力执行后状态不一致 (${report.roleId}):`, violations);
+          console.warn(
+            `[GameState] 能力执行后状态不一致 (${report.roleId}):`,
+            violations
+          );
         }
       }
     },
@@ -1384,7 +1399,14 @@ export function useGameController() {
       console.log("[GameController] 安全网：nightInfo为空，自动推进到下一步");
       continueToNextAction();
     }
-  }, [gamePhase, currentWakeIndex, wakeQueueIds, nightInfo, currentModal, continueToNextAction]);
+  }, [
+    gamePhase,
+    currentWakeIndex,
+    wakeQueueIds,
+    nightInfo,
+    currentModal,
+    continueToNextAction,
+  ]);
 
   return useMemo(
     () => ({

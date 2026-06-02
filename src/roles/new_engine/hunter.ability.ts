@@ -97,8 +97,7 @@ const preCheckDeathAndStatus = async (
     };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -142,9 +141,7 @@ const calculateResult = async (
       targetSeatId = targetIds[0];
     }
   } else if (abilityEffective && targetIds?.[0] !== undefined) {
-    const targetSeat = snapshot.seats.find(
-      (s: any) => s.id === targetIds[0]
-    );
+    const targetSeat = snapshot.seats.find((s: any) => s.id === targetIds[0]);
     if (targetSeat && targetSeat.isAlive) {
       targetSeatId = targetIds[0];
       targetDies = true;
@@ -194,7 +191,11 @@ const stateUpdateResult = async (
     if (seat.id === selfSeatId) {
       return { ...seat, abilityUsed: true };
     }
-    if (result.targetDies && result.targetSeatId !== undefined && seat.id === result.targetSeatId) {
+    if (
+      result.targetDies &&
+      result.targetSeatId !== undefined &&
+      seat.id === result.targetSeatId
+    ) {
       return {
         ...seat,
         isAlive: false,
@@ -273,19 +274,14 @@ const postProcessResult = async (
 
   if (result.targetDies && result.targetSeatId !== undefined) {
     const targetLabel = findLabel(result.targetSeatId);
-    simLog =
-      `[Hunter]${tag} ${selfLabel} killed at night → revenge kill: ${targetLabel}`;
-    storytellerPrompt =
-      `猎手在夜晚死亡！请选择一名玩家与你一同死去。你选择了 ${result.targetSeatId + 1} 号。`;
-    abilityLog =
-      `猎手${tag}在夜晚死亡，带走了${targetLabel}`;
+    simLog = `[Hunter]${tag} ${selfLabel} killed at night → revenge kill: ${targetLabel}`;
+    storytellerPrompt = `猎手在夜晚死亡！请选择一名玩家与你一同死去。你选择了 ${result.targetSeatId + 1} 号。`;
+    abilityLog = `猎手${tag}在夜晚死亡，带走了${targetLabel}`;
   } else {
-    simLog =
-      `[Hunter]${tag} ${selfLabel} killed at night → no revenge kill (no target / ineffective)`;
+    simLog = `[Hunter]${tag} ${selfLabel} killed at night → no revenge kill (no target / ineffective)`;
     storytellerPrompt =
-      `猎手在夜晚死亡，但未能带走任何人（能力无效或无目标）。`;
-    abilityLog =
-      `猎手${tag}在夜晚死亡，但未能带走任何人`;
+      "猎手在夜晚死亡，但未能带走任何人（能力无效或无目标）。";
+    abilityLog = `猎手${tag}在夜晚死亡，但未能带走任何人`;
   }
 
   console.log(simLog);

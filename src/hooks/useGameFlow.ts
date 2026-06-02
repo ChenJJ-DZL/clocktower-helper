@@ -463,7 +463,11 @@ export function useGameFlow(): UseGameFlowResult {
                     gameActions.updateState({
                       seats: seats.map((s) =>
                         s.id === selectedIds[0]
-                          ? { ...s, isRedHerring: true, isFortuneTellerRedHerring: true }
+                          ? {
+                              ...s,
+                              isRedHerring: true,
+                              isFortuneTellerRedHerring: true,
+                            }
                           : s
                       ),
                     })

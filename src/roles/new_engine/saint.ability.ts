@@ -198,8 +198,7 @@ const postProcessResult = async (
   const simLog = `[Saint] Seat ${actionNode.seatId} executed — Evil wins!`;
 
   // 说书人提示词
-  const storytellerPrompt =
-    `圣徒（${actionNode.seatId + 1}号）被处决，邪恶阵营获胜！游戏结束。`;
+  const storytellerPrompt = `圣徒（${actionNode.seatId + 1}号）被处决，邪恶阵营获胜！游戏结束。`;
 
   // 中文游戏日志
   const abilityLog = `圣徒（${actionNode.seatId + 1}号）被处决，邪恶阵营获胜`;

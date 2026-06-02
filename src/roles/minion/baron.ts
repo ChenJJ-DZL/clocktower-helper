@@ -24,8 +24,14 @@ export const baron: RoleDefinition = {
       let minionInfo = "无其他爪牙";
       if (context?.seats) {
         const sorted = [...context.seats].sort((a: any, b: any) => a.id - b.id);
-        const demonNos = sorted.filter((s: any) => s.role?.type === "demon").map((s: any) => `${s.id + 1}号`);
-        const minionNos = sorted.filter((s: any) => s.role?.type === "minion" && s.id !== playerSeatId).map((s: any) => `${s.id + 1}号`);
+        const demonNos = sorted
+          .filter((s: any) => s.role?.type === "demon")
+          .map((s: any) => `${s.id + 1}号`);
+        const minionNos = sorted
+          .filter(
+            (s: any) => s.role?.type === "minion" && s.id !== playerSeatId
+          )
+          .map((s: any) => `${s.id + 1}号`);
         if (demonNos.length) demonInfo = demonNos.join("、");
         if (minionNos.length) minionInfo = minionNos.join("、");
       }

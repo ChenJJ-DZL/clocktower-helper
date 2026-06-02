@@ -30,8 +30,14 @@ export const scarlet_woman: RoleDefinition = {
       const minionSeats = sorted.filter(
         (s: any) => s.role?.type === "minion" && s.id !== playerSeatId
       );
-      const demonText = demonSeats.length > 0 ? `${demonSeats.map((s: any) => `${s.id + 1}号`).join("、")}` : "无";
-      const minionText = minionSeats.length > 0 ? `${minionSeats.map((s: any) => `${s.id + 1}号`).join("、")}` : "无";
+      const demonText =
+        demonSeats.length > 0
+          ? `${demonSeats.map((s: any) => `${s.id + 1}号`).join("、")}`
+          : "无";
+      const minionText =
+        minionSeats.length > 0
+          ? `${minionSeats.map((s: any) => `${s.id + 1}号`).join("、")}`
+          : "无";
       return {
         wake: `唤醒${seatNo}号【红唇女郎】，告知恶魔及爪牙座位号：恶魔 ${demonText}，爪牙 ${minionText}。`,
         instruction: "",

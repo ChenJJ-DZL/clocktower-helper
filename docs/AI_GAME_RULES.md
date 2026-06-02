@@ -1,5 +1,6 @@
 # 血染钟楼 · AI规则速查手册
 # Roocode修复代码时必须遵守本文档，优先级高于AI自身训练数据
+# ⚠️ 最后更新：2026-06-02 — 更新了 Jinx 状态、文件引用
 
 ## 核心机制
 
@@ -33,15 +34,20 @@
 - 假死状态：UI显示死亡，但夜晚仍唤醒，游戏不结束
 - 第2次死亡=真死，游戏结束
 - 中毒/醉酒时死亡=直接真死
-- 代码参考：docs/roles/zombuul_logic.md
+- 代码参考：`src/roles/new_engine/zombuul.ability.ts`
 
 ### 主谋 (Mastermind)
 - 恶魔被处决后，次日平安则邪恶胜利
-- 实现文件：app/gameLogic.ts checkGameEnd()
+- 实现文件：`app/gameLogic.ts` checkGameEnd()
 
-### 相克规则 (Jinx) ⚠️
-- 当前实现严重不完整，见规则漏洞.md
-- 修复时参考 json/相克规则.json
+### 相克规则 (Jinx) ⚠️ — 已实现基础系统
+- 文件位置：
+  - `src/utils/JinxManager.ts` — Jinx 管理器
+  - `src/utils/jinxUtils.ts` — Jinx 工具函数
+  - `src/data/jinxes.json` — Jinx 规则数据
+  - `src/data/jinxes_raw.txt` — 原始 Jinx 数据
+- 当前状态：基础架构已实现，具体规则绑定可能需要进一步完善
+- 修复时参考 `json/相克规则.json`
 - 禁止在未实现Jinx的情况下声称功能完整
 
 ## 禁止破坏的已稳定功能

@@ -22,14 +22,24 @@ export const undertaker: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats = [], isActorDisabledByPoisonOrDrunk = () => false } = context;
+      const { seats = [], isActorDisabledByPoisonOrDrunk = () => false } =
+        context;
       const selfSeat = seats.find((s: any) => s.id === playerSeatId);
-      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+      const isDisabled =
+        selfSeat &&
+        typeof isActorDisabledByPoisonOrDrunk === "function" &&
+        isActorDisabledByPoisonOrDrunk(selfSeat);
       let roleName: string;
 
       if (isDisabled) {
-        const otherRoles = seats.filter((s: any) => s.role && s.id !== playerSeatId).map((s: any) => s.role?.name).filter(Boolean);
-        roleName = otherRoles.length > 0 ? otherRoles[Math.floor(Math.random() * otherRoles.length)] : "未知角色";
+        const otherRoles = seats
+          .filter((s: any) => s.role && s.id !== playerSeatId)
+          .map((s: any) => s.role?.name)
+          .filter(Boolean);
+        roleName =
+          otherRoles.length > 0
+            ? otherRoles[Math.floor(Math.random() * otherRoles.length)]
+            : "未知角色";
       } else {
         const executedSeat = seats?.find((s: any) => s.executedToday);
         roleName = executedSeat?.role?.name ?? "未知角色";

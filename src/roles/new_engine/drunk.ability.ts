@@ -175,14 +175,16 @@ function selectFakeRole(
 ): { id: string; name: string; type: string } {
   // 优先级 1：说书人指定
   if (storytellerInput?.fakeRole) {
-    return storytellerInput.fakeRole as { id: string; name: string; type: string };
+    return storytellerInput.fakeRole as {
+      id: string;
+      name: string;
+      type: string;
+    };
   }
 
   // 收集在场镇民角色（排除酒鬼自己）
   const presentTownsfolk = seats.filter(
-    (s: PlayerLookup) =>
-      s.id !== drunkSeatId &&
-      s.role?.type === "townsfolk"
+    (s: PlayerLookup) => s.id !== drunkSeatId && s.role?.type === "townsfolk"
   );
 
   if (presentTownsfolk.length === 0) {
@@ -192,7 +194,8 @@ function selectFakeRole(
 
   // 随机选一个在场镇民的角色名作为 fakeRole
   // （规则：酒鬼以为自己是场上的某个镇民角色）
-  const randomSeat = presentTownsfolk[Math.floor(Math.random() * presentTownsfolk.length)];
+  const randomSeat =
+    presentTownsfolk[Math.floor(Math.random() * presentTownsfolk.length)];
   return {
     id: randomSeat.role!.id,
     name: randomSeat.role!.name,
@@ -251,7 +254,9 @@ const applyDrunkSetup = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, actionNode } = context;
-  const fakeRole = meta.fakeRole as { id: string; name: string; type: string } | undefined;
+  const fakeRole = meta.fakeRole as
+    | { id: string; name: string; type: string }
+    | undefined;
 
   if (!fakeRole) {
     return context;
@@ -302,7 +307,9 @@ const postProcessResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { meta, actionNode } = context;
-  const fakeRole = meta.fakeRole as { id: string; name: string; type: string } | undefined;
+  const fakeRole = meta.fakeRole as
+    | { id: string; name: string; type: string }
+    | undefined;
 
   if (!fakeRole) return context;
 
@@ -316,12 +323,12 @@ const postProcessResult = async (
   // 说书人提示词
   const storytellerPrompt = applied
     ? `酒鬼（${actionNode.seatId + 1}号）已设置：他以为自己是【${fakeRole.name}】。他已永久醉酒。`
-    : ``;
+    : "";
 
   // 中文游戏日志
   const abilityLog = applied
     ? `酒鬼（${actionNode.seatId + 1}号）已配置 fakeRole = ${fakeRole.name}，永久醉酒`
-    : `酒鬼未设置`;
+    : "酒鬼未设置";
 
   console.log(simLog);
 
@@ -359,7 +366,10 @@ export const drunkAbility = createRoleAbility({
    * - FIRST_NIGHT：首夜说书人配置 fakeRole（设置阶段也用此触发器）
    * - PASSIVE：认知覆盖效果全局永久生效
    */
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.PASSIVE],
+  triggerTiming: [
+    AbilityTriggerTiming.FIRST_NIGHT,
+    AbilityTriggerTiming.PASSIVE,
+  ],
   /**
    * 唤醒优先级（越小越先唤醒）
    * 首夜设置在 info 角色之后（wakePriority 80 很晚），

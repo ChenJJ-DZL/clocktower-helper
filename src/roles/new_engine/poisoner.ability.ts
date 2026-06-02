@@ -109,8 +109,7 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -277,8 +276,7 @@ const stateUpdateResult = async (
       if (seat.id === targetId) {
         const currentEffects = seat.statusEffects ?? [];
         const filteredEffects = currentEffects.filter(
-          (e: any) =>
-            !(e.type === "poisoned" && e.source === "poisoner")
+          (e: any) => !(e.type === "poisoned" && e.source === "poisoner")
         );
         return {
           ...seat,

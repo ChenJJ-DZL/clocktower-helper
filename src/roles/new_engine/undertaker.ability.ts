@@ -91,8 +91,7 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -267,7 +266,10 @@ const calculateResult = async (
           ...context.meta,
           abilityResult: {
             executedSeatId: preset.executedSeatId,
-            roleName: generateFakeRoleName(preset.executedSeatId, snapshot.seats),
+            roleName: generateFakeRoleName(
+              preset.executedSeatId,
+              snapshot.seats
+            ),
           } as UndertakerInfo,
           isCorrupted: true,
         },
@@ -388,12 +390,10 @@ const postProcessResult = async (
   const selfSeatId = context.actionNode.seatId;
 
   // 说书人提示词
-  const storytellerPrompt =
-    `唤醒${selfSeatId + 1}号【送葬者】，告诉他上一个白天被处决的玩家是${result.roleName}。`;
+  const storytellerPrompt = `唤醒${selfSeatId + 1}号【送葬者】，告诉他上一个白天被处决的玩家是${result.roleName}。`;
 
   // 中文日志
-  const abilityLog =
-    `送葬者${tag}得知：今天被处决的 ${label} 的角色是【${result.roleName}】`;
+  const abilityLog = `送葬者${tag}得知：今天被处决的 ${label} 的角色是【${result.roleName}】`;
 
   console.log(simLog);
 

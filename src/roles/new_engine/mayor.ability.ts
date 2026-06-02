@@ -97,8 +97,7 @@ const preCheckAliveAndStatus = async (
     };
   }
 
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -141,9 +140,7 @@ const calculateResult = async (
       substituteSeatId = targetIds[0];
     }
   } else if (abilityEffective && targetIds?.[0] !== undefined) {
-    const targetSeat = snapshot.seats.find(
-      (s: any) => s.id === targetIds[0]
-    );
+    const targetSeat = snapshot.seats.find((s: any) => s.id === targetIds[0]);
     if (targetSeat && targetSeat.isAlive) {
       substituteSeatId = targetIds[0];
       substitutionHappens = true;
@@ -284,14 +281,12 @@ const postProcessResult = async (
 
   if (result.substitutionHappens && result.substituteSeatId !== undefined) {
     const subLabel = findLabel(result.substituteSeatId);
-    simLog =
-      `[Mayor]${tag} ${selfLabel} → substitution: ${subLabel} dies instead`;
-    storytellerPrompt =
-      `镇长本该死亡，但替死能力触发！${result.substituteSeatId + 1} 号玩家代替镇长死亡。`;
+    simLog = `[Mayor]${tag} ${selfLabel} → substitution: ${subLabel} dies instead`;
+    storytellerPrompt = `镇长本该死亡，但替死能力触发！${result.substituteSeatId + 1} 号玩家代替镇长死亡。`;
     abilityLog = `镇长${tag}本该死亡，${subLabel}代替镇长死亡`;
   } else {
     simLog = `[Mayor]${tag} ${selfLabel} no substitution (ability ineffective or no target)`;
-    storytellerPrompt = `镇长替死能力未触发，镇长正常死亡。`;
+    storytellerPrompt = "镇长替死能力未触发，镇长正常死亡。";
     abilityLog = `镇长${tag}替死能力未触发`;
   }
 

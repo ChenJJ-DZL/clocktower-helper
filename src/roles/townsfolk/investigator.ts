@@ -33,7 +33,10 @@ export const investigator: RoleDefinition = {
     dialog: (playerSeatId, _isFirstNight, context) => {
       const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
-      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function" && isActorDisabledByPoisonOrDrunk(selfSeat);
+      const isDisabled =
+        selfSeat &&
+        typeof isActorDisabledByPoisonOrDrunk === "function" &&
+        isActorDisabledByPoisonOrDrunk(selfSeat);
 
       const seatNo = playerSeatId + 1;
 
@@ -46,7 +49,10 @@ export const investigator: RoleDefinition = {
         const seat1No = seat1 ? seat1.id + 1 : "?";
         const seat2No = seat2 ? seat2.id + 1 : "?";
         const minions = seats.filter((s) => s.role?.type === "minion");
-        const fakeRole = minions.length > 0 ? minions[Math.floor(Math.random() * minions.length)].role : null;
+        const fakeRole =
+          minions.length > 0
+            ? minions[Math.floor(Math.random() * minions.length)].role
+            : null;
         const fakeRoleName = fakeRole?.name || "投毒者";
         return {
           wake: `唤醒${seatNo}号【调查员】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,
@@ -68,7 +74,7 @@ export const investigator: RoleDefinition = {
       if (minionCandidates.length === 0) {
         return {
           wake: `唤醒${seatNo}号【调查员】，告诉他场上没有爪牙在场（手势 0）。`,
-          instruction: `（手势 0）`,
+          instruction: "（手势 0）",
           close: "",
         };
       }
@@ -85,7 +91,8 @@ export const investigator: RoleDefinition = {
           : targetMinion; // 兜底
 
       // 获取爪牙的角色名称（使用 effectiveRole 以防酒鬼）
-      const targetRoleName = targetMinion.effectiveRole?.name ?? targetMinion.role?.name ?? "爪牙";
+      const targetRoleName =
+        targetMinion.effectiveRole?.name ?? targetMinion.role?.name ?? "爪牙";
 
       // 随机打乱展示顺序
       const shuffled =

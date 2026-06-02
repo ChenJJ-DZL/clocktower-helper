@@ -38,7 +38,8 @@ export const ravenkeeper: RoleDefinition = {
       if (targets.length === 0) return null;
       const targetId = targets[0];
       const targetSeat = seats?.find((s: any) => s.id === targetId);
-      const targetRoleName = targetSeat?.effectiveRole?.name ?? targetSeat?.role?.name ?? "未知角色";
+      const targetRoleName =
+        targetSeat?.effectiveRole?.name ?? targetSeat?.role?.name ?? "未知角色";
       return {
         updates: [],
         logs: {

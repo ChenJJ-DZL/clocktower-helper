@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Role, type Seat, roles, typeColors } from "../../../app/data";
+import { type Role, roles, type Seat, typeColors } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
@@ -674,20 +674,45 @@ export const GameStage = () => {
               {pendingVoteFor !== null ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-green-400 text-sm">
-                    <span className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold">✓</span>
+                    <span className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold">
+                      ✓
+                    </span>
                     <span className="font-bold">提名发起成功</span>
-                    <span className="text-gray-400">({lastNominator !== null ? `${lastNominator + 1}号` : ""} 提名了 {pendingVoteFor + 1}号)</span>
+                    <span className="text-gray-400">
+                      ({lastNominator !== null ? `${lastNominator + 1}号` : ""}{" "}
+                      提名了 {pendingVoteFor + 1}号)
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-yellow-400 text-sm">
-                    <span className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs font-bold">1</span>
-                    <span>让 <strong className="text-white">{lastNominator !== null ? `${lastNominator + 1}号` : "提名者"}</strong> 说明提名理由</span>
+                    <span className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs font-bold">
+                      1
+                    </span>
+                    <span>
+                      让{" "}
+                      <strong className="text-white">
+                        {lastNominator !== null
+                          ? `${lastNominator + 1}号`
+                          : "提名者"}
+                      </strong>{" "}
+                      说明提名理由
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-yellow-400 text-sm">
-                    <span className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs font-bold">2</span>
-                    <span>让 <strong className="text-white">{pendingVoteFor + 1}号</strong> 进行辩护</span>
+                    <span className="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center text-xs font-bold">
+                      2
+                    </span>
+                    <span>
+                      让{" "}
+                      <strong className="text-white">
+                        {pendingVoteFor + 1}号
+                      </strong>{" "}
+                      进行辩护
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-blue-400 text-sm">
-                    <span className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold">3</span>
+                    <span className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold">
+                      3
+                    </span>
                     <span>点击下方「开始投票」进行投票计数</span>
                   </div>
                 </div>
@@ -1046,166 +1071,173 @@ export const GameStage = () => {
         }
         rightPanel={
           <GameConsole
-              gamePhase={gamePhase}
-              nightCount={nightCount}
-              currentStep={currentWakeIndex + 1}
-              totalSteps={(wakeQueueIds || []).length}
-              wakeQueueIds={wakeQueueIds}
-              scriptText={
-                nightInfo?.speak ||
-                (gamePhase === "day"
-                  ? "白天讨论阶段"
-                  : (gamePhase as string) === "dusk"
-                    ? "黄昏处决阶段"
-                    : undefined)
+            gamePhase={gamePhase}
+            nightCount={nightCount}
+            currentStep={currentWakeIndex + 1}
+            totalSteps={(wakeQueueIds || []).length}
+            wakeQueueIds={wakeQueueIds}
+            scriptText={
+              nightInfo?.speak ||
+              (gamePhase === "day"
+                ? "白天讨论阶段"
+                : (gamePhase as string) === "dusk"
+                  ? "黄昏处决阶段"
+                  : undefined)
+            }
+            guidancePoints={guidancePoints}
+            selectedPlayers={selectedActionTargets}
+            seats={seats}
+            nightInfo={nightInfo}
+            inspectionResult={inspectionResult}
+            inspectionResultKey={inspectionResultKey}
+            onTogglePlayer={toggleTarget}
+            handleDayAbility={controller.handleDayAbility}
+            onRefreshNightStep={() => {
+              if (
+                controller.refreshSnapshot &&
+                (gamePhase === "firstNight" || gamePhase === "night")
+              ) {
+                controller.refreshSnapshot(seats, gamePhase);
               }
-              guidancePoints={guidancePoints}
-              selectedPlayers={selectedActionTargets}
-              seats={seats}
-              nightInfo={nightInfo}
-              inspectionResult={inspectionResult}
-              inspectionResultKey={inspectionResultKey}
-              onTogglePlayer={toggleTarget}
-              handleDayAbility={controller.handleDayAbility}
-              onRefreshNightStep={() => {
-                if (
-                  controller.refreshSnapshot &&
-                  (gamePhase === "firstNight" || gamePhase === "night")
-                ) {
-                  controller.refreshSnapshot(seats, gamePhase);
-                }
-              }}
-              primaryAction={
-                gamePhase === "firstNight" || gamePhase === "night"
-                  ? (() => {
-                      // CRITICAL FIX: Handle empty wake queue or last step
-                      const isEmpty = wakeQueueIds.length === 0;
-                      const isLastStep =
-                        !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
+            }}
+            primaryAction={
+              gamePhase === "firstNight" || gamePhase === "night"
+                ? (() => {
+                    // CRITICAL FIX: Handle empty wake queue or last step
+                    const isEmpty = wakeQueueIds.length === 0;
+                    const isLastStep =
+                      !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
 
-                      if (isEmpty || isLastStep) {
-                        // Explicit "Enter Day" button for empty queue or dawn step
-                        return {
-                          label: "🌞 天亮了 - 进入白天",
-                          onClick: () => {
-                            console.log(
-                              "🌞 [UI] Manual override to Day - Empty queue or dawn step"
-                            );
-                            // Call continueToNextAction which will show death report and transition
-                            controller.continueToNextAction();
-                          },
-                          disabled: !!controller.currentModal, // Disable if modal is open
-                          variant: "warning" as const,
-                        };
-                      }
-
-                      // 间谍环节：显示"展开对局记录"，点击后弹窗关闭时自动推进
-                      const isSpyTurn = nightInfo?.effectiveRole?.id === "spy";
-                      if (isSpyTurn && !controller.currentModal) {
-                        return {
-                          label: "展开对局记录",
-                          onClick: handleConfirmAction,
-                          disabled: isConfirmDisabled,
-                          variant: "primary" as const,
-                        };
-                      }
-
-                      // 预览确认阶段：显示"确认结果 & 下一步"
-                      if (controller.nightPreviewConfirmed) {
-                        return {
-                          label: "确认结果 & 下一步",
-                          onClick: handleConfirmAction,
-                          disabled: isConfirmDisabled || !!controller.currentModal,
-                          variant: "success" as const,
-                        };
-                      }
-
-                      // Normal "Next" button for night steps
+                    if (isEmpty || isLastStep) {
+                      // Explicit "Enter Day" button for empty queue or dawn step
                       return {
-                        label: "确认 & 下一步",
+                        label: "🌞 天亮了 - 进入白天",
+                        onClick: () => {
+                          console.log(
+                            "🌞 [UI] Manual override to Day - Empty queue or dawn step"
+                          );
+                          // Call continueToNextAction which will show death report and transition
+                          controller.continueToNextAction();
+                        },
+                        disabled: !!controller.currentModal, // Disable if modal is open
+                        variant: "warning" as const,
+                      };
+                    }
+
+                    // 间谍环节：显示"展开对局记录"，点击后弹窗关闭时自动推进
+                    const isSpyTurn = nightInfo?.effectiveRole?.id === "spy";
+                    if (isSpyTurn && !controller.currentModal) {
+                      return {
+                        label: "展开对局记录",
                         onClick: handleConfirmAction,
-                        disabled: isConfirmDisabled || !!controller.currentModal, // Disable if modal is open
+                        disabled: isConfirmDisabled,
                         variant: "primary" as const,
                       };
-                    })()
-                  : gamePhase === "check"
-                    ? (() => {
-                        const drunkSeat = seats.find(
-                          (s: any) => s.role?.id === "drunk" && !s.charadeRole
-                        );
-                        if (drunkSeat) {
-                          const currentScriptRoleIds = selectedScript?.roleIds || [];
-                          const seenIds = new Set<string>();
-                          const currentScriptRoles = roles.filter((role: Role) => {
-                            if (!currentScriptRoleIds.includes(role.id)) return false;
+                    }
+
+                    // 预览确认阶段：显示"确认结果 & 下一步"
+                    if (controller.nightPreviewConfirmed) {
+                      return {
+                        label: "确认结果 & 下一步",
+                        onClick: handleConfirmAction,
+                        disabled:
+                          isConfirmDisabled || !!controller.currentModal,
+                        variant: "success" as const,
+                      };
+                    }
+
+                    // Normal "Next" button for night steps
+                    return {
+                      label: "确认 & 下一步",
+                      onClick: handleConfirmAction,
+                      disabled: isConfirmDisabled || !!controller.currentModal, // Disable if modal is open
+                      variant: "primary" as const,
+                    };
+                  })()
+                : gamePhase === "check"
+                  ? (() => {
+                      const drunkSeat = seats.find(
+                        (s: any) => s.role?.id === "drunk" && !s.charadeRole
+                      );
+                      if (drunkSeat) {
+                        const currentScriptRoleIds =
+                          selectedScript?.roleIds || [];
+                        const seenIds = new Set<string>();
+                        const currentScriptRoles = roles.filter(
+                          (role: Role) => {
+                            if (!currentScriptRoleIds.includes(role.id))
+                              return false;
                             if (seenIds.has(role.id)) return false;
                             seenIds.add(role.id);
                             return true;
-                          });
-                          const availableCharades = currentScriptRoles.filter(
-                            (role: Role) =>
-                              role.type === "townsfolk" &&
-                              !role.hidden &&
-                              !seats.some((s: any) => s.role?.id === role.id)
-                          );
-                          return {
-                            label: "🎭 设置酒鬼身份",
-                            onClick: () => {
-                              setCurrentModal({
-                                type: "DRUNK_CHARADE_SELECT",
-                                data: {
-                                  seatId: drunkSeat.id,
-                                  availableRoles: availableCharades,
-                                  scriptId: selectedScript?.id || "default",
-                                },
-                              });
-                            },
-                            disabled: false,
-                            variant: "primary" as const,
-                          };
-                        }
+                          }
+                        );
+                        const availableCharades = currentScriptRoles.filter(
+                          (role: Role) =>
+                            role.type === "townsfolk" &&
+                            !role.hidden &&
+                            !seats.some((s: any) => s.role?.id === role.id)
+                        );
                         return {
-                          label: "确认无误，入夜 🌙",
+                          label: "🎭 设置酒鬼身份",
                           onClick: () => {
-                            console.log("🖱️ [UI] User clicked 'Enter Night'");
-                            if (controller.proceedToFirstNight) {
-                              controller.proceedToFirstNight();
-                            } else {
-                              console.error(
-                                "[GameStage] proceedToFirstNight not available on controller"
-                              );
-                              alert("游戏状态错误：无法开始夜晚。请刷新页面重试。");
-                            }
-                          },
-                          disabled: isConfirmDisabled,
-                          variant: "success" as const,
-                        };
-                      })()
-                    : gamePhase === "day"
-                      ? {
-                          label: "进入黄昏处决阶段",
-                          onClick: () => {
-                            console.log(
-                              "[GameStage] Day phase primary action -> handleDayEndTransition"
-                            );
-                            handleDayEndTransition();
+                            setCurrentModal({
+                              type: "DRUNK_CHARADE_SELECT",
+                              data: {
+                                seatId: drunkSeat.id,
+                                availableRoles: availableCharades,
+                                scriptId: selectedScript?.id || "default",
+                              },
+                            });
                           },
                           disabled: false,
                           variant: "primary" as const,
-                        }
-                      : gamePhase === "setup"
-                        ? {
-                            label: "确认 & 下一步",
-                            onClick: () => {
-                              console.log(
-                                "[GameStage] Setup phase primary action -> Clear selectedRole"
-                              );
-                              setSelectedRole(null);
-                            },
-                            disabled: !selectedRole,
-                            variant: "primary" as const,
+                        };
+                      }
+                      return {
+                        label: "确认无误，入夜 🌙",
+                        onClick: () => {
+                          console.log("🖱️ [UI] User clicked 'Enter Night'");
+                          if (controller.proceedToFirstNight) {
+                            controller.proceedToFirstNight();
+                          } else {
+                            console.error(
+                              "[GameStage] proceedToFirstNight not available on controller"
+                            );
+                            alert(
+                              "游戏状态错误：无法开始夜晚。请刷新页面重试。"
+                            );
                           }
-                        : undefined
+                        },
+                        disabled: isConfirmDisabled,
+                        variant: "success" as const,
+                      };
+                    })()
+                  : gamePhase === "day"
+                    ? {
+                        label: "进入黄昏处决阶段",
+                        onClick: () => {
+                          console.log(
+                            "[GameStage] Day phase primary action -> handleDayEndTransition"
+                          );
+                          handleDayEndTransition();
+                        },
+                        disabled: false,
+                        variant: "primary" as const,
+                      }
+                    : gamePhase === "setup"
+                      ? {
+                          label: "确认 & 下一步",
+                          onClick: () => {
+                            console.log(
+                              "[GameStage] Setup phase primary action -> Clear selectedRole"
+                            );
+                            setSelectedRole(null);
+                          },
+                          disabled: !selectedRole,
+                          variant: "primary" as const,
+                        }
+                      : undefined
             }
             secondaryActions={
               gamePhase === "firstNight" || gamePhase === "night"

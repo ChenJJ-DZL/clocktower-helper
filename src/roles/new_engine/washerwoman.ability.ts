@@ -97,8 +97,7 @@ const preCheckAliveAndStatus = async (
   }
 
   // 从 seat.statusEffects 或 snapshot.statusEffects 中读取状态
-  const effects =
-    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
   const isDrunk = effects.some((e: any) => e.type === "drunk");
   const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
@@ -454,8 +453,7 @@ const postProcessResult = async (
 
   // 说书人提示词（使用 +1 显示给玩家看的座位号）
   const selfSeatId = context.actionNode.seatId;
-  const storytellerPrompt =
-    `唤醒${selfSeatId + 1}号【洗衣妇】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
+  const storytellerPrompt = `唤醒${selfSeatId + 1}号【洗衣妇】，告诉他${result.seat1 + 1}号和${result.seat2 + 1}号其中一位是【${result.roleName}】。`;
 
   // 中文日志（供游戏日志系统使用）
   const abilityLog = `洗衣妇${tag}获得信息：${label1}和${label2}之中有一名是【${result.roleName}】`;

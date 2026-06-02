@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { useGameActions } from "../../contexts/GameActionsContext";
 import type { GameState } from "../../contexts/GameContext";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameState } from "../../hooks/useGameState";
-import { useGameActions } from "../../contexts/GameActionsContext";
 import { useHistoryController } from "../../hooks/useHistoryController";
 import {
   clearCurrentSnapshot,
@@ -87,7 +87,15 @@ export function GlobalNavBar() {
     dispatch(gameActions.setGameRecords(updatedRecords));
 
     dispatch(gameActions.setGamePhase("scriptSelection"));
-  }, [saveHistory, dispatch, state, selectedScript, seats, gameLogs, startTime]);
+  }, [
+    saveHistory,
+    dispatch,
+    state,
+    selectedScript,
+    seats,
+    gameLogs,
+    startTime,
+  ]);
 
   const handleUndo = useCallback(() => {
     handleGlobalUndo();

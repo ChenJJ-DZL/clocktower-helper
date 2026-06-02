@@ -2,7 +2,29 @@
   {
     "id": "acrobat",
     "name": "acrobat",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "杂技演员请睁眼...",
+      "instruction": "选择一名玩家，今晚若其因能力死亡，你也会死亡",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "other"
+    },
+    "otherNightMeta": {
+      "script": "杂技演员请睁眼...",
+      "instruction": "选择一名玩家，今晚若其因能力死亡，你也会死亡",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "other"
+    },
+    "firstNightOrder": 40,
+    "otherNightOrder": 50
   },
   {
     "id": "actor",
@@ -33,17 +55,62 @@
   {
     "id": "atheist",
     "name": "atheist",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "无神论者请睁眼...",
+      "instruction": "告知说书人你的角色能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "无神论者请睁眼...",
+      "instruction": "告知说书人你的角色能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40,
+    "otherNightOrder": 50
   },
   {
     "id": "balloonist",
     "name": "balloonist",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "气球驾驶员请睁眼...",
+      "instruction": "说书人将指向一名与你不同阵营的玩家",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "气球驾驶员请睁眼...",
+      "instruction": "说书人将指向一名与你不同阵营的玩家",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40,
+    "otherNightOrder": 50
   },
   {
     "id": "banshee",
     "name": "banshee",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "报丧女妖请睁眼...",
+      "instruction": "记住你的能力：被恶魔杀死后觉醒",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40
   },
   {
     "id": "bounty_hunter",
@@ -63,7 +130,25 @@
   {
     "id": "cannibal",
     "name": "cannibal",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "食人族请睁眼...",
+      "instruction": "你将获得上一个被处决角色的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "食人族请睁眼...",
+      "instruction": "你将获得上一个被处决角色的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40,
+    "otherNightOrder": 50
   },
   {
     "id": "chambermaid",
@@ -216,7 +301,18 @@
   {
     "id": "engineer",
     "name": "engineer",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "工程师请睁眼...",
+      "instruction": "选择3个爪牙角色替换当前爪牙",
+      "targetType": "player",
+      "amount": 3,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "interaction"
+    },
+    "firstNightOrder": 50
   },
   {
     "id": "enlightened",
@@ -253,7 +349,16 @@
   {
     "id": "farmer",
     "name": "farmer",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "农夫请睁眼...",
+      "instruction": "如果你已死亡，说书人将唤醒你转移角色",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 50
   },
   {
     "id": "flowergirl",
@@ -435,7 +540,16 @@
   {
     "id": "jester",
     "name": "jester",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "弄臣请睁眼...",
+      "instruction": "记住你的能力：被处决时邪恶阵营获胜",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40
   },
   {
     "id": "jinx_star",
@@ -461,7 +575,16 @@
   {
     "id": "knight",
     "name": "knight",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "骑士请睁眼...",
+      "instruction": "说书人将指向两名非恶魔玩家",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 50
   },
   {
     "id": "legion",
@@ -576,7 +699,16 @@
   {
     "id": "noble",
     "name": "noble",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "贵族请睁眼...",
+      "instruction": "说书人将指向三名玩家，其中一名是邪恶的",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 50
   },
   {
     "id": "ojo",
@@ -639,7 +771,16 @@
   {
     "id": "princess",
     "name": "princess",
-    "type": "townsfolk"
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "公主请睁眼...",
+      "instruction": "记住你的能力：首次被提名时若展示身份则跳过处决",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40
   },
   {
     "id": "professor",
@@ -1073,7 +1214,29 @@
   {
     "id": "villager",
     "name": "villager",
-    "type": "outsider"
+    "type": "outsider",
+    "firstNightMeta": {
+      "script": "村夫请睁眼...",
+      "instruction": "选择一名玩家，猜测其阵营",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "info"
+    },
+    "otherNightMeta": {
+      "script": "村夫请睁眼...",
+      "instruction": "选择一名玩家，猜测其阵营",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "canSelectSelf": false,
+      "canSelectDead": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40,
+    "otherNightOrder": 50
   },
   {
     "id": "zealot",
@@ -1294,7 +1457,16 @@
   {
     "id": "snitch",
     "name": "snitch",
-    "type": "minion"
+    "type": "minion",
+    "firstNightMeta": {
+      "script": "告密者请睁眼...",
+      "instruction": "记住你的能力：爪牙在首夜会额外得知3个伪装角色",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 40
   },
   {
     "id": "spy",
@@ -1573,5 +1745,411 @@
       "effectType": "kill",
       "wakesIfDead": true
     }
+  },
+  {
+    "id": "amnesiac",
+    "name": "失忆者",
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "失忆者请睁眼...",
+      "instruction": "说书人将执行学习角色能力的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 50
+  },
+  {
+    "id": "angel",
+    "name": "天使",
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "天使请睁眼...",
+      "instruction": "说书人将执行保护玩家的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "firstNightOrder": 35
+  },
+  {
+    "id": "astrologer",
+    "name": "星象师",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "星象师请睁眼...",
+      "instruction": "说书人将执行夜晚学习的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": true,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 50
+  },
+  {
+    "id": "beggar",
+    "name": "乞丐",
+    "type": "traveler",
+    "otherNightMeta": {
+      "script": "乞丐请睁眼...",
+      "instruction": "说书人将执行乞讨选票的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "buddhist",
+    "name": "佛教徒",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "佛教徒请睁眼...",
+      "instruction": "说书人将执行白天发言限制的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "bureaucrat",
+    "name": "官员",
+    "type": "traveler",
+    "otherNightMeta": {
+      "script": "官员请睁眼...",
+      "instruction": "说书人将执行三倍选票的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "choir_boy",
+    "name": "唱诗男孩",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "唱诗男孩请睁眼...",
+      "instruction": "说书人将执行死亡触发得知恶魔的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "deus_ex_fiasco",
+    "name": "失败的上帝",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "失败的上帝请睁眼...",
+      "instruction": "说书人将执行说书人失误的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "devil_s_advocate",
+    "name": "魔鬼代言人",
+    "type": "minion",
+    "otherNightMeta": {
+      "script": "魔鬼代言人请睁眼...",
+      "instruction": "说书人将执行死亡豁免的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": true,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 40
+  },
+  {
+    "id": "doomsayer",
+    "name": "末日预言者",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "末日预言者请睁眼...",
+      "instruction": "说书人将执行公开触发死亡的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "ferryman",
+    "name": "摆渡人",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "摆渡人请睁眼...",
+      "instruction": "说书人将执行死亡导致失败的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "fisherman",
+    "name": "渔夫",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "渔夫请睁眼...",
+      "instruction": "说书人将执行获取建议的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "gunslinger",
+    "name": "枪手",
+    "type": "traveler",
+    "otherNightMeta": {
+      "script": "枪手请睁眼...",
+      "instruction": "说书人将执行正义枪击的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "half_ogre",
+    "name": "半兽人",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "半兽人请睁眼...",
+      "instruction": "说书人将执行夜晚攻击的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": true,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 10
+  },
+  {
+    "id": "hunter",
+    "name": "猎手",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "猎手请睁眼...",
+      "instruction": "说书人将执行临死反击的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "miner",
+    "name": "矿工",
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "矿工请睁眼...",
+      "instruction": "说书人将执行地质勘探的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 0
+  },
+  {
+    "id": "pilgrim",
+    "name": "朝圣者",
+    "type": "townsfolk",
+    "firstNightMeta": {
+      "script": "朝圣者请睁眼...",
+      "instruction": "说书人将执行首夜得知的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "firstNightOrder": 30
+  },
+  {
+    "id": "priestess",
+    "name": "女祭司",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "女祭司请睁眼...",
+      "instruction": "说书人将执行每夜得知的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 30
+  },
+  {
+    "id": "puzzlemaster",
+    "name": "解谜大师",
+    "type": "outsider",
+    "otherNightMeta": {
+      "script": "解谜大师请睁眼...",
+      "instruction": "说书人将执行醉酒玩家与猜测的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": true,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "ranger",
+    "name": "巡山人",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "巡山人请睁眼...",
+      "instruction": "说书人将执行守护互换的能力",
+      "targetType": "player",
+      "amount": 2,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": true,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "revolutionary",
+    "name": "革命者",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "革命者请睁眼...",
+      "instruction": "说书人将执行邻座同阵营的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "scapegoat",
+    "name": "替罪羊",
+    "type": "traveler",
+    "otherNightMeta": {
+      "script": "替罪羊请睁眼...",
+      "instruction": "说书人将执行替死转嫁的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "stormcatcher",
+    "name": "暴风捕手",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "暴风捕手请睁眼...",
+      "instruction": "说书人将执行角色宣告的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "thief",
+    "name": "窃贼",
+    "type": "traveler",
+    "otherNightMeta": {
+      "script": "窃贼请睁眼...",
+      "instruction": "说书人将执行妙手空空的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "toymaker",
+    "name": "玩具匠",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "玩具匠请睁眼...",
+      "instruction": "说书人将执行恶魔放弃攻击的能力",
+      "targetType": "none",
+      "amount": 0,
+      "required": false,
+      "effectType": "info"
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "trickster_jack",
+    "name": "诡诈杰克",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "诡诈杰克请睁眼...",
+      "instruction": "说书人将执行身份揭露的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
+  },
+  {
+    "id": "ventriloquist",
+    "name": "腹语师",
+    "type": "townsfolk",
+    "otherNightMeta": {
+      "script": "腹语师请睁眼...",
+      "instruction": "说书人将执行声音传递的能力",
+      "targetType": "player",
+      "amount": 1,
+      "required": true,
+      "effectType": "info",
+      "canSelectSelf": false,
+      "canSelectDead": false
+    },
+    "otherNightOrder": 0
   }
 ]

@@ -204,26 +204,26 @@ export default function GameSetup({
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="text-base text-slate-400">当前剧本</div>
-          <div className="flex items-center gap-4">
-            <div className="text-3xl font-black text-slate-50">
-              {selectedScript?.name ?? "未选择"}
+            <div className="flex items-center gap-4">
+              <div className="text-3xl font-black text-slate-50">
+                {selectedScript?.name ?? "未选择"}
+              </div>
+              {onQuickTest && selectedScript && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuickTest();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg transition-all active:scale-95"
+                  title="自动分配15名玩家的标准阵容，快速开始测试"
+                >
+                  ⚡ 快速测试
+                </button>
+              )}
             </div>
-            {onQuickTest && selectedScript && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickTest();
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg transition-all active:scale-95"
-                title="自动分配15名玩家的标准阵容，快速开始测试"
-              >
-                ⚡ 快速测试
-              </button>
-            )}
-          </div>
-          <div className="text-sm text-slate-500">
-            请分配角色并检查阵容后开始游戏
-          </div>
+            <div className="text-sm text-slate-500">
+              请分配角色并检查阵容后开始游戏
+            </div>
           </div>
           <div className="flex items-center gap-3 text-base text-slate-400">
             <span className="inline-flex h-4 w-4 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]" />

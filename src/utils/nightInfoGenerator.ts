@@ -103,7 +103,14 @@ export function generateNightInfo(
       validTargetIds: [],
       guideText: defaultGuide,
       actionText: "",
-      interaction: { type: "none", amount: 0, required: false, canSelectSelf: false, canSelectDead: false, effect: { type: "none" } },
+      interaction: {
+        type: "none",
+        amount: 0,
+        required: false,
+        canSelectSelf: false,
+        canSelectDead: false,
+        effect: { type: "none" },
+      },
     };
   }
 

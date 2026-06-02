@@ -27,8 +27,14 @@ export const spy: RoleDefinition = {
       let demonInfo = "";
       if (context?.seats) {
         const sorted = [...context.seats].sort((a: any, b: any) => a.id - b.id);
-        const demonNos = sorted.filter((s: any) => s.role?.type === "demon").map((s: any) => `${s.id + 1}号`);
-        const minionNos = sorted.filter((s: any) => s.role?.type === "minion" && s.id !== playerSeatId).map((s: any) => `${s.id + 1}号`);
+        const demonNos = sorted
+          .filter((s: any) => s.role?.type === "demon")
+          .map((s: any) => `${s.id + 1}号`);
+        const minionNos = sorted
+          .filter(
+            (s: any) => s.role?.type === "minion" && s.id !== playerSeatId
+          )
+          .map((s: any) => `${s.id + 1}号`);
         demonInfo = `，告知恶魔及爪牙座位号：恶魔 ${demonNos.join("、")}，爪牙 ${minionNos.join("、")}`;
       }
       return {

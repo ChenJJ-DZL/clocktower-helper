@@ -88,13 +88,19 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
       let leftSeat = null;
       for (let i = 1; i < count; i++) {
         const idx = (selfIdx - i + count) % count;
-        if (!seats[idx].isDead) { leftSeat = seats[idx]; break; }
+        if (!seats[idx].isDead) {
+          leftSeat = seats[idx];
+          break;
+        }
       }
       // 向右查找最近的存活玩家
       let rightSeat = null;
       for (let i = 1; i < count; i++) {
         const idx = (selfIdx + i) % count;
-        if (!seats[idx].isDead) { rightSeat = seats[idx]; break; }
+        if (!seats[idx].isDead) {
+          rightSeat = seats[idx];
+          break;
+        }
       }
 
       // 判断玩家是否邪恶
@@ -111,9 +117,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
 
       // 醉酒/中毒时给出随机值（可能和真实值不同）
       const selfSeat = seats.find((s) => s.id === playerSeatId);
-      const isDisabled = selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function"
-        ? isActorDisabledByPoisonOrDrunk(selfSeat)
-        : false;
+      const isDisabled =
+        selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function"
+          ? isActorDisabledByPoisonOrDrunk(selfSeat)
+          : false;
 
       const resultCount = isDisabled
         ? Math.floor(Math.random() * 3)
