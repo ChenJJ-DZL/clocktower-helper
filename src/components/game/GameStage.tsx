@@ -1022,6 +1022,56 @@ export const GameStage = () => {
             >
               相克规则：{antagonismEnabled ? "开" : "关"}
             </button>
+
+            {/* 随时技能区域（白天阶段，左上方） */}
+            {gamePhase === "day" && (
+              <div className="absolute top-3 left-40 z-40 flex gap-2">
+                {seats.some((s) => s.role?.id === "slayer" && !s.isDead && !(s as any).abilityUsed) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // 激活猎手技能：显示目标选择
+                      const slayerSeat = seats.find((s) => s.role?.id === "slayer" && !s.isDead);
+                      if (slayerSeat) {
+                        setCurrentModal({
+                          type: "STORYTELLER_SELECT",
+                          data: {
+                            sourceId: slayerSeat.id,
+                            roleId: "slayer",
+                            roleName: "猎手",
+                            description: "选择一名玩家作为射击目标",
+                            targetCount: 1,
+                            onConfirm: async (targetIds: number[]) => {
+                              const targetId = targetIds[0];
+                              if ((slayerSeat as any).abilityUsed) return;
+                              // 标记技能已使用
+                              (slayerSeat as any).abilityUsed = true;
+                              const target = seats.find((s) => s.id === targetId);
+                              const isDemon = target?.role?.type === "demon";
+                              if (isDemon) {
+                                // 恶魔死亡
+                                controller.killPlayer(targetId, { source: "slayer", recordNightDeath: false });
+                                controller.addLog(`🏹 ${slayerSeat.id + 1}号猎手成功猎杀${targetId + 1}号恶魔！`);
+                                // 检查游戏结束
+                                const updated = seats.map((s) => s.id === targetId ? { ...s, isDead: true } : s);
+                                controller.checkGameOver(updated, targetId);
+                              } else {
+                                controller.addLog(`🏹 ${slayerSeat.id + 1}号猎手射击${targetId + 1}号，但目标不是恶魔`);
+                              }
+                              setCurrentModal(null);
+                            },
+                          },
+                        });
+                      }
+                    }}
+                    className="px-3 py-1 text-xs font-bold rounded-md border border-yellow-400/40 bg-yellow-700/60 text-yellow-200 shadow-sm hover:bg-yellow-600/80 transition animate-pulse"
+                    title="每局游戏限一次，白天选择一名玩家射击"
+                  >
+                    🏹 猎手技能
+                  </button>
+                )}
+              </div>
+            )}
             <RoundTable
               seats={seats}
               nightInfo={nightInfo}
