@@ -4,7 +4,7 @@ import type { RoleDefinition } from "../../types/roleDefinition";
  * 灵言师
  */
 export const shaman: RoleDefinition = {
-  id: "shaman",
+  id: "mezepheles",
   name: "灵言师",
   type: "minion",
   detailedDescription: `【背景故事】

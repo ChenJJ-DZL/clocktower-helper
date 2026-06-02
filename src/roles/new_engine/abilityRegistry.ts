@@ -29,6 +29,7 @@ import { buddhistAbility } from "./buddhist.ability";
 import { bureaucratAbility } from "./bureaucrat.ability";
 import { butlerAbility } from "./butler.ability";
 import { cannibalAbility } from "./cannibal.ability";
+import { conjurerAbility } from "./conjurer.ability";
 import { cerenovusAbility } from "./cerenovus.ability";
 import { chambermaidAbility } from "./chambermaid.ability";
 import { chaosAbility } from "./chaos.ability";
@@ -260,6 +261,7 @@ export function registerAllNewEngineAbilities(): void {
     bureaucratAbility,
     butlerAbility,
     cannibalAbility,
+    conjurerAbility,
     cerenovusAbility,
     chambermaidAbility,
     chaosAbility,
