@@ -1,48 +1,6 @@
-/**
- * 杂耍艺人（juggler）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "juggler" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "杂耍艺人已完成行动" } };
-};
-
-export const jugglerAbility = createRoleAbility({
-  roleId: "juggler",
-  abilityId: "juggler_ability",
-  abilityName: "杂耍艺人能力",
-  triggerTiming: [],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.juggler.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const guesses=ctx.storytellerInput?.guesses??[];const correct=ctx.storytellerInput?.correctCount??0;return{...ctx,meta:{...ctx.meta,abilityResult:{guesses,correctCount:correct,used:true}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,meta:{...ctx.meta,jugglerResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(`[Juggler] 杂耍:猜对${r?.correctCount??0}个`);return ctx;};
+export const jugglerAbility=createRoleAbility({roleId:"juggler",abilityId:"juggler_guess",abilityName:"杂耍猜测",triggerTiming:[AbilityTriggerTiming.DAY],wakePriority:0,firstNightOnly:false,wakePromptId:"role.juggler.wake",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});

@@ -1,48 +1,6 @@
-/**
- * 数学家（Mathematician）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  commonPreCheckAlive,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-// 数学家是镇民角色
-// 每个夜晚，你会得知有多少玩家的能力因为醉酒、中毒或其他原因而产生了异常结果。
-
-export const mathematicianAbility = createRoleAbility({
-  roleId: "mathematician",
-  abilityId: "mathematician_special_ability",
-  abilityName: "异常统计",
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 0,
-  firstNightOnly: false,
-  wakePromptId: "role.mathematician.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [commonPreCheckAlive],
-  calculate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 数学家的能力逻辑：统计异常能力结果数量
-      return context;
-    },
-  ],
-  stateUpdate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 数学家的状态更新逻辑
-      return context;
-    },
-  ],
-  postProcess: [
-    async (context) => {
-      console.log("数学家能力被调用");
-      return context;
-    },
-  ],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const abnormal=ctx.snapshot.abnormalAbilityCount??0;return{...ctx,meta:{...ctx.meta,abilityResult:{abnormalCount:abnormal,isCorrupted:false}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,snapshot:{...ctx.snapshot,_abilityResults:{...((ctx.snapshot as any)._abilityResults??{}),mathematician:ctx.meta.abilityResult}},meta:{...ctx.meta,mathematicianResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(`[Mathematician] 异常次数:${r?.abnormalCount??0}`);return{...ctx,meta:{...ctx.meta,abilityLog:`异常数量:${r?.abnormalCount??0}`,prompt:`唤醒${ctx.actionNode.seatId+1}号【数学家】，告知异常数量:${r?.abnormalCount??0}。`}};};
+export const mathematicianAbility=createRoleAbility({roleId:"mathematician",abilityId:"mathematician_count",abilityName:"数学统计",triggerTiming:[AbilityTriggerTiming.FIRST_NIGHT,AbilityTriggerTiming.EVERY_NIGHT],wakePriority:49,firstNightOnly:false,wakePromptId:"role.mathematician.wake",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});

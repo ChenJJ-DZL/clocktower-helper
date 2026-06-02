@@ -1,48 +1,6 @@
-/**
- * harpy（harpy）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "harpy" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "harpy已完成行动" } };
-};
-
-export const harpyAbility = createRoleAbility({
-  roleId: "harpy",
-  abilityId: "harpy_ability",
-  abilityName: "harpy能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.harpy.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const t=ctx.targetIds?.[0]??ctx.actionNode.targetIds?.[0]??null;return{...ctx,meta:{...ctx.meta,abilityResult:{targetId:t,harpyActive:true}}};};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;if(!r?.targetId)return ctx;return{...ctx,snapshot:{...ctx.snapshot,_abilityResults:{...((ctx.snapshot as any)._abilityResults??{}),harpy:r}},meta:{...ctx.meta,harpyResult:r}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(r?.targetId?`[Harpy] 挑拨${r.targetId+1}号`:"[Harpy] 未行动");return ctx;};
+export const harpyAbility=createRoleAbility({roleId:"harpy",abilityId:"harpy_incite",abilityName:"挑拨离间",triggerTiming:[AbilityTriggerTiming.EVERY_NIGHT],wakePriority:35,firstNightOnly:false,wakePromptId:"role.harpy.wake",targetConfig:{min:1,max:1,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});

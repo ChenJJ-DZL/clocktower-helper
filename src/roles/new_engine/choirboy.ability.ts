@@ -1,48 +1,6 @@
-/**
- * choirboy（choirboy）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "choirboy" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "choirboy已完成行动" } };
-};
-
-export const choirboyAbility = createRoleAbility({
-  roleId: "choirboy",
-  abilityId: "choirboy_ability",
-  abilityName: "choirboy能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.choirboy.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const demon=ctx.snapshot.seats.find((s:any)=>!s.isDead&&s.role?.type==="demon");return{...ctx,meta:{...ctx.meta,abilityResult:{demonSeatId:demon?.id??null,demonName:demon?.role?.name??null,found:demon!==undefined}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,meta:{...ctx.meta,choirboyResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(r?.found?`[Choirboy] 得知恶魔: ${r.demonSeatId+1}号`:"[Choirboy] 未发现恶魔");return ctx;};
+export const choirboyAbility=createRoleAbility({roleId:"choirboy",abilityId:"choirboy_demon",abilityName:"弑君线索",triggerTiming:[AbilityTriggerTiming.PASSIVE],wakePriority:0,firstNightOnly:false,wakePromptId:"",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});

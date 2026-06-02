@@ -1,48 +1,6 @@
-/**
- * 笨蛋（klutz）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "klutz" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "笨蛋已完成行动" } };
-};
-
-export const klutzAbility = createRoleAbility({
-  roleId: "klutz",
-  abilityId: "klutz_ability",
-  abilityName: "笨蛋能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.klutz.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const goodAlive=ctx.snapshot.seats.filter((s:any)=>s.isAlive&&s.id!==ctx.actionNode.seatId&&s.role?.type!=="minion"&&s.role?.type!=="demon");const t=goodAlive.length>0?goodAlive[Math.floor(Math.random()*goodAlive.length)].id:null;return{...ctx,meta:{...ctx.meta,abilityResult:{targetId:t,killed:true}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;if(!r?.killed)return ctx;return{...ctx,snapshot:{...ctx.snapshot,klutzKill:r.targetId,_abilityResults:{...((ctx.snapshot as any)._abilityResults??{}),klutz:r}},meta:{...ctx.meta,klutzResult:r}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(r?.targetId?`[Klutz] 笨蛋死亡，随机杀${r.targetId+1}号`:"[Klutz] 无可杀目标");return ctx;};
+export const klutzAbility=createRoleAbility({roleId:"klutz",abilityId:"klutz_death",abilityName:"笨手笨脚",triggerTiming:[AbilityTriggerTiming.PASSIVE],wakePriority:0,firstNightOnly:false,wakePromptId:"",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
