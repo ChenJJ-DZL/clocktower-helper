@@ -1,48 +1,6 @@
-/**
- * lleech（lleech）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-const preCheckAlive = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
-};
-
-const calculate = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityResult: { roleId: "lleech" } } };
-};
-
-const postProcess = async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-  return { ...context, meta: { ...context.meta, abilityLog: "lleech已完成行动" } };
-};
-
-export const lleechAbility = createRoleAbility({
-  roleId: "lleech",
-  abilityId: "lleech_ability",
-  abilityName: "lleech能力",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
-  firstNightOnly: false,
-  wakePromptId: "role.lleech.wake",
-  targetConfig: {
-    min: 0,
-    max: 0,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAlive],
-  calculate: [calculate],
-  stateUpdate: [],
-  postProcess: [postProcess],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const hostId=ctx.storytellerInput?.hostId??null;return{...ctx,meta:{...ctx.meta,abilityResult:{hostId,hosted:hostId!==null}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;if(!r?.hosted)return ctx;return{...ctx,snapshot:{...ctx.snapshot,lleechHost:r.hostId,_abilityResults:{...((ctx.snapshot as any)._abilityResults??{}),lleech:r}},meta:{...ctx.meta,lleechResult:r}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(r?.hosted?`[Lleech] 寄生于${r.hostId+1}号`:"[Lleech] 未寄生");return ctx;};
+export const lleechAbility=createRoleAbility({roleId:"lleech",abilityId:"lleech_host",abilityName:"恶魔寄生",triggerTiming:[AbilityTriggerTiming.FIRST_NIGHT],wakePriority:5,firstNightOnly:true,wakePromptId:"role.lleech.wake",targetConfig:{min:0,max:0,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
