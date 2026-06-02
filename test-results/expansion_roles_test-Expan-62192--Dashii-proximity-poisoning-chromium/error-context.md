@@ -1,0 +1,88 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e17]:
+    - generic [ref=e18]:
+      - heading "请选择剧本" [level=2] [ref=e19]
+      - paragraph [ref=e20]: 点击下方卡片选择本局要使用的剧本
+      - paragraph [ref=e21]: 更多剧本开发中
+      - generic [ref=e22]:
+        - button "🛠️ 自建剧本" [ref=e23]:
+          - generic [ref=e24]: 🛠️
+          - text: 自建剧本
+        - button "📥 导入线上 JSON" [ref=e25]:
+          - generic [ref=e26]: 📥
+          - text: 导入线上 JSON
+        - button "📚 对局记录" [ref=e27]:
+          - generic [ref=e28]: 📚
+          - text: 对局记录
+    - generic [ref=e29]:
+      - button "暗流涌动 难度：初学者 点击选择 进入配置 »" [ref=e30]:
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - generic [ref=e34]: 暗流涌动
+            - generic [ref=e35]: 难度：初学者
+          - generic [ref=e36]:
+            - generic [ref=e37]: 点击选择
+            - generic [ref=e39]: 进入配置 »
+      - button "黯月初升 难度：中等 点击选择 进入配置 »" [ref=e40]:
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: 黯月初升
+            - generic [ref=e45]: 难度：中等
+          - generic [ref=e46]:
+            - generic [ref=e47]: 点击选择
+            - generic [ref=e49]: 进入配置 »
+      - button "梦殒春宵 难度：中等 点击选择 进入配置 »" [ref=e50]:
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - generic [ref=e54]: 梦殒春宵
+            - generic [ref=e55]: 难度：中等
+          - generic [ref=e56]:
+            - generic [ref=e57]: 点击选择
+            - generic [ref=e59]: 进入配置 »
+      - button "窃窃私语 难度：中等 点击选择 进入配置 »" [ref=e60]:
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - generic [ref=e64]: 窃窃私语
+            - generic [ref=e65]: 难度：中等
+          - generic [ref=e66]:
+            - generic [ref=e67]: 点击选择
+            - generic [ref=e69]: 进入配置 »
+      - button "无名之墓 难度：中等偏难 点击选择 进入配置 »" [ref=e70]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: 无名之墓
+            - generic [ref=e75]: 难度：中等偏难
+          - generic [ref=e76]:
+            - generic [ref=e77]: 点击选择
+            - generic [ref=e79]: 进入配置 »
+      - button "无上愉悦 难度：简单 点击选择 进入配置 »" [ref=e80]:
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: 无上愉悦
+            - generic [ref=e85]: 难度：简单
+          - generic [ref=e86]:
+            - generic [ref=e87]: 点击选择
+            - generic [ref=e89]: 进入配置 »
+      - button "凶宅魅影 难度：困难 点击选择 进入配置 »" [ref=e90]:
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - generic [ref=e94]: 凶宅魅影
+            - generic [ref=e95]: 难度：困难
+          - generic [ref=e96]:
+            - generic [ref=e97]: 点击选择
+            - generic [ref=e99]: 进入配置 »
+      - button "游园惊梦 难度：中等 点击选择 进入配置 »" [ref=e100]:
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - generic [ref=e104]: 游园惊梦
+            - generic [ref=e105]: 难度：中等
+          - generic [ref=e106]:
+            - generic [ref=e107]: 点击选择
+            - generic [ref=e109]: 进入配置 »
+```

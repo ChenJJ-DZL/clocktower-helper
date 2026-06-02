@@ -1,0 +1,129 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e6] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e7]:
+      - img [ref=e8]
+    - generic [ref=e11]:
+      - button "Open issues overlay" [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e14]: "0"
+          - generic [ref=e15]: "1"
+        - generic [ref=e16]: Issue
+      - button "Collapse issues badge" [ref=e17]:
+        - img [ref=e18]
+  - alert [ref=e20]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - main [ref=e25]:
+        - generic [ref=e27]:
+          - button "相克规则：关" [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]:
+              - generic [ref=e31]:
+                - generic:
+                  - generic [ref=e33] [cursor=pointer]:
+                    - generic [ref=e34]: "1"
+                    - generic:
+                      - generic: 主谋
+                  - generic [ref=e36] [cursor=pointer]:
+                    - generic [ref=e37]: "2"
+                    - generic:
+                      - generic: 普卡
+                  - generic [ref=e39] [cursor=pointer]:
+                    - generic [ref=e40]: "3"
+                    - generic:
+                      - generic: 祖母
+                  - generic [ref=e42] [cursor=pointer]:
+                    - generic [ref=e43]: "4"
+                    - generic:
+                      - generic: 水手
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: "5"
+                        - generic:
+                          - generic: 侍女
+                        - generic: 👤 行动中
+              - generic [ref=e44]:
+                - generic [ref=e45]: 首夜
+                - generic [ref=e46]:
+                  - button "4:47" [ref=e47] [cursor=pointer]
+                  - generic [ref=e48]:
+                    - button "重置" [ref=e49]
+                    - generic [ref=e50]: 运行中
+                - generic [ref=e51]: 拜甘教设计
+            - generic [ref=e53]:
+              - generic [ref=e54]:
+                - generic [ref=e55]: 夜晚行动顺序
+                - button "展开" [ref=e56]
+              - generic [ref=e57]:
+                - generic [ref=e58]:
+                  - generic [ref=e59]: 1. [4号] 水手
+                  - generic [ref=e60]: "#1"
+                - generic [ref=e61]:
+                  - generic [ref=e62]: 2. [2号] 普卡
+                  - generic [ref=e63]: "#2"
+                - generic [ref=e64]:
+                  - generic [ref=e65]: 3. [3号] 祖母
+                  - generic [ref=e66]: "#3"
+                - generic [ref=e67]:
+                  - generic [ref=e68]: 4. [5号] 侍女
+                  - generic [ref=e69]: "#4"
+      - complementary [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e74]: 首夜
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e78]: 当前的行动
+                - button "刷新说书人提前准备好的内容" [ref=e80]:
+                  - img [ref=e81]
+              - generic [ref=e86]: 行动：唤醒5号玩家（侍女）。
+              - generic [ref=e87]:
+                - generic [ref=e88]: 选择目标（最少2个，最多2个）
+                - generic [ref=e89]:
+                  - button "1# 主谋" [ref=e90]
+                  - button "2# 普卡" [ref=e91]
+                  - button "3# 祖母" [ref=e92]
+                  - button "4# 水手" [ref=e93]
+                  - button "5# 侍女" [ref=e94]
+            - generic [ref=e95]:
+              - heading "角色说明" [level=3] [ref=e96]: 角色说明
+              - generic [ref=e98]:
+                - generic [ref=e99]: 运作方式
+                - generic [ref=e100]: 每个夜晚，唤醒侍女。让侍女指向除自己外任意两名存活的玩家。用手势向侍女比划出所选角色中当晚被唤醒过的数量（0，1，或2）。让侍女重新入睡。 如果没有两名存活玩家能够选择（由于主谋、僵怖等的能力造成），不要唤醒侍女。
+              - generic [ref=e101]:
+                - generic [ref=e102]: 范例
+                - generic [ref=e103]:
+                  - generic [ref=e104]: "范例: 侍女选择了驱魔人和旅店老板，并得知了“2”。在接下来的一个夜晚，驱魔人选择了沙巴洛斯，这会导致沙巴洛斯被唤醒。同一晚，侍女选择了沙巴洛斯和弄臣。因为沙巴洛斯只因驱魔人的能力被唤醒，侍女得知了“0”。"
+                  - generic [ref=e105]: "范例: 现在是第二个夜晚。侍女选择了祖母和邪恶的莽夫，并得知了“2”。莽夫当晚会被唤醒，但是侍女醉酒了。"
+                  - generic [ref=e106]: "范例: 现在是首个夜晚。侍女选择了刺客和月之子，并得知了“0”，因为刺客在首个夜晚不会被唤醒来使用自己的能力。在下一个夜晚，侍女选择了刺客和造谣者。刺客被唤醒但没有使用自己的能力。造谣者使用了自己的能力，但造谣者使用能力不需要被唤醒。侍女得知了“1”。"
+              - generic [ref=e107]:
+                - generic [ref=e108]: 规则细节
+                - generic [ref=e109]: "- 相克规则：数学家：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。 - 相克规则（与华灯系列角色）：引路人：侍女会得知引路人是否醒来，即使她是在引路人之前醒来。"
+              - generic [ref=e110]:
+                - generic [ref=e111]: 提示标记
+                - generic [ref=e112]: 无
+              - generic [ref=e113]:
+                - generic [ref=e114]: 特性
+                - generic [ref=e115]: 镇民 / 获取信息
+              - generic [ref=e116]:
+                - generic [ref=e117]: 其他提示
+                - generic [ref=e118]:
+                  - generic [ref=e121]: 夜晚选人指向含糊时，走到目标旁竖直指向头顶，双方点头确认，避免误会。
+                  - generic [ref=e124]: 夜晚刻意多走动、不要只去固定角落，让脚步声难以被猜出是谁被叫醒。
+                  - generic [ref=e127]: 无论是真角色还是伪装者，使用完能力都在魔典中移动对应提示标记，避免被老玩家看出端倪。
+                  - generic [ref=e130]: 叫醒玩家时轻拍肩膀或膝盖，不要发声；厚衣服感知弱时改为两次按压。
+                  - generic [ref=e133]: 玩家醒来不知道做什么？指向其角色列表上的能力描述即可，无需多言。
+                  - generic [ref=e136]: 走动时保持魔典水平，从书脊上方或下方握持，防止被偷看或折断。
+          - generic [ref=e137]:
+            - button "确认 & 下一步" [disabled] [ref=e138]
+            - button "上一步" [ref=e140]
+    - generic [ref=e141]:
+      - button "🏠 主页" [ref=e142]
+      - button "↩ 上一步" [ref=e143]
+      - button "📋 历史" [ref=e144]
+      - button "🔄 重置" [ref=e145]
+```

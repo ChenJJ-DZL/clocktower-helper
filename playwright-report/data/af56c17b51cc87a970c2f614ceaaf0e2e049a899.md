@@ -1,0 +1,158 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e6] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e7]:
+      - img [ref=e8]
+    - generic [ref=e11]:
+      - button "Open issues overlay" [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e14]: "0"
+          - generic [ref=e15]: "1"
+        - generic [ref=e16]: Issue
+      - button "Collapse issues badge" [ref=e17]:
+        - img [ref=e18]
+  - alert [ref=e20]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - main [ref=e25]:
+        - generic [ref=e27]:
+          - button "相克规则：关" [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]:
+              - generic [ref=e31]:
+                - generic:
+                  - generic [ref=e33] [cursor=pointer]:
+                    - generic [ref=e34]: "1"
+                    - generic:
+                      - generic: 魔鬼代言人
+                  - generic [ref=e36] [cursor=pointer]:
+                    - generic [ref=e37]: "2"
+                    - generic:
+                      - generic: 僵怖
+                  - generic [ref=e39] [cursor=pointer]:
+                    - generic [ref=e40]: "3"
+                    - generic:
+                      - generic: 祖母
+                  - generic [ref=e42] [cursor=pointer]:
+                    - generic [ref=e43]: "4"
+                    - generic:
+                      - generic: 水手
+                    - generic:
+                      - generic:
+                        - generic: 🍺
+                        - generic: 醉酒
+                        - generic: (黄昏)
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: "5"
+                        - generic:
+                          - generic: 侍女
+                        - generic:
+                          - generic:
+                            - generic: 🍺
+                            - generic: 醉酒
+                            - generic: (黄昏)
+                        - generic: 👤 行动中
+                  - generic [ref=e45] [cursor=pointer]:
+                    - generic [ref=e46]: "6"
+                    - generic:
+                      - generic: 驱魔人
+                  - generic [ref=e48] [cursor=pointer]:
+                    - generic [ref=e49]: "7"
+                    - generic:
+                      - generic: 旅店老板
+              - generic [ref=e50]:
+                - generic [ref=e51]: 首夜
+                - generic [ref=e52]:
+                  - button "4:54" [ref=e53] [cursor=pointer]
+                  - generic [ref=e54]:
+                    - button "重置" [ref=e55]
+                    - generic [ref=e56]: 运行中
+                - generic [ref=e57]: 拜甘教设计
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - generic [ref=e61]: 夜晚行动顺序
+                - button "展开" [ref=e62]
+              - generic [ref=e63]:
+                - generic [ref=e64]:
+                  - generic [ref=e65]: 1. [7号] 旅店老板
+                  - generic [ref=e66]: "#1"
+                - generic [ref=e67]:
+                  - generic [ref=e68]: 2. [4号] 水手
+                  - generic [ref=e69]: "#2"
+                - generic [ref=e70]:
+                  - generic [ref=e71]: 3. [1号] 魔鬼代言人
+                  - generic [ref=e72]: "#3"
+                - generic [ref=e73]:
+                  - generic [ref=e74]: 4. [6号] 驱魔人
+                  - generic [ref=e75]: "#4"
+                - generic [ref=e76]:
+                  - generic [ref=e77]: 5. [2号] 僵怖
+                  - generic [ref=e78]: "#5"
+                - generic [ref=e79]:
+                  - generic [ref=e80]: 6. [3号] 祖母
+                  - generic [ref=e81]: "#6"
+                - generic [ref=e82]:
+                  - generic [ref=e83]: 7. [5号] 侍女
+                  - generic [ref=e84]: "#7"
+      - complementary [ref=e85]:
+        - generic [ref=e86]:
+          - generic [ref=e89]: 首夜
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - generic [ref=e93]: 当前的行动
+                - button "刷新说书人提前准备好的内容" [ref=e95]:
+                  - img [ref=e96]
+              - generic [ref=e101]: 行动：唤醒5号玩家（侍女）。
+              - generic [ref=e102]:
+                - generic [ref=e103]: 选择目标（最少2个，最多2个）
+                - generic [ref=e104]:
+                  - button "1# 魔鬼代言人" [ref=e105]
+                  - button "2# 僵怖" [ref=e106]
+                  - button "3# 祖母" [ref=e107]
+                  - button "4# 水手" [ref=e108]
+                  - button "5# 侍女" [ref=e109]
+                  - button "6# 驱魔人" [ref=e110]
+                  - button "7# 旅店老板" [ref=e111]
+            - generic [ref=e112]:
+              - heading "角色说明" [level=3] [ref=e113]: 角色说明
+              - generic [ref=e115]:
+                - generic [ref=e116]: 运作方式
+                - generic [ref=e117]: 每个夜晚，唤醒侍女。让侍女指向除自己外任意两名存活的玩家。用手势向侍女比划出所选角色中当晚被唤醒过的数量（0，1，或2）。让侍女重新入睡。 如果没有两名存活玩家能够选择（由于主谋、僵怖等的能力造成），不要唤醒侍女。
+              - generic [ref=e118]:
+                - generic [ref=e119]: 范例
+                - generic [ref=e120]:
+                  - generic [ref=e121]: "范例: 侍女选择了驱魔人和旅店老板，并得知了“2”。在接下来的一个夜晚，驱魔人选择了沙巴洛斯，这会导致沙巴洛斯被唤醒。同一晚，侍女选择了沙巴洛斯和弄臣。因为沙巴洛斯只因驱魔人的能力被唤醒，侍女得知了“0”。"
+                  - generic [ref=e122]: "范例: 现在是第二个夜晚。侍女选择了祖母和邪恶的莽夫，并得知了“2”。莽夫当晚会被唤醒，但是侍女醉酒了。"
+                  - generic [ref=e123]: "范例: 现在是首个夜晚。侍女选择了刺客和月之子，并得知了“0”，因为刺客在首个夜晚不会被唤醒来使用自己的能力。在下一个夜晚，侍女选择了刺客和造谣者。刺客被唤醒但没有使用自己的能力。造谣者使用了自己的能力，但造谣者使用能力不需要被唤醒。侍女得知了“1”。"
+              - generic [ref=e124]:
+                - generic [ref=e125]: 规则细节
+                - generic [ref=e126]: "- 相克规则：数学家：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。 - 相克规则（与华灯系列角色）：引路人：侍女会得知引路人是否醒来，即使她是在引路人之前醒来。"
+              - generic [ref=e127]:
+                - generic [ref=e128]: 提示标记
+                - generic [ref=e129]: 无
+              - generic [ref=e130]:
+                - generic [ref=e131]: 特性
+                - generic [ref=e132]: 镇民 / 获取信息
+              - generic [ref=e133]:
+                - generic [ref=e134]: 其他提示
+                - generic [ref=e135]:
+                  - generic [ref=e138]: 夜晚选人指向含糊时，走到目标旁竖直指向头顶，双方点头确认，避免误会。
+                  - generic [ref=e141]: 夜晚刻意多走动、不要只去固定角落，让脚步声难以被猜出是谁被叫醒。
+                  - generic [ref=e144]: 无论是真角色还是伪装者，使用完能力都在魔典中移动对应提示标记，避免被老玩家看出端倪。
+                  - generic [ref=e147]: 叫醒玩家时轻拍肩膀或膝盖，不要发声；厚衣服感知弱时改为两次按压。
+                  - generic [ref=e150]: 玩家醒来不知道做什么？指向其角色列表上的能力描述即可，无需多言。
+                  - generic [ref=e153]: 走动时保持魔典水平，从书脊上方或下方握持，防止被偷看或折断。
+          - generic [ref=e154]:
+            - button "确认 & 下一步" [ref=e155]
+            - button "上一步" [ref=e157]
+    - generic [ref=e158]:
+      - button "🏠 主页" [ref=e159]
+      - button "↩ 上一步" [ref=e160]
+      - button "📋 历史" [ref=e161]
+      - button "🔄 重置" [ref=e162]
+```

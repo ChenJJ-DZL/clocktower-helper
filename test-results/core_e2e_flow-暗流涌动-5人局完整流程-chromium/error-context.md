@@ -5,102 +5,102 @@
   - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
     - img [ref=e8]
   - alert [ref=e11]
-  - generic [ref=e15]:
-    - main [ref=e16]:
-      - generic [ref=e18]:
-        - button "相克规则：关" [ref=e19]
-        - generic [ref=e20]:
-          - generic [ref=e21]:
-            - generic [ref=e22]:
-              - generic:
-                - generic [ref=e24] [cursor=pointer]:
-                  - generic [ref=e25]: "1"
-                  - generic:
-                    - generic: 小恶魔
-                - generic [ref=e27] [cursor=pointer]:
-                  - generic [ref=e28]: "2"
-                  - generic:
-                    - generic: 投毒者
-                - generic [ref=e30] [cursor=pointer]:
-                  - generic [ref=e31]: "3"
-                  - generic:
-                    - generic: 洗衣妇
-                - generic [ref=e33] [cursor=pointer]:
-                  - generic [ref=e34]: "4"
-                  - generic:
-                    - generic: 图书管理员
-                - generic [ref=e36] [cursor=pointer]:
-                  - generic [ref=e37]: "5"
-                  - generic:
-                    - generic: 猎手
-            - generic [ref=e38]:
-              - generic [ref=e39]: 核对身份
-              - generic [ref=e40]:
-                - button "0:10" [ref=e41] [cursor=pointer]
-                - generic [ref=e42]:
-                  - button "重置" [ref=e43]
-                  - generic [ref=e44]: 运行中
-              - generic [ref=e45]: 拜甘教设计
-          - generic [ref=e47]:
-            - generic [ref=e48]:
-              - generic [ref=e49]: 夜晚行动顺序
-              - button "展开" [ref=e50]
-            - generic [ref=e51]:
-              - generic [ref=e52]:
-                - generic [ref=e53]: 1. [2号] 投毒者
-                - generic [ref=e54]: "#1"
-              - generic [ref=e55]:
-                - generic [ref=e56]: 2. [1号] 小恶魔
-                - generic [ref=e57]: "#2"
-              - generic [ref=e58]:
-                - generic [ref=e59]: 3. [3号] 洗衣妇
-                - generic [ref=e60]: "#3"
-              - generic [ref=e61]:
-                - generic [ref=e62]: 4. [4号] 图书管理员
-                - generic [ref=e63]: "#4"
-    - complementary [ref=e64]:
-      - generic [ref=e65]:
-        - generic [ref=e68]: 核对身份
-        - generic [ref=e70]:
-          - heading "角色说明" [level=3] [ref=e71]: 角色说明
-          - generic [ref=e73]:
-            - generic [ref=e74]: 其他提示
-            - generic [ref=e75]:
-              - generic [ref=e78]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
-              - generic [ref=e81]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
-              - generic [ref=e84]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
-              - generic [ref=e87]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
-              - generic [ref=e90]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
-              - generic [ref=e93]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
-        - button "确认无误，入夜 🌙" [active] [ref=e95]
-  - dialog [ref=e99]:
-    - generic [ref=e100]:
-      - heading "首夜唤醒顺序预览" [level=2] [ref=e101]
-      - button "关闭" [ref=e102]: ✕
-    - generic [ref=e103]:
-      - paragraph [ref=e104]: 请核对今晚要叫醒的所有角色顺序。你可以点击"返回调整"继续修改座位/身份，或点击"确认"正式进入夜晚流程。
-      - generic [ref=e105]:
-        - generic [ref=e106]:
-          - generic [ref=e107]:
-            - generic [ref=e108]: 顺位 1
-            - generic [ref=e109]: "[2号] 投毒者"
-          - generic [ref=e110]: 第1 唤醒
-        - generic [ref=e111]:
-          - generic [ref=e112]:
-            - generic [ref=e113]: 顺位 2
-            - generic [ref=e114]: "[1号] 小恶魔"
-          - generic [ref=e115]: 第2 唤醒
-        - generic [ref=e116]:
-          - generic [ref=e117]:
-            - generic [ref=e118]: 顺位 3
-            - generic [ref=e119]: "[3号] 洗衣妇"
-          - generic [ref=e120]: 第3 唤醒
-        - generic [ref=e121]:
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - main [ref=e16]:
+        - generic [ref=e18]:
+          - button "相克规则：关" [ref=e19]
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - generic [ref=e22]:
+                - generic:
+                  - generic [ref=e24] [cursor=pointer]:
+                    - generic [ref=e27]: "1"
+                    - generic:
+                      - generic: 小恶魔
+                    - generic [ref=e28]: 👤 行动中
+                  - generic [ref=e30] [cursor=pointer]:
+                    - generic [ref=e31]: "2"
+                    - generic:
+                      - generic: 投毒者
+                  - generic [ref=e33] [cursor=pointer]:
+                    - generic [ref=e34]: "3"
+                    - generic:
+                      - generic: 洗衣妇
+                  - generic [ref=e36] [cursor=pointer]:
+                    - generic [ref=e37]: "4"
+                    - generic:
+                      - generic: 图书管理员
+                  - generic [ref=e39] [cursor=pointer]:
+                    - generic [ref=e40]: "5"
+                    - generic:
+                      - generic: 猎手
+              - generic [ref=e41]:
+                - generic [ref=e42]: 首夜
+                - generic [ref=e43]:
+                  - button "0:10" [ref=e44] [cursor=pointer]
+                  - generic [ref=e45]:
+                    - button "重置" [ref=e46]
+                    - generic [ref=e47]: 运行中
+                - generic [ref=e48]: 拜甘教设计
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - generic [ref=e52]: 夜晚行动顺序
+                - button "展开" [ref=e53]
+              - generic [ref=e54]:
+                - generic [ref=e55]:
+                  - generic [ref=e56]: 1. [2号] 投毒者
+                  - generic [ref=e57]: "#1"
+                - generic [ref=e58]:
+                  - generic [ref=e59]: 2. [1号] 小恶魔
+                  - generic [ref=e60]: "#2"
+                - generic [ref=e61]:
+                  - generic [ref=e62]: 3. [3号] 洗衣妇
+                  - generic [ref=e63]: "#3"
+                - generic [ref=e64]:
+                  - generic [ref=e65]: 4. [4号] 图书管理员
+                  - generic [ref=e66]: "#4"
+      - complementary [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e71]: 首夜
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: 当前的行动
+                - button "刷新说书人提前准备好的内容" [ref=e77]:
+                  - img [ref=e78]
+              - generic [ref=e83]: 行动：唤醒1号【小恶魔】，告知爪牙身份：爪牙：2号；不在场角色：调查员、占卜师、士兵。
+            - generic [ref=e84]:
+              - heading "角色说明" [level=3] [ref=e85]: 角色说明
+              - generic [ref=e87]:
+                - generic [ref=e88]: 运作方式
+                - generic [ref=e89]: "除首个夜晚以外的每个夜晚，唤醒小恶魔。让小恶魔指向任意一名玩家。让小恶魔重新入睡。被选择的玩家死亡——在那名玩家的角色标记旁放置小恶魔的“死亡”提示标记并放置帷幕标记。 如果小恶魔选择在夜里自杀，用多出来的小恶魔标记替换一名存活的爪牙玩家的角色标记，让那名玩家的角色改变为小恶魔。唤醒新的小恶魔，向他展示“你是”信息标记，然后向他展示小恶魔角色标记。让新的小恶魔重新入睡。 在黎明时，宣布有哪名玩家在夜晚死去。（不要说明死亡原因。） > 范例: 如果小恶魔选择在夜晚攻击一名已死亡的玩家，允许他这么做。当一个角色能力描述中提及“选择一名玩家”，意味着任何玩家——无论存活或是死亡——都能被选择。小恶魔可能在计划伪装成士兵，而这种情形下会让他的谎言看起来更加可信。"
+              - generic [ref=e90]:
+                - generic [ref=e91]: 范例
+                - generic [ref=e92]:
+                  - generic [ref=e93]: "范例: 现在是第一夜。小恶魔得知小文和小美是爪牙。小恶魔还得知僧侣，厨师和图书管理员不在场。小恶魔谎称自己是厨师，并在稍晚时分谎称自己是镇长。最后，小恶魔被处决，且善良阵营获胜。"
+                  - generic [ref=e94]: "范例: 在夜晚时，小恶魔被唤醒并选择了一名玩家，那名玩家死亡。在下一个夜晚，小恶魔选择让自己死亡。于是小恶魔死亡，并且投毒者变成了小恶魔。"
+              - generic [ref=e95]:
+                - generic [ref=e96]: 提示标记
+                - generic [ref=e97]: "- 死亡 放置时机：在小恶魔夜晚行动并选择了玩家后放置。 放置条件：小恶魔选择的玩家当前存活，且能被小恶魔杀死，且小恶魔未醉酒中毒，那么在该玩家的角色标记旁放置，用以提醒说书人在黎明时分宣布当晚的死亡玩家。 移除时机：在黎明时宣布死亡玩家后，说书人可以任由自己方便来进行移除。"
+              - generic [ref=e98]:
+                - generic [ref=e99]: 特性
+                - generic [ref=e100]: 恶魔 / 角色变化、死亡触发能力
+              - generic [ref=e101]:
+                - generic [ref=e102]: 其他提示
+                - generic [ref=e103]:
+                  - generic [ref=e106]: 夜晚选人指向含糊时，走到目标旁竖直指向头顶，双方点头确认，避免误会。
+                  - generic [ref=e109]: 夜晚刻意多走动、不要只去固定角落，让脚步声难以被猜出是谁被叫醒。
+                  - generic [ref=e112]: 无论是真角色还是伪装者，使用完能力都在魔典中移动对应提示标记，避免被老玩家看出端倪。
+                  - generic [ref=e115]: 叫醒玩家时轻拍肩膀或膝盖，不要发声；厚衣服感知弱时改为两次按压。
+                  - generic [ref=e118]: 玩家醒来不知道做什么？指向其角色列表上的能力描述即可，无需多言。
+                  - generic [ref=e121]: 走动时保持魔典水平，从书脊上方或下方握持，防止被偷看或折断。
           - generic [ref=e122]:
-            - generic [ref=e123]: 顺位 4
-            - generic [ref=e124]: "[4号] 图书管理员"
-          - generic [ref=e125]: 第4 唤醒
+            - button "确认 & 下一步" [active] [ref=e123]
+            - button "上一步" [ref=e125]
     - generic [ref=e126]:
-      - button "返回调整" [ref=e127]
-      - button "确认无误，入夜" [ref=e128] [cursor=pointer]
+      - button "🏠 主页" [ref=e127]
+      - button "↩ 上一步" [ref=e128]
+      - button "📋 历史" [ref=e129]
+      - button "🔄 重置" [ref=e130]
 ```

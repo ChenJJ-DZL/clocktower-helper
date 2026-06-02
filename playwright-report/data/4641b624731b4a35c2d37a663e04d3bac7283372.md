@@ -1,0 +1,350 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - main [ref=e16]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: "座位数: 16"
+          - generic [ref=e22]:
+            - generic [ref=e23]:
+              - generic [ref=e24]:
+                - generic:
+                  - generic [ref=e26] [cursor=pointer]:
+                    - generic [ref=e27]: "1"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e29] [cursor=pointer]:
+                    - generic [ref=e30]: "2"
+                    - generic:
+                      - generic: 调查员
+                  - generic [ref=e32] [cursor=pointer]:
+                    - generic [ref=e33]: "3"
+                    - generic:
+                      - generic: 送葬者
+                  - generic [ref=e35] [cursor=pointer]:
+                    - generic [ref=e36]: "4"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e38] [cursor=pointer]:
+                    - generic [ref=e39]: "5"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e41] [cursor=pointer]:
+                    - generic [ref=e42]: "6"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e44] [cursor=pointer]:
+                    - generic [ref=e45]: "7"
+                    - generic:
+                      - generic: 猎手
+                  - generic [ref=e47] [cursor=pointer]:
+                    - generic [ref=e48]: "8"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e50] [cursor=pointer]:
+                    - generic [ref=e51]: "9"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e53] [cursor=pointer]:
+                    - generic [ref=e54]: "10"
+                    - generic:
+                      - generic: 守鸦人
+                  - generic [ref=e56] [cursor=pointer]:
+                    - generic [ref=e57]: "11"
+                    - generic:
+                      - generic: 厨师
+                  - generic [ref=e59] [cursor=pointer]:
+                    - generic [ref=e60]: "12"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e62] [cursor=pointer]:
+                    - generic [ref=e63]: "13"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e65] [cursor=pointer]:
+                    - generic [ref=e66]: "14"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e68] [cursor=pointer]:
+                    - generic [ref=e69]: "15"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e71] [cursor=pointer]:
+                    - generic [ref=e72]: "16"
+                    - generic:
+                      - generic: 空
+              - generic [ref=e73]:
+                - generic [ref=e74]: 准备阶段
+                - generic [ref=e75]:
+                  - button "0" [ref=e76] [cursor=pointer]
+                  - generic [ref=e77]:
+                    - button "重置" [ref=e78]
+                    - generic [ref=e79]: 运行中
+                - generic [ref=e80]: 拜甘教设计
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - generic [ref=e84]: 夜晚行动顺序
+                - button "展开" [ref=e85]
+              - generic [ref=e87]: 暂无（未生成顺序或不在夜晚阶段）
+      - complementary [ref=e88]:
+        - generic [ref=e89]:
+          - heading "说书人控制台" [level=2] [ref=e91]
+          - generic [ref=e93]:
+            - generic [ref=e94]:
+              - generic [ref=e95]:
+                - generic [ref=e96]:
+                  - generic [ref=e97]: 当前剧本
+                  - generic [ref=e98]:
+                    - generic [ref=e99]: 暗流涌动
+                    - button "⚡ 快速测试" [ref=e100]
+                  - generic [ref=e101]: 请分配角色并检查阵容后开始游戏
+                - generic [ref=e102]: 准备阶段
+              - generic [ref=e104]:
+                - heading "游戏人数" [level=3] [ref=e105]
+                - generic [ref=e106]:
+                  - generic [ref=e107]: "5"
+                  - generic [ref=e108]: / 16 已分配角色
+                - generic [ref=e109]: 点击座位并为每位玩家选择角色后即可开始
+              - generic [ref=e110]:
+                - heading "阵营分布" [level=3] [ref=e111]
+                - generic [ref=e112]:
+                  - generic [ref=e113]:
+                    - generic [ref=e114]: 村民
+                    - generic [ref=e115]: "5"
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: 外来者
+                    - generic [ref=e118]: "0"
+                  - generic [ref=e119]:
+                    - generic [ref=e120]: 爪牙
+                    - generic [ref=e121]: "0"
+                  - generic [ref=e122]:
+                    - generic [ref=e123]: 恶魔
+                    - generic [ref=e124]: "0"
+              - generic [ref=e125]:
+                - heading "角色列表" [level=3] [ref=e126]
+                - generic [ref=e127]: 点击卡片选择角色，已被选择的卡片将变灰
+                - generic [ref=e128]:
+                  - generic [ref=e129]:
+                    - generic [ref=e130]:
+                      - generic [ref=e131]: 村民
+                      - generic [ref=e132]: 共 13 位角色
+                    - generic [ref=e133]:
+                      - button "洗衣妇 washerwoman" [ref=e134]:
+                        - generic [ref=e135]:
+                          - generic [ref=e136]: 洗衣妇
+                          - generic [ref=e137]: washerwoman
+                      - button "图书管理员 librarian" [ref=e138]:
+                        - generic [ref=e139]:
+                          - generic [ref=e140]: 图书管理员
+                          - generic [ref=e141]: librarian
+                      - button "调查员 investigator ✓" [ref=e142]:
+                        - generic [ref=e143]:
+                          - generic [ref=e144]: 调查员
+                          - generic [ref=e145]: investigator
+                          - generic [ref=e146]: ✓
+                      - button "厨师 chef ✓" [ref=e147]:
+                        - generic [ref=e148]:
+                          - generic [ref=e149]: 厨师
+                          - generic [ref=e150]: chef
+                          - generic [ref=e151]: ✓
+                      - button "共情者 empath" [ref=e152]:
+                        - generic [ref=e153]:
+                          - generic [ref=e154]: 共情者
+                          - generic [ref=e155]: empath
+                      - button "占卜师 fortune teller" [ref=e156]:
+                        - generic [ref=e157]:
+                          - generic [ref=e158]: 占卜师
+                          - generic [ref=e159]: fortune teller
+                      - button "送葬者 undertaker ✓" [ref=e160]:
+                        - generic [ref=e161]:
+                          - generic [ref=e162]: 送葬者
+                          - generic [ref=e163]: undertaker
+                          - generic [ref=e164]: ✓
+                      - button "僧侣 monk" [ref=e165]:
+                        - generic [ref=e166]:
+                          - generic [ref=e167]: 僧侣
+                          - generic [ref=e168]: monk
+                      - button "守鸦人 ravenkeeper ✓" [ref=e169]:
+                        - generic [ref=e170]:
+                          - generic [ref=e171]: 守鸦人
+                          - generic [ref=e172]: ravenkeeper
+                          - generic [ref=e173]: ✓
+                      - button "贞洁者 virgin" [ref=e174]:
+                        - generic [ref=e175]:
+                          - generic [ref=e176]: 贞洁者
+                          - generic [ref=e177]: virgin
+                      - button "猎手 slayer ✓" [ref=e178]:
+                        - generic [ref=e179]:
+                          - generic [ref=e180]: 猎手
+                          - generic [ref=e181]: slayer
+                          - generic [ref=e182]: ✓
+                      - button "士兵 soldier" [ref=e183]:
+                        - generic [ref=e184]:
+                          - generic [ref=e185]: 士兵
+                          - generic [ref=e186]: soldier
+                      - button "镇长 mayor" [ref=e187]:
+                        - generic [ref=e188]:
+                          - generic [ref=e189]: 镇长
+                          - generic [ref=e190]: mayor
+                  - generic [ref=e191]:
+                    - generic [ref=e192]:
+                      - generic [ref=e193]: 外来者
+                      - generic [ref=e194]: 共 4 位角色
+                    - generic [ref=e195]:
+                      - button "管家 butler" [ref=e196]:
+                        - generic [ref=e197]:
+                          - generic [ref=e198]: 管家
+                          - generic [ref=e199]: butler
+                      - button "酒鬼 drunk" [ref=e200]:
+                        - generic [ref=e201]:
+                          - generic [ref=e202]: 酒鬼
+                          - generic [ref=e203]: drunk
+                      - button "陌客 recluse" [ref=e204]:
+                        - generic [ref=e205]:
+                          - generic [ref=e206]: 陌客
+                          - generic [ref=e207]: recluse
+                      - button "圣徒 saint" [ref=e208]:
+                        - generic [ref=e209]:
+                          - generic [ref=e210]: 圣徒
+                          - generic [ref=e211]: saint
+                  - generic [ref=e212]:
+                    - generic [ref=e213]:
+                      - generic [ref=e214]: 爪牙
+                      - generic [ref=e215]: 共 4 位角色
+                    - generic [ref=e216]:
+                      - button "投毒者 poisoner" [ref=e217]:
+                        - generic [ref=e218]:
+                          - generic [ref=e219]: 投毒者
+                          - generic [ref=e220]: poisoner
+                      - button "间谍 spy" [ref=e221]:
+                        - generic [ref=e222]:
+                          - generic [ref=e223]: 间谍
+                          - generic [ref=e224]: spy
+                      - button "红唇女郎 scarlet woman" [ref=e225]:
+                        - generic [ref=e226]:
+                          - generic [ref=e227]: 红唇女郎
+                          - generic [ref=e228]: scarlet woman
+                      - button "男爵 baron" [ref=e229]:
+                        - generic [ref=e230]:
+                          - generic [ref=e231]: 男爵
+                          - generic [ref=e232]: baron
+                  - generic [ref=e233]:
+                    - generic [ref=e234]:
+                      - generic [ref=e235]: 恶魔
+                      - generic [ref=e236]: 共 1 位角色
+                    - button "小恶魔 imp" [ref=e238]:
+                      - generic [ref=e239]:
+                        - generic [ref=e240]: 小恶魔
+                        - generic [ref=e241]: imp
+            - button "开始游戏" [ref=e243]
+    - generic [ref=e244]:
+      - main [ref=e245]:
+        - generic [ref=e247]:
+          - button "相克规则：关" [ref=e248]
+          - generic [ref=e249]:
+            - generic [ref=e250]:
+              - generic [ref=e251]:
+                - generic:
+                  - generic [ref=e253] [cursor=pointer]:
+                    - generic [ref=e254]: "1"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e256] [cursor=pointer]:
+                    - generic [ref=e257]: "2"
+                    - generic:
+                      - generic: 调查员
+                  - generic [ref=e259] [cursor=pointer]:
+                    - generic [ref=e260]: "3"
+                    - generic:
+                      - generic: 送葬者
+                  - generic [ref=e262] [cursor=pointer]:
+                    - generic [ref=e263]: "4"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e265] [cursor=pointer]:
+                    - generic [ref=e266]: "5"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e268] [cursor=pointer]:
+                    - generic [ref=e269]: "6"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e271] [cursor=pointer]:
+                    - generic [ref=e272]: "7"
+                    - generic:
+                      - generic: 猎手
+                  - generic [ref=e274] [cursor=pointer]:
+                    - generic [ref=e275]: "8"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e277] [cursor=pointer]:
+                    - generic [ref=e278]: "9"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e280] [cursor=pointer]:
+                    - generic [ref=e281]: "10"
+                    - generic:
+                      - generic: 守鸦人
+                  - generic [ref=e283] [cursor=pointer]:
+                    - generic [ref=e284]: "11"
+                    - generic:
+                      - generic: 厨师
+                  - generic [ref=e286] [cursor=pointer]:
+                    - generic [ref=e287]: "12"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e289] [cursor=pointer]:
+                    - generic [ref=e290]: "13"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e292] [cursor=pointer]:
+                    - generic [ref=e293]: "14"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e295] [cursor=pointer]:
+                    - generic [ref=e296]: "15"
+                    - generic:
+                      - generic: 空
+                  - generic [ref=e298] [cursor=pointer]:
+                    - generic [ref=e299]: "16"
+                    - generic:
+                      - generic: 空
+              - generic [ref=e300]:
+                - generic [ref=e301]: 准备阶段
+                - generic [ref=e302]:
+                  - button "4:45" [ref=e303] [cursor=pointer]
+                  - generic [ref=e304]:
+                    - button "重置" [ref=e305]
+                    - generic [ref=e306]: 运行中
+                - generic [ref=e307]: 拜甘教设计
+            - generic [ref=e309]:
+              - generic [ref=e310]:
+                - generic [ref=e311]: 夜晚行动顺序
+                - button "展开" [ref=e312]
+              - generic [ref=e314]: 暂无（未生成顺序或不在夜晚阶段）
+      - complementary [ref=e315]:
+        - generic [ref=e316]:
+          - generic [ref=e319]: 准备阶段
+          - generic [ref=e321]:
+            - heading "角色说明" [level=3] [ref=e322]: 角色说明
+            - generic [ref=e324]:
+              - generic [ref=e325]: 其他提示
+              - generic [ref=e326]:
+                - generic [ref=e329]: 如果犯错，直接说明“我出错了”并继续主持，不要用补偿去平衡，保持节奏。
+                - generic [ref=e332]: 首夜前阻止集体爆身份，必要时直接说明或加入地狱藏书员来限制。
+                - generic [ref=e335]: 不要篡改核心规则或随意改动角色数量；公平信息才让推理有意义。
+                - generic [ref=e338]: 避开死亡、性别等敏感话题；若有角色让人不适，提前从剧本列表中移除。
+                - generic [ref=e341]: 允许有趣的创新策略但禁止以游戏外利益或欺凌换取行为，确保乐趣不变味。
+                - generic [ref=e344]: 所有决定以“让游戏好玩且公平”为准，不要为自己的娱乐牺牲玩家体验。
+          - button "确认 & 下一步" [ref=e346]
+    - generic [ref=e347]:
+      - button "🏠 主页" [ref=e348]
+      - button "↩ 上一步" [ref=e349]
+      - button "📋 历史" [ref=e350]
+      - button "🔄 重置" [ref=e351]
+```
