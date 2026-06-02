@@ -185,7 +185,7 @@ import { tinkerAbility } from "./tinker.ability";
 import { town_crierAbility } from "./town_crier.ability";
 import { toymakerAbility } from "./toymaker.ability";
 import { traitorous_ministerAbility } from "./traitorous_minister.ability";
-import { tricksterJackAbility } from "./trickster_jack.ability";
+import { trickster_jackAbility } from "./trickster_jack.ability";
 import { undertakerAbility } from "./undertaker.ability";
 import { ventriloquistAbility } from "./ventriloquist.ability";
 import { vigormortisAbility } from "./vigormortis.ability";
@@ -416,7 +416,7 @@ export function registerAllNewEngineAbilities(): void {
     town_crierAbility,
     toymakerAbility,
     traitorous_ministerAbility,
-    tricksterJackAbility,
+    trickster_jackAbility,
     undertakerAbility,
     ventriloquistAbility,
     vigormortisAbility,
@@ -652,7 +652,7 @@ export { tinkerAbility } from "./tinker.ability";
 export { town_crierAbility } from "./town_crier.ability";
 export { toymakerAbility } from "./toymaker.ability";
 export { traitorous_ministerAbility } from "./traitorous_minister.ability";
-export { tricksterJackAbility } from "./trickster_jack.ability";
+export { trickster_jackAbility } from "./trickster_jack.ability";
 export { undertakerAbility } from "./undertaker.ability";
 export { ventriloquistAbility } from "./ventriloquist.ability";
 export { vigormortisAbility } from "./vigormortis.ability";

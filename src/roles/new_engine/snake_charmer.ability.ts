@@ -1,48 +1,6 @@
-/**
- * 舞蛇人（Snake Charmer）新引擎技能实现
- */
-
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import {
-  AbilityTriggerTiming,
-  commonPreCheckAlive,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-
-// 舞蛇人是镇民角色
-// 每个夜晚，你可以选择一名玩家。如果你选择的是恶魔，你会与他交换阵营和角色，然后你会中毒。
-
-export const snake_charmerAbility = createRoleAbility({
-  roleId: "snake_charmer",
-  abilityId: "snake_charmer_special_ability",
-  abilityName: "蛇吻魅惑",
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 0,
-  firstNightOnly: false,
-  wakePromptId: "role.snake_charmer.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [commonPreCheckAlive],
-  calculate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 舞蛇人的能力逻辑：选择玩家，如果是恶魔则交换身份并中毒
-      return context;
-    },
-  ],
-  stateUpdate: [
-    async (context: MiddlewareContext): Promise<MiddlewareContext> => {
-      // 舞蛇人的状态更新逻辑
-      return context;
-    },
-  ],
-  postProcess: [
-    async (context) => {
-      console.log("舞蛇人能力被调用");
-      return context;
-    },
-  ],
-});
+import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
+const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
+const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const t=ctx.targetIds?.[0]??null;const target=t!=null?ctx.snapshot.seats.find((s:any)=>s.id===t):null;const isDemon=target?.role?.type==="demon";return{...ctx,meta:{...ctx.meta,abilityResult:{targetId:t,isDemon,swapTriggered:isDemon}}}};
+const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{return{...ctx,meta:{...ctx.meta,snakeCharmerResult:ctx.meta.abilityResult}};};
+const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(r?.swapTriggered?`[SnakeCharmer] 与${r.targetId+1}号恶魔交换角色`:"[SnakeCharmer] 选择玩家");return{...ctx,meta:{...ctx.meta,abilityLog:r?.swapTriggered?"交换了角色":"未触发交换"}};};
+export const snake_charmerAbility=createRoleAbility({roleId:"snake_charmer",abilityId:"snake_charmer_night",abilityName:"舞蛇",triggerTiming:[AbilityTriggerTiming.EVERY_NIGHT],wakePriority:18,firstNightOnly:false,wakePromptId:"role.snake_charmer.wake",targetConfig:{min:1,max:1,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
