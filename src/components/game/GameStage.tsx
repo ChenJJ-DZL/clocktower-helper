@@ -406,7 +406,7 @@ export const GameStage = () => {
     "grandmother","gambler","sage","savant","artist","slayer","ravenkeeper",
     "bounty_hunter","astrologer","general","fighter","engineer","courtier",
     "professor","farmer","banshee","juggler","high_priestess","snake_charmer",
-  ]);
+  ]); // butler 使用旧引擎，不在此列
   useEffect(() => {
     if (!currentWakeSeat || currentModal || !(gamePhase === "firstNight" || gamePhase === "night")) return;
     const roleId = currentWakeSeat.role?.id;
@@ -417,7 +417,7 @@ export const GameStage = () => {
     const nightActionMeta = seats.length > 0 ? null : null;
     // 对于需要选目标的角色，等选完再弹窗
     const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
-      "grandmother","chambermaid","snake_charmer","artist","slayer","ravenkeeper","butler"];
+      "grandmother","chambermaid","snake_charmer","artist","slayer","ravenkeeper"];
     if (needsTargets.includes(roleId) && (!selectedActionTargets || selectedActionTargets.length < 1)) return;
 
     // 对于0目标角色（自动获取信息），仅当首次轮到该角色时弹窗
