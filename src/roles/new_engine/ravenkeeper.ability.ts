@@ -96,12 +96,21 @@ const preCheckDeathAndStatus = async (
 
   const diedTonight =
     seat.diedAtNight === nightCount || seat.markedForDeath === true;
+  const killedByDemon = context.meta.killerRole === "demon" || seat.deathSource === "demon";
 
   if (!diedTonight) {
     return {
       ...context,
       aborted: true,
       abortReason: "守鸦人今晚未死亡，技能不触发",
+    };
+  }
+
+  if (!killedByDemon) {
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "守鸦人未被恶魔杀死，技能不触发",
     };
   }
 

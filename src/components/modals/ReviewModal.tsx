@@ -1,5 +1,9 @@
 import type { GamePhase, LogEntry, Seat, WinResult } from "@/app/data";
+import { roles } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
+
+// 角色ID到中文名的映射
+const roleNameMap = new Map(roles.map((r) => [r.id, r.name]));
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -105,6 +109,14 @@ export function ReviewModal({
                 night: 4,
               };
 
+              // 格式化日志消息：将英文角色ID转为"【座位号】中文名"格式
+              const formatMsg = (msg: string): string => {
+                return msg.replace(/(\d+)\s*号[位玩家者]?\s*[\(（]?([a-z_]+)[\)）]?/gi, (match, num, roleId) => {
+                  const cn = roleNameMap.get(roleId) || roleId;
+                  return `【${num}】${cn}`;
+                });
+              };
+
               // 过滤掉内部调试日志，只保留玩家可读的操作记录
               const filteredLogs = gameLogs.filter(
                 (log) =>
@@ -169,7 +181,7 @@ export function ReviewModal({
                           key={`${l.day}-${l.phase}-${l.message}`}
                           className={`py-2 border-b border-gray-700 text-gray-300 ${isPortrait ? "text-xs" : "text-sm"} pl-2`}
                         >
-                          {l.message}
+                          {formatMsg(l.message)}
                         </div>
                       ))}
                     </div>
