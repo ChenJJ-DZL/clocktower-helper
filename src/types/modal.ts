@@ -157,7 +157,7 @@ export type ModalType =
   | { type: "FORTUNE_TELLER_RESULT"; data: { result: boolean; targetLabels: string[] } }
   | {
       type: "INFO_RESULT";
-      data: { roleName: string; resultText: string };
+      data: { roleName: string; resultText: string; onNext?: () => void };
     }
   | { type: "ARTIST_RESULT"; data: { result: string } }
   | { type: "SAVANT_RESULT"; data: { infoA: string; infoB: string } }

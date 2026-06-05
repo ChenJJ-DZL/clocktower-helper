@@ -697,7 +697,12 @@ export function GameModals() {
           resultText={infoResultModal.resultText}
           onConfirm={() => {
             actions.setCurrentModal(null);
-            actions.continueToNextAction();
+            // 如果有关联的下一步动作（如占卜师需要先执行能力），调用它
+            if (infoResultModal.onNext) {
+              infoResultModal.onNext();
+            } else {
+              actions.continueToNextAction();
+            }
           }}
           onModify={() => {
             actions.setCurrentModal(null);

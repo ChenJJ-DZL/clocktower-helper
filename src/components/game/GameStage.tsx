@@ -398,38 +398,46 @@ export const GameStage = () => {
   const _currentWakeRole = getDisplayRole(currentWakeSeat);
   const _nextWakeRole = getDisplayRole(nextWakeSeat);
 
-  // 弹窗规则：仅"选择目标+获取反馈"类角色需要弹窗
-  // 自动信息类（厨师/洗衣妇等）不弹窗，信息直接在控制台显示
-  // 选择执行类（投毒者/小恶魔等）只选目标，无信息反馈，也不弹窗
-  const infoRoleIds = new Set([
-    "fortune_teller","dreamer","gambler","seamstress","snake_charmer",
-    "slayer","ravenkeeper","chambermaid","grandmother","professor",
-    "astrologer","ranger","villager",
-  ]);
-  // 需要先选择目标再反馈结果的角色
-  const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
+  // ====== 信息结果弹窗 ======
+  // 仅"选择目标+获取反馈"类角色弹窗，在确认后显示结果
+  const [pendingResult, setPendingResult] = useState<{roleName:string;resultText:string} | null>(null);
+  const needsFeedback = ["fortune_teller","dreamer","gambler","seamstress",
     "snake_charmer","slayer","ravenkeeper","chambermaid",
     "grandmother","professor","astrologer","ranger","villager"];
+
+  // 拦截"确认&下一步"，先弹结果再执行
+  const handleNightConfirm = useCallback(() => {
+    const roleId = currentWakeSeat?.role?.id;
+    const targets = selectedActionTargets;
+
+    if (roleId === "fortune_teller" && targets && targets.length >= 2) {
+      const demon = seats.find((s: any) => !s.isDead && s.role?.type === "demon");
+      const hasDemon = demon ? targets.slice(0,2).some((id: number) => id === demon.id) : false;
+      setPendingResult({ roleName: "占卜师", resultText: hasDemon ? "有" : "没有" });
+      return;
+    }
+
+    // 其他角色直接确认
+    handleConfirmAction();
+  }, [currentWakeSeat, selectedActionTargets, handleConfirmAction, seats]);
+
+  // 处理弹窗确认：执行能力并继续
   useEffect(() => {
-    if (!currentWakeSeat || currentModal || !(gamePhase === "firstNight" || gamePhase === "night")) return;
-    const roleId = currentWakeSeat.role?.id;
-    if (!roleId || !infoRoleIds.has(roleId)) return;
-
-    // 选完目标再弹窗
-    if (needsTargets.includes(roleId) && (!selectedActionTargets || selectedActionTargets.length < 1)) return;
-
-    // 构造结果文本
-    const roleName = currentWakeSeat.role?.name || roleId;
-    const resultText = nightInfo?.guide?.replace(/[。！？]/g, "。") || `${roleName}已完成行动`;
-
-    setCurrentModal({
-      type: "INFO_RESULT",
-      data: { roleName, resultText },
-    });
-  }, [
-    selectedActionTargets, gamePhase, currentWakeSeat, currentModal,
-    seats, setCurrentModal, nightInfo,
-  ]);
+    if (pendingResult) {
+      setCurrentModal({
+        type: "INFO_RESULT",
+        data: {
+          roleName: pendingResult.roleName,
+          resultText: pendingResult.resultText,
+          onNext: () => {
+            // 占卜师：确认后执行能力再继续
+            handleConfirmAction();
+          },
+        },
+      });
+      setPendingResult(null);
+    }
+  }, [pendingResult, setCurrentModal, handleConfirmAction]);
 
   // Handle Dusk Phase UI
   if (gamePhase === "dusk") {
@@ -1232,7 +1240,7 @@ export const GameStage = () => {
                     // Normal "Next" button for night steps
                     return {
                       label: "确认 & 下一步",
-                      onClick: handleConfirmAction,
+                      onClick: handleNightConfirm,
                       disabled: isConfirmDisabled || !!controller.currentModal, // Disable if modal is open
                       variant: "primary" as const,
                     };
