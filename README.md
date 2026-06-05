@@ -2,7 +2,7 @@
 # 血染钟楼说书人助手
 
 by 拜甘教成员-大长老
-在线网页（点开即食）：baigangroup.fun
+版本：W6.2.4
 
 ## 项目简介
 
@@ -12,67 +12,70 @@ by 拜甘教成员-大长老
 
 | 模块 | 状态 |
 |------|------|
-| 角色能力迁移（新引擎） | ✅ 100% 完成（98个能力文件） |
-| 事件总线统一 | ✅ 完成 |
-| 夜晚顺序管理统一 | ✅ 完成 |
-| 新引擎生产使用 | ✅ 已上线 |
-| JINX 规则系统 | ✅ 基础架构已实现 |
-| **新引擎能力执行桥接** | ✅ **已修复** — 旧 handler 断开导致技能不生效 |
-| **rolesData.json meta 数据** | ✅ **42 角色已补齐** — 98/98 与 ability 文件对齐 |
-| 旧引擎文件清理 | ✅ `useNightLogic.ts` 已删除 |
+| 新引擎能力文件 | ✅ 200个角色全部注册 |
+| 旧引擎全部清理 | ✅ 65个handler已删除，仅保留UI配置层 |
+| 新引擎优先调度 | ✅ `useNightActionHandler.ts` 优先走新引擎中间件 |
+| 双层架构 | ✅ UI配置层(`src/roles/*.ts`) + 新引擎能力层(`src/roles/new_engine/*.ability.ts`) |
+| 生产构建 | ✅ 零错误 |
+| 单元测试 | ✅ 38/38 通过 |
+| E2E冒烟测试 | ✅ 通过 |
+| 信息弹窗机制 | ✅ 占卜师等"选择+反馈"角色正确弹窗，自动信息类不弹窗 |
+| 胜负判定 | ✅ 已修复 |
+| 复盘日志 | ✅ 显示"【N】中文名"格式 |
+| Vercel 部署配置 | ✅ 已添加 `vercel.json` |
 
-## 游戏规则文档
+## 架构说明
 
-详细的游戏规则说明请参阅：[血染钟楼游戏规则说明](./docs/血染钟楼游戏规则说明.md)
+### 双层架构（2026年6月重构）
 
-该文档包含：
-- 游戏基本规则和胜利条件
-- 邪恶阵营所有特殊胜利条件详细说明
-- 游戏流程和阶段说明
-- 角色能力实现状态
-- 项目实现差距分析
+```
+UI配置层 (src/roles/townsfolk|minion|demon|outsider/*.ts)
+  → 角色元数据：id, name, type, night.order, night.target, night.dialog, 规则文本
+  → 不包含任何 handler（全部已删除）
 
-## 规则自查报告
+新引擎能力层 (src/roles/new_engine/*.ability.ts)
+  → 游戏逻辑：preCheck→calculate→stateUpdate→postProcess 中间件管道
+  → 200个能力文件，统一注册在 abilityRegistry.ts
 
-项目规则自查报告：[规则自查表](./docs/archive/规则自查表.md)（存档）
-
-该报告详细分析了项目代码与官方规则的差异，并提出了具体的修改建议。
-
-## 技术栈
-
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+调度器 (useNightActionHandler.ts)
+  → 1. 查新引擎 getRawAbilityMap() → 有则执行新引擎中间件
+  → 2. 无新引擎则回退 UI配置层的旧 handler（已不存在）
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 弹窗规则
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 类型 | 说明 | 示例角色 |
+|:----|:-----|:---------|
+| **选择+反馈** → 弹窗 | 选目标后系统返回信息 | 占卜师有/没有、守鸦人得知角色 |
+| **自动信息** → 不弹窗 | 系统直接告知信息 | 厨师"相邻邪恶=3"、洗衣妇信息 |
+| **选择执行** → 不弹窗 | 选目标后执行无反馈 | 投毒者下毒、小恶魔杀人 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 本地开发
 
-## Learn More
+```bash
+npm run dev        # 启动开发服务器 http://localhost:3000
+npm run build      # 生产构建
+npm run test       # 运行测试
+npm run check:all  # 全量质量门禁
+npm run dev -p 3001 # 备用端口
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Vercel 部署
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+git push
+# 在 https://vercel.com 导入仓库，自动部署
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 更新日志
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### W6.2.4 (2026-06-05)
+- 🏗️ **架构重构**：彻底废弃旧引擎handler，全部角色走新引擎中间件（65个handler删除，-2011行）
+- 🆕 **Conjurer/Shaman迁移**：最后2个旧引擎角色完成新引擎迁移
+- 🔄 **弹窗机制重做**：仅"选择目标+获取反馈"类角色弹窗，自动信息类/选择执行类不弹窗
+- 🎯 **占卜师弹窗修复**：选2目标→确认→弹"是/否"→执行能力→继续
+- 🐛 **胜负判定修复**：使用最新座位数据而非闭包中过期数据
+- 📝 **复盘日志格式化**：显示"【N】中文名"不再显示英文角色ID
+- 🎨 **猎手/守鸦人UI**：猎手白天技能按钮 + 守鸦人仅恶魔击杀触发
+- 🧹 **内部日志清理**：`[能力执行]`/`[系统]`等调试信息不再写入游戏记录
+- 🚀 **Vercel部署**：添加 `vercel.json` 配置
