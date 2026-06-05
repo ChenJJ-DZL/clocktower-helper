@@ -398,30 +398,22 @@ export const GameStage = () => {
   const _currentWakeRole = getDisplayRole(currentWakeSeat);
   const _nextWakeRole = getDisplayRole(nextWakeSeat);
 
-  // 通用信息结果弹窗：获取信息的角色在行动完成后弹出结果
+  // 弹窗规则：仅"选择目标+获取反馈"类角色需要弹窗
+  // 自动信息类（厨师/洗衣妇等）不弹窗，信息直接在控制台显示
   const infoRoleIds = new Set([
-    "chef","empath","fortune_teller","washerwoman","librarian","investigator",
-    "clockmaker","knight","noble","balloonist","town_crier","flowergirl",
-    "oracle","mathematician","undertaker","seamstress","dreamer","chambermaid",
-    "grandmother","gambler","sage","savant","artist","slayer","ravenkeeper",
-    "bounty_hunter","astrologer","general","fighter","engineer","courtier",
-    "professor","farmer","banshee","juggler","high_priestess","snake_charmer",
-  ]); // butler 使用旧引擎，不在此列
+    "fortune_teller","dreamer","gambler","seamstress","snake_charmer",
+    "artist","slayer","ravenkeeper","chambermaid",
+  ]);
+  // 需要先选择目标再反馈结果的角色
+  const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
+    "snake_charmer","artist","slayer","ravenkeeper","chambermaid"];
   useEffect(() => {
     if (!currentWakeSeat || currentModal || !(gamePhase === "firstNight" || gamePhase === "night")) return;
     const roleId = currentWakeSeat.role?.id;
     if (!roleId || !infoRoleIds.has(roleId)) return;
 
-    // 判断是否需要目标选择（0目标=自动触发，>0目标=等选完触发）
-    const meta = roleId === "fortune_teller" ? null : null; // placeholder
-    const nightActionMeta = seats.length > 0 ? null : null;
-    // 对于需要选目标的角色，等选完再弹窗
-    const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
-      "grandmother","chambermaid","snake_charmer","artist","slayer","ravenkeeper"];
+    // 选完目标再弹窗
     if (needsTargets.includes(roleId) && (!selectedActionTargets || selectedActionTargets.length < 1)) return;
-
-    // 对于0目标角色（自动获取信息），仅当首次轮到该角色时弹窗
-    if (!needsTargets.includes(roleId) && nightInfo?.seat?.id !== currentWakeSeat.id) return;
 
     // 构造结果文本
     const roleName = currentWakeSeat.role?.name || roleId;
