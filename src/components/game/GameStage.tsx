@@ -400,13 +400,16 @@ export const GameStage = () => {
 
   // 弹窗规则：仅"选择目标+获取反馈"类角色需要弹窗
   // 自动信息类（厨师/洗衣妇等）不弹窗，信息直接在控制台显示
+  // 选择执行类（投毒者/小恶魔等）只选目标，无信息反馈，也不弹窗
   const infoRoleIds = new Set([
     "fortune_teller","dreamer","gambler","seamstress","snake_charmer",
-    "artist","slayer","ravenkeeper","chambermaid",
+    "slayer","ravenkeeper","chambermaid","grandmother","professor",
+    "astrologer","ranger","villager",
   ]);
   // 需要先选择目标再反馈结果的角色
   const needsTargets = ["fortune_teller","dreamer","gambler","seamstress",
-    "snake_charmer","artist","slayer","ravenkeeper","chambermaid"];
+    "snake_charmer","slayer","ravenkeeper","chambermaid",
+    "grandmother","professor","astrologer","ranger","villager"];
   useEffect(() => {
     if (!currentWakeSeat || currentModal || !(gamePhase === "firstNight" || gamePhase === "night")) return;
     const roleId = currentWakeSeat.role?.id;
