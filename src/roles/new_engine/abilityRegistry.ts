@@ -35,7 +35,8 @@ import { chambermaidAbility } from "./chambermaid.ability";
 import { chaosAbility } from "./chaos.ability";
 import { chefAbility } from "./chef.ability";
 import { choirBoyAbility } from "./choir_boy.ability";
-import { choirboyAbility } from "./choirboy.ability";
+// ⚠️ 已注释: 与 choir_boy.ability.ts 重复，保留下划线版本
+// import { choirboyAbility } from "./choirboy.ability";
 import { clockmakerAbility } from "./clockmaker.ability";
 import { courtierAbility } from "./courtier.ability";
 import { cuckoo_birdAbility } from "./cuckoo_bird.ability";
@@ -44,7 +45,8 @@ import { damselAbility } from "./damsel.ability";
 import { dawnAbility } from "./dawn.ability";
 import { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
 import { devil_s_advocateAbility } from "./devil_s_advocate.ability";
-import { devils_advocateAbility } from "./devils_advocate.ability";
+// ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
+// import { devils_advocateAbility } from "./devils_advocate.ability";
 import { diAbility } from "./di.ability";
 import { divinerAbility } from "./diviner.ability";
 import { doctorAbility } from "./doctor.ability";
@@ -122,7 +124,8 @@ import { morticianAbility } from "./mortician.ability";
 import { mutantAbility } from "./mutant.ability";
 import { naughty_childAbility } from "./naughty_child.ability";
 import { night_watchmanAbility } from "./night_watchman.ability";
-import { nightwatchmanAbility } from "./nightwatchman.ability";
+// ⚠️ 已注释: 与 night_watchman.ability.ts 重复，保留下划线版本
+// import { nightwatchmanAbility } from "./nightwatchman.ability";
 import { no_dashiiAbility } from "./no_dashii.ability";
 import { nobleAbility } from "./noble.ability";
 import { ogreAbility } from "./ogre.ability";
@@ -267,7 +270,8 @@ export function registerAllNewEngineAbilities(): void {
     chaosAbility,
     chefAbility,
     choirBoyAbility,
-    choirboyAbility,
+    // ⚠️ 已注释: 与 choir_boy.ability.ts 重复，保留下划线版本
+    // choirboyAbility,
     clockmakerAbility,
     courtierAbility,
     cuckoo_birdAbility,
@@ -276,7 +280,8 @@ export function registerAllNewEngineAbilities(): void {
     dawnAbility,
     deusExFiascoAbility,
     devil_s_advocateAbility,
-    devils_advocateAbility,
+    // ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
+    // devils_advocateAbility,
     diAbility,
     divinerAbility,
     doctorAbility,
@@ -354,7 +359,8 @@ export function registerAllNewEngineAbilities(): void {
     mutantAbility,
     naughty_childAbility,
     night_watchmanAbility,
-    nightwatchmanAbility,
+    // ⚠️ 已注释: 与 night_watchman.ability.ts 重复，保留下划线版本
+    // nightwatchmanAbility,
     no_dashiiAbility,
     nobleAbility,
     ogreAbility,
@@ -502,8 +508,9 @@ export { cerenovusAbility } from "./cerenovus.ability";
 export { chambermaidAbility } from "./chambermaid.ability";
 export { chaosAbility } from "./chaos.ability";
 export { chefAbility } from "./chef.ability";
+// ⚠️ 已注释: 与 choir_boy.ability.ts 重复，保留下划线版本
+// export { choirboyAbility } from "./choirboy.ability";
 export { choirBoyAbility } from "./choir_boy.ability";
-export { choirboyAbility } from "./choirboy.ability";
 export { clockmakerAbility } from "./clockmaker.ability";
 export { courtierAbility } from "./courtier.ability";
 export { cuckoo_birdAbility } from "./cuckoo_bird.ability";
@@ -511,8 +518,9 @@ export { cult_leaderAbility } from "./cult_leader.ability";
 export { damselAbility } from "./damsel.ability";
 export { dawnAbility } from "./dawn.ability";
 export { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
+// ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
+// export { devils_advocateAbility } from "./devils_advocate.ability";
 export { devil_s_advocateAbility } from "./devil_s_advocate.ability";
-export { devils_advocateAbility } from "./devils_advocate.ability";
 export { diAbility } from "./di.ability";
 export { divinerAbility } from "./diviner.ability";
 export { doctorAbility } from "./doctor.ability";
@@ -589,8 +597,9 @@ export { moonchildAbility } from "./moonchild.ability";
 export { morticianAbility } from "./mortician.ability";
 export { mutantAbility } from "./mutant.ability";
 export { naughty_childAbility } from "./naughty_child.ability";
+// ⚠️ 已注释: 与 night_watchman.ability.ts 重复，保留下划线版本
+// export { nightwatchmanAbility } from "./nightwatchman.ability";
 export { night_watchmanAbility } from "./night_watchman.ability";
-export { nightwatchmanAbility } from "./nightwatchman.ability";
 export { no_dashiiAbility } from "./no_dashii.ability";
 export { nobleAbility } from "./noble.ability";
 export { ogreAbility } from "./ogre.ability";
