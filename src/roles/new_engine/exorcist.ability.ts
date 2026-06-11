@@ -1,83 +1,116 @@
 /**
- * 驱魔人 (Exorcist) - 黯月初升剧本
+ * 驱魔人（Exorcist）新引擎技能实现
  *
- * 角色能力：
- * - 除首个夜晚以外的每个夜晚，你要选择一名玩家（与上个夜晚不同）
- * - 如果你选中了恶魔，他会得知你是驱魔人，但他当晚不会因其自身能力而被唤醒
+ * 【角色能力】"每个夜晚*，你要选择一名玩家（不能与上个夜晚相同）：
+ *   如果该玩家是恶魔，恶魔今晚不会杀人。"
  *
- * 触发时机：EVERY_NIGHT（除首夜外的每个夜晚）
+ * 每夜选择一名玩家。若目标为恶魔，则今晚恶魔无法杀人。
+ * 不能连续两晚选择同一玩家。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
+  commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查是否存活、是否醉酒/中毒
-const preCheckAliveAndStatus = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-
-  if (!seat?.isAlive) {
-    return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-
-  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
-  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
-
-  return {
-    ...context,
-    meta: {
-      ...context.meta,
-      isDrunk,
-      isPoisoned,
-      isAbilityActive: !(isDrunk || isPoisoned),
-    },
-  };
-};
-
-// 计算结果：判断是否选中了恶魔
-const calculateResult = async (
+const calculate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, actionNode, targetIds } = context;
-  const isAbilityActive = meta.isAbilityActive ?? true;
-  const targets = targetIds || [];
+  const isAbilityActive = meta.abilityEffective ?? true;
 
-  if (targets.length !== 1) {
+  const targetId = targetIds?.[0] ?? null;
+  if (targetId == null) {
     return {
       ...context,
       meta: {
         ...context.meta,
         abilityResult: {
-          success: false,
-          message: "请选择一名玩家",
           targetId: null,
           isTargetDemon: false,
+          blocked: false,
         },
       },
     };
   }
 
-  const targetId = targets[0];
-  const targetSeat = snapshot.seats.find((s) => s.id === targetId);
+  // 检查是否连续两晚选择同一玩家
+  const lastTarget = (snapshot as any).lastExorcistTarget;
+  if (lastTarget != null && targetId === lastTarget) {
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "不能连续两晚选择同一玩家",
+    };
+  }
 
+  const targetSeat = snapshot.seats.find((s: any) => s.id === targetId);
   const isTargetDemon =
-    targetSeat?.role?.type === "demon" || (targetSeat as any)?.isDemonSuccessor;
+    (targetSeat?.role?.type === "demon" ||
+      (targetSeat as any)?.isDemonSuccessor) &&
+    isAbilityActive;
 
   return {
     ...context,
     meta: {
       ...context.meta,
       abilityResult: {
-        success: true,
-        targetId: targetId,
-        isTargetDemon: isTargetDemon && isAbilityActive,
+        targetId,
+        isTargetDemon,
+        blocked: isTargetDemon,
         targetName: targetSeat?.role?.name || "未知",
       },
+    },
+  };
+};
+
+const stateUpdate = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const r = context.meta.abilityResult as any;
+  if (!r?.targetId) return context;
+  return {
+    ...context,
+    snapshot: {
+      ...context.snapshot,
+      demonBlocked: r.blocked
+        ? true
+        : ((context.snapshot as any).demonBlocked ?? false),
+      lastExorcistTarget: r.targetId,
+      _abilityResults: {
+        ...((context.snapshot as any)._abilityResults ?? {}),
+        exorcist: r,
+      },
+    },
+    meta: { ...context.meta, exorcistResult: r },
+  };
+};
+
+const postProcess = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const { meta, actionNode } = context;
+  const r = meta.abilityResult as any;
+
+  if (r?.isTargetDemon) {
+    console.log(
+      `✨ ${actionNode.seatId + 1}号(驱魔人) 选中了恶魔(${r.targetId + 1}号)，恶魔今晚无法行动`
+    );
+  } else if (r?.targetId != null) {
+    console.log(
+      `${actionNode.seatId + 1}号(驱魔人) 选择了 ${r.targetId + 1}号(${r.targetName})`
+    );
+  } else {
+    console.log(`${actionNode.seatId + 1}号(驱魔人) 未行动`);
+  }
+
+  return {
+    ...context,
+    meta: {
+      ...context.meta,
+      prompt: `唤醒${actionNode.seatId + 1}号【驱魔人】，选择一名玩家（不能与昨晚相同）。`,
+      abilityLog: `[Exorcist] 选择${r?.targetId != null ? r.targetId + 1 + "号" : "无目标"}${r?.isTargetDemon ? "（命中恶魔）" : ""}`,
     },
   };
 };
@@ -90,32 +123,9 @@ export const exorcistAbility = createRoleAbility({
   wakePriority: 10,
   firstNightOnly: false,
   wakePromptId: "role.exorcist.wake",
-  targetConfig: {
-    min: 1,
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [preCheckAliveAndStatus],
-  calculate: [calculateResult],
-  stateUpdate: [],
-  postProcess: [
-    async (context) => {
-      const { meta, actionNode } = context;
-      const result = meta.abilityResult;
-
-      if (result?.success) {
-        if (result.isTargetDemon) {
-          console.log(
-            `✨ ${actionNode.seatId + 1}号(驱魔人) 选中了恶魔(${result.targetId + 1}号)，恶魔今晚将不会被唤醒`
-          );
-        } else {
-          console.log(
-            `${actionNode.seatId + 1}号(驱魔人) 选择了 ${result.targetId + 1}号(${result.targetName})`
-          );
-        }
-      }
-      return context;
-    },
-  ],
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [commonPreCheckAlive],
+  calculate: [calculate],
+  stateUpdate: [stateUpdate],
+  postProcess: [postProcess],
 });

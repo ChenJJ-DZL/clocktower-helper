@@ -22,7 +22,6 @@ export const no_dashii: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "诺-达", context);
     },
-
   },
 
   night: {
@@ -42,6 +41,5 @@ export const no_dashii: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

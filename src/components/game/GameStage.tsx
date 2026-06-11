@@ -400,10 +400,25 @@ export const GameStage = () => {
 
   // ====== 信息结果弹窗 ======
   // 仅"选择目标+获取反馈"类角色弹窗，在确认后显示结果
-  const [pendingResult, setPendingResult] = useState<{roleName:string;resultText:string} | null>(null);
-  const needsFeedback = ["fortune_teller","dreamer","gambler","seamstress",
-    "snake_charmer","slayer","ravenkeeper","chambermaid",
-    "grandmother","professor","astrologer","ranger","villager"];
+  const [pendingResult, setPendingResult] = useState<{
+    roleName: string;
+    resultText: string;
+  } | null>(null);
+  const needsFeedback = [
+    "fortune_teller",
+    "dreamer",
+    "gambler",
+    "seamstress",
+    "snake_charmer",
+    "slayer",
+    "ravenkeeper",
+    "chambermaid",
+    "grandmother",
+    "professor",
+    "astrologer",
+    "ranger",
+    "villager",
+  ];
 
   // 拦截"确认&下一步"，先弹结果再执行
   const handleNightConfirm = useCallback(() => {
@@ -411,9 +426,16 @@ export const GameStage = () => {
     const targets = selectedActionTargets;
 
     if (roleId === "fortune_teller" && targets && targets.length >= 2) {
-      const demon = seats.find((s: any) => !s.isDead && s.role?.type === "demon");
-      const hasDemon = demon ? targets.slice(0,2).some((id: number) => id === demon.id) : false;
-      setPendingResult({ roleName: "占卜师", resultText: hasDemon ? "有" : "没有" });
+      const demon = seats.find(
+        (s: any) => !s.isDead && s.role?.type === "demon"
+      );
+      const hasDemon = demon
+        ? targets.slice(0, 2).some((id: number) => id === demon.id)
+        : false;
+      setPendingResult({
+        roleName: "占卜师",
+        resultText: hasDemon ? "有" : "没有",
+      });
       return;
     }
 
@@ -1029,12 +1051,19 @@ export const GameStage = () => {
             {/* 随时技能区域（白天阶段，左上方） */}
             {gamePhase === "day" && (
               <div className="absolute top-3 left-40 z-40 flex gap-2">
-                {seats.some((s) => s.role?.id === "slayer" && !s.isDead && !(s as any).abilityUsed) && (
+                {seats.some(
+                  (s) =>
+                    s.role?.id === "slayer" &&
+                    !s.isDead &&
+                    !(s as any).abilityUsed
+                ) && (
                   <button
                     type="button"
                     onClick={() => {
                       // 激活猎手技能：显示目标选择
-                      const slayerSeat = seats.find((s) => s.role?.id === "slayer" && !s.isDead);
+                      const slayerSeat = seats.find(
+                        (s) => s.role?.id === "slayer" && !s.isDead
+                      );
                       if (slayerSeat) {
                         setCurrentModal({
                           type: "STORYTELLER_SELECT",
@@ -1049,17 +1078,28 @@ export const GameStage = () => {
                               if ((slayerSeat as any).abilityUsed) return;
                               // 标记技能已使用
                               (slayerSeat as any).abilityUsed = true;
-                              const target = seats.find((s) => s.id === targetId);
+                              const target = seats.find(
+                                (s) => s.id === targetId
+                              );
                               const isDemon = target?.role?.type === "demon";
                               if (isDemon) {
                                 // 恶魔死亡
-                                controller.killPlayer(targetId, { source: "slayer", recordNightDeath: false });
-                                controller.addLog(`🏹 ${slayerSeat.id + 1}号猎手成功猎杀${targetId + 1}号恶魔！`);
+                                controller.killPlayer(targetId, {
+                                  source: "slayer",
+                                  recordNightDeath: false,
+                                });
+                                controller.addLog(
+                                  `🏹 ${slayerSeat.id + 1}号猎手成功猎杀${targetId + 1}号恶魔！`
+                                );
                                 // 检查游戏结束
-                                const updated = seats.map((s) => s.id === targetId ? { ...s, isDead: true } : s);
+                                const updated = seats.map((s) =>
+                                  s.id === targetId ? { ...s, isDead: true } : s
+                                );
                                 controller.checkGameOver(updated, targetId);
                               } else {
-                                controller.addLog(`🏹 ${slayerSeat.id + 1}号猎手射击${targetId + 1}号，但目标不是恶魔`);
+                                controller.addLog(
+                                  `🏹 ${slayerSeat.id + 1}号猎手射击${targetId + 1}号，但目标不是恶魔`
+                                );
                               }
                               setCurrentModal(null);
                             },

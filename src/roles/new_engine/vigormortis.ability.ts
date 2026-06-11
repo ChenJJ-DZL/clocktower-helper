@@ -8,59 +8,90 @@
  * 每夜杀一人。被杀的爪牙保留能力。邻近镇民中毒。
  */
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
-  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  const seat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
   if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
   // 检查目标是否为爪牙
   const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
   const isMinion = target?.role?.type === "minion";
   return {
-    ...ctx, meta: {
-      ...ctx.meta, abilityResult: { targetId, killed: true, minionKeepsAbility: isMinion },
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      abilityResult: { targetId, killed: true, minionKeepsAbility: isMinion },
     },
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.killed) return ctx;
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
-      lastKill: { demonId: ctx.actionNode.seatId, targetId: r.targetId, demonRole: "vigormortis", minionKeepsAbility: r.minionKeepsAbility },
-      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), vigormortis: r },
+      lastKill: {
+        demonId: ctx.actionNode.seatId,
+        targetId: r.targetId,
+        demonRole: "vigormortis",
+        minionKeepsAbility: r.minionKeepsAbility,
+      },
+      _abilityResults: {
+        ...((ctx.snapshot as any)._abilityResults ?? {}),
+        vigormortis: r,
+      },
     },
     meta: { ...ctx.meta, vigormortisResult: r },
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const minionNote = r?.minionKeepsAbility ? "（爪牙保留能力）" : "";
-  const log = r?.targetId != null
-    ? `[Vigormortis] 击杀${r.targetId + 1}号${minionNote}`
-    : "[Vigormortis] 无目标";
+  const log =
+    r?.targetId != null
+      ? `[Vigormortis] 击杀${r.targetId + 1}号${minionNote}`
+      : "[Vigormortis] 无目标";
   console.log(log);
   return {
-    ...ctx, meta: {
-      ...ctx.meta, prompt: `唤醒${ctx.actionNode.seatId + 1}号【亡骨魔】，选择一名玩家杀害。`,
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【亡骨魔】，选择一名玩家杀害。`,
       abilityLog: log,
     },
   };
 };
 
 export const vigormortisAbility = createRoleAbility({
-  roleId: "vigormortis", abilityId: "vigormortis_kill", abilityName: "锁魂杀",
+  roleId: "vigormortis",
+  abilityId: "vigormortis_kill",
+  abilityName: "锁魂杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 52, firstNightOnly: false, wakePromptId: "role.vigormortis.wake",
+  wakePriority: 52,
+  firstNightOnly: false,
+  wakePromptId: "role.vigormortis.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
-  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
+  preCheck: [preCheck],
+  calculate: [calculate],
+  stateUpdate: [stateUpdate],
+  postProcess: [postProcess],
 });

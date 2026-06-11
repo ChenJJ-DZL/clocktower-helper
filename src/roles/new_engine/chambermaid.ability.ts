@@ -29,17 +29,20 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "需要选择2名玩家" };
   }
 
-  // 计算被唤醒数量（这里简化实现，实际需要根据nightOrderParser来判断）
+  // 计算被唤醒数量
   let wokenCount = 0;
 
   if (isAbilityActive) {
-    // 正常逻辑：需要实际查询夜晚顺序系统来判断目标是否会被唤醒
-    // 暂时返回0作为占位，实际实现需要整合nightOrderParser
+    // TODO: 需要实际查询 nightOrderParser 或当晚的执行记录
+    // 查询两名目标玩家是否在本晚因能力被唤醒过（在 nightOrder 中有对应的动作品类）
+    // 当前返回 0 作为占位
     wokenCount = 0;
   } else {
-    // 醉酒/中毒时，可能返回错误结果
-    wokenCount = Math.floor(Math.random() * 3); // 0-2的随机数
+    // 醉酒/中毒时，可能返回错误结果（随机值 0-2）
+    wokenCount = Math.floor(Math.random() * 3);
   }
+
+  // 涡流在场时信息也会反转（但这里简化处理，如果涡流存在，由 storyteller 自行判断）
 
   const result = {
     targetIds,
@@ -50,12 +53,27 @@ const calculateResult = async (
   return { ...context, meta: { ...context.meta, abilityResult: result } };
 };
 
-// 状态更新：侍女能力不需要修改游戏状态
+// 状态更新：将结果存入snapshot
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  // 侍女能力不需要修改游戏状态
-  return context;
+  const { meta } = context;
+  const result = meta.abilityResult;
+
+  return {
+    ...context,
+    snapshot: {
+      ...context.snapshot,
+      _abilityResults: {
+        ...((context.snapshot as any)._abilityResults ?? {}),
+        chambermaid: result,
+      },
+    },
+    meta: {
+      ...context.meta,
+      chambermaidResult: result,
+    },
+  };
 };
 
 export const chambermaidAbility = createRoleAbility({
@@ -77,12 +95,25 @@ export const chambermaidAbility = createRoleAbility({
   stateUpdate: [stateUpdate],
   postProcess: [
     async (context) => {
-      const { meta } = context;
-      const result = meta.abilityResult;
-      console.log(
-        `侍女${result.isDrunk ? "（醉酒）" : ""}查验了${result.targetIds.map((t: number) => t + 1).join("、")}号，得知${result.wokenCount}人被唤醒`
-      );
-      return context;
+      const { meta, actionNode } = context;
+      const result = meta.abilityResult as any;
+      const targetText = result?.targetIds
+        ? result.targetIds.map((t: number) => `${t + 1}号`).join("、")
+        : "无目标";
+      const wokenText = result?.wokenCount ?? 0;
+      const corruptedText = result?.isDrunk
+        ? "（醉酒/中毒中，结果可能不准确）"
+        : "";
+      const log = `[Chambermaid] 查验 ${targetText}: ${wokenText} 人被唤醒${corruptedText}`;
+      console.log(log);
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          prompt: `唤醒${actionNode.seatId + 1}号【侍女】，选择2名玩家（不含自己）。告知结果：${targetText} 中有 ${wokenText} 人曾因能力被唤醒。`,
+          abilityLog: log,
+        },
+      };
     },
   ],
 });

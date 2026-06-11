@@ -5,8 +5,11 @@
  * 2. getRawAbilityMap 返回有效的能力映射
  * 3. 关键角色的能力可通过中间件管道执行
  */
-import { describe, test, expect } from "vitest";
-import { getRawAbilityMap, registerAllNewEngineAbilities } from "../src/roles/new_engine/abilityRegistry";
+import { describe, expect, test } from "vitest";
+import {
+  getRawAbilityMap,
+  registerAllNewEngineAbilities,
+} from "../src/roles/new_engine/abilityRegistry";
 import { runFullAbilityPipeline } from "../src/utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../src/utils/middlewareTypes";
 
@@ -20,7 +23,7 @@ describe("New Engine Ability Bridge", () => {
     const abilityMap = getRawAbilityMap();
     const keys = Object.keys(abilityMap);
     expect(keys.length).toBeGreaterThan(0);
-    expect(keys.length).toBe(196); // 去除3组重复角色后: 199 - 3 = 196
+    expect(keys.length).toBe(206); // 199-3+2(boffin+boomdandy)+8(bard+golem+hermit+liz+lloam+professor_female+psychopath+titus)=206
   });
 
   test("key roles have abilities registered", () => {
@@ -49,7 +52,10 @@ describe("New Engine Ability Bridge", () => {
     const abilityMap = getRawAbilityMap();
     for (const [key, ability] of Object.entries(abilityMap)) {
       expect(ability.roleId, `Ability ${key} missing roleId`).toBeTruthy();
-      expect(ability.abilityId, `Ability ${key} missing abilityId`).toBeTruthy();
+      expect(
+        ability.abilityId,
+        `Ability ${key} missing abilityId`
+      ).toBeTruthy();
       expect(
         Array.isArray(ability.preCheck),
         `Ability ${key} preCheck should be array`
@@ -79,9 +85,27 @@ describe("New Engine Ability Bridge", () => {
     const snapshot: GameStateSnapshot = {
       nightCount: 1,
       seats: [
-        { id: 0, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isAlive: true, isDead: false, statusEffects: [] },
-        { id: 1, role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false, statusEffects: [] },
-        { id: 2, role: { id: "poisoner", name: "投毒者", type: "minion" }, isAlive: true, isDead: false, statusEffects: [] },
+        {
+          id: 0,
+          role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          role: { id: "chef", name: "厨师", type: "townsfolk" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          role: { id: "poisoner", name: "投毒者", type: "minion" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
       ],
       statusEffects: {},
       gamePhase: "firstNight",
@@ -137,8 +161,20 @@ describe("New Engine Ability Bridge", () => {
     const snapshot: GameStateSnapshot = {
       nightCount: 1,
       seats: [
-        { id: 0, role: { id: "soldier", name: "士兵", type: "townsfolk" }, isAlive: false, isDead: true, statusEffects: [] },
-        { id: 1, role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false, statusEffects: [] },
+        {
+          id: 0,
+          role: { id: "soldier", name: "士兵", type: "townsfolk" },
+          isAlive: false,
+          isDead: true,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          role: { id: "imp", name: "小恶魔", type: "demon" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
       ],
       statusEffects: {},
       gamePhase: "night",
@@ -190,9 +226,27 @@ describe("New Engine Ability Bridge", () => {
     const snapshot: GameStateSnapshot = {
       nightCount: 2,
       seats: [
-        { id: 0, role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false, statusEffects: [] },
-        { id: 1, role: { id: "soldier", name: "士兵", type: "townsfolk" }, isAlive: true, isDead: false, statusEffects: [] },
-        { id: 2, role: { id: "mayor", name: "镇长", type: "townsfolk" }, isAlive: true, isDead: false, statusEffects: [] },
+        {
+          id: 0,
+          role: { id: "imp", name: "小恶魔", type: "demon" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          role: { id: "soldier", name: "士兵", type: "townsfolk" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          role: { id: "mayor", name: "镇长", type: "townsfolk" },
+          isAlive: true,
+          isDead: false,
+          statusEffects: [],
+        },
       ],
       statusEffects: {},
       gamePhase: "night",

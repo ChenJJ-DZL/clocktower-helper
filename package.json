@@ -26,7 +26,7 @@
     "fix": "biome check --write .",
     "type": "tsc --noEmit",
     "circular": "madge --circular src/index.ts",
-    "check:all": "npm run fix && npm run type && npm run test && npm run circular"
+    "check:all": "npm run fix && npm run type && npm run build && npm run test && npm run circular"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -30,8 +30,10 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
 
     // 角色卡片定位 - 角色可能以 button 或 div 形式渲染
     // 先用 getByRole button 查找，不行则用文本定位
-    let roleBtn = page.getByRole("button", { name: new RegExp(roleName, "i") }).first();
-    if (await roleBtn.count() === 0) {
+    let roleBtn = page
+      .getByRole("button", { name: new RegExp(roleName, "i") })
+      .first();
+    if ((await roleBtn.count()) === 0) {
       roleBtn = page.locator(`text=${roleName}`).first();
     }
     await expect(roleBtn).toBeVisible({ timeout: 5000 });
@@ -45,11 +47,11 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
     await page.waitForTimeout(300);
   };
 
-  await assignRole("小恶魔", 0);  // 1号位 - 恶魔
-  await assignRole("投毒者", 1);  // 2号位 - 爪牙
-  await assignRole("洗衣妇", 2);  // 3号位 - 镇民
+  await assignRole("小恶魔", 0); // 1号位 - 恶魔
+  await assignRole("投毒者", 1); // 2号位 - 爪牙
+  await assignRole("洗衣妇", 2); // 3号位 - 镇民
   await assignRole("图书管理员", 3); // 4号位
-  await assignRole("猎手", 4);    // 5号位
+  await assignRole("猎手", 4); // 5号位
   console.log("✅ 角色分配完成");
 
   // --- 4. 开始游戏 ---
@@ -65,7 +67,10 @@ test("暗流涌动(Trouble Brewing) 5人局完整流程测试", async ({ page })
 
   // 验证进入游戏界面（不再是设置页）
   const pageText = await page.evaluate(() => document.body.innerText);
-  const inGame = pageText.includes("首夜") || pageText.includes("入夜") || pageText.includes("说书人");
+  const inGame =
+    pageText.includes("首夜") ||
+    pageText.includes("入夜") ||
+    pageText.includes("说书人");
   expect(inGame).toBeTruthy();
   console.log("✅ 首夜流程开始，E2E 冒烟测试通过");
 });

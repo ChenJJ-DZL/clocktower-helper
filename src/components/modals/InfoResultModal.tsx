@@ -20,9 +20,7 @@ export function InfoResultModal({
           <div className="text-5xl font-black mb-4 text-amber-400">
             {resultText}
           </div>
-          <p className="text-lg text-gray-300">
-            请说书人向玩家告知以上信息
-          </p>
+          <p className="text-lg text-gray-300">请说书人向玩家告知以上信息</p>
         </div>
         <div className="flex gap-4 justify-center">
           <button

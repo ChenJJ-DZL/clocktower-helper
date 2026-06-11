@@ -26,7 +26,6 @@ export const gossip: RoleDefinition = {
 - 所属剧本：黯月初升
 - 角色类型：镇民`,
 
-
   night: {
     order: 21,
     target: {

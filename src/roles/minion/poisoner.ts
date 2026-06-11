@@ -85,6 +85,5 @@ export const poisoner: RoleDefinition = {
       instruction: "请选择一名玩家进行下毒",
       close: "",
     }),
-
   },
 };

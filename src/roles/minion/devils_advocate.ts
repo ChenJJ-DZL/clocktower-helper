@@ -35,6 +35,5 @@ export const devils_advocate: RoleDefinition = {
         close: "",
       };
     },
-
   },
 };

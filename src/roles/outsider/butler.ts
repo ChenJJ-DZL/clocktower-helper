@@ -54,6 +54,5 @@ export const butler: RoleDefinition = {
         close: "",
       };
     },
-
   },
 };

@@ -1,6 +1,81 @@
-import type{ MiddlewareContext } from"../../utils/middlewarePipeline";import{ AbilityTriggerTiming,createRoleAbility}from"../core/roleAbility.types";
-const pc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const s=ctx.snapshot.seats.find((s:any)=>s.id===ctx.actionNode.seatId);if(!s?.isAlive)return{...ctx,aborted:true,abortReason:"已死亡"};return ctx};
-const calc=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const t=ctx.targetIds?.[0]??ctx.actionNode.targetIds?.[0]??null;return{...ctx,meta:{...ctx.meta,abilityResult:{targetId:t,killed:true}}}};
-const su=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;if(!r?.killed)return ctx;return{...ctx,snapshot:{...ctx.snapshot,lastKill:{demonId:ctx.actionNode.seatId,targetId:r.targetId,demonRole:"legion"},_abilityResults:{...((ctx.snapshot as any)._abilityResults??{}),legion:r}},meta:{...ctx.meta,legionResult:r}};};
-const pp=async(ctx:MiddlewareContext):Promise<MiddlewareContext>=>{const r=ctx.meta.abilityResult as any;console.log(r?.targetId?`[Legion] 军团击杀${r.targetId+1}号`:"[Legion] 未行动");return{...ctx,meta:{...ctx.meta,abilityLog:`击杀${r?.targetId+1||"无"}号`,prompt:`唤醒${ctx.actionNode.seatId+1}号【军团成员】，选择一名玩家杀害。`}};};
-export const legionAbility=createRoleAbility({roleId:"legion",abilityId:"legion_kill",abilityName:"军团杀戮",triggerTiming:[AbilityTriggerTiming.EVERY_NIGHT],wakePriority:50,firstNightOnly:false,wakePromptId:"role.legion.wake",targetConfig:{min:1,max:1,allowSelf:false,allowDead:false},preCheck:[pc],calculate:[calc],stateUpdate:[su],postProcess:[pp]});
+/**
+ * 军团（Legion）新引擎技能实现
+ *
+ * 【角色能力】"所有玩家都是恶魔，但只有活着的才算。"
+ *
+ * 游戏规则修改器：所有存活玩家都被视为恶魔身份，用于胜负判定。
+ * 只有活着的玩家计入恶魔计数，死亡后不再被视为恶魔。
+ * 不主动唤醒，被动修改游戏状态。
+ */
+import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
+
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const alivePlayers = ctx.snapshot.seats.filter((s: any) => s.isAlive);
+  const demonCount = alivePlayers.length;
+
+  return {
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      abilityResult: {
+        legionActive: true,
+        allAreDemons: true,
+        demonCount,
+        aliveCount: alivePlayers.length,
+        totalPlayers: ctx.snapshot.seats.length,
+      },
+    },
+  };
+};
+
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  return {
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      legionActive: true,
+      legionDemonCount: r?.demonCount ?? 0,
+      _abilityResults: {
+        ...((ctx.snapshot as any)._abilityResults ?? {}),
+        legion: r,
+      },
+    },
+    meta: { ...ctx.meta, legionResult: r },
+  };
+};
+
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  const log = `[Legion] 军团在场 — 全部${r?.totalPlayers}名玩家均为恶魔（存活${r?.aliveCount}名计入计数）`;
+  console.log(log);
+  return {
+    ...ctx,
+    meta: { ...ctx.meta, abilityLog: log },
+  };
+};
+
+export const legionAbility = createRoleAbility({
+  roleId: "legion",
+  abilityId: "legion_passive",
+  abilityName: "军团",
+  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  wakePriority: 0,
+  firstNightOnly: false,
+  wakePromptId: "",
+  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  preCheck: [],
+  calculate: [calculate],
+  stateUpdate: [stateUpdate],
+  postProcess: [postProcess],
+});

@@ -20,8 +20,11 @@ import { atheistAbility } from "./atheist.ability";
 import { balloonistAbility } from "./balloonist.ability";
 import { bansheeAbility } from "./banshee.ability";
 import { barberAbility } from "./barber.ability";
+import { bardAbility } from "./bard.ability";
 import { baronAbility } from "./baron.ability";
 import { beggarAbility } from "./beggar.ability";
+import { boffinAbility } from "./boffin.ability";
+import { boomdandyAbility } from "./boomdandy.ability";
 import { bounty_hunterAbility } from "./bounty_hunter.ability";
 import { brewerAbility } from "./brewer.ability";
 import { brokerAbility } from "./broker.ability";
@@ -29,7 +32,6 @@ import { buddhistAbility } from "./buddhist.ability";
 import { bureaucratAbility } from "./bureaucrat.ability";
 import { butlerAbility } from "./butler.ability";
 import { cannibalAbility } from "./cannibal.ability";
-import { conjurerAbility } from "./conjurer.ability";
 import { cerenovusAbility } from "./cerenovus.ability";
 import { chambermaidAbility } from "./chambermaid.ability";
 import { chaosAbility } from "./chaos.ability";
@@ -38,9 +40,10 @@ import { choirBoyAbility } from "./choir_boy.ability";
 // ⚠️ 已注释: 与 choir_boy.ability.ts 重复，保留下划线版本
 // import { choirboyAbility } from "./choirboy.ability";
 import { clockmakerAbility } from "./clockmaker.ability";
+import { conjurerAbility } from "./conjurer.ability";
 import { courtierAbility } from "./courtier.ability";
 import { cuckoo_birdAbility } from "./cuckoo_bird.ability";
-import { cult_leaderAbility } from "./cult_leader.ability";
+import { cultLeaderAbility } from "./cult_leader.ability";
 import { damselAbility } from "./damsel.ability";
 import { dawnAbility } from "./dawn.ability";
 import { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
@@ -75,6 +78,7 @@ import { gamblerAbility } from "./gambler.ability";
 import { generalAbility } from "./general.ability";
 import { goblinAbility } from "./goblin.ability";
 import { godfatherAbility } from "./godfather.ability";
+import { golemAbility } from "./golem.ability";
 import { goonAbility } from "./goon.ability";
 import { gossipAbility } from "./gossip.ability";
 import { grandmotherAbility } from "./grandmother.ability";
@@ -85,6 +89,7 @@ import { halfOgreAbility } from "./half_ogre.ability";
 import { harpyAbility } from "./harpy.ability";
 import { hatterAbility } from "./hatter.ability";
 import { hereticAbility } from "./heretic.ability";
+import { hermitAbility } from "./hermit.ability";
 import { high_priestessAbility } from "./high_priestess.ability";
 import { historianAbility } from "./historian.ability";
 import { hunterAbility } from "./hunter.ability";
@@ -106,7 +111,9 @@ import { legionAbility } from "./legion.ability";
 import { leviathanAbility } from "./leviathan.ability";
 import { librarianAbility } from "./librarian.ability";
 import { lil_monstaAbility } from "./lil_monsta.ability";
+import { lizAbility } from "./liz.ability";
 import { lleechAbility } from "./lleech.ability";
+import { lloamAbility } from "./lloam.ability";
 import { lord_of_typhonAbility } from "./lord_of_typhon.ability";
 import { lunaticAbility } from "./lunatic.ability";
 import { lycanthropeAbility } from "./lycanthrope.ability";
@@ -138,7 +145,7 @@ import { philosopherAbility } from "./philosopher.ability";
 import { pilgrimAbility } from "./pilgrim.ability";
 import { pit_hagAbility } from "./pit_hag.ability";
 import { pixieAbility } from "./pixie.ability";
-import { plague_doctorAbility } from "./plague_doctor.ability";
+import { plagueDoctorAbility } from "./plague_doctor.ability";
 import { poAbility } from "./po.ability";
 import { poisonerAbility } from "./poisoner.ability";
 import { politicianAbility } from "./politician.ability";
@@ -148,6 +155,8 @@ import { prefectAbility } from "./prefect.ability";
 import { priestessAbility } from "./priestess.ability";
 import { princessAbility } from "./princess.ability";
 import { professorAbility } from "./professor.ability";
+import { professorFemaleAbility } from "./professor_female.ability";
+import { psychopathAbility } from "./psychopath.ability";
 import { pukkaAbility } from "./pukka.ability";
 import { puzzlemasterAbility } from "./puzzlemaster.ability";
 import { qiongqiAbility } from "./qiongqi.ability";
@@ -171,7 +180,7 @@ import { shugenjaAbility } from "./shugenja.ability";
 import { singerAbility } from "./singer.ability";
 import { skin_painterAbility } from "./skin_painter.ability";
 import { slayerAbility } from "./slayer.ability";
-import { snake_charmerAbility } from "./snake_charmer.ability";
+import { snakeCharmerAbility } from "./snake_charmer.ability";
 import { snitchAbility } from "./snitch.ability";
 import { soldierAbility } from "./soldier.ability";
 import { spyAbility } from "./spy.ability";
@@ -186,9 +195,10 @@ import { teaLadyAbility } from "./tea_lady.ability";
 import { terracotta_artisanAbility } from "./terracotta_artisan.ability";
 import { thiefAbility } from "./thief.ability";
 import { tinkerAbility } from "./tinker.ability";
+import { titusAbility } from "./titus.ability";
 import { town_crierAbility } from "./town_crier.ability";
 import { toymakerAbility } from "./toymaker.ability";
-import { traitorous_ministerAbility } from "./traitorous_minister.ability";
+import { traitorousMinisterAbility } from "./traitorous_minister.ability";
 import { trickster_jackAbility } from "./trickster_jack.ability";
 import { undertakerAbility } from "./undertaker.ability";
 import { ventriloquistAbility } from "./ventriloquist.ability";
@@ -201,11 +211,11 @@ import { washerwomanAbility } from "./washerwoman.ability";
 import { widowAbility } from "./widow.ability";
 import { witchAbility } from "./witch.ability";
 import { wizardAbility } from "./wizard.ability";
-import { worm_breederAbility } from "./worm_breeder.ability";
+import { wormBreederAbility } from "./worm_breeder.ability";
 import { wraithAbility } from "./wraith.ability";
 import { xaanAbility } from "./xaan.ability";
 import { yaggababbleAbility } from "./yaggababble.ability";
-import { yin_yang_masterAbility } from "./yin_yang_master.ability";
+import { yinYangMasterAbility } from "./yin_yang_master.ability";
 import { zealotAbility } from "./zealot.ability";
 import { zhenAbility } from "./zhen.ability";
 import { zombuulAbility } from "./zombuul.ability";
@@ -255,8 +265,11 @@ export function registerAllNewEngineAbilities(): void {
     balloonistAbility,
     bansheeAbility,
     barberAbility,
+    bardAbility,
     baronAbility,
     beggarAbility,
+    boffinAbility,
+    boomdandyAbility,
     bounty_hunterAbility,
     brewerAbility,
     brokerAbility,
@@ -275,7 +288,7 @@ export function registerAllNewEngineAbilities(): void {
     clockmakerAbility,
     courtierAbility,
     cuckoo_birdAbility,
-    cult_leaderAbility,
+    cultLeaderAbility,
     damselAbility,
     dawnAbility,
     deusExFiascoAbility,
@@ -310,6 +323,7 @@ export function registerAllNewEngineAbilities(): void {
     generalAbility,
     goblinAbility,
     godfatherAbility,
+    golemAbility,
     goonAbility,
     gossipAbility,
     grandmotherAbility,
@@ -320,6 +334,7 @@ export function registerAllNewEngineAbilities(): void {
     harpyAbility,
     hatterAbility,
     hereticAbility,
+    hermitAbility,
     high_priestessAbility,
     historianAbility,
     hunterAbility,
@@ -342,6 +357,8 @@ export function registerAllNewEngineAbilities(): void {
     librarianAbility,
     lil_monstaAbility,
     lleechAbility,
+    lizAbility,
+    lloamAbility,
     lord_of_typhonAbility,
     lunaticAbility,
     lycanthropeAbility,
@@ -373,7 +390,7 @@ export function registerAllNewEngineAbilities(): void {
     pilgrimAbility,
     pit_hagAbility,
     pixieAbility,
-    plague_doctorAbility,
+    plagueDoctorAbility,
     poAbility,
     poisonerAbility,
     politicianAbility,
@@ -383,6 +400,8 @@ export function registerAllNewEngineAbilities(): void {
     priestessAbility,
     princessAbility,
     professorAbility,
+    professorFemaleAbility,
+    psychopathAbility,
     pukkaAbility,
     puzzlemasterAbility,
     qiongqiAbility,
@@ -406,7 +425,7 @@ export function registerAllNewEngineAbilities(): void {
     singerAbility,
     skin_painterAbility,
     slayerAbility,
-    snake_charmerAbility,
+    snakeCharmerAbility,
     snitchAbility,
     soldierAbility,
     spyAbility,
@@ -421,9 +440,10 @@ export function registerAllNewEngineAbilities(): void {
     terracotta_artisanAbility,
     thiefAbility,
     tinkerAbility,
+    titusAbility,
     town_crierAbility,
     toymakerAbility,
-    traitorous_ministerAbility,
+    traitorousMinisterAbility,
     trickster_jackAbility,
     undertakerAbility,
     ventriloquistAbility,
@@ -436,11 +456,11 @@ export function registerAllNewEngineAbilities(): void {
     widowAbility,
     witchAbility,
     wizardAbility,
-    worm_breederAbility,
+    wormBreederAbility,
     wraithAbility,
     xaanAbility,
     yaggababbleAbility,
-    yin_yang_masterAbility,
+    yinYangMasterAbility,
     zealotAbility,
     zhenAbility,
     zombuulAbility,
@@ -455,11 +475,20 @@ export function registerAllNewEngineAbilities(): void {
   console.log(`[AbilityRegistry] 已注册 ${abilities.length} 个新引擎能力`);
 }
 
-const rawAbilityMap: Map<string, import("../core/roleAbility.types").IRoleAbility> = new Map();
+const rawAbilityMap: Map<
+  string,
+  import("../core/roleAbility.types").IRoleAbility
+> = new Map();
 
-export function getRawAbilityMap(): Record<string, import("../core/roleAbility.types").IRoleAbility> {
-  const map: Record<string, import("../core/roleAbility.types").IRoleAbility> = {};
-  rawAbilityMap.forEach((ability, key) => { map[key] = ability; });
+export function getRawAbilityMap(): Record<
+  string,
+  import("../core/roleAbility.types").IRoleAbility
+> {
+  const map: Record<string, import("../core/roleAbility.types").IRoleAbility> =
+    {};
+  rawAbilityMap.forEach((ability, key) => {
+    map[key] = ability;
+  });
   return map;
 }
 
@@ -479,7 +508,9 @@ export function clearAllAbilities(): void {
 export function initializeAbilityRegistry(): void {
   clearAllAbilities();
   registerAllNewEngineAbilities();
-  console.log(`[AbilityRegistry] 初始化完成，已注册 ${getRegisteredAbilityCount()} 个能力`);
+  console.log(
+    `[AbilityRegistry] 初始化完成，已注册 ${getRegisteredAbilityCount()} 个能力`
+  );
 }
 
 export { acrobatAbility } from "./acrobat.ability";
@@ -495,8 +526,11 @@ export { atheistAbility } from "./atheist.ability";
 export { balloonistAbility } from "./balloonist.ability";
 export { bansheeAbility } from "./banshee.ability";
 export { barberAbility } from "./barber.ability";
+export { bardAbility } from "./bard.ability";
 export { baronAbility } from "./baron.ability";
 export { beggarAbility } from "./beggar.ability";
+export { boffinAbility } from "./boffin.ability";
+export { boomdandyAbility } from "./boomdandy.ability";
 export { bounty_hunterAbility } from "./bounty_hunter.ability";
 export { brewerAbility } from "./brewer.ability";
 export { brokerAbility } from "./broker.ability";
@@ -514,7 +548,7 @@ export { choirBoyAbility } from "./choir_boy.ability";
 export { clockmakerAbility } from "./clockmaker.ability";
 export { courtierAbility } from "./courtier.ability";
 export { cuckoo_birdAbility } from "./cuckoo_bird.ability";
-export { cult_leaderAbility } from "./cult_leader.ability";
+export { cultLeaderAbility } from "./cult_leader.ability";
 export { damselAbility } from "./damsel.ability";
 export { dawnAbility } from "./dawn.ability";
 export { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
@@ -549,6 +583,7 @@ export { gamblerAbility } from "./gambler.ability";
 export { generalAbility } from "./general.ability";
 export { goblinAbility } from "./goblin.ability";
 export { godfatherAbility } from "./godfather.ability";
+export { golemAbility } from "./golem.ability";
 export { goonAbility } from "./goon.ability";
 export { gossipAbility } from "./gossip.ability";
 export { grandmotherAbility } from "./grandmother.ability";
@@ -559,6 +594,7 @@ export { halfOgreAbility } from "./half_ogre.ability";
 export { harpyAbility } from "./harpy.ability";
 export { hatterAbility } from "./hatter.ability";
 export { hereticAbility } from "./heretic.ability";
+export { hermitAbility } from "./hermit.ability";
 export { high_priestessAbility } from "./high_priestess.ability";
 export { historianAbility } from "./historian.ability";
 export { hunterAbility } from "./hunter.ability";
@@ -580,7 +616,9 @@ export { legionAbility } from "./legion.ability";
 export { leviathanAbility } from "./leviathan.ability";
 export { librarianAbility } from "./librarian.ability";
 export { lil_monstaAbility } from "./lil_monsta.ability";
+export { lizAbility } from "./liz.ability";
 export { lleechAbility } from "./lleech.ability";
+export { lloamAbility } from "./lloam.ability";
 export { lord_of_typhonAbility } from "./lord_of_typhon.ability";
 export { lunaticAbility } from "./lunatic.ability";
 export { lycanthropeAbility } from "./lycanthrope.ability";
@@ -612,7 +650,7 @@ export { philosopherAbility } from "./philosopher.ability";
 export { pilgrimAbility } from "./pilgrim.ability";
 export { pit_hagAbility } from "./pit_hag.ability";
 export { pixieAbility } from "./pixie.ability";
-export { plague_doctorAbility } from "./plague_doctor.ability";
+export { plagueDoctorAbility } from "./plague_doctor.ability";
 export { poAbility } from "./po.ability";
 export { poisonerAbility } from "./poisoner.ability";
 export { politicianAbility } from "./politician.ability";
@@ -622,6 +660,8 @@ export { prefectAbility } from "./prefect.ability";
 export { priestessAbility } from "./priestess.ability";
 export { princessAbility } from "./princess.ability";
 export { professorAbility } from "./professor.ability";
+export { professorFemaleAbility } from "./professor_female.ability";
+export { psychopathAbility } from "./psychopath.ability";
 export { pukkaAbility } from "./pukka.ability";
 export { puzzlemasterAbility } from "./puzzlemaster.ability";
 export { qiongqiAbility } from "./qiongqi.ability";
@@ -645,7 +685,7 @@ export { shugenjaAbility } from "./shugenja.ability";
 export { singerAbility } from "./singer.ability";
 export { skin_painterAbility } from "./skin_painter.ability";
 export { slayerAbility } from "./slayer.ability";
-export { snake_charmerAbility } from "./snake_charmer.ability";
+export { snakeCharmerAbility } from "./snake_charmer.ability";
 export { snitchAbility } from "./snitch.ability";
 export { soldierAbility } from "./soldier.ability";
 export { spyAbility } from "./spy.ability";
@@ -660,9 +700,10 @@ export { teaLadyAbility } from "./tea_lady.ability";
 export { terracotta_artisanAbility } from "./terracotta_artisan.ability";
 export { thiefAbility } from "./thief.ability";
 export { tinkerAbility } from "./tinker.ability";
+export { titusAbility } from "./titus.ability";
 export { town_crierAbility } from "./town_crier.ability";
 export { toymakerAbility } from "./toymaker.ability";
-export { traitorous_ministerAbility } from "./traitorous_minister.ability";
+export { traitorousMinisterAbility } from "./traitorous_minister.ability";
 export { trickster_jackAbility } from "./trickster_jack.ability";
 export { undertakerAbility } from "./undertaker.ability";
 export { ventriloquistAbility } from "./ventriloquist.ability";
@@ -675,11 +716,11 @@ export { washerwomanAbility } from "./washerwoman.ability";
 export { widowAbility } from "./widow.ability";
 export { witchAbility } from "./witch.ability";
 export { wizardAbility } from "./wizard.ability";
-export { worm_breederAbility } from "./worm_breeder.ability";
+export { wormBreederAbility } from "./worm_breeder.ability";
 export { wraithAbility } from "./wraith.ability";
 export { xaanAbility } from "./xaan.ability";
 export { yaggababbleAbility } from "./yaggababble.ability";
-export { yin_yang_masterAbility } from "./yin_yang_master.ability";
+export { yinYangMasterAbility } from "./yin_yang_master.ability";
 export { zealotAbility } from "./zealot.ability";
 export { zhenAbility } from "./zhen.ability";
 export { zombuulAbility } from "./zombuul.ability";

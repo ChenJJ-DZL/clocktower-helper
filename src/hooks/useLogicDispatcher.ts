@@ -1,8 +1,8 @@
 import { useCallback, useRef } from "react";
 import type { GamePhase, Seat } from "@/app/data";
+import type { GameAction } from "@/app/gameLogic";
 import { processGameEvent } from "@/app/gameLogic";
 import { computeIsPoisoned } from "../utils/gameRules";
-import type { GameAction } from "@/app/gameLogic";
 
 export function useLogicDispatcher(
   seats: Seat[],
@@ -140,7 +140,17 @@ export function useLogicDispatcher(
         setCurrentModal({ type: "GAME_OVER", data: null });
       }
     },
-    [gamePhase, addLog, setSeats, setWinResult, setWinReason, setGamePhase, setVictorySnapshot, setCurrentModal, isVortoxWorld]
+    [
+      gamePhase,
+      addLog,
+      setSeats,
+      setWinResult,
+      setWinReason,
+      setGamePhase,
+      setVictorySnapshot,
+      setCurrentModal,
+      isVortoxWorld,
+    ]
   );
 
   const declareMayorImmediateWin = useCallback(() => {

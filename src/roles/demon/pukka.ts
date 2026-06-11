@@ -41,7 +41,6 @@ export const pukka: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "普卡", context);
     },
-
   },
 
   night: {
@@ -71,6 +70,5 @@ export const pukka: RoleDefinition = {
         close: "poison",
       };
     },
-
   },
 };

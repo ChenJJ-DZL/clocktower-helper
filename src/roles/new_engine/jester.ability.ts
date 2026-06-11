@@ -8,18 +8,27 @@
  * - 需要游戏引擎在结算处决时特殊处理
  */
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
-  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  const seat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
   if (!seat) return { ...ctx, aborted: true, abortReason: "未找到座位" };
   return ctx;
 };
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   return {
-    ...ctx, meta: {
-      ...ctx.meta, abilityResult: {
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      abilityResult: {
         jesterExecuted: true,
         jesterWinsAlone: true,
       },
@@ -27,7 +36,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.jesterExecuted) return ctx;
   return {
@@ -36,20 +47,40 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
     snapshot: {
       ...ctx.snapshot,
       jesterExecuted: true,
-      _abilityResults: { ...((ctx.snapshot as any)._abilityResults ?? {}), jester: r },
+      _abilityResults: {
+        ...((ctx.snapshot as any)._abilityResults ?? {}),
+        jester: r,
+      },
     },
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const log = "[Jester] 弄臣被处决，单独获胜";
   console.log(log);
-  return { ...ctx, meta: { ...ctx.meta, abilityLog: log, prompt: "弄臣被处决，弄臣单独获胜！请游戏引擎处理特殊胜利条件。" } };
+  return {
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      abilityLog: log,
+      prompt: "弄臣被处决，弄臣单独获胜！请游戏引擎处理特殊胜利条件。",
+    },
+  };
 };
 
 export const jesterAbility = createRoleAbility({
-  roleId: "jester", abilityId: "jester_execution_win", abilityName: "弄臣独胜",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE], wakePriority: 0, firstNightOnly: false, wakePromptId: "role.jester.wake",
+  roleId: "jester",
+  abilityId: "jester_execution_win",
+  abilityName: "弄臣独胜",
+  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  wakePriority: 0,
+  firstNightOnly: false,
+  wakePromptId: "role.jester.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
-  preCheck: [preCheck], calculate: [calculate], stateUpdate: [stateUpdate], postProcess: [postProcess],
+  preCheck: [preCheck],
+  calculate: [calculate],
+  stateUpdate: [stateUpdate],
+  postProcess: [postProcess],
 });

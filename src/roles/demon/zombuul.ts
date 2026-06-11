@@ -39,7 +39,6 @@ export const zombuul: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "僵怖", context);
     },
-
   },
 
   night: {
@@ -71,7 +70,6 @@ export const zombuul: RoleDefinition = {
         };
       }
     },
-
   },
 
   /**

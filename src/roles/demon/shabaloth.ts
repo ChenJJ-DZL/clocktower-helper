@@ -34,7 +34,6 @@ export const shabaloth: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "沙巴洛斯", context);
     },
-
   },
 
   night: {
@@ -55,6 +54,5 @@ export const shabaloth: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

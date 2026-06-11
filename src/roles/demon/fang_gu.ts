@@ -34,7 +34,6 @@ export const fang_gu: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "方古", context);
     },
-
   },
 
   night: {
@@ -55,6 +54,5 @@ export const fang_gu: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

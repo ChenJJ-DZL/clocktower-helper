@@ -61,6 +61,5 @@ export const scarlet_woman: RoleDefinition = {
       instruction: "如果在此时变成恶魔，请执行恶魔行动（否则闭眼）",
       close: "",
     }),
-
   },
 };

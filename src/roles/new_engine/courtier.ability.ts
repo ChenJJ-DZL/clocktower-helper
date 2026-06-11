@@ -1,177 +1,107 @@
 /**
  * 侍臣（Courtier）新引擎技能实现
+ *
+ * 【角色能力】"首夜，你要选择一名玩家：该玩家会醉酒3个夜晚。"
+ *
+ * 首夜选择一名目标玩家，使其醉酒状态持续3晚。
+ * 通过 snapshot.courtier.drunkUntilNight 记录醉酒截止的夜晚编号。
  */
-
-import {
-  canUseLimitedAbility,
-  consumeLimitedAbility,
-} from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../../utils/nightStateMachine";
 import {
   AbilityTriggerTiming,
-  commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查是否已使用能力
-const preCheckLimitedAbility = async (
-  context: MiddlewareContext
+const calculate = async (
+  ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { actionNode } = context;
-  const seatId = actionNode.seatId;
+  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
 
-  if (!canUseLimitedAbility(seatId, "courtier_drunk")) {
-    return {
-      ...context,
-      aborted: true,
-      abortReason: "侍臣已经使用过能力了",
-    };
-  }
-
-  return context;
-};
-
-// 计算阶段：选择目标角色并找到对应的玩家
-const calculateTargetRole = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const { snapshot, storytellerInput, meta } = context;
-  const isAbilityEffective = meta.abilityEffective ?? true;
-
-  // 从说书人输入中获取选择的角色ID
-  const targetRoleId = storytellerInput?.targetRoleId;
-  if (!targetRoleId) {
-    return {
-      ...context,
-      aborted: true,
-      abortReason: "请选择一个角色",
-    };
-  }
-
-  // 找到所有拥有该角色的玩家
-  const playersWithRole = snapshot.seats.filter(
-    (seat) => seat.role?.id === targetRoleId && seat.isAlive
-  );
-
-  // 如果有多个该角色，说书人可以选择具体哪个，否则选择第一个
-  let targetPlayerId: number | null = null;
-  if (playersWithRole.length > 0) {
-    if (storytellerInput?.targetPlayerId) {
-      targetPlayerId =
-        playersWithRole.find((s) => s.id === storytellerInput.targetPlayerId)
-          ?.id ?? null;
-    }
-    if (!targetPlayerId) {
-      targetPlayerId = playersWithRole[0].id;
-    }
-  }
+  // 读取当前夜晚编号（首次为 1）
+  const currentNight = (ctx.snapshot as any).nightCount ?? 1;
+  const drunkUntilNight = currentNight + 3;
 
   return {
-    ...context,
+    ...ctx,
     meta: {
-      ...context.meta,
-      targetRoleId,
-      targetPlayerId,
-      rolePresent: playersWithRole.length > 0,
-      isAbilityEffective,
+      ...ctx.meta,
+      abilityResult: {
+        targetId,
+        drunkUntilNight,
+        currentNight,
+      },
     },
   };
 };
 
-// 状态更新：使目标角色醉酒3天3夜
-const updateDrunkStatus = async (
-  context: MiddlewareContext
+const stateUpdate = async (
+  ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta, actionNode } = context;
-  const targetPlayerId = meta.targetPlayerId;
-  const isAbilityEffective = meta.abilityEffective ?? true;
-
-  // 无论成功与否，都标记能力已使用
-  consumeLimitedAbility(actionNode.seatId, "courtier_drunk");
-
-  if (!isAbilityEffective || !targetPlayerId) {
-    // 醉酒/中毒或者角色不在场，不产生效果
-    return context;
-  }
-
-  // 生成新的状态快照
-  const newSnapshot: GameStateSnapshot = {
-    ...snapshot,
-    seats: snapshot.seats.map((seat) => {
-      if (seat.id === targetPlayerId) {
-        return {
-          ...seat,
-          statusEffects: [
-            ...seat.statusEffects,
-            {
-              type: "drunk",
-              source: "courtier",
-              sourceSeatId: actionNode.seatId,
-              duration: 3, // 3天3夜
-              remainingNights: 3,
-              remainingDays: 3,
-            },
-          ],
-        };
-      }
-      return seat;
-    }),
-  };
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.targetId) return ctx;
 
   return {
-    ...context,
-    snapshot: newSnapshot,
+    ...ctx,
+    snapshot: {
+      ...ctx.snapshot,
+      seats: ctx.snapshot.seats.map((seat: any) =>
+        seat.id === r.targetId
+          ? {
+              ...seat,
+              statusEffects: [
+                ...(seat.statusEffects ?? []),
+                {
+                  type: "drunk",
+                  source: "courtier",
+                  sourceSeatId: ctx.actionNode.seatId,
+                  duration: 3,
+                  drunkUntilNight: r.drunkUntilNight,
+                },
+              ],
+            }
+          : seat
+      ),
+      courtier: {
+        targetId: r.targetId,
+        drunkUntilNight: r.drunkUntilNight,
+      },
+    } as any,
+    meta: { ...ctx.meta, courtierResult: r },
+  };
+};
+
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  const log =
+    r?.targetId != null
+      ? `[Courtier] ${ctx.actionNode.seatId + 1}号 使 ${r.targetId + 1}号 醉酒 ${r.drunkUntilNight - r.currentNight} 晚`
+      : "[Courtier] 未行动";
+  console.log(log);
+
+  return {
+    ...ctx,
     meta: {
-      ...context.meta,
-      drunkApplied: true,
+      ...ctx.meta,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【侍臣】，选择一名玩家使其醉酒3晚。`,
+      abilityLog: log,
     },
   };
 };
 
 export const courtierAbility = createRoleAbility({
   roleId: "courtier",
-  abilityId: "courtier_night_ability",
+  abilityId: "courtier_drunk",
   abilityName: "朝臣醉酒",
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 3, // 侍臣在夜晚较早行动
-  firstNightOnly: false,
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
+  wakePriority: 3,
+  firstNightOnly: true,
   wakePromptId: "role.courtier.wake",
-  targetConfig: {
-    min: 0, // 可以选择不使用能力
-    max: 1,
-    allowSelf: false,
-    allowDead: false,
-  },
-  preCheck: [commonPreCheckAlive, preCheckLimitedAbility],
-  calculate: [calculateTargetRole],
-  stateUpdate: [updateDrunkStatus],
-  postProcess: [
-    async (context) => {
-      const { meta, actionNode } = context;
-      const targetRoleId = meta.targetRoleId;
-      const targetPlayerId = meta.targetPlayerId;
-      const rolePresent = meta.rolePresent;
-      const isAbilityEffective = meta.isAbilityEffective;
-      const drunkApplied = meta.drunkApplied;
-
-      if (!targetRoleId) {
-        console.log(`🍷 ${actionNode.seatId + 1}号(侍臣) 选择不使用能力`);
-      } else if (!isAbilityEffective) {
-        console.log(
-          `🍷 ${actionNode.seatId + 1}号(侍臣) 在醉酒/中毒时选择了角色【${targetRoleId}】，无效果但能力已消耗`
-        );
-      } else if (!rolePresent) {
-        console.log(
-          `🍷 ${actionNode.seatId + 1}号(侍臣) 选择了不在场的角色【${targetRoleId}】，无效果但能力已消耗`
-        );
-      } else if (drunkApplied && targetPlayerId !== null) {
-        console.log(
-          `🍷 ${actionNode.seatId + 1}号(侍臣) 成功使 ${targetPlayerId + 1}号玩家(角色:${targetRoleId}) 醉酒3天3夜`
-        );
-      }
-
-      return context;
-    },
-  ],
+  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  preCheck: [],
+  calculate: [calculate],
+  stateUpdate: [stateUpdate],
+  postProcess: [postProcess],
 });

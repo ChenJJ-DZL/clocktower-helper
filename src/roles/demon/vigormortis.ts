@@ -31,7 +31,6 @@ export const vigormortis: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "亡骨魔", context);
     },
-
   },
 
   night: {
@@ -60,6 +59,5 @@ export const vigormortis: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

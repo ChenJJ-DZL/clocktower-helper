@@ -96,7 +96,8 @@ const preCheckDeathAndStatus = async (
 
   const diedTonight =
     seat.diedAtNight === nightCount || seat.markedForDeath === true;
-  const killedByDemon = context.meta.killerRole === "demon" || seat.deathSource === "demon";
+  const killedByDemon =
+    context.meta.killerRole === "demon" || seat.deathSource === "demon";
 
   if (!diedTonight) {
     return {

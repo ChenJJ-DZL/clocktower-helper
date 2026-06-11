@@ -29,7 +29,6 @@ export const cerenovus: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "塞壬", context);
     },
-
   },
 
   night: {
@@ -50,6 +49,5 @@ export const cerenovus: RoleDefinition = {
         close: "madness",
       };
     },
-
   },
 };

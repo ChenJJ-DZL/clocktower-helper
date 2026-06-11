@@ -32,7 +32,6 @@ export const po: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "珀", context);
     },
-
   },
 
   night: {
@@ -53,6 +52,5 @@ export const po: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

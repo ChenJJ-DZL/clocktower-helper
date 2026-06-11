@@ -29,7 +29,6 @@ export const pit_hag: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "坑道巫婆", context);
     },
-
   },
 
   night: {
@@ -49,6 +48,5 @@ export const pit_hag: RoleDefinition = {
         close: "transform",
       };
     },
-
   },
 };

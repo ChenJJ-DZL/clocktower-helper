@@ -14,9 +14,7 @@ import { getRoleDefinition } from "../roles";
 import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
-import type {
-  NightActionContext,
-} from "../types/roleDefinition";
+import type { NightActionContext } from "../types/roleDefinition";
 import { computeIsPoisoned } from "../utils/gameRules";
 import { runFullAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";

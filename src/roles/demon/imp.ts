@@ -94,7 +94,6 @@ export const imp: RoleDefinition = {
         close: "",
       };
     },
-
   },
 
   // 后续夜晚行动：选择一名玩家杀害
@@ -125,6 +124,5 @@ export const imp: RoleDefinition = {
         close: "",
       };
     },
-
   },
 };

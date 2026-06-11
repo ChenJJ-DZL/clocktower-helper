@@ -35,7 +35,6 @@ export const vortox: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "涡流", context);
     },
-
   },
 
   night: {
@@ -56,6 +55,5 @@ export const vortox: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

@@ -58,10 +58,26 @@ interface PlayerSeat {
 
 /** 所有恶魔角色ID列表 */
 const DEMON_IDS = new Set([
-  "fang_gu", "vortox", "no_dashii", "vigormortis", "zombuul",
-  "shabaloth", "po", "pukka", "imp", "legion", "leviathan",
-  "kazali", "lil_monsta", "lleech", "lord_of_typhon", "hadesia",
-  "riot", "al_hadikhia", "yaggababble", "poppy_grower",
+  "fang_gu",
+  "vortox",
+  "no_dashii",
+  "vigormortis",
+  "zombuul",
+  "shabaloth",
+  "po",
+  "pukka",
+  "imp",
+  "legion",
+  "leviathan",
+  "kazali",
+  "lil_monsta",
+  "lleech",
+  "lord_of_typhon",
+  "hadesia",
+  "riot",
+  "al_hadikhia",
+  "yaggababble",
+  "poppy_grower",
 ]);
 
 // ─── 前置校验中间件 ────────────────────────────────────────────────
@@ -126,10 +142,7 @@ function getNonDemonCandidates(
   });
 }
 
-function generateRealInfo(
-  seats: PlayerSeat[],
-  selfSeatId: number
-): KnightInfo {
+function generateRealInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
   const candidates = getNonDemonCandidates(seats, selfSeatId);
 
   if (candidates.length === 0) {
@@ -145,10 +158,7 @@ function generateRealInfo(
   };
 }
 
-function generateFakeInfo(
-  seats: PlayerSeat[],
-  selfSeatId: number
-): KnightInfo {
+function generateFakeInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
   const others = seats.filter(
     (s: any) => s.id !== selfSeatId && !s.isDead && s.role
   );
@@ -193,12 +203,19 @@ const calculateResult = async (
   }
 
   const info = resolveKnightInfo(
-    snapshot, selfSeatId, abilityEffective, storytellerInput
+    snapshot,
+    selfSeatId,
+    abilityEffective,
+    storytellerInput
   );
 
   return {
     ...context,
-    meta: { ...context.meta, abilityResult: info, isCorrupted: !abilityEffective },
+    meta: {
+      ...context.meta,
+      abilityResult: info,
+      isCorrupted: !abilityEffective,
+    },
   };
 };
 
@@ -212,8 +229,10 @@ const stateUpdateResult = async (
   if (!result) return context;
 
   const persistedRecord = {
-    seat1: result.seat1, seat2: result.seat2,
-    isCorrupted: meta.isCorrupted ?? false, timestamp: Date.now(),
+    seat1: result.seat1,
+    seat2: result.seat2,
+    isCorrupted: meta.isCorrupted ?? false,
+    timestamp: Date.now(),
   };
 
   return {

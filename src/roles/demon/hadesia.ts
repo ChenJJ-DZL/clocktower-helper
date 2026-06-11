@@ -36,7 +36,6 @@ export const hadesia: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       return buildDemonFirstNightDialog(playerSeatId, "哈迪寂亚", context);
     },
-
   },
 
   night: {
@@ -57,6 +56,5 @@ export const hadesia: RoleDefinition = {
         close: "kill",
       };
     },
-
   },
 };

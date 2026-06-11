@@ -2,7 +2,7 @@
 # 血染钟楼说书人助手
 
 by 拜甘教成员-大长老
-版本：W6.2.4
+版本：W6.11.1
 
 ## 项目简介
 
@@ -12,17 +12,19 @@ by 拜甘教成员-大长老
 
 | 模块 | 状态 |
 |------|------|
-| 新引擎能力文件 | ✅ 200个角色全部注册 |
+| 新引擎能力文件 | ✅ 206个角色全部注册并精修 |
 | 旧引擎全部清理 | ✅ 65个handler已删除，仅保留UI配置层 |
 | 新引擎优先调度 | ✅ `useNightActionHandler.ts` 优先走新引擎中间件 |
 | 双层架构 | ✅ UI配置层(`src/roles/*.ts`) + 新引擎能力层(`src/roles/new_engine/*.ability.ts`) |
 | 生产构建 | ✅ 零错误 |
 | 单元测试 | ✅ 38/38 通过 |
+| 仿真测试 | ✅ 4套全部通过 |
 | E2E冒烟测试 | ✅ 通过 |
 | 信息弹窗机制 | ✅ 占卜师等"选择+反馈"角色正确弹窗，自动信息类不弹窗 |
 | 胜负判定 | ✅ 已修复 |
 | 复盘日志 | ✅ 显示"【N】中文名"格式 |
 | Vercel 部署配置 | ✅ 已添加 `vercel.json` |
+| 质量门禁 check:all | ✅ fix + type + build + test + circular |
 
 ## 架构说明
 
@@ -35,7 +37,7 @@ UI配置层 (src/roles/townsfolk|minion|demon|outsider/*.ts)
 
 新引擎能力层 (src/roles/new_engine/*.ability.ts)
   → 游戏逻辑：preCheck→calculate→stateUpdate→postProcess 中间件管道
-  → 200个能力文件，统一注册在 abilityRegistry.ts
+  → 206个能力文件，统一注册在 abilityRegistry.ts
 
 调度器 (useNightActionHandler.ts)
   → 1. 查新引擎 getRawAbilityMap() → 有则执行新引擎中间件
@@ -68,6 +70,15 @@ git push
 ```
 
 ## 更新日志
+
+### W6.11.1 (2026-06-11)
+- 🏗️ **架构修复**：删除3组重复角色注册，注释旧引擎遗留文件（Step 1）
+- 🎯 **能力全覆盖**：补全8个缺失能力文件（bard, golem, hermit, liz, lloam, professor_female, psychopath, titus）
+- 🔧 **角色ID修复**：灵言师命名统一（梅泽菲勒斯→灵言师），圣徒 roleId 不匹配修复
+- 📦 **134个骨架文件精修**：所有角色展开为完整 preCheck→calculate→stateUpdate→postProcess pipeline
+- 🐛 **修复多处逻辑bug**：balloonist阵营混淆、bounty_hunter醉酒分支、widow/wraith/lycanthrope触发时机错误等
+- 🛡️ **质量门禁升级**：check:all 新增 build 检查，确保部署前全链路验证
+- 🏷️ **版本号规范**：W6.日期.当日推送次数
 
 ### W6.2.4 (2026-06-05)
 - 🏗️ **架构重构**：彻底废弃旧引擎handler，全部角色走新引擎中间件（65个handler删除，-2011行）

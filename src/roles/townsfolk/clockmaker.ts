@@ -115,6 +115,5 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
         close: "",
       };
     },
-
   },
 };
