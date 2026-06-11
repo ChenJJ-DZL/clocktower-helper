@@ -1018,6 +1018,7 @@ export const GameStage = () => {
                   }
                   if (nightLogic?.startNight) {
                     nightLogic.startNight(false);
+                    setGamePhase("night"); // 切换到夜晚阶段
                   } else {
                     alert("无法开始夜晚，请检查游戏状态");
                   }

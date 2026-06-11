@@ -18,11 +18,12 @@ export const abilityPriorityCalculation = async (
   if (!seat) return context;
 
   // 1. 最高优先级：咖啡师效果（直接让能力必生效/必不生效）
-  const hasBaristaEffect = seat.statusEffects.some(
+  const effects = seat.statusEffects ?? [];
+  const hasBaristaEffect = effects.some(
     (e: any) => e.type === "barista"
   );
   if (hasBaristaEffect) {
-    const baristaEffect = seat.statusEffects.find(
+    const baristaEffect = effects.find(
       (e: any) => e.type === "barista"
     );
     return {
@@ -36,11 +37,11 @@ export const abilityPriorityCalculation = async (
   }
 
   // 2. 第二优先级：酿酒师效果（能力必生效或必失败）
-  const hasBrewmasterEffect = seat.statusEffects.some(
+  const hasBrewmasterEffect = effects.some(
     (e: any) => e.type === "brewmaster"
   );
   if (hasBrewmasterEffect) {
-    const brewmasterEffect = seat.statusEffects.find(
+    const brewmasterEffect = effects.find(
       (e: any) => e.type === "brewmaster"
     );
     return {
@@ -69,8 +70,8 @@ export const abilityPriorityCalculation = async (
   }
 
   // 4. 第四优先级：醉酒/中毒（能力效果无效）
-  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
-  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
+  const isDrunk = effects.some((e: any) => e.type === "drunk");
+  const isPoisoned = effects.some((e: any) => e.type === "poisoned");
   if (isDrunk || isPoisoned) {
     return {
       ...context,

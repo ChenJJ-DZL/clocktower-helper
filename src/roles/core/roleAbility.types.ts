@@ -25,8 +25,9 @@ export const commonPreCheckAlive = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
-  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
+  const effects = seat.statusEffects ?? [];
+  const isDrunk = effects.some((e: any) => e.type === "drunk");
+  const isPoisoned = effects.some((e: any) => e.type === "poisoned");
 
   return {
     ...context,
