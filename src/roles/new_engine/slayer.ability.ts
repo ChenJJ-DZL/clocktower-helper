@@ -27,8 +27,8 @@ const preCheckAliveAndUnused = async (
     };
   }
 
-  const isDrunk = seat.statusEffects.some((e: any) => e.type === "drunk");
-  const isPoisoned = seat.statusEffects.some((e: any) => e.type === "poisoned");
+  const isDrunk = (seat.statusEffects ?? []).some((e: any) => e.type === "drunk");
+  const isPoisoned = (seat.statusEffects ?? []).some((e: any) => e.type === "poisoned");
   const targetId = (actionNode as any).targetIds?.[0];
   const target = snapshot.seats.find((s) => s.id === targetId);
 

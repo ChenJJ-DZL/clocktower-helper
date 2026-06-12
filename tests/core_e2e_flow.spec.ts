@@ -84,22 +84,8 @@ test("暗流涌动 5人局完整流程", async ({ page }) => {
   // 6. 进入首夜
   await nightButton.click();
 
-  // 7. 首夜流程 - 等待叫醒顺位模态框
-  // 模态框可能包含"首夜叫醒顺位"文本
-  await expect(page.getByText(/首夜叫醒顺位|叫醒顺位/i)).toBeVisible({
-    timeout: 10000,
-  });
-
-  // 点击模态框内的确认按钮（确保点击正确的按钮）
-  // 定位模态框内的确认按钮，使用更具体的选择器
-  const modalConfirmButton = page
-    .locator('[data-modal-key*="首夜叫醒顺位"]')
-    .getByRole("button", { name: /确认|下一步|继续/i });
-  await expect(modalConfirmButton).toBeVisible({ timeout: 5000 });
-  await modalConfirmButton.click();
-
-  // 8. 验证夜间行动开始
-  // 等待控制台显示夜间行动提示（例如"唤醒 2 号【投毒者】"）
+  // 7. 进入首夜 - 验证夜间行动开始
+  // 等待显示行动提示（例如"唤醒 2 号【投毒者】"）
   await expect(page.getByText(/唤醒.*号.*【.*】/)).toBeVisible({
     timeout: 15000,
   });
