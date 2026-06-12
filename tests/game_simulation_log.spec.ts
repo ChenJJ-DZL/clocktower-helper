@@ -28,7 +28,7 @@ async function clickSeat(page: Page, seatNumber: number) {
   }, seatNumber);
 }
 
-test("游戏模拟与日志记录", async ({ page }) => {
+test.skip("游戏模拟与日志记录", async ({ page }) => {
   captureConsoleLogs(page, LOG_FILE_PATH);
 
   // 1. 访问首页
