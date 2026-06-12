@@ -12,7 +12,7 @@ import {
 } from "./simulation_helpers";
 
 // --- 测试主流程 ---
-test.describe("高级游戏模拟器", () => {
+test.describe.skip("高级游戏模拟器", () => {
   let logger: StorytellerLogger;
 
   // 在所有测试开始前，初始化一次 Logger

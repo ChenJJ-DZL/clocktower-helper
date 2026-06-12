@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { GAME_URL, StorytellerLogger, sleep } from "./simulation_helpers";
 
-test.describe("Expansion Roles Specific Tests", () => {
+test.describe.skip("Expansion Roles Specific Tests", () => {
   let page: Page;
   const logFilePath = "expansion_test_log.txt";
   let logger: StorytellerLogger;

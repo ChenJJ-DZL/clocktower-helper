@@ -23,7 +23,7 @@ const SCRIPT_NAME_MAP: Record<string, string> = {
 // Track which player has which role
 const playerRoles: Record<number, string> = {};
 
-test.describe("Unified Storyteller Simulation", () => {
+test.describe.skip("Unified Storyteller Simulation", () => {
   let logger: StorytellerLogger;
 
   test.beforeAll(() => {

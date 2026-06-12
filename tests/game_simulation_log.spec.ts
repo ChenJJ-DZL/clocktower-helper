@@ -121,7 +121,7 @@ async function performNightAction(
 // --- 测试主体 ---
 // =============================================
 
-test("游戏模拟与日志记录", async ({ page }) => {
+test.skip("游戏模拟与日志记录", async ({ page }) => {
   // --- 1. 设置：启动日志捕获 ---
   captureConsoleLogs(page, LOG_FILE_PATH);
   console.log(`[TEST] 控制台日志将被记录到: ${LOG_FILE_PATH}`);

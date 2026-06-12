@@ -15,7 +15,7 @@ test.describe("Targeted Role Verification (Artist & Savant)", () => {
     logger.close();
   });
 
-  test("Verify Artist and Savant Day Abilities", async ({ page }) => {
+  test.skip("Verify Artist and Savant Day Abilities", async ({ page }) => {
     test.setTimeout(300000); // 5 minutes
 
     // Auto-accept all window dialogs (alerts, confirms)

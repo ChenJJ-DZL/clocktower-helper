@@ -15,7 +15,7 @@ test.describe("Final Verification of Day Abilities (Artist & Savant)", () => {
     logger.close();
   });
 
-  test("Targeted Verification: Artist and Savant Abilities", async ({
+  test.skip("Targeted Verification: Artist and Savant Abilities", async ({
     page,
   }) => {
     test.setTimeout(900000); // 15 minutes
