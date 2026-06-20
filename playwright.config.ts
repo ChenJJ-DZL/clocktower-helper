@@ -23,8 +23,8 @@ export default defineConfig({
   // 重试失败的测试
   retries: process.env.CI ? 2 : 0,
 
-  // 工作进程数量
-  workers: process.env.CI ? 1 : undefined,
+  // 工作进程数量（单线程，防止 16G 内存溢出）
+  workers: 1,
 
   // 报告器
   reporter: [["html"], ["list"]],
@@ -33,6 +33,9 @@ export default defineConfig({
   use: {
     // 基础 URL
     baseURL: process.env.E2E_URL || "http://localhost:3000",
+
+    // 纯无头模式运行
+    headless: true,
 
     // 收集追踪信息（失败时）
     trace: "on-first-retry",
@@ -52,10 +55,11 @@ export default defineConfig({
     },
   ],
 
-  // Web 服务器配置（如果需要自动启动服务器）
+  // Web 服务器配置（需要时手动启动 `npm run dev`）
   // webServer: {
   //   command: 'npm run dev',
   //   url: 'http://localhost:3000',
   //   reuseExistingServer: !process.env.CI,
+  //   timeout: 120000,
   // },
 });

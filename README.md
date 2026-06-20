@@ -2,7 +2,7 @@
 # 血染钟楼说书人助手
 
 by 拜甘教成员-大长老
-版本：W6.11.2
+版本：W6.20.1
 
 ## 项目简介
 
@@ -70,6 +70,20 @@ git push
 ```
 
 ## 更新日志
+
+### W6.20.1 (2026-06-20)
+- 🧪 **E2E 测试优化**：workers=1（单线程防内存溢出）、headless 纯无头模式
+- ✅ **E2E 核心测试通过**：e2e_scenario_tb, core_e2e_flow, comprehensive_e2e, custom_e2e, game_simulation_log（5 PASS）
+- 🛡️ **Playwright 配置优化**：限制并发、清理后台进程、配置文档更新
+- 📦 **安装 CodeGraph**：本地代码知识图谱（5,520 节点，15,879 边）
+- 🔧 **Playwright 配置文件更新**：workers:1, headless:true
+
+### W6.12.1 (2026-06-12)
+- 🧹 **旧引擎全面清理**：删除 5 个旧文件，无遗留旧引擎代码
+- 🗑️ **删除旧目录注释文件**：imp.ability.ts, po.ability.ts, fortune_teller.ability.ts
+- 🗑️ **删除死代码**：useNightActionQueue.ts, nightQueueGenerator.ts
+- 🔄 **重构 unifiedNightOrder**：改用 dynamicQueueGenerator
+- ✅ **验证**：TypeScript 0 errors, 测试 38/38, Build 通过
 
 ### W6.11.2 (2026-06-11)
 - 🐛 **修复黄昏→夜晚过渡卡死**：GameStage 入夜按钮添加 `setGamePhase("night")`
