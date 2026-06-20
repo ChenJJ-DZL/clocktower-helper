@@ -16,7 +16,7 @@ export * from "./useInteractionHandler";
 export * from "./useLogicDispatcher";
 export * from "./useModalManager";
 export * from "./useNightActionHandler";
-export * from "./useNightActionQueue";
+// useNightActionQueue 已废弃，由 useNightEngine 替代
 export * from "./useNightEngine";
 export * from "./useNightSnapshot";
 export * from "./useRegistrationManager";

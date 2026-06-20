@@ -1,13 +1,13 @@
 /**
  * 统一夜晚行动顺序机制
- * 整合nightQueueGenerator、nightOrderParser、nightOrderOverrides等组件
- * 提供统一的API接口
+ * 整合 nightOrderParser、nightOrderOverrides 等组件
+ * 使用动态队列生成器 dynamicQueueGenerator
  */
 
 import type { Seat } from "../../app/data";
 import { getNightOrderOverride } from "./nightOrderOverrides";
 import { nightOrderParser } from "./nightOrderParser";
-import { generateNightActionQueue } from "./nightQueueGenerator";
+import { generateDynamicNightQueue } from "./dynamicQueueGenerator";
 
 export interface UnifiedNightOrderConfig {
   /** 是否为首夜 */
@@ -57,17 +57,46 @@ class UnifiedNightOrder {
       ...config,
     };
 
-    // 使用现有的nightQueueGenerator生成基础队列
-    const sortedSeats = generateNightActionQueue(
-      seats,
-      fullConfig.isFirstNight
-    );
+    // 使用动态队列生成器
+    const fullNightOrder: import("./dynamicQueueGenerator").NightOrderEntry[] = [
+      ...nightOrderParser.getFirstNightOrder().map((item) => ({
+        roleId: item.roleId,
+        roleName: item.roleName || item.roleId,
+        priority: item.firstNightOrder,
+        firstNightOnly: true,
+        wakeMessage: item.wakeCondition || "",
+        abilityId: `${item.roleId}_night_ability`,
+      })),
+      ...nightOrderParser.getOtherNightOrder().map((item) => ({
+        roleId: item.roleId,
+        roleName: item.roleName || item.roleId,
+        priority: item.otherNightOrder,
+        firstNightOnly: false,
+        wakeMessage: item.wakeCondition || "",
+        abilityId: `${item.roleId}_night_ability`,
+      })),
+    ];
+    const snapshot = {
+      nightCount: fullConfig.isFirstNight ? 1 : 2,
+      seats: seats.map((s, i) => ({
+        id: i,
+        role: s.role ? { id: s.role.id, name: s.role.name, type: s.role.type || "townsfolk" } : undefined,
+        isAlive: !s.isDead,
+        isDead: s.isDead || false,
+      })),
+      statusEffects: {} as Record<string, any[]>,
+      gamePhase: fullConfig.isFirstNight ? "firstNight" as const : "night" as const,
+    };
+    const queue = generateDynamicNightQueue(fullNightOrder, snapshot, {
+      isFirstNight: fullConfig.isFirstNight,
+    });
 
     // 收集详细顺序信息
     const orderDetails: NightOrderResult["orderDetails"] = [];
 
-    for (const seat of sortedSeats) {
-      if (!seat.role) continue;
+    for (const node of queue) {
+      const seat = seats.find((s) => s.id === node.seatId);
+      if (!seat || !seat.role) continue;
 
       const effectiveRoleId =
         seat.role.id === "drunk" ? seat.charadeRole?.id || null : seat.role.id;
@@ -104,7 +133,7 @@ class UnifiedNightOrder {
       }
 
       orderDetails.push({
-        seatId: seat.id,
+        seatId: node.seatId,
         roleId: effectiveRoleId,
         roleName: seat.role.name,
         order,
@@ -114,9 +143,9 @@ class UnifiedNightOrder {
     }
 
     return {
-      sortedSeats,
+      sortedSeats: queue.map((n) => seats.find((s) => s.id === n.seatId)).filter(Boolean) as Seat[],
       orderDetails,
-      totalItems: sortedSeats.length,
+      totalItems: queue.length,
       isFirstNight: fullConfig.isFirstNight,
     };
   }
@@ -261,4 +290,3 @@ export const unifiedNightOrder = new UnifiedNightOrder();
 
 // 导出类型
 export type { NightOrderItem } from "./nightOrderParser";
-export type { NightQueueItem } from "./nightQueueGenerator";

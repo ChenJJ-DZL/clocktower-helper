@@ -57,7 +57,7 @@ export { NightEngine } from "./nightEngineFacade";
 // nightLogic 已废弃，由 nightInfoAdapter + nightInfoGenerator 替代
 // export * from "./nightLogic";
 export * from "./nightOrderOverrides";
-export * from "./nightQueueGenerator";
+// nightQueueGenerator 已废弃，由 dynamicQueueGenerator 替代
 // export * from './reproduce_regex'; // Not a module
 export * from "./roleDocLookup";
 export * from "./storytellerTips";
