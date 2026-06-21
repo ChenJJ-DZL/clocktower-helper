@@ -1,9 +1,6 @@
 import { roles as globalRoles, type Seat } from "../../app/data";
 import { calculateNightInfo } from "../../src/utils/nightLogic";
 
-// Mock dependencies
-// calculateNightInfo signature: (targetSeat, seats, history, gamePhase, roles, selectedScript)
-
 describe("Role Architecture Consistency", () => {
   test("calculateNightInfo propagates definition layer target counts to meta", () => {
     // 1. Iterate through all roles

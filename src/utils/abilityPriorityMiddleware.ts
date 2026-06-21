@@ -14,84 +14,48 @@ export const abilityPriorityCalculation = async (
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta } = context;
   const seat = snapshot.seats.find((s) => s.id === context.actionNode.seatId);
-
   if (!seat) return context;
 
-  // 1. 最高优先级：咖啡师效果（直接让能力必生效/必不生效）
   const effects = seat.statusEffects ?? [];
-  const hasBaristaEffect = effects.some(
-    (e: any) => e.type === "barista"
-  );
-  if (hasBaristaEffect) {
-    const baristaEffect = effects.find(
-      (e: any) => e.type === "barista"
-    );
+
+  // 1. 最高优先级：咖啡师效果（直接让能力必生效/必不生效）
+  const baristaEffect = effects.find((e: any) => e.type === "barista");
+  if (baristaEffect) {
     return {
       ...context,
-      meta: {
-        ...meta,
-        abilityEffective: baristaEffect.data?.isAbilityEffective ?? true,
-        prioritySource: "barista",
-      },
+      meta: { ...meta, abilityEffective: baristaEffect.data?.isAbilityEffective ?? true, prioritySource: "barista" },
     };
   }
 
-  // 2. 第二优先级：酿酒师效果（能力必生效或必失败）
-  const hasBrewmasterEffect = effects.some(
-    (e: any) => e.type === "brewmaster"
-  );
-  if (hasBrewmasterEffect) {
-    const brewmasterEffect = effects.find(
-      (e: any) => e.type === "brewmaster"
-    );
+  // 2. 第二优先级：酿酒师效果
+  const brewmasterEffect = effects.find((e: any) => e.type === "brewmaster");
+  if (brewmasterEffect) {
     return {
       ...context,
-      meta: {
-        ...meta,
-        abilityEffective: brewmasterEffect.data?.isAbilityEffective ?? true,
-        prioritySource: "brewmaster",
-      },
+      meta: { ...meta, abilityEffective: brewmasterEffect.data?.isAbilityEffective ?? true, prioritySource: "brewmaster" },
     };
   }
 
   // 3. 第三优先级：涡流世界（所有镇民能力必出错误信息）
-  const hasVortoxWorld = snapshot.globalEffects?.vortoxWorld ?? false;
-  const isTownsfolk = seat.role?.type === "townsfolk";
-  if (hasVortoxWorld && isTownsfolk) {
+  if (snapshot.globalEffects?.vortoxWorld && seat.role?.type === "townsfolk") {
     return {
       ...context,
-      meta: {
-        ...meta,
-        abilityEffective: false,
-        vortoxAffected: true,
-        prioritySource: "vortox",
-      },
+      meta: { ...meta, abilityEffective: false, vortoxAffected: true, prioritySource: "vortox" },
     };
   }
 
-  // 4. 第四优先级：醉酒/中毒（能力效果无效）
-  const isDrunk = effects.some((e: any) => e.type === "drunk");
-  const isPoisoned = effects.some((e: any) => e.type === "poisoned");
-  if (isDrunk || isPoisoned) {
+  // 4. 第四优先级：醉酒/中毒
+  if (effects.some((e: any) => e.type === "drunk" || e.type === "poisoned")) {
+    const isDrunk = effects.some((e: any) => e.type === "drunk");
     return {
       ...context,
-      meta: {
-        ...meta,
-        abilityEffective: false,
-        isDrunk,
-        isPoisoned,
-        prioritySource: isDrunk ? "drunk" : "poisoned",
-      },
+      meta: { ...meta, abilityEffective: false, isDrunk, isPoisoned: !isDrunk, prioritySource: isDrunk ? "drunk" : "poisoned" },
     };
   }
 
-  // 5. 最低优先级：保持原有的能力生效状态
+  // 5. 最低优先级：保持原有状态
   return {
     ...context,
-    meta: {
-      ...meta,
-      abilityEffective: meta.abilityEffective ?? true,
-      prioritySource: "normal",
-    },
+    meta: { ...meta, abilityEffective: meta.abilityEffective ?? true, prioritySource: "normal" },
   };
 };

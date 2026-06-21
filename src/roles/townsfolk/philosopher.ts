@@ -114,4 +114,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:152-0!canonical and tim
       };
     },
   },
+  day: {
+    name: "哲学之道",
+    maxUses: 1,
+    target: { min: 0, max: 0 },
+  },
 };

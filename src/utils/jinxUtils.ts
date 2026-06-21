@@ -1,14 +1,4 @@
-// 动态导入JSON文件，避免TypeScript编译错误
-const loadJinxes = () => {
-  try {
-    // 使用require在运行时加载JSON
-    const jinxes = require("../data/jinxes.json");
-    return jinxes;
-  } catch (error) {
-    console.error("Failed to load jinxes.json:", error);
-    return [];
-  }
-};
+import jinxesData from "../data/jinxes.json";
 
 export interface JinxRule {
   id: string;
@@ -17,14 +7,14 @@ export interface JinxRule {
   description: string;
 }
 
+const jinxes: JinxRule[] = jinxesData as JinxRule[];
+
 // Map of Character ID -> List of Jinx Rules
 // Dynamically built from src/data/jinxes.json
 export const JINX_RULES: Record<string, JinxRule[]> = {};
 
 // 初始化JINX_RULES
 const initializeJinxRules = () => {
-  const jinxes = loadJinxes();
-
   jinxes.forEach((rule: JinxRule) => {
     // Add for character1
     if (!JINX_RULES[rule.character1]) {

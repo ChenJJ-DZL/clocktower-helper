@@ -549,6 +549,20 @@ export function useDayActions(deps: DayActionsDeps) {
       const sourceSeat = seats.find((s) => s.id === sourceSeatId);
       if (!sourceSeat || !sourceSeat.role) return;
 
+      // ── 艺术家专用 ────────────────────────────────────
+      if (sourceSeat.role.id === "artist") {
+        if (sourceSeat.hasUsedDayAbility) { alert("此玩家已经使用过技能了！"); return; }
+        setSeats((prev) => prev.map((s) => s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s));
+        setCurrentModal({ type: "ARTIST_RESULT", data: { result: "" } });
+        return;
+      }
+
+      // ── 博学者专用 ────────────────────────────────────
+      if (sourceSeat.role.id === "savant") {
+        setCurrentModal({ type: "SAVANT_RESULT", data: { infoA: "", infoB: "" } });
+        return;
+      }
+
       const modularHandler = getRoleDefinition(sourceSeat.role.id);
       if (modularHandler?.day) {
         if (
@@ -569,9 +583,10 @@ export function useDayActions(deps: DayActionsDeps) {
         };
 
         const result = modularHandler.day.handler?.(dayContext);
-        if (!result) return false;
 
-        if (result.updates.length > 0) {
+        // 有 handler → 使用 handler 结果
+        if (result) {
+          if (result.updates.length > 0) {
           const refreshedSeats = seats.map((s) => {
             const update = result.updates.find(
               (upd: { id: number }) => upd.id === s.id
@@ -610,7 +625,19 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
 
-      if (!sourceSeat.role.dayMeta) {
+      // 无 handler → 通用回退：标记已使用 + 说书人提示
+      if (modularHandler.day.maxUses !== "infinity") {
+        setSeats((prev) =>
+          prev.map((s) =>
+            s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
+          )
+        );
+      }
+      addLog(`${sourceSeatId + 1}号 [${sourceSeat.role.name}] 发动技能`);
+      return;
+    }
+
+    if (!sourceSeat.role.dayMeta) {
         return;
       }
 

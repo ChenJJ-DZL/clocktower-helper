@@ -71,7 +71,14 @@ git push
 
 ## 更新日志
 
-### W6.20.1 (2026-06-20)
+### W6.21.4 (2026-06-21)
+- 🧪 **全量 E2E 测试体系**：21精细 + 70花名册 + 20自建剧本 = 111测试
+- 🎯 **覆盖 84% 角色**（110/131），三大剧本全通
+- 🔧 **night_helper v7**：强化模态弹窗处理、夜间模式、双阶段选择
+- 🆕 **唱诗男孩(Choir Boy) 补全**：RoleDefinition + data.ts + 注册表 + 可用性测试
+- 🏷️ **角色名修正**：和平主义者/失意者/巡山人/修行者（以 data.ts 为准）
+- 📋 **全角色测试计划**：见 `docs/全角色测试计划.md`
+- ✅ **质量门禁**: TypeScript 0 errors, Build 0 warnings, Circular 0
 - 🧪 **E2E 测试优化**：workers=1（单线程防内存溢出）、headless 纯无头模式
 - ✅ **E2E 核心测试通过**：e2e_scenario_tb, core_e2e_flow, comprehensive_e2e, custom_e2e, game_simulation_log（5 PASS）
 - 🛡️ **Playwright 配置优化**：限制并发、清理后台进程、配置文档更新

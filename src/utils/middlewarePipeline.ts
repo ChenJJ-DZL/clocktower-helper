@@ -1,20 +1,15 @@
 /**
  * 中间件管道
- * 技能执行的标准流程抽象，实现职责链模式，支持灵活扩展中间件
+ * 技能执行的标准流程抽象，实现职责链模式
  */
 
 import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 import type {
   AbilityMiddlewareSet,
-  CalculateMiddleware,
   MiddlewareContext,
-  MiddlewareFunction,
-  PostProcessMiddleware,
-  PreCheckMiddleware,
-  StateUpdateMiddleware,
 } from "./middlewareTypes";
 
-// 导出 abilityPriorityCalculation
+// 导出公共类型和工具
 export { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 export type {
   AbilityMiddlewareSet,
@@ -24,12 +19,7 @@ export type {
   PostProcessMiddleware,
   PreCheckMiddleware,
   StateUpdateMiddleware,
-};
-
-// 默认空中间件，直接通过
-const defaultMiddleware = async (
-  context: MiddlewareContext
-): Promise<MiddlewareContext> => context;
+} from "./middlewareTypes";
 
 /**
  * 中间件管道执行器
@@ -42,45 +32,38 @@ export async function runMiddlewarePipeline(
   initialContext: MiddlewareContext
 ): Promise<MiddlewareContext> {
   let context = { ...initialContext };
-
   for (const middleware of middlewares) {
-    if (context.aborted) {
-      break;
-    }
+    if (context.aborted) break;
     context = await middleware(context);
   }
-
   return context;
 }
 
 /**
- * 执行完整的技能处理流程
+ * 执行完整的技能处理流程：preCheck → calculate（含优先级）→ stateUpdate → postProcess
  */
 export async function runFullAbilityPipeline(
   middlewareSet: Partial<AbilityMiddlewareSet>,
   initialContext: MiddlewareContext
 ): Promise<MiddlewareContext> {
-  const {
-    preCheck = [defaultMiddleware],
-    calculate = [defaultMiddleware],
-    stateUpdate = [defaultMiddleware],
-    postProcess = [defaultMiddleware],
-  } = middlewareSet;
+  const empty = async (ctx: MiddlewareContext) => ctx;
 
-  // 注入全局优先级中间件到calculate阶段最前面
+  const preCheck = middlewareSet.preCheck ?? [empty];
+  const calculate = middlewareSet.calculate ?? [empty];
+  const stateUpdate = middlewareSet.stateUpdate ?? [empty];
+  const postProcess = middlewareSet.postProcess ?? [empty];
+
+  // 注入全局优先级中间件到 calculate 阶段最前面
   const enhancedCalculate = [abilityPriorityCalculation, ...calculate];
 
-  // 按顺序执行四个阶段
-  let context = await runMiddlewarePipeline(preCheck, initialContext);
-  if (context.aborted) return context;
+  let ctx = await runMiddlewarePipeline(preCheck, initialContext);
+  if (ctx.aborted) return ctx;
 
-  context = await runMiddlewarePipeline(enhancedCalculate, context);
-  if (context.aborted) return context;
+  ctx = await runMiddlewarePipeline(enhancedCalculate, ctx);
+  if (ctx.aborted) return ctx;
 
-  context = await runMiddlewarePipeline(stateUpdate, context);
-  if (context.aborted) return context;
+  ctx = await runMiddlewarePipeline(stateUpdate, ctx);
+  if (ctx.aborted) return ctx;
 
-  context = await runMiddlewarePipeline(postProcess, context);
-
-  return context;
+  return runMiddlewarePipeline(postProcess, ctx);
 }

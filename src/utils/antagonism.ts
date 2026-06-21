@@ -46,11 +46,28 @@ const MUTUAL_EXCLUSIVE_PAIRS: [string, string][] = [
 ];
 
 // Creator cannot create specific roles (subset we can enforce generically now).
-// e.g. Pit-Hag cannot create Heretic / Actor, Leviathan cannot be created after day 5 (needs more context -> TODO).
+// e.g. Pit-Hag cannot create Heretic / Actor.
+// Some restrictions depend on game state (e.g. day count), see checkCannotCreateAfterDay.
 const CREATOR_CANNOT_CREATE: Record<string, Set<string>> = {
   pit_hag: new Set(["heretic", "actor"]),
   pit_hag_mr: new Set(["heretic", "actor"]),
   summoner: new Set([]),
+};
+
+// Day-constrained creation restrictions: cannot create the role after a certain day.
+// key = roleId to create, value = max allowed day (inclusive).
+// Currently empty — callers pass currentDay via checkCannotCreateAfterDay.
+interface DayConstraint {
+  maxDay: number; // creation blocked if currentDay > maxDay
+  reason: string; // description of the restriction
+}
+
+// Leviathan cannot be created after day 5.
+const DAY_CONSTRAINED_CREATION: Record<string, DayConstraint> = {
+  leviathan: {
+    maxDay: 5,
+    reason: "利维坦不能在第五天之后加入游戏",
+  },
 };
 
 function getSeatRoleId(seat: Seat | undefined | null): string | null {
@@ -103,13 +120,28 @@ export function checkCannotCreate(params: {
   creatorRoleId: string;
   createdRoleId: string;
   roles?: Role[];
+  currentDay?: number; // optional, enables day-constrained restrictions
 }): AntagonismDecision {
-  const { seats, creatorRoleId, createdRoleId, roles } = params;
+  const { seats, creatorRoleId, createdRoleId, roles, currentDay } = params;
   const blockSet = CREATOR_CANNOT_CREATE[creatorRoleId];
   if (blockSet?.has(createdRoleId)) {
     return {
       allowed: false,
       reason: `相克规则：${getRoleNameById(roles, creatorRoleId)} 无法创造 ${getRoleNameById(roles, createdRoleId)}。`,
+      blockedByRoleId: createdRoleId,
+    };
+  }
+
+  // Day-constrained restrictions (e.g. Leviathan cannot be created after day 5)
+  const dayConstraint = DAY_CONSTRAINED_CREATION[createdRoleId];
+  if (
+    dayConstraint &&
+    currentDay !== undefined &&
+    currentDay > dayConstraint.maxDay
+  ) {
+    return {
+      allowed: false,
+      reason: `相克规则：${dayConstraint.reason}。`,
       blockedByRoleId: createdRoleId,
     };
   }

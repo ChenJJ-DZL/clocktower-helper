@@ -38,4 +38,9 @@ export const gossip: RoleDefinition = {
       close: "",
     }),
   },
+  day: {
+    name: "造谣者声明",
+    maxUses: 1,
+    target: { min: 0, max: 0 },
+  },
 };

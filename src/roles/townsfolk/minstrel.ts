@@ -70,5 +70,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:22-0!canonical and time
   clarifications: [
     "相克规则：军团：如果军团死于处决，所有军团保留能力，但吟游诗人可能会在当晚得知今天白天死于处决的玩家是军团。",
   ],
-  // 无夜晚行动
+  day: {
+    name: "醉人乐章",
+    maxUses: 1,
+    target: { min: 0, max: 0 },
+  },
 };

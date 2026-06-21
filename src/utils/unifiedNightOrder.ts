@@ -5,9 +5,9 @@
  */
 
 import type { Seat } from "../../app/data";
+import { generateDynamicNightQueue } from "./dynamicQueueGenerator";
 import { getNightOrderOverride } from "./nightOrderOverrides";
 import { nightOrderParser } from "./nightOrderParser";
-import { generateDynamicNightQueue } from "./dynamicQueueGenerator";
 
 export interface UnifiedNightOrderConfig {
   /** 是否为首夜 */
@@ -58,34 +58,43 @@ class UnifiedNightOrder {
     };
 
     // 使用动态队列生成器
-    const fullNightOrder: import("./dynamicQueueGenerator").NightOrderEntry[] = [
-      ...nightOrderParser.getFirstNightOrder().map((item) => ({
-        roleId: item.roleId,
-        roleName: item.roleName || item.roleId,
-        priority: item.firstNightOrder,
-        firstNightOnly: true,
-        wakeMessage: item.wakeCondition || "",
-        abilityId: `${item.roleId}_night_ability`,
-      })),
-      ...nightOrderParser.getOtherNightOrder().map((item) => ({
-        roleId: item.roleId,
-        roleName: item.roleName || item.roleId,
-        priority: item.otherNightOrder,
-        firstNightOnly: false,
-        wakeMessage: item.wakeCondition || "",
-        abilityId: `${item.roleId}_night_ability`,
-      })),
-    ];
+    const fullNightOrder: import("./dynamicQueueGenerator").NightOrderEntry[] =
+      [
+        ...nightOrderParser.getFirstNightOrder().map((item) => ({
+          roleId: item.roleId,
+          roleName: item.roleName || item.roleId,
+          priority: item.firstNightOrder,
+          firstNightOnly: true,
+          wakeMessage: item.wakeCondition || "",
+          abilityId: `${item.roleId}_night_ability`,
+        })),
+        ...nightOrderParser.getOtherNightOrder().map((item) => ({
+          roleId: item.roleId,
+          roleName: item.roleName || item.roleId,
+          priority: item.otherNightOrder,
+          firstNightOnly: false,
+          wakeMessage: item.wakeCondition || "",
+          abilityId: `${item.roleId}_night_ability`,
+        })),
+      ];
     const snapshot = {
       nightCount: fullConfig.isFirstNight ? 1 : 2,
       seats: seats.map((s, i) => ({
         id: i,
-        role: s.role ? { id: s.role.id, name: s.role.name, type: s.role.type || "townsfolk" } : undefined,
+        role: s.role
+          ? {
+              id: s.role.id,
+              name: s.role.name,
+              type: s.role.type || "townsfolk",
+            }
+          : undefined,
         isAlive: !s.isDead,
         isDead: s.isDead || false,
       })),
       statusEffects: {} as Record<string, any[]>,
-      gamePhase: fullConfig.isFirstNight ? "firstNight" as const : "night" as const,
+      gamePhase: fullConfig.isFirstNight
+        ? ("firstNight" as const)
+        : ("night" as const),
     };
     const queue = generateDynamicNightQueue(fullNightOrder, snapshot, {
       isFirstNight: fullConfig.isFirstNight,
@@ -143,7 +152,9 @@ class UnifiedNightOrder {
     }
 
     return {
-      sortedSeats: queue.map((n) => seats.find((s) => s.id === n.seatId)).filter(Boolean) as Seat[],
+      sortedSeats: queue
+        .map((n) => seats.find((s) => s.id === n.seatId))
+        .filter(Boolean) as Seat[],
       orderDetails,
       totalItems: queue.length,
       isFirstNight: fullConfig.isFirstNight,

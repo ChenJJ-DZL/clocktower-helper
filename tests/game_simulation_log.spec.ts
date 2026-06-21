@@ -12,7 +12,9 @@ test("游戏模拟与日志记录", async ({ page }) => {
     logStream.write(line);
   });
 
-  page.on("dialog", async (d) => { if (d.type() === "confirm") await d.accept(); });
+  page.on("dialog", async (d) => {
+    if (d.type() === "confirm") await d.accept();
+  });
 
   // 1. 加载页面
   await page.goto(GAME_URL);
@@ -40,7 +42,10 @@ test("游戏模拟与日志记录", async ({ page }) => {
       const btns = overlay.querySelectorAll("button");
       for (const b of btns) {
         const t = b.textContent?.trim() || "";
-        if (t && t !== "✕" && !t.includes("确认选择")) { b.click(); return; }
+        if (t && t !== "✕" && !t.includes("确认选择")) {
+          b.click();
+          return;
+        }
       }
     });
     await page.waitForTimeout(500);
@@ -50,7 +55,10 @@ test("游戏模拟与日志记录", async ({ page }) => {
       if (!overlay) return;
       const btns = overlay.querySelectorAll("button");
       for (const b of btns) {
-        if (b.textContent?.includes("确认选择") && !b.disabled) { b.click(); return; }
+        if (b.textContent?.includes("确认选择") && !b.disabled) {
+          b.click();
+          return;
+        }
       }
     });
     await page.waitForTimeout(800);

@@ -1,20 +1,19 @@
 // ======================================================================
-//  限次能力统一管理器
+//  限次能力统一管理器（简化版）
 // ======================================================================
+//
+// 变更说明：
+//   v2 — 移除6个冗余别名函数，抽取公共定义查找逻辑，简化角色变化重置逻辑
+//
 
 /**
  * 限次能力定义接口
  */
 export interface LimitedAbilityDefinition {
-  /** 能力ID */
   abilityId: string;
-  /** 使用次数限制（全局或实例级） */
   maxUses: number;
-  /** 是否为全局限制（true: 全局共享次数，false: 每个玩家独立计数） */
   global: boolean;
-  /** 是否在醉酒/中毒时也消耗次数（默认false） */
   consumeWhenDrunkOrPoisoned?: boolean;
-  /** 角色变化时是否重置（默认true） */
   resetOnRoleChange?: boolean;
 }
 
@@ -27,73 +26,25 @@ const definitions = new Map<string, LimitedAbilityDefinition>();
  * 预定义常见限次能力
  */
 const predefinedDefinitions: LimitedAbilityDefinition[] = [
-  // 哲学家：每局游戏一次
-  {
-    abilityId: "philosopher_use",
-    maxUses: 1,
-    global: false,
-    resetOnRoleChange: true,
-  },
-  // 艺术家：每局游戏一次
-  {
-    abilityId: "artist_paint",
-    maxUses: 1,
-    global: false,
-    resetOnRoleChange: true,
-  },
-  // 女裁缝：整局游戏一次（全局限制）
-  {
-    abilityId: "seamstress_ability",
-    maxUses: 1,
-    global: true,
-    resetOnRoleChange: false,
-  },
-  // 呆瓜：全局限制一次猜测
-  {
-    abilityId: "minion_generic_guess",
-    maxUses: 1,
-    global: true,
-    resetOnRoleChange: false,
-  },
-  // 教授：每局游戏一次
-  {
-    abilityId: "professor_resurrect",
-    maxUses: 1,
-    global: false,
-    resetOnRoleChange: true,
-  },
-  // 沙巴洛斯：整局游戏一次"再次杀戮"能力
-  {
-    abilityId: "shabaloth_double_kill",
-    maxUses: 1,
-    global: true,
-    resetOnRoleChange: false,
-  },
-  // 侍臣：每局游戏一次
-  {
-    abilityId: "courtier_drunk",
-    maxUses: 1,
-    global: false,
-    consumeWhenDrunkOrPoisoned: true, // 醉酒/中毒时也消耗次数
-    resetOnRoleChange: true,
-  },
-  // 刺客：每局游戏一次
-  {
-    abilityId: "assassin_kill",
-    maxUses: 1,
-    global: false,
-    consumeWhenDrunkOrPoisoned: true, // 醉酒/中毒时也消耗次数（官方规则：选择目标后就消耗能力）
-    resetOnRoleChange: true,
-  },
+  { abilityId: "philosopher_use",           maxUses: 1, global: false, resetOnRoleChange: true },
+  { abilityId: "artist_paint",              maxUses: 1, global: false, resetOnRoleChange: true },
+  { abilityId: "seamstress_ability",        maxUses: 1, global: true,  resetOnRoleChange: false },
+  { abilityId: "professor_resurrect",       maxUses: 1, global: false, resetOnRoleChange: true },
+  { abilityId: "courtier_drunk",            maxUses: 1, global: false, consumeWhenDrunkOrPoisoned: true,  resetOnRoleChange: true },
+  { abilityId: "assassin_kill",             maxUses: 1, global: false, consumeWhenDrunkOrPoisoned: true,  resetOnRoleChange: true },
+  { abilityId: "shabaloth_double_kill",     maxUses: 1, global: true,  resetOnRoleChange: false },
 ];
+
+/** 抽取公共定义查找逻辑 */
+function resolveDef(abilityId: string, custom?: LimitedAbilityDefinition) {
+  return custom ?? definitions.get(abilityId);
+}
 
 /**
  * 初始化管理器，加载预定义能力
  */
 export function initializeLimitedAbilityManager() {
-  predefinedDefinitions.forEach((def) => {
-    definitions.set(def.abilityId, def);
-  });
+  predefinedDefinitions.forEach((def) => definitions.set(def.abilityId, def));
 }
 
 /**
@@ -107,70 +58,41 @@ export function registerLimitedAbilityDefinition(
 
 /**
  * 检查能力是否可用
- * @param seatId 玩家ID（对于实例级能力）
- * @param abilityId 能力ID
- * @param customDefinition 可选的自定义定义（优先级高于预定义）
- * @returns 是否可用
  */
 export function canUseLimitedAbility(
   seatId: number,
   abilityId: string,
   customDefinition?: LimitedAbilityDefinition
 ): boolean {
-  const definition = customDefinition || definitions.get(abilityId);
-  if (!definition) {
-    // 如果没有定义，默认允许使用（向后兼容）
-    return true;
-  }
+  const def = resolveDef(abilityId, customDefinition);
+  if (!def) return true; // 无定义则默认允许（向后兼容）
 
-  if (definition.global) {
-    const used = globalUses.get(abilityId) || 0;
-    return used < definition.maxUses;
-  } else {
-    const seatUses = instanceUses.get(abilityId);
-    if (!seatUses) {
-      return true; // 该能力还没有任何玩家使用过
-    }
-    const used = seatUses.get(seatId) || 0;
-    return used < definition.maxUses;
-  }
+  if (def.global) return (globalUses.get(abilityId) ?? 0) < def.maxUses;
+  return (instanceUses.get(abilityId)?.get(seatId) ?? 0) < def.maxUses;
 }
 
 /**
  * 使用限次能力
- * @param seatId 玩家ID
- * @param abilityId 能力ID
- * @param customDefinition 可选的自定义定义
- * @returns 是否成功使用
  */
 export function consumeLimitedAbility(
   seatId: number,
   abilityId: string,
   customDefinition?: LimitedAbilityDefinition
 ): boolean {
-  const definition = customDefinition || definitions.get(abilityId);
-  if (!definition) {
-    // 没有定义，默认允许使用
-    return true;
-  }
+  const def = resolveDef(abilityId, customDefinition);
+  if (!def) return true;
+  if (!canUseLimitedAbility(seatId, abilityId, customDefinition)) return false;
 
-  if (!canUseLimitedAbility(seatId, abilityId, customDefinition)) {
-    return false;
-  }
-
-  if (definition.global) {
-    const used = globalUses.get(abilityId) || 0;
-    globalUses.set(abilityId, used + 1);
+  if (def.global) {
+    globalUses.set(abilityId, (globalUses.get(abilityId) ?? 0) + 1);
   } else {
     let seatUses = instanceUses.get(abilityId);
     if (!seatUses) {
-      seatUses = new Map<number, number>();
+      seatUses = new Map();
       instanceUses.set(abilityId, seatUses);
     }
-    const used = seatUses.get(seatId) || 0;
-    seatUses.set(seatId, used + 1);
+    seatUses.set(seatId, (seatUses.get(seatId) ?? 0) + 1);
   }
-
   return true;
 }
 
@@ -181,37 +103,24 @@ export function getLimitedAbilityUsedCount(
   seatId: number,
   abilityId: string
 ): number {
-  const definition = definitions.get(abilityId);
-  if (!definition) return 0;
-
-  if (definition.global) {
-    return globalUses.get(abilityId) || 0;
-  } else {
-    const seatUses = instanceUses.get(abilityId);
-    return seatUses?.get(seatId) || 0;
-  }
+  const def = resolveDef(abilityId);
+  if (!def) return 0;
+  if (def.global) return globalUses.get(abilityId) ?? 0;
+  return instanceUses.get(abilityId)?.get(seatId) ?? 0;
 }
 
 /**
  * 重置能力使用次数
- * @param seatId 玩家ID（如果为null，重置所有玩家的该能力）
- * @param abilityId 能力ID
  */
 export function resetLimitedAbilityUses(seatId?: number, abilityId?: string) {
   if (abilityId) {
     if (seatId !== undefined) {
-      // 重置特定玩家的特定能力
-      const seatUses = instanceUses.get(abilityId);
-      if (seatUses) {
-        seatUses.delete(seatId);
-      }
+      instanceUses.get(abilityId)?.delete(seatId);
     } else {
-      // 重置所有玩家的该能力
       globalUses.delete(abilityId);
       instanceUses.delete(abilityId);
     }
   } else {
-    // 重置所有能力
     globalUses.clear();
     instanceUses.clear();
   }
@@ -219,51 +128,11 @@ export function resetLimitedAbilityUses(seatId?: number, abilityId?: string) {
 
 /**
  * 角色变化时重置相关能力使用次数
- * @param seatId 玩家ID
- * @param oldRoleId 旧角色ID
- * @param newRoleId 新角色ID
  */
-export function onLimitedAbilityRoleChanged(
-  seatId: number,
-  _oldRoleId?: string,
-  _newRoleId?: string
-) {
-  // 重置所有需要重置的能力
-  for (const [abilityId, definition] of definitions) {
-    if (definition.resetOnRoleChange !== false) {
-      const seatUses = instanceUses.get(abilityId);
-      if (seatUses) {
-        seatUses.delete(seatId);
-      }
+export function onLimitedAbilityRoleChanged(seatId: number) {
+  for (const [abilityId, def] of definitions) {
+    if (def.resetOnRoleChange !== false) {
+      instanceUses.get(abilityId)?.delete(seatId);
     }
   }
 }
-
-// ======================================================================
-//  限次能力使用便利函数
-// ======================================================================
-
-/**
- * 检查限次能力是否可用（便利函数）
- */
-export const checkLimitedAbilityUsage = canUseLimitedAbility;
-
-/**
- * 使用限次能力（便利函数）
- */
-export const useLimitedAbilityFunc = consumeLimitedAbility;
-
-/**
- * 获取限次能力已使用次数（便利函数）
- */
-export const getLimitedAbilityUsedCountFunc = getLimitedAbilityUsedCount;
-
-/**
- * 重置限次能力使用次数（便利函数）
- */
-export const resetLimitedAbilityFunc = resetLimitedAbilityUses;
-
-/**
- * 角色变化时处理限次能力重置（便利函数）
- */
-export const handleRoleChangeForLimitedAbilities = onLimitedAbilityRoleChanged;

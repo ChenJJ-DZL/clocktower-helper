@@ -7,17 +7,24 @@ export function NightOrderPreviewModal({
 }: {
   nightOrderModal: any;
 }) {
-  const props = useGameActions();
+  const {
+    confirmNightOrderPreview,
+    closeNightOrderPreview,
+    nightQueuePreviewTitle,
+    nightOrderPreview,
+    seats,
+    toggleStatus,
+  } = useGameActions();
 
   // 如果 autoConfirm 为 true，自动确认入夜（不再需要说书人手动点击）
   useEffect(() => {
     if (nightOrderModal?.autoConfirm) {
       const timer = setTimeout(() => {
-        props.confirmNightOrderPreview();
+        confirmNightOrderPreview();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [nightOrderModal?.autoConfirm, props.confirmNightOrderPreview]);
+  }, [nightOrderModal?.autoConfirm, confirmNightOrderPreview]);
 
   if (!nightOrderModal) return null;
 
@@ -25,17 +32,17 @@ export function NightOrderPreviewModal({
     <ModalWrapper
       title={
         nightOrderModal?.title ||
-        props.nightQueuePreviewTitle ||
+        nightQueuePreviewTitle ||
         "🌙 今晚要唤醒的顺序列表"
       }
-      onClose={props.closeNightOrderPreview}
+      onClose={closeNightOrderPreview}
       className="max-w-4xl border-4 border-yellow-500"
       closeOnOverlayClick={true}
       footer={
         <>
           <button
             type="button"
-            onClick={props.closeNightOrderPreview}
+            onClick={closeNightOrderPreview}
             className="px-6 py-3 rounded-xl bg-gray-700 text-gray-100 font-bold hover:bg-gray-600 transition"
           >
             返回调整
@@ -45,7 +52,7 @@ export function NightOrderPreviewModal({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              props.confirmNightOrderPreview();
+              confirmNightOrderPreview();
             }}
             className="px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-500 transition cursor-pointer"
             style={{ pointerEvents: "auto" }}
@@ -60,20 +67,20 @@ export function NightOrderPreviewModal({
       </p>
 
       {/* 当场上有占卜师时才显示红罗刹设置 */}
-      {props.seats.some((seat) => seat.role?.id === "fortune_teller") && (
+      {seats.some((seat) => seat.role?.id === "fortune_teller") && (
         <div className="mb-6 p-4 rounded-xl bg-red-950/20 border border-red-500/30">
           <h4 className="text-sm font-bold text-red-200 mb-3 flex items-center gap-2">
             🎭 设置占卜师天敌 (红罗刹)
           </h4>
           <div className="flex flex-wrap gap-2">
-            {props.seats.map((seat) => {
+            {seats.map((seat) => {
               const isRH = !!(
                 seat.isRedHerring || seat.isFortuneTellerRedHerring
               );
               return (
                 <button
                   key={`rh-select-seat-${seat.id}`}
-                  onClick={() => props.toggleStatus("redherring", seat.id)}
+                  onClick={() => toggleStatus("redherring", seat.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                     isRH
                       ? "bg-red-600 border-red-400 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]"
@@ -86,12 +93,12 @@ export function NightOrderPreviewModal({
             })}
           </div>
           <p className="text-[10px] text-gray-500 mt-2 italic">
-            * 占卜师在查验时，若包含红罗刹，其结果将始终返回“是”。
+            * 占卜师在查验时，若包含红罗刹，其结果将始终返回"是"。
           </p>
         </div>
       )}
       <div className="grid grid-cols-1 gap-3">
-        {(nightOrderModal?.preview || props.nightOrderPreview || []).map(
+        {(nightOrderModal?.preview || nightOrderPreview || []).map(
           (item: any) => (
             <div
               key={`night-order-preview-${item.seatNo}-${item.roleName}-${item.order}`}

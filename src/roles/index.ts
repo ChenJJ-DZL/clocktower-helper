@@ -124,6 +124,7 @@ import { balloonist } from "./townsfolk/balloonist";
 import { banshee } from "./townsfolk/banshee";
 import { bard } from "./townsfolk/bard";
 import { cannibal } from "./townsfolk/cannibal";
+import { choir_boy } from "./townsfolk/choir_boy";
 import { chambermaid } from "./townsfolk/chambermaid";
 import { chef } from "./townsfolk/chef";
 import { clockmaker } from "./townsfolk/clockmaker";
@@ -192,6 +193,7 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [banshee.id, banshee],
   [balloonist.id, balloonist],
   [cannibal.id, cannibal],
+  [choir_boy.id, choir_boy],
   [chambermaid.id, chambermaid],
   [chef.id, chef],
   [clockmaker.id, clockmaker],

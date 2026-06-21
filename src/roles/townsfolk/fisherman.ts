@@ -75,4 +75,9 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:46-0!canonical and timestamp 20260120025306 and revision id 3642. Serialized with JSON.`,
   // 无夜晚行动
+  day: {
+    name: "渔夫咨询",
+    maxUses: 1,
+    target: { min: 0, max: 0 },
+  },
 };

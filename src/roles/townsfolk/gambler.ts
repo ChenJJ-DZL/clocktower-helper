@@ -66,4 +66,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:16-0!canonical and time
 
   // 赌徒的具体夜晚结算逻辑由 nightLogic + 说书人手动裁定（通过 UI 记录猜测与结果）完成
   // 这里不实现自动判定，只保留角色元数据（夜序等）在 rolesData.json 中配置
+  day: {
+    name: "赌徒猜测",
+    maxUses: 1,
+    target: { min: 1, max: 1 },
+  },
 };

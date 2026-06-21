@@ -25,8 +25,12 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const isDrunk = (seat.statusEffects ?? []).some((e: any) => e.type === "drunk");
-  const isPoisoned = (seat.statusEffects ?? []).some((e: any) => e.type === "poisoned");
+  const isDrunk = (seat.statusEffects ?? []).some(
+    (e: any) => e.type === "drunk"
+  );
+  const isPoisoned = (seat.statusEffects ?? []).some(
+    (e: any) => e.type === "poisoned"
+  );
 
   return {
     ...context,

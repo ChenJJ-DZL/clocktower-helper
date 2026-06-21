@@ -70,4 +70,9 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:154-0!canonical and tim
   clarifications: [
     "请注意说书人有权回答“我不知道”，且这样会使得艺术家的能力被浪费掉。针对含糊不清的问题，或者玩家尝试用多个问题嵌套成一个问题，或是如果说书人认为让玩家“重新再问一个问题”会导致对现在的问题有一定程度的暗示作用，那么这种时候，说书人都可以回答“我不知道”。",
   ],
+  day: {
+    name: "艺术家提问",
+    maxUses: 1,
+    target: { min: 0, max: 0 },
+  },
 };
