@@ -1,9 +1,9 @@
 ﻿import { describe, it, expect } from "vitest";
 import { HeadlessGameEngine, SCRIPTS } from "./headlessGameEngine";
 
-const GAMES_PER_SCRIPT = 15;
+const GAMES_PER_SCRIPT = 20;
 const MIN_PLAYERS = 9;
-const MAX_PLAYERS = 13;
+const MAX_PLAYERS = 12;
 
 describe("Layer 4: 全剧本批量仿真", () => {
   it("批量运行 " + (SCRIPTS.length * GAMES_PER_SCRIPT) + " 场对局并生成覆盖度报告", async () => {
@@ -115,9 +115,9 @@ describe("Layer 4: 全剧本批量仿真", () => {
     }
 
     // ========== 断言 ==========
-    expect(totalGames).toBe(75);
+    expect(totalGames).toBe(100);
     expect(crashCount).toBe(0);
     expect(totalErrors).toBeLessThan(100); // 允许少量已知错误
-    expect(triggeredRoles).toBeGreaterThan(65); // 至少覆盖50+角色
+    expect(triggeredRoles).toBeGreaterThan(70); // 至少覆盖50+角色
   }, 600000); // 10分钟超时
 });
