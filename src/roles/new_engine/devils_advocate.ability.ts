@@ -7,9 +7,9 @@
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
 
-const preCheckAlive = async (context) => {
+const preCheckAlive = async (context: any) => {
   const { snapshot, actionNode } = context;
-  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+  const seat = snapshot.seats.find((s: any) => s.id === actionNode.seatId);
   if (!seat?.isAlive) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }

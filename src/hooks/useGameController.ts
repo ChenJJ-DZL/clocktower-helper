@@ -2,7 +2,7 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   groupedRoles,
   type Role,
@@ -221,6 +221,7 @@ export function useGameController() {
   }, []);
 
   const { dispatch: baseDispatch } = useGameContext();
+  const [systemStepRoleIds, setSystemStepRoleIds] = useState<Map<number, string>>(new Map());
 
   const findNearestAliveNeighbor = useCallback(
     (originId: number, direction: 1 | -1) => {

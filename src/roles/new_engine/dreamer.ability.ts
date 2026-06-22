@@ -163,9 +163,9 @@ export const dreamerAbility = createRoleAbility({
   postProcess: [
     async (context) => {
       const { meta } = context;
-      if (!result || !result.roleA || !result.roleB) return context;
+      // null guard handled above
       const result = meta.abilityResult;
-      if (result) {
+      if (result && result.roleA && result.roleB) {
         console.log(
           `筑梦师选择了${result.targetId + 1}号位，得知：${result.roleA.name}, ${result.roleB.name}`
         );
