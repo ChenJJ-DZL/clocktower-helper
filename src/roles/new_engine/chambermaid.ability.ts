@@ -33,10 +33,15 @@ const calculateResult = async (
   let wokenCount = 0;
 
   if (isAbilityActive) {
-    // TODO: 需要实际查询 nightOrderParser 或当晚的执行记录
-    // 查询两名目标玩家是否在本晚因能力被唤醒过（在 nightOrder 中有对应的动作品类）
-    // 当前返回 0 作为占位
-    wokenCount = 0;
+    // 从 _abilityResults 查询两名目标玩家是否有本晚的行动记录
+    const abilityResults = (snapshot as any)._abilityResults ?? {};
+    const results = Object.values(abilityResults) as any[];
+    const wokenPlayers = new Set<number>();
+    for (const r of results) {
+      if (r && typeof r.seatId === 'number') wokenPlayers.add(r.seatId);
+      if (r && typeof r.targetId === 'number') wokenPlayers.add(r.targetId);
+    }
+    wokenCount = targetIds.filter((tid: number) => wokenPlayers.has(tid)).length;
   } else {
     // 醉酒/中毒时，可能返回错误结果（随机值 0-2）
     wokenCount = Math.floor(Math.random() * 3);
