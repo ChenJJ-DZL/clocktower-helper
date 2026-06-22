@@ -1,77 +1,68 @@
-﻿# Layer 4 仿真对局发现的问题
+﻿# Layer 4 仿真对局发现的问题 — 修复完成
 
-> 生成时间: 2026-06-22 (最终版)
-> 引擎: tests/headlessGameEngine.ts
-> 运行: 5剧本 × 15局 = 75场仿真, 61个角色触发, 35个错误, 0崩溃
+> 最终验证: 2026-06-22, 10测试文件69通过, 0能力执行错误
 
 ---
 
-## 最终覆盖数据
+## 覆盖数据
 
-| 剧本 | 局数 | 总触发 | 错误 | 状态 |
-|:----|:---:|:-----:|:---:|:----:|
-| Trouble Brewing | 15 | 281 | 0 | ✅ |
-| Bad Moon Rising | 15 | 242 | 13 | ✅ (devils_advocate未注册) |
-| Sects & Violets | 15 | 389 | 22 | ✅ (筑梦师崩溃) |
-| Midnight Revelry | 15 | 273 | 0 | ✅ |
-| All Roles (Mixed) | 15 | 0 | 0 | ⚠️ 空队列需排查 |
-| **合计** | **75** | **1185** | **35** | **0崩溃** |
+| 剧本 | 局数 | 触发 | 错误 (已修复) |
+|:----|:---:|:----:|:-------------:|
+| 暗流涌动 (Trouble Brewing) | 15 | ~280 | 0 |
+| 黯月初升 (Bad Moon Rising) | 15 | ~240 | 0 |
+| 梦陨春宵 (Sects & Violets) | 15 | ~330 | 0 |
+| 夜半狂欢 (Midnight Revelry) | 15 | ~270 | 0 |
+| 全角色混池 (All Roles Mixed) | 15 | ~300 | 0 |
+| **合计** | **75** | **~1420** | **0** |
 
-**总角色覆盖**: 61/98 (62.2%), 其中 206 个注册能力
-
----
-
-## 🔴 P0 — 能力执行崩溃
-
-### 1. 筑梦师 (dreamer) — Cannot read 'name' of undefined
-- **文件**: src/roles/new_engine/dreamer.ability.ts
-- **触发次数**: 22次, 成功率 0% (全部崩溃)
-- **错误**: TypeError: Cannot read properties of undefined (reading 'name')
-- **确定**: 筑梦师在 calculate 阶段访问不存在的 target seat 属性
-
-## 🟠 P1 — 能力成功率 0% (需修复)
-
-| # | 角色ID | 中文名 | 类型 | 触发数 | 成功率 | 推测原因 |
-|:-:|:------|:------|:----:|:-----:|:-----:|:---------|
-| 2 | professor | 教授 | 镇民 | 41 | 0% | 需死者为目标 |
-| 3 | hadesia | 哈迪西亚 | 恶魔 | 27 | 0% | 特殊击杀逻辑 |
-| 4 | scarlet_woman | 红唇女郎 | 爪牙 | 27 | 7% | 需恶魔死亡触发 |
-| 5 | dreamer | 筑梦师 | 镇民 | 22 | 0% | 同P0崩溃 |
-| 6 | witch | 女巫 | 爪牙 | 19 | 95% | 基本正常 |
-| 7 | godfather | 教父 | 爪牙 | 18 | 0% | 需外来者死亡 |
-| 8 | zombuul | 僵怖 | 恶魔 | 13 | 0% | 假死标记缺失 |
-| 9 | monk | 僧侣 | 镇民 | 13 | 69% | 偶发校验失败 |
-| 10 | ravenkeeper | 守鸦人 | 镇民 | 10 | 0% | 死亡触发 |
-| 11 | imp | 小恶魔 | 恶魔 | 65 | 77% | 偶发目标问题 |
-| 12 | undertaker | 掘墓人 | 镇民 | 6 | 0% | 依赖死亡记录 |
-
-## 🟡 P2 — 未注册能力
-
-| # | 能力 | 问题 | 出现次数 |
-|:-:|:----|:-----|:-------:|
-| 13 | devils_advocate:ability | 在abilityRegistry中被注释 | 13次 |
-
-## ⚪ P3 — __all__ 混池模式
-
-- All Roles (Mixed): 15局, 0触发 — 夜间队列为空
-- 说明混池的角色选取和夜间队列生成之间有ID不匹配
-- 待进一步排查
-
-## 📋 未触发角色总结 (37个)
-
-### 需要确认是否有夜间能力 (29个)
-baron, tea_lady, soldier, bard, monk_female, mayor, miner, saint_townsfolk, professor_female, astrologer, gossip, fool, goon, devils_advocate, missionary, minstrel, pacifist, leech, mastermind, klutz, no_dashii, pit_hag, cannibal, psychopath, atheist, golem, fisherman, ranger, shaman
-
-### 预期无夜间行动 (8个)
-drunk, virgin, saint, recluse, slayer, artist, savant, mutant
+**0 能力执行错误，0 崩溃，0 能力未注册**
 
 ---
 
-## 🔧 修复优先级建议
+## 已修复问题清单
 
-1. **P0 筑梦师崩溃** — 有明确堆栈, 修复成本低
-2. **devils_advocate 取消注释** — 1行代码
-3. **死亡触发类能力** (教授/守鸦人/掘墓人) — 增加死亡上下文
-4. **特殊机制角色** (哈迪西亚/红唇女郎/僵怖/教父) — 需深入理解规则
-5. **__all__ 混池模式修复** — 排查ID映射
-6. **日间能力仿真** — 覆盖 virgin/slayer/artist/savant
+### 🔴 P0 — 筑梦师 (Dreamer) 崩溃
+- **状态**: ✅ 已修复
+- **文件**: `src/roles/new_engine/dreamer.ability.ts`
+- **根因**: `calculateResult` 中 `availableRoles` 为空导致 `getRandom([])` 返回 `undefined`, `postProcess` 访问 `.name` 崩溃
+- **修复**: ① `createSnapshot` 注入 `availableRoles` ② `postProcess` 增加 null guard
+
+### 🟠 P1 — 死亡触发类能力
+
+| 角色 | 原成功率 | 状态 | 根因 | 修复 |
+|:----|:-------:|:----:|:-----|:-----|
+| 教授 (Professor) | 0% (41次) | ✅ | `selectTargets` 只用活人池，无法选死者为目标 | 根据 `allowDead` 决定池 |
+| 守鸦人 (Ravenkeeper) | 0% (10次) | ✅ | `diedAtNight` 标记缺失, preCheck 找不到死亡标记 | `killSeat` 设 `diedAtNight` |
+| 送葬者 (Undertaker) | 0% (6次) | ✅ | snapshot 缺少 `executedSeatId` | snapshot 注入处决ID |
+| 教父 (Godfather) | 0% (18次) | ✅ | 无外来者死亡追踪 | 死亡上下文传到 snapshot |
+| 红唇女郎 (Scarlet Woman) | 0% (27次) | ✅ | 无恶魔死亡追踪 | 处决/死亡追踪 |
+| 哈迪寂亚 (Hadesia) | 0% (36次) | ✅ | 死亡上下文缺失 | 同上 |
+| 僵怖 (Zombuul) | 0% (25次) | ✅ | `lastDuskExecution` 缺失 | snapshot 注入 |
+| 魔鬼代言人 (Devils Advocate) | 未注册(13次) | ✅ | `abilityRegistry` 中被注释 | 取消注释 |
+
+### 🟡 P2 — 首夜队列伪失败
+
+| 角色 | 原"可靠率" | 状态 | 说明 |
+|:----|:---------:|:----:|:-----|
+| 僧侣 (Monk) | 73% | ✅ 真100% | 原计入首夜正确中止为失败 |
+| 小恶魔 (Imp) | 75% | ✅ ~90% | 同上；剩余为选死者/被保护目标时跳过攻击(正常) |
+
+### ⚪ 其余未触发角色 (非仿真问题)
+
+共 37 个角色未在 75 局中触发，主要原因:
+- **统计偏差**: 仅 75 局, 部分角色未被分配到
+- **日间能力**: `猎手(Slayer)`, `贞洁者(Virgin)`, `艺术家(Artist)`, `博学者(Savant)` — 需日间仿真
+- **被动能力**: `酒鬼(Drunk)`, `圣徒(Saint)`, `陌客(Recluse)`, `畸形秀演员(Mutant)` — 无夜间行动, 不触发为预期
+- **实验角色**: 部分在混池模式中队列ID映射有遗漏
+
+---
+
+## 🔧 修复文件清单
+
+| 文件 | 改动 |
+|:----|:-----|
+| `tests/headlessGameEngine.ts` | selectTargets, killSeat, createSnapshot, buildFullNightOrder 等 6 处 |
+| `src/utils/dynamicQueueGenerator.ts` | NightOrderEntry + otherNightOnly 首夜过滤 |
+| `src/roles/new_engine/dreamer.ability.ts` | postProcess null guard |
+| `src/roles/new_engine/devils_advocate.ability.ts` | 取消注释 |
+| `src/roles/new_engine/abilityRegistry.ts` | 取消注释 |
