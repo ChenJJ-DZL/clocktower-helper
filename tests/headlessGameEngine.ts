@@ -337,6 +337,7 @@ export class HeadlessGameEngine {
         const threshold = Math.ceil(alive.length / 2);
         if (yesVotes >= threshold) {
           this.killSeat(nominee.id);
+          this.lastExecutedId = nominee.id;
           roundReport.executed = nominee.id;
           roundReport.deaths.push(nominee.id);
           this.checkGameEnd();
@@ -355,7 +356,7 @@ export class HeadlessGameEngine {
       return true;
     });
     if (alive.length === 0) return [];
-    const count = Math.min(targetConfig.max || 1, alive.length);
+    const count = targetConfig.max === 0 ? 0 : Math.min(targetConfig.max || 1, alive.length);
     return pickRandomN(alive, count);
   }
 
@@ -369,6 +370,7 @@ export class HeadlessGameEngine {
       if (!victim.isProtected) {
         this.killSeat(victim.id);
         if (!this.deadThisNight.includes(victim.id)) this.deadThisNight.push(victim.id);
+        this.seats[victim.id].deathSource = "demon";
       }
     }
   }
@@ -386,7 +388,7 @@ export class HeadlessGameEngine {
   }
 
   getAliveSeats() { return this.seats.filter(s => !s.isDead); }
-  killSeat(id) { const idx = this.seats.findIndex(s => s.id === id); if (idx >= 0) this.seats[idx] = { ...this.seats[idx], isDead: true }; }
+  killSeat(id) { const idx = this.seats.findIndex(s => s.id === id); if (idx >= 0) this.seats[idx] = { ...this.seats[idx], isDead: true, diedAtNight: this.nightCount }; }
 
   createSnapshot() {
     return {
@@ -394,6 +396,8 @@ export class HeadlessGameEngine {
       seats: this.seats.map(s => ({ ...s, isAlive: !s.isDead, statusEffects: s.statuses || [] })),
       statusEffects: {},
       availableRoles: roles.filter(r => r.type).map(r => ({ id: r.id, name: r.name, type: r.type })),
+      lastDuskExecution: this.lastExecutedId ?? null,
+      executedSeatId: this.lastExecutedId ?? null,
       gamePhase: this.phase,
     };
   }
