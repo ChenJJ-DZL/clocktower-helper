@@ -348,7 +348,8 @@ export class HeadlessGameEngine {
   }
 
   selectTargets(actor, targetConfig) {
-    const alive = this.getAliveSeats().filter(s => {
+    const pool = targetConfig.allowDead ? this.seats : this.getAliveSeats();
+    const alive = pool.filter(s => {
       if (!targetConfig.allowSelf && s.id === actor.id) return false;
       if (!targetConfig.allowDead && s.isDead) return false;
       return true;
