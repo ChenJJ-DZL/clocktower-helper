@@ -12,6 +12,7 @@ export interface NightOrderEntry {
   priority: number;
   firstNightOnly: boolean;
   wakeMessage: string;
+  otherNightOnly?: boolean;
   abilityId: string;
 }
 
@@ -42,6 +43,10 @@ export function generateDynamicNightQueue(
   // 1. 过滤符合条件的角色
   const validEntries = fullNightOrder.filter((entry) => {
     // 首夜仅角色过滤
+    if (isFirstNight && entry.otherNightOnly) {
+      return false;
+    }
+
     if (!isFirstNight && entry.firstNightOnly) {
       return false;
     }

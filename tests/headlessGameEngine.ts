@@ -119,12 +119,15 @@ function buildFullNightOrder() {
     const priority = firstItem?.firstNightOrder || otherItem?.otherNightOrder || 99;
     const abilities = unifiedRoleDefinition.getRoleAbilities(roleId);
     const ability = abilities[0];
+    const hasFnOrder = (firstItem?.firstNightOrder || 0) > 0;
+    const hasOnOrder = (otherItem?.otherNightOrder || 0) > 0;
     entries.push({
       roleId,
       roleName: firstItem?.roleName || otherItem?.roleName || roleId,
       abilityId: ability?.abilityId || roleId + ":ability",
       priority,
-      firstNightOnly: !otherItem,
+      firstNightOnly: hasFnOrder && !hasOnOrder,
+      otherNightOnly: !hasFnOrder && hasOnOrder,
       wakeMessage: ability?.wakePromptId || "",
     });
   });
