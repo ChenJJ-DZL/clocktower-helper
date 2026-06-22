@@ -112,6 +112,7 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     lastDuskExecution: state.lastDuskExecution,
     currentDuskExecution: state.currentDuskExecution,
     history: JSON.parse(JSON.stringify(state.history)),
+    seats: JSON.parse(JSON.stringify(state.seats)),
     initialSeats: JSON.parse(JSON.stringify(state.initialSeats)),
     victorySnapshot: JSON.parse(JSON.stringify(state.victorySnapshot)),
     winResult: state.winResult,

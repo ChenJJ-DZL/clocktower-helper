@@ -11,6 +11,7 @@ import {
   scripts,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
+import { createSnapshotFromState, saveCurrentSnapshot } from "../utils/persistence";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
 import {
@@ -668,6 +669,14 @@ export function useGameController() {
   } = nightSnapshot;
 
   // 包装 continueToNextAction，在推进队列前重置预览状态
+  // 自动保存游戏快照到 localStorage
+  useEffect(() => {
+    if (gamePhase !== "scriptSelection" && gamePhase !== "setup") {
+      const snapshot = createSnapshotFromState(gameState as any);
+      saveCurrentSnapshot(snapshot);
+    }
+  }, [gamePhase, seats, gameState]);
+
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
       nightPreviewConfirmedRef.current = false;
