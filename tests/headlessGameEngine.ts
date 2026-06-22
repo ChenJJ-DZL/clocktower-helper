@@ -392,6 +392,7 @@ export class HeadlessGameEngine {
       nightCount: this.nightCount,
       seats: this.seats.map(s => ({ ...s, isAlive: !s.isDead, statusEffects: s.statuses || [] })),
       statusEffects: {},
+      availableRoles: roles.filter(r => r.type).map(r => ({ id: r.id, name: r.name, type: r.type })),
       gamePhase: this.phase,
     };
   }

@@ -49,7 +49,7 @@ import { dawnAbility } from "./dawn.ability";
 import { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
 import { devil_s_advocateAbility } from "./devil_s_advocate.ability";
 // ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
-// import { devils_advocateAbility } from "./devils_advocate.ability";
+import { devils_advocateAbility } from "./devils_advocate.ability";
 import { diAbility } from "./di.ability";
 import { divinerAbility } from "./diviner.ability";
 import { doctorAbility } from "./doctor.ability";
@@ -294,7 +294,7 @@ export function registerAllNewEngineAbilities(): void {
     deusExFiascoAbility,
     devil_s_advocateAbility,
     // ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
-      // devils_advocateAbility,
+        devils_advocateAbility,
     diAbility,
     divinerAbility,
     doctorAbility,

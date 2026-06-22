@@ -163,6 +163,7 @@ export const dreamerAbility = createRoleAbility({
   postProcess: [
     async (context) => {
       const { meta } = context;
+      if (!result || !result.roleA || !result.roleB) return context;
       const result = meta.abilityResult;
       if (result) {
         console.log(
