@@ -219,6 +219,9 @@ import { yinYangMasterAbility } from "./yin_yang_master.ability";
 import { zealotAbility } from "./zealot.ability";
 import { zhenAbility } from "./zhen.ability";
 import { zombuulAbility } from "./zombuul.ability";
+import { leechAbility } from "./leech.ability";
+import { missionaryAbility } from "./missionary.ability";
+import { shamanAbility } from "./shaman.ability";
 
 /**
  * 转换 IRoleAbility 到 UnifiedAbilityConfig
