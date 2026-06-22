@@ -1,3 +1,4 @@
+let _registryInitialized = false;
 ﻿/**
  * 无头游戏引擎 — Layer 4 仿真对局层核心
  *
@@ -91,11 +92,13 @@ function pickRandomN(arr, n) {
 }
 
 function filterRolesByScript(scriptId, type) {
+  if (scriptId === "__all__") return roles.filter((r) => r.type === type);
   return roles.filter((r) => r.type === type && (!r.script || r.script === scriptId));
 }
 
 function getRoleSetup(playerCount) {
-  if (playerCount >= 9 && playerCount <= 10) return { townsfolk: 5, outsider: 2, minion: 1, demon: 1 };
+  if (playerCount === 9) return { townsfolk: 5, outsider: 2, minion: 1, demon: 1 };
+  if (playerCount === 10) return { townsfolk: 7, outsider: 0, minion: 2, demon: 1 };
   if (playerCount === 11) return { townsfolk: 7, outsider: 0, minion: 2, demon: 1 };
   if (playerCount === 12) return { townsfolk: 7, outsider: 1, minion: 2, demon: 1 };
   if (playerCount >= 13) return { townsfolk: 7, outsider: 2, minion: 2, demon: 1 };
@@ -152,7 +155,8 @@ export class HeadlessGameEngine {
     this.deadThisNight = [];
     this.events = [];
 
-    initializeAbilityRegistry();
+    if (!_registryInitialized) { initializeAbilityRegistry(); _registryInitialized = true; }
+    if (!HeadlessGameEngine._initialized) { HeadlessGameEngine._initialized = true; } else { console.log = function(){}; }
     this.fullNightOrder = buildFullNightOrder();
     this.abilityMap = buildAbilityMap();
   }
