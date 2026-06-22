@@ -20,9 +20,11 @@ export interface ScriptConfig {
 }
 
 export const SCRIPTS: ScriptConfig[] = [
-  { id: "暗流涌动", name: "Trouble Brewing" },
-  { id: "黯月初升", name: "Bad Moon Rising" },
-  { id: "梦陨春宵", name: "梦陨春宵" },
+  { id: "暗流涌动",      name: "Trouble Brewing" },
+  { id: "黯月初升",      name: "Bad Moon Rising" },
+  { id: "梦陨春宵",      name: "Sects & Violets" },
+  { id: "夜半狂欢",      name: "Midnight Revelry" },
+  { id: "__all__",       name: "All Roles (Mixed)" },
 ];
 
 export const MIN_PLAYERS = 7;
