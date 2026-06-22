@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 新引擎能力注册表
  * 自动生成 - 扫描 src/roles/new_engine/ 目录下所有 .ability.ts 文件
  */
@@ -294,7 +294,7 @@ export function registerAllNewEngineAbilities(): void {
     deusExFiascoAbility,
     devil_s_advocateAbility,
     // ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
-    // devils_advocateAbility,
+      // devils_advocateAbility,
     diAbility,
     divinerAbility,
     doctorAbility,
