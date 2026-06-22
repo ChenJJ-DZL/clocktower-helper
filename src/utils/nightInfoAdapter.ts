@@ -197,6 +197,7 @@ export function calculateNightInfoViaNewEngine(
   gamePhase: GamePhase,
   lastDuskExecution: number | null,
   nightCount: number,
+  systemStepRoleId?: string,
   _fakeInspectionResult?: string,
   _drunkFirstInfoMap?: Map<number, boolean>,
   isEvilWithJudgmentFn?: (seat: Seat) => boolean,
@@ -219,6 +220,11 @@ export function calculateNightInfoViaNewEngine(
   // 非夜间阶段不生成夜间信息（避免 check/day/dusk 等阶段残留 nightInfo）
   if (gamePhase !== "firstNight" && gamePhase !== "night") {
     return null;
+  }
+
+  // 系统信息步骤（minion_info / demon_info）：直接生成信息，不查角色定义
+  if (systemStepRoleId) {
+    return generateSystemInfoViaAdapter(systemStepRoleId, seats, currentSeatId);
   }
 
   const targetSeat = seats.find((s) => s.id === currentSeatId);
@@ -264,4 +270,49 @@ export function calculateNightInfoViaNewEngine(
     _votedThisRound,
     _outsiderDiedToday
   );
+}
+
+/**
+ * 生成系统信息步骤（爪牙互认 / 恶魔互认）的 NightInfoResult
+ */
+function generateSystemInfoViaAdapter(
+  stepId: string,
+  seats: Seat[],
+  currentSeatId: number
+): NightInfoResult | null {
+  const selfSeat = seats.find(s => s.id === currentSeatId);
+  if (!selfSeat) return null;
+
+  const isMinionStep = stepId === 'minion_info';
+  const demonSeats = seats.filter(s => s.role?.type === 'demon' && !s.isDead);
+  const minionSeats = seats.filter(s => s.role?.type === 'minion' && !s.isDead);
+  const otherMinions = minionSeats.filter(s => s.id !== currentSeatId);
+
+  const demonDesc = demonSeats.map(s => `${s.id + 1}号(${s.role?.name || '恶魔'})`).join('、');
+  const minionDesc = otherMinions.map(s => `${s.id + 1}号(${s.role?.name || '爪牙'})`).join('、');
+
+  let guide = '';
+  if (isMinionStep) {
+    guide = `爪牙互认 — 恶魔是：${demonDesc}。${minionDesc ? '爪牙队友：' + minionDesc : ''}`;
+  } else {
+    guide = `恶魔互认 — 爪牙是：${minionDesc}`;
+  }
+
+  return {
+    seat: selfSeat,
+    effectiveRole: { id: stepId, name: isMinionStep ? '爪牙互认' : '恶魔互认', type: 'townsfolk' },
+    isPoisoned: false,
+    guide,
+    speak: '',
+    action: '',
+    roleId: stepId,
+    index: 0,
+    targetLimit: { min: 0, max: 0 },
+    canSelectDead: false,
+    canSelectSelf: false,
+    validTargetIds: [],
+    guideText: guide,
+    actionText: '',
+    interaction: { type: 'none', amount: 0, required: false, canSelectSelf: false, canSelectDead: false, effect: { type: 'none' } },
+  };
 }

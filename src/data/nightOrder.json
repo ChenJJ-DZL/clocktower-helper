@@ -79,6 +79,12 @@
       "description": "如果有七名或更多玩家，唤醒所有爪牙：展示“他是恶魔”信息标记。指向恶魔。如果下方的其他对爪牙暴露的角色在场，不要让爪牙入睡，而是一并给出相关信息后再让爪牙入睡。"
     },
     {
+      "id": "demon_info",
+      "chineseName": "恶魔信息",
+      "englishName": "demon_info",
+      "description": "唤醒恶魔，向他展示他爪牙的信息。明确指向对应的爪牙座位号，告知场上爪牙的数量和身份。如果罂粟种植者在场，跳过此步。"
+    },
+    {
       "id": "lunatic",
       "chineseName": "疯子",
       "englishName": "lunatic",

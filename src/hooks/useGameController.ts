@@ -638,6 +638,7 @@ export function useGameController() {
     gamePhase,
     setGamePhase,
     nightCount,
+    systemStepRoleIds,
     lastDuskExecution,
     isEvil,
     poppyGrowerDead,
@@ -1315,6 +1316,18 @@ export function useGameController() {
           "[GameController] No matching seats found for night queue nodes"
         );
         return;
+      }
+
+      // 构建系统步骤映射（minion_info / demon_info -> seatId）
+      const stepMap = new Map<number, string>();
+      queue.forEach((node: any) => {
+        if (node.roleId === 'minion_info' || node.roleId === 'demon_info') {
+          stepMap.set(node.seatId, node.roleId);
+        }
+      });
+      if (stepMap.size > 0) {
+        setSystemStepRoleIds(stepMap);
+        console.log("[GameController] System info steps:", [...stepMap.entries()]);
       }
 
       // 设置 pendingNightQueue

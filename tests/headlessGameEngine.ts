@@ -248,7 +248,8 @@ export class HeadlessGameEngine {
       const seat = this.seats.find(s => s.id === node.seatId);
       if (!seat || seat.isDead) continue;
 
-      const ability = this.abilityMap[node.abilityId];
+      if (node.roleId === "minion_info" || node.roleId === "demon_info") continue;
+    const ability = this.abilityMap[node.abilityId];
       if (!ability) {
         this.errors.push("能力未注册: " + node.abilityId);
         continue;

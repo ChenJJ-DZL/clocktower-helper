@@ -51,6 +51,22 @@ export function generateDynamicNightQueue(
       return false;
     }
 
+    // 系统信息步骤（minion_info / demon_info）：找到对应玩家，不需要精确 roleId 匹配
+    if (entry.roleId === 'minion_info') {
+      const seat = snapshot.seats.find(
+        (s) => (s.role?.type === 'minion') && (includeDead || !s.isDead)
+      );
+      if (!seat) return false;
+      return true;
+    }
+    if (entry.roleId === 'demon_info') {
+      const seat = snapshot.seats.find(
+        (s) => (s.role?.type === 'demon') && (includeDead || !s.isDead)
+      );
+      if (!seat) return false;
+      return true;
+    }
+
     // 找到对应的存活玩家（Seat 使用 isDead 字段，isAlive = !isDead）
     const seat = snapshot.seats.find(
       (s) => s.role?.id === entry.roleId && (includeDead || !s.isDead)
@@ -73,7 +89,15 @@ export function generateDynamicNightQueue(
 
   // 3. 转换为NightActionNode格式
   const queue: NightActionNode[] = validEntries.map((entry) => {
-    const seat = snapshot.seats.find((s) => s.role?.id === entry.roleId)!;
+    // 系统信息步骤：按角色类型查找座位
+    let seat;
+    if (entry.roleId === 'minion_info') {
+      seat = snapshot.seats.find((s) => s.role?.type === 'minion' && !s.isDead)!;
+    } else if (entry.roleId === 'demon_info') {
+      seat = snapshot.seats.find((s) => s.role?.type === 'demon' && !s.isDead)!;
+    } else {
+      seat = snapshot.seats.find((s) => s.role?.id === entry.roleId)!;
+    }
     return {
       seatId: seat.id,
       roleId: entry.roleId,

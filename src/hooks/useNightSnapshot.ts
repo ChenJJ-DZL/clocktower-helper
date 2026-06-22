@@ -9,6 +9,7 @@ export function useNightSnapshot(
   gamePhase: string,
   setGamePhase: (p: any) => void,
   nightCount: number,
+  systemStepRoleIds: Map<number, string>,
   lastDuskExecution: number | null,
   isEvilWithJudgment: (s: Seat) => boolean,
   poppyGrowerDead: boolean,
@@ -38,6 +39,7 @@ export function useNightSnapshot(
     (index: number, currentSeats: Seat[], currentPhase: string) => {
       const nextSeatId = wakeQueueIds[index];
       if (nextSeatId !== undefined) {
+        const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
           currentSeats,
@@ -45,6 +47,7 @@ export function useNightSnapshot(
           currentPhase as any,
           lastDuskExecution,
           nightCount,
+          systemRoleId,
           undefined,
           drunkFirstInfoRef.current,
           isEvilWithJudgment,
@@ -96,6 +99,7 @@ export function useNightSnapshot(
       const index = wakeIndexRef.current;
       const nextSeatId = wakeQueueIds[index];
       if (nextSeatId !== undefined) {
+        const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
           currentSeats,
@@ -103,6 +107,7 @@ export function useNightSnapshot(
           currentPhase as any,
           lastDuskExecution,
           nightCount,
+          systemRoleId,
           undefined,
           drunkFirstInfoRef.current,
           isEvilWithJudgment,
