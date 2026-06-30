@@ -88,7 +88,8 @@ export const sailorAbility = createRoleAbility({
   abilityId: "sailor_night_ability",
   abilityName: "醉酒保护",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 25,
+  firstNightPriority: 23,
+  otherNightPriority: 8,
   firstNightOnly: false,
   wakePromptId: "role.sailor.wake",
   targetConfig: {

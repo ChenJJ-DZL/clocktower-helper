@@ -65,8 +65,10 @@ export interface IRoleAbility {
   abilityName: string;
   /** 触发时机 */
   triggerTiming: AbilityTriggerTiming[];
-  /** 唤醒优先级（越小越先唤醒） */
-  wakePriority: number;
+  /** 首夜唤醒优先级（越小越先唤醒），null 表示首夜不唤醒 */
+  firstNightPriority: number | null;
+  /** 其他夜晚唤醒优先级（越小越先唤醒），null 表示其他夜不唤醒 */
+  otherNightPriority: number | null;
   /** 是否仅首夜生效 */
   firstNightOnly: boolean;
   /** 唤醒时的说书人提示词ID */
@@ -96,7 +98,8 @@ export const DefaultRoleAbility: Omit<
   "roleId" | "abilityId" | "abilityName"
 > = {
   triggerTiming: [],
-  wakePriority: 999,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "default_wake",
   targetConfig: {

@@ -78,7 +78,8 @@ export const pacifistAbility = createRoleAbility({
   abilityId: "pacifist_execution_ability",
   abilityName: "和平守护",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.pacifist.wake",
   targetConfig: {

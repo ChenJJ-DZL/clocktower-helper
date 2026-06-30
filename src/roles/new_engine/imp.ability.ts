@@ -515,7 +515,8 @@ export const impAbility = createRoleAbility({
    * 首夜：引擎通过 nightOrderOverrides 跳过 imp 条目。
    * 其他夜：nightOrderOverrides index 146 → priority 147。
    */
-  wakePriority: 40,
+  firstNightPriority: null,
+  otherNightPriority: 45,
   /** 首夜不唤醒（preCheck 中有 otherNightOnlyCheck 防御性校验） */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

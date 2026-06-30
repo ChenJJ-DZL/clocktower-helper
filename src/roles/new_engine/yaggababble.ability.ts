@@ -173,7 +173,8 @@ export const yaggababbleAbility = createRoleAbility({
   /** 触发时机：每晚 */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级（恶魔级别） */
-  wakePriority: 40,
+  firstNightPriority: 46,
+  otherNightPriority: 59,
   /** 首夜可行动 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

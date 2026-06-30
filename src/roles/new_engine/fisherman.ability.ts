@@ -101,7 +101,8 @@ export const fishermanAbility = createRoleAbility({
   abilityId: "fisherman_advice",
   abilityName: "渔夫咨询",
   triggerTiming: [AbilityTriggerTiming.DAY],
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.fisherman.wake",
   targetConfig: {

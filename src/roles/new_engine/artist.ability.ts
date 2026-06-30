@@ -51,7 +51,8 @@ export const artistAbility = createRoleAbility({
   abilityId: "artist_once_ability",
   abilityName: "提问",
   triggerTiming: [AbilityTriggerTiming.DAY],
-  wakePriority: 1,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.artist.wake",
   targetConfig: {

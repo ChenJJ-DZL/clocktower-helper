@@ -42,7 +42,8 @@
  * ============================================================
  * 夜晚顺序
  *   圣徒为被动死亡触发（PASSIVE），不主动唤醒。
- *   wakePriority: 0（不使用唤醒队列）
+ *   firstNightPriority: null,
+  otherNightPriority: null（不使用唤醒队列）
  *   处决发生时由执行系统触发本 pipeline。
  * ============================================================
  */
@@ -238,7 +239,8 @@ export const saintAbility = createRoleAbility({
    * 唤醒优先级（被动能力不使用唤醒队列）
    * 圣徒的诅咒在执行结算时触发，不参与夜晚行动顺序。
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 被动能力与夜晚无关 */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

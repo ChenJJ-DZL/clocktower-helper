@@ -96,7 +96,8 @@ export const imperial_guardAbility = createRoleAbility({
   /** 触发时机：每夜 */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级（较早行动） */
-  wakePriority: 15,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 首夜不行动 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

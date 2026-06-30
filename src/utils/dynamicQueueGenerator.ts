@@ -9,7 +9,8 @@ import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 export interface NightOrderEntry {
   roleId: string;
   roleName: string;
-  priority: number;
+  firstNightPriority: number;
+  otherNightPriority: number;
   firstNightOnly: boolean;
   wakeMessage: string;
   otherNightOnly?: boolean;
@@ -84,8 +85,12 @@ export function generateDynamicNightQueue(
     return true;
   });
 
-  // 2. 按优先级排序
-  validEntries.sort((a, b) => a.priority - b.priority);
+  // 2. 按优先级排序（根据是否为第一夜选择对应的优先级）
+  validEntries.sort((a, b) => {
+    const priorityA = isFirstNight ? a.firstNightPriority : a.otherNightPriority;
+    const priorityB = isFirstNight ? b.firstNightPriority : b.otherNightPriority;
+    return priorityA - priorityB;
+  });
 
   // 3. 转换为NightActionNode格式
   const queue: NightActionNode[] = validEntries.map((entry) => {
@@ -102,11 +107,12 @@ export function generateDynamicNightQueue(
       seatId: seat.id,
       roleId: entry.roleId,
       roleName: entry.roleName,
-      priority: entry.priority,
+      priority: isFirstNight ? entry.firstNightPriority : entry.otherNightPriority,
       isFirstNightOnly: entry.firstNightOnly,
       abilityId: entry.abilityId,
       wakeMessage: entry.wakeMessage,
-      wakePriority: entry.priority,
+      firstNightPriority: entry.firstNightPriority,
+      otherNightPriority: entry.otherNightPriority,
       targetIds: [],
       processed: false,
       success: false,

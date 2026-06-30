@@ -89,7 +89,8 @@ export const lleechAbility = createRoleAbility({
   /** 触发时机：每夜（首夜选择，之后每晚可更换） */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级 */
-  wakePriority: 8,
+  firstNightPriority: 27,
+  otherNightPriority: 57,
   /** 首夜也唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

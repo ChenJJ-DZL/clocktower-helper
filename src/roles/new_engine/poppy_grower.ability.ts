@@ -146,7 +146,8 @@ export const poppy_growerAbility = createRoleAbility({
   /** 触发时机：被动（持续生效） */
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   /** 被动机无唤醒优先级 */
-  wakePriority: 0,
+  firstNightPriority: 8,
+  otherNightPriority: 6,
   /** 首夜有效 */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

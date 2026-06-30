@@ -376,7 +376,8 @@ export const virginAbility = createRoleAbility({
    * 唤醒优先级（被动能力，无实际唤醒顺序）
    * 由提名系统在提名贞洁者时自动触发
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 非首夜特定能力 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

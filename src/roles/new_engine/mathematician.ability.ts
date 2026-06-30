@@ -107,7 +107,8 @@ export const mathematicianAbility = createRoleAbility({
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  wakePriority: 49,
+  firstNightPriority: 84,
+  otherNightPriority: 116,
   firstNightOnly: false,
   wakePromptId: "role.mathematician.wake",
   targetConfig: {

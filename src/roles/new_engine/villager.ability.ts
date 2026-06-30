@@ -98,7 +98,8 @@ export const villagerAbility = createRoleAbility({
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  wakePriority: 5,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.villager.wake",
   targetConfig: {

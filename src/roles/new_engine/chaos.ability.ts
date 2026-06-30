@@ -107,7 +107,8 @@ export const chaosAbility = createRoleAbility({
   /** 触发时机：每夜 */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级（恶魔通常在夜末尾行动） */
-  wakePriority: 48,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 首夜不唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

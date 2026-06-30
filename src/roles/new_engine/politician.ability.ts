@@ -195,7 +195,8 @@ export const politicianAbility = createRoleAbility({
   /** 触发时机：被动（白天结束时触发） */
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   /** 被动机无唤醒优先级 */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 首夜不触发 */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

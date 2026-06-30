@@ -44,7 +44,8 @@ export const tinkerAbility = createRoleAbility({
   abilityId: "tinker_passive_ability",
   abilityName: "猝死",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
+  firstNightPriority: null,
+  otherNightPriority: 74,
   firstNightOnly: false,
   wakePromptId: "role.tinker.wake",
   targetConfig: {

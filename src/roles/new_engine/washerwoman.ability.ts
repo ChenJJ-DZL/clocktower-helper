@@ -496,7 +496,8 @@ export const washerwomanAbility = createRoleAbility({
    * 在同类信息角色中：
    *   洗衣妇 10 < 图书管理员 11 < 调查员 12 < 厨师 13
    */
-  wakePriority: 10,
+  firstNightPriority: 52,
+  otherNightPriority: null,
   /** 仅首夜生效，非首夜不唤醒 */
   firstNightOnly: true,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

@@ -440,7 +440,8 @@ export const monkAbility = createRoleAbility({
    * 对应官方其他夜晚顺序 #24 → wakePriority = 24
    * 在恶魔行动前生效，确保保护先于攻击判定
    */
-  wakePriority: 24,
+  firstNightPriority: null,
+  otherNightPriority: 24,
   /** 非首夜生效（otherNightOnlyCheck 防御性校验） */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

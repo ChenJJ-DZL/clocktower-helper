@@ -15,6 +15,16 @@ import { runFullAbilityPipeline } from "../src/utils/middlewarePipeline";
 import type { MiddlewareContext } from "../src/utils/middlewareTypes";
 import { nightOrderParser } from "../src/utils/nightOrderParser";
 
+// 剧本角色ID映射（从 json/play/*.json 提取，确保严格过滤）
+const SCRIPT_CHAR_IDS: Record<string, Set<string>> = {
+  "暗流涌动": new Set([
+    "washerwoman","librarian","investigator","chef","empath","fortune_teller",
+    "undertaker","monk","ravenkeeper","virgin","slayer","soldier","mayor",
+    "butler","drunk","recluse","saint",
+    "poisoner","spy","scarlet_woman","baron","imp",
+  ]),
+};
+
 export interface ScriptConfig {
   id: string;
   name: string;
@@ -93,6 +103,11 @@ function pickRandomN(arr, n) {
 
 function filterRolesByScript(scriptId, type) {
   if (scriptId === "__all__") return roles.filter((r) => r.type === type);
+  // 优先使用 JSON 剧本角色名单（严格过滤）
+  const charIds = SCRIPT_CHAR_IDS[scriptId];
+  if (charIds) {
+    return roles.filter((r) => r.type === type && charIds.has(r.id));
+  }
   return roles.filter((r) => r.type === type && (!r.script || r.script === scriptId));
 }
 
@@ -105,33 +120,43 @@ function getRoleSetup(playerCount) {
   return { townsfolk: 5, outsider: 0, minion: 1, demon: 1 };
 }
 
-function buildFullNightOrder() {
+function buildFullNightOrder(): NightOrderEntry[] {
+  // 从 unifiedRoleDefinition 读取所有已注册能力（优先度已对齐 JSON 官方规则）
+  const allAbilities = unifiedRoleDefinition.getAllAbilities();
+  const entries: NightOrderEntry[] = [];
+
+  // 用 nightOrderParser 补充角色中文名
   const firstNightOrder = nightOrderParser.getFirstNightOrder();
   const otherNightOrder = nightOrderParser.getOtherNightOrder();
-  const allRoleIds = new Set([
-    ...firstNightOrder.map(i => i.roleId),
-    ...otherNightOrder.map(i => i.roleId),
-  ]);
-  const entries = [];
-  allRoleIds.forEach((roleId) => {
-    const firstItem = firstNightOrder.find(i => i.roleId === roleId);
-    const otherItem = otherNightOrder.find(i => i.roleId === roleId);
-    const priority = firstItem?.firstNightOrder || otherItem?.otherNightOrder || 99;
-    const abilities = unifiedRoleDefinition.getRoleAbilities(roleId);
-    const ability = abilities[0];
-    const hasFnOrder = (firstItem?.firstNightOrder || 0) > 0;
-    const hasOnOrder = (otherItem?.otherNightOrder || 0) > 0;
+
+  for (const ability of allAbilities) {
+    const firstItem = firstNightOrder.find(i => i.roleId === ability.roleId);
+    const otherItem = otherNightOrder.find(i => i.roleId === ability.roleId);
+
+    const fn = ability.firstNightPriority;
+    const on = ability.otherNightPriority;
+    const hasFn = fn !== null && fn > 0;
+    const hasOn = on !== null && on > 0;
+
+    if (!hasFn && !hasOn) continue; // 无夜晚行动的角色跳过
+
     entries.push({
-      roleId,
-      roleName: firstItem?.roleName || otherItem?.roleName || roleId,
-      abilityId: ability?.abilityId || roleId + ":ability",
-      priority,
-      firstNightOnly: hasFnOrder && !hasOnOrder,
-      otherNightOnly: !hasFnOrder && hasOnOrder,
-      wakeMessage: ability?.wakePromptId || "",
+      roleId: ability.roleId,
+      roleName: firstItem?.roleName || otherItem?.roleName || ability.roleId,
+      abilityId: ability.abilityId,
+      firstNightPriority: hasFn ? fn! : 0,
+      otherNightPriority: hasOn ? on! : 0,
+      firstNightOnly: hasFn && !hasOn,
+      otherNightOnly: !hasFn && hasOn,
+      wakeMessage: ability.wakePromptId || "",
     });
+  }
+
+  entries.sort((a, b) => {
+    const pa = a.firstNightPriority || a.otherNightPriority || 999;
+    const pb = b.firstNightPriority || b.otherNightPriority || 999;
+    return pa - pb;
   });
-  entries.sort((a, b) => a.priority - b.priority);
   return entries;
 }
 
@@ -198,10 +223,27 @@ export class HeadlessGameEngine {
 
     const shuffled = shuffle(usedRoles);
 
+    // 处理酒鬼：替换为随机镇民伪装角色
+    const drunkIdx = shuffled.findIndex(r => r.id === "drunk");
+    if (drunkIdx >= 0) {
+      const availableTownsfolk = allTownsfolk.filter(
+        r => !shuffled.some(s => s.id === r.id)
+      );
+      const charade = availableTownsfolk.length > 0
+        ? availableTownsfolk[Math.floor(Math.random() * availableTownsfolk.length)]
+        : allTownsfolk[0]; // fallback
+      shuffled[drunkIdx] = { ...shuffled[drunkIdx] };
+    }
+
     this.seats = shuffled.map((role, i) => ({
       id: i,
       role,
-      charadeRole: null,
+      charadeRole: role.id === "drunk"
+        ? (() => {
+            const tf = allTownsfolk.filter(r => !shuffled.some(s => s.id === r.id));
+            return tf.length > 0 ? tf[Math.floor(Math.random() * tf.length)] : allTownsfolk[0];
+          })()
+        : null,
       isDead: false,
       isDrunk: false,
       isPoisoned: false,
@@ -256,6 +298,16 @@ export class HeadlessGameEngine {
       }
 
       const targets = this.selectTargets(seat, ability.targetConfig);
+
+      // 士兵免疫：恶魔击杀对士兵无效
+      if (seat.role?.type === "demon" && node.roleId === "imp") {
+        targets.forEach(t => {
+          if (t?.role?.id === "soldier") {
+            // Remove soldier from targets (ability will still "trigger" but no kill)
+            targets.splice(targets.indexOf(t), 1);
+          }
+        });
+      }
 
       const context = {
         snapshot: this.createSnapshot(),
@@ -371,6 +423,9 @@ export class HeadlessGameEngine {
       const targets = this.getAliveSeats().filter(s => s.id !== demon.id && !this.deadThisNight.includes(s.id));
       if (targets.length === 0) continue;
       const victim = targets[Math.floor(Math.random() * targets.length)];
+      // 士兵免疫恶魔击杀
+      if (victim.role?.id === "soldier") continue;
+      // 僧侣保护检查
       if (!victim.isProtected) {
         this.killSeat(victim.id);
         if (!this.deadThisNight.includes(victim.id)) this.deadThisNight.push(victim.id);
@@ -410,7 +465,18 @@ export class HeadlessGameEngine {
     for (const snapSeat of snapshotSeats) {
       const idx = this.seats.findIndex(s => s.id === snapSeat.id);
       if (idx >= 0) {
-        this.seats[idx] = { ...this.seats[idx], ...snapSeat };
+        const merged = { ...this.seats[idx] };
+        // 从快照同步关键字段，但保留引擎特有的管理字段
+        if (snapSeat.isDead !== undefined) merged.isDead = snapSeat.isDead;
+        if (snapSeat.isAlive !== undefined) merged.isAlive = snapSeat.isAlive;
+        // 将 ability pipeline 的 statusEffects 同步到引擎字段
+        if (snapSeat.statusEffects && Array.isArray(snapSeat.statusEffects)) {
+          merged.isPoisoned = snapSeat.statusEffects.some((e: any) => e.type === "poisoned");
+          merged.isProtected = snapSeat.statusEffects.some((e: any) => e.type === "protected");
+          merged.isDrunk = snapSeat.statusEffects.some((e: any) => e.type === "drunk");
+          merged.statuses = snapSeat.statusEffects;
+        }
+        this.seats[idx] = merged;
       }
     }
   }

@@ -86,7 +86,8 @@ export const lord_of_typhonAbility = createRoleAbility({
   /** 触发时机：被动 */
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   /** 唤醒优先级（被动能力为 0） */
-  wakePriority: 0,
+  firstNightPriority: 2,
+  otherNightPriority: 55,
   /** 非首夜专属 */
   firstNightOnly: false,
   /** 被动能力，无唤醒提示词 */

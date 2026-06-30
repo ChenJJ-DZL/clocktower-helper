@@ -85,7 +85,8 @@ export const minstrelAbility = createRoleAbility({
   abilityId: "minstrel_execution_ability",
   abilityName: "醉人的乐章",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  wakePriority: 999,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.minstrel.wake",
   targetConfig: {

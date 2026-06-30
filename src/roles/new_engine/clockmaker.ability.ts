@@ -105,7 +105,8 @@ export const clockmakerAbility = createRoleAbility({
   abilityId: "clockmaker_first_night_ability",
   abilityName: "恶魔爪牙距离感知",
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
-  wakePriority: 4,
+  firstNightPriority: 61,
+  otherNightPriority: null,
   firstNightOnly: true,
   wakePromptId: "role.clockmaker.wake",
   targetConfig: {

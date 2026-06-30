@@ -30,7 +30,7 @@
 // };
 // export const choirboyAbility = createRoleAbility({
 //   roleId: "choirboy", abilityId: "choirboy_demon", abilityName: "弑君线索",
-//   triggerTiming: [AbilityTriggerTiming.PASSIVE], wakePriority: 0, firstNightOnly: false,
+//   triggerTiming: [AbilityTriggerTiming.PASSIVE], firstNightPriority: null, otherNightPriority: 84, firstNightOnly: false,
 //   wakePromptId: "",
 //   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
 //   preCheck: [pc], calculate: [calc], stateUpdate: [su], postProcess: [pp],

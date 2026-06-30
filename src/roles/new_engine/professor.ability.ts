@@ -131,7 +131,8 @@ export const professorAbility = createRoleAbility({
   abilityId: "professor_night_ability",
   abilityName: "起死回生",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 14,
+  firstNightPriority: null,
+  otherNightPriority: 87,
   firstNightOnly: false,
   wakePromptId: "role.professor.wake",
   targetConfig: {

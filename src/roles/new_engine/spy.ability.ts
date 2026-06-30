@@ -588,7 +588,8 @@ export const spyAbility = createRoleAbility({
    * 其他夜：nightOrderOverrides index 209 → priority 210
    * 在接近黎眀时唤醒，确保看到所有夜晚行动结果。
    */
-  wakePriority: 45,
+  firstNightPriority: 75,
+  otherNightPriority: 108,
   /** 每晚都唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

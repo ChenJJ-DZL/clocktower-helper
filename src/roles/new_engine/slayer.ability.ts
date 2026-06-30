@@ -113,7 +113,8 @@ export const slayerAbility = createRoleAbility({
   abilityId: "slayer_day_ability",
   abilityName: "狩魔",
   triggerTiming: [AbilityTriggerTiming.DAY],
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.slayer.activate",
   targetConfig: {

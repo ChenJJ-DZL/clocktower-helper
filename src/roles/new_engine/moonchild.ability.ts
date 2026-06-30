@@ -78,7 +78,8 @@ export const moonchildAbility = createRoleAbility({
   abilityId: "moonchild_death_ability",
   abilityName: "死亡诅咒",
   triggerTiming: [AbilityTriggerTiming.ON_DEATH],
-  wakePriority: 999,
+  firstNightPriority: null,
+  otherNightPriority: 75,
   firstNightOnly: false,
   wakePromptId: "role.moonchild.wake",
   targetConfig: {

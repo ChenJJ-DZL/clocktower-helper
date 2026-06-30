@@ -409,7 +409,8 @@ export const poisonerAbility = createRoleAbility({
    * 其他夜：nightOrderOverrides index 114 → priority 115
    * 投毒者在信息类角色之前行动，确保信息类当晚获取错误信息。
    */
-  wakePriority: 10,
+  firstNightPriority: 30,
+  otherNightPriority: 13,
   /** 每晚都唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

@@ -90,7 +90,8 @@ export const oracleAbility = createRoleAbility({
   abilityId: "oracle_nightly_ability",
   abilityName: "邪恶亡灵侦测",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 13,
+  firstNightPriority: null,
+  otherNightPriority: 98,
   firstNightOnly: false,
   wakePromptId: "role.oracle.wake",
   targetConfig: {

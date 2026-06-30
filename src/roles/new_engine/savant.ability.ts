@@ -68,7 +68,8 @@ export const savantAbility = createRoleAbility({
   abilityId: "savant_day_ability",
   abilityName: "每日信息",
   triggerTiming: [AbilityTriggerTiming.DAY],
-  wakePriority: 5,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.savant.wake",
   targetConfig: {

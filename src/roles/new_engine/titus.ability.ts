@@ -200,7 +200,8 @@ export const titusAbility = createRoleAbility({
   abilityId: "titus_night_ability",
   abilityName: "恶魔处决",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 40,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.titus.wake",
   targetConfig: {

@@ -115,7 +115,8 @@ export const innkeeperAbility = createRoleAbility({
   abilityId: "innkeeper_night_ability",
   abilityName: "旅店保护",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 25,
+  firstNightPriority: null,
+  otherNightPriority: 14,
   firstNightOnly: false,
   wakePromptId: "role.innkeeper.wake",
   targetConfig: {

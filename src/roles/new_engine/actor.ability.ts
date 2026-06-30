@@ -136,7 +136,8 @@ export const actorAbility = createRoleAbility({
   abilityId: "actor_night_ability",
   abilityName: "角色复制",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 23,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.actor.wake",
   targetConfig: {

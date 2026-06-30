@@ -431,7 +431,8 @@ export const undertakerAbility = createRoleAbility({
    * 对应官方其他夜晚顺序 #93（93 - 42 = 51）
    *   守鸦人 38 (80) < 送葬者 51 (93) < 提刑官 52 (94)
    */
-  wakePriority: 51,
+  firstNightPriority: null,
+  otherNightPriority: 93,
   /** 非首夜触发 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

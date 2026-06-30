@@ -87,7 +87,8 @@ export const lil_monstaAbility = createRoleAbility({
   /** 触发时机：每夜 */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级（早些唤醒让邪恶阵营投票） */
-  wakePriority: 10,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 首夜也唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

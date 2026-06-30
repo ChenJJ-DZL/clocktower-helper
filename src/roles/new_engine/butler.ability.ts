@@ -461,7 +461,8 @@ export const butlerAbility = createRoleAbility({
    * 首夜 #20 → wakePriority 20
    * 其他夜：nightOrderOverrides index 193 → priority 194
    */
-  wakePriority: 20,
+  firstNightPriority: 58,
+  otherNightPriority: 92,
   /** 每晚都唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

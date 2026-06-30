@@ -305,7 +305,8 @@ export const knightAbility = createRoleAbility({
   abilityName: "骑士探测",
 
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
-  wakePriority: 23,
+  firstNightPriority: 65,
+  otherNightPriority: null,
   firstNightOnly: true,
   wakePromptId: "role.knight.wake",
 

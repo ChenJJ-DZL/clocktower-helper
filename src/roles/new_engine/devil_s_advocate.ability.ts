@@ -33,7 +33,8 @@ export const devil_s_advocateAbility = createRoleAbility({
   abilityId: "devils_advocate_protection",
   abilityName: "死亡豁免",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 40,
+  firstNightPriority: 37,
+  otherNightPriority: 28,
   firstNightOnly: false,
   wakePromptId: "role.devil_s_advocate.wake",
   targetConfig: {

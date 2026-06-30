@@ -45,7 +45,8 @@
  * ============================================================
  * 夜晚顺序
  *   男爵为设置调整能力（PASSIVE），不主动唤醒。
- *   wakePriority: 0（不使用唤醒队列）
+ *   firstNightPriority: null,
+  otherNightPriority: null（不使用唤醒队列）
  * ============================================================
  */
 
@@ -296,7 +297,8 @@ export const baronAbility = createRoleAbility({
    * 唤醒优先级（被动能力不使用唤醒队列）
    * 男爵仅在游戏初始设置时生效，不参与夜晚行动顺序。
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 设置调整在游戏开始时生效，与夜晚无关 */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

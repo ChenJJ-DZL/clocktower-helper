@@ -221,7 +221,8 @@ export const lizAbility = createRoleAbility({
   abilityId: "liz_night_ability",
   abilityName: "利兹传位",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 40,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.liz.wake",
   targetConfig: {

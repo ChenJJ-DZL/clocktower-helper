@@ -117,7 +117,8 @@ export const kazaliAbility = createRoleAbility({
   /** 触发时机：首夜 */
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
   /** 唤醒优先级（恶魔变化类优先） */
-  wakePriority: 5,
+  firstNightPriority: 9,
+  otherNightPriority: 60,
   /** 仅首夜触发 */
   firstNightOnly: true,
   /** 唤醒提示词 ID */

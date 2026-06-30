@@ -68,7 +68,8 @@
  *   酒鬼为认知覆盖（PASSIVE + 设置阶段激活）。
  *   首夜：说书人准备时通过 storytellerInput 配置 fakeRole。
  *   后续夜：酒鬼以其 fakeRole 的身份被唤醒并由对应 pipeline 处理。
- *   wakePriority: 0（被动能力，不使用唤醒队列）
+ *   firstNightPriority: null,
+  otherNightPriority: null（被动能力，不使用唤醒队列）
  * ============================================================
  */
 
@@ -375,7 +376,8 @@ export const drunkAbility = createRoleAbility({
    * 首夜设置在 info 角色之后（wakePriority 80 很晚），
    * 确保说书人可以先看到哪些镇民在场再做选择。
    */
-  wakePriority: 80,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 仅首夜执行 fakeRole 设置 */
   firstNightOnly: true,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

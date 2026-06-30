@@ -489,7 +489,8 @@ export const fortuneTellerAbility = createRoleAbility({
    * 共情者 #56 → 20 < 占卜师 30
    * 其他夜：nightOrderOverrides 中 fortune_teller 在信息类末尾
    */
-  wakePriority: 30,
+  firstNightPriority: 57,
+  otherNightPriority: 91,
   /** 每晚都唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */

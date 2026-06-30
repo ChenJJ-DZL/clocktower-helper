@@ -21,8 +21,10 @@ export interface UnifiedAbilityConfig {
   abilityName: string;
   /** 触发时机 */
   triggerTiming: AbilityTriggerTiming[];
-  /** 唤醒优先级 */
-  wakePriority: number;
+  /** 首夜唤醒优先级，null 表示首夜不唤醒 */
+  firstNightPriority: number | null;
+  /** 其他夜晚唤醒优先级，null 表示其他夜不唤醒 */
+  otherNightPriority: number | null;
   /** 是否仅首夜生效 */
   firstNightOnly: boolean;
   /** 唤醒提示词ID */
@@ -212,7 +214,8 @@ class UnifiedRoleDefinition {
       abilityId: legacyAbility.abilityId,
       abilityName: legacyAbility.abilityName,
       triggerTiming: legacyAbility.triggerTiming,
-      wakePriority: legacyAbility.wakePriority,
+      firstNightPriority: legacyAbility.firstNightPriority,
+      otherNightPriority: legacyAbility.otherNightPriority,
       firstNightOnly: legacyAbility.firstNightOnly,
       wakePromptId: legacyAbility.wakePromptId,
       targetConfig: legacyAbility.targetConfig,

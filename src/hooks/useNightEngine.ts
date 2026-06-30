@@ -143,51 +143,43 @@ export interface NightLogicActions {
 }
 
 /**
- * 从官方夜晚顺序配置生成 NightOrderEntry
+ * 从 unifiedRoleDefinition 的能力注册表生成 NightOrderEntry
+ * 优先度直接取自 ability 文件（已对齐 JSON 官方规则）
  */
 function generateNightOrderFromParser(): NightOrderEntry[] {
+  const allAbilities = unifiedRoleDefinition.getAllAbilities();
   const firstNightOrder = nightOrderParser.getFirstNightOrder();
   const otherNightOrder = nightOrderParser.getOtherNightOrder();
-  const allRoles = new Set([
-    ...firstNightOrder.map((item) => item.roleId),
-    ...otherNightOrder.map((item) => item.roleId),
-  ]);
 
   const entries: NightOrderEntry[] = [];
 
-  allRoles.forEach((roleId) => {
-    const firstNightItem = firstNightOrder.find(
-      (item) => item.roleId === roleId
-    );
-    const otherNightItem = otherNightOrder.find(
-      (item) => item.roleId === roleId
-    );
+  for (const ability of allAbilities) {
+    const fn = ability.firstNightPriority;
+    const on = ability.otherNightPriority;
+    const hasFn = fn !== null && fn > 0;
+    const hasOn = on !== null && on > 0;
 
-    const firstNightOrderVal = firstNightItem?.firstNightOrder || 0;
-    const otherNightOrderVal = otherNightItem?.otherNightOrder || 0;
+    if (!hasFn && !hasOn) continue; // 无夜晚行动
 
-    // 获取能力配置（如果存在）- 使用 unifiedRoleDefinition 查找
-    const roleAbilities = unifiedRoleDefinition.getRoleAbilities(roleId);
-    const ability = roleAbilities.length > 0 ? roleAbilities[0] : null;
+    const firstNightItem = firstNightOrder.find((item) => item.roleId === ability.roleId);
+    const otherNightItem = otherNightOrder.find((item) => item.roleId === ability.roleId);
 
-    if (firstNightOrderVal > 0 || otherNightOrderVal > 0) {
-      entries.push({
-        roleId,
-        roleName:
-          firstNightItem?.roleName || otherNightItem?.roleName || roleId,
-        abilityId: ability?.abilityId || `${roleId}:ability`,
-        priority:
-          firstNightOrderVal > 0 ? firstNightOrderVal : otherNightOrderVal,
-        firstNightOnly: otherNightOrderVal === 0,
-        wakeMessage:
-          ability?.wakePromptId ||
-          `${firstNightItem?.roleName || otherNightItem?.roleName}请行动`,
-      });
-    }
+    entries.push({
+      roleId: ability.roleId,
+      roleName: firstNightItem?.roleName || otherNightItem?.roleName || ability.roleId,
+      abilityId: ability.abilityId,
+      firstNightPriority: hasFn ? fn! : 0,
+      otherNightPriority: hasOn ? on! : 0,
+      firstNightOnly: hasFn && !hasOn,
+      wakeMessage: ability.wakePromptId || `${ability.roleId}请行动`,
+    });
+  }
+
+  entries.sort((a, b) => {
+    const pa = a.firstNightPriority > 0 ? a.firstNightPriority : a.otherNightPriority;
+    const pb = b.firstNightPriority > 0 ? b.firstNightPriority : b.otherNightPriority;
+    return pa - pb;
   });
-
-  // 按优先级排序
-  entries.sort((a, b) => a.priority - b.priority);
   return entries;
 }
 

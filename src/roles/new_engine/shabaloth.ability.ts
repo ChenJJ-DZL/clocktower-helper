@@ -91,7 +91,8 @@ export const shabalothAbility = createRoleAbility({
   abilityId: "shabaloth_night_kill",
   abilityName: "恶魔击杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 103, // 恶魔最后行动，沙巴洛斯在珀之后
+  firstNightPriority: null,
+  otherNightPriority: 48, // 恶魔最后行动，沙巴洛斯在珀之后
   firstNightOnly: false,
   wakePromptId: "shabaloth_wake",
   targetConfig: {

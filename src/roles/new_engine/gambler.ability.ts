@@ -79,7 +79,8 @@ export const gamblerAbility = createRoleAbility({
   abilityId: "gambler_guess_ability",
   abilityName: "豪赌",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 21,
+  firstNightPriority: null,
+  otherNightPriority: 21,
   firstNightOnly: false,
   wakePromptId: "role.gambler.wake",
   targetConfig: {

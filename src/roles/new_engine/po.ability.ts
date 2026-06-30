@@ -91,7 +91,8 @@ export const poAbility = createRoleAbility({
   abilityId: "po_night_kill",
   abilityName: "恶魔击杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 101, // 恶魔最后行动，珀在小恶魔之后
+  firstNightPriority: null,
+  otherNightPriority: null, // 恶魔最后行动，珀在小恶魔之后
   firstNightOnly: false,
   wakePromptId: "po_wake",
   targetConfig: {

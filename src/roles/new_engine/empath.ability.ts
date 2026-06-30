@@ -456,7 +456,8 @@ export const empathAbility = createRoleAbility({
    *   洗衣妇 10 (52) < 图书管理员 11 (53) < 调查员 12 (54)
    *   < 厨师 13 (55) < 共情者 14 (56)
    */
-  wakePriority: 14,
+  firstNightPriority: 56,
+  otherNightPriority: 90,
   /** 共情者每个夜晚都苏醒（非仅首夜） */
   firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts 中的角色唤醒词条 */

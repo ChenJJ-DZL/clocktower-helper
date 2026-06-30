@@ -279,7 +279,8 @@ export const soldierAbility = createRoleAbility({
    * 唤醒优先级（被动能力，无实际唤醒顺序）
    * 由攻击处理系统在检测到士兵被恶魔攻击时触发
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 非首夜特定能力 */
   firstNightOnly: false,
   /** 士兵免疫不涉及说书人唤醒，无提示词 */

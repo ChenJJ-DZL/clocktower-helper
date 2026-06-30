@@ -325,7 +325,8 @@ export const mayorAbility = createRoleAbility({
    * 唤醒优先级（被动能力，无实际唤醒顺序）
    * 由处决/攻击处理系统在镇长即将死亡时触发
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 非首夜特定能力 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

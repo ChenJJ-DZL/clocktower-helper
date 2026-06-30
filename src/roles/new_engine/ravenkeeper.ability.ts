@@ -374,7 +374,8 @@ export const ravenkeeperAbility = createRoleAbility({
    * 对应官方其他夜晚顺序 #80（80 - 42 = 38）
    *   守鸦人 38 (80) < 贤者 39 (81) < 秉笔 40 (82)
    */
-  wakePriority: 38,
+  firstNightPriority: null,
+  otherNightPriority: 80,
   /** 非首夜生效 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

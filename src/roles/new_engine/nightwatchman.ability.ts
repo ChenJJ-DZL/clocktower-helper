@@ -31,7 +31,7 @@
 //   abilityId: "nightwatchman_passive",
 //   abilityName: "守夜人(alt)",
 //   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-//   wakePriority: 0,
+//   firstNightPriority: 73, otherNightPriority: 106,
 //   firstNightOnly: false,
 //   wakePromptId: "",
 //   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },

@@ -71,7 +71,8 @@ export const gossipAbility = createRoleAbility({
   abilityId: "gossip_statement_ability",
   abilityName: "谣言",
   triggerTiming: [AbilityTriggerTiming.DAY],
-  wakePriority: 73,
+  firstNightPriority: null,
+  otherNightPriority: 73,
   firstNightOnly: false,
   wakePromptId: "role.gossip.wake",
   targetConfig: {

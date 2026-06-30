@@ -132,7 +132,8 @@ export const seamstressAbility = createRoleAbility({
   abilityId: "seamstress_once_ability",
   abilityName: "阵营辨识",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 14,
+  firstNightPriority: 63,
+  otherNightPriority: 99,
   firstNightOnly: false,
   wakePromptId: "role.seamstress.wake",
   targetConfig: {

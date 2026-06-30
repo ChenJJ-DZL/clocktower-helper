@@ -51,7 +51,8 @@
  * ============================================================
  * 夜晚顺序
  *   陌客为互动干扰（PASSIVE），不主动唤醒。
- *   wakePriority: 0（不使用唤醒队列）
+ *   firstNightPriority: null,
+  otherNightPriority: null（不使用唤醒队列）
  *   各探查角色在各自 calculate 中调用 resolveRecluseRegistration。
  * ============================================================
  */
@@ -295,7 +296,8 @@ export const recluseAbility = createRoleAbility({
    * 唤醒优先级（被动能力不使用唤醒队列）
    * 陌客的注册判定由各探查角色在各自 calculate 中调用。
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 被动能力与夜晚无关 */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

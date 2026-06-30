@@ -130,7 +130,8 @@ export const astrologerAbility = createRoleAbility({
   abilityId: "astrologer_guess_ability",
   abilityName: "阵营猜测",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 50,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.astrologer.wake",
   targetConfig: {

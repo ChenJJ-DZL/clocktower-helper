@@ -63,7 +63,8 @@ class UnifiedNightOrder {
         ...nightOrderParser.getFirstNightOrder().map((item) => ({
           roleId: item.roleId,
           roleName: item.roleName || item.roleId,
-          priority: item.firstNightOrder,
+          firstNightPriority: item.firstNightOrder,
+          otherNightPriority: item.otherNightOrder,
           firstNightOnly: true,
           wakeMessage: item.wakeCondition || "",
           abilityId: `${item.roleId}_night_ability`,
@@ -71,7 +72,8 @@ class UnifiedNightOrder {
         ...nightOrderParser.getOtherNightOrder().map((item) => ({
           roleId: item.roleId,
           roleName: item.roleName || item.roleId,
-          priority: item.otherNightOrder,
+          firstNightPriority: item.firstNightOrder,
+          otherNightPriority: item.otherNightOrder,
           firstNightOnly: false,
           wakeMessage: item.wakeCondition || "",
           abilityId: `${item.roleId}_night_ability`,

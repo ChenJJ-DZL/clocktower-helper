@@ -63,7 +63,8 @@ export const halfOgreAbility = createRoleAbility({
   abilityId: "half_ogre_night_attack",
   abilityName: "夜晚攻击",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 10, // 需要在恶魔之前行动
+  firstNightPriority: null,
+  otherNightPriority: null, // 需要在恶魔之前行动
   firstNightOnly: false,
   wakePromptId: "role.half_ogre.wake",
   targetConfig: {

@@ -192,7 +192,8 @@ export const professorFemaleAbility = createRoleAbility({
   abilityId: "professor_female_night_ability",
   abilityName: "起死回生（女）",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 14,
+  firstNightPriority: null,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.professor_female.wake",
   targetConfig: {

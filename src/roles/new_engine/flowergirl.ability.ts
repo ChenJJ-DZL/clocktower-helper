@@ -70,7 +70,8 @@ export const flowergirlAbility = createRoleAbility({
   abilityId: "flowergirl_nightly_ability",
   abilityName: "投票侦测",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 11,
+  firstNightPriority: null,
+  otherNightPriority: 96,
   firstNightOnly: false,
   wakePromptId: "role.flowergirl.wake",
   targetConfig: {

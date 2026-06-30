@@ -20,7 +20,8 @@ export interface NightActionNode {
   isFirstNightOnly: boolean;
   abilityId: string;
   wakeMessage: string;
-  wakePriority: number;
+  firstNightPriority: number | null;
+  otherNightPriority: number | null;
   targetIds: number[];
   processed: boolean;
   success: boolean;

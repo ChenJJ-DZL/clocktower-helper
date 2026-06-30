@@ -148,7 +148,8 @@ export const dreamerAbility = createRoleAbility({
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  wakePriority: 8,
+  firstNightPriority: 62,
+  otherNightPriority: 95,
   firstNightOnly: false,
   wakePromptId: "role.dreamer.wake",
   targetConfig: {

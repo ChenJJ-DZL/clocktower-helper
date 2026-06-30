@@ -63,7 +63,8 @@
  *   红唇女郎为被动触发（PASSIVE），不主动唤醒。
  *   nightOrderOverrides: only in otherNightOrderList, index 138
  *   恶魔死亡事件触发时由能力优先级中间件执行。
- *   wakePriority: 0（被动能力，不使用唤醒队列排序）
+ *   firstNightPriority: null,
+  otherNightPriority: 37（被动能力，不使用唤醒队列排序）
  * ============================================================
  */
 
@@ -381,7 +382,8 @@ export const scarletWomanAbility = createRoleAbility({
    * 唤醒优先级（被动能力不使用唤醒队列）
    * nightOrderOverrides: otherNightOrderList index 138 → priority 139
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: 37,
   /** 非首夜唤醒（被动触发与夜晚无关） */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

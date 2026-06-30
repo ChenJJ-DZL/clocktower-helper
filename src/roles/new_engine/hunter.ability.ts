@@ -319,7 +319,8 @@ export const hunterAbility = createRoleAbility({
    * 唤醒优先级（被动能力，在死亡结算后立即处理）
    * 高于普通夜间行动以在死亡后立即生效
    */
-  wakePriority: 0,
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 非首夜特定能力 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

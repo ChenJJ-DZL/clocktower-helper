@@ -12,7 +12,7 @@ test("圣女(Virgin) - 镇民提名圣女 → 提名者被立即处决", async (
   test.setTimeout(300000);
 
   // ─── 1. 访问与剧本选择 ──────────────────────────
-  await page.goto("http://localhost:3000");
+  await page.goto("http://localhost:3001");
   await page.waitForLoadState("networkidle");
 
   // 点击暗流涌动
@@ -56,46 +56,60 @@ test("圣女(Virgin) - 镇民提名圣女 → 提名者被立即处决", async (
     await page.waitForTimeout(1000);
   }
 
-  // ─── 5. 跳过首夜行动 ──────────────────────────
-  for (let i = 0; i < 60; i++) {
-    // 检测白天阶段 — 找"进入黄昏处决阶段"或"发起提名"
-    const isDay = await page
-      .locator("button:has-text('进入黄昏处决阶段'), button:has-text('发起提名')")
-      .first()
-      .isVisible({ timeout: 1000 })
-      .catch(() => false);
-    if (isDay) {
-      console.log("✅ 进入白天阶段");
-      await page.waitForTimeout(2000);
-      break;
+  // 5. 使用 page.evaluate 直接推进夜晚阶段到白天
+  await page.evaluate(async () => {
+    for (let i = 0; i < 200; i++) {
+      const bodyText = document.body.innerText;
+      if (bodyText.includes('进入黄昏处决阶段') || bodyText.includes('发起提名')) break;
+      
+      let acted = false;
+      const buttons = document.querySelectorAll('button');
+      
+      // 优先点击"下一步"按钮（如果可用）
+      for (const btn of buttons) {
+        const text = btn.textContent || '';
+        if ((text.includes('下一步') || text.includes('继续')) && !btn.disabled && btn.offsetParent) {
+          btn.click(); acted = true; break;
+        }
+      }
+      
+      // 如果没有"下一步"可用，尝试点击"确认"按钮
+      if (!acted) {
+        for (const btn of buttons) {
+          const text = btn.textContent || '';
+          if (text.includes('确认') && !btn.disabled && btn.offsetParent && !text.includes('结果')) {
+            btn.click(); acted = true; break;
+          }
+        }
+      }
+      
+      // 如果还没有，尝试点击目标选择（含#号的按钮，如"1# 贞洁者"）
+      if (!acted && bodyText.includes('选择目标')) {
+        for (const btn of buttons) {
+          const text = btn.textContent || '';
+          if (text.includes('#') && btn.offsetParent && !btn.disabled) {
+            btn.click(); acted = true; break;
+          }
+        }
+      }
+      
+      // 尝试点击"开始白天"按钮
+      if (!acted) {
+        for (const btn of buttons) {
+          const text = btn.textContent || '';
+          if ((text.includes('白天') || text.includes('天亮')) && !btn.disabled && btn.offsetParent) {
+            btn.click(); acted = true; break;
+          }
+        }
+      }
+      
+      if (!acted) break;
+      await new Promise(r => setTimeout(r, 300));
     }
-
-    // 处理夜晚报告弹窗
-    const nightReport = page.locator("h2:has-text('夜晚报告'), text=平安夜, text=昨晚");
-    if (await nightReport.first().isVisible({ timeout: 500 }).catch(() => false)) {
-      const cr = page.getByRole("button", { name: "确认" });
-      if (await cr.isVisible().catch(() => false)) { await cr.click(); await page.waitForTimeout(1000); }
-    }
-
-    // 天亮按钮
-    const dawn = page.getByRole("button", { name: /开始白天|天亮了/ });
-    if (await dawn.isVisible({ timeout: 500 }).catch(() => false)) {
-      await dawn.click();
-      await page.waitForTimeout(1500);
-      continue;
-    }
-
-    // 夜间行动确认按钮
-    const nextAction = page
-      .locator("button")
-      .filter({ hasText: /确认.*下一步|确认|下一步/ });
-    if (await nextAction.first().isVisible({ timeout: 500 }).catch(() => false)) {
-      await nextAction.first().click();
-      await page.waitForTimeout(500);
-    } else {
-      await page.waitForTimeout(1000);
-    }
-  }
+  });
+  
+  await page.waitForTimeout(2000);
+  console.log("✅ 夜晚阶段已推进");
 
   // ─── 6. 提名流程 ──────────────────────────────
   // 截图记录当前白天界面

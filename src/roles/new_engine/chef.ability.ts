@@ -511,7 +511,8 @@ export const chefAbility = createRoleAbility({
    * 对应官方首夜顺序 #55 → wakePriority = 55 - 42 = 13
    *   洗衣妇 10 (52) < 图书管理员 11 (53) < 调查员 12 (54) < 厨师 13 (55)
    */
-  wakePriority: 13,
+  firstNightPriority: 55,
+  otherNightPriority: null,
   /** 仅首夜生效，非首夜不唤醒 */
   firstNightOnly: true,
   /** 唤醒提示词 ID，对应 promptDictionary.ts 中的角色唤醒词条 */

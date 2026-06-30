@@ -86,7 +86,8 @@ export const chambermaidAbility = createRoleAbility({
   abilityId: "chambermaid_night_ability",
   abilityName: "夜间查验",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 51,
+  firstNightPriority: 82,
+  otherNightPriority: 114,
   firstNightOnly: false,
   wakePromptId: "role.chambermaid.wake",
   targetConfig: {

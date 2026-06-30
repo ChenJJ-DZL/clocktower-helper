@@ -103,7 +103,8 @@ export const assassinAbility = createRoleAbility({
   abilityId: "assassin_night_ability",
   abilityName: "致命暗杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  wakePriority: 12,
+  firstNightPriority: null,
+  otherNightPriority: 68,
   firstNightOnly: false,
   wakePromptId: "role.assassin.wake",
   targetConfig: {
