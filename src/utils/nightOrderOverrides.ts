@@ -6,6 +6,11 @@
  * unknown/absent ids are ignored so it is safe to keep this list superset.
  *
  * NOTE: The numbers simply follow array index (1-based) to reflect the provided
+ *
+ * ⚠️ 旧引擎清理说明 (W6.12.1):
+ * 此文件为夜晚顺序覆盖配置，仍被 unifiedNightOrder.ts 引用。
+ * 新引擎 (nightEngineFacade) 不直接依赖此文件。
+ * 待 unifiedNightOrder 确认无业务引用后可连同本文件一并清理。
  * global ordering. If a role is not present in the array, its original
  * roleDef order is used.
  */

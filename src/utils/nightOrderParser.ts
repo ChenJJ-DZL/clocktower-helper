@@ -1,6 +1,13 @@
 /**
  * 官方夜晚行动顺序解析器
  * 统一解析 json/夜晚行动顺序.json，提供强类型的顺序映射
+ *
+ * ⚠️ 旧引擎清理说明 (W6.12.1):
+ * 此文件不属于新引擎核心，但因以下引用保留：
+ * - useNightEngine.ts — 获取首夜/其他夜顺序列表
+ * - unifiedNightOrder.ts — 获取角色唤醒顺序信息
+ * 新引擎 (nightEngineFacade + dynamicQueueGenerator) 通过本文件获取全量夜晚顺序表。
+ * 待 unifiedNightOrder 确认无业务引用后可连同本文件一并清理。
  */
 
 // 动态导入JSON文件，避免TypeScript编译错误

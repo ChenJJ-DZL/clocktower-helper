@@ -1,6 +1,15 @@
 ﻿/**
  * 新引擎能力注册表
  * 自动生成 - 扫描 src/roles/new_engine/ 目录下所有 .ability.ts 文件
+ *
+ * ⚠️ 旧引擎清理说明 (W6.12.1):
+ * - 旧目录 (src/roles/demon|townsfolk/*.ability.ts) 中的 3 个注释文件已删除
+ *   (imp.ability.ts, po.ability.ts, fortune_teller.ability.ts)
+ * - 新引擎版本位于 src/roles/new_engine/，已全部注册在此文件中
+ * - nightQueueGenerator.ts 已删除，由 dynamicQueueGenerator.ts 替代
+ * - useNightActionQueue.ts 已删除（死代码）
+ *
+ * 当前全部 206 个能力通过此注册表统一管理。
  */
 
 import {
