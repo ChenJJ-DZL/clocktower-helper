@@ -34,6 +34,7 @@ export interface GameState {
   mounted: boolean;
   showIntroLoading: boolean;
   isPortrait: boolean;
+  gameId: string; // 游戏会话唯一标识
 
   // 座位和游戏核心状态
   seats: Seat[];
@@ -460,6 +461,7 @@ function getInitialState(): GameState {
   return {
     mounted: false,
     showIntroLoading: true,
+    gameId: `game_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     hadesiaChoiceEnabled: false,
     pastGames: [],
     seatNotes: {},

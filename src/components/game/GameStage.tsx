@@ -8,6 +8,7 @@ import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { getStorytellerTips } from "../../utils/storytellerTips";
+import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
 import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
 import { GameLayout } from "./GameLayout";
@@ -62,6 +63,7 @@ export const GameStage = () => {
     setCurrentWakeIndex,
     setSeats,
     setGamePhase,
+    gameId,
   } = gameState;
 
   // 从 controller 获取方法和 ref
@@ -429,22 +431,37 @@ export const GameStage = () => {
     const targets = selectedActionTargets;
 
     if (roleId === "fortune_teller" && targets && targets.length >= 2) {
-      const demon = seats.find(
-        (s: any) => !s.isDead && s.role?.type === "demon"
-      );
-      const hasDemon = demon
-        ? targets.slice(0, 2).some((id: number) => id === demon.id)
-        : false;
+      const targetIds = targets.slice(0, 2);
+      
+      // 1. 检查是否有恶魔（含死亡恶魔——规则："选中已死亡恶魔仍得知'是'"）
+      const hasDemon = targetIds.some((id: number) => {
+        const seat = seats.find((s) => s.id === id);
+        return seat?.role?.type === "demon";
+      });
+      
+      // 2. 检查是否有干扰项（红罗刹）——这才是核心修复
+      const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
+      const hasBoon = boonSeatId !== null && targetIds.includes(boonSeatId);
+      
+      // 3. 检查陌客（50%概率被当作恶魔）
+      const hasRecluse = targetIds.some((id: number) => {
+        const seat = seats.find((s) => s.id === id);
+        return seat?.role?.id === "recluse";
+      });
+      const recluseTriggers = hasRecluse && Math.random() < 0.5;
+      
+      const result = hasDemon || hasBoon || recluseTriggers;
+      
       setPendingResult({
         roleName: "占卜师",
-        resultText: hasDemon ? "有" : "没有",
+        resultText: result ? "有" : "没有",
       });
       return;
     }
 
     // 其他角色直接确认
     handleConfirmAction();
-  }, [currentWakeSeat, selectedActionTargets, handleConfirmAction, seats]);
+  }, [currentWakeSeat, selectedActionTargets, handleConfirmAction, seats, gameId]);
 
   // 处理弹窗确认：执行能力并继续
   useEffect(() => {
