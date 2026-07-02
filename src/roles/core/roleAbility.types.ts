@@ -71,6 +71,8 @@ export interface IRoleAbility {
   otherNightPriority: number | null;
   /** 是否仅首夜生效 */
   firstNightOnly: boolean;
+  /** 是否仅在非首夜生效（首夜不唤醒），用于僧侣、送葬者、守鸦人等 */
+  otherNightOnly: boolean;
   /** 唤醒时的说书人提示词ID */
   wakePromptId: string;
   /** 目标选择配置 */
@@ -101,6 +103,7 @@ export const DefaultRoleAbility: Omit<
   firstNightPriority: null,
   otherNightPriority: null,
   firstNightOnly: false,
+  otherNightOnly: false,
   wakePromptId: "default_wake",
   targetConfig: {
     min: 0,

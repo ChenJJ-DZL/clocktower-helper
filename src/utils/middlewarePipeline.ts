@@ -41,12 +41,18 @@ export async function runMiddlewarePipeline(
 
 /**
  * 执行完整的技能处理流程：preCheck → calculate（含优先级）→ stateUpdate → postProcess
+ *
+ * 预览模式（preview=true）：
+ *   只执行 preCheck + calculate，生成预览结果；
+ *   跳过 stateUpdate（不修改游戏状态）和 postProcess（不产生副作用）。
+ *   调用方应通过返回的 meta 字段获取预览信息，展示确认弹窗。
  */
 export async function runFullAbilityPipeline(
   middlewareSet: Partial<AbilityMiddlewareSet>,
   initialContext: MiddlewareContext
 ): Promise<MiddlewareContext> {
   const empty = async (ctx: MiddlewareContext) => ctx;
+  const isPreview = !!initialContext.preview;
 
   const preCheck = middlewareSet.preCheck ?? [empty];
   const calculate = middlewareSet.calculate ?? [empty];
@@ -61,6 +67,12 @@ export async function runFullAbilityPipeline(
 
   ctx = await runMiddlewarePipeline(enhancedCalculate, ctx);
   if (ctx.aborted) return ctx;
+
+  // 预览模式：跳过 stateUpdate 和 postProcess
+  if (isPreview) {
+    ctx.meta._pipelinePreview = true;
+    return ctx;
+  }
 
   ctx = await runMiddlewarePipeline(stateUpdate, ctx);
   if (ctx.aborted) return ctx;

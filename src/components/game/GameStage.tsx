@@ -422,7 +422,10 @@ export const GameStage = () => {
 
   // 拦截"确认&下一步"，先弹结果再执行
   const handleNightConfirm = useCallback(() => {
-    const roleId = currentWakeSeat?.role?.id;
+    // 🔧 使用 effectiveRole 而非 currentWakeSeat.role
+    // 系统步骤（demon_info/minion_info）的 effectiveRole.id 为步骤ID，
+    // 而 currentWakeSeat.role.id 是实际角色ID（如 imp），两者必须区分
+    const roleId = nightInfo?.effectiveRole?.id || currentWakeSeat?.role?.id;
     const targets = selectedActionTargets;
 
     if (roleId === "fortune_teller" && targets && targets.length >= 2) {
@@ -486,15 +489,15 @@ export const GameStage = () => {
               longPressingSeats={new Set()}
               nominator={nominator}
               nominee={nominee}
-              onSeatClick={(seat) => {
+              onSeatClick={(seatId: number) => {
                 // Nomination logic for dusk phase
                 if (nominator === null) {
                   // No nominator selected - select this seat as nominator
-                  setNominator(seat.id);
-                } else if (nominee === null && seat.id !== nominator) {
+                  setNominator(seatId);
+                } else if (nominee === null && seatId !== nominator) {
                   // Nominator selected but no nominee - select this seat as nominee
-                  setNominee(seat.id);
-                } else if (nominee === null && seat.id === nominator) {
+                  setNominee(seatId);
+                } else if (nominee === null && seatId === nominator) {
                   // Clicking the same nominator - allow deselection
                   setNominator(null);
                 }
@@ -638,12 +641,6 @@ export const GameStage = () => {
                     executeJudgment: typeof executeJudgment,
                   });
                   try {
-                    if (seats.every((s: Seat) => !s.isCandidate)) {
-                      alert(
-                        "当前处决台为空（无人达成半数门槛），无法执行处决。"
-                      );
-                      return;
-                    }
                     if (typeof executeJudgment !== "function") {
                       console.error(
                         "[GameStage] executeJudgment is not a function:",
@@ -1264,17 +1261,6 @@ export const GameStage = () => {
                         onClick: handleConfirmAction,
                         disabled: isConfirmDisabled,
                         variant: "primary" as const,
-                      };
-                    }
-
-                    // 预览确认阶段：显示"确认结果 & 下一步"
-                    if (controller.nightPreviewConfirmed) {
-                      return {
-                        label: "确认结果 & 下一步",
-                        onClick: handleConfirmAction,
-                        disabled:
-                          isConfirmDisabled || !!controller.currentModal,
-                        variant: "success" as const,
                       };
                     }
 

@@ -244,6 +244,7 @@ function convertToUnifiedAbility(ability: any): UnifiedAbilityConfig {
     firstNightPriority: ability.firstNightPriority ?? null,
     otherNightPriority: ability.otherNightPriority ?? null,
     firstNightOnly: ability.firstNightOnly ?? false,
+    otherNightOnly: ability.otherNightOnly ?? false,
     wakePromptId: ability.wakePromptId,
     targetConfig: ability.targetConfig,
     preCondition: () => true,

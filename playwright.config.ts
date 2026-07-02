@@ -55,11 +55,12 @@ export default defineConfig({
     },
   ],
 
-  // Web 服务器配置（需要时手动启动 `npm run dev`）
+  // Web 服务器配置 — 使用已手动启动的 dev server
   // webServer: {
-  //   command: 'npm run dev',
+  //   command: 'NODE_OPTIONS="--no-warnings" npm run dev',
   //   url: 'http://localhost:3000',
   //   reuseExistingServer: !process.env.CI,
   //   timeout: 120000,
+  //   cwd: './',
   // },
 });

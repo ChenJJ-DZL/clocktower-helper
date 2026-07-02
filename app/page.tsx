@@ -305,6 +305,33 @@ export default function Home() {
       };
     }) as any;
 
+    // 🔧 自动为酒鬼指派伪装身份（避免进入check阶段时被阻塞）
+    const drunkSeat = newSeats.find((s: any) => s.role?.id === "drunk");
+    if (drunkSeat) {
+      const availableCharades = groups.townsfolk.filter(
+        (r) => r.id !== "drunk"
+      );
+      if (availableCharades.length > 0) {
+        const charade =
+          availableCharades[
+            Math.floor(Math.random() * availableCharades.length)
+          ];
+        drunkSeat.charadeRole = {
+          id: charade.id,
+          name: charade.name,
+          type: charade.type,
+        };
+        drunkSeat.displayRole = {
+          id: charade.id,
+          name: charade.name,
+          type: charade.type,
+        };
+        console.log(
+          `[handleQuickTest] 自动为酒鬼 (${drunkSeat.id + 1}号) 指派伪装身份: ${charade.name}`
+        );
+      }
+    }
+
     if (hasBaron) {
       addLogWithDeduplication?.(
         `🏚️ 检测到男爵，已自动调整阵容：${townsfolkCount}村民 / ${outsiderCount}外来者`

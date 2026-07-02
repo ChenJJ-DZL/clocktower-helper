@@ -152,6 +152,15 @@ export type ModalType =
       };
     }
 
+  // 夜晚行动通用确认弹窗
+  | {
+      type: "NIGHT_ACTION_CONFIRM";
+      data: import("../components/modals/NightActionConfirmModal").NightActionConfirmData & {
+        onConfirm: () => void;
+        onCancel: () => void;
+      };
+    }
+
   // 信息展示弹窗
   | { type: "DREAMER_RESULT"; data: { roleA: Role; roleB: Role } }
   | {

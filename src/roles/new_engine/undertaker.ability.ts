@@ -435,6 +435,8 @@ export const undertakerAbility = createRoleAbility({
   otherNightPriority: 93,
   /** 非首夜触发 */
   firstNightOnly: false,
+  /** 仅非首夜唤醒（首夜不可能有处决） */
+  otherNightOnly: true,
   /** 唤醒提示词 ID */
   wakePromptId: "role.undertaker.wake",
 

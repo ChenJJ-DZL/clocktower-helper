@@ -340,7 +340,10 @@ export function useInteractionHandler(deps: {
         currentModal.type === "GAME_RECORDS" ||
         currentModal.type === "POISON_CONFIRM" ||
         currentModal.type === "POISON_EVIL_CONFIRM" ||
-        currentModal.type === "ROLE_INFO";
+        currentModal.type === "ROLE_INFO" ||
+        currentModal.type === "NIGHT_ACTION_CONFIRM" ||
+        currentModal.type === "INFO_RESULT" ||
+        currentModal.type === "KILL_CONFIRM";
 
       if (!isNonBlockingModal) {
         return;

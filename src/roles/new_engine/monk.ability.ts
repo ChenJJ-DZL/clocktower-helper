@@ -444,6 +444,8 @@ export const monkAbility = createRoleAbility({
   otherNightPriority: 24,
   /** 非首夜生效（otherNightOnlyCheck 防御性校验） */
   firstNightOnly: false,
+  /** 仅非首夜唤醒（官方规则：僧侣首夜不行动） */
+  otherNightOnly: true,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */
   wakePromptId: "role.monk.wake",
 

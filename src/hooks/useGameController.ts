@@ -270,7 +270,6 @@ export function useGameController() {
     handleGlobalUndo,
   } = historyController;
   const wrappedHandleStepBack = useCallback(() => {
-    nightPreviewConfirmedRef.current = false;
     rawHandleStepBack();
   }, [rawHandleStepBack]);
   const {
@@ -679,7 +678,6 @@ export function useGameController() {
 
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
-      nightPreviewConfirmedRef.current = false;
       rawContinueToNextAction(latestSeats);
     },
     [rawContinueToNextAction]
@@ -954,8 +952,8 @@ export function useGameController() {
     handleDayAbility,
   } = dayActions;
 
-  // 行动预览状态：第一次点击处理行动，第二次点击才推进队列
-  const nightPreviewConfirmedRef = useRef(false);
+  // 确认流程由新引擎管道内部的预览→弹窗→确认机制驱动，不再需要 ref 跟踪
+  // 详情见 executeViaNewEngine() 在 useNightActionHandler.ts 中的实现
 
   const interactionHandlers = useInteractionHandler({
     getRoleTargetCount,
@@ -963,47 +961,10 @@ export function useGameController() {
       // 保存历史快照，用于"上一步"撤销
       saveHistory();
 
-      const hasTargets = (nightInfo?.targetLimit?.max ?? 0) > 0;
-
-      // 有目标的角色：第一次点击预览行动结果，第二次点击才推进
-      if (hasTargets && !nightPreviewConfirmedRef.current) {
-        const report = await executeNightAbility(
-          (ctx) => nightActionHandler.handleNightAction(ctx),
-          {
-            nightInfo,
-            seats,
-            selectedTargets: selectedTargets || [],
-            gamePhase,
-            nightCount,
-            roles: roles || [],
-            vortoxWorld: isVortoxWorld,
-            getRegistration: getRegistrationCached,
-            getMisinformation: getMisinformation,
-            findNearestAliveNeighbor,
-            setSeats,
-            setSelectedActionTargets,
-            addLog,
-            continueToNextAction,
-            setCurrentModal,
-            markAbilityUsed,
-            hasUsedAbility,
-            reviveSeat,
-            insertIntoWakeQueueAfterCurrent,
-            preview: true, // 预览模式：执行但不推进
-          }
-        );
-        // 如果前置校验阻止了执行，跳过并推进到下一个行动
-        if (report.preCheck.blocked) {
-          addLog(`[系统] ${report.preCheck.reason || "能力被跳过"}`);
-          nightPreviewConfirmedRef.current = false;
-          continueToNextAction();
-          return;
-        }
-        nightPreviewConfirmedRef.current = true;
-        return;
-      }
-
-      // 第二次点击或无目标角色：正常处理并推进
+      // 统一通过 handleNightAction 执行 — 新引擎会自动处理：
+      //   preview=true  → preCheck+calculate → 弹出确认窗 → 用户确认
+      //   preview=false → 完整 pipeline → 推进队列
+      // 旧 handler 路径不受影响（preview 仅在新引擎管道中生效）
       const report = await executeNightAbility(
         (ctx) => nightActionHandler.handleNightAction(ctx),
         {
@@ -1026,23 +987,28 @@ export function useGameController() {
           hasUsedAbility,
           reviveSeat,
           insertIntoWakeQueueAfterCurrent,
+          preview: true, // 始终以预览模式进入，新引擎内部决定是否弹确认窗
         }
       );
-      nightPreviewConfirmedRef.current = false;
-      if (!report.handlerResult && !report.preCheck.blocked) {
-        console.warn(`[系统] ⚠️ 能力 ${report.roleId} 执行返回失败，跳过`);
+
+      // 如果前置校验阻止了执行，跳过并推进到下一个行动
+      if (report.preCheck.blocked) {
+        addLog(`[系统] ${report.preCheck.reason || "能力被跳过"}`);
         continueToNextAction();
+        return;
       }
-      // 执行后验证游戏状态一致性（开发环境捕获状态异常）
-      if (process.env.NODE_ENV === "development") {
-        const violations = validateGameStateConsistency(seats);
-        if (violations.length > 0) {
-          console.warn(
-            `[GameState] 能力执行后状态不一致 (${report.roleId}):`,
-            violations
-          );
-        }
+
+      // handler 返回 false 且非 preCheck 阻止 → 系统步骤（demon_info/minion_info）
+      // 或旧 handler 未实现此角色：直接推进
+      if (!report.handlerResult) {
+        console.log(`[系统] 步骤 ${report.roleId} 无 handler 实现，自动推进`);
+        continueToNextAction();
+        return;
       }
+
+      // 对于旧 handler（handlerInvoked=true 但非新引擎能力），
+      // preview 对其无影响，handleNightAction 内部已直接执行+推进；
+      // 新引擎能力则由 executeViaNewEngine 接管弹窗→确认→推进流程。
     },
     nightInfo,
   });
@@ -1406,7 +1372,6 @@ export function useGameController() {
   // 离开夜间阶段时清除 nightInfo（避免 check/day/dusk 残留"行动中"高亮）
   useEffect(() => {
     if (gamePhase !== "firstNight" && gamePhase !== "night") {
-      nightPreviewConfirmedRef.current = false;
       if (nightInfo) {
         console.log("[GameController] 离开夜间阶段，清除 nightInfo");
         setActiveNightStep(null);
@@ -1552,7 +1517,6 @@ export function useGameController() {
       isActorDisabledByPoisonOrDrunk,
       addLogWithDeduplication,
       continueToNextAction,
-      nightPreviewConfirmed: nightPreviewConfirmedRef.current,
       saveHistory,
       enterDayPhase,
       loadGameRecords,

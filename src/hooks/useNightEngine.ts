@@ -171,7 +171,10 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
       firstNightPriority: hasFn ? fn! : 0,
       otherNightPriority: hasOn ? on! : 0,
       firstNightOnly: hasFn && !hasOn,
+      otherNightOnly: (ability as any).otherNightOnly ?? (hasOn && !hasFn),
       wakeMessage: ability.wakePromptId || `${ability.roleId}请行动`,
+      // 间谍死后仍可唤醒查看魔典（规则明确允许）
+      deadActorWakes: ability.roleId === 'spy',
     });
   }
 

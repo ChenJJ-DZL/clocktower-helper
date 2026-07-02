@@ -44,6 +44,8 @@ export interface MiddlewareContext {
   aborted: boolean;
   /** 终止原因 */
   abortReason?: string;
+  /** 预览模式：只执行 preCheck+calculate，跳过 stateUpdate+postProcess */
+  preview?: boolean;
 }
 
 // 前置校验中间件：检查技能是否可执行（醉酒、中毒、死亡、保护等）

@@ -15,6 +15,8 @@ export interface NightOrderEntry {
   wakeMessage: string;
   otherNightOnly?: boolean;
   abilityId: string;
+  /** 死后仍可唤醒（如间谍查看魔典） */
+  deadActorWakes?: boolean;
 }
 
 // 生成队列选项
@@ -68,9 +70,11 @@ export function generateDynamicNightQueue(
       return true;
     }
 
-    // 找到对应的存活玩家（Seat 使用 isDead 字段，isAlive = !isDead）
+    // 找到对应的座位（默认只找存活玩家）
+    // includeDead 全局覆盖 + deadActorWakes 角色级覆盖（如间谍死后仍唤醒）
+    const effectiveIncludeDead = (entry as any).deadActorWakes || includeDead;
     const seat = snapshot.seats.find(
-      (s) => s.role?.id === entry.roleId && (includeDead || !s.isDead)
+      (s) => s.role?.id === entry.roleId && (effectiveIncludeDead || !s.isDead)
     );
 
     if (!seat) {

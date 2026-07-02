@@ -21,6 +21,7 @@ import { LunaticRpsModal } from "../modals/LunaticRpsModal";
 import { MadnessCheckModal } from "../modals/MadnessCheckModal";
 import { MayorThreeAliveModal } from "../modals/MayorThreeAliveModal";
 import { MoonchildKillModal } from "../modals/MoonchildKillModal";
+import { NightActionConfirmModal } from "../modals/NightActionConfirmModal";
 import { NightDeathReportModal } from "../modals/NightDeathReportModal";
 import { NightOrderPreviewModal } from "../modals/NightOrderPreviewModal";
 import { PacifistConfirmModal } from "../modals/PacifistConfirmModal";
@@ -163,6 +164,8 @@ export function GameModals() {
     currentModal?.type === "SAVANT_RESULT" ? currentModal.data : null;
   const nightDeathReportModal =
     currentModal?.type === "NIGHT_DEATH_REPORT" ? currentModal.data : null;
+  const nightActionConfirmModal =
+    currentModal?.type === "NIGHT_ACTION_CONFIRM" ? currentModal.data : null;
 
   return (
     <>
@@ -231,6 +234,25 @@ export function GameModals() {
           onCancel={() => {
             actions.setCurrentModal(null);
             actions.setSelectedActionTargets([]);
+          }}
+        />
+      )}
+
+      {nightActionConfirmModal && (
+        <NightActionConfirmModal
+          data={{
+            roleName: nightActionConfirmModal.roleName,
+            actionDescription: nightActionConfirmModal.actionDescription,
+            targetDescriptions: nightActionConfirmModal.targetDescriptions,
+            extraNote: nightActionConfirmModal.extraNote,
+          }}
+          onConfirm={() => {
+            actions.setCurrentModal(null);
+            nightActionConfirmModal.onConfirm();
+          }}
+          onCancel={() => {
+            actions.setCurrentModal(null);
+            nightActionConfirmModal.onCancel();
           }}
         />
       )}

@@ -27,6 +27,8 @@ export interface UnifiedAbilityConfig {
   otherNightPriority: number | null;
   /** 是否仅首夜生效 */
   firstNightOnly: boolean;
+  /** 是否仅在非首夜生效（首夜不唤醒） */
+  otherNightOnly: boolean;
   /** 唤醒提示词ID */
   wakePromptId: string;
   /** 目标选择配置 */
@@ -217,6 +219,7 @@ class UnifiedRoleDefinition {
       firstNightPriority: legacyAbility.firstNightPriority,
       otherNightPriority: legacyAbility.otherNightPriority,
       firstNightOnly: legacyAbility.firstNightOnly,
+      otherNightOnly: legacyAbility.otherNightOnly,
       wakePromptId: legacyAbility.wakePromptId,
       targetConfig: legacyAbility.targetConfig,
       execute: async (context: AbilityContext) => {

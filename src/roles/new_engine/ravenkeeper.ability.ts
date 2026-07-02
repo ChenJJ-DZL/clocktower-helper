@@ -96,22 +96,14 @@ const preCheckDeathAndStatus = async (
 
   const diedTonight =
     seat.diedAtNight === nightCount || seat.markedForDeath === true;
-  const killedByDemon =
-    context.meta.killerRole === "demon" || seat.deathSource === "demon";
 
+  // 规则："只要守鸦人死在夜晚，不论因什么原因而死，他都能被唤醒并使用能力。"
+  // 移除 killedByDemon 检查 — 任何夜晚死亡原因均可触发
   if (!diedTonight) {
     return {
       ...context,
       aborted: true,
       abortReason: "守鸦人今晚未死亡，技能不触发",
-    };
-  }
-
-  if (!killedByDemon) {
-    return {
-      ...context,
-      aborted: true,
-      abortReason: "守鸦人未被恶魔杀死，技能不触发",
     };
   }
 
@@ -378,6 +370,8 @@ export const ravenkeeperAbility = createRoleAbility({
   otherNightPriority: 80,
   /** 非首夜生效 */
   firstNightOnly: false,
+  /** 仅非首夜唤醒（首夜不会死亡） */
+  otherNightOnly: true,
   /** 唤醒提示词 ID */
   wakePromptId: "role.ravenkeeper.trigger",
 
