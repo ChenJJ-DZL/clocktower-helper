@@ -153,12 +153,13 @@ export function useGameState() {
   const setSeats = useCallback(
     (val: Seat[] | ((prev: Seat[]) => Seat[])) => {
       if (typeof val === "function") {
-        dispatch(gameActions.setSeats(val(state.seats)));
+        // 使用 UPDATE_SEATS 让 reducer 在 dispatch 时获取最新 state.seats
+        dispatch({ type: "UPDATE_SEATS", updater: val });
       } else {
         dispatch(gameActions.setSeats(val));
       }
     },
-    [dispatch, state.seats]
+    [dispatch]
   );
   const setInitialSeats = useCallback(
     (val: Seat[]) => dispatch(gameActions.updateState({ initialSeats: val })),

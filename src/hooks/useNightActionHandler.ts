@@ -65,7 +65,7 @@ function translateLegacyStatusesToEffects(seat: Seat): any[] {
 }
 
 /** 将新引擎 statusEffects[] 翻译回 React Seat 的布尔字段 */
-function syncStatusEffectsToSeat(prev: Seat, updated: any): Partial<Seat> {
+export function syncStatusEffectsToSeat(prev: Seat, updated: any): Partial<Seat> {
   const effects: any[] = (updated as any).statusEffects || [];
   const hasPoison = effects.some((e: any) => e.type === "poisoned");
   const hasProtect = effects.some((e: any) => e.type === "protected");
@@ -116,7 +116,7 @@ function syncStatusEffectsToSeat(prev: Seat, updated: any): Partial<Seat> {
  *   3. 处理 markedForDeath → isDead
  *   4. 推进队列
  */
-async function executeViaNewEngine(
+export async function executeViaNewEngine(
   context: NightActionHandlerContext,
   roleId: string
 ): Promise<boolean> {
@@ -201,6 +201,8 @@ async function executeViaNewEngine(
 
     // ============ 预览模式 ============
     if (context.preview) {
+      console.log(`[executeViaNewEngine] PREVIEW mode for ${roleId}, targets:`, context.selectedTargets);
+      
       // 从 calculate 阶段提取预览信息
       const displayInfo = resultContext.meta.displayInfo;
       const abilityResult = resultContext.meta.abilityResult;
@@ -251,6 +253,7 @@ async function executeViaNewEngine(
             ? "该角色处于醉酒/中毒状态，能力可能不生效"
             : undefined,
           onConfirm: async () => {
+            console.log(`[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`, safeTargets);
             // 用户确认后，用同一套参数执行真实管道
             const realContext: NightActionHandlerContext = {
               ...context,
@@ -260,6 +263,7 @@ async function executeViaNewEngine(
             await executeViaNewEngine(realContext, roleId);
           },
           onCancel: () => {
+            console.log(`[executeViaNewEngine] onCancel for ${roleId}`);
             // 取消：清空选择，让说书人重新选
             context.setSelectedActionTargets([]);
           },
@@ -270,9 +274,12 @@ async function executeViaNewEngine(
     }
 
     // ============ 非预览模式：执行完整管道 ============
+    console.log(`[executeViaNewEngine] FULL EXECUTION for ${roleId}, targets:`, context.selectedTargets);
 
     // 从 snapshot 中提取更新后的座位状态，并同步状态
     const updatedSeats = resultContext.snapshot.seats as Seat[];
+    console.log(`[executeViaNewEngine] Syncing ${updatedSeats.length} seats from engine snapshot`);
+    
     if (updatedSeats && updatedSeats.length > 0) {
       context.setSeats((prevSeats) =>
         prevSeats.map((prev) => {
@@ -280,6 +287,10 @@ async function executeViaNewEngine(
           if (updated) {
             // 合并更新 + 双向状态同步
             const syncedFields = syncStatusEffectsToSeat(prev, updated);
+            const hasNewPoison = syncedFields.isPoisoned && !prev.isPoisoned;
+            if (hasNewPoison) {
+              console.log(`[executeViaNewEngine] ⚠️ POISON APPLIED to seat ${prev.id} (${prev.role?.name || 'unknown'})`);
+            }
             return { ...prev, ...updated, ...syncedFields, id: prev.id };
           }
           return prev;

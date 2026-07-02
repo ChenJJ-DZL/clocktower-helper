@@ -150,6 +150,7 @@ export type GameAction =
   | { type: "SET_CURRENT_QUEUE_INDEX"; index: number }
   | { type: "SET_SELECTED_TARGETS"; targets: number[] }
   | { type: "SET_SEATS"; seats: Seat[] }
+  | { type: "UPDATE_SEATS"; updater: (prev: Seat[]) => Seat[] }
   | { type: "UPDATE_SEAT"; seatId: number; updates: Partial<Seat> }
   | { type: "INCREMENT_NIGHT_COUNT" }
   | { type: "SET_DEAD_THIS_NIGHT"; deadIds: number[] }
@@ -261,6 +262,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "SET_SEATS":
       return { ...state, seats: action.seats };
+
+    case "UPDATE_SEATS": {
+      const newSeats = action.updater(state.seats);
+      return { ...state, seats: newSeats };
+    }
 
     case "UPDATE_SEAT": {
       const updatedSeats = state.seats.map((seat) =>
