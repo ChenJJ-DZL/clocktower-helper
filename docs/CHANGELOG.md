@@ -1,5 +1,30 @@
 ﻿# 更新日志
 
+## W7.3.1 — 投毒者中毒标记修复 + 占卜师干扰项修复 (2025-07-02)
+
+### 修复
+
+#### 🔴 P0: 投毒者中毒标记不显示
+
+**症状**：投毒者选择目标并确认后，目标座位不显示"中毒"标记，技能/信息未受干扰。
+
+**根本原因**：`useGameState` 的 `setSeats` 在调用 `dispatch` 时使用闭包中捕获的旧 `state.seats`。当 `executeViaNewEngine` 设置中毒后 `markAbilityUsed` 又调用 `setSeats` 时，后者基于旧状态映射，覆盖了中毒状态。
+
+**修复**：
+- `GameContext.tsx`：新增 `UPDATE_SEATS` action 类型 + reducer handler，dispatch 时直接执行 `updater(state.seats)`
+- `useGameState.ts`：`setSeats` 对 functional updater 改用 `UPDATE_SEATS` dispatch
+- `useNightActionHandler.ts`：导出核心函数供测试
+
+**测试**：4 个新增单元测试全部通过 ✅
+
+#### 🟡 占卜师干扰项修复
+
+**症状**：占卜师选择"红罗刹"（干扰项）时，结果应显示"有"但未体现。
+
+**修复**：`GameStage.tsx` 引入 `FortuneTellerBoonManager`，同时检查恶魔 + 干扰项 + 陌客三重判定。
+
+---
+
 ## W6.22.4+ — 全角色覆盖 + 游戏记录修复 (2026-06-22)
 
 ### 新增功能
