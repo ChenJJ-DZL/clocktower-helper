@@ -53,3 +53,4 @@ next-env.d.ts
 *.temp
 playwright-report/
 test-results/
+.me
