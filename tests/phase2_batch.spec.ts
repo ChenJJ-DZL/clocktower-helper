@@ -22,31 +22,55 @@ interface RoleTest {
 
 const PHASE2_ROLES: RoleTest[] = [
   // 黯月初升(BMR) — 吟游诗人是白天能力
-  { roleName: "吟游诗人", scriptText: "黯月初升", demonName: "僵怖", townsfolkAlt1: "祖母", townsfolkAlt2: "水手", minionName: "刺客" },
+  {
+    roleName: "吟游诗人",
+    scriptText: "黯月初升",
+    demonName: "僵怖",
+    townsfolkAlt1: "祖母",
+    townsfolkAlt2: "水手",
+    minionName: "刺客",
+  },
   // 梦殒春宵(S&V) — 哲学家是白天能力
-  { roleName: "哲学家", scriptText: "梦殒春宵", demonName: "涡流", townsfolkAlt1: "筑梦师", townsfolkAlt2: "数学家", minionName: "麻脸巫婆" },
+  {
+    roleName: "哲学家",
+    scriptText: "梦殒春宵",
+    demonName: "涡流",
+    townsfolkAlt1: "筑梦师",
+    townsfolkAlt2: "数学家",
+    minionName: "麻脸巫婆",
+  },
 ];
 
 test.describe("Phase 2 — 高优先级 DAY 能力角色", () => {
   for (const role of PHASE2_ROLES) {
-    test(`${role.roleName} - 按钮存在且可点击 (${role.scriptText})`, async ({ page }) => {
+    test(`${role.roleName} - 按钮存在且可点击 (${role.scriptText})`, async ({
+      page,
+    }) => {
       test.setTimeout(120000);
-      page.on("dialog", (d) => { console.log(`对话框:`, d.message().substring(0, 50)); d.accept(); });
+      page.on("dialog", (d) => {
+        console.log("对话框:", d.message().substring(0, 50));
+        d.accept();
+      });
 
       await page.goto("http://localhost:3000");
       await page.waitForLoadState("networkidle");
       await page.locator(`text=${role.scriptText}`).first().click();
       await page.waitForTimeout(1500);
       await expect(page.getByText("游戏人数")).toBeVisible({ timeout: 10000 });
-      await page.waitForSelector(".seat-node[data-seat-id]", { timeout: 10000 });
+      await page.waitForSelector(".seat-node[data-seat-id]", {
+        timeout: 10000,
+      });
 
       const seats = page.locator(".seat-node[data-seat-id]");
       const assign = async (name: string, idx: number) => {
         const btn = page.getByRole("button", { name: new RegExp(name, "i") });
-        await expect(btn).toBeVisible({ timeout: 5000 }); await btn.click();
+        await expect(btn).toBeVisible({ timeout: 5000 });
+        await btn.click();
         await page.waitForTimeout(300);
-        const all = await seats.all(); if (all.length <= idx) return;
-        await all[idx].click(); await page.waitForTimeout(300);
+        const all = await seats.all();
+        if (all.length <= idx) return;
+        await all[idx].click();
+        await page.waitForTimeout(300);
       };
 
       await assign(role.roleName, 0);
@@ -59,7 +83,8 @@ test.describe("Phase 2 — 高优先级 DAY 能力角色", () => {
       await page.waitForTimeout(1500);
       const confirm = page.getByRole("button", { name: /确认无误/ });
       if (await confirm.isVisible({ timeout: 10000 }).catch(() => false)) {
-        await confirm.click(); await page.waitForTimeout(1000);
+        await confirm.click();
+        await page.waitForTimeout(1000);
       }
 
       await skipToDay(page);

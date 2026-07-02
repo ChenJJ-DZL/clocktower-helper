@@ -55,16 +55,16 @@ export function generateDynamicNightQueue(
     }
 
     // 系统信息步骤（minion_info / demon_info）：找到对应玩家，不需要精确 roleId 匹配
-    if (entry.roleId === 'minion_info') {
+    if (entry.roleId === "minion_info") {
       const seat = snapshot.seats.find(
-        (s) => (s.role?.type === 'minion') && (includeDead || !s.isDead)
+        (s) => s.role?.type === "minion" && (includeDead || !s.isDead)
       );
       if (!seat) return false;
       return true;
     }
-    if (entry.roleId === 'demon_info') {
+    if (entry.roleId === "demon_info") {
       const seat = snapshot.seats.find(
-        (s) => (s.role?.type === 'demon') && (includeDead || !s.isDead)
+        (s) => s.role?.type === "demon" && (includeDead || !s.isDead)
       );
       if (!seat) return false;
       return true;
@@ -91,8 +91,12 @@ export function generateDynamicNightQueue(
 
   // 2. 按优先级排序（根据是否为第一夜选择对应的优先级）
   validEntries.sort((a, b) => {
-    const priorityA = isFirstNight ? a.firstNightPriority : a.otherNightPriority;
-    const priorityB = isFirstNight ? b.firstNightPriority : b.otherNightPriority;
+    const priorityA = isFirstNight
+      ? a.firstNightPriority
+      : a.otherNightPriority;
+    const priorityB = isFirstNight
+      ? b.firstNightPriority
+      : b.otherNightPriority;
     return priorityA - priorityB;
   });
 
@@ -100,10 +104,12 @@ export function generateDynamicNightQueue(
   const queue: NightActionNode[] = validEntries.map((entry) => {
     // 系统信息步骤：按角色类型查找座位
     let seat;
-    if (entry.roleId === 'minion_info') {
-      seat = snapshot.seats.find((s) => s.role?.type === 'minion' && !s.isDead)!;
-    } else if (entry.roleId === 'demon_info') {
-      seat = snapshot.seats.find((s) => s.role?.type === 'demon' && !s.isDead)!;
+    if (entry.roleId === "minion_info") {
+      seat = snapshot.seats.find(
+        (s) => s.role?.type === "minion" && !s.isDead
+      )!;
+    } else if (entry.roleId === "demon_info") {
+      seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
     } else {
       seat = snapshot.seats.find((s) => s.role?.id === entry.roleId)!;
     }
@@ -111,7 +117,9 @@ export function generateDynamicNightQueue(
       seatId: seat.id,
       roleId: entry.roleId,
       roleName: entry.roleName,
-      priority: isFirstNight ? entry.firstNightPriority : entry.otherNightPriority,
+      priority: isFirstNight
+        ? entry.firstNightPriority
+        : entry.otherNightPriority,
       isFirstNightOnly: entry.firstNightOnly,
       abilityId: entry.abilityId,
       wakeMessage: entry.wakeMessage,

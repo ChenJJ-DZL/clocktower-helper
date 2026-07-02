@@ -26,13 +26,50 @@ const definitions = new Map<string, LimitedAbilityDefinition>();
  * 预定义常见限次能力
  */
 const predefinedDefinitions: LimitedAbilityDefinition[] = [
-  { abilityId: "philosopher_use",           maxUses: 1, global: false, resetOnRoleChange: true },
-  { abilityId: "artist_paint",              maxUses: 1, global: false, resetOnRoleChange: true },
-  { abilityId: "seamstress_ability",        maxUses: 1, global: true,  resetOnRoleChange: false },
-  { abilityId: "professor_resurrect",       maxUses: 1, global: false, resetOnRoleChange: true },
-  { abilityId: "courtier_drunk",            maxUses: 1, global: false, consumeWhenDrunkOrPoisoned: true,  resetOnRoleChange: true },
-  { abilityId: "assassin_kill",             maxUses: 1, global: false, consumeWhenDrunkOrPoisoned: true,  resetOnRoleChange: true },
-  { abilityId: "shabaloth_double_kill",     maxUses: 1, global: true,  resetOnRoleChange: false },
+  {
+    abilityId: "philosopher_use",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    abilityId: "artist_paint",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    abilityId: "seamstress_ability",
+    maxUses: 1,
+    global: true,
+    resetOnRoleChange: false,
+  },
+  {
+    abilityId: "professor_resurrect",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    abilityId: "courtier_drunk",
+    maxUses: 1,
+    global: false,
+    consumeWhenDrunkOrPoisoned: true,
+    resetOnRoleChange: true,
+  },
+  {
+    abilityId: "assassin_kill",
+    maxUses: 1,
+    global: false,
+    consumeWhenDrunkOrPoisoned: true,
+    resetOnRoleChange: true,
+  },
+  {
+    abilityId: "shabaloth_double_kill",
+    maxUses: 1,
+    global: true,
+    resetOnRoleChange: false,
+  },
 ];
 
 /** 抽取公共定义查找逻辑 */

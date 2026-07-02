@@ -128,7 +128,7 @@ export function GameBoard(props: GameBoardProps) {
           isPortrait={isPortrait}
           seatScale={seatScale}
           longPressingSeats={longPressingSeats}
-          onSeatClick={(seat) => handleSeatClick(seat.id)}
+          onSeatClick={handleSeatClick}
           onContextMenu={handleContextMenu}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}

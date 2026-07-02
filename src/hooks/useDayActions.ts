@@ -551,15 +551,25 @@ export function useDayActions(deps: DayActionsDeps) {
 
       // ── 艺术家专用 ────────────────────────────────────
       if (sourceSeat.role.id === "artist") {
-        if (sourceSeat.hasUsedDayAbility) { alert("此玩家已经使用过技能了！"); return; }
-        setSeats((prev) => prev.map((s) => s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s));
+        if (sourceSeat.hasUsedDayAbility) {
+          alert("此玩家已经使用过技能了！");
+          return;
+        }
+        setSeats((prev) =>
+          prev.map((s) =>
+            s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
+          )
+        );
         setCurrentModal({ type: "ARTIST_RESULT", data: { result: "" } });
         return;
       }
 
       // ── 博学者专用 ────────────────────────────────────
       if (sourceSeat.role.id === "savant") {
-        setCurrentModal({ type: "SAVANT_RESULT", data: { infoA: "", infoB: "" } });
+        setCurrentModal({
+          type: "SAVANT_RESULT",
+          data: { infoA: "", infoB: "" },
+        });
         return;
       }
 
@@ -587,26 +597,45 @@ export function useDayActions(deps: DayActionsDeps) {
         // 有 handler → 使用 handler 结果
         if (result) {
           if (result.updates.length > 0) {
-          const refreshedSeats = seats.map((s) => {
-            const update = result.updates.find(
-              (upd: { id: number }) => upd.id === s.id
-            );
-            return update ? { ...s, ...update } : s;
-          });
-
-          setSeats((prev) =>
-            prev.map((s) => {
+            const refreshedSeats = seats.map((s) => {
               const update = result.updates.find(
                 (upd: { id: number }) => upd.id === s.id
               );
               return update ? { ...s, ...update } : s;
-            })
-          );
+            });
 
-          // Trigger game over check if state changed
-          checkGameOver(refreshedSeats);
+            setSeats((prev) =>
+              prev.map((s) => {
+                const update = result.updates.find(
+                  (upd: { id: number }) => upd.id === s.id
+                );
+                return update ? { ...s, ...update } : s;
+              })
+            );
+
+            // Trigger game over check if state changed
+            checkGameOver(refreshedSeats);
+          }
+
+          if (modularHandler.day.maxUses !== "infinity") {
+            setSeats((prev) =>
+              prev.map((s) =>
+                s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
+              )
+            );
+          }
+
+          if (result.logs.privateLog) addLog(result.logs.privateLog);
+          if (result.logs.publicLog) addLog(result.logs.publicLog);
+
+          if (result.modal) {
+            setCurrentModal(result.modal);
+          }
+
+          return;
         }
 
+        // 无 handler → 通用回退：标记已使用 + 说书人提示
         if (modularHandler.day.maxUses !== "infinity") {
           setSeats((prev) =>
             prev.map((s) =>
@@ -614,30 +643,11 @@ export function useDayActions(deps: DayActionsDeps) {
             )
           );
         }
-
-        if (result.logs.privateLog) addLog(result.logs.privateLog);
-        if (result.logs.publicLog) addLog(result.logs.publicLog);
-
-        if (result.modal) {
-          setCurrentModal(result.modal);
-        }
-
+        addLog(`${sourceSeatId + 1}号 [${sourceSeat.role.name}] 发动技能`);
         return;
       }
 
-      // 无 handler → 通用回退：标记已使用 + 说书人提示
-      if (modularHandler.day.maxUses !== "infinity") {
-        setSeats((prev) =>
-          prev.map((s) =>
-            s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
-          )
-        );
-      }
-      addLog(`${sourceSeatId + 1}号 [${sourceSeat.role.name}] 发动技能`);
-      return;
-    }
-
-    if (!sourceSeat.role.dayMeta) {
+      if (!sourceSeat.role.dayMeta) {
         return;
       }
 

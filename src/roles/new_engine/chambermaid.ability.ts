@@ -38,10 +38,12 @@ const calculateResult = async (
     const results = Object.values(abilityResults) as any[];
     const wokenPlayers = new Set<number>();
     for (const r of results) {
-      if (r && typeof r.seatId === 'number') wokenPlayers.add(r.seatId);
-      if (r && typeof r.targetId === 'number') wokenPlayers.add(r.targetId);
+      if (r && typeof r.seatId === "number") wokenPlayers.add(r.seatId);
+      if (r && typeof r.targetId === "number") wokenPlayers.add(r.targetId);
     }
-    wokenCount = targetIds.filter((tid: number) => wokenPlayers.has(tid)).length;
+    wokenCount = targetIds.filter((tid: number) =>
+      wokenPlayers.has(tid)
+    ).length;
   } else {
     // 醉酒/中毒时，可能返回错误结果（随机值 0-2）
     wokenCount = Math.floor(Math.random() * 3);

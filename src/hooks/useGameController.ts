@@ -11,7 +11,6 @@ import {
   scripts,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
-import { createSnapshotFromState, saveCurrentSnapshot } from "../utils/persistence";
 import { getRoleDefinition } from "../roles";
 import type { GameRecord } from "../types/game";
 import {
@@ -30,6 +29,10 @@ import {
   isEvil,
   isGoodAlignment,
 } from "../utils/gameRules";
+import {
+  createSnapshotFromState,
+  saveCurrentSnapshot,
+} from "../utils/persistence";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
@@ -222,7 +225,9 @@ export function useGameController() {
   }, []);
 
   const { dispatch: baseDispatch } = useGameContext();
-  const [systemStepRoleIds, setSystemStepRoleIds] = useState<Map<number, string>>(new Map());
+  const [systemStepRoleIds, setSystemStepRoleIds] = useState<
+    Map<number, string>
+  >(new Map());
 
   const findNearestAliveNeighbor = useCallback(
     (originId: number, direction: 1 | -1) => {
@@ -679,8 +684,10 @@ export function useGameController() {
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
       rawContinueToNextAction(latestSeats);
+      // BUG FIX: 推进到下一步时必须清除已选目标，否则下一个步骤会沿用旧的目标
+      setSelectedActionTargets([]);
     },
-    [rawContinueToNextAction]
+    [rawContinueToNextAction, setSelectedActionTargets]
   );
 
   const nightLogic = useNightEngine(
@@ -1297,13 +1304,15 @@ export function useGameController() {
       // 构建系统步骤映射（minion_info / demon_info -> seatId）
       const stepMap = new Map<number, string>();
       queue.forEach((node: any) => {
-        if (node.roleId === 'minion_info' || node.roleId === 'demon_info') {
+        if (node.roleId === "minion_info" || node.roleId === "demon_info") {
           stepMap.set(node.seatId, node.roleId);
         }
       });
       if (stepMap.size > 0) {
         setSystemStepRoleIds(stepMap);
-        console.log("[GameController] System info steps:", [...stepMap.entries()]);
+        console.log("[GameController] System info steps:", [
+          ...stepMap.entries(),
+        ]);
       }
 
       // 设置 pendingNightQueue

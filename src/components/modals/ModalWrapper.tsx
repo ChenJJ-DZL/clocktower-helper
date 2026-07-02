@@ -51,6 +51,7 @@ export function ModalWrapper({
 
   return createPortal(
     <div
+      role="dialog"
       data-modal-key={portalKey}
       className="fixed inset-0 flex items-center justify-center bg-black/50 pointer-events-auto"
       style={

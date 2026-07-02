@@ -12,15 +12,15 @@ import { skipToDay } from "./night_helper";
 // 所有需验证的 DAY 能力角色 [roleName, scriptText, demonName]
 const DAY_ROLES: [string, string, string][] = [
   // 暗流涌动 (Trouble Brewing)
-  ["猎手",    "暗流涌动", "小恶魔"],
+  ["猎手", "暗流涌动", "小恶魔"],
   // 黯月初升 (Bad Moon Rising)
-  ["赌徒",    "黯月初升", "僵怖"],
-  ["造谣者",  "黯月初升", "僵怖"],
-  ["修补匠",  "黯月初升", "僵怖"],
+  ["赌徒", "黯月初升", "僵怖"],
+  ["造谣者", "黯月初升", "僵怖"],
+  ["修补匠", "黯月初升", "僵怖"],
   // 梦殒春宵 (Sects & Violets)
-  ["艺术家",  "梦殒春宵", "涡流"],
-  ["博学者",  "梦殒春宵", "涡流"],
-  ["杂耍艺人","梦殒春宵", "涡流"],
+  ["艺术家", "梦殒春宵", "涡流"],
+  ["博学者", "梦殒春宵", "涡流"],
+  ["杂耍艺人", "梦殒春宵", "涡流"],
 ];
 
 // 分配角色
@@ -54,12 +54,23 @@ async function assignRoles(
   await assign(dayRoleName, 0);
 
   // 分配镇民和邪恶角色（根据剧本不同）
-  const townsfolk = scriptText === "暗流涌动" ? "洗衣妇" :
-                    scriptText === "黯月初升" ? "祖母" : "筑梦师";
-  const minion = scriptText === "暗流涌动" ? "投毒者" :
-                 scriptText === "黯月初升" ? "刺客" : "麻脸巫婆";
+  const townsfolk =
+    scriptText === "暗流涌动"
+      ? "洗衣妇"
+      : scriptText === "黯月初升"
+        ? "祖母"
+        : "筑梦师";
+  const minion =
+    scriptText === "暗流涌动"
+      ? "投毒者"
+      : scriptText === "黯月初升"
+        ? "刺客"
+        : "麻脸巫婆";
   await assign(townsfolk, 1);
-  await assign(townsfolk === "洗衣妇" ? "厨师" : townsfolk === "祖母" ? "水手" : "数学家", 2);
+  await assign(
+    townsfolk === "洗衣妇" ? "厨师" : townsfolk === "祖母" ? "水手" : "数学家",
+    2
+  );
   await assign(minion, 3);
   await assign(demonName, 4);
 
@@ -83,14 +94,19 @@ test.describe("所有 DAY 能力角色按钮验证", () => {
 
       // 自动处理对话框
       page.on("dialog", (dialog) => {
-        console.log(`✅ [${roleName}] 对话框:`, dialog.message().substring(0, 50));
+        console.log(
+          `✅ [${roleName}] 对话框:`,
+          dialog.message().substring(0, 50)
+        );
         dialog.accept();
       });
 
       await assignRoles({ page }, script, roleName, demon);
 
       // 验证按钮存在
-      const btn = page.locator("button:has-text('使用 '), button:has-text('使用  ')").first();
+      const btn = page
+        .locator("button:has-text('使用 '), button:has-text('使用  ')")
+        .first();
 
       // 找包含角色名的按钮
       const roleBtn = page.locator(`button:has-text('${roleName}')`);

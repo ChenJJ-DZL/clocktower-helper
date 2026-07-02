@@ -161,12 +161,17 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
 
     if (!hasFn && !hasOn) continue; // 无夜晚行动
 
-    const firstNightItem = firstNightOrder.find((item) => item.roleId === ability.roleId);
-    const otherNightItem = otherNightOrder.find((item) => item.roleId === ability.roleId);
+    const firstNightItem = firstNightOrder.find(
+      (item) => item.roleId === ability.roleId
+    );
+    const otherNightItem = otherNightOrder.find(
+      (item) => item.roleId === ability.roleId
+    );
 
     entries.push({
       roleId: ability.roleId,
-      roleName: firstNightItem?.roleName || otherNightItem?.roleName || ability.roleId,
+      roleName:
+        firstNightItem?.roleName || otherNightItem?.roleName || ability.roleId,
       abilityId: ability.abilityId,
       firstNightPriority: hasFn ? fn! : 0,
       otherNightPriority: hasOn ? on! : 0,
@@ -174,13 +179,15 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
       otherNightOnly: (ability as any).otherNightOnly ?? (hasOn && !hasFn),
       wakeMessage: ability.wakePromptId || `${ability.roleId}请行动`,
       // 间谍死后仍可唤醒查看魔典（规则明确允许）
-      deadActorWakes: ability.roleId === 'spy',
+      deadActorWakes: ability.roleId === "spy",
     });
   }
 
   entries.sort((a, b) => {
-    const pa = a.firstNightPriority > 0 ? a.firstNightPriority : a.otherNightPriority;
-    const pb = b.firstNightPriority > 0 ? b.firstNightPriority : b.otherNightPriority;
+    const pa =
+      a.firstNightPriority > 0 ? a.firstNightPriority : a.otherNightPriority;
+    const pb =
+      b.firstNightPriority > 0 ? b.firstNightPriority : b.otherNightPriority;
     return pa - pb;
   });
   return entries;

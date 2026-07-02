@@ -58,12 +58,9 @@ export interface NightActionHandlerContext {
 /** 将 React Seat 的遗留布尔字段翻译为新引擎 statusEffects[] */
 function translateLegacyStatusesToEffects(seat: Seat): any[] {
   const effects: any[] = [];
-  if (seat.isPoisoned)
-    effects.push({ type: "poisoned", source: "legacy" });
-  if (seat.isProtected)
-    effects.push({ type: "protected", source: "legacy" });
-  if (seat.isDrunk)
-    effects.push({ type: "drunk", source: "legacy" });
+  if (seat.isPoisoned) effects.push({ type: "poisoned", source: "legacy" });
+  if (seat.isProtected) effects.push({ type: "protected", source: "legacy" });
+  if (seat.isDrunk) effects.push({ type: "drunk", source: "legacy" });
   return effects;
 }
 
@@ -143,7 +140,7 @@ async function executeViaNewEngine(
     return {
       ...s,
       isAlive: !s.isDead,
-      statusEffects: [...(legacyEffects), ...((s as any).statusEffects || [])],
+      statusEffects: [...legacyEffects, ...((s as any).statusEffects || [])],
     };
   });
 
@@ -291,7 +288,8 @@ async function executeViaNewEngine(
     }
 
     // 记录日志
-    const abilityLog = resultContext.meta.abilityLog || resultContext.meta.prompt;
+    const abilityLog =
+      resultContext.meta.abilityLog || resultContext.meta.prompt;
     if (abilityLog) {
       context.addLog(`[能力] ${abilityLog}`);
     }

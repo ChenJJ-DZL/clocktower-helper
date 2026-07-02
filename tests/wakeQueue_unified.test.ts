@@ -8,14 +8,14 @@
  * 5. 转换工具函数正确
  */
 import { describe, expect, test } from "vitest";
+import type { Seat } from "../app/data";
+import type { NightActionNode } from "../src/utils/nightStateMachine";
 import {
+  idsToNightActionNodes,
+  nightActionNodesToIds,
   normalizeNightActionQueue,
   normalizeWakeQueueForDeaths,
-  nightActionNodesToIds,
-  idsToNightActionNodes,
 } from "../src/utils/wakeQueue";
-import type { NightActionNode } from "../src/utils/nightStateMachine";
-import type { Seat } from "../app/data";
 
 describe("normalizeNightActionQueue (新 API)", () => {
   const makeNodes = (seatIds: number[]): NightActionNode[] =>
@@ -111,15 +111,62 @@ describe("normalizeNightActionQueue - 特殊角色", () => {
       hasAbilityEvenDead: false,
     } as Seat;
     const seats = [
-      { id: 0, role: { id: "villager", name: "村夫", type: "townsfolk" }, isDead: false } as Seat,
-      { id: 1, role: { id: "chef", name: "厨师", type: "townsfolk" }, isDead: false } as Seat,
+      {
+        id: 0,
+        role: { id: "villager", name: "村夫", type: "townsfolk" },
+        isDead: false,
+      } as Seat,
+      {
+        id: 1,
+        role: { id: "chef", name: "厨师", type: "townsfolk" },
+        isDead: false,
+      } as Seat,
       ravenkeeperSeat,
     ];
 
     const nodes: NightActionNode[] = [
-      { seatId: 0, roleId: "villager", roleName: "村夫", priority: 1, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 1, targetIds: [], processed: false, success: false, meta: {} },
-      { seatId: 1, roleId: "chef", roleName: "厨师", priority: 2, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 2, targetIds: [], processed: false, success: false, meta: {} },
-      { seatId: 2, roleId: "ravenkeeper", roleName: "守鸦人", priority: 3, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 3, targetIds: [], processed: false, success: false, meta: {} },
+      {
+        seatId: 0,
+        roleId: "villager",
+        roleName: "村夫",
+        priority: 1,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 1,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
+      {
+        seatId: 1,
+        roleId: "chef",
+        roleName: "厨师",
+        priority: 2,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 2,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
+      {
+        seatId: 2,
+        roleId: "ravenkeeper",
+        roleName: "守鸦人",
+        priority: 3,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 3,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
     ];
 
     const result = normalizeNightActionQueue({
@@ -143,13 +190,43 @@ describe("normalizeNightActionQueue - 特殊角色", () => {
       hasAbilityEvenDead: true,
     } as Seat;
     const seats = [
-      { id: 0, role: { id: "villager", name: "村夫", type: "townsfolk" }, isDead: false } as Seat,
+      {
+        id: 0,
+        role: { id: "villager", name: "村夫", type: "townsfolk" },
+        isDead: false,
+      } as Seat,
       specialSeat,
     ];
 
     const nodes: NightActionNode[] = [
-      { seatId: 0, roleId: "villager", roleName: "村夫", priority: 1, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 1, targetIds: [], processed: false, success: false, meta: {} },
-      { seatId: 1, roleId: "zombuul", roleName: "僵怖", priority: 2, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 2, targetIds: [], processed: false, success: false, meta: {} },
+      {
+        seatId: 0,
+        roleId: "villager",
+        roleName: "村夫",
+        priority: 1,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 1,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
+      {
+        seatId: 1,
+        roleId: "zombuul",
+        roleName: "僵怖",
+        priority: 2,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 2,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
     ];
 
     const result = normalizeNightActionQueue({
@@ -166,9 +243,21 @@ describe("normalizeNightActionQueue - 特殊角色", () => {
 
 describe("normalizeWakeQueueForDeaths (旧 API 兼容)", () => {
   const seats = [
-    { id: 0, role: { id: "villager", name: "村夫", type: "townsfolk" }, isDead: false } as Seat,
-    { id: 1, role: { id: "chef", name: "厨师", type: "townsfolk" }, isDead: false } as Seat,
-    { id: 2, role: { id: "empath", name: "感灵师", type: "townsfolk" }, isDead: true } as Seat,
+    {
+      id: 0,
+      role: { id: "villager", name: "村夫", type: "townsfolk" },
+      isDead: false,
+    } as Seat,
+    {
+      id: 1,
+      role: { id: "chef", name: "厨师", type: "townsfolk" },
+      isDead: false,
+    } as Seat,
+    {
+      id: 2,
+      role: { id: "empath", name: "感灵师", type: "townsfolk" },
+      isDead: true,
+    } as Seat,
   ];
 
   test("旧 API 通过新 API 实现，结果一致", () => {
@@ -188,8 +277,34 @@ describe("normalizeWakeQueueForDeaths (旧 API 兼容)", () => {
 describe("转换工具", () => {
   test("nightActionNodesToIds 正确转换", () => {
     const nodes: NightActionNode[] = [
-      { seatId: 0, roleId: "a", roleName: "A", priority: 1, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 1, targetIds: [], processed: false, success: false, meta: {} },
-      { seatId: 5, roleId: "b", roleName: "B", priority: 2, isFirstNightOnly: false, abilityId: "", wakeMessage: "", wakePriority: 2, targetIds: [], processed: false, success: false, meta: {} },
+      {
+        seatId: 0,
+        roleId: "a",
+        roleName: "A",
+        priority: 1,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 1,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
+      {
+        seatId: 5,
+        roleId: "b",
+        roleName: "B",
+        priority: 2,
+        isFirstNightOnly: false,
+        abilityId: "",
+        wakeMessage: "",
+        wakePriority: 2,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {},
+      },
     ];
     expect(nightActionNodesToIds(nodes)).toEqual([0, 5]);
   });
@@ -197,7 +312,10 @@ describe("转换工具", () => {
   test("idsToNightActionNodes 正确转换", () => {
     const seats = [
       { id: 0, role: { id: "chef", name: "厨师", type: "townsfolk" } } as Seat,
-      { id: 1, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } } as Seat,
+      {
+        id: 1,
+        role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
+      } as Seat,
     ];
     const nodes = idsToNightActionNodes([0, 1], seats);
     expect(nodes[0].seatId).toBe(0);

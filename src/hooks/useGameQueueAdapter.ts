@@ -11,8 +11,8 @@
 import type { Seat } from "../../app/data";
 import type { NightActionNode } from "../utils/nightStateMachine";
 import {
-  nightActionNodesToIds,
   idsToNightActionNodes,
+  nightActionNodesToIds,
 } from "../utils/wakeQueue";
 
 export interface QueueAdapterState {
@@ -96,10 +96,7 @@ export function createQueueAdapterFromNodes(
     .map((id) => seats.find((s) => s.id === id))
     .filter((seat): seat is Seat => seat !== undefined);
 
-  const currentQueueIndex = Math.max(
-    0,
-    Math.min(inputIndex, nodes.length - 1)
-  );
+  const currentQueueIndex = Math.max(0, Math.min(inputIndex, nodes.length - 1));
   const currentNode = nodes[currentQueueIndex];
   const currentSeatId = currentNode?.seatId;
 

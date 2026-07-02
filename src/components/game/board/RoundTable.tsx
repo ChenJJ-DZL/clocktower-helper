@@ -13,7 +13,7 @@ interface RoundTableProps {
   selectedActionTargets: number[];
   isPortrait: boolean;
   longPressingSeats: Set<number>;
-  onSeatClick: (seat: Seat) => void;
+  onSeatClick: (id: number) => void;
   onContextMenu?: (e: React.MouseEvent, seatId: number) => void;
   onTouchStart: (e: React.TouchEvent, seatId: number) => void;
   onTouchEnd: (e: React.TouchEvent, seatId: number) => void;

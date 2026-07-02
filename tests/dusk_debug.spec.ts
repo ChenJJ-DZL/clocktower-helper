@@ -25,7 +25,12 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
   console.log("=== 首夜跳过 ===");
   for (let i = 0; i < 50; i++) {
     const body = await page.evaluate(() => document.body.innerText || "");
-    if (body.includes("进入黄昏处决阶段") || body.includes("天亮") || body.includes("处决台")) break;
+    if (
+      body.includes("进入黄昏处决阶段") ||
+      body.includes("天亮") ||
+      body.includes("处决台")
+    )
+      break;
 
     // 处理弹窗
     const modals = page.locator('div[role="dialog"]');
@@ -44,17 +49,25 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
       const minMatch = body.match(/最少(\d+)个/);
       const need = minMatch ? Math.min(parseInt(minMatch[1]), hashCount) : 1;
       for (let j = 0; j < need && j < hashCount; j++) {
-        await page.locator('button:has-text("#")').nth(j).click().catch(() => {});
+        await page
+          .locator('button:has-text("#")')
+          .nth(j)
+          .click()
+          .catch(() => {});
         await page.waitForTimeout(200);
       }
     }
 
     // 点确认
-    const cf = page.locator(
-      'button:has-text("确认 & 下一步"), button:has-text("天亮了"), button:has-text("展开对局记录")'
-    ).first();
-    if (await cf.isVisible({ timeout: 200 }).catch(() => false) &&
-        await cf.isEnabled().catch(() => false)) {
+    const cf = page
+      .locator(
+        'button:has-text("确认 & 下一步"), button:has-text("天亮了"), button:has-text("展开对局记录")'
+      )
+      .first();
+    if (
+      (await cf.isVisible({ timeout: 200 }).catch(() => false)) &&
+      (await cf.isEnabled().catch(() => false))
+    ) {
       await cf.click();
       await page.waitForTimeout(600);
     } else {
@@ -63,7 +76,9 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
   }
 
   // 黎明
-  const cfDawn = page.locator('div[role="dialog"] button:has-text("确认")').first();
+  const cfDawn = page
+    .locator('div[role="dialog"] button:has-text("确认")')
+    .first();
   if (await cfDawn.isVisible({ timeout: 3000 }).catch(() => false)) {
     await cfDawn.click();
     await page.waitForTimeout(1000);
@@ -78,12 +93,12 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
 
   const body1 = await page.evaluate(() => document.body.innerText || "");
   console.log(`Dusk entered: ${body1.includes("处决台")}`);
-  
-  const alive = await page.evaluate(() => 
+
+  const alive = await page.evaluate(() =>
     Array.from(document.querySelectorAll(".seat-node"))
-      .filter(n => !n.textContent?.includes("已死亡"))
-      .map(n => parseInt(n.getAttribute("data-seat-id") || "-1"))
-      .filter(id => id >= 0)
+      .filter((n) => !n.textContent?.includes("已死亡"))
+      .map((n) => parseInt(n.getAttribute("data-seat-id") || "-1"))
+      .filter((id) => id >= 0)
   );
   console.log(`Alive: ${alive.join(",")}`);
 
@@ -98,9 +113,11 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
     await page.waitForTimeout(600);
 
     const nomBtn = page.getByRole("button", { name: /发起提名/ });
-    const nomVisible = await nomBtn.isVisible({ timeout: 2000 }).catch(() => false);
+    const nomVisible = await nomBtn
+      .isVisible({ timeout: 2000 })
+      .catch(() => false);
     console.log(`发起提名: ${nomVisible}`);
-    
+
     if (nomVisible) {
       await nomBtn.click();
       await page.waitForTimeout(1000);
@@ -112,12 +129,14 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
         for (const v of voters) {
           const vb = vm.locator(`button:has-text("${v + 1}号")`);
           if (await vb.isVisible({ timeout: 200 }).catch(() => false)) {
-            await vb.click(); await page.waitForTimeout(100);
+            await vb.click();
+            await page.waitForTimeout(100);
           }
         }
         const cfV = vm.locator("button:has-text(/确认（.*票/)");
         if (await cfV.isVisible({ timeout: 500 }).catch(() => false)) {
-          await cfV.click(); await page.waitForTimeout(800);
+          await cfV.click();
+          await page.waitForTimeout(800);
         }
       }
     }
@@ -132,11 +151,16 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
 
     // 执行处决
     const exec = page.getByRole("button", { name: /执行处决/ });
-    const execVisible = await exec.isVisible({ timeout: 3000 }).catch(() => false);
+    const execVisible = await exec
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
     console.log(`执行处决: ${execVisible}`);
 
-    page.once("dialog", d => { console.log(`Alert: ${d.message().substring(0, 80)}`); d.accept(); });
-    
+    page.once("dialog", (d) => {
+      console.log(`Alert: ${d.message().substring(0, 80)}`);
+      d.accept();
+    });
+
     if (execVisible) {
       await exec.click();
       await page.waitForTimeout(2000);
@@ -144,8 +168,12 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
 
     // 确认处决结果
     await page.waitForTimeout(1000);
-    const cfE = page.locator('div[role="dialog"] button:has-text("确认")').first();
-    const cfEvisible = await cfE.isVisible({ timeout: 3000 }).catch(() => false);
+    const cfE = page
+      .locator('div[role="dialog"] button:has-text("确认")')
+      .first();
+    const cfEvisible = await cfE
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
     console.log(`确认弹窗: ${cfEvisible}`);
 
     if (cfEvisible) {
@@ -155,9 +183,16 @@ test("黄昏→夜晚 过渡", async ({ page }) => {
   }
 
   // 最终状态
-  const fb = await page.evaluate(() => document.body.innerText.substring(0, 300));
-  console.log(`FINAL: night=${fb.includes("夜晚行动")} day=${fb.includes("进入黄昏")} gameOver=${fb.includes("游戏结束")}`);
-  
-  await page.screenshot({ path: "test-results/dusk_test_v2.png", fullPage: true });
+  const fb = await page.evaluate(() =>
+    document.body.innerText.substring(0, 300)
+  );
+  console.log(
+    `FINAL: night=${fb.includes("夜晚行动")} day=${fb.includes("进入黄昏")} gameOver=${fb.includes("游戏结束")}`
+  );
+
+  await page.screenshot({
+    path: "test-results/dusk_test_v2.png",
+    fullPage: true,
+  });
   console.log("=== DONE ===");
 });

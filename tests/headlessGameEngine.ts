@@ -1,5 +1,6 @@
 let _registryInitialized = false;
-﻿/**
+
+/**
  * 无头游戏引擎 — Layer 4 仿真对局层核心
  *
  * 不依赖浏览器，直接通过新引擎能力注册表执行游戏。
@@ -7,21 +8,45 @@ let _registryInitialized = false;
 
 import type { GamePhase, Role, Seat } from "../app/data";
 import { roles } from "../app/data";
-import { isEvil } from "../src/utils/gameRules";
+import {
+  getRawAbilityMap,
+  initializeAbilityRegistry,
+} from "../src/roles/new_engine/abilityRegistry";
 import { unifiedRoleDefinition } from "../src/roles/unifiedRoleDefinition";
-import { getRawAbilityMap, initializeAbilityRegistry } from "../src/roles/new_engine/abilityRegistry";
-import { generateDynamicNightQueue, type NightOrderEntry } from "../src/utils/dynamicQueueGenerator";
+import {
+  generateDynamicNightQueue,
+  type NightOrderEntry,
+} from "../src/utils/dynamicQueueGenerator";
+import { isEvil } from "../src/utils/gameRules";
 import { runFullAbilityPipeline } from "../src/utils/middlewarePipeline";
 import type { MiddlewareContext } from "../src/utils/middlewareTypes";
 import { nightOrderParser } from "../src/utils/nightOrderParser";
 
 // 剧本角色ID映射（从 json/play/*.json 提取，确保严格过滤）
 const SCRIPT_CHAR_IDS: Record<string, Set<string>> = {
-  "暗流涌动": new Set([
-    "washerwoman","librarian","investigator","chef","empath","fortune_teller",
-    "undertaker","monk","ravenkeeper","virgin","slayer","soldier","mayor",
-    "butler","drunk","recluse","saint",
-    "poisoner","spy","scarlet_woman","baron","imp",
+  暗流涌动: new Set([
+    "washerwoman",
+    "librarian",
+    "investigator",
+    "chef",
+    "empath",
+    "fortune_teller",
+    "undertaker",
+    "monk",
+    "ravenkeeper",
+    "virgin",
+    "slayer",
+    "soldier",
+    "mayor",
+    "butler",
+    "drunk",
+    "recluse",
+    "saint",
+    "poisoner",
+    "spy",
+    "scarlet_woman",
+    "baron",
+    "imp",
   ]),
 };
 
@@ -31,11 +56,11 @@ export interface ScriptConfig {
 }
 
 export const SCRIPTS: ScriptConfig[] = [
-  { id: "暗流涌动",      name: "Trouble Brewing" },
-  { id: "黯月初升",      name: "Bad Moon Rising" },
-  { id: "梦陨春宵",      name: "Sects & Violets" },
-  { id: "夜半狂欢",      name: "Midnight Revelry" },
-  { id: "__all__",       name: "All Roles (Mixed)" },
+  { id: "暗流涌动", name: "Trouble Brewing" },
+  { id: "黯月初升", name: "Bad Moon Rising" },
+  { id: "梦陨春宵", name: "Sects & Violets" },
+  { id: "夜半狂欢", name: "Midnight Revelry" },
+  { id: "__all__", name: "All Roles (Mixed)" },
 ];
 
 export const MIN_PLAYERS = 7;
@@ -108,15 +133,22 @@ function filterRolesByScript(scriptId, type) {
   if (charIds) {
     return roles.filter((r) => r.type === type && charIds.has(r.id));
   }
-  return roles.filter((r) => r.type === type && (!r.script || r.script === scriptId));
+  return roles.filter(
+    (r) => r.type === type && (!r.script || r.script === scriptId)
+  );
 }
 
 function getRoleSetup(playerCount) {
-  if (playerCount === 9) return { townsfolk: 5, outsider: 2, minion: 1, demon: 1 };
-  if (playerCount === 10) return { townsfolk: 7, outsider: 0, minion: 2, demon: 1 };
-  if (playerCount === 11) return { townsfolk: 7, outsider: 0, minion: 2, demon: 1 };
-  if (playerCount === 12) return { townsfolk: 7, outsider: 1, minion: 2, demon: 1 };
-  if (playerCount >= 13) return { townsfolk: 7, outsider: 2, minion: 2, demon: 1 };
+  if (playerCount === 9)
+    return { townsfolk: 5, outsider: 2, minion: 1, demon: 1 };
+  if (playerCount === 10)
+    return { townsfolk: 7, outsider: 0, minion: 2, demon: 1 };
+  if (playerCount === 11)
+    return { townsfolk: 7, outsider: 0, minion: 2, demon: 1 };
+  if (playerCount === 12)
+    return { townsfolk: 7, outsider: 1, minion: 2, demon: 1 };
+  if (playerCount >= 13)
+    return { townsfolk: 7, outsider: 2, minion: 2, demon: 1 };
   return { townsfolk: 5, outsider: 0, minion: 1, demon: 1 };
 }
 
@@ -130,8 +162,8 @@ function buildFullNightOrder(): NightOrderEntry[] {
   const otherNightOrder = nightOrderParser.getOtherNightOrder();
 
   for (const ability of allAbilities) {
-    const firstItem = firstNightOrder.find(i => i.roleId === ability.roleId);
-    const otherItem = otherNightOrder.find(i => i.roleId === ability.roleId);
+    const firstItem = firstNightOrder.find((i) => i.roleId === ability.roleId);
+    const otherItem = otherNightOrder.find((i) => i.roleId === ability.roleId);
 
     const fn = ability.firstNightPriority;
     const on = ability.otherNightPriority;
@@ -183,8 +215,15 @@ export class HeadlessGameEngine {
     this.deadThisNight = [];
     this.events = [];
 
-    if (!_registryInitialized) { initializeAbilityRegistry(); _registryInitialized = true; }
-    if (!HeadlessGameEngine._initialized) { HeadlessGameEngine._initialized = true; } else { console.log = function(){}; }
+    if (!_registryInitialized) {
+      initializeAbilityRegistry();
+      _registryInitialized = true;
+    }
+    if (!HeadlessGameEngine._initialized) {
+      HeadlessGameEngine._initialized = true;
+    } else {
+      console.log = () => {};
+    }
     this.fullNightOrder = buildFullNightOrder();
     this.abilityMap = buildAbilityMap();
   }
@@ -209,8 +248,12 @@ export class HeadlessGameEngine {
 
   assignRoles() {
     const setup = getRoleSetup(this.playerCount);
-    const allTownsfolk = shuffle(filterRolesByScript(this.script.id, "townsfolk"));
-    const allOutsider = shuffle(filterRolesByScript(this.script.id, "outsider"));
+    const allTownsfolk = shuffle(
+      filterRolesByScript(this.script.id, "townsfolk")
+    );
+    const allOutsider = shuffle(
+      filterRolesByScript(this.script.id, "outsider")
+    );
     const allMinion = shuffle(filterRolesByScript(this.script.id, "minion"));
     const allDemon = shuffle(filterRolesByScript(this.script.id, "demon"));
 
@@ -224,26 +267,34 @@ export class HeadlessGameEngine {
     const shuffled = shuffle(usedRoles);
 
     // 处理酒鬼：替换为随机镇民伪装角色
-    const drunkIdx = shuffled.findIndex(r => r.id === "drunk");
+    const drunkIdx = shuffled.findIndex((r) => r.id === "drunk");
     if (drunkIdx >= 0) {
       const availableTownsfolk = allTownsfolk.filter(
-        r => !shuffled.some(s => s.id === r.id)
+        (r) => !shuffled.some((s) => s.id === r.id)
       );
-      const charade = availableTownsfolk.length > 0
-        ? availableTownsfolk[Math.floor(Math.random() * availableTownsfolk.length)]
-        : allTownsfolk[0]; // fallback
+      const charade =
+        availableTownsfolk.length > 0
+          ? availableTownsfolk[
+              Math.floor(Math.random() * availableTownsfolk.length)
+            ]
+          : allTownsfolk[0]; // fallback
       shuffled[drunkIdx] = { ...shuffled[drunkIdx] };
     }
 
     this.seats = shuffled.map((role, i) => ({
       id: i,
       role,
-      charadeRole: role.id === "drunk"
-        ? (() => {
-            const tf = allTownsfolk.filter(r => !shuffled.some(s => s.id === r.id));
-            return tf.length > 0 ? tf[Math.floor(Math.random() * tf.length)] : allTownsfolk[0];
-          })()
-        : null,
+      charadeRole:
+        role.id === "drunk"
+          ? (() => {
+              const tf = allTownsfolk.filter(
+                (r) => !shuffled.some((s) => s.id === r.id)
+              );
+              return tf.length > 0
+                ? tf[Math.floor(Math.random() * tf.length)]
+                : allTownsfolk[0];
+            })()
+          : null,
       isDead: false,
       isDrunk: false,
       isPoisoned: false,
@@ -287,11 +338,12 @@ export class HeadlessGameEngine {
     );
 
     for (const node of queue) {
-      const seat = this.seats.find(s => s.id === node.seatId);
+      const seat = this.seats.find((s) => s.id === node.seatId);
       if (!seat || seat.isDead) continue;
 
-      if (node.roleId === "minion_info" || node.roleId === "demon_info") continue;
-    const ability = this.abilityMap[node.abilityId];
+      if (node.roleId === "minion_info" || node.roleId === "demon_info")
+        continue;
+      const ability = this.abilityMap[node.abilityId];
       if (!ability) {
         this.errors.push("能力未注册: " + node.abilityId);
         continue;
@@ -301,7 +353,7 @@ export class HeadlessGameEngine {
 
       // 士兵免疫：恶魔击杀对士兵无效
       if (seat.role?.type === "demon" && node.roleId === "imp") {
-        targets.forEach(t => {
+        targets.forEach((t) => {
           if (t?.role?.id === "soldier") {
             // Remove soldier from targets (ability will still "trigger" but no kill)
             targets.splice(targets.indexOf(t), 1);
@@ -311,8 +363,8 @@ export class HeadlessGameEngine {
 
       const context = {
         snapshot: this.createSnapshot(),
-        actionNode: { ...node, targetIds: targets.map(t => t.id) },
-        targetIds: targets.map(t => t.id),
+        actionNode: { ...node, targetIds: targets.map((t) => t.id) },
+        targetIds: targets.map((t) => t.id),
         meta: {},
         aborted: false,
       };
@@ -341,7 +393,7 @@ export class HeadlessGameEngine {
           abilityName: ability.abilityName || "",
           timing: "night",
           round: this.currentRound,
-          targets: targets.map(t => t.id),
+          targets: targets.map((t) => t.id),
           success: !result.aborted,
           error: result.abortReason,
           corrupted: !!isCorrupted,
@@ -349,7 +401,9 @@ export class HeadlessGameEngine {
         this.triggers.push(trigger);
         roundReport.abilityTriggers.push(trigger);
       } catch (e) {
-        this.errors.push("能力异常 " + node.roleName + ": " + (e.message || String(e)));
+        this.errors.push(
+          "能力异常 " + node.roleName + ": " + (e.message || String(e))
+        );
         this.triggers.push({
           seatId: seat.id,
           roleId: seat.role?.id || "",
@@ -358,7 +412,7 @@ export class HeadlessGameEngine {
           abilityName: ability.abilityName || "",
           timing: "night",
           round: this.currentRound,
-          targets: targets.map(t => t.id),
+          targets: targets.map((t) => t.id),
           success: false,
           error: e.message,
           corrupted: false,
@@ -406,21 +460,28 @@ export class HeadlessGameEngine {
 
   selectTargets(actor, targetConfig) {
     const pool = targetConfig.allowDead ? this.seats : this.getAliveSeats();
-    const alive = pool.filter(s => {
+    const alive = pool.filter((s) => {
       if (!targetConfig.allowSelf && s.id === actor.id) return false;
       if (!targetConfig.allowDead && s.isDead) return false;
       return true;
     });
     if (alive.length === 0) return [];
-    const count = targetConfig.max === 0 ? 0 : Math.min(targetConfig.max || 1, alive.length);
+    const count =
+      targetConfig.max === 0
+        ? 0
+        : Math.min(targetConfig.max || 1, alive.length);
     return pickRandomN(alive, count);
   }
 
   processDemonKill() {
     if (this.nightCount === 1) return; // 首夜恶魔不杀人
-    const aliveDemons = this.getAliveSeats().filter(s => s.role?.type === "demon");
+    const aliveDemons = this.getAliveSeats().filter(
+      (s) => s.role?.type === "demon"
+    );
     for (const demon of aliveDemons) {
-      const targets = this.getAliveSeats().filter(s => s.id !== demon.id && !this.deadThisNight.includes(s.id));
+      const targets = this.getAliveSeats().filter(
+        (s) => s.id !== demon.id && !this.deadThisNight.includes(s.id)
+      );
       if (targets.length === 0) continue;
       const victim = targets[Math.floor(Math.random() * targets.length)];
       // 士兵免疫恶魔击杀
@@ -428,7 +489,8 @@ export class HeadlessGameEngine {
       // 僧侣保护检查
       if (!victim.isProtected) {
         this.killSeat(victim.id);
-        if (!this.deadThisNight.includes(victim.id)) this.deadThisNight.push(victim.id);
+        if (!this.deadThisNight.includes(victim.id))
+          this.deadThisNight.push(victim.id);
         this.seats[victim.id].deathSource = "demon";
       }
     }
@@ -437,24 +499,52 @@ export class HeadlessGameEngine {
   checkGameEnd() {
     if (this.gameOver) return;
     const alive = this.getAliveSeats();
-    const evilAlive = alive.filter(s => isEvil(s));
-    const goodAlive = alive.filter(s => !isEvil(s));
-    const demonAlive = evilAlive.some(s => s.role?.type === "demon");
+    const evilAlive = alive.filter((s) => isEvil(s));
+    const goodAlive = alive.filter((s) => !isEvil(s));
+    const demonAlive = evilAlive.some((s) => s.role?.type === "demon");
 
-    if (!demonAlive) { this.winner = "good"; this.gameOver = true; return; }
-    if (goodAlive.length === 0) { this.winner = "evil"; this.gameOver = true; return; }
-    if (alive.length <= 2 && evilAlive.length >= 1) { this.winner = "evil"; this.gameOver = true; return; }
+    if (!demonAlive) {
+      this.winner = "good";
+      this.gameOver = true;
+      return;
+    }
+    if (goodAlive.length === 0) {
+      this.winner = "evil";
+      this.gameOver = true;
+      return;
+    }
+    if (alive.length <= 2 && evilAlive.length >= 1) {
+      this.winner = "evil";
+      this.gameOver = true;
+      return;
+    }
   }
 
-  getAliveSeats() { return this.seats.filter(s => !s.isDead); }
-  killSeat(id) { const idx = this.seats.findIndex(s => s.id === id); if (idx >= 0) this.seats[idx] = { ...this.seats[idx], isDead: true, diedAtNight: this.nightCount }; }
+  getAliveSeats() {
+    return this.seats.filter((s) => !s.isDead);
+  }
+  killSeat(id) {
+    const idx = this.seats.findIndex((s) => s.id === id);
+    if (idx >= 0)
+      this.seats[idx] = {
+        ...this.seats[idx],
+        isDead: true,
+        diedAtNight: this.nightCount,
+      };
+  }
 
   createSnapshot() {
     return {
       nightCount: this.nightCount,
-      seats: this.seats.map(s => ({ ...s, isAlive: !s.isDead, statusEffects: s.statuses || [] })),
+      seats: this.seats.map((s) => ({
+        ...s,
+        isAlive: !s.isDead,
+        statusEffects: s.statuses || [],
+      })),
       statusEffects: {},
-      availableRoles: roles.filter(r => r.type).map(r => ({ id: r.id, name: r.name, type: r.type })),
+      availableRoles: roles
+        .filter((r) => r.type)
+        .map((r) => ({ id: r.id, name: r.name, type: r.type })),
       lastDuskExecution: this.lastExecutedId ?? null,
       executedSeatId: this.lastExecutedId ?? null,
       gamePhase: this.phase,
@@ -463,7 +553,7 @@ export class HeadlessGameEngine {
 
   syncSeatsFromSnapshot(snapshotSeats) {
     for (const snapSeat of snapshotSeats) {
-      const idx = this.seats.findIndex(s => s.id === snapSeat.id);
+      const idx = this.seats.findIndex((s) => s.id === snapSeat.id);
       if (idx >= 0) {
         const merged = { ...this.seats[idx] };
         // 从快照同步关键字段，但保留引擎特有的管理字段
@@ -471,9 +561,15 @@ export class HeadlessGameEngine {
         if (snapSeat.isAlive !== undefined) merged.isAlive = snapSeat.isAlive;
         // 将 ability pipeline 的 statusEffects 同步到引擎字段
         if (snapSeat.statusEffects && Array.isArray(snapSeat.statusEffects)) {
-          merged.isPoisoned = snapSeat.statusEffects.some((e: any) => e.type === "poisoned");
-          merged.isProtected = snapSeat.statusEffects.some((e: any) => e.type === "protected");
-          merged.isDrunk = snapSeat.statusEffects.some((e: any) => e.type === "drunk");
+          merged.isPoisoned = snapSeat.statusEffects.some(
+            (e: any) => e.type === "poisoned"
+          );
+          merged.isProtected = snapSeat.statusEffects.some(
+            (e: any) => e.type === "protected"
+          );
+          merged.isDrunk = snapSeat.statusEffects.some(
+            (e: any) => e.type === "drunk"
+          );
           merged.statuses = snapSeat.statusEffects;
         }
         this.seats[idx] = merged;
@@ -485,8 +581,8 @@ export class HeadlessGameEngine {
     return {
       script: this.script.name,
       playerCount: this.playerCount,
-      seedsRoleIds: this.seats.map(s => s.role?.id || ""),
-      seedsRoleNames: this.seats.map(s => s.role?.name || ""),
+      seedsRoleIds: this.seats.map((s) => s.role?.id || ""),
+      seedsRoleNames: this.seats.map((s) => s.role?.name || ""),
       rounds: this.roundLogs,
       winner: this.winner,
       triggers: this.triggers,
@@ -499,12 +595,12 @@ export class HeadlessGameEngine {
   }
 
   getTriggeredRoleIds() {
-    return [...new Set(this.triggers.map(t => t.roleId))];
+    return [...new Set(this.triggers.map((t) => t.roleId))];
   }
 
   getUntriggeredRoleIds() {
-    const allAssigned = new Set(this.seats.map(s => s.role?.id || ""));
-    const triggered = new Set(this.triggers.map(t => t.roleId));
-    return [...allAssigned].filter(id => !triggered.has(id));
+    const allAssigned = new Set(this.seats.map((s) => s.role?.id || ""));
+    const triggered = new Set(this.triggers.map((t) => t.roleId));
+    return [...allAssigned].filter((id) => !triggered.has(id));
   }
 }

@@ -18,9 +18,24 @@ interface ExpRoleTest {
 }
 
 const EXP_ROLES: ExpRoleTest[] = [
-  { roleName: "渔夫", roleId: "fisherman", demonName: "小恶魔", extraRoles: ["洗衣妇", "厨师", "投毒者"] },
-  { roleName: "工程师", roleId: "engineer", demonName: "小恶魔", extraRoles: ["洗衣妇", "厨师", "投毒者"] },
-  { roleName: "食人族", roleId: "cannibal", demonName: "小恶魔", extraRoles: ["洗衣妇", "厨师", "投毒者"] },
+  {
+    roleName: "渔夫",
+    roleId: "fisherman",
+    demonName: "小恶魔",
+    extraRoles: ["洗衣妇", "厨师", "投毒者"],
+  },
+  {
+    roleName: "工程师",
+    roleId: "engineer",
+    demonName: "小恶魔",
+    extraRoles: ["洗衣妇", "厨师", "投毒者"],
+  },
+  {
+    roleName: "食人族",
+    roleId: "cannibal",
+    demonName: "小恶魔",
+    extraRoles: ["洗衣妇", "厨师", "投毒者"],
+  },
 ];
 
 test.describe("Phase 4 - 实验角色 (自定义剧本)", () => {
@@ -59,7 +74,9 @@ test.describe("Phase 4 - 实验角色 (自定义剧本)", () => {
       }
 
       // ── 4. 保存剧本 ──
-      const saveBtn = page.locator("button:has-text('保存'), button:has-text('创建')").first();
+      const saveBtn = page
+        .locator("button:has-text('保存'), button:has-text('创建')")
+        .first();
       if (await saveBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
         await saveBtn.click();
         await page.waitForTimeout(1000);
@@ -73,7 +90,9 @@ test.describe("Phase 4 - 实验角色 (自定义剧本)", () => {
 
       // ── 6. 分配角色 ──
       await expect(page.getByText("游戏人数")).toBeVisible({ timeout: 10000 });
-      await page.waitForSelector(".seat-node[data-seat-id]", { timeout: 10000 });
+      await page.waitForSelector(".seat-node[data-seat-id]", {
+        timeout: 10000,
+      });
 
       const seats = page.locator(".seat-node[data-seat-id]");
       const assign = async (name: string, idx: number) => {
@@ -107,8 +126,11 @@ test.describe("Phase 4 - 实验角色 (自定义剧本)", () => {
 
       // 关闭残留弹窗
       for (let m = 0; m < 5; m++) {
-        const modal = page.locator(".fixed.inset-0.z-50, [data-modal-key]").first();
-        if (!(await modal.isVisible({ timeout: 100 }).catch(() => false))) break;
+        const modal = page
+          .locator(".fixed.inset-0.z-50, [data-modal-key]")
+          .first();
+        if (!(await modal.isVisible({ timeout: 100 }).catch(() => false)))
+          break;
         const btn = modal.locator("button:not([disabled])").first();
         if (await btn.isVisible({ timeout: 100 }).catch(() => false)) {
           await btn.click().catch(() => {});

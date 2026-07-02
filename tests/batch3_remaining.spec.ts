@@ -6,18 +6,34 @@
  */
 import { expect, test } from "@playwright/test";
 
-interface RoleCheck { name: string; type: string; }
+interface RoleCheck {
+  name: string;
+  type: string;
+}
 
 const ALL_REMAINING: RoleCheck[] = [
   // 实验角色(20, data.ts中有定义的)
-  {name:"食人族",type:"实验"},{name:"失意者",type:"实验"},{name:"无神论者",type:"实验"},
-  {name:"工程师",type:"实验"},{name:"矿工",type:"实验"},{name:"巡山人",type:"实验"},
-  {name:"杂技演员",type:"实验"},{name:"骑士",type:"实验"},{name:"贵族",type:"实验"},
-  {name:"修行者",type:"实验"},{name:"女祭司",type:"实验"},{name:"公主",type:"实验"},
-  {name:"农夫",type:"实验"},{name:"半兽人",type:"实验"},{name:"报丧女妖",type:"实验"},
-  {name:"星象师",type:"实验"},{name:"气球驾驶员",type:"实验"},{name:"解谜大师",type:"实验"},
-  {name:"唱诗男孩",type:"实验"}, // 新完成
-  {name:"提线木偶",type:"实验"},{name:"维齐尔",type:"实验"},
+  { name: "食人族", type: "实验" },
+  { name: "失意者", type: "实验" },
+  { name: "无神论者", type: "实验" },
+  { name: "工程师", type: "实验" },
+  { name: "矿工", type: "实验" },
+  { name: "巡山人", type: "实验" },
+  { name: "杂技演员", type: "实验" },
+  { name: "骑士", type: "实验" },
+  { name: "贵族", type: "实验" },
+  { name: "修行者", type: "实验" },
+  { name: "女祭司", type: "实验" },
+  { name: "公主", type: "实验" },
+  { name: "农夫", type: "实验" },
+  { name: "半兽人", type: "实验" },
+  { name: "报丧女妖", type: "实验" },
+  { name: "星象师", type: "实验" },
+  { name: "气球驾驶员", type: "实验" },
+  { name: "解谜大师", type: "实验" },
+  { name: "唱诗男孩", type: "实验" }, // 新完成
+  { name: "提线木偶", type: "实验" },
+  { name: "维齐尔", type: "实验" },
   // 传奇角色(10) — 待后续: 需要RoleDefinition实现
   // 旅行者(5) — 待后续: 需要研究游戏内添加UI流程
 ];

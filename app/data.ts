@@ -1751,7 +1751,8 @@ export const roles: Role[] = [
     name: "唱诗男孩",
     type: "townsfolk",
     ability: "如果国王死亡，你会得知谁是恶魔。",
-    fullDescription: "如果国王死亡，你会得知谁是恶魔。说书人可以直接告知恶魔身份，或提供模糊线索。",
+    fullDescription:
+      "如果国王死亡，你会得知谁是恶魔。说书人可以直接告知恶魔身份，或提供模糊线索。",
     script: "实验性角色",
   },
   // ========== 外来者 (Outsider) - 暗流涌动 + 黯月初升 + 梦殒春宵 + 实验性角色 ==========

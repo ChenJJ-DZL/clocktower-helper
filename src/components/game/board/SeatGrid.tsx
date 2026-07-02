@@ -13,7 +13,7 @@ export interface SeatGridProps {
   isPortrait: boolean;
   seatScale: number;
   longPressingSeats: Set<number>;
-  onSeatClick: (seat: Seat) => void;
+  onSeatClick: (id: number) => void;
   onSeatLongPress?: (seat: Seat) => void;
   onContextMenu: (e: React.MouseEvent, seatId: number) => void;
   onTouchStart: (e: React.TouchEvent, seatId: number) => void;
@@ -76,12 +76,7 @@ export function SeatGrid(props: SeatGridProps) {
               nightInfo={nightInfo}
               selectedActionTargets={selectedActionTargets}
               longPressingSeats={longPressingSeats}
-              onSeatClick={(id: number) => {
-                const clickedSeat = seats.find((s) => s.id === id);
-                if (clickedSeat) {
-                  onSeatClick(clickedSeat);
-                }
-              }}
+              onSeatClick={onSeatClick}
               onContextMenu={onContextMenu}
               onTouchStart={onTouchStart}
               onTouchEnd={onTouchEnd}
@@ -116,7 +111,7 @@ export function SeatGrid(props: SeatGridProps) {
             "Selected role:",
             seat.role?.name
           );
-          onSeatClick(seat);
+          onSeatClick(seat.id);
         };
         const handleTouchEnd = (e: React.TouchEvent) => {
           e.stopPropagation();
@@ -127,7 +122,7 @@ export function SeatGrid(props: SeatGridProps) {
             "Selected role:",
             seat.role?.name
           );
-          onSeatClick(seat);
+          onSeatClick(seat.id);
         };
         return (
           <button

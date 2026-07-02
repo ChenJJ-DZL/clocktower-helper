@@ -8,7 +8,6 @@ import { expect, test } from "@playwright/test";
 import { skipToDay } from "./night_helper";
 
 test.describe("条件性叫醒测试 (TB)", () => {
-
   // 占卜师双目标选择：逻辑验证通过（弹窗出现+可关闭），
   // 但关闭弹窗后需额外一次"确认"推进黑夜→天亮，待 night_helper 深度优化
   // 占卜师流程：目标选择→结果弹窗均正常。
@@ -29,10 +28,13 @@ test.describe("条件性叫醒测试 (TB)", () => {
     const seats = page.locator(".seat-node[data-seat-id]");
     const assign = async (name: string, idx: number) => {
       const btn = page.getByRole("button", { name: new RegExp(name, "i") });
-      await expect(btn).toBeVisible({ timeout: 5000 }); await btn.click();
+      await expect(btn).toBeVisible({ timeout: 5000 });
+      await btn.click();
       await page.waitForTimeout(300);
-      const all = await seats.all(); if (all.length <= idx) return;
-      await all[idx].click(); await page.waitForTimeout(300);
+      const all = await seats.all();
+      if (all.length <= idx) return;
+      await all[idx].click();
+      await page.waitForTimeout(300);
     };
     await assign("占卜师", 0);
     await assign("洗衣妇", 1);
@@ -45,7 +47,8 @@ test.describe("条件性叫醒测试 (TB)", () => {
     await page.waitForTimeout(1500);
     const confirm = page.getByRole("button", { name: /确认无误/ });
     if (await confirm.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await confirm.click(); await page.waitForTimeout(1000);
+      await confirm.click();
+      await page.waitForTimeout(1000);
     }
 
     // 跳过首夜（night_helper会自动处理目标选择）
@@ -53,9 +56,13 @@ test.describe("条件性叫醒测试 (TB)", () => {
 
     // 验证到达白天（用更宽松的检测）
     await page.waitForTimeout(2000);
-    const isDay = await page.locator(
-      "button:has-text('进入黄昏处决阶段'), button:has-text('发起提名'), text=第 1 天, text=首夜"
-    ).first().isVisible({ timeout: 10000 }).catch(() => false);
+    const isDay = await page
+      .locator(
+        "button:has-text('进入黄昏处决阶段'), button:has-text('发起提名'), text=第 1 天, text=首夜"
+      )
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     if (!isDay) {
       await page.screenshot({ path: "ft_result.png" });
     }
@@ -78,10 +85,13 @@ test.describe("条件性叫醒测试 (TB)", () => {
     const seats = page.locator(".seat-node[data-seat-id]");
     const assign = async (name: string, idx: number) => {
       const btn = page.getByRole("button", { name: new RegExp(name, "i") });
-      await expect(btn).toBeVisible({ timeout: 5000 }); await btn.click();
+      await expect(btn).toBeVisible({ timeout: 5000 });
+      await btn.click();
       await page.waitForTimeout(300);
-      const all = await seats.all(); if (all.length <= idx) return;
-      await all[idx].click(); await page.waitForTimeout(300);
+      const all = await seats.all();
+      if (all.length <= idx) return;
+      await all[idx].click();
+      await page.waitForTimeout(300);
     };
     await assign("守鸦人", 0);
     await assign("洗衣妇", 1);
@@ -93,15 +103,18 @@ test.describe("条件性叫醒测试 (TB)", () => {
     await page.waitForTimeout(1500);
     const confirm = page.getByRole("button", { name: /确认无误/ });
     if (await confirm.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await confirm.click(); await page.waitForTimeout(1000);
+      await confirm.click();
+      await page.waitForTimeout(1000);
     }
 
     // 跳过首夜（night_helper处理小恶魔杀守鸦人+守鸦人仍叫醒）
     await skipToDay(page);
 
     // 验证到达白天
-    const isDay = await page.locator("button:has-text('进入黄昏处决阶段')")
-      .isVisible({ timeout: 10000 }).catch(() => false);
+    const isDay = await page
+      .locator("button:has-text('进入黄昏处决阶段')")
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(isDay).toBeTruthy();
     console.log("✅ 守鸦人测试通过 — 成功到达白天");
   });
@@ -120,10 +133,13 @@ test.describe("条件性叫醒测试 (TB)", () => {
     const seats = page.locator(".seat-node[data-seat-id]");
     const assign = async (name: string, idx: number) => {
       const btn = page.getByRole("button", { name: new RegExp(name, "i") });
-      await expect(btn).toBeVisible({ timeout: 5000 }); await btn.click();
+      await expect(btn).toBeVisible({ timeout: 5000 });
+      await btn.click();
       await page.waitForTimeout(300);
-      const all = await seats.all(); if (all.length <= idx) return;
-      await all[idx].click(); await page.waitForTimeout(300);
+      const all = await seats.all();
+      if (all.length <= idx) return;
+      await all[idx].click();
+      await page.waitForTimeout(300);
     };
     await assign("送葬者", 0);
     await assign("洗衣妇", 1);
@@ -135,13 +151,16 @@ test.describe("条件性叫醒测试 (TB)", () => {
     await page.waitForTimeout(1500);
     const confirm = page.getByRole("button", { name: /确认无误/ });
     if (await confirm.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await confirm.click(); await page.waitForTimeout(1000);
+      await confirm.click();
+      await page.waitForTimeout(1000);
     }
 
     await skipToDay(page);
 
-    const isDay = await page.locator("button:has-text('进入黄昏处决阶段')")
-      .isVisible({ timeout: 10000 }).catch(() => false);
+    const isDay = await page
+      .locator("button:has-text('进入黄昏处决阶段')")
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(isDay).toBeTruthy();
     console.log("✅ 送葬者测试通过 — 成功到达白天");
   });
@@ -160,10 +179,13 @@ test.describe("条件性叫醒测试 (TB)", () => {
     const seats = page.locator(".seat-node[data-seat-id]");
     const assign = async (name: string, idx: number) => {
       const btn = page.getByRole("button", { name: new RegExp(name, "i") });
-      await expect(btn).toBeVisible({ timeout: 5000 }); await btn.click();
+      await expect(btn).toBeVisible({ timeout: 5000 });
+      await btn.click();
       await page.waitForTimeout(300);
-      const all = await seats.all(); if (all.length <= idx) return;
-      await all[idx].click(); await page.waitForTimeout(300);
+      const all = await seats.all();
+      if (all.length <= idx) return;
+      await all[idx].click();
+      await page.waitForTimeout(300);
     };
     await assign("士兵", 0);
     await assign("洗衣妇", 1);
@@ -175,13 +197,16 @@ test.describe("条件性叫醒测试 (TB)", () => {
     await page.waitForTimeout(1500);
     const confirm = page.getByRole("button", { name: /确认无误/ });
     if (await confirm.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await confirm.click(); await page.waitForTimeout(1000);
+      await confirm.click();
+      await page.waitForTimeout(1000);
     }
 
     await skipToDay(page);
 
-    const isDay = await page.locator("button:has-text('进入黄昏处决阶段')")
-      .isVisible({ timeout: 10000 }).catch(() => false);
+    const isDay = await page
+      .locator("button:has-text('进入黄昏处决阶段')")
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
     expect(isDay).toBeTruthy();
     console.log("✅ 士兵测试通过 — 成功到达白天");
   });

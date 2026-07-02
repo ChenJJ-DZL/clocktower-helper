@@ -280,31 +280,41 @@ function generateSystemInfoViaAdapter(
   seats: Seat[],
   currentSeatId: number
 ): NightInfoResult | null {
-  const selfSeat = seats.find(s => s.id === currentSeatId);
+  const selfSeat = seats.find((s) => s.id === currentSeatId);
   if (!selfSeat) return null;
 
-  const isMinionStep = stepId === 'minion_info';
-  const demonSeats = seats.filter(s => s.role?.type === 'demon' && !s.isDead);
-  const minionSeats = seats.filter(s => s.role?.type === 'minion' && !s.isDead);
-  const otherMinions = minionSeats.filter(s => s.id !== currentSeatId);
+  const isMinionStep = stepId === "minion_info";
+  const demonSeats = seats.filter((s) => s.role?.type === "demon" && !s.isDead);
+  const minionSeats = seats.filter(
+    (s) => s.role?.type === "minion" && !s.isDead
+  );
+  const otherMinions = minionSeats.filter((s) => s.id !== currentSeatId);
 
-  const demonDesc = demonSeats.map(s => `${s.id + 1}号(${s.role?.name || '恶魔'})`).join('、');
-  const minionDesc = otherMinions.map(s => `${s.id + 1}号(${s.role?.name || '爪牙'})`).join('、');
+  const demonDesc = demonSeats
+    .map((s) => `${s.id + 1}号(${s.role?.name || "恶魔"})`)
+    .join("、");
+  const minionDesc = otherMinions
+    .map((s) => `${s.id + 1}号(${s.role?.name || "爪牙"})`)
+    .join("、");
 
-  let guide = '';
+  let guide = "";
   if (isMinionStep) {
-    guide = `爪牙互认 — 恶魔是：${demonDesc}。${minionDesc ? '爪牙队友：' + minionDesc : ''}`;
+    guide = `爪牙互认 — 恶魔是：${demonDesc}。${minionDesc ? "爪牙队友：" + minionDesc : ""}`;
   } else {
     guide = `恶魔互认 — 爪牙是：${minionDesc}`;
   }
 
   return {
     seat: selfSeat,
-    effectiveRole: { id: stepId, name: isMinionStep ? '爪牙互认' : '恶魔互认', type: 'townsfolk' },
+    effectiveRole: {
+      id: stepId,
+      name: isMinionStep ? "爪牙互认" : "恶魔互认",
+      type: "townsfolk",
+    },
     isPoisoned: false,
     guide,
-    speak: '',
-    action: '',
+    speak: "",
+    action: "",
     roleId: stepId,
     index: 0,
     targetLimit: { min: 0, max: 0 },
@@ -312,7 +322,14 @@ function generateSystemInfoViaAdapter(
     canSelectSelf: false,
     validTargetIds: [],
     guideText: guide,
-    actionText: '',
-    interaction: { type: 'none', amount: 0, required: false, canSelectSelf: false, canSelectDead: false, effect: { type: 'none' } },
+    actionText: "",
+    interaction: {
+      type: "none",
+      amount: 0,
+      required: false,
+      canSelectSelf: false,
+      canSelectDead: false,
+      effect: { type: "none" },
+    },
   };
 }

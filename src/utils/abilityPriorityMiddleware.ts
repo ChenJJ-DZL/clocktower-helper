@@ -23,7 +23,11 @@ export const abilityPriorityCalculation = async (
   if (baristaEffect) {
     return {
       ...context,
-      meta: { ...meta, abilityEffective: baristaEffect.data?.isAbilityEffective ?? true, prioritySource: "barista" },
+      meta: {
+        ...meta,
+        abilityEffective: baristaEffect.data?.isAbilityEffective ?? true,
+        prioritySource: "barista",
+      },
     };
   }
 
@@ -32,7 +36,11 @@ export const abilityPriorityCalculation = async (
   if (brewmasterEffect) {
     return {
       ...context,
-      meta: { ...meta, abilityEffective: brewmasterEffect.data?.isAbilityEffective ?? true, prioritySource: "brewmaster" },
+      meta: {
+        ...meta,
+        abilityEffective: brewmasterEffect.data?.isAbilityEffective ?? true,
+        prioritySource: "brewmaster",
+      },
     };
   }
 
@@ -40,7 +48,12 @@ export const abilityPriorityCalculation = async (
   if (snapshot.globalEffects?.vortoxWorld && seat.role?.type === "townsfolk") {
     return {
       ...context,
-      meta: { ...meta, abilityEffective: false, vortoxAffected: true, prioritySource: "vortox" },
+      meta: {
+        ...meta,
+        abilityEffective: false,
+        vortoxAffected: true,
+        prioritySource: "vortox",
+      },
     };
   }
 
@@ -49,13 +62,23 @@ export const abilityPriorityCalculation = async (
     const isDrunk = effects.some((e: any) => e.type === "drunk");
     return {
       ...context,
-      meta: { ...meta, abilityEffective: false, isDrunk, isPoisoned: !isDrunk, prioritySource: isDrunk ? "drunk" : "poisoned" },
+      meta: {
+        ...meta,
+        abilityEffective: false,
+        isDrunk,
+        isPoisoned: !isDrunk,
+        prioritySource: isDrunk ? "drunk" : "poisoned",
+      },
     };
   }
 
   // 5. 最低优先级：保持原有状态
   return {
     ...context,
-    meta: { ...meta, abilityEffective: meta.abilityEffective ?? true, prioritySource: "normal" },
+    meta: {
+      ...meta,
+      abilityEffective: meta.abilityEffective ?? true,
+      prioritySource: "normal",
+    },
   };
 };

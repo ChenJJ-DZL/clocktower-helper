@@ -856,12 +856,12 @@ export default function Home() {
                         selectedActionTargets={[]}
                         isPortrait={false}
                         longPressingSeats={new Set()}
-                        onSeatClick={(seat) => {
+                        onSeatClick={(id) => {
                           console.log(
                             "[app/page setup] RoundTable seat clicked:",
-                            seat.id
+                            id
                           );
-                          handleSeatClick(seat.id);
+                          handleSeatClick(id);
                         }}
                         onContextMenu={(e, seatId) => {
                           e.preventDefault();

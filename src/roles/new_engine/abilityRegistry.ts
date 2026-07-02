@@ -116,6 +116,7 @@ import { kazaliAbility } from "./kazali.ability";
 import { kingAbility } from "./king.ability";
 import { klutzAbility } from "./klutz.ability";
 import { knightAbility } from "./knight.ability";
+import { leechAbility } from "./leech.ability";
 import { legionAbility } from "./legion.ability";
 import { leviathanAbility } from "./leviathan.ability";
 import { librarianAbility } from "./librarian.ability";
@@ -134,6 +135,7 @@ import { mayorAbility } from "./mayor.ability";
 import { mezephelesAbility } from "./mezepheles.ability";
 import { minerAbility } from "./miner.ability";
 import { minstrelAbility } from "./minstrel.ability";
+import { missionaryAbility } from "./missionary.ability";
 import { monkAbility } from "./monk.ability";
 import { moonchildAbility } from "./moonchild.ability";
 import { morticianAbility } from "./mortician.ability";
@@ -185,6 +187,7 @@ import { scholarAbility } from "./scholar.ability";
 import { scribeAbility } from "./scribe.ability";
 import { seamstressAbility } from "./seamstress.ability";
 import { shabalothAbility } from "./shabaloth.ability";
+import { shamanAbility } from "./shaman.ability";
 import { shugenjaAbility } from "./shugenja.ability";
 import { singerAbility } from "./singer.ability";
 import { skin_painterAbility } from "./skin_painter.ability";
@@ -228,9 +231,6 @@ import { yinYangMasterAbility } from "./yin_yang_master.ability";
 import { zealotAbility } from "./zealot.ability";
 import { zhenAbility } from "./zhen.ability";
 import { zombuulAbility } from "./zombuul.ability";
-import { leechAbility } from "./leech.ability";
-import { missionaryAbility } from "./missionary.ability";
-import { shamanAbility } from "./shaman.ability";
 
 /**
  * 转换 IRoleAbility 到 UnifiedAbilityConfig
@@ -308,7 +308,7 @@ export function registerAllNewEngineAbilities(): void {
     deusExFiascoAbility,
     devil_s_advocateAbility,
     // ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
-        devils_advocateAbility,
+    devils_advocateAbility,
     diAbility,
     divinerAbility,
     doctorAbility,

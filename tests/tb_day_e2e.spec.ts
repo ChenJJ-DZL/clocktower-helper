@@ -16,7 +16,7 @@ import { expect, test } from "@playwright/test";
 async function setupGame(page: any, roles: string[]) {
   await page.goto("http://localhost:3001");
   await page.waitForLoadState("networkidle");
-  
+
   // 选择剧本
   await page.locator("text=暗流涌动").first().click();
   await page.waitForTimeout(1500);
@@ -25,9 +25,9 @@ async function setupGame(page: any, roles: string[]) {
   await page.waitForSelector(".seat-node[data-seat-id]", { timeout: 10000 });
   const seats = page.locator(".seat-node[data-seat-id]");
   const allSeats = await seats.all();
-  
+
   // 从尾部去除空格位
-  let activeSeats = allSeats;
+  const activeSeats = allSeats;
   for (let i = allSeats.length - 1; i >= roles.length; i--) {
     await allSeats[i].locator("button").first().click();
   }
@@ -35,9 +35,11 @@ async function setupGame(page: any, roles: string[]) {
 
   // 重新获取座位
   const updatedSeats = await page.locator(".seat-node[data-seat-id]").all();
-  
+
   for (let i = 0; i < roles.length; i++) {
-    const roleBtn = page.getByRole("button", { name: new RegExp(roles[i], "i") });
+    const roleBtn = page.getByRole("button", {
+      name: new RegExp(roles[i], "i"),
+    });
     if (await roleBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await roleBtn.click();
       await page.waitForTimeout(300);
@@ -66,7 +68,9 @@ async function skipToDay(page: any) {
   // 循环跳过直到白天
   for (let i = 0; i < 80; i++) {
     const isDay = await page
-      .locator("button:has-text('进入黄昏处决阶段'), button:has-text('发起提名')")
+      .locator(
+        "button:has-text('进入黄昏处决阶段'), button:has-text('发起提名')"
+      )
       .first()
       .isVisible({ timeout: 1000 })
       .catch(() => false);
@@ -77,24 +81,39 @@ async function skipToDay(page: any) {
 
     // 夜晚报告弹窗
     const nightReport = page.locator("h2:has-text('夜晚报告'), text=昨晚");
-    if (await nightReport.first().isVisible({ timeout: 500 }).catch(() => false)) {
+    if (
+      await nightReport
+        .first()
+        .isVisible({ timeout: 500 })
+        .catch(() => false)
+    ) {
       const cr = page.getByRole("button", { name: "确认" });
       if (await cr.isVisible().catch(() => false)) {
-        await cr.click(); await page.waitForTimeout(1000);
+        await cr.click();
+        await page.waitForTimeout(1000);
       }
     }
 
     // 天亮按钮
     const dawn = page.getByRole("button", { name: /开始白天|天亮了/ });
     if (await dawn.isVisible({ timeout: 500 }).catch(() => false)) {
-      await dawn.click(); await page.waitForTimeout(1000);
+      await dawn.click();
+      await page.waitForTimeout(1000);
       continue;
     }
 
     // 通用下一步
-    const next = page.locator("button").filter({ hasText: /确认.*下一步|下一步/ });
-    if (await next.first().isVisible({ timeout: 500 }).catch(() => false)) {
-      await next.first().click(); await page.waitForTimeout(300);
+    const next = page
+      .locator("button")
+      .filter({ hasText: /确认.*下一步|下一步/ });
+    if (
+      await next
+        .first()
+        .isVisible({ timeout: 500 })
+        .catch(() => false)
+    ) {
+      await next.first().click();
+      await page.waitForTimeout(300);
     } else {
       await page.waitForTimeout(800);
     }
@@ -110,7 +129,7 @@ test("贞洁者(Virgin) — 镇民提名贞洁者 → 提名者被立即处决",
 
   // 5人局: 贞洁者(0) 洗衣妇(1) 厨师(2) 投毒者(3) 小恶魔(4)
   await setupGame(page, ["贞洁者", "洗衣妇", "厨师", "投毒者", "小恶魔"]);
-  
+
   const reachedDay = await skipToDay(page);
   if (!reachedDay) {
     console.log("⚠️ 无法到达白天阶段");
@@ -126,7 +145,9 @@ test("贞洁者(Virgin) — 镇民提名贞洁者 → 提名者被立即处决",
 
   // 选择提名者和被提名者
   // 通常先出现提名者选择弹窗
-  const nominatorOption = page.getByRole("button", { name: /1号|洗衣妇/ }).first();
+  const nominatorOption = page
+    .getByRole("button", { name: /1号|洗衣妇/ })
+    .first();
   if (await nominatorOption.isVisible({ timeout: 5000 }).catch(() => false)) {
     await nominatorOption.click();
     await page.waitForTimeout(500);
@@ -149,9 +170,15 @@ test("贞洁者(Virgin) — 镇民提名贞洁者 → 提名者被立即处决",
   // 验证: 提名者被处决
   await page.waitForTimeout(2000);
   const bodyText = await page.evaluate(() => document.body.innerText);
-  const executed = bodyText.includes("1号") && (bodyText.includes("死亡") || bodyText.includes("处决"));
-  
-  console.log(executed ? "✅ 贞洁者能力生效：提名者被处决" : `⚠️ 贞洁者结果: ${bodyText.substring(0, 200)}`);
+  const executed =
+    bodyText.includes("1号") &&
+    (bodyText.includes("死亡") || bodyText.includes("处决"));
+
+  console.log(
+    executed
+      ? "✅ 贞洁者能力生效：提名者被处决"
+      : `⚠️ 贞洁者结果: ${bodyText.substring(0, 200)}`
+  );
   expect(executed || bodyText.includes("游戏结束")).toBeTruthy();
 });
 
@@ -163,13 +190,18 @@ test("猎手(Slayer) — 日间射击恶魔 → 善良获胜", async ({ page }) 
 
   // 5人局: 猎手(0) 洗衣妇(1) 厨师(2) 投毒者(3) 小恶魔(4)
   await setupGame(page, ["猎手", "洗衣妇", "厨师", "投毒者", "小恶魔"]);
-  
+
   const reachedDay = await skipToDay(page);
   if (!reachedDay) return;
 
   // 猎手按钮
   const slayerBtn = page.locator("button").filter({ hasText: /猎手/ });
-  if (await slayerBtn.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+  if (
+    await slayerBtn
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false)
+  ) {
     await slayerBtn.first().click();
     await page.waitForTimeout(1000);
 
@@ -190,10 +222,19 @@ test("猎手(Slayer) — 日间射击恶魔 → 善良获胜", async ({ page }) 
 
   await page.waitForTimeout(3000);
   const bodyText = await page.evaluate(() => document.body.innerText);
-  const goodWin = bodyText.includes("善良") || bodyText.includes("获胜") || bodyText.includes("游戏结束");
-  
-  console.log(goodWin ? "✅ 猎手能力生效：恶魔被击杀" : `⚠️ 猎手结果: ${bodyText.substring(0, 200)}`);
-  expect(goodWin || bodyText.includes("处决") || bodyText.includes("死亡")).toBeTruthy();
+  const goodWin =
+    bodyText.includes("善良") ||
+    bodyText.includes("获胜") ||
+    bodyText.includes("游戏结束");
+
+  console.log(
+    goodWin
+      ? "✅ 猎手能力生效：恶魔被击杀"
+      : `⚠️ 猎手结果: ${bodyText.substring(0, 200)}`
+  );
+  expect(
+    goodWin || bodyText.includes("处决") || bodyText.includes("死亡")
+  ).toBeTruthy();
 });
 
 // ============================================================
@@ -204,12 +245,17 @@ test("镇长(Mayor) — 夜晚被恶魔攻击时替死", async ({ page }) => {
 
   // 9人局确保有镇长替死空间
   await setupGame(page, [
-    "镇长", "洗衣妇", "图书管理员", "调查员", "厨师",
-    "共情者", "士兵",
+    "镇长",
+    "洗衣妇",
+    "图书管理员",
+    "调查员",
+    "厨师",
+    "共情者",
+    "士兵",
     "投毒者",
-    "小恶魔"
+    "小恶魔",
   ]);
-  
+
   const reachedDay = await skipToDay(page);
   if (!reachedDay) return;
 
@@ -218,19 +264,25 @@ test("镇长(Mayor) — 夜晚被恶魔攻击时替死", async ({ page }) => {
   for (let round = 0; round < 5; round++) {
     await page.waitForTimeout(1000);
     const bodyText = await page.evaluate(() => document.body.innerText);
-    
+
     if (bodyText.includes("游戏结束")) {
-      if (bodyText.includes("善良")) console.log("✅ 镇长局：善良获胜（可能和平胜利）");
+      if (bodyText.includes("善良"))
+        console.log("✅ 镇长局：善良获胜（可能和平胜利）");
       break;
     }
-    
+
     // 尝试再次进入夜晚
     const dusk = page.getByRole("button", { name: /进入黄昏|黄昏处决/ });
-    if (await dusk.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (
+      await dusk
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false)
+    ) {
       await dusk.first().click();
       await page.waitForTimeout(1000);
     }
-    
+
     const nextNight = await skipToDay(page);
     if (!nextNight) break;
   }
@@ -246,14 +298,19 @@ test("陌客(Recluse) — 游戏中不崩溃", async ({ page }) => {
   test.setTimeout(300000);
 
   await setupGame(page, [
-    "洗衣妇", "陌客", "厨师", "占卜师", "共情者",
-    "送葬者", "僧侣",
+    "洗衣妇",
+    "陌客",
+    "厨师",
+    "占卜师",
+    "共情者",
+    "送葬者",
+    "僧侣",
     "投毒者",
-    "小恶魔"
+    "小恶魔",
   ]);
-  
+
   const reachedDay = await skipToDay(page);
-  
+
   // 陌客的"登记为邪恶"由说书人控制，自动化测试只能验证游戏不崩溃
   console.log(reachedDay ? "✅ 陌客局：游戏正常运行" : "⚠️ 陌客局：未到达白天");
   expect(reachedDay).toBeTruthy();
@@ -266,14 +323,19 @@ test("圣徒(Saint) — 处决触发邪恶获胜条件存在", async ({ page }) 
   test.setTimeout(300000);
 
   await setupGame(page, [
-    "洗衣妇", "厨师", "共情者", "圣徒", "占卜师",
-    "送葬者", "僧侣",
+    "洗衣妇",
+    "厨师",
+    "共情者",
+    "圣徒",
+    "占卜师",
+    "送葬者",
+    "僧侣",
     "投毒者",
-    "小恶魔"
+    "小恶魔",
   ]);
-  
+
   const reachedDay = await skipToDay(page);
-  
+
   // 圣徒的处决规则由游戏引擎处理，验证游戏能正常运行
   for (let round = 0; round < 3; round++) {
     await page.waitForTimeout(1000);
@@ -282,9 +344,14 @@ test("圣徒(Saint) — 处决触发邪恶获胜条件存在", async ({ page }) 
       console.log("✅ 圣徒被处决→邪恶获胜");
       break;
     }
-    
+
     const dusk = page.getByRole("button", { name: /进入黄昏|黄昏处决/ });
-    if (await dusk.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (
+      await dusk
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false)
+    ) {
       await dusk.first().click();
     }
     await skipToDay(page);

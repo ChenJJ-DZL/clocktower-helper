@@ -1,10 +1,15 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
 test.setTimeout(600000);
 
 // ============ Helper Functions ============
 
 async function phase(page: any): Promise<string> {
-  const b = (t: string) => page.locator(`button:has-text("${t}")`).isVisible({ timeout: 30 }).catch(() => false);
+  const b = (t: string) =>
+    page
+      .locator(`button:has-text("${t}")`)
+      .isVisible({ timeout: 30 })
+      .catch(() => false);
   if (await b("再来一局")) return "gameOver";
   if (await b("确认无误，入夜")) return "check";
   if (await b("确认 & 下一步")) return "night";
@@ -44,7 +49,7 @@ async function CD(page: any): Promise<boolean> {
 
 async function GA(page: any): Promise<number[]> {
   return page.evaluate(() =>
-    Array.from(document.querySelectorAll('[data-seat-id]'))
+    Array.from(document.querySelectorAll("[data-seat-id]"))
       .filter((n: any) => !n.textContent?.includes("已死亡"))
       .map((n: any) => parseInt(n.getAttribute("data-seat-id") || "-1"))
       .filter((id: number) => id >= 0)
@@ -70,7 +75,7 @@ test("全流程自主测试v7", async ({ page }) => {
   // --- Step 1: Open page and select script ---
   await page.goto("/", { waitUntil: "networkidle" });
   await page.waitForTimeout(1500);
-  await page.locator('text=暗流涌动').first().click();
+  await page.locator("text=暗流涌动").first().click();
   await page.waitForTimeout(600);
 
   // --- Step 2: Click "快速测试" ---
@@ -114,7 +119,9 @@ test("全流程自主测试v7", async ({ page }) => {
     const p = await phase(page);
 
     if (p === "gameOver") {
-      console.log(`\n🎉 游戏结束! R=${round} N=${nightCount} D=${dayCount} E=${executionCount}`);
+      console.log(
+        `\n🎉 游戏结束! R=${round} N=${nightCount} D=${dayCount} E=${executionCount}`
+      );
       break;
     }
 
@@ -268,21 +275,28 @@ test("全流程自主测试v7", async ({ page }) => {
         await CD(page);
         await page.waitForTimeout(400);
       }
-      continue;
     }
   }
 
   // --- Verification ---
-  console.log(`\n=== 统计: ${round}轮, ${nightCount}夜, ${dayCount}天, ${executionCount}次处决 ===`);
+  console.log(
+    `\n=== 统计: ${round}轮, ${nightCount}夜, ${dayCount}天, ${executionCount}次处决 ===`
+  );
 
   // Check that game actually ended
   const gameOverBtn = page.locator('button:has-text("再来一局")');
-  const isGameOver = await gameOverBtn.isVisible({ timeout: 2000 }).catch(() => false);
+  const isGameOver = await gameOverBtn
+    .isVisible({ timeout: 2000 })
+    .catch(() => false);
   if (isGameOver) {
     const body = await BT(page);
-    const goodWins = body.includes("善良阵营胜利") || body.includes("善良阵营获胜");
-    const evilWins = body.includes("邪恶阵营获胜") || body.includes("邪恶阵营胜利");
-    console.log(`✅ 游戏正常结束: ${goodWins ? "善良阵营胜利" : evilWins ? "邪恶阵营获胜" : "结果未知"}`);
+    const goodWins =
+      body.includes("善良阵营胜利") || body.includes("善良阵营获胜");
+    const evilWins =
+      body.includes("邪恶阵营获胜") || body.includes("邪恶阵营胜利");
+    console.log(
+      `✅ 游戏正常结束: ${goodWins ? "善良阵营胜利" : evilWins ? "邪恶阵营获胜" : "结果未知"}`
+    );
     expect(isGameOver).toBe(true);
   } else if (round >= 799) {
     console.log("⚠️ 达到最大轮次限制");
@@ -290,7 +304,10 @@ test("全流程自主测试v7", async ({ page }) => {
   } else {
     console.log("❌ 游戏未正常结束");
     // Take a screenshot for debugging
-    await page.screenshot({ path: "/workspace/tests/v7_stuck.png", fullPage: true });
+    await page.screenshot({
+      path: "/workspace/tests/v7_stuck.png",
+      fullPage: true,
+    });
     // Don't fail — we want to see what happened
   }
 

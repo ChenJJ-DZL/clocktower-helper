@@ -18,20 +18,27 @@ test("博学者(Savant) - 白天技能弹窗两条信息", async ({ page }) => {
   const seats = page.locator(".seat-node[data-seat-id]");
   const assignRole = async (name: string, idx: number) => {
     const btn = page.getByRole("button", { name: new RegExp(name, "i") });
-    await expect(btn).toBeVisible({ timeout: 5000 }); await btn.click(); await page.waitForTimeout(300);
-    const all = await seats.all(); if (all.length <= idx) return;
-    await all[idx].click(); await page.waitForTimeout(300);
+    await expect(btn).toBeVisible({ timeout: 5000 });
+    await btn.click();
+    await page.waitForTimeout(300);
+    const all = await seats.all();
+    if (all.length <= idx) return;
+    await all[idx].click();
+    await page.waitForTimeout(300);
   };
-  await assignRole("博学者", 0);  // Savant
+  await assignRole("博学者", 0); // Savant
   await assignRole("筑梦师", 1);
   await assignRole("数学家", 2);
   await assignRole("麻脸巫婆", 3);
-  await assignRole("涡流", 4);    // Vortox
+  await assignRole("涡流", 4); // Vortox
 
   await page.getByRole("button", { name: /开始游戏/ }).click();
   await page.waitForTimeout(1500);
   const confirm = page.getByRole("button", { name: /确认无误/ });
-  if (await confirm.isVisible({ timeout: 5000 }).catch(() => false)) { await confirm.click(); await page.waitForTimeout(1000); }
+  if (await confirm.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await confirm.click();
+    await page.waitForTimeout(1000);
+  }
 
   await skipToDay(page);
 

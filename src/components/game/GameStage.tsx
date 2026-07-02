@@ -1119,7 +1119,7 @@ export const GameStage = () => {
               selectedActionTargets={selectedActionTargets}
               isPortrait={isPortrait}
               longPressingSeats={longPressingSeats}
-              onSeatClick={(seat) => onSeatClick(seat.id)}
+              onSeatClick={onSeatClick}
               onContextMenu={(e, seatId) => {
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY, seatId });

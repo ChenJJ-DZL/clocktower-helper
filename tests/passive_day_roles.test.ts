@@ -7,20 +7,26 @@
  * 通过 processGameEvent + checkGameEnd + 能力管道 验证
  */
 
-import { describe, it, expect } from "vitest";
-import { initializeSeats, processGameEvent, checkGameEnd } from "../app/gameLogic";
+import { describe, expect, it } from "vitest";
 import type { Role, Seat } from "../app/data";
+import {
+  checkGameEnd,
+  initializeSeats,
+  processGameEvent,
+} from "../app/gameLogic";
 
 // ─── 辅助函数 ───
 
 function makeSeats(roleList: Role[]): Seat[] {
   const seats = initializeSeats(roleList.length);
-  roleList.forEach((role, i) => { seats[i].role = role; });
+  roleList.forEach((role, i) => {
+    seats[i].role = role;
+  });
   return seats;
 }
 
 function findSeat(seats: Seat[], id: number): Seat {
-  return seats.find(s => s.id === id)!;
+  return seats.find((s) => s.id === id)!;
 }
 
 function logResult(label: string, seats: Seat[], logs: string[]) {
@@ -32,7 +38,11 @@ function logResult(label: string, seats: Seat[], logs: string[]) {
 const imp: Role = { id: "imp", name: "小恶魔", type: "demon" };
 const minion: Role = { id: "poisoner", name: "投毒者", type: "minion" };
 const townsfolk: Role = { id: "villager", name: "村民", type: "townsfolk" };
-const townsfolk2: Role = { id: "washerwoman", name: "洗衣妇", type: "townsfolk" };
+const townsfolk2: Role = {
+  id: "washerwoman",
+  name: "洗衣妇",
+  type: "townsfolk",
+};
 
 const saint: Role = { id: "saint", name: "圣徒", type: "outsider" };
 const drunk: Role = { id: "drunk", name: "酒鬼", type: "outsider" };
@@ -58,7 +68,10 @@ describe("圣徒 (Saint)", () => {
   it("圣徒夜晚死亡 → 游戏继续 (不触发诅咒)", () => {
     const seats = makeSeats([townsfolk, saint, imp]);
     const result = processGameEvent(seats, "night", {
-      type: "KILL_PLAYER", targetId: 1, source: "demon", killerRoleId: "imp",
+      type: "KILL_PLAYER",
+      targetId: 1,
+      source: "demon",
+      killerRoleId: "imp",
     });
     // 圣徒夜死: checkGameEnd 不含圣徒检测, 由 handler 处理
     expect(result.seats[1].isDead).toBe(true);
@@ -69,7 +82,10 @@ describe("圣徒 (Saint)", () => {
     const seats = makeSeats([townsfolk, saint, imp]);
     // 恶魔被处决死亡(通过 KILL_PLAYER)
     const result = processGameEvent(seats, "execution", {
-      type: "KILL_PLAYER", targetId: 2, source: "execution", killerRoleId: "townsfolk",
+      type: "KILL_PLAYER",
+      targetId: 2,
+      source: "execution",
+      killerRoleId: "townsfolk",
     });
     expect(result.seats[2].isDead).toBe(true);
     console.log("  ✅ 恶魔被处决, 圣徒存活");
@@ -83,7 +99,8 @@ describe("酒鬼 (Drunk)", () => {
   it("酒鬼有 charadeRole 且 effectiveRole 取伪装角色", () => {
     const seats = makeSeats([townsfolk, drunk, imp]);
     seats[1].charadeRole = townsfolk2; // 酒鬼以为自己是洗衣妇
-    const effectiveRole = seats[1].effectiveRole || seats[1].charadeRole || seats[1].role;
+    const effectiveRole =
+      seats[1].effectiveRole || seats[1].charadeRole || seats[1].role;
     expect(effectiveRole?.id).toBe("washerwoman");
     console.log("  ✅ 酒鬼 effectiveRole = 伪装身份(洗衣妇)");
   });
@@ -92,7 +109,10 @@ describe("酒鬼 (Drunk)", () => {
     const seats = makeSeats([townsfolk, drunk, imp]);
     seats[1].charadeRole = townsfolk;
     const result = processGameEvent(seats, "night", {
-      type: "KILL_PLAYER", targetId: 1, source: "demon", killerRoleId: "imp",
+      type: "KILL_PLAYER",
+      targetId: 1,
+      source: "demon",
+      killerRoleId: "imp",
     });
     expect(result.seats[1].isDead).toBe(true);
     console.log("  ✅ 酒鬼死亡");
@@ -107,7 +127,12 @@ describe("陌客 (Recluse)", () => {
     const seats = makeSeats([townsfolk, recluse, imp]);
     // 侦察陌客 — 可能注册为各种邪恶阵营
     const recluseSeat = findSeat(seats, 1);
-    console.log("  ✅ 陌客 role:", recluseSeat.role?.id, "type:", recluseSeat.role?.type);
+    console.log(
+      "  ✅ 陌客 role:",
+      recluseSeat.role?.id,
+      "type:",
+      recluseSeat.role?.type
+    );
     // 陌客的被动注册由各侦察能力的 calculate 中间件处理
     // 此处验证角色分配正确
     expect(recluseSeat.role?.type).toBe("outsider");
@@ -137,7 +162,10 @@ describe("猎手 (Slayer)", () => {
   it("猎手射击恶魔 → 恶魔死亡", () => {
     const seats = makeSeats([slayer, townsfolk, imp]);
     const result = processGameEvent(seats, "day", {
-      type: "KILL_PLAYER", targetId: 2, source: "ability", killerRoleId: "slayer",
+      type: "KILL_PLAYER",
+      targetId: 2,
+      source: "ability",
+      killerRoleId: "slayer",
     });
     expect(result.seats[2].isDead).toBe(true);
     // 检查游戏结束
@@ -150,7 +178,10 @@ describe("猎手 (Slayer)", () => {
   it("猎手射击非恶魔 → KILL_PLAYER直接杀死", () => {
     const seats = makeSeats([slayer, townsfolk, imp]);
     const result = processGameEvent(seats, "day", {
-      type: "KILL_PLAYER", targetId: 1, source: "ability", killerRoleId: "slayer",
+      type: "KILL_PLAYER",
+      targetId: 1,
+      source: "ability",
+      killerRoleId: "slayer",
     });
     expect(result.seats[1].isDead).toBe(true); // KILL_PLAYER直接生效
     console.log("  ✅ 猎手射击命中(KILL_PLAYER直接杀死)");
@@ -166,7 +197,10 @@ describe("贞洁者 (Virgin)", () => {
     // 模拟处女被提名
     seats[0].hasBeenNominated = true;
     const result = processGameEvent(seats, "day", {
-      type: "KILL_PLAYER", targetId: 1, source: "execution", killerRoleId: "townsfolk",
+      type: "KILL_PLAYER",
+      targetId: 1,
+      source: "execution",
+      killerRoleId: "townsfolk",
     });
     // 贞洁者能力: 首次被提名时提名者死亡
     // 验证提名者(seat 1)死亡

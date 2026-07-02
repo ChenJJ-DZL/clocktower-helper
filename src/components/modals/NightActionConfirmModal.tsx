@@ -29,13 +29,11 @@ export function NightActionConfirmModal({
   const { roleName, actionDescription, targetDescriptions, extraNote } = data;
 
   const targetText =
-    targetDescriptions.length > 0
-      ? targetDescriptions.join("、") + " "
-      : "";
+    targetDescriptions.length > 0 ? targetDescriptions.join("、") + " " : "";
 
   return (
     <ModalWrapper
-      title={`🌙 确认夜间行动`}
+      title={"🌙 确认夜间行动"}
       onClose={onCancel}
       footer={
         <div className="flex gap-3 w-full">

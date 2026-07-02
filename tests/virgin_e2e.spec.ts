@@ -25,7 +25,9 @@ test("圣女(Virgin) - 镇民提名圣女 → 提名者被立即处决", async (
   const seats = page.locator(".seat-node[data-seat-id]");
 
   const assignRole = async (roleName: string, seatIndex: number) => {
-    const roleBtn = page.getByRole("button", { name: new RegExp(roleName, "i") });
+    const roleBtn = page.getByRole("button", {
+      name: new RegExp(roleName, "i"),
+    });
     await expect(roleBtn).toBeVisible({ timeout: 5000 });
     await roleBtn.click();
     await page.waitForTimeout(300);
@@ -60,54 +62,79 @@ test("圣女(Virgin) - 镇民提名圣女 → 提名者被立即处决", async (
   await page.evaluate(async () => {
     for (let i = 0; i < 200; i++) {
       const bodyText = document.body.innerText;
-      if (bodyText.includes('进入黄昏处决阶段') || bodyText.includes('发起提名')) break;
-      
+      if (
+        bodyText.includes("进入黄昏处决阶段") ||
+        bodyText.includes("发起提名")
+      )
+        break;
+
       let acted = false;
-      const buttons = document.querySelectorAll('button');
-      
+      const buttons = document.querySelectorAll("button");
+
       // 优先点击"下一步"按钮（如果可用）
       for (const btn of buttons) {
-        const text = btn.textContent || '';
-        if ((text.includes('下一步') || text.includes('继续')) && !btn.disabled && btn.offsetParent) {
-          btn.click(); acted = true; break;
+        const text = btn.textContent || "";
+        if (
+          (text.includes("下一步") || text.includes("继续")) &&
+          !btn.disabled &&
+          btn.offsetParent
+        ) {
+          btn.click();
+          acted = true;
+          break;
         }
       }
-      
+
       // 如果没有"下一步"可用，尝试点击"确认"按钮
       if (!acted) {
         for (const btn of buttons) {
-          const text = btn.textContent || '';
-          if (text.includes('确认') && !btn.disabled && btn.offsetParent && !text.includes('结果')) {
-            btn.click(); acted = true; break;
+          const text = btn.textContent || "";
+          if (
+            text.includes("确认") &&
+            !btn.disabled &&
+            btn.offsetParent &&
+            !text.includes("结果")
+          ) {
+            btn.click();
+            acted = true;
+            break;
           }
         }
       }
-      
+
       // 如果还没有，尝试点击目标选择（含#号的按钮，如"1# 贞洁者"）
-      if (!acted && bodyText.includes('选择目标')) {
+      if (!acted && bodyText.includes("选择目标")) {
         for (const btn of buttons) {
-          const text = btn.textContent || '';
-          if (text.includes('#') && btn.offsetParent && !btn.disabled) {
-            btn.click(); acted = true; break;
+          const text = btn.textContent || "";
+          if (text.includes("#") && btn.offsetParent && !btn.disabled) {
+            btn.click();
+            acted = true;
+            break;
           }
         }
       }
-      
+
       // 尝试点击"开始白天"按钮
       if (!acted) {
         for (const btn of buttons) {
-          const text = btn.textContent || '';
-          if ((text.includes('白天') || text.includes('天亮')) && !btn.disabled && btn.offsetParent) {
-            btn.click(); acted = true; break;
+          const text = btn.textContent || "";
+          if (
+            (text.includes("白天") || text.includes("天亮")) &&
+            !btn.disabled &&
+            btn.offsetParent
+          ) {
+            btn.click();
+            acted = true;
+            break;
           }
         }
       }
-      
+
       if (!acted) break;
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 300));
     }
   });
-  
+
   await page.waitForTimeout(2000);
   console.log("✅ 夜晚阶段已推进");
 

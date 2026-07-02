@@ -5,7 +5,10 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import { AbilityTriggerTiming, createRoleAbility } from "../core/roleAbility.types";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
 const preCheckAlive = async (context: any) => {
   const { snapshot, actionNode } = context;
@@ -29,5 +32,10 @@ export const devils_advocateAbility = createRoleAbility({
   preCheck: [preCheckAlive],
   calculate: [],
   stateUpdate: [],
-  postProcess: [async (context) => { console.log("[DA] protection set"); return context; }],
+  postProcess: [
+    async (context) => {
+      console.log("[DA] protection set");
+      return context;
+    },
+  ],
 });

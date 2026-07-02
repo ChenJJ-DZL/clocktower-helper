@@ -10,37 +10,63 @@
  */
 
 import * as fs from "fs";
-import { HeadlessGameEngine, type GameReport, type TriggerRecord } from "./headlessGameEngine";
+import {
+  type GameReport,
+  HeadlessGameEngine,
+  type TriggerRecord,
+} from "./headlessGameEngine";
 
 const origLog = console.log;
 console.log = () => {};
 
 // ===== 规则 =====
 interface Rule {
-  name: string; type: string; firstNightOrder: number | null; otherNightOrder: number | null;
-  ability: string; operation: string;
+  name: string;
+  type: string;
+  firstNightOrder: number | null;
+  otherNightOrder: number | null;
+  ability: string;
+  operation: string;
 }
 const rules = new Map<string, Rule>();
 for (const [file, type] of Object.entries({
-  "镇民.json":"townsfolk","外来者.json":"outsider","爪牙.json":"minion","恶魔.json":"demon"
+  "镇民.json": "townsfolk",
+  "外来者.json": "outsider",
+  "爪牙.json": "minion",
+  "恶魔.json": "demon",
 })) {
   for (const c of JSON.parse(fs.readFileSync("json/full/" + file, "utf8"))) {
-    const eng = (c["英文名"]||"").toLowerCase().replace(/[^a-z]/g,"");
-    if (eng) rules.set(eng, {
-      name: c["名称"], type,
-      firstNightOrder: c["首夜行动顺序"]==="无法行动"?null:parseInt(c["首夜行动顺序"]),
-      otherNightOrder: c["其他夜晚行动顺序"]==="无法行动"?null:parseInt(c["其他夜晚行动顺序"]),
-      ability: (c.content?.["角色能力"]||"").trim(),
-      operation: (c.content?.["运作方式"]||"").trim(),
-    });
+    const eng = (c["英文名"] || "").toLowerCase().replace(/[^a-z]/g, "");
+    if (eng)
+      rules.set(eng, {
+        name: c["名称"],
+        type,
+        firstNightOrder:
+          c["首夜行动顺序"] === "无法行动" ? null : parseInt(c["首夜行动顺序"]),
+        otherNightOrder:
+          c["其他夜晚行动顺序"] === "无法行动"
+            ? null
+            : parseInt(c["其他夜晚行动顺序"]),
+        ability: (c.content?.["角色能力"] || "").trim(),
+        operation: (c.content?.["运作方式"] || "").trim(),
+      });
   }
 }
 
 // ===== 测试结果 =====
-interface TestResult { role: string; check: string; pass: boolean; detail: string; }
+interface TestResult {
+  role: string;
+  check: string;
+  pass: boolean;
+  detail: string;
+}
 const results: TestResult[] = [];
-function ok(r: string, c: string, d = "") { results.push({ role: r, check: c, pass: true, detail: d }); }
-function fail(r: string, c: string, d: string) { results.push({ role: r, check: c, pass: false, detail: d }); }
+function ok(r: string, c: string, d = "") {
+  results.push({ role: r, check: c, pass: true, detail: d });
+}
+function fail(r: string, c: string, d: string) {
+  results.push({ role: r, check: c, pass: false, detail: d });
+}
 
 // ===== 增强的引擎：捕获座位快照 =====
 class SnapshotEngine extends HeadlessGameEngine {
@@ -53,7 +79,8 @@ class SnapshotEngine extends HeadlessGameEngine {
   // 每轮结束后拍快照
   snapshotState(round: number, phase: string) {
     this.seatSnapshots.push({
-      round, phase,
+      round,
+      phase,
       seats: JSON.parse(JSON.stringify(this.seats)),
     });
   }
@@ -61,7 +88,8 @@ class SnapshotEngine extends HeadlessGameEngine {
 
 async function runAll() {
   const GAMES = 40;
-  const roleChecks: Record<string, { triggered: number; effective: number; }> = {};
+  const roleChecks: Record<string, { triggered: number; effective: number }> =
+    {};
 
   for (let g = 0; g < GAMES; g++) {
     const eng = new HeadlessGameEngine(
@@ -103,19 +131,28 @@ function verifyGame(report: GameReport, eng: HeadlessGameEngine) {
 
 // ---- 投毒者：检查中毒效果 ----
 function verifyPoisonerEffect(report: GameReport, eng: HeadlessGameEngine) {
-  const poiTriggers = report.triggers.filter(t => t.roleId === "poisoner" && t.timing === "night");
-  if (poiTriggers.length === 0) { ok("投毒者", "效果-未出场", ""); return; }
+  const poiTriggers = report.triggers.filter(
+    (t) => t.roleId === "poisoner" && t.timing === "night"
+  );
+  if (poiTriggers.length === 0) {
+    ok("投毒者", "效果-未出场", "");
+    return;
+  }
 
   let effectiveCount = 0;
   for (const t of poiTriggers) {
     if (t.targets.length === 0) continue;
     for (const targetId of t.targets) {
       // 检查 target 座位是否有中毒状态
-      const seat = eng.seats.find(s => s.id === targetId);
+      const seat = eng.seats.find((s) => s.id === targetId);
       if (!seat) continue;
-      if (seat.isPoisoned ||
-          (seat.statuses && seat.statuses.some((s: any) => s?.type === "poisoned")) ||
-          (seat.statusDetails && seat.statusDetails.some((s: any) => s?.type === "poisoned"))) {
+      if (
+        seat.isPoisoned ||
+        (seat.statuses &&
+          seat.statuses.some((s: any) => s?.type === "poisoned")) ||
+        (seat.statusDetails &&
+          seat.statusDetails.some((s: any) => s?.type === "poisoned"))
+      ) {
         effectiveCount++;
       }
     }
@@ -129,16 +166,25 @@ function verifyPoisonerEffect(report: GameReport, eng: HeadlessGameEngine) {
 
 // ---- 僧侣：检查保护效果 ----
 function verifyMonkEffect(report: GameReport, eng: HeadlessGameEngine) {
-  const monkTriggers = report.triggers.filter(t => t.roleId === "monk" && t.timing === "night");
-  if (monkTriggers.length === 0) { ok("僧侣", "效果-未出场", ""); return; }
+  const monkTriggers = report.triggers.filter(
+    (t) => t.roleId === "monk" && t.timing === "night"
+  );
+  if (monkTriggers.length === 0) {
+    ok("僧侣", "效果-未出场", "");
+    return;
+  }
 
   let protectedCount = 0;
   for (const t of monkTriggers) {
     if (t.targets.length === 0) continue;
     for (const targetId of t.targets) {
-      const seat = eng.seats.find(s => s.id === targetId);
+      const seat = eng.seats.find((s) => s.id === targetId);
       if (!seat) continue;
-      if (seat.isProtected || seat.protectedBy !== null || seat.protectedBy !== undefined) {
+      if (
+        seat.isProtected ||
+        seat.protectedBy !== null ||
+        seat.protectedBy !== undefined
+      ) {
         protectedCount++;
       }
     }
@@ -153,7 +199,10 @@ function verifyMonkEffect(report: GameReport, eng: HeadlessGameEngine) {
   for (const t of monkTriggers) {
     for (const targetId of t.targets) {
       const deathTriggers = report.triggers.filter(
-        dt => dt.timing === "night" && dt.round === t.round && dt.targets.includes(targetId)
+        (dt) =>
+          dt.timing === "night" &&
+          dt.round === t.round &&
+          dt.targets.includes(targetId)
       );
       // This is a lightweight check - full protection verification needs more state tracking
     }
@@ -162,14 +211,19 @@ function verifyMonkEffect(report: GameReport, eng: HeadlessGameEngine) {
 
 // ---- 小恶魔：检查击杀效果 ----
 function verifyImpEffect(report: GameReport, eng: HeadlessGameEngine) {
-  const impTriggers = report.triggers.filter(t => t.roleId === "imp" && t.timing === "night");
-  if (impTriggers.length === 0) { ok("小恶魔", "效果-未出场", ""); return; }
+  const impTriggers = report.triggers.filter(
+    (t) => t.roleId === "imp" && t.timing === "night"
+  );
+  if (impTriggers.length === 0) {
+    ok("小恶魔", "效果-未出场", "");
+    return;
+  }
 
   let killCount = 0;
   for (const t of impTriggers) {
     if (t.targets.length === 0) continue;
     for (const targetId of t.targets) {
-      const seat = eng.seats.find(s => s.id === targetId);
+      const seat = eng.seats.find((s) => s.id === targetId);
       if (!seat) continue;
       if (seat.isDead || seat.deathSource === "demon") {
         killCount++;
@@ -180,7 +234,11 @@ function verifyImpEffect(report: GameReport, eng: HeadlessGameEngine) {
   if (killCount > 0) {
     ok("小恶魔", "效果-击杀", `${killCount}次击杀生效`);
   } else {
-    ok("小恶魔", "效果-击杀", `${impTriggers.length}次触发, 0次击杀(策略性选择)`);
+    ok(
+      "小恶魔",
+      "效果-击杀",
+      `${impTriggers.length}次触发, 0次击杀(策略性选择)`
+    );
   }
 }
 
@@ -199,14 +257,20 @@ function verifyInfoRoles(report: GameReport) {
   ];
 
   for (const { id, name, needsTarget } of firstNightInfo) {
-    const triggers = report.triggers.filter(t => t.roleId === id && t.timing === "night");
+    const triggers = report.triggers.filter(
+      (t) => t.roleId === id && t.timing === "night"
+    );
     if (triggers.length === 0) continue;
-    
+
     if (needsTarget) {
       // 占卜师需要选择2名玩家
-      const withTwo = triggers.filter(t => t.targets.length >= 2);
+      const withTwo = triggers.filter((t) => t.targets.length >= 2);
       if (withTwo.length >= triggers.length * 0.3) {
-        ok(name, "效果-信息", `选择双目标 ${withTwo.length}/${triggers.length}次`);
+        ok(
+          name,
+          "效果-信息",
+          `选择双目标 ${withTwo.length}/${triggers.length}次`
+        );
       }
     } else {
       // 信息角色触发即获得信息（说书人在实际游戏中给出手势/展示标记）
@@ -218,8 +282,10 @@ function verifyInfoRoles(report: GameReport) {
 // ---- 间谍：检查查看魔典 ----
 function verifySpyEffect(report: GameReport) {
   if (!report.seedsRoleIds.includes("spy")) return;
-  
-  const spyTriggers = report.triggers.filter(t => t.roleId === "spy" && t.timing === "night");
+
+  const spyTriggers = report.triggers.filter(
+    (t) => t.roleId === "spy" && t.timing === "night"
+  );
   if (spyTriggers.length === 0) {
     fail("间谍", "效果", "在场但从未触发");
   } else {
@@ -230,16 +296,21 @@ function verifySpyEffect(report: GameReport) {
 // ---- 管家：检查主人分配 ----
 function verifyButlerEffect(report: GameReport) {
   if (!report.seedsRoleIds.includes("butler")) return;
-  
-  const butlerTriggers = report.triggers.filter(t => t.roleId === "butler" && t.timing === "night");
+
+  const butlerTriggers = report.triggers.filter(
+    (t) => t.roleId === "butler" && t.timing === "night"
+  );
   if (butlerTriggers.length === 0) {
     fail("管家", "效果", "在场但从未触发");
     return;
   }
-  
+
   let hasMaster = false;
   for (const t of butlerTriggers) {
-    if (t.targets.length > 0) { hasMaster = true; break; }
+    if (t.targets.length > 0) {
+      hasMaster = true;
+      break;
+    }
   }
   if (hasMaster) ok("管家", "效果-主人", "已选择主人");
   else fail("管家", "效果-主人", "未选择主人");
@@ -248,8 +319,10 @@ function verifyButlerEffect(report: GameReport) {
 // ---- 送葬者：检查得知处决角色 ----
 function verifyUndertakerEffect(report: GameReport) {
   if (!report.seedsRoleIds.includes("undertaker")) return;
-  
-  const ut = report.triggers.filter(t => t.roleId === "undertaker" && t.timing === "night");
+
+  const ut = report.triggers.filter(
+    (t) => t.roleId === "undertaker" && t.timing === "night"
+  );
   if (ut.length === 0) {
     ok("送葬者", "效果-条件触发", "当天无处决，属正常");
   } else {
@@ -260,12 +333,14 @@ function verifyUndertakerEffect(report: GameReport) {
 // ---- 守鸦人：检查死亡得知角色 ----
 function verifyRavenkeeperEffect(report: GameReport) {
   if (!report.seedsRoleIds.includes("ravenkeeper")) return;
-  
-  const rk = report.triggers.filter(t => t.roleId === "ravenkeeper" && t.timing === "night");
+
+  const rk = report.triggers.filter(
+    (t) => t.roleId === "ravenkeeper" && t.timing === "night"
+  );
   if (rk.length === 0) {
     ok("守鸦人", "效果-条件触发", "未死亡，属正常");
   } else {
-    let hasTarget = rk.some(t => t.targets.length > 0);
+    const hasTarget = rk.some((t) => t.targets.length > 0);
     if (hasTarget) ok("守鸦人", "效果-死亡信息", "死亡后选择目标");
     else fail("守鸦人", "效果-死亡信息", "触发但未选择目标");
   }
@@ -273,13 +348,16 @@ function verifyRavenkeeperEffect(report: GameReport) {
 
 // ---- 士兵：恶魔攻击免疫 ----
 function verifySoldierImmunity(report: GameReport, eng: HeadlessGameEngine) {
-  if (!report.seedsRoleIds.includes("soldier")) { ok("士兵", "效果-未出场", ""); return; }
-  
+  if (!report.seedsRoleIds.includes("soldier")) {
+    ok("士兵", "效果-未出场", "");
+    return;
+  }
+
   // 士兵不应被恶魔杀死（检查是否有 demon 来源的死亡）
   const soldierIdx = report.seedsRoleIds.indexOf("soldier");
-  const soldierSeat = eng.seats.find(s => s.id === soldierIdx);
+  const soldierSeat = eng.seats.find((s) => s.id === soldierIdx);
   if (!soldierSeat) return;
-  
+
   if (soldierSeat.isDead && soldierSeat.deathSource === "demon") {
     fail("士兵", "效果-免疫", "士兵被恶魔杀死！违反了免疫规则");
   } else if (soldierSeat.isDead && soldierSeat.deathSource !== "demon") {
@@ -292,7 +370,7 @@ function verifySoldierImmunity(report: GameReport, eng: HeadlessGameEngine) {
 // ---- 圣徒：处决则邪恶获胜 ----
 function verifySaintRule(report: GameReport) {
   if (!report.seedsRoleIds.includes("saint")) return;
-  
+
   // 如果邪恶获胜且圣徒在游戏中，可能因为圣徒被处决
   if (report.winner === "evil") {
     ok("圣徒", "效果-处决即败", "邪恶获胜（可能因圣徒处决）");
@@ -303,14 +381,23 @@ function verifySaintRule(report: GameReport) {
 
 // ---- 男爵：+2外来者 ----
 function verifyBaronSetup(report: GameReport, eng: HeadlessGameEngine) {
-  if (!report.seedsRoleIds.includes("baron")) { ok("男爵", "效果-未出场", ""); return; }
-  
+  if (!report.seedsRoleIds.includes("baron")) {
+    ok("男爵", "效果-未出场", "");
+    return;
+  }
+
   const outsiderIds = ["butler", "drunk", "recluse", "saint"];
-  const outsiderCount = report.seedsRoleIds.filter(id => outsiderIds.includes(id)).length;
+  const outsiderCount = report.seedsRoleIds.filter((id) =>
+    outsiderIds.includes(id)
+  ).length;
   // 10人局：正常0外来者，有男爵应为2（但当前getRoleSetup未实现男爵+2）
   if (report.playerCount >= 10 && report.playerCount <= 12) {
     // 当前引擎未实现男爵的盲抽袋修改，这是已知限制
-    ok("男爵", "效果-外来者", `当前${outsiderCount}外来者(引擎未实现盲抽袋修改)`);
+    ok(
+      "男爵",
+      "效果-外来者",
+      `当前${outsiderCount}外来者(引擎未实现盲抽袋修改)`
+    );
   } else {
     ok("男爵", "效果-外来者", `${outsiderCount}外来者`);
   }
@@ -318,16 +405,23 @@ function verifyBaronSetup(report: GameReport, eng: HeadlessGameEngine) {
 
 // ---- 酒鬼：伪装镇民 ----
 function verifyDrunkSetup(report: GameReport, eng: HeadlessGameEngine) {
-  if (!report.seedsRoleIds.includes("drunk")) { ok("酒鬼", "效果-未出场", ""); return; }
-  
+  if (!report.seedsRoleIds.includes("drunk")) {
+    ok("酒鬼", "效果-未出场", "");
+    return;
+  }
+
   // 酒鬼应该是外来者但以为自己是镇民
   // 在引擎中通过charadeRole处理
   const drunkIdx = report.seedsRoleIds.indexOf("drunk");
-  const drunkSeat = eng.seats.find(s => s.id === drunkIdx);
+  const drunkSeat = eng.seats.find((s) => s.id === drunkIdx);
   if (!drunkSeat) return;
-  
+
   if (drunkSeat.charadeRole) {
-    ok("酒鬼", "效果-伪装", `伪装成${drunkSeat.charadeRole.name || drunkSeat.charadeRole} ✅`);
+    ok(
+      "酒鬼",
+      "效果-伪装",
+      `伪装成${drunkSeat.charadeRole.name || drunkSeat.charadeRole} ✅`
+    );
   } else {
     ok("酒鬼", "效果-伪装", "无伪装角色(引擎可能简化了)");
   }
@@ -336,7 +430,7 @@ function verifyDrunkSetup(report: GameReport, eng: HeadlessGameEngine) {
 // ---- 恶魔首夜不杀人 ----
 function verifyDemonFirstNight(report: GameReport) {
   const demonDeaths = report.triggers.filter(
-    t => t.roleId === "imp" && t.timing === "night" && t.round === 1
+    (t) => t.roleId === "imp" && t.timing === "night" && t.round === 1
   );
   if (demonDeaths.length > 0) {
     fail("规则", "首夜禁杀", `小恶魔首夜行动${demonDeaths.length}次`);
@@ -352,19 +446,25 @@ function verifyGameEnd(report: GameReport) {
   } else if (report.winner === null) {
     fail("规则", "游戏结束", `${report.totalRounds}轮后未分胜负`);
   } else {
-    ok("规则", "游戏结束", `正常结束: ${report.winner}方获胜, ${report.totalRounds}轮`);
+    ok(
+      "规则",
+      "游戏结束",
+      `正常结束: ${report.winner}方获胜, ${report.totalRounds}轮`
+    );
   }
 }
 
 // ---- 输出 ----
 function printReport() {
-  const failed = results.filter(r => !r.pass);
-  const passed = results.filter(r => r.pass);
+  const failed = results.filter((r) => !r.pass);
+  const passed = results.filter((r) => r.pass);
 
-  console.log(`\n╔══════════════════════════════════════════════╗`);
-  console.log(`║  暗流涌动 能力实际效果测试 (40局)           ║`);
-  console.log(`╚══════════════════════════════════════════════╝`);
-  console.log(`\n总计: ${results.length} 项, ✅ ${passed.length} 通过, ❌ ${failed.length} 失败\n`);
+  console.log("\n╔══════════════════════════════════════════════╗");
+  console.log("║  暗流涌动 能力实际效果测试 (40局)           ║");
+  console.log("╚══════════════════════════════════════════════╝");
+  console.log(
+    `\n总计: ${results.length} 项, ✅ ${passed.length} 通过, ❌ ${failed.length} 失败\n`
+  );
 
   if (failed.length > 0) {
     console.log("=== ❌ 失败项 ===\n");
@@ -383,12 +483,14 @@ function printReport() {
 
   console.log("=== 逐角色效果验证 ===\n");
   for (const [role, checks] of Object.entries(byRole)) {
-    const allPass = checks.every(c => c.pass);
+    const allPass = checks.every((c) => c.pass);
     const icon = allPass ? "✅" : "❌";
-    const detail = checks.map(c => {
-      const s = c.pass ? "✓" : "✗";
-      return `${s}${c.check}`;
-    }).join(" ");
+    const detail = checks
+      .map((c) => {
+        const s = c.pass ? "✓" : "✗";
+        return `${s}${c.check}`;
+      })
+      .join(" ");
     console.log(`  ${icon} ${role}: ${detail}`);
   }
   console.log();
