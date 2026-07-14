@@ -1,12 +1,13 @@
 /**
  * 新夜晚引擎 React 适配器 Hook
- * 已完全替代旧版 useNightLogic，所有夜晚逻辑由新引擎管理
  *
- * ✅ 生产就绪状态：
- * - 当前状态：正式生产版本，已在主流程中使用
- * - 生产使用 Hook：useNightEngine.ts（新系统）
- * - 引用位置：在 useGameController.ts 等核心文件中使用
- * - 用途：正式的夜晚逻辑管理系统
+ * 集成状态（更正原"已完全替代旧版 useNightLogic"的过期表述）：
+ * - 已���入主流程（useGameController 实例化本 Hook），负责夜晚队列编排与
+ *   能力管道执行。
+ * - 与仍在大量引用的 legacy 系统 src/utils/nightLogic.ts 并存，迁移进行中，
+ *   尚未"完全替代"旧系统。
+ * - processDemonKill 为兼容旧接口的空桩，实际恶魔击杀由 imp 能力管道在
+ *   executeNightAbility 中完成。
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -223,8 +224,7 @@ function convertToNightStateMachineSnapshot(
 }
 
 export function useNightEngine(
-  gameState: NightLogicGameState,
-  _actions: NightLogicActions
+  gameState: NightLogicGameState
 ) {
   // 从 gameState 创建初始快照
   const initialSnapshot = useMemo(() => {
@@ -338,6 +338,9 @@ export function useNightEngine(
     engine.endNight();
   }, [engine]);
 
+  // 兼容旧接口的空桩：恶魔击杀的实际效果由 imp 能力的中间件管道
+  // （calculate/stateUpdate）在 useNightActionHandler.executeNightAbility 中完成，
+  // 此处仅返回 "resolved" 以维持 nightLogic.processDemonKill(...) 的调用契约。
   const processDemonKill = useCallback(
     (
       _targetId: number,
@@ -346,8 +349,6 @@ export function useNightEngine(
         mayorId?: number | null;
       } = {}
     ): "pending" | "resolved" => {
-      // 新引擎会通过中间件管道处理恶魔击杀
-      // 这里暂时返回 resolved，实际逻辑在新引擎中处理
       return "resolved";
     },
     []

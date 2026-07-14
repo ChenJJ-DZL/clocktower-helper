@@ -569,6 +569,19 @@ export function checkGameEnd(
     // 如果被双子阻止，游戏继续（除非触发下面的邪恶胜利）
   }
 
+  // --- 1.5 【核心】邪恶存活数 ≥ 善良存活数 -> 邪恶获胜 (需仍有恶魔在场) ---
+  // 旅行者(traveler)不计入阵营人数（与投票门槛逻辑一致）
+  const aliveNonTraveler = aliveSeats.filter((s) => s.role?.type !== "traveler");
+  const aliveEvil = aliveNonTraveler.filter((s) => isPlayerEvil(s));
+  const aliveGood = aliveNonTraveler.filter((s) => !isPlayerEvil(s));
+  if (totalEffectiveDemons > 0 && aliveEvil.length >= aliveGood.length) {
+    return {
+      isGameOver: true,
+      winner: "Evil",
+      reason: "邪恶阵营人数占优（存活邪恶 ≥ 存活善良）",
+    };
+  }
+
   // --- 2. 【第二优先级】特殊角色导致邪恶获胜 (圣徒、地精) ---
   if (lastAction === "execution" && executedPlayerId !== null) {
     const executedSeat = seats.find((s) => s.id === executedPlayerId);

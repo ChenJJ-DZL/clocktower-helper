@@ -4,6 +4,7 @@
  */
 
 import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
+import type { IRoleAbility } from "../roles/core/roleAbility.types";
 import type {
   AbilityMiddlewareSet,
   MiddlewareContext,
@@ -78,4 +79,30 @@ export async function runFullAbilityPipeline(
   if (ctx.aborted) return ctx;
 
   return runMiddlewarePipeline(postProcess, ctx);
+}
+
+/**
+ * 通过新引擎管道执行单个角色能力（统一入口）
+ *
+ * 供 UI 解析器（useNightActionHandler.executeViaNewEngine）与新引擎编排器
+ * （NightEngine.submitAction）共用，避免两者各自重复拼装
+ * { preCheck, calculate, stateUpdate, postProcess } 并直接调用 runFullAbilityPipeline。
+ *
+ * @param ability 角色能力定义（IRoleAbility）
+ * @param context 已构造好的中间件上下文
+ * @returns 管道执行后的上下文
+ */
+export async function runAbilityPipeline(
+  ability: IRoleAbility,
+  context: MiddlewareContext
+): Promise<MiddlewareContext> {
+  return runFullAbilityPipeline(
+    {
+      preCheck: ability.preCheck,
+      calculate: ability.calculate,
+      stateUpdate: ability.stateUpdate,
+      postProcess: ability.postProcess,
+    },
+    context
+  );
 }

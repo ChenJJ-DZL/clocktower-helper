@@ -11,12 +11,12 @@
 import { useCallback } from "react";
 import type { Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
-import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
+import { getRawAbilityMap, getAbilityForRole } from "../roles/new_engine/abilityRegistry";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
 import { computeIsPoisoned } from "../utils/gameRules";
-import { runFullAbilityPipeline } from "../utils/middlewarePipeline";
+import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 
 export interface NightActionHandlerContext {
@@ -120,11 +120,7 @@ export async function executeViaNewEngine(
   context: NightActionHandlerContext,
   roleId: string
 ): Promise<boolean> {
-  const abilityMap = getRawAbilityMap();
-  const abilityKey = Object.keys(abilityMap).find(
-    (k) => k.startsWith(roleId) || abilityMap[k].roleId === roleId
-  );
-  const ability = abilityKey ? abilityMap[abilityKey] : null;
+  const ability = getAbilityForRole(roleId);
 
   if (!ability) {
     console.warn(
@@ -162,7 +158,7 @@ export async function executeViaNewEngine(
       roleName,
       priority: 0,
       isFirstNightOnly: false,
-      abilityId: abilityKey ?? `${roleId}_ability`,
+      abilityId: ability.abilityId ?? `${roleId}_ability`,
       wakeMessage: "",
       firstNightPriority: null,
       otherNightPriority: null,
@@ -180,15 +176,7 @@ export async function executeViaNewEngine(
 
   try {
     // 管道会自动处理 preview：preview 模式只走 preCheck+calculate
-    const resultContext = await runFullAbilityPipeline(
-      {
-        preCheck: ability.preCheck,
-        calculate: ability.calculate,
-        stateUpdate: ability.stateUpdate,
-        postProcess: ability.postProcess,
-      },
-      middlewareContext
-    );
+    const resultContext = await runAbilityPipeline(ability, middlewareContext);
 
     // 管道中止（死亡/非首夜等）— 无论预览还是真实模式都应自动跳过
     if (resultContext.aborted) {

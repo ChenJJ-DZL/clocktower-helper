@@ -200,6 +200,11 @@ export type GameAction =
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "SET_GAME_PHASE":
+      if (typeof window !== "undefined" && action.phase !== state.gamePhase) {
+        console.log(
+          `[REDUCER] SET_GAME_PHASE: ${state.gamePhase} -> ${action.phase}`
+        );
+      }
       return { ...state, gamePhase: action.phase };
 
     case "SET_NIGHT_ACTION_QUEUE":

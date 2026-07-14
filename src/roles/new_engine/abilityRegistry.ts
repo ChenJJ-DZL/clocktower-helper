@@ -506,6 +506,23 @@ export function getRawAbilityMap(): Record<
   return map;
 }
 
+/**
+ * 按角色 ID 获取能力定义（统一查找入口）
+ *
+ * 匹配规则：注册键以 roleId 开头，或能力的 roleId 字段等于目标 roleId。
+ * 供 UI 解析器（useNightActionHandler）与新引擎编排器（NightEngine）共用，
+ * 避免两处各自实现能力查找逻辑。
+ */
+export function getAbilityForRole(
+  roleId: string
+): import("../core/roleAbility.types").IRoleAbility | null {
+  const abilityMap = getRawAbilityMap();
+  const abilityKey = Object.keys(abilityMap).find(
+    (k) => k.startsWith(roleId) || abilityMap[k].roleId === roleId
+  );
+  return abilityKey ? abilityMap[abilityKey] : null;
+}
+
 export function getRegisteredAbilityCount(): number {
   return unifiedRoleDefinition.getAllAbilities().length;
 }

@@ -1,13 +1,14 @@
 /**
  * 新夜晚引擎外观（Facade）
- * 封装所有内部复杂度，对外提供极简的操作接口，是未来替换旧系统的唯一桥梁
+ * 封装夜晚队列编排（唤醒顺序、状态机、推进/跳过）与单条能力的管道执行，
+ * 对外提供极简的操作接口。
  *
- * ⚠️ 实验性质警告：
- * - 当前系统状态：实验开发阶段，未完全集成
- * - 生产使用系统：nightLogic.ts（旧系统）
- * - 迁移计划：根据架构文档逐步迁移
- * - 引用位置：仅在 useNightEngine.ts 中被引用
- * - 不建议：当前不要在生产代码中使用此系统
+ * 集成状态（更正原"实验性质、生产勿用"的过期表述）：
+ * - 已通过 useNightEngine.ts 接入主流程（useGameController 实例化），
+ *   并被若干 new_engine 能力文件与 useExecutionHandlers 引用。
+ * - 与仍在大量引用的 legacy 系统 src/utils/nightLogic.ts 并存，迁移进行中。
+ * - 单条能力的"效果解析"另由 useNightActionHandler.executeViaNewEngine 负责，
+ *   二者共用 middlewarePipeline.runAbilityPipeline。
  */
 
 import type { IRoleAbility } from "../roles/core/roleAbility.types";
@@ -18,7 +19,7 @@ import {
 } from "./dynamicQueueGenerator";
 import {
   type MiddlewareContext,
-  runFullAbilityPipeline,
+  runAbilityPipeline,
 } from "./middlewarePipeline";
 import {
   type GameStateSnapshot,
@@ -174,14 +175,9 @@ export class NightEngine {
       aborted: false,
     };
 
-    // 3. 执行技能中间件管道
-    const resultContext = await runFullAbilityPipeline(
-      {
-        preCheck: this._currentAbility.preCheck,
-        calculate: this._currentAbility.calculate,
-        stateUpdate: this._currentAbility.stateUpdate,
-        postProcess: this._currentAbility.postProcess,
-      },
+    // 3. 执行技能中间件管道（统一入口 runAbilityPipeline）
+    const resultContext = await runAbilityPipeline(
+      this._currentAbility,
       context
     );
 
