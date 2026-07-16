@@ -116,6 +116,9 @@ export function useGameFlow(): UseGameFlowResult {
   );
 
   const enterDayPhase = useCallback(() => {
+    // 每个新白天开始时，重置“今日是否已处决”标记，
+    // 否则该标记会一直为 true，导致后续每天直接跳过黄昏/处决阶段，游戏无法结束。
+    dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
     dispatch(gameActions.setGamePhase("day"));
   }, [dispatch]);
 

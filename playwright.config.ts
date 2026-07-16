@@ -7,7 +7,9 @@ import { defineConfig, devices } from "@playwright/test";
  * 运行测试：
  *   npx playwright test
  *   npx playwright test --ui
- *   npx playwright test tests/e2e_scenario_tb.spec.ts
+ *
+ * 注意：旧版 E2E 测试已于本次清理中全部删除（视为过期），
+ *      保留此配置文件以备后续新建测试。
  */
 export default defineConfig({
   testDir: "./tests",

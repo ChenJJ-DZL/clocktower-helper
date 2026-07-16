@@ -6,7 +6,9 @@ import type { GamePhase, Role, Seat } from "../../app/data";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
+import { gameActions } from "../contexts/GameContext";
 import type { executePoisonAction } from "./roleActionHandlers";
+// 单数 useExecutionHandler 为本文件直接依赖的活代码（非死文件；勿因与复数 useExecutionHandlers 命名撞车而误删）
 import { useExecutionHandler } from "./useExecutionHandler";
 import type { NightActionHandlerContext } from "./useNightActionHandler";
 
@@ -75,6 +77,8 @@ export interface ExecutionHandlersDeps {
   getRegistrationCached: (targetPlayer: Seat, viewingRole?: Role | null) => any;
   saveHistory: () => void;
   dispatch: (action: any) => void;
+  // baseDispatch: 上下文真正的 reducer dispatch（logicDispatch 不会更新 gamePhase 等主状态）
+  baseDispatch: (action: any) => void;
   getRandom: <T>(arr: T[]) => T;
   getAliveNeighbors: (seats: Seat[], seatId: number) => Seat[];
   isGoodAlignment: (seat: Seat) => boolean;
@@ -151,6 +155,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     getRegistrationCached,
     saveHistory,
     dispatch,
+    baseDispatch,
     getRandom,
     getAliveNeighbors,
     isGoodAlignment,
@@ -162,6 +167,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     nightLogic,
     processingRef,
     moonchildChainPendingRef,
+    winResult,
     setWinResult,
     setGamePhase,
     markAbilityUsed,
@@ -815,9 +821,72 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     reviveSeat,
   ]);
 
+  /**
+   * 进入后续夜晚（处决/黄昏后）
+   *
+   * 修复（W7.2.2）：原先只调用 nightLogic.startNight(false)（引擎内部状态机），
+   * 但该调用不更新 React 的 gamePhase，导致黄昏→夜晚过渡后游戏仍停留在 "dusk"，
+   * 玩家反复看到"执行处决"按钮却无法进入夜晚（死循环）。
+   *
+   * 现在对齐首夜进入逻辑：先跑引擎生成唤醒队列，再从引擎读取队列，
+   * 完整设置 React 夜晚状态（wakeQueueIds / currentWakeIndex / gamePhase / nightCount）。
+   */
   const startSubsequentNight = useCallback(() => {
+    // 1. 运行引擎生成夜晚队列（供新引擎能力管道使用）
     nightLogic.startNight(false);
-  }, [nightLogic]);
+
+    // 2. 从引擎实例读取实时队列
+    //    注意：nightLogic 在运行时确实持有 .engine（NightEngine 实例），
+    //    但其类型声明较窄未暴露该字段，故用 any 转换（与 useGameController
+    //    中 handleStartFirstNight 的读取方式一致）。
+    const engineState: any = (nightLogic as any).engine?.state;
+    const queue: any[] = engineState?.queue || [];
+
+    if (queue.length === 0) {
+      // 兜底：即使队列为空也强制进入夜晚，避免卡在 dusk
+      console.warn("[startSubsequentNight] 引擎队列为空，强制进入夜晚");
+      baseDispatch(
+        gameActions.updateState({
+          nightCount: nightCount + 1,
+          currentWakeIndex: 0,
+        })
+      );
+      baseDispatch(gameActions.setGamePhase("night"));
+      baseDispatch(gameActions.setModal(null));
+      return;
+    }
+
+    // 3. 由队列节点 seatId 推导 wakeQueueIds（仅保留在场座位）
+    //    与首夜 handleStartFirstNight 逻辑对齐：依据当前引擎快照重新生成队列，
+    //    这样白天被处决/夜晚死亡的玩家不会在后续夜晚被错误唤醒。
+    const wakeIds: number[] = queue
+      .map((node: any) => node.seatId)
+      .filter((id: number) => seats.some((s: Seat) => s.id === id));
+
+    // 4. 完整设置 React 夜晚状态（对齐 confirmNightOrderPreview / 首夜流程）
+    //    - 重新生成 wakeQueueIds（覆盖首夜缩水后的旧队列）
+    //    - 复位 currentWakeIndex 以支持从队列头重新开始遍历
+    //    - 清空上一天残留的选中目标与查验结果
+    //    - 切换 gamePhase 到 "night" 并关闭模态框（修复 W7.2.2 dusk→night 死循环）
+    //    关键：此处必须用 baseDispatch（上下文真正 reducer）而非 logicDispatch，
+    //    因为 logicDispatch 不会更新 gamePhase / wakeQueueIds 等主状态。
+    baseDispatch(
+      gameActions.updateState({
+        wakeQueueIds: wakeIds,
+        currentWakeIndex: 0,
+        selectedActionTargets: [],
+        inspectionResult: null,
+        nightCount: nightCount + 1,
+      })
+    );
+    baseDispatch(gameActions.setGamePhase("night"));
+    baseDispatch(gameActions.setModal(null));
+
+    console.log(
+      `[startSubsequentNight] 进入第 ${nightCount + 1} 夜，队列长度:`,
+      wakeIds.length
+    );
+  }, [nightLogic, seats, nightCount, setGamePhase, dispatch, baseDispatch]);
 
   // Confirm execution result handler
   const confirmExecutionResult = useCallback(() => {
@@ -874,6 +943,20 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         return;
       }
       startSubsequentNight();
+    } else {
+      // 正常处决（恰一名候选人得票达标）：确认后直接进入下一夜。
+      // 此前该分支为空，导致黄昏处决后游戏停留在 "dusk" 无法进入夜晚（死循环）。
+      // 注意：tops.length===1 时 someone 已被 executeJudgment→executePlayer 实际处决，
+      // 这里只需推进阶段到夜晚。
+      // 防护：若处决本身已使游戏结束（如处决了恶魔→善良胜利），则不进入夜晚，
+      // 保持 gameOver 阶段（checkGameOver 已在 executePlayer 中设置 winResult）。
+      if (winResult) {
+        console.log(
+          "[confirmExecutionResult] 处决已导致游戏结束，跳过进入夜晚"
+        );
+        return;
+      }
+      startSubsequentNight();
     }
   }, [
     currentModal,
@@ -885,6 +968,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     mastermindFinalDay,
     setMastermindFinalDay,
     startSubsequentNight,
+    winResult,
   ]);
 
   // Resolve lunatic RPS handler

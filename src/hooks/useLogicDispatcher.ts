@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
 import type { GamePhase, Seat } from "@/app/data";
 import type { GameAction } from "@/app/gameLogic";
 import { processGameEvent } from "@/app/gameLogic";
@@ -6,7 +6,8 @@ import { computeIsPoisoned } from "../utils/gameRules";
 
 export function useLogicDispatcher(
   seats: Seat[],
-  setSeats: (s: Seat[]) => void,
+  // 需支持函数式更新：checkGameOver 内用 setSeats((prev) => ...) 读取最新座位判定胜负
+  setSeats: Dispatch<SetStateAction<Seat[]>>,
   gamePhase: GamePhase,
   setGamePhase: (p: GamePhase) => void,
   addLog: (msg: string) => void,
@@ -99,46 +100,50 @@ export function useLogicDispatcher(
       damselGuessed: boolean = false,
       klutzGuessedEvil: boolean = false
     ) => {
-      const mastermind = updatedSeats.find(
-        (s) =>
-          s.role?.id === "mastermind" &&
-          !s.isDead &&
-          !computeIsPoisoned(s, updatedSeats)
-      );
-      const isMastermindActive = !!mastermind;
+      // 关键修复：基于最新 React 状态(prevSeats)判定胜负，避免用外部传入的
+      // 陈旧快照覆盖并发的击杀/状态变更（例如 executePlayer 先 killPlayer 再
+      // checkGameOver，若用击杀前的快照会回写并抹掉刚发生的死亡）。
+      setSeats((prevSeats) => {
+        const seatsForCheck = prevSeats;
+        const mastermind = seatsForCheck.find(
+          (s) =>
+            s.role?.id === "mastermind" &&
+            !s.isDead &&
+            !computeIsPoisoned(s, seatsForCheck)
+        );
+        const isMastermindActive = !!mastermind;
 
-      // 使用传入的 updatedSeats 而不是闭包中的 stale seats
-      const action: GameAction = {
-        type: "CHECK_GAME_OVER",
-        executedId: executedPlayerId || undefined,
-        lastAction: executedPlayerId ? "execution" : "check_phase",
-        context: {
-          damselGuessed,
-          klutzGuessedEvil,
-          isVortoxWorld,
-          isMastermindActive,
-        },
-      };
-      const snapshot = processGameEvent(updatedSeats, gamePhase, action);
+        const action: GameAction = {
+          type: "CHECK_GAME_OVER",
+          executedId: executedPlayerId || undefined,
+          lastAction: executedPlayerId ? "execution" : "check_phase",
+          context: {
+            damselGuessed,
+            klutzGuessedEvil,
+            isVortoxWorld,
+            isMastermindActive,
+          },
+        };
+        const snapshot = processGameEvent(seatsForCheck, gamePhase, action);
 
-      if (snapshot.logs.length > 0) {
-        for (const msg of snapshot.logs) {
-          addLog(msg);
+        if (snapshot.logs.length > 0) {
+          for (const msg of snapshot.logs) {
+            addLog(msg);
+          }
         }
-      }
 
-      setSeats(snapshot.seats);
-
-      if (snapshot.winner) {
-        const w = snapshot.winner === "Good" ? "good" : "evil";
-        const reason = snapshot.winReason || "未知原因";
-        victoryRef.current = { winner: w, reason };
-        setWinResult(w);
-        setWinReason(reason);
-        setGamePhase("gameOver");
-        setVictorySnapshot(snapshot.seats.filter((s) => s.role));
-        setCurrentModal({ type: "GAME_OVER", data: null });
-      }
+        if (snapshot.winner) {
+          const w = snapshot.winner === "Good" ? "good" : "evil";
+          const reason = snapshot.winReason || "未知原因";
+          victoryRef.current = { winner: w, reason };
+          setWinResult(w);
+          setWinReason(reason);
+          setGamePhase("gameOver");
+          setVictorySnapshot(snapshot.seats.filter((s) => s.role));
+          setCurrentModal({ type: "GAME_OVER", data: null });
+        }
+        return snapshot.seats;
+      });
     },
     [
       gamePhase,

@@ -1,7 +1,19 @@
 /**
  * 角色系统入口
- * 现已全面迁移到新引擎架构
- * 旧代码已注释作为备份，非必要不启用
+ *
+ * 架构说明（两套互补、均为活代码，勿误删）：
+ * 1. 角色定义（roleRegistry）：由 ./townsfolk ./demon ./minion ./outsider 下的角色
+ *    文件提供，包含角色元数据（名称/类型/描述/夜晚顺序等）。本文件下方 import 这些
+ *    文件并构建 roleRegistry，供 getRoleDefinition / getAllRoleDefinitions 查询；
+ *    UI 展示、剧本配置、胜负判定等均依赖它。
+ * 2. 角色能力实现（abilityRegistry）：由 ./new_engine/abilityRegistry 提供，注册
+ *    各角色的中间件管道能力（preCheck/calculate/stateUpdate/postProcess），供新引擎
+ *    在夜晚执行——见 useNightActionHandler.executeViaNewEngine 与
+ *    NightEngine.submitAction，二者统一走 middlewarePipeline.runAbilityPipeline。
+ *
+ * 即：老角色目录 = "定义"，new_engine = "能力"，互补共存、缺一不可。
+ * 注：曾误判老角色目录为死代码并删除，tsc 报 155 处模块缺失后已从 git 恢复；
+ * 此注释旨在避免重蹈覆辙。长期收口方向是把"定义"也迁入新引擎统一管理（大工程）。
  */
 import type { RoleDefinition } from "../types/roleDefinition";
 // 导入新引擎角色注册系统
@@ -43,7 +55,7 @@ export function isRoleRegistered(roleId: string): boolean {
 // 导出所有新引擎角色能力
 export * from "./new_engine/abilityRegistry";
 
-// ===================== 旧代码备份 - 非必要不启用 =====================
+// ===================== 角色定义来源（活代码：构建 roleRegistry，勿删）=====================
 // Demon
 import { fang_gu } from "./demon/fang_gu";
 import { hadesia } from "./demon/hadesia";

@@ -177,10 +177,14 @@ export function useInteractionHandler(deps: {
       // Fallback if interaction object missing (e.g. for simple roles not yet updated or other logic paths)
       // But for 'choose_player' type roles, we rely on our new architecture.
       if (!interaction && gamePhase !== "day") {
-        // Optional: Fallback to toggleTarget old logic if strictly needed, or just return.
-        // User asked to "REPLACE" logic.
-        // But wait, the previous toggleTarget had important logic?
-        // Actually user said "replace logic for non-setup phases".
+        // 防御性回退：若该步骤没有 interaction 但需要选目标（nightInfo.targetLimit.min>=1），
+        // 直接 return 会导致座位点击无效、确认按钮永久禁用、夜晚死锁。
+        // 这里改回退到 toggleTarget 选择逻辑，由 nightInfo.meta.targetCount 或角色定义推导目标数。
+        console.log(
+          "[handleSeatClick] interaction 缺失，回退 toggleTarget 选择逻辑"
+        );
+        toggleTarget(id);
+        return;
       }
 
       // Direct implementation of the queue strategy requested
@@ -231,6 +235,7 @@ export function useInteractionHandler(deps: {
       nightActionQueue,
       currentWakeIndex,
       selectedActionTargets,
+      toggleTarget,
     ]
   );
 

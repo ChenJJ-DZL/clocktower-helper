@@ -506,8 +506,10 @@ export const GameStage = () => {
               longPressingSeats={new Set()}
               nominator={nominator}
               nominee={nominee}
-              onSeatClick={(seatId: number) => {
+              onSeatClick={(seat) => {
                 // Nomination logic for dusk phase
+                // 注意：W7.3.0 起 onSeatClick 回调参数统一为 number（座位 id）。
+                const seatId = seat;
                 if (nominator === null) {
                   // No nominator selected - select this seat as nominator
                   setNominator(seatId);
@@ -683,6 +685,7 @@ export const GameStage = () => {
                     );
                   } catch (error) {
                     console.error("[GameStage] 执行处决时出错:", error);
+                    console.error("[GameStage] 执行处决堆栈:", (error as Error)?.stack);
                     alert(
                       `执行处决时出错: ${error instanceof Error ? error.message : String(error)}`
                     );
