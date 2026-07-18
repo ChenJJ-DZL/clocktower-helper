@@ -74,9 +74,13 @@ export function useGameFlow(): UseGameFlowResult {
   }, [timer]);
 
   // 当相位切换时自动重置计时器
+  // 当进入白天时，强制重置 hasExecutedThisDay，确保黄昏可以处决
   useEffect(() => {
     dispatch(gameActions.setTimer(0));
     setIsTimerRunning(true);
+    if (state.gamePhase === "day") {
+      dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
+    }
   }, [dispatch, state.gamePhase]);
 
   // 计时器逻辑

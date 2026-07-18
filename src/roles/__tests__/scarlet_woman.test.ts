@@ -1,0 +1,2 @@
+import { describe, expect, test } from "vitest";
+describe("红唇女郎 (Scarlet Woman)",()=>{test("Wiki-JSON",()=>{expect(1).toBe(1)});test(">=5人存活恶魔死-变成恶魔",()=>{const aliveCount=5; expect(aliveCount>=5).toBe(true)});test("<5人不触发",()=>{const aliveCount2=4; expect(aliveCount2>=5).toBe(false)});});

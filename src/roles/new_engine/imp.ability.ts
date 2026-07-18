@@ -374,6 +374,7 @@ const stateUpdateResult = async (
       updatedSeats[targetIdx] = {
         ...updatedSeats[targetIdx],
         markedForDeath: true,
+        diedAtNight: snapshot.nightCount,
         deathSource: "imp_kill",
         deathSourceSeatId: actionNode.seatId,
       };

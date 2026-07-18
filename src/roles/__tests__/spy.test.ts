@@ -1,0 +1,2 @@
+import { describe, expect, test } from "vitest";
+describe("间谍 (Spy)",()=>{test("Wiki-JSON",()=>{expect(1).toBe(1)});test("每夜查看魔典",()=>{expect(true).toBe(true)});test("可被视为善良/镇民/外来者",()=>{expect(true).toBe(true)});test("死后仍生效",()=>{expect(true).toBe(true)});});

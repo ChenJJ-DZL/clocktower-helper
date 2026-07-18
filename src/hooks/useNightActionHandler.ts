@@ -11,7 +11,10 @@
 import { useCallback } from "react";
 import type { Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
-import { getRawAbilityMap, getAbilityForRole } from "../roles/new_engine/abilityRegistry";
+import {
+  getAbilityForRole,
+  getRawAbilityMap,
+} from "../roles/new_engine/abilityRegistry";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
@@ -65,7 +68,10 @@ function translateLegacyStatusesToEffects(seat: Seat): any[] {
 }
 
 /** 将新引擎 statusEffects[] 翻译回 React Seat 的布尔字段 */
-export function syncStatusEffectsToSeat(prev: Seat, updated: any): Partial<Seat> {
+export function syncStatusEffectsToSeat(
+  prev: Seat,
+  updated: any
+): Partial<Seat> {
   const effects: any[] = (updated as any).statusEffects || [];
   const hasPoison = effects.some((e: any) => e.type === "poisoned");
   const hasProtect = effects.some((e: any) => e.type === "protected");
@@ -189,8 +195,11 @@ export async function executeViaNewEngine(
 
     // ============ 预览模式 ============
     if (context.preview) {
-      console.log(`[executeViaNewEngine] PREVIEW mode for ${roleId}, targets:`, context.selectedTargets);
-      
+      console.log(
+        `[executeViaNewEngine] PREVIEW mode for ${roleId}, targets:`,
+        context.selectedTargets
+      );
+
       // 从 calculate 阶段提取预览信息
       const displayInfo = resultContext.meta.displayInfo;
       const abilityResult = resultContext.meta.abilityResult;
@@ -214,19 +223,50 @@ export async function executeViaNewEngine(
         actionDescription = (ability as any).abilityName || "执行能力";
       }
 
-      // 检查是否需要说书人选择（如 spy_info, demon_info 等系统步骤）
-      const isSystemStep = ["spy_info", "demon_info", "minion_info"].includes(
+      // 检查是否是系统步骤（如 demon_info, minion_info）
+      const isSystemStep = ["demon_info", "minion_info"].includes(
         roleId
       );
       const targetConfig = (ability as any).targetConfig;
       const minTargets = targetConfig?.min ?? 0;
 
-      if (isSystemStep || minTargets === 0) {
-        // 无目标系统步骤：直接确认执行，不弹窗
+      if (isSystemStep) {
+        // 系统信息步骤：直接确认执行，不弹窗
         context.setCurrentModal(null);
-        // 触发真实执行（不走 preview）
         const realContext = { ...context, preview: false };
         return executeViaNewEngine(realContext, roleId);
+      }
+
+      if (minTargets === 0) {
+        // 不需要选择目标的能力（信息角色、间谍魔典等）
+        // 间谍特殊：需要弹出对局记录/魔典查看界面
+        if (roleId === "spy") {
+          context.setCurrentModal({ type: "SPY_RECORDS", data: null });
+          return true;
+        }
+        // 执行后需要 UI 确认，不要自动跳过
+        context.setCurrentModal({
+          type: "NIGHT_ACTION_CONFIRM",
+          data: {
+            roleName,
+            actionDescription: displayInfo?.log || actionDescription,
+            targetDescriptions: ["（信息获取 - 无目标）"],
+            extraNote: isCorrupted
+              ? "该角色处于醉酒/中毒状态，能力可能不生效"
+              : undefined,
+            onConfirm: async () => {
+              const realContext: NightActionHandlerContext = {
+                ...context,
+                preview: false,
+              };
+              await executeViaNewEngine(realContext, roleId);
+            },
+            onCancel: () => {
+              context.setSelectedActionTargets([]);
+            },
+          },
+        });
+        return true;
       }
 
       // 弹窗确认
@@ -241,7 +281,10 @@ export async function executeViaNewEngine(
             ? "该角色处于醉酒/中毒状态，能力可能不生效"
             : undefined,
           onConfirm: async () => {
-            console.log(`[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`, safeTargets);
+            console.log(
+              `[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`,
+              safeTargets
+            );
             // 用户确认后，用同一套参数执行真实管道
             const realContext: NightActionHandlerContext = {
               ...context,
@@ -262,28 +305,30 @@ export async function executeViaNewEngine(
     }
 
     // ============ 非预览模式：执行完整管道 ============
-    console.log(`[executeViaNewEngine] FULL EXECUTION for ${roleId}, targets:`, context.selectedTargets);
+    console.log(
+      `[executeViaNewEngine] FULL EXECUTION for ${roleId}, targets:`,
+      context.selectedTargets
+    );
 
     // 从 snapshot 中提取更新后的座位状态，并同步状态
     const updatedSeats = resultContext.snapshot.seats as Seat[];
-    console.log(`[executeViaNewEngine] Syncing ${updatedSeats.length} seats from engine snapshot`);
-    
-    if (updatedSeats && updatedSeats.length > 0) {
-      context.setSeats((prevSeats) =>
-        prevSeats.map((prev) => {
-          const updated = updatedSeats.find((u: any) => u.id === prev.id);
-          if (updated) {
-            // 合并更新 + 双向状态同步
-            const syncedFields = syncStatusEffectsToSeat(prev, updated);
-            const hasNewPoison = syncedFields.isPoisoned && !prev.isPoisoned;
-            if (hasNewPoison) {
-              console.log(`[executeViaNewEngine] ⚠️ POISON APPLIED to seat ${prev.id} (${prev.role?.name || 'unknown'})`);
-            }
-            return { ...prev, ...updated, ...syncedFields, id: prev.id };
-          }
-          return prev;
+    console.log(
+      `[executeViaNewEngine] Syncing ${updatedSeats.length} seats from engine snapshot`
+    );
+
+    // 同步 updatedSeats 的引擎字段（statusEffects → isPoisoned/isDrunk 等），
+    // 确保 computeIsPoisoned 能读取到最新中毒状态
+    const syncedSeats: Seat[] = updatedSeats
+      ? updatedSeats.map((u: any) => {
+          const prev = context.seats.find((s) => s.id === u.id);
+          if (!prev) return u as Seat;
+          const synced = syncStatusEffectsToSeat(prev, u);
+          return { ...prev, ...u, ...synced, id: prev.id } as Seat;
         })
-      );
+      : [];
+
+    if (syncedSeats.length > 0) {
+      context.setSeats(syncedSeats);
     }
 
     // 记录日志

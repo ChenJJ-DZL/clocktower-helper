@@ -3,10 +3,10 @@
 
 import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
+import { gameActions } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
-import { gameActions } from "../contexts/GameContext";
 import type { executePoisonAction } from "./roleActionHandlers";
 // 单数 useExecutionHandler 为本文件直接依赖的活代码（非死文件；勿因与复数 useExecutionHandlers 命名撞车而误删）
 import { useExecutionHandler } from "./useExecutionHandler";

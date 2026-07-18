@@ -3,6 +3,12 @@
 import type React from "react";
 import type { GamePhase, Seat } from "@/app/data";
 
+function formatTimer(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
 export interface ControlPanelProps {
   gamePhase: GamePhase;
   seats: Seat[];
@@ -24,6 +30,11 @@ export interface ControlPanelProps {
   setRemainingDays: (days: number | null) => void;
   cerenovusTarget: { targetId: number; roleName: string } | null;
   nightCount: number;
+  timer: number;
+  isTimerRunning: boolean;
+  onTimerPause: () => void;
+  onTimerStart: () => void;
+  onTimerReset: () => void;
   onPreStartNight: () => void;
   onStartNight: (isFirst: boolean) => void;
   onStepBack: () => void;
@@ -48,6 +59,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   setRemainingDays,
   cerenovusTarget,
   nightCount,
+  timer,
+  isTimerRunning,
+  onTimerPause,
+  onTimerStart,
+  onTimerReset,
   onPreStartNight,
   onStartNight,
   onStepBack,
@@ -59,153 +75,168 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onAddLog,
 }) => {
   return (
-    <div className="w-full p-4 flex gap-3 justify-center">
-      {gamePhase === "setup" && (
+    <div className="w-full p-4 flex flex-col gap-2">
+      {/* Timer display */}
+      <div className="flex items-center justify-center gap-3 text-white">
+        <span className="text-3xl font-mono font-bold tabular-nums">{formatTimer(timer)}</span>
         <button
-          onClick={onPreStartNight}
-          className="w-full py-3 bg-indigo-600 rounded-xl font-bold text-base shadow-xl"
+          onClick={isTimerRunning ? onTimerPause : onTimerStart}
+          className="px-3 py-1 bg-gray-600 rounded-lg text-sm font-bold hover:bg-gray-500 transition-colors"
         >
-          开始游戏 (首夜)
+          {isTimerRunning ? "⏸" : "▶"}
         </button>
-      )}
-      {gamePhase === "check" &&
-        (() => {
-          // 酒鬼必须先分配镇民伪装身份，未分配或分配非镇民时禁止入夜
-          const hasPendingDrunk = seats.some(
-            (s) =>
-              s.role?.id === "drunk" &&
-              (!s.charadeRole || s.charadeRole.type !== "townsfolk")
-          );
-          // 红罗刹检查：有占卜师时必须设置红罗刹
-          const hasFortuneTeller = seats.some(
-            (s) => s.role?.id === "fortune_teller" && !s.isDead
-          );
-          const hasRedHerring = seats.some((s) => s.isRedHerring);
-          const needsRedHerring = hasFortuneTeller && !hasRedHerring;
-          return (
-            <div className="w-full flex flex-col gap-2">
-              <button
-                onClick={() => onStartNight(true)}
-                disabled={hasPendingDrunk || needsRedHerring}
-                className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                确认无误，入夜
-              </button>
-              {hasPendingDrunk && (
-                <div className="text-center text-yellow-300 text-sm font-semibold">
-                  场上有酒鬼未选择镇民伪装身份。
-                </div>
-              )}
-              {needsRedHerring && (
-                <div className="text-center text-yellow-300 text-sm font-semibold">
-                  场上有占卜师但未设置红罗刹，请右键点击一个座位选择"选为红罗刹"
-                </div>
-              )}
-            </div>
-          );
-        })()}
-      {(gamePhase === "firstNight" || gamePhase === "night") && (
-        <>
+        <button
+          onClick={onTimerReset}
+          className="px-3 py-1 bg-gray-600 rounded-lg text-sm font-bold hover:bg-gray-500 transition-colors"
+        >
+          ↺
+        </button>
+      </div>
+      {/* Controls */}
+      <div className="flex gap-3 justify-center">
+        {gamePhase === "setup" && (
           <button
-            onClick={onStepBack}
-            className="flex-1 py-3 bg-gray-700 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={currentWakeIndex === 0 && history.length === 0}
+            onClick={onPreStartNight}
+            className="w-full py-3 bg-indigo-600 rounded-xl font-bold text-base shadow-xl"
           >
-            上一步
+            开始游戏 (首夜)
           </button>
-          <button
-            onClick={onConfirmAction}
-            disabled={isConfirmDisabled}
-            className="flex-[2] py-3 bg-white text-black rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            确认 / 下一步
-          </button>
-        </>
-      )}
-      {gamePhase === "day" && (
-        <>
-          {/* 剩余日间按钮（evil_twin 相关） */}
-          {evilTwinPair && (
-            <div className="w-full mb-2 flex gap-2">
-              <input
-                type="number"
-                min="0"
-                value={remainingDays ?? ""}
-                onChange={(e) =>
-                  setRemainingDays(
-                    e.target.value ? parseInt(e.target.value, 10) : null
-                  )
-                }
-                placeholder="剩余日间数"
-                className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-center"
-              />
+        )}
+        {gamePhase === "check" &&
+          (() => {
+            const hasPendingDrunk = seats.some(
+              (s) =>
+                s.role?.id === "drunk" &&
+                (!s.charadeRole || s.charadeRole.type !== "townsfolk")
+            );
+            const hasFortuneTeller = seats.some(
+              (s) => s.role?.id === "fortune_teller" && !s.isDead
+            );
+            const hasRedHerring = seats.some((s) => s.isRedHerring);
+            const needsRedHerring = hasFortuneTeller && !hasRedHerring;
+            return (
+              <div className="w-full flex flex-col gap-2">
+                <button
+                  onClick={() => onStartNight(true)}
+                  disabled={hasPendingDrunk || needsRedHerring}
+                  className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  确认无误，入夜
+                </button>
+                {hasPendingDrunk && (
+                  <div className="text-center text-yellow-300 text-sm font-semibold">
+                    场上有酒鬼未选择镇民伪装身份。
+                  </div>
+                )}
+                {needsRedHerring && (
+                  <div className="text-center text-yellow-300 text-sm font-semibold">
+                    场上有占卜师但未设置红罗刹，请右键点击一个座位选择"选为红罗刹"
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        {(gamePhase === "firstNight" || gamePhase === "night") && (
+          <>
+            <button
+              onClick={onStepBack}
+              className="flex-1 py-3 bg-gray-700 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={currentWakeIndex === 0 && history.length === 0}
+            >
+              上一步
+            </button>
+            <button
+              onClick={onConfirmAction}
+              disabled={isConfirmDisabled}
+              className="flex-[2] py-3 bg-white text-black rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              确认 / 下一步
+            </button>
+          </>
+        )}
+        {gamePhase === "day" && (
+          <>
+            {evilTwinPair && (
+              <div className="w-full mb-2 flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={remainingDays ?? ""}
+                  onChange={(e) =>
+                    setRemainingDays(
+                      e.target.value ? parseInt(e.target.value, 10) : null
+                    )
+                  }
+                  placeholder="剩余日间数"
+                  className="flex-1 px-3 py-2 bg-gray-700 rounded-lg text-center"
+                />
+                <button
+                  onClick={() => {
+                    if (remainingDays !== null && remainingDays > 0) {
+                      setRemainingDays(remainingDays - 1);
+                      onAddLog(`剩余日间数：${remainingDays - 1}`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-purple-600 rounded-lg font-bold"
+                  disabled={remainingDays === null || remainingDays <= 0}
+                >
+                  -1
+                </button>
+              </div>
+            )}
+            {cerenovusTarget && (
               <button
                 onClick={() => {
-                  if (remainingDays !== null && remainingDays > 0) {
-                    setRemainingDays(remainingDays - 1);
-                    onAddLog(`剩余日间数：${remainingDays - 1}`);
+                  const target = seats.find(
+                    (s) => s.id === cerenovusTarget.targetId
+                  );
+                  if (target) {
+                    onSetShowMadnessCheckModal({
+                      targetId: cerenovusTarget.targetId,
+                      roleName: cerenovusTarget.roleName,
+                      day: nightCount,
+                    });
                   }
                 }}
-                className="px-4 py-2 bg-purple-600 rounded-lg font-bold"
-                disabled={remainingDays === null || remainingDays <= 0}
+                className="w-full mb-2 py-2 bg-purple-600 rounded-xl font-bold text-sm"
               >
-                -1
+                🧠 检查 {cerenovusTarget.targetId + 1}号 是否疯狂扮演{" "}
+                {cerenovusTarget.roleName}
               </button>
-            </div>
-          )}
-          {/* 疯狂判定按钮（洗脑师相关） */}
-          {cerenovusTarget && (
+            )}
             <button
-              onClick={() => {
-                const target = seats.find(
-                  (s) => s.id === cerenovusTarget.targetId
-                );
-                if (target) {
-                  onSetShowMadnessCheckModal({
-                    targetId: cerenovusTarget.targetId,
-                    roleName: cerenovusTarget.roleName,
-                    day: nightCount,
-                  });
-                }
-              }}
-              className="w-full mb-2 py-2 bg-purple-600 rounded-xl font-bold text-sm"
+              onClick={onDayEndTransition}
+              className="w-full py-3 bg-orange-600 rounded-xl font-bold text-base"
             >
-              🧠 检查 {cerenovusTarget.targetId + 1}号 是否疯狂扮演{" "}
-              {cerenovusTarget.roleName}
+              进入黄昏 (提名)
             </button>
-          )}
+          </>
+        )}
+        {gamePhase === "dusk" && (
+          <>
+            <button
+              onClick={onExecuteJudgment}
+              className="flex-[2] py-3 bg-red-600 rounded-xl font-bold text-lg shadow-lg animate-pulse"
+            >
+              执行处决
+            </button>
+            <button
+              onClick={() => onStartNight(false)}
+              className="flex-1 py-3 bg-indigo-600 rounded-xl font-bold text-sm"
+            >
+              直接入夜
+            </button>
+          </>
+        )}
+        {gamePhase === "dawnReport" && (
           <button
-            onClick={onDayEndTransition}
-            className="w-full py-3 bg-orange-600 rounded-xl font-bold text-base"
+            onClick={() => onSetGamePhase("day")}
+            className="w-full py-3 bg-yellow-500 text-black rounded-xl font-bold text-base"
           >
-            进入黄昏 (提名)
+            进入白天
           </button>
-        </>
-      )}
-      {gamePhase === "dusk" && (
-        <>
-          <button
-            onClick={onExecuteJudgment}
-            className="flex-[2] py-3 bg-red-600 rounded-xl font-bold text-lg shadow-lg animate-pulse"
-          >
-            执行处决
-          </button>
-          <button
-            onClick={() => onStartNight(false)}
-            className="flex-1 py-3 bg-indigo-600 rounded-xl font-bold text-sm"
-          >
-            直接入夜
-          </button>
-        </>
-      )}
-      {gamePhase === "dawnReport" && (
-        <button
-          onClick={() => onSetGamePhase("day")}
-          className="w-full py-3 bg-yellow-500 text-black rounded-xl font-bold text-base"
-        >
-          进入白天
-        </button>
-      )}
+        )}
+      </div>
     </div>
   );
 };

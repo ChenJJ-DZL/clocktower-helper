@@ -223,9 +223,7 @@ function convertToNightStateMachineSnapshot(
   };
 }
 
-export function useNightEngine(
-  gameState: NightLogicGameState
-) {
+export function useNightEngine(gameState: NightLogicGameState) {
   // 从 gameState 创建初始快照
   const initialSnapshot = useMemo(() => {
     const snap = createSnapshotFromGameState(gameState);

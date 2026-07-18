@@ -571,7 +571,9 @@ export function checkGameEnd(
 
   // --- 1.5 【核心】邪恶存活数 ≥ 善良存活数 -> 邪恶获胜 (需仍有恶魔在场) ---
   // 旅行者(traveler)不计入阵营人数（与投票门槛逻辑一致）
-  const aliveNonTraveler = aliveSeats.filter((s) => s.role?.type !== "traveler");
+  const aliveNonTraveler = aliveSeats.filter(
+    (s) => s.role?.type !== "traveler"
+  );
   const aliveEvil = aliveNonTraveler.filter((s) => isPlayerEvil(s));
   const aliveGood = aliveNonTraveler.filter((s) => !isPlayerEvil(s));
   if (totalEffectiveDemons > 0 && aliveEvil.length >= aliveGood.length) {

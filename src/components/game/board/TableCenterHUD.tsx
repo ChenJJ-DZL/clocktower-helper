@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { GamePhase } from "../../../../app/data";
 
 interface TableCenterHUDProps {
@@ -9,6 +9,7 @@ interface TableCenterHUDProps {
   nightCount: number;
   timer: number;
   formatTimer: (seconds: number) => string;
+  isTimerRunning: boolean;
   onTimerStart?: () => void;
   onTimerPause?: () => void;
   onTimerReset?: () => void;
@@ -23,18 +24,15 @@ export function TableCenterHUD({
   nightCount,
   timer,
   formatTimer,
+  isTimerRunning,
   onTimerStart,
   onTimerPause,
   onTimerReset,
 }: TableCenterHUDProps) {
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
-
   const handleTimerClick = useCallback(() => {
     if (isTimerRunning) {
-      setIsTimerRunning(false);
       onTimerPause?.();
     } else {
-      setIsTimerRunning(true);
       onTimerStart?.();
     }
   }, [isTimerRunning, onTimerPause, onTimerStart]);
@@ -42,7 +40,6 @@ export function TableCenterHUD({
   const handleTimerReset = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setIsTimerRunning(false);
       onTimerReset?.();
     },
     [onTimerReset]

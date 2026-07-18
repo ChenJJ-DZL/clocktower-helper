@@ -147,11 +147,14 @@ const executedTodayCheck = async (
     };
   }
 
+  // 保存被处决玩家的角色快照（处决后角色可能因红唇女郎等发生变化）
+  const roleSnapshot = executedSeat.effectiveRole?.name ?? executedSeat.charadeRole?.name ?? executedSeat.role?.name ?? "未知角色";
   return {
     ...context,
     meta: {
       ...context.meta,
       executedSeatId: executedSeat.id,
+      executedRoleSnapshot: roleSnapshot,
     },
   };
 };
@@ -286,8 +289,10 @@ const calculateResult = async (
   }
 
   // 优先级 4：动态计算
+  // 优先使用 preCheck 时保存的角色快照（避免处决后角色变化导致"未知角色"）
+  const roleSnapshot = meta.executedRoleSnapshot as string | undefined;
   const roleName = abilityEffective
-    ? resolveExecutedRole(executedSeat, snapshot.seats)
+    ? (roleSnapshot && roleSnapshot !== "未知角色" ? roleSnapshot : resolveExecutedRole(executedSeat, snapshot.seats))
     : generateFakeRoleName(executedSeatId, snapshot.seats);
 
   const result: UndertakerInfo = {

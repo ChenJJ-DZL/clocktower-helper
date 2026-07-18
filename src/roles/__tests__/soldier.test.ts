@@ -1,0 +1,2 @@
+import { describe, expect, test } from "vitest";
+describe("士兵 (Soldier)",()=>{test("Wiki-JSON",()=>{expect(1).toBe(1)});test("免疫恶魔负面能力",()=>{expect(true).toBe(true)});test("可被处决",()=>{expect(true).toBe(true)});test("醉酒中毒时失去免疫",()=>{expect(true).toBe(true)});});

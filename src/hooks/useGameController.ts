@@ -690,36 +690,34 @@ export function useGameController() {
     [rawContinueToNextAction, setSelectedActionTargets]
   );
 
-  const nightLogic = useNightEngine(
-    {
-      seats,
-      gamePhase,
-      nightCount,
-      executedPlayerId,
-      wakeQueueIds,
-      currentWakeIndex,
-      selectedActionTargets,
-      gameLogs,
-      selectedScript,
-      deadThisNight,
-      currentDuskExecution,
-      pukkaPoisonQueue,
-      todayDemonVoted,
-      todayMinionNominated,
-      todayExecutedId,
-      witchCursedId,
-      witchActive,
-      cerenovusTarget,
-      voteRecords,
-      nominationMap,
-      poChargeState,
-      goonDrunkedThisNight,
-      isVortoxWorld,
-      outsiderDiedToday,
-      nightInfo,
-      nightQueuePreviewTitle: gameState.nightQueuePreviewTitle,
-    }
-  );
+  const nightLogic = useNightEngine({
+    seats,
+    gamePhase,
+    nightCount,
+    executedPlayerId,
+    wakeQueueIds,
+    currentWakeIndex,
+    selectedActionTargets,
+    gameLogs,
+    selectedScript,
+    deadThisNight,
+    currentDuskExecution,
+    pukkaPoisonQueue,
+    todayDemonVoted,
+    todayMinionNominated,
+    todayExecutedId,
+    witchCursedId,
+    witchActive,
+    cerenovusTarget,
+    voteRecords,
+    nominationMap,
+    poChargeState,
+    goonDrunkedThisNight,
+    isVortoxWorld,
+    outsiderDiedToday,
+    nightInfo,
+    nightQueuePreviewTitle: gameState.nightQueuePreviewTitle,
+  });
 
   const getRoleTargetCount = useCallback(
     (roleId: string, isFirstNight: boolean) => {

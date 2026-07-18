@@ -263,10 +263,12 @@ function generateFakeInfo(
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
+  // 过滤掉"洗衣妇"自身，避免中毒时明示身份
+  const filteredRoles = townsfolkRoles.filter((r) => r !== "洗衣妇");
   const roleName =
-    townsfolkRoles.length > 0
-      ? townsfolkRoles[Math.floor(Math.random() * townsfolkRoles.length)]
-      : "洗衣妇";
+    filteredRoles.length > 0
+      ? filteredRoles[Math.floor(Math.random() * filteredRoles.length)]
+      : "厨师"; // 极端 fallback：返回任意其他镇民角色而非洗衣妇
 
   return { seat1, seat2, roleName };
 }

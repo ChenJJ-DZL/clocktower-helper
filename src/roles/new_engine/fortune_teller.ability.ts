@@ -181,7 +181,10 @@ function isEffectivelyDemon(
   // 2. 恶魔继任者（红唇女郎变身后）
   if (seat.isDemonSuccessor && roleType === "demon") return true;
 
-  // 3. 干扰项（仅在 abilityEffective 时计入；咖啡师效果下 checkBoon = false）
+  // 3. 红罗刹（天敌红罗刹）：始终被占卜师当作恶魔
+  if (seat.isRedHerring || seat.isFortuneTellerRedHerring) return true;
+
+  // 4. 干扰项（仅在 abilityEffective 时计入；咖啡师效果下 checkBoon = false）
   if (checkBoon && isBoon) return true;
 
   // 4. Recluse：50% 概率被当作恶魔（独立于干扰项）
@@ -298,7 +301,7 @@ const calculateResult = async (
 
   // 首夜：初始化干扰项
   const selfSeatId = actionNode.seatId;
-  const gameId = (snapshot as any).gameId;
+  const gameId = (snapshot as any).gameId || "default";
   const isFirstNight = (snapshot.nightCount ?? 0) === 1;
   if (isFirstNight) {
     initializeBoon(seats, selfSeatId, gameId);

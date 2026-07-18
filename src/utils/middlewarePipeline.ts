@@ -3,8 +3,8 @@
  * 技能执行的标准流程抽象，实现职责链模式
  */
 
-import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 import type { IRoleAbility } from "../roles/core/roleAbility.types";
+import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 import type {
   AbilityMiddlewareSet,
   MiddlewareContext,

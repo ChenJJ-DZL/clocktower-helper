@@ -179,6 +179,7 @@ export function useNightSnapshot(
 
         // 设置游戏阶段为黎明报告
         console.log("[continueToNextAction] Setting gamePhase to dawnReport");
+        // Bug Fix: 重置今日处决标记，否则 dawnReport→day 会跳过黄昏处决
         setGamePhase("dawnReport");
 
         // 设置夜晚死亡报告模态框

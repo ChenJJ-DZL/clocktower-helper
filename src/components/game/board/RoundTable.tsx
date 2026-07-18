@@ -235,6 +235,7 @@ export function RoundTable({
             nightCount={nightCount || 0}
             timer={timer || 0}
             formatTimer={formatTimer || ((s) => `${s}`)}
+            isTimerRunning={true}
             onTimerStart={onTimerStart}
             onTimerPause={onTimerPause}
             onTimerReset={onTimerReset}
