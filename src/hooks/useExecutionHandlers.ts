@@ -410,6 +410,33 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           alert("存在已用完幽灵票的死亡玩家，无法计票");
           return;
         }
+
+        // 管家（Butler）规则检查：如果管家投票但主人不投票，管家票计为0
+        for (const voterId of voters) {
+          const voterSeat = seats.find((s) => s.id === voterId);
+          if (!voterSeat) continue;
+          const isButler =
+            voterSeat.role?.id === "butler" ||
+            (voterSeat as any).masterId !== undefined;
+          if (isButler && (voterSeat as any).masterId !== undefined) {
+            const masterId = (voterSeat as any).masterId;
+            const masterVoting = voters.includes(masterId);
+            if (!masterVoting) {
+              alert(
+                `管家(${voterId + 1}号)的票不计入：主人(${masterId + 1}号)未投票（规则：如果仅管家投票而主人不投票，则管家票计为0票）`
+              );
+              // 移除管家的投票记录
+              const filteredVoters = voters.filter((id) => id !== voterId);
+              // 重新调用submitVotes，但不含管家
+              if (filteredVoters.length === 0) {
+                alert("移除管家投票后无有效投票者，本次投票作废");
+                return;
+              }
+              submitVotes(v, filteredVoters);
+              return;
+            }
+          }
+        }
       }
 
       saveHistory();

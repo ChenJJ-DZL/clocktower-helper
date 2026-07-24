@@ -163,6 +163,7 @@ export interface Seat {
   isMad?: boolean; // 新增：是否处于疯狂状态（例如洗脑师、鹰身女妖效果）
   statusDetails: string[];
   statuses?: StatusEffect[];
+  statusEffects?: any[]; // 新引擎状态效果数组（poisoned/protected/drunk 等，与 statuses 互补）
   voteCount?: number;
   isCandidate?: boolean;
   grandchildId: number | null; // 记录哪个玩家是"祖母的孙子"（仅当该玩家是祖母时使用）

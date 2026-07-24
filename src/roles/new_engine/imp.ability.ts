@@ -297,7 +297,7 @@ const stateUpdateResult = async (
   const currentNight = snapshot.nightCount ?? 0;
 
   // 构建持久化记录
-  const record = {
+  const record: Record<string, any> = {
     targetId,
     isSuicide,
     killed: abilityEffective,
@@ -371,13 +371,23 @@ const stateUpdateResult = async (
   else {
     const targetIdx = updatedSeats.findIndex((s: any) => s.id === targetId);
     if (targetIdx !== -1) {
-      updatedSeats[targetIdx] = {
-        ...updatedSeats[targetIdx],
-        markedForDeath: true,
-        diedAtNight: snapshot.nightCount,
-        deathSource: "imp_kill",
-        deathSourceSeatId: actionNode.seatId,
-      };
+      // 检查目标是否被保护（僧侣/旅店老板/士兵等）
+      const targetSeat = updatedSeats[targetIdx];
+      const isProtected =
+        targetSeat.statusEffects?.some((e: any) => e.type === "protected") ||
+        targetSeat.isProtected;
+      if (!isProtected) {
+        updatedSeats[targetIdx] = {
+          ...targetSeat,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          deathSource: "imp_kill",
+          deathSourceSeatId: actionNode.seatId,
+        };
+      } else {
+        record.log = record.log || {};
+        (record.log as any).blockedByProtection = true;
+      }
     }
   }
 

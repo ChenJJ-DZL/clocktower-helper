@@ -58,15 +58,22 @@ export const abilityPriorityCalculation = async (
   }
 
   // 4. 第四优先级：醉酒/中毒
-  if (effects.some((e: any) => e.type === "drunk" || e.type === "poisoned")) {
-    const isDrunk = effects.some((e: any) => e.type === "drunk");
+  // 🔧 同时检查新引擎 statusEffects 和遗留字段（isPoisoned/isDrunk）作为兜底
+  const poisonedFromEffects = effects.some((e: any) => e.type === "poisoned");
+  const drunkFromEffects = effects.some((e: any) => e.type === "drunk");
+  const poisonedFromLegacy = !!(seat as any).isPoisoned;
+  const drunkFromLegacy = !!(seat as any).isDrunk;
+  const isPoisoned = poisonedFromEffects || poisonedFromLegacy;
+  const isDrunk = drunkFromEffects || drunkFromLegacy;
+
+  if (isPoisoned || isDrunk) {
     return {
       ...context,
       meta: {
         ...meta,
         abilityEffective: false,
         isDrunk,
-        isPoisoned: !isDrunk,
+        isPoisoned,
         prioritySource: isDrunk ? "drunk" : "poisoned",
       },
     };

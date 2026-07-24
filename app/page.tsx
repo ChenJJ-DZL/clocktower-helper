@@ -308,8 +308,14 @@ export default function Home() {
     // 🔧 自动为酒鬼指派伪装身份（避免进入check阶段时被阻塞）
     const drunkSeat = newSeats.find((s: any) => s.role?.id === "drunk");
     if (drunkSeat) {
+      // 收集所有已被分配的村民角色ID，酒鬼只能伪装成不在场的村民
+      const inPlayRoleIds = new Set(
+        newSeats
+          .filter((s: any) => s.role)
+          .map((s: any) => s.role.id)
+      );
       const availableCharades = groups.townsfolk.filter(
-        (r) => r.id !== "drunk"
+        (r) => r.id !== "drunk" && !inPlayRoleIds.has(r.id)
       );
       if (availableCharades.length > 0) {
         const charade =
@@ -327,7 +333,7 @@ export default function Home() {
           type: charade.type,
         };
         console.log(
-          `[handleQuickTest] 自动为酒鬼 (${drunkSeat.id + 1}号) 指派伪装身份: ${charade.name}`
+          `[handleQuickTest] 自动为酒鬼 (${drunkSeat.id + 1}号) 指派伪装身份: ${charade.name}（不在场的村民）`
         );
       }
     }
@@ -728,14 +734,14 @@ export default function Home() {
   // seatScale, currentNightNumber, currentWakeSeat, nextWakeSeatId, nextWakeSeat, getDisplayRole, currentWakeRole, nextWakeRole moved to GameStage component
 
   // Day/Night transition sound effects
+  // 注意：计时器初始化已由 useGameFlow.ts 统一管理，此处不再重复设置
   useEffect(() => {
     if (gamePhase === "day") {
-      setTimer(480); // Default to 8 mins discussion
       playSound("day");
     } else if (gamePhase === "night" || gamePhase === "firstNight") {
       playSound("night");
     }
-  }, [gamePhase, playSound, setTimer]);
+  }, [gamePhase, playSound]);
 
   if (!mounted) return null;
 

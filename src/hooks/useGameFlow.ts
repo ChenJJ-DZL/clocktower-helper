@@ -73,13 +73,20 @@ export function useGameFlow(): UseGameFlowResult {
     timerRef.current = timer;
   }, [timer]);
 
-  // 当相位切换时自动重置计时器
-  // 当进入白天时，强制重置 hasExecutedThisDay，确保黄昏可以处决
+  // 当相位切换时管理计时器
+  // 进入白天：不重置计时器（由 app/page.tsx 设置为 480），只重置 hasExecutedThisDay
+  // 进入其他阶段：停止计时器并重置为 0
   useEffect(() => {
-    dispatch(gameActions.setTimer(0));
-    setIsTimerRunning(true);
     if (state.gamePhase === "day") {
       dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
+      // 仅在计时器为 0 时初始化为 480（防止覆盖用户手动重置的值）
+      if (timerRef.current === 0) {
+        dispatch(gameActions.setTimer(480));
+      }
+      setIsTimerRunning(true);
+    } else {
+      dispatch(gameActions.setTimer(0));
+      setIsTimerRunning(false);
     }
   }, [dispatch, state.gamePhase]);
 

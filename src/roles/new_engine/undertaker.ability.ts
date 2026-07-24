@@ -135,9 +135,22 @@ const executedTodayCheck = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot } = context;
-  const executedSeat: PlayerLookup | undefined = snapshot.seats.find(
-    (s: any) => s.executedToday
+
+  // 优先从快照级 todayExecutedId 获取被处决者ID（由 useExecutionHandlers 处决后写入）
+  const todayExecutedId = (snapshot as any).todayExecutedId as number | undefined;
+  // 再从座位标记 executedToday 找（兼容贞洁者等角色设置的标记）
+  const executedSeatFromMark: PlayerLookup | undefined = snapshot.seats.find(
+    (s: any) => s.executedToday || s.id === todayExecutedId
   );
+
+  // 合并：优先用 todayExecutedId 精确匹配，回退到座位标记查找
+  let executedSeat: PlayerLookup | undefined;
+  if (todayExecutedId !== undefined && todayExecutedId !== null) {
+    executedSeat = snapshot.seats.find((s: any) => s.id === todayExecutedId);
+  }
+  if (!executedSeat) {
+    executedSeat = executedSeatFromMark;
+  }
 
   if (!executedSeat) {
     return {
@@ -148,7 +161,13 @@ const executedTodayCheck = async (
   }
 
   // 保存被处决玩家的角色快照（处决后角色可能因红唇女郎等发生变化）
-  const roleSnapshot = executedSeat.effectiveRole?.name ?? executedSeat.charadeRole?.name ?? executedSeat.role?.name ?? "未知角色";
+  // 优先使用 seatSnapshot 字段（引擎保留的处决时刻角色快照），回退到 currentRole
+  const seatSnapshot = (executedSeat as any).executedRoleSnapshot;
+  const roleSnapshot =
+    seatSnapshot ??
+    (executedSeat as any).charadeRole?.name ??
+    executedSeat.role?.name ??
+    "未知角色";
   return {
     ...context,
     meta: {

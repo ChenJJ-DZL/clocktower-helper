@@ -937,6 +937,11 @@ export const GameStage = () => {
                     // Reset selection
                     setNominator(null);
                     setNominee(null);
+                    // 立即自动进入投票环节，打开举手名单面板进行计票
+                    setCurrentModal({
+                      type: "VOTE_INPUT",
+                      data: { voterId: nominee },
+                    });
                   } catch (error) {
                     console.error("[GameStage] 发起提名时出错:", error);
                     alert(

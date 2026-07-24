@@ -101,6 +101,8 @@ export function syncStatusEffectsToSeat(
     isDead: prev.isDead || markedDead,
     statuses: [...(prev.statuses || []), ...extraStatuses],
     statusDetails: [...(prev.statusDetails || []), ...extraDetails],
+    // 🔧 显式保留引擎状态效果数组，确保管道 abilityPriorityCalculation 能读取到中毒/醉酒/保护
+    statusEffects: effects,
   };
 }
 
@@ -346,7 +348,8 @@ export async function executeViaNewEngine(
     if (modal) {
       context.setCurrentModal(modal);
     } else {
-      context.continueToNextAction(updatedSeats ?? undefined);
+      // 🔧 修复：使用 syncedSeats 而非 updatedSeats，确保中毒/醉酒等状态已同步到旧系统字段
+      context.continueToNextAction(syncedSeats.length > 0 ? syncedSeats : undefined);
     }
 
     // 标记能力已使用
