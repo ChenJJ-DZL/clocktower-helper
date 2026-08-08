@@ -130,6 +130,14 @@ export function useGameFlow(): UseGameFlowResult {
     // 每个新白天开始时，重置“今日是否已处决”标记，
     // 否则该标记会一直为 true，导致后续每天直接跳过黄昏/处决阶段，游戏无法结束。
     dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
+    // 🔧 每天重置造谣者声明状态（造谣者每天可公开声明一次）
+    dispatch(
+      gameActions.updateState({
+        gossipStatementToday: "",
+        gossipTrueTonight: false,
+        gossipSourceSeatId: null,
+      })
+    );
     dispatch(gameActions.setGamePhase("day"));
   }, [dispatch]);
 
@@ -137,6 +145,55 @@ export function useGameFlow(): UseGameFlowResult {
     enterDayPhase();
     dispatch(gameActions.updateState({ currentModal: null }));
   }, [enterDayPhase, dispatch]);
+
+  /**
+   * 清除「已过期」的引擎状态效果（statusEffects 中带 expiresAtNight / expiresAtDusk，
+   * 或带数字 duration 的效果），并同步重置对应的遗留布尔字段
+   * （isPoisoned/isProtected/isDrunk）。
+   *
+   * 过期模型：
+   * - expiresAtNight / expiresAtDusk：视为 1 个黄昏后过期（投毒者/僧侣/旅店老板等）
+   * - duration 为数字 N：每次黄昏递减 1，减到 0 才移除（侍臣醉酒 3 晚等）
+   * 幂等：无过期效果时原样返回。
+   */
+  const clearExpiredNightEffects = useCallback(
+    (seat: Seat): Seat => {
+      const effects: any[] = seat.statusEffects ?? [];
+      const hasExpiry = (e: any) =>
+        e.expiresAtNight !== undefined ||
+        e.expiresAtDusk === true ||
+        typeof e.duration === "number";
+      const expiring = effects.filter(hasExpiry);
+      if (expiring.length === 0) return seat;
+
+      // 递减 duration；无 duration 的视为立即到期
+      const processed = expiring.map((e: any) => ({
+        ...e,
+        duration: typeof e.duration === "number" ? e.duration - 1 : 0,
+      }));
+      const kept = [
+        ...effects.filter((e) => !hasExpiry(e)),
+        ...processed.filter((e) => e.duration > 0),
+      ];
+      const removed = processed.filter((e) => e.duration <= 0);
+
+      const next: Seat = { ...seat, statusEffects: kept };
+
+      // 仅当被移除的效果包含对应类型时，才重置布尔字段
+      if (removed.some((e: any) => e.type === "protected")) {
+        next.isProtected = false;
+        next.protectedBy = null;
+      }
+      if (removed.some((e: any) => e.type === "poisoned")) {
+        next.isPoisoned = false;
+      }
+      if (removed.some((e: any) => e.type === "drunk")) {
+        next.isDrunk = false;
+      }
+      return next;
+    },
+    []
+  );
 
   const enterDuskPhase = useCallback(() => {
     // 保存历史 (这里需要实现 saveHistory 的 Action，目前先用 updateState 模拟)
@@ -157,6 +214,7 @@ export function useGameFlow(): UseGameFlowResult {
           st.includes("次日黄昏清除") ||
           st.includes("下个黄昏清除") ||
           st.includes("至下个黄昏清除") ||
+          st.includes("黄昏清除") || // 🔧 兼容"新引擎中毒（黄昏清除）"等格式
           st.includes("次日黄昏") ||
           st.includes("下个黄昏")
         );
@@ -178,13 +236,16 @@ export function useGameFlow(): UseGameFlowResult {
       const currentDecrementedStatuses = [...filteredStatuses];
       // (这里可以根据需要进一步完善)
 
-      return {
+      // 🔧 清除引擎 statusEffects 中「黄昏过期」的效果（monk/innkeeper 保护、投毒者中毒、管家主从）
+      const withExpiredCleared = clearExpiredNightEffects({
         ...s,
         statusDetails: filteredStatusDetails,
         statuses: currentDecrementedStatuses,
         voteCount: undefined,
         isCandidate: false,
-      };
+      });
+
+      return withExpiredCleared;
     });
 
     dispatch(gameActions.setSeats(cleanedSeats));
@@ -199,7 +260,7 @@ export function useGameFlow(): UseGameFlowResult {
       gameActions.updateState({ nominationMap: {}, votedThisRound: [] })
     );
     dispatch(gameActions.setModal(null));
-  }, [currentDuskExecution, seats, dispatch]);
+  }, [currentDuskExecution, seats, dispatch, clearExpiredNightEffects]);
 
   const handleDayEndTransition = useCallback(() => {
     // 根据官方血染钟楼规则：白天处决后立即进入夜晚
@@ -211,13 +272,17 @@ export function useGameFlow(): UseGameFlowResult {
     if (hasExecutedToday) {
       // 今日已有处决，直接进入夜晚
       console.log("[handleDayEndTransition] 今日已有处决，直接进入夜晚");
+      // 🔧 处决后直接入夜会跳过 enterDuskPhase，这里先清除黄昏过期的引擎状态，
+      // 避免中毒/保护残留到下一夜（投毒者/僧侣等能力需要每晚重新生效）
+      const expiredCleared = seats.map((s) => clearExpiredNightEffects(s));
+      dispatch(gameActions.setSeats(expiredCleared));
       startNight(false); // 进入夜晚（非首夜）
     } else {
       // 今日尚无处决，进入黄昏（可以进行提名和投票）
       console.log("[handleDayEndTransition] 今日尚无处决，进入黄昏");
       enterDuskPhase();
     }
-  }, [enterDuskPhase, startNight, state.hasExecutedThisDay]);
+  }, [enterDuskPhase, startNight, state.hasExecutedThisDay, seats, dispatch, clearExpiredNightEffects]);
 
   const handleSwitchScript = useCallback(() => {
     // 结束当前游戏并重置

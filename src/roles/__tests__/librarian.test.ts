@@ -49,7 +49,7 @@ describe("图书管理员 (Librarian)", () => {
       expect(true).toBe(true); // 与洗衣妇逻辑相同
     });
     test("非首夜不应唤醒", () => {
-      const nightCount=2; expect(nightCount===1).toBe(false);
+      const nightCount: number = 2; expect(nightCount === 1).toBe(false);
     });
   });
 

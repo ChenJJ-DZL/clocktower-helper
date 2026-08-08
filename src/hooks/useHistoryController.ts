@@ -22,22 +22,27 @@ export function useHistoryController(): UseHistoryControllerResult {
 
   const saveHistory = useCallback(() => {
     // 取得当前状态的一个快照（除去 history 自身）
+    // 🔧 防御：JSON.stringify(undefined) 返回 undefined，再 JSON.parse 会抛
+    // "undefined is not valid JSON"；值为空时直接保留，避免历史保存中断
     const snapshot = {
-      seats: JSON.parse(JSON.stringify(state.seats)),
+      seats: state.seats ? JSON.parse(JSON.stringify(state.seats)) : state.seats,
       gamePhase: state.gamePhase,
       nightCount: state.nightCount,
       executedPlayerId: state.executedPlayerId,
-      wakeQueueIds: [...state.wakeQueueIds],
+      wakeQueueIds: [...(state.wakeQueueIds || [])],
       currentWakeIndex: state.currentWakeIndex,
-      selectedActionTargets: [...state.selectedActionTargets],
-      gameLogs: [...state.gameLogs],
-      currentHint: JSON.parse(JSON.stringify(state.currentHint)),
+      selectedActionTargets: [...(state.selectedActionTargets || [])],
+      gameLogs: [...(state.gameLogs || [])],
+      currentHint: state.currentHint
+        ? JSON.parse(JSON.stringify(state.currentHint))
+        : state.currentHint,
       selectedScript: state.selectedScript,
     };
 
     dispatch(
       gameActions.updateState({
-        history: [...state.history, snapshot],
+        // 🔧 限长 200 条，避免 localStorage 配额溢出（QuotaExceededError）
+        history: [...state.history, snapshot].slice(-200),
       })
     );
   }, [state, dispatch]);

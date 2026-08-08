@@ -1145,6 +1145,35 @@ export const GameStage = () => {
                     🏹 猎手技能
                   </button>
                 )}
+                {/* 🗣 造谣者（Gossip）白天公开声明 */}
+                {seats.some(
+                  (s) =>
+                    s.role?.id === "gossip" &&
+                    !s.isDead &&
+                    !(gameState as any).gossipStatementToday
+                ) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const gossipSeat = seats.find(
+                        (s) => s.role?.id === "gossip" && !s.isDead
+                      );
+                      if (gossipSeat) {
+                        setCurrentModal({
+                          type: "DAY_ABILITY",
+                          data: {
+                            roleId: "gossip",
+                            seatId: gossipSeat.id,
+                          },
+                        });
+                      }
+                    }}
+                    className="px-3 py-1 text-xs font-bold rounded-md border border-purple-400/40 bg-purple-700/60 text-purple-200 shadow-sm hover:bg-purple-600/80 transition animate-pulse"
+                    title="造谣者：白天可公开声明一次，说书人裁定真假；若为真，当晚额外死亡一人"
+                  >
+                    🗣 造谣声明
+                  </button>
+                )}
               </div>
             )}
             <RoundTable

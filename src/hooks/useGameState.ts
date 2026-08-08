@@ -525,10 +525,18 @@ export function useGameState() {
       },
       [dispatch, state.currentModal]
     );
-  const setDayAbilityForm = useCallback(
-    (val: any) => dispatch(gameActions.updateState({ dayAbilityForm: val })),
-    [dispatch]
-  );
+  const setDayAbilityForm: React.Dispatch<React.SetStateAction<any>> =
+    useCallback(
+      (val) => {
+        // 🔧 支持函数式更新（DayAbilityModal 用 (f) => ({...f, info1}) 形式）
+        const next =
+          typeof val === "function"
+            ? (val as (p: any) => any)(state.dayAbilityForm)
+            : val;
+        dispatch(gameActions.updateState({ dayAbilityForm: next }));
+      },
+      [dispatch, state.dayAbilityForm]
+    );
   const setBaronSetupCheck: React.Dispatch<React.SetStateAction<any>> =
     useCallback(
       (val) => {

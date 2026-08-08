@@ -43,6 +43,8 @@ export function saveGameRecord(record: GameRecord): void {
     } else {
       records.unshift(record);
     }
+    // 🔧 限长 30 条，避免 localStorage 配额溢出（QuotaExceededError）
+    if (records.length > 30) records.length = 30;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   } catch (error) {
     console.error("Failed to save game record:", error);
@@ -66,6 +68,18 @@ export function deleteGameRecord(recordId: string): void {
 /**
  * 从 GameState 生成 GameSnapshot
  */
+/**
+ * 安全深拷贝：值为 undefined/null 时原样返回，避免 JSON.parse('undefined') 抛错
+ */
+function safeJsonClone(value: unknown): any {
+  if (value === undefined || value === null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+}
+
 export function createSnapshotFromState(state: GameState): GameSnapshot {
   return {
     gamePhase: state.gamePhase,
@@ -75,7 +89,9 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     wakeQueueIds: [...state.wakeQueueIds],
     currentWakeIndex: state.currentWakeIndex,
     selectedActionTargets: [...state.selectedActionTargets],
-    currentHint: JSON.parse(JSON.stringify(state.currentHint)),
+    currentHint: state.currentHint
+      ? safeJsonClone(state.currentHint)
+      : state.currentHint,
     inspectionResult: state.inspectionResult,
     inspectionResultKey: state.inspectionResultKey,
     todayDemonVoted: state.todayDemonVoted,
@@ -88,7 +104,7 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
       : null,
     isVortoxWorld: state.isVortoxWorld,
     fangGuConverted: state.fangGuConverted,
-    jugglerGuesses: JSON.parse(JSON.stringify(state.jugglerGuesses)),
+    jugglerGuesses: safeJsonClone(state.jugglerGuesses),
     evilTwinPair: state.evilTwinPair ? { ...state.evilTwinPair } : null,
     outsiderDiedToday: state.outsiderDiedToday,
     gossipStatementToday: state.gossipStatementToday,
@@ -100,10 +116,10 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     spyDisguiseMode: state.spyDisguiseMode,
     spyDisguiseProbability: state.spyDisguiseProbability,
     poppyGrowerDead: state.poppyGrowerDead,
-    pukkaPoisonQueue: JSON.parse(JSON.stringify(state.pukkaPoisonQueue)),
+    pukkaPoisonQueue: safeJsonClone(state.pukkaPoisonQueue),
     poChargeState: { ...state.poChargeState },
-    usedOnceAbilities: JSON.parse(JSON.stringify(state.usedOnceAbilities)),
-    usedDailyAbilities: JSON.parse(JSON.stringify(state.usedDailyAbilities)),
+    usedOnceAbilities: safeJsonClone(state.usedOnceAbilities),
+    usedDailyAbilities: safeJsonClone(state.usedDailyAbilities),
     balloonistKnownTypes: JSON.parse(
       JSON.stringify(state.balloonistKnownTypes)
     ),
@@ -111,10 +127,10 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     votedThisRound: [...state.votedThisRound],
     lastDuskExecution: state.lastDuskExecution,
     currentDuskExecution: state.currentDuskExecution,
-    history: JSON.parse(JSON.stringify(state.history)),
-    seats: JSON.parse(JSON.stringify(state.seats)),
-    initialSeats: JSON.parse(JSON.stringify(state.initialSeats)),
-    victorySnapshot: JSON.parse(JSON.stringify(state.victorySnapshot)),
+    history: safeJsonClone(state.history),
+    seats: safeJsonClone(state.seats),
+    initialSeats: safeJsonClone(state.initialSeats),
+    victorySnapshot: safeJsonClone(state.victorySnapshot),
     winResult: state.winResult,
     winReason: state.winReason,
     mayorRedirectTarget: state.mayorRedirectTarget,
@@ -125,7 +141,7 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     shamanTriggered: state.shamanTriggered,
     shamanConvertTarget: state.shamanConvertTarget,
     autoRedHerringInfo: state.autoRedHerringInfo,
-    dayAbilityLogs: JSON.parse(JSON.stringify(state.dayAbilityLogs)),
+    dayAbilityLogs: safeJsonClone(state.dayAbilityLogs),
     nominationMap: { ...state.nominationMap },
     nominationRecords: {
       nominators: Array.from(state.nominationRecords?.nominators || []),
@@ -138,7 +154,7 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     goonDrunkedThisNight: state.goonDrunkedThisNight,
     hadesiaChoices: { ...state.hadesiaChoices },
     virginGuideInfo: state.virginGuideInfo,
-    voteRecords: JSON.parse(JSON.stringify(state.voteRecords)),
+    voteRecords: safeJsonClone(state.voteRecords),
     seatNotes: { ...state.seatNotes },
     hadesiaChoiceEnabled: state.hadesiaChoiceEnabled,
     lastExecutedPlayerId: state.lastExecutedPlayerId,
@@ -152,7 +168,14 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
 export function saveCurrentSnapshot(snapshot: GameSnapshot): void {
   try {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot));
+    // 🔧 截断 history 只保留最近 30 条，避免整个历史随快照写入导致配额溢出
+    const slim = {
+      ...snapshot,
+      history: Array.isArray(snapshot.history)
+        ? snapshot.history.slice(-30)
+        : snapshot.history,
+    };
+    window.localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
   } catch (error) {
     console.error("Failed to save current snapshot:", error);
   }

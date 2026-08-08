@@ -322,7 +322,6 @@ export const scripts: Script[] = [
     roleIds: [
       "chambermaid",
       "gossip",
-      "messenger",
       "oracle",
       "mathematician",
       "artist",
@@ -349,10 +348,8 @@ export const scripts: Script[] = [
     description:
       "无名之墓是一个围绕死亡和亡灵主题设计的官方剧本，包含大量与死亡信息、身份伪装、死后能力相关的角色。这个剧本的核心乐趣在于信息的不确定性，许多角色的能力都会干扰或伪造死亡信息，使得善良阵营很难通过常规的死亡信息来判断角色身份。恶魔和爪牙拥有强大的伪装和误导能力，而善良阵营则需要通过缜密的逻辑推理和信息整合来辨别真相。适合有一定游戏经验、熟悉基础规则的玩家体验。",
     roleIds: [
-      "gravedigger",
       "undertaker",
       "gambler",
-      "acolyte",
       "savant",
       "gossip",
       "artist",
@@ -360,16 +357,14 @@ export const scripts: Script[] = [
       "clockmaker",
       "oracle",
       "sailor",
+      "farmer",
       "fool",
-      "traveler_scapegoat",
+      "scapegoat",
       "drunk",
       "mutant",
       "baron",
       "poisoner",
-      "succubus",
       "assassin",
-      "cadaver",
-      "corruptor",
       "shabaloth",
       "zombuul",
     ],
@@ -397,7 +392,6 @@ export const scripts: Script[] = [
       "baron",
       "imp",
       "zombuul",
-      "soul_eater",
     ],
   },
   {
@@ -407,15 +401,13 @@ export const scripts: Script[] = [
     description:
       "凶宅魅影是官方剧本中难度最高的剧本之一，以幻觉、记忆篡改、信息迷惑为核心主题。几乎所有角色的能力都带有欺骗性或误导性，善良阵营获得的大部分信息都可能是错误的或被篡改的。恶魔拥有极为强大的干扰能力，能够伪造各种信息，甚至改变游戏规则。这个剧本极度考验玩家的逻辑推理能力和心理素质，需要玩家在大量虚假信息中找到唯一的真相。仅推荐经验非常丰富的玩家群体体验。",
     roleIds: [
-      "traveler_balloonist",
-      "prophet",
+      "balloonist",
       "mathematician",
       "clockmaker",
       "seamstress",
       "juggler",
       "philosopher",
       "artist",
-      "priest",
       "town_crier",
       "courtier",
       "choir_boy",
@@ -430,7 +422,6 @@ export const scripts: Script[] = [
       "no_dashii",
       "fang_gu",
       "pukka",
-      "boggart",
     ],
   },
   {
@@ -781,6 +772,15 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色
   },
   {
+    id: "qutler",
+    name: "Q宝",
+    type: "outsider",
+    ability: "每晚选择一名主人，白天主人投票时你才能投票。",
+    fullDescription:
+      "每个夜晚,你要选择除你以外的一名玩家:明天白天,只有他投票时你才能投票。",
+    script: "暗流涌动", // 官方角色（按牛涌动/暗流涌动卡牌版）
+  },
+  {
     id: "drunk",
     name: "酒鬼",
     type: "outsider",
@@ -804,6 +804,14 @@ export const roles: Role[] = [
     ability: "若死于处决，邪恶方立即获胜。（无夜晚行动）",
     fullDescription: "如果你死于处决,你的阵营立即失败。",
     script: "暗流涌动", // 暗流涌动角色
+  },
+  {
+    id: "scapegoat",
+    name: "替罪羊",
+    type: "outsider",
+    ability: "被处决时，说书人可以选择另一名玩家代替替罪羊死亡；替罪羊本身不死亡。（官方剧本：无名之墓）",
+    fullDescription: "当替罪羊被处决时,说书人可以选择另一名玩家代替替罪羊死亡。替罪羊本身不会死亡。",
+    script: "无名之墓", // 官方剧本角色（新引擎已实现 scapegoat.ability.ts）
   },
   // ========== 爪牙 (Minion) - 4个 ==========
   {

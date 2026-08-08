@@ -106,6 +106,114 @@ export function syncStatusEffectsToSeat(
   };
 }
 
+/**
+ * 消费能力管道的 meta.stateUpdates 指令。
+ *
+ * 部分能力（赌徒/水手/吟游诗人/吟游歌手/造谣者/月之子等）不直接改 snapshot.seats，
+ * 而是通过 meta.stateUpdates 下发结构化变更指令；此前全项目无消费点，
+ * 导致这些角色的能力「计算了但不生效」。本函数在 executeViaNewEngine 执行
+ * 完整管道后应用这些指令，使能力真正落地。
+ *
+ * 支持指令类型：
+ * - MARK_FOR_DEATH      → 标记目标死亡（赌徒猜错/造谣者声明正确/月之子诅咒）
+ * - CANCEL_DEATH        → 取消死亡（和平主义者处决不死亡，兼容 legacy 双保险）
+ * - ADD_DRUNK           → 使单目标醉酒（水手）
+ * - MARK_ALL_FOR_DRUNK  → 使多个目标醉酒（吟游诗人/吟游歌手使爪牙醉酒）
+ *
+ * @param seats      当前座位列表（来自引擎快照，已含管道状态变更）
+ * @param updates    resultContext.meta.stateUpdates
+ * @param nightCount 当前夜晚编号（用于标记死亡夜晚与醉酒过期）
+ */
+export function applyStateUpdates(
+  seats: Seat[],
+  updates: any,
+  nightCount: number
+): Seat[] {
+  if (!updates || !updates.type) return seats;
+  const { type, targetId, targetIds, reason } = updates;
+
+  switch (type) {
+    case "MARK_FOR_DEATH": {
+      // 赌徒猜错 / 造谣者声明正确 / 月之子诅咒 → 目标标记死亡
+      if (targetId == null) return seats;
+      return seats.map((s) =>
+        s.id === targetId
+          ? {
+              ...s,
+              markedForDeath: true,
+              diedAtNight: nightCount,
+              deathSource: reason ?? "state_update",
+              statusDetails: [
+                ...(s.statusDetails || []),
+                `死亡原因：${reason ?? "能力触发"}`,
+              ],
+            }
+          : s
+      );
+    }
+    case "CANCEL_DEATH": {
+      // 和平主义者：处决不死亡
+      if (targetId == null) return seats;
+      return seats.map((s) =>
+        s.id === targetId
+          ? {
+              ...s,
+              isDead: false,
+              markedForDeath: false,
+              isCandidate: false,
+              voteCount: undefined,
+            }
+          : s
+      );
+    }
+    case "ADD_DRUNK":
+    case "MARK_ALL_FOR_DRUNK": {
+      // 水手致醉（单目标）/ 吟游诗人·吟游歌手使爪牙醉酒（多目标）
+      const ids =
+        type === "MARK_ALL_FOR_DRUNK"
+          ? (targetIds ?? [])
+          : targetId != null
+            ? [targetId]
+            : [];
+      if (ids.length === 0) return seats;
+      return seats.map((s) => {
+        if (!ids.includes(s.id)) return s;
+        // 先移除同源的旧醉酒效果，避免跨夜累积
+        const baseEffects = (s.statusEffects ?? []).filter(
+          (e: any) => !(e.type === "drunk" && (e.source === "sailor" || e.source === "minstrel" || e.source === "bard"))
+        );
+        return {
+          ...s,
+          isDrunk: true,
+          statusEffects: [
+            ...baseEffects,
+            {
+              type: "drunk",
+              source: type === "ADD_DRUNK" ? "sailor" : "minstrel",
+              appliedAtNight: nightCount,
+              expiresAtNight: nightCount + 1,
+              duration: 1,
+            },
+          ],
+          statuses: [
+            ...(s.statuses ?? []).filter(
+              (st: any) => !(st.effect === "Drunk" && st.duration === "至下个黄昏")
+            ),
+            { effect: "Drunk", duration: "至下个黄昏" },
+          ],
+          statusDetails: [
+            ...(s.statusDetails || []).filter((d) => !d.includes("醉酒（至下个黄昏）")),
+            "醉酒（至下个黄昏）",
+          ],
+        };
+      });
+    }
+    default:
+      console.warn(`[NightActionHandler] 未知 stateUpdates 类型: ${type}`);
+      return seats;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // executeViaNewEngine — 核心桥接函数
 // ---------------------------------------------------------------------------
@@ -313,19 +421,41 @@ export async function executeViaNewEngine(
     );
 
     // 从 snapshot 中提取更新后的座位状态，并同步状态
-    const updatedSeats = resultContext.snapshot.seats as Seat[];
+    let updatedSeats = resultContext.snapshot.seats as Seat[];
     console.log(
       `[executeViaNewEngine] Syncing ${updatedSeats.length} seats from engine snapshot`
     );
 
+    // 🔧 消费能力管道的 stateUpdates 指令（赌徒/水手/吟游诗人等角色经此下发状态变更）
+    const stateUpdates = resultContext.meta.stateUpdates;
+    if (stateUpdates) {
+      updatedSeats = applyStateUpdates(updatedSeats, stateUpdates, context.nightCount);
+      console.log(
+        `[executeViaNewEngine] Applied stateUpdates: ${stateUpdates.type}`
+      );
+    }
+
     // 同步 updatedSeats 的引擎字段（statusEffects → isPoisoned/isDrunk 等），
     // 确保 computeIsPoisoned 能读取到最新中毒状态
+    // 同时同步管家/侍从的主人选择（butlerResult → seat.masterId）
+    const butlerRec =
+      (resultContext as any)?.actionNode?.meta?.butlerResult ||
+      (resultContext as any)?.snapshot?._abilityResults?.butler;
     const syncedSeats: Seat[] = updatedSeats
       ? updatedSeats.map((u: any) => {
           const prev = context.seats.find((s) => s.id === u.id);
           if (!prev) return u as Seat;
           const synced = syncStatusEffectsToSeat(prev, u);
-          return { ...prev, ...u, ...synced, id: prev.id } as Seat;
+          let next = { ...prev, ...u, ...synced, id: prev.id } as Seat;
+          // 🔧 管家/侍从：把引擎算出的主人同步到 seat.masterId（否则投票校验读不到主人）
+          if (
+            butlerRec &&
+            butlerRec.masterSet &&
+            (next.role?.id === "butler" || next.role?.id === "qutler")
+          ) {
+            next = { ...next, masterId: butlerRec.masterId as number };
+          }
+          return next;
         })
       : [];
 

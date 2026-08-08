@@ -40,6 +40,7 @@ import { brokerAbility } from "./broker.ability";
 import { buddhistAbility } from "./buddhist.ability";
 import { bureaucratAbility } from "./bureaucrat.ability";
 import { butlerAbility } from "./butler.ability";
+import { qutlerAbility } from "./qutler.ability";
 import { cannibalAbility } from "./cannibal.ability";
 import { cerenovusAbility } from "./cerenovus.ability";
 import { chambermaidAbility } from "./chambermaid.ability";
@@ -290,6 +291,7 @@ export function registerAllNewEngineAbilities(): void {
     buddhistAbility,
     bureaucratAbility,
     butlerAbility,
+    qutlerAbility,
     cannibalAbility,
     conjurerAbility,
     cerenovusAbility,
@@ -568,6 +570,7 @@ export { brokerAbility } from "./broker.ability";
 export { buddhistAbility } from "./buddhist.ability";
 export { bureaucratAbility } from "./bureaucrat.ability";
 export { butlerAbility } from "./butler.ability";
+export { qutlerAbility } from "./qutler.ability";
 export { cannibalAbility } from "./cannibal.ability";
 export { cerenovusAbility } from "./cerenovus.ability";
 export { chambermaidAbility } from "./chambermaid.ability";

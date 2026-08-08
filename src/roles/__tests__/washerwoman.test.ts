@@ -99,8 +99,8 @@ describe("洗衣妇 (Washerwoman)", () => {
     });
 
     test("非首夜 (nightCount>1) 不应唤醒", () => {
-      const nightCount = 2;
-      const gamePhase = "night";
+      const nightCount: number = 2;
+      const gamePhase: string = "night";
       const shouldWake = nightCount === 1 || gamePhase === "firstNight";
       
       expect(shouldWake).toBe(false);

@@ -260,6 +260,63 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         );
       }
 
+      // 🔧 吟游诗人（Bard）被动：爪牙死于处决 → 除吟游诗人、爪牙、旅行者外的存活玩家醉酒直到明天黄昏
+      const bardSeat = seatsSnapshot.find(
+        (s) => s.role?.id === "bard" && !s.isDead
+      );
+      const isMinionExecuted = t.role.type === "minion";
+      if (bardSeat && isMinionExecuted) {
+        const drunkIds = seatsSnapshot
+          .filter(
+            (s) =>
+              !s.isDead &&
+              s.id !== bardSeat.id &&
+              s.role?.type !== "minion" &&
+              s.role?.type !== "traveler"
+          )
+          .map((s) => s.id);
+        if (drunkIds.length > 0) {
+          setSeats((prev: Seat[]) =>
+            prev.map((s) =>
+              drunkIds.includes(s.id)
+                ? {
+                    ...s,
+                    isDrunk: true,
+                    statusEffects: [
+                      ...(s.statusEffects ?? []).filter(
+                        (e: any) => !(e.type === "drunk" && e.source === "bard")
+                      ),
+                      {
+                        type: "drunk",
+                        source: "bard",
+                        appliedAtNight: nightCount,
+                        expiresAtNight: nightCount + 1,
+                        duration: 1,
+                      },
+                    ],
+                    statuses: [
+                      ...(s.statuses ?? []).filter(
+                        (st: any) =>
+                          !(st.effect === "Drunk" && st.duration === "至下个黄昏")
+                      ),
+                      { effect: "Drunk", duration: "至下个黄昏" },
+                    ],
+                    statusDetails: [
+                      ...(s.statusDetails || []).filter(
+                        (d) => !d.includes("醉酒（至下个黄昏）")
+                      ),
+                      "醉酒（至下个黄昏）",
+                    ],
+                  }
+                : s
+            )
+          );
+          addLog(
+            `🎵 吟游诗人能力触发：${id + 1}号爪牙被处决，其他非爪牙存活玩家醉酒直到明天黄昏`
+          );
+        }
+      }
+
       // 检查游戏是否结束（处决后立即检查）
       checkGameOver(seatsSnapshot, id, false);
 
@@ -391,8 +448,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           ? initialSeats.filter((s) => s.role !== null).length
           : seats.filter((s) => s.role !== null).length;
 
-      if (Number.isNaN(v) || v < 1 || !Number.isInteger(v)) {
-        alert("票数必须是自然数大于等于1的整数");
+      if (Number.isNaN(v) || v < 0 || !Number.isInteger(v)) {
+        alert("票数必须是大于等于0的整数");
         return;
       }
 
@@ -417,9 +474,17 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           if (!voterSeat) continue;
           const isButler =
             voterSeat.role?.id === "butler" ||
+            voterSeat.role?.id === "qutler" ||
             (voterSeat as any).masterId !== undefined;
-          if (isButler && (voterSeat as any).masterId !== undefined) {
-            const masterId = (voterSeat as any).masterId;
+          // 🔧 防御：masterId 无效（null/undefined/等于自己）时不做管家拦截，
+          // 避免初始化值为 null 时误报"主人未投票"（null !== undefined 的坑）
+          const rawMaster = (voterSeat as any).masterId;
+          const hasValidMaster =
+            rawMaster !== undefined &&
+            rawMaster !== null &&
+            rawMaster !== voterId;
+          if (isButler && hasValidMaster) {
+            const masterId = rawMaster;
             const masterVoting = voters.includes(masterId);
             if (!masterVoting) {
               alert(
@@ -429,7 +494,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
               const filteredVoters = voters.filter((id) => id !== voterId);
               // 重新调用submitVotes，但不含管家
               if (filteredVoters.length === 0) {
-                alert("移除管家投票后无有效投票者，本次投票作废");
+                // 🔧 0 票合法：移除管家后无人投票 → 按 0 票提交（无人上台，不处决）
+                submitVotes(0, []);
                 return;
               }
               submitVotes(v, filteredVoters);

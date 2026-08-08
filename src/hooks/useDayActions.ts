@@ -514,7 +514,7 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
       if (
-        ["savant_mr", "amnesiac", "fisherman", "engineer"].includes(
+        ["savant_mr", "amnesiac", "fisherman", "engineer", "gossip"].includes(
           config.roleId
         )
       ) {

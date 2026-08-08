@@ -147,6 +147,9 @@ export function useGameController() {
     setSelectedActionTargets,
     gossipTrueTonight,
     gossipSourceSeatId,
+    setGossipTrueTonight,
+    setGossipSourceSeatId,
+    setGossipStatementToday,
     pukkaPoisonQueue,
     setPukkaPoisonQueue,
     poChargeState,
@@ -1109,6 +1112,78 @@ export function useGameController() {
   useEffect(() => {
     if (gamePhase !== "firstNight" && gamePhase !== "night") return;
     if (currentWakeIndex >= (wakeQueueIds?.length || 0)) {
+      // 🔧 吟游歌手（Minstrel）被动：夜晚有镇民死亡 → 爪牙醉酒直到明天黄昏
+      const townsfolkDied = (deadThisNight || []).some((id: number) => {
+        const seat = seats.find((s) => s.id === id);
+        return seat?.role?.type === "townsfolk";
+      });
+      const minstrelAlive = seats.some(
+        (s) => s.role?.id === "minstrel" && !s.isDead
+      );
+      if (townsfolkDied && minstrelAlive) {
+        const minionIds = seats
+          .filter((s) => !s.isDead && s.role?.type === "minion")
+          .map((s) => s.id);
+        if (minionIds.length > 0) {
+          setSeats((prev: Seat[]) =>
+            prev.map((s) =>
+              minionIds.includes(s.id)
+                ? {
+                    ...s,
+                    isDrunk: true,
+                    statusEffects: [
+                      ...(s.statusEffects ?? []).filter(
+                        (e: any) =>
+                          !(e.type === "drunk" && e.source === "minstrel")
+                      ),
+                      {
+                        type: "drunk",
+                        source: "minstrel",
+                        appliedAtNight: nightCount,
+                        expiresAtNight: nightCount + 1,
+                        duration: 1,
+                      },
+                    ],
+                    statuses: [
+                      ...(s.statuses ?? []).filter(
+                        (st: any) =>
+                          !(
+                            st.effect === "Drunk" &&
+                            st.duration === "至下个黄昏"
+                          )
+                      ),
+                      { effect: "Drunk", duration: "至下个黄昏" },
+                    ],
+                    statusDetails: [
+                      ...(s.statusDetails || []).filter(
+                        (d) => !d.includes("醉酒（至下个黄昏）")
+                      ),
+                      "醉酒（至下个黄昏）",
+                    ],
+                  }
+                : s
+            )
+          );
+          addLog("🎵 吟游歌手能力触发：夜晚有镇民死亡，爪牙们醉酒直到明天黄昏");
+        }
+      }
+
+      // 🔧 月之子（Moonchild）夜晚死亡：弹窗让说书人选择诅咒目标
+      const moonchildDead = (deadThisNight || []).find((id: number) => {
+        const seat = seats.find((s) => s.id === id);
+        return seat?.role?.id === "moonchild";
+      });
+      if (moonchildDead !== undefined && currentModal?.type !== "MOONCHILD_KILL") {
+        addLog(
+          `${moonchildDead + 1}号（月之子）夜晚死亡，请选择一名存活玩家作为诅咒目标`
+        );
+        setCurrentModal({
+          type: "MOONCHILD_KILL",
+          data: { sourceId: moonchildDead, onResolve: () => {} },
+        } as any);
+        return; // 等待说书人选择目标后再进入黎明报告
+      }
+
       if (
         selectedScript?.id === "bad_moon_rising" &&
         gossipTrueTonight &&
@@ -1122,6 +1197,32 @@ export function useGameController() {
               roleId: "gossip",
               roleName: "造谣者",
               description: "说书人：造谣为真，请选择 1 名玩家死亡。",
+              // 🔧 修复：此前缺失 onConfirm，导致选完目标后无人死亡、无法进入黎明报告
+              onConfirm: (targetIds: number[]) => {
+                const targetId = targetIds[0];
+                setCurrentModal(null);
+                if (targetId !== undefined) {
+                  killPlayer(targetId, {
+                    source: "gossip",
+                    recordNightDeath: true,
+                  });
+                  addLog(`🗣 造谣应验：${targetId + 1}号玩家在夜晚死亡`);
+                } else {
+                  addLog("🗣 造谣为真，但说书人未选择目标（无事发生）");
+                }
+                // 消费造谣状态，避免重复触发
+                setGossipTrueTonight?.(false);
+                setGossipSourceSeatId?.(null);
+                // 随后进入黎明报告
+                setGamePhase("dawnReport");
+                const msg = deadThisNight.length > 0
+                  ? `昨晚${deadThisNight.map((id: number) => `${id + 1}号`).join("、")}玩家死亡`
+                  : "昨天是个平安夜";
+                setCurrentModal({
+                  type: "NIGHT_DEATH_REPORT",
+                  data: { message: msg },
+                });
+              },
             },
           } as any);
         }
@@ -1151,6 +1252,10 @@ export function useGameController() {
     currentModal,
     setGamePhase,
     setCurrentModal,
+    seats,
+    setSeats,
+    addLog,
+    nightCount,
   ]);
 
   const seatContainerRef = useRef<HTMLDivElement>(null);
@@ -1419,6 +1524,10 @@ export function useGameController() {
       registerVotes,
       confirmNightDeathReport,
       victorySnapshot,
+      // 🔧 造谣者（Gossip）白天声明所需的 setter（此前缺失导致声明状态永远无法设置）
+      setGossipTrueTonight,
+      setGossipSourceSeatId,
+      setGossipStatementToday,
       handleRestart: () =>
         setCurrentModal({ type: "RESTART_CONFIRM", data: null }),
       handleSwitchScript,
