@@ -492,6 +492,7 @@ export const GameStage = () => {
               nightCount={nightCount}
               timer={timer}
               formatTimer={formatTimer}
+              isTimerRunning={controller.isTimerRunning}
               onTimerStart={controller.handleTimerStart}
               onTimerPause={controller.handleTimerPause}
               onTimerReset={controller.handleTimerReset}
@@ -1186,6 +1187,7 @@ export const GameStage = () => {
               nightCount={nightCount}
               timer={timer}
               formatTimer={formatTimer}
+              isTimerRunning={controller.isTimerRunning}
               onTimerStart={controller.handleTimerStart}
               onTimerPause={controller.handleTimerPause}
               onTimerReset={controller.handleTimerReset}

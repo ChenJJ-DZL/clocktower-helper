@@ -118,7 +118,14 @@ export function TableCenterHUD({
           >
             {formatTimer(timer)}
           </button>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={handleTimerClick}
+              className="px-3 py-1 text-xs font-semibold text-slate-200 hover:text-white bg-slate-700/60 hover:bg-slate-600/60 rounded-lg transition-colors"
+              title={isTimerRunning ? "暂停计时" : "继续计时"}
+            >
+              {isTimerRunning ? "暂停" : "继续"}
+            </button>
             <button
               onClick={handleTimerReset}
               className="px-3 py-1 text-xs font-semibold text-slate-400 hover:text-slate-300 bg-slate-800/50 rounded-lg transition-colors"
@@ -126,7 +133,7 @@ export function TableCenterHUD({
             >
               重置
             </button>
-            <div className="px-3 py-1 text-xs font-semibold text-slate-500">
+            <div className="px-2 py-1 text-xs font-semibold text-slate-500">
               {isTimerRunning ? "运行中" : "已暂停"}
             </div>
           </div>

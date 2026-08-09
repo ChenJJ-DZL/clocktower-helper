@@ -74,10 +74,19 @@ export function useGameFlow(): UseGameFlowResult {
   }, [timer]);
 
   // 当相位切换时管理计时器
-  // 进入白天：不重置计时器（由 app/page.tsx 设置为 480），只重置 hasExecutedThisDay 和 todayExecutedId
-  // 进入其他阶段：停止计时器并重置为 0
+  // 🔧 秒表式计时器（用户需求）：
+  //   白天/黄昏/夜晚等游戏阶段切换时，自动清零并从 0 开始计时。
+  //   仅非游戏阶段（setup/check/scriptSelection/gameOver/dawnReport 结算页）不自动运行。
   useEffect(() => {
-    if (state.gamePhase === "day") {
+    const phase = state.gamePhase;
+    const isGameplayPhase =
+      phase === "day" ||
+      phase === "dusk" ||
+      phase === "night" ||
+      phase === "firstNight";
+
+    if (phase === "day") {
+      // 白天额外逻辑：重置处决标记 / 幽灵票
       dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
       // 🔧 新白天同步重置今日被处决 ID，避免处决被永久拦截
       dispatch(gameActions.updateState({ todayExecutedId: null }));
@@ -91,13 +100,14 @@ export function useGameFlow(): UseGameFlowResult {
           )
         )
       );
-      // 仅在计时器为 0 时初始化为 480（防止覆盖用户手动重置的值）
-      if (timerRef.current === 0) {
-        dispatch(gameActions.setTimer(480));
-      }
+    }
+
+    if (isGameplayPhase) {
+      // 🔧 阶段切换：自动清零并从 0 开始计时
+      dispatch(gameActions.setTimer(0));
       setIsTimerRunning(true);
     } else {
-      dispatch(gameActions.setTimer(0));
+      // 非游戏阶段：停止计时
       setIsTimerRunning(false);
     }
   }, [dispatch, state.gamePhase]);

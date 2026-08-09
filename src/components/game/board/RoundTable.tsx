@@ -27,6 +27,7 @@ interface RoundTableProps {
   nightCount?: number;
   timer?: number;
   formatTimer?: (seconds: number) => string;
+  isTimerRunning?: boolean;
   onTimerStart?: () => void;
   onTimerPause?: () => void;
   onTimerReset?: () => void;
@@ -69,6 +70,7 @@ export function RoundTable({
   nightCount,
   timer,
   formatTimer,
+  isTimerRunning,
   onTimerStart,
   onTimerPause,
   onTimerReset,
@@ -235,7 +237,7 @@ export function RoundTable({
             nightCount={nightCount || 0}
             timer={timer || 0}
             formatTimer={formatTimer || ((s) => `${s}`)}
-            isTimerRunning={true}
+            isTimerRunning={isTimerRunning ?? true}
             onTimerStart={onTimerStart}
             onTimerPause={onTimerPause}
             onTimerReset={onTimerReset}
