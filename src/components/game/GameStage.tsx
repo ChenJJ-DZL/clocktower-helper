@@ -400,92 +400,20 @@ export const GameStage = () => {
   const _currentWakeRole = getDisplayRole(currentWakeSeat);
   const _nextWakeRole = getDisplayRole(nextWakeSeat);
 
-  // ====== 信息结果弹窗 ======
-  // 仅"选择目标+获取反馈"类角色弹窗，在确认后显示结果
-  const [pendingResult, setPendingResult] = useState<{
-    roleName: string;
-    resultText: string;
-  } | null>(null);
-  const needsFeedback = [
-    "fortune_teller",
-    "dreamer",
-    "gambler",
-    "seamstress",
-    "snake_charmer",
-    "slayer",
-    "ravenkeeper",
-    "chambermaid",
-    "grandmother",
-    "professor",
-    "astrologer",
-    "ranger",
-    "villager",
-  ];
-
-  // 拦截"确认&下一步"，先弹结果再执行
+  // 拦截"确认&下一步"
+  // 🔧 占卜师等信息角色已全部迁移到新引擎管道（fortune_teller.ability.ts 等）：
+  //   新引擎统一处理 中毒/醉酒/Vortox 干扰（abilityPriorityCalculation +
+  //   generateFakeResult）以及陌客/间谍判定，走 handleConfirmAction 即可。
+  //   原 legacy 拦截计算（setPendingResult → INFO_RESULT）无中毒检测，
+  //   会导致被毒占卜师仍得真实结果，已移除。
   const handleNightConfirm = useCallback(() => {
-    // 🔧 使用 effectiveRole 而非 currentWakeSeat.role
-    // 系统步骤（demon_info/minion_info）的 effectiveRole.id 为步骤ID，
-    // 而 currentWakeSeat.role.id 是实际角色ID（如 imp），两者必须区分
-    const roleId = nightInfo?.effectiveRole?.id || currentWakeSeat?.role?.id;
-    const targets = selectedActionTargets;
-
-    if (roleId === "fortune_teller" && targets && targets.length >= 2) {
-      const targetIds = targets.slice(0, 2);
-
-      // 1. 检查是否有恶魔（含死亡恶魔——规则："选中已死亡恶魔仍得知'是'"）
-      const hasDemon = targetIds.some((id: number) => {
-        const seat = seats.find((s) => s.id === id);
-        return seat?.role?.type === "demon";
-      });
-
-      // 2. 检查是否有干扰项（红罗刹）——这才是核心修复
-      const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
-      const hasBoon = boonSeatId !== null && targetIds.includes(boonSeatId);
-
-      // 3. 检查陌客（🔧 100% 概率被当作恶魔，不再 50% 随机）
-      const hasRecluse = targetIds.some((id: number) => {
-        const seat = seats.find((s) => s.id === id);
-        return seat?.role?.id === "recluse";
-      });
-      const recluseTriggers = hasRecluse;
-
-      const result = hasDemon || hasBoon || recluseTriggers;
-
-      setPendingResult({
-        roleName: "占卜师",
-        resultText: result ? "有" : "没有",
-      });
-      return;
-    }
-
-    // 其他角色直接确认
+    // 直接确认（新引擎内部会处理弹窗与结果展示）
     handleConfirmAction();
   }, [
     currentWakeSeat,
     selectedActionTargets,
     handleConfirmAction,
-    seats,
-    gameId,
   ]);
-
-  // 处理弹窗确认：执行能力并继续
-  useEffect(() => {
-    if (pendingResult) {
-      setCurrentModal({
-        type: "INFO_RESULT",
-        data: {
-          roleName: pendingResult.roleName,
-          resultText: pendingResult.resultText,
-          onNext: () => {
-            // 占卜师：确认后执行能力再继续
-            handleConfirmAction();
-          },
-        },
-      });
-      setPendingResult(null);
-    }
-  }, [pendingResult, setCurrentModal, handleConfirmAction]);
 
   // Handle Dusk Phase UI
   if (gamePhase === "dusk") {
