@@ -386,8 +386,10 @@ export const scarletWomanAbility = createRoleAbility({
   otherNightPriority: 37,
   /** 非首夜唤醒（被动触发与夜晚无关） */
   firstNightOnly: false,
-  /** 被动能力无唤醒提示词 */
-  wakePromptId: "",
+  /** 🔧 恶魔继承提示模板（字典 id：role.scarlet_woman.wake）。
+   *  不能留空字符串：renderPrompt 对空/缺失 id 会 fallback 成
+   *  "scarlet_woman请行动" 并输出 [promptEngine] 未找到模板 warning */
+  wakePromptId: "role.scarlet_woman.wake",
 
   /**
    * 目标选择配置

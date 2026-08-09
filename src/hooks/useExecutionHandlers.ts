@@ -459,17 +459,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       if (voters && voters.length > 0) {
-        const invalidDead = voters.some((id) => {
+        // 🔧 幽灵票防御：静默过滤已用完幽灵票的死亡玩家（正常 UI 已禁用此类按钮，
+        // 此处兜底修正数据错乱，避免 alert + return 导致投票弹窗永久卡死）
+        let effectiveVoters = voters.filter((id) => {
           const seat = seats.find((s) => s.id === id);
-          return seat?.isDead && seat.hasGhostVote === false;
+          return !(seat?.isDead && seat.hasGhostVote === false);
         });
-        if (invalidDead) {
-          alert("存在已用完幽灵票的死亡玩家，无法计票");
-          return;
-        }
 
         // 管家（Butler）规则检查：如果管家投票但主人不投票，管家票计为0
-        for (const voterId of voters) {
+        for (const voterId of [...effectiveVoters]) {
           const voterSeat = seats.find((s) => s.id === voterId);
           if (!voterSeat) continue;
           const isButler =
@@ -485,24 +483,32 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             rawMaster !== voterId;
           if (isButler && hasValidMaster) {
             const masterId = rawMaster;
-            const masterVoting = voters.includes(masterId);
+            const masterVoting = effectiveVoters.includes(masterId);
             if (!masterVoting) {
               alert(
                 `管家(${voterId + 1}号)的票不计入：主人(${masterId + 1}号)未投票（规则：如果仅管家投票而主人不投票，则管家票计为0票）`
               );
               // 移除管家的投票记录
-              const filteredVoters = voters.filter((id) => id !== voterId);
-              // 重新调用submitVotes，但不含管家
-              if (filteredVoters.length === 0) {
-                // 🔧 0 票合法：移除管家后无人投票 → 按 0 票提交（无人上台，不处决）
-                submitVotes(0, []);
-                return;
+              effectiveVoters = effectiveVoters.filter((id) => id !== voterId);
+              // 🔧 管家已举手：即便票作废，其幽灵票同样视为已使用（官方规则：死者每天仅一票）
+              if (voterSeat.isDead) {
+                setSeats((prev) =>
+                  prev.map((s) =>
+                    s.id === voterId ? { ...s, hasGhostVote: false } : s
+                  )
+                );
               }
-              submitVotes(v, filteredVoters);
-              return;
             }
           }
         }
+
+        // 若有票被过滤/作废（幽灵票用尽或管家票计 0），按实际有效票数重新提交。
+        // 🔧 修复：此前递归传原票数 v（含被剔除的票），导致被提名者票数虚高、错误上台。
+        if (effectiveVoters.length !== voters.length) {
+          submitVotes(effectiveVoters.length, effectiveVoters);
+          return;
+        }
+        voters = effectiveVoters;
       }
 
       saveHistory();

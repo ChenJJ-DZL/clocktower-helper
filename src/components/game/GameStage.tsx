@@ -1406,19 +1406,7 @@ export const GameStage = () => {
                         disabled: false,
                         variant: "primary" as const,
                       }
-                    : gamePhase === "setup"
-                      ? {
-                          label: "确认 & 下一步",
-                          onClick: () => {
-                            console.log(
-                              "[GameStage] Setup phase primary action -> Clear selectedRole"
-                            );
-                            setSelectedRole(null);
-                          },
-                          disabled: !selectedRole,
-                          variant: "primary" as const,
-                        }
-                      : undefined
+                    : undefined
             }
             secondaryActions={
               gamePhase === "firstNight" || gamePhase === "night"

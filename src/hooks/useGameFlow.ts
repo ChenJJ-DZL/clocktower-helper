@@ -74,11 +74,23 @@ export function useGameFlow(): UseGameFlowResult {
   }, [timer]);
 
   // 当相位切换时管理计时器
-  // 进入白天：不重置计时器（由 app/page.tsx 设置为 480），只重置 hasExecutedThisDay
+  // 进入白天：不重置计时器（由 app/page.tsx 设置为 480），只重置 hasExecutedThisDay 和 todayExecutedId
   // 进入其他阶段：停止计时器并重置为 0
   useEffect(() => {
     if (state.gamePhase === "day") {
       dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
+      // 🔧 新白天同步重置今日被处决 ID，避免处决被永久拦截
+      dispatch(gameActions.updateState({ todayExecutedId: null }));
+      // 🔧 官方规则：每个死亡玩家每天有且仅有一次幽灵投票。
+      // 新的一天开始时恢复所有死亡玩家的幽灵票，否则投过一次后永久失效，
+      // 游戏后期死者越多幽灵票越失衡，直接影响胜负判定。
+      dispatch(
+        gameActions.setSeats(
+          state.seats.map((s) =>
+            s.isDead ? { ...s, hasGhostVote: true } : s
+          )
+        )
+      );
       // 仅在计时器为 0 时初始化为 480（防止覆盖用户手动重置的值）
       if (timerRef.current === 0) {
         dispatch(gameActions.setTimer(480));
@@ -130,6 +142,10 @@ export function useGameFlow(): UseGameFlowResult {
     // 每个新白天开始时，重置“今日是否已处决”标记，
     // 否则该标记会一直为 true，导致后续每天直接跳过黄昏/处决阶段，游戏无法结束。
     dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
+    // 🔧 每个新白天同时重置今日被处决玩家 ID（todayExecutedId），
+    // 否则一旦某天处决过，executeJudgment 会永远判定“今天已经有过处决”，
+    // 导致后续所有白天都无法再处决，游戏永远无法推进/结束。
+    dispatch(gameActions.updateState({ todayExecutedId: null }));
     // 🔧 每天重置造谣者声明状态（造谣者每天可公开声明一次）
     dispatch(
       gameActions.updateState({

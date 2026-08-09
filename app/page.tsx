@@ -935,7 +935,9 @@ export default function Home() {
               }
             />
           )}
-          {gamePhase !== "scriptSelection" && (
+          {/* setup 阶段由上方 GameLayout 内的 RoundTable + GameSetup 负责，
+              不再重复渲染 GameStage（否则会叠出第二套圆桌与 GameConsole 控制台） */}
+          {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
             <>
               <GameStage />
               <GameModals />

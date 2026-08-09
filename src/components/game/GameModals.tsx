@@ -36,6 +36,7 @@ import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RoleSelectModal } from "../modals/RoleSelectModal";
 import { SaintExecutionConfirmModal } from "../modals/SaintExecutionConfirmModal";
 import { SavantResultModal } from "../modals/SavantResultModal";
+import { SpyGrimoireModal } from "../modals/SpyGrimoireModal";
 import { ShamanConvertModal } from "../modals/ShamanConvertModal";
 import { ShootResultModal } from "../modals/ShootResultModal";
 import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
@@ -629,36 +630,17 @@ export function GameModals() {
       <ShamanConvertModal />
       <BarberSwapModal />
       <SpyDisguiseModal />
-      {currentModal?.type === "SPY_RECORDS" &&
-        (() => {
-          const currentRecord: GameRecord = {
-            id: "current",
-            scriptName: selectedScript?.name ?? "未知剧本",
-            startTime:
-              (actions as any).startTime?.toISOString?.() ??
-              new Date().toISOString(),
-            endTime: new Date().toISOString(),
-            duration: (actions as any).timer ?? 0,
-            winResult: null,
-            winReason: null,
-            seats: JSON.parse(JSON.stringify(seats)),
-            gameLogs: gameLogs as any[],
-            isCompleted: false,
-            snapshot: null,
-          };
-          return (
-            <GameRecordsModal
-              isOpen={true}
-              onClose={() => {
-                actions.setCurrentModal(null);
-                actions.continueToNextAction();
-              }}
-              gameRecords={[currentRecord]}
-              isPortrait={isPortrait}
-              onContinue={(actions as any).handleContinueGame}
-            />
-          );
-        })()}
+      {currentModal?.type === "SPY_RECORDS" && (
+        <SpyGrimoireModal
+          isOpen={true}
+          onClose={() => {
+            actions.setCurrentModal(null);
+            actions.continueToNextAction();
+          }}
+          seats={seats}
+          isPortrait={isPortrait}
+        />
+      )}
 
       {storytellerSelectModal && (
         <StorytellerSelectModal
