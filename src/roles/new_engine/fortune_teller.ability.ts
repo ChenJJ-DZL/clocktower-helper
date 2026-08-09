@@ -470,6 +470,16 @@ const postProcessResult = async (
         isCorrupted: meta.isCorrupted ?? false,
         log: abilityLog,
       },
+      // 🔧 结果弹窗：executeViaNewEngine FULL 分支检测到 meta.modal 后
+      //   setCurrentModal，让说书人在 UI 上看到"有/没有"结果。
+      //   此前缺失导致占卜结果不展示（只写 console 日志）。
+      modal: {
+        type: "FORTUNE_TELLER_RESULT",
+        data: {
+          result,
+          targetLabels: targetIds.map((id: number) => id + 1),
+        },
+      },
     },
   };
 };

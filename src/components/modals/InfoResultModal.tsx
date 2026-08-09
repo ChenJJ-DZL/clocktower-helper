@@ -13,11 +13,18 @@ export function InfoResultModal({
   onConfirm,
   onModify,
 }: InfoResultModalProps) {
+  // 🔧 长文本（如"7号和2号之中有一名是【调查员】"）用中等字号自适应，
+  //   避免 text-5xl 大字溢出；短结果（"有"/"没有"/数字）保持大字号醒目
+  const isLong = resultText.length > 6;
   return (
     <ModalWrapper title={`${roleName} - 结果`} onClose={() => {}}>
       <div className="p-6 text-white">
         <div className="text-center mb-6">
-          <div className="text-5xl font-black mb-4 text-amber-400">
+          <div
+            className={`font-black mb-4 text-amber-400 break-words leading-snug ${
+              isLong ? "text-2xl" : "text-5xl"
+            }`}
+          >
             {resultText}
           </div>
           <p className="text-lg text-gray-300">请说书人向玩家告知以上信息</p>

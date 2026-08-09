@@ -498,8 +498,31 @@ export async function executeViaNewEngine(
 
     // 处理弹窗
     const modal = resultContext.meta.modal as ModalType | undefined;
+    const displayInfo = resultContext.meta.displayInfo as any;
     if (modal) {
       context.setCurrentModal(modal);
+    } else if (
+      displayInfo &&
+      typeof displayInfo.type === "string" &&
+      displayInfo.type.endsWith("_info") &&
+      displayInfo.log
+    ) {
+      // 🔧 信息类角色（洗衣妇/共情者/送葬者/图书管理员/调查员/厨师/守鸦人等）
+      //   统一弹结果窗：此前 postProcess 只生成 displayInfo（console 日志），
+      //   未设置 meta.modal，导致结算结果不展示。此处用 displayInfo.log 作为
+      //   结果文本弹出 INFO_RESULT，确认后继续推进队列。
+      const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
+      context.setCurrentModal({
+        type: "INFO_RESULT",
+        data: {
+          roleName,
+          resultText: displayInfo.log,
+          onNext: () => {
+            context.setCurrentModal(null);
+            context.continueToNextAction(infoSynced);
+          },
+        },
+      });
     } else {
       // 🔧 修复：使用 syncedSeats 而非 updatedSeats，确保中毒/醉酒等状态已同步到旧系统字段
       context.continueToNextAction(syncedSeats.length > 0 ? syncedSeats : undefined);
