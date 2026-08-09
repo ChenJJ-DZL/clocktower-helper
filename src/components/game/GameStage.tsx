@@ -443,12 +443,12 @@ export const GameStage = () => {
       const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
       const hasBoon = boonSeatId !== null && targetIds.includes(boonSeatId);
 
-      // 3. 检查陌客（50%概率被当作恶魔）
+      // 3. 检查陌客（🔧 100% 概率被当作恶魔，不再 50% 随机）
       const hasRecluse = targetIds.some((id: number) => {
         const seat = seats.find((s) => s.id === id);
         return seat?.role?.id === "recluse";
       });
-      const recluseTriggers = hasRecluse && Math.random() < 0.5;
+      const recluseTriggers = hasRecluse;
 
       const result = hasDemon || hasBoon || recluseTriggers;
 

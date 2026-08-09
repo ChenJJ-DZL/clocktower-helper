@@ -221,7 +221,7 @@ function resolveRecluseForChef(
   const key = `chef_recluse_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = Math.random() < 0.5; // 50% 概率被当作邪恶
+  const result = true; // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
   meta[key] = result;
   return result;
 }
@@ -239,7 +239,7 @@ function resolveSpyForChef(seatId: number, meta: Record<string, any>): boolean {
   const key = `chef_spy_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = Math.random() < 0.5; // 50% 概率被当作善良
+  const result = true; // 🔧 间谍判定为善良：100% 触发（不再 50% 随机）
   meta[key] = result;
   return result;
 }

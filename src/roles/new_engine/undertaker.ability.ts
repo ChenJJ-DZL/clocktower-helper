@@ -194,7 +194,8 @@ function resolveExecutedRole(
   const displayRole =
     executedSeat.effectiveRole ?? executedSeat.charadeRole ?? realRole;
 
-  if (realRole?.id === "recluse" && Math.random() < 0.5) {
+  // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
+  if (realRole?.id === "recluse") {
     const evilRoles = seats.filter(
       (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
     );

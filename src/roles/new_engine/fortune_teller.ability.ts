@@ -187,22 +187,22 @@ function isEffectivelyDemon(
   // 4. 干扰项（仅在 abilityEffective 时计入；咖啡师效果下 checkBoon = false）
   if (checkBoon && isBoon) return true;
 
-  // 4. Recluse：50% 概率被当作恶魔（独立于干扰项）
+  // 4. Recluse：🔧 100% 概率被当作恶魔（规则调整：不再 50% 随机）
   //    "当心陌客，他可能会被你当做恶魔。这和'干扰项'不是一回事。"
   if (roleId === "recluse") {
     const key = `ft_recluse_${seat.id}`;
     if (meta[key] === undefined) {
-      meta[key] = Math.random() < 0.5;
+      meta[key] = true; // 100% 触发：陌客必定被当作恶魔
     }
     return meta[key] as boolean;
   }
 
-  // 5. Spy：50% 概率被当作善良（不记为恶魔）
+  // 5. Spy：🔧 100% 概率被当作善良（不记为恶魔）
   //    （与 Chef 中 Spy 的角色能力一致）
   if (roleId === "spy") {
     const key = `ft_spy_${seat.id}`;
     if (meta[key] === undefined) {
-      meta[key] = Math.random() < 0.5; // true = 被当作善良
+      meta[key] = true; // 100% 触发：间谍必定被当作善良
     }
     if (meta[key]) return false;
   }
