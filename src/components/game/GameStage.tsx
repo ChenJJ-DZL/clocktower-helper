@@ -926,22 +926,30 @@ export const GameStage = () => {
                       return;
                     }
                     // Call executeNomination (which handles Virgin trigger from Step 4)
-                    executeNomination(nominator, nominee, {
-                      openVoteModal: false,
-                    });
+                    // 🔧 贞洁者自动处决时返回 true → 不再打开投票弹窗（跳过投票环节）
+                    const virginHandled =
+                      executeNomination(nominator, nominee, {
+                        openVoteModal: false,
+                      }) === true;
                     addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
                     playSound("execute");
-                    setPendingVoteFor(nominee);
-                    setLastNominator(nominator);
-                    // 取消自动辩护倒计时，由说书人手动控制节奏
                     // Reset selection
                     setNominator(null);
                     setNominee(null);
-                    // 立即自动进入投票环节，打开举手名单面板进行计票
-                    setCurrentModal({
-                      type: "VOTE_INPUT",
-                      data: { voterId: nominee },
-                    });
+                    if (virginHandled) {
+                      // 贞洁者已直接处决提名者并弹结果，由 EXECUTION_RESULT 确认后进入黑夜
+                      setPendingVoteFor(null);
+                      setLastNominator(null);
+                    } else {
+                      setPendingVoteFor(nominee);
+                      setLastNominator(nominator);
+                      // 取消自动辩护倒计时，由说书人手动控制节奏
+                      // 立即自动进入投票环节，打开举手名单面板进行计票
+                      setCurrentModal({
+                        type: "VOTE_INPUT",
+                        data: { voterId: nominee },
+                      });
+                    }
                   } catch (error) {
                     console.error("[GameStage] 发起提名时出错:", error);
                     alert(

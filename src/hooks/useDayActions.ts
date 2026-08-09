@@ -209,6 +209,12 @@ export function useDayActions(deps: DayActionsDeps) {
       const target = seats.find((s) => s.id === id);
       const virginOverride = options?.virginGuideOverride;
 
+      // 🔧 贞洁者：自动计算，不再弹出说书人判定向导（VirginGuideModal）。
+      //   1) 贞洁者状态检测：!isActorDisabledByPoisonOrDrunk(target)
+      //      贞洁者醉酒/中毒时能力失效 → 不进入本分支，按普通提名+投票处理；
+      //      实际为酒鬼的角色 role.id 是 "drunk" ≠ "virgin"，同样不会触发。
+      //   2) 首次提名检测：!target.hasBeenNominated（一局仅首次触发）
+      //   3) 提名者身份检测：真实镇民（排除酒鬼伪装/醉酒）→ 立即处决提名者，跳过投票
       if (
         target?.role?.id === "virgin" &&
         !isActorDisabledByPoisonOrDrunk(target)
@@ -216,16 +222,6 @@ export function useDayActions(deps: DayActionsDeps) {
         const isFirstNomination =
           virginOverride?.isFirstTime ?? !target.hasBeenNominated;
         const currentSeats = seats;
-
-        if (!virginOverride && isFirstNomination) {
-          setVirginGuideInfo({
-            targetId: id,
-            nominatorId: sourceId,
-            isFirstTime: true,
-            nominatorIsTownsfolk: false,
-          });
-          return;
-        }
 
         if (!isFirstNomination) {
           const updatedSeats = currentSeats.map((s) =>
@@ -282,7 +278,9 @@ export function useDayActions(deps: DayActionsDeps) {
                 isVirginTrigger: true,
               },
             });
-            return;
+            // 🔧 返回 true：贞洁者已自动处决提名者（跳过投票环节），
+            //   GameStage 据此不再打开 VOTE_INPUT 弹窗。
+            return true;
           } else {
             setSeats(updatedSeats);
           }
