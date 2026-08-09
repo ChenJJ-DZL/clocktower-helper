@@ -65,11 +65,12 @@ export interface NightActionHandlerContext {
 
 /** 将 React Seat 的遗留布尔字段翻译为新引擎 statusEffects[] */
 function translateLegacyStatusesToEffects(seat: Seat): any[] {
-  const effects: any[] = [];
-  if (seat.isPoisoned) effects.push({ type: "poisoned", source: "legacy" });
-  if (seat.isProtected) effects.push({ type: "protected", source: "legacy" });
-  if (seat.isDrunk) effects.push({ type: "drunk", source: "legacy" });
-  return effects;
+  // 🔧 不再把 legacy 布尔字段（isPoisoned/isProtected/isDrunk）翻译为 statusEffects：
+  //   1. legacy 效果无 expiresAtNight，clearExpiredNightEffects 永远清不掉 → 每夜累积
+  //   2. 结算路径（abilityPriorityCalculation）与 guide 路径（computeIsPoisoned）
+  //      均有 legacy 字段兜底检测（isPoisoned/isProtected/isDrunk），无需翻译。
+  //   3. 新引擎角色（投毒者/僧侣等）写入带 source 的 statusEffects，由引擎自身管理过期。
+  return [];
 }
 
 /** 将新引擎 statusEffects[] 翻译回 React Seat 的布尔字段 */
@@ -83,29 +84,54 @@ export function syncStatusEffectsToSeat(
   const hasDrunk = effects.some((e: any) => e.type === "drunk");
   const markedDead = !!(updated as any).markedForDeath;
 
+  // 🔧 以新引擎 statusEffects 为准同步 legacy 展示字段：
+  //   仅当新引擎存在该效果时为 true；不存在时显式清除，
+  //   避免 `prev || hasX` 导致中毒/醉酒状态永不重置（信息不一致的根源）。
+  const isPoisoned = hasPoison;
+  const isProtected = hasProtect;
+  const isDrunk = hasDrunk;
+
   // 同步到 statuses 和 statusDetails（供 legacy 读取）
+  // 先移除旧的"新引擎"标记，再按当前状态追加，避免重复累积
   const extraStatuses: any[] = [];
   const extraDetails: string[] = [];
-  if (hasPoison && !prev.isPoisoned) {
+  if (isPoisoned) {
     extraStatuses.push({ effect: "Poison", duration: "至下个黄昏" });
     extraDetails.push("新引擎中毒（黄昏清除）");
   }
-  if (hasProtect && !prev.isProtected) {
+  if (isProtected) {
     extraStatuses.push({ effect: "Protected", duration: "至天亮" });
     extraDetails.push("新引擎保护（天亮清除）");
   }
-  if (hasDrunk && !prev.isDrunk) {
+  if (isDrunk) {
     extraStatuses.push({ effect: "Drunk", duration: "至下个黄昏" });
     extraDetails.push("新引擎致醉（黄昏清除）");
   }
 
+  const stripEngineStatuses = (list: any[] | undefined) =>
+    (list || []).filter(
+      (x: any) =>
+        !(
+          x.effect === "Poison" ||
+          x.effect === "Protected" ||
+          x.effect === "Drunk"
+        )
+    );
+  const stripEngineDetails = (list: any[] | undefined) =>
+    (list || []).filter(
+      (d: string) =>
+        !d.includes("新引擎中毒") &&
+        !d.includes("新引擎保护") &&
+        !d.includes("新引擎致醉")
+    );
+
   return {
-    isPoisoned: prev.isPoisoned || hasPoison,
-    isProtected: prev.isProtected || hasProtect,
-    isDrunk: prev.isDrunk || hasDrunk,
+    isPoisoned,
+    isProtected,
+    isDrunk,
     isDead: prev.isDead || markedDead,
-    statuses: [...(prev.statuses || []), ...extraStatuses],
-    statusDetails: [...(prev.statusDetails || []), ...extraDetails],
+    statuses: [...stripEngineStatuses(prev.statuses), ...extraStatuses],
+    statusDetails: [...stripEngineDetails(prev.statusDetails), ...extraDetails],
     // 🔧 显式保留引擎状态效果数组，确保管道 abilityPriorityCalculation 能读取到中毒/醉酒/保护
     statusEffects: effects,
   };
