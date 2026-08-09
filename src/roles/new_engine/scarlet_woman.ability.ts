@@ -381,9 +381,12 @@ export const scarletWomanAbility = createRoleAbility({
   /**
    * 唤醒优先级（被动能力不使用唤醒队列）
    * nightOrderOverrides: otherNightOrderList index 138 → priority 139
+   * 🔧 otherNightPriority 必须为 null：被动能力不应进入夜间唤醒队列，
+   *   否则红唇女郎会被错误唤醒（占用夜间步骤），且队列生成器按
+   *   hasOn = on !== null && on > 0 判定，37 > 0 会导致其入队。
    */
   firstNightPriority: null,
-  otherNightPriority: 37,
+  otherNightPriority: null,
   /** 非首夜唤醒（被动触发与夜晚无关） */
   firstNightOnly: false,
   /** 🔧 恶魔继承提示模板（字典 id：role.scarlet_woman.wake）。

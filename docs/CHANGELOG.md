@@ -1,5 +1,65 @@
 # 更新日志
 
+## W8.8.2 — 暗流涌动 4 轮补测 + 信息一致性 + 死亡报告/恶魔队列修复 (2026-08-09)
+
+> 针对「暗流涌动」剧本补测 4 轮完整对局（15/14/10/9 人随机标准配比，全部 FINISHED），
+> 全程真实 UI 点击（Playwright + Chromium），重点核对技能结算与各处信息一致性。
+
+### 修复
+
+#### 🔴 P0: 死亡报告跨夜累积（deadThisNight 未重置）
+
+**症状**：夜晚报告"昨晚15号、8号、5号玩家死亡"连续多夜重复出现旧死者名单，
+第 1 局第 3 夜起每夜报告都包含此前所有死者。
+
+**根本原因**：`deadThisNight` 只在游戏重置时清空，`enterNightPhase`（useGameFlow.ts）
+与处决后自动入夜 `startSubsequentNight`（useExecutionHandlers.ts）都未清空，
+导致死亡名单跨夜累积，送葬者等依赖 deadThisNight 的功能读取到历史数据。
+
+**修复**：
+- `useGameFlow.ts` `enterNightPhase`：进入夜晚时 `deadThisNight: []`
+- `useExecutionHandlers.ts` `startSubsequentNight`（含队列为空兜底分支）：同样清空
+
+**验证**：15 人局死亡报告"昨晚2号玩家死亡"单夜独立、无累积 ✅
+
+#### 🔴 P0: 红唇女郎继承后新恶魔不在夜间队列
+
+**症状**：第 1 天处决小恶魔 → 红唇女郎继承（魔典显示"5号 小恶魔"）→ 但第 2 夜
+队列 [占卜师, 送葬者, 间谍] 完全没有新恶魔的杀人步骤，游戏拖长无法结束。
+
+**根本原因**：`startSubsequentNight` 调用 `nightLogic.startNight(false)` 时，
+`useNightEngine` 的 `startNight` 闭包捕获的是**旧 gameState**（处决/继承状态变更后
+React 尚未重渲染），引擎快照未同步红唇继承 → `generateDynamicNightQueue` 找不到
+存活恶魔 → 恶魔步骤缺失。
+
+**修复**：`useNightEngine.ts` 新增 `gameStateRef` 持有最新 gameState；
+`startNight`/`finalizeNightStart` 在启动前先用 ref 中的最新状态重建引擎快照，
+确保红唇继承/处决死亡等最新状态进入引擎队列。
+
+**验证**：固定阵容（红唇女郎+小恶魔）处决小恶魔后，第 2 夜队列
+`[imp(5), fortune_teller(9), spy(4)]` 新恶魔 5 号正常在队列 ✅
+
+#### 🟡 红唇女郎被动能力被错误排入夜间队列
+
+**症状**：红唇女郎（纯被动触发）出现在夜间队列第一位（`scarlet_woman(5)`），
+占用夜间步骤。
+
+**根本原因**：`scarlet_woman.ability.ts` `otherNightPriority: 37` 误设数值，
+而能力是 `triggerTiming: [PASSIVE]`（被动，无需唤醒），队列生成器按
+`on > 0` 判定将其入队。
+
+**修复**：`otherNightPriority: null`（与 firstNightPriority 一致，被动能力不入队）。
+
+### 测试
+
+- 4 轮完整对局（15/14/10/9 人）全部 FINISHED，0 console error / 0 pageerror
+- 信息一致性核对：第 3 局投毒者毒调查员——控制台 guide"行动（受干扰）"与
+  结算弹窗"【受干扰】"完全一致（受干扰标记 2+2 次同步）
+- 幽灵票每日恢复、管家规则、间谍魔典、圣徒处决、酒鬼伪装全部正常
+- 11 条记录均为预期行为（管家 alert + 酒鬼 warning）
+
+---
+
 ## W8.8.1 — 真实UI随机对局测试修复 + 管家/投票/持久化/新角色 (2026-08-08)
 
 > 本轮通过真实浏览器（Puppeteer + Edge）对「暗流涌动」剧本执行随机对局测试（随机落座、随机技能、随机提名/投票/处决），发现并修复以下问题。

@@ -963,6 +963,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         gameActions.updateState({
           nightCount: nightCount + 1,
           currentWakeIndex: 0,
+          deadThisNight: [],
         })
       );
       baseDispatch(gameActions.setGamePhase("night"));
@@ -991,6 +992,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         selectedActionTargets: [],
         inspectionResult: null,
         nightCount: nightCount + 1,
+        // 🔧 新夜晚清空 deadThisNight，避免死亡报告跨夜累积
+        deadThisNight: [],
       })
     );
     baseDispatch(gameActions.setGamePhase("night"));

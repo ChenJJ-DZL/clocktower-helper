@@ -10,7 +10,7 @@
  *   executeNightAbility 中完成。
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   GamePhase,
   LogEntry,
@@ -241,6 +241,14 @@ export function useNightEngine(gameState: NightLogicGameState) {
     engine.updateSnapshot(convertToNightStateMachineSnapshot(snap));
   }, [engine, gameState]);
 
+  // 🔧 持有最新 gameState 的 ref：startNight 可能在处决/继承等状态变更后
+  //    立即被调用（同一事件循环），此时闭包中的 gameState 还是旧值，
+  //    导致引擎快照未同步红唇继承等最新状态（Bug：新恶魔不在夜间队列）。
+  const gameStateRef = useRef(gameState);
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
   // 同步引擎状态到 React State
   const [engineState, setEngineState] = useState<NightEngineState>(
     engine.state
@@ -317,19 +325,27 @@ export function useNightEngine(gameState: NightLogicGameState) {
 
   const startNight = useCallback(
     (isFirst: boolean) => {
-      const nightCount = isFirst ? 1 : gameState.nightCount + 1;
+      // 🔧 使用 ref 中的最新 gameState 重建快照并同步引擎，避免闭包旧值
+      //    导致红唇继承/处决死亡等最新状态未进入引擎快照。
+      const latest = gameStateRef.current;
+      const snap = createSnapshotFromGameState(latest);
+      engine.updateSnapshot(convertToNightStateMachineSnapshot(snap));
+      const nightCount = isFirst ? 1 : latest.nightCount + 1;
       engine.startNight(nightCount);
     },
-    [engine, gameState.nightCount]
+    [engine]
   );
 
   const finalizeNightStart = useCallback(
     (_queue: any[], isFirst: boolean) => {
       // 新引擎内部已经处理了队列，这里只需触发开始
-      const nightCount = isFirst ? 1 : gameState.nightCount + 1;
+      const latest = gameStateRef.current;
+      const snap = createSnapshotFromGameState(latest);
+      engine.updateSnapshot(convertToNightStateMachineSnapshot(snap));
+      const nightCount = isFirst ? 1 : latest.nightCount + 1;
       engine.startNight(nightCount);
     },
-    [engine, gameState.nightCount]
+    [engine]
   );
 
   const endNight = useCallback(() => {

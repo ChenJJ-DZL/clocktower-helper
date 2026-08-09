@@ -140,6 +140,10 @@ export function useGameFlow(): UseGameFlowResult {
 
   const enterNightPhase = useCallback(
     (target: GamePhase, isFirstNight: boolean) => {
+      // 🔧 每个新夜晚开始时清空 deadThisNight，否则死亡报告会跨夜累积
+      //    （"昨晚X号、Y号"重复出现），且送葬者等依赖 deadThisNight 的
+      //    功能读取到的是历史累积数据。
+      dispatch(gameActions.updateState({ deadThisNight: [] }));
       dispatch(gameActions.setGamePhase(target));
       if (!isFirstNight) {
         dispatch(gameActions.updateState({ nightCount: state.nightCount + 1 }));
