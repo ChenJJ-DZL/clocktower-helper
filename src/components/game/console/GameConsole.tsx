@@ -337,6 +337,20 @@ export const GameConsole = React.memo(function GameConsole({
                 </div>
               </div>
             )}
+
+            {/* 🔧 守鸦人查验结果展示（legacy 路径使用 inspectionResult） */}
+            {inspectionResult && (
+              <div className="mt-5 pt-4 border-t border-amber-500/30">
+                <div className="rounded-xl bg-amber-950/40 border border-amber-600/40 px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-widest text-amber-400/80 mb-1">
+                    🔍 查验结果
+                  </div>
+                  <div className="text-base text-amber-100 font-medium">
+                    {inspectionResult}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -223,6 +223,20 @@ export const promptDictionary: PromptTemplate[] = [
     description: "小恶魔唤醒提示",
     scenes: ["night"],
   },
+  {
+    id: "role.innkeeper.wake",
+    category: "role",
+    template: "请唤醒旅店老板（{{seatNo}}号玩家），请其选择一名玩家进行保护（该玩家今晚免疫死亡）",
+    description: "旅店老板唤醒提示",
+    scenes: ["night"],
+  },
+  {
+    id: "role.pit_hag.wake",
+    category: "role",
+    template: "请唤醒麻脸巫婆（{{seatNo}}号玩家），请其选择一名玩家并变更其角色",
+    description: "麻脸巫婆唤醒提示",
+    scenes: ["night"],
+  },
 
   // 技能操作提示
   {

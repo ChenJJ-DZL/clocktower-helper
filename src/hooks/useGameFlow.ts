@@ -93,11 +93,15 @@ export function useGameFlow(): UseGameFlowResult {
       // 🔧 官方规则：每个死亡玩家每天有且仅有一次幽灵投票。
       // 新的一天开始时恢复所有死亡玩家的幽灵票，否则投过一次后永久失效，
       // 游戏后期死者越多幽灵票越失衡，直接影响胜负判定。
+      // 🔧 送葬者修复：同时重置 executedToday / executedRoleSnapshot
+      // （处决标记只在处决当天有效，跨天残留会导致送葬者读到旧信息）
       dispatch(
         gameActions.setSeats(
-          state.seats.map((s) =>
-            s.isDead ? { ...s, hasGhostVote: true } : s
-          )
+          state.seats.map((s) => ({
+            ...(s.isDead ? { ...s, hasGhostVote: true } : s),
+            executedToday: undefined,
+            executedRoleSnapshot: undefined,
+          }))
         )
       );
     }

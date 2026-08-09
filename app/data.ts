@@ -171,6 +171,16 @@ export interface Seat {
   isFirstDeathForZombuul?: boolean; // 僵怖首次死亡标记（首次死亡后仍可发动技能，第二次被处决才真正死亡）
   isZombuulTrulyDead?: boolean; // 僵怖真正死亡标记（第二次被处决后）
   zombuulLives?: number; // 僵怖剩余可“假死”次数（默认1）
+  /**
+   * 今日是否死于处决（供送葬者/其他依赖处决信息的角色读取）。
+   * 由处决流程在 killPlayer(source="execution") 时设置，次日黎明重置。
+   */
+  executedToday?: boolean;
+  /**
+   * 处决时刻的角色名快照（处决后角色可能因红唇女郎等发生变化，
+   * 送葬者应得知处决当时的角色而非当前角色）。
+   */
+  executedRoleSnapshot?: string;
 }
 
 export interface LogEntry {
@@ -510,7 +520,7 @@ export const roles: Role[] = [
     id: "fortune_teller",
     name: "占卜师",
     type: "townsfolk",
-    ability: "每晚选择2名玩家，得知其中是否有恶魔或红罗刹。",
+    ability: "每晚选择2名玩家，得知其中是否有恶魔（天敌红罗刹会被视为恶魔）。",
     fullDescription:
       "每个夜晚,你要选择两名玩家:你会得知他们之中是否有恶魔,会有一名镇民玩家始终被你的能力视为邪恶。",
     script: "暗流涌动", // 暗流涌动角色
@@ -575,89 +585,6 @@ export const roles: Role[] = [
     script: "暗流涌动", // 暗流涌动角色
   },
   {
-    id: "grandmother",
-    name: "祖母",
-    type: "townsfolk",
-    ability:
-      "【扩展镇民】在你的首个夜晚，你会得知一名善良玩家和他的角色。如果恶魔杀死了他，你也会死亡。",
-    fullDescription:
-      "在你的首个夜晚,你会得知一名善良玩家和他的角色。如果恶魔杀死了他,你也会死亡。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#祖母",
-  },
-  {
-    id: "sailor",
-    name: "水手",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】每个夜晚，你要选择一名存活的玩家：你或他之一会醉酒直到下个黄昏。你不会死亡。",
-    fullDescription:
-      "每个夜晚,你要选择一名存活的玩家:你或他之一会醉酒直到下个黄昏。你不会死亡。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#水手",
-  },
-  {
-    id: "chambermaid",
-    name: "侍女",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】每个夜晚，你要选择除你以外的两名存活的玩家：你会得知他们中有几人在当晚因其自身能力而被唤醒。",
-    fullDescription:
-      "每个夜晚,你要选择除你以外的两名存活的玩家:你会得知他们中有几人在当晚因其自身能力而被唤醒。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#侍女",
-  },
-  {
-    id: "exorcist",
-    name: "驱魔人",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】每个夜晚*，你要选择一名存活的玩家：恶魔的负面能力对该玩家无效。",
-    fullDescription:
-      "每个夜晚*,你要选择一名存活的玩家:恶魔的负面能力对该玩家无效。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#驱魔人",
-  },
-  {
-    id: "tea_lady",
-    name: "圣女",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】如果你的两名存活的邻座玩家都是善良，则恶魔的负面能力对他们无效。",
-    fullDescription:
-      "如果你的两名存活的邻座玩家都是善良,则恶魔的负面能力对他们无效。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#圣女",
-  },
-  {
-    id: "poppy_grower",
-    name: "和事佬",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】如果只有三名玩家存活，且你被恶魔杀死，则直到下一个黄昏所有玩家都可能会被视为恶魔，且恶魔的负面能力对所有玩家无效。",
-    fullDescription:
-      "如果只有三名玩家存活,且你被恶魔杀死,则直到下一个黄昏所有玩家都可能会被视为恶魔,且恶魔的负面能力对所有玩家无效。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#和事佬",
-  },
-  {
-    id: "professor",
-    name: "教授",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】每局游戏限一次，你可以在夜晚选择一名已死亡的善良玩家：他立刻复活。",
-    fullDescription:
-      "每局游戏限一次,你可以在夜晚选择一名已死亡的善良玩家:他立刻复活。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#教授",
-  },
-  {
     id: "astrologer",
     name: "星象师",
     type: "townsfolk",
@@ -690,40 +617,6 @@ export const roles: Role[] = [
       "你的能力只有在没有吟游诗人在场时才能生效。每个夜晚*,你的一名存活的邻座玩家不会死亡。",
     script: "暗流涌动",
     docRef: "blood_clocktower_所有镇民.json#吟游诗人",
-  },
-  {
-    id: "sage",
-    name: "贤者",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】如果你因恶魔的能力而死亡，你会被唤醒，然后你要选择三名玩家：其中一名是恶魔。",
-    fullDescription:
-      "如果你因恶魔的能力而死亡,你会被唤醒,然后你要选择三名玩家:其中一名是恶魔。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#贤者",
-  },
-  {
-    id: "juggler",
-    name: "杂耍艺人",
-    type: "townsfolk",
-
-    ability:
-      "【扩展镇民】每个白天，你都可以公开宣布你将发动杂耍艺人的能力，之后选择三名玩家：你死亡，且你所选择的三名玩家之中有一个恶魔。",
-    fullDescription:
-      "每个白天,你都可以公开宣布你将发动杂耍艺人的能力,之后选择三名玩家:你死亡,且你所选择的三名玩家之中有一个恶魔。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#杂耍艺人",
-  },
-  {
-    id: "mathematician",
-    name: "数学家",
-    type: "townsfolk",
-
-    ability: "【扩展镇民】每个夜晚*，你会得知有多少角色能力未能正常生效。",
-    fullDescription: "每个夜晚*,你会得知有多少角色能力未能正常生效。",
-    script: "暗流涌动",
-    docRef: "blood_clocktower_所有镇民.json#数学家",
   },
   {
     id: "miner",
@@ -1681,7 +1574,7 @@ export const roles: Role[] = [
   },
   {
     id: "amnesiac",
-    name: "失意者",
+    name: "失忆者",
     type: "townsfolk",
     ability:
       "你不知道你的能力是什么。每个白天你可以询问说书人一次猜测，你会得知你的猜测有多准确。",
@@ -1796,26 +1689,6 @@ export const roles: Role[] = [
     type: "outsider",
     ability: "你随时可能死亡。",
     fullDescription: "你随时可能死亡。",
-    script: "黯月初升",
-  },
-  {
-    id: "moonchild",
-    name: "月之子",
-    type: "outsider",
-    ability:
-      "当你得知你死亡时，你要公开选择一名存活的玩家。如果他是善良的，在当晚他会死亡。",
-    fullDescription:
-      "当你得知你死亡时,你要公开选择一名存活的玩家。如果他是善良的,在当晚他会死亡。",
-    script: "黯月初升",
-  },
-  {
-    id: "goon",
-    name: "莽夫",
-    type: "outsider",
-    ability:
-      "每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。",
-    fullDescription:
-      "每个夜晚,首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。",
     script: "黯月初升",
   },
   {

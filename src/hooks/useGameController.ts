@@ -382,11 +382,26 @@ export function useGameController() {
 
       // 首先处理死亡逻辑
       setSeats((prev: Seat[]) => {
-        let updatedSeats = prev.map((s) =>
-          s.id === targetId && !s.isDead
-            ? { ...s, isDead: true, diedOnDay: nightCount, deathSource: source }
-            : s
-        );
+        let updatedSeats = prev.map((s) => {
+          if (s.id !== targetId || s.isDead) return s;
+          const next = {
+            ...s,
+            isDead: true,
+            diedOnDay: nightCount,
+            deathSource: source,
+          };
+          // 🔧 送葬者修复：处决时保存被处决者角色快照 + executedToday 标记
+          // （处决后角色可能因红唇女郎等变化，需保存处决时刻的真实角色）
+          if (source === "execution") {
+            next.executedToday = true;
+            next.executedRoleSnapshot =
+              s.role?.name ||
+              (s as any).effectiveRole?.name ||
+              (s as any).charadeRole?.name ||
+              "未知角色";
+          }
+          return next;
+        });
 
         // 红罗刹死亡自动转移逻辑
         const targetSeat = updatedSeats.find((s) => s.id === targetId);
@@ -487,6 +502,16 @@ export function useGameController() {
   const enqueueRavenkeeperIfNeeded = useCallback(
     (targetId: number) => {
       if (getSeatRoleId(targetId) !== "ravenkeeper") return;
+      // 🔧 守鸦人结果不展示修复：入队时同步设置 hasAbilityEvenDead=true，
+      //   否则死亡后确认执行时被 preProcessAbility 的"已死亡"校验拦截，
+      //   导致守鸦人选择了目标却没有任何结算结果。
+      setSeats((prev: Seat[]) =>
+        prev.map((s) =>
+          s.id === targetId && !s.hasAbilityEvenDead
+            ? { ...s, hasAbilityEvenDead: true }
+            : s
+        )
+      );
       setWakeQueueIds((prev: number[]) =>
         prev.includes(targetId)
           ? prev
@@ -497,7 +522,7 @@ export function useGameController() {
             ]
       );
     },
-    [currentWakeIndex, setWakeQueueIds, getSeatRoleId]
+    [currentWakeIndex, setWakeQueueIds, getSeatRoleId, setSeats]
   );
 
   const cleanStatusesForNewDay = useCallback(() => {

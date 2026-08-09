@@ -61,6 +61,12 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  isImmuneToDemonKill,
+  soldierImmunityLog,
+  mayorImmunityLog,
+  getDemonKillImmunityType,
+} from "../../utils/soldierImmunity";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -371,12 +377,17 @@ const stateUpdateResult = async (
   else {
     const targetIdx = updatedSeats.findIndex((s: any) => s.id === targetId);
     if (targetIdx !== -1) {
-      // 检查目标是否被保护（僧侣/旅店老板/士兵等）
+      // 检查目标是否被保护（僧侣/旅店老板等）
       const targetSeat = updatedSeats[targetIdx];
       const isProtected =
         targetSeat.statusEffects?.some((e: any) => e.type === "protected") ||
         targetSeat.isProtected;
-      if (!isProtected) {
+      // 🔧 士兵免疫：恶魔攻击士兵时士兵不死亡（官方规则）
+      // 🔧 镇长免疫：至少3名玩家存活时恶魔攻击镇长无效（官方规则）
+      const aliveCount = updatedSeats.filter((s: any) => !s.isDead).length;
+      const soldierImmune = isImmuneToDemonKill(targetSeat, true, aliveCount);
+      const immunityType = getDemonKillImmunityType(targetSeat, aliveCount);
+      if (!isProtected && !soldierImmune) {
         updatedSeats[targetIdx] = {
           ...targetSeat,
           markedForDeath: true,
@@ -384,6 +395,16 @@ const stateUpdateResult = async (
           deathSource: "imp_kill",
           deathSourceSeatId: actionNode.seatId,
         };
+      } else if (soldierImmune) {
+        record.log = record.log || {};
+        (record.log as any).blockedBySoldier = true;
+        console.log(
+          `[Imp] ${
+            immunityType === "mayor"
+              ? mayorImmunityLog(targetSeat)
+              : soldierImmunityLog(targetSeat)
+          }`
+        );
       } else {
         record.log = record.log || {};
         (record.log as any).blockedByProtection = true;

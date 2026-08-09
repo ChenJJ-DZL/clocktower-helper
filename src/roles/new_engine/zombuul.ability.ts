@@ -4,6 +4,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 
 const preCheckAlive = async (
   context: MiddlewareContext
@@ -63,6 +64,7 @@ const updateKillState = async (
   const targetId = validTargets[0];
 
   // 生成新的状态快照（不可变）
+  const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
     seats: snapshot.seats.map((seat) => {
@@ -70,9 +72,12 @@ const updateKillState = async (
         const isProtected =
           seat.statusEffects?.some((e: any) => e.type === "protected") ||
           (seat as any).isProtected;
+        // 🔧 士兵免疫：恶魔攻击士兵时士兵不死亡（官方规则）
+        // 🔧 镇长免疫：至少3名玩家存活时恶魔攻击镇长无效（官方规则）
+        const soldierImmune = isImmuneToDemonKill(seat, true, aliveCount);
 
-        if (isProtected) {
-          return seat; // 目标被保护，不死亡
+        if (isProtected || soldierImmune) {
+          return seat; // 目标被保护 / 士兵免疫 / 镇长免疫，不死亡
         }
 
         return { ...seat, isAlive: false, killedBy: "zombuul" };

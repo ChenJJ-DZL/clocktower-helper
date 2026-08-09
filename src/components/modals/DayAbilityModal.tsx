@@ -69,7 +69,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
         return;
       }
       props.addLog(
-        `${seat.id + 1}号(失意者) 今日猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}`
+        `${seat.id + 1}号(失忆者) 今日猜测：${props.dayAbilityForm.guess}；反馈：${props.dayAbilityForm.feedback}`
       );
       props.setDayAbilityLogs((prev: any[]) => [
         ...prev,
