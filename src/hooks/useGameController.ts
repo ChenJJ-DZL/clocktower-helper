@@ -948,6 +948,9 @@ export function useGameController() {
           findNearestAliveNeighbor,
           setSeats,
           setSelectedActionTargets,
+          // 🔧 新引擎管道（imp.ability 等杀人）不调 killPlayer，需传入
+          //   setDeadThisNight 让 executeViaNewEngine 在 markedForDeath 变 isDead 后补记。
+          setDeadThisNight,
           addLog,
           continueToNextAction,
           setCurrentModal,

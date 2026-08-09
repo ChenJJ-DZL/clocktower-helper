@@ -244,6 +244,21 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         });
         return true;
       }
+      // 🔧 Mayor: 白天处决镇长不死（官方规则基础部分）。
+      //   完整版还应判断"3人特殊胜利"，但留作后续——当前先保证不死。
+      if (t.role.id === "mayor") {
+        addLog(`⚖️ ${id + 1}号镇长被处决但因规则未死亡`);
+        setCurrentModal({
+          type: "EXECUTION_RESULT",
+          data: { message: `${id + 1}号镇长被处决但因规则未死亡` },
+        });
+        // 设置今天已处决过（防止重复提名）
+        const setTodayExecutedId = (globalThis as any).__setTodayExecutedId;
+        if (typeof setTodayExecutedId === "function") {
+          setTodayExecutedId(id);
+        }
+        return true;
+      }
 
       // Atomic Dispatch
       dispatch({ type: "EXECUTE_PLAYER", targetId: id });

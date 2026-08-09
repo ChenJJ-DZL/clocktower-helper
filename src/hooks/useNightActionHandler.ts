@@ -42,6 +42,11 @@ export interface NightActionHandlerContext {
   // 状态更新函数
   setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
   setSelectedActionTargets: React.Dispatch<React.SetStateAction<number[]>>;
+  // 🔧 新引擎管道（imp.ability 等）只设 markedForDeath → isDead，
+  //    绕过了 killPlayer → setDeadThisNight 的写入，导致天亮报告永远"平安夜"、送葬者失效。
+  //    此处显式传入 setDeadThisNight，让 executeViaNewEngine 在同步
+  //    markedForDeath 后补调，保证天亮报告 / 送葬者等依赖 deadThisNight 的逻辑正确。
+  setDeadThisNight?: React.Dispatch<React.SetStateAction<number[]>>;
 
   // 辅助函数
   addLog: (message: string) => void;
@@ -461,6 +466,24 @@ export async function executeViaNewEngine(
 
     if (syncedSeats.length > 0) {
       context.setSeats(syncedSeats);
+      // 🔧 补调 setDeadThisNight：新引擎管道（imp.ability 等）只设 markedForDeath → isDead，
+      //   不调 killPlayer 也不记录 deadThisNight，导致天亮报告永远"平安夜"、
+      //   送葬者技能失效。此处比较 prev / new isDead，对新增死亡补记。
+      const prevSeats = context.seats;
+      const newlyDead: number[] = [];
+      syncedSeats.forEach((newSeat) => {
+        const prevSeat = prevSeats.find((s) => s.id === newSeat.id);
+        if (newSeat.isDead && (!prevSeat || !prevSeat.isDead)) {
+          if (!newlyDead.includes(newSeat.id)) newlyDead.push(newSeat.id);
+        }
+      });
+      if (newlyDead.length > 0 && context.setDeadThisNight) {
+        context.setDeadThisNight((prev: number[]) => {
+          const set = new Set(prev);
+          for (const id of newlyDead) set.add(id);
+          return Array.from(set);
+        });
+      }
     }
 
     // 记录日志
