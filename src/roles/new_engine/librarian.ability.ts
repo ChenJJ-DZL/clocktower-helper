@@ -250,7 +250,8 @@ function generateRealInfo(
  */
 function generateFakeInfo(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  realInfo?: LibrarianInfo
 ): LibrarianInfo {
   const outsiderRoles = getScriptOutsiderRoles(seats);
   const others = seats.filter(
@@ -265,9 +266,14 @@ function generateFakeInfo(
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
+  // 🔧 100% 错误：排除真实外来者角色名，保证假角色名必然不同
+  let filteredRoles = outsiderRoles;
+  if (realInfo?.roleName) {
+    filteredRoles = outsiderRoles.filter((r) => r !== realInfo.roleName);
+  }
   const roleName =
-    outsiderRoles.length > 0
-      ? outsiderRoles[Math.floor(Math.random() * outsiderRoles.length)]
+    filteredRoles.length > 0
+      ? filteredRoles[Math.floor(Math.random() * filteredRoles.length)]
       : "";
 
   return { seat1, seat2, roleName };
@@ -331,7 +337,7 @@ const calculateResult = async (
   else {
     info = abilityEffective
       ? generateRealInfo(snapshot.seats, selfSeatId)
-      : generateFakeInfo(snapshot.seats, selfSeatId);
+      : generateFakeInfo(snapshot.seats, selfSeatId, undefined);
   }
 
   return {

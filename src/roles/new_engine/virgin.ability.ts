@@ -148,7 +148,8 @@ function isEligibleNominator(
   if (roleId === "recluse") {
     const key = `virgin_recluse_${nominator.id}`;
     if (meta[key] === undefined) {
-      meta[key] = Math.random() < 0.5;
+      // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
+      meta[key] = true;
     }
     return meta[key] as boolean;
   }

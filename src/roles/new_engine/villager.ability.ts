@@ -70,12 +70,10 @@ const calculateResult = async (
   let isEvil: boolean;
 
   if (!isAbilityActive) {
-    // 醉酒/中毒时，可能返回错误信息
+    // 🔧 醉酒/中毒时，返回 100% 错误信息（与真实阵营相反）
     const realIsEvil = targetSeat.alignment === "evil";
-    // 50%概率返回错误信息
     isEvil =
-      context.storytellerInput?.fakeAlignment ??
-      (Math.random() < 0.5 ? !realIsEvil : realIsEvil);
+      context.storytellerInput?.fakeAlignment ?? !realIsEvil;
   } else {
     // 正常情况：返回真实阵营
     isEvil = targetSeat.alignment === "evil";

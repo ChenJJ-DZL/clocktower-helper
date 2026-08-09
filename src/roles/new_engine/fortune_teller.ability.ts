@@ -260,10 +260,11 @@ function initializeBoon(
 /**
  * 生成醉酒/中毒时的虚假结果。
  *
- * 规则：说书人应返回一个看似合理的结果。随机 true/false。
+ * 🔧 规则（用户确认参数）：中毒/醉酒状态下，得知的信息 100% 错误。
+ * 传入真实结果并返回其相反值，保证必然与真实不符。
  */
-function generateFakeResult(): boolean {
-  return Math.random() < 0.5;
+function generateFakeResult(realResult: boolean): boolean {
+  return !realResult;
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
@@ -317,27 +318,32 @@ const calculateResult = async (
   else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
     result = Boolean(storytellerInput.fakeResult);
   }
-  // 优先级 3：动态判定
-  else if (abilityEffective) {
-    const target1 = seats.find((s: PlayerLookup) => s.id === targetIds[0]);
-    const target2 = seats.find((s: PlayerLookup) => s.id === targetIds[1]);
+    // 先计算真实结果（用于生成 100% 相反的假结果）
+    const realResult = (() => {
+      const target1 = seats.find((s: PlayerLookup) => s.id === targetIds[0]);
+      const target2 = seats.find((s: PlayerLookup) => s.id === targetIds[1]);
 
-    // 咖啡师效果下不检查干扰项（规则："不再把干扰项错认成恶魔"）
-    const checkBoon = meta.prioritySource !== "barista";
-    const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
+      // 咖啡师效果下不检查干扰项（规则："不再把干扰项错认成恶魔"）
+      const checkBoon = meta.prioritySource !== "barista";
+      const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
 
-    const t1IsDemon = target1
-      ? isEffectivelyDemon(target1, boonSeatId === target1.id, checkBoon, meta)
-      : false;
-    const t2IsDemon = target2
-      ? isEffectivelyDemon(target2, boonSeatId === target2.id, checkBoon, meta)
-      : false;
+      const t1IsDemon = target1
+        ? isEffectivelyDemon(target1, boonSeatId === target1.id, checkBoon, meta)
+        : false;
+      const t2IsDemon = target2
+        ? isEffectivelyDemon(target2, boonSeatId === target2.id, checkBoon, meta)
+        : false;
 
-    result = t1IsDemon || t2IsDemon;
-  } else {
-    // 醉酒/中毒/Vortox → 随机假结果
-    result = generateFakeResult();
-  }
+      return t1IsDemon || t2IsDemon;
+    })();
+
+    // 优先级 3：动态判定（能力有效时返回真实结果）
+    if (abilityEffective) {
+      result = realResult;
+    } else {
+      // 醉酒/中毒/Vortox → 100% 错误信息（与真实结果相反）
+      result = generateFakeResult(realResult);
+    }
 
   return {
     ...context,

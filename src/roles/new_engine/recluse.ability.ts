@@ -145,9 +145,9 @@ export function resolveRecluseRegistration(
     return override;
   }
 
-  // 生成随机结果
+  // 🔧 生成注册结果（用户确认参数：陌客判定为邪恶 100% 触发）
   const registration: RecluseRegistration = {
-    registersAsEvil: Math.random() < 0.5, // 50% 被当作邪恶
+    registersAsEvil: true, // 100% 被当作邪恶（不再 50% 随机）
     registersAsRoleType:
       Math.random() < 0.5
         ? Math.random() < 0.7

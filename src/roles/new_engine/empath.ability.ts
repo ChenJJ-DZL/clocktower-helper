@@ -153,6 +153,9 @@ function isEvilForEmpath(seat: PlayerLookup): boolean {
  *
  * 一致性保证：使用 meta 缓存首次判定结果。
  */
+/**
+ * 🔧 陌客判定为邪恶：100% 触发（用户确认参数，不再 50% 随机）
+ */
 function resolveRecluseForEmpath(
   seatId: number,
   meta: Record<string, any>
@@ -160,17 +163,13 @@ function resolveRecluseForEmpath(
   const key = `empath_recluse_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = Math.random() < 0.5;
+  const result = true; // 100% 被当作邪恶
   meta[key] = result;
   return result;
 }
 
 /**
- * 确定 Spy 在本次共情者探查中是否被当作善良（从而不记为邪恶）。
- *
- * 规则："间谍可能不会被当作是邪恶阵营"
- * → Spy 有 50% 概率注册为善良。
- * 返回 true 表示「被当作善良，不记为邪恶」。
+ * 🔧 间谍判定为善良：100% 触发（用户确认参数，不再 50% 随机）
  */
 function resolveSpyForEmpath(
   seatId: number,
@@ -179,7 +178,7 @@ function resolveSpyForEmpath(
   const key = `empath_spy_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = Math.random() < 0.5;
+  const result = true; // 100% 被当作善良
   meta[key] = result;
   return result;
 }
@@ -275,14 +274,23 @@ function countEvilNeighbors(
 /**
  * 生成醉酒/中毒时的虚假数字。
  *
- * 规则：给出一个看似合理的数字（0-2），可能与真实值不同。
+ * 🔧 规则（用户确认参数）：中毒/醉酒状态下，得知的信息 100% 错误。
+ * 从 0-2 中排除真实值后随机，保证必然与真实数量不同。
  */
-function generateFakeEvilCount(seats: PlayerLookup[], selfIdx: number): number {
+function generateFakeEvilCount(
+  seats: PlayerLookup[],
+  selfIdx: number,
+  realCount: number
+): number {
   const candidates: number[] = [];
   for (let v = 0; v <= 2; v++) {
-    candidates.push(v);
+    if (v !== realCount) candidates.push(v);
   }
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  return candidates.length > 0
+    ? candidates[Math.floor(Math.random() * candidates.length)]
+    : realCount === 0
+      ? 1
+      : 0;
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
@@ -331,13 +339,14 @@ const calculateResult = async (
     const realCount = meta.initialNightInfo.empathInfo as number;
     evilNeighborCount = abilityEffective
       ? realCount
-      : generateFakeEvilCount(seats, selfIdx);
+      : generateFakeEvilCount(seats, selfIdx, realCount);
   }
   // 优先级 4：动态计算
   else {
+    const realCount = countEvilNeighbors(seats, selfIdx, meta);
     evilNeighborCount = abilityEffective
-      ? countEvilNeighbors(seats, selfIdx, meta)
-      : generateFakeEvilCount(seats, selfIdx);
+      ? realCount
+      : generateFakeEvilCount(seats, selfIdx, realCount);
   }
 
   return {

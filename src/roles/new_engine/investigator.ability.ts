@@ -239,7 +239,8 @@ function generateRealInfo(
  */
 function generateFakeInfo(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  realInfo?: InvestigatorInfo
 ): InvestigatorInfo {
   const minionRoles = getScriptMinionRoles(seats);
   const others = seats.filter(
@@ -254,9 +255,14 @@ function generateFakeInfo(
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
+  // 🔧 100% 错误：排除真实爪牙角色名，保证假角色名必然不同
+  let filteredRoles = minionRoles;
+  if (realInfo?.roleName) {
+    filteredRoles = minionRoles.filter((r) => r !== realInfo.roleName);
+  }
   const roleName =
-    minionRoles.length > 0
-      ? minionRoles[Math.floor(Math.random() * minionRoles.length)]
+    filteredRoles.length > 0
+      ? filteredRoles[Math.floor(Math.random() * filteredRoles.length)]
       : "";
 
   return { seat1, seat2, roleName };
@@ -313,7 +319,7 @@ function resolveInvestigatorInfo(
   // 优先级 4：动态生成
   return abilityEffective
     ? generateRealInfo(snapshot.seats, selfSeatId)
-    : generateFakeInfo(snapshot.seats, selfSeatId);
+    : generateFakeInfo(snapshot.seats, selfSeatId, undefined);
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────

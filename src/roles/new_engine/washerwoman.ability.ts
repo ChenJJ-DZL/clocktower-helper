@@ -252,7 +252,8 @@ function generateRealInfo(
  */
 function generateFakeInfo(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  realInfo?: WasherwomanInfo
 ): WasherwomanInfo {
   const townsfolkRoles = getScriptTownsfolkRoles(seats);
   const others = seats.filter(
@@ -264,7 +265,11 @@ function generateFakeInfo(
   const seat2 = shuffled[1]?.id ?? seat1;
 
   // 过滤掉"洗衣妇"自身，避免中毒时明示身份
-  const filteredRoles = townsfolkRoles.filter((r) => r !== "洗衣妇");
+  let filteredRoles = townsfolkRoles.filter((r) => r !== "洗衣妇");
+  // 🔧 100% 错误：排除真实信息中的角色名，保证假角色名必然不同
+  if (realInfo?.roleName) {
+    filteredRoles = filteredRoles.filter((r) => r !== realInfo.roleName);
+  }
   const roleName =
     filteredRoles.length > 0
       ? filteredRoles[Math.floor(Math.random() * filteredRoles.length)]
@@ -325,7 +330,7 @@ function resolveWasherwomanInfo(
   // 优先级 4：动态生成
   return abilityEffective
     ? generateRealInfo(snapshot.seats, selfSeatId)
-    : generateFakeInfo(snapshot.seats, selfSeatId);
+    : generateFakeInfo(snapshot.seats, selfSeatId, undefined);
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────

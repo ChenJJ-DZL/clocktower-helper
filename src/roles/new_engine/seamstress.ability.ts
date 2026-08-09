@@ -98,8 +98,8 @@ const calculateResult = async (
   let finalSameAlignment = actualSameAlignment;
 
   if (!isAbilityActive) {
-    // 醉酒/中毒时，返回随机信息
-    finalSameAlignment = Math.random() < 0.5;
+    // 🔧 醉酒/中毒时，返回 100% 错误信息（与真实相反）
+    finalSameAlignment = !actualSameAlignment;
   }
 
   const result = {

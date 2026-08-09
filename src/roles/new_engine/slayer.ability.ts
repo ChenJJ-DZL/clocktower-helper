@@ -71,10 +71,10 @@ const handleSlayerKill = async (
     };
   }
 
-  // 判定目标是否为恶魔：如果是隐士有50%概率被判定为恶魔
+  // 判定目标是否为恶魔：🔧 陌客判定为邪恶 100% 触发（不再 50% 随机）
   let isTargetDemon = target.role.type === "demon";
   if (target.role.id === "recluse") {
-    isTargetDemon = Math.random() < 0.5;
+    isTargetDemon = true;
   }
 
   // 创建新快照：标记技能已使用
