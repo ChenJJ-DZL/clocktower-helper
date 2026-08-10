@@ -227,29 +227,42 @@ export function useGameState() {
       },
       [dispatch, state.gameLogs]
     );
+  // 🔧 P0 修复：winResult 与 winReason 必须原子更新。
+//   原实现中 setWinResult/setWinReason 是两个独立 setter，每次都通过 reducer
+//   SET_WIN_RESULT(result, reason) 各 dispatch 一次。React 批处理场景下
+//   连续调用两者时，第二次 dispatch 拿到的 state.winResult/winReason 是
+//   reducer 处理第一次之前的旧值，导致最终两个字段组合错位
+//   （如"邪恶阵营获胜"+"恶魔已被彻底消灭"矛盾）。
+//   修复：用 useRef 实时跟踪最新值，确保两次连续 setter 调用保持原子性。
+  const winResultRef = useRef<WinResult | null>(state.winResult);
+  const winReasonRef = useRef<string | null>(state.winReason);
+  useEffect(() => {
+    winResultRef.current = state.winResult;
+    winReasonRef.current = state.winReason;
+  }, [state.winResult, state.winReason]);
   const setWinResult: React.Dispatch<React.SetStateAction<WinResult | null>> =
     useCallback(
       (val) => {
         const next =
           typeof val === "function"
             ? (val as (p: WinResult | null) => WinResult | null)(
-                state.winResult
+                winResultRef.current
               )
             : val;
-        dispatch(gameActions.setWinResult(next, state.winReason));
+        dispatch(gameActions.setWinResult(next, winReasonRef.current));
       },
-      [dispatch, state.winResult, state.winReason]
+      [dispatch]
     );
   const setWinReason: React.Dispatch<React.SetStateAction<string | null>> =
     useCallback(
       (val) => {
         const next =
           typeof val === "function"
-            ? (val as (p: string | null) => string | null)(state.winReason)
+            ? (val as (p: string | null) => string | null)(winReasonRef.current)
             : val;
-        dispatch(gameActions.setWinResult(state.winResult, next));
+        dispatch(gameActions.setWinResult(winResultRef.current, next));
       },
-      [dispatch, state.winResult, state.winReason]
+      [dispatch]
     );
   const setStartTime: React.Dispatch<React.SetStateAction<Date | null>> =
     useCallback(

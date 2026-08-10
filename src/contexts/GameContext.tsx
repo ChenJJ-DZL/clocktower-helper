@@ -299,10 +299,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, gameLogs: [...state.gameLogs, action.log] };
 
     case "SET_WIN_RESULT":
+      // 🔧 P0 修复：原子更新 winResult + winReason。
+      //   原实现两个字段强制覆盖，setWinResult 和 setWinReason 是两个独立 setter，
+      //   React 批处理下连续调用两者时，第二次 dispatch 拿到的 state.winResult/winReason
+      //   是 reducer 处理第一次之前的旧值，导致最终两个字段组合错位
+      //   （如"邪恶阵营获胜"+"恶魔已被彻底消灭"矛盾）。
+      //   修复：当 action.result 或 action.reason 为 null 时，保留 state 对应字段。
       return {
         ...state,
-        winResult: action.result,
-        winReason: action.reason,
+        winResult: action.result ?? state.winResult,
+        winReason: action.reason ?? state.winReason,
         gamePhase: "gameOver",
       };
 

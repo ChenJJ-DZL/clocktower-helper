@@ -520,7 +520,7 @@ export const roles: Role[] = [
     id: "fortune_teller",
     name: "占卜师",
     type: "townsfolk",
-    ability: "每晚选择2名玩家，得知其中是否有恶魔（天敌红罗刹会被视为恶魔）。",
+    ability: "每晚选择2名玩家，得知其中是否有恶魔（天敌干扰项会被视为恶魔）。",
     fullDescription:
       "每个夜晚,你要选择两名玩家:你会得知他们之中是否有恶魔,会有一名镇民玩家始终被你的能力视为邪恶。",
     script: "暗流涌动", // 暗流涌动角色
@@ -547,7 +547,7 @@ export const roles: Role[] = [
     type: "townsfolk",
     ability: "夜晚死亡时唤醒，选择一名玩家，得知其真实角色。",
     fullDescription:
-      "如果你在夜晚死亡,你会被复活,之后你要选择一名玩家:你会得知他的角色。",
+      "如果你在夜晚死亡,你会被唤醒,之后你要选择一名玩家:你会得知他的角色。",
     script: "暗流涌动", // 暗流涌动角色
   },
   {
