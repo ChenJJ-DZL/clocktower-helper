@@ -182,6 +182,8 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
       wakeMessage: ability.wakePromptId || `${ability.roleId}请行动`,
       // 间谍死后仍可唤醒查看魔典（规则明确允许）
       deadActorWakes: ability.roleId === "spy",
+      // 🔧 送葬者：仅当日有玩家死于处决时才入队（平票/镇长免疫等无人死亡场景不应唤醒）
+      requiresExecutedToday: ability.roleId === "undertaker",
       // 🔧 死亡触发型角色（守鸦人 ON_DEATH）：仅当晚死亡时入队
       deathTriggered:
         ability.triggerTiming?.includes(AbilityTriggerTiming.ON_DEATH) ?? false,
@@ -227,6 +229,9 @@ function convertToNightStateMachineSnapshot(
     // 🔧 守鸦人修复：把 deadThisNight 传给 NightEngine，
     //   供 generateDynamicNightQueue 判断死亡触发型角色（守鸦人等）是否入队
     deadThisNight: [...(snapshot.deadThisNight ?? [])],
+    // 🔧 送葬者修复：把 todayExecutedId 传给 NightEngine，
+    //   供 generateDynamicNightQueue 判断"今日有玩家死于处决"是否成立
+    todayExecutedId: snapshot.todayExecutedId ?? null,
   };
 }
 

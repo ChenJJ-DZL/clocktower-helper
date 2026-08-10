@@ -19,6 +19,9 @@ export interface NightOrderEntry {
   deadActorWakes?: boolean;
   /** 🔧 死亡触发型角色（守鸦人/贤者等 ON_DEATH）：仅在当晚死亡时入队 */
   deathTriggered?: boolean;
+  /** 🔧 依赖"今日有玩家死于处决"才入队（送葬者）：
+   *    平票平安日 / 镇长免疫处决等无人死亡场景，不应唤醒送葬者 */
+  requiresExecutedToday?: boolean;
 }
 
 // 生成队列选项
@@ -90,6 +93,26 @@ export function generateDynamicNightQueue(
       const deadThisNight = (snapshot as any).deadThisNight ?? [];
       const diedThisNight = seat.isDead && deadThisNight.includes(seat.id);
       if (!diedThisNight) {
+        return false;
+      }
+    }
+
+    // 🔧 送葬者：仅当日有玩家死于处决时才唤醒（规则"如果当天有任何玩家死于处决，唤醒送葬者"）。
+    //   平票平安日 / 镇长免疫处决（未死亡）等场景无玩家死于处决，不应唤醒。
+    if (entry.requiresExecutedToday) {
+      const todayExecutedId = (snapshot as any).todayExecutedId as
+        | number
+        | null
+        | undefined;
+      // 判定：快照级 todayExecutedId 对应座位必须处于死亡状态（且死于处决），
+      // 或座位级 executedToday 标记 + isDead（killPlayer 处决死亡时写入 executedToday）
+      const hasDeathByExecution = snapshot.seats.some(
+        (s: any) =>
+          s.isDead &&
+          (s.executedToday === true ||
+            (typeof todayExecutedId === "number" && s.id === todayExecutedId))
+      );
+      if (!hasDeathByExecution) {
         return false;
       }
     }

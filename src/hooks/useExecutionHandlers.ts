@@ -253,10 +253,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           data: { message: `${id + 1}号镇长被处决但因规则未死亡` },
         });
         // 设置今天已处决过（防止重复提名）
-        const setTodayExecutedId = (globalThis as any).__setTodayExecutedId;
-        if (typeof setTodayExecutedId === "function") {
-          setTodayExecutedId(id);
-        }
+        // 🔧 修复：原代码从 globalThis.__setTodayExecutedId 取 setter，
+        //   但该全局变量从未被赋值 → 死代码，todayExecutedId 从未真正设置。
+        //   直接使用 hook 内的 setTodayExecutedId（并加入依赖数组）。
+        setTodayExecutedId(id);
         return true;
       }
 
@@ -353,6 +353,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       gamePhase,
       nightCount,
       killPlayer,
+      setTodayExecutedId,
     ]
   );
 
