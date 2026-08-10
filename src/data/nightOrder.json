@@ -511,6 +511,18 @@
       "description": "唤醒数学家，用手势比划数字来告诉他今天有多少玩家的能力未正常生效。"
     },
     {
+      "id": "imp",
+      "chineseName": "小恶魔",
+      "englishName": "imp",
+      "description": "唤醒小恶魔，让他攻击一名玩家。如果他成功自杀，则在他入睡后通知一名爪牙角色变化。"
+    },
+    {
+      "id": "scarlet_woman",
+      "chineseName": "红唇女郎",
+      "englishName": "scarlet_woman",
+      "description": "如果小恶魔死亡，红唇女郎会变成新的小恶魔。"
+    },
+    {
       "id": "dawn",
       "chineseName": "黎明",
       "englishName": "dawn",

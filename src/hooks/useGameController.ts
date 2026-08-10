@@ -1446,19 +1446,35 @@ export function useGameController() {
   ]);
 
   // 初始化/刷新夜晚步骤信息
+  const lastNightRefreshIdxRef = useRef<number | null>(null);
+  const lastNightRefreshPhaseRef = useRef<string | null>(null);
   useEffect(() => {
     if (
       (gamePhase === "firstNight" || gamePhase === "night") &&
       wakeQueueIds.length > 0 &&
       currentWakeIndex >= 0 &&
-      currentWakeIndex < wakeQueueIds.length &&
-      !nightInfo
+      currentWakeIndex < wakeQueueIds.length
     ) {
-      console.log(
-        "[GameController] Refreshing night step for index:",
-        currentWakeIndex
-      );
-      nightSnapshot.updateSnapshot(currentWakeIndex, seats, gamePhase);
+      // 🔧 修复：首夜第一个角色（小恶魔等）被跳过。
+      //   原条件 `!nightInfo` 在 nightInfo 残留时不刷新，导致 index 0 不显示。
+      //   刷新条件 = 索引变化 或 阶段变化（进入新夜间）或 nightInfo 为空。
+      //   seats 引用变化不应触发重复刷新（避免同一角色反复渲染）。
+      const idxChanged = lastNightRefreshIdxRef.current !== currentWakeIndex;
+      const phaseChanged = lastNightRefreshPhaseRef.current !== gamePhase;
+      if (idxChanged || phaseChanged || !nightInfo) {
+        lastNightRefreshIdxRef.current = currentWakeIndex;
+        lastNightRefreshPhaseRef.current = gamePhase;
+        console.log(
+          "[GameController] Refreshing night step for index:",
+          currentWakeIndex,
+          "phase:",
+          gamePhase
+        );
+        nightSnapshot.updateSnapshot(currentWakeIndex, seats, gamePhase);
+      }
+    } else {
+      lastNightRefreshIdxRef.current = null;
+      lastNightRefreshPhaseRef.current = null;
     }
   }, [
     gamePhase,
@@ -1484,6 +1500,14 @@ export function useGameController() {
     if (gamePhase !== "firstNight" && gamePhase !== "night") return;
     if (currentWakeIndex >= (wakeQueueIds?.length || 0)) return;
     if (nightInfo === null && !currentModal) {
+      // 🔧 修复：首夜 index 0（第一个角色，如小恶魔）尚未显示时，
+      //   只刷新显示、不自动推进。否则安全网会在 updateSnapshot(0)
+      //   的 state 生效前抢先执行，把 index 从 0 推到 1，导致小恶魔被跳过。
+      if (currentWakeIndex === 0 && wakeIndexRef.current === 0) {
+        console.log("[GameController] 首夜 index 0 未显示，刷新显示第一个角色");
+        nightSnapshot.updateSnapshot(0, seats, gamePhase);
+        return;
+      }
       console.log("[GameController] 安全网：nightInfo为空，自动推进到下一步");
       continueToNextAction();
     }
@@ -1494,6 +1518,9 @@ export function useGameController() {
     nightInfo,
     currentModal,
     continueToNextAction,
+    wakeIndexRef,
+    nightSnapshot,
+    seats,
   ]);
 
   return useMemo(
@@ -1577,6 +1604,16 @@ export function useGameController() {
             "[GameController] Calling finalizeNightStart with pending queue"
           );
           nightLogic.finalizeNightStart(gameState.pendingNightQueue, true);
+          // 🔧 修复：立即刷新第一个夜间角色（index 0），否则小恶魔等
+          //   首夜第一个角色被跳过（continueToNextAction 会从 0 推到 1）。
+          //   confirmNightOrderPreview 设置 wakeQueueIds 后，这里显式显示 index 0。
+          setTimeout(() => {
+            try {
+              nightSnapshot.updateSnapshot(0, seats, "firstNight");
+            } catch (e) {
+              console.warn("[GameController] 首夜 index0 刷新失败", e);
+            }
+          }, 50);
         } else {
           console.warn(
             "[GameController] No pendingNightQueue found, cannot start night"

@@ -496,10 +496,16 @@ export function useGameFlow(): UseGameFlowResult {
   const handleStartNight = useCallback(
     (isFirst: boolean) => {
       // 占卜师红罗剎重指派逻辑...
-      dispatch(gameActions.setGamePhase(isFirst ? "firstNight" : "night"));
-      if (!isFirst) {
-        dispatch(gameActions.updateState({ nightCount: nightCount + 1 }));
+      if (isFirst) {
+        // 🔧 修复：首夜必须走完整启动流程（emit startFirstNight 触发新引擎队列），
+        //   否则只切换 gamePhase 会导致夜间队列缺失（小恶魔等恶魔不被唤醒）。
+        //   与 GameStage 的 proceedToFirstNight 路径保持一致，保证夜间队列完整。
+        dispatch(gameActions.setGamePhase("firstNight"));
+        unifiedEventBus.emit("startFirstNight", {});
+        return;
       }
+      dispatch(gameActions.setGamePhase("night"));
+      dispatch(gameActions.updateState({ nightCount: nightCount + 1 }));
     },
     [nightCount, dispatch]
   );
@@ -552,7 +558,7 @@ export function useGameFlow(): UseGameFlowResult {
       );
       if (hasFortuneTeller && !hasRedHerring) {
         console.warn(
-          "[proceedToFirstNight] 有占卜师但未设置红罗刹，弹出设置窗口"
+          "[proceedToFirstNight] 有占卜师但未设置红罗刹，自动指派第一个非恶魔/爪牙玩家"
         );
         const eligiblePlayers = seats.filter(
           (s) =>
@@ -561,39 +567,20 @@ export function useGameFlow(): UseGameFlowResult {
             s.role.type !== "minion" &&
             !s.isDead
         );
-        dispatch(
-          gameActions.setModal({
-            type: "STORYTELLER_SELECT",
-            data: {
-              sourceId: -1,
-              roleId: "fortune_teller",
-              roleName: "占卜师",
-              description: "请选择一位玩家作为红罗刹（占卜师的天敌）：",
-              targetCount: 1,
-              onConfirm: (selectedIds: number[]) => {
-                if (selectedIds.length > 0) {
-                  dispatch(
-                    gameActions.updateState({
-                      seats: seats.map((s) =>
-                        s.id === selectedIds[0]
-                          ? {
-                              ...s,
-                              isRedHerring: true,
-                              isFortuneTellerRedHerring: true,
-                            }
-                          : s
-                      ),
-                    })
-                  );
-                }
-                dispatch(gameActions.setModal(null));
-                // 设置完成后重新尝试入夜
-                setTimeout(() => proceedToFirstNightRef.current?.(), 100);
-              },
-            },
-          })
-        );
-        return;
+        // 🔧 修复：自动指派红罗刹（不再强制弹窗拦截，确保 startFirstNight 正常触发）
+        if (eligiblePlayers.length > 0) {
+          const target = eligiblePlayers[0];
+          dispatch(
+            gameActions.updateState({
+              seats: seats.map((s) =>
+                s.id === target.id
+                  ? { ...s, isRedHerring: true, isFortuneTellerRedHerring: true }
+                  : s
+              ),
+            })
+          );
+        }
+        // 继续流程（不再 return 拦截）
       }
 
       // 直接启动首夜（不再弹预览窗口）
