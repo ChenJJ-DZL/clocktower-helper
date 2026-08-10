@@ -65,6 +65,8 @@ import {
   isImmuneToDemonKill,
   soldierImmunityLog,
   mayorImmunityLog,
+  mayorSubstituteLog,
+  pickMayorSubstitute,
   getDemonKillImmunityType,
 } from "../../utils/soldierImmunity";
 
@@ -405,6 +407,31 @@ const stateUpdateResult = async (
               : soldierImmunityLog(targetSeat)
           }`
         );
+        // 🔧 镇长免疫的代价：被恶魔攻击时镇长不死，但有一名镇民（Townsfolk）替代死亡。
+        //   官方规则："If 3 or more players are alive, when you are attacked by the
+        //   Demon, you are not killed, but a Townsfolk player is killed instead."
+        if (immunityType === "mayor") {
+          const substitute = pickMayorSubstitute(updatedSeats, targetSeat);
+          if (substitute) {
+            const subIdx = updatedSeats.findIndex(
+              (s: any) => s.id === substitute.id
+            );
+            if (subIdx !== -1) {
+              updatedSeats[subIdx] = {
+                ...updatedSeats[subIdx],
+                markedForDeath: true,
+                diedAtNight: snapshot.nightCount,
+                deathSource: "mayor_substitute",
+                deathSourceSeatId: actionNode.seatId,
+              };
+              console.log(`[Imp] ${mayorSubstituteLog(substitute, targetSeat)}`);
+            }
+          } else {
+            console.log(
+              `[Imp] 镇长免疫恶魔攻击，但场上无存活镇民可替代死亡（镇长仍存活）`
+            );
+          }
+        }
       } else {
         record.log = record.log || {};
         (record.log as any).blockedByProtection = true;

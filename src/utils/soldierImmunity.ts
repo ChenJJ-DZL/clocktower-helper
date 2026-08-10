@@ -105,3 +105,52 @@ export function mayorImmunityLog(seat: SoldierCheckSeat | undefined): string {
   const id = (seat as any).id ?? "?";
   return `镇长(${Number(id) + 1}号)因存活玩家不少于3人，免疫了恶魔的攻击，存活了下来`;
 }
+
+/**
+ * 镇长免疫恶魔攻击时，选择一名替代死亡的镇民（Townsfolk）。
+ *
+ * 官方规则：镇长被恶魔攻击且存活玩家≥3时，镇长不会死亡，
+ * 但"有一名镇民死亡"——这是镇长免疫的代价，不能只免疫不替代。
+ *
+ * @param seats 全部座位快照
+ * @param mayorSeat 镇长座位（排除自己）
+ * @returns 被选中的替代镇民座位；无可用镇民时返回 null
+ *
+ * 替代镇民选择条件：
+ *  - 存活
+ *  - 真实角色为镇民（townsfolk）
+ *  - 不是镇长自己
+ *  - 未被保护（僧侣/旅店老板保护时不受恶魔击杀，不能作为替代）
+ */
+export function pickMayorSubstitute(
+  seats: any[],
+  mayorSeat: SoldierCheckSeat
+): any | null {
+  if (!seats || !mayorSeat) return null;
+  const mayorId = (mayorSeat as any).id;
+  const candidates = seats.filter(
+    (s: any) =>
+      s &&
+      !s.isDead &&
+      s.id !== mayorId &&
+      s.role?.type === "townsfolk" &&
+      !(
+        s.statusEffects?.some((e: any) => e.type === "protected") ||
+        s.isProtected
+      )
+  );
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+/** 镇长替代死亡提示文本（用于日志） */
+export function mayorSubstituteLog(
+  substituteSeat: any,
+  mayorSeat: any
+): string {
+  const subId = (substituteSeat as any)?.id ?? "?";
+  const mayorId = (mayorSeat as any)?.id ?? "?";
+  return `镇长(${Number(mayorId) + 1}号)免疫恶魔攻击，${
+    Number(subId) + 1
+  }号镇民替代死亡`;
+}

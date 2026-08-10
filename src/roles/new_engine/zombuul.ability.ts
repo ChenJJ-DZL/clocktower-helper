@@ -5,6 +5,7 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
+import { pickMayorSubstitute, mayorSubstituteLog } from "../../utils/soldierImmunity";
 
 const preCheckAlive = async (
   context: MiddlewareContext
@@ -65,9 +66,27 @@ const updateKillState = async (
 
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
+  const seats = snapshot.seats.map((seat) => seat); // 拷贝数组
+  // 🔧 镇长免疫的代价：被恶魔攻击时镇长不死，但有一名镇民（Townsfolk）替代死亡。
+  const targetSeat0 = seats.find((s: any) => s.id === targetId);
+  let mayorSubstitute: any = null;
+  if (
+    targetSeat0 &&
+    !targetSeat0.isDead &&
+    targetSeat0.role?.id === "mayor" &&
+    aliveCount >= 3
+  ) {
+    const immune = isImmuneToDemonKill(targetSeat0, true, aliveCount);
+    if (immune) {
+      mayorSubstitute = pickMayorSubstitute(seats, targetSeat0);
+      if (mayorSubstitute) {
+        console.log(`[Zombuul] ${mayorSubstituteLog(mayorSubstitute, targetSeat0)}`);
+      }
+    }
+  }
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
-    seats: snapshot.seats.map((seat) => {
+    seats: seats.map((seat) => {
       if (seat.id === targetId) {
         const isProtected =
           seat.statusEffects?.some((e: any) => e.type === "protected") ||
@@ -81,6 +100,10 @@ const updateKillState = async (
         }
 
         return { ...seat, isAlive: false, killedBy: "zombuul" };
+      }
+      // 🔧 镇长替代死亡：被选中的镇民替代镇长死亡
+      if (mayorSubstitute && seat.id === mayorSubstitute.id) {
+        return { ...seat, isAlive: false, killedBy: "mayor_substitute" };
       }
       return seat;
     }),
