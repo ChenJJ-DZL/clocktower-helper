@@ -334,7 +334,7 @@ export async function executeViaNewEngine(
       return true;
     }
 
-    // ============ 预览模式 ============
+      // ============ 预览模式 ============
     if (context.preview) {
       console.log(
         `[executeViaNewEngine] PREVIEW mode for ${roleId}, targets:`,

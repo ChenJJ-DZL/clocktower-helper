@@ -1545,16 +1545,6 @@ export const roles: Role[] = [
   // ========== 镇民 (Townsfolk) - 13个 ==========
 
   {
-    id: "savant",
-    name: "博学者",
-    type: "townsfolk",
-    ability:
-      "每个白天，你可以私下询问说书人以得知两条信息：一个是正确的，一个是错误的。",
-    fullDescription:
-      "每个白天,你可以私下询问说书人以得知两条信息:一个是正确的,一个是错误的。",
-    script: "夜半狂欢",
-  },
-  {
     id: "noble",
     name: "贵族",
     type: "townsfolk",
@@ -1659,85 +1649,6 @@ export const roles: Role[] = [
   },
   // ========== 外来者 (Outsider) - 暗流涌动 + 黯月初升 + 梦殒春宵 + 实验性角色 ==========
   {
-    id: "drunk",
-    name: "酒鬼",
-    type: "outsider",
-    ability: "你不知道你是酒鬼。你以为你是一个镇民角色，但其实你不是。",
-    fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
-    script: "暗流涌动",
-  },
-  {
-    id: "recluse",
-    name: "陌客",
-    type: "outsider",
-    ability: "你可能会被当作邪恶阵营、爪牙角色或恶魔角色，即使你已死亡。",
-    fullDescription:
-      "你可能会被当作邪恶阵营、爪牙角色或恶魔角色,即使你已死亡。",
-    script: "暗流涌动",
-  },
-  {
-    id: "saint",
-    name: "圣徒",
-    type: "outsider",
-    ability: "如果你死于处决，你的阵营落败。",
-    fullDescription: "如果你死于处决,你的阵营落败。",
-    script: "暗流涌动",
-  },
-  {
-    id: "tinker",
-    name: "修补匠",
-    type: "outsider",
-    ability: "你随时可能死亡。",
-    fullDescription: "你随时可能死亡。",
-    script: "黯月初升",
-  },
-  {
-    id: "lunatic",
-    name: "疯子",
-    type: "outsider",
-    ability:
-      "你以为你是一个恶魔，但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
-    fullDescription:
-      "你以为你是一个恶魔,但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。",
-    script: "黯月初升",
-  },
-  {
-    id: "mutant",
-    name: "畸形秀演员",
-    type: "outsider",
-    ability: '如果你"疯狂"地证明自己是外来者，你可能被处决。',
-    fullDescription: '如果你"疯狂"地证明自己是外来者,你可能被处决。',
-    script: "梦殒春宵",
-  },
-  {
-    id: "sweetheart",
-    name: "心上人",
-    type: "outsider",
-    ability: "当你死亡时，会有一名玩家开始醉酒。",
-    fullDescription: "当你死亡时,会有一名玩家开始醉酒。",
-    script: "梦殒春宵",
-  },
-  {
-    id: "barber",
-    name: "理发师",
-    type: "outsider",
-    ability:
-      "如果你死亡，在当晚恶魔可以选择两名玩家（不能选择其他恶魔）交换角色。",
-    fullDescription:
-      "如果你死亡,在当晚恶魔可以选择两名玩家(不能选择其他恶魔)交换角色。",
-    script: "梦殒春宵",
-  },
-  {
-    id: "klutz",
-    name: "呆瓜",
-    type: "outsider",
-    ability:
-      "当你得知你死亡时，你要公开选择一名存活的玩家：如果他是邪恶的，你的阵营落败。",
-    fullDescription:
-      "当你得知你死亡时,你要公开选择一名存活的玩家:如果他是邪恶的,你的阵营落败。",
-    script: "梦殒春宵",
-  },
-  {
     id: "damsel",
     name: "落难少女",
     type: "outsider",
@@ -1749,16 +1660,6 @@ export const roles: Role[] = [
   },
   // 落难少女 (MR版 - 实际与S&V相同，为了菜单显示复制一份)
   {
-    id: "damsel",
-    name: "落难少女",
-    type: "outsider",
-    ability:
-      "所有爪牙都知道落难少女在场。每局游戏限一次，任意爪牙可以公开猜测你是落难少女，如果猜对了，你的阵营落败。",
-    fullDescription:
-      "所有爪牙都知道落难少女在场。每局游戏限一次,任何爪牙可以公开猜测你是落难少女。如果他们猜对了,你的阵营落败。",
-    script: "夜半狂欢",
-  },
-  {
     id: "golem",
     name: "魔像",
     type: "outsider",
@@ -1769,149 +1670,8 @@ export const roles: Role[] = [
     script: "夜半狂欢",
   },
   // 梦殒春宵 - 酒鬼和理发师变体
-  {
-    id: "drunk",
-    name: "酒鬼",
-    type: "outsider",
-    ability: "你不知道你是酒鬼。你以为你是一个镇民角色，但其实你不是。",
-    fullDescription: "你不知道你是酒鬼,你以为你是一个镇民角色,但其实你不是。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "barber",
-    name: "理发师",
-    type: "outsider",
-    ability:
-      "如果你死亡，在当晚恶魔可以选择两名玩家（不能选择其他恶魔）交换角色。",
-    fullDescription:
-      "如果你死亡,在当晚恶魔可以选择两名玩家(不能选择其他恶魔)交换角色。",
-    script: "夜半狂欢",
-  },
   // ========== 镇民 (Townsfolk) - 夜半狂欢 ==========
-  {
-    id: "noble",
-    name: "贵族",
-    type: "townsfolk",
-    ability: "在你的首个夜晚，你会得知三名玩家：其中有且只有一名玩家是邪恶的。",
-    fullDescription:
-      "在你的首个夜晚，你会得知三名玩家：其中有且只有一名玩家是邪恶的。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "balloonist",
-    name: "气球驾驶员",
-    type: "townsfolk",
-    ability:
-      "每个夜晚，你会得知一名不同角色类型的玩家，直到场上所有的角色类型都得知过一次。[+1 外来者]",
-    fullDescription:
-      "每个夜晚，你会得知一名不同角色类型的玩家，直到场上所有的角色类型都得知过一次。[+1 外来者]",
-    script: "夜半狂欢",
-  },
-  {
-    id: "ranger",
-    name: "巡山人",
-    type: "townsfolk",
-    ability:
-      "每局游戏限一次，在夜晚时，你可以选择一名存活的玩家：如果你选中了落难少女，她会变成一个不在场的镇民角色。[+落难少女]",
-    fullDescription:
-      "每局游戏限一次，在夜晚时，你可以选择一名存活的玩家：如果你选中了落难少女，她会变成一个不在场的镇民角色。[+落难少女]",
-    script: "夜半狂欢",
-  },
-  {
-    id: "engineer",
-    name: "工程师",
-    type: "townsfolk",
-    ability:
-      "每局游戏限一次，在夜晚时，你可以选择让恶魔变成你选择的恶魔角色，或让所有爪牙变成你选择的爪牙角色。",
-    fullDescription:
-      "每局游戏限一次，在夜晚时，你可以选择让恶魔变成你选择的恶魔角色，或让所有爪牙变成你选择的爪牙角色。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "fisherman",
-    name: "渔夫",
-    type: "townsfolk",
-    ability:
-      "每局游戏限一次，在白天时，你可以让说书人给你一些帮助你的阵营获胜的建议。",
-    fullDescription:
-      "每局游戏限一次，在白天时，你可以让说书人给你一些帮助你的阵营获胜的建议。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "farmer",
-    name: "农夫",
-    type: "townsfolk",
-    ability: "如果你在夜晚死亡，一名存活的善良玩家会变成农夫。",
-    fullDescription: "如果你在夜晚死亡，一名存活的善良玩家会变成农夫。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "professor",
-    name: "教授",
-    type: "townsfolk",
-    ability:
-      "每局游戏限一次，在夜晚时，你可以选择一名死亡的玩家：如果他是镇民，你会将他起死回生。",
-    fullDescription:
-      "每局游戏限一次，在夜晚时，你可以选择一名死亡的玩家：如果他是镇民，你会将他起死回生。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "cannibal",
-    name: "食人族",
-    type: "townsfolk",
-    ability:
-      "你拥有上个死于处决的玩家的能力。如果该玩家属于邪恶阵营，你中毒直到下个善良玩家死于处决。",
-    fullDescription:
-      "你拥有上个死于处决的玩家的能力。如果该玩家属于邪恶阵营，你中毒直到下个善良玩家死于处决。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "poppy_grower",
-    name: "罂粟种植者",
-    type: "townsfolk",
-    ability: "爪牙和恶魔互相不认识。如果你死亡，当晚他们会互相认识。",
-    fullDescription: "爪牙和恶魔互相不认识。如果你死亡，当晚他们会互相认识。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "snake_charmer",
-    name: "舞蛇人",
-    type: "townsfolk",
-    ability:
-      "每个夜晚，你要选择一名存活的玩家：如果你选中了恶魔，你和他交换角色和阵营，然后他中毒。",
-    fullDescription:
-      "每个夜晚，你要选择一名存活的玩家：如果你选中了恶魔，你和他交换角色和阵营，然后他中毒。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "atheist",
-    name: "无神论者",
-    type: "townsfolk",
-    ability:
-      "说书人可以打破游戏规则。如果说书人被处决，善良阵营获胜，即使你已死亡。[无邪恶角色在场]",
-    fullDescription:
-      "说书人可以打破游戏规则。如果说书人被处决，善良阵营获胜，即使你已死亡。[无邪恶角色在场]",
-    script: "夜半狂欢",
-  },
   // ========== 爪牙 (Minion) - 4个 ==========
-  {
-    id: "poisoner",
-    name: "投毒者",
-    type: "minion",
-    ability: "每晚选择一名玩家：他当晚和明天白天中毒。",
-    fullDescription: "每个夜晚,你要选择一名玩家:他当晚和明天白天中毒。",
-    script: "夜半狂欢",
-  },
-  {
-    id: "pit_hag",
-    name: "麻脸巫婆",
-    type: "minion",
-    ability:
-      "每晚选择一名玩家和一个角色；如果该角色不在场，他变成该角色。如果因此创造了一个恶魔，当晚的死亡由说书人决定。",
-    fullDescription:
-      "每个夜晚*,你要选择一名玩家和一个角色,如果该角色不在场,他变成该角色。如果因此创造了一个恶魔,当晚的死亡由说书人决定。",
-    script: "夜半狂欢",
-  },
   {
     id: "psychopath",
     name: "精神病患者",
@@ -1933,16 +1693,6 @@ export const roles: Role[] = [
     script: "夜半狂欢",
   },
   // ========== 恶魔 (Demon) - 2个 ==========
-  {
-    id: "vigormortis",
-    name: "亡骨魔",
-    type: "demon",
-    ability:
-      "每晚选择一名玩家：他死亡。被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒。",
-    fullDescription:
-      "每个夜晚*,你要选择一名玩家:他死亡。被你杀死的爪牙保留他的能力,且与他邻近的两名镇民之一中毒。[-1外来者]",
-    script: "夜半狂欢",
-  },
   {
     id: "hadesia",
     name: "哈迪寂亚",
