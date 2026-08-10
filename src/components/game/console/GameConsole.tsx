@@ -220,6 +220,7 @@ export const GameConsole = React.memo(function GameConsole({
       <div className="shrink-0 h-14 border-b border-white/10 bg-slate-800/50 flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-3">
           <div
+            data-testid="phase-label"
             className={`px-3 py-1 rounded-lg text-sm font-bold text-white whitespace-nowrap shadow-lg ${getPhaseColor()}`}
           >
             {getPhaseLabel()}

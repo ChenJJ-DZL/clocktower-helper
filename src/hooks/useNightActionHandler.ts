@@ -32,6 +32,8 @@ export interface NightActionHandlerContext {
   isConfirmed?: boolean;
   actionData?: any;
   vortoxWorld: boolean;
+  /** 🔧 今日被处决玩家ID（送葬者/食人族等读取，guide 路径已用，能力管道需同步传入） */
+  todayExecutedId?: number | null;
   getRegistration: (seat: Seat, viewer?: Role | null) => any;
   getMisinformation: { [key: string]: (data: any) => any };
   findNearestAliveNeighbor: (
@@ -292,6 +294,11 @@ export async function executeViaNewEngine(
     seats: snapshotSeats,
     statusEffects: {},
     gamePhase: context.gamePhase,
+    // 🔧 送葬者修复：能力管道快照补传 todayExecutedId。
+    //   guide 路径（nightInfoGenerator）用上下文 todayExecutedId 找到被处决者，
+    //   但 executeViaNewEngine 构造的快照此前不含该字段，导致送葬者
+    //   preCheck 的 executedTodayCheck 找不到被处决者 → aborted → 结算弹窗不展示。
+    todayExecutedId: context.todayExecutedId ?? null,
   };
 
   const roleName = context.nightInfo?.effectiveRole?.name ?? roleId;

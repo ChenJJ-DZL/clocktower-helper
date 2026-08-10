@@ -968,6 +968,8 @@ export function useGameController() {
           nightCount,
           roles: roles || [],
           vortoxWorld: isVortoxWorld,
+          // 🔧 送葬者修复：能力管道需要 todayExecutedId 定位被处决者
+          todayExecutedId,
           getRegistration: getRegistrationCached,
           getMisinformation: getMisinformation,
           findNearestAliveNeighbor,
