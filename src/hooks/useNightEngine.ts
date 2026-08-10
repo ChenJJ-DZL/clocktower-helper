@@ -19,6 +19,7 @@ import type {
   WinResult,
 } from "../../app/data";
 import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
+import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
@@ -181,6 +182,9 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
       wakeMessage: ability.wakePromptId || `${ability.roleId}请行动`,
       // 间谍死后仍可唤醒查看魔典（规则明确允许）
       deadActorWakes: ability.roleId === "spy",
+      // 🔧 死亡触发型角色（守鸦人 ON_DEATH）：仅当晚死亡时入队
+      deathTriggered:
+        ability.triggerTiming?.includes(AbilityTriggerTiming.ON_DEATH) ?? false,
     });
   }
 
@@ -220,6 +224,9 @@ function convertToNightStateMachineSnapshot(
     seats: snapshot.seats,
     statusEffects: {},
     gamePhase: snapshot.phase,
+    // 🔧 守鸦人修复：把 deadThisNight 传给 NightEngine，
+    //   供 generateDynamicNightQueue 判断死亡触发型角色（守鸦人等）是否入队
+    deadThisNight: [...(snapshot.deadThisNight ?? [])],
   };
 }
 

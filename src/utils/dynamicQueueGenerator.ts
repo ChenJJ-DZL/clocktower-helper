@@ -17,6 +17,8 @@ export interface NightOrderEntry {
   abilityId: string;
   /** 死后仍可唤醒（如间谍查看魔典） */
   deadActorWakes?: boolean;
+  /** 🔧 死亡触发型角色（守鸦人/贤者等 ON_DEATH）：仅在当晚死亡时入队 */
+  deathTriggered?: boolean;
 }
 
 // 生成队列选项
@@ -79,6 +81,17 @@ export function generateDynamicNightQueue(
 
     if (!seat) {
       return false;
+    }
+
+    // 🔧 死亡触发型角色（守鸦人等 ON_DEATH）：仅当该玩家今晚死亡时唤醒。
+    //   此前守鸦人存活时也会被加入夜间队列（guide 显示"守鸦人，请睁眼"），
+    //   与"如果你在夜晚死亡，你会被唤醒"规则不符。
+    if (entry.deathTriggered) {
+      const deadThisNight = (snapshot as any).deadThisNight ?? [];
+      const diedThisNight = seat.isDead && deadThisNight.includes(seat.id);
+      if (!diedThisNight) {
+        return false;
+      }
     }
 
     // 自定义过滤
