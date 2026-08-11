@@ -59,6 +59,8 @@ export interface NightActionHandlerContext {
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
   reviveSeat: (seat: Seat) => Seat;
   insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
+  /** 🔧 守鸦人修复：恶魔杀守鸦人后动态插入新引擎觉醒节点 */
+  enqueueRavenkeeperIfNeeded?: (targetId: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -516,6 +518,23 @@ export async function executeViaNewEngine(
           for (const id of newlyDead) set.add(id);
           return Array.from(set);
         });
+      }
+      // 🔧 守鸦人修复：恶魔杀守鸦人后动态插入新引擎觉醒节点
+      //   （W8.10.5 把守鸦人改为 deathTriggered 条件入队，但夜间开始生成队列时
+      //    守鸦人还活着 → 被过滤；小恶魔正常杀人路径又未调用入队函数，
+      //    导致守鸦人被恶魔杀后永远不觉醒。此处对 newlyDead 中守鸦人补调。）
+      if (newlyDead.length > 0 && context.enqueueRavenkeeperIfNeeded) {
+        for (const id of newlyDead) {
+          const deadSeat = syncedSeats.find((s) => s.id === id);
+          if (deadSeat?.role?.id === "ravenkeeper") {
+            // 🔧 守鸦人修复：就地修改 syncedSeats 闭包引用设置 hasAbilityEvenDead=true，
+            //   让下方 continueToNextAction(syncedSeats) 传入的 latestSeats 含该标记，
+            //   否则 updateSnapshot→calculateNightInfo 生成 nightInfo.seat 时 isDead=true
+            //   且 hasAbilityEvenDead=undefined → preProcessAbility blocked → 守鸦人永远无法行动
+            deadSeat.hasAbilityEvenDead = true;
+            context.enqueueRavenkeeperIfNeeded(id);
+          }
+        }
       }
     }
 

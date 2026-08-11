@@ -28,7 +28,8 @@ export function useNightSnapshot(
   wakeQueueIds: number[],
   setCurrentWakeIndex: (idx: number) => void,
   addLog: (msg: string) => void,
-  setCurrentModal: (m: any) => void
+  setCurrentModal: (m: any) => void,
+  wakeQueueIdsRef?: React.MutableRefObject<number[]>
 ) {
   const wakeIndexRef = useRef(0);
   // 🔧 修复：记录首夜 index 0 是否已显示（避免小恶魔被跳过）
@@ -39,9 +40,11 @@ export function useNightSnapshot(
 
   const updateSnapshot = useCallback(
     (index: number, currentSeats: Seat[], currentPhase: string) => {
+      // 🔧 守鸦人修复：读 ref 最新队列（动态插入的守鸦人节点）
+      const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
       // 🔧 标记 index 0 已显示
       if (index === 0) hasShownIndexZeroRef.current = true;
-      const nextSeatId = wakeQueueIds[index];
+      const nextSeatId = latestQueue[index];
       if (nextSeatId !== undefined) {
         const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
         const nextStepInfo = calculateNightInfoViaNewEngine(
@@ -160,11 +163,15 @@ export function useNightSnapshot(
 
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
+      // 🔧 守鸦人修复：用 ref 读取最新 wakeQueueIds（动态插入的守鸦人节点
+      //   通过 setWakeQueueIds 函数式更新 + 同步写 ref，闭包中的 wakeQueueIds
+      //   在同一次执行流内是旧值，会导致插入的节点被跳过）
+      const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
       const currentIndex = wakeIndexRef.current;
       // 🔧 修复：若 index 0 尚未显示且队列非空，先显示 index 0 而不是跳到 1。
       //   场景：首夜进入后没人调用 updateSnapshot(0)，玩家直接点"确认"，
       //   导致首夜第一个角色（小恶魔等）被跳过。
-      if (!hasShownIndexZeroRef.current && wakeQueueIds.length > 0) {
+      if (!hasShownIndexZeroRef.current && latestQueue.length > 0) {
         console.log(
           "[continueToNextAction] 首夜 index 0 未显示，先显示第一个角色"
         );
@@ -175,7 +182,7 @@ export function useNightSnapshot(
         return;
       }
       const nextIndex = currentIndex + 1;
-      const queueLength = wakeQueueIds.length;
+      const queueLength = latestQueue.length;
 
       console.log(
         "[continueToNextAction] currentIndex:",
@@ -185,7 +192,7 @@ export function useNightSnapshot(
         "queueLength:",
         queueLength
       );
-      console.log("[continueToNextAction] wakeQueueIds:", wakeQueueIds);
+      console.log("[continueToNextAction] wakeQueueIds:", latestQueue);
 
       if (nextIndex >= queueLength) {
         // 夜晚结束，重置索引

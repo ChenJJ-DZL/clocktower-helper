@@ -204,6 +204,14 @@ export function useGameController() {
     cerenovusTarget,
   } = gameState;
 
+  // 🔧 守鸦人修复：wakeQueueIds 的最新值引用（动态插入的守鸦人节点通过
+  //   setWakeQueueIds 函数式更新写入，同步到 ref 供 useNightSnapshot 的
+  //   continueToNextAction/updateSnapshot 读取，避免闭包旧值跳过插入节点）
+  const wakeQueueIdsRef = useRef<number[]>([]);
+  useEffect(() => {
+    wakeQueueIdsRef.current = wakeQueueIds;
+  }, [wakeQueueIds]);
+
   const getSeatRoleId = useCallback(
     (seatOrId: Seat | number | null | undefined) => {
       if (typeof seatOrId === "number") {
@@ -499,32 +507,6 @@ export function useGameController() {
     [setSeats, insertIntoWakeQueueAfterCurrent]
   );
 
-  const enqueueRavenkeeperIfNeeded = useCallback(
-    (targetId: number) => {
-      if (getSeatRoleId(targetId) !== "ravenkeeper") return;
-      // 🔧 守鸦人结果不展示修复：入队时同步设置 hasAbilityEvenDead=true，
-      //   否则死亡后确认执行时被 preProcessAbility 的"已死亡"校验拦截，
-      //   导致守鸦人选择了目标却没有任何结算结果。
-      setSeats((prev: Seat[]) =>
-        prev.map((s) =>
-          s.id === targetId && !s.hasAbilityEvenDead
-            ? { ...s, hasAbilityEvenDead: true }
-            : s
-        )
-      );
-      setWakeQueueIds((prev: number[]) =>
-        prev.includes(targetId)
-          ? prev
-          : [
-              ...prev.slice(0, currentWakeIndex + 1),
-              targetId,
-              ...prev.slice(currentWakeIndex + 1),
-            ]
-      );
-    },
-    [currentWakeIndex, setWakeQueueIds, getSeatRoleId, setSeats]
-  );
-
   const cleanStatusesForNewDay = useCallback(() => {
     setSeats((prev: Seat[]) =>
       prev.map((s) => {
@@ -691,7 +673,8 @@ export function useGameController() {
     wakeQueueIds,
     setCurrentWakeIndex,
     addLog,
-    setCurrentModal
+    setCurrentModal,
+    wakeQueueIdsRef
   );
   const {
     activeNightStep: nightInfo,
@@ -699,6 +682,39 @@ export function useGameController() {
     wakeIndexRef,
     setActiveNightStep,
   } = nightSnapshot;
+
+  // 🔧 守鸦人修复：恶魔杀守鸦人后入队觉醒（操作真正驱动夜间 UI 的 wakeQueueIds）。
+  //   插入点用 wakeIndexRef.current + 1（当前行动节点之后），不能用 React state
+  //   currentWakeIndex（滞后，小恶魔行动时仍是上一个角色的索引，会把守鸦人插到
+  //   当前行动节点之前而被跳过）。同时同步写 wakeQueueIdsRef 供
+  //   useNightSnapshot 的 continueToNextAction/updateSnapshot 读取最新队列。
+  const enqueueRavenkeeperIfNeeded = useCallback(
+    (targetId: number) => {
+      if (getSeatRoleId(targetId) !== "ravenkeeper") return;
+      // 🔧 守鸦人结果不展示修复：入队时同步设置 hasAbilityEvenDead=true，
+      //   否则死亡后确认执行时被 preProcessAbility 的"已死亡"校验拦截，
+      //   导致守鸦人选择了目标却没有任何结算结果。
+      setSeats((prev: Seat[]) =>
+        prev.map((s) =>
+          s.id === targetId && !s.hasAbilityEvenDead
+            ? { ...s, hasAbilityEvenDead: true }
+            : s
+        )
+      );
+      setWakeQueueIds((prev: number[]) => {
+        if (prev.includes(targetId)) return prev;
+        const insertAt = wakeIndexRef.current + 1;
+        const next = [
+          ...prev.slice(0, insertAt),
+          targetId,
+          ...prev.slice(insertAt),
+        ];
+        wakeQueueIdsRef.current = next;
+        return next;
+      });
+    },
+    [wakeIndexRef, setWakeQueueIds, getSeatRoleId, setSeats]
+  );
 
   // 包装 continueToNextAction，在推进队列前重置预览状态
   // 自动保存游戏快照到 localStorage
@@ -985,6 +1001,12 @@ export function useGameController() {
           hasUsedAbility,
           reviveSeat,
           insertIntoWakeQueueAfterCurrent,
+          // 🔧 守鸦人修复：恶魔杀守鸦人后入队觉醒。
+          //   必须用本组件的旧版 enqueueRavenkeeperIfNeeded（操作真正驱动夜间
+          //   UI 的 wakeQueueIds + 设 hasAbilityEvenDead），不能用 nightLogic
+          //   的新引擎版（插入 NightEngine.queue，但该队列不驱动夜间 UI，
+          //   且后续夜晚 engine.queueIterator 为 null → 插入无效）。
+          enqueueRavenkeeperIfNeeded,
           preview: true, // 始终以预览模式进入，新引擎内部决定是否弹确认窗
         }
       );

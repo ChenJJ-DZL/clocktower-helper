@@ -212,6 +212,30 @@ export class NightEngine {
   }
 
   /**
+   * 🔧 夜间中途动态插入唤醒节点（插入到当前节点之后）。
+   * 用于死亡触发型角色（守鸦人 ON_DEATH）：恶魔在夜间杀死的守鸦人
+   * 需要在当前行动节点之后立即觉醒（如小恶魔杀守鸦人后）。
+   * @param node 要插入的夜间行动节点
+   */
+  enqueueWakeNode(node: NightActionNode): void {
+    if (!this._queueIterator) {
+      console.warn(
+        `[NightEngine] 夜晚未开始，无法插入唤醒节点: ${node.roleName}(${node.seatId + 1}号)`
+      );
+      return;
+    }
+    // 去重：同一座位同一能力已在队列中则跳过
+    const dup = this._queueIterator.queue.some(
+      (n) => n.seatId === node.seatId && n.abilityId === node.abilityId
+    );
+    if (dup) return;
+    this._queueIterator.insertAfterCurrent(node);
+    console.log(
+      `[NightEngine] 动态插入唤醒节点: ${node.roleName}(${node.seatId + 1}号) → 当前节点之后`
+    );
+  }
+
+  /**
    * 直接结束夜晚
    */
   endNight(): void {

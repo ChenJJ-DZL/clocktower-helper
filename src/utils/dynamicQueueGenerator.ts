@@ -240,6 +240,21 @@ export class NightQueueIterator {
   }
 
   /**
+   * 🔧 夜间中途动态插入节点（插入到当前节点之后）。
+   * 用于死亡触发型角色（守鸦人 ON_DEATH）：恶魔在夜间杀死的守鸦人
+   * 需要在当前行动节点之后立即插入觉醒节点。
+   * @param node 要插入的夜间行动节点
+   */
+  insertAfterCurrent(node: NightActionNode): void {
+    if (this._currentIndex >= this._queue.length - 1) {
+      // 当前是最后一个节点 → 追加到队尾
+      this._queue.push(node);
+      return;
+    }
+    this._queue.splice(this._currentIndex + 1, 0, node);
+  }
+
+  /**
    * 跳转到指定索引
    * @param index 目标索引
    * @returns 是否跳转成功
