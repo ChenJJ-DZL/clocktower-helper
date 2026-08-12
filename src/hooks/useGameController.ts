@@ -806,6 +806,8 @@ export function useGameController() {
     setMastermindFinalDay,
     setVoteInputValue,
     setShowVoteErrorToast,
+    setWitchCursedId,
+    setWitchActive,
     addLog,
     addLogWithDeduplication,
     killPlayer,
@@ -994,6 +996,12 @@ export function useGameController() {
           // 🔧 新引擎管道（imp.ability 等杀人）不调 killPlayer，需传入
           //   setDeadThisNight 让 executeViaNewEngine 在 markedForDeath 变 isDead 后补记。
           setDeadThisNight,
+          // 🔧 女巫诅咒桥接：新引擎快照 witchCurse → legacy witchCursedId（useDayActions 消费端）。
+          //   夜间行动确认的主入口在此构造 context，必须透传 setter，否则桥接静默跳过。
+          setWitchCursedId,
+          setWitchActive,
+          // 🔧 恶魔死亡判胜：新引擎击杀恶魔后立即触发胜负判定（否则拖到白天）。
+          checkGameOver,
           addLog,
           continueToNextAction,
           setCurrentModal,

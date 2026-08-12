@@ -58,6 +58,23 @@ const stateUpdate = async (
         demonRole: "no_dashii",
       },
       noDashiiPoisoned: r.poisonedAdjacent,
+      // 🔧 修复：诺-达击杀目标必须落地死亡标记（与三恶魔一致）。
+      //   syncStatusEffectsToSeat 只认 markedForDeath/isAlive===false → isDead，
+      //   否则夜晚报告永远"平安夜"、死亡标记缺失、送葬者失效。
+      seats: ctx.snapshot.seats.map((seat: any) =>
+        seat.id === r.targetId && !seat.isDead
+          ? {
+              ...seat,
+              isAlive: false,
+              isDead: true,
+              markedForDeath: true,
+              diedAtNight: ctx.snapshot.nightCount,
+              killedBy: "no_dashii",
+              deathSource: "no_dashii_kill",
+              deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+            }
+          : seat
+      ),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         no_dashii: r,

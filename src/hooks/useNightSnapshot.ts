@@ -37,11 +37,29 @@ export function useNightSnapshot(
   const [activeNightStep, setActiveNightStep] =
     useState<NightInfoResult | null>(null);
   const drunkFirstInfoRef = useRef<Map<number, boolean>>(new Map());
+  // 🔧 跨角色状态时序修复：记录"最新一次"的座位快照。
+  //   nightInfo 生成（guide/speak）必须基于"行动当下的座位状态"——
+  //   若上一步角色（如投毒者）刚给某玩家下毒，其毒必须反映在下一步
+  //   行动者的信息生成中。此前多处 continueToNextAction() 无参调用 /
+  //   effect 用 React 闭包 seats，存在"毒已同步但生成仍用旧座位"的
+  //   时序窗口 → 被毒角色信息显示真实信息（用户报告的核心 bug）。
+  //   统一兜底：生成时优先取显式传入的最新座位，其次取本 ref。
+  const latestSeatsRef = useRef<Seat[]>(seats);
 
   const updateSnapshot = useCallback(
     (index: number, currentSeats: Seat[], currentPhase: string) => {
       // 🔧 守鸦人修复：读 ref 最新队列（动态插入的守鸦人节点）
       const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
+      // 🔧 跨角色状态时序修复：每次生成都更新"最新座位"引用，
+      //   保证后续任何生成路径（含无参 continueToNextAction / effect）
+      //   都基于最新座位（含上一步下毒/击杀同步的状态）。
+      //   注意：currentSeats 来自 React 已提交状态或 executeViaNewEngine
+      //   的 syncedSeats，均为权威最新；effect 触发时 React 已 commit，
+      //   闭包 seats 亦为最新（React 保证 effect 在 commit 后执行）。
+      if (currentSeats && currentSeats.length > 0) {
+        latestSeatsRef.current = currentSeats;
+      }
+      const safeSeats = currentSeats && currentSeats.length > 0 ? currentSeats : latestSeatsRef.current;
       // 🔧 标记 index 0 已显示
       if (index === 0) hasShownIndexZeroRef.current = true;
       const nextSeatId = latestQueue[index];
@@ -49,7 +67,7 @@ export function useNightSnapshot(
         const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
-          currentSeats,
+          safeSeats,
           nextSeatId,
           currentPhase as any,
           lastDuskExecution,
@@ -233,7 +251,13 @@ export function useNightSnapshot(
       console.log("[continueToNextAction] Moving to next index:", nextIndex);
       wakeIndexRef.current = nextIndex;
       setCurrentWakeIndex(nextIndex);
-      updateSnapshot(nextIndex, latestSeats ?? seats, gamePhase);
+      // 🔧 跨角色状态时序修复：显式传入的最新座位（executeViaNewEngine 的
+      //   syncedSeats，含上一步下毒/击杀同步状态）更新 latestSeatsRef，
+      //   供后续无参 continueToNextAction / effect / 安全网兜底使用。
+      if (latestSeats && latestSeats.length > 0) {
+        latestSeatsRef.current = latestSeats;
+      }
+      updateSnapshot(nextIndex, latestSeats ?? latestSeatsRef.current ?? seats, gamePhase);
     },
     [
       wakeQueueIds,
@@ -264,7 +288,7 @@ export function useNightSnapshot(
       !activeNightStep
     ) {
       const t = setTimeout(() => {
-        updateSnapshot(0, seats, gamePhase);
+        updateSnapshot(0, latestSeatsRef.current ?? seats, gamePhase);
       }, 100);
       return () => clearTimeout(t);
     }

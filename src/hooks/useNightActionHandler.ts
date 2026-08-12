@@ -49,6 +49,18 @@ export interface NightActionHandlerContext {
   //    此处显式传入 setDeadThisNight，让 executeViaNewEngine 在同步
   //    markedForDeath 后补调，保证天亮报告 / 送葬者等依赖 deadThisNight 的逻辑正确。
   setDeadThisNight?: React.Dispatch<React.SetStateAction<number[]>>;
+  // 🔧 女巫诅咒桥接：新引擎快照 witchCurse → legacy witchCursedId（useDayActions 消费端）。
+  //   无此桥接时女巫诅咒写入快照后永不落地，被诅咒者发起提名不死亡（引擎 P0）。
+  setWitchCursedId?: (id: number | null) => void;
+  setWitchActive?: (v: boolean) => void;
+  // 🔧 恶魔死亡判胜：新引擎击杀（executeViaNewEngine）只补记 deadThisNight，
+  //   从不触发 checkGameOver → 恶魔夜晚被杀后游戏不立即结束，继续跑白天/黄昏
+  //   流程（官方规则：恶魔死亡立即善良获胜）。此回调用于击杀恶魔后立即判胜。
+  checkGameOver?: (
+    updatedSeats: Seat[],
+    executedPlayerId?: number | null,
+    isEndOfDay?: boolean
+  ) => void;
 
   // 辅助函数
   addLog: (message: string) => void;
@@ -87,6 +99,11 @@ export function syncStatusEffectsToSeat(
   const hasProtect = effects.some((e: any) => e.type === "protected");
   const hasDrunk = effects.some((e: any) => e.type === "drunk");
   const markedDead = !!(updated as any).markedForDeath;
+  // 🔧 修复：新引擎大量角色（shabaloth/po/zombuul/assassin/hunter 等）击杀时
+  //   只设 `isAlive: false`（引擎字段）而不设 markedForDeath/isDead，
+  //   导致 syncStatusEffectsToSeat 翻译不落地 → 天亮报告永远"平安夜"、死亡标记缺失、
+  //   送葬者失效、游戏拖入死循环。此处将 `isAlive === false` 一并翻译为 isDead。
+  const engineDead = (updated as any).isAlive === false;
 
   // 🔧 以新引擎 statusEffects 为准同步 legacy 展示字段：
   //   仅当新引擎存在该效果时为 true；不存在时显式清除，
@@ -133,7 +150,7 @@ export function syncStatusEffectsToSeat(
     isPoisoned,
     isProtected,
     isDrunk,
-    isDead: prev.isDead || markedDead,
+    isDead: prev.isDead || markedDead || engineDead,
     statuses: [...stripEngineStatuses(prev.statuses), ...extraStatuses],
     statusDetails: [...stripEngineDetails(prev.statusDetails), ...extraDetails],
     // 🔧 显式保留引擎状态效果数组，确保管道 abilityPriorityCalculation 能读取到中毒/醉酒/保护
@@ -536,6 +553,36 @@ export async function executeViaNewEngine(
           }
         }
       }
+
+      // 🔧 恶魔死亡判胜：新引擎击杀的 newlyDead 中若含恶魔，立即触发 checkGameOver。
+      //   此前只补记 deadThisNight，胜利判定拖到白天流程才触发 → 恶魔被杀后
+      //   游戏继续跑白天/黄昏/提名（官方规则：恶魔死亡立即善良获胜）。
+      if (newlyDead.length > 0 && context.checkGameOver) {
+        const deadDemon = newlyDead.find((id) => {
+          const seat = syncedSeats.find((s) => s.id === id);
+          return seat?.role?.type === "demon";
+        });
+        if (deadDemon != null) {
+          context.checkGameOver(syncedSeats, deadDemon, false);
+          context.addLog(`⚔️ 恶魔 ${deadDemon + 1} 号死亡，触发胜负判定`);
+        }
+      }
+
+      // 🔧 女巫诅咒桥接：新引擎快照 witchCurse → legacy witchCursedId。
+      //   女巫能力 stateUpdate 写入 snapshot.witchCurse = { [targetId]: true }，
+      //   useDayActions（白天提名触发死亡）只认 legacy witchCursedId state，
+      //   此处桥接保证诅咒在白天生效。
+      const witchCurse = (resultContext as any)?.snapshot?.witchCurse;
+      if (witchCurse && context.setWitchCursedId) {
+        const cursedId = Object.keys(witchCurse)
+          .map(Number)
+          .find((id) => witchCurse[id] === true);
+        if (cursedId != null) {
+          context.setWitchCursedId(cursedId);
+          context.setWitchActive?.(true);
+          context.addLog(`🧙 女巫诅咒了 ${cursedId + 1} 号玩家`);
+        }
+      }
     }
 
     // 记录日志
@@ -563,12 +610,29 @@ export async function executeViaNewEngine(
       //   统一弹结果窗：此前 postProcess 只生成 displayInfo（console 日志），
       //   未设置 meta.modal，导致结算结果不展示。此处用 displayInfo.log 作为
       //   结果文本弹出 INFO_RESULT，确认后继续推进队列。
+      //
+      //   🔧 信息一致性修复：结算弹窗优先复用 guide（控制台"当前的行动"文案）
+      //   中的信息——说书人按 guide 告知玩家后，结算弹窗应显示同一份信息。
+      //   此前 guide（nightInfoGenerator 的 legacy dialog）与结算
+      //   （新引擎 postProcess displayInfo）各自独立随机，同一角色两处信息
+      //   不一致（如 guide 说"5号和3号"、结算说"5号和9号"），说书人无所适从。
+      //   此处统一为 guide 的信息；guide 缺信息（如 fallback"准备执行技能"）时
+      //   回退 displayInfo.log。
+      const guideText = context.nightInfo?.guide || "";
+      const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
+      const guideInfo =
+        guideMatch && guideMatch[1] && !guideText.includes("准备执行技能")
+          ? guideMatch[1].trim()
+          : "";
+      const resultText = guideInfo
+        ? `${roleName}获得信息：${guideInfo}`
+        : displayInfo.log;
       const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
       context.setCurrentModal({
         type: "INFO_RESULT",
         data: {
           roleName,
-          resultText: displayInfo.log,
+          resultText,
           onNext: () => {
             context.setCurrentModal(null);
             context.continueToNextAction(infoSynced);

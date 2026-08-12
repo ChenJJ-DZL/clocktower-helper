@@ -314,9 +314,14 @@ export default function Home() {
           .filter((s: any) => s.role)
           .map((s: any) => s.role.id)
       );
-      const availableCharades = groups.townsfolk.filter(
+      const availableCharadesFiltered = groups.townsfolk.filter(
         (r) => r.id !== "drunk" && !inPlayRoleIds.has(r.id)
       );
+      // 🔧 修复：所有镇民均已在场时回退为全部镇民（官方规则允许伪装任意镇民，可含在场同名）
+      const availableCharades =
+        availableCharadesFiltered.length > 0
+          ? availableCharadesFiltered
+          : groups.townsfolk.filter((r) => r.id !== "drunk");
       if (availableCharades.length > 0) {
         const charade =
           availableCharades[

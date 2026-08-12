@@ -61,6 +61,21 @@ const stateUpdate = async (
         targetId: r.targetId,
         minionRole: "godfather",
       },
+      // 🔧 修复：教父击杀目标必须落地死亡标记（与三恶魔一致）。
+      seats: ctx.snapshot.seats.map((seat: any) =>
+        seat.id === r.targetId && !seat.isDead
+          ? {
+              ...seat,
+              isAlive: false,
+              isDead: true,
+              markedForDeath: true,
+              diedAtNight: ctx.snapshot.nightCount,
+              killedBy: "godfather",
+              deathSource: "godfather_kill",
+              deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+            }
+          : seat
+      ),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         godfather: r,

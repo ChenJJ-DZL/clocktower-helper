@@ -49,6 +49,21 @@ const stateUpdate = async (
         demonRole: "vortox",
       },
       vortoxActive: true,
+      // 🔧 修复：涡流击杀目标必须落地死亡标记（与三恶魔一致）。
+      seats: ctx.snapshot.seats.map((seat: any) =>
+        seat.id === r.targetId && !seat.isDead
+          ? {
+              ...seat,
+              isAlive: false,
+              isDead: true,
+              markedForDeath: true,
+              diedAtNight: ctx.snapshot.nightCount,
+              killedBy: "vortox",
+              deathSource: "vortox_kill",
+              deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+            }
+          : seat
+      ),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         vortox: r,

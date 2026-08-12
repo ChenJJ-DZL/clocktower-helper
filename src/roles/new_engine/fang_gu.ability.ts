@@ -60,6 +60,24 @@ const stateUpdate = async (
         demonRole: "fang_gu",
       },
       fangGuJump: r.becomesFangGu ? r.targetId : null,
+      // 🔧 修复：方古击杀目标必须落地死亡标记（与三恶魔一致）。
+      //   外来者变方古（不死亡）→ 只更新角色不改死亡状态。
+      seats: ctx.snapshot.seats.map((seat: any) =>
+        seat.id === r.targetId && r.killed && !seat.isDead
+          ? {
+              ...seat,
+              isAlive: false,
+              isDead: true,
+              markedForDeath: true,
+              diedAtNight: ctx.snapshot.nightCount,
+              killedBy: "fang_gu",
+              deathSource: "fang_gu_kill",
+              deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+            }
+          : seat.id === r.targetId && r.becomesFangGu
+          ? { ...seat, role: { ...seat.role, id: "fang_gu", type: "demon" } }
+          : seat
+      ),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         fang_gu: r,

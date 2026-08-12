@@ -298,8 +298,11 @@ export const GameConsole = React.memo(function GameConsole({
               </div>
             </div>
 
-            {/* Injected Player List - 只有需要选择目标时才显示 */}
-            {seats.length > 0 && (nightInfo?.targetLimit?.min ?? 0) > 0 && (
+            {/* Injected Player List - 只有需要选择目标时才显示
+                🔧 修复：条件从 min>0 改为 max>0。
+                min=0/max>0 的角色（如珀：可不杀人也可选 1-3 人）此前面板被隐藏，
+                玩家永远无法选择目标 → 珀每夜只能空过、对局拖入死循环。 */}
+            {seats.length > 0 && (nightInfo?.targetLimit?.max ?? 0) > 0 && (
               <div className="mt-5 pt-4 border-t border-emerald-500/20">
                 <div
                   className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"

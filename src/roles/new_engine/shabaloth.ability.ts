@@ -103,11 +103,29 @@ const updateKillState = async (
           return seat; // 目标被保护 / 士兵免疫 / 镇长免疫，不死亡
         }
 
-        return { ...seat, isAlive: false, killedBy: "shabaloth" };
+        // 🔧 修复：与 imp 一致同时设 markedForDeath/isDead（syncStatusEffectsToSeat
+        //   只认 markedForDeath → isDead，否则夜晚报告永远"平安夜"、死亡标记缺失）
+        return {
+          ...seat,
+          isAlive: false,
+          isDead: true,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          killedBy: "shabaloth",
+          deathSource: "shabaloth_kill",
+          deathSourceSeatId: (context.actionNode as any)?.seatId ?? null,
+        };
       }
       // 🔧 镇长替代死亡：被选中的镇民替代镇长死亡
       if (substituteByMayor.has(seat.id)) {
-        return { ...seat, isAlive: false, killedBy: "mayor_substitute" };
+        return {
+          ...seat,
+          isAlive: false,
+          isDead: true,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          killedBy: "mayor_substitute",
+        };
       }
       return seat;
     }),

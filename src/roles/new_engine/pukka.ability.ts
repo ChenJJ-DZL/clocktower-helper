@@ -89,17 +89,49 @@ const updatePoisonState = async (
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
     seats: snapshot.seats.map((seat) => {
+      // 🔧 修复（引擎 P0）：普卡两阶段机制——"上个因你中毒的玩家死亡"。
+      //   原实现只下毒不结算死亡，导致毒发永远不发生（夜晚报告永远平安夜）。
+      //   官方规则：普卡每晚选一名玩家中毒；之前中毒的玩家在普卡下次攻击后死亡。
+      //   此处：1) 旧中毒目标标记死亡（若仍存活） 2) 清除其普卡中毒标记（毒发后恢复健康）
+      // 旧中毒目标识别：statusDetails 字符串"普卡中毒"或对象 {source:"pukka"}
+      const oldPoison = (seat.statusDetails || []).some((d: any) => {
+        if (typeof d === "string") return d.includes("普卡中毒");
+        return d?.source === "pukka";
+      });
+      if (oldPoison && !seat.isDead) {
+        return {
+          ...seat,
+          isAlive: false,
+          isDead: true,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          killedBy: "pukka",
+          deathSource: "pukka_poison_death",
+          deathSourceSeatId: (context.actionNode as any)?.seatId ?? null,
+          // 清除普卡中毒标记（毒发后恢复健康）
+          statusDetails: (seat.statusDetails || []).filter((d: any) => {
+            if (typeof d === "string") return !d.includes("普卡中毒");
+            return d?.source !== "pukka";
+          }),
+          isPoisoned: false,
+        };
+      }
+      // 新目标：下毒
       if (seat.id === targetId) {
         return {
           ...seat,
           isPoisoned: true,
           statusDetails: [
-            ...(seat.statusDetails || []),
+            ...(seat.statusDetails || []).filter((d: any) => {
+              if (typeof d === "string") return !d.includes("普卡中毒");
+              return d?.source !== "pukka";
+            }),
             {
               type: "poison",
               source: "pukka",
               timestamp: Date.now(),
             },
+            "普卡中毒（永久）",
           ],
         };
       }

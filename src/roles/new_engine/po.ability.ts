@@ -101,11 +101,28 @@ const updateKillState = async (
           return seat; // 目标被保护 / 士兵免疫 / 镇长免疫，不死亡
         }
 
-        return { ...seat, isAlive: false, killedBy: "po" };
+        // 🔧 修复：与 imp 一致同时设 markedForDeath/isDead（否则夜晚报告永远"平安夜"）
+        return {
+          ...seat,
+          isAlive: false,
+          isDead: true,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          killedBy: "po",
+          deathSource: "po_kill",
+          deathSourceSeatId: (context.actionNode as any)?.seatId ?? null,
+        };
       }
       // 🔧 镇长替代死亡：被选中的镇民替代镇长死亡
       if (substituteByMayor.has(seat.id)) {
-        return { ...seat, isAlive: false, killedBy: "mayor_substitute" };
+        return {
+          ...seat,
+          isAlive: false,
+          isDead: true,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          killedBy: "mayor_substitute",
+        };
       }
       return seat;
     }),
@@ -120,7 +137,8 @@ export const poAbility = createRoleAbility({
   abilityName: "恶魔击杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null, // 恶魔最后行动，珀在小恶魔之后
+  otherNightPriority: 49, // 🔧 恶魔最后行动（imp=45, zombuul=46, pukka=47, shabaloth=48, po=49）
+  // 🔧 修复：原为 null 导致珀从未被排入夜间队列 → 恶魔无法杀人 → 全场平安夜 → 游戏永不结束
   firstNightOnly: false,
   wakePromptId: "po_wake",
   targetConfig: {

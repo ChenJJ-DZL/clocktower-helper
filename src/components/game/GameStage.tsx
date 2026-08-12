@@ -444,6 +444,10 @@ export const GameStage = () => {
                 // Nomination logic for dusk phase
                 // 注意：W7.3.0 起 onSeatClick 回调参数统一为 number（座位 id）。
                 const seatId = seat;
+                // 🔧 修复：已死亡玩家不能被选为提名者或被提名者（官方规则）。
+                //   此前无 isDead 检查，UI 允许点击已死玩家 → 处决死循环。
+                const clickedSeat = seats.find((s) => s.id === seatId);
+                if (clickedSeat?.isDead) return;
                 if (nominator === null) {
                   // No nominator selected - select this seat as nominator
                   setNominator(seatId);
@@ -463,6 +467,9 @@ export const GameStage = () => {
               }}
               onTouchStart={(e, seatId) => {
                 e.stopPropagation();
+                // 🔧 修复：已死亡玩家不能被选为提名者或被提名者（与 onSeatClick 一致）
+                const clickedSeat = seats.find((s) => s.id === seatId);
+                if (clickedSeat?.isDead) return;
                 if (nominator === null) {
                   // No nominator selected - select this seat as nominator
                   setNominator(seatId);
@@ -842,6 +849,15 @@ export const GameStage = () => {
 
                     if (nominator === null || nominee === null) {
                       alert('请先在圆桌上依次点击"提名者"和"被提名者"。');
+                      return;
+                    }
+                    // 🔧 修复：兜底校验——已死亡玩家不能被提名（防御式，即使点击入口已拦截）
+                    const nominatorSeat = seats.find((s) => s.id === nominator);
+                    const nomineeSeat = seats.find((s) => s.id === nominee);
+                    if (nominatorSeat?.isDead || nomineeSeat?.isDead) {
+                      alert("已死亡玩家不能被提名，请重新选择。");
+                      setNominator(null);
+                      setNominee(null);
                       return;
                     }
                     if (typeof executeNomination !== "function") {
@@ -1291,12 +1307,20 @@ export const GameStage = () => {
                             return true;
                           }
                         );
-                        const availableCharades = currentScriptRoles.filter(
+                        const charadesFiltered = currentScriptRoles.filter(
                           (role: Role) =>
                             role.type === "townsfolk" &&
                             !role.hidden &&
                             !seats.some((s: any) => s.role?.id === role.id)
                         );
+                        // 🔧 修复：所有镇民已在场时回退为全部镇民可选，避免弹窗无选项死局
+                        const availableCharades =
+                          charadesFiltered.length > 0
+                            ? charadesFiltered
+                            : currentScriptRoles.filter(
+                                (role: Role) =>
+                                  role.type === "townsfolk" && !role.hidden
+                              );
                         return {
                           label: "🎭 设置酒鬼身份",
                           onClick: () => {

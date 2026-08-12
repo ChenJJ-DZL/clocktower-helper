@@ -405,12 +405,21 @@ export function useInteractionHandler(deps: {
           seenIds.add(role.id);
           return true;
         });
-        const availableCharades = currentScriptRoles.filter(
+        const charadesFiltered = currentScriptRoles.filter(
           (role) =>
             role.type === "townsfolk" &&
             !role.hidden &&
             !seats.some((s) => s.role?.id === role.id)
         );
+        // 🔧 修复：若所有镇民角色都已在场（如角色池镇民不足的高配比局），
+        // 过滤结果为空会导致弹窗无角色可选、确认按钮永久禁用（玩家死局）。
+        // 此时回退为剧本全部镇民可选——官方规则允许酒鬼伪装任意镇民角色（可包含在场同名角色）。
+        const availableCharades =
+          charadesFiltered.length > 0
+            ? charadesFiltered
+            : currentScriptRoles.filter(
+                (role) => role.type === "townsfolk" && !role.hidden
+              );
         dispatch(
           gameActions.setModal({
             type: "DRUNK_CHARADE_SELECT",

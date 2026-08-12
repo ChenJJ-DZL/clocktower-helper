@@ -56,6 +56,10 @@ export interface ExecutionHandlersDeps {
   >;
   setVoteInputValue: (val: string) => void;
   setShowVoteErrorToast: (val: boolean) => void;
+  // 🔧 女巫诅咒桥接（可选）：透传给 handleNightAction → executeViaNewEngine，
+  //   新引擎快照 witchCurse 需桥接到 legacy witchCursedId 才能在白天提名触发死亡。
+  setWitchCursedId?: (id: number | null) => void;
+  setWitchActive?: (v: boolean) => void;
 
   // Functions
   addLog: (msg: string) => void;
@@ -146,6 +150,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     setMastermindFinalDay,
     setVoteInputValue,
     setShowVoteErrorToast,
+    setWitchCursedId,
+    setWitchActive,
     addLog,
     addLogWithDeduplication,
     killPlayer,
@@ -788,6 +794,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       getRegistration: getRegistrationCached,
       getMisinformation,
       findNearestAliveNeighbor,
+      setDeadThisNight,
+      setWitchCursedId,
+      setWitchActive,
+      checkGameOver,
     };
 
     const handled = await handleNightAction(nightActionHandlerContext);
@@ -880,6 +890,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       getRegistration: getRegistrationCached,
       getMisinformation,
       findNearestAliveNeighbor,
+      setDeadThisNight,
+      setWitchCursedId,
+      setWitchActive,
+      checkGameOver,
     };
 
     const handled = await handleNightAction(nightActionHandlerContext);
