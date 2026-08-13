@@ -3,7 +3,6 @@ import type { RoleDefinition } from "../../types/roleDefinition";
 /**
  * 猎手 (Slayer)
  * 说明：每局游戏限一次，你可以在白天时公开选择一名玩家：如果他是恶魔，他死亡。
- * 当前占位：已在 nightLogic 中实现。
  */
 export const slayer: RoleDefinition = {
   id: "slayer",
@@ -15,5 +14,24 @@ export const slayer: RoleDefinition = {
     order: 0,
     target: { count: { min: 0, max: 0 } },
     dialog: (_playerSeatId) => ({ wake: "", instruction: "", close: "" }),
+  },
+  // 🔧 白天主动技能：让猎手出现在白天"可用主动技能"列表（GameConsole），
+  //   点击后弹出 SLAYER_SELECT_TARGET 目标选择，由 handleSlayerTargetSelect
+  //   完成射击结算（恶魔死亡/无事发生、中毒醉酒失效、标记已使用）。
+  //   此前缺失 day 配置 → 技能列表空白、猎手白天无法开枪（用户报告 Bug）。
+  day: {
+    name: "猎手射击",
+    maxUses: 1,
+    target: { min: 1, max: 1 },
+    handler: (context) => ({
+      updates: [],
+      logs: {
+        privateLog: `${context.selfId + 1}号(猎手) 发动猎手射击能力`,
+      },
+      modal: {
+        type: "SLAYER_SELECT_TARGET",
+        data: { shooterId: context.selfId },
+      },
+    }),
   },
 };

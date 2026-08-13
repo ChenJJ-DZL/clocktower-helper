@@ -654,6 +654,57 @@ export const GameStage = () => {
               </button>
             </div>
 
+            {/* 🔧 全部提名记录（含未上处决台者）：处决台不仅记录上台者的提名和得票，
+                还要记录未上处决台的提名与得票记录（用户报告 Bug #5）。 */}
+            <div className="bg-slate-800 p-4 rounded-lg space-y-2 border border-white/10">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>📋</span> 全部提名记录
+              </h3>
+              {(() => {
+                const allNominated: Seat[] = seats
+                  .filter((s: Seat) => (s.voteCount ?? 0) > 0 || s.isCandidate)
+                  .sort(
+                    (a: Seat, b: Seat) =>
+                      (b.voteCount ?? 0) - (a.voteCount ?? 0)
+                  );
+                if (allNominated.length === 0) {
+                  return (
+                    <div className="text-xs text-gray-400">
+                      暂无提名记录（尚未有玩家获得投票）
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-1">
+                    {allNominated.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex justify-between items-center text-sm rounded px-2 py-1 border border-white/10 bg-slate-900/40"
+                      >
+                        <span className="text-slate-200">
+                          {s.id + 1}号 {s.role?.name || ""}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-white">
+                            {s.voteCount ?? 0} 票
+                          </span>
+                          {s.isCandidate ? (
+                            <span className="text-xs px-2 py-0.5 rounded bg-red-900/40 text-red-200 border border-red-500/50">
+                              上处决台
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2 py-0.5 rounded bg-slate-700/40 text-slate-300 border border-slate-600/50">
+                              未上台
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
             {/* Combined Nomination & Voting Process Block */}
             <div className="bg-slate-800 p-4 rounded-lg space-y-4 border border-white/10">
               <h3 className="text-white font-bold flex items-center gap-2 border-b border-white/10 pb-2">

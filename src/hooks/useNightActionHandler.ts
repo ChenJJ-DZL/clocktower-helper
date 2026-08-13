@@ -390,6 +390,24 @@ export async function executeViaNewEngine(
         actionDescription = (ability as any).abilityName || "执行能力";
       }
 
+      // 🔧 信息角色一致性修复：preview 模式下 postProcess 不会执行（displayInfo 不存在），
+      //   但 calculate 已算出 abilityResult（含中毒/Vortox 干扰的最终结果）。
+      //   此前 NIGHT_ACTION_CONFIRM 弹窗只显示 abilityName（如"占卜"），
+      //   而结算弹窗 FORTUNE_TELLER_RESULT 显示 result（含假信息），
+      //   导致说书人在预览弹窗看到中性文案、结算弹窗看到假信息——两处不一致。
+      //   此处当 abilityResult 为 boolean 时，preview 与结算共享同一份结果描述：
+      //   "占卜师探查【3号和5号】：没有恶魔"（受中毒干扰）。
+      //   后续扩展其他信息角色时只需在 displayInfo 已有角色分支即可（不变）。
+      const selectedTargets = context.selectedTargets || [];
+      if (typeof abilityResult === "boolean" && selectedTargets.length > 0) {
+        const targetLabels = selectedTargets
+          .map((id) => `${id + 1}号`)
+          .join("和");
+        const resultText = abilityResult ? "有恶魔" : "没有恶魔";
+        const corruptionTag = isCorrupted ? "【受中毒/醉酒干扰】" : "";
+        actionDescription = `${roleName}${corruptionTag}探查【${targetLabels}】：${resultText}`;
+      }
+
       // 检查是否是系统步骤（如 demon_info, minion_info）
       const isSystemStep = ["demon_info", "minion_info"].includes(
         roleId

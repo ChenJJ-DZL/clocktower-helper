@@ -507,8 +507,11 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             const masterId = rawMaster;
             const masterVoting = effectiveVoters.includes(masterId);
             if (!masterVoting) {
-              alert(
-                `管家(${voterId + 1}号)的票不计入：主人(${masterId + 1}号)未投票（规则：如果仅管家投票而主人不投票，则管家票计为0票）`
+              // 🔧 管家票不计算：不再使用原生 alert（UI 丑且阻塞），
+              //   改为日志记录。实时状态由 VoteInputModal 内联展示
+              //   （"x号管家因为x号主人未投票，本次票数不计算"）。
+              addLog(
+                `🗳️ ${voterId + 1}号管家(管家)的票不计入：主人(${masterId + 1}号)未投票（规则：如果仅管家投票而主人不投票，则管家票计为0票）`
               );
               // 移除管家的投票记录
               effectiveVoters = effectiveVoters.filter((id) => id !== voterId);
