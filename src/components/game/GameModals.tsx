@@ -163,6 +163,8 @@ export function GameModals() {
     currentModal?.type === "ARTIST_RESULT" ? currentModal.data : null;
   const savantResultModal =
     currentModal?.type === "SAVANT_RESULT" ? currentModal.data : null;
+  const gamblerJudgeModal =
+    currentModal?.type === "GAMBLER_JUDGE" ? currentModal.data : null;
   const nightDeathReportModal =
     currentModal?.type === "NIGHT_DEATH_REPORT" ? currentModal.data : null;
   const nightActionConfirmModal =
@@ -735,6 +737,46 @@ export function GameModals() {
             actions.setCurrentModal(null);
           }}
         />
+      )}
+
+      {gamblerJudgeModal && (
+        <div className="fixed inset-0 z-[3500] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 w-[420px] border border-white/10 text-white shadow-2xl">
+            <div className="text-lg font-bold mb-1">赌徒判定</div>
+            <div className="text-sm text-slate-300 mb-5">
+              {gamblerJudgeModal.seatId + 1}号【赌徒】使用了「赌徒猜测」。
+              说书人判定该玩家对目标角色的猜测是否正确？
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  actions.addLog(
+                    `${gamblerJudgeModal.seatId + 1}号【赌徒】的猜测被判定为真（猜对），存活`
+                  );
+                  actions.setCurrentModal(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-semibold transition-colors"
+              >
+                判断为真（猜对）
+              </button>
+              <button
+                onClick={() => {
+                  actions.killPlayer(gamblerJudgeModal.seatId, {
+                    source: "gambler_day",
+                    recordNightDeath: true,
+                  });
+                  actions.addLog(
+                    `${gamblerJudgeModal.seatId + 1}号【赌徒】的猜测被判定为假（猜错），死亡！`
+                  );
+                  actions.setCurrentModal(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 rounded-lg font-semibold transition-colors"
+              >
+                判定为假（猜错）
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <RestartConfirmModal

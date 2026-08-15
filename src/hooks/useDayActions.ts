@@ -571,6 +571,24 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
 
+      // ── 赌徒专用：说书人判定猜测真假 ────────────────
+      if (sourceSeat.role.id === "gambler") {
+        if (sourceSeat.hasUsedDayAbility) {
+          alert("此玩家已经使用过技能了！");
+          return;
+        }
+        setSeats((prev) =>
+          prev.map((s) =>
+            s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
+          )
+        );
+        setCurrentModal({
+          type: "GAMBLER_JUDGE",
+          data: { seatId: sourceSeatId },
+        });
+        return;
+      }
+
       const modularHandler = getRoleDefinition(sourceSeat.role.id);
       if (modularHandler?.day) {
         if (
