@@ -1,0 +1,3 @@
+[submodule "test_automation"]
+	path = test_automation
+	url = ../test_automation_orig
