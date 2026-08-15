@@ -151,9 +151,22 @@ export const seamstressAbility = createRoleAbility({
       const result = meta.abilityResult;
       if (result) {
         const answer = result.finalSameAlignment ? "是" : "否";
-        console.log(
-          `女裁缝得知：${result.targetId1 + 1}号和${result.targetId2 + 1}号玩家${answer}同一阵营`
-        );
+        const log = `女裁缝得知：${result.targetId1 + 1}号和${result.targetId2 + 1}号玩家${answer}同一阵营`;
+        console.log(log);
+        return {
+          ...context,
+          meta: {
+            ...context.meta,
+            abilityLog: log,
+            displayInfo: {
+              type: "seamstress_info",
+              targetId1: result.targetId1,
+              targetId2: result.targetId2,
+              sameAlignment: result.finalSameAlignment ?? false,
+              log,
+            },
+          },
+        };
       }
       return context;
     },

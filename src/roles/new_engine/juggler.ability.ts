@@ -78,6 +78,11 @@ const postProcess = async (
       ...ctx.meta,
       prompt: `唤醒${ctx.actionNode.seatId + 1}号【杂耍艺人】，选择5名玩家并猜测他们的角色。`,
       abilityLog: log,
+      displayInfo: {
+        type: "juggler_info",
+        correctCount: r?.correctCount ?? 0,
+        log,
+      },
     },
   };
 };

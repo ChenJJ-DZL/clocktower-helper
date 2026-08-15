@@ -640,7 +640,7 @@ export async function executeViaNewEngine(
       const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
       const guideInfo =
         guideMatch && guideMatch[1] && !guideText.includes("准备执行技能")
-          ? guideMatch[1].trim()
+          ? guideMatch[1].trim().replace(/^[:：]\s*/, "")
           : "";
       const resultText = guideInfo
         ? `${roleName}获得信息：${guideInfo}`

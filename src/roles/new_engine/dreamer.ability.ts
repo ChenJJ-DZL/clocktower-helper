@@ -78,8 +78,11 @@ const calculateResult = async (
     shouldShowCorrect = !shouldShowCorrect;
   }
 
-  // 获取所有角色分类
-  const allRoles = snapshot.availableRoles || [];
+  // 获取所有角色分类（availableRoles 缺失时兜底用在场角色，避免 getRandom 空池返回 undefined）
+  const allRoles =
+    snapshot.availableRoles?.length > 0
+      ? snapshot.availableRoles
+      : snapshot.seats.map((s: any) => s.role).filter(Boolean);
   const townsfolk = allRoles.filter((r: Role) => r.type === "townsfolk");
   const outsiders = allRoles.filter(
     (r: Role) => r.type === "outsider" || r.id === "drunk"
@@ -166,8 +169,10 @@ export const dreamerAbility = createRoleAbility({
       const { meta } = context;
       // null guard handled above
       const result = meta.abilityResult;
-      if (result && result.roleA && result.roleB) {
-        const log = `筑梦师选择了${result.targetId + 1}号位，得知：${result.roleA.name} 或 ${result.roleB.name}`;
+      if (result && (result.roleA || result.roleB)) {
+        const a = result.roleA?.name ?? "未知";
+        const b = result.roleB?.name ?? "未知";
+        const log = `筑梦师选择了${result.targetId + 1}号位，得知：${a} 或 ${b}`;
         console.log(log);
         return {
           ...context,
@@ -177,8 +182,8 @@ export const dreamerAbility = createRoleAbility({
             displayInfo: {
               type: "dreamer_info",
               targetId: result.targetId,
-              roleA: result.roleA.name,
-              roleB: result.roleB.name,
+              roleA: a,
+              roleB: b,
               log,
             },
           },
