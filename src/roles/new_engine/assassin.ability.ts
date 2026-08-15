@@ -67,23 +67,36 @@ const updateAssassinationStatus = async (
 
   if (isAbilityEffective) {
     // 能力有效时，直接杀死目标（无视任何保护）
-    newSnapshot = {
-      ...snapshot,
-      seats: snapshot.seats.map((seat) => {
-        if (seat.id === targetId) {
-          return {
-            ...seat,
-            isAlive: false,
-            isDead: true,
-            // 标记为刺客击杀，无视保护
-            deathSource: "assassin_kill",
-            deathSourceSeatId: actionNode.seatId,
-            assassinated: true,
-          };
-        }
-        return seat;
-      }),
-    };
+    // 🧟 僵怖豁免：僵怖夜晚被杀死不真死（仅处决能杀死僵怖）
+    const targetBefore = snapshot.seats.find((s: any) => s.id === targetId);
+    if (targetBefore?.role?.id === "zombuul") {
+      newSnapshot = {
+        ...snapshot,
+        seats: snapshot.seats.map((seat: any) =>
+          seat.id === targetId
+            ? { ...seat, zombuulNightSaved: true, zombuulSavedSource: "assassin" }
+            : seat
+        ),
+      };
+    } else {
+      newSnapshot = {
+        ...snapshot,
+        seats: snapshot.seats.map((seat) => {
+          if (seat.id === targetId) {
+            return {
+              ...seat,
+              isAlive: false,
+              isDead: true,
+              // 标记为刺客击杀，无视保护
+              deathSource: "assassin_kill",
+              deathSourceSeatId: actionNode.seatId,
+              assassinated: true,
+            };
+          }
+          return seat;
+        }),
+      };
+    }
   }
 
   // 无论成功与否，只要选择了目标就标记能力已使用

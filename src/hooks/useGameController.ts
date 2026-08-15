@@ -34,6 +34,10 @@ import {
   saveCurrentSnapshot,
 } from "../utils/persistence";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
+import {
+  isZombuulNightImmune,
+  markZombuulNightSaved,
+} from "../utils/zombuulImmunity";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -390,6 +394,13 @@ export function useGameController() {
 
       // 首先处理死亡逻辑
       setSeats((prev: Seat[]) => {
+        // 🧟 僵怖豁免：僵怖夜晚被杀死不真死（仅处决能杀死僵怖）
+        const targetBefore = prev.find((s) => s.id === targetId);
+        if (targetBefore && isZombuulNightImmune(targetBefore, source)) {
+          return prev.map((s) =>
+            s.id === targetId ? markZombuulNightSaved(s, source) : s
+          );
+        }
         let updatedSeats = prev.map((s) => {
           if (s.id !== targetId || s.isDead) return s;
           const next = {
