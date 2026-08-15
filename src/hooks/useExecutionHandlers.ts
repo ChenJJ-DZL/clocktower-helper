@@ -7,6 +7,10 @@ import { gameActions } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
+import {
+  shouldMorticianTransform,
+  transformMorticianToDemon,
+} from "../utils/morticianTransform";
 import type { executePoisonAction } from "./roleActionHandlers";
 // 单数 useExecutionHandler 为本文件直接依赖的活代码（非死文件；勿因与复数 useExecutionHandlers 命名撞车而误删）
 import { useExecutionHandler } from "./useExecutionHandler";
@@ -192,7 +196,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       id: number,
       options?: { skipLunaticRps?: boolean; forceExecution?: boolean }
     ) => {
-      const seatsSnapshot = seats;
+      let seatsSnapshot = seats;
       const t = seatsSnapshot.find((s) => s.id === id);
       if (!t || !t.role) return;
 
@@ -335,6 +339,38 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           addLog(
             `🎵 吟游诗人能力触发：${id + 1}号爪牙被处决，其他非爪牙存活玩家醉酒直到明天黄昏`
           );
+        }
+      }
+
+      // 🔧 入殓师（Mortician）：提名恶魔且恶魔死于处决 → 入殓师变为该恶魔，游戏继续。
+      //   判定用"处决后"视角（恶魔已死）；转化后传入判胜的座位列表含新恶魔 → 判胜不触发。
+      const executedIsDemon =
+        t.role.type === "demon" || t.isDemonSuccessor === true;
+      if (executedIsDemon) {
+        const nominatorId = nominationMap[id] ?? null;
+        const seatsAfterExec = seatsSnapshot.filter(
+          (s) => !(s.id === id && !s.isDead)
+        ); // 恶魔视为已死
+        const mt = shouldMorticianTransform(
+          seatsAfterExec,
+          id,
+          nominatorId
+        );
+        if (mt.transformed) {
+          const demonRoleId = t.role.id;
+          setSeats((prev: Seat[]) =>
+            transformMorticianToDemon(prev, nominatorId!, demonRoleId)
+          );
+          addLog(
+            `⚰️ ${nominatorId! + 1}号入殓师提名并使${id + 1}号恶魔死于处决，变为邪恶的${demonRoleId}，游戏继续！`
+          );
+          seatsSnapshot = transformMorticianToDemon(
+            seatsSnapshot,
+            nominatorId!,
+            demonRoleId
+          );
+        } else if (mt.reason.includes("失去能力")) {
+          addLog(`⚰️ 入殓师能力失效（${mt.reason}），游戏正常判定胜负`);
         }
       }
 

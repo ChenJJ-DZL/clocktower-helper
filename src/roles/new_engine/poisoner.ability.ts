@@ -396,6 +396,7 @@ const postProcessResult = async (
 export const poisonerAbility = createRoleAbility({
   /** 角色标识符，对应 app/data.ts 中 Role.id */
   roleId: "poisoner",
+  effectSemantics: "poison",
   /** 能力标识符，用于 abilityRegistry 注册 */
   abilityId: "poisoner_night_ability",
   /** 能力中文名 */

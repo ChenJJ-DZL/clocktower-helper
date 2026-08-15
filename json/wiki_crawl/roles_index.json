@@ -1,0 +1,990 @@
+{
+ "规则概要": {
+  "name": "规则概要",
+  "type": "townsfolk"
+ },
+ "重要细节": {
+  "name": "重要细节",
+  "type": "townsfolk"
+ },
+ "术语汇总": {
+  "name": "术语汇总",
+  "type": "townsfolk"
+ },
+ "给说书人的建议": {
+  "name": "给说书人的建议",
+  "type": "townsfolk"
+ },
+ "相克规则": {
+  "name": "相克规则",
+  "type": "townsfolk"
+ },
+ "暗流涌动": {
+  "name": "暗流涌动",
+  "type": "townsfolk"
+ },
+ "黯月初升": {
+  "name": "黯月初升",
+  "type": "townsfolk"
+ },
+ "梦殒春宵": {
+  "name": "梦殒春宵",
+  "type": "townsfolk"
+ },
+ "角色能力类别总览": {
+  "name": "角色能力类别总览",
+  "type": "townsfolk"
+ },
+ "洗衣妇": {
+  "name": "洗衣妇",
+  "type": "townsfolk"
+ },
+ "图书管理员": {
+  "name": "图书管理员",
+  "type": "townsfolk"
+ },
+ "调查员": {
+  "name": "调查员",
+  "type": "townsfolk"
+ },
+ "厨师": {
+  "name": "厨师",
+  "type": "townsfolk"
+ },
+ "共情者": {
+  "name": "共情者",
+  "type": "townsfolk"
+ },
+ "占卜师": {
+  "name": "占卜师",
+  "type": "townsfolk"
+ },
+ "送葬者": {
+  "name": "送葬者",
+  "type": "townsfolk"
+ },
+ "僧侣": {
+  "name": "僧侣",
+  "type": "townsfolk"
+ },
+ "守鸦人": {
+  "name": "守鸦人",
+  "type": "townsfolk"
+ },
+ "贞洁者": {
+  "name": "贞洁者",
+  "type": "townsfolk"
+ },
+ "猎手": {
+  "name": "猎手",
+  "type": "townsfolk"
+ },
+ "士兵": {
+  "name": "士兵",
+  "type": "townsfolk"
+ },
+ "镇长": {
+  "name": "镇长",
+  "type": "townsfolk"
+ },
+ "祖母": {
+  "name": "祖母",
+  "type": "townsfolk"
+ },
+ "水手": {
+  "name": "水手",
+  "type": "townsfolk"
+ },
+ "侍女": {
+  "name": "侍女",
+  "type": "townsfolk"
+ },
+ "驱魔人": {
+  "name": "驱魔人",
+  "type": "townsfolk"
+ },
+ "旅店老板": {
+  "name": "旅店老板",
+  "type": "townsfolk"
+ },
+ "赌徒": {
+  "name": "赌徒",
+  "type": "townsfolk"
+ },
+ "造谣者": {
+  "name": "造谣者",
+  "type": "townsfolk"
+ },
+ "侍臣": {
+  "name": "侍臣",
+  "type": "townsfolk"
+ },
+ "教授": {
+  "name": "教授",
+  "type": "townsfolk"
+ },
+ "吟游诗人": {
+  "name": "吟游诗人",
+  "type": "townsfolk"
+ },
+ "茶艺师": {
+  "name": "茶艺师",
+  "type": "townsfolk"
+ },
+ "和平主义者": {
+  "name": "和平主义者",
+  "type": "townsfolk"
+ },
+ "弄臣": {
+  "name": "弄臣",
+  "type": "townsfolk"
+ },
+ "钟表匠": {
+  "name": "钟表匠",
+  "type": "townsfolk"
+ },
+ "筑梦师": {
+  "name": "筑梦师",
+  "type": "townsfolk"
+ },
+ "舞蛇人": {
+  "name": "舞蛇人",
+  "type": "townsfolk"
+ },
+ "数学家": {
+  "name": "数学家",
+  "type": "townsfolk"
+ },
+ "卖花女孩": {
+  "name": "卖花女孩",
+  "type": "townsfolk"
+ },
+ "城镇公告员": {
+  "name": "城镇公告员",
+  "type": "townsfolk"
+ },
+ "神谕者": {
+  "name": "神谕者",
+  "type": "townsfolk"
+ },
+ "博学者": {
+  "name": "博学者",
+  "type": "townsfolk"
+ },
+ "女裁缝": {
+  "name": "女裁缝",
+  "type": "townsfolk"
+ },
+ "哲学家": {
+  "name": "哲学家",
+  "type": "townsfolk"
+ },
+ "艺术家": {
+  "name": "艺术家",
+  "type": "townsfolk"
+ },
+ "杂耍艺人": {
+  "name": "杂耍艺人",
+  "type": "townsfolk"
+ },
+ "贤者": {
+  "name": "贤者",
+  "type": "townsfolk"
+ },
+ "半兽人": {
+  "name": "半兽人",
+  "type": "townsfolk"
+ },
+ "报丧女妖": {
+  "name": "报丧女妖",
+  "type": "townsfolk"
+ },
+ "唱诗男孩": {
+  "name": "唱诗男孩",
+  "type": "townsfolk"
+ },
+ "传教士": {
+  "name": "传教士",
+  "type": "townsfolk"
+ },
+ "村夫": {
+  "name": "村夫",
+  "type": "townsfolk"
+ },
+ "工程师": {
+  "name": "工程师",
+  "type": "townsfolk"
+ },
+ "贵族": {
+  "name": "贵族",
+  "type": "townsfolk"
+ },
+ "公主": {
+  "name": "公主",
+  "type": "townsfolk"
+ },
+ "国王": {
+  "name": "国王",
+  "type": "townsfolk"
+ },
+ "将军": {
+  "name": "将军",
+  "type": "townsfolk"
+ },
+ "炼金术士": {
+  "name": "炼金术士",
+  "type": "townsfolk"
+ },
+ "魔术师": {
+  "name": "魔术师",
+  "type": "townsfolk"
+ },
+ "农夫": {
+  "name": "农夫",
+  "type": "townsfolk"
+ },
+ "女祭司": {
+  "name": "女祭司",
+  "type": "townsfolk"
+ },
+ "气球驾驶员": {
+  "name": "气球驾驶员",
+  "type": "townsfolk"
+ },
+ "骑士": {
+  "name": "骑士",
+  "type": "townsfolk"
+ },
+ "赏金猎人": {
+  "name": "赏金猎人",
+  "type": "townsfolk"
+ },
+ "失忆者": {
+  "name": "失忆者",
+  "type": "townsfolk"
+ },
+ "食人族": {
+  "name": "食人族",
+  "type": "townsfolk"
+ },
+ "事务官": {
+  "name": "事务官",
+  "type": "townsfolk"
+ },
+ "守夜人": {
+  "name": "守夜人",
+  "type": "townsfolk"
+ },
+ "无神论者": {
+  "name": "无神论者",
+  "type": "townsfolk"
+ },
+ "戏法师": {
+  "name": "戏法师",
+  "type": "townsfolk"
+ },
+ "小精灵": {
+  "name": "小精灵",
+  "type": "townsfolk"
+ },
+ "修行者": {
+  "name": "修行者",
+  "type": "townsfolk"
+ },
+ "巡山人": {
+  "name": "巡山人",
+  "type": "townsfolk"
+ },
+ "异教领袖": {
+  "name": "异教领袖",
+  "type": "townsfolk"
+ },
+ "罂粟种植者": {
+  "name": "罂粟种植者",
+  "type": "townsfolk"
+ },
+ "渔夫": {
+  "name": "渔夫",
+  "type": "townsfolk"
+ },
+ "杂技演员": {
+  "name": "杂技演员",
+  "type": "townsfolk"
+ },
+ "管家": {
+  "name": "管家",
+  "type": "outsider"
+ },
+ "酒鬼": {
+  "name": "酒鬼",
+  "type": "outsider"
+ },
+ "陌客": {
+  "name": "陌客",
+  "type": "outsider"
+ },
+ "圣徒": {
+  "name": "圣徒",
+  "type": "outsider"
+ },
+ "修补匠": {
+  "name": "修补匠",
+  "type": "outsider"
+ },
+ "月之子": {
+  "name": "月之子",
+  "type": "outsider"
+ },
+ "莽夫": {
+  "name": "莽夫",
+  "type": "outsider"
+ },
+ "疯子": {
+  "name": "疯子",
+  "type": "outsider"
+ },
+ "畸形秀演员": {
+  "name": "畸形秀演员",
+  "type": "outsider"
+ },
+ "心上人": {
+  "name": "心上人",
+  "type": "outsider"
+ },
+ "理发师": {
+  "name": "理发师",
+  "type": "outsider"
+ },
+ "呆瓜": {
+  "name": "呆瓜",
+  "type": "outsider"
+ },
+ "告密者": {
+  "name": "告密者",
+  "type": "outsider"
+ },
+ "解谜大师": {
+  "name": "解谜大师",
+  "type": "outsider"
+ },
+ "狂热者": {
+  "name": "狂热者",
+  "type": "outsider"
+ },
+ "落难少女": {
+  "name": "落难少女",
+  "type": "outsider"
+ },
+ "帽匠": {
+  "name": "帽匠",
+  "type": "outsider"
+ },
+ "魔像": {
+  "name": "魔像",
+  "type": "outsider"
+ },
+ "食人魔": {
+  "name": "食人魔",
+  "type": "outsider"
+ },
+ "瘟疫医生": {
+  "name": "瘟疫医生",
+  "type": "outsider"
+ },
+ "异端分子": {
+  "name": "异端分子",
+  "type": "outsider"
+ },
+ "隐士": {
+  "name": "隐士",
+  "type": "outsider"
+ },
+ "政客": {
+  "name": "政客",
+  "type": "outsider"
+ },
+ "Q宝": {
+  "name": "Q宝",
+  "type": "outsider"
+ },
+ "投毒者": {
+  "name": "投毒者",
+  "type": "minion"
+ },
+ "间谍": {
+  "name": "间谍",
+  "type": "minion"
+ },
+ "红唇女郎": {
+  "name": "红唇女郎",
+  "type": "minion"
+ },
+ "男爵": {
+  "name": "男爵",
+  "type": "minion"
+ },
+ "教父": {
+  "name": "教父",
+  "type": "minion"
+ },
+ "魔鬼代言人": {
+  "name": "魔鬼代言人",
+  "type": "minion"
+ },
+ "刺客": {
+  "name": "刺客",
+  "type": "minion"
+ },
+ "主谋": {
+  "name": "主谋",
+  "type": "minion"
+ },
+ "镜像双子": {
+  "name": "镜像双子",
+  "type": "minion"
+ },
+ "女巫": {
+  "name": "女巫",
+  "type": "minion"
+ },
+ "洗脑师": {
+  "name": "洗脑师",
+  "type": "minion"
+ },
+ "麻脸巫婆": {
+  "name": "麻脸巫婆",
+  "type": "minion"
+ },
+ "哥布林": {
+  "name": "哥布林",
+  "type": "minion"
+ },
+ "寡妇": {
+  "name": "寡妇",
+  "type": "minion"
+ },
+ "街头风琴手": {
+  "name": "街头风琴手",
+  "type": "minion"
+ },
+ "精神病患者": {
+  "name": "精神病患者",
+  "type": "minion"
+ },
+ "科学怪人": {
+  "name": "科学怪人",
+  "type": "minion"
+ },
+ "恐惧之灵": {
+  "name": "恐惧之灵",
+  "type": "minion"
+ },
+ "灵言师": {
+  "name": "灵言师",
+  "type": "minion"
+ },
+ "提线木偶": {
+  "name": "提线木偶",
+  "type": "minion"
+ },
+ "亡魂": {
+  "name": "亡魂",
+  "type": "minion"
+ },
+ "维齐尔": {
+  "name": "维齐尔",
+  "type": "minion"
+ },
+ "巫师": {
+  "name": "巫师",
+  "type": "minion"
+ },
+ "限": {
+  "name": "限",
+  "type": "minion"
+ },
+ "鹰身女妖": {
+  "name": "鹰身女妖",
+  "type": "minion"
+ },
+ "炸弹人": {
+  "name": "炸弹人",
+  "type": "minion"
+ },
+ "召唤师": {
+  "name": "召唤师",
+  "type": "minion"
+ },
+ "小恶魔": {
+  "name": "小恶魔",
+  "type": "demon"
+ },
+ "僵怖": {
+  "name": "僵怖",
+  "type": "demon"
+ },
+ "普卡": {
+  "name": "普卡",
+  "type": "demon"
+ },
+ "沙巴洛斯": {
+  "name": "沙巴洛斯",
+  "type": "demon"
+ },
+ "珀": {
+  "name": "珀",
+  "type": "demon"
+ },
+ "方古": {
+  "name": "方古",
+  "type": "demon"
+ },
+ "亡骨魔": {
+  "name": "亡骨魔",
+  "type": "demon"
+ },
+ "诺-达鲺": {
+  "name": "诺-达鲺",
+  "type": "demon"
+ },
+ "涡流": {
+  "name": "涡流",
+  "type": "demon"
+ },
+ "奥赫": {
+  "name": "奥赫",
+  "type": "demon"
+ },
+ "暴乱": {
+  "name": "暴乱",
+  "type": "demon"
+ },
+ "堤丰之首": {
+  "name": "堤丰之首",
+  "type": "demon"
+ },
+ "哈迪寂亚": {
+  "name": "哈迪寂亚",
+  "type": "demon"
+ },
+ "军团": {
+  "name": "军团",
+  "type": "demon"
+ },
+ "卡扎力": {
+  "name": "卡扎力",
+  "type": "demon"
+ },
+ "利维坦": {
+  "name": "利维坦",
+  "type": "demon"
+ },
+ "痢蛭": {
+  "name": "痢蛭",
+  "type": "demon"
+ },
+ "小怪宝": {
+  "name": "小怪宝",
+  "type": "demon"
+ },
+ "牙噶巴卜": {
+  "name": "牙噶巴卜",
+  "type": "demon"
+ },
+ "官员": {
+  "name": "官员",
+  "type": "traveler"
+ },
+ "乞丐": {
+  "name": "乞丐",
+  "type": "traveler"
+ },
+ "枪手": {
+  "name": "枪手",
+  "type": "traveler"
+ },
+ "窃贼": {
+  "name": "窃贼",
+  "type": "traveler"
+ },
+ "替罪羊": {
+  "name": "替罪羊",
+  "type": "traveler"
+ },
+ "法官": {
+  "name": "法官",
+  "type": "traveler"
+ },
+ "女舍监": {
+  "name": "女舍监",
+  "type": "traveler"
+ },
+ "巫毒师": {
+  "name": "巫毒师",
+  "type": "traveler"
+ },
+ "学徒": {
+  "name": "学徒",
+  "type": "traveler"
+ },
+ "主教": {
+  "name": "主教",
+  "type": "traveler"
+ },
+ "怪咖": {
+  "name": "怪咖",
+  "type": "traveler"
+ },
+ "集骨者": {
+  "name": "集骨者",
+  "type": "traveler"
+ },
+ "咖啡师": {
+  "name": "咖啡师",
+  "type": "traveler"
+ },
+ "流莺": {
+  "name": "流莺",
+  "type": "traveler"
+ },
+ "屠夫": {
+  "name": "屠夫",
+  "type": "traveler"
+ },
+ "黑帮": {
+  "name": "黑帮",
+  "type": "traveler"
+ },
+ "笑匠": {
+  "name": "笑匠",
+  "type": "traveler"
+ },
+ "侏儒": {
+  "name": "侏儒",
+  "type": "traveler"
+ },
+ "末日预言者": {
+  "name": "末日预言者",
+  "type": "legendary"
+ },
+ "玩具匠": {
+  "name": "玩具匠",
+  "type": "legendary"
+ },
+ "天使": {
+  "name": "天使",
+  "type": "legendary"
+ },
+ "佛教徒": {
+  "name": "佛教徒",
+  "type": "legendary"
+ },
+ "革命者": {
+  "name": "革命者",
+  "type": "legendary"
+ },
+ "地狱藏书员": {
+  "name": "地狱藏书员",
+  "type": "legendary"
+ },
+ "小提琴手": {
+  "name": "小提琴手",
+  "type": "legendary"
+ },
+ "骗人精": {
+  "name": "骗人精",
+  "type": "legendary"
+ },
+ "公爵夫人": {
+  "name": "公爵夫人",
+  "type": "legendary"
+ },
+ "哨兵": {
+  "name": "哨兵",
+  "type": "legendary"
+ },
+ "圣洁之魂": {
+  "name": "圣洁之魂",
+  "type": "legendary"
+ },
+ "灯神": {
+  "name": "灯神",
+  "type": "legendary"
+ },
+ "失败的上帝": {
+  "name": "失败的上帝",
+  "type": "legendary"
+ },
+ "摆渡人": {
+  "name": "摆渡人",
+  "type": "legendary"
+ },
+ "暴风捕手": {
+  "name": "暴风捕手",
+  "type": "奇遇"
+ },
+ "腹语师": {
+  "name": "腹语师",
+  "type": "奇遇"
+ },
+ "诡诈杰克": {
+  "name": "诡诈杰克",
+  "type": "奇遇"
+ },
+ "教皇": {
+  "name": "教皇",
+  "type": "奇遇"
+ },
+ "讷神": {
+  "name": "讷神",
+  "type": "奇遇"
+ },
+ "首席律师": {
+  "name": "首席律师",
+  "type": "奇遇"
+ },
+ "私货商人": {
+  "name": "私货商人",
+  "type": "奇遇"
+ },
+ "印度教教徒": {
+  "name": "印度教教徒",
+  "type": "奇遇"
+ },
+ "异术士": {
+  "name": "异术士",
+  "type": "奇遇"
+ },
+ "遗忘之门": {
+  "name": "遗忘之门",
+  "type": "奇遇"
+ },
+ "园丁": {
+  "name": "园丁",
+  "type": "奇遇"
+ },
+ "第一届华灯初上剧本创作大赛": {
+  "name": "第一届华灯初上剧本创作大赛",
+  "type": "华灯初上"
+ },
+ "半仙": {
+  "name": "半仙",
+  "type": "华灯初上"
+ },
+ "变脸师": {
+  "name": "变脸师",
+  "type": "华灯初上"
+ },
+ "打更人": {
+  "name": "打更人",
+  "type": "华灯初上"
+ },
+ "店小二": {
+  "name": "店小二",
+  "type": "华灯初上"
+ },
+ "歌伶": {
+  "name": "歌伶",
+  "type": "华灯初上"
+ },
+ "和尚": {
+  "name": "和尚",
+  "type": "华灯初上"
+ },
+ "锦衣卫": {
+  "name": "锦衣卫",
+  "type": "华灯初上"
+ },
+ "郎中": {
+  "name": "郎中",
+  "type": "华灯初上"
+ },
+ "钦天监": {
+  "name": "钦天监",
+  "type": "华灯初上"
+ },
+ "悟道者": {
+  "name": "悟道者",
+  "type": "华灯初上"
+ },
+ "戏子": {
+  "name": "戏子",
+  "type": "华灯初上"
+ },
+ "熊孩子": {
+  "name": "熊孩子",
+  "type": "华灯初上"
+ },
+ "阴阳师": {
+  "name": "阴阳师",
+  "type": "华灯初上"
+ },
+ "逆臣": {
+  "name": "逆臣",
+  "type": "华灯初上"
+ },
+ "煞星": {
+  "name": "煞星",
+  "type": "华灯初上"
+ },
+ "使节": {
+  "name": "使节",
+  "type": "华灯初上"
+ },
+ "书生": {
+  "name": "书生",
+  "type": "华灯初上"
+ },
+ "赶尸人": {
+  "name": "赶尸人",
+  "type": "华灯初上"
+ },
+ "狐媚娘": {
+  "name": "狐媚娘",
+  "type": "华灯初上"
+ },
+ "禁卫军": {
+  "name": "禁卫军",
+  "type": "华灯初上"
+ },
+ "养蛊人": {
+  "name": "养蛊人",
+  "type": "华灯初上"
+ },
+ "混沌": {
+  "name": "混沌",
+  "type": "华灯初上"
+ },
+ "穷奇": {
+  "name": "穷奇",
+  "type": "华灯初上"
+ },
+ "饕餮": {
+  "name": "饕餮",
+  "type": "华灯初上"
+ },
+ "梼杌": {
+  "name": "梼杌",
+  "type": "华灯初上"
+ },
+ "叫花子": {
+  "name": "叫花子",
+  "type": "华灯初上"
+ },
+ "麒麟": {
+  "name": "麒麟",
+  "type": "华灯初上"
+ },
+ "秉笔": {
+  "name": "秉笔",
+  "type": "山雨欲来"
+ },
+ "宠妃": {
+  "name": "宠妃",
+  "type": "山雨欲来"
+ },
+ "道士": {
+  "name": "道士",
+  "type": "山雨欲来"
+ },
+ "方士": {
+  "name": "方士",
+  "type": "山雨欲来"
+ },
+ "狸猫": {
+  "name": "狸猫",
+  "type": "山雨欲来"
+ },
+ "掮客": {
+  "name": "掮客",
+  "type": "山雨欲来"
+ },
+ "提刑官": {
+  "name": "提刑官",
+  "type": "山雨欲来"
+ },
+ "巡察": {
+  "name": "巡察",
+  "type": "山雨欲来"
+ },
+ "引路人": {
+  "name": "引路人",
+  "type": "山雨欲来"
+ },
+ "驿使": {
+  "name": "驿使",
+  "type": "山雨欲来"
+ },
+ "鸩": {
+  "name": "鸩",
+  "type": "山雨欲来"
+ },
+ "知府": {
+  "name": "知府",
+  "type": "山雨欲来"
+ },
+ "酒保": {
+  "name": "酒保",
+  "type": "山雨欲来"
+ },
+ "入殓师": {
+  "name": "入殓师",
+  "type": "山雨欲来"
+ },
+ "画皮": {
+  "name": "画皮",
+  "type": "山雨欲来"
+ },
+ "蛊雕": {
+  "name": "蛊雕",
+  "type": "山雨欲来"
+ },
+ "孟婆": {
+  "name": "孟婆",
+  "type": "山雨欲来"
+ },
+ "酿酒师": {
+  "name": "酿酒师",
+  "type": "山雨欲来"
+ },
+ "暴君": {
+  "name": "暴君",
+  "type": "山雨欲来"
+ },
+ "典狱长": {
+  "name": "典狱长",
+  "type": "山雨欲来"
+ },
+ "姑获鸟": {
+  "name": "姑获鸟",
+  "type": "山雨欲来"
+ },
+ "奸佞": {
+  "name": "奸佞",
+  "type": "山雨欲来"
+ },
+ "移花接木": {
+  "name": "移花接木",
+  "type": "山雨欲来"
+ },
+ "寄梦他乡": {
+  "name": "寄梦他乡",
+  "type": "山雨欲来"
+ },
+ "十三行": {
+  "name": "十三行",
+  "type": "山雨欲来"
+ },
+ "金戈铁马V2.0": {
+  "name": "金戈铁马V2.0",
+  "type": "山雨欲来"
+ },
+ "戏子（改）": {
+  "name": "戏子（改）",
+  "type": "山雨欲来"
+ },
+ "赦令承旨": {
+  "name": "赦令承旨",
+  "type": "山雨欲来"
+ }
+}

@@ -37,10 +37,30 @@ export function renderPrompt(
   promptId: string,
   context: PromptContext = {}
 ): string {
-  const template = getPromptTemplate(promptId);
+  let template = getPromptTemplate(promptId);
+
+  // 🔧 Fallback：缺失模板不再返回原始 id + console.warn，
+  //   而是生成有意义的默认提示（覆盖 default_wake / 空 id / 未收录角色）
   if (!template) {
-    console.warn(`[promptEngine] 未找到模板：${promptId}`);
-    return promptId;
+    const roleName = context.roleName ?? "该角色";
+    if (!promptId || promptId === "default_wake") {
+      template = {
+        id: "default_wake",
+        category: "role" as const,
+        template: `唤醒{{seatNo}}号【${roleName}】，${roleName}请行动。`,
+        description: "默认唤醒提示（fallback）",
+      };
+    } else if (promptId.startsWith("role.") || promptId.endsWith("_wake")) {
+      template = {
+        id: promptId,
+        category: "role" as const,
+        template: `唤醒{{seatNo}}号【${roleName}】，${roleName}请行动。`,
+        description: "角色唤醒提示（自动生成 fallback）",
+      };
+    } else {
+      console.warn(`[promptEngine] 未找到模板：${promptId}`);
+      return promptId;
+    }
   }
 
   return parseTemplate(template.template, context);

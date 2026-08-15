@@ -80,7 +80,7 @@ export const ferrymanAbility = createRoleAbility({
   abilityName: "灵魂摆渡",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 40,
   firstNightOnly: false,
   wakePromptId: "role.ferryman.wake",
   targetConfig: { min: 0, max: 1, allowSelf: false, allowDead: true },

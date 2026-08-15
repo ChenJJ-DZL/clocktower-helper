@@ -7,6 +7,7 @@ import {
   consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -100,6 +101,7 @@ const updateAssassinationStatus = async (
 
 export const assassinAbility = createRoleAbility({
   roleId: "assassin",
+  effectSemantics: "kill",
   abilityId: "assassin_night_ability",
   abilityName: "致命暗杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
@@ -139,5 +141,7 @@ export const assassinAbility = createRoleAbility({
       }
       return context;
     },
+    // 🔧 结算产物（此前缺失 → I9 违规）
+    createSettlementPostProcess("刺客", { resultType: "assassin_kill" }),
   ],
 });

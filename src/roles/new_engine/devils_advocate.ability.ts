@@ -5,6 +5,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -37,5 +38,13 @@ export const devils_advocateAbility = createRoleAbility({
       console.log("[DA] protection set");
       return context;
     },
+    // 🔧 结算产物（此前缺失 → I9 违规）
+    createSettlementPostProcess("魔鬼代言人", {
+      resultType: "devils_advocate_protection",
+      buildLog: (ctx) =>
+        ctx.targetIds?.[0] != null
+          ? `魔鬼代言人保护了 ${(ctx.targetIds[0] ?? 0) + 1} 号玩家免受死亡。`
+          : "魔鬼代言人未选择保护目标。",
+    }),
   ],
 });

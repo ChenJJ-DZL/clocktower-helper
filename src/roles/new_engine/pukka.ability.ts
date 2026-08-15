@@ -3,6 +3,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import type { GameStateSnapshot } from "../../utils/nightStateMachine";
 import {
   AbilityTriggerTiming,
@@ -144,6 +145,7 @@ const updatePoisonState = async (
 
 export const pukkaAbility = createRoleAbility({
   roleId: "pukka",
+  effectSemantics: "poison",
   abilityId: "pukka_poison",
   abilityName: "普卡毒杀",
   triggerTiming: [
@@ -156,5 +158,14 @@ export const pukkaAbility = createRoleAbility({
   preCheck: [preCheckAlive],
   calculate: [calculatePoisonTargets],
   stateUpdate: [updatePoisonState],
-  postProcess: [],
+  // 🔧 结算产物（此前为空 → I9 违规）
+  postProcess: [
+    createSettlementPostProcess("普卡", {
+      resultType: "pukka_poison",
+      buildLog: (ctx) =>
+        ctx.targetIds?.[0] != null
+          ? `普卡对 ${(ctx.targetIds[0] ?? 0) + 1} 号玩家下毒，该玩家将于明晚毒发死亡。`
+          : "普卡未选择下毒目标。",
+    }),
+  ],
 });

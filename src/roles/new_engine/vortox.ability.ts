@@ -94,6 +94,7 @@ const postProcess = async (
 
 export const vortoxAbility = createRoleAbility({
   roleId: "vortox",
+  effectSemantics: "kill",
   abilityId: "vortox_kill",
   abilityName: "混沌杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

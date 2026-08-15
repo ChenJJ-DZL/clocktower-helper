@@ -79,6 +79,7 @@ const postProcess = async (
 export const lil_monstaAbility = createRoleAbility({
   /** 小怪物（Lil' Monsta）标识符 */
   roleId: "lil_monsta",
+  effectSemantics: "info",
   /** 能力标识符 */
   abilityId: "lil_monsta_pass",
   /** 能力中文名 */
@@ -88,7 +89,7 @@ export const lil_monstaAbility = createRoleAbility({
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级（早些唤醒让邪恶阵营投票） */
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 45,
   /** 首夜也唤醒 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

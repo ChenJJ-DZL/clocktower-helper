@@ -10,6 +10,7 @@ import {
 } from "../core/roleAbility.types";
 import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 import { pickMayorSubstitute, mayorSubstituteLog } from "../../utils/soldierImmunity";
+import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
 
 // 前置校验：检查是否存活，是否为恶魔
 const preCheckAlive = async (
@@ -68,7 +69,7 @@ const updateKillState = async (
 
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
-  const seats = snapshot.seats.map((seat) => seat); // 拷贝数组（元素引用不变，仅替换目标）
+  let seats = snapshot.seats.map((seat) => seat); // 拷贝数组（元素引用不变，仅替换目标）
   // 🔧 镇长免疫的代价：被恶魔攻击时镇长不死，但有一名镇民（Townsfolk）替代死亡。
   //   先扫描本次目标中是否有镇长免疫，若有则选替代镇民（随后统一处理死亡）。
   const substituteByMayor: Map<number, any> = new Map();
@@ -88,10 +89,27 @@ const updateKillState = async (
       }
     }
   }
+  // 🔧 梼杌替死（wiki 官方规则）：梼杌将死时若有存活且有能力的爪牙 → 不死亡，爪牙失去能力
+  const taowuSavedIds = new Set<number>();
+  for (const tid of validTargets) {
+    const targetSeat = seats.find((s: any) => s.id === tid);
+    if (targetSeat && isTaowuSeat(targetSeat)) {
+      const r = tryTaowuSubstitute(seats, targetSeat);
+      if (r.saved) {
+        seats = r.seats;
+        taowuSavedIds.add(tid);
+        console.log(
+          `[Shabaloth] ${taowuSubstituteLog(targetSeat, seats.find((s: any) => s.id === r.lostMinionId))}`
+        );
+      }
+    }
+  }
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
     seats: seats.map((seat) => {
       if (validTargets.includes(seat.id)) {
+        // 🔧 梼杌替死成功 → 不死亡
+        if (taowuSavedIds.has(seat.id)) return seat;
         const isProtected =
           seat.statusEffects?.some((e: any) => e.type === "protected") ||
           (seat as any).isProtected;
@@ -136,6 +154,7 @@ const updateKillState = async (
 
 export const shabalothAbility = createRoleAbility({
   roleId: "shabaloth",
+  effectSemantics: "kill",
   abilityId: "shabaloth_night_kill",
   abilityName: "恶魔击杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

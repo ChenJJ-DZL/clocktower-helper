@@ -166,7 +166,7 @@ export const lloamAbility = createRoleAbility({
   abilityName: "毒杀处决",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 43,
   firstNightOnly: false,
   wakePromptId: "role.lloam.wake",
   targetConfig: {

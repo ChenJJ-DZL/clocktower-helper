@@ -1,10 +1,21 @@
 /**
  * 饕餮（Taotie）新引擎技能实现
  *
- * 【角色能力】"中国神话恶魔。每夜，你可以选择吃掉一名玩家，但你会获得其角色标识。"
+ * 【角色能力】（官方 Wiki，2026-08-15 对齐）
+ *   "每个夜晚*，你要选择任意数量的非旅行者玩家或一名旅行者玩家：如果他们的
+ *   角色类型均不相同，他们死亡。[+1外来者]"
  *
- * 每夜选择一名玩家将其"吃掉"（杀死），但饕餮会获得该玩家的角色标识信息。
- * 被吃掉的玩家死亡，饕餮知道其角色身份。
+ * 【角色简介】
+ *   - 饕餮每个夜晚可以选择任意数量的非旅行者玩家。如果这些玩家之中没有任何两名
+ *     玩家有相同的角色类型（镇民/外来者/爪牙/恶魔），那么这些玩家都会死亡。
+ *   - 饕餮可以不进行选择（视作选择了任意数量的玩家 → 无人死亡）。
+ *   - 如果选择攻击一名旅行者，当晚不能再攻击其他玩家。
+ *
+ * 【范例】
+ *   - 选择占卜师、酒鬼、刺客 → 类型互不相同 → 全部死亡。
+ *   - 选择赌徒、筑梦师、博学者 → 全是镇民 → 无人死亡。
+ *
+ * 【网页版适配】说书人选择的"任意数量"由目标选择面板表达（min 0 / max 不限）。
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
@@ -15,10 +26,6 @@ import {
 
 // ─── 前置校验中间件 ────────────────────────────────────────────────────
 
-/**
- * preCheck：存活检测
- * 饕餮死亡时技能不应触发。
- */
 const preCheckAlive = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
@@ -26,7 +33,10 @@ const preCheckAlive = async (
     (s: any) => s.id === ctx.actionNode.seatId
   );
   if (!seat?.isAlive) {
-    return { ...ctx, aborted: true, abortReason: "玩家已死亡，技能失效" };
+    return { ...ctx, aborted: true, abortReason: "饕餮已死亡，技能失效" };
+  }
+  if ((ctx.snapshot.nightCount ?? 1) === 1) {
+    return { ...ctx, aborted: true, abortReason: "首夜，饕餮不行动" };
   }
   return ctx;
 };
@@ -34,34 +44,29 @@ const preCheckAlive = async (
 // ─── 计算中间件 ─────────────────────────────────────────────────────────
 
 /**
- * calculate：确定被吃掉的目标玩家
- *
- * 饕餮选择一名玩家，将其标记为 consumedTarget。
- * 被吃掉的玩家死亡，饕餮获得其角色标识。
+ * calculate：校验目标合法性（旅行者限制）
  */
 const calculateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const targetId = ctx.targetIds?.[0];
-  if (targetId === undefined || targetId === null) {
-    return { ...ctx, aborted: true, abortReason: "饕餮未选择目标" };
+  const targetIds: number[] = ctx.targetIds ?? [];
+
+  // 含旅行者：只允许选择 1 名（旅行者 或 1 名其他玩家）
+  const seats = ctx.snapshot.seats as any[];
+  const hasTraveler = targetIds.some((tid) => {
+    const s = seats.find((x) => x.id === tid);
+    return s?.role?.type === "traveler";
+  });
+  if (hasTraveler && targetIds.length > 1) {
+    return { ...ctx, aborted: true, abortReason: "选择旅行者时不能再选择其他玩家" };
   }
 
-  // 获取目标玩家的角色信息
-  const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
-  const consumedRoleId = target?.role?.id ?? target?.roleId ?? null;
-  const consumedRoleName = target?.role?.name ?? target?.roleName ?? null;
-
+  // 无目标 = 选择任意数量（0）→ 无人死亡，正常结算
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: {
-        targetId,
-        consumed: true,
-        consumedRoleId,
-        consumedRoleName,
-      },
+      abilityResult: { targetIds, hasTraveler },
     },
   };
 };
@@ -69,124 +74,108 @@ const calculateResult = async (
 // ─── 状态更新中间件 ────────────────────────────────────────────────────
 
 /**
- * stateUpdate：执行吞噬
- *
- * 1. 目标玩家标记为死亡
- * 2. 饕餮获得其角色标识（存储在 taotie.consumedRoles 中）
+ * stateUpdate：若所有目标角色类型互不相同 → 全部标记死亡；否则无人死亡。
  */
 const stateUpdateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const abilityResult = ctx.meta.abilityResult as
-    | {
-        targetId: number;
-        consumed: boolean;
-        consumedRoleId: string | null;
-        consumedRoleName: string | null;
-      }
+    | { targetIds: number[]; hasTraveler: boolean }
     | undefined;
-
   if (!abilityResult) return ctx;
 
-  const { targetId, consumedRoleId, consumedRoleName } = abilityResult;
-  const updatedSeats = [...ctx.snapshot.seats];
+  const { targetIds } = abilityResult;
+  const nightCount = ctx.snapshot.nightCount ?? 0;
+  const seats = [...(ctx.snapshot.seats as any[])];
 
-  // 标记目标为死亡（被吃掉）
-  const targetIdx = updatedSeats.findIndex((s: any) => s.id === targetId);
-  if (targetIdx !== -1) {
-    updatedSeats[targetIdx] = {
-      ...updatedSeats[targetIdx],
-      markedForDeath: true,
-      deathSource: "taotie_consume",
-      deathSourceSeatId: ctx.actionNode.seatId,
-    };
+  // 角色类型集合：互不相同才触发
+  const types = targetIds.map((tid) => {
+    const s = seats.find((x) => x.id === tid);
+    return s?.role?.type ?? "unknown";
+  });
+  const allDistinct = new Set(types).size === types.length;
+
+  const killedIds: number[] = [];
+  if (allDistinct && types.length > 0) {
+    for (const tid of targetIds) {
+      const idx = seats.findIndex((s: any) => s.id === tid);
+      if (idx === -1) continue;
+      const target = seats[idx];
+      const protected_ =
+        target.statusEffects?.some((e: any) => e.type === "protected") ||
+        (target as any).isProtected;
+      if (!protected_) {
+        seats[idx] = {
+          ...target,
+          markedForDeath: true,
+          diedAtNight: nightCount,
+          killedBy: "taotie",
+          deathSource: "taotie_kill",
+          deathSourceSeatId: ctx.actionNode.seatId,
+        };
+        killedIds.push(tid);
+      }
+    }
   }
 
-  // 存储饕餮获得的角色信息
-  const consumedTarget = {
-    targetId,
-    roleId: consumedRoleId,
-    roleName: consumedRoleName,
-  };
-
   const record = {
-    targetId,
-    consumed: true,
-    consumedRoleId,
-    consumedRoleName,
-    nightCount: ctx.snapshot.nightCount ?? 0,
+    targetIds,
+    allDistinct,
+    killedIds,
+    nightCount,
     timestamp: Date.now(),
-    // 已吞噬的角色列表（可累积多个）
-    consumedRoles: [
-      ...(((ctx.snapshot as any)._abilityResults?.taotie as any)
-        ?.consumedRoles ?? []),
-      consumedTarget,
-    ],
   };
 
   return {
     ...ctx,
-    actionNode: {
-      ...ctx.actionNode,
-      meta: {
-        ...ctx.actionNode.meta,
-        taotieResult: record,
-      },
-    },
     snapshot: {
       ...ctx.snapshot,
-      seats: updatedSeats,
+      seats,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         taotie: record,
       },
     },
-    meta: {
-      ...ctx.meta,
-      taotieResult: record,
-    },
+    meta: { ...ctx.meta, taotieResult: record },
   };
 };
 
 // ─── 后置处理中间件 ────────────────────────────────────────────────────
 
-/**
- * postProcess：生成日志和说书人提示词
- *
- * 说书人需要知道饕餮获得了什么角色信息。
- */
 const postProcessResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const record = ctx.meta.taotieResult as
-    | {
-        targetId: number;
-        consumedRoleName: string | null;
-        consumedRoles: Array<{ targetId: number; roleName: string | null }>;
-      }
-    | undefined;
-
+  const record = ctx.meta.taotieResult as Record<string, any> | undefined;
   if (!record) return ctx;
 
-  const targetLabel = `${record.targetId + 1}号`;
-  const roleInfo = record.consumedRoleName ?? "未知角色";
-  const simLog = `[饕餮] 吞噬了 ${targetLabel} (${roleInfo})`;
-  const storytellerPrompt = `唤醒${ctx.actionNode.seatId + 1}号【饕餮】，选择一名玩家吃掉。（选择了${targetLabel}，获得了【${roleInfo}】的角色标识）`;
-  const abilityLog = `饕餮吃掉了【${targetLabel}】，获得了【${roleInfo}】的角色标识`;
+  const label = (id: number) => `${id + 1}号`;
+  const targetsLabel =
+    record.targetIds.length > 0
+      ? record.targetIds.map(label).join("、")
+      : "（未选择）";
 
-  console.log(simLog);
+  let abilityLog: string;
+  if (record.targetIds.length === 0) {
+    abilityLog = `饕餮未选择目标，今晚无人死亡`;
+  } else if (record.allDistinct) {
+    abilityLog = `饕餮选择【${targetsLabel}】，角色类型互不相同，全部死亡`;
+  } else {
+    abilityLog = `饕餮选择【${targetsLabel}】，存在相同角色类型，无人死亡`;
+  }
+
+  console.log(`[Taotie] ${abilityLog}`);
 
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: storytellerPrompt,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【饕餮】，选择任意数量的玩家。（${abilityLog}）`,
       abilityLog,
       displayInfo: {
         type: "taotie_action",
-        targetId: record.targetId,
-        targetLabel: record.targetId + 1,
-        consumedRoleName: record.consumedRoleName,
+        targetIds: record.targetIds,
+        allDistinct: record.allDistinct,
+        killedIds: record.killedIds,
         log: abilityLog,
       },
     },
@@ -196,34 +185,21 @@ const postProcessResult = async (
 // ─── 导出能力注册 ─────────────────────────────────────────────────────
 
 export const taotieAbility = createRoleAbility({
-  /** 角色标识符 */
   roleId: "taotie",
-  /** 能力标识符 */
-  abilityId: "taotie_night_consume",
-  /** 能力中文名 */
+  effectSemantics: "kill",
+  abilityId: "taotie_night_ability",
   abilityName: "饕餮吞噬",
-
-  /** 触发时机：每晚 */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  /** 唤醒优先级（恶魔级别） */
   firstNightPriority: null,
-  otherNightPriority: null,
-  /** 首夜可行动 */
+  otherNightPriority: 47,
   firstNightOnly: false,
-  /** 唤醒提示词 ID */
   wakePromptId: "role.taotie.wake",
-
-  /**
-   * 目标选择配置
-   * 必须选择一名玩家作为吞噬目标。
-   */
   targetConfig: {
-    min: 1,
-    max: 1,
+    min: 0,
+    max: 99,
     allowSelf: false,
     allowDead: false,
   },
-
   preCheck: [preCheckAlive],
   calculate: [calculateResult],
   stateUpdate: [stateUpdateResult],

@@ -80,7 +80,7 @@ export const toymakerAbility = createRoleAbility({
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
   otherNightPriority: null,
-  firstNightOnly: true,
+  firstNightOnly: false,
   wakePromptId: "role.toymaker.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
   preCheck: [preCheck],

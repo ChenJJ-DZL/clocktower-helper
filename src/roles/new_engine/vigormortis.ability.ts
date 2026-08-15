@@ -98,6 +98,7 @@ const postProcess = async (
 
 export const vigormortisAbility = createRoleAbility({
   roleId: "vigormortis",
+  effectSemantics: "kill",
   abilityId: "vigormortis_kill",
   abilityName: "锁魂杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

@@ -2,6 +2,7 @@
  * 集中化提示词仓库
  * 统一管理所有说书人指引、角色提示、系统消息
  */
+import { generatedRoleWakeTemplates } from "./generatedRoleWakeTemplates";
 
 export interface PromptTemplate {
   /** 模板唯一标识 */
@@ -359,6 +360,8 @@ export const promptDictionary: PromptTemplate[] = [
     template: "{{seatNo}}号玩家（{{roleName}}）被公投处决",
     description: "处决成功提示",
   },
+  // 🔧 自动生成的全角色唤醒模板（212 条，基于 json/full/all_characters.json 能力描述）
+  ...(generatedRoleWakeTemplates as PromptTemplate[]),
 ];
 
 // 快捷查询Map

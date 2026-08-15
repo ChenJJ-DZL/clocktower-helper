@@ -83,7 +83,7 @@ export const thiefAbility = createRoleAbility({
   abilityName: "窃贼",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 33,
   firstNightOnly: false,
   wakePromptId: "role.thief.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

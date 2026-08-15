@@ -105,6 +105,7 @@ const postProcess = async (
 
 export const no_dashiiAbility = createRoleAbility({
   roleId: "no_dashii",
+  effectSemantics: "kill",
   abilityId: "no_dashii_kill",
   abilityName: "毒素杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

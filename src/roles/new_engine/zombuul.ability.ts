@@ -6,6 +6,8 @@ import {
 } from "../core/roleAbility.types";
 import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 import { pickMayorSubstitute, mayorSubstituteLog } from "../../utils/soldierImmunity";
+import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 
 const preCheckAlive = async (
   context: MiddlewareContext
@@ -66,7 +68,7 @@ const updateKillState = async (
 
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
-  const seats = snapshot.seats.map((seat) => seat); // 拷贝数组
+  let seats = snapshot.seats.map((seat) => seat); // 拷贝数组
   // 🔧 镇长免疫的代价：被恶魔攻击时镇长不死，但有一名镇民（Townsfolk）替代死亡。
   const targetSeat0 = seats.find((s: any) => s.id === targetId);
   let mayorSubstitute: any = null;
@@ -84,10 +86,24 @@ const updateKillState = async (
       }
     }
   }
+  // 🔧 梼杌替死（wiki 官方规则）：梼杌将死时若有存活且有能力的爪牙 → 不死亡，爪牙失去能力
+  let taowuSaved = false;
+  if (targetSeat0 && isTaowuSeat(targetSeat0)) {
+    const r = tryTaowuSubstitute(seats, targetSeat0);
+    if (r.saved) {
+      seats = r.seats;
+      taowuSaved = true;
+      console.log(
+        `[Zombuul] ${taowuSubstituteLog(targetSeat0, seats.find((s: any) => s.id === r.lostMinionId))}`
+      );
+    }
+  }
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
     seats: seats.map((seat) => {
       if (seat.id === targetId) {
+        // 🔧 梼杌替死成功 → 不死亡
+        if (taowuSaved) return seat;
         const isProtected =
           seat.statusEffects?.some((e: any) => e.type === "protected") ||
           (seat as any).isProtected;
@@ -129,8 +145,14 @@ const updateKillState = async (
   return { ...context, snapshot: newSnapshot };
 };
 
+// 🔧 结算产物：僵怖击杀的提示/日志/UI 数据（此前 postProcess 为空 → I9 违规）
+const settlementPostProcess = createSettlementPostProcess("僵怖", {
+  resultType: "zombuul_kill",
+});
+
 export const zombuulAbility = createRoleAbility({
   roleId: "zombuul",
+  effectSemantics: "kill",
   abilityId: "zombuul_kill",
   abilityName: "僵怖击杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
@@ -140,5 +162,5 @@ export const zombuulAbility = createRoleAbility({
   preCheck: [preCheckAlive],
   calculate: [calculateKillTargets],
   stateUpdate: [updateKillState],
-  postProcess: [],
+  postProcess: [settlementPostProcess],
 });

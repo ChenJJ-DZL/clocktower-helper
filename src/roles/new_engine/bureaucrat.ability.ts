@@ -82,7 +82,7 @@ export const bureaucratAbility = createRoleAbility({
   abilityName: "三倍选票",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 32,
   firstNightOnly: false,
   wakePromptId: "role.bureaucrat.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

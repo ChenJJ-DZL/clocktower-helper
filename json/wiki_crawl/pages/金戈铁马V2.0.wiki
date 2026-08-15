@@ -1,0 +1,43 @@
+金戈铁马V2.0是鸭镇为山雨欲来先行角色编写的体验剧本。
+
+
+== 镇民 ==
+<gallery mode="nolines" widths=250px perrow=4>
+ File:Fangshi.png|link=方士|[[方士]]
+ File:Dianxiaoer.png|link=店小二|[[店小二]]
+ File:Fortuneteller.png|link=占卜师|[[占卜师]]
+ File:Chambermaid.png|link=侍女|[[侍女]]
+ File:Yinluren.png|link=引路人|[[引路人]]
+ File:Zhifu.png|link=知府|[[知府]]
+ File:Daoshi.png|link=道士|[[道士]]
+ File:Acrobat.png|link=杂技演员|[[杂技演员]]
+ File:Savant.png|link=博学者|[[博学者]]
+ File:Bianlianshi.png|link=变脸师|[[变脸师]]
+ File:Zhen.png|link=鸩|[[鸩]]
+ File:Fisherman.png|link=渔夫|[[渔夫]]
+ File:Bingbi.png|link=秉笔|[[秉笔]]
+</gallery>
+
+== 外来者 ==
+<gallery mode="nolines" widths=250px perrow=4>
+ File:Drunk.png|link=酒鬼|[[酒鬼]]
+ File:Barber.png|link=理发师|[[理发师]]
+ File:Shusheng.png|link=书生|[[书生]]
+ File:Rulianshi.png|link=入殓师|[[入殓师]]
+</gallery>
+
+== 爪牙 ==
+<gallery mode="nolines" widths=250px perrow=4>
+ File:Summoner.png|link=召唤师|[[召唤师]]
+ File:Huapi.png|link=画皮|[[画皮]]
+ File:Assassin.png|link=刺客|[[刺客]]
+ File:Baron.png|link=男爵|[[男爵]]
+</gallery>
+
+== 恶魔 ==
+<gallery mode="nolines" widths=250px perrow=4>
+ File:Baojun_new.png|link=暴君|[[暴君]]
+ File:Nodashii.png|link=诺-达鲺|[[诺-达鲺]]
+ File:Imp.png|link=小恶魔|[[小恶魔]]
+ File:Pukka.png|link=普卡|[[普卡]]
+</gallery>

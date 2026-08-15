@@ -1,14 +1,22 @@
 /**
  * 梼杌（Taowu）新引擎技能实现
  *
- * 【角色能力】"中国神话恶魔。每夜，选择一名玩家。该玩家本夜不可被杀。"
+ * 【角色能力】（官方 Wiki，2026-08-15 对齐）
+ *   "每个夜晚*，你要选择一名玩家：他死亡。当你将要死亡时，改为一名存活且
+ *   具有能力的爪牙失去能力。你不会得知恶魔信息。"
  *
- * 反直觉设计：恶魔保护一名玩家。
- * 被保护的玩家本夜免疫死亡（包括恶魔杀戮、处决等）。
- * 选择的玩家获得 protected 标记，结算系统据此跳过其死亡。
+ * 【角色简介】
+ *   - 梼杌能够从自己的爪牙处汲取力量并延长生命。
+ *   - 梼杌即将死亡时，若有存活且具有能力的爪牙 → 梼杌不死亡，其中一名爪牙失去能力。
+ *   - 若所有存活爪牙都不具有能力 → 梼杌仍然死亡。
+ *   - "具有能力" = 未被中毒/醉酒/失去能力。
+ *   - 梼杌不会得知恶魔信息（网页版：不展示恶魔同伴信息）。
+ *
+ * 【网页版适配】替死由击杀方路径调用 taowuImmunity.tryTaowuSubstitute。
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -16,10 +24,6 @@ import {
 
 // ─── 前置校验中间件 ────────────────────────────────────────────────────
 
-/**
- * preCheck：存活检测
- * 梼杌死亡时技能不应触发。
- */
 const preCheckAlive = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
@@ -27,18 +31,16 @@ const preCheckAlive = async (
     (s: any) => s.id === ctx.actionNode.seatId
   );
   if (!seat?.isAlive) {
-    return { ...ctx, aborted: true, abortReason: "玩家已死亡，技能失效" };
+    return { ...ctx, aborted: true, abortReason: "梼杌已死亡，技能失效" };
+  }
+  if ((ctx.snapshot.nightCount ?? 1) === 1) {
+    return { ...ctx, aborted: true, abortReason: "首夜，梼杌不行动" };
   }
   return ctx;
 };
 
 // ─── 计算中间件 ─────────────────────────────────────────────────────────
 
-/**
- * calculate：确定受保护的玩家
- *
- * 梼杌选择一名玩家进行保护。该玩家本夜免疫死亡。
- */
 const calculateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
@@ -46,14 +48,13 @@ const calculateResult = async (
   if (targetId === undefined || targetId === null) {
     return { ...ctx, aborted: true, abortReason: "梼杌未选择目标" };
   }
-
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
         targetId,
-        protected: true,
+        isCorrupted: ctx.meta.isCorrupted ?? false,
       },
     },
   };
@@ -61,95 +62,91 @@ const calculateResult = async (
 
 // ─── 状态更新中间件 ────────────────────────────────────────────────────
 
-/**
- * stateUpdate：标记目标为受梼杌保护
- *
- * 被梼杌保护的玩家获得 immunitySource: "taowu" 标记。
- * 结算系统在黎明时将检查此标记，跳过该玩家的死亡。
- */
 const stateUpdateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const abilityResult = ctx.meta.abilityResult as
-    | { targetId: number; protected: boolean }
+    | { targetId: number }
     | undefined;
-
   if (!abilityResult) return ctx;
 
   const { targetId } = abilityResult;
-  const updatedSeats = [...ctx.snapshot.seats];
+  const nightCount = ctx.snapshot.nightCount ?? 0;
+  const seats = [...(ctx.snapshot.seats as any[])];
+  const targetIdx = seats.findIndex((s: any) => s.id === targetId);
 
-  // 清除该玩家可能已有的死亡标记
-  const targetIdx = updatedSeats.findIndex((s: any) => s.id === targetId);
-  if (targetIdx !== -1) {
-    updatedSeats[targetIdx] = {
-      ...updatedSeats[targetIdx],
-      markedForDeath: false,
-      // 添加免疫标记，结算系统识别
-      immunitySource: "taowu",
-      statusDetails: [
-        ...(updatedSeats[targetIdx].statusDetails ?? []),
-        "被梼杌保护，本夜免疫死亡",
-      ],
-    };
-  }
-
-  const record = {
+  const record: Record<string, any> = {
     targetId,
-    protected: true,
-    nightCount: ctx.snapshot.nightCount ?? 0,
+    nightCount,
     timestamp: Date.now(),
   };
+
+  if (targetIdx !== -1) {
+    const target = seats[targetIdx];
+    const protected_ =
+      target.statusEffects?.some((e: any) => e.type === "protected") ||
+      (target as any).isProtected;
+    // 士兵/镇长免疫
+    const aliveCount = seats.filter((s: any) => !s.isDead).length;
+    const immune = isImmuneToDemonKill(target, true, aliveCount);
+
+    if (protected_ || immune) {
+      record.blocked = true;
+    } else {
+      seats[targetIdx] = {
+        ...target,
+        markedForDeath: true,
+        diedAtNight: nightCount,
+        killedBy: "taowu",
+        deathSource: "taowu_kill",
+        deathSourceSeatId: ctx.actionNode.seatId,
+      };
+      record.killed = true;
+    }
+  }
 
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
-      seats: updatedSeats,
+      seats,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         taowu: record,
       },
     },
-    meta: {
-      ...ctx.meta,
-      taowuResult: record,
-    },
+    meta: { ...ctx.meta, taowuResult: record },
   };
 };
 
 // ─── 后置处理中间件 ────────────────────────────────────────────────────
 
-/**
- * postProcess：生成日志和说书人提示词
- */
 const postProcessResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const record = ctx.meta.taowuResult as
-    | { targetId: number; protected: boolean }
-    | undefined;
-
+  const record = ctx.meta.taowuResult as Record<string, any> | undefined;
   if (!record) return ctx;
 
   const targetLabel = `${record.targetId + 1}号`;
-  const simLog = `[梼杌] 保护了 ${targetLabel}，本夜免疫死亡`;
-  const storytellerPrompt = `唤醒${ctx.actionNode.seatId + 1}号【梼杌】，选择一名玩家。该玩家本夜不可被杀。（选择了${targetLabel}，已标记为保护状态）`;
-  const abilityLog = `梼杌保护了【${targetLabel}】，该玩家本夜免疫死亡`;
-
-  console.log(simLog);
+  let abilityLog: string;
+  if (record.blocked) {
+    abilityLog = `梼杌选择【${targetLabel}】，但目标受保护或免疫，未死亡`;
+  } else {
+    abilityLog = `梼杌杀死【${targetLabel}】`;
+  }
+  console.log(`[Taowu] ${abilityLog}`);
 
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: storytellerPrompt,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【梼杌】，选择一名玩家。（${abilityLog}）`,
       abilityLog,
       displayInfo: {
         type: "taowu_action",
         targetId: record.targetId,
         targetLabel: record.targetId + 1,
-        protected: true,
+        killed: !record.blocked,
         log: abilityLog,
       },
     },
@@ -159,34 +156,21 @@ const postProcessResult = async (
 // ─── 导出能力注册 ─────────────────────────────────────────────────────
 
 export const taowuAbility = createRoleAbility({
-  /** 角色标识符 */
   roleId: "taowu",
-  /** 能力标识符 */
-  abilityId: "taowu_night_protect",
-  /** 能力中文名 */
-  abilityName: "梼杌庇护",
-
-  /** 触发时机：每晚 */
+  effectSemantics: "kill",
+  abilityId: "taowu_night_kill",
+  abilityName: "梼杌噬杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  /** 唤醒优先级（恶魔级别） */
   firstNightPriority: null,
-  otherNightPriority: null,
-  /** 首夜可行动 */
+  otherNightPriority: 46,
   firstNightOnly: false,
-  /** 唤醒提示词 ID */
   wakePromptId: "role.taowu.wake",
-
-  /**
-   * 目标选择配置
-   * 必须选择一名玩家进行保护。
-   */
   targetConfig: {
     min: 1,
     max: 1,
-    allowSelf: true,
+    allowSelf: false,
     allowDead: false,
   },
-
   preCheck: [preCheckAlive],
   calculate: [calculateResult],
   stateUpdate: [stateUpdateResult],

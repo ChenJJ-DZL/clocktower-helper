@@ -69,6 +69,11 @@ import {
   pickMayorSubstitute,
   getDemonKillImmunityType,
 } from "../../utils/soldierImmunity";
+import {
+  isTaowuSeat,
+  tryTaowuSubstitute,
+  taowuSubstituteLog,
+} from "../../utils/taowuImmunity";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -338,7 +343,7 @@ const stateUpdateResult = async (
     };
   }
 
-  const updatedSeats = [...snapshot.seats];
+  let updatedSeats = [...snapshot.seats];
 
   // ── 自杀传刀 ──
   if (isSuicide) {
@@ -390,13 +395,37 @@ const stateUpdateResult = async (
       const soldierImmune = isImmuneToDemonKill(targetSeat, true, aliveCount);
       const immunityType = getDemonKillImmunityType(targetSeat, aliveCount);
       if (!isProtected && !soldierImmune) {
-        updatedSeats[targetIdx] = {
-          ...targetSeat,
-          markedForDeath: true,
-          diedAtNight: snapshot.nightCount,
-          deathSource: "imp_kill",
-          deathSourceSeatId: actionNode.seatId,
-        };
+        // 🔧 梼杌替死（wiki 官方规则 2026-08-15）：梼杌将死时若有存活且有能力的爪牙，
+        //   则梼杌不死亡，该爪牙失去能力；无爪牙可替死则正常死亡。
+        if (isTaowuSeat(targetSeat)) {
+          const r = tryTaowuSubstitute(updatedSeats, targetSeat);
+          if (r.saved) {
+            updatedSeats = r.seats;
+            const lostMinion = updatedSeats.find(
+              (s: any) => s.id === r.lostMinionId
+            );
+            console.log(`[Imp] ${taowuSubstituteLog(targetSeat, lostMinion)}`);
+          } else {
+            const idx2 = updatedSeats.findIndex((s: any) => s.id === targetId);
+            if (idx2 !== -1) {
+              updatedSeats[idx2] = {
+                ...updatedSeats[idx2],
+                markedForDeath: true,
+                diedAtNight: snapshot.nightCount,
+                deathSource: "imp_kill",
+                deathSourceSeatId: actionNode.seatId,
+              };
+            }
+          }
+        } else {
+          updatedSeats[targetIdx] = {
+            ...targetSeat,
+            markedForDeath: true,
+            diedAtNight: snapshot.nightCount,
+            deathSource: "imp_kill",
+            deathSourceSeatId: actionNode.seatId,
+          };
+        }
       } else if (soldierImmune) {
         record.log = record.log || {};
         (record.log as any).blockedBySoldier = true;
@@ -561,6 +590,7 @@ const postProcessResult = async (
 export const impAbility = createRoleAbility({
   /** 角色标识符，对应 app/data.ts 中 Role.id */
   roleId: "imp",
+  effectSemantics: "kill",
   /** 能力标识符，用于 abilityRegistry 注册 */
   abilityId: "imp_night_ability",
   /** 能力中文名 */

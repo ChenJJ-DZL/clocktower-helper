@@ -61,7 +61,7 @@ export const wormBreederAbility = createRoleAbility({
   abilityName: "虫卵寄生",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 34,
   firstNightOnly: false,
   wakePromptId: "role.worm_breeder.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

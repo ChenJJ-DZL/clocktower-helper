@@ -128,6 +128,7 @@ const updateResurrectionStatus = async (
 
 export const professorAbility = createRoleAbility({
   roleId: "professor",
+  effectSemantics: "revive",
   abilityId: "professor_night_ability",
   abilityName: "起死回生",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

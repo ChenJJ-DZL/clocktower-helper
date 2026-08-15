@@ -3,6 +3,7 @@ import type { GamePhase, Seat } from "@/app/data";
 import type { GameAction } from "@/app/gameLogic";
 import { processGameEvent } from "@/app/gameLogic";
 import { computeIsPoisoned } from "../utils/gameRules";
+import { applyActorVictoryFlip } from "../utils/actorVictory";
 
 export function useLogicDispatcher(
   seats: Seat[],
@@ -133,7 +134,15 @@ export function useLogicDispatcher(
         }
 
         if (snapshot.winner) {
-          const w = snapshot.winner === "Good" ? "good" : "evil";
+          // 🎭 戏子（Actor）：只要有戏子在场（不论死活/数量），胜负结果对调
+          let w: "good" | "evil" = snapshot.winner === "Good" ? "good" : "evil";
+          const flipped = applyActorVictoryFlip(w, seatsForCheck);
+          if (flipped && flipped !== w) {
+            addLog(
+              `🎭 戏子在场，胜负结果对调：${flipped === "good" ? "善良" : "邪恶"}阵营获胜！`
+            );
+            w = flipped;
+          }
           const reason = snapshot.winReason || "未知原因";
           victoryRef.current = { winner: w, reason };
           setWinResult(w);
@@ -159,9 +168,15 @@ export function useLogicDispatcher(
   );
 
   const declareMayorImmediateWin = useCallback(() => {
-    addLog("市长发动能力：宣布善良阵营获胜！");
-    setWinResult("good");
-    setWinReason("市长能力发动");
+    // 🎭 戏子在场：市长宣布的善良胜利被对调为邪恶胜利
+    const flipped = applyActorVictoryFlip("good", seats);
+    addLog(
+      flipped === "good"
+        ? "市长发动能力：宣布善良阵营获胜！"
+        : "🎭 戏子在场，市长宣布的善良胜利被对调：邪恶阵营获胜！"
+    );
+    setWinResult(flipped ?? "good");
+    setWinReason(flipped === "good" ? "市长能力发动" : "戏子在场，胜负对调");
     setGamePhase("gameOver");
     setVictorySnapshot(seats.filter((s) => s.role));
     setCurrentModal({ type: "GAME_OVER", data: null });

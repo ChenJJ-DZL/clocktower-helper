@@ -6,6 +6,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -58,13 +59,51 @@ const calculateAttackResult = async (
   return context;
 };
 
+// 状态落地：善良目标死亡（标记落地，黎明由 UI/settleDawn 结算 isDead）
+const stateUpdateAttack = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const { meta, snapshot } = context;
+  const targetId = meta.targetId;
+  if (targetId == null) return context;
+  if (meta.shouldKill !== true) return context;
+
+  const seats = (snapshot.seats ?? []) as any[];
+  const targetIdx = seats.findIndex((s) => s.id === targetId);
+  if (targetIdx < 0) return context;
+  const target = seats[targetIdx];
+  if (target.isDead || target.markedForDeath) return context;
+
+  const nextSeats = [...seats];
+  nextSeats[targetIdx] = {
+    ...target,
+    markedForDeath: true,
+    diedAtNight: snapshot.nightCount,
+    deathSource: "half_ogre_attack",
+    deathSourceSeatId: context.actionNode.seatId,
+  };
+  return {
+    ...context,
+    snapshot: {
+      ...snapshot,
+      seats: nextSeats,
+      lastKill: {
+        demonId: context.actionNode.seatId,
+        targetId,
+        demonRole: "half_ogre",
+      },
+    },
+  };
+};
+
 export const halfOgreAbility = createRoleAbility({
   roleId: "half_ogre",
+  effectSemantics: "kill",
   abilityId: "half_ogre_night_attack",
   abilityName: "夜晚攻击",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
-  otherNightPriority: null, // 需要在恶魔之前行动
+  otherNightPriority: 44, // 需要在恶魔之前行动
   firstNightOnly: false,
   wakePromptId: "role.half_ogre.wake",
   targetConfig: {
@@ -75,7 +114,7 @@ export const halfOgreAbility = createRoleAbility({
   },
   preCheck: [commonPreCheckAlive, preCheckNightExceptFirst],
   calculate: [calculateAttackResult],
-  stateUpdate: [], // 状态更新将在更高层处理
+  stateUpdate: [stateUpdateAttack],
   postProcess: [
     async (context) => {
       console.log(
@@ -85,5 +124,7 @@ export const halfOgreAbility = createRoleAbility({
       );
       return context;
     },
+    // 🔧 结算产物（此前缺失 → I9 违规）
+    createSettlementPostProcess("半兽人", { resultType: "half_ogre_attack" }),
   ],
 });

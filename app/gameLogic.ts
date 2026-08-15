@@ -94,8 +94,6 @@ export type GameAction =
       force?: boolean;
     }
   | { type: "EXECUTE_PLAYER"; targetId: number }
-  | { type: "REVIVE_PLAYER"; targetId: number }
-  | { type: "NIGHT_ACTION"; roleId: string; targets: number[]; info?: any }
   | {
       type: "CHECK_GAME_OVER";
       executedId?: number;
@@ -299,22 +297,6 @@ export function processGameEvent(
     }
     case "CHECK_GAME_OVER": {
       // Logic handled below
-      break;
-    }
-    case "REVIVE_PLAYER": {
-      const target = nextSeats.find((s) => s.id === action.targetId);
-      if (!target) break;
-
-      target.isDead = false;
-      target.isEvilConverted = false;
-      // Keep Zombuul state if needed, but usually revive resets it?
-      // Let's assume standard revive resets logic
-      target.isZombuulTrulyDead = false;
-      target.zombuulLives = 1; // Reset or keep? Usually completely fresh.
-      target.isDrunk = false;
-      target.isPoisoned = (target.statusDetails || []).includes("永久中毒");
-
-      logs.push(`${target.id + 1}号 复活`);
       break;
     }
     case "IMP_STAR_PASS": {

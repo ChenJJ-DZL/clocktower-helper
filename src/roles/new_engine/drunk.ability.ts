@@ -378,8 +378,10 @@ export const drunkAbility = createRoleAbility({
    */
   firstNightPriority: null,
   otherNightPriority: null,
-  /** 仅首夜执行 fakeRole 设置 */
-  firstNightOnly: true,
+  /** 🔧 修复：firstNightOnly 与 firstNightPriority:null 矛盾（I8 不变式）。
+   *  酒鬼为被动/设置类能力，无独立夜间唤醒；队列生成由优先级重算
+   *  （hasFn && !hasOn），此字段在运行时不被消费，置 false 保持配置自洽。 */
+  firstNightOnly: false,
   /** 唤醒提示词 ID，对应 promptDictionary.ts */
   wakePromptId: "role.drunk.wake",
 

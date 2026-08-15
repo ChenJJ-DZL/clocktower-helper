@@ -5,6 +5,10 @@
 
 import type { IRoleAbility } from "../roles/core/roleAbility.types";
 import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
+import {
+  applyRulesByPhase,
+  collectGlobalRules,
+} from "./globalRuleEngine";
 import type {
   AbilityMiddlewareSet,
   MiddlewareContext,
@@ -63,11 +67,20 @@ export async function runFullAbilityPipeline(
   // 注入全局优先级中间件到 calculate 阶段最前面
   const enhancedCalculate = [abilityPriorityCalculation, ...calculate];
 
+  // 收集全局规则（能力注册表声明，模块级缓存；首次调用触发注册表初始化）
+  const globalRules = collectGlobalRules();
+
   let ctx = await runMiddlewarePipeline(preCheck, initialContext);
   if (ctx.aborted) return ctx;
 
+  // 全局规则：before_calculate（如掮客目标重定向）
+  ctx = applyRulesByPhase(globalRules, "before_calculate", ctx);
+
   ctx = await runMiddlewarePipeline(enhancedCalculate, ctx);
   if (ctx.aborted) return ctx;
+
+  // 全局规则：after_calculate（如酿酒师信息替换）
+  ctx = applyRulesByPhase(globalRules, "after_calculate", ctx);
 
   // 预览模式：跳过 stateUpdate 和 postProcess
   if (isPreview) {
@@ -78,7 +91,10 @@ export async function runFullAbilityPipeline(
   ctx = await runMiddlewarePipeline(stateUpdate, ctx);
   if (ctx.aborted) return ctx;
 
-  return runMiddlewarePipeline(postProcess, ctx);
+  ctx = await runMiddlewarePipeline(postProcess, ctx);
+
+  // 全局规则：after_execute（如引路人邪恶目标收集）
+  return applyRulesByPhase(globalRules, "after_execute", ctx);
 }
 
 /**

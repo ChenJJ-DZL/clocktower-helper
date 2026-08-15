@@ -105,6 +105,7 @@ const postProcess = async (
 
 export const godfatherAbility = createRoleAbility({
   roleId: "godfather",
+  effectSemantics: "kill",
   abilityId: "godfather_kill",
   abilityName: "替身击杀",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

@@ -93,6 +93,7 @@ const postProcess = async (
 
 export const courtierAbility = createRoleAbility({
   roleId: "courtier",
+  effectSemantics: "drunk",
   abilityId: "courtier_drunk",
   abilityName: "朝臣醉酒",
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],

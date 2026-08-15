@@ -181,7 +181,7 @@ export const hadesiaAbility = createRoleAbility({
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   /** 唤醒优先级（恶魔级别，与 imp 一致） */
   firstNightPriority: null,
-  otherNightPriority: null,
+  otherNightPriority: 41,
   /** 首夜可行动 */
   firstNightOnly: false,
   /** 唤醒提示词 ID */

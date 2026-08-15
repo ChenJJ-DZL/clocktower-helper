@@ -1,9 +1,16 @@
 /**
- * 弄蛇人（Snake Charmer）新引擎技能实现
+ * 舞蛇人（Snake Charmer）新引擎技能实现
  *
- * 【角色能力】"每个夜晚，你可以选择一名玩家：如果该玩家是恶魔，则交换角色。"
+ * 【角色能力】"每个夜晚，你要选择一名存活的玩家：如果你选中了恶魔，
+ *   你和他交换角色和阵营，然后他中毒。"
  *
- * 每夜选择一名玩家，若目标为恶魔则弄蛇人与恶魔交换角色和阵营。
+ * - 每夜选一名存活玩家（不能选自己）。
+ * - 选中恶魔 → 舞蛇人与恶魔**交换角色和阵营**（舞蛇人变恶魔、恶魔变舞蛇人），
+ *   然后恶魔（变舞蛇人的玩家）中毒。
+ * - 未选中恶魔 → 无效果。
+ *
+ * 网页版适配：角色交换 = 双方座位 role 互换 + 阵营标记互换；中毒 = statusEffects
+ * 加 poisoned 标记（UI 层按中毒渲染）。
  */
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -27,7 +34,7 @@ const calculate = async (
     targetId != null
       ? ctx.snapshot.seats.find((s: any) => s.id === targetId)
       : null;
-  const isDemon = target?.role?.type === "demon";
+  const isDemon = target?.role?.type === "demon" || target?.isDemonSuccessor === true;
   return {
     ...ctx,
     meta: {
@@ -40,9 +47,60 @@ const calculate = async (
 const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  const r = ctx.meta.abilityResult as any;
+  if (!r?.swapTriggered || r.targetId == null) {
+    return { ...ctx, meta: { ...ctx.meta, snakeCharmerResult: r } };
+  }
+
+  const selfId = ctx.actionNode.seatId;
+  const seats = (ctx.snapshot.seats ?? []) as any[];
+  const selfSeat = seats.find((s) => s.id === selfId);
+  const targetSeat = seats.find((s: any) => s.id === r.targetId);
+  if (!selfSeat || !targetSeat) return ctx;
+
+  // 交换角色与阵营：舞蛇人 → 恶魔角色；原恶魔 → 舞蛇人角色（并中毒）
+  const nextSeats = seats.map((s: any) => {
+    if (s.id === selfId) {
+      return {
+        ...s,
+        role: { ...targetSeat.role },
+        isEvilConverted: true,
+        isGoodConverted: false,
+      };
+    }
+    if (s.id === r.targetId) {
+      const effects = [...(s.statusEffects ?? [])];
+      if (!effects.some((e: any) => e.type === "poisoned")) {
+        effects.push({
+          type: "poisoned",
+          source: "snake_charmer",
+          sourceSeatId: selfId,
+        });
+      }
+      return {
+        ...s,
+        role: { ...selfSeat.role },
+        isEvilConverted: false,
+        isGoodConverted: true,
+        isPoisoned: true,
+        statusEffects: effects,
+      };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
-    meta: { ...ctx.meta, snakeCharmerResult: ctx.meta.abilityResult },
+    snapshot: {
+      ...ctx.snapshot,
+      seats: nextSeats,
+      snakeCharmerSwapped: { selfId, demonId: r.targetId },
+      _abilityResults: {
+        ...((ctx.snapshot as any)._abilityResults ?? {}),
+        snake_charmer: r,
+      },
+    },
+    meta: { ...ctx.meta, snakeCharmerResult: r },
   };
 };
 
@@ -51,21 +109,34 @@ const postProcess = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const log = r?.swapTriggered
-    ? `[SnakeCharmer] 弄蛇人与${(r.targetId ?? -1) + 1}号恶魔交换了角色`
-    : `[SnakeCharmer] 弄蛇人查验${(r?.targetId ?? -1) + 1}号，不是恶魔`;
+    ? `[SnakeCharmer] ${ctx.actionNode.seatId + 1}号舞蛇人与${(r.targetId ?? -1) + 1}号恶魔交换了角色和阵营，恶魔中毒！`
+    : `[SnakeCharmer] ${ctx.actionNode.seatId + 1}号舞蛇人查验${(r?.targetId ?? -1) + 1}号，不是恶魔`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityLog: log,
-      prompt: `唤醒${ctx.actionNode.seatId + 1}号【弄蛇人】，选择一名玩家。`,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【舞蛇人】，选择一名存活玩家。${
+        r?.swapTriggered
+          ? `他与${(r.targetId ?? -1) + 1}号恶魔交换了角色和阵营，恶魔中毒。`
+          : ""
+      }`,
+      displayInfo: r?.swapTriggered
+        ? {
+            type: "snake_charmer_swap",
+            selfId: ctx.actionNode.seatId,
+            demonId: r.targetId,
+            note: "交换角色与阵营，恶魔中毒",
+          }
+        : undefined,
     },
   };
 };
 
 export const snakeCharmerAbility = createRoleAbility({
   roleId: "snake_charmer",
+  effectSemantics: "swap",
   abilityId: "snake_charmer_night",
   abilityName: "蛇惑",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

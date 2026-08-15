@@ -55,6 +55,51 @@ export enum AbilityTriggerTiming {
   PASSIVE = "passive",
 }
 
+// ─── 全局机制规则（声明式，规则即数据）─────────────────────────────────
+// 跨角色"全局介入"机制统一为数据声明：能力文件声明规则，管线按 type 分派
+// 通用解释器执行（见 src/utils/globalRuleEngine.ts）。新增全局角色 = 只加声明。
+
+/** 规则生效阶段（对应管线执行阶段） */
+export type GlobalRulePhase =
+  | "before_calculate" // calculate 前（如目标重定向）
+  | "after_calculate" // calculate 后（如信息替换）
+  | "after_execute"; // 全部执行后（如目标收集）
+
+/** 规则类型（解释器按此分派） */
+export type GlobalRuleType =
+  | "target_redirect" // 目标重定向（掮客：brokerSwap）
+  | "info_override" // 信息替换（酿酒师：brewerEffect）
+  | "target_collect"; // 目标收集（引路人：nightEvilTargets）
+
+/** 全局机制规则声明 */
+export interface GlobalRule {
+  /** 规则唯一 ID（如 "broker_redirect"） */
+  id: string;
+  /** 规则类型 */
+  type: GlobalRuleType;
+  /** 生效阶段 */
+  phase: GlobalRulePhase;
+  /** 同阶段多规则顺序（小先执行，默认 100） */
+  order?: number;
+  /** 声明者角色 id（collectGlobalRules 自动填充） */
+  owner?: string;
+}
+
+// ─── 效果语义（I11 校验依据）────────────────────────────────────────────
+// 能力"行为意图"声明：I11 校验"声明的效果真的落地"，防止"发动了但没做该做的
+// 事"的空转能力（如原舞蛇人只透传 meta 不交换角色）。默认 "info"（纯信息，
+// 不改变世界状态，无需效果落地校验）。
+
+export type EffectSemantics =
+  | "info" // 纯信息（默认）：得知事实，不改变世界
+  | "kill" // 击杀：目标死亡（或触发免疫豁免）
+  | "poison" // 中毒：目标中毒
+  | "drunk" // 醉酒：目标醉酒
+  | "swap" // 交换：角色/阵营交换
+  | "transform" // 转化：角色/阵营转变
+  | "revive" // 复活：死者复活
+  | "protect"; // 保护：目标获得免死保护
+
 // 角色技能标准接口
 export interface IRoleAbility {
   /** 角色唯一ID */
@@ -86,6 +131,10 @@ export interface IRoleAbility {
     /** 是否允许选择死者 */
     allowDead: boolean;
   };
+  /** 全局机制规则声明（跨角色介入；管线按声明自动应用，见 globalRuleEngine） */
+  globalRules?: GlobalRule[];
+  /** 效果语义（I11 校验"声明的效果真的落地"；默认 info） */
+  effectSemantics?: EffectSemantics;
 
   // 技能处理中间件
   preCheck: PreCheckMiddleware[];
@@ -115,6 +164,8 @@ export const DefaultRoleAbility: Omit<
   calculate: [],
   stateUpdate: [],
   postProcess: [],
+  globalRules: [],
+  effectSemantics: "info",
 };
 
 /**

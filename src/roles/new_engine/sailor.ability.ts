@@ -63,14 +63,32 @@ const stateUpdate = async (
   const { meta } = context;
   const result = meta.abilityResult;
 
-  if (!result?.drunkId) {
+  if (result?.drunkId == null) {
     return context;
   }
 
-  // 状态更新逻辑会在GameController中实现
-  // 这里只传递需要更新的信息
+  // 状态落地：给醉酒者加 drunk 标记（此前只透传 stateUpdates → I11 空转）
+  const seats = (context.snapshot.seats ?? []) as any[];
+  const targetIdx = seats.findIndex((s) => s.id === result.drunkId);
+  if (targetIdx < 0) return context;
+  const target = seats[targetIdx];
+  const effects = [...(target.statusEffects ?? [])];
+  if (!effects.some((e: any) => e.type === "drunk")) {
+    effects.push({
+      type: "drunk",
+      source: "sailor",
+      sourceSeatId: context.actionNode.seatId,
+    });
+  }
+  const nextSeats = [...seats];
+  nextSeats[targetIdx] = { ...target, isDrunk: true, statusEffects: effects };
+
   return {
     ...context,
+    snapshot: {
+      ...context.snapshot,
+      seats: nextSeats,
+    },
     meta: {
       ...context.meta,
       stateUpdates: {
@@ -85,6 +103,7 @@ const stateUpdate = async (
 
 export const sailorAbility = createRoleAbility({
   roleId: "sailor",
+  effectSemantics: "drunk",
   abilityId: "sailor_night_ability",
   abilityName: "醉酒保护",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
