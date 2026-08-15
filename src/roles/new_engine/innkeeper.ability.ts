@@ -133,9 +133,22 @@ export const innkeeperAbility = createRoleAbility({
       const { meta } = context;
       const result = meta.abilityResult;
       if (result) {
-        console.log(
-          `旅店老板${result.isDrunk ? "（醉酒）" : ""}选择了${result.target1Id + 1}号和${result.target2Id + 1}号玩家，${result.drunkId + 1}号醉酒至下个黄昏${result.drunkReason}`
-        );
+        const log = `旅店老板${result.isDrunk ? "（醉酒）" : ""}选择了${result.target1Id + 1}号和${result.target2Id + 1}号玩家，${result.drunkId + 1}号醉酒至下个黄昏${result.drunkReason}`;
+        console.log(log);
+        return {
+          ...context,
+          meta: {
+            ...context.meta,
+            abilityLog: log,
+            displayInfo: {
+              type: "innkeeper_info",
+              target1Id: result.target1Id,
+              target2Id: result.target2Id,
+              drunkId: result.drunkId,
+              log,
+            },
+          },
+        };
       }
       return context;
     },

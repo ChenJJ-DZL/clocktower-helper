@@ -67,6 +67,11 @@ const postProcess = async (
       ...ctx.meta,
       abilityLog: log,
       prompt: `唤醒${ctx.actionNode.seatId + 1}号【疯子】（假恶魔行动），选择一名玩家。`,
+      displayInfo: {
+        type: "lunatic_info",
+        targetId: r?.targetId ?? null,
+        log,
+      },
     },
   };
 };

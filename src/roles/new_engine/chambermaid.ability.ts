@@ -120,6 +120,12 @@ export const chambermaidAbility = createRoleAbility({
           ...context.meta,
           prompt: `唤醒${actionNode.seatId + 1}号【侍女】，选择2名玩家（不含自己）。告知结果：${targetText} 中有 ${wokenText} 人曾因能力被唤醒。`,
           abilityLog: log,
+          displayInfo: {
+            type: "chambermaid_info",
+            targetIds: result?.targetIds ?? [],
+            wokenCount: wokenText,
+            log,
+          },
         },
       };
     },

@@ -88,12 +88,22 @@ export const gossipAbility = createRoleAbility({
     async (context) => {
       const { meta } = context;
       const result = meta.abilityResult;
-      if (result.shouldKill) {
-        console.log(`造谣者（${result.gossipSeatId + 1}号）的声明正确！`);
-      } else {
-        console.log(`造谣者（${result.gossipSeatId + 1}号）的声明错误`);
-      }
-      return context;
+      const log = result.shouldKill
+        ? `造谣者（${result.gossipSeatId + 1}号）的声明正确！`
+        : `造谣者（${result.gossipSeatId + 1}号）的声明错误`;
+      console.log(log);
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityLog: log,
+          displayInfo: {
+            type: "gossip_info",
+            correct: result.shouldKill,
+            log,
+          },
+        },
+      };
     },
   ],
 });

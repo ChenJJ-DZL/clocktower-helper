@@ -96,20 +96,24 @@ export const gamblerAbility = createRoleAbility({
     async (context) => {
       const { meta } = context;
       const result = meta.abilityResult;
-      if (result.shouldDie) {
-        console.log(
-          `赌徒（${result.gamblerSeatId + 1}号）猜测${
-            result.targetId + 1
-          }号是${result.guessedRole}，但实际是${result.actualRole}，赌徒死亡！`
-        );
-      } else {
-        console.log(
-          `赌徒（${result.gamblerSeatId + 1}号）猜测${
-            result.targetId + 1
-          }号是${result.guessedRole}，猜对了！`
-        );
-      }
-      return context;
+      const log = result.shouldDie
+        ? `赌徒（${result.gamblerSeatId + 1}号）猜测${result.targetId + 1}号是【${result.guessedRole}】，但实际是【${result.actualRole}】，猜错死亡！`
+        : `赌徒（${result.gamblerSeatId + 1}号）猜测${result.targetId + 1}号是【${result.guessedRole}】，猜对了！`;
+      console.log(log);
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityLog: log,
+          displayInfo: {
+            type: "gambler_info",
+            targetId: result.targetId,
+            guessedRole: result.guessedRole,
+            isGuessCorrect: !result.shouldDie,
+            log,
+          },
+        },
+      };
     },
   ],
 });

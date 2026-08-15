@@ -120,9 +120,21 @@ export const grandmotherAbility = createRoleAbility({
       const { meta, actionNode } = context;
       const result = meta.abilityResult;
       if (result && result.grandchildId !== -1) {
-        console.log(
-          `祖母(${actionNode.seatId + 1}号)被告知：${result.grandchildId + 1}号是孙子，角色是${result.grandchildRoleName}`
-        );
+        const log = `祖母(${actionNode.seatId + 1}号)被告知：${result.grandchildId + 1}号是孙子，角色是${result.grandchildRoleName}`;
+        console.log(log);
+        return {
+          ...context,
+          meta: {
+            ...context.meta,
+            abilityLog: log,
+            displayInfo: {
+              type: "grandmother_info",
+              grandchildId: result.grandchildId,
+              grandchildRoleName: result.grandchildRoleName,
+              log,
+            },
+          },
+        };
       }
       return context;
     },

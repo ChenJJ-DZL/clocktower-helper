@@ -93,24 +93,32 @@ const postProcess = async (
   const { meta, actionNode } = context;
   const r = meta.abilityResult as any;
 
+  let log = "";
   if (r?.isTargetDemon) {
-    console.log(
-      `✨ ${actionNode.seatId + 1}号(驱魔人) 选中了恶魔(${r.targetId + 1}号)，恶魔今晚无法行动`
-    );
+    log = `${actionNode.seatId + 1}号(驱魔人) 选中了恶魔(${r.targetId + 1}号)，恶魔今晚无法行动`;
+    console.log(log);
   } else if (r?.targetId != null) {
-    console.log(
-      `${actionNode.seatId + 1}号(驱魔人) 选择了 ${r.targetId + 1}号(${r.targetName})`
-    );
+    log = `${actionNode.seatId + 1}号(驱魔人) 选择了 ${r.targetId + 1}号(${r.targetName})，不是恶魔`;
+    console.log(log);
   } else {
-    console.log(`${actionNode.seatId + 1}号(驱魔人) 未行动`);
+    log = `${actionNode.seatId + 1}号(驱魔人) 未行动`;
+    console.log(log);
   }
 
   return {
     ...context,
     meta: {
       ...context.meta,
+      abilityLog: log,
+      displayInfo: {
+        type: "exorcist_info",
+        targetId: r?.targetId ?? null,
+        isTargetDemon: r?.isTargetDemon ?? false,
+        targetName: r?.targetName ?? "",
+        log,
+      },
+      ...context.meta,
       prompt: `唤醒${actionNode.seatId + 1}号【驱魔人】，选择一名玩家（不能与昨晚相同）。`,
-      abilityLog: `[Exorcist] 选择${r?.targetId != null ? r.targetId + 1 + "号" : "无目标"}${r?.isTargetDemon ? "（命中恶魔）" : ""}`,
     },
   };
 };
