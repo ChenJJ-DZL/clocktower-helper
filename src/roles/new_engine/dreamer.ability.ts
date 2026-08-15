@@ -167,9 +167,22 @@ export const dreamerAbility = createRoleAbility({
       // null guard handled above
       const result = meta.abilityResult;
       if (result && result.roleA && result.roleB) {
-        console.log(
-          `筑梦师选择了${result.targetId + 1}号位，得知：${result.roleA.name}, ${result.roleB.name}`
-        );
+        const log = `筑梦师选择了${result.targetId + 1}号位，得知：${result.roleA.name} 或 ${result.roleB.name}`;
+        console.log(log);
+        return {
+          ...context,
+          meta: {
+            ...context.meta,
+            abilityLog: log,
+            displayInfo: {
+              type: "dreamer_info",
+              targetId: result.targetId,
+              roleA: result.roleA.name,
+              roleB: result.roleB.name,
+              log,
+            },
+          },
+        };
       }
       return context;
     },

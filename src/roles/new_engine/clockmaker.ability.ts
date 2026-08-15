@@ -121,10 +121,17 @@ export const clockmakerAbility = createRoleAbility({
   postProcess: [
     async (context) => {
       const { meta } = context;
-      console.log(
-        `钟表匠获得信息：恶魔与爪牙的最近距离为 ${meta.abilityResult}`
-      );
-      return context;
+      const dist = meta.abilityResult;
+      const log = `钟表匠获得信息：恶魔与爪牙的最近距离为 ${dist}`;
+      console.log(log);
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityLog: log,
+          displayInfo: { type: "clockmaker_info", distance: dist, log },
+        },
+      };
     },
   ],
 });

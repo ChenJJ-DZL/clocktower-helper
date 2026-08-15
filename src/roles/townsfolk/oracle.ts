@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { buildInfoMessage } from "../../utils/infoMessageBuilder";
 
 /**
  * 神谕者
@@ -70,7 +71,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:129-0!canonical and tim
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, isFirstNight: boolean, context: any) => {
       if (isFirstNight) {
         return {
           wake: "",
@@ -78,9 +79,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:129-0!canonical and tim
           close: "",
         };
       }
+      const info = buildInfoMessage("oracle", { seats: context?.seats ?? [], selfId: playerSeatId, nightCount: context?.nightCount ?? 0 });
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（神谕者）。`,
-        instruction: "请执行行动",
+        wake: `唤醒${playerSeatId + 1}号【神谕者】，${info ?? "请执行行动"}`,
+        instruction: info ? "（以上为告知信息）" : "请执行行动",
         close: "",
       };
     },

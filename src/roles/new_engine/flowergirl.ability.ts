@@ -97,6 +97,12 @@ export const flowergirlAbility = createRoleAbility({
           ...context.meta,
           prompt: `告知${context.actionNode.seatId + 1}号【卖花女孩】：恶魔今天${votedText}投过票。`,
           abilityLog: log,
+          displayInfo: {
+            type: "flowergirl_info",
+            hasVoted: result?.hasVoted ?? false,
+            isCorrupted: result?.isCorrupted ?? false,
+            log,
+          },
         },
       };
     },

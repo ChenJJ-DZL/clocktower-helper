@@ -108,9 +108,20 @@ export const oracleAbility = createRoleAbility({
       const { meta } = context;
       const result = meta.abilityResult;
       if (result) {
-        console.log(
-          `神谕者得知：当前共有 ${result.finalCount} 名死亡玩家为邪恶阵营（实际：${result.deadEvilCount}）`
-        );
+        const log = `神谕者得知：当前共有 ${result.finalCount} 名死亡玩家为邪恶阵营`;
+        console.log(log);
+        return {
+          ...context,
+          meta: {
+            ...context.meta,
+            abilityLog: log,
+            displayInfo: {
+              type: "oracle_info",
+              count: result.finalCount,
+              log,
+            },
+          },
+        };
       }
       return context;
     },

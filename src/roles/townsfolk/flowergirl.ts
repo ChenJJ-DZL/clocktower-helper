@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { buildInfoMessage } from "../../utils/infoMessageBuilder";
 
 /**
  * 卖花女孩
@@ -89,7 +90,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:81-0!canonical and time
       },
     },
 
-    dialog: (playerSeatId: number, isFirstNight: boolean) => {
+    dialog: (playerSeatId: number, isFirstNight: boolean, context: any) => {
       if (isFirstNight) {
         return {
           wake: "",
@@ -97,9 +98,15 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:81-0!canonical and time
           close: "",
         };
       }
+      const info = buildInfoMessage("flowergirl", {
+        seats: context?.seats ?? [],
+        selfId: playerSeatId,
+        nightCount: context?.nightCount ?? 0,
+        demonVotedToday: context?.demonVotedToday ?? false,
+      });
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（卖花女孩）。`,
-        instruction: "请执行行动",
+        wake: `唤醒${playerSeatId + 1}号【卖花女孩】，${info ?? "请执行行动"}`,
+        instruction: info ? "（以上为告知信息）" : "请执行行动",
         close: "",
       };
     },

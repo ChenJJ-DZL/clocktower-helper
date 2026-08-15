@@ -95,6 +95,12 @@ const postProcess = async (
       ...context.meta,
       prompt: `告知${actionNode.seatId + 1}号【数学家】：今晚有 ${count} 名玩家的能力异常生效了。`,
       abilityLog: log,
+      displayInfo: {
+        type: "mathematician_info",
+        count,
+        isCorrupted: r?.isCorrupted ?? false,
+        log,
+      },
     },
   };
 };

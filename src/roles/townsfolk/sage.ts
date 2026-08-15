@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { buildInfoMessage } from "../../utils/infoMessageBuilder";
 
 /**
  * 贤者 (Sage)
@@ -60,4 +61,21 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:156-0!canonical and tim
   clarifications: [
     "相克规则：利维坦：每个夜晚*，利维坦要选择一名存活的善良玩家（与之前的每个夜晚不同）：如果贤者被选择，他的能力生效但不会死亡。暴乱：每个夜晚*，暴乱要选择一名存活的善良玩家（与之前的每个夜晚不同）：如果贤者被选择，他的能力生效但不会死亡。",
   ],
+
+  night: {
+    order: () => 96,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context: any) => {
+      const info = buildInfoMessage("sage", {
+        seats: context?.seats ?? [],
+        selfId: playerSeatId,
+        nightCount: context?.nightCount ?? 0,
+      });
+      return {
+        wake: `唤醒${playerSeatId + 1}号【贤者】，${info ?? "请执行行动"}`,
+        instruction: info ? "（以上为告知信息）" : "请执行行动",
+        close: "",
+      };
+    },
+  },
 };

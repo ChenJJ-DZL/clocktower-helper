@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { buildInfoMessage } from "../../utils/infoMessageBuilder";
 
 /**
  * 数学家 (Mathematician)
@@ -79,4 +80,21 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:80-0!canonical and time
     "相克规则：侍女：侍女会得知数学家是否醒来，即使她是在数学家之前醒来。疯子：数学家会得知疯子是否攻击了与真正的恶魔不同的目标。",
     "相克规则（与华灯系列角色）：引路人：引路人会得知数学家是否被影响，即使他是在数学家之前醒来。",
   ],
+
+  night: {
+    order: () => 95,
+    target: { count: { min: 0, max: 0 } },
+    dialog: (playerSeatId: number, _isFirstNight: boolean, context: any) => {
+      const info = buildInfoMessage("mathematician", {
+        seats: context?.seats ?? [],
+        selfId: playerSeatId,
+        nightCount: context?.nightCount ?? 0,
+      });
+      return {
+        wake: `唤醒${playerSeatId + 1}号【数学家】，${info ?? "请执行行动"}`,
+        instruction: info ? "（以上为告知信息）" : "请执行行动",
+        close: "",
+      };
+    },
+  },
 };
