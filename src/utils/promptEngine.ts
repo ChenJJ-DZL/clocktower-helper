@@ -57,6 +57,14 @@ export function renderPrompt(
         template: `唤醒{{seatNo}}号【${roleName}】，${roleName}请行动。`,
         description: "角色唤醒提示（自动生成 fallback）",
       };
+    } else if (!promptId.includes(".")) {
+      // 裸 roleId（历史遗留形态，如 "barber"）：视为角色唤醒，生成 fallback 而非裸 id
+      template = {
+        id: promptId,
+        category: "role" as const,
+        template: `唤醒{{seatNo}}号【${roleName}】，${roleName}请行动。`,
+        description: "角色唤醒提示（裸 id fallback）",
+      };
     } else {
       console.warn(`[promptEngine] 未找到模板：${promptId}`);
       return promptId;
