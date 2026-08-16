@@ -29,7 +29,12 @@ export function useNightSnapshot(
   setCurrentWakeIndex: (idx: number) => void,
   addLog: (msg: string) => void,
   setCurrentModal: (m: any) => void,
-  wakeQueueIdsRef?: React.MutableRefObject<number[]>
+  wakeQueueIdsRef?: React.MutableRefObject<number[]>,
+  // 🔧 跨角色状态时序统一机制：useGameController 的 seatsRef（commitSeats
+  //   同步镜像的最新座位）。任何 handler setSeats/commitSeats 改状态后，
+  //   无参 continueToNextAction 生成下一步 guide 时优先读它——保证
+  //   "角色 A 行动改角色 B 状态 → 角色 B 行动时实时感知"（全角色覆盖）。
+  externalLatestSeatsRef?: React.MutableRefObject<Seat[]>
 ) {
   const wakeIndexRef = useRef(0);
   // 🔧 修复：记录首夜 index 0 是否已显示（避免小恶魔被跳过）
@@ -59,7 +64,12 @@ export function useNightSnapshot(
       if (currentSeats && currentSeats.length > 0) {
         latestSeatsRef.current = currentSeats;
       }
-      const safeSeats = currentSeats && currentSeats.length > 0 ? currentSeats : latestSeatsRef.current;
+      const safeSeats =
+        currentSeats && currentSeats.length > 0
+          ? currentSeats
+          : externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+            ? externalLatestSeatsRef.current
+            : latestSeatsRef.current;
       // 🔧 标记 index 0 已显示
       if (index === 0) hasShownIndexZeroRef.current = true;
       const nextSeatId = latestQueue[index];
@@ -196,7 +206,14 @@ export function useNightSnapshot(
         hasShownIndexZeroRef.current = true;
         wakeIndexRef.current = 0;
         setCurrentWakeIndex(0);
-        updateSnapshot(0, latestSeats ?? seats, gamePhase);
+        updateSnapshot(
+          0,
+          latestSeats ??
+            (externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+              ? externalLatestSeatsRef.current
+              : seats),
+          gamePhase
+        );
         return;
       }
       const nextIndex = currentIndex + 1;
@@ -257,7 +274,15 @@ export function useNightSnapshot(
       if (latestSeats && latestSeats.length > 0) {
         latestSeatsRef.current = latestSeats;
       }
-      updateSnapshot(nextIndex, latestSeats ?? latestSeatsRef.current ?? seats, gamePhase);
+      updateSnapshot(
+        nextIndex,
+        latestSeats ??
+          (externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+            ? externalLatestSeatsRef.current
+            : latestSeatsRef.current) ??
+          seats,
+        gamePhase
+      );
     },
     [
       wakeQueueIds,

@@ -260,7 +260,27 @@ export function useGameController() {
   const seatManager = useSeatManager();
   const historyController = useHistoryController();
   const village = useVillageState();
-  const abilities = useAbilityState(nightCount, setSeats);
+
+  // 🔧 跨角色状态时序统一机制（W8.14.12）：
+  //   seatsRef = "最新座位"的同步镜像（渲染期 + commitSeats 双路同步）。
+  //   commitSeats 兼容函数式/值更新，以 seatsRef.current 为 prev 同步计算并
+  //   立即写回 ref——任何 handler 里 commitSeats(prev=>...) 都自动获得"改状态后
+  //   ref 立即更新"语义；后续角色 guide 生成（无参 continueToNextAction）读
+  //   共享 seatsRef 即最新座位，保证"角色 A 行动改角色 B 状态 → 角色 B 行动
+  //   时实时感知"（修复投毒者→洗衣妇时序 P0 的系统性方案，覆盖所有角色）。
+  const seatsRef = useRef<Seat[]>(seats);
+  seatsRef.current = seats; // 渲染期同步（React commit 后 state 已更新）
+  const commitSeats = useCallback(
+    (next: Seat[] | ((prev: Seat[]) => Seat[])) => {
+      const resolved =
+        typeof next === "function" ? (next as (p: Seat[]) => Seat[])(seatsRef.current) : next;
+      seatsRef.current = resolved;
+      setSeats(resolved);
+    },
+    [setSeats]
+  );
+
+  const abilities = useAbilityState(nightCount, commitSeats);
   const registration = useRegistrationManager(
     gamePhase,
     nightCount,
@@ -269,7 +289,7 @@ export function useGameController() {
   );
   const gameFlow = useGameFlow();
   const nightActionHandler = useNightActionHandler();
-  const setupManager = useSetupManager(seats, setSeats);
+  const setupManager = useSetupManager(seats, commitSeats);
 
   const setGameRecordsProp = useCallback(
     (val: React.SetStateAction<GameRecord[]>) => {
@@ -393,7 +413,7 @@ export function useGameController() {
       } = options;
 
       // 首先处理死亡逻辑
-      setSeats((prev: Seat[]) => {
+      commitSeats((prev: Seat[]) => {
         // 🧟 僵怖豁免：僵怖夜晚被杀死不真死（仅处决能杀死僵怖）
         const targetBefore = prev.find((s) => s.id === targetId);
         if (targetBefore && isZombuulNightImmune(targetBefore, source)) {
@@ -485,7 +505,7 @@ export function useGameController() {
       if (onAfterKill) onAfterKill();
     },
     [
-      setSeats,
+    commitSeats,
       setDeadThisNight,
       nightCount,
       setOutsiderDiedToday,
@@ -496,7 +516,7 @@ export function useGameController() {
 
   const convertPlayerToEvil = useCallback(
     (targetId: number) => {
-      setSeats((prev: Seat[]) =>
+      commitSeats((prev: Seat[]) =>
         prev.map((s) =>
           s.id === targetId
             ? cleanseSeatStatuses(
@@ -515,11 +535,11 @@ export function useGameController() {
         logLabel: `${targetId + 1}号转为邪恶`,
       });
     },
-    [setSeats, insertIntoWakeQueueAfterCurrent]
+    [commitSeats, insertIntoWakeQueueAfterCurrent]
   );
 
   const cleanStatusesForNewDay = useCallback(() => {
-    setSeats((prev: Seat[]) =>
+    commitSeats((prev: Seat[]) =>
       prev.map((s) => {
         const remaining = (s.statuses || []).filter(
           (st) => st.effect === "ExecutionProof" || st.duration !== "Night"
@@ -542,7 +562,7 @@ export function useGameController() {
         };
       })
     );
-  }, [setSeats]);
+  }, [commitSeats]);
 
   const getDemonDisplayName = useCallback((id?: string, f?: string) => {
     const map: any = {
@@ -644,7 +664,7 @@ export function useGameController() {
   const { logicDispatch, checkGameOver, declareMayorImmediateWin } =
     useLogicDispatcher(
       seats,
-      setSeats,
+    commitSeats,
       gamePhase,
       setGamePhase,
       addLog,
@@ -685,7 +705,8 @@ export function useGameController() {
     setCurrentWakeIndex,
     addLog,
     setCurrentModal,
-    wakeQueueIdsRef
+    wakeQueueIdsRef,
+    seatsRef
   );
   const {
     activeNightStep: nightInfo,
@@ -705,7 +726,7 @@ export function useGameController() {
       // 🔧 守鸦人结果不展示修复：入队时同步设置 hasAbilityEvenDead=true，
       //   否则死亡后确认执行时被 preProcessAbility 的"已死亡"校验拦截，
       //   导致守鸦人选择了目标却没有任何结算结果。
-      setSeats((prev: Seat[]) =>
+      commitSeats((prev: Seat[]) =>
         prev.map((s) =>
           s.id === targetId && !s.hasAbilityEvenDead
             ? { ...s, hasAbilityEvenDead: true }
@@ -724,7 +745,7 @@ export function useGameController() {
         return next;
       });
     },
-    [wakeIndexRef, setWakeQueueIds, getSeatRoleId, setSeats]
+    [wakeIndexRef, setWakeQueueIds, getSeatRoleId, commitSeats]
   );
 
   // 包装 continueToNextAction，在推进队列前重置预览状态
@@ -801,7 +822,7 @@ export function useGameController() {
     winResult,
     winReason,
     setCurrentModal,
-    setSeats,
+    setSeats: commitSeats,
     setSelectedActionTargets,
     setOutsiderDiedToday,
     setWakeQueueIds,
@@ -878,7 +899,7 @@ export function useGameController() {
     startTime,
     timer,
     setCurrentModal,
-    setSeats,
+    setSeats: commitSeats,
     setSelectedActionTargets,
     setKlutzChoiceTarget,
     setHadesiaChoices,
@@ -930,7 +951,7 @@ export function useGameController() {
     virginGuideInfo: gameState.virginGuideInfo,
     dayAbilityForm: gameState.dayAbilityForm,
     setCurrentModal,
-    setSeats,
+    setSeats: commitSeats,
     setNominationMap,
     setNominationRecords,
     setTodayMinionNominated,
@@ -1002,7 +1023,7 @@ export function useGameController() {
           getRegistration: getRegistrationCached,
           getMisinformation: getMisinformation,
           findNearestAliveNeighbor,
-          setSeats,
+    setSeats: commitSeats,
           setSelectedActionTargets,
           // 🔧 新引擎管道（imp.ability 等杀人）不调 killPlayer，需传入
           //   setDeadThisNight 让 executeViaNewEngine 在 markedForDeath 变 isDead 后补记。
@@ -1145,7 +1166,7 @@ export function useGameController() {
           }
           changeRole(id, selectedRole.id, roles);
         } else {
-          setSeats((prev) =>
+          commitSeats((prev) =>
             prev.map((s) =>
               s.id === id ? { ...s, role: null, displayRole: null } : s
             )
@@ -1161,7 +1182,7 @@ export function useGameController() {
       seats,
       changeRole,
       interactionHandleSeatClick,
-      setSeats,
+    commitSeats,
     ]
   );
 
@@ -1196,7 +1217,7 @@ export function useGameController() {
           .filter((s) => !s.isDead && s.role?.type === "minion")
           .map((s) => s.id);
         if (minionIds.length > 0) {
-          setSeats((prev: Seat[]) =>
+          commitSeats((prev: Seat[]) =>
             prev.map((s) =>
               minionIds.includes(s.id)
                 ? {
@@ -1324,7 +1345,7 @@ export function useGameController() {
     setGamePhase,
     setCurrentModal,
     seats,
-    setSeats,
+    commitSeats,
     addLog,
     nightCount,
   ]);
@@ -1398,11 +1419,11 @@ export function useGameController() {
         isZombuulTrulyDead: false,
         zombuulLives: 1,
       }));
-      setSeats(defaultSeats);
+      commitSeats(defaultSeats);
       setInitialSeats(defaultSeats);
       console.log("DEBUG: 初始化了16个默认座位");
     }
-  }, [gamePhase, seats.length, setSeats, setInitialSeats]);
+  }, [gamePhase, seats.length, commitSeats, setInitialSeats]);
 
   // 监听首夜启动事件，触发首夜队列生成并弹出预览模态框
   useEffect(() => {
@@ -1676,7 +1697,7 @@ export function useGameController() {
       setHadesiaChoice: (id: number, c: "live" | "die") =>
         setHadesiaChoices((prev: any) => ({ ...prev, [id]: c })),
       setRedNemesisTarget: (tid: number) =>
-        setSeats((prev) =>
+        commitSeats((prev) =>
           prev.map((s) => ({
             ...s,
             isRedHerring: s.id === tid,
@@ -1811,7 +1832,7 @@ export function useGameController() {
       reviveSeat,
       setCurrentModal,
       setHadesiaChoices,
-      setSeats,
+    commitSeats,
       submitVotes,
       swapRoles,
       victorySnapshot,
