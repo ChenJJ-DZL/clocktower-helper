@@ -441,6 +441,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         setDeadThisNight((prev) => [...prev, impSeat.id]);
         enqueueRavenkeeperIfNeeded(impSeat.id);
 
+        // 🔧 W8.14.13：传星后新恶魔必须加入本夜唤醒队列（按恶魔优先级排序）。
+        //   否则新恶魔不在夜间队列 → 夜晚无恶魔杀人 → 平安夜死循环（实测 9 人局死局）。
+        //   注意闭包 seats 里 newImp 还是爪牙（dispatch 异步更新），必须显式传 roleOverride。
+        const impRoleDef = roles.find((r: any) => r.id === "imp");
+        insertIntoWakeQueueAfterCurrent(newImp.id, {
+          roleOverride: impRoleDef ?? null,
+          logLabel: `${newImp.id + 1}号(新小恶魔)`,
+        });
+
         console.warn(
           `%c 小恶魔传位成功 -> ${newImp.id + 1}号`,
           "color: #FFD700; font-weight: bold;"

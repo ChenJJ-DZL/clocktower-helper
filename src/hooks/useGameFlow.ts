@@ -13,6 +13,73 @@ import { getRandom, isGoodAlignment } from "../utils/gameRules";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 
 /**
+ * 🔧 跨角色状态时序修复（W8.14.13）：清除"次日黄昏"类临时标记并同步重置布尔。
+ *
+ * 背景：legacy 路径（executePoisonAction / 水手致醉等）直写 isPoisoned/isDrunk
+ * 布尔但不写引擎 statusEffects——若只清 statusDetails/statuses 而布尔残留，
+ * 被毒玩家永久中毒（实测：投毒者毒小恶魔 → 小恶魔杀不死人、无法自杀传星 →
+ * 平安夜死局）。本函数统一：清标记 + 按残留状态重置 isPoisoned/isDrunk/isProtected。
+ */
+function cleanseTempStatuses(
+  seat: Seat,
+  clearExpired: (s: Seat) => Seat
+): Seat {
+  const filteredStatusDetails = (seat.statusDetails || []).filter((st) => {
+    if (st.includes("永久中毒") || st.includes("永久")) return true;
+    if (st.includes("普卡中毒")) return true;
+    return !(
+      st.includes("次日黄昏清除") ||
+      st.includes("下个黄昏清除") ||
+      st.includes("至下个黄昏清除") ||
+      st.includes("黄昏清除") || // 🔧 兼容"新引擎中毒（黄昏清除）"等格式
+      st.includes("次日黄昏") ||
+      st.includes("下个黄昏")
+    );
+  });
+
+  const filteredStatuses = (seat.statuses || []).filter((status) => {
+    const isTempPoisonOrDrunk =
+      (status.effect === "Poison" || status.effect === "Drunk") &&
+      typeof status.duration === "string" &&
+      (status.duration.includes("次日黄昏") ||
+        status.duration.includes("下个黄昏") ||
+        status.duration.includes("黄昏清除") ||
+        status.duration === "Night+Day" ||
+        status.duration === "1 Day");
+    return !isTempPoisonOrDrunk;
+  });
+
+  const cleaned = clearExpired({
+    ...seat,
+    statusDetails: filteredStatusDetails,
+    statuses: filteredStatuses,
+  });
+
+  // 基于"过滤后残留状态"同步重置布尔（不依赖 statusEffects——legacy 不写它）
+  const hasPoison =
+    filteredStatusDetails.some((d) => d.includes("毒") || d.includes("投毒")) ||
+    filteredStatuses.some((st) => st.effect === "Poison") ||
+    (cleaned.statusEffects ?? []).some(
+      (e: any) => e.type === "poisoned" || e.type === "poison"
+    );
+  const hasDrunk =
+    filteredStatusDetails.some((d) => d.includes("醉酒")) ||
+    filteredStatuses.some((st) => st.effect === "Drunk") ||
+    (cleaned.statusEffects ?? []).some((e: any) => e.type === "drunk");
+  const hasProtect =
+    filteredStatusDetails.some((d) => d.includes("保护")) ||
+    (cleaned.statusEffects ?? []).some((e: any) => e.type === "protected");
+
+  if (!hasPoison) cleaned.isPoisoned = false;
+  if (!hasDrunk) cleaned.isDrunk = false;
+  if (!hasProtect) {
+    cleaned.isProtected = false;
+    cleaned.protectedBy = null;
+  }
+  return cleaned;
+}
+
+/**
  * UseGameFlowResult - 流程控制 Hook 的返回结果
  */
 export interface UseGameFlowResult {
@@ -239,48 +306,10 @@ export function useGameFlow(): UseGameFlowResult {
     // 每个新黄昏开始时，重置“白天有外来者死亡”标记
     dispatch(gameActions.setOutsiderDiedToday(false));
 
-    // 清除临时状态
-    const cleanedSeats = seats.map((s) => {
-      const filteredStatusDetails = (s.statusDetails || []).filter((st) => {
-        if (st.includes("永久中毒") || st.includes("永久")) return true;
-        if (st.includes("普卡中毒")) return true;
-        return !(
-          st.includes("次日黄昏清除") ||
-          st.includes("下个黄昏清除") ||
-          st.includes("至下个黄昏清除") ||
-          st.includes("黄昏清除") || // 🔧 兼容"新引擎中毒（黄昏清除）"等格式
-          st.includes("次日黄昏") ||
-          st.includes("下个黄昏")
-        );
-      });
-
-      const filteredStatuses = (s.statuses || []).filter((status) => {
-        const isTempPoisonOrDrunk =
-          (status.effect === "Poison" || status.effect === "Drunk") &&
-          typeof status.duration === "string" &&
-          (status.duration.includes("次日黄昏") ||
-            status.duration.includes("下个黄昏") ||
-            status.duration.includes("黄昏清除") ||
-            status.duration === "Night+Day" ||
-            status.duration === "1 Day");
-        return !isTempPoisonOrDrunk;
-      });
-
-      // 侍臣逻辑... (此处逻辑较细，暂时保持原样)
-      const currentDecrementedStatuses = [...filteredStatuses];
-      // (这里可以根据需要进一步完善)
-
-      // 🔧 清除引擎 statusEffects 中「黄昏过期」的效果（monk/innkeeper 保护、投毒者中毒、管家主从）
-      const withExpiredCleared = clearExpiredNightEffects({
-        ...s,
-        statusDetails: filteredStatusDetails,
-        statuses: currentDecrementedStatuses,
-        voteCount: undefined,
-        isCandidate: false,
-      });
-
-      return withExpiredCleared;
-    });
+    // 清除临时状态（含布尔同步重置：投毒/致醉标记清除后 isPoisoned/isDrunk 必须复位）
+    const cleanedSeats = seats.map((s) =>
+      cleanseTempStatuses(s, clearExpiredNightEffects)
+    );
 
     dispatch(gameActions.setSeats(cleanedSeats));
     dispatch(gameActions.setGamePhase("dusk"));
@@ -307,8 +336,11 @@ export function useGameFlow(): UseGameFlowResult {
       // 今日已有处决，直接进入夜晚
       console.log("[handleDayEndTransition] 今日已有处决，直接进入夜晚");
       // 🔧 处决后直接入夜会跳过 enterDuskPhase，这里先清除黄昏过期的引擎状态，
-      // 避免中毒/保护残留到下一夜（投毒者/僧侣等能力需要每晚重新生效）
-      const expiredCleared = seats.map((s) => clearExpiredNightEffects(s));
+      // 避免中毒/保护残留到下一夜（投毒者/僧侣等能力需要每晚重新生效）。
+      // W8.14.13：同样用 cleanseTempStatuses（清 statusDetails/statuses + 布尔复位）
+      const expiredCleared = seats.map((s) =>
+        cleanseTempStatuses(s, clearExpiredNightEffects)
+      );
       dispatch(gameActions.setSeats(expiredCleared));
       startNight(false); // 进入夜晚（非首夜）
     } else {
