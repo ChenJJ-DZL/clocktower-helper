@@ -516,6 +516,17 @@ export async function executeViaNewEngine(
     const butlerRec =
       (resultContext as any)?.actionNode?.meta?.butlerResult ||
       (resultContext as any)?.snapshot?._abilityResults?.butler;
+    // 🔧 方古跳变消费（W8.14.14）：引擎 stateUpdate 已把外来者 role 改为 fang_gu、
+    //   原方古标记死亡。此处读取 fangGuJump（新方古座位 id），确保：
+    //   ① 新方古 role 正确同步到 UI（`...u` 已含 role，此处再兜底防 prev 覆盖）；
+    //   ② 跳变当晚原方古死亡标记落地（isDead）→ 后续判胜/队列正确。
+    const fangGuJump =
+      (resultContext as any)?.snapshot?.fangGuJump ??
+      (resultContext as any)?.meta?.fangGuJump ??
+      (resultContext as any)?.snapshot?._abilityResults?.fang_gu?.becomesFangGu
+        ? (resultContext as any)?.snapshot?._abilityResults?.fang_gu?.targetId
+        : null;
+    const fangGuActorId = (resultContext as any)?.actionNode?.seatId;
     const syncedSeats: Seat[] = updatedSeats
       ? updatedSeats.map((u: any) => {
           const prev = context.seats.find((s) => s.id === u.id);
@@ -529,6 +540,34 @@ export async function executeViaNewEngine(
             (next.role?.id === "butler" || next.role?.id === "qutler")
           ) {
             next = { ...next, masterId: butlerRec.masterId as number };
+          }
+          // 🔧 方古跳变：新方古（原外来者）role 强制同步为 fang_gu/demon
+          if (fangGuJump != null && u.id === fangGuJump) {
+            next = {
+              ...next,
+              role: {
+                ...(next.role ?? {}),
+                id: "fang_gu",
+                name: "方古",
+                type: "demon",
+              },
+              isEvilConverted: true,
+              isGoodConverted: false,
+            } as Seat;
+          }
+          // 🔧 方古跳变：原方古（行动者）死亡标记兜底同步
+          if (
+            fangGuJump != null &&
+            u.id === fangGuActorId &&
+            next.isDead !== true
+          ) {
+            next = {
+              ...next,
+              isAlive: false,
+              isDead: true,
+              markedForDeath: true,
+              deathSource: (next as any).deathSource || "fang_gu_jump",
+            } as Seat;
           }
           return next;
         })
@@ -583,6 +622,37 @@ export async function executeViaNewEngine(
         if (deadDemon != null) {
           context.checkGameOver(syncedSeats, deadDemon, false);
           context.addLog(`⚔️ 恶魔 ${deadDemon + 1} 号死亡，触发胜负判定`);
+        }
+      }
+
+      // 🔧 方古跳变入队（W8.14.14）：原方古（行动者）死亡后，新方古（原外来者）
+      //   继承恶魔身份——若本夜队列已不含方古节点（原方古节点已处理），
+      //   需把新方古插入后续队列，否则第 2 夜起无恶魔杀人 → 平安夜死局（SV 实测 P0）。
+      if (fangGuJump != null && context.insertIntoWakeQueueAfterCurrent) {
+        const newFangGu = syncedSeats.find((s) => s.id === fangGuJump);
+        const actorSeat = syncedSeats.find((s) => s.id === fangGuActorId);
+        if (
+          newFangGu &&
+          newFangGu.role?.id === "fang_gu" &&
+          !newFangGu.isDead &&
+          actorSeat?.isDead
+        ) {
+          // 仅当原方古确实死亡（跳变成立）且新方古存活时插入队列
+          context.insertIntoWakeQueueAfterCurrent(fangGuJump, {
+            roleOverride: {
+              id: "fang_gu",
+              name: "方古",
+              type: "demon",
+              firstNightOrder: 0,
+              otherNightOrder: 50,
+            } as any,
+            logLabel: `方古跳变 → 新方古（${fangGuJump + 1}号）`,
+          });
+          context.addLog(
+            `🔄 方古跳变：${(fangGuActorId ?? 0) + 1}号死亡，${
+              fangGuJump + 1
+            }号成为新方古`
+          );
         }
       }
 
