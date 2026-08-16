@@ -25,6 +25,10 @@ import {
   TROUBLE_BREWING_ROLES,
 } from "../../../utils/invariantTesting";
 import { collectGlobalRules } from "../../../utils/globalRuleEngine";
+import fs from "fs";
+import path from "path";
+
+const ROOT = path.resolve(__dirname, "../../../../");
 
 function mkSeat(
   id: number,
@@ -284,5 +288,71 @@ describe("L3.5 不变式测试", () => {
     });
     const violations = await I11EffectSemanticsApplied(result, abilityMap);
     expect(violations.some((v) => v.includes("imp"))).toBe(true); // 空转必被抓
+  });
+
+  // 🔧 I12 跨角色状态时序架构自检（W8.14.12）：防止未来重构删掉统一机制
+  describe("I12 状态实时同步架构自检", () => {
+    it("I12 useGameController 定义 commitSeats 且同步镜像 seatsRef（改状态→ref 立即更新）", () => {
+      const src = fs.readFileSync(
+        path.join(ROOT, "src", "hooks", "useGameController.ts"),
+        "utf8"
+      );
+      // ① seatsRef 同步镜像（渲染期 + commitSeats 双路）
+      expect(src).toContain("const seatsRef = useRef<Seat[]>(seats);");
+      expect(src).toContain("seatsRef.current = seats;");
+      // ② commitSeats 定义：函数式/值兼容，以 seatsRef.current 为 prev
+      expect(src).toContain("const commitSeats = useCallback(");
+      expect(src).toContain("seatsRef.current = resolved;");
+      // ③ 所有 handler 拿到的是 commitSeats（对象属性 setSeats: commitSeats）
+      const handlerProps = (src.match(/setSeats: commitSeats,/g) || []).length;
+      expect(handlerProps).toBeGreaterThanOrEqual(4);
+    });
+
+    it("I12 useNightSnapshot 接收 externalLatestSeatsRef 且无参推进优先读共享 ref", () => {
+      const src = fs.readFileSync(
+        path.join(ROOT, "src", "hooks", "useNightSnapshot.ts"),
+        "utf8"
+      );
+      expect(src).toContain(
+        "externalLatestSeatsRef?: React.MutableRefObject<Seat[]>"
+      );
+      // 无参 continueToNextAction 的 updateSnapshot 调用优先用外部 ref
+      expect(src).toContain("externalLatestSeatsRef?.current");
+      // 调用方（useGameController）确实传入 seatsRef
+      const gc = fs.readFileSync(
+        path.join(ROOT, "src", "hooks", "useGameController.ts"),
+        "utf8"
+      );
+      expect(gc).toContain("seatsRef");
+    });
+
+    it("I12 纯语义：commitSeats 的 updater 以最新 ref 为 prev（函数式更新不 stale）", () => {
+      // 模拟 commitSeats 的核心语义：函数式 updater 收到的 prev 必须是最新 ref
+      let seatsRefCurrent: any[] = [{ id: 0, isPoisoned: false }];
+      const commitSeats = (next: any) => {
+        const resolved =
+          typeof next === "function" ? next(seatsRefCurrent) : next;
+        seatsRefCurrent = resolved;
+        return resolved;
+      };
+      // 第一步：投毒者下毒（函数式更新）
+      commitSeats((prev: any[]) =>
+        prev.map((s) =>
+          s.id === 0
+            ? { ...s, isPoisoned: true, statusEffects: [{ type: "poisoned" }] }
+            : s
+        )
+      );
+      expect(seatsRefCurrent[0].isPoisoned).toBe(true);
+      // 第二步：后续角色 guide 生成读 ref（模拟无参 continueToNextAction）
+      const guideSeats = seatsRefCurrent;
+      const isDisabled = guideSeats.some(
+        (s) =>
+          s.id === 0 &&
+          (s.isPoisoned ||
+            (s.statusEffects || []).some((e: any) => e.type === "poisoned"))
+      );
+      expect(isDisabled).toBe(true); // 后续角色必须感知到中毒
+    });
   });
 });
