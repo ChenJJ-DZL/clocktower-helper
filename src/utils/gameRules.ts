@@ -305,6 +305,14 @@ export const getRegisteredAlignment = (
 export const getPoisonSources = (seat: Seat) => {
   const details = seat.statusDetails || [];
   const statuses = seat.statuses || [];
+  // 🔧 新引擎 statusEffects[] 兜底：投毒者/普卡/诺-达等引擎结算直接写
+  //   statusEffects（type:"poisoned"），若 legacy 翻译（syncStatusEffectsToSeat）
+  //   未执行或遗漏，computeIsPoisoned 也必须识别——"行动当下检查角色状态"
+  //   的系统性保障（实测：仅 statusEffects 时洗衣妇信息仍为真，P0）。
+  const effects = (seat as any).statusEffects || [];
+  const hasEnginePoison = effects.some(
+    (e: any) => e.type === "poisoned" || e.type === "poison"
+  );
   // 检查所有带清除时间的中毒标记
   const poisonPatterns = [
     /永久中毒/,
@@ -315,9 +323,10 @@ export const getPoisonSources = (seat: Seat) => {
     /食人族中毒（.*清除）/,
     /舞蛇人中毒（.*清除）/,
   ];
-  const hasAnyPoisonMark = poisonPatterns.some((pattern) =>
-    details.some((d) => pattern.test(d))
-  );
+  const hasAnyPoisonMark =
+    poisonPatterns.some((pattern) =>
+      details.some((d) => pattern.test(d))
+    ) || hasEnginePoison;
   return {
     permanent: details.some((d) => d.includes("永久中毒")),
     vigormortis: details.some((d) => d.includes("亡骨魔中毒")),
@@ -326,9 +335,10 @@ export const getPoisonSources = (seat: Seat) => {
     noDashiiMark: details.some((d) => d.includes("诺-达中毒")), // 这里的 noDashiiMark 指的是手动或遗留的标记
     cannibal: details.some((d) => d.includes("食人族中毒")),
     snakeCharmer: details.some((d) => d.includes("舞蛇人中毒")),
-    statusPoison: statuses.some(
-      (st) => st.effect === "Poison" && st.duration !== "expired"
-    ),
+    statusPoison:
+      statuses.some(
+        (st) => st.effect === "Poison" && st.duration !== "expired"
+      ) || hasEnginePoison,
     direct: seat.isPoisoned,
     anyMark: hasAnyPoisonMark,
   };

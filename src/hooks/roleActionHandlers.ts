@@ -37,7 +37,7 @@ export interface RoleConfirmContext {
     seatId: number,
     opts?: { roleOverride?: Role | null; logLabel?: string }
   ) => void;
-  continueToNextAction: () => void;
+  continueToNextAction: (latestSeats?: Seat[]) => void;
   addLog: (message: string) => void;
   killPlayer: (targetId: number, options?: any) => void;
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
@@ -1291,7 +1291,7 @@ export function executePoisonAction(
     setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
     setCurrentModal: (modal: any) => void;
     setSelectedActionTargets: (targets: number[]) => void;
-    continueToNextAction: () => void;
+    continueToNextAction: (latestSeats?: Seat[]) => void;
     isActorDisabledByPoisonOrDrunk: (
       seat: Seat | undefined,
       isPoisoned: boolean
@@ -1340,26 +1340,30 @@ export function executePoisonAction(
     return;
   }
 
-  setSeats((prev: any) =>
-    prev.map((s: any) => {
-      if (s.id === targetId) {
-        const { statusDetails, statuses } = addPoisonMark(
-          s,
-          "poisoner",
-          "次日黄昏"
-        );
-        return { ...s, isPoisoned: true, statusDetails, statuses };
-      }
-      return s;
-    })
-  );
+  // 🔧 跨角色状态时序修复：同步构建"下毒后"的新座位数组，
+  //   setSeats 为异步更新，若 continueToNextAction 无参调用，下一步角色
+  //   （如洗衣妇）的 guide 生成会用 latestSeatsRef（下毒前的旧座位）→
+  //   被毒角色信息仍显示真实信息（实测 P0）。显式传递新座位让
+  //   updateSnapshot 基于"含毒的最新座位"生成后续 guide。
+  const poisonedSeats = seats.map((s: any) => {
+    if (s.id === targetId) {
+      const { statusDetails, statuses } = addPoisonMark(
+        s,
+        "poisoner",
+        "次日黄昏"
+      );
+      return { ...s, isPoisoned: true, statusDetails, statuses };
+    }
+    return s;
+  });
+  setSeats(poisonedSeats);
 
   addLogWithDeduplication(
     `${(actorId ?? 0) + 1}号(${nightInfo?.effectiveRole?.name ?? "未知"}) 使 ${targetId + 1}号 中毒（持续至次日黄昏）`,
     actorId,
     nightInfo?.effectiveRole?.name
   );
-  continueToNextAction();
+  continueToNextAction(poisonedSeats);
 }
 
 /**
