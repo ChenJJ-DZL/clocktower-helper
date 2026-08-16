@@ -15,6 +15,8 @@ import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 import { ExecutionResultModal } from "../modals/ExecutionResultModal";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { InfoResultModal } from "../modals/InfoResultModal";
+import { GenericAlertModal } from "../modals/GenericAlertModal";
+import { GenericConfirmModal } from "../modals/GenericConfirmModal";
 import { KillConfirmModal } from "../modals/KillConfirmModal";
 import { KlutzChoiceModal } from "../modals/KlutzChoiceModal";
 import { LunaticRpsModal } from "../modals/LunaticRpsModal";
@@ -343,21 +345,23 @@ export function GameModals() {
         onConfirm={actions.confirmMoonchildKill}
       />
 
-      {currentModal?.type === "REVIEW" &&
-        victorySnapshot &&
-        victorySnapshot.length > 0 && (
-          <ReviewModal
-            isOpen={true}
-            onClose={() => actions.setCurrentModal(null)}
-            seats={seats}
-            victorySnapshot={victorySnapshot}
-            gameLogs={gameLogs}
-            gamePhase={gamePhase}
-            winResult={winResult}
-            winReason={winReason}
-            isPortrait={isPortrait}
-          />
-        )}
+      {currentModal?.type === "REVIEW" && (
+        <ReviewModal
+          isOpen={true}
+          onClose={() => actions.setCurrentModal(null)}
+          seats={seats}
+          victorySnapshot={
+            victorySnapshot && victorySnapshot.length > 0
+              ? victorySnapshot
+              : seats
+          }
+          gameLogs={gameLogs}
+          gamePhase={gamePhase}
+          winResult={winResult}
+          winReason={winReason}
+          isPortrait={isPortrait}
+        />
+      )}
 
       <GameRecordsModal
         isOpen={currentModal?.type === "GAME_RECORDS"}
@@ -795,6 +799,30 @@ export function GameModals() {
               actions.setCurrentModal(null);
               actions.continueToNextAction();
             }
+          }}
+        />
+      )}
+
+      {currentModal?.type === "GENERIC_ALERT" && (
+        <GenericAlertModal
+          title={currentModal.data.title}
+          message={currentModal.data.message}
+          onClose={() => actions.setCurrentModal(null)}
+        />
+      )}
+      {currentModal?.type === "GENERIC_CONFIRM" && (
+        <GenericConfirmModal
+          title={currentModal.data.title}
+          message={currentModal.data.message}
+          confirmLabel={currentModal.data.confirmLabel}
+          cancelLabel={currentModal.data.cancelLabel}
+          onConfirm={() => {
+            currentModal.data.onConfirm();
+            actions.setCurrentModal(null);
+          }}
+          onCancel={() => {
+            currentModal.data.onCancel?.();
+            actions.setCurrentModal(null);
           }}
         />
       )}

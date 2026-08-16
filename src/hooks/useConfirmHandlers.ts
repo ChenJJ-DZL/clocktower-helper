@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import type { GameRecord, NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
+import { showConfirm } from "../utils/nativeDialogShim";
 
 /**
  * 确认弹窗处理函数的依赖接口
@@ -346,14 +347,17 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       setCurrentModal(null);
 
       if (targetId === null) {
-        const confirmed = window.confirm(
-          "你确认要让本晚无人死亡吗？这会让本局更偏离标准规则，只建议在你非常确定时使用"
-        );
-        if (!confirmed) return;
-        addLog(
-          `说书人选择本晚无人死亡，因${sourceId + 1}号变为新恶魔，这是一次偏离标准规则的特殊裁决`
-        );
-        continueToNextAction();
+        showConfirm({
+          title: "特殊裁决",
+          message:
+            "你确认要让本晚无人死亡吗？这会让本局更偏离标准规则，只建议在你非常确定时使用",
+          onConfirm: () => {
+            addLog(
+              `说书人选择本晚无人死亡，因${sourceId + 1}号变为新恶魔，这是一次偏离标准规则的特殊裁决`
+            );
+            continueToNextAction();
+          },
+        });
         return;
       }
 

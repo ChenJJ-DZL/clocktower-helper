@@ -43,10 +43,13 @@ export const chef: RoleDefinition = {
         const current = seats[i];
         const next = seats[(i + 1) % seats.length];
         if (current.id === playerSeatId || next.id === playerSeatId) continue;
-        const currentIsEvil =
-          current.role?.type === "minion" || current.role?.type === "demon";
-        const nextIsEvil =
-          next.role?.type === "minion" || next.role?.type === "demon";
+        // 与引擎结算保持一致：陌客 100% 注册为邪恶，间谍 100% 注册为善良。
+        const isEvilForChef = (seat: (typeof seats)[number]) =>
+          seat.role?.id === "recluse" ||
+          ((seat.role?.type === "minion" || seat.role?.type === "demon") &&
+            seat.role?.id !== "spy");
+        const currentIsEvil = isEvilForChef(current);
+        const nextIsEvil = isEvilForChef(next);
         if (currentIsEvil && nextIsEvil) evilPairs++;
       }
       return {

@@ -43,6 +43,7 @@ export interface GameState {
   gamePhase: GamePhase;
   selectedScript: Script | null;
   nightCount: number;
+  hasCompletedFirstNight: boolean;
   deadThisNight: number[]; // 存储玩家ID
   executedPlayerId: number | null;
   gameLogs: LogEntry[];
@@ -489,6 +490,7 @@ function getInitialState(): GameState {
     gamePhase: "scriptSelection",
     selectedScript: null,
     nightCount: 1,
+    hasCompletedFirstNight: false,
     deadThisNight: [],
     executedPlayerId: null,
     gameLogs: [],

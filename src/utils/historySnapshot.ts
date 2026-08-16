@@ -16,6 +16,7 @@ export interface GameStateSnapshot {
   timestamp: number; // 时间戳
   phase: GamePhase; // 当前游戏阶段
   nightCount: number; // 第几个夜晚
+  hasCompletedFirstNight?: boolean; // 首夜是否已结束
   dayCount: number; // 第几个白天
   description: string; // 快照描述，便于识别
   triggerAction?: string; // 触发快照的动作
@@ -226,6 +227,7 @@ interface NightLogicGameStateInput {
   seats: Seat[];
   gamePhase: GamePhase;
   nightCount: number;
+  hasCompletedFirstNight?: boolean;
   executedPlayerId: number | null;
   gameLogs: LogEntry[];
   deadThisNight: number[];
@@ -269,6 +271,7 @@ export function createSnapshotFromGameState(
     timestamp: Date.now(),
     phase: gameState.gamePhase,
     nightCount: gameState.nightCount,
+    hasCompletedFirstNight: gameState.hasCompletedFirstNight ?? false,
     dayCount,
     description: `状态快照 - ${gameState.gamePhase}`,
     triggerAction: "state_sync",

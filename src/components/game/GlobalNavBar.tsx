@@ -311,6 +311,17 @@ export function GlobalNavBar() {
           📋 历史
         </button>
 
+        {/* 复盘按钮：按时间顺序查看从落座开始的每一步操作 */}
+        <button
+          onClick={() =>
+            controller.setCurrentModal({ type: "REVIEW", data: null })
+          }
+          className="px-3 py-2 bg-indigo-800/90 hover:bg-indigo-700/90 text-white text-xs font-medium rounded-lg border border-indigo-600/50 backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shadow-lg"
+          title="查看本局复盘"
+        >
+          📜 复盘
+        </button>
+
         {/* 重置按钮 */}
         <button
           onClick={handleReset}

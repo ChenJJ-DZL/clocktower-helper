@@ -21,7 +21,7 @@ export function InfoResultModal({
       <div className="p-6 text-white">
         <div className="text-center mb-6">
           <div
-            className={`font-black mb-4 text-amber-400 break-words leading-snug ${
+            className={`font-black mb-4 text-amber-400 break-words leading-snug whitespace-pre-line ${
               isLong ? "text-2xl" : "text-5xl"
             }`}
           >

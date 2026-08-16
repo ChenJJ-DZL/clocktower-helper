@@ -162,14 +162,14 @@ function getOutsiderCandidates(
     if (seat.id === selfSeatId || seat.isDead || !seat.role) continue;
 
     const realRole = seat.role;
-    const displayRole = seat.effectiveRole ?? seat.charadeRole ?? realRole;
 
     // spy 可被当作外来者，recluse 可被当作外来者
     const canRegisterAsOutsider =
       realRole.id === "spy" || realRole.id === "recluse";
 
     if (realRole.type === "outsider" || canRegisterAsOutsider) {
-      candidates.push({ seat, roleName: displayRole.name ?? realRole.name });
+      // 酒鬼是外来者，但必须向图书管理员展示“酒鬼”，不能展示其伪装的镇民身份。
+      candidates.push({ seat, roleName: realRole.name ?? "外来者" });
     }
   }
 
@@ -183,6 +183,9 @@ function getScriptOutsiderRoles(seats: PlayerLookup[]): string[] {
   const roleNames = new Set<string>();
   for (const seat of seats) {
     if (seat.role?.type === "outsider") {
+      roleNames.add(seat.role.name);
+    }
+    if (seat.role?.id === "spy" || seat.role?.id === "recluse") {
       roleNames.add(seat.role.name);
     }
   }

@@ -103,7 +103,7 @@ export const grandmotherAbility = createRoleAbility({
   abilityName: "孙子识别",
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
   firstNightPriority: 60,
-  otherNightPriority: 77,
+  otherNightPriority: null,
   firstNightOnly: true,
   wakePromptId: "role.grandmother.wake",
   targetConfig: {

@@ -89,7 +89,7 @@ export const angelAbility = createRoleAbility({
   abilityName: "天使庇护",
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
   firstNightPriority: 35,
-  otherNightPriority: 35,
+  otherNightPriority: null,
   firstNightOnly: true,
   wakePromptId: "role.angel.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

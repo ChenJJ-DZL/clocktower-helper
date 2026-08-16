@@ -6,7 +6,6 @@ import type { Role, Seat } from "../../app/data";
 import { roles } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
-import { isFortuneTellerTarget } from "../utils/gameRules";
 
 /**
  * UseInteractionHandlerResult - 交互管理 Hook 的返回结果
@@ -148,12 +147,30 @@ export function useInteractionHandler(deps: {
             // 如果点击的是同一个座位，则视为取消入座
             if (existingSeat.id === id) {
               dispatch(gameActions.updateSeat(id, { role: null }));
+              if (gamePhase === "setup") {
+                dispatch(
+                  gameActions.addLog({
+                    day: 0,
+                    phase: "setup",
+                    message: `移除落座：${id + 1}号 - ${selectedRole.name}`,
+                  })
+                );
+              }
               return;
             }
             alert("该角色已入座");
             return;
           }
           dispatch(gameActions.updateSeat(id, { role: selectedRole }));
+          if (gamePhase === "setup") {
+            dispatch(
+              gameActions.addLog({
+                day: 0,
+                phase: "setup",
+                message: `落座：${id + 1}号 - ${selectedRole.name}`,
+              })
+            );
+          }
         } else {
           dispatch(gameActions.updateSeat(id, { role: null }));
         }
@@ -279,57 +296,19 @@ export function useInteractionHandler(deps: {
     ]
   );
 
-  // 交互式角色结果自动生成逻辑 (Interactive Role Result Generator)
-  // 支持: 占卜师 (Fortune Teller), 裁缝 (Seamstress - Future), etc.
+  // 占卜师结果不再在选人阶段自动写入控制台：
+  // 结果由确认后的 FORTUNE_TELLER_RESULT 弹窗展示，避免随机注册导致闪烁。
   useEffect(() => {
-    // FIX: Use activeNightStep (deps.nightInfo) which has the computed logic, NOT the raw queue
     const nightInfo = depsNightInfo;
-    if (!nightInfo) return;
-
-    const effectiveRole = nightInfo.effectiveRole;
-    if (!effectiveRole) return;
-    const roleId = effectiveRole.id;
-
-    // 🔮 占卜师 (Fortune Teller)
-    if (roleId === "fortune_teller") {
-      if (selectedActionTargets.length === 2) {
-        const t1 = seats.find((s) => s.id === selectedActionTargets[0]);
-        const t2 = seats.find((s) => s.id === selectedActionTargets[1]);
-        if (t1 && t2) {
-          const isFT1 = isFortuneTellerTarget(t1);
-          const isFT2 = isFortuneTellerTarget(t2);
-          const isEvil = isFT1 || isFT2;
-
-          // 涡流环境判定
-          const resultValue = isVortoxWorld ? !isEvil : isEvil;
-          const resultText = resultValue ? "✅ 是" : "❌ 否";
-          const targetOutput = `🔮 占卜师信息：${resultText}`;
-
-          if (state.inspectionResult !== targetOutput) {
-            dispatch(
-              gameActions.updateState({
-                inspectionResult: targetOutput,
-                inspectionResultKey: Math.random(),
-              })
-            );
-          }
-        }
-      }
+    const isFortuneTeller = nightInfo?.effectiveRole?.id === "fortune_teller";
+    if (!isFortuneTeller && state.inspectionResult?.startsWith("🔮 占卜师信息")) {
+      dispatch(
+        gameActions.updateState({
+          inspectionResult: null,
+        })
+      );
     }
-
-    // 🧵 裁缝 (Seamstress) - 示例扩展点
-    // else if (roleId === 'seamstress') { ... }
-
-    // 🧹 如果切换了角色或重置了选择，且当前没有结果需要显示，可以在这里清除
-    // 但为了保持UI稳定，我们通常不自动清除，直到下一个行动覆盖它。
-  }, [
-    selectedActionTargets,
-    seats,
-    isVortoxWorld,
-    state.inspectionResult,
-    dispatch,
-    depsNightInfo,
-  ]);
+  }, [depsNightInfo, state.inspectionResult, dispatch]);
 
   const handleConfirmAction = useCallback(async () => {
     const nightInfo = depsNightInfo || nightActionQueue[currentWakeIndex];

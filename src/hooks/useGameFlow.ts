@@ -201,12 +201,15 @@ export function useGameFlow(): UseGameFlowResult {
 
   const startNight = useCallback(
     (isFirstNight: boolean) => {
-      dispatch(gameActions.setGamePhase(isFirstNight ? "firstNight" : "night"));
+      // 非首夜统一走 startSubsequentNight 完整流程：重新生成夜间队列，
+      // 避免沿用首夜残留队列导致洗衣妇/厨师等“仅首夜”角色在后续夜被重复唤醒。
       if (!isFirstNight) {
-        dispatch(gameActions.updateState({ nightCount: state.nightCount + 1 }));
+        unifiedEventBus.emit("startSubsequentNight", {});
+        return;
       }
+      dispatch(gameActions.setGamePhase("firstNight"));
     },
-    [dispatch, state.nightCount]
+    [dispatch]
   );
 
   const enterNightPhase = useCallback(
@@ -215,12 +218,14 @@ export function useGameFlow(): UseGameFlowResult {
       //    （"昨晚X号、Y号"重复出现），且送葬者等依赖 deadThisNight 的
       //    功能读取到的是历史累积数据。
       dispatch(gameActions.updateState({ deadThisNight: [] }));
-      dispatch(gameActions.setGamePhase(target));
       if (!isFirstNight) {
-        dispatch(gameActions.updateState({ nightCount: state.nightCount + 1 }));
+        // 非首夜同样统一走 startSubsequentNight，保证队列实时重建。
+        unifiedEventBus.emit("startSubsequentNight", {});
+        return;
       }
+      dispatch(gameActions.setGamePhase(target));
     },
-    [dispatch, state.nightCount]
+    [dispatch]
   );
 
   const enterDayPhase = useCallback(() => {
@@ -231,6 +236,19 @@ export function useGameFlow(): UseGameFlowResult {
     // 否则一旦某天处决过，executeJudgment 会永远判定“今天已经有过处决”，
     // 导致后续所有白天都无法再处决，游戏永远无法推进/结束。
     dispatch(gameActions.updateState({ todayExecutedId: null }));
+    // 首个夜晚一旦结束，首夜信息类角色不再参与后续任何夜晚，
+    // 即使后续夜序被重置为“首夜”也不重复唤醒。
+    if (nightCount === 1) {
+      dispatch(gameActions.updateState({ hasCompletedFirstNight: true }));
+    }
+    // 复盘时间线：记录进入白天的阶段日志。
+    dispatch(
+      gameActions.addLog({
+        day: nightCount,
+        phase: "day",
+        message: `☀️ 进入第 ${nightCount} 天`,
+      })
+    );
     // 🔧 每天重置造谣者声明状态（造谣者每天可公开声明一次）
     dispatch(
       gameActions.updateState({
@@ -240,7 +258,7 @@ export function useGameFlow(): UseGameFlowResult {
       })
     );
     dispatch(gameActions.setGamePhase("day"));
-  }, [dispatch]);
+  }, [dispatch, nightCount]);
 
   const confirmNightDeathReport = useCallback(() => {
     enterDayPhase();
@@ -514,6 +532,14 @@ export function useGameFlow(): UseGameFlowResult {
 
     // 然后设置游戏阶段
     dispatch(gameActions.setGamePhase("firstNight"));
+    // 复盘时间线：记录首夜开始。
+    dispatch(
+      gameActions.addLog({
+        day: 1,
+        phase: "firstNight",
+        message: "🌙 进入首夜",
+      })
+    );
 
     // 清除模态框和待处理队列
     dispatch(gameActions.setModal(null));
@@ -536,10 +562,10 @@ export function useGameFlow(): UseGameFlowResult {
         unifiedEventBus.emit("startFirstNight", {});
         return;
       }
-      dispatch(gameActions.setGamePhase("night"));
-      dispatch(gameActions.updateState({ nightCount: nightCount + 1 }));
+      // 非首夜统一走 startSubsequentNight 完整流程（重建队列 + 更新阶段/夜数）。
+      unifiedEventBus.emit("startSubsequentNight", {});
     },
-    [nightCount, dispatch]
+    [dispatch]
   );
 
   // 使用 ref 存储 proceedToFirstNight 以便在模态框回调中重新调用

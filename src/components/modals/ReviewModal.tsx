@@ -20,6 +20,7 @@ interface ReviewModalProps {
 export function ReviewModal({
   isOpen,
   onClose,
+  seats,
   victorySnapshot,
   gameLogs,
   gamePhase,
@@ -28,6 +29,11 @@ export function ReviewModal({
   isPortrait,
 }: ReviewModalProps) {
   if (!isOpen) return null;
+
+  // 复盘需要展示当前座位信息；若尚未设置胜利快照（游戏中/部分结算路径），
+  // 回退到实时座位，保证“复盘”按钮任何时候都能打开。
+  const displaySeats =
+    victorySnapshot && victorySnapshot.length > 0 ? victorySnapshot : seats;
 
   return (
     <ModalWrapper title="📜 对局复盘" onClose={onClose} className="max-w-6xl">
@@ -43,7 +49,7 @@ export function ReviewModal({
           <div
             className={`space-y-2 ${isPortrait ? "max-h-64" : "max-h-[calc(100vh-16rem)]"} overflow-y-auto`}
           >
-            {victorySnapshot.map((s) => (
+            {displaySeats.map((s) => (
               <div
                 key={s.id}
                 className={`py-2 border-b border-gray-700 flex justify-between items-center ${isPortrait ? "text-xs" : ""}`}
@@ -124,7 +130,8 @@ export function ReviewModal({
               const filteredLogs = gameLogs.filter(
                 (log) =>
                   !log.message?.startsWith("[系统]") &&
-                  !log.message?.startsWith("[能力执行]")
+                  !log.message?.startsWith("[能力执行]") &&
+                  !log.message?.startsWith("[handleDrunkCharadeSelect]")
               );
 
               // 按天数和阶段分组
@@ -155,6 +162,11 @@ export function ReviewModal({
               return sortedLogs.map(([key, logs]) => {
                 const [day, phase] = key.split("_");
                 const dayNum = parseInt(day, 10);
+                // 同一天/同一阶段内按写入顺序（seq）排序，保证复盘时间线真实。
+                const sortedInnerLogs = [...logs].sort(
+                  (x, y) =>
+                    (x.seq ?? x.ts ?? 0) - (y.seq ?? y.ts ?? 0)
+                );
                 const phaseName =
                   phase === "setup"
                     ? "⚙️ 开局"
@@ -179,9 +191,9 @@ export function ReviewModal({
                       {phaseName}
                     </div>
                     <div className="space-y-2">
-                      {logs.map((l) => (
+                      {sortedInnerLogs.map((l, idx) => (
                         <div
-                          key={`${l.day}-${l.phase}-${l.message}`}
+                          key={`${l.day}-${l.phase}-${l.seq ?? l.ts ?? idx}-${l.message}`}
                           className={`py-2 border-b border-gray-700 text-gray-300 ${isPortrait ? "text-xs" : "text-sm"} pl-2`}
                         >
                           {formatMsg(l.message)}

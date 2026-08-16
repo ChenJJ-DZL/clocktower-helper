@@ -1,4 +1,5 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { showConfirm } from "../../utils/nativeDialogShim";
 
 export function MadnessCheckModal({ modal }: { modal: any }) {
   const props = useGameActions();
@@ -37,13 +38,17 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
               );
               if (target && !target.isDead) {
                 // 如果判定失败，说书人可以决定是否处决
-                const shouldExecute = window.confirm(
-                  `是否处决 ${modal.targetId + 1}号？`
-                );
-                if (shouldExecute) {
-                  props.saveHistory();
-                  props.executePlayer(modal.targetId);
-                }
+                showConfirm({
+                  title: "处决确认",
+                  message: `是否处决 ${modal.targetId + 1}号？`,
+                  onConfirm: () => {
+                    props.saveHistory();
+                    props.executePlayer(modal.targetId);
+                    props.setCurrentModal(null);
+                  },
+                  onCancel: () => props.setCurrentModal(null),
+                });
+                return;
               }
               props.setCurrentModal(null);
             }}

@@ -119,6 +119,10 @@ export interface ExecutionHandlersDeps {
   // Refs
   processingRef: React.MutableRefObject<boolean>;
   moonchildChainPendingRef: React.MutableRefObject<boolean>;
+  victoryRef: React.MutableRefObject<{
+    winner: "good" | "evil";
+    reason: string;
+  } | null>;
 }
 
 /**
@@ -177,6 +181,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     nightLogic,
     processingRef,
     moonchildChainPendingRef,
+    victoryRef,
     winResult,
     setWinResult,
     setGamePhase,
@@ -778,7 +783,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
                 });
               } else {
                 const modalShown = executePlayer(executed.id);
-                if (!modalShown) {
+                if (!modalShown && !victoryRef.current) {
                   setCurrentModal({
                     type: "EXECUTION_RESULT",
                     data: { message: `${executed.id + 1}号被处决` },
@@ -792,7 +797,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       const modalShown = executePlayer(executed.id);
-      if (!modalShown) {
+      if (!modalShown && !victoryRef.current) {
         setCurrentModal({
           type: "EXECUTION_RESULT",
           data: { message: `${executed.id + 1}号被处决` },
@@ -808,6 +813,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     addLog,
     isActorDisabledByPoisonOrDrunk,
     todayExecutedId,
+    victoryRef,
   ]);
 
   // Confirm poison handler
@@ -1029,6 +1035,13 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           deadThisNight: [],
         })
       );
+      baseDispatch(
+        gameActions.addLog({
+          day: nightCount + 1,
+          phase: "night",
+          message: `🌙 进入第 ${nightCount + 1} 夜（空队列兜底）`,
+        })
+      );
       baseDispatch(gameActions.setGamePhase("night"));
       baseDispatch(gameActions.setModal(null));
       return;
@@ -1057,6 +1070,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         nightCount: nightCount + 1,
         // 🔧 新夜晚清空 deadThisNight，避免死亡报告跨夜累积
         deadThisNight: [],
+      })
+    );
+    // 复盘时间线：记录后续夜晚开始。
+    baseDispatch(
+      gameActions.addLog({
+        day: nightCount + 1,
+        phase: "night",
+        message: `🌙 进入第 ${nightCount + 1} 夜`,
       })
     );
     baseDispatch(gameActions.setGamePhase("night"));

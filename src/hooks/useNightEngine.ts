@@ -42,6 +42,7 @@ export interface NightLogicGameState {
   seats: Seat[];
   gamePhase: GamePhase;
   nightCount: number;
+  hasCompletedFirstNight?: boolean;
   executedPlayerId: number | null;
   wakeQueueIds: number[];
   currentWakeIndex: number;
@@ -223,6 +224,7 @@ function convertToNightStateMachineSnapshot(
 ): NightStateMachineSnapshot {
   return {
     nightCount: snapshot.nightCount,
+    hasCompletedFirstNight: (snapshot as any).hasCompletedFirstNight ?? false,
     seats: snapshot.seats,
     statusEffects: {},
     gamePhase: snapshot.phase,

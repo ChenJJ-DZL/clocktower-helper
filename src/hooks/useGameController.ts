@@ -212,6 +212,8 @@ export function useGameController() {
   //   setWakeQueueIds 函数式更新写入，同步到 ref 供 useNightSnapshot 的
   //   continueToNextAction/updateSnapshot 读取，避免闭包旧值跳过插入节点）
   const wakeQueueIdsRef = useRef<number[]>([]);
+  // 复盘日志全局序号：保证同毫秒内多条日志的先后顺序稳定。
+  const logSeqRef = useRef(0);
   useEffect(() => {
     wakeQueueIdsRef.current = wakeQueueIds;
   }, [wakeQueueIds]);
@@ -343,11 +345,19 @@ export function useGameController() {
   } = gameFlow;
 
   const addLog = useCallback(
-    (msg: string) =>
+    (msg: string) => {
+      logSeqRef.current += 1;
       village.setGameLogs((p) => [
         ...(p as any),
-        { day: nightCount, phase: gamePhase, message: msg },
-      ]),
+        {
+          day: nightCount,
+          phase: gamePhase,
+          message: msg,
+          ts: Date.now(),
+          seq: logSeqRef.current,
+        },
+      ]);
+    },
     [village, nightCount, gamePhase]
   );
 
@@ -364,9 +374,16 @@ export function useGameController() {
                   )
               )
             : prev;
+        logSeqRef.current += 1;
         return [
           ...filtered,
-          { day: nightCount, phase: gamePhase, message: msg },
+          {
+            day: nightCount,
+            phase: gamePhase,
+            message: msg,
+            ts: Date.now(),
+            seq: logSeqRef.current,
+          },
         ];
       });
     },
@@ -661,7 +678,12 @@ export function useGameController() {
     [baseDispatch]
   );
 
-  const { logicDispatch, checkGameOver, declareMayorImmediateWin } =
+  const {
+    logicDispatch,
+    checkGameOver,
+    declareMayorImmediateWin,
+    victoryRef,
+  } =
     useLogicDispatcher(
       seats,
     commitSeats,
@@ -770,6 +792,7 @@ export function useGameController() {
     seats,
     gamePhase,
     nightCount,
+    hasCompletedFirstNight: gameState.hasCompletedFirstNight,
     executedPlayerId,
     wakeQueueIds,
     currentWakeIndex,
@@ -863,6 +886,7 @@ export function useGameController() {
     findNearestAliveNeighbor,
     processingRef: { current: false } as any,
     moonchildChainPendingRef: gameState.moonchildChainPendingRef,
+    victoryRef,
     markAbilityUsed,
     hasUsedAbility,
     reviveSeat,
@@ -879,6 +903,7 @@ export function useGameController() {
     resolveLunaticRps,
     confirmShootResult,
     handleSlayerTargetSelect,
+    startSubsequentNight,
   } = executionHandlers;
 
   const confirmHandlers = useConfirmHandlers({
@@ -1509,6 +1534,22 @@ export function useGameController() {
     setCurrentModal,
   ]);
 
+  // 监听非首夜启动事件：统一由 startSubsequentNight 重建夜间队列，
+  // 确保首夜角色（洗衣妇/厨师/图书管理员等）不会在后续夜被重复唤醒。
+  useEffect(() => {
+    const handleStartSubsequentNight = () => {
+      console.log("[GameController] Received startSubsequentNight event");
+      startSubsequentNight();
+    };
+    const listenerId = unifiedEventBus.on(
+      "startSubsequentNight",
+      handleStartSubsequentNight
+    );
+    return () => {
+      unifiedEventBus.off("startSubsequentNight", listenerId);
+    };
+  }, [startSubsequentNight]);
+
   // 初始化/刷新夜晚步骤信息
   const lastNightRefreshIdxRef = useRef<number | null>(null);
   const lastNightRefreshPhaseRef = useRef<string | null>(null);
@@ -1606,6 +1647,7 @@ export function useGameController() {
       swapRoles,
       handlePreStartNight,
       handleStartNight,
+      startSubsequentNight,
       handleDrunkCharadeSelect,
       proceedToCheckPhase,
       reviveSeat,
@@ -1817,6 +1859,7 @@ export function useGameController() {
       handlePreStartNight,
       handleSlayerTargetSelect,
       handleStartNight,
+      startSubsequentNight,
       wrappedHandleStepBack,
       handleSwitchScript,
       handleTimerPause,

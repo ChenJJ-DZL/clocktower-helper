@@ -44,4 +44,20 @@ describe("图书管理员 引擎集成测试",()=>{
     const r=await runFullAbilityPipeline(pipe(librarianAbility),ctx(0,1,"firstNight",ss));
     expect(r.aborted).toBe(false);
   });
+
+  test("结果只能来自外来者/可注册为外来者的角色，不能出现爪牙或恶魔",async()=>{
+    const ss=[makeSeat(0,"librarian","townsfolk"),makeSeat(1,"spy","minion"),makeSeat(2,"saint","outsider"),makeSeat(3,"imp","demon"),makeSeat(4,"recluse","outsider")];
+    const r=await runFullAbilityPipeline(pipe(librarianAbility),ctx(0,1,"firstNight",ss));
+    const roleName=(r.meta.abilityResult as any)?.roleName ?? "";
+    const allowed=new Set(["圣徒","陌客","间谍"]);
+    expect(allowed.has(roleName)).toBe(true);
+  });
+
+  test("酒鬼作为外来者时展示酒鬼而非伪装身份",async()=>{
+    const drunk=makeSeat(2,"drunk","outsider");
+    (drunk as any).charadeRole={id:"chef",name:"厨师",type:"townsfolk"};
+    const ss=[makeSeat(0,"librarian","townsfolk"),makeSeat(1,"chef","townsfolk"),drunk,makeSeat(3,"imp","demon")];
+    const r=await runFullAbilityPipeline(pipe(librarianAbility),ctx(0,1,"firstNight",ss));
+    expect((r.meta.abilityResult as any)?.roleName).toBe("酒鬼");
+  });
 });

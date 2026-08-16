@@ -3,6 +3,7 @@
 import React from "react";
 import type { GamePhase, Seat } from "../../../../app/data";
 import { getRoleDefinition } from "../../../roles";
+import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import type { NightInfoResult } from "../../../types/game";
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
 
@@ -521,9 +522,11 @@ export const GameConsole = React.memo(function GameConsole({
                         <button
                           onClick={() => {
                             if (!handleDayAbility) return;
-                            if (confirm(`确定使用 ${abilityName} 吗？`)) {
-                              handleDayAbility(seat.id);
-                            }
+                            showConfirm({
+                              title: "使用技能",
+                              message: `确定使用 ${abilityName} 吗？`,
+                              onConfirm: () => handleDayAbility(seat.id),
+                            });
                           }}
                           data-testid="start-day-ability-button"
                           className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
@@ -570,7 +573,7 @@ export const GameConsole = React.memo(function GameConsole({
                     console.warn(
                       "[Manual Override] primaryAction 和 onForceContinue 都不存在"
                     );
-                    alert("无法继续：请刷新页面重试");
+                    showAlert("无法继续：请刷新页面重试");
                   }
                 }}
                 className="w-full py-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-base transition-colors"
@@ -612,7 +615,7 @@ export const GameConsole = React.memo(function GameConsole({
                       "[GameConsole] Error in primary action:",
                       error
                     );
-                    alert(
+                    showAlert(
                       `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
                     );
                   }
@@ -649,7 +652,7 @@ export const GameConsole = React.memo(function GameConsole({
                             "[GameConsole] Error in secondary action:",
                             error
                           );
-                          alert(
+                          showAlert(
                             `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
                           );
                         }

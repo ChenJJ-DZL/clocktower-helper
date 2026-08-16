@@ -187,6 +187,10 @@ export interface LogEntry {
   day: number;
   phase: string;
   message: string;
+  /** 复盘排序用的时间戳（可选，旧日志没有该字段时按 phase 分组） */
+  ts?: number;
+  /** 复盘排序用的全局序号（可选，保证同毫秒内日志顺序稳定） */
+  seq?: number;
 }
 
 // 工具函数

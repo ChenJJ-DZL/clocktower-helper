@@ -10,6 +10,7 @@ import {
 import { gameActions, useGameContext } from "../../../contexts/GameContext";
 import { useGameState } from "../../../hooks/useGameState";
 import { loadGameRecords } from "../../../utils/persistence";
+import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
 
@@ -66,11 +67,16 @@ export default function ScriptSelection({
 
   const handleDeleteCustomScript = (e: React.MouseEvent, scriptId: string) => {
     e.stopPropagation();
-    if (confirm("确定要删除这个自定义剧本吗？")) {
-      const updated = customScripts.filter((s) => s.id !== scriptId);
-      setCustomScripts(updated);
-      localStorage.setItem("customScripts", JSON.stringify(updated));
-    }
+    showConfirm({
+      title: "删除剧本",
+      message: "确定要删除这个自定义剧本吗？",
+      confirmLabel: "删除",
+      onConfirm: () => {
+        const updated = customScripts.filter((s) => s.id !== scriptId);
+        setCustomScripts(updated);
+        localStorage.setItem("customScripts", JSON.stringify(updated));
+      },
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,7 +110,7 @@ export default function ScriptSelection({
         }
 
         if (roleIds.length === 0) {
-          alert("解析失败：未找到角色列表");
+          showAlert("解析失败：未找到角色列表");
           return;
         }
 
@@ -114,13 +120,13 @@ export default function ScriptSelection({
         );
 
         if (validRoleIds.length === 0) {
-          alert("导入失败：该剧本中的角色均不支持");
+          showAlert("导入失败：该剧本中的角色均不支持");
           return;
         }
 
         const missingCount = roleIds.length - validRoleIds.length;
         if (missingCount > 0) {
-          alert(
+          showAlert(
             `提示：剧本中有 ${missingCount} 个角色当前系统暂不支持，部分角色会被忽略。`
           );
         }
@@ -139,7 +145,7 @@ export default function ScriptSelection({
         localStorage.setItem("customScripts", JSON.stringify(updated));
       } catch (err) {
         console.error("JSON parsing error", err);
-        alert("解析失败：剧本文件格式不正确");
+        showAlert("解析失败：剧本文件格式不正确");
       } finally {
         if (fileInputRef.current) {
           fileInputRef.current.value = "";

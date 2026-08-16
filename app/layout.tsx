@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { GameProvider } from "@/src/contexts/GameContext";
 import { AudioProvider } from "@/src/hooks/useAudio";
+import { NativeDialogShim } from "@/src/components/NativeDialogShim";
 
 export const metadata: Metadata = {
   title: "血染钟楼辅助工具",
@@ -27,7 +28,10 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased">
         <AudioProvider>
-          <GameProvider>{children}</GameProvider>
+          <GameProvider>
+            <NativeDialogShim />
+            {children}
+          </GameProvider>
         </AudioProvider>
       </body>
     </html>

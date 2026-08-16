@@ -85,7 +85,7 @@ export const enlightenedAbility = createRoleAbility({
   abilityName: "开悟者",
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
   firstNightPriority: 10,
-  otherNightPriority: 10,
+  otherNightPriority: null,
   firstNightOnly: true,
   wakePromptId: "role.enlightened.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },

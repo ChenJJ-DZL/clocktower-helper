@@ -8,6 +8,7 @@ import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
+import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { getStorytellerTips } from "../../utils/storytellerTips";
 import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
@@ -92,6 +93,7 @@ export const GameStage = () => {
     onSeatClick,
     toggleStatus,
     handlePreStartNight,
+    handleStartNight,
     handleStepBack,
     handleConfirmAction,
     handleDayEndTransition,
@@ -607,7 +609,7 @@ export const GameStage = () => {
                         "[GameStage] executeJudgment is not a function:",
                         executeJudgment
                       );
-                      alert(
+                      showAlert(
                         "错误：executeJudgment 函数不可用，请刷新页面重试。"
                       );
                       return;
@@ -631,7 +633,7 @@ export const GameStage = () => {
                       "[GameStage] 执行处决堆栈:",
                       (error as Error)?.stack
                     );
-                    alert(
+                    showAlert(
                       `执行处决时出错: ${error instanceof Error ? error.message : String(error)}`
                     );
                   }
@@ -894,19 +896,19 @@ export const GameStage = () => {
                   try {
                     // Double check logic inside (UI should be disabled though)
                     if (pendingVoteFor !== null) {
-                      alert("请先完成当前的投票流程");
+                      showAlert("请先完成当前的投票流程");
                       return;
                     }
 
                     if (nominator === null || nominee === null) {
-                      alert('请先在圆桌上依次点击"提名者"和"被提名者"。');
+                      showAlert('请先在圆桌上依次点击"提名者"和"被提名者"。');
                       return;
                     }
                     // 🔧 修复：兜底校验——已死亡玩家不能被提名（防御式，即使点击入口已拦截）
                     const nominatorSeat = seats.find((s) => s.id === nominator);
                     const nomineeSeat = seats.find((s) => s.id === nominee);
                     if (nominatorSeat?.isDead || nomineeSeat?.isDead) {
-                      alert("已死亡玩家不能被提名，请重新选择。");
+                      showAlert("已死亡玩家不能被提名，请重新选择。");
                       setNominator(null);
                       setNominee(null);
                       return;
@@ -916,7 +918,7 @@ export const GameStage = () => {
                         "[GameStage] executeNomination is not a function:",
                         executeNomination
                       );
-                      alert(
+                      showAlert(
                         "错误：executeNomination 函数不可用，请刷新页面重试。"
                       );
                       return;
@@ -948,7 +950,7 @@ export const GameStage = () => {
                     }
                   } catch (error) {
                     console.error("[GameStage] 发起提名时出错:", error);
-                    alert(
+                    showAlert(
                       `发起提名时出错: ${error instanceof Error ? error.message : String(error)}`
                     );
                   }
@@ -998,7 +1000,7 @@ export const GameStage = () => {
                         "[GameStage] setCurrentModal is not a function:",
                         setCurrentModal
                       );
-                      alert(
+                      showAlert(
                         "错误：setCurrentModal 函数不可用，请刷新页面重试。"
                       );
                       return;
@@ -1011,7 +1013,7 @@ export const GameStage = () => {
                     });
                   } catch (error) {
                     console.error("[GameStage] 开始投票时出错:", error);
-                    alert(
+                    showAlert(
                       `开始投票时出错: ${error instanceof Error ? error.message : String(error)}`
                     );
                   }
@@ -1048,14 +1050,23 @@ export const GameStage = () => {
                   const hasPendingVote = pendingVoteFor !== null;
                   const hasCandidates = seats.some((s: Seat) => s.isCandidate);
                   if (hasPendingVote || hasCandidates) {
-                    const ok = confirm("仍有提名/候选未结算，确认直接入夜吗？");
-                    if (!ok) return;
+                    showConfirm({
+                      title: "直接入夜",
+                      message: "仍有提名/候选未结算，确认直接入夜吗？",
+                      onConfirm: () => {
+                        if (handleStartNight) {
+                          handleStartNight(false);
+                        } else {
+                          showAlert("无法开始夜晚，请检查游戏状态");
+                        }
+                      },
+                    });
+                    return;
                   }
-                  if (nightLogic?.startNight) {
-                    nightLogic.startNight(false);
-                    setGamePhase("night"); // 切换到夜晚阶段
+                  if (handleStartNight) {
+                    handleStartNight(false);
                   } else {
-                    alert("无法开始夜晚，请检查游戏状态");
+                    showAlert("无法开始夜晚，请检查游戏状态");
                   }
                 }}
                 className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow hover:bg-indigo-500 transition-colors"
@@ -1302,10 +1313,12 @@ export const GameStage = () => {
                 ? (() => {
                     // CRITICAL FIX: Handle empty wake queue or last step
                     const isEmpty = wakeQueueIds.length === 0;
-                    const isLastStep =
-                      !isEmpty && currentWakeIndex >= wakeQueueIds.length - 1;
+                    // 当前索引等于最后一步时仍有一个夜间行动尚未确认；
+                    // 只有索引已经越过队列末尾，才真正进入“天亮了”的收尾步骤。
+                    const isPastLastStep =
+                      !isEmpty && currentWakeIndex > wakeQueueIds.length - 1;
 
-                    if (isEmpty || isLastStep) {
+                    if (isEmpty || isPastLastStep) {
                       // Explicit "Enter Day" button for empty queue or dawn step
                       return {
                         label: "🌞 天亮了 - 进入白天",
@@ -1398,7 +1411,7 @@ export const GameStage = () => {
                             console.error(
                               "[GameStage] proceedToFirstNight not available on controller"
                             );
-                            alert(
+                            showAlert(
                               "游戏状态错误：无法开始夜晚。请刷新页面重试。"
                             );
                           }

@@ -35,6 +35,18 @@ export interface QueueGenerateOptions {
 }
 
 /**
+ * 获取座位在夜间队列中应使用的“有效角色 id”。
+ * 酒鬼伪装成什么身份，就按该身份参与游戏流程（唤醒/技能/顺序）。
+ */
+function getEffectiveRoleId(seat: any): string | undefined {
+  if (!seat?.role) return undefined;
+  if (seat.role.id === "drunk") {
+    return seat.charadeRole?.id ?? seat.role.id;
+  }
+  return seat.role.id;
+}
+
+/**
  * 动态生成当前夜晚的唤醒队列
  * @param fullNightOrder 全量夜晚顺序表（从nightOrderParser获取）
  * @param snapshot 当前游戏状态快照
@@ -50,12 +62,24 @@ export function generateDynamicNightQueue(
 
   // 1. 过滤符合条件的角色
   const validEntries = fullNightOrder.filter((entry) => {
-    // 首夜仅角色过滤
-    if (isFirstNight && entry.otherNightOnly) {
+    // 首夜仅角色过滤（含字段缺失时的优先级兜底：other 有值但 first 为 0）
+    const firstNightOnly =
+      entry.firstNightOnly ||
+      (entry.firstNightPriority > 0 && entry.otherNightPriority <= 0);
+    const otherNightOnly =
+      entry.otherNightOnly ||
+      (entry.otherNightPriority > 0 && entry.firstNightPriority <= 0);
+
+    if (isFirstNight && otherNightOnly) {
       return false;
     }
 
-    if (!isFirstNight && entry.firstNightOnly) {
+    if (!isFirstNight && firstNightOnly) {
+      return false;
+    }
+    // 首夜已结束后，即使某些规则把后续夜序重置为“首夜”，
+    // 首夜信息角色也绝不重复唤醒。
+    if (firstNightOnly && (snapshot as any).hasCompletedFirstNight) {
       return false;
     }
 
@@ -79,7 +103,9 @@ export function generateDynamicNightQueue(
     // includeDead 全局覆盖 + deadActorWakes 角色级覆盖（如间谍死后仍唤醒）
     const effectiveIncludeDead = (entry as any).deadActorWakes || includeDead;
     const seat = snapshot.seats.find(
-      (s) => s.role?.id === entry.roleId && (effectiveIncludeDead || !s.isDead)
+      (s) =>
+        getEffectiveRoleId(s) === entry.roleId &&
+        (effectiveIncludeDead || !s.isDead)
     );
 
     if (!seat) {
@@ -147,7 +173,9 @@ export function generateDynamicNightQueue(
     } else if (entry.roleId === "demon_info") {
       seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
     } else {
-      seat = snapshot.seats.find((s) => s.role?.id === entry.roleId)!;
+      seat = snapshot.seats.find(
+        (s) => getEffectiveRoleId(s) === entry.roleId
+      )!;
     }
     return {
       seatId: seat.id,

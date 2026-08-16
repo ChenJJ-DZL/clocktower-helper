@@ -64,11 +64,13 @@ export function useNightSnapshot(
       if (currentSeats && currentSeats.length > 0) {
         latestSeatsRef.current = currentSeats;
       }
+      // 优先使用 commitSeats 同步镜像中的最新座位：上一步角色改状态后，
+      // 即使 React 状态尚未重渲染，下一步行动者也能立即读到最新中毒/醉酒。
       const safeSeats =
-        currentSeats && currentSeats.length > 0
-          ? currentSeats
-          : externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
-            ? externalLatestSeatsRef.current
+        externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+          ? externalLatestSeatsRef.current
+          : currentSeats && currentSeats.length > 0
+            ? currentSeats
             : latestSeatsRef.current;
       // 🔧 标记 index 0 已显示
       if (index === 0) hasShownIndexZeroRef.current = true;

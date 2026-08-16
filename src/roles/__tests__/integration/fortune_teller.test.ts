@@ -24,4 +24,14 @@ describe("占卜师 引擎集成测试",()=>{
     const ss=[s(0,"fortune_teller","townsfolk"),s(1,"imp","demon",{dead:true}),s(2,"soldier","townsfolk")];
     expect((await runFullAbilityPipeline(pipe(fortuneTellerAbility),ctx(0,2,"night",ss))).aborted).toBe(false);
   });
+
+  test("中毒占卜师必须得到与真实结果相反的假信息",async()=>{
+    const ft=s(0,"fortune_teller","townsfolk");
+    (ft as any).statusEffects=[{type:"poisoned",source:"poisoner"}];
+    (ft as any).isPoisoned=true;
+    const ss=[ft,s(1,"imp","demon"),s(2,"soldier","townsfolk")];
+    const r=await runFullAbilityPipeline(pipe(fortuneTellerAbility),ctx(0,2,"night",ss));
+    expect(r.meta.abilityResult).toBe(false);
+    expect(r.meta.isCorrupted).toBe(true);
+  });
 });

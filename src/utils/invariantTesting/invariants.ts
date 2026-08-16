@@ -113,6 +113,10 @@ export const I3DeadPlayerAbilityBlocked: InvariantCheck = async (
       (a) => a.roleId === seat.role?.id
     );
     if (!ability) continue;
+    // 设置型/被动型能力不受“死亡玩家能力必须中止”约束，
+    // 否则男爵等只在开局生效的角色会被误判为死灵继续行动。
+    const timings = (ability.triggerTiming ?? []) as string[];
+    if (timings.includes("passive")) continue;
 
     const deadSeat = { ...seat, isAlive: false, isDead: true };
     const snapshot: any = {
@@ -506,6 +510,8 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
     const ability = abilityMap[action.node.abilityId];
     const semantics = ability?.effectSemantics ?? "info";
     if (semantics === "info") continue;
+    // 醉酒/中毒导致能力无效是规则允许的空转，不应判为“声明了效果却没落地”。
+    if (action.context.meta?.abilityEffective === false) continue;
 
     const prev = action.prevSnapshot.seats as any[];
     const cur = action.snapshot.seats as any[];

@@ -162,6 +162,18 @@ export type ModalType =
     }
 
   // 信息展示弹窗
+  | { type: "GENERIC_ALERT"; data: { title?: string; message: string } }
+  | {
+      type: "GENERIC_CONFIRM";
+      data: {
+        title?: string;
+        message: string;
+        confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm: () => void;
+        onCancel?: () => void;
+      };
+    }
   | { type: "DREAMER_RESULT"; data: { roleA: Role; roleB: Role } }
   | {
       type: "FORTUNE_TELLER_RESULT";
