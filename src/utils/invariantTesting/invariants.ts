@@ -216,7 +216,10 @@ export const I5TargetLegality: InvariantCheck = (result, abilityMap) => {
     const ability = abilityMap[action.node.abilityId];
     if (!ability) continue;
     const tc = ability.targetConfig;
-    const snapshot = action.context.snapshot ?? result.finalSnapshot;
+    // 🔧 使用执行前快照校验目标合法性（目标选择基于执行前状态）
+    // 使用 action.prevSnapshot 而非 action.context.snapshot（执行后快照），
+    // 避免能力 stateUpdate 修改目标状态后产生误报（如 zombuul 杀人后 isDead=true）
+    const snapshot = action.prevSnapshot;
     const seats = (snapshot.seats as any[]) ?? [];
 
     for (const tid of action.targetIds) {
@@ -228,7 +231,9 @@ export const I5TargetLegality: InvariantCheck = (result, abilityMap) => {
           `I5: ${action.node.roleId} 选择自己为目标（allowSelf=false）`
         );
       }
-      if (!tc.allowDead && target.isDead) {
+      // 检查三种死亡标记：isDead / markedForDeath / isAlive===false
+      const dead = target.isDead || target.markedForDeath || target.isAlive === false;
+      if (!tc.allowDead && dead) {
         errs.push(
           `I5: ${action.node.roleId} 选择死亡玩家 ${tid + 1}号 为目标（allowDead=false）`
         );

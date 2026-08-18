@@ -12,6 +12,18 @@ import {
 const preCheckPublic = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  const { snapshot, actionNode } = context;
+  const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+
+  // 🔧 死亡玩家不能发动能力
+  if (!seat?.isAlive) {
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "造谣者已死亡，无法使用能力",
+    };
+  }
+
   return { ...context, meta: { ...context.meta, isPublic: true } };
 };
 

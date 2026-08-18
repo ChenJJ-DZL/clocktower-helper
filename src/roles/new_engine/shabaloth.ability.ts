@@ -11,6 +11,7 @@ import {
 import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 import { pickMayorSubstitute, mayorSubstituteLog } from "../../utils/soldierImmunity";
 import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 
 // 前置校验：检查是否存活，是否为恶魔
 const preCheckAlive = async (
@@ -152,6 +153,11 @@ const updateKillState = async (
   return { ...context, snapshot: newSnapshot };
 };
 
+// 🔧 结算产物：沙巴洛斯击杀的提示/日志/UI 数据
+const settlementPostProcess = createSettlementPostProcess("沙巴洛斯", {
+  resultType: "shabaloth_kill",
+});
+
 export const shabalothAbility = createRoleAbility({
   roleId: "shabaloth",
   effectSemantics: "kill",
@@ -171,5 +177,5 @@ export const shabalothAbility = createRoleAbility({
   preCheck: [preCheckAlive],
   calculate: [calculateKillTargets],
   stateUpdate: [updateKillState],
-  postProcess: [],
+  postProcess: [settlementPostProcess],
 });

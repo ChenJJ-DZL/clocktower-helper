@@ -87,6 +87,18 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
   return a;
 }
 
+/**
+ * 判断座位是否处于"死亡"状态（兼容三种死亡标记）
+ *
+ * 引擎层不同能力使用不同的死亡标记：
+ * - imp: 仅设 markedForDeath（isDead 由 settleDawn 落地）
+ * - zombuul/assassin: 直接设 isDead + isAlive=false
+ * - 某些能力: 仅设 isAlive=false
+ */
+function isSeatDead(seat: any): boolean {
+  return !!seat.isDead || !!seat.markedForDeath || seat.isAlive === false;
+}
+
 /** 默认目标选择器：按 targetConfig 随机选合法目标 */
 export function defaultTargetPicker(
   node: NightActionNode,
@@ -104,7 +116,7 @@ export function defaultTargetPicker(
   );
 
   const aliveSeats = (snapshot.seats as any[]).filter((s) => {
-    if (s.isDead && !tc.allowDead) return false;
+    if (!tc.allowDead && isSeatDead(s)) return false;
     return true;
   });
   const candidates = aliveSeats.filter((s) => {
