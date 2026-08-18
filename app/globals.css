@@ -182,6 +182,33 @@ body > * {
   );
 }
 
+/* ── 移动端触控优化 ──────────────────────────────────────────── */
+
+/* 所有按钮最小触控热区 44px（WCAG 2.1 AA 标准） */
+@media (pointer: coarse) {
+  button, [role="button"], a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 高对比度护眼模式（夜间/昏暗环境） */
+@media (prefers-contrast: more) {
+  body {
+    --background: #000;
+    --foreground: #fff;
+  }
+  .glass-panel {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* 小屏幕优化（手机竖屏时缩小字体避免溢出） */
+@media (max-width: 480px) {
+  .text-xs { font-size: 10px !important; }
+  .text-sm { font-size: 12px !important; }
+}
+
 /* Firefox 滚动条样式 */
 .check-identity-scrollbar {
   scrollbar-width: thin;

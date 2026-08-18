@@ -32,7 +32,8 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
       const scaleY = windowHeight / BASE_HEIGHT;
 
       // Use the smaller scale to ensure content fits entirely
-      const newScale = Math.min(scaleX, scaleY); // 移除最大缩放限制，允许内容放大以铺满屏幕
+      // 🔧 最小缩放 0.35：手机小屏幕不会缩得太小导致无法操作
+      const newScale = Math.max(0.35, Math.min(scaleX, scaleY));
 
       setScale(newScale);
     };
