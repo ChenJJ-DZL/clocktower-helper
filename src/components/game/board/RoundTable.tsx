@@ -80,6 +80,7 @@ export function RoundTable({
   onOpenNightOrderPreview,
   onSetRedNemesis,
   onEditNote,
+  onContextMenu,
   seatNotes = {},
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,6 +130,8 @@ export function RoundTable({
   const handleSeatContextMenu = (e: React.MouseEvent, seatId: number) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, seatId });
+    // 同时通知父组件（GameStage）设置全局 contextMenu，以便 PlayerContextMenu 渲染
+    if (onContextMenu) onContextMenu(e, seatId);
   };
 
   useEffect(() => {

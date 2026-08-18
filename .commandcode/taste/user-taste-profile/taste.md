@@ -35,3 +35,4 @@
 - Prefers detailed commit messages with structured bullet points listing each fixed bug by invariant number and role name (e.g., "I9: 珪(Po)无结算产物"). Confidence: 0.85
 - Delivers mega-tasks as single prompts bundling unrelated features (grimoire + mobile + post-game analysis) with explicit "全面自主交付" (fully autonomous delivery) mandate — expects the agent to self-heal all errors without ever pausing for human intervention. Confidence: 0.9
 - Prefers atomic commits per feature (undo/redo in one commit, mobile in another) with git push after each, rather than batching everything into a single large commit. Confidence: 0.85
+- Expects the agent to intelligently triage E2E failures: distinguish real code bugs (block deployment) from test-script issues like selector mismatches or phase-timing problems (acceptable to push with a note). Does not want every test failure treated as a blocking code defect. Confidence: 0.85

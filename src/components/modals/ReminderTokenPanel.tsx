@@ -33,6 +33,8 @@ interface ReminderTokenPanelProps {
   onClose: () => void;
   /** 玩家名称（显示用） */
   playerName?: string;
+  /** 不渲染自身遮罩层（由外部 ModalWrapper 管理） */
+  noOverlay?: boolean;
 }
 
 const colorMap: Record<string, string> = {
@@ -50,6 +52,7 @@ export function ReminderTokenPanel({
   onRemove,
   onClose,
   playerName,
+  noOverlay,
 }: ReminderTokenPanelProps) {
   const [customIcon, setCustomIcon] = useState("📌");
   const [customLabel, setCustomLabel] = useState("");
@@ -85,14 +88,8 @@ export function ReminderTokenPanel({
     setShowCustom(false);
   }, [seatId, customIcon, customLabel, onAdd]);
 
-  return (
-    <div
-      className="fixed inset-0 z-[3100] flex items-center justify-center bg-black/60"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl p-4 w-[420px] max-h-[80vh] flex flex-col shadow-2xl">
+  const content = (
+    <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl p-4 w-[420px] max-h-[80vh] flex flex-col shadow-2xl">
         {/* 标题 */}
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-bold text-amber-300">
@@ -193,6 +190,18 @@ export function ReminderTokenPanel({
           关闭
         </button>
       </div>
+  );
+
+  if (noOverlay) return content;
+
+  return (
+    <div
+      className="fixed inset-0 z-[3100] flex items-center justify-center bg-black/60"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {content}
     </div>
   );
 }
