@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FadeIn, SlideUp } from "../common/AnimationWrapper";
+import { BottomSheet } from "../common/BottomSheet";
 
 export interface ModalWrapperProps {
   title: string;
@@ -27,15 +28,16 @@ export function ModalWrapper({
   // MOVED TO TOP to avoid "Rendered more hooks" error if early return happens
   const portalKeyRef = React.useRef(`modal-${title}-${Date.now()}`);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const hasLoggedRef = React.useRef(false);
 
   useEffect(() => {
     setMounted(true);
-    if (!hasLoggedRef.current) {
-      console.log("[ModalWrapper] Mounted, title:", title);
-      hasLoggedRef.current = true;
-    }
-  }, [title]);
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   if (typeof document === "undefined" || !mounted) {
     return null;
@@ -44,6 +46,20 @@ export function ModalWrapper({
   if (!document.body) {
     console.error("[ModalWrapper] document.body is not available!");
     return null;
+  }
+
+  // 🔧 移动端自动使用 Bottom Sheet 抽屉
+  if (isMobile) {
+    return (
+      <BottomSheet isOpen={true} onClose={onClose} title={title}>
+        {children}
+        {footer && (
+          <div className="mt-4 pt-3 border-t border-white/10 flex justify-end gap-2">
+            {footer}
+          </div>
+        )}
+      </BottomSheet>
+    );
   }
 
   // Use ref to ensure key remains stable across renders
@@ -75,7 +91,6 @@ export function ModalWrapper({
       onClick={(e) => {
         // 只有点击遮罩层本身时才关闭，点击弹窗内容时不关闭
         if (closeOnOverlayClick && e.target === e.currentTarget) {
-          console.log("[ModalWrapper] Overlay clicked, closing modal");
           onClose();
         }
       }}
@@ -112,7 +127,6 @@ export function ModalWrapper({
           }}
           onClick={(e) => {
             e.stopPropagation();
-            console.log("[ModalWrapper] Modal content clicked");
           }}
         >
           {/* 1. 标题栏 */}

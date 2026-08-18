@@ -1,7 +1,34 @@
+import { useState, useCallback } from "react";
 import { useGameActions } from "../../contexts/GameActionsContext";
 
 export function GameOverOverlay() {
   const props = useGameActions();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const { exportReviewAsImage } = await import("../../utils/exportReview");
+      // 捕获复盘弹窗内容（先打开复盘弹窗再导出）
+      props.setCurrentModal({ type: "REVIEW", data: null });
+      // 等待弹窗渲染
+      await new Promise((r) => setTimeout(r, 500));
+      const el = document.querySelector('[role="dialog"]') as HTMLElement;
+      if (el) {
+        await exportReviewAsImage({
+          targetElement: el,
+          scriptName: props.selectedScript?.name || "对局复盘",
+          winResult: props.winResult,
+          scale: window.devicePixelRatio > 1 ? 2 : 1,
+        });
+      }
+    } catch (e) {
+      console.error("导出失败:", e);
+    } finally {
+      setExporting(false);
+    }
+  }, [props]);
+
   if (props.gamePhase !== "gameOver") return null;
 
   return (
@@ -42,6 +69,13 @@ export function GameOverOverlay() {
             className="px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-3xl font-bold transition-colors"
           >
             本局复盘
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="px-10 py-5 bg-amber-600 hover:bg-amber-700 text-white rounded-full text-3xl font-bold transition-colors disabled:opacity-50"
+          >
+            {exporting ? "⏳ 导出中..." : "📸 导出长图"}
           </button>
         </div>
       </div>

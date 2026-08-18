@@ -33,3 +33,5 @@
 - Expects agent to proactively clean up debug/temp files (debug_*.ts, *_debug.txt) and unused imports before committing. No leftover scratch files in the repo. Confidence: 0.85
 - When a bug affects multiple ability files, expects a systematic approach: find root cause → verify with isolated repro → fix all affected files globally → re-run full test suite → commit. Confidence: 0.9
 - Prefers detailed commit messages with structured bullet points listing each fixed bug by invariant number and role name (e.g., "I9: 珪(Po)无结算产物"). Confidence: 0.85
+- Delivers mega-tasks as single prompts bundling unrelated features (grimoire + mobile + post-game analysis) with explicit "全面自主交付" (fully autonomous delivery) mandate — expects the agent to self-heal all errors without ever pausing for human intervention. Confidence: 0.9
+- Prefers atomic commits per feature (undo/redo in one commit, mobile in another) with git push after each, rather than batching everything into a single large commit. Confidence: 0.85

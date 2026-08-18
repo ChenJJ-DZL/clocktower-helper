@@ -1,6 +1,7 @@
 import type { GamePhase, LogEntry, Seat, WinResult } from "@/app/data";
 import { roles } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
+import { useState, useRef, useCallback } from "react";
 
 // 角色ID到中文名的映射
 const roleNameMap = new Map(roles.map((r) => [r.id, r.name]));
@@ -28,6 +29,27 @@ export function ReviewModal({
   winReason,
   isPortrait,
 }: ReviewModalProps) {
+  const [exporting, setExporting] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = useCallback(async () => {
+    if (!contentRef.current || exporting) return;
+    setExporting(true);
+    try {
+      const { exportReviewAsImage } = await import("../../../src/utils/exportReview");
+      await exportReviewAsImage({
+        targetElement: contentRef.current,
+        scriptName: "对局复盘",
+        winResult,
+        scale: window.devicePixelRatio > 1 ? 2 : 1,
+      });
+    } catch (e) {
+      console.error("导出失败:", e);
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, winResult]);
+
   if (!isOpen) return null;
 
   // 复盘需要展示当前座位信息；若尚未设置胜利快照（游戏中/部分结算路径），
@@ -36,10 +58,21 @@ export function ReviewModal({
     victorySnapshot && victorySnapshot.length > 0 ? victorySnapshot : seats;
 
   return (
-    <ModalWrapper title="📜 对局复盘" onClose={onClose} className="max-w-6xl">
-      <div
-        className={`bg-black/50 ${isPortrait ? "p-3" : "p-6"} rounded-xl ${isPortrait ? "flex-col" : "flex"} gap-6`}
-      >
+    <ModalWrapper
+      title="📜 对局复盘"
+      onClose={onClose}
+      className="max-w-6xl"
+      footer={
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? "⏳ 导出中..." : "📸 导出复盘长图"}
+        </button>
+      }
+    >
+      <div ref={contentRef} className={`bg-black/50 ${isPortrait ? "p-3" : "p-6"} rounded-xl ${isPortrait ? "flex-col" : "flex"} gap-6`}>
         <div className={`${isPortrait ? "w-full" : "w-1/3"}`}>
           <h4
             className={`text-purple-400 ${isPortrait ? "mb-2 text-sm" : "mb-4 text-xl"} font-bold border-b pb-2`}
