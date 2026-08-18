@@ -43,7 +43,7 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   return {
     ...ctx,
     meta: { ...ctx.meta, priestessResult: r },
@@ -61,7 +61,7 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   const log = `[Priestess] 告知 ${r.targetId + 1}号玩家最值得交流`;
   console.log(log);
   return {

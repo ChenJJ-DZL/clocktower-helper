@@ -38,7 +38,8 @@ const preCheckTargetDead = async (
   const { snapshot, targetIds } = context;
   const targetId = targetIds?.[0];
 
-  if (!targetId) {
+  // 🔧 修复：!targetId 在 targetId===0（1号玩家）时误判为未选择 → 复活能力静默失败
+  if (targetId == null) {
     return {
       ...context,
       aborted: true,
@@ -66,7 +67,8 @@ const updateResurrectionStatus = async (
   const isAbilityEffective = meta.abilityEffective ?? true;
   const targetId = targetIds?.[0];
 
-  if (!targetId) {
+  // 🔧 修复：!targetId 在 targetId===0（1号玩家）时误判为未选择 → 复活能力静默空转
+  if (targetId == null) {
     return context;
   }
 
@@ -152,17 +154,34 @@ export const professorAbility = createRoleAbility({
       const resurrectionSuccess = meta.resurrectionSuccess;
       const targetIsTownsfolk = meta.targetIsTownsfolk;
 
+      // 🔧 补结算产物（此前只 console.log → I9 违规：技能执行成功但无结算产物）
+      let abilityLog = "";
       if (resurrectionSuccess && targetId) {
-        console.log(
-          `🎓 ${actionNode.seatId + 1}号(教授) 成功复活了 ${targetId + 1}号玩家`
-        );
+        abilityLog = `${actionNode.seatId + 1}号(教授) 成功复活了 ${targetId + 1}号玩家`;
+        console.log(`🎓 ${abilityLog}`);
       } else if (targetId) {
         const reason = !targetIsTownsfolk ? "目标不是镇民" : "教授醉酒或中毒";
-        console.log(
-          `🎓 ${actionNode.seatId + 1}号(教授) 尝试复活 ${targetId + 1}号玩家，但失败了（${reason}）`
-        );
+        abilityLog = `${actionNode.seatId + 1}号(教授) 尝试复活 ${targetId + 1}号玩家，但失败了（${reason}）`;
+        console.log(`🎓 ${abilityLog}`);
       }
-      return context;
+
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityLog,
+          displayInfo: {
+            type: "professor_resurrect",
+            targetId: targetId ?? null,
+            success: !!resurrectionSuccess,
+            log: abilityLog,
+          },
+          abilityResult: {
+            revived: !!resurrectionSuccess,
+            targetId: targetId ?? null,
+          },
+        },
+      };
     },
   ],
 });

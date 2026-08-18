@@ -35,7 +35,7 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   return {
     ...ctx,
     snapshot: {
@@ -57,7 +57,7 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   const log = `[Cerenovus] ${r.targetId + 1}号需疯狂扮演【${r.roleName}】`;
   console.log(log);
   return {

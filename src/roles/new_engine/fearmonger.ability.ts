@@ -33,7 +33,7 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   return {
     ...ctx,
     snapshot: {

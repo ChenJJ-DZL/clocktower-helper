@@ -518,6 +518,11 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
     // 醉酒/中毒导致能力无效是规则允许的空转，不应判为“声明了效果却没落地”。
     if (action.context.meta?.abilityEffective === false) continue;
 
+    // 🔧 规则允许的合法空转：min=0 的能力允许说书人选择"不行动/跳过"
+    //   （如珀可选 0-3 名目标、僵怖平安夜不杀）。此时无目标且无效果是合法行为。
+    const tc = ability?.targetConfig;
+    if (tc && tc.min === 0 && action.targetIds.length === 0) continue;
+
     const prev = action.prevSnapshot.seats as any[];
     const cur = action.snapshot.seats as any[];
     const meta = action.context.meta ?? {};
@@ -575,13 +580,27 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
       case "poison": {
         // 执行后场上有中毒标记即视为落地（允许对已中毒目标"刷新毒"；
         // 空转场景下 cur 无任何中毒标记 → 违规）
-        ok = cur.some(
+        const poisonedNow = cur.some(
           (s) =>
             s.isPoisoned === true ||
             (s.statusEffects ?? []).some(
               (e: any) => e.type === "poisoned" || e.type === "poison"
+            ) ||
+            (s.statusDetails ?? []).some(
+              (d: any) =>
+                (typeof d === "string" && d.includes("中毒")) ||
+                d?.type === "poison" ||
+                d?.type === "poisoned"
             )
         );
+        // 🔧 普卡两阶段机制：对已中毒目标再次下毒 → 目标毒发死亡（旧毒清除）。
+        //   此时 cur 无中毒标记但有新死亡标记 → 同样视为效果落地。
+        const pukkaDeath = cur.some(
+          (s) =>
+            s.isDead === true &&
+            (s.deathSource === "pukka_poison_death" || s.killedBy === "pukka")
+        );
+        ok = poisonedNow || pukkaDeath;
         break;
       }
       case "drunk": {

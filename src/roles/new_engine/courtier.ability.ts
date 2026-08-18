@@ -13,6 +13,21 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
+// 前置校验：死亡玩家不能发动能力
+const preCheckAlive = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat?.isAlive) {
+    return {
+      ...ctx,
+      aborted: true,
+      abortReason: "侍臣已死亡，无法使用能力",
+    };
+  }
+  return ctx;
+};
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
@@ -39,7 +54,9 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  // 🔧 修复：!r?.targetId 在 targetId===0（1号玩家）时误判为无目标 → 能力静默空转。
+  //   改为 null/undefined 严格判断。
+  if (r?.targetId === null || r?.targetId === undefined) return ctx;
 
   return {
     ...ctx,
@@ -102,7 +119,7 @@ export const courtierAbility = createRoleAbility({
   firstNightOnly: true,
   wakePromptId: "role.courtier.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
-  preCheck: [],
+  preCheck: [preCheckAlive],
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],

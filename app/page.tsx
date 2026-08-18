@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
@@ -11,6 +11,7 @@ import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
 import type { GameRecord, NightHintState } from "../src/types/game";
+import { loadCurrentSnapshot } from "../src/utils/persistence";
 import { roles, scripts, typeColors } from "./data";
 
 // getSeatRoleId is now imported from useGameController
@@ -99,19 +100,7 @@ export default function Home() {
     setTimer,
   } = gameState;
 
-  // 调试UI渲染问题 - 仅在开发环境启用
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "DEBUG_UI: Seats length is",
-        seats.length,
-        "Phase is",
-        gamePhase
-      );
-      console.log("DEBUG_UI: Seats data:", seats);
-      console.log("DEBUG_UI: RoundTable import path:", RoundTable);
-    }
-  }, [seats, gamePhase]);
+  // 调试UI渲染问题 - 已清理（仅在需要时临时启用）
 
   const {
     nightInfo,
@@ -154,10 +143,11 @@ export default function Home() {
       if (script) {
         dispatch(gameActions.updateState({ selectedScript: script }));
       }
-
       // 恢复游戏状态
+      // 🔧 修复刷新恢复白屏：快照恢复时必须清除加载屏标记，否则页面停留在"祈祷中..."
       dispatch(
         gameActions.updateState({
+          showIntroLoading: false,
           gamePhase: snap.gamePhase || "setup",
           nightCount: snap.nightCount ?? 1,
           seats: snap.seats || [],
@@ -368,6 +358,50 @@ export default function Home() {
       }
     };
   }, [introTimeoutRef.current, setMounted]);
+
+  // 🔧 断电/刷新容灾：页面挂载后从 localStorage 自动恢复未完成的对局快照。
+  //   此前快照会保存（useGameController 的 saveCurrentSnapshot）但 loadCurrentSnapshot
+  //   无调用方 → 刷新后对局丢失。此 effect 在刷新/重开页面时恢复"第2夜中途"等任意阶段。
+  const autoRestoredRef = useRef(false);
+  useEffect(() => {
+    if (autoRestoredRef.current) return;
+    if (!mounted) return;
+
+    const snap = loadCurrentSnapshot();
+    if (!snap) return;
+    // 仅恢复进行中的对局（未结束 / 有座位数据 / 非剧本选择页）
+    if (snap.gamePhase === "gameOver" || !snap.seats || snap.seats.length === 0) {
+      return;
+    }
+    autoRestoredRef.current = true;
+
+    // 由 seats 首座角色反推剧本（快照未存 scriptName 时兜底：查角色所属剧本）
+    let scriptName = "";
+    const seatRoles = snap.seats.map((s: any) => s.role?.id).filter(Boolean) as string[];
+    for (const sc of scripts) {
+      if (sc.roleIds?.some((rid) => seatRoles.includes(rid))) {
+        scriptName = sc.name;
+        break;
+      }
+    }
+
+    // 构造与对局记录同构的 record 交给 handleContinueGame 恢复全量状态
+    const record: GameRecord = {
+      id: `resume_${Date.now()}`,
+      scriptName,
+      startTime: snap.startTime ?? new Date().toISOString(),
+      endTime: new Date().toISOString(),
+      duration: 0,
+      winResult: (snap.winResult as "good" | "evil" | null) ?? null,
+      winReason: snap.winReason ?? null,
+      seats: snap.seats ?? [],
+      gameLogs: (snap as any).history ?? [],
+      isCompleted: false,
+      snapshot: snap,
+    };
+    console.log("[Persistence] 检测到未完成对局快照，自动恢复（" + (snap.gamePhase ?? "?") + " 阶段）");
+    handleContinueGame(record);
+  }, [mounted, handleContinueGame]);
 
   // Timer is now managed in useGameController
 
@@ -868,15 +902,10 @@ export default function Home() {
                         isPortrait={false}
                         longPressingSeats={new Set()}
                         onSeatClick={(id) => {
-                          console.log(
-                            "[app/page setup] RoundTable seat clicked:",
-                            id
-                          );
                           handleSeatClick(id);
                         }}
                         onContextMenu={(e, seatId) => {
                           e.preventDefault();
-                          console.log("右键点击座位:", seatId);
                           setContextMenu({
                             x: e.clientX,
                             y: e.clientY,

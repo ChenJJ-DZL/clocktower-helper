@@ -1,11 +1,11 @@
 /**
  * 杂耍艺人（Juggler）新引擎技能实现
  *
- * 【角色能力】首日一次，猜测5名不同玩家的角色。说书人会告知猜对了几个。
+ * 【角色能力】每局一次，猜测最多5名不同玩家的角色。说书人会告知猜对了几个。
  *
  * DAY触发，limited ability（每局一次）。
- * 选择5名玩家并猜测他们的角色。
- * targetConfig: min:5, max:5 — 必须选满5名玩家。
+ * 选择至多5名玩家并猜测他们的角色（可少于5名或跳过）。
+ * targetConfig: min:0, max:5 — 最多选满5名玩家。
  */
 import {
   canUseLimitedAbility,
@@ -96,7 +96,9 @@ export const jugglerAbility = createRoleAbility({
   otherNightPriority: 100,
   firstNightOnly: false,
   wakePromptId: "role.juggler.wake",
-  targetConfig: { min: 5, max: 5, allowSelf: false, allowDead: false },
+  // 🔧 修复：杂耍艺人官方规则"每局一次，选择最多5名玩家"——可选0~5名（可跳过），
+  //   min:5 在存活玩家不足5人时无法满足 → I5 违规。
+  targetConfig: { min: 0, max: 5, allowSelf: false, allowDead: false },
   preCheck: [commonPreCheckAlive, preCheckLimitedAbility],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

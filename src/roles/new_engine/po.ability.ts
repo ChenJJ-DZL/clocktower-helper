@@ -11,6 +11,7 @@ import {
 import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 import { pickMayorSubstitute, mayorSubstituteLog } from "../../utils/soldierImmunity";
 import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 
 // 前置校验：检查是否存活，是否为恶魔
 const preCheckAlive = async (
@@ -149,6 +150,11 @@ const updateKillState = async (
   return { ...context, snapshot: newSnapshot };
 };
 
+// 🔧 结算产物：珀击杀的提示/日志/UI 数据（此前 postProcess 为空 → I9 违规）
+const settlementPostProcess = createSettlementPostProcess("珀", {
+  resultType: "po_kill",
+});
+
 export const poAbility = createRoleAbility({
   roleId: "po",
   effectSemantics: "kill",
@@ -169,5 +175,5 @@ export const poAbility = createRoleAbility({
   preCheck: [preCheckAlive],
   calculate: [calculateKillTargets],
   stateUpdate: [updateKillState],
-  postProcess: [],
+  postProcess: [settlementPostProcess],
 });

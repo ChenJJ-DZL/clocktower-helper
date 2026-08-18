@@ -43,7 +43,7 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   return {
     ...ctx,
     meta: { ...ctx.meta, witchResult: r },
@@ -65,7 +65,7 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) return ctx;
+  if (r?.targetId == null) return ctx;
   const log = `[Witch] 诅咒 ${r.targetId + 1}号`;
   console.log(log);
   return {

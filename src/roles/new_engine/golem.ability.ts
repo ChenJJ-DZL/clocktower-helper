@@ -119,7 +119,7 @@ const postProcess = async (
   const { meta, actionNode } = context;
   const r = meta.abilityResult as any;
 
-  if (!r?.targetId) {
+  if (r?.targetId == null) {
     const log = `[Golem] 魔像（${actionNode.seatId + 1}号）发起提名，但未选择目标`;
     console.log(log);
     return context;

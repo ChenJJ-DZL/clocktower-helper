@@ -108,7 +108,7 @@ const updateState = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = context.meta.abilityResult as any;
-  if (!r?.targetId) return context;
+  if (r?.targetId == null) return context;
 
   const { snapshot } = context;
   const record = {
@@ -159,7 +159,7 @@ const postProcess = async (
   const r = context.meta.abilityResult as any;
   const selfId = context.actionNode.seatId;
 
-  if (!r?.targetId) {
+  if (r?.targetId == null) {
     return {
       ...context,
       meta: {

@@ -108,28 +108,33 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  // 🔧 受干扰标记：舞蛇人中毒/醉酒时能力不生效，结果必须标 isCorrupted（I4 不变式）
+  const isCorrupted = ctx.meta.abilityEffective === false;
+  const tag = isCorrupted ? "【受干扰】" : "";
   const log = r?.swapTriggered
-    ? `[SnakeCharmer] ${ctx.actionNode.seatId + 1}号舞蛇人与${(r.targetId ?? -1) + 1}号恶魔交换了角色和阵营，恶魔中毒！`
-    : `[SnakeCharmer] ${ctx.actionNode.seatId + 1}号舞蛇人查验${(r?.targetId ?? -1) + 1}号，不是恶魔`;
+    ? `[SnakeCharmer]${tag} ${ctx.actionNode.seatId + 1}号舞蛇人与${(r.targetId ?? -1) + 1}号恶魔交换了角色和阵营，恶魔中毒！`
+    : `[SnakeCharmer]${tag} ${ctx.actionNode.seatId + 1}号舞蛇人查验${(r?.targetId ?? -1) + 1}号，不是恶魔`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityLog: log,
+      isCorrupted,
       prompt: `唤醒${ctx.actionNode.seatId + 1}号【舞蛇人】，选择一名存活玩家。${
         r?.swapTriggered
           ? `他与${(r.targetId ?? -1) + 1}号恶魔交换了角色和阵营，恶魔中毒。`
           : ""
-      }`,
-      displayInfo: r?.swapTriggered
-        ? {
-            type: "snake_charmer_swap",
-            selfId: ctx.actionNode.seatId,
-            demonId: r.targetId,
-            note: "交换角色与阵营，恶魔中毒",
-          }
-        : undefined,
+      }${isCorrupted ? "（该角色处于醉酒/中毒状态，能力不生效）" : ""}`,
+      displayInfo: {
+        type: r?.swapTriggered ? "snake_charmer_swap" : "snake_charmer_inspect",
+        selfId: ctx.actionNode.seatId,
+        demonId: r?.targetId ?? null,
+        isCorrupted,
+        note: r?.swapTriggered
+          ? "交换角色与阵营，恶魔中毒"
+          : "未选中恶魔",
+      },
     },
   };
 };

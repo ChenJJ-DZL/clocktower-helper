@@ -69,7 +69,7 @@ const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = context.meta.abilityResult as any;
-  if (!r?.targetId) return context;
+  if (r?.targetId == null) return context;
   return {
     ...context,
     snapshot: {

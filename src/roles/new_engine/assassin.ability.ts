@@ -57,7 +57,8 @@ const updateAssassinationStatus = async (
   const isAbilityEffective = meta.abilityEffective ?? true;
   const targetId = targetIds?.[0];
 
-  if (!targetId) {
+  // 🔧 修复：!targetId 在 targetId===0（1号玩家）时误判为未选择 → 能力静默空转
+  if (targetId == null) {
     // 未选择目标，不消耗能力
     return context;
   }
@@ -141,7 +142,7 @@ export const assassinAbility = createRoleAbility({
       const targetId = targetIds?.[0];
       const assassinationSuccess = meta.assassinationSuccess;
 
-      if (!targetId) {
+      if (targetId == null) {
         console.log(`🗡️ ${actionNode.seatId + 1}号(刺客) 选择不使用能力`);
       } else if (assassinationSuccess) {
         console.log(

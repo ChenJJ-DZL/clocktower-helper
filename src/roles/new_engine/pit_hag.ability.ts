@@ -65,7 +65,7 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.targetId) {
+  if (r?.targetId == null) {
     console.log("[PitHag] 无操作");
     return ctx;
   }
