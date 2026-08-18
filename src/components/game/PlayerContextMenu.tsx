@@ -133,6 +133,15 @@ export function PlayerContextMenu() {
       >
         💀 切换死亡
       </button>
+      {/* 提醒标记（Reminder Tokens） */}
+      {props.gamePhase !== "setup" && (
+        <button
+          onClick={() => props.handleMenuAction("reminder_tokens")}
+          className="block w-full text-left px-6 py-3 hover:bg-amber-900/80 text-amber-200 text-lg font-medium border-t border-gray-700 transition-colors"
+        >
+          🏷️ 提醒标记
+        </button>
+      )}
       {/* 在核对身份阶段及首夜刚开始时，允许选择红罗刹 */}
       {(props.gamePhase === "check" ||
         (props.gamePhase === "firstNight" && props.nightCount === 1)) && (

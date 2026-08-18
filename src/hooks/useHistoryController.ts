@@ -10,20 +10,54 @@ export interface UseHistoryControllerResult {
   saveHistory: () => void;
   handleStepBack: () => void;
   handleGlobalUndo: () => void;
+  /** ↪ 重做（Redo）：恢复被撤销的操作 */
+  handleRedo: () => void;
+  /** 当前是否可以撤销 */
+  canUndo: boolean;
+  /** 当前是否可以重做 */
+  canRedo: boolean;
 }
 
 /**
- * useHistoryController - 历史记录管理 Hook
- * 现已重构为原生使用 GameContext
+ * 快照字段列表：所有需要在 undo/redo 时恢复的状态字段
+ */
+const SNAPSHOT_KEYS = [
+  "seats", "gamePhase", "nightCount", "executedPlayerId",
+  "wakeQueueIds", "currentWakeIndex", "selectedActionTargets",
+  "gameLogs", "currentHint", "selectedScript",
+] as const;
+
+/**
+ * 从快照对象恢复状态到 dispatch
+ */
+function restoreSnapshot(snapshot: any) {
+  const updates: Record<string, any> = {};
+  for (const key of SNAPSHOT_KEYS) {
+    if (snapshot[key] !== undefined) {
+      updates[key] = snapshot[key];
+    }
+  }
+  return updates;
+}
+
+/**
+ * useHistoryController - 历史记录管理 Hook（Undo/Redo）
+ *
+ * 核心变更（W8.18.4）：
+ * - 从线性栈（pop-and-discard）改为时间线+指针（historyIndex）。
+ * - saveHistory：追加快照，截断后续历史，指针指向末尾。
+ * - handleUndo：指针回退，恢复快照（不删除条目）。
+ * - handleRedo：指针前进，恢复快照。
+ * - 新操作后截断 forward history（标准 undo 行为）。
  */
 export function useHistoryController(): UseHistoryControllerResult {
   const { state, dispatch } = useGameContext();
-  const { history, currentWakeIndex, gamePhase } = state;
+  const { history, historyIndex, currentWakeIndex, gamePhase } = state;
+
+  const canUndo = history.length > 0 && historyIndex >= 0;
+  const canRedo = history.length > 0 && historyIndex < history.length - 1;
 
   const saveHistory = useCallback(() => {
-    // 取得当前状态的一个快照（除去 history 自身）
-    // 🔧 防御：JSON.stringify(undefined) 返回 undefined，再 JSON.parse 会抛
-    // "undefined is not valid JSON"；值为空时直接保留，避免历史保存中断
     const snapshot = {
       seats: state.seats ? JSON.parse(JSON.stringify(state.seats)) : state.seats,
       gamePhase: state.gamePhase,
@@ -39,18 +73,23 @@ export function useHistoryController(): UseHistoryControllerResult {
       selectedScript: state.selectedScript,
     };
 
+    // 截断 forward history（undo 后执行新操作 → 丢弃被撤销的未来）
+    const truncated = historyIndex >= 0
+      ? history.slice(0, historyIndex + 1)
+      : history;
+
+    const newHistory = [...truncated, snapshot].slice(-200);
     dispatch(
       gameActions.updateState({
-        // 🔧 限长 200 条，避免 localStorage 配额溢出（QuotaExceededError）
-        history: [...state.history, snapshot].slice(-200),
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
       })
     );
-  }, [state, dispatch]);
+  }, [state, history, historyIndex, dispatch]);
 
   const handleStepBack = useCallback(() => {
-    // 优先从历史快照恢复（每个 action 执行前都保存了完整快照）
-    if (history.length === 0) {
-      // 没有历史记录时，仅在队列内后退一步（不恢复状态）
+    // 没有历史记录时，在队列内后退一步
+    if (!canUndo) {
       if (currentWakeIndex > 0) {
         dispatch(
           gameActions.updateState({
@@ -63,31 +102,23 @@ export function useHistoryController(): UseHistoryControllerResult {
       return;
     }
 
-    const lastState = history[history.length - 1];
-    if (lastState.wakeQueueIds.length === 0) return;
+    const newIndex = historyIndex - 1;
+    const snapshot = history[newIndex];
+    if (!snapshot || snapshot.wakeQueueIds?.length === 0) return;
 
     dispatch(
       gameActions.updateState({
-        seats: lastState.seats,
-        gamePhase: lastState.gamePhase,
-        nightCount: lastState.nightCount,
-        executedPlayerId: lastState.executedPlayerId,
-        wakeQueueIds: lastState.wakeQueueIds,
-        currentWakeIndex: lastState.currentWakeIndex,
-        selectedActionTargets: lastState.selectedActionTargets,
-        gameLogs: lastState.gameLogs,
-        currentHint: lastState.currentHint,
-        selectedScript: lastState.selectedScript,
-        history: history.slice(0, -1),
+        ...restoreSnapshot(snapshot),
+        historyIndex: newIndex,
       })
     );
-  }, [currentWakeIndex, history, dispatch]);
+  }, [canUndo, currentWakeIndex, history, historyIndex, dispatch]);
 
   const handleGlobalUndo = useCallback(() => {
     if (gamePhase === "scriptSelection") return;
 
-    if (history.length === 0) {
-      // 没有任何历史时，直接重置到剧本选择阶段
+    if (!canUndo) {
+      // 没有任何历史时，重置到剧本选择阶段
       dispatch(gameActions.setGamePhase("scriptSelection"));
       dispatch(
         gameActions.updateState({
@@ -107,35 +138,47 @@ export function useHistoryController(): UseHistoryControllerResult {
           timer: 0,
           startTime: null,
           history: [],
+          historyIndex: -1,
           initialSeats: [],
         })
       );
       return;
     }
 
-    const lastState = history[history.length - 1];
+    const newIndex = historyIndex - 1;
+    const snapshot = history[newIndex];
     dispatch(
       gameActions.updateState({
-        seats: lastState.seats,
-        gamePhase: lastState.gamePhase,
-        nightCount: lastState.nightCount,
-        executedPlayerId: lastState.executedPlayerId,
-        wakeQueueIds: lastState.wakeQueueIds,
-        currentWakeIndex: lastState.currentWakeIndex,
-        selectedActionTargets: lastState.selectedActionTargets,
-        gameLogs: lastState.gameLogs,
-        selectedScript: lastState.selectedScript,
-        history: history.slice(0, -1),
+        ...restoreSnapshot(snapshot),
+        historyIndex: newIndex,
       })
     );
-  }, [gamePhase, history, dispatch]);
+  }, [gamePhase, canUndo, history, historyIndex, dispatch]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo) return;
+
+    const newIndex = historyIndex + 1;
+    const snapshot = history[newIndex];
+    if (!snapshot) return;
+
+    dispatch(
+      gameActions.updateState({
+        ...restoreSnapshot(snapshot),
+        historyIndex: newIndex,
+      })
+    );
+  }, [canRedo, history, historyIndex, dispatch]);
 
   return useMemo(
     () => ({
       saveHistory,
       handleStepBack,
       handleGlobalUndo,
+      handleRedo,
+      canUndo,
+      canRedo,
     }),
-    [saveHistory, handleStepBack, handleGlobalUndo]
+    [saveHistory, handleStepBack, handleGlobalUndo, handleRedo, canUndo, canRedo]
   );
 }

@@ -137,6 +137,8 @@ export interface GameState {
   lastDuskExecution: number | null;
   currentDuskExecution: number | null;
   history: any[]; // 存储历史快照用于撤销
+  historyIndex: number; // 🔧 Undo/Redo 指针：当前指向 history 中的位置，-1 表示无历史
+  reminderTokens: Record<number, import("../../app/data").ReminderToken[]>; // 每座位提醒标记
   vfxTrigger: VfxTrigger;
 }
 
@@ -565,6 +567,8 @@ function getInitialState(): GameState {
     lastDuskExecution: null,
     currentDuskExecution: null,
     history: [],
+    historyIndex: -1,
+    reminderTokens: {},
     outsiderDiedToday: false,
     gossipStatementToday: "",
     gossipTrueTonight: false,

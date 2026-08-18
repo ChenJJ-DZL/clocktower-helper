@@ -1,4 +1,4 @@
-import type { Seat } from "@/app/data";
+import type { Seat, ReminderToken } from "@/app/data";
 import type { NightInfoResult } from "@/src/types/game";
 
 export interface SeatNodeProps {
@@ -31,4 +31,6 @@ export interface SeatNodeProps {
   topVotes?: number[];
   isTie?: boolean;
   seatNote?: string;
+  /** 该座位的提醒标记列表 */
+  reminderTokens?: ReminderToken[];
 }

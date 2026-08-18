@@ -124,6 +124,43 @@ export interface StatusEffect {
   remainingDays?: number;
 }
 
+/**
+ * 说书人提醒标记（Reminder Token）
+ * 官方 BotC 的圆形标记，放置在玩家座位上提醒说书人关键状态。
+ * 例如："受保护"、"中毒"、"已用能力"、"假身份"、"是恶魔"等。
+ */
+export interface ReminderToken {
+  /** 唯一标识 */
+  id: string;
+  /** 标记图标（emoji 或文本） */
+  icon: string;
+  /** 标记名称（显示用） */
+  label: string;
+  /** 标记颜色类型 */
+  color: "red" | "green" | "yellow" | "blue" | "gray";
+  /** 可选：来源角色 ID */
+  sourceRoleId?: string;
+  /** 可选：过期时机（如"至天亮"、"至黄昏"、"永久"） */
+  expiresAt?: "dawn" | "dusk" | "permanent";
+  /** 创建时间戳 */
+  createdAt?: number;
+}
+
+/** 预设提醒标记模板 */
+export const REMINDER_PRESETS: Array<Omit<ReminderToken, "id" | "createdAt">> = [
+  { icon: "🛡️", label: "受保护", color: "green", expiresAt: "dawn" },
+  { icon: "☠️", label: "中毒", color: "red", expiresAt: "dusk" },
+  { icon: "🍺", label: "醉酒", color: "yellow", expiresAt: "dusk" },
+  { icon: "💀", label: "死亡标记", color: "red", expiresAt: "permanent" },
+  { icon: "🎭", label: "假身份", color: "blue" },
+  { icon: "👁️", label: "是恶魔", color: "red" },
+  { icon: "🐺", label: "是爪牙", color: "red" },
+  { icon: "✅", label: "已用能力", color: "gray", expiresAt: "permanent" },
+  { icon: "❌", label: "能力失效", color: "red" },
+  { icon: "🔒", label: "不能投票", color: "yellow" },
+  { icon: "📝", label: "自定义", color: "blue" },
+];
+
 export interface Seat {
   id: number;
   playerName?: string; // 玩家名字（可选）

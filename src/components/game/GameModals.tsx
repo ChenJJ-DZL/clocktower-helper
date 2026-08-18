@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { GameRecord } from "@/src/types/game";
+import type { ReminderToken } from "@/app/data";
 import { roles } from "../../../app/data";
+import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { useGameState } from "../../hooks/useGameState";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
@@ -32,6 +34,7 @@ import { PoisonConfirmModal } from "../modals/PoisonConfirmModal";
 import { PoisonEvilConfirmModal } from "../modals/PoisonEvilConfirmModal";
 import { RangerModal } from "../modals/RangerModal";
 import { RavenkeeperFakeModal } from "../modals/RavenkeeperFakeModal";
+import { ReminderTokenPanel } from "../modals/ReminderTokenPanel";
 import { RestartConfirmModal } from "../modals/RestartConfirmModal";
 import { ReviewModal } from "../modals/ReviewModal";
 import { RoleInfoModal } from "../modals/RoleInfoModal";
@@ -58,6 +61,7 @@ import { PlayerContextMenu } from "./PlayerContextMenu";
 export function GameModals() {
   const actions = useGameActions();
   const gameState = useGameState();
+  const { dispatch } = useGameContext();
 
   const {
     currentModal,
@@ -73,6 +77,7 @@ export function GameModals() {
     gameRecords,
     selectedScript,
     damselGuessUsedBy,
+    reminderTokens,
   } = gameState;
 
   const { nightInfo } = actions;
@@ -360,6 +365,30 @@ export function GameModals() {
           winResult={winResult}
           winReason={winReason}
           isPortrait={isPortrait}
+        />
+      )}
+
+      {/* 提醒标记面板 */}
+      {currentModal?.type === "REMINDER_TOKENS" && (
+        <ReminderTokenPanel
+          seatId={currentModal.data.seatId}
+          tokens={reminderTokens?.[currentModal.data.seatId] ?? []}
+          playerName={seats.find((s) => s.id === currentModal.data.seatId)?.playerName}
+          onAdd={(seatId: number, token: ReminderToken) => {
+            const current = reminderTokens ?? {};
+            const seatTokens = current[seatId] ?? [];
+            dispatch(gameActions.updateState({
+              reminderTokens: { ...current, [seatId]: [...seatTokens, token] },
+            }));
+          }}
+          onRemove={(seatId: number, tokenId: string) => {
+            const current = reminderTokens ?? {};
+            const seatTokens = (current[seatId] ?? []).filter((t: ReminderToken) => t.id !== tokenId);
+            dispatch(gameActions.updateState({
+              reminderTokens: { ...current, [seatId]: seatTokens },
+            }));
+          }}
+          onClose={() => actions.setCurrentModal(null)}
         />
       )}
 

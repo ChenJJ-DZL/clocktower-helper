@@ -409,6 +409,14 @@ export function useInteractionHandler(deps: {
             },
           })
         );
+      } else if (action === "reminder_tokens") {
+        // 打开提醒标记面板
+        dispatch(
+          gameActions.setModal({
+            type: "REMINDER_TOKENS",
+            data: { seatId },
+          })
+        );
       }
     },
     [contextMenu, dispatch]

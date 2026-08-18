@@ -198,6 +198,7 @@ export default function Home() {
           lastDuskExecution: snap.lastDuskExecution ?? null,
           currentDuskExecution: snap.currentDuskExecution ?? null,
           history: snap.history || [],
+          historyIndex: snap.historyIndex ?? -1,
           mayorRedirectTarget: snap.mayorRedirectTarget ?? null,
           damselGuessed: snap.damselGuessed ?? false,
           damselGuessUsedBy: snap.damselGuessUsedBy || [],

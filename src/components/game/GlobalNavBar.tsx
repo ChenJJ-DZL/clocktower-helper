@@ -25,7 +25,7 @@ export function GlobalNavBar() {
   const { state, dispatch } = useGameContext();
   const { gamePhase, selectedScript, seats, gameLogs, startTime, gameRecords } =
     useGameState();
-  const { saveHistory, handleGlobalUndo } = useHistoryController();
+  const { saveHistory, handleGlobalUndo, handleRedo, canUndo, canRedo } = useHistoryController();
   const controller = useGameActions();
   const handleContinueGame = (controller as any).handleContinueGame;
   const [showRecords, setShowRecords] = useState(false);
@@ -296,10 +296,29 @@ export function GlobalNavBar() {
         {/* 上一步/撤销按钮 */}
         <button
           onClick={handleUndo}
-          className="px-3 py-2 bg-slate-800/90 hover:bg-slate-700/90 text-white text-xs font-medium rounded-lg border border-slate-600/50 backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shadow-lg"
+          disabled={!canUndo}
+          className={`px-3 py-2 text-xs font-medium rounded-lg border backdrop-blur-sm transition-all shadow-lg ${
+            canUndo
+              ? "bg-slate-800/90 hover:bg-slate-700/90 text-white border-slate-600/50 hover:scale-105 active:scale-95"
+              : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
+          }`}
           title="撤销上一步操作"
         >
           ↩ 上一步
+        </button>
+
+        {/* 重做按钮 */}
+        <button
+          onClick={handleRedo}
+          disabled={!canRedo}
+          className={`px-3 py-2 text-xs font-medium rounded-lg border backdrop-blur-sm transition-all shadow-lg ${
+            canRedo
+              ? "bg-slate-800/90 hover:bg-slate-700/90 text-white border-slate-600/50 hover:scale-105 active:scale-95"
+              : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
+          }`}
+          title="重做被撤销的操作"
+        >
+          ↪ 重做
         </button>
 
         {/* 历史记录按钮 */}

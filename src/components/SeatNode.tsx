@@ -101,6 +101,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     nominator = null,
     nominee = null,
     seatNote,
+    reminderTokens = [],
   } = props;
 
   const ctx = useGameActions();
@@ -303,6 +304,35 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         {seatNote && (
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-yellow-900/90 text-yellow-200 border border-yellow-700/50 rounded pointer-events-none px-2 py-0.5 text-xs font-medium shadow-lg z-50">
             {seatNote.length > 8 ? `${seatNote.slice(0, 8)}...` : seatNote}
+          </div>
+        )}
+
+        {/* 提醒标记（Reminder Tokens）- 显示在座位下方 */}
+        {reminderTokens && reminderTokens.length > 0 && (
+          <div className={`absolute ${isPortrait ? "-bottom-12" : "-bottom-10"} left-1/2 -translate-x-1/2 flex gap-0.5 z-40 pointer-events-none`}>
+            {reminderTokens.slice(0, 4).map((t) => {
+              const tokenColors: Record<string, string> = {
+                red: "bg-red-800/90 border-red-500 text-red-100",
+                green: "bg-green-800/90 border-green-500 text-green-100",
+                yellow: "bg-yellow-800/90 border-yellow-500 text-yellow-100",
+                blue: "bg-blue-800/90 border-blue-500 text-blue-100",
+                gray: "bg-gray-700/90 border-gray-500 text-gray-100",
+              };
+              return (
+                <div
+                  key={t.id}
+                  className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full border text-[9px] font-medium shadow-md ${tokenColors[t.color] || tokenColors.gray}`}
+                  title={t.label}
+                >
+                  <span className="text-[10px]">{t.icon}</span>
+                </div>
+              );
+            })}
+            {reminderTokens.length > 4 && (
+              <div className="flex items-center px-1 py-0.5 rounded-full bg-gray-700/80 border border-gray-500 text-gray-200 text-[9px] font-medium shadow-md">
+                +{reminderTokens.length - 4}
+              </div>
+            )}
           </div>
         )}
       </div>

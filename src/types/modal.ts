@@ -192,6 +192,9 @@ export type ModalType =
   | { type: "ROLE_INFO"; data: null }
   | { type: "RESTART_CONFIRM"; data: null }
 
+  // 提醒标记弹窗
+  | { type: "REMINDER_TOKENS"; data: { seatId: number } }
+
   // 游戏阶段弹窗
   | { type: "DAWN_REPORT"; data: null }
   | { type: "GAME_OVER"; data: null }

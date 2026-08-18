@@ -131,6 +131,8 @@ export function useGameState() {
     lastDuskExecution,
     currentDuskExecution,
     history,
+    historyIndex,
+    reminderTokens,
     hadesiaChoiceEnabled,
     vfxTrigger,
   } = state;
@@ -1170,6 +1172,8 @@ export function useGameState() {
       lastDuskExecution,
       setLastDuskExecution,
       history,
+      historyIndex,
+      reminderTokens,
       setHistory,
 
       // useRef

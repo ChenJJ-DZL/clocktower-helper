@@ -128,6 +128,8 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     lastDuskExecution: state.lastDuskExecution,
     currentDuskExecution: state.currentDuskExecution,
     history: safeJsonClone(state.history),
+    historyIndex: state.historyIndex ?? -1,
+    reminderTokens: safeJsonClone(state.reminderTokens ?? {}),
     seats: safeJsonClone(state.seats),
     initialSeats: safeJsonClone(state.initialSeats),
     victorySnapshot: safeJsonClone(state.victorySnapshot),

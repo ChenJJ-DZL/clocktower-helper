@@ -1,0 +1,35 @@
+# User Taste Profile
+- Communicates exclusively in Simplified Chinese (简体中文). All responses, commit messages, and UI text should be in Chinese. Confidence: 0.95
+- Uses terse, direct bug reports with numbered lists and "立即修复/立即解决" for urgency. Does not soften requests. Confidence: 0.9
+- Uses "继续" to mean "keep going with the current task without re-summarizing." Confidence: 0.9
+- Says "上传GitHub" as a shorthand to trigger the full commit + push workflow for both main and test repos. Confidence: 0.9
+- Strongly values real-world usage testing over unit-test-only validation ("测试通过但用户实际使用时有BUG"). Prefers randomized automated UI testing via Playwright-style scripts against all built-in scripts. Confidence: 0.95
+- Wants full utilization of machine resources (CPU/RAM) when running tests — does not want conservative resource usage. Confidence: 0.9
+- Expects a standard verification pipeline after every fix: `npx tsc --noEmit` → `npm test` → `npm run build` → FAST_TEST run. Confidence: 0.9
+- Prefers iterative rapid bug-fix cycles: find bug → fix immediately → verify → next bug. Does not batch fixes. Confidence: 0.9
+- E2E "Loop Until Green" methodology: expects a fix-retest loop where any E2E failure triggers immediate frontend fix, then full E2E re-run until 100% pass. "修复后重新运行 E2E 测试，直至完整游戏流程 100% 跑通并全部通过." Confidence: 0.9
+- After all fixes are done, expects the agent to handle git commit + push for both main repo and test_automation submodule without being asked. Confidence: 0.85
+- Uses version scheme "W{major}.{minor}.{patch}" (e.g., "W8.14.15") in commit messages. Format: "W{ver}: {中文描述}" Confidence: 0.9
+- Keeps test automation as a separate GitHub repo (`clocktower-helper-test-automation`) referenced as a git submodule. Confidence: 0.95
+- Prefers committing both repos (main + test_automation) together when uploading to GitHub. Confidence: 0.85
+- Strongly dislikes native browser dialogs (window.alert / window.confirm / prompt) — all must be replaced with styled, consistent React modals. Confidence: 0.95
+- UI consistency is critical: no mixing of native OS/browser UI with custom-styled components. Confidence: 0.95
+- Modal content formatting should use multi-line layout with labels on one line and values on a new centered line for readability (e.g., role name centered below the description). Confidence: 0.85
+- Code comments and user-facing strings must be in Chinese. Confidence: 0.9
+- Prefers structured logging (addLog/gameLogs) over console.log for debugging game state. Confidence: 0.8
+- Windows environment (C:\Users\chenj\...), uses PowerShell for shell commands. Confidence: 0.95
+- Project uses Next.js + React 19 + TypeScript + Vitest + Biome. Confidence: 0.95
+- Delivers task specifications as detailed, structured docs with 【】section headers, numbered principles, explicit anti-patterns ("严禁..."), and reference URLs. Expects the agent to follow these specs precisely. Confidence: 0.9
+- Strict architectural rule: no game-logic settlement / special-case code in UI/View components. All role abilities, status effects (poison/drunk/death), and night action ordering must live in a pure logic/engine layer. Confidence: 0.95
+- TDD anti-pattern: "严禁通过删改现有测试断言来'假装通过'" — never delete or weaken existing test assertions to make tests pass. Tests are the source of truth; fix the code, not the tests. Confidence: 0.95
+- Expects official game data (roles, teams, night order, jinxes) to be validated against authoritative external sources (e.g., wiki, JSON data packs) rather than assumed correct. Confidence: 0.9
+- Delivers multi-phase task specs with "第一部分/第二部分" structure and explicitly requests "Loop Until Green" for each phase independently. Confidence: 0.9
+- When a bug pattern is found in one file (e.g., `!r?.targetId` falsy check), expects a global scan and batch fix of all files with the same pattern — not a single-file patch. Confidence: 0.9
+- Expects game state persistence across page refresh (LocalStorage snapshot save + auto-restore on mount). A "refresh at night mid-phase" must recover without white-screen or lost game. Confidence: 0.9
+- Production readiness checklist: zero console.log noise, `npm run build` with 0 errors/0 warnings, standalone Dockerfile, and TypeScript strict check all must pass before commit. Confidence: 0.9
+- Stress/integration tests (20+ game simulations) must be vitest-ified (not just CLI scripts) and committed alongside the test runner so CI can reproduce. Confidence: 0.85
+- Uses Playwright E2E scripts in `test_automation/` directory for real-browser validation (not just headless unit tests). Expects screenshot capture at key checkpoints. Confidence: 0.9
+- Prefers pragmatic test adaptations (e.g., relaxing invariant checks that catch known framework bugs) over blocking on false positives, then fixing the framework separately. Confidence: 0.85
+- Expects agent to proactively clean up debug/temp files (debug_*.ts, *_debug.txt) and unused imports before committing. No leftover scratch files in the repo. Confidence: 0.85
+- When a bug affects multiple ability files, expects a systematic approach: find root cause → verify with isolated repro → fix all affected files globally → re-run full test suite → commit. Confidence: 0.9
+- Prefers detailed commit messages with structured bullet points listing each fixed bug by invariant number and role name (e.g., "I9: 珪(Po)无结算产物"). Confidence: 0.85

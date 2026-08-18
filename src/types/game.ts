@@ -138,6 +138,8 @@ export interface GameSnapshot {
   lastDuskExecution: number | null;
   currentDuskExecution: number | null;
   history: any[];
+  historyIndex: number; // Undo/Redo 指针
+  reminderTokens: Record<number, any[]>; // 每座位提醒标记
   initialSeats: any[];
   victorySnapshot: any[];
   winResult: string | null;
