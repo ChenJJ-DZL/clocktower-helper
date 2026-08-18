@@ -25,6 +25,8 @@ const SNAPSHOT_KEYS = [
   "seats", "gamePhase", "nightCount", "executedPlayerId",
   "wakeQueueIds", "currentWakeIndex", "selectedActionTargets",
   "gameLogs", "currentHint", "selectedScript",
+  "reminderTokens", "todayExecutedId", "nominationRecords",
+  "deadThisNight", "nightActionQueue",
 ] as const;
 
 /**
@@ -36,6 +38,14 @@ function restoreSnapshot(snapshot: any) {
     if (snapshot[key] !== undefined) {
       updates[key] = snapshot[key];
     }
+  }
+  // nominationRecords 的 nominators/nominees 从数组恢复为 Set
+  if (updates.nominationRecords) {
+    const nr = updates.nominationRecords;
+    updates.nominationRecords = {
+      nominators: new Set(Array.isArray(nr.nominators) ? nr.nominators : []),
+      nominees: new Set(Array.isArray(nr.nominees) ? nr.nominees : []),
+    };
   }
   return updates;
 }
@@ -58,7 +68,7 @@ export function useHistoryController(): UseHistoryControllerResult {
   const canRedo = history.length > 0 && historyIndex < history.length - 1;
 
   const saveHistory = useCallback(() => {
-    const snapshot = {
+    const snapshot: Record<string, any> = {
       seats: state.seats ? JSON.parse(JSON.stringify(state.seats)) : state.seats,
       gamePhase: state.gamePhase,
       nightCount: state.nightCount,
@@ -71,6 +81,20 @@ export function useHistoryController(): UseHistoryControllerResult {
         ? JSON.parse(JSON.stringify(state.currentHint))
         : state.currentHint,
       selectedScript: state.selectedScript,
+      reminderTokens: state.reminderTokens
+        ? JSON.parse(JSON.stringify(state.reminderTokens))
+        : state.reminderTokens,
+      todayExecutedId: state.todayExecutedId ?? null,
+      nominationRecords: state.nominationRecords
+        ? {
+            nominators: [...(state.nominationRecords.nominators || [])],
+            nominees: [...(state.nominationRecords.nominees || [])],
+          }
+        : state.nominationRecords,
+      deadThisNight: [...(state.deadThisNight || [])],
+      nightActionQueue: state.nightActionQueue
+        ? JSON.parse(JSON.stringify(state.nightActionQueue))
+        : state.nightActionQueue,
     };
 
     // 截断 forward history（undo 后执行新操作 → 丢弃被撤销的未来）

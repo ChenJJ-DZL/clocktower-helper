@@ -14,6 +14,7 @@ import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
 import { GameLayout } from "./GameLayout";
 import { GameModals } from "./GameModals";
+import { GlobalNavBar } from "./GlobalNavBar";
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
@@ -1083,6 +1084,7 @@ export const GameStage = () => {
   return (
     <>
       <GameLayout
+        topBar={<GlobalNavBar />}
         leftPanel={
           <div className="relative w-full h-full p-4">
             {/* 相克规则开关（左上角，小按钮） */}

@@ -1025,6 +1025,7 @@ export function useGameController() {
 
   const interactionHandlers = useInteractionHandler({
     getRoleTargetCount,
+    saveHistory,
     handleConfirmActionImpl: async (selectedTargets?: number[]) => {
       // 保存历史快照，用于"上一步"撤销
       saveHistory();

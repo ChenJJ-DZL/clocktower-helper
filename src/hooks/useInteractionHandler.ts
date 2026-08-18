@@ -32,6 +32,7 @@ export function useInteractionHandler(deps: {
   ) => { min: number; max: number } | null;
   handleConfirmActionImpl?: (explicitSelectedTargets?: number[]) => void;
   nightInfo?: NightInfoResult | null;
+  saveHistory?: () => void;
   [key: string]: any;
 }): UseInteractionHandlerResult {
   const { state, dispatch } = useGameContext();
@@ -55,6 +56,7 @@ export function useInteractionHandler(deps: {
     handleConfirmActionImpl,
     nightInfo: depsNightInfo,
     canSelectTarget,
+    saveHistory,
   } = deps;
 
   // ... (toggleTarget and handleSeatClick unchanged) ...
@@ -427,6 +429,9 @@ export function useInteractionHandler(deps: {
       const targetId = seatId ?? contextMenu?.seatId;
       if (targetId === undefined || targetId === null) return;
 
+      // 保存历史快照用于撤销
+      if (saveHistory) saveHistory();
+
       const seat = seats.find((s) => s.id === targetId);
       if (!seat) return;
 
@@ -510,7 +515,7 @@ export function useInteractionHandler(deps: {
 
       dispatch(gameActions.updateState({ contextMenu: null }));
     },
-    [contextMenu, seats, dispatch, state]
+    [contextMenu, seats, dispatch, state, saveHistory]
   );
 
   return useMemo(

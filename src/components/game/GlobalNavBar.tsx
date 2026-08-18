@@ -282,73 +282,73 @@ export function GlobalNavBar() {
         />
       )}
 
-      {/* 全局导航按钮 - 悬浮在右上角 */}
-      <div className="fixed top-3 right-3 z-[9999] flex gap-2">
-        {/* 主页按钮 */}
-        <button
-          onClick={handleHome}
-          className="px-3 py-2 bg-slate-800/90 hover:bg-slate-700/90 text-white text-xs font-medium rounded-lg border border-slate-600/50 backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shadow-lg"
-          title="返回主页（游戏进程保留）"
-        >
-          🏠 主页
-        </button>
+      {/* 全局导航按钮 - 内联工具栏 */}
+      <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+        {/* 左侧：主页 + 撤销/重做 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleHome}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-600/50 transition-all active:scale-95"
+            title="返回主页（游戏进程保留）"
+          >
+            🏠 主页
+          </button>
 
-        {/* 上一步/撤销按钮 */}
-        <button
-          onClick={handleUndo}
-          disabled={!canUndo}
-          className={`px-3 py-2 text-xs font-medium rounded-lg border backdrop-blur-sm transition-all shadow-lg ${
-            canUndo
-              ? "bg-slate-800/90 hover:bg-slate-700/90 text-white border-slate-600/50 hover:scale-105 active:scale-95"
-              : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
-          }`}
-          title="撤销上一步操作"
-        >
-          ↩ 上一步
-        </button>
+          <button
+            onClick={handleUndo}
+            disabled={!canUndo}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all active:scale-95 ${
+              canUndo
+                ? "bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50"
+                : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
+            }`}
+            title="撤销上一步操作"
+          >
+            ↩ 撤销
+          </button>
 
-        {/* 重做按钮 */}
-        <button
-          onClick={handleRedo}
-          disabled={!canRedo}
-          className={`px-3 py-2 text-xs font-medium rounded-lg border backdrop-blur-sm transition-all shadow-lg ${
-            canRedo
-              ? "bg-slate-800/90 hover:bg-slate-700/90 text-white border-slate-600/50 hover:scale-105 active:scale-95"
-              : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
-          }`}
-          title="重做被撤销的操作"
-        >
-          ↪ 重做
-        </button>
+          <button
+            onClick={handleRedo}
+            disabled={!canRedo}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all active:scale-95 ${
+              canRedo
+                ? "bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50"
+                : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
+            }`}
+            title="重做被撤销的操作"
+          >
+            ↪ 重做
+          </button>
+        </div>
 
-        {/* 历史记录按钮 */}
-        <button
-          onClick={handleShowRecords}
-          className="px-3 py-2 bg-slate-800/90 hover:bg-slate-700/90 text-white text-xs font-medium rounded-lg border border-slate-600/50 backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shadow-lg"
-          title="查看历史记录"
-        >
-          📋 历史
-        </button>
+        {/* 右侧：历史、复盘、重置 */}
+        <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={handleShowRecords}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-600/50 transition-all active:scale-95"
+            title="查看历史记录"
+          >
+            📋 历史
+          </button>
 
-        {/* 复盘按钮：按时间顺序查看从落座开始的每一步操作 */}
-        <button
-          onClick={() =>
-            controller.setCurrentModal({ type: "REVIEW", data: null })
-          }
-          className="px-3 py-2 bg-indigo-800/90 hover:bg-indigo-700/90 text-white text-xs font-medium rounded-lg border border-indigo-600/50 backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shadow-lg"
-          title="查看本局复盘"
-        >
-          📜 复盘
-        </button>
+          <button
+            onClick={() =>
+              controller.setCurrentModal({ type: "REVIEW", data: null })
+            }
+            className="px-3 py-1.5 bg-indigo-800/90 hover:bg-indigo-700/90 text-white text-xs font-medium rounded-lg border border-indigo-600/50 transition-all active:scale-95"
+            title="查看本局复盘"
+          >
+            📜 复盘
+          </button>
 
-        {/* 重置按钮 */}
-        <button
-          onClick={handleReset}
-          className="px-3 py-2 bg-red-900/80 hover:bg-red-800/80 text-white text-xs font-medium rounded-lg border border-red-700/50 backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shadow-lg"
-          title="重开一局（当前游戏保存到历史记录）"
-        >
-          🔄 重置
-        </button>
+          <button
+            onClick={handleReset}
+            className="px-3 py-1.5 bg-red-900/80 hover:bg-red-800/80 text-white text-xs font-medium rounded-lg border border-red-700/50 transition-all active:scale-95"
+            title="重开一局（当前游戏保存到历史记录）"
+          >
+            🔄 重置
+          </button>
+        </div>
       </div>
     </>
   );

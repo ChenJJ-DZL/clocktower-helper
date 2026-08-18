@@ -5,6 +5,7 @@ import { roles } from "../../../app/data";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { useGameState } from "../../hooks/useGameState";
+import { useHistoryController } from "../../hooks/useHistoryController";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
 import { AttackBlockedModal } from "../modals/AttackBlockedModal";
 import { BarberSwapModal } from "../modals/BarberSwapModal";
@@ -56,13 +57,13 @@ import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
 import { DawnReportOverlay } from "./DawnReportOverlay";
 import { GameOverOverlay } from "./GameOverOverlay";
-import { GlobalNavBar } from "./GlobalNavBar";
 import { PlayerContextMenu } from "./PlayerContextMenu";
 
 export function GameModals() {
   const actions = useGameActions();
   const gameState = useGameState();
   const { dispatch } = useGameContext();
+  const { saveHistory } = useHistoryController();
 
   const {
     currentModal,
@@ -380,6 +381,7 @@ export function GameModals() {
             tokens={reminderTokens?.[currentModal.data.seatId] ?? []}
             playerName={seats.find((s) => s.id === currentModal.data.seatId)?.playerName}
             onAdd={(seatId: number, token: ReminderToken) => {
+              saveHistory();
               const current = reminderTokens ?? {};
               const seatTokens = current[seatId] ?? [];
               dispatch(gameActions.updateState({
@@ -387,6 +389,7 @@ export function GameModals() {
               }));
             }}
             onRemove={(seatId: number, tokenId: string) => {
+              saveHistory();
               const current = reminderTokens ?? {};
               const seatTokens = (current[seatId] ?? []).filter((t: ReminderToken) => t.id !== tokenId);
               dispatch(gameActions.updateState({
@@ -867,7 +870,6 @@ export function GameModals() {
       {!nightDeathReportModal && <DawnReportOverlay />}
       <GameOverOverlay />
       <PlayerContextMenu />
-      <GlobalNavBar />
     </>
   );
 }
