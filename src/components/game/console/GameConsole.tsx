@@ -277,11 +277,13 @@ export const GameConsole = React.memo(function GameConsole({
                 <div>
                   <div className="active-character-instruction">
                     <span
-                      className={`font-bold tracking-wide ${
-                        isDisturbed ? "text-red-500" : "text-emerald-300"
+                      className={`inline-block font-bold tracking-wide px-2 py-0.5 rounded-md mr-1 ${
+                        isDisturbed
+                          ? "text-red-100 bg-red-900/50"
+                          : "text-emerald-100 bg-emerald-800/40"
                       }`}
                     >
-                      {isDisturbed ? "行动（受干扰）：" : "行动："}
+                      {isDisturbed ? "行动（受干扰）" : "行动"}
                     </span>
                     {storytellerInstruction?.actionText ? (
                       <span>{storytellerInstruction.actionText}</span>
@@ -322,7 +324,7 @@ export const GameConsole = React.memo(function GameConsole({
                         key={seat.id}
                         type="button"
                         onClick={() => onTogglePlayer?.(seat.id)}
-                        className={`px-2 py-2 rounded-xl text-xs font-bold text-center border transition-all duration-200 ${
+                        className={`px-2 py-2.5 rounded-xl text-xs font-bold text-center border transition-all duration-200 ${
                           isSelected
                             ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50"
                             : seat.isDead
@@ -332,7 +334,7 @@ export const GameConsole = React.memo(function GameConsole({
                         title={seat.isDead ? "已死亡（仍可选择）" : undefined}
                       >
                         {seat.id + 1}
-                        <span className="text-[10px] opacity-60 font-normal">
+                        <span className="text-[10px] opacity-50 font-normal">
                           #
                         </span>{" "}
                         {seat.role.name}

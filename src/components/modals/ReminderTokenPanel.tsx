@@ -89,19 +89,21 @@ export function ReminderTokenPanel({
   }, [seatId, customIcon, customLabel, onAdd]);
 
   const content = (
-    <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl p-4 w-[420px] max-h-[80vh] flex flex-col shadow-2xl">
-        {/* 标题 */}
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-amber-300">
-            🏷️ 提醒标记 — {playerName || `${seatId + 1}号`}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-xl px-2"
-          >
-            ✕
-          </button>
-        </div>
+    <div className={noOverlay ? "flex flex-col gap-3" : "bg-slate-900 border-2 border-slate-600 rounded-2xl p-4 w-[420px] max-h-[80vh] flex flex-col shadow-2xl"}>
+        {/* 标题（仅独立模式显示，ModalWrapper 模式已由外部管理） */}
+        {!noOverlay && (
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-amber-300">
+              🏷️ 提醒标记 — {playerName || `${seatId + 1}号`}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white text-xl px-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* 当前标记列表 */}
         {tokens.length > 0 && (
@@ -182,13 +184,15 @@ export function ReminderTokenPanel({
           </div>
         )}
 
-        {/* 关闭按钮 */}
-        <button
-          onClick={onClose}
-          className="mt-auto py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg font-medium transition"
-        >
-          关闭
-        </button>
+        {/* 关闭按钮（仅独立模式显示） */}
+        {!noOverlay && (
+          <button
+            onClick={onClose}
+            className="mt-auto py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg font-medium transition"
+          >
+            关闭
+          </button>
+        )}
       </div>
   );
 

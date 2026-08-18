@@ -49,20 +49,20 @@ function StatusPill({
   duration,
 }: StatusPillProps) {
   const colorClasses = {
-    red: "bg-red-900/80 text-red-200 border-red-700",
-    green: "bg-green-900/80 text-green-200 border-green-700",
-    yellow: "bg-yellow-900/80 text-yellow-200 border-yellow-700",
+    red: "bg-red-900/90 text-red-100 border-red-600 shadow-red-900/40",
+    green: "bg-emerald-900/90 text-emerald-100 border-emerald-600 shadow-emerald-900/40",
+    yellow: "bg-amber-900/90 text-amber-100 border-amber-600 shadow-amber-900/40",
   };
 
   const sizeClass = isPortrait
-    ? "text-[8px] px-1.5 py-0.5"
-    : "text-xs px-2 py-0.5";
+    ? "text-[9px] px-1.5 py-0.5"
+    : "text-[11px] px-2 py-0.5";
   const iconSize = isPortrait ? "w-2.5 h-2.5" : "w-3 h-3";
-  const durationSize = isPortrait ? "text-[7px]" : "text-[10px]";
+  const durationSize = isPortrait ? "text-[7px]" : "text-[9px]";
 
   return (
     <div
-      className={`flex items-center gap-1.5 ${sizeClass} rounded-md border shadow-lg font-bold whitespace-nowrap backdrop-blur-md ${colorClasses[color]}`}
+      className={`flex items-center gap-1.5 ${sizeClass} rounded-md border shadow-md font-bold whitespace-nowrap backdrop-blur-md ${colorClasses[color]}`}
     >
       {icon && (
         <span className={`${iconSize} flex items-center justify-center`}>
