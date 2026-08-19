@@ -36,7 +36,7 @@
 - When a bug affects multiple ability files, expects a systematic approach: find root cause → verify with isolated repro → fix all affected files globally → re-run full test suite → commit. Confidence: 0.9
 - Prefers detailed commit messages with structured bullet points listing each fixed bug by invariant number and role name (e.g., "I9: 珪(Po)无结算产物"). Confidence: 0.85
 - Delivers mega-tasks as single prompts bundling unrelated features (grimoire + mobile + post-game analysis) with explicit "全面自主交付" (fully autonomous delivery) mandate — expects the agent to self-heal all errors without ever pausing for human intervention. Confidence: 0.9
-- Prefers atomic commits per feature (undo/redo in one commit, mobile in another) with git push after each, rather than batching everything into a single large commit. Confidence: 0.85
+- Prefers version-milestone commits: each version tag (e.g., W8.19.2) bundles logically related changes into one commit, with one git push + one tag. Multi-feature deliverables are acceptable in a single commit when they share a version number. Confidence: 0.85
 - UI must meet WCAG AA contrast standards for text readability — expects contrast checks as part of visual audit. Confidence: 0.9
 - Expects an 8px spacing system (multiples of 8 for padding/margins/gaps) across all UI components. Confidence: 0.85
 - Visual audits must cover multiple responsive viewports: desktop (1440x900), tablet (834x1194 portrait), and mobile (390x844). Confidence: 0.9
