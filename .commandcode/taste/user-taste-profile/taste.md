@@ -9,6 +9,8 @@
 - Prefers iterative rapid bug-fix cycles: find bug → fix immediately → verify → next bug. Does not batch fixes. Confidence: 0.9
 - E2E "Loop Until Green" methodology: expects a fix-retest loop where any E2E failure triggers immediate frontend fix, then full E2E re-run until 100% pass. "修复后重新运行 E2E 测试，直至完整游戏流程 100% 跑通并全部通过." Confidence: 0.9
 - After all fixes are done, expects the agent to handle git commit + push for both main repo and test_automation submodule without being asked. Confidence: 0.85
+- Expects git tags to match commit message version numbers exactly — a W8.19.1 commit tagged as W8.19.0 is unacceptable. Agent must verify version consistency between tags and commit messages before pushing. Confidence: 0.9
+- Expects local and remote (GitHub) to be perfectly synchronized after each upload — "确保云端与本地当前的内容相同". Any drift is treated as a bug. Confidence: 0.9
 - Uses version scheme "W{major}.{minor}.{patch}" (e.g., "W8.14.15") in commit messages. Format: "W{ver}: {中文描述}" Confidence: 0.9
 - Keeps test automation as a separate GitHub repo (`clocktower-helper-test-automation`) referenced as a git submodule. Confidence: 0.95
 - Prefers committing both repos (main + test_automation) together when uploading to GitHub. Confidence: 0.85
@@ -35,6 +37,12 @@
 - Prefers detailed commit messages with structured bullet points listing each fixed bug by invariant number and role name (e.g., "I9: 珪(Po)无结算产物"). Confidence: 0.85
 - Delivers mega-tasks as single prompts bundling unrelated features (grimoire + mobile + post-game analysis) with explicit "全面自主交付" (fully autonomous delivery) mandate — expects the agent to self-heal all errors without ever pausing for human intervention. Confidence: 0.9
 - Prefers atomic commits per feature (undo/redo in one commit, mobile in another) with git push after each, rather than batching everything into a single large commit. Confidence: 0.85
+- UI must meet WCAG AA contrast standards for text readability — expects contrast checks as part of visual audit. Confidence: 0.9
+- Expects an 8px spacing system (multiples of 8 for padding/margins/gaps) across all UI components. Confidence: 0.85
+- Visual audits must cover multiple responsive viewports: desktop (1440x900), tablet (834x1194 portrait), and mobile (390x844). Confidence: 0.9
+- Prefers `backdrop-blur` (backdrop-blur-md to backdrop-blur-xl) as a standard styling pattern for modal overlays, cards, and HUD elements over solid backgrounds. Confidence: 0.85
+- Prefers pill-shaped backgrounds (rounded-md/rounded-lg with background color) for inline labels and action tags rather than plain colored text. Confidence: 0.85
+- When expanding undo/redo state coverage, expects accompanying unit tests that verify serialization round-trip integrity (e.g., Set↔Array for non-JSON-serializable types). Confidence: 0.85
 - UI layout rule: avoids absolute/fixed positioning for interactive toolbars and navigation — prefers inline document-flow layout (flex row/col, no overlay) to prevent z-index conflicts and element overlap. Confidence: 0.9
 - Undo/redo must be atomic-action-level (原子动作级), not coarse stage-level. Each individual mutation (add reminder token, toggle death, confirm single night action, vote change) should be a separate undoable step. Confidence: 0.9
 - Expects every state mutation point (including toggleStatus, reminder token add/remove, vote changes) to call saveHistory() for complete undo chains — any mutation that modifies game state without a snapshot is a bug. Confidence: 0.9
