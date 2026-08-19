@@ -18,6 +18,8 @@ export default defineConfig({
       "**/e2e_*.spec.ts",
       "**/*_e2e.spec.ts",
       "**/tests/*.spec.ts", // 排除Playwright spec文件
+      "**/e2e/**/*.spec.js", // 排除Playwright E2E JS spec文件
+      "**/e2e/**/*.spec.ts", // 排除Playwright E2E TS spec文件
     ],
     coverage: {
       provider: "v8",
