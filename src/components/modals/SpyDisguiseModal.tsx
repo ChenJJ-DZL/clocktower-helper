@@ -190,6 +190,7 @@ export function SpyDisguiseModal() {
                           minion: "爪牙",
                           demon: "恶魔",
                           traveler: "旅人",
+                          fabled: "寓言",
                         };
                         const reg = props.getRegistrationCached(
                           target,

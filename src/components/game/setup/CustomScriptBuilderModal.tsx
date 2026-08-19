@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { type Role, roles, typeLabels } from "../../../../app/data";
+import { FABLED_ROLES, type Role, roles, typeLabels } from "../../../../app/data";
 import { showAlert } from "../../../utils/nativeDialogShim";
 
 interface CustomScriptBuilderModalProps {
@@ -75,6 +75,7 @@ export function CustomScriptBuilderModal({
     new Set()
   );
   const [nameError, setNameError] = useState("");
+  const [selectedFabledIds, setSelectedFabledIds] = useState<Set<string>>(new Set());
 
   const builderRoles = useMemo(() => {
     return roles.filter((r) => !r.hidden);
@@ -98,6 +99,18 @@ export function CustomScriptBuilderModal({
 
   const toggleRole = (roleId: string) => {
     setSelectedRoleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(roleId)) {
+        next.delete(roleId);
+      } else {
+        next.add(roleId);
+      }
+      return next;
+    });
+  };
+
+  const toggleFabled = (roleId: string) => {
+    setSelectedFabledIds((prev) => {
       const next = new Set(prev);
       if (next.has(roleId)) {
         next.delete(roleId);
@@ -319,6 +332,67 @@ export function CustomScriptBuilderModal({
                 </div>
               );
             })}
+
+            {/* 寓言角色选择专区 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-amber-600/30 pb-2">
+                <span className="text-sm font-bold px-2.5 py-0.5 rounded-lg border bg-amber-900/40 text-amber-300 border-amber-600/40">
+                  ⭐ 寓言角色
+                </span>
+                <span className="text-xs text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
+                  {Array.from(selectedFabledIds).filter((id) =>
+                    FABLED_ROLES.some((f) => f.id === id)
+                  ).length} / {FABLED_ROLES.length}
+                </span>
+                <span className="text-[10px] text-amber-400/60 ml-auto">
+                  不占座位，作为全局规则生效
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {FABLED_ROLES.map((r) => {
+                  const isSelected = selectedFabledIds.has(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => toggleFabled(r.id)}
+                      className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-left h-20 backdrop-blur-sm
+                        ${
+                          isSelected
+                            ? "border-amber-400/60 bg-amber-500/15 ring-1 ring-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                            : "border-white/5 bg-slate-800/40 hover:bg-slate-800/70 hover:border-white/15"
+                        }
+                      `}
+                    >
+                      <span
+                        className={`text-sm font-bold whitespace-nowrap ${isSelected ? "text-amber-100" : "text-slate-300"}`}
+                      >
+                        {r.name}
+                      </span>
+                      <span className="text-[10px] text-slate-500 mt-1 line-clamp-1 scale-90 origin-top">
+                        {r.ability?.slice(0, 20)}...
+                      </span>
+                      {isSelected && (
+                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 

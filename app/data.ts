@@ -6,7 +6,8 @@ export type RoleType =
   | "outsider"
   | "minion"
   | "demon"
-  | "traveler";
+  | "traveler"
+  | "fabled";
 
 export type GamePhase =
   | "scriptSelection"
@@ -2166,6 +2167,8 @@ export const typeLabels: Record<string, string> = {
   outsider: "🟣 外来者",
   minion: "🟠 爪牙",
   demon: "🔴 恶魔",
+  traveler: "🟡 旅行者",
+  fabled: "⭐ 寓言",
 };
 
 export const typeColors: Record<string, string> = {
@@ -2173,6 +2176,8 @@ export const typeColors: Record<string, string> = {
   outsider: "border-purple-500 text-purple-400",
   minion: "border-orange-500 text-orange-500",
   demon: "border-red-600 text-red-600",
+  traveler: "border-yellow-500 text-yellow-400",
+  fabled: "border-amber-400 text-amber-300",
 };
 
 export const typeBgColors: Record<string, string> = {
@@ -2180,4 +2185,88 @@ export const typeBgColors: Record<string, string> = {
   outsider: "bg-purple-900/50 hover:bg-purple-800",
   minion: "bg-orange-900/50 hover:bg-orange-800",
   demon: "bg-red-900/50 hover:bg-red-800",
+  traveler: "bg-yellow-900/50 hover:bg-yellow-800",
+  fabled: "bg-amber-900/50 hover:bg-amber-800",
 };
+
+// ======================================================================
+//  寓言角色（Fabled）- 说书人配置的全局规则角色
+//  不占座位，作为全局对局配置生效
+// ======================================================================
+export const FABLED_ROLES: Role[] = [
+  {
+    id: "spirit_of_ivory",
+    name: "象牙之魂",
+    type: "fabled",
+    ability: "游戏过程中邪恶玩家的总数最多能比初始设置多一名。",
+    fullDescription: "象牙之魂限制邪恶阵营额外生成上限为1名。当已有1名额外邪恶玩家被转化时，阻止后续转化。",
+    ruleNotes: "当通过角色能力将善良玩家转变为邪恶阵营时，如果已经有一名额外邪恶角色在场，则阻止转变。",
+    hidden: false,
+  },
+  {
+    id: "sentinel",
+    name: "哨兵",
+    type: "fabled",
+    ability: "在初始设置时，可能会额外增加或减少一个外来者。",
+    fullDescription: "哨兵使你剧本中外来者的在场数量保持神秘。说书人可以选择增加或减少一个外来者。",
+    ruleNotes: "设置游戏时，外来者数量可±1，让邪恶阵营无法确定外来者数量。",
+    hidden: false,
+  },
+  {
+    id: "revolutionary",
+    name: "革命家",
+    type: "fabled",
+    ability: "一对邻座玩家始终属于同一阵营。",
+    fullDescription: "革命家绑定一对邻座玩家为同一阵营。他们互相知道对方的角色，且每局限一次说书人可使其一人的角色/阵营被当作不同。",
+    ruleNotes: "公开声明一对邻座玩家本局游戏一直保持同一阵营。",
+    hidden: false,
+  },
+  {
+    id: "doomsayer",
+    name: "末日使者",
+    type: "fabled",
+    ability: "如果大于等于四名玩家存活，每名当前存活的玩家可以公开要求你杀死一名与他阵营相同的玩家。",
+    fullDescription: "末日使者允许玩家牺牲他们的盟友以获取信息，缩短游戏时长。",
+    ruleNotes: "每名玩家每局限使用一次。说书人必须杀死一名与使用者同阵营的存活玩家。",
+    hidden: false,
+  },
+  {
+    id: "fibbin",
+    name: "佛吉",
+    type: "fabled",
+    ability: "每局游戏限一次，一名善良玩家可能会得知有问题的信息。",
+    fullDescription: "佛吉为说书人提供一次给善良玩家错误信息的机会。",
+    ruleNotes: "仅影响夜晚由说书人展示信息的能力，不影响被动能力。",
+    hidden: false,
+  },
+  {
+    id: "hells_librarian",
+    name: "地狱图书管理员",
+    type: "fabled",
+    ability: "当说书人宣布安静时，仍在说话的玩家可能会遭遇一些不好的事情。",
+    fullDescription: "地狱图书管理员帮助说书人维持游戏秩序。",
+    ruleNotes: "说书人可在白天对不守秩序的玩家施加惩罚（中毒/醉酒/死亡）。",
+    hidden: false,
+  },
+  {
+    id: "buddhist",
+    name: "佛教徒",
+    type: "fabled",
+    ability: "每个白天的前两分钟老玩家不能发言。",
+    fullDescription: "佛教徒帮助新手玩家在有老玩家的游戏中获得更多发言机会。",
+    ruleNotes: "受佛教徒影响的玩家在每个白天前两分钟不能发言。",
+    hidden: false,
+  },
+  {
+    id: "angel",
+    name: "天使",
+    type: "fabled",
+    ability: "对新玩家的死亡负最大责任的人，可能会遭遇一些不好的事情。",
+    fullDescription: "天使保护新手玩家，让他们在游戏中获得更好的体验。",
+    ruleNotes: "被保护玩家死亡时，对其死负主要责任的人会受到惩罚。",
+    hidden: false,
+  },
+];
+
+// 把寓言角色推入角色池
+roles.push(...FABLED_ROLES);

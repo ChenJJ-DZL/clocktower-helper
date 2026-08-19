@@ -72,6 +72,7 @@ export const calculateNightInfo = (
       minion: "爪牙",
       demon: "恶魔",
       traveler: "旅人",
+      fabled: "寓言",
     };
     const affected = seats.filter(
       (s) => s.role && (s.role.id === "spy" || s.role.id === "recluse")

@@ -232,6 +232,11 @@ import { yinYangMasterAbility } from "./yin_yang_master.ability";
 import { zealotAbility } from "./zealot.ability";
 import { zhenAbility } from "./zhen.ability";
 import { zombuulAbility } from "./zombuul.ability";
+import { alHadikhiaAbility } from "./al_hadikhia.ability";
+import { spiritOfIvoryAbility } from "./spirit_of_ivory.ability";
+import { sentinelAbility } from "./sentinel.ability";
+import { hellsLibrarianAbility } from "./hells_librarian.ability";
+import { fibbinAbility } from "./fibbin.ability";
 
 /**
  * 转换 IRoleAbility 到 UnifiedAbilityConfig
@@ -480,6 +485,11 @@ export function registerAllNewEngineAbilities(): void {
     zealotAbility,
     zhenAbility,
     zombuulAbility,
+    alHadikhiaAbility,
+    spiritOfIvoryAbility,
+    sentinelAbility,
+    hellsLibrarianAbility,
+    fibbinAbility,
   ];
 
   abilities.forEach((ability) => {

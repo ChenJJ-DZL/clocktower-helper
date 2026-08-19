@@ -1,10 +1,10 @@
 /**
- * 魔眼（Ojo）新引擎技能实现
+ * 奥乔（Ojo）新引擎技能实现
  *
- * 【角色能力】"可以看到一名玩家的真实角色。"
+ * 【角色能力】"每个夜晚*，选择一个角色：该角色的玩家死亡。
+ *   如果该角色不在场，说书人选择谁死亡。"
  *
- * 被动能力：魔眼可以窥视一名玩家的真实角色信息。
- * 不主动唤醒，由说书人手动触发查看。
+ * 按角色名狙杀，不是按玩家选择。
  */
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -12,70 +12,74 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const calculate = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
-  const target =
-    targetId != null
-      ? ctx.snapshot.seats.find((s: any) => s.id === targetId)
-      : null;
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const seat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
+  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  return ctx;
+};
+
+const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  const targetRoleId = ctx.storytellerInput?.targetRoleId ?? null;
+  const seats = ctx.snapshot.seats ?? [];
+
+  // 找到拥有该角色的存活玩家
+  const targetSeat = targetRoleId
+    ? seats.find((s: any) => s.role?.id === targetRoleId && s.isAlive)
+    : null;
+
+  // 如果角色不在场，说书人手动指定目标
+  const fallbackTargetId = ctx.storytellerInput?.fallbackTargetId ?? null;
+  const finalTargetId = targetSeat?.id ?? fallbackTargetId;
 
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
-        targetId,
-        roleName: target?.role?.name ?? "未知",
-        roleId: target?.role?.id ?? "未知",
-        roleType: target?.role?.type ?? "未知",
-        ojoActive: true,
+        targetRoleId,
+        targetSeatId: finalTargetId,
+        roleFound: !!targetSeat,
+        killByRoleName: true,
       },
     },
   };
 };
 
-const stateUpdate = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
+const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  if (r?.targetSeatId == null) return ctx;
+  const seats = (ctx.snapshot.seats ?? []) as any[];
+  const updatedSeats = seats.map((s: any) =>
+    s.id === r.targetSeatId ? { ...s, isDead: true, isAlive: false, deathSource: "ojo" } : s
+  );
   return {
     ...ctx,
-    snapshot: {
-      ...ctx.snapshot,
-      _abilityResults: {
-        ...((ctx.snapshot as any)._abilityResults ?? {}),
-        ojo: r,
-      },
-    },
+    snapshot: { ...ctx.snapshot, seats: updatedSeats },
     meta: { ...ctx.meta, ojoResult: r },
   };
 };
 
-const postProcess = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
+const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const log = `[Ojo] ${r?.targetId != null ? `${r.targetId + 1}号真实角色为${r.roleName}（${r.roleType}）` : "无目标"}`;
-  console.log(log);
-  return {
-    ...ctx,
-    meta: { ...ctx.meta, abilityLog: log },
-  };
+  const log = r?.targetSeatId != null
+    ? `[Ojo] 奥乔击杀 ${r.targetSeatId + 1}号（${r.targetRoleId ?? "说书人指定"}）`
+    : `[Ojo] 奥乔无目标`;
+  return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };
 };
 
 export const ojoAbility = createRoleAbility({
   roleId: "ojo",
-  abilityId: "ojo_passive",
-  abilityName: "魔眼",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  abilityId: "ojo_night_kill",
+  abilityName: "奥乔",
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: null,
   otherNightPriority: 54,
   firstNightOnly: false,
-  wakePromptId: "",
+  wakePromptId: "role.ojo.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
-  preCheck: [],
+  preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],

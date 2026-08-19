@@ -140,6 +140,8 @@ export interface GameState {
   historyIndex: number; // 🔧 Undo/Redo 指针：当前指向 history 中的位置，-1 表示无历史
   reminderTokens: Record<number, import("../../app/data").ReminderToken[]>; // 每座位提醒标记
   vfxTrigger: VfxTrigger;
+  // 寓言角色（Fabled）全局配置 — 不占座位，作为对局规则生效
+  activeFabled: import("../../app/data").Role[];
 }
 
 /**
@@ -194,7 +196,9 @@ export type GameAction =
       queue: { targetId: number; nightsUntilDeath: number }[];
     }
   | { type: "SET_VFX_TRIGGER"; trigger: VfxTrigger }
-  | { type: "DECLARE_MAYOR_WIN" };
+  | { type: "DECLARE_MAYOR_WIN" }
+  | { type: "SET_ACTIVE_FABLED"; fabled: Role[] }
+  | { type: "TOGGLE_FABLED"; role: Role };
 // ... 可以继续添加更多Action
 
 /**
@@ -469,6 +473,19 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         gamePhase: "gameOver",
       };
 
+    case "SET_ACTIVE_FABLED":
+      return { ...state, activeFabled: action.fabled };
+
+    case "TOGGLE_FABLED": {
+      const exists = state.activeFabled.some((f) => f.id === action.role.id);
+      return {
+        ...state,
+        activeFabled: exists
+          ? state.activeFabled.filter((f) => f.id !== action.role.id)
+          : [...state.activeFabled, action.role],
+      };
+    }
+
     default:
       return state;
   }
@@ -574,6 +591,7 @@ function getInitialState(): GameState {
     gossipTrueTonight: false,
     gossipSourceSeatId: null,
     vfxTrigger: null,
+    activeFabled: [],
   };
 }
 
@@ -737,4 +755,12 @@ export const gameActions = {
     queue: { targetId: number; nightsUntilDeath: number }[]
   ): GameAction => ({ type: "UPDATE_PUKKA_QUEUE", queue }),
   declareMayorWin: (): GameAction => ({ type: "DECLARE_MAYOR_WIN" }),
+  setActiveFabled: (fabled: Role[]): GameAction => ({
+    type: "SET_ACTIVE_FABLED",
+    fabled,
+  }),
+  toggleFabled: (role: Role): GameAction => ({
+    type: "TOGGLE_FABLED",
+    role,
+  }),
 };
