@@ -368,6 +368,7 @@ export function initializeSeats(count: number): Seat[] {
     role: null,
     displayRole: null,
     charadeRole: null,
+    apparentDemonRole: null,
     isDead: false,
     hasGhostVote: true,
     isEvilConverted: false,

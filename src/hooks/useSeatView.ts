@@ -159,6 +159,24 @@ export function useSeatView(
       processed.add("drunk");
     }
 
+    // 5.5 疯子（Lunatic）：真实身份标记（仅说书人可见）
+    if (
+      !s.isDead &&
+      s.role?.id === "lunatic" &&
+      (s as any).apparentDemonRole &&
+      !processed.has("lunatic")
+    ) {
+      const apparentName = (s as any).apparentDemonRole?.name ?? "恶魔";
+      list.push({
+        key: `lunatic-${s.id}`,
+        text: `疯子(假${apparentName})`,
+        color: "yellow",
+        icon: "🌀",
+        duration: "永久",
+      });
+      processed.add("lunatic");
+    }
+
     // 6. Ability spent
     if (s.hasUsedSlayerAbility)
       list.push({

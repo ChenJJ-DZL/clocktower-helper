@@ -179,6 +179,12 @@ export interface Seat {
    * Kept for backward compatibility with existing logic.
    */
   charadeRole: Role | null;
+  /**
+   * 疯子以为自己是哪种恶魔（如 imp, zombuul, pukka, po 等）。
+   * 仅当 role.id === "lunatic" 时有值。
+   * 疯子会按照此恶魔的夜间行动时序被唤醒，但其击杀不会造成真实死亡。
+   */
+  apparentDemonRole?: Role | null;
   isDead: boolean;
   hasGhostVote?: boolean; // 死者票是否可用
   isEvilConverted?: boolean; // 通过灵言师等效果被转为邪恶

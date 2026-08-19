@@ -334,6 +334,42 @@ export default function Home() {
       }
     }
 
+    // 🔧 自动为疯子指派假恶魔身份（疯子以为自己是某种恶魔）
+    const lunaticSeat = newSeats.find((s: any) => s.role?.id === "lunatic");
+    if (lunaticSeat) {
+      const demonsInPlay = new Set(
+        newSeats
+          .filter((s: any) => s.role?.type === "demon")
+          .map((s: any) => s.role.id)
+      );
+      // 优先选择不在场的恶魔作为假象，若全在场则回退到全部恶魔池
+      const allDemonRoles = groups.demon || [];
+      const availableDemons = allDemonRoles.filter(
+        (r: any) => r.id !== "lunatic" && !demonsInPlay.has(r.id)
+      );
+      const demonPool =
+        availableDemons.length > 0
+          ? availableDemons
+          : allDemonRoles.filter((r: any) => r.id !== "lunatic");
+      if (demonPool.length > 0) {
+        const fakeDemon =
+          demonPool[Math.floor(Math.random() * demonPool.length)];
+        lunaticSeat.apparentDemonRole = {
+          id: fakeDemon.id,
+          name: fakeDemon.name,
+          type: fakeDemon.type,
+        };
+        lunaticSeat.displayRole = {
+          id: fakeDemon.id,
+          name: fakeDemon.name,
+          type: "demon",
+        };
+        console.log(
+          `[handleQuickTest] 自动为疯子 (${lunaticSeat.id + 1}号) 指派假恶魔身份: ${fakeDemon.name}`
+        );
+      }
+    }
+
     if (hasBaron) {
       addLogWithDeduplication?.(
         `🏚️ 检测到男爵，已自动调整阵容：${townsfolkCount}村民 / ${outsiderCount}外来者`
