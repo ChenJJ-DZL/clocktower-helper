@@ -28,6 +28,7 @@ import { GameLayout } from "@/src/components/game/GameLayout";
 import { GameModals } from "@/src/components/game/GameModals";
 import GameSetup from "@/src/components/game/setup/GameSetup";
 import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
+import { GrimoireTooltipProvider } from "@/src/components/tooltip/GrimoireTooltip";
 import { useAudio } from "@/src/hooks/useAudio";
 
 // ======================================================================
@@ -301,9 +302,7 @@ export default function Home() {
     if (drunkSeat) {
       // 收集所有已被分配的村民角色ID，酒鬼只能伪装成不在场的村民
       const inPlayRoleIds = new Set(
-        newSeats
-          .filter((s: any) => s.role)
-          .map((s: any) => s.role.id)
+        newSeats.filter((s: any) => s.role).map((s: any) => s.role.id)
       );
       const availableCharadesFiltered = groups.townsfolk.filter(
         (r) => r.id !== "drunk" && !inPlayRoleIds.has(r.id)
@@ -407,14 +406,20 @@ export default function Home() {
     const snap = loadCurrentSnapshot();
     if (!snap) return;
     // 仅恢复进行中的对局（未结束 / 有座位数据 / 非剧本选择页）
-    if (snap.gamePhase === "gameOver" || !snap.seats || snap.seats.length === 0) {
+    if (
+      snap.gamePhase === "gameOver" ||
+      !snap.seats ||
+      snap.seats.length === 0
+    ) {
       return;
     }
     autoRestoredRef.current = true;
 
     // 由 seats 首座角色反推剧本（快照未存 scriptName 时兜底：查角色所属剧本）
     let scriptName = "";
-    const seatRoles = snap.seats.map((s: any) => s.role?.id).filter(Boolean) as string[];
+    const seatRoles = snap.seats
+      .map((s: any) => s.role?.id)
+      .filter(Boolean) as string[];
     for (const sc of scripts) {
       if (sc.roleIds?.some((rid) => seatRoles.includes(rid))) {
         scriptName = sc.name;
@@ -436,7 +441,11 @@ export default function Home() {
       isCompleted: false,
       snapshot: snap,
     };
-    console.log("[Persistence] 检测到未完成对局快照，自动恢复（" + (snap.gamePhase ?? "?") + " 阶段）");
+    console.log(
+      "[Persistence] 检测到未完成对局快照，自动恢复（" +
+        (snap.gamePhase ?? "?") +
+        " 阶段）"
+    );
     handleContinueGame(record);
   }, [mounted, handleContinueGame]);
 
@@ -823,231 +832,233 @@ export default function Home() {
 
   return (
     <GameActionsProvider controller={controller}>
-      <ScaleLayout>
-        <PortraitLock />
-        <motion.div
-          className="w-full h-full text-white overflow-hidden"
-          initial={{ backgroundColor: "#030712" }}
-          animate={{
-            backgroundColor:
-              gamePhase === "day"
-                ? "rgb(12, 74, 110)"
-                : gamePhase === "dusk"
-                  ? "rgb(28, 25, 23)"
-                  : "rgb(3, 7, 18)",
-          }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-          onClick={() => {
-            setContextMenu(null);
-            setShowMenu(false);
-          }}
-        >
-          {/* ===== 通用加载动画不属于暗流涌动等具体剧本===== */}
-          {showIntroLoading && (
-            <div className="absolute inset-0 z-[9999] flex flex-col items-center justify-center bg-black">
-              <div className="font-sans text-7xl font-black tracking-[0.1em] text-red-400 animate-breath-shadow">
-                拜甘教
-              </div>
-              <div className="mt-8 flex flex-col items-center gap-3">
-                <div className="h-10 w-10 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
-                <div className="text-lg font-semibold text-red-200/90 font-sans tracking-widest">
-                  祈祷中…
+      <GrimoireTooltipProvider>
+        <ScaleLayout>
+          <PortraitLock />
+          <motion.div
+            className="w-full h-full text-white overflow-hidden"
+            initial={{ backgroundColor: "#030712" }}
+            animate={{
+              backgroundColor:
+                gamePhase === "day"
+                  ? "rgb(12, 74, 110)"
+                  : gamePhase === "dusk"
+                    ? "rgb(28, 25, 23)"
+                    : "rgb(3, 7, 18)",
+            }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+            onClick={() => {
+              setContextMenu(null);
+              setShowMenu(false);
+            }}
+          >
+            {/* ===== 通用加载动画不属于暗流涌动等具体剧本===== */}
+            {showIntroLoading && (
+              <div className="absolute inset-0 z-[9999] flex flex-col items-center justify-center bg-black">
+                <div className="font-sans text-7xl font-black tracking-[0.1em] text-red-400 animate-breath-shadow">
+                  拜甘教
+                </div>
+                <div className="mt-8 flex flex-col items-center gap-3">
+                  <div className="h-10 w-10 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
+                  <div className="text-lg font-semibold text-red-200/90 font-sans tracking-widest">
+                    祈祷中…
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {baronSetupCheck && (
-            <div className="absolute inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
-              <div className="bg-gray-900 border-4 border-yellow-500 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl">
-                <div className="text-xl font-bold text-yellow-300">
-                  {" "}
-                  Setup 校验
-                </div>
-                <p className="text-sm leading-6 text-gray-100">
-                  检测到你选择了男(Baron)但当前镇外来者 ? 数量不符规则
-                </p>
-                <div className="text-sm text-gray-200 space-y-2 bg-gray-800/60 rounded-lg p-3 border border-gray-700">
-                  <div>
-                    当前{baronSetupCheck.current.townsfolk} 个镇民
-                    {baronSetupCheck.current.outsider} 个外来者
+            {baronSetupCheck && (
+              <div className="absolute inset-0 z-[9900] bg-black/70 flex items-center justify-center px-4">
+                <div className="bg-gray-900 border-4 border-yellow-500 rounded-2xl p-6 max-w-xl w-full space-y-4 shadow-2xl">
+                  <div className="text-xl font-bold text-yellow-300">
+                    {" "}
+                    Setup 校验
                   </div>
-                  <div className="font-semibold text-yellow-200">
-                    建议调整为{baronSetupCheck.recommended.townsfolk} 个镇民
-                    {baronSetupCheck.recommended.outsider} 个外来者
+                  <p className="text-sm leading-6 text-gray-100">
+                    检测到你选择了男(Baron)但当前镇外来者 ? 数量不符规则
+                  </p>
+                  <div className="text-sm text-gray-200 space-y-2 bg-gray-800/60 rounded-lg p-3 border border-gray-700">
+                    <div>
+                      当前{baronSetupCheck.current.townsfolk} 个镇民
+                      {baronSetupCheck.current.outsider} 个外来者
+                    </div>
+                    <div className="font-semibold text-yellow-200">
+                      建议调整为{baronSetupCheck.recommended.townsfolk} 个镇民
+                      {baronSetupCheck.recommended.outsider} 个外来者
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      共 {baronSetupCheck.recommended.total} 人局含男爵自动2
+                      名镇民替换为 2 名外来者
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-400">
-                    共 {baronSetupCheck.recommended.total} 人局含男爵自动2
-                    名镇民替换为 2 名外来者
+                  <p className="text-sm text-gray-300">
+                    你可以点击"自动重排"由系统重新分配，点击"我手动调整"后再继续，或在说书人裁量下点击"保持当前配置"直接开始游戏
+                  </p>
+                  <div className="flex flex-row gap-3">
+                    <button
+                      onClick={handleBaronAutoRebalance}
+                      className="flex-1 py-3 rounded-xl bg-yellow-500 text-black font-bold hover:bg-yellow-400 transition"
+                    >
+                      自动重排
+                    </button>
+                    <button
+                      onClick={() => setBaronSetupCheck(null)}
+                      className="flex-1 py-3 rounded-xl bg-gray-700 text-gray-100 font-bold hover:bg-gray-600 transition"
+                    >
+                      我手动调 :{" "}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIgnoreBaronSetup(true);
+                        setBaronSetupCheck(null);
+                      }}
+                      className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-100 font-bold hover:bg-gray-700 transition"
+                    >
+                      保持当前配置
+                    </button>
                   </div>
-                </div>
-                <p className="text-sm text-gray-300">
-                  你可以点击"自动重排"由系统重新分配，点击"我手动调整"后再继续，或在说书人裁量下点击"保持当前配置"直接开始游戏
-                </p>
-                <div className="flex flex-row gap-3">
-                  <button
-                    onClick={handleBaronAutoRebalance}
-                    className="flex-1 py-3 rounded-xl bg-yellow-500 text-black font-bold hover:bg-yellow-400 transition"
-                  >
-                    自动重排
-                  </button>
-                  <button
-                    onClick={() => setBaronSetupCheck(null)}
-                    className="flex-1 py-3 rounded-xl bg-gray-700 text-gray-100 font-bold hover:bg-gray-600 transition"
-                  >
-                    我手动调 :{" "}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIgnoreBaronSetup(true);
-                      setBaronSetupCheck(null);
-                    }}
-                    className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-100 font-bold hover:bg-gray-700 transition"
-                  >
-                    保持当前配置
-                  </button>
                 </div>
               </div>
-            </div>
-          )}
-          {/* ===== 剧本选择页：占满整个舞台区域，禁止二次缩放 ===== */}
-          {gamePhase === "scriptSelection" && (
-            <div className="w-full h-full flex flex-col bg-slate-950 text-white">
-              <ScriptSelection
-                onScriptSelect={setSelectedScript}
-                saveHistory={saveHistory}
-                setGameLogs={setGameLogs}
-                setGamePhase={setGamePhase}
-                onContinue={handleContinueGame}
-              />
-            </div>
-          )}
-          {gamePhase === "setup" && (
-            <GameLayout
-              leftPanel={
-                <div className="w-full h-full p-4 bg-transparent">
-                  <div className="w-full h-full flex items-center justify-center">
-                    {/* 调试信息 */}
-                    <div className="absolute top-2 left-2 z-50 text-xs bg-black/80 p-2 rounded">
-                      座位数: {seats.length}
+            )}
+            {/* ===== 剧本选择页：占满整个舞台区域，禁止二次缩放 ===== */}
+            {gamePhase === "scriptSelection" && (
+              <div className="w-full h-full flex flex-col bg-slate-950 text-white">
+                <ScriptSelection
+                  onScriptSelect={setSelectedScript}
+                  saveHistory={saveHistory}
+                  setGameLogs={setGameLogs}
+                  setGamePhase={setGamePhase}
+                  onContinue={handleContinueGame}
+                />
+              </div>
+            )}
+            {gamePhase === "setup" && (
+              <GameLayout
+                leftPanel={
+                  <div className="w-full h-full p-4 bg-transparent">
+                    <div className="w-full h-full flex items-center justify-center">
+                      {/* 调试信息 */}
+                      <div className="absolute top-2 left-2 z-50 text-xs bg-black/80 p-2 rounded">
+                        座位数: {seats.length}
+                      </div>
+                      <div className="w-full h-full">
+                        <RoundTable
+                          seats={seats}
+                          nightInfo={null}
+                          selectedActionTargets={[]}
+                          isPortrait={false}
+                          longPressingSeats={new Set()}
+                          onSeatClick={(id) => {
+                            handleSeatClick(id);
+                          }}
+                          onContextMenu={(e, seatId) => {
+                            e.preventDefault();
+                            setContextMenu({
+                              x: e.clientX,
+                              y: e.clientY,
+                              seatId,
+                            });
+                          }}
+                          onTouchStart={(e, _id) => {
+                            // Don't preventDefault - let click events work normally
+                            e.stopPropagation();
+                          }}
+                          onTouchEnd={(e, _id) => {
+                            // Don't preventDefault - let click events work normally
+                            e.stopPropagation();
+                          }}
+                          onTouchMove={(e, _id) => {
+                            // Don't preventDefault - let click events work normally
+                            e.stopPropagation();
+                          }}
+                          setSeatRef={() => {}}
+                          getDisplayRoleType={(seat) => seat.role?.type || null}
+                          getDisplayRole={getDisplayRoleForSeat}
+                          typeColors={typeColors}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full h-full">
-                      <RoundTable
+                  </div>
+                }
+                rightPanel={
+                  <div className="h-full flex flex-col overflow-hidden">
+                    <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
+                      <h2 className="text-lg font-bold text-purple-300">
+                        说书人控制台
+                      </h2>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 text-sm min-h-0">
+                      <GameSetup
                         seats={seats}
-                        nightInfo={null}
-                        selectedActionTargets={[]}
-                        isPortrait={false}
-                        longPressingSeats={new Set()}
-                        onSeatClick={(id) => {
-                          handleSeatClick(id);
-                        }}
-                        onContextMenu={(e, seatId) => {
-                          e.preventDefault();
-                          setContextMenu({
-                            x: e.clientX,
-                            y: e.clientY,
-                            seatId,
-                          });
-                        }}
-                        onTouchStart={(e, _id) => {
-                          // Don't preventDefault - let click events work normally
-                          e.stopPropagation();
-                        }}
-                        onTouchEnd={(e, _id) => {
-                          // Don't preventDefault - let click events work normally
-                          e.stopPropagation();
-                        }}
-                        onTouchMove={(e, _id) => {
-                          // Don't preventDefault - let click events work normally
-                          e.stopPropagation();
-                        }}
-                        setSeatRef={() => {}}
-                        getDisplayRoleType={(seat) => seat.role?.type || null}
-                        getDisplayRole={getDisplayRoleForSeat}
-                        typeColors={typeColors}
+                        selectedScript={selectedScript}
+                        selectedRole={selectedRole}
+                        setSelectedRole={setSelectedRole}
+                        handleSeatClick={handleSeatClick}
+                        handlePreStartNight={handlePreStartNight}
+                        proceedToCheckPhase={proceedToCheckPhase}
+                        filteredGroupedRoles={filteredGroupedRoles}
+                        getCompositionStatus={getCompositionStatus}
+                        getBaronStatus={getBaronStatus}
+                        validateCompositionSetup={validateCompositionSetup}
+                        validateBaronSetup={validateBaronSetup}
+                        setCompositionError={setCompositionError}
+                        setBaronSetupCheck={setBaronSetupCheck}
+                        compositionError={compositionError}
+                        baronSetupCheck={baronSetupCheck}
+                        ignoreBaronSetup={ignoreBaronSetup}
+                        setIgnoreBaronSetup={setIgnoreBaronSetup}
+                        handleBaronAutoRebalance={handleBaronAutoRebalance}
+                        hideSeatingChart={false}
+                        onQuickTest={handleQuickTest}
                       />
                     </div>
                   </div>
-                </div>
-              }
-              rightPanel={
-                <div className="h-full flex flex-col overflow-hidden">
-                  <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
-                    <h2 className="text-lg font-bold text-purple-300">
-                      说书人控制台
-                    </h2>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-4 text-sm min-h-0">
-                    <GameSetup
-                      seats={seats}
-                      selectedScript={selectedScript}
-                      selectedRole={selectedRole}
-                      setSelectedRole={setSelectedRole}
-                      handleSeatClick={handleSeatClick}
-                      handlePreStartNight={handlePreStartNight}
-                      proceedToCheckPhase={proceedToCheckPhase}
-                      filteredGroupedRoles={filteredGroupedRoles}
-                      getCompositionStatus={getCompositionStatus}
-                      getBaronStatus={getBaronStatus}
-                      validateCompositionSetup={validateCompositionSetup}
-                      validateBaronSetup={validateBaronSetup}
-                      setCompositionError={setCompositionError}
-                      setBaronSetupCheck={setBaronSetupCheck}
-                      compositionError={compositionError}
-                      baronSetupCheck={baronSetupCheck}
-                      ignoreBaronSetup={ignoreBaronSetup}
-                      setIgnoreBaronSetup={setIgnoreBaronSetup}
-                      handleBaronAutoRebalance={handleBaronAutoRebalance}
-                      hideSeatingChart={false}
-                      onQuickTest={handleQuickTest}
-                    />
-                  </div>
-                </div>
-              }
-            />
-          )}
-          {/* setup 阶段由上方 GameLayout 内的 RoundTable + GameSetup 负责，
+                }
+              />
+            )}
+            {/* setup 阶段由上方 GameLayout 内的 RoundTable + GameSetup 负责，
               不再重复渲染 GameStage（否则会叠出第二套圆桌与 GameConsole 控制台） */}
-          {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
-            <>
-              <GameStage />
-              <GameModals />
-            </>
-          )}
+            {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
+              <>
+                <GameStage />
+                <GameModals />
+              </>
+            )}
 
-          {/* Setup 相关的 Modals 仍然留在本组件中 */}
+            {/* Setup 相关的 Modals 仍然留在本组件中 */}
 
-          {/* 右键上下文菜单 (Setup 阶段专用) */}
-          {contextMenu && gamePhase === "setup" && (
-            <div
-              className="fixed z-[9999] bg-slate-800 border border-slate-600 rounded shadow-xl py-1 min-w-[140px] flex flex-col"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-              onClick={(e) => e.stopPropagation()} // 防止点击菜单本身触发关闭
-            >
-              <div className="px-3 py-1 text-xs text-gray-500 border-b border-gray-700 mb-1">
-                {contextMenu.seatId + 1}号操作
-              </div>
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (controller.setRedNemesisTarget) {
-                    controller.setRedNemesisTarget(contextMenu.seatId);
-                  } else {
-                    console.error(
-                      "setRedNemesisTarget not found on controller"
-                    );
-                  }
-                  setContextMenu(null); // 关闭菜单
-                }}
+            {/* 右键上下文菜单 (Setup 阶段专用) */}
+            {contextMenu && gamePhase === "setup" && (
+              <div
+                className="fixed z-[9999] bg-slate-800 border border-slate-600 rounded shadow-xl py-1 min-w-[140px] flex flex-col"
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+                onClick={(e) => e.stopPropagation()} // 防止点击菜单本身触发关闭
               >
-                <span>🎯</span> 选为红罗刹
-              </button>
-              {/* 这里可以扩展更多选项，如“设为酒鬼”等 */}
-            </div>
-          )}
-        </motion.div>
-      </ScaleLayout>
+                <div className="px-3 py-1 text-xs text-gray-500 border-b border-gray-700 mb-1">
+                  {contextMenu.seatId + 1}号操作
+                </div>
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (controller.setRedNemesisTarget) {
+                      controller.setRedNemesisTarget(contextMenu.seatId);
+                    } else {
+                      console.error(
+                        "setRedNemesisTarget not found on controller"
+                      );
+                    }
+                    setContextMenu(null); // 关闭菜单
+                  }}
+                >
+                  <span>🎯</span> 选为红罗刹
+                </button>
+                {/* 这里可以扩展更多选项，如“设为酒鬼”等 */}
+              </div>
+            )}
+          </motion.div>
+        </ScaleLayout>
+      </GrimoireTooltipProvider>
     </GameActionsProvider>
   );
 }

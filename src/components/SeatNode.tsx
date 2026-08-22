@@ -1,9 +1,11 @@
 "use client";
 
 import type React from "react";
+import { useMemo } from "react";
 import { useGameActions } from "../contexts/GameActionsContext";
 import { useSeatView } from "../hooks/useSeatView";
 import type { SeatNodeProps } from "./SeatNode.types"; // We should extract props too
+import { useGrimoireTooltip } from "./tooltip/GrimoireTooltip";
 
 // 状态标签组件 - 统一的状态标记样式
 interface StatusPillProps {
@@ -50,8 +52,10 @@ function StatusPill({
 }: StatusPillProps) {
   const colorClasses = {
     red: "bg-red-900/90 text-red-100 border-red-600 shadow-red-900/40",
-    green: "bg-emerald-900/90 text-emerald-100 border-emerald-600 shadow-emerald-900/40",
-    yellow: "bg-amber-900/90 text-amber-100 border-amber-600 shadow-amber-900/40",
+    green:
+      "bg-emerald-900/90 text-emerald-100 border-emerald-600 shadow-emerald-900/40",
+    yellow:
+      "bg-amber-900/90 text-amber-100 border-amber-600 shadow-amber-900/40",
   };
 
   const sizeClass = isPortrait
@@ -114,6 +118,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     isValidTarget,
     containerStyle,
     realRole,
+    displayRole,
   } = useSeatView(
     s,
     i,
@@ -126,6 +131,21 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     getDisplayRoleType,
     typeColors
   );
+
+  // 悬浮注解：角色全称 + 阵营 + 一句话能力 + 当前状态标记
+  const tooltipData = useMemo(() => {
+    const role = displayRole || realRole;
+    if (!role) return null;
+    return {
+      title: roleName === "空" ? role.name : roleName,
+      factionType: role.type ?? getDisplayRoleType(s) ?? undefined,
+      ability: (role as { ability?: string }).ability || undefined,
+      statuses: statusList.length
+        ? statusList.map((st) => `${st.icon ?? ""}${st.text}`.trim())
+        : undefined,
+    };
+  }, [displayRole, realRole, roleName, statusList, s, getDisplayRoleType]);
+  const tooltipBind = useGrimoireTooltip(tooltipData);
 
   return (
     <div
@@ -155,10 +175,15 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
       data-seat-id={s.id}
     >
       <div
-        className={`relative w-full h-full rounded-full ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300
+        {...tooltipBind}
+        className={`seat-token relative w-full h-full rounded-full ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300
         ${colorClass}
+        ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
+        ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
+        ${getDisplayRoleType(s) === "minion" ? "glow-minion" : ""}
+        ${getDisplayRoleType(s) === "demon" ? "glow-demon" : ""}
         ${nightInfo?.seat.id === s.id ? "!ring-[6px] !ring-yellow-300 !scale-125 !shadow-[0_0_50px_rgba(253,224,71,0.9)] !brightness-100 !grayscale-0 !bg-gray-900 !border-yellow-300" : ""}
-        ${s.isDead && nightInfo?.seat.id !== s.id ? "grayscale brightness-75 bg-gray-300 border-gray-400" : ""}
+        ${s.isDead && nightInfo?.seat.id !== s.id ? "dead-cracked grayscale brightness-75 bg-gray-300 border-gray-400" : ""}
         ${selectedActionTargets.includes(s.id) ? "ring-4 ring-green-500 scale-105" : ""}
         ${longPressingSeats.has(s.id) ? "ring-4 ring-blue-400 animate-pulse" : ""}
         ${nominator === s.id ? "ring-8 ring-white scale-110 shadow-[0_0_40px_rgba(255,255,255,0.8)] animate-pulse" : ""}
@@ -167,6 +192,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
       `}
       >
         {/* === VFX Layers === */}
+        {s.isDead && nightInfo?.seat.id !== s.id && (
+          <div className="dead-blood-mark absolute inset-0 rounded-full z-20 pointer-events-none"></div>
+        )}
         {ctx.vfxTrigger?.seatId === s.id &&
           ctx.vfxTrigger?.type === "slayer" && (
             <div className="absolute inset-0 rounded-full bg-red-500 z-50 animate-vfx-particle shadow-[0_0_80px_red]"></div>
@@ -309,7 +337,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
         {/* 提醒标记（Reminder Tokens）- 显示在座位下方 */}
         {reminderTokens && reminderTokens.length > 0 && (
-          <div className={`absolute ${isPortrait ? "-bottom-12" : "-bottom-10"} left-1/2 -translate-x-1/2 flex gap-0.5 z-40 pointer-events-none`}>
+          <div
+            className={`absolute ${isPortrait ? "-bottom-12" : "-bottom-10"} left-1/2 -translate-x-1/2 flex gap-0.5 z-40 pointer-events-none`}
+          >
             {reminderTokens.slice(0, 4).map((t) => {
               const tokenColors: Record<string, string> = {
                 red: "bg-red-800/90 border-red-500 text-red-100",

@@ -1,9 +1,10 @@
 // by 拜甘教成员-大长老
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { GameProvider } from "@/src/contexts/GameContext";
-import { AudioProvider } from "@/src/hooks/useAudio";
 import { NativeDialogShim } from "@/src/components/NativeDialogShim";
+import { GameProvider } from "@/src/contexts/GameContext";
+import { ThemeProvider } from "@/src/contexts/ThemeContext";
+import { AudioProvider } from "@/src/hooks/useAudio";
 
 export const metadata: Metadata = {
   title: "血染钟楼辅助工具",
@@ -27,12 +28,14 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased">
-        <AudioProvider>
-          <GameProvider>
-            <NativeDialogShim />
-            {children}
-          </GameProvider>
-        </AudioProvider>
+        <ThemeProvider>
+          <AudioProvider>
+            <GameProvider>
+              <NativeDialogShim />
+              {children}
+            </GameProvider>
+          </AudioProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

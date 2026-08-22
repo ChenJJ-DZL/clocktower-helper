@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import type { GameState } from "../../contexts/GameContext";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
+import { useTheme } from "../../contexts/ThemeContext";
 import { useGameState } from "../../hooks/useGameState";
 import { useHistoryController } from "../../hooks/useHistoryController";
 import {
@@ -25,11 +26,13 @@ export function GlobalNavBar() {
   const { state, dispatch } = useGameContext();
   const { gamePhase, selectedScript, seats, gameLogs, startTime, gameRecords } =
     useGameState();
-  const { saveHistory, handleGlobalUndo, handleRedo, canUndo, canRedo } = useHistoryController();
+  const { saveHistory, handleGlobalUndo, handleRedo, canUndo, canRedo } =
+    useHistoryController();
   const controller = useGameActions();
   const handleContinueGame = (controller as any).handleContinueGame;
   const [showRecords, setShowRecords] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   // 筛选当前剧本的对局记录
   const currentScriptRecords = useMemo(() => {
@@ -284,6 +287,34 @@ export function GlobalNavBar() {
 
       {/* 全局导航按钮 - 内联工具栏 */}
       <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+        {/* 左侧：主题切换胶囊 */}
+        <div className="flex items-center">
+          <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/70 border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_16px_rgba(245,158,11,0.15)]">
+            <button
+              onClick={() => setTheme("classic")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+                theme === "classic"
+                  ? "bg-slate-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              title="经典魔典视图（高对比扁平风格）"
+            >
+              🏛️ 经典
+            </button>
+            <button
+              onClick={() => setTheme("modern")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+                theme === "modern"
+                  ? "bg-gradient-to-r from-amber-500/90 to-amber-400/90 text-slate-950 font-bold shadow-md shadow-amber-500/30"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              title="现代哥特魔典（拟物光效风格）"
+            >
+              ✨ 现代
+            </button>
+          </div>
+        </div>
+
         {/* 左侧：主页 + 撤销/重做 */}
         <div className="flex items-center gap-2">
           <button
