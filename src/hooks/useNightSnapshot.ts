@@ -43,29 +43,22 @@ export function useNightSnapshot(
     useState<NightInfoResult | null>(null);
   const drunkFirstInfoRef = useRef<Map<number, boolean>>(new Map());
   // 🔧 跨角色状态时序修复：记录"最新一次"的座位快照。
-  //   nightInfo 生成（guide/speak）必须基于"行动当下的座位状态"——
-  //   若上一步角色（如投毒者）刚给某玩家下毒，其毒必须反映在下一步
-  //   行动者的信息生成中。此前多处 continueToNextAction() 无参调用 /
-  //   effect 用 React 闭包 seats，存在"毒已同步但生成仍用旧座位"的
-  //   时序窗口 → 被毒角色信息显示真实信息（用户报告的核心 bug）。
-  //   统一兜底：生成时优先取显式传入的最新座位，其次取本 ref。
   const latestSeatsRef = useRef<Seat[]>(seats);
+  useEffect(() => {
+    if (seats && seats.length > 0) {
+      latestSeatsRef.current = seats;
+    }
+  }, [seats]);
 
   const updateSnapshot = useCallback(
     (index: number, currentSeats: Seat[], currentPhase: string) => {
-      // 🔧 守鸦人修复：读 ref 最新队列（动态插入的守鸦人节点）
+      // 🔧 读 ref 最新队列（含动态插入的节点）
       const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
-      // 🔧 跨角色状态时序修复：每次生成都更新"最新座位"引用，
-      //   保证后续任何生成路径（含无参 continueToNextAction / effect）
-      //   都基于最新座位（含上一步下毒/击杀同步的状态）。
-      //   注意：currentSeats 来自 React 已提交状态或 executeViaNewEngine
-      //   的 syncedSeats，均为权威最新；effect 触发时 React 已 commit，
-      //   闭包 seats 亦为最新（React 保证 effect 在 commit 后执行）。
       if (currentSeats && currentSeats.length > 0) {
         latestSeatsRef.current = currentSeats;
       }
       // 优先使用 commitSeats 同步镜像中的最新座位：上一步角色改状态后，
-      // 即使 React 状态尚未重渲染，下一步行动者也能立即读到最新中毒/醉酒。
+      // 下一步行动者也能立即读到最新中毒/醉酒/死亡/阵营变化。
       const safeSeats =
         externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
           ? externalLatestSeatsRef.current
@@ -77,6 +70,9 @@ export function useNightSnapshot(
       const nextSeatId = latestQueue[index];
       if (nextSeatId !== undefined) {
         const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
+        console.log(
+          `[NightSnapshot] 行动前实时状态检测并生成信息 -> index=${index}, seatId=${nextSeatId}`
+        );
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
           safeSeats,
@@ -111,7 +107,10 @@ export function useNightSnapshot(
     },
     [
       wakeQueueIds,
+      wakeQueueIdsRef,
+      externalLatestSeatsRef,
       selectedScript,
+      systemStepRoleIds,
       lastDuskExecution,
       nightCount,
       isEvilWithJudgment,
@@ -134,12 +133,25 @@ export function useNightSnapshot(
   const refreshSnapshot = useCallback(
     (currentSeats: Seat[], currentPhase: string) => {
       const index = wakeIndexRef.current;
-      const nextSeatId = wakeQueueIds[index];
+      const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
+      const nextSeatId = latestQueue[index];
+      if (currentSeats && currentSeats.length > 0) {
+        latestSeatsRef.current = currentSeats;
+      }
+      const safeSeats =
+        externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+          ? externalLatestSeatsRef.current
+          : currentSeats && currentSeats.length > 0
+            ? currentSeats
+            : latestSeatsRef.current;
       if (nextSeatId !== undefined) {
         const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
+        console.log(
+          `[NightSnapshot] 手动刷新行动前实时状态 -> index=${index}, seatId=${nextSeatId}`
+        );
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
-          currentSeats,
+          safeSeats,
           nextSeatId,
           currentPhase as any,
           lastDuskExecution,
@@ -171,7 +183,10 @@ export function useNightSnapshot(
     },
     [
       wakeQueueIds,
+      wakeQueueIdsRef,
+      externalLatestSeatsRef,
       selectedScript,
+      systemStepRoleIds,
       lastDuskExecution,
       nightCount,
       isEvilWithJudgment,

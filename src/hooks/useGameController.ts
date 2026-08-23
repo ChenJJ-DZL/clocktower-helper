@@ -1572,13 +1572,21 @@ export function useGameController() {
       if (idxChanged || phaseChanged || !nightInfo) {
         lastNightRefreshIdxRef.current = currentWakeIndex;
         lastNightRefreshPhaseRef.current = gamePhase;
+        const currentAuthoritativeSeats =
+          seatsRef?.current && seatsRef.current.length > 0
+            ? seatsRef.current
+            : seats;
         console.log(
-          "[GameController] Refreshing night step for index:",
+          "[GameController] 行动前实时状态检测与信息生成 -> index:",
           currentWakeIndex,
           "phase:",
           gamePhase
         );
-        nightSnapshot.updateSnapshot(currentWakeIndex, seats, gamePhase);
+        nightSnapshot.updateSnapshot(
+          currentWakeIndex,
+          currentAuthoritativeSeats,
+          gamePhase
+        );
       }
     } else {
       lastNightRefreshIdxRef.current = null;

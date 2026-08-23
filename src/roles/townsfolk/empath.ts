@@ -103,11 +103,16 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
         }
       }
 
-      // 判断玩家是否邪恶
+      // 查找并判断邻座邪恶
       const isEvil = (s: any) => {
+        if (!s || !s.role) return false;
         if (s.isGoodConverted) return false;
         if (s.isEvilConverted) return true;
-        const t = s.role?.type;
+        // 陌客100%注册为邪恶，间谍100%注册为善良
+        if (s.role.id === "recluse") return true;
+        if (s.role.id === "spy") return false;
+        if (s.isDemonSuccessor) return true;
+        const t = s.role.type;
         return t === "demon" || t === "minion";
       };
 
@@ -115,16 +120,24 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
       if (leftSeat && isEvil(leftSeat)) evilCount++;
       if (rightSeat && isEvil(rightSeat)) evilCount++;
 
-      // 醉酒/中毒时给出随机值（可能和真实值不同）
+      // 实时状态检测：检测当前共情者是否受到中毒、醉酒或沃陶斯干扰
       const selfSeat = seats.find((s) => s.id === playerSeatId);
       const isDisabled =
         selfSeat && typeof isActorDisabledByPoisonOrDrunk === "function"
           ? isActorDisabledByPoisonOrDrunk(selfSeat)
           : false;
 
-      const resultCount = isDisabled
-        ? Math.floor(Math.random() * 3)
-        : evilCount;
+      // 🔧 核心修复：受干扰状态（中毒/醉酒）下，生成的信息 100% 为假数字（从 0-2 中排除真实数量）
+      let resultCount = evilCount;
+      if (isDisabled) {
+        const fakeCandidates = [0, 1, 2].filter((v) => v !== evilCount);
+        resultCount =
+          fakeCandidates.length > 0
+            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+            : evilCount === 0
+              ? 1
+              : 0;
+      }
 
       return {
         wake: `唤醒${seatNo}号【共情者】，告诉他邻近邪恶玩家有 ${resultCount} 名。`,

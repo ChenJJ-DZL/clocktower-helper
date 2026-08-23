@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { empath } from "../townsfolk/empath";
 
 function seat(id:number,rid:string,rt:string,isEvil=false,isDead=false,isDrunk=false){
   const n:Record<string,string>={empath:"共情者",imp:"小恶魔",spy:"间谍",soldier:"士兵",recluse:"陌客",butler:"管家",saint:"圣徒"};
@@ -43,5 +44,22 @@ describe("共情者 (Empath)",()=>{
   test("醉酒能力失效",()=>{
     const em=seat(0,"empath","townsfolk",false,false,true);
     expect(em.isDrunk||em.isPoisoned).toBe(true);
+  });
+  test("中毒/受干扰状态下，dialog 生成的信息 100% 为错误数字且绝非真实值", () => {
+    const ss = [
+      seat(0, "empath", "townsfolk"),
+      seat(1, "soldier", "townsfolk"),
+      seat(2, "butler", "outsider"),
+    ];
+    // 真实值应为 0
+    for (let i = 0; i < 20; i++) {
+      const dialog = (empath.night as any).dialog(0, false, {
+        seats: ss,
+        isActorDisabledByPoisonOrDrunk: () => true,
+      });
+      // 必须不是 0
+      expect(dialog.wake).not.toContain("0 名");
+      expect(dialog.wake).toMatch(/([12]) 名/);
+    }
   });
 });

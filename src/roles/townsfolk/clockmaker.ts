@@ -93,7 +93,13 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
       if (!isFirstNight) {
         return { wake: "", instruction: "", close: "" };
       }
-      const { seats } = context;
+      const { seats, isActorDisabledByPoisonOrDrunk } = context;
+      const selfSeat = seats.find((s) => s.id === playerSeatId);
+      const isDisabled =
+        selfSeat &&
+        typeof isActorDisabledByPoisonOrDrunk === "function" &&
+        isActorDisabledByPoisonOrDrunk(selfSeat);
+
       // 计算恶魔与爪牙最近距离
       const demons = seats.filter((s) => s.role?.type === "demon");
       const minions = seats.filter((s) => s.role?.type === "minion");
@@ -109,9 +115,24 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
           }
         }
       }
+
+      let displayDistance = minDistance;
+      if (isDisabled) {
+        const maxDist = Math.max(4, Math.floor(seats.length / 2));
+        const fakeCandidates = Array.from({ length: maxDist }, (_, i) => i + 1).filter(
+          (v) => v !== minDistance
+        );
+        displayDistance =
+          fakeCandidates.length > 0
+            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+            : minDistance === 1
+              ? 2
+              : 1;
+      }
+
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（钟表匠）。`,
-        instruction: `说书人告知：恶魔与爪牙最近距离为 ${minDistance}（邻座为1）。`,
+        instruction: `说书人告知：恶魔与爪牙最近距离为 ${displayDistance}（邻座为1）。`,
         close: "",
       };
     },

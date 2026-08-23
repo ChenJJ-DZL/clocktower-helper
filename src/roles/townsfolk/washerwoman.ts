@@ -44,7 +44,7 @@ export const washerwoman: RoleDefinition = {
       const seatNo = playerSeatId + 1;
 
       if (isDisabled) {
-        // 中毒/醉酒：随机选两个其他有角色的座位，角色从剧本镇民中随机（可不在场）
+        // 中毒/醉酒：随机选两个其他有角色的座位，角色从剧本镇民中选取（保证两名玩家均不是该角色）
         const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
         const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
         const seat1 = shuffled[0];
@@ -52,14 +52,22 @@ export const washerwoman: RoleDefinition = {
         const seat1No = seat1 ? seat1.id + 1 : "?";
         const seat2No = seat2 ? seat2.id + 1 : "?";
 
-        const scriptTownsfolk = roles.filter((r) => r.type === "townsfolk");
+        const scriptTownsfolk = roles.filter(
+          (r) =>
+            r.type === "townsfolk" &&
+            r.id !== seat1?.role?.id &&
+            r.id !== seat2?.role?.id
+        );
+        const fallbackTownsfolk = roles.filter((r) => r.type === "townsfolk");
         const fakeRole =
           scriptTownsfolk.length > 0
             ? scriptTownsfolk[
                 Math.floor(Math.random() * scriptTownsfolk.length)
               ]
-            : null;
-        const fakeRoleName = fakeRole?.name || "未知镇民";
+            : fallbackTownsfolk.length > 0
+              ? fallbackTownsfolk[0]
+              : null;
+        const fakeRoleName = fakeRole?.name || "僧侣";
 
         return {
           wake: `唤醒${seatNo}号【洗衣妇】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,

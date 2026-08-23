@@ -41,14 +41,17 @@ export const librarian: RoleDefinition = {
       const seatNo = playerSeatId + 1;
 
       if (isDisabled) {
-        // 中毒/醉酒：随机返回虚假信息
+        // 中毒/醉酒：随机选两个其他座位，外来者角色保证两名玩家均不是该角色
         const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
         const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
         const seat1 = shuffled[0];
         const seat2 = shuffled[1] || shuffled[0];
         const seat1No = seat1 ? seat1.id + 1 : "?";
         const seat2No = seat2 ? seat2.id + 1 : "?";
-        const fakeRoleName = "圣徒";
+        const fakeRoleName =
+          seat1?.role?.id === "saint" || seat2?.role?.id === "saint"
+            ? "管家"
+            : "圣徒";
         return {
           wake: `唤醒${seatNo}号【图书管理员】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,
           instruction: "受干扰状态，信息可能不准确",

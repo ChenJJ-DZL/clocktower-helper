@@ -29,31 +29,30 @@ export const undertaker: RoleDefinition = {
         selfSeat &&
         typeof isActorDisabledByPoisonOrDrunk === "function" &&
         isActorDisabledByPoisonOrDrunk(selfSeat);
-      let roleName: string;
+      // 优先读取处决时刻的角色快照（executedRoleSnapshot）
+      let executedSeat = seats?.find((s: any) => s.executedToday);
+      if (!executedSeat && typeof executedToday === "number") {
+        executedSeat = seats?.find((s: any) => s.id === executedToday);
+      }
+      const realRoleName =
+        executedSeat?.executedRoleSnapshot ??
+        executedSeat?.role?.name ??
+        "未知角色";
 
+      let roleName: string;
       if (isDisabled) {
         const otherRoles = seats
-          .filter((s: any) => s.role && s.id !== playerSeatId)
+          .filter((s: any) => s.role && s.id !== playerSeatId && s.role.name !== realRoleName)
           .map((s: any) => s.role?.name)
           .filter(Boolean);
         roleName =
           otherRoles.length > 0
             ? otherRoles[Math.floor(Math.random() * otherRoles.length)]
-            : "未知角色";
+            : realRoleName === "男爵"
+              ? "共情者"
+              : "男爵";
       } else {
-        // 🔧 送葬者修复：同时支持两种处决标记来源
-        //   1. 座位级 executedToday 布尔标记 + executedRoleSnapshot（killPlayer 处决时写入）
-        //   2. 上下文级 executedToday 数字 ID（todayExecutedId，useNightSnapshot 传入）
-        let executedSeat = seats?.find((s: any) => s.executedToday);
-        if (!executedSeat && typeof executedToday === "number") {
-          executedSeat = seats?.find((s: any) => s.id === executedToday);
-        }
-        // 优先读取处决时刻的角色快照（executedRoleSnapshot），
-        // 处决后角色可能因红唇女郎等发生变化，应展示处决当时的角色。
-        roleName =
-          executedSeat?.executedRoleSnapshot ??
-          executedSeat?.role?.name ??
-          "未知角色";
+        roleName = realRoleName;
       }
       return {
         wake: `唤醒${playerSeatId + 1}号【送葬者】，告诉他上一个白天被处决的玩家是${roleName}。`,
