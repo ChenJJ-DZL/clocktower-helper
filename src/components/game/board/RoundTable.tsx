@@ -91,6 +91,7 @@ export function RoundTable({
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
   const [_seatSize, setSeatSize] = useState(72); // Seat size in pixels
+  const [isNightOrderExpanded, setIsNightOrderExpanded] = useState(false);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -306,43 +307,45 @@ export function RoundTable({
       </div>
 
       {/* Top-right: Night order panel */}
-      <div className="absolute top-3 right-3 z-40 w-[200px] max-w-[30vw] pointer-events-auto">
-        <div className="rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-md shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-            <div className="text-xs font-bold text-slate-200">夜晚行动顺序</div>
+      <div className="absolute top-3 right-3 z-40 w-[145px] lg:w-[155px] max-w-[28vw] pointer-events-auto transition-all duration-200">
+        <div className="rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/10 bg-slate-950/60">
+            <div className="text-[11px] font-bold text-slate-200 truncate">夜晚行动顺序</div>
             <button
               type="button"
-              onClick={() => onOpenNightOrderPreview?.()}
-              className="text-xs px-2 py-1 rounded-md bg-slate-700/80 hover:bg-slate-600/80 text-slate-100 border border-white/10"
-              title="展开完整顺序"
+              onClick={() => setIsNightOrderExpanded((prev) => !prev)}
+              className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 border border-white/10 transition font-bold"
+              title={isNightOrderExpanded ? "收起顺序" : "展开完整顺序"}
             >
-              展开
+              {isNightOrderExpanded ? "收起" : "展开"}
             </button>
           </div>
-          <div className="max-h-[180px] overflow-auto px-3 py-2 space-y-2">
-            {nightOrderPreview.length === 0 ? (
-              <div className="text-xs text-slate-400">
-                暂无（未生成顺序或不在夜晚阶段）
-              </div>
-            ) : (
-              nightOrderPreview.slice(0, 10).map((item, idx) => {
-                const uniqueKey = `night-order-${item.seatNo}-${item.roleName}-${item.order ?? idx}`;
-                return (
-                  <div
-                    key={uniqueKey}
-                    className="flex items-center justify-between text-xs"
-                  >
-                    <div className="text-slate-200 truncate">
-                      {item.order ?? "?"}. [{item.seatNo}号] {item.roleName}
+          {isNightOrderExpanded && (
+            <div className="px-2.5 py-1.5 space-y-1">
+              {nightOrderPreview.length === 0 ? (
+                <div className="text-[10px] text-slate-400 py-1 text-center">
+                  暂无顺序
+                </div>
+              ) : (
+                nightOrderPreview.map((item, idx) => {
+                  const uniqueKey = `night-order-${item.seatNo}-${item.roleName}-${item.order ?? idx}`;
+                  return (
+                    <div
+                      key={uniqueKey}
+                      className="flex items-center justify-between text-[11px] leading-tight py-0.5 border-b border-white/5 last:border-0"
+                    >
+                      <div className="text-slate-200 truncate font-medium">
+                        {idx + 1}. [{item.seatNo}号] {item.roleName}
+                      </div>
+                      <div className="text-amber-400 font-mono text-[10px] ml-1 shrink-0">
+                        #{item.order ?? idx + 1}
+                      </div>
                     </div>
-                    <div className="text-slate-400 ml-2 shrink-0">
-                      #{item.order ?? "—"}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
       </div>
 
