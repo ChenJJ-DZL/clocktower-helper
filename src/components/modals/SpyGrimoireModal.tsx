@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { LogEntry, ReminderToken, Seat } from "../../../app/data";
 import { roles } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
@@ -18,6 +18,102 @@ interface SpyGrimoireModalProps {
   isPortrait?: boolean;
 }
 
+/**
+ * 椭圆等弧长（严格像素等间距）分布计算 Hook
+ * 避免普通极坐标在椭圆左右两侧严重挤压重叠的问题
+ */
+function useUniformEllipseLayout(
+  total: number,
+  containerRef: React.RefObject<HTMLDivElement | null>
+) {
+  const [dimensions, setDimensions] = useState({ width: 680, height: 420 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setDimensions({ width: rect.width, height: rect.height });
+      }
+    };
+
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [containerRef]);
+
+  return useMemo(() => {
+    if (total <= 0) return { coords: [], A: 240, B: 150, width: 680, height: 420 };
+    const { width, height } = dimensions;
+
+    // 动态留出边距（根据人数微调）
+    const seatMargin = total > 15 ? 40 : 46;
+    const A = Math.max(80, width / 2 - seatMargin);
+    const B = Math.max(60, height / 2 - seatMargin);
+
+    // 1. 构建数值积分采样表（1200 个采样点）
+    const SAMPLES = 1200;
+    const cumulativeArc: number[] = new Array(SAMPLES + 1);
+    cumulativeArc[0] = 0;
+
+    const dt = (2 * Math.PI) / SAMPLES;
+    for (let i = 1; i <= SAMPLES; i++) {
+      const t = (i - 0.5) * dt;
+      // dL/dt = sqrt(A^2 * cos^2(t) + B^2 * sin^2(t))
+      const speed = Math.sqrt(
+        A * A * Math.cos(t) * Math.cos(t) + B * B * Math.sin(t) * Math.sin(t)
+      );
+      cumulativeArc[i] = cumulativeArc[i - 1] + speed * dt;
+    }
+
+    const totalPerimeter = cumulativeArc[SAMPLES];
+    const arcPerSeat = totalPerimeter / total;
+
+    // 2. 为每个座位寻找对应的参数 t（等弧长采样）
+    const resultCoords: Array<{ x: string; y: string; angle: number }> = [];
+
+    for (let k = 0; k < total; k++) {
+      const targetArc = k * arcPerSeat;
+
+      // 二分查找找到 targetArc 所在的区间
+      let low = 0;
+      let high = SAMPLES;
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (cumulativeArc[mid] < targetArc) {
+          low = mid + 1;
+        } else {
+          high = mid;
+        }
+      }
+
+      const idx = Math.max(1, low);
+      const prevArc = cumulativeArc[idx - 1];
+      const nextArc = cumulativeArc[idx];
+      const fraction = nextArc > prevArc ? (targetArc - prevArc) / (nextArc - prevArc) : 0;
+      const t = (idx - 1 + fraction) * dt;
+
+      // 顺时针从正上方开始：t=0 -> top (0, -B)
+      const xPx = A * Math.sin(t);
+      const yPx = -B * Math.cos(t);
+
+      const xPercent = 50 + (xPx / width) * 100;
+      const yPercent = 50 + (yPx / height) * 100;
+
+      resultCoords.push({
+        x: xPercent.toFixed(2),
+        y: yPercent.toFixed(2),
+        angle: t,
+      });
+    }
+
+    return { coords: resultCoords, A, B, width, height };
+  }, [total, dimensions]);
+}
+
 export function SpyGrimoireModal({
   isOpen,
   onClose,
@@ -27,7 +123,7 @@ export function SpyGrimoireModal({
   reminderTokens = {},
   isPortrait = false,
 }: SpyGrimoireModalProps) {
-  // ─── 倒计时器状态 ────────────────────────────────────────────────────────
+  // ─── 倒计时器状态（60秒） ────────────────────────────────────────────────
   const INITIAL_TIMER_SECONDS = 60;
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIMER_SECONDS);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
@@ -37,6 +133,11 @@ export function SpyGrimoireModal({
 
   // ─── 右侧日志的筛选 Tab（"all" | "night-0" (首夜) | "night-1" | "night-2" ... | "day"） ──
   const [activeTab, setActiveTab] = useState<string>("all");
+
+  // 椭圆容器 Ref 用于等弧长尺寸测量
+  const ellipseContainerRef = useRef<HTMLDivElement>(null);
+  const { coords: seatCoords, A, B, width: containerWidth, height: containerHeight } =
+    useUniformEllipseLayout(seats.length, ellipseContainerRef);
 
   // 倒计时逻辑
   useEffect(() => {
@@ -220,27 +321,14 @@ export function SpyGrimoireModal({
     return Array.from(days).sort((a, b) => a - b);
   }, [parsedLogs]);
 
-  // 计算圆桌每个座位的圆周百分比坐标（基于正方形 1:1 坐标系，绝对均匀）
-  const getRoundSeatCoord = useCallback(
-    (index: number, total: number) => {
-      const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
-      // 半径按人数自适应，40% 在正方形容器内留出 10% 边距，确保座位完全处于圆周且间距恒定
-      const radius = total > 15 ? 40 : total > 12 ? 40.5 : 41;
-      const x = 50 + radius * Math.cos(angle);
-      const y = 50 + radius * Math.sin(angle);
-      return { x: x.toFixed(2), y: y.toFixed(2) };
-    },
-    []
-  );
-
   // 座位节点尺寸类
   const seatSizeClass = useMemo(() => {
     if (seats.length > 15) {
-      return "w-12 h-12 lg:w-13 lg:h-13";
+      return "w-12 h-12 lg:w-[3.3rem] lg:h-[3.3rem]";
     } else if (seats.length > 12) {
-      return "w-14 h-14 lg:w-15 lg:h-15";
+      return "w-14 h-14 lg:w-[3.7rem] lg:h-[3.7rem]";
     } else {
-      return "w-15 h-15 lg:w-16 lg:h-16";
+      return "w-15 h-15 lg:w-[4.2rem] lg:h-[4.2rem]";
     }
   }, [seats.length]);
 
@@ -257,16 +345,20 @@ export function SpyGrimoireModal({
 
   const selectedSeat = selectedSeatId !== null ? seats.find((s) => s.id === selectedSeatId) : null;
 
+  // 椭圆底盘宽度/高度百分比
+  const ellipseWidthPct = containerWidth > 0 ? ((2 * A) / containerWidth) * 100 : 85;
+  const ellipseHeightPct = containerHeight > 0 ? ((2 * B) / containerHeight) * 100 : 85;
+
   return (
     <ModalWrapper
-      title="📖 间谍圆桌魔典 (全知全景)"
+      title="📖 间谍椭圆魔典 (全知全景)"
       onClose={onClose}
       className="max-w-7xl w-[96vw] h-[88vh] flex flex-col p-0 overflow-hidden"
       footer={
         <div className="w-full flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-amber-200/90 font-medium">
             <span className="text-base">💡</span>
-            <span>圆桌完全按游戏座位顺时针均匀排列，点击圆桌上任意座位可即时联动聚焦右侧对应情报与行动</span>
+            <span>椭圆魔典采用严格等弧长物理等距排布，互不挤压遮挡；点击椭圆上任意座位可即时联动右侧情报</span>
           </div>
           <button
             onClick={onClose}
@@ -278,7 +370,7 @@ export function SpyGrimoireModal({
       }
     >
       <div className="flex flex-col h-full gap-2.5 overflow-hidden">
-        {/* ─── 顶部条：限时倒计时 + 统计指标 ─────────────────────────────── */}
+        {/* ─── 顶部条：限时倒计时 (60s) + 统计指标 ─────────────────────── */}
         <div className="bg-slate-950/80 p-2.5 rounded-xl border border-white/10 flex flex-wrap items-center justify-between gap-3 shrink-0">
           {/* 左侧：倒计时控制 */}
           <div className="flex items-center gap-3">
@@ -339,14 +431,14 @@ export function SpyGrimoireModal({
           </div>
         </div>
 
-        {/* ─── 主体双栏区域：左圆桌盘面 (正圆等距) + 右情报历史 ──────────────────────── */}
+        {/* ─── 主体双栏区域：左椭圆盘面 (等弧长优化) + 右情报历史 ──────────────────────── */}
         <div className="flex-1 flex flex-col md:flex-row gap-3 min-h-0 overflow-hidden">
-          {/* ─── 左栏：圆桌魔典盘面 ────────────────────────────── */}
+          {/* ─── 左栏：椭圆魔典盘面 ────────────────────────────── */}
           <div className="flex-1 flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-2 min-h-0 overflow-hidden relative shadow-inner">
             <div className="flex items-center justify-between px-2 py-1 border-b border-white/10 shrink-0 z-20 bg-slate-950/90">
               <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                <span>🪐 正圆魔典真身分布</span>
-                <span className="text-[10px] font-normal text-slate-400">（物理圆桌 100% 均匀等距排布）</span>
+                <span>🪐 椭圆魔典真身分布</span>
+                <span className="text-[10px] font-normal text-slate-400">（全周等物理弧长排布 · 互不遮挡）</span>
               </h3>
               {selectedSeatId !== null && (
                 <button
@@ -358,169 +450,182 @@ export function SpyGrimoireModal({
               )}
             </div>
 
-            {/* 圆桌居中展示区：保证内层始终为 1:1 正方形容器，彻底杜绝椭圆拉伸变形 */}
-            <div className="relative flex-1 w-full h-full flex items-center justify-center p-2 overflow-hidden">
-              <div className="relative aspect-square h-full max-w-full max-h-full flex items-center justify-center">
-                {/* 正圆桌外圈氛围光与桌台背景 */}
-                <div className="absolute w-[84%] h-[84%] rounded-full border border-amber-500/20 bg-gradient-to-b from-slate-900/70 to-slate-950/90 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)] pointer-events-none" />
-                <div className="absolute w-[72%] h-[72%] rounded-full border border-dashed border-white/10 pointer-events-none opacity-30" />
+            {/* 椭圆居中展示区：通过等弧长数值积分，在任何椭圆比例下均保持间距绝对恒定 */}
+            <div
+              ref={ellipseContainerRef}
+              className="relative flex-1 w-full h-full flex items-center justify-center p-2 overflow-hidden select-none"
+            >
+              {/* 椭圆外圈桌台与光环背景 */}
+              <div
+                style={{
+                  width: `${ellipseWidthPct}%`,
+                  height: `${ellipseHeightPct}%`,
+                }}
+                className="absolute rounded-[50%] border border-amber-500/20 bg-gradient-to-b from-slate-900/70 to-slate-950/90 shadow-[inset_0_0_60px_rgba(0,0,0,0.85)] pointer-events-none"
+              />
+              <div
+                style={{
+                  width: `${ellipseWidthPct * 0.85}%`,
+                  height: `${ellipseHeightPct * 0.85}%`,
+                }}
+                className="absolute rounded-[50%] border border-dashed border-white/10 pointer-events-none opacity-30"
+              />
 
-                {/* 正圆桌中心 HUD 信息台 */}
-                <div className="absolute z-10 w-[42%] h-[42%] max-w-[210px] max-h-[210px] rounded-full bg-slate-900/95 border border-amber-400/40 shadow-2xl backdrop-blur-md flex flex-col items-center justify-center p-2.5 text-center pointer-events-auto">
-                  <div className="text-amber-400 text-[11px] font-bold tracking-widest uppercase mb-0.5">
-                    📖 魔典中心
-                  </div>
-                  {selectedSeat ? (
-                    <div className="flex flex-col items-center gap-0.5 animate-fadeIn">
-                      <span className="text-xs lg:text-sm font-black text-white leading-tight">
-                        #{selectedSeat.id + 1}号 · {selectedSeat.role?.name}
-                      </span>
-                      <span className="text-[10px] text-slate-300">
-                        {selectedSeat.role?.type === "townsfolk"
-                          ? "镇民"
-                          : selectedSeat.role?.type === "outsider"
-                            ? "外来者"
-                            : selectedSeat.role?.type === "minion"
-                              ? "爪牙"
-                              : selectedSeat.role?.type === "demon"
-                                ? "恶魔"
-                                : "旅行者"}
-                        {selectedSeat.isDead ? " (已死亡)" : " (存活)"}
-                      </span>
-                      {selectedSeat.role?.id === "drunk" && selectedSeat.charadeRole && (
-                        <span className="text-[9px] text-purple-300 font-medium">
-                          伪装: {selectedSeat.charadeRole.name}
-                        </span>
-                      )}
-                      <span className="text-[9px] text-amber-300/90 mt-0.5">
-                        👉 右侧已联动展示情报
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-xs text-slate-300 font-medium">
-                        点击圆周座位
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        聚焦玩家专属夜间情报
-                      </span>
-                    </div>
-                  )}
+              {/* 椭圆中心 HUD 信息台 */}
+              <div className="absolute z-10 w-[240px] h-[130px] rounded-3xl bg-slate-900/95 border border-amber-400/40 shadow-2xl backdrop-blur-md flex flex-col items-center justify-center p-3 text-center pointer-events-auto">
+                <div className="text-amber-400 text-[11px] font-bold tracking-widest uppercase mb-0.5">
+                  📖 魔典中心
                 </div>
-
-                {/* 围绕正圆均匀分布的座位节点 */}
-                {seats.map((seat) => {
-                  if (!seat.role) return null;
-
-                  const coord = getRoundSeatCoord(seat.id, seats.length);
-                  const isSelected = selectedSeatId === seat.id;
-
-                  const isDemon = seat.role.type === "demon" || seat.isDemonSuccessor;
-                  const isMinion = seat.role.type === "minion";
-                  const isEvil =
-                    seat.isEvilConverted ||
-                    (!seat.isGoodConverted && (isDemon || isMinion));
-
-                  // 阵营着色
-                  const seatBgClass = seat.isDead
-                    ? "bg-slate-900/90 opacity-80"
-                    : isDemon
-                      ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-950"
-                      : isMinion
-                        ? "bg-gradient-to-br from-amber-950 via-slate-900 to-orange-950"
-                        : isEvil
-                          ? "bg-gradient-to-br from-purple-950 via-slate-900 to-red-950"
-                          : "bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950";
-
-                  const seatBorderClass = isSelected
-                    ? "ring-4 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] scale-110 z-30"
-                    : isDemon
-                      ? "border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.4)]"
-                      : isMinion
-                        ? "border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
-                        : seat.role.type === "outsider"
-                          ? "border-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.3)]"
-                          : "border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]";
-
-                  const roleNameColor = isDemon
-                    ? "text-red-400"
-                    : isMinion
-                      ? "text-orange-400"
-                      : seat.role.type === "outsider"
-                        ? "text-cyan-300"
-                        : "text-blue-300";
-
-                  const tokens = reminderTokens[seat.id] || [];
-
-                  return (
-                    <div
-                      key={seat.id}
-                      onClick={() =>
-                        setSelectedSeatId((prev) => (prev === seat.id ? null : seat.id))
-                      }
-                      style={{
-                        left: `${coord.x}%`,
-                        top: `${coord.y}%`,
-                        transform: "translate(-50%, -50%)",
-                      }}
-                      className={`absolute ${seatSizeClass} rounded-full border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 select-none z-20 ${seatBgClass} ${seatBorderClass} hover:scale-105`}
-                    >
-                      {/* 座位序号徽章 - 始终清晰可见 */}
-                      <div
-                        className={`absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black z-30 shadow-md ${
-                          seat.isDead
-                            ? "bg-slate-800 border-slate-600 text-slate-400"
-                            : "bg-slate-900 border-amber-400 text-amber-300"
-                        }`}
-                      >
-                        {seat.id + 1}
-                      </div>
-
-                      {/* 死亡/幽灵票标记 */}
-                      {seat.isDead && (
-                        <div className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 bg-slate-950/90 text-gray-300 border border-slate-700 px-1 py-0.2 rounded-full text-[9px] z-30">
-                          💀{seat.hasGhostVote && "👻"}
-                        </div>
-                      )}
-
-                      {/* 角色名称 */}
-                      <span
-                        className={`text-[11px] lg:text-xs font-black tracking-tight leading-none text-center ${roleNameColor} ${
-                          seat.isDead ? "line-through opacity-80" : ""
-                        }`}
-                      >
-                        {seat.role.name}
+                {selectedSeat ? (
+                  <div className="flex flex-col items-center gap-0.5 animate-fadeIn">
+                    <span className="text-xs lg:text-sm font-black text-white leading-tight">
+                      #{selectedSeat.id + 1}号 · {selectedSeat.role?.name}
+                    </span>
+                    <span className="text-[10px] text-slate-300">
+                      {selectedSeat.role?.type === "townsfolk"
+                        ? "镇民"
+                        : selectedSeat.role?.type === "outsider"
+                          ? "外来者"
+                          : selectedSeat.role?.type === "minion"
+                            ? "爪牙"
+                            : selectedSeat.role?.type === "demon"
+                              ? "恶魔"
+                              : "旅行者"}
+                      {selectedSeat.isDead ? " (已死亡)" : " (存活)"}
+                    </span>
+                    {selectedSeat.role?.id === "drunk" && selectedSeat.charadeRole && (
+                      <span className="text-[9px] text-purple-300 font-medium">
+                        伪装: {selectedSeat.charadeRole.name}
                       </span>
-
-                      {/* 酒鬼伪装小字 / 阵营变动 */}
-                      {seat.role.id === "drunk" && seat.charadeRole ? (
-                        <span className="text-[8px] text-purple-300 scale-90 font-medium whitespace-nowrap leading-none mt-0.5">
-                          (伪:{seat.charadeRole.name})
-                        </span>
-                      ) : (
-                        <span className="text-[8px] text-slate-400 scale-90 font-normal leading-none mt-0.5">
-                          {seat.role.type === "townsfolk"
-                            ? "镇民"
-                            : seat.role.type === "outsider"
-                              ? "外来者"
-                              : seat.role.type === "minion"
-                                ? "爪牙"
-                                : "恶魔"}
-                        </span>
-                      )}
-
-                      {/* 状态指示小图标 */}
-                      <div className="flex items-center gap-0.5 mt-0.5">
-                        {seat.isPoisoned && <span title="中毒" className="text-[8px]">🧪</span>}
-                        {seat.isDrunk && seat.role.id !== "drunk" && <span title="醉酒" className="text-[8px]">🍺</span>}
-                        {seat.isProtected && <span title="受保护" className="text-[8px]">🛡️</span>}
-                        {seat.isRedHerring && <span title="红罗刹" className="text-[8px]">🎯</span>}
-                        {tokens.length > 0 && <span title="有提醒标记" className="text-[8px]">🏷️</span>}
-                      </div>
-                    </div>
-                  );
-                })}
+                    )}
+                    <span className="text-[9px] text-amber-300/90 mt-0.5">
+                      👉 右侧已联动展示情报
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-xs text-slate-300 font-medium">
+                      点击椭圆周边座位
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      聚焦玩家专属夜间情报
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* 围绕椭圆等弧长均匀分布的各个座位节点 */}
+              {seats.map((seat, index) => {
+                if (!seat.role) return null;
+
+                const coord = seatCoords[index] || { x: "50", y: "50" };
+                const isSelected = selectedSeatId === seat.id;
+
+                const isDemon = seat.role.type === "demon" || seat.isDemonSuccessor;
+                const isMinion = seat.role.type === "minion";
+                const isEvil =
+                  seat.isEvilConverted ||
+                  (!seat.isGoodConverted && (isDemon || isMinion));
+
+                // 阵营着色
+                const seatBgClass = seat.isDead
+                  ? "bg-slate-900/90 opacity-80"
+                  : isDemon
+                    ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-950"
+                    : isMinion
+                      ? "bg-gradient-to-br from-amber-950 via-slate-900 to-orange-950"
+                      : isEvil
+                        ? "bg-gradient-to-br from-purple-950 via-slate-900 to-red-950"
+                        : "bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950";
+
+                const seatBorderClass = isSelected
+                  ? "ring-4 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] scale-110 z-30"
+                  : isDemon
+                    ? "border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.4)]"
+                    : isMinion
+                      ? "border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                      : seat.role.type === "outsider"
+                        ? "border-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.3)]"
+                        : "border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]";
+
+                const roleNameColor = isDemon
+                  ? "text-red-400"
+                  : isMinion
+                    ? "text-orange-400"
+                    : seat.role.type === "outsider"
+                      ? "text-cyan-300"
+                      : "text-blue-300";
+
+                const tokens = reminderTokens[seat.id] || [];
+
+                return (
+                  <div
+                    key={seat.id}
+                    onClick={() =>
+                      setSelectedSeatId((prev) => (prev === seat.id ? null : seat.id))
+                    }
+                    style={{
+                      left: `${coord.x}%`,
+                      top: `${coord.y}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                    className={`absolute ${seatSizeClass} rounded-full border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 select-none z-20 ${seatBgClass} ${seatBorderClass} hover:scale-105`}
+                  >
+                    {/* 座位序号徽章 - 始终清晰可见 */}
+                    <div
+                      className={`absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black z-30 shadow-md ${
+                        seat.isDead
+                          ? "bg-slate-800 border-slate-600 text-slate-400"
+                          : "bg-slate-900 border-amber-400 text-amber-300"
+                      }`}
+                    >
+                      {seat.id + 1}
+                    </div>
+
+                    {/* 死亡/幽灵票标记 */}
+                    {seat.isDead && (
+                      <div className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 bg-slate-950/90 text-gray-300 border border-slate-700 px-1 py-0.2 rounded-full text-[9px] z-30">
+                        💀{seat.hasGhostVote && "👻"}
+                      </div>
+                    )}
+
+                    {/* 角色名称 */}
+                    <span
+                      className={`text-[11px] lg:text-xs font-black tracking-tight leading-none text-center ${roleNameColor} ${
+                        seat.isDead ? "line-through opacity-80" : ""
+                      }`}
+                    >
+                      {seat.role.name}
+                    </span>
+
+                    {/* 酒鬼伪装小字 / 阵营变动 */}
+                    {seat.role.id === "drunk" && seat.charadeRole ? (
+                      <span className="text-[8px] text-purple-300 scale-90 font-medium whitespace-nowrap leading-none mt-0.5">
+                        (伪:{seat.charadeRole.name})
+                      </span>
+                    ) : (
+                      <span className="text-[8px] text-slate-400 scale-90 font-normal leading-none mt-0.5">
+                        {seat.role.type === "townsfolk"
+                          ? "镇民"
+                          : seat.role.type === "outsider"
+                            ? "外来者"
+                            : seat.role.type === "minion"
+                              ? "爪牙"
+                              : "恶魔"}
+                      </span>
+                    )}
+
+                    {/* 状态指示小图标 */}
+                    <div className="flex items-center gap-0.5 mt-0.5">
+                      {seat.isPoisoned && <span title="中毒" className="text-[8px]">🧪</span>}
+                      {seat.isDrunk && seat.role.id !== "drunk" && <span title="醉酒" className="text-[8px]">🍺</span>}
+                      {seat.isProtected && <span title="受保护" className="text-[8px]">🛡️</span>}
+                      {seat.isRedHerring && <span title="红罗刹" className="text-[8px]">🎯</span>}
+                      {tokens.length > 0 && <span title="有提醒标记" className="text-[8px]">🏷️</span>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
