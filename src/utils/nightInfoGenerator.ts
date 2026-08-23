@@ -181,7 +181,7 @@ export function generateNightInfo(
   // 从 target 配置生成 targetLimit/validTargetIds
   let targetLimit = { min: 0, max: 0 };
   let canSelectSelf = false;
-  const canSelectDead = false;
+  let canSelectDead = false;
   let validTargetIds: number[] = [];
 
   if (nightConfig.target) {
@@ -189,6 +189,17 @@ export function generateNightInfo(
     if (nightConfig.target.canSelect) {
       canSelectSelf = nightConfig.target.canSelect(
         targetSeat,
+        targetSeat,
+        seats,
+        []
+      );
+      const dummyDeadSeat = seats.find((s) => s.isDead) || ({
+        id: -999,
+        isDead: true,
+        role: { id: "villager", type: "townsfolk" },
+      } as any);
+      canSelectDead = nightConfig.target.canSelect(
+        dummyDeadSeat,
         targetSeat,
         seats,
         []

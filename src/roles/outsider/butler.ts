@@ -28,6 +28,33 @@ export const butler: RoleDefinition = {
     "管家的投票可以在他主人之前或之后被说书人计票。座次顺序并不重要。",
     "相克规则：食人族：如果食人族获得了管家的能力，他会得知这一信息。街头风琴手：如果街头风琴手使得玩家需要闭眼投票，管家可以自由举手投票，但只在他的主人投票时他的票才会被统计。",
   ],
+  firstNight: {
+    order: 15,
+    target: {
+      count: { min: 1, max: 1 },
+      canSelect: (
+        target: Seat,
+        self: Seat,
+        _allSeats: Seat[],
+        _selectedTargets: number[]
+      ) => {
+        // 不能选自己
+        if (target.id === self.id) {
+          return false;
+        }
+        // 可以选择已死亡的玩家（如果他有投票标记）
+        return true;
+      },
+    },
+
+    dialog: (playerSeatId: number, _isFirstNight: boolean) => {
+      return {
+        wake: `唤醒${playerSeatId + 1}号玩家（管家）。`,
+        instruction: "选择你的主人（除你以外的任意一名玩家）",
+        close: "",
+      };
+    },
+  },
   night: {
     order: 15,
     target: {

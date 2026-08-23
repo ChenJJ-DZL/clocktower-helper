@@ -61,6 +61,48 @@ export function useInteractionHandler(deps: {
 
   // ... (toggleTarget and handleSeatClick unchanged) ...
 
+  const isTargetDisabled = useCallback(
+    (targetSeat: Seat) => {
+      const activeSeat =
+        depsNightInfo?.seat || nightActionQueue[currentWakeIndex];
+      if (!activeSeat) return false;
+
+      const roleId =
+        activeSeat.role?.id === "drunk"
+          ? activeSeat.charadeRole?.id
+          : activeSeat.role?.id;
+      if (!roleId) return false;
+
+      const isFirstNight = gamePhase === "firstNight";
+
+      // We use the passed canSelectTarget logic from useRoleAction via deps
+      if (canSelectTarget) {
+        return !canSelectTarget(
+          roleId,
+          activeSeat.id,
+          targetSeat.id,
+          seats,
+          selectedActionTargets,
+          isFirstNight,
+          gamePhase,
+          deadThisNight
+        );
+      }
+
+      return false;
+    },
+    [
+      depsNightInfo,
+      nightActionQueue,
+      currentWakeIndex,
+      gamePhase,
+      seats,
+      selectedActionTargets,
+      deadThisNight,
+      canSelectTarget,
+    ]
+  );
+
   const toggleTarget = useCallback(
     (targetId: number) => {
       // 优先使用传入的 activeNightStep (nightInfo)，如果不存在则回退到队列系统
@@ -106,6 +148,11 @@ export function useInteractionHandler(deps: {
       if (newTargets.includes(targetId)) {
         newTargets = newTargets.filter((t) => t !== targetId);
       } else {
+        const targetSeat = seats.find((s) => s.id === targetId);
+        if (targetSeat && isTargetDisabled(targetSeat)) {
+          console.warn(`[toggleTarget] 目标 ${targetId + 1}号 不可被选择（规则限制）`);
+          return;
+        }
         // B. 如果还没选中
         if (maxTargets > 1) {
           if (newTargets.length < maxTargets) {
@@ -132,6 +179,8 @@ export function useInteractionHandler(deps: {
       dispatch,
       depsNightInfo,
       getRoleTargetCount,
+      seats,
+      isTargetDisabled,
     ]
   );
 
@@ -225,6 +274,13 @@ export function useInteractionHandler(deps: {
       if (newTargets.includes(id)) {
         newTargets = newTargets.filter((t) => t !== id);
       } else {
+        // 校验目标是否被禁用
+        const targetSeat = seats.find((s) => s.id === id);
+        if (targetSeat && isTargetDisabled(targetSeat)) {
+          console.warn(`[handleSeatClick] 目标 ${id + 1}号 不可被选择（规则限制）`);
+          return;
+        }
+
         // B. 如果点击了新的人
         // 策略：如果没满，直接加；如果满了，挤掉最早选的 (Queue模式)
         if (newTargets.length < maxTargets) {
@@ -255,46 +311,7 @@ export function useInteractionHandler(deps: {
       currentWakeIndex,
       selectedActionTargets,
       toggleTarget,
-    ]
-  );
-
-  const isTargetDisabled = useCallback(
-    (targetSeat: Seat) => {
-      const activeSeat = nightActionQueue[currentWakeIndex];
-      if (!activeSeat) return false;
-
-      const roleId =
-        activeSeat.role?.id === "drunk"
-          ? activeSeat.charadeRole?.id
-          : activeSeat.role?.id;
-      if (!roleId) return false;
-
-      const isFirstNight = gamePhase === "firstNight";
-
-      // We use the passed canSelectTarget logic from useRoleAction via deps
-      if (canSelectTarget) {
-        return !canSelectTarget(
-          roleId,
-          activeSeat.id,
-          targetSeat.id,
-          seats,
-          selectedActionTargets,
-          isFirstNight,
-          gamePhase,
-          deadThisNight
-        );
-      }
-
-      return false;
-    },
-    [
-      nightActionQueue,
-      currentWakeIndex,
-      gamePhase,
-      seats,
-      selectedActionTargets,
-      deadThisNight,
-      canSelectTarget,
+      isTargetDisabled,
     ]
   );
 
