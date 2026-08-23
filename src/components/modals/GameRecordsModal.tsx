@@ -314,14 +314,18 @@ export function GameRecordsModal({
                               {phaseName}
                             </div>
                             <div className="space-y-1">
-                              {logs.map((l, idx) => (
-                                <div
-                                  key={`${l.day}-${l.phase}-${idx}-${l.message.substring(0, 20)}`}
-                                  className={`text-gray-300 pl-2 ${isPortrait ? "text-[10px]" : "text-xs"}`}
-                                >
-                                  {l.message}
-                                </div>
-                              ))}
+                              {logs.map((l, idx) => {
+                                const msg = l?.message || "";
+                                if (!msg) return null;
+                                return (
+                                  <div
+                                    key={`${l.day}-${l.phase}-${idx}-${msg.substring(0, 20)}`}
+                                    className={`text-gray-300 pl-2 ${isPortrait ? "text-[10px]" : "text-xs"}`}
+                                  >
+                                    {msg}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );

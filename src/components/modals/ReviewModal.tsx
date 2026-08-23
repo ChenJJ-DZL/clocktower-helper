@@ -149,9 +149,10 @@ export function ReviewModal({
               };
 
               // 格式化日志消息：将英文角色ID转为"【座位号】中文名"格式
-              const formatMsg = (msg: string): string => {
-                return msg.replace(
-                  /(\d+)\s*号[位玩家者]?\s*[(（]?([a-z_]+)[)）]?/gi,
+              const formatMsg = (msg?: string | null): string => {
+                if (!msg) return "";
+                return String(msg).replace(
+                  /(\d+)\s*号(?:玩家|[位者])?\s*[(（]?([a-z_]+)[)）]?/gi,
                   (match, num, roleId) => {
                     const cn = roleNameMap.get(roleId) || roleId;
                     return `【${num}】${cn}`;
@@ -160,11 +161,13 @@ export function ReviewModal({
               };
 
               // 过滤掉内部调试日志，只保留玩家可读的操作记录
-              const filteredLogs = gameLogs.filter(
+              const filteredLogs = (gameLogs || []).filter(
                 (log) =>
-                  !log.message?.startsWith("[系统]") &&
-                  !log.message?.startsWith("[能力执行]") &&
-                  !log.message?.startsWith("[handleDrunkCharadeSelect]")
+                  log &&
+                  typeof log.message === "string" &&
+                  !log.message.startsWith("[系统]") &&
+                  !log.message.startsWith("[能力执行]") &&
+                  !log.message.startsWith("[handleDrunkCharadeSelect]")
               );
 
               // 按天数和阶段分组
@@ -224,14 +227,18 @@ export function ReviewModal({
                       {phaseName}
                     </div>
                     <div className="space-y-2">
-                      {sortedInnerLogs.map((l, idx) => (
-                        <div
-                          key={`${l.day}-${l.phase}-${l.seq ?? l.ts ?? idx}-${l.message}`}
-                          className={`py-2 border-b border-gray-700 text-gray-300 ${isPortrait ? "text-xs" : "text-sm"} pl-2`}
-                        >
-                          {formatMsg(l.message)}
-                        </div>
-                      ))}
+                      {sortedInnerLogs.map((l, idx) => {
+                        const msg = l?.message || "";
+                        if (!msg) return null;
+                        return (
+                          <div
+                            key={`${l.day}-${l.phase}-${l.seq ?? l.ts ?? idx}-${idx}`}
+                            className={`py-2 border-b border-gray-700 text-gray-300 ${isPortrait ? "text-xs" : "text-sm"} pl-2`}
+                          >
+                            {formatMsg(msg)}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
