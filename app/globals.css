@@ -307,3 +307,177 @@ body > * {
 .animate-vfx-particle {
   animation: particle-burst 0.6s ease-out forwards;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   🏛️ 官方原版经典皮肤 (theme-classic: 1:1 Official Grimoire Skin)
+   纯 CSS 覆盖，零 DOM 布局变动
+   ═══════════════════════════════════════════════════════════════════ */
+
+.theme-classic {
+  --classic-gold: #e8c98a;
+  --classic-gold-light: #f5dfab;
+  --classic-gold-dark: #b88628;
+  --classic-parchment: #f6ead0;
+}
+
+/* 1. 背景底盘与边框 */
+.theme-classic body,
+.theme-classic #__next {
+  background: #0d0818 url('/assets/tb/grimoire_bg.webp') center center / cover no-repeat fixed !important;
+  color: #f6ead0 !important;
+}
+
+.theme-classic body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(18, 10, 32, 0.35) 0%,
+    rgba(10, 6, 18, 0.7) 60%,
+    rgba(4, 2, 8, 0.95) 100%
+  ) !important;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 2. 标题与文字质感 */
+.theme-classic h1,
+.theme-classic h2,
+.theme-classic h3,
+.theme-classic h4,
+.theme-classic .font-black {
+  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  color: #f5dfab !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 12px rgba(232, 201, 138, 0.3) !important;
+}
+
+.theme-classic p,
+.theme-classic .text-slate-400,
+.theme-classic .text-slate-300,
+.theme-classic .text-slate-500 {
+  color: #d6c5a0 !important;
+}
+
+.theme-classic .text-white,
+.theme-classic .text-slate-50,
+.theme-classic .text-slate-100 {
+  color: #fff9ea !important;
+}
+
+/* 3. 卡片与控制台面板 */
+.theme-classic .glass-panel,
+.theme-classic aside,
+.theme-classic [class*="bg-slate-900"],
+.theme-classic [class*="bg-slate-950"],
+.theme-classic [class*="bg-slate-800"] {
+  background-color: rgba(14, 9, 24, 0.88) !important;
+  border-color: rgba(201, 151, 63, 0.35) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 236, 196, 0.12) !important;
+}
+
+.theme-classic .topbar-frost,
+.theme-classic [class*="border-b"][class*="bg-slate-900"] {
+  background-color: rgba(12, 7, 20, 0.94) !important;
+  border-bottom: 1px solid rgba(201, 151, 63, 0.35) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 剧本选择卡片 */
+.theme-classic [data-testid^="script-card-"] {
+  background: rgba(16, 10, 26, 0.85) !important;
+  border: 1px solid rgba(217, 181, 106, 0.35) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7) !important;
+}
+
+.theme-classic [data-testid^="script-card-"]:hover {
+  border-color: rgba(245, 223, 171, 0.75) !important;
+  box-shadow: 0 12px 32px rgba(217, 181, 106, 0.3) !important;
+  background: rgba(26, 16, 42, 0.92) !important;
+}
+
+/* 4. 圆桌中央指南针 HUD */
+.theme-classic .pointer-events-auto.rounded-3xl {
+  background: radial-gradient(circle, rgba(24, 14, 38, 0.94) 0%, rgba(12, 7, 20, 0.98) 100%) !important;
+  border: 2px solid rgba(217, 181, 106, 0.5) !important;
+  box-shadow: 0 0 35px rgba(217, 181, 106, 0.25), inset 0 0 20px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* 5. 圆桌代币 */
+.theme-classic .seat-node > div:first-child {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.85), inset 0 2px 4px rgba(255, 255, 255, 0.25) !important;
+  border-width: 3.5px !important;
+}
+
+/* 村民代币：深邃宝石蓝 + 烫金外圈 */
+.theme-classic .seat-node .border-blue-500,
+.theme-classic .seat-node .bg-blue-900\/50,
+.theme-classic .seat-node .text-blue-400 {
+  background: linear-gradient(145deg, #1e3a8a 0%, #0f172a 100%) !important;
+  border-color: #d9b56a !important;
+}
+
+/* 外来者代币：翡翠深青绿 + 青铜外圈 */
+.theme-classic .seat-node .border-purple-500,
+.theme-classic .seat-node .bg-purple-900\/50,
+.theme-classic .seat-node .text-purple-400 {
+  background: linear-gradient(145deg, #14532d 0%, #052e16 100%) !important;
+  border-color: #86efac !important;
+}
+
+/* 爪牙代币：焦赭暗橙 + 黄铜外圈 */
+.theme-classic .seat-node .border-orange-500,
+.theme-classic .seat-node .bg-orange-900\/50,
+.theme-classic .seat-node .text-orange-500 {
+  background: linear-gradient(145deg, #9a3412 0%, #431407 100%) !important;
+  border-color: #fdba74 !important;
+}
+
+/* 恶魔代币：深绯血红 + 猩红金外圈 */
+.theme-classic .seat-node .border-red-600,
+.theme-classic .seat-node .bg-red-900\/50,
+.theme-classic .seat-node .text-red-600 {
+  background: linear-gradient(145deg, #991b1b 0%, #450a0a 100%) !important;
+  border-color: #fca5a5 !important;
+}
+
+/* 代币角色名称：加粗官方衬线字体 */
+.theme-classic .seat-node span {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-weight: 900 !important;
+  color: #fffbeb !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* 座位序号：立体烫金圆章 */
+.theme-classic .seat-node .rounded-full.border-2 {
+  background: linear-gradient(180deg, #f5dfab 0%, #d9b56a 50%, #92691f 100%) !important;
+  border-color: #3e2609 !important;
+  color: #241206 !important;
+  font-family: "Noto Serif SC", serif !important;
+  font-weight: 900 !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 6. 主操作按钮：高光立体琥珀金拟物胶囊 */
+.theme-classic .btn-arcane-primary,
+.theme-classic button.bg-emerald-500,
+.theme-classic button.bg-blue-600,
+.theme-classic button.bg-indigo-600 {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 50%, #b45309 100%) !important;
+  border: 2px solid #fde68a !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+  border-radius: 1rem !important;
+}
+
+.theme-classic .btn-arcane-primary:hover,
+.theme-classic button.bg-emerald-500:hover,
+.theme-classic button.bg-blue-600:hover,
+.theme-classic button.bg-indigo-600:hover {
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.6), inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
+}
+

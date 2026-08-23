@@ -13,6 +13,7 @@ import { loadGameRecords } from "../../../utils/persistence";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 interface ScriptSelectionProps {
   onScriptSelect: (script: Script) => void;
@@ -29,6 +30,7 @@ export default function ScriptSelection({
   setGamePhase,
   onContinue,
 }: ScriptSelectionProps) {
+  const { theme, setTheme } = useTheme();
   const { dispatch } = useGameContext();
   const { gameRecords } = useGameState();
   const [customScripts, setCustomScripts] = useState<Script[]>([]);
@@ -174,7 +176,35 @@ export default function ScriptSelection({
   const allScripts = [...scripts, ...customScripts];
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center px-4 py-6 overflow-auto min-h-0">
+    <div className="w-full h-full flex flex-col items-center justify-center px-4 py-6 overflow-auto min-h-0 relative">
+      {/* 顶部右侧主题切换胶囊 */}
+      <div className="absolute top-4 right-4 z-50">
+        <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
+          <button
+            onClick={() => setTheme("classic")}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+              theme === "classic"
+                ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+            title="🏛️ 官方原版经典皮肤"
+          >
+            🏛️ 经典
+          </button>
+          <button
+            onClick={() => setTheme("modern")}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+              theme === "modern"
+                ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+            title="✨ 现代默认版"
+          >
+            ✨ 现代
+          </button>
+        </div>
+      </div>
+
       <div className="w-full max-w-5xl space-y-10 flex-shrink-0 my-auto">
         <div className="text-center space-y-3">
           <h2 className="text-4xl md:text-5xl font-black tracking-wide text-slate-50 drop-shadow">

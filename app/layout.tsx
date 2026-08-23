@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { GameProvider } from "@/src/contexts/GameContext";
 import { AudioProvider } from "@/src/hooks/useAudio";
+import { ThemeProvider } from "@/src/contexts/ThemeContext";
 import { NativeDialogShim } from "@/src/components/NativeDialogShim";
 
 export const metadata: Metadata = {
@@ -27,12 +28,14 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased">
-        <AudioProvider>
-          <GameProvider>
-            <NativeDialogShim />
-            {children}
-          </GameProvider>
-        </AudioProvider>
+        <ThemeProvider>
+          <AudioProvider>
+            <GameProvider>
+              <NativeDialogShim />
+              {children}
+            </GameProvider>
+          </AudioProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

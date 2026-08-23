@@ -14,6 +14,7 @@ import {
   saveGameRecord,
 } from "../../utils/persistence";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
+import { useTheme } from "../../contexts/ThemeContext";
 
 /**
  * 全局导航栏 - 悬浮在页面右上角
@@ -22,6 +23,7 @@ import { GameRecordsModal } from "../modals/GameRecordsModal";
  * "📋 历史"按钮只显示当前剧本的对局记录
  */
 export function GlobalNavBar() {
+  const { theme, setTheme } = useTheme();
   const { state, dispatch } = useGameContext();
   const { gamePhase, selectedScript, seats, gameLogs, startTime, gameRecords } =
     useGameState();
@@ -284,6 +286,34 @@ export function GlobalNavBar() {
 
       {/* 全局导航按钮 - 内联工具栏 */}
       <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
+        {/* 左侧：主题切换胶囊 */}
+        <div className="flex items-center">
+          <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
+            <button
+              onClick={() => setTheme("classic")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+                theme === "classic"
+                  ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              title="🏛️ 官方原版经典皮肤"
+            >
+              🏛️ 经典
+            </button>
+            <button
+              onClick={() => setTheme("modern")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+                theme === "modern"
+                  ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              title="✨ 现代默认版"
+            >
+              ✨ 现代
+            </button>
+          </div>
+        </div>
+
         {/* 左侧：主页 + 撤销/重做 */}
         <div className="flex items-center gap-2">
           <button
