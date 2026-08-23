@@ -32,7 +32,7 @@ export function SpyGrimoireModal({
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIMER_SECONDS);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
 
-  // ─── 当前选中聚焦的座位（用于左侧点击联动右侧情报） ───────────────────────
+  // ─── 当前选中聚焦的座位（用于圆桌点击联动右侧情报） ───────────────────────
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
 
   // ─── 右侧日志的筛选 Tab（"all" | "night-0" (首夜) | "night-1" | "night-2" ... | "day"） ──
@@ -220,6 +220,19 @@ export function SpyGrimoireModal({
     return Array.from(days).sort((a, b) => a - b);
   }, [parsedLogs]);
 
+  // 计算圆桌每个座位的圆周百分比坐标
+  const getRoundSeatCoord = useCallback(
+    (index: number, total: number) => {
+      const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+      // 半径按人数自适应，保证紧凑且不溢出
+      const radius = total > 15 ? 40 : total > 12 ? 40 : 39;
+      const x = 50 + radius * Math.cos(angle);
+      const y = 50 + radius * Math.sin(angle);
+      return { x: x.toFixed(2), y: y.toFixed(2) };
+    },
+    []
+  );
+
   if (!isOpen) return null;
 
   // 倒计时百分比
@@ -231,16 +244,18 @@ export function SpyGrimoireModal({
         ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]"
         : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
 
+  const selectedSeat = selectedSeatId !== null ? seats.find((s) => s.id === selectedSeatId) : null;
+
   return (
     <ModalWrapper
-      title="📖 间谍专属魔典 (全知全览)"
+      title="📖 间谍圆桌魔典 (全知全景)"
       onClose={onClose}
-      className="max-w-7xl w-[95vw] h-[88vh] flex flex-col p-0 overflow-hidden"
+      className="max-w-7xl w-[96vw] h-[88vh] flex flex-col p-0 overflow-hidden"
       footer={
         <div className="w-full flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-amber-200/90 font-medium">
             <span className="text-base">💡</span>
-            <span>间谍查看魔典不受中毒/醉酒虚假信息干扰（全知真实盘面与历史），点击左侧卡片可高亮联动该玩家情报</span>
+            <span>圆桌完全按游戏座位顺时针排列，点击圆桌上任意座位可即时联动聚焦右侧对应情报与行动</span>
           </div>
           <button
             onClick={onClose}
@@ -251,16 +266,16 @@ export function SpyGrimoireModal({
         </div>
       }
     >
-      <div className="flex flex-col h-full gap-3 overflow-hidden">
+      <div className="flex flex-col h-full gap-2.5 overflow-hidden">
         {/* ─── 顶部条：限时倒计时 + 统计指标 ─────────────────────────────── */}
-        <div className="bg-slate-950/80 p-3 rounded-xl border border-white/10 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="bg-slate-950/80 p-2.5 rounded-xl border border-white/10 flex flex-wrap items-center justify-between gap-3 shrink-0">
           {/* 左侧：倒计时控制 */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className={`text-sm font-black tracking-wide ${timeLeft <= 5 ? "text-red-400 animate-pulse" : timeLeft <= 10 ? "text-amber-300" : "text-emerald-300"}`}>
-                ⏳ 查阅倒计时: <span className="font-mono text-base font-bold">{timeLeft}s</span>
+              <span className={`text-xs font-black tracking-wide ${timeLeft <= 5 ? "text-red-400 animate-pulse" : timeLeft <= 10 ? "text-amber-300" : "text-emerald-300"}`}>
+                ⏳ 查阅倒计时: <span className="font-mono text-sm font-bold">{timeLeft}s</span>
               </span>
-              <div className="w-32 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-white/10">
+              <div className="w-28 h-2 bg-slate-800 rounded-full overflow-hidden border border-white/10">
                 <div
                   className={`h-full transition-all duration-300 ${timerColor}`}
                   style={{ width: `${timerPercent}%` }}
@@ -268,22 +283,23 @@ export function SpyGrimoireModal({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1 text-xs">
               <button
                 onClick={() => setIsTimerRunning((prev) => !prev)}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-white/10 transition"
+                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-white/10 transition text-[11px]"
               >
                 {isTimerRunning ? "⏸ 暂停" : "▶ 继续"}
               </button>
               <button
                 onClick={handleAddExtraTime}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-white/10 transition font-bold"
+                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-white/10 transition text-[11px] font-bold"
               >
                 +15s
               </button>
               <button
                 onClick={handleResetTimer}
-                className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded border border-white/10 transition"
+                className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded border border-white/10 transition text-[11px]"
+                title="重置30秒"
               >
                 ↺
               </button>
@@ -291,50 +307,101 @@ export function SpyGrimoireModal({
           </div>
 
           {/* 右侧：关键指标徽章 */}
-          <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+            <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">
               👥 总人数 <strong className="text-white ml-1">{metrics.total}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-blue-950/80 text-blue-300 border border-blue-800">
+            <span className="px-2 py-0.5 rounded-md bg-blue-950/80 text-blue-300 border border-blue-800 text-[11px]">
               🔵 善良 <strong className="text-blue-100 ml-1">{metrics.goodCount}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-red-950/80 text-red-300 border border-red-800">
+            <span className="px-2 py-0.5 rounded-md bg-red-950/80 text-red-300 border border-red-800 text-[11px]">
               🔴 邪恶 <strong className="text-red-100 ml-1">{metrics.evilCount}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-gray-800/90 text-gray-300 border border-gray-700">
+            <span className="px-2 py-0.5 rounded-md bg-gray-800/90 text-gray-300 border border-gray-700 text-[11px]">
               💀 死亡 <strong className="text-white ml-1">{metrics.deadCount}</strong>
             </span>
             {metrics.abnormalCount > 0 && (
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-700 animate-pulse">
-                🧪 异常状态 <strong className="text-emerald-100 ml-1">{metrics.abnormalCount}</strong>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-700 text-[11px] animate-pulse">
+                🧪 异常 <strong className="text-emerald-100 ml-1">{metrics.abnormalCount}</strong>
               </span>
             )}
           </div>
         </div>
 
-        {/* ─── 主体双栏区域：左魔典盘面 + 右情报历史 ──────────────────────── */}
+        {/* ─── 主体双栏区域：左圆桌盘面 + 右情报历史 ──────────────────────── */}
         <div className="flex-1 flex flex-col md:flex-row gap-3 min-h-0 overflow-hidden">
-          {/* ─── 左栏：真实魔典盘面 (55% 宽) ────────────────────────────── */}
-          <div className="w-full md:w-[54%] flex flex-col bg-slate-950/60 rounded-xl border border-white/10 p-3 min-h-0 overflow-hidden shadow-inner">
-            <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10 shrink-0">
-              <h3 className="text-sm font-bold text-amber-300 flex items-center gap-1.5">
-                <span>🪐 场上所有玩家真实状态</span>
-                <span className="text-[11px] font-normal text-slate-400">（真实身份/阵营/异常/提示标记）</span>
+          {/* ─── 左栏：圆桌魔典盘面 (60% 宽) ────────────────────────────── */}
+          <div className="w-full md:w-[60%] flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-2 min-h-0 overflow-hidden relative shadow-inner">
+            <div className="flex items-center justify-between px-2 py-1 border-b border-white/10 shrink-0 z-20 bg-slate-950/90">
+              <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <span>🪐 圆桌魔典真身分布</span>
+                <span className="text-[10px] font-normal text-slate-400">（按物理圆桌座位顺时针呈现）</span>
               </h3>
               {selectedSeatId !== null && (
                 <button
                   onClick={() => setSelectedSeatId(null)}
-                  className="text-[11px] px-2 py-0.5 rounded bg-amber-900/60 text-amber-200 hover:bg-amber-800 border border-amber-600 transition"
+                  className="text-[10px] px-2 py-0.5 rounded bg-amber-900/60 text-amber-200 hover:bg-amber-800 border border-amber-600 transition"
                 >
                   ✕ 清除聚焦 (#{selectedSeatId + 1}号)
                 </button>
               )}
             </div>
 
-            {/* 座位卡片矩阵 */}
-            <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 lg:grid-cols-3 gap-2 content-start">
+            {/* 圆桌容器 */}
+            <div className="relative flex-1 w-full h-full min-h-[360px] flex items-center justify-center overflow-hidden">
+              {/* 圆桌外圈氛围光与桌台背景 */}
+              <div className="absolute w-[82%] h-[82%] rounded-full border border-amber-500/15 bg-gradient-to-b from-slate-900/60 to-slate-950/80 shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] pointer-events-none" />
+              <div className="absolute w-[68%] h-[68%] rounded-full border border-dashed border-white/10 pointer-events-none opacity-40" />
+
+              {/* 圆桌中心 HUD 信息台 */}
+              <div className="absolute z-10 w-[42%] h-[42%] max-w-[240px] max-h-[240px] rounded-full bg-slate-900/90 border border-amber-400/30 shadow-2xl backdrop-blur-md flex flex-col items-center justify-center p-3 text-center pointer-events-auto">
+                <div className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-0.5">
+                  📖 魔典中心
+                </div>
+                {selectedSeat ? (
+                  <div className="flex flex-col items-center gap-0.5 animate-fadeIn">
+                    <span className="text-sm font-black text-white">
+                      #{selectedSeat.id + 1}号 · {selectedSeat.role?.name}
+                    </span>
+                    <span className="text-[10px] text-slate-300">
+                      {selectedSeat.role?.type === "townsfolk"
+                        ? "镇民"
+                        : selectedSeat.role?.type === "outsider"
+                          ? "外来者"
+                          : selectedSeat.role?.type === "minion"
+                            ? "爪牙"
+                            : selectedSeat.role?.type === "demon"
+                              ? "恶魔"
+                              : "旅行者"}
+                      {selectedSeat.isDead ? " (已死亡)" : " (存活)"}
+                    </span>
+                    {selectedSeat.role?.id === "drunk" && selectedSeat.charadeRole && (
+                      <span className="text-[9px] text-purple-300 font-medium">
+                        伪装: {selectedSeat.charadeRole.name}
+                      </span>
+                    )}
+                    <span className="text-[9px] text-amber-300/80 mt-0.5">
+                      👉 右侧已展示该玩家行为
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-xs text-slate-300 font-medium">
+                      点击外围座位
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      聚焦玩家专属夜间情报
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* 圆桌各个座位节点 */}
               {seats.map((seat) => {
                 if (!seat.role) return null;
+
+                const coord = getRoundSeatCoord(seat.id, seats.length);
+                const isSelected = selectedSeatId === seat.id;
 
                 const isDemon = seat.role.type === "demon" || seat.isDemonSuccessor;
                 const isMinion = seat.role.type === "minion";
@@ -343,28 +410,27 @@ export function SpyGrimoireModal({
                   (!seat.isGoodConverted && (isDemon || isMinion));
 
                 // 阵营着色
-                const cardBorder =
-                  selectedSeatId === seat.id
-                    ? "ring-2 ring-amber-400 border-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.4)]"
-                    : isDemon
-                      ? "border-red-600/70 hover:border-red-400"
-                      : isMinion
-                        ? "border-orange-600/70 hover:border-orange-400"
-                        : seat.role.type === "outsider"
-                          ? "border-cyan-600/70 hover:border-cyan-400"
-                          : "border-blue-600/70 hover:border-blue-400";
-
-                const cardBg = seat.isDead
-                  ? "bg-slate-900/70 opacity-75"
+                const seatBgClass = seat.isDead
+                  ? "bg-slate-900/90 opacity-80"
                   : isDemon
-                    ? "bg-gradient-to-br from-red-950/80 via-slate-900/90 to-red-950/40"
+                    ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-950"
                     : isMinion
-                      ? "bg-gradient-to-br from-amber-950/70 via-slate-900/90 to-orange-950/40"
+                      ? "bg-gradient-to-br from-amber-950 via-slate-900 to-orange-950"
                       : isEvil
-                        ? "bg-gradient-to-br from-purple-950/70 via-slate-900/90 to-red-950/30"
-                        : "bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-blue-950/40";
+                        ? "bg-gradient-to-br from-purple-950 via-slate-900 to-red-950"
+                        : "bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950";
 
-                const roleColorClass = isDemon
+                const seatBorderClass = isSelected
+                  ? "ring-4 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] scale-110 z-30"
+                  : isDemon
+                    ? "border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.4)]"
+                    : isMinion
+                      ? "border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                      : seat.role.type === "outsider"
+                        ? "border-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.3)]"
+                        : "border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]";
+
+                const roleNameColor = isDemon
                   ? "text-red-400"
                   : isMinion
                     ? "text-orange-400"
@@ -372,7 +438,6 @@ export function SpyGrimoireModal({
                       ? "text-cyan-300"
                       : "text-blue-300";
 
-                // 该座位的提醒标记
                 const tokens = reminderTokens[seat.id] || [];
 
                 return (
@@ -381,107 +446,64 @@ export function SpyGrimoireModal({
                     onClick={() =>
                       setSelectedSeatId((prev) => (prev === seat.id ? null : seat.id))
                     }
-                    className={`p-2.5 rounded-xl border flex flex-col justify-between transition-all cursor-pointer select-none ${cardBg} ${cardBorder}`}
+                    style={{
+                      left: `${coord.x}%`,
+                      top: `${coord.y}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                    className={`absolute w-16 h-16 lg:w-[4.6rem] lg:h-[4.6rem] rounded-full border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 select-none z-20 ${seatBgClass} ${seatBorderClass} hover:scale-105`}
                   >
-                    {/* 卡片顶部：座位号与生死标记 */}
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-black text-sm px-1.5 py-0.5 rounded bg-slate-800/90 text-white border border-white/10">
-                          {seat.id + 1}号
-                        </span>
-                        {selectedSeatId === seat.id && (
-                          <span className="text-[10px] bg-amber-400 text-black px-1.5 py-0.2 rounded font-black">
-                            聚焦
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {seat.isDead ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-300 border border-gray-600 flex items-center gap-0.5">
-                            💀 亡
-                            {seat.hasGhostVote && <span title="保留幽灵票">👻</span>}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                            🟢 存活
-                          </span>
-                        )}
-                      </div>
+                    {/* 座位序号徽章 */}
+                    <div
+                      className={`absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black z-30 shadow-md ${
+                        seat.isDead
+                          ? "bg-slate-800 border-slate-600 text-slate-400"
+                          : "bg-slate-900 border-amber-400 text-amber-300"
+                      }`}
+                    >
+                      {seat.id + 1}
                     </div>
 
-                    {/* 卡片中部：真实角色名与角色类型 */}
-                    <div className="my-0.5">
-                      <div className="flex items-baseline justify-between">
-                        <span className={`text-base font-black tracking-wide ${roleColorClass}`}>
-                          {seat.role.name}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {seat.role.type === "townsfolk"
-                            ? "镇民"
-                            : seat.role.type === "outsider"
-                              ? "外来者"
-                              : seat.role.type === "minion"
-                                ? "爪牙"
-                                : seat.role.type === "demon"
-                                  ? "恶魔"
-                                  : "旅行者"}
-                        </span>
+                    {/* 死亡/幽灵票标记 */}
+                    {seat.isDead && (
+                      <div className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 bg-slate-950/90 text-gray-300 border border-slate-700 px-1 py-0.2 rounded-full text-[9px] z-30">
+                        💀{seat.hasGhostVote && "👻"}
                       </div>
+                    )}
 
-                      {/* 酒鬼伪装 */}
-                      {seat.role.id === "drunk" && seat.charadeRole && (
-                        <div className="text-[11px] text-purple-300 font-medium">
-                          🎭 伪装: <strong>{seat.charadeRole.name}</strong>
-                        </div>
-                      )}
+                    {/* 角色名称 */}
+                    <span
+                      className={`text-xs lg:text-[13px] font-black tracking-tight leading-none text-center ${roleNameColor} ${
+                        seat.isDead ? "line-through opacity-80" : ""
+                      }`}
+                    >
+                      {seat.role.name}
+                    </span>
 
-                      {/* 阵营转换 */}
-                      {seat.isEvilConverted && (
-                        <div className="text-[10px] text-red-400 font-bold">
-                          ⚡️ 阵营已转换为邪恶
-                        </div>
-                      )}
-                      {seat.isGoodConverted && (
-                        <div className="text-[10px] text-blue-300 font-bold">
-                          ✨ 阵营已转换为善良
-                        </div>
-                      )}
-                    </div>
+                    {/* 酒鬼伪装小字 / 阵营变动 */}
+                    {seat.role.id === "drunk" && seat.charadeRole ? (
+                      <span className="text-[9px] text-purple-300 scale-90 font-medium whitespace-nowrap leading-none mt-0.5">
+                        (伪:{seat.charadeRole.name})
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-slate-400 scale-90 font-normal leading-none mt-0.5">
+                        {seat.role.type === "townsfolk"
+                          ? "镇民"
+                          : seat.role.type === "outsider"
+                            ? "外来者"
+                            : seat.role.type === "minion"
+                              ? "爪牙"
+                              : "恶魔"}
+                      </span>
+                    )}
 
-                    {/* 卡片底部：状态标签与 Reminder Tokens */}
-                    <div className="flex flex-wrap gap-1 mt-1 pt-1 border-t border-white/5">
-                      {seat.isPoisoned && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-900/90 text-emerald-200 border border-emerald-600 font-bold">
-                          🧪 中毒
-                        </span>
-                      )}
-                      {seat.isDrunk && seat.role.id !== "drunk" && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/90 text-amber-200 border border-amber-600 font-bold">
-                          🍺 醉酒
-                        </span>
-                      )}
-                      {seat.isProtected && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-900/90 text-blue-200 border border-blue-600 font-bold">
-                          🛡️ 受保护
-                        </span>
-                      )}
-                      {seat.isRedHerring && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-900/90 text-red-200 border border-red-600 font-bold">
-                          🎯 红罗刹
-                        </span>
-                      )}
-
-                      {/* 提醒标记 (Tokens) */}
-                      {tokens.map((t) => (
-                        <span
-                          key={t.id}
-                          className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-600 font-medium"
-                          title={t.label}
-                        >
-                          {t.icon} {t.label}
-                        </span>
-                      ))}
+                    {/* 状态指示小图标 */}
+                    <div className="flex items-center gap-0.5 mt-0.5">
+                      {seat.isPoisoned && <span title="中毒" className="text-[9px]">🧪</span>}
+                      {seat.isDrunk && seat.role.id !== "drunk" && <span title="醉酒" className="text-[9px]">🍺</span>}
+                      {seat.isProtected && <span title="受保护" className="text-[9px]">🛡️</span>}
+                      {seat.isRedHerring && <span title="红罗刹" className="text-[9px]">🎯</span>}
+                      {tokens.length > 0 && <span title="有提醒标记" className="text-[9px]">🏷️</span>}
                     </div>
                   </div>
                 );
@@ -489,8 +511,8 @@ export function SpyGrimoireModal({
             </div>
           </div>
 
-          {/* ─── 右栏：每个玩家每个晚上做了什么、得知了什么 (46% 宽) ──────── */}
-          <div className="w-full md:w-[46%] flex flex-col bg-slate-950/60 rounded-xl border border-white/10 p-3 min-h-0 overflow-hidden shadow-inner">
+          {/* ─── 右栏：每个玩家每个晚上做了什么、得知了什么 (40% 宽) ──────── */}
+          <div className="w-full md:w-[40%] flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-3 min-h-0 overflow-hidden shadow-inner">
             {/* 顶部 Tab 过滤栏 */}
             <div className="flex flex-wrap items-center gap-1.5 mb-2 pb-2 border-b border-white/10 shrink-0">
               <button
@@ -511,7 +533,7 @@ export function SpyGrimoireModal({
                     : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                 }`}
               >
-                首夜 (第1夜)
+                首夜
               </button>
               {availableNights.map((n) => (
                 <button
@@ -534,7 +556,7 @@ export function SpyGrimoireModal({
                     : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                 }`}
               >
-                ☀️ 白天事件
+                ☀️ 白天
               </button>
             </div>
 
