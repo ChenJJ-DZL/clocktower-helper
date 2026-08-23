@@ -109,8 +109,19 @@ export function ModalWrapper({
           aria-modal="true"
           className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-white/10 pointer-events-auto ${className}`}
           style={{
-            width: "min(90vw, 42rem)",
-            maxWidth: "90vw",
+            width:
+              className?.includes("max-w-") || className?.includes("w-")
+                ? "100%"
+                : "min(90vw, 42rem)",
+            maxWidth: className?.includes("max-w-7xl")
+              ? "min(96vw, 86rem)"
+              : className?.includes("max-w-6xl")
+                ? "min(94vw, 72rem)"
+                : className?.includes("max-w-4xl")
+                  ? "min(92vw, 56rem)"
+                  : className?.includes("max-w-3xl")
+                    ? "min(90vw, 48rem)"
+                    : "min(90vw, 42rem)",
             maxHeight:
               "calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
             margin:

@@ -80,6 +80,7 @@ export function GameModals() {
     selectedScript,
     damselGuessUsedBy,
     reminderTokens,
+    nightCount,
   } = gameState;
 
   const { nightInfo } = actions;
@@ -683,6 +684,9 @@ export function GameModals() {
             actions.continueToNextAction();
           }}
           seats={seats}
+          gameLogs={gameLogs}
+          nightCount={nightCount}
+          reminderTokens={reminderTokens}
           isPortrait={isPortrait}
         />
       )}
