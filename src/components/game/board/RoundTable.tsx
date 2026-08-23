@@ -90,6 +90,7 @@ export function RoundTable({
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
+  const [_seatSize, setSeatSize] = useState(72); // Seat size in pixels
   // 默认夜晚展开：在每个夜晚开始时（首夜或后续夜晚），默认展开夜晚行动顺序
   const [isNightOrderExpanded, setIsNightOrderExpanded] = useState(
     gamePhase === "firstNight" || gamePhase === "night"
