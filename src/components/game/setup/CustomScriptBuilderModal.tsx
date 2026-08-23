@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useState } from "react";
 import {
   FABLED_ROLES,
   type Role,
@@ -8,8 +7,10 @@ import {
   typeLabels,
 } from "../../../../app/data";
 import { showAlert } from "../../../utils/nativeDialogShim";
+import { ModalWrapper } from "../../modals/ModalWrapper";
 
 interface CustomScriptBuilderModalProps {
+  isOpen?: boolean;
   onClose: () => void;
   onSave: (scriptName: string, selectedRoleIds: string[]) => void;
   onStartDirectly?: (scriptName: string, selectedRoleIds: string[]) => void;
@@ -73,7 +74,7 @@ function validateComposition(
   let level: "error" | "warning" | "ok" = "ok";
 
   if (selectedIds.size === 0) {
-    messages.push("💡 请在下方挑选角色（或点击上方快捷预设载入模板）");
+    messages.push("💡 请在下方挑选角色（或点击下方快捷预设载入成熟模板）");
     return { level: "warning", messages };
   }
 
@@ -98,6 +99,7 @@ function validateComposition(
 }
 
 export function CustomScriptBuilderModal({
+  isOpen = true,
   onClose,
   onSave,
   onStartDirectly,
@@ -251,361 +253,340 @@ export function CustomScriptBuilderModal({
     URL.revokeObjectURL(url);
   };
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  if (!isOpen) return null;
 
   const selectedCount = selectedRoleIds.size;
 
-  if (typeof document === "undefined" || !mounted) return null;
+  const footer = (
+    <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div className="text-xs text-slate-400 text-center sm:text-left">
+        {selectedCount > 0 ? (
+          <>
+            已选 {selectedCount} 角色 · 标准参考：
+            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.townsfolk ??
+              "?"}
+            镇 +{" "}
+            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.outsider ??
+              "?"}
+            外 +{" "}
+            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.minion ??
+              "?"}
+            爪 +{" "}
+            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.demon ??
+              "?"}
+            恶
+          </>
+        ) : (
+          "未选择任何角色"
+        )}
+      </div>
+      <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 font-medium hover:bg-slate-700/50 hover:text-white transition text-xs sm:text-sm cursor-pointer"
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveOnly}
+          className="px-4 py-2.5 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition text-xs sm:text-sm cursor-pointer"
+        >
+          💾 仅保存
+        </button>
+        <button
+          type="button"
+          onClick={handleStartNow}
+          className="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-500/30 transition text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>🚀</span>
+          <span>保存并立即开局</span>
+        </button>
+      </div>
+    </div>
+  );
 
-  return createPortal(
-    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-8">
-      <div className="bg-slate-900/95 backdrop-blur-xl rounded-3xl w-full max-w-5xl h-full max-h-[92vh] flex flex-col shadow-2xl border border-white/15 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 md:p-6 border-b border-white/10 bg-slate-800/40">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl md:text-2xl font-black text-slate-100 flex items-center gap-2">
-                <span>🛠️</span>
-                <span>自由自建剧本</span>
-              </h2>
-              <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-400/30 px-2 py-0.5 rounded-full font-semibold">
-                自定义角色库
+  return (
+    <ModalWrapper
+      title="🛠️ 自建剧本（自定义角色库）"
+      onClose={onClose}
+      className="max-w-6xl"
+      footer={footer}
+    >
+      <div className="space-y-5">
+        {/* 顶部说明与导出 */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 rounded-2xl bg-purple-950/20 border border-purple-500/20">
+          <p className="text-xs sm:text-sm text-purple-200">
+            ✨ 从全部角色库中自由挑选角色，跨剧本自由混搭并直接开局
+          </p>
+          <button
+            type="button"
+            onClick={handleExport}
+            className="px-3.5 py-1.5 text-xs rounded-xl border border-emerald-600/40 bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40 transition font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 ml-auto sm:ml-0"
+            title="导出为官方标准 JSON 剧本文件"
+          >
+            <span>📤</span>
+            <span>导出 JSON</span>
+          </button>
+        </div>
+
+        {/* 剧本名称与搜索栏 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="script-name-input"
+              className="text-xs font-bold text-slate-300 uppercase tracking-wider"
+            >
+              剧本名称
+            </label>
+            <input
+              id="script-name-input"
+              type="text"
+              value={scriptName}
+              onChange={(e) => {
+                setScriptName(e.target.value);
+                if (nameError) setNameError("");
+              }}
+              placeholder="例如：我的无敌混搭局（默认自建剧本）"
+              className={`w-full bg-slate-800/90 border text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition ${
+                nameError ? "border-red-500" : "border-white/10"
+              }`}
+              maxLength={30}
+            />
+            {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="role-search-input"
+              className="text-xs font-bold text-slate-300 uppercase tracking-wider"
+            >
+              🔍 快速搜索角色
+            </label>
+            <input
+              id="role-search-input"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="输入角色中文名、拼音或能力关键词..."
+              className="w-full bg-slate-800/90 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+            />
+          </div>
+        </div>
+
+        {/* 快捷模板载入按钮 */}
+        <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl bg-slate-800/40 border border-white/5">
+          <span className="text-xs font-semibold text-slate-400 mr-1">
+            ⚡ 快速载入预设：
+          </span>
+          <button
+            type="button"
+            onClick={() => loadPreset("trouble_brewing")}
+            className="px-3 py-1 text-xs rounded-lg bg-sky-950/60 border border-sky-600/40 text-sky-200 hover:bg-sky-900/60 transition cursor-pointer font-medium"
+          >
+            🍵 暗流涌动模板 (22角色)
+          </button>
+          <button
+            type="button"
+            onClick={() => loadPreset("bad_moon_rising")}
+            className="px-3 py-1 text-xs rounded-lg bg-indigo-950/60 border border-indigo-600/40 text-indigo-200 hover:bg-indigo-900/60 transition cursor-pointer font-medium"
+          >
+            🌙 黯月初升模板 (22角色)
+          </button>
+          <button
+            type="button"
+            onClick={() => loadPreset("sects_and_violets")}
+            className="px-3 py-1 text-xs rounded-lg bg-pink-950/60 border border-pink-600/40 text-pink-200 hover:bg-pink-900/60 transition cursor-pointer font-medium"
+          >
+            🌸 梦殒春宵模板 (22角色)
+          </button>
+          <button
+            type="button"
+            onClick={() => loadPreset("clear")}
+            className="px-3 py-1 text-xs rounded-lg bg-red-950/40 border border-red-600/30 text-red-300 hover:bg-red-900/40 transition cursor-pointer font-medium ml-auto"
+          >
+            🗑️ 清空已选
+          </button>
+        </div>
+
+        {/* 合法性与提示 */}
+        {composition.messages.length > 0 && (
+          <div className="rounded-xl px-4 py-2.5 border bg-amber-950/30 border-amber-600/30 text-amber-200 backdrop-blur-sm text-xs space-y-1">
+            {composition.messages.map((msg, i) => (
+              <div key={i}>{msg}</div>
+            ))}
+          </div>
+        )}
+
+        {/* 已选统计 */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs md:text-sm font-semibold text-slate-300">
+            已选{" "}
+            <span className="text-purple-400 font-bold text-base">
+              {selectedCount}
+            </span>{" "}
+            个角色
+          </span>
+          {["townsfolk", "outsider", "minion", "demon"].map((type) => {
+            const count = builderRoles.filter(
+              (r) => r.type === type && selectedRoleIds.has(r.id)
+            ).length;
+            const badge = TYPE_BADGE[type];
+            return (
+              <span
+                key={type}
+                className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}
+              >
+                {typeLabels[type]} {count}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* 角色选择网格 */}
+        <div className="space-y-5">
+          {["townsfolk", "outsider", "minion", "demon"].map((type) => {
+            const typeList = builderGroupedRoles[type] || [];
+            if (typeList.length === 0) return null;
+            const badge = TYPE_BADGE[type];
+            const selectedOfType = Array.from(selectedRoleIds).filter((id) =>
+              typeList.some((r) => r.id === id)
+            ).length;
+
+            return (
+              <div key={type} className="space-y-2.5">
+                <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
+                  <span
+                    className={`text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-lg border ${badge.bg} ${badge.text} ${badge.border}`}
+                  >
+                    {typeLabels[type]}
+                  </span>
+                  <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
+                    {selectedOfType} / {typeList.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {typeList.map((r) => {
+                    const isSelected = selectedRoleIds.has(r.id);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => toggleRole(r.id)}
+                        className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
+                          ${
+                            isSelected
+                              ? "border-purple-500/80 bg-purple-600/20 ring-2 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.25)] scale-[1.02]"
+                              : "border-white/10 bg-slate-800/50 hover:bg-slate-800/80 hover:border-white/20"
+                          }
+                        `}
+                      >
+                        <span
+                          className={`text-sm font-bold whitespace-nowrap ${
+                            isSelected ? "text-purple-200" : "text-slate-200"
+                          }`}
+                        >
+                          {r.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 mt-1 line-clamp-1 scale-90 origin-top text-center px-1">
+                          {r.script || "通用"}
+                        </span>
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center shadow">
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 寓言角色专区 */}
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2 border-b border-amber-600/30 pb-1.5">
+              <span className="text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-lg border bg-amber-900/40 text-amber-300 border-amber-600/40">
+                ⭐ 寓言角色
+              </span>
+              <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
+                {
+                  Array.from(selectedFabledIds).filter((id) =>
+                    FABLED_ROLES.some((f) => f.id === id)
+                  ).length
+                }{" "}
+                / {FABLED_ROLES.length}
+              </span>
+              <span className="text-[10px] text-amber-400/60 ml-auto">
+                不占座位，作为全局规则生效
               </span>
             </div>
-            <p className="text-xs md:text-sm text-slate-400 mt-1">
-              从全部角色库中自由挑选角色，跨剧本自由混搭并直接开局
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExport}
-              className="px-3.5 py-1.5 text-xs md:text-sm rounded-xl border border-emerald-600/40 bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40 transition font-semibold flex items-center gap-1.5 cursor-pointer"
-              title="导出为官方标准 JSON 剧本文件"
-            >
-              <span>📤</span>
-              <span>导出 JSON</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10 text-lg cursor-pointer"
-              title="关闭"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-5">
-          {/* 剧本名称与搜索栏 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="script-name-input"
-                className="text-xs font-bold text-slate-300 uppercase tracking-wider"
-              >
-                剧本名称
-              </label>
-              <input
-                id="script-name-input"
-                type="text"
-                value={scriptName}
-                onChange={(e) => {
-                  setScriptName(e.target.value);
-                  if (nameError) setNameError("");
-                }}
-                placeholder="例如：我的无敌混搭局（默认自建剧本）"
-                className={`w-full bg-slate-800/90 border text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition ${
-                  nameError ? "border-red-500" : "border-white/10"
-                }`}
-                maxLength={30}
-              />
-              {nameError && <p className="text-xs text-red-400">{nameError}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="role-search-input"
-                className="text-xs font-bold text-slate-300 uppercase tracking-wider"
-              >
-                🔍 快速搜索角色
-              </label>
-              <input
-                id="role-search-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="输入角色中文名、拼音或能力关键词..."
-                className="w-full bg-slate-800/90 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-              />
-            </div>
-          </div>
-
-          {/* 快捷模板载入按钮 */}
-          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl bg-slate-800/40 border border-white/5">
-            <span className="text-xs font-semibold text-slate-400 mr-1">
-              ⚡ 快速载入预设：
-            </span>
-            <button
-              type="button"
-              onClick={() => loadPreset("trouble_brewing")}
-              className="px-3 py-1 text-xs rounded-lg bg-sky-950/60 border border-sky-600/40 text-sky-200 hover:bg-sky-900/60 transition cursor-pointer font-medium"
-            >
-              🍵 暗流涌动模板 (22角色)
-            </button>
-            <button
-              type="button"
-              onClick={() => loadPreset("bad_moon_rising")}
-              className="px-3 py-1 text-xs rounded-lg bg-indigo-950/60 border border-indigo-600/40 text-indigo-200 hover:bg-indigo-900/60 transition cursor-pointer font-medium"
-            >
-              🌙 黯月初升模板 (22角色)
-            </button>
-            <button
-              type="button"
-              onClick={() => loadPreset("sects_and_violets")}
-              className="px-3 py-1 text-xs rounded-lg bg-pink-950/60 border border-pink-600/40 text-pink-200 hover:bg-pink-900/60 transition cursor-pointer font-medium"
-            >
-              🌸 梦殒春宵模板 (22角色)
-            </button>
-            <button
-              type="button"
-              onClick={() => loadPreset("clear")}
-              className="px-3 py-1 text-xs rounded-lg bg-red-950/40 border border-red-600/30 text-red-300 hover:bg-red-900/40 transition cursor-pointer font-medium ml-auto"
-            >
-              🗑️ 清空已选
-            </button>
-          </div>
-
-          {/* 合法性与提示 */}
-          {composition.messages.length > 0 && (
-            <div className="rounded-xl px-4 py-2.5 border bg-amber-950/30 border-amber-600/30 text-amber-200 backdrop-blur-sm text-xs space-y-1">
-              {composition.messages.map((msg, i) => (
-                <div key={i}>{msg}</div>
-              ))}
-            </div>
-          )}
-
-          {/* 已选统计 */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs md:text-sm font-semibold text-slate-300">
-              已选{" "}
-              <span className="text-purple-400 font-bold text-base">
-                {selectedCount}
-              </span>{" "}
-              个角色
-            </span>
-            {["townsfolk", "outsider", "minion", "demon"].map((type) => {
-              const count = builderRoles.filter(
-                (r) => r.type === type && selectedRoleIds.has(r.id)
-              ).length;
-              const badge = TYPE_BADGE[type];
-              return (
-                <span
-                  key={type}
-                  className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}
-                >
-                  {typeLabels[type]} {count}
-                </span>
-              );
-            })}
-          </div>
-
-          {/* 角色选择网格 */}
-          <div className="space-y-5">
-            {["townsfolk", "outsider", "minion", "demon"].map((type) => {
-              const typeList = builderGroupedRoles[type] || [];
-              if (typeList.length === 0) return null;
-              const badge = TYPE_BADGE[type];
-              const selectedOfType = Array.from(selectedRoleIds).filter((id) =>
-                typeList.some((r) => r.id === id)
-              ).length;
-
-              return (
-                <div key={type} className="space-y-2.5">
-                  <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {FABLED_ROLES.map((r) => {
+                const isSelected = selectedFabledIds.has(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => toggleFabled(r.id)}
+                    className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
+                      ${
+                        isSelected
+                          ? "border-amber-400/80 bg-amber-500/20 ring-2 ring-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
+                          : "border-white/10 bg-slate-800/50 hover:bg-slate-800/80 hover:border-white/20"
+                      }
+                    `}
+                  >
                     <span
-                      className={`text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-lg border ${badge.bg} ${badge.text} ${badge.border}`}
+                      className={`text-sm font-bold whitespace-nowrap ${
+                        isSelected ? "text-amber-100" : "text-slate-200"
+                      }`}
                     >
-                      {typeLabels[type]}
+                      {r.name}
                     </span>
-                    <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
-                      {selectedOfType} / {typeList.length}
+                    <span className="text-[10px] text-slate-400 mt-1 line-clamp-1 scale-90 origin-top text-center px-1">
+                      {r.ability?.slice(0, 16)}...
                     </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                    {typeList.map((r) => {
-                      const isSelected = selectedRoleIds.has(r.id);
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => toggleRole(r.id)}
-                          className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
-                            ${
-                              isSelected
-                                ? "border-purple-500/80 bg-purple-600/20 ring-2 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.25)] scale-[1.02]"
-                                : "border-white/10 bg-slate-800/50 hover:bg-slate-800/80 hover:border-white/20"
-                            }
-                          `}
+                    {isSelected && (
+                      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center shadow">
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          <span
-                            className={`text-sm font-bold whitespace-nowrap ${
-                              isSelected ? "text-purple-200" : "text-slate-200"
-                            }`}
-                          >
-                            {r.name}
-                          </span>
-                          <span className="text-[10px] text-slate-400 mt-1 line-clamp-1 scale-90 origin-top text-center px-1">
-                            {r.script || "通用"}
-                          </span>
-                          {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center shadow">
-                              <svg
-                                className="w-3 h-3 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={3}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* 寓言角色专区 */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2 border-b border-amber-600/30 pb-1.5">
-                <span className="text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-lg border bg-amber-900/40 text-amber-300 border-amber-600/40">
-                  ⭐ 寓言角色
-                </span>
-                <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
-                  {
-                    Array.from(selectedFabledIds).filter((id) =>
-                      FABLED_ROLES.some((f) => f.id === id)
-                    ).length
-                  }{" "}
-                  / {FABLED_ROLES.length}
-                </span>
-                <span className="text-[10px] text-amber-400/60 ml-auto">
-                  不占座位，作为全局规则生效
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {FABLED_ROLES.map((r) => {
-                  const isSelected = selectedFabledIds.has(r.id);
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => toggleFabled(r.id)}
-                      className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
-                        ${
-                          isSelected
-                            ? "border-amber-400/80 bg-amber-500/20 ring-2 ring-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
-                            : "border-white/10 bg-slate-800/50 hover:bg-slate-800/80 hover:border-white/20"
-                        }
-                      `}
-                    >
-                      <span
-                        className={`text-sm font-bold whitespace-nowrap ${
-                          isSelected ? "text-amber-100" : "text-slate-200"
-                        }`}
-                      >
-                        {r.name}
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-1 line-clamp-1 scale-90 origin-top text-center px-1">
-                        {r.ability?.slice(0, 16)}...
-                      </span>
-                      {isSelected && (
-                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center shadow">
-                          <svg
-                            className="w-3 h-3 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 md:p-6 border-t border-white/10 bg-slate-800/40 backdrop-blur-sm flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
-          <div className="text-xs text-slate-400 text-center sm:text-left">
-            {selectedCount > 0 ? (
-              <>
-                已选 {selectedCount} 角色 · 标准参考：
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.townsfolk ??
-                  "?"}
-                镇 +{" "}
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.outsider ??
-                  "?"}
-                外 +{" "}
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.minion ??
-                  "?"}
-                爪 +{" "}
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.demon ??
-                  "?"}
-                恶
-              </>
-            ) : (
-              "未选择任何角色"
-            )}
-          </div>
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 font-medium hover:bg-slate-700/50 hover:text-white transition text-xs sm:text-sm cursor-pointer"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveOnly}
-              className="px-4 py-2.5 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition text-xs sm:text-sm cursor-pointer"
-            >
-              💾 仅保存
-            </button>
-            <button
-              type="button"
-              onClick={handleStartNow}
-              className="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-500/30 transition text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>🚀</span>
-              <span>保存并立即开局</span>
-            </button>
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </ModalWrapper>
   );
 }
+
 

@@ -80,7 +80,7 @@ export function GameOverOverlay() {
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[2147483647] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[2147483647] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
       onClick={handleClose}
     >
       <div
@@ -90,7 +90,7 @@ export function GameOverOverlay() {
             : isEvil
               ? "from-slate-900 via-red-950/90 to-slate-950 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.45)]"
               : "from-slate-900 via-slate-900/95 to-slate-950 border-amber-500/40 shadow-[0_0_50px_rgba(245,158,11,0.3)]"
-        } border-2 rounded-3xl p-8 sm:p-10 text-center text-white space-y-6 animate-in zoom-in-95 duration-200`}
+        } border-2 rounded-3xl p-8 sm:p-10 text-center text-white space-y-6`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 关闭按钮 */}
