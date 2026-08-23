@@ -763,4 +763,8 @@ export const gameActions = {
     type: "TOGGLE_FABLED",
     role,
   }),
+  setSelectedRole: (selectedRole: Role | null): GameAction => ({
+    type: "UPDATE_STATE",
+    updates: { selectedRole },
+  }),
 };

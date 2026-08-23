@@ -1036,11 +1036,43 @@ export default function Home() {
                 style={{ left: contextMenu.x, top: contextMenu.y }}
                 onClick={(e) => e.stopPropagation()} // 防止点击菜单本身触发关闭
               >
-                <div className="px-3 py-1 text-xs text-gray-500 border-b border-gray-700 mb-1">
-                  {contextMenu.seatId + 1}号操作
+                <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-700 mb-1 flex items-center justify-between">
+                  <span>{contextMenu.seatId + 1}号座位</span>
+                  {seats[contextMenu.seatId]?.role && (
+                    <span className="text-purple-300 font-bold">
+                      {seats[contextMenu.seatId]?.role?.name}
+                    </span>
+                  )}
                 </div>
+
+                {/* 取消落座选项 */}
+                {seats[contextMenu.seatId]?.role && (
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-slate-700 text-amber-300 font-bold text-sm flex items-center gap-2 border-b border-gray-700/50 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const roleName = seats[contextMenu.seatId]?.role?.name;
+                      dispatch(
+                        gameActions.updateSeat(contextMenu.seatId, {
+                          role: null,
+                        })
+                      );
+                      dispatch(
+                        gameActions.addLog({
+                          day: 0,
+                          phase: "setup",
+                          message: `取消落座：${contextMenu.seatId + 1}号 - ${roleName || "角色"}`,
+                        })
+                      );
+                      setContextMenu(null);
+                    }}
+                  >
+                    <span>🚫</span> 取消落座
+                  </button>
+                )}
+
                 <button
-                  className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (controller.setRedNemesisTarget) {

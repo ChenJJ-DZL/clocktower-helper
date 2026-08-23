@@ -109,6 +109,7 @@ export default function GameSetup({
   selectedScript,
   selectedRole,
   setSelectedRole,
+  handleSeatClick,
   handlePreStartNight,
   filteredGroupedRoles,
   getCompositionStatus,
@@ -348,21 +349,32 @@ export default function GameSetup({
                 </div>
                 <div className="grid gap-3 grid-cols-2">
                   {list.map((r) => {
-                    const isTaken = seats.some((s) => s.role?.id === r.id);
+                    const seatTaken = seats.find((s) => s.role?.id === r.id);
+                    const isTaken = !!seatTaken;
                     return (
                       <button
                         key={`${type}-${r.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!isTaken) setSelectedRole(r);
+                          if (isTaken && seatTaken) {
+                            // 点击已入座角色卡片：取消落座并清空对应座位
+                            handleSeatClick(seatTaken.id);
+                          } else {
+                            // 点击未入座角色卡片：选中或反选
+                            setSelectedRole(selectedRole?.id === r.id ? null : r);
+                          }
                         }}
                         className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${
                           isTaken
-                            ? "border-white/5 bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                            ? "border-amber-500/30 bg-slate-800/80 text-amber-200 hover:border-red-500/50 hover:bg-red-950/30 cursor-pointer"
                             : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
                         } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
                         data-role-id={r.id}
-                        title={r.ability || r.name}
+                        title={
+                          isTaken
+                            ? `已在 ${seatTaken.id + 1}号座位落座，点击取消落座`
+                            : r.ability || r.name
+                        }
                       >
                         <div className="relative h-full flex flex-col items-center justify-center px-3 leading-tight py-2">
                           <span className="text-sm font-bold text-slate-50 whitespace-nowrap">
@@ -372,8 +384,8 @@ export default function GameSetup({
                             {r.id.replace(/_/g, " ")}
                           </span>
                           {isTaken && (
-                            <div className="absolute top-1 right-2 text-xs text-amber-200">
-                              ✓
+                            <div className="absolute top-1 right-2 text-xs text-amber-400 font-mono">
+                              ✓ {seatTaken.id + 1}号
                             </div>
                           )}
                         </div>

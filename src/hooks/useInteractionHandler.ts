@@ -186,33 +186,39 @@ export function useInteractionHandler(deps: {
 
   const handleSeatClick = useCallback(
     (id: number, _options?: { force?: boolean }) => {
-      // 1. Setup 阶段逻辑 (保持原样)
+      // 1. Setup 阶段逻辑：支持再次点击取消落座、空座位直接清空、角色转移
       if (gamePhase === "setup" || gamePhase === "scriptSelection") {
-        if (selectedRole) {
-          // 检查该角色是否已经入座
+        const targetSeat = seats.find((s) => s.id === id);
+
+        // 场景 A：点击的座位已有角色
+        if (targetSeat?.role) {
+          // 再次点击同一角色的座位，或者在未选中角色时点击已有角色的座位 -> 视为取消落座，清空该座位
+          if (!selectedRole || selectedRole.id === targetSeat.role.id) {
+            dispatch(gameActions.updateSeat(id, { role: null }));
+            dispatch(gameActions.setSelectedRole(null));
+            if (gamePhase === "setup") {
+              dispatch(
+                gameActions.addLog({
+                  day: 0,
+                  phase: "setup",
+                  message: `取消落座：${id + 1}号 - ${targetSeat.role.name}`,
+                })
+              );
+            }
+            return;
+          }
+
+          // 如果选中了新角色，且该新角色此前已在其他座位入座 -> 清空旧座位（角色转移）
           const existingSeat = seats.find(
             (s) => s.role?.id === selectedRole.id
           );
-
-          if (existingSeat) {
-            // 如果点击的是同一个座位，则视为取消入座
-            if (existingSeat.id === id) {
-              dispatch(gameActions.updateSeat(id, { role: null }));
-              if (gamePhase === "setup") {
-                dispatch(
-                  gameActions.addLog({
-                    day: 0,
-                    phase: "setup",
-                    message: `移除落座：${id + 1}号 - ${selectedRole.name}`,
-                  })
-                );
-              }
-              return;
-            }
-            alert("该角色已入座");
-            return;
+          if (existingSeat && existingSeat.id !== id) {
+            dispatch(gameActions.updateSeat(existingSeat.id, { role: null }));
           }
+
+          // 将新角色落座到当前座位
           dispatch(gameActions.updateSeat(id, { role: selectedRole }));
+          dispatch(gameActions.setSelectedRole(null));
           if (gamePhase === "setup") {
             dispatch(
               gameActions.addLog({
@@ -222,8 +228,31 @@ export function useInteractionHandler(deps: {
               })
             );
           }
-        } else {
-          dispatch(gameActions.updateSeat(id, { role: null }));
+          return;
+        }
+
+        // 场景 B：点击的是空座位
+        if (selectedRole) {
+          // 检查该角色是否已经在其他座位入座
+          const existingSeat = seats.find(
+            (s) => s.role?.id === selectedRole.id
+          );
+          if (existingSeat) {
+            // 将该角色从旧座位移过来，旧座位清空
+            dispatch(gameActions.updateSeat(existingSeat.id, { role: null }));
+          }
+
+          dispatch(gameActions.updateSeat(id, { role: selectedRole }));
+          dispatch(gameActions.setSelectedRole(null));
+          if (gamePhase === "setup") {
+            dispatch(
+              gameActions.addLog({
+                day: 0,
+                phase: "setup",
+                message: `落座：${id + 1}号 - ${selectedRole.name}`,
+              })
+            );
+          }
         }
         return;
       }
