@@ -226,50 +226,46 @@ export function useDayActions(deps: DayActionsDeps) {
       const target = seats.find((s) => s.id === id);
       const virginOverride = options?.virginGuideOverride;
 
-      // 🔧 贞洁者：自动计算，不再弹出说书人判定向导（VirginGuideModal）。
-      //   1) 贞洁者状态检测：!isActorDisabledByPoisonOrDrunk(target)
-      //      贞洁者醉酒/中毒时能力失效 → 不进入本分支，按普通提名+投票处理；
-      //      实际为酒鬼的角色 role.id 是 "drunk" ≠ "virgin"，同样不会触发。
-      //   2) 首次提名检测：!target.hasBeenNominated（一局仅首次触发）
-      //   3) 提名者身份检测：真实镇民（排除酒鬼伪装/醉酒）→ 立即处决提名者，跳过投票
+      // 🔧 贞洁者：一局游戏仅限首次被提名时触发一次被动
       if (
         target?.role?.id === "virgin" &&
         !isActorDisabledByPoisonOrDrunk(target)
       ) {
-        const isFirstNomination =
-          virginOverride?.isFirstTime ?? !target.hasBeenNominated;
-        const currentSeats = seats;
+        const isVirginUsed = !!(
+          target.hasUsedVirginAbility ||
+          target.hasBeenNominated ||
+          (virginOverride?.isFirstTime === false)
+        );
 
-        if (!isFirstNomination) {
-          const updatedSeats = currentSeats.map((s) =>
-            s.id === id
-              ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true }
-              : s
-          );
-          setSeats(updatedSeats);
+        if (isVirginUsed) {
           addLog(
-            `提示：${id + 1}号贞洁者已在本局被提名过一次，她的能力已经失效，本次提名不会再立即处决提名者`
+            `提示：【${id + 1}号-贞洁者】已被提名过，其被动能力是一次性的且已失效，本次提名按正常投票流程处理`
           );
         } else {
-          const updatedSeats = currentSeats.map((s) =>
-            s.id === id
-              ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true }
-              : s
-          );
-
+          // 首次提名贞洁者：永久消耗能力标记
           const isRealTownsfolk =
             virginOverride?.nominatorIsTownsfolk ??
             (nominatorSeat &&
               nominatorSeat.role?.type === "townsfolk" &&
               nominatorSeat.role?.id !== "drunk" &&
-              !nominatorSeat.isDrunk);
+              !nominatorSeat.isDrunk &&
+              !isActorDisabledByPoisonOrDrunk(nominatorSeat));
+
+          const nominatorName = nominatorSeat?.role?.name || "镇民";
 
           if (isRealTownsfolk) {
-            const finalSeats = updatedSeats.map((s) =>
-              s.id === sourceId ? { ...s, isDead: true } : s
+            setSeats((prevSeats) =>
+              prevSeats.map((s) => {
+                if (s.id === id) {
+                  return { ...s, hasBeenNominated: true, hasUsedVirginAbility: true };
+                }
+                if (s.id === sourceId) {
+                  return { ...s, isDead: true };
+                }
+                return s;
+              })
             );
 
-            setSeats(finalSeats);
             setExecutedPlayerId(sourceId);
             setTodayExecutedId(sourceId);
             setHasExecutedThisDay?.(true);
@@ -278,27 +274,56 @@ export function useDayActions(deps: DayActionsDeps) {
             setNominationMap({});
             setNominationRecords(
               (prev: { nominators: Set<number>; nominees: Set<number> }) => ({
-                nominators: new Set(prev?.nominators ? (prev.nominators instanceof Set ? prev.nominators : prev.nominators) : []).add(sourceId),
-                nominees: new Set(prev?.nominees ? (prev.nominees instanceof Set ? prev.nominees : prev.nominees) : []).add(id),
+                nominators: new Set(
+                  prev?.nominators
+                    ? prev.nominators instanceof Set
+                      ? prev.nominators
+                      : prev.nominators
+                    : []
+                ).add(sourceId),
+                nominees: new Set(
+                  prev?.nominees
+                    ? prev.nominees instanceof Set
+                      ? prev.nominees
+                      : prev.nominees
+                    : []
+                ).add(id),
               })
             );
 
-            addLog(`${sourceId + 1}号提名 ${id + 1}号（贞洁者）`);
-            addLog(`因为你提名了贞洁者，${sourceId + 1}号被立即处决`);
+            addLog(
+              `📣 【${sourceId + 1}号-${nominatorName}】提名了【${id + 1}号-贞洁者】`
+            );
+            addLog(
+              `⚡️ 触发贞洁者能力：因【${sourceId + 1}号-${nominatorName}】是真实镇民，【${sourceId + 1}号】被立即处决死亡！`
+            );
 
             dispatch({ type: "EXECUTE_PLAYER", targetId: sourceId });
 
             setCurrentModal({
               type: "EXECUTION_RESULT",
               data: {
-                message: `${sourceId + 1}号玩家被处决`,
+                message: `【${sourceId + 1}号-${nominatorName}】提名了【${id + 1}号-贞洁者】\n触发贞洁者能力，【${sourceId + 1}号】被立即处决死亡！`,
                 isVirginTrigger: true,
               },
             });
             // 🔧 返回 virginHandled 标记：贞洁者已自动处决提名者（跳过投票环节）
             return { success: true, virginHandled: true };
           } else {
-            setSeats(updatedSeats);
+            // 非真实镇民提名，能力消耗但不处决
+            setSeats((prevSeats) =>
+              prevSeats.map((s) =>
+                s.id === id
+                  ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true }
+                  : s
+              )
+            );
+            addLog(
+              `📣 【${sourceId + 1}号-${nominatorSeat?.role?.name || "玩家"}】提名了【${id + 1}号-贞洁者】`
+            );
+            addLog(
+              `ℹ️ 【${sourceId + 1}号】非真实镇民，未触发贞洁者处决，贞洁者被动能力已消耗`
+            );
           }
         }
       }

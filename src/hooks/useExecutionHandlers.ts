@@ -618,11 +618,22 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       const voterSeat = seats.find((s) => s.id === voterId);
+      const nomineeRole = voterSeat?.role?.name ? `-${voterSeat.role.name}` : "";
       const voterListText = voters?.length
-        ? ` | 投票者: ${voters.map((id) => `${id + 1}号`).join("、")}`
+        ? ` | 投票者: ${voters
+            .map((id) => {
+              const s = seats.find((seat) => seat.id === id);
+              const rName = s?.role?.name ? `-${s.role.name}` : "";
+              return `【${id + 1}号${rName}】`;
+            })
+            .join("、")}`
         : "";
       addLog(
-        `${voterId + 1}号获得 ${v} 票${v >= threshold ? " (上台)" : ""}${isDemonVote ? "，恶魔投票" : ""}${voterSeat?.isDead ? "（死亡玩家投票）" : ""}${voterListText}`
+        `🗳️ 【${voterId + 1}号${nomineeRole}】获得 ${v} 票${
+          v >= threshold ? " (达到处决门槛，上台)" : " (未达门槛)"
+        }${isDemonVote ? "，恶魔投票" : ""}${
+          voterSeat?.isDead ? "（死亡玩家投票）" : ""
+        }${voterListText}`
       );
       setVoteInputValue("");
       setShowVoteErrorToast(false);

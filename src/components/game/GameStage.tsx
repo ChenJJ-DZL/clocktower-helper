@@ -1045,7 +1045,17 @@ export const GameStage = () => {
                         result !== null &&
                         (result as any).virginHandled === true);
 
-                    addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
+                    if (!virginHandled) {
+                      const nominatorRole = seats[nominator]?.role?.name
+                        ? `-${seats[nominator].role.name}`
+                        : "";
+                      const nomineeRole = seats[nominee]?.role?.name
+                        ? `-${seats[nominee].role.name}`
+                        : "";
+                      addLog(
+                        `📣 【${nominator + 1}号${nominatorRole}】提名了【${nominee + 1}号${nomineeRole}】`
+                      );
+                    }
                     playSound("execute");
                     // Reset selection
                     setNominator(null);

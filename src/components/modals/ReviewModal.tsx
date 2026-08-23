@@ -148,16 +148,86 @@ export function ReviewModal({
                 night: 4,
               };
 
-              // 格式化日志消息：将英文角色ID转为"【座位号】中文名"格式
+              // 构建座位号到角色名称的映射
+              const seatRoleMap = new Map<number, string>();
+              displaySeats.forEach((s) => {
+                const seatNum = s.id + 1;
+                const charadeName = s.charadeRole?.name || "";
+                if (s.role?.id === "drunk" && charadeName) {
+                  seatRoleMap.set(seatNum, `${charadeName}(实:酒鬼)`);
+                } else if (s.role?.name) {
+                  seatRoleMap.set(seatNum, s.role.name);
+                }
+              });
+
+              // 格式化日志消息：将角色/座位完整转为"【座位号-角色名】"格式，呈现完整“谁对谁”、“做了什么”和“结果”
               const formatMsg = (msg?: string | null): string => {
-                if (!msg) return "";
-                return String(msg).replace(
-                  /(\d+)\s*号(?:玩家|[位者])?\s*[(（]?([a-z_]+)[)）]?/gi,
-                  (match, num, roleId) => {
-                    const cn = roleNameMap.get(roleId) || roleId;
-                    return `【${num}】${cn}`;
+                if (!msg || typeof msg !== "string") return "";
+
+                let formatted = msg.trim();
+
+                // 1. 去除内部调试前缀
+                formatted = formatted.replace(/^\[能力\]\s*/, "");
+
+                // 2. 将形如 "【玩家1(1号-镇长)】" 或 "玩家1(1号-镇长)" 转换为 "【1号-镇长】"
+                formatted = formatted.replace(
+                  /【?玩家(\d+)】?\s*[(（](\d+)\s*号(?:[ -]([^\s()（）]+))?[)）]/gi,
+                  (match, num1, num2, roleText) => {
+                    const num = parseInt(num2 || num1, 10);
+                    const roleName =
+                      roleText || seatRoleMap.get(num) || roleNameMap.get(roleText) || "";
+                    return roleName ? `【${num}号-${roleName}】` : `【${num}号】`;
                   }
                 );
+
+                // 3. 将形如 "1号(slayer)" / "1号(猎手)" / "1号玩家(slayer)" 转换为 "【1号-猎手】"
+                formatted = formatted.replace(
+                  /(\d+)\s*号(?:玩家|[位者])?\s*[(（]([a-zA-Z_\u4e00-\u9fa5]+)[)）]/gi,
+                  (match, numStr, roleIdOrName) => {
+                    const num = parseInt(numStr, 10);
+                    const cn =
+                      roleNameMap.get(roleIdOrName) ||
+                      roleIdOrName ||
+                      seatRoleMap.get(num);
+                    return cn ? `【${num}号-${cn}】` : `【${num}号】`;
+                  }
+                );
+
+                // 4. 将未带角色名的裸露 "X号" 转换为 "【X号-角色名】"（若尚未被【】包裹）
+                formatted = formatted.replace(
+                  /(?<!【\s*|【\s*\d+号-)(\b\d+)\s*号(?:玩家|[位者])?(?![-a-zA-Z_\u4e00-\u9fa5]*】)/g,
+                  (match, numStr) => {
+                    const num = parseInt(numStr, 10);
+                    const roleName = seatRoleMap.get(num);
+                    return roleName ? `【${num}号-${roleName}】` : `【${num}号】`;
+                  }
+                );
+
+                // 5. 清理多重括号与空格
+                formatted = formatted.replace(/【+([^【】]+)】+/g, "【$1】");
+                formatted = formatted.replace(/\s*([，。！？、])\s*/g, "$1");
+                formatted = formatted.replace(
+                  /(【[^】]+】)\s*提名了?\s*(【[^】]+】)/g,
+                  "$1 提名了 $2"
+                );
+
+                // 6. 丰富行动语义前缀与结果描述
+                if (
+                  formatted.includes("因为你提名了贞洁者") ||
+                  formatted.includes("提名了贞洁者，")
+                ) {
+                  formatted = formatted.replace(
+                    /.*?因为你?提名了贞洁者[，, ]*(【[^】]+】).*?被立即处决.*/,
+                    "⚡️ 触发贞洁者能力：因 $1 是真实镇民，$1 被立即处决死亡！"
+                  );
+                } else if (
+                  (formatted.includes("提名了") || formatted.includes("提名 ")) &&
+                  !formatted.includes("📣")
+                ) {
+                  formatted = `📣 ${formatted}`;
+                }
+
+                return formatted;
               };
 
               // 过滤掉内部调试日志，只保留玩家可读的操作记录
@@ -209,11 +279,11 @@ export function ReviewModal({
                     : phase === "firstNight"
                       ? "🌙 首夜"
                       : phase === "day"
-                        ? `☀️ 第${dayNum + 1}天`
+                        ? `☀️ 第${dayNum || 1}天`
                         : phase === "dusk"
-                          ? `🌆 第${dayNum + 1}天黄昏`
+                          ? `🌆 第${dayNum || 1}天黄昏`
                           : phase === "night"
-                            ? `🌙 第${dayNum + 1}夜`
+                            ? `🌙 第${dayNum || 2}夜`
                             : `第${day}轮`;
 
                 return (
