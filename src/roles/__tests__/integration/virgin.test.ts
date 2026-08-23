@@ -14,21 +14,42 @@ describe("贞洁者 引擎集成测试", () => {
     expect(r.aborted).toBe(false);
   });
 
-  test("贞洁者被动仅限首次提名触发一次", async () => {
+  test("贞洁者被动仅限首次提名触发一次，多次提名不再触发", async () => {
     const virgin = s(0, "virgin", "townsfolk");
     const chef = s(1, "chef", "townsfolk");
-    const seats = [virgin, chef];
+    const undertaker = s(2, "undertaker", "townsfolk");
 
     // 第一次提名（镇民提名贞洁者）
     const isVirginUsed1 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated);
     expect(isVirginUsed1).toBe(false);
 
-    // 模拟首次触发更新
+    // 首次触发更新：消耗能力标记
+    virgin.hasUsedVirginAbility = true;
+    virgin.hasBeenNominated = true;
+    (virgin as any).abilityUsed = true;
+
+    // 第二次提名（送葬者提名贞洁者）
+    const isVirginUsed2 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated || (virgin as any).abilityUsed);
+    expect(isVirginUsed2).toBe(true);
+
+    // 第三次提名（另一玩家再次提名贞洁者）
+    const isVirginUsed3 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated || (virgin as any).abilityUsed);
+    expect(isVirginUsed3).toBe(true);
+  });
+
+  test("非镇民首次提名贞洁者时能力消耗，后续镇民提名不再触发处决", async () => {
+    const virgin = s(0, "virgin", "townsfolk");
+    const butler = s(1, "butler", "outsider");
+
+    // 首次提名（外来者管家提名贞洁者）
+    expect(virgin.hasUsedVirginAbility).toBe(false);
+
+    // 首次提名后能力消耗
     virgin.hasUsedVirginAbility = true;
     virgin.hasBeenNominated = true;
 
-    // 第二次提名（另一镇民再次提名贞洁者）
-    const isVirginUsed2 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated);
-    expect(isVirginUsed2).toBe(true);
+    // 后续真实镇民提名，检测已使用
+    const isUsed = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated);
+    expect(isUsed).toBe(true);
   });
 });

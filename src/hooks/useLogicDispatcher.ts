@@ -33,48 +33,50 @@ export function useLogicDispatcher(
         return;
       }
 
-      const snapshot = processGameEvent(seats, gamePhase, action);
+      setSeats((prevSeats) => {
+        const snapshot = processGameEvent(prevSeats, gamePhase, action);
 
-      if (snapshot.logs.length > 0) {
-        for (const msg of snapshot.logs) {
-          addLog(msg);
-        }
-      }
-
-      setSeats(snapshot.seats);
-
-      if (snapshot.winner) {
-        const w = snapshot.winner === "Good" ? "good" : "evil";
-        const reason = snapshot.winReason || "未知原因";
-        victoryRef.current = { winner: w, reason };
-        setWinResult(w);
-        setWinReason(reason);
-        setGamePhase("gameOver");
-        // 冻结此时的座位状态作为复盘快照（只保留有角色的座位）
-        setVictorySnapshot(snapshot.seats.filter((s) => s.role));
-        setCurrentModal({ type: "GAME_OVER", data: null });
-      }
-
-      if (!victoryRef.current) {
-        if (snapshot.nextActionHint === "BARBER_SWAP_NEEDED") {
-          const demon = snapshot.seats.find(
-            (s) => (s.role?.type === "demon" || s.isDemonSuccessor) && !s.isDead
-          );
-          if (demon) {
-            setCurrentModal({
-              type: "BARBER_SWAP",
-              data: { demonId: demon.id, firstId: null, secondId: null },
-            });
+        if (snapshot.logs.length > 0) {
+          for (const msg of snapshot.logs) {
+            addLog(msg);
           }
         }
-      }
 
-      if (action.type === "EXECUTE_PLAYER") {
-        setExecutedPlayerId(action.targetId);
-        setTodayExecutedId(action.targetId);
-        setCurrentDuskExecution(action.targetId);
-        setHasExecutedThisDay(true);
-      }
+        if (snapshot.winner) {
+          const w = snapshot.winner === "Good" ? "good" : "evil";
+          const reason = snapshot.winReason || "未知原因";
+          victoryRef.current = { winner: w, reason };
+          setWinResult(w);
+          setWinReason(reason);
+          setGamePhase("gameOver");
+          // 冻结此时的座位状态作为复盘快照（只保留有角色的座位）
+          setVictorySnapshot(snapshot.seats.filter((s) => s.role));
+          setCurrentModal({ type: "GAME_OVER", data: null });
+        }
+
+        if (!victoryRef.current) {
+          if (snapshot.nextActionHint === "BARBER_SWAP_NEEDED") {
+            const demon = snapshot.seats.find(
+              (s) => (s.role?.type === "demon" || s.isDemonSuccessor) && !s.isDead
+            );
+            if (demon) {
+              setCurrentModal({
+                type: "BARBER_SWAP",
+                data: { demonId: demon.id, firstId: null, secondId: null },
+              });
+            }
+          }
+        }
+
+        if (action.type === "EXECUTE_PLAYER") {
+          setExecutedPlayerId(action.targetId);
+          setTodayExecutedId(action.targetId);
+          setCurrentDuskExecution(action.targetId);
+          setHasExecutedThisDay(true);
+        }
+
+        return snapshot.seats;
+      });
     },
     [
       seats,

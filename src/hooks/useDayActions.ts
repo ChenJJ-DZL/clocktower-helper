@@ -226,23 +226,31 @@ export function useDayActions(deps: DayActionsDeps) {
       const target = seats.find((s) => s.id === id);
       const virginOverride = options?.virginGuideOverride;
 
-      // 🔧 贞洁者：一局游戏仅限首次被提名时触发一次被动
-      if (
-        target?.role?.id === "virgin" &&
-        !isActorDisabledByPoisonOrDrunk(target)
-      ) {
+      // 🔧 贞洁者（Virgin）规则：
+      // 官方规则：当你首次被提名时，如果提名你的玩家是镇民，他立刻被处决。
+      // 必须同时满足：
+      //   ① 贞洁者是整局游戏的首次被提名（且技能未曾消耗）
+      //   ② 提名者是真实镇民（townsfolk，非酒鬼，未中毒/醉酒）
+      //   ③ 贞洁者本人清醒且健康（未中毒/醉酒）
+      // 关键规则：无论提名者是否为镇民、是否处决成功，一旦贞洁者被首次提名，被动能力立即永久失效！
+      if (target?.role?.id === "virgin") {
         const isVirginUsed = !!(
+          hasUsedAbility("virgin", id) ||
           target.hasUsedVirginAbility ||
           target.hasBeenNominated ||
+          target.abilityUsed ||
           (virginOverride?.isFirstTime === false)
         );
 
         if (isVirginUsed) {
           addLog(
-            `提示：【${id + 1}号-贞洁者】已被提名过，其被动能力是一次性的且已失效，本次提名按正常投票流程处理`
+            `提示：【${id + 1}号-贞洁者】在整局游戏中已被提名过，其被动技能是一次性的且已失效，本次提名按正常投票流程处理`
           );
         } else {
-          // 首次提名贞洁者：永久消耗能力标记
+          // 首次被提名：永久消耗贞洁者能力（双重持久化：markAbilityUsed + Seat 状态）
+          markAbilityUsed("virgin", id);
+
+          const isVirginDisabled = isActorDisabledByPoisonOrDrunk(target);
           const isRealTownsfolk =
             virginOverride?.nominatorIsTownsfolk ??
             (nominatorSeat &&
@@ -253,18 +261,23 @@ export function useDayActions(deps: DayActionsDeps) {
 
           const nominatorName = nominatorSeat?.role?.name || "镇民";
 
-          if (isRealTownsfolk) {
-            setSeats((prevSeats) =>
-              prevSeats.map((s) => {
-                if (s.id === id) {
-                  return { ...s, hasBeenNominated: true, hasUsedVirginAbility: true };
-                }
-                if (s.id === sourceId) {
-                  return { ...s, isDead: true };
-                }
-                return s;
-              })
-            );
+          if (!isVirginDisabled && isRealTownsfolk) {
+            // 条件 ① + ② 均满足：处决提名者，跳过投票环节，当天白天结束推进至夜晚
+            const updatedSeats = seats.map((s) => {
+              if (s.id === id) {
+                return {
+                  ...s,
+                  hasBeenNominated: true,
+                  hasUsedVirginAbility: true,
+                  abilityUsed: true,
+                };
+              }
+              if (s.id === sourceId) {
+                return { ...s, isDead: true };
+              }
+              return s;
+            });
+            setSeats(updatedSeats);
 
             setExecutedPlayerId(sourceId);
             setTodayExecutedId(sourceId);
@@ -298,7 +311,7 @@ export function useDayActions(deps: DayActionsDeps) {
               `⚡️ 触发贞洁者能力：因【${sourceId + 1}号-${nominatorName}】是真实镇民，【${sourceId + 1}号】被立即处决死亡！`
             );
 
-            dispatch({ type: "EXECUTE_PLAYER", targetId: sourceId });
+            checkGameOver(updatedSeats, sourceId);
 
             setCurrentModal({
               type: "EXECUTION_RESULT",
@@ -310,20 +323,31 @@ export function useDayActions(deps: DayActionsDeps) {
             // 🔧 返回 virginHandled 标记：贞洁者已自动处决提名者（跳过投票环节）
             return { success: true, virginHandled: true };
           } else {
-            // 非真实镇民提名，能力消耗但不处决
+            // 首次被提名，但贞洁者中毒醉酒或提名者非真实镇民：不处决，但能力已消耗
             setSeats((prevSeats) =>
               prevSeats.map((s) =>
                 s.id === id
-                  ? { ...s, hasBeenNominated: true, hasUsedVirginAbility: true }
+                  ? {
+                      ...s,
+                      hasBeenNominated: true,
+                      hasUsedVirginAbility: true,
+                      abilityUsed: true,
+                    }
                   : s
               )
             );
             addLog(
               `📣 【${sourceId + 1}号-${nominatorSeat?.role?.name || "玩家"}】提名了【${id + 1}号-贞洁者】`
             );
-            addLog(
-              `ℹ️ 【${sourceId + 1}号】非真实镇民，未触发贞洁者处决，贞洁者被动能力已消耗`
-            );
+            if (isVirginDisabled) {
+              addLog(
+                `ℹ️ 【${id + 1}号-贞洁者】处于中毒/醉酒状态，被动能力失效，贞洁者技能已消耗`
+              );
+            } else {
+              addLog(
+                `ℹ️ 【${sourceId + 1}号】非真实镇民，未触发贞洁者处决，贞洁者技能已消耗`
+              );
+            }
           }
         }
       }
@@ -384,6 +408,9 @@ export function useDayActions(deps: DayActionsDeps) {
       setCurrentDuskExecution,
       dispatch,
       nominationMap,
+      hasUsedAbility,
+      markAbilityUsed,
+      checkGameOver,
     ]
   );
 
