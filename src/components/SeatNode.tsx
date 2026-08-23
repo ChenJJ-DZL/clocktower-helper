@@ -281,7 +281,31 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           ))}
         </div>
 
-        {/* 右上角提示区域 */}
+        {/* 已发起提名标记 - 圆心位于角色外圈右下角 */}
+        {hasNominated && (
+          <div
+            className={`absolute left-[85.4%] top-[85.4%] -translate-x-1/2 -translate-y-1/2 ${
+              isPortrait ? "w-6 h-6 text-[9px]" : "w-7 h-7 text-[11px]"
+            } rounded-full bg-amber-600 text-white border-2 border-amber-300 flex items-center justify-center font-bold z-30 shadow-md`}
+            title="本黄昏已发起过提名"
+          >
+            已提
+          </div>
+        )}
+
+        {/* 已被提名标记 - 圆心位于角色外圈左下角 */}
+        {hasBeenNominated && (
+          <div
+            className={`absolute left-[14.6%] top-[85.4%] -translate-x-1/2 -translate-y-1/2 ${
+              isPortrait ? "w-6 h-6 text-[9px]" : "w-7 h-7 text-[11px]"
+            } rounded-full bg-cyan-700 text-white border-2 border-cyan-300 flex items-center justify-center font-bold z-30 shadow-md`}
+            title="本黄昏已被提名过"
+          >
+            被提
+          </div>
+        )}
+
+        {/* 右上角提示区域 (主人、处决候选者) */}
         <div
           className={`absolute ${isPortrait ? "-top-1.5 -right-1.5" : "-top-5 -right-5"} flex flex-col gap-0.5 items-end z-40`}
         >
@@ -297,22 +321,6 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-xs px-2 py-0.5"} bg-red-600 rounded-full shadow font-bold animate-pulse`}
             >
               ⚖️{s.voteCount}
-            </span>
-          )}
-          {hasNominated && (
-            <span
-              className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-[10px] px-1.5 py-0.5"} bg-amber-600/90 text-white rounded-full shadow font-bold border border-amber-400/50`}
-              title="本黄昏已发起过提名"
-            >
-              已提
-            </span>
-          )}
-          {hasBeenNominated && (
-            <span
-              className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-[10px] px-1.5 py-0.5"} bg-cyan-700/90 text-white rounded-full shadow font-bold border border-cyan-400/50`}
-              title="本黄昏已被提名过"
-            >
-              被提
             </span>
           )}
         </div>
