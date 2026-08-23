@@ -49,8 +49,9 @@ import { useGameState } from "./useGameState";
 import { useHistoryController } from "./useHistoryController";
 import { useInteractionHandler } from "./useInteractionHandler";
 import { useLogicDispatcher } from "./useLogicDispatcher";
+import { generateDynamicNightQueue } from "../utils/dynamicQueueGenerator";
 import { useNightActionHandler } from "./useNightActionHandler";
-import { useNightEngine } from "./useNightEngine";
+import { ENGINE_CONFIG, useNightEngine } from "./useNightEngine";
 import { useNightSnapshot } from "./useNightSnapshot";
 import { useRegistrationManager } from "./useRegistrationManager";
 import { useSeatManager } from "./useSeatManager";
@@ -1630,6 +1631,69 @@ export function useGameController() {
     seats,
   ]);
 
+  // 动态预测与实时渲染当前或即将到来的夜晚行动顺序，保证恶魔与所有在场角色的行动位始终精准且实时同步
+  const liveNightOrderPreview = useMemo(() => {
+    // 1. 如果处于夜间阶段且引擎已有实时队列，使用实时运行队列
+    const engineState = nightLogic.engine?.state;
+    const liveQueue = engineState?.queue;
+    if (
+      (gamePhase === "firstNight" || gamePhase === "night") &&
+      Array.isArray(liveQueue) &&
+      liveQueue.length > 0
+    ) {
+      return liveQueue.map((node: any, idx: number) => ({
+        roleName: node.roleName || "未知角色",
+        seatNo: (node.seatId ?? 0) + 1,
+        order: idx + 1,
+      }));
+    }
+
+    // 2. 否则根据当前游戏阶段与在场座位实时预测计算对应夜晚的唤醒顺序
+    const isFirstNight =
+      gamePhase === "firstNight" || (gamePhase === "setup" && nightCount <= 1);
+    const snapNightCount = isFirstNight
+      ? 1
+      : Math.max(
+          2,
+          nightCount + (gamePhase === "dusk" || gamePhase === "day" ? 1 : 0)
+        );
+    const snapshot = {
+      nightCount: snapNightCount,
+      hasCompletedFirstNight: !isFirstNight,
+      seats: seats.map((s) => ({
+        id: s.id,
+        role: s.role,
+        charadeRole: s.charadeRole,
+        isAlive: !s.isDead,
+        isDead: !!s.isDead,
+        isDemonSuccessor: s.isDemonSuccessor,
+      })),
+      statusEffects: {},
+      gamePhase: isFirstNight ? ("firstNight" as const) : ("night" as const),
+      deadThisNight: [...(gameState.deadThisNight || [])],
+      todayExecutedId: gameState.todayExecutedId ?? null,
+    };
+
+    const queue = generateDynamicNightQueue(
+      ENGINE_CONFIG.fullNightOrder,
+      snapshot as any,
+      { isFirstNight }
+    );
+
+    return queue.map((node, idx) => ({
+      roleName: node.roleName || "未知角色",
+      seatNo: (node.seatId ?? 0) + 1,
+      order: idx + 1,
+    }));
+  }, [
+    gamePhase,
+    nightCount,
+    seats,
+    nightLogic.engine?.state,
+    gameState.deadThisNight,
+    gameState.todayExecutedId,
+  ]);
+
   return useMemo(
     () => ({
       ...gameState,
@@ -1640,7 +1704,10 @@ export function useGameController() {
       checkGameOver,
       currentNightRole: nightInfo?.effectiveRole?.name,
       nextNightRole: (nightInfo as any)?.nextRoleName,
-      nightOrderPreviewLive: gameState.nightOrderPreview || [],
+      nightOrderPreviewLive:
+        liveNightOrderPreview.length > 0
+          ? liveNightOrderPreview
+          : gameState.nightOrderPreview || [],
       nightInfo,
       getDemonDisplayName,
       killPlayer,

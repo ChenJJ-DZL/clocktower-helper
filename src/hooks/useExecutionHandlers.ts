@@ -1065,6 +1065,12 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       .map((node: any) => node.seatId)
       .filter((id: number) => seats.some((s: Seat) => s.id === id));
 
+    const preview = queue.map((node: any, idx: number) => ({
+      roleName: node.roleName || "未知角色",
+      seatNo: (node.seatId ?? 0) + 1,
+      order: idx + 1,
+    }));
+
     // 4. 完整设置 React 夜晚状态（对齐 confirmNightOrderPreview / 首夜流程）
     //    - 重新生成 wakeQueueIds（覆盖首夜缩水后的旧队列）
     //    - 复位 currentWakeIndex 以支持从队列头重新开始遍历
@@ -1081,6 +1087,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         nightCount: nightCount + 1,
         // 🔧 新夜晚清空 deadThisNight，避免死亡报告跨夜累积
         deadThisNight: [],
+        nightOrderPreview: preview,
       })
     );
     // 复盘时间线：记录后续夜晚开始。

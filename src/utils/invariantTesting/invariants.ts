@@ -81,8 +81,8 @@ export const I2QueueLegality: InvariantCheck = (result, abilityMap) => {
       errs.push(`I2: 死亡玩家 ${node.roleId}(${node.seatId + 1}号) 被排入夜间队列`);
     }
 
-    // 2.2 能力必须已注册（否则执行的是空管道 → 静默无效果）
-    if (!abilityMap[node.abilityId]) {
+    // 2.2 能力必须已注册（否则执行的是空管道 → 静默无效果，系统步骤除外）
+    if (!SYSTEM_STEP_IDS.has(node.roleId) && !abilityMap[node.abilityId]) {
       errs.push(`I2: 能力 ${node.abilityId}（${node.roleId}）未在能力注册表注册`);
     }
 

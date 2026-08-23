@@ -177,10 +177,15 @@ export function generateDynamicNightQueue(
         (s) => getEffectiveRoleId(s) === entry.roleId
       )!;
     }
+    const roleName =
+      entry.roleId === "demon_info" && seat?.role?.name
+        ? `${seat.role.name}(恶魔信息)`
+        : entry.roleName;
+
     return {
       seatId: seat.id,
       roleId: entry.roleId,
-      roleName: entry.roleName,
+      roleName,
       priority: isFirstNight
         ? entry.firstNightPriority
         : entry.otherNightPriority,

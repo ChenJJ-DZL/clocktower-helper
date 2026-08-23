@@ -74,6 +74,28 @@ export function buildFullNightOrder(): NightOrderEntry[] {
     });
   }
 
+  // 首夜系统信息步骤（爪牙信息与恶魔信息）
+  entries.push({
+    roleId: "minion_info",
+    roleName: "爪牙信息",
+    abilityId: "minion_info",
+    firstNightPriority: 1.5,
+    otherNightPriority: 0,
+    firstNightOnly: true,
+    otherNightOnly: false,
+    wakeMessage: "minion_info",
+  });
+  entries.push({
+    roleId: "demon_info",
+    roleName: "恶魔信息",
+    abilityId: "demon_info",
+    firstNightPriority: 2.5,
+    otherNightPriority: 0,
+    firstNightOnly: true,
+    otherNightOnly: false,
+    wakeMessage: "demon_info",
+  });
+
   entries.sort((a, b) => {
     const pa =
       a.firstNightPriority > 0 ? a.firstNightPriority : a.otherNightPriority;
