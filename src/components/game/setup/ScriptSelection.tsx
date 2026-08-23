@@ -173,6 +173,25 @@ export default function ScriptSelection({
     setShowBuilderModal(false);
   };
 
+  const handleStartCustomScript = (scriptName: string, roleIds: string[]) => {
+    const newScript: Script = {
+      id: `custom_${Date.now()}`,
+      name: scriptName,
+      difficulty: "自定义",
+      description: `自由组合剧本 (${roleIds.length} 个角色)`,
+      isCustom: true,
+      roleIds,
+    };
+
+    const updated = [...customScripts, newScript];
+    setCustomScripts(updated);
+    localStorage.setItem("customScripts", JSON.stringify(updated));
+    setShowBuilderModal(false);
+
+    // 立即以此自定义剧本开始游戏配置
+    handleScriptClick(newScript);
+  };
+
   const allScripts = [...scripts, ...customScripts];
 
   return (
@@ -295,6 +314,7 @@ export default function ScriptSelection({
         <CustomScriptBuilderModal
           onClose={() => setShowBuilderModal(false)}
           onSave={handleSaveCustomScript}
+          onStartDirectly={handleStartCustomScript}
         />
       )}
 

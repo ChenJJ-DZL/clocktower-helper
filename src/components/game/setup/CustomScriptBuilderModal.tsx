@@ -1,23 +1,52 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { FABLED_ROLES, type Role, roles, typeLabels } from "../../../../app/data";
+import {
+  FABLED_ROLES,
+  type Role,
+  roles,
+  scripts,
+  typeLabels,
+} from "../../../../app/data";
 import { showAlert } from "../../../utils/nativeDialogShim";
 
 interface CustomScriptBuilderModalProps {
   onClose: () => void;
   onSave: (scriptName: string, selectedRoleIds: string[]) => void;
+  onStartDirectly?: (scriptName: string, selectedRoleIds: string[]) => void;
 }
 
 /** 阵营徽章配色 */
-const TYPE_BADGE: Record<string, { bg: string; text: string; border: string }> = {
-  townsfolk: { bg: "bg-blue-900/40", text: "text-blue-300", border: "border-blue-600/40" },
-  outsider: { bg: "bg-purple-900/40", text: "text-purple-300", border: "border-purple-600/40" },
-  minion: { bg: "bg-orange-900/40", text: "text-orange-300", border: "border-orange-600/40" },
-  demon: { bg: "bg-red-900/40", text: "text-red-300", border: "border-red-600/40" },
+const TYPE_BADGE: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  townsfolk: {
+    bg: "bg-blue-900/40",
+    text: "text-blue-300",
+    border: "border-blue-600/40",
+  },
+  outsider: {
+    bg: "bg-purple-900/40",
+    text: "text-purple-300",
+    border: "border-purple-600/40",
+  },
+  minion: {
+    bg: "bg-orange-900/40",
+    text: "text-orange-300",
+    border: "border-orange-600/40",
+  },
+  demon: {
+    bg: "bg-red-900/40",
+    text: "text-red-300",
+    border: "border-red-600/40",
+  },
 };
 
 /** 标准配比（7~15人） */
-const STD_COMP: Record<number, { townsfolk: number; outsider: number; minion: number; demon: number }> = {
+const STD_COMP: Record<
+  number,
+  { townsfolk: number; outsider: number; minion: number; demon: number }
+> = {
   7: { townsfolk: 3, outsider: 2, minion: 1, demon: 1 },
   8: { townsfolk: 4, outsider: 2, minion: 1, demon: 1 },
   9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
@@ -43,24 +72,25 @@ function validateComposition(
   const messages: string[] = [];
   let level: "error" | "warning" | "ok" = "ok";
 
+  if (selectedIds.size === 0) {
+    messages.push("💡 请在下方挑选角色（或点击上方快捷预设载入模板）");
+    return { level: "warning", messages };
+  }
+
   if (byType.demon === 0) {
-    messages.push("⚠️ 缺少恶魔角色 — 至少需要 1 个恶魔");
-    level = "error";
+    messages.push("💡 建议添加恶魔角色（标准血染剧本需至少 1 个恶魔）");
+    if (level === "ok") level = "warning";
   }
-  if (byType.demon > 3) {
-    messages.push("⚠️ 恶魔过多 — 标准配比为 1 个");
-    level = "warning";
-  }
-  if (byType.minion === 0 && selectedIds.size > 0) {
+  if (byType.minion === 0) {
     messages.push("💡 建议添加爪牙角色");
     if (level === "ok") level = "warning";
   }
-  if (selectedIds.size > 0 && selectedIds.size < 7) {
-    messages.push(`💡 当前 ${selectedIds.size} 个角色，建议至少 7 人开局`);
+  if (byType.townsfolk === 0) {
+    messages.push("💡 建议添加村民角色");
     if (level === "ok") level = "warning";
   }
-  if (selectedIds.size > 15) {
-    messages.push(`💡 当前 ${selectedIds.size} 个角色，标准最大 15 人`);
+  if (selectedIds.size > 0 && selectedIds.size < 7) {
+    messages.push(`💡 当前已选 ${selectedIds.size} 个角色，建议至少选 7 个角色`);
     if (level === "ok") level = "warning";
   }
 
@@ -70,20 +100,36 @@ function validateComposition(
 export function CustomScriptBuilderModal({
   onClose,
   onSave,
+  onStartDirectly,
 }: CustomScriptBuilderModalProps) {
   const [scriptName, setScriptName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedRoleIds, setSelectedRoleIds] = useState<Set<string>>(
     new Set()
   );
   const [nameError, setNameError] = useState("");
-  const [selectedFabledIds, setSelectedFabledIds] = useState<Set<string>>(new Set());
+  const [selectedFabledIds, setSelectedFabledIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const builderRoles = useMemo(() => {
     return roles.filter((r) => !r.hidden);
   }, []);
 
+  const filteredRolesBySearch = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return builderRoles;
+    return builderRoles.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.id.toLowerCase().includes(q) ||
+        (r.ability && r.ability.toLowerCase().includes(q)) ||
+        (r.script && r.script.toLowerCase().includes(q))
+    );
+  }, [builderRoles, searchQuery]);
+
   const builderGroupedRoles = useMemo(() => {
-    return builderRoles.reduce(
+    return filteredRolesBySearch.reduce(
       (acc, role) => {
         if (!acc[role.type]) acc[role.type] = [];
         acc[role.type].push(role);
@@ -91,7 +137,7 @@ export function CustomScriptBuilderModal({
       },
       {} as Record<string, Role[]>
     );
-  }, [builderRoles]);
+  }, [filteredRolesBySearch]);
 
   const composition = useMemo(
     () => validateComposition(selectedRoleIds, builderRoles),
@@ -122,21 +168,58 @@ export function CustomScriptBuilderModal({
     });
   };
 
-  const handleSave = () => {
-    if (!scriptName.trim()) {
-      setNameError("请输入剧本名称");
+  const loadPreset = (scriptId: string) => {
+    if (scriptId === "clear") {
+      setSelectedRoleIds(new Set());
       return;
     }
-    setNameError("");
+    const script = scripts.find((s) => s.id === scriptId);
+    if (script?.roleIds && script.roleIds.length > 0) {
+      setSelectedRoleIds(new Set(script.roleIds));
+      if (!scriptName) {
+        setScriptName(`自定义 (${script.name}混搭)`);
+      }
+    } else if (script) {
+      const scriptRoleIds = roles
+        .filter(
+          (r) =>
+            !r.hidden &&
+            (r.script === script.name ||
+              (!r.script && script.id === "trouble_brewing"))
+        )
+        .map((r) => r.id);
+      setSelectedRoleIds(new Set(scriptRoleIds));
+      if (!scriptName) {
+        setScriptName(`自定义 (${script.name}混搭)`);
+      }
+    }
+  };
+
+  const getFinalName = () => {
+    if (scriptName.trim()) return scriptName.trim();
+    return `自定义剧本 (${selectedRoleIds.size}角色)`;
+  };
+
+  const handleSaveOnly = () => {
     if (selectedRoleIds.size === 0) {
       showAlert("请至少选择一个角色");
       return;
     }
-    if (composition.level === "error") {
-      showAlert(composition.messages[0]);
+    const name = getFinalName();
+    onSave(name, Array.from(selectedRoleIds));
+  };
+
+  const handleStartNow = () => {
+    if (selectedRoleIds.size === 0) {
+      showAlert("请至少选择一个角色");
       return;
     }
-    onSave(scriptName.trim(), Array.from(selectedRoleIds));
+    const name = getFinalName();
+    if (onStartDirectly) {
+      onStartDirectly(name, Array.from(selectedRoleIds));
+    } else {
+      onSave(name, Array.from(selectedRoleIds));
+    }
   };
 
   /** 导出为官方标准 JSON 格式 */
@@ -146,8 +229,9 @@ export function CustomScriptBuilderModal({
       return;
     }
     const selected = builderRoles.filter((r) => selectedRoleIds.has(r.id));
+    const finalName = getFinalName();
     const jsonData = [
-      { id: "_meta", name: scriptName || "自定义剧本", author: "拜甘教" },
+      { id: "_meta", name: finalName, author: "拜甘教说书助手" },
       ...selected.map((r) => ({
         id: r.id,
         name: r.name,
@@ -162,7 +246,7 @@ export function CustomScriptBuilderModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${scriptName || "custom_script"}.json`;
+    a.download = `${finalName}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -177,83 +261,141 @@ export function CustomScriptBuilderModal({
   if (typeof document === "undefined" || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 md:p-8">
-      <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col shadow-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-8">
+      <div className="bg-slate-900/95 backdrop-blur-xl rounded-3xl w-full max-w-5xl h-full max-h-[92vh] flex flex-col shadow-2xl border border-white/15 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10 bg-slate-800/30">
+        <div className="flex items-center justify-between p-5 md:p-6 border-b border-white/10 bg-slate-800/40">
           <div>
-            <h2 className="text-2xl font-bold text-slate-100">🛠️ 自由创建剧本</h2>
-            <p className="text-sm text-slate-400 mt-1">
-              从全部角色库中自由组合，支持跨剧本混搭
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl md:text-2xl font-black text-slate-100 flex items-center gap-2">
+                <span>🛠️</span>
+                <span>自由自建剧本</span>
+              </h2>
+              <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-400/30 px-2 py-0.5 rounded-full font-semibold">
+                自定义角色库
+              </span>
+            </div>
+            <p className="text-xs md:text-sm text-slate-400 mt-1">
+              从全部角色库中自由挑选角色，跨剧本自由混搭并直接开局
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleExport}
-              className="px-4 py-2 text-sm rounded-lg border border-emerald-600/40 bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40 transition font-medium"
+              className="px-3.5 py-1.5 text-xs md:text-sm rounded-xl border border-emerald-600/40 bg-emerald-900/30 text-emerald-300 hover:bg-emerald-800/40 transition font-semibold flex items-center gap-1.5 cursor-pointer"
               title="导出为官方标准 JSON 剧本文件"
             >
-              📤 导出 JSON
+              <span>📤</span>
+              <span>导出 JSON</span>
             </button>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white transition-colors p-2"
+              className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10 text-lg cursor-pointer"
+              title="关闭"
             >
-              ✕ 关闭
+              ✕
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* 剧本名称 */}
-          <div className="space-y-2">
-            <label
-              htmlFor="script-name-input"
-              className="text-sm font-semibold text-slate-300"
-            >
-              剧本名称 <span className="text-red-400">*</span>
-            </label>
-            <input
-              id="script-name-input"
-              type="text"
-              value={scriptName}
-              onChange={(e) => {
-                setScriptName(e.target.value);
-                if (nameError) setNameError("");
-              }}
-              placeholder="例如：我的无敌村规局"
-              className={`w-full bg-slate-800/80 border text-white rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition ${
-                nameError ? "border-red-500" : "border-white/10"
-              }`}
-              maxLength={30}
-            />
-            {nameError && (
-              <p className="text-sm text-red-400">{nameError}</p>
-            )}
+        <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-5">
+          {/* 剧本名称与搜索栏 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label
+                htmlFor="script-name-input"
+                className="text-xs font-bold text-slate-300 uppercase tracking-wider"
+              >
+                剧本名称
+              </label>
+              <input
+                id="script-name-input"
+                type="text"
+                value={scriptName}
+                onChange={(e) => {
+                  setScriptName(e.target.value);
+                  if (nameError) setNameError("");
+                }}
+                placeholder="例如：我的无敌混搭局（默认自建剧本）"
+                className={`w-full bg-slate-800/90 border text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition ${
+                  nameError ? "border-red-500" : "border-white/10"
+                }`}
+                maxLength={30}
+              />
+              {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="role-search-input"
+                className="text-xs font-bold text-slate-300 uppercase tracking-wider"
+              >
+                🔍 快速搜索角色
+              </label>
+              <input
+                id="role-search-input"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="输入角色中文名、拼音或能力关键词..."
+                className="w-full bg-slate-800/90 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+              />
+            </div>
           </div>
 
-          {/* 合法性校验提示 */}
-          {composition.messages.length > 0 && (
-            <div
-              className={`rounded-xl px-4 py-3 border backdrop-blur-sm ${
-                composition.level === "error"
-                  ? "bg-red-950/40 border-red-600/40 text-red-200"
-                  : "bg-amber-950/40 border-amber-600/40 text-amber-200"
-              }`}
+          {/* 快捷模板载入按钮 */}
+          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl bg-slate-800/40 border border-white/5">
+            <span className="text-xs font-semibold text-slate-400 mr-1">
+              ⚡ 快速载入预设：
+            </span>
+            <button
+              type="button"
+              onClick={() => loadPreset("trouble_brewing")}
+              className="px-3 py-1 text-xs rounded-lg bg-sky-950/60 border border-sky-600/40 text-sky-200 hover:bg-sky-900/60 transition cursor-pointer font-medium"
             >
+              🍵 暗流涌动模板 (22角色)
+            </button>
+            <button
+              type="button"
+              onClick={() => loadPreset("bad_moon_rising")}
+              className="px-3 py-1 text-xs rounded-lg bg-indigo-950/60 border border-indigo-600/40 text-indigo-200 hover:bg-indigo-900/60 transition cursor-pointer font-medium"
+            >
+              🌙 黯月初升模板 (22角色)
+            </button>
+            <button
+              type="button"
+              onClick={() => loadPreset("sects_and_violets")}
+              className="px-3 py-1 text-xs rounded-lg bg-pink-950/60 border border-pink-600/40 text-pink-200 hover:bg-pink-900/60 transition cursor-pointer font-medium"
+            >
+              🌸 梦殒春宵模板 (22角色)
+            </button>
+            <button
+              type="button"
+              onClick={() => loadPreset("clear")}
+              className="px-3 py-1 text-xs rounded-lg bg-red-950/40 border border-red-600/30 text-red-300 hover:bg-red-900/40 transition cursor-pointer font-medium ml-auto"
+            >
+              🗑️ 清空已选
+            </button>
+          </div>
+
+          {/* 合法性与提示 */}
+          {composition.messages.length > 0 && (
+            <div className="rounded-xl px-4 py-2.5 border bg-amber-950/30 border-amber-600/30 text-amber-200 backdrop-blur-sm text-xs space-y-1">
               {composition.messages.map((msg, i) => (
-                <div key={i} className="text-sm">
-                  {msg}
-                </div>
+                <div key={i}>{msg}</div>
               ))}
             </div>
           )}
 
           {/* 已选统计 */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-semibold text-slate-300">
-              已选 <span className="text-purple-400 font-bold text-base">{selectedCount}</span> 个角色
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs md:text-sm font-semibold text-slate-300">
+              已选{" "}
+              <span className="text-purple-400 font-bold text-base">
+                {selectedCount}
+              </span>{" "}
+              个角色
             </span>
             {["townsfolk", "outsider", "minion", "demon"].map((type) => {
               const count = builderRoles.filter(
@@ -263,7 +405,7 @@ export function CustomScriptBuilderModal({
               return (
                 <span
                   key={type}
-                  className={`text-xs font-bold px-2 py-0.5 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}
+                  className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${badge.bg} ${badge.text} ${badge.border}`}
                 >
                   {typeLabels[type]} {count}
                 </span>
@@ -272,7 +414,7 @@ export function CustomScriptBuilderModal({
           </div>
 
           {/* 角色选择网格 */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             {["townsfolk", "outsider", "minion", "demon"].map((type) => {
               const typeList = builderGroupedRoles[type] || [];
               if (typeList.length === 0) return null;
@@ -282,14 +424,14 @@ export function CustomScriptBuilderModal({
               ).length;
 
               return (
-                <div key={type} className="space-y-3">
-                  <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+                <div key={type} className="space-y-2.5">
+                  <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
                     <span
-                      className={`text-sm font-bold px-2.5 py-0.5 rounded-lg border ${badge.bg} ${badge.text} ${badge.border}`}
+                      className={`text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-lg border ${badge.bg} ${badge.text} ${badge.border}`}
                     >
                       {typeLabels[type]}
                     </span>
-                    <span className="text-xs text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
+                    <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
                       {selectedOfType} / {typeList.length}
                     </span>
                   </div>
@@ -299,25 +441,28 @@ export function CustomScriptBuilderModal({
                       return (
                         <button
                           key={r.id}
+                          type="button"
                           onClick={() => toggleRole(r.id)}
-                          className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-left h-20 backdrop-blur-sm
+                          className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
                             ${
                               isSelected
-                                ? "border-purple-500/60 bg-purple-500/15 ring-1 ring-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                                : "border-white/5 bg-slate-800/40 hover:bg-slate-800/70 hover:border-white/15"
+                                ? "border-purple-500/80 bg-purple-600/20 ring-2 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.25)] scale-[1.02]"
+                                : "border-white/10 bg-slate-800/50 hover:bg-slate-800/80 hover:border-white/20"
                             }
                           `}
                         >
                           <span
-                            className={`text-sm font-bold whitespace-nowrap ${isSelected ? "text-white" : "text-slate-300"}`}
+                            className={`text-sm font-bold whitespace-nowrap ${
+                              isSelected ? "text-purple-200" : "text-slate-200"
+                            }`}
                           >
                             {r.name}
                           </span>
-                          <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider scale-90 origin-top">
+                          <span className="text-[10px] text-slate-400 mt-1 line-clamp-1 scale-90 origin-top text-center px-1">
                             {r.script || "通用"}
                           </span>
                           {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
+                            <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center shadow">
                               <svg
                                 className="w-3 h-3 text-white"
                                 fill="none"
@@ -341,16 +486,19 @@ export function CustomScriptBuilderModal({
               );
             })}
 
-            {/* 寓言角色选择专区 */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 border-b border-amber-600/30 pb-2">
-                <span className="text-sm font-bold px-2.5 py-0.5 rounded-lg border bg-amber-900/40 text-amber-300 border-amber-600/40">
+            {/* 寓言角色专区 */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 border-b border-amber-600/30 pb-1.5">
+                <span className="text-xs md:text-sm font-bold px-2.5 py-0.5 rounded-lg border bg-amber-900/40 text-amber-300 border-amber-600/40">
                   ⭐ 寓言角色
                 </span>
-                <span className="text-xs text-slate-500 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
-                  {Array.from(selectedFabledIds).filter((id) =>
-                    FABLED_ROLES.some((f) => f.id === id)
-                  ).length} / {FABLED_ROLES.length}
+                <span className="text-xs text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-white/5">
+                  {
+                    Array.from(selectedFabledIds).filter((id) =>
+                      FABLED_ROLES.some((f) => f.id === id)
+                    ).length
+                  }{" "}
+                  / {FABLED_ROLES.length}
                 </span>
                 <span className="text-[10px] text-amber-400/60 ml-auto">
                   不占座位，作为全局规则生效
@@ -362,25 +510,28 @@ export function CustomScriptBuilderModal({
                   return (
                     <button
                       key={r.id}
+                      type="button"
                       onClick={() => toggleFabled(r.id)}
-                      className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-left h-20 backdrop-blur-sm
+                      className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
                         ${
                           isSelected
-                            ? "border-amber-400/60 bg-amber-500/15 ring-1 ring-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                            : "border-white/5 bg-slate-800/40 hover:bg-slate-800/70 hover:border-white/15"
+                            ? "border-amber-400/80 bg-amber-500/20 ring-2 ring-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
+                            : "border-white/10 bg-slate-800/50 hover:bg-slate-800/80 hover:border-white/20"
                         }
                       `}
                     >
                       <span
-                        className={`text-sm font-bold whitespace-nowrap ${isSelected ? "text-amber-100" : "text-slate-300"}`}
+                        className={`text-sm font-bold whitespace-nowrap ${
+                          isSelected ? "text-amber-100" : "text-slate-200"
+                        }`}
                       >
                         {r.name}
                       </span>
-                      <span className="text-[10px] text-slate-500 mt-1 line-clamp-1 scale-90 origin-top">
-                        {r.ability?.slice(0, 20)}...
+                      <span className="text-[10px] text-slate-400 mt-1 line-clamp-1 scale-90 origin-top text-center px-1">
+                        {r.ability?.slice(0, 16)}...
                       </span>
                       {isSelected && (
-                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center">
+                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center shadow">
                           <svg
                             className="w-3 h-3 text-white"
                             fill="none"
@@ -405,34 +556,50 @@ export function CustomScriptBuilderModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-white/10 bg-slate-800/30 backdrop-blur-sm flex justify-between items-center shrink-0">
-          <div className="text-xs text-slate-500">
-            {selectedCount > 0 && (
+        <div className="p-4 md:p-6 border-t border-white/10 bg-slate-800/40 backdrop-blur-sm flex flex-col sm:flex-row justify-between items-center gap-3 shrink-0">
+          <div className="text-xs text-slate-400 text-center sm:text-left">
+            {selectedCount > 0 ? (
               <>
-                标准配比参考：{selectedCount}人局 = {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.townsfolk ?? "?"}镇 +{" "}
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.outsider ?? "?"}外 +{" "}
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.minion ?? "?"}爪 +{" "}
-                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.demon ?? "?"}恶
+                已选 {selectedCount} 角色 · 标准参考：
+                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.townsfolk ??
+                  "?"}
+                镇 +{" "}
+                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.outsider ??
+                  "?"}
+                外 +{" "}
+                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.minion ??
+                  "?"}
+                爪 +{" "}
+                {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.demon ??
+                  "?"}
+                恶
               </>
+            ) : (
+              "未选择任何角色"
             )}
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
             <button
+              type="button"
               onClick={onClose}
-              className="px-6 py-2.5 rounded-xl border border-white/10 text-slate-300 font-medium hover:bg-slate-700/50 hover:text-white transition"
+              className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-300 font-medium hover:bg-slate-700/50 hover:text-white transition text-xs sm:text-sm cursor-pointer"
             >
               取消
             </button>
             <button
-              onClick={handleSave}
-              disabled={composition.level === "error"}
-              className={`px-8 py-2.5 rounded-xl font-bold shadow-lg transition ${
-                composition.level === "error"
-                  ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                  : "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-500/20"
-              }`}
+              type="button"
+              onClick={handleSaveOnly}
+              className="px-4 py-2.5 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition text-xs sm:text-sm cursor-pointer"
             >
-              💾 保存剧本
+              💾 仅保存
+            </button>
+            <button
+              type="button"
+              onClick={handleStartNow}
+              className="px-6 py-2.5 rounded-xl font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-500/30 transition text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>🚀</span>
+              <span>保存并立即开局</span>
             </button>
           </div>
         </div>
@@ -441,3 +608,4 @@ export function CustomScriptBuilderModal({
     document.body
   );
 }
+
