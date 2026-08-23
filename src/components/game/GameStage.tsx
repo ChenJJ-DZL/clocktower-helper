@@ -143,6 +143,7 @@ export const GameStage = () => {
     nightOrderPreview,
     nightOrderPreviewLive,
     executeNomination,
+    cancelNomination,
     registerVotes,
     votedThisRound,
 
@@ -280,13 +281,14 @@ export const GameStage = () => {
       pendingVoteFor !== null
     ) {
       console.log(
-        "[GameStage] 投票模态关闭，清除 pendingVoteFor，允许下一次提名"
+        "[GameStage] 投票模态关闭，取消当个黄昏已提和被提标记并清除 pendingVoteFor"
       );
+      cancelNomination?.(lastNominator, pendingVoteFor);
       setPendingVoteFor(null);
       setLastNominator(null);
     }
     lastModalTypeRef.current = currType;
-  }, [gamePhase, currentModal, pendingVoteFor]);
+  }, [gamePhase, currentModal, pendingVoteFor, lastNominator, cancelNomination]);
 
   useEffect(() => {
     const updateSeatScale = () => {
@@ -596,9 +598,29 @@ export const GameStage = () => {
                       <span className="flex items-center gap-1">
                         <span>🗳️</span> 步骤 2/3：辩护与举手计票
                       </span>
-                      <span className="text-emerald-400 text-[11px] animate-pulse font-semibold">
-                        ● 待计票: {pendingVoteFor + 1}号
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-emerald-400 text-[11px] animate-pulse font-semibold">
+                          ● 待计票: {pendingVoteFor + 1}号
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log("[GameStage] 取消本轮提名", {
+                              lastNominator,
+                              pendingVoteFor,
+                            });
+                            cancelNomination?.(lastNominator, pendingVoteFor);
+                            setPendingVoteFor(null);
+                            setLastNominator(null);
+                            stopDefenseTimer();
+                            setDefenseSecondsLeft(0);
+                          }}
+                          className="text-[11px] text-red-400 hover:text-red-300 underline font-normal cursor-pointer ml-1"
+                        >
+                          取消提名
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-1.5 text-[11.5px]">
                       <div className="flex items-center gap-2 text-slate-200">
@@ -1098,45 +1120,65 @@ export const GameStage = () => {
                 </button>
               )}
 
-              {/* 开始投票 (打开举手名单面板) */}
+              {/* 开始投票 (打开举手名单面板) & 取消提名 */}
               {pendingVoteFor !== null && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("[GameStage] 点击开始投票按钮", {
-                      pendingVoteFor,
-                      setCurrentModal: typeof setCurrentModal,
-                    });
-                    try {
-                      if (pendingVoteFor === null) return;
-                      if (typeof setCurrentModal !== "function") {
-                        console.error(
-                          "[GameStage] setCurrentModal is not a function:",
-                          setCurrentModal
-                        );
-                        showAlert(
-                          "错误：setCurrentModal 函数不可用，请刷新页面重试。"
-                        );
-                        return;
-                      }
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log("[GameStage] 取消待计票的提名", {
+                        lastNominator,
+                        pendingVoteFor,
+                      });
+                      cancelNomination?.(lastNominator, pendingVoteFor);
+                      setPendingVoteFor(null);
+                      setLastNominator(null);
                       stopDefenseTimer();
                       setDefenseSecondsLeft(0);
-                      setCurrentModal({
-                        type: "VOTE_INPUT",
-                        data: { voterId: pendingVoteFor },
+                    }}
+                    className="py-3 px-3 rounded-lg font-bold text-xs bg-red-950/70 hover:bg-red-900/80 text-red-300 border border-red-500/50 transition-all cursor-pointer shrink-0"
+                  >
+                    ✕ 取消提名
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log("[GameStage] 点击开始投票按钮", {
+                        pendingVoteFor,
+                        setCurrentModal: typeof setCurrentModal,
                       });
-                    } catch (error) {
-                      console.error("[GameStage] 开始投票时出错:", error);
-                      showAlert(
-                        `开始投票时出错: ${error instanceof Error ? error.message : String(error)}`
-                      );
-                    }
-                  }}
-                  className="py-3 px-4 rounded-lg font-bold text-sm flex items-center justify-center transition-all border shadow bg-blue-600 hover:bg-blue-500 text-white border-blue-500 cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.6)] animate-pulse"
-                >
-                  🗳️ 开始举手计票 (打开计票面板)
-                </button>
+                      try {
+                        if (pendingVoteFor === null) return;
+                        if (typeof setCurrentModal !== "function") {
+                          console.error(
+                            "[GameStage] setCurrentModal is not a function:",
+                            setCurrentModal
+                          );
+                          showAlert(
+                            "错误：setCurrentModal 函数不可用，请刷新页面重试。"
+                          );
+                          return;
+                        }
+                        stopDefenseTimer();
+                        setDefenseSecondsLeft(0);
+                        setCurrentModal({
+                          type: "VOTE_INPUT",
+                          data: { voterId: pendingVoteFor },
+                        });
+                      } catch (error) {
+                        console.error("[GameStage] 开始投票时出错:", error);
+                        showAlert(
+                          `开始投票时出错: ${error instanceof Error ? error.message : String(error)}`
+                        );
+                      }
+                    }}
+                    className="flex-1 py-3 px-4 rounded-lg font-bold text-sm flex items-center justify-center transition-all border shadow bg-blue-600 hover:bg-blue-500 text-white border-blue-500 cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.6)] animate-pulse"
+                  >
+                    🗳️ 开始举手计票 (打开计票面板)
+                  </button>
+                </div>
               )}
 
               {/* 处决结算按钮（当有明确处决上台者时显示） */}

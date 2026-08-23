@@ -1013,6 +1013,7 @@ export function useGameController() {
   });
   const {
     executeNomination,
+    cancelNomination,
     handleVirginGuideConfirm,
     handleDayAction,
     handleDrunkCharadeSelect,
@@ -1754,6 +1755,7 @@ export function useGameController() {
       confirmVirginTrigger,
       confirmRestart,
       executeNomination,
+      cancelNomination,
       handleDayAction,
       handleVirginGuideConfirm,
       handleDayAbilityTrigger,
@@ -1921,6 +1923,7 @@ export function useGameController() {
       enterDuskPhase,
       executeJudgment,
       executeNomination,
+      cancelNomination,
       executePlayer,
       formatTimer,
       getDisplayRoleType,

@@ -46,6 +46,7 @@ export function VoteInputModalContent(props: {
   submitVotes: (count: number, voters?: number[]) => void;
   setCurrentModal: (modal: ModalType | null) => void;
   setShowVoteInputModal?: (value: number | null) => void;
+  onCancelVote?: (nomineeId?: number) => void;
 }) {
   const { voterId, seats } = props;
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
@@ -107,6 +108,7 @@ export function VoteInputModalContent(props: {
 
   const handleClose = () => {
     setSelectedVoters([]);
+    props.onCancelVote?.(candidate?.id);
     props.setCurrentModal(null);
     if (props.setShowVoteInputModal) {
       props.setShowVoteInputModal(null);

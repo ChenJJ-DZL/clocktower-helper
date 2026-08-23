@@ -214,6 +214,9 @@ export function GameModals() {
           seats={seats}
           registerVotes={actions.registerVotes}
           submitVotes={actions.submitVotes}
+          onCancelVote={(nomineeId) =>
+            actions.cancelNomination?.(undefined, nomineeId)
+          }
           setCurrentModal={actions.setCurrentModal}
         />
       )}

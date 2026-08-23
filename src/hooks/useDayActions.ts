@@ -405,6 +405,60 @@ export function useDayActions(deps: DayActionsDeps) {
     ]
   );
 
+  const cancelNomination = useCallback(
+    (nominatorId?: number | null, nomineeId?: number | null) => {
+      setNominationRecords(
+        (prev: { nominators: Set<number>; nominees: Set<number> }) => {
+          const newNominators = new Set(
+            prev?.nominators
+              ? prev.nominators instanceof Set
+                ? prev.nominators
+                : prev.nominators
+              : []
+          );
+          const newNominees = new Set(
+            prev?.nominees
+              ? prev.nominees instanceof Set
+                ? prev.nominees
+                : prev.nominees
+              : []
+          );
+          if (nominatorId !== undefined && nominatorId !== null) {
+            newNominators.delete(nominatorId);
+          }
+          if (nomineeId !== undefined && nomineeId !== null) {
+            newNominees.delete(nomineeId);
+          }
+          return { nominators: newNominators, nominees: newNominees };
+        }
+      );
+      setNominationMap((prev) => {
+        if (!prev) return {};
+        const next = { ...prev };
+        if (nomineeId !== undefined && nomineeId !== null) {
+          delete next[nomineeId];
+        } else {
+          return {};
+        }
+        return next;
+      });
+      const nominatorText =
+        nominatorId !== undefined && nominatorId !== null
+          ? `${nominatorId + 1}号`
+          : "";
+      const nomineeText =
+        nomineeId !== undefined && nomineeId !== null
+          ? `${nomineeId + 1}号`
+          : "";
+      const pairText =
+        nominatorText || nomineeText
+          ? `（${nominatorText}${nominatorText && nomineeText ? " → " : ""}${nomineeText}）`
+          : "";
+      addLog(`ℹ️ 取消了提名${pairText}，已恢复提名与被提名资格`);
+    },
+    [setNominationRecords, setNominationMap, addLog]
+  );
+
   const handleVirginGuideConfirm = useCallback(() => {
     if (!virginGuideInfo) return;
     executeNomination(virginGuideInfo.nominatorId, virginGuideInfo.targetId, {
@@ -991,6 +1045,7 @@ export function useDayActions(deps: DayActionsDeps) {
   return useMemo(
     () => ({
       executeNomination,
+      cancelNomination,
       handleVirginGuideConfirm,
       handleDayAction,
       handleDrunkCharadeSelect,
@@ -1001,6 +1056,7 @@ export function useDayActions(deps: DayActionsDeps) {
     }),
     [
       executeNomination,
+      cancelNomination,
       handleVirginGuideConfirm,
       handleDayAction,
       handleDrunkCharadeSelect,
