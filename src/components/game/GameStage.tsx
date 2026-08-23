@@ -1416,6 +1416,7 @@ export const GameStage = () => {
             inspectionResultKey={inspectionResultKey}
             onTogglePlayer={toggleTarget}
             handleDayAbility={controller.handleDayAbility}
+            handleViewDayAbilityResult={controller.handleViewDayAbilityResult}
             onRefreshNightStep={() => {
               if (
                 controller.refreshSnapshot &&

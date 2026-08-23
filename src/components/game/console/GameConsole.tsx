@@ -41,6 +41,7 @@ interface GameConsoleProps {
 
   // Day Abilities Panel (for Day phase)
   handleDayAbility?: (sourceSeatId: number, targetSeatId?: number) => void;
+  handleViewDayAbilityResult?: (sourceSeatId: number) => void;
 
   // Force continue callback (for empty queue scenarios)
   onForceContinue?: () => void;
@@ -72,6 +73,7 @@ export const GameConsole = React.memo(function GameConsole({
   primaryAction,
   secondaryActions = [],
   handleDayAbility,
+  handleViewDayAbilityResult,
   onForceContinue,
   onRefreshNightStep,
 }: GameConsoleProps) {
@@ -474,9 +476,9 @@ export const GameConsole = React.memo(function GameConsole({
             </h3>
 
             {(() => {
-              // Filter players who are ALIVE and HAVE DAY ABILITIES and HAVEN'T USED THEM
-              const activeAbilitySeats = seats.filter((s) => {
-                if (s.isDead || !s.role) return false;
+              // 包含所有具备白天主动技能的座位（无论是否已使用）
+              const dayAbilitySeats = seats.filter((s) => {
+                if (!s.role) return false;
 
                 const effectiveRole =
                   s.role?.id === "drunk"
@@ -485,36 +487,24 @@ export const GameConsole = React.memo(function GameConsole({
                 if (!effectiveRole) return false;
 
                 // Check legacy dayMeta
-                if (effectiveRole.dayMeta && !s.hasUsedDayAbility) return true;
+                if (effectiveRole.dayMeta) return true;
 
                 // Check modular day ability
                 const def = effectiveRole?.id
                   ? getRoleDefinition(effectiveRole.id)
                   : undefined;
-                if (def?.day) {
-                  // For Savant, maxUses is 'infinity' so it's always available
-                  if (def.day.maxUses === "infinity") return true;
-                  // For Slayer: check if hasUsedSlayerAbility
-                  if (
-                    effectiveRole.id === "slayer" &&
-                    s.hasUsedSlayerAbility
-                  ) {
-                    return false;
-                  }
-                  // For others (like Artist), check if used
-                  if (!s.hasUsedDayAbility) return true;
-                }
+                if (def?.day) return true;
 
                 return false;
               });
 
-              if (activeAbilitySeats.length === 0) {
+              if (dayAbilitySeats.length === 0) {
                 return <p className="text-gray-500 text-sm">暂无可用技能</p>;
               }
 
               return (
                 <div className="space-y-3">
-                  {activeAbilitySeats.map((seat) => {
+                  {dayAbilitySeats.map((seat) => {
                     const effectiveRole =
                       seat.role?.id === "drunk"
                         ? seat.charadeRole || seat.role
@@ -531,38 +521,81 @@ export const GameConsole = React.memo(function GameConsole({
                         ? seat.charadeRole.name
                         : seat.role?.name || "";
 
+                    const isInfinite = def?.day?.maxUses === "infinity";
+                    const isUsed =
+                      !isInfinite &&
+                      (seat.hasUsedDayAbility ||
+                        (effectiveRole?.id === "slayer" &&
+                          seat.hasUsedSlayerAbility));
+
                     return (
                       <div
                         key={seat.id}
-                        className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-white/10"
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                          isUsed
+                            ? "bg-slate-900/60 border-white/5 opacity-85"
+                            : "bg-slate-900 border-white/10"
+                        }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-amber-500 font-bold">
+                          <span
+                            className={`font-bold ${
+                              isUsed ? "text-amber-500/70" : "text-amber-500"
+                            }`}
+                          >
                             {seat.id + 1}号
                           </span>
-                          <span className="text-white">
+                          <span
+                            className={
+                              isUsed ? "text-slate-300" : "text-white"
+                            }
+                          >
                             {displayRoleName}
                             {seat.role?.id === "drunk" && (
                               <span className="ml-1.5 text-xs text-purple-400 font-normal">
                                 (酒鬼)
                               </span>
                             )}
+                            {seat.isDead && (
+                              <span className="ml-1.5 text-xs text-red-400 font-normal">
+                                (已死亡)
+                              </span>
+                            )}
                           </span>
                         </div>
-                        <button
-                          onClick={() => {
-                            if (!handleDayAbility) return;
-                            showConfirm({
-                              title: "使用技能",
-                              message: `确定使用 ${abilityName} 吗？`,
-                              onConfirm: () => handleDayAbility(seat.id),
-                            });
-                          }}
-                          data-testid="start-day-ability-button"
-                          className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
-                        >
-                          使用 {displayRoleName}
-                        </button>
+
+                        {isUsed ? (
+                          <button
+                            onClick={() => {
+                              if (handleViewDayAbilityResult) {
+                                handleViewDayAbilityResult(seat.id);
+                              } else if (handleDayAbility) {
+                                handleDayAbility(seat.id);
+                              }
+                            }}
+                            title="点击再次查看使用结果"
+                            data-testid="view-day-ability-result-button"
+                            className="px-3 py-1 bg-slate-700/80 hover:bg-slate-600 active:bg-slate-700 text-slate-300 hover:text-white text-sm rounded shadow-sm border border-slate-600 transition-colors flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>已使用</span>
+                            <span className="text-xs text-slate-400">🔍</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (!handleDayAbility) return;
+                              showConfirm({
+                                title: "使用技能",
+                                message: `确定使用 ${abilityName} 吗？`,
+                                onConfirm: () => handleDayAbility(seat.id),
+                              });
+                            }}
+                            data-testid="start-day-ability-button"
+                            className="px-3 py-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm rounded shadow-sm transition-colors cursor-pointer"
+                          >
+                            使用 {displayRoleName}
+                          </button>
+                        )}
                       </div>
                     );
                   })}

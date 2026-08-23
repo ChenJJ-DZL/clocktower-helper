@@ -6,6 +6,7 @@ import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import type { ModalType } from "../types/modal";
 import type { DayActionContext } from "../types/roleDefinition";
+import { showAlert } from "../utils/nativeDialogShim";
 import {
   checkCannotGainAbility,
   isAntagonismEnabled,
@@ -558,6 +559,71 @@ export function useDayActions(deps: DayActionsDeps) {
     ]
   );
 
+  const handleViewDayAbilityResult = useCallback(
+    (sourceSeatId: number) => {
+      const sourceSeat = seats.find((s) => s.id === sourceSeatId);
+      if (!sourceSeat || !sourceSeat.role) return;
+
+      const effectiveRole =
+        sourceSeat.role.id === "drunk"
+          ? sourceSeat.charadeRole || sourceSeat.role
+          : sourceSeat.role;
+      const displayRoleName =
+        sourceSeat.role?.id === "drunk" && sourceSeat.charadeRole
+          ? sourceSeat.charadeRole.name
+          : sourceSeat.role?.name || "";
+
+      // 1. 如果有明确保存的结构化 dayAbilityResult
+      if ((sourceSeat as any).dayAbilityResult) {
+        const res = (sourceSeat as any).dayAbilityResult;
+        if (res.type === "SHOOT_RESULT") {
+          setCurrentModal({
+            type: "SHOOT_RESULT",
+            data: {
+              message: res.message || "无事发生",
+              isDemonDead: !!res.isDemonDead,
+            },
+          });
+          return;
+        }
+        if (res.type === "ARTIST_RESULT" && res.result) {
+          showAlert(res.result, "🎨 艺术家技能结果");
+          return;
+        }
+        if (res.type === "SAVANT_RESULT" && (res.infoA || res.infoB)) {
+          showAlert(
+            `博学者获得信息：\n1. ${res.infoA || "（无）"}\n2. ${res.infoB || "（无）"}`,
+            "📜 博学者技能结果"
+          );
+          return;
+        }
+        if (res.message || res.summary) {
+          showAlert(res.message || res.summary, `${displayRoleName} 技能结果`);
+          return;
+        }
+      }
+
+      // 2. 猎手默认回退展示
+      if (effectiveRole?.id === "slayer") {
+        setCurrentModal({
+          type: "SHOOT_RESULT",
+          data: {
+            message: "无事发生",
+            isDemonDead: false,
+          },
+        });
+        return;
+      }
+
+      // 3. 通用提示
+      showAlert(
+        `${sourceSeatId + 1}号【${displayRoleName}】的技能已在白天发动完毕。`,
+        `${displayRoleName} 技能结果`
+      );
+    },
+    [seats, setCurrentModal]
+  );
+
   const handleDayAbility = useCallback(
     (sourceSeatId: number, targetSeatId?: number) => {
       const sourceSeat = seats.find((s) => s.id === sourceSeatId);
@@ -572,7 +638,7 @@ export function useDayActions(deps: DayActionsDeps) {
       // ── 艺术家专用 ────────────────────────────────────
       if (effectiveRole.id === "artist") {
         if (sourceSeat.hasUsedDayAbility) {
-          alert("此玩家已经使用过技能了！");
+          handleViewDayAbilityResult(sourceSeatId);
           return;
         }
         setSeats((prev) =>
@@ -596,7 +662,7 @@ export function useDayActions(deps: DayActionsDeps) {
       // ── 赌徒专用：说书人判定猜测真假 ────────────────
       if (effectiveRole.id === "gambler") {
         if (sourceSeat.hasUsedDayAbility) {
-          alert("此玩家已经使用过技能了！");
+          handleViewDayAbilityResult(sourceSeatId);
           return;
         }
         setSeats((prev) =>
@@ -622,7 +688,7 @@ export function useDayActions(deps: DayActionsDeps) {
             (effectiveRole.id === "slayer" && sourceSeat.hasUsedSlayerAbility)) &&
           effectiveRole.id !== "savant_mr"
         ) {
-          alert("此玩家已经使用过技能了！");
+          handleViewDayAbilityResult(sourceSeatId);
           return;
         }
         setCurrentModal({
@@ -641,7 +707,7 @@ export function useDayActions(deps: DayActionsDeps) {
               sourceSeat.hasUsedSlayerAbility)) &&
           modularHandler.day.maxUses !== "infinity"
         ) {
-          alert("此玩家已经使用过技能了！");
+          handleViewDayAbilityResult(sourceSeatId);
           return;
         }
 
@@ -874,6 +940,7 @@ export function useDayActions(deps: DayActionsDeps) {
       registerVotes,
       handleDayAbilityTrigger,
       handleDayAbility,
+      handleViewDayAbilityResult,
     }),
     [
       executeNomination,
@@ -883,6 +950,7 @@ export function useDayActions(deps: DayActionsDeps) {
       registerVotes,
       handleDayAbilityTrigger,
       handleDayAbility,
+      handleViewDayAbilityResult,
     ]
   );
 }

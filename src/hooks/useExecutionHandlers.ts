@@ -1261,6 +1261,23 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
 
       if (target.isDead) {
         addLog(`${shooterId + 1}号对${targetId + 1}号的尸体开枪未产生效果`);
+        setSeats((p: Seat[]) =>
+          p.map((s) =>
+            s.id === shooterId
+              ? {
+                  ...s,
+                  hasUsedSlayerAbility: true,
+                  hasUsedDayAbility: true,
+                  dayAbilityResult: {
+                    type: "SHOOT_RESULT",
+                    message: "无事发生目标已死亡",
+                    isDemonDead: false,
+                    targetId,
+                  },
+                }
+              : s
+          )
+        );
         setCurrentModal({
           type: "SHOOT_RESULT",
           data: { message: "无事发生目标已死亡", isDemonDead: false },
@@ -1282,6 +1299,23 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         );
         setWinReason("猎手击杀恶魔");
         killPlayer(targetId, { skipGameOverCheck: false, isEndOfDay: true });
+        setSeats((p: Seat[]) =>
+          p.map((s) =>
+            s.id === shooterId
+              ? {
+                  ...s,
+                  hasUsedSlayerAbility: true,
+                  hasUsedDayAbility: true,
+                  dayAbilityResult: {
+                    type: "SHOOT_RESULT",
+                    message: "恶魔死亡，善良阵营获胜",
+                    isDemonDead: true,
+                    targetId,
+                  },
+                }
+              : s
+          )
+        );
         setCurrentModal({
           type: "SHOOT_RESULT",
           data: { message: "恶魔死亡，善良阵营获胜", isDemonDead: true },
@@ -1302,6 +1336,23 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             `${shooterId + 1}号(${shooterRoleName}) 开枪，${targetId + 1}号不是恶魔`
           );
         }
+        setSeats((p: Seat[]) =>
+          p.map((s) =>
+            s.id === shooterId
+              ? {
+                  ...s,
+                  hasUsedSlayerAbility: true,
+                  hasUsedDayAbility: true,
+                  dayAbilityResult: {
+                    type: "SHOOT_RESULT",
+                    message: "无事发生",
+                    isDemonDead: false,
+                    targetId,
+                  },
+                }
+              : s
+          )
+        );
         setCurrentModal({
           type: "SHOOT_RESULT",
           data: { message: "无事发生", isDemonDead: false },

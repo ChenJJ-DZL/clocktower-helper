@@ -1018,6 +1018,7 @@ export function useGameController() {
     registerVotes,
     handleDayAbilityTrigger,
     handleDayAbility,
+    handleViewDayAbilityResult,
   } = dayActions;
 
   // 确认流程由新引擎管道内部的预览→弹窗→确认机制驱动，不再需要 ref 跟踪
@@ -1850,6 +1851,7 @@ export function useGameController() {
       getDisplayRoleType,
       getSeatRoleId,
       handleDayAbility,
+      handleViewDayAbilityResult,
       handleContinueGame,
       handleDayAbilityTrigger,
       handleDayAction,

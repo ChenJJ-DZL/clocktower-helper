@@ -765,6 +765,23 @@ export function GameModals() {
           onClose={(result) => {
             if (result) {
               actions.addLog(result);
+              actions.setSeats((prev: any[]) =>
+                prev.map((s: any) => {
+                  const isArtist =
+                    s.role?.id === "artist" ||
+                    (s.role?.id === "drunk" && s.charadeRole?.id === "artist");
+                  return isArtist
+                    ? {
+                        ...s,
+                        hasUsedDayAbility: true,
+                        dayAbilityResult: {
+                          type: "ARTIST_RESULT",
+                          result,
+                        },
+                      }
+                    : s;
+                })
+              );
             }
             actions.setCurrentModal(null);
           }}
@@ -776,6 +793,24 @@ export function GameModals() {
           onClose={(infoA, infoB) => {
             if (infoA && infoB) {
               actions.addLog(`博学者获得信息：\n1. ${infoA}\n2. ${infoB}`);
+              actions.setSeats((prev: any[]) =>
+                prev.map((s: any) => {
+                  const isSavant =
+                    s.role?.id === "savant" ||
+                    (s.role?.id === "drunk" && s.charadeRole?.id === "savant");
+                  return isSavant
+                    ? {
+                        ...s,
+                        hasUsedDayAbility: true,
+                        dayAbilityResult: {
+                          type: "SAVANT_RESULT",
+                          infoA,
+                          infoB,
+                        },
+                      }
+                    : s;
+                })
+              );
             }
             actions.setCurrentModal(null);
           }}
@@ -791,8 +826,22 @@ export function GameModals() {
             <div className="flex gap-3 w-full justify-end">
               <button
                 onClick={() => {
-                  actions.addLog(
-                    `${gamblerJudgeModal.seatId + 1}号【赌徒】的猜测被判定为真（猜对），存活`
+                  const msg = `${gamblerJudgeModal.seatId + 1}号【赌徒】的猜测被判定为真（猜对），存活`;
+                  actions.addLog(msg);
+                  actions.setSeats((prev: any[]) =>
+                    prev.map((s: any) =>
+                      s.id === gamblerJudgeModal.seatId
+                        ? {
+                            ...s,
+                            hasUsedDayAbility: true,
+                            dayAbilityResult: {
+                              type: "GAMBLER_JUDGE",
+                              message: msg,
+                              summary: msg,
+                            },
+                          }
+                        : s
+                    )
                   );
                   actions.setCurrentModal(null);
                 }}
@@ -806,8 +855,22 @@ export function GameModals() {
                     source: "gambler_day",
                     recordNightDeath: true,
                   });
-                  actions.addLog(
-                    `${gamblerJudgeModal.seatId + 1}号【赌徒】的猜测被判定为假（猜错），死亡！`
+                  const msg = `${gamblerJudgeModal.seatId + 1}号【赌徒】的猜测被判定为假（猜错），死亡！`;
+                  actions.addLog(msg);
+                  actions.setSeats((prev: any[]) =>
+                    prev.map((s: any) =>
+                      s.id === gamblerJudgeModal.seatId
+                        ? {
+                            ...s,
+                            hasUsedDayAbility: true,
+                            dayAbilityResult: {
+                              type: "GAMBLER_JUDGE",
+                              message: msg,
+                              summary: msg,
+                            },
+                          }
+                        : s
+                    )
                   );
                   actions.setCurrentModal(null);
                 }}
