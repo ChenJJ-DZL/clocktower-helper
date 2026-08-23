@@ -117,12 +117,6 @@ export function RoundTable({
     prevNightRef.current = { phase: gamePhase, count: nightCount };
   }, [gamePhase, nightCount]);
 
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    seatId: number;
-  } | null>(null);
-
   // Pan and Zoom states
   const [scale, setScale] = useState(1);
   const _controls = useAnimation();
@@ -177,17 +171,9 @@ export function RoundTable({
     panY.set(0);
   };
 
-  // Close context menu on any click outside
-  useEffect(() => {
-    const handleClick = () => setContextMenu(null);
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, []);
-
   const handleSeatContextMenu = (e: React.MouseEvent, seatId: number) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, seatId });
-    // 同时通知父组件（GameStage）设置全局 contextMenu，以便 PlayerContextMenu 渲染
+    // 统一通知父组件设置 contextMenu，由统一的上下文菜单组件渲染，杜绝双重弹窗
     if (onContextMenu) onContextMenu(e, seatId);
   };
 
@@ -375,49 +361,6 @@ export function RoundTable({
           )}
         </div>
       </div>
-
-      {/* Custom Context Menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-[100] bg-slate-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden min-w-[160px] animate-in fade-in zoom-in duration-100"
-          style={{
-            left: contextMenu.x,
-            top: contextMenu.y,
-            boxShadow:
-              "0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)",
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="text-xs text-slate-400 p-2 border-b border-slate-700 mb-1">
-            Seat {contextMenu.seatId + 1}
-          </div>
-          <button
-            className="w-full text-left px-3 py-2 text-sm text-yellow-400 hover:bg-slate-700 rounded border-b border-slate-700"
-            onClick={() => {
-              if (onEditNote) onEditNote(contextMenu.seatId);
-              setContextMenu(null);
-            }}
-          >
-            📝 编辑备忘录
-          </button>
-          <button
-            className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-slate-700 rounded"
-            onClick={() => {
-              if (onSetRedNemesis) onSetRedNemesis(contextMenu.seatId);
-              setContextMenu(null);
-            }}
-          >
-            设为红罗刹目标 (天敌)
-          </button>
-          <button
-            onClick={() => setContextMenu(null)}
-            className="w-full text-left px-4 py-2 hover:bg-slate-800 text-slate-400 text-xs flex items-center gap-3 transition-colors"
-          >
-            <span className="opacity-0 text-lg">🔴</span>
-            <span>取消</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }

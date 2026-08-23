@@ -1055,8 +1055,11 @@ export default function Home() {
                       dispatch(
                         gameActions.updateSeat(contextMenu.seatId, {
                           role: null,
+                          displayRole: null,
+                          charadeRole: null,
                         })
                       );
+                      dispatch(gameActions.setSelectedRole(null));
                       dispatch(
                         gameActions.addLog({
                           day: 0,

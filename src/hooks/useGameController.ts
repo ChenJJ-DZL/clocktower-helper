@@ -1186,33 +1186,9 @@ export function useGameController() {
 
   const onSeatClick = useCallback(
     (id: number, options?: any) => {
-      if (gamePhase === "setup" || gamePhase === "scriptSelection") {
-        if (selectedRole) {
-          const existing = seats.find((s) => s.role?.id === selectedRole.id);
-          if (existing) {
-            if (existing.id === id) changeRole(id, "", roles);
-            return;
-          }
-          changeRole(id, selectedRole.id, roles);
-        } else {
-          commitSeats((prev) =>
-            prev.map((s) =>
-              s.id === id ? { ...s, role: null, displayRole: null } : s
-            )
-          );
-        }
-      } else {
-        interactionHandleSeatClick(id, options);
-      }
+      interactionHandleSeatClick(id, options);
     },
-    [
-      gamePhase,
-      selectedRole,
-      seats,
-      changeRole,
-      interactionHandleSeatClick,
-    commitSeats,
-    ]
+    [interactionHandleSeatClick]
   );
 
   useEffect(() => {

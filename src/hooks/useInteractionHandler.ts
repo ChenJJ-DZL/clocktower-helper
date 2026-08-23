@@ -194,7 +194,13 @@ export function useInteractionHandler(deps: {
         if (targetSeat?.role) {
           // 再次点击同一角色的座位，或者在未选中角色时点击已有角色的座位 -> 视为取消落座，清空该座位
           if (!selectedRole || selectedRole.id === targetSeat.role.id) {
-            dispatch(gameActions.updateSeat(id, { role: null }));
+            dispatch(
+              gameActions.updateSeat(id, {
+                role: null,
+                displayRole: null,
+                charadeRole: null,
+              })
+            );
             dispatch(gameActions.setSelectedRole(null));
             if (gamePhase === "setup") {
               dispatch(
@@ -213,11 +219,23 @@ export function useInteractionHandler(deps: {
             (s) => s.role?.id === selectedRole.id
           );
           if (existingSeat && existingSeat.id !== id) {
-            dispatch(gameActions.updateSeat(existingSeat.id, { role: null }));
+            dispatch(
+              gameActions.updateSeat(existingSeat.id, {
+                role: null,
+                displayRole: null,
+                charadeRole: null,
+              })
+            );
           }
 
           // 将新角色落座到当前座位
-          dispatch(gameActions.updateSeat(id, { role: selectedRole }));
+          dispatch(
+            gameActions.updateSeat(id, {
+              role: selectedRole,
+              displayRole: selectedRole,
+              charadeRole: null,
+            })
+          );
           dispatch(gameActions.setSelectedRole(null));
           if (gamePhase === "setup") {
             dispatch(
@@ -239,10 +257,22 @@ export function useInteractionHandler(deps: {
           );
           if (existingSeat) {
             // 将该角色从旧座位移过来，旧座位清空
-            dispatch(gameActions.updateSeat(existingSeat.id, { role: null }));
+            dispatch(
+              gameActions.updateSeat(existingSeat.id, {
+                role: null,
+                displayRole: null,
+                charadeRole: null,
+              })
+            );
           }
 
-          dispatch(gameActions.updateSeat(id, { role: selectedRole }));
+          dispatch(
+            gameActions.updateSeat(id, {
+              role: selectedRole,
+              displayRole: selectedRole,
+              charadeRole: null,
+            })
+          );
           dispatch(gameActions.setSelectedRole(null));
           if (gamePhase === "setup") {
             dispatch(
