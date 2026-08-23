@@ -65,8 +65,34 @@ export const GameStage = () => {
     setCurrentWakeIndex,
     setSeats,
     setGamePhase,
+    nominationRecords,
     gameId,
   } = gameState;
+
+  // 检查玩家本黄昏是否已发起提名/已被提名
+  const hasPlayerNominated = useCallback(
+    (seatId: number) => {
+      if (!nominationRecords?.nominators) return false;
+      return nominationRecords.nominators instanceof Set
+        ? nominationRecords.nominators.has(seatId)
+        : Array.isArray(nominationRecords.nominators)
+          ? (nominationRecords.nominators as number[]).includes(seatId)
+          : false;
+    },
+    [nominationRecords]
+  );
+
+  const hasPlayerBeenNominated = useCallback(
+    (seatId: number) => {
+      if (!nominationRecords?.nominees) return false;
+      return nominationRecords.nominees instanceof Set
+        ? nominationRecords.nominees.has(seatId)
+        : Array.isArray(nominationRecords.nominees)
+          ? (nominationRecords.nominees as number[]).includes(seatId)
+          : false;
+    },
+    [nominationRecords]
+  );
 
   // 从 controller 获取方法和 ref
   const {
@@ -443,26 +469,37 @@ export const GameStage = () => {
               longPressingSeats={new Set()}
               nominator={nominator}
               nominee={nominee}
+              nominationRecords={nominationRecords}
               onSeatClick={(seat) => {
                 // Nomination logic for dusk phase
-                // 注意：W7.3.0 起 onSeatClick 回调参数统一为 number（座位 id）。
                 const seatId = seat;
-                // 🔧 修复：已死亡玩家不能被选为提名者或被提名者（官方规则）。
-                //   此前无 isDead 检查，UI 允许点击已死玩家 → 处决死循环。
                 const clickedSeat = seats.find((s) => s.id === seatId);
-                if (clickedSeat?.isDead) return;
+                if (clickedSeat?.isDead) {
+                  showAlert(`${seatId + 1}号玩家已死亡，不能发起或接受提名。`);
+                  return;
+                }
                 if (nominator === null) {
-                  // No nominator selected - select this seat as nominator
+                  // 正在选择提名者：检查是否本黄昏已发起过提名
+                  if (hasPlayerNominated(seatId)) {
+                    showAlert(
+                      `${seatId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
+                    );
+                    return;
+                  }
                   setNominator(seatId);
                 } else if (nominee === null && seatId !== nominator) {
-                  // Nominator selected but no nominee - select this seat as nominee
+                  // 正在选择被提名者：检查是否本黄昏已被提名过
+                  if (hasPlayerBeenNominated(seatId)) {
+                    showAlert(
+                      `${seatId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
+                    );
+                    return;
+                  }
                   setNominee(seatId);
                 } else if (nominee === null && seatId === nominator) {
                   // Clicking the same nominator - allow deselection
                   setNominator(null);
                 }
-                // If both nominator and nominee are selected, ignore clicks
-                // User must use the "发起提名" button or cancel nomination to change selection
               }}
               onContextMenu={(e, seatId) => {
                 e.preventDefault();
@@ -470,21 +507,30 @@ export const GameStage = () => {
               }}
               onTouchStart={(e, seatId) => {
                 e.stopPropagation();
-                // 🔧 修复：已死亡玩家不能被选为提名者或被提名者（与 onSeatClick 一致）
                 const clickedSeat = seats.find((s) => s.id === seatId);
-                if (clickedSeat?.isDead) return;
+                if (clickedSeat?.isDead) {
+                  showAlert(`${seatId + 1}号玩家已死亡，不能发起或接受提名。`);
+                  return;
+                }
                 if (nominator === null) {
-                  // No nominator selected - select this seat as nominator
+                  if (hasPlayerNominated(seatId)) {
+                    showAlert(
+                      `${seatId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
+                    );
+                    return;
+                  }
                   setNominator(seatId);
                 } else if (nominee === null && seatId !== nominator) {
-                  // Nominator selected but no nominee - select this seat as nominee
+                  if (hasPlayerBeenNominated(seatId)) {
+                    showAlert(
+                      `${seatId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
+                    );
+                    return;
+                  }
                   setNominee(seatId);
                 } else if (nominee === null && seatId === nominator) {
-                  // Clicking the same nominator - allow deselection
                   setNominator(null);
                 }
-                // If both nominator and nominee are selected, ignore touches
-                // User must use the nomination button or cancel to change selection
               }}
               onTouchEnd={(e, _seatId) => {
                 e.stopPropagation();
@@ -512,11 +558,11 @@ export const GameStage = () => {
             />
 
             {/* Overlay Instruction */}
-            <div className="absolute top-4 left-0 right-0 text-center text-orange-500 font-bold text-lg drop-shadow-lg z-30">
+            <div className="absolute top-4 left-0 right-0 text-center text-orange-500 font-bold text-lg drop-shadow-lg z-30 pointer-events-none">
               {nominator === null
-                ? "点击选择 提名者"
+                ? "点击选择 提名者（每人每黄昏限发起 1 次）"
                 : nominee === null
-                  ? `已选择提名者: ${nominator + 1}号，点击选择 被提名者`
+                  ? `已选择提名者: ${nominator + 1}号，点击选择 被提名者（每人每黄昏限被提 1 次）`
                   : `准备提名: ${nominator + 1}号 → ${nominee + 1}号`}
             </div>
           </div>
@@ -832,6 +878,46 @@ export const GameStage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* 本黄昏提名限制记录 */}
+              {((nominationRecords?.nominators &&
+                (nominationRecords.nominators instanceof Set
+                  ? nominationRecords.nominators.size > 0
+                  : (nominationRecords.nominators as any).length > 0)) ||
+                (nominationRecords?.nominees &&
+                  (nominationRecords.nominees instanceof Set
+                    ? nominationRecords.nominees.size > 0
+                    : (nominationRecords.nominees as any).length > 0))) && (
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-amber-500/20 space-y-1.5 text-xs">
+                  <div className="text-gray-300 font-bold flex items-center gap-1.5">
+                    <span>📋</span> 本黄昏提名记录（每人限发起 1 次 / 被提 1 次）：
+                  </div>
+                  {nominationRecords?.nominators && (
+                    <div className="text-amber-300/90 pl-4">
+                      • 已发起提名：
+                      {Array.from(
+                        nominationRecords.nominators instanceof Set
+                          ? nominationRecords.nominators
+                          : nominationRecords.nominators
+                      )
+                        .map((id: any) => `${id + 1}号`)
+                        .join("、") || "无"}
+                    </div>
+                  )}
+                  {nominationRecords?.nominees && (
+                    <div className="text-cyan-300/90 pl-4">
+                      • 已被提名过：
+                      {Array.from(
+                        nominationRecords.nominees instanceof Set
+                          ? nominationRecords.nominees
+                          : nominationRecords.nominees
+                      )
+                        .map((id: any) => `${id + 1}号`)
+                        .join("、") || "无"}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Voting Recorder / 简要提示：投票在弹窗中完成 */}
@@ -909,7 +995,23 @@ export const GameStage = () => {
                     const nominatorSeat = seats.find((s) => s.id === nominator);
                     const nomineeSeat = seats.find((s) => s.id === nominee);
                     if (nominatorSeat?.isDead || nomineeSeat?.isDead) {
-                      showAlert("已死亡玩家不能被提名，请重新选择。");
+                      showAlert("已死亡玩家不能发起或接受提名，请重新选择。");
+                      setNominator(null);
+                      setNominee(null);
+                      return;
+                    }
+                    if (hasPlayerNominated(nominator)) {
+                      showAlert(
+                        `${nominator + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
+                      );
+                      setNominator(null);
+                      setNominee(null);
+                      return;
+                    }
+                    if (hasPlayerBeenNominated(nominee)) {
+                      showAlert(
+                        `${nominee + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
+                      );
                       setNominator(null);
                       setNominee(null);
                       return;
@@ -924,12 +1026,26 @@ export const GameStage = () => {
                       );
                       return;
                     }
-                    // Call executeNomination (which handles Virgin trigger from Step 4)
-                    // 🔧 贞洁者自动处决时返回 true → 不再打开投票弹窗（跳过投票环节）
+                    // Call executeNomination
+                    const result = executeNomination(nominator, nominee, {
+                      openVoteModal: false,
+                    });
+                    if (
+                      result === false ||
+                      (typeof result === "object" &&
+                        result !== null &&
+                        (result as any).success === false)
+                    ) {
+                      setNominator(null);
+                      setNominee(null);
+                      return;
+                    }
                     const virginHandled =
-                      executeNomination(nominator, nominee, {
-                        openVoteModal: false,
-                      }) === true;
+                      result === true ||
+                      (typeof result === "object" &&
+                        result !== null &&
+                        (result as any).virginHandled === true);
+
                     addLog(`📣 ${nominator + 1}号 提名了 ${nominee + 1}号`);
                     playSound("execute");
                     // Reset selection
@@ -942,7 +1058,6 @@ export const GameStage = () => {
                     } else {
                       setPendingVoteFor(nominee);
                       setLastNominator(nominator);
-                      // 取消自动辩护倒计时，由说书人手动控制节奏
                       // 立即自动进入投票环节，打开举手名单面板进行计票
                       setCurrentModal({
                         type: "VOTE_INPUT",

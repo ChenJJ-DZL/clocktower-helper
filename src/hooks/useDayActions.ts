@@ -167,22 +167,38 @@ export function useDayActions(deps: DayActionsDeps) {
       const currentNomineeCount = Object.keys(nominationMap).length;
       if (currentNomineeCount > 0 && !nominationMap[id]) {
         addLog("规则：同一时间只能有一名玩家被提名。请先完成当前提名的投票");
-        return;
+        return false;
       }
 
-      if (nominationRecords.nominators.has(sourceId)) {
-        addLog("每名玩家每个黄昏只能发起一次提名");
-        return;
+      const nominatorsSet =
+        nominationRecords?.nominators instanceof Set
+          ? nominationRecords.nominators
+          : new Set(
+              Array.isArray(nominationRecords?.nominators)
+                ? nominationRecords.nominators
+                : []
+            );
+      const nomineesSet =
+        nominationRecords?.nominees instanceof Set
+          ? nominationRecords.nominees
+          : new Set(
+              Array.isArray(nominationRecords?.nominees)
+                ? nominationRecords.nominees
+                : []
+            );
+
+      if (nominatorsSet.has(sourceId)) {
+        addLog(
+          `每名玩家每个黄昏只能发起一次提名（${sourceId + 1}号本黄昏已发起过提名）`
+        );
+        return false;
       }
 
-      if (sourceId !== id && nominationRecords.nominees.has(id)) {
-        addLog("每名玩家每个黄昏只能被提名一次");
-        return;
-      }
-
-      if (sourceId === id && nominationRecords.nominees.has(id)) {
-        addLog("每名玩家每个黄昏只能被提名一次");
-        return;
+      if (nomineesSet.has(id)) {
+        addLog(
+          `每名玩家每个黄昏只能被提名一次（${id + 1}号本黄昏已被提名过）`
+        );
+        return false;
       }
 
       if (witchActive && witchCursedId !== null) {
@@ -195,7 +211,7 @@ export function useDayActions(deps: DayActionsDeps) {
           });
           setWitchCursedId(null);
           setWitchActive(false);
-          return;
+          return false;
         }
       }
       setNominationMap((prev: Record<number, number>) => ({
@@ -261,8 +277,8 @@ export function useDayActions(deps: DayActionsDeps) {
             setNominationMap({});
             setNominationRecords(
               (prev: { nominators: Set<number>; nominees: Set<number> }) => ({
-                nominators: new Set(prev.nominators).add(sourceId),
-                nominees: new Set(prev.nominees).add(id),
+                nominators: new Set(prev?.nominators ? (prev.nominators instanceof Set ? prev.nominators : prev.nominators) : []).add(sourceId),
+                nominees: new Set(prev?.nominees ? (prev.nominees instanceof Set ? prev.nominees : prev.nominees) : []).add(id),
               })
             );
 
@@ -278,9 +294,8 @@ export function useDayActions(deps: DayActionsDeps) {
                 isVirginTrigger: true,
               },
             });
-            // 🔧 返回 true：贞洁者已自动处决提名者（跳过投票环节），
-            //   GameStage 据此不再打开 VOTE_INPUT 弹窗。
-            return true;
+            // 🔧 返回 virginHandled 标记：贞洁者已自动处决提名者（跳过投票环节）
+            return { success: true, virginHandled: true };
           } else {
             setSeats(updatedSeats);
           }
@@ -307,8 +322,8 @@ export function useDayActions(deps: DayActionsDeps) {
 
       setNominationRecords(
         (prev: { nominators: Set<number>; nominees: Set<number> }) => ({
-          nominators: new Set(prev.nominators).add(sourceId),
-          nominees: new Set(prev.nominees).add(id),
+          nominators: new Set(prev?.nominators ? (prev.nominators instanceof Set ? prev.nominators : prev.nominators) : []).add(sourceId),
+          nominees: new Set(prev?.nominees ? (prev.nominees instanceof Set ? prev.nominees : prev.nominees) : []).add(id),
         })
       );
       addLog(`${sourceId + 1}号提名 ${id + 1}号`);
@@ -317,6 +332,7 @@ export function useDayActions(deps: DayActionsDeps) {
       if (options?.openVoteModal !== false) {
         setCurrentModal({ type: "VOTE_INPUT", data: { voterId: id } });
       }
+      return { success: true, virginHandled: false };
     },
     [
       nominationRecords,

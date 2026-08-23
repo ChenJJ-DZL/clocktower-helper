@@ -98,6 +98,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     getSeatPosition,
     getDisplayRoleType,
     typeColors,
+    gamePhase,
+    nominationRecords,
     nominator = null,
     nominee = null,
     seatNote,
@@ -105,6 +107,24 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
   } = props;
 
   const ctx = useGameActions();
+
+  const hasNominated =
+    gamePhase === "dusk" &&
+    nominationRecords?.nominators &&
+    (nominationRecords.nominators instanceof Set
+      ? nominationRecords.nominators.has(s.id)
+      : Array.isArray(nominationRecords.nominators)
+        ? (nominationRecords.nominators as number[]).includes(s.id)
+        : false);
+
+  const hasBeenNominated =
+    gamePhase === "dusk" &&
+    nominationRecords?.nominees &&
+    (nominationRecords.nominees instanceof Set
+      ? nominationRecords.nominees.has(s.id)
+      : Array.isArray(nominationRecords.nominees)
+        ? (nominationRecords.nominees as number[]).includes(s.id)
+        : false);
 
   const {
     colorClass,
@@ -274,6 +294,22 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-xs px-2 py-0.5"} bg-red-600 rounded-full shadow font-bold animate-pulse`}
             >
               ⚖️{s.voteCount}
+            </span>
+          )}
+          {hasNominated && (
+            <span
+              className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-[10px] px-1.5 py-0.5"} bg-amber-600/90 text-white rounded-full shadow font-bold border border-amber-400/50`}
+              title="本黄昏已发起过提名"
+            >
+              已提
+            </span>
+          )}
+          {hasBeenNominated && (
+            <span
+              className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-[10px] px-1.5 py-0.5"} bg-cyan-700/90 text-white rounded-full shadow font-bold border border-cyan-400/50`}
+              title="本黄昏已被提名过"
+            >
+              被提
             </span>
           )}
         </div>

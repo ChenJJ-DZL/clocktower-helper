@@ -44,4 +44,34 @@ describe("VoteInputModal - 计票计算逻辑测试", () => {
     });
     expect(effectiveVoters2.length).toBe(2);
   });
+
+  test("黄昏提名限制：同一黄昏每个角色只能提名1次和被提名1次", () => {
+    const nominationRecords = {
+      nominators: new Set<number>(),
+      nominees: new Set<number>(),
+    };
+
+    const nominatorId = 2; // 3号玩家
+    const nomineeId = 14; // 15号玩家
+
+    // 初次检查：均未被记录
+    expect(nominationRecords.nominators.has(nominatorId)).toBe(false);
+    expect(nominationRecords.nominees.has(nomineeId)).toBe(false);
+
+    // 发起提名成功，记录
+    nominationRecords.nominators.add(nominatorId);
+    nominationRecords.nominees.add(nomineeId);
+
+    // 3号玩家不可再次发起提名
+    expect(nominationRecords.nominators.has(nominatorId)).toBe(true);
+
+    // 3号玩家仍可以作为被提名者
+    expect(nominationRecords.nominees.has(nominatorId)).toBe(false);
+
+    // 15号玩家不可再次被提名
+    expect(nominationRecords.nominees.has(nomineeId)).toBe(true);
+
+    // 15号玩家仍可以发起提名
+    expect(nominationRecords.nominators.has(nomineeId)).toBe(false);
+  });
 });

@@ -29,6 +29,11 @@ export interface SeatGridProps {
   typeColors: Record<string, string>;
   layoutMode?: "circle" | "matrix";
   // Dusk phase selection indicators
+  gamePhase?: string;
+  nominationRecords?: {
+    nominators: Set<number> | number[];
+    nominees: Set<number> | number[];
+  };
   nominator?: number | null;
   nominee?: number | null;
   seatNotes?: Record<number, string>;
@@ -52,6 +57,8 @@ export function SeatGrid(props: SeatGridProps) {
     getDisplayRoleType,
     typeColors,
     layoutMode = "circle",
+    gamePhase,
+    nominationRecords,
     nominator = null,
     nominee = null,
     seatNotes = {},
@@ -85,6 +92,8 @@ export function SeatGrid(props: SeatGridProps) {
               getSeatPosition={getSeatPosition}
               getDisplayRoleType={getDisplayRoleType}
               typeColors={typeColors}
+              gamePhase={gamePhase}
+              nominationRecords={nominationRecords}
               nominator={nominator}
               nominee={nominee}
               seatNote={seatNotes[seat.id]}

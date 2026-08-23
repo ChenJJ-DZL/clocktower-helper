@@ -34,6 +34,10 @@ interface RoundTableProps {
   // Dusk phase selection indicators
   nominator?: number | null;
   nominee?: number | null;
+  nominationRecords?: {
+    nominators: Set<number> | number[];
+    nominees: Set<number> | number[];
+  };
 
   // Night order preview panel (top-right)
   nightOrderPreview?: Array<{
@@ -76,6 +80,7 @@ export function RoundTable({
   onTimerReset,
   nominator = null,
   nominee = null,
+  nominationRecords,
   nightOrderPreview = [],
   onOpenNightOrderPreview,
   onSetRedNemesis,
@@ -98,6 +103,30 @@ export function RoundTable({
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
   const boardRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic radius adjustment based on viewport and seat count
+  useEffect(() => {
+    const calculateRadius = () => {
+      if (!containerRef.current) return;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      const minDimension = Math.min(width, height);
+      const isMobile = window.innerWidth <= 768;
+
+      let baseRadius = isMobile ? 36 : 38;
+      if (seats.length > 15) baseRadius -= 2;
+      if (seats.length > 18) baseRadius -= 2;
+
+      setRadius(Math.max(28, Math.min(42, baseRadius)));
+      const baseSeatSize = isMobile ? 48 : 58;
+      const sizeMultiplier =
+        seats.length > 15 ? 0.85 : seats.length > 12 ? 0.92 : 1;
+      setSeatSize(Math.round(baseSeatSize * sizeMultiplier));
+    };
+
+    calculateRadius();
+    window.addEventListener("resize", calculateRadius);
+    return () => window.removeEventListener("resize", calculateRadius);
+  }, [seats.length]);
 
   const handleWheel = (e: React.WheelEvent) => {
     // Only zoom if pressing ctrl/cmd or if on a trackpad
@@ -227,6 +256,8 @@ export function RoundTable({
             }
             getDisplayRoleType={getDisplayRoleType}
             typeColors={typeColors}
+            gamePhase={gamePhase}
+            nominationRecords={nominationRecords}
             nominator={nominator}
             nominee={nominee}
             seatNotes={seatNotes}

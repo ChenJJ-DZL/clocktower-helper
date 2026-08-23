@@ -24,6 +24,11 @@ export interface SeatNodeProps {
   getDisplayRoleType: (seat: Seat) => string | null;
   typeColors: Record<string, string>;
   // Dusk phase selection indicators
+  gamePhase?: string;
+  nominationRecords?: {
+    nominators: Set<number> | number[];
+    nominees: Set<number> | number[];
+  };
   nominator?: number | null;
   nominee?: number | null;
   voteThreshold?: number;
