@@ -284,7 +284,7 @@ export function RoundTable({
         {(scale !== 1 || panX.get() !== 0 || panY.get() !== 0) && (
           <button
             onClick={handleResetView}
-            className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-full border border-white/20 shadow-xl backdrop-blur-sm text-white"
+            className="w-10 h-10 flex items-center justify-center bg-slate-900/90 hover:bg-slate-800 rounded-full border border-white/20 shadow-lg text-white transition-all overflow-hidden"
             title="复位视角"
           >
             <svg
