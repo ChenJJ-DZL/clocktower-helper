@@ -61,11 +61,23 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
     expect(res2.result).toBe("【没有】");
   });
 
-  test("送葬者处决信息", () => {
-    const raw = "送葬者得知：今天被处决的 4号 的角色是【贞洁者】";
-    const res = parseInfoResult(raw, "送葬者");
-    expect(res.prefix).toBe("送葬者得知：今天被处决的 4号 的角色是：");
-    expect(res.result).toBe("【贞洁者】");
+  test("送葬者处决信息（带括号与不带括号）", () => {
+    const rawWithBracket = "送葬者得知：今天被处决的 4号 的角色是【贞洁者】";
+    const res1 = parseInfoResult(rawWithBracket, "送葬者");
+    expect(res1.prefix).toBe("送葬者得知：今天被处决的 4号 的角色是：");
+    expect(res1.result).toBe("【贞洁者】");
+
+    const rawWithoutBracket = "送葬者获得信息：上一个白天被处决的玩家是镇长";
+    const res2 = parseInfoResult(rawWithoutBracket, "送葬者");
+    expect(res2.prefix).toBe("送葬者获得信息：上一个白天被处决的玩家是：");
+    expect(res2.result).toBe("【镇长】");
+  });
+
+  test("洗衣妇无括号信息解析", () => {
+    const raw = "洗衣妇获得信息：2号和3号之中有一名是守鸦人";
+    const res = parseInfoResult(raw, "洗衣妇");
+    expect(res.prefix).toBe("洗衣妇获得信息：2号和3号之中有一名是：");
+    expect(res.result).toBe("【守鸦人】");
   });
 
   test("筑梦师双角色信息", () => {
