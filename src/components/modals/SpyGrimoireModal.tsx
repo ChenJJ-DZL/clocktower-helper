@@ -431,10 +431,10 @@ export function SpyGrimoireModal({
           </div>
         </div>
 
-        {/* ─── 主体双栏区域：左紧凑椭圆盘面 (46%) + 右宽幅情报历史 (54%) ──────────────────────── */}
+        {/* ─── 主体双栏区域：左椭圆盘面 (50%) + 右情报历史 (50%) ──────────────────────── */}
         <div className="flex-1 flex flex-col md:flex-row gap-3 min-h-0 overflow-hidden">
-          {/* ─── 左栏：紧凑椭圆魔典盘面 (46% 宽) ────────────────────────────── */}
-          <div className="w-full md:w-[46%] lg:w-[45%] shrink-0 flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-2 min-h-0 overflow-hidden relative shadow-inner">
+          {/* ─── 左栏：椭圆魔典盘面 (50% 宽) ────────────────────────────── */}
+          <div className="w-full md:w-1/2 md:flex-1 flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-2 min-h-0 overflow-hidden relative shadow-inner">
             <div className="flex items-center justify-between px-2 py-1 border-b border-white/10 shrink-0 z-20 bg-slate-950/90">
               <h3 className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                 <span>🪐 椭圆魔典真身分布</span>
@@ -629,8 +629,8 @@ export function SpyGrimoireModal({
             </div>
           </div>
 
-          {/* ─── 右栏：每个玩家每个晚上做了什么、得知了什么 (宽幅展示区，54% 宽) ──────── */}
-          <div className="flex-1 min-w-0 flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-3 min-h-0 overflow-hidden shadow-inner">
+          {/* ─── 右栏：每个玩家每个晚上做了什么、得知了什么 (50% 宽) ──────── */}
+          <div className="w-full md:w-1/2 md:flex-1 min-w-0 flex flex-col bg-slate-950/80 rounded-xl border border-white/10 p-3 min-h-0 overflow-hidden shadow-inner">
             {/* 顶部 Tab 过滤栏 */}
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2 pb-2 border-b border-white/10 shrink-0">
               <div className="flex flex-wrap items-center gap-1.5">
