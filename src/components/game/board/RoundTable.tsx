@@ -90,8 +90,32 @@ export function RoundTable({
 }: RoundTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState(35); // Default radius in percentage
-  const [_seatSize, setSeatSize] = useState(72); // Seat size in pixels
-  const [isNightOrderExpanded, setIsNightOrderExpanded] = useState(false);
+  // 默认夜晚展开：在每个夜晚开始时（首夜或后续夜晚），默认展开夜晚行动顺序
+  const [isNightOrderExpanded, setIsNightOrderExpanded] = useState(
+    gamePhase === "firstNight" || gamePhase === "night"
+  );
+
+  // 监听夜晚阶段与夜晚轮数变更，在新夜晚开始时自动重置为展开
+  const prevNightRef = useRef<{ phase: string; count: number }>({
+    phase: gamePhase,
+    count: nightCount,
+  });
+
+  useEffect(() => {
+    const isNight = gamePhase === "firstNight" || gamePhase === "night";
+    const wasNight =
+      prevNightRef.current.phase === "firstNight" ||
+      prevNightRef.current.phase === "night";
+    const countChanged = prevNightRef.current.count !== nightCount;
+
+    // 当进入夜晚阶段（从白天/黄昏/检查切入夜晚），或夜晚轮数推进时，默认展开
+    if (isNight && (!wasNight || countChanged)) {
+      setIsNightOrderExpanded(true);
+    }
+
+    prevNightRef.current = { phase: gamePhase, count: nightCount };
+  }, [gamePhase, nightCount]);
+
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
