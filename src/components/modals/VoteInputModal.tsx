@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { Seat } from "../../../app/data";
 import type { ModalType } from "../../types/modal";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface ButlerVoteInfo {
   butlerId: number;
@@ -51,22 +51,16 @@ export function VoteInputModalContent(props: {
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   // 🔧 二次确认阶段：点"确认"后先展示"共收到X票，上/不上处决台"，确认后才提交计票
   const [confirmStage, setConfirmStage] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    setSelectedVoters([]);
-    setConfirmStage(false);
-  }, []);
+  if (voterId === null) return null;
 
-  if (voterId === null || typeof document === "undefined" || !mounted) return null;
   const candidate = seats.find((s) => s.id === voterId);
   const aliveCore = seats.filter((s) => {
     if (!s.role) return false;
-    const roleType = (s.role as any).type;
+    const roleType = (s.role as any)?.type;
     return !s.isDead && roleType !== "traveler";
   });
-  const threshold = Math.ceil(aliveCore.length / 2);
+  const threshold = Math.max(1, Math.ceil(aliveCore.length / 2));
 
   const toggleVoter = (id: number) => {
     setSelectedVoters((prev) =>
@@ -104,7 +98,6 @@ export function VoteInputModalContent(props: {
       alert("选择中包含已用完幽灵票的死亡玩家");
       return;
     }
-    // 进入二次确认阶段
     setConfirmStage(true);
   };
 
@@ -113,43 +106,65 @@ export function VoteInputModalContent(props: {
     props.submitVotes(effectiveCount, effectiveVoters);
     setSelectedVoters([]);
     setConfirmStage(false);
+    props.setCurrentModal(null);
+    if (props.setShowVoteInputModal) {
+      props.setShowVoteInputModal(null);
+    }
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[2147483647] bg-black/75 backdrop-blur-sm flex items-center justify-center"
-      role="dialog"
-      aria-modal="true"
+  const handleClose = () => {
+    setSelectedVoters([]);
+    setConfirmStage(false);
+    props.setCurrentModal(null);
+    if (props.setShowVoteInputModal) {
+      props.setShowVoteInputModal(null);
+    }
+  };
+
+  return (
+    <ModalWrapper
+      title={confirmStage ? "🗳️ 确认计票" : "🗳️ 举手表决计票"}
+      onClose={handleClose}
+      closeOnOverlayClick={false}
+      className="max-w-2xl"
     >
-      <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-blue-500 relative w-[720px] max-h-[90vh] overflow-y-auto">
+      <div className="p-6 text-white text-center">
         {confirmStage ? (
           /* ============ 二次确认：共收到X票，上/不上处决台 ============ */
-          <div className="py-4">
-            <h3 className="text-3xl font-bold mb-2">🗳️ 确认计票</h3>
-            <div className="text-sm text-gray-300 mb-4">
-              被提名者：{candidate ? `${candidate.id + 1}号` : "未知"}（提名者投票后计票）
+          <div className="py-2">
+            <div className="text-base text-amber-200/90 mb-3">
+              被提名者：
+              <span className="font-bold text-amber-400">
+                {candidate
+                  ? `${candidate.id + 1}号 ${candidate.playerName || ""}`
+                  : "未知"}
+              </span>
             </div>
-            <div className="text-4xl font-black mb-2">
+            <div className="text-4xl font-black mb-3 text-white">
               共收到
-              <span className="text-blue-300 mx-1">{effectiveCount}</span>
+              <span className="text-amber-400 mx-2 text-5xl">
+                {effectiveCount}
+              </span>
               票
             </div>
             <div
-              className={`inline-block text-lg font-bold px-4 py-1.5 rounded-xl mb-4 ${
+              className={`inline-block text-lg font-bold px-6 py-2 rounded-xl mb-4 shadow-md ${
                 effectiveCount >= threshold
-                  ? "bg-red-900/50 text-red-200 border border-red-500/60"
-                  : "bg-emerald-900/50 text-emerald-200 border border-emerald-500/60"
+                  ? "bg-red-900/60 text-red-200 border border-red-500/80"
+                  : "bg-emerald-900/60 text-emerald-200 border border-emerald-500/80"
               }`}
             >
-              {effectiveCount >= threshold ? "上处决台" : "不上处决台"}
+              {effectiveCount >= threshold
+                ? "⚠️ 达到门槛（上处决台）"
+                : "✓ 未达门槛（不上处决台）"}
             </div>
-            <div className="text-xs text-gray-400 mb-2">
-              上台门槛：{threshold} 票（存活玩家半数向上取整）
+            <div className="text-sm text-gray-300 mb-3">
+              上台门槛：{threshold} 票（存活玩家 {aliveCore.length} 人，半数向上取整）
             </div>
 
             {/* 管家票不计算提示 */}
             {excludedButlers.length > 0 && (
-              <div className="text-left text-xs bg-yellow-900/30 border border-yellow-600/40 rounded-lg p-3 mb-4 space-y-1">
+              <div className="text-left text-xs bg-yellow-900/40 border border-yellow-600/50 rounded-xl p-3 mb-4 space-y-1">
                 <div className="text-yellow-300 font-bold mb-1">
                   ⚠️ 以下管家票不计算（主人未投票）：
                 </div>
@@ -163,7 +178,7 @@ export function VoteInputModalContent(props: {
             )}
 
             {excludedButlers.length === 0 && butlerInfos.length > 0 && (
-              <div className="text-left text-xs bg-emerald-900/30 border border-emerald-600/40 rounded-lg p-3 mb-4 space-y-1">
+              <div className="text-left text-xs bg-emerald-900/40 border border-emerald-600/50 rounded-xl p-3 mb-4 space-y-1">
                 <div className="text-emerald-300 font-bold mb-1">
                   管家票（主人已投票）：
                 </div>
@@ -178,46 +193,51 @@ export function VoteInputModalContent(props: {
               </div>
             )}
 
-            <div className="text-xs text-gray-400 mb-2">
+            <div className="text-sm text-gray-300 mb-6">
               投票者：
               {effectiveVoters.length > 0
                 ? effectiveVoters.map((id) => `${id + 1}号`).join("、")
                 : "无"}
             </div>
 
-            <div className="flex gap-3 justify-center mt-4">
+            <div className="flex gap-4 justify-center">
               <button
-                onClick={handleFinalConfirm}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow"
-              >
-                确认提交
-              </button>
-              <button
+                type="button"
                 onClick={() => setConfirmStage(false)}
-                className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold shadow"
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold transition shadow-md"
               >
                 返回修改
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalConfirm}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-md"
+              >
+                确认提交计票
               </button>
             </div>
           </div>
         ) : (
           /* ============ 第一阶段：选择举手玩家 ============ */
           <>
-            <h3 className="text-3xl font-bold mb-4">🗳️ 选择举手玩家</h3>
-            <div className="mb-4 text-sm text-gray-200 leading-relaxed">
-              <div>
-                当前被提名者：{candidate ? `${candidate.id + 1}号` : "未知"}
+            <div className="mb-4 text-center">
+              <div className="text-lg font-bold text-amber-300">
+                当前被提名者：
+                {candidate
+                  ? `${candidate.id + 1}号 ${candidate.playerName || ""}`
+                  : "未知"}
               </div>
-              <div className="text-xs text-yellow-300 mt-1">
-                规则：选中的死亡玩家会自动消耗幽灵票；没有幽灵票的死亡玩家无法再举手。
+              <div className="text-xs text-gray-400 mt-1">
+                请在下方勾选本轮举手的玩家；存活玩家可自由举手，死亡玩家消耗 1 张幽灵票。
               </div>
-              <div className="text-xs text-yellow-200 mt-1">
-                场上仍有死者票的玩家：
-                {ghostHolders.length ? ghostHolders.join("、") : "无"}
-              </div>
+              {ghostHolders.length > 0 && (
+                <div className="text-xs text-amber-200/80 mt-1">
+                  场上仍有幽灵票的死亡玩家：{ghostHolders.join("、")}
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 mb-4 max-h-[48vh] overflow-y-auto p-1">
               {seats
                 .filter((s) => s.role)
                 .map((s) => {
@@ -230,12 +250,12 @@ export function VoteInputModalContent(props: {
                       type="button"
                       disabled={disabled}
                       onClick={() => toggleVoter(s.id)}
-                      className={`p-3 rounded-xl border-2 text-left transition ${
+                      className={`p-3 rounded-xl border-2 text-center transition flex flex-col items-center justify-center gap-1 ${
                         disabled
-                          ? "border-gray-700 bg-gray-900/50 text-gray-500 cursor-not-allowed"
+                          ? "border-gray-800 bg-gray-900/60 text-gray-600 cursor-not-allowed opacity-50"
                           : isSelected
-                            ? "border-blue-400 bg-blue-900/60 text-white shadow-lg shadow-blue-500/30"
-                            : "border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
+                            ? "border-amber-400 bg-amber-600 text-white shadow-lg shadow-amber-500/30 scale-105 font-bold"
+                            : "border-slate-700 bg-slate-800/90 text-slate-200 hover:border-slate-500 hover:bg-slate-700"
                       }`}
                       title={
                         ghostUsed
@@ -245,44 +265,43 @@ export function VoteInputModalContent(props: {
                             : "存活玩家"
                       }
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="font-bold">
-                          {s.id + 1}号 {s.playerName || ""}
-                        </div>
-                        <div className="text-xs text-gray-300">
-                          {s.isDead
-                            ? ghostUsed
-                              ? "💀(无票)"
-                              : "💀 幽灵票"
-                            : "存活"}
-                        </div>
+                      <div className="font-bold text-base">
+                        {s.id + 1}号
+                      </div>
+                      <div className="text-xs truncate max-w-full">
+                        {s.playerName || (s.role ? s.role.name : "")}
+                      </div>
+                      <div className="text-[11px] opacity-80">
+                        {s.isDead
+                          ? ghostUsed
+                            ? "💀已无票"
+                            : "💀幽灵票"
+                          : "🟢存活"}
                       </div>
                     </button>
                   );
                 })}
             </div>
 
-            <div className="mb-4 text-sm text-gray-100">
+            <div className="mb-4 text-sm text-gray-200 bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
               <div>
                 当前选中的票数：
-                <span className="font-bold text-blue-200 text-lg">
+                <span className="font-bold text-amber-400 text-xl mx-1">
                   {selectedVoters.length}
                 </span>
+                票（上台门槛：{threshold} 票）
               </div>
-              <div className="text-xs text-gray-300 mt-1">
-                存活：{selectedAlive} 张 / 死亡（消耗幽灵票）：{selectedDead} 张
-              </div>
-              <div className="text-xs text-gray-300 mt-1">
-                上台门槛：{threshold} 票
+              <div className="text-xs text-gray-400 mt-1">
+                存活举手：{selectedAlive} 人 ｜ 死亡举手（消耗幽灵票）：{selectedDead} 人
               </div>
               {invalidDeadSelected && (
-                <div className="mt-2 text-red-400 text-xs">
-                  选择中包含已用完幽灵票的死亡玩家，请取消勾选
+                <div className="mt-2 text-red-400 text-xs font-bold">
+                  ⚠️ 选择中包含已用完幽灵票的死亡玩家，请取消勾选
                 </div>
               )}
             </div>
 
-            {/* 🔧 管家票实时内联展示（替代原原生 alert）：选中管家时显示主人投票状态 */}
+            {/* 管家票实时内联展示 */}
             {butlerInfos.length > 0 && (
               <div className="mb-4 text-left text-xs space-y-1">
                 <div className="text-yellow-300 font-bold">
@@ -298,14 +317,14 @@ export function VoteInputModalContent(props: {
                     }`}
                   >
                     {b.butlerId + 1}号管家角色的票，因为 {b.masterId + 1}号主人{" "}
-                    {b.masterVoting ? "投票" : "未投票"}，本次票数{" "}
+                    {b.masterVoting ? "已投票" : "未投票"}，本次票数{" "}
                     {b.masterVoting ? "计算" : "不计算"}
                   </div>
                 ))}
                 {excludedButlers.length > 0 && (
                   <div className="text-gray-300 mt-1">
-                    实际计票：
-                    <span className="font-bold text-blue-200">
+                    实际有效计票：
+                    <span className="font-bold text-amber-400">
                       {effectiveCount}
                     </span>{" "}
                     票（已剔除 {excludedButlers.length} 张管家无效票）
@@ -314,30 +333,26 @@ export function VoteInputModalContent(props: {
               </div>
             )}
 
-            <div className="flex gap-3 justify-center">
+            <div className="flex gap-4 justify-center">
               <button
-                onClick={handleFirstConfirm}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                确认（{selectedVoters.length} 票）
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedVoters([]);
-                  setConfirmStage(false);
-                  props.setCurrentModal(null);
-                  if (props.setShowVoteInputModal)
-                    props.setShowVoteInputModal(null);
-                }}
-                className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold shadow"
+                type="button"
+                onClick={handleClose}
+                className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold transition shadow-md"
               >
                 取消
+              </button>
+              <button
+                type="button"
+                disabled={invalidDeadSelected}
+                onClick={handleFirstConfirm}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                确认（{selectedVoters.length} 票）
               </button>
             </div>
           </>
         )}
       </div>
-    </div>,
-    document.body
+    </ModalWrapper>
   );
 }
