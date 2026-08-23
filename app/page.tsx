@@ -935,6 +935,7 @@ export default function Home() {
             )}
             {gamePhase === "setup" && (
               <GameLayout
+                topBar={<GlobalNavBar />}
                 leftPanel={
                   <div className="w-full h-full p-4 bg-transparent">
                     <div className="w-full h-full flex items-center justify-center">
