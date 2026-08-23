@@ -31,13 +31,13 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Table/Seating Chart */}
         <main className="flex-1 relative overflow-hidden bg-slate-950">
-          {/* 徕卡质感自适应背景图（明亮通透、高微反差与浓郁色彩） */}
+          {/* 徕卡质感自适应背景图 */}
           <div
             className="absolute inset-0 bg-no-repeat bg-center pointer-events-none transition-all duration-700"
             style={{
               backgroundImage: "url('/assets/table-bg.png')",
               backgroundSize: "100% 100%",
-              filter: "brightness(0.90) contrast(1.18) saturate(1.12)",
+              filter: "brightness(0.78) contrast(1.15) saturate(1.08)",
             }}
           />
 
@@ -46,8 +46,8 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
             className="absolute inset-0 pointer-events-none z-0"
             style={{
               background:
-                "radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.22) 86%, rgba(0, 0, 0, 0.60) 100%)",
-              boxShadow: "inset 0 0 40px rgba(0, 0, 0, 0.5)",
+                "radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, 0.28) 84%, rgba(0, 0, 0, 0.65) 100%)",
+              boxShadow: "inset 0 0 50px rgba(0, 0, 0, 0.55)",
             }}
           />
 
