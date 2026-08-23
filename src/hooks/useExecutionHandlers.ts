@@ -598,7 +598,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         (s) => !s.isDead && s.role && s.role.type !== "traveler"
       );
       const aliveCount = aliveCoreSeats.length;
-      const threshold = Math.floor(aliveCount / 2) + 1;
+      const threshold = Math.max(1, Math.ceil(aliveCount / 2));
 
       setSeats((prev) =>
         prev.map((s) => {
@@ -1145,7 +1145,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       (s) => !s.isDead && s.role && s.role.type !== "traveler"
     );
     const aliveCount = aliveCoreSeats.length;
-    const threshold = Math.floor(aliveCount / 2) + 1;
+    const threshold = Math.max(1, Math.ceil(aliveCount / 2));
 
     const _max = cands[0].voteCount || 0;
     const qualifiedCands = cands.filter((c) => (c.voteCount || 0) >= threshold);
