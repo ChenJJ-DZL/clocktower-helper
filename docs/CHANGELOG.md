@@ -1,6 +1,6 @@
 # 更新日志
 
-## W8.8.3 — 规则严谨性重构 + 弹窗体系标准化 + 自建剧本全流程打通 (2026-08-23)
+## W8.23.2 — 规则严谨性重构 + 弹窗体系标准化 + 自建剧本全流程打通 (2026-08-23)
 
 > 详细工程复盘与根因分析请见文档：[POSTMORTEM_AND_ENGINEERING_GUIDELINES.md](./POSTMORTEM_AND_ENGINEERING_GUIDELINES.md)
 

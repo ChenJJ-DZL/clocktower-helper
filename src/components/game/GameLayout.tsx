@@ -22,7 +22,7 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
     <div className="h-full w-full overflow-hidden bg-transparent flex flex-col">
       {/* Top Bar - Navbar / Toolbar */}
       {topBar && (
-        <div className="shrink-0 border-b border-white/10 bg-slate-900/95 backdrop-blur-sm z-50">
+        <div className="topbar-frost shrink-0 border-b border-white/10 bg-slate-900/95 backdrop-blur-sm z-50">
           {topBar}
         </div>
       )}

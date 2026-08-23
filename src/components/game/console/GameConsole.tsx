@@ -2,9 +2,10 @@
 
 import React from "react";
 import type { GamePhase, Seat } from "../../../../app/data";
+import { useTheme } from "../../../contexts/ThemeContext";
 import { getRoleDefinition } from "../../../roles";
-import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import type { NightInfoResult } from "../../../types/game";
+import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
 
 interface GameConsoleProps {
@@ -136,6 +137,14 @@ export const GameConsole = React.memo(function GameConsole({
   };
 
   const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
+  // 手风琴折叠状态：Modern 默认折叠，Classic 默认展开（零迁移成本）
+  const { theme } = useTheme();
+  const [roleDocExpanded, setRoleDocExpanded] = React.useState(
+    theme === "classic"
+  );
+  React.useEffect(() => {
+    setRoleDocExpanded(theme === "classic");
+  }, [theme]);
   const currentActorRoleName =
     nightInfo?.seat?.role?.id === "drunk"
       ? nightInfo?.seat?.charadeRole?.name
@@ -363,108 +372,128 @@ export const GameConsole = React.memo(function GameConsole({
           </div>
         )}
 
-        {/* Reorganized Section: Role Description (角色说明) */}
+        {/* Reorganized Section: Role Description (角色说明) - 极简手风琴，Modern 主题默认折叠 */}
         {(scriptText || guidancePoints.length > 0 || currentActorRoleName) && (
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 mb-2 ml-1">
-              <span className="w-1.5 h-6 bg-blue-500 rounded-full" />
-              角色说明
-            </h3>
+            <button
+              type="button"
+              onClick={() => setRoleDocExpanded((v) => !v)}
+              className="w-full flex items-center justify-between group"
+            >
+              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 mb-2 ml-1">
+                <span className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                角色说明
+              </h3>
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all duration-200 whitespace-nowrap ${
+                  roleDocExpanded
+                    ? "bg-blue-900/40 border-blue-600/40 text-blue-200"
+                    : "bg-slate-800/60 border-white/10 text-slate-400 group-hover:text-slate-200 group-hover:border-white/20"
+                }`}
+              >
+                {roleDocExpanded ? "📕 收起说明" : "📖 查看完整规则 Wiki"}
+              </span>
+            </button>
 
-            {/* 运作方式 - Standardized Card Style */}
-            {roleDoc?.operation && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
-                <div className="text-[13px] font-bold uppercase tracking-widest text-blue-400 mb-3 group-hover:text-blue-300 transition">
-                  运作方式
-                </div>
-                <div className="text-[15px] text-slate-200 whitespace-pre-wrap leading-relaxed">
-                  {roleDoc.operation}
-                </div>
-              </div>
-            )}
-
-            {/* 范例 */}
-            {roleDoc?.examples && roleDoc.examples.length > 0 && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
-                <div className="text-[13px] font-bold uppercase tracking-widest text-emerald-400 mb-3 group-hover:text-emerald-300 transition">
-                  范例
-                </div>
-                <div className="space-y-3">
-                  {roleDoc.examples.map((example, index) => {
-                    const exampleKey = `example-${index}-${example.substring(0, 20).replace(/\s+/g, "-")}`;
-                    return (
-                      <div
-                        key={exampleKey}
-                        className="text-[14px] text-slate-300 whitespace-pre-wrap leading-relaxed p-3 bg-white/5 rounded-xl border border-white/5 font-light"
-                      >
-                        {example}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* 规则细节 */}
-            {roleDoc?.rulesDetails && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
-                <div className="text-[13px] font-bold uppercase tracking-widest text-amber-400 mb-3 group-hover:text-amber-300 transition">
-                  规则细节
-                </div>
-                <div className="text-[14px] text-slate-200 whitespace-pre-wrap leading-relaxed font-light">
-                  {roleDoc.rulesDetails}
-                </div>
-              </div>
-            )}
-
-            {/* 提示标记 */}
-            {roleDoc?.prompts && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
-                <div className="text-[13px] font-bold uppercase tracking-widest text-purple-400 mb-3 group-hover:text-purple-300 transition">
-                  提示标记
-                </div>
-                <div className="text-[14px] text-slate-200 whitespace-pre-wrap leading-relaxed font-light">
-                  {roleDoc.prompts}
-                </div>
-              </div>
-            )}
-
-            {/* 角色特性 */}
-            {currentActorRoleName &&
-              roleDoc?.traits &&
-              roleDoc.traits.length > 0 && (
+            {/* 手风琴折叠体 */}
+            <div
+              className={`grid transition-all duration-300 ease-out ${roleDocExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"} ${roleDocExpanded ? "" : "pointer-events-none select-none overflow-hidden"}`}
+            >
+              {/* 运作方式 - Standardized Card Style */}
+              {roleDoc?.operation && (
                 <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
-                  <div className="text-[13px] font-bold uppercase tracking-widest text-cyan-400 mb-3 group-hover:text-cyan-300 transition">
-                    特性
+                  <div className="text-[13px] font-bold uppercase tracking-widest text-blue-400 mb-3 group-hover:text-blue-300 transition">
+                    运作方式
                   </div>
-                  <div className="text-[14px] text-slate-300 font-medium">
-                    {roleDoc.traits.join(" / ")}
+                  <div className="text-[15px] text-slate-200 whitespace-pre-wrap leading-relaxed">
+                    {roleDoc.operation}
                   </div>
                 </div>
               )}
 
-            {/* 其他提示 (filteredGuidancePoints) */}
-            {filteredGuidancePoints.length > 0 && (
-              <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
-                <div className="text-[13px] font-bold uppercase tracking-widest text-slate-400 mb-3 group-hover:text-slate-300 transition">
-                  其他提示
+              {/* 范例 */}
+              {roleDoc?.examples && roleDoc.examples.length > 0 && (
+                <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                  <div className="text-[13px] font-bold uppercase tracking-widest text-emerald-400 mb-3 group-hover:text-emerald-300 transition">
+                    范例
+                  </div>
+                  <div className="space-y-3">
+                    {roleDoc.examples.map((example, index) => {
+                      const exampleKey = `example-${index}-${example.substring(0, 20).replace(/\s+/g, "-")}`;
+                      return (
+                        <div
+                          key={exampleKey}
+                          className="text-[14px] text-slate-300 whitespace-pre-wrap leading-relaxed p-3 bg-white/5 rounded-xl border border-white/5 font-light"
+                        >
+                          {example}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {filteredGuidancePoints.map((point, index) => {
-                    const pointKey = `guidance-${index}-${point.substring(0, 20).replace(/\s+/g, "-")}`;
-                    return (
-                      <div
-                        key={pointKey}
-                        className="flex items-start gap-3 text-[14px] text-slate-300"
-                      >
-                        <span className="text-slate-500 mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
-                        <span className="leading-relaxed">{point}</span>
-                      </div>
-                    );
-                  })}
+              )}
+
+              {/* 规则细节 */}
+              {roleDoc?.rulesDetails && (
+                <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                  <div className="text-[13px] font-bold uppercase tracking-widest text-amber-400 mb-3 group-hover:text-amber-300 transition">
+                    规则细节
+                  </div>
+                  <div className="text-[14px] text-slate-200 whitespace-pre-wrap leading-relaxed font-light">
+                    {roleDoc.rulesDetails}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* 提示标记 */}
+              {roleDoc?.prompts && (
+                <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                  <div className="text-[13px] font-bold uppercase tracking-widest text-purple-400 mb-3 group-hover:text-purple-300 transition">
+                    提示标记
+                  </div>
+                  <div className="text-[14px] text-slate-200 whitespace-pre-wrap leading-relaxed font-light">
+                    {roleDoc.prompts}
+                  </div>
+                </div>
+              )}
+
+              {/* 角色特性 */}
+              {currentActorRoleName &&
+                roleDoc?.traits &&
+                roleDoc.traits.length > 0 && (
+                  <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                    <div className="text-[13px] font-bold uppercase tracking-widest text-cyan-400 mb-3 group-hover:text-cyan-300 transition">
+                      特性
+                    </div>
+                    <div className="text-[14px] text-slate-300 font-medium">
+                      {roleDoc.traits.join(" / ")}
+                    </div>
+                  </div>
+                )}
+
+              {/* 其他提示 (filteredGuidancePoints) */}
+              {filteredGuidancePoints.length > 0 && (
+                <div className="bg-slate-800/40 rounded-2xl border border-white/5 p-5 hover:bg-slate-800/60 transition shadow-lg group">
+                  <div className="text-[13px] font-bold uppercase tracking-widest text-slate-400 mb-3 group-hover:text-slate-300 transition">
+                    其他提示
+                  </div>
+                  <div className="space-y-2">
+                    {filteredGuidancePoints.map((point, index) => {
+                      const pointKey = `guidance-${index}-${point.substring(0, 20).replace(/\s+/g, "-")}`;
+                      return (
+                        <div
+                          key={pointKey}
+                          className="flex items-start gap-3 text-[14px] text-slate-300"
+                        >
+                          <span className="text-slate-500 mt-1.5 w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                          <span className="leading-relaxed">{point}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -687,7 +716,7 @@ export const GameConsole = React.memo(function GameConsole({
                 }
               }}
               disabled={primaryAction.disabled}
-              className={`w-full h-16 rounded-xl text-xl font-bold shadow-lg transition ${getActionVariantClass(
+              className={`btn-arcane-primary w-full h-16 rounded-xl text-xl font-bold shadow-lg transition ${getActionVariantClass(
                 primaryAction.variant
               )} ${primaryAction.disabled ? "opacity-50 cursor-not-allowed" : "active:scale-95"}`}
             >

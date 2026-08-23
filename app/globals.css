@@ -1,6 +1,10 @@
 /* by 拜甘教成员-大长老 */
 @import "tailwindcss";
 
+/* 双主题自定义变体：theme-modern: / theme-classic: 前缀（作用于 <html> 上的主题类） */
+@custom-variant theme-modern (&:where(.theme-modern, .theme-modern *));
+@custom-variant theme-classic (&:where(.theme-classic, .theme-classic *));
+
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
@@ -186,7 +190,9 @@ body > * {
 
 /* 所有按钮最小触控热区 44px（WCAG 2.1 AA 标准） */
 @media (pointer: coarse) {
-  button, [role="button"], a[role="button"] {
+  button,
+  [role="button"],
+  a[role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
@@ -205,8 +211,12 @@ body > * {
 
 /* 小屏幕优化（手机竖屏时缩小字体避免溢出） */
 @media (max-width: 480px) {
-  .text-xs { font-size: 10px !important; }
-  .text-sm { font-size: 12px !important; }
+  .text-xs {
+    font-size: 10px !important;
+  }
+  .text-sm {
+    font-size: 12px !important;
+  }
 }
 
 /* Firefox 滚动条样式 */
@@ -481,3 +491,203 @@ body > * {
   box-shadow: 0 8px 24px rgba(245, 158, 11, 0.6), inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   双主题系统 (Dual Theme System)
+   .theme-modern — 暗黑哥特拟物风 | .theme-classic — 高对比扁平风
+   主题类挂载于 <html>，所有主题差异通过作用域选择器实现
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Modern: 深邃暗夜黑曜石暗角渐变背景 ── */
+.theme-modern body {
+  background: radial-gradient(ellipse at center, #0e1726 0%, #06090e 100%);
+}
+
+.theme-modern body::before {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(14, 23, 38, 0.5) 0%,
+    rgba(6, 9, 14, 0.85) 50%,
+    rgba(3, 4, 7, 0.97) 100%
+  );
+}
+
+/* ── Modern: 顶部悬浮操作栏磨砂玻璃质感 ── */
+.theme-modern .topbar-frost {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 9999px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Modern: 拟物圆桌代币（金属边缘高光 + 立体内阴影）── */
+.theme-modern .seat-token {
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 阵营色彩微光（叠加在既有 border 色之上）*/
+.theme-modern .seat-token.glow-townsfolk {
+  border-color: rgba(251, 191, 36, 0.8);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
+    0 0 12px rgba(245, 158, 11, 0.25),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+.theme-modern .seat-token.glow-outsider {
+  border-color: rgba(52, 211, 153, 0.8);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
+    0 0 12px rgba(16, 185, 129, 0.25),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+.theme-modern .seat-token.glow-minion {
+  border-color: rgba(249, 115, 22, 0.8);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
+    0 0 12px rgba(249, 115, 22, 0.25),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+.theme-modern .seat-token.glow-demon {
+  border-color: rgba(220, 38, 38, 0.9);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
+    0 0 15px rgba(239, 68, 68, 0.35),
+    0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Modern: 死亡状态干裂纹理 + 血色印记 ── */
+.theme-modern .seat-token.dead-cracked {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 6px,
+      rgba(0, 0, 0, 0.35) 6px,
+      rgba(0, 0, 0, 0.35) 7px
+    ),
+    linear-gradient(
+      to bottom right,
+      rgba(30, 30, 30, 0.75),
+      rgba(10, 10, 10, 0.85)
+    );
+}
+.theme-modern .dead-blood-mark::after {
+  content: "✕";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 900;
+  color: rgba(185, 28, 28, 0.65);
+  text-shadow: 0 0 8px rgba(127, 29, 29, 0.8);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ── Modern: 中央复古法阵罗盘 ── */
+.theme-modern .compass-ring {
+  position: relative;
+}
+.theme-modern .compass-ring::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-top-color: rgba(245, 158, 11, 0.7);
+  border-right-color: rgba(245, 158, 11, 0.7);
+  animation: compass-spin 24s linear infinite;
+  pointer-events: none;
+}
+.theme-modern .compass-ring::after {
+  content: "";
+  position: absolute;
+  inset: -34px;
+  border-radius: 50%;
+  border: 1px dashed rgba(148, 163, 184, 0.2);
+  animation: compass-spin 40s linear infinite reverse;
+  pointer-events: none;
+}
+@keyframes compass-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 倒计时数字荧光呼吸动效 */
+@keyframes glow-breath {
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px rgba(103, 232, 249, 0.4),
+      0 0 16px rgba(103, 232, 249, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 14px rgba(103, 232, 249, 0.8),
+      0 0 28px rgba(103, 232, 249, 0.45);
+  }
+}
+.theme-modern .timer-glow {
+  animation: glow-breath 2.6s ease-in-out infinite;
+}
+
+/* ── Modern: 主操作按钮质感渐变与流光边框 ── */
+@keyframes shimmer-sweep {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+.theme-modern .btn-arcane-primary {
+  position: relative;
+  background-image: linear-gradient(
+    135deg,
+    #b45309 0%,
+    #d97706 30%,
+    #f59e0b 50%,
+    #d97706 70%,
+    #b45309 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer-sweep 5s linear infinite;
+  border: 1px solid rgba(252, 211, 77, 0.5);
+  box-shadow:
+    0 0 20px rgba(245, 158, 11, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.theme-modern .btn-arcane-primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.theme-modern .btn-arcane-primary:disabled {
+  filter: grayscale(0.7) brightness(0.6);
+  animation: none;
+}
+
+/* ── Classic: 确保扁平高对比回退（显式重置，零迁移成本）── */
+.theme-classic .compass-ring::before,
+.theme-classic .compass-ring::after {
+  content: none;
+}
+.theme-classic .timer-glow {
+  animation: none;
+}
+.theme-classic .btn-arcane-primary {
+  animation: none;
+  background-image: none;
+}

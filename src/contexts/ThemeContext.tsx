@@ -1,55 +1,70 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 export type Theme = "modern" | "classic";
 
-interface ThemeContextType {
+const THEME_STORAGE_KEY = "clocktower_theme";
+const DEFAULT_THEME: Theme = "modern";
+
+interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const THEME_STORAGE_KEY = "clocktower_theme";
+function readInitialTheme(): Theme {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "classic" || stored === "modern" ? stored : DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
+}
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("modern");
-  const [mounted, setMounted] = useState(false);
+function applyThemeClass(theme: Theme) {
+  const root = document.documentElement;
+  const body = document.body;
+  root.classList.remove("theme-classic", "theme-modern");
+  root.classList.add(`theme-${theme}`);
+  if (body) {
+    body.classList.remove("theme-classic", "theme-modern");
+    body.classList.add(`theme-${theme}`);
+  }
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === "classic" || saved === "modern") {
-      setThemeState(saved);
-      applyThemeClass(saved);
-    } else {
-      applyThemeClass("modern");
+    const initial = readInitialTheme();
+    setThemeState(initial);
+    applyThemeClass(initial);
+  }, []);
+
+  const setTheme = useCallback((next: Theme) => {
+    setThemeState(next);
+    applyThemeClass(next);
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // localStorage 不可用时主题仅在会话内生效
     }
   }, []);
 
-  const applyThemeClass = (t: Theme) => {
-    const root = document.documentElement;
-    const body = document.body;
-
-    root.classList.remove("theme-modern", "theme-classic");
-    body.classList.remove("theme-modern", "theme-classic");
-
-    root.classList.add(`theme-${t}`);
-    body.classList.add(`theme-${t}`);
-  };
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
-    applyThemeClass(newTheme);
-  };
-
-  const toggleTheme = () => {
-    const next = theme === "modern" ? "classic" : "modern";
-    setTheme(next);
-  };
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "modern" ? "classic" : "modern");
+  }, [setTheme, theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
@@ -58,14 +73,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (!context) {
+export function useTheme(): ThemeContextValue {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) {
     return {
-      theme: "modern" as Theme,
+      theme: "modern",
       setTheme: () => {},
       toggleTheme: () => {},
     };
   }
-  return context;
+  return ctx;
 }
+

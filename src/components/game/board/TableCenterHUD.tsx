@@ -101,7 +101,7 @@ export function TableCenterHUD({
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-      <div className="px-8 py-6 rounded-3xl bg-slate-900/85 shadow-2xl backdrop-blur-xl border border-white/10 flex flex-col items-center gap-3 pointer-events-auto">
+      <div className="compass-ring px-8 py-6 rounded-3xl bg-slate-900/85 shadow-2xl backdrop-blur-xl border border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_40px_rgba(245,158,11,0.12)] flex flex-col items-center gap-3 pointer-events-auto">
         {/* Phase Indicator */}
         <div
           className={`text-4xl font-black tracking-wide ${getPhaseColor()} drop-shadow-[0_0_12px_rgba(59,130,246,0.5)]`}
@@ -113,7 +113,7 @@ export function TableCenterHUD({
         <div className="flex flex-col items-center gap-2">
           <button
             onClick={handleTimerClick}
-            className="text-3xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)] hover:text-cyan-200 transition-colors cursor-pointer"
+            className="timer-glow text-3xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)] hover:text-cyan-200 transition-colors cursor-pointer"
             title={isTimerRunning ? "点击暂停" : "点击继续"}
           >
             {formatTimer(timer)}
@@ -133,7 +133,9 @@ export function TableCenterHUD({
             >
               ↺ 重置
             </button>
-            <div className={`px-2 py-1 text-xs font-semibold rounded-md ${isTimerRunning ? "text-emerald-400 bg-emerald-900/30" : "text-amber-400 bg-amber-900/30"}`}>
+            <div
+              className={`px-2 py-1 text-xs font-semibold rounded-md ${isTimerRunning ? "text-emerald-400 bg-emerald-900/30" : "text-amber-400 bg-amber-900/30"}`}
+            >
               {isTimerRunning ? "● 运行中" : "❚❚ 已暂停"}
             </div>
           </div>
