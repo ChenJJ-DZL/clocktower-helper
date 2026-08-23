@@ -572,270 +572,355 @@ export const GameStage = () => {
           </div>
         }
         rightPanel={
-          <div className="h-full flex flex-col p-4 gap-2 overflow-y-auto relative z-40 justify-between">
-            {/* 顶部标题与门槛 */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0">
-              <h2 className="text-xl font-black text-orange-400 tracking-wide flex items-center gap-1.5">
+          <div className="h-full flex flex-col p-4 relative z-40 bg-slate-900/60 backdrop-blur-md">
+            {/* 顶部标题与门槛指标 */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0 mb-2.5">
+              <h2 className="text-lg font-black text-orange-400 tracking-wide flex items-center gap-1.5">
                 <span>⚖️</span> 处决台与提名
               </h2>
-              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold">
-                门槛: {voteThreshold} 票 ({aliveCoreCount}存活)
-              </span>
-            </div>
-
-            {/* 核心流程阶段引导卡片（根据当前环节自适应切换） */}
-            <div className="space-y-2 shrink-0">
-              {pendingVoteFor !== null ? (
-                /* 阶段二：辩护与投票进行中 */
-                <div className="p-3 rounded-lg bg-blue-950/40 border border-blue-500/40 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-blue-300 font-bold border-b border-blue-500/20 pb-1.5">
-                    <span className="flex items-center gap-1">
-                      <span>🗳️</span> 步骤 2/3：辩护与计票
-                    </span>
-                    <span className="text-emerald-400 text-[11px] animate-pulse">
-                      ● 待计票: {pendingVoteFor + 1}号
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 text-[11.5px]">
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <span className="w-4 h-4 rounded-full bg-blue-500/30 flex items-center justify-center text-[10px] font-bold text-blue-300 shrink-0">
-                        1
-                      </span>
-                      <span>
-                        让 <strong className="text-amber-300">{lastNominator !== null ? `${lastNominator + 1}号` : "提名者"}{lastNominator !== null && seats[lastNominator]?.role?.name ? ` (${seats[lastNominator].role.name})` : ""}</strong> 发言陈述提名理由
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <span className="w-4 h-4 rounded-full bg-amber-500/30 flex items-center justify-center text-[10px] font-bold text-amber-300 shrink-0">
-                        2
-                      </span>
-                      <span>
-                        让 <strong className="text-cyan-300">{pendingVoteFor + 1}号{seats[pendingVoteFor]?.role?.name ? ` (${seats[pendingVoteFor].role.name})` : ""}</strong> 进行防守辩护发言
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-200">
-                      <span className="w-4 h-4 rounded-full bg-emerald-500/30 flex items-center justify-center text-[10px] font-bold text-emerald-300 shrink-0">
-                        3
-                      </span>
-                      <span>
-                        辩护完毕，点击下方【开始投票】打开举手计票面板
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : nominator !== null && nominee !== null ? (
-                /* 阶段一（就绪）：已选定提名者与被提名者 */
-                <div className="p-3 rounded-lg bg-orange-950/40 border border-orange-500/40 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-orange-300 font-bold border-b border-orange-500/20 pb-1.5">
-                    <span className="flex items-center gap-1">
-                      <span>📣</span> 步骤 1/3：确认发起提名
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNominator(null);
-                        setNominee(null);
-                      }}
-                      className="text-[11px] text-red-400 hover:text-red-300 underline font-normal cursor-pointer"
-                    >
-                      取消重选
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-around bg-slate-900/70 py-1.5 px-2 rounded border border-white/5 text-xs">
-                    <div className="text-center">
-                      <span className="text-gray-400 text-[10px] block">提名者</span>
-                      <span className="text-amber-300 font-bold">
-                        {nominator + 1}号 {seats[nominator]?.role?.name ? `(${seats[nominator].role.name})` : ""}
-                      </span>
-                    </div>
-                    <span className="text-orange-400 font-bold text-base">➔</span>
-                    <div className="text-center">
-                      <span className="text-gray-400 text-[10px] block">被提名者</span>
-                      <span className="text-cyan-300 font-bold">
-                        {nominee + 1}号 {seats[nominee]?.role?.name ? `(${seats[nominee].role.name})` : ""}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-orange-200/80 leading-relaxed">
-                    💡 点击下方【发起提名】，系统将自动校验角色被动（如贞洁者立刻处决等），随后进入辩护与投票环节。
-                  </div>
-                </div>
-              ) : nominator !== null && nominee === null ? (
-                /* 阶段一（选择中）：已选提名者，请选被提名者 */
-                <div className="p-3 rounded-lg bg-orange-950/40 border border-orange-500/40 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-orange-300 font-bold">
-                    <span className="flex items-center gap-1">
-                      <span>👉</span> 步骤 1/3：选择被提名者
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNominator(null);
-                        setNominee(null);
-                      }}
-                      className="text-[11px] text-red-400 hover:text-red-300 underline font-normal cursor-pointer"
-                    >
-                      重选
-                    </button>
-                  </div>
-                  <div className="bg-slate-900/60 p-2 rounded text-[11.5px] text-slate-200">
-                    已选提名者：<strong className="text-amber-300">{nominator + 1}号 {seats[nominator]?.role?.name ? `(${seats[nominator].role.name})` : ""}</strong>
-                    <div className="text-gray-400 text-[11px] mt-1">
-                      请在左侧圆桌点击选择一名【被提名者】（每人每黄昏限被提名 1 次）。
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* 阶段一（待机）：自由讨论发言 */
-                <div className="p-2.5 rounded-lg bg-slate-800/80 border border-white/10 space-y-1 text-xs">
-                  <div className="text-orange-300 font-bold flex items-center gap-1">
-                    <span>🗣️</span> 步骤 1/3：自由讨论与提名
-                  </div>
-                  <div className="text-[11px] text-gray-300 leading-relaxed">
-                    说书人引导全场自由讨论。当有玩家发起提名时，请在圆桌依次点击【提名者】与【被提名者】。
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 处决台（上台者展示与规则状态） */}
-            <div className="bg-slate-800/90 p-3 rounded-lg border border-white/10 space-y-2 shrink-0">
-              {(() => {
-                const candidates: Array<{ id: number; voteCount: number }> =
-                  seats
-                    .filter((s: Seat) => s.isCandidate)
-                    .map((s: Seat) => ({
-                      id: s.id,
-                      voteCount: s.voteCount || 0,
-                    }))
-                    .sort(
-                      (
-                        a: { id: number; voteCount: number },
-                        b: { id: number; voteCount: number }
-                      ) => b.voteCount - a.voteCount
-                    );
-
-                const topVotes = candidates.length > 0 ? candidates[0].voteCount : 0;
-                const tops = candidates.filter((c) => c.voteCount === topVotes);
-                const isTie = tops.length >= 2;
-
-                return (
-                  <>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-white font-bold flex items-center gap-1.5">
-                        <span>🏛️</span> 处决台（上台者）
-                      </span>
-                      {candidates.length > 0 && (
-                        <span className="text-xs text-yellow-300 font-bold">
-                          最高 {topVotes} 票 {isTie ? "（⚠️平票）" : ""}
-                        </span>
-                      )}
-                    </div>
-
-                    {candidates.length === 0 ? (
-                      <div className="text-xs text-gray-400 py-1 bg-slate-900/50 px-2 rounded">
-                        暂无上台者（达到 {voteThreshold} 票方可上台）
-                      </div>
-                    ) : (
-                      <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {candidates.map((c) => (
-                          <div
-                            key={c.id}
-                            className={`flex justify-between items-center text-xs rounded px-2.5 py-1 border ${
-                              c.voteCount === topVotes
-                                ? isTie
-                                  ? "border-yellow-500/60 bg-yellow-900/20 text-yellow-100 font-bold"
-                                  : "border-red-500/60 bg-red-900/25 text-red-100 font-bold"
-                                : "border-white/10 bg-slate-900/40 text-slate-200"
-                            }`}
-                          >
-                            <span className="flex items-center gap-1.5">
-                              {c.voteCount === topVotes && !isTie && (
-                                <span className="text-red-400">👑 待处决:</span>
-                              )}
-                              {c.voteCount === topVotes && isTie && (
-                                <span className="text-yellow-400">⚠️ 平票:</span>
-                              )}
-                              <span>
-                                {c.id + 1}号 {seats[c.id]?.role?.name ? `(${seats[c.id].role.name})` : ""}
-                              </span>
-                            </span>
-                            <span className="font-mono font-bold">
-                              {c.voteCount} 票
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* 处决规则指引说明 */}
-                    <div className="text-[10.5px] text-gray-400 leading-relaxed border-t border-white/5 pt-1.5">
-                      {candidates.length === 0 ? (
-                        `💡 规则：得票达到半数门槛（≥${voteThreshold}票）且为全场最高票者上台；若最高票平票则无人被处决。`
-                      ) : isTie ? (
-                        <span className="text-yellow-300/90 font-medium">
-                          ⚠️ 当前最高票平票（{tops.map((t) => `${t.id + 1}号`).join("、")} 各 {topVotes} 票）。若无人继续发起更高票提名，今日将为平安日（无人处决）。
-                        </span>
-                      ) : (
-                        <span className="text-red-300/90 font-medium">
-                          ⚠️ 若无人继续发起更高票提名并反超（需 >{topVotes} 票），本黄昏将处决【{tops[0].id + 1}号】。
-                        </span>
-                      )}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* 本黄昏提名限制记录 */}
-            <div className="bg-slate-800/90 p-2.5 rounded-lg border border-white/10 space-y-1.5 shrink-0 text-xs">
-              <div className="flex items-center justify-between text-white font-bold">
-                <span className="flex items-center gap-1.5">
-                  <span>📋</span> 提名资格记录（每人限 1 次）
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                  门槛: {voteThreshold} 票 ({aliveCoreCount}存活)
                 </span>
               </div>
-              <div className="text-[11px] space-y-1 pt-0.5 text-gray-300">
-                <div className="truncate flex items-center gap-1">
-                  <span className="text-amber-400/90 font-medium shrink-0">已发起提名:</span>{" "}
-                  <span className="truncate">
-                    {nominationRecords?.nominators &&
-                    (nominationRecords.nominators instanceof Set
-                      ? nominationRecords.nominators.size > 0
-                      : (nominationRecords.nominators as any).length > 0)
-                      ? Array.from(
-                          nominationRecords.nominators instanceof Set
-                            ? nominationRecords.nominators
-                            : nominationRecords.nominators
-                        )
-                          .map((id: any) => `${id + 1}号`)
-                          .join("、")
-                      : "暂无"}
+            </div>
+
+            {/* 可滚动内容区域（填满中段，杜绝大片空白） */}
+            <div className="flex-1 space-y-2.5 overflow-y-auto pr-1 text-xs select-none">
+              {/* 模块 1：核心流程阶段向导 */}
+              <div className="space-y-1.5">
+                {pendingVoteFor !== null ? (
+                  /* 阶段二：辩护与投票进行中 */
+                  <div className="p-3 rounded-lg bg-blue-950/50 border border-blue-500/40 space-y-2 text-xs shadow-sm">
+                    <div className="flex items-center justify-between text-blue-300 font-bold border-b border-blue-500/20 pb-1.5">
+                      <span className="flex items-center gap-1">
+                        <span>🗳️</span> 步骤 2/3：辩护与举手计票
+                      </span>
+                      <span className="text-emerald-400 text-[11px] animate-pulse font-semibold">
+                        ● 待计票: {pendingVoteFor + 1}号
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 text-[11.5px]">
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <span className="w-4 h-4 rounded-full bg-blue-500/30 flex items-center justify-center text-[10px] font-bold text-blue-300 shrink-0">
+                          1
+                        </span>
+                        <span>
+                          让 <strong className="text-amber-300">{lastNominator !== null ? `${lastNominator + 1}号` : "提名者"}{lastNominator !== null && seats[lastNominator]?.role?.name ? ` (${seats[lastNominator].role.name})` : ""}</strong> 发言陈述控诉与提名理由
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <span className="w-4 h-4 rounded-full bg-amber-500/30 flex items-center justify-center text-[10px] font-bold text-amber-300 shrink-0">
+                          2
+                        </span>
+                        <span>
+                          让 <strong className="text-cyan-300">{pendingVoteFor + 1}号{seats[pendingVoteFor]?.role?.name ? ` (${seats[pendingVoteFor].role.name})` : ""}</strong> 进行防守辩护发言
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-200">
+                        <span className="w-4 h-4 rounded-full bg-emerald-500/30 flex items-center justify-center text-[10px] font-bold text-emerald-300 shrink-0">
+                          3
+                        </span>
+                        <span>
+                          辩护完毕，点击下方【开始投票】打开全场举手计票面板
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : nominator !== null && nominee !== null ? (
+                  /* 阶段一（就绪）：已选定提名者与被提名者 */
+                  <div className="p-3 rounded-lg bg-orange-950/50 border border-orange-500/40 space-y-2 text-xs shadow-sm">
+                    <div className="flex items-center justify-between text-orange-300 font-bold border-b border-orange-500/20 pb-1.5">
+                      <span className="flex items-center gap-1">
+                        <span>📣</span> 步骤 1/3：确认发起提名
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNominator(null);
+                          setNominee(null);
+                        }}
+                        className="text-[11px] text-red-400 hover:text-red-300 underline font-normal cursor-pointer"
+                      >
+                        取消重选
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-around bg-slate-900/80 py-2 px-3 rounded-md border border-white/5 text-xs">
+                      <div className="text-center">
+                        <span className="text-gray-400 text-[10px] block">提名者</span>
+                        <span className="text-amber-300 font-bold">
+                          {nominator + 1}号 {seats[nominator]?.role?.name ? `(${seats[nominator].role.name})` : ""}
+                        </span>
+                      </div>
+                      <span className="text-orange-400 font-bold text-lg">➔</span>
+                      <div className="text-center">
+                        <span className="text-gray-400 text-[10px] block">被提名者</span>
+                        <span className="text-cyan-300 font-bold">
+                          {nominee + 1}号 {seats[nominee]?.role?.name ? `(${seats[nominee].role.name})` : ""}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-orange-200/80 leading-relaxed">
+                      💡 点击下方【发起提名】，系统将自动触发角色被动技能检测（如贞洁者立刻处决等），随后进入辩护发言。
+                    </div>
+                  </div>
+                ) : nominator !== null && nominee === null ? (
+                  /* 阶段一（选择中）：已选提名者，请选被提名者 */
+                  <div className="p-3 rounded-lg bg-orange-950/40 border border-orange-500/40 space-y-2 text-xs shadow-sm">
+                    <div className="flex items-center justify-between text-orange-300 font-bold">
+                      <span className="flex items-center gap-1">
+                        <span>👉</span> 步骤 1/3：选择被提名者
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setNominator(null);
+                          setNominee(null);
+                        }}
+                        className="text-[11px] text-red-400 hover:text-red-300 underline font-normal cursor-pointer"
+                      >
+                        清空
+                      </button>
+                    </div>
+                    <div className="bg-slate-900/70 p-2.5 rounded-md text-[11.5px] text-slate-200">
+                      已选提名者：<strong className="text-amber-300">{nominator + 1}号 {seats[nominator]?.role?.name ? `(${seats[nominator].role.name})` : ""}</strong>
+                      <div className="text-gray-400 text-[11px] mt-1">
+                        请在左侧圆桌或下方矩阵点击选择一名【被提名者】（每人每黄昏限被提名 1 次）。
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* 阶段一（待机）：自由讨论发言 */
+                  <div className="p-3 rounded-lg bg-slate-800/80 border border-white/10 space-y-1.5 text-xs">
+                    <div className="text-orange-300 font-bold flex items-center gap-1.5">
+                      <span>🗣️</span> 步骤 1/3：自由讨论与控诉
+                    </div>
+                    <div className="text-[11px] text-gray-300 leading-relaxed">
+                      说书人引导全场自由发言。当有玩家正式发起提名时，请在圆桌或下方资格矩阵中依次点击【提名者】与【被提名者】。
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 模块 2：处决台看板 (The Block) */}
+              <div className="bg-slate-800/90 p-3 rounded-lg border border-white/10 space-y-2">
+                {(() => {
+                  const candidates: Array<{ id: number; voteCount: number }> =
+                    seats
+                      .filter((s: Seat) => s.isCandidate)
+                      .map((s: Seat) => ({
+                        id: s.id,
+                        voteCount: s.voteCount || 0,
+                      }))
+                      .sort(
+                        (
+                          a: { id: number; voteCount: number },
+                          b: { id: number; voteCount: number }
+                        ) => b.voteCount - a.voteCount
+                      );
+
+                  const topVotes = candidates.length > 0 ? candidates[0].voteCount : 0;
+                  const tops = candidates.filter((c) => c.voteCount === topVotes);
+                  const isTie = tops.length >= 2;
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between text-xs border-b border-white/5 pb-1.5">
+                        <span className="text-white font-bold flex items-center gap-1.5">
+                          <span>🏛️</span> 处决台（上台候选者）
+                        </span>
+                        {candidates.length > 0 && (
+                          <span className="text-xs text-yellow-300 font-bold">
+                            最高 {topVotes} 票 {isTie ? "（⚠️平票）" : ""}
+                          </span>
+                        )}
+                      </div>
+
+                      {candidates.length === 0 ? (
+                        <div className="text-xs text-gray-400 py-2 bg-slate-900/60 px-2.5 rounded-md text-center">
+                          暂无上台者（得票 ≥ {voteThreshold} 票且为最高票者方可上台）
+                        </div>
+                      ) : (
+                        <div className="space-y-1 max-h-28 overflow-y-auto">
+                          {candidates.map((c) => (
+                            <div
+                              key={c.id}
+                              className={`flex justify-between items-center text-xs rounded px-2.5 py-1.5 border ${
+                                c.voteCount === topVotes
+                                  ? isTie
+                                    ? "border-yellow-500/60 bg-yellow-900/25 text-yellow-100 font-bold"
+                                    : "border-red-500/60 bg-red-900/30 text-red-100 font-bold"
+                                  : "border-white/10 bg-slate-900/40 text-slate-200"
+                              }`}
+                            >
+                              <span className="flex items-center gap-1.5">
+                                {c.voteCount === topVotes && !isTie && (
+                                  <span className="text-red-400">👑 待处决:</span>
+                                )}
+                                {c.voteCount === topVotes && isTie && (
+                                  <span className="text-yellow-400">⚠️ 平票:</span>
+                                )}
+                                <span>
+                                  {c.id + 1}号 {seats[c.id]?.role?.name ? `(${seats[c.id].role.name})` : ""}
+                                </span>
+                              </span>
+                              <span className="font-mono font-bold">
+                                {c.voteCount} 票
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 处决规则指引说明 */}
+                      <div className="text-[10.5px] text-gray-400 leading-relaxed border-t border-white/5 pt-1.5">
+                        {candidates.length === 0 ? (
+                          `💡 规则：得票达到半数门槛（≥${voteThreshold}票）且为全场最高票者上台；若最高票平票则无人被处决。`
+                        ) : isTie ? (
+                          <span className="text-yellow-300/90 font-medium">
+                            ⚠️ 当前最高票平票（{tops.map((t) => `${t.id + 1}号`).join("、")} 各 {topVotes} 票）。若无人继续发起更高票提名，今日将为平安日（无人处决）。
+                          </span>
+                        ) : (
+                          <span className="text-red-300/90 font-medium">
+                            ⚠️ 若无人继续发起更高票提名并反超（需 >{topVotes} 票），本黄昏将处决【{tops[0].id + 1}号】。
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* 模块 3：全员资格与死者票矩阵 */}
+              <div className="bg-slate-800/80 p-3 rounded-lg border border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-white font-bold border-b border-white/5 pb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <span>👥</span> 全场资格与死者票矩阵
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-normal">点击玩家可快速设置提名</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-36 overflow-y-auto pr-0.5">
+                  {seats.map((s) => {
+                    const hasNominated = hasPlayerNominated(s.id);
+                    const hasBeenNominated = hasPlayerBeenNominated(s.id);
+                    const isDead = s.isDead;
+                    const isSelectedNominator = nominator === s.id;
+                    const isSelectedNominee = nominee === s.id;
+
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => {
+                          if (pendingVoteFor !== null) return;
+                          if (isDead) {
+                            showAlert("已死亡玩家不能发起或接受提名。");
+                            return;
+                          }
+                          if (nominator === null) {
+                            if (hasNominated) {
+                              showAlert(`${s.id + 1}号玩家今日已发起过提名。`);
+                              return;
+                            }
+                            setNominator(s.id);
+                          } else if (nominee === null) {
+                            if (s.id === nominator) {
+                              showAlert("不能提名自己。");
+                              return;
+                            }
+                            if (hasBeenNominated) {
+                              showAlert(`${s.id + 1}号玩家今日已被提名过。`);
+                              return;
+                            }
+                            setNominee(s.id);
+                          } else {
+                            setNominator(s.id);
+                            setNominee(null);
+                          }
+                        }}
+                        className={`p-1.5 rounded border text-[11px] flex flex-col justify-between transition cursor-pointer ${
+                          isSelectedNominator
+                            ? "bg-amber-950/80 border-amber-400 text-amber-200 font-bold shadow-sm"
+                            : isSelectedNominee
+                              ? "bg-cyan-950/80 border-cyan-400 text-cyan-200 font-bold shadow-sm"
+                              : isDead
+                                ? "bg-slate-900/40 border-white/5 text-gray-500 opacity-60"
+                                : "bg-slate-900/70 border-white/10 hover:border-orange-400/50 text-slate-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold">
+                            {s.id + 1}号 {s.role?.name || "未知"}
+                          </span>
+                          {isDead && (
+                            <span className="text-[9px] px-1 rounded bg-slate-800 text-gray-400">
+                              💀 亡
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1 text-[10px]">
+                          {!isDead ? (
+                            <>
+                              <span
+                                className={`px-1 py-0.2 rounded text-[9.5px] ${
+                                  hasNominated
+                                    ? "bg-red-900/30 text-red-400 border border-red-800/40"
+                                    : "bg-emerald-900/30 text-emerald-300 border border-emerald-800/40"
+                                }`}
+                                title={hasNominated ? "已发起提名" : "可发起提名"}
+                              >
+                                {hasNominated ? "已提" : "可提"}
+                              </span>
+                              <span
+                                className={`px-1 py-0.2 rounded text-[9.5px] ${
+                                  hasBeenNominated
+                                    ? "bg-red-900/30 text-red-400 border border-red-800/40"
+                                    : "bg-cyan-900/30 text-cyan-300 border border-cyan-800/40"
+                                }`}
+                                title={hasBeenNominated ? "已被提名过" : "可被提名"}
+                              >
+                                {hasBeenNominated ? "已被提" : "可被提"}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-purple-300/80 text-[10px]">
+                              {(s as any).ghostVote === false ? "⚪ 死者票已用" : "👻 存有死者票"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 模块 4：说书人主持话术与黄昏规则指南 */}
+              <div className="bg-slate-800/60 p-3 rounded-lg border border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-orange-300 font-bold border-b border-white/5 pb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <span>📖</span> 说书人主持话术与规则指南
                   </span>
                 </div>
-                <div className="truncate flex items-center gap-1">
-                  <span className="text-cyan-400/90 font-medium shrink-0">已被提名过:</span>{" "}
-                  <span className="truncate">
-                    {nominationRecords?.nominees &&
-                    (nominationRecords.nominees instanceof Set
-                      ? nominationRecords.nominees.size > 0
-                      : (nominationRecords.nominees as any).length > 0)
-                      ? Array.from(
-                          nominationRecords.nominees instanceof Set
-                            ? nominationRecords.nominees
-                            : nominationRecords.nominees
-                        )
-                          .map((id: any) => `${id + 1}号`)
-                          .join("、")
-                      : "暂无"}
-                  </span>
+                <div className="space-y-1.5 text-[11px] text-slate-300 leading-relaxed">
+                  <div className="bg-slate-900/60 p-2 rounded border border-white/5">
+                    <div className="text-amber-300 font-semibold mb-0.5">📢 阶段宣布词：</div>
+                    <p className="text-slate-300">
+                      “太阳落山，进入黄昏。当前存活 <strong>{aliveCoreCount}</strong> 人，处决门槛为 <strong>{voteThreshold}</strong> 票。每位玩家今日限发起 1 次提名，也限被提名 1 次。请大家自由控诉与提名。”
+                    </p>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded border border-white/5">
+                    <div className="text-cyan-300 font-semibold mb-0.5">⚖️ 处决与平票准则：</div>
+                    <p className="text-slate-300">
+                      得票 ≥ <strong>{voteThreshold}</strong> 票且为全场唯一最高票者置于处决台；后续若有更高票提名则新候选人上台；若最高票平票且无人打破，今日为平安日（无人处决）。
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 核心操作按钮组 */}
-            <div className="flex flex-col gap-2 pt-1 shrink-0 relative z-50">
+            {/* 底部核心操作栏（贴底固定，层次清晰） */}
+            <div className="flex flex-col gap-2 pt-2.5 shrink-0 border-t border-white/10 relative z-50 mt-1">
               {/* 取消提名选择按钮（仅在有选择且非投票中时出现） */}
               {pendingVoteFor === null && (nominator !== null || nominee !== null) && (
                 <button
@@ -967,7 +1052,7 @@ export const GameStage = () => {
                         : "bg-orange-600 hover:bg-orange-500 text-white border-orange-500 cursor-pointer shadow-orange-900/30 animate-pulse"
                     }`}
                 >
-                  📣 发起提名 (触发技能检测)
+                  📣 确认发起提名 (触发技能检测)
                 </button>
               )}
 
@@ -1008,7 +1093,7 @@ export const GameStage = () => {
                   }}
                   className="py-3 px-4 rounded-lg font-bold text-sm flex items-center justify-center transition-all border shadow bg-blue-600 hover:bg-blue-500 text-white border-blue-500 cursor-pointer shadow-[0_0_20px_rgba(37,99,235,0.6)] animate-pulse"
                 >
-                  🗳️ 开始投票 (打开举手名单面板)
+                  🗳️ 开始举手计票 (打开计票面板)
                 </button>
               )}
 
@@ -1099,7 +1184,7 @@ export const GameStage = () => {
                     showAlert("无法开始夜晚，请检查游戏状态");
                   }
                 }}
-                className="py-2.5 px-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-lg shadow-lg border border-amber-400/40 transition-all text-sm tracking-wide flex items-center justify-center gap-2 cursor-pointer"
+                className="py-2.5 px-4 rounded-lg font-bold text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border border-amber-400/30"
               >
                 入夜 (下一回合) 🌙
               </button>
