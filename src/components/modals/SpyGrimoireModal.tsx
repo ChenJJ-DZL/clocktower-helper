@@ -571,9 +571,9 @@ export function SpyGrimoireModal({
                     }}
                     className={`absolute ${seatSizeClass} rounded-full border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 select-none z-20 ${seatBgClass} ${seatBorderClass} hover:scale-105`}
                   >
-                    {/* 座位序号徽章 - 始终清晰可见 */}
+                    {/* 座位序号徽章 - 圆心位于角色外圈上 */}
                     <div
-                      className={`absolute -top-1.5 -left-1.5 w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full border flex items-center justify-center text-[9px] font-black z-30 shadow-md ${
+                      className={`absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 lg:w-4.5 lg:h-4.5 rounded-full border flex items-center justify-center text-[9px] font-black z-30 shadow-md ${
                         seat.isDead
                           ? "bg-slate-800 border-slate-600 text-slate-400"
                           : "bg-slate-900 border-amber-400 text-amber-300"

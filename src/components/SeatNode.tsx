@@ -247,9 +247,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           </>
         )}
 
-        {/* 座位序号 */}
+        {/* 座位序号 - 圆心位于角色外圈上 */}
         <div
-          className={`absolute left-0 top-0 -translate-x-[40%] -translate-y-[40%] ${isPortrait ? "w-6 h-6" : "w-10 h-10"} rounded-full ${s.isDead ? "bg-gray-400 border-gray-500 text-gray-700" : "bg-slate-800 border-slate-600"} border-2 flex items-center justify-center ${isPortrait ? "text-xs" : "text-xl"} font-bold z-20 shadow-md`}
+          className={`absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 ${isPortrait ? "w-6 h-6" : "w-9 h-9"} rounded-full ${s.isDead ? "bg-gray-400 border-gray-500 text-gray-700" : "bg-slate-800 border-slate-600"} border-2 flex items-center justify-center ${isPortrait ? "text-xs" : "text-lg"} font-bold z-20 shadow-md`}
         >
           {s.id + 1}
         </div>
