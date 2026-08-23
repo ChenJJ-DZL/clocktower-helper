@@ -197,34 +197,117 @@ export function useNightSnapshot(
       //   通过 setWakeQueueIds 函数式更新 + 同步写 ref，闭包中的 wakeQueueIds
       //   在同一次执行流内是旧值，会导致插入的节点被跳过）
       const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
-      const currentIndex = wakeIndexRef.current;
-      // 🔧 修复：若 index 0 尚未显示且队列非空，先显示 index 0 而不是跳到 1。
-      //   场景：首夜进入后没人调用 updateSnapshot(0)，玩家直接点"确认"，
-      //   导致首夜第一个角色（小恶魔等）被跳过。
+      const currentSeats =
+        latestSeats ??
+        (externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+          ? externalLatestSeatsRef.current
+          : latestSeatsRef.current) ??
+        seats;
+
+      // 🔧 修复：若 index 0 尚未显示且队列非空，先定位第一个有效行动角色
       if (!hasShownIndexZeroRef.current && latestQueue.length > 0) {
+        let firstValidIndex = 0;
+        while (firstValidIndex < latestQueue.length) {
+          const candidateSeatId = latestQueue[firstValidIndex];
+          const isSystemStep = systemStepRoleIds.has(candidateSeatId);
+          if (isSystemStep) break;
+          const candidateSeat = currentSeats.find((s) => s.id === candidateSeatId);
+          if (!candidateSeat) {
+            firstValidIndex++;
+            continue;
+          }
+          const isDead = candidateSeat.isDead || (candidateSeat as any).isAlive === false;
+          if (!isDead) break;
+          const roleId = candidateSeat.role?.id;
+          const canActWhileDead =
+            candidateSeat.hasAbilityEvenDead ||
+            (roleId === "ravenkeeper" && deadThisNight.includes(candidateSeatId)) ||
+            (roleId === "sage" && deadThisNight.includes(candidateSeatId));
+          if (canActWhileDead) break;
+          firstValidIndex++;
+        }
+
+        if (firstValidIndex >= latestQueue.length) {
+          // 全部角色均无效，直接进入黎明报告
+          wakeIndexRef.current = 0;
+          hasShownIndexZeroRef.current = false;
+          setCurrentWakeIndex(0);
+          setActiveNightStep(null);
+          setGamePhase("dawnReport");
+          if (deadThisNight.length > 0) {
+            const deadNames = deadThisNight.map((id) => `${id + 1}号`).join("、");
+            setCurrentModal({
+              type: "NIGHT_DEATH_REPORT",
+              data: { message: `昨晚${deadNames}玩家死亡` },
+            });
+          } else {
+            setCurrentModal({
+              type: "NIGHT_DEATH_REPORT",
+              data: { message: "昨天是个平安夜" },
+            });
+          }
+          return;
+        }
+
         console.log(
-          "[continueToNextAction] 首夜 index 0 未显示，先显示第一个角色"
+          "[continueToNextAction] 首夜 index 0 未显示，先显示第一个有效角色:",
+          firstValidIndex
         );
         hasShownIndexZeroRef.current = true;
-        wakeIndexRef.current = 0;
-        setCurrentWakeIndex(0);
-        updateSnapshot(
-          0,
-          latestSeats ??
-            (externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
-              ? externalLatestSeatsRef.current
-              : seats),
-          gamePhase
-        );
+        wakeIndexRef.current = firstValidIndex;
+        setCurrentWakeIndex(firstValidIndex);
+        updateSnapshot(firstValidIndex, currentSeats, gamePhase);
         return;
       }
-      const nextIndex = currentIndex + 1;
+
+      const rawNextIndex = currentIndex + 1;
       const queueLength = latestQueue.length;
+
+      // 🔧 动态过滤死者（官方规则结算时序）：
+      //   恶魔当晚杀人后，被杀角色立即死亡。若行动顺序在恶魔之后，因已死亡且无死后技能，
+      //   当晚直接跳过；若在恶魔之前则已正常执行。
+      let nextIndex = rawNextIndex;
+      while (nextIndex < queueLength) {
+        const candidateSeatId = latestQueue[nextIndex];
+        const isSystemStep = systemStepRoleIds.has(candidateSeatId);
+        if (isSystemStep) {
+          // 系统步骤（如爪牙互认、恶魔互认）正常执行
+          break;
+        }
+
+        const candidateSeat = currentSeats.find((s) => s.id === candidateSeatId);
+        if (!candidateSeat) {
+          nextIndex++;
+          continue;
+        }
+
+        const isDead = candidateSeat.isDead || (candidateSeat as any).isAlive === false;
+        if (!isDead) {
+          // 存活玩家正常行动
+          break;
+        }
+
+        // 已死亡玩家：检测是否具有死后行动能力或当晚死亡唤醒（守鸦人、贤者、hasAbilityEvenDead）
+        const roleId = candidateSeat.role?.id;
+        const canActWhileDead =
+          candidateSeat.hasAbilityEvenDead ||
+          (roleId === "ravenkeeper" && deadThisNight.includes(candidateSeatId)) ||
+          (roleId === "sage" && deadThisNight.includes(candidateSeatId));
+
+        if (canActWhileDead) {
+          break;
+        }
+
+        console.log(
+          `[continueToNextAction] 跳过当晚已死亡且无死后能力的玩家: ${candidateSeatId + 1}号 (${candidateSeat.role?.name || "未知"})`
+        );
+        nextIndex++;
+      }
 
       console.log(
         "[continueToNextAction] currentIndex:",
         currentIndex,
-        "nextIndex:",
+        "nextIndex (after dead filter):",
         nextIndex,
         "queueLength:",
         queueLength

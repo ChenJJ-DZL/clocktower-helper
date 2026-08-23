@@ -412,11 +412,24 @@ export const GameStage = () => {
   const currentWakeSeat = nightInfo
     ? seats.find((s: Seat) => s.id === nightInfo.seat.id)
     : null;
-  const nextWakeSeatId =
-    (gamePhase === "firstNight" || gamePhase === "night") &&
-    currentWakeIndex + 1 < wakeQueueIds.length
-      ? wakeQueueIds[currentWakeIndex + 1]
-      : null;
+  const nextWakeSeatId = useMemo(() => {
+    if (gamePhase !== "firstNight" && gamePhase !== "night") return null;
+    for (let i = currentWakeIndex + 1; i < wakeQueueIds.length; i++) {
+      const candidateId = wakeQueueIds[i];
+      const s = seats.find((seat: Seat) => seat.id === candidateId);
+      if (!s) continue;
+      const isDead = s.isDead || (s as any).isAlive === false;
+      const canActWhileDead =
+        s.hasAbilityEvenDead ||
+        (s.role?.id === "ravenkeeper" && deadThisNight.includes(candidateId)) ||
+        (s.role?.id === "sage" && deadThisNight.includes(candidateId));
+      if (!isDead || canActWhileDead) {
+        return candidateId;
+      }
+    }
+    return null;
+  }, [gamePhase, currentWakeIndex, wakeQueueIds, seats, deadThisNight]);
+
   const nextWakeSeat =
     nextWakeSeatId !== null
       ? seats.find((s: Seat) => s.id === nextWakeSeatId)
