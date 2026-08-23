@@ -1418,7 +1418,9 @@ export const GameStage = () => {
                 ? "白天讨论阶段"
                 : (gamePhase as string) === "dusk"
                   ? "黄昏处决阶段"
-                  : undefined)
+                  : gamePhase === "gameOver"
+                    ? `游戏结束 · ${winResult === "good" ? "善良阵营获胜！" : winResult === "evil" ? "邪恶阵营获胜！" : "对局结束"}`
+                    : undefined)
             }
             guidancePoints={guidancePoints}
             selectedPlayers={selectedActionTargets}
@@ -1561,7 +1563,16 @@ export const GameStage = () => {
                         disabled: false,
                         variant: "primary" as const,
                       }
-                    : undefined
+                    : gamePhase === "gameOver"
+                      ? {
+                          label: "🏆 查看获胜结果",
+                          onClick: () => {
+                            setCurrentModal({ type: "GAME_OVER", data: null });
+                          },
+                          disabled: false,
+                          variant: "primary" as const,
+                        }
+                      : undefined
             }
             secondaryActions={
               gamePhase === "firstNight" || gamePhase === "night"
@@ -1572,7 +1583,21 @@ export const GameStage = () => {
                       disabled: currentWakeIndex === 0 && history.length === 0,
                     },
                   ]
-                : []
+                : gamePhase === "gameOver"
+                  ? [
+                      {
+                        label: "📊 本局复盘",
+                        onClick: () =>
+                          setCurrentModal({ type: "REVIEW", data: null }),
+                        variant: "outline" as const,
+                      },
+                      {
+                        label: "🔄 再来一局",
+                        onClick: () => handleRestart(),
+                        variant: "outline" as const,
+                      },
+                    ]
+                  : []
             }
             onForceContinue={() => {
               // 强制继续回调：当队列为空时，直接进入天亮阶段
