@@ -28,6 +28,7 @@ export const GameStage = () => {
     // 状态
     seats,
     gamePhase,
+    winResult,
     selectedScript,
     nightCount,
     deadThisNight,
@@ -1589,12 +1590,10 @@ export const GameStage = () => {
                         label: "📊 本局复盘",
                         onClick: () =>
                           setCurrentModal({ type: "REVIEW", data: null }),
-                        variant: "outline" as const,
                       },
                       {
                         label: "🔄 再来一局",
                         onClick: () => handleRestart(),
-                        variant: "outline" as const,
                       },
                     ]
                   : []
