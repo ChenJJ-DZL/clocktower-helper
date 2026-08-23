@@ -1208,13 +1208,37 @@ export const GameStage = () => {
                   const hasCandidates = seats.some((s: Seat) => s.isCandidate);
                   if (hasPendingVote || hasCandidates) {
                     showConfirm({
-                      title: "直接入夜",
-                      message: "仍有提名/候选未结算，确认直接入夜吗？",
+                      title: "处决未结算",
+                      message: "当前仍有处决候选未结算。按照规则，进入下一夜的前提是完成处决结算，处决不可跳过。",
+                      cancelLabel: "返回",
+                      confirmLabel: "执行处决",
                       onConfirm: () => {
-                        if (handleStartNight) {
-                          handleStartNight(false);
-                        } else {
-                          showAlert("无法开始夜晚，请检查游戏状态");
+                        try {
+                          if (typeof executeJudgment !== "function") {
+                            console.error(
+                              "[GameStage] executeJudgment is not a function:",
+                              executeJudgment
+                            );
+                            showAlert(
+                              "错误：executeJudgment 函数不可用，请刷新页面重试。"
+                            );
+                            return;
+                          }
+                          triggerShake();
+                          executeJudgment();
+                          setPendingVoteFor(null);
+                          setSeats((prev) =>
+                            prev.map((s) => ({
+                              ...s,
+                              isCandidate: false,
+                              voteCount: 0,
+                            }))
+                          );
+                        } catch (error) {
+                          console.error("[GameStage] 执行处决时出错:", error);
+                          showAlert(
+                            `执行处决时出错: ${error instanceof Error ? error.message : String(error)}`
+                          );
                         }
                       },
                     });
