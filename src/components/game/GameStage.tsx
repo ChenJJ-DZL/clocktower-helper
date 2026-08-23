@@ -800,7 +800,7 @@ export const GameStage = () => {
                                   <span className="text-gray-400">📉 已被反超:</span>
                                 )}
                                 <span>
-                                  {c.id + 1}号 {seats[c.id]?.role?.name ? `(${seats[c.id].role.name})` : ""}
+                                  {c.id + 1}号 {seats[c.id]?.role?.name ? `(${seats[c.id]?.role?.name})` : ""}
                                 </span>
                               </span>
                               <span className="font-mono font-bold">
@@ -826,7 +826,7 @@ export const GameStage = () => {
                                 <span className="flex items-center gap-1.5">
                                   <span className="text-gray-500">⚪</span>
                                   <span>
-                                    {n.id + 1}号 {seats[n.id]?.role?.name ? `(${seats[n.id].role.name})` : ""}
+                                    {n.id + 1}号 {seats[n.id]?.role?.name ? `(${seats[n.id]?.role?.name})` : ""}
                                   </span>
                                 </span>
                                 <span className="text-gray-400 font-mono text-[10.5px]">
@@ -1430,8 +1430,8 @@ export const GameStage = () => {
             inspectionResult={inspectionResult}
             inspectionResultKey={inspectionResultKey}
             onTogglePlayer={toggleTarget}
-            handleDayAbility={controller.handleDayAbility}
-            handleViewDayAbilityResult={controller.handleViewDayAbilityResult}
+            handleDayAbility={(controller as any).handleDayAbility}
+            handleViewDayAbilityResult={(controller as any).handleViewDayAbilityResult}
             onRefreshNightStep={() => {
               if (
                 controller.refreshSnapshot &&

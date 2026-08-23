@@ -228,8 +228,8 @@ export function useDayActions(deps: DayActionsDeps) {
         const isVirginUsed = !!(
           hasUsedAbility("virgin", id) ||
           target.hasUsedVirginAbility ||
-          target.hasBeenNominated ||
-          target.abilityUsed ||
+          (target as any).hasBeenNominated ||
+          (target as any).abilityUsed ||
           (virginOverride?.isFirstTime === false)
         );
 

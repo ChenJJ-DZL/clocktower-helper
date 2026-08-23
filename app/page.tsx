@@ -978,7 +978,6 @@ export default function Home() {
                           typeColors={typeColors}
                         />
                       </div>
->>>>>>> origin/main
                     </div>
                   </div>
                 }

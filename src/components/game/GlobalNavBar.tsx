@@ -16,7 +16,6 @@ import {
 } from "../../utils/persistence";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { ModalWrapper } from "../modals/ModalWrapper";
-import { useTheme } from "../../contexts/ThemeContext";
 
 /**
  * 全局导航栏 - 悬浮在页面右上角
@@ -35,7 +34,6 @@ export function GlobalNavBar() {
   const handleContinueGame = (controller as any).handleContinueGame;
   const [showRecords, setShowRecords] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const { theme, setTheme } = useTheme();
 
   // 筛选当前剧本的对局记录
   const currentScriptRecords = useMemo(() => {
@@ -301,6 +299,7 @@ export function GlobalNavBar() {
       {/* 全局导航按钮 - 内联工具栏 */}
       <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
         {/* 左侧：主题切换胶囊 */}
+        <div className="flex items-center">
           <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_16px_rgba(245,158,11,0.15)]">
             <button
               onClick={() => setTheme("classic")}

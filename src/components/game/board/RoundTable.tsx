@@ -97,7 +97,7 @@ export function RoundTable({
   );
 
   // 监听夜晚阶段与夜晚轮数变更，在新夜晚开始时自动重置为展开
-  const prevNightRef = useRef<{ phase: string; count: number }>({
+  const prevNightRef = useRef<{ phase?: string; count?: number }>({
     phase: gamePhase,
     count: nightCount,
   });
