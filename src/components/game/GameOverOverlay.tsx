@@ -1,9 +1,15 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useGameActions } from "../../contexts/GameActionsContext";
 
 export function GameOverOverlay() {
   const props = useGameActions();
   const [exporting, setExporting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -29,10 +35,10 @@ export function GameOverOverlay() {
     }
   }, [props]);
 
-  if (props.gamePhase !== "gameOver") return null;
+  if (props.gamePhase !== "gameOver" || typeof document === "undefined" || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[4000] bg-black/95 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
       <div className="text-center">
         <h1
           className={`text-8xl font-bold mb-10 ${
@@ -79,6 +85,7 @@ export function GameOverOverlay() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

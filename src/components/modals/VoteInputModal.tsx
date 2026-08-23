@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Seat } from "../../../app/data";
 import type { ModalType } from "../../types/modal";
 
@@ -50,13 +51,15 @@ export function VoteInputModalContent(props: {
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
   // 🔧 二次确认阶段：点"确认"后先展示"共收到X票，上/不上处决台"，确认后才提交计票
   const [confirmStage, setConfirmStage] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setSelectedVoters([]);
     setConfirmStage(false);
   }, []);
 
-  if (voterId === null) return null;
+  if (voterId === null || typeof document === "undefined" || !mounted) return null;
   const candidate = seats.find((s) => s.id === voterId);
   const aliveCore = seats.filter((s) => {
     if (!s.role) return false;
@@ -73,7 +76,7 @@ export function VoteInputModalContent(props: {
 
   const invalidDeadSelected = selectedVoters.some((id) => {
     const seat = seats.find((s) => s.id === id);
-    return seat?.isDead && seat.hasGhostVote === false;
+    return seat?.isDead && seat?.hasGhostVote === false;
   });
 
   const selectedAlive = selectedVoters.filter((id) => {
@@ -88,12 +91,11 @@ export function VoteInputModalContent(props: {
 
   // 🔧 管家票实时计算：主人未投票的管家票不计算
   const butlerInfos = computeButlerInfos(selectedVoters, seats);
-  const excludedButlerIds = new Set(
-    butlerInfos.filter((b) => !b.masterVoting).map((b) => b.butlerId)
-  );
-  const effectiveVoters = selectedVoters.filter(
-    (id) => !excludedButlerIds.has(id)
-  );
+  const effectiveVoters = selectedVoters.filter((id) => {
+    const info = butlerInfos.find((b) => b.butlerId === id);
+    if (info && !info.masterVoting) return false;
+    return true;
+  });
   const effectiveCount = effectiveVoters.length;
   const excludedButlers = butlerInfos.filter((b) => !b.masterVoting);
 
@@ -113,9 +115,9 @@ export function VoteInputModalContent(props: {
     setConfirmStage(false);
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center"
+      className="fixed inset-0 z-[2147483647] bg-black/75 backdrop-blur-sm flex items-center justify-center"
       role="dialog"
       aria-modal="true"
     >
@@ -300,13 +302,13 @@ export function VoteInputModalContent(props: {
                     {b.masterVoting ? "计算" : "不计算"}
                   </div>
                 ))}
-                {excludedButlerIds.size > 0 && (
+                {excludedButlers.length > 0 && (
                   <div className="text-gray-300 mt-1">
                     实际计票：
                     <span className="font-bold text-blue-200">
                       {effectiveCount}
                     </span>{" "}
-                    票（已剔除 {excludedButlerIds.size} 张管家无效票）
+                    票（已剔除 {excludedButlers.length} 张管家无效票）
                   </div>
                 )}
               </div>
@@ -335,6 +337,7 @@ export function VoteInputModalContent(props: {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

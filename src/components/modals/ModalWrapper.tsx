@@ -69,7 +69,7 @@ export function ModalWrapper({
     <div
       role="dialog"
       data-modal-key={portalKey}
-      className="fixed inset-0 flex items-center justify-center bg-black/50 pointer-events-auto"
+      className="fixed inset-0 flex items-center justify-center bg-black/75 backdrop-blur-sm pointer-events-auto"
       style={
         {
           zIndex: 2147483647,
@@ -83,7 +83,7 @@ export function ModalWrapper({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          backgroundColor: "rgba(0, 0, 0, 0.75)",
           opacity: 1,
           visibility: "visible",
         } as React.CSSProperties
@@ -95,7 +95,7 @@ export function ModalWrapper({
         }
       }}
     >
-      <FadeIn duration={0.2} className="absolute inset-0 bg-black/50">
+      <FadeIn duration={0.2} className="absolute inset-0 bg-black/75 backdrop-blur-sm">
         <div />
       </FadeIn>
 

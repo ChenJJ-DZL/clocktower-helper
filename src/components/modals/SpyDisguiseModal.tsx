@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { RoleType } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { ModalWrapper } from "./ModalWrapper";
 
 export function SpyDisguiseModal() {
   const props = useGameActions();
@@ -40,29 +41,12 @@ export function SpyDisguiseModal() {
   if (!shouldShowSpyDisguise) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[5000] bg-black/50 flex items-center justify-center"
-      onClick={() => {
-        props.setCurrentModal(null);
-      }}
+    <ModalWrapper
+      title="🎭 伪装身份识别"
+      onClose={() => props.setCurrentModal(null)}
+      className="max-w-md"
     >
-      <div
-        className="bg-gray-800 border-2 border-purple-500 rounded-xl p-4 w-80 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-bold text-purple-300">🎭 伪装身份识别</h3>
-          <button
-            onClick={() => {
-              props.setCurrentModal(null);
-            }}
-            className="text-gray-400 hover:text-white text-xl"
-          >
-            ×
-          </button>
-        </div>
-
-        {hasInterferenceRoles ? (
+      {hasInterferenceRoles ? (
           <div className="space-y-3 text-sm">
             {spySeats.length > 0 && (
               <div>
@@ -227,7 +211,6 @@ export function SpyDisguiseModal() {
             当前无需要伪装身份识别的角色
           </div>
         )}
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }

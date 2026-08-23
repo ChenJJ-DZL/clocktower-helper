@@ -14,6 +14,7 @@ import {
   saveGameRecord,
 } from "../../utils/persistence";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
+import { ModalWrapper } from "../modals/ModalWrapper";
 import { useTheme } from "../../contexts/ThemeContext";
 
 /**
@@ -201,31 +202,36 @@ export function GlobalNavBar() {
       <>
         {/* 重置确认弹窗 */}
         {showResetConfirm && (
-          <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center">
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-              <h3 className="text-lg font-bold text-white mb-3">确认重置</h3>
-              <p className="text-sm text-gray-300 mb-2">
-                当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
-              </p>
-              <p className="text-sm text-yellow-400 mb-4">
-                你可以在历史记录中继续未完成的游戏。
-              </p>
-              <div className="flex gap-3">
+          <ModalWrapper
+            title="🔄 确认重置"
+            onClose={cancelReset}
+            className="max-w-md"
+            footer={
+              <div className="flex gap-3 justify-end w-full">
                 <button
                   onClick={cancelReset}
-                  className="flex-1 py-2.5 rounded-xl bg-gray-700 text-white font-medium hover:bg-gray-600 transition"
+                  className="px-6 py-2.5 rounded-xl bg-gray-700 text-white font-medium hover:bg-gray-600 transition"
                 >
                   取消
                 </button>
                 <button
                   onClick={confirmReset}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition"
+                  className="px-6 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition"
                 >
                   确认重置
                 </button>
               </div>
+            }
+          >
+            <div className="space-y-3 py-2 text-center">
+              <p className="text-base text-gray-200">
+                当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
+              </p>
+              <p className="text-sm text-yellow-400 font-medium">
+                你可以在历史记录中随时继续未完成的游戏。
+              </p>
             </div>
-          </div>
+          </ModalWrapper>
         )}
 
         {/* 历史记录弹窗（scriptSelection 阶段，显示所有记录） */}
@@ -246,31 +252,36 @@ export function GlobalNavBar() {
     <>
       {/* 重置确认弹窗 */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-3">确认重置</h3>
-            <p className="text-sm text-gray-300 mb-2">
-              当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
-            </p>
-            <p className="text-sm text-yellow-400 mb-4">
-              你可以在历史记录中继续未完成的游戏。
-            </p>
-            <div className="flex gap-3">
+        <ModalWrapper
+          title="🔄 确认重置"
+          onClose={cancelReset}
+          className="max-w-md"
+          footer={
+            <div className="flex gap-3 justify-end w-full">
               <button
                 onClick={cancelReset}
-                className="flex-1 py-2.5 rounded-xl bg-gray-700 text-white font-medium hover:bg-gray-600 transition"
+                className="px-6 py-2.5 rounded-xl bg-gray-700 text-white font-medium hover:bg-gray-600 transition"
               >
                 取消
               </button>
               <button
                 onClick={confirmReset}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition"
+                className="px-6 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition"
               >
                 确认重置
               </button>
             </div>
+          }
+        >
+          <div className="space-y-3 py-2 text-center">
+            <p className="text-base text-gray-200">
+              当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
+            </p>
+            <p className="text-sm text-yellow-400 font-medium">
+              你可以在历史记录中随时继续未完成的游戏。
+            </p>
           </div>
-        </div>
+        </ModalWrapper>
       )}
 
       {/* 历史记录弹窗（游戏内，只显示当前剧本的记录） */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Seat } from "../../../../app/data";
 
 interface NoteEditModalProps {
@@ -17,6 +18,11 @@ export function NoteEditModal({
   onCancel,
 }: NoteEditModalProps) {
   const [noteText, setNoteText] = useState(currentNote);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Auto focus input
   useEffect(() => {
@@ -30,8 +36,10 @@ export function NoteEditModal({
     onConfirm(seat.id, noteText.trim());
   };
 
-  return (
-    <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+  if (typeof document === "undefined" || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
       <div
         className="bg-slate-800 rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl border border-slate-600 animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -79,6 +87,7 @@ export function NoteEditModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -7,6 +7,7 @@ import {
   type Seat,
   typeBgColors,
 } from "../../../../app/data";
+import { ModalWrapper } from "../../modals/ModalWrapper";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -402,19 +403,38 @@ export default function GameSetup({
       </div>
 
       {showCompositionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-red-500/50 shadow-2xl p-6 space-y-4">
-            <div className="text-xl font-bold text-red-200">阵容配置错误</div>
+        <ModalWrapper
+          title="⚠️ 阵容配置错误"
+          onClose={handleCloseCompositionModal}
+          className="max-w-lg"
+          footer={
+            <div className="flex flex-col sm:flex-row gap-3 w-full justify-end">
+              <button
+                onClick={handleCloseCompositionModal}
+                className="flex-1 rounded-xl border border-white/20 bg-slate-800 text-slate-100 font-bold py-3 hover:bg-slate-700 transition"
+              >
+                返回修改
+              </button>
+              <button
+                onClick={handleForceStartGame}
+                className="flex-1 rounded-xl bg-emerald-500 text-slate-950 font-bold py-3 hover:bg-emerald-400 transition"
+              >
+                仍然开始游戏
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
             {compositionError && (
-              <div className="space-y-2 text-sm text-slate-100">
-                <div className="font-semibold text-red-300">标准</div>
+              <div className="space-y-2 text-sm text-slate-100 bg-slate-800/60 p-4 rounded-xl border border-red-500/30">
+                <div className="font-semibold text-red-300">标准配比</div>
                 <div>
                   {compositionError.standard.townsfolk} 村民 /{" "}
                   {compositionError.standard.outsider} 外来者 /{" "}
                   {compositionError.standard.minion} 爪牙 /{" "}
                   {compositionError.standard.demon} 恶魔
                 </div>
-                <div className="font-semibold text-red-300">当前</div>
+                <div className="font-semibold text-red-300 mt-2">当前配置</div>
                 <div>
                   {compositionError.actual.townsfolk} 村民 /{" "}
                   {compositionError.actual.outsider} 外来者 /{" "}
@@ -424,7 +444,7 @@ export default function GameSetup({
               </div>
             )}
             {baronSetupCheck && !ignoreBaronSetup && (
-              <div className="space-y-2 text-sm text-yellow-100">
+              <div className="space-y-2 text-sm text-yellow-100 bg-slate-800/60 p-4 rounded-xl border border-yellow-500/30">
                 <div className="font-semibold text-yellow-300">
                   男爵配置不符
                 </div>
@@ -438,22 +458,8 @@ export default function GameSetup({
                 </div>
               </div>
             )}
-            <div className="flex flex-col gap-2 pt-2">
-              <button
-                onClick={handleForceStartGame}
-                className="w-full rounded-xl bg-emerald-500 text-slate-950 font-bold py-3 hover:bg-emerald-400 transition"
-              >
-                仍然开始游戏
-              </button>
-              <button
-                onClick={handleCloseCompositionModal}
-                className="w-full rounded-xl border border-white/20 bg-slate-800 text-slate-100 font-bold py-3 hover:bg-slate-700 transition"
-              >
-                返回修改
-              </button>
-            </div>
           </div>
-        </div>
+        </ModalWrapper>
       )}
     </div>
   );

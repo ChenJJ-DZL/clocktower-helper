@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { FABLED_ROLES, type Role, roles, typeLabels } from "../../../../app/data";
 import { showAlert } from "../../../utils/nativeDialogShim";
 
@@ -166,10 +167,17 @@ export function CustomScriptBuilderModal({
     URL.revokeObjectURL(url);
   };
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const selectedCount = selectedRoleIds.size;
 
-  return (
-    <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 md:p-8">
+  if (typeof document === "undefined" || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 md:p-8">
       <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl w-full max-w-5xl h-full max-h-[90vh] flex flex-col shadow-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 bg-slate-800/30">
@@ -429,6 +437,7 @@ export function CustomScriptBuilderModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

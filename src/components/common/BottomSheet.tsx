@@ -83,7 +83,7 @@ export function BottomSheet({
       }}
     >
       {/* 遮罩 */}
-      <div className="absolute inset-0 bg-black/50 transition-opacity" />
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm transition-opacity" />
 
       {/* 抽屉主体 */}
       <div

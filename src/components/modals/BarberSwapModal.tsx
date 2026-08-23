@@ -1,4 +1,5 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { ModalWrapper } from "./ModalWrapper";
 
 export function BarberSwapModal() {
   const props = useGameActions();
@@ -6,75 +7,20 @@ export function BarberSwapModal() {
   const modalData = props.currentModal.data;
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/80 flex items-center justify-center px-4">
-      <div className="bg-gray-800 border-4 border-blue-500 rounded-2xl p-6 max-w-xl w-full space-y-4">
-        <h2 className="text-3xl font-bold text-blue-300">
-          理发师：交换两名玩家角色
-        </h2>
-        <div className="text-sm text-gray-300">
-          恶魔（参考）：{modalData.demonId + 1}号
-        </div>
-        <select
-          className="w-full bg-gray-900 border border-gray-600 rounded p-2"
-          value={modalData.firstId ?? ""}
-          onChange={(e) => {
-            const current = props.currentModal;
-            if (current?.type === "BARBER_SWAP") {
-              props.setCurrentModal({
-                ...current,
-                data: {
-                  ...current.data,
-                  firstId:
-                    e.target.value === "" ? null : Number(e.target.value),
-                },
-              });
-            }
-          }}
-        >
-          <option value="">选择玩家A</option>
-          {props.seats
-            .filter((s: any) => s.role?.type !== "demon" && !s.isDemonSuccessor)
-            .map((s: any) => (
-              <option key={s.id} value={s.id}>
-                [{s.id + 1}] {s.role?.name}
-              </option>
-            ))}
-        </select>
-        <select
-          className="w-full bg-gray-900 border border-gray-600 rounded p-2"
-          value={modalData.secondId ?? ""}
-          onChange={(e) => {
-            const current = props.currentModal;
-            if (current?.type === "BARBER_SWAP") {
-              props.setCurrentModal({
-                ...current,
-                data: {
-                  ...current.data,
-                  secondId:
-                    e.target.value === "" ? null : Number(e.target.value),
-                },
-              });
-            }
-          }}
-        >
-          <option value="">选择玩家B</option>
-          {props.seats
-            .filter((s: any) => s.role?.type !== "demon" && !s.isDemonSuccessor)
-            .map((s: any) => (
-              <option key={s.id} value={s.id}>
-                [{s.id + 1}] {s.role?.name}
-              </option>
-            ))}
-        </select>
-        <div className="flex gap-3 justify-end">
+    <ModalWrapper
+      title="💈 理发师：交换两名玩家角色"
+      onClose={() => props.setCurrentModal(null)}
+      className="max-w-xl"
+      footer={
+        <div className="flex gap-3 justify-end w-full">
           <button
-            className="px-4 py-2 bg-gray-700 rounded"
+            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition"
             onClick={() => props.setCurrentModal(null)}
           >
             取消
           </button>
           <button
-            className="px-4 py-2 bg-indigo-600 rounded"
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition"
             onClick={() => {
               if (
                 modalData.firstId === null ||
@@ -150,7 +96,65 @@ export function BarberSwapModal() {
             确认交换
           </button>
         </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="text-sm text-gray-300">
+          恶魔（参考）：{modalData.demonId + 1}号
+        </div>
+        <select
+          className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"
+          value={modalData.firstId ?? ""}
+          onChange={(e) => {
+            const current = props.currentModal;
+            if (current?.type === "BARBER_SWAP") {
+              props.setCurrentModal({
+                ...current,
+                data: {
+                  ...current.data,
+                  firstId:
+                    e.target.value === "" ? null : Number(e.target.value),
+                },
+              });
+            }
+          }}
+        >
+          <option value="">选择玩家A</option>
+          {props.seats
+            .filter((s: any) => s.role?.type !== "demon" && !s.isDemonSuccessor)
+            .map((s: any) => (
+              <option key={s.id} value={s.id}>
+                [{s.id + 1}] {s.role?.name}
+              </option>
+            ))}
+        </select>
+        <select
+          className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500"
+          value={modalData.secondId ?? ""}
+          onChange={(e) => {
+            const current = props.currentModal;
+            if (current?.type === "BARBER_SWAP") {
+              props.setCurrentModal({
+                ...current,
+                data: {
+                  ...current.data,
+                  secondId:
+                    e.target.value === "" ? null : Number(e.target.value),
+                },
+              });
+            }
+          }}
+        >
+          <option value="">选择玩家B</option>
+          {props.seats
+            .filter((s: any) => s.role?.type !== "demon" && !s.isDemonSuccessor)
+            .map((s: any) => (
+              <option key={s.id} value={s.id}>
+                [{s.id + 1}] {s.role?.name}
+              </option>
+            ))}
+        </select>
       </div>
-    </div>
+    </ModalWrapper>
   );
 }

@@ -1,5 +1,6 @@
 import { roles } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { ModalWrapper } from "./ModalWrapper";
 
 export function DayAbilityModal({ modal }: { modal: any }) {
   const props = useGameActions();
@@ -196,20 +197,28 @@ export function DayAbilityModal({ modal }: { modal: any }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[3200] bg-black/80 flex items-center justify-center px-4">
-      <div className="bg-gray-900 border-4 border-blue-500 rounded-2xl p-6 max-w-2xl w-full space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-blue-200">
-            🌞 {roleName} 日间能力
-          </h2>
+    <ModalWrapper
+      title={`🌞 ${roleName} 日间能力`}
+      onClose={closeModal}
+      className="max-w-2xl"
+      footer={
+        <div className="flex justify-end gap-3 w-full">
           <button
-            className="text-gray-400 hover:text-white"
+            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium text-white transition"
             onClick={closeModal}
           >
-            ✕
+            取消
+          </button>
+          <button
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-white transition"
+            onClick={submit}
+          >
+            确认
           </button>
         </div>
-
+      }
+    >
+      <div className="space-y-4">
         {roleId === "gossip" && (
           <div className="space-y-3">
             <p className="text-sm text-gray-300">
@@ -397,22 +406,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
             </select>
           </div>
         )}
-
-        <div className="flex justify-end gap-3">
-          <button
-            className="px-4 py-2 bg-gray-700 rounded"
-            onClick={closeModal}
-          >
-            取消
-          </button>
-          <button
-            className="px-4 py-2 bg-blue-600 rounded font-bold"
-            onClick={submit}
-          >
-            确认
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalWrapper>
   );
 }

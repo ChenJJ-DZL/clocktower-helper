@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Seat } from "../../../app/data";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface StorytellerSelectModalProps {
   sourceId: number;
@@ -51,117 +52,84 @@ export function StorytellerSelectModal({
   const canConfirm = selectedTargets.length === targetCount;
 
   return (
-    <div className="fixed inset-0 z-[3200] bg-black/90 flex items-center justify-center">
-      <div className="bg-gray-800 p-8 rounded-2xl text-center border-2 border-purple-500 relative w-[720px] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-3xl font-bold mb-4 text-purple-200">
-          🎭 说书人选择目标
-        </h3>
-
-        <div className="mb-4 text-sm text-gray-200 leading-relaxed">
-          <div className="text-lg font-semibold text-purple-300 mb-2">
+    <ModalWrapper
+      title="🎭 说书人选择目标"
+      onClose={() => {
+        setSelectedTargets([]);
+        onCancel();
+      }}
+      className="max-w-2xl"
+      footer={
+        <div className="flex gap-3 justify-end w-full">
+          <button
+            onClick={() => {
+              setSelectedTargets([]);
+              onCancel();
+            }}
+            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition"
+          >
+            取消
+          </button>
+          <button
+            onClick={() => {
+              if (!canConfirm) return;
+              onConfirm(selectedTargets);
+              setSelectedTargets([]);
+            }}
+            disabled={!canConfirm}
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            确认选择 ({selectedTargets.length}/{targetCount})
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="text-sm text-slate-200 leading-relaxed bg-slate-800/60 p-3 rounded-xl border border-white/5">
+          <div className="text-base font-semibold text-purple-300 mb-1">
             {sourceSeat ? `${sourceSeat.id + 1}号 ${roleName}` : roleName}
           </div>
-          <div className="text-gray-300 mb-2">{description}</div>
+          <div className="text-slate-300">{description}</div>
           <div className="text-xs text-yellow-300 mt-2">
-            规则：此能力描述中没有"选择"一词，因此由说书人选择目标
-          </div>
-          <div className="text-xs text-yellow-200 mt-1">
-            需要选择 {targetCount} 名玩家
+            规则：该能力由说书人代为选择目标。请选择 {targetCount} 名玩家。
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {seats
-            .filter((s) => s.role)
+            .filter((s) => s.role && s.id !== sourceId)
             .map((s) => {
               const isSelected = selectedTargets.includes(s.id);
-              const isSource = s.id === sourceId;
+              const isDead = s.isDead;
               return (
                 <button
                   key={s.id}
                   type="button"
-                  disabled={isSource}
                   onClick={() => toggleTarget(s.id)}
                   className={`p-3 rounded-xl border-2 text-left transition ${
-                    isSource
-                      ? "border-gray-700 bg-gray-900/50 text-gray-500 cursor-not-allowed"
-                      : isSelected
-                        ? "border-purple-400 bg-purple-900/60 text-white shadow-lg shadow-purple-500/30"
-                        : "border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
+                    isSelected
+                      ? "border-purple-400 bg-purple-900/60 text-white shadow-lg shadow-purple-500/30"
+                      : "border-slate-700 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
                   }`}
-                  title={
-                    isSource
-                      ? "不能选择自己"
-                      : isSelected
-                        ? "已选中"
-                        : "点击选择"
-                  }
                 >
                   <div className="flex justify-between items-center">
                     <div className="font-bold">
-                      {s.id + 1}号 {s.playerName || ""}
+                      {s.id + 1}号 {s.role?.name}
                     </div>
-                    <div className="text-xs text-gray-300">
-                      {s.isDead ? "💀" : "存活"}
-                    </div>
+                    {isDead && (
+                      <span className="text-xs text-slate-500">已死亡</span>
+                    )}
                   </div>
-                  {s.role && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      {s.role.name}
+                  {isSelected && (
+                    <div className="text-xs text-purple-300 font-bold mt-1">
+                      ✓ 已选择
                     </div>
                   )}
                 </button>
               );
             })}
         </div>
-
-        <div className="mb-4 text-sm text-gray-100">
-          <div>
-            当前选中：
-            <span className="font-bold text-purple-200 text-lg">
-              {selectedTargets.length}
-            </span>{" "}
-            / {targetCount}
-          </div>
-          {selectedTargets.length > 0 && (
-            <div className="text-xs text-gray-300 mt-1">
-              已选玩家：
-              {selectedTargets
-                .map((id) => {
-                  const seat = seats.find((s) => s.id === id);
-                  return `${id + 1}号${seat?.role?.name ? `(${seat.role.name})` : ""}`;
-                })
-                .join("、")}
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={() => {
-              if (!canConfirm) {
-                alert(`请选择 ${targetCount} 名玩家`);
-                return;
-              }
-              onConfirm(selectedTargets);
-              setSelectedTargets([]);
-            }}
-            disabled={!canConfirm}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            确认选择 ({selectedTargets.length}/{targetCount})
-          </button>
-          <button
-            onClick={() => {
-              setSelectedTargets([]);
-              onCancel();
-            }}
-            className="px-6 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold shadow"
-          >
-            取消
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalWrapper>
   );
 }

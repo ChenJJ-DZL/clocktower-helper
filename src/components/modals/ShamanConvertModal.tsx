@@ -1,20 +1,80 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { ModalWrapper } from "./ModalWrapper";
 
 export function ShamanConvertModal() {
   const props = useGameActions();
   if (props.currentModal?.type !== "SHAMAN_CONVERT") return null;
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/80 flex items-center justify-center px-4">
-      <div className="bg-gray-800 border-4 border-purple-500 rounded-2xl p-6 max-w-xl w-full space-y-4">
-        <h2 className="text-3xl font-bold text-purple-300">
-          灵言师：关键词被说出
-        </h2>
-        <div className="text-gray-200 text-sm">
+    <ModalWrapper
+      title="🪬 灵言师：关键词被说出"
+      onClose={() => {
+        props.setCurrentModal(null);
+        props.setShamanConvertTarget(null);
+      }}
+      className="max-w-xl"
+      footer={
+        <div className="flex gap-3 justify-end w-full">
+          <button
+            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition"
+            onClick={() => {
+              props.setCurrentModal(null);
+              props.setShamanConvertTarget(null);
+            }}
+          >
+            取消
+          </button>
+          <button
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-white font-bold transition"
+            onClick={() => {
+              if (props.shamanConvertTarget === null) return;
+              const target = props.seats.find(
+                (s: any) => s.id === props.shamanConvertTarget
+              );
+              if (!target) return;
+              if (target.role && ["townsfolk", "outsider"].includes(target.role.type)) {
+                props.setSeats((prev: any[]) =>
+                  prev.map((s: any) =>
+                    s.id === target.id
+                      ? {
+                          ...s,
+                          isEvil: true,
+                          reminderTokens: [
+                            ...(s.reminderTokens || []),
+                            {
+                              id: `shaman_evil_${Date.now()}`,
+                              name: "被视为邪恶(灵言师)",
+                              type: "poison",
+                              sourceRole: "shaman",
+                            },
+                          ],
+                        }
+                      : s
+                  )
+                );
+                props.addLog(
+                  `灵言师触发：${target.id + 1}号(${target.role.name})公开说出关键词，当晚起被视为邪恶阵营！`
+                );
+              } else {
+                props.addLog(
+                  `灵言师触发：${target.id + 1}号公开说出关键词，但其非善良身份，未发生阵营转变。`
+                );
+              }
+              props.setCurrentModal(null);
+              props.setShamanConvertTarget(null);
+            }}
+          >
+            确认转变
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="text-slate-300 text-sm leading-relaxed">
           请选择第一个公开说出关键词的玩家：若他是善良阵营（镇民/外来者），当晚起被视为邪恶；若本就是邪恶，则不产生额外效果。
         </div>
         <select
-          className="w-full bg-gray-900 border border-gray-700 rounded p-2"
+          className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
           value={props.shamanConvertTarget ?? ""}
           onChange={(e) =>
             props.setShamanConvertTarget(
@@ -31,62 +91,7 @@ export function ShamanConvertModal() {
               </option>
             ))}
         </select>
-        <div className="flex gap-3 justify-end">
-          <button
-            className="px-4 py-2 bg-gray-700 rounded"
-            onClick={() => {
-              props.setCurrentModal(null);
-              props.setShamanConvertTarget(null);
-            }}
-          >
-            取消
-          </button>
-          <button
-            className="px-4 py-2 bg-purple-600 rounded"
-            onClick={() => {
-              if (props.shamanConvertTarget === null) return;
-              const target = props.seats.find(
-                (s: any) => s.id === props.shamanConvertTarget
-              );
-              if (!target || target.isDead) return;
-              const isGoodNow = props.isGoodAlignment(target);
-              if (!isGoodNow) {
-                props.addLog(
-                  `灵言师关键词触发检查：${props.shamanConvertTarget + 1}号本就为邪恶阵营，未产生额外效果`
-                );
-                props.setShamanTriggered(true);
-                props.setCurrentModal(null);
-                props.setShamanConvertTarget(null);
-                return;
-              }
-              props.setSeats((prev: any[]) =>
-                prev.map((s: any) => {
-                  if (s.id !== props.shamanConvertTarget) return s;
-                  const next = props.cleanseSeatStatuses(
-                    { ...s, isEvilConverted: true },
-                    { keepDeathState: true }
-                  );
-                  const details = Array.from(
-                    new Set([...(next.statusDetails || []), "灵言转邪"])
-                  );
-                  return { ...next, statusDetails: details };
-                })
-              );
-              props.addLog(
-                `灵言师关键词触发：${props.shamanConvertTarget + 1}号公开说出关键词，从今晚开始被视为邪恶阵营`
-              );
-              props.insertIntoWakeQueueAfterCurrent(props.shamanConvertTarget, {
-                logLabel: `${props.shamanConvertTarget + 1}号(转邪恶)`,
-              });
-              props.setShamanTriggered(true);
-              props.setCurrentModal(null);
-              props.setShamanConvertTarget(null);
-            }}
-          >
-            确认转换
-          </button>
-        </div>
       </div>
-    </div>
+    </ModalWrapper>
   );
 }
