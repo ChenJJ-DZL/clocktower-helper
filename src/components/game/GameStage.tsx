@@ -447,17 +447,16 @@ export const GameStage = () => {
   // Handle Dusk Phase UI
   if (gamePhase === "dusk") {
     return (
-      <div className="w-full h-full flex flex-col bg-slate-950">
-        {/* Layout: Left Table, Right Controls */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left: Round Table */}
-          <div className="flex-1 bg-slate-950 relative flex items-center justify-center">
+      <GameLayout
+        topBar={<GlobalNavBar />}
+        leftPanel={
+          <div className="relative w-full h-full p-4 flex items-center justify-center">
             {/* 相克规则开关（左上角，小按钮） */}
             <button
               type="button"
               onClick={() => setAntagonismEnabled((v) => !v)}
               className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
-              title="相克规则：{antagonismEnabled ? '开' : '关'}"
+              title={`相克规则：${antagonismEnabled ? "开" : "关"}`}
             >
               相克规则：{antagonismEnabled ? "开" : "关"}
             </button>
@@ -566,9 +565,9 @@ export const GameStage = () => {
                   : `准备提名: ${nominator + 1}号 → ${nominee + 1}号`}
             </div>
           </div>
-
-          {/* Right: Dusk Control Panel */}
-          <div className="w-[450px] bg-slate-900 border-l border-white/10 flex flex-col p-6 gap-4 overflow-y-auto relative z-40">
+        }
+        rightPanel={
+          <div className="h-full flex flex-col p-6 gap-4 overflow-y-auto relative z-40">
             <h2 className="text-2xl font-black text-orange-500 uppercase tracking-wide">
               ⚖️ 处决台
             </h2>
@@ -1191,8 +1190,8 @@ export const GameStage = () => {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
     );
   }
 
