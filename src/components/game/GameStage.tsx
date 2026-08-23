@@ -829,7 +829,7 @@ export const GameStage = () => {
                           </span>
                         ) : (
                           <span className="text-red-300/90 font-medium">
-                            ⚠️ 若无人继续发起更高票提名并反超（需 >{topVotes} 票），本黄昏将处决【{tops[0].id + 1}号】。
+                            ⚠️ 若无人继续发起更高票提名并反超（需 &gt; {topVotes} 票），本黄昏将处决【{tops[0].id + 1}号】。
                           </span>
                         )}
                       </div>
@@ -1053,10 +1053,9 @@ export const GameStage = () => {
                         return;
                       }
                       const virginHandled =
-                        result === true ||
-                        (typeof result === "object" &&
-                          result !== null &&
-                          (result as any).virginHandled === true);
+                        typeof result === "object" &&
+                        result !== null &&
+                        (result as any).virginHandled === true;
 
                       if (!virginHandled) {
                         const nominatorRole = seats[nominator]?.role?.name
