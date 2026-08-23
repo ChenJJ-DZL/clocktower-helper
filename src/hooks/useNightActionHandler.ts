@@ -712,15 +712,8 @@ export async function executeViaNewEngine(
         guideMatch && guideMatch[1] && !guideText.includes("准备执行技能")
           ? guideMatch[1].trim().replace(/^[:：]\s*/, "")
           : "";
-      // 送葬者结果拆成两行：说明行 + 居中角色名，弹窗更易读。
-      const undertakerMatch =
-        roleId === "undertaker" && guideInfo
-          ? guideInfo.match(/^上一个白天被处决的玩家是(.+)$/)
-          : null;
       const resultText = guideInfo
-        ? undertakerMatch
-          ? `${roleName}获得信息：上一个白天被处决的玩家是\n\n${undertakerMatch[1]}`
-          : `${roleName}获得信息：${guideInfo}`
+        ? `${roleName}获得信息：${guideInfo}`
         : displayInfo.log;
       const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
       context.setCurrentModal({

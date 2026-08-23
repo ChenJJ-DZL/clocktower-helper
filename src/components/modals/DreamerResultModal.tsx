@@ -13,26 +13,23 @@ export function DreamerResultModal({
   onClose,
 }: DreamerResultModalProps) {
   return (
-    <ModalWrapper title="筑梦师信息" onClose={onClose}>
-      <div className="p-4 text-white">
-        <p className="text-lg text-center">你看到两个角色：</p>
-        <div className="flex justify-around mt-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold">{roleA.name}</div>
-            <div className="text-sm text-gray-400">({roleA.type})</div>
+    <ModalWrapper title="筑梦师 - 结果" onClose={onClose}>
+      <div className="p-6 text-white">
+        <div className="text-center mb-6 space-y-3">
+          <div className="text-xl md:text-2xl text-amber-200/90 font-medium leading-relaxed">
+            筑梦师得知目标玩家的角色是以下之一：
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold">{roleB.name}</div>
-            <div className="text-sm text-gray-400">({roleB.type})</div>
+          <div className="text-3xl md:text-4xl font-black text-amber-400 tracking-wide text-center drop-shadow-md">
+            【{roleA.name}】 或 【{roleB.name}】
           </div>
+          <p className="text-base text-gray-400 mt-2">
+            请说书人向玩家告知以上信息
+          </p>
         </div>
-        <p className="mt-4 text-center text-gray-300">
-          你选择的玩家是其中之一。
-        </p>
         <div className="flex justify-center mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
+            className="px-8 py-3 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition shadow-md"
           >
             确认并继续
           </button>

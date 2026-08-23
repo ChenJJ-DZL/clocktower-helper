@@ -1,4 +1,7 @@
 import { ModalWrapper } from "./ModalWrapper";
+import { parseInfoResult } from "../../utils/infoResultParser";
+
+export { parseInfoResult };
 
 interface InfoResultModalProps {
   roleName: string;
@@ -13,32 +16,34 @@ export function InfoResultModal({
   onConfirm,
   onModify,
 }: InfoResultModalProps) {
-  // 🔧 长文本（如"7号和2号之中有一名是【调查员】"）用中等字号自适应，
-  //   避免 text-5xl 大字溢出；短结果（"有"/"没有"/数字）保持大字号醒目
-  const isLong = resultText.length > 6;
+  const { prefix, result } = parseInfoResult(resultText, roleName);
+
   return (
     <ModalWrapper title={`${roleName} - 结果`} onClose={() => {}}>
       <div className="p-6 text-white">
-        <div className="text-center mb-6">
-          <div
-            className={`font-black mb-4 text-amber-400 break-words leading-snug whitespace-pre-line ${
-              isLong ? "text-2xl" : "text-5xl"
-            }`}
-          >
-            {resultText}
+        <div className="text-center mb-6 space-y-3">
+          {prefix && (
+            <div className="text-xl md:text-2xl text-amber-200/90 font-medium leading-relaxed">
+              {prefix}
+            </div>
+          )}
+          <div className="text-3xl md:text-4xl font-black text-amber-400 tracking-wide text-center drop-shadow-md">
+            {result}
           </div>
-          <p className="text-lg text-gray-300">请说书人向玩家告知以上信息</p>
+          <p className="text-base text-gray-400 mt-3">
+            请说书人向玩家告知以上信息
+          </p>
         </div>
         <div className="flex gap-4 justify-center">
           <button
             onClick={onModify}
-            className="px-6 py-3 font-bold text-white bg-gray-600 rounded-lg hover:bg-gray-500 transition"
+            className="px-6 py-3 font-bold text-white bg-gray-600 rounded-xl hover:bg-gray-500 transition shadow-md"
           >
             修改选择
           </button>
           <button
             onClick={onConfirm}
-            className="px-6 py-3 font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500 transition"
+            className="px-6 py-3 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition shadow-md"
           >
             确认结果
           </button>

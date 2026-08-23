@@ -13,28 +13,26 @@ export function FortuneTellerResultModal({
   onConfirm,
   onModify,
 }: FortuneTellerResultModalProps) {
-  const resultText = result ? "是" : "否";
+  const resultText = result ? "【是】" : "【否】";
   const resultDesc = result
-    ? "你选择的两名玩家之中有恶魔！"
-    : "你选择的两名玩家之中没有恶魔。";
-  const resultColor = result ? "text-red-400" : "text-green-400";
+    ? "所选两名玩家之中有恶魔（或红罗刹）"
+    : "所选两名玩家之中没有恶魔";
+  const resultColor = result ? "text-red-400" : "text-emerald-400";
 
   return (
-    <ModalWrapper title="占卜结果" onClose={() => {}}>
+    <ModalWrapper title="占卜师 - 结果" onClose={() => {}}>
       <div className="p-6 text-white">
-        <div className="text-center mb-6">
-          <div className={`text-6xl font-black mb-4 ${resultColor}`}>
+        <div className="text-center mb-6 space-y-3">
+          <div className="text-xl md:text-2xl text-amber-200/90 font-medium leading-relaxed">
+            占卜师（目标：{targetLabels.join("、")}号）得知所选玩家是否有恶魔：
+          </div>
+          <div className={`text-4xl md:text-5xl font-black ${resultColor} tracking-wide text-center drop-shadow-md`}>
             {resultText}
           </div>
-          <p className="text-lg">{resultDesc}</p>
-          <p className="text-sm text-gray-400 mt-2">
-            目标玩家：{targetLabels.join("、")}号
+          <p className="text-base text-gray-400 mt-2">
+            请说书人向玩家告知以上信息（{resultDesc}）
           </p>
         </div>
-
-        <p className="text-center text-sm text-gray-500 mb-6">
-          说书人将会通过对你点头或摇头来告知结果。
-        </p>
 
         <div className="flex gap-4 justify-center">
           <button
