@@ -725,6 +725,19 @@ export const GameStage = () => {
                   const tops = candidates.filter((c) => c.voteCount === topVotes);
                   const isTie = tops.length >= 2;
 
+                  // 被提名但未达门槛或未上台的记录
+                  const nonCandidateNominees = seats
+                    .filter((s: Seat) => {
+                      if (s.isCandidate) return false;
+                      const wasNominated = hasPlayerBeenNominated(s.id);
+                      const hasVotes = s.voteCount !== undefined && s.voteCount !== null;
+                      return wasNominated || hasVotes;
+                    })
+                    .map((s: Seat) => ({
+                      id: s.id,
+                      voteCount: s.voteCount,
+                    }));
+
                   return (
                     <>
                       <div className="flex items-center justify-between text-xs border-b border-white/5 pb-1.5">
@@ -739,7 +752,7 @@ export const GameStage = () => {
                       </div>
 
                       {candidates.length === 0 ? (
-                        <div className="text-xs text-gray-400 py-2 bg-slate-900/60 px-2.5 rounded-md text-center">
+                        <div className="text-xs text-gray-400 py-1.5 bg-slate-900/60 px-2.5 rounded-md text-center">
                           暂无上台者（得票 ≥ {voteThreshold} 票且为最高票者方可上台）
                         </div>
                       ) : (
@@ -752,7 +765,7 @@ export const GameStage = () => {
                                   ? isTie
                                     ? "border-yellow-500/60 bg-yellow-900/25 text-yellow-100 font-bold"
                                     : "border-red-500/60 bg-red-900/30 text-red-100 font-bold"
-                                  : "border-white/10 bg-slate-900/40 text-slate-200"
+                                  : "border-white/10 bg-slate-900/40 text-slate-300"
                               }`}
                             >
                               <span className="flex items-center gap-1.5">
@@ -761,6 +774,9 @@ export const GameStage = () => {
                                 )}
                                 {c.voteCount === topVotes && isTie && (
                                   <span className="text-yellow-400">⚠️ 平票:</span>
+                                )}
+                                {c.voteCount < topVotes && (
+                                  <span className="text-gray-400">📉 已被反超:</span>
                                 )}
                                 <span>
                                   {c.id + 1}号 {seats[c.id]?.role?.name ? `(${seats[c.id].role.name})` : ""}
@@ -771,6 +787,35 @@ export const GameStage = () => {
                               </span>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* 被提名但未上处决台的提名纪录 */}
+                      {nonCandidateNominees.length > 0 && (
+                        <div className="pt-1.5 border-t border-white/5 space-y-1">
+                          <div className="text-[10.5px] text-gray-400 font-semibold flex items-center justify-between">
+                            <span>📋 被提名但未上台 ({nonCandidateNominees.length}人):</span>
+                          </div>
+                          <div className="space-y-1 max-h-24 overflow-y-auto pr-0.5">
+                            {nonCandidateNominees.map((n) => (
+                              <div
+                                key={n.id}
+                                className="flex justify-between items-center text-[11px] rounded px-2.5 py-1 bg-slate-900/40 border border-white/5 text-slate-300"
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span className="text-gray-500">⚪</span>
+                                  <span>
+                                    {n.id + 1}号 {seats[n.id]?.role?.name ? `(${seats[n.id].role.name})` : ""}
+                                  </span>
+                                </span>
+                                <span className="text-gray-400 font-mono text-[10.5px]">
+                                  {n.voteCount !== undefined
+                                    ? `${n.voteCount} 票 (未达门槛 ${voteThreshold})`
+                                    : "已提名 (未达门槛)"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
