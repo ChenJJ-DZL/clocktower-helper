@@ -68,6 +68,7 @@ import {
   mayorSubstituteLog,
   pickMayorSubstitute,
   getDemonKillImmunityType,
+  resolveMayorDemonKill,
 } from "../../utils/soldierImmunity";
 import {
   isTaowuSeat,
@@ -389,35 +390,43 @@ const stateUpdateResult = async (
       const isProtected =
         targetSeat.statusEffects?.some((e: any) => e.type === "protected") ||
         targetSeat.isProtected;
-      // 🔧 士兵免疫：恶魔攻击士兵时士兵不死亡（官方规则）
-      // 🔧 镇长免疫：至少3名玩家存活时恶魔攻击镇长无效（官方规则）
       const aliveCount = updatedSeats.filter((s: any) => !s.isDead).length;
       const soldierImmune = isImmuneToDemonKill(targetSeat, true, aliveCount);
-      const immunityType = getDemonKillImmunityType(targetSeat, aliveCount);
-      if (!isProtected && !soldierImmune) {
-        // 🔧 梼杌替死（wiki 官方规则 2026-08-15）：梼杌将死时若有存活且有能力的爪牙，
-        //   则梼杌不死亡，该爪牙失去能力；无爪牙可替死则正常死亡。
-        if (isTaowuSeat(targetSeat)) {
-          const r = tryTaowuSubstitute(updatedSeats, targetSeat);
-          if (r.saved) {
-            updatedSeats = r.seats;
-            const lostMinion = updatedSeats.find(
-              (s: any) => s.id === r.lostMinionId
-            );
-            console.log(`[Imp] ${taowuSubstituteLog(targetSeat, lostMinion)}`);
-          } else {
-            const idx2 = updatedSeats.findIndex((s: any) => s.id === targetId);
-            if (idx2 !== -1) {
-              updatedSeats[idx2] = {
-                ...updatedSeats[idx2],
-                markedForDeath: true,
-                diedAtNight: snapshot.nightCount,
-                deathSource: "imp_kill",
-                deathSourceSeatId: actionNode.seatId,
-              };
-            }
+      const mayorRes = resolveMayorDemonKill(updatedSeats, targetSeat, aliveCount);
+
+      if (isProtected) {
+        record.log = record.log || {};
+        (record.log as any).blockedByProtection = true;
+        record.killed = false;
+      } else if (soldierImmune) {
+        record.log = record.log || {};
+        (record.log as any).blockedBySoldier = true;
+        record.killed = false;
+        console.log(`[Imp] ${soldierImmunityLog(targetSeat)}`);
+      } else if (mayorRes.isMayor) {
+        // 🔧 镇长替死机制：5% 自身死亡，95% 存活镇民替代死亡
+        console.log(`[Imp] ${mayorRes.logMessage}`);
+        record.mayorResolution = mayorRes;
+        if (mayorRes.substituted && mayorRes.substituteSeat) {
+          // 95% 替代死亡：替代镇民死亡，镇长存活
+          const subIdx = updatedSeats.findIndex(
+            (s: any) => s.id === mayorRes.substituteSeat.id
+          );
+          if (subIdx !== -1) {
+            updatedSeats[subIdx] = {
+              ...updatedSeats[subIdx],
+              markedForDeath: true,
+              diedAtNight: snapshot.nightCount,
+              deathSource: "mayor_substitute",
+              deathSourceSeatId: actionNode.seatId,
+            };
           }
+          record.killed = true;
+          record.mayorSubstituted = true;
+          record.substituteId = mayorRes.substituteSeat.id;
+          record.actualKilledId = mayorRes.substituteSeat.id;
         } else {
+          // 5% 自己死亡 或 无可用镇民替死：镇长自己死亡
           updatedSeats[targetIdx] = {
             ...targetSeat,
             markedForDeath: true,
@@ -425,45 +434,45 @@ const stateUpdateResult = async (
             deathSource: "imp_kill",
             deathSourceSeatId: actionNode.seatId,
           };
+          record.killed = true;
+          record.mayorSubstituted = false;
+          record.actualKilledId = targetSeat.id;
         }
-      } else if (soldierImmune) {
-        record.log = record.log || {};
-        (record.log as any).blockedBySoldier = true;
-        console.log(
-          `[Imp] ${
-            immunityType === "mayor"
-              ? mayorImmunityLog(targetSeat)
-              : soldierImmunityLog(targetSeat)
-          }`
-        );
-        // 🔧 镇长免疫的代价：被恶魔攻击时镇长不死，但有一名镇民（Townsfolk）替代死亡。
-        //   官方规则："If 3 or more players are alive, when you are attacked by the
-        //   Demon, you are not killed, but a Townsfolk player is killed instead."
-        if (immunityType === "mayor") {
-          const substitute = pickMayorSubstitute(updatedSeats, targetSeat);
-          if (substitute) {
-            const subIdx = updatedSeats.findIndex(
-              (s: any) => s.id === substitute.id
-            );
-            if (subIdx !== -1) {
-              updatedSeats[subIdx] = {
-                ...updatedSeats[subIdx],
-                markedForDeath: true,
-                diedAtNight: snapshot.nightCount,
-                deathSource: "mayor_substitute",
-                deathSourceSeatId: actionNode.seatId,
-              };
-              console.log(`[Imp] ${mayorSubstituteLog(substitute, targetSeat)}`);
-            }
-          } else {
-            console.log(
-              `[Imp] 镇长免疫恶魔攻击，但场上无存活镇民可替代死亡（镇长仍存活）`
-            );
+      } else if (isTaowuSeat(targetSeat)) {
+        // 🔧 梼杌替死（wiki 官方规则 2026-08-15）：梼杌将死时若有存活且有能力的爪牙，
+        //   则梼杌不死亡，该爪牙失去能力；无爪牙可替死则正常死亡。
+        const r = tryTaowuSubstitute(updatedSeats, targetSeat);
+        if (r.saved) {
+          updatedSeats = r.seats;
+          const lostMinion = updatedSeats.find(
+            (s: any) => s.id === r.lostMinionId
+          );
+          console.log(`[Imp] ${taowuSubstituteLog(targetSeat, lostMinion)}`);
+          record.killed = false;
+        } else {
+          const idx2 = updatedSeats.findIndex((s: any) => s.id === targetId);
+          if (idx2 !== -1) {
+            updatedSeats[idx2] = {
+              ...updatedSeats[idx2],
+              markedForDeath: true,
+              diedAtNight: snapshot.nightCount,
+              deathSource: "imp_kill",
+              deathSourceSeatId: actionNode.seatId,
+            };
+            record.killed = true;
+            record.actualKilledId = targetId;
           }
         }
       } else {
-        record.log = record.log || {};
-        (record.log as any).blockedByProtection = true;
+        updatedSeats[targetIdx] = {
+          ...targetSeat,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          deathSource: "imp_kill",
+          deathSourceSeatId: actionNode.seatId,
+        };
+        record.killed = true;
+        record.actualKilledId = targetId;
       }
     }
   }
@@ -515,6 +524,9 @@ const postProcessResult = async (
         isSuicide: boolean;
         killed: boolean;
         nightCount: number;
+        mayorSubstituted?: boolean;
+        substituteId?: number;
+        actualKilledId?: number;
       }
     | undefined;
 
@@ -548,18 +560,27 @@ const postProcessResult = async (
     simLog = `[Imp]${tag} Committed suicide — demon passed to a living minion`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了自杀（${record.targetId + 1}号），已有一名存活爪牙继任恶魔）`;
     abilityLog = `小恶魔${tag}自杀了，恶魔血脉已传递给一名存活爪牙`;
+  } else if (record.mayorSubstituted && record.substituteId !== undefined) {
+    const subLabel = findLabel(record.substituteId);
+    simLog = `[Imp]${tag} Attacked Mayor ${targetLabel} — triggered substitution (95%), killed substitute: ${subLabel}`;
+    storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（小恶魔选择了【${targetLabel}】，触发替死能力：【${subLabel}】替代死亡）`;
+    abilityLog = `小恶魔${tag}攻击了【${targetLabel}】，触发镇长替死能力：【${subLabel}】替代死亡`;
   } else if (record.killed && isDeadTarget) {
     simLog = `[Imp]${tag} Selected dead player ${targetLabel} — no kill tonight (faking Soldier/Monk)`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了已死亡的${record.targetId + 1}号，今晚无人死亡）`;
     abilityLog = `小恶魔${tag}选择了已死亡的【${targetLabel}】，今晚无人死亡`;
   } else if (record.killed) {
-    simLog = `[Imp]${tag} Killed: ${targetLabel}`;
+    const actualLabel =
+      record.actualKilledId !== undefined
+        ? findLabel(record.actualKilledId)
+        : targetLabel;
+    simLog = `[Imp]${tag} Killed: ${actualLabel}`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了${record.targetId + 1}号，他将在今晚死亡）`;
-    abilityLog = `小恶魔${tag}杀死了【${targetLabel}】`;
+    abilityLog = `小恶魔${tag}杀死了【${actualLabel}】`;
   } else {
-    simLog = `[Imp]${tag} Drunk/poisoned — no kill (target: ${targetLabel})`;
-    storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（由于醉酒/中毒，杀戮未执行）`;
-    abilityLog = `小恶魔${tag}试图杀死【${targetLabel}】，但自身醉酒/中毒未生效`;
+    simLog = `[Imp]${tag} Drunk/poisoned/protected — no kill (target: ${targetLabel})`;
+    storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（未造成死亡）`;
+    abilityLog = `小恶魔${tag}试图杀死【${targetLabel}】，但未能造成伤亡`;
   }
 
   console.log(simLog);

@@ -8,8 +8,10 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
-import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
-import { pickMayorSubstitute, mayorSubstituteLog } from "../../utils/soldierImmunity";
+import {
+  isImmuneToDemonKill,
+  resolveMayorDemonKill,
+} from "../../utils/soldierImmunity";
 import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
 import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 
@@ -71,25 +73,23 @@ const updateKillState = async (
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
   let seats = snapshot.seats.map((seat) => seat); // 拷贝数组（元素引用不变，仅替换目标）
-  // 🔧 镇长免疫的代价：被恶魔攻击时镇长不死，但有一名镇民（Townsfolk）替代死亡。
-  //   先扫描本次目标中是否有镇长免疫，若有则选替代镇民（随后统一处理死亡）。
-  const substituteByMayor: Map<number, any> = new Map();
+
+  // 🔧 镇长替死机制判定（5%自己死亡，95%存活镇民替代死亡）
+  const substituteIdsToKill = new Set<number>();
+  const mayorSavedIds = new Set<number>();
   for (const tid of validTargets) {
     const targetSeat = seats.find((s: any) => s.id === tid);
     if (!targetSeat) continue;
-    const immune = isImmuneToDemonKill(targetSeat, true, aliveCount);
-    const isMayor =
-      !targetSeat.isDead && targetSeat.role?.id === "mayor" && aliveCount >= 3;
-    if (immune && isMayor) {
-      const substitute = pickMayorSubstitute(seats, targetSeat);
-      if (substitute) {
-        substituteByMayor.set(targetSeat.id, substitute);
-        console.log(
-          `[Shabaloth] ${mayorSubstituteLog(substitute, targetSeat)}`
-        );
+    const mayorRes = resolveMayorDemonKill(seats, targetSeat, aliveCount);
+    if (mayorRes.isMayor) {
+      console.log(`[Shabaloth] ${mayorRes.logMessage}`);
+      if (mayorRes.substituted && mayorRes.substituteSeat) {
+        mayorSavedIds.add(tid);
+        substituteIdsToKill.add(mayorRes.substituteSeat.id);
       }
     }
   }
+
   // 🔧 梼杌替死（wiki 官方规则）：梼杌将死时若有存活且有能力的爪牙 → 不死亡，爪牙失去能力
   const taowuSavedIds = new Set<number>();
   for (const tid of validTargets) {
@@ -111,19 +111,19 @@ const updateKillState = async (
       if (validTargets.includes(seat.id)) {
         // 🔧 梼杌替死成功 → 不死亡
         if (taowuSavedIds.has(seat.id)) return seat;
+        // 🔧 镇长替死成功 → 镇长不死亡
+        if (mayorSavedIds.has(seat.id)) return seat;
+
         const isProtected =
           seat.statusEffects?.some((e: any) => e.type === "protected") ||
           (seat as any).isProtected;
         // 🔧 士兵免疫：恶魔攻击士兵时士兵不死亡（官方规则）
-        // 🔧 镇长免疫：至少3名玩家存活时恶魔攻击镇长无效（官方规则）
         const soldierImmune = isImmuneToDemonKill(seat, true, aliveCount);
 
         if (isProtected || soldierImmune) {
-          return seat; // 目标被保护 / 士兵免疫 / 镇长免疫，不死亡
+          return seat; // 目标被保护 / 士兵免疫，不死亡
         }
 
-        // 🔧 修复：与 imp 一致同时设 markedForDeath/isDead（syncStatusEffectsToSeat
-        //   只认 markedForDeath → isDead，否则夜晚报告永远"平安夜"、死亡标记缺失）
         return {
           ...seat,
           isAlive: false,
@@ -136,7 +136,7 @@ const updateKillState = async (
         };
       }
       // 🔧 镇长替代死亡：被选中的镇民替代镇长死亡
-      if (substituteByMayor.has(seat.id)) {
+      if (substituteIdsToKill.has(seat.id)) {
         return {
           ...seat,
           isAlive: false,
@@ -144,6 +144,8 @@ const updateKillState = async (
           markedForDeath: true,
           diedAtNight: snapshot.nightCount,
           killedBy: "mayor_substitute",
+          deathSource: "mayor_substitute",
+          deathSourceSeatId: (context.actionNode as any)?.seatId ?? null,
         };
       }
       return seat;

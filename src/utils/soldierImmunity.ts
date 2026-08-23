@@ -51,10 +51,17 @@ export function isMayorSeat(seat: SoldierCheckSeat | undefined): boolean {
  * @param aliveCount 当前存活玩家数（含目标）。镇长免疫需要；缺省时
  *                   仅对士兵免疫生效，镇长免疫退化为不触发（保守）
  */
+/**
+ * 判断目标是否应免疫恶魔攻击（士兵专属绝对免疫）。
+ * - 士兵且未死亡（且未醉/毒）→ 免疫恶魔攻击。
+ *
+ * @param seat 目标座位
+ * @param checkStatus 是否检查醉酒/中毒状态（默认 true）
+ */
 export function isImmuneToDemonKill(
   seat: SoldierCheckSeat | undefined,
   checkStatus = true,
-  aliveCount?: number
+  _aliveCount?: number
 ): boolean {
   if (!seat) return false;
   if (seat.isDead) return false;
@@ -69,10 +76,6 @@ export function isImmuneToDemonKill(
   }
   // 士兵免疫：恶魔攻击士兵无效
   if (isSoldierSeat(seat)) return true;
-  // 镇长免疫：至少3名玩家存活时，恶魔攻击镇长无效（免疫恶魔的刀）
-  if (isMayorSeat(seat)) {
-    return aliveCount !== undefined && aliveCount >= 3;
-  }
   return false;
 }
 
@@ -86,7 +89,7 @@ export function getDemonKillImmunityType(
 ): "soldier" | "mayor" | null {
   if (!seat || seat.isDead) return null;
   if (isSoldierSeat(seat)) return "soldier";
-  if (isMayorSeat(seat) && aliveCount !== undefined && aliveCount >= 3) {
+  if (isMayorSeat(seat) && (aliveCount === undefined || aliveCount >= 3)) {
     return "mayor";
   }
   return null;
@@ -106,28 +109,89 @@ export function mayorImmunityLog(seat: SoldierCheckSeat | undefined): string {
   return `镇长(${Number(id) + 1}号)因存活玩家不少于3人，免疫了恶魔的攻击，存活了下来`;
 }
 
+export interface MayorDemonKillResolution {
+  isMayor: boolean;
+  /** true 表示触发了替死（由 substituteSeat 替代死亡），false 表示替死未触发（镇长自己死亡） */
+  substituted: boolean;
+  /** 被选中的替代死亡镇民座位（仅当 substituted 为 true 时有效） */
+  substituteSeat: any | null;
+  /** 结算原因代码 */
+  reason:
+    | "not_mayor"
+    | "disabled_by_status"
+    | "no_candidates"
+    | "self_killed_5_percent"
+    | "substituted_95_percent";
+  /** 详细中文日志 */
+  logMessage: string;
+}
+
 /**
- * 镇长免疫恶魔攻击时，选择一名替代死亡的镇民（Townsfolk）。
+ * 处理恶魔夜晚击杀镇长的替死机制。
  *
- * 官方规则：镇长被恶魔攻击且存活玩家≥3时，镇长不会死亡，
- * 但"有一名镇民死亡"——这是镇长免疫的代价，不能只免疫不替代。
+ * 规则要求（固定概率）：
+ * - 5% 概率为镇长自己死亡（替死未生效）
+ * - 95% 概率由一名存活且未受保护的镇民（Townsfolk）替代死亡
+ * - 若镇长醉酒/中毒、或存活玩家不足3人、或场上无其他存活镇民可替代时，镇长自己死亡
  *
  * @param seats 全部座位快照
- * @param mayorSeat 镇长座位（排除自己）
- * @returns 被选中的替代镇民座位；无可用镇民时返回 null
- *
- * 替代镇民选择条件：
- *  - 存活
- *  - 真实角色为镇民（townsfolk）
- *  - 不是镇长自己
- *  - 未被保护（僧侣/旅店老板保护时不受恶魔击杀，不能作为替代）
+ * @param targetSeat 恶魔攻击的目标座位
+ * @param aliveCount 当前存活人数
+ * @param forcedRoll 可选的概率投掷覆盖（0~1），用于确定性单测或调试
  */
-export function pickMayorSubstitute(
+export function resolveMayorDemonKill(
   seats: any[],
-  mayorSeat: SoldierCheckSeat
-): any | null {
-  if (!seats || !mayorSeat) return null;
-  const mayorId = (mayorSeat as any).id;
+  targetSeat: SoldierCheckSeat | undefined,
+  aliveCount?: number,
+  forcedRoll?: number
+): MayorDemonKillResolution {
+  if (!targetSeat || !isMayorSeat(targetSeat)) {
+    return {
+      isMayor: false,
+      substituted: false,
+      substituteSeat: null,
+      reason: "not_mayor",
+      logMessage: "",
+    };
+  }
+
+  const mayorId = (targetSeat as any).id ?? 0;
+  const mayorName = (targetSeat as any).playerName
+    ? `${(targetSeat as any).playerName}(${mayorId + 1}号)`
+    : `${mayorId + 1}号`;
+
+  // 1. 醉酒/中毒检测
+  const effects = targetSeat.statusEffects ?? [];
+  const isDrunk =
+    effects.some((e) => e.type === "drunk") ||
+    (targetSeat as any).isDrunk === true;
+  const isPoisoned =
+    effects.some((e) => e.type === "poisoned") ||
+    (targetSeat as any).isPoisoned === true;
+  if (isDrunk || isPoisoned) {
+    return {
+      isMayor: true,
+      substituted: false,
+      substituteSeat: null,
+      reason: "disabled_by_status",
+      logMessage: `镇长【${mayorName}】处于${isPoisoned ? "中毒" : "醉酒"}状态，替死能力失效，镇长自己死亡`,
+    };
+  }
+
+  // 2. 存活人数检测（至少3人存活）
+  const actualAliveCount =
+    aliveCount ?? seats.filter((s: any) => !s.isDead).length;
+  if (actualAliveCount < 3) {
+    return {
+      isMayor: true,
+      substituted: false,
+      substituteSeat: null,
+      reason: "no_candidates",
+      logMessage: `存活玩家不足3人(${actualAliveCount}人)，镇长【${mayorName}】替死能力未生效，镇长自己死亡`,
+    };
+  }
+
+  // 3. 寻找可替代死亡的存活镇民（排除自己、排除已死、排除受保护）
   const candidates = seats.filter(
     (s: any) =>
       s &&
@@ -139,8 +203,56 @@ export function pickMayorSubstitute(
         s.isProtected
       )
   );
-  if (candidates.length === 0) return null;
-  return candidates[Math.floor(Math.random() * candidates.length)];
+
+  if (candidates.length === 0) {
+    return {
+      isMayor: true,
+      substituted: false,
+      substituteSeat: null,
+      reason: "no_candidates",
+      logMessage: `场上无其他可用存活镇民可替代死亡，镇长【${mayorName}】自己死亡`,
+    };
+  }
+
+  // 4. 固定概率判定：5% 自己死亡，95% 镇民替代死亡
+  const roll = forcedRoll !== undefined ? forcedRoll : Math.random();
+  if (roll < 0.05) {
+    return {
+      isMayor: true,
+      substituted: false,
+      substituteSeat: null,
+      reason: "self_killed_5_percent",
+      logMessage: `镇长【${mayorName}】替死判定未触发(5%概率)，镇长自己死亡`,
+    };
+  }
+
+  // 95% 概率：随机选取一名存活镇民替代死亡
+  const substitute =
+    candidates[Math.floor(Math.random() * candidates.length)];
+  const subName = substitute.playerName
+    ? `${substitute.playerName}(${substitute.id + 1}号)`
+    : `${substitute.id + 1}号`;
+  const subRoleName = substitute.role?.name || "镇民";
+
+  return {
+    isMayor: true,
+    substituted: true,
+    substituteSeat: substitute,
+    reason: "substituted_95_percent",
+    logMessage: `镇长【${mayorName}】触发替死能力(95%概率)，【${subName}-${subRoleName}】替代死亡`,
+  };
+}
+
+/**
+ * 兼容旧接口：镇长免疫恶魔攻击时，选择一名替代死亡的镇民（Townsfolk）。
+ */
+export function pickMayorSubstitute(
+  seats: any[],
+  mayorSeat: SoldierCheckSeat
+): any | null {
+  if (!seats || !mayorSeat) return null;
+  const res = resolveMayorDemonKill(seats, mayorSeat, undefined, 1.0); // force substitute
+  return res.substituteSeat;
 }
 
 /** 镇长替代死亡提示文本（用于日志） */
@@ -150,7 +262,8 @@ export function mayorSubstituteLog(
 ): string {
   const subId = (substituteSeat as any)?.id ?? "?";
   const mayorId = (mayorSeat as any)?.id ?? "?";
-  return `镇长(${Number(mayorId) + 1}号)免疫恶魔攻击，${
+  return `镇长(${Number(mayorId) + 1}号)触发替死能力(95%概率)，${
     Number(subId) + 1
   }号镇民替代死亡`;
 }
+
