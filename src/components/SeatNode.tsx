@@ -209,6 +209,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           </div>
         )}
 
+        {/* 当前行动玩家金色呼吸光环 */}
+        {nightInfo?.seat.id === s.id && (
+          <>
+            <div
+              className="absolute inset-0 rounded-full border-4 border-yellow-400/60 animate-ping opacity-40 pointer-events-none"
+              style={{ animationDuration: "2s" }}
+            ></div>
+            <div className="absolute -inset-2 rounded-full border-2 border-yellow-300/50 animate-pulse pointer-events-none"></div>
+          </>
+        )}
+
         {/* 长按进度指示器 */}
         {longPressingSeats.has(s.id) && (
           <div className="absolute inset-0 rounded-full border-4 border-blue-400 animate-ping opacity-75"></div>
