@@ -31,23 +31,23 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Table/Seating Chart */}
         <main className="flex-1 relative overflow-hidden bg-slate-950">
-          {/* 自适应背景图（降低明度以贴合整体深色风格） */}
+          {/* 徕卡质感自适应背景图（明亮通透、高微反差与浓郁色彩） */}
           <div
             className="absolute inset-0 bg-no-repeat bg-center pointer-events-none transition-all duration-700"
             style={{
               backgroundImage: "url('/assets/table-bg.png')",
               backgroundSize: "100% 100%",
-              filter: "brightness(0.65) contrast(1.1)",
+              filter: "brightness(0.90) contrast(1.18) saturate(1.12)",
             }}
           />
 
-          {/* 四角加深阴影暗角层 (Vignette) */}
+          {/* 徕卡风格柔和边缘微暗角 (Leica Soft Vignette) */}
           <div
             className="absolute inset-0 pointer-events-none z-0"
             style={{
               background:
-                "radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.45) 70%, rgba(0, 0, 0, 0.88) 100%)",
-              boxShadow: "inset 0 0 80px rgba(0, 0, 0, 0.8)",
+                "radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.22) 86%, rgba(0, 0, 0, 0.60) 100%)",
+              boxShadow: "inset 0 0 40px rgba(0, 0, 0, 0.5)",
             }}
           />
 
