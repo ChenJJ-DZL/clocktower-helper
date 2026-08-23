@@ -196,19 +196,6 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             <div className="absolute inset-0 rounded-full bg-yellow-300 z-50 animate-vfx-particle shadow-[0_0_60px_yellow]"></div>
           )}
 
-        {/* 真实身份指示徽章 */}
-        {isMasked && (
-          <div
-            className={`absolute ${isPortrait ? "-top-1.5 -right-1.5" : "-top-4 -right-4"} bg-purple-600 text-white ${
-              isPortrait
-                ? "text-[8px] px-1 py-0.5"
-                : "text-[10px] px-1.5 py-0.5"
-            } rounded-full z-40 border border-white shadow-sm`}
-          >
-            实:{realRole?.name}
-          </div>
-        )}
-
         {/* 当前行动玩家金色呼吸光环 */}
         {nightInfo?.seat.id === s.id && (
           <>
@@ -247,11 +234,52 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           </>
         )}
 
-        {/* 座位序号 - 圆心位于角色外圈上 */}
-        <div
-          className={`absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 ${isPortrait ? "w-6 h-6" : "w-9 h-9"} rounded-full ${s.isDead ? "bg-gray-400 border-gray-500 text-gray-700" : "bg-slate-800 border-slate-600"} border-2 flex items-center justify-center ${isPortrait ? "text-xs" : "text-lg"} font-bold z-20 shadow-md`}
-        >
-          {s.id + 1}
+        {/* 左上角：座位序号 + 提名状态标签 (被提在上，已提在下，整体高度与序号圆圈相同，红色与天敌标记格式一致) */}
+        <div className="absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 z-30 pointer-events-none">
+          {/* 序号圆圈 */}
+          <div
+            className={`${isPortrait ? "w-6 h-6 text-xs" : "w-9 h-9 text-lg"} rounded-full ${
+              s.isDead
+                ? "bg-gray-400 border-gray-500 text-gray-700"
+                : "bg-slate-800 border-slate-600 text-white"
+            } border-2 flex items-center justify-center font-bold shadow-md shrink-0`}
+          >
+            {s.id + 1}
+          </div>
+
+          {/* 提名标签容器：被提在上，已提在下，整体高度与序号圆圈相同 */}
+          {(hasBeenNominated || hasNominated) && (
+            <div
+              className={`flex flex-col justify-between ${
+                isPortrait ? "h-6 py-0.5" : "h-9 py-0.5"
+              } shrink-0`}
+            >
+              {hasBeenNominated ? (
+                <span
+                  className={`flex items-center justify-center font-bold rounded ${
+                    isPortrait ? "text-[8px] px-1 h-[10px]" : "text-[10px] px-1.5 h-[14px]"
+                  } bg-red-900/90 text-red-100 border border-red-600 shadow-sm leading-none whitespace-nowrap`}
+                  title="本黄昏已被提名过"
+                >
+                  被提
+                </span>
+              ) : (
+                hasNominated && <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+              )}
+              {hasNominated ? (
+                <span
+                  className={`flex items-center justify-center font-bold rounded ${
+                    isPortrait ? "text-[8px] px-1 h-[10px]" : "text-[10px] px-1.5 h-[14px]"
+                  } bg-red-900/90 text-red-100 border border-red-600 shadow-sm leading-none whitespace-nowrap`}
+                  title="本黄昏已发起过提名"
+                >
+                  已提
+                </span>
+              ) : (
+                hasBeenNominated && <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+              )}
+            </div>
+          )}
         </div>
 
         {/* 角色名称 */}
@@ -281,49 +309,60 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           ))}
         </div>
 
-        {/* 已发起提名标记 - 圆心位于角色外圈右下角 */}
-        {hasNominated && (
-          <div
-            className={`absolute left-[85.4%] top-[85.4%] -translate-x-1/2 -translate-y-1/2 ${
-              isPortrait ? "w-6 h-6 text-[9px]" : "w-7 h-7 text-[11px]"
-            } rounded-full bg-amber-600 text-white border-2 border-amber-300 flex items-center justify-center font-bold z-30 shadow-md`}
-            title="本黄昏已发起过提名"
-          >
-            已提
-          </div>
-        )}
+        {/* 右上角其他标签集合 (主人、实:角色、处决候选者等，以第一个标签为准相切圆环，左对齐从上到下并排显示) */}
+        {(() => {
+          const otherBadges: React.ReactNode[] = [];
 
-        {/* 已被提名标记 - 圆心位于角色外圈左下角 */}
-        {hasBeenNominated && (
-          <div
-            className={`absolute left-[14.6%] top-[85.4%] -translate-x-1/2 -translate-y-1/2 ${
-              isPortrait ? "w-6 h-6 text-[9px]" : "w-7 h-7 text-[11px]"
-            } rounded-full bg-cyan-700 text-white border-2 border-cyan-300 flex items-center justify-center font-bold z-30 shadow-md`}
-            title="本黄昏已被提名过"
-          >
-            被提
-          </div>
-        )}
+          // 真实身份伪装
+          if (isMasked) {
+            otherBadges.push(
+              <div
+                key="badge-masked"
+                className={`bg-purple-700 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-white/80 shadow-md font-bold whitespace-nowrap leading-none backdrop-blur-md`}
+              >
+                实:{realRole?.name}
+              </div>
+            );
+          }
 
-        {/* 右上角提示区域 (主人、处决候选者) */}
-        <div
-          className={`absolute ${isPortrait ? "-top-1.5 -right-1.5" : "-top-5 -right-5"} flex flex-col gap-0.5 items-end z-40`}
-        >
-          {seats.some((seat) => seat.masterId === s.id) && (
-            <span
-              className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-xs px-2 py-0.5"} bg-purple-600 rounded-full shadow font-bold`}
-            >
-              主人
-            </span>
-          )}
-          {s.isCandidate && (
-            <span
-              className={`${isPortrait ? "text-[7px] px-0.5 py-0.5" : "text-xs px-2 py-0.5"} bg-red-600 rounded-full shadow font-bold animate-pulse`}
-            >
-              ⚖️{s.voteCount}
-            </span>
-          )}
-        </div>
+          // 主人标记
+          if (seats.some((seat) => seat.masterId === s.id)) {
+            otherBadges.push(
+              <div
+                key="badge-master"
+                className={`bg-purple-600 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
+              >
+                主人
+              </div>
+            );
+          }
+
+          // 处决候选者标记
+          if (s.isCandidate) {
+            otherBadges.push(
+              <div
+                key="badge-candidate"
+                className={`bg-red-600 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-red-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
+              >
+                ⚖️{s.voteCount}票
+              </div>
+            );
+          }
+
+          if (otherBadges.length === 0) return null;
+
+          return (
+            <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-start gap-1 z-40 pointer-events-none">
+              {otherBadges}
+            </div>
+          );
+        })()}
 
         {/* 幽灵票标记 */}
         {s.isDead && s.hasGhostVote && (
