@@ -23,6 +23,7 @@ import { roles, scripts, typeColors } from "./data";
 
 import { RoundTable } from "@/src/components/game/board/RoundTable";
 import { GameLayout } from "@/src/components/game/GameLayout";
+import { GlobalNavBar } from "@/src/components/game/GlobalNavBar";
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
 import { GameModals } from "@/src/components/game/GameModals";
@@ -924,6 +925,7 @@ export default function Home() {
           )}
           {gamePhase === "setup" && (
             <GameLayout
+              topBar={<GlobalNavBar />}
               leftPanel={
                 <div className="w-full h-full p-4 bg-transparent">
                   <div className="w-full h-full flex items-center justify-center">
