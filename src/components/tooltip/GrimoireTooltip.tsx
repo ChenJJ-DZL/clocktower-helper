@@ -229,10 +229,6 @@ export function useGrimoireTooltip(data: TooltipData | null) {
         ctx.show(data, e.currentTarget as HTMLElement);
       },
       onMouseLeave: ctx.scheduleHide,
-      onClick: (e: React.MouseEvent) => {
-        e.stopPropagation();
-        ctx.show(data, e.currentTarget as HTMLElement);
-      },
     };
   }, [ctx, data]);
 }

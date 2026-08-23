@@ -196,6 +196,10 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     >
       <div
         {...tooltipBind}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isValidTarget) onSeatClick(s.id);
+        }}
         className={`seat-token relative w-full h-full rounded-full ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300
         ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
         ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
