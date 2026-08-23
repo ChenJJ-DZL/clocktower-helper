@@ -9,6 +9,11 @@ export function PlayerContextMenu() {
   );
   if (!targetSeat) return null;
 
+  const effectiveRole =
+    targetSeat.role?.id === "drunk"
+      ? targetSeat.charadeRole || targetSeat.role
+      : targetSeat.role;
+
   return (
     <div
       className="absolute bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
@@ -81,7 +86,7 @@ export function PlayerContextMenu() {
         </>
       )}
       {/* 修补匠：说书人可在任意时刻裁定其死亡 */}
-      {targetSeat.role?.id === "tinker" &&
+      {effectiveRole?.id === "tinker" &&
         !targetSeat.isDead &&
         props.gamePhase !== "setup" && (
           <button
@@ -93,7 +98,7 @@ export function PlayerContextMenu() {
         )}
       {/* 造谣者：白天记录造谣并由说书人裁定真假（若为真，今晚额外死一人） */}
       {props.gamePhase === "day" &&
-        targetSeat.role?.id === "gossip" &&
+        effectiveRole?.id === "gossip" &&
         !targetSeat.isDead && (
           <button
             onClick={() => props.handleMenuAction("gossip_record")}
@@ -105,7 +110,7 @@ export function PlayerContextMenu() {
       {/* 拜访说书人：白天主动触发私密能力交互 */}
       {props.gamePhase === "day" &&
         !targetSeat.isDead &&
-        targetSeat.role?.dayMeta &&
+        effectiveRole?.dayMeta &&
         !targetSeat.hasUsedDayAbility && (
           <button
             onClick={() => props.handleMenuAction("visit_storyteller")}
@@ -117,9 +122,9 @@ export function PlayerContextMenu() {
       {/* 公开声明使用能力：所有玩家可见 */}
       {props.gamePhase === "day" &&
         !targetSeat.isDead &&
-        targetSeat.role?.dayMeta &&
+        effectiveRole?.dayMeta &&
         !targetSeat.hasUsedDayAbility &&
-        targetSeat.role.dayMeta.publicActivation && (
+        effectiveRole.dayMeta.publicActivation && (
           <button
             onClick={() => props.handleMenuAction("public_activate_ability")}
             className="block w-full text-left px-6 py-3 hover:bg-amber-900 text-amber-200 text-lg font-medium border-t border-gray-700"

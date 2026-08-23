@@ -1246,7 +1246,9 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       saveHistory();
       setSeats((p: Seat[]) =>
         p.map((s) =>
-          s.id === shooterId ? { ...s, hasUsedSlayerAbility: true } : s
+          s.id === shooterId
+            ? { ...s, hasUsedSlayerAbility: true, hasUsedDayAbility: true }
+            : s
         )
       );
 
@@ -1285,14 +1287,19 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           data: { message: "恶魔死亡，善良阵营获胜", isDemonDead: true },
         });
       } else {
-        const isPoisonedOrDrunk = isActorDisabledByPoisonOrDrunk(shooter);
+        const isPoisonedOrDrunk =
+          isActorDisabledByPoisonOrDrunk(shooter) ||
+          shooter.role?.id === "drunk" ||
+          shooter.isDrunk;
+        const shooterRoleName =
+          shooter.role?.id === "drunk" ? "猎手 (实:酒鬼)" : "猎手";
         if (isPoisonedOrDrunk) {
           addLog(
-            `${shooterId + 1}号(猎手) 开枪，但由于${shooter.isPoisoned ? "中毒" : "醉酒"}状态，能力失效`
+            `${shooterId + 1}号(${shooterRoleName}) 开枪，但由于${shooter.role?.id === "drunk" ? "酒鬼" : shooter.isPoisoned ? "中毒" : "醉酒"}状态，能力失效`
           );
         } else {
           addLog(
-            `${shooterId + 1}号${shooter.role?.id === "slayer" ? "(猎手)" : ""} 开枪，${targetId + 1}号不是恶魔`
+            `${shooterId + 1}号(${shooterRoleName}) 开枪，${targetId + 1}号不是恶魔`
           );
         }
         setCurrentModal({

@@ -547,8 +547,14 @@ export function useDayActions(deps: DayActionsDeps) {
       const sourceSeat = seats.find((s) => s.id === sourceSeatId);
       if (!sourceSeat || !sourceSeat.role) return;
 
+      const effectiveRole =
+        sourceSeat.role.id === "drunk"
+          ? sourceSeat.charadeRole || sourceSeat.role
+          : sourceSeat.role;
+      if (!effectiveRole) return;
+
       // ── 艺术家专用 ────────────────────────────────────
-      if (sourceSeat.role.id === "artist") {
+      if (effectiveRole.id === "artist") {
         if (sourceSeat.hasUsedDayAbility) {
           alert("此玩家已经使用过技能了！");
           return;
@@ -563,7 +569,7 @@ export function useDayActions(deps: DayActionsDeps) {
       }
 
       // ── 博学者专用 ────────────────────────────────────
-      if (sourceSeat.role.id === "savant") {
+      if (effectiveRole.id === "savant") {
         setCurrentModal({
           type: "SAVANT_RESULT",
           data: { infoA: "", infoB: "" },
@@ -572,7 +578,7 @@ export function useDayActions(deps: DayActionsDeps) {
       }
 
       // ── 赌徒专用：说书人判定猜测真假 ────────────────
-      if (sourceSeat.role.id === "gambler") {
+      if (effectiveRole.id === "gambler") {
         if (sourceSeat.hasUsedDayAbility) {
           alert("此玩家已经使用过技能了！");
           return;
@@ -589,10 +595,34 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
 
-      const modularHandler = getRoleDefinition(sourceSeat.role.id);
+      // ── 包含模态弹窗的日间能力（如造谣者/失忆者/渔夫/技师等） ─────
+      if (
+        ["savant_mr", "amnesiac", "fisherman", "engineer", "gossip"].includes(
+          effectiveRole.id
+        )
+      ) {
+        if (
+          (sourceSeat.hasUsedDayAbility ||
+            (effectiveRole.id === "slayer" && sourceSeat.hasUsedSlayerAbility)) &&
+          effectiveRole.id !== "savant_mr"
+        ) {
+          alert("此玩家已经使用过技能了！");
+          return;
+        }
+        setCurrentModal({
+          type: "DAY_ABILITY",
+          data: { roleId: effectiveRole.id, seatId: sourceSeatId },
+        });
+        setDayAbilityForm({});
+        return;
+      }
+
+      const modularHandler = getRoleDefinition(effectiveRole.id);
       if (modularHandler?.day) {
         if (
-          sourceSeat.hasUsedDayAbility &&
+          (sourceSeat.hasUsedDayAbility ||
+            (effectiveRole.id === "slayer" &&
+              sourceSeat.hasUsedSlayerAbility)) &&
           modularHandler.day.maxUses !== "infinity"
         ) {
           alert("此玩家已经使用过技能了！");
@@ -636,7 +666,16 @@ export function useDayActions(deps: DayActionsDeps) {
           if (modularHandler.day.maxUses !== "infinity") {
             setSeats((prev) =>
               prev.map((s) =>
-                s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
+                s.id === sourceSeatId
+                  ? {
+                      ...s,
+                      hasUsedDayAbility: true,
+                      hasUsedSlayerAbility:
+                        effectiveRole.id === "slayer"
+                          ? true
+                          : s.hasUsedSlayerAbility,
+                    }
+                  : s
               )
             );
           }
@@ -655,15 +694,26 @@ export function useDayActions(deps: DayActionsDeps) {
         if (modularHandler.day.maxUses !== "infinity") {
           setSeats((prev) =>
             prev.map((s) =>
-              s.id === sourceSeatId ? { ...s, hasUsedDayAbility: true } : s
+              s.id === sourceSeatId
+                ? {
+                    ...s,
+                    hasUsedDayAbility: true,
+                    hasUsedSlayerAbility:
+                      effectiveRole.id === "slayer"
+                        ? true
+                        : s.hasUsedSlayerAbility,
+                  }
+                : s
             )
           );
         }
-        addLog(`${sourceSeatId + 1}号 [${sourceSeat.role.name}] 发动技能`);
+        addLog(
+          `${sourceSeatId + 1}号 [${effectiveRole.name}${sourceSeat.role?.id === "drunk" ? " (酒鬼)" : ""}] 发动技能`
+        );
         return;
       }
 
-      if (!sourceSeat.role.dayMeta) {
+      if (!effectiveRole.dayMeta) {
         return;
       }
 
@@ -672,8 +722,8 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
 
-      const meta = sourceSeat.role.dayMeta;
-      let logMessage = `${sourceSeatId + 1}号 [${sourceSeat.role.name}] 发动技能`;
+      const meta = effectiveRole.dayMeta;
+      let logMessage = `${sourceSeatId + 1}号 [${effectiveRole.name}${sourceSeat.role?.id === "drunk" ? " (酒鬼)" : ""}] 发动技能`;
 
       saveHistory();
 
@@ -684,7 +734,7 @@ export function useDayActions(deps: DayActionsDeps) {
                 ...s,
                 hasUsedDayAbility: true,
                 hasUsedSlayerAbility:
-                  s.role?.id === "slayer" ? true : s.hasUsedSlayerAbility,
+                  effectiveRole.id === "slayer" ? true : s.hasUsedSlayerAbility,
               }
             : s
         )
@@ -711,8 +761,13 @@ export function useDayActions(deps: DayActionsDeps) {
         const targetRole = targetSeat.role;
         const isDemon =
           targetRole?.type === "demon" || targetSeat.isDemonSuccessor;
+        const isRealSlayer =
+          sourceSeat.role?.id === "slayer" &&
+          !sourceSeat.isDrunk &&
+          !sourceSeat.isPoisoned &&
+          !isActorDisabledByPoisonOrDrunk(sourceSeat);
 
-        if (isDemon) {
+        if (isDemon && isRealSlayer) {
           killPlayer(targetSeatId, {
             skipGameOverCheck: false,
             onAfterKill: () => {
@@ -726,9 +781,16 @@ export function useDayActions(deps: DayActionsDeps) {
             },
           });
         } else {
-          logMessage += " -> 💨 未命中 (目标不是恶魔)";
+          if (
+            sourceSeat.role?.id === "drunk" ||
+            isActorDisabledByPoisonOrDrunk(sourceSeat)
+          ) {
+            logMessage += ` -> 💨 未命中 (${sourceSeat.role?.id === "drunk" ? "酒鬼" : "中毒/醉酒"}能力失效)`;
+          } else {
+            logMessage += " -> 💨 未命中 (目标不是恶魔)";
+          }
           addLog(logMessage);
-          alert("💨 杀手射击失败。\n目标不是恶魔 (或免疫)。");
+          alert(`💨 杀手射击未生效。\n${targetSeatId + 1}号未死亡。`);
         }
       } else if (meta.effectType === "kill" && targetSeatId !== undefined) {
         const targetSeat = seats.find((s) => s.id === targetSeatId);

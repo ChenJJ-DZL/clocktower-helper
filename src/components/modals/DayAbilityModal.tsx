@@ -8,7 +8,11 @@ export function DayAbilityModal({ modal }: { modal: any }) {
   const { roleId, seatId } = modal;
   const seat = props.seats.find((s) => s.id === seatId);
   if (!seat) return null;
-  const roleName = seat.role?.name || "";
+  const effectiveRole =
+    seat.role?.id === "drunk"
+      ? seat.charadeRole || seat.role
+      : seat.role;
+  const roleName = effectiveRole?.name || seat.role?.name || "";
 
   const closeModal = () => {
     props.setCurrentModal(null);

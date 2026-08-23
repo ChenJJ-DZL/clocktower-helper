@@ -478,16 +478,29 @@ export const GameConsole = React.memo(function GameConsole({
               const activeAbilitySeats = seats.filter((s) => {
                 if (s.isDead || !s.role) return false;
 
+                const effectiveRole =
+                  s.role?.id === "drunk"
+                    ? s.charadeRole || s.role
+                    : s.role;
+                if (!effectiveRole) return false;
+
                 // Check legacy dayMeta
-                if (s.role.dayMeta && !s.hasUsedDayAbility) return true;
+                if (effectiveRole.dayMeta && !s.hasUsedDayAbility) return true;
 
                 // Check modular day ability
-                const def = s.role?.id
-                  ? getRoleDefinition(s.role.id)
+                const def = effectiveRole?.id
+                  ? getRoleDefinition(effectiveRole.id)
                   : undefined;
                 if (def?.day) {
                   // For Savant, maxUses is 'infinity' so it's always available
                   if (def.day.maxUses === "infinity") return true;
+                  // For Slayer: check if hasUsedSlayerAbility
+                  if (
+                    effectiveRole.id === "slayer" &&
+                    s.hasUsedSlayerAbility
+                  ) {
+                    return false;
+                  }
                   // For others (like Artist), check if used
                   if (!s.hasUsedDayAbility) return true;
                 }
@@ -502,13 +515,21 @@ export const GameConsole = React.memo(function GameConsole({
               return (
                 <div className="space-y-3">
                   {activeAbilitySeats.map((seat) => {
-                    const def = seat.role?.id
-                      ? getRoleDefinition(seat.role.id)
+                    const effectiveRole =
+                      seat.role?.id === "drunk"
+                        ? seat.charadeRole || seat.role
+                        : seat.role;
+                    const def = effectiveRole?.id
+                      ? getRoleDefinition(effectiveRole.id)
                       : undefined;
                     const abilityName =
                       def?.day?.name ||
-                      seat.role?.dayMeta?.abilityName ||
+                      effectiveRole?.dayMeta?.abilityName ||
                       "技能";
+                    const displayRoleName =
+                      seat.role?.id === "drunk" && seat.charadeRole
+                        ? seat.charadeRole.name
+                        : seat.role?.name || "";
 
                     return (
                       <div
@@ -519,7 +540,14 @@ export const GameConsole = React.memo(function GameConsole({
                           <span className="text-amber-500 font-bold">
                             {seat.id + 1}号
                           </span>
-                          <span className="text-white">{seat.role?.name}</span>
+                          <span className="text-white">
+                            {displayRoleName}
+                            {seat.role?.id === "drunk" && (
+                              <span className="ml-1.5 text-xs text-purple-400 font-normal">
+                                (酒鬼)
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <button
                           onClick={() => {
@@ -533,7 +561,7 @@ export const GameConsole = React.memo(function GameConsole({
                           data-testid="start-day-ability-button"
                           className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded shadow-sm transition-colors"
                         >
-                          使用 {seat.role?.name}
+                          使用 {displayRoleName}
                         </button>
                       </div>
                     );

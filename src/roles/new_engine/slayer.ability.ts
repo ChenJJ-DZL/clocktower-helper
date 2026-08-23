@@ -27,12 +27,13 @@ const preCheckAliveAndUnused = async (
     };
   }
 
-  const isDrunk = (seat.statusEffects ?? []).some(
-    (e: any) => e.type === "drunk"
-  );
-  const isPoisoned = (seat.statusEffects ?? []).some(
-    (e: any) => e.type === "poisoned"
-  );
+  const isDrunk =
+    (seat.statusEffects ?? []).some((e: any) => e.type === "drunk") ||
+    (seat as any).isDrunk === true ||
+    seat.role?.id === "drunk";
+  const isPoisoned =
+    (seat.statusEffects ?? []).some((e: any) => e.type === "poisoned") ||
+    (seat as any).isPoisoned === true;
   const targetId = (actionNode as any).targetIds?.[0];
   const target = snapshot.seats.find((s) => s.id === targetId);
 
