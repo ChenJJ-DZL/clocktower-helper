@@ -390,6 +390,10 @@ export function GlobalNavBar() {
           >
             🔄 重置
           </button>
+
+          <span className="text-[10px] text-slate-500 font-mono select-none px-1">
+            W8.23.2
+          </span>
         </div>
       </div>
     </>

@@ -308,6 +308,14 @@ export default function ScriptSelection({
             </button>
           ))}
         </div>
+
+        {/* 底部版本标识 */}
+        <div className="text-center pt-2 pb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/60 border border-white/10 text-xs font-mono text-slate-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Version W8.23.2
+          </span>
+        </div>
       </div>
 
       {showBuilderModal && (
