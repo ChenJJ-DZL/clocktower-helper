@@ -170,16 +170,47 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
 export function saveCurrentSnapshot(snapshot: GameSnapshot): void {
   try {
     if (typeof window === "undefined") return;
-    // 🔧 截断 history 只保留最近 30 条，避免整个历史随快照写入导致配额溢出
+    // 🔧 截断 history 只保留最近 5 条轻量记录，避免深层历史递归膨胀溢出 localStorage 配额
     const slim = {
       ...snapshot,
       history: Array.isArray(snapshot.history)
-        ? snapshot.history.slice(-30)
-        : snapshot.history,
+        ? snapshot.history.slice(-5).map((h) => ({
+            ...h,
+            history: [],
+          }))
+        : [],
     };
-    window.localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
+    try {
+      window.localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
+    } catch (innerError: any) {
+      if (
+        innerError?.name === "QuotaExceededError" ||
+        innerError?.code === 22 ||
+        innerError?.code === 1014
+      ) {
+        // 配额超限兜底：清理历史记录与多余日志，只保存纯净当前状态
+        const minimal = {
+          ...slim,
+          history: [],
+          dayAbilityLogs: [],
+        };
+        // 清理过期的游戏档案
+        const records = loadGameRecords();
+        if (records.length > 5) {
+          try {
+            window.localStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify(records.slice(0, 5))
+            );
+          } catch {}
+        }
+        window.localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(minimal));
+      } else {
+        throw innerError;
+      }
+    }
   } catch (error) {
-    console.error("Failed to save current snapshot:", error);
+    console.warn("Failed to save current snapshot:", error);
   }
 }
 

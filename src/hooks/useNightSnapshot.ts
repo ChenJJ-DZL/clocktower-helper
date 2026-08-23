@@ -193,6 +193,7 @@ export function useNightSnapshot(
 
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
+      const currentIndex = wakeIndexRef.current;
       // 🔧 守鸦人修复：用 ref 读取最新 wakeQueueIds（动态插入的守鸦人节点
       //   通过 setWakeQueueIds 函数式更新 + 同步写 ref，闭包中的 wakeQueueIds
       //   在同一次执行流内是旧值，会导致插入的节点被跳过）
