@@ -832,9 +832,9 @@ export default function Home() {
           animate={{
             backgroundColor:
               gamePhase === "day"
-                ? "rgb(12, 74, 110)"
+                ? "rgb(8, 20, 36)"
                 : gamePhase === "dusk"
-                  ? "rgb(28, 25, 23)"
+                  ? "rgb(20, 16, 14)"
                   : "rgb(3, 7, 18)",
           }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
