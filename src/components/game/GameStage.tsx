@@ -572,21 +572,21 @@ export const GameStage = () => {
           </div>
         }
         rightPanel={
-          <div className="h-full flex flex-col p-4 relative z-40 bg-slate-900/60 backdrop-blur-md">
-            {/* 顶部标题与门槛指标 */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0 mb-2.5">
-              <h2 className="text-lg font-black text-orange-400 tracking-wide flex items-center gap-1.5">
-                <span>⚖️</span> 处决台与提名
-              </h2>
-              <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold">
-                  门槛: {voteThreshold} 票 ({aliveCoreCount}存活)
-                </span>
+          <div className="h-full flex flex-col justify-between p-4 relative z-40 bg-slate-900/60 backdrop-blur-md">
+            {/* 顶部与主体内容区：严格自上而下顺次紧凑排列，杜绝卡片间等距散开 */}
+            <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 text-xs select-none">
+              {/* 顶部标题与门槛指标 */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-2 shrink-0">
+                <h2 className="text-lg font-black text-orange-400 tracking-wide flex items-center gap-1.5">
+                  <span>⚖️</span> 处决台与提名
+                </h2>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                    门槛: {voteThreshold} 票 ({aliveCoreCount}存活)
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* 可滚动内容区域（填满中段，杜绝大片空白） */}
-            <div className="flex-1 space-y-2.5 overflow-y-auto pr-1 text-xs select-none">
               {/* 模块 1：核心流程阶段向导 */}
               <div className="space-y-1.5">
                 {pendingVoteFor !== null ? (
