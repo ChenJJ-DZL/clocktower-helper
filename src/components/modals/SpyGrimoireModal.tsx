@@ -28,7 +28,7 @@ export function SpyGrimoireModal({
   isPortrait = false,
 }: SpyGrimoireModalProps) {
   // ─── 倒计时器状态 ────────────────────────────────────────────────────────
-  const INITIAL_TIMER_SECONDS = 30;
+  const INITIAL_TIMER_SECONDS = 60;
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIMER_SECONDS);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
 
@@ -310,7 +310,7 @@ export function SpyGrimoireModal({
               <button
                 onClick={handleResetTimer}
                 className="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded border border-white/10 transition text-[11px]"
-                title="重置30秒"
+                title="重置60秒"
               >
                 ↺
               </button>
