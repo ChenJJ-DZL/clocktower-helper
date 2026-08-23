@@ -620,11 +620,24 @@ export function useDayActions(deps: DayActionsDeps) {
       if ((sourceSeat as any).dayAbilityResult) {
         const res = (sourceSeat as any).dayAbilityResult;
         if (res.type === "SHOOT_RESULT") {
+          const phaseText = res.phaseText || "白天阶段";
+          const targetId = res.targetId;
+          const detail =
+            res.detail ||
+            `${phaseText}${
+              targetId !== undefined && targetId !== null
+                ? `向【${targetId + 1}号】玩家开枪，`
+                : ""
+            }结果：`;
           setCurrentModal({
             type: "SHOOT_RESULT",
             data: {
               message: res.message || "无事发生",
               isDemonDead: !!res.isDemonDead,
+              targetId: res.targetId,
+              shooterId: sourceSeatId,
+              phaseText,
+              detail,
             },
           });
           return;
@@ -653,6 +666,7 @@ export function useDayActions(deps: DayActionsDeps) {
           data: {
             message: "无事发生",
             isDemonDead: false,
+            detail: "白天阶段向玩家开枪，结果：",
           },
         });
         return;

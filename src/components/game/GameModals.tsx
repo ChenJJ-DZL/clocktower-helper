@@ -463,6 +463,26 @@ export function GameModals() {
             ? currentModal.data.isDemonDead
             : false
         }
+        targetId={
+          currentModal?.type === "SHOOT_RESULT"
+            ? currentModal.data.targetId
+            : undefined
+        }
+        shooterId={
+          currentModal?.type === "SHOOT_RESULT"
+            ? currentModal.data.shooterId
+            : undefined
+        }
+        phaseText={
+          currentModal?.type === "SHOOT_RESULT"
+            ? currentModal.data.phaseText
+            : undefined
+        }
+        detail={
+          currentModal?.type === "SHOOT_RESULT"
+            ? currentModal.data.detail
+            : undefined
+        }
         onConfirm={actions.confirmShootResult}
       />
 

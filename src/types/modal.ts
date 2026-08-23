@@ -65,7 +65,17 @@ export type ModalType =
         onResolve: (execute: boolean) => void;
       };
     }
-  | { type: "SHOOT_RESULT"; data: { message: string; isDemonDead: boolean } }
+  | {
+      type: "SHOOT_RESULT";
+      data: {
+        message: string;
+        isDemonDead: boolean;
+        targetId?: number;
+        shooterId?: number;
+        phaseText?: string;
+        detail?: string;
+      };
+    }
   | { type: "SLAYER_SELECT_TARGET"; data: { shooterId: number } }
   | { type: "VOTE_INPUT"; data: { voterId: number } }
   | {

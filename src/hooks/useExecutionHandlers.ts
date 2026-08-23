@@ -1278,8 +1278,26 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         return;
       }
 
+      const phaseText =
+        gamePhase === "day"
+          ? "白天阶段"
+          : gamePhase === "dusk"
+            ? "黄昏阶段"
+            : gamePhase === "firstNight"
+              ? "首夜阶段"
+              : "夜晚阶段";
+
       if (target.isDead) {
         addLog(`${shooterId + 1}号对${targetId + 1}号的尸体开枪未产生效果`);
+        const resultData = {
+          type: "SHOOT_RESULT",
+          message: "无事发生",
+          isDemonDead: false,
+          targetId,
+          shooterId,
+          phaseText,
+          detail: `${phaseText}向【${targetId + 1}号】玩家开枪，结果：`,
+        };
         setSeats((p: Seat[]) =>
           p.map((s) =>
             s.id === shooterId
@@ -1287,19 +1305,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
                   ...s,
                   hasUsedSlayerAbility: true,
                   hasUsedDayAbility: true,
-                  dayAbilityResult: {
-                    type: "SHOOT_RESULT",
-                    message: "无事发生目标已死亡",
-                    isDemonDead: false,
-                    targetId,
-                  },
+                  dayAbilityResult: resultData,
                 }
               : s
           )
         );
         setCurrentModal({
           type: "SHOOT_RESULT",
-          data: { message: "无事发生目标已死亡", isDemonDead: false },
+          data: resultData,
         });
         return;
       }
@@ -1318,6 +1331,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         );
         setWinReason("猎手击杀恶魔");
         killPlayer(targetId, { skipGameOverCheck: false, isEndOfDay: true });
+        const resultData = {
+          type: "SHOOT_RESULT",
+          message: "恶魔死亡，善良阵营获胜",
+          isDemonDead: true,
+          targetId,
+          shooterId,
+          phaseText,
+          detail: `${phaseText}向【${targetId + 1}号】玩家开枪，结果：`,
+        };
         setSeats((p: Seat[]) =>
           p.map((s) =>
             s.id === shooterId
@@ -1325,19 +1347,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
                   ...s,
                   hasUsedSlayerAbility: true,
                   hasUsedDayAbility: true,
-                  dayAbilityResult: {
-                    type: "SHOOT_RESULT",
-                    message: "恶魔死亡，善良阵营获胜",
-                    isDemonDead: true,
-                    targetId,
-                  },
+                  dayAbilityResult: resultData,
                 }
               : s
           )
         );
         setCurrentModal({
           type: "SHOOT_RESULT",
-          data: { message: "恶魔死亡，善良阵营获胜", isDemonDead: true },
+          data: resultData,
         });
       } else {
         const isPoisonedOrDrunk =
@@ -1355,6 +1372,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             `${shooterId + 1}号(${shooterRoleName}) 开枪，${targetId + 1}号不是恶魔`
           );
         }
+        const resultData = {
+          type: "SHOOT_RESULT",
+          message: "无事发生",
+          isDemonDead: false,
+          targetId,
+          shooterId,
+          phaseText,
+          detail: `${phaseText}向【${targetId + 1}号】玩家开枪，结果：`,
+        };
         setSeats((p: Seat[]) =>
           p.map((s) =>
             s.id === shooterId
@@ -1362,19 +1388,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
                   ...s,
                   hasUsedSlayerAbility: true,
                   hasUsedDayAbility: true,
-                  dayAbilityResult: {
-                    type: "SHOOT_RESULT",
-                    message: "无事发生",
-                    isDemonDead: false,
-                    targetId,
-                  },
+                  dayAbilityResult: resultData,
                 }
               : s
           )
         );
         setCurrentModal({
           type: "SHOOT_RESULT",
-          data: { message: "无事发生", isDemonDead: false },
+          data: resultData,
         });
       }
     },
