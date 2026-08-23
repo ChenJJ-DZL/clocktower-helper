@@ -31,7 +31,12 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Table/Seating Chart */}
         <main className="flex-1 relative overflow-hidden bg-transparent">
-          <div className="absolute inset-0 flex items-center justify-center bg-blue-900/20">
+          <div
+            className="absolute inset-0 flex items-center justify-center bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url('/assets/table-bg.png')",
+            }}
+          >
             {leftPanel}
           </div>
         </main>
