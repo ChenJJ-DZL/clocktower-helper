@@ -725,13 +725,11 @@ export const GameStage = () => {
                   const tops = candidates.filter((c) => c.voteCount === topVotes);
                   const isTie = tops.length >= 2;
 
-                  // 被提名但未达门槛或未上台的记录
+                  // 被提名但未达门槛或未上台的记录（仅记录当前黄昏真正被提名过的玩家）
                   const nonCandidateNominees = seats
                     .filter((s: Seat) => {
                       if (s.isCandidate) return false;
-                      const wasNominated = hasPlayerBeenNominated(s.id);
-                      const hasVotes = s.voteCount !== undefined && s.voteCount !== null;
-                      return wasNominated || hasVotes;
+                      return hasPlayerBeenNominated(s.id);
                     })
                     .map((s: Seat) => ({
                       id: s.id,
