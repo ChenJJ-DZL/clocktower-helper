@@ -74,10 +74,10 @@ export function buildFullNightOrder(): NightOrderEntry[] {
     });
   }
 
-  // 首夜系统信息步骤（爪牙信息与恶魔信息）
+  // 首夜系统信息步骤（爪牙互认与恶魔互认）
   entries.push({
     roleId: "minion_info",
-    roleName: "爪牙信息",
+    roleName: "爪牙互认",
     abilityId: "minion_info",
     firstNightPriority: 1.5,
     otherNightPriority: 0,
@@ -87,7 +87,7 @@ export function buildFullNightOrder(): NightOrderEntry[] {
   });
   entries.push({
     roleId: "demon_info",
-    roleName: "恶魔信息",
+    roleName: "恶魔互认",
     abilityId: "demon_info",
     firstNightPriority: 2.5,
     otherNightPriority: 0,

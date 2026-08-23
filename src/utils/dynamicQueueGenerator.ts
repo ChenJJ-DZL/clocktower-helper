@@ -179,7 +179,7 @@ export function generateDynamicNightQueue(
     }
     const roleName =
       entry.roleId === "demon_info" && seat?.role?.name
-        ? `${seat.role.name}(恶魔信息)`
+        ? `${seat.role.name}(恶魔互认)`
         : entry.roleName;
 
     return {
