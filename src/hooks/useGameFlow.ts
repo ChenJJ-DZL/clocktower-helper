@@ -153,19 +153,17 @@ export function useGameFlow(): UseGameFlowResult {
       phase === "firstNight";
 
     if (phase === "day") {
-      // 白天额外逻辑：重置处决标记 / 幽灵票
+      // 白天额外逻辑：重置处决标记
       dispatch(gameActions.updateState({ hasExecutedThisDay: false }));
       // 🔧 新白天同步重置今日被处决 ID，避免处决被永久拦截
       dispatch(gameActions.updateState({ todayExecutedId: null }));
-      // 🔧 官方规则：每个死亡玩家每天有且仅有一次幽灵投票。
-      // 新的一天开始时恢复所有死亡玩家的幽灵票，否则投过一次后永久失效，
-      // 游戏后期死者越多幽灵票越失衡，直接影响胜负判定。
       // 🔧 送葬者修复：同时重置 executedToday / executedRoleSnapshot
       // （处决标记只在处决当天有效，跨天残留会导致送葬者读到旧信息）
+      // 官方规则：死亡玩家的幽灵票整局游戏仅可使用一次，使用后永久消耗，跨天绝不恢复
       dispatch(
         gameActions.setSeats(
           state.seats.map((s) => ({
-            ...(s.isDead ? { ...s, hasGhostVote: true } : s),
+            ...s,
             executedToday: undefined,
             executedRoleSnapshot: undefined,
           }))
