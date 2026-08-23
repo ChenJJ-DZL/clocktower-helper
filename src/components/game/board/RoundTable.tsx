@@ -156,7 +156,9 @@ export function RoundTable({
 
   const handleWheel = (e: React.WheelEvent) => {
     // Only zoom if pressing ctrl/cmd or if on a trackpad
-    e.preventDefault();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     const zoomSensitivity = 0.002;
     const minScale = 0.5;
     const maxScale = 2.5;

@@ -165,12 +165,6 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
 
-      const currentNomineeCount = Object.keys(nominationMap).length;
-      if (currentNomineeCount > 0 && !nominationMap[id]) {
-        addLog("规则：同一时间只能有一名玩家被提名。请先完成当前提名的投票");
-        return false;
-      }
-
       const nominatorsSet =
         nominationRecords?.nominators instanceof Set
           ? nominationRecords.nominators
@@ -215,10 +209,7 @@ export function useDayActions(deps: DayActionsDeps) {
           return false;
         }
       }
-      setNominationMap((prev: Record<number, number>) => ({
-        ...prev,
-        [id]: sourceId,
-      }));
+      setNominationMap({ [id]: sourceId });
       if (nominatorSeat?.role?.type === "minion") {
         setTodayMinionNominated(true);
       }

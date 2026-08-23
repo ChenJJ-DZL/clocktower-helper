@@ -637,6 +637,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       );
       setVoteInputValue("");
       setShowVoteErrorToast(false);
+      setNominationMap({});
       setCurrentModal(null);
 
       // 检查维齐尔强制处决能力
