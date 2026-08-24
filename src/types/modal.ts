@@ -199,7 +199,8 @@ export type ModalType =
   | { type: "RAVENKEEPER_FAKE"; data: { targetId: number } }
   | { type: "REVIEW"; data: null }
   | { type: "GAME_RECORDS"; data: null }
-  | { type: "ROLE_INFO"; data: null }
+  | { type: "ROLE_INFO"; data?: { roleId?: string } | null }
+  | { type: "ROLE_CODEX"; data?: { roleId?: string } | null }
   | { type: "RESTART_CONFIRM"; data: null }
 
   // 提醒标记弹窗

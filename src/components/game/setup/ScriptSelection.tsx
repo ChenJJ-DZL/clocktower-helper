@@ -12,6 +12,7 @@ import { useGameState } from "../../../hooks/useGameState";
 import { loadGameRecords } from "../../../utils/persistence";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
+import { RoleCodexModal } from "../../modals/RoleCodexModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
 import { useTheme } from "../../../contexts/ThemeContext";
 
@@ -36,6 +37,7 @@ export default function ScriptSelection({
   const [customScripts, setCustomScripts] = useState<Script[]>([]);
   const [showBuilderModal, setShowBuilderModal] = useState(false);
   const [showRecords, setShowRecords] = useState(false);
+  const [showCodexModal, setShowCodexModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 加载本地自定义剧本
@@ -253,9 +255,15 @@ export default function ScriptSelection({
                 dispatch(gameActions.setGameRecords(records));
                 setShowRecords(true);
               }}
-              className="px-6 py-2 rounded-full border border-green-500/30 bg-green-500/10 text-green-300 font-medium hover:bg-green-500/20 hover:border-green-500/50 transition flex items-center gap-2"
+              className="px-6 py-2 rounded-full border border-green-500/30 bg-green-500/10 text-green-300 font-medium hover:bg-green-500/20 hover:border-green-500/50 transition flex items-center gap-2 cursor-pointer"
             >
               <span>📚</span> 对局记录
+            </button>
+            <button
+              onClick={() => setShowCodexModal(true)}
+              className="px-6 py-2 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300 font-bold hover:bg-amber-500/20 hover:border-amber-500/60 transition flex items-center gap-2 cursor-pointer shadow-md shadow-amber-500/10 active:scale-95"
+            >
+              <span>📖</span> 角色图鉴
             </button>
             <input
               type="file"
@@ -333,6 +341,13 @@ export default function ScriptSelection({
           gameRecords={gameRecords}
           isPortrait={false}
           onContinue={onContinue}
+        />
+      )}
+
+      {showCodexModal && (
+        <RoleCodexModal
+          isOpen={true}
+          onClose={() => setShowCodexModal(false)}
         />
       )}
     </div>

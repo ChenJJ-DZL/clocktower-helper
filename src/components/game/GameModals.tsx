@@ -40,6 +40,7 @@ import { RavenkeeperFakeModal } from "../modals/RavenkeeperFakeModal";
 import { ReminderTokenPanel } from "../modals/ReminderTokenPanel";
 import { RestartConfirmModal } from "../modals/RestartConfirmModal";
 import { ReviewModal } from "../modals/ReviewModal";
+import { RoleCodexModal } from "../modals/RoleCodexModal";
 import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RoleSelectModal } from "../modals/RoleSelectModal";
 import { SaintExecutionConfirmModal } from "../modals/SaintExecutionConfirmModal";
@@ -721,6 +722,14 @@ export function GameModals() {
           onClose={() => actions.setCurrentModal(null)}
           seats={seats}
           initialSeatId={currentModal.data?.initialSeatId}
+        />
+      )}
+
+      {(currentModal?.type === "ROLE_CODEX" || currentModal?.type === "ROLE_INFO") && (
+        <RoleCodexModal
+          isOpen={true}
+          onClose={() => actions.setCurrentModal(null)}
+          initialRoleId={(currentModal as any).data?.roleId}
         />
       )}
 
