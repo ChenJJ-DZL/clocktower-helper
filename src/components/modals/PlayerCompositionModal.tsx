@@ -38,8 +38,27 @@ export function PlayerCompositionModal({
   minPlayers,
   maxPlayers,
 }: PlayerCompositionModalProps) {
-  const currentMin = minPlayers ?? script?.minPlayers ?? 5;
-  const currentMax = maxPlayers ?? script?.maxPlayers ?? 15;
+  // 解析当前剧本的人数范围（若为 7-15 人剧本，则只显示 7-15+）
+  const currentMin = useMemo(() => {
+    if (minPlayers) return minPlayers;
+    if (script?.minPlayers) return script.minPlayers;
+    if (script?.recommendedPlayers) {
+      const m = script.recommendedPlayers.match(/(\d+)\s*-\s*(\d+)/);
+      if (m) return parseInt(m[1], 10);
+    }
+    return 7;
+  }, [minPlayers, script]);
+
+  const currentMax = useMemo(() => {
+    if (maxPlayers) return maxPlayers;
+    if (script?.maxPlayers) return script.maxPlayers;
+    if (script?.recommendedPlayers) {
+      const m = script.recommendedPlayers.match(/(\d+)\s*-\s*(\d+)/);
+      if (m) return parseInt(m[2], 10);
+    }
+    return 15;
+  }, [maxPlayers, script]);
+
   const displayName = scriptName || script?.name;
 
   // 根据当前剧本支持的人数范围动态过滤展示列
@@ -58,6 +77,10 @@ export function PlayerCompositionModal({
         return c.count === currentPlayerCount;
       })
     : -1;
+
+  const hasDivider =
+    compositionData.some((c) => c.count === 6) &&
+    compositionData.some((c) => c.count === 7);
 
   return (
     <ModalWrapper
@@ -92,13 +115,19 @@ export function PlayerCompositionModal({
             {displayName ? `《${displayName}》` : ""} 支持 {currentMin} - {currentMax >= 15 ? "15+" : currentMax} 人
           </div>
           <p className="text-xs text-slate-400">
-            官方标准阵营人数配置速查 · {compositionData.some((c) => c.count === 6) && compositionData.some((c) => c.count === 7) ? "竖线左侧为小局模式（5~6人），右侧为标准局（7人及以上）" : "根据当前剧本人数上限动态呈现"}
+            官方标准阵营人数配置速查 · {hasDivider ? "竖线左侧为小局模式（5~6人），右侧为标准局（7人及以上）" : "已根据当前剧本建议人数范围精准匹配"}
           </p>
         </div>
 
-        {/* 核心经典表格 (参考官方卡牌与图三样式，融入经典UI主题) */}
+        {/* 核心经典表格 (table-fixed 确保所有人数列 100% 严格等宽) */}
         <div className="overflow-x-auto rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-[#2a131b] via-[#1c121e] to-[#120c18] p-3 shadow-2xl">
-          <table className="w-full text-center border-collapse">
+          <table className="w-full table-fixed border-collapse">
+            <colgroup>
+              <col className="w-24 sm:w-28 md:w-32" />
+              {compositionData.map((col) => (
+                <col key={col.label} />
+              ))}
+            </colgroup>
             <thead>
               <tr className="border-b border-amber-500/30">
                 <th className="py-2.5 px-3 text-left font-black text-sm text-slate-200 whitespace-nowrap">
@@ -106,20 +135,20 @@ export function PlayerCompositionModal({
                 </th>
                 {compositionData.map((col, idx) => {
                   const isCurrent = idx === matchedColIndex;
-                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  const isDivider = col.count === 6 && hasDivider;
                   return (
                     <th
                       key={col.label}
-                      className={`py-2.5 px-2.5 font-black text-sm whitespace-nowrap transition-all ${
+                      className={`py-2.5 px-1 font-black text-sm text-center whitespace-nowrap transition-all ${
                         isCurrent
-                          ? "bg-amber-500/30 text-amber-300 ring-2 ring-amber-400 rounded-t-lg font-black scale-105"
+                          ? "bg-amber-500/30 text-amber-300 border-t-2 border-x-2 border-amber-400 rounded-t-lg font-black"
                           : "text-slate-300"
                       } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
                     >
-                      <div className="flex flex-col items-center">
+                      <div className="flex flex-col items-center justify-center">
                         <span>{col.label}</span>
                         {isCurrent && (
-                          <span className="text-[9px] px-1 bg-amber-500 text-slate-950 rounded font-black mt-0.5">
+                          <span className="text-[9px] px-1 bg-amber-500 text-slate-950 rounded font-black mt-0.5 leading-tight">
                             当前
                           </span>
                         )}
@@ -137,12 +166,15 @@ export function PlayerCompositionModal({
                   <span>镇民</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  const isCurrent = idx === matchedColIndex;
+                  const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-2 text-sky-200 font-black text-base ${
-                        idx === matchedColIndex ? "bg-amber-500/20 text-sky-100 font-black" : ""
+                      className={`py-2.5 px-1 text-center font-black text-base ${
+                        isCurrent
+                          ? "bg-amber-500/20 text-sky-100 border-x border-amber-400/40"
+                          : "text-sky-200"
                       } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
                     >
                       {col.townsfolk}
@@ -158,12 +190,15 @@ export function PlayerCompositionModal({
                   <span>外来者</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  const isCurrent = idx === matchedColIndex;
+                  const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-2 text-teal-200 font-black text-base ${
-                        idx === matchedColIndex ? "bg-amber-500/20 text-teal-100 font-black" : ""
+                      className={`py-2.5 px-1 text-center font-black text-base ${
+                        isCurrent
+                          ? "bg-amber-500/20 text-teal-100 border-x border-amber-400/40"
+                          : "text-teal-200"
                       } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
                     >
                       {col.outsider}
@@ -179,12 +214,15 @@ export function PlayerCompositionModal({
                   <span>爪牙</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  const isCurrent = idx === matchedColIndex;
+                  const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-2 text-orange-200 font-black text-base ${
-                        idx === matchedColIndex ? "bg-amber-500/20 text-orange-100 font-black" : ""
+                      className={`py-2.5 px-1 text-center font-black text-base ${
+                        isCurrent
+                          ? "bg-amber-500/20 text-orange-100 border-x border-amber-400/40"
+                          : "text-orange-200"
                       } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
                     >
                       {col.minion}
@@ -200,12 +238,15 @@ export function PlayerCompositionModal({
                   <span>恶魔</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  const isCurrent = idx === matchedColIndex;
+                  const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-2 text-rose-300 font-black text-base ${
-                        idx === matchedColIndex ? "bg-amber-500/20 text-rose-100 font-black" : ""
+                      className={`py-2.5 px-1 text-center font-black text-base ${
+                        isCurrent
+                          ? "bg-amber-500/20 text-rose-100 border-x border-amber-400/40"
+                          : "text-rose-300"
                       } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
                     >
                       {col.demon}

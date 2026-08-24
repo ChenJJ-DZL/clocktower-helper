@@ -282,7 +282,7 @@ export const scripts: Script[] = [
     name: "暗流涌动",
     difficulty: "初学者",
     recommendedPlayers: "7-15人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 15,
     description:
       "在《暗流涌动》中，每种要素都会略有涉及。一些角色会被动地获取信息，一些角色则需要通过行动来得知谁是谁，而一些角色则单纯只是想诱使恶魔攻击他们。善良与邪恶双方都可以适时做出牺牲以占据上风。 《暗流涌动》是一场对恶魔长驱直入的狩猎，然而邪恶方也有一连串混淆信息的卑鄙把戏。所以如果善良玩家想要求得生存，最好先质疑自己原本的认知。 难度：初学者。推荐给那些初学《染》和这类社交推理游戏的玩家及说书人。 当你",
@@ -316,7 +316,7 @@ export const scripts: Script[] = [
     name: "黯月初升",
     difficulty: "中等",
     recommendedPlayers: "7-15人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 15,
     description: "",
     roleIds: [
@@ -352,7 +352,7 @@ export const scripts: Script[] = [
     name: "梦殒春宵",
     difficulty: "中等",
     recommendedPlayers: "7-15人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 15,
     description: "",
     roleIds: [
@@ -388,7 +388,7 @@ export const scripts: Script[] = [
     name: "窃窃私语",
     difficulty: "中等",
     recommendedPlayers: "7-10人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 10,
     description:
       "窃窃私语是汀西维尔模式的中型剧本，适合7-10人游戏。这个剧本以信息传播、谣言和秘密为核心主题，大量角色的能力都与信息交换、秘密获取、谣言验证相关。善良阵营能够通过各种方式获得信息，但这些信息可能经过了多次传递，存在被篡改的可能。邪恶阵营则可以通过散布虚假信息来误导善良阵营。这个剧本非常考验玩家的沟通能力和信息辨别能力，需要玩家通过多个信息源的交叉验证来判断真相。适合有一定游戏经验的玩家体验。",
@@ -419,7 +419,7 @@ export const scripts: Script[] = [
     name: "无名之墓",
     difficulty: "中等偏难",
     recommendedPlayers: "7-12人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 12,
     description:
       "无名之墓是一个围绕死亡和亡灵主题设计的官方剧本，包含大量与死亡信息、身份伪装、死后能力相关的角色。这个剧本的核心乐趣在于信息的不确定性，许多角色的能力都会干扰或伪造死亡信息，使得善良阵营很难通过常规的死亡信息来判断角色身份。恶魔和爪牙拥有强大的伪装和误导能力，而善良阵营则需要通过缜密的逻辑推理和信息整合来辨别真相。适合有一定游戏经验、熟悉基础规则的玩家体验。",
@@ -478,7 +478,7 @@ export const scripts: Script[] = [
     name: "凶宅魅影",
     difficulty: "困难",
     recommendedPlayers: "7-15人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 15,
     description:
       "凶宅魅影是官方剧本中难度最高的剧本之一，以幻觉、记忆篡改、信息迷惑为核心主题。几乎所有角色的能力都带有欺骗性或误导性，善良阵营获得的大部分信息都可能是错误的或被篡改的。恶魔拥有极为强大的干扰能力，能够伪造各种信息，甚至改变游戏规则。这个剧本极度考验玩家的逻辑推理能力和心理素质，需要玩家在大量虚假信息中找到唯一的真相。仅推荐经验非常丰富的玩家群体体验。",
@@ -511,7 +511,7 @@ export const scripts: Script[] = [
     name: "游园惊梦",
     difficulty: "中等",
     recommendedPlayers: "7-12人",
-    minPlayers: 5,
+    minPlayers: 7,
     maxPlayers: 12,
     description:
       "《游园惊梦》将是对纯粹的逻辑思维的一场巨大挑战。每个善良角色，甚至是外来者，都会获得一些信息。恶魔不会在夜晚攻击，但是会在固定的天数后自动获胜。悠闲的节奏给了玩家足够的时间来拼凑线索的拼图，但诡异的逻辑和违反直觉的信息意味着，善良玩家必须合作起来思考，否则等待他们的只有灭亡。适合头脑冷静的逻辑型玩家。",
