@@ -20,35 +20,35 @@ const TYPE_CONFIG: Record<
     bg: "bg-blue-900/30",
     text: "text-blue-300",
     border: "border-blue-500/40",
-    tokenBg: "bg-gradient-to-br from-blue-900 to-slate-950 border-blue-400 text-blue-200",
+    tokenBg: "bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 border-blue-400 text-blue-200",
   },
   outsider: {
     label: "外来者",
     bg: "bg-teal-900/30",
     text: "text-teal-300",
     border: "border-teal-500/40",
-    tokenBg: "bg-gradient-to-br from-teal-900 to-slate-950 border-teal-400 text-teal-200",
+    tokenBg: "bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 border-teal-400 text-teal-200",
   },
   minion: {
     label: "爪牙",
     bg: "bg-orange-900/30",
     text: "text-orange-300",
     border: "border-orange-500/40",
-    tokenBg: "bg-gradient-to-br from-orange-900 to-slate-950 border-orange-400 text-orange-200",
+    tokenBg: "bg-gradient-to-br from-orange-900 via-orange-950 to-slate-950 border-orange-400 text-orange-200",
   },
   demon: {
     label: "恶魔",
     bg: "bg-red-900/30",
     text: "text-red-300",
     border: "border-red-500/40",
-    tokenBg: "bg-gradient-to-br from-red-900 to-slate-950 border-red-500 text-red-200",
+    tokenBg: "bg-gradient-to-br from-red-900 via-red-950 to-slate-950 border-red-500 text-red-200",
   },
   traveler: {
     label: "旅行者",
     bg: "bg-purple-900/30",
     text: "text-purple-300",
     border: "border-purple-500/40",
-    tokenBg: "bg-gradient-to-br from-purple-900 to-slate-950 border-purple-400 text-purple-200",
+    tokenBg: "bg-gradient-to-br from-purple-900 via-purple-950 to-slate-950 border-purple-400 text-purple-200",
   },
   fabled: {
     label: "传奇角色",
@@ -67,6 +67,100 @@ const ORDERED_TYPES: RoleType[] = [
   "traveler",
   "fabled",
 ];
+
+/**
+ * 角色圆形代币徽章：
+ * - 1~2字单行显示；
+ * - >=3字限定在2行内显示；
+ * - 奇数字数（如5字图书管理员）自动分为“2+3”，7字分为“3+4”；
+ * - 偶数字数（如6字）分为“3+3”，4字分为“2+2”；
+ * - 第一行少一个字或两行字数相等，自动缩小字号绝不换3行。
+ */
+export function RoleTokenBadge({
+  name,
+  tokenBg,
+  size = "md",
+}: {
+  name: string;
+  tokenBg: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const tokenData = useMemo(() => {
+    if (!name) return { lines: [""], fontSize: "text-xs", leading: "leading-none" };
+    const clean = name.trim();
+    const len = clean.length;
+
+    if (len <= 2) {
+      return {
+        lines: [clean],
+        fontSize: size === "lg" ? "text-2xl" : size === "md" ? "text-[13px]" : "text-xs",
+        leading: "leading-none",
+      };
+    }
+
+    const splitIndex = Math.floor(len / 2);
+    const line1 = clean.slice(0, splitIndex);
+    const line2 = clean.slice(splitIndex);
+
+    let fontSize = "text-[11px]";
+    let leading = "leading-[1.1]";
+
+    if (size === "lg") {
+      if (len === 3 || len === 4) fontSize = "text-lg";
+      else if (len === 5) fontSize = "text-base tracking-tight";
+      else if (len === 6) fontSize = "text-sm tracking-tighter";
+      else fontSize = "text-xs tracking-tighter";
+      leading = "leading-tight";
+    } else {
+      if (len === 3) {
+        fontSize = "text-[11px]";
+        leading = "leading-[1.05]";
+      } else if (len === 4) {
+        fontSize = "text-[10px]";
+        leading = "leading-[1.05]";
+      } else if (len === 5) {
+        // 5字：如 图书管理员 (2+3)
+        fontSize = "text-[9px] tracking-tighter";
+        leading = "leading-[1.05]";
+      } else if (len === 6) {
+        // 6字：(3+3)
+        fontSize = "text-[8px] tracking-tighter";
+        leading = "leading-[1]";
+      } else {
+        // 7字及以上：(3+4)
+        fontSize = "text-[7.5px] tracking-tighter";
+        leading = "leading-[0.95]";
+      }
+    }
+
+    return {
+      lines: [line1, line2],
+      fontSize,
+      leading,
+    };
+  }, [name, size]);
+
+  const sizeClass =
+    size === "lg"
+      ? "w-20 h-20 sm:w-22 sm:h-22 border-4 p-1.5"
+      : size === "md"
+        ? "w-11 h-11 border-2 p-0.5"
+        : "w-9 h-9 border-2 p-0.5";
+
+  return (
+    <div
+      className={`${sizeClass} rounded-full flex flex-col items-center justify-center text-center font-black shrink-0 shadow-md transition select-none ${tokenBg}`}
+    >
+      <div className={`flex flex-col items-center justify-center text-center ${tokenData.fontSize} ${tokenData.leading} w-full px-0.5`}>
+        {tokenData.lines.map((line, idx) => (
+          <span key={idx} className="block whitespace-nowrap overflow-hidden">
+            {line}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function RoleCodexModal({
   isOpen,
@@ -268,13 +362,11 @@ export function RoleCodexModal({
 
             {/* 角色代币与名称 */}
             <div className="flex items-center gap-4 py-1 shrink-0">
-              <div
-                className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full border-4 flex items-center justify-center text-center p-2 font-black text-base sm:text-lg shadow-2xl shrink-0 ${
-                  TYPE_CONFIG[inspectingRole.type]?.tokenBg || "bg-slate-800 border-amber-400 text-amber-200"
-                }`}
-              >
-                <span>{inspectingRole.name}</span>
-              </div>
+              <RoleTokenBadge
+                name={inspectingRole.name}
+                tokenBg={TYPE_CONFIG[inspectingRole.type]?.tokenBg || "bg-slate-800 border-amber-400 text-amber-200"}
+                size="lg"
+              />
               <div className="space-y-1 min-w-0 flex-1">
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-100 drop-shadow-md leading-tight">
                   {inspectingRole.name}
@@ -576,7 +668,7 @@ export function RoleCodexModal({
   );
 }
 
-/** 单个角色卡片（名称 + 小字技能说明 + 代币） */
+/** 单个角色卡片（名称 + 小字技能说明 + 2行规整代币） */
 function RoleCardItem({
   role,
   config,
@@ -593,11 +685,11 @@ function RoleCardItem({
     >
       {/* 头部：角色代币 + 名称 + 阵营标签 */}
       <div className="flex items-center gap-3">
-        <div
-          className={`w-11 h-11 rounded-full border-2 flex items-center justify-center text-center p-1 font-black text-xs shrink-0 shadow-md group-hover:scale-105 transition ${config.tokenBg}`}
-        >
-          <span>{role.name}</span>
-        </div>
+        <RoleTokenBadge
+          name={role.name}
+          tokenBg={config.tokenBg}
+          size="md"
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <h4 className="text-base font-black text-slate-100 group-hover:text-amber-300 transition truncate">

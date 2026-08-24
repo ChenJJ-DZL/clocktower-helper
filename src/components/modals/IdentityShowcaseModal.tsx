@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { Role, Seat } from "../../../app/data";
 import { getCharacterWikiDetails, type CharacterWikiDetails } from "../../utils/characterWikiLookup";
 import { ModalWrapper } from "./ModalWrapper";
+import { RoleTokenBadge } from "./RoleCodexModal";
 
 interface IdentityShowcaseModalProps {
   isOpen: boolean;
@@ -339,11 +340,13 @@ export function IdentityShowcaseModal({
                   </span>
                 </div>
 
-                {/* 角色代币与名称完整展示（不省略、不挤压） */}
+                {/* 角色代币与名称完整展示（不省略、不挤压，2行自动排版） */}
                 <div className="flex items-center gap-4 py-1 shrink-0">
-                  <div className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full border-4 flex items-center justify-center text-center p-2 font-black text-base sm:text-lg shadow-2xl shrink-0 ${teamTheme.tokenBg}`}>
-                    <span>{displayRole.name}</span>
-                  </div>
+                  <RoleTokenBadge
+                    name={displayRole.name}
+                    tokenBg={teamTheme.tokenBg}
+                    size="lg"
+                  />
                   <div className="space-y-1 min-w-0 flex-1">
                     <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}>
                       {displayRole.name}
