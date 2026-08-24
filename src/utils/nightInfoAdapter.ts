@@ -288,20 +288,52 @@ function generateSystemInfoViaAdapter(
   const minionSeats = seats.filter(
     (s) => s.role?.type === "minion" && !s.isDead
   );
+  const marionetteSeat = seats.find(
+    (s) => s.role?.id === "marionette" && !s.isDead
+  );
   const otherMinions = minionSeats.filter((s) => s.id !== currentSeatId);
+
+  // 检查是否有存活且健康的罂粟种植者
+  const isPoppyGrowerAlive = seats.some(
+    (s) =>
+      s.role?.id === "poppy_grower" &&
+      !s.isDead &&
+      !s.isDrunk &&
+      !s.isPoisoned
+  );
 
   const demonDesc = demonSeats
     .map((s) => `${s.id + 1}号(${s.role?.name || "恶魔"})`)
     .join("、");
-  const minionDesc = otherMinions
+  const minionDesc = minionSeats
+    .map((s) => `${s.id + 1}号(${s.role?.name || "爪牙"})`)
+    .join("、");
+  const otherMinionDesc = otherMinions
     .map((s) => `${s.id + 1}号(${s.role?.name || "爪牙"})`)
     .join("、");
 
   let guide = "";
   if (isMinionStep) {
-    guide = `爪牙互认 — 恶魔是：${demonDesc}。${minionDesc ? "爪牙队友：" + minionDesc : ""}`;
+    if (isPoppyGrowerAlive) {
+      guide = "爪牙首夜信息 — 🌺 罂粟种植者在场，爪牙与恶魔互不相识。";
+    } else {
+      guide = `爪牙互认 — 恶魔是：${demonDesc || "无恶魔"}。${otherMinionDesc ? "爪牙队友：" + otherMinionDesc : ""}`;
+    }
   } else {
-    guide = `恶魔互认 — 爪牙是：${minionDesc}`;
+    // 恶魔信息
+    if (isPoppyGrowerAlive) {
+      guide = `恶魔首夜信息 — 🌺 罂粟种植者在场，你不知道你的爪牙是谁。展示三个不在场的伪装角色。`;
+    } else {
+      let marionetteNote = "";
+      if (marionetteSeat) {
+        const charadeName =
+          marionetteSeat.charadeRole?.name ||
+          marionetteSeat.role?.name ||
+          "善良角色";
+        marionetteNote = `，${marionetteSeat.id + 1}号是你的提线木偶（他以为自己是【${charadeName}】）`;
+      }
+      guide = `恶魔互认 — 爪牙是：${minionDesc || "无爪牙"}${marionetteNote}`;
+    }
   }
 
   return {

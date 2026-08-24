@@ -37,20 +37,6 @@ export const imp: RoleDefinition = {
 
       const seatNo = playerSeatId + 1;
 
-      if (shouldHideMinions) {
-        return {
-          wake: `唤醒${seatNo}号【小恶魔】，告知爪牙信息：因罂粟种植者在场，无法告知。`,
-          instruction: "因罂粟种植者在场，无法告知爪牙信息",
-          close: "",
-        };
-      }
-
-      const minions = seats
-        .filter((s) => s.role?.type === "minion" && s.id !== playerSeatId)
-        .map((s) => `${s.id + 1}号`);
-      const minionText =
-        minions.length > 0 ? `爪牙：${minions.join("、")}` : "无爪牙";
-
       // 不在场角色：剧本中有但未分配给任何玩家的角色
       // 规则：恶魔只能看到3个不在场的镇民角色（最多可包括1名外来者）
       const assignedRoleIds = new Set(
@@ -88,8 +74,22 @@ export const imp: RoleDefinition = {
           ? `不在场角色：${selectedAbsent.join("、")}`
           : "无不在场角色";
 
+      if (shouldHideMinions) {
+        return {
+          wake: `唤醒${seatNo}号【小恶魔】。🌺 罂粟种植者在场，不告知爪牙信息；${absentText}。`,
+          instruction: `罂粟种植者在场，不告知爪牙信息；${absentText}`,
+          close: "",
+        };
+      }
+
+      const minions = seats
+        .filter((s) => s.role?.type === "minion" && s.id !== playerSeatId)
+        .map((s) => `${s.id + 1}号`);
+      const minionText =
+        minions.length > 0 ? `爪牙：${minions.join("、")}` : "无爪牙";
+
       return {
-        wake: `唤醒${seatNo}号【小恶魔】，告知爪牙身份：${minionText}；${absentText}。`,
+        wake: `唤醒${seatNo}号【小恶魔】，告知${minionText}；${absentText}。`,
         instruction: `${minionText}；${absentText}`,
         close: "",
       };

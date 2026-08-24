@@ -236,8 +236,12 @@ function buildAbilityMap() {
 
 // 从正式配置源动态获取
 export const ENGINE_CONFIG = {
-  fullNightOrder: generateNightOrderFromParser(),
-  abilityMap: buildAbilityMap(),
+  get fullNightOrder(): NightOrderEntry[] {
+    return generateNightOrderFromParser();
+  },
+  get abilityMap(): Map<string, any> {
+    return buildAbilityMap();
+  },
 };
 
 // 转换为 NightStateMachine 的快照格式

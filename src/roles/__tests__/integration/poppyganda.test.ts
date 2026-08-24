@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { roles, scripts } from "../../../../app/data";
+import { ENGINE_CONFIG } from "../../../hooks/useNightEngine";
+import { generateDynamicNightQueue } from "../../../utils/dynamicQueueGenerator";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
-import type { MiddlewareContext } from "../../../utils/middlewareTypes";
 import {
   bounty_hunterAbility,
   cerenovusAbility,
@@ -12,6 +13,7 @@ import {
   fortuneTellerAbility,
   getAbilityForRole,
   impAbility,
+  initializeAbilityRegistry,
   isRoleAbilitiesRegistered,
   jugglerAbility,
   legionAbility,
@@ -38,6 +40,8 @@ const pipe = (a: any) => ({
 });
 
 describe("《罂粟花开》 (Poppyganda) 剧本及全角色能力测试", () => {
+  initializeAbilityRegistry();
+
   it("剧本数据完整性验证：剧本定义、建议人数、24个角色齐全", () => {
     const poppyganda = scripts.find((s) => s.id === "poppyganda");
     expect(poppyganda).toBeDefined();
@@ -54,11 +58,53 @@ describe("《罂粟花开》 (Poppyganda) 剧本及全角色能力测试", () =>
     }
   });
 
-  it("罂粟种植者 (poppy_grower) + 告密者 (snitch) 注册与下发能力", () => {
-    expect(poppy_growerAbility).toBeDefined();
-    expect(snitchAbility).toBeDefined();
-    expect(getAbilityForRole("poppy_grower")).toBeDefined();
-    expect(getAbilityForRole("snitch")).toBeDefined();
+  it("🌺 核心机制：首夜罂粟种植者在场时，爪牙互认步骤绝不进队列，爪牙与恶魔无法互认", () => {
+    const seats: any[] = [
+      { id: 0, playerName: "P1", role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+      { id: 1, playerName: "P2", role: { id: "evil_twin", name: "镜像双子", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+      { id: 2, playerName: "P3", role: { id: "cerenovus", name: "洗脑师", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+      { id: 3, playerName: "P4", role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+      { id: 4, playerName: "P5", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+    ];
+
+    const snapshot: any = {
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+      statusEffects: {},
+      poppyGrowerDead: false,
+    };
+
+    const queue = generateDynamicNightQueue(ENGINE_CONFIG.fullNightOrder, snapshot, { isFirstNight: true });
+    // 验证爪牙互认步骤（minion_info）绝不在首夜队列中
+    const minionInfoStep = queue.find((q) => q.roleId === "minion_info");
+    expect(minionInfoStep).toBeUndefined();
+
+    // 验证爪牙自身技能（镜像双子、洗脑师）独立唤醒
+    const evilTwinStep = queue.find((q) => q.roleId === "evil_twin");
+    const cerenovusStep = queue.find((q) => q.roleId === "cerenovus");
+    expect(evilTwinStep).toBeDefined();
+    expect(cerenovusStep).toBeDefined();
+  });
+
+  it("🌺 死亡触发：罂粟种植者死亡后，夜间队列正确生成邪恶互认步骤", () => {
+    const seats: any[] = [
+      { id: 0, playerName: "P1", role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" }, isDead: true, isAlive: false, isDrunk: false, isPoisoned: false, statusEffects: [] },
+      { id: 1, playerName: "P2", role: { id: "cerenovus", name: "洗脑师", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+      { id: 2, playerName: "P3", role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+    ];
+
+    const snapshot: any = {
+      nightCount: 2,
+      gamePhase: "night",
+      seats,
+      statusEffects: {},
+      poppyGrowerDead: true,
+    };
+
+    const queue = generateDynamicNightQueue(ENGINE_CONFIG.fullNightOrder, snapshot, { isFirstNight: false });
+    const minionInfoStep = queue.find((q) => q.roleId === "minion_info");
+    expect(minionInfoStep).toBeDefined();
   });
 
   it("赏金猎人 (bounty_hunter) 首夜知晓邪恶玩家并在其死亡后轮转", async () => {

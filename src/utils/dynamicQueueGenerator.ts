@@ -74,17 +74,39 @@ export function generateDynamicNightQueue(
       return false;
     }
 
-    if (!isFirstNight && firstNightOnly) {
+    const isSystemEvilInfo =
+      entry.roleId === "minion_info" || entry.roleId === "demon_info";
+    const poppyGrowerDiedAndTriggersEvil =
+      (snapshot as any).poppyGrowerDead === true;
+
+    if (!isFirstNight && firstNightOnly && !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)) {
       return false;
     }
     // 首夜已结束后，即使某些规则把后续夜序重置为“首夜”，
     // 首夜信息角色也绝不重复唤醒。
-    if (firstNightOnly && (snapshot as any).hasCompletedFirstNight) {
+    if (firstNightOnly && (snapshot as any).hasCompletedFirstNight && !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)) {
       return false;
     }
 
+    // 罂粟种植者状态判定：
+    // 在首夜，如果罂粟种植者在场且健康（存活且未中毒未醉酒），爪牙互认步骤绝不进队列！
+    const isPoppyGrowerAlive = snapshot.seats.some(
+      (s) =>
+        s.role?.id === "poppy_grower" &&
+        !s.isDead &&
+        !s.isDrunk &&
+        !s.isPoisoned
+    );
     // 系统信息步骤（minion_info / demon_info）：找到对应玩家，不需要精确 roleId 匹配
     if (entry.roleId === "minion_info") {
+      // 首夜：若罂粟种植者存活且健康，爪牙互认直接取消！
+      if (isFirstNight && isPoppyGrowerAlive) {
+        return false;
+      }
+      // 非首夜：仅在罂粟种植者刚死亡且需要进行邪恶互认时才触发
+      if (!isFirstNight && !poppyGrowerDiedAndTriggersEvil) {
+        return false;
+      }
       const seat = snapshot.seats.find(
         (s) => s.role?.type === "minion" && (includeDead || !s.isDead)
       );
@@ -92,6 +114,12 @@ export function generateDynamicNightQueue(
       return true;
     }
     if (entry.roleId === "demon_info") {
+      // 恶魔信息：
+      // 首夜：恶魔总会唤醒（以获取 3 个伪装），但在罂粟种植者存活时，恶魔不能得知爪牙是谁
+      // 非首夜：仅在罂粟种植者死亡触发邪恶互认时才再次唤醒
+      if (!isFirstNight && !poppyGrowerDiedAndTriggersEvil) {
+        return false;
+      }
       const seat = snapshot.seats.find(
         (s) => s.role?.type === "demon" && (includeDead || !s.isDead)
       );

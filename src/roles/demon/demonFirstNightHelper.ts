@@ -17,23 +17,6 @@ export function buildDemonFirstNightDialog(
 
   // 检查罂粟种植者状态：如果罂粟种植者在场且存活，恶魔不知道爪牙是谁
   const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
-  const shouldHideMinions =
-    poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
-
-  if (shouldHideMinions) {
-    return {
-      wake: "🌺 罂粟种植者在场，你不知道你的爪牙是谁。",
-      instruction: "罂粟种植者在场，你不知道你的爪牙是谁",
-      close: "",
-    };
-  }
-
-  const minions = seats
-    .filter((s) => s.role?.type === "minion" && s.id !== currentSeatId)
-    .map((s) => `${s.id + 1}号`);
-  const minionText =
-    minions.length > 0 ? `你的爪牙是 ${minions.join("、")}` : "场上没有爪牙";
-
   // 不在场角色：剧本中有但未分配给任何玩家的角色
   // 规则：恶魔只能看到3个不在场的镇民角色（最多可包括1名外来者）
   const assignedRoleIds = new Set(
@@ -68,6 +51,20 @@ export function buildDemonFirstNightDialog(
     selectedAbsent.length > 0
       ? `不在场角色：${selectedAbsent.join("、")}`
       : "无不在场角色";
+
+  if (shouldHideMinions) {
+    return {
+      wake: `🌺 罂粟种植者在场，你不知道你的爪牙是谁；${absentText}`,
+      instruction: `罂粟种植者在场，不告知爪牙；${absentText}`,
+      close: "",
+    };
+  }
+
+  const minions = seats
+    .filter((s) => s.role?.type === "minion" && s.id !== currentSeatId)
+    .map((s) => `${s.id + 1}号`);
+  const minionText =
+    minions.length > 0 ? `你的爪牙是 ${minions.join("、")}` : "场上没有爪牙";
 
   return {
     wake: `👿 ${minionText}；${absentText}`,

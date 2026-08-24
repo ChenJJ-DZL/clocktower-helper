@@ -512,6 +512,16 @@ export function useGameController() {
           }
         }
 
+        // 🌺 罂粟种植者死亡处理：若在未中毒未醉酒状态下死亡，触发邪恶互认
+        if (targetSeat?.role?.id === "poppy_grower") {
+          if (!targetSeat.isDrunk && !targetSeat.isPoisoned) {
+            setPoppyGrowerDead(true);
+            addLog("🌺 罂粟种植者已死亡！恶魔与爪牙将在当晚互相认识。");
+          } else {
+            addLog("🌺 罂粟种植者在醉酒/中毒状态下死亡，能力未生效，邪恶阵营无法互相认识。");
+          }
+        }
+
         return updatedSeats;
       });
 
@@ -523,12 +533,13 @@ export function useGameController() {
       if (onAfterKill) onAfterKill();
     },
     [
-    commitSeats,
+      commitSeats,
       setDeadThisNight,
       nightCount,
       setOutsiderDiedToday,
       getSeatRoleId,
       addLog,
+      setPoppyGrowerDead,
     ]
   );
 
