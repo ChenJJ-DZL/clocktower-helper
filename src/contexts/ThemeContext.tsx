@@ -12,7 +12,7 @@ import React, {
 export type Theme = "modern" | "classic";
 
 const THEME_STORAGE_KEY = "clocktower_theme";
-const DEFAULT_THEME: Theme = "modern";
+const DEFAULT_THEME: Theme = "classic";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -77,7 +77,7 @@ export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     return {
-      theme: "modern",
+      theme: "classic",
       setTheme: () => {},
       toggleTheme: () => {},
     };

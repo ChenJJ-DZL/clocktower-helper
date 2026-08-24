@@ -308,7 +308,7 @@ export function GlobalNavBar() {
                   ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
                   : "text-slate-400 hover:text-slate-200"
               }`}
-              title="🏛️ 官方原版经典皮肤"
+              title="🏛️ 官方原版经典皮肤 (默认)"
             >
               🏛️ 经典
             </button>
@@ -319,7 +319,7 @@ export function GlobalNavBar() {
                   ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
                   : "text-slate-400 hover:text-slate-200"
               }`}
-              title="✨ 现代默认版"
+              title="✨ 现代暗黑版"
             >
               ✨ 现代
             </button>
