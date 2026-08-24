@@ -19,6 +19,20 @@ export function PlayerContextMenu() {
       className="absolute bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
       style={{ top: props.contextMenu.y, left: props.contextMenu.x }}
     >
+      {targetSeat.role && (
+        <button
+          onClick={() => {
+            props.setCurrentModal({
+              type: "IDENTITY_SHOWCASE",
+              data: { initialSeatId: targetSeat.id },
+            });
+            props.setContextMenu(null);
+          }}
+          className="block w-full text-left px-6 py-3 hover:bg-amber-900/80 text-amber-200 text-lg font-medium border-b border-gray-600 transition-colors"
+        >
+          🎴 身份告知与展示
+        </button>
+      )}
       {props.gamePhase === "dusk" && !targetSeat.isDead && (
         <button
           onClick={() => props.handleMenuAction("nominate")}

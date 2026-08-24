@@ -18,6 +18,7 @@ import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 import { ExecutionResultModal } from "../modals/ExecutionResultModal";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { InfoResultModal } from "../modals/InfoResultModal";
+import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
 import { GenericAlertModal } from "../modals/GenericAlertModal";
 import { GenericConfirmModal } from "../modals/GenericConfirmModal";
 import { KillConfirmModal } from "../modals/KillConfirmModal";
@@ -711,6 +712,15 @@ export function GameModals() {
           nightCount={nightCount}
           reminderTokens={reminderTokens}
           isPortrait={isPortrait}
+        />
+      )}
+
+      {currentModal?.type === "IDENTITY_SHOWCASE" && (
+        <IdentityShowcaseModal
+          isOpen={true}
+          onClose={() => actions.setCurrentModal(null)}
+          seats={seats}
+          initialSeatId={currentModal.data?.initialSeatId}
         />
       )}
 

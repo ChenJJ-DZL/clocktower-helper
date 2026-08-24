@@ -28,6 +28,12 @@ interface GameConsoleProps {
   inspectionResultKey?: number;
 
   // Zone C: Actions
+  extraAction?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+    variant?: "primary" | "success" | "warning" | "danger";
+  };
   primaryAction?: {
     label: string;
     onClick: () => void;
@@ -71,6 +77,7 @@ export const GameConsole = React.memo(function GameConsole({
   nightInfo,
   onTogglePlayer,
   inspectionResult,
+  extraAction,
   primaryAction,
   secondaryActions = [],
   handleDayAbility,
@@ -689,8 +696,37 @@ export const GameConsole = React.memo(function GameConsole({
       </div>
 
       {/* Zone C: Action Footer */}
-      {(primaryAction || secondaryActions.length > 0) && (
+      {(extraAction || primaryAction || secondaryActions.length > 0) && (
         <div className="shrink-0 border-t border-white/10 bg-slate-800/50 px-6 py-5 space-y-3">
+          {extraAction && (
+            <button
+              onClick={() => {
+                console.log("[GameConsole] Extra action clicked", {
+                  label: extraAction.label,
+                  disabled: extraAction.disabled,
+                  variant: extraAction.variant,
+                });
+                if (!extraAction.disabled) {
+                  try {
+                    extraAction.onClick();
+                  } catch (error) {
+                    console.error("[GameConsole] Error in extra action:", error);
+                    showAlert(
+                      `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
+                    );
+                  }
+                } else {
+                  console.warn("[GameConsole] Extra action is disabled");
+                }
+              }}
+              disabled={extraAction.disabled}
+              className={`w-full h-14 rounded-xl text-lg font-bold shadow-lg transition flex items-center justify-center gap-2 ${getActionVariantClass(
+                extraAction.variant || "warning"
+              )} ${extraAction.disabled ? "opacity-50 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
+            >
+              {extraAction.label}
+            </button>
+          )}
           {primaryAction && (
             <button
               onClick={() => {

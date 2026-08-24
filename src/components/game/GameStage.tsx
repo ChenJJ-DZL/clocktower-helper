@@ -1440,6 +1440,18 @@ export const GameStage = () => {
                 controller.refreshSnapshot(seats, gamePhase);
               }
             }}
+            extraAction={
+              gamePhase === "check"
+                ? {
+                    label: "🎴 身份展示 & 告知",
+                    onClick: () => {
+                      setCurrentModal({ type: "IDENTITY_SHOWCASE", data: null });
+                    },
+                    disabled: seats.filter((s: any) => s.role).length === 0,
+                    variant: "warning" as const,
+                  }
+                : undefined
+            }
             primaryAction={
               gamePhase === "firstNight" || gamePhase === "night"
                 ? (() => {

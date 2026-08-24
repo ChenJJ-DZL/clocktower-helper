@@ -208,6 +208,7 @@ export type ModalType =
   // 游戏阶段弹窗
   | { type: "DAWN_REPORT"; data: null }
   | { type: "GAME_OVER"; data: null }
+  | { type: "IDENTITY_SHOWCASE"; data: { initialSeatId?: number } | null }
   | null;
 
 /**
