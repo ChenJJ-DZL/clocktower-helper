@@ -239,7 +239,7 @@ export const ENGINE_CONFIG = {
   get fullNightOrder(): NightOrderEntry[] {
     return generateNightOrderFromParser();
   },
-  get abilityMap(): Map<string, any> {
+  get abilityMap(): Record<string, any> {
     return buildAbilityMap();
   },
 };

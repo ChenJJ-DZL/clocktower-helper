@@ -126,6 +126,7 @@ export function useGameController() {
     lastDuskExecution,
     setLastDuskExecution,
     poppyGrowerDead,
+    setPoppyGrowerDead,
     spyDisguiseMode,
     spyDisguiseProbability,
     balloonistKnownTypes,
