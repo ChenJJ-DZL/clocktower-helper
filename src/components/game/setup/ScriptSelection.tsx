@@ -320,14 +320,14 @@ export default function ScriptSelection({
                 onClick={() => handleScriptClick(script)}
                 className={`group relative overflow-hidden rounded-2xl px-5 sm:px-6 py-4 text-left shadow-xl transition-all duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer ${
                   isUnofficial
-                    ? "border border-amber-500/40 bg-amber-500/10 hover:border-amber-500/60 hover:bg-amber-500/20 hover:shadow-amber-500/20 shadow-amber-500/10 focus-visible:ring-amber-400"
+                    ? "border-2 border-amber-400/80 bg-gradient-to-br from-[#452003]/90 via-[#321703]/95 to-[#1f0d01] hover:border-amber-300 hover:from-[#572904] hover:to-[#2b1202] hover:shadow-amber-500/25 shadow-amber-950/60 focus-visible:ring-amber-400"
                     : "border border-white/10 bg-slate-900/70 backdrop-blur-md hover:border-purple-400/80 hover:bg-slate-800/90 hover:shadow-purple-500/30 focus-visible:ring-purple-400"
                 }`}
               >
                 <div
                   className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
                     isUnofficial
-                      ? "bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-yellow-500/10"
+                      ? "bg-gradient-to-br from-amber-400/25 via-yellow-500/15 to-orange-500/10"
                       : "bg-gradient-to-br from-purple-500/20 via-pink-500/10 to-sky-500/10"
                   }`}
                 />
@@ -336,16 +336,16 @@ export default function ScriptSelection({
                   {/* 顶部：剧本名 + 难度标签 */}
                   <div className="flex items-center justify-between gap-3">
                     <div
-                      className={`text-xl md:text-2xl font-bold truncate ${
-                        isUnofficial ? "text-amber-100" : "text-slate-50"
+                      className={`text-xl md:text-2xl font-black truncate ${
+                        isUnofficial ? "text-amber-100 drop-shadow-sm" : "text-slate-50"
                       }`}
                     >
                       {script.name}
                     </div>
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shrink-0 ${
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shrink-0 ${
                         isUnofficial
-                          ? "bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold"
+                          ? "bg-amber-500/30 border border-amber-400/70 text-amber-200 shadow-sm"
                           : "bg-purple-500/20 text-purple-200"
                       }`}
                     >
@@ -356,9 +356,9 @@ export default function ScriptSelection({
                   {/* 底部：左下角建议人数 + 右下角进入配置 */}
                   <div className="flex items-center justify-between gap-2">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm shrink-0 ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm shrink-0 ${
                         isUnofficial
-                          ? "bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                          ? "bg-amber-500/25 border border-amber-400/60 text-amber-200"
                           : "bg-purple-500/15 border border-purple-500/30 text-purple-300"
                       }`}
                     >
@@ -369,7 +369,7 @@ export default function ScriptSelection({
                     <div className="flex items-center gap-2">
                       {script.id.startsWith("custom_") && (
                         <button
-                          className="text-red-400 hover:text-red-300 mr-1 z-10 relative text-xs cursor-pointer"
+                          className="text-red-400 hover:text-red-300 mr-1 z-10 relative text-xs cursor-pointer font-bold"
                           onClick={(e) => handleDeleteCustomScript(e, script.id)}
                           title="删除自定义剧本"
                         >
@@ -377,8 +377,8 @@ export default function ScriptSelection({
                         </button>
                       )}
                       <span
-                        className={`group-hover:translate-x-0.5 transition-transform text-sm font-semibold whitespace-nowrap ${
-                          isUnofficial ? "text-amber-300" : "text-purple-300"
+                        className={`group-hover:translate-x-0.5 transition-transform text-sm font-bold whitespace-nowrap ${
+                          isUnofficial ? "text-amber-300 group-hover:text-amber-100" : "text-purple-300"
                         }`}
                       >
                         进入配置 &raquo;
