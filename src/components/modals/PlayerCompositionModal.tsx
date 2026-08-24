@@ -1,0 +1,230 @@
+"use client";
+
+import React from "react";
+import { ModalWrapper } from "./ModalWrapper";
+
+interface PlayerCompositionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentPlayerCount?: number;
+  scriptName?: string;
+}
+
+// 官方标准人数配比数据 (5 ~ 15+ 人)
+const COMPOSITION_DATA = [
+  { count: 5, label: "5", townsfolk: 3, outsider: 0, minion: 1, demon: 1, isTeensy: true },
+  { count: 6, label: "6", townsfolk: 3, outsider: 1, minion: 1, demon: 1, isTeensy: true },
+  { count: 7, label: "7", townsfolk: 5, outsider: 0, minion: 1, demon: 1, isTeensy: false },
+  { count: 8, label: "8", townsfolk: 5, outsider: 1, minion: 1, demon: 1, isTeensy: false },
+  { count: 9, label: "9", townsfolk: 5, outsider: 2, minion: 1, demon: 1, isTeensy: false },
+  { count: 10, label: "10", townsfolk: 7, outsider: 0, minion: 2, demon: 1, isTeensy: false },
+  { count: 11, label: "11", townsfolk: 7, outsider: 1, minion: 2, demon: 1, isTeensy: false },
+  { count: 12, label: "12", townsfolk: 7, outsider: 2, minion: 2, demon: 1, isTeensy: false },
+  { count: 13, label: "13", townsfolk: 9, outsider: 0, minion: 3, demon: 1, isTeensy: false },
+  { count: 14, label: "14", townsfolk: 9, outsider: 1, minion: 3, demon: 1, isTeensy: false },
+  { count: 15, label: "15+", townsfolk: 9, outsider: 2, minion: 3, demon: 1, isTeensy: false },
+];
+
+export function PlayerCompositionModal({
+  isOpen,
+  onClose,
+  currentPlayerCount,
+  scriptName,
+}: PlayerCompositionModalProps) {
+  if (!isOpen) return null;
+
+  // 匹配当前高亮列
+  const matchedColIndex = currentPlayerCount
+    ? currentPlayerCount >= 15
+      ? COMPOSITION_DATA.length - 1
+      : COMPOSITION_DATA.findIndex((c) => c.count === currentPlayerCount)
+    : -1;
+
+  return (
+    <ModalWrapper
+      title="📜 官方标准阵营人数配比表"
+      onClose={onClose}
+      className="max-w-4xl w-[96vw] max-h-[90vh] flex flex-col p-2 overflow-hidden"
+      footer={
+        <div className="flex items-center justify-between gap-3 w-full">
+          <div className="text-xs text-slate-400">
+            {scriptName && <span className="text-amber-300 font-bold mr-2">【{scriptName}】</span>}
+            <span>当前对局人数：</span>
+            <b className="text-amber-400 text-sm ml-1">
+              {currentPlayerCount ? `${currentPlayerCount} 人` : "未定"}
+            </b>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition cursor-pointer shadow-md active:scale-95"
+          >
+            我已知晓
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4 p-1 overflow-y-auto">
+        {/* 顶部标题与范围说明 */}
+        <div className="text-center space-y-1">
+          <div className="inline-block px-4 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm">
+            支持 5 - 15+ 人
+          </div>
+          <p className="text-xs text-slate-400">
+            官方经典规则标准阵营人数配置速查 · 竖线左侧为小局模式（5~6人），右侧为标准局（7~15+人）
+          </p>
+        </div>
+
+        {/* 核心经典表格 (参考官方卡牌与图三样式，融入经典UI主题) */}
+        <div className="overflow-x-auto rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-[#2a131b] via-[#1c121e] to-[#120c18] p-3 shadow-2xl">
+          <table className="w-full text-center border-collapse">
+            <thead>
+              <tr className="border-b border-amber-500/30">
+                <th className="py-2.5 px-3 text-left font-black text-sm text-slate-200 whitespace-nowrap">
+                  玩家数量
+                </th>
+                {COMPOSITION_DATA.map((col, idx) => {
+                  const isCurrent = idx === matchedColIndex;
+                  const isDivider = idx === 1; // 6人与7人之间分割线
+                  return (
+                    <th
+                      key={col.label}
+                      className={`py-2.5 px-2.5 font-black text-sm whitespace-nowrap transition-all ${
+                        isCurrent
+                          ? "bg-amber-500/30 text-amber-300 ring-2 ring-amber-400 rounded-t-lg font-black scale-105"
+                          : "text-slate-300"
+                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                    >
+                      <div className="flex flex-col items-center">
+                        <span>{col.label}</span>
+                        {isCurrent && (
+                          <span className="text-[9px] px-1 bg-amber-500 text-slate-950 rounded font-black mt-0.5">
+                            当前
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-amber-500/15 text-sm font-bold">
+              {/* 镇民 */}
+              <tr className="hover:bg-white/5 transition">
+                <td className="py-2.5 px-3 text-left font-black text-sky-300 flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0"></span>
+                  <span>镇民</span>
+                </td>
+                {COMPOSITION_DATA.map((col, idx) => (
+                  <td
+                    key={idx}
+                    className={`py-2.5 px-2 text-sky-200 font-black text-base ${
+                      idx === matchedColIndex ? "bg-amber-500/20 text-sky-100 font-black" : ""
+                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                  >
+                    {col.townsfolk}
+                  </td>
+                ))}
+              </tr>
+
+              {/* 外来者 */}
+              <tr className="hover:bg-white/5 transition">
+                <td className="py-2.5 px-3 text-left font-black text-teal-300 flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400 shrink-0"></span>
+                  <span>外来者</span>
+                </td>
+                {COMPOSITION_DATA.map((col, idx) => (
+                  <td
+                    key={idx}
+                    className={`py-2.5 px-2 text-teal-200 font-black text-base ${
+                      idx === matchedColIndex ? "bg-amber-500/20 text-teal-100 font-black" : ""
+                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                  >
+                    {col.outsider}
+                  </td>
+                ))}
+              </tr>
+
+              {/* 爪牙 */}
+              <tr className="hover:bg-white/5 transition">
+                <td className="py-2.5 px-3 text-left font-black text-orange-300 flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0"></span>
+                  <span>爪牙</span>
+                </td>
+                {COMPOSITION_DATA.map((col, idx) => (
+                  <td
+                    key={idx}
+                    className={`py-2.5 px-2 text-orange-200 font-black text-base ${
+                      idx === matchedColIndex ? "bg-amber-500/20 text-orange-100 font-black" : ""
+                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                  >
+                    {col.minion}
+                  </td>
+                ))}
+              </tr>
+
+              {/* 恶魔 */}
+              <tr className="hover:bg-white/5 transition">
+                <td className="py-2.5 px-3 text-left font-black text-rose-400 flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                  <span>恶魔</span>
+                </td>
+                {COMPOSITION_DATA.map((col, idx) => (
+                  <td
+                    key={idx}
+                    className={`py-2.5 px-2 text-rose-300 font-black text-base ${
+                      idx === matchedColIndex ? "bg-amber-500/20 text-rose-100 font-black" : ""
+                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                  >
+                    {col.demon}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 底部说书人规则备注与动态提示 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+              <span>💡</span>
+              <span>人数规则提示</span>
+            </div>
+            <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
+              <li>
+                <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1 个恶魔，无不在场的恶魔虚假伪装（或使用汀西维尔规则）。
+              </li>
+              <li>
+                <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3 个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
+              </li>
+              <li>
+                <b>16人及以上</b>：超出 15 人的玩家作为<b>「旅行者（Traveler）」</b>加入，不改变基础镇民/爪牙配比。
+              </li>
+            </ul>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-orange-300 font-bold">
+              <span>⚡</span>
+              <span>角色技能对配比的动态改变</span>
+            </div>
+            <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
+              <li>
+                <b>男爵 (Baron)</b>：在场时外来者数量 <b>+2</b>（镇民数量相应 <b>-2</b>）。
+              </li>
+              <li>
+                <b>教父 (Godfather)</b>：外来者数量 <b>+1 或 -1</b>。
+              </li>
+              <li>
+                <b>气球驾驶员 (Balloonist)</b>：外来者数量 <b>+1</b>（镇民 <b>-1</b>）。
+              </li>
+              <li>
+                <b>卡扎利 / 哨兵 / 疯子</b>：可能按技能特殊调整外来者数量与爪牙选择。
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}

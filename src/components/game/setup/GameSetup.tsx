@@ -8,6 +8,7 @@ import {
   typeBgColors,
 } from "../../../../app/data";
 import { ModalWrapper } from "../../modals/ModalWrapper";
+import { PlayerCompositionModal } from "../../modals/PlayerCompositionModal";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -124,6 +125,7 @@ export default function GameSetup({
   onQuickTest,
 }: GameSetupProps) {
   const [showCompositionModal, setShowCompositionModal] = useState(false);
+  const [showCompositionGuideModal, setShowCompositionGuideModal] = useState(false);
 
   const {
     playerCount,
@@ -235,7 +237,17 @@ export default function GameSetup({
 
         {/* Player Count - Full Width */}
         <div className="space-y-2">
-          <h3 className="text-lg font-bold text-slate-300">游戏人数</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-slate-300">游戏人数</h3>
+            <button
+              type="button"
+              onClick={() => setShowCompositionGuideModal(true)}
+              className="w-5 h-5 rounded-full border border-amber-400/80 bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 font-black text-xs flex items-center justify-center transition shadow-sm hover:scale-110 active:scale-95 cursor-pointer"
+              title="查看官方标准人数与阵营配比表"
+            >
+              ?
+            </button>
+          </div>
           <div className="flex items-baseline gap-3">
             <div className="text-4xl font-black text-slate-50">
               {playerCount}
@@ -473,6 +485,14 @@ export default function GameSetup({
           </div>
         </ModalWrapper>
       )}
+
+      {/* 官方标准阵营人数配比表弹窗 */}
+      <PlayerCompositionModal
+        isOpen={showCompositionGuideModal}
+        onClose={() => setShowCompositionGuideModal(false)}
+        currentPlayerCount={playerCount || seats.length}
+        scriptName={selectedScript?.name}
+      />
     </div>
   );
 }

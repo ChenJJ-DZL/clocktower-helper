@@ -285,17 +285,25 @@ export default function ScriptSelection({
             >
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-purple-500/20 via-pink-500/10 to-sky-500/10 transition-opacity duration-300" />
 
-              <div className="relative flex flex-col gap-4">
+              <div className="relative flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-xl md:text-2xl font-bold text-slate-50">
                     {script.name}
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-purple-500/20 px-4 py-2 text-sm font-semibold text-purple-200">
+                  <span className="inline-flex items-center rounded-full bg-purple-500/20 px-3.5 py-1 text-xs font-semibold text-purple-200">
                     难度：{script.difficulty}
                   </span>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
+                {/* 官方建议人数 */}
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold shadow-sm">
+                    <span>👥</span>
+                    <span>建议人数：{script.recommendedPlayers || "7-15人"}</span>
+                  </span>
+                </div>
+
+                <div className="mt-1 flex items-center justify-between text-sm text-slate-400">
                   <span>点击选择</span>
                   <div className="flex items-center gap-2">
                     {script.isCustom && (
