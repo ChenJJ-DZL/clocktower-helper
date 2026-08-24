@@ -8,13 +8,17 @@ interface ScaleLayoutProps {
 }
 
 /**
- * ScaleLayout - Fixed-resolution scaling viewport
+ * ScaleLayout - Fixed-proportion scaling viewport with dynamic background expansion
  *
- * Base resolution: 1600x900 (16:9 aspect ratio)
- * Scales content to fit any viewport while maintaining aspect ratio
+ * Base design resolution: 1600x900
+ * Keeps ALL buttons, fonts, seat sizes, and proportions 100% identical.
+ * Dynamically expands the virtual width to match the screen aspect ratio,
+ * eliminating left and right black bars while preserving exact UI scaling.
  */
 export function ScaleLayout({ children }: ScaleLayoutProps) {
   const [scale, setScale] = useState(1);
+  const [virtualWidth, setVirtualWidth] = useState(1600);
+  const [virtualHeight, setVirtualHeight] = useState(900);
   const [mounted, setMounted] = useState(false);
 
   const BASE_WIDTH = 1600;
@@ -27,35 +31,37 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
 
-      // Calculate scale to fit both dimensions
+      // Calculate scale to fit vertical dimension (900px base)
       const scaleX = windowWidth / BASE_WIDTH;
       const scaleY = windowHeight / BASE_HEIGHT;
 
-      // Use the smaller scale to ensure content fits entirely
-      // 🔧 最小缩放 0.35：手机小屏幕不会缩得太小导致无法操作
+      // Use the smaller scale so nothing is cut off vertically or horizontally
       const newScale = Math.max(0.35, Math.min(scaleX, scaleY));
-
       setScale(newScale);
+
+      // Virtual dimensions:
+      // If screen is wider than 16:9, expand virtualWidth so the stage fills 100% of the screen width
+      // without changing the scale factor or element sizes!
+      const vWidth = Math.max(BASE_WIDTH, windowWidth / newScale);
+      const vHeight = Math.max(BASE_HEIGHT, windowHeight / newScale);
+      setVirtualWidth(vWidth);
+      setVirtualHeight(vHeight);
     };
 
-    // Calculate initial scale
     calculateScale();
 
-    // Listen for window resize
     window.addEventListener("resize", calculateScale);
     window.addEventListener("orientationchange", calculateScale);
 
-    // Cleanup
     return () => {
       window.removeEventListener("resize", calculateScale);
       window.removeEventListener("orientationchange", calculateScale);
     };
   }, []);
 
-  // Prevent flash of unstyled content
   if (!mounted) {
     return (
-      <div className="w-screen h-screen bg-black flex items-center justify-center">
+      <div className="w-screen h-screen bg-slate-950 flex items-center justify-center">
         <div
           style={{
             width: `${BASE_WIDTH}px`,
@@ -70,17 +76,17 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
   }
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden flex items-center justify-center">
-      {/* The "Stage" - Fixed resolution content */}
+    <div className="w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center">
+      {/* The Stage - Dynamic width at exact scale factor */}
       <div
         style={{
-          width: `${BASE_WIDTH}px`,
-          height: `${BASE_HEIGHT}px`,
+          width: `${virtualWidth}px`,
+          height: `${virtualHeight}px`,
           transform: `scale(${scale})`,
           transformOrigin: "center center",
           flexShrink: 0,
         }}
-        className="relative"
+        className="relative overflow-hidden"
       >
         {children}
       </div>
