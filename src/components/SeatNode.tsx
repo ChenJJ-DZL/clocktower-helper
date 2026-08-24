@@ -372,6 +372,46 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
+          // 双子标记（镜像双子与对立双子）
+          const isTwin = (() => {
+            const evilTwinSeats = seats.filter(
+              (seat) => seat.role?.id === "evil_twin"
+            );
+            if (evilTwinSeats.length === 0) return false;
+            if (s.role?.id === "evil_twin") return true;
+
+            return evilTwinSeats.some((evilSeat) => {
+              const goodTwinSeat =
+                seats.find(
+                  (other) =>
+                    other.id !== evilSeat.id &&
+                    (other.role?.type === "townsfolk" ||
+                      other.role?.type === "outsider") &&
+                    !other.isEvilConverted &&
+                    !other.isDead
+                ) ||
+                seats.find(
+                  (other) => other.id !== evilSeat.id && !other.isDead
+                );
+              return goodTwinSeat?.id === s.id;
+            });
+          })();
+
+          if (isTwin) {
+            otherBadges.push(
+              <div
+                key="badge-twin"
+                className={`bg-purple-600 text-white ${
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
+              >
+                双子
+              </div>
+            );
+          }
+
           // 处决候选者标记
           if (s.isCandidate) {
             otherBadges.push(
