@@ -9,6 +9,9 @@ import { AudioProvider } from "@/src/hooks/useAudio";
 export const metadata: Metadata = {
   title: "血染钟楼辅助工具",
   description: "血染钟楼桌游辅助工具 - 帮助您更好地进行游戏",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 // 按 Next.js 新规范单独导出 viewport，避免 metadata 中的 viewport 警告
