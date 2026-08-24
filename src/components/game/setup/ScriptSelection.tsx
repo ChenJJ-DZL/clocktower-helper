@@ -6,6 +6,7 @@ import {
   roles,
   type Script,
   scripts,
+  type Seat,
 } from "../../../../app/data";
 import { gameActions, useGameContext } from "../../../contexts/GameContext";
 import { useGameState } from "../../../hooks/useGameState";
@@ -66,6 +67,40 @@ export default function ScriptSelection({
     saveHistory();
     onScriptSelect(script);
     setGameLogs([]); // 选择新剧本时清空之前的游戏记录
+
+    // 🎯 根据剧本的官方人数上限创建对应数量的空座位（如无上愉悦为 8 个，暗流涌动为 15 个）
+    const targetSeatCount = script.maxPlayers || 15;
+    const initialSeats: Seat[] = Array.from({ length: targetSeatCount }, (_, i) => ({
+      id: i,
+      playerName: `玩家 ${i + 1}`,
+      role: null,
+      charadeRole: null,
+      isDead: false,
+      isDrunk: false,
+      isPoisoned: false,
+      isProtected: false,
+      protectedBy: null,
+      isRedHerring: false,
+      isFortuneTellerRedHerring: false,
+      isSentenced: false,
+      masterId: null,
+      hasUsedSlayerAbility: false,
+      hasUsedVirginAbility: false,
+      isDemonSuccessor: false,
+      hasAbilityEvenDead: false,
+      statusDetails: [],
+      statuses: [],
+      voteCount: 0,
+      isCandidate: false,
+      grandchildId: null,
+      isGrandchild: false,
+      isFirstDeathForZombuul: false,
+      isZombuulTrulyDead: false,
+      zombuulLives: 1,
+    }));
+
+    dispatch(gameActions.setSeats(initialSeats));
+    dispatch(gameActions.updateState({ initialSeats, selectedScript: script }));
     setGamePhase("setup");
   };
 

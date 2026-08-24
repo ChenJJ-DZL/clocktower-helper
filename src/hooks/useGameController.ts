@@ -1393,10 +1393,11 @@ export function useGameController() {
     setBalloonistCompletedIds,
   ]);
 
-  // 初始化座位：当进入setup阶段且座位为空时，创建16个默认座位
+  // 初始化座位：当进入setup阶段且座位为空时，根据当前剧本的人数上限创建默认座位
   useEffect(() => {
     if (gamePhase === "setup" && seats.length === 0) {
-      const defaultSeats: Seat[] = Array.from({ length: 16 }, (_, i) => ({
+      const targetCount = selectedScript?.maxPlayers || 15;
+      const defaultSeats: Seat[] = Array.from({ length: targetCount }, (_, i) => ({
         id: i,
         playerName: `玩家 ${i + 1}`,
         role: null,
@@ -1426,9 +1427,9 @@ export function useGameController() {
       }));
       commitSeats(defaultSeats);
       setInitialSeats(defaultSeats);
-      console.log("DEBUG: 初始化了16个默认座位");
+      console.log(`DEBUG: 初始化了 ${targetCount} 个默认座位 (剧本: ${selectedScript?.name || "默认"})`);
     }
-  }, [gamePhase, seats.length, commitSeats, setInitialSeats]);
+  }, [gamePhase, seats.length, selectedScript, commitSeats, setInitialSeats]);
 
   // 监听首夜启动事件，触发首夜队列生成并弹出预览模态框
   useEffect(() => {

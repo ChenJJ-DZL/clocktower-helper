@@ -1,17 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
+import type { Script } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface PlayerCompositionModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentPlayerCount?: number;
+  script?: Script | null;
   scriptName?: string;
+  minPlayers?: number;
+  maxPlayers?: number;
 }
 
 // 官方标准人数配比数据 (5 ~ 15+ 人)
-const COMPOSITION_DATA = [
+const ALL_COMPOSITION_DATA = [
   { count: 5, label: "5", townsfolk: 3, outsider: 0, minion: 1, demon: 1, isTeensy: true },
   { count: 6, label: "6", townsfolk: 3, outsider: 1, minion: 1, demon: 1, isTeensy: true },
   { count: 7, label: "7", townsfolk: 5, outsider: 0, minion: 1, demon: 1, isTeensy: false },
@@ -29,15 +33,30 @@ export function PlayerCompositionModal({
   isOpen,
   onClose,
   currentPlayerCount,
+  script,
   scriptName,
+  minPlayers,
+  maxPlayers,
 }: PlayerCompositionModalProps) {
+  const currentMin = minPlayers ?? script?.minPlayers ?? 5;
+  const currentMax = maxPlayers ?? script?.maxPlayers ?? 15;
+  const displayName = scriptName || script?.name;
+
+  // 根据当前剧本支持的人数范围动态过滤展示列
+  const compositionData = useMemo(() => {
+    return ALL_COMPOSITION_DATA.filter(
+      (c) => c.count >= currentMin && c.count <= currentMax
+    );
+  }, [currentMin, currentMax]);
+
   if (!isOpen) return null;
 
-  // 匹配当前高亮列
+  // 匹配当前高亮列索引
   const matchedColIndex = currentPlayerCount
-    ? currentPlayerCount >= 15
-      ? COMPOSITION_DATA.length - 1
-      : COMPOSITION_DATA.findIndex((c) => c.count === currentPlayerCount)
+    ? compositionData.findIndex((c) => {
+        if (c.count === 15) return currentPlayerCount >= 15;
+        return c.count === currentPlayerCount;
+      })
     : -1;
 
   return (
@@ -48,11 +67,14 @@ export function PlayerCompositionModal({
       footer={
         <div className="flex items-center justify-between gap-3 w-full">
           <div className="text-xs text-slate-400">
-            {scriptName && <span className="text-amber-300 font-bold mr-2">【{scriptName}】</span>}
-            <span>当前对局人数：</span>
+            {displayName && <span className="text-amber-300 font-bold mr-2">【{displayName}】</span>}
+            <span>当前已分配：</span>
             <b className="text-amber-400 text-sm ml-1">
               {currentPlayerCount ? `${currentPlayerCount} 人` : "未定"}
             </b>
+            <span className="text-slate-500 ml-2">
+              (剧本座位上限：{currentMax} 人)
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -67,10 +89,10 @@ export function PlayerCompositionModal({
         {/* 顶部标题与范围说明 */}
         <div className="text-center space-y-1">
           <div className="inline-block px-4 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm">
-            支持 5 - 15+ 人
+            {displayName ? `《${displayName}》` : ""} 支持 {currentMin} - {currentMax >= 15 ? "15+" : currentMax} 人
           </div>
           <p className="text-xs text-slate-400">
-            官方经典规则标准阵营人数配置速查 · 竖线左侧为小局模式（5~6人），右侧为标准局（7~15+人）
+            官方标准阵营人数配置速查 · {compositionData.some((c) => c.count === 6) && compositionData.some((c) => c.count === 7) ? "竖线左侧为小局模式（5~6人），右侧为标准局（7人及以上）" : "根据当前剧本人数上限动态呈现"}
           </p>
         </div>
 
@@ -82,9 +104,9 @@ export function PlayerCompositionModal({
                 <th className="py-2.5 px-3 text-left font-black text-sm text-slate-200 whitespace-nowrap">
                   玩家数量
                 </th>
-                {COMPOSITION_DATA.map((col, idx) => {
+                {compositionData.map((col, idx) => {
                   const isCurrent = idx === matchedColIndex;
-                  const isDivider = idx === 1; // 6人与7人之间分割线
+                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
                   return (
                     <th
                       key={col.label}
@@ -114,16 +136,19 @@ export function PlayerCompositionModal({
                   <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0"></span>
                   <span>镇民</span>
                 </td>
-                {COMPOSITION_DATA.map((col, idx) => (
-                  <td
-                    key={idx}
-                    className={`py-2.5 px-2 text-sky-200 font-black text-base ${
-                      idx === matchedColIndex ? "bg-amber-500/20 text-sky-100 font-black" : ""
-                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
-                  >
-                    {col.townsfolk}
-                  </td>
-                ))}
+                {compositionData.map((col, idx) => {
+                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  return (
+                    <td
+                      key={idx}
+                      className={`py-2.5 px-2 text-sky-200 font-black text-base ${
+                        idx === matchedColIndex ? "bg-amber-500/20 text-sky-100 font-black" : ""
+                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                    >
+                      {col.townsfolk}
+                    </td>
+                  );
+                })}
               </tr>
 
               {/* 外来者 */}
@@ -132,16 +157,19 @@ export function PlayerCompositionModal({
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-400 shrink-0"></span>
                   <span>外来者</span>
                 </td>
-                {COMPOSITION_DATA.map((col, idx) => (
-                  <td
-                    key={idx}
-                    className={`py-2.5 px-2 text-teal-200 font-black text-base ${
-                      idx === matchedColIndex ? "bg-amber-500/20 text-teal-100 font-black" : ""
-                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
-                  >
-                    {col.outsider}
-                  </td>
-                ))}
+                {compositionData.map((col, idx) => {
+                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  return (
+                    <td
+                      key={idx}
+                      className={`py-2.5 px-2 text-teal-200 font-black text-base ${
+                        idx === matchedColIndex ? "bg-amber-500/20 text-teal-100 font-black" : ""
+                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                    >
+                      {col.outsider}
+                    </td>
+                  );
+                })}
               </tr>
 
               {/* 爪牙 */}
@@ -150,16 +178,19 @@ export function PlayerCompositionModal({
                   <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0"></span>
                   <span>爪牙</span>
                 </td>
-                {COMPOSITION_DATA.map((col, idx) => (
-                  <td
-                    key={idx}
-                    className={`py-2.5 px-2 text-orange-200 font-black text-base ${
-                      idx === matchedColIndex ? "bg-amber-500/20 text-orange-100 font-black" : ""
-                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
-                  >
-                    {col.minion}
-                  </td>
-                ))}
+                {compositionData.map((col, idx) => {
+                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  return (
+                    <td
+                      key={idx}
+                      className={`py-2.5 px-2 text-orange-200 font-black text-base ${
+                        idx === matchedColIndex ? "bg-amber-500/20 text-orange-100 font-black" : ""
+                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                    >
+                      {col.minion}
+                    </td>
+                  );
+                })}
               </tr>
 
               {/* 恶魔 */}
@@ -168,16 +199,19 @@ export function PlayerCompositionModal({
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
                   <span>恶魔</span>
                 </td>
-                {COMPOSITION_DATA.map((col, idx) => (
-                  <td
-                    key={idx}
-                    className={`py-2.5 px-2 text-rose-300 font-black text-base ${
-                      idx === matchedColIndex ? "bg-amber-500/20 text-rose-100 font-black" : ""
-                    } ${idx === 1 ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
-                  >
-                    {col.demon}
-                  </td>
-                ))}
+                {compositionData.map((col, idx) => {
+                  const isDivider = col.count === 6 && compositionData.some((c) => c.count === 7);
+                  return (
+                    <td
+                      key={idx}
+                      className={`py-2.5 px-2 text-rose-300 font-black text-base ${
+                        idx === matchedColIndex ? "bg-amber-500/20 text-rose-100 font-black" : ""
+                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                    >
+                      {col.demon}
+                    </td>
+                  );
+                })}
               </tr>
             </tbody>
           </table>
@@ -191,15 +225,21 @@ export function PlayerCompositionModal({
               <span>人数规则提示</span>
             </div>
             <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
-              <li>
-                <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1 个恶魔，无不在场的恶魔虚假伪装（或使用汀西维尔规则）。
-              </li>
-              <li>
-                <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3 个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
-              </li>
-              <li>
-                <b>16人及以上</b>：超出 15 人的玩家作为<b>「旅行者（Traveler）」</b>加入，不改变基础镇民/爪牙配比。
-              </li>
+              {currentMin <= 6 && (
+                <li>
+                  <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1 个恶魔，无不在场的恶魔虚假伪装（或使用汀西维尔规则）。
+                </li>
+              )}
+              {currentMax >= 7 && (
+                <li>
+                  <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3 个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
+                </li>
+              )}
+              {currentMax >= 15 && (
+                <li>
+                  <b>16人及以上</b>：超出 15 人的玩家作为<b>「旅行者（Traveler）」</b>加入，不改变基础镇民/爪牙配比。
+                </li>
+              )}
             </ul>
           </div>
 

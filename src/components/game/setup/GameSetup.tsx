@@ -491,6 +491,7 @@ export default function GameSetup({
         isOpen={showCompositionGuideModal}
         onClose={() => setShowCompositionGuideModal(false)}
         currentPlayerCount={playerCount || seats.length}
+        script={selectedScript}
         scriptName={selectedScript?.name}
       />
     </div>
