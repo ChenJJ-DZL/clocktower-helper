@@ -24,7 +24,7 @@ import { ModalWrapper } from "../modals/ModalWrapper";
  * "📋 历史"按钮只显示当前剧本的对局记录
  */
 export function GlobalNavBar() {
-  const { theme, setTheme } = useTheme();
+  const { theme, requestTheme } = useTheme();
   const { state, dispatch } = useGameContext();
   const { gamePhase, selectedScript, seats, gameLogs, startTime, gameRecords } =
     useGameState();
@@ -302,8 +302,8 @@ export function GlobalNavBar() {
         <div className="flex items-center">
           <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_16px_rgba(245,158,11,0.15)]">
             <button
-              onClick={() => setTheme("classic")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+              onClick={() => requestTheme("classic")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
                 theme === "classic"
                   ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
                   : "text-slate-400 hover:text-slate-200"
@@ -313,13 +313,13 @@ export function GlobalNavBar() {
               🏛️ 经典
             </button>
             <button
-              onClick={() => setTheme("modern")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+              onClick={() => requestTheme("modern")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
                 theme === "modern"
                   ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
                   : "text-slate-400 hover:text-slate-200"
               }`}
-              title="✨ 现代暗黑版"
+              title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
             >
               ✨ 现代
             </button>

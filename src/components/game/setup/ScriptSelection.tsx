@@ -30,7 +30,7 @@ export default function ScriptSelection({
   setGamePhase,
   onContinue,
 }: ScriptSelectionProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme, requestTheme } = useTheme();
   const { dispatch } = useGameContext();
   const { gameRecords } = useGameState();
   const [customScripts, setCustomScripts] = useState<Script[]>([]);
@@ -200,8 +200,8 @@ export default function ScriptSelection({
       <div className="absolute top-4 right-4 z-50">
         <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
           <button
-            onClick={() => setTheme("classic")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+            onClick={() => requestTheme("classic")}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
               theme === "classic"
                 ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
                 : "text-slate-400 hover:text-slate-200"
@@ -211,13 +211,13 @@ export default function ScriptSelection({
             🏛️ 经典
           </button>
           <button
-            onClick={() => setTheme("modern")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 ${
+            onClick={() => requestTheme("modern")}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
               theme === "modern"
                 ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
                 : "text-slate-400 hover:text-slate-200"
             }`}
-            title="✨ 现代暗黑版"
+            title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
           >
             ✨ 现代
           </button>

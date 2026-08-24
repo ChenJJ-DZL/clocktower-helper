@@ -6,8 +6,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { showAlert } from "../utils/nativeDialogShim";
 
 export type Theme = "modern" | "classic";
 
@@ -17,19 +19,15 @@ const DEFAULT_THEME: Theme = "classic";
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  requestTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readInitialTheme(): Theme {
-  if (typeof window === "undefined") return DEFAULT_THEME;
-  try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === "classic" || stored === "modern" ? stored : DEFAULT_THEME;
-  } catch {
-    return DEFAULT_THEME;
-  }
+  // 现代版皮肤未开发完成，默认强制进入官方原版经典皮肤
+  return DEFAULT_THEME;
 }
 
 function applyThemeClass(theme: Theme) {
@@ -45,6 +43,7 @@ function applyThemeClass(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+  const modernClicksRef = useRef<number>(0);
 
   useEffect(() => {
     const initial = readInitialTheme();
@@ -55,19 +54,44 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
     applyThemeClass(next);
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      // localStorage 不可用时主题仅在会话内生效
-    }
   }, []);
 
+  const requestTheme = useCallback(
+    (targetTheme: Theme) => {
+      if (targetTheme === "classic") {
+        modernClicksRef.current = 0;
+        setTheme("classic");
+        return;
+      }
+
+      if (targetTheme === "modern") {
+        if (theme === "modern") {
+          return;
+        }
+
+        modernClicksRef.current += 1;
+        if (modernClicksRef.current < 8) {
+          showAlert("该功能正在开发中……", "功能提示");
+        } else {
+          // 连续点击 8 次，开启现代版 UI
+          modernClicksRef.current = 0;
+          setTheme("modern");
+          showAlert(
+            "已开启现代版UI调试模式！\n再次点击1次「经典」即可切换回原版。",
+            "开发者调试"
+          );
+        }
+      }
+    },
+    [setTheme, theme]
+  );
+
   const toggleTheme = useCallback(() => {
-    setTheme(theme === "modern" ? "classic" : "modern");
-  }, [setTheme, theme]);
+    requestTheme(theme === "modern" ? "classic" : "modern");
+  }, [requestTheme, theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, requestTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -79,6 +103,7 @@ export function useTheme(): ThemeContextValue {
     return {
       theme: "classic",
       setTheme: () => {},
+      requestTheme: () => {},
       toggleTheme: () => {},
     };
   }
