@@ -333,7 +333,7 @@ export default function ScriptSelection({
 
                 {/* 底部：左下角建议人数 + 右下角进入配置 */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold shadow-sm shrink-0">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold shadow-sm shrink-0">
                     <span>👥</span>
                     <span>建议人数：{script.recommendedPlayers || "7-15人"}</span>
                   </span>
