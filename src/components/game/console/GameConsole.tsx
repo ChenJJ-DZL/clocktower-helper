@@ -32,13 +32,13 @@ interface GameConsoleProps {
     label: string;
     onClick: () => void;
     disabled?: boolean;
-    variant?: "primary" | "success" | "warning" | "danger";
+    variant?: "primary" | "success" | "warning" | "danger" | "info";
   };
   primaryAction?: {
     label: string;
     onClick: () => void;
     disabled?: boolean;
-    variant?: "primary" | "success" | "warning" | "danger";
+    variant?: "primary" | "success" | "warning" | "danger" | "info";
   };
   secondaryActions?: Array<{
     label: string;
@@ -132,6 +132,8 @@ export const GameConsole = React.memo(function GameConsole({
 
   const getActionVariantClass = (variant: string = "primary") => {
     switch (variant) {
+      case "info":
+        return "btn-arcane-info bg-blue-600 hover:bg-blue-500 text-white border-2 border-sky-300";
       case "success":
         return "bg-emerald-500 hover:bg-emerald-400 text-white";
       case "warning":
@@ -139,7 +141,7 @@ export const GameConsole = React.memo(function GameConsole({
       case "danger":
         return "bg-red-500 hover:bg-red-400 text-white";
       default:
-        return "bg-blue-500 hover:bg-blue-400 text-white";
+        return "btn-arcane-info bg-blue-600 hover:bg-blue-500 text-white border-2 border-sky-300";
     }
   };
 
@@ -720,8 +722,8 @@ export const GameConsole = React.memo(function GameConsole({
                 }
               }}
               disabled={extraAction.disabled}
-              className={`w-full h-14 rounded-xl text-lg font-bold shadow-lg transition flex items-center justify-center gap-2 ${getActionVariantClass(
-                extraAction.variant || "warning"
+              className={`btn-arcane-info w-full h-16 rounded-xl text-xl font-bold shadow-lg transition flex items-center justify-center gap-2 ${getActionVariantClass(
+                extraAction.variant || "info"
               )} ${extraAction.disabled ? "opacity-50 cursor-not-allowed" : "active:scale-95 cursor-pointer"}`}
             >
               {extraAction.label}

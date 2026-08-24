@@ -1443,12 +1443,12 @@ export const GameStage = () => {
             extraAction={
               gamePhase === "check"
                 ? {
-                    label: "🎴 身份展示 & 告知",
+                    label: "🎴 身份展示 & 告知 👁️",
                     onClick: () => {
                       setCurrentModal({ type: "IDENTITY_SHOWCASE", data: null });
                     },
                     disabled: seats.filter((s: any) => s.role).length === 0,
-                    variant: "warning" as const,
+                    variant: "info" as const,
                   }
                 : undefined
             }
