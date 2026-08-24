@@ -123,41 +123,29 @@ export function RoundTable({
   const panX = useMotionValue(0);
   const panY = useMotionValue(0);
   const boardRef = useRef<HTMLDivElement>(null);
-  const [boardDimension, setBoardDimension] = useState<number>(800);
 
-  // Dynamic dimension and radius adjustment based on container
+  // Dynamic radius adjustment based on viewport and seat count
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const updateLayout = () => {
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
-      if (containerWidth === 0 || containerHeight === 0) return;
-
-      const minDimension = Math.min(containerWidth, containerHeight);
-      setBoardDimension(minDimension);
-
+    const calculateRadius = () => {
+      if (!containerRef.current) return;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      const minDimension = Math.min(width, height);
       const isMobile = window.innerWidth <= 768;
+
       let baseRadius = isMobile ? 36 : 38;
       if (seats.length > 15) baseRadius -= 2;
       if (seats.length > 18) baseRadius -= 2;
 
-      setRadius(Math.max(26, Math.min(40, baseRadius)));
+      setRadius(Math.max(28, Math.min(42, baseRadius)));
       const baseSeatSize = isMobile ? 48 : 58;
       const sizeMultiplier =
         seats.length > 15 ? 0.85 : seats.length > 12 ? 0.92 : 1;
       setSeatSize(Math.round(baseSeatSize * sizeMultiplier));
     };
 
-    updateLayout();
-
-    const resizeObserver = new ResizeObserver(updateLayout);
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
+    calculateRadius();
+    window.addEventListener("resize", calculateRadius);
+    return () => window.removeEventListener("resize", calculateRadius);
   }, [seats.length]);
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -189,6 +177,51 @@ export function RoundTable({
     if (onContextMenu) onContextMenu(e, seatId);
   };
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateLayout = () => {
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      // Base resolution: 1600x900
+      // Left panel takes remaining space after 450px right panel = ~1150px width
+      // Use the smaller dimension to ensure it fits
+      const minDimension = Math.min(containerWidth, containerHeight);
+
+      // Seat size: 112px (7rem = w-28 h-28) for "Big Seat" mode - touch-friendly
+      const seatSizePx = 112;
+
+      // Padding: 50px on each side (increased to account for larger seats)
+      const padding = 50;
+
+      // Calculate available space
+      const availableSize = minDimension - padding * 2;
+
+      // Calculate radius: (availableSize / 2) - (seatSize / 2) - some margin
+      // Convert to percentage for the 100x100 coordinate system
+      // Reduced margin to ensure seats don't get cut off
+      const availableRadius = availableSize / 2 - seatSizePx / 2 - 15; // 15px margin
+      const radiusPercent = (availableRadius / minDimension) * 100;
+
+      // Ensure radius is reasonable (between 20% and 35% - reduced to fit larger seats)
+      const clampedRadius = Math.max(20, Math.min(35, radiusPercent));
+
+      setRadius(clampedRadius);
+      setSeatSize(seatSizePx);
+    };
+
+    updateLayout();
+
+    const resizeObserver = new ResizeObserver(updateLayout);
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   // Create a custom getSeatPosition function that uses the dynamic radius
   const getDynamicSeatPosition = (
     index: number,
@@ -209,13 +242,8 @@ export function RoundTable({
     >
       <motion.div
         ref={boardRef}
-        className="relative flex items-center justify-center origin-center shrink-0"
-        style={{
-          width: `${boardDimension}px`,
-          height: `${boardDimension}px`,
-          x: panX,
-          y: panY,
-        }}
+        className="relative w-full h-full flex items-center justify-center origin-center"
+        style={{ x: panX, y: panY }}
         animate={{ scale }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         drag
