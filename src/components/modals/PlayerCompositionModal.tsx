@@ -70,14 +70,6 @@ export function PlayerCompositionModal({
 
   if (!isOpen) return null;
 
-  // 匹配当前高亮列索引
-  const matchedColIndex = currentPlayerCount
-    ? compositionData.findIndex((c) => {
-        if (c.count === 15) return currentPlayerCount >= 15;
-        return c.count === currentPlayerCount;
-      })
-    : -1;
-
   const hasDivider =
     compositionData.some((c) => c.count === 6) &&
     compositionData.some((c) => c.count === 7);
@@ -119,7 +111,7 @@ export function PlayerCompositionModal({
           </p>
         </div>
 
-        {/* 核心经典表格 (table-fixed 确保所有人数列 100% 严格等宽) */}
+        {/* 核心经典表格 (table-fixed 确保所有人数列 100% 严格等宽且无“当前”特定高亮，纯粹参考表) */}
         <div className="overflow-x-auto rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-[#2a131b] via-[#1c121e] to-[#120c18] p-3 shadow-2xl">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
@@ -133,26 +125,16 @@ export function PlayerCompositionModal({
                 <th className="py-2.5 px-3 text-left font-black text-sm text-slate-200 whitespace-nowrap">
                   玩家数量
                 </th>
-                {compositionData.map((col, idx) => {
-                  const isCurrent = idx === matchedColIndex;
+                {compositionData.map((col) => {
                   const isDivider = col.count === 6 && hasDivider;
                   return (
                     <th
                       key={col.label}
-                      className={`py-2.5 px-1 font-black text-sm text-center whitespace-nowrap transition-all ${
-                        isCurrent
-                          ? "bg-amber-500/30 text-amber-300 border-t-2 border-x-2 border-amber-400 rounded-t-lg font-black"
-                          : "text-slate-300"
-                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                      className={`py-2.5 px-1 font-black text-sm text-center text-slate-200 whitespace-nowrap ${
+                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                      }`}
                     >
-                      <div className="flex flex-col items-center justify-center">
-                        <span>{col.label}</span>
-                        {isCurrent && (
-                          <span className="text-[9px] px-1 bg-amber-500 text-slate-950 rounded font-black mt-0.5 leading-tight">
-                            当前
-                          </span>
-                        )}
-                      </div>
+                      <span>{col.label}</span>
                     </th>
                   );
                 })}
@@ -166,16 +148,13 @@ export function PlayerCompositionModal({
                   <span>镇民</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isCurrent = idx === matchedColIndex;
                   const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base ${
-                        isCurrent
-                          ? "bg-amber-500/20 text-sky-100 border-x border-amber-400/40"
-                          : "text-sky-200"
-                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                      className={`py-2.5 px-1 text-center font-black text-base text-sky-200 ${
+                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                      }`}
                     >
                       {col.townsfolk}
                     </td>
@@ -190,16 +169,13 @@ export function PlayerCompositionModal({
                   <span>外来者</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isCurrent = idx === matchedColIndex;
                   const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base ${
-                        isCurrent
-                          ? "bg-amber-500/20 text-teal-100 border-x border-amber-400/40"
-                          : "text-teal-200"
-                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                      className={`py-2.5 px-1 text-center font-black text-base text-teal-200 ${
+                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                      }`}
                     >
                       {col.outsider}
                     </td>
@@ -214,16 +190,13 @@ export function PlayerCompositionModal({
                   <span>爪牙</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isCurrent = idx === matchedColIndex;
                   const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base ${
-                        isCurrent
-                          ? "bg-amber-500/20 text-orange-100 border-x border-amber-400/40"
-                          : "text-orange-200"
-                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                      className={`py-2.5 px-1 text-center font-black text-base text-orange-200 ${
+                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                      }`}
                     >
                       {col.minion}
                     </td>
@@ -238,16 +211,13 @@ export function PlayerCompositionModal({
                   <span>恶魔</span>
                 </td>
                 {compositionData.map((col, idx) => {
-                  const isCurrent = idx === matchedColIndex;
                   const isDivider = col.count === 6 && hasDivider;
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base ${
-                        isCurrent
-                          ? "bg-amber-500/20 text-rose-100 border-x border-amber-400/40"
-                          : "text-rose-300"
-                      } ${isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"}`}
+                      className={`py-2.5 px-1 text-center font-black text-base text-rose-300 ${
+                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                      }`}
                     >
                       {col.demon}
                     </td>
@@ -271,11 +241,9 @@ export function PlayerCompositionModal({
                   <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1 个恶魔，无不在场的恶魔虚假伪装（或使用汀西维尔规则）。
                 </li>
               )}
-              {currentMax >= 7 && (
-                <li>
-                  <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3 个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
-                </li>
-              )}
+              <li>
+                <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3 个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
+              </li>
               {currentMax >= 15 && (
                 <li>
                   <b>16人及以上</b>：超出 15 人的玩家作为<b>「旅行者（Traveler）」</b>加入，不改变基础镇民/爪牙配比。
