@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 新引擎能力注册表
  * 自动生成 - 扫描 src/roles/new_engine/ 目录下所有 .ability.ts 文件
  *
@@ -596,9 +596,7 @@ export { cultLeaderAbility } from "./cult_leader.ability";
 export { damselAbility } from "./damsel.ability";
 export { dawnAbility } from "./dawn.ability";
 export { deusExFiascoAbility } from "./deus_ex_fiasco.ability";
-// ⚠️ 已注释: 与 devil_s_advocate.ability.ts 重复，保留下划线版本
-// export { devils_advocateAbility } from "./devils_advocate.ability";
-export { devil_s_advocateAbility } from "./devil_s_advocate.ability";
+export { devil_s_advocateAbility, devil_s_advocateAbility as devils_advocateAbility, devil_s_advocateAbility as devilsAdvocateAbility } from "./devil_s_advocate.ability";
 export { diAbility } from "./di.ability";
 export { divinerAbility } from "./diviner.ability";
 export { doctorAbility } from "./doctor.ability";
@@ -720,7 +718,7 @@ export { sailorAbility } from "./sailor.ability";
 export { saintAbility } from "./saint.ability";
 export { savantAbility } from "./savant.ability";
 export { scapegoatAbility } from "./scapegoat.ability";
-export { scarletWomanAbility } from "./scarlet_woman.ability";
+export { scarletWomanAbility, scarletWomanAbility as scarlet_womanAbility } from "./scarlet_woman.ability";
 export { scholarAbility } from "./scholar.ability";
 export { scribeAbility } from "./scribe.ability";
 export { seamstressAbility } from "./seamstress.ability";
@@ -729,7 +727,7 @@ export { shugenjaAbility } from "./shugenja.ability";
 export { singerAbility } from "./singer.ability";
 export { skin_painterAbility } from "./skin_painter.ability";
 export { slayerAbility } from "./slayer.ability";
-export { snakeCharmerAbility } from "./snake_charmer.ability";
+export { snakeCharmerAbility, snakeCharmerAbility as snake_charmerAbility } from "./snake_charmer.ability";
 export { snitchAbility } from "./snitch.ability";
 export { soldierAbility } from "./soldier.ability";
 export { spyAbility } from "./spy.ability";
@@ -740,7 +738,7 @@ export { sweetheartAbility } from "./sweetheart.ability";
 export { taoistAbility } from "./taoist.ability";
 export { taotieAbility } from "./taotie.ability";
 export { taowuAbility } from "./taowu.ability";
-export { teaLadyAbility } from "./tea_lady.ability";
+export { teaLadyAbility, teaLadyAbility as tea_ladyAbility } from "./tea_lady.ability";
 export { terracotta_artisanAbility } from "./terracotta_artisan.ability";
 export { thiefAbility } from "./thief.ability";
 export { tinkerAbility } from "./tinker.ability";

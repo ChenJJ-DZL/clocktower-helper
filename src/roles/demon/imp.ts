@@ -33,7 +33,11 @@ export const imp: RoleDefinition = {
 
       const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
       const shouldHideMinions =
-        poppyGrower && !poppyGrower.isDead && poppyGrowerDead === false;
+        poppyGrower &&
+        !poppyGrower.isDead &&
+        !poppyGrower.isDrunk &&
+        !poppyGrower.isPoisoned &&
+        !poppyGrowerDead;
 
       const seatNo = playerSeatId + 1;
 

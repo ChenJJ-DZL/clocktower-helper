@@ -9,9 +9,8 @@
  * 3. 构建完整的 NightInfoResult 对象
  */
 
-import { roles as allRoles, type Script, type Seat } from "@/app/data";
-import type { NightInfoResult } from "@/src/types/game";
-import type { GamePhase, Role } from "../../app/data";
+import { roles as allRoles, type Script, type Seat, type GamePhase, type Role } from "../../app/data";
+import type { NightInfoResult } from "../types/game";
 import { getRoleDefinition } from "../roles";
 import type { RegistrationResult } from "../types/registration";
 import type { NightActionContext } from "../types/roleDefinition";

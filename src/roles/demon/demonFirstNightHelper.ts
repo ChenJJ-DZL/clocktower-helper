@@ -17,6 +17,12 @@ export function buildDemonFirstNightDialog(
 
   // 检查罂粟种植者状态：如果罂粟种植者在场且存活，恶魔不知道爪牙是谁
   const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
+  const shouldHideMinions =
+    poppyGrower &&
+    !poppyGrower.isDead &&
+    !poppyGrower.isDrunk &&
+    !poppyGrower.isPoisoned &&
+    !poppyGrowerDead;
   // 不在场角色：剧本中有但未分配给任何玩家的角色
   // 规则：恶魔只能看到3个不在场的镇民角色（最多可包括1名外来者）
   const assignedRoleIds = new Set(
