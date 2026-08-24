@@ -28,14 +28,24 @@ export function RoleTokenBadge({
     const clean = name.trim();
     const len = clean.length;
 
-    if (len <= 2) {
+    // 1~3 个字：单行居中显示
+    if (len <= 3) {
+      let fontSize = "text-xs";
+      if (size === "lg") {
+        fontSize = len <= 2 ? "text-2xl" : "text-xl";
+      } else if (size === "md") {
+        fontSize = len <= 2 ? "text-[13px]" : "text-[11.5px] tracking-tight";
+      } else {
+        fontSize = len <= 2 ? "text-xs" : "text-[10px]";
+      }
       return {
         lines: [clean],
-        fontSize: size === "lg" ? "text-2xl" : size === "md" ? "text-[13px]" : "text-xs",
+        fontSize,
         leading: "leading-none",
       };
     }
 
+    // 4 个字及以上：限定在 2 行内显示（5字为 2+3，6字为 3+3，7字为 3+4 ...）
     const splitIndex = Math.floor(len / 2);
     const line1 = clean.slice(0, splitIndex);
     const line2 = clean.slice(splitIndex);
@@ -44,25 +54,22 @@ export function RoleTokenBadge({
     let leading = "leading-[1.1]";
 
     if (size === "lg") {
-      if (len === 3 || len === 4) fontSize = "text-lg";
+      if (len === 4) fontSize = "text-lg";
       else if (len === 5) fontSize = "text-base tracking-tight";
       else if (len === 6) fontSize = "text-sm tracking-tighter";
       else fontSize = "text-xs tracking-tighter";
       leading = "leading-tight";
     } else {
-      if (len === 3) {
-        fontSize = "text-[11px]";
-        leading = "leading-[1.05]";
-      } else if (len === 4) {
-        fontSize = "text-[10px]";
+      if (len === 4) {
+        fontSize = "text-[10.5px]";
         leading = "leading-[1.05]";
       } else if (len === 5) {
         // 5字：如 图书管理员 (2+3)
-        fontSize = "text-[9px] tracking-tighter";
+        fontSize = "text-[9.5px] tracking-tight";
         leading = "leading-[1.05]";
       } else if (len === 6) {
         // 6字：(3+3)
-        fontSize = "text-[8px] tracking-tighter";
+        fontSize = "text-[8.5px] tracking-tighter";
         leading = "leading-[1]";
       } else {
         // 7字及以上：(3+4)
