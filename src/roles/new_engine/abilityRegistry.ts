@@ -588,7 +588,7 @@ export { chaosAbility } from "./chaos.ability";
 export { chefAbility } from "./chef.ability";
 // ⚠️ 已注释: 与 choir_boy.ability.ts 重复，保留下划线版本
 // export { choirboyAbility } from "./choirboy.ability";
-export { choirBoyAbility } from "./choir_boy.ability";
+export { choirBoyAbility, choirBoyAbility as choir_boyAbility } from "./choir_boy.ability";
 export { clockmakerAbility } from "./clockmaker.ability";
 export { courtierAbility } from "./courtier.ability";
 export { cuckoo_birdAbility } from "./cuckoo_bird.ability";
@@ -692,7 +692,7 @@ export { philosopherAbility } from "./philosopher.ability";
 export { pilgrimAbility } from "./pilgrim.ability";
 export { pit_hagAbility } from "./pit_hag.ability";
 export { pixieAbility } from "./pixie.ability";
-export { plagueDoctorAbility } from "./plague_doctor.ability";
+export { plagueDoctorAbility, plagueDoctorAbility as plague_doctorAbility } from "./plague_doctor.ability";
 export { poAbility } from "./po.ability";
 export { poisonerAbility } from "./poisoner.ability";
 export { politicianAbility } from "./politician.ability";
