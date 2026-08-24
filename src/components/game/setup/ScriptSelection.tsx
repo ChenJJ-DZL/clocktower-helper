@@ -311,51 +311,84 @@ export default function ScriptSelection({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          {allScripts.map((script) => (
-            <button
-              key={script.id}
-              data-testid={`script-card-${script.id}`}
-              onClick={() => handleScriptClick(script)}
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-md px-5 sm:px-6 py-4 text-left shadow-xl transition-all duration-300 hover:-translate-y-1 hover:border-purple-400/80 hover:bg-slate-800/90 hover:shadow-purple-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-purple-500/20 via-pink-500/10 to-sky-500/10 transition-opacity duration-300" />
+          {allScripts.map((script) => {
+            const isUnofficial = script.isCustom || script.id === "poppyganda";
+            return (
+              <button
+                key={script.id}
+                data-testid={`script-card-${script.id}`}
+                onClick={() => handleScriptClick(script)}
+                className={`group relative overflow-hidden rounded-2xl px-5 sm:px-6 py-4 text-left shadow-xl transition-all duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 cursor-pointer ${
+                  isUnofficial
+                    ? "border border-amber-500/40 bg-amber-500/10 hover:border-amber-500/60 hover:bg-amber-500/20 hover:shadow-amber-500/20 shadow-amber-500/10 focus-visible:ring-amber-400"
+                    : "border border-white/10 bg-slate-900/70 backdrop-blur-md hover:border-purple-400/80 hover:bg-slate-800/90 hover:shadow-purple-500/30 focus-visible:ring-purple-400"
+                }`}
+              >
+                <div
+                  className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    isUnofficial
+                      ? "bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-yellow-500/10"
+                      : "bg-gradient-to-br from-purple-500/20 via-pink-500/10 to-sky-500/10"
+                  }`}
+                />
 
-              <div className="relative flex flex-col justify-between gap-3">
-                {/* 顶部：剧本名 + 难度标签 */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xl md:text-2xl font-bold text-slate-50 truncate">
-                    {script.name}
-                  </div>
-                  <span className="inline-flex items-center rounded-full bg-purple-500/20 px-3 py-1 text-xs font-semibold text-purple-200 shrink-0">
-                    难度：{script.difficulty}
-                  </span>
-                </div>
-
-                {/* 底部：左下角建议人数 + 右下角进入配置 */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold shadow-sm shrink-0">
-                    <span>👥</span>
-                    <span>建议人数：{script.recommendedPlayers || "7-15人"}</span>
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    {script.isCustom && (
-                      <button
-                        className="text-red-400 hover:text-red-300 mr-1 z-10 relative text-xs"
-                        onClick={(e) => handleDeleteCustomScript(e, script.id)}
-                        title="删除自定义剧本"
-                      >
-                        ✕ 删除
-                      </button>
-                    )}
-                    <span className="text-purple-300 group-hover:translate-x-0.5 transition-transform text-sm font-semibold whitespace-nowrap">
-                      进入配置 &raquo;
+                <div className="relative flex flex-col justify-between gap-3">
+                  {/* 顶部：剧本名 + 难度标签 */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div
+                      className={`text-xl md:text-2xl font-bold truncate ${
+                        isUnofficial ? "text-amber-100" : "text-slate-50"
+                      }`}
+                    >
+                      {script.name}
+                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shrink-0 ${
+                        isUnofficial
+                          ? "bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold"
+                          : "bg-purple-500/20 text-purple-200"
+                      }`}
+                    >
+                      {isUnofficial ? "非官方剧本" : `难度：${script.difficulty}`}
                     </span>
                   </div>
+
+                  {/* 底部：左下角建议人数 + 右下角进入配置 */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm shrink-0 ${
+                        isUnofficial
+                          ? "bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                          : "bg-purple-500/15 border border-purple-500/30 text-purple-300"
+                      }`}
+                    >
+                      <span>👥</span>
+                      <span>建议人数：{script.recommendedPlayers || "7-15人"}</span>
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {script.id.startsWith("custom_") && (
+                        <button
+                          className="text-red-400 hover:text-red-300 mr-1 z-10 relative text-xs cursor-pointer"
+                          onClick={(e) => handleDeleteCustomScript(e, script.id)}
+                          title="删除自定义剧本"
+                        >
+                          ✕ 删除
+                        </button>
+                      )}
+                      <span
+                        className={`group-hover:translate-x-0.5 transition-transform text-sm font-semibold whitespace-nowrap ${
+                          isUnofficial ? "text-amber-300" : "text-purple-300"
+                        }`}
+                      >
+                        进入配置 &raquo;
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
         {/* 底部版本标识 */}

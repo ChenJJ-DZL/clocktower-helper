@@ -538,6 +538,47 @@ export const scripts: Script[] = [
       "vortox",
     ],
   },
+  {
+    id: "poppyganda",
+    name: "罂粟花开",
+    difficulty: "非官方",
+    recommendedPlayers: "7-15人",
+    minPlayers: 7,
+    maxPlayers: 15,
+    isCustom: true,
+    description:
+      "《罂粟花开》(Poppyganda) 是由 Dan 创作的经典热门非官方剧本。以罂粟种植者带来的爪牙与恶魔互不相识机制为核心，融合洗脑师的疯狂、提线木偶的邻座欺瞒、军团的全员投票与镜像双子的对立博弈。善良与邪恶双方都需要在真假难辨的混乱中精准推理破局。适合熟悉高阶机制的进阶玩家与说书人。",
+    roleIds: [
+      // 镇民 (13)
+      "librarian",
+      "chef",
+      "bounty_hunter",
+      "pixie",
+      "fortune_teller",
+      "monk",
+      "oracle",
+      "town_crier",
+      "juggler",
+      "savant",
+      "farmer",
+      "mayor",
+      "poppy_grower",
+      // 外来者 (4)
+      "drunk",
+      "lunatic",
+      "mutant",
+      "snitch",
+      // 爪牙 (4)
+      "cerenovus",
+      "evil_twin",
+      "baron",
+      "marionette",
+      // 恶魔 (3)
+      "imp",
+      "vortox",
+      "legion",
+    ],
+  },
 ];
 
 // ======================================================================
@@ -1692,6 +1733,26 @@ export const roles: Role[] = [
     ability: "爪牙和恶魔不知道彼此。如果你死亡，他们会在当晚得知彼此。",
     fullDescription: "爪牙和恶魔不知道彼此。如果你死亡,他们会在当晚得知彼此。",
     script: "夜半狂欢",
+  },
+  {
+    id: "bounty_hunter",
+    name: "赏金猎人",
+    type: "townsfolk",
+    ability:
+      "在你的首个夜晚，你会得知一名邪恶玩家。每当你得知的玩家死亡，你会在当晚得知另一名邪恶玩家。[会有一名镇民转变为邪恶阵营]",
+    fullDescription:
+      "在你的首个夜晚，你会得知一名邪恶玩家。每当你得知的玩家死亡，你会在当晚得知另一名邪恶玩家。[会有一名镇民转变为邪恶阵营]",
+    script: "罂粟花开",
+  },
+  {
+    id: "pixie",
+    name: "小精灵",
+    type: "townsfolk",
+    ability:
+      "在你的首个夜晚，你会得知一个在场的镇民角色。如果你“疯狂”地证明你是该角色，当他死亡时你获得该角色的能力。",
+    fullDescription:
+      "在你的首个夜晚，你会得知一个在场的镇民角色。如果你“疯狂”地证明你是该角色，当他死亡时你获得该角色的能力。",
+    script: "罂粟花开",
   },
   {
     id: "atheist",
