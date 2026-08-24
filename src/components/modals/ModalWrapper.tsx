@@ -113,19 +113,22 @@ export function ModalWrapper({
               className?.includes("max-w-") || className?.includes("w-")
                 ? "100%"
                 : "min(90vw, 42rem)",
-            maxWidth: className?.includes("max-w-7xl")
-              ? "min(96vw, 86rem)"
-              : className?.includes("max-w-6xl")
-                ? "min(94vw, 72rem)"
-                : className?.includes("max-w-4xl")
-                  ? "min(92vw, 56rem)"
-                  : className?.includes("max-w-3xl")
-                    ? "min(90vw, 48rem)"
-                    : "min(90vw, 42rem)",
+            maxWidth:
+              className?.includes("max-w-7xl") || className?.includes("w-[98vw]") || className?.includes("w-[96vw]")
+                ? "min(98vw, 92rem)"
+                : className?.includes("max-w-6xl")
+                  ? "min(96vw, 76rem)"
+                  : className?.includes("max-w-5xl")
+                    ? "min(96vw, 68rem)"
+                    : className?.includes("max-w-4xl")
+                      ? "min(92vw, 56rem)"
+                      : className?.includes("max-w-3xl")
+                        ? "min(90vw, 48rem)"
+                        : "min(90vw, 42rem)",
             maxHeight:
-              "calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
+              "calc(96vh - env(safe-area-inset-top) - env(safe-area-inset-bottom))",
             margin:
-              "max(1rem, env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) auto",
+              "max(0.5rem, env(safe-area-inset-top)) auto max(0.5rem, env(safe-area-inset-bottom)) auto",
             zIndex: 2147483647,
             position: "relative",
             display: "flex",
@@ -154,9 +157,17 @@ export function ModalWrapper({
 
           {/* 2. 内容区 (可滚动) */}
           <div
-            className="flex-1 overflow-y-auto p-6 space-y-4"
+            className={`flex-1 overflow-y-auto ${
+              className?.includes("p-0")
+                ? "p-2 sm:p-3"
+                : className?.includes("p-2")
+                  ? "p-2 sm:p-3"
+                  : className?.includes("p-4")
+                    ? "p-3 sm:p-4"
+                    : "p-4 sm:p-6"
+            } space-y-4`}
             style={{
-              maxHeight: "calc(90vh - 8rem)", // 减去标题栏和底部按钮的高度
+              maxHeight: "calc(94vh - 6.5rem)", // 减去标题栏和底部按钮的高度
               WebkitOverflowScrolling: "touch", // iOS平滑滚动
             }}
           >
@@ -166,10 +177,10 @@ export function ModalWrapper({
           {/* 3. 底部按钮区 (固定) */}
           {footer && (
             <div
-              className="p-4 border-t border-white/10 bg-slate-950/50 shrink-0 flex flex-wrap justify-end gap-3"
+              className="px-4 py-3 border-t border-white/10 bg-slate-950/70 shrink-0 flex flex-wrap justify-end gap-3"
               style={{
-                minHeight: "4rem", // 确保按钮区域有足够高度
-                paddingBottom: "max(1rem, env(safe-area-inset-bottom))", // iPhone底部安全区域
+                minHeight: "3.5rem", // 确保按钮区域有足够高度且不冗余
+                paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))", // iPhone底部安全区域
               }}
             >
               {footer}
