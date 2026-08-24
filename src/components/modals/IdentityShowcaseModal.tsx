@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { Role, Seat } from "../../../app/data";
 import { getCharacterWikiDetails, type CharacterWikiDetails } from "../../utils/characterWikiLookup";
 import { ModalWrapper } from "./ModalWrapper";
-import { RoleTokenBadge } from "./RoleCodexModal";
+import { RoleTokenBadge } from "../common/RoleTokenBadge";
 
 interface IdentityShowcaseModalProps {
   isOpen: boolean;
