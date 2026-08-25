@@ -108,11 +108,24 @@ export function useSeatManager(): UseSeatManagerResult {
       const displayRole = newRole;
       const charadeRole = null;
 
+      // 疯子特殊处理：自动从剧本中随机选一个恶魔作为 apparentDemonRole
+      let apparentDemonRole: Role | null = null;
+      if (newRoleId === "lunatic") {
+        const demonRoles = roles.filter((r) => r.type === "demon");
+        if (demonRoles.length > 0) {
+          apparentDemonRole = demonRoles[Math.floor(Math.random() * demonRoles.length)];
+          console.log(
+            `[useSeatManager] 疯子分配 apparentDemonRole: ${apparentDemonRole.name} (${apparentDemonRole.id})`
+          );
+        }
+      }
+
       dispatch(
         gameActions.updateSeat(seatId, {
           role: newRole,
           displayRole,
           charadeRole,
+          ...(apparentDemonRole ? { apparentDemonRole } : {}),
         })
       );
 
