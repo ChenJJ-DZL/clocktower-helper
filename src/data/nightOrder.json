@@ -218,9 +218,9 @@
     },
     {
       "id": "marionette",
-      "chineseName": "marionette",
+      "chineseName": "提线木偶 (告知恶魔)",
       "englishName": "marionette",
-      "description": "marionette的首夜能力"
+      "description": "向恶魔展示提线木偶标记并指向提线木偶玩家。提线木偶本人不唤醒。"
     },
     {
       "id": "sailor",

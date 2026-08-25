@@ -34,10 +34,45 @@ export function useSeatView(
     : "border-gray-600 text-gray-400";
 
   const realRole = s.role;
+  // 提线木偶与酒鬼保底伪装：如果未显式指定 charadeRole，动态选择场上未出现的第一个镇民
+  const fallbackTownsfolk = useMemo(() => {
+    if (s.role?.id !== "drunk" && s.role?.id !== "marionette") return null;
+    if (s.charadeRole) return s.charadeRole;
+    const seatedRoleIds = new Set(
+      seats.map((seat) => seat.role?.id).filter(Boolean)
+    );
+    const defaultTownsfolk = [
+      { id: "monk", name: "僧侣", type: "townsfolk" },
+      { id: "chef", name: "厨师", type: "townsfolk" },
+      { id: "empath", name: "共情者", type: "townsfolk" },
+      { id: "librarian", name: "图书管理员", type: "townsfolk" },
+      { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
+      { id: "undertaker", name: "殓尸人", type: "townsfolk" },
+      { id: "slayer", name: "猎手", type: "townsfolk" },
+      { id: "virgin", name: "贞洁者", type: "townsfolk" },
+      { id: "soldier", name: "士兵", type: "townsfolk" },
+      { id: "mayor", name: "镇长", type: "townsfolk" },
+      { id: "ravenkeeper", name: "守鸦人", type: "townsfolk" },
+      { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
+      { id: "investigator", name: "调查员", type: "townsfolk" },
+      { id: "pixie", name: "小精灵", type: "townsfolk" },
+      { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
+      { id: "oracle", name: "神谕者", type: "townsfolk" },
+      { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
+      { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
+      { id: "savant", name: "博学者", type: "townsfolk" },
+      { id: "farmer", name: "农夫", type: "townsfolk" },
+    ];
+    return (
+      defaultTownsfolk.find((tf) => !seatedRoleIds.has(tf.id)) ||
+      defaultTownsfolk[0]
+    );
+  }, [s.role?.id, s.charadeRole, seats]);
+
   const displayRole =
     s.displayRole ||
     (s.role?.id === "drunk" || s.role?.id === "marionette"
-      ? s.charadeRole || s.role
+      ? s.charadeRole || fallbackTownsfolk || s.role
       : s.role);
   const isMasked = !!(
     realRole &&

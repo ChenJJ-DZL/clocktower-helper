@@ -1429,8 +1429,9 @@
   },
   {
     "id": "marionette",
-    "name": "marionette",
+    "name": "提线木偶",
     "type": "minion",
+    "ability": "你以为自己是镇民，但实际上你是爪牙。你不知道自己是提线木偶。恶魔知道你是谁。",
     "firstNightOrder": 19
   },
   {
