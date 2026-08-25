@@ -795,21 +795,12 @@ export async function executeViaNewEngine(
     } else if (
       displayInfo &&
       typeof displayInfo.type === "string" &&
-      displayInfo.type.endsWith("_info") &&
       displayInfo.log
     ) {
-      // 🔧 信息类角色（洗衣妇/共情者/送葬者/图书管理员/调查员/厨师/守鸦人等）
-      //   统一弹结果窗：此前 postProcess 只生成 displayInfo（console 日志），
-      //   未设置 meta.modal，导致结算结果不展示。此处用 displayInfo.log 作为
-      //   结果文本弹出 INFO_RESULT，确认后继续推进队列。
-      //
-      //   🔧 信息一致性修复：结算弹窗优先复用 guide（控制台"当前的行动"文案）
-      //   中的信息——说书人按 guide 告知玩家后，结算弹窗应显示同一份信息。
-      //   此前 guide（nightInfoGenerator 的 legacy dialog）与结算
-      //   （新引擎 postProcess displayInfo）各自独立随机，同一角色两处信息
-      //   不一致（如 guide 说"5号和3号"、结算说"5号和9号"），说书人无所适从。
-      //   此处统一为 guide 的信息；guide 缺信息（如 fallback"准备执行技能"）时
-      //   回退 displayInfo.log。
+      // 🔧 所有角色统一弹结果窗（信息类 + 行动类）
+      //   此前仅 displayInfo.type 以 "_info" 结尾的角色才弹窗，
+      //   导致僧侣/投毒者/小恶魔等行动类角色无结果展示。
+      //   现在改为：只要有 displayInfo.log 就弹出 INFO_RESULT。
       const guideText = context.nightInfo?.guide || "";
       const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
       const guideInfo =
