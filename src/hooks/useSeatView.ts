@@ -72,12 +72,12 @@ export function useSeatView(
   const displayRole =
     s.displayRole ||
     (s.role?.id === "drunk" || s.role?.id === "marionette"
-      ? s.charadeRole || fallbackTownsfolk || s.role
+      ? s.charadeRole || s.role
       : s.role);
   const isMasked = !!(
     realRole &&
-    displayRole &&
-    realRole.id !== displayRole.id
+    s.charadeRole &&
+    realRole.id !== s.charadeRole.id
   );
 
   const roleName =

@@ -104,24 +104,9 @@ export function useSeatManager(): UseSeatManagerResult {
         }
       }
 
-      // 酒鬼与提线木偶特殊处理：自动寻找未在场镇民作为初始伪装（可在核对阶段/右键重新修改）
-      let displayRole = newRole;
-      let charadeRole = null;
-      if (newRoleId === "drunk" || newRoleId === "marionette") {
-        const seatedRoleIds = new Set(
-          seats.map((s) => s.role?.id).filter(Boolean)
-        );
-        const outOfPlayTownsfolk = roles.filter(
-          (r) =>
-            r.type === "townsfolk" &&
-            !seatedRoleIds.has(r.id) &&
-            r.id !== newRoleId
-        );
-        if (outOfPlayTownsfolk.length > 0) {
-          charadeRole = outOfPlayTownsfolk[0];
-          displayRole = outOfPlayTownsfolk[0];
-        }
-      }
+      // 酒鬼与提线木偶特殊处理：charadeRole 保持 null，由说书人手动指定不在场镇民
+      const displayRole = newRole;
+      const charadeRole = null;
 
       dispatch(
         gameActions.updateSeat(seatId, {

@@ -1525,7 +1525,12 @@ export const GameStage = () => {
                           (role: Role) =>
                             role.type === "townsfolk" &&
                             !role.hidden &&
-                            !seats.some((s: any) => s.role?.id === role.id)
+                            !seats.some((s: any) => s.role?.id === role.id) &&
+                            !seats.some(
+                              (s: any) =>
+                                s.id !== charadeSeat.id &&
+                                s.charadeRole?.id === role.id
+                            )
                         );
                         // 🔧 修复：所有镇民已在场时回退为全部镇民可选，避免弹窗无选项死局
                         const availableCharades =
@@ -1538,8 +1543,8 @@ export const GameStage = () => {
                         return {
                           label:
                             charadeSeat.role?.id === "marionette"
-                              ? "🎪 设置木偶伪装身份"
-                              : "🎭 设置酒鬼身份",
+                              ? `🎪 设置【${charadeSeat.id + 1}号】木偶伪装身份`
+                              : `🎭 设置【${charadeSeat.id + 1}号】酒鬼伪装身份`,
                           onClick: () => {
                             setCurrentModal({
                               type: "DRUNK_CHARADE_SELECT",

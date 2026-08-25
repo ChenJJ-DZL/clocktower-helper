@@ -431,7 +431,8 @@ export function useInteractionHandler(deps: {
           (role) =>
             role.type === "townsfolk" &&
             !role.hidden &&
-            !seats.some((s) => s.role?.id === role.id)
+            !seats.some((s) => s.role?.id === role.id) &&
+            !seats.some((s) => s.id !== seatId && s.charadeRole?.id === role.id)
         );
         // 🔧 修复：若所有镇民角色都已在场（如角色池镇民不足的高配比局），
         // 过滤结果为空会导致弹窗无角色可选、确认按钮永久禁用（玩家死局）。
@@ -532,8 +533,9 @@ export function useInteractionHandler(deps: {
           (role) =>
             role.type === "townsfolk" &&
             !role.hidden &&
-            // 不能是已经在场的角色
-            !seats.some((s) => s.role?.id === role.id)
+            // 不能是已经在场的角色，且不能是其他酒鬼/提线木偶已选的伪装角色
+            !seats.some((s) => s.role?.id === role.id) &&
+            !seats.some((s) => s.id !== targetId && s.charadeRole?.id === role.id)
         );
 
         dispatch(

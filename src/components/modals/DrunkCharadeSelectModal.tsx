@@ -20,7 +20,9 @@ export function DrunkCharadeSelectModal({
   drunkSeat,
   availableTownsfolkRoles,
 }: DrunkCharadeSelectModalProps) {
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(
+    drunkSeat?.charadeRole || null
+  );
 
   if (!isOpen || !drunkSeat) return null;
 
@@ -33,18 +35,17 @@ export function DrunkCharadeSelectModal({
     }
   };
 
-  const currentDrunkRoleName = drunkSeat.role?.name || "酒鬼";
+  const currentDrunkRoleName = drunkSeat.role?.name || "角色";
 
   return (
     <ModalWrapper
-      title={`为 ${currentDrunkRoleName} 选择伪装身份`}
+      title={`为 ${drunkSeat.id + 1}号【${currentDrunkRoleName}】设定伪装身份`}
       onClose={onClose}
     >
       <div className="space-y-4 p-4 text-white">
         <p className="text-sm text-slate-300">
-          请为编号 **{drunkSeat.id + 1}** 的 {currentDrunkRoleName}{" "}
-          选择一个未被分配的“镇民”角色作为其伪装身份。
-          一旦选定，该身份将贯穿整场游戏，且无法更改。
+          请为 **{drunkSeat.id + 1}号** 的 **{currentDrunkRoleName}**{" "}
+          选择一个**不在场的善良镇民**角色作为其伪装身份（酒鬼与提线木偶伪装身份互斥不可重复）：
         </p>
 
         <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">

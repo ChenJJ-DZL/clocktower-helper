@@ -589,10 +589,24 @@ export function useGameFlow(): UseGameFlowResult {
         console.warn(
           `[proceedToFirstNight] ${missingCharadeSeat.role?.name || "角色"} ${missingCharadeSeat.id + 1} 未设置伪装身份，弹出设置窗口`
         );
+        const seatedRoleIds = new Set(
+          seats.map((s) => s.role?.id).filter(Boolean)
+        );
+        const otherCharadeIds = new Set(
+          seats
+            .filter((s) => s.id !== missingCharadeSeat.id && s.charadeRole?.id)
+            .map((s) => s.charadeRole!.id)
+        );
         const availableRoles =
           (selectedScript?.roleIds ?? [])
             .map((rid) => globalRoles.find((r) => r.id === rid))
-            .filter((r): r is Role => !!r && r.type === "townsfolk") ?? [];
+            .filter(
+              (r): r is Role =>
+                !!r &&
+                r.type === "townsfolk" &&
+                !seatedRoleIds.has(r.id) &&
+                !otherCharadeIds.has(r.id)
+            ) ?? [];
 
         dispatch(
           gameActions.setModal({
