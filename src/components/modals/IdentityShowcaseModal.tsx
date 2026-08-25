@@ -46,15 +46,16 @@ export function IdentityShowcaseModal({
   const total = seatedPlayers.length;
   const currentSeat = seatedPlayers[currentIndex] || null;
 
-  // 获取当前展示角色（酒鬼特殊处理：默认展示其伪装身份 charadeRole）
+  // 获取当前展示角色（酒鬼、提线木偶特殊处理：默认展示其伪装身份 charadeRole）
   const isDrunk = currentSeat?.role?.id === "drunk";
+  const isMarionette = currentSeat?.role?.id === "marionette";
   const displayRole: Role | null = useMemo(() => {
     if (!currentSeat) return null;
-    if (isDrunk && currentSeat.charadeRole) {
+    if ((isDrunk || isMarionette) && currentSeat.charadeRole) {
       return currentSeat.charadeRole;
     }
     return currentSeat.role;
-  }, [currentSeat, isDrunk]);
+  }, [currentSeat, isDrunk, isMarionette]);
 
   // 获取详细的官方百科与玩法推荐数据
   const wikiDetails: CharacterWikiDetails | null = useMemo(() => {

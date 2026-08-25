@@ -507,17 +507,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          // 提线木偶标记
-          if (s.role?.id === "marionette") {
+          // 提线木偶标记（未设置伪装身份时显示告警）
+          if (s.role?.id === "marionette" && !isMasked) {
             otherBadges.push(
               <div
                 key="badge-marionette"
                 className={`bg-amber-800 text-amber-100 ${
                   isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
-                } rounded-full border border-amber-400 shadow-md font-bold whitespace-nowrap leading-none`}
-                title="提线木偶（真实身份为爪牙）"
+                } rounded-full border border-amber-400 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
+                title="提线木偶（未设置伪装身份，请在准备阶段设置）"
               >
-                🎪木偶(爪牙)
+                🎪木偶(未设伪装)
               </div>
             );
           }

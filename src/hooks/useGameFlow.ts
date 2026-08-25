@@ -579,13 +579,15 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
-      // 酒鬼伪装身份检查 - 弹出模态框引导设置
-      const drunkMissingCharade = seats.find(
-        (s) => s.role?.id === "drunk" && !s.charadeRole
+      // 酒鬼/提线木偶伪装身份检查 - 弹出模态框引导设置
+      const missingCharadeSeat = seats.find(
+        (s) =>
+          (s.role?.id === "drunk" || s.role?.id === "marionette") &&
+          !s.charadeRole
       );
-      if (drunkMissingCharade) {
+      if (missingCharadeSeat) {
         console.warn(
-          `[proceedToFirstNight] 酒鬼 ${drunkMissingCharade.id + 1} 未设置伪装身份，弹出设置窗口`
+          `[proceedToFirstNight] ${missingCharadeSeat.role?.name || "角色"} ${missingCharadeSeat.id + 1} 未设置伪装身份，弹出设置窗口`
         );
         const availableRoles =
           (selectedScript?.roleIds ?? [])
@@ -596,7 +598,7 @@ export function useGameFlow(): UseGameFlowResult {
           gameActions.setModal({
             type: "DRUNK_CHARADE_SELECT",
             data: {
-              seatId: drunkMissingCharade.id,
+              seatId: missingCharadeSeat.id,
               availableRoles,
               scriptId: selectedScript?.id ?? "",
             },

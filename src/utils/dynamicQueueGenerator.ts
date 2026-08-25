@@ -40,7 +40,7 @@ export interface QueueGenerateOptions {
  */
 function getEffectiveRoleId(seat: any): string | undefined {
   if (!seat?.role) return undefined;
-  if (seat.role.id === "drunk") {
+  if (seat.role.id === "drunk" || seat.role.id === "marionette") {
     return seat.charadeRole?.id ?? seat.role.id;
   }
   return seat.role.id;

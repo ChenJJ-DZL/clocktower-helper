@@ -80,7 +80,12 @@ export const isAbilityActive = (
   }
 
   // 2. 检查醉酒/中毒
-  if (computeIsPoisoned(seat) || seat.isDrunk || seat.role.id === "drunk") {
+  if (
+    computeIsPoisoned(seat) ||
+    seat.isDrunk ||
+    seat.role.id === "drunk" ||
+    seat.role.id === "marionette"
+  ) {
     return false;
   }
 
@@ -887,7 +892,8 @@ export function isActorDisabledByPoisonOrDrunk(
     !!knownByNightAction ||
     computeIsPoisoned(seat) ||
     seat.isDrunk ||
-    seat.role?.id === "drunk"
+    seat.role?.id === "drunk" ||
+    seat.role?.id === "marionette"
   );
 }
 

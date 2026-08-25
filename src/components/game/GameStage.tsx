@@ -439,7 +439,10 @@ export const GameStage = () => {
       : null;
   const getDisplayRole = (seat: Seat | null | undefined) => {
     if (!seat) return null;
-    const base = seat.role?.id === "drunk" ? seat.charadeRole : seat.role;
+    const base =
+      seat.role?.id === "drunk" || seat.role?.id === "marionette"
+        ? seat.charadeRole || seat.role
+        : seat.role;
     return base;
   };
   const _currentWakeRole = getDisplayRole(currentWakeSeat);
@@ -1499,10 +1502,13 @@ export const GameStage = () => {
                   })()
                 : gamePhase === "check"
                   ? (() => {
-                      const drunkSeat = seats.find(
-                        (s: any) => s.role?.id === "drunk" && !s.charadeRole
+                      const charadeSeat = seats.find(
+                        (s: any) =>
+                          (s.role?.id === "drunk" ||
+                            s.role?.id === "marionette") &&
+                          !s.charadeRole
                       );
-                      if (drunkSeat) {
+                      if (charadeSeat) {
                         const currentScriptRoleIds =
                           selectedScript?.roleIds || [];
                         const seenIds = new Set<string>();
@@ -1530,12 +1536,15 @@ export const GameStage = () => {
                                   role.type === "townsfolk" && !role.hidden
                               );
                         return {
-                          label: "🎭 设置酒鬼身份",
+                          label:
+                            charadeSeat.role?.id === "marionette"
+                              ? "🎪 设置木偶伪装身份"
+                              : "🎭 设置酒鬼身份",
                           onClick: () => {
                             setCurrentModal({
                               type: "DRUNK_CHARADE_SELECT",
                               data: {
-                                seatId: drunkSeat.id,
+                                seatId: charadeSeat.id,
                                 availableRoles: availableCharades,
                                 scriptId: selectedScript?.id || "default",
                               },

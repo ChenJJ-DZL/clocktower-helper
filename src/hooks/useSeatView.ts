@@ -36,7 +36,9 @@ export function useSeatView(
   const realRole = s.role;
   const displayRole =
     s.displayRole ||
-    (s.role?.id === "drunk" ? s.charadeRole || s.role : s.role);
+    (s.role?.id === "drunk" || s.role?.id === "marionette"
+      ? s.charadeRole || s.role
+      : s.role);
   const isMasked = !!(
     realRole &&
     displayRole &&

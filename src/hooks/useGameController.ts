@@ -97,7 +97,10 @@ const addDrunkMark = (seat: Seat, drunkType: string, clearTime: string) => {
 
 const _getSeatRoleId = (seat?: Seat | null): string | null => {
   if (!seat) return null;
-  const role = seat.role?.id === "drunk" ? seat.charadeRole : seat.role;
+  const role =
+    seat.role?.id === "drunk" || seat.role?.id === "marionette"
+      ? seat.charadeRole || seat.role
+      : seat.role;
   return role ? role.id : null;
 };
 
@@ -233,7 +236,10 @@ export function useGameController() {
 
   const getDisplayRoleType = useCallback((seat: Seat | null | undefined) => {
     if (!seat) return "townsfolk";
-    const role = seat.role?.id === "drunk" ? seat.charadeRole : seat.role;
+    const role =
+      seat.role?.id === "drunk" || seat.role?.id === "marionette"
+        ? seat.charadeRole || seat.role
+        : seat.role;
     return role?.type || "townsfolk";
   }, []);
 
@@ -403,7 +409,10 @@ export function useGameController() {
         if (!effectiveRole) return [...processed, id, ...rest];
         const getOrder = (sid: number) => {
           const s = seats.find((x) => x.id === sid);
-          const r = s?.role?.id === "drunk" ? s.charadeRole : s?.role;
+          const r =
+            s?.role?.id === "drunk" || s?.role?.id === "marionette"
+              ? s.charadeRole
+              : s?.role;
           return gamePhase === "firstNight"
             ? (r?.firstNightOrder ?? 999)
             : (r?.otherNightOrder ?? 999);
@@ -1124,7 +1133,10 @@ export function useGameController() {
 
   const getDisplayRoleForSeat = useCallback(
     (seat?: Seat | null): Role | null => {
-      const raw = seat?.role?.id === "drunk" ? seat.charadeRole : seat?.role;
+      const raw =
+        seat?.role?.id === "drunk" || seat?.role?.id === "marionette"
+          ? seat.charadeRole
+          : seat?.role;
       return raw || null;
     },
     []

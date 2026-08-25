@@ -549,11 +549,20 @@ export function useDayActions(deps: DayActionsDeps) {
 
   const handleDrunkCharadeSelect = useCallback(
     (selectedCharadeRoleId: string) => {
-      const drunkSeat = seats.find(
-        (s) => s.role?.id === "drunk" && !s.charadeRole
-      );
-      if (!drunkSeat) {
-        addLog("[handleDrunkCharadeSelect] 未找到需要设置伪装身份的酒鬼座位");
+      const targetSeat =
+        (currentModal?.type === "DRUNK_CHARADE_SELECT" &&
+        currentModal.data?.seatId !== undefined
+          ? seats.find((s) => s.id === currentModal.data.seatId)
+          : null) ||
+        seats.find(
+          (s) =>
+            (s.role?.id === "drunk" || s.role?.id === "marionette") &&
+            !s.charadeRole
+        );
+      if (!targetSeat) {
+        addLog(
+          "[handleDrunkCharadeSelect] 未找到需要设置伪装身份的座位"
+        );
         setCurrentModal(null);
         continueToNextAction();
         return;
@@ -568,13 +577,14 @@ export function useDayActions(deps: DayActionsDeps) {
 
       setSeats((prevSeats) =>
         prevSeats.map((s) => {
-          if (s.id === drunkSeat.id) {
-            addLog(`为 ${s.id + 1}号 酒鬼设置伪装身份：${selectedRole.name}`);
+          if (s.id === targetSeat.id) {
+            const roleName = s.role?.name || "角色";
+            addLog(`为 ${s.id + 1}号 ${roleName} 设置伪装身份：${selectedRole.name}`);
             return {
               ...s,
               charadeRole: selectedRole,
               displayRole: selectedRole,
-              isDrunk: true,
+              isDrunk: s.role?.id === "drunk" ? true : s.isDrunk,
             };
           }
           return s;
@@ -661,12 +671,14 @@ export function useDayActions(deps: DayActionsDeps) {
       const sourceSeat = seats.find((s) => s.id === sourceSeatId);
       if (!sourceSeat || !sourceSeat.role) return;
 
-      const effectiveRole =
-        sourceSeat.role.id === "drunk"
-          ? sourceSeat.charadeRole || sourceSeat.role
-          : sourceSeat.role;
+      const isCharade =
+        sourceSeat.role.id === "drunk" ||
+        sourceSeat.role.id === "marionette";
+      const effectiveRole = isCharade
+        ? sourceSeat.charadeRole || sourceSeat.role
+        : sourceSeat.role;
       const displayRoleName =
-        sourceSeat.role?.id === "drunk" && sourceSeat.charadeRole
+        isCharade && sourceSeat.charadeRole
           ? sourceSeat.charadeRole.name
           : sourceSeat.role?.name || "";
 
@@ -740,10 +752,12 @@ export function useDayActions(deps: DayActionsDeps) {
       const sourceSeat = seats.find((s) => s.id === sourceSeatId);
       if (!sourceSeat || !sourceSeat.role) return;
 
-      const effectiveRole =
-        sourceSeat.role.id === "drunk"
-          ? sourceSeat.charadeRole || sourceSeat.role
-          : sourceSeat.role;
+      const isCharade =
+        sourceSeat.role.id === "drunk" ||
+        sourceSeat.role.id === "marionette";
+      const effectiveRole = isCharade
+        ? sourceSeat.charadeRole || sourceSeat.role
+        : sourceSeat.role;
       if (!effectiveRole) return;
 
       // ── 艺术家专用 ────────────────────────────────────

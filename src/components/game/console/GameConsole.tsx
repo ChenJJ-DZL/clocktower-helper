@@ -154,15 +154,17 @@ export const GameConsole = React.memo(function GameConsole({
   React.useEffect(() => {
     setRoleDocExpanded(theme === "classic");
   }, [theme]);
-  const currentActorRoleName =
-    nightInfo?.seat?.role?.id === "drunk"
-      ? nightInfo?.seat?.charadeRole?.name
-      : nightInfo?.seat?.role?.name;
+  const isActorCharade =
+    nightInfo?.seat?.role?.id === "drunk" ||
+    nightInfo?.seat?.role?.id === "marionette";
+  const currentActorRoleName = isActorCharade
+    ? nightInfo?.seat?.charadeRole?.name || nightInfo?.seat?.role?.name
+    : nightInfo?.seat?.role?.name;
   const currentActorSeat = nightInfo?.seat;
 
   const currentActorAbilityText =
-    (nightInfo?.seat?.role?.id === "drunk"
-      ? nightInfo?.seat?.charadeRole?.ability
+    (isActorCharade
+      ? nightInfo?.seat?.charadeRole?.ability || nightInfo?.seat?.role?.ability
       : nightInfo?.seat?.role?.ability) || undefined;
 
   const isDisturbed =
@@ -604,10 +606,11 @@ export const GameConsole = React.memo(function GameConsole({
               const dayAbilitySeats = seats.filter((s) => {
                 if (!s.role) return false;
 
-                const effectiveRole =
-                  s.role?.id === "drunk"
-                    ? s.charadeRole || s.role
-                    : s.role;
+                const isCharade =
+                  s.role?.id === "drunk" || s.role?.id === "marionette";
+                const effectiveRole = isCharade
+                  ? s.charadeRole || s.role
+                  : s.role;
                 if (!effectiveRole) return false;
 
                 // Check legacy dayMeta
@@ -629,10 +632,12 @@ export const GameConsole = React.memo(function GameConsole({
               return (
                 <div className="space-y-3">
                   {dayAbilitySeats.map((seat) => {
-                    const effectiveRole =
-                      seat.role?.id === "drunk"
-                        ? seat.charadeRole || seat.role
-                        : seat.role;
+                    const isCharade =
+                      seat.role?.id === "drunk" ||
+                      seat.role?.id === "marionette";
+                    const effectiveRole = isCharade
+                      ? seat.charadeRole || seat.role
+                      : seat.role;
                     const def = effectiveRole?.id
                       ? getRoleDefinition(effectiveRole.id)
                       : undefined;
@@ -641,7 +646,7 @@ export const GameConsole = React.memo(function GameConsole({
                       effectiveRole?.dayMeta?.abilityName ||
                       "技能";
                     const displayRoleName =
-                      seat.role?.id === "drunk" && seat.charadeRole
+                      isCharade && seat.charadeRole
                         ? seat.charadeRole.name
                         : seat.role?.name || "";
 

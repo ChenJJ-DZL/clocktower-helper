@@ -176,7 +176,9 @@ export const calculateNightInfo = (
   if (!targetSeat || !targetSeat.role) return null;
 
   const effectiveRole =
-    targetSeat.role.id === "drunk" ? targetSeat.charadeRole : targetSeat.role;
+    targetSeat.role.id === "drunk" || targetSeat.role.id === "marionette"
+      ? targetSeat.charadeRole
+      : targetSeat.role;
   if (!effectiveRole) return null;
   const _diedTonight = deadThisNight.includes(targetSeat.id);
 
@@ -195,7 +197,10 @@ export const calculateNightInfo = (
     isPoisoned = true; // Force false info for Townsfolk
   }
 
-  const isDrunk = targetSeat.isDrunk || targetSeat.role?.id === "drunk";
+  const isDrunk =
+    targetSeat.isDrunk ||
+    targetSeat.role?.id === "drunk" ||
+    targetSeat.role?.id === "marionette";
 
   const poisonSources = getPoisonSources(targetSeat);
   let reason = "";

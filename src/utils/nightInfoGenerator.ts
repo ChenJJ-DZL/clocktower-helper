@@ -46,15 +46,21 @@ export function generateNightInfo(
   if (!targetSeat || !targetSeat.role) return null;
 
   const isFirstNight = gamePhase === "firstNight";
-  const effectiveRole =
-    targetSeat.role.id === "drunk" && targetSeat.charadeRole
-      ? targetSeat.charadeRole
-      : targetSeat.role;
+  const isCharade =
+    (targetSeat.role.id === "drunk" ||
+      targetSeat.role.id === "marionette") &&
+    targetSeat.charadeRole;
+  const effectiveRole = isCharade
+    ? targetSeat.charadeRole
+    : targetSeat.role;
 
   if (!effectiveRole) return null;
 
   const isPoisoned = computeIsPoisoned(targetSeat, seats);
-  const isDrunk = targetSeat.isDrunk || targetSeat.role?.id === "drunk";
+  const isDrunk =
+    targetSeat.isDrunk ||
+    targetSeat.role?.id === "drunk" ||
+    targetSeat.role?.id === "marionette";
   const vortoxActive = seats.some((s) => s.role?.id === "vortox" && !s.isDead);
   const effectivePoisoned =
     (vortoxActive && effectiveRole.type === "townsfolk") || isPoisoned;

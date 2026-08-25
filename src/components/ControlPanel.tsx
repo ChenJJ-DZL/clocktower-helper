@@ -104,9 +104,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         )}
         {gamePhase === "check" &&
           (() => {
-            const hasPendingDrunk = seats.some(
+            const hasPendingCharade = seats.some(
               (s) =>
-                s.role?.id === "drunk" &&
+                (s.role?.id === "drunk" || s.role?.id === "marionette") &&
                 (!s.charadeRole || s.charadeRole.type !== "townsfolk")
             );
             const hasFortuneTeller = seats.some(
@@ -118,14 +118,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <div className="w-full flex flex-col gap-2">
                 <button
                   onClick={() => onStartNight(true)}
-                  disabled={hasPendingDrunk || needsRedHerring}
+                  disabled={hasPendingCharade || needsRedHerring}
                   className="w-full py-3 bg-green-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   确认无误，入夜
                 </button>
-                {hasPendingDrunk && (
+                {hasPendingCharade && (
                   <div className="text-center text-yellow-300 text-sm font-semibold">
-                    场上有酒鬼未选择镇民伪装身份。
+                    场上有酒鬼或提线木偶未选择镇民伪装身份。
                   </div>
                 )}
                 {needsRedHerring && (

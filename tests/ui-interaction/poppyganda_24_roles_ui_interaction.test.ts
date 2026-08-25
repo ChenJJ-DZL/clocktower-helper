@@ -4,7 +4,7 @@
  * 全面打通《罂粟花开》(Poppyganda) 全部 24 角色的真实 UI 交互与状态机联动集成测试
  */
 import { describe, expect, it } from "vitest";
-import { checkGameEnd, processGameEvent } from "../../app/gameLogic";
+import { checkGameEnd, isPlayerEvil, processGameEvent } from "../../app/gameLogic";
 import { bounty_hunterAbility } from "../../src/roles/new_engine/bounty_hunter.ability";
 import { cerenovusAbility } from "../../src/roles/new_engine/cerenovus.ability";
 import { evil_twinAbility } from "../../src/roles/new_engine/evil_twin.ability";
@@ -14,6 +14,7 @@ import { jugglerAbility } from "../../src/roles/new_engine/juggler.ability";
 import { librarianAbility } from "../../src/roles/new_engine/librarian.ability";
 import { lunaticAbility } from "../../src/roles/new_engine/lunatic.ability";
 import { pixieAbility } from "../../src/roles/new_engine/pixie.ability";
+import { isActorDisabledByPoisonOrDrunk } from "../../src/utils/gameRules";
 import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
 
 const pipe = (a: any) => ({
@@ -248,5 +249,30 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     expect(gameEnd.isGameOver).toBe(true);
     expect(gameEnd.winner).toBe("Evil");
     expect(gameEnd.reason).toContain("涡流");
+  });
+
+  it("11. 提线木偶 (Marionette): 酒鬼伪装逻辑与邪恶阵营属性", async () => {
+    // 提线木偶本人收到的身份牌为不在场的善良镇民（如僧侣），但其真实阵营为邪恶爪牙
+    const marionetteSeat: any = {
+      id: 1,
+      playerName: "P2",
+      role: { id: "marionette", name: "提线木偶", type: "minion" },
+      charadeRole: { id: "monk", name: "僧侣", type: "townsfolk", ability: "每晚选择一名其他玩家：该玩家免受恶魔杀害。" },
+      displayRole: { id: "monk", name: "僧侣", type: "townsfolk" },
+      isAlive: true,
+      isDead: false,
+    };
+
+    // 1. 验证魔典展示逻辑：displayRole / charadeRole 展示为僧侣
+    const effectiveDisplay = marionetteSeat.charadeRole || marionetteSeat.role;
+    expect(effectiveDisplay.id).toBe("monk");
+    expect(effectiveDisplay.name).toBe("僧侣");
+
+    // 2. 验证阵营属性：即使以为自己是镇民，真实阵营仍属于邪恶 (Evil Minion)
+    expect(marionetteSeat.role.type).toBe("minion");
+    expect(isPlayerEvil(marionetteSeat)).toBe(true);
+
+    // 3. 验证能力失效逻辑：作为提线木偶，其中毒/醉酒能力判定自动失效
+    expect(isActorDisabledByPoisonOrDrunk(marionetteSeat)).toBe(true);
   });
 });
