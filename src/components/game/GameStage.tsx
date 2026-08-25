@@ -15,6 +15,7 @@ import { GameConsole } from "./console/GameConsole";
 import { GameLayout } from "./GameLayout";
 import { GameModals } from "./GameModals";
 import { GlobalNavBar } from "./GlobalNavBar";
+import { NightActionPage } from "./NightActionPage";
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
@@ -1649,10 +1650,41 @@ export const GameStage = () => {
 // [REFACTOR] GameStageWithModals 不再需要 prop drilling
 // GameStage 和 GameModals 都通过 Context 获取所需的 state 和 action
 export function GameStageWithModals() {
+  const { gamePhase, selectedActionTargets } = useGameState();
+  const controller = useGameActions();
+  const toggleTarget = controller.toggleTarget as (seatId: number) => void;
+  const handleConfirmAction = controller.handleConfirmAction as () => void;
+  const seats = controller.seats as any[];
+  const nightInfo = (controller as any).nightInfo;
+  const currentModal = (controller as any).currentModal;
+
+  const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
+  const showNightActionPage = isNightPhase && nightInfo && !currentModal;
+
   return (
     <>
       <GameStage />
       <GameModals />
+      {showNightActionPage && (
+        <NightActionPage
+          nightInfo={nightInfo}
+          seats={seats}
+          selectedTargets={selectedActionTargets}
+          onToggleTarget={toggleTarget}
+          onConfirm={handleConfirmAction}
+          onCancel={() => controller.continueToNextAction?.()}
+          isConfirmDisabled={
+            (nightInfo.targetLimit?.min ?? 0) > 0 &&
+            selectedActionTargets.length < (nightInfo.targetLimit?.min ?? 0)
+          }
+          guideText={nightInfo.guide}
+          isDisturbed={
+            nightInfo.seat?.isDrunk ||
+            nightInfo.seat?.isPoisoned ||
+            nightInfo.isPoisoned
+          }
+        />
+      )}
     </>
   );
 }
