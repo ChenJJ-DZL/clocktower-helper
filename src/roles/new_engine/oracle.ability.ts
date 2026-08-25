@@ -22,12 +22,12 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const isDrunk = (seat.statusEffects ?? []).some(
-    (e: any) => e.type === "drunk"
-  );
-  const isPoisoned = (seat.statusEffects ?? []).some(
-    (e: any) => e.type === "poisoned"
-  );
+  const effects =
+    seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
+  const isDrunk =
+    effects.some((e: any) => e.type === "drunk") || seat.isDrunk === true;
+  const isPoisoned =
+    effects.some((e: any) => e.type === "poisoned") || seat.isPoisoned === true;
 
   return {
     ...context,
@@ -44,9 +44,10 @@ const preCheckAliveAndStatus = async (
 const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
+  const { snapshot, meta, storytellerInput } = context;
   const isAbilityActive = meta.isAbilityActive ?? true;
   const isVortoxWorld = snapshot.isVortoxWorld ?? false;
+  const abilityEffective = meta.abilityEffective ?? true;
 
   // 获取当晚死亡的玩家ID列表
   const deadThisNight = snapshot.deadThisNight ?? [];
@@ -64,12 +65,15 @@ const calculateResult = async (
   // 检查场上是否有涡流
   const hasVortox = snapshot.seats.some((s: Seat) => s.role?.id === "vortox");
 
+  const isCorrupted = !abilityEffective || !isAbilityActive;
+
   // 确定最终显示的信息
   let finalCount = deadEvilCount;
 
-  if (!isAbilityActive || hasVortox || isVortoxWorld) {
+  if (storytellerInput?.fakeResult !== undefined) {
+    finalCount = Number(storytellerInput.fakeResult);
+  } else if (isCorrupted || hasVortox || isVortoxWorld) {
     // 醉酒/中毒/涡流时，返回随机或错误信息
-    // 简单处理：在正确值附近随机波动
     const randomOffset = Math.random() < 0.5 ? 1 : -1;
     finalCount = Math.max(
       0,
@@ -82,7 +86,14 @@ const calculateResult = async (
     finalCount,
   };
 
-  return { ...context, meta: { ...context.meta, abilityResult: result } };
+  return {
+    ...context,
+    meta: {
+      ...context.meta,
+      abilityResult: result,
+      ...(isCorrupted ? { isCorrupted: true } : {}),
+    },
+  };
 };
 
 export const oracleAbility = createRoleAbility({

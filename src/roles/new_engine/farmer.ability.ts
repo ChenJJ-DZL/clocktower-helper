@@ -16,24 +16,76 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
     (s: any) => s.id === ctx.actionNode.seatId
   );
   if (!seat) return { ...ctx, aborted: true, abortReason: "未找到座位" };
-  return ctx;
+
+  const isDrunk =
+    (seat.statusEffects ?? []).some((e: any) => e.type === "drunk") ||
+    seat.isDrunk === true ||
+    ctx.meta.isDrunk === true;
+  const isPoisoned =
+    (seat.statusEffects ?? []).some((e: any) => e.type === "poisoned") ||
+    seat.isPoisoned === true ||
+    ctx.meta.isPoisoned === true;
+  const isAbilityActive = !(isDrunk || isPoisoned);
+
+  // 只有在夜晚死亡才触发农夫传递
+  const isNight =
+    ctx.snapshot.gamePhase === "night" ||
+    ctx.snapshot.gamePhase === "firstNight";
+  const diedAtNight =
+    isNight &&
+    (seat.isDead || (ctx.snapshot.deadThisNight ?? []).includes(seat.id));
+
+  if (!diedAtNight) {
+    return { ...ctx, aborted: true, abortReason: "非夜晚死亡，不触发农夫传承" };
+  }
+
+  return {
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      isDrunk,
+      isPoisoned,
+      isAbilityActive,
+    },
+  };
 };
 
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  const isAbilityActive = ctx.meta.isAbilityActive !== false;
+  if (!isAbilityActive) {
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityResult: {
+          newFarmerId: null,
+          hasTransfer: false,
+        },
+        isCorrupted: true,
+      },
+    };
+  }
+
   // 寻找存活的善良玩家（非邪恶类型）
   const goodCandidates = ctx.snapshot.seats.filter(
     (s: any) =>
       s.isAlive &&
       s.id !== ctx.actionNode.seatId &&
       s.role &&
+      !s.isEvilConverted &&
+      s.alignment !== "evil" &&
       s.role.type !== "minion" &&
       s.role.type !== "demon"
   );
   const chosen =
     goodCandidates.length > 0
-      ? goodCandidates[Math.floor(Math.random() * goodCandidates.length)]
+      ? (ctx.storytellerInput?.newFarmerSeatId !== undefined
+          ? ctx.snapshot.seats.find(
+              (s: any) => s.id === ctx.storytellerInput.newFarmerSeatId
+            )
+          : goodCandidates[Math.floor(Math.random() * goodCandidates.length)])
       : null;
   return {
     ...ctx,

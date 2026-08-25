@@ -225,10 +225,20 @@ function isEffectivelyDemon(
 function initializeBoon(
   seats: PlayerLookup[],
   fortuneTellerSeatId: number,
-  gameId: string
+  gameId: string,
+  explicitBoonId?: number
 ): void {
   // 已初始化则跳过
   if (fortuneTellerBoonManager.getCurrentBoon(gameId) !== null) return;
+
+  if (explicitBoonId !== undefined) {
+    fortuneTellerBoonManager.initializeBoon(
+      gameId,
+      fortuneTellerSeatId,
+      explicitBoonId
+    );
+    return;
+  }
 
   // 筛选候选：存活、非占卜师、非邪恶
   const candidates = seats.filter((s: PlayerLookup) => {
@@ -305,7 +315,7 @@ const calculateResult = async (
   const gameId = (snapshot as any).gameId || "default";
   const isFirstNight = (snapshot.nightCount ?? 0) === 1;
   if (isFirstNight) {
-    initializeBoon(seats, selfSeatId, gameId);
+    initializeBoon(seats, selfSeatId, gameId, storytellerInput?.boonSeatId);
   }
 
   let result: boolean;
