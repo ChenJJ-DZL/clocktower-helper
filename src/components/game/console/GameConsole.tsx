@@ -135,13 +135,13 @@ export const GameConsole = React.memo(function GameConsole({
       case "info":
         return "btn-arcane-info bg-blue-600 hover:bg-blue-500 text-white border-2 border-sky-300";
       case "success":
-        return "bg-emerald-500 hover:bg-emerald-400 text-white";
+        return "btn-arcane-primary bg-amber-600 hover:bg-amber-500 text-white border-2 border-amber-300";
       case "warning":
         return "bg-amber-500 hover:bg-amber-400 text-white";
       case "danger":
         return "bg-red-500 hover:bg-red-400 text-white";
       default:
-        return "btn-arcane-info bg-blue-600 hover:bg-blue-500 text-white border-2 border-sky-300";
+        return "btn-arcane-primary bg-amber-600 hover:bg-amber-500 text-white border-2 border-amber-300";
     }
   };
 
@@ -234,6 +234,15 @@ export const GameConsole = React.memo(function GameConsole({
   const filteredGuidancePoints = guidancePoints.filter(
     (p) => !skillLikeGuidance.has((p || "").trim())
   );
+  const isPoppyGrowerEvilInfo =
+    (nightInfo?.seat?.role?.id === "minion_info" ||
+      nightInfo?.seat?.role?.id === "demon_info" ||
+      nightInfo?.effectiveRole?.id === "minion_info" ||
+      nightInfo?.effectiveRole?.id === "demon_info" ||
+      nightInfo?.guide?.includes("邪恶互认") ||
+      nightInfo?.guide?.includes("恶魔互认") ||
+      nightInfo?.guide?.includes("爪牙互认")) &&
+    nightCount > 1;
 
   return (
     <div className="h-full flex flex-col bg-slate-900 border-l border-white/10">
@@ -259,6 +268,19 @@ export const GameConsole = React.memo(function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0 bg-slate-900/50">
+        {/* 🌺 罂粟种植者死亡触发的邪恶互认步骤高亮卡片 */}
+        {isPoppyGrowerEvilInfo && (
+          <div className="rounded-2xl border-2 border-amber-500/80 bg-gradient-to-br from-purple-950/90 via-slate-900/90 to-amber-950/90 p-5 shadow-2xl shadow-amber-900/30">
+            <div className="flex items-center gap-2.5 text-amber-300 font-extrabold text-base mb-2">
+              <span className="text-xl">🌺</span>
+              <span className="tracking-wide">【邪恶互认（罂粟种植者死亡触发）】</span>
+            </div>
+            <div className="text-sm text-amber-100/95 leading-relaxed font-medium bg-black/30 p-3 rounded-xl border border-amber-500/20">
+              因罂粟种植者已死亡，今晚邪恶阵营（恶魔与爪牙）正式互相认识！请说书人根据下方提示依次唤醒恶魔与爪牙，告知同伴身份。
+            </div>
+          </div>
+        )}
+
         {isNightPhase && currentActorSeat && currentActorRoleName && (
           <div className="rounded-2xl border border-emerald-400/40 bg-emerald-950/30 px-5 py-4 shadow-xl shadow-emerald-900/10 backdrop-blur-sm">
             <div className="text-[13px] font-bold uppercase tracking-wider text-emerald-400/80 mb-3 flex items-center justify-between">
@@ -699,7 +721,7 @@ export const GameConsole = React.memo(function GameConsole({
 
       {/* Zone C: Action Footer */}
       {(extraAction || primaryAction || secondaryActions.length > 0) && (
-        <div className="shrink-0 border-t border-white/10 bg-slate-800/50 px-6 py-5 space-y-3">
+        <div className="shrink-0 sticky bottom-0 z-30 border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-6 py-4 space-y-3 shadow-2xl">
           {extraAction && (
             <button
               onClick={() => {

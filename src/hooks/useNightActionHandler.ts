@@ -456,6 +456,44 @@ export async function executeViaNewEngine(
 
       // 弹窗确认
       const safeTargets = [...(context.selectedTargets || [])];
+
+      // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
+      const isImpSuicide = roleId === "imp" && safeTargets[0] === actorId;
+      if (isImpSuicide) {
+        const aliveMinions = context.seats.filter(
+          (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
+        );
+        if (aliveMinions.length > 1) {
+          context.setCurrentModal({
+            type: "STORYTELLER_SELECT",
+            data: {
+              sourceId: actorId,
+              roleId: "imp",
+              roleName: "小恶魔",
+              title: "😈 小恶魔自戕转火传位",
+              description: `${actorId + 1}号小恶魔选择自杀！场上有 ${aliveMinions.length} 名存活爪牙，请选择由哪位爪牙晋升为新的【小恶魔】：`,
+              targetCount: 1,
+              filterCandidates: (s: Seat) =>
+                aliveMinions.some((m) => m.id === s.id),
+              confirmLabel: "确认晋升为小恶魔",
+              onConfirm: async (targetIds: number[]) => {
+                const chosenMinionId = targetIds[0];
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: safeTargets,
+                  actionData: { successorSeatId: chosenMinionId },
+                };
+                await executeViaNewEngine(realContext, roleId);
+              },
+            },
+          } as any);
+          return true;
+        } else if (aliveMinions.length === 1) {
+          actionDescription = `小恶魔选择自杀，将传位给爪牙【${aliveMinions[0].id + 1}号 ${aliveMinions[0].role?.name}】成为新小恶魔。`;
+        }
+      }
+
       context.setCurrentModal({
         type: "NIGHT_ACTION_CONFIRM",
         data: {
@@ -623,6 +661,72 @@ export async function executeViaNewEngine(
           context.checkGameOver(syncedSeats, deadDemon, false);
           context.addLog(`⚔️ 恶魔 ${deadDemon + 1} 号死亡，触发胜负判定`);
         }
+      }
+
+      // 🌾 农夫遇害传承：如果死者中有农夫且未中毒/醉酒，弹出选择新农夫面板
+      const deadFarmerId = newlyDead.find((id) => {
+        const s = prevSeats.find((seat) => seat.id === id);
+        return (
+          s?.role?.id === "farmer" &&
+          !s.isDrunk &&
+          !s.isPoisoned &&
+          !computeIsPoisoned(s, prevSeats)
+        );
+      });
+      const aliveGoodCandidates = syncedSeats.filter(
+        (s) =>
+          !s.isDead &&
+          !s.isEvilConverted &&
+          s.role?.type !== "demon" &&
+          s.role?.type !== "minion" &&
+          s.role?.id !== "farmer"
+      );
+
+      if (deadFarmerId !== undefined && aliveGoodCandidates.length > 0) {
+        context.setCurrentModal({
+          type: "STORYTELLER_SELECT",
+          data: {
+            sourceId: deadFarmerId,
+            roleId: "farmer",
+            roleName: "农夫",
+            title: "🌾 农夫遇害传承",
+            description: `${deadFarmerId + 1}号【农夫】在夜间遇害！请为农夫选择一名存活善良玩家成为新【农夫】：`,
+            targetCount: 1,
+            filterCandidates: (s: Seat) =>
+              aliveGoodCandidates.some((c) => c.id === s.id),
+            confirmLabel: "确认转变为新农夫",
+            onConfirm: (targetIds: number[]) => {
+              const targetId = targetIds[0];
+              const finalSeats = syncedSeats.map((s) => {
+                if (s.id === targetId) {
+                  return {
+                    ...s,
+                    role: {
+                      ...(s.role ?? {}),
+                      id: "farmer",
+                      name: "农夫",
+                      type: "townsfolk",
+                    },
+                    roleId: "farmer",
+                    roleName: "农夫",
+                    roleType: "townsfolk",
+                    statusDetails: [
+                      ...(s.statusDetails || []),
+                      "成为新农夫",
+                    ],
+                  } as Seat;
+                }
+                return s;
+              });
+              context.setSeats(finalSeats);
+              context.addLog(
+                `🌾 农夫传承完成：${targetId + 1}号玩家转变为新【农夫】`
+              );
+              context.continueToNextAction(finalSeats);
+            },
+          },
+        } as any);
+        return true;
       }
 
       // 🔧 方古跳变入队（W8.14.14）：原方古（行动者）死亡后，新方古（原外来者）

@@ -103,12 +103,26 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.hasTransfer) return ctx;
+  if (!r?.hasTransfer || r.newFarmerId == null) return ctx;
+  const updatedSeats = ctx.snapshot.seats.map((s: any) => {
+    if (s.id === r.newFarmerId) {
+      return {
+        ...s,
+        role: { id: "farmer", name: "农夫", type: "townsfolk" },
+        roleId: "farmer",
+        roleName: "农夫",
+        roleType: "townsfolk",
+        statusDetails: [...(s.statusDetails || []), "成为新农夫"],
+      };
+    }
+    return s;
+  });
   return {
     ...ctx,
     meta: { ...ctx.meta, farmerResult: r },
     snapshot: {
       ...ctx.snapshot,
+      seats: updatedSeats,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         farmer: r,

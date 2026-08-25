@@ -299,7 +299,7 @@ const calculateResult = async (
 const stateUpdateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta, actionNode } = context;
+  const { snapshot, meta, actionNode, storytellerInput } = context;
   const abilityEffective = meta.abilityEffective ?? true;
   const abilityResult = meta.abilityResult as
     | { targetId: number; isSuicide: boolean }
@@ -351,8 +351,11 @@ const stateUpdateResult = async (
     const aliveMinions = findAliveMinions(updatedSeats, actionNode.seatId);
 
     if (aliveMinions.length > 0) {
+      const explicitSuccessorId = storytellerInput?.successorSeatId;
       const successor =
-        aliveMinions[Math.floor(Math.random() * aliveMinions.length)];
+        explicitSuccessorId !== undefined
+          ? (aliveMinions.find((s: any) => s.id === explicitSuccessorId) ?? aliveMinions[0])
+          : aliveMinions[Math.floor(Math.random() * aliveMinions.length)];
       const successorIdx = updatedSeats.findIndex(
         (s: any) => s.id === successor.id
       );

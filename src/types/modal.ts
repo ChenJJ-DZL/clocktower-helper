@@ -137,7 +137,7 @@ export type ModalType =
       };
     }
 
-  // 说书人选择弹窗（当能力描述中没有"选择"一词时）
+  // 说书人选择弹窗（当能力描述中没有"选择"一词或特殊转火/传承时）
   | {
       type: "STORYTELLER_SELECT";
       data: {
@@ -146,6 +146,9 @@ export type ModalType =
         roleName: string;
         description: string;
         targetCount: number;
+        title?: string;
+        confirmLabel?: string;
+        filterCandidates?: (seat: Seat) => boolean;
         onConfirm: (targetIds: number[]) => void;
       };
     }

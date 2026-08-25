@@ -333,7 +333,7 @@ body > * {
 /* 1. 背景底盘与边框 */
 .theme-classic body,
 .theme-classic #__next {
-  background: #0d0818 url('/assets/tb/grimoire_bg.webp') center center / cover no-repeat fixed !important;
+  background: #0d0818 url('/assets/table-bg.png') center center / cover no-repeat fixed !important;
   color: #f6ead0 !important;
 }
 

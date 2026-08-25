@@ -201,6 +201,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           if (isValidTarget) onSeatClick(s.id);
         }}
         className={`seat-token relative w-full h-full rounded-full ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300
+        ${colorClass}
         ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
         ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
         ${getDisplayRoleType(s) === "minion" ? "glow-minion" : ""}

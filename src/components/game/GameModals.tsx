@@ -739,7 +739,10 @@ export function GameModals() {
           roleId={storytellerSelectModal.roleId}
           roleName={storytellerSelectModal.roleName}
           description={storytellerSelectModal.description}
-          targetCount={storytellerSelectModal.targetCount}
+          targetCount={storytellerSelectModal.targetCount ?? 1}
+          title={storytellerSelectModal.title}
+          confirmLabel={storytellerSelectModal.confirmLabel}
+          filterCandidates={storytellerSelectModal.filterCandidates}
           seats={seats}
           onConfirm={storytellerSelectModal.onConfirm}
           onCancel={() => actions.setCurrentModal(null)}
