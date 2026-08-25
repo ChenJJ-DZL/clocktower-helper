@@ -383,6 +383,22 @@ const stateUpdateResult = async (
     timestamp: Date.now(),
   };
 
+  let updatedSeats = context.snapshot.seats;
+  if (result.roleName && result.seat1 !== undefined && result.seat2 !== undefined) {
+    updatedSeats = context.snapshot.seats.map((s: any) => {
+      if (s.id === result.seat1 || s.id === result.seat2) {
+        const details = s.statusDetails || [];
+        return {
+          ...s,
+          statusDetails: details.includes("图书目标")
+            ? details
+            : [...details, "图书目标"],
+        };
+      }
+      return s;
+    });
+  }
+
   return {
     ...context,
     actionNode: {
@@ -394,6 +410,7 @@ const stateUpdateResult = async (
     },
     snapshot: {
       ...context.snapshot,
+      seats: updatedSeats,
       _abilityResults: {
         ...((context.snapshot as any)._abilityResults ?? {}),
         librarian: result,

@@ -31,8 +31,27 @@ const preCheckLimitedAbility = async (
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const guesses = ctx.storytellerInput?.guesses ?? [];
-  const correctCount = ctx.storytellerInput?.correctCount ?? 0;
+  const guesses =
+    ctx.storytellerInput?.guesses ??
+    (ctx.snapshot as any).jugglerGuesses ??
+    [];
+  let correctCount = ctx.storytellerInput?.correctCount;
+  if (correctCount === undefined) {
+    correctCount = 0;
+    for (const g of guesses) {
+      const seat = ctx.snapshot.seats.find(
+        (s: any) => s.id === g.targetSeatId
+      );
+      if (
+        seat &&
+        (seat.role?.name === g.roleName ||
+          seat.role?.id === g.roleId ||
+          (seat as any).charadeRole?.name === g.roleName)
+      ) {
+        correctCount++;
+      }
+    }
+  }
   return {
     ...ctx,
     meta: {

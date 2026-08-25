@@ -268,6 +268,38 @@ export const GameConsole = React.memo(function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0 bg-slate-900/50">
+        {/* 🌀 涡流全局假信息提醒 */}
+        {seats.some(
+          (s) =>
+            !s.isDead &&
+            (s.role?.id === "vortox" ||
+              (s.isDemonSuccessor && s.role?.id === "vortox"))
+        ) && (
+          <div className="rounded-xl border border-rose-500/60 bg-rose-950/40 p-3 shadow-lg flex items-center gap-2 text-rose-200 text-xs font-bold">
+            <span className="text-base">🌀</span>
+            <span>【涡流全局扭曲中】：所有存活镇民获取的信息必须为假！</span>
+          </div>
+        )}
+
+        {/* 🎪 提线木偶座次告警 */}
+        {(() => {
+          const marionetteSeat = seats.find((s) => s.role?.id === "marionette");
+          const demonSeat = seats.find((s) => s.role?.type === "demon");
+          if (marionetteSeat && demonSeat && seats.length > 2) {
+            const diff = Math.abs(marionetteSeat.id - demonSeat.id);
+            const isAdjacent = diff === 1 || diff === seats.length - 1;
+            if (!isAdjacent) {
+              return (
+                <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 text-amber-200 text-xs font-bold flex items-center gap-2">
+                  <span className="text-base">⚠️</span>
+                  <span>提线木偶座次告警：{marionetteSeat.id + 1}号提线木偶必须与恶魔（{demonSeat.id + 1}号）物理相邻！</span>
+                </div>
+              );
+            }
+          }
+          return null;
+        })()}
+
         {/* 🌺 罂粟种植者死亡触发的邪恶互认步骤高亮卡片 */}
         {isPoppyGrowerEvilInfo && (
           <div className="rounded-2xl border-2 border-amber-500/80 bg-gradient-to-br from-purple-950/90 via-slate-900/90 to-amber-950/90 p-5 shadow-2xl shadow-amber-900/30">
@@ -280,6 +312,38 @@ export const GameConsole = React.memo(function GameConsole({
             </div>
           </div>
         )}
+
+        {/* 🌀 疯子击杀指示（恶魔唤醒时显示） */}
+        {(() => {
+          const isDemon =
+            currentActorSeat?.role?.type === "demon" ||
+            nightInfo?.effectiveRole?.type === "demon" ||
+            !!currentActorSeat?.isDemonSuccessor;
+          const lunaticSeat = seats.find((s) => s.role?.id === "lunatic" && !s.isDead);
+          if (isDemon && lunaticSeat) {
+            const lunaticTarget = (lunaticSeat as any).lunaticTarget ?? (lunaticSeat as any).selectedTarget;
+            if (lunaticTarget !== undefined && lunaticTarget !== null) {
+              return (
+                <div className="rounded-xl border border-purple-500/60 bg-purple-950/50 p-3 flex items-center justify-between shadow-lg">
+                  <div className="text-xs text-purple-200">
+                    <span className="font-extrabold text-purple-300">🌀 疯子今晚选择了：</span>
+                    【{lunaticTarget + 1}号玩家】
+                  </div>
+                  {onTogglePlayer && !selectedPlayers.includes(lunaticTarget) && (
+                    <button
+                      type="button"
+                      onClick={() => onTogglePlayer(lunaticTarget)}
+                      className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-lg text-xs font-bold shadow transition"
+                    >
+                      快捷同步
+                    </button>
+                  )}
+                </div>
+              );
+            }
+          }
+          return null;
+        })()}
 
         {isNightPhase && currentActorSeat && currentActorRoleName && (
           <div className="rounded-2xl border border-emerald-400/40 bg-emerald-950/30 px-5 py-4 shadow-xl shadow-emerald-900/10 backdrop-blur-sm">

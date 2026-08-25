@@ -87,10 +87,26 @@ const saveResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  let updatedSeats = ctx.snapshot.seats;
+  if (r?.targetId != null) {
+    updatedSeats = ctx.snapshot.seats.map((s: any) => {
+      if (s.id === r.targetId) {
+        const details = s.statusDetails || [];
+        return {
+          ...s,
+          statusDetails: details.includes("赏金已知")
+            ? details
+            : [...details, "赏金已知"],
+        };
+      }
+      return s;
+    });
+  }
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: updatedSeats,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         bounty_hunter: r,

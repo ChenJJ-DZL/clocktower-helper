@@ -36,10 +36,26 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (r?.targetId == null) return ctx;
+
+  const updatedSeats = ctx.snapshot.seats.map((s: any) => {
+    if (s.id === r.targetId) {
+      const details = (s.statusDetails || []).filter(
+        (d: string) => !d.startsWith("洗脑疯狂:")
+      );
+      return {
+        ...s,
+        cerenovusMadnessRole: r.roleName,
+        statusDetails: [...details, `洗脑疯狂:${r.roleName}`],
+      };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: updatedSeats,
       madRoles: {
         ...((ctx.snapshot as any).madRoles ?? {}),
         [r.targetId]: r.roleName,

@@ -413,6 +413,115 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
+          // 邪恶阵营转换标记（如赏金猎人指定的邪恶镇民）
+          if (s.isEvilConverted) {
+            otherBadges.push(
+              <div
+                key="badge-evil-converted"
+                className={`bg-red-700 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-red-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
+                title="邪恶阵营（镇民伪装）"
+              >
+                邪恶
+              </div>
+            );
+          }
+
+          // 赏金已知标记
+          if (s.statusDetails?.includes("赏金已知") || (s as any).bountyHunterTarget) {
+            otherBadges.push(
+              <div
+                key="badge-bounty"
+                className={`bg-amber-600 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-amber-300 shadow-md font-bold whitespace-nowrap leading-none`}
+                title="赏金猎人已知邪恶目标"
+              >
+                赏金已知
+              </div>
+            );
+          }
+
+          // 图书目标标记
+          if (s.statusDetails?.includes("图书目标") || (s as any).librarianTarget) {
+            otherBadges.push(
+              <div
+                key="badge-librarian"
+                className={`bg-blue-600 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-blue-300 shadow-md font-bold whitespace-nowrap leading-none`}
+                title="图书管理员得知目标"
+              >
+                图书目标
+              </div>
+            );
+          }
+
+          // 小精灵伪装与激活标记
+          const pixieTarget = s.statusDetails?.find((st) => st.startsWith("伪装身份:"));
+          if (pixieTarget) {
+            otherBadges.push(
+              <div
+                key="badge-pixie-target"
+                className={`bg-pink-600 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-pink-300 shadow-md font-bold whitespace-nowrap leading-none`}
+              >
+                {pixieTarget}
+              </div>
+            );
+          }
+          if (
+            s.role?.id === "pixie" &&
+            (s.hasAbilityEvenDead || s.statusDetails?.includes("能力已激活") || (s as any).pixieHasAbility)
+          ) {
+            otherBadges.push(
+              <div
+                key="badge-pixie-active"
+                className={`bg-emerald-600 text-white ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-emerald-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
+              >
+                ⚡能力激活
+              </div>
+            );
+          }
+
+          // 洗脑师疯狂标记
+          const madnessDetail = s.statusDetails?.find((st) => st.startsWith("洗脑疯狂:"));
+          if (madnessDetail || (s as any).cerenovusMadnessRole) {
+            const roleText = madnessDetail
+              ? madnessDetail.replace("洗脑疯狂:", "")
+              : (s as any).cerenovusMadnessRole;
+            otherBadges.push(
+              <div
+                key="badge-madness"
+                className={`bg-purple-800 text-purple-100 ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-purple-400 shadow-md font-bold whitespace-nowrap leading-none`}
+                title={`洗脑疯狂：必须扮演【${roleText}】`}
+              >
+                🎭疯狂:{roleText}
+              </div>
+            );
+          }
+
+          // 提线木偶标记
+          if (s.role?.id === "marionette") {
+            otherBadges.push(
+              <div
+                key="badge-marionette"
+                className={`bg-amber-800 text-amber-100 ${
+                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                } rounded-full border border-amber-400 shadow-md font-bold whitespace-nowrap leading-none`}
+                title="提线木偶（真实身份为爪牙）"
+              >
+                🎪木偶(爪牙)
+              </div>
+            );
+          }
+
           // 处决候选者标记
           if (s.isCandidate) {
             otherBadges.push(

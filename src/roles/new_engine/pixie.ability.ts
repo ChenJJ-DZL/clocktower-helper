@@ -99,10 +99,26 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  const selfSeatId = ctx.actionNode.seatId;
+  const updatedSeats = ctx.snapshot.seats.map((s: any) => {
+    if (s.id === selfSeatId && r?.roleName) {
+      const details = (s.statusDetails || []).filter(
+        (d: string) => !d.startsWith("伪装身份:")
+      );
+      return {
+        ...s,
+        pixieTargetRole: r.roleName,
+        statusDetails: [...details, `伪装身份:${r.roleName}`],
+      };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: updatedSeats,
       pixieCopiedRole: r?.roleId ?? null,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),

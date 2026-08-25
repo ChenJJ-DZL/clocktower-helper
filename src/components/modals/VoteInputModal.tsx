@@ -229,6 +229,30 @@ export function VoteInputModalContent(props: {
               ⚠️ 选择中包含已用完幽灵票的死亡玩家，请取消勾选
             </div>
           )}
+
+          {/* 军团抗辩检测：仅有邪恶玩家投票时处决无效 */}
+          {(() => {
+            const isNomineeLegion = candidate?.role?.id === "legion";
+            const votingSeats = props.seats.filter((s) => selectedVoters.includes(s.id));
+            const isAllEvilLegionVoters =
+              isNomineeLegion &&
+              votingSeats.length > 0 &&
+              votingSeats.every(
+                (s) =>
+                  s.role?.id === "legion" ||
+                  s.role?.type === "demon" ||
+                  s.role?.type === "minion" ||
+                  s.isEvilConverted
+              );
+            if (isAllEvilLegionVoters) {
+              return (
+                <div className="mt-2 py-1.5 px-3 bg-red-950/80 border border-red-500 rounded-lg text-red-200 text-xs font-bold text-center animate-pulse">
+                  ⚠️ 军团抗辩：所有投票者皆为邪恶阵营，处决宣告无效！
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
 
         {/* 管家详细状态（紧凑 1 行提示） */}

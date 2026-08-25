@@ -552,6 +552,41 @@ export function checkGameEnd(
     // 如果被双子阻止，游戏继续（除非触发下面的邪恶胜利）
   }
 
+  // --- 1.2 【处决特殊结算】特殊角色导致邪恶获胜 (圣徒、地精、双子) ---
+  if (lastAction === "execution" && executedPlayerId !== null) {
+    const executedSeat = seats.find((s) => s.id === executedPlayerId);
+    if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
+      if (executedSeat.role?.id === "saint")
+        return { isGameOver: true, winner: "Evil", reason: "圣徒被处决" };
+      if (executedSeat.role?.id === "goblin")
+        return { isGameOver: true, winner: "Evil", reason: "地精被处决" };
+
+      // 镜像双子（Evil Twin）：若存活的善良双子被处决，邪恶阵营直接获胜
+      const evilTwin = seats.find(
+        (s) =>
+          s.role?.id === "evil_twin" &&
+          !s.isDead &&
+          !s.isPoisoned &&
+          !s.isDrunk
+      );
+      if (evilTwin) {
+        const isGoodTwin =
+          executedSeat.id !== evilTwin.id &&
+          executedSeat.role?.id !== "evil_twin" &&
+          !executedSeat.isEvilConverted &&
+          (executedSeat.role?.type === "townsfolk" ||
+            executedSeat.role?.type === "outsider");
+        if (isGoodTwin) {
+          return {
+            isGameOver: true,
+            winner: "Evil",
+            reason: "善良双子被处决（镜像双子胜利）",
+          };
+        }
+      }
+    }
+  }
+
   // --- 1.5 【核心】邪恶存活数 ≥ 善良存活数 -> 邪恶获胜 (需仍有恶魔在场) ---
   // 旅行者(traveler)不计入阵营人数（与投票门槛逻辑一致）
   const aliveNonTraveler = aliveSeats.filter(
@@ -565,17 +600,6 @@ export function checkGameEnd(
       winner: "Evil",
       reason: "邪恶阵营人数占优（存活邪恶 ≥ 存活善良）",
     };
-  }
-
-  // --- 2. 【第二优先级】特殊角色导致邪恶获胜 (圣徒、地精) ---
-  if (lastAction === "execution" && executedPlayerId !== null) {
-    const executedSeat = seats.find((s) => s.id === executedPlayerId);
-    if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
-      if (executedSeat.role?.id === "saint")
-        return { isGameOver: true, winner: "Evil", reason: "圣徒被处决" };
-      if (executedSeat.role?.id === "goblin")
-        return { isGameOver: true, winner: "Evil", reason: "地精被处决" };
-    }
   }
 
   // --- 3. 【第三优先级】存活人数判定 ---

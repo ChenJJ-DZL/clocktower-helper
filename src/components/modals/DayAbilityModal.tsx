@@ -47,13 +47,13 @@ export function DayAbilityModal({ modal }: { modal: any }) {
       closeModal();
       return;
     }
-    if (roleId === "savant_mr") {
+    if (roleId === "savant" || roleId === "savant_mr") {
       if (!props.dayAbilityForm.info1 || !props.dayAbilityForm.info2) {
-        alert("请填写两条信息（可真可假）。");
+        alert("请填写两条信息（其中一真一假）。");
         return;
       }
       props.addLog(
-        `${seat.id + 1}号(博学者) 今日信息：${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}`
+        `${seat.id + 1}号(博学者) 今日私聊信息：【真/假 1】${props.dayAbilityForm.info1} | 【真/假 2】${props.dayAbilityForm.info2}`
       );
       props.setDayAbilityLogs((prev: any[]) => [
         ...prev,
@@ -61,11 +61,45 @@ export function DayAbilityModal({ modal }: { modal: any }) {
           id: seat.id,
           roleId,
           day: props.nightCount,
-          text: `${props.dayAbilityForm.info1} / ${props.dayAbilityForm.info2}`,
+          text: `信息1: ${props.dayAbilityForm.info1} | 信息2: ${props.dayAbilityForm.info2}`,
         },
       ]);
-      props.markDailyAbilityUsed("savant_mr", seat.id);
+      props.markDailyAbilityUsed?.("savant", seat.id);
+      props.markDailyAbilityUsed?.("savant_mr", seat.id);
       closeModal();
+      return;
+    }
+    if (roleId === "juggler") {
+      const guesses = props.dayAbilityForm.jugglerGuesses || [];
+      if (guesses.length === 0) {
+        alert("请至少添加 1 条杂耍艺人猜测。");
+        return;
+      }
+      const guessSummaries = guesses
+        .map((g: any) => `${g.targetSeatId + 1}号是【${g.roleName}】`)
+        .join("，");
+      props.addLog(`${seat.id + 1}号(杂耍艺人) 公开猜测：${guessSummaries}`);
+      props.setDayAbilityLogs((prev: any[]) => [
+        ...prev,
+        {
+          id: seat.id,
+          roleId,
+          day: props.nightCount,
+          text: `公开猜测：${guessSummaries}`,
+          guesses,
+        },
+      ]);
+      props.markAbilityUsed?.("juggler", seat.id);
+      closeModal();
+      return;
+    }
+    if (roleId === "mutant") {
+      // 畸形秀演员违反疯狂仲裁处决
+      if (confirm(`确定判定 ${seat.id + 1}号【畸形秀演员】违反疯狂并立即处决？`)) {
+        props.addLog(`⚠️ 说书人裁定：${seat.id + 1}号(畸形秀演员) 违反疯狂，立即处决！`);
+        props.executePlayer?.(seat.id);
+        closeModal();
+      }
       return;
     }
     if (roleId === "amnesiac") {
@@ -257,14 +291,53 @@ export function DayAbilityModal({ modal }: { modal: any }) {
           </div>
         )}
 
-        {roleId === "savant_mr" && (
+        {(roleId === "savant" || roleId === "savant_mr") && (
           <div className="space-y-3">
             <p className="text-sm text-gray-300">
-              填写两条信息（其中一真一假）。
+              博学者每日私聊：请填写 2 条信息（说书人保证其中 1 条为真、1 条为假）。
             </p>
+            <div className="flex gap-2 flex-wrap">
+              <span className="text-xs text-amber-300 font-bold self-center">快捷填入建议：</span>
+              <button
+                type="button"
+                onClick={() =>
+                  props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
+                    ...f,
+                    info1: "在场存活爪牙数量为 1 名",
+                  }))
+                }
+                className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-200"
+              >
+                爪牙数量
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
+                    ...f,
+                    info2: "双子玩家坐在圆桌偶数座位上",
+                  }))
+                }
+                className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-200"
+              >
+                双子位置
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
+                    ...f,
+                    info2: "红罗刹玩家今日发起过提名",
+                  }))
+                }
+                className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-200"
+              >
+                红罗刹动作
+              </button>
+            </div>
             <textarea
-              className="w-full bg-gray-800 border border-gray-700 rounded p-2"
-              placeholder="信息1"
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white"
+              placeholder="信息 1（真或假）"
               value={props.dayAbilityForm.info1 || ""}
               onChange={(e) =>
                 props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
@@ -274,8 +347,8 @@ export function DayAbilityModal({ modal }: { modal: any }) {
               }
             />
             <textarea
-              className="w-full bg-gray-800 border border-gray-700 rounded p-2"
-              placeholder="信息2"
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white"
+              placeholder="信息 2（对应相反真假）"
               value={props.dayAbilityForm.info2 || ""}
               onChange={(e) =>
                 props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
@@ -284,6 +357,115 @@ export function DayAbilityModal({ modal }: { modal: any }) {
                 }))
               }
             />
+          </div>
+        )}
+
+        {roleId === "juggler" && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-300">
+              杂耍艺人猜测记录器（首个白天最多可猜测 5 名玩家身份，次夜将得知猜对总数）：
+            </p>
+            {/* 猜测列表 */}
+            <div className="space-y-2 max-h-52 overflow-y-auto">
+              {((props.dayAbilityForm.jugglerGuesses || []) as Array<{ targetSeatId: number; roleName: string }>).map(
+                (g, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between bg-slate-800 p-2.5 rounded-xl border border-slate-700"
+                  >
+                    <span className="text-sm text-amber-200 font-bold">
+                      {idx + 1}. {g.targetSeatId + 1}号 玩家是 【{g.roleName}】
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = [...(props.dayAbilityForm.jugglerGuesses || [])];
+                        next.splice(idx, 1);
+                        props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
+                          ...f,
+                          jugglerGuesses: next,
+                        }));
+                      }}
+                      className="px-2 py-1 bg-red-800 hover:bg-red-700 text-xs rounded text-white"
+                    >
+                      删除
+                    </button>
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* 添加单条猜测 */}
+            {((props.dayAbilityForm.jugglerGuesses || []).length < 5) && (
+              <div className="flex gap-2 items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                <select
+                  id="juggler-target"
+                  className="bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white flex-1"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    选择目标玩家
+                  </option>
+                  {props.seats.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.id + 1}号 {s.playerName || ""}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  id="juggler-role"
+                  className="bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white flex-1"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    猜测角色
+                  </option>
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.name}>
+                      {r.name} ({r.type})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetEl = document.getElementById("juggler-target") as HTMLSelectElement;
+                    const roleEl = document.getElementById("juggler-role") as HTMLSelectElement;
+                    if (!targetEl.value || !roleEl.value) {
+                      alert("请选择目标玩家与猜测角色");
+                      return;
+                    }
+                    const targetSeatId = Number(targetEl.value);
+                    const roleName = roleEl.value;
+                    const next = [
+                      ...(props.dayAbilityForm.jugglerGuesses || []),
+                      { targetSeatId, roleName },
+                    ];
+                    props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
+                      ...f,
+                      jugglerGuesses: next,
+                    }));
+                  }}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold shrink-0"
+                >
+                  + 添加猜测
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {roleId === "mutant" && (
+          <div className="space-y-4 text-center py-4">
+            <div className="text-base text-red-300 font-bold">
+              🎭 畸形秀演员疯狂仲裁
+            </div>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              如果畸形秀演员在白天试图向其他玩家明示或暗示自己是外来者，说书人可裁定其违反疯狂并立即处决。
+            </p>
+            <div className="p-4 bg-red-950/60 border border-red-800 rounded-xl text-xs text-red-200">
+              ⚠️ 点击确认处决后将立即触发处决流程并结束今日白天！
+            </div>
           </div>
         )}
 
