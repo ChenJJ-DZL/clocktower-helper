@@ -415,9 +415,15 @@ export function useInteractionHandler(deps: {
           })
         );
       } else if (action === "charade") {
-        // 酒鬼设置伪装身份
+        // 酒鬼与提线木偶设置伪装身份（仅在 setup / check 阶段允许）
+        if (state.gamePhase !== "setup" && state.gamePhase !== "check") return;
         const targetSeat = seats.find((s) => s.id === seatId);
-        if (!targetSeat || targetSeat.role?.id !== "drunk") return;
+        if (
+          !targetSeat ||
+          (targetSeat.role?.id !== "drunk" &&
+            targetSeat.role?.id !== "marionette")
+        )
+          return;
         const { selectedScript } = state;
         const currentScriptRoleIds = selectedScript?.roleIds || [];
         const seenIds = new Set<string>();

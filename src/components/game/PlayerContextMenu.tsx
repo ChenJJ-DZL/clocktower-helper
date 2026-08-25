@@ -173,20 +173,21 @@ export function PlayerContextMenu() {
           🎭 选为红罗刹
         </button>
       )}
-      {/* 酒鬼与提线木偶可以随时右键进行【身份设定】 */}
-      {(targetSeat.role?.id === "drunk" ||
-        targetSeat.role?.id === "marionette") && (
-        <button
-          onClick={() => props.handleMenuAction("charade")}
-          className="block w-full text-left px-6 py-4 hover:bg-purple-700 bg-purple-900/30 text-purple-100 text-lg font-bold border-t border-gray-700 transition-colors"
-          style={{ textShadow: "0 0 8px rgba(168, 85, 247, 0.5)" }}
-        >
-          🎭{" "}
-          {targetSeat.charadeRole
-            ? `身份设定 (${targetSeat.charadeRole.name})`
-            : "身份设定 (设置伪装镇民)"}
-        </button>
-      )}
+      {/* 仅在准备阶段（setup）与核对阶段（check），且仅允许能够设置伪装身份的角色（酒鬼与提线木偶）显示【身份设定】 */}
+      {(props.gamePhase === "setup" || props.gamePhase === "check") &&
+        (targetSeat.role?.id === "drunk" ||
+          targetSeat.role?.id === "marionette") && (
+          <button
+            onClick={() => props.handleMenuAction("charade")}
+            className="block w-full text-left px-6 py-4 hover:bg-purple-700 bg-purple-900/30 text-purple-100 text-lg font-bold border-t border-gray-700 transition-colors"
+            style={{ textShadow: "0 0 8px rgba(168, 85, 247, 0.5)" }}
+          >
+            🎭{" "}
+            {targetSeat.charadeRole
+              ? `身份设定 (${targetSeat.charadeRole.name})`
+              : "身份设定 (设置伪装镇民)"}
+          </button>
+        )}
     </div>
   );
 }
