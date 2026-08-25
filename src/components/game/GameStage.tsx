@@ -1657,9 +1657,20 @@ export function GameStageWithModals() {
   const seats = controller.seats as any[];
   const nightInfo = (controller as any).nightInfo;
   const currentModal = (controller as any).currentModal;
+  const setCurrentModal = (controller as any).setCurrentModal;
+  const continueToNextAction = (controller as any).continueToNextAction;
 
   const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
-  const showNightActionPage = isNightPhase && nightInfo && !currentModal;
+
+  // INFO_RESULT 弹窗数据（用于内联展示到 NightActionPage）
+  const infoResultData =
+    currentModal?.type === "INFO_RESULT" ? currentModal.data : null;
+
+  // NightActionPage 在夜间阶段 + 有 nightInfo 时始终显示
+  // INFO_RESULT 弹窗不阻塞它（结果内联展示）
+  const blockingModal =
+    currentModal && currentModal.type !== "INFO_RESULT";
+  const showNightActionPage = isNightPhase && nightInfo && !blockingModal;
 
   return (
     <>
@@ -1672,7 +1683,7 @@ export function GameStageWithModals() {
           selectedTargets={selectedActionTargets}
           onToggleTarget={toggleTarget}
           onConfirm={handleConfirmAction}
-          onCancel={() => controller.continueToNextAction?.()}
+          onCancel={() => continueToNextAction?.()}
           isConfirmDisabled={
             (nightInfo.targetLimit?.min ?? 0) > 0 &&
             selectedActionTargets.length < (nightInfo.targetLimit?.min ?? 0)
@@ -1682,6 +1693,15 @@ export function GameStageWithModals() {
             nightInfo.seat?.isDrunk ||
             nightInfo.seat?.isPoisoned ||
             nightInfo.isPoisoned
+          }
+          resultText={infoResultData?.resultText}
+          onResultConfirm={
+            infoResultData?.onNext
+              ? () => {
+                  setCurrentModal(null);
+                  infoResultData.onNext();
+                }
+              : undefined
           }
         />
       )}

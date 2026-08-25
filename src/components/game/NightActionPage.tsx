@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import type { Seat } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
 
@@ -70,10 +70,7 @@ export function NightActionPage({
   };
   const faction = factionColors[roleType] || factionColors.townsfolk;
 
-  // 如果有结果文本，展示结果页面
-  if (resultText && !showResult) {
-    setShowResult(true);
-  }
+  const hasResult = !!resultText;
 
   return (
     <div className="fixed inset-0 z-[9998] flex flex-col bg-black/80 backdrop-blur-md">
@@ -114,16 +111,13 @@ export function NightActionPage({
             )}
           </div>
 
-          {/* 结果展示区 */}
-          {showResult && resultText && (
+          {/* 结果展示区（执行后内联展示）*/}
+          {hasResult && (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-950/30 p-6 backdrop-blur-xl">
               <h3 className="text-lg font-bold text-amber-300 mb-3">📋 执行结果</h3>
               <p className="text-base text-amber-100 leading-relaxed">{resultText}</p>
               <button
-                onClick={() => {
-                  setShowResult(false);
-                  onResultConfirm?.();
-                }}
+                onClick={onResultConfirm}
                 className="mt-4 w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-lg transition-colors"
               >
                 确认并继续
@@ -131,8 +125,8 @@ export function NightActionPage({
             </div>
           )}
 
-          {/* 目标选择区 */}
-          {needsTargets && !showResult && (
+          {/* 目标选择区（仅在无结果时展示）*/}
+          {needsTargets && !hasResult && (
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5">
               <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-4">
                 选择目标（{selectedTargets.length}/{targetLimit.max}）
