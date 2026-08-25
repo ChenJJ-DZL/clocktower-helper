@@ -14,45 +14,69 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 计算阶段：随机选择一名邪恶玩家（醉酒/中毒时选择善良玩家作为假信息）
+// 计算阶段：选择一名邪恶玩家（支持转邪恶镇民、说书人指定输入、首夜及后续击杀死亡轮转）
 const calculateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const isActive = ctx.meta.abilityEffective !== false;
-  const aliveEvils = ctx.snapshot.seats.filter(
-    (s: any) =>
-      s.isAlive &&
-      s.id !== ctx.actionNode.seatId &&
-      s.role &&
-      (s.role.type === "minion" || s.role.type === "demon")
-  );
+  const storytellerTarget =
+    ctx.storytellerInput?.targetSeatId ??
+    ctx.storytellerInput?.targetId ??
+    ctx.storytellerInput?.overrideResult;
 
   let targetId: number | null = null;
 
-  if (!isActive) {
-    // 醉酒/中毒：从善良存活玩家中选目标（虚假信息）
-    const goodOnes = ctx.snapshot.seats.filter(
+  if (storytellerTarget !== undefined && storytellerTarget !== null) {
+    targetId = Number(storytellerTarget);
+  } else {
+    const aliveEvils = ctx.snapshot.seats.filter(
       (s: any) =>
         s.isAlive &&
         s.id !== ctx.actionNode.seatId &&
         s.role &&
-        (s.role.type === "townsfolk" || s.role.type === "outsider")
+        (s.role.type === "minion" ||
+          s.role.type === "demon" ||
+          s.isEvilConverted ||
+          s.alignment === "evil")
     );
-    if (goodOnes.length > 0) {
-      targetId = goodOnes[Math.floor(Math.random() * goodOnes.length)].id;
+
+    if (!isActive) {
+      // 醉酒/中毒：从善良存活玩家中选目标（虚假信息）
+      const goodOnes = ctx.snapshot.seats.filter(
+        (s: any) =>
+          s.isAlive &&
+          s.id !== ctx.actionNode.seatId &&
+          s.role &&
+          !s.isEvilConverted &&
+          s.alignment !== "evil" &&
+          (s.role.type === "townsfolk" || s.role.type === "outsider")
+      );
+      if (goodOnes.length > 0) {
+        targetId = goodOnes[Math.floor(Math.random() * goodOnes.length)].id;
+      }
+    }
+
+    // 如果未选中（正常情况或虚假失败），从邪恶玩家中随机选
+    if (targetId === null && aliveEvils.length > 0) {
+      targetId = aliveEvils[Math.floor(Math.random() * aliveEvils.length)].id;
     }
   }
 
-  // 如果未选中（正常情况或虚假失败），从邪恶玩家中随机选
-  if (targetId === null && aliveEvils.length > 0) {
-    targetId = aliveEvils[Math.floor(Math.random() * aliveEvils.length)].id;
-  }
+  const targetSeat =
+    targetId !== null
+      ? ctx.snapshot.seats.find((s: any) => s.id === targetId)
+      : null;
 
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: { targetId, evilFound: targetId !== null },
+      abilityResult: {
+        targetId,
+        targetSeatId: targetId,
+        targetPlayerName: targetSeat?.playerName ?? (targetId !== null ? `${targetId + 1}号` : null),
+        evilFound: targetId !== null,
+      },
       isCorrupted: !isActive,
     },
   };
@@ -94,10 +118,10 @@ export const bounty_hunterAbility = createRoleAbility({
   roleId: "bounty_hunter",
   abilityId: "bounty_hunter_reveal",
   abilityName: "悬赏猎杀",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: 72,
   otherNightPriority: 105,
-  firstNightOnly: true,
+  firstNightOnly: false,
   wakePromptId: "role.bounty_hunter.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
   preCheck: [commonPreCheckAlive],
