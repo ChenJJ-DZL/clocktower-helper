@@ -23,6 +23,10 @@ interface ScriptSelectionProps {
   setGameLogs: (logs: any[]) => void;
   setGamePhase: (phase: GamePhase) => void;
   onContinue?: (record: any) => void;
+  /** 未完成的对局快照（页面刷新后检测到） */
+  pendingResume?: any | null;
+  /** 用户选择不恢复时清除快照 */
+  onResumeDismiss?: () => void;
 }
 
 export default function ScriptSelection({
@@ -31,6 +35,8 @@ export default function ScriptSelection({
   setGameLogs,
   setGamePhase,
   onContinue,
+  pendingResume,
+  onResumeDismiss,
 }: ScriptSelectionProps) {
   const { theme, requestTheme } = useTheme();
   const { dispatch } = useGameContext();
@@ -270,6 +276,40 @@ export default function ScriptSelection({
             点击下方卡片选择本局要使用的剧本
           </p>
           <p className="text-sm text-slate-500">更多剧本开发中</p>
+
+          {/* 未完成对局恢复提示 */}
+          {pendingResume && (
+            <div className="mx-auto max-w-md mt-4 p-4 rounded-2xl border border-amber-500/40 bg-amber-950/30 backdrop-blur-sm">
+              <p className="text-amber-300 font-bold text-sm mb-2">
+                ⏳ 检测到未完成的对局
+              </p>
+              <p className="text-amber-100/80 text-xs mb-3">
+                {pendingResume.scriptName
+                  ? `剧本：${pendingResume.scriptName}`
+                  : "有未保存的游戏进度"}
+                {pendingResume.snapshot?.gamePhase
+                  ? ` · 阶段：${pendingResume.snapshot.gamePhase}`
+                  : ""}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (onContinue) onContinue(pendingResume);
+                  }}
+                  className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-colors"
+                >
+                  ▶ 继续上局
+                </button>
+                <button
+                  onClick={onResumeDismiss}
+                  className="px-4 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 text-sm transition-colors"
+                >
+                  忽略
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="pt-4 flex justify-center gap-4">
             <button
               onClick={() => setShowBuilderModal(true)}

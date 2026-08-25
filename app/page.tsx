@@ -396,9 +396,9 @@ export default function Home() {
     };
   }, [introTimeoutRef.current, setMounted]);
 
-  // 🔧 断电/刷新容灾：页面挂载后从 localStorage 自动恢复未完成的对局快照。
-  //   此前快照会保存（useGameController 的 saveCurrentSnapshot）但 loadCurrentSnapshot
-  //   无调用方 → 刷新后对局丢失。此 effect 在刷新/重开页面时恢复"第2夜中途"等任意阶段。
+  // 🔧 断电/刷新容灾：页面挂载后从 localStorage 检测未完成对局。
+  //   不再自动跳过剧本选择页，而是暂存快照，在剧本选择页显示"继续上局"按钮。
+  const [pendingResume, setPendingResume] = useState<GameRecord | null>(null);
   const autoRestoredRef = useRef(false);
   useEffect(() => {
     if (autoRestoredRef.current) return;
@@ -416,7 +416,7 @@ export default function Home() {
     }
     autoRestoredRef.current = true;
 
-    // 由 seats 首座角色反推剧本（快照未存 scriptName 时兜底：查角色所属剧本）
+    // 由 seats 首座角色反推剧本
     let scriptName = "";
     const seatRoles = snap.seats
       .map((s: any) => s.role?.id)
@@ -428,7 +428,6 @@ export default function Home() {
       }
     }
 
-    // 构造与对局记录同构的 record 交给 handleContinueGame 恢复全量状态
     const record: GameRecord = {
       id: `resume_${Date.now()}`,
       scriptName,
@@ -443,12 +442,10 @@ export default function Home() {
       snapshot: snap,
     };
     console.log(
-      "[Persistence] 检测到未完成对局快照，自动恢复（" +
-        (snap.gamePhase ?? "?") +
-        " 阶段）"
+      `[Persistence] 检测到未完成对局快照（${snap.gamePhase ?? "?"} 阶段），暂存待用户确认恢复`
     );
-    handleContinueGame(record);
-  }, [mounted, handleContinueGame]);
+    setPendingResume(record);
+  }, [mounted]);
 
   // Timer is now managed in useGameController
 
@@ -930,6 +927,11 @@ export default function Home() {
                   setGameLogs={setGameLogs}
                   setGamePhase={setGamePhase}
                   onContinue={handleContinueGame}
+                  pendingResume={pendingResume}
+                  onResumeDismiss={() => {
+                    clearCurrentSnapshot();
+                    setPendingResume(null);
+                  }}
                 />
               </div>
             )}
