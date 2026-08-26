@@ -142,12 +142,16 @@ export interface GameState {
   vfxTrigger: VfxTrigger;
   // 寓言角色（Fabled）全局配置 — 不占座位，作为对局规则生效
   activeFabled: import("../../app/data").Role[];
+  // 全局防窥遮罩状态
+  isPrivacyShieldActive: boolean;
 }
 
 /**
  * Action类型 - 所有状态修改都通过Action
  */
 export type GameAction =
+  | { type: "SET_PRIVACY_SHIELD_ACTIVE"; active: boolean }
+  | { type: "TOGGLE_PRIVACY_SHIELD" }
   | { type: "SET_GAME_PHASE"; phase: GamePhase }
   | { type: "SET_NIGHT_ACTION_QUEUE"; queue: Seat[] }
   | { type: "NEXT_NIGHT_ACTION" }
@@ -206,6 +210,12 @@ export type GameAction =
  */
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+    case "SET_PRIVACY_SHIELD_ACTIVE":
+      return { ...state, isPrivacyShieldActive: action.active };
+
+    case "TOGGLE_PRIVACY_SHIELD":
+      return { ...state, isPrivacyShieldActive: !state.isPrivacyShieldActive };
+
     case "SET_GAME_PHASE":
       if (typeof window !== "undefined" && action.phase !== state.gamePhase) {
         console.log(
@@ -597,6 +607,7 @@ function getInitialState(): GameState {
     gossipSourceSeatId: null,
     vfxTrigger: null,
     activeFabled: [],
+    isPrivacyShieldActive: false,
   };
 }
 
@@ -771,5 +782,12 @@ export const gameActions = {
   setSelectedRole: (selectedRole: Role | null): GameAction => ({
     type: "UPDATE_STATE",
     updates: { selectedRole },
+  }),
+  setPrivacyShieldActive: (active: boolean): GameAction => ({
+    type: "SET_PRIVACY_SHIELD_ACTIVE",
+    active,
+  }),
+  togglePrivacyShield: (): GameAction => ({
+    type: "TOGGLE_PRIVACY_SHIELD",
   }),
 };

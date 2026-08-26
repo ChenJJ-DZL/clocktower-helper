@@ -135,7 +135,19 @@ export function useGameState() {
     reminderTokens,
     hadesiaChoiceEnabled,
     vfxTrigger,
+    activeFabled,
+    isPrivacyShieldActive,
   } = state;
+
+  const setIsPrivacyShieldActive = useCallback(
+    (active: boolean) => dispatch(gameActions.setPrivacyShieldActive(active)),
+    [dispatch]
+  );
+
+  const togglePrivacyShield = useCallback(
+    () => dispatch(gameActions.togglePrivacyShield()),
+    [dispatch]
+  );
 
   // ===========================
   //      SETTER 包装器
@@ -1175,6 +1187,9 @@ export function useGameState() {
       historyIndex,
       reminderTokens,
       setHistory,
+      isPrivacyShieldActive,
+      setIsPrivacyShieldActive,
+      togglePrivacyShield,
 
       // useRef
       checkLongPressTimerRef,
@@ -1284,6 +1299,9 @@ export function useGameState() {
       currentWakeIndexRef,
       showIntroLoading,
       vfxTrigger,
+      isPrivacyShieldActive,
+      setIsPrivacyShieldActive,
+      togglePrivacyShield,
       setAutoRedHerringInfo,
       setBalloonistCompletedIds,
       setBalloonistKnownTypes,

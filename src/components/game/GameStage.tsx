@@ -16,6 +16,7 @@ import { GameLayout } from "./GameLayout";
 import { GameModals } from "./GameModals";
 import { GlobalNavBar } from "./GlobalNavBar";
 import { NightActionPage } from "./NightActionPage";
+import { GlobalPrivacyShield } from "./GlobalPrivacyShield";
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
@@ -69,6 +70,8 @@ export const GameStage = () => {
     setGamePhase,
     nominationRecords,
     gameId,
+    isPrivacyShieldActive,
+    togglePrivacyShield,
   } = gameState;
 
   // 检查玩家本黄昏是否已发起提名/已被提名
@@ -471,15 +474,30 @@ export const GameStage = () => {
         topBar={<GlobalNavBar />}
         leftPanel={
           <div className="relative w-full h-full p-4 flex items-center justify-center">
-            {/* 相克规则开关（左上角，小按钮） */}
-            <button
-              type="button"
-              onClick={() => setAntagonismEnabled((v) => !v)}
-              className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
-              title={`相克规则：${antagonismEnabled ? "开" : "关"}`}
-            >
-              相克规则：{antagonismEnabled ? "开" : "关"}
-            </button>
+            {/* 左上角快捷操作栏：相克规则 + 全局防窥遮罩 */}
+            <div className="absolute top-3 left-3 z-40 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAntagonismEnabled((v) => !v)}
+                className="px-2.5 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80 transition cursor-pointer"
+                title={`相克规则：${antagonismEnabled ? "开" : "关"}`}
+              >
+                相克规则：{antagonismEnabled ? "开" : "关"}
+              </button>
+              <button
+                type="button"
+                onClick={togglePrivacyShield}
+                className={`px-2.5 py-1 text-xs rounded-md border shadow-sm transition flex items-center gap-1.5 cursor-pointer font-bold ${
+                  isPrivacyShieldActive
+                    ? "border-amber-400 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                    : "border-white/20 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                }`}
+                title={isPrivacyShieldActive ? "点击关闭防窥遮罩" : "点击开启防窥遮罩"}
+              >
+                <span className="text-sm">{isPrivacyShieldActive ? "🙈" : "👁️"}</span>
+                <span>遮罩{isPrivacyShieldActive ? "（开）" : "（关）"}</span>
+              </button>
+            </div>
             <RoundTable
               seats={seats}
               nightInfo={null}
@@ -1314,15 +1332,30 @@ export const GameStage = () => {
         topBar={<GlobalNavBar />}
         leftPanel={
           <div className="relative w-full h-full p-4">
-            {/* 相克规则开关（左上角，小按钮） */}
-            <button
-              type="button"
-              onClick={() => setAntagonismEnabled((v) => !v)}
-              className="absolute top-3 left-3 z-40 px-2 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80"
-              title="相克规则开关（默认关闭，不产生影响）"
-            >
-              相克规则：{antagonismEnabled ? "开" : "关"}
-            </button>
+            {/* 左上角快捷操作栏：相克规则 + 全局防窥遮罩 */}
+            <div className="absolute top-3 left-3 z-40 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setAntagonismEnabled((v) => !v)}
+                className="px-2.5 py-1 text-xs rounded-md border border-white/20 bg-slate-800/80 text-white shadow-sm hover:bg-slate-700/80 transition cursor-pointer"
+                title={`相克规则：${antagonismEnabled ? "开" : "关"}`}
+              >
+                相克规则：{antagonismEnabled ? "开" : "关"}
+              </button>
+              <button
+                type="button"
+                onClick={togglePrivacyShield}
+                className={`px-2.5 py-1 text-xs rounded-md border shadow-sm transition flex items-center gap-1.5 cursor-pointer font-bold ${
+                  isPrivacyShieldActive
+                    ? "border-amber-400 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+                    : "border-white/20 bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-white"
+                }`}
+                title={isPrivacyShieldActive ? "点击关闭防窥遮罩" : "点击开启防窥遮罩"}
+              >
+                <span className="text-sm">{isPrivacyShieldActive ? "🙈" : "👁️"}</span>
+                <span>遮罩{isPrivacyShieldActive ? "（开）" : "（关）"}</span>
+              </button>
+            </div>
 
             <RoundTable
               seats={seats}
@@ -1650,7 +1683,12 @@ export const GameStage = () => {
 // [REFACTOR] GameStageWithModals 不再需要 prop drilling
 // GameStage 和 GameModals 都通过 Context 获取所需的 state 和 action
 export function GameStageWithModals() {
-  const { gamePhase, selectedActionTargets } = useGameState();
+  const {
+    gamePhase,
+    selectedActionTargets,
+    isPrivacyShieldActive,
+    setIsPrivacyShieldActive,
+  } = useGameState();
   const controller = useGameActions();
   const toggleTarget = controller.toggleTarget as (seatId: number) => void;
   const handleConfirmAction = controller.handleConfirmAction as () => void;
@@ -1700,11 +1738,19 @@ export function GameStageWithModals() {
               ? () => {
                   setCurrentModal(null);
                   infoResultData.onNext();
+                  // 🛡️ 自动开启防窥遮罩：上一个玩家行动结束后，屏幕自动进入遮罩保护环节
+                  setIsPrivacyShieldActive(true);
                 }
               : undefined
           }
         />
       )}
+      {/* 全局防窥遮罩组件 */}
+      <GlobalPrivacyShield
+        isActive={isPrivacyShieldActive}
+        onDismiss={() => setIsPrivacyShieldActive(false)}
+        isNightPhase={isNightPhase}
+      />
     </>
   );
 }
