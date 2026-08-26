@@ -1,7 +1,58 @@
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useGameActions } from "../../contexts/GameActionsContext";
 
 export function PlayerContextMenu() {
   const props = useGameActions();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [clampedPos, setClampedPos] = useState<{ top: number; left: number } | null>(null);
+
+  // 边界钳制：测量菜单实际尺寸，确保完整显示在视口内
+  const clampPosition = useCallback(() => {
+    const el = menuRef.current;
+    if (!el || !props.contextMenu) return;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = 8;
+    const menuW = rect.width || 192; // w-48 = 192px fallback
+    const menuH = rect.height || 300;
+
+    let left = props.contextMenu.x;
+    let top = props.contextMenu.y;
+
+    // 右侧溢出 → 菜单左移
+    if (left + menuW > vw - margin) {
+      left = vw - menuW - margin;
+    }
+    // 左侧溢出
+    if (left < margin) {
+      left = margin;
+    }
+    // 底部溢出 → 菜单上移
+    if (top + menuH > vh - margin) {
+      top = vh - menuH - margin;
+    }
+    // 顶部溢出
+    if (top < margin) {
+      top = margin;
+    }
+
+    setClampedPos({ top, left });
+  }, [props.contextMenu]);
+
+  // 每次菜单打开时：先隐藏测量，再钳制显示
+  useEffect(() => {
+    if (!props.contextMenu) {
+      setClampedPos(null);
+      return;
+    }
+    setClampedPos(null); // 先隐藏
+    // 下一帧菜单已渲染（visibility:hidden），可测量尺寸
+    requestAnimationFrame(() => {
+      clampPosition();
+    });
+  }, [props.contextMenu, clampPosition]);
+
   if (!props.contextMenu) return null;
 
   const targetSeat = props.seats.find(
@@ -17,8 +68,13 @@ export function PlayerContextMenu() {
 
   return (
     <div
+      ref={menuRef}
       className="absolute bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
-      style={{ top: props.contextMenu.y, left: props.contextMenu.x }}
+      style={{
+        top: clampedPos?.top ?? props.contextMenu.y,
+        left: clampedPos?.left ?? props.contextMenu.x,
+        visibility: clampedPos ? "visible" : "hidden",
+      }}
     >
       {targetSeat.role && (
         <button

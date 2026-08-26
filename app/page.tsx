@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
@@ -11,7 +11,7 @@ import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
 import type { GameRecord, NightHintState } from "../src/types/game";
-import { loadCurrentSnapshot } from "../src/utils/persistence";
+import { loadCurrentSnapshot, clearCurrentSnapshot } from "../src/utils/persistence";
 import { roles, scripts, typeColors } from "./data";
 
 // getSeatRoleId is now imported from useGameController

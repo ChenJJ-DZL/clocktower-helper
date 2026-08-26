@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { Seat } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
 

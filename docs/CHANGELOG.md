@@ -1,5 +1,69 @@
 # 更新日志
 
+## W8.25.1 — 会话进度快照（2026-08-25）
+
+> 本节为会话中断时的进度记录，供后续工作回顾与继续上手。
+
+### 一、已完成并提交的工作（按提交顺序）
+
+| 提交 | 内容 |
+|------|------|
+| `eb6e3f4` | 右键菜单「身份设定」按钮仅在酒鬼/提线木偶的 setup/check 阶段显示 |
+| `c5115cd` | 罂粟花开镇民范例补全：赏金猎人 3 例 + 厨师陌客边界 1 例 + 农夫连锁/间谍 2 例（50/50 绿） |
+| `77c28fe` | 罂粟花开 24 角色 UI 交互测试补全（24/24 绿，13 个缺失角色全部补齐） |
+| `99a40df` | 移除结果弹窗 `.endsWith("_info")` 门槛，所有有 `displayInfo` 的角色都弹结果窗 |
+| `b062bb2` | 新建 `NightActionPage` 全屏夜间行动页组件并接入 `GameStageWithModals` |
+| `f7e3c61` | 结果内联展示进 NightActionPage（INFO_RESULT 不再单独弹窗） |
+| `d38cb1f` | `IdentityShowcaseModal` 疯子分支：展示 `apparentDemonRole` 而非真实身份 |
+| `7f73fff` | `useSeatManager.changeRole` 分配疯子时自动随机指派 `apparentDemonRole` |
+| `c88b7af` | 停止页面加载时自动恢复对局；改为剧本选择页显示「继续上局/忽略」提示卡 |
+
+### 二、本地未提交的构建修复（⚠️ 需提交）
+
+- `app/page.tsx`：补 `useState` 与 `clearCurrentSnapshot` 的 import（此前构建报错）
+- `src/components/game/NightActionPage.tsx`：补 `useState` import
+
+### 三、验证状态
+
+- vitest 全量：83 个测试文件全绿（含罂粟花开 82 范例 + 24 UI 交互）
+- `npm run build`：Compiled successfully（修复 import 后）
+- Playwright：桌面端 9/9 视觉断言通过（此前轮次）
+- 服务器：http://localhost:3000 已启动（生产模式，任务 s9hlqp4j）
+
+### 四、待用户验证的事项
+
+1. **疯子身份卡**：分配疯子 → 右键身份告知 → 应显示伪装恶魔身份（如「小恶魔 · 恶魔·邪恶阵营」）而非「疯子」。注意：**必须重新分配角色**才会生成 `apparentDemonRole`（分配时机写入）。
+2. **刷新恢复行为**：刷新页面应停在剧本选择页；有未完成对局时出现「继续上局/忽略」提示卡。
+3. **全屏夜间行动页**：首夜每个角色唤醒时出现全屏遮罩页（角色卡+目标选择+确认按钮），结果内联展示；顶部导航栏保持可点。
+
+### 五、已知遗留问题（下一步工作）
+
+1. **军团 (Legion) 仍是占位实现**：官方 9 条规则中，恶魔/爪牙互认、仅邪恶投票零票、仅剩 1 善良判负、伪装可选等核心规则均未实现。探索报告已产出（见会话记录），修改点集中在：
+   - `src/utils/dynamicQueueGenerator.ts`（minion_info/demon_info 分支支持军团）
+   - `src/hooks/useExecutionHandlers.ts`（submitVotes 军团零票）
+   - `app/gameLogic.ts`（checkGameEnd 军团专属胜负）
+   - `VoteInputModal.tsx`（UI 警示与实际计票联动）
+2. **lunatic.test.ts 存量类型错误**：6 处 `Property does not exist on type 'never'`（干净 main 上即存在，非本次引入，未修）。
+3. **NightActionPage 与双主题样式适配**：未做 theme-classic/theme-modern 皮肤适配。
+4. **NightActionPage 未端到端实测**：代码已提交但真实游戏流程中未人工验证完整链路。
+5. **其他 7 个剧本角色 UI 交互测试**：仅罂粟花开完成双测试覆盖。
+6. **移动端 E2E 功能测试失败**：PortraitLock 拦截点击，干净 main 上复现确认属存量环境问题。
+
+### 六、关键文件索引
+
+| 文件 | 作用 |
+|------|------|
+| `src/components/modals/IdentityShowcaseModal.tsx` | 身份告知卡片（疯子/酒鬼/木偶伪装展示） |
+| `src/hooks/useSeatManager.ts` | 座位角色分配（疯子 apparentDemonRole 写入点） |
+| `src/components/game/NightActionPage.tsx` | 全屏夜间行动页（新组件） |
+| `src/components/game/GameStage.tsx` | `GameStageWithModals` 集成 NightActionPage |
+| `src/hooks/useNightActionHandler.ts` | 夜间能力执行桥接 + 结果弹窗触发 |
+| `app/page.tsx` | 页面根组件（pendingResume 恢复提示） |
+| `src/components/game/setup/ScriptSelection.tsx` | 剧本选择页（继续上局卡片） |
+| `src/utils/dynamicQueueGenerator.ts` | 夜间队列生成（军团改造目标） |
+
+---
+
 ## W8.24.2 — 全剧本官方百科范例严密对齐 + 罂粟花开与内置全剧本深度集成测试 (2026-08-24)
 
 ### 核心功能与修复
