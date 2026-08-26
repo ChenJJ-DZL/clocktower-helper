@@ -609,8 +609,9 @@
   },
   {
     "id": "legion",
-    "name": "legion",
-    "type": "townsfolk",
+    "name": "军团",
+    "type": "demon",
+    "ability": "每个夜晚*，可能有一名玩家死亡。如果一项提名只有邪恶玩家投票，投票无效。你也会被当作是爪牙。[多数玩家为军团]",
     "otherNightOrder": 44
   },
   {

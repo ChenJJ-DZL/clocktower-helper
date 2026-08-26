@@ -283,6 +283,19 @@ export const GameConsole = React.memo(function GameConsole({
           </div>
         )}
 
+        {/* ⚔️ 军团全局与夜间行动提示 */}
+        {seats.some((s) => s.role?.id === "legion") && (
+          <div className="rounded-xl border border-red-500/60 bg-red-950/40 p-3 shadow-lg text-red-200 text-xs font-medium space-y-1">
+            <div className="flex items-center gap-2 font-bold text-red-300">
+              <span className="text-base">⚔️</span>
+              <span>【军团全局规则已激活】</span>
+            </div>
+            <div>• 多数玩家为军团，豁免邪恶过半判定。仅有当所有军团均死亡时善良获胜。</div>
+            <div>• 白天提名仅有邪恶玩家投票时，系统自动判定为 0 票，处决无效。</div>
+            <div>• 夜间由说书人决定哪位玩家死亡（建议每晚击杀军团以维持游戏平衡至最后一天）。</div>
+          </div>
+        )}
+
         {/* 🎪 提线木偶座次告警 */}
         {(() => {
           const marionetteSeat = seats.find((s) => s.role?.id === "marionette");

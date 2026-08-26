@@ -7,6 +7,7 @@ import { gameActions } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
+import { isPlayerEvil } from "../../app/gameLogic";
 import {
   shouldMorticianTransform,
   transformMorticianToDemon,
@@ -582,6 +583,21 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         if (effectiveVoters.length !== voters.length) {
           submitVotes(effectiveVoters.length, effectiveVoters);
           return;
+        }
+
+        // 军团规则：若场上有军团在场，且所有投票者均为邪恶玩家（无善良玩家投票），则本次提名的表决记为 0 票，处决无效
+        const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
+        if (hasLegionInPlay && effectiveVoters.length > 0) {
+          const allEvil = effectiveVoters.every((id) => {
+            const s = seats.find((seat) => seat.id === id);
+            return s ? isPlayerEvil(s) : false;
+          });
+          if (allEvil) {
+            addLog(
+              `⚠️ 军团能力生效：本次提名的所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！`
+            );
+            v = 0;
+          }
         }
         voters = effectiveVoters;
       }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Seat } from "../../../app/data";
+import { isPlayerEvil } from "../../../app/gameLogic";
 import type { ModalType } from "../../types/modal";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -44,16 +45,16 @@ export function VoteInputModalContent(props: {
   seats: Seat[];
   registerVotes?: (seatIds: number[]) => void;
   submitVotes: (count: number, voters?: number[]) => void;
-  setCurrentModal: (modal: ModalType | null) => void;
+  setCurrentModal: (modal: any) => void;
   setShowVoteInputModal?: (value: number | null) => void;
   onCancelVote?: (nomineeId?: number) => void;
 }) {
-  const { voterId, seats } = props;
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
+  const seats = props.seats;
+  const candidate = seats.find((s) => s.id === props.voterId);
 
-  if (voterId === null) return null;
+  if (props.voterId === null) return null;
 
-  const candidate = seats.find((s) => s.id === voterId);
   const aliveCore = seats.filter((s) => {
     if (!s.role) return false;
     const roleType = (s.role as any)?.type;
@@ -92,13 +93,24 @@ export function VoteInputModalContent(props: {
   const effectiveCount = effectiveVoters.length;
   const excludedButlers = butlerInfos.filter((b) => !b.masterVoting);
 
+  // 军团规则：若场上有军团在场，且所有投票者均为邪恶玩家（无善良玩家举手），则该项提名的投票计为 0 票，处决无效
+  const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
+  const votingSeats = seats.filter((s) => effectiveVoters.includes(s.id));
+  const isAllEvilLegionVoters =
+    hasLegionInPlay &&
+    votingSeats.length > 0 &&
+    votingSeats.every((s) => isPlayerEvil(s));
+
+  const displayVoteCount = isAllEvilLegionVoters ? 0 : effectiveCount;
+  const isReachThreshold = displayVoteCount >= threshold;
+
   const handleConfirm = () => {
     if (invalidDeadSelected) {
       alert("选择中包含已用完幽灵票的死亡玩家");
       return;
     }
     props.registerVotes?.(effectiveVoters);
-    props.submitVotes(effectiveCount, effectiveVoters);
+    props.submitVotes(displayVoteCount, effectiveVoters);
     setSelectedVoters([]);
     props.setCurrentModal(null);
     if (props.setShowVoteInputModal) {
@@ -114,8 +126,6 @@ export function VoteInputModalContent(props: {
       props.setShowVoteInputModal(null);
     }
   };
-
-  const isReachThreshold = effectiveCount >= threshold;
 
   return (
     <ModalWrapper
@@ -192,9 +202,14 @@ export function VoteInputModalContent(props: {
             <span className="text-base text-gray-100">
               当前生效的票数：
               <span className="font-black text-amber-400 text-2xl mx-1">
-                {effectiveCount}
+                {displayVoteCount}
               </span>
               票
+              {isAllEvilLegionVoters && (
+                <span className="text-xs text-red-400 font-bold ml-1">
+                  (军团全邪恶投票计0票)
+                </span>
+              )}
             </span>
             <span className="text-sm text-gray-400">
               （上台门槛：{threshold} 票）
@@ -230,29 +245,12 @@ export function VoteInputModalContent(props: {
             </div>
           )}
 
-          {/* 军团抗辩检测：仅有邪恶玩家投票时处决无效 */}
-          {(() => {
-            const isNomineeLegion = candidate?.role?.id === "legion";
-            const votingSeats = props.seats.filter((s) => selectedVoters.includes(s.id));
-            const isAllEvilLegionVoters =
-              isNomineeLegion &&
-              votingSeats.length > 0 &&
-              votingSeats.every(
-                (s) =>
-                  s.role?.id === "legion" ||
-                  s.role?.type === "demon" ||
-                  s.role?.type === "minion" ||
-                  s.isEvilConverted
-              );
-            if (isAllEvilLegionVoters) {
-              return (
-                <div className="mt-2 py-1.5 px-3 bg-red-950/80 border border-red-500 rounded-lg text-red-200 text-xs font-bold text-center animate-pulse">
-                  ⚠️ 军团抗辩：所有投票者皆为邪恶阵营，处决宣告无效！
-                </div>
-              );
-            }
-            return null;
-          })()}
+          {/* 军团规则：所有投票者均为邪恶玩家时记0票 */}
+          {isAllEvilLegionVoters && (
+            <div className="mt-2 py-1.5 px-3 bg-red-950/90 border border-red-500 rounded-lg text-red-200 text-xs font-bold text-center animate-pulse">
+              ⚠️ 军团能力触发：所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！
+            </div>
+          )}
         </div>
 
         {/* 管家详细状态（紧凑 1 行提示） */}

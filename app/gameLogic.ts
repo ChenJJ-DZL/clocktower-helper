@@ -445,14 +445,28 @@ export function canUseAbility(seat: Seat): boolean {
 
 /**
  * 判断玩家是否属于邪恶阵营
- * (基于角色类型或转正状态)
+ * (基于角色类型或转正状态，军团视为邪恶)
  */
 export function isPlayerEvil(seat: Seat): boolean {
   if (seat.isEvilConverted) return true;
   if (seat.isGoodConverted) return false;
   if (!seat.role) return false;
-  // 默认规则：恶魔(demon)和爪牙(minion)是邪恶的
-  return seat.role.type === "demon" || seat.role.type === "minion";
+  // 默认规则：恶魔(demon)、爪牙(minion)或军团(legion)是邪恶的
+  return (
+    seat.role.type === "demon" ||
+    seat.role.type === "minion" ||
+    seat.role.id === "legion"
+  );
+}
+
+export function isPlayerDemon(seat: Seat): boolean {
+  if (!seat.role) return false;
+  return seat.role.type === "demon" || seat.role.id === "legion";
+}
+
+export function isPlayerMinion(seat: Seat): boolean {
+  if (!seat.role) return false;
+  return seat.role.type === "minion" || seat.role.id === "legion";
 }
 
 // --- 核心胜负判定逻辑 (Priority Pyramid) ---
@@ -499,8 +513,12 @@ export function checkGameEnd(
   const aliveSeats = seats.filter((s) => !s.isDead);
   const aliveCount = aliveSeats.length;
 
-  // --- 1. 【第一优先级】检查恶魔是否全灭 (包含红唇女郎、僵尸等继承状态) ---
-  const livingDemons = aliveSeats.filter((s) => s.role?.type === "demon");
+  const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
+
+  // --- 1. 【第一优先级】检查恶魔是否全灭 (包含红唇女郎、僵尸、军团等) ---
+  const livingDemons = aliveSeats.filter(
+    (s) => s.role?.type === "demon" || s.role?.id === "legion"
+  );
   // 统计“死而未僵”的恶魔 (僵尸 Zombuul 特判)
   const zombuulActive = seats.filter(
     (s) => s.role?.id === "zombuul" && s.isDead && !s.isZombuulTrulyDead
@@ -509,10 +527,19 @@ export function checkGameEnd(
 
   // 1.1 恶魔全灭 -> 好人获胜 (除非受阻)
   if (totalEffectiveDemons === 0) {
+    if (hasLegionInPlay) {
+      return {
+        isGameOver: true,
+        winner: "Good",
+        reason: "所有军团已被彻底消灭",
+      };
+    }
+
     // 特例：主谋 (Mastermind) 触发用于在处决导致恶魔死亡时延续游戏
     if (isMastermindActive && lastAction === "execution") {
       const demonDied =
-        seats.find((s) => s.id === executedPlayerId)?.role?.type === "demon";
+        seats.find((s) => s.id === executedPlayerId)?.role?.type === "demon" ||
+        seats.find((s) => s.id === executedPlayerId)?.role?.id === "legion";
       if (demonDied) {
         return {
           isGameOver: false,
@@ -594,22 +621,40 @@ export function checkGameEnd(
   );
   const aliveEvil = aliveNonTraveler.filter((s) => isPlayerEvil(s));
   const aliveGood = aliveNonTraveler.filter((s) => !isPlayerEvil(s));
-  if (totalEffectiveDemons > 0 && aliveEvil.length >= aliveGood.length) {
-    return {
-      isGameOver: true,
-      winner: "Evil",
-      reason: "邪恶阵营人数占优（存活邪恶 ≥ 存活善良）",
-    };
-  }
 
-  // --- 3. 【第三优先级】存活人数判定 ---
-  // 只有在恶魔还活着的情况下（或者恶魔死了但好人被双子阻止赢），人数不足才判邪恶赢
-  if (aliveCount <= 2) {
-    return {
-      isGameOver: true,
-      winner: "Evil",
-      reason: "存活人数仅剩 2 人且恶魔存活",
-    };
+  if (hasLegionInPlay) {
+    // 军团在场专属规则：
+    // 军团开局占全场多数，故豁免常规存活邪恶>=存活善良判定
+    // 邪恶获胜条件：存活善良人数 <= 1（无法达成全灭恶魔）或存活总人数 <= 2 且有军团存活
+    if (
+      aliveGood.length <= 1 ||
+      (aliveCount <= 2 && totalEffectiveDemons > 0)
+    ) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "善良阵营存活人数不足以战胜军团，邪恶阵营获胜",
+      };
+    }
+  } else {
+    // 常规对局：存活邪恶 >= 存活善良 -> 邪恶获胜
+    if (totalEffectiveDemons > 0 && aliveEvil.length >= aliveGood.length) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "邪恶阵营人数占优（存活邪恶 ≥ 存活善良）",
+      };
+    }
+
+    // --- 3. 【第三优先级】存活人数判定 ---
+    // 只有在恶魔还活着的情况下（或者恶魔死了但好人被双子阻止赢），人数不足才判邪恶赢
+    if (aliveCount <= 2) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "存活人数仅剩 2 人且恶魔存活",
+      };
+    }
   }
 
   // --- 4. 【额外层】市长/涡流 ---

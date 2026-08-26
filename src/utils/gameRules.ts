@@ -233,11 +233,19 @@ export const getRegistration = (
     }
   }
 
+  // 军团：注册为恶魔，同时也注册为爪牙
+  if (role.id === "legion") {
+    registeredAlignment = "Evil";
+    if (viewingRole?.id === "investigator") {
+      registeredRoleType = "minion";
+    }
+  }
+
   let result: RegistrationResult = {
     alignment: registeredAlignment,
     roleType: registeredRoleType,
-    registersAsDemon: registeredRoleType === "demon",
-    registersAsMinion: registeredRoleType === "minion",
+    registersAsDemon: registeredRoleType === "demon" || role.id === "legion",
+    registersAsMinion: registeredRoleType === "minion" || role.id === "legion",
     registersAsOutsider: registeredRoleType === "outsider",
     registersAsTownsfolk: registeredRoleType === "townsfolk",
     registeredRole: null,

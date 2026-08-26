@@ -1,5 +1,29 @@
 # 更新日志
 
+## W8.26.1 — 军团（Legion）官方 9 大核心规则与状态机深度重构（2026-08-26）
+
+### 一、军团（Legion）规则全面实现
+1. **胜负判定体系（豁免邪恶过半速胜）**：
+   - 军团开局占全场多数（如 10 人局 7 军团 3 善良），`app/gameLogic.ts` 中针对军团在场情况严格豁免常规的「存活邪恶 ≥ 存活善良」速胜判定。
+   - **好人胜利**：所有军团均死亡时（`totalEffectiveDemons === 0`），善良阵营获胜。
+   - **邪恶胜利**：存活善良玩家 ≤ 1 人（或存活总人数 ≤ 2 人且有军团存活），或者所有善良玩家均死亡。
+2. **投票与处决判定（全邪恶投票判 0 票）**：
+   - 在 `src/components/modals/VoteInputModal.tsx` 与 `src/hooks/useExecutionHandlers.ts` 中实现：当场上有军团时，若某项提名的投票者全部为邪恶阵营（无善良玩家举手），表决结果强制记为 **0 票**，处决宣告无效，并在 UI 与对局日志中高亮预警。
+   - 若有至少 1 名善良玩家参与投票，则全额正常计票并结算处决。
+3. **双重注册（恶魔 + 爪牙）**：
+   - 在 `src/utils/gameRules.ts` 与 `app/gameLogic.ts` 中完善 `isPlayerDemon`、`isPlayerMinion`、`isPlayerEvil` 以及 `getRegistration`，使军团同时作为恶魔与爪牙注册（调查员/送葬者/筑梦师等技能可正确按规则识别）。
+4. **夜间行动与技能管线**：
+   - 完善 `src/roles/new_engine/legion.ability.ts`，支持说书人每晚主导夜杀目标选择，并联动士兵免疫、僧侣保护、水手免死与市长弹刀等防御机制。
+5. **控制台 UI 提示**：
+   - 在 `src/components/game/console/GameConsole.tsx` 中增加军团专属全局规则卡片与夜间指引。
+6. **自动化测试**：
+   - 新建 `src/roles/__tests__/integration/legion_rules.test.ts`，10/10 专项用例全绿覆盖官方 9 大规则；
+   - 更新 `tests/wiki-scenarios/poppyganda_demons.test.ts` 中的官方范例；
+   - 全量 `npm test` 84 个测试套件 749 个用例 100% 绿灯通过；
+   - `npm run build` 0 报错成功通过。
+
+---
+
 ## W8.25.1 — 会话进度快照（2026-08-25）
 
 > 本节为会话中断时的进度记录，供后续工作回顾与继续上手。
