@@ -328,21 +328,94 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       expect(finalMonkSeats[0].id).toBe(2);
     });
 
-    it("范例 13 (酒鬼/木偶伪装唯一性约束)：酒鬼和提线木偶的伪装身份不能与在场角色或其他伪装重复", () => {
-      const inPlayTownsfolk = ["chef", "empath"];
-      const drunkCharade = "monk";
-      const availableRolesForMarionette = [
-        "chef",
-        "empath",
+    it("范例 13 (酒鬼/木偶伪装身份约束)：只能选择不在场的镇民角色，且设置伪装时绝不顶替任何在场玩家的角色", () => {
+      // 场景：在场有 0号厨师(镇民)、1号共情者(镇民)、2号酒鬼(外来者)、3号提线木偶(爪牙)
+      const seats: Seat[] = [
+        makeSeat(0, { id: "chef", name: "厨师", type: "townsfolk" }),
+        makeSeat(1, { id: "empath", name: "共情者", type: "townsfolk" }),
+        makeSeat(2, { id: "drunk", name: "酒鬼", type: "outsider" }),
+        makeSeat(3, { id: "marionette", name: "提线木偶", type: "minion" }),
+      ];
+
+      const scriptTownsfolk = [
+        { id: "chef", name: "厨师", type: "townsfolk" },
+        { id: "empath", name: "共情者", type: "townsfolk" },
+        { id: "monk", name: "僧侣", type: "townsfolk" },
+        { id: "slayer", name: "猎手", type: "townsfolk" },
+        { id: "investigator", name: "调查员", type: "townsfolk" },
+      ];
+
+      // 1. 为 2号酒鬼筛选可选伪装身份：必须是「不在场的镇民角色」
+      const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
+      const drunkAvailable = scriptTownsfolk.filter(
+        (r) => !inPlayRoleIds.has(r.id)
+      );
+
+      // 在场的 chef、empath 绝不能进入可选池，只有不在场的 monk、slayer、investigator 可选
+      expect(drunkAvailable.map((r) => r.id)).toEqual([
         "monk",
         "slayer",
         "investigator",
-      ].filter((rid) => !inPlayTownsfolk.includes(rid) && rid !== drunkCharade);
+      ]);
+      expect(drunkAvailable.some((r) => r.id === "chef")).toBe(false);
+      expect(drunkAvailable.some((r) => r.id === "empath")).toBe(false);
 
-      // 排除在场的 chef, empath，以及已被酒鬼占用的 monk
-      expect(availableRolesForMarionette).toEqual(["slayer", "investigator"]);
-      expect(availableRolesForMarionette.includes("monk")).toBe(false);
-      expect(availableRolesForMarionette.includes("chef")).toBe(false);
+      // 2. 为酒鬼设置伪装身份为「僧侣」：验证绝不顶替任何在场玩家
+      const chosenForDrunk = drunkAvailable[0]; // monk
+      const updatedSeatsAfterDrunk = seats.map((s) => {
+        if (s.id === 2) {
+          return {
+            ...s,
+            charadeRole: chosenForDrunk as any,
+            displayRole: chosenForDrunk as any,
+          };
+        }
+        return s;
+      });
+
+      // 验证：0号厨师和1号共情者的角色完全不变，没有发生任何顶替
+      expect(updatedSeatsAfterDrunk[0].role?.id).toBe("chef");
+      expect(updatedSeatsAfterDrunk[1].role?.id).toBe("empath");
+      expect(updatedSeatsAfterDrunk[2].role?.id).toBe("drunk");
+      expect(updatedSeatsAfterDrunk[2].charadeRole?.id).toBe("monk");
+
+      // 3. 为 3号提线木偶筛选可选伪装身份：必须是「不在场的镇民」且不能是已被酒鬼选择的伪装
+      const usedCharadeIds = new Set(
+        updatedSeatsAfterDrunk
+          .filter((s) => s.id !== 3 && s.charadeRole)
+          .map((s) => s.charadeRole!.id)
+      );
+      const marionetteAvailable = scriptTownsfolk.filter(
+        (r) => !inPlayRoleIds.has(r.id) && !usedCharadeIds.has(r.id)
+      );
+
+      // 僧侣已被酒鬼选择，提线木偶只能从剩下的不在场镇民 slayer, investigator 中选择
+      expect(marionetteAvailable.map((r) => r.id)).toEqual([
+        "slayer",
+        "investigator",
+      ]);
+      expect(marionetteAvailable.some((r) => r.id === "monk")).toBe(false);
+
+      // 4. 为提线木偶设置伪装身份为「猎手」
+      const chosenForMarionette = marionetteAvailable[0]; // slayer
+      const finalSeats = updatedSeatsAfterDrunk.map((s) => {
+        if (s.id === 3) {
+          return {
+            ...s,
+            charadeRole: chosenForMarionette as any,
+            displayRole: chosenForMarionette as any,
+          };
+        }
+        return s;
+      });
+
+      // 再次确认所有座位的真实角色与伪装角色完全独立且正确，没有顶替
+      expect(finalSeats[0].role?.id).toBe("chef");
+      expect(finalSeats[1].role?.id).toBe("empath");
+      expect(finalSeats[2].role?.id).toBe("drunk");
+      expect(finalSeats[2].charadeRole?.id).toBe("monk");
+      expect(finalSeats[3].role?.id).toBe("marionette");
+      expect(finalSeats[3].charadeRole?.id).toBe("slayer");
     });
   });
 });
