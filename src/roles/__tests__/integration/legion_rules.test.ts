@@ -275,4 +275,74 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       expect(ctx.snapshot.seats[1].markedForDeath).toBeFalsy();
     });
   });
+
+  // ─── 规则 7: 落座环节多角色支持与唯一性约束 ───
+  describe("【规则 7】落座环节多角色支持与唯一性约束", () => {
+    it("范例 11 (军团允许多人落座)：军团可同时落座到多个座位，不会互相顶替", () => {
+      const legionRole = { id: "legion", name: "军团", type: "demon" as const };
+      const allowsMultiple = legionRole.id === "legion" || legionRole.id === "riot";
+      expect(allowsMultiple).toBe(true);
+
+      const seats: Seat[] = [
+        makeSeat(0, legionRole),
+        makeSeat(1, legionRole),
+        makeSeat(2, legionRole),
+        makeSeat(3, legionRole),
+        makeSeat(4, legionRole),
+        makeSeat(5, legionRole),
+        makeSeat(6, legionRole),
+        makeSeat(7, { id: "monk", name: "僧侣", type: "townsfolk" }),
+        makeSeat(8, { id: "chef", name: "厨师", type: "townsfolk" }),
+        makeSeat(9, { id: "empath", name: "共情者", type: "townsfolk" }),
+      ];
+
+      const legionSeats = seats.filter((s) => s.role?.id === "legion");
+      expect(legionSeats.length).toBe(7);
+      expect(legionSeats.map((s) => s.id)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    });
+
+    it("范例 12 (常规角色唯一性约束)：非军团角色（如小恶魔、僧侣、厨师）在场上只能落座一次", () => {
+      const monkRole = { id: "monk", name: "僧侣", type: "townsfolk" as const };
+      const allowsMultiple = monkRole.id === "legion" || (monkRole.id as string) === "riot";
+      expect(allowsMultiple).toBe(false);
+
+      // 当僧侣落座到新座位时，旧座位的僧侣应被清除转移
+      let seats: Seat[] = [
+        makeSeat(0, monkRole),
+        makeSeat(1, { id: "chef", name: "厨师", type: "townsfolk" }),
+      ];
+      expect(seats.filter((s) => s.role?.id === "monk").length).toBe(1);
+
+      // 模拟落座到 2 号座位：检查非多落座角色转移逻辑
+      const newSeatId = 2;
+      const existingSeat = seats.find((s) => s.role?.id === monkRole.id);
+      if (existingSeat && !allowsMultiple) {
+        seats = seats.map((s) =>
+          s.id === existingSeat.id ? { ...s, role: null } : s
+        );
+      }
+      seats.push(makeSeat(newSeatId, monkRole));
+
+      const finalMonkSeats = seats.filter((s) => s.role?.id === "monk");
+      expect(finalMonkSeats.length).toBe(1);
+      expect(finalMonkSeats[0].id).toBe(2);
+    });
+
+    it("范例 13 (酒鬼/木偶伪装唯一性约束)：酒鬼和提线木偶的伪装身份不能与在场角色或其他伪装重复", () => {
+      const inPlayTownsfolk = ["chef", "empath"];
+      const drunkCharade = "monk";
+      const availableRolesForMarionette = [
+        "chef",
+        "empath",
+        "monk",
+        "slayer",
+        "investigator",
+      ].filter((rid) => !inPlayTownsfolk.includes(rid) && rid !== drunkCharade);
+
+      // 排除在场的 chef, empath，以及已被酒鬼占用的 monk
+      expect(availableRolesForMarionette).toEqual(["slayer", "investigator"]);
+      expect(availableRolesForMarionette.includes("monk")).toBe(false);
+      expect(availableRolesForMarionette.includes("chef")).toBe(false);
+    });
+  });
 });

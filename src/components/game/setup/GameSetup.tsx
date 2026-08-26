@@ -295,13 +295,23 @@ export default function GameSetup({
           <div className="border-l-4 border-red-500/50 bg-red-900/20 p-4 text-base text-red-100">
             {compositionError && (
               <div className="space-y-2">
-                <div className="font-bold text-red-200">阵容校验未通过</div>
-                <div>
-                  建议：{compositionError.standard.townsfolk}村民 /{" "}
-                  {compositionError.standard.outsider}外来者 /{" "}
-                  {compositionError.standard.minion}爪牙 /{" "}
-                  {compositionError.standard.demon}恶魔
+                <div className="font-bold text-red-200">
+                  {(compositionError as any).hasLegion
+                    ? "军团阵容校验未通过"
+                    : "阵容校验未通过"}
                 </div>
+                {(compositionError as any).hasLegion ? (
+                  <div>
+                    军团规则：多数玩家必须为军团（恶魔），且至少需要 1 名善良玩家（镇民/外来者）。
+                  </div>
+                ) : (
+                  <div>
+                    建议：{compositionError.standard.townsfolk}村民 /{" "}
+                    {compositionError.standard.outsider}外来者 /{" "}
+                    {compositionError.standard.minion}爪牙 /{" "}
+                    {compositionError.standard.demon}恶魔
+                  </div>
+                )}
                 <div>
                   当前：{compositionError.actual.townsfolk}村民 /{" "}
                   {compositionError.actual.outsider}外来者 /{" "}
@@ -361,16 +371,20 @@ export default function GameSetup({
                 </div>
                 <div className="grid gap-3 grid-cols-2">
                   {list.map((r) => {
-                    const seatTaken = seats.find((s) => s.role?.id === r.id);
-                    const isTaken = !!seatTaken;
+                    const takenSeats = seats.filter((s) => s.role?.id === r.id);
+                    const isTaken = takenSeats.length > 0;
+                    const allowsMultiple = r.id === "legion" || r.id === "riot";
                     return (
                       <button
                         key={`${type}-${r.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (isTaken && seatTaken) {
-                            // 点击已入座角色卡片：取消落座并清空对应座位
-                            handleSeatClick(seatTaken.id);
+                          if (allowsMultiple) {
+                            // 多落座角色（如军团/暴乱）：点击卡片始终为选中/反选，支持连续落座到多个座位
+                            setSelectedRole(selectedRole?.id === r.id ? null : r);
+                          } else if (isTaken && takenSeats[0]) {
+                            // 单落座角色：点击已入座角色卡片取消落座
+                            handleSeatClick(takenSeats[0].id);
                           } else {
                             // 点击未入座角色卡片：选中或反选
                             setSelectedRole(selectedRole?.id === r.id ? null : r);
@@ -378,13 +392,17 @@ export default function GameSetup({
                         }}
                         className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${
                           isTaken
-                            ? "border-amber-500/30 bg-slate-800/80 text-amber-200 hover:border-red-500/50 hover:bg-red-950/30 cursor-pointer"
+                            ? allowsMultiple
+                              ? "border-purple-500/50 bg-purple-950/60 text-purple-200 hover:border-purple-400 cursor-pointer"
+                              : "border-amber-500/30 bg-slate-800/80 text-amber-200 hover:border-red-500/50 hover:bg-red-950/30 cursor-pointer"
                             : `${typeBgColors[r.type]} border-white/10 hover:bg-white/5`
                         } ${selectedRole?.id === r.id ? "ring-2 ring-white" : ""}`}
                         data-role-id={r.id}
                         title={
                           isTaken
-                            ? `已在 ${seatTaken.id + 1}号座位落座，点击取消落座`
+                            ? allowsMultiple
+                              ? `已落座 ${takenSeats.length} 人 (${takenSeats.map((s) => `${s.id + 1}号`).join("、")})，可继续选中并点击空座位加派`
+                              : `已在 ${takenSeats[0].id + 1}号座位落座，点击取消落座`
                             : r.ability || r.name
                         }
                       >
@@ -397,7 +415,9 @@ export default function GameSetup({
                           </span>
                           {isTaken && (
                             <div className="absolute top-1 right-2 text-xs text-amber-400 font-mono">
-                              ✓ {seatTaken.id + 1}号
+                              {allowsMultiple
+                                ? `✓ ${takenSeats.length}人`
+                                : `✓ ${takenSeats[0].id + 1}号`}
                             </div>
                           )}
                         </div>

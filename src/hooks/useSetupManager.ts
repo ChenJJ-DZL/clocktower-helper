@@ -42,12 +42,19 @@ export function useSetupManager(
           .length,
         outsider: activeSeats.filter((s) => s.role?.type === "outsider").length,
         minion: activeSeats.filter((s) => s.role?.type === "minion").length,
-        demon: activeSeats.filter((s) => s.role?.type === "demon").length,
+        demon: activeSeats.filter(
+          (s) => s.role?.type === "demon" || s.role?.id === "legion"
+        ).length,
       };
       const hasBaron = activeSeats.some((s) => s.role?.id === "baron");
+      const hasLegion = activeSeats.some((s) => s.role?.id === "legion");
 
       let valid = false;
-      if (standard) {
+      if (hasLegion) {
+        // 军团专属配置：多数玩家为军团（恶魔），至少 1 名善良玩家
+        const goodCount = actual.townsfolk + actual.outsider;
+        valid = actual.demon > goodCount && goodCount >= 1;
+      } else if (standard) {
         if (hasBaron) {
           // 有男爵时，按照男爵规则验证：减少2镇民，增加2外来者
           const expectedTownsfolk = standard.townsfolk - 2;
@@ -67,7 +74,7 @@ export function useSetupManager(
         }
       }
 
-      return { valid, standard, actual, playerCount, hasBaron };
+      return { valid, standard, actual, playerCount, hasBaron, hasLegion };
     },
     [getStandardComposition]
   );

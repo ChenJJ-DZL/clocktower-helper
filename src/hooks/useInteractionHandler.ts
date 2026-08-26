@@ -215,18 +215,22 @@ export function useInteractionHandler(deps: {
 
         // 座位上没有人（空座位）
         if (selectedRole) {
-          // 检查该角色是否已经在其他座位入座（若有则转移角色，清空旧座位）
-          const existingSeat = seats.find(
-            (s) => s.role?.id === selectedRole.id
-          );
-          if (existingSeat && existingSeat.id !== id) {
-            dispatch(
-              gameActions.updateSeat(existingSeat.id, {
-                role: null,
-                displayRole: null,
-                charadeRole: null,
-              })
+          // 检查该角色是否已经在其他座位入座（若有且非允许多人入座的角色如军团/暴乱，则转移角色，清空旧座位）
+          const allowsMultiple =
+            selectedRole.id === "legion" || selectedRole.id === "riot";
+          if (!allowsMultiple) {
+            const existingSeat = seats.find(
+              (s) => s.role?.id === selectedRole.id
             );
+            if (existingSeat && existingSeat.id !== id) {
+              dispatch(
+                gameActions.updateSeat(existingSeat.id, {
+                  role: null,
+                  displayRole: null,
+                  charadeRole: null,
+                })
+              );
+            }
           }
 
           // 将选中的角色落座到该空座位
