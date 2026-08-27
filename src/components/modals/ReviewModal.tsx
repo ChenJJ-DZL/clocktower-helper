@@ -1,7 +1,7 @@
+import { useCallback, useRef, useState } from "react";
 import type { GamePhase, LogEntry, Seat, WinResult } from "@/app/data";
 import { roles } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
-import { useState, useRef, useCallback } from "react";
 
 // 角色ID到中文名的映射
 const roleNameMap = new Map(roles.map((r) => [r.id, r.name]));
@@ -36,7 +36,9 @@ export function ReviewModal({
     if (!contentRef.current || exporting) return;
     setExporting(true);
     try {
-      const { exportReviewAsImage } = await import("../../../src/utils/exportReview");
+      const { exportReviewAsImage } = await import(
+        "../../../src/utils/exportReview"
+      );
       await exportReviewAsImage({
         targetElement: contentRef.current,
         scriptName: "对局复盘",
@@ -72,7 +74,10 @@ export function ReviewModal({
         </button>
       }
     >
-      <div ref={contentRef} className={`bg-black/50 ${isPortrait ? "p-3" : "p-6"} rounded-xl ${isPortrait ? "flex-col" : "flex"} gap-6`}>
+      <div
+        ref={contentRef}
+        className={`bg-black/50 ${isPortrait ? "p-3" : "p-6"} rounded-xl ${isPortrait ? "flex-col" : "flex"} gap-6`}
+      >
         <div className={`${isPortrait ? "w-full" : "w-1/3"}`}>
           <h4
             className={`text-purple-400 ${isPortrait ? "mb-2 text-sm" : "mb-4 text-xl"} font-bold border-b pb-2`}
@@ -175,8 +180,13 @@ export function ReviewModal({
                   (match, num1, num2, roleText) => {
                     const num = parseInt(num2 || num1, 10);
                     const roleName =
-                      roleText || seatRoleMap.get(num) || roleNameMap.get(roleText) || "";
-                    return roleName ? `【${num}号-${roleName}】` : `【${num}号】`;
+                      roleText ||
+                      seatRoleMap.get(num) ||
+                      roleNameMap.get(roleText) ||
+                      "";
+                    return roleName
+                      ? `【${num}号-${roleName}】`
+                      : `【${num}号】`;
                   }
                 );
 
@@ -199,7 +209,9 @@ export function ReviewModal({
                   (match, numStr) => {
                     const num = parseInt(numStr, 10);
                     const roleName = seatRoleMap.get(num);
-                    return roleName ? `【${num}号-${roleName}】` : `【${num}号】`;
+                    return roleName
+                      ? `【${num}号-${roleName}】`
+                      : `【${num}号】`;
                   }
                 );
 
@@ -221,7 +233,8 @@ export function ReviewModal({
                     "⚡️ 触发贞洁者能力：因 $1 是真实镇民，$1 被立即处决死亡！"
                   );
                 } else if (
-                  (formatted.includes("提名了") || formatted.includes("提名 ")) &&
+                  (formatted.includes("提名了") ||
+                    formatted.includes("提名 ")) &&
                   !formatted.includes("📣")
                 ) {
                   formatted = `📣 ${formatted}`;
@@ -270,8 +283,7 @@ export function ReviewModal({
                 const dayNum = parseInt(day, 10);
                 // 同一天/同一阶段内按写入顺序（seq）排序，保证复盘时间线真实。
                 const sortedInnerLogs = [...logs].sort(
-                  (x, y) =>
-                    (x.seq ?? x.ts ?? 0) - (y.seq ?? y.ts ?? 0)
+                  (x, y) => (x.seq ?? x.ts ?? 0) - (y.seq ?? y.ts ?? 0)
                 );
                 const phaseName =
                   phase === "setup"

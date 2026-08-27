@@ -150,7 +150,9 @@ export function useInteractionHandler(deps: {
       } else {
         const targetSeat = seats.find((s) => s.id === targetId);
         if (targetSeat && isTargetDisabled(targetSeat)) {
-          console.warn(`[toggleTarget] 目标 ${targetId + 1}号 不可被选择（规则限制）`);
+          console.warn(
+            `[toggleTarget] 目标 ${targetId + 1}号 不可被选择（规则限制）`
+          );
           return;
         }
         // B. 如果还没选中
@@ -305,7 +307,9 @@ export function useInteractionHandler(deps: {
         // 校验目标是否被禁用
         const targetSeat = seats.find((s) => s.id === id);
         if (targetSeat && isTargetDisabled(targetSeat)) {
-          console.warn(`[handleSeatClick] 目标 ${id + 1}号 不可被选择（规则限制）`);
+          console.warn(
+            `[handleSeatClick] 目标 ${id + 1}号 不可被选择（规则限制）`
+          );
           return;
         }
 
@@ -348,7 +352,10 @@ export function useInteractionHandler(deps: {
   useEffect(() => {
     const nightInfo = depsNightInfo;
     const isFortuneTeller = nightInfo?.effectiveRole?.id === "fortune_teller";
-    if (!isFortuneTeller && state.inspectionResult?.startsWith("🔮 占卜师信息")) {
+    if (
+      !isFortuneTeller &&
+      state.inspectionResult?.startsWith("🔮 占卜师信息")
+    ) {
       dispatch(
         gameActions.updateState({
           inspectionResult: null,
@@ -527,6 +534,64 @@ export function useInteractionHandler(deps: {
             })
           );
         }
+      } else if (type === "good_twin") {
+        // 镜像双子对立目标：全局唯一，只有镜像双子在场时才能设置
+        const evilTwinSeat = seats.find((s) => s.role?.id === "evil_twin");
+        if (!evilTwinSeat) {
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount || 0,
+              phase: state.gamePhase,
+              message: "⚠️ 无法设置对立双子：场上没有镜像双子。",
+            })
+          );
+          dispatch(gameActions.updateState({ contextMenu: null }));
+          return;
+        }
+
+        const isCurrentlyGoodTwin =
+          !!seat.isGoodTwin || state.evilTwinPair?.goodId === targetId;
+
+        // 批量更新：清除所有人对立双子标记
+        seats.forEach((s) => {
+          if (s.isGoodTwin) {
+            dispatch(gameActions.updateSeat(s.id, { isGoodTwin: false }));
+          }
+        });
+
+        if (!isCurrentlyGoodTwin) {
+          dispatch(gameActions.updateSeat(targetId, { isGoodTwin: true }));
+          dispatch(
+            gameActions.updateState({
+              evilTwinPair: {
+                evilId: evilTwinSeat.id,
+                goodId: targetId,
+              },
+              contextMenu: null,
+            })
+          );
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount || 0,
+              phase: state.gamePhase,
+              message: `👥 说书人已指定 ${targetId + 1}号【${seat.role?.name || "未知角色"}】为镜像双子的对立善良双子。`,
+            })
+          );
+        } else {
+          dispatch(
+            gameActions.updateState({
+              evilTwinPair: null,
+              contextMenu: null,
+            })
+          );
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount || 0,
+              phase: state.gamePhase,
+              message: `👥 说书人已取消 ${targetId + 1}号的对立双子身份。`,
+            })
+          );
+        }
       } else if (type === "charade") {
         // 酒鬼伪装身份设置：弹出 DRUNK_CHARADE_SELECT 模态框
         const { selectedScript } = state;
@@ -545,7 +610,9 @@ export function useInteractionHandler(deps: {
             !role.hidden &&
             // 不能是已经在场的角色，且不能是其他酒鬼/提线木偶已选的伪装角色
             !seats.some((s) => s.role?.id === role.id) &&
-            !seats.some((s) => s.id !== targetId && s.charadeRole?.id === role.id)
+            !seats.some(
+              (s) => s.id !== targetId && s.charadeRole?.id === role.id
+            )
         );
 
         dispatch(
@@ -556,6 +623,54 @@ export function useInteractionHandler(deps: {
               availableRoles: availableCharades,
               scriptId: selectedScript?.id || "default",
             },
+          })
+        );
+      } else if (type === "mutant_reveal") {
+        // 畸形秀演员暴露标记：说书人判定"疯狂地证明自己是外来者"
+        const isRevealed = !!(seat as any).mutantRevealed;
+        dispatch(
+          gameActions.updateSeat(targetId, {
+            mutantRevealed: !isRevealed,
+          } as any)
+        );
+        dispatch(
+          gameActions.addLog({
+            day: state.nightCount || 0,
+            phase: state.gamePhase,
+            message: isRevealed
+              ? `🦂 说书人已取消 ${targetId + 1}号的畸形秀演员"已暴露"标记。`
+              : `🦂 说书人判定 ${targetId + 1}号【畸形秀演员】疯狂地证明了外来者身份 → 已暴露（可立即处决）。`,
+          })
+        );
+      } else if (type === "pixie_madness") {
+        // 小精灵"疯狂证明"状态切换
+        const seatAny = seat as any;
+        const isMad = !!seatAny.pixieMadnessConfirmed;
+        dispatch(
+          gameActions.updateSeat(targetId, {
+            pixieMadnessConfirmed: !isMad,
+          } as any)
+        );
+        dispatch(
+          gameActions.addLog({
+            day: state.nightCount || 0,
+            phase: state.gamePhase,
+            message: isMad
+              ? `🎭 已取消 ${targetId + 1}号【小精灵】的"疯狂证明"状态。`
+              : `🎭 说书人判定 ${targetId + 1}号【小精灵】足够疯狂地证明了角色身份。`,
+          })
+        );
+      } else if (type === "cerenovus_execute") {
+        // 洗脑师：被洗脑玩家不够疯狂 → 立即处决
+        const madnessDetail = (seat.statusDetails ?? []).find((st) =>
+          st.startsWith("洗脑疯狂:")
+        );
+        dispatch(gameActions.updateSeat(targetId, { isDead: true }));
+        dispatch(
+          gameActions.addLog({
+            day: state.nightCount || 0,
+            phase: state.gamePhase,
+            message: `🧠 ${targetId + 1}号因未能疯狂扮演【${madnessDetail?.replace("洗脑疯狂:", "") ?? "指定角色"}】，被说书人立即处决！`,
           })
         );
       } else {

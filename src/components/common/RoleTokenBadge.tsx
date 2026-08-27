@@ -24,7 +24,8 @@ export function RoleTokenBadge({
   className = "",
 }: RoleTokenBadgeProps) {
   const tokenData = useMemo(() => {
-    if (!name) return { lines: [""], fontSize: "text-xs", leading: "leading-none" };
+    if (!name)
+      return { lines: [""], fontSize: "text-xs", leading: "leading-none" };
     const clean = name.trim();
     const len = clean.length;
 
@@ -96,7 +97,9 @@ export function RoleTokenBadge({
     <div
       className={`${sizeClass} rounded-full flex flex-col items-center justify-center text-center font-black shrink-0 shadow-md transition select-none ${tokenBg} ${className}`}
     >
-      <div className={`flex flex-col items-center justify-center text-center ${tokenData.fontSize} ${tokenData.leading} w-full px-0.5`}>
+      <div
+        className={`flex flex-col items-center justify-center text-center ${tokenData.fontSize} ${tokenData.leading} w-full px-0.5`}
+      >
         {tokenData.lines.map((line, idx) => (
           <span key={idx} className="block whitespace-nowrap overflow-hidden">
             {line}

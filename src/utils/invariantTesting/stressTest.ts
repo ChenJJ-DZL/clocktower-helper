@@ -11,7 +11,7 @@
  *   npx tsx src/utils/invariantTesting/stressTest.ts bmr 20 5 9
  *   npx tsx src/utils/invariantTesting/stressTest.ts sv 20 5 9
  */
-import { createRng } from "./simulator";
+
 import type { GameStateSnapshot } from "../nightStateMachine";
 import {
   buildAbilityMap,
@@ -21,14 +21,19 @@ import {
   I5TargetLegality,
   I7NightDeathHasSource,
   I11EffectSemanticsApplied,
+  type NightSimResult,
   runAllInvariants,
   simulateNight,
-  type NightSimResult,
 } from "./index";
+import { createRng } from "./simulator";
 
 // ─── 剧本角色池 ─────────────────────────────────────────────────────
 
-export const BMR_ROLES: Array<{ id: string; name: string; type: "townsfolk" | "outsider" | "minion" | "demon" }> = [
+export const BMR_ROLES: Array<{
+  id: string;
+  name: string;
+  type: "townsfolk" | "outsider" | "minion" | "demon";
+}> = [
   { id: "grandmother", name: "祖母", type: "townsfolk" },
   { id: "sailor", name: "水手", type: "townsfolk" },
   { id: "chambermaid", name: "侍女", type: "townsfolk" },
@@ -56,7 +61,11 @@ export const BMR_ROLES: Array<{ id: string; name: string; type: "townsfolk" | "o
   { id: "po", name: "珀", type: "demon" },
 ];
 
-export const SV_ROLES: Array<{ id: string; name: string; type: "townsfolk" | "outsider" | "minion" | "demon" }> = [
+export const SV_ROLES: Array<{
+  id: string;
+  name: string;
+  type: "townsfolk" | "outsider" | "minion" | "demon";
+}> = [
   { id: "clockmaker", name: "钟表匠", type: "townsfolk" },
   { id: "dreamer", name: "梦行者", type: "townsfolk" },
   { id: "snake_charmer", name: "弄蛇人", type: "townsfolk" },
@@ -86,7 +95,10 @@ export const SV_ROLES: Array<{ id: string; name: string; type: "townsfolk" | "ou
 
 // ─── 标准配比生成器（按官方配比）────────────────────────────────────
 
-const STANDARD_COMPOSITION: Record<number, { townsfolk: number; outsider: number; minion: number; demon: number }> = {
+const STANDARD_COMPOSITION: Record<
+  number,
+  { townsfolk: number; outsider: number; minion: number; demon: number }
+> = {
   7: { townsfolk: 5, outsider: 0, minion: 1, demon: 1 },
   8: { townsfolk: 5, outsider: 1, minion: 1, demon: 1 },
   9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
@@ -129,7 +141,11 @@ function buildRoster(
     ...shuffle(outsiders, rng).slice(0, std.outsider),
     ...shuffle(townsfolks, rng).slice(0, Math.max(0, std.townsfolk)),
   ];
-  return shuffle(roster, rng).map((r) => ({ id: r.id, name: r.name, type: r.type }));
+  return shuffle(roster, rng).map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+  }));
 }
 
 function makeSeat(
@@ -153,7 +169,10 @@ function makeSeat(
 }
 
 /** 跨夜推进快照：保留死亡状态，重置夜内临时标记，恢复幽灵票 */
-function advanceToNextNight(prev: GameStateSnapshot, nightCount: number): GameStateSnapshot {
+function advanceToNextNight(
+  prev: GameStateSnapshot,
+  nightCount: number
+): GameStateSnapshot {
   const seats = (prev.seats as any[]).map((s) => {
     const base = {
       ...s,
@@ -187,7 +206,11 @@ export async function runStressGame(
   seed: number
 ): Promise<{
   seed: number;
-  nights: Array<{ night: number; actionCount: number; violations: Map<string, string[]> }>;
+  nights: Array<{
+    night: number;
+    actionCount: number;
+    violations: Map<string, string[]>;
+  }>;
   passed: boolean;
 }> {
   const fullNightOrder = buildFullNightOrder();
@@ -204,7 +227,11 @@ export async function runStressGame(
     lastDuskExecution: null,
   };
 
-  const nightReports: Array<{ night: number; actionCount: number; violations: Map<string, string[]> }> = [];
+  const nightReports: Array<{
+    night: number;
+    actionCount: number;
+    violations: Map<string, string[]>;
+  }> = [];
   let totalViolations = 0;
 
   for (let night = 1; night <= nights; night++) {
@@ -227,10 +254,18 @@ export async function runStressGame(
           const rid = m[1];
           const action = result.actions.find((a) => a.node.roleId === rid);
           if (action) {
-            console.log(`[diag] ${rid} aborted=${action.aborted} targets=${JSON.stringify(action.targetIds)}`);
-            console.log(`[diag] ${rid} meta=${JSON.stringify(action.context.meta)}`);
-            console.log(`[diag] ${rid} prev=${JSON.stringify((action.prevSnapshot.seats as any[]).map((s: any) => ({ id: s.id, dead: s.isDead, isPoisoned: s.isPoisoned, details: (s.statusDetails || []).map((d: any) => typeof d === "string" ? d : d?.type) })))}`);
-            console.log(`[diag] ${rid} curDrunk=${JSON.stringify((action.snapshot.seats as any[]).map((s: any) => ({ id: s.id, dead: s.isDead, isDrunk: s.isDrunk, isPoisoned: s.isPoisoned, fx: (s.statusEffects || []).map((e: any) => e.type), details: (s.statusDetails || []).map((d: any) => typeof d === "string" ? d : d?.type) })))}`);
+            console.log(
+              `[diag] ${rid} aborted=${action.aborted} targets=${JSON.stringify(action.targetIds)}`
+            );
+            console.log(
+              `[diag] ${rid} meta=${JSON.stringify(action.context.meta)}`
+            );
+            console.log(
+              `[diag] ${rid} prev=${JSON.stringify((action.prevSnapshot.seats as any[]).map((s: any) => ({ id: s.id, dead: s.isDead, isPoisoned: s.isPoisoned, details: (s.statusDetails || []).map((d: any) => (typeof d === "string" ? d : d?.type)) })))}`
+            );
+            console.log(
+              `[diag] ${rid} curDrunk=${JSON.stringify((action.snapshot.seats as any[]).map((s: any) => ({ id: s.id, dead: s.isDead, isDrunk: s.isDrunk, isPoisoned: s.isPoisoned, fx: (s.statusEffects || []).map((e: any) => e.type), details: (s.statusDetails || []).map((d: any) => (typeof d === "string" ? d : d?.type)) })))}`
+            );
           }
         }
       }
@@ -238,12 +273,23 @@ export async function runStressGame(
 
     // ── 关键断言辅助：多重死亡结算（同夜多个死亡标记必须都落地 isDead）──
     const multiDeath = result.actions.filter(
-      (a) => !a.aborted && (a.node.roleId === "shabaloth" || a.node.roleId === "po" || a.node.roleId === "godfather")
+      (a) =>
+        !a.aborted &&
+        (a.node.roleId === "shabaloth" ||
+          a.node.roleId === "po" ||
+          a.node.roleId === "godfather")
     ).length;
     void multiDeath;
 
-    totalViolations += Array.from(violations.values()).reduce((n, arr) => n + arr.length, 0);
-    nightReports.push({ night, actionCount: result.actions.length, violations });
+    totalViolations += Array.from(violations.values()).reduce(
+      (n, arr) => n + arr.length,
+      0
+    );
+    nightReports.push({
+      night,
+      actionCount: result.actions.length,
+      violations,
+    });
 
     // 推进快照到下一夜（使用 finalSnapshot 保留死亡状态）
     snapshot = result.finalSnapshot;
@@ -260,8 +306,12 @@ async function main() {
   const nights = Number(process.argv[4] ?? 5);
   const playerCount = Number(process.argv[5] ?? 9);
 
-  const pool = scriptArg === "sv" || scriptArg === "sects" ? SV_ROLES : BMR_ROLES;
-  const scriptName = scriptArg === "sv" || scriptArg === "sects" ? "梦殒春宵 (S&V)" : "黯月初升 (BMR)";
+  const pool =
+    scriptArg === "sv" || scriptArg === "sects" ? SV_ROLES : BMR_ROLES;
+  const scriptName =
+    scriptArg === "sv" || scriptArg === "sects"
+      ? "梦殒春宵 (S&V)"
+      : "黯月初升 (BMR)";
 
   console.log("========================================");
   console.log(`复杂剧本压测：${scriptName}`);
@@ -276,7 +326,9 @@ async function main() {
     const seed = 20260801 + g;
     const report = await runStressGame(pool, playerCount, nights, seed);
     const violationCount = report.nights.reduce(
-      (n, r) => n + Array.from(r.violations.values()).reduce((x, arr) => x + arr.length, 0),
+      (n, r) =>
+        n +
+        Array.from(r.violations.values()).reduce((x, arr) => x + arr.length, 0),
       0
     );
     if (report.passed) {
@@ -293,7 +345,10 @@ async function main() {
         }
       }
       const detail = report.nights
-        .map((r) => `${r.night}夜:${Array.from(r.violations.keys()).join(",") || "?"}(${Array.from(r.violations.values()).reduce((n, arr) => n + arr.length, 0)}处)`)
+        .map(
+          (r) =>
+            `${r.night}夜:${Array.from(r.violations.keys()).join(",") || "?"}(${Array.from(r.violations.values()).reduce((n, arr) => n + arr.length, 0)}处)`
+        )
         .join(" | ");
       failures.push(`局 ${g + 1} (seed=${seed}): ${detail}`);
     }

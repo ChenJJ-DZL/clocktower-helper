@@ -69,7 +69,9 @@ export function RoleSelectModal({ modal }: { modal: any }) {
                   className={`p-3 rounded-xl border-2 ${typeColor} ${typeBgColor} transition-all text-left flex flex-col justify-between`}
                 >
                   <div>
-                    <div className="font-bold text-base text-white">{role.name}</div>
+                    <div className="font-bold text-base text-white">
+                      {role.name}
+                    </div>
                     <div className="text-xs opacity-80 mt-0.5">
                       {typeLabels[role.type]}
                     </div>
@@ -83,7 +85,9 @@ export function RoleSelectModal({ modal }: { modal: any }) {
         </div>
         {modal.type === "pit_hag" && (
           <div className="mt-2 text-left text-xs text-slate-300 max-h-32 overflow-y-auto border border-slate-700 rounded-xl p-3 bg-slate-900/60">
-            <div className="font-bold mb-1 text-slate-200">当前座位与角色一览：</div>
+            <div className="font-bold mb-1 text-slate-200">
+              当前座位与角色一览：
+            </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1">
               {props.seats.map((s) => (
                 <div key={s.id} className="flex justify-between">

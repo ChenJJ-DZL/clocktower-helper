@@ -1,19 +1,14 @@
-import { useState, useCallback, useEffect } from "react";
-import { useGameState } from "../../hooks/useGameState";
+import { useCallback, useEffect, useState } from "react";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { useGameState } from "../../hooks/useGameState";
 import { ModalWrapper } from "../modals/ModalWrapper";
 
 export function GameOverOverlay() {
   const gameState = useGameState();
   const actions = useGameActions();
 
-  const {
-    gamePhase,
-    winResult,
-    winReason,
-    selectedScript,
-    currentModal,
-  } = gameState;
+  const { gamePhase, winResult, winReason, selectedScript, currentModal } =
+    gameState;
 
   const [exporting, setExporting] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -60,7 +55,8 @@ export function GameOverOverlay() {
   }, [actions, selectedScript, winResult]);
 
   const isVisible =
-    currentModal?.type === "GAME_OVER" || (gamePhase === "gameOver" && !dismissed);
+    currentModal?.type === "GAME_OVER" ||
+    (gamePhase === "gameOver" && !dismissed);
 
   if (!isVisible) return null;
 

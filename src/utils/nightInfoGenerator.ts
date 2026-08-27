@@ -9,9 +9,15 @@
  * 3. 构建完整的 NightInfoResult 对象
  */
 
-import { roles as allRoles, type Script, type Seat, type GamePhase, type Role } from "../../app/data";
-import type { NightInfoResult } from "../types/game";
+import {
+  roles as allRoles,
+  type GamePhase,
+  type Role,
+  type Script,
+  type Seat,
+} from "../../app/data";
 import { getRoleDefinition } from "../roles";
+import type { NightInfoResult } from "../types/game";
 import type { RegistrationResult } from "../types/registration";
 import type { NightActionContext } from "../types/roleDefinition";
 import { computeIsPoisoned, getPoisonSources } from "./gameRules";
@@ -47,12 +53,9 @@ export function generateNightInfo(
 
   const isFirstNight = gamePhase === "firstNight";
   const isCharade =
-    (targetSeat.role.id === "drunk" ||
-      targetSeat.role.id === "marionette") &&
+    (targetSeat.role.id === "drunk" || targetSeat.role.id === "marionette") &&
     targetSeat.charadeRole;
-  const effectiveRole = isCharade
-    ? targetSeat.charadeRole
-    : targetSeat.role;
+  const effectiveRole = isCharade ? targetSeat.charadeRole : targetSeat.role;
 
   if (!effectiveRole) return null;
 
@@ -198,11 +201,13 @@ export function generateNightInfo(
         seats,
         []
       );
-      const dummyDeadSeat = seats.find((s) => s.isDead) || ({
-        id: -999,
-        isDead: true,
-        role: { id: "villager", type: "townsfolk" },
-      } as any);
+      const dummyDeadSeat =
+        seats.find((s) => s.isDead) ||
+        ({
+          id: -999,
+          isDead: true,
+          role: { id: "villager", type: "townsfolk" },
+        } as any);
       canSelectDead = nightConfig.target.canSelect(
         dummyDeadSeat,
         targetSeat,

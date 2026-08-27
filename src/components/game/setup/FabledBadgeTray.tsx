@@ -8,7 +8,10 @@ interface FabledBadgeTrayProps {
   onToggle: (role: Role) => void;
 }
 
-export function FabledBadgeTray({ activeFabled, onToggle }: FabledBadgeTrayProps) {
+export function FabledBadgeTray({
+  activeFabled,
+  onToggle,
+}: FabledBadgeTrayProps) {
   const [expanded, setExpanded] = useState(false);
   const activeIds = useMemo(
     () => new Set(activeFabled.map((f) => f.id)),

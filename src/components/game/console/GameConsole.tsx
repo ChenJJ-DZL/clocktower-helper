@@ -290,9 +290,17 @@ export const GameConsole = React.memo(function GameConsole({
               <span className="text-base">⚔️</span>
               <span>【军团全局规则已激活】</span>
             </div>
-            <div>• 多数玩家为军团，豁免邪恶过半判定。仅有当所有军团均死亡时善良获胜。</div>
-            <div>• 白天提名仅有邪恶玩家投票时，系统自动判定为 0 票，处决无效。</div>
-            <div>• 夜间由说书人决定哪位玩家死亡（建议每晚击杀军团以维持游戏平衡至最后一天）。</div>
+            <div>
+              •
+              多数玩家为军团，豁免邪恶过半判定。仅有当所有军团均死亡时善良获胜。
+            </div>
+            <div>
+              • 白天提名仅有邪恶玩家投票时，系统自动判定为 0 票，处决无效。
+            </div>
+            <div>
+              •
+              夜间由说书人决定哪位玩家死亡（建议每晚击杀军团以维持游戏平衡至最后一天）。
+            </div>
           </div>
         )}
 
@@ -307,7 +315,10 @@ export const GameConsole = React.memo(function GameConsole({
               return (
                 <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 text-amber-200 text-xs font-bold flex items-center gap-2">
                   <span className="text-base">⚠️</span>
-                  <span>提线木偶座次告警：{marionetteSeat.id + 1}号提线木偶必须与恶魔（{demonSeat.id + 1}号）物理相邻！</span>
+                  <span>
+                    提线木偶座次告警：{marionetteSeat.id + 1}
+                    号提线木偶必须与恶魔（{demonSeat.id + 1}号）物理相邻！
+                  </span>
                 </div>
               );
             }
@@ -320,7 +331,9 @@ export const GameConsole = React.memo(function GameConsole({
           <div className="rounded-2xl border-2 border-amber-500/80 bg-gradient-to-br from-purple-950/90 via-slate-900/90 to-amber-950/90 p-5 shadow-2xl shadow-amber-900/30">
             <div className="flex items-center gap-2.5 text-amber-300 font-extrabold text-base mb-2">
               <span className="text-xl">🌺</span>
-              <span className="tracking-wide">【邪恶互认（罂粟种植者死亡触发）】</span>
+              <span className="tracking-wide">
+                【邪恶互认（罂粟种植者死亡触发）】
+              </span>
             </div>
             <div className="text-sm text-amber-100/95 leading-relaxed font-medium bg-black/30 p-3 rounded-xl border border-amber-500/20">
               因罂粟种植者已死亡，今晚邪恶阵营（恶魔与爪牙）正式互相认识！请说书人根据下方提示依次唤醒恶魔与爪牙，告知同伴身份。
@@ -334,25 +347,32 @@ export const GameConsole = React.memo(function GameConsole({
             currentActorSeat?.role?.type === "demon" ||
             nightInfo?.effectiveRole?.type === "demon" ||
             !!currentActorSeat?.isDemonSuccessor;
-          const lunaticSeat = seats.find((s) => s.role?.id === "lunatic" && !s.isDead);
+          const lunaticSeat = seats.find(
+            (s) => s.role?.id === "lunatic" && !s.isDead
+          );
           if (isDemon && lunaticSeat) {
-            const lunaticTarget = (lunaticSeat as any).lunaticTarget ?? (lunaticSeat as any).selectedTarget;
+            const lunaticTarget =
+              (lunaticSeat as any).lunaticTarget ??
+              (lunaticSeat as any).selectedTarget;
             if (lunaticTarget !== undefined && lunaticTarget !== null) {
               return (
                 <div className="rounded-xl border border-purple-500/60 bg-purple-950/50 p-3 flex items-center justify-between shadow-lg">
                   <div className="text-xs text-purple-200">
-                    <span className="font-extrabold text-purple-300">🌀 疯子今晚选择了：</span>
+                    <span className="font-extrabold text-purple-300">
+                      🌀 疯子今晚选择了：
+                    </span>
                     【{lunaticTarget + 1}号玩家】
                   </div>
-                  {onTogglePlayer && !selectedPlayers.includes(lunaticTarget) && (
-                    <button
-                      type="button"
-                      onClick={() => onTogglePlayer(lunaticTarget)}
-                      className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-lg text-xs font-bold shadow transition"
-                    >
-                      快捷同步
-                    </button>
-                  )}
+                  {onTogglePlayer &&
+                    !selectedPlayers.includes(lunaticTarget) && (
+                      <button
+                        type="button"
+                        onClick={() => onTogglePlayer(lunaticTarget)}
+                        className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-lg text-xs font-bold shadow transition"
+                      >
+                        快捷同步
+                      </button>
+                    )}
                 </div>
               );
             }
@@ -688,9 +708,7 @@ export const GameConsole = React.memo(function GameConsole({
                             {seat.id + 1}号
                           </span>
                           <span
-                            className={
-                              isUsed ? "text-slate-300" : "text-white"
-                            }
+                            className={isUsed ? "text-slate-300" : "text-white"}
                           >
                             {displayRoleName}
                             {seat.role?.id === "drunk" && (
@@ -746,6 +764,81 @@ export const GameConsole = React.memo(function GameConsole({
             })()}
           </div>
         )}
+
+        {/* Section 3.5: 陌客白天注册与裁定控制卡片 */}
+        {gamePhase === "day" &&
+          seats.some((s) => s.role?.id === "recluse" && !s.isDead) && (
+            <div className="bg-purple-950/40 p-5 rounded-2xl border border-purple-500/30 space-y-3">
+              <h3 className="text-purple-200 font-bold text-base flex items-center gap-2">
+                <span>🎭</span> 陌客阵营注册快捷调整 (白天实时生效)
+              </h3>
+              <p className="text-xs text-purple-300/80">
+                官方规则：陌客可能会被当作邪恶阵营、爪牙或恶魔角色。可在此快速切换说书人裁定的注册状态。
+              </p>
+              {seats
+                .filter((s) => s.role?.id === "recluse" && !s.isDead)
+                .map((recluseSeat) => {
+                  const isEvil = !!(
+                    (recluseSeat as any).registerAsEvil ||
+                    (recluseSeat as any).registerAsDemon
+                  );
+                  return (
+                    <div
+                      key={recluseSeat.id}
+                      className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-purple-500/20"
+                    >
+                      <div>
+                        <span className="text-sm font-bold text-white">
+                          {recluseSeat.id + 1}号 - 陌客
+                        </span>
+                        <span className="ml-2 text-xs text-slate-400">
+                          当前注册为:{" "}
+                          <strong
+                            className={
+                              isEvil ? "text-red-400" : "text-emerald-400"
+                            }
+                          >
+                            {isEvil
+                              ? "😈 邪恶 (爪牙/恶魔)"
+                              : "😇 善良 (外来者)"}
+                          </strong>
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            (recluseSeat as any).registerAsEvil = false;
+                            (recluseSeat as any).registerAsDemon = false;
+                            (recluseSeat as any).registerAsMinion = false;
+                          }}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors border ${
+                            !isEvil
+                              ? "bg-emerald-600 border-emerald-400 text-white"
+                              : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          善良
+                        </button>
+                        <button
+                          onClick={() => {
+                            (recluseSeat as any).registerAsEvil = true;
+                            (recluseSeat as any).registerAsDemon = true;
+                            (recluseSeat as any).registerAsMinion = true;
+                          }}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors border ${
+                            isEvil
+                              ? "bg-red-600 border-red-400 text-white"
+                              : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          邪恶(爪牙/恶魔)
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
 
         {/* Error state when script is empty - only show if actually in night phase */}
         {totalSteps === 0 &&
@@ -816,7 +909,10 @@ export const GameConsole = React.memo(function GameConsole({
                   try {
                     extraAction.onClick();
                   } catch (error) {
-                    console.error("[GameConsole] Error in extra action:", error);
+                    console.error(
+                      "[GameConsole] Error in extra action:",
+                      error
+                    );
                     showAlert(
                       `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
                     );

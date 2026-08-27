@@ -45,7 +45,15 @@ export const abilityPriorityCalculation = async (
   }
 
   // 3. 第三优先级：涡流世界（所有镇民能力必出错误信息）
-  if (snapshot.globalEffects?.vortoxWorld && seat.role?.type === "townsfolk") {
+  // 提线木偶以为自己镇民 → 应当被反相；酒鬼以为自己是镇民但本身是 outsider → 不应反相
+  // （酒鬼的认知覆盖仅是"骗他自己"，他不具有镇民能力；提线木偶则真以为自己获得
+  //  了某个镇民能力并由说书人假装执行其流程，因此会被反相。）
+  // 判定：酒鬼豁免；其余按 effectiveType = charadeRole.type ?? role.type
+  const isDrunkRole = seat.role?.id === "drunk";
+  const effectiveType = isDrunkRole
+    ? "outsider" // 酒鬼永远按 outsider 处理，不被反相
+    : ((seat as any).charadeRole?.type ?? seat.role?.type ?? "");
+  if (snapshot.globalEffects?.vortoxWorld && effectiveType === "townsfolk") {
     return {
       ...context,
       meta: {

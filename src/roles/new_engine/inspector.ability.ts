@@ -50,7 +50,11 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const snapshot = ctx.snapshot as any;
   // 已消耗（首次提名已结算过）→ 不再唤醒
   if (snapshot.inspectorUsed === true) {
-    return { ...ctx, aborted: true, abortReason: "已失去能力（首次提名已结算）" };
+    return {
+      ...ctx,
+      aborted: true,
+      abortReason: "已失去能力（首次提名已结算）",
+    };
   }
   // 当天未提名 → 不被唤醒
   const nomination = snapshot.inspectorNomination;
@@ -72,7 +76,8 @@ const calculate = async (
     return { ...ctx, aborted: true, abortReason: "被提名玩家不存在" };
   }
 
-  const isDemon = target.role?.type === "demon" || target.isDemonSuccessor === true;
+  const isDemon =
+    target.role?.type === "demon" || target.isDemonSuccessor === true;
   let revealedRoleId: string | null;
   let revealedRoleName: string | null;
 

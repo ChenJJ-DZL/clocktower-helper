@@ -12,6 +12,7 @@ export {
   buildFullNightOrder,
   ensureAbilityRegistry,
 } from "./engineConfig";
+export type { InvariantCheck, InvariantError } from "./invariants";
 export {
   ALL_INVARIANTS,
   I1DeathMarkersConsistent,
@@ -28,22 +29,21 @@ export {
   INFO_ROLES,
   runAllInvariants,
 } from "./invariants";
-export type { InvariantCheck, InvariantError } from "./invariants";
-export {
-  TROUBLE_BREWING_ROLES,
-  generateRandomGame,
-} from "./randomGame";
 export type { RandomGame, RandomGameConfig } from "./randomGame";
+export {
+  generateRandomGame,
+  TROUBLE_BREWING_ROLES,
+} from "./randomGame";
+export type {
+  ExecutedAction,
+  NightSimResult,
+  SimulateNightOptions,
+} from "./simulator";
 export {
   buildContextForNode,
   createRng,
   defaultTargetPicker,
   simulateNight,
-} from "./simulator";
-export type {
-  ExecutedAction,
-  NightSimResult,
-  SimulateNightOptions,
 } from "./simulator";
 
 import { buildAbilityMap, buildFullNightOrder } from "./engineConfig";
@@ -116,5 +116,10 @@ export async function runInvariantSuite(
     }
   }
 
-  return { seed: game.seed, nights, totalViolations, passed: totalViolations === 0 };
+  return {
+    seed: game.seed,
+    nights,
+    totalViolations,
+    passed: totalViolations === 0,
+  };
 }

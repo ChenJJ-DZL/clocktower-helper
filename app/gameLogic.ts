@@ -551,25 +551,25 @@ export function checkGameEnd(
 
     // 检查邪恶双子阻挡
     let goodWinBlockedByTwin = false;
-    if (evilTwinPair) {
-      const evilTwinIndex = seats.findIndex(
-        (s) => s.id === evilTwinPair.evilId
-      );
-      const goodTwinIndex = seats.findIndex(
-        (s) => s.id === evilTwinPair.goodId
-      );
-      if (evilTwinIndex !== -1 && goodTwinIndex !== -1) {
-        const evilTwinSeat = seats[evilTwinIndex];
-        const goodTwinSeat = seats[goodTwinIndex];
-        // 只要有一对双子活着且健康，好人就无法获胜
-        if (
-          !evilTwinSeat.isDead &&
-          !goodTwinSeat.isDead &&
-          !evilTwinSeat.isPoisoned &&
-          !evilTwinSeat.isDrunk
-        ) {
-          goodWinBlockedByTwin = true;
-        }
+    const evilTwinSeat = seats.find(
+      (s) =>
+        s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
+    );
+    if (evilTwinSeat) {
+      const goodTwinSeat =
+        (evilTwinPair?.goodId !== undefined
+          ? seats.find((s) => s.id === evilTwinPair.goodId)
+          : null) ||
+        seats.find((s) => s.isGoodTwin && !s.isDead) ||
+        seats.find(
+          (s) =>
+            s.id !== evilTwinSeat.id &&
+            !s.isDead &&
+            (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
+            !s.isEvilConverted
+        );
+      if (goodTwinSeat && !goodTwinSeat.isDead) {
+        goodWinBlockedByTwin = true;
       }
     }
 
@@ -591,18 +591,19 @@ export function checkGameEnd(
       // 镜像双子（Evil Twin）：若存活的善良双子被处决，邪恶阵营直接获胜
       const evilTwin = seats.find(
         (s) =>
-          s.role?.id === "evil_twin" &&
-          !s.isDead &&
-          !s.isPoisoned &&
-          !s.isDrunk
+          s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
       );
       if (evilTwin) {
-        const isGoodTwin =
-          executedSeat.id !== evilTwin.id &&
-          executedSeat.role?.id !== "evil_twin" &&
-          !executedSeat.isEvilConverted &&
-          (executedSeat.role?.type === "townsfolk" ||
-            executedSeat.role?.type === "outsider");
+        const hasExplicitDesignation =
+          evilTwinPair?.goodId !== undefined || seats.some((s) => s.isGoodTwin);
+        const isGoodTwin = hasExplicitDesignation
+          ? executedSeat.id === evilTwinPair?.goodId ||
+            !!executedSeat.isGoodTwin
+          : executedSeat.id !== evilTwin.id &&
+            executedSeat.role?.id !== "evil_twin" &&
+            !executedSeat.isEvilConverted &&
+            (executedSeat.role?.type === "townsfolk" ||
+              executedSeat.role?.type === "outsider");
         if (isGoodTwin) {
           return {
             isGameOver: true,
@@ -658,6 +659,18 @@ export function checkGameEnd(
   }
 
   // --- 4. 【额外层】市长/涡流 ---
+  // 涡流：每个黄昏（白天结束）若今日无人被处决，邪恶阵营立即获胜。
+  //   之前仅在 execution 路径下检查，会漏掉"白天没人投票也没提名"导致游戏永远卡在 dusk。
+  if (lastAction === "check_phase" && isVortoxWorld) {
+    const todayHasExecution = (options as any).todayHasExecution === true;
+    if (!todayHasExecution) {
+      return {
+        isGameOver: true,
+        winner: "Evil",
+        reason: "涡流：今日无人被处决",
+      };
+    }
+  }
   if (lastAction === "execution" && executedPlayerId === null) {
     // 涡流 (Vortox): 平安日直接邪恶获胜
     if (isVortoxWorld) {
@@ -813,17 +826,21 @@ function handlePostDeathTriggers(
   }
 
   // 2. Scarlet Woman Trigger (scarlet_woman)
-  // 规则：如果恶魔死亡，且场上存活玩家（包括红唇）>= 5人，红唇女郎成为恶魔。
+  // 官方规则：如果在恶魔死前有 5 名或更多存活玩家（即恶魔死后存活玩家 >= 4 人，排除旅行者），红唇女郎立刻成为恶魔。
   if (target.role?.type === "demon" && !target.isDemonSuccessor) {
     // 计算存活玩家（此时 target 已被标记为 dead，所以 aliveCount 是幸存者人数）
     const aliveCount = seats.filter(
       (s) => !s.isDead && s.role?.type !== "traveler"
     ).length;
 
-    if (aliveCount >= 5) {
+    if (aliveCount >= 4) {
       const sw = seats.find(
         (s) =>
-          s.role?.id === "scarlet_woman" && !s.isDead && !s.isDemonSuccessor
+          s.role?.id === "scarlet_woman" &&
+          !s.isDead &&
+          !s.isDemonSuccessor &&
+          !s.isDrunk &&
+          !s.isPoisoned
       );
       if (sw) {
         sw.isDemonSuccessor = true;
@@ -832,7 +849,7 @@ function handlePostDeathTriggers(
         sw.statusDetails = [...(sw.statusDetails || []), "红唇继任"];
         sw.displayRole = target.role; // UI Update
         logs.push(
-          `💋 ${sw.id + 1}号(红唇女郎) 😈 恶魔死亡，场上存活≥5人，继任成为新的恶魔！`
+          `💋 ${sw.id + 1}号(红唇女郎) 😈 恶魔死亡（死前存活≥5人），继任成为新的恶魔！`
         );
       }
     }

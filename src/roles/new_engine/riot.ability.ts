@@ -14,8 +14,11 @@ import {
 
 const RIOT_START_DAY = 3;
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
-  const currentDay = (ctx.snapshot as any).dayCount ?? ctx.snapshot.nightCount ?? 1;
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const currentDay =
+    (ctx.snapshot as any).dayCount ?? ctx.snapshot.nightCount ?? 1;
   const riotActive = currentDay >= RIOT_START_DAY;
 
   return {
@@ -32,7 +35,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   return {
     ...ctx,
@@ -49,7 +54,9 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const log = r?.riotActive
     ? `[Riot] 暴乱已激活 — 第${r.currentDay}天（第${r.daysSinceRiot + 1}天暴乱）`

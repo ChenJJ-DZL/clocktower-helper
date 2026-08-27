@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import { roles, scripts, type Role, type RoleType } from "../../../app/data";
-import { getCharacterWikiDetails, type CharacterWikiDetails } from "../../utils/characterWikiLookup";
-import { ModalWrapper } from "./ModalWrapper";
+import React, { useEffect, useMemo, useState } from "react";
+import { type Role, type RoleType, roles, scripts } from "../../../app/data";
+import {
+  type CharacterWikiDetails,
+  getCharacterWikiDetails,
+} from "../../utils/characterWikiLookup";
 import { RoleTokenBadge } from "../common/RoleTokenBadge";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface RoleCodexModalProps {
   isOpen: boolean;
@@ -21,42 +24,48 @@ const TYPE_CONFIG: Record<
     bg: "bg-blue-900/30",
     text: "text-blue-300",
     border: "border-blue-500/40",
-    tokenBg: "bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 border-blue-400 text-blue-200",
+    tokenBg:
+      "bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 border-blue-400 text-blue-200",
   },
   outsider: {
     label: "外来者",
     bg: "bg-teal-900/30",
     text: "text-teal-300",
     border: "border-teal-500/40",
-    tokenBg: "bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 border-teal-400 text-teal-200",
+    tokenBg:
+      "bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 border-teal-400 text-teal-200",
   },
   minion: {
     label: "爪牙",
     bg: "bg-orange-900/30",
     text: "text-orange-300",
     border: "border-orange-500/40",
-    tokenBg: "bg-gradient-to-br from-orange-900 via-orange-950 to-slate-950 border-orange-400 text-orange-200",
+    tokenBg:
+      "bg-gradient-to-br from-orange-900 via-orange-950 to-slate-950 border-orange-400 text-orange-200",
   },
   demon: {
     label: "恶魔",
     bg: "bg-red-900/30",
     text: "text-red-300",
     border: "border-red-500/40",
-    tokenBg: "bg-gradient-to-br from-red-900 via-red-950 to-slate-950 border-red-500 text-red-200",
+    tokenBg:
+      "bg-gradient-to-br from-red-900 via-red-950 to-slate-950 border-red-500 text-red-200",
   },
   traveler: {
     label: "旅行者",
     bg: "bg-purple-900/30",
     text: "text-purple-300",
     border: "border-purple-500/40",
-    tokenBg: "bg-gradient-to-br from-purple-900 via-purple-950 to-slate-950 border-purple-400 text-purple-200",
+    tokenBg:
+      "bg-gradient-to-br from-purple-900 via-purple-950 to-slate-950 border-purple-400 text-purple-200",
   },
   fabled: {
     label: "传奇角色",
     bg: "bg-amber-900/30",
     text: "text-amber-300",
     border: "border-amber-500/40",
-    tokenBg: "bg-gradient-to-br from-slate-800 to-slate-950 border-amber-400 text-amber-200",
+    tokenBg:
+      "bg-gradient-to-br from-slate-800 to-slate-950 border-amber-400 text-amber-200",
   },
 };
 
@@ -75,10 +84,13 @@ export function RoleCodexModal({
   initialRoleId,
 }: RoleCodexModalProps) {
   // 浏览模式："by_script" (按剧本分组) | "flat_grid" (平铺全览)
-  const [viewMode, setViewMode] = useState<"by_script" | "flat_grid">("by_script");
+  const [viewMode, setViewMode] = useState<"by_script" | "flat_grid">(
+    "by_script"
+  );
 
   // 当前选中的剧本标签
-  const [selectedScriptId, setSelectedScriptId] = useState<string>("trouble_brewing");
+  const [selectedScriptId, setSelectedScriptId] =
+    useState<string>("trouble_brewing");
 
   // 阵营筛选
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
@@ -182,7 +194,11 @@ export function RoleCodexModal({
 
   return (
     <ModalWrapper
-      title={inspectingRole ? `📖 角色图鉴 · ${inspectingRole.name}` : "📖 血染钟楼 · 全角色图鉴与百科"}
+      title={
+        inspectingRole
+          ? `📖 角色图鉴 · ${inspectingRole.name}`
+          : "📖 血染钟楼 · 全角色图鉴与百科"
+      }
       onClose={onClose}
       className="max-w-7xl w-[98vw] h-[94vh] max-h-[94vh] flex flex-col p-2 overflow-hidden"
       footer={
@@ -205,7 +221,11 @@ export function RoleCodexModal({
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm border border-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
               >
                 <span>⬅ 上一个</span>
-                <span>{currentInspectIndex > 0 ? `(${searchedRoles[currentInspectIndex - 1].name})` : ""}</span>
+                <span>
+                  {currentInspectIndex > 0
+                    ? `(${searchedRoles[currentInspectIndex - 1].name})`
+                    : ""}
+                </span>
               </button>
 
               <span className="text-xs text-slate-400 font-mono px-2">
@@ -219,7 +239,11 @@ export function RoleCodexModal({
                 className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
               >
                 <span>下一个 ➡</span>
-                <span>{currentInspectIndex < searchedRoles.length - 1 ? `(${searchedRoles[currentInspectIndex + 1].name})` : ""}</span>
+                <span>
+                  {currentInspectIndex < searchedRoles.length - 1
+                    ? `(${searchedRoles[currentInspectIndex + 1].name})`
+                    : ""}
+                </span>
               </button>
             </div>
           </div>
@@ -227,7 +251,10 @@ export function RoleCodexModal({
           <div className="flex items-center justify-between gap-3 w-full text-xs text-slate-400">
             <div className="flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>共收录 <b>{allRoles.length}</b> 个角色 · 点击任意角色卡片即可查阅详细技能说明与官方进阶打法</span>
+              <span>
+                共收录 <b>{allRoles.length}</b> 个角色 ·
+                点击任意角色卡片即可查阅详细技能说明与官方进阶打法
+              </span>
             </div>
             <button
               onClick={onClose}
@@ -271,7 +298,10 @@ export function RoleCodexModal({
             <div className="flex items-center gap-4 py-1 shrink-0">
               <RoleTokenBadge
                 name={inspectingRole.name}
-                tokenBg={TYPE_CONFIG[inspectingRole.type]?.tokenBg || "bg-slate-800 border-amber-400 text-amber-200"}
+                tokenBg={
+                  TYPE_CONFIG[inspectingRole.type]?.tokenBg ||
+                  "bg-slate-800 border-amber-400 text-amber-200"
+                }
                 size="lg"
               />
               <div className="space-y-1 min-w-0 flex-1">
@@ -283,7 +313,10 @@ export function RoleCodexModal({
                 </p>
                 {inspectingWikiDetails?.script && (
                   <p className="text-xs text-slate-400">
-                    所属剧本：<span className="text-slate-200 font-semibold">{inspectingWikiDetails.script}</span>
+                    所属剧本：
+                    <span className="text-slate-200 font-semibold">
+                      {inspectingWikiDetails.script}
+                    </span>
                   </p>
                 )}
               </div>
@@ -296,7 +329,9 @@ export function RoleCodexModal({
                 <span>【角色能力】</span>
               </div>
               <p className="text-base sm:text-lg font-medium text-slate-100 leading-relaxed pl-1">
-                {inspectingWikiDetails?.abilityText || inspectingRole.ability || "无特殊能力描述"}
+                {inspectingWikiDetails?.abilityText ||
+                  inspectingRole.ability ||
+                  "无特殊能力描述"}
               </p>
             </div>
 
@@ -352,7 +387,8 @@ export function RoleCodexModal({
                   <span>💡</span>
                   <span>核心打法与发言建议</span>
                 </div>
-                {inspectingWikiDetails?.strategyTips && inspectingWikiDetails.strategyTips.length > 0 ? (
+                {inspectingWikiDetails?.strategyTips &&
+                inspectingWikiDetails.strategyTips.length > 0 ? (
                   <div className="space-y-2 pl-0.5">
                     {inspectingWikiDetails.strategyTips.map((tip, i) => (
                       <div
@@ -368,7 +404,8 @@ export function RoleCodexModal({
                   </div>
                 ) : (
                   <p className="text-xs sm:text-sm text-slate-400 pl-4">
-                    {inspectingWikiDetails?.overview || "暂无该角色的特殊玩法技巧说明。"}
+                    {inspectingWikiDetails?.overview ||
+                      "暂无该角色的特殊玩法技巧说明。"}
                   </p>
                 )}
               </div>
@@ -386,22 +423,52 @@ export function RoleCodexModal({
                 </div>
               )}
 
-              {/* 伪装思路推荐 */}
-              {inspectingWikiDetails?.bluffTips && inspectingWikiDetails.bluffTips.length > 0 && (
+              {/* 运作方式（官方 6 段式：1.4） */}
+              {inspectingWikiDetails?.operation && (
                 <div className="space-y-1.5 pt-2 border-t border-white/10">
-                  <div className="flex items-center gap-1 text-xs font-bold text-orange-400">
-                    <span>🎭</span>
-                    <span>伪装思路推荐</span>
+                  <div className="flex items-center gap-1 text-xs font-bold text-emerald-300">
+                    <span>📋</span>
+                    <span>运作方式</span>
                   </div>
-                  <div className="space-y-1.5 pl-2">
-                    {inspectingWikiDetails.bluffTips.map((bTip, idx) => (
-                      <p key={idx} className="text-xs text-slate-300 leading-relaxed">
-                        • {bTip}
-                      </p>
-                    ))}
-                  </div>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pl-2 whitespace-pre-line">
+                    {inspectingWikiDetails.operation}
+                  </p>
                 </div>
               )}
+
+              {/* 规则细节（官方 6 段式：1.6） */}
+              {inspectingWikiDetails?.ruleDetails && (
+                <div className="space-y-1.5 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-1 text-xs font-bold text-sky-300">
+                    <span>⚖️</span>
+                    <span>规则细节</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pl-2 whitespace-pre-line">
+                    {inspectingWikiDetails.ruleDetails}
+                  </p>
+                </div>
+              )}
+
+              {/* 伪装思路推荐 */}
+              {inspectingWikiDetails?.bluffTips &&
+                inspectingWikiDetails.bluffTips.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-white/10">
+                    <div className="flex items-center gap-1 text-xs font-bold text-orange-400">
+                      <span>🎭</span>
+                      <span>伪装思路推荐</span>
+                    </div>
+                    <div className="space-y-1.5 pl-2">
+                      {inspectingWikiDetails.bluffTips.map((bTip, idx) => (
+                        <p
+                          key={idx}
+                          className="text-xs text-slate-300 leading-relaxed"
+                        >
+                          • {bTip}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -474,7 +541,14 @@ export function RoleCodexModal({
             {/* 右侧：阵营过滤胶囊 + 搜索框 */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 text-xs">
-                {["all", "townsfolk", "outsider", "minion", "demon", "traveler"].map((type) => (
+                {[
+                  "all",
+                  "townsfolk",
+                  "outsider",
+                  "minion",
+                  "demon",
+                  "traveler",
+                ].map((type) => (
                   <button
                     key={type}
                     type="button"
@@ -498,7 +572,9 @@ export function RoleCodexModal({
                   placeholder="搜索角色名/技能..."
                   className="w-40 sm:w-48 px-3 py-1.5 pl-8 bg-black/50 border border-white/15 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
                 />
-                <span className="absolute left-2.5 top-2 text-xs text-slate-400">🔍</span>
+                <span className="absolute left-2.5 top-2 text-xs text-slate-400">
+                  🔍
+                </span>
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
@@ -525,7 +601,9 @@ export function RoleCodexModal({
                   <div key={type} className="space-y-3">
                     {/* 分组标题 */}
                     <div className="flex items-center gap-2 border-b border-white/10 pb-1.5">
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${config.bg} ${config.text} ${config.border}`}>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${config.bg} ${config.text} ${config.border}`}
+                      >
                         {config.label} ({rolesInGroup.length})
                       </span>
                     </div>
@@ -548,7 +626,8 @@ export function RoleCodexModal({
               /* 平铺网格展示 */
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {searchedRoles.map((role) => {
-                  const config = TYPE_CONFIG[role.type] || TYPE_CONFIG.townsfolk;
+                  const config =
+                    TYPE_CONFIG[role.type] || TYPE_CONFIG.townsfolk;
                   return (
                     <RoleCardItem
                       key={role.id}
@@ -564,8 +643,12 @@ export function RoleCodexModal({
             {searchedRoles.length === 0 && (
               <div className="py-20 text-center text-slate-400 space-y-2">
                 <span className="text-4xl">🔍</span>
-                <p className="text-base font-bold text-slate-300">未找到符合条件的角色</p>
-                <p className="text-xs text-slate-500">请尝试更换搜索关键字或重置阵营筛选条件</p>
+                <p className="text-base font-bold text-slate-300">
+                  未找到符合条件的角色
+                </p>
+                <p className="text-xs text-slate-500">
+                  请尝试更换搜索关键字或重置阵营筛选条件
+                </p>
               </div>
             )}
           </div>
@@ -592,17 +675,15 @@ function RoleCardItem({
     >
       {/* 头部：角色代币 + 名称 + 阵营标签 */}
       <div className="flex items-center gap-3">
-        <RoleTokenBadge
-          name={role.name}
-          tokenBg={config.tokenBg}
-          size="md"
-        />
+        <RoleTokenBadge name={role.name} tokenBg={config.tokenBg} size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <h4 className="text-base font-black text-slate-100 group-hover:text-amber-300 transition truncate">
               {role.name}
             </h4>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold border shrink-0 ${config.bg} ${config.text} ${config.border}`}>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded font-bold border shrink-0 ${config.bg} ${config.text} ${config.border}`}
+            >
               {config.label}
             </span>
           </div>
@@ -621,7 +702,9 @@ function RoleCardItem({
 
       {/* 底部小提示 */}
       <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-white/5">
-        <span className="text-slate-400 truncate">{role.script || "基础剧本"}</span>
+        <span className="text-slate-400 truncate">
+          {role.script || "基础剧本"}
+        </span>
         <span className="text-amber-400 font-bold group-hover:underline flex items-center gap-0.5">
           <span>查阅详情</span>
           <span>→</span>

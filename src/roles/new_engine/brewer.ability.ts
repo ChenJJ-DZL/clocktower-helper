@@ -105,6 +105,11 @@ export const brewerAbility = createRoleAbility({
   postProcess: [postProcess],
   // 全局机制声明：信息替换（管线 after_calculate 阶段自动应用）
   globalRules: [
-    { id: "brewer_override", type: "info_override", phase: "after_calculate", order: 10 },
+    {
+      id: "brewer_override",
+      type: "info_override",
+      phase: "after_calculate",
+      order: 10,
+    },
   ],
 });

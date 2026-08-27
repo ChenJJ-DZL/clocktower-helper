@@ -18,16 +18,23 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const demon = ctx.snapshot.seats.find(
-    (s: any) => !s.isDead && s.role?.type === "demon"
+  // 优先用 onSetup 阶段写入的 marionetteMasterSeatId（精确）
+  const selfSeat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
   );
+  const masterSeatId =
+    (selfSeat as any)?.marionetteMasterSeatId ??
+    ctx.snapshot.seats.find(
+      (s: any) => !s.isDead && s.role?.type === "demon"
+    )?.id ??
+    null;
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
         isMarionette: true,
-        demonSeatId: demon?.id ?? null,
+        demonSeatId: masterSeatId,
         thinksTheyAreGood: true,
       },
     },
@@ -75,4 +82,31 @@ export const marionetteAbility = createRoleAbility({
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],
+  // 提线木偶 setup：① 与恶魔邻座分配；② 准备"是提线木偶"提示标记；③ 记录 marionetteMasterSeatId
+  onSetup: (context: { seats: any[]; selfId: number }) => {
+    const { seats, selfId } = context;
+    const updates: Array<{ id: number; [key: string]: any }> = [];
+    // 找恶魔座位
+    const demonSeat = seats.find(
+      (s: any) => s.role?.type === "demon" && s.id !== selfId && !s.isDead
+    );
+    if (demonSeat) {
+      // 设置 marionetteMasterSeatId 标识（引擎/UI 可用）
+      const marionetteSeat = seats.find((s: any) => s.id === selfId);
+      if (marionetteSeat) {
+        updates.push({
+          id: selfId,
+          marionetteMasterSeatId: demonSeat.id,
+        });
+      }
+    }
+    return {
+      handled: true,
+      updates,
+      logs: {
+        privateLog: `提线木偶 setup 完成：master = ${demonSeat ? `${demonSeat.id + 1}号` : "未找到恶魔"}`,
+        publicLog: "",
+      },
+    };
+  },
 });

@@ -17,9 +17,25 @@ describe("VoteInputModal - 计票计算逻辑测试", () => {
 
   test("管家票规则：主人未投票时管家票计为0", () => {
     const seats = [
-      { id: 0, playerName: "玩家1", role: { id: "townsfolk", name: "镇长", type: "townsfolk" }, isDead: false },
-      { id: 1, playerName: "玩家2", role: { id: "butler", name: "管家", type: "outsider" }, masterId: 0, isDead: false },
-      { id: 2, playerName: "玩家3", role: { id: "imp", name: "小恶魔", type: "demon" }, isDead: false },
+      {
+        id: 0,
+        playerName: "玩家1",
+        role: { id: "townsfolk", name: "镇长", type: "townsfolk" },
+        isDead: false,
+      },
+      {
+        id: 1,
+        playerName: "玩家2",
+        role: { id: "butler", name: "管家", type: "outsider" },
+        masterId: 0,
+        isDead: false,
+      },
+      {
+        id: 2,
+        playerName: "玩家3",
+        role: { id: "imp", name: "小恶魔", type: "demon" },
+        isDead: false,
+      },
     ];
 
     const selectedVotersOnlyButler = [1];

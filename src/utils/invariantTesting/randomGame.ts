@@ -89,7 +89,11 @@ function buildRoster(
     pickFrom(outsiders, rng),
     ...shuffle(townsfolks, rng).slice(0, Math.max(0, playerCount - 3)),
   ];
-  return shuffle(roster, rng).map((r) => ({ id: r.id, name: r.name, type: r.type }));
+  return shuffle(roster, rng).map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+  }));
 }
 
 /** 构造一个座位 */
@@ -144,14 +148,35 @@ export function generateRandomGame(config: RandomGameConfig = {}): RandomGame {
     const currentSeats = seats.map((s) => {
       if (s.isDead) return s;
       // 跨夜重置：清空死亡标记，保留永久状态
-      const base = { ...s, markedForDeath: false, diedAtNight: undefined, killedBy: undefined, deathSource: undefined, deathSourceSeatId: undefined };
+      const base = {
+        ...s,
+        markedForDeath: false,
+        diedAtNight: undefined,
+        killedBy: undefined,
+        deathSource: undefined,
+        deathSourceSeatId: undefined,
+      };
       // 注入中毒/醉酒（作用于存活玩家）
       const effects: any[] = [...(base.statusEffects ?? [])];
-      if (poisonTargetId === s.id && !effects.some((e: any) => e.type === "poisoned")) {
-        effects.push({ type: "poisoned", source: "invariant_inject", sourceSeatId: -1 });
+      if (
+        poisonTargetId === s.id &&
+        !effects.some((e: any) => e.type === "poisoned")
+      ) {
+        effects.push({
+          type: "poisoned",
+          source: "invariant_inject",
+          sourceSeatId: -1,
+        });
       }
-      if (drunkTargetId === s.id && !effects.some((e: any) => e.type === "drunk")) {
-        effects.push({ type: "drunk", source: "invariant_inject", sourceSeatId: -1 });
+      if (
+        drunkTargetId === s.id &&
+        !effects.some((e: any) => e.type === "drunk")
+      ) {
+        effects.push({
+          type: "drunk",
+          source: "invariant_inject",
+          sourceSeatId: -1,
+        });
       }
       base.statusEffects = effects;
       base.isPoisoned = effects.some((e: any) => e.type === "poisoned");

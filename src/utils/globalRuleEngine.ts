@@ -160,7 +160,10 @@ function collectEvilTargets(ctx: MiddlewareContext): MiddlewareContext {
   };
 }
 
-const INTERPRETERS: Record<string, (ctx: MiddlewareContext) => MiddlewareContext> = {
+const INTERPRETERS: Record<
+  string,
+  (ctx: MiddlewareContext) => MiddlewareContext
+> = {
   target_redirect: redirectTargets,
   info_override: overrideInfo,
   target_collect: collectEvilTargets,

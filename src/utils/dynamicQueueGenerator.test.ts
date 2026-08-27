@@ -32,7 +32,10 @@ describe("dynamicQueueGenerator", () => {
       gamePhase: "firstNight",
       seats: [
         seat(0, "washerwoman"),
-        seat(1, "drunk", { type: "outsider", charadeRole: { id: "chef", name: "厨师", type: "townsfolk" } }),
+        seat(1, "drunk", {
+          type: "outsider",
+          charadeRole: { id: "chef", name: "厨师", type: "townsfolk" },
+        }),
       ],
       statusEffects: {},
     };

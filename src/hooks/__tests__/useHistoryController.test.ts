@@ -10,7 +10,7 @@
  * 6. nominationRecords 的 Set ↔ Array 序列化往返
  * 7. reminderTokens 纳入快照
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 // 由于 useHistoryController 依赖 React Context，这里直接测试核心逻辑：
 // 1. SNAPSHOT_KEYS 列表完整性
@@ -21,11 +21,21 @@ import { describe, it, expect } from "vitest";
 // 注意：这些是纯函数测试，不依赖 React 渲染
 
 const SNAPSHOT_KEYS = [
-  "seats", "gamePhase", "nightCount", "executedPlayerId",
-  "wakeQueueIds", "currentWakeIndex", "selectedActionTargets",
-  "gameLogs", "currentHint", "selectedScript",
-  "reminderTokens", "todayExecutedId", "nominationRecords",
-  "deadThisNight", "nightActionQueue",
+  "seats",
+  "gamePhase",
+  "nightCount",
+  "executedPlayerId",
+  "wakeQueueIds",
+  "currentWakeIndex",
+  "selectedActionTargets",
+  "gameLogs",
+  "currentHint",
+  "selectedScript",
+  "reminderTokens",
+  "todayExecutedId",
+  "nominationRecords",
+  "deadThisNight",
+  "nightActionQueue",
 ];
 
 function restoreSnapshot(snapshot: Record<string, any>) {
@@ -109,10 +119,14 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
         seats: [{ id: 0, role: { id: "imp" } }],
         gamePhase: "firstNight",
         nightCount: 1,
-        reminderTokens: { 0: [{ id: "rt_1", icon: "☠️", label: "中毒", color: "red" }] },
+        reminderTokens: {
+          0: [{ id: "rt_1", icon: "☠️", label: "中毒", color: "red" }],
+        },
       };
       const snap = createSnapshot(state);
-      expect(snap.reminderTokens).toEqual({ 0: [{ id: "rt_1", icon: "☠️", label: "中毒", color: "red" }] });
+      expect(snap.reminderTokens).toEqual({
+        0: [{ id: "rt_1", icon: "☠️", label: "中毒", color: "red" }],
+      });
       // 确保是深拷贝
       snap.reminderTokens[0].push({ id: "rt_2" } as any);
       expect(state.reminderTokens[0]).toHaveLength(1);
@@ -122,7 +136,10 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
       const state = {
         seats: [],
         gamePhase: "dusk",
-        nominationRecords: { nominators: new Set([1, 2]), nominees: new Set([3]) },
+        nominationRecords: {
+          nominators: new Set([1, 2]),
+          nominees: new Set([3]),
+        },
       };
       const snap = createSnapshot(state);
       expect(Array.isArray(snap.nominationRecords.nominators)).toBe(true);
@@ -152,8 +169,15 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
     });
 
     it("正确捕获 nightActionQueue", () => {
-      const queue = [{ id: 0, role: { id: "poisoner" } }, { id: 1, role: { id: "washerwoman" } }];
-      const state = { seats: [], gamePhase: "firstNight", nightActionQueue: queue };
+      const queue = [
+        { id: 0, role: { id: "poisoner" } },
+        { id: 1, role: { id: "washerwoman" } },
+      ];
+      const state = {
+        seats: [],
+        gamePhase: "firstNight",
+        nightActionQueue: queue,
+      };
       const snap = createSnapshot(state);
       expect(snap.nightActionQueue).toHaveLength(2);
       // 深拷贝
@@ -208,7 +232,10 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
         selectedScript: { id: "tb", name: "Trouble Brewing" },
         reminderTokens: { 0: [{ id: "rt1", icon: "☠️", label: "中毒" }] },
         todayExecutedId: null,
-        nominationRecords: { nominators: new Set([0, 1]), nominees: new Set([2]) },
+        nominationRecords: {
+          nominators: new Set([0, 1]),
+          nominees: new Set([2]),
+        },
         deadThisNight: [],
         nightActionQueue: [{ id: 0, role: { id: "poisoner" } }],
       };
@@ -218,7 +245,9 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
 
       expect(restored.gamePhase).toBe("firstNight");
       expect(restored.nightCount).toBe(1);
-      expect(restored.reminderTokens).toEqual({ 0: [{ id: "rt1", icon: "☠️", label: "中毒" }] });
+      expect(restored.reminderTokens).toEqual({
+        0: [{ id: "rt1", icon: "☠️", label: "中毒" }],
+      });
       expect(restored.todayExecutedId).toBeNull();
       expect(restored.nominationRecords.nominators).toBeInstanceOf(Set);
       expect([...restored.nominationRecords.nominators]).toEqual([0, 1]);
@@ -235,9 +264,8 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
 
       function save(state: Record<string, any>) {
         const snap = createSnapshot(state);
-        const truncated = historyIndex >= 0
-          ? history.slice(0, historyIndex + 1)
-          : history;
+        const truncated =
+          historyIndex >= 0 ? history.slice(0, historyIndex + 1) : history;
         history = [...truncated, snap].slice(-200);
         historyIndex = history.length - 1;
       }
@@ -245,7 +273,9 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
       function undo() {
         if (historyIndex < 0) return null;
         historyIndex--;
-        return historyIndex >= 0 ? restoreSnapshot(history[historyIndex]) : null;
+        return historyIndex >= 0
+          ? restoreSnapshot(history[historyIndex])
+          : null;
       }
 
       function redo() {
@@ -269,7 +299,11 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
       const tl = createTimeline();
       tl.save({ seats: [], gamePhase: "setup", reminderTokens: {} });
       tl.save({ seats: [{ id: 0 }], gamePhase: "check", reminderTokens: {} });
-      tl.save({ seats: [{ id: 0 }], gamePhase: "firstNight", reminderTokens: { 0: [{ id: "rt1" }] } });
+      tl.save({
+        seats: [{ id: 0 }],
+        gamePhase: "firstNight",
+        reminderTokens: { 0: [{ id: "rt1" }] },
+      });
 
       expect(tl.canUndo()).toBe(true);
       expect(tl.canRedo()).toBe(false);
@@ -288,7 +322,11 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
     it("撤销后重做恢复正确状态", () => {
       const tl = createTimeline();
       tl.save({ seats: [], gamePhase: "setup", reminderTokens: {} });
-      tl.save({ seats: [], gamePhase: "firstNight", reminderTokens: { 0: [{ id: "rt1" }] } });
+      tl.save({
+        seats: [],
+        gamePhase: "firstNight",
+        reminderTokens: { 0: [{ id: "rt1" }] },
+      });
 
       tl.undo();
       expect(tl.canRedo()).toBe(true);
@@ -318,7 +356,11 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
     it("reminderTokens 原子撤销：添加后撤销回到无标记状态", () => {
       const tl = createTimeline();
       tl.save({ seats: [], gamePhase: "firstNight", reminderTokens: {} });
-      tl.save({ seats: [], gamePhase: "firstNight", reminderTokens: { 0: [{ id: "rt1", icon: "☠️", label: "中毒" }] } });
+      tl.save({
+        seats: [],
+        gamePhase: "firstNight",
+        reminderTokens: { 0: [{ id: "rt1", icon: "☠️", label: "中毒" }] },
+      });
 
       const undone = tl.undo()!;
       expect(undone.reminderTokens).toEqual({});

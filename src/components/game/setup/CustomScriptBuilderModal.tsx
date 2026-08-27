@@ -17,31 +17,29 @@ interface CustomScriptBuilderModalProps {
 }
 
 /** 阵营徽章配色 */
-const TYPE_BADGE: Record<
-  string,
-  { bg: string; text: string; border: string }
-> = {
-  townsfolk: {
-    bg: "bg-blue-900/40",
-    text: "text-blue-300",
-    border: "border-blue-600/40",
-  },
-  outsider: {
-    bg: "bg-purple-900/40",
-    text: "text-purple-300",
-    border: "border-purple-600/40",
-  },
-  minion: {
-    bg: "bg-orange-900/40",
-    text: "text-orange-300",
-    border: "border-orange-600/40",
-  },
-  demon: {
-    bg: "bg-red-900/40",
-    text: "text-red-300",
-    border: "border-red-600/40",
-  },
-};
+const TYPE_BADGE: Record<string, { bg: string; text: string; border: string }> =
+  {
+    townsfolk: {
+      bg: "bg-blue-900/40",
+      text: "text-blue-300",
+      border: "border-blue-600/40",
+    },
+    outsider: {
+      bg: "bg-purple-900/40",
+      text: "text-purple-300",
+      border: "border-purple-600/40",
+    },
+    minion: {
+      bg: "bg-orange-900/40",
+      text: "text-orange-300",
+      border: "border-orange-600/40",
+    },
+    demon: {
+      bg: "bg-red-900/40",
+      text: "text-red-300",
+      border: "border-red-600/40",
+    },
+  };
 
 /** 标准配比（7~15人） */
 const STD_COMP: Record<
@@ -91,7 +89,9 @@ function validateComposition(
     if (level === "ok") level = "warning";
   }
   if (selectedIds.size > 0 && selectedIds.size < 7) {
-    messages.push(`💡 当前已选 ${selectedIds.size} 个角色，建议至少选 7 个角色`);
+    messages.push(
+      `💡 当前已选 ${selectedIds.size} 个角色，建议至少选 7 个角色`
+    );
     if (level === "ok") level = "warning";
   }
 
@@ -269,12 +269,9 @@ export function CustomScriptBuilderModal({
             {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.outsider ??
               "?"}
             外 +{" "}
-            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.minion ??
-              "?"}
+            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.minion ?? "?"}
             爪 +{" "}
-            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.demon ??
-              "?"}
-            恶
+            {STD_COMP[Math.min(15, Math.max(7, selectedCount))]?.demon ?? "?"}恶
           </>
         ) : (
           "未选择任何角色"
@@ -588,5 +585,3 @@ export function CustomScriptBuilderModal({
     </ModalWrapper>
   );
 }
-
-

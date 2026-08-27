@@ -58,23 +58,23 @@
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
-import {
+  getDemonKillImmunityType,
   isImmuneToDemonKill,
-  soldierImmunityLog,
   mayorImmunityLog,
   mayorSubstituteLog,
   pickMayorSubstitute,
-  getDemonKillImmunityType,
   resolveMayorDemonKill,
+  soldierImmunityLog,
 } from "../../utils/soldierImmunity";
 import {
   isTaowuSeat,
-  tryTaowuSubstitute,
   taowuSubstituteLog,
+  tryTaowuSubstitute,
 } from "../../utils/taowuImmunity";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -180,11 +180,22 @@ function findAliveMinions(
   seats: PlayerLookup[],
   excludeId: number
 ): PlayerLookup[] {
-  return seats.filter((s: PlayerLookup) => {
+  const minions = seats.filter((s: PlayerLookup) => {
     if (s.id === excludeId) return false;
     if (s.isDead || s.isAlive === false) return false;
     return getRoleType(s) === "minion";
   });
+
+  // 官方规则与用户设定：自杀不受人数限制，只要有存活爪牙即可触发。如果有存活的红唇女郎，默认排在首位推荐
+  const swIndex = minions.findIndex(
+    (m) => m.role?.id === "scarlet_woman" && !m.isDrunk && !m.isPoisoned
+  );
+  if (swIndex !== -1) {
+    const sw = minions.splice(swIndex, 1)[0];
+    return [sw, ...minions];
+  }
+
+  return minions;
 }
 
 /**
@@ -354,7 +365,8 @@ const stateUpdateResult = async (
       const explicitSuccessorId = storytellerInput?.successorSeatId;
       const successor =
         explicitSuccessorId !== undefined
-          ? (aliveMinions.find((s: any) => s.id === explicitSuccessorId) ?? aliveMinions[0])
+          ? (aliveMinions.find((s: any) => s.id === explicitSuccessorId) ??
+            aliveMinions[0])
           : aliveMinions[Math.floor(Math.random() * aliveMinions.length)];
       const successorIdx = updatedSeats.findIndex(
         (s: any) => s.id === successor.id
@@ -395,7 +407,11 @@ const stateUpdateResult = async (
         targetSeat.isProtected;
       const aliveCount = updatedSeats.filter((s: any) => !s.isDead).length;
       const soldierImmune = isImmuneToDemonKill(targetSeat, true, aliveCount);
-      const mayorRes = resolveMayorDemonKill(updatedSeats, targetSeat, aliveCount);
+      const mayorRes = resolveMayorDemonKill(
+        updatedSeats,
+        targetSeat,
+        aliveCount
+      );
 
       if (isProtected) {
         record.log = record.log || {};

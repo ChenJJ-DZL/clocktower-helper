@@ -1,10 +1,16 @@
 import { describe, expect, test } from "vitest";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
-import { impAbility } from "../../new_engine/imp.ability";
 import { resolveMayorDemonKill } from "../../../utils/soldierImmunity";
+import { impAbility } from "../../new_engine/imp.ability";
 
-function mkSeat(id: number, roleId: string, roleName: string, type: string, extra: any = {}) {
+function mkSeat(
+  id: number,
+  roleId: string,
+  roleName: string,
+  type: string,
+  extra: any = {}
+) {
   return {
     id,
     playerName: "P" + (id + 1),
@@ -25,7 +31,10 @@ function mkSeat(id: number, roleId: string, roleName: string, type: string, extr
  * @param targetSeat 目标座位（镇长）
  * @param aliveSeats 其他存活座位（用于计算存活玩家数）
  */
-function buildImpKillMayorCtx(targetSeat: any, aliveSeats: any[]): MiddlewareContext {
+function buildImpKillMayorCtx(
+  targetSeat: any,
+  aliveSeats: any[]
+): MiddlewareContext {
   return {
     snapshot: {
       nightCount: 2,
@@ -72,7 +81,7 @@ describe("镇长替死固定概率机制（5%自己死亡，95%镇民替代死�
     expect(res.isMayor).toBe(true);
     expect(res.substituted).toBe(true);
     expect(res.substituteSeat).toBeDefined();
-    expect([2, 3]).toContain(res.substituteSeat.id);
+    expect([1, 2, 3]).toContain(res.substituteSeat.id);
     expect(res.reason).toBe("substituted_95_percent");
   });
 
@@ -89,7 +98,9 @@ describe("镇长替死固定概率机制（5%自己死亡，95%镇民替代死�
   });
 
   test("resolveMayorDemonKill: 醉酒或中毒时替死失效，镇长自己死亡", () => {
-    const drunkMayor = mkSeat(0, "mayor", "镇长", "townsfolk", { isDrunk: true });
+    const drunkMayor = mkSeat(0, "mayor", "镇长", "townsfolk", {
+      isDrunk: true,
+    });
     const chef = mkSeat(2, "chef", "厨师", "townsfolk");
     const seats = [drunkMayor, mkSeat(1, "imp", "小恶魔", "demon"), chef];
 
@@ -109,10 +120,11 @@ describe("镇长替死固定概率机制（5%自己死亡，95%镇民替代死�
     expect(res.reason).toBe("no_candidates");
   });
 
-  test("resolveMayorDemonKill: 无可用存活镇民可替代时，镇长自己死亡", () => {
+  test("resolveMayorDemonKill: 场上无其他存活玩家可替代时，镇长自己死亡", () => {
     const mayor = mkSeat(0, "mayor", "镇长", "townsfolk");
-    const poisoner = mkSeat(2, "poisoner", "投毒者", "minion");
-    const seats = [mayor, mkSeat(1, "imp", "小恶魔", "demon"), poisoner];
+    const dead1 = mkSeat(1, "imp", "小恶魔", "demon", { isDead: true });
+    const dead2 = mkSeat(2, "poisoner", "投毒者", "minion", { isDead: true });
+    const seats = [mayor, dead1, dead2];
 
     const res = resolveMayorDemonKill(seats, mayor, 3, 0.9);
     expect(res.isMayor).toBe(true);
@@ -122,7 +134,7 @@ describe("镇长替死固定概率机制（5%自己死亡，95%镇民替代死�
 });
 
 describe("小恶魔攻击镇长完整管道集成测试", () => {
-  test("受攻击且触发替死时，替代镇民标记死亡，镇长存活", async () => {
+  test("受攻击且触发替死时，替代存活玩家标记死亡，镇长存活", async () => {
     const mayor = mkSeat(0, "mayor", "镇长", "townsfolk");
     const chef = mkSeat(2, "chef", "厨师", "townsfolk");
     const empath = mkSeat(3, "empath", "共情者", "townsfolk");
@@ -134,8 +146,8 @@ describe("小恶魔攻击镇长完整管道集成测试", () => {
     const deadSeats = seats.filter((s: any) => s.markedForDeath === true);
     expect(deadSeats.length).toBe(1);
 
-    // 死亡的必定是镇长(5%)或者替代镇民(95%)之一
-    expect([0, 2, 3]).toContain(deadSeats[0].id);
+    // 死亡的必定是镇长(5%)或者替代存活玩家(95%)之一
+    expect([0, 1, 2, 3]).toContain(deadSeats[0].id);
     if (deadSeats[0].id === 0) {
       expect(deadSeats[0].deathSource).toBe("imp_kill");
     } else {
@@ -183,4 +195,3 @@ describe("小恶魔攻击镇长完整管道集成测试", () => {
     expect(deadOthers.length).toBe(0);
   });
 });
-

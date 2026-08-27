@@ -166,6 +166,9 @@ export interface GameSnapshot {
   lastExecutedPlayerId: number | null;
   fangGuConvertedSeatId: number | null;
   seats?: any[];
+  selectedScript?: any;
+  scriptId?: string;
+  scriptName?: string;
 }
 
 // 对局记录数据结构

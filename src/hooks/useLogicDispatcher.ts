@@ -2,8 +2,8 @@ import { type Dispatch, type SetStateAction, useCallback, useRef } from "react";
 import type { GamePhase, Seat } from "@/app/data";
 import type { GameAction } from "@/app/gameLogic";
 import { processGameEvent } from "@/app/gameLogic";
-import { computeIsPoisoned } from "../utils/gameRules";
 import { applyActorVictoryFlip } from "../utils/actorVictory";
+import { computeIsPoisoned } from "../utils/gameRules";
 
 export function useLogicDispatcher(
   seats: Seat[],
@@ -57,7 +57,8 @@ export function useLogicDispatcher(
         if (!victoryRef.current) {
           if (snapshot.nextActionHint === "BARBER_SWAP_NEEDED") {
             const demon = snapshot.seats.find(
-              (s) => (s.role?.type === "demon" || s.isDemonSuccessor) && !s.isDead
+              (s) =>
+                (s.role?.type === "demon" || s.isDemonSuccessor) && !s.isDead
             );
             if (demon) {
               setCurrentModal({

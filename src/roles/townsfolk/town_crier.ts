@@ -94,7 +94,12 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:128-0!canonical and tim
           close: "",
         };
       }
-      const info = buildInfoMessage("town_crier", { seats: context?.seats ?? [], selfId: playerSeatId, nightCount: context?.nightCount ?? 0, minionNominatedToday: context?.minionNominatedToday ?? false });
+      const info = buildInfoMessage("town_crier", {
+        seats: context?.seats ?? [],
+        selfId: playerSeatId,
+        nightCount: context?.nightCount ?? 0,
+        minionNominatedToday: context?.minionNominatedToday ?? false,
+      });
       return {
         wake: `唤醒${playerSeatId + 1}号【城镇公告员】，${info ?? "请执行行动"}`,
         instruction: info ? "（以上为告知信息）" : "请执行行动",

@@ -20,10 +20,13 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
-  const targetIds = ctx.targetIds?.length >= 3
-    ? ctx.targetIds.slice(0, 3)
-    : ctx.actionNode.targetIds?.slice(0, 3) ?? [];
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const targetIds =
+    ctx.targetIds?.length >= 3
+      ? ctx.targetIds.slice(0, 3)
+      : (ctx.actionNode.targetIds?.slice(0, 3) ?? []);
 
   return {
     ...ctx,
@@ -38,7 +41,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.targetIds?.length) return ctx;
   return {
@@ -55,9 +60,13 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const targets = (r?.targetIds ?? []).map((id: number) => `${id + 1}号`).join("、");
+  const targets = (r?.targetIds ?? [])
+    .map((id: number) => `${id + 1}号`)
+    .join("、");
   const log = `[AlHadikhia] 哈迪哈选择: ${targets || "无"}`;
   return {
     ...ctx,

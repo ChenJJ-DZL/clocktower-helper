@@ -64,8 +64,13 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
       }
     >
       <div className="space-y-3 text-left">
-        <p className="text-base text-slate-200">目标玩家：<strong className="text-white">{modal.targetId + 1}号</strong></p>
-        <p className="text-base text-purple-300">要求扮演角色：<strong>{modal.roleName}</strong></p>
+        <p className="text-base text-slate-200">
+          目标玩家：
+          <strong className="text-white">{modal.targetId + 1}号</strong>
+        </p>
+        <p className="text-base text-purple-300">
+          要求扮演角色：<strong>{modal.roleName}</strong>
+        </p>
         <p className="text-sm text-slate-400 leading-relaxed">
           该玩家需要在白天和夜晚“疯狂”地证明自己是这个角色，否则可能被说书人直接处决。
         </p>

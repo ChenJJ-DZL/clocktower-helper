@@ -216,12 +216,16 @@ function isEvilForChef(seat: PlayerLookup): boolean {
  */
 function resolveRecluseForChef(
   seatId: number,
-  meta: Record<string, any>
+  meta: Record<string, any>,
+  ctx?: MiddlewareContext
 ): boolean {
   const key = `chef_recluse_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = true; // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
+  // 测试注入：说书人可显式指定
+  const forced = (ctx as any)?.storytellerInput?.forceChefRecluseEvil;
+  const result =
+    forced === true ? true : forced === false ? false : Math.random() < 0.5;
   meta[key] = result;
   return result;
 }
@@ -235,11 +239,17 @@ function resolveRecluseForChef(
  * 一致性保证：使用 meta 缓存首次判定结果。
  * 返回 true 表示「被当作善良，不记为邪恶」。
  */
-function resolveSpyForChef(seatId: number, meta: Record<string, any>): boolean {
+function resolveSpyForChef(
+  seatId: number,
+  meta: Record<string, any>,
+  ctx?: MiddlewareContext
+): boolean {
   const key = `chef_spy_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = true; // 🔧 间谍判定为善良：100% 触发（不再 50% 随机）
+  const forced = (ctx as any)?.storytellerInput?.forceChefSpyGood;
+  const result =
+    forced === true ? true : forced === false ? false : Math.random() < 0.5;
   meta[key] = result;
   return result;
 }
@@ -252,19 +262,20 @@ function resolveSpyForChef(seatId: number, meta: Record<string, any>): boolean {
  */
 function isEffectivelyEvil(
   seat: PlayerLookup,
-  meta: Record<string, any>
+  meta: Record<string, any>,
+  ctx: MiddlewareContext
 ): boolean {
   const roleId = seat.role?.id ?? seat.roleId ?? "";
   const baseIsEvil = isEvilForChef(seat);
 
   // Recluse：可能被当作邪恶（无论原本阵营）
   if (roleId === "recluse") {
-    return resolveRecluseForChef(seat.id, meta);
+    return resolveRecluseForChef(seat.id, meta, ctx);
   }
 
   // Spy：可能被当作善良（不记为邪恶）
   if (roleId === "spy") {
-    const registersAsGood = resolveSpyForChef(seat.id, meta);
+    const registersAsGood = resolveSpyForChef(seat.id, meta, ctx);
     return registersAsGood ? false : baseIsEvil;
   }
 
@@ -288,7 +299,8 @@ function isEffectivelyEvil(
  */
 function countEvilPairs(
   seats: PlayerLookup[],
-  meta: Record<string, any>
+  meta: Record<string, any>,
+  ctx: MiddlewareContext
 ): number {
   const count = seats.length;
   if (count < 2) return 0;
@@ -299,8 +311,8 @@ function countEvilPairs(
     const current = seats[i];
     const next = seats[(i + 1) % count];
 
-    const currentEvil = isEffectivelyEvil(current, meta);
-    const nextEvil = isEffectivelyEvil(next, meta);
+    const currentEvil = isEffectivelyEvil(current, meta, ctx);
+    const nextEvil = isEffectivelyEvil(next, meta, ctx);
 
     if (currentEvil && nextEvil) {
       pairs++;
@@ -383,7 +395,7 @@ const calculateResult = async (
   // 优先级 4：动态计算
   else {
     evilPairCount = abilityEffective
-      ? countEvilPairs(seats, meta)
+      ? countEvilPairs(seats, meta, context)
       : generateFakePairCount(seats, null);
   }
 

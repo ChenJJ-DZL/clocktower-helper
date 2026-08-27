@@ -4,8 +4,8 @@
  * 修复: 取消注释，用统一命名 devils_advocate
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import { createSettlementPostProcess } from "../../utils/abilitySettlement";
+import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -49,12 +49,67 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
   describe("第一轮：首夜进场能力、认知覆盖与信息隔离", () => {
     it("范例 1-1 (罂粟种植者+镜像双子+洗脑师+提线木偶+涡流)：存活罂粟首夜取消爪牙互认，恶魔不获知爪牙与木偶，双子与洗脑师独立唤醒", () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "evil_twin", name: "镜像双子", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 2, playerName: "P3", role: { id: "cerenovus", name: "洗脑师", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 3, playerName: "P4", role: { id: "marionette", name: "提线木偶", type: "minion" }, charadeRole: { id: "monk", name: "僧侣", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: true, isPoisoned: false, statusEffects: [] },
-        { id: 4, playerName: "P5", role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 5, playerName: "P6", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "evil_twin", name: "镜像双子", type: "minion" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          playerName: "P3",
+          role: { id: "cerenovus", name: "洗脑师", type: "minion" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 3,
+          playerName: "P4",
+          role: { id: "marionette", name: "提线木偶", type: "minion" },
+          charadeRole: { id: "monk", name: "僧侣", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: true,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 4,
+          playerName: "P5",
+          role: { id: "vortox", name: "涡流", type: "demon" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 5,
+          playerName: "P6",
+          role: { id: "monk", name: "僧侣", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const snapshot: any = {
@@ -65,7 +120,11 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
         poppyGrowerDead: false,
       };
 
-      const queue = generateDynamicNightQueue(ENGINE_CONFIG.fullNightOrder, snapshot, { isFirstNight: true });
+      const queue = generateDynamicNightQueue(
+        ENGINE_CONFIG.fullNightOrder,
+        snapshot,
+        { isFirstNight: true }
+      );
       // 1. 验证 minion_info 不在队列
       expect(queue.find((q) => q.roleId === "minion_info")).toBeUndefined();
 
@@ -92,14 +151,59 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
 
     it("范例 1-2 (小精灵 Pixie 首夜感知)：首夜得知 1 名在场镇民", async () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "pixie", name: "小精灵", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 2, playerName: "P3", role: { id: "imp", name: "小恶魔", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "pixie", name: "小精灵", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          playerName: "P3",
+          role: { id: "imp", name: "小恶魔", type: "demon" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const ctx: MiddlewareContext = {
-        snapshot: { nightCount: 1, gamePhase: "firstNight", seats, statusEffects: {}, isVortoxWorld: false, statusEffectMap: {} } as any,
-        actionNode: { seatId: 0, roleId: "pixie", roleName: "小精灵", priority: 35, isFirstNightOnly: true, abilityId: "pixie_first_night", targetIds: [], processed: false, success: false, meta: {} } as any,
+        snapshot: {
+          nightCount: 1,
+          gamePhase: "firstNight",
+          seats,
+          statusEffects: {},
+          isVortoxWorld: false,
+          statusEffectMap: {},
+        } as any,
+        actionNode: {
+          seatId: 0,
+          roleId: "pixie",
+          roleName: "小精灵",
+          priority: 35,
+          isFirstNightOnly: true,
+          abilityId: "pixie_first_night",
+          targetIds: [],
+          processed: false,
+          success: false,
+          meta: {},
+        } as any,
         targetIds: [],
         meta: {},
         aborted: false,
@@ -112,14 +216,59 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
 
     it("范例 1-3 (赏金猎人 Bounty Hunter 首夜知晓邪恶玩家与轮转)：首夜得知邪恶，死亡后轮转", async () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "imp", name: "小恶魔", type: "demon" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          playerName: "P3",
+          role: { id: "monk", name: "僧侣", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const ctx: MiddlewareContext = {
-        snapshot: { nightCount: 1, gamePhase: "firstNight", seats, statusEffects: {}, isVortoxWorld: false, statusEffectMap: {} } as any,
-        actionNode: { seatId: 0, roleId: "bounty_hunter", roleName: "赏金猎人", priority: 40, isFirstNightOnly: false, abilityId: "bounty_hunter_reveal", targetIds: [], processed: false, success: false, meta: {} } as any,
+        snapshot: {
+          nightCount: 1,
+          gamePhase: "firstNight",
+          seats,
+          statusEffects: {},
+          isVortoxWorld: false,
+          statusEffectMap: {},
+        } as any,
+        actionNode: {
+          seatId: 0,
+          roleId: "bounty_hunter",
+          roleName: "赏金猎人",
+          priority: 40,
+          isFirstNightOnly: false,
+          abilityId: "bounty_hunter_reveal",
+          targetIds: [],
+          processed: false,
+          success: false,
+          meta: {},
+        } as any,
         targetIds: [],
         meta: {},
         aborted: false,
@@ -127,7 +276,9 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
 
       const res = await runFullAbilityPipeline(pipe(bounty_hunterAbility), ctx);
       expect(res.aborted).toBe(false);
-      expect(res.meta?.bountyHunterResult || res.meta?.bounty_hunter).toBeDefined();
+      expect(
+        res.meta?.bountyHunterResult || res.meta?.bounty_hunter
+      ).toBeDefined();
     });
 
     it("范例 1-4 (告密者 Snitch 首夜伪装下发)：即使罂粟种植者在场，爪牙也能单独唤醒获取 3 伪装", () => {
@@ -142,12 +293,39 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
   describe("第二轮：白天与黄昏行动、疯狂与胜负结算", () => {
     it("范例 2-1 (博学者 Savant)：说书人给出 1 真 1 假两条信息", async () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "savant", name: "博学者", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "savant", name: "博学者", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const ctx: MiddlewareContext = {
-        snapshot: { nightCount: 1, gamePhase: "day", seats, statusEffects: {}, isVortoxWorld: false, statusEffectMap: {} } as any,
-        actionNode: { seatId: 0, roleId: "savant", roleName: "博学者", priority: 0, isFirstNightOnly: false, abilityId: "savant_day_ability", targetIds: [], processed: false, success: false, meta: { statement1: "1号是善良的", statement2: "2号是恶魔" } } as any,
+        snapshot: {
+          nightCount: 1,
+          gamePhase: "day",
+          seats,
+          statusEffects: {},
+          isVortoxWorld: false,
+          statusEffectMap: {},
+        } as any,
+        actionNode: {
+          seatId: 0,
+          roleId: "savant",
+          roleName: "博学者",
+          priority: 0,
+          isFirstNightOnly: false,
+          abilityId: "savant_day_ability",
+          targetIds: [],
+          processed: false,
+          success: false,
+          meta: { statement1: "1号是善良的", statement2: "2号是恶魔" },
+        } as any,
         targetIds: [],
         meta: { statement1: "1号是善良的", statement2: "2号是恶魔" },
         aborted: false,
@@ -159,9 +337,36 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
 
     it("范例 2-2 (杂耍艺人 Juggler)：第 1 天进行 5 次猜测，次夜获取正确猜测数量", async () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "imp", name: "小恶魔", type: "demon" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          playerName: "P3",
+          role: { id: "monk", name: "僧侣", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const ctx: MiddlewareContext = {
@@ -177,7 +382,18 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
             { targetSeatId: 2, guessedRole: "fortune_teller" },
           ],
         } as any,
-        actionNode: { seatId: 0, roleId: "juggler", roleName: "杂耍艺人", priority: 25, isFirstNightOnly: false, abilityId: "juggler_night_ability", targetIds: [], processed: false, success: false, meta: {} } as any,
+        actionNode: {
+          seatId: 0,
+          roleId: "juggler",
+          roleName: "杂耍艺人",
+          priority: 25,
+          isFirstNightOnly: false,
+          abilityId: "juggler_night_ability",
+          targetIds: [],
+          processed: false,
+          success: false,
+          meta: {},
+        } as any,
         targetIds: [],
         meta: {},
         aborted: false,
@@ -214,13 +430,49 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
   describe("第三轮：夜间轮转、死亡转移与状态联动", () => {
     it("范例 3-1 (洗脑师 Cerenovus 疯狂夜间下发)：每夜指定 1 名玩家与善良角色使其疯狂", async () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "cerenovus", name: "洗脑师", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "cerenovus", name: "洗脑师", type: "minion" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "monk", name: "僧侣", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const ctx: MiddlewareContext = {
-        snapshot: { nightCount: 2, gamePhase: "night", seats, statusEffects: {}, isVortoxWorld: false, statusEffectMap: {} } as any,
-        actionNode: { seatId: 0, roleId: "cerenovus", roleName: "洗脑师", priority: 20, isFirstNightOnly: false, abilityId: "cerenovus_madness", targetIds: [1], processed: false, success: false, meta: { chosenRole: "fortune_teller" } } as any,
+        snapshot: {
+          nightCount: 2,
+          gamePhase: "night",
+          seats,
+          statusEffects: {},
+          isVortoxWorld: false,
+          statusEffectMap: {},
+        } as any,
+        actionNode: {
+          seatId: 0,
+          roleId: "cerenovus",
+          roleName: "洗脑师",
+          priority: 20,
+          isFirstNightOnly: false,
+          abilityId: "cerenovus_madness",
+          targetIds: [1],
+          processed: false,
+          success: false,
+          meta: { chosenRole: "fortune_teller" },
+        } as any,
         targetIds: [1],
         meta: { chosenRole: "fortune_teller" },
         aborted: false,
@@ -237,14 +489,60 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
 
     it("范例 3-3 (占卜师 Fortune Teller 查验红罗刹)：查验恶魔或红罗刹均返回肯定答复", async () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isRedHerring: true, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 2, playerName: "P3", role: { id: "librarian", name: "图书管理员", type: "townsfolk" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "monk", name: "僧侣", type: "townsfolk" },
+          isRedHerring: true,
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          playerName: "P3",
+          role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const ctx: MiddlewareContext = {
-        snapshot: { nightCount: 1, gamePhase: "firstNight", seats, statusEffects: {}, isVortoxWorld: false, statusEffectMap: {} } as any,
-        actionNode: { seatId: 0, roleId: "fortune_teller", roleName: "占卜师", priority: 30, isFirstNightOnly: false, abilityId: "fortune_teller_investigate", targetIds: [1, 2], processed: false, success: false, meta: {} } as any,
+        snapshot: {
+          nightCount: 1,
+          gamePhase: "firstNight",
+          seats,
+          statusEffects: {},
+          isVortoxWorld: false,
+          statusEffectMap: {},
+        } as any,
+        actionNode: {
+          seatId: 0,
+          roleId: "fortune_teller",
+          roleName: "占卜师",
+          priority: 30,
+          isFirstNightOnly: false,
+          abilityId: "fortune_teller_investigate",
+          targetIds: [1, 2],
+          processed: false,
+          success: false,
+          meta: {},
+        } as any,
         targetIds: [1, 2],
         meta: {},
         aborted: false,
@@ -256,9 +554,36 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
 
     it("范例 3-4 (罂粟种植者死亡触发邪恶互认)：罂粟种植者死亡后，当晚队列生成 minion_info 与 demon_info", () => {
       const seats: any[] = [
-        { id: 0, playerName: "P1", role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" }, isDead: true, isAlive: false, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 1, playerName: "P2", role: { id: "cerenovus", name: "洗脑师", type: "minion" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
-        { id: 2, playerName: "P3", role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false, isAlive: true, isDrunk: false, isPoisoned: false, statusEffects: [] },
+        {
+          id: 0,
+          playerName: "P1",
+          role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" },
+          isDead: true,
+          isAlive: false,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 1,
+          playerName: "P2",
+          role: { id: "cerenovus", name: "洗脑师", type: "minion" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
+        {
+          id: 2,
+          playerName: "P3",
+          role: { id: "vortox", name: "涡流", type: "demon" },
+          isDead: false,
+          isAlive: true,
+          isDrunk: false,
+          isPoisoned: false,
+          statusEffects: [],
+        },
       ];
 
       const snapshot: any = {
@@ -269,7 +594,11 @@ describe("《罂粟花开》 (Poppyganda) 3 轮针对性多场景范例与 UI �
         poppyGrowerDead: true,
       };
 
-      const queue = generateDynamicNightQueue(ENGINE_CONFIG.fullNightOrder, snapshot, { isFirstNight: false });
+      const queue = generateDynamicNightQueue(
+        ENGINE_CONFIG.fullNightOrder,
+        snapshot,
+        { isFirstNight: false }
+      );
       const minionInfoStep = queue.find((q) => q.roleId === "minion_info");
       const demonInfoStep = queue.find((q) => q.roleId === "demon_info");
       expect(minionInfoStep).toBeDefined();

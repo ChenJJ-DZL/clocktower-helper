@@ -6,11 +6,11 @@ import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import type { ModalType } from "../types/modal";
 import type { DayActionContext } from "../types/roleDefinition";
-import { showAlert } from "../utils/nativeDialogShim";
 import {
   checkCannotGainAbility,
   isAntagonismEnabled,
 } from "../utils/antagonism";
+import { showAlert } from "../utils/nativeDialogShim";
 
 /**
  * DayAbilityConfig 类型重新声明（与 useGameController 中一致）
@@ -190,9 +190,7 @@ export function useDayActions(deps: DayActionsDeps) {
       }
 
       if (nomineesSet.has(id)) {
-        addLog(
-          `每名玩家每个黄昏只能被提名一次（${id + 1}号本黄昏已被提名过）`
-        );
+        addLog(`每名玩家每个黄昏只能被提名一次（${id + 1}号本黄昏已被提名过）`);
         return false;
       }
 
@@ -230,7 +228,7 @@ export function useDayActions(deps: DayActionsDeps) {
           target.hasUsedVirginAbility ||
           (target as any).hasBeenNominated ||
           (target as any).abilityUsed ||
-          (virginOverride?.isFirstTime === false)
+          virginOverride?.isFirstTime === false
         );
 
         if (isVirginUsed) {
@@ -363,8 +361,20 @@ export function useDayActions(deps: DayActionsDeps) {
 
       setNominationRecords(
         (prev: { nominators: Set<number>; nominees: Set<number> }) => ({
-          nominators: new Set(prev?.nominators ? (prev.nominators instanceof Set ? prev.nominators : prev.nominators) : []).add(sourceId),
-          nominees: new Set(prev?.nominees ? (prev.nominees instanceof Set ? prev.nominees : prev.nominees) : []).add(id),
+          nominators: new Set(
+            prev?.nominators
+              ? prev.nominators instanceof Set
+                ? prev.nominators
+                : prev.nominators
+              : []
+          ).add(sourceId),
+          nominees: new Set(
+            prev?.nominees
+              ? prev.nominees instanceof Set
+                ? prev.nominees
+                : prev.nominees
+              : []
+          ).add(id),
         })
       );
       addLog(`${sourceId + 1}号提名 ${id + 1}号`);
@@ -560,9 +570,7 @@ export function useDayActions(deps: DayActionsDeps) {
             !s.charadeRole
         );
       if (!targetSeat) {
-        addLog(
-          "[handleDrunkCharadeSelect] 未找到需要设置伪装身份的座位"
-        );
+        addLog("[handleDrunkCharadeSelect] 未找到需要设置伪装身份的座位");
         setCurrentModal(null);
         continueToNextAction();
         return;
@@ -579,7 +587,9 @@ export function useDayActions(deps: DayActionsDeps) {
         prevSeats.map((s) => {
           if (s.id === targetSeat.id) {
             const roleName = s.role?.name || "角色";
-            addLog(`为 ${s.id + 1}号 ${roleName} 设置伪装身份：${selectedRole.name}`);
+            addLog(
+              `为 ${s.id + 1}号 ${roleName} 设置伪装身份：${selectedRole.name}`
+            );
             return {
               ...s,
               charadeRole: selectedRole,
@@ -672,8 +682,7 @@ export function useDayActions(deps: DayActionsDeps) {
       if (!sourceSeat || !sourceSeat.role) return;
 
       const isCharade =
-        sourceSeat.role.id === "drunk" ||
-        sourceSeat.role.id === "marionette";
+        sourceSeat.role.id === "drunk" || sourceSeat.role.id === "marionette";
       const effectiveRole = isCharade
         ? sourceSeat.charadeRole || sourceSeat.role
         : sourceSeat.role;
@@ -753,8 +762,7 @@ export function useDayActions(deps: DayActionsDeps) {
       if (!sourceSeat || !sourceSeat.role) return;
 
       const isCharade =
-        sourceSeat.role.id === "drunk" ||
-        sourceSeat.role.id === "marionette";
+        sourceSeat.role.id === "drunk" || sourceSeat.role.id === "marionette";
       const effectiveRole = isCharade
         ? sourceSeat.charadeRole || sourceSeat.role
         : sourceSeat.role;
@@ -810,7 +818,8 @@ export function useDayActions(deps: DayActionsDeps) {
       ) {
         if (
           (sourceSeat.hasUsedDayAbility ||
-            (effectiveRole.id === "slayer" && sourceSeat.hasUsedSlayerAbility)) &&
+            (effectiveRole.id === "slayer" &&
+              sourceSeat.hasUsedSlayerAbility)) &&
           effectiveRole.id !== "savant_mr"
         ) {
           handleViewDayAbilityResult(sourceSeatId);
@@ -966,8 +975,11 @@ export function useDayActions(deps: DayActionsDeps) {
         }
 
         const targetRole = targetSeat.role;
+        // 官方规则：如果目标是恶魔、恶魔继承者、或被说书人注册为恶魔的陌客
         const isDemon =
-          targetRole?.type === "demon" || targetSeat.isDemonSuccessor;
+          targetRole?.type === "demon" ||
+          targetSeat.isDemonSuccessor ||
+          (targetRole?.id === "recluse" && (targetSeat as any).registerAsDemon);
         const isRealSlayer =
           sourceSeat.role?.id === "slayer" &&
           !sourceSeat.isDrunk &&
@@ -980,8 +992,31 @@ export function useDayActions(deps: DayActionsDeps) {
             onAfterKill: () => {
               logMessage += " -> 🎯 命中！恶魔死亡！";
               addLog(logMessage);
-              addLog("猎手的子弹击中了恶魔，按照规则游戏立即结束");
-              setWinReason("猎手击杀恶魔");
+
+              // 检查是否有红唇女郎继任（死前≥5人存活，即幸存≥4人）
+              const aliveCount = seats.filter(
+                (s) =>
+                  !s.isDead &&
+                  s.id !== targetSeatId &&
+                  s.role?.type !== "traveler"
+              ).length;
+              const hasScarletWomanSuccessor = seats.some(
+                (s) =>
+                  s.role?.id === "scarlet_woman" &&
+                  !s.isDead &&
+                  !s.isDrunk &&
+                  !s.isPoisoned &&
+                  aliveCount >= 4
+              );
+
+              if (!hasScarletWomanSuccessor) {
+                addLog("猎手的子弹击中了恶魔，善良阵营获胜！");
+                setWinReason("猎手击杀恶魔");
+              } else {
+                addLog(
+                  "猎手的子弹击中了恶魔，但红唇女郎（存活≥4人）继承为新的恶魔，游戏继续！"
+                );
+              }
               alert(
                 `🎯 杀手射击成功！\n${targetSeatId + 1}号 [${targetRole?.name || "未知"}] 死亡！`
               );

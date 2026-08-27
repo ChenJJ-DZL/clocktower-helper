@@ -22,11 +22,21 @@ export interface UseHistoryControllerResult {
  * 快照字段列表：所有需要在 undo/redo 时恢复的状态字段
  */
 const SNAPSHOT_KEYS = [
-  "seats", "gamePhase", "nightCount", "executedPlayerId",
-  "wakeQueueIds", "currentWakeIndex", "selectedActionTargets",
-  "gameLogs", "currentHint", "selectedScript",
-  "reminderTokens", "todayExecutedId", "nominationRecords",
-  "deadThisNight", "nightActionQueue",
+  "seats",
+  "gamePhase",
+  "nightCount",
+  "executedPlayerId",
+  "wakeQueueIds",
+  "currentWakeIndex",
+  "selectedActionTargets",
+  "gameLogs",
+  "currentHint",
+  "selectedScript",
+  "reminderTokens",
+  "todayExecutedId",
+  "nominationRecords",
+  "deadThisNight",
+  "nightActionQueue",
 ] as const;
 
 /**
@@ -69,7 +79,9 @@ export function useHistoryController(): UseHistoryControllerResult {
 
   const saveHistory = useCallback(() => {
     const snapshot: Record<string, any> = {
-      seats: state.seats ? JSON.parse(JSON.stringify(state.seats)) : state.seats,
+      seats: state.seats
+        ? JSON.parse(JSON.stringify(state.seats))
+        : state.seats,
       gamePhase: state.gamePhase,
       nightCount: state.nightCount,
       executedPlayerId: state.executedPlayerId,
@@ -98,9 +110,8 @@ export function useHistoryController(): UseHistoryControllerResult {
     };
 
     // 截断 forward history（undo 后执行新操作 → 丢弃被撤销的未来）
-    const truncated = historyIndex >= 0
-      ? history.slice(0, historyIndex + 1)
-      : history;
+    const truncated =
+      historyIndex >= 0 ? history.slice(0, historyIndex + 1) : history;
 
     const newHistory = [...truncated, snapshot].slice(-200);
     dispatch(
@@ -203,6 +214,13 @@ export function useHistoryController(): UseHistoryControllerResult {
       canUndo,
       canRedo,
     }),
-    [saveHistory, handleStepBack, handleGlobalUndo, handleRedo, canUndo, canRedo]
+    [
+      saveHistory,
+      handleStepBack,
+      handleGlobalUndo,
+      handleRedo,
+      canUndo,
+      canRedo,
+    ]
   );
 }

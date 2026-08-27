@@ -333,7 +333,8 @@ body > * {
 /* 1. 背景底盘与边框 */
 .theme-classic body,
 .theme-classic #__next {
-  background: #0d0818 url('/assets/table-bg.png') center center / cover no-repeat fixed !important;
+  background:
+    #0d0818 url("/assets/table-bg.png") center center / cover no-repeat fixed !important;
   color: #f6ead0 !important;
 }
 
@@ -359,7 +360,9 @@ body > * {
 .theme-classic .font-black {
   font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
   color: #f5dfab !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 12px rgba(232, 201, 138, 0.3) !important;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(232, 201, 138, 0.3) !important;
 }
 
 .theme-classic p,
@@ -383,7 +386,9 @@ body > * {
 .theme-classic [class*="bg-slate-800"] {
   background-color: rgba(14, 9, 24, 0.88) !important;
   border-color: rgba(201, 151, 63, 0.35) !important;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 236, 196, 0.12) !important;
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 236, 196, 0.12) !important;
 }
 
 .theme-classic .topbar-frost,
@@ -408,14 +413,22 @@ body > * {
 
 /* 4. 圆桌中央指南针 HUD */
 .theme-classic .pointer-events-auto.rounded-3xl {
-  background: radial-gradient(circle, rgba(24, 14, 38, 0.94) 0%, rgba(12, 7, 20, 0.98) 100%) !important;
+  background: radial-gradient(
+    circle,
+    rgba(24, 14, 38, 0.94) 0%,
+    rgba(12, 7, 20, 0.98) 100%
+  ) !important;
   border: 2px solid rgba(217, 181, 106, 0.5) !important;
-  box-shadow: 0 0 35px rgba(217, 181, 106, 0.25), inset 0 0 20px rgba(0, 0, 0, 0.8) !important;
+  box-shadow:
+    0 0 35px rgba(217, 181, 106, 0.25),
+    inset 0 0 20px rgba(0, 0, 0, 0.8) !important;
 }
 
 /* 5. 圆桌代币 */
 .theme-classic .seat-node > div:first-child {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.85), inset 0 2px 4px rgba(255, 255, 255, 0.25) !important;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.85),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25) !important;
   border-width: 3.5px !important;
 }
 
@@ -456,49 +469,86 @@ body > * {
   font-family: "Noto Serif SC", "Songti SC", serif;
   font-weight: 900 !important;
   color: #fffbeb !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.9) !important;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.9) !important;
 }
 
 /* 座位序号：立体烫金圆章 */
 .theme-classic .seat-node .rounded-full.border-2 {
-  background: linear-gradient(180deg, #f5dfab 0%, #d9b56a 50%, #92691f 100%) !important;
+  background: linear-gradient(
+    180deg,
+    #f5dfab 0%,
+    #d9b56a 50%,
+    #92691f 100%
+  ) !important;
   border-color: #3e2609 !important;
   color: #241206 !important;
   font-family: "Noto Serif SC", serif !important;
   font-weight: 900 !important;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.85),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
 }
 
 /* 6. 主操作按钮：高光立体琥珀金拟物胶囊 */
 .theme-classic .btn-arcane-primary {
-  background: linear-gradient(180deg, #f59e0b 0%, #d97706 50%, #b45309 100%) !important;
+  background: linear-gradient(
+    180deg,
+    #f59e0b 0%,
+    #d97706 50%,
+    #b45309 100%
+  ) !important;
   border: 2px solid #fde68a !important;
   color: #ffffff !important;
   font-weight: 800 !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
-  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    0 6px 20px rgba(217, 119, 6, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
   border-radius: 1rem !important;
 }
 
 .theme-classic .btn-arcane-primary:hover {
-  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
-  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.6), inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
+  background: linear-gradient(
+    180deg,
+    #fbbf24 0%,
+    #f59e0b 50%,
+    #d97706 100%
+  ) !important;
+  box-shadow:
+    0 8px 24px rgba(245, 158, 11, 0.6),
+    inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
 }
 
 /* 6.1 次级/告知操作按钮：高光立体宝石蓝拟物胶囊 */
 .theme-classic .btn-arcane-info {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%) !important;
+  background: linear-gradient(
+    180deg,
+    #3b82f6 0%,
+    #2563eb 50%,
+    #1d4ed8 100%
+  ) !important;
   border: 2px solid #93c5fd !important;
   color: #ffffff !important;
   font-weight: 800 !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    0 6px 20px rgba(37, 99, 235, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
   border-radius: 1rem !important;
 }
 
 .theme-classic .btn-arcane-info:hover {
-  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%) !important;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.6), inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
+  background: linear-gradient(
+    180deg,
+    #60a5fa 0%,
+    #3b82f6 50%,
+    #2563eb 100%
+  ) !important;
+  box-shadow:
+    0 8px 24px rgba(59, 130, 246, 0.6),
+    inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════

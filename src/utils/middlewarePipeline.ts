@@ -5,10 +5,7 @@
 
 import type { IRoleAbility } from "../roles/core/roleAbility.types";
 import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
-import {
-  applyRulesByPhase,
-  collectGlobalRules,
-} from "./globalRuleEngine";
+import { applyRulesByPhase, collectGlobalRules } from "./globalRuleEngine";
 import type {
   AbilityMiddlewareSet,
   MiddlewareContext,

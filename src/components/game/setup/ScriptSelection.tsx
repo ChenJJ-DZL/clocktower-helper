@@ -5,17 +5,42 @@ import {
   type GamePhase,
   roles,
   type Script,
-  scripts,
   type Seat,
+  scripts,
 } from "../../../../app/data";
 import { gameActions, useGameContext } from "../../../contexts/GameContext";
+import { useTheme } from "../../../contexts/ThemeContext";
 import { useGameState } from "../../../hooks/useGameState";
-import { loadGameRecords } from "../../../utils/persistence";
+import type { GameRecord } from "../../../types/game";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
+import {
+  clearCurrentSnapshot,
+  isRealUnfinishedGame,
+  loadCurrentSnapshot,
+  loadGameRecords,
+} from "../../../utils/persistence";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { RoleCodexModal } from "../../modals/RoleCodexModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
-import { useTheme } from "../../../contexts/ThemeContext";
+
+function getPhaseDisplayName(phase?: string): string {
+  switch (phase) {
+    case "firstNight":
+      return "首夜行动阶段";
+    case "night":
+      return "夜晚行动阶段";
+    case "nightSummary":
+      return "天亮黎明播报";
+    case "day":
+      return "白天自由讨论";
+    case "dusk":
+      return "黄昏提名阶段";
+    case "voting":
+      return "处决投票阶段";
+    default:
+      return phase || "进行中";
+  }
+}
 
 interface ScriptSelectionProps {
   onScriptSelect: (script: Script) => void;
@@ -23,10 +48,6 @@ interface ScriptSelectionProps {
   setGameLogs: (logs: any[]) => void;
   setGamePhase: (phase: GamePhase) => void;
   onContinue?: (record: any) => void;
-  /** 未完成的对局快照（页面刷新后检测到） */
-  pendingResume?: any | null;
-  /** 用户选择不恢复时清除快照 */
-  onResumeDismiss?: () => void;
 }
 
 export default function ScriptSelection({
@@ -35,8 +56,6 @@ export default function ScriptSelection({
   setGameLogs,
   setGamePhase,
   onContinue,
-  pendingResume,
-  onResumeDismiss,
 }: ScriptSelectionProps) {
   const { theme, requestTheme } = useTheme();
   const { dispatch } = useGameContext();
@@ -45,6 +64,10 @@ export default function ScriptSelection({
   const [showBuilderModal, setShowBuilderModal] = useState(false);
   const [showRecords, setShowRecords] = useState(false);
   const [showCodexModal, setShowCodexModal] = useState(false);
+  const [confirmResumeTarget, setConfirmResumeTarget] = useState<{
+    script: Script;
+    record: GameRecord;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 加载本地自定义剧本
@@ -68,7 +91,7 @@ export default function ScriptSelection({
     return () => clearTimeout(timer);
   }, [dispatch]);
 
-  const handleScriptClick = (script: Script) => {
+  const startFreshGame = (script: Script) => {
     // 保存选择剧本前的状态到历史记录
     saveHistory();
     onScriptSelect(script);
@@ -76,38 +99,87 @@ export default function ScriptSelection({
 
     // 🎯 根据剧本的官方人数上限创建对应数量的空座位（如无上愉悦为 8 个，暗流涌动为 15 个）
     const targetSeatCount = script.maxPlayers || 15;
-    const initialSeats: Seat[] = Array.from({ length: targetSeatCount }, (_, i) => ({
-      id: i,
-      playerName: `玩家 ${i + 1}`,
-      role: null,
-      charadeRole: null,
-      isDead: false,
-      isDrunk: false,
-      isPoisoned: false,
-      isProtected: false,
-      protectedBy: null,
-      isRedHerring: false,
-      isFortuneTellerRedHerring: false,
-      isSentenced: false,
-      masterId: null,
-      hasUsedSlayerAbility: false,
-      hasUsedVirginAbility: false,
-      isDemonSuccessor: false,
-      hasAbilityEvenDead: false,
-      statusDetails: [],
-      statuses: [],
-      voteCount: 0,
-      isCandidate: false,
-      grandchildId: null,
-      isGrandchild: false,
-      isFirstDeathForZombuul: false,
-      isZombuulTrulyDead: false,
-      zombuulLives: 1,
-    }));
+    const initialSeats: Seat[] = Array.from(
+      { length: targetSeatCount },
+      (_, i) => ({
+        id: i,
+        playerName: `玩家 ${i + 1}`,
+        role: null,
+        charadeRole: null,
+        isDead: false,
+        isDrunk: false,
+        isPoisoned: false,
+        isProtected: false,
+        protectedBy: null,
+        isRedHerring: false,
+        isFortuneTellerRedHerring: false,
+        isSentenced: false,
+        masterId: null,
+        hasUsedSlayerAbility: false,
+        hasUsedVirginAbility: false,
+        isDemonSuccessor: false,
+        hasAbilityEvenDead: false,
+        statusDetails: [],
+        statuses: [],
+        voteCount: 0,
+        isCandidate: false,
+        grandchildId: null,
+        isGrandchild: false,
+        isFirstDeathForZombuul: false,
+        isZombuulTrulyDead: false,
+        zombuulLives: 1,
+      })
+    );
 
     dispatch(gameActions.setSeats(initialSeats));
     dispatch(gameActions.updateState({ initialSeats, selectedScript: script }));
     setGamePhase("setup");
+  };
+
+  const handleScriptClick = (script: Script) => {
+    // 检查是否存在属于当前剧本的真实未完成对局
+    const snap = loadCurrentSnapshot();
+    if (isRealUnfinishedGame(snap)) {
+      let matchesThisScript = false;
+      if (
+        snap!.selectedScript?.id === script.id ||
+        snap!.scriptId === script.id ||
+        snap!.scriptName === script.name
+      ) {
+        matchesThisScript = true;
+      } else {
+        const seatRoleIds = (snap!.seats || [])
+          .map((s: any) => s.role?.id)
+          .filter(Boolean);
+        if (
+          script.roleIds &&
+          script.roleIds.length > 0 &&
+          seatRoleIds.some((rid: string) => script.roleIds?.includes(rid))
+        ) {
+          matchesThisScript = true;
+        }
+      }
+
+      if (matchesThisScript) {
+        const record: GameRecord = {
+          id: `resume_${Date.now()}`,
+          scriptName: script.name,
+          startTime: snap!.startTime ?? new Date().toISOString(),
+          endTime: new Date().toISOString(),
+          duration: 0,
+          winResult: (snap!.winResult as "good" | "evil" | null) ?? null,
+          winReason: snap!.winReason ?? null,
+          seats: snap!.seats ?? [],
+          gameLogs: (snap as any).history ?? [],
+          isCompleted: false,
+          snapshot: snap!,
+        };
+        setConfirmResumeTarget({ script, record });
+        return;
+      }
+    }
+
+    startFreshGame(script);
   };
 
   const handleDeleteCustomScript = (e: React.MouseEvent, scriptId: string) => {
@@ -277,39 +349,6 @@ export default function ScriptSelection({
           </p>
           <p className="text-sm text-slate-500">更多剧本开发中</p>
 
-          {/* 未完成对局恢复提示 */}
-          {pendingResume && (
-            <div className="mx-auto max-w-md mt-4 p-4 rounded-2xl border border-amber-500/40 bg-amber-950/30 backdrop-blur-sm">
-              <p className="text-amber-300 font-bold text-sm mb-2">
-                ⏳ 检测到未完成的对局
-              </p>
-              <p className="text-amber-100/80 text-xs mb-3">
-                {pendingResume.scriptName
-                  ? `剧本：${pendingResume.scriptName}`
-                  : "有未保存的游戏进度"}
-                {pendingResume.snapshot?.gamePhase
-                  ? ` · 阶段：${pendingResume.snapshot.gamePhase}`
-                  : ""}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    if (onContinue) onContinue(pendingResume);
-                  }}
-                  className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition-colors"
-                >
-                  ▶ 继续上局
-                </button>
-                <button
-                  onClick={onResumeDismiss}
-                  className="px-4 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 text-sm transition-colors"
-                >
-                  忽略
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="pt-4 flex justify-center gap-4">
             <button
               onClick={() => setShowBuilderModal(true)}
@@ -377,7 +416,9 @@ export default function ScriptSelection({
                   <div className="flex items-center justify-between gap-3">
                     <div
                       className={`text-xl md:text-2xl font-black truncate ${
-                        isUnofficial ? "text-amber-100 drop-shadow-sm" : "text-slate-50"
+                        isUnofficial
+                          ? "text-amber-100 drop-shadow-sm"
+                          : "text-slate-50"
                       }`}
                     >
                       {script.name}
@@ -389,7 +430,9 @@ export default function ScriptSelection({
                           : "bg-purple-500/20 text-purple-200"
                       }`}
                     >
-                      {isUnofficial ? "非官方剧本" : `难度：${script.difficulty}`}
+                      {isUnofficial
+                        ? "非官方剧本"
+                        : `难度：${script.difficulty}`}
                     </span>
                   </div>
 
@@ -403,14 +446,18 @@ export default function ScriptSelection({
                       }`}
                     >
                       <span>👥</span>
-                      <span>建议人数：{script.recommendedPlayers || "7-15人"}</span>
+                      <span>
+                        建议人数：{script.recommendedPlayers || "7-15人"}
+                      </span>
                     </span>
 
                     <div className="flex items-center gap-2">
                       {script.id.startsWith("custom_") && (
                         <button
                           className="text-red-400 hover:text-red-300 mr-1 z-10 relative text-xs cursor-pointer font-bold"
-                          onClick={(e) => handleDeleteCustomScript(e, script.id)}
+                          onClick={(e) =>
+                            handleDeleteCustomScript(e, script.id)
+                          }
                           title="删除自定义剧本"
                         >
                           ✕ 删除
@@ -418,7 +465,9 @@ export default function ScriptSelection({
                       )}
                       <span
                         className={`group-hover:translate-x-0.5 transition-transform text-sm font-bold whitespace-nowrap ${
-                          isUnofficial ? "text-amber-300 group-hover:text-amber-100" : "text-purple-300"
+                          isUnofficial
+                            ? "text-amber-300 group-hover:text-amber-100"
+                            : "text-purple-300"
                         }`}
                       >
                         进入配置 &raquo;
@@ -463,6 +512,99 @@ export default function ScriptSelection({
           isOpen={true}
           onClose={() => setShowCodexModal(false)}
         />
+      )}
+
+      {/* 针对特定剧本的未完成对局恢复确认弹窗 */}
+      {confirmResumeTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-5 text-center relative">
+            {/* 关闭按钮 */}
+            <button
+              onClick={() => setConfirmResumeTarget(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white text-lg p-1 cursor-pointer"
+              title="取消并返回"
+            >
+              ✕
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-3xl mx-auto">
+              ⏳
+            </div>
+
+            <div>
+              <h3 className="text-xl font-black text-slate-100 mb-1">
+                检测到未完成对局
+              </h3>
+              <p className="text-sm text-amber-300/90 font-medium">
+                剧本：{confirmResumeTarget.script.name}
+              </p>
+            </div>
+
+            <div className="bg-black/40 border border-white/10 rounded-2xl p-4 text-left space-y-2 text-xs text-slate-300">
+              <div className="flex justify-between">
+                <span className="text-slate-400">当前阶段：</span>
+                <span className="font-bold text-amber-200">
+                  {getPhaseDisplayName(
+                    confirmResumeTarget.record.snapshot?.gamePhase
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">进行轮数：</span>
+                <span className="font-bold text-slate-200">
+                  第 {confirmResumeTarget.record.snapshot?.nightCount || 1}{" "}
+                  {confirmResumeTarget.record.snapshot?.gamePhase?.includes(
+                    "night"
+                  ) ||
+                  confirmResumeTarget.record.snapshot?.gamePhase ===
+                    "firstNight"
+                    ? "夜"
+                    : "天"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">存活人数：</span>
+                <span className="font-bold text-slate-200">
+                  {
+                    (confirmResumeTarget.record.snapshot?.seats || []).filter(
+                      (s: any) => !s.isDead
+                    ).length
+                  }{" "}
+                  / {(confirmResumeTarget.record.snapshot?.seats || []).length}{" "}
+                  人
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              您想要继续该剧本上一局的对局进度，还是清除历史进度开启全新对局？
+            </p>
+
+            <div className="flex flex-col gap-2.5 pt-2">
+              <button
+                onClick={() => {
+                  if (onContinue) {
+                    onContinue(confirmResumeTarget.record);
+                  }
+                  setConfirmResumeTarget(null);
+                }}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-base shadow-lg shadow-amber-500/25 transition-all cursor-pointer active:scale-98"
+              >
+                ▶ 继续上局对局
+              </button>
+              <button
+                onClick={() => {
+                  clearCurrentSnapshot();
+                  startFreshGame(confirmResumeTarget.script);
+                  setConfirmResumeTarget(null);
+                }}
+                className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm border border-slate-700 transition-colors cursor-pointer"
+              >
+                🔄 重新开始新对局
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

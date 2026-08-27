@@ -9,9 +9,17 @@ import * as path from "path";
 const WIKI = path.join(__dirname, "json", "wiki_crawl");
 const FULL = path.join(__dirname, "json", "full");
 
-const wikiRoles = JSON.parse(fs.readFileSync(path.join(WIKI, "parsed_roles.json"), "utf-8")) as Array<{
-  wikiName: string; type: string; enName: string | null;
-  ability: string; intro: string; operate: string; example: string; markers: string;
+const wikiRoles = JSON.parse(
+  fs.readFileSync(path.join(WIKI, "parsed_roles.json"), "utf-8")
+) as Array<{
+  wikiName: string;
+  type: string;
+  enName: string | null;
+  ability: string;
+  intro: string;
+  operate: string;
+  example: string;
+  markers: string;
 }>;
 
 const localChars = JSON.parse(
@@ -55,7 +63,8 @@ let added = 0;
 for (const r of wikiRoles) {
   // 本地已有（中文名或英文名匹配）则跳过
   if (localNames.has(r.wikiName)) continue;
-  if (r.enName && localChars.some((c) => norm(c.名称) === norm(r.wikiName))) continue;
+  if (r.enName && localChars.some((c) => norm(c.名称) === norm(r.wikiName)))
+    continue;
 
   const script = SCRIPT_BY_TYPE[r.type] ?? r.type;
   const entry: any = {
@@ -83,22 +92,29 @@ for (const r of wikiRoles) {
 
 // 写入文件：华灯初上角色.json / 山雨欲来角色.json / 官方补充.json / 实验性角色补充.json
 for (const [script, entries] of Object.entries(byScript)) {
-  const fname = script.includes("华灯") ? "华灯初上角色.json"
-    : script.includes("山雨") ? "山雨欲来角色.json"
-    : script.includes("实验") ? "实验性角色补充.json"
-    : "官方补充角色.json";
+  const fname = script.includes("华灯")
+    ? "华灯初上角色.json"
+    : script.includes("山雨")
+      ? "山雨欲来角色.json"
+      : script.includes("实验")
+        ? "实验性角色补充.json"
+        : "官方补充角色.json";
   const file = path.join(FULL, fname);
   // 合并已有文件（若存在）
   let existing: any[] = [];
   if (fs.existsSync(file)) {
-    try { existing = JSON.parse(fs.readFileSync(file, "utf-8")); } catch {}
+    try {
+      existing = JSON.parse(fs.readFileSync(file, "utf-8"));
+    } catch {}
   }
   const merged = [...existing];
   for (const e of entries) {
     if (!merged.some((m) => m.名称 === e.名称)) merged.push(e);
   }
   fs.writeFileSync(file, JSON.stringify(merged, null, 1), "utf-8");
-  console.log(`${fname}: ${entries.length} 个新角色 → 文件共 ${merged.length} 个`);
+  console.log(
+    `${fname}: ${entries.length} 个新角色 → 文件共 ${merged.length} 个`
+  );
 }
 
 console.log(`\n回填完成: 共新增 ${added} 个角色`);

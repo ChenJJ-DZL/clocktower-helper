@@ -26,12 +26,8 @@ function seatIsEvil(seat: Seat | undefined): boolean {
 
 /** 恶魔与最近爪牙的邻座距离（钟表匠；无爪牙返回 null） */
 function demonMinionDistance(seats: Seat[]): number | null {
-  const demons = seats.filter(
-    (s) => !s.isDead && s.role?.type === "demon"
-  );
-  const minions = seats.filter(
-    (s) => !s.isDead && s.role?.type === "minion"
-  );
+  const demons = seats.filter((s) => !s.isDead && s.role?.type === "demon");
+  const minions = seats.filter((s) => !s.isDead && s.role?.type === "minion");
   if (demons.length === 0 || minions.length === 0) return null;
   let best: number | null = null;
   for (const d of demons) {
@@ -77,7 +73,7 @@ export function buildInfoMessage(
     case "clockmaker": {
       const dist = demonMinionDistance(seats);
       return dist === null
-        ? `告诉他：场上没有恶魔或爪牙（无距离信息）。`
+        ? "告诉他：场上没有恶魔或爪牙（无距离信息）。"
         : `告诉他：恶魔与最近爪牙的距离是 ${dist}。`;
     }
     case "sage":

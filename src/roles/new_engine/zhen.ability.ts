@@ -14,12 +14,12 @@
  * 非目标玩家选择。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   canUseLimitedAbility,
   consumeLimitedAbility,
   registerLimitedAbilityDefinition,
 } from "../../utils/LimitedAbilityManager";
+import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -49,7 +49,11 @@ const preCheckAlive = async (
     return { ...ctx, aborted: true, abortReason: "首夜，鸩不行动" };
   }
   if (!canUseLimitedAbility(ctx.actionNode.seatId, "zhen_poison")) {
-    return { ...ctx, aborted: true, abortReason: "鸩的能力已使用完毕（每局限一次）" };
+    return {
+      ...ctx,
+      aborted: true,
+      abortReason: "鸩的能力已使用完毕（每局限一次）",
+    };
   }
   return ctx;
 };
@@ -80,7 +84,9 @@ const calculateResult = async (
 const stateUpdateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const abilityResult = ctx.meta.abilityResult as { roleId: string } | undefined;
+  const abilityResult = ctx.meta.abilityResult as
+    | { roleId: string }
+    | undefined;
   if (!abilityResult) return ctx;
 
   const { roleId } = abilityResult;
@@ -89,7 +95,8 @@ const stateUpdateResult = async (
 
   // 找该镇民角色的存活玩家（若多名在场，仅一名受鸩影响）
   const targetSeat = seats.find(
-    (s: any) => !s.isDead && s.role?.id === roleId && s.role?.type === "townsfolk"
+    (s: any) =>
+      !s.isDead && s.role?.id === roleId && s.role?.type === "townsfolk"
   );
 
   const record: Record<string, any> = {

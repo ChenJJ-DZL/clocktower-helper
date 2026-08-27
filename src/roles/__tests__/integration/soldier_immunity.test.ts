@@ -3,7 +3,13 @@ import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
 import { impAbility } from "../../new_engine/imp.ability";
 
-function mkSeat(id: number, roleId: string, roleName: string, type: string, extra: any = {}) {
+function mkSeat(
+  id: number,
+  roleId: string,
+  roleName: string,
+  type: string,
+  extra: any = {}
+) {
   return {
     id,
     playerName: "P" + (id + 1),

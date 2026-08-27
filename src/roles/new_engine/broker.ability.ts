@@ -128,6 +128,11 @@ export const brokerAbility = createRoleAbility({
   postProcess: [postProcess],
   // 全局机制声明：目标重定向（管线 before_calculate 阶段自动应用）
   globalRules: [
-    { id: "broker_redirect", type: "target_redirect", phase: "before_calculate", order: 10 },
+    {
+      id: "broker_redirect",
+      type: "target_redirect",
+      phase: "before_calculate",
+      order: 10,
+    },
   ],
 });

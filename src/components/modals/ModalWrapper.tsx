@@ -95,7 +95,10 @@ export function ModalWrapper({
         }
       }}
     >
-      <FadeIn duration={0.2} className="absolute inset-0 bg-black/75 backdrop-blur-sm">
+      <FadeIn
+        duration={0.2}
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+      >
         <div />
       </FadeIn>
 
@@ -114,7 +117,9 @@ export function ModalWrapper({
                 ? "100%"
                 : "min(90vw, 42rem)",
             maxWidth:
-              className?.includes("max-w-7xl") || className?.includes("w-[98vw]") || className?.includes("w-[96vw]")
+              className?.includes("max-w-7xl") ||
+              className?.includes("w-[98vw]") ||
+              className?.includes("w-[96vw]")
                 ? "min(98vw, 92rem)"
                 : className?.includes("max-w-6xl")
                   ? "min(96vw, 76rem)"

@@ -170,7 +170,8 @@ function isEffectivelyDemon(
   seat: PlayerLookup,
   isBoon: boolean,
   checkBoon: boolean,
-  meta: Record<string, any>
+  meta: Record<string, any>,
+  ctx: MiddlewareContext
 ): boolean {
   const roleId = seat.role?.id ?? seat.roleId ?? "";
   const roleType = seat.role?.type ?? "";
@@ -187,22 +188,26 @@ function isEffectivelyDemon(
   // 4. 干扰项（仅在 abilityEffective 时计入；咖啡师效果下 checkBoon = false）
   if (checkBoon && isBoon) return true;
 
-  // 4. Recluse：🔧 100% 概率被当作恶魔（规则调整：不再 50% 随机）
+  // 4. Recluse：50% 概率被当作恶魔（官方 Wiki）
   //    "当心陌客，他可能会被你当做恶魔。这和'干扰项'不是一回事。"
   if (roleId === "recluse") {
     const key = `ft_recluse_${seat.id}`;
     if (meta[key] === undefined) {
-      meta[key] = true; // 100% 触发：陌客必定被当作恶魔
+      const forced = (ctx as any)?.storytellerInput?.forceFtRecluseDemon;
+      meta[key] =
+        forced === true ? true : forced === false ? false : Math.random() < 0.5;
     }
     return meta[key] as boolean;
   }
 
-  // 5. Spy：🔧 100% 概率被当作善良（不记为恶魔）
+  // 5. Spy：50% 概率被当作善良（不记为恶魔）（官方 Wiki）
   //    （与 Chef 中 Spy 的角色能力一致）
   if (roleId === "spy") {
     const key = `ft_spy_${seat.id}`;
     if (meta[key] === undefined) {
-      meta[key] = true; // 100% 触发：间谍必定被当作善良
+      const forced = (ctx as any)?.storytellerInput?.forceFtSpyGood;
+      meta[key] =
+        forced === true ? true : forced === false ? false : Math.random() < 0.5;
     }
     if (meta[key]) return false;
   }
@@ -328,32 +333,44 @@ const calculateResult = async (
   else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
     result = Boolean(storytellerInput.fakeResult);
   }
-    // 先计算真实结果（用于生成 100% 相反的假结果）
-    const realResult = (() => {
-      const target1 = seats.find((s: PlayerLookup) => s.id === targetIds[0]);
-      const target2 = seats.find((s: PlayerLookup) => s.id === targetIds[1]);
+  // 先计算真实结果（用于生成 100% 相反的假结果）
+  const realResult = (() => {
+    const target1 = seats.find((s: PlayerLookup) => s.id === targetIds[0]);
+    const target2 = seats.find((s: PlayerLookup) => s.id === targetIds[1]);
 
-      // 咖啡师效果下不检查干扰项（规则："不再把干扰项错认成恶魔"）
-      const checkBoon = meta.prioritySource !== "barista";
-      const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
+    // 咖啡师效果下不检查干扰项（规则："不再把干扰项错认成恶魔"）
+    const checkBoon = meta.prioritySource !== "barista";
+    const boonSeatId = fortuneTellerBoonManager.getCurrentBoon(gameId);
 
-      const t1IsDemon = target1
-        ? isEffectivelyDemon(target1, boonSeatId === target1.id, checkBoon, meta)
-        : false;
-      const t2IsDemon = target2
-        ? isEffectivelyDemon(target2, boonSeatId === target2.id, checkBoon, meta)
-        : false;
+    const t1IsDemon = target1
+      ? isEffectivelyDemon(
+          target1,
+          boonSeatId === target1.id,
+          checkBoon,
+          meta,
+          context
+        )
+      : false;
+    const t2IsDemon = target2
+      ? isEffectivelyDemon(
+          target2,
+          boonSeatId === target2.id,
+          checkBoon,
+          meta,
+          context
+        )
+      : false;
 
-      return t1IsDemon || t2IsDemon;
-    })();
+    return t1IsDemon || t2IsDemon;
+  })();
 
-    // 优先级 3：动态判定（能力有效时返回真实结果）
-    if (abilityEffective) {
-      result = realResult;
-    } else {
-      // 醉酒/中毒/Vortox → 100% 错误信息（与真实结果相反）
-      result = generateFakeResult(realResult);
-    }
+  // 优先级 3：动态判定（能力有效时返回真实结果）
+  if (abilityEffective) {
+    result = realResult;
+  } else {
+    // 醉酒/中毒/Vortox → 100% 错误信息（与真实结果相反）
+    result = generateFakeResult(realResult);
+  }
 
   return {
     ...context,

@@ -29,11 +29,16 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   const twinId =
     ctx.storytellerInput?.twinId ??
+    ctx.snapshot.seats.find((s: any) => s.isGoodTwin)?.id ??
+    (ctx.snapshot.evilTwinPair?.goodId !== undefined
+      ? ctx.snapshot.evilTwinPair.goodId
+      : null) ??
     ctx.snapshot.seats.find(
       (s: any) =>
         s.id !== ctx.actionNode.seatId &&
         !s.isDead &&
-        s.role?.type !== s.role?.type // opposite alignment
+        (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
+        !s.isEvilConverted
     )?.id ??
     null;
   return {

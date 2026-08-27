@@ -137,7 +137,9 @@ const executedTodayCheck = async (
   const { snapshot } = context;
 
   // 优先从快照级 todayExecutedId 获取被处决者ID（由 useExecutionHandlers 处决后写入）
-  const todayExecutedId = (snapshot as any).todayExecutedId as number | undefined;
+  const todayExecutedId = (snapshot as any).todayExecutedId as
+    | number
+    | undefined;
   // 再从座位标记 executedToday 找（兼容贞洁者等角色设置的标记）
   const executedSeatFromMark: PlayerLookup | undefined = snapshot.seats.find(
     (s: any) => s.executedToday || s.id === todayExecutedId
@@ -161,13 +163,10 @@ const executedTodayCheck = async (
   }
 
   // 保存被处决玩家的角色快照（处决后角色可能因红唇女郎等发生变化）
-  // 优先使用 seatSnapshot 字段（引擎保留的处决时刻角色快照），回退到 currentRole
+  // 优先使用 seatSnapshot 字段（引擎保留的处决时刻角色快照），回退到 resolveExecutedRole
   const seatSnapshot = (executedSeat as any).executedRoleSnapshot;
   const roleSnapshot =
-    seatSnapshot ??
-    (executedSeat as any).charadeRole?.name ??
-    executedSeat.role?.name ??
-    "未知角色";
+    seatSnapshot ?? resolveExecutedRole(executedSeat, snapshot.seats);
   return {
     ...context,
     meta: {
@@ -183,18 +182,21 @@ const executedTodayCheck = async (
 /**
  * 获取目标玩家的角色名，考虑 Recluse 等注册效果。
  *
- * Recluse（陌客）：50% 概率被当作邪恶角色（minion 或 demon）。
- * 酒鬼：展示酒鬼角色标记而非其以为的角色标记。
+ * Recluse（陌客）：可被当作邪恶角色（minion 或 demon）。
+ * 酒鬼：展示真实角色【酒鬼】角色标记而非其以为的角色标记。
  */
 function resolveExecutedRole(
   executedSeat: PlayerLookup,
   seats: PlayerLookup[]
 ): string {
   const realRole = executedSeat.role;
-  const displayRole =
-    executedSeat.effectiveRole ?? executedSeat.charadeRole ?? realRole;
 
-  // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
+  // 🔧 官方规则：如果被处决的玩家是酒鬼，送葬者得知的是真实角色【酒鬼】，而不是他以为的镇民角色
+  if (realRole?.id === "drunk") {
+    return realRole.name ?? "酒鬼";
+  }
+
+  // 🔧 陌客判定为邪恶：可被登记为邪恶角色
   if (realRole?.id === "recluse") {
     const evilRoles = seats.filter(
       (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
@@ -202,10 +204,11 @@ function resolveExecutedRole(
     if (evilRoles.length > 0) {
       const randomEvil =
         evilRoles[Math.floor(Math.random() * evilRoles.length)];
-      return randomEvil.role?.name ?? displayRole?.name ?? "未知角色";
+      return randomEvil.role?.name ?? realRole?.name ?? "未知角色";
     }
   }
 
+  const displayRole = executedSeat.effectiveRole ?? realRole;
   return displayRole?.name ?? realRole?.name ?? "未知角色";
 }
 
@@ -312,7 +315,9 @@ const calculateResult = async (
   // 优先使用 preCheck 时保存的角色快照（避免处决后角色变化导致"未知角色"）
   const roleSnapshot = meta.executedRoleSnapshot as string | undefined;
   const roleName = abilityEffective
-    ? (roleSnapshot && roleSnapshot !== "未知角色" ? roleSnapshot : resolveExecutedRole(executedSeat, snapshot.seats))
+    ? roleSnapshot && roleSnapshot !== "未知角色"
+      ? roleSnapshot
+      : resolveExecutedRole(executedSeat, snapshot.seats)
     : generateFakeRoleName(executedSeatId, snapshot.seats);
 
   const result: UndertakerInfo = {

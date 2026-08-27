@@ -10,7 +10,12 @@ export function DawnReportOverlay() {
     setMounted(true);
   }, []);
 
-  if (props.gamePhase !== "dawnReport" || typeof document === "undefined" || !mounted) return null;
+  if (
+    props.gamePhase !== "dawnReport" ||
+    typeof document === "undefined" ||
+    !mounted
+  )
+    return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[2147483647] bg-black/85 backdrop-blur-md flex items-center justify-center">

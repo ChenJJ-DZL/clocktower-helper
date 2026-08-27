@@ -384,7 +384,11 @@ const stateUpdateResult = async (
   };
 
   let updatedSeats = context.snapshot.seats;
-  if (result.roleName && result.seat1 !== undefined && result.seat2 !== undefined) {
+  if (
+    result.roleName &&
+    result.seat1 !== undefined &&
+    result.seat2 !== undefined
+  ) {
     updatedSeats = context.snapshot.seats.map((s: any) => {
       if (s.id === result.seat1 || s.id === result.seat2) {
         const details = s.statusDetails || [];

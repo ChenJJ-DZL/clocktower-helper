@@ -35,12 +35,34 @@ const preCheckTrivial = async (
 const calculateResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  // 检查罂粟种植者：可能因 farmer/saint 转换导致 roleId 变化
+  // 1. 真实罂粟种植者（role.id === poppy_grower）
+  // 2. 罂粟种植者被转化为农夫（statusDetails 包含"成为新农夫"且原 seatId 与 poppy_growerSeatId 匹配）
   const poppySeat = ctx.snapshot.seats.find(
     (s: any) => s.roleId === "poppy_grower" || s.role?.id === "poppy_grower"
   );
+  // 记录原始罂粟种植者 seatId（在 farmer 转换时仍可识别）
+  const originalPoppySeatId =
+    (ctx.snapshot as any).originalPoppyGrowerSeatId ??
+    poppySeat?.id ??
+    null;
+  if (poppySeat && originalPoppySeatId !== null) {
+    (ctx.snapshot as any).originalPoppyGrowerSeatId = originalPoppySeatId;
+  }
+  // 检查原罂粟种植者是否被转为农夫
+  const turnedFarmer =
+    poppySeat == null &&
+    originalPoppySeatId !== null &&
+    ctx.snapshot.seats.some(
+      (s: any) =>
+        s.id === originalPoppySeatId &&
+        s.roleId === "farmer" &&
+        (s.statusDetails ?? []).includes("成为新农夫")
+    );
 
-  const isAlive = poppySeat?.isAlive !== false; // 未找到时认为已死亡
-  const poppyGrowerActive = !!poppySeat && isAlive;
+  const isAlive =
+    poppySeat?.isAlive !== false && !turnedFarmer; // 活着才算 active
+  const poppyGrowerActive = (!!poppySeat || turnedFarmer) && isAlive;
 
   return {
     ...ctx,

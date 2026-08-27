@@ -43,10 +43,7 @@ function extractField(html: string, fieldLabel: string): string {
       "i"
     ),
     // Broader pattern
-    new RegExp(
-      `${fieldLabel}[：:]\\s*([^\\n]+)`,
-      "i"
-    ),
+    new RegExp(`${fieldLabel}[：:]\\s*([^\\n]+)`, "i"),
   ];
 
   for (const pattern of patterns) {
@@ -60,7 +57,9 @@ function extractField(html: string, fieldLabel: string): string {
 
 function main() {
   const rolesDir = path.join(__dirname, "..", "json", "full");
-  const files = fs.readdirSync(rolesDir).filter((f) => f.endsWith(".json") && f !== "all_characters.json");
+  const files = fs
+    .readdirSync(rolesDir)
+    .filter((f) => f.endsWith(".json") && f !== "all_characters.json");
 
   const results: RoleVerifyResult[] = [];
 
@@ -89,7 +88,7 @@ function main() {
       }
 
       console.log(`[VERIFY] ${name} (${engName})...`);
-      
+
       // Rate limit: 3 second delay
       const html = curlWiki(url);
       if (!html) {
@@ -105,13 +104,14 @@ function main() {
 
       // Extract fields from Wiki
       const wikiAbility = extractField(html, "角色能力");
-      
+
       const issues: string[] = [];
       const comparisons: RoleVerifyResult["comparisons"] = [];
 
       // Compare ability
       if (wikiAbility && ability) {
-        const match = wikiAbility.replace(/\s+/g, "") === ability.replace(/\s+/g, "");
+        const match =
+          wikiAbility.replace(/\s+/g, "") === ability.replace(/\s+/g, "");
         comparisons.push({
           field: "角色能力",
           wiki: wikiAbility.substring(0, 200),
@@ -120,12 +120,20 @@ function main() {
           match,
         });
         if (!match) {
-          issues.push(`ABILITY_MISMATCH: Wiki=${wikiAbility.substring(0, 100)}... | JSON=${ability.substring(0, 100)}...`);
+          issues.push(
+            `ABILITY_MISMATCH: Wiki=${wikiAbility.substring(0, 100)}... | JSON=${ability.substring(0, 100)}...`
+          );
         }
       }
 
-      results.push({ roleName: name, englishName: engName, wikiUrl: url, comparisons, issues });
-      
+      results.push({
+        roleName: name,
+        englishName: engName,
+        wikiUrl: url,
+        comparisons,
+        issues,
+      });
+
       // 3 second delay between requests
       execSync("sleep 3");
     }
@@ -136,7 +144,7 @@ function main() {
   fs.writeFileSync(reportPath, JSON.stringify(results, null, 2), "utf-8");
 
   const mismatchCount = results.filter((r) => r.issues.length > 0).length;
-  console.log(`\n=== 验证完成 ===`);
+  console.log("\n=== 验证完成 ===");
   console.log(`总角色数: ${results.length}`);
   console.log(`存在问题: ${mismatchCount}`);
   console.log(`报告已保存: ${reportPath}`);

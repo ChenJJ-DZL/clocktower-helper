@@ -296,10 +296,7 @@ function generateSystemInfoViaAdapter(
   // 检查是否有存活且健康的罂粟种植者
   const isPoppyGrowerAlive = seats.some(
     (s) =>
-      s.role?.id === "poppy_grower" &&
-      !s.isDead &&
-      !s.isDrunk &&
-      !s.isPoisoned
+      s.role?.id === "poppy_grower" && !s.isDead && !s.isDrunk && !s.isPoisoned
   );
 
   const demonDesc = demonSeats
@@ -322,7 +319,8 @@ function generateSystemInfoViaAdapter(
   } else {
     // 恶魔信息
     if (isPoppyGrowerAlive) {
-      guide = `恶魔首夜信息 — 🌺 罂粟种植者在场，你不知道你的爪牙是谁。展示三个不在场的伪装角色。`;
+      guide =
+        "恶魔首夜信息 — 🌺 罂粟种植者在场，你不知道你的爪牙是谁。展示三个不在场的伪装角色。";
     } else {
       let marionetteNote = "";
       if (marionetteSeat) {

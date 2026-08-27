@@ -58,7 +58,11 @@ const calculateResult = async (
     return s?.role?.type === "traveler";
   });
   if (hasTraveler && targetIds.length > 1) {
-    return { ...ctx, aborted: true, abortReason: "选择旅行者时不能再选择其他玩家" };
+    return {
+      ...ctx,
+      aborted: true,
+      abortReason: "选择旅行者时不能再选择其他玩家",
+    };
   }
 
   // 无目标 = 选择任意数量（0）→ 无人死亡，正常结算
@@ -156,7 +160,7 @@ const postProcessResult = async (
 
   let abilityLog: string;
   if (record.targetIds.length === 0) {
-    abilityLog = `饕餮未选择目标，今晚无人死亡`;
+    abilityLog = "饕餮未选择目标，今晚无人死亡";
   } else if (record.allDistinct) {
     abilityLog = `饕餮选择【${targetsLabel}】，角色类型互不相同，全部死亡`;
   } else {

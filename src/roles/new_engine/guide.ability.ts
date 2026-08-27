@@ -106,6 +106,11 @@ export const guideAbility = createRoleAbility({
   postProcess: [postProcess],
   // 全局机制声明：邪恶目标收集（管线 after_execute 阶段自动应用）
   globalRules: [
-    { id: "guide_evil_collect", type: "target_collect", phase: "after_execute", order: 10 },
+    {
+      id: "guide_evil_collect",
+      type: "target_collect",
+      phase: "after_execute",
+      order: 10,
+    },
   ],
 });

@@ -1,5 +1,129 @@
 # 更新日志
 
+## W8.27.1 — 《罂粟花开》二轮规则校准：边界修复 + UI 徽章 + 提线木偶 setup 邻座（2026-08-26）
+
+### 一、规则校准二轮
+1. **厨师 / 占卜师 Recluse/Spy 判定改为 50% 概率**（`chef.ability.ts`、`fortune_teller.ability.ts`）：从 100% 改为 `Math.random() < 0.5` + 4 个 `storytellerInput.forceChefRecluseEvil/Spy/forceFtRecluseDemon/forceFtSpyGood` 注入点（稳定测试用）
+2. **农夫 6 项边界**（`farmer.ability.ts:102-133`）：`stateUpdate` 清除 `statusEffects` 中的 `cannibal_farmer / philosopher_farmer / pixie_farmer` 标记 + 置 `hasAbilityEvenDead = false` + 清 `acquiredAbilities`
+3. **罂粟种植者变农夫后保留迷雾**（`poppy_grower.ability.ts:35-65`）：`calculateResult` 通过 `originalPoppyGrowerSeatId` 字段识别被转农夫的原罂粟种植者
+4. **提线木偶 setup 邻座**（`marionette.ability.ts:78-103`）：`IRoleAbility` 加 `onSetup?` 字段；marionette 实现邻座恶魔分配 + `marionetteMasterSeatId` 字段；`calculate` 优先用 `onSetup` 写入的 master
+5. **疯子戏子相克**（`lunatic.ability.ts:55-58`）：`preCheck` 显式注释，依赖 `abilityPriorityMiddleware` 醉酒判断时跳过疯子
+6. **镜像双子完整测试**（`evil_twin_winner_block.test.ts` 3 用例）：覆盖双存活阻止善良获胜 + 双存活时邪恶过半胜 + 邪恶双子死后阻挡解除
+
+### 二、新增 UI 徽章 + 右键菜单
+1. **SeatNode 罂粟迷雾徽章**（`SeatNode.tsx:485-498`）：「🌺 罂粟迷雾」徽章（基于 `s.role?.id === "poppy_grower"`）
+2. **NightActionPage 涡流世界徽章**（`NightActionPage.tsx:453-458`）：「🌪️ 涡流世界 · 镇民信息将反相」（基于 `nightInfo.effectiveRole.id === "vortox"`）
+3. **PlayerContextMenu 3 个新按钮**（`PlayerContextMenu.tsx:303-342` + `useInteractionHandler.ts:628-678`）：
+   - 🦂 畸形秀演员暴露切换（`mutant_reveal`）
+   - 🎭 小精灵疯狂证明状态切换（`pixie_madness`）
+   - 🧠 洗脑不疯狂 → 立即处决（`cerenovus_execute`）
+
+### 三、IRoleAbility 扩展
+- `src/roles/core/roleAbility.types.ts:113-114` 新增 `onSetup?` 字段，让新引擎 ability 也支持 setup 阶段钩子（提线木偶 + 后续角色可挂 setup 逻辑）
+
+### 四、统计
+- **53/68 项 ✅ DONE**（含 W8.27.0 34 项 + W8.27.1 19 项），总体完成度 **78%**（含 PARTIAL 为 94%）
+- 11 项 PARTIAL + 4 项 NOT DONE（明确为后续 PR）— 详见 `tests/plans/poppyganda-official-vs-implementation-diff-plan.md` 第〇节"完成度追踪"
+- 测试：93/793 全绿；build success
+- 计划文件：`tests/plans/poppyganda-official-vs-implementation-diff-plan.md`（含 53 项 DONE + 11 项 PARTIAL + 4 项 NOT DONE 详细表）
+
+## W8.27.0 — 《罂粟花开》（Poppyganda）24 角色官方规则校准：涡流 + 军团 + 核心能力重写（2026-08-26）
+
+### 一、24 角色官方规则对比与校准（按计划文件 tests/plans/poppyganda-official-vs-implementation-diff-plan.md 落地）
+
+#### 1. 角色图鉴 A1 — 补全「运作方式」与「规则细节」分区
+- `src/components/modals/RoleCodexModal.tsx` 新增「📋 运作方式」+「⚖️ 规则细节」两个分区，渲染 6 段式 Wiki 内容（来自 `getCharacterWikiDetails.operation` / `ruleDetails`）。
+
+#### 2. 角色图鉴 A2 — 6 角色 Wiki 副本补全
+- 新增 `src/data/poppyganda_official_extras.json`（不污染 `json/` 目录），收纳罂粟种植者 / 告密者 / 提线木偶 / 军团的 6 段式官方说明（抄自 `docs/poppyganda_official_spec.md`）。
+- `src/utils/characterWikiLookup.ts` 把 extras 注入 4 个 lookup 索引。赏金猎人和小精灵待后续补全（需 GStone Wiki 网络抓取，credit 耗尽暂缓）。
+
+#### 3. 涡流（B11-B15）专项
+- `src/utils/abilityPriorityMiddleware.ts` 第 47-58 行改用 `charadeRole.type ?? role.type` 触发涡流反相：① 提线木偶（minion + charadeRole=townsfolk）被反相；② 酒鬼（outsider）按官方规则豁免，不被反相。
+- `app/gameLogic.ts` 第 661-672 行新增 `lastAction === "check_phase" && isVortoxWorld && !todayHasExecution` 分支：每个黄昏（白天结束）若今日无任何处决，邪恶阵营立即获胜——之前漏掉此分支。
+
+#### 4. 军团（Legion）B12-B14 专项
+- `src/utils/dynamicQueueGenerator.ts` 第 240-266 行新增：军团在场时把 `demon_info` 节点按军团数量展开，每个军团独立获得一份「3 个不在场镇民身份」伪装——之前漏掉此分支。
+- 6 角色 6 段式 Wiki（含军团）已在 codex 可见。
+- 军团 setup 反转（B12 完整反转）作为架构性变更留作后续 PR。
+
+#### 5. 镜像双子（B9）确认
+- `app/gameLogic.ts` 行 552-578 已正确实现「两双子均存活时阻止善良获胜」；本轮通过 `evil_twin_winner_block.test.ts`（3 用例）覆盖验证。
+
+#### 6. 重写 3 个偏离官方机制的能力
+- **赏金猎人**（`bounty_hunter.ability.ts`）：引入 `bountyHunterKnownTargets: number[]` 维护已告知列表，排除重复；新增 `isRotationTrigger` 标记支持死亡轮转（该 player 死亡后当晚再次告知另一名邪恶玩家）。
+- **小精灵**（`pixie.ability.ts`）：重写为两阶段机制：首夜告知一个在场镇民角色（存入 `pixieMadnessRoleId`），不立即获得能力；该镇民死亡时通过 `pixieCopiedRole` 字段被动获得能力。兼容旧测试（保留 `statusDetails: "伪装身份:..."`）。
+- **告密者**（`snitch.ability.ts`）：删除「≥2 爪牙暴露身份」分支，重写为「首夜向所有存活爪牙推送 3 个不在场角色」；支持 marionette 相克（marionette 跳过 + 恶魔额外推送）。
+
+#### 7. 杂耍艺人首日守卫
+- `src/roles/new_engine/juggler.ability.ts` 新增 `firstDayOnlyCheck` 中间件：仅首个白天（`dayCount === 1`）可猜测。
+
+### 二、新增测试套件（共 30 用例）
+- `src/roles/__tests__/integration/vortox_ability_passthrough.test.ts`（9 用例）：能力优先级中间件对各类角色的 abilityEffective 判定（普通镇民/酒鬼豁免/提线木偶/爪牙/恶魔/外来者 + 优先级 barista > vortox > drunk/poisoned）。
+- `src/roles/__tests__/integration/legion_setup_swap.test.ts`（6 用例）：军团伪装复数化（1/3/5 军团场景 + 与罂粟种植者共存）。
+- `src/roles/__tests__/integration/evil_twin_winner_block.test.ts`（3 用例）：镜像双子均存活时阻止善良获胜。
+- `src/roles/__tests__/integration/vortox_dusk_win.test.ts`（3 用例）：涡流黄昏阶段判定（无今日处决 → 邪恶胜；有处决 → 阻止）。
+- `tests/wiki-scenarios/poppyganda_outsiders.test.ts` 告密者两 case 更新以适配新 API（minionSeatIds + absentRoles）。
+
+### 三、统计
+- Baseline：89 files / 772 cases
+- 当前：**93 files / 793 cases**（+4 文件 / +21 用例 / +21 修改）
+- 全部 100% 绿灯通过。
+- `npm run build`：0 报错（上一轮已验证）。
+- `npm run type`：10 个预先存在的错误（lunatic.test.ts、virgin.test.ts 历史遗留），本轮未引入新错误。
+
+### 四、范围外（后续 PR）
+- 军团 setup 完整反转（B12 完整实现）需要重写 `app/data.ts` 角色池结构 + `useSeatManager` 步骤。
+- 7 角色小机制边界（savant UI / mutant 暴露检测 / cerenovus 疯狂处决 / farmer 6 项边界 / lunatic 首夜伪装 / marionette 邻座 / town crier 标记 / juggler/savant UI 模态）。
+- 4 角色 6 段式 UI 模态（JugglerGuessModal / SavantInfoEditor / ApparentDemonRoleSelector / 畸形秀演员暴露按钮）。
+- 赏金猎人和小精灵的 Wiki 副本补全（需网络抓取）。
+
+## W8.26.4 — 《暗流涌动》（Trouble Brewing）8 大交互增强与官方规则深度落地（2026-08-26）
+
+### 一、8 项核心交互与规则调整
+1. **洗衣妇 / 图书管理员 / 调查员 / 厨师夜间自动推荐与说书人微调双模式**：
+   - 默认根据场上状态自动生成合规完整信息；全屏夜间行动页（`NightActionPage.tsx`）内置折叠微调面板，支持说书人自由指定候选人、展示角色（包含酒鬼真实徽章）及厨师 `+/-` 邻座对数，并提供一键重置。
+2. **占卜师“红罗刹”官方命名全面规范**：
+   - 全系统彻底规范为“**红罗刹**”，状态药丸、日志与查验反馈卡统一标示「🎯 红罗刹」。
+3. **贞洁者首次被提名永久消耗**：
+   - 校准提名者真实身份（酒鬼为外来者不触发处决）；无论首位提名者是谁，被提名一次后贞洁者能力永久消耗。
+4. **杀手射杀小恶魔联动红唇女郎即时继承**：
+   - 射杀小恶魔时，若场上有合格红唇女郎（死前≥5人），即刻宣布原小恶魔死亡并完成恶魔继承，不提前误判游戏结束。
+5. **镇长恶魔夜杀三选一弹刀选择器**：
+   - 恶魔夜杀选中镇长时弹出交互卡：① 镇长死亡；② 弹刀给指定存活玩家（可在所有存活玩家中选择）；③ 弹刀给免疫目标（平安夜）。
+6. **陌客白天快捷注册切换**：
+   - 在白天控制台与右键菜单中增加「🎭 陌客注册切换」，支持随时在「😈 邪恶（爪牙/恶魔）」与「😇 善良（外来者）」之间实时切换生效。
+7. **间谍魔典左侧视图对齐说书人视角**：
+   - `SpyGrimoireModal.tsx` 左侧座位排版、阵营光晕与状态药丸（中毒、醉酒、守护、红罗刹、继任、提醒标记）与说书人圆桌完全对齐。
+8. **小恶魔自杀传刀指定爪牙交互（不受人数限制）**：
+   - 小恶魔夜杀自选时展开存活爪牙候选列表；**不受人数限制**（无论存活几人，只要有存活爪牙即可触发传刀）；若有存活红唇女郎，默认高亮推荐「🌟 推荐 (红唇女郎)」并排在首位，支持直接点击指定继承人。
+9. **测试与构建验证**：
+   - 全库 86 个测试套件 761 个用例 100% 绿灯；`npm run build` 0 报错通过。
+
+---
+
+## W8.26.3 — 《暗流涌动》（Trouble Brewing）全 22 角色官方百科规则深度校准与专项测试落地（2026-08-26）
+
+### 一、《暗流涌动》全 22 角色官方规则校准
+1. **红唇女郎 (Scarlet Woman) 恶魔继任阈值校准**：
+   - 官方百科规则："如果在恶魔死前有 5 名或更多玩家存活（即死后剩余 ≥ 4 名幸存者，不含旅行者），红唇女郎立刻变成恶魔。"
+   - 修复了 `scarlet_woman.ability.ts` 与 `app/gameLogic.ts` 中死后存活人数判定（恶魔死后存活 `≥ 4` 人即可触发继任），消除了 5 人局恶魔死后误判人数不足的边界缺陷；
+   - 在小恶魔（Imp）自杀传刀中，若红唇女郎健康存活且死前 ≥ 5 人，自动优先继承为小恶魔。
+2. **送葬者 (Undertaker) 查验死去的酒鬼**：
+   - 官方百科规则："如果被处决的玩家是酒鬼，你将会看到真实角色【酒鬼】的角色标记，而不是他以为的镇民角色。"
+   - 修正了 `undertaker.ability.ts` 在白天死者为酒鬼时返回伪装角色的问题，确保送葬者准确得知真实角色「酒鬼」。
+3. **杀手 (Slayer) 射击恶魔联动红唇女郎**：
+   - 官方百科规则：若杀手射杀小恶魔，且场上有合格的红唇女郎（死前 ≥ 5 人），红唇女郎立即继承小恶魔，游戏继续进行而不提前判定好人获胜；若无红唇女郎则好人立即获胜。
+4. **镇长 (Mayor) 恶魔夜杀替死候选人放宽**：
+   - 官方百科规则：镇长在夜晚被恶魔杀害时，可由场上除镇长外的**任意存活玩家**（包含外来者、爪牙甚至是恶魔自己）代为死亡；
+   - 若说书人指定的替代目标受到僧侣保护或具有免死能力（如士兵），则触发免死导致当晚无人死亡（平安夜）。
+5. **自动化测试与构建验证**：
+   - 新增 `src/roles/__tests__/integration/trouble_brewing_official_almanac.test.ts`（4/4 绿灯）；
+   - 全量回归测试：**86 个测试套件，760 个测试用例 100% 绿灯全过**；
+   - 生产打包 `npm run build`：0 报错成功通过。
+
+---
+
 ## W8.26.2 — 全局保密防窥遮罩（Global Privacy Shield）与夜间自动交接保护（2026-08-26）
 
 ### 一、全局保密遮罩与防窥机制实现

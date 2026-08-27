@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
 import {
   bounty_hunterAbility,
   initializeAbilityRegistry,
 } from "../../src/roles/new_engine/abilityRegistry";
+import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
 
 describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标准模板测试】", () => {
   initializeAbilityRegistry();
@@ -56,11 +56,16 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
       meta: {},
     };
 
-    const firstNightRes = await runFullAbilityPipeline(bounty_hunterAbility as any, firstNightCtx);
+    const firstNightRes = await runFullAbilityPipeline(
+      bounty_hunterAbility as any,
+      firstNightCtx
+    );
     expect(firstNightRes.meta.abilityResult.targetSeatId).toBe(1);
     expect(firstNightRes.meta.abilityResult.targetPlayerName).toBe("大本");
 
-    seats = seats.map((s) => (s.id === 1 ? { ...s, isDead: true, isAlive: false } : s));
+    seats = seats.map((s) =>
+      s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+    );
     expect(seats[1].isDead).toBe(true);
 
     const nextNightCtx: any = {
@@ -77,7 +82,10 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
       meta: {},
     };
 
-    const nextNightRes = await runFullAbilityPipeline(bounty_hunterAbility as any, nextNightCtx);
+    const nextNightRes = await runFullAbilityPipeline(
+      bounty_hunterAbility as any,
+      nextNightCtx
+    );
     expect(nextNightRes.meta.abilityResult.targetSeatId).toBe(2);
     expect(nextNightRes.meta.abilityResult.targetPlayerName).toBe("小黑");
   });
@@ -136,7 +144,10 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
       storytellerInput: { targetSeatId: 1 },
       meta: {},
     };
-    const n1Res = await runFullAbilityPipeline(bounty_hunterAbility as any, n1Ctx);
+    const n1Res = await runFullAbilityPipeline(
+      bounty_hunterAbility as any,
+      n1Ctx
+    );
     expect(n1Res.meta.abilityResult.targetPlayerName).toBe("小朱");
 
     const poisonedSeats = seats.map((s) => {
@@ -156,7 +167,10 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
       storytellerInput: { targetSeatId: 3 },
       meta: {},
     };
-    const n2Res = await runFullAbilityPipeline(bounty_hunterAbility as any, n2Ctx);
+    const n2Res = await runFullAbilityPipeline(
+      bounty_hunterAbility as any,
+      n2Ctx
+    );
     expect(n2Res.meta.abilityResult.targetSeatId).toBe(3);
     expect(n2Res.meta.abilityResult.targetPlayerName).toBe("小艾");
   });
@@ -167,7 +181,11 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         id: 0,
         playerName: "小兰",
         role: { id: "drunk", name: "酒鬼", type: "outsider" },
-        charadeRole: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
+        charadeRole: {
+          id: "bounty_hunter",
+          name: "赏金猎人",
+          type: "townsfolk",
+        },
         isDead: false,
         isAlive: true,
         isDrunk: true,
@@ -205,10 +223,15 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
       storytellerInput: { targetSeatId: 1 },
       meta: {},
     };
-    const n1Res = await runFullAbilityPipeline(bounty_hunterAbility as any, n1Ctx);
+    const n1Res = await runFullAbilityPipeline(
+      bounty_hunterAbility as any,
+      n1Ctx
+    );
     expect(n1Res.meta.abilityResult.targetPlayerName).toBe("小明");
 
-    const deadSeats = seats.map((s) => (s.id === 1 ? { ...s, isDead: true, isAlive: false } : s));
+    const deadSeats = seats.map((s) =>
+      s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+    );
     const n2Ctx: any = {
       actionNode: { seatId: 0, roleId: "bounty_hunter" },
       snapshot: {
@@ -220,7 +243,10 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
       storytellerInput: { targetSeatId: 2 },
       meta: {},
     };
-    const n2Res = await runFullAbilityPipeline(bounty_hunterAbility as any, n2Ctx);
+    const n2Res = await runFullAbilityPipeline(
+      bounty_hunterAbility as any,
+      n2Ctx
+    );
     expect(n2Res.meta.abilityResult.targetPlayerName).toBe("道哥");
   });
 });

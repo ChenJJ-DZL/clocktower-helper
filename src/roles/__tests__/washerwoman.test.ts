@@ -1,9 +1,9 @@
 /**
  * 洗衣妇 (Washerwoman) 单元测试
- * 
+ *
  * 规则来源: json/full/镇民.json + Wiki
  * 能力: 首夜得知两名玩家和一个镇民角色: 两名玩家之一是该角色
- * 
+ *
  * 测试覆盖:
  * 1. 首夜正常获取信息
  * 2. 非首夜不唤醒
@@ -87,14 +87,14 @@ describe("洗衣妇 (Washerwoman)", () => {
       const washerwoman = createMockSeat(0, "washerwoman", "townsfolk");
       const otherTownsfolk = createMockSeat(1, "chef", "townsfolk");
       const otherPlayer = createMockSeat(2, "butler", "outsider");
-      
+
       const seats = [washerwoman, otherTownsfolk, otherPlayer];
-      
+
       // 首夜条件检查
       const nightCount = 1;
       const gamePhase = "firstNight";
       const shouldWake = nightCount === 1 || gamePhase === "firstNight";
-      
+
       expect(shouldWake).toBe(true);
     });
 
@@ -102,7 +102,7 @@ describe("洗衣妇 (Washerwoman)", () => {
       const nightCount: number = 2;
       const gamePhase: string = "night";
       const shouldWake = nightCount === 1 || gamePhase === "firstNight";
-      
+
       expect(shouldWake).toBe(false);
     });
   });
@@ -123,19 +123,39 @@ describe("洗衣妇 (Washerwoman)", () => {
 
   describe("醉酒/中毒处理", () => {
     test("醉酒时应标记能力失效", () => {
-      const washerwoman = createMockSeat(0, "washerwoman", "townsfolk", false, true);
+      const washerwoman = createMockSeat(
+        0,
+        "washerwoman",
+        "townsfolk",
+        false,
+        true
+      );
       const isAbilityActive = !(washerwoman.isDrunk || washerwoman.isPoisoned);
       expect(isAbilityActive).toBe(false);
     });
 
     test("中毒时应标记能力失效", () => {
-      const washerwoman = createMockSeat(0, "washerwoman", "townsfolk", false, false, true);
+      const washerwoman = createMockSeat(
+        0,
+        "washerwoman",
+        "townsfolk",
+        false,
+        false,
+        true
+      );
       const isAbilityActive = !(washerwoman.isDrunk || washerwoman.isPoisoned);
       expect(isAbilityActive).toBe(false);
     });
 
     test("清醒健康时能力正常", () => {
-      const washerwoman = createMockSeat(0, "washerwoman", "townsfolk", false, false, false);
+      const washerwoman = createMockSeat(
+        0,
+        "washerwoman",
+        "townsfolk",
+        false,
+        false,
+        false
+      );
       const isAbilityActive = !(washerwoman.isDrunk || washerwoman.isPoisoned);
       expect(isAbilityActive).toBe(true);
     });
@@ -148,7 +168,13 @@ describe("洗衣妇 (Washerwoman)", () => {
       const seats = [createMockSeat(0, "washerwoman", "townsfolk"), chef];
 
       const candidates = seats.filter(
-        (s) => s.id !== 0 && !s.isDead && s.role && (s.role.type === "townsfolk" || s.role.id === "spy" || s.role.id === "recluse")
+        (s) =>
+          s.id !== 0 &&
+          !s.isDead &&
+          s.role &&
+          (s.role.type === "townsfolk" ||
+            s.role.id === "spy" ||
+            s.role.id === "recluse")
       );
       expect(candidates.length).toBe(1);
       expect(candidates[0].role.id).toBe("chef");
@@ -159,7 +185,13 @@ describe("洗衣妇 (Washerwoman)", () => {
       const seats = [createMockSeat(0, "washerwoman", "townsfolk"), spy];
 
       const candidates = seats.filter(
-        (s) => s.id !== 0 && !s.isDead && s.role && (s.role.type === "townsfolk" || s.role.id === "spy" || s.role.id === "recluse")
+        (s) =>
+          s.id !== 0 &&
+          !s.isDead &&
+          s.role &&
+          (s.role.type === "townsfolk" ||
+            s.role.id === "spy" ||
+            s.role.id === "recluse")
       );
       expect(candidates.length).toBe(1);
       expect(candidates[0].role.id).toBe("spy");
@@ -170,7 +202,13 @@ describe("洗衣妇 (Washerwoman)", () => {
       const seats = [createMockSeat(0, "washerwoman", "townsfolk"), recluse];
 
       const candidates = seats.filter(
-        (s) => s.id !== 0 && !s.isDead && s.role && (s.role.type === "townsfolk" || s.role.id === "spy" || s.role.id === "recluse")
+        (s) =>
+          s.id !== 0 &&
+          !s.isDead &&
+          s.role &&
+          (s.role.type === "townsfolk" ||
+            s.role.id === "spy" ||
+            s.role.id === "recluse")
       );
       expect(candidates.length).toBe(1);
       expect(candidates[0].role.id).toBe("recluse");
@@ -181,7 +219,13 @@ describe("洗衣妇 (Washerwoman)", () => {
       const seats = [createMockSeat(0, "washerwoman", "townsfolk"), imp];
 
       const candidates = seats.filter(
-        (s) => s.id !== 0 && !s.isDead && s.role && (s.role.type === "townsfolk" || s.role.id === "spy" || s.role.id === "recluse")
+        (s) =>
+          s.id !== 0 &&
+          !s.isDead &&
+          s.role &&
+          (s.role.type === "townsfolk" ||
+            s.role.id === "spy" ||
+            s.role.id === "recluse")
       );
       expect(candidates.length).toBe(0);
     });
@@ -197,15 +241,21 @@ describe("洗衣妇 (Washerwoman)", () => {
       const drunk = createMockSeat(4, "drunk", "outsider");
 
       const seats = [washerwoman, imp, baron, butler, drunk];
-      
+
       // 洗衣妇自身不计入，间谍/陌客不在场，无其他镇民
       const candidates = seats.filter(
-        (s) => s.id !== 0 && !s.isDead && s.role && (s.role.type === "townsfolk" || s.role.id === "spy" || s.role.id === "recluse")
+        (s) =>
+          s.id !== 0 &&
+          !s.isDead &&
+          s.role &&
+          (s.role.type === "townsfolk" ||
+            s.role.id === "spy" ||
+            s.role.id === "recluse")
       );
-      
+
       // 仅洗衣妇自身是镇民，无其他候选人
       expect(candidates.length).toBe(0);
-      
+
       // 按规则: 洗衣妇会得知自己与任意一名玩家之中有洗衣妇
       const roleName = candidates.length === 0 ? "洗衣妇" : "正常角色";
       expect(roleName).toBe("洗衣妇");
@@ -227,12 +277,12 @@ describe("洗衣妇 (Washerwoman)", () => {
 
       // 选择一名镇民作为目标
       const target = townsfolkCandidates[0];
-      
+
       // 选择干扰项
       const decoyPool = seats.filter(
         (s) => s.id !== target.id && s.id !== 0 && !s.isDead
       );
-      
+
       expect(decoyPool.length).toBeGreaterThanOrEqual(1);
 
       // 最终结果应该包含两名不同的玩家和一个角色名

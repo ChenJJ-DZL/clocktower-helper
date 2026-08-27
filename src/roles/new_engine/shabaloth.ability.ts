@@ -2,18 +2,22 @@
  * 沙巴洛斯（Shabaloth）新引擎技能实现
  */
 
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../../utils/nightStateMachine";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
 import {
   isImmuneToDemonKill,
   resolveMayorDemonKill,
 } from "../../utils/soldierImmunity";
-import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
-import { createSettlementPostProcess } from "../../utils/abilitySettlement";
+import {
+  isTaowuSeat,
+  taowuSubstituteLog,
+  tryTaowuSubstitute,
+} from "../../utils/taowuImmunity";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
 // 前置校验：检查是否存活，是否为恶魔
 const preCheckAlive = async (
@@ -100,7 +104,10 @@ const updateKillState = async (
         seats = r.seats;
         taowuSavedIds.add(tid);
         console.log(
-          `[Shabaloth] ${taowuSubstituteLog(targetSeat, seats.find((s: any) => s.id === r.lostMinionId))}`
+          `[Shabaloth] ${taowuSubstituteLog(
+            targetSeat,
+            seats.find((s: any) => s.id === r.lostMinionId)
+          )}`
         );
       }
     }

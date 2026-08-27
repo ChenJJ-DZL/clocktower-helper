@@ -1,5 +1,6 @@
-import rawCharacterList from "../../json/full/all_characters.json";
 import type { Role } from "../../app/data";
+import rawCharacterList from "../../json/full/all_characters.json";
+import poppygandaExtras from "../data/poppyganda_official_extras.json";
 
 export interface CharacterWikiDetails {
   name: string;
@@ -47,6 +48,28 @@ const idIndex = new Map<string, RawCharacter>();
 const rawList = rawCharacterList as unknown as RawCharacter[];
 
 for (const char of rawList) {
+  if (char.名称) {
+    nameIndex.set(char.名称.trim(), char);
+    nameIndex.set(char.名称.trim().replace(/[\s\-_]/g, ""), char);
+  }
+  if (char.英文名) {
+    const en = char.英文名.trim().toLowerCase();
+    englishIndex.set(en, char);
+    englishIndex.set(en.replace(/[\s\-_]/g, ""), char);
+  }
+  if (char.id) {
+    idIndex.set(char.id.trim(), char);
+  }
+}
+
+// 罂粟花开 4 角色（罂粟种植者 / 告密者 / 提线木偶 / 军团）从 src/data/poppyganda_official_extras.json 注入；
+// 因为 json/full/all_characters.json 不含这 4 角色，且 json/ 目录受 clinerules 保护。
+// 注：赏金猎人 / 小精灵暂未收录。
+const poppygandaExtraList = Object.values(
+  poppygandaExtras as unknown as Record<string, RawCharacter>
+).filter((c) => c && c.名称);
+
+for (const char of poppygandaExtraList) {
   if (char.名称) {
     nameIndex.set(char.名称.trim(), char);
     nameIndex.set(char.名称.trim().replace(/[\s\-_]/g, ""), char);

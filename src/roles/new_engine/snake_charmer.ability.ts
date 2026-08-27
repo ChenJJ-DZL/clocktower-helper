@@ -34,7 +34,8 @@ const calculate = async (
     targetId != null
       ? ctx.snapshot.seats.find((s: any) => s.id === targetId)
       : null;
-  const isDemon = target?.role?.type === "demon" || target?.isDemonSuccessor === true;
+  const isDemon =
+    target?.role?.type === "demon" || target?.isDemonSuccessor === true;
   return {
     ...ctx,
     meta: {
@@ -131,9 +132,7 @@ const postProcess = async (
         selfId: ctx.actionNode.seatId,
         demonId: r?.targetId ?? null,
         isCorrupted,
-        note: r?.swapTriggered
-          ? "交换角色与阵营，恶魔中毒"
-          : "未选中恶魔",
+        note: r?.swapTriggered ? "交换角色与阵营，恶魔中毒" : "未选中恶魔",
       },
     },
   };

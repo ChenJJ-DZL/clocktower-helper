@@ -1,9 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Shell(npx vitest run --reporter=verbose 2 >& 1)",
-      "powershell"
-    ],
+    "allow": ["Shell(npx vitest run --reporter=verbose 2 >& 1)", "powershell"],
     "deny": [],
     "defaultMode": "default"
   }

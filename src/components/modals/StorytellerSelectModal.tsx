@@ -88,7 +88,8 @@ export function StorytellerSelectModal({
             disabled={!canConfirm}
             className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed transition btn-arcane-primary"
           >
-            {confirmLabel || `确认选择 (${selectedTargets.length}/${targetCount})`}
+            {confirmLabel ||
+              `确认选择 (${selectedTargets.length}/${targetCount})`}
           </button>
         </div>
       }

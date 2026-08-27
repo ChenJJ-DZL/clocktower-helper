@@ -2,9 +2,62 @@ import { describe, expect, test } from "vitest";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
 import { virginAbility } from "../../new_engine/virgin.ability";
-function s(id:number,rid:string,rt:string,o?:{drunk?:boolean}){const n:Record<string,string>={virgin:"贞洁者",chef:"厨师",butler:"管家"};return{id,playerName:`P${id+1}`,isDead:false,isAlive:true,isDrunk:!!o?.drunk,isPoisoned:false,role:{id:rid,name:n[rid]||rid,type:rt},effectiveRole:null,charadeRole:null,statusEffects:o?.drunk?[{type:"drunk"}]:[],hasAbilityEvenDead:false,hasUsedVirginAbility:false}}
-function ctx(sid:number,phase:string,seats:ReturnType<typeof s>[],nominatorId?:number):MiddlewareContext{return{snapshot:{nightCount:1,gamePhase:phase,seats,statusEffects:{}},actionNode:{seatId:sid,roleId:"virgin",roleName:"贞洁者",priority:0,isFirstNightOnly:false,abilityId:"virgin_day",wakeMessage:"...",firstNightPriority:null,otherNightPriority:null,targetIds:[],processed:false,success:false,meta:{nominatorId}},targetIds:[],meta:{},aborted:false}}
-const pipe=(a:any)=>({preCheck:a.preCheck,calculate:a.calculate,stateUpdate:a.stateUpdate,postProcess:a.postProcess});
+
+function s(id: number, rid: string, rt: string, o?: { drunk?: boolean }) {
+  const n: Record<string, string> = {
+    virgin: "贞洁者",
+    chef: "厨师",
+    butler: "管家",
+  };
+  return {
+    id,
+    playerName: `P${id + 1}`,
+    isDead: false,
+    isAlive: true,
+    isDrunk: !!o?.drunk,
+    isPoisoned: false,
+    role: { id: rid, name: n[rid] || rid, type: rt },
+    effectiveRole: null,
+    charadeRole: null,
+    statusEffects: o?.drunk ? [{ type: "drunk" }] : [],
+    hasAbilityEvenDead: false,
+    hasUsedVirginAbility: false,
+  };
+}
+function ctx(
+  sid: number,
+  phase: string,
+  seats: ReturnType<typeof s>[],
+  nominatorId?: number
+): MiddlewareContext {
+  return {
+    snapshot: { nightCount: 1, gamePhase: phase, seats, statusEffects: {} },
+    actionNode: {
+      seatId: sid,
+      roleId: "virgin",
+      roleName: "贞洁者",
+      priority: 0,
+      isFirstNightOnly: false,
+      abilityId: "virgin_day",
+      wakeMessage: "...",
+      firstNightPriority: null,
+      otherNightPriority: null,
+      targetIds: [],
+      processed: false,
+      success: false,
+      meta: { nominatorId },
+    },
+    targetIds: [],
+    meta: {},
+    aborted: false,
+  };
+}
+const pipe = (a: any) => ({
+  preCheck: a.preCheck,
+  calculate: a.calculate,
+  stateUpdate: a.stateUpdate,
+  postProcess: a.postProcess,
+});
 describe("贞洁者 引擎集成测试", () => {
   test("管道不中止(被动触发角色)", async () => {
     const r = await runFullAbilityPipeline(
@@ -20,7 +73,9 @@ describe("贞洁者 引擎集成测试", () => {
     const undertaker = s(2, "undertaker", "townsfolk");
 
     // 第一次提名（镇民提名贞洁者）
-    const isVirginUsed1 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated);
+    const isVirginUsed1 = !!(
+      virgin.hasUsedVirginAbility || virgin.hasBeenNominated
+    );
     expect(isVirginUsed1).toBe(false);
 
     // 首次触发更新：消耗能力标记
@@ -29,11 +84,19 @@ describe("贞洁者 引擎集成测试", () => {
     (virgin as any).abilityUsed = true;
 
     // 第二次提名（送葬者提名贞洁者）
-    const isVirginUsed2 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated || (virgin as any).abilityUsed);
+    const isVirginUsed2 = !!(
+      virgin.hasUsedVirginAbility ||
+      virgin.hasBeenNominated ||
+      (virgin as any).abilityUsed
+    );
     expect(isVirginUsed2).toBe(true);
 
     // 第三次提名（另一玩家再次提名贞洁者）
-    const isVirginUsed3 = !!(virgin.hasUsedVirginAbility || virgin.hasBeenNominated || (virgin as any).abilityUsed);
+    const isVirginUsed3 = !!(
+      virgin.hasUsedVirginAbility ||
+      virgin.hasBeenNominated ||
+      (virgin as any).abilityUsed
+    );
     expect(isVirginUsed3).toBe(true);
   });
 

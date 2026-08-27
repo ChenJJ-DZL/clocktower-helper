@@ -18,8 +18,8 @@ import type {
   Seat,
   WinResult,
 } from "../../app/data";
-import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
 import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
+import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";

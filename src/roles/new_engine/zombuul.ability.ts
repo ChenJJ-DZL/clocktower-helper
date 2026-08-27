@@ -1,15 +1,19 @@
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../../utils/nightStateMachine";
-import {
-  AbilityTriggerTiming,
-  createRoleAbility,
-} from "../core/roleAbility.types";
 import {
   isImmuneToDemonKill,
   resolveMayorDemonKill,
 } from "../../utils/soldierImmunity";
-import { isTaowuSeat, tryTaowuSubstitute, taowuSubstituteLog } from "../../utils/taowuImmunity";
-import { createSettlementPostProcess } from "../../utils/abilitySettlement";
+import {
+  isTaowuSeat,
+  taowuSubstituteLog,
+  tryTaowuSubstitute,
+} from "../../utils/taowuImmunity";
+import {
+  AbilityTriggerTiming,
+  createRoleAbility,
+} from "../core/roleAbility.types";
 
 const preCheckAlive = async (
   context: MiddlewareContext
@@ -95,7 +99,10 @@ const updateKillState = async (
       seats = r.seats;
       taowuSaved = true;
       console.log(
-        `[Zombuul] ${taowuSubstituteLog(targetSeat0, seats.find((s: any) => s.id === r.lostMinionId))}`
+        `[Zombuul] ${taowuSubstituteLog(
+          targetSeat0,
+          seats.find((s: any) => s.id === r.lostMinionId)
+        )}`
       );
     }
   }

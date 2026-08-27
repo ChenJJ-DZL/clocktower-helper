@@ -83,9 +83,21 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
 
     it("范例 2 (好人胜利)：所有军团均死亡时，善良阵营获胜", () => {
       const seats: Seat[] = [
-        makeSeat(0, { id: "legion", name: "军团", type: "demon" }, { isDead: true }),
-        makeSeat(1, { id: "legion", name: "军团", type: "demon" }, { isDead: true }),
-        makeSeat(2, { id: "legion", name: "军团", type: "demon" }, { isDead: true }),
+        makeSeat(
+          0,
+          { id: "legion", name: "军团", type: "demon" },
+          { isDead: true }
+        ),
+        makeSeat(
+          1,
+          { id: "legion", name: "军团", type: "demon" },
+          { isDead: true }
+        ),
+        makeSeat(
+          2,
+          { id: "legion", name: "军团", type: "demon" },
+          { isDead: true }
+        ),
         makeSeat(3, { id: "monk", name: "僧侣", type: "townsfolk" }),
         makeSeat(4, { id: "chef", name: "厨师", type: "townsfolk" }),
       ];
@@ -102,7 +114,11 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
         makeSeat(1, { id: "legion", name: "军团", type: "demon" }),
         makeSeat(2, { id: "legion", name: "军团", type: "demon" }),
         makeSeat(3, { id: "monk", name: "僧侣", type: "townsfolk" }),
-        makeSeat(4, { id: "chef", name: "厨师", type: "townsfolk" }, { isDead: true }),
+        makeSeat(
+          4,
+          { id: "chef", name: "厨师", type: "townsfolk" },
+          { isDead: true }
+        ),
       ];
 
       const res = checkGameEnd(seats, "night_death");
@@ -115,7 +131,11 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       const seats: Seat[] = [
         makeSeat(0, { id: "legion", name: "军团", type: "demon" }),
         makeSeat(1, { id: "monk", name: "僧侣", type: "townsfolk" }),
-        makeSeat(2, { id: "chef", name: "厨师", type: "townsfolk" }, { isDead: true }),
+        makeSeat(
+          2,
+          { id: "chef", name: "厨师", type: "townsfolk" },
+          { isDead: true }
+        ),
       ];
 
       const res = checkGameEnd(seats, "execution", 2);
@@ -139,7 +159,10 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       const voters = [0, 1, 2];
       const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
       const votingSeats = seats.filter((s) => voters.includes(s.id));
-      const isAllEvil = hasLegionInPlay && votingSeats.length > 0 && votingSeats.every((s) => isPlayerEvil(s));
+      const isAllEvil =
+        hasLegionInPlay &&
+        votingSeats.length > 0 &&
+        votingSeats.every((s) => isPlayerEvil(s));
 
       expect(isAllEvil).toBe(true);
       const effectiveVotes = isAllEvil ? 0 : voters.length;
@@ -158,7 +181,10 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       const voters = [0, 1, 2];
       const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
       const votingSeats = seats.filter((s) => voters.includes(s.id));
-      const isAllEvil = hasLegionInPlay && votingSeats.length > 0 && votingSeats.every((s) => isPlayerEvil(s));
+      const isAllEvil =
+        hasLegionInPlay &&
+        votingSeats.length > 0 &&
+        votingSeats.every((s) => isPlayerEvil(s));
 
       expect(isAllEvil).toBe(false);
       const effectiveVotes = isAllEvil ? 0 : voters.length;
@@ -169,7 +195,11 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
   // ─── 规则 5: 双重注册（恶魔 + 爪牙） ───
   describe("【规则 5】军团双重注册（恶魔 + 爪牙）", () => {
     it("范例 7 (角色属性判定)：军团同时判定为恶魔、爪牙与邪恶阵营", () => {
-      const legionSeat = makeSeat(0, { id: "legion", name: "军团", type: "demon" });
+      const legionSeat = makeSeat(0, {
+        id: "legion",
+        name: "军团",
+        type: "demon",
+      });
 
       expect(isPlayerDemon(legionSeat)).toBe(true);
       expect(isPlayerMinion(legionSeat)).toBe(true);
@@ -177,10 +207,21 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
     });
 
     it("范例 8 (技能查验注册)：调查员查验军团时注册为爪牙，常规注册为恶魔与爪牙", () => {
-      const legionSeat = makeSeat(0, { id: "legion", name: "军团", type: "demon" });
-      const investigatorSeat = makeSeat(1, { id: "investigator", name: "调查员", type: "townsfolk" });
+      const legionSeat = makeSeat(0, {
+        id: "legion",
+        name: "军团",
+        type: "demon",
+      });
+      const investigatorSeat = makeSeat(1, {
+        id: "investigator",
+        name: "调查员",
+        type: "townsfolk",
+      });
 
-      const regForInvestigator = getRegistration(legionSeat, investigatorSeat.role);
+      const regForInvestigator = getRegistration(
+        legionSeat,
+        investigatorSeat.role
+      );
       expect(regForInvestigator.alignment).toBe("Evil");
       expect(regForInvestigator.registersAsMinion).toBe(true);
 
@@ -280,7 +321,8 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
   describe("【规则 7】落座环节多角色支持与唯一性约束", () => {
     it("范例 11 (军团允许多人落座)：军团可同时落座到多个座位，不会互相顶替", () => {
       const legionRole = { id: "legion", name: "军团", type: "demon" as const };
-      const allowsMultiple = legionRole.id === "legion" || legionRole.id === "riot";
+      const allowsMultiple =
+        legionRole.id === "legion" || legionRole.id === "riot";
       expect(allowsMultiple).toBe(true);
 
       const seats: Seat[] = [
@@ -303,7 +345,8 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
 
     it("范例 12 (常规角色唯一性约束)：非军团角色（如小恶魔、僧侣、厨师）在场上只能落座一次", () => {
       const monkRole = { id: "monk", name: "僧侣", type: "townsfolk" as const };
-      const allowsMultiple = monkRole.id === "legion" || (monkRole.id as string) === "riot";
+      const allowsMultiple =
+        monkRole.id === "legion" || (monkRole.id as string) === "riot";
       expect(allowsMultiple).toBe(false);
 
       // 当僧侣落座到新座位时，旧座位的僧侣应被清除转移
@@ -346,7 +389,9 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       ];
 
       // 1. 为 2号酒鬼筛选可选伪装身份：必须是「不在场的镇民角色」
-      const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
+      const inPlayRoleIds = new Set(
+        seats.map((s) => s.role?.id).filter(Boolean)
+      );
       const drunkAvailable = scriptTownsfolk.filter(
         (r) => !inPlayRoleIds.has(r.id)
       );

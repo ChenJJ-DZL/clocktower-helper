@@ -86,7 +86,9 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const actorList = (r?.actors ?? []).map((id: number) => id + 1 + "号").join("、");
+  const actorList = (r?.actors ?? [])
+    .map((id: number) => id + 1 + "号")
+    .join("、");
   const evilList = (r?.evilPlayers ?? [])
     .map((id: number) => id + 1 + "号")
     .join("、");

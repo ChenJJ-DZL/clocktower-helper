@@ -2,10 +2,7 @@
 
 import type React from "react";
 import { useCallback, useState } from "react";
-import {
-  type ReminderToken,
-  REMINDER_PRESETS,
-} from "@/app/data";
+import { REMINDER_PRESETS, type ReminderToken } from "@/app/data";
 
 /**
  * 提醒标记面板（Reminder Token Panel）
@@ -89,111 +86,119 @@ export function ReminderTokenPanel({
   }, [seatId, customIcon, customLabel, onAdd]);
 
   const content = (
-    <div className={noOverlay ? "flex flex-col gap-3" : "bg-slate-900 border-2 border-slate-600 rounded-2xl p-4 w-[420px] max-h-[80vh] flex flex-col shadow-2xl"}>
-        {/* 标题（仅独立模式显示，ModalWrapper 模式已由外部管理） */}
-        {!noOverlay && (
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-amber-300">
-              🏷️ 提醒标记 — {playerName || `${seatId + 1}号`}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white text-xl px-2"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* 当前标记列表 */}
-        {tokens.length > 0 && (
-          <div className="mb-3">
-            <div className="text-xs text-gray-400 mb-1">当前标记（点击移除）：</div>
-            <div className="flex flex-wrap gap-1.5">
-              {tokens.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => onRemove(seatId, t.id)}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium transition-all hover:scale-105 active:scale-95 ${colorMap[t.color] || colorMap.gray}`}
-                  title={`点击移除「${t.label}」`}
-                >
-                  <span>{t.icon}</span>
-                  <span>{t.label}</span>
-                  <span className="text-[10px] opacity-60">✕</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tokens.length === 0 && (
-          <div className="text-xs text-gray-500 mb-3 italic">暂无标记</div>
-        )}
-
-        {/* 预设标记选择 */}
-        <div className="text-xs text-gray-400 mb-1">添加标记：</div>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {REMINDER_PRESETS.filter((p) => p.label !== "自定义").map((preset) => (
-            <button
-              key={preset.label}
-              onClick={() => handleAddPreset(preset)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-all hover:scale-105 active:scale-95 ${colorMap[preset.color] || colorMap.gray}`}
-            >
-              <span>{preset.icon}</span>
-              <span>{preset.label}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => setShowCustom(!showCustom)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-blue-500/50 bg-blue-900/40 text-blue-200 text-xs font-medium transition-all hover:scale-105 active:scale-95"
-          >
-            <span>📝</span>
-            <span>自定义</span>
-          </button>
-        </div>
-
-        {/* 自定义标记输入 */}
-        {showCustom && (
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={customIcon}
-              onChange={(e) => setCustomIcon(e.target.value)}
-              className="w-12 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-center text-lg"
-              maxLength={2}
-              placeholder="图标"
-            />
-            <input
-              type="text"
-              value={customLabel}
-              onChange={(e) => setCustomLabel(e.target.value)}
-              className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-1 text-sm text-white"
-              maxLength={20}
-              placeholder="标记名称"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddCustom();
-              }}
-            />
-            <button
-              onClick={handleAddCustom}
-              disabled={!customLabel.trim()}
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              添加
-            </button>
-          </div>
-        )}
-
-        {/* 关闭按钮（仅独立模式显示） */}
-        {!noOverlay && (
+    <div
+      className={
+        noOverlay
+          ? "flex flex-col gap-3"
+          : "bg-slate-900 border-2 border-slate-600 rounded-2xl p-4 w-[420px] max-h-[80vh] flex flex-col shadow-2xl"
+      }
+    >
+      {/* 标题（仅独立模式显示，ModalWrapper 模式已由外部管理） */}
+      {!noOverlay && (
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-bold text-amber-300">
+            🏷️ 提醒标记 — {playerName || `${seatId + 1}号`}
+          </h3>
           <button
             onClick={onClose}
-            className="mt-auto py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg font-medium transition"
+            className="text-gray-400 hover:text-white text-xl px-2"
           >
-            关闭
+            ✕
           </button>
-        )}
+        </div>
+      )}
+
+      {/* 当前标记列表 */}
+      {tokens.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs text-gray-400 mb-1">
+            当前标记（点击移除）：
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {tokens.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => onRemove(seatId, t.id)}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium transition-all hover:scale-105 active:scale-95 ${colorMap[t.color] || colorMap.gray}`}
+                title={`点击移除「${t.label}」`}
+              >
+                <span>{t.icon}</span>
+                <span>{t.label}</span>
+                <span className="text-[10px] opacity-60">✕</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tokens.length === 0 && (
+        <div className="text-xs text-gray-500 mb-3 italic">暂无标记</div>
+      )}
+
+      {/* 预设标记选择 */}
+      <div className="text-xs text-gray-400 mb-1">添加标记：</div>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {REMINDER_PRESETS.filter((p) => p.label !== "自定义").map((preset) => (
+          <button
+            key={preset.label}
+            onClick={() => handleAddPreset(preset)}
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-all hover:scale-105 active:scale-95 ${colorMap[preset.color] || colorMap.gray}`}
+          >
+            <span>{preset.icon}</span>
+            <span>{preset.label}</span>
+          </button>
+        ))}
+        <button
+          onClick={() => setShowCustom(!showCustom)}
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-blue-500/50 bg-blue-900/40 text-blue-200 text-xs font-medium transition-all hover:scale-105 active:scale-95"
+        >
+          <span>📝</span>
+          <span>自定义</span>
+        </button>
       </div>
+
+      {/* 自定义标记输入 */}
+      {showCustom && (
+        <div className="flex gap-2 mb-3">
+          <input
+            type="text"
+            value={customIcon}
+            onChange={(e) => setCustomIcon(e.target.value)}
+            className="w-12 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-center text-lg"
+            maxLength={2}
+            placeholder="图标"
+          />
+          <input
+            type="text"
+            value={customLabel}
+            onChange={(e) => setCustomLabel(e.target.value)}
+            className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-1 text-sm text-white"
+            maxLength={20}
+            placeholder="标记名称"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAddCustom();
+            }}
+          />
+          <button
+            onClick={handleAddCustom}
+            disabled={!customLabel.trim()}
+            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            添加
+          </button>
+        </div>
+      )}
+
+      {/* 关闭按钮（仅独立模式显示） */}
+      {!noOverlay && (
+        <button
+          onClick={onClose}
+          className="mt-auto py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg font-medium transition"
+        >
+          关闭
+        </button>
+      )}
+    </div>
   );
 
   if (noOverlay) return content;

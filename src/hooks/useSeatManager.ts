@@ -113,7 +113,8 @@ export function useSeatManager(): UseSeatManagerResult {
       if (newRoleId === "lunatic") {
         const demonRoles = roles.filter((r) => r.type === "demon");
         if (demonRoles.length > 0) {
-          apparentDemonRole = demonRoles[Math.floor(Math.random() * demonRoles.length)];
+          apparentDemonRole =
+            demonRoles[Math.floor(Math.random() * demonRoles.length)];
           console.log(
             `[useSeatManager] 疯子分配 apparentDemonRole: ${apparentDemonRole.name} (${apparentDemonRole.id})`
           );

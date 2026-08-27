@@ -78,7 +78,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="w-full p-4 flex flex-col gap-2">
       {/* Timer display */}
       <div className="flex items-center justify-center gap-3 text-white">
-        <span className="text-3xl font-mono font-bold tabular-nums">{formatTimer(timer)}</span>
+        <span className="text-3xl font-mono font-bold tabular-nums">
+          {formatTimer(timer)}
+        </span>
         <button
           onClick={isTimerRunning ? onTimerPause : onTimerStart}
           className="px-3 py-1 bg-gray-600 rounded-lg text-sm font-bold hover:bg-gray-500 transition-colors"

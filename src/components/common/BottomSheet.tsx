@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -115,7 +116,10 @@ export function BottomSheet({
         </div>
 
         {/* 内容区 */}
-        <div className="flex-1 overflow-y-auto p-4" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div
+          className="flex-1 overflow-y-auto p-4"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {children}
         </div>
       </div>

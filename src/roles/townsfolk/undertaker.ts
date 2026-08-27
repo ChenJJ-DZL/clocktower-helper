@@ -22,8 +22,11 @@ export const undertaker: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats = [], isActorDisabledByPoisonOrDrunk = () => false, executedToday } =
-        context;
+      const {
+        seats = [],
+        isActorDisabledByPoisonOrDrunk = () => false,
+        executedToday,
+      } = context;
       const selfSeat = seats.find((s: any) => s.id === playerSeatId);
       const isDisabled =
         selfSeat &&
@@ -42,7 +45,10 @@ export const undertaker: RoleDefinition = {
       let roleName: string;
       if (isDisabled) {
         const otherRoles = seats
-          .filter((s: any) => s.role && s.id !== playerSeatId && s.role.name !== realRoleName)
+          .filter(
+            (s: any) =>
+              s.role && s.id !== playerSeatId && s.role.name !== realRoleName
+          )
           .map((s: any) => s.role?.name)
           .filter(Boolean);
         roleName =

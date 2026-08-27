@@ -273,44 +273,41 @@ export function useGameFlow(): UseGameFlowResult {
    * - duration 为数字 N：每次黄昏递减 1，减到 0 才移除（侍臣醉酒 3 晚等）
    * 幂等：无过期效果时原样返回。
    */
-  const clearExpiredNightEffects = useCallback(
-    (seat: Seat): Seat => {
-      const effects: any[] = seat.statusEffects ?? [];
-      const hasExpiry = (e: any) =>
-        e.expiresAtNight !== undefined ||
-        e.expiresAtDusk === true ||
-        typeof e.duration === "number";
-      const expiring = effects.filter(hasExpiry);
-      if (expiring.length === 0) return seat;
+  const clearExpiredNightEffects = useCallback((seat: Seat): Seat => {
+    const effects: any[] = seat.statusEffects ?? [];
+    const hasExpiry = (e: any) =>
+      e.expiresAtNight !== undefined ||
+      e.expiresAtDusk === true ||
+      typeof e.duration === "number";
+    const expiring = effects.filter(hasExpiry);
+    if (expiring.length === 0) return seat;
 
-      // 递减 duration；无 duration 的视为立即到期
-      const processed = expiring.map((e: any) => ({
-        ...e,
-        duration: typeof e.duration === "number" ? e.duration - 1 : 0,
-      }));
-      const kept = [
-        ...effects.filter((e) => !hasExpiry(e)),
-        ...processed.filter((e) => e.duration > 0),
-      ];
-      const removed = processed.filter((e) => e.duration <= 0);
+    // 递减 duration；无 duration 的视为立即到期
+    const processed = expiring.map((e: any) => ({
+      ...e,
+      duration: typeof e.duration === "number" ? e.duration - 1 : 0,
+    }));
+    const kept = [
+      ...effects.filter((e) => !hasExpiry(e)),
+      ...processed.filter((e) => e.duration > 0),
+    ];
+    const removed = processed.filter((e) => e.duration <= 0);
 
-      const next: Seat = { ...seat, statusEffects: kept };
+    const next: Seat = { ...seat, statusEffects: kept };
 
-      // 仅当被移除的效果包含对应类型时，才重置布尔字段
-      if (removed.some((e: any) => e.type === "protected")) {
-        next.isProtected = false;
-        next.protectedBy = null;
-      }
-      if (removed.some((e: any) => e.type === "poisoned")) {
-        next.isPoisoned = false;
-      }
-      if (removed.some((e: any) => e.type === "drunk")) {
-        next.isDrunk = false;
-      }
-      return next;
-    },
-    []
-  );
+    // 仅当被移除的效果包含对应类型时，才重置布尔字段
+    if (removed.some((e: any) => e.type === "protected")) {
+      next.isProtected = false;
+      next.protectedBy = null;
+    }
+    if (removed.some((e: any) => e.type === "poisoned")) {
+      next.isPoisoned = false;
+    }
+    if (removed.some((e: any) => e.type === "drunk")) {
+      next.isDrunk = false;
+    }
+    return next;
+  }, []);
 
   const enterDuskPhase = useCallback(() => {
     // 保存历史 (这里需要实现 saveHistory 的 Action，目前先用 updateState 模拟)
@@ -364,7 +361,14 @@ export function useGameFlow(): UseGameFlowResult {
       console.log("[handleDayEndTransition] 今日尚无处决，进入黄昏");
       enterDuskPhase();
     }
-  }, [enterDuskPhase, startNight, state.hasExecutedThisDay, seats, dispatch, clearExpiredNightEffects]);
+  }, [
+    enterDuskPhase,
+    startNight,
+    state.hasExecutedThisDay,
+    seats,
+    dispatch,
+    clearExpiredNightEffects,
+  ]);
 
   const handleSwitchScript = useCallback(() => {
     // 结束当前游戏并重置
@@ -646,7 +650,11 @@ export function useGameFlow(): UseGameFlowResult {
             gameActions.updateState({
               seats: seats.map((s) =>
                 s.id === target.id
-                  ? { ...s, isRedHerring: true, isFortuneTellerRedHerring: true }
+                  ? {
+                      ...s,
+                      isRedHerring: true,
+                      isFortuneTellerRedHerring: true,
+                    }
                   : s
               ),
             })

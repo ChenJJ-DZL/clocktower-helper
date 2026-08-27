@@ -10,7 +10,9 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const used = (ctx.snapshot as any).fibbinUsed ?? false;
   return {
     ...ctx,
@@ -25,7 +27,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   return {
     ...ctx,

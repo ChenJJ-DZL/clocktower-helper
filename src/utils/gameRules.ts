@@ -337,9 +337,8 @@ export const getPoisonSources = (seat: Seat) => {
     /舞蛇人中毒（.*清除）/,
   ];
   const hasAnyPoisonMark =
-    poisonPatterns.some((pattern) =>
-      details.some((d) => pattern.test(d))
-    ) || hasEnginePoison;
+    poisonPatterns.some((pattern) => details.some((d) => pattern.test(d))) ||
+    hasEnginePoison;
   return {
     permanent: details.some((d) => d.includes("永久中毒")),
     vigormortis: details.some((d) => d.includes("亡骨魔中毒")),

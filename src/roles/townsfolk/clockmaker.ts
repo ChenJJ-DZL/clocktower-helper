@@ -119,9 +119,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
       let displayDistance = minDistance;
       if (isDisabled) {
         const maxDist = Math.max(4, Math.floor(seats.length / 2));
-        const fakeCandidates = Array.from({ length: maxDist }, (_, i) => i + 1).filter(
-          (v) => v !== minDistance
-        );
+        const fakeCandidates = Array.from(
+          { length: maxDist },
+          (_, i) => i + 1
+        ).filter((v) => v !== minDistance);
         displayDistance =
           fakeCandidates.length > 0
             ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]

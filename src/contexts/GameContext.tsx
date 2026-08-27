@@ -401,7 +401,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "UPDATE_STATE": {
       const isEnteringGameOver =
-        action.updates.gamePhase === "gameOver" && state.gamePhase !== "gameOver";
+        action.updates.gamePhase === "gameOver" &&
+        state.gamePhase !== "gameOver";
       return {
         ...state,
         ...action.updates,

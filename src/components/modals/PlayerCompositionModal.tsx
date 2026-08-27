@@ -16,17 +16,105 @@ interface PlayerCompositionModalProps {
 
 // 官方标准人数配比数据 (5 ~ 15+ 人)
 const ALL_COMPOSITION_DATA = [
-  { count: 5, label: "5", townsfolk: 3, outsider: 0, minion: 1, demon: 1, isTeensy: true },
-  { count: 6, label: "6", townsfolk: 3, outsider: 1, minion: 1, demon: 1, isTeensy: true },
-  { count: 7, label: "7", townsfolk: 5, outsider: 0, minion: 1, demon: 1, isTeensy: false },
-  { count: 8, label: "8", townsfolk: 5, outsider: 1, minion: 1, demon: 1, isTeensy: false },
-  { count: 9, label: "9", townsfolk: 5, outsider: 2, minion: 1, demon: 1, isTeensy: false },
-  { count: 10, label: "10", townsfolk: 7, outsider: 0, minion: 2, demon: 1, isTeensy: false },
-  { count: 11, label: "11", townsfolk: 7, outsider: 1, minion: 2, demon: 1, isTeensy: false },
-  { count: 12, label: "12", townsfolk: 7, outsider: 2, minion: 2, demon: 1, isTeensy: false },
-  { count: 13, label: "13", townsfolk: 9, outsider: 0, minion: 3, demon: 1, isTeensy: false },
-  { count: 14, label: "14", townsfolk: 9, outsider: 1, minion: 3, demon: 1, isTeensy: false },
-  { count: 15, label: "15+", townsfolk: 9, outsider: 2, minion: 3, demon: 1, isTeensy: false },
+  {
+    count: 5,
+    label: "5",
+    townsfolk: 3,
+    outsider: 0,
+    minion: 1,
+    demon: 1,
+    isTeensy: true,
+  },
+  {
+    count: 6,
+    label: "6",
+    townsfolk: 3,
+    outsider: 1,
+    minion: 1,
+    demon: 1,
+    isTeensy: true,
+  },
+  {
+    count: 7,
+    label: "7",
+    townsfolk: 5,
+    outsider: 0,
+    minion: 1,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 8,
+    label: "8",
+    townsfolk: 5,
+    outsider: 1,
+    minion: 1,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 9,
+    label: "9",
+    townsfolk: 5,
+    outsider: 2,
+    minion: 1,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 10,
+    label: "10",
+    townsfolk: 7,
+    outsider: 0,
+    minion: 2,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 11,
+    label: "11",
+    townsfolk: 7,
+    outsider: 1,
+    minion: 2,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 12,
+    label: "12",
+    townsfolk: 7,
+    outsider: 2,
+    minion: 2,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 13,
+    label: "13",
+    townsfolk: 9,
+    outsider: 0,
+    minion: 3,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 14,
+    label: "14",
+    townsfolk: 9,
+    outsider: 1,
+    minion: 3,
+    demon: 1,
+    isTeensy: false,
+  },
+  {
+    count: 15,
+    label: "15+",
+    townsfolk: 9,
+    outsider: 2,
+    minion: 3,
+    demon: 1,
+    isTeensy: false,
+  },
 ];
 
 export function PlayerCompositionModal({
@@ -82,7 +170,11 @@ export function PlayerCompositionModal({
       footer={
         <div className="flex items-center justify-between gap-3 w-full">
           <div className="text-xs text-slate-400">
-            {displayName && <span className="text-amber-300 font-bold mr-2">【{displayName}】</span>}
+            {displayName && (
+              <span className="text-amber-300 font-bold mr-2">
+                【{displayName}】
+              </span>
+            )}
             <span>当前已分配：</span>
             <b className="text-amber-400 text-sm ml-1">
               {currentPlayerCount ? `${currentPlayerCount} 人` : "未定"}
@@ -104,10 +196,14 @@ export function PlayerCompositionModal({
         {/* 顶部标题与范围说明 */}
         <div className="text-center space-y-1">
           <div className="inline-block px-4 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm">
-            {displayName ? `《${displayName}》` : ""} 支持 {currentMin} - {currentMax >= 15 ? "15+" : currentMax} 人
+            {displayName ? `《${displayName}》` : ""} 支持 {currentMin} -{" "}
+            {currentMax >= 15 ? "15+" : currentMax} 人
           </div>
           <p className="text-xs text-slate-400">
-            官方标准阵营人数配置速查 · {hasDivider ? "竖线左侧为小局模式（5~6人），右侧为标准局（7人及以上）" : "已根据当前剧本建议人数范围精准匹配"}
+            官方标准阵营人数配置速查 ·{" "}
+            {hasDivider
+              ? "竖线左侧为小局模式（5~6人），右侧为标准局（7人及以上）"
+              : "已根据当前剧本建议人数范围精准匹配"}
           </p>
         </div>
 
@@ -131,7 +227,9 @@ export function PlayerCompositionModal({
                     <th
                       key={col.label}
                       className={`py-2.5 px-1 font-black text-sm text-center text-slate-200 whitespace-nowrap ${
-                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                        isDivider
+                          ? "border-r-2 border-amber-400/60"
+                          : "border-r border-white/5"
                       }`}
                     >
                       <span>{col.label}</span>
@@ -153,7 +251,9 @@ export function PlayerCompositionModal({
                     <td
                       key={idx}
                       className={`py-2.5 px-1 text-center font-black text-base text-sky-200 ${
-                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                        isDivider
+                          ? "border-r-2 border-amber-400/60"
+                          : "border-r border-white/5"
                       }`}
                     >
                       {col.townsfolk}
@@ -174,7 +274,9 @@ export function PlayerCompositionModal({
                     <td
                       key={idx}
                       className={`py-2.5 px-1 text-center font-black text-base text-teal-200 ${
-                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                        isDivider
+                          ? "border-r-2 border-amber-400/60"
+                          : "border-r border-white/5"
                       }`}
                     >
                       {col.outsider}
@@ -195,7 +297,9 @@ export function PlayerCompositionModal({
                     <td
                       key={idx}
                       className={`py-2.5 px-1 text-center font-black text-base text-orange-200 ${
-                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                        isDivider
+                          ? "border-r-2 border-amber-400/60"
+                          : "border-r border-white/5"
                       }`}
                     >
                       {col.minion}
@@ -216,7 +320,9 @@ export function PlayerCompositionModal({
                     <td
                       key={idx}
                       className={`py-2.5 px-1 text-center font-black text-base text-rose-300 ${
-                        isDivider ? "border-r-2 border-amber-400/60" : "border-r border-white/5"
+                        isDivider
+                          ? "border-r-2 border-amber-400/60"
+                          : "border-r border-white/5"
                       }`}
                     >
                       {col.demon}
@@ -238,15 +344,18 @@ export function PlayerCompositionModal({
             <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
               {currentMin <= 6 && (
                 <li>
-                  <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1 个恶魔，无不在场的恶魔虚假伪装（或使用汀西维尔规则）。
+                  <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1
+                  个恶魔，无不在场的恶魔虚假伪装（或使用汀西维尔规则）。
                 </li>
               )}
               <li>
-                <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3 个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
+                <b>7~15人（标准局）</b>：恶魔初始知晓其爪牙身份并获得 3
+                个不在场的善良角色伪装；爪牙初始知晓恶魔是谁。
               </li>
               {currentMax >= 15 && (
                 <li>
-                  <b>16人及以上</b>：超出 15 人的玩家作为<b>「旅行者（Traveler）」</b>加入，不改变基础镇民/爪牙配比。
+                  <b>16人及以上</b>：超出 15 人的玩家作为
+                  <b>「旅行者（Traveler）」</b>加入，不改变基础镇民/爪牙配比。
                 </li>
               )}
             </ul>
@@ -259,16 +368,19 @@ export function PlayerCompositionModal({
             </div>
             <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
               <li>
-                <b>男爵 (Baron)</b>：在场时外来者数量 <b>+2</b>（镇民数量相应 <b>-2</b>）。
+                <b>男爵 (Baron)</b>：在场时外来者数量 <b>+2</b>（镇民数量相应{" "}
+                <b>-2</b>）。
               </li>
               <li>
                 <b>教父 (Godfather)</b>：外来者数量 <b>+1 或 -1</b>。
               </li>
               <li>
-                <b>气球驾驶员 (Balloonist)</b>：外来者数量 <b>+1</b>（镇民 <b>-1</b>）。
+                <b>气球驾驶员 (Balloonist)</b>：外来者数量 <b>+1</b>（镇民{" "}
+                <b>-1</b>）。
               </li>
               <li>
-                <b>卡扎利 / 哨兵 / 疯子</b>：可能按技能特殊调整外来者数量与爪牙选择。
+                <b>卡扎利 / 哨兵 / 疯子</b>
+                ：可能按技能特殊调整外来者数量与爪牙选择。
               </li>
             </ul>
           </div>

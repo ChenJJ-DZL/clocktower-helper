@@ -7,9 +7,10 @@
  * - json/wiki_crawl/pages/<名称>.wiki 每个角色页原始 wikitext
  * 断点续爬：已存在的 .wiki 文件跳过
  */
+
+import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
-import { execFileSync } from "child_process";
 
 const BASE = "https://clocktower-wiki.gstonegames.com/index.php?title=";
 const OUT = path.join(__dirname, "json", "wiki_crawl");
@@ -69,7 +70,9 @@ async function main() {
       const html = curlText(BASE + encodeURIComponent(lp.name));
       const links = extractWikiLinks(html);
       // 过滤掉清单页/合集页自身与明显非角色页
-      const roleCandidates = links.filter((t) => !LIST_PAGES.some((l) => l.name === t));
+      const roleCandidates = links.filter(
+        (t) => !LIST_PAGES.some((l) => l.name === t)
+      );
       for (const t of roleCandidates) {
         if (!index[t]) index[t] = { name: t, type: lp.type };
       }
@@ -79,18 +82,29 @@ async function main() {
     }
   }
 
-  fs.writeFileSync(path.join(OUT, "roles_index.json"), JSON.stringify(index, null, 1), "utf-8");
-  console.log(`\n角色清单共 ${Object.keys(index).length} 个，已存 roles_index.json`);
+  fs.writeFileSync(
+    path.join(OUT, "roles_index.json"),
+    JSON.stringify(index, null, 1),
+    "utf-8"
+  );
+  console.log(
+    `\n角色清单共 ${Object.keys(index).length} 个，已存 roles_index.json`
+  );
 
   // ── 2. 批量抓取角色 wikitext（并发 5）──
   const names = Object.keys(index);
-  let ok = 0, skip = 0, fail = 0;
+  let ok = 0,
+    skip = 0,
+    fail = 0;
   const queue = [...names];
   async function worker() {
     while (queue.length > 0) {
       const name = queue.shift()!;
       const file = path.join(PAGES, name + ".wiki");
-      if (fs.existsSync(file)) { skip++; continue; }
+      if (fs.existsSync(file)) {
+        skip++;
+        continue;
+      }
       try {
         const wt = curlText(BASE + encodeURIComponent(name) + "&action=raw");
         if (wt.startsWith("<!DOCTYPE") || wt.trim().length === 0) {
@@ -111,4 +125,7 @@ async function main() {
   console.log(`存档目录: ${PAGES}`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

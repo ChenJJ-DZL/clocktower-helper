@@ -11,11 +11,14 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const seats = ctx.snapshot.seats ?? [];
   const initialEvilCount = (ctx.snapshot as any).initialEvilCount ?? 0;
   const currentEvilCount = seats.filter(
-    (s: any) => s.role?.type === "demon" || s.role?.type === "minion" || s.isEvilConverted
+    (s: any) =>
+      s.role?.type === "demon" || s.role?.type === "minion" || s.isEvilConverted
   ).length;
   const extraEvil = Math.max(0, currentEvilCount - initialEvilCount);
 
@@ -33,7 +36,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   return {
     ...ctx,
@@ -46,7 +51,9 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const log = `[SpiritOfIvory] 象牙之魂生效 — 额外邪恶${r?.extraEvilCount}/${r?.maxExtraEvil}`;
   return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };

@@ -60,7 +60,8 @@ export function useNightSnapshot(
       // 优先使用 commitSeats 同步镜像中的最新座位：上一步角色改状态后，
       // 下一步行动者也能立即读到最新中毒/醉酒/死亡/阵营变化。
       const safeSeats =
-        externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+        externalLatestSeatsRef?.current &&
+        externalLatestSeatsRef.current.length > 0
           ? externalLatestSeatsRef.current
           : currentSeats && currentSeats.length > 0
             ? currentSeats
@@ -139,7 +140,8 @@ export function useNightSnapshot(
         latestSeatsRef.current = currentSeats;
       }
       const safeSeats =
-        externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+        externalLatestSeatsRef?.current &&
+        externalLatestSeatsRef.current.length > 0
           ? externalLatestSeatsRef.current
           : currentSeats && currentSeats.length > 0
             ? currentSeats
@@ -215,7 +217,8 @@ export function useNightSnapshot(
       const latestQueue = wakeQueueIdsRef?.current ?? wakeQueueIds;
       const currentSeats =
         latestSeats ??
-        (externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+        (externalLatestSeatsRef?.current &&
+        externalLatestSeatsRef.current.length > 0
           ? externalLatestSeatsRef.current
           : latestSeatsRef.current) ??
         seats;
@@ -227,17 +230,21 @@ export function useNightSnapshot(
           const candidateSeatId = latestQueue[firstValidIndex];
           const isSystemStep = systemStepRoleIds.has(candidateSeatId);
           if (isSystemStep) break;
-          const candidateSeat = currentSeats.find((s) => s.id === candidateSeatId);
+          const candidateSeat = currentSeats.find(
+            (s) => s.id === candidateSeatId
+          );
           if (!candidateSeat) {
             firstValidIndex++;
             continue;
           }
-          const isDead = candidateSeat.isDead || (candidateSeat as any).isAlive === false;
+          const isDead =
+            candidateSeat.isDead || (candidateSeat as any).isAlive === false;
           if (!isDead) break;
           const roleId = candidateSeat.role?.id;
           const canActWhileDead =
             candidateSeat.hasAbilityEvenDead ||
-            (roleId === "ravenkeeper" && deadThisNight.includes(candidateSeatId)) ||
+            (roleId === "ravenkeeper" &&
+              deadThisNight.includes(candidateSeatId)) ||
             (roleId === "sage" && deadThisNight.includes(candidateSeatId));
           if (canActWhileDead) break;
           firstValidIndex++;
@@ -251,7 +258,9 @@ export function useNightSnapshot(
           setActiveNightStep(null);
           setGamePhase("dawnReport");
           if (deadThisNight.length > 0) {
-            const deadNames = deadThisNight.map((id) => `${id + 1}号`).join("、");
+            const deadNames = deadThisNight
+              .map((id) => `${id + 1}号`)
+              .join("、");
             setCurrentModal({
               type: "NIGHT_DEATH_REPORT",
               data: { message: `昨晚${deadNames}玩家死亡` },
@@ -291,13 +300,16 @@ export function useNightSnapshot(
           break;
         }
 
-        const candidateSeat = currentSeats.find((s) => s.id === candidateSeatId);
+        const candidateSeat = currentSeats.find(
+          (s) => s.id === candidateSeatId
+        );
         if (!candidateSeat) {
           nextIndex++;
           continue;
         }
 
-        const isDead = candidateSeat.isDead || (candidateSeat as any).isAlive === false;
+        const isDead =
+          candidateSeat.isDead || (candidateSeat as any).isAlive === false;
         if (!isDead) {
           // 存活玩家正常行动
           break;
@@ -307,7 +319,8 @@ export function useNightSnapshot(
         const roleId = candidateSeat.role?.id;
         const canActWhileDead =
           candidateSeat.hasAbilityEvenDead ||
-          (roleId === "ravenkeeper" && deadThisNight.includes(candidateSeatId)) ||
+          (roleId === "ravenkeeper" &&
+            deadThisNight.includes(candidateSeatId)) ||
           (roleId === "sage" && deadThisNight.includes(candidateSeatId));
 
         if (canActWhileDead) {
@@ -378,7 +391,8 @@ export function useNightSnapshot(
       updateSnapshot(
         nextIndex,
         latestSeats ??
-          (externalLatestSeatsRef?.current && externalLatestSeatsRef.current.length > 0
+          (externalLatestSeatsRef?.current &&
+          externalLatestSeatsRef.current.length > 0
             ? externalLatestSeatsRef.current
             : latestSeatsRef.current) ??
           seats,

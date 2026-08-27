@@ -11,13 +11,21 @@ const BASE = path.join(__dirname, "..");
 // 加载 Wiki 数据
 function loadWikiRoles(category) {
   const file = path.join(BASE, "json", "full", `${category}.json`);
-  try { return JSON.parse(fs.readFileSync(file, "utf-8")); } catch { return []; }
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf-8"));
+  } catch {
+    return [];
+  }
 }
 
 // 加载本地 rolesData.json
 function loadLocalRolesData() {
   const file = path.join(BASE, "src", "data", "rolesData.json");
-  try { return JSON.parse(fs.readFileSync(file, "utf-8")); } catch { return []; }
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf-8"));
+  } catch {
+    return [];
+  }
 }
 
 // Wiki 数据提取能力文本
@@ -42,10 +50,15 @@ function getWikiOtherNight(role) {
 // 对比分析
 function analyze() {
   const localData = loadLocalRolesData();
-  const localMap = new Map(localData.map(r => [r.id, r]));
+  const localMap = new Map(localData.map((r) => [r.id, r]));
 
   const categories = ["镇民", "外来者", "爪牙", "恶魔", "旅行者"];
-  const results = { missing: [], nightOrderDiff: [], abilityDiff: [], summary: {} };
+  const results = {
+    missing: [],
+    nightOrderDiff: [],
+    abilityDiff: [],
+    summary: {},
+  };
 
   let totalWiki = 0;
   let totalMatched = 0;
@@ -62,13 +75,18 @@ function analyze() {
       const wikiId = name; // 用中文名匹配
 
       // 尝试匹配本地数据
-      const localMatch = localData.find(r =>
-        r.name === name || r.id?.toLowerCase() === engName?.toLowerCase()
+      const localMatch = localData.find(
+        (r) => r.name === name || r.id?.toLowerCase() === engName?.toLowerCase()
       );
 
       if (!localMatch) {
         totalMissing++;
-        results.missing.push({ name, engName, category: cat, wikiType: wr["类型"] });
+        results.missing.push({
+          name,
+          engName,
+          category: cat,
+          wikiType: wr["类型"],
+        });
         results.summary[cat].missing++;
         continue;
       }
@@ -84,14 +102,20 @@ function analyze() {
 
       if (wikiFN !== null && localFN !== undefined && wikiFN !== localFN) {
         results.nightOrderDiff.push({
-          name, engName, field: "firstNightOrder",
-          wiki: wikiFN, local: localFN
+          name,
+          engName,
+          field: "firstNightOrder",
+          wiki: wikiFN,
+          local: localFN,
         });
       }
       if (wikiON !== null && localON !== undefined && wikiON !== localON) {
         results.nightOrderDiff.push({
-          name, engName, field: "otherNightOrder",
-          wiki: wikiON, local: localON
+          name,
+          engName,
+          field: "otherNightOrder",
+          wiki: wikiON,
+          local: localON,
         });
       }
     }
@@ -108,7 +132,9 @@ console.log(`已匹配本地: ${report.totalMatched}`);
 console.log(`缺失角色: ${report.totalMissing}`);
 console.log("\n--- 按类别统计 ---");
 for (const [cat, stats] of Object.entries(report.results.summary)) {
-  console.log(`  ${cat}: ${stats.total} 个 (匹配 ${stats.matched}, 缺失 ${stats.missing})`);
+  console.log(
+    `  ${cat}: ${stats.total} 个 (匹配 ${stats.matched}, 缺失 ${stats.missing})`
+  );
 }
 
 if (report.results.missing.length > 0) {

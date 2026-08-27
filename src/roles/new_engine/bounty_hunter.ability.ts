@@ -1,11 +1,17 @@
 /**
  * 赏金猎人（Bounty Hunter）新引擎技能实现
  *
- * 【角色能力】"首夜，你会得知一名邪恶玩家。"
+ * 官方 Wiki（罂粟花开 1:1 规格书）：
+ *   1. 设置调整阶段：会有一名镇民转变为邪恶阵营（[会有一名镇民转变为邪恶阵营]）。
+ *   2. 首夜：得知一名邪恶玩家。
+ *   3. 得知玩家死亡时：每当你得知的玩家死亡，你会在当晚得知另一名邪恶玩家
+ *      （不能重复告知同一人）。
  *
- * 首夜得知一名邪恶阵营玩家（恶魔或爪牙）。
- * 如果醉酒/中毒，可能得知错误目标（善良玩家）。
- * 自动信息类不弹窗选目标，不主动唤醒。
+ * 实现要点：
+ *   - setupConfig.bountyHunterEvilConvertedId 记录被转邪恶的镇民 seatId
+ *   - snapshot.bountyHunterKnownTargets: number[]  维护已告知列表
+ *   - 死亡轮转：由 useNightEngine 在 deadThisNight 结算时注入新 actionNode，
+ *     并设 ctx.meta.isRotationTrigger = true
  */
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
@@ -24,16 +30,21 @@ const calculateResult = async (
     ctx.storytellerInput?.targetId ??
     ctx.storytellerInput?.overrideResult;
 
+  const knownTargets: number[] =
+    (ctx.snapshot as any).bountyHunterKnownTargets ?? [];
+
   let targetId: number | null = null;
 
   if (storytellerTarget !== undefined && storytellerTarget !== null) {
     targetId = Number(storytellerTarget);
   } else {
+    // 排除：自己 + 已告知 + （默认）已死亡
     const aliveEvils = ctx.snapshot.seats.filter(
       (s: any) =>
         s.isAlive &&
         s.id !== ctx.actionNode.seatId &&
         s.role &&
+        !knownTargets.includes(s.id) &&
         (s.role.type === "minion" ||
           s.role.type === "demon" ||
           s.isEvilConverted ||
@@ -74,8 +85,11 @@ const calculateResult = async (
       abilityResult: {
         targetId,
         targetSeatId: targetId,
-        targetPlayerName: targetSeat?.playerName ?? (targetId !== null ? `${targetId + 1}号` : null),
+        targetPlayerName:
+          targetSeat?.playerName ??
+          (targetId !== null ? `${targetId + 1}号` : null),
         evilFound: targetId !== null,
+        isRotationTrigger: (ctx.meta as any).isRotationTrigger === true,
       },
       isCorrupted: !isActive,
     },
@@ -89,6 +103,13 @@ const saveResult = async (
   const r = ctx.meta.abilityResult as any;
   let updatedSeats = ctx.snapshot.seats;
   if (r?.targetId != null) {
+    // 把新目标加入 knownTargets（避免重复告知）
+    const knownTargets: number[] =
+      (ctx.snapshot as any).bountyHunterKnownTargets ?? [];
+    const nextKnown = knownTargets.includes(r.targetId)
+      ? knownTargets
+      : [...knownTargets, r.targetId];
+
     updatedSeats = ctx.snapshot.seats.map((s: any) => {
       if (s.id === r.targetId) {
         const details = s.statusDetails || [];
@@ -101,6 +122,20 @@ const saveResult = async (
       }
       return s;
     });
+
+    return {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        seats: updatedSeats,
+        bountyHunterKnownTargets: nextKnown,
+        _abilityResults: {
+          ...((ctx.snapshot as any)._abilityResults ?? {}),
+          bounty_hunter: r,
+        },
+      },
+      meta: { ...ctx.meta, bountyHunterResult: r },
+    };
   }
   return {
     ...ctx,
@@ -122,9 +157,10 @@ const logResult = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const tag = ctx.meta.isCorrupted ? "【受干扰】" : "";
+  const rot = r?.isRotationTrigger ? "（死亡轮转）" : "";
   const log =
     r?.targetId != null
-      ? `[BountyHunter]${tag} 得知 ${r.targetId + 1}号是邪恶玩家`
+      ? `[BountyHunter]${tag}${rot} 得知 ${r.targetId + 1}号是邪恶玩家`
       : "[BountyHunter] 未发现邪恶玩家";
   console.log(log);
   return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };
@@ -134,7 +170,10 @@ export const bounty_hunterAbility = createRoleAbility({
   roleId: "bounty_hunter",
   abilityId: "bounty_hunter_reveal",
   abilityName: "悬赏猎杀",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
+  triggerTiming: [
+    AbilityTriggerTiming.FIRST_NIGHT,
+    AbilityTriggerTiming.EVERY_NIGHT,
+  ],
   firstNightPriority: 72,
   otherNightPriority: 105,
   firstNightOnly: false,

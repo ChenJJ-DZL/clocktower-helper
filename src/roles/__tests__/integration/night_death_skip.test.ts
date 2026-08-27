@@ -32,7 +32,8 @@ describe("夜间击杀即时死亡与行动顺序跳过机制", () => {
         const isDead = s.isDead;
         const canActWhileDead =
           (s as any).hasAbilityEvenDead ||
-          (s.role?.id === "ravenkeeper" && deadThisNight.includes(candidateId)) ||
+          (s.role?.id === "ravenkeeper" &&
+            deadThisNight.includes(candidateId)) ||
           (s.role?.id === "sage" && deadThisNight.includes(candidateId));
 
         if (!isDead || canActWhileDead) {
@@ -57,7 +58,12 @@ describe("夜间击杀即时死亡与行动顺序跳过机制", () => {
     const wakeQueue = [1, 2];
     const seats = [
       { id: 1, role: { id: "imp", name: "小恶魔" }, isDead: false },
-      { id: 2, role: { id: "ravenkeeper", name: "守鸦人" }, isDead: false, hasAbilityEvenDead: true },
+      {
+        id: 2,
+        role: { id: "ravenkeeper", name: "守鸦人" },
+        isDead: false,
+        hasAbilityEvenDead: true,
+      },
     ];
 
     // 恶魔 (1) 杀 守鸦人 (2)
@@ -66,7 +72,7 @@ describe("夜间击杀即时死亡与行动顺序跳过机制", () => {
     seats[1].isDead = true;
     const deadThisNight = [2];
 
-    let idx = 1;
+    const idx = 1;
     const candidateId = wakeQueue[idx];
     const s = seats.find((seat) => seat.id === candidateId);
     const canActWhileDead =

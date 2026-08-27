@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { Role, Seat } from "../../../app/data";
-import { getCharacterWikiDetails, type CharacterWikiDetails } from "../../utils/characterWikiLookup";
-import { ModalWrapper } from "./ModalWrapper";
+import {
+  type CharacterWikiDetails,
+  getCharacterWikiDetails,
+} from "../../utils/characterWikiLookup";
 import { RoleTokenBadge } from "../common/RoleTokenBadge";
+import { ModalWrapper } from "./ModalWrapper";
 
 interface IdentityShowcaseModalProps {
   isOpen: boolean;
@@ -135,14 +138,27 @@ export function IdentityShowcaseModal({
         <div className="py-8 text-center text-slate-300">
           <p className="text-4xl mb-3">🪑</p>
           <p className="text-lg font-bold">暂无落座玩家</p>
-          <p className="text-sm text-slate-400 mt-1">请先在准备阶段为座位分配角色后再进行身份告知。</p>
+          <p className="text-sm text-slate-400 mt-1">
+            请先在准备阶段为座位分配角色后再进行身份告知。
+          </p>
         </div>
       </ModalWrapper>
     );
   }
 
   // 阵营颜色主题映射
-  const team = String(displayRole.type || (wikiDetails?.type === "镇民" ? "townsfolk" : wikiDetails?.type === "外来者" ? "outsider" : wikiDetails?.type === "爪牙" ? "minion" : wikiDetails?.type === "恶魔" ? "demon" : "townsfolk"));
+  const team = String(
+    displayRole.type ||
+      (wikiDetails?.type === "镇民"
+        ? "townsfolk"
+        : wikiDetails?.type === "外来者"
+          ? "outsider"
+          : wikiDetails?.type === "爪牙"
+            ? "minion"
+            : wikiDetails?.type === "恶魔"
+              ? "demon"
+              : "townsfolk")
+  );
   const teamThemeMap: Record<
     string,
     {
@@ -155,43 +171,54 @@ export function IdentityShowcaseModal({
   > = {
     townsfolk: {
       badgeBg: "bg-blue-500/20 text-blue-300 border-blue-400/40",
-      accentBorder: "border-blue-500/60 shadow-[0_0_30px_rgba(59,130,246,0.25)]",
-      tokenBg: "bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 border-blue-400 text-blue-200",
+      accentBorder:
+        "border-blue-500/60 shadow-[0_0_30px_rgba(59,130,246,0.25)]",
+      tokenBg:
+        "bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 border-blue-400 text-blue-200",
       teamLabel: "镇民 · 善良阵营",
       highlightText: "text-blue-300",
     },
     outsider: {
       badgeBg: "bg-teal-500/20 text-teal-300 border-teal-400/40",
-      accentBorder: "border-teal-500/60 shadow-[0_0_30px_rgba(20,184,166,0.25)]",
-      tokenBg: "bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 border-teal-400 text-teal-200",
+      accentBorder:
+        "border-teal-500/60 shadow-[0_0_30px_rgba(20,184,166,0.25)]",
+      tokenBg:
+        "bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 border-teal-400 text-teal-200",
       teamLabel: "外来者 · 善良阵营",
       highlightText: "text-teal-300",
     },
     minion: {
       badgeBg: "bg-orange-500/20 text-orange-300 border-orange-400/40",
-      accentBorder: "border-orange-500/60 shadow-[0_0_30px_rgba(249,115,22,0.25)]",
-      tokenBg: "bg-gradient-to-br from-orange-900 via-orange-950 to-slate-950 border-orange-400 text-orange-200",
+      accentBorder:
+        "border-orange-500/60 shadow-[0_0_30px_rgba(249,115,22,0.25)]",
+      tokenBg:
+        "bg-gradient-to-br from-orange-900 via-orange-950 to-slate-950 border-orange-400 text-orange-200",
       teamLabel: "爪牙 · 邪恶阵营",
       highlightText: "text-orange-300",
     },
     demon: {
       badgeBg: "bg-red-500/20 text-red-300 border-red-400/40",
       accentBorder: "border-red-600/60 shadow-[0_0_35px_rgba(239,68,68,0.35)]",
-      tokenBg: "bg-gradient-to-br from-red-900 via-red-950 to-slate-950 border-red-500 text-red-200",
+      tokenBg:
+        "bg-gradient-to-br from-red-900 via-red-950 to-slate-950 border-red-500 text-red-200",
       teamLabel: "恶魔 · 邪恶阵营",
       highlightText: "text-red-400",
     },
     traveler: {
       badgeBg: "bg-purple-500/20 text-purple-300 border-purple-400/40",
-      accentBorder: "border-purple-500/60 shadow-[0_0_30px_rgba(168,85,247,0.25)]",
-      tokenBg: "bg-gradient-to-br from-purple-900 via-purple-950 to-slate-950 border-purple-400 text-purple-200",
+      accentBorder:
+        "border-purple-500/60 shadow-[0_0_30px_rgba(168,85,247,0.25)]",
+      tokenBg:
+        "bg-gradient-to-br from-purple-900 via-purple-950 to-slate-950 border-purple-400 text-purple-200",
       teamLabel: "旅行者",
       highlightText: "text-purple-300",
     },
     fabled: {
       badgeBg: "bg-amber-500/20 text-amber-300 border-amber-400/40",
-      accentBorder: "border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)]",
-      tokenBg: "bg-gradient-to-br from-slate-800 to-slate-950 border-amber-400 text-amber-200",
+      accentBorder:
+        "border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)]",
+      tokenBg:
+        "bg-gradient-to-br from-slate-800 to-slate-950 border-amber-400 text-amber-200",
       teamLabel: "传奇角色",
       highlightText: "text-amber-300",
     },
@@ -199,7 +226,8 @@ export function IdentityShowcaseModal({
   const teamTheme = teamThemeMap[team] || teamThemeMap.fabled;
 
   const prevSeat = currentIndex > 0 ? seatedPlayers[currentIndex - 1] : null;
-  const nextSeat = currentIndex < total - 1 ? seatedPlayers[currentIndex + 1] : null;
+  const nextSeat =
+    currentIndex < total - 1 ? seatedPlayers[currentIndex + 1] : null;
 
   return (
     <ModalWrapper
@@ -282,13 +310,18 @@ export function IdentityShowcaseModal({
           <div className="flex items-center gap-2 font-medium">
             <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>
-              轮番确认环节：第 <b className="text-amber-400 text-sm">{currentIndex + 1}</b> / {total} 位玩家
-              （座位 <b>{currentSeat.id + 1}号</b>）
+              轮番确认环节：第{" "}
+              <b className="text-amber-400 text-sm">{currentIndex + 1}</b> /{" "}
+              {total} 位玩家 （座位 <b>{currentSeat.id + 1}号</b>）
             </span>
           </div>
           <div className="flex items-center gap-2 text-slate-400">
-            <span className="hidden sm:inline">💡 安全防窥：切换玩家时已自动遮罩</span>
-            <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${isMasked ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"}`}>
+            <span className="hidden sm:inline">
+              💡 安全防窥：切换玩家时已自动遮罩
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded text-[11px] font-bold border ${isMasked ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"}`}
+            >
               {isMasked ? "🙈 已遮罩" : "👁️ 已翻开"}
             </span>
           </div>
@@ -312,7 +345,8 @@ export function IdentityShowcaseModal({
                   【 {currentSeat.id + 1} 号座位玩家 】
                 </h3>
                 <p className="text-sm text-slate-400 max-w-md pt-1">
-                  当前处于防窥遮罩状态 · 拿到设备的玩家请点击屏幕翻开专属身份与技能说明
+                  当前处于防窥遮罩状态 ·
+                  拿到设备的玩家请点击屏幕翻开专属身份与技能说明
                 </p>
               </div>
               <button
@@ -342,7 +376,9 @@ export function IdentityShowcaseModal({
                       玩家身份
                     </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${teamTheme.badgeBg}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold border ${teamTheme.badgeBg}`}
+                  >
                     {teamTheme.teamLabel}
                   </span>
                 </div>
@@ -355,7 +391,9 @@ export function IdentityShowcaseModal({
                     size="lg"
                   />
                   <div className="space-y-1 min-w-0 flex-1">
-                    <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}>
+                    <h2
+                      className={`text-3xl sm:text-4xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}
+                    >
                       {displayRole.name}
                     </h2>
                     <p className="text-sm text-slate-300 font-mono font-medium">
@@ -363,7 +401,10 @@ export function IdentityShowcaseModal({
                     </p>
                     {wikiDetails?.script && (
                       <p className="text-xs text-slate-400">
-                        所属剧本：<span className="text-slate-200 font-semibold">{wikiDetails.script}</span>
+                        所属剧本：
+                        <span className="text-slate-200 font-semibold">
+                          {wikiDetails.script}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -376,7 +417,9 @@ export function IdentityShowcaseModal({
                     <span>【角色能力】</span>
                   </div>
                   <p className="text-base sm:text-lg font-medium text-slate-100 leading-relaxed pl-1">
-                    {wikiDetails?.abilityText || displayRole.ability || "无特殊能力描述"}
+                    {wikiDetails?.abilityText ||
+                      displayRole.ability ||
+                      "无特殊能力描述"}
                   </p>
                 </div>
 
@@ -388,14 +431,17 @@ export function IdentityShowcaseModal({
                       <span>说书人专属提示</span>
                     </div>
                     <p className="text-slate-200">
-                      该玩家真实身份为 <b>酒鬼</b>，但他以为自己是 <b>【{displayRole.name}】</b> 并已向其告知该技能。
+                      该玩家真实身份为 <b>酒鬼</b>，但他以为自己是{" "}
+                      <b>【{displayRole.name}】</b> 并已向其告知该技能。
                     </p>
                   </div>
                 )}
 
                 {/* 底部传递引导 */}
                 <div className="pt-2 border-t border-white/10 text-xs text-slate-400 text-center shrink-0">
-                  <span>📱 确认知晓后，请点击下方「下一位」并将设备传递给下一位玩家</span>
+                  <span>
+                    📱 确认知晓后，请点击下方「下一位」并将设备传递给下一位玩家
+                  </span>
                 </div>
               </div>
 
@@ -439,7 +485,8 @@ export function IdentityShowcaseModal({
                       <span>💡</span>
                       <span>核心打法与发言建议</span>
                     </div>
-                    {wikiDetails?.strategyTips && wikiDetails.strategyTips.length > 0 ? (
+                    {wikiDetails?.strategyTips &&
+                    wikiDetails.strategyTips.length > 0 ? (
                       <div className="space-y-2 pl-0.5">
                         {wikiDetails.strategyTips.slice(0, 6).map((tip, i) => (
                           <div
@@ -455,7 +502,8 @@ export function IdentityShowcaseModal({
                       </div>
                     ) : (
                       <p className="text-xs sm:text-sm text-slate-400 pl-4">
-                        {wikiDetails?.overview || "暂无该角色的特殊玩法技巧说明。"}
+                        {wikiDetails?.overview ||
+                          "暂无该角色的特殊玩法技巧说明。"}
                       </p>
                     )}
                   </div>
@@ -474,21 +522,27 @@ export function IdentityShowcaseModal({
                   )}
 
                   {/* 伪装建议 (对于邪恶或强力角色) */}
-                  {wikiDetails?.bluffTips && wikiDetails.bluffTips.length > 0 && (
-                    <div className="space-y-1.5 pt-2 border-t border-white/10">
-                      <div className="flex items-center gap-1 text-xs font-bold text-orange-400">
-                        <span>🎭</span>
-                        <span>伪装思路推荐</span>
+                  {wikiDetails?.bluffTips &&
+                    wikiDetails.bluffTips.length > 0 && (
+                      <div className="space-y-1.5 pt-2 border-t border-white/10">
+                        <div className="flex items-center gap-1 text-xs font-bold text-orange-400">
+                          <span>🎭</span>
+                          <span>伪装思路推荐</span>
+                        </div>
+                        <div className="space-y-1.5 pl-2">
+                          {wikiDetails.bluffTips
+                            .slice(0, 2)
+                            .map((bTip, idx) => (
+                              <p
+                                key={idx}
+                                className="text-xs text-slate-300 leading-relaxed"
+                              >
+                                • {bTip}
+                              </p>
+                            ))}
+                        </div>
                       </div>
-                      <div className="space-y-1.5 pl-2">
-                        {wikiDetails.bluffTips.slice(0, 2).map((bTip, idx) => (
-                          <p key={idx} className="text-xs text-slate-300 leading-relaxed">
-                            • {bTip}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
             </div>

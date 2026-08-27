@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import type { GameRecord } from "@/src/types/game";
 import type { ReminderToken } from "@/app/data";
+import type { GameRecord } from "@/src/types/game";
 import { roles } from "../../../app/data";
-import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameState } from "../../hooks/useGameState";
 import { useHistoryController } from "../../hooks/useHistoryController";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
@@ -17,17 +17,17 @@ import { DreamerResultModal } from "../modals/DreamerResultModal";
 import { DrunkCharadeSelectModal } from "../modals/DrunkCharadeSelectModal";
 import { ExecutionResultModal } from "../modals/ExecutionResultModal";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
-import { InfoResultModal } from "../modals/InfoResultModal";
-import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
 import { GenericAlertModal } from "../modals/GenericAlertModal";
 import { GenericConfirmModal } from "../modals/GenericConfirmModal";
+import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
+import { InfoResultModal } from "../modals/InfoResultModal";
 import { KillConfirmModal } from "../modals/KillConfirmModal";
 import { KlutzChoiceModal } from "../modals/KlutzChoiceModal";
 import { LunaticRpsModal } from "../modals/LunaticRpsModal";
 import { MadnessCheckModal } from "../modals/MadnessCheckModal";
 import { MayorThreeAliveModal } from "../modals/MayorThreeAliveModal";
-import { MoonchildKillModal } from "../modals/MoonchildKillModal";
 import { ModalWrapper } from "../modals/ModalWrapper";
+import { MoonchildKillModal } from "../modals/MoonchildKillModal";
 import { NightActionConfirmModal } from "../modals/NightActionConfirmModal";
 import { NightDeathReportModal } from "../modals/NightDeathReportModal";
 import { NightOrderPreviewModal } from "../modals/NightOrderPreviewModal";
@@ -45,11 +45,11 @@ import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RoleSelectModal } from "../modals/RoleSelectModal";
 import { SaintExecutionConfirmModal } from "../modals/SaintExecutionConfirmModal";
 import { SavantResultModal } from "../modals/SavantResultModal";
-import { SpyGrimoireModal } from "../modals/SpyGrimoireModal";
 import { ShamanConvertModal } from "../modals/ShamanConvertModal";
 import { ShootResultModal } from "../modals/ShootResultModal";
 import { SlayerSelectTargetModal } from "../modals/SlayerSelectTargetModal";
 import { SpyDisguiseModal } from "../modals/SpyDisguiseModal";
+import { SpyGrimoireModal } from "../modals/SpyGrimoireModal";
 import { StorytellerDeathModal } from "../modals/StorytellerDeathModal";
 import { StorytellerSelectModal } from "../modals/StorytellerSelectModal";
 import { SweetheartDrunkModal } from "../modals/SweetheartDrunkModal";
@@ -385,22 +385,33 @@ export function GameModals() {
           <ReminderTokenPanel
             seatId={currentModal.data.seatId}
             tokens={reminderTokens?.[currentModal.data.seatId] ?? []}
-            playerName={seats.find((s) => s.id === currentModal.data.seatId)?.playerName}
+            playerName={
+              seats.find((s) => s.id === currentModal.data.seatId)?.playerName
+            }
             onAdd={(seatId: number, token: ReminderToken) => {
               saveHistory();
               const current = reminderTokens ?? {};
               const seatTokens = current[seatId] ?? [];
-              dispatch(gameActions.updateState({
-                reminderTokens: { ...current, [seatId]: [...seatTokens, token] },
-              }));
+              dispatch(
+                gameActions.updateState({
+                  reminderTokens: {
+                    ...current,
+                    [seatId]: [...seatTokens, token],
+                  },
+                })
+              );
             }}
             onRemove={(seatId: number, tokenId: string) => {
               saveHistory();
               const current = reminderTokens ?? {};
-              const seatTokens = (current[seatId] ?? []).filter((t: ReminderToken) => t.id !== tokenId);
-              dispatch(gameActions.updateState({
-                reminderTokens: { ...current, [seatId]: seatTokens },
-              }));
+              const seatTokens = (current[seatId] ?? []).filter(
+                (t: ReminderToken) => t.id !== tokenId
+              );
+              dispatch(
+                gameActions.updateState({
+                  reminderTokens: { ...current, [seatId]: seatTokens },
+                })
+              );
             }}
             onClose={() => actions.setCurrentModal(null)}
             noOverlay
@@ -725,7 +736,8 @@ export function GameModals() {
         />
       )}
 
-      {(currentModal?.type === "ROLE_CODEX" || currentModal?.type === "ROLE_INFO") && (
+      {(currentModal?.type === "ROLE_CODEX" ||
+        currentModal?.type === "ROLE_INFO") && (
         <RoleCodexModal
           isOpen={true}
           onClose={() => actions.setCurrentModal(null)}
@@ -931,7 +943,8 @@ export function GameModals() {
           }
         >
           <div className="text-base text-slate-200 py-2 leading-relaxed text-center">
-            {gamblerJudgeModal.seatId + 1}号【赌徒】使用了「赌徒猜测」。<br />
+            {gamblerJudgeModal.seatId + 1}号【赌徒】使用了「赌徒猜测」。
+            <br />
             说书人判定该玩家对目标角色的猜测是否正确？
           </div>
         </ModalWrapper>

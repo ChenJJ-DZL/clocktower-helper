@@ -38,9 +38,7 @@ export function isMinionCapable(seat: TaowuSeatLike | undefined): boolean {
   const effects = seat.statusEffects ?? [];
   const lost = effects.some(
     (e) =>
-      e.type === "lost_ability" ||
-      e.type === "poisoned" ||
-      e.type === "drunk"
+      e.type === "lost_ability" || e.type === "poisoned" || e.type === "drunk"
   );
   // 兼容 legacy 字段
   const legacyLost =

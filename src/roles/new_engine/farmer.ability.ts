@@ -81,11 +81,11 @@ const calculate = async (
   );
   const chosen =
     goodCandidates.length > 0
-      ? (ctx.storytellerInput?.newFarmerSeatId !== undefined
-          ? ctx.snapshot.seats.find(
-              (s: any) => s.id === ctx.storytellerInput.newFarmerSeatId
-            )
-          : goodCandidates[Math.floor(Math.random() * goodCandidates.length)])
+      ? ctx.storytellerInput?.newFarmerSeatId !== undefined
+        ? ctx.snapshot.seats.find(
+            (s: any) => s.id === ctx.storytellerInput.newFarmerSeatId
+          )
+        : goodCandidates[Math.floor(Math.random() * goodCandidates.length)]
       : null;
   return {
     ...ctx,
@@ -106,12 +106,26 @@ const stateUpdate = async (
   if (!r?.hasTransfer || r.newFarmerId == null) return ctx;
   const updatedSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === r.newFarmerId) {
+      // 变农夫后失去原能力（清除 hasAbilityEvenDead + previous ability 标记）
+      const cleanedStatusEffects = (s.statusEffects ?? []).filter(
+        (e: any) =>
+          ![
+            "farmer_ability",
+            "cannibal_farmer",
+            "philosopher_farmer",
+            "pixie_farmer",
+          ].includes(e.type)
+      );
       return {
         ...s,
         role: { id: "farmer", name: "农夫", type: "townsfolk" },
         roleId: "farmer",
         roleName: "农夫",
         roleType: "townsfolk",
+        hasAbilityEvenDead: false,
+        statusEffects: cleanedStatusEffects,
+        // 清除已获得的额外能力标记
+        acquiredAbilities: [],
         statusDetails: [...(s.statusDetails || []), "成为新农夫"],
       };
     }

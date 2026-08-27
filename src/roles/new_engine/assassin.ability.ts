@@ -2,12 +2,12 @@
  * 刺客（Assassin）新引擎技能实现
  */
 
+import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import {
   canUseLimitedAbility,
   consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -75,7 +75,11 @@ const updateAssassinationStatus = async (
         ...snapshot,
         seats: snapshot.seats.map((seat: any) =>
           seat.id === targetId
-            ? { ...seat, zombuulNightSaved: true, zombuulSavedSource: "assassin" }
+            ? {
+                ...seat,
+                zombuulNightSaved: true,
+                zombuulSavedSource: "assassin",
+              }
             : seat
         ),
       };

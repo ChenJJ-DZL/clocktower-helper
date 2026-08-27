@@ -199,17 +199,21 @@ function findDeadDemonRoleId(seats: PlayerLookup[]): string {
 /**
  * 判断红唇女郎是否应触发变身。
  *
+ * 官方规则：
+ * "如果在恶魔死前有五名或更多的玩家存活；或者说，如果在恶魔死后有四名或更多的玩家存活，
+ *  那么红唇女郎会立刻变成恶魔。"
+ *
  * 条件：
- * 1. 能力生效（abilityEffective）
- * 2. 恶魔已死亡
- * 3. 存活玩家（排除旅行者）≥ 5
+ * 1. 能力生效（abilityEffective，自身未中毒/醉酒）
+ * 2. 恶魔已死亡（demonDead）
+ * 3. 恶魔死后存活玩家（排除旅行者）≥ 4（即死前 ≥ 5）
  */
 function shouldTransform(meta: Record<string, any>): boolean {
   const abilityEffective = meta.abilityEffective ?? true;
   const demonDead = meta.demonDead ?? false;
   const aliveNonTravelerCount = meta.aliveNonTravelerCount ?? 0;
 
-  return abilityEffective && demonDead && aliveNonTravelerCount >= 5;
+  return abilityEffective && demonDead && aliveNonTravelerCount >= 4;
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────

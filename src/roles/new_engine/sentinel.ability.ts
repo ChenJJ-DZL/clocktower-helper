@@ -10,7 +10,9 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const adjustment = (ctx.storytellerInput?.sentinelAdjustment as number) ?? 0;
   return {
     ...ctx,
@@ -24,7 +26,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   return {
     ...ctx,
@@ -37,7 +41,9 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const adj = r?.outsiderAdjustment ?? 0;
   const log = `[Sentinel] 哨兵生效 — 外来者数量${adj > 0 ? "+" : ""}${adj}修正`;

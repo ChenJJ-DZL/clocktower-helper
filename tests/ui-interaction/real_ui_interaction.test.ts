@@ -9,9 +9,9 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { Seat, Role } from "../../app/data";
-import { executeViaNewEngine } from "../../src/hooks/useNightActionHandler";
+import type { Role, Seat } from "../../app/data";
 import { roles } from "../../app/data";
+import { executeViaNewEngine } from "../../src/hooks/useNightActionHandler";
 
 describe("【UI 交互真机验收与官方经典皮肤注入测试】", () => {
   describe("1. 小恶魔自戕转火交互链路", () => {
@@ -35,7 +35,8 @@ describe("【UI 交互真机验收与官方经典皮肤注入测试】", () => {
 
       let updatedSeats: Seat[] = initialSeats;
       const setSeats = vi.fn((newSeats: any) => {
-        updatedSeats = typeof newSeats === "function" ? newSeats(updatedSeats) : newSeats;
+        updatedSeats =
+          typeof newSeats === "function" ? newSeats(updatedSeats) : newSeats;
       });
 
       const addLog = vi.fn();
@@ -78,7 +79,9 @@ describe("【UI 交互真机验收与官方经典皮肤注入测试】", () => {
       expect(currentModalData.data.targetCount).toBe(1);
 
       // 校验候选人过滤：只有存活爪牙（1号男爵、2号投毒者）可选，排除自己和镇民
-      const candidates = initialSeats.filter(currentModalData.data.filterCandidates);
+      const candidates = initialSeats.filter(
+        currentModalData.data.filterCandidates
+      );
       expect(candidates.map((c) => c.id)).toEqual([1, 2]);
 
       // 步骤 2：说书人确认选择 2号（投毒者）晋升为新恶魔
@@ -119,7 +122,8 @@ describe("【UI 交互真机验收与官方经典皮肤注入测试】", () => {
 
       let updatedSeats: Seat[] = initialSeats;
       const setSeats = vi.fn((newSeats: any) => {
-        updatedSeats = typeof newSeats === "function" ? newSeats(updatedSeats) : newSeats;
+        updatedSeats =
+          typeof newSeats === "function" ? newSeats(updatedSeats) : newSeats;
       });
 
       const addLog = vi.fn();
@@ -161,7 +165,9 @@ describe("【UI 交互真机验收与官方经典皮肤注入测试】", () => {
       expect(currentModalData.data.title).toContain("农夫遇害传承");
 
       // 校验候选人过滤：仅存活善良玩家（2号僧侣），排除恶魔、爪牙与死者
-      const candidates = updatedSeats.filter(currentModalData.data.filterCandidates);
+      const candidates = updatedSeats.filter(
+        currentModalData.data.filterCandidates
+      );
       expect(candidates.map((c) => c.id)).toEqual([2]);
 
       // 步骤 2：说书人确认选择 2号（僧侣）成为新农夫
@@ -176,10 +182,12 @@ describe("【UI 交互真机验收与官方经典皮肤注入测试】", () => {
 
   describe("3. 罂粟种植者死亡与邪恶互认步骤挂载", () => {
     it("罂粟种植者死亡当晚的邪恶互认步骤（minion_info/demon_info）必须正确判定高亮", () => {
-      const checkIsPoppyGrowerEvilInfo = (roleId: string, nightCount: number) => {
+      const checkIsPoppyGrowerEvilInfo = (
+        roleId: string,
+        nightCount: number
+      ) => {
         return (
-          (roleId === "minion_info" ||
-            roleId === "demon_info") &&
+          (roleId === "minion_info" || roleId === "demon_info") &&
           nightCount > 1
         );
       };

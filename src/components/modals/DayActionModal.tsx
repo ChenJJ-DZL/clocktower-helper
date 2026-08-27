@@ -62,10 +62,7 @@ export function DayActionModal({ modal }: { modal: any }) {
                 key={s.id}
                 onClick={() => {
                   if (!isDisabled) {
-                    if (
-                      modal.type === "nominate" &&
-                      s.role?.id === "virgin"
-                    ) {
+                    if (modal.type === "nominate" && s.role?.id === "virgin") {
                       const nominatorSeat = props.seats.find(
                         (seat: any) => seat.id === modal.sourceId
                       );

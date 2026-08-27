@@ -191,17 +191,9 @@ export function resolveMayorDemonKill(
     };
   }
 
-  // 3. 寻找可替代死亡的存活镇民（排除自己、排除已死、排除受保护）
+  // 3. 寻找可替代死亡的存活玩家（官方规则：可由除镇长外的任意其他存活玩家代为死亡）
   const candidates = seats.filter(
-    (s: any) =>
-      s &&
-      !s.isDead &&
-      s.id !== mayorId &&
-      s.role?.type === "townsfolk" &&
-      !(
-        s.statusEffects?.some((e: any) => e.type === "protected") ||
-        s.isProtected
-      )
+    (s: any) => s && !s.isDead && s.isAlive !== false && s.id !== mayorId
   );
 
   if (candidates.length === 0) {
@@ -210,7 +202,7 @@ export function resolveMayorDemonKill(
       substituted: false,
       substituteSeat: null,
       reason: "no_candidates",
-      logMessage: `场上无其他可用存活镇民可替代死亡，镇长【${mayorName}】自己死亡`,
+      logMessage: `场上无其他可用存活玩家可替代死亡，镇长【${mayorName}】自己死亡`,
     };
   }
 
@@ -227,8 +219,7 @@ export function resolveMayorDemonKill(
   }
 
   // 95% 概率：随机选取一名存活镇民替代死亡
-  const substitute =
-    candidates[Math.floor(Math.random() * candidates.length)];
+  const substitute = candidates[Math.floor(Math.random() * candidates.length)];
   const subName = substitute.playerName
     ? `${substitute.playerName}(${substitute.id + 1}号)`
     : `${substitute.id + 1}号`;
@@ -266,4 +257,3 @@ export function mayorSubstituteLog(
     Number(subId) + 1
   }号镇民替代死亡`;
 }
-

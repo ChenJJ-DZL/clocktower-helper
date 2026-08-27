@@ -17,6 +17,7 @@ import {
   executeNightAbility,
   validateGameStateConsistency,
 } from "../utils/abilityExecutor";
+import { generateDynamicNightQueue } from "../utils/dynamicQueueGenerator";
 import {
   addPoisonMark,
   computeIsPoisoned,
@@ -49,7 +50,6 @@ import { useGameState } from "./useGameState";
 import { useHistoryController } from "./useHistoryController";
 import { useInteractionHandler } from "./useInteractionHandler";
 import { useLogicDispatcher } from "./useLogicDispatcher";
-import { generateDynamicNightQueue } from "../utils/dynamicQueueGenerator";
 import { useNightActionHandler } from "./useNightActionHandler";
 import { ENGINE_CONFIG, useNightEngine } from "./useNightEngine";
 import { useNightSnapshot } from "./useNightSnapshot";
@@ -159,6 +159,7 @@ export function useGameController() {
     setGossipTrueTonight,
     setGossipSourceSeatId,
     setGossipStatementToday,
+    setEvilTwinPair,
     pukkaPoisonQueue,
     setPukkaPoisonQueue,
     poChargeState,
@@ -235,12 +236,9 @@ export function useGameController() {
   );
 
   const getDisplayRoleType = useCallback((seat: Seat | null | undefined) => {
-    if (!seat) return "townsfolk";
-    const role =
-      seat.role?.id === "drunk" || seat.role?.id === "marionette"
-        ? seat.charadeRole || seat.role
-        : seat.role;
-    return role?.type || "townsfolk";
+    if (!seat || !seat.role) return "townsfolk";
+    // 说书人魔典圆桌视角：座位代币底色与光晕反映玩家的真实角色类型（如酒鬼为外来者绿色，提线木偶为爪牙暗橙）
+    return seat.role.type || "townsfolk";
   }, []);
 
   const formatTimer = useCallback((seconds: number) => {
@@ -283,7 +281,9 @@ export function useGameController() {
   const commitSeats = useCallback(
     (next: Seat[] | ((prev: Seat[]) => Seat[])) => {
       const resolved =
-        typeof next === "function" ? (next as (p: Seat[]) => Seat[])(seatsRef.current) : next;
+        typeof next === "function"
+          ? (next as (p: Seat[]) => Seat[])(seatsRef.current)
+          : next;
       seatsRef.current = resolved;
       setSeats(resolved);
     },
@@ -528,7 +528,9 @@ export function useGameController() {
             setPoppyGrowerDead(true);
             addLog("🌺 罂粟种植者已死亡！恶魔与爪牙将在当晚互相认识。");
           } else {
-            addLog("🌺 罂粟种植者在醉酒/中毒状态下死亡，能力未生效，邪恶阵营无法互相认识。");
+            addLog(
+              "🌺 罂粟种植者在醉酒/中毒状态下死亡，能力未生效，邪恶阵营无法互相认识。"
+            );
           }
         }
 
@@ -700,15 +702,10 @@ export function useGameController() {
     [baseDispatch]
   );
 
-  const {
-    logicDispatch,
-    checkGameOver,
-    declareMayorImmediateWin,
-    victoryRef,
-  } =
+  const { logicDispatch, checkGameOver, declareMayorImmediateWin, victoryRef } =
     useLogicDispatcher(
       seats,
-    commitSeats,
+      commitSeats,
       gamePhase,
       setGamePhase,
       addLog,
@@ -793,9 +790,17 @@ export function useGameController() {
   );
 
   // 包装 continueToNextAction，在推进队列前重置预览状态
-  // 自动保存游戏快照到 localStorage
+  // 自动保存游戏快照到 localStorage（仅在真正实质进行中的对局阶段保存，排除 setup/check/scriptSelection/gameOver）
   useEffect(() => {
-    if (gamePhase !== "scriptSelection" && gamePhase !== "setup") {
+    const inProgressPhases = [
+      "firstNight",
+      "night",
+      "day",
+      "dusk",
+      "voting",
+      "nightSummary",
+    ];
+    if (inProgressPhases.includes(gamePhase) && !gameState.winResult) {
       const snapshot = createSnapshotFromState(gameState as any);
       saveCurrentSnapshot(snapshot);
     }
@@ -1073,15 +1078,16 @@ export function useGameController() {
           getRegistration: getRegistrationCached,
           getMisinformation: getMisinformation,
           findNearestAliveNeighbor,
-    setSeats: commitSeats,
+          setSeats: commitSeats,
           setSelectedActionTargets,
           // 🔧 新引擎管道（imp.ability 等杀人）不调 killPlayer，需传入
           //   setDeadThisNight 让 executeViaNewEngine 在 markedForDeath 变 isDead 后补记。
           setDeadThisNight,
           // 🔧 女巫诅咒桥接：新引擎快照 witchCurse → legacy witchCursedId（useDayActions 消费端）。
-          //   夜间行动确认的主入口在此构造 context，必须透传 setter，否则桥接静默跳过。
           setWitchCursedId,
           setWitchActive,
+          setEvilTwinPair,
+          dispatch: baseDispatch,
           // 🔧 恶魔死亡判胜：新引擎击杀恶魔后立即触发胜负判定（否则拖到白天）。
           checkGameOver,
           addLog,
@@ -1294,7 +1300,10 @@ export function useGameController() {
         const seat = seats.find((s) => s.id === id);
         return seat?.role?.id === "moonchild";
       });
-      if (moonchildDead !== undefined && currentModal?.type !== "MOONCHILD_KILL") {
+      if (
+        moonchildDead !== undefined &&
+        currentModal?.type !== "MOONCHILD_KILL"
+      ) {
         addLog(
           `${moonchildDead + 1}号（月之子）夜晚死亡，请选择一名存活玩家作为诅咒目标`
         );
@@ -1336,9 +1345,10 @@ export function useGameController() {
                 setGossipSourceSeatId?.(null);
                 // 随后进入黎明报告
                 setGamePhase("dawnReport");
-                const msg = deadThisNight.length > 0
-                  ? `昨晚${deadThisNight.map((id: number) => `${id + 1}号`).join("、")}玩家死亡`
-                  : "昨天是个平安夜";
+                const msg =
+                  deadThisNight.length > 0
+                    ? `昨晚${deadThisNight.map((id: number) => `${id + 1}号`).join("、")}玩家死亡`
+                    : "昨天是个平安夜";
                 setCurrentModal({
                   type: "NIGHT_DEATH_REPORT",
                   data: { message: msg },
@@ -1421,37 +1431,42 @@ export function useGameController() {
   useEffect(() => {
     if (gamePhase === "setup" && seats.length === 0) {
       const targetCount = selectedScript?.maxPlayers || 15;
-      const defaultSeats: Seat[] = Array.from({ length: targetCount }, (_, i) => ({
-        id: i,
-        playerName: `玩家 ${i + 1}`,
-        role: null,
-        charadeRole: null,
-        isDead: false,
-        isDrunk: false,
-        isPoisoned: false,
-        isProtected: false,
-        protectedBy: null,
-        isRedHerring: false,
-        isFortuneTellerRedHerring: false,
-        isSentenced: false,
-        masterId: null,
-        hasUsedSlayerAbility: false,
-        hasUsedVirginAbility: false,
-        isDemonSuccessor: false,
-        hasAbilityEvenDead: false,
-        statusDetails: [],
-        statuses: [],
-        voteCount: 0,
-        isCandidate: false,
-        grandchildId: null,
-        isGrandchild: false,
-        isFirstDeathForZombuul: false,
-        isZombuulTrulyDead: false,
-        zombuulLives: 1,
-      }));
+      const defaultSeats: Seat[] = Array.from(
+        { length: targetCount },
+        (_, i) => ({
+          id: i,
+          playerName: `玩家 ${i + 1}`,
+          role: null,
+          charadeRole: null,
+          isDead: false,
+          isDrunk: false,
+          isPoisoned: false,
+          isProtected: false,
+          protectedBy: null,
+          isRedHerring: false,
+          isFortuneTellerRedHerring: false,
+          isSentenced: false,
+          masterId: null,
+          hasUsedSlayerAbility: false,
+          hasUsedVirginAbility: false,
+          isDemonSuccessor: false,
+          hasAbilityEvenDead: false,
+          statusDetails: [],
+          statuses: [],
+          voteCount: 0,
+          isCandidate: false,
+          grandchildId: null,
+          isGrandchild: false,
+          isFirstDeathForZombuul: false,
+          isZombuulTrulyDead: false,
+          zombuulLives: 1,
+        })
+      );
       commitSeats(defaultSeats);
       setInitialSeats(defaultSeats);
-      console.log(`DEBUG: 初始化了 ${targetCount} 个默认座位 (剧本: ${selectedScript?.name || "默认"})`);
+      console.log(
+        `DEBUG: 初始化了 ${targetCount} 个默认座位 (剧本: ${selectedScript?.name || "默认"})`
+      );
     }
   }, [gamePhase, seats.length, selectedScript, commitSeats, setInitialSeats]);
 
@@ -1957,7 +1972,7 @@ export function useGameController() {
       reviveSeat,
       setCurrentModal,
       setHadesiaChoices,
-    commitSeats,
+      commitSeats,
       submitVotes,
       swapRoles,
       victorySnapshot,

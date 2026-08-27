@@ -110,6 +110,8 @@ export interface IRoleAbility {
   abilityName: string;
   /** 触发时机 */
   triggerTiming: AbilityTriggerTiming[];
+  /** setup 阶段钩子（可选）：在 useSeatManager.changeRole 时触发 */
+  onSetup?: (context: { seats: any[]; selfId: number }) => any;
   /** 首夜唤醒优先级（越小越先唤醒），null 表示首夜不唤醒 */
   firstNightPriority: number | null;
   /** 其他夜晚唤醒优先级（越小越先唤醒），null 表示其他夜不唤醒 */

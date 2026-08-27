@@ -161,7 +161,32 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     hadesiaChoiceEnabled: state.hadesiaChoiceEnabled,
     lastExecutedPlayerId: state.lastExecutedPlayerId,
     fangGuConvertedSeatId: null,
+    selectedScript: state.selectedScript
+      ? safeJsonClone(state.selectedScript)
+      : null,
+    scriptId: state.selectedScript?.id,
+    scriptName: state.selectedScript?.name,
   };
+}
+
+/**
+ * 判断一个快照是否是真正意义上的“未完成进行中对局”
+ * 排除 setup, check, scriptSelection, gameOver, 以及未分配角色的空桌
+ */
+export function isRealUnfinishedGame(snapshot: GameSnapshot | null): boolean {
+  if (!snapshot) return false;
+  // 排除非实质游戏流程阶段
+  const nonGamePhases = ["scriptSelection", "setup", "check", "gameOver"];
+  if (!snapshot.gamePhase || nonGamePhases.includes(snapshot.gamePhase)) {
+    return false;
+  }
+  // 排除已分胜负的已结束对局
+  if (snapshot.winResult) return false;
+  // 必须有座位且已分配角色
+  if (!snapshot.seats || snapshot.seats.length === 0) return false;
+  const hasAssignedRoles = snapshot.seats.some((s: any) => s.role && s.role.id);
+  if (!hasAssignedRoles) return false;
+  return true;
 }
 
 /**

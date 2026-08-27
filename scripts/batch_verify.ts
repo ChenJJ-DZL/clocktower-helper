@@ -41,9 +41,9 @@ function normalize(text: string): string {
 
 function main() {
   const rolesDir = path.join(__dirname, "..", "json", "full");
-  const files = fs.readdirSync(rolesDir).filter(
-    (f) => f.endsWith(".json") && f !== "all_characters.json"
-  );
+  const files = fs
+    .readdirSync(rolesDir)
+    .filter((f) => f.endsWith(".json") && f !== "all_characters.json");
 
   const results: any[] = [];
   let total = 0;
@@ -119,7 +119,7 @@ function main() {
   }
 
   // Report
-  console.log(`\n=== 验证报告 ===`);
+  console.log("\n=== 验证报告 ===");
   console.log(`总角色数: ${total}`);
   console.log(`匹配: ${matched}`);
   console.log(`不匹配: ${mismatches}`);
@@ -127,9 +127,11 @@ function main() {
   console.log(`无 URL: ${noUrl}`);
 
   // Save mismatched ones
-  const mismatched = results.filter((r) => !r.match && r.wikiAbility !== "(提取失败)");
+  const mismatched = results.filter(
+    (r) => !r.match && r.wikiAbility !== "(提取失败)"
+  );
   if (mismatched.length > 0) {
-    console.log(`\n=== 不匹配角色 ===`);
+    console.log("\n=== 不匹配角色 ===");
     for (const m of mismatched) {
       console.log(`❌ ${m.name} (${m.engName})`);
       console.log(`   Wiki: ${m.wikiAbility}`);

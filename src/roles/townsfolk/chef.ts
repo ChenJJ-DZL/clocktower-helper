@@ -48,9 +48,10 @@ export const chef: RoleDefinition = {
       let displayPairs = evilPairs;
       if (isDisabled) {
         const maxLimit = Math.max(3, evilPairs + 2);
-        const fakeCandidates = Array.from({ length: maxLimit + 1 }, (_, i) => i).filter(
-          (v) => v !== evilPairs
-        );
+        const fakeCandidates = Array.from(
+          { length: maxLimit + 1 },
+          (_, i) => i
+        ).filter((v) => v !== evilPairs);
         displayPairs =
           fakeCandidates.length > 0
             ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
@@ -62,7 +63,9 @@ export const chef: RoleDefinition = {
       return {
         wake: `唤醒${seatNo}号【厨师】，告诉他相邻邪恶玩家有 ${displayPairs} 对。`,
         instruction:
-          displayPairs === 0 ? "（点头表示0）" : `（出示 ${displayPairs} 根手指）`,
+          displayPairs === 0
+            ? "（点头表示0）"
+            : `（出示 ${displayPairs} 根手指）`,
         close: "",
       };
     },

@@ -8,11 +8,7 @@
  * 运行：npx vitest run src/utils/invariantTesting/stress.test.ts
  */
 import { describe, expect, it } from "vitest";
-import {
-  BMR_ROLES,
-  runStressGame,
-  SV_ROLES,
-} from "./stressTest";
+import { BMR_ROLES, runStressGame, SV_ROLES } from "./stressTest";
 
 describe("复杂剧本压测（BMR + S&V）", () => {
   it("黯月初升：20局×5夜 不变式全绿（多重死亡/复活/保护抵消）", async () => {

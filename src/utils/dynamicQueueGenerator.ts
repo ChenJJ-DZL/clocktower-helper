@@ -79,12 +79,20 @@ export function generateDynamicNightQueue(
     const poppyGrowerDiedAndTriggersEvil =
       (snapshot as any).poppyGrowerDead === true;
 
-    if (!isFirstNight && firstNightOnly && !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)) {
+    if (
+      !isFirstNight &&
+      firstNightOnly &&
+      !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)
+    ) {
       return false;
     }
     // 首夜已结束后，即使某些规则把后续夜序重置为“首夜”，
     // 首夜信息角色也绝不重复唤醒。
-    if (firstNightOnly && (snapshot as any).hasCompletedFirstNight && !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)) {
+    if (
+      firstNightOnly &&
+      (snapshot as any).hasCompletedFirstNight &&
+      !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)
+    ) {
       return false;
     }
 
@@ -228,6 +236,35 @@ export function generateDynamicNightQueue(
       meta: {},
     };
   });
+
+  // 4. 军团专项：军团在场时把 demon_info 节点按军团数量展开，
+  //    每个军团独立获得一份「3 个不在场角色」伪装信息。
+  const legionSeats = snapshot.seats.filter(
+    (s) => s.role?.id === "legion" && !s.isDead
+  );
+  if (legionSeats.length > 1) {
+    const expanded: NightActionNode[] = [];
+    for (const node of queue) {
+      if (node.roleId === "demon_info") {
+        // 第一份给第一个军团（保留原 node），其余为额外军团复制
+        expanded.push(node);
+        for (let i = 1; i < legionSeats.length; i++) {
+          const legionSeat = legionSeats[i];
+          expanded.push({
+            ...node,
+            seatId: legionSeat.id,
+            roleName: `${legionSeat.role?.name ?? "军团"}(第 ${
+              i + 1
+            } 军团互认)`,
+            meta: { ...node.meta, legionIndex: i, isExtraLegionDemon: true },
+          });
+        }
+      } else {
+        expanded.push(node);
+      }
+    }
+    return expanded;
+  }
 
   return queue;
 }

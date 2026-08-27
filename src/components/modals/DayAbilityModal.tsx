@@ -9,9 +9,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
   const seat = props.seats.find((s) => s.id === seatId);
   if (!seat) return null;
   const effectiveRole =
-    seat.role?.id === "drunk"
-      ? seat.charadeRole || seat.role
-      : seat.role;
+    seat.role?.id === "drunk" ? seat.charadeRole || seat.role : seat.role;
   const roleName = effectiveRole?.name || seat.role?.name || "";
 
   const closeModal = () => {
@@ -95,8 +93,12 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     }
     if (roleId === "mutant") {
       // 畸形秀演员违反疯狂仲裁处决
-      if (confirm(`确定判定 ${seat.id + 1}号【畸形秀演员】违反疯狂并立即处决？`)) {
-        props.addLog(`⚠️ 说书人裁定：${seat.id + 1}号(畸形秀演员) 违反疯狂，立即处决！`);
+      if (
+        confirm(`确定判定 ${seat.id + 1}号【畸形秀演员】违反疯狂并立即处决？`)
+      ) {
+        props.addLog(
+          `⚠️ 说书人裁定：${seat.id + 1}号(畸形秀演员) 违反疯狂，立即处决！`
+        );
         props.executePlayer?.(seat.id);
         closeModal();
       }
@@ -294,10 +296,13 @@ export function DayAbilityModal({ modal }: { modal: any }) {
         {(roleId === "savant" || roleId === "savant_mr") && (
           <div className="space-y-3">
             <p className="text-sm text-gray-300">
-              博学者每日私聊：请填写 2 条信息（说书人保证其中 1 条为真、1 条为假）。
+              博学者每日私聊：请填写 2 条信息（说书人保证其中 1 条为真、1
+              条为假）。
             </p>
             <div className="flex gap-2 flex-wrap">
-              <span className="text-xs text-amber-300 font-bold self-center">快捷填入建议：</span>
+              <span className="text-xs text-amber-300 font-bold self-center">
+                快捷填入建议：
+              </span>
               <button
                 type="button"
                 onClick={() =>
@@ -363,40 +368,48 @@ export function DayAbilityModal({ modal }: { modal: any }) {
         {roleId === "juggler" && (
           <div className="space-y-4">
             <p className="text-sm text-gray-300">
-              杂耍艺人猜测记录器（首个白天最多可猜测 5 名玩家身份，次夜将得知猜对总数）：
+              杂耍艺人猜测记录器（首个白天最多可猜测 5
+              名玩家身份，次夜将得知猜对总数）：
             </p>
             {/* 猜测列表 */}
             <div className="space-y-2 max-h-52 overflow-y-auto">
-              {((props.dayAbilityForm.jugglerGuesses || []) as Array<{ targetSeatId: number; roleName: string }>).map(
-                (g, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between bg-slate-800 p-2.5 rounded-xl border border-slate-700"
-                  >
-                    <span className="text-sm text-amber-200 font-bold">
-                      {idx + 1}. {g.targetSeatId + 1}号 玩家是 【{g.roleName}】
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = [...(props.dayAbilityForm.jugglerGuesses || [])];
-                        next.splice(idx, 1);
-                        props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
+              {(
+                (props.dayAbilityForm.jugglerGuesses || []) as Array<{
+                  targetSeatId: number;
+                  roleName: string;
+                }>
+              ).map((g, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between bg-slate-800 p-2.5 rounded-xl border border-slate-700"
+                >
+                  <span className="text-sm text-amber-200 font-bold">
+                    {idx + 1}. {g.targetSeatId + 1}号 玩家是 【{g.roleName}】
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [
+                        ...(props.dayAbilityForm.jugglerGuesses || []),
+                      ];
+                      next.splice(idx, 1);
+                      props.setDayAbilityForm(
+                        (f: typeof props.dayAbilityForm) => ({
                           ...f,
                           jugglerGuesses: next,
-                        }));
-                      }}
-                      className="px-2 py-1 bg-red-800 hover:bg-red-700 text-xs rounded text-white"
-                    >
-                      删除
-                    </button>
-                  </div>
-                )
-              )}
+                        })
+                      );
+                    }}
+                    className="px-2 py-1 bg-red-800 hover:bg-red-700 text-xs rounded text-white"
+                  >
+                    删除
+                  </button>
+                </div>
+              ))}
             </div>
 
             {/* 添加单条猜测 */}
-            {((props.dayAbilityForm.jugglerGuesses || []).length < 5) && (
+            {(props.dayAbilityForm.jugglerGuesses || []).length < 5 && (
               <div className="flex gap-2 items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800">
                 <select
                   id="juggler-target"
@@ -429,8 +442,12 @@ export function DayAbilityModal({ modal }: { modal: any }) {
                 <button
                   type="button"
                   onClick={() => {
-                    const targetEl = document.getElementById("juggler-target") as HTMLSelectElement;
-                    const roleEl = document.getElementById("juggler-role") as HTMLSelectElement;
+                    const targetEl = document.getElementById(
+                      "juggler-target"
+                    ) as HTMLSelectElement;
+                    const roleEl = document.getElementById(
+                      "juggler-role"
+                    ) as HTMLSelectElement;
                     if (!targetEl.value || !roleEl.value) {
                       alert("请选择目标玩家与猜测角色");
                       return;
@@ -441,10 +458,12 @@ export function DayAbilityModal({ modal }: { modal: any }) {
                       ...(props.dayAbilityForm.jugglerGuesses || []),
                       { targetSeatId, roleName },
                     ];
-                    props.setDayAbilityForm((f: typeof props.dayAbilityForm) => ({
-                      ...f,
-                      jugglerGuesses: next,
-                    }));
+                    props.setDayAbilityForm(
+                      (f: typeof props.dayAbilityForm) => ({
+                        ...f,
+                        jugglerGuesses: next,
+                      })
+                    );
                   }}
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-bold shrink-0"
                 >

@@ -32,7 +32,10 @@ export function ShamanConvertModal() {
                 (s: any) => s.id === props.shamanConvertTarget
               );
               if (!target) return;
-              if (target.role && ["townsfolk", "outsider"].includes(target.role.type)) {
+              if (
+                target.role &&
+                ["townsfolk", "outsider"].includes(target.role.type)
+              ) {
                 props.setSeats((prev: any[]) =>
                   prev.map((s: any) =>
                     s.id === target.id

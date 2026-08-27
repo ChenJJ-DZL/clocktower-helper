@@ -7,9 +7,12 @@ const BASE = path.join(__dirname, "..");
 
 // 加载 Wiki 校准数据
 const wikiOrders = JSON.parse(
-  fs.readFileSync(path.join(BASE, "screenshots", "wiki_night_orders.json"), "utf-8")
+  fs.readFileSync(
+    path.join(BASE, "screenshots", "wiki_night_orders.json"),
+    "utf-8"
+  )
 );
-const wikiMap = new Map(wikiOrders.map(r => [r.id, r]));
+const wikiMap = new Map(wikiOrders.map((r) => [r.id, r]));
 
 // 加载 rolesData.json
 const rolesFile = path.join(BASE, "src", "data", "rolesData.json");
@@ -26,7 +29,9 @@ for (const role of rolesData) {
 
   if (wiki.firstNightOrder !== null && wiki.firstNightOrder !== undefined) {
     if (role.firstNightOrder !== wiki.firstNightOrder) {
-      console.log(`  ${role.id}: firstNightOrder ${role.firstNightOrder} → ${wiki.firstNightOrder}`);
+      console.log(
+        `  ${role.id}: firstNightOrder ${role.firstNightOrder} → ${wiki.firstNightOrder}`
+      );
       role.firstNightOrder = wiki.firstNightOrder;
       changed = true;
     }
@@ -34,7 +39,9 @@ for (const role of rolesData) {
 
   if (wiki.otherNightOrder !== null && wiki.otherNightOrder !== undefined) {
     if (role.otherNightOrder !== wiki.otherNightOrder) {
-      console.log(`  ${role.id}: otherNightOrder ${role.otherNightOrder} → ${wiki.otherNightOrder}`);
+      console.log(
+        `  ${role.id}: otherNightOrder ${role.otherNightOrder} → ${wiki.otherNightOrder}`
+      );
       role.otherNightOrder = wiki.otherNightOrder;
       changed = true;
     }
@@ -46,4 +53,6 @@ for (const role of rolesData) {
 
 // 写回
 fs.writeFileSync(rolesFile, JSON.stringify(rolesData, null, 2), "utf-8");
-console.log(`\nPatched ${patched} roles, ${unchanged} unchanged. Total: ${rolesData.length}`);
+console.log(
+  `\nPatched ${patched} roles, ${unchanged} unchanged. Total: ${rolesData.length}`
+);

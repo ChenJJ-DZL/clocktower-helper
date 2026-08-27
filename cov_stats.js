@@ -14,7 +14,10 @@ const scriptIdMap = {
 };
 
 const sd = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "test_automation", "scripts_data.json"), "utf8")
+  fs.readFileSync(
+    path.join(__dirname, "test_automation", "scripts_data.json"),
+    "utf8"
+  )
 );
 
 // 每剧本：name → id 映射 + 池子
@@ -70,7 +73,9 @@ for (const [sid, info] of Object.entries(appear)) {
   const cfg = perScriptCfg[sid];
   const missing = cfg.pool.filter((r) => !info.roles.has(r));
   const missingNames = missing
-    .map((r) => Object.entries(cfg.name2id).find(([, id]) => id === r)?.[0] || r)
+    .map(
+      (r) => Object.entries(cfg.name2id).find(([, id]) => id === r)?.[0] || r
+    )
     .join("、");
   console.log(
     `${scriptIdMap[sid]}\t${info.games}\t${info.roles.size}/${cfg.pool.length}\t${missingNames || "（全部出场）"}`

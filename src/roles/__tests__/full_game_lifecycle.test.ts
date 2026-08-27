@@ -6,16 +6,16 @@
  *
  * 运行：npx vitest run src/roles/__tests__/full_game_lifecycle.test.ts
  */
-import { describe, it, expect } from "vitest";
-import { createRng } from "../../utils/invariantTesting/simulator";
-import type { GameStateSnapshot } from "../../utils/nightStateMachine";
+import { describe, expect, it } from "vitest";
+import type { GameContext } from "../../../app/gameLogic";
+import { checkGameEnd, isPlayerEvil } from "../../../app/gameLogic";
 import {
   buildAbilityMap,
   buildFullNightOrder,
   simulateNight,
 } from "../../utils/invariantTesting/index";
-import { checkGameEnd, isPlayerEvil } from "../../../app/gameLogic";
-import type { GameContext } from "../../../app/gameLogic";
+import { createRng } from "../../utils/invariantTesting/simulator";
+import type { GameStateSnapshot } from "../../utils/nightStateMachine";
 
 // ─── 全量角色池（TB + BMR + S&V + 实验性） ───────────────────────
 
@@ -135,7 +135,10 @@ function pickFrom<T>(arr: T[], rng: () => number): T {
   return arr[Math.floor(rng() * arr.length)];
 }
 
-const STD_COMP: Record<number, { townsfolk: number; outsider: number; minion: number; demon: number }> = {
+const STD_COMP: Record<
+  number,
+  { townsfolk: number; outsider: number; minion: number; demon: number }
+> = {
   7: { townsfolk: 3, outsider: 2, minion: 1, demon: 1 },
   8: { townsfolk: 4, outsider: 2, minion: 1, demon: 1 },
   9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
@@ -161,10 +164,17 @@ function buildCrossScriptRoster(playerCount: number, rng: () => number) {
     ...shuffle(byType.outsider, rng).slice(0, comp.outsider),
     ...shuffle(byType.townsfolk, rng).slice(0, comp.townsfolk),
   ];
-  return shuffle(roster, rng).map((r) => ({ id: r.id, name: r.name, type: r.type }));
+  return shuffle(roster, rng).map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+  }));
 }
 
-function makeSeat(id: number, role: { id: string; name: string; type: string }) {
+function makeSeat(
+  id: number,
+  role: { id: string; name: string; type: string }
+) {
   return {
     id,
     playerName: `P${id + 1}`,
@@ -199,7 +209,10 @@ function makeSeat(id: number, role: { id: string; name: string; type: string }) 
   };
 }
 
-function advanceToNextNight(prev: GameStateSnapshot, nightCount: number): GameStateSnapshot {
+function advanceToNextNight(
+  prev: GameStateSnapshot,
+  nightCount: number
+): GameStateSnapshot {
   const seats = (prev.seats as any[]).map((s) => ({
     ...s,
     markedForDeath: false,
@@ -321,7 +334,9 @@ async function runFullGameLifecycle(
       const daySeats = snapshot.seats as any[];
       const gameContext: GameContext = {
         evilTwinPair: findEvilTwinPair(daySeats),
-        isVortoxWorld: daySeats.some((s: any) => s.role?.id === "vortox" && !s.isDead),
+        isVortoxWorld: daySeats.some(
+          (s: any) => s.role?.id === "vortox" && !s.isDead
+        ),
       };
       const dayGameEnd = checkGameEnd(
         daySeats,
@@ -363,9 +378,13 @@ async function runFullGameLifecycle(
   }
 }
 
-function findEvilTwinPair(seats: any[]): { evilId: number; goodId: number } | undefined {
+function findEvilTwinPair(
+  seats: any[]
+): { evilId: number; goodId: number } | undefined {
   // 简化：检查是否有邪恶双子角色存在且双方都存活
-  const evilTwin = seats.find((s: any) => s.role?.id === "evil_twin" && !s.isDead);
+  const evilTwin = seats.find(
+    (s: any) => s.role?.id === "evil_twin" && !s.isDead
+  );
   if (!evilTwin) return undefined;
   // 双子的对家由 masterId 指向
   const goodTwinId = evilTwin.masterId;

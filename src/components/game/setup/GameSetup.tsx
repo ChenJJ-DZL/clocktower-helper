@@ -125,7 +125,8 @@ export default function GameSetup({
   onQuickTest,
 }: GameSetupProps) {
   const [showCompositionModal, setShowCompositionModal] = useState(false);
-  const [showCompositionGuideModal, setShowCompositionGuideModal] = useState(false);
+  const [showCompositionGuideModal, setShowCompositionGuideModal] =
+    useState(false);
 
   const {
     playerCount,
@@ -302,7 +303,8 @@ export default function GameSetup({
                 </div>
                 {(compositionError as any).hasLegion ? (
                   <div>
-                    军团规则：多数玩家必须为军团（恶魔），且至少需要 1 名善良玩家（镇民/外来者）。
+                    军团规则：多数玩家必须为军团（恶魔），且至少需要 1
+                    名善良玩家（镇民/外来者）。
                   </div>
                 ) : (
                   <div>
@@ -381,13 +383,17 @@ export default function GameSetup({
                           e.stopPropagation();
                           if (allowsMultiple) {
                             // 多落座角色（如军团/暴乱）：点击卡片始终为选中/反选，支持连续落座到多个座位
-                            setSelectedRole(selectedRole?.id === r.id ? null : r);
+                            setSelectedRole(
+                              selectedRole?.id === r.id ? null : r
+                            );
                           } else if (isTaken && takenSeats[0]) {
                             // 单落座角色：点击已入座角色卡片取消落座
                             handleSeatClick(takenSeats[0].id);
                           } else {
                             // 点击未入座角色卡片：选中或反选
-                            setSelectedRole(selectedRole?.id === r.id ? null : r);
+                            setSelectedRole(
+                              selectedRole?.id === r.id ? null : r
+                            );
                           }
                         }}
                         className={`group relative overflow-hidden rounded-lg border text-left transition-all h-16 ${

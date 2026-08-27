@@ -66,13 +66,8 @@ function hasOutsiderDiedToday(snapshot: any): boolean {
 }
 
 /** 从存活玩家中随机选一名（排除指定 id 集合） */
-function pickRandomAlive(
-  seats: any[],
-  exclude: Set<number>
-): any | null {
-  const candidates = seats.filter(
-    (s) => !s.isDead && !exclude.has(s.id)
-  );
+function pickRandomAlive(seats: any[], exclude: Set<number>): any | null {
+  const candidates = seats.filter((s) => !s.isDead && !exclude.has(s.id));
   if (candidates.length === 0) return null;
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
@@ -145,7 +140,11 @@ const stateUpdateResult = async (
         const effects = [...(target.statusEffects ?? [])].filter(
           (e: any) => e.type !== "alive_dead"
         );
-        effects.push({ type: "alive_dead", source: "qiongqi", sourceSeatId: ctx.actionNode.seatId });
+        effects.push({
+          type: "alive_dead",
+          source: "qiongqi",
+          sourceSeatId: ctx.actionNode.seatId,
+        });
         updatedSeats[targetIdx] = {
           ...target,
           isAlive: false,
@@ -165,7 +164,9 @@ const stateUpdateResult = async (
           new Set([targetId, ctx.actionNode.seatId])
         );
         if (extra) {
-          const extraIdx = updatedSeats.findIndex((s: any) => s.id === extra.id);
+          const extraIdx = updatedSeats.findIndex(
+            (s: any) => s.id === extra.id
+          );
           if (extraIdx !== -1) {
             updatedSeats[extraIdx] = {
               ...updatedSeats[extraIdx],
@@ -236,7 +237,8 @@ const postProcessResult = async (
     abilityLog = `穷奇选择【${targetLabel}】，但目标受保护未死亡`;
     storytellerPrompt = `唤醒${ctx.actionNode.seatId + 1}号【穷奇】，选择一名玩家。（选择了${targetLabel}，受保护未死亡）`;
   } else if (record.aliveDead) {
-    const extraLabel = record.extraTargetId != null ? label(record.extraTargetId) : "无";
+    const extraLabel =
+      record.extraTargetId != null ? label(record.extraTargetId) : "无";
     abilityLog = `穷奇选择【${targetLabel}】——由于白天有外来者死亡，${targetLabel}进入活尸状态（表面存活实已死亡），另【${extraLabel}】死亡`;
     storytellerPrompt = `唤醒${ctx.actionNode.seatId + 1}号【穷奇】，选择一名玩家。（白天有外来者死亡：${targetLabel}成为活尸，说书人另选${extraLabel}死亡）`;
   } else {

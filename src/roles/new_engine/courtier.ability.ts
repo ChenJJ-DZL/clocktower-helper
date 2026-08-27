@@ -17,7 +17,9 @@ import {
 const preCheckAlive = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  const seat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
   if (!seat?.isAlive) {
     return {
       ...ctx,

@@ -12,13 +12,13 @@
  */
 
 import { beforeEach, describe, expect, test } from "vitest";
+import { canUseLimitedAbility } from "../../../utils/LimitedAbilityManager";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
-import { virginAbility } from "../../new_engine/virgin.ability";
 import { golemAbility } from "../../new_engine/golem.ability";
-import { slayerAbility } from "../../new_engine/slayer.ability";
 import { psychopathAbility } from "../../new_engine/psychopath.ability";
-import { canUseLimitedAbility } from "../../../utils/LimitedAbilityManager";
+import { slayerAbility } from "../../new_engine/slayer.ability";
+import { virginAbility } from "../../new_engine/virgin.ability";
 
 // ─── 辅助工厂 ────────────────────────────────────────────────────────
 

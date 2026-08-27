@@ -12,7 +12,9 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
   test("守鸦人受干扰告知", () => {
     const raw = "守鸦人【受干扰】在死亡前夜得知：玩家 3(3号) 的角色是【男爵】";
     const res = parseInfoResult(raw, "守鸦人");
-    expect(res.prefix).toBe("守鸦人【受干扰】在死亡前夜得知：玩家 3(3号) 的角色是：");
+    expect(res.prefix).toBe(
+      "守鸦人【受干扰】在死亡前夜得知：玩家 3(3号) 的角色是："
+    );
     expect(res.result).toBe("【男爵】");
   });
 

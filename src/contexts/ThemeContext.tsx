@@ -91,7 +91,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [requestTheme, theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, requestTheme, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, requestTheme, toggleTheme }}
+    >
       {children}
     </ThemeContext.Provider>
   );
@@ -109,4 +111,3 @@ export function useTheme(): ThemeContextValue {
   }
   return ctx;
 }
-

@@ -31,9 +31,7 @@ const formatMsg = (
     (match, numStr, roleIdOrName) => {
       const num = parseInt(numStr, 10);
       const cn =
-        roleNameMap.get(roleIdOrName) ||
-        roleIdOrName ||
-        seatMap?.get(num);
+        roleNameMap.get(roleIdOrName) || roleIdOrName || seatMap?.get(num);
       return cn ? `【${num}号-${cn}】` : `【${num}号】`;
     }
   );
@@ -100,9 +98,7 @@ describe("ReviewModal 日志解析与健壮性测试", () => {
   });
 
   test("格式化贞洁者处决结果描述", () => {
-    expect(
-      formatMsg("因为你提名了贞洁者，1号被立即处决", seatRoleMap)
-    ).toBe(
+    expect(formatMsg("因为你提名了贞洁者，1号被立即处决", seatRoleMap)).toBe(
       "⚡️ 触发贞洁者能力：因 【1号-镇长】 是真实镇民，【1号-镇长】 被立即处决死亡！"
     );
   });

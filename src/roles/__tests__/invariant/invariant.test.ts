@@ -7,7 +7,11 @@
  *
  * 运行：cd clocktower-helper && npx vitest run src/roles/__tests__/invariant
  */
+
+import fs from "fs";
+import path from "path";
 import { describe, expect, it } from "vitest";
+import { collectGlobalRules } from "../../../utils/globalRuleEngine";
 import {
   buildAbilityMap,
   buildFullNightOrder,
@@ -24,9 +28,6 @@ import {
   simulateNight,
   TROUBLE_BREWING_ROLES,
 } from "../../../utils/invariantTesting";
-import { collectGlobalRules } from "../../../utils/globalRuleEngine";
-import fs from "fs";
-import path from "path";
 
 const ROOT = path.resolve(__dirname, "../../../../");
 
@@ -123,7 +124,9 @@ describe("L3.5 不变式测试", () => {
     const snapshot = buildTbSnapshot(1);
     snapshot.seats[3] = mkSeat(3, "investigator", "townsfolk", {
       isPoisoned: true,
-      statusEffects: [{ type: "poisoned", sourceSeatId: 1, source: "poisoner" }],
+      statusEffects: [
+        { type: "poisoned", sourceSeatId: 1, source: "poisoner" },
+      ],
     });
 
     const result = await simulateNight(snapshot, {

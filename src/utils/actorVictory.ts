@@ -39,7 +39,12 @@ export function actorSetupRoles(seats: Seat[]): Seat[] {
     if (t === "demon" || t === "minion") return s;
     return {
       ...s,
-      role: { ...(s.role as any), id: "actor", name: "戏子", type: "townsfolk" },
+      role: {
+        ...(s.role as any),
+        id: "actor",
+        name: "戏子",
+        type: "townsfolk",
+      },
     };
   });
 }

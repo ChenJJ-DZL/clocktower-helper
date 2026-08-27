@@ -72,8 +72,7 @@ const calculateResult = async (
   if (!isAbilityActive) {
     // 🔧 醉酒/中毒时，返回 100% 错误信息（与真实阵营相反）
     const realIsEvil = targetSeat.alignment === "evil";
-    isEvil =
-      context.storytellerInput?.fakeAlignment ?? !realIsEvil;
+    isEvil = context.storytellerInput?.fakeAlignment ?? !realIsEvil;
   } else {
     // 正常情况：返回真实阵营
     isEvil = targetSeat.alignment === "evil";

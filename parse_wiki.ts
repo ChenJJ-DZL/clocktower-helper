@@ -62,7 +62,9 @@ for (const [name, meta] of Object.entries(index)) {
     continue;
   }
 
-  const ability = clean(sections["角色能力"] ?? sections["角色能力（华灯初上）"] ?? "");
+  const ability = clean(
+    sections["角色能力"] ?? sections["角色能力（华灯初上）"] ?? ""
+  );
   const intro = clean(sections["角色简介"] ?? "");
   const operate = clean(sections["运作方式"] ?? "");
   const example = clean(sections["范例"] ?? "");
@@ -70,7 +72,8 @@ for (const [name, meta] of Object.entries(index)) {
 
   // 行动顺序（可能有"首夜行动顺序"/"其他夜晚行动顺序"小节或列表）
   const fnOrder = (wt.match(/首夜行动顺序[:：]?\s*([0-9]+)/) ?? [])[1] ?? null;
-  const onOrder = (wt.match(/其他夜晚行动顺序[:：]?\s*([0-9]+)/) ?? [])[1] ?? null;
+  const onOrder =
+    (wt.match(/其他夜晚行动顺序[:：]?\s*([0-9]+)/) ?? [])[1] ?? null;
 
   // 英文名：尝试从 wikitext 或文件名推断
   const enName = (wt.match(/英文名[:：]?\s*([A-Za-z' -]+)/) ?? [])[1] ?? null;
@@ -90,7 +93,11 @@ for (const [name, meta] of Object.entries(index)) {
   });
 }
 
-fs.writeFileSync(path.join(OUT, "parsed_roles.json"), JSON.stringify(roles, null, 1), "utf-8");
+fs.writeFileSync(
+  path.join(OUT, "parsed_roles.json"),
+  JSON.stringify(roles, null, 1),
+  "utf-8"
+);
 console.log(`解析完成: ${roles.length} 个角色 / 跳过非角色 ${nonRole}`);
 console.log(`产出: ${path.join(OUT, "parsed_roles.json")}`);
 

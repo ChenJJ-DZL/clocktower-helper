@@ -1,4 +1,4 @@
-import type { Seat, ReminderToken } from "@/app/data";
+import type { ReminderToken, Seat } from "@/app/data";
 import type { NightInfoResult } from "@/src/types/game";
 
 export interface SeatNodeProps {

@@ -66,68 +66,8 @@ export function SeatGrid(props: SeatGridProps) {
 
   // 圆桌模式：使用 SeatNode + 圆形布局
   if (layoutMode === "circle") {
-    const evilTwinSeat = seats.find((s) => s.role?.id === "evil_twin");
-    const goodTwinSeat = evilTwinSeat
-      ? seats.find(
-          (other) =>
-            other.id !== evilTwinSeat.id &&
-            (other.role?.type === "townsfolk" ||
-              other.role?.type === "outsider") &&
-            !other.isEvilConverted &&
-            !other.isDead
-        ) ||
-        seats.find((other) => other.id !== evilTwinSeat.id && !other.isDead)
-      : null;
-
-    const twinPair =
-      evilTwinSeat && goodTwinSeat
-        ? {
-            pos1: getSeatPosition(
-              seats.findIndex((s) => s.id === evilTwinSeat.id),
-              seats.length,
-              isPortrait
-            ),
-            pos2: getSeatPosition(
-              seats.findIndex((s) => s.id === goodTwinSeat.id),
-              seats.length,
-              isPortrait
-            ),
-          }
-        : null;
-
     return (
       <StaggerContainer>
-        {/* 🔮 镜像双子视觉连线 */}
-        {twinPair && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
-            <defs>
-              <linearGradient id="twinLineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#c084fc" stopOpacity="0.9" />
-                <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.9" />
-              </linearGradient>
-              <filter id="twinGlow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <line
-              x1={twinPair.pos1.x}
-              y1={twinPair.pos1.y}
-              x2={twinPair.pos2.x}
-              y2={twinPair.pos2.y}
-              stroke="url(#twinLineGrad)"
-              strokeWidth="3.5"
-              strokeDasharray="8 5"
-              filter="url(#twinGlow)"
-              className="animate-pulse"
-            />
-          </svg>
-        )}
-
         {seats.map((seat, index) => (
           <StaggerItem
             key={seat.id}

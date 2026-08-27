@@ -3,11 +3,11 @@
 
 import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
+import { isPlayerEvil } from "../../app/gameLogic";
 import { gameActions } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
-import { isPlayerEvil } from "../../app/gameLogic";
 import {
   shouldMorticianTransform,
   transformMorticianToDemon,
@@ -245,11 +245,24 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
 
       // Saint: Confirm if not forced
       if (t.role.id === "saint" && !options?.forceExecution) {
-        setCurrentModal({
-          type: "SAINT_EXECUTION_CONFIRM",
-          data: { targetId: id, skipLunaticRps: options?.skipLunaticRps },
-        });
-        return true;
+        // 官方规则：如果圣徒处于中毒或醉酒状态，被处决时善良阵营不会失败，直接普通处决死亡
+        const isSaintDisabled =
+          t.isPoisoned ||
+          t.isDrunk ||
+          t.statusEffects?.some(
+            (e: any) => e.type === "poison" || e.type === "drunk"
+          );
+        if (!isSaintDisabled) {
+          setCurrentModal({
+            type: "SAINT_EXECUTION_CONFIRM",
+            data: { targetId: id, skipLunaticRps: options?.skipLunaticRps },
+          });
+          return true;
+        } else {
+          addLog(
+            `⚖️ ${id + 1}号(圣徒) 处于中毒/醉酒状态被处决，豁免落败判定，正常死亡`
+          );
+        }
       }
       // Psychopath: RPS if not skipped
       if (t.role.id === "psychopath" && !options?.skipLunaticRps) {
@@ -328,7 +341,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
                     statuses: [
                       ...(s.statuses ?? []).filter(
                         (st: any) =>
-                          !(st.effect === "Drunk" && st.duration === "至下个黄昏")
+                          !(
+                            st.effect === "Drunk" &&
+                            st.duration === "至下个黄昏"
+                          )
                       ),
                       { effect: "Drunk", duration: "至下个黄昏" },
                     ],
@@ -357,11 +373,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         const seatsAfterExec = seatsSnapshot.filter(
           (s) => !(s.id === id && !s.isDead)
         ); // 恶魔视为已死
-        const mt = shouldMorticianTransform(
-          seatsAfterExec,
-          id,
-          nominatorId
-        );
+        const mt = shouldMorticianTransform(seatsAfterExec, id, nominatorId);
         if (mt.transformed) {
           const demonRoleId = t.role.id;
           setSeats((prev: Seat[]) =>
@@ -594,7 +606,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           });
           if (allEvil) {
             addLog(
-              `⚠️ 军团能力生效：本次提名的所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！`
+              "⚠️ 军团能力生效：本次提名的所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！"
             );
             v = 0;
           }
@@ -634,7 +646,9 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       const voterSeat = seats.find((s) => s.id === voterId);
-      const nomineeRole = voterSeat?.role?.name ? `-${voterSeat.role.name}` : "";
+      const nomineeRole = voterSeat?.role?.name
+        ? `-${voterSeat.role.name}`
+        : "";
       const voterListText = voters?.length
         ? ` | 投票者: ${voters
             .map((id) => {

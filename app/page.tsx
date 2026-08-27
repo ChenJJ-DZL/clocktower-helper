@@ -11,7 +11,10 @@ import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
 import type { GameRecord, NightHintState } from "../src/types/game";
-import { loadCurrentSnapshot, clearCurrentSnapshot } from "../src/utils/persistence";
+import {
+  clearCurrentSnapshot,
+  loadCurrentSnapshot,
+} from "../src/utils/persistence";
 import { roles, scripts, typeColors } from "./data";
 
 // getSeatRoleId is now imported from useGameController
@@ -23,10 +26,10 @@ import { roles, scripts, typeColors } from "./data";
 
 import { RoundTable } from "@/src/components/game/board/RoundTable";
 import { GameLayout } from "@/src/components/game/GameLayout";
-import { GlobalNavBar } from "@/src/components/game/GlobalNavBar";
 // --- 核心计算逻辑 ---
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
 import { GameModals } from "@/src/components/game/GameModals";
+import { GlobalNavBar } from "@/src/components/game/GlobalNavBar";
 import GameSetup from "@/src/components/game/setup/GameSetup";
 import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
 import { GrimoireTooltipProvider } from "@/src/components/tooltip/GrimoireTooltip";
@@ -395,57 +398,6 @@ export default function Home() {
       }
     };
   }, [introTimeoutRef.current, setMounted]);
-
-  // 🔧 断电/刷新容灾：页面挂载后从 localStorage 检测未完成对局。
-  //   不再自动跳过剧本选择页，而是暂存快照，在剧本选择页显示"继续上局"按钮。
-  const [pendingResume, setPendingResume] = useState<GameRecord | null>(null);
-  const autoRestoredRef = useRef(false);
-  useEffect(() => {
-    if (autoRestoredRef.current) return;
-    if (!mounted) return;
-
-    const snap = loadCurrentSnapshot();
-    if (!snap) return;
-    // 仅恢复进行中的对局（未结束 / 有座位数据 / 非剧本选择页）
-    if (
-      snap.gamePhase === "gameOver" ||
-      !snap.seats ||
-      snap.seats.length === 0
-    ) {
-      return;
-    }
-    autoRestoredRef.current = true;
-
-    // 由 seats 首座角色反推剧本
-    let scriptName = "";
-    const seatRoles = snap.seats
-      .map((s: any) => s.role?.id)
-      .filter(Boolean) as string[];
-    for (const sc of scripts) {
-      if (sc.roleIds?.some((rid) => seatRoles.includes(rid))) {
-        scriptName = sc.name;
-        break;
-      }
-    }
-
-    const record: GameRecord = {
-      id: `resume_${Date.now()}`,
-      scriptName,
-      startTime: snap.startTime ?? new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      duration: 0,
-      winResult: (snap.winResult as "good" | "evil" | null) ?? null,
-      winReason: snap.winReason ?? null,
-      seats: snap.seats ?? [],
-      gameLogs: (snap as any).history ?? [],
-      isCompleted: false,
-      snapshot: snap,
-    };
-    console.log(
-      `[Persistence] 检测到未完成对局快照（${snap.gamePhase ?? "?"} 阶段），暂存待用户确认恢复`
-    );
-    setPendingResume(record);
-  }, [mounted]);
 
   // Timer is now managed in useGameController
 
@@ -927,11 +879,6 @@ export default function Home() {
                   setGameLogs={setGameLogs}
                   setGamePhase={setGamePhase}
                   onContinue={handleContinueGame}
-                  pendingResume={pendingResume}
-                  onResumeDismiss={() => {
-                    clearCurrentSnapshot();
-                    setPendingResume(null);
-                  }}
                 />
               </div>
             )}

@@ -5,8 +5,8 @@
  * 会有一名善良玩家始终被当作邪恶阵营。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import { createSettlementPostProcess } from "../../utils/abilitySettlement";
+import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

@@ -5,6 +5,10 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  actorSetupRoles,
+  applyActorVictoryFlip,
+} from "../../utils/actorVictory";
+import {
   buildAbilityMap,
   buildFullNightOrder,
   simulateNight,
@@ -14,12 +18,13 @@ import {
   shouldMorticianTransform,
   transformMorticianToDemon,
 } from "../../utils/morticianTransform";
-import {
-  actorSetupRoles,
-  applyActorVictoryFlip,
-} from "../../utils/actorVictory";
 
-function mkSeat(id: number, roleId: string, type: string, o: Record<string, any> = {}): any {
+function mkSeat(
+  id: number,
+  roleId: string,
+  type: string,
+  o: Record<string, any> = {}
+): any {
   return {
     id,
     playerName: `P${id + 1}`,
@@ -85,7 +90,10 @@ describe("Wave D2 国风角色官方规则", () => {
       expect(act.context.meta.displayInfo.message).toBe("是");
     });
     it("当晚无死亡 → 得知'否'且仍被唤醒", async () => {
-      const seats = seatsFor("prefect").map((s) => ({ ...s, diedAtNight: undefined }));
+      const seats = seatsFor("prefect").map((s) => ({
+        ...s,
+        diedAtNight: undefined,
+      }));
       const r = await runNight(seats, 2);
       const act = r.actions.find((a) => a.node.roleId === "prefect")!;
       expect(act.aborted).toBe(false);
@@ -95,10 +103,15 @@ describe("Wave D2 国风角色官方规则", () => {
 
   describe("酿酒师（选镇民角色给信息，替换其下次信息获取）", () => {
     it("设置效果：记录 targetRoleId + message", async () => {
-      const r = await runNight(seatsFor("brewer"), 2, {}, {
-        targetRoleId: "washerwoman",
-        message: "酿酒师的假信息",
-      });
+      const r = await runNight(
+        seatsFor("brewer"),
+        2,
+        {},
+        {
+          targetRoleId: "washerwoman",
+          message: "酿酒师的假信息",
+        }
+      );
       const act = r.actions.find((a) => a.node.roleId === "brewer")!;
       expect(act.aborted).toBe(false);
       expect(act.context.snapshot.brewerEffect.roleId).toBe("washerwoman");
@@ -143,15 +156,23 @@ describe("Wave D2 国风角色官方规则", () => {
 
   describe("引路人（选至多3人，得知是否有邪恶能力命中）", () => {
     it("所选玩家被邪恶能力命中 → '是'", async () => {
-      const r = await runNight(seatsFor("guide"), 2, { nightEvilTargets: [1, 3] }, undefined, (node) =>
-        node.roleId === "guide" ? [1, 4] : undefined
+      const r = await runNight(
+        seatsFor("guide"),
+        2,
+        { nightEvilTargets: [1, 3] },
+        undefined,
+        (node) => (node.roleId === "guide" ? [1, 4] : undefined)
       );
       const act = r.actions.find((a) => a.node.roleId === "guide")!;
       expect(act.context.meta.abilityResult.isYes).toBe(true);
     });
     it("所选玩家未被命中 → '否'", async () => {
-      const r = await runNight(seatsFor("guide"), 2, { nightEvilTargets: [2] }, undefined, (node) =>
-        node.roleId === "guide" ? [4] : undefined
+      const r = await runNight(
+        seatsFor("guide"),
+        2,
+        { nightEvilTargets: [2] },
+        undefined,
+        (node) => (node.roleId === "guide" ? [4] : undefined)
       );
       const act = r.actions.find((a) => a.node.roleId === "guide")!;
       expect(act.context.meta.abilityResult.isYes).toBe(false);
@@ -196,7 +217,9 @@ describe("Wave D2 国风角色官方规则", () => {
       // 原恶魔变成舞蛇人且中毒
       expect(demon.role.id).toBe("snake_charmer");
       expect(demon.isPoisoned).toBe(true);
-      expect(demon.statusEffects.some((e: any) => e.type === "poisoned")).toBe(true);
+      expect(demon.statusEffects.some((e: any) => e.type === "poisoned")).toBe(
+        true
+      );
     });
     it("未选中恶魔 → 无交换", async () => {
       const seats = [
@@ -211,8 +234,12 @@ describe("Wave D2 国风角色官方规则", () => {
       );
       const act = r.actions.find((a) => a.node.roleId === "snake_charmer")!;
       expect(act.context.meta.abilityResult.swapTriggered).toBe(false);
-      expect(r.finalSnapshot.seats.find((s: any) => s.id === 0).role.id).toBe("snake_charmer");
-      expect(r.finalSnapshot.seats.find((s: any) => s.id === 1).role.id).toBe("imp");
+      expect(r.finalSnapshot.seats.find((s: any) => s.id === 0).role.id).toBe(
+        "snake_charmer"
+      );
+      expect(r.finalSnapshot.seats.find((s: any) => s.id === 1).role.id).toBe(
+        "imp"
+      );
     });
   });
 
@@ -286,7 +313,10 @@ describe("Wave D2 国风角色官方规则", () => {
       expect(res.evilPlayers).toContain(2);
     });
     it("胜负对调：有戏子 → 善良胜变邪恶胜", () => {
-      const seats = seatsFor("actor").map((s) => ({ ...s, role: { ...s.role, id: "actor" } }));
+      const seats = seatsFor("actor").map((s) => ({
+        ...s,
+        role: { ...s.role, id: "actor" },
+      }));
       expect(applyActorVictoryFlip("good", seats)).toBe("evil");
       expect(applyActorVictoryFlip("evil", seats)).toBe("good");
     });

@@ -16,8 +16,8 @@ import {
   type NightOrderEntry,
 } from "../dynamicQueueGenerator";
 import {
-  runFullAbilityPipeline,
   type MiddlewareContext,
+  runFullAbilityPipeline,
 } from "../middlewarePipeline";
 import type { GameStateSnapshot, NightActionNode } from "../nightStateMachine";
 
@@ -176,8 +176,14 @@ export async function simulateNight(
   initialSnapshot: GameStateSnapshot,
   options: SimulateNightOptions
 ): Promise<NightSimResult> {
-  const { nightCount, fullNightOrder, abilityMap, pickTargets, onAction, storytellerInput } =
-    options;
+  const {
+    nightCount,
+    fullNightOrder,
+    abilityMap,
+    pickTargets,
+    onAction,
+    storytellerInput,
+  } = options;
   const isFirstNight = nightCount === 1;
 
   const queue = generateDynamicNightQueue(fullNightOrder, initialSnapshot, {

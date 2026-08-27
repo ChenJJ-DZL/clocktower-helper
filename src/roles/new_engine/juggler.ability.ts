@@ -28,20 +28,27 @@ const preCheckLimitedAbility = async (
   return ctx;
 };
 
+// 前置校验：杂耍艺人只能在首个白天猜测（官方 Wiki）
+const firstDayOnlyCheck = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const dayCount = (ctx.snapshot as any).dayCount ?? 1;
+  if (dayCount !== 1) {
+    return { ...ctx, aborted: true, abortReason: "杂耍艺人仅在首个白天可以猜测" };
+  }
+  return ctx;
+};
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const guesses =
-    ctx.storytellerInput?.guesses ??
-    (ctx.snapshot as any).jugglerGuesses ??
-    [];
+    ctx.storytellerInput?.guesses ?? (ctx.snapshot as any).jugglerGuesses ?? [];
   let correctCount = ctx.storytellerInput?.correctCount;
   if (correctCount === undefined) {
     correctCount = 0;
     for (const g of guesses) {
-      const seat = ctx.snapshot.seats.find(
-        (s: any) => s.id === g.targetSeatId
-      );
+      const seat = ctx.snapshot.seats.find((s: any) => s.id === g.targetSeatId);
       if (
         seat &&
         (seat.role?.name === g.roleName ||
@@ -118,7 +125,7 @@ export const jugglerAbility = createRoleAbility({
   // 🔧 修复：杂耍艺人官方规则"每局一次，选择最多5名玩家"——可选0~5名（可跳过），
   //   min:5 在存活玩家不足5人时无法满足 → I5 违规。
   targetConfig: { min: 0, max: 5, allowSelf: false, allowDead: false },
-  preCheck: [commonPreCheckAlive, preCheckLimitedAbility],
+  preCheck: [commonPreCheckAlive, firstDayOnlyCheck, preCheckLimitedAbility],
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],

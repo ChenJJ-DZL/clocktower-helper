@@ -11,7 +11,9 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const targetId = ctx.storytellerInput?.targetId ?? null;
   const penalty = ctx.storytellerInput?.penalty ?? "poison";
   return {
@@ -27,7 +29,9 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (r?.targetId == null) return ctx;
   const seats = (ctx.snapshot.seats ?? []) as any[];
@@ -39,7 +43,11 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
     } else if (r.penalty === "drunk") {
       effects.push({ type: "drunk", source: "hells_librarian" });
     }
-    return { ...s, statusEffects: effects, ...(r.penalty === "death" ? { isDead: true, isAlive: false } : {}) };
+    return {
+      ...s,
+      statusEffects: effects,
+      ...(r.penalty === "death" ? { isDead: true, isAlive: false } : {}),
+    };
   });
   return {
     ...ctx,
@@ -48,7 +56,9 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const log = `[HellsLibrarian] 地狱图书管理员裁决 — ${r?.targetId != null ? `${r.targetId + 1}号被${r.penalty}` : "无操作"}`;
   return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };

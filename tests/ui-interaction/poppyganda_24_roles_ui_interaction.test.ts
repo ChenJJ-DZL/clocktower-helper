@@ -4,29 +4,33 @@
  * 全面打通《罂粟花开》(Poppyganda) 全部 24 角色的真实 UI 交互与状态机联动集成测试
  */
 import { describe, expect, it } from "vitest";
-import { checkGameEnd, isPlayerEvil, processGameEvent } from "../../app/gameLogic";
+import {
+  checkGameEnd,
+  isPlayerEvil,
+  processGameEvent,
+} from "../../app/gameLogic";
+import { baronAbility } from "../../src/roles/new_engine/baron.ability";
 import { bounty_hunterAbility } from "../../src/roles/new_engine/bounty_hunter.ability";
 import { cerenovusAbility } from "../../src/roles/new_engine/cerenovus.ability";
+import { chefAbility } from "../../src/roles/new_engine/chef.ability";
+import { drunkAbility } from "../../src/roles/new_engine/drunk.ability";
 import { evil_twinAbility } from "../../src/roles/new_engine/evil_twin.ability";
 import { farmerAbility } from "../../src/roles/new_engine/farmer.ability";
+import { fortuneTellerAbility } from "../../src/roles/new_engine/fortune_teller.ability";
 import { impAbility } from "../../src/roles/new_engine/imp.ability";
 import { jugglerAbility } from "../../src/roles/new_engine/juggler.ability";
+import { legionAbility } from "../../src/roles/new_engine/legion.ability";
 import { librarianAbility } from "../../src/roles/new_engine/librarian.ability";
 import { lunaticAbility } from "../../src/roles/new_engine/lunatic.ability";
-import { pixieAbility } from "../../src/roles/new_engine/pixie.ability";
-import { chefAbility } from "../../src/roles/new_engine/chef.ability";
-import { fortuneTellerAbility } from "../../src/roles/new_engine/fortune_teller.ability";
-import { monkAbility } from "../../src/roles/new_engine/monk.ability";
-import { oracleAbility } from "../../src/roles/new_engine/oracle.ability";
-import { town_crierAbility } from "../../src/roles/new_engine/town_crier.ability";
-import { savantAbility } from "../../src/roles/new_engine/savant.ability";
 import { mayorAbility } from "../../src/roles/new_engine/mayor.ability";
-import { poppy_growerAbility } from "../../src/roles/new_engine/poppy_grower.ability";
-import { drunkAbility } from "../../src/roles/new_engine/drunk.ability";
+import { monkAbility } from "../../src/roles/new_engine/monk.ability";
 import { mutantAbility } from "../../src/roles/new_engine/mutant.ability";
+import { oracleAbility } from "../../src/roles/new_engine/oracle.ability";
+import { pixieAbility } from "../../src/roles/new_engine/pixie.ability";
+import { poppy_growerAbility } from "../../src/roles/new_engine/poppy_grower.ability";
+import { savantAbility } from "../../src/roles/new_engine/savant.ability";
 import { snitchAbility } from "../../src/roles/new_engine/snitch.ability";
-import { baronAbility } from "../../src/roles/new_engine/baron.ability";
-import { legionAbility } from "../../src/roles/new_engine/legion.ability";
+import { town_crierAbility } from "../../src/roles/new_engine/town_crier.ability";
 import { isActorDisabledByPoisonOrDrunk } from "../../src/utils/gameRules";
 import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
 
@@ -44,9 +48,30 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "librarian", name: "图书管理员", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "drunk", name: "酒鬼", type: "outsider" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "drunk", name: "酒鬼", type: "outsider" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -66,9 +91,31 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "chef", name: "厨师", type: "townsfolk" }, isEvilConverted: true, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 2, playerName: "P3", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "chef", name: "厨师", type: "townsfolk" },
+            isEvilConverted: true,
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -87,8 +134,22 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "pixie", name: "小精灵", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "pixie", name: "小精灵", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -107,9 +168,27 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 2, playerName: "P3", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         jugglerGuesses: [
           { targetSeatId: 1, roleName: "僧侣" },
@@ -131,8 +210,22 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "farmer", name: "农夫", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "farmer", name: "农夫", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 2,
         deadThisNight: [0],
@@ -154,9 +247,28 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "lunatic", name: "疯子", type: "outsider" }, apparentDemonRole: { id: "imp", name: "小恶魔" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "lunatic", name: "疯子", type: "outsider" },
+            apparentDemonRole: { id: "imp", name: "小恶魔" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -176,8 +288,22 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "cerenovus", name: "洗脑师", type: "minion" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "cerenovus", name: "洗脑师", type: "minion" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -196,8 +322,20 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "evil_twin", name: "邪恶双子", type: "minion" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "evil_twin", name: "邪恶双子", type: "minion" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -211,10 +349,38 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     expect(res.snapshot.evilTwinPair).toEqual({ evilSeatId: 0, goodSeatId: 1 });
 
     const seats = [
-      { id: 0, playerName: "P1", role: { id: "evil_twin", name: "邪恶双子", type: "minion" }, isAlive: true, isDead: false, isPoisoned: false, isDrunk: false },
-      { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: false, isDead: true, isPoisoned: false, isDrunk: false },
-      { id: 2, playerName: "P3", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
-      { id: 3, playerName: "P4", role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false },
+      {
+        id: 0,
+        playerName: "P1",
+        role: { id: "evil_twin", name: "邪恶双子", type: "minion" },
+        isAlive: true,
+        isDead: false,
+        isPoisoned: false,
+        isDrunk: false,
+      },
+      {
+        id: 1,
+        playerName: "P2",
+        role: { id: "monk", name: "僧侣", type: "townsfolk" },
+        isAlive: false,
+        isDead: true,
+        isPoisoned: false,
+        isDrunk: false,
+      },
+      {
+        id: 2,
+        playerName: "P3",
+        role: { id: "imp", name: "小恶魔", type: "demon" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 3,
+        playerName: "P4",
+        role: { id: "chef", name: "厨师", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
     ];
     const gameEnd = checkGameEnd(seats as any, "execution", 1, {
       evilTwinPair: { evilId: 0, goodId: 1 },
@@ -230,9 +396,30 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "poisoner", name: "投毒者", type: "minion" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "poisoner", name: "投毒者", type: "minion" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -251,10 +438,36 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
 
   it("10. 涡流 (Vortox): 白天无人被处决，白天结束时直接判定邪恶阵营获胜", () => {
     const seats = [
-      { id: 0, playerName: "P1", role: { id: "vortox", name: "涡流", type: "demon" }, isAlive: true, isDead: false, isPoisoned: false, isDrunk: false },
-      { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
-      { id: 2, playerName: "P3", role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false },
-      { id: 3, playerName: "P4", role: { id: "librarian", name: "图书管理员", type: "townsfolk" }, isAlive: true, isDead: false },
+      {
+        id: 0,
+        playerName: "P1",
+        role: { id: "vortox", name: "涡流", type: "demon" },
+        isAlive: true,
+        isDead: false,
+        isPoisoned: false,
+        isDrunk: false,
+      },
+      {
+        id: 1,
+        playerName: "P2",
+        role: { id: "monk", name: "僧侣", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 2,
+        playerName: "P3",
+        role: { id: "chef", name: "厨师", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 3,
+        playerName: "P4",
+        role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
     ];
     const gameEnd = checkGameEnd(seats as any, "execution", null, {
       isVortoxWorld: true,
@@ -270,7 +483,12 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
       id: 1,
       playerName: "P2",
       role: { id: "marionette", name: "提线木偶", type: "minion" },
-      charadeRole: { id: "monk", name: "僧侣", type: "townsfolk", ability: "每晚选择一名其他玩家：该玩家免受恶魔杀害。" },
+      charadeRole: {
+        id: "monk",
+        name: "僧侣",
+        type: "townsfolk",
+        ability: "每晚选择一名其他玩家：该玩家免受恶魔杀害。",
+      },
       displayRole: { id: "monk", name: "僧侣", type: "townsfolk" },
       isAlive: true,
       isDead: false,
@@ -295,10 +513,34 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, playerName: "P3", role: { id: "baron", name: "男爵", type: "minion" }, isAlive: true, isDead: false },
-          { id: 3, playerName: "P4", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "chef", name: "厨师", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "baron", name: "男爵", type: "minion" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 3,
+            playerName: "P4",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -315,9 +557,27 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -335,8 +595,22 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "chef", name: "厨师", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -354,9 +628,27 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "oracle", name: "神谕者", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: false, isDead: true },
-          { id: 2, playerName: "P3", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "oracle", name: "神谕者", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: false,
+            isDead: true,
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -375,8 +667,20 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "baron", name: "男爵", type: "minion" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "baron", name: "男爵", type: "minion" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -394,14 +698,29 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "savant", name: "博学者", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "savant", name: "博学者", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
       },
       actionNode: { seatId: 0, roleId: "savant", roleName: "博学者" },
-      storytellerInput: { info1: "所有戴眼镜的玩家都是善良的", info2: "坐在黑色沙发上的玩家之一是爪牙" },
+      storytellerInput: {
+        info1: "所有戴眼镜的玩家都是善良的",
+        info2: "坐在黑色沙发上的玩家之一是爪牙",
+      },
       meta: {},
     };
     const res = await runFullAbilityPipeline(pipe(savantAbility), ctx);
@@ -410,9 +729,27 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
 
   it("18. 镇长 (Mayor): 3人存活且无处决提名 → 善良阵营获胜", () => {
     const seats = [
-      { id: 0, playerName: "P1", role: { id: "mayor", name: "镇长", type: "townsfolk" }, isAlive: true, isDead: false },
-      { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
-      { id: 2, playerName: "P3", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
+      {
+        id: 0,
+        playerName: "P1",
+        role: { id: "mayor", name: "镇长", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 1,
+        playerName: "P2",
+        role: { id: "monk", name: "僧侣", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 2,
+        playerName: "P3",
+        role: { id: "imp", name: "小恶魔", type: "demon" },
+        isAlive: true,
+        isDead: false,
+      },
     ];
     const gameEnd = checkGameEnd(seats as any, "execution", null, {
       mayorAlive: true,
@@ -428,9 +765,27 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, playerName: "P3", role: { id: "baron", name: "男爵", type: "minion" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "baron", name: "男爵", type: "minion" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -447,8 +802,23 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "drunk", name: "酒鬼", type: "outsider" }, charadeRole: { id: "soldier", name: "士兵" }, isAlive: true, isDead: false, isDrunk: true, statusEffects: [{ type: "drunk" }] },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "drunk", name: "酒鬼", type: "outsider" },
+            charadeRole: { id: "soldier", name: "士兵" },
+            isAlive: true,
+            isDead: false,
+            isDrunk: true,
+            statusEffects: [{ type: "drunk" }],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 2,
         gamePhase: "night",
@@ -466,8 +836,21 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "mutant", name: "畸形秀演员", type: "outsider" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 1, playerName: "P2", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "mutant", name: "畸形秀演员", type: "outsider" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "monk", name: "僧侣", type: "townsfolk" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -483,9 +866,29 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "snitch", name: "告密者", type: "outsider" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false, statusDetails: [] },
-          { id: 2, playerName: "P3", role: { id: "baron", name: "男爵", type: "minion" }, isAlive: true, isDead: false, statusDetails: [] },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "snitch", name: "告密者", type: "outsider" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
+          {
+            id: 2,
+            playerName: "P3",
+            role: { id: "baron", name: "男爵", type: "minion" },
+            isAlive: true,
+            isDead: false,
+            statusDetails: [],
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -501,8 +904,20 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     const ctx: any = {
       snapshot: {
         seats: [
-          { id: 0, playerName: "P1", role: { id: "baron", name: "男爵", type: "minion" }, isAlive: true, isDead: false },
-          { id: 1, playerName: "P2", role: { id: "imp", name: "小恶魔", type: "demon" }, isAlive: true, isDead: false },
+          {
+            id: 0,
+            playerName: "P1",
+            role: { id: "baron", name: "男爵", type: "minion" },
+            isAlive: true,
+            isDead: false,
+          },
+          {
+            id: 1,
+            playerName: "P2",
+            role: { id: "imp", name: "小恶魔", type: "demon" },
+            isAlive: true,
+            isDead: false,
+          },
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -518,10 +933,34 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
 
   it("24. 军团 (Legion): 所有恶魔均为军团，白天无人被处决 → 邪恶获胜", () => {
     const seats = [
-      { id: 0, playerName: "P1", role: { id: "legion", name: "军团", type: "demon" }, isAlive: true, isDead: false },
-      { id: 1, playerName: "P2", role: { id: "legion", name: "军团", type: "demon" }, isAlive: true, isDead: false },
-      { id: 2, playerName: "P3", role: { id: "legion", name: "军团", type: "demon" }, isAlive: true, isDead: false },
-      { id: 3, playerName: "P4", role: { id: "monk", name: "僧侣", type: "townsfolk" }, isAlive: true, isDead: false },
+      {
+        id: 0,
+        playerName: "P1",
+        role: { id: "legion", name: "军团", type: "demon" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 1,
+        playerName: "P2",
+        role: { id: "legion", name: "军团", type: "demon" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 2,
+        playerName: "P3",
+        role: { id: "legion", name: "军团", type: "demon" },
+        isAlive: true,
+        isDead: false,
+      },
+      {
+        id: 3,
+        playerName: "P4",
+        role: { id: "monk", name: "僧侣", type: "townsfolk" },
+        isAlive: true,
+        isDead: false,
+      },
     ];
     const gameEnd = checkGameEnd(seats as any, "execution", null, {
       legionActive: true,

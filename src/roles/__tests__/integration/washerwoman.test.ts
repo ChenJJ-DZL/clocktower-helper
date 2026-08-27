@@ -8,29 +8,55 @@ import type { MiddlewareContext } from "../../../utils/middlewareTypes";
 import { washerwomanAbility } from "../../new_engine/washerwoman.ability";
 
 function makeSeat(
-  id: number, roleId: string, roleType: string, opts?: { isDead?: boolean; isDrunk?: boolean; isPoisoned?: boolean; isAlive?: boolean }
+  id: number,
+  roleId: string,
+  roleType: string,
+  opts?: {
+    isDead?: boolean;
+    isDrunk?: boolean;
+    isPoisoned?: boolean;
+    isAlive?: boolean;
+  }
 ) {
   const isAlive = opts?.isAlive ?? !(opts?.isDead ?? false);
   const statusEffects: Array<{ type: string }> = [];
   if (opts?.isDrunk) statusEffects.push({ type: "drunk" });
   if (opts?.isPoisoned) statusEffects.push({ type: "poisoned" });
   const names: Record<string, string> = {
-    washerwoman: "洗衣妇", chef: "厨师", empath: "共情者", soldier: "士兵",
-    butler: "管家", saint: "圣徒", recluse: "陌客", drunk: "酒鬼",
-    spy: "间谍", poisoner: "投毒者", baron: "男爵", scarlet_woman: "红唇女郎",
-    imp: "小恶魔", mayor: "镇长",
+    washerwoman: "洗衣妇",
+    chef: "厨师",
+    empath: "共情者",
+    soldier: "士兵",
+    butler: "管家",
+    saint: "圣徒",
+    recluse: "陌客",
+    drunk: "酒鬼",
+    spy: "间谍",
+    poisoner: "投毒者",
+    baron: "男爵",
+    scarlet_woman: "红唇女郎",
+    imp: "小恶魔",
+    mayor: "镇长",
   };
   return {
-    id, playerName: `玩家${id + 1}`, isDead: !isAlive, isAlive,
-    isDrunk: opts?.isDrunk ?? false, isPoisoned: opts?.isPoisoned ?? false,
+    id,
+    playerName: `玩家${id + 1}`,
+    isDead: !isAlive,
+    isAlive,
+    isDrunk: opts?.isDrunk ?? false,
+    isPoisoned: opts?.isPoisoned ?? false,
     role: { id: roleId, name: names[roleId] || roleId, type: roleType },
-    effectiveRole: null, charadeRole: null, statusEffects,
+    effectiveRole: null,
+    charadeRole: null,
+    statusEffects,
     hasAbilityEvenDead: false,
   };
 }
 
 function makeContext(opts: {
-  seatId: number; nightCount: number; gamePhase: string;
+  seatId: number;
+  nightCount: number;
+  gamePhase: string;
   seats: ReturnType<typeof makeSeat>[];
   isPreview?: boolean;
 }): MiddlewareContext {
@@ -72,10 +98,20 @@ describe("洗衣妇 引擎集成测试", () => {
       makeSeat(3, "butler", "outsider"),
       makeSeat(4, "imp", "demon"),
     ];
-    const ctx = makeContext({ seatId: 0, nightCount: 1, gamePhase: "firstNight", seats });
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate, stateUpdate: washerwomanAbility.stateUpdate, postProcess: washerwomanAbility.postProcess },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+        stateUpdate: washerwomanAbility.stateUpdate,
+        postProcess: washerwomanAbility.postProcess,
+      },
       ctx
     );
 
@@ -90,16 +126,30 @@ describe("洗衣妇 引擎集成测试", () => {
     // 两名玩家不相同
     expect(abilityResult.seat1).not.toBe(abilityResult.seat2);
     // 角色名是镇民
-    const isTownsfolk = seats.some(s => s.role.name === abilityResult.roleName && s.role.type === "townsfolk");
+    const isTownsfolk = seats.some(
+      (s) =>
+        s.role.name === abilityResult.roleName && s.role.type === "townsfolk"
+    );
     expect(isTownsfolk || abilityResult.roleName === "洗衣妇").toBe(true);
   });
 
   test("非首夜不唤醒", async () => {
-    const seats = [makeSeat(0, "washerwoman", "townsfolk"), makeSeat(1, "chef", "townsfolk")];
-    const ctx = makeContext({ seatId: 0, nightCount: 2, gamePhase: "night", seats });
+    const seats = [
+      makeSeat(0, "washerwoman", "townsfolk"),
+      makeSeat(1, "chef", "townsfolk"),
+    ];
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 2,
+      gamePhase: "night",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+      },
       ctx
     );
     expect(result.aborted).toBe(true);
@@ -110,10 +160,18 @@ describe("洗衣妇 引擎集成测试", () => {
       makeSeat(0, "washerwoman", "townsfolk", { isDead: true }),
       makeSeat(1, "chef", "townsfolk"),
     ];
-    const ctx = makeContext({ seatId: 0, nightCount: 1, gamePhase: "firstNight", seats });
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+      },
       ctx
     );
     expect(result.aborted).toBe(true);
@@ -126,10 +184,20 @@ describe("洗衣妇 引擎集成测试", () => {
       makeSeat(2, "soldier", "townsfolk"),
       makeSeat(3, "butler", "outsider"),
     ];
-    const ctx = makeContext({ seatId: 0, nightCount: 1, gamePhase: "firstNight", seats });
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate, stateUpdate: washerwomanAbility.stateUpdate, postProcess: washerwomanAbility.postProcess },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+        stateUpdate: washerwomanAbility.stateUpdate,
+        postProcess: washerwomanAbility.postProcess,
+      },
       ctx
     );
     expect(result.aborted).toBe(false);
@@ -146,10 +214,18 @@ describe("洗衣妇 引擎集成测试", () => {
       makeSeat(3, "butler", "outsider"),
       makeSeat(4, "saint", "outsider"),
     ];
-    const ctx = makeContext({ seatId: 0, nightCount: 1, gamePhase: "firstNight", seats });
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+      },
       ctx
     );
     expect(result.aborted).toBe(false);
@@ -167,10 +243,20 @@ describe("洗衣妇 引擎集成测试", () => {
       makeSeat(4, "imp", "demon"),
       makeSeat(5, "drunk", "outsider"),
     ];
-    const ctx = makeContext({ seatId: 0, nightCount: 1, gamePhase: "firstNight", seats });
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate, stateUpdate: washerwomanAbility.stateUpdate, postProcess: washerwomanAbility.postProcess },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+        stateUpdate: washerwomanAbility.stateUpdate,
+        postProcess: washerwomanAbility.postProcess,
+      },
       ctx
     );
     expect(result.aborted).toBe(false);
@@ -189,10 +275,20 @@ describe("洗衣妇 引擎集成测试", () => {
       makeSeat(1, "chef", "townsfolk"),
       makeSeat(2, "soldier", "townsfolk"),
     ];
-    const ctx = makeContext({ seatId: 0, nightCount: 1, gamePhase: "firstNight", seats });
+    const ctx = makeContext({
+      seatId: 0,
+      nightCount: 1,
+      gamePhase: "firstNight",
+      seats,
+    });
 
     const result = await runFullAbilityPipeline(
-      { preCheck: washerwomanAbility.preCheck, calculate: washerwomanAbility.calculate, stateUpdate: washerwomanAbility.stateUpdate, postProcess: washerwomanAbility.postProcess },
+      {
+        preCheck: washerwomanAbility.preCheck,
+        calculate: washerwomanAbility.calculate,
+        stateUpdate: washerwomanAbility.stateUpdate,
+        postProcess: washerwomanAbility.postProcess,
+      },
       ctx
     );
     expect(result.meta.prompt).toBeDefined();

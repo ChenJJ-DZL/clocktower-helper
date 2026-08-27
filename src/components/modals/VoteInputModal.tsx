@@ -144,8 +144,12 @@ export function VoteInputModalContent(props: {
               : "未知"}
           </div>
           <div className="text-xs text-gray-400 mt-0.5">
-            请勾选本轮举手表决的玩家（存活玩家可自由举手，死亡玩家消耗 1 张幽灵票
-            {ghostHolders.length > 0 ? `，场上存票：${ghostHolders.join("、")}` : ""}）
+            请勾选本轮举手表决的玩家（存活玩家可自由举手，死亡玩家消耗 1
+            张幽灵票
+            {ghostHolders.length > 0
+              ? `，场上存票：${ghostHolders.join("、")}`
+              : ""}
+            ）
           </div>
         </div>
 
@@ -185,11 +189,7 @@ export function VoteInputModalContent(props: {
                     {s.playerName || (s.role ? s.role.name : "")}
                   </div>
                   <div className="text-[10px] leading-tight opacity-80">
-                    {s.isDead
-                      ? ghostUsed
-                        ? "💀无票"
-                        : "💀幽灵票"
-                      : "🟢存活"}
+                    {s.isDead ? (ghostUsed ? "💀无票" : "💀幽灵票") : "🟢存活"}
                   </div>
                 </button>
               );
@@ -221,16 +221,20 @@ export function VoteInputModalContent(props: {
                   : "bg-slate-800 text-gray-400 border-slate-600"
               }`}
             >
-              {isReachThreshold ? "⚠️ 达到门槛 (上处决台)" : "✓ 未达门槛 (不上台)"}
+              {isReachThreshold
+                ? "⚠️ 达到门槛 (上处决台)"
+                : "✓ 未达门槛 (不上台)"}
             </span>
           </div>
 
           <div className="text-xs text-gray-400 mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5">
             <span>
-              存活举手: <strong className="text-gray-200">{selectedAlive}</strong> 人
+              存活举手:{" "}
+              <strong className="text-gray-200">{selectedAlive}</strong> 人
             </span>
             <span>
-              死亡举手: <strong className="text-gray-200">{selectedDead}</strong> 人
+              死亡举手:{" "}
+              <strong className="text-gray-200">{selectedDead}</strong> 人
             </span>
             {excludedButlers.length > 0 && (
               <span className="text-yellow-300 font-medium">
@@ -248,7 +252,9 @@ export function VoteInputModalContent(props: {
           {/* 军团规则：所有投票者均为邪恶玩家时记0票 */}
           {isAllEvilLegionVoters && (
             <div className="mt-2 py-1.5 px-3 bg-red-950/90 border border-red-500 rounded-lg text-red-200 text-xs font-bold text-center animate-pulse">
-              ⚠️ 军团能力触发：所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！
+              ⚠️
+              军团能力触发：所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为
+              0 票，处决无效！
             </div>
           )}
         </div>

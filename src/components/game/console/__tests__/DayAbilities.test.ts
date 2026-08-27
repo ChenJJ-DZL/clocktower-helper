@@ -37,7 +37,9 @@ describe("白天主动技能持久化与查看结果测试", () => {
       if (!s.role) return false;
       const effectiveRole = s.role;
       if (effectiveRole.dayMeta) return true;
-      const def = effectiveRole.id ? getRoleDefinition(effectiveRole.id) : undefined;
+      const def = effectiveRole.id
+        ? getRoleDefinition(effectiveRole.id)
+        : undefined;
       if (def?.day) return true;
       return false;
     });
@@ -59,7 +61,9 @@ describe("白天主动技能持久化与查看结果测试", () => {
     const artistDef = getRoleDefinition(artistSeat.role.id);
     const artistIsUsed =
       artistDef?.day?.maxUses !== "infinity" &&
-      !!(artistSeat.hasUsedDayAbility || (artistSeat as any).hasUsedSlayerAbility);
+      !!(
+        artistSeat.hasUsedDayAbility || (artistSeat as any).hasUsedSlayerAbility
+      );
     expect(artistIsUsed).toBe(false);
   });
 

@@ -61,6 +61,8 @@ export interface NightActionHandlerContext {
     executedPlayerId?: number | null,
     isEndOfDay?: boolean
   ) => void;
+  setEvilTwinPair?: (pair: { evilId: number; goodId: number } | null) => void;
+  dispatch?: (action: any) => void;
 
   // 辅助函数
   addLog: (message: string) => void;
@@ -232,7 +234,13 @@ export function applyStateUpdates(
         if (!ids.includes(s.id)) return s;
         // 先移除同源的旧醉酒效果，避免跨夜累积
         const baseEffects = (s.statusEffects ?? []).filter(
-          (e: any) => !(e.type === "drunk" && (e.source === "sailor" || e.source === "minstrel" || e.source === "bard"))
+          (e: any) =>
+            !(
+              e.type === "drunk" &&
+              (e.source === "sailor" ||
+                e.source === "minstrel" ||
+                e.source === "bard")
+            )
         );
         return {
           ...s,
@@ -249,12 +257,15 @@ export function applyStateUpdates(
           ],
           statuses: [
             ...(s.statuses ?? []).filter(
-              (st: any) => !(st.effect === "Drunk" && st.duration === "至下个黄昏")
+              (st: any) =>
+                !(st.effect === "Drunk" && st.duration === "至下个黄昏")
             ),
             { effect: "Drunk", duration: "至下个黄昏" },
           ],
           statusDetails: [
-            ...(s.statusDetails || []).filter((d) => !d.includes("醉酒（至下个黄昏）")),
+            ...(s.statusDetails || []).filter(
+              (d) => !d.includes("醉酒（至下个黄昏）")
+            ),
             "醉酒（至下个黄昏）",
           ],
         };
@@ -360,7 +371,7 @@ export async function executeViaNewEngine(
       return true;
     }
 
-      // ============ 预览模式 ============
+    // ============ 预览模式 ============
     if (context.preview) {
       console.log(
         `[executeViaNewEngine] PREVIEW mode for ${roleId}, targets:`,
@@ -409,9 +420,7 @@ export async function executeViaNewEngine(
       }
 
       // 检查是否是系统步骤（如 demon_info, minion_info）
-      const isSystemStep = ["demon_info", "minion_info"].includes(
-        roleId
-      );
+      const isSystemStep = ["demon_info", "minion_info"].includes(roleId);
       const targetConfig = (ability as any).targetConfig;
       const minTargets = targetConfig?.min ?? 0;
 
@@ -542,7 +551,11 @@ export async function executeViaNewEngine(
     // 🔧 消费能力管道的 stateUpdates 指令（赌徒/水手/吟游诗人等角色经此下发状态变更）
     const stateUpdates = resultContext.meta.stateUpdates;
     if (stateUpdates) {
-      updatedSeats = applyStateUpdates(updatedSeats, stateUpdates, context.nightCount);
+      updatedSeats = applyStateUpdates(
+        updatedSeats,
+        stateUpdates,
+        context.nightCount
+      );
       console.log(
         `[executeViaNewEngine] Applied stateUpdates: ${stateUpdates.type}`
       );
@@ -559,9 +572,9 @@ export async function executeViaNewEngine(
     //   ① 新方古 role 正确同步到 UI（`...u` 已含 role，此处再兜底防 prev 覆盖）；
     //   ② 跳变当晚原方古死亡标记落地（isDead）→ 后续判胜/队列正确。
     const fangGuJump =
-      (resultContext as any)?.snapshot?.fangGuJump ??
+      ((resultContext as any)?.snapshot?.fangGuJump ??
       (resultContext as any)?.meta?.fangGuJump ??
-      (resultContext as any)?.snapshot?._abilityResults?.fang_gu?.becomesFangGu
+      (resultContext as any)?.snapshot?._abilityResults?.fang_gu?.becomesFangGu)
         ? (resultContext as any)?.snapshot?._abilityResults?.fang_gu?.targetId
         : null;
     const fangGuActorId = (resultContext as any)?.actionNode?.seatId;
@@ -710,10 +723,7 @@ export async function executeViaNewEngine(
                     roleId: "farmer",
                     roleName: "农夫",
                     roleType: "townsfolk",
-                    statusDetails: [
-                      ...(s.statusDetails || []),
-                      "成为新农夫",
-                    ],
+                    statusDetails: [...(s.statusDetails || []), "成为新农夫"],
                   } as Seat;
                 }
                 return s;
@@ -775,6 +785,29 @@ export async function executeViaNewEngine(
           context.addLog(`🧙 女巫诅咒了 ${cursedId + 1} 号玩家`);
         }
       }
+
+      // 👥 镜像双子桥接：新引擎快照 evilTwinPair → legacy evilTwinPair & isGoodTwin
+      const evilTwinPair = (resultContext as any)?.snapshot?.evilTwinPair;
+      if (evilTwinPair) {
+        const goodSeatId = evilTwinPair.goodSeatId ?? evilTwinPair.goodId;
+        const evilSeatId = evilTwinPair.evilSeatId ?? evilTwinPair.evilId;
+        if (goodSeatId !== undefined) {
+          syncedSeats.forEach((s) => {
+            s.isGoodTwin = s.id === goodSeatId;
+          });
+          if (context.dispatch) {
+            context.dispatch({
+              type: "UPDATE_STATE",
+              updates: {
+                evilTwinPair: {
+                  evilId: evilSeatId,
+                  goodId: goodSeatId,
+                },
+              },
+            });
+          }
+        }
+      }
     }
 
     // 记录日志
@@ -824,7 +857,9 @@ export async function executeViaNewEngine(
       });
     } else {
       // 🔧 修复：使用 syncedSeats 而非 updatedSeats，确保中毒/醉酒等状态已同步到旧系统字段
-      context.continueToNextAction(syncedSeats.length > 0 ? syncedSeats : undefined);
+      context.continueToNextAction(
+        syncedSeats.length > 0 ? syncedSeats : undefined
+      );
     }
 
     // 标记能力已使用

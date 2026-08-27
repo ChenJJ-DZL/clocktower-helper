@@ -6,15 +6,15 @@
  *
  * 运行：npx vitest run src/roles/__tests__/custom_script_fuzz.test.ts
  */
-import { describe, it, expect } from "vitest";
-import { createRng } from "../../utils/invariantTesting/simulator";
-import type { GameStateSnapshot } from "../../utils/nightStateMachine";
+import { describe, expect, it } from "vitest";
 import {
   buildAbilityMap,
   buildFullNightOrder,
   runAllInvariants,
   simulateNight,
 } from "../../utils/invariantTesting/index";
+import { createRng } from "../../utils/invariantTesting/simulator";
+import type { GameStateSnapshot } from "../../utils/nightStateMachine";
 
 // ─── 全量角色池（TB + BMR + S&V + 实验性） ───────────────────────
 
@@ -180,7 +180,10 @@ function buildCrossScriptRoster(
   }));
 }
 
-function makeSeat(id: number, role: { id: string; name: string; type: string }) {
+function makeSeat(
+  id: number,
+  role: { id: string; name: string; type: string }
+) {
   return {
     id,
     playerName: `P${id + 1}`,
@@ -316,7 +319,9 @@ async function runFuzzGame(
 
 // ─── Undo/Redo 序列化安全验证 ─────────────────────────────────────
 
-function verifyUndoRedoSafety(roster: Array<{ id: string; name: string; type: string }>): {
+function verifyUndoRedoSafety(
+  roster: Array<{ id: string; name: string; type: string }>
+): {
   safe: boolean;
   issues: string[];
 } {
@@ -424,18 +429,51 @@ describe("全角色混搭模糊压测 (Custom Script Fuzz)", () => {
         masterRng2
       );
       const { safe, issues } = verifyUndoRedoSafety(roster);
-      expect(safe, `组合 ${i + 1} (${roster.map((r) => r.id).join(",")}): ${issues.join("; ")}`).toBe(true);
+      expect(
+        safe,
+        `组合 ${i + 1} (${roster.map((r) => r.id).join(",")}): ${issues.join("; ")}`
+      ).toBe(true);
     }
   });
 
   // 跨剧本极端组合专项
   const EXTREME_COMBOS = [
     // 蛇女+双子+珀+杂耍者+教父
-    ["snake_charmer", "evil_twin", "po", "juggler", "godfather", "butler", "washerwoman", "soldier", "imp"],
+    [
+      "snake_charmer",
+      "evil_twin",
+      "po",
+      "juggler",
+      "godfather",
+      "butler",
+      "washerwoman",
+      "soldier",
+      "imp",
+    ],
     // 气球+猎人+寡妇+利维坦+变种人+博学者+弄蛇人
-    ["balloonist", "huntsman", "widow", "leviathan", "mutant", "savant", "snake_charmer", "dreamer", "chef"],
+    [
+      "balloonist",
+      "huntsman",
+      "widow",
+      "leviathan",
+      "mutant",
+      "savant",
+      "snake_charmer",
+      "dreamer",
+      "chef",
+    ],
     // 小怪兽+维齐尔+暴动+失忆者+小精灵+赏金猎人+骑士+守夜人
-    ["lil_monsta", "vizier", "riot", "amnesiac", "pixie", "bounty_hunter", "knight", "night_watchman", "clockmaker"],
+    [
+      "lil_monsta",
+      "vizier",
+      "riot",
+      "amnesiac",
+      "pixie",
+      "bounty_hunter",
+      "knight",
+      "night_watchman",
+      "clockmaker",
+    ],
   ];
 
   for (let i = 0; i < EXTREME_COMBOS.length; i++) {

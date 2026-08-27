@@ -81,7 +81,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:111-0!canonical and tim
   clarifications: [
     "干扰项在一整场游戏中只会是同一名玩家。具体情况详见英文wiki。",
     "以为自己是占卜师的酒鬼不会有干扰项标记。",
-    "占卜师的干扰项判定计入数学家的能力检测，但红鲱鱼不算。",
+    "占卜师的干扰项判定计入数学家的能力检测，但红罗刹不算。",
   ],
 
   firstNight: {

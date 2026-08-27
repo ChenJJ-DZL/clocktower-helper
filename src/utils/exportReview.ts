@@ -4,7 +4,7 @@
  * 使用 html2canvas 将对局复盘内容捕获为 PNG 图片并下载。
  * 处理 Retina 高分屏清晰度（scale: 2）和跨域图片容错。
  */
-import type { Seat, LogEntry, WinResult } from "../../app/data";
+import type { LogEntry, Seat, WinResult } from "../../app/data";
 
 export interface ExportReviewOptions {
   /** 要捕获的 DOM 元素 */
@@ -48,13 +48,18 @@ export async function exportReviewAsImage(
       ctx.font = `${14 * scale}px sans-serif`;
       ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
       ctx.textAlign = "right";
-      ctx.fillText(watermark, canvas.width - 20 * scale, canvas.height - 15 * scale);
+      ctx.fillText(
+        watermark,
+        canvas.width - 20 * scale,
+        canvas.height - 15 * scale
+      );
       ctx.restore();
     }
 
     // 下载
     const link = document.createElement("a");
-    const resultTag = winResult === "good" ? "善良胜" : winResult === "evil" ? "邪恶胜" : "";
+    const resultTag =
+      winResult === "good" ? "善良胜" : winResult === "evil" ? "邪恶胜" : "";
     const filename = `复盘_${scriptName || "对局"}_${resultTag}_${new Date().toISOString().slice(0, 10)}.png`;
     link.download = filename;
     link.href = canvas.toDataURL("image/png");

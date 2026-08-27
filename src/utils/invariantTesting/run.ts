@@ -49,8 +49,18 @@ async function main() {
   // ── 静态不变式（不依赖对局）──
   console.log("── 静态不变式 ──");
   const staticResult = {
-    initialSnapshot: { nightCount: 1, seats: [], statusEffects: {}, gamePhase: "firstNight" },
-    finalSnapshot: { nightCount: 1, seats: [], statusEffects: {}, gamePhase: "firstNight" },
+    initialSnapshot: {
+      nightCount: 1,
+      seats: [],
+      statusEffects: {},
+      gamePhase: "firstNight",
+    },
+    finalSnapshot: {
+      nightCount: 1,
+      seats: [],
+      statusEffects: {},
+      gamePhase: "firstNight",
+    },
     queue: [],
     actions: [],
     nightCount: 1,
@@ -59,9 +69,13 @@ async function main() {
   const i6 = await I6PriorityMatchesOfficialOrder(staticResult, abilityMap);
   const tbPool = new Set(TROUBLE_BREWING_ROLES.map((r) => r.id));
   const i8 = await I8AbilityConfigConsistent(staticResult, abilityMap, tbPool);
-  console.log(`  I6 文档对撞（JSON→能力注册）: ${i6.length === 0 ? "✅ 通过" : `❌ ${i6.length} 处违规`}`);
+  console.log(
+    `  I6 文档对撞（JSON→能力注册）: ${i6.length === 0 ? "✅ 通过" : `❌ ${i6.length} 处违规`}`
+  );
   for (const e of i6) console.log(`      - ${e}`);
-  console.log(`  I8 能力配置自洽: ${i8.length === 0 ? "✅ 通过" : `❌ ${i8.length} 处违规`}`);
+  console.log(
+    `  I8 能力配置自洽: ${i8.length === 0 ? "✅ 通过" : `❌ ${i8.length} 处违规`}`
+  );
   for (const e of i8) console.log(`      - ${e}`);
   console.log("");
 
@@ -77,14 +91,18 @@ async function main() {
 
   let totalViolations = 0;
   for (const snapshot of game.snapshots) {
-    console.log(`── 第 ${snapshot.nightCount} 夜（${snapshot.seats.length} 人局）──`);
+    console.log(
+      `── 第 ${snapshot.nightCount} 夜（${snapshot.seats.length} 人局）──`
+    );
     const result = await simulateNight(snapshot, {
       nightCount: snapshot.nightCount,
       fullNightOrder,
       abilityMap,
       seed,
     });
-    console.log(`  夜间队列 ${result.queue.length} 个节点，执行 ${result.actions.length} 个动作`);
+    console.log(
+      `  夜间队列 ${result.queue.length} 个节点，执行 ${result.actions.length} 个动作`
+    );
     for (const a of result.actions) {
       const st = a.aborted ? "⛔中止" : "✓";
       console.log(

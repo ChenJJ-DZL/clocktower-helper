@@ -26,7 +26,9 @@ export function FortuneTellerResultModal({
           <div className="text-xl md:text-2xl text-amber-200/90 font-medium leading-relaxed">
             占卜师（目标：{targetLabels.join("、")}号）得知所选玩家是否有恶魔：
           </div>
-          <div className={`text-4xl md:text-5xl font-black ${resultColor} tracking-wide text-center drop-shadow-md`}>
+          <div
+            className={`text-4xl md:text-5xl font-black ${resultColor} tracking-wide text-center drop-shadow-md`}
+          >
             {resultText}
           </div>
           <p className="text-base text-gray-400 mt-2">

@@ -31,8 +31,7 @@ function isCorruptedSeat(seat: any): boolean {
   const effects = seat.statusEffects ?? [];
   const poisoned =
     effects.some((e: any) => e.type === "poisoned") || !!seat.isPoisoned;
-  const drunk =
-    effects.some((e: any) => e.type === "drunk") || !!seat.isDrunk;
+  const drunk = effects.some((e: any) => e.type === "drunk") || !!seat.isDrunk;
   return poisoned || drunk;
 }
 
@@ -42,7 +41,14 @@ export const I1DeathMarkersConsistent: InvariantCheck = (result) => {
   const errs: string[] = [];
   for (const seat of (result.finalSnapshot.seats as any[]) ?? []) {
     const id = seat.id;
-    const { isAlive, isDead, markedForDeath, diedAtNight, killedBy, deathSource } = seat;
+    const {
+      isAlive,
+      isDead,
+      markedForDeath,
+      diedAtNight,
+      killedBy,
+      deathSource,
+    } = seat;
     if (isDead === true && isAlive !== false) {
       errs.push(`I1: 座位${id + 1} isDead=true 但 isAlive=${isAlive}`);
     }
@@ -53,13 +59,17 @@ export const I1DeathMarkersConsistent: InvariantCheck = (result) => {
       errs.push(`I1: 座位${id + 1} markedForDeath=true 但 isDead=${isDead}`);
     }
     if (diedAtNight !== undefined && isDead !== true) {
-      errs.push(`I1: 座位${id + 1} diedAtNight=${diedAtNight} 但 isDead=${isDead}`);
+      errs.push(
+        `I1: 座位${id + 1} diedAtNight=${diedAtNight} 但 isDead=${isDead}`
+      );
     }
     if (killedBy !== undefined && isDead !== true) {
       errs.push(`I1: 座位${id + 1} killedBy=${killedBy} 但 isDead=${isDead}`);
     }
     if (deathSource !== undefined && isDead !== true) {
-      errs.push(`I1: 座位${id + 1} deathSource=${deathSource} 但 isDead=${isDead}`);
+      errs.push(
+        `I1: 座位${id + 1} deathSource=${deathSource} 但 isDead=${isDead}`
+      );
     }
   }
   return errs;
@@ -78,12 +88,16 @@ export const I2QueueLegality: InvariantCheck = (result, abilityMap) => {
 
     // 2.1 死亡角色不得入队（间谍 deadActorWakes 除外）
     if (seat?.isDead && node.roleId !== "spy") {
-      errs.push(`I2: 死亡玩家 ${node.roleId}(${node.seatId + 1}号) 被排入夜间队列`);
+      errs.push(
+        `I2: 死亡玩家 ${node.roleId}(${node.seatId + 1}号) 被排入夜间队列`
+      );
     }
 
     // 2.2 能力必须已注册（否则执行的是空管道 → 静默无效果，系统步骤除外）
     if (!SYSTEM_STEP_IDS.has(node.roleId) && !abilityMap[node.abilityId]) {
-      errs.push(`I2: 能力 ${node.abilityId}（${node.roleId}）未在能力注册表注册`);
+      errs.push(
+        `I2: 能力 ${node.abilityId}（${node.roleId}）未在能力注册表注册`
+      );
     }
 
     // 2.3 同座位同能力不得重复
@@ -191,7 +205,8 @@ export const I4PoisonedInfoCorrupted: InvariantCheck = (result) => {
     // 绝不允许"受干扰却产生未受干扰的干净结果"
     const resultInfo = meta.displayInfo ?? meta.abilityResult ?? null;
     if (!engineEffective && resultInfo) {
-      const marked = meta.isCorrupted === true || resultInfo.isCorrupted === true;
+      const marked =
+        meta.isCorrupted === true || resultInfo.isCorrupted === true;
       if (!marked) {
         errs.push(
           `I4: ${node.roleId}(${node.seatId + 1}号) 引擎判定受干扰但结果未标记 isCorrupted（abilityEffective=${meta.abilityEffective}）`
@@ -232,7 +247,8 @@ export const I5TargetLegality: InvariantCheck = (result, abilityMap) => {
         );
       }
       // 检查三种死亡标记：isDead / markedForDeath / isAlive===false
-      const dead = target.isDead || target.markedForDeath || target.isAlive === false;
+      const dead =
+        target.isDead || target.markedForDeath || target.isAlive === false;
       if (!tc.allowDead && dead) {
         errs.push(
           `I5: ${action.node.roleId} 选择死亡玩家 ${tid + 1}号 为目标（allowDead=false）`
@@ -281,9 +297,7 @@ export const I6PriorityMatchesOfficialOrder: InvariantCheck = (
   abilityMap
 ) => {
   const errs: string[] = [];
-  const registryIds = new Set(
-    Object.values(abilityMap).map((a) => a.roleId)
-  );
+  const registryIds = new Set(Object.values(abilityMap).map((a) => a.roleId));
 
   const hasAbility = (roleId: string): boolean => {
     if (registryIds.has(roleId)) return true;
@@ -357,14 +371,20 @@ export const I8AbilityConfigConsistent: InvariantCheck = (
 
     // 8.1 firstNightOnly 与 otherNightOnly 不得同时为 true（首夜专属又每晚？）
     if (ability.firstNightOnly && (ability as any).otherNightOnly) {
-      errs.push(`I8: ${ability.roleId} firstNightOnly 与 otherNightOnly 同时为 true`);
+      errs.push(
+        `I8: ${ability.roleId} firstNightOnly 与 otherNightOnly 同时为 true`
+      );
     }
     // 8.2 firstNightOnly=true 必须有首夜优先级；otherNightOnly=true 必须有其他夜优先级
     if (ability.firstNightOnly && !hasFn) {
-      errs.push(`I8: ${ability.roleId} firstNightOnly=true 但 firstNightPriority 为空`);
+      errs.push(
+        `I8: ${ability.roleId} firstNightOnly=true 但 firstNightPriority 为空`
+      );
     }
     if ((ability as any).otherNightOnly && !hasOn) {
-      errs.push(`I8: ${ability.roleId} otherNightOnly=true 但 otherNightPriority 为空`);
+      errs.push(
+        `I8: ${ability.roleId} otherNightOnly=true 但 otherNightPriority 为空`
+      );
     }
     // 8.3 targetConfig 自洽：min <= max，min >= 0
     if (tc) {
@@ -444,15 +464,28 @@ export const I10GlobalRulesConsistent: InvariantCheck = (
   abilityMap
 ) => {
   const errs: string[] = [];
-  let rules: Array<{ id: string; type: string; phase: string; owner?: string }> = [];
+  let rules: Array<{
+    id: string;
+    type: string;
+    phase: string;
+    owner?: string;
+  }> = [];
   try {
     rules = collectGlobalRules() as any;
   } catch (e) {
     errs.push(`I10: 规则收集失败 ${(e as Error).message}`);
     return errs;
   }
-  const VALID_TYPES = new Set(["target_redirect", "info_override", "target_collect"]);
-  const VALID_PHASES = new Set(["before_calculate", "after_calculate", "after_execute"]);
+  const VALID_TYPES = new Set([
+    "target_redirect",
+    "info_override",
+    "target_collect",
+  ]);
+  const VALID_PHASES = new Set([
+    "before_calculate",
+    "after_calculate",
+    "after_execute",
+  ]);
   const seen = new Set<string>();
   const knownRoles = new Set(
     Object.values(abilityMap).map((a: any) => a.roleId)
@@ -500,7 +533,12 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
     "info_roles_start",
   ]);
 
-  const seatChanged = (prev: any[], cur: any[], id: number, pred: (s: any) => boolean): boolean => {
+  const seatChanged = (
+    prev: any[],
+    cur: any[],
+    id: number,
+    pred: (s: any) => boolean
+  ): boolean => {
     const p = prev.find((s) => s.id === id);
     const c = cur.find((s) => s.id === id);
     if (!p || !c) return false;
@@ -536,9 +574,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         const isDeadMark = (s: any) =>
           s.markedForDeath === true || s.isAlive === false || s.isDead === true;
         // ① 全新死亡标记（prev 无 → cur 有）
-        const prevDeadIds = new Set(
-          prev.filter(isDeadMark).map((s) => s.id)
-        );
+        const prevDeadIds = new Set(prev.filter(isDeadMark).map((s) => s.id));
         const newDeath = cur.some(
           (s) => isDeadMark(s) && !prevDeadIds.has(s.id)
         );
@@ -547,8 +583,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
           (s) =>
             (s.isAlive === false || s.isDead === true) &&
             prev.some(
-              (x) =>
-                x.id === s.id && x.isAlive !== false && x.isDead !== true
+              (x) => x.id === s.id && x.isAlive !== false && x.isDead !== true
             )
         );
         // 条件豁免：能力结果明确声明"未击杀/免疫/不应杀"，或目标被保护
@@ -558,8 +593,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
           (s) =>
             s.isProtected === true ||
             (s.statusEffects ?? []).some(
-              (e: any) =>
-                e.type === "protected" || e.type === "safeguard"
+              (e: any) => e.type === "protected" || e.type === "safeguard"
             )
         );
         const exempt =
@@ -640,16 +674,19 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         }
         ok = cur.some((s) => {
           const p = prev.find((x) => x.id === s.id);
-          return p?.isDead === true && (s.isDead === false || s.isAlive === true);
+          return (
+            p?.isDead === true && (s.isDead === false || s.isAlive === true)
+          );
         });
         break;
       }
       case "protect": {
         ok =
           (snap.protectedTonight ?? []).length > 0 ||
-          cur.some((s) =>
-            (s.protectedTonight ?? s.protectedBy ?? null) !== null &&
-            (s.protectedTonight ?? s.protectedBy ?? false) !== false
+          cur.some(
+            (s) =>
+              (s.protectedTonight ?? s.protectedBy ?? null) !== null &&
+              (s.protectedTonight ?? s.protectedBy ?? false) !== false
           );
         break;
       }
@@ -671,7 +708,10 @@ export const ALL_INVARIANTS: Array<{ name: string; check: InvariantCheck }> = [
   { name: "I3 死亡玩家拦截", check: I3DeadPlayerAbilityBlocked },
   { name: "I4 信息干扰", check: I4PoisonedInfoCorrupted },
   { name: "I5 目标合法性", check: I5TargetLegality },
-  { name: "I6 文档对撞（JSON→能力注册）", check: I6PriorityMatchesOfficialOrder },
+  {
+    name: "I6 文档对撞（JSON→能力注册）",
+    check: I6PriorityMatchesOfficialOrder,
+  },
   { name: "I7 夜间死亡有来源", check: I7NightDeathHasSource },
   { name: "I8 能力配置自洽", check: I8AbilityConfigConsistent },
   { name: "I9 结算产物", check: I9SettlementProduced },

@@ -1,5 +1,5 @@
-import { ModalWrapper } from "./ModalWrapper";
 import { parseInfoResult } from "../../utils/infoResultParser";
+import { ModalWrapper } from "./ModalWrapper";
 
 export { parseInfoResult };
 

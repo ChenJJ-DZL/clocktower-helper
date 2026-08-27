@@ -11,14 +11,14 @@
 
 import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
+  getDemonKillImmunityType,
+  isImmuneToDemonKill,
+  resolveMayorDemonKill,
+} from "../../utils/soldierImmunity";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
-import {
-  isImmuneToDemonKill,
-  getDemonKillImmunityType,
-  resolveMayorDemonKill,
-} from "../../utils/soldierImmunity";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
@@ -109,7 +109,11 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const result = ctx.meta.abilityResult as any;
-  if (!result || result.killedPlayerId === null || result.killedPlayerId === undefined) {
+  if (
+    !result ||
+    result.killedPlayerId === null ||
+    result.killedPlayerId === undefined
+  ) {
     return ctx;
   }
 

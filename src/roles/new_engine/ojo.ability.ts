@@ -20,7 +20,9 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
 
-const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const targetRoleId = ctx.storytellerInput?.targetRoleId ?? null;
   const seats = ctx.snapshot.seats ?? [];
 
@@ -47,12 +49,16 @@ const calculate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => 
   };
 };
 
-const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const stateUpdate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (r?.targetSeatId == null) return ctx;
   const seats = (ctx.snapshot.seats ?? []) as any[];
   const updatedSeats = seats.map((s: any) =>
-    s.id === r.targetSeatId ? { ...s, isDead: true, isAlive: false, deathSource: "ojo" } : s
+    s.id === r.targetSeatId
+      ? { ...s, isDead: true, isAlive: false, deathSource: "ojo" }
+      : s
   );
   return {
     ...ctx,
@@ -61,11 +67,14 @@ const stateUpdate = async (ctx: MiddlewareContext): Promise<MiddlewareContext> =
   };
 };
 
-const postProcess = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+const postProcess = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const log = r?.targetSeatId != null
-    ? `[Ojo] 奥乔击杀 ${r.targetSeatId + 1}号（${r.targetRoleId ?? "说书人指定"}）`
-    : `[Ojo] 奥乔无目标`;
+  const log =
+    r?.targetSeatId != null
+      ? `[Ojo] 奥乔击杀 ${r.targetSeatId + 1}号（${r.targetRoleId ?? "说书人指定"}）`
+      : "[Ojo] 奥乔无目标";
   return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };
 };
 

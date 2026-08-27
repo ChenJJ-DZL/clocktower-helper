@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("全局保密遮罩 (Global Privacy Shield) 核心逻辑测试", () => {
   it("默认初始状态：防窥遮罩处于关闭状态 (isPrivacyShieldActive = false)", () => {

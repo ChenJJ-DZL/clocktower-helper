@@ -289,26 +289,34 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               {hasBeenNominated ? (
                 <span
                   className={`flex items-center justify-center font-bold rounded ${
-                    isPortrait ? "text-[8px] px-1 h-[10px]" : "text-[10px] px-1.5 h-[14px]"
+                    isPortrait
+                      ? "text-[8px] px-1 h-[10px]"
+                      : "text-[10px] px-1.5 h-[14px]"
                   } bg-red-900/90 text-red-100 border border-red-600 shadow-sm leading-none whitespace-nowrap`}
                   title="本黄昏已被提名过"
                 >
                   被提
                 </span>
               ) : (
-                hasNominated && <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+                hasNominated && (
+                  <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+                )
               )}
               {hasNominated ? (
                 <span
                   className={`flex items-center justify-center font-bold rounded ${
-                    isPortrait ? "text-[8px] px-1 h-[10px]" : "text-[10px] px-1.5 h-[14px]"
+                    isPortrait
+                      ? "text-[8px] px-1 h-[10px]"
+                      : "text-[10px] px-1.5 h-[14px]"
                   } bg-red-900/90 text-red-100 border border-red-600 shadow-sm leading-none whitespace-nowrap`}
                   title="本黄昏已发起过提名"
                 >
                   已提
                 </span>
               ) : (
-                hasBeenNominated && <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+                hasBeenNominated && (
+                  <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+                )
               )}
             </div>
           )}
@@ -351,7 +359,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-masked"
                 className={`bg-purple-700 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-white/80 shadow-md font-bold whitespace-nowrap leading-none backdrop-blur-md`}
               >
                 实:{realRole?.name}
@@ -365,7 +375,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-master"
                 className={`bg-purple-600 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
               >
                 主人
@@ -374,43 +386,63 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           }
 
           // 双子标记（镜像双子与对立双子）
-          const isTwin = (() => {
-            const evilTwinSeats = seats.filter(
-              (seat) => seat.role?.id === "evil_twin"
-            );
-            if (evilTwinSeats.length === 0) return false;
-            if (s.role?.id === "evil_twin") return true;
-
-            return evilTwinSeats.some((evilSeat) => {
-              const goodTwinSeat =
-                seats.find(
-                  (other) =>
-                    other.id !== evilSeat.id &&
-                    (other.role?.type === "townsfolk" ||
-                      other.role?.type === "outsider") &&
-                    !other.isEvilConverted &&
-                    !other.isDead
-                ) ||
-                seats.find(
-                  (other) => other.id !== evilSeat.id && !other.isDead
-                );
-              return goodTwinSeat?.id === s.id;
-            });
-          })();
-
-          if (isTwin) {
+          if (s.role?.id === "evil_twin") {
             otherBadges.push(
               <div
-                key="badge-twin"
-                className={`bg-purple-600 text-white ${
+                key="badge-evil-twin"
+                className={`bg-red-800 text-white ${
                   isPortrait
                     ? "text-[8px] px-1.5 py-0.5"
                     : "text-[10px] px-2 py-0.5"
-                } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
+                } rounded-full border border-red-400 shadow-md font-bold whitespace-nowrap leading-none`}
+                title="镜像双子 (邪恶爪牙)"
               >
-                双子
+                😈 镜像双子
               </div>
             );
+          } else {
+            const hasEvilTwin = seats.some(
+              (seat) => seat.role?.id === "evil_twin"
+            );
+            const isGoodTwin =
+              hasEvilTwin &&
+              (s.isGoodTwin ||
+                (!seats.some((seat) => seat.isGoodTwin) &&
+                  (() => {
+                    const evilSeat = seats.find(
+                      (seat) => seat.role?.id === "evil_twin"
+                    );
+                    if (!evilSeat) return false;
+                    const defaultGoodSeat =
+                      seats.find(
+                        (other) =>
+                          other.id !== evilSeat.id &&
+                          (other.role?.type === "townsfolk" ||
+                            other.role?.type === "outsider") &&
+                          !other.isEvilConverted &&
+                          !other.isDead
+                      ) ||
+                      seats.find(
+                        (other) => other.id !== evilSeat.id && !other.isDead
+                      );
+                    return defaultGoodSeat?.id === s.id;
+                  })()));
+
+            if (isGoodTwin) {
+              otherBadges.push(
+                <div
+                  key="badge-good-twin"
+                  className={`bg-purple-700 text-white ${
+                    isPortrait
+                      ? "text-[8px] px-1.5 py-0.5"
+                      : "text-[10px] px-2 py-0.5"
+                  } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
+                  title="对立双子 (若被处决邪恶直接获胜)"
+                >
+                  👥 对立双子
+                </div>
+              );
+            }
           }
 
           // 邪恶阵营转换标记（如赏金猎人指定的邪恶镇民）
@@ -419,7 +451,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-evil-converted"
                 className={`bg-red-700 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-red-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
                 title="邪恶阵营（镇民伪装）"
               >
@@ -429,12 +463,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           }
 
           // 赏金已知标记
-          if (s.statusDetails?.includes("赏金已知") || (s as any).bountyHunterTarget) {
+          if (
+            s.statusDetails?.includes("赏金已知") ||
+            (s as any).bountyHunterTarget
+          ) {
             otherBadges.push(
               <div
                 key="badge-bounty"
                 className={`bg-amber-600 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-amber-300 shadow-md font-bold whitespace-nowrap leading-none`}
                 title="赏金猎人已知邪恶目标"
               >
@@ -443,13 +482,33 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
+          // 罂粟种植者迷雾徽章
+          {s.role?.id === "poppy_grower" && !s.isDead && (
+            <div
+              key="badge-poppy"
+              className={`bg-rose-600 text-white ${
+                isPortrait
+                  ? "text-[8px] px-1.5 py-0.5"
+                  : "text-[10px] px-2 py-0.5"
+              } rounded-full border border-rose-300 shadow-md font-bold whitespace-nowrap leading-none`}
+              title="罂粟迷雾：邪恶玩家互不相识"
+            >
+              🌺 罂粟迷雾
+            </div>
+          )}
+
           // 图书目标标记
-          if (s.statusDetails?.includes("图书目标") || (s as any).librarianTarget) {
+          if (
+            s.statusDetails?.includes("图书目标") ||
+            (s as any).librarianTarget
+          ) {
             otherBadges.push(
               <div
                 key="badge-librarian"
                 className={`bg-blue-600 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-blue-300 shadow-md font-bold whitespace-nowrap leading-none`}
                 title="图书管理员得知目标"
               >
@@ -459,13 +518,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           }
 
           // 小精灵伪装与激活标记
-          const pixieTarget = s.statusDetails?.find((st) => st.startsWith("伪装身份:"));
+          const pixieTarget = s.statusDetails?.find((st) =>
+            st.startsWith("伪装身份:")
+          );
           if (pixieTarget) {
             otherBadges.push(
               <div
                 key="badge-pixie-target"
                 className={`bg-pink-600 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-pink-300 shadow-md font-bold whitespace-nowrap leading-none`}
               >
                 {pixieTarget}
@@ -474,13 +537,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           }
           if (
             s.role?.id === "pixie" &&
-            (s.hasAbilityEvenDead || s.statusDetails?.includes("能力已激活") || (s as any).pixieHasAbility)
+            (s.hasAbilityEvenDead ||
+              s.statusDetails?.includes("能力已激活") ||
+              (s as any).pixieHasAbility)
           ) {
             otherBadges.push(
               <div
                 key="badge-pixie-active"
                 className={`bg-emerald-600 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-emerald-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
               >
                 ⚡能力激活
@@ -489,7 +556,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           }
 
           // 洗脑师疯狂标记
-          const madnessDetail = s.statusDetails?.find((st) => st.startsWith("洗脑疯狂:"));
+          const madnessDetail = s.statusDetails?.find((st) =>
+            st.startsWith("洗脑疯狂:")
+          );
           if (madnessDetail || (s as any).cerenovusMadnessRole) {
             const roleText = madnessDetail
               ? madnessDetail.replace("洗脑疯狂:", "")
@@ -498,7 +567,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-madness"
                 className={`bg-purple-800 text-purple-100 ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-purple-400 shadow-md font-bold whitespace-nowrap leading-none`}
                 title={`洗脑疯狂：必须扮演【${roleText}】`}
               >
@@ -513,7 +584,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-marionette"
                 className={`bg-amber-800 text-amber-100 ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-amber-400 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
                 title="提线木偶（未设置伪装身份，请右键或点击下方按钮设置）"
               >
@@ -526,7 +599,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-drunk-unmasked"
                 className={`bg-purple-800 text-purple-100 ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-purple-400 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
                 title="酒鬼（未设置伪装身份，请右键或点击下方按钮设置）"
               >
@@ -541,7 +616,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               <div
                 key="badge-candidate"
                 className={`bg-red-600 text-white ${
-                  isPortrait ? "text-[8px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5"
+                  isPortrait
+                    ? "text-[8px] px-1.5 py-0.5"
+                    : "text-[10px] px-2 py-0.5"
                 } rounded-full border border-red-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
               >
                 ⚖️{s.voteCount}票

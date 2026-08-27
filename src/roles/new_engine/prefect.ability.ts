@@ -55,7 +55,11 @@ const calculate = async (
   for (const s of (snapshot.seats ?? []) as any[]) {
     if (deadIds.has(s.id) && isNonTownsfolkNonTraveler(s)) {
       hasNonTownsfolkDeath = true;
-      matched = { id: s.id, roleId: s.role?.id ?? "?", roleType: s.role?.type ?? "?" };
+      matched = {
+        id: s.id,
+        roleId: s.role?.id ?? "?",
+        roleType: s.role?.type ?? "?",
+      };
       break;
     }
   }

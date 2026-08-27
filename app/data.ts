@@ -148,19 +148,20 @@ export interface ReminderToken {
 }
 
 /** 预设提醒标记模板 */
-export const REMINDER_PRESETS: Array<Omit<ReminderToken, "id" | "createdAt">> = [
-  { icon: "🛡️", label: "受保护", color: "green", expiresAt: "dawn" },
-  { icon: "☠️", label: "中毒", color: "red", expiresAt: "dusk" },
-  { icon: "🍺", label: "醉酒", color: "yellow", expiresAt: "dusk" },
-  { icon: "💀", label: "死亡标记", color: "red", expiresAt: "permanent" },
-  { icon: "🎭", label: "假身份", color: "blue" },
-  { icon: "👁️", label: "是恶魔", color: "red" },
-  { icon: "🐺", label: "是爪牙", color: "red" },
-  { icon: "✅", label: "已用能力", color: "gray", expiresAt: "permanent" },
-  { icon: "❌", label: "能力失效", color: "red" },
-  { icon: "🔒", label: "不能投票", color: "yellow" },
-  { icon: "📝", label: "自定义", color: "blue" },
-];
+export const REMINDER_PRESETS: Array<Omit<ReminderToken, "id" | "createdAt">> =
+  [
+    { icon: "🛡️", label: "受保护", color: "green", expiresAt: "dawn" },
+    { icon: "☠️", label: "中毒", color: "red", expiresAt: "dusk" },
+    { icon: "🍺", label: "醉酒", color: "yellow", expiresAt: "dusk" },
+    { icon: "💀", label: "死亡标记", color: "red", expiresAt: "permanent" },
+    { icon: "🎭", label: "假身份", color: "blue" },
+    { icon: "👁️", label: "是恶魔", color: "red" },
+    { icon: "🐺", label: "是爪牙", color: "red" },
+    { icon: "✅", label: "已用能力", color: "gray", expiresAt: "permanent" },
+    { icon: "❌", label: "能力失效", color: "red" },
+    { icon: "🔒", label: "不能投票", color: "yellow" },
+    { icon: "📝", label: "自定义", color: "blue" },
+  ];
 
 export interface Seat {
   id: number;
@@ -196,6 +197,7 @@ export interface Seat {
   protectedBy: number | null; // 记录保护者的ID
   isRedHerring: boolean;
   isFortuneTellerRedHerring: boolean; // 占卜师的红罗刹：一名镇民玩家始终被占卜师视为邪恶
+  isGoodTwin?: boolean; // 镜像双子的对立善良双子标记（参考红罗刹逻辑，可由说书人指定）
   isSentenced: boolean;
   masterId: number | null;
   hasUsedSlayerAbility: boolean; // Legacy field, kept for backward compatibility
@@ -818,8 +820,10 @@ export const roles: Role[] = [
     id: "scapegoat",
     name: "替罪羊",
     type: "outsider",
-    ability: "被处决时，说书人可以选择另一名玩家代替替罪羊死亡；替罪羊本身不死亡。（官方剧本：无名之墓）",
-    fullDescription: "当替罪羊被处决时,说书人可以选择另一名玩家代替替罪羊死亡。替罪羊本身不会死亡。",
+    ability:
+      "被处决时，说书人可以选择另一名玩家代替替罪羊死亡；替罪羊本身不死亡。（官方剧本：无名之墓）",
+    fullDescription:
+      "当替罪羊被处决时,说书人可以选择另一名玩家代替替罪羊死亡。替罪羊本身不会死亡。",
     script: "无名之墓", // 官方剧本角色（新引擎已实现 scapegoat.ability.ts）
   },
   // ========== 爪牙 (Minion) - 4个 ==========
@@ -2287,8 +2291,10 @@ export const FABLED_ROLES: Role[] = [
     name: "象牙之魂",
     type: "fabled",
     ability: "游戏过程中邪恶玩家的总数最多能比初始设置多一名。",
-    fullDescription: "象牙之魂限制邪恶阵营额外生成上限为1名。当已有1名额外邪恶玩家被转化时，阻止后续转化。",
-    ruleNotes: "当通过角色能力将善良玩家转变为邪恶阵营时，如果已经有一名额外邪恶角色在场，则阻止转变。",
+    fullDescription:
+      "象牙之魂限制邪恶阵营额外生成上限为1名。当已有1名额外邪恶玩家被转化时，阻止后续转化。",
+    ruleNotes:
+      "当通过角色能力将善良玩家转变为邪恶阵营时，如果已经有一名额外邪恶角色在场，则阻止转变。",
     hidden: false,
   },
   {
@@ -2296,7 +2302,8 @@ export const FABLED_ROLES: Role[] = [
     name: "哨兵",
     type: "fabled",
     ability: "在初始设置时，可能会额外增加或减少一个外来者。",
-    fullDescription: "哨兵使你剧本中外来者的在场数量保持神秘。说书人可以选择增加或减少一个外来者。",
+    fullDescription:
+      "哨兵使你剧本中外来者的在场数量保持神秘。说书人可以选择增加或减少一个外来者。",
     ruleNotes: "设置游戏时，外来者数量可±1，让邪恶阵营无法确定外来者数量。",
     hidden: false,
   },
@@ -2305,7 +2312,8 @@ export const FABLED_ROLES: Role[] = [
     name: "革命家",
     type: "fabled",
     ability: "一对邻座玩家始终属于同一阵营。",
-    fullDescription: "革命家绑定一对邻座玩家为同一阵营。他们互相知道对方的角色，且每局限一次说书人可使其一人的角色/阵营被当作不同。",
+    fullDescription:
+      "革命家绑定一对邻座玩家为同一阵营。他们互相知道对方的角色，且每局限一次说书人可使其一人的角色/阵营被当作不同。",
     ruleNotes: "公开声明一对邻座玩家本局游戏一直保持同一阵营。",
     hidden: false,
   },
@@ -2313,9 +2321,11 @@ export const FABLED_ROLES: Role[] = [
     id: "doomsayer",
     name: "末日使者",
     type: "fabled",
-    ability: "如果大于等于四名玩家存活，每名当前存活的玩家可以公开要求你杀死一名与他阵营相同的玩家。",
+    ability:
+      "如果大于等于四名玩家存活，每名当前存活的玩家可以公开要求你杀死一名与他阵营相同的玩家。",
     fullDescription: "末日使者允许玩家牺牲他们的盟友以获取信息，缩短游戏时长。",
-    ruleNotes: "每名玩家每局限使用一次。说书人必须杀死一名与使用者同阵营的存活玩家。",
+    ruleNotes:
+      "每名玩家每局限使用一次。说书人必须杀死一名与使用者同阵营的存活玩家。",
     hidden: false,
   },
   {

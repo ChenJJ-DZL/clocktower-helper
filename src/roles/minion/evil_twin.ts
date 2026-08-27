@@ -104,15 +104,20 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
         };
       }
       const seats = context?.seats || [];
-      // 寻找对立善良双子（镇民或外来者，非转邪恶）
+      // 寻找对立善良双子（优先读取说书人指定的 isGoodTwin / evilTwinPair）
       const goodTwin =
+        seats.find((s: any) => s.isGoodTwin) ||
+        (context?.evilTwinPair?.goodId !== undefined
+          ? seats.find((s: any) => s.id === context.evilTwinPair.goodId)
+          : null) ||
         seats.find(
           (s: any) =>
             s.id !== playerSeatId &&
             (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
             !s.isEvilConverted &&
             !s.isDead
-        ) || seats.find((s: any) => s.id !== playerSeatId && !s.isDead);
+        ) ||
+        seats.find((s: any) => s.id !== playerSeatId && !s.isDead);
 
       const goodTwinSeatNo = goodTwin ? `${goodTwin.id + 1}号` : "对立玩家";
       const goodTwinRoleName = goodTwin?.role?.name || "善良角色";
@@ -120,7 +125,8 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
       return {
         wake: `唤醒${playerSeatId + 1}号【镜像双子】。指向对立双子（${goodTwinSeatNo}），并向镜像双子展示其角色标记【${goodTwinRoleName}】。随后唤醒${goodTwinSeatNo}，指向${playerSeatId + 1}号并展示【镜像双子】角色标记。`,
         instruction: `镜像双子与对立双子（${goodTwinSeatNo}【${goodTwinRoleName}】）互认`,
-        close: "双子互认完成。若善良双子被处决则邪恶获胜，只要双子存活善良无法获胜。",
+        close:
+          "双子互认完成。若善良双子被处决则邪恶获胜，只要双子存活善良无法获胜。",
       };
     },
   },
