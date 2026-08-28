@@ -102,9 +102,12 @@ export function NightActionPage({
     if (roleId === "washerwoman") {
       const realTownsfolk = seats.filter(
         (s) =>
-          s.role?.type === "townsfolk" &&
           s.id !== seatId &&
-          s.role?.id !== "drunk"
+          s.role?.id !== "drunk" &&
+          (s.role?.type === "townsfolk" ||
+            (s.role?.id === "spy" &&
+              (s as any).registerAsGood !== false &&
+              (s as any).registerAsEvil !== true))
       );
       const targetTownsfolk =
         realTownsfolk.length > 0
@@ -113,17 +116,25 @@ export function NightActionPage({
       const otherSeat =
         seats.find((s) => s.id !== seatId && s.id !== targetTownsfolk?.id) ||
         targetTownsfolk;
+      const displayRoleName =
+        targetTownsfolk?.role?.id === "spy"
+          ? "僧侣"
+          : targetTownsfolk?.role?.name || "僧侣";
       return {
         c1: targetTownsfolk?.id ?? 0,
         c2: otherSeat?.id ?? 1,
-        roleName: targetTownsfolk?.role?.name || "僧侣",
+        roleName: displayRoleName,
       };
     }
     if (roleId === "librarian") {
       const outsiders = seats.filter(
         (s) =>
           s.id !== seatId &&
-          (s.role?.type === "outsider" || s.role?.id === "drunk")
+          (s.role?.type === "outsider" ||
+            s.role?.id === "drunk" ||
+            (s.role?.id === "spy" &&
+              (s as any).registerAsGood !== false &&
+              (s as any).registerAsEvil !== true))
       );
       if (outsiders.length === 0) {
         return { mode: "zero" as const, c1: 0, c2: 1, roleName: "" };
@@ -132,19 +143,32 @@ export function NightActionPage({
       const otherSeat =
         seats.find((s) => s.id !== seatId && s.id !== targetOutsider.id) ||
         targetOutsider;
+      const displayRoleName =
+        targetOutsider.role?.id === "drunk"
+          ? "酒鬼"
+          : targetOutsider.role?.id === "spy"
+            ? "管家"
+            : targetOutsider.role?.name || "管家";
       return {
         mode: "candidates" as const,
         c1: targetOutsider.id,
         c2: otherSeat.id,
-        roleName:
-          targetOutsider.role?.id === "drunk"
-            ? "酒鬼"
-            : targetOutsider.role?.name || "管家",
+        roleName: displayRoleName,
       };
     }
     if (roleId === "investigator") {
       const minions = seats.filter(
-        (s) => s.id !== seatId && s.role?.type === "minion"
+        (s) =>
+          s.id !== seatId &&
+          ((s.role?.type === "minion" &&
+            !(
+              s.role?.id === "spy" &&
+              (s as any).registerAsGood !== false &&
+              (s as any).registerAsEvil !== true
+            )) ||
+            (s.role?.id === "recluse" &&
+              (s as any).registerAsEvil !== false &&
+              (s as any).registerAsDemon !== false))
       );
       const targetMinion =
         minions.length > 0
@@ -153,10 +177,14 @@ export function NightActionPage({
       const otherSeat =
         seats.find((s) => s.id !== seatId && s.id !== targetMinion?.id) ||
         targetMinion;
+      const displayMinionName =
+        targetMinion?.role?.id === "recluse"
+          ? "投毒者"
+          : targetMinion?.role?.name || "投毒者";
       return {
         c1: targetMinion?.id ?? 0,
         c2: otherSeat?.id ?? 1,
-        roleName: targetMinion?.role?.name || "投毒者",
+        roleName: displayMinionName,
       };
     }
     if (roleId === "chef") {
@@ -167,13 +195,27 @@ export function NightActionPage({
         const curr = livingSeats[i];
         const next = livingSeats[(i + 1) % livingSeats.length];
         const isCurrEvil =
-          curr.role?.type === "minion" ||
-          curr.role?.type === "demon" ||
-          (curr.role?.id === "recluse" && (curr as any).registerAsEvil);
+          (curr.role?.type === "minion" ||
+            curr.role?.type === "demon" ||
+            (curr.role?.id === "recluse" &&
+              (curr as any).registerAsEvil !== false) ||
+            (curr.role?.id === "spy" && (curr as any).registerAsEvil === true)) &&
+          !(
+            curr.role?.id === "spy" &&
+            (curr as any).registerAsGood !== false &&
+            (curr as any).registerAsEvil !== true
+          );
         const isNextEvil =
-          next.role?.type === "minion" ||
-          next.role?.type === "demon" ||
-          (next.role?.id === "recluse" && (next as any).registerAsEvil);
+          (next.role?.type === "minion" ||
+            next.role?.type === "demon" ||
+            (next.role?.id === "recluse" &&
+              (next as any).registerAsEvil !== false) ||
+            (next.role?.id === "spy" && (next as any).registerAsEvil === true)) &&
+          !(
+            next.role?.id === "spy" &&
+            (next as any).registerAsGood !== false &&
+            (next as any).registerAsEvil !== true
+          );
         if (isCurrEvil && isNextEvil) count++;
       }
       return { count };
@@ -224,23 +266,41 @@ export function NightActionPage({
   const empathEvilCount = useMemo(() => {
     let count = 0;
     if (livingLeftNeighbor) {
-      const isEvil =
-        livingLeftNeighbor.role?.type === "minion" ||
-        livingLeftNeighbor.role?.type === "demon" ||
-        (livingLeftNeighbor.role?.id === "recluse" &&
-          (livingLeftNeighbor as any).registerAsEvil);
-      if (isEvil) count++;
+      const isRecluseEvil =
+        livingLeftNeighbor.role?.id === "recluse" &&
+        (livingLeftNeighbor as any).registerAsEvil !== false;
+      const isSpyEvil =
+        livingLeftNeighbor.role?.id === "spy" &&
+        (livingLeftNeighbor as any).registerAsEvil === true;
+      const isNormalEvil =
+        (livingLeftNeighbor.role?.type === "minion" ||
+          livingLeftNeighbor.role?.type === "demon") &&
+        !(
+          livingLeftNeighbor.role?.id === "spy" &&
+          (livingLeftNeighbor as any).registerAsGood !== false &&
+          (livingLeftNeighbor as any).registerAsEvil !== true
+        );
+      if (isRecluseEvil || isSpyEvil || isNormalEvil) count++;
     }
     if (
       livingRightNeighbor &&
       livingRightNeighbor.id !== livingLeftNeighbor?.id
     ) {
-      const isEvil =
-        livingRightNeighbor.role?.type === "minion" ||
-        livingRightNeighbor.role?.type === "demon" ||
-        (livingRightNeighbor.role?.id === "recluse" &&
-          (livingRightNeighbor as any).registerAsEvil);
-      if (isEvil) count++;
+      const isRecluseEvil =
+        livingRightNeighbor.role?.id === "recluse" &&
+        (livingRightNeighbor as any).registerAsEvil !== false;
+      const isSpyEvil =
+        livingRightNeighbor.role?.id === "spy" &&
+        (livingRightNeighbor as any).registerAsEvil === true;
+      const isNormalEvil =
+        (livingRightNeighbor.role?.type === "minion" ||
+          livingRightNeighbor.role?.type === "demon") &&
+        !(
+          livingRightNeighbor.role?.id === "spy" &&
+          (livingRightNeighbor as any).registerAsGood !== false &&
+          (livingRightNeighbor as any).registerAsEvil !== true
+        );
+      if (isRecluseEvil || isSpyEvil || isNormalEvil) count++;
     }
     return count;
   }, [livingLeftNeighbor, livingRightNeighbor]);
@@ -301,13 +361,29 @@ export function NightActionPage({
     const t1 = seats.find((s) => s.id === selectedTargets[0]);
     const t2 = seats.find((s) => s.id === selectedTargets[1]);
     const isDemon1 =
-      t1?.role?.type === "demon" ||
+      (t1?.role?.type === "demon" &&
+        !(
+          t1?.role?.id === "spy" &&
+          (t1 as any).registerAsGood !== false &&
+          (t1 as any).registerAsEvil !== true
+        )) ||
       t1?.isDemonSuccessor ||
-      (t1?.role?.id === "recluse" && (t1 as any).registerAsDemon);
+      (t1?.role?.id === "recluse" &&
+        (t1 as any).registerAsDemon !== false &&
+        (t1 as any).registerAsEvil !== false) ||
+      (t1?.role?.id === "spy" && (t1 as any).registerAsDemon === true);
     const isDemon2 =
-      t2?.role?.type === "demon" ||
+      (t2?.role?.type === "demon" &&
+        !(
+          t2?.role?.id === "spy" &&
+          (t2 as any).registerAsGood !== false &&
+          (t2 as any).registerAsEvil !== true
+        )) ||
       t2?.isDemonSuccessor ||
-      (t2?.role?.id === "recluse" && (t2 as any).registerAsDemon);
+      (t2?.role?.id === "recluse" &&
+        (t2 as any).registerAsDemon !== false &&
+        (t2 as any).registerAsEvil !== false) ||
+      (t2?.role?.id === "spy" && (t2 as any).registerAsDemon === true);
     const isRH1 = !!t1?.isRedHerring;
     const isRH2 = !!t2?.isRedHerring;
     const detected = isDemon1 || isDemon2 || isRH1 || isRH2;
@@ -1083,10 +1159,12 @@ export function NightActionPage({
                               : "bg-white/5 border-white/10 text-slate-200 hover:bg-white/10 hover:border-white/20"
                       }`}
                     >
-                      <span className="text-lg font-bold">{seat.id + 1}</span>
-                      <span className="block text-[10px] opacity-60 mt-0.5 truncate">
-                        {seat.role.name}
-                      </span>
+                      <span className="text-lg font-bold">{seat.id + 1}号</span>
+                      {seat.isDead && (
+                        <span className="block text-[10px] text-red-400 opacity-80 mt-0.5 truncate">
+                          (已死亡)
+                        </span>
+                      )}
                     </button>
                   );
                 })}

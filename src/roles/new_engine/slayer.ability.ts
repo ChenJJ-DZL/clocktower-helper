@@ -34,8 +34,12 @@ const preCheckAliveAndUnused = async (
   const isPoisoned =
     (seat.statusEffects ?? []).some((e: any) => e.type === "poisoned") ||
     (seat as any).isPoisoned === true;
-  const targetId = (actionNode as any).targetIds?.[0];
-  const target = snapshot.seats.find((s) => s.id === targetId);
+  const targetId =
+    (actionNode as any).targetIds?.[0] ??
+    context.targetIds?.[0] ??
+    context.meta?.target?.id;
+  const target =
+    snapshot.seats.find((s) => s.id === targetId) ?? context.meta?.target;
 
   return {
     ...context,
@@ -72,10 +76,15 @@ const handleSlayerKill = async (
     };
   }
 
-  // 判定目标是否为恶魔：🔧 陌客判定为邪恶 100% 触发（不再 50% 随机）
+  // 判定目标是否为恶魔：陌客默认注册为恶魔（可被射杀），间谍默认注册为好人（不被射杀）
   let isTargetDemon = target.role.type === "demon";
   if (target.role.id === "recluse") {
-    isTargetDemon = true;
+    isTargetDemon =
+      (target as any).registerAsDemon !== false &&
+      (target as any).registerAsEvil !== false;
+  }
+  if (target.role.id === "spy") {
+    isTargetDemon = (target as any).registerAsDemon === true;
   }
 
   // 创建新快照：标记技能已使用

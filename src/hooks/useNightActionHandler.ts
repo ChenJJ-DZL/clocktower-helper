@@ -11,6 +11,7 @@
 import { useCallback } from "react";
 import type { Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import {
   getAbilityForRole,
   getRawAbilityMap,
@@ -21,6 +22,7 @@ import type { NightActionContext } from "../types/roleDefinition";
 import { computeIsPoisoned } from "../utils/gameRules";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
+import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
@@ -82,7 +84,7 @@ export interface NightActionHandlerContext {
 // ---------------------------------------------------------------------------
 
 /** 将 React Seat 的遗留布尔字段翻译为新引擎 statusEffects[] */
-function translateLegacyStatusesToEffects(seat: Seat): any[] {
+function translateLegacyStatusesToEffects(_seat: Seat): any[] {
   // 🔧 不再把 legacy 布尔字段（isPoisoned/isProtected/isDrunk）翻译为 statusEffects：
   //   1. legacy 效果无 expiresAtNight，clearExpiredNightEffects 永远清不掉 → 每夜累积
   //   2. 结算路径（abilityPriorityCalculation）与 guide 路径（computeIsPoisoned）
@@ -331,8 +333,18 @@ export async function executeViaNewEngine(
     todayExecutedId: context.todayExecutedId ?? null,
   };
 
-  const roleName = context.nightInfo?.effectiveRole?.name ?? roleId;
-  const actorId = context.nightInfo?.seat?.id ?? -1;
+  const actorId =
+    context.nightInfo?.seat?.id ??
+    (ability as any).seatId ??
+    context.seats.find((s) => s.role?.id === roleId)?.id ??
+    -1;
+  const actorSeat = context.seats.find((s) => s.id === actorId);
+  const rawRoleName =
+    context.nightInfo?.effectiveRole?.name ||
+    actorSeat?.role?.name ||
+    roleId;
+  const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
+  const roleName = `${seatPrefix}${rawRoleName.replace(/^\d+号[-_]/, "")}`;
 
   const middlewareContext = {
     snapshot: gameStateSnapshot,
@@ -363,7 +375,8 @@ export async function executeViaNewEngine(
     const resultContext = await runAbilityPipeline(ability, middlewareContext);
 
     // 管道中止（死亡/非首夜等）— 无论预览还是真实模式都应自动跳过
-    if (resultContext.aborted) {
+    // 注意：在 preview 模式下，如果 preCheck 通过但 calculate 因目标未选而 abort，绝不能跳过，而是继续打开确认窗让玩家选人！
+    if (resultContext.meta._preCheckAborted || (!context.preview && resultContext.aborted)) {
       context.addLog(
         `[系统] ⚠️ ${roleId} 能力被跳过: ${resultContext.abortReason ?? "管道中止"}`
       );
@@ -419,19 +432,117 @@ export async function executeViaNewEngine(
         actionDescription = `${roleName}${corruptionTag}探查【${targetLabels}】：${resultText}`;
       }
 
-      // 检查是否是系统步骤（如 demon_info, minion_info）
-      const isSystemStep = ["demon_info", "minion_info"].includes(roleId);
-      const targetConfig = (ability as any).targetConfig;
-      const minTargets = targetConfig?.min ?? 0;
-
-      if (isSystemStep) {
-        // 系统信息步骤：直接确认执行，不弹窗
-        context.setCurrentModal(null);
-        const realContext = { ...context, preview: false };
-        return executeViaNewEngine(realContext, roleId);
+      // 男爵：纯被动设置角色，不唤醒且不弹窗，直接推进
+      if (roleId === "baron") {
+        console.log("[executeViaNewEngine] 男爵为被动设置角色，跳过夜间行动");
+        context.continueToNextAction();
+        return true;
       }
 
-      if (minTargets === 0) {
+      // 首夜小恶魔：首夜恶魔不杀人，转为恶魔互认（demon_info）步骤
+      if (context.gamePhase === "firstNight" && roleId === "imp") {
+        const demonInfo = calculateNightInfoViaNewEngine(
+          (context as any).selectedScript ?? null,
+          context.seats,
+          actorId,
+          "firstNight",
+          null,
+          1,
+          "demon_info"
+        );
+        const displayName = `${seatPrefix}恶魔互认`;
+        const guideInfo =
+          demonInfo?.guide ||
+          demonInfo?.guideText ||
+          `${displayName}信息已生成`;
+
+        context.setCurrentModal({
+          type: "NIGHT_ACTION_CONFIRM",
+          data: {
+            roleName: displayName,
+            actionDescription: "恶魔爪牙互认与伪装角色告知",
+            targetDescriptions: ["（首夜信息 - 无目标）"],
+            onConfirm: () => {
+              context.setCurrentModal({
+                type: "INFO_RESULT",
+                data: {
+                  roleName: displayName,
+                  resultText: guideInfo,
+                  onNext: () => {
+                    context.setCurrentModal(null);
+                    context.continueToNextAction();
+                  },
+                },
+              });
+            },
+            onCancel: () => {
+              context.setCurrentModal(null);
+            },
+          },
+        });
+        return true;
+      }
+
+      // 检查是否是系统步骤（如 demon_info, minion_info）
+      const isSystemStep = [
+        "demon_info",
+        "minion_info",
+        LEGION_MUTUAL_RECOGNITION_ID,
+      ].includes(roleId);
+      const targetConfig =
+        (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
+      const minTargets = targetConfig?.min ?? 0;
+      const maxTargets = targetConfig?.max ?? 0;
+      const allowSelf = targetConfig?.allowSelf ?? true;
+      const aliveOnly = targetConfig?.aliveOnly ?? false;
+
+      if (isSystemStep) {
+        const displayName = `${seatPrefix}${
+          roleId === "minion_info"
+            ? "爪牙互认"
+            : roleId === "demon_info"
+              ? "恶魔互认"
+              : "军团互认"
+        }`;
+        const actionDesc =
+          roleId === "minion_info"
+            ? "恶魔爪牙互认与信息告知"
+            : roleId === "demon_info"
+              ? "恶魔爪牙互认与伪装角色告知"
+              : "军团首夜全员互认";
+        const guideInfo =
+          context.nightInfo?.guide ||
+          context.nightInfo?.guideText ||
+          `${displayName}信息已生成`;
+
+        context.setCurrentModal({
+          type: "NIGHT_ACTION_CONFIRM",
+          data: {
+            roleName: displayName,
+            actionDescription: actionDesc,
+            targetDescriptions: ["（首夜信息 - 无目标）"],
+            onConfirm: () => {
+              context.setCurrentModal({
+                type: "INFO_RESULT",
+                data: {
+                  roleName: displayName,
+                  resultText: guideInfo,
+                  onNext: () => {
+                    context.setCurrentModal(null);
+                    context.continueToNextAction();
+                  },
+                },
+              });
+            },
+            onCancel: () => {
+              context.setCurrentModal(null);
+            },
+          },
+        });
+        return true;
+      }
+
+      if (maxTargets === 0) {
         // 不需要选择目标的能力（信息角色、间谍魔典等）
         // 间谍特殊：需要弹出对局记录/魔典查看界面
         if (roleId === "spy") {
@@ -463,12 +574,12 @@ export async function executeViaNewEngine(
         return true;
       }
 
-      // 弹窗确认
+      // 弹窗确认（含弹窗内安全防窥选人交互）
       const safeTargets = [...(context.selectedTargets || [])];
 
-      // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
-      const isImpSuicide = roleId === "imp" && safeTargets[0] === actorId;
-      if (isImpSuicide) {
+      // 😈 小恶魔自杀转火：若在进入前已明确选择自杀，且有多名存活爪牙，直接弹出爪牙晋升选择面板
+      const isInitialImpSuicide = roleId === "imp" && safeTargets[0] === actorId;
+      if (isInitialImpSuicide) {
         const aliveMinions = context.seats.filter(
           (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
         );
@@ -509,19 +620,63 @@ export async function executeViaNewEngine(
           roleName,
           actionDescription,
           targetDescriptions,
+          targetLimit: { min: minTargets, max: maxTargets },
+          actorSeatId: actorId,
+          allowSelf,
+          aliveOnly,
+          initialSelectedTargets: safeTargets,
           extraNote: isCorrupted
             ? "该角色处于醉酒/中毒状态，能力可能不生效"
             : undefined,
-          onConfirm: async () => {
+          onConfirm: async (chosenTargets?: number[]) => {
+            const finalTargets =
+              chosenTargets !== undefined ? chosenTargets : safeTargets;
             console.log(
               `[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`,
-              safeTargets
+              finalTargets
             );
-            // 用户确认后，用同一套参数执行真实管道
+
+            // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
+            const isImpSuicide =
+              roleId === "imp" && finalTargets[0] === actorId;
+            if (isImpSuicide) {
+              const aliveMinions = context.seats.filter(
+                (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
+              );
+              if (aliveMinions.length > 1) {
+                context.setCurrentModal({
+                  type: "STORYTELLER_SELECT",
+                  data: {
+                    sourceId: actorId,
+                    roleId: "imp",
+                    roleName: "小恶魔",
+                    title: "😈 小恶魔自戕转火传位",
+                    description: `${actorId + 1}号小恶魔选择自杀！场上有 ${aliveMinions.length} 名存活爪牙，请选择由哪位爪牙晋升为新的【小恶魔】：`,
+                    targetCount: 1,
+                    filterCandidates: (s: Seat) =>
+                      aliveMinions.some((m) => m.id === s.id),
+                    confirmLabel: "确认晋升为小恶魔",
+                    onConfirm: async (targetIds: number[]) => {
+                      const chosenMinionId = targetIds[0];
+                      const realContext: NightActionHandlerContext = {
+                        ...context,
+                        preview: false,
+                        selectedTargets: finalTargets,
+                        actionData: { successorSeatId: chosenMinionId },
+                      };
+                      await executeViaNewEngine(realContext, roleId);
+                    },
+                  },
+                } as any);
+                return;
+              }
+            }
+
+            // 用户确认后，用选中的目标参数执行真实管道
             const realContext: NightActionHandlerContext = {
               ...context,
               preview: false,
-              selectedTargets: safeTargets,
+              selectedTargets: finalTargets,
             };
             await executeViaNewEngine(realContext, roleId);
           },
@@ -586,8 +741,7 @@ export async function executeViaNewEngine(
           let next = { ...prev, ...u, ...synced, id: prev.id } as Seat;
           // 🔧 管家/侍从：把引擎算出的主人同步到 seat.masterId（否则投票校验读不到主人）
           if (
-            butlerRec &&
-            butlerRec.masterSet &&
+            butlerRec?.masterSet &&
             (next.role?.id === "butler" || next.role?.id === "qutler")
           ) {
             next = { ...next, masterId: butlerRec.masterId as number };
@@ -837,7 +991,7 @@ export async function executeViaNewEngine(
       const guideText = context.nightInfo?.guide || "";
       const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
       const guideInfo =
-        guideMatch && guideMatch[1] && !guideText.includes("准备执行技能")
+        guideMatch?.[1] && !guideText.includes("准备执行技能")
           ? guideMatch[1].trim().replace(/^[:：]\s*/, "")
           : "";
       const resultText = guideInfo
@@ -893,6 +1047,141 @@ export function useNightActionHandler() {
 
       const roleId = nightInfo.effectiveRole.id;
       const roleDef = getRoleDefinition(roleId);
+
+      // 男爵：纯被动设置角色，不唤醒且不弹窗，直接推进
+      if (roleId === "baron") {
+        console.log("[handleNightAction] 男爵为被动设置角色，跳过夜间行动");
+        context.continueToNextAction();
+        return true;
+      }
+
+      // 首夜小恶魔：首夜恶魔不杀人，转为恶魔互认（demon_info）步骤
+      if (context.gamePhase === "firstNight" && roleId === "imp") {
+        const actorId = nightInfo.seat?.id ?? -1;
+        const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
+        const demonInfo = calculateNightInfoViaNewEngine(
+          (context as any).selectedScript ?? null,
+          context.seats,
+          actorId,
+          "firstNight",
+          null,
+          1,
+          "demon_info"
+        );
+        const displayName = `${seatPrefix}恶魔互认`;
+        const guideInfo =
+          demonInfo?.guide ||
+          demonInfo?.guideText ||
+          `${displayName}信息已生成`;
+
+        if (context.preview) {
+          context.setCurrentModal({
+            type: "NIGHT_ACTION_CONFIRM",
+            data: {
+              roleName: displayName,
+              actionDescription: "恶魔爪牙互认与伪装角色告知",
+              targetDescriptions: ["（首夜信息 - 无目标）"],
+              onConfirm: () => {
+                context.setCurrentModal({
+                  type: "INFO_RESULT",
+                  data: {
+                    roleName: displayName,
+                    resultText: guideInfo,
+                    onNext: () => {
+                      context.setCurrentModal(null);
+                      context.continueToNextAction();
+                    },
+                  },
+                });
+              },
+              onCancel: () => {
+                context.setCurrentModal(null);
+              },
+            },
+          });
+          return true;
+        }
+
+        context.setCurrentModal({
+          type: "INFO_RESULT",
+          data: {
+            roleName: displayName,
+            resultText: guideInfo,
+            onNext: () => {
+              context.setCurrentModal(null);
+              context.continueToNextAction();
+            },
+          },
+        });
+        return true;
+      }
+
+      // ====== 系统信息步骤（爪牙互认 / 恶魔互认 / 军团互认）：驱动确认与结果展示 ======
+      const isSystemStep =
+        roleId === "minion_info" ||
+        roleId === "demon_info" ||
+        roleId === LEGION_MUTUAL_RECOGNITION_ID;
+
+      if (isSystemStep) {
+        const actorId = nightInfo.seat?.id ?? -1;
+        const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
+        const baseName =
+          roleId === "minion_info"
+            ? "爪牙互认"
+            : roleId === "demon_info"
+              ? "恶魔互认"
+              : "军团互认";
+        const displayName = `${seatPrefix}${baseName}`;
+        const actionDesc =
+          roleId === "minion_info"
+            ? "恶魔爪牙互认与信息告知"
+            : roleId === "demon_info"
+              ? "恶魔爪牙互认与伪装角色告知"
+              : "军团首夜全员互认";
+        const guideInfo =
+          nightInfo.guide || nightInfo.guideText || `${displayName}信息已生成`;
+
+        if (context.preview) {
+          context.setCurrentModal({
+            type: "NIGHT_ACTION_CONFIRM",
+            data: {
+              roleName: displayName,
+              actionDescription: actionDesc,
+              targetDescriptions: ["（首夜信息 - 无目标）"],
+              onConfirm: () => {
+                context.setCurrentModal({
+                  type: "INFO_RESULT",
+                  data: {
+                    roleName: displayName,
+                    resultText: guideInfo,
+                    onNext: () => {
+                      context.setCurrentModal(null);
+                      context.continueToNextAction();
+                    },
+                  },
+                });
+              },
+              onCancel: () => {
+                context.setCurrentModal(null);
+              },
+            },
+          });
+          return true;
+        }
+
+        context.setCurrentModal({
+          type: "INFO_RESULT",
+          data: {
+            roleName: displayName,
+            resultText: guideInfo,
+            onNext: () => {
+              context.setCurrentModal(null);
+              context.continueToNextAction();
+            },
+          },
+        });
+        return true;
+      }
 
       // ====== 新引擎优先：只要有新引擎能力就直接走新引擎 ======
       const abilityMap = getRawAbilityMap();

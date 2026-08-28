@@ -79,17 +79,35 @@ const calculateResult = async (
     return context;
   }
 
-  // 判断玩家1是否为邪恶
-  const isTarget1Evil =
-    (target1.role &&
-      (target1.role.type === "minion" || target1.role.type === "demon")) ||
-    target1.isEvilConverted;
+  // 判断玩家1是否为邪恶（陌客默认邪恶造成干扰，间谍默认善良造成干扰）
+  const isTarget1Evil = (() => {
+    if (target1.role?.id === "recluse") {
+      return (target1 as any).registerAsEvil !== false;
+    }
+    if (target1.role?.id === "spy") {
+      return (target1 as any).registerAsEvil === true;
+    }
+    return (
+      (target1.role &&
+        (target1.role.type === "minion" || target1.role.type === "demon")) ||
+      !!target1.isEvilConverted
+    );
+  })();
 
-  // 判断玩家2是否为邪恶
-  const isTarget2Evil =
-    (target2.role &&
-      (target2.role.type === "minion" || target2.role.type === "demon")) ||
-    target2.isEvilConverted;
+  // 判断玩家2是否为邪恶（陌客默认邪恶造成干扰，间谍默认善良造成干扰）
+  const isTarget2Evil = (() => {
+    if (target2.role?.id === "recluse") {
+      return (target2 as any).registerAsEvil !== false;
+    }
+    if (target2.role?.id === "spy") {
+      return (target2 as any).registerAsEvil === true;
+    }
+    return (
+      (target2.role &&
+        (target2.role.type === "minion" || target2.role.type === "demon")) ||
+      !!target2.isEvilConverted
+    );
+  })();
 
   // 实际结果：是否同一阵营
   const actualSameAlignment = isTarget1Evil === isTarget2Evil;

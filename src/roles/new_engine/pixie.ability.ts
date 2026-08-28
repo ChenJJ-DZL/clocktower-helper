@@ -21,9 +21,7 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const preCheck = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
@@ -31,6 +29,22 @@ const preCheck = async (
 
   const nightCount = ctx.snapshot.nightCount ?? 0;
   if (nightCount !== 1 && ctx.snapshot.gamePhase !== "firstNight") {
+    // 阶段 2（死亡触发）：首夜已记录疯狂角色且该镇民死亡 → 允许唤醒继承能力
+    const madRoleId = (ctx.snapshot as any).pixieMadnessRoleId;
+    if (madRoleId && nightCount > 1) {
+      const madRoleSeat = ctx.snapshot.seats.find(
+        (s: any) => s.role?.id === madRoleId
+      );
+      // 记录的镇民仍在场且存活 → 不触发继承
+      if (madRoleSeat && !madRoleSeat.isDead) {
+        return {
+          ...ctx,
+          aborted: true,
+          abortReason: "记录的镇民未死亡，小精灵不获得能力",
+        };
+      }
+      return { ...ctx, meta: { ...ctx.meta, isPixieDeathTrigger: true } };
+    }
     return { ...ctx, aborted: true, abortReason: "非首夜，小精灵不唤醒" };
   }
 
@@ -55,11 +69,28 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   const effective = ctx.meta.abilityEffective ?? true;
 
+  // 阶段 2：死亡触发，直接继承记录的镇民能力
+  if ((ctx.meta as any).isPixieDeathTrigger) {
+    const madRoleId = (ctx.snapshot as any).pixieMadnessRoleId;
+    const madRoleName =
+      (ctx.snapshot as any).pixieMadnessRoleName ?? madRoleId ?? "未知";
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityResult: {
+          isDeathTrigger: true,
+          roleId: madRoleId,
+          roleName: madRoleName,
+        },
+      },
+    };
+  }
+
   // 从所有在场 townsfolk 中随机/说书人选一个
   const allTownsfolk = ctx.snapshot.seats
     .filter(
-      (s: any) =>
-        s.role?.type === "townsfolk" && s.id !== ctx.actionNode.seatId
+      (s: any) => s.role?.type === "townsfolk" && s.id !== ctx.actionNode.seatId
     )
     .map((s: any) => ({
       id: s.role.id,
@@ -72,7 +103,8 @@ const calculate = async (
     const explicit = allTownsfolk.find(
       (r) => r.id === ctx.storytellerInput.pixieMadnessRoleId
     );
-    picked = explicit ?? allTownsfolk[0] ?? { id: "未知", name: "未知", type: "townsfolk" };
+    picked = explicit ??
+      allTownsfolk[0] ?? { id: "未知", name: "未知", type: "townsfolk" };
   } else if (allTownsfolk.length > 0) {
     if (!effective) {
       // 醉酒/中毒：换一个不正确的（排除说书人指定如有）
@@ -107,6 +139,34 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const selfSeatId = ctx.actionNode.seatId;
+
+  if ((r as any)?.isDeathTrigger && r?.roleId) {
+    const seatsAfterCopy = ctx.snapshot.seats.map((s: any) =>
+      s.id === selfSeatId
+        ? {
+            ...s,
+            pixieCopiedRole: r.roleId,
+            acquiredAbilities: [
+              ...((s.acquiredAbilities as string[]) ?? []),
+              ...(s.acquiredAbilities?.includes?.(r.roleId) ? [] : [r.roleId]),
+            ],
+            statusDetails: [
+              ...(s.statusDetails || []),
+              `获得死去镇民能力:${r.roleName}`,
+            ],
+          }
+        : s
+    );
+    return {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        seats: seatsAfterCopy,
+        pixieCopiedRole: r.roleId,
+      },
+      meta: { ...ctx.meta, pixieResult: r },
+    };
+  }
   const updatedSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === selfSeatId && r?.roleName) {
       const details = (s.statusDetails || []).filter(

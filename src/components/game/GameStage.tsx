@@ -366,20 +366,8 @@ export const GameStage = () => {
       return true;
     }
 
-    // 3. 检查当前目标选择是否符合要求
-    if (nightInfo.targetLimit) {
-      const { min } = nightInfo.targetLimit;
-      console.log(
-        `[isConfirmDisabled] Checking targets: selected = ${selectedActionTargets.length}, min required = ${min}`
-      );
-      if (selectedActionTargets.length < min) {
-        console.log(
-          "[isConfirmDisabled] Not enough targets selected, returning true."
-        );
-        return true;
-      }
-    }
-
+    // 3. 目标选择已统一移至技能确认弹窗（NightActionConfirmModal）中进行，
+    //    允许说书人随时点击发动/唤醒按钮弹出包含安全选人界面的确认弹窗。
     console.log("[isConfirmDisabled] All checks passed, returning false.");
     return false;
   }, [
@@ -1596,6 +1584,11 @@ export const GameStage = () => {
             handleViewDayAbilityResult={
               (controller as any).handleViewDayAbilityResult
             }
+            onUpdateSeat={(seatId, patch) => {
+              setSeats((prev) =>
+                prev.map((s) => (s.id === seatId ? { ...s, ...patch } : s))
+              );
+            }}
             onRefreshNightStep={() => {
               if (
                 controller.refreshSnapshot &&

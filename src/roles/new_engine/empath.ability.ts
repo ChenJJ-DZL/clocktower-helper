@@ -154,31 +154,50 @@ function isEvilForEmpath(seat: PlayerLookup): boolean {
  * 一致性保证：使用 meta 缓存首次判定结果。
  */
 /**
- * 🔧 陌客判定为邪恶：100% 触发（用户确认参数，不再 50% 随机）
+ * 🔧 陌客判定为邪恶：默认注册为邪恶（除非说书人手动切换）
  */
 function resolveRecluseForEmpath(
   seatId: number,
-  meta: Record<string, any>
+  meta: Record<string, any>,
+  seat?: PlayerLookup
 ): boolean {
   const key = `empath_recluse_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = true; // 100% 被当作邪恶
+  if (seat && (seat as any).registerAsEvil !== undefined) {
+    const result = (seat as any).registerAsEvil !== false;
+    meta[key] = result;
+    return result;
+  }
+
+  const result = true; // 默认：陌客默认为邪恶
   meta[key] = result;
   return result;
 }
 
 /**
- * 🔧 间谍判定为善良：100% 触发（用户确认参数，不再 50% 随机）
+ * 🔧 间谍判定为善良：默认注册为好人（除非说书人手动切换）
  */
 function resolveSpyForEmpath(
   seatId: number,
-  meta: Record<string, any>
+  meta: Record<string, any>,
+  seat?: PlayerLookup
 ): boolean {
   const key = `empath_spy_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  const result = true; // 100% 被当作善良
+  if (seat && (seat as any).registerAsGood !== undefined) {
+    const result = (seat as any).registerAsGood !== false;
+    meta[key] = result;
+    return result;
+  }
+  if (seat && (seat as any).registerAsEvil !== undefined) {
+    const result = !(seat as any).registerAsEvil;
+    meta[key] = result;
+    return result;
+  }
+
+  const result = true; // 默认：间谍默认为好人（注册为善良）
   meta[key] = result;
   return result;
 }
@@ -186,8 +205,8 @@ function resolveSpyForEmpath(
 /**
  * 判断给定玩家在共情者计数中是否「有效」视为邪恶（考虑 Recluse / Spy 干扰）。
  *
- * Recluse：原本非邪恶 → 50% 概率变为邪恶
- * Spy：    原本邪恶   → 50% 概率变为非邪恶
+ * Recluse：默认为邪恶
+ * Spy：    默认为非邪恶（好人）
  */
 function isEffectivelyEvil(
   seat: PlayerLookup,
@@ -197,11 +216,11 @@ function isEffectivelyEvil(
   const baseIsEvil = isEvilForEmpath(seat);
 
   if (roleId === "recluse") {
-    return resolveRecluseForEmpath(seat.id, meta);
+    return resolveRecluseForEmpath(seat.id, meta, seat);
   }
 
   if (roleId === "spy") {
-    const registersAsGood = resolveSpyForEmpath(seat.id, meta);
+    const registersAsGood = resolveSpyForEmpath(seat.id, meta, seat);
     return registersAsGood ? false : baseIsEvil;
   }
 

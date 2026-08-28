@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import type { Role, Seat } from "../../app/data";
+import type { Seat } from "../../app/data";
 import { roles } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
@@ -480,7 +480,7 @@ export function useInteractionHandler(deps: {
         );
       }
     },
-    [contextMenu, dispatch]
+    [contextMenu, dispatch, seats, state]
   );
 
   const toggleStatus = useCallback(
@@ -671,6 +671,25 @@ export function useInteractionHandler(deps: {
             day: state.nightCount || 0,
             phase: state.gamePhase,
             message: `🧠 ${targetId + 1}号因未能疯狂扮演【${madnessDetail?.replace("洗脑疯狂:", "") ?? "指定角色"}】，被说书人立即处决！`,
+          })
+        );
+      } else if (type === "lunatic_apparent_demon") {
+        // 疯子：循环切换 apparentDemonRole 到下一个恶魔角色
+        const allDemons = roles.filter((r: any) => r.type === "demon");
+        const currentId = (seat as any).apparentDemonRole?.id;
+        const idx = allDemons.findIndex((r: any) => r.id === currentId);
+        const nextDemon =
+          allDemons[(idx + 1) % allDemons.length] ?? allDemons[0];
+        dispatch(
+          gameActions.updateSeat(targetId, {
+            apparentDemonRole: nextDemon,
+          } as any)
+        );
+        dispatch(
+          gameActions.addLog({
+            day: state.nightCount || 0,
+            phase: state.gamePhase,
+            message: `🎭 说书人已为 ${targetId + 1}号【疯子】重新分配假恶魔身份：${nextDemon.name}（${nextDemon.id}）`,
           })
         );
       } else {

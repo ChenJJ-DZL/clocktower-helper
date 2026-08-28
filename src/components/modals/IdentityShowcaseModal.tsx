@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Role, Seat } from "../../../app/data";
 import {
   type CharacterWikiDetails,
@@ -12,6 +12,7 @@ import { ModalWrapper } from "./ModalWrapper";
 interface IdentityShowcaseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onFinish?: () => void;
   seats: Seat[];
   initialSeatId?: number;
 }
@@ -19,6 +20,7 @@ interface IdentityShowcaseModalProps {
 export function IdentityShowcaseModal({
   isOpen,
   onClose,
+  onFinish,
   seats,
   initialSeatId,
 }: IdentityShowcaseModalProps) {
@@ -53,6 +55,11 @@ export function IdentityShowcaseModal({
   const isDrunk = currentSeat?.role?.id === "drunk";
   const isMarionette = currentSeat?.role?.id === "marionette";
   const isLunatic = currentSeat?.role?.id === "lunatic";
+  const isSnitch = currentSeat?.role?.id === "snitch";
+  // 告密者：展示 3 个不在场角色（snitchAbsentRoles）
+  const snitchBluffRoles: string[] = isSnitch
+    ? ((currentSeat as any).snitchAbsentRoles ?? [])
+    : [];
   const displayRole: Role | null = useMemo(() => {
     if (!currentSeat) return null;
     // 酒鬼/提线木偶：展示 charadeRole（说书人设置的伪装镇民身份）
@@ -86,9 +93,13 @@ export function IdentityShowcaseModal({
       setCurrentIndex((prev) => prev + 1);
       setIsMasked(true);
     } else {
-      onClose();
+      if (onFinish) {
+        onFinish();
+      } else {
+        onClose();
+      }
     }
-  }, [currentIndex, total, onClose]);
+  }, [currentIndex, total, onClose, onFinish]);
 
   // 跳转到指定座位（额外保险：跳转后始终以防窥状态显示）
   const handleJumpTo = useCallback((idx: number) => {
@@ -490,7 +501,7 @@ export function IdentityShowcaseModal({
                       <div className="space-y-2 pl-0.5">
                         {wikiDetails.strategyTips.slice(0, 6).map((tip, i) => (
                           <div
-                            key={i}
+                            key={tip}
                             className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-200 leading-relaxed bg-black/25 p-3 rounded-xl border border-white/5 shadow-sm"
                           >
                             <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/30">
@@ -530,19 +541,39 @@ export function IdentityShowcaseModal({
                           <span>伪装思路推荐</span>
                         </div>
                         <div className="space-y-1.5 pl-2">
-                          {wikiDetails.bluffTips
-                            .slice(0, 2)
-                            .map((bTip, idx) => (
-                              <p
-                                key={idx}
-                                className="text-xs text-slate-300 leading-relaxed"
-                              >
-                                • {bTip}
-                              </p>
-                            ))}
+                          {wikiDetails.bluffTips.slice(0, 2).map((bTip) => (
+                            <p
+                              key={bTip}
+                              className="text-xs text-slate-300 leading-relaxed"
+                            >
+                              • {bTip}
+                            </p>
+                          ))}
                         </div>
                       </div>
                     )}
+
+                  {/* 告密者：3 个不在场角色（首夜向所有爪牙推送） */}
+                  {isSnitch && snitchBluffRoles.length > 0 && (
+                    <div className="mt-4 p-3 rounded-xl bg-cyan-900/30 border border-cyan-500/40 space-y-1.5">
+                      <div className="flex items-center gap-1 text-xs font-bold text-cyan-300">
+                        <span>🕵️</span>
+                        <span>
+                          告密者推送：3 个不在场角色（首夜向所有爪牙）
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 pl-2">
+                        {snitchBluffRoles.map((r) => (
+                          <span
+                            key={r}
+                            className="px-2 py-0.5 rounded-full bg-cyan-700/40 text-cyan-100 text-xs font-bold"
+                          >
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

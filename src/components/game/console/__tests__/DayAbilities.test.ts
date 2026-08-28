@@ -36,7 +36,7 @@ describe("白天主动技能持久化与查看结果测试", () => {
     const dayAbilitySeats = seats.filter((s) => {
       if (!s.role) return false;
       const effectiveRole = s.role;
-      if (effectiveRole.dayMeta) return true;
+      if ((effectiveRole as any).dayMeta) return true;
       const def = effectiveRole.id
         ? getRoleDefinition(effectiveRole.id)
         : undefined;

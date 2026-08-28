@@ -188,26 +188,38 @@ function isEffectivelyDemon(
   // 4. 干扰项（仅在 abilityEffective 时计入；咖啡师效果下 checkBoon = false）
   if (checkBoon && isBoon) return true;
 
-  // 4. Recluse：50% 概率被当作恶魔（官方 Wiki）
+  // 4. Recluse：默认被当作恶魔（除非说书人手动设置为 false）
   //    "当心陌客，他可能会被你当做恶魔。这和'干扰项'不是一回事。"
   if (roleId === "recluse") {
     const key = `ft_recluse_${seat.id}`;
     if (meta[key] === undefined) {
-      const forced = (ctx as any)?.storytellerInput?.forceFtRecluseDemon;
-      meta[key] =
-        forced === true ? true : forced === false ? false : Math.random() < 0.5;
+      if ((seat as any).registerAsDemon !== undefined) {
+        meta[key] = (seat as any).registerAsDemon !== false;
+      } else if ((seat as any).registerAsEvil !== undefined) {
+        meta[key] = (seat as any).registerAsEvil !== false;
+      } else {
+        const forced = (ctx as any)?.storytellerInput?.forceFtRecluseDemon;
+        meta[key] = forced === false ? false : true;
+      }
     }
     return meta[key] as boolean;
   }
 
-  // 5. Spy：50% 概率被当作善良（不记为恶魔）（官方 Wiki）
+  // 5. Spy：默认被当作善良（不记为恶魔，除非说书人手动切换）
   //    （与 Chef 中 Spy 的角色能力一致）
   if (roleId === "spy") {
     const key = `ft_spy_${seat.id}`;
     if (meta[key] === undefined) {
-      const forced = (ctx as any)?.storytellerInput?.forceFtSpyGood;
-      meta[key] =
-        forced === true ? true : forced === false ? false : Math.random() < 0.5;
+      if ((seat as any).registerAsDemon !== undefined) {
+        meta[key] = !(seat as any).registerAsDemon;
+      } else if ((seat as any).registerAsGood !== undefined) {
+        meta[key] = (seat as any).registerAsGood !== false;
+      } else if ((seat as any).registerAsEvil !== undefined) {
+        meta[key] = !(seat as any).registerAsEvil;
+      } else {
+        const forced = (ctx as any)?.storytellerInput?.forceFtSpyGood;
+        meta[key] = forced === false ? false : true;
+      }
     }
     if (meta[key]) return false;
   }
@@ -511,6 +523,8 @@ const postProcessResult = async (
         data: {
           result,
           targetLabels: targetIds.map((id: number) => id + 1),
+          roleName: `${(context.actionNode.seatId ?? 0) + 1}号-占卜师`,
+          actorSeatNo: (context.actionNode.seatId ?? 0) + 1,
         },
       },
     },

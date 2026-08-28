@@ -156,8 +156,33 @@ function getMinionCandidates(
     const realRole = seat.role;
     const displayRole = seat.effectiveRole ?? seat.charadeRole ?? realRole;
 
-    if (realRole.type === "minion") {
-      candidates.push({ seat, roleName: displayRole.name ?? realRole.name });
+    // 陌客默认注册为邪恶爪牙（造成干扰）
+    const isRecluseAsMinion =
+      realRole.id === "recluse" &&
+      (seat as any).registerAsEvil !== false &&
+      (seat as any).registerAsDemon !== false;
+
+    // 间谍默认注册为善良（造成干扰：不主动作为爪牙被调查员查出，除非场上无其他爪牙或被手动指定为邪恶）
+    const isSpyAsGood =
+      realRole.id === "spy" &&
+      (seat as any).registerAsGood !== false &&
+      (seat as any).registerAsEvil !== true;
+
+    if ((realRole.type === "minion" && !isSpyAsGood) || isRecluseAsMinion) {
+      const minionRoleName = isRecluseAsMinion
+        ? "投毒者"
+        : (displayRole.name ?? realRole.name);
+      candidates.push({ seat, roleName: minionRoleName });
+    }
+  }
+
+  // 兜底：若因间谍伪装导致没有候选，则允许间谍作为候选
+  if (candidates.length === 0) {
+    for (const seat of seats) {
+      if (seat.id === selfSeatId || seat.isDead || !seat.role) continue;
+      if (seat.role.type === "minion") {
+        candidates.push({ seat, roleName: seat.role.name });
+      }
     }
   }
 

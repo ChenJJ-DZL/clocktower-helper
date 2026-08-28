@@ -169,7 +169,7 @@ export type ModalType =
   | {
       type: "NIGHT_ACTION_CONFIRM";
       data: import("../components/modals/NightActionConfirmModal").NightActionConfirmData & {
-        onConfirm: () => void;
+        onConfirm: (selectedTargetIds?: number[]) => void | Promise<void>;
         onCancel: () => void;
       };
     }
@@ -190,7 +190,12 @@ export type ModalType =
   | { type: "DREAMER_RESULT"; data: { roleA: Role; roleB: Role } }
   | {
       type: "FORTUNE_TELLER_RESULT";
-      data: { result: boolean; targetLabels: string[] };
+      data: {
+        result: boolean;
+        targetLabels: string[];
+        roleName?: string;
+        actorSeatNo?: number;
+      };
     }
   | {
       type: "INFO_RESULT";

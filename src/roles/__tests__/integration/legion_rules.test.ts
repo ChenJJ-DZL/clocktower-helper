@@ -267,7 +267,7 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
         targetIds: [1],
         meta: { abilityEffective: true, abilityResult: {} },
         aborted: false,
-      };
+      } as any;
 
       const ctx = await runFullAbilityPipeline(pipe(legionAbility), context);
 
@@ -308,7 +308,7 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
         targetIds: [1],
         meta: { abilityEffective: true, abilityResult: {} },
         aborted: false,
-      };
+      } as any;
 
       const ctx = await runFullAbilityPipeline(pipe(legionAbility), context);
 

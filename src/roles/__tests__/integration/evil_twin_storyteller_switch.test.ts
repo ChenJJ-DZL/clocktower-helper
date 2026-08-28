@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Seat } from "../../../../app/data";
 import { processGameEvent } from "../../../../app/gameLogic";
 import { evil_twin } from "../../minion/evil_twin";
 import { evil_twinAbility } from "../../new_engine/evil_twin.ability";
 
 describe("镜像双子 (Evil Twin) 说书人自定义指定与同步切换测试", () => {
-  const createMockSeats = (): Seat[] => [
+  const createMockSeats = (): any[] => [
     {
       id: 0,
       role: { id: "evil_twin", name: "镜像双子", type: "minion" },
@@ -125,13 +124,13 @@ describe("镜像双子 (Evil Twin) 说书人自定义指定与同步切换测试
   it("说书人通过 isGoodTwin 指定对立双子后，夜间对话与提示文案同步切换", () => {
     const seats = createMockSeats();
     // 默认未指定时，优先选择第一个存活善良玩家（1号僧侣）
-    const defaultDialog = evil_twin.night.dialog(0, true, { seats });
+    const defaultDialog = evil_twin.night!.dialog(0, true, { seats } as any);
     expect(defaultDialog.wake).toContain("2号");
     expect(defaultDialog.wake).toContain("僧侣");
 
     // 说书人指定 3号（索引2：洗衣妇）为对立双子
     seats[2].isGoodTwin = true;
-    const updatedDialog = evil_twin.night.dialog(0, true, { seats });
+    const updatedDialog = evil_twin.night!.dialog(0, true, { seats } as any);
     expect(updatedDialog.wake).toContain("3号");
     expect(updatedDialog.wake).toContain("洗衣妇");
   });

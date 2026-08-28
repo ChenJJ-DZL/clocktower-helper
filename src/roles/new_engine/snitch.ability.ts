@@ -15,9 +15,7 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const preCheck = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
+const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   // 仅首夜触发
   const nightCount = ctx.snapshot.nightCount ?? 0;
   if (nightCount !== 1 && ctx.snapshot.gamePhase !== "firstNight") {
@@ -31,30 +29,20 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   // 从脚本中"不在场"角色选 3 个（排除已被分配的）
   const allRoles: any[] =
-    (ctx.snapshot as any).scriptRoles ??
-    (ctx.snapshot as any).roles ??
-    [];
+    (ctx.snapshot as any).scriptRoles ?? (ctx.snapshot as any).roles ?? [];
   const assignedRoleIds = new Set(
-    (ctx.snapshot.seats as any[])
-      .filter((s) => s.role)
-      .map((s) => s.role.id)
+    (ctx.snapshot.seats as any[]).filter((s) => s.role).map((s) => s.role.id)
   );
   const absentTownsfolk = allRoles.filter(
     (r) =>
-      r.type === "townsfolk" &&
-      !assignedRoleIds.has(r.id) &&
-      r.id !== "drunk"
+      r.type === "townsfolk" && !assignedRoleIds.has(r.id) && r.id !== "drunk"
   );
   const absentOutsider = allRoles.filter(
     (r) => r.type === "outsider" && !assignedRoleIds.has(r.id)
   );
   // 随机选 3 个
-  const shuffledTf = [...absentTownsfolk].sort(
-    () => Math.random() - 0.5
-  );
-  const shuffledOs = [...absentOutsider].sort(
-    () => Math.random() - 0.5
-  );
+  const shuffledTf = [...absentTownsfolk].sort(() => Math.random() - 0.5);
+  const shuffledOs = [...absentOutsider].sort(() => Math.random() - 0.5);
   const picked: string[] = [];
   for (const r of shuffledTf) {
     if (picked.length >= 3) break;
@@ -69,8 +57,7 @@ const calculate = async (
 
   // 提线木偶相克：marionette 在场时跳过 marionette（用 storytellerInput.marionetteSeatId 标记）
   const marionetteId = (ctx.storytellerInput as any)?.marionetteSeatId;
-  const skipMarionette =
-    marionetteId !== undefined && marionetteId !== null;
+  const skipMarionette = marionetteId !== undefined && marionetteId !== null;
 
   // 受推送的爪牙
   const minionSeats = (ctx.snapshot.seats as any[]).filter((s) => {
@@ -80,6 +67,24 @@ const calculate = async (
     return true;
   });
 
+  // 提线木偶相克补充：若 marionette 跳过，恶魔额外获得 3 个不在场角色
+  // （官方 Wiki："改为由恶魔额外得知三个不在场角色"）
+  const demonExtraAbsentRoles: string[] = [];
+  if (skipMarionette) {
+    // 重新选 3 个不同的角色（与原 picked 不同）
+    const remaining = allRoles.filter(
+      (r) =>
+        !picked.includes(r.name) &&
+        r.id !== "drunk" &&
+        (r.type === "townsfolk" || r.type === "outsider")
+    );
+    const shuffledRemaining = [...remaining].sort(() => Math.random() - 0.5);
+    for (const r of shuffledRemaining) {
+      if (demonExtraAbsentRoles.length >= 3) break;
+      demonExtraAbsentRoles.push(r.name);
+    }
+  }
+
   return {
     ...ctx,
     meta: {
@@ -88,6 +93,7 @@ const calculate = async (
         absentRoles: picked,
         minionSeatIds: minionSeats.map((s) => s.id),
         marionetteSkipped: skipMarionette,
+        demonExtraAbsentRoles,
       },
     },
   };

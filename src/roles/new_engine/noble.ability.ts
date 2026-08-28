@@ -51,8 +51,50 @@ const calculate = async (
   const seats = ctx.snapshot.seats.filter(
     (s: any) => s.id !== ctx.actionNode.seatId && !s.isDead
   );
-  const shuffled = [...seats].sort(() => Math.random() - 0.5);
-  const chosen = shuffled.slice(0, 3);
+
+  // 邪恶候选（真实邪恶 + 默认注册为邪恶的陌客）
+  const evilCandidates = seats.filter((s: any) => {
+    if (s.role?.id === "recluse") {
+      return s.registerAsEvil !== false;
+    }
+    if (s.role?.id === "spy") {
+      return s.registerAsEvil === true;
+    }
+    return (
+      (s.role && (s.role.type === "minion" || s.role.type === "demon")) ||
+      !!s.isEvilConverted
+    );
+  });
+
+  // 善良候选（真实善良 + 默认注册为善良的间谍）
+  const goodCandidates = seats.filter((s: any) => {
+    if (s.role?.id === "recluse") {
+      return s.registerAsEvil === false;
+    }
+    if (s.role?.id === "spy") {
+      return s.registerAsGood !== false && s.registerAsEvil !== true;
+    }
+    return (
+      s.role &&
+      (s.role.type === "townsfolk" || s.role.type === "outsider") &&
+      !s.isEvilConverted
+    );
+  });
+
+  let chosen: any[] = [];
+  const isCorrupted = ctx.meta.isPoisoned || ctx.meta.isDrunk;
+
+  if (isCorrupted || evilCandidates.length === 0 || goodCandidates.length < 2) {
+    const shuffled = [...seats].sort(() => Math.random() - 0.5);
+    chosen = shuffled.slice(0, 3);
+  } else {
+    const shuffledEvil = [...evilCandidates].sort(() => Math.random() - 0.5);
+    const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);
+    chosen = [shuffledEvil[0], shuffledGood[0], shuffledGood[1]].sort(
+      () => Math.random() - 0.5
+    );
+  }
+
   return {
     ...ctx,
     meta: {

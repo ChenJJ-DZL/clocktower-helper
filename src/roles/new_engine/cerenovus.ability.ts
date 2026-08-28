@@ -16,7 +16,9 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  // 项目 Seat 约定使用 isDead 表示存活状态
+  if (!seat || seat.isDead)
+    return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -24,6 +26,18 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  const selfId = ctx.actionNode.seatId;
+
+  // 洗脑师不能选自己：拒绝并 abort
+  if (targetId !== null && targetId === selfId) {
+    return {
+      ...ctx,
+      aborted: true,
+      abortReason: "洗脑师不能选自己作为目标",
+    };
+  }
+  // 官方范例：死亡的玩家也需继续疯狂（如死亡艺术家被洗脑），因此不排除已死亡目标
+
   const roleName = ctx.storytellerInput?.roleName ?? "镇民";
   return {
     ...ctx,

@@ -55,10 +55,15 @@ const calculateResult = async (
   const deadEvilCount = snapshot.seats
     .filter((s: Seat) => s.isDead || deadThisNight?.includes(s.id))
     .filter((s: Seat) => {
-      // 角色类型为爪牙或恶魔，或者被转化标记为邪恶
+      if (s.role?.id === "recluse") {
+        return (s as any).registerAsEvil !== false;
+      }
+      if (s.role?.id === "spy") {
+        return (s as any).registerAsEvil === true;
+      }
       const isEvilType =
         s.role && (s.role.type === "minion" || s.role.type === "demon");
-      return isEvilType || s.isEvilConverted;
+      return isEvilType || !!s.isEvilConverted;
     }).length;
 
   // 检查场上是否有涡流

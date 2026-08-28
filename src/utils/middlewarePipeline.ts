@@ -68,7 +68,10 @@ export async function runFullAbilityPipeline(
   const globalRules = collectGlobalRules();
 
   let ctx = await runMiddlewarePipeline(preCheck, initialContext);
-  if (ctx.aborted) return ctx;
+  if (ctx.aborted) {
+    ctx.meta = { ...ctx.meta, _preCheckAborted: true };
+    return ctx;
+  }
 
   // 全局规则：before_calculate（如掮客目标重定向）
   ctx = applyRulesByPhase(globalRules, "before_calculate", ctx);

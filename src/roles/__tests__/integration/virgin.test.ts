@@ -22,6 +22,7 @@ function s(id: number, rid: string, rt: string, o?: { drunk?: boolean }) {
     statusEffects: o?.drunk ? [{ type: "drunk" }] : [],
     hasAbilityEvenDead: false,
     hasUsedVirginAbility: false,
+    hasBeenNominated: false,
   };
 }
 function ctx(

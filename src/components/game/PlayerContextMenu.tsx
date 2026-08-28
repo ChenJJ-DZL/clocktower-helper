@@ -159,14 +159,13 @@ export function PlayerContextMenu() {
           </button>
         </>
       )}
-      {/* 陌客注册：邪恶（爪牙/恶魔） vs 善良（外来者） */}
+      {/* 陌客注册：邪恶（爪牙/恶魔） vs 善良（外来者） - 默认邪恶 */}
       {effectiveRole?.id === "recluse" && props.gamePhase !== "setup" && (
         <button
           onClick={() => {
-            const isCurrentlyEvil = !!(
-              (targetSeat as any).registerAsEvil ||
-              (targetSeat as any).registerAsDemon
-            );
+            const isCurrentlyEvil =
+              (targetSeat as any).registerAsEvil !== false &&
+              (targetSeat as any).registerAsDemon !== false;
             props.setSeats((prev: any[]) =>
               prev.map((s) =>
                 s.id === targetSeat.id
@@ -187,10 +186,43 @@ export function PlayerContextMenu() {
           className="block w-full text-left px-6 py-3 hover:bg-purple-900/80 text-purple-200 text-lg font-medium border-t border-gray-700"
         >
           🎭 陌客注册：
-          {(targetSeat as any).registerAsEvil ||
-          (targetSeat as any).registerAsDemon
+          {(targetSeat as any).registerAsEvil !== false &&
+          (targetSeat as any).registerAsDemon !== false
             ? "😈 邪恶 (点击切为善良)"
             : "😇 善良 (点击切为邪恶)"}
+        </button>
+      )}
+      {/* 间谍注册：善良（镇民/外来者） vs 邪恶（爪牙） - 默认好人 */}
+      {effectiveRole?.id === "spy" && props.gamePhase !== "setup" && (
+        <button
+          onClick={() => {
+            const isCurrentlyGood =
+              (targetSeat as any).registerAsGood !== false &&
+              (targetSeat as any).registerAsEvil !== true;
+            props.setSeats((prev: any[]) =>
+              prev.map((s) =>
+                s.id === targetSeat.id
+                  ? {
+                      ...s,
+                      registerAsGood: !isCurrentlyGood,
+                      registerAsEvil: isCurrentlyGood,
+                      registerAsTownsfolk: !isCurrentlyGood,
+                    }
+                  : s
+              )
+            );
+            props.addLog?.(
+              `🕵️ 说书人将【${targetSeat.id + 1}号-间谍】注册阵营调整为：${!isCurrentlyGood ? "😇 善良 (镇民/外来者)" : "😈 邪恶 (爪牙)"}`
+            );
+            props.setContextMenu(null);
+          }}
+          className="block w-full text-left px-6 py-3 hover:bg-blue-900/80 text-blue-200 text-lg font-medium border-t border-gray-700"
+        >
+          🕵️ 间谍注册：
+          {(targetSeat as any).registerAsGood !== false &&
+          (targetSeat as any).registerAsEvil !== true
+            ? "😇 善良 (点击切为邪恶)"
+            : "😈 邪恶 (点击切为善良)"}
         </button>
       )}
       {/* 修补匠：说书人可在任意时刻裁定其死亡 */}
@@ -338,12 +370,26 @@ export function PlayerContextMenu() {
       ) &&
         !targetSeat.isDead && (
           <button
-            onClick={() => props.toggleStatus("cerenovus_execute", targetSeat.id)}
+            onClick={() =>
+              props.toggleStatus("cerenovus_execute", targetSeat.id)
+            }
             className="block w-full text-left px-6 py-4 hover:bg-red-700 bg-red-900/40 text-red-100 text-lg font-bold border-t border-gray-700 transition-colors"
           >
             🧠 洗脑不疯狂 → 立即处决
           </button>
         )}
+      {/* 疯子：手动切换 apparentDemonRole */}
+      {targetSeat.role?.id === "lunatic" && (
+        <button
+          onClick={() =>
+            props.toggleStatus("lunatic_apparent_demon", targetSeat.id)
+          }
+          className="block w-full text-left px-6 py-4 hover:bg-fuchsia-700 bg-fuchsia-900/40 text-fuchsia-100 text-lg font-bold border-t border-gray-700 transition-colors"
+        >
+          🎭 疯子假恶魔（当前：
+          {(targetSeat as any).apparentDemonRole?.name ?? "未设置"}）
+        </button>
+      )}
     </div>
   );
 }

@@ -31,12 +31,12 @@ export enum NightState {
 // 状态转移规则：允许的状态流转路径
 const ALLOWED_TRANSITIONS: Record<NightState, NightState[]> = {
   [NightState.IDLE]: [NightState.QUEUING],
-  [NightState.QUEUING]: [NightState.WAKING, NightState.ENDED, NightState.DAWN],
-  [NightState.WAKING]: [NightState.PROCESSING, NightState.DAWN],
-  [NightState.PROCESSING]: [NightState.CONFIRMING, NightState.WAKING],
-  [NightState.CONFIRMING]: [NightState.WAKING, NightState.DAWN],
-  [NightState.DAWN]: [NightState.ENDED],
-  [NightState.ENDED]: [NightState.IDLE],
+  [NightState.QUEUING]: [NightState.WAKING, NightState.ENDED, NightState.DAWN, NightState.QUEUING],
+  [NightState.WAKING]: [NightState.PROCESSING, NightState.DAWN, NightState.QUEUING],
+  [NightState.PROCESSING]: [NightState.CONFIRMING, NightState.WAKING, NightState.DAWN, NightState.QUEUING],
+  [NightState.CONFIRMING]: [NightState.WAKING, NightState.DAWN, NightState.QUEUING],
+  [NightState.DAWN]: [NightState.ENDED, NightState.QUEUING, NightState.IDLE],
+  [NightState.ENDED]: [NightState.IDLE, NightState.QUEUING],
 };
 
 // 已迁移的能力ID列表（从新引擎配置中获取）
@@ -149,13 +149,11 @@ export class NightStateMachine {
   }
 
   /**
-   * 更新游戏状态快照（仅在IDLE状态下允许）
+   * 更新游戏状态快照
    * @param newSnapshot 新的游戏状态快照
    */
   updateSnapshot(newSnapshot: GameStateSnapshot): void {
-    if (this._currentState === NightState.IDLE) {
-      this._stateSnapshot = Object.freeze({ ...newSnapshot });
-    }
+    this._stateSnapshot = Object.freeze({ ...newSnapshot });
   }
 
   /**

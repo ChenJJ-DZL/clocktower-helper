@@ -19,6 +19,7 @@ import type {
   WinResult,
 } from "../../app/data";
 import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { getRawAbilityMap } from "../roles/new_engine/abilityRegistry";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import type { NightInfoResult } from "../types/game";
@@ -212,6 +213,17 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
     otherNightOnly: false,
     wakeMessage: "demon_info",
   });
+  // 军团专项：首夜在恶魔信息前插入「全员互认」步骤（官方运作方式）
+  entries.push({
+    roleId: LEGION_MUTUAL_RECOGNITION_ID,
+    roleName: "军团互认",
+    abilityId: LEGION_MUTUAL_RECOGNITION_ID,
+    firstNightPriority: 2.25,
+    otherNightPriority: 0,
+    firstNightOnly: true,
+    otherNightOnly: false,
+    wakeMessage: LEGION_MUTUAL_RECOGNITION_ID,
+  });
 
   entries.sort((a, b) => {
     const pa =
@@ -246,14 +258,15 @@ export const ENGINE_CONFIG = {
 
 // 转换为 NightStateMachine 的快照格式
 function convertToNightStateMachineSnapshot(
-  snapshot: ReturnType<typeof createSnapshotFromGameState>
+  snapshot: ReturnType<typeof createSnapshotFromGameState>,
+  forcePhase?: GamePhase
 ): NightStateMachineSnapshot {
   return {
     nightCount: snapshot.nightCount,
     hasCompletedFirstNight: (snapshot as any).hasCompletedFirstNight ?? false,
     seats: snapshot.seats,
     statusEffects: {},
-    gamePhase: snapshot.phase,
+    gamePhase: forcePhase ?? snapshot.phase,
     // 🔧 守鸦人修复：把 deadThisNight 传给 NightEngine，
     //   供 generateDynamicNightQueue 判断死亡触发型角色（守鸦人等）是否入队
     deadThisNight: [...(snapshot.deadThisNight ?? [])],
@@ -369,7 +382,10 @@ export function useNightEngine(gameState: NightLogicGameState) {
       //    导致红唇继承/处决死亡等最新状态未进入引擎快照。
       const latest = gameStateRef.current;
       const snap = createSnapshotFromGameState(latest);
-      engine.updateSnapshot(convertToNightStateMachineSnapshot(snap));
+      const targetPhase = isFirst ? "firstNight" : "night";
+      engine.updateSnapshot(
+        convertToNightStateMachineSnapshot(snap, targetPhase)
+      );
       const nightCount = isFirst ? 1 : latest.nightCount + 1;
       engine.startNight(nightCount);
     },
@@ -381,7 +397,10 @@ export function useNightEngine(gameState: NightLogicGameState) {
       // 新引擎内部已经处理了队列，这里只需触发开始
       const latest = gameStateRef.current;
       const snap = createSnapshotFromGameState(latest);
-      engine.updateSnapshot(convertToNightStateMachineSnapshot(snap));
+      const targetPhase = isFirst ? "firstNight" : "night";
+      engine.updateSnapshot(
+        convertToNightStateMachineSnapshot(snap, targetPhase)
+      );
       const nightCount = isFirst ? 1 : latest.nightCount + 1;
       engine.startNight(nightCount);
     },

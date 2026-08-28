@@ -197,39 +197,33 @@ export const getRegistration = (
     registeredRoleType = "demon";
   }
 
-  // 间谍：可能注册为善良镇民/外来者
+  // 间谍：默认造成干扰 -> 伪装注册为善良（镇民/外来者）
   if (role.id === "spy") {
-    // 间谍死亡后身份仍可被当作邪恶/爪牙/恶魔
-    if (viewingRole && spyDisguiseMode !== "off") {
-      const probability =
-        spyDisguiseMode === "on" ? (spyDisguiseProbability ?? 0.8) : 0.8;
-      const looksGood = Math.random() < probability;
-      if (looksGood) {
-        registeredAlignment = "Good";
-        registeredRoleType = Math.random() < 0.5 ? "townsfolk" : "outsider";
-      } else {
-        registeredAlignment = "Evil";
-        registeredRoleType = "minion";
-      }
-    } else {
+    const isManuallyEvil = (targetPlayer as any).registerAsEvil === true;
+    if (isManuallyEvil || spyDisguiseMode === "off") {
       registeredAlignment = "Evil";
       registeredRoleType = "minion";
+    } else {
+      // 默认干扰：注册为善良镇民/外来者
+      registeredAlignment = "Good";
+      registeredRoleType =
+        (targetPlayer as any).registerAsTownsfolk !== false
+          ? "townsfolk"
+          : "outsider";
     }
   }
 
-  // 隐士：可能注册为爪牙或恶魔
+  // 隐士/陌客：默认造成干扰 -> 注册为邪恶（恶魔/爪牙）
   if (role.id === "recluse") {
-    // 只有在被查验阵营或类型时才触发注册判定
-    const roll = Math.random();
-    if (roll < 0.33) {
-      registeredAlignment = "Evil";
-      registeredRoleType = "minion";
-    } else if (roll < 0.66) {
-      registeredAlignment = "Evil";
-      registeredRoleType = "demon";
-    } else {
+    const isManuallyGood = (targetPlayer as any).registerAsEvil === false;
+    if (isManuallyGood) {
       registeredAlignment = "Good";
       registeredRoleType = "outsider";
+    } else {
+      // 默认干扰：注册为邪恶恶魔/爪牙
+      registeredAlignment = "Evil";
+      registeredRoleType =
+        (targetPlayer as any).registerAsDemon !== false ? "demon" : "minion";
     }
   }
 
@@ -244,10 +238,26 @@ export const getRegistration = (
   let result: RegistrationResult = {
     alignment: registeredAlignment,
     roleType: registeredRoleType,
-    registersAsDemon: registeredRoleType === "demon" || role.id === "legion",
-    registersAsMinion: registeredRoleType === "minion" || role.id === "legion",
-    registersAsOutsider: registeredRoleType === "outsider",
-    registersAsTownsfolk: registeredRoleType === "townsfolk",
+    registersAsDemon:
+      registeredRoleType === "demon" ||
+      role.id === "legion" ||
+      (role.id === "recluse" &&
+        (targetPlayer as any).registerAsEvil !== false &&
+        (targetPlayer as any).registerAsDemon !== false),
+    registersAsMinion:
+      registeredRoleType === "minion" ||
+      role.id === "legion" ||
+      (role.id === "recluse" &&
+        (targetPlayer as any).registerAsEvil !== false &&
+        (targetPlayer as any).registerAsMinion !== false),
+    registersAsOutsider:
+      registeredRoleType === "outsider" ||
+      (role.id === "spy" && (targetPlayer as any).registerAsGood !== false),
+    registersAsTownsfolk:
+      registeredRoleType === "townsfolk" ||
+      (role.id === "spy" &&
+        (targetPlayer as any).registerAsGood !== false &&
+        (targetPlayer as any).registerAsTownsfolk !== false),
     registeredRole: null,
     overrides: [],
   };

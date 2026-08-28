@@ -33,7 +33,11 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const minionNominated = ctx.snapshot.minionNominatedToday ?? false;
-  const isCorrupted = ctx.meta.isPoisoned === true;
+  // 醉酒或中毒都会干扰信息（全局中间件会把 meta.isPoisoned 覆盖为 false，需一并检查 isDrunk）
+  const isCorrupted =
+    ctx.meta.isPoisoned === true ||
+    ctx.meta.isDrunk === true ||
+    ctx.meta.abilityEffective === false;
   return {
     ...ctx,
     meta: {

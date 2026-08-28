@@ -19,6 +19,8 @@ describe("酒鬼 (Drunk) 说书人魔典视角与身份告知展示测试", () =
     hasUsedVirginAbility: false,
     isDemonSuccessor: false,
     hasAbilityEvenDead: false,
+    grandchildId: null,
+    isGrandchild: false,
     statusDetails: [],
   };
 

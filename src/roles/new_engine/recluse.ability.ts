@@ -130,7 +130,8 @@ export function resolveRecluseRegistration(
   seatId: number,
   cacheKey: string,
   meta: Record<string, any>,
-  storytellerInput?: any
+  storytellerInput?: any,
+  seat?: any
 ): RecluseRegistration {
   // 优先检查缓存（保证单次能力中一致性）
   const cached = meta[cacheKey] as RecluseRegistration | undefined;
@@ -145,15 +146,32 @@ export function resolveRecluseRegistration(
     return override;
   }
 
-  // 🔧 生成注册结果（用户确认参数：陌客判定为邪恶 100% 触发）
+  // 检查 seat 上的注册状态（若存在）
+  if (
+    seat &&
+    (seat.registerAsEvil !== undefined || seat.registerAsDemon !== undefined)
+  ) {
+    const isEvil =
+      seat.registerAsEvil !== false && seat.registerAsDemon !== false;
+    const roleType: "minion" | "demon" | null = seat.registerAsDemon
+      ? "demon"
+      : seat.registerAsMinion
+        ? "minion"
+        : isEvil
+          ? "minion"
+          : null;
+    const reg: RecluseRegistration = {
+      registersAsEvil: isEvil,
+      registersAsRoleType: isEvil ? roleType : null,
+    };
+    meta[cacheKey] = reg;
+    return reg;
+  }
+
+  // 🔧 生成注册结果（默认：陌客默认为邪恶）
   const registration: RecluseRegistration = {
-    registersAsEvil: true, // 100% 被当作邪恶（不再 50% 随机）
-    registersAsRoleType:
-      Math.random() < 0.5
-        ? Math.random() < 0.7
-          ? "minion" // 70% 爪牙
-          : "demon" // 30% 恶魔
-        : null, // 50% 不当作特定角色
+    registersAsEvil: true,
+    registersAsRoleType: "minion",
   };
 
   meta[cacheKey] = registration;

@@ -258,15 +258,11 @@ export function GameModals() {
 
       {nightActionConfirmModal && (
         <NightActionConfirmModal
-          data={{
-            roleName: nightActionConfirmModal.roleName,
-            actionDescription: nightActionConfirmModal.actionDescription,
-            targetDescriptions: nightActionConfirmModal.targetDescriptions,
-            extraNote: nightActionConfirmModal.extraNote,
-          }}
-          onConfirm={() => {
+          data={nightActionConfirmModal}
+          seats={seats}
+          onConfirm={(selectedTargetIds) => {
             actions.setCurrentModal(null);
-            nightActionConfirmModal.onConfirm();
+            nightActionConfirmModal.onConfirm(selectedTargetIds);
           }}
           onCancel={() => {
             actions.setCurrentModal(null);
@@ -731,6 +727,10 @@ export function GameModals() {
         <IdentityShowcaseModal
           isOpen={true}
           onClose={() => actions.setCurrentModal(null)}
+          onFinish={() => {
+            actions.setCurrentModal(null);
+            dispatch(gameActions.setPrivacyShieldActive(true));
+          }}
           seats={seats}
           initialSeatId={currentModal.data?.initialSeatId}
         />
@@ -788,7 +788,12 @@ export function GameModals() {
 
       {fortuneTellerResultModal && (
         <InfoResultModal
-          roleName="占卜师"
+          roleName={
+            fortuneTellerResultModal.roleName ||
+            (fortuneTellerResultModal.actorSeatNo
+              ? `${fortuneTellerResultModal.actorSeatNo}号-占卜师`
+              : "占卜师")
+          }
           resultText={fortuneTellerResultModal.result ? "有" : "没有"}
           onConfirm={() => {
             actions.setCurrentModal(null);

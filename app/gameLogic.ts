@@ -60,6 +60,7 @@ export interface GameStateSnapshot {
 // Context for logic decisions that depend on external state
 export interface GameContext {
   isMastermindActive?: boolean;
+  todayHasExecution?: boolean;
   damselGuessed?: boolean;
   klutzGuessedEvil?: boolean;
   isVortoxWorld?: boolean;

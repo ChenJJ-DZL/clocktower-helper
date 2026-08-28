@@ -9,9 +9,9 @@
  * 3. 不再依赖旧引擎 nightLogic.ts
  */
 
-import type { Script, Seat } from "@/app/data";
+import { roles, type Script, type Seat, type GamePhase } from "../../app/data";
 import type { NightInfoResult } from "@/src/types/game";
-import type { GamePhase } from "../../app/data";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
 
@@ -224,7 +224,12 @@ export function calculateNightInfoViaNewEngine(
 
   // 系统信息步骤（minion_info / demon_info）：直接生成信息，不查角色定义
   if (systemStepRoleId) {
-    return generateSystemInfoViaAdapter(systemStepRoleId, seats, currentSeatId);
+    return generateSystemInfoViaAdapter(
+      systemStepRoleId,
+      seats,
+      currentSeatId,
+      selectedScript
+    );
   }
 
   const targetSeat = seats.find((s) => s.id === currentSeatId);
@@ -278,12 +283,14 @@ export function calculateNightInfoViaNewEngine(
 function generateSystemInfoViaAdapter(
   stepId: string,
   seats: Seat[],
-  currentSeatId: number
+  currentSeatId: number,
+  selectedScript?: Script | null
 ): NightInfoResult | null {
   const selfSeat = seats.find((s) => s.id === currentSeatId);
   if (!selfSeat) return null;
 
   const isMinionStep = stepId === "minion_info";
+  const isLegionMutualStep = stepId === LEGION_MUTUAL_RECOGNITION_ID;
   const demonSeats = seats.filter((s) => s.role?.type === "demon" && !s.isDead);
   const minionSeats = seats.filter(
     (s) => s.role?.type === "minion" && !s.isDead
@@ -291,6 +298,16 @@ function generateSystemInfoViaAdapter(
   const marionetteSeat = seats.find(
     (s) => s.role?.id === "marionette" && !s.isDead
   );
+  const magicianSeat = seats.find(
+    (s) => s.role?.id === "magician" && !s.isDead
+  );
+  const demonsForMinions = magicianSeat
+    ? [...demonSeats, magicianSeat]
+    : demonSeats;
+  const minionsForDemon = magicianSeat
+    ? [...minionSeats, magicianSeat]
+    : minionSeats;
+
   const otherMinions = minionSeats.filter((s) => s.id !== currentSeatId);
 
   // 检查是否有存活且健康的罂粟种植者
@@ -299,38 +316,55 @@ function generateSystemInfoViaAdapter(
       s.role?.id === "poppy_grower" && !s.isDead && !s.isDrunk && !s.isPoisoned
   );
 
-  const demonDesc = demonSeats
-    .map((s) => `${s.id + 1}号(${s.role?.name || "恶魔"})`)
-    .join("、");
-  const minionDesc = minionSeats
-    .map((s) => `${s.id + 1}号(${s.role?.name || "爪牙"})`)
-    .join("、");
-  const otherMinionDesc = otherMinions
-    .map((s) => `${s.id + 1}号(${s.role?.name || "爪牙"})`)
-    .join("、");
+  const demonDesc =
+    demonsForMinions.map((s) => `${s.id + 1}号`).join("、") || "无";
+  const minionDesc =
+    minionsForDemon.map((s) => `${s.id + 1}号`).join("、") || "无";
+  const otherMinionDesc =
+    otherMinions.map((s) => `${s.id + 1}号`).join("、") || "无";
 
   let guide = "";
-  if (isMinionStep) {
+  if (isLegionMutualStep) {
+    guide =
+      "所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家）";
+  } else if (isMinionStep) {
     if (isPoppyGrowerAlive) {
-      guide = "爪牙首夜信息 — 🌺 罂粟种植者在场，爪牙与恶魔互不相识。";
+      guide = "🌺 罂粟种植者在场，爪牙与恶魔互不相识";
     } else {
-      guide = `爪牙互认 — 恶魔是：${demonDesc || "无恶魔"}。${otherMinionDesc ? "爪牙队友：" + otherMinionDesc : ""}`;
+      guide = `恶魔是: ${demonDesc}\n爪牙队友: ${otherMinions.length > 0 ? otherMinionDesc : "无"}`;
     }
   } else {
     // 恶魔信息
+    const inPlayRoleIds = new Set(
+      seats.map((s) => s.role?.id).filter(Boolean)
+    );
+    const scriptRoleIds: string[] =
+      selectedScript?.roleIds ||
+      (selectedScript as any)?.roles?.map((r: any) => r.id) ||
+      [];
+    const notInPlayGoodRoles = scriptRoleIds
+      .map((id: string) => roles.find((r) => r.id === id))
+      .filter(
+        (r: any) =>
+          r &&
+          (r.type === "townsfolk" || r.type === "outsider") &&
+          !inPlayRoleIds.has(r.id)
+      )
+      .slice(0, 3)
+      .map((r: any) => r.name);
+    const bluffText =
+      notInPlayGoodRoles.length > 0
+        ? `\n不在场伪装: 【${notInPlayGoodRoles.join("】、【")}】`
+        : "";
+
     if (isPoppyGrowerAlive) {
-      guide =
-        "恶魔首夜信息 — 🌺 罂粟种植者在场，你不知道你的爪牙是谁。展示三个不在场的伪装角色。";
+      guide = `🌺 罂粟种植者在场，你不知道爪牙是谁${bluffText}`;
     } else {
       let marionetteNote = "";
       if (marionetteSeat) {
-        const charadeName =
-          marionetteSeat.charadeRole?.name ||
-          marionetteSeat.role?.name ||
-          "善良角色";
-        marionetteNote = `，${marionetteSeat.id + 1}号是你的提线木偶（他以为自己是【${charadeName}】）`;
+        marionetteNote = `\n提线木偶: ${marionetteSeat.id + 1}号`;
       }
-      guide = `恶魔互认 — 爪牙是：${minionDesc || "无爪牙"}${marionetteNote}`;
+      guide = `爪牙是: ${minionDesc}${marionetteNote}${bluffText}`;
     }
   }
 
@@ -338,7 +372,11 @@ function generateSystemInfoViaAdapter(
     seat: selfSeat,
     effectiveRole: {
       id: stepId,
-      name: isMinionStep ? "爪牙互认" : "恶魔互认",
+      name: isMinionStep
+        ? "爪牙互认"
+        : isLegionMutualStep
+          ? "军团互认"
+          : "恶魔互认",
       type: "townsfolk",
     },
     isPoisoned: false,

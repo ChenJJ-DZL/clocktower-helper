@@ -121,18 +121,6 @@
       "description": "唤醒引路人，让他选择一至三名玩家，以点头或摇头告知他选择的玩家中是否有玩家在当晚被邪恶玩家的能力选择或影响过。"
     },
     {
-      "id": "imp",
-      "chineseName": "小恶魔",
-      "englishName": "imp",
-      "description": "唤醒小恶魔，让他攻击一名玩家。如果他成功自杀，则在他入睡后通知一名爪牙角色变化。"
-    },
-    {
-      "id": "scarlet_woman",
-      "chineseName": "红唇女郎",
-      "englishName": "scarlet_woman",
-      "description": "如果小恶魔死亡，红唇女郎会变成新的小恶魔。"
-    },
-    {
       "id": "dawn",
       "chineseName": "黎明",
       "englishName": "dawn",
@@ -281,12 +269,6 @@
       "chineseName": "巫师",
       "englishName": "wizard",
       "description": "如果有必要，让巫师的能力生效。"
-    },
-    {
-      "id": "baron",
-      "chineseName": "男爵",
-      "englishName": "baron",
-      "description": "男爵的首夜能力"
     },
     {
       "id": "snake_charmer",

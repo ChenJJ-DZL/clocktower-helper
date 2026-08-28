@@ -34,7 +34,8 @@ export function useNightSnapshot(
   //   同步镜像的最新座位）。任何 handler setSeats/commitSeats 改状态后，
   //   无参 continueToNextAction 生成下一步 guide 时优先读它——保证
   //   "角色 A 行动改角色 B 状态 → 角色 B 行动时实时感知"（全角色覆盖）。
-  externalLatestSeatsRef?: React.MutableRefObject<Seat[]>
+  externalLatestSeatsRef?: React.MutableRefObject<Seat[]>,
+  systemStepRoleIdsRef?: React.MutableRefObject<Map<number, string>>
 ) {
   const wakeIndexRef = useRef(0);
   // 🔧 修复：记录首夜 index 0 是否已显示（避免小恶魔被跳过）
@@ -70,9 +71,13 @@ export function useNightSnapshot(
       if (index === 0) hasShownIndexZeroRef.current = true;
       const nextSeatId = latestQueue[index];
       if (nextSeatId !== undefined) {
-        const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
+        const stepMap =
+          systemStepRoleIdsRef?.current && systemStepRoleIdsRef.current.size > 0
+            ? systemStepRoleIdsRef.current
+            : systemStepRoleIds;
+        const systemRoleId = stepMap.get(index) || undefined;
         console.log(
-          `[NightSnapshot] 行动前实时状态检测并生成信息 -> index=${index}, seatId=${nextSeatId}`
+          `[NightSnapshot] 行动前实时状态检测并生成信息 -> index=${index}, seatId=${nextSeatId}, systemRoleId=${systemRoleId || "none"}`
         );
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
@@ -147,9 +152,13 @@ export function useNightSnapshot(
             ? currentSeats
             : latestSeatsRef.current;
       if (nextSeatId !== undefined) {
-        const systemRoleId = systemStepRoleIds.get(nextSeatId) || undefined;
+        const stepMap =
+          systemStepRoleIdsRef?.current && systemStepRoleIdsRef.current.size > 0
+            ? systemStepRoleIdsRef.current
+            : systemStepRoleIds;
+        const systemRoleId = stepMap.get(index) || undefined;
         console.log(
-          `[NightSnapshot] 手动刷新行动前实时状态 -> index=${index}, seatId=${nextSeatId}`
+          `[NightSnapshot] 手动刷新行动前实时状态 -> index=${index}, seatId=${nextSeatId}, systemRoleId=${systemRoleId || "none"}`
         );
         const nextStepInfo = calculateNightInfoViaNewEngine(
           selectedScript,
@@ -225,11 +234,15 @@ export function useNightSnapshot(
 
       // 🔧 修复：若 index 0 尚未显示且队列非空，先定位第一个有效行动角色
       if (!hasShownIndexZeroRef.current && latestQueue.length > 0) {
+        const stepMap =
+          systemStepRoleIdsRef?.current && systemStepRoleIdsRef.current.size > 0
+            ? systemStepRoleIdsRef.current
+            : systemStepRoleIds;
         let firstValidIndex = 0;
         while (firstValidIndex < latestQueue.length) {
-          const candidateSeatId = latestQueue[firstValidIndex];
-          const isSystemStep = systemStepRoleIds.has(candidateSeatId);
+          const isSystemStep = stepMap.has(firstValidIndex);
           if (isSystemStep) break;
+          const candidateSeatId = latestQueue[firstValidIndex];
           const candidateSeat = currentSeats.find(
             (s) => s.id === candidateSeatId
           );
@@ -291,15 +304,19 @@ export function useNightSnapshot(
       // 🔧 动态过滤死者（官方规则结算时序）：
       //   恶魔当晚杀人后，被杀角色立即死亡。若行动顺序在恶魔之后，因已死亡且无死后技能，
       //   当晚直接跳过；若在恶魔之前则已正常执行。
+      const activeStepMap =
+        systemStepRoleIdsRef?.current && systemStepRoleIdsRef.current.size > 0
+          ? systemStepRoleIdsRef.current
+          : systemStepRoleIds;
       let nextIndex = rawNextIndex;
       while (nextIndex < queueLength) {
-        const candidateSeatId = latestQueue[nextIndex];
-        const isSystemStep = systemStepRoleIds.has(candidateSeatId);
+        const isSystemStep = activeStepMap.has(nextIndex);
         if (isSystemStep) {
           // 系统步骤（如爪牙互认、恶魔互认）正常执行
           break;
         }
 
+        const candidateSeatId = latestQueue[nextIndex];
         const candidateSeat = currentSeats.find(
           (s) => s.id === candidateSeatId
         );

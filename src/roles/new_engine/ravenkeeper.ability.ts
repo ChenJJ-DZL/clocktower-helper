@@ -141,15 +141,37 @@ function resolveTargetRole(
   const displayRole =
     targetSeat.effectiveRole ?? targetSeat.charadeRole ?? realRole;
 
-  // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
+  // 🔧 陌客判定为邪恶：默认可被登记为邪恶角色（除非手动设置为善良）
   if (realRole?.id === "recluse") {
-    const evilRoles = seats.filter(
-      (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
-    );
-    if (evilRoles.length > 0) {
-      const randomEvil =
-        evilRoles[Math.floor(Math.random() * evilRoles.length)];
-      return randomEvil.role?.name ?? displayRole?.name ?? "未知角色";
+    const isEvil =
+      (targetSeat as any).registerAsEvil !== false &&
+      (targetSeat as any).registerAsDemon !== false;
+    if (isEvil) {
+      const evilRoles = seats.filter(
+        (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
+      );
+      if (evilRoles.length > 0) {
+        const randomEvil =
+          evilRoles[Math.floor(Math.random() * evilRoles.length)];
+        return randomEvil.role?.name ?? displayRole?.name ?? "未知角色";
+      }
+    }
+  }
+
+  // 🔧 间谍判定为好人：默认可被登记为镇民/外来者角色（除非手动设置为邪恶）
+  if (realRole?.id === "spy") {
+    const isGood =
+      (targetSeat as any).registerAsGood !== false &&
+      (targetSeat as any).registerAsEvil !== true;
+    if (isGood) {
+      const goodRoles = seats.filter(
+        (s: any) => s.role?.type === "townsfolk" || s.role?.type === "outsider"
+      );
+      if (goodRoles.length > 0) {
+        const randomGood =
+          goodRoles[Math.floor(Math.random() * goodRoles.length)];
+        return randomGood.role?.name ?? displayRole?.name ?? "未知角色";
+      }
     }
   }
 

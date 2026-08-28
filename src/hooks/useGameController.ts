@@ -12,11 +12,9 @@ import {
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameRecord } from "../types/game";
-import {
-  executeNightAbility,
-  validateGameStateConsistency,
-} from "../utils/abilityExecutor";
+import { executeNightAbility } from "../utils/abilityExecutor";
 import { generateDynamicNightQueue } from "../utils/dynamicQueueGenerator";
 import {
   addPoisonMark,
@@ -251,6 +249,10 @@ export function useGameController() {
   const [systemStepRoleIds, setSystemStepRoleIds] = useState<
     Map<number, string>
   >(new Map());
+  const systemStepRoleIdsRef = useRef<Map<number, string>>(new Map());
+  useEffect(() => {
+    systemStepRoleIdsRef.current = systemStepRoleIds;
+  }, [systemStepRoleIds]);
 
   const findNearestAliveNeighbor = useCallback(
     (originId: number, direction: 1 | -1) => {
@@ -747,7 +749,8 @@ export function useGameController() {
     addLog,
     setCurrentModal,
     wakeQueueIdsRef,
-    seatsRef
+    seatsRef,
+    systemStepRoleIdsRef
   );
   const {
     activeNightStep: nightInfo,
@@ -804,7 +807,7 @@ export function useGameController() {
       const snapshot = createSnapshotFromState(gameState as any);
       saveCurrentSnapshot(snapshot);
     }
-  }, [gamePhase, seats, gameState]);
+  }, [gamePhase, gameState]);
 
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
@@ -1236,6 +1239,7 @@ export function useGameController() {
       (gameState as any).triggerIntroLoading?.();
   }, [gamePhase, (gameState as any).triggerIntroLoading]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 夜间编排 effect 依赖引擎内部状态，超集收集会引发循环刷新
   useEffect(() => {
     if (gamePhase !== "firstNight" && gamePhase !== "night") return;
     if (currentWakeIndex >= (wakeQueueIds?.length || 0)) {
@@ -1501,18 +1505,26 @@ export function useGameController() {
         return;
       }
 
-      // 构建系统步骤映射（minion_info / demon_info -> seatId）
+      // 构建系统步骤映射（minion_info / demon_info -> 队列索引 idx，避免覆盖同座位真实角色的技能）
       const stepMap = new Map<number, string>();
-      queue.forEach((node: any) => {
-        if (node.roleId === "minion_info" || node.roleId === "demon_info") {
-          stepMap.set(node.seatId, node.roleId);
+      queue.forEach((node: any, idx: number) => {
+        if (
+          node.roleId === "minion_info" ||
+          node.roleId === "demon_info" ||
+          node.roleId === LEGION_MUTUAL_RECOGNITION_ID
+        ) {
+          stepMap.set(idx, node.roleId);
         }
       });
       if (stepMap.size > 0) {
+        systemStepRoleIdsRef.current = stepMap;
         setSystemStepRoleIds(stepMap);
-        console.log("[GameController] System info steps:", [
+        console.log("[GameController] System info steps by queue index:", [
           ...stepMap.entries(),
         ]);
+      } else {
+        systemStepRoleIdsRef.current = new Map();
+        setSystemStepRoleIds(new Map());
       }
 
       // 设置 pendingNightQueue
@@ -1719,6 +1731,7 @@ export function useGameController() {
     gameState.todayExecutedId,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 汇总对象按需透传，全量依赖会造成全页重渲染
   return useMemo(
     () => ({
       ...gameState,

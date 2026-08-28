@@ -6,6 +6,7 @@ import type { Role, Seat } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
 import { checkMutualExclusion, isAntagonismEnabled } from "../utils/antagonism";
+import { applyLegionRoleSwap } from "../utils/legionSetupSwap";
 
 /**
  * UseSeatManagerResult - 座位管理 Hook 的返回结果
@@ -118,6 +119,42 @@ export function useSeatManager(): UseSeatManagerResult {
           console.log(
             `[useSeatManager] 疯子分配 apparentDemonRole: ${apparentDemonRole.name} (${apparentDemonRole.id})`
           );
+        }
+      }
+
+      if (newRoleId === "legion") {
+        // 军团特殊处理：先把军团写入目标座位，再按官方规则整桌反转角色类型
+        const seatsAfterAssign = seats.map((seat) =>
+          seat.id === seatId
+            ? { ...seat, role: newRole, displayRole, charadeRole }
+            : seat
+        );
+        const swap = applyLegionRoleSwap({
+          seats: seatsAfterAssign,
+          scriptRoles: roles,
+        });
+        if (swap.applied) {
+          // 反转后同步展示身份，避免旧的 displayRole 残留
+          const normalizedSeats = swap.seats.map((seat) => ({
+            ...seat,
+            displayRole: seat.role ?? seat.displayRole ?? null,
+          }));
+          dispatch(gameActions.setSeats(normalizedSeats));
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount,
+              phase: state.gamePhase,
+              message: `🔄 ${seatId + 1}号 的身份变成了 [${newRole.name}]`,
+            })
+          );
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount,
+              phase: state.gamePhase,
+              message: `🔁 军团反转生效：${swap.legionCount} 名玩家变为军团，${swap.newTownsfolkCount} 名玩家变为善良`,
+            })
+          );
+          return;
         }
       }
 

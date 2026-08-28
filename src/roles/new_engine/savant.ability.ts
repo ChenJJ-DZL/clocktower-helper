@@ -19,12 +19,13 @@ const preCheckAliveAndStatus = async (
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
-  const isDrunk = (seat.statusEffects ?? []).some(
-    (e: any) => e.type === "drunk"
-  );
-  const isPoisoned = (seat.statusEffects ?? []).some(
-    (e: any) => e.type === "poisoned"
-  );
+  // 兼容引擎快照的 statusEffects 与 React Seat 的 isDrunk/isPoisoned 布尔字段
+  const effectsList = seat.statusEffects ?? [];
+  const isDrunk =
+    effectsList.some((e: any) => e.type === "drunk") || seat.isDrunk === true;
+  const isPoisoned =
+    effectsList.some((e: any) => e.type === "poisoned") ||
+    seat.isPoisoned === true;
 
   return {
     ...context,

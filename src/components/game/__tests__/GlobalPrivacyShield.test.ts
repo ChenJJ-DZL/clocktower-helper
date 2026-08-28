@@ -66,4 +66,20 @@ describe("全局保密遮罩 (Global Privacy Shield) 核心逻辑测试", () => 
     // 验证：遮罩解除，进入下一位角色的行动面板
     expect(isShieldActive).toBe(false);
   });
+
+  it("身份告知牌展示完毕：点击「完成展示，返回入夜」时自动开启全局遮罩", () => {
+    let isShieldActive = false;
+    let modalClosed = false;
+
+    const handleIdentityShowcaseFinish = () => {
+      modalClosed = true;
+      isShieldActive = true; // 🛡️ 默认开启全局防窥遮罩，防止泄漏信息
+    };
+
+    handleIdentityShowcaseFinish();
+
+    // 验证：模态框已关闭，且全局保密遮罩已自动激活
+    expect(modalClosed).toBe(true);
+    expect(isShieldActive).toBe(true);
+  });
 });

@@ -137,6 +137,14 @@ function getNonDemonCandidates(
     if (seat.id === selfSeatId || seat.isDead) return false;
     const role = seat.role;
     if (!role) return false;
+    // 陌客默认注册为恶魔（造成干扰），故不计为非恶魔候选
+    if (
+      role.id === "recluse" &&
+      (seat as any).registerAsDemon !== false &&
+      (seat as any).registerAsEvil !== false
+    ) {
+      return false;
+    }
     if (role.type === "demon" || DEMON_IDS.has(role.id)) return false;
     return true;
   });

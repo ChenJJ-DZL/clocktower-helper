@@ -78,3 +78,20 @@ export function buildDemonFirstNightDialog(
     close: "",
   };
 }
+
+/** 军团首夜互认的系统步骤 id（用于队列与 UI 识别） */
+export const LEGION_MUTUAL_RECOGNITION_ID = "legion_mutual_recognition";
+
+/**
+ * 军团首夜互认对话：所有军团同时被唤醒，
+ * 说书人指向所有非军团玩家让军团明白谁是谁，不展示伪装。
+ */
+export function buildLegionMutualRecognitionDialog(): NightDialog {
+  const wake =
+    "😈 唤醒所有军团。指向所有非军团玩家，让军团明白彼此身份；本步骤不展示伪装。";
+  return {
+    wake,
+    instruction: wake,
+    close: "",
+  };
+}

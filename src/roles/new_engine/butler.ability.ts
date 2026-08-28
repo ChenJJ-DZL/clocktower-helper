@@ -419,7 +419,7 @@ const postProcessResult = async (
 
   // 中文游戏日志
   const abilityLog = record.masterSet
-    ? `管家（${actionNode.seatId + 1}号）选择【${masterLabel}】作为主人`
+    ? `选择【${record.masterId + 1}号】作为主人`
     : `管家${tag}未选择主人（醉酒/中毒），明日可自由投票`;
 
   console.log(simLog);

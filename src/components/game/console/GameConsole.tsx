@@ -55,6 +55,12 @@ interface GameConsoleProps {
 
   // Refresh current night step info (re-randomize prepared content)
   onRefreshNightStep?: () => void;
+
+  // Seat patch updater
+  onUpdateSeat?: (
+    seatId: number,
+    patch: Partial<Seat> & Record<string, any>
+  ) => void;
 }
 
 /**
@@ -84,6 +90,7 @@ export const GameConsole = React.memo(function GameConsole({
   handleViewDayAbilityResult,
   onForceContinue,
   onRefreshNightStep,
+  onUpdateSeat,
 }: GameConsoleProps) {
   const getPhaseLabel = () => {
     switch (gamePhase) {
@@ -442,50 +449,6 @@ export const GameConsole = React.memo(function GameConsole({
               </div>
             </div>
 
-            {/* Injected Player List - 只有需要选择目标时才显示
-                🔧 修复：条件从 min>0 改为 max>0。
-                min=0/max>0 的角色（如珀：可不杀人也可选 1-3 人）此前面板被隐藏，
-                玩家永远无法选择目标 → 珀每夜只能空过、对局拖入死循环。 */}
-            {seats.length > 0 && (nightInfo?.targetLimit?.max ?? 0) > 0 && (
-              <div className="mt-5 pt-4 border-t border-emerald-500/20">
-                <div
-                  className="text-xs font-bold uppercase tracking-widest text-emerald-400/60 mb-3 ml-1 target-selection-needed"
-                  data-min={nightInfo.targetLimit?.min}
-                  data-max={nightInfo.targetLimit?.max}
-                >
-                  选择目标（最少{nightInfo.targetLimit?.min}个，最多
-                  {nightInfo.targetLimit?.max}个）
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {seats.map((seat) => {
-                    if (!seat.role) return null;
-                    const isSelected = selectedPlayers.includes(seat.id);
-                    return (
-                      <button
-                        key={seat.id}
-                        type="button"
-                        onClick={() => onTogglePlayer?.(seat.id)}
-                        className={`px-2 py-2.5 rounded-xl text-xs font-bold text-center border transition-all duration-200 ${
-                          isSelected
-                            ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50"
-                            : seat.isDead
-                              ? "bg-slate-900/40 border-slate-800 text-slate-600 line-through opacity-60"
-                              : "bg-emerald-900/40 border-emerald-800/50 text-emerald-100 hover:bg-emerald-800/60 hover:border-emerald-700 shadow-sm"
-                        }`}
-                        title={seat.isDead ? "已死亡（仍可选择）" : undefined}
-                      >
-                        {seat.id + 1}
-                        <span className="text-[10px] opacity-50 font-normal">
-                          #
-                        </span>{" "}
-                        {seat.role.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* 🔧 守鸦人查验结果展示（legacy 路径使用 inspectionResult） */}
             {inspectionResult && (
               <div className="mt-5 pt-4 border-t border-amber-500/30">
@@ -502,7 +465,299 @@ export const GameConsole = React.memo(function GameConsole({
           </div>
         )}
 
-        {/* Reorganized Section: Role Description (角色说明) - 极简手风琴，Modern 主题默认折叠 */}
+        {/* Section 1 (白天讨论阶段): 阵营快捷调整 (聚合所有在场且有阵营判定的角色) */}
+        {gamePhase === "day" &&
+          (() => {
+            const alignmentSeats = seats.filter(
+              (s) =>
+                !s.isDead &&
+                (s.role?.id === "recluse" ||
+                  s.role?.id === "spy" ||
+                  s.role?.id === "politician" ||
+                  s.role?.id === "goon" ||
+                  s.role?.id === "ogre" ||
+                  s.isEvilConverted ||
+                  s.isGoodConverted)
+            );
+
+            if (alignmentSeats.length === 0) return null;
+
+            return (
+              <div className="bg-purple-950/40 p-5 rounded-2xl border border-purple-500/30 space-y-3">
+                <h3 className="text-purple-200 font-bold text-base flex items-center gap-2">
+                  <span>🎭</span> 阵营快捷调整 (白天实时生效)
+                </h3>
+                <p className="text-xs text-purple-300/80">
+                  官方规则：部分角色拥有阵营注册或阵营转变特性。可在此快速调整说书人裁定状态。
+                </p>
+                <div className="space-y-2.5">
+                  {alignmentSeats.map((seat) => {
+                    const roleId = seat.role?.id;
+                    const isRecluse = roleId === "recluse";
+                    const isSpy = roleId === "spy";
+
+                    let isEvil = false;
+                    let label = "";
+
+                    if (isRecluse) {
+                      isEvil =
+                        (seat as any).registerAsEvil !== false &&
+                        (seat as any).registerAsDemon !== false;
+                      label = isEvil
+                        ? "😈 邪恶 (爪牙/恶魔)"
+                        : "😇 善良 (外来者)";
+                    } else if (isSpy) {
+                      const isGood =
+                        (seat as any).registerAsGood !== false &&
+                        (seat as any).registerAsEvil !== true;
+                      isEvil = !isGood;
+                      label = isGood
+                        ? "😇 善良 (镇民/外来者)"
+                        : "😈 邪恶 (爪牙)";
+                    } else {
+                      isEvil =
+                        !!seat.isEvilConverted ||
+                        (!seat.isGoodConverted &&
+                          (seat.role?.type === "minion" ||
+                            seat.role?.type === "demon"));
+                      label = isEvil ? "😈 邪恶" : "😇 善良";
+                    }
+
+                    return (
+                      <div
+                        key={seat.id}
+                        className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-purple-500/20"
+                      >
+                        <div>
+                          <span className="text-sm font-bold text-white">
+                            {seat.id + 1}号 - {seat.role?.name || "未知角色"}
+                          </span>
+                          <span className="ml-2 text-xs text-slate-400">
+                            当前注册为:{" "}
+                            <strong
+                              className={
+                                isEvil ? "text-red-400" : "text-emerald-400"
+                              }
+                            >
+                              {label}
+                            </strong>
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              let patch: any = {};
+                              if (isRecluse) {
+                                patch = {
+                                  registerAsEvil: false,
+                                  registerAsDemon: false,
+                                  registerAsMinion: false,
+                                };
+                              } else if (isSpy) {
+                                patch = {
+                                  registerAsGood: true,
+                                  registerAsEvil: false,
+                                  registerAsTownsfolk: true,
+                                };
+                              } else {
+                                patch = {
+                                  isEvilConverted: false,
+                                  isGoodConverted: true,
+                                  registerAsEvil: false,
+                                  registerAsGood: true,
+                                };
+                              }
+                              Object.assign(seat, patch);
+                              onUpdateSeat?.(seat.id, patch);
+                            }}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors border ${
+                              !isEvil
+                                ? "bg-emerald-600 border-emerald-400 text-white"
+                                : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            {isSpy ? "善良(镇民/外来者)" : "善良"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              let patch: any = {};
+                              if (isRecluse) {
+                                patch = {
+                                  registerAsEvil: true,
+                                  registerAsDemon: true,
+                                  registerAsMinion: true,
+                                };
+                              } else if (isSpy) {
+                                patch = {
+                                  registerAsGood: false,
+                                  registerAsEvil: true,
+                                  registerAsTownsfolk: false,
+                                };
+                              } else {
+                                patch = {
+                                  isEvilConverted: true,
+                                  isGoodConverted: false,
+                                  registerAsEvil: true,
+                                  registerAsGood: false,
+                                };
+                              }
+                              Object.assign(seat, patch);
+                              onUpdateSeat?.(seat.id, patch);
+                            }}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors border ${
+                              isEvil
+                                ? "bg-red-600 border-red-400 text-white"
+                                : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            {isRecluse ? "邪恶(爪牙/恶魔)" : "邪恶"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+        {/* Section 2 (白天讨论阶段): 可用主动技能 (聚合所有在场的主动技能角色) */}
+        {gamePhase === "day" &&
+          handleDayAbility &&
+          (() => {
+            // 包含所有具备白天主动技能的座位（无论是否已使用）
+            const dayAbilitySeats = seats.filter((s) => {
+              if (!s.role) return false;
+
+              const isCharade =
+                s.role?.id === "drunk" || s.role?.id === "marionette";
+              const effectiveRole = isCharade
+                ? s.charadeRole || s.role
+                : s.role;
+              if (!effectiveRole) return false;
+
+              // Check legacy dayMeta
+              if (effectiveRole.dayMeta) return true;
+
+              // Check modular day ability
+              const def = effectiveRole?.id
+                ? getRoleDefinition(effectiveRole.id)
+                : undefined;
+              if (def?.day) return true;
+
+              return false;
+            });
+
+            if (dayAbilitySeats.length === 0) return null;
+
+            return (
+              <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5">
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                  <span>⚡️</span> 可用主动技能
+                </h3>
+
+                <div className="space-y-3">
+                  {dayAbilitySeats.map((seat) => {
+                    const isCharade =
+                      seat.role?.id === "drunk" ||
+                      seat.role?.id === "marionette";
+                    const effectiveRole = isCharade
+                      ? seat.charadeRole || seat.role
+                      : seat.role;
+                    const def = effectiveRole?.id
+                      ? getRoleDefinition(effectiveRole.id)
+                      : undefined;
+                    const abilityName =
+                      def?.day?.name ||
+                      effectiveRole?.dayMeta?.abilityName ||
+                      "技能";
+                    const displayRoleName =
+                      isCharade && seat.charadeRole
+                        ? seat.charadeRole.name
+                        : seat.role?.name || "";
+
+                    const isInfinite = def?.day?.maxUses === "infinity";
+                    const isUsed =
+                      !isInfinite &&
+                      (seat.hasUsedDayAbility ||
+                        (effectiveRole?.id === "slayer" &&
+                          seat.hasUsedSlayerAbility));
+
+                    return (
+                      <div
+                        key={seat.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                          isUsed
+                            ? "bg-slate-900/60 border-white/5 opacity-85"
+                            : "bg-slate-900 border-white/10"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`font-bold ${
+                              isUsed ? "text-amber-500/70" : "text-amber-500"
+                            }`}
+                          >
+                            {seat.id + 1}号
+                          </span>
+                          <span
+                            className={isUsed ? "text-slate-300" : "text-white"}
+                          >
+                            {displayRoleName}
+                            {seat.role?.id === "drunk" && (
+                              <span className="ml-1.5 text-xs text-purple-400 font-normal">
+                                (酒鬼)
+                              </span>
+                            )}
+                            {seat.isDead && (
+                              <span className="ml-1.5 text-xs text-red-400 font-normal">
+                                (已死亡)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+
+                        {isUsed ? (
+                          <button
+                            onClick={() => {
+                              if (handleViewDayAbilityResult) {
+                                handleViewDayAbilityResult(seat.id);
+                              } else if (handleDayAbility) {
+                                handleDayAbility(seat.id);
+                              }
+                            }}
+                            title="点击再次查看使用结果"
+                            data-testid="view-day-ability-result-button"
+                            className="px-3 py-1 bg-slate-700/80 hover:bg-slate-600 active:bg-slate-700 text-slate-300 hover:text-white text-sm rounded shadow-sm border border-slate-600 transition-colors flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>已使用</span>
+                            <span className="text-xs text-slate-400">🔍</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (!handleDayAbility) return;
+                              showConfirm({
+                                title: "使用技能",
+                                message: `确定使用 ${abilityName} 吗？`,
+                                onConfirm: () => handleDayAbility(seat.id),
+                              });
+                            }}
+                            data-testid="start-day-ability-button"
+                            className="px-3 py-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm rounded shadow-sm transition-colors cursor-pointer"
+                          >
+                            使用 {displayRoleName}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+        {/* Section 3: Storyteller Tips (说书人Tips) - 极简手风琴，Modern 主题默认折叠 */}
         {(scriptText || guidancePoints.length > 0 || currentActorRoleName) && (
           <div className="space-y-4">
             <button
@@ -512,7 +767,7 @@ export const GameConsole = React.memo(function GameConsole({
             >
               <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2 mb-2 ml-1">
                 <span className="w-1.5 h-6 bg-blue-500 rounded-full" />
-                角色说明
+                说书人Tips
               </h3>
               <span
                 className={`text-xs px-2.5 py-1 rounded-full border transition-all duration-200 whitespace-nowrap ${
@@ -626,219 +881,6 @@ export const GameConsole = React.memo(function GameConsole({
             </div>
           </div>
         )}
-
-        {/* Section 3: Day Abilities Panel (Day Phase Only) */}
-        {gamePhase === "day" && handleDayAbility && (
-          <div className="bg-slate-800/50 p-6 rounded-2xl border border-white/5">
-            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-              <span>⚡️</span> 可用主动技能
-            </h3>
-
-            {(() => {
-              // 包含所有具备白天主动技能的座位（无论是否已使用）
-              const dayAbilitySeats = seats.filter((s) => {
-                if (!s.role) return false;
-
-                const isCharade =
-                  s.role?.id === "drunk" || s.role?.id === "marionette";
-                const effectiveRole = isCharade
-                  ? s.charadeRole || s.role
-                  : s.role;
-                if (!effectiveRole) return false;
-
-                // Check legacy dayMeta
-                if (effectiveRole.dayMeta) return true;
-
-                // Check modular day ability
-                const def = effectiveRole?.id
-                  ? getRoleDefinition(effectiveRole.id)
-                  : undefined;
-                if (def?.day) return true;
-
-                return false;
-              });
-
-              if (dayAbilitySeats.length === 0) {
-                return <p className="text-gray-500 text-sm">暂无可用技能</p>;
-              }
-
-              return (
-                <div className="space-y-3">
-                  {dayAbilitySeats.map((seat) => {
-                    const isCharade =
-                      seat.role?.id === "drunk" ||
-                      seat.role?.id === "marionette";
-                    const effectiveRole = isCharade
-                      ? seat.charadeRole || seat.role
-                      : seat.role;
-                    const def = effectiveRole?.id
-                      ? getRoleDefinition(effectiveRole.id)
-                      : undefined;
-                    const abilityName =
-                      def?.day?.name ||
-                      effectiveRole?.dayMeta?.abilityName ||
-                      "技能";
-                    const displayRoleName =
-                      isCharade && seat.charadeRole
-                        ? seat.charadeRole.name
-                        : seat.role?.name || "";
-
-                    const isInfinite = def?.day?.maxUses === "infinity";
-                    const isUsed =
-                      !isInfinite &&
-                      (seat.hasUsedDayAbility ||
-                        (effectiveRole?.id === "slayer" &&
-                          seat.hasUsedSlayerAbility));
-
-                    return (
-                      <div
-                        key={seat.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                          isUsed
-                            ? "bg-slate-900/60 border-white/5 opacity-85"
-                            : "bg-slate-900 border-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`font-bold ${
-                              isUsed ? "text-amber-500/70" : "text-amber-500"
-                            }`}
-                          >
-                            {seat.id + 1}号
-                          </span>
-                          <span
-                            className={isUsed ? "text-slate-300" : "text-white"}
-                          >
-                            {displayRoleName}
-                            {seat.role?.id === "drunk" && (
-                              <span className="ml-1.5 text-xs text-purple-400 font-normal">
-                                (酒鬼)
-                              </span>
-                            )}
-                            {seat.isDead && (
-                              <span className="ml-1.5 text-xs text-red-400 font-normal">
-                                (已死亡)
-                              </span>
-                            )}
-                          </span>
-                        </div>
-
-                        {isUsed ? (
-                          <button
-                            onClick={() => {
-                              if (handleViewDayAbilityResult) {
-                                handleViewDayAbilityResult(seat.id);
-                              } else if (handleDayAbility) {
-                                handleDayAbility(seat.id);
-                              }
-                            }}
-                            title="点击再次查看使用结果"
-                            data-testid="view-day-ability-result-button"
-                            className="px-3 py-1 bg-slate-700/80 hover:bg-slate-600 active:bg-slate-700 text-slate-300 hover:text-white text-sm rounded shadow-sm border border-slate-600 transition-colors flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <span>已使用</span>
-                            <span className="text-xs text-slate-400">🔍</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (!handleDayAbility) return;
-                              showConfirm({
-                                title: "使用技能",
-                                message: `确定使用 ${abilityName} 吗？`,
-                                onConfirm: () => handleDayAbility(seat.id),
-                              });
-                            }}
-                            data-testid="start-day-ability-button"
-                            className="px-3 py-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm rounded shadow-sm transition-colors cursor-pointer"
-                          >
-                            使用 {displayRoleName}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Section 3.5: 陌客白天注册与裁定控制卡片 */}
-        {gamePhase === "day" &&
-          seats.some((s) => s.role?.id === "recluse" && !s.isDead) && (
-            <div className="bg-purple-950/40 p-5 rounded-2xl border border-purple-500/30 space-y-3">
-              <h3 className="text-purple-200 font-bold text-base flex items-center gap-2">
-                <span>🎭</span> 陌客阵营注册快捷调整 (白天实时生效)
-              </h3>
-              <p className="text-xs text-purple-300/80">
-                官方规则：陌客可能会被当作邪恶阵营、爪牙或恶魔角色。可在此快速切换说书人裁定的注册状态。
-              </p>
-              {seats
-                .filter((s) => s.role?.id === "recluse" && !s.isDead)
-                .map((recluseSeat) => {
-                  const isEvil = !!(
-                    (recluseSeat as any).registerAsEvil ||
-                    (recluseSeat as any).registerAsDemon
-                  );
-                  return (
-                    <div
-                      key={recluseSeat.id}
-                      className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-purple-500/20"
-                    >
-                      <div>
-                        <span className="text-sm font-bold text-white">
-                          {recluseSeat.id + 1}号 - 陌客
-                        </span>
-                        <span className="ml-2 text-xs text-slate-400">
-                          当前注册为:{" "}
-                          <strong
-                            className={
-                              isEvil ? "text-red-400" : "text-emerald-400"
-                            }
-                          >
-                            {isEvil
-                              ? "😈 邪恶 (爪牙/恶魔)"
-                              : "😇 善良 (外来者)"}
-                          </strong>
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            (recluseSeat as any).registerAsEvil = false;
-                            (recluseSeat as any).registerAsDemon = false;
-                            (recluseSeat as any).registerAsMinion = false;
-                          }}
-                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors border ${
-                            !isEvil
-                              ? "bg-emerald-600 border-emerald-400 text-white"
-                              : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          善良
-                        </button>
-                        <button
-                          onClick={() => {
-                            (recluseSeat as any).registerAsEvil = true;
-                            (recluseSeat as any).registerAsDemon = true;
-                            (recluseSeat as any).registerAsMinion = true;
-                          }}
-                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors border ${
-                            isEvil
-                              ? "bg-red-600 border-red-400 text-white"
-                              : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          邪恶(爪牙/恶魔)
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
 
         {/* Error state when script is empty - only show if actually in night phase */}
         {totalSteps === 0 &&

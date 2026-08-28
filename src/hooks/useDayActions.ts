@@ -208,7 +208,19 @@ export function useDayActions(deps: DayActionsDeps) {
         }
       }
       setNominationMap({ [id]: sourceId });
-      if (nominatorSeat?.role?.type === "minion") {
+
+      // 爪牙提名判定（城镇公告员）：
+      // 陌客默认注册为邪恶爪牙（造成干扰），间谍默认注册为善良（不主动算爪牙）
+      const isRecluseMinion =
+        nominatorSeat?.role?.id === "recluse" &&
+        (nominatorSeat as any).registerAsEvil !== false;
+      const isSpyGood =
+        nominatorSeat?.role?.id === "spy" &&
+        (nominatorSeat as any).registerAsGood !== false &&
+        (nominatorSeat as any).registerAsEvil !== true;
+      const isActualMinion =
+        nominatorSeat?.role?.type === "minion" && !isSpyGood;
+      if (isActualMinion || isRecluseMinion) {
         setTodayMinionNominated(true);
       }
 
@@ -217,11 +229,8 @@ export function useDayActions(deps: DayActionsDeps) {
 
       // 🔧 贞洁者（Virgin）规则：
       // 官方规则：当你首次被提名时，如果提名你的玩家是镇民，他立刻被处决。
-      // 必须同时满足：
-      //   ① 贞洁者是整局游戏的首次被提名（且技能未曾消耗）
-      //   ② 提名者是真实镇民（townsfolk，非酒鬼，未中毒/醉酒）
-      //   ③ 贞洁者本人清醒且健康（未中毒/醉酒）
-      // 关键规则：无论提名者是否为镇民、是否处决成功，一旦贞洁者被首次提名，被动能力立即永久失效！
+      // 间谍默认注册为镇民（造成干扰），若间谍提名贞洁者，间谍被处决！
+      // 陌客默认注册为邪恶/爪牙/恶魔（造成干扰），若陌客提名贞洁者，不触发处决。
       if (target?.role?.id === "virgin") {
         const isVirginUsed = !!(
           hasUsedAbility("virgin", id) ||
@@ -240,11 +249,21 @@ export function useDayActions(deps: DayActionsDeps) {
           markAbilityUsed("virgin", id);
 
           const isVirginDisabled = isActorDisabledByPoisonOrDrunk(target);
+          const isSpyAsTownsfolk =
+            nominatorSeat?.role?.id === "spy" &&
+            (nominatorSeat as any).registerAsGood !== false &&
+            (nominatorSeat as any).registerAsEvil !== true;
+          const isRecluseAsTownsfolk =
+            nominatorSeat?.role?.id === "recluse" &&
+            (nominatorSeat as any).registerAsTownsfolk === true;
           const isRealTownsfolk =
             virginOverride?.nominatorIsTownsfolk ??
             (nominatorSeat &&
-              nominatorSeat.role?.type === "townsfolk" &&
-              nominatorSeat.role?.id !== "drunk" &&
+              ((nominatorSeat.role?.type === "townsfolk" &&
+                nominatorSeat.role?.id !== "drunk" &&
+                nominatorSeat.role?.id !== "recluse") ||
+                isSpyAsTownsfolk ||
+                isRecluseAsTownsfolk) &&
               !nominatorSeat.isDrunk &&
               !isActorDisabledByPoisonOrDrunk(nominatorSeat));
 
@@ -975,11 +994,15 @@ export function useDayActions(deps: DayActionsDeps) {
         }
 
         const targetRole = targetSeat.role;
-        // 官方规则：如果目标是恶魔、恶魔继承者、或被说书人注册为恶魔的陌客
+        // 官方规则：如果目标是恶魔、恶魔继承者、或注册为恶魔的陌客（陌客默认注册为恶魔）
         const isDemon =
           targetRole?.type === "demon" ||
           targetSeat.isDemonSuccessor ||
-          (targetRole?.id === "recluse" && (targetSeat as any).registerAsDemon);
+          (targetRole?.id === "recluse" &&
+            (targetSeat as any).registerAsDemon !== false &&
+            (targetSeat as any).registerAsEvil !== false) ||
+          (targetRole?.id === "spy" &&
+            (targetSeat as any).registerAsDemon === true);
         const isRealSlayer =
           sourceSeat.role?.id === "slayer" &&
           !sourceSeat.isDrunk &&

@@ -15,6 +15,7 @@ export interface CharacterWikiDetails {
   operation?: string; // 运作方式
   reminderTokens?: string; // 提示标记
   ruleDetails?: string; // 规则细节
+  scenarios?: string; // 官方具名范例
   strategyTips: string[]; // 玩法推荐 / 提示与技巧 (清洗拆分为段落要点)
   bluffTips?: string[]; // 伪装成xxx
   counterTips?: string[]; // 对抗xxx
@@ -62,9 +63,8 @@ for (const char of rawList) {
   }
 }
 
-// 罂粟花开 4 角色（罂粟种植者 / 告密者 / 提线木偶 / 军团）从 src/data/poppyganda_official_extras.json 注入；
-// 因为 json/full/all_characters.json 不含这 4 角色，且 json/ 目录受 clinerules 保护。
-// 注：赏金猎人 / 小精灵暂未收录。
+// 罂粟花开 6 角色（罂粟种植者 / 告密者 / 提线木偶 / 军团 / 赏金猎人 / 小精灵）从 src/data/poppyganda_official_extras.json 注入；
+// 因为 json/full/all_characters.json 不含这 6 角色，且 json/ 目录受 clinerules 保护。
 const poppygandaExtraList = Object.values(
   poppygandaExtras as unknown as Record<string, RawCharacter>
 ).filter((c) => c && c.名称);
@@ -200,6 +200,7 @@ export function getCharacterWikiDetails(
     operation: content["运作方式"],
     reminderTokens: content["提示标记"],
     ruleDetails: content["规则细节"],
+    scenarios: content["范例"],
     strategyTips:
       strategyTips.length > 0
         ? strategyTips

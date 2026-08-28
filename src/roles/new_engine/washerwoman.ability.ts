@@ -155,12 +155,24 @@ function getTownsfolkCandidates(
     const realRole = seat.role;
     const displayRole = seat.effectiveRole ?? seat.charadeRole ?? realRole;
 
-    // 间谍和隐士可以注册为镇民
-    const canRegisterAsTownsfolk =
-      realRole.id === "spy" || realRole.id === "recluse";
+    // 间谍默认注册为镇民（造成干扰）
+    const isSpyAsTownsfolk =
+      realRole.id === "spy" &&
+      (seat as any).registerAsGood !== false &&
+      (seat as any).registerAsEvil !== true;
+    const isRecluseAsTownsfolk =
+      realRole.id === "recluse" &&
+      (seat as any).registerAsTownsfolk === true;
 
-    if (realRole.type === "townsfolk" || canRegisterAsTownsfolk) {
-      candidates.push({ seat, roleName: displayRole.name ?? realRole.name });
+    if (
+      realRole.type === "townsfolk" ||
+      isSpyAsTownsfolk ||
+      isRecluseAsTownsfolk
+    ) {
+      const tfRoleName = isSpyAsTownsfolk
+        ? "僧侣"
+        : (displayRole.name ?? realRole.name);
+      candidates.push({ seat, roleName: tfRoleName });
     }
   }
 

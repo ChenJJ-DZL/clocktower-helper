@@ -16,7 +16,7 @@ function makeSeat(
   id: number,
   role: { id: string; name: string; type: string },
   overrides: Record<string, any> = {}
-) {
+): any {
   return {
     id,
     role: { id: role.id, name: role.name, type: role.type },

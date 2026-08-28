@@ -3,6 +3,7 @@
  * 根据当前游戏状态动态生成真实需要唤醒的角色队列，兼容所有隐性规则
  */
 
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 
 // 全量夜晚顺序表项
@@ -134,6 +135,13 @@ export function generateDynamicNightQueue(
       if (!seat) return false;
       return true;
     }
+    if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
+      // 军团互认：仅首夜，且存活军团 >= 1 时进入
+      if (!isFirstNight) return false;
+      return snapshot.seats.some(
+        (s) => s.role?.id === "legion" && (includeDead || !s.isDead)
+      );
+    }
 
     // 找到对应的座位（默认只找存活玩家）
     // includeDead 全局覆盖 + deadActorWakes 角色级覆盖（如间谍死后仍唤醒）
@@ -201,13 +209,15 @@ export function generateDynamicNightQueue(
   // 3. 转换为NightActionNode格式
   const queue: NightActionNode[] = validEntries.map((entry) => {
     // 系统信息步骤：按角色类型查找座位
-    let seat;
+    let seat: any;
     if (entry.roleId === "minion_info") {
       seat = snapshot.seats.find(
         (s) => s.role?.type === "minion" && !s.isDead
       )!;
     } else if (entry.roleId === "demon_info") {
       seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
+    } else if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
+      seat = snapshot.seats.find((s) => s.role?.id === "legion" && !s.isDead)!;
     } else {
       seat = snapshot.seats.find(
         (s) => getEffectiveRoleId(s) === entry.roleId
@@ -239,12 +249,23 @@ export function generateDynamicNightQueue(
 
   // 4. 军团专项：军团在场时把 demon_info 节点按军团数量展开，
   //    每个军团独立获得一份「3 个不在场角色」伪装信息。
+  // 军团互认节点打标：供 UI 与行动处理器识别（无需选择目标）
+  const flagLegionMutual = queue.map((node) =>
+    node.roleId === LEGION_MUTUAL_RECOGNITION_ID
+      ? {
+          ...node,
+          roleName: "军团互认",
+          meta: { ...node.meta, isLegionMutualRecognition: true },
+        }
+      : node
+  );
+
   const legionSeats = snapshot.seats.filter(
     (s) => s.role?.id === "legion" && !s.isDead
   );
   if (legionSeats.length > 1) {
     const expanded: NightActionNode[] = [];
-    for (const node of queue) {
+    for (const node of flagLegionMutual) {
       if (node.roleId === "demon_info") {
         // 第一份给第一个军团（保留原 node），其余为额外军团复制
         expanded.push(node);
@@ -266,7 +287,7 @@ export function generateDynamicNightQueue(
     return expanded;
   }
 
-  return queue;
+  return flagLegionMutual;
 }
 
 /**

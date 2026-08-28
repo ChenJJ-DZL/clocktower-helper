@@ -222,10 +222,16 @@ function resolveRecluseForChef(
   const key = `chef_recluse_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
-  // 测试注入：说书人可显式指定
+  const seat = ctx?.snapshot?.seats?.find((s: any) => s.id === seatId);
+  if (seat && (seat as any).registerAsEvil !== undefined) {
+    const result = (seat as any).registerAsEvil !== false;
+    meta[key] = result;
+    return result;
+  }
+
+  // 默认：陌客默认为邪恶（除非说书人手动切换或显式指定）
   const forced = (ctx as any)?.storytellerInput?.forceChefRecluseEvil;
-  const result =
-    forced === true ? true : forced === false ? false : Math.random() < 0.5;
+  const result = forced === false ? false : true;
   meta[key] = result;
   return result;
 }
@@ -234,7 +240,7 @@ function resolveRecluseForChef(
  * 确定 Spy 在本次厨师探查中是否被当作善良（从而不记为邪恶）。
  *
  * 规则细节："间谍可能不会被当作是邪恶阵营"
- * → Spy（间谍）有 50% 概率注册为善良。
+ * → Spy（间谍）默认注册为善良（不记为邪恶）。
  *
  * 一致性保证：使用 meta 缓存首次判定结果。
  * 返回 true 表示「被当作善良，不记为邪恶」。
@@ -247,9 +253,21 @@ function resolveSpyForChef(
   const key = `chef_spy_${seatId}`;
   if (meta[key] !== undefined) return meta[key] as boolean;
 
+  const seat = ctx?.snapshot?.seats?.find((s: any) => s.id === seatId);
+  if (seat && (seat as any).registerAsGood !== undefined) {
+    const result = (seat as any).registerAsGood !== false;
+    meta[key] = result;
+    return result;
+  }
+  if (seat && (seat as any).registerAsEvil !== undefined) {
+    const result = !(seat as any).registerAsEvil;
+    meta[key] = result;
+    return result;
+  }
+
+  // 默认：间谍默认为好人（注册为善良，不记为邪恶）
   const forced = (ctx as any)?.storytellerInput?.forceChefSpyGood;
-  const result =
-    forced === true ? true : forced === false ? false : Math.random() < 0.5;
+  const result = forced === false ? false : true;
   meta[key] = result;
   return result;
 }
