@@ -8,7 +8,7 @@
  * 注意：无神论者的存在意味着说书人可以在游戏中做任何事，
  * 这使得该角色的实现需要引擎层面支持胜利条件反转。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

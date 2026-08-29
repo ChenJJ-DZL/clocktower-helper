@@ -179,7 +179,7 @@ export function useGameFlow(): UseGameFlowResult {
       // 非游戏阶段：停止计时
       setIsTimerRunning(false);
     }
-  }, [dispatch, state.gamePhase]);
+  }, [dispatch, state.gamePhase, state.seats.map]);
 
   // 计时器逻辑
   useEffect(() => {
@@ -256,6 +256,7 @@ export function useGameFlow(): UseGameFlowResult {
       })
     );
     dispatch(gameActions.setGamePhase("day"));
+    dispatch(gameActions.saveHistory({ gamePhase: "day" }));
   }, [dispatch, nightCount]);
 
   const confirmNightDeathReport = useCallback(() => {
@@ -336,6 +337,9 @@ export function useGameFlow(): UseGameFlowResult {
       gameActions.updateState({ nominationMap: {}, votedThisRound: [] })
     );
     dispatch(gameActions.setModal(null));
+    dispatch(
+      gameActions.saveHistory({ gamePhase: "dusk", seats: cleanedSeats })
+    );
   }, [currentDuskExecution, seats, dispatch, clearExpiredNightEffects]);
 
   const handleDayEndTransition = useCallback(() => {
@@ -480,6 +484,13 @@ export function useGameFlow(): UseGameFlowResult {
         })
       );
       dispatch(gameActions.setGamePhase("check"));
+      dispatch(
+        gameActions.saveHistory({
+          seats: withRed,
+          initialSeats: JSON.parse(JSON.stringify(withRed)),
+          gamePhase: "check",
+        })
+      );
     },
     [dispatch]
   );
@@ -546,6 +557,15 @@ export function useGameFlow(): UseGameFlowResult {
     // 清除模态框和待处理队列
     dispatch(gameActions.setModal(null));
     dispatch(gameActions.updateState({ pendingNightQueue: null }));
+    dispatch(
+      gameActions.saveHistory({
+        gamePhase: "firstNight",
+        wakeQueueIds: wakeIds,
+        currentWakeIndex: 0,
+        nightActionQueue: pendingNightQueue,
+        selectedActionTargets: [],
+      })
+    );
 
     console.log(
       "[confirmNightOrderPreview] ✅ Night started with queue:",
@@ -574,7 +594,7 @@ export function useGameFlow(): UseGameFlowResult {
   const proceedToFirstNightRef = useRef<typeof proceedToFirstNight>(() => {});
 
   const proceedToFirstNight = useCallback(
-    (rolesToUse?: Role[]) => {
+    (_rolesToUse?: Role[]) => {
       // 🛡️ Guard: If already in night phase, do NOT regenerate queue
       if (gamePhase === "firstNight" || gamePhase === "night") {
         console.warn(

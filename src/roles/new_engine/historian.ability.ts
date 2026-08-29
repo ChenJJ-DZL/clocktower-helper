@@ -6,7 +6,7 @@
  * 每天获取前一天所有已触发的能力使用记录。
  * allowSelf: false — 无需选择目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

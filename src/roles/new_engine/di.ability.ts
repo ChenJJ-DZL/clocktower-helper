@@ -6,7 +6,7 @@
  * 每局游戏仅可使用一次。选择一名存活玩家赋予特殊能力标记。
  * allowSelf: true — 可以选择自己
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

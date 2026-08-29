@@ -15,7 +15,7 @@
  * 【网页版适配】替死由击杀方路径调用 taowuImmunity.tryTaowuSubstitute。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import { isImmuneToDemonKill } from "../../utils/soldierImmunity";
 import {
   AbilityTriggerTiming,

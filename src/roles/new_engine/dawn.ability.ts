@@ -6,7 +6,7 @@
  * 标记游戏进入白天阶段。用于触发器排序和流程控制。
  * allowSelf: false — 无需选择目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

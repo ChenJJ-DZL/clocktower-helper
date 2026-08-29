@@ -9,7 +9,7 @@
  *   - 阶段 1（首夜）：从剧本中"不在场"角色中选 3 个善良角色 → 推送给所有存活爪牙
  *   - 提线木偶相克：marionette 在场时，跳过 marionette；改由恶魔额外推送 3 角色
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

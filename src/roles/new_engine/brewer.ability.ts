@@ -12,7 +12,7 @@
  * 网页版适配：效果数据写入 snapshot.brewerEffect，全局钩子 applyBrewerEffect
  * 在信息角色结算时替换其信息产物（displayInfo/abilityResult），UI 弹窗直接展示。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

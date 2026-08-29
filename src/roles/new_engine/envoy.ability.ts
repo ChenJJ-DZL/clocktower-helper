@@ -6,7 +6,7 @@
  * 每局游戏仅可使用一次。使节可以选择代替说书人宣布一条信息。
  * allowSelf: false — 无需选择目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

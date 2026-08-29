@@ -5,7 +5,7 @@
  *
  * 将军可以感知己方阵营的局势，了解善良与邪恶阵营谁占优势。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

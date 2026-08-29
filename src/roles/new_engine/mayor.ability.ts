@@ -43,7 +43,7 @@
  * ============================================================
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -141,7 +141,7 @@ const calculateResult = async (
     }
   } else if (abilityEffective && targetIds?.[0] !== undefined) {
     const targetSeat = snapshot.seats.find((s: any) => s.id === targetIds[0]);
-    if (targetSeat && targetSeat.isAlive) {
+    if (targetSeat?.isAlive) {
       substituteSeatId = targetIds[0];
       substitutionHappens = true;
     }

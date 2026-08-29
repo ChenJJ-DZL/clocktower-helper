@@ -6,8 +6,7 @@
  * 首夜选择一名目标玩家，使其醉酒状态持续3晚。
  * 通过 snapshot.courtier.drunkUntilNight 记录醉酒截止的夜晚编号。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
-import type { GameStateSnapshot } from "../../utils/nightStateMachine";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -1,5 +1,5 @@
 /** 狸猫（RaccoonDog）新引擎技能实现\n * 【角色能力】"可以变身成其他角色。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

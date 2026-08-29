@@ -4,7 +4,7 @@
  * 【角色能力】每局一次，说书人可以给善良玩家提供一条错误信息。
  * 被动触发，说书人决定何时使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

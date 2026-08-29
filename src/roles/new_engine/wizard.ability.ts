@@ -5,7 +5,7 @@
  *
  * 巫师每局游戏可使用一次法术能力，由说书人根据法术效果执行对应操作。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

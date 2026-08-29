@@ -8,7 +8,7 @@
  * 如果醉酒/中毒，可能得知任意存活玩家（不保证阵营不同）。
  * 自动信息类不弹窗选目标，不主动唤醒。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

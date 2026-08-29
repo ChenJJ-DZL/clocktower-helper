@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 
 export interface RoleTokenBadgeProps {
   name: string;

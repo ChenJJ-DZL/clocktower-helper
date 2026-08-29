@@ -6,7 +6,7 @@
  * 这是游戏准备阶段的Setup能力，选择一名玩家获得额外投票权。
  * allowSelf: true — 可以选择自己。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

@@ -5,7 +5,7 @@
  * 说书人可点击按钮对任意玩家施加惩罚（中毒/醉酒/死亡）。
  * DAY 触发，由说书人手动操作。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

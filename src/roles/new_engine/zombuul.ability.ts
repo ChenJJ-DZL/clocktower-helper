@@ -1,5 +1,5 @@
 import { createSettlementPostProcess } from "../../utils/abilitySettlement";
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import type { GameStateSnapshot } from "../../utils/nightStateMachine";
 import {
   isImmuneToDemonKill,

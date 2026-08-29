@@ -1,6 +1,5 @@
 import type { Seat } from "../../types/game";
 import type { RoleDefinition } from "../../types/roleDefinition";
-import { addPoisonMark, computeIsPoisoned } from "../../utils/gameRules";
 
 /**
  * 寡妇 (Widow)

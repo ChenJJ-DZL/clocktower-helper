@@ -77,11 +77,11 @@ describe("applyLegionRoleSwap — 军团 setup 角色类型反转", () => {
     // 1 号原外来者 → legion
     expect(res.seats[1].role?.id).toBe("legion");
     expect(res.seats[1].role?.type).toBe("demon");
-    // 2 号原爪牙 → townsfolk（默认 washerwoman）
+    // 2 号原爪牙 → townsfolk (washerwoman)
     expect(res.seats[2].role?.id).toBe("washerwoman");
     expect(res.seats[2].role?.type).toBe("townsfolk");
-    // 3 号原恶魔 → townsfolk
-    expect(res.seats[3].role?.id).toBe("washerwoman");
+    // 3 号原恶魔 → townsfolk (librarian - 分配不同角色)
+    expect(res.seats[3].role?.id).toBe("librarian");
     expect(res.seats[3].role?.type).toBe("townsfolk");
     // 4 号军团（已是 legion）保持
     expect(res.seats[4].role?.id).toBe("legion");
@@ -122,7 +122,7 @@ describe("applyLegionRoleSwap — 军团 setup 角色类型反转", () => {
     expect(res.applied).toBe(true);
     // 13 镇 + 2 外 = 15 镇民/外来者 → legion
     expect(res.legionCount).toBe(15);
-    // 4 爪 + 2 恶 (imp + vortox；legion 不算) = 6 → townsfolk
+    // 4 爪 + 2 恶 (imp + vortox；legion 不算) = 6 → 转换为善良角色
     expect(res.newTownsfolkCount).toBe(6);
 
     // 前 15 个座位（0-14）应是 legion
@@ -130,9 +130,9 @@ describe("applyLegionRoleSwap — 军团 setup 角色类型反转", () => {
       expect(res.seats[i].role?.id).toBe("legion");
       expect(res.seats[i].role?.type).toBe("demon");
     }
-    // 后 7 个座位（15-21）：15-18 爪 + 19-20 恶 = 6 变 townsfolk；21 号 legion 保持
+    // 后 7 个座位（15-21）：15-18 爪 + 19-20 恶 = 6 变善良角色；21 号 legion 保持
     for (let i = 15; i <= 20; i++) {
-      expect(res.seats[i].role?.type).toBe("townsfolk");
+      expect(["townsfolk", "outsider"]).toContain(res.seats[i].role?.type);
     }
     // 21 号军团（legion 自身）保持
     expect(res.seats[21].role?.id).toBe("legion");

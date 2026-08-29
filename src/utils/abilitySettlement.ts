@@ -8,7 +8,7 @@
  * 本工具提供通用结算 postProcess：按行动节点 + 目标生成三件套结算产物。
  * 信息类角色应使用各自能力内部的专属 postProcess（生成具体信息内容）。
  */
-import type { MiddlewareContext } from "./middlewarePipeline";
+import type { MiddlewareContext } from "./middlewareTypes";
 
 export interface SettlementOptions {
   /** 结算文案类型（用于 displayInfo.type） */

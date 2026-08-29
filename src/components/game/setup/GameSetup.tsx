@@ -9,6 +9,7 @@ import {
 } from "../../../../app/data";
 import { ModalWrapper } from "../../modals/ModalWrapper";
 import { PlayerCompositionModal } from "../../modals/PlayerCompositionModal";
+import { QuickStartModal } from "../../modals/QuickStartModal";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -96,6 +97,16 @@ interface GameSetupProps {
   handleBaronAutoRebalance?: () => void;
   hideSeatingChart?: boolean;
   onQuickTest?: () => void;
+  onQuickStart?: (
+    playerCount: number,
+    sortedRoles: Array<
+      Role & {
+        charadeRole?: Role | null;
+        apparentDemonRole?: Role | null;
+        displayRole?: Role | null;
+      }
+    >
+  ) => void;
 }
 
 const groupTitle: Record<string, string> = {
@@ -123,10 +134,12 @@ export default function GameSetup({
   setIgnoreBaronSetup,
   handleBaronAutoRebalance,
   onQuickTest,
+  onQuickStart,
 }: GameSetupProps) {
   const [showCompositionModal, setShowCompositionModal] = useState(false);
   const [showCompositionGuideModal, setShowCompositionGuideModal] =
     useState(false);
+  const [showQuickStartModal, setShowQuickStartModal] = useState(false);
 
   const {
     playerCount,
@@ -213,16 +226,17 @@ export default function GameSetup({
               <div className="text-3xl font-black text-slate-50">
                 {selectedScript?.name ?? "未选择"}
               </div>
-              {onQuickTest && selectedScript && (
+              {selectedScript && (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onQuickTest();
+                    setShowQuickStartModal(true);
                   }}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg transition-all active:scale-95"
-                  title="自动分配15名玩家的标准阵容，快速开始测试"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg transition-all active:scale-95 cursor-pointer"
+                  title="选择人数并随机生成阵容，按行动顺序排定座次快速开始"
                 >
-                  ⚡ 快速测试
+                  ⚡ 快速开始
                 </button>
               )}
             </div>
@@ -519,6 +533,20 @@ export default function GameSetup({
         currentPlayerCount={playerCount || seats.length}
         script={selectedScript}
         scriptName={selectedScript?.name}
+      />
+
+      {/* ⚡ 快速开始弹窗 */}
+      <QuickStartModal
+        isOpen={showQuickStartModal}
+        onClose={() => setShowQuickStartModal(false)}
+        selectedScript={selectedScript}
+        onConfirm={(count, sortedRoles) => {
+          if (onQuickStart) {
+            onQuickStart(count, sortedRoles);
+          } else if (onQuickTest) {
+            onQuickTest();
+          }
+        }}
       />
     </div>
   );

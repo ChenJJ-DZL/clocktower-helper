@@ -2,14 +2,12 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useGameActions } from "../../contexts/GameActionsContext";
-import type { GameState } from "../../contexts/GameContext";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useGameState } from "../../hooks/useGameState";
 import { useHistoryController } from "../../hooks/useHistoryController";
 import {
   clearCurrentSnapshot,
-  createSnapshotFromState,
   generateId,
   loadGameRecords,
   saveGameRecord,
@@ -206,31 +204,39 @@ export function GlobalNavBar() {
           <ModalWrapper
             title="🔄 确认重置"
             onClose={cancelReset}
-            className="max-w-md"
+            size="fullscreen90"
             footer={
-              <div className="flex gap-3 justify-end w-full">
+              <div className="flex gap-4 w-full justify-center">
                 <button
+                  type="button"
                   onClick={cancelReset}
-                  className="px-6 py-2.5 rounded-xl bg-gray-700 text-white font-medium hover:bg-gray-600 transition"
+                  className="flex-1 max-w-xs py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-lg sm:text-xl border border-slate-700 transition cursor-pointer active:scale-95"
                 >
                   取消
                 </button>
                 <button
+                  type="button"
                   onClick={confirmReset}
-                  className="px-6 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition"
+                  className="flex-1 max-w-xs py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-lg sm:text-xl shadow-xl shadow-red-950/60 ring-2 ring-red-400 transition cursor-pointer active:scale-[0.98]"
                 >
                   确认重置
                 </button>
               </div>
             }
           >
-            <div className="space-y-3 py-2 text-center">
-              <p className="text-base text-gray-200">
-                当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
-              </p>
-              <p className="text-sm text-yellow-400 font-medium">
-                你可以在历史记录中随时继续未完成的游戏。
-              </p>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-6 my-auto w-full">
+              <div className="text-6xl sm:text-7xl md:text-8xl">🔄</div>
+              <div className="space-y-4 max-w-3xl">
+                <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed">
+                  确定要重置当前对局吗？
+                </p>
+                <p className="text-xl sm:text-2xl text-amber-300 font-bold leading-relaxed">
+                  当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
+                </p>
+                <p className="text-base sm:text-xl text-slate-300 font-medium">
+                  你可以在历史记录中随时继续未完成的游戏。
+                </p>
+              </div>
             </div>
           </ModalWrapper>
         )}
@@ -256,31 +262,39 @@ export function GlobalNavBar() {
         <ModalWrapper
           title="🔄 确认重置"
           onClose={cancelReset}
-          className="max-w-md"
+          size="fullscreen90"
           footer={
-            <div className="flex gap-3 justify-end w-full">
+            <div className="flex gap-4 w-full justify-center">
               <button
+                type="button"
                 onClick={cancelReset}
-                className="px-6 py-2.5 rounded-xl bg-gray-700 text-white font-medium hover:bg-gray-600 transition"
+                className="flex-1 max-w-xs py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-lg sm:text-xl border border-slate-700 transition cursor-pointer active:scale-95"
               >
                 取消
               </button>
               <button
+                type="button"
                 onClick={confirmReset}
-                className="px-6 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition"
+                className="flex-1 max-w-xs py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-lg sm:text-xl shadow-xl shadow-red-950/60 ring-2 ring-red-400 transition cursor-pointer active:scale-[0.98]"
               >
                 确认重置
               </button>
             </div>
           }
         >
-          <div className="space-y-3 py-2 text-center">
-            <p className="text-base text-gray-200">
-              当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
-            </p>
-            <p className="text-sm text-yellow-400 font-medium">
-              你可以在历史记录中随时继续未完成的游戏。
-            </p>
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-6 my-auto w-full">
+            <div className="text-6xl sm:text-7xl md:text-8xl">🔄</div>
+            <div className="space-y-4 max-w-3xl">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed">
+                确定要重置当前对局吗？
+              </p>
+              <p className="text-xl sm:text-2xl text-amber-300 font-bold leading-relaxed">
+                当前游戏进程将被保存到历史记录中，然后重新开始一局新游戏。
+              </p>
+              <p className="text-base sm:text-xl text-slate-300 font-medium">
+                你可以在历史记录中随时继续未完成的游戏。
+              </p>
+            </div>
           </div>
         </ModalWrapper>
       )}
@@ -346,7 +360,7 @@ export function GlobalNavBar() {
             }`}
             title="撤销上一步操作"
           >
-            ↩ 撤销
+            ⬅️ 撤销
           </button>
 
           <button
@@ -359,7 +373,7 @@ export function GlobalNavBar() {
             }`}
             title="重做被撤销的操作"
           >
-            ↪ 重做
+            重做 ➡️
           </button>
         </div>
 

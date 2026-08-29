@@ -7,7 +7,7 @@
  * - 弄臣被处决后，弄臣玩家单独获胜（无论游戏结果如何）
  * - 需要游戏引擎在结算处决时特殊处理
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

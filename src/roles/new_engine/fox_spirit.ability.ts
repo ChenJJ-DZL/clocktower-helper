@@ -5,7 +5,7 @@
  *
  * 自定义角色，PASSIVE 触发，记录狐妖目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

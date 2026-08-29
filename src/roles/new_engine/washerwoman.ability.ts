@@ -49,7 +49,7 @@
  * ============================================================
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -161,8 +161,7 @@ function getTownsfolkCandidates(
       (seat as any).registerAsGood !== false &&
       (seat as any).registerAsEvil !== true;
     const isRecluseAsTownsfolk =
-      realRole.id === "recluse" &&
-      (seat as any).registerAsTownsfolk === true;
+      realRole.id === "recluse" && (seat as any).registerAsTownsfolk === true;
 
     if (
       realRole.type === "townsfolk" ||

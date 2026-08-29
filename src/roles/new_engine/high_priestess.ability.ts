@@ -6,7 +6,7 @@
  * 每夜从其他玩家中随机（或说书人指定）选择一名作为交流指引对象。
  * allowSelf: false — 不能选择自己
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

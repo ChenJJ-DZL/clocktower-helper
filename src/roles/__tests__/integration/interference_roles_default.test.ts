@@ -14,15 +14,14 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Seat } from "../../../../app/data";
 import { getRegistration } from "../../../utils/gameRules";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
+import { investigatorAbility } from "../../new_engine/investigator.ability";
+import { knightAbility } from "../../new_engine/knight.ability";
 import { nobleAbility } from "../../new_engine/noble.ability";
 import { oracleAbility } from "../../new_engine/oracle.ability";
 import { seamstressAbility } from "../../new_engine/seamstress.ability";
-import { investigatorAbility } from "../../new_engine/investigator.ability";
 import { washerwomanAbility } from "../../new_engine/washerwoman.ability";
-import { knightAbility } from "../../new_engine/knight.ability";
 
 describe("干扰类型角色默认设定集成测试（该造成干扰的，默认都造成干扰）", () => {
   it("1. gameRules.getRegistration: 陌客默认邪恶恶魔爪牙，间谍默认善良镇民外来者", () => {

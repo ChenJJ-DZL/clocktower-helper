@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：被邪恶玩家私下选择时转换阵营。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

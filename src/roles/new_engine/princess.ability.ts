@@ -8,7 +8,7 @@
  * - 公主展示身份后处决不导致死亡
  * - 当晚恶魔无法杀人
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -6,7 +6,7 @@
  * 每夜选择一名玩家作为追捕目标。
  * allowSelf: false — 不能追捕自己
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

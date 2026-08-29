@@ -6,7 +6,7 @@
  *
  * 每夜可杀人，但仅在有外来者死亡时可以行动。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

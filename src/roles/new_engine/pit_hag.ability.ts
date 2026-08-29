@@ -6,7 +6,7 @@
  *
  * 每夜选择目标+角色，进行角色变换。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

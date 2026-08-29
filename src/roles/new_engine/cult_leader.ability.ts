@@ -5,7 +5,7 @@
  *
  * 每夜选择一名玩家结盟，白天一起投票。若两人都未投给被处决者，则双双堕入邪恶阵营。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

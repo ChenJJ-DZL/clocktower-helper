@@ -44,22 +44,22 @@ export function NoteEditModal({
         className="bg-slate-800 rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl border border-slate-600 animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 bg-slate-700/50 border-b border-slate-600 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+        <div className="p-4 sm:p-5 bg-slate-700/50 border-b border-slate-600 flex items-center justify-between">
+          <h3 className="text-2xl font-black text-slate-100 flex items-center gap-2">
             📝 备忘录
           </h3>
-          <div className="text-sm font-medium px-2 py-1 bg-slate-800 rounded text-slate-300">
+          <div className="text-base font-bold px-3 py-1.5 bg-slate-800 rounded-xl text-amber-300 border border-white/10">
             {seat.id + 1}号 {seat.role?.name || "未知身份"}
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 space-y-2">
           <textarea
             id="note-edit-input"
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             placeholder="输入说书人笔记（例如真假身份、毒/醉状态、夜间目标等）..."
-            className="w-full bg-slate-900 text-slate-100 border border-slate-600 rounded-xl p-3 h-32 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500/50 placeholder-slate-500"
+            className="w-full bg-slate-900 text-slate-100 border border-slate-600 rounded-2xl p-4 h-36 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500/50 placeholder-slate-500 text-lg sm:text-xl leading-relaxed"
             maxLength={100}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -67,21 +67,21 @@ export function NoteEditModal({
               }
             }}
           />
-          <div className="text-right text-xs text-slate-500 mt-1">
+          <div className="text-right text-sm text-slate-400 font-medium">
             {noteText.length}/100 - 可以使用 Ctrl+Enter 提交
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-600 bg-slate-700/30 flex justify-end gap-3">
+        <div className="p-4 sm:p-5 border-t border-slate-600 bg-slate-700/30 flex justify-end gap-4">
           <button
             onClick={onCancel}
-            className="px-5 py-2 rounded-xl bg-slate-600 hover:bg-slate-500 text-slate-100 font-medium transition-colors"
+            className="px-6 py-2.5 rounded-2xl bg-slate-600 hover:bg-slate-500 text-slate-100 font-bold text-base sm:text-lg transition-colors cursor-pointer active:scale-95"
           >
             取消
           </button>
           <button
             onClick={handleConfirm}
-            className="px-5 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold shadow-lg transition-colors"
+            className="px-6 py-2.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-base sm:text-lg shadow-lg shadow-amber-600/40 transition-colors cursor-pointer active:scale-95"
           >
             保存笔记
           </button>

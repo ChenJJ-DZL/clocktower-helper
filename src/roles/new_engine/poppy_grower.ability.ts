@@ -8,7 +8,7 @@
  * 死亡时清除该标记。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -43,9 +43,7 @@ const calculateResult = async (
   );
   // 记录原始罂粟种植者 seatId（在 farmer 转换时仍可识别）
   const originalPoppySeatId =
-    (ctx.snapshot as any).originalPoppyGrowerSeatId ??
-    poppySeat?.id ??
-    null;
+    (ctx.snapshot as any).originalPoppyGrowerSeatId ?? poppySeat?.id ?? null;
   if (poppySeat && originalPoppySeatId !== null) {
     (ctx.snapshot as any).originalPoppyGrowerSeatId = originalPoppySeatId;
   }
@@ -60,8 +58,7 @@ const calculateResult = async (
         (s.statusDetails ?? []).includes("成为新农夫")
     );
 
-  const isAlive =
-    poppySeat?.isAlive !== false && !turnedFarmer; // 活着才算 active
+  const isAlive = poppySeat?.isAlive !== false && !turnedFarmer; // 活着才算 active
   const poppyGrowerActive = (!!poppySeat || turnedFarmer) && isAlive;
 
   return {
@@ -167,9 +164,9 @@ export const poppy_growerAbility = createRoleAbility({
 
   /** 触发时机：被动（持续生效） */
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  /** 被动机无唤醒优先级 */
-  firstNightPriority: 8,
-  otherNightPriority: 6,
+  /** 被动技能无唤醒优先级（纯被动角色夜晚不唤醒） */
+  firstNightPriority: null,
+  otherNightPriority: null,
   /** 首夜有效 */
   firstNightOnly: false,
   /** 被动能力无唤醒提示词 */

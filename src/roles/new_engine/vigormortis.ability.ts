@@ -7,7 +7,7 @@
  *
  * 每夜杀一人。被杀的爪牙保留能力。邻近镇民中毒。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

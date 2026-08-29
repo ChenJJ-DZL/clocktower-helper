@@ -42,7 +42,7 @@ describe("厨师 (Chef)", () => {
     );
   });
   test("首夜触发", () => {
-    expect(1 === 1).toBe(true);
+    expect(true).toBe(true);
   });
   test("0对-邪恶不相邻", () => {
     const ss = [

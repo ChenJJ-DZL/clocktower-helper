@@ -7,7 +7,7 @@
  * 记录被处决玩家的 ID，若该玩家是镇民则食人族获得其能力。
  * 通过 snapshot.cannibal.lastExecutedPlayerId 持久化。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

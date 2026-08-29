@@ -17,7 +17,7 @@ import { createPortal } from "react-dom";
 interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: string | React.ReactNode;
   children: React.ReactNode;
   /** 最大高度占比（默认 85%） */
   maxHeightPercent?: number;
@@ -105,10 +105,16 @@ export function BottomSheet({
 
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 shrink-0">
-          <h3 className="text-lg font-bold text-white">{title}</h3>
+          <div className="flex-1 min-w-0">
+            {typeof title === "string" ? (
+              <h3 className="text-lg font-bold text-white">{title}</h3>
+            ) : (
+              title
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white shrink-0"
             aria-label="关闭"
           >
             ✕

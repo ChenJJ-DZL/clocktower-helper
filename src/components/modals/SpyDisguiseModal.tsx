@@ -44,7 +44,8 @@ export function SpyDisguiseModal() {
     <ModalWrapper
       title="🎭 伪装身份识别"
       onClose={() => props.setCurrentModal(null)}
-      className="max-w-md"
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
     >
       {hasInterferenceRoles ? (
         <div className="space-y-3 text-sm">

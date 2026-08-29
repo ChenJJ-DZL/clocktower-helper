@@ -61,7 +61,7 @@ export function parseInfoResult(
 
   // 0. 特殊处理互认步骤（如 12号-爪牙互认、15号-恶魔互认、军团互认）
   //    第一行小字展示角色互认步骤名（如 12号-爪牙互认），后续行大字展示纯座位号互认信息
-  if (roleName && roleName.includes("互认")) {
+  if (roleName?.includes("互认")) {
     const lines = trimmed
       .split("\n")
       .map((l) => l.trim().replace(/[。.\s]+$/, ""))
@@ -90,7 +90,7 @@ export function parseInfoResult(
   const infoPrefixRegex =
     /^(.*?(?:获得信息|得知信息|在死亡前夜得知|在死亡当夜得知|得知结果|得知|告诉他|告知他|告知))\s*[:：\s]*\s*(.+)$/;
   const infoPrefixMatch = trimmed.match(infoPrefixRegex);
-  if (infoPrefixMatch && infoPrefixMatch[1] && infoPrefixMatch[2]) {
+  if (infoPrefixMatch?.[1] && infoPrefixMatch[2]) {
     const rawHead = infoPrefixMatch[1].trim();
     // 如果头部只是纯引导动词（如 "告诉他" / "告知" / "唤醒X号【角色】，告诉他"），将 prefix 规范化为 "X号-角色获得信息"
     const prefix =
@@ -105,9 +105,7 @@ export function parseInfoResult(
 
   // 3. 单个纯结果值（如 "有", "没有", "是", "否", "0", "1", "2", "3" 等）
   if (/^(有|没有|是|否|\d+)$/.test(trimmed)) {
-    const prefix = roleName
-      ? formatPrefix(`${roleName}获得信息`)
-      : "获得信息";
+    const prefix = roleName ? formatPrefix(`${roleName}获得信息`) : "获得信息";
     return {
       prefix,
       result: `【${trimmed}】`,
@@ -116,7 +114,7 @@ export function parseInfoResult(
 
   // 4. 冒号分割通用匹配
   const colonMatch = trimmed.match(/^(.*?[:：])\s*(.+)$/);
-  if (colonMatch && colonMatch[1] && colonMatch[2]) {
+  if (colonMatch?.[1] && colonMatch[2]) {
     const prefix = formatPrefix(colonMatch[1]);
     const result = formatResult(colonMatch[2]);
     return { prefix, result };

@@ -8,7 +8,7 @@
  * - 每夜按假恶魔时序唤醒，选择击杀目标（不造成真实死亡）
  * - 真实恶魔会被告知疯子的选择
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

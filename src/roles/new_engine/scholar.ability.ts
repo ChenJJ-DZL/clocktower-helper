@@ -1,5 +1,5 @@
 /** 学者（Scholar）新引擎技能实现\n * 【角色能力】"学习一名玩家的能力。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

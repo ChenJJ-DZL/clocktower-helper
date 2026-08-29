@@ -5,7 +5,7 @@
  *
  * 佛教徒每天可以选择一名玩家进行保护，使其免疫当天的死亡效果。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

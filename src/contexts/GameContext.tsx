@@ -19,6 +19,13 @@ import type {
 } from "../../app/data";
 import type { GameRecord, NightHintState } from "../types/game";
 import type { ModalType } from "../types/modal";
+import {
+  createSnapshot,
+  restoreSnapshot,
+  SNAPSHOT_KEYS,
+} from "../utils/undoSnapshot";
+
+export { createSnapshot, restoreSnapshot, SNAPSHOT_KEYS };
 
 /**
  * VFX 触发器状态
@@ -202,7 +209,8 @@ export type GameAction =
   | { type: "SET_VFX_TRIGGER"; trigger: VfxTrigger }
   | { type: "DECLARE_MAYOR_WIN" }
   | { type: "SET_ACTIVE_FABLED"; fabled: Role[] }
-  | { type: "TOGGLE_FABLED"; role: Role };
+  | { type: "TOGGLE_FABLED"; role: Role }
+  | { type: "SAVE_HISTORY"; overrideState?: Partial<GameState> };
 // ... 可以继续添加更多Action
 
 /**
@@ -210,6 +218,31 @@ export type GameAction =
  */
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+    case "SAVE_HISTORY": {
+      const baseState = action.overrideState
+        ? { ...state, ...action.overrideState }
+        : state;
+      const snapshot = createSnapshot(baseState);
+      let newHistory: any[];
+      let newIndex: number;
+
+      if (state.history.length === 0 || state.historyIndex === -1) {
+        newHistory = [snapshot];
+        newIndex = 0;
+      } else {
+        const truncated = state.history.slice(0, state.historyIndex + 1);
+        newHistory = [...truncated, snapshot].slice(-300);
+        newIndex = newHistory.length - 1;
+      }
+
+      return {
+        ...state,
+        ...(action.overrideState || {}),
+        history: newHistory,
+        historyIndex: newIndex,
+      };
+    }
+
     case "SET_PRIVACY_SHIELD_ACTIVE":
       return { ...state, isPrivacyShieldActive: action.active };
 
@@ -718,6 +751,10 @@ export const gameActions = {
   setHistory: (history: any[]): GameAction => ({
     type: "SET_HISTORY",
     history,
+  }),
+  saveHistory: (overrideState?: Partial<GameState>): GameAction => ({
+    type: "SAVE_HISTORY",
+    overrideState,
   }),
   updateState: (updates: Partial<GameState>): GameAction => ({
     type: "UPDATE_STATE",

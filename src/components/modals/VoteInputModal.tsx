@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Seat } from "../../../app/data";
 import { isPlayerEvil } from "../../../app/gameLogic";
-import type { ModalType } from "../../types/modal";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ButlerVoteInfo {

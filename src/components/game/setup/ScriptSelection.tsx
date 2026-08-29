@@ -19,6 +19,7 @@ import {
   loadCurrentSnapshot,
   loadGameRecords,
 } from "../../../utils/persistence";
+import { createSnapshot } from "../../../utils/undoSnapshot";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { RoleCodexModal } from "../../modals/RoleCodexModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
@@ -52,7 +53,7 @@ interface ScriptSelectionProps {
 
 export default function ScriptSelection({
   onScriptSelect,
-  saveHistory,
+  saveHistory: _saveHistory,
   setGameLogs,
   setGamePhase,
   onContinue,
@@ -92,8 +93,6 @@ export default function ScriptSelection({
   }, [dispatch]);
 
   const startFreshGame = (script: Script) => {
-    // 保存选择剧本前的状态到历史记录
-    saveHistory();
     onScriptSelect(script);
     setGameLogs([]); // 选择新剧本时清空之前的游戏记录
 
@@ -131,8 +130,35 @@ export default function ScriptSelection({
       })
     );
 
-    dispatch(gameActions.setSeats(initialSeats));
-    dispatch(gameActions.updateState({ initialSeats, selectedScript: script }));
+    const initialSetupState = {
+      seats: initialSeats,
+      initialSeats,
+      selectedScript: script,
+      gamePhase: "setup" as const,
+      nightCount: 1,
+      executedPlayerId: null,
+      wakeQueueIds: [],
+      currentWakeIndex: 0,
+      selectedActionTargets: [],
+      gameLogs: [],
+      deadThisNight: [],
+      todayExecutedId: null,
+      nominationRecords: {
+        nominators: new Set<number>(),
+        nominees: new Set<number>(),
+      },
+    };
+
+    // 🎯 建立落座阶段（空座位）基准快照（index = 0），支持后续一路撤销回退至此
+    const baseSnapshot = createSnapshot(initialSetupState);
+
+    dispatch(
+      gameActions.updateState({
+        ...initialSetupState,
+        history: [baseSnapshot],
+        historyIndex: 0,
+      })
+    );
     setGamePhase("setup");
   };
 

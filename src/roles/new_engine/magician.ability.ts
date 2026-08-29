@@ -7,7 +7,7 @@
  * 恶魔（及其相关能力）在探查或感知阵营时，会将魔术师视为邪恶。
  * 不主动唤醒，持续生效。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

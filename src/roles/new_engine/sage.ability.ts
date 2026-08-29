@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：需要检查死亡原因是否为恶魔，从 snapshot 中找2名邪恶玩家。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

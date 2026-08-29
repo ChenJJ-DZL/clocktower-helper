@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发，标记为提线木偶
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -24,9 +24,8 @@ const calculate = async (
   );
   const masterSeatId =
     (selfSeat as any)?.marionetteMasterSeatId ??
-    ctx.snapshot.seats.find(
-      (s: any) => !s.isDead && s.role?.type === "demon"
-    )?.id ??
+    ctx.snapshot.seats.find((s: any) => !s.isDead && s.role?.type === "demon")
+      ?.id ??
     null;
   return {
     ...ctx,

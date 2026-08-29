@@ -1,5 +1,5 @@
 /** 游侠（Ranger）新引擎技能实现\n * 【角色能力】"夜晚可以保护一名玩家。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

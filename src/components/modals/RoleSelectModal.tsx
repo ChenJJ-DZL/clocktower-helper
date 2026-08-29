@@ -25,25 +25,27 @@ export function RoleSelectModal({ modal }: { modal: any }) {
       onClose={() => props.setCurrentModal(null)}
       className="max-w-4xl"
       footer={
-        <button
-          onClick={() => {
-            props.setCurrentModal(null);
-          }}
-          className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-base font-bold text-white transition"
-        >
-          取消
-        </button>
+        <div className="flex justify-center w-full">
+          <button
+            onClick={() => {
+              props.setCurrentModal(null);
+            }}
+            className="w-full max-w-sm py-3.5 sm:py-4 bg-slate-700 hover:bg-slate-600 rounded-2xl text-base sm:text-lg font-bold text-white transition shadow-md cursor-pointer active:scale-95"
+          >
+            取消
+          </button>
+        </div>
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-4 my-auto w-full">
         {modal.type === "pit_hag" && (
-          <p className="text-xs text-slate-300 bg-slate-800/80 p-3 rounded-xl border border-white/5 leading-relaxed">
+          <p className="text-sm sm:text-base text-slate-200 bg-slate-800/80 p-4 rounded-2xl border border-white/10 leading-relaxed font-medium">
             当前剧本所有角色与座位号如下（仅供参考）：请先在主界面点选一名玩家作为目标，
             再在此选择一个<strong>当前场上尚未登场</strong>
             的角色身份，若合法则该玩家立刻变为该角色，并按夜晚顺位在本夜被叫醒。
           </p>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[50vh] overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 max-h-[60vh] overflow-y-auto pr-1">
           {roles
             .filter((r: Role) => {
               if (modal.type === "philosopher" || modal.type === "cerenovus") {
@@ -66,17 +68,17 @@ export function RoleSelectModal({ modal }: { modal: any }) {
                   onClick={() => {
                     modal.onConfirm(role.id);
                   }}
-                  className={`p-3 rounded-xl border-2 ${typeColor} ${typeBgColor} transition-all text-left flex flex-col justify-between`}
+                  className={`p-4 rounded-2xl border-2 ${typeColor} ${typeBgColor} transition-all text-left flex flex-col justify-between cursor-pointer hover:scale-[1.02] shadow-md`}
                 >
                   <div>
-                    <div className="font-bold text-base text-white">
+                    <div className="font-black text-lg sm:text-xl text-white">
                       {role.name}
                     </div>
-                    <div className="text-xs opacity-80 mt-0.5">
+                    <div className="text-xs sm:text-sm opacity-90 mt-0.5 font-semibold">
                       {typeLabels[role.type]}
                     </div>
                   </div>
-                  <div className="text-xs opacity-60 mt-1.5 line-clamp-2">
+                  <div className="text-xs sm:text-sm opacity-80 mt-2 line-clamp-3 leading-relaxed">
                     {role.ability}
                   </div>
                 </button>
@@ -84,15 +86,15 @@ export function RoleSelectModal({ modal }: { modal: any }) {
             })}
         </div>
         {modal.type === "pit_hag" && (
-          <div className="mt-2 text-left text-xs text-slate-300 max-h-32 overflow-y-auto border border-slate-700 rounded-xl p-3 bg-slate-900/60">
-            <div className="font-bold mb-1 text-slate-200">
+          <div className="mt-3 text-left text-sm text-slate-200 max-h-36 overflow-y-auto border border-slate-700 rounded-2xl p-4 bg-slate-900/80">
+            <div className="font-black mb-1.5 text-amber-300 text-base">
               当前座位与角色一览：
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 font-medium">
               {props.seats.map((s) => (
                 <div key={s.id} className="flex justify-between">
                   <span>[{s.id + 1}号]</span>
-                  <span className="ml-2 font-medium">
+                  <span className="ml-2 font-bold text-white">
                     {props.getSeatRoleId(s)
                       ? roles.find((r) => r.id === props.getSeatRoleId(s))
                           ?.name || "未知角色"

@@ -12,7 +12,7 @@
  *
  * 网页版适配：swap 数据写入快照，重定向由管线级钩子统一执行，UI 按重定向后目标结算。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -94,7 +94,7 @@ const postProcess = async (
   const note = r?.swapActive
     ? `（同阵营，${r.a + 1}号 ↔ ${r.b + 1}号形成目标转移）`
     : "（阵营不同，不形成目标转移）";
-  const log = `[Broker] 选择 ${r?.a != null ? r.a + 1 + "号" : ""} 与 ${r?.b != null ? r.b + 1 + "号" : ""}${note}`;
+  const log = `[Broker] 选择 ${r?.a != null ? `${r.a + 1}号` : ""} 与 ${r?.b != null ? `${r.b + 1}号` : ""}${note}`;
   console.log(log);
   return {
     ...ctx,

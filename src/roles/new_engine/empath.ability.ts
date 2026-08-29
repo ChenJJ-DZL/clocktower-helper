@@ -44,7 +44,7 @@
  * ============================================================
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -297,8 +297,8 @@ function countEvilNeighbors(
  * 从 0-2 中排除真实值后随机，保证必然与真实数量不同。
  */
 function generateFakeEvilCount(
-  seats: PlayerLookup[],
-  selfIdx: number,
+  _seats: PlayerLookup[],
+  _selfIdx: number,
   realCount: number
 ): number {
   const candidates: number[] = [];

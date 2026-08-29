@@ -45,8 +45,8 @@ function makeSnapshot(
   } as unknown as GameStateSnapshot;
 }
 
-describe("军团开局角色类型反转后 — 恶魔伪装步骤按军团数量展开", () => {
-  it("1 个军团时，demon_info 节点只有 1 个（不做展开）", () => {
+describe("军团开局角色类型反转后 — 恶魔伪装步骤统一共享", () => {
+  it("1 个军团时，demon_info 节点只有 1 个", () => {
     const snap = makeSnapshot(1, 7);
     const queue = generateDynamicNightQueue(
       [
@@ -66,7 +66,7 @@ describe("军团开局角色类型反转后 — 恶魔伪装步骤按军团数�
     expect(demonInfoNodes).toHaveLength(1);
   });
 
-  it("3 个军团时，demon_info 节点应有 3 个（每军团一份 3 不在场伪装）", () => {
+  it("3 个军团时，demon_info 节点为全军团共享的 1 个统一节点（共享 3 不在场镇民伪装）", () => {
     const snap = makeSnapshot(3, 4);
     const queue = generateDynamicNightQueue(
       [
@@ -83,10 +83,10 @@ describe("军团开局角色类型反转后 — 恶魔伪装步骤按军团数�
       { isFirstNight: true }
     );
     const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
-    expect(demonInfoNodes).toHaveLength(3);
+    expect(demonInfoNodes).toHaveLength(1);
   });
 
-  it("5 个军团时，demon_info 节点应有 5 个（每军团独立 seatId）", () => {
+  it("5 个军团时，demon_info 节点依然保持统一共享的 1 个节点（避免重复打扰说书人）", () => {
     const snap = makeSnapshot(5, 2);
     const queue = generateDynamicNightQueue(
       [
@@ -103,10 +103,7 @@ describe("军团开局角色类型反转后 — 恶魔伪装步骤按军团数�
       { isFirstNight: true }
     );
     const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
-    expect(demonInfoNodes).toHaveLength(5);
-    // 每个 demon_info 节点都应有不同的 seatId
-    const seatIds = new Set(demonInfoNodes.map((n) => n.seatId));
-    expect(seatIds.size).toBe(5);
+    expect(demonInfoNodes).toHaveLength(1);
   });
 
   it("0 个军团时，demon_info 节点不应出现（除非有其他 demon 在场）", () => {
@@ -137,30 +134,7 @@ describe("军团开局角色类型反转后 — 恶魔伪装步骤按军团数�
     expect(demonInfoNodes).toHaveLength(1); // 仅 vortox 一份
   });
 
-  it("军团的额外节点 roleName 包含「第 N 军团互认」标识", () => {
-    const snap = makeSnapshot(2, 5);
-    const queue = generateDynamicNightQueue(
-      [
-        {
-          roleId: "demon_info",
-          firstNightPriority: 80,
-          otherNightPriority: 0,
-          firstNightOnly: true,
-          wakeMessage: "demon_info",
-          abilityId: "demon_info",
-        },
-      ] as any,
-      snap,
-      { isFirstNight: true }
-    );
-    const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
-    expect(demonInfoNodes).toHaveLength(2);
-    const extra = demonInfoNodes.find((n) => n.meta?.isExtraLegionDemon);
-    expect(extra).toBeDefined();
-    expect(extra?.roleName).toContain("第 2 军团互认");
-  });
-
-  it("5 个军团时所有 5 个 demon_info 节点均带 legionIndex 标识", () => {
+  it("无论场上有多少军团，demon_info 均为全队统一共享的 1 个节点（3 个不在场镇民伪装）", () => {
     const snap = makeSnapshot(5, 2);
     const queue = generateDynamicNightQueue(
       [
@@ -177,12 +151,7 @@ describe("军团开局角色类型反转后 — 恶魔伪装步骤按军团数�
       { isFirstNight: true }
     );
     const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
-    expect(demonInfoNodes).toHaveLength(5);
-    // 第 1 个军团（index 0）isExtraLegionDemon 字段不存在（"原版"），后续 4 个军团都带
-    for (let i = 1; i < 5; i++) {
-      const node = demonInfoNodes.find((n) => n.meta?.legionIndex === i);
-      expect(node).toBeDefined();
-    }
+    expect(demonInfoNodes).toHaveLength(1);
   });
 });
 
@@ -247,10 +216,9 @@ describe("军团 + 罂粟种植者互认 — 罂粟存活时 demon_info 仍进�
       snap,
       { isFirstNight: true }
     );
-    // 罂粟种植者存活时，minion_info 不进入；但 demon_info 仍要进入（军团视同恶魔）
     expect(queue.find((q) => q.roleId === "minion_info")).toBeUndefined();
     const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
-    expect(demonInfoNodes).toHaveLength(2); // 2 军团
+    expect(demonInfoNodes).toHaveLength(1); // 全军团共享 1 份伪装信息
   });
 });
 
@@ -326,6 +294,48 @@ describe("军团首夜互认 — legion_mutual_recognition 系统步骤", () => 
     queue = generateDynamicNightQueue(orderEntries, makeSnapshot(0, 5), {
       isFirstNight: true,
     });
+    expect(
+      queue.find((q) => q.roleId === "legion_mutual_recognition")
+    ).toBeUndefined();
+  });
+
+  it("当罂粟种植者在场且健康时，首夜军团互认步骤绝不进队列（军团不互认）", () => {
+    const orderEntries = [
+      {
+        roleId: "legion_mutual_recognition",
+        roleName: "军团互认",
+        firstNightPriority: 2.25,
+        otherNightPriority: 0,
+        firstNightOnly: true,
+        wakeMessage: "legion_mutual_recognition",
+        abilityId: "legion_mutual_recognition",
+      },
+      {
+        roleId: "demon_info",
+        roleName: "恶魔互认",
+        firstNightPriority: 2.5,
+        otherNightPriority: 0,
+        firstNightOnly: true,
+        wakeMessage: "demon_info",
+        abilityId: "demon_info",
+      },
+    ] as any;
+
+    const snap = makeSnapshot(2, 4); // 2 镇民 + 4 军团
+    // 添加存活且健康的罂粟种植者
+    snap.seats[0].role = {
+      id: "poppy_grower",
+      name: "罂粟种植者",
+      type: "townsfolk",
+    } as any;
+    snap.seats[0].isDead = false;
+    snap.seats[0].isDrunk = false;
+    snap.seats[0].isPoisoned = false;
+
+    const queue = generateDynamicNightQueue(orderEntries, snap, {
+      isFirstNight: true,
+    });
+    // 军团互认步骤被罂粟种植者完全阻止，不进入队列
     expect(
       queue.find((q) => q.roleId === "legion_mutual_recognition")
     ).toBeUndefined();

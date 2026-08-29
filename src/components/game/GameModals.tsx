@@ -261,7 +261,6 @@ export function GameModals() {
           data={nightActionConfirmModal}
           seats={seats}
           onConfirm={(selectedTargetIds) => {
-            actions.setCurrentModal(null);
             nightActionConfirmModal.onConfirm(selectedTargetIds);
           }}
           onCancel={() => {

@@ -38,4 +38,22 @@ export interface SeatNodeProps {
   seatNote?: string;
   /** 该座位的提醒标记列表 */
   reminderTokens?: ReminderToken[];
+  // 拖拽换位相关 Props
+  isDraggable?: boolean;
+  isBeingDragged?: boolean;
+  isSwapTarget?: boolean;
+  onSeatDragStart?: (
+    seatId: number,
+    e: MouseEvent | TouchEvent | PointerEvent
+  ) => void;
+  onSeatDrag?: (
+    seatId: number,
+    e: MouseEvent | TouchEvent | PointerEvent,
+    info: any
+  ) => void;
+  onSeatDragEnd?: (
+    seatId: number,
+    e: MouseEvent | TouchEvent | PointerEvent,
+    info: any
+  ) => void;
 }

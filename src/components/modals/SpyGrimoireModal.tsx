@@ -122,9 +122,9 @@ export function SpyGrimoireModal({
   onClose,
   seats,
   gameLogs = [],
-  nightCount = 1,
+  nightCount: _nightCount = 1,
   reminderTokens = {},
-  isPortrait = false,
+  isPortrait: _isPortrait = false,
 }: SpyGrimoireModalProps) {
   // ─── 倒计时器状态（60秒） ────────────────────────────────────────────────
   const INITIAL_TIMER_SECONDS = 60;
@@ -168,7 +168,7 @@ export function SpyGrimoireModal({
   const handleResetTimer = useCallback(() => {
     setTimeLeft(INITIAL_TIMER_SECONDS);
     setIsTimerRunning(true);
-  }, [INITIAL_TIMER_SECONDS]);
+  }, []);
 
   // 构建座位号到角色名称的映射
   const seatRoleMap = useMemo(() => {
@@ -208,15 +208,25 @@ export function SpyGrimoireModal({
     return { total, goodCount, evilCount, deadCount, abnormalCount };
   }, [seats]);
 
-  // 格式化与分类日志
+  // 格式化与分类日志（只记录游戏进入首夜后的情况，过滤开始前准备与换座位）
   const parsedLogs = useMemo(() => {
     const rawList = gameLogs || [];
+
+    const validInGamePhases = new Set([
+      "firstNight",
+      "day",
+      "dusk",
+      "night",
+      "dawnReport",
+      "gameOver",
+    ]);
 
     return rawList
       .filter((log) => {
         if (!log || typeof log.message !== "string") return false;
         const msg = log.message;
-        // 过滤系统调试信息，保留对局相关的所有行动与情报
+
+        // 1. 过滤系统调试与热重载信息
         if (
           msg.startsWith("[系统]") ||
           msg.startsWith("[能力执行]") ||
@@ -225,6 +235,24 @@ export function SpyGrimoireModal({
         ) {
           return false;
         }
+
+        // 2. 过滤非游戏内阶段（setup, check, scriptSelection 等入夜前阶段）
+        if (!log.phase || !validInGamePhases.has(log.phase)) {
+          return false;
+        }
+
+        // 3. 过滤游戏开始前的准备信息与换座位记录（只记录游戏进入首夜后的情况）
+        if (
+          msg.includes("互换了座位") ||
+          msg.includes("交换了座位") ||
+          msg.includes("换了座位") ||
+          msg.includes("配置角色") ||
+          msg.includes("发牌") ||
+          msg.includes("准备阶段")
+        ) {
+          return false;
+        }
+
         return true;
       })
       .map((log, index) => {
@@ -232,13 +260,48 @@ export function SpyGrimoireModal({
 
         // 提取本条日志涉及的座位号（0-indexed）
         const involvedSeats = new Set<number>();
+
+        // 1. 从文字显式 "X号" 提取座位号
         const seatMatches = text.matchAll(/(\d+)\s*号/g);
         for (const m of seatMatches) {
           const seatNum = parseInt(m[1], 10);
-          if (!isNaN(seatNum) && seatNum >= 1 && seatNum <= seats.length) {
+          if (
+            !Number.isNaN(seatNum) &&
+            seatNum >= 1 &&
+            seatNum <= seats.length
+          ) {
             involvedSeats.add(seatNum - 1);
           }
         }
+
+        // 2. 智能关联在场角色/伪装角色/玩家姓名对应座位（共性兜底：无论日志是否包含座位号均可精准关联）
+        seats.forEach((s) => {
+          const rName = s.role?.name;
+          const cName = s.charadeRole?.name;
+          const pName = s.playerName;
+          if (rName && text.includes(rName)) {
+            involvedSeats.add(s.id);
+          }
+          if (cName && text.includes(cName)) {
+            involvedSeats.add(s.id);
+          }
+          if (pName && text.includes(pName)) {
+            involvedSeats.add(s.id);
+          }
+        });
+
+        // 3. 补全未带座位号的角色开头（如 "厨师获得信息..." -> "【6号-厨师】获得信息..."）
+        seats.forEach((s) => {
+          const rName = s.role?.name;
+          if (
+            rName &&
+            text.startsWith(rName) &&
+            !text.startsWith(`【${s.id + 1}号`) &&
+            !text.startsWith(`${s.id + 1}号`)
+          ) {
+            text = text.replace(rName, `【${s.id + 1}号-${rName}】`);
+          }
+        });
 
         // 优化将形如 "1号(slayer)" / "1号(猎手)" / "玩家1(1号)" 转为规范高亮标签
         text = text.replace(
@@ -302,7 +365,7 @@ export function SpyGrimoireModal({
           isStatus,
         };
       });
-  }, [gameLogs, seatRoleMap, seats.length]);
+  }, [gameLogs, seatRoleMap, seats]);
 
   // 根据当前 Tab 与选中玩家过滤日志
   const filteredLogs = useMemo(() => {

@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { Role, Seat } from "../../app/data";
+import type { Seat } from "../../app/data";
 import { roles } from "../../app/data";
 import { executeViaNewEngine } from "../../src/hooks/useNightActionHandler";
 

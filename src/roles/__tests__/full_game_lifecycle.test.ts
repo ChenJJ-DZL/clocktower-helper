@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { GameContext } from "../../../app/gameLogic";
-import { checkGameEnd, isPlayerEvil } from "../../../app/gameLogic";
+import { checkGameEnd } from "../../../app/gameLogic";
 import {
   buildAbilityMap,
   buildFullNightOrder,

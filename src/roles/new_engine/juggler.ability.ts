@@ -11,7 +11,7 @@ import {
   canUseLimitedAbility,
   consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -34,7 +34,11 @@ const firstDayOnlyCheck = async (
 ): Promise<MiddlewareContext> => {
   const dayCount = (ctx.snapshot as any).dayCount ?? 1;
   if (dayCount !== 1) {
-    return { ...ctx, aborted: true, abortReason: "杂耍艺人仅在首个白天可以猜测" };
+    return {
+      ...ctx,
+      aborted: true,
+      abortReason: "杂耍艺人仅在首个白天可以猜测",
+    };
   }
   return ctx;
 };

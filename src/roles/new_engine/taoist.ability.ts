@@ -1,5 +1,5 @@
 /** 道士（Taoist）新引擎技能实现\n * 【角色能力】"驱邪，保护一名玩家免受邪恶影响。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -340,9 +340,7 @@ export async function executeViaNewEngine(
     -1;
   const actorSeat = context.seats.find((s) => s.id === actorId);
   const rawRoleName =
-    context.nightInfo?.effectiveRole?.name ||
-    actorSeat?.role?.name ||
-    roleId;
+    context.nightInfo?.effectiveRole?.name || actorSeat?.role?.name || roleId;
   const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
   const roleName = `${seatPrefix}${rawRoleName.replace(/^\d+号[-_]/, "")}`;
 
@@ -376,7 +374,10 @@ export async function executeViaNewEngine(
 
     // 管道中止（死亡/非首夜等）— 无论预览还是真实模式都应自动跳过
     // 注意：在 preview 模式下，如果 preCheck 通过但 calculate 因目标未选而 abort，绝不能跳过，而是继续打开确认窗让玩家选人！
-    if (resultContext.meta._preCheckAborted || (!context.preview && resultContext.aborted)) {
+    if (
+      resultContext.meta._preCheckAborted ||
+      (!context.preview && resultContext.aborted)
+    ) {
       context.addLog(
         `[系统] ⚠️ ${roleId} 能力被跳过: ${resultContext.abortReason ?? "管道中止"}`
       );
@@ -578,7 +579,8 @@ export async function executeViaNewEngine(
       const safeTargets = [...(context.selectedTargets || [])];
 
       // 😈 小恶魔自杀转火：若在进入前已明确选择自杀，且有多名存活爪牙，直接弹出爪牙晋升选择面板
-      const isInitialImpSuicide = roleId === "imp" && safeTargets[0] === actorId;
+      const isInitialImpSuicide =
+        roleId === "imp" && safeTargets[0] === actorId;
       if (isInitialImpSuicide) {
         const aliveMinions = context.seats.filter(
           (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
@@ -641,7 +643,8 @@ export async function executeViaNewEngine(
               roleId === "imp" && finalTargets[0] === actorId;
             if (isImpSuicide) {
               const aliveMinions = context.seats.filter(
-                (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
+                (s) =>
+                  s.role?.type === "minion" && !s.isDead && s.id !== actorId
               );
               if (aliveMinions.length > 1) {
                 context.setCurrentModal({
@@ -964,11 +967,20 @@ export async function executeViaNewEngine(
       }
     }
 
-    // 记录日志
-    const abilityLog =
+    // 记录日志（统一补充行动者座位号前缀，确保魔典与各模块能精准溯源关联）
+    const rawAbilityLog =
       resultContext.meta.abilityLog || resultContext.meta.prompt;
-    if (abilityLog) {
-      context.addLog(`[能力] ${abilityLog}`);
+    if (rawAbilityLog) {
+      const actorSeatNo =
+        actorId !== undefined && actorId >= 0 ? actorId + 1 : undefined;
+      let formattedLog = rawAbilityLog;
+      if (
+        actorSeatNo !== undefined &&
+        !rawAbilityLog.includes(`${actorSeatNo}号`)
+      ) {
+        formattedLog = `【${actorSeatNo}号-${roleName}】${rawAbilityLog.replace(new RegExp(`^${roleName}`), "")}`;
+      }
+      context.addLog(`[能力] ${formattedLog}`);
     }
 
     // 清空选中的目标
@@ -1011,6 +1023,7 @@ export async function executeViaNewEngine(
       });
     } else {
       // 🔧 修复：使用 syncedSeats 而非 updatedSeats，确保中毒/醉酒等状态已同步到旧系统字段
+      context.setCurrentModal(null);
       context.continueToNextAction(
         syncedSeats.length > 0 ? syncedSeats : undefined
       );

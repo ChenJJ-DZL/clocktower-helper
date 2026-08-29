@@ -6,7 +6,7 @@
  * 白天选择一名玩家射击，该玩家立即死亡。
  * 枪手可以在白天任意时刻发动。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

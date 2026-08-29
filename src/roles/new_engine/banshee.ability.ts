@@ -6,7 +6,7 @@
  * ON_DEATH 触发：被恶魔杀死时，在白天的特定阶段觉醒并宣布。
  * 本实现记录死亡来源，供日间逻辑使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

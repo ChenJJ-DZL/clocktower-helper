@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import type React from "react";
 import { useMemo } from "react";
 import { useGameActions } from "../contexts/GameActionsContext";
@@ -108,6 +109,12 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     nominee = null,
     seatNote,
     reminderTokens = [],
+    isDraggable = false,
+    isBeingDragged = false,
+    isSwapTarget = false,
+    onSeatDragStart,
+    onSeatDrag,
+    onSeatDragEnd,
   } = props;
 
   const ctx = useGameActions();
@@ -170,6 +177,11 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
   return (
     <div
       key={s.id}
+      onPointerDown={(e) => {
+        if (isDraggable) {
+          e.stopPropagation();
+        }
+      }}
       onClick={(e) => {
         e.stopPropagation();
         if (isValidTarget) onSeatClick(s.id);
@@ -179,7 +191,12 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         onContextMenu(e, s.id);
       }}
       onTouchStart={(e) => {
-        if (isValidTarget) onTouchStart(e, s.id);
+        if (isDraggable) {
+          e.stopPropagation();
+          onSeatDragStart?.(s.id, e as any);
+        } else if (isValidTarget) {
+          onTouchStart(e, s.id);
+        }
       }}
       onTouchEnd={(e) => {
         if (isValidTarget) onTouchEnd(e, s.id);
@@ -187,21 +204,29 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
       onTouchMove={(e) => {
         if (isValidTarget) onTouchMove(e, s.id);
       }}
-      ref={(el) => {
-        setSeatRef(s.id, el);
-      }}
       style={containerStyle}
-      className="absolute flex items-center justify-center seat-node"
+      className="absolute flex items-center justify-center seat-node pointer-events-auto"
       data-seat-id={s.id}
     >
-      <div
+      <motion.div
         {...tooltipBind}
+        ref={(el) => {
+          setSeatRef(s.id, el as HTMLDivElement | null);
+        }}
+        onPointerDown={(e) => {
+          if (isDraggable && (e.button === 0 || e.button === -1)) {
+            e.stopPropagation();
+            onSeatDragStart?.(s.id, e as any);
+          }
+        }}
         onClick={(e) => {
           e.stopPropagation();
           if (isValidTarget) onSeatClick(s.id);
         }}
-        className={`seat-token relative w-full h-full rounded-full ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-all duration-300
+        className={`seat-token relative w-full h-full rounded-full touch-none select-none ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-colors duration-200
         ${colorClass}
+        ${isBeingDragged ? "!opacity-35 !scale-95 !border-dashed !border-amber-400" : ""}
+        ${isSwapTarget ? "!ring-[6px] !ring-emerald-400 !border-emerald-400 !scale-110 !shadow-[0_0_35px_rgba(52,211,153,0.9)] animate-pulse" : ""}
         ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
         ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
         ${getDisplayRoleType(s) === "minion" ? "glow-minion" : ""}
@@ -481,9 +506,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               </div>
             );
           }
-
-          // 罂粟种植者迷雾徽章
-          {s.role?.id === "poppy_grower" && !s.isDead && (
+          s.role?.id === "poppy_grower" && !s.isDead && (
             <div
               key="badge-poppy"
               className={`bg-rose-600 text-white ${
@@ -495,7 +518,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             >
               🌺 罂粟迷雾
             </div>
-          )}
+          );
 
           // 图书目标标记
           if (
@@ -683,7 +706,14 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             )}
           </div>
         )}
-      </div>
+
+        {/* 互换目标就绪提示徽章 */}
+        {isSwapTarget && (
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-emerald-300 flex items-center gap-1 z-50 animate-bounce pointer-events-none whitespace-nowrap">
+            <span>🔄 释放换位</span>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 };

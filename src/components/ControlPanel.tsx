@@ -51,8 +51,8 @@ export interface ControlPanelProps {
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   gamePhase,
   seats,
-  currentWakeIndex,
-  history,
+  currentWakeIndex: _currentWakeIndex,
+  history: _history,
   isConfirmDisabled,
   evilTwinPair,
   remainingDays,
@@ -66,7 +66,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onTimerReset,
   onPreStartNight,
   onStartNight,
-  onStepBack,
+  onStepBack: _onStepBack,
   onConfirmAction,
   onDayEndTransition,
   onExecuteJudgment,
@@ -139,22 +139,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             );
           })()}
         {(gamePhase === "firstNight" || gamePhase === "night") && (
-          <>
-            <button
-              onClick={onStepBack}
-              className="flex-1 py-3 bg-gray-700 rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={currentWakeIndex === 0 && history.length === 0}
-            >
-              上一步
-            </button>
-            <button
-              onClick={onConfirmAction}
-              disabled={isConfirmDisabled}
-              className="flex-[2] py-3 bg-white text-black rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              确认 / 下一步
-            </button>
-          </>
+          <button
+            onClick={onConfirmAction}
+            disabled={isConfirmDisabled}
+            className="w-full py-3 bg-white text-black rounded-xl font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            确认 / 下一步
+          </button>
         )}
         {gamePhase === "day" && (
           <>

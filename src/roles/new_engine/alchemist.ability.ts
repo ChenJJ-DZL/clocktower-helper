@@ -5,7 +5,7 @@
  *
  * 首夜获得一个不在场爪牙的能力，由说书人决定。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

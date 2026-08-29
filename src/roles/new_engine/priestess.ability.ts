@@ -6,7 +6,7 @@
  * 每夜得知一名玩家（由说书人决定，或随机选择）。
  * 得知的玩家可以是存活或死亡，善良或邪恶。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

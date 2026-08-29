@@ -1,6 +1,5 @@
-import type { Role, Seat } from "../../types/game";
+import type { Seat } from "../../types/game";
 import type { RoleDefinition } from "../../types/roleDefinition";
-import { getRandom, getRegistration } from "../../utils/gameRules";
 
 /**
  * 筑梦师 (Dreamer)

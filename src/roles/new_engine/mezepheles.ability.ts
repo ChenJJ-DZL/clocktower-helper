@@ -6,7 +6,7 @@
  * PASSIVE 触发，检测玩家是否说出关键词
  * 注：英文名 Mezepheles，UI 配置层文件名为 shaman.ts（id: "mezepheles"）
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

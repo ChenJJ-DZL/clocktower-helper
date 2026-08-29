@@ -6,7 +6,7 @@
  * 游戏结束时触发，随机选择一名存活玩家将其阵营翻转。
  * 属于奇遇（Fabled）角色，不参与正常游戏轮次唤醒。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

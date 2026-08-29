@@ -6,7 +6,7 @@
  *
  * 夜间选3人 → 拂晓阶段依次进行"选生/选死"交互。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

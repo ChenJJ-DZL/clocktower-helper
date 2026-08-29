@@ -6,7 +6,7 @@
  * 每夜选择一名玩家，偷取其角色能力（原角色保留但能力被窃取）。
  * 目标玩家当晚失去其角色能力。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -1,11 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type Role, type RoleType, roles, scripts } from "../../../app/data";
-import {
-  type CharacterWikiDetails,
-  getCharacterWikiDetails,
-} from "../../utils/characterWikiLookup";
+import { getCharacterWikiDetails } from "../../utils/characterWikiLookup";
 import { RoleTokenBadge } from "../common/RoleTokenBadge";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -126,8 +123,8 @@ export function RoleCodexModal({
       return (
         r.name.toLowerCase().includes(q) ||
         r.id.toLowerCase().includes(q) ||
-        (r.ability && r.ability.toLowerCase().includes(q)) ||
-        (r.script && r.script.toLowerCase().includes(q))
+        r.ability?.toLowerCase().includes(q) ||
+        r.script?.toLowerCase().includes(q)
       );
     });
   }, [allRoles, searchQuery, selectedTypeFilter]);

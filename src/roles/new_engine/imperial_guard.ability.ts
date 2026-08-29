@@ -7,7 +7,7 @@
  * targetConfig: min:1, max:1 — 必须选择恰好一名玩家。
  * 结果标记：imperialGuardTarget — 上层引擎在结算时检查此标记。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

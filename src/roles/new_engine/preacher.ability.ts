@@ -1,5 +1,5 @@
 /** 传教士（Preacher）新引擎技能实现\n * 【角色能力】"使邻近爪牙无法行动。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

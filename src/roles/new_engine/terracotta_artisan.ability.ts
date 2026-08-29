@@ -1,5 +1,5 @@
 /** 陶艺匠（TerracottaArtisan）新引擎技能实现\n * 【角色能力】"制作一个陶俑，替死一次。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

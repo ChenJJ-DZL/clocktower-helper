@@ -2,7 +2,7 @@
  * 心上人（Sweetheart）新引擎技能实现
  * 【角色能力】"当你死亡时，一名玩家醉酒。"
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

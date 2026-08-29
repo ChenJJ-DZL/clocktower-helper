@@ -12,7 +12,7 @@
  * 在 snapshot.abnormalAbilityCount 中提供，后续可扩展为自主计算。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

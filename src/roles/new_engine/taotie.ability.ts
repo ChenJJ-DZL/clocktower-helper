@@ -18,7 +18,7 @@
  * 【网页版适配】说书人选择的"任意数量"由目标选择面板表达（min 0 / max 不限）。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

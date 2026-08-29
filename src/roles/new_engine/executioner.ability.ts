@@ -6,7 +6,7 @@
  * 被处决时从存活玩家中随机选择一名带走（死亡）。
  * allowSelf: false — 无需选择目标，自动触发
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

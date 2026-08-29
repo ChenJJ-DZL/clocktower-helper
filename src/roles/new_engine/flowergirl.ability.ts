@@ -7,7 +7,7 @@
  * 如果醉酒/中毒/涡流在场，信息反转。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

@@ -35,7 +35,10 @@ let _rulesCache: GlobalRule[] | null = null;
 /** 扫描能力注册表，收集全部 globalRules 声明（含 owner 与 order 排序） */
 export function collectGlobalRules(): GlobalRule[] {
   if (_rulesCache) return _rulesCache;
-  initializeAbilityRegistry();
+  const rawMap = getRawAbilityMap() as Record<string, any>;
+  if (!rawMap || Object.keys(rawMap).length === 0) {
+    initializeAbilityRegistry();
+  }
   const map = getRawAbilityMap() as Record<string, any>;
   const rules: GlobalRule[] = [];
   for (const ability of Object.values(map)) {

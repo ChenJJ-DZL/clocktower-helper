@@ -1,10 +1,4 @@
-import type {
-  DayActionContext,
-  DayActionResult,
-  NightActionContext,
-  NightActionResult,
-  RoleDefinition,
-} from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 造谣者 (Gossip)

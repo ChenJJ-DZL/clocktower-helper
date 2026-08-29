@@ -18,6 +18,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
   };
 
   const submit = () => {
+    props.saveHistory?.();
     if (roleId === "gossip") {
       const statement = (props.dayAbilityForm.info1 || "").trim();
       const verdict = props.dayAbilityForm.info2 || ""; // 'true' | 'false' | ''
@@ -240,17 +241,18 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     <ModalWrapper
       title={`🌞 ${roleName} 日间能力`}
       onClose={closeModal}
-      className="max-w-2xl"
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
       footer={
-        <div className="flex justify-end gap-3 w-full">
+        <div className="flex justify-center gap-6 w-full">
           <button
-            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium text-white transition"
+            className="flex-1 max-w-xs py-4 sm:py-5 bg-slate-700 hover:bg-slate-600 rounded-2xl font-bold text-white transition text-base sm:text-xl shadow-lg"
             onClick={closeModal}
           >
             取消
           </button>
           <button
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-white transition"
+            className="flex-1 max-w-xs py-4 sm:py-5 bg-blue-600 hover:bg-blue-500 rounded-2xl font-black text-white transition text-base sm:text-xl shadow-xl shadow-blue-600/40 ring-2 ring-blue-400 active:scale-[0.98]"
             onClick={submit}
           >
             确认

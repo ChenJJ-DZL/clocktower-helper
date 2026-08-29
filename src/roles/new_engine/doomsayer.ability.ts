@@ -5,7 +5,7 @@
  *
  * 白天选择一名玩家并猜测其角色。若猜测正确，该玩家立即死亡。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

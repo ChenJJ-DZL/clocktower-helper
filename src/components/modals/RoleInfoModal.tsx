@@ -87,14 +87,20 @@ export function RoleInfoModal({
             {roleList.map((role) => (
               <div
                 key={role.id}
-                className={`p-4 border-2 rounded-lg ${typeColors[type]} ${typeBgColors[type]} transition-all hover:scale-105`}
+                className={`p-5 border-2 rounded-2xl ${typeColors[type]} ${typeBgColors[type]} transition-all hover:scale-[1.02] shadow-lg`}
               >
-                <div className="font-bold text-lg mb-2">{role.name}</div>
-                <div className="text-sm text-gray-300 leading-relaxed mb-2">
+                <div className="font-black text-xl sm:text-2xl mb-2.5 flex items-center justify-between">
+                  <span>{role.name}</span>
+                  <span className="text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-full bg-black/40 border border-white/10">
+                    {typeLabels[type]}
+                  </span>
+                </div>
+                <div className="text-base sm:text-lg text-gray-100 leading-relaxed mb-3 font-medium">
                   {role.ability}
                 </div>
-                <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-400">
-                  {getActionTimeDescription(role)}
+                <div className="mt-3 pt-3 border-t border-white/10 text-sm sm:text-base text-amber-200/90 font-bold flex items-center gap-1.5">
+                  <span>🌙</span>
+                  <span>{getActionTimeDescription(role)}</span>
                 </div>
               </div>
             ))}

@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：夜晚死亡时，随机选择一名存活的善良玩家继承农夫角色。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

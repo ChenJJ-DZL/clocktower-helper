@@ -9,8 +9,8 @@
  * 3. 不再依赖旧引擎 nightLogic.ts
  */
 
-import { roles, type Script, type Seat, type GamePhase } from "../../app/data";
 import type { NightInfoResult } from "@/src/types/game";
+import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
@@ -242,6 +242,16 @@ export function calculateNightInfoViaNewEngine(
 
   const roleId = targetSeat.role.id;
 
+  // 🛡️ 首夜恶魔信息保障：官方规则中恶魔（如小恶魔、军团等）首夜不执行夜杀，其首夜行动均为恶魔伪装与互认信息
+  if (gamePhase === "firstNight" && targetSeat.role.type === "demon") {
+    return generateSystemInfoViaAdapter(
+      "demon_info",
+      seats,
+      currentSeatId,
+      selectedScript
+    );
+  }
+
   // 检查新引擎是否有该角色的能力
   if (!isRoleMigrated(roleId)) {
     console.warn(`[NightInfoAdapter] 角色 ${roleId} 未在新引擎注册，返回 null`);
@@ -324,47 +334,66 @@ function generateSystemInfoViaAdapter(
     otherMinions.map((s) => `${s.id + 1}号`).join("、") || "无";
 
   let guide = "";
+
+  // 共享不在场镇民伪装（所有恶魔/军团共用同一套，优先筛选不在场的镇民 Townsfolk）
+  const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
+  const scriptRoleIds: string[] =
+    selectedScript?.roleIds ||
+    (selectedScript as any)?.roles?.map((r: any) => r.id) ||
+    [];
+  const scriptTownsfolk = scriptRoleIds
+    .map((id: string) => roles.find((r) => r.id === id))
+    .filter(
+      (r: any) => r && r.type === "townsfolk" && !inPlayRoleIds.has(r.id)
+    );
+  const scriptOutsiders = scriptRoleIds
+    .map((id: string) => roles.find((r) => r.id === id))
+    .filter((r: any) => r && r.type === "outsider" && !inPlayRoleIds.has(r.id));
+  const notInPlayGoodRoles = [...scriptTownsfolk, ...scriptOutsiders]
+    .slice(0, 3)
+    .map((r: any) => r.name);
+
+  const legionBluffText =
+    notInPlayGoodRoles.length > 0
+      ? `\n共享不在场镇民伪装: 【${notInPlayGoodRoles.join("】、【")}】`
+      : "";
+
+  const regularBluffText =
+    notInPlayGoodRoles.length > 0
+      ? `\n不在场伪装: 【${notInPlayGoodRoles.join("】、【")}】`
+      : "";
+
   if (isLegionMutualStep) {
-    guide =
-      "所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家）";
+    guide = `所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家）${legionBluffText}`;
   } else if (isMinionStep) {
     if (isPoppyGrowerAlive) {
       guide = "🌺 罂粟种植者在场，爪牙与恶魔互不相识";
     } else {
       guide = `恶魔是: ${demonDesc}\n爪牙队友: ${otherMinions.length > 0 ? otherMinionDesc : "无"}`;
     }
-  } else {
-    // 恶魔信息
-    const inPlayRoleIds = new Set(
-      seats.map((s) => s.role?.id).filter(Boolean)
+  } else if (selfSeat.role?.id === "legion") {
+    // 军团玩家专属夜晚信息：展示所有军团同伴 + 共享 3 不在场镇民伪装
+    const otherLegions = seats.filter(
+      (s) => s.role?.id === "legion" && s.id !== currentSeatId && !s.isDead
     );
-    const scriptRoleIds: string[] =
-      selectedScript?.roleIds ||
-      (selectedScript as any)?.roles?.map((r: any) => r.id) ||
-      [];
-    const notInPlayGoodRoles = scriptRoleIds
-      .map((id: string) => roles.find((r) => r.id === id))
-      .filter(
-        (r: any) =>
-          r &&
-          (r.type === "townsfolk" || r.type === "outsider") &&
-          !inPlayRoleIds.has(r.id)
-      )
-      .slice(0, 3)
-      .map((r: any) => r.name);
-    const bluffText =
-      notInPlayGoodRoles.length > 0
-        ? `\n不在场伪装: 【${notInPlayGoodRoles.join("】、【")}】`
-        : "";
+    const otherLegionDesc =
+      otherLegions.map((s) => `${s.id + 1}号`).join("、") || "无";
 
     if (isPoppyGrowerAlive) {
-      guide = `🌺 罂粟种植者在场，你不知道爪牙是谁${bluffText}`;
+      guide = `🌺 罂粟种植者在场，军团同伴互不相识${legionBluffText}`;
+    } else {
+      guide = `军团同伴是: ${otherLegionDesc}${legionBluffText}`;
+    }
+  } else {
+    // 常规恶魔信息
+    if (isPoppyGrowerAlive) {
+      guide = `🌺 罂粟种植者在场，你不知道爪牙是谁${regularBluffText}`;
     } else {
       let marionetteNote = "";
       if (marionetteSeat) {
         marionetteNote = `\n提线木偶: ${marionetteSeat.id + 1}号`;
       }
-      guide = `爪牙是: ${minionDesc}${marionetteNote}${bluffText}`;
+      guide = `爪牙是: ${minionDesc}${marionetteNote}${regularBluffText}`;
     }
   }
 

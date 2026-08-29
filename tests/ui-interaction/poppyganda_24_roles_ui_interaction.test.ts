@@ -4,11 +4,7 @@
  * 全面打通《罂粟花开》(Poppyganda) 全部 24 角色的真实 UI 交互与状态机联动集成测试
  */
 import { describe, expect, it } from "vitest";
-import {
-  checkGameEnd,
-  isPlayerEvil,
-  processGameEvent,
-} from "../../app/gameLogic";
+import { checkGameEnd, isPlayerEvil } from "../../app/gameLogic";
 import { baronAbility } from "../../src/roles/new_engine/baron.ability";
 import { bounty_hunterAbility } from "../../src/roles/new_engine/bounty_hunter.ability";
 import { cerenovusAbility } from "../../src/roles/new_engine/cerenovus.ability";
@@ -19,10 +15,8 @@ import { farmerAbility } from "../../src/roles/new_engine/farmer.ability";
 import { fortuneTellerAbility } from "../../src/roles/new_engine/fortune_teller.ability";
 import { impAbility } from "../../src/roles/new_engine/imp.ability";
 import { jugglerAbility } from "../../src/roles/new_engine/juggler.ability";
-import { legionAbility } from "../../src/roles/new_engine/legion.ability";
 import { librarianAbility } from "../../src/roles/new_engine/librarian.ability";
 import { lunaticAbility } from "../../src/roles/new_engine/lunatic.ability";
-import { mayorAbility } from "../../src/roles/new_engine/mayor.ability";
 import { monkAbility } from "../../src/roles/new_engine/monk.ability";
 import { mutantAbility } from "../../src/roles/new_engine/mutant.ability";
 import { oracleAbility } from "../../src/roles/new_engine/oracle.ability";

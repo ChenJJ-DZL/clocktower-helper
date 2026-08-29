@@ -6,7 +6,7 @@
  * 首夜唤醒食人魔，从邪恶阵营（恶魔/爪牙）中选择一名玩家展示给食人魔。
  * 同时将食人魔自身阵营标记为邪恶。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -6,7 +6,7 @@
  * FIRST_NIGHT 触发，说书人选择一名玩家成为恶魔。
  * 通过 storytellerInput 提供目标，将该玩家的角色覆盖为恶魔（imp）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -70,9 +70,7 @@ const postProcess = async (
   const r = ctx.meta.abilityResult as any;
   const log =
     "[召唤师] " +
-    (r.targetId != null
-      ? "将 " + (r.targetId + 1) + " 号转化为恶魔"
-      : "未选择目标");
+    (r.targetId != null ? `将 ${r.targetId + 1} 号转化为恶魔` : "未选择目标");
   console.log(log);
   return {
     ...ctx,

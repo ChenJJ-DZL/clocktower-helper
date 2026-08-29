@@ -7,7 +7,6 @@ import { useGameActions } from "../../contexts/GameActionsContext";
 import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
-import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { getStorytellerTips } from "../../utils/storytellerTips";
 import { RoundTable } from "./board/RoundTable";
@@ -31,6 +30,7 @@ export const GameStage = () => {
     seats,
     gamePhase,
     winResult,
+    winReason,
     selectedScript,
     nightCount,
     deadThisNight,
@@ -370,14 +370,7 @@ export const GameStage = () => {
     //    允许说书人随时点击发动/唤醒按钮弹出包含安全选人界面的确认弹窗。
     console.log("[isConfirmDisabled] All checks passed, returning false.");
     return false;
-  }, [
-    gamePhase,
-    nightInfo,
-    currentModal,
-    selectedActionTargets,
-    currentWakeIndex,
-    wakeQueueIds,
-  ]);
+  }, [gamePhase, nightInfo, currentModal]);
 
   // 统一的说书人指引（夜晚脚本提示 + 阶段小操作提示）
   const guidancePoints = useMemo(() => {
@@ -456,7 +449,7 @@ export const GameStage = () => {
   const handleNightConfirm = useCallback(() => {
     // 直接确认（新引擎内部会处理弹窗与结果展示）
     handleConfirmAction();
-  }, [currentWakeSeat, selectedActionTargets, handleConfirmAction]);
+  }, [handleConfirmAction]);
 
   // Handle Dusk Phase UI
   if (gamePhase === "dusk") {
@@ -505,6 +498,7 @@ export const GameStage = () => {
                 nominator={nominator}
                 nominee={nominee}
                 nominationRecords={nominationRecords}
+                onSwapSeats={controller.swapSeats}
                 onSeatClick={(seat) => {
                   // Nomination logic for dusk phase
                   const seatId = seat;
@@ -588,6 +582,8 @@ export const GameStage = () => {
                 timer={timer}
                 formatTimer={formatTimer}
                 isTimerRunning={controller.isTimerRunning}
+                winResult={winResult}
+                winReason={winReason}
                 onTimerStart={controller.handleTimerStart}
                 onTimerPause={controller.handleTimerPause}
                 onTimerReset={controller.handleTimerReset}
@@ -1468,6 +1464,11 @@ export const GameStage = () => {
                 </span>
                 <span>遮罩{isPrivacyShieldActive ? "（开）" : "（关）"}</span>
               </button>
+              {gamePhase === "check" && (
+                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 font-medium shadow-sm backdrop-blur-md">
+                  <span>💡 拖动座位重叠50%可自由换位</span>
+                </div>
+              )}
             </div>
 
             <RoundTable
@@ -1476,6 +1477,7 @@ export const GameStage = () => {
               selectedActionTargets={selectedActionTargets}
               isPortrait={isPortrait}
               longPressingSeats={longPressingSeats}
+              onSwapSeats={controller.swapSeats}
               onSeatClick={onSeatClick}
               onContextMenu={(e, seatId) => {
                 e.preventDefault();
@@ -1545,6 +1547,8 @@ export const GameStage = () => {
               timer={timer}
               formatTimer={formatTimer}
               isTimerRunning={controller.isTimerRunning}
+              winResult={winResult}
+              winReason={winReason}
               onTimerStart={controller.handleTimerStart}
               onTimerPause={controller.handleTimerPause}
               onTimerReset={controller.handleTimerReset}
@@ -1759,27 +1763,19 @@ export const GameStage = () => {
                       : undefined
             }
             secondaryActions={
-              gamePhase === "firstNight" || gamePhase === "night"
+              gamePhase === "gameOver"
                 ? [
                     {
-                      label: "上一步",
-                      onClick: handleStepBack,
-                      disabled: currentWakeIndex === 0 && history.length === 0,
+                      label: "📊 本局复盘",
+                      onClick: () =>
+                        setCurrentModal({ type: "REVIEW", data: null }),
+                    },
+                    {
+                      label: "🔄 再来一局",
+                      onClick: () => handleRestart(),
                     },
                   ]
-                : gamePhase === "gameOver"
-                  ? [
-                      {
-                        label: "📊 本局复盘",
-                        onClick: () =>
-                          setCurrentModal({ type: "REVIEW", data: null }),
-                      },
-                      {
-                        label: "🔄 再来一局",
-                        onClick: () => handleRestart(),
-                      },
-                    ]
-                  : []
+                : []
             }
             onForceContinue={() => {
               // 强制继续回调：当队列为空时，直接进入天亮阶段

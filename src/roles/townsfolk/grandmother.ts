@@ -1,8 +1,5 @@
 import type { Seat } from "../../../app/data";
-import type {
-  NightActionContext,
-  RoleDefinition,
-} from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 祖母 (Grandmother)

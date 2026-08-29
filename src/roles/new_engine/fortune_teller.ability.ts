@@ -82,7 +82,7 @@
  */
 
 import { fortuneTellerBoonManager } from "../../utils/FortuneTellerBoonManager";
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -199,7 +199,7 @@ function isEffectivelyDemon(
         meta[key] = (seat as any).registerAsEvil !== false;
       } else {
         const forced = (ctx as any)?.storytellerInput?.forceFtRecluseDemon;
-        meta[key] = forced === false ? false : true;
+        meta[key] = forced !== false;
       }
     }
     return meta[key] as boolean;
@@ -218,7 +218,7 @@ function isEffectivelyDemon(
         meta[key] = !(seat as any).registerAsEvil;
       } else {
         const forced = (ctx as any)?.storytellerInput?.forceFtSpyGood;
-        meta[key] = forced === false ? false : true;
+        meta[key] = forced !== false;
       }
     }
     if (meta[key]) return false;

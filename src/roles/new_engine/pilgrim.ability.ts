@@ -6,7 +6,7 @@
  * 计算最近邪恶玩家的方向（座位索引差值）。如果左右距离相等，随机选择。
  * 如果没有邪恶玩家存活，得知"没有邪恶玩家"。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

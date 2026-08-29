@@ -12,7 +12,7 @@
  * 网页版适配：角色交换 = 双方座位 role 互换 + 阵营标记互换；中毒 = statusEffects
  * 加 poisoned 标记（UI 层按中毒渲染）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

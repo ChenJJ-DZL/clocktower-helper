@@ -36,7 +36,7 @@ export function interceptInspection(
   target: Seat,
   viewer: Seat,
   baseResult: RegistrationResult,
-  allSeats: Seat[]
+  _allSeats: Seat[]
 ): RegistrationResult {
   if (!target.role || !viewer.role) return baseResult;
 

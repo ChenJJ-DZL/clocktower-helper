@@ -1,8 +1,4 @@
-import type {
-  NightActionContext,
-  NightActionResult,
-  RoleDefinition,
-} from "../../types/roleDefinition";
+import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
  * 水手 (Sailor)

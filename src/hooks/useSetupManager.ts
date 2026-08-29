@@ -51,9 +51,10 @@ export function useSetupManager(
 
       let valid = false;
       if (hasLegion) {
-        // 军团专属配置：多数玩家为军团（恶魔），至少 1 名善良玩家
+        // 军团专属配置：多数玩家为军团（恶魔），无爪牙，至少 1 名善良玩家
         const goodCount = actual.townsfolk + actual.outsider;
-        valid = actual.demon > goodCount && goodCount >= 1;
+        valid =
+          actual.demon > goodCount && actual.minion === 0 && goodCount >= 1;
       } else if (standard) {
         if (hasBaron) {
           // 有男爵时，按照男爵规则验证：减少2镇民，增加2外来者

@@ -6,7 +6,7 @@
  * 每夜选择一名玩家保护，使其免受夜间死亡。
  * allowSelf: true — 可以保护自己
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

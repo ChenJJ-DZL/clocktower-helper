@@ -212,10 +212,10 @@ body > * {
 /* 小屏幕优化（手机竖屏时缩小字体避免溢出） */
 @media (max-width: 480px) {
   .text-xs {
-    font-size: 10px !important;
+    font-size: 10px;
   }
   .text-sm {
-    font-size: 12px !important;
+    font-size: 12px;
   }
 }
 
@@ -334,8 +334,8 @@ body > * {
 .theme-classic body,
 .theme-classic #__next {
   background:
-    #0d0818 url("/assets/table-bg.png") center center / cover no-repeat fixed !important;
-  color: #f6ead0 !important;
+    #0d0818 url("/assets/table-bg.png") center center / cover no-repeat fixed;
+  color: #f6ead0;
 }
 
 .theme-classic body::before {
@@ -347,7 +347,7 @@ body > * {
     rgba(18, 10, 32, 0.35) 0%,
     rgba(10, 6, 18, 0.7) 60%,
     rgba(4, 2, 8, 0.95) 100%
-  ) !important;
+  );
   pointer-events: none;
   z-index: 0;
 }
@@ -359,23 +359,23 @@ body > * {
 .theme-classic h4,
 .theme-classic .font-black {
   font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
-  color: #f5dfab !important;
+  color: #f5dfab;
   text-shadow:
     0 2px 4px rgba(0, 0, 0, 0.9),
-    0 0 12px rgba(232, 201, 138, 0.3) !important;
+    0 0 12px rgba(232, 201, 138, 0.3);
 }
 
 .theme-classic p,
 .theme-classic .text-slate-400,
 .theme-classic .text-slate-300,
 .theme-classic .text-slate-500 {
-  color: #d6c5a0 !important;
+  color: #d6c5a0;
 }
 
 .theme-classic .text-white,
 .theme-classic .text-slate-50,
 .theme-classic .text-slate-100 {
-  color: #fff9ea !important;
+  color: #fff9ea;
 }
 
 /* 3. 卡片与控制台面板 */
@@ -384,31 +384,31 @@ body > * {
 .theme-classic [class*="bg-slate-900"],
 .theme-classic [class*="bg-slate-950"],
 .theme-classic [class*="bg-slate-800"] {
-  background-color: rgba(14, 9, 24, 0.88) !important;
-  border-color: rgba(201, 151, 63, 0.35) !important;
+  background-color: rgba(14, 9, 24, 0.88);
+  border-color: rgba(201, 151, 63, 0.35);
   box-shadow:
     0 16px 36px rgba(0, 0, 0, 0.85),
-    inset 0 1px 0 rgba(255, 236, 196, 0.12) !important;
+    inset 0 1px 0 rgba(255, 236, 196, 0.12);
 }
 
 .theme-classic .topbar-frost,
 .theme-classic [class*="border-b"][class*="bg-slate-900"] {
-  background-color: rgba(12, 7, 20, 0.94) !important;
-  border-bottom: 1px solid rgba(201, 151, 63, 0.35) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  background-color: rgba(12, 7, 20, 0.94);
+  border-bottom: 1px solid rgba(201, 151, 63, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
 /* 剧本选择卡片 */
 .theme-classic [data-testid^="script-card-"] {
-  background: rgba(16, 10, 26, 0.85) !important;
-  border: 1px solid rgba(217, 181, 106, 0.35) !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7) !important;
+  background: rgba(16, 10, 26, 0.85);
+  border: 1px solid rgba(217, 181, 106, 0.35);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
 }
 
 .theme-classic [data-testid^="script-card-"]:hover {
-  border-color: rgba(245, 223, 171, 0.75) !important;
-  box-shadow: 0 12px 32px rgba(217, 181, 106, 0.3) !important;
-  background: rgba(26, 16, 42, 0.92) !important;
+  border-color: rgba(245, 223, 171, 0.75);
+  box-shadow: 0 12px 32px rgba(217, 181, 106, 0.3);
+  background: rgba(26, 16, 42, 0.92);
 }
 
 /* 4. 圆桌中央指南针 HUD */
@@ -417,138 +417,113 @@ body > * {
     circle,
     rgba(24, 14, 38, 0.94) 0%,
     rgba(12, 7, 20, 0.98) 100%
-  ) !important;
-  border: 2px solid rgba(217, 181, 106, 0.5) !important;
+  );
+  border: 2px solid rgba(217, 181, 106, 0.5);
   box-shadow:
     0 0 35px rgba(217, 181, 106, 0.25),
-    inset 0 0 20px rgba(0, 0, 0, 0.8) !important;
+    inset 0 0 20px rgba(0, 0, 0, 0.8);
 }
 
 /* 5. 圆桌代币 */
 .theme-classic .seat-node > div:first-child {
   box-shadow:
     0 8px 20px rgba(0, 0, 0, 0.85),
-    inset 0 2px 4px rgba(255, 255, 255, 0.25) !important;
-  border-width: 3.5px !important;
+    inset 0 2px 4px rgba(255, 255, 255, 0.25);
+  border-width: 3.5px;
 }
 
 /* 村民代币：深邃宝石蓝 + 烫金外圈 */
 .theme-classic .seat-node .border-blue-500,
 .theme-classic .seat-node .bg-blue-900\/50,
 .theme-classic .seat-node .text-blue-400 {
-  background: linear-gradient(145deg, #1e3a8a 0%, #0f172a 100%) !important;
-  border-color: #d9b56a !important;
+  background: linear-gradient(145deg, #1e3a8a 0%, #0f172a 100%);
+  border-color: #d9b56a;
 }
 
 /* 外来者代币：翡翠深青绿 + 青铜外圈 */
 .theme-classic .seat-node .border-purple-500,
 .theme-classic .seat-node .bg-purple-900\/50,
 .theme-classic .seat-node .text-purple-400 {
-  background: linear-gradient(145deg, #14532d 0%, #052e16 100%) !important;
-  border-color: #86efac !important;
+  background: linear-gradient(145deg, #14532d 0%, #052e16 100%);
+  border-color: #86efac;
 }
 
 /* 爪牙代币：焦赭暗橙 + 黄铜外圈 */
 .theme-classic .seat-node .border-orange-500,
 .theme-classic .seat-node .bg-orange-900\/50,
 .theme-classic .seat-node .text-orange-500 {
-  background: linear-gradient(145deg, #9a3412 0%, #431407 100%) !important;
-  border-color: #fdba74 !important;
+  background: linear-gradient(145deg, #9a3412 0%, #431407 100%);
+  border-color: #fdba74;
 }
 
 /* 恶魔代币：深绯血红 + 猩红金外圈 */
 .theme-classic .seat-node .border-red-600,
 .theme-classic .seat-node .bg-red-900\/50,
 .theme-classic .seat-node .text-red-600 {
-  background: linear-gradient(145deg, #991b1b 0%, #450a0a 100%) !important;
-  border-color: #fca5a5 !important;
+  background: linear-gradient(145deg, #991b1b 0%, #450a0a 100%);
+  border-color: #fca5a5;
 }
 
 /* 代币角色名称：加粗官方衬线字体 */
 .theme-classic .seat-node span {
   font-family: "Noto Serif SC", "Songti SC", serif;
-  font-weight: 900 !important;
-  color: #fffbeb !important;
+  font-weight: 900;
+  color: #fffbeb;
   text-shadow:
     0 2px 4px rgba(0, 0, 0, 0.95),
-    0 0 8px rgba(0, 0, 0, 0.9) !important;
+    0 0 8px rgba(0, 0, 0, 0.9);
 }
 
 /* 座位序号：立体烫金圆章 */
 .theme-classic .seat-node .rounded-full.border-2 {
-  background: linear-gradient(
-    180deg,
-    #f5dfab 0%,
-    #d9b56a 50%,
-    #92691f 100%
-  ) !important;
-  border-color: #3e2609 !important;
-  color: #241206 !important;
-  font-family: "Noto Serif SC", serif !important;
-  font-weight: 900 !important;
+  background: linear-gradient(180deg, #f5dfab 0%, #d9b56a 50%, #92691f 100%);
+  border-color: #3e2609;
+  color: #241206;
+  font-family: "Noto Serif SC", serif;
+  font-weight: 900;
   box-shadow:
     0 3px 8px rgba(0, 0, 0, 0.85),
-    inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
 }
 
 /* 6. 主操作按钮：高光立体琥珀金拟物胶囊 */
 .theme-classic .btn-arcane-primary {
-  background: linear-gradient(
-    180deg,
-    #f59e0b 0%,
-    #d97706 50%,
-    #b45309 100%
-  ) !important;
-  border: 2px solid #fde68a !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+  border: 2px solid #fde68a;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   box-shadow:
     0 6px 20px rgba(217, 119, 6, 0.45),
-    inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
-  border-radius: 1rem !important;
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  border-radius: 1rem;
 }
 
 .theme-classic .btn-arcane-primary:hover {
-  background: linear-gradient(
-    180deg,
-    #fbbf24 0%,
-    #f59e0b 50%,
-    #d97706 100%
-  ) !important;
+  background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
   box-shadow:
     0 8px 24px rgba(245, 158, 11, 0.6),
-    inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
+    inset 0 1px 3px rgba(255, 255, 255, 0.8);
 }
 
 /* 6.1 次级/告知操作按钮：高光立体宝石蓝拟物胶囊 */
 .theme-classic .btn-arcane-info {
-  background: linear-gradient(
-    180deg,
-    #3b82f6 0%,
-    #2563eb 50%,
-    #1d4ed8 100%
-  ) !important;
-  border: 2px solid #93c5fd !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+  border: 2px solid #93c5fd;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
   box-shadow:
     0 6px 20px rgba(37, 99, 235, 0.45),
-    inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
-  border-radius: 1rem !important;
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  border-radius: 1rem;
 }
 
 .theme-classic .btn-arcane-info:hover {
-  background: linear-gradient(
-    180deg,
-    #60a5fa 0%,
-    #3b82f6 50%,
-    #2563eb 100%
-  ) !important;
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
   box-shadow:
     0 8px 24px rgba(59, 130, 246, 0.6),
-    inset 0 1px 3px rgba(255, 255, 255, 0.8) !important;
+    inset 0 1px 3px rgba(255, 255, 255, 0.8);
 }
 
 /* ══════════════════════════════════════════════════════════════

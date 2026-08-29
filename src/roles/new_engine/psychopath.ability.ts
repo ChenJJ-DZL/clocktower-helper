@@ -6,7 +6,7 @@
  * DAY 触发，选择一个目标使其死亡。
  * targetConfig: min:1, max:1
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

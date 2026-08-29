@@ -8,7 +8,7 @@
  * 咒语句由说书人在 storytellerInput.curseSpoken 中传入。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

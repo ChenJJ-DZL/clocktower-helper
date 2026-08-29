@@ -5,7 +5,7 @@
  *
  * 叛国大臣实际属于邪恶阵营（爪牙），但对探测类能力（如占卜师、调查员）注册为善良。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

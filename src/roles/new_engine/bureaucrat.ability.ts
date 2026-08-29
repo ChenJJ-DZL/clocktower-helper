@@ -5,7 +5,7 @@
  *
  * 每夜选择一名玩家（非自己），次日白天其投票计为三票。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

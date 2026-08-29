@@ -7,7 +7,7 @@
  *
  * 每夜杀一人。所有镇民能力结果反转。无处决日邪恶获胜。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

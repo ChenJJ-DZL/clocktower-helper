@@ -13,7 +13,7 @@
  * - 胜负对调由 UI 判胜流程（checkGameOver）读取 hasActorInGame 执行。
  * - 初始设置替换由 actorSetupRoles 工具提供（UI setup 层调用）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -87,10 +87,10 @@ const postProcess = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const actorList = (r?.actors ?? [])
-    .map((id: number) => id + 1 + "号")
+    .map((id: number) => `${id + 1}号`)
     .join("、");
   const evilList = (r?.evilPlayers ?? [])
-    .map((id: number) => id + 1 + "号")
+    .map((id: number) => `${id + 1}号`)
     .join("、");
   const log = `[Actor] 所有戏子互认：${actorList}；邪恶玩家：${evilList}（恶魔身份未知）`;
   console.log(log);

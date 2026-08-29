@@ -6,7 +6,7 @@
  * 当摆渡人死亡时，可以选择一名已死亡的玩家将其复活。
  * allowDead: true — 目标可以是已死亡玩家。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

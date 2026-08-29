@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameSnapshot } from "../../types/game";
-import { createSnapshotFromState, isRealUnfinishedGame } from "../persistence";
+import { isRealUnfinishedGame } from "../persistence";
 
 describe("对局未完成状态检测 (isRealUnfinishedGame) 测试", () => {
   it("空快照或未初始化数据不应被判定为未完成对局", () => {

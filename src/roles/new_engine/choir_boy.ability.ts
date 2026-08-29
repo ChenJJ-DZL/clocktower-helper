@@ -6,7 +6,7 @@
  * PASSIVE 触发：当国王（King）角色死亡时，唱诗男孩会得知恶魔是谁。
  * 说书人可以选择告知正确的恶魔身份，或模糊的线索。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

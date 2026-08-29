@@ -171,7 +171,7 @@ describe("Wave D1 国风角色官方规则", () => {
       "../../utils/middlewarePipeline"
     );
     const abilityMap = buildAbilityMap();
-    const ability = abilityMap["zhen_night_ability"];
+    const ability = abilityMap.zhen_night_ability;
     expect(ability).toBeDefined();
 
     const seats = [

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkGameEnd } from "../../../../app/gameLogic";
 import type { Seat } from "../../../../app/data";
+import { checkGameEnd } from "../../../../app/gameLogic";
 
 /**
  * 涡流（Vortox）黄昏胜利专项：

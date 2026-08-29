@@ -10,14 +10,15 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
     <ModalWrapper
       title="🧠 疯狂判定"
       onClose={() => props.setCurrentModal(null)}
-      className="max-w-md"
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
       footer={
-        <div className="flex gap-3 w-full justify-end">
+        <div className="flex flex-col sm:flex-row gap-3 w-full justify-center max-w-xl mx-auto">
           <button
             onClick={() => {
               props.setCurrentModal(null);
             }}
-            className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium text-white transition"
+            className="flex-1 py-3 sm:py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white transition text-base sm:text-lg shadow-md"
           >
             取消
           </button>
@@ -28,7 +29,7 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
               );
               props.setCurrentModal(null);
             }}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-white transition"
+            className="flex-1 py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-black text-white transition text-base sm:text-lg shadow-md shadow-emerald-600/40 ring-2 ring-emerald-400 active:scale-[0.98]"
           >
             判定通过
           </button>
@@ -56,23 +57,23 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
               }
               props.setCurrentModal(null);
             }}
-            className="px-5 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl font-bold text-white transition"
+            className="flex-1 py-3 sm:py-4 bg-red-600 hover:bg-red-500 rounded-xl font-black text-white transition text-base sm:text-lg shadow-md shadow-red-600/40 ring-2 ring-red-400 active:scale-[0.98]"
           >
             判定失败
           </button>
         </div>
       }
     >
-      <div className="space-y-3 text-left">
-        <p className="text-base text-slate-200">
-          目标玩家：
-          <strong className="text-white">{modal.targetId + 1}号</strong>
+      <div className="flex flex-col flex-1 p-2 sm:p-6 space-y-4 text-center my-auto w-full">
+        <p className="text-xl sm:text-2xl md:text-3xl font-black text-white leading-relaxed">
+          判定{" "}
+          <span className="text-amber-400 font-black">
+            【{modal.targetId + 1}号】
+          </span>{" "}
+          玩家是否遵守疯狂规则：
         </p>
-        <p className="text-base text-purple-300">
-          要求扮演角色：<strong>{modal.roleName}</strong>
-        </p>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          该玩家需要在白天和夜晚“疯狂”地证明自己是这个角色，否则可能被说书人直接处决。
+        <p className="text-base sm:text-xl md:text-2xl font-bold text-amber-300">
+          该玩家需要扮演【{modal.roleName}】
         </p>
       </div>
     </ModalWrapper>

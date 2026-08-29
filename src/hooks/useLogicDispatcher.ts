@@ -80,7 +80,6 @@ export function useLogicDispatcher(
       });
     },
     [
-      seats,
       gamePhase,
       addLog,
       setSeats,
@@ -98,7 +97,7 @@ export function useLogicDispatcher(
 
   const checkGameOver = useCallback(
     (
-      updatedSeats: Seat[],
+      _updatedSeats: Seat[],
       executedPlayerId: number | null = null,
       _isEndOfDay: boolean = false,
       damselGuessed: boolean = false,

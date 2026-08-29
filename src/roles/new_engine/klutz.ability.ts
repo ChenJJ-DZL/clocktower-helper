@@ -6,7 +6,7 @@
  * 被动检测笨蛋首次死亡。从存活善良玩家中随机选择一名标记死亡。
  * 若无可杀目标（全场无善良存活），则跳过。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

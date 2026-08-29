@@ -6,7 +6,7 @@
  *
  * 按角色名狙杀，不是按玩家选择。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

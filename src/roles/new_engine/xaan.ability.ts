@@ -5,7 +5,7 @@
  *
  * 克桑使所有己方爪牙角色的能力持续时间延长一晚（即能力多生效一个夜晚）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

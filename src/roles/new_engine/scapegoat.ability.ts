@@ -6,7 +6,7 @@
  * 当替罪羊被处决时，说书人可以选择另一名玩家代替替罪羊死亡。
  * 替罪羊本身不会死亡。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

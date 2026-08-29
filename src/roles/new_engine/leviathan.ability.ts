@@ -7,7 +7,7 @@
  * 第4天白天结束时，游戏自动结束，邪恶阵营获胜。
  * 不主动唤醒，被动限制游戏时长。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

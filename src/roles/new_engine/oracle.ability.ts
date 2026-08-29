@@ -5,7 +5,7 @@
  */
 
 import type { Seat } from "../../../app/data";
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

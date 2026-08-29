@@ -67,7 +67,7 @@ for (const char of rawList) {
 // 因为 json/full/all_characters.json 不含这 6 角色，且 json/ 目录受 clinerules 保护。
 const poppygandaExtraList = Object.values(
   poppygandaExtras as unknown as Record<string, RawCharacter>
-).filter((c) => c && c.名称);
+).filter((c) => c?.名称);
 
 for (const char of poppygandaExtraList) {
   if (char.名称) {
@@ -185,7 +185,7 @@ export function getCharacterWikiDetails(
     }
   }
 
-  const strategyTips = parseToPoints(content["提示与技巧"]);
+  const strategyTips = parseToPoints(content.提示与技巧);
 
   return {
     name: raw.名称,
@@ -194,18 +194,18 @@ export function getCharacterWikiDetails(
     script: raw.所属剧本,
     abilityType: raw.角色能力类型,
     url: raw.url,
-    flavorQuote: content["背景故事"],
-    abilityText: content["角色能力"],
-    overview: content["角色简介"],
-    operation: content["运作方式"],
-    reminderTokens: content["提示标记"],
-    ruleDetails: content["规则细节"],
-    scenarios: content["范例"],
+    flavorQuote: content.背景故事,
+    abilityText: content.角色能力,
+    overview: content.角色简介,
+    operation: content.运作方式,
+    reminderTokens: content.提示标记,
+    ruleDetails: content.规则细节,
+    scenarios: content.范例,
     strategyTips:
       strategyTips.length > 0
         ? strategyTips
-        : content["角色简介"]
-          ? [content["角色简介"]]
+        : content.角色简介
+          ? [content.角色简介]
           : [],
     bluffTips,
     counterTips,

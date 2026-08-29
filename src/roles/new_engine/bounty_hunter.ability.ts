@@ -13,7 +13,7 @@
  *   - 死亡轮转：由 useNightEngine 在 deadThisNight 结算时注入新 actionNode，
  *     并设 ctx.meta.isRotationTrigger = true
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

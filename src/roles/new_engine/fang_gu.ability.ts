@@ -7,7 +7,7 @@
  *
  * 每夜杀一人。如目标是外来者，目标变成方古且不死亡。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -125,7 +125,7 @@ const postProcess = async (
   const r = ctx.meta.abilityResult as any;
   const action = r?.becomesFangGu
     ? "→ 外来者变方古（不死亡）"
-    : `击杀${r?.targetId != null ? r.targetId + 1 + "号" : ""}`;
+    : `击杀${r?.targetId != null ? `${r.targetId + 1}号` : ""}`;
   const log = `[FangGu] ${action}`;
   console.log(log);
   return {

@@ -5,7 +5,7 @@
  *
  * 每夜得知白天是否有爪牙提名过。纯信息类能力。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

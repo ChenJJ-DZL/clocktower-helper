@@ -10,7 +10,7 @@
  *
  * 网页版适配：桌游的"标记"统一为控制台日志与结算弹窗（displayInfo 告知"是/否"）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

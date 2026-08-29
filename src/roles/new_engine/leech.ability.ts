@@ -58,7 +58,7 @@ export const leechAbility = createRoleAbility({
         },
         meta: {
           ...ctx.meta,
-          prompt: "痢蛭选择了" + (hostId + 1) + "号作为宿主",
+          prompt: `痢蛭选择了${hostId + 1}号作为宿主`,
         },
       };
     },
@@ -66,8 +66,7 @@ export const leechAbility = createRoleAbility({
   postProcess: [
     async (ctx) => {
       const hostId = ctx.meta.abilityResult?.hostId;
-      if (hostId !== undefined)
-        console.log("[Leech] 宿主: " + (hostId + 1) + "号");
+      if (hostId !== undefined) console.log(`[Leech] 宿主: ${hostId + 1}号`);
       return ctx;
     },
   ],

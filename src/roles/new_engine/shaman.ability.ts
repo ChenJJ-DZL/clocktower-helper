@@ -40,7 +40,7 @@ export const shamanAbility = createRoleAbility({
   postProcess: [
     async (ctx) => {
       const kw = ctx.meta.abilityResult?.keyword;
-      if (kw) console.log("[Shaman] 关键词: " + kw);
+      if (kw) console.log(`[Shaman] 关键词: ${kw}`);
       return ctx;
     },
   ],

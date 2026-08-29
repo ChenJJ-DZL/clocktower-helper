@@ -31,10 +31,28 @@ export enum NightState {
 // 状态转移规则：允许的状态流转路径
 const ALLOWED_TRANSITIONS: Record<NightState, NightState[]> = {
   [NightState.IDLE]: [NightState.QUEUING],
-  [NightState.QUEUING]: [NightState.WAKING, NightState.ENDED, NightState.DAWN, NightState.QUEUING],
-  [NightState.WAKING]: [NightState.PROCESSING, NightState.DAWN, NightState.QUEUING],
-  [NightState.PROCESSING]: [NightState.CONFIRMING, NightState.WAKING, NightState.DAWN, NightState.QUEUING],
-  [NightState.CONFIRMING]: [NightState.WAKING, NightState.DAWN, NightState.QUEUING],
+  [NightState.QUEUING]: [
+    NightState.WAKING,
+    NightState.ENDED,
+    NightState.DAWN,
+    NightState.QUEUING,
+  ],
+  [NightState.WAKING]: [
+    NightState.PROCESSING,
+    NightState.DAWN,
+    NightState.QUEUING,
+  ],
+  [NightState.PROCESSING]: [
+    NightState.CONFIRMING,
+    NightState.WAKING,
+    NightState.DAWN,
+    NightState.QUEUING,
+  ],
+  [NightState.CONFIRMING]: [
+    NightState.WAKING,
+    NightState.DAWN,
+    NightState.QUEUING,
+  ],
   [NightState.DAWN]: [NightState.ENDED, NightState.QUEUING, NightState.IDLE],
   [NightState.ENDED]: [NightState.IDLE, NightState.QUEUING],
 };

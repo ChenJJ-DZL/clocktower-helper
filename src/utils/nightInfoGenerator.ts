@@ -35,17 +35,17 @@ export function generateNightInfo(
   nightCount: number,
   isEvilWithJudgmentFn?: (seat: Seat) => boolean,
   poppyGrowerDead?: boolean,
-  spyDisguiseMode?: "off" | "default" | "on",
-  spyDisguiseProbability?: number,
+  _spyDisguiseMode?: "off" | "default" | "on",
+  _spyDisguiseProbability?: number,
   deadThisNight: number[] = [],
-  registrationCache?: Map<string, any>,
-  registrationCacheKey?: string,
+  _registrationCache?: Map<string, any>,
+  _registrationCacheKey?: string,
   vortoxWorld?: boolean,
   demonVotedToday?: boolean,
   minionNominatedToday?: boolean,
   executedToday?: number | null,
-  hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
-  votedThisRound?: number[],
+  _hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
+  _votedThisRound?: number[],
   outsiderDiedToday?: boolean
 ): NightInfoResult | null {
   const targetSeat = seats.find((s) => s.id === currentSeatId);

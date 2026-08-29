@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：夜晚死亡时触发，可交换两名玩家角色。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

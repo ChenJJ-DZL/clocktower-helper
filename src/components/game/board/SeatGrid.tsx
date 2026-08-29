@@ -37,6 +37,13 @@ export interface SeatGridProps {
   nominator?: number | null;
   nominee?: number | null;
   seatNotes?: Record<number, string>;
+  // 拖拽换位相关 Props
+  isDraggable?: boolean;
+  activeDragSeatId?: number | null;
+  swapTargetSeatId?: number | null;
+  onSeatDragStart?: (seatId: number, e: any) => void;
+  onSeatDrag?: (seatId: number, e: any, info: any) => void;
+  onSeatDragEnd?: (seatId: number, e: any, info: any) => void;
 }
 
 export function SeatGrid(props: SeatGridProps) {
@@ -62,6 +69,12 @@ export function SeatGrid(props: SeatGridProps) {
     nominator = null,
     nominee = null,
     seatNotes = {},
+    isDraggable = false,
+    activeDragSeatId = null,
+    swapTargetSeatId = null,
+    onSeatDragStart,
+    onSeatDrag,
+    onSeatDragEnd,
   } = props;
 
   // 圆桌模式：使用 SeatNode + 圆形布局
@@ -97,6 +110,12 @@ export function SeatGrid(props: SeatGridProps) {
               nominator={nominator}
               nominee={nominee}
               seatNote={seatNotes[seat.id]}
+              isDraggable={isDraggable}
+              isBeingDragged={activeDragSeatId === seat.id}
+              isSwapTarget={swapTargetSeatId === seat.id}
+              onSeatDragStart={onSeatDragStart}
+              onSeatDrag={onSeatDrag}
+              onSeatDragEnd={onSeatDragEnd}
             />
           </StaggerItem>
         ))}

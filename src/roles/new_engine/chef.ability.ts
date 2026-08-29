@@ -66,7 +66,7 @@
  * ============================================================
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -231,7 +231,7 @@ function resolveRecluseForChef(
 
   // 默认：陌客默认为邪恶（除非说书人手动切换或显式指定）
   const forced = (ctx as any)?.storytellerInput?.forceChefRecluseEvil;
-  const result = forced === false ? false : true;
+  const result = forced !== false;
   meta[key] = result;
   return result;
 }
@@ -267,7 +267,7 @@ function resolveSpyForChef(
 
   // 默认：间谍默认为好人（注册为善良，不记为邪恶）
   const forced = (ctx as any)?.storytellerInput?.forceChefSpyGood;
-  const result = forced === false ? false : true;
+  const result = forced !== false;
   meta[key] = result;
   return result;
 }

@@ -5,7 +5,7 @@
  *
  * 每夜选择一名活着的玩家下虫卵，被下虫卵的玩家在某个时机触发额外效果。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

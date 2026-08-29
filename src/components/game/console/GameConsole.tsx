@@ -244,6 +244,7 @@ export const GameConsole = React.memo(function GameConsole({
     (p) => !skillLikeGuidance.has((p || "").trim())
   );
   const isPoppyGrowerEvilInfo =
+    seats.some((s) => s.role?.id === "poppy_grower") &&
     (nightInfo?.seat?.role?.id === "minion_info" ||
       nightInfo?.seat?.role?.id === "demon_info" ||
       nightInfo?.effectiveRole?.id === "minion_info" ||

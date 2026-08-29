@@ -6,7 +6,7 @@
  * PASSIVE 触发，标记 organGrinderActive 到 snapshot，效果由 UI 层实现隐藏投票。
  * 风琴手死亡后 organGrinderActive 消失。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

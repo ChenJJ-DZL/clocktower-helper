@@ -9,7 +9,7 @@
  * - 支持僧侣保护、水手保护、士兵免疫等常规防刀机制。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   getDemonKillImmunityType,
   isImmuneToDemonKill,

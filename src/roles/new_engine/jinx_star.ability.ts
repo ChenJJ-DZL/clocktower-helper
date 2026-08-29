@@ -6,7 +6,7 @@
  * 游戏开始时被动激活，记录并管理特定角色之间的相克（jinx）关系。
  * 不主动唤醒，由说书人在游戏准备阶段使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

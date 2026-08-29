@@ -5,7 +5,7 @@
  * 当已有1名额外邪恶玩家被转化时，阻止后续转化。
  * 被动触发，不唤醒。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

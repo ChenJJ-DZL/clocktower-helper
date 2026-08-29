@@ -76,7 +76,9 @@ export function generateDynamicNightQueue(
     }
 
     const isSystemEvilInfo =
-      entry.roleId === "minion_info" || entry.roleId === "demon_info";
+      entry.roleId === "minion_info" ||
+      entry.roleId === "demon_info" ||
+      entry.roleId === LEGION_MUTUAL_RECOGNITION_ID;
     const poppyGrowerDiedAndTriggersEvil =
       (snapshot as any).poppyGrowerDead === true;
 
@@ -98,7 +100,7 @@ export function generateDynamicNightQueue(
     }
 
     // 罂粟种植者状态判定：
-    // 在首夜，如果罂粟种植者在场且健康（存活且未中毒未醉酒），爪牙互认步骤绝不进队列！
+    // 在首夜，如果罂粟种植者在场且健康（存活且未中毒未醉酒），爪牙互认与军团互认步骤绝不进队列！
     const isPoppyGrowerAlive = snapshot.seats.some(
       (s) =>
         s.role?.id === "poppy_grower" &&
@@ -106,7 +108,7 @@ export function generateDynamicNightQueue(
         !s.isDrunk &&
         !s.isPoisoned
     );
-    // 系统信息步骤（minion_info / demon_info）：找到对应玩家，不需要精确 roleId 匹配
+    // 系统信息步骤（minion_info / demon_info / legion_mutual_recognition）：找到对应玩家，不需要精确 roleId 匹配
     if (entry.roleId === "minion_info") {
       // 首夜：若罂粟种植者存活且健康，爪牙互认直接取消！
       if (isFirstNight && isPoppyGrowerAlive) {
@@ -124,7 +126,7 @@ export function generateDynamicNightQueue(
     }
     if (entry.roleId === "demon_info") {
       // 恶魔信息：
-      // 首夜：恶魔总会唤醒（以获取 3 个伪装），但在罂粟种植者存活时，恶魔不能得知爪牙是谁
+      // 首夜：恶魔总会唤醒（以获取 3 个伪装），但在罂粟种植者存活时，恶魔不能得知爪牙/同伴是谁
       // 非首夜：仅在罂粟种植者死亡触发邪恶互认时才再次唤醒
       if (!isFirstNight && !poppyGrowerDiedAndTriggersEvil) {
         return false;
@@ -136,11 +138,24 @@ export function generateDynamicNightQueue(
       return true;
     }
     if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
-      // 军团互认：仅首夜，且存活军团 >= 1 时进入
-      if (!isFirstNight) return false;
+      // 军团互认：
+      // 首夜：若罂粟种植者存活且健康，军团互认绝不进队列（军团不互认）！
+      if (isFirstNight && isPoppyGrowerAlive) {
+        return false;
+      }
+      // 非首夜：仅在罂粟种植者刚死亡且需要进行邪恶互认时才触发
+      if (!isFirstNight && !poppyGrowerDiedAndTriggersEvil) {
+        return false;
+      }
       return snapshot.seats.some(
         (s) => s.role?.id === "legion" && (includeDead || !s.isDead)
       );
+    }
+
+    // 🔧 红唇女郎（Scarlet Woman）为纯被动角色，不在首夜或非首夜作为红唇女郎唤醒。
+    //   若恶魔死亡且满足≥5人存活，她将自动变身并继承恶魔身份（在恶魔行动环节作为恶魔行动）。
+    if (entry.roleId === "scarlet_woman") {
+      return false;
     }
 
     // 找到对应的座位（默认只找存活玩家）
@@ -247,9 +262,7 @@ export function generateDynamicNightQueue(
     };
   });
 
-  // 4. 军团专项：军团在场时把 demon_info 节点按军团数量展开，
-  //    每个军团独立获得一份「3 个不在场角色」伪装信息。
-  // 军团互认节点打标：供 UI 与行动处理器识别（无需选择目标）
+  // 4. 军团互认节点打标：供 UI 与行动处理器识别（无需选择目标）
   const flagLegionMutual = queue.map((node) =>
     node.roleId === LEGION_MUTUAL_RECOGNITION_ID
       ? {
@@ -259,33 +272,6 @@ export function generateDynamicNightQueue(
         }
       : node
   );
-
-  const legionSeats = snapshot.seats.filter(
-    (s) => s.role?.id === "legion" && !s.isDead
-  );
-  if (legionSeats.length > 1) {
-    const expanded: NightActionNode[] = [];
-    for (const node of flagLegionMutual) {
-      if (node.roleId === "demon_info") {
-        // 第一份给第一个军团（保留原 node），其余为额外军团复制
-        expanded.push(node);
-        for (let i = 1; i < legionSeats.length; i++) {
-          const legionSeat = legionSeats[i];
-          expanded.push({
-            ...node,
-            seatId: legionSeat.id,
-            roleName: `${legionSeat.role?.name ?? "军团"}(第 ${
-              i + 1
-            } 军团互认)`,
-            meta: { ...node.meta, legionIndex: i, isExtraLegionDemon: true },
-          });
-        }
-      } else {
-        expanded.push(node);
-      }
-    }
-    return expanded;
-  }
 
   return flagLegionMutual;
 }

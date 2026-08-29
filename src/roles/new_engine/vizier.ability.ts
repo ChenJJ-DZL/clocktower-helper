@@ -6,7 +6,7 @@
  * PASSIVE 触发，标记 vizierRevealed 到 snapshot。
  * 效果由 UI 层实现：维齐尔公开后白天投票处决无效。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

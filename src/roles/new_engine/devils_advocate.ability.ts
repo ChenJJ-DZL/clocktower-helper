@@ -5,7 +5,6 @@
  */
 
 import { createSettlementPostProcess } from "../../utils/abilitySettlement";
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

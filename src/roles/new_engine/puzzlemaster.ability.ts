@@ -5,7 +5,7 @@
  *
  * 谜题大师使一名玩家进入醉酒状态。白天可猜测是谁被醉酒，猜对则解除。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import { calculateNightInfoViaNewEngine } from "../../../utils/nightInfoAdapter";
-import { parseInfoResult } from "../../../utils/infoResultParser";
-import { generateDynamicNightQueue } from "../../../utils/dynamicQueueGenerator";
-import type { GameStateSnapshot } from "../../../utils/nightStateMachine";
+import { describe, expect, it } from "vitest";
 import type { Seat } from "../../../../app/data";
+import { generateDynamicNightQueue } from "../../../utils/dynamicQueueGenerator";
+import { parseInfoResult } from "../../../utils/infoResultParser";
+import { calculateNightInfoViaNewEngine } from "../../../utils/nightInfoAdapter";
+import type { GameStateSnapshot } from "../../../utils/nightStateMachine";
 
 describe("首夜系统步骤与座位号全局映射集成测试", () => {
   const seats: Seat[] = [

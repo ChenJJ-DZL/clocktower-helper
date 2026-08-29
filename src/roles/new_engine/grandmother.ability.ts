@@ -8,7 +8,7 @@
  * 触发时机：FIRST_NIGHT（首夜）
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkGameEnd } from "../../../../app/gameLogic";
 import type { Seat } from "../../../../app/data";
+import { checkGameEnd } from "../../../../app/gameLogic";
 
 /**
  * 镜像双子（Evil Twin）胜负判定专项：

@@ -12,7 +12,6 @@ import {
   monkAbility,
   oracleAbility,
   pixieAbility,
-  poppy_growerAbility,
   savantAbility,
   town_crierAbility,
 } from "../../src/roles/new_engine/abilityRegistry";

@@ -1,5 +1,5 @@
 /** 修验者（Shugenja）新引擎技能实现\n * 【角色能力】"首夜，得知太阳方向（邪恶所在方向）。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

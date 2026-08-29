@@ -8,7 +8,7 @@
  * 标记 lilMonstaHolder 到 snapshot，供恶魔行动系统查询。
  * targetConfig: min:0, max:0 — 选标记由邪恶阵营内部投票决定，不通过标准选目标。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

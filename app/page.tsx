@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
@@ -11,11 +11,7 @@ import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
 import type { GameRecord, NightHintState } from "../src/types/game";
-import {
-  clearCurrentSnapshot,
-  loadCurrentSnapshot,
-} from "../src/utils/persistence";
-import { roles, scripts, typeColors } from "./data";
+import { type Role, roles, type Seat, scripts, typeColors } from "./data";
 
 // getSeatRoleId is now imported from useGameController
 
@@ -378,12 +374,133 @@ export default function Home() {
         `🏚️ 检测到男爵，已自动调整阵容：${townsfolkCount}村民 / ${outsiderCount}外来者`
       );
     }
+    const testSeatDetails = (newSeats as Seat[])
+      .filter((s) => s.role)
+      .map((s) => {
+        let roleName = s.role?.name || "未知";
+        if (s.role?.id === "drunk" && s.charadeRole?.name) {
+          roleName = `酒鬼(伪:${s.charadeRole.name})`;
+        } else if (s.role?.id === "lunatic" && s.apparentDemonRole?.name) {
+          roleName = `疯子(伪:${s.apparentDemonRole.name})`;
+        }
+        return `${s.id + 1}号${roleName}`;
+      })
+      .join("、");
+
     addLogWithDeduplication?.(
-      `⚡ 快速测试：已为${totalCount}名玩家随机分配角色`
+      `⚡ 快速测试（${totalCount}人落座）：${testSeatDetails}`
     );
     // 直接进入核对阶段，跳过阵容校验
     proceedToCheckPhase(newSeats);
   }, [selectedScript, seats, addLogWithDeduplication, proceedToCheckPhase]);
+
+  // ⚡ 快速开始：根据所选人数与按行动顺序排定的角色列表进行落座
+  const handleQuickStart = useCallback(
+    (
+      playerCount: number,
+      sortedRoles: Array<
+        Role & {
+          charadeRole?: Role | null;
+          apparentDemonRole?: Role | null;
+          displayRole?: Role | null;
+        }
+      >
+    ) => {
+      if (!selectedScript || !sortedRoles || sortedRoles.length === 0) return;
+
+      const targetCount = playerCount || sortedRoles.length;
+      const newSeats: Seat[] = Array.from({ length: targetCount }, (_, i) => {
+        const roleData = sortedRoles[i] || null;
+        const baseSeat = seats[i] || {
+          id: i,
+          playerName: `玩家 ${i + 1}`,
+          role: null,
+          charadeRole: null,
+          isDead: false,
+          isDrunk: false,
+          isPoisoned: false,
+          isProtected: false,
+          protectedBy: null,
+          isRedHerring: false,
+          isFortuneTellerRedHerring: false,
+          isSentenced: false,
+          masterId: null,
+          hasUsedSlayerAbility: false,
+          hasUsedVirginAbility: false,
+          isDemonSuccessor: false,
+          hasAbilityEvenDead: false,
+          statusDetails: [],
+          statuses: [],
+          voteCount: 0,
+          isCandidate: false,
+          grandchildId: null,
+          isGrandchild: false,
+          isFirstDeathForZombuul: false,
+          isZombuulTrulyDead: false,
+          zombuulLives: 1,
+        };
+
+        return {
+          ...baseSeat,
+          id: i,
+          playerName: baseSeat.playerName || `玩家 ${i + 1}`,
+          role: roleData
+            ? { id: roleData.id, name: roleData.name, type: roleData.type }
+            : null,
+          charadeRole: roleData?.charadeRole || null,
+          displayRole: roleData?.displayRole || null,
+          apparentDemonRole: roleData?.apparentDemonRole || null,
+          isDead: false,
+          isDrunk: false,
+          isPoisoned: false,
+        };
+      });
+
+      dispatch(gameActions.setSeats(newSeats));
+      dispatch(
+        gameActions.updateState({
+          seats: newSeats,
+          initialSeats: JSON.parse(JSON.stringify(newSeats)),
+        })
+      );
+      dispatch(gameActions.saveHistory({ seats: newSeats }));
+
+      const quickSeatDetails = newSeats
+        .filter((s) => s.role)
+        .map((s) => {
+          let roleName = s.role?.name || "未知";
+          if (s.role?.id === "drunk" && s.charadeRole?.name) {
+            roleName = `酒鬼(伪:${s.charadeRole.name})`;
+          } else if (s.role?.id === "lunatic" && s.apparentDemonRole?.name) {
+            roleName = `疯子(伪:${s.apparentDemonRole.name})`;
+          }
+          return `${s.id + 1}号${roleName}`;
+        })
+        .join("、");
+
+      addLogWithDeduplication?.(
+        `⚡ 快速开始（${targetCount}人落座）：${quickSeatDetails}`
+      );
+    },
+    [selectedScript, seats, dispatch, addLogWithDeduplication]
+  );
+
+  const handleSwapSeats = useCallback(
+    (seatId1: number, seatId2: number) => {
+      if (seatId1 === seatId2) return;
+      const s1 = seats.find((s) => s.id === seatId1);
+      const s2 = seats.find((s) => s.id === seatId2);
+      if (!s1 || !s2) return;
+
+      const newSeats = seats.map((s) => {
+        if (s.id === seatId1) return { ...s2, id: seatId1 };
+        if (s.id === seatId2) return { ...s1, id: seatId2 };
+        return s;
+      });
+      dispatch(gameActions.setSeats(newSeats));
+    },
+    [seats, dispatch]
+  );
 
   // [REFACTOR] seatsRef and gameStateRef sync removed - all state reads go through Context
 
@@ -899,6 +1016,7 @@ export default function Home() {
                           selectedActionTargets={[]}
                           isPortrait={false}
                           longPressingSeats={new Set()}
+                          onSwapSeats={handleSwapSeats}
                           onSeatClick={(id) => {
                             handleSeatClick(id);
                           }}
@@ -961,6 +1079,7 @@ export default function Home() {
                         handleBaronAutoRebalance={handleBaronAutoRebalance}
                         hideSeatingChart={false}
                         onQuickTest={handleQuickTest}
+                        onQuickStart={handleQuickStart}
                       />
                     </div>
                   </div>

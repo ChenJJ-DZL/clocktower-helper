@@ -5,7 +5,7 @@
  *
  * DAY 触发，选择一名玩家成为恐惧目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

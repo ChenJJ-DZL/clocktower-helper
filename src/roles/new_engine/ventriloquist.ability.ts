@@ -5,7 +5,7 @@
  *
  * 当有玩家被处决时，腹语师可以代替该玩家说出遗言（或修改其遗言内容）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

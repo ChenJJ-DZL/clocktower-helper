@@ -1,10 +1,5 @@
 import type { Seat } from "../../types/game";
 import type { RoleDefinition } from "../../types/roleDefinition";
-import {
-  addPoisonMark,
-  computeIsPoisoned,
-  isEvil,
-} from "../../utils/gameRules";
 
 /**
  * 投毒者 (Poisoner)

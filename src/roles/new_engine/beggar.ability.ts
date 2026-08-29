@@ -5,7 +5,7 @@
  *
  * 每天选择一名玩家请求投票权。对方同意后，本日投票时乞丐可使用该玩家的投票权。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

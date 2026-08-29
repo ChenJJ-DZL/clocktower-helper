@@ -7,7 +7,7 @@
  * 如果目标是邪恶阵营，狼人安全存活。
  * 目标选择：1名玩家，不可选自己，不可选已死亡玩家。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

@@ -16,12 +16,6 @@ import type { GameStateSnapshot } from "../nightStateMachine";
 import {
   buildAbilityMap,
   buildFullNightOrder,
-  I1DeathMarkersConsistent,
-  I2QueueLegality,
-  I5TargetLegality,
-  I7NightDeathHasSource,
-  I11EffectSemanticsApplied,
-  type NightSimResult,
   runAllInvariants,
   simulateNight,
 } from "./index";

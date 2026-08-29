@@ -26,6 +26,7 @@ export function useNightSnapshot(
   votedThisRound: number[],
   outsiderDiedToday: boolean,
   wakeQueueIds: number[],
+  currentWakeIndex: number,
   setCurrentWakeIndex: (idx: number) => void,
   addLog: (msg: string) => void,
   setCurrentModal: (m: any) => void,
@@ -35,7 +36,8 @@ export function useNightSnapshot(
   //   无参 continueToNextAction 生成下一步 guide 时优先读它——保证
   //   "角色 A 行动改角色 B 状态 → 角色 B 行动时实时感知"（全角色覆盖）。
   externalLatestSeatsRef?: React.MutableRefObject<Seat[]>,
-  systemStepRoleIdsRef?: React.MutableRefObject<Map<number, string>>
+  systemStepRoleIdsRef?: React.MutableRefObject<Map<number, string>>,
+  saveHistory?: (override?: any) => void
 ) {
   const wakeIndexRef = useRef(0);
   // 🔧 修复：记录首夜 index 0 是否已显示（避免小恶魔被跳过）
@@ -133,6 +135,7 @@ export function useNightSnapshot(
       hasUsedAbility,
       votedThisRound,
       outsiderDiedToday,
+      systemStepRoleIdsRef?.current,
     ]
   );
 
@@ -214,6 +217,7 @@ export function useNightSnapshot(
       hasUsedAbility,
       votedThisRound,
       outsiderDiedToday,
+      systemStepRoleIdsRef?.current,
     ]
   );
 
@@ -265,9 +269,9 @@ export function useNightSnapshot(
 
         if (firstValidIndex >= latestQueue.length) {
           // 全部角色均无效，直接进入黎明报告
-          wakeIndexRef.current = 0;
+          wakeIndexRef.current = latestQueue.length;
           hasShownIndexZeroRef.current = false;
-          setCurrentWakeIndex(0);
+          setCurrentWakeIndex(latestQueue.length);
           setActiveNightStep(null);
           setGamePhase("dawnReport");
           if (deadThisNight.length > 0) {
@@ -361,11 +365,13 @@ export function useNightSnapshot(
       console.log("[continueToNextAction] wakeQueueIds:", latestQueue);
 
       if (nextIndex >= queueLength) {
-        // 夜晚结束，重置索引
-        console.log("[continueToNextAction] Night ended, resetting index");
-        wakeIndexRef.current = 0;
+        // 夜晚结束，设置索引为队列长度，防止被安全网误判为首夜初始并重置为0
+        console.log(
+          "[continueToNextAction] Night ended, transitioning to dawnReport"
+        );
+        wakeIndexRef.current = queueLength;
         hasShownIndexZeroRef.current = false;
-        setCurrentWakeIndex(0);
+        setCurrentWakeIndex(queueLength);
         setActiveNightStep(null);
 
         // 设置游戏阶段为黎明报告
@@ -393,6 +399,13 @@ export function useNightSnapshot(
             data: { message: "昨天是个平安夜" },
           });
         }
+        saveHistory?.({
+          gamePhase: "dawnReport",
+          currentWakeIndex: 0,
+          ...(latestSeats && latestSeats.length > 0
+            ? { seats: latestSeats }
+            : {}),
+        });
         return;
       }
 
@@ -415,6 +428,13 @@ export function useNightSnapshot(
           seats,
         gamePhase
       );
+      // 保存单步历史快照用于精准单步撤销与重做（记录下一个行动角色的 wakeIndex 与最新座位）
+      saveHistory?.({
+        currentWakeIndex: nextIndex,
+        ...(latestSeats && latestSeats.length > 0
+          ? { seats: latestSeats }
+          : {}),
+      });
     },
     [
       wakeQueueIds,
@@ -425,8 +445,37 @@ export function useNightSnapshot(
       deadThisNight,
       setCurrentModal,
       setGamePhase,
+      externalLatestSeatsRef?.current,
+      systemStepRoleIds,
+      systemStepRoleIdsRef?.current,
+      wakeQueueIdsRef?.current,
+      saveHistory,
     ]
   );
+
+  // 监听外部 currentWakeIndex 变化（包括 Undo/Redo 撤销与重做时状态精准回退与前进）
+  useEffect(() => {
+    wakeIndexRef.current = currentWakeIndex;
+    if (
+      (gamePhase === "firstNight" || gamePhase === "night") &&
+      wakeQueueIds.length > 0 &&
+      currentWakeIndex >= 0 &&
+      currentWakeIndex < wakeQueueIds.length
+    ) {
+      updateSnapshot(
+        currentWakeIndex,
+        externalLatestSeatsRef?.current ?? seats,
+        gamePhase
+      );
+    }
+  }, [
+    currentWakeIndex,
+    gamePhase,
+    wakeQueueIds,
+    seats,
+    updateSnapshot,
+    externalLatestSeatsRef,
+  ]);
 
   // Handle side-effect logging
   useEffect(() => {
@@ -439,13 +488,18 @@ export function useNightSnapshot(
   //   activeNightStep 为空），自动刷新 index 0 —— 否则首夜第一个角色（小恶魔等）
   //   被跳过（confirmNightOrderPreview 设置队列后，没人显示 index 0）。
   useEffect(() => {
+    const isNight = gamePhase === "firstNight" || gamePhase === "night";
     if (
+      isNight &&
       wakeQueueIds.length > 0 &&
       wakeIndexRef.current === 0 &&
+      !hasShownIndexZeroRef.current &&
       !activeNightStep
     ) {
       const t = setTimeout(() => {
-        updateSnapshot(0, latestSeatsRef.current ?? seats, gamePhase);
+        if (!hasShownIndexZeroRef.current) {
+          updateSnapshot(0, latestSeatsRef.current ?? seats, gamePhase);
+        }
       }, 100);
       return () => clearTimeout(t);
     }
@@ -453,6 +507,7 @@ export function useNightSnapshot(
 
   return {
     wakeIndexRef,
+    hasShownIndexZeroRef,
     activeNightStep,
     setActiveNightStep,
     drunkFirstInfoRef,

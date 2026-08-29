@@ -7,7 +7,7 @@
  * 则邪恶方获胜（游戏状态检查由上层引擎处理）。
  * targetConfig: min:2, max:2 — 必须选择恰好两名玩家。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

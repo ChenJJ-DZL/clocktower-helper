@@ -6,7 +6,7 @@
  * 每夜选择一名玩家检测。如果该玩家醉酒或中毒，杂技演员死亡。
  * allowSelf: true — 可以检测自己
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -5,7 +5,7 @@
  *
  * 游戏开始时选择一名玩家，该玩家获得一个玩具（特殊标记），效果由说书人自定义。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Seat } from "../../../app/data";
 import { roles } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
@@ -199,7 +199,8 @@ export function NightActionPage({
             curr.role?.type === "demon" ||
             (curr.role?.id === "recluse" &&
               (curr as any).registerAsEvil !== false) ||
-            (curr.role?.id === "spy" && (curr as any).registerAsEvil === true)) &&
+            (curr.role?.id === "spy" &&
+              (curr as any).registerAsEvil === true)) &&
           !(
             curr.role?.id === "spy" &&
             (curr as any).registerAsGood !== false &&
@@ -210,7 +211,8 @@ export function NightActionPage({
             next.role?.type === "demon" ||
             (next.role?.id === "recluse" &&
               (next as any).registerAsEvil !== false) ||
-            (next.role?.id === "spy" && (next as any).registerAsEvil === true)) &&
+            (next.role?.id === "spy" &&
+              (next as any).registerAsEvil === true)) &&
           !(
             next.role?.id === "spy" &&
             (next as any).registerAsGood !== false &&
@@ -1132,14 +1134,32 @@ export function NightActionPage({
           {/* 目标选择区（仅在无结果时展示）*/}
           {needsTargets && !hasResult && (
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5">
-              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-4">
-                选择目标（{selectedTargets.length}/{targetLimit.max}）
-              </h3>
-              <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">
+                  选择目标（{selectedTargets.length}/{targetLimit.max}）
+                </h3>
+                {roleId === "legion" && (
+                  <span className="text-xs text-red-300 font-bold bg-red-950/80 px-2.5 py-1 rounded-lg border border-red-500/40">
+                    🎲 由说书人独自决定
+                  </span>
+                )}
+              </div>
+
+              {roleId === "legion" && (
+                <div className="mb-4 p-3.5 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm leading-relaxed font-medium">
+                  😈 <strong>说书人指南</strong>
+                  ：军团夜杀由说书人独自决定（夜晚军团不睁眼，由说书人决定选择哪一名玩家死亡，或空刀。建议优先击杀军团玩家以平衡至3人决赛圈）。
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                 {seats.map((seat) => {
                   if (!seat.role) return null;
                   const isSelected = selectedTargets.includes(seat.id);
-                  const isSelf = seat.id === seatId;
+                  const isSelf =
+                    !nightInfo.canSelectSelf &&
+                    roleId !== "legion" &&
+                    seat.id === seatId;
                   const isValid = nightInfo.validTargetIds
                     ? nightInfo.validTargetIds.includes(seat.id)
                     : true;
@@ -1159,7 +1179,24 @@ export function NightActionPage({
                               : "bg-white/5 border-white/10 text-slate-200 hover:bg-white/10 hover:border-white/20"
                       }`}
                     >
-                      <span className="text-lg font-bold">{seat.id + 1}号</span>
+                      <span className="text-lg font-bold block">
+                        {seat.id + 1}号
+                      </span>
+                      {seat.role?.name && (
+                        <span
+                          className={`block text-xs font-bold truncate mt-0.5 ${
+                            seat.role.type === "demon"
+                              ? "text-red-400"
+                              : seat.role.type === "minion"
+                                ? "text-orange-400"
+                                : seat.role.type === "outsider"
+                                  ? "text-purple-400"
+                                  : "text-blue-400"
+                          }`}
+                        >
+                          {seat.role.name}
+                        </span>
+                      )}
                       {seat.isDead && (
                         <span className="block text-[10px] text-red-400 opacity-80 mt-0.5 truncate">
                           (已死亡)

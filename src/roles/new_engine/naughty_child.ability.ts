@@ -6,7 +6,7 @@
  * 被动能力：顽皮孩子死亡时触发捣乱效果。
  * 可以通过说书人手动配置捣乱类型（如散布虚假信息、干扰投票等）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -81,7 +81,9 @@ function resolveDef(abilityId: string, custom?: LimitedAbilityDefinition) {
  * 初始化管理器，加载预定义能力
  */
 export function initializeLimitedAbilityManager() {
-  predefinedDefinitions.forEach((def) => definitions.set(def.abilityId, def));
+  predefinedDefinitions.forEach((def) => {
+    definitions.set(def.abilityId, def);
+  });
 }
 
 /**

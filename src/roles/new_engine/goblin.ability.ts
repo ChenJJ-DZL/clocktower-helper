@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：被处决时标记 goblinExecuted，由引擎判定胜利。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

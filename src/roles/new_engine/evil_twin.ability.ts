@@ -7,7 +7,7 @@
  *
  * 首夜互知。全局效果：善良双子被处决时邪恶获胜。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

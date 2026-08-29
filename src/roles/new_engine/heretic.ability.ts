@@ -7,7 +7,7 @@
  * 由上层逻辑根据此标志判定邪恶阵营获胜。
  * ABORT_NOT_ON_DEATH — 处决时玩家已死，但能力仍需触发
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -4,7 +4,7 @@
  * 使用 html2canvas 将对局复盘内容捕获为 PNG 图片并下载。
  * 处理 Retina 高分屏清晰度（scale: 2）和跨域图片容错。
  */
-import type { LogEntry, Seat, WinResult } from "../../app/data";
+import type { WinResult } from "../../app/data";
 
 export interface ExportReviewOptions {
   /** 要捕获的 DOM 元素 */

@@ -6,7 +6,7 @@
  *
  * PASSIVE + DAY 触发：第3天起激活暴乱模式，提名即刻转刀。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

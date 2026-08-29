@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getCharacterWikiDetails } from "../characterWikiLookup";
 
 describe("角色百科官方详情解析 (getCharacterWikiDetails) 测试", () => {

@@ -194,6 +194,8 @@ export function useDayActions(deps: DayActionsDeps) {
         return false;
       }
 
+      saveHistory();
+
       if (witchActive && witchCursedId !== null) {
         const aliveCount = seats.filter((s) => !s.isDead).length;
         if (aliveCount > 3 && witchCursedId === sourceId) {
@@ -413,7 +415,6 @@ export function useDayActions(deps: DayActionsDeps) {
       addLog,
       setNominationMap,
       setTodayMinionNominated,
-      setVirginGuideInfo,
       setSeats,
       setCurrentModal,
       setNominationRecords,
@@ -427,10 +428,10 @@ export function useDayActions(deps: DayActionsDeps) {
       setHasExecutedThisDay,
       setCurrentDuskExecution,
       dispatch,
-      nominationMap,
       hasUsedAbility,
       markAbilityUsed,
       checkGameOver,
+      saveHistory,
     ]
   );
 
@@ -636,6 +637,8 @@ export function useDayActions(deps: DayActionsDeps) {
       addLog,
       continueToNextAction,
       proceedToFirstNight,
+      (currentModal?.data as any)?.seatId,
+      currentModal?.type,
     ]
   );
 
@@ -898,7 +901,8 @@ export function useDayActions(deps: DayActionsDeps) {
             checkGameOver(refreshedSeats);
           }
 
-          if (modularHandler.day.maxUses !== "infinity") {
+          // 仅当没有后续交互弹窗时，直接在此处标记已使用；如果有交互弹窗 (result.modal)，由弹窗确认回调负责在真正触发确认时才标记已使用
+          if (modularHandler.day.maxUses !== "infinity" && !result.modal) {
             setSeats((prev) =>
               prev.map((s) =>
                 s.id === sourceSeatId
@@ -915,8 +919,10 @@ export function useDayActions(deps: DayActionsDeps) {
             );
           }
 
-          if (result.logs.privateLog) addLog(result.logs.privateLog);
-          if (result.logs.publicLog) addLog(result.logs.publicLog);
+          if (!result.modal) {
+            if (result.logs.privateLog) addLog(result.logs.privateLog);
+            if (result.logs.publicLog) addLog(result.logs.publicLog);
+          }
 
           if (result.modal) {
             setCurrentModal(result.modal);
@@ -1108,9 +1114,12 @@ export function useDayActions(deps: DayActionsDeps) {
       setWinReason,
       changeRole,
       roles,
-      setCurrentModal, // Trigger game over check if state changed
+      setCurrentModal,
       checkGameOver,
       gamePhase,
+      handleViewDayAbilityResult,
+      isActorDisabledByPoisonOrDrunk,
+      setDayAbilityForm,
     ]
   );
 

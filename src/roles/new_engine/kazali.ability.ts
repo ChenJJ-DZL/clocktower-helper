@@ -8,7 +8,7 @@
  * storytellerInput 提供替换映射。
  * targetConfig: min:0, max:0 — 不通过标准选目标流程。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -8,7 +8,7 @@
  * 若条件满足且政客存活，将其转化为邪恶阵营。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

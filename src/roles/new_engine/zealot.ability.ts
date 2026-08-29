@@ -7,7 +7,7 @@
  * 标记 diesIfNotVoted，由上层逻辑判定是否触发死亡。
  * 狂热者死亡后不再受此约束。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

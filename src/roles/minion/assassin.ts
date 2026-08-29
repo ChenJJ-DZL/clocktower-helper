@@ -1,5 +1,3 @@
-import type { Seat } from "../../../app/data";
-
 import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**

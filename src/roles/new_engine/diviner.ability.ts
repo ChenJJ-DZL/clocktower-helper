@@ -5,7 +5,7 @@
  *
  * 每夜选择一名玩家，预言家得知该玩家的所属阵营（善良或邪恶）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

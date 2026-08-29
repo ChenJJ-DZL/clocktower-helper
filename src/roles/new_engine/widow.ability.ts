@@ -6,7 +6,7 @@
  * FIRST_NIGHT 触发，说书人选择一名连接目标。
  * 寡妇可以看到所有善良玩家角色，并通过 widowConnected 标记连接关系。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -72,7 +72,7 @@ const postProcess = async (
   const r = ctx.meta.abilityResult as any;
   const log =
     "[寡妇] " +
-    (r.targetId != null ? "已连接 " + (r.targetId + 1) + " 号玩家" : "未连接");
+    (r.targetId != null ? `已连接 ${r.targetId + 1} 号玩家` : "未连接");
   console.log(log);
   return {
     ...ctx,

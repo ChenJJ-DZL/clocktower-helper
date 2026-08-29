@@ -2,7 +2,7 @@
  * 少女（Damsel）新引擎技能实现
  * 【角色能力】"如果有邪恶玩家正确猜出你的角色，你立即死亡。"
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

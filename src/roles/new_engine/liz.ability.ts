@@ -9,7 +9,7 @@
  * 说书人操作（targetIds 为空），通过 storytellerInput.lizDies 控制是否触发死亡。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

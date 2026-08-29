@@ -23,6 +23,7 @@ export interface UseSeatManagerResult {
   updateSeatRole: (seatId: number, updater: (seat: Seat) => Seat) => void;
   changeRole: (seatId: number, newRoleId: string, roles: Role[]) => void;
   swapRoles: (seatId1: number, seatId2: number) => void;
+  swapSeats: (seatId1: number, seatId2: number) => void;
 }
 
 /**
@@ -202,6 +203,7 @@ export function useSeatManager(): UseSeatManagerResult {
           message: `🔄 ${seatId + 1}号 的身份变成了 [${newRole.name}]`,
         })
       );
+      dispatch(gameActions.saveHistory());
     },
     [seats, state.nightCount, state.gamePhase, dispatch]
   );
@@ -231,8 +233,54 @@ export function useSeatManager(): UseSeatManagerResult {
           message: `🔀 ${seatId1 + 1}号 和 ${seatId2 + 1}号 交换了角色`,
         })
       );
+      dispatch(gameActions.saveHistory());
     },
     [seats, state.nightCount, state.gamePhase, dispatch]
+  );
+
+  const swapSeats = useCallback(
+    (seatId1: number, seatId2: number) => {
+      if (seatId1 === seatId2) return;
+      const s1 = seats.find((s) => s.id === seatId1);
+      const s2 = seats.find((s) => s.id === seatId2);
+      if (!s1 || !s2) return;
+
+      const newSeats = seats.map((s) => {
+        if (s.id === seatId1) {
+          return { ...s2, id: seatId1 };
+        }
+        if (s.id === seatId2) {
+          return { ...s1, id: seatId2 };
+        }
+        return s;
+      });
+
+      dispatch(gameActions.setSeats(newSeats));
+
+      // 互换关联的 seatNotes
+      if (state.seatNotes) {
+        const newNotes = { ...state.seatNotes };
+        const n1 = newNotes[seatId1];
+        const n2 = newNotes[seatId2];
+        if (n2 !== undefined) newNotes[seatId1] = n2;
+        else delete newNotes[seatId1];
+        if (n1 !== undefined) newNotes[seatId2] = n1;
+        else delete newNotes[seatId2];
+        dispatch(gameActions.updateState({ seatNotes: newNotes }));
+      }
+
+      const name1 = s1.role?.name || s1.playerName || `${seatId1 + 1}号`;
+      const name2 = s2.role?.name || s2.playerName || `${seatId2 + 1}号`;
+      dispatch(
+        gameActions.addLog({
+          day: state.nightCount,
+          phase: state.gamePhase,
+          message: `🔀 ${seatId1 + 1}号 (${name1}) 与 ${seatId2 + 1}号 (${name2}) 互换了座位`,
+        })
+      );
+      dispatch(gameActions.saveHistory({ seats: newSeats }));
+    },
+    [seats, state.nightCount, state.gamePhase, state.seatNotes, dispatch]
   );
 
   return useMemo(
@@ -260,6 +308,7 @@ export function useSeatManager(): UseSeatManagerResult {
       updateSeatRole,
       changeRole,
       swapRoles,
+      swapSeats,
     }),
     [
       seats,
@@ -271,6 +320,7 @@ export function useSeatManager(): UseSeatManagerResult {
       updateSeatRole,
       changeRole,
       swapRoles,
+      swapSeats,
       dispatch,
       state.deadThisNight,
       state.seats,

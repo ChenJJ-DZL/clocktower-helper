@@ -16,7 +16,7 @@ import type { IRoleAbility } from "../../roles/core/roleAbility.types";
 import { collectGlobalRules } from "../globalRuleEngine";
 import { runFullAbilityPipeline } from "../middlewarePipeline";
 import { nightOrderParser } from "../nightOrderParser";
-import type { ExecutedAction, NightSimResult } from "./simulator";
+import type { NightSimResult } from "./simulator";
 import { buildContextForNode } from "./simulator";
 
 export type InvariantError = string;

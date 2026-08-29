@@ -88,4 +88,33 @@ describe("白天主动技能持久化与查看结果测试", () => {
     expect(slayerSeat.dayAbilityResult.message).toBe("无事发生");
     expect(slayerSeat.dayAbilityResult.isDemonDead).toBe(false);
   });
+
+  test("猎手日间技能返回交互弹窗时，不应在打开弹窗时即刻消耗技能次数", () => {
+    const slayerDef = getRoleDefinition("slayer");
+    expect(slayerDef?.day?.handler).toBeDefined();
+
+    const mockContext = {
+      seats: [
+        {
+          id: 0,
+          playerName: "猎手玩家",
+          role: { id: "slayer", name: "猎手", type: "townsfolk" },
+          isDead: false,
+          hasUsedDayAbility: false,
+          hasUsedSlayerAbility: false,
+        },
+      ],
+      selfId: 0,
+      targets: [],
+      gamePhase: "day" as const,
+      roles: [],
+      killPlayer: () => {},
+    };
+
+    const res = slayerDef?.day?.handler?.(mockContext as any);
+    expect(res).toBeDefined();
+    // 应当返回交互弹窗 SLAYER_SELECT_TARGET，且自身不应产生 updates 提前篡改 hasUsedSlayerAbility
+    expect(res?.modal?.type).toBe("SLAYER_SELECT_TARGET");
+    expect(res?.updates.length).toBe(0);
+  });
 });

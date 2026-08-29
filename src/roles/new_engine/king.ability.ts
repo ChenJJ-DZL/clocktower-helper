@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：被处决时找出所有 minion 类型角色并告知说书人。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

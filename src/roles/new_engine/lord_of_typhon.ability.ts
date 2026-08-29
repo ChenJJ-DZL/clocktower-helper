@@ -9,7 +9,7 @@
  * 标记 typhonActive 到 snapshot，供座位分配系统和邪恶阵营识别使用。
  * targetConfig: min:0, max:0 — 被动能力，无目标选择。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

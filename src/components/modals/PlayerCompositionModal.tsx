@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import type { Script } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -168,38 +168,38 @@ export function PlayerCompositionModal({
       onClose={onClose}
       className="max-w-4xl w-[96vw] max-h-[90vh] flex flex-col p-2 overflow-hidden"
       footer={
-        <div className="flex items-center justify-between gap-3 w-full">
-          <div className="text-xs text-slate-400">
+        <div className="flex items-center justify-between gap-4 w-full">
+          <div className="text-sm sm:text-base text-slate-300">
             {displayName && (
               <span className="text-amber-300 font-bold mr-2">
                 【{displayName}】
               </span>
             )}
             <span>当前已分配：</span>
-            <b className="text-amber-400 text-sm ml-1">
+            <b className="text-amber-400 text-base sm:text-lg ml-1">
               {currentPlayerCount ? `${currentPlayerCount} 人` : "未定"}
             </b>
-            <span className="text-slate-500 ml-2">
+            <span className="text-slate-400 ml-2">
               (剧本座位上限：{currentMax} 人)
             </span>
           </div>
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition cursor-pointer shadow-md active:scale-95"
+            className="px-8 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-base sm:text-lg transition cursor-pointer shadow-md active:scale-95"
           >
             我已知晓
           </button>
         </div>
       }
     >
-      <div className="space-y-4 p-1 overflow-y-auto">
+      <div className="space-y-6 p-2 overflow-y-auto my-auto w-full">
         {/* 顶部标题与范围说明 */}
-        <div className="text-center space-y-1">
-          <div className="inline-block px-4 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-sm">
+        <div className="text-center space-y-2">
+          <div className="inline-block px-5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-black text-base sm:text-xl">
             {displayName ? `《${displayName}》` : ""} 支持 {currentMin} -{" "}
             {currentMax >= 15 ? "15+" : currentMax} 人
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-sm sm:text-base text-slate-300 font-medium">
             官方标准阵营人数配置速查 ·{" "}
             {hasDivider
               ? "竖线左侧为小局模式（5~6人），右侧为标准局（7人及以上）"
@@ -207,18 +207,18 @@ export function PlayerCompositionModal({
           </p>
         </div>
 
-        {/* 核心经典表格 (table-fixed 确保所有人数列 100% 严格等宽且无“当前”特定高亮，纯粹参考表) */}
-        <div className="overflow-x-auto rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-[#2a131b] via-[#1c121e] to-[#120c18] p-3 shadow-2xl">
+        {/* 核心经典表格 */}
+        <div className="overflow-x-auto rounded-2xl border-2 border-amber-500/40 bg-gradient-to-b from-[#2a131b] via-[#1c121e] to-[#120c18] p-4 shadow-2xl">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
-              <col className="w-24 sm:w-28 md:w-32" />
+              <col className="w-28 sm:w-36" />
               {compositionData.map((col) => (
                 <col key={col.label} />
               ))}
             </colgroup>
             <thead>
               <tr className="border-b border-amber-500/30">
-                <th className="py-2.5 px-3 text-left font-black text-sm text-slate-200 whitespace-nowrap">
+                <th className="py-3 px-3 text-left font-black text-base sm:text-lg text-slate-200 whitespace-nowrap">
                   玩家数量
                 </th>
                 {compositionData.map((col) => {
@@ -226,7 +226,7 @@ export function PlayerCompositionModal({
                   return (
                     <th
                       key={col.label}
-                      className={`py-2.5 px-1 font-black text-sm text-center text-slate-200 whitespace-nowrap ${
+                      className={`py-3 px-1 font-black text-base sm:text-xl text-center text-slate-200 whitespace-nowrap ${
                         isDivider
                           ? "border-r-2 border-amber-400/60"
                           : "border-r border-white/5"
@@ -238,11 +238,11 @@ export function PlayerCompositionModal({
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-amber-500/15 text-sm font-bold">
+            <tbody className="divide-y divide-amber-500/15 text-base sm:text-lg font-bold">
               {/* 镇民 */}
               <tr className="hover:bg-white/5 transition">
-                <td className="py-2.5 px-3 text-left font-black text-sky-300 flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0"></span>
+                <td className="py-3 px-3 text-left font-black text-sky-300 flex items-center gap-2 whitespace-nowrap">
+                  <span className="w-3 h-3 rounded-full bg-sky-400 shrink-0"></span>
                   <span>镇民</span>
                 </td>
                 {compositionData.map((col, idx) => {
@@ -250,7 +250,7 @@ export function PlayerCompositionModal({
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base text-sky-200 ${
+                      className={`py-3 px-1 text-center font-black text-lg sm:text-2xl text-sky-200 ${
                         isDivider
                           ? "border-r-2 border-amber-400/60"
                           : "border-r border-white/5"
@@ -264,8 +264,8 @@ export function PlayerCompositionModal({
 
               {/* 外来者 */}
               <tr className="hover:bg-white/5 transition">
-                <td className="py-2.5 px-3 text-left font-black text-teal-300 flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400 shrink-0"></span>
+                <td className="py-3 px-3 text-left font-black text-teal-300 flex items-center gap-2 whitespace-nowrap">
+                  <span className="w-3 h-3 rounded-full bg-teal-400 shrink-0"></span>
                   <span>外来者</span>
                 </td>
                 {compositionData.map((col, idx) => {
@@ -273,7 +273,7 @@ export function PlayerCompositionModal({
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base text-teal-200 ${
+                      className={`py-3 px-1 text-center font-black text-lg sm:text-2xl text-teal-200 ${
                         isDivider
                           ? "border-r-2 border-amber-400/60"
                           : "border-r border-white/5"
@@ -287,8 +287,8 @@ export function PlayerCompositionModal({
 
               {/* 爪牙 */}
               <tr className="hover:bg-white/5 transition">
-                <td className="py-2.5 px-3 text-left font-black text-orange-300 flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shrink-0"></span>
+                <td className="py-3 px-3 text-left font-black text-orange-300 flex items-center gap-2 whitespace-nowrap">
+                  <span className="w-3 h-3 rounded-full bg-orange-400 shrink-0"></span>
                   <span>爪牙</span>
                 </td>
                 {compositionData.map((col, idx) => {
@@ -296,7 +296,7 @@ export function PlayerCompositionModal({
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base text-orange-200 ${
+                      className={`py-3 px-1 text-center font-black text-lg sm:text-2xl text-orange-200 ${
                         isDivider
                           ? "border-r-2 border-amber-400/60"
                           : "border-r border-white/5"
@@ -310,8 +310,8 @@ export function PlayerCompositionModal({
 
               {/* 恶魔 */}
               <tr className="hover:bg-white/5 transition">
-                <td className="py-2.5 px-3 text-left font-black text-rose-400 flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+                <td className="py-3 px-3 text-left font-black text-rose-400 flex items-center gap-2 whitespace-nowrap">
+                  <span className="w-3 h-3 rounded-full bg-rose-500 shrink-0"></span>
                   <span>恶魔</span>
                 </td>
                 {compositionData.map((col, idx) => {
@@ -319,7 +319,7 @@ export function PlayerCompositionModal({
                   return (
                     <td
                       key={idx}
-                      className={`py-2.5 px-1 text-center font-black text-base text-rose-300 ${
+                      className={`py-3 px-1 text-center font-black text-lg sm:text-2xl text-rose-300 ${
                         isDivider
                           ? "border-r-2 border-amber-400/60"
                           : "border-r border-white/5"
@@ -335,13 +335,13 @@ export function PlayerCompositionModal({
         </div>
 
         {/* 底部说书人规则备注与动态提示 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1 text-sm sm:text-base">
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2">
+            <div className="flex items-center gap-2 text-amber-300 font-bold text-base sm:text-lg">
               <span>💡</span>
               <span>人数规则提示</span>
             </div>
-            <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
+            <ul className="space-y-1.5 text-slate-300 pl-4 list-disc leading-relaxed">
               {currentMin <= 6 && (
                 <li>
                   <b>5~6人（小局模式）</b>：仅有 1 个爪牙与 1
@@ -361,12 +361,12 @@ export function PlayerCompositionModal({
             </ul>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-orange-300 font-bold">
+          <div className="p-4 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2">
+            <div className="flex items-center gap-2 text-orange-300 font-bold text-base sm:text-lg">
               <span>⚡</span>
               <span>角色技能对配比的动态改变</span>
             </div>
-            <ul className="space-y-1 text-slate-300 pl-4 list-disc leading-relaxed">
+            <ul className="space-y-1.5 text-slate-300 pl-4 list-disc leading-relaxed">
               <li>
                 <b>男爵 (Baron)</b>：在场时外来者数量 <b>+2</b>（镇民数量相应{" "}
                 <b>-2</b>）。

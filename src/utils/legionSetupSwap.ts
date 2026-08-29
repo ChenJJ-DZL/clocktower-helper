@@ -74,23 +74,31 @@ export function applyLegionRoleSwap(input: LegionSwapInput): LegionSwapResult {
       (s.role.type === "demon" || s.role.type === "minion")
   );
 
-  // 找一个 townsfolk Role 作为新的镇民身份（默认用第一个 townsfolk）
-  const townsfolkRoles = scriptRoles.filter((r) => r.type === "townsfolk");
+  // 找可用 townsfolk/outsider Roles 作为新的善良身份（确保各不相同）
+  const availableTownsfolk = scriptRoles.filter((r) => r.type === "townsfolk");
+  const availableOutsiders = scriptRoles.filter((r) => r.type === "outsider");
+  const allGoodScriptRoles = [...availableTownsfolk, ...availableOutsiders];
+
   const defaultTownsfolk =
-    townsfolkRoles[0] ??
+    availableTownsfolk[0] ??
     ({
       id: "washerwoman",
       name: "洗衣妇",
       type: "townsfolk",
     } as Role);
 
-  // 找一个 outsider Role 作为新的"善良玩家"身份（保留角色池多样性）
-  // 实际游戏中由 useSeatManager 在 setup 阶段按池重新分发
-  const outsiderRoles = scriptRoles.filter((r) => r.type === "outsider");
-  const newTownsfolk: Role =
-    demonAndMinionSeats.length > 0 && outsiderRoles[0]
-      ? ({ ...defaultTownsfolk, _originalType: outsiderRoles[0].type } as any)
-      : defaultTownsfolk;
+  const legionTemplate =
+    scriptRoles.find((r) => r.id === "legion") ||
+    ({
+      id: "legion",
+      name: "军团",
+      type: "demon",
+      ability:
+        "每个夜晚*，可能有一名玩家死亡。如果一项提名只有邪恶玩家投票，投票无效。你也会被当作是爪牙。[多数玩家为军团]",
+    } as Role);
+
+  const usedGoodRoleIds = new Set<string>();
+  let goodRoleIdx = 0;
 
   // 应用映射：所有原 镇民+外来者 玩家 → legion；所有原 恶魔+爪牙 玩家 → townsfolk
   // 注意：原 legion 玩家保持不动（已是 demon，不再次转换）
@@ -103,18 +111,41 @@ export function applyLegionRoleSwap(input: LegionSwapInput): LegionSwapResult {
       return {
         ...s,
         role: {
+          ...legionTemplate,
           id: "legion",
           name: "军团",
           type: "demon",
         } as Role,
+        displayRole: {
+          ...legionTemplate,
+          id: "legion",
+          name: "军团",
+          type: "demon",
+        } as Role,
+        charadeRole: null,
         isEvilConverted: true,
       };
     }
     if (s.role.type === "demon" || s.role.type === "minion") {
-      // 变 townsfolk（保留恶魔座位上的玩家变为镇民）
+      // 变 townsfolk（保留恶魔/爪牙座位上的玩家变为镇民）
+      let assignedRole: Role = defaultTownsfolk;
+      const unusedGood = allGoodScriptRoles.find(
+        (r) => !usedGoodRoleIds.has(r.id)
+      );
+      if (unusedGood) {
+        assignedRole = unusedGood;
+      } else if (allGoodScriptRoles.length > 0) {
+        assignedRole =
+          allGoodScriptRoles[goodRoleIdx % allGoodScriptRoles.length];
+        goodRoleIdx++;
+      }
+      usedGoodRoleIds.add(assignedRole.id);
+
       return {
         ...s,
-        role: newTownsfolk,
+        role: assignedRole,
+        displayRole: assignedRole,
+        charadeRole: null,
         isEvilConverted: false,
       };
     }

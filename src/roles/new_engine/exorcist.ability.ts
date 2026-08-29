@@ -7,7 +7,7 @@
  * 每夜选择一名玩家。若目标为恶魔，则今晚恶魔无法杀人。
  * 不能连续两晚选择同一玩家。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

@@ -125,8 +125,8 @@ export function CustomScriptBuilderModal({
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.id.toLowerCase().includes(q) ||
-        (r.ability && r.ability.toLowerCase().includes(q)) ||
-        (r.script && r.script.toLowerCase().includes(q))
+        r.ability?.toLowerCase().includes(q) ||
+        r.script?.toLowerCase().includes(q)
     );
   }, [builderRoles, searchQuery]);
 

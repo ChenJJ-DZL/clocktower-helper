@@ -6,7 +6,7 @@
  * 检查自己是否在游戏配置中属于重复角色（例如因方古等机制导致的复制）。
  * allowSelf: false — 无需选择目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

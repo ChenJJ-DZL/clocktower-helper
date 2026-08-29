@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { roles, scripts } from "../../../../app/data";
+import { scripts } from "../../../../app/data";
 import { ENGINE_CONFIG } from "../../../hooks/useNightEngine";
 import { generateDynamicNightQueue } from "../../../utils/dynamicQueueGenerator";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
@@ -8,8 +8,6 @@ import { generateNightInfo } from "../../../utils/nightInfoGenerator";
 import {
   bounty_hunterAbility,
   cerenovusAbility,
-  chefAbility,
-  drunkAbility,
   evil_twinAbility,
   farmerAbility,
   fortuneTellerAbility,
@@ -18,18 +16,11 @@ import {
   initializeAbilityRegistry,
   jugglerAbility,
   legionAbility,
-  librarianAbility,
-  lunaticAbility,
-  marionetteAbility,
   mayorAbility,
-  monkAbility,
   mutantAbility,
-  oracleAbility,
   pixieAbility,
-  poppy_growerAbility,
   savantAbility,
   snitchAbility,
-  town_crierAbility,
   vortoxAbility,
 } from "../../new_engine/abilityRegistry";
 

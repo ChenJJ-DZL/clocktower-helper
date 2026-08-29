@@ -12,7 +12,7 @@
  * 网页版适配：全局钩子 collectNightEvilTargets 在每个邪恶角色实际执行后把其目标
  * 推入 snapshot.nightEvilTargets；引路人（优先级最高，最后结算）读取该集合判定。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -71,7 +71,7 @@ const postProcess = async (
   const r = ctx.meta.abilityResult as any;
   const answer = r?.isYes ? "是" : "否";
   const watched = (r?.watchedIds ?? [])
-    .map((id: number) => id + 1 + "号")
+    .map((id: number) => `${id + 1}号`)
     .join("、");
   const log = `[Guide] 引路人探查 ${watched}，得知"${answer}"`;
   console.log(log);

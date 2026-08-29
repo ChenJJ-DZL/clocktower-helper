@@ -17,7 +17,7 @@ const formatMsg = (
   // 2. 将形如 "【玩家1(1号-镇长)】" 或 "玩家1(1号-镇长)" 转换为 "【1号-镇长】"
   formatted = formatted.replace(
     /【?玩家(\d+)】?\s*[(（](\d+)\s*号(?:[ -]([^\s()（）]+))?[)）]/gi,
-    (match, num1, num2, roleText) => {
+    (_match, num1, num2, roleText) => {
       const num = parseInt(num2 || num1, 10);
       const roleName =
         roleText || seatMap?.get(num) || roleNameMap.get(roleText) || "";
@@ -28,7 +28,7 @@ const formatMsg = (
   // 3. 将形如 "1号(slayer)" / "1号(猎手)" / "1号玩家(slayer)" 转换为 "【1号-猎手】"
   formatted = formatted.replace(
     /(\d+)\s*号(?:玩家|[位者])?\s*[(（]([a-zA-Z_\u4e00-\u9fa5]+)[)）]/gi,
-    (match, numStr, roleIdOrName) => {
+    (_match, numStr, roleIdOrName) => {
       const num = parseInt(numStr, 10);
       const cn =
         roleNameMap.get(roleIdOrName) || roleIdOrName || seatMap?.get(num);
@@ -39,7 +39,7 @@ const formatMsg = (
   // 4. 将未带角色名的裸露 "X号" 转换为 "【X号-角色名】"（若尚未被【】包裹）
   formatted = formatted.replace(
     /(?<!【\s*|【\s*\d+号-)(\b\d+)\s*号(?:玩家|[位者])?(?![-a-zA-Z_\u4e00-\u9fa5]*】)/g,
-    (match, numStr) => {
+    (_match, numStr) => {
       const num = parseInt(numStr, 10);
       const roleName = seatMap?.get(num);
       return roleName ? `【${num}号-${roleName}】` : `【${num}号】`;

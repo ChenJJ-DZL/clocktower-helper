@@ -6,7 +6,7 @@
  * 死亡时选择两名玩家（含自己），将他们的角色组合为一个新角色。
  * allowSelf: true — 可以选择自己作为组合材料
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

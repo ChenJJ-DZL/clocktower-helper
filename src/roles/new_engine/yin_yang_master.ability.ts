@@ -5,7 +5,7 @@
  *
  * 阴阳师选择两名玩家，交换他们的阵营（善良↔邪恶）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

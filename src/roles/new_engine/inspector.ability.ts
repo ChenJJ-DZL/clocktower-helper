@@ -11,10 +11,9 @@
  *
  * 网页版适配：白天提名事件在 UI 层记录到快照，引擎夜间按记录结算。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
-  commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
 
@@ -133,13 +132,13 @@ const postProcess = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const demonNote = r?.isDemon ? "（恶魔被当作善良角色）" : "";
-  const log = `[Inspector] 首次提名 ${r?.targetId != null ? r.targetId + 1 + "号" : ""}，得知角色为【${r?.revealedRoleName ?? "未知"}】${demonNote}，已失去能力`;
+  const log = `[Inspector] 首次提名 ${r?.targetId != null ? `${r.targetId + 1}号` : ""}，得知角色为【${r?.revealedRoleName ?? "未知"}】${demonNote}，已失去能力`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: `唤醒${ctx.actionNode.seatId + 1}号【提刑官】：你首次提名的${r?.targetId != null ? r.targetId + 1 + "号" : ""}玩家角色是【${r?.revealedRoleName ?? "未知"}】${demonNote}。你的能力已消耗。`,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【提刑官】：你首次提名的${r?.targetId != null ? `${r.targetId + 1}号` : ""}玩家角色是【${r?.revealedRoleName ?? "未知"}】${demonNote}。你的能力已消耗。`,
       displayInfo: {
         type: "inspector_result",
         targetId: r?.targetId ?? null,

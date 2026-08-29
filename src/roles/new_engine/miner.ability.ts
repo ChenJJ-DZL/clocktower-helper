@@ -7,7 +7,7 @@
  * 在信息类角色（如占卜师、调查员等）的探查结果中，矿工不会被正确识别。
  * 持续生效，不主动唤醒。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

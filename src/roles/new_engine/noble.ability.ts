@@ -6,7 +6,7 @@
  * 首夜获得信息，被告知三名玩家中有一名是邪恶阵营。
  * 醉酒/中毒时可能得知三名全善良或虚假信息。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

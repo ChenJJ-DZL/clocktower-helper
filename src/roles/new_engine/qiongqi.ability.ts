@@ -17,7 +17,7 @@
  *   - 额外死亡由引擎自动随机选择（说书人在网页版无实物标记，改由弹窗展示）。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

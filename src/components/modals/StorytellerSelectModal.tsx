@@ -67,15 +67,16 @@ export function StorytellerSelectModal({
         setSelectedTargets([]);
         onCancel();
       }}
-      className="max-w-2xl"
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
       footer={
-        <div className="flex gap-3 justify-end w-full">
+        <div className="flex gap-4 justify-center w-full">
           <button
             onClick={() => {
               setSelectedTargets([]);
               onCancel();
             }}
-            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition"
+            className="flex-1 max-w-xs py-3 sm:py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-base sm:text-lg transition shadow-md"
           >
             取消
           </button>
@@ -86,7 +87,7 @@ export function StorytellerSelectModal({
               setSelectedTargets([]);
             }}
             disabled={!canConfirm}
-            className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed transition btn-arcane-primary"
+            className="flex-1 max-w-xs py-3 sm:py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-black text-base sm:text-lg shadow-lg shadow-amber-600/40 ring-2 ring-amber-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition btn-arcane-primary"
           >
             {confirmLabel ||
               `确认选择 (${selectedTargets.length}/${targetCount})`}
@@ -94,18 +95,18 @@ export function StorytellerSelectModal({
         </div>
       }
     >
-      <div className="space-y-4">
-        <div className="text-sm text-slate-200 leading-relaxed bg-slate-800/60 p-3 rounded-xl border border-white/5">
-          <div className="text-base font-semibold text-amber-300 mb-1">
+      <div className="space-y-3 w-full">
+        <div className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-800/60 p-3 rounded-xl border border-white/5">
+          <div className="text-sm sm:text-base font-semibold text-amber-300 mb-0.5">
             {sourceSeat ? `${sourceSeat.id + 1}号 ${roleName}` : roleName}
           </div>
           <div className="text-slate-300">{description}</div>
-          <div className="text-xs text-yellow-300 mt-2">
+          <div className="text-xs text-yellow-300 mt-1.5">
             规则：该能力由说书人代为决定目标。请选择 {targetCount} 名目标玩家。
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3 p-1 w-full">
           {candidateSeats.length === 0 ? (
             <div className="col-span-full py-8 text-center text-slate-400 text-sm">
               暂无可选择的目标玩家
@@ -119,18 +120,21 @@ export function StorytellerSelectModal({
                   key={s.id}
                   type="button"
                   onClick={() => toggleTarget(s.id)}
-                  className={`p-3 rounded-xl border-2 text-left transition ${
+                  className={`p-3 rounded-xl border-2 text-left transition-all ${
                     isSelected
-                      ? "border-amber-400 bg-amber-900/60 text-white shadow-lg shadow-amber-500/30"
+                      ? "border-amber-400 bg-amber-900/60 text-white shadow-md shadow-amber-500/30 ring-2 ring-amber-400"
                       : "border-slate-700 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
                   }`}
                 >
                   <div className="flex justify-between items-center">
-                    <div className="font-bold">
-                      {s.id + 1}号 {s.role?.name || "未知"}
+                    <div className="font-black text-base sm:text-lg">
+                      <span className="text-amber-400">{s.id + 1}号</span>{" "}
+                      {s.role?.name || "未知"}
                     </div>
                     {isDead && (
-                      <span className="text-xs text-slate-500">已死亡</span>
+                      <span className="text-xs text-red-400 font-medium">
+                        已死亡
+                      </span>
                     )}
                   </div>
                   {isSelected && (

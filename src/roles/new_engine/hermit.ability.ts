@@ -7,7 +7,7 @@
  * 标记 hermitActive，使隐士获得所有外来者角色的能力效果。
  * 该能力在游戏初始化/角色分配时生效，持续整局游戏。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

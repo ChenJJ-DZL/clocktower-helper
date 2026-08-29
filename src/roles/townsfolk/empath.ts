@@ -76,7 +76,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
     target: {
       count: { min: 0, max: 0 },
     },
-    dialog: (playerSeatId, isFirstNight, context) => {
+    dialog: (playerSeatId, _isFirstNight, context) => {
       const seatNo = playerSeatId + 1;
       const { seats, isActorDisabledByPoisonOrDrunk } = context;
 

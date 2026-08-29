@@ -7,7 +7,7 @@
  * 首夜由说书人决定一个秘密能力。失忆者通过游戏中的线索推理。
  * 由于能力完全由说书人自定义，本实现在首夜记录能力设定供后续使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

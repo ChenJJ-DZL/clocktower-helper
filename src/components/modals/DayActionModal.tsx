@@ -16,17 +16,20 @@ export function DayActionModal({ modal }: { modal: any }) {
     <ModalWrapper
       title={title}
       onClose={() => props.setCurrentModal(null)}
-      className="max-w-xl"
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
       footer={
-        <button
-          onClick={() => props.setCurrentModal(null)}
-          className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-lg font-bold text-white transition"
-        >
-          取消
-        </button>
+        <div className="flex justify-center w-full">
+          <button
+            onClick={() => props.setCurrentModal(null)}
+            className="w-full max-w-sm py-3 sm:py-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-base sm:text-lg font-bold text-white transition shadow-md"
+          >
+            取消
+          </button>
+        </div>
       }
     >
-      <div className="flex flex-wrap gap-3 justify-center py-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3.5 p-1 w-full">
         {props.seats
           .filter((s) => {
             // 暗月初升剧本：存活玩家可以提名死人
@@ -90,13 +93,19 @@ export function DayActionModal({ modal }: { modal: any }) {
                   }
                 }}
                 disabled={isDisabled}
-                className={`p-4 border-2 rounded-xl text-xl font-bold transition-all ${
+                className={`py-3 sm:py-4 px-3 border-2 rounded-xl text-base sm:text-lg font-black transition-all flex flex-col items-center justify-center gap-1 shadow-sm ${
                   isDisabled
-                    ? "opacity-30 cursor-not-allowed bg-slate-800 border-slate-700 text-slate-500"
-                    : "bg-slate-800/80 hover:bg-slate-700 border-slate-600 text-white"
+                    ? "opacity-30 cursor-not-allowed bg-slate-900/50 border-slate-800 text-slate-500"
+                    : "bg-slate-800/90 hover:bg-slate-700 hover:border-slate-500 border-slate-600 text-white active:scale-95"
                 }`}
               >
-                {s.id + 1}号 {s.role?.name}
+                <span className="text-amber-400 font-bold">{s.id + 1}号</span>
+                <span className="truncate">{s.role?.name}</span>
+                {s.playerName && (
+                  <span className="text-[10px] sm:text-xs text-slate-400 font-normal truncate">
+                    ({s.playerName})
+                  </span>
+                )}
               </button>
             );
           })}

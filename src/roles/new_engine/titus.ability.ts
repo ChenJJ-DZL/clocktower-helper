@@ -7,7 +7,7 @@
  * 说书人选择目标后，目标被标记为死亡，提图斯得知该玩家的阵营信息。
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

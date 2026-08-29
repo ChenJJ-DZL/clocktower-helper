@@ -122,8 +122,8 @@ export interface GameEventMap {
     oldPhase: string;
     newPhase: string;
   };
-  startFirstNight: {}; // 首夜启动事件（无负载）
-  startSubsequentNight: {}; // 非首夜启动事件（无负载，统一由 startSubsequentNight 处理）
+  startFirstNight: Record<string, never>; // 首夜启动事件（无负载）
+  startSubsequentNight: Record<string, never>; // 非首夜启动事件（无负载，统一由 startSubsequentNight 处理）
   "game:over": {
     winSide: "good" | "evil";
     reason: string;

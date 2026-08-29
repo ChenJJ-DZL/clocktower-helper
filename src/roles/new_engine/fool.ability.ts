@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发：首次被处决时免死，并在 snapshot 中记录保护已使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

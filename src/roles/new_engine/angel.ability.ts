@@ -6,7 +6,7 @@
  *
  * 首夜保护一名玩家。若目标为善良，双方互知。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -71,7 +71,7 @@ const postProcess = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const reveal = r?.angelRevealed ? "（善良目标得知天使身份）" : "";
-  const log = `[Angel] 保护 ${r?.targetId != null ? r.targetId + 1 + "号" : "无"}${reveal}`;
+  const log = `[Angel] 保护 ${r?.targetId != null ? `${r.targetId + 1}号` : "无"}${reveal}`;
   console.log(log);
   return {
     ...ctx,

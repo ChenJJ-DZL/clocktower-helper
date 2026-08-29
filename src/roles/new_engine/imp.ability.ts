@@ -56,13 +56,9 @@
  * ============================================================
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
-  getDemonKillImmunityType,
   isImmuneToDemonKill,
-  mayorImmunityLog,
-  mayorSubstituteLog,
-  pickMayorSubstitute,
   resolveMayorDemonKill,
   soldierImmunityLog,
 } from "../../utils/soldierImmunity";

@@ -5,7 +5,7 @@
  *
  * PASSIVE 触发，检测恶魔是否在白天被处决
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

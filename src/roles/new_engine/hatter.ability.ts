@@ -5,7 +5,7 @@
  *
  * PASSIVE/ON_DEATH 触发：死亡时标记 hatterDied，角色交换由说书人手动操作。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

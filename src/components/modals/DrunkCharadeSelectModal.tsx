@@ -41,35 +41,57 @@ export function DrunkCharadeSelectModal({
     <ModalWrapper
       title={`为 ${drunkSeat.id + 1}号【${currentDrunkRoleName}】设定伪装身份`}
       onClose={onClose}
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
+      footer={
+        <div className="flex justify-center w-full">
+          <button
+            onClick={handleConfirm}
+            disabled={!canConfirm}
+            className={`w-full max-w-sm rounded-xl py-3 sm:py-4 text-base sm:text-lg font-black transition shadow-md ${
+              canConfirm
+                ? "bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/40 ring-2 ring-purple-400 active:scale-[0.98]"
+                : "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-60"
+            }`}
+          >
+            确认选择
+          </button>
+        </div>
+      }
     >
-      <div className="space-y-4 p-4 text-white">
-        <p className="text-sm text-slate-300">
-          请为 **{drunkSeat.id + 1}号** 的 **{currentDrunkRoleName}**{" "}
-          选择一个**不在场的善良镇民**角色作为其伪装身份（酒鬼与提线木偶伪装身份互斥不可重复）：
+      <div className="space-y-4 p-2 sm:p-4 text-white flex flex-col flex-1 w-full">
+        <p className="text-base sm:text-lg text-slate-200 text-center font-medium">
+          请为{" "}
+          <span className="text-amber-400 font-bold">{drunkSeat.id + 1}号</span>{" "}
+          的{" "}
+          <span className="text-purple-300 font-bold">
+            {currentDrunkRoleName}
+          </span>{" "}
+          选择一个
+          <span className="text-emerald-400 font-bold">不在场的善良镇民</span>
+          角色作为其伪装身份：
         </p>
 
-        <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5 sm:gap-3 p-1 w-full">
           {availableTownsfolkRoles.map((role) => (
             <button
               key={role.id}
               onClick={() => setSelectedRole(role)}
-              className={`relative flex items-center justify-center p-3 rounded-lg border transition ${selectedRole?.id === role.id ? "border-purple-500 bg-purple-900/50 ring-2 ring-purple-500" : "border-slate-700 bg-slate-800/50 hover:bg-slate-700/50"}`}
+              className={`relative flex flex-col items-center justify-center py-3 sm:py-3.5 px-2 rounded-xl border-2 transition-all shadow-sm active:scale-95 ${
+                selectedRole?.id === role.id
+                  ? "border-purple-400 bg-purple-900/80 ring-2 ring-purple-500 scale-[1.02]"
+                  : "border-slate-700 bg-slate-800/80 hover:bg-slate-700/80"
+              }`}
             >
-              <span className="text-sm font-bold">{role.name}</span>
-              <span className="text-xs text-slate-400 absolute bottom-1 right-2">
+              <span className="text-base sm:text-lg font-black">
+                {role.name}
+              </span>
+              <span className="text-[10px] text-slate-400 mt-0.5">
                 {role.id}
               </span>
             </button>
           ))}
         </div>
-
-        <button
-          onClick={handleConfirm}
-          disabled={!canConfirm}
-          className={`w-full rounded-lg py-3 text-lg font-bold transition ${canConfirm ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-slate-700 text-slate-500 cursor-not-allowed"}`}
-        >
-          确认选择
-        </button>
       </div>
     </ModalWrapper>
   );

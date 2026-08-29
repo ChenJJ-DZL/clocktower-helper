@@ -1,5 +1,5 @@
 /** 管家（Steward）新引擎技能实现\n * 【角色能力】"服务一名玩家，跟随其投票。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

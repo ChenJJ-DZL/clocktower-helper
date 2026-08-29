@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { isPlayerEvil } from "../../app/gameLogic";
 import { gameActions } from "../contexts/GameContext";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
@@ -65,6 +66,10 @@ export interface ExecutionHandlersDeps {
   //   新引擎快照 witchCurse 需桥接到 legacy witchCursedId 才能在白天提名触发死亡。
   setWitchCursedId?: (id: number | null) => void;
   setWitchActive?: (v: boolean) => void;
+  setSystemStepRoleIds?: React.Dispatch<
+    React.SetStateAction<Map<number, string>>
+  >;
+  systemStepRoleIdsRef?: React.MutableRefObject<Map<number, string>>;
 
   // Functions
   addLog: (msg: string) => void;
@@ -161,6 +166,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     setShowVoteErrorToast,
     setWitchCursedId,
     setWitchActive,
+    setSystemStepRoleIds,
+    systemStepRoleIdsRef,
     addLog,
     addLogWithDeduplication,
     killPlayer,
@@ -520,6 +527,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     moonchildChainPendingRef,
     dispatch,
     processingRef,
+    insertIntoWakeQueueAfterCurrent,
+    roles.find,
   ]);
 
   // Submit votes handler
@@ -736,6 +745,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       isGoodAlignment,
       isActorDisabledByPoisonOrDrunk,
       setTodayExecutedId,
+      setNominationMap,
     ]
   );
 
@@ -948,6 +958,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     markAbilityUsed,
     processingRef,
     reviveSeat,
+    checkGameOver,
+    setDeadThisNight,
+    setWitchActive,
+    setWitchCursedId,
   ]);
 
   // Confirm poison evil handler
@@ -1044,6 +1058,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     markAbilityUsed,
     processingRef,
     reviveSeat,
+    checkGameOver,
+    setDeadThisNight,
+    setWitchActive,
+    setWitchCursedId,
   ]);
 
   /**
@@ -1096,6 +1114,22 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       .map((node: any) => node.seatId)
       .filter((id: number) => seats.some((s: Seat) => s.id === id));
 
+    // 重新计算非首夜的系统步骤映射（如罂粟种植者死亡触发的邪恶互认；无则清空旧首夜映射）
+    const stepMap = new Map<number, string>();
+    queue.forEach((node: any, idx: number) => {
+      if (
+        node.roleId === "minion_info" ||
+        node.roleId === "demon_info" ||
+        node.roleId === LEGION_MUTUAL_RECOGNITION_ID
+      ) {
+        stepMap.set(idx, node.roleId);
+      }
+    });
+    if (systemStepRoleIdsRef) {
+      systemStepRoleIdsRef.current = stepMap;
+    }
+    setSystemStepRoleIds?.(stepMap);
+
     const preview = queue.map((node: any, idx: number) => ({
       roleName: node.roleName || "未知角色",
       seatNo: (node.seatId ?? 0) + 1,
@@ -1136,7 +1170,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       `[startSubsequentNight] 进入第 ${nightCount + 1} 夜，队列长度:`,
       wakeIds.length
     );
-  }, [nightLogic, seats, nightCount, setGamePhase, dispatch, baseDispatch]);
+  }, [
+    nightLogic,
+    seats,
+    nightCount,
+    baseDispatch,
+    setSystemStepRoleIds,
+    systemStepRoleIdsRef,
+  ]);
 
   // Confirm execution result handler
   const confirmExecutionResult = useCallback(() => {
@@ -1440,6 +1481,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       setWinReason,
       isActorDisabledByPoisonOrDrunk,
       killPlayer,
+      gamePhase,
     ]
   );
 

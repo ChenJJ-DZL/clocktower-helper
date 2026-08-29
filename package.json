@@ -1,17 +1,19 @@
 {
   "//": "by 拜甘教成员-大长老",
   "name": "clocktower-helper",
-  "version": "W8.28.1",
+  "version": "W8.30.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "clean": "powershell -Command \"if (Test-Path .next) { Remove-Item -Recurse -Force .next }\"",
     "start": "next start",
     "test": "vitest run",
     "fix": "biome check --write .",
     "type": "tsc --noEmit",
     "circular": "madge --circular src/index.ts",
-    "check:all": "npm run fix && npm run type && npm run build && npm run test && npm run circular"
+    "check": "npm run fix && npm run type && npm run test && npm run circular",
+    "check:all": "npm run fix && npm run type && npm run test && npm run circular"
   },
   "dependencies": {
     "clsx": "^2.1.1",

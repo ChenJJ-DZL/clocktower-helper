@@ -8,8 +8,8 @@
  * 运行：cd clocktower-helper && npx vitest run src/roles/__tests__/invariant
  */
 
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { collectGlobalRules } from "../../../utils/globalRuleEngine";
 import {

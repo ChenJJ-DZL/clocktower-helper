@@ -6,7 +6,7 @@
  * 游戏开始时选择一名玩家，该玩家在整个游戏中免疫醉酒和中毒效果。
  * 属于旅行者保护类能力。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

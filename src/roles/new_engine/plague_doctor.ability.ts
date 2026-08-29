@@ -5,7 +5,7 @@
  *
  * 瘟疫医生在死亡时触发能力，选择一名活着的玩家使其进入醉酒状态。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

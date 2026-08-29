@@ -75,11 +75,11 @@ export function GameOverOverlay() {
       onClose={handleClose}
       className="max-w-2xl"
       footer={
-        <div className="flex flex-col sm:flex-row gap-3 w-full justify-between items-center">
+        <div className="flex flex-col sm:flex-row gap-3.5 w-full justify-between items-center">
           <button
             type="button"
             onClick={handleClose}
-            className="w-full sm:w-auto px-4 py-3 rounded-xl border border-white/20 text-slate-300 hover:text-white hover:bg-white/10 text-sm font-semibold transition cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border border-white/20 text-slate-200 hover:text-white hover:bg-white/10 text-base sm:text-lg font-bold transition cursor-pointer active:scale-95"
           >
             返回查看棋盘
           </button>
@@ -88,7 +88,7 @@ export function GameOverOverlay() {
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="px-5 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm transition shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="px-6 py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black text-base sm:text-lg transition shadow-lg shadow-amber-600/30 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-95"
             >
               <span>{exporting ? "⏳" : "📸"}</span>
               <span>{exporting ? "导出中..." : "导出长图"}</span>
@@ -98,7 +98,7 @@ export function GameOverOverlay() {
               onClick={() => {
                 actions.setCurrentModal({ type: "REVIEW", data: null });
               }}
-              className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base sm:text-lg transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <span>📊</span>
               <span>本局复盘</span>
@@ -113,7 +113,7 @@ export function GameOverOverlay() {
                   actions.handleRestart();
                 }
               }}
-              className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-base transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer"
+              className="px-8 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-base sm:text-lg transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <span>🔄</span>
               <span>再来一局</span>
@@ -122,18 +122,18 @@ export function GameOverOverlay() {
         </div>
       }
     >
-      <div className="space-y-6 py-2 text-center">
+      <div className="space-y-6 py-4 text-center my-auto w-full">
         {/* 获胜主徽章与图标 */}
-        <div className="flex flex-col items-center justify-center space-y-3">
-          <div className="text-6xl animate-bounce">
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="text-7xl sm:text-8xl md:text-9xl animate-bounce">
             {isGood ? "🏆" : isEvil ? "👿" : "👑"}
           </div>
           <div
-            className={`text-2xl sm:text-3xl font-black ${
+            className={`text-3xl sm:text-5xl md:text-6xl font-black ${
               isGood
-                ? "text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]"
+                ? "text-blue-400 drop-shadow-[0_0_25px_rgba(59,130,246,0.7)]"
                 : isEvil
-                  ? "text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]"
+                  ? "text-red-400 drop-shadow-[0_0_25px_rgba(239,68,68,0.7)]"
                   : "text-amber-300"
             }`}
           >
@@ -144,14 +144,13 @@ export function GameOverOverlay() {
                 : "本局游戏已结束"}
           </div>
         </div>
-
-        {/* 胜利依据卡片 */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/80 border border-white/10 space-y-2 text-left">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
+        ;{/* 胜利依据卡片 */}
+        <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/80 border border-white/10 space-y-3 text-left max-w-3xl mx-auto shadow-xl">
+          <div className="flex items-center gap-2 text-base sm:text-lg font-bold text-slate-300">
             <span>⚖️</span>
             <span>胜利依据</span>
           </div>
-          <p className="text-base sm:text-lg font-semibold text-slate-100 pl-6">
+          <p className="text-xl sm:text-2xl font-bold text-slate-100 pl-6 leading-relaxed">
             {winReason ||
               (isGood
                 ? "所有恶魔已被消灭"
@@ -160,11 +159,12 @@ export function GameOverOverlay() {
                   : "对局已结束")}
           </p>
           {winReason?.includes("猎手") && (
-            <p className="text-xs text-amber-300/90 pl-6">
+            <p className="text-sm sm:text-base text-amber-300/90 pl-6 font-medium">
               💡 猎手成功击杀恶魔，游戏立即结束并由善良阵营获胜。
             </p>
           )}
         </div>
+        ;
       </div>
     </ModalWrapper>
   );

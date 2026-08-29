@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 interface GlobalPrivacyShieldProps {
   /** 遮罩是否处于激活状态 */

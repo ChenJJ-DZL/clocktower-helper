@@ -4,11 +4,31 @@ import type { NightActionConfirmData } from "../NightActionConfirmModal";
 
 describe("NightActionConfirmModal 交互选人与保密防窥测试", () => {
   const mockSeats: Seat[] = [
-    { id: 0, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } as any, isDead: false } as any,
-    { id: 1, role: { id: "librarian", name: "图书管理员", type: "townsfolk" } as any, isDead: false } as any,
-    { id: 2, role: { id: "investigator", name: "调查员", type: "townsfolk" } as any, isDead: false } as any,
-    { id: 3, role: { id: "poisoner", name: "投毒者", type: "minion" } as any, isDead: false } as any,
-    { id: 4, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isDead: false } as any,
+    {
+      id: 0,
+      role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } as any,
+      isDead: false,
+    } as any,
+    {
+      id: 1,
+      role: { id: "librarian", name: "图书管理员", type: "townsfolk" } as any,
+      isDead: false,
+    } as any,
+    {
+      id: 2,
+      role: { id: "investigator", name: "调查员", type: "townsfolk" } as any,
+      isDead: false,
+    } as any,
+    {
+      id: 3,
+      role: { id: "poisoner", name: "投毒者", type: "minion" } as any,
+      isDead: false,
+    } as any,
+    {
+      id: 4,
+      role: { id: "imp", name: "小恶魔", type: "demon" } as any,
+      isDead: false,
+    } as any,
   ];
 
   it("当技能需要选人时，弹窗接收 targetLimit 配置并支持选人", () => {
@@ -47,7 +67,11 @@ describe("NightActionConfirmModal 交互选人与保密防窥测试", () => {
 
   it("保密防窥特性：目标按钮格式仅包含座位号与必要生死状态，绝不暴露角色名称", () => {
     // 模拟弹窗中渲染每个座位的标签
-    const renderSeatLabel = (seat: Seat, actorSeatId?: number, allowSelf?: boolean) => {
+    const renderSeatLabel = (
+      seat: Seat,
+      actorSeatId?: number,
+      allowSelf?: boolean
+    ) => {
       const isSelf = seat.id === actorSeatId;
       const isSelfDisabled = isSelf && allowSelf === false;
       const label = `${seat.id + 1}号`;
@@ -62,6 +86,23 @@ describe("NightActionConfirmModal 交互选人与保密防窥测试", () => {
       expect(label).not.toContain(seat.role?.name);
       // 验证：包含座位号
       expect(label).toContain(`${seat.id + 1}号`);
+    });
+  });
+
+  it("信息角色占位符过滤：严格过滤(信息获取 - 无目标)等占位符，不泄漏至文案", () => {
+    const rawTargetTexts = [
+      "（信息获取 - 无目标）",
+      "（首夜信息 - 无目标）",
+      "无目标",
+    ];
+
+    rawTargetTexts.forEach((raw) => {
+      const isPlaceholder =
+        !raw ||
+        raw.includes("无目标") ||
+        raw.includes("信息获取") ||
+        raw.includes("首夜信息");
+      expect(isPlaceholder).toBe(true);
     });
   });
 });

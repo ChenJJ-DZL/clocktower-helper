@@ -6,7 +6,7 @@
  * FIRST_NIGHT 触发，说书人选择一名善良玩家作为目标。
  * 记录 wraithTarget 到 snapshot，供白天死亡检测逻辑使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -66,7 +66,7 @@ const postProcess = async (
   const log =
     "[幽灵] " +
     (r.targetId != null
-      ? "目标: " + (r.targetId + 1) + " 号 (" + (r.targetRole ?? "未知") + ")"
+      ? `目标: ${r.targetId + 1} 号 (${r.targetRole ?? "未知"})`
       : "未选择目标");
   console.log(log);
   return {

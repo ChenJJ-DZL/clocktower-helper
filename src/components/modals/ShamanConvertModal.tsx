@@ -12,11 +12,12 @@ export function ShamanConvertModal() {
         props.setCurrentModal(null);
         props.setShamanConvertTarget(null);
       }}
-      className="max-w-xl"
+      size="fullscreen90"
+      className="w-[90vw] h-[90vh]"
       footer={
-        <div className="flex gap-3 justify-end w-full">
+        <div className="flex gap-4 justify-center w-full">
           <button
-            className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-medium transition"
+            className="flex-1 max-w-xs py-3 sm:py-4 bg-slate-700 hover:bg-slate-600 rounded-xl text-white font-bold text-base sm:text-lg transition shadow-md"
             onClick={() => {
               props.setCurrentModal(null);
               props.setShamanConvertTarget(null);
@@ -25,7 +26,7 @@ export function ShamanConvertModal() {
             取消
           </button>
           <button
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-white font-bold transition"
+            className="flex-1 max-w-xs py-3 sm:py-4 bg-purple-600 hover:bg-purple-500 rounded-xl text-white font-black text-base sm:text-lg shadow-lg shadow-purple-600/40 ring-2 ring-purple-400 active:scale-[0.98] transition"
             onClick={() => {
               if (props.shamanConvertTarget === null) return;
               const target = props.seats.find(
@@ -72,12 +73,12 @@ export function ShamanConvertModal() {
         </div>
       }
     >
-      <div className="space-y-4">
-        <div className="text-slate-300 text-sm leading-relaxed">
+      <div className="space-y-4 p-2 sm:p-4 flex flex-col flex-1 w-full">
+        <div className="text-slate-300 text-xs sm:text-sm leading-relaxed">
           请选择第一个公开说出关键词的玩家：若他是善良阵营（镇民/外来者），当晚起被视为邪恶；若本就是邪恶，则不产生额外效果。
         </div>
         <select
-          className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-purple-500"
+          className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white text-base sm:text-lg font-bold focus:outline-none focus:border-purple-500"
           value={props.shamanConvertTarget ?? ""}
           onChange={(e) =>
             props.setShamanConvertTarget(
@@ -90,7 +91,7 @@ export function ShamanConvertModal() {
             .filter((s: any) => !s.isDead)
             .map((s: any) => (
               <option key={s.id} value={s.id}>
-                [{s.id + 1}] {s.role?.name}
+                [{s.id + 1}号] {s.role?.name}
               </option>
             ))}
         </select>

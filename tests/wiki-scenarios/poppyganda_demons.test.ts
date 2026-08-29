@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   impAbility,
   initializeAbilityRegistry,
-  legionAbility,
   vortoxAbility,
 } from "../../src/roles/new_engine/abilityRegistry";
 import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";

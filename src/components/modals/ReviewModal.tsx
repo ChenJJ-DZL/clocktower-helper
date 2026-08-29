@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { GamePhase, LogEntry, Seat, WinResult } from "@/app/data";
 import { roles } from "../../../app/data";
+import { getWinningPlayersList } from "../../utils/reviewHelper";
 import { ModalWrapper } from "./ModalWrapper";
 
 // 角色ID到中文名的映射
@@ -171,13 +172,50 @@ export function ReviewModal({
 
                 let formatted = msg.trim();
 
+                // 0. 特殊处理开局落座日志：若为泛指模糊日志（如旧的“已为 15 名玩家随机分配角色并落座”），根据本场实际座位展开为真实落座名单
+                if (
+                  formatted.includes("随机分配角色并落座") ||
+                  formatted.includes("随机分配角色") ||
+                  (formatted.startsWith("⚡ 快速开始") &&
+                    !formatted.includes("号"))
+                ) {
+                  const activeSeats = displaySeats.filter((s) => s.role);
+                  const seatSummary = activeSeats
+                    .map((s) => {
+                      let roleName = s.role?.name || "未知";
+                      if (s.role?.id === "drunk" && s.charadeRole?.name) {
+                        roleName = `酒鬼(伪:${s.charadeRole.name})`;
+                      } else if (
+                        s.role?.id === "lunatic" &&
+                        s.apparentDemonRole?.name
+                      ) {
+                        roleName = `疯子(伪:${s.apparentDemonRole.name})`;
+                      }
+                      return `${s.id + 1}号${roleName}`;
+                    })
+                    .join("、");
+
+                  if (seatSummary) {
+                    formatted = `⚡ 快速开始（${activeSeats.length}人落座）：${seatSummary}`;
+                  }
+                }
+
+                // 若已是格式化完整的开局落座日志，直接返回，避免后续正则把 "1号士兵" 二次替换为 "【1号-士兵】士兵"
+                if (
+                  formatted.startsWith("⚡ 快速开始") ||
+                  formatted.startsWith("⚡ 快速测试") ||
+                  formatted.startsWith("⚡ 玩家落座")
+                ) {
+                  return formatted;
+                }
+
                 // 1. 去除内部调试前缀
                 formatted = formatted.replace(/^\[能力\]\s*/, "");
 
                 // 2. 将形如 "【玩家1(1号-镇长)】" 或 "玩家1(1号-镇长)" 转换为 "【1号-镇长】"
                 formatted = formatted.replace(
                   /【?玩家(\d+)】?\s*[(（](\d+)\s*号(?:[ -]([^\s()（）]+))?[)）]/gi,
-                  (match, num1, num2, roleText) => {
+                  (_match, num1, num2, roleText) => {
                     const num = parseInt(num2 || num1, 10);
                     const roleName =
                       roleText ||
@@ -193,7 +231,7 @@ export function ReviewModal({
                 // 3. 将形如 "1号(slayer)" / "1号(猎手)" / "1号玩家(slayer)" 转换为 "【1号-猎手】"
                 formatted = formatted.replace(
                   /(\d+)\s*号(?:玩家|[位者])?\s*[(（]([a-zA-Z_\u4e00-\u9fa5]+)[)）]/gi,
-                  (match, numStr, roleIdOrName) => {
+                  (_match, numStr, roleIdOrName) => {
                     const num = parseInt(numStr, 10);
                     const cn =
                       roleNameMap.get(roleIdOrName) ||
@@ -206,7 +244,7 @@ export function ReviewModal({
                 // 4. 将未带角色名的裸露 "X号" 转换为 "【X号-角色名】"（若尚未被【】包裹）
                 formatted = formatted.replace(
                   /(?<!【\s*|【\s*\d+号-)(\b\d+)\s*号(?:玩家|[位者])?(?![-a-zA-Z_\u4e00-\u9fa5]*】)/g,
-                  (match, numStr) => {
+                  (_match, numStr) => {
                     const num = parseInt(numStr, 10);
                     const roleName = seatRoleMap.get(num);
                     return roleName
@@ -253,10 +291,33 @@ export function ReviewModal({
                   !log.message.startsWith("[handleDrunkCharadeSelect]")
               );
 
+              // 过滤掉 setup 阶段因多次“换一批/刷新/重新落座”产生的重复开局落座记录，仅保留最终实际对局的落座记录
+              const isSeatingLog = (m: string) =>
+                m.includes("落座") ||
+                m.includes("分配角色") ||
+                m.includes("快速开始") ||
+                m.includes("快速测试");
+
+              let lastSeatingIdx = -1;
+              filteredLogs.forEach((log, idx) => {
+                if (log.phase === "setup" && isSeatingLog(log.message)) {
+                  lastSeatingIdx = idx;
+                }
+              });
+
+              const dedupedLogs = filteredLogs.filter((log, idx) => {
+                if (log.phase === "setup" && isSeatingLog(log.message)) {
+                  return idx === lastSeatingIdx;
+                }
+                return true;
+              });
+
               // 按天数和阶段分组
-              const logsByDayAndPhase = filteredLogs.reduce(
+              const logsByDayAndPhase = dedupedLogs.reduce(
                 (acc, log) => {
-                  const key = `${log.day}_${log.phase}`;
+                  // 强制 setup 阶段归入 0_setup，避免旧日志中 setup 带有非 0 的 day
+                  const normalizedDay = log.phase === "setup" ? 0 : log.day;
+                  const key = `${normalizedDay}_${log.phase}`;
                   if (!acc[key]) acc[key] = [];
                   acc[key].push(log);
                   return acc;
@@ -264,17 +325,41 @@ export function ReviewModal({
                 {} as Record<string, LogEntry[]>
               );
 
-              // 转换为数组并排序
+              // 转换为数组并排序：严格按照真实时间线先后（开局 -> 首夜 -> 第1天 -> 第1天黄昏 -> 第2夜 -> 第2天 ...）
               const sortedLogs = Object.entries(logsByDayAndPhase).sort(
                 (a, b) => {
                   const [dayA, phaseA] = a[0].split("_");
                   const [dayB, phaseB] = b[0].split("_");
-                  const dayNumA = parseInt(dayA, 10);
-                  const dayNumB = parseInt(dayB, 10);
-                  if (dayNumA !== dayNumB) return dayNumA - dayNumB;
-                  return (
-                    (phaseOrder[phaseA] || 999) - (phaseOrder[phaseB] || 999)
+                  const logsA = a[1];
+                  const logsB = b[1];
+
+                  const getTimelineWeight = (dayStr: string, phase: string) => {
+                    if (phase === "setup") return 0;
+                    if (phase === "firstNight") return 10;
+                    const dayNum = Math.max(1, parseInt(dayStr, 10) || 1);
+                    let phaseWeight = 20;
+                    if (phase === "night")
+                      phaseWeight = 0; // 第 N 夜先于第 N 天白天
+                    else if (phase === "day") phaseWeight = 10;
+                    else if (phase === "dusk") phaseWeight = 20;
+                    return dayNum * 1000 + phaseWeight;
+                  };
+
+                  const weightA = getTimelineWeight(dayA, phaseA);
+                  const weightB = getTimelineWeight(dayB, phaseB);
+
+                  if (weightA !== weightB) {
+                    return weightA - weightB;
+                  }
+
+                  // 相同阶段权重时，按该阶段最早一条日志的创建序号（seq）或时间戳（ts）排序
+                  const minSeqA = Math.min(
+                    ...logsA.map((l) => l.seq ?? l.ts ?? 0)
                   );
+                  const minSeqB = Math.min(
+                    ...logsB.map((l) => l.seq ?? l.ts ?? 0)
+                  );
+                  return minSeqA - minSeqB;
                 }
               );
 
@@ -329,15 +414,26 @@ export function ReviewModal({
             {gameLogs.length === 0 && (
               <div className="text-gray-500 text-center py-8">暂无操作记录</div>
             )}
-            {gamePhase === "gameOver" && winReason && (
-              <div className="mt-6 pt-4 border-t-2 border-yellow-500">
+            {(gamePhase === "gameOver" || winResult) && winResult && (
+              <div className="mt-6 pt-4 border-t-2 border-yellow-500/40 bg-slate-900/80 p-4 rounded-xl space-y-2.5">
                 <div
-                  className={`text-lg font-bold ${
-                    winResult === "good" ? "text-blue-400" : "text-red-400"
+                  className={`text-xl sm:text-2xl font-black ${
+                    winResult.toLowerCase() === "good"
+                      ? "text-blue-400"
+                      : "text-red-400"
                   }`}
                 >
-                  {winResult === "good" ? "🏆 善良阵营胜利" : "👿 邪恶阵营获胜"}
-                  ：{winReason}
+                  {winResult.toLowerCase() === "good"
+                    ? "🏆 善良阵营胜利"
+                    : "👿 邪恶阵营获胜"}
+                  {winReason && (
+                    <span className="text-slate-200 text-base sm:text-lg font-bold ml-2">
+                      （{winReason}）
+                    </span>
+                  )}
+                </div>
+                <div className="text-base sm:text-lg font-bold text-amber-300 tracking-wide">
+                  {getWinningPlayersList(displaySeats, winResult)}
                 </div>
               </div>
             )}

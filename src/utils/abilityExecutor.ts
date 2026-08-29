@@ -9,11 +9,10 @@
  * - 所有校验失败都会产生明确日志，不再"静默跳过"
  */
 
-import type { Role, Seat } from "../../app/data";
+import type { Seat } from "../../app/data";
 import type { NightActionHandlerContext } from "../hooks/useNightActionHandler";
 import type { NightInfoResult } from "../types/game";
 import {
-  computeIsPoisoned,
   hasTeaLadyProtection,
   isActorDisabledByPoisonOrDrunk,
 } from "./gameRules";
@@ -159,7 +158,7 @@ export function postProcessAbility(
   actorId: number,
   targetIds: number[],
   success: boolean,
-  addLog: (message: string) => void
+  _addLog: (message: string) => void
 ): void {
   // 1. 发布能力执行完成事件
   unifiedEventBus.emit("ability:resolved", {

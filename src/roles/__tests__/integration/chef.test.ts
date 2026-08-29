@@ -120,10 +120,10 @@ describe("厨师 引擎集成测试", () => {
       s(4, "scarlet_woman", "minion"),
       s(5, "imp", "demon"),
     ];
-    const r = await runFullAbilityPipeline(
-      pipe(chefAbility),
-      { ...ctx(0, 1, "firstNight", ss), storytellerInput: { forceChefRecluseEvil: true } }
-    );
+    const r = await runFullAbilityPipeline(pipe(chefAbility), {
+      ...ctx(0, 1, "firstNight", ss),
+      storytellerInput: { forceChefRecluseEvil: true },
+    });
     expect(r.meta.abilityResult).toBe(4);
   });
 

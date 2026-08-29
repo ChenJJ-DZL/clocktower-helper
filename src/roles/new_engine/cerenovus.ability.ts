@@ -6,7 +6,7 @@
  *
  * 每夜选择目标+角色，目标需疯狂扮演该角色。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

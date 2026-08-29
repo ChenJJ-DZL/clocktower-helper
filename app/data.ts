@@ -148,20 +148,19 @@ export interface ReminderToken {
 }
 
 /** 预设提醒标记模板 */
-export const REMINDER_PRESETS: Array<Omit<ReminderToken, "id" | "createdAt">> =
-  [
-    { icon: "🛡️", label: "受保护", color: "green", expiresAt: "dawn" },
-    { icon: "☠️", label: "中毒", color: "red", expiresAt: "dusk" },
-    { icon: "🍺", label: "醉酒", color: "yellow", expiresAt: "dusk" },
-    { icon: "💀", label: "死亡标记", color: "red", expiresAt: "permanent" },
-    { icon: "🎭", label: "假身份", color: "blue" },
-    { icon: "👁️", label: "是恶魔", color: "red" },
-    { icon: "🐺", label: "是爪牙", color: "red" },
-    { icon: "✅", label: "已用能力", color: "gray", expiresAt: "permanent" },
-    { icon: "❌", label: "能力失效", color: "red" },
-    { icon: "🔒", label: "不能投票", color: "yellow" },
-    { icon: "📝", label: "自定义", color: "blue" },
-  ];
+export const REMINDER_PRESETS: Omit<ReminderToken, "id" | "createdAt">[] = [
+  { icon: "🛡️", label: "受保护", color: "green", expiresAt: "dawn" },
+  { icon: "☠️", label: "中毒", color: "red", expiresAt: "dusk" },
+  { icon: "🍺", label: "醉酒", color: "yellow", expiresAt: "dusk" },
+  { icon: "💀", label: "死亡标记", color: "red", expiresAt: "permanent" },
+  { icon: "🎭", label: "假身份", color: "blue" },
+  { icon: "👁️", label: "是恶魔", color: "red" },
+  { icon: "🐺", label: "是爪牙", color: "red" },
+  { icon: "✅", label: "已用能力", color: "gray", expiresAt: "permanent" },
+  { icon: "❌", label: "能力失效", color: "red" },
+  { icon: "🔒", label: "不能投票", color: "yellow" },
+  { icon: "📝", label: "自定义", color: "blue" },
+];
 
 export interface Seat {
   id: number;

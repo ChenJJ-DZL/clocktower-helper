@@ -2,7 +2,7 @@
  * 魔鬼代言人（Devil's Advocate）新引擎技能实现
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

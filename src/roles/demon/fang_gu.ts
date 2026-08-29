@@ -1,4 +1,3 @@
-import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 

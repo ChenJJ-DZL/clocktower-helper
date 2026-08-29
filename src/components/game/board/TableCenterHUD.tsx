@@ -10,6 +10,8 @@ interface TableCenterHUDProps {
   timer: number;
   formatTimer: (seconds: number) => string;
   isTimerRunning: boolean;
+  winResult?: "good" | "evil" | null;
+  winReason?: string | null;
   onTimerStart?: () => void;
   onTimerPause?: () => void;
   onTimerReset?: () => void;
@@ -25,6 +27,8 @@ export function TableCenterHUD({
   timer,
   formatTimer,
   isTimerRunning,
+  winResult,
+  winReason: _winReason,
   onTimerStart,
   onTimerPause,
   onTimerReset,
@@ -62,6 +66,8 @@ export function TableCenterHUD({
       case "dawnReport":
         return "天亮结算";
       case "gameOver":
+        if (winResult?.toLowerCase() === "good") return "善良阵营胜利";
+        if (winResult?.toLowerCase() === "evil") return "邪恶阵营胜利";
         return "游戏结束";
       case "scriptSelection":
         return "选择剧本";
@@ -86,7 +92,13 @@ export function TableCenterHUD({
       case "dawnReport":
         return "text-yellow-400";
       case "gameOver":
-        return "text-red-400";
+        if (winResult?.toLowerCase() === "good") {
+          return "text-amber-300 drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]";
+        }
+        if (winResult?.toLowerCase() === "evil") {
+          return "text-rose-300 drop-shadow-[0_0_15px_rgba(244,63,94,0.8)]";
+        }
+        return "text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.5)]";
       case "scriptSelection":
         return "text-slate-300";
       default:
@@ -99,13 +111,19 @@ export function TableCenterHUD({
     return null;
   }
 
+  const isGameOver = gamePhase === "gameOver";
+
   return (
     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-      <div className="compass-ring px-8 py-6 rounded-3xl bg-slate-900/85 shadow-2xl backdrop-blur-xl border border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_40px_rgba(245,158,11,0.12)] flex flex-col items-center gap-3 pointer-events-auto">
-        {/* Phase Indicator */}
-        <div
-          className={`text-4xl font-black tracking-wide ${getPhaseColor()} drop-shadow-[0_0_12px_rgba(59,130,246,0.5)]`}
-        >
+      <div
+        className={`compass-ring px-8 py-6 rounded-3xl shadow-2xl backdrop-blur-xl flex flex-col items-center gap-3 pointer-events-auto transition-all duration-500 ${
+          isGameOver
+            ? "bg-red-950/95 border-2 border-red-500/80 shadow-[0_0_50px_rgba(220,38,38,0.5)]"
+            : "bg-slate-900/85 border border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_40px_rgba(245,158,11,0.12)]"
+        }`}
+      >
+        {/* Phase Indicator / Victory Title */}
+        <div className={`text-4xl font-black tracking-wide ${getPhaseColor()}`}>
           {getPhaseLabel()}
         </div>
 
@@ -134,7 +152,11 @@ export function TableCenterHUD({
               ↺ 重置
             </button>
             <div
-              className={`px-2 py-1 text-xs font-semibold rounded-md ${isTimerRunning ? "text-emerald-400 bg-emerald-900/30" : "text-amber-400 bg-amber-900/30"}`}
+              className={`px-2 py-1 text-xs font-semibold rounded-md ${
+                isTimerRunning
+                  ? "text-emerald-400 bg-emerald-900/30"
+                  : "text-amber-400 bg-amber-900/30"
+              }`}
             >
               {isTimerRunning ? "● 运行中" : "❚❚ 已暂停"}
             </div>

@@ -7,7 +7,7 @@
  * 醉酒/中毒时可能得知错误的角色信息。
  * 目标选择：1名玩家，不可选自己。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

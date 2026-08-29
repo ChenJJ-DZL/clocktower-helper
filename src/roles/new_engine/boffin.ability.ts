@@ -6,7 +6,7 @@
  * PASSIVE 触发：存档时配置，恶魔获得额外能力。
  * 由说书人通过 storytellerInput 配置恶魔获得的额外能力。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

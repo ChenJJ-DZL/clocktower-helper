@@ -315,7 +315,7 @@ export function useGameController() {
     setGameRecords: setGameRecordsProp,
   });
 
-  const { changeRole, swapRoles, reviveSeat } = seatManager;
+  const { changeRole, swapRoles, swapSeats, reviveSeat } = seatManager;
   const {
     saveHistory,
     handleStepBack: rawHandleStepBack,
@@ -360,7 +360,7 @@ export function useGameController() {
       village.setGameLogs((p) => [
         ...(p as any),
         {
-          day: nightCount,
+          day: gamePhase === "setup" ? 0 : nightCount,
           phase: gamePhase,
           message: msg,
           ts: Date.now(),
@@ -388,7 +388,7 @@ export function useGameController() {
         return [
           ...filtered,
           {
-            day: nightCount,
+            day: gamePhase === "setup" ? 0 : nightCount,
             phase: gamePhase,
             message: msg,
             ts: Date.now(),
@@ -745,17 +745,20 @@ export function useGameController() {
     votedThisRound,
     outsiderDiedToday,
     wakeQueueIds,
+    currentWakeIndex,
     setCurrentWakeIndex,
     addLog,
     setCurrentModal,
     wakeQueueIdsRef,
     seatsRef,
-    systemStepRoleIdsRef
+    systemStepRoleIdsRef,
+    saveHistory
   );
   const {
     activeNightStep: nightInfo,
     continueToNextAction: rawContinueToNextAction,
     wakeIndexRef,
+    hasShownIndexZeroRef,
     setActiveNightStep,
   } = nightSnapshot;
 
@@ -893,6 +896,8 @@ export function useGameController() {
     setShowVoteErrorToast,
     setWitchCursedId,
     setWitchActive,
+    setSystemStepRoleIds,
+    systemStepRoleIdsRef,
     addLog,
     addLogWithDeduplication,
     killPlayer,
@@ -1643,14 +1648,20 @@ export function useGameController() {
   // 安全网：夜间阶段nightInfo为空且队列未耗尽时，自动推进
   useEffect(() => {
     if (gamePhase !== "firstNight" && gamePhase !== "night") return;
-    if (currentWakeIndex >= (wakeQueueIds?.length || 0)) return;
+    const queueLen = wakeQueueIds?.length || 0;
+    if (currentWakeIndex >= queueLen) return;
+    if (wakeIndexRef.current >= queueLen) return;
     if (nightInfo === null && !currentModal) {
       // 🔧 修复：首夜 index 0（第一个角色，如小恶魔）尚未显示时，
       //   只刷新显示、不自动推进。否则安全网会在 updateSnapshot(0)
       //   的 state 生效前抢先执行，把 index 从 0 推到 1，导致小恶魔被跳过。
       if (currentWakeIndex === 0 && wakeIndexRef.current === 0) {
-        console.log("[GameController] 首夜 index 0 未显示，刷新显示第一个角色");
-        nightSnapshot.updateSnapshot(0, seats, gamePhase);
+        if (!hasShownIndexZeroRef.current) {
+          console.log(
+            "[GameController] 首夜 index 0 未显示，刷新显示第一个角色"
+          );
+          nightSnapshot.updateSnapshot(0, seats, gamePhase);
+        }
         return;
       }
       console.log("[GameController] 安全网：nightInfo为空，自动推进到下一步");
@@ -1664,6 +1675,7 @@ export function useGameController() {
     currentModal,
     continueToNextAction,
     wakeIndexRef,
+    hasShownIndexZeroRef,
     nightSnapshot,
     seats,
   ]);
@@ -1752,6 +1764,7 @@ export function useGameController() {
       nightLogic,
       changeRole,
       swapRoles,
+      swapSeats,
       handlePreStartNight,
       handleStartNight,
       startSubsequentNight,
@@ -1988,6 +2001,7 @@ export function useGameController() {
       commitSeats,
       submitVotes,
       swapRoles,
+      swapSeats,
       victorySnapshot,
       nightSnapshot,
     ]

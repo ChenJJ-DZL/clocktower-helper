@@ -6,7 +6,7 @@
  * 被动检测变种人是否公开暴露身份。若暴露，标记 mutantRevealed，
  * 由上层逻辑根据此标志判定是否允许处决。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

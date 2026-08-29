@@ -9,7 +9,7 @@
  * 标记 lleechHost 到 snapshot，供死亡结算系统检查绑定关系。
  * targetConfig: min:1, max:1 — 必须选择恰好一名玩家。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

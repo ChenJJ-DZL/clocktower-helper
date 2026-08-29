@@ -6,7 +6,7 @@
  * 外来者模板角色，没有任何特殊能力。
  * 作为游戏设置中外来者数量的占位符使用。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

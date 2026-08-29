@@ -6,7 +6,7 @@
  * 在第一夜获知全场所有玩家的角色配置信息。
  * allowSelf: false — 无需选择目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

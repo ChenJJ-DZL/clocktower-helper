@@ -12,79 +12,11 @@
  */
 import { describe, expect, it } from "vitest";
 
-// 由于 useHistoryController 依赖 React Context，这里直接测试核心逻辑：
-// 1. SNAPSHOT_KEYS 列表完整性
-// 2. restoreSnapshot 的 Set 转换
-// 3. 快照序列化/反序列化往返
-
-// 从源文件导入常量和函数（通过直接引用模块）
-// 注意：这些是纯函数测试，不依赖 React 渲染
-
-const SNAPSHOT_KEYS = [
-  "seats",
-  "gamePhase",
-  "nightCount",
-  "executedPlayerId",
-  "wakeQueueIds",
-  "currentWakeIndex",
-  "selectedActionTargets",
-  "gameLogs",
-  "currentHint",
-  "selectedScript",
-  "reminderTokens",
-  "todayExecutedId",
-  "nominationRecords",
-  "deadThisNight",
-  "nightActionQueue",
-];
-
-function restoreSnapshot(snapshot: Record<string, any>) {
-  const updates: Record<string, any> = {};
-  for (const key of SNAPSHOT_KEYS) {
-    if (snapshot[key] !== undefined) {
-      updates[key] = snapshot[key];
-    }
-  }
-  if (updates.nominationRecords) {
-    const nr = updates.nominationRecords;
-    updates.nominationRecords = {
-      nominators: new Set(Array.isArray(nr.nominators) ? nr.nominators : []),
-      nominees: new Set(Array.isArray(nr.nominees) ? nr.nominees : []),
-    };
-  }
-  return updates;
-}
-
-function createSnapshot(state: Record<string, any>): Record<string, any> {
-  return {
-    seats: state.seats ? JSON.parse(JSON.stringify(state.seats)) : state.seats,
-    gamePhase: state.gamePhase,
-    nightCount: state.nightCount,
-    executedPlayerId: state.executedPlayerId,
-    wakeQueueIds: [...(state.wakeQueueIds || [])],
-    currentWakeIndex: state.currentWakeIndex,
-    selectedActionTargets: [...(state.selectedActionTargets || [])],
-    gameLogs: [...(state.gameLogs || [])],
-    currentHint: state.currentHint
-      ? JSON.parse(JSON.stringify(state.currentHint))
-      : state.currentHint,
-    selectedScript: state.selectedScript,
-    reminderTokens: state.reminderTokens
-      ? JSON.parse(JSON.stringify(state.reminderTokens))
-      : state.reminderTokens,
-    todayExecutedId: state.todayExecutedId ?? null,
-    nominationRecords: state.nominationRecords
-      ? {
-          nominators: [...(state.nominationRecords.nominators || [])],
-          nominees: [...(state.nominationRecords.nominees || [])],
-        }
-      : state.nominationRecords,
-    deadThisNight: [...(state.deadThisNight || [])],
-    nightActionQueue: state.nightActionQueue
-      ? JSON.parse(JSON.stringify(state.nightActionQueue))
-      : state.nightActionQueue,
-  };
-}
+import {
+  createSnapshot,
+  restoreSnapshot,
+  SNAPSHOT_KEYS,
+} from "../../utils/undoSnapshot";
 
 describe("useHistoryController - 原子级 Undo/Redo", () => {
   describe("SNAPSHOT_KEYS 完整性", () => {
@@ -108,8 +40,9 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
       expect(SNAPSHOT_KEYS).toContain("nightActionQueue");
     });
 
-    it("共 15 个快照字段", () => {
-      expect(SNAPSHOT_KEYS).toHaveLength(15);
+    it("包含 initialSeats 与 seats", () => {
+      expect(SNAPSHOT_KEYS).toContain("initialSeats");
+      expect(SNAPSHOT_KEYS).toContain("seats");
     });
   });
 
@@ -364,6 +297,80 @@ describe("useHistoryController - 原子级 Undo/Redo", () => {
 
       const undone = tl.undo()!;
       expect(undone.reminderTokens).toEqual({});
+    });
+
+    it("支持单动作级撤销，并可一路连续撤销回退至落座空座位阶段", () => {
+      const tl = createTimeline();
+      // 0: 空座位落座阶段（基准）
+      tl.save({ seats: [{ id: 0, role: null }], gamePhase: "setup" });
+      // 1: 分配角色
+      tl.save({
+        seats: [{ id: 0, role: { id: "washerwoman" } }],
+        gamePhase: "setup",
+      });
+      // 2: 进入核对
+      tl.save({
+        seats: [{ id: 0, role: { id: "washerwoman" } }],
+        gamePhase: "check",
+      });
+      // 3: 进入首夜
+      tl.save({
+        seats: [{ id: 0, role: { id: "washerwoman" } }],
+        gamePhase: "firstNight",
+        currentWakeIndex: 0,
+      });
+      // 4: 首夜洗衣妇行动完成
+      tl.save({
+        seats: [{ id: 0, role: { id: "washerwoman" } }],
+        gamePhase: "firstNight",
+        currentWakeIndex: 1,
+      });
+      // 5: 进入白天第1天
+      tl.save({
+        seats: [{ id: 0, role: { id: "washerwoman" } }],
+        gamePhase: "day",
+        nightCount: 1,
+        todayExecutedId: null,
+      });
+      // 6: 白天猎手开枪
+      tl.save({
+        seats: [{ id: 0, role: { id: "washerwoman" } }],
+        gamePhase: "day",
+        nightCount: 1,
+        todayExecutedId: 0,
+      });
+
+      expect(tl.index()).toBe(6);
+
+      // 第1次撤销：撤销猎手开枪，回到第1个白天刚开始
+      const u1 = tl.undo();
+      expect(u1!.gamePhase).toBe("day");
+      expect(u1!.todayExecutedId).toBeNull();
+
+      // 第2次撤销：撤销进入白天，回到首夜洗衣妇行动完成
+      const u2 = tl.undo();
+      expect(u2!.gamePhase).toBe("firstNight");
+      expect(u2!.currentWakeIndex).toBe(1);
+
+      // 第3次撤销：撤销洗衣妇行动，回到首夜初始
+      const u3 = tl.undo();
+      expect(u3!.gamePhase).toBe("firstNight");
+      expect(u3!.currentWakeIndex).toBe(0);
+
+      // 第4次撤销：回到核对阶段
+      const u4 = tl.undo();
+      expect(u4!.gamePhase).toBe("check");
+
+      // 第5次撤销：回到设置角色后的落座阶段
+      const u5 = tl.undo();
+      expect(u5!.gamePhase).toBe("setup");
+      expect(u5!.seats[0].role).not.toBeNull();
+
+      // 第6次撤销：回退至最初的空座位落座阶段！
+      const u6 = tl.undo();
+      expect(u6!.gamePhase).toBe("setup");
+      expect(u6!.seats[0].role).toBeNull();
+      expect(tl.index()).toBe(0);
     });
   });
 });

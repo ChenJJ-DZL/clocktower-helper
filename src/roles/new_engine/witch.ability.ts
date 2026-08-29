@@ -7,7 +7,7 @@
  * 每夜诅咒一名玩家，被诅咒者若发起提名则死亡。
  * targetConfig: min=1, max=1 需要玩家选择目标
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

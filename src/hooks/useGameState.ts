@@ -1389,6 +1389,8 @@ export function useGameState() {
       setWinResult,
       setWitchActive,
       setWitchCursedId,
+      historyIndex,
+      reminderTokens,
     ]
   );
 }

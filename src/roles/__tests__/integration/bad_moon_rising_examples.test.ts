@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { roles, scripts } from "../../../../app/data";
+import { scripts } from "../../../../app/data";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
 import {
@@ -11,7 +11,6 @@ import {
   exorcistAbility,
   foolAbility,
   gamblerAbility,
-  getAbilityForRole,
   godfatherAbility,
   goonAbility,
   gossipAbility,

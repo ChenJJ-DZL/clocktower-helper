@@ -5,7 +5,7 @@
  *
  * 每夜天文学家观测夜空，获得关于月相或星象的预示信息，辅助判断局势。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

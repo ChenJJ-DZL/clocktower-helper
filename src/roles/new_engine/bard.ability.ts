@@ -6,7 +6,7 @@
  * 被动触发：检测是否有爪牙被处决。
  * 如果爪牙被处决，标记 bardActivated，对所有非吟游诗人/非旅行者的存活玩家施加醉酒效果（直到明天黄昏）。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

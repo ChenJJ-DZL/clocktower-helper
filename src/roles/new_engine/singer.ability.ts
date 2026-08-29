@@ -1,5 +1,5 @@
 /** 歌手（Singer）新引擎技能实现\n * 【角色能力】"你的声音可以影响他人。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

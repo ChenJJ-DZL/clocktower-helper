@@ -6,7 +6,7 @@
  * 首夜全局开关：说书人执行爪牙角色替换。
  * min:0, max:0 — 不选目标玩家，是全局开关。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,

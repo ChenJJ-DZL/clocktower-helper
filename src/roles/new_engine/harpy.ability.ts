@@ -5,7 +5,7 @@
  *
  * 每夜选择两名玩家，若次日二者互相提名则处决无效
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

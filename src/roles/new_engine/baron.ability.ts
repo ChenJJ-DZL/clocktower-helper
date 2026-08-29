@@ -50,7 +50,7 @@
  * ============================================================
  */
 
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -147,7 +147,7 @@ function calculateAdjustedCounts(config: SetupConfig): {
  */
 function buildReplacementSummary(
   config: SetupConfig,
-  adjusted: { townsfolkCount: number; outsiderCount: number },
+  _adjusted: { townsfolkCount: number; outsiderCount: number },
   storytellerInput?: any
 ): { removedTownsfolk: string[]; addedOutsiders: string[] } {
   const removedTownsfolk =

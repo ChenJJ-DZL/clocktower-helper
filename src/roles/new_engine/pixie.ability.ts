@@ -15,7 +15,7 @@
  * "疯狂证明" 通过 GameConsole 上的「🎭 小精灵疯狂状态」切换控件由说书人标记。
  * 若小精灵醉酒/中毒（abilityEffective=false）→ 告知一个错误的镇民角色。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

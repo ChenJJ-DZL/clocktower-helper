@@ -184,7 +184,7 @@ export function isRealUnfinishedGame(snapshot: GameSnapshot | null): boolean {
   if (snapshot.winResult) return false;
   // 必须有座位且已分配角色
   if (!snapshot.seats || snapshot.seats.length === 0) return false;
-  const hasAssignedRoles = snapshot.seats.some((s: any) => s.role && s.role.id);
+  const hasAssignedRoles = snapshot.seats.some((s: any) => s.role?.id);
   if (!hasAssignedRoles) return false;
   return true;
 }

@@ -5,7 +5,7 @@
  *
  * 当恶作剧杰克被处决时，随机选择一名存活玩家与之交换角色。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

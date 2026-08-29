@@ -19,7 +19,7 @@ import {
   consumeLimitedAbility,
   registerLimitedAbilityDefinition,
 } from "../../utils/LimitedAbilityManager";
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

@@ -11,7 +11,7 @@
  * 5. 精神病患者 (Psychopath)：公开击杀
  */
 
-import { beforeEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { canUseLimitedAbility } from "../../../utils/LimitedAbilityManager";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";

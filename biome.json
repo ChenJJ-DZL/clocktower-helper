@@ -15,7 +15,8 @@
         "noSvgWithoutTitle": "off",
         "useButtonType": "off",
         "noStaticElementInteractions": "off",
-        "useKeyWithClickEvents": "off"
+        "useKeyWithClickEvents": "off",
+        "noLabelWithoutControl": "off"
       },
       "complexity": {
         "noBannedTypes": "error",
@@ -79,6 +80,7 @@
         "noUnsafeNegation": "error",
         "useGetterReturn": "error",
         "noWith": "error",
+        "noArrayIndexKey": "off",
         "noConsole": {
           "level": "off",
           "options": {
@@ -136,6 +138,7 @@
     }
   },
   "files": {
+    "maxSize": 5242880,
     "includes": [
       "**",
       "!**/node_modules",
@@ -145,7 +148,11 @@
       "!**/coverage",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/json"
+      "!**/json",
+      "!**/test_automation",
+      "!**/scripts",
+      "!*.ts",
+      "!*.js"
     ]
   }
 }

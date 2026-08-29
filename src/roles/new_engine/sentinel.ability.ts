@@ -4,7 +4,7 @@
  * 【角色能力】开局发牌允许外来者数量修正 ±1。
  * 被动触发，说书人配置阶段决定增减外来者。
  */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

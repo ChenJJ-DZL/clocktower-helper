@@ -6,6 +6,7 @@ import {
   isPlayerEvil,
   isPlayerMinion,
 } from "../../../../app/gameLogic";
+import { generateDynamicNightQueue } from "../../../utils/dynamicQueueGenerator";
 import { getRegistration } from "../../../utils/gameRules";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
@@ -461,6 +462,51 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       expect(finalSeats[2].charadeRole?.id).toBe("monk");
       expect(finalSeats[3].role?.id).toBe("marionette");
       expect(finalSeats[3].charadeRole?.id).toBe("slayer");
+    });
+
+    it("第2夜（非首夜）即使场上有7个军团，全场也仅生成1个唯一的军团夜杀节点（所有军团共享1次行动）", () => {
+      const seats = [
+        makeSeat(0, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(1, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(2, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(3, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(4, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(5, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(6, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(7, { id: "chef", name: "厨师", type: "townsfolk" }),
+        makeSeat(8, { id: "empath", name: "共情者", type: "townsfolk" }),
+        makeSeat(9, { id: "drunk", name: "酒鬼", type: "outsider" }),
+      ];
+
+      const orderEntries = [
+        {
+          roleId: "legion",
+          roleName: "军团",
+          firstNightPriority: 0,
+          otherNightPriority: 44,
+          firstNightOnly: false,
+          wakeMessage: "军团夜杀",
+          abilityId: "legion_night_kill",
+        },
+        {
+          roleId: "empath",
+          roleName: "共情者",
+          firstNightPriority: 5,
+          otherNightPriority: 51,
+          firstNightOnly: false,
+          wakeMessage: "共情者",
+          abilityId: "empath",
+        },
+      ] as any;
+
+      const queue = generateDynamicNightQueue(
+        orderEntries,
+        { seats, nightCount: 2, gamePhase: "night" } as any,
+        { isFirstNight: false }
+      );
+
+      const legionNodes = queue.filter((q) => q.roleId === "legion");
+      expect(legionNodes).toHaveLength(1);
     });
   });
 });

@@ -1,5 +1,5 @@
 /** 革命者（Revolutionary）新引擎技能实现\n * 【角色能力】"被处决时，所有投票处决你的玩家死亡。" */
-import type { MiddlewareContext } from "../../utils/middlewarePipeline";
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,

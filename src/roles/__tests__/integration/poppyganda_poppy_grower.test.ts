@@ -83,4 +83,38 @@ describe("罂粟种植者：迷雾抑制邪恶互认步骤", () => {
     expect(queue.find((q) => q.roleId === "minion_info")).toBeDefined();
     expect(queue.find((q) => q.roleId === "demon_info")).toBeDefined();
   });
+
+  it("罂粟种植者是纯被动角色：首夜和非首夜均绝不入队唤醒", () => {
+    const s = snap([
+      seatAny(0, "poppy_grower", "townsfolk"),
+      seatAny(1, "imp", "demon"),
+      seatAny(2, "washerwoman", "townsfolk"),
+    ]);
+
+    const fullOrder = [
+      ...ORDER,
+      {
+        roleId: "washerwoman",
+        firstNightPriority: 3,
+        otherNightPriority: 0,
+        firstNightOnly: true,
+        wakeMessage: "washerwoman",
+        abilityId: "washerwoman",
+      },
+    ] as any;
+
+    const firstNightQueue = generateDynamicNightQueue(fullOrder, s, {
+      isFirstNight: true,
+    });
+    expect(
+      firstNightQueue.find((q) => q.roleId === "poppy_grower")
+    ).toBeUndefined();
+
+    const otherNightQueue = generateDynamicNightQueue(fullOrder, s, {
+      isFirstNight: false,
+    });
+    expect(
+      otherNightQueue.find((q) => q.roleId === "poppy_grower")
+    ).toBeUndefined();
+  });
 });
