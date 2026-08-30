@@ -454,19 +454,31 @@ export function useNightSnapshot(
   );
 
   // 监听外部 currentWakeIndex 变化（包括 Undo/Redo 撤销与重做时状态精准回退与前进）
+  const lastSnapshotIdxRef = useRef<number | null>(null);
+  const lastSnapshotPhaseRef = useRef<string | null>(null);
   useEffect(() => {
     wakeIndexRef.current = currentWakeIndex;
+    const isNight = gamePhase === "firstNight" || gamePhase === "night";
     if (
-      (gamePhase === "firstNight" || gamePhase === "night") &&
+      isNight &&
       wakeQueueIds.length > 0 &&
       currentWakeIndex >= 0 &&
       currentWakeIndex < wakeQueueIds.length
     ) {
-      updateSnapshot(
-        currentWakeIndex,
-        externalLatestSeatsRef?.current ?? seats,
-        gamePhase
-      );
+      const idxChanged = lastSnapshotIdxRef.current !== currentWakeIndex;
+      const phaseChanged = lastSnapshotPhaseRef.current !== gamePhase;
+      if (idxChanged || phaseChanged) {
+        lastSnapshotIdxRef.current = currentWakeIndex;
+        lastSnapshotPhaseRef.current = gamePhase;
+        updateSnapshot(
+          currentWakeIndex,
+          externalLatestSeatsRef?.current ?? seats,
+          gamePhase
+        );
+      }
+    } else {
+      lastSnapshotIdxRef.current = null;
+      lastSnapshotPhaseRef.current = null;
     }
   }, [
     currentWakeIndex,

@@ -262,6 +262,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         nightActionQueue: action.queue,
         currentQueueIndex: 0, // 重置索引
+        currentWakeIndex: 0,
         selectedActionTargets: [], // 清空选中目标
       };
 
@@ -294,6 +295,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         currentQueueIndex: nextIndex,
+        currentWakeIndex: nextIndex,
         selectedActionTargets: [],
         inspectionResult: null,
       };
@@ -304,13 +306,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         currentQueueIndex: prevIndex,
+        currentWakeIndex: prevIndex,
         selectedActionTargets: [],
         inspectionResult: null,
       };
     }
 
     case "SET_CURRENT_QUEUE_INDEX":
-      return { ...state, currentQueueIndex: action.index };
+      return {
+        ...state,
+        currentQueueIndex: action.index,
+        currentWakeIndex: action.index,
+      };
 
     case "SET_SELECTED_TARGETS":
       return { ...state, selectedActionTargets: action.targets };
@@ -378,6 +385,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         nightActionQueue: action.queue,
         currentQueueIndex: 0,
+        currentWakeIndex: 0,
         selectedActionTargets: [],
         inspectionResult: null,
         gamePhase: action.isFirst ? "firstNight" : "night",
@@ -425,6 +433,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         nightActionQueue: filteredQueue,
         currentQueueIndex: adjustedIndex,
+        currentWakeIndex: adjustedIndex,
       };
     }
 
