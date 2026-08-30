@@ -131,8 +131,31 @@ export function generateDynamicNightQueue(
       if (!isFirstNight && !poppyGrowerDiedAndTriggersEvil) {
         return false;
       }
+      // 军团合并专项：如果场上恶魔全为军团且包含军团互认步骤，则所有军团统一在军团互认步骤一同唤醒并获取 3 个不在场伪装，不再生成单独的 demon_info 步骤
+      const hasLegionInPlay = snapshot.seats.some(
+        (s) => s.role?.id === "legion" && (includeDead || !s.isDead)
+      );
+      const hasLegionMutualInOrder = fullNightOrder.some(
+        (e) => e.roleId === LEGION_MUTUAL_RECOGNITION_ID
+      );
+      const hasNonLegionDemon = snapshot.seats.some(
+        (s) =>
+          s.role?.type === "demon" &&
+          s.role?.id !== "legion" &&
+          (includeDead || !s.isDead)
+      );
+
+      if (hasLegionInPlay && hasLegionMutualInOrder && !hasNonLegionDemon) {
+        return false;
+      }
+
       const seat = snapshot.seats.find(
-        (s) => s.role?.type === "demon" && (includeDead || !s.isDead)
+        (s) =>
+          s.role?.type === "demon" &&
+          (!hasLegionInPlay || hasNonLegionDemon
+            ? s.role?.id !== "legion"
+            : true) &&
+          (includeDead || !s.isDead)
       );
       if (!seat) return false;
       return true;
@@ -265,10 +288,30 @@ export function generateDynamicNightQueue(
   // 4. 军团互认与军团夜间统一唤醒节点打标及文案生成
   const flagLegion = queue.map((node) => {
     if (node.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
+      const aliveLegions = snapshot.seats.filter(
+        (s) =>
+          (getEffectiveRoleId(s) === "legion" || s.role?.id === "legion") &&
+          (includeDead || !s.isDead)
+      );
+      const seatListStr =
+        aliveLegions.length > 0
+          ? aliveLegions
+              .map(
+                (s) =>
+                  `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+              )
+              .join("、")
+          : "无";
       return {
         ...node,
         roleName: "军团互认",
-        meta: { ...node.meta, isLegionMutualRecognition: true },
+        wakeMessage: `请同时唤醒所有的军团玩家（座位号：${seatListStr}）`,
+        meta: {
+          ...node.meta,
+          isLegionMutualRecognition: true,
+          isLegionUnified: true,
+          legionSeatIds: aliveLegions.map((s) => s.id),
+        },
       };
     }
     if (node.roleId === "legion") {

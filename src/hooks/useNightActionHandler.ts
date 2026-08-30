@@ -498,19 +498,21 @@ export async function executeViaNewEngine(
       const aliveOnly = targetConfig?.aliveOnly ?? false;
 
       if (isSystemStep) {
-        const displayName = `${seatPrefix}${
-          roleId === "minion_info"
-            ? "爪牙互认"
-            : roleId === "demon_info"
-              ? "恶魔互认"
-              : "军团互认"
-        }`;
+        const isLegion =
+          roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+          (roleId === "demon_info" &&
+            context.nightInfo?.seat?.role?.id === "legion");
+        const displayName = isLegion
+          ? "军团互认"
+          : `${seatPrefix}${
+              roleId === "minion_info" ? "爪牙互认" : "恶魔互认"
+            }`;
         const actionDesc =
           roleId === "minion_info"
             ? "恶魔爪牙互认与信息告知"
-            : roleId === "demon_info"
-              ? "恶魔爪牙互认与伪装角色告知"
-              : "军团首夜全员互认";
+            : isLegion
+              ? "军团首夜全员统一互认与伪装角色告知"
+              : "恶魔爪牙互认与伪装角色告知";
         const guideInfo =
           context.nightInfo?.guide ||
           context.nightInfo?.guideText ||
@@ -1138,19 +1140,22 @@ export function useNightActionHandler() {
       if (isSystemStep) {
         const actorId = nightInfo.seat?.id ?? -1;
         const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
+        const isLegion =
+          roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+          (roleId === "demon_info" && nightInfo.seat?.role?.id === "legion");
         const baseName =
           roleId === "minion_info"
             ? "爪牙互认"
-            : roleId === "demon_info"
-              ? "恶魔互认"
-              : "军团互认";
-        const displayName = `${seatPrefix}${baseName}`;
+            : isLegion
+              ? "军团互认"
+              : "恶魔互认";
+        const displayName = isLegion ? "军团互认" : `${seatPrefix}${baseName}`;
         const actionDesc =
           roleId === "minion_info"
             ? "恶魔爪牙互认与信息告知"
-            : roleId === "demon_info"
-              ? "恶魔爪牙互认与伪装角色告知"
-              : "军团首夜全员互认";
+            : isLegion
+              ? "军团首夜全员统一互认与伪装角色告知"
+              : "恶魔爪牙互认与伪装角色告知";
         const guideInfo =
           nightInfo.guide || nightInfo.guideText || `${displayName}信息已生成`;
 

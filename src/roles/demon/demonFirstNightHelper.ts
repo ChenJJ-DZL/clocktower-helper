@@ -84,11 +84,27 @@ export const LEGION_MUTUAL_RECOGNITION_ID = "legion_mutual_recognition";
 
 /**
  * 军团首夜互认对话：所有军团同时被唤醒，
- * 说书人指向所有非军团玩家让军团明白谁是谁，不展示伪装。
+ * 说书人指向所有非军团玩家让军团明白谁是谁，并向全员公示 3 个不在场镇民伪装。
  */
-export function buildLegionMutualRecognitionDialog(): NightDialog {
-  const wake =
-    "😈 唤醒所有军团。指向所有非军团玩家，让军团明白彼此身份；本步骤不展示伪装。";
+export function buildLegionMutualRecognitionDialog(
+  context?: NightActionContext
+): NightDialog {
+  const seats = context?.seats ?? [];
+  const aliveLegions = seats.filter(
+    (s) =>
+      (s.role?.id === "legion" || (s as any).charadeRole?.id === "legion") &&
+      !s.isDead
+  );
+  const legionSeatList =
+    aliveLegions.length > 0
+      ? aliveLegions
+          .map(
+            (s) => `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+          )
+          .join("、")
+      : "无";
+
+  const wake = `请同时唤醒所有的军团玩家（座位号：${legionSeatList}）\n所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家，并展示 3 个不在场镇民伪装）`;
   return {
     wake,
     instruction: wake,

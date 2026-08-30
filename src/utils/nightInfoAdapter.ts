@@ -364,7 +364,21 @@ function generateSystemInfoViaAdapter(
       : "";
 
   if (isLegionMutualStep) {
-    guide = `所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家）${legionBluffText}`;
+    const aliveLegions = seats.filter(
+      (s) =>
+        (s.role?.id === "legion" || (s as any).charadeRole?.id === "legion") &&
+        !s.isDead
+    );
+    const legionSeatList =
+      aliveLegions.length > 0
+        ? aliveLegions
+            .map(
+              (s) => `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+            )
+            .join("、")
+        : "无";
+
+    guide = `请同时唤醒所有的军团玩家（座位号：${legionSeatList}）\n所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家）${legionBluffText}`;
   } else if (isMinionStep) {
     if (isPoppyGrowerAlive) {
       guide = "🌺 罂粟种植者在场，爪牙与恶魔互不相识";
@@ -373,16 +387,24 @@ function generateSystemInfoViaAdapter(
     }
   } else if (selfSeat.role?.id === "legion") {
     // 军团玩家专属夜晚信息：展示所有军团同伴 + 共享 3 不在场镇民伪装
-    const otherLegions = seats.filter(
-      (s) => s.role?.id === "legion" && s.id !== currentSeatId && !s.isDead
+    const allLegions = seats.filter(
+      (s) =>
+        (s.role?.id === "legion" || (s as any).charadeRole?.id === "legion") &&
+        !s.isDead
     );
-    const otherLegionDesc =
-      otherLegions.map((s) => `${s.id + 1}号`).join("、") || "无";
+    const legionSeatList =
+      allLegions.length > 0
+        ? allLegions
+            .map(
+              (s) => `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+            )
+            .join("、")
+        : "无";
 
     if (isPoppyGrowerAlive) {
       guide = `🌺 罂粟种植者在场，军团同伴互不相识${legionBluffText}`;
     } else {
-      guide = `军团同伴是: ${otherLegionDesc}${legionBluffText}`;
+      guide = `请同时唤醒所有的军团玩家（座位号：${legionSeatList}）\n所有军团玩家同时睁眼互相确认${legionBluffText}`;
     }
   } else {
     // 常规恶魔信息

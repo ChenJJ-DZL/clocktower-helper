@@ -223,7 +223,7 @@ describe("军团 + 罂粟种植者互认 — 罂粟存活时 demon_info 仍进�
 });
 
 describe("军团首夜互认 — legion_mutual_recognition 系统步骤", () => {
-  it("首夜且军团在场时，生成唯一的互认节点并打标（排在 demon_info 前）", () => {
+  it("首夜且军团在场时，军团互认与恶魔伪装合并为唯一的统一互认节点，不再生成独立的 demon_info 步骤", () => {
     const snap = makeSnapshot(3, 4);
     const queue = generateDynamicNightQueue(
       [
@@ -254,12 +254,13 @@ describe("军团首夜互认 — legion_mutual_recognition 系统步骤", () => 
     );
     expect(mutualNodes).toHaveLength(1);
     expect(mutualNodes[0].meta?.isLegionMutualRecognition).toBe(true);
-    expect(mutualNodes[0].seatId).toBe(4); // 第一个军团座位
-    const firstDemonIdx = queue.findIndex((q) => q.roleId === "demon_info");
-    const mutualIdx = queue.findIndex(
-      (q) => q.roleId === "legion_mutual_recognition"
+    expect(mutualNodes[0].meta?.isLegionUnified).toBe(true);
+    expect(mutualNodes[0].wakeMessage).toContain(
+      "请同时唤醒所有的军团玩家（座位号：5号、6号、7号）"
     );
-    expect(mutualIdx).toBeLessThan(firstDemonIdx);
+    // 独立的 demon_info 节点已被合并消除
+    const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
+    expect(demonInfoNodes).toHaveLength(0);
   });
 
   it("非首夜 / 首夜已完成 / 无军团时互认步骤不进入队列", () => {
