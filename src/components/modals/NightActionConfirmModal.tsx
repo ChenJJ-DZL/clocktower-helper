@@ -213,7 +213,7 @@ export function NightActionConfirmModal({
                     type="button"
                     disabled={isDisabled}
                     onClick={() => handleToggleTarget(seat.id)}
-                    className={`py-2.5 sm:py-3.5 px-1.5 rounded-xl text-center border font-bold transition-all flex flex-col items-center justify-center select-none cursor-pointer active:scale-95 shadow-sm ${
+                    className={`h-12 sm:h-14 md:h-16 w-full px-1.5 rounded-xl text-center border font-bold transition-all flex flex-row items-center justify-center select-none cursor-pointer active:scale-95 shadow-sm ${
                       isSelected
                         ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/40 ring-2 ring-blue-400 scale-[1.02]"
                         : isDisabled
@@ -223,19 +223,19 @@ export function NightActionConfirmModal({
                             : "bg-slate-800 border-slate-700 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
                     }`}
                   >
-                    <span className="text-base sm:text-lg md:text-xl font-black tracking-wide">
-                      {seat.id + 1}号
+                    <span className="text-sm sm:text-base md:text-lg font-black tracking-tight whitespace-nowrap inline-flex items-center justify-center">
+                      <span>{seat.id + 1}号</span>
+                      {isSelf && (
+                        <span className="text-[11px] sm:text-xs text-slate-300 font-normal">
+                          (自己)
+                        </span>
+                      )}
+                      {seat.isDead && (
+                        <span className="text-[11px] sm:text-xs text-red-400 font-normal">
+                          (已死亡)
+                        </span>
+                      )}
                     </span>
-                    {seat.isDead && (
-                      <span className="text-[10px] sm:text-xs text-red-400 font-medium mt-0.5">
-                        (已死亡)
-                      </span>
-                    )}
-                    {isSelf && (
-                      <span className="text-[10px] sm:text-xs text-slate-400 font-medium mt-0.5">
-                        (自己)
-                      </span>
-                    )}
                   </button>
                 );
               })}
