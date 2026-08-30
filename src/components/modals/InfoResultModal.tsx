@@ -48,16 +48,16 @@ export function InfoResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.85} className="p-2 sm:p-6 text-white">
-        <div className="text-center my-auto space-y-4 max-w-5xl mx-auto px-4">
+      <AutoFitContent targetRatio={0.9} className="p-2 text-white">
+        <div className="text-center my-auto space-y-4 w-max max-w-none px-2 py-2">
           {prefix && (
-            <div className="text-xl sm:text-2xl md:text-3xl text-amber-200/90 font-bold leading-relaxed whitespace-nowrap px-2">
+            <div className="text-2xl sm:text-3xl md:text-4xl text-amber-200/90 font-bold leading-relaxed whitespace-nowrap px-2">
               {prefix}
             </div>
           )}
 
           {isMultiLine ? (
-            <div className="flex justify-center my-4 px-2 w-full">
+            <div className="flex justify-center my-3 w-max max-w-none">
               <div className="inline-block text-left font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-xl space-y-3 whitespace-nowrap text-2xl sm:text-3xl md:text-4xl">
                 {resultLines.map((line, idx) => (
                   <div key={idx} className="whitespace-nowrap">

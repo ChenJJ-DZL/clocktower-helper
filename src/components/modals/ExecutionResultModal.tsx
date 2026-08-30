@@ -38,10 +38,10 @@ export function ExecutionResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.85} className="p-4">
-        <div className="flex flex-col items-center justify-center text-center p-4 gap-6">
+      <AutoFitContent targetRatio={0.9} className="p-2">
+        <div className="flex flex-col items-center justify-center text-center p-2 gap-6 w-max max-w-none">
           <div className="text-7xl sm:text-8xl">{isNoDeath ? "🕊️" : "⚖️"}</div>
-          <div className="space-y-4 max-w-4xl">
+          <div className="space-y-4 w-max max-w-none">
             <div className="text-xl sm:text-2xl text-slate-300 font-bold whitespace-nowrap">
               今日处决最终判定结果：
             </div>

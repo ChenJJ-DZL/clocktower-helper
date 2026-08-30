@@ -17,10 +17,10 @@ const useIsomorphicLayoutEffect =
 
 export function AutoFitContent({
   children,
-  targetRatio = 0.85,
+  targetRatio = 0.88,
   className = "",
   minScale = 0.5,
-  maxScale = 3.5,
+  maxScale = 5.0,
 }: AutoFitContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -39,8 +39,8 @@ export function AutoFitContent({
       // 临时重置变换以准确测量内容原始宽高
       const originalTransform = content.style.transform;
       content.style.transform = "none";
-      const contentW = content.offsetWidth || content.scrollWidth;
-      const contentH = content.offsetHeight || content.scrollHeight;
+      const contentW = content.scrollWidth || content.offsetWidth;
+      const contentH = content.scrollHeight || content.offsetHeight;
       content.style.transform = originalTransform;
 
       if (contentW === 0 || contentH === 0) return;
@@ -61,8 +61,9 @@ export function AutoFitContent({
 
     updateScale();
 
-    // 双重确保：DOM 渲染后延迟 50ms 再次矫正
-    const timer = setTimeout(updateScale, 50);
+    // 多次确保：DOM 渲染后延迟 30ms、100ms 再次矫正
+    const timer1 = setTimeout(updateScale, 30);
+    const timer2 = setTimeout(updateScale, 100);
 
     let ro: ResizeObserver | null = null;
     if (typeof ResizeObserver !== "undefined") {
@@ -76,7 +77,8 @@ export function AutoFitContent({
     window.addEventListener("resize", updateScale);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       ro?.disconnect();
       window.removeEventListener("resize", updateScale);
     };
@@ -98,9 +100,11 @@ export function AutoFitContent({
           transform: `scale(${scale})`,
           transformOrigin: "center center",
           willChange: "transform",
-          transition: "transform 0.15s ease-out",
+          transition: "transform 0.1s ease-out",
+          width: "max-content",
+          maxWidth: "max-content",
         }}
-        className="inline-flex flex-col items-center justify-center text-center max-w-max shrink-0"
+        className="inline-flex flex-col items-center justify-center text-center shrink-0"
       >
         {children}
       </div>
