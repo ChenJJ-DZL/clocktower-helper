@@ -545,13 +545,13 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       const legionNodes = queue.filter((q) => q.roleId === "legion");
       expect(legionNodes).toHaveLength(1);
       expect(legionNodes[0].wakeMessage).toBe(
-        "请同时唤醒所有的军团玩家（座位号：1号（张三）、2号（李四）、3号（王五）、4号（赵六）、5号（钱七）、6号（孙八）、7号（周九））"
+        "座位号：1号、2号、3号、4号、5号、6号、7号。说书人同时唤醒所有的军团玩家"
       );
       expect(legionNodes[0].meta?.isLegionUnified).toBe(true);
       expect(legionNodes[0].meta?.legionSeatIds).toEqual([0, 1, 2, 3, 4, 5, 6]);
     });
 
-    it("军团死亡部分玩家时，夜间唤醒提示仅列出存活军团的座位号与玩家名", () => {
+    it("军团死亡部分玩家时，夜间唤醒提示仅列出存活军团的座位号", () => {
       const seats = [
         makeSeat(
           0,
@@ -597,7 +597,7 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
       const legionNodes = queue.filter((q) => q.roleId === "legion");
       expect(legionNodes).toHaveLength(1);
       expect(legionNodes[0].wakeMessage).toBe(
-        "请同时唤醒所有的军团玩家（座位号：2号（李四）、4号（赵六））"
+        "座位号：2号、4号。说书人同时唤醒所有的军团玩家"
       );
       expect(legionNodes[0].meta?.legionSeatIds).toEqual([1, 3]);
     });

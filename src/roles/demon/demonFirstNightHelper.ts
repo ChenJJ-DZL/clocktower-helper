@@ -97,14 +97,10 @@ export function buildLegionMutualRecognitionDialog(
   );
   const legionSeatList =
     aliveLegions.length > 0
-      ? aliveLegions
-          .map(
-            (s) => `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
-          )
-          .join("、")
+      ? aliveLegions.map((s) => `${s.id + 1}号`).join("、")
       : "无";
 
-  const wake = `请同时唤醒所有的军团玩家（座位号：${legionSeatList}）\n所有军团玩家同时睁眼互相确认\n（说书人指向所有非军团玩家，并展示 3 个不在场镇民伪装）`;
+  const wake = `座位号：${legionSeatList}\n说书人同时唤醒所有的军团玩家，军团玩家互认\n共享不在场镇民伪装：……`;
   return {
     wake,
     instruction: wake,

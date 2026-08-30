@@ -1152,18 +1152,14 @@ export function NightActionPage({
                     <span>军团统一唤醒与公式信息下发</span>
                   </div>
                   <div className="text-red-100 bg-black/40 p-2.5 rounded-lg border border-red-500/30 font-bold">
-                    请同时唤醒所有的军团玩家（座位号：
+                    座位号：
                     {seats
                       .filter((s) => s.role?.id === "legion" && !s.isDead)
-                      .map(
-                        (s) =>
-                          `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
-                      )
+                      .map((s) => `${s.id + 1}号`)
                       .join("、") || "无"}
-                    ）
                   </div>
                   <div className="text-xs text-red-300/90">
-                    • 由说书人决定 1
+                    • 说书人同时唤醒所有的军团玩家，由说书人决定 1
                     名受害者或统一进行手势/眼神示意（支持选择任意存活玩家或不选目标空刀）。
                   </div>
                 </div>

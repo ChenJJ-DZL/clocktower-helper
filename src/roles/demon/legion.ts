@@ -107,18 +107,13 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:72-0!canonical and time
       );
       const seatList =
         aliveLegions.length > 0
-          ? aliveLegions
-              .map(
-                (s) =>
-                  `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
-              )
-              .join("、")
+          ? aliveLegions.map((s) => `${s.id + 1}号`).join("、")
           : "无";
 
-      const wake = `请同时唤醒所有的军团玩家（座位号：${seatList}）`;
+      const wake = `座位号：${seatList}\n说书人同时唤醒所有的军团玩家，由说书人决定 1 名受害者或统一进行手势/眼神示意。`;
       return {
         wake,
-        instruction: `${wake}，由说书人决定 1 名受害者或统一进行手势/眼神示意。`,
+        instruction: wake,
         close: "",
       };
     },

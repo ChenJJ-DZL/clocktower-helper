@@ -295,17 +295,12 @@ export function generateDynamicNightQueue(
       );
       const seatListStr =
         aliveLegions.length > 0
-          ? aliveLegions
-              .map(
-                (s) =>
-                  `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
-              )
-              .join("、")
+          ? aliveLegions.map((s) => `${s.id + 1}号`).join("、")
           : "无";
       return {
         ...node,
         roleName: "军团互认",
-        wakeMessage: `请同时唤醒所有的军团玩家（座位号：${seatListStr}）`,
+        wakeMessage: `座位号：${seatListStr}。说书人同时唤醒所有的军团玩家，军团玩家互认`,
         meta: {
           ...node.meta,
           isLegionMutualRecognition: true,
@@ -320,17 +315,12 @@ export function generateDynamicNightQueue(
       );
       const seatListStr =
         aliveLegions.length > 0
-          ? aliveLegions
-              .map(
-                (s) =>
-                  `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
-              )
-              .join("、")
+          ? aliveLegions.map((s) => `${s.id + 1}号`).join("、")
           : "无";
       return {
         ...node,
         roleName: "军团",
-        wakeMessage: `请同时唤醒所有的军团玩家（座位号：${seatListStr}）`,
+        wakeMessage: `座位号：${seatListStr}。说书人同时唤醒所有的军团玩家`,
         meta: {
           ...node.meta,
           isLegionUnified: true,

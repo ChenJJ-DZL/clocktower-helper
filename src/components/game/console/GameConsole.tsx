@@ -401,19 +401,15 @@ export const GameConsole = React.memo(function GameConsole({
                 </span>
               </div>
               <div className="text-sm font-bold text-red-100 bg-black/40 p-3 rounded-xl border border-red-500/30">
-                请同时唤醒所有的军团玩家（座位号：
+                座位号：
                 {seats
                   .filter((s) => s.role?.id === "legion" && !s.isDead)
-                  .map(
-                    (s) =>
-                      `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
-                  )
+                  .map((s) => `${s.id + 1}号`)
                   .join("、") || "无"}
-                ）
               </div>
               <div className="text-xs text-red-200/90 leading-relaxed">
-                界面提供统一的选择/公式信息下发控件，由说书人决定 1
-                名受害者或统一进行手势/眼神示意（支持选择任意存活玩家或不选目标空刀）。
+                说书人同时唤醒所有的军团玩家，军团玩家互认 / 由说书人决定 1
+                名受害者或统一进行手势/眼神示意。
               </div>
             </div>
           )}

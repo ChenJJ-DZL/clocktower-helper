@@ -255,8 +255,8 @@ describe("军团首夜互认 — legion_mutual_recognition 系统步骤", () => 
     expect(mutualNodes).toHaveLength(1);
     expect(mutualNodes[0].meta?.isLegionMutualRecognition).toBe(true);
     expect(mutualNodes[0].meta?.isLegionUnified).toBe(true);
-    expect(mutualNodes[0].wakeMessage).toContain(
-      "请同时唤醒所有的军团玩家（座位号：5号、6号、7号）"
+    expect(mutualNodes[0].wakeMessage).toBe(
+      "座位号：5号、6号、7号。说书人同时唤醒所有的军团玩家，军团玩家互认"
     );
     // 独立的 demon_info 节点已被合并消除
     const demonInfoNodes = queue.filter((q) => q.roleId === "demon_info");
@@ -363,8 +363,8 @@ describe("军团非首夜行动队列合并 — 无论多少名军团玩家，�
     });
     const legionNodes = queue.filter((q) => q.roleId === "legion");
     expect(legionNodes).toHaveLength(1);
-    expect(legionNodes[0].wakeMessage).toContain(
-      "请同时唤醒所有的军团玩家（座位号：5号、6号、7号）"
+    expect(legionNodes[0].wakeMessage).toBe(
+      "座位号：5号、6号、7号。说书人同时唤醒所有的军团玩家"
     );
     expect(legionNodes[0].meta?.isLegionUnified).toBe(true);
     expect(legionNodes[0].meta?.legionSeatIds).toEqual([4, 5, 6]);
@@ -389,8 +389,8 @@ describe("军团非首夜行动队列合并 — 无论多少名军团玩家，�
     });
     const legionNodes = queue.filter((q) => q.roleId === "legion");
     expect(legionNodes).toHaveLength(1);
-    expect(legionNodes[0].wakeMessage).toContain(
-      "请同时唤醒所有的军团玩家（座位号：4号、5号、6号、7号、8号、9号、10号）"
+    expect(legionNodes[0].wakeMessage).toBe(
+      "座位号：4号、5号、6号、7号、8号、9号、10号。说书人同时唤醒所有的军团玩家"
     );
     expect(legionNodes[0].meta?.isLegionUnified).toBe(true);
     expect(legionNodes[0].meta?.legionSeatIds).toEqual([3, 4, 5, 6, 7, 8, 9]);
