@@ -1,3 +1,4 @@
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ShootResultModalProps {
@@ -14,25 +15,22 @@ interface ShootResultModalProps {
 export function ShootResultModal({
   isOpen,
   message,
-  isDemonDead,
+  isDemonDead = false,
   targetId,
-  shooterId: _shooterId,
   phaseText,
   detail,
   onConfirm,
 }: ShootResultModalProps) {
   if (!isOpen) return null;
 
-  // 提取纯结果词（如“无事发生”或“恶魔死亡，善良阵营获胜！”）
   let resultText = message || "无事发生";
   if (resultText.startsWith("【") && resultText.endsWith("】")) {
     resultText = resultText.slice(1, -1);
   }
 
-  // 描述文本：xx阶段向xx号玩家开枪，结果：
   const actionDescription =
     detail ||
-    `${phaseText ? `${phaseText}` : "白天阶段"}${
+    `猎手 在 ${phaseText ? `${phaseText}` : "白天阶段"}${
       targetId !== undefined && targetId !== null
         ? ` 向【${targetId + 1}号】玩家开枪：`
         : " 开枪射击结果："
@@ -60,32 +58,34 @@ export function ShootResultModal({
         </div>
       }
     >
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-6 my-auto">
-        <div className="text-6xl sm:text-7xl md:text-8xl animate-bounce">
-          {isDemonDead ? "🏆" : "💨"}
-        </div>
+      <AutoFitContent targetRatio={0.85} className="p-4">
+        <div className="flex flex-col items-center justify-center text-center p-4 gap-6 my-auto">
+          <div className="text-7xl sm:text-8xl animate-bounce">
+            {isDemonDead ? "🏆" : "💨"}
+          </div>
 
-        <div className="space-y-2 max-w-2xl">
-          <div className="text-base sm:text-lg text-slate-300 font-bold leading-relaxed">
-            {actionDescription}
+          <div className="space-y-3 max-w-3xl">
+            <div className="text-lg sm:text-xl text-slate-300 font-bold leading-relaxed whitespace-nowrap">
+              {actionDescription}
+            </div>
+            <div
+              className={`text-4xl sm:text-6xl font-black tracking-wide drop-shadow-2xl py-2 whitespace-nowrap ${
+                isDemonDead
+                  ? "text-red-400 font-black"
+                  : "text-amber-300 font-black"
+              }`}
+            >
+              【{resultText}】
+            </div>
           </div>
-          <div
-            className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-wide drop-shadow-2xl py-2 ${
-              isDemonDead
-                ? "text-red-400 font-black"
-                : "text-amber-300 font-black"
-            }`}
-          >
-            【{resultText}】
-          </div>
-        </div>
 
-        {isDemonDead && (
-          <div className="p-4 rounded-2xl bg-red-950/50 border border-red-500/50 text-red-200 text-sm sm:text-base font-bold max-w-xl shadow-lg">
-            🎉 恶魔已被猎手成功击杀！系统已判定善良阵营获得最终胜利！
-          </div>
-        )}
-      </div>
+          {isDemonDead && (
+            <div className="p-4 rounded-2xl bg-red-950/50 border border-red-500/50 text-red-200 text-base sm:text-lg font-bold max-w-xl shadow-lg whitespace-nowrap">
+              🎉 恶魔已被猎手成功击杀！系统已判定善良阵营获得最终胜利！
+            </div>
+          )}
+        </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

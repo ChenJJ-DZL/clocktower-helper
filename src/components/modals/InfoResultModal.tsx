@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { parseInfoResult } from "../../utils/infoResultParser";
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 export { parseInfoResult };
@@ -24,44 +25,6 @@ export function InfoResultModal({
     [result]
   );
 
-  // 计算最长一行的字符长度
-  const maxLineLength = useMemo(() => {
-    if (isMultiLine) {
-      return resultLines.reduce((max, line) => Math.max(max, line.length), 0);
-    }
-    return result.length;
-  }, [isMultiLine, resultLines, result]);
-
-  // 根据文本长度智能调整字号，确保各类信息在一行内美观展示且不换行溢出
-  const resultFontSize = useMemo(() => {
-    if (isMultiLine) {
-      if (maxLineLength > 28) {
-        return "text-lg sm:text-xl md:text-2xl lg:text-3xl";
-      }
-      if (maxLineLength > 20) {
-        return "text-xl sm:text-2xl md:text-3xl lg:text-4xl";
-      }
-      if (maxLineLength > 12) {
-        return "text-2xl sm:text-3xl md:text-4xl lg:text-5xl";
-      }
-      return "text-3xl sm:text-4xl md:text-5xl lg:text-6xl";
-    } else {
-      if (maxLineLength > 30) {
-        return "text-xl sm:text-2xl md:text-3xl lg:text-4xl";
-      }
-      if (maxLineLength > 20) {
-        return "text-2xl sm:text-3xl md:text-4xl lg:text-5xl";
-      }
-      if (maxLineLength > 12) {
-        return "text-3xl sm:text-4xl md:text-5xl lg:text-6xl";
-      }
-      if (maxLineLength > 6) {
-        return "text-4xl sm:text-5xl md:text-6xl lg:text-7xl";
-      }
-      return "text-5xl sm:text-6xl md:text-7xl lg:text-8xl";
-    }
-  }, [isMultiLine, maxLineLength]);
-
   return (
     <ModalWrapper
       title={`${roleName} - 结果`}
@@ -85,39 +48,35 @@ export function InfoResultModal({
         </div>
       }
     >
-      <div className="p-2 sm:p-6 text-white w-full flex flex-col flex-1 my-auto">
-        <div className="text-center my-auto space-y-4 max-w-full">
+      <AutoFitContent targetRatio={0.85} className="p-2 sm:p-6 text-white">
+        <div className="text-center my-auto space-y-4 max-w-5xl mx-auto px-4">
           {prefix && (
-            <div className="text-lg sm:text-xl md:text-2xl text-amber-200/90 font-bold leading-relaxed break-words px-2">
+            <div className="text-xl sm:text-2xl md:text-3xl text-amber-200/90 font-bold leading-relaxed whitespace-nowrap px-2">
               {prefix}
             </div>
           )}
 
           {isMultiLine ? (
             <div className="flex justify-center my-4 px-2 w-full">
-              <div
-                className={`inline-block text-left font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-xl space-y-3 max-w-full break-words ${resultFontSize}`}
-              >
+              <div className="inline-block text-left font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-xl space-y-3 whitespace-nowrap text-2xl sm:text-3xl md:text-4xl">
                 {resultLines.map((line, idx) => (
-                  <div key={idx} className="break-words max-w-full">
+                  <div key={idx} className="whitespace-nowrap">
                     {line}
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div
-              className={`font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-pre-line break-words px-2 max-w-full my-4 ${resultFontSize}`}
-            >
+            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-nowrap px-2 my-4 text-4xl sm:text-5xl md:text-6xl">
               {result}
             </div>
           )}
 
-          <p className="text-sm sm:text-base md:text-lg text-gray-300 mt-4 font-medium">
+          <p className="text-base sm:text-lg md:text-xl text-gray-300 mt-4 font-medium whitespace-nowrap">
             请说书人向玩家告知以上信息
           </p>
         </div>
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

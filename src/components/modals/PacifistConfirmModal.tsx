@@ -1,3 +1,4 @@
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface PacifistConfirmModalProps {
@@ -39,22 +40,24 @@ export function PacifistConfirmModal({
         </div>
       }
     >
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-6 my-auto w-full text-white">
-        <div className="text-6xl sm:text-7xl md:text-8xl">🕊️</div>
-        <div className="space-y-4 max-w-3xl">
-          <p className="text-3xl sm:text-4xl md:text-5xl font-black leading-relaxed">
-            <span className="text-amber-400 font-black">
-              【{targetId + 1}号】
-            </span>{" "}
-            镇民被处决：
-            <br />
-            是否触发【和平主义者】使其免于死亡？
-          </p>
-          <p className="text-base sm:text-xl text-slate-300 font-medium leading-relaxed">
-            规则：和平主义者让“被处决的镇民可能不会死亡”，由说书人裁定（通常随机）。
-          </p>
+      <AutoFitContent targetRatio={0.85} className="p-4">
+        <div className="flex flex-col items-center justify-center text-center p-4 gap-6 my-auto w-full text-white">
+          <div className="text-7xl sm:text-8xl">🕊️</div>
+          <div className="space-y-4 max-w-4xl">
+            <p className="text-3xl sm:text-5xl font-black leading-relaxed">
+              <span className="text-amber-400 font-black">
+                【{targetId + 1}号】
+              </span>{" "}
+              镇民被处决：
+              <br />
+              是否触发【和平主义者】使其免于死亡？
+            </p>
+            <p className="text-lg sm:text-xl text-slate-300 font-medium leading-relaxed">
+              规则：和平主义者让“被处决的镇民可能不会死亡”，由说书人裁定（通常随机）。
+            </p>
+          </div>
         </div>
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

@@ -1,3 +1,4 @@
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ExecutionResultModalProps {
@@ -37,19 +38,19 @@ export function ExecutionResultModal({
         </div>
       }
     >
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-6 my-auto">
-        <div className="text-6xl sm:text-7xl md:text-8xl">
-          {isNoDeath ? "🕊️" : "⚖️"}
-        </div>
-        <div className="space-y-3 max-w-3xl">
-          <div className="text-base sm:text-xl text-slate-300 font-bold">
-            今日处决最终判定结果：
+      <AutoFitContent targetRatio={0.85} className="p-4">
+        <div className="flex flex-col items-center justify-center text-center p-4 gap-6">
+          <div className="text-7xl sm:text-8xl">{isNoDeath ? "🕊️" : "⚖️"}</div>
+          <div className="space-y-4 max-w-4xl">
+            <div className="text-xl sm:text-2xl text-slate-300 font-bold whitespace-nowrap">
+              今日处决最终判定结果：
+            </div>
+            <div className="text-4xl sm:text-6xl font-black text-amber-300 tracking-wider drop-shadow-2xl py-2 whitespace-nowrap">
+              {message.startsWith("【") ? message : `【${message}】`}
+            </div>
           </div>
-          <div className="text-3xl sm:text-5xl md:text-6xl font-black text-amber-300 tracking-wider drop-shadow-2xl py-2">
-            {message.startsWith("【") ? message : `【${message}】`}
-          </div>
         </div>
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

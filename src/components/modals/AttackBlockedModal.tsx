@@ -1,3 +1,4 @@
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface AttackBlockedModalProps {
@@ -35,19 +36,21 @@ export function AttackBlockedModal({
         </div>
       }
     >
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-6 my-auto w-full">
-        <div className="text-6xl sm:text-7xl md:text-8xl">🛡️</div>
-        <div className="space-y-4 max-w-3xl">
-          <div className="text-white text-2xl sm:text-4xl md:text-5xl font-black text-center leading-relaxed">
-            {demonName
-              ? `恶魔【${demonName}】攻击 ${targetId + 1}号，但因为【${reason}】，该玩家未死亡。`
-              : `${targetId + 1}号因【${reason}】未受到本次攻击的影响。`}
-          </div>
-          <div className="text-base sm:text-xl text-slate-300 text-center font-medium mt-2 leading-relaxed">
-            请根据规则继续进行后续流程。本弹窗仅作提示，不会影响后续结算。
+      <AutoFitContent targetRatio={0.85} className="p-4">
+        <div className="flex flex-col items-center justify-center text-center p-4 gap-6 my-auto w-full">
+          <div className="text-7xl sm:text-8xl">🛡️</div>
+          <div className="space-y-4 max-w-4xl">
+            <div className="text-white text-3xl sm:text-5xl font-black text-center leading-relaxed">
+              {demonName
+                ? `恶魔【${demonName}】攻击 ${targetId + 1}号，但因为【${reason}】，该玩家未死亡。`
+                : `${targetId + 1}号因【${reason}】未受到本次攻击的影响。`}
+            </div>
+            <div className="text-lg sm:text-xl text-slate-300 text-center font-medium mt-2 leading-relaxed">
+              请根据规则继续进行后续流程。本弹窗仅作提示，不会影响后续结算。
+            </div>
           </div>
         </div>
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }
