@@ -466,19 +466,56 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
 
     it("第2夜（非首夜）即使场上有7个军团，全场也仅生成1个唯一的军团夜杀节点（所有军团共享1次行动）", () => {
       const seats = [
-        makeSeat(0, { id: "legion", name: "军团", type: "demon" }),
-        makeSeat(1, { id: "legion", name: "军团", type: "demon" }),
-        makeSeat(2, { id: "legion", name: "军团", type: "demon" }),
-        makeSeat(3, { id: "legion", name: "军团", type: "demon" }),
-        makeSeat(4, { id: "legion", name: "军团", type: "demon" }),
-        makeSeat(5, { id: "legion", name: "军团", type: "demon" }),
-        makeSeat(6, { id: "legion", name: "军团", type: "demon" }),
+        makeSeat(
+          0,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "张三" }
+        ),
+        makeSeat(
+          1,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "李四" }
+        ),
+        makeSeat(
+          2,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "王五" }
+        ),
+        makeSeat(
+          3,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "赵六" }
+        ),
+        makeSeat(
+          4,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "钱七" }
+        ),
+        makeSeat(
+          5,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "孙八" }
+        ),
+        makeSeat(
+          6,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "周九" }
+        ),
         makeSeat(7, { id: "chef", name: "厨师", type: "townsfolk" }),
         makeSeat(8, { id: "empath", name: "共情者", type: "townsfolk" }),
         makeSeat(9, { id: "drunk", name: "酒鬼", type: "outsider" }),
       ];
 
       const orderEntries = [
+        {
+          roleId: "legion",
+          roleName: "军团",
+          firstNightPriority: 0,
+          otherNightPriority: 44,
+          firstNightOnly: false,
+          wakeMessage: "军团夜杀",
+          abilityId: "legion_night_kill",
+        },
         {
           roleId: "legion",
           roleName: "军团",
@@ -507,6 +544,62 @@ describe("军团（Legion）官方 9 大核心规则与状态机集成测试", (
 
       const legionNodes = queue.filter((q) => q.roleId === "legion");
       expect(legionNodes).toHaveLength(1);
+      expect(legionNodes[0].wakeMessage).toBe(
+        "请同时唤醒所有的军团玩家（座位号：1号（张三）、2号（李四）、3号（王五）、4号（赵六）、5号（钱七）、6号（孙八）、7号（周九））"
+      );
+      expect(legionNodes[0].meta?.isLegionUnified).toBe(true);
+      expect(legionNodes[0].meta?.legionSeatIds).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    });
+
+    it("军团死亡部分玩家时，夜间唤醒提示仅列出存活军团的座位号与玩家名", () => {
+      const seats = [
+        makeSeat(
+          0,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "张三", isDead: true }
+        ),
+        makeSeat(
+          1,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "李四" }
+        ),
+        makeSeat(
+          2,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "王五", isDead: true }
+        ),
+        makeSeat(
+          3,
+          { id: "legion", name: "军团", type: "demon" },
+          { playerName: "赵六" }
+        ),
+        makeSeat(4, { id: "monk", name: "僧侣", type: "townsfolk" }),
+      ];
+
+      const orderEntries = [
+        {
+          roleId: "legion",
+          roleName: "军团",
+          firstNightPriority: 0,
+          otherNightPriority: 44,
+          firstNightOnly: false,
+          wakeMessage: "军团夜杀",
+          abilityId: "legion_night_kill",
+        },
+      ] as any;
+
+      const queue = generateDynamicNightQueue(
+        orderEntries,
+        { seats, nightCount: 2, gamePhase: "night" } as any,
+        { isFirstNight: false }
+      );
+
+      const legionNodes = queue.filter((q) => q.roleId === "legion");
+      expect(legionNodes).toHaveLength(1);
+      expect(legionNodes[0].wakeMessage).toBe(
+        "请同时唤醒所有的军团玩家（座位号：2号（李四）、4号（赵六））"
+      );
+      expect(legionNodes[0].meta?.legionSeatIds).toEqual([1, 3]);
     });
   });
 });

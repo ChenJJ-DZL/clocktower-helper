@@ -262,18 +262,55 @@ export function generateDynamicNightQueue(
     };
   });
 
-  // 4. 军团互认节点打标：供 UI 与行动处理器识别（无需选择目标）
-  const flagLegionMutual = queue.map((node) =>
-    node.roleId === LEGION_MUTUAL_RECOGNITION_ID
-      ? {
-          ...node,
-          roleName: "军团互认",
-          meta: { ...node.meta, isLegionMutualRecognition: true },
-        }
-      : node
-  );
+  // 4. 军团互认与军团夜间统一唤醒节点打标及文案生成
+  const flagLegion = queue.map((node) => {
+    if (node.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
+      return {
+        ...node,
+        roleName: "军团互认",
+        meta: { ...node.meta, isLegionMutualRecognition: true },
+      };
+    }
+    if (node.roleId === "legion") {
+      const aliveLegions = snapshot.seats.filter(
+        (s) => getEffectiveRoleId(s) === "legion" && (includeDead || !s.isDead)
+      );
+      const seatListStr =
+        aliveLegions.length > 0
+          ? aliveLegions
+              .map(
+                (s) =>
+                  `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+              )
+              .join("、")
+          : "无";
+      return {
+        ...node,
+        roleName: "军团",
+        wakeMessage: `请同时唤醒所有的军团玩家（座位号：${seatListStr}）`,
+        meta: {
+          ...node.meta,
+          isLegionUnified: true,
+          legionSeatIds: aliveLegions.map((s) => s.id),
+        },
+      };
+    }
+    return node;
+  });
 
-  return flagLegionMutual;
+  // 5. 军团统一行动节点合并：确保无论场上有多少军团玩家或夜序条目，仅产出 1 个军团夜间唤醒节点
+  const seenRoleIds = new Set<string>();
+  const consolidatedQueue = flagLegion.filter((node) => {
+    if (node.roleId === "legion") {
+      if (seenRoleIds.has("legion")) {
+        return false;
+      }
+      seenRoleIds.add("legion");
+    }
+    return true;
+  });
+
+  return consolidatedQueue;
 }
 
 /**

@@ -1,4 +1,7 @@
-import type { RoleDefinition } from "../../types/roleDefinition";
+import type {
+  NightActionContext,
+  RoleDefinition,
+} from "../../types/roleDefinition";
 
 /**
  * 军团 (Legion)
@@ -90,12 +93,35 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:72-0!canonical and time
       count: { min: 0, max: 1 },
       canSelect: (target) => !target.isDead,
     },
-    dialog: () => ({
-      wake: "😈 军团夜杀：由说书人独自决定今晚哪名玩家死亡（军团夜晚不睁眼，可选择任意存活玩家或空刀）",
-      instruction:
-        "由说书人独自决定今晚谁死亡（建议平衡击杀军团维持至3人决赛圈）",
-      close: "",
-    }),
+    dialog: (
+      _playerSeatId: number,
+      _isFirstNight: boolean,
+      context?: NightActionContext
+    ) => {
+      const seats = context?.seats ?? [];
+      const aliveLegions = seats.filter(
+        (s) =>
+          (s.role?.id === "legion" ||
+            (s as any).charadeRole?.id === "legion") &&
+          !s.isDead
+      );
+      const seatList =
+        aliveLegions.length > 0
+          ? aliveLegions
+              .map(
+                (s) =>
+                  `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+              )
+              .join("、")
+          : "无";
+
+      const wake = `请同时唤醒所有的军团玩家（座位号：${seatList}）`;
+      return {
+        wake,
+        instruction: `${wake}，由说书人决定 1 名受害者或统一进行手势/眼神示意。`,
+        close: "",
+      };
+    },
   },
   clarifications: [
     "相克规则：工程师：军团和工程师不能在初始时同时在场。如果工程师创造了军团，那么包括所有邪恶玩家在内的绝大多数玩家都会变成邪恶的军团。传教士：如果传教士选中了军团，军团仍然保留能力，但传教士可能会得知自己选中了军团。吟游诗人：如果军团死于处决，所有军团保留能力，但吟游诗人可能会在当晚得知今天白天死于处决的玩家是军团。帽匠：如果帽匠死亡时军团在场，则无事发生。如果帽匠死亡时一名邪恶玩家选择变成军团，当前所有邪恶玩家都会一同变成军团。狂热者：军团的能力可能会将狂热者当作邪恶阵营。召唤师：如果召唤师创造了军团，包括所有邪恶玩家在内的绝大多数玩家都会变成邪恶的军团。",

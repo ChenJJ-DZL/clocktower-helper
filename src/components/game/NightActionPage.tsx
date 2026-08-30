@@ -1140,15 +1140,32 @@ export function NightActionPage({
                 </h3>
                 {roleId === "legion" && (
                   <span className="text-xs text-red-300 font-bold bg-red-950/80 px-2.5 py-1 rounded-lg border border-red-500/40">
-                    🎲 由说书人独自决定
+                    🎲 统一裁定 / 示意
                   </span>
                 )}
               </div>
 
               {roleId === "legion" && (
-                <div className="mb-4 p-3.5 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-sm leading-relaxed font-medium">
-                  😈 <strong>说书人指南</strong>
-                  ：军团夜杀由说书人独自决定（夜晚军团不睁眼，由说书人决定选择哪一名玩家死亡，或空刀。建议优先击杀军团玩家以平衡至3人决赛圈）。
+                <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-red-950/80 via-purple-950/60 to-slate-900/80 border border-red-500/40 text-red-200 text-sm leading-relaxed font-medium space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-red-300 text-base">
+                    <span>😈</span>
+                    <span>军团统一唤醒与公式信息下发</span>
+                  </div>
+                  <div className="text-red-100 bg-black/40 p-2.5 rounded-lg border border-red-500/30 font-bold">
+                    请同时唤醒所有的军团玩家（座位号：
+                    {seats
+                      .filter((s) => s.role?.id === "legion" && !s.isDead)
+                      .map(
+                        (s) =>
+                          `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+                      )
+                      .join("、") || "无"}
+                    ）
+                  </div>
+                  <div className="text-xs text-red-300/90">
+                    • 由说书人决定 1
+                    名受害者或统一进行手势/眼神示意（支持选择任意存活玩家或不选目标空刀）。
+                  </div>
                 </div>
               )}
 

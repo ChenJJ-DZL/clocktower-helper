@@ -341,3 +341,57 @@ describe("军团首夜互认 — legion_mutual_recognition 系统步骤", () => 
     ).toBeUndefined();
   });
 });
+
+describe("军团非首夜行动队列合并 — 无论多少名军团玩家，夜序生成器仅产出 1 个军团夜间唤醒节点", () => {
+  it("3 军团在场时，非首夜仅生成 1 个统一军团唤醒节点，并包含所有存活军团座位提示", () => {
+    const snap = makeSnapshot(3, 4);
+    const orderEntries = [
+      {
+        roleId: "legion",
+        roleName: "军团",
+        firstNightPriority: 0,
+        otherNightPriority: 44,
+        firstNightOnly: false,
+        wakeMessage: "军团夜杀",
+        abilityId: "legion_night_kill",
+      },
+    ] as any;
+
+    const queue = generateDynamicNightQueue(orderEntries, snap, {
+      isFirstNight: false,
+    });
+    const legionNodes = queue.filter((q) => q.roleId === "legion");
+    expect(legionNodes).toHaveLength(1);
+    expect(legionNodes[0].wakeMessage).toContain(
+      "请同时唤醒所有的军团玩家（座位号：5号、6号、7号）"
+    );
+    expect(legionNodes[0].meta?.isLegionUnified).toBe(true);
+    expect(legionNodes[0].meta?.legionSeatIds).toEqual([4, 5, 6]);
+  });
+
+  it("7 军团在场时，非首夜仅生成 1 个统一军团唤醒节点，并包含所有存活军团座位提示", () => {
+    const snap = makeSnapshot(7, 3);
+    const orderEntries = [
+      {
+        roleId: "legion",
+        roleName: "军团",
+        firstNightPriority: 0,
+        otherNightPriority: 44,
+        firstNightOnly: false,
+        wakeMessage: "军团夜杀",
+        abilityId: "legion_night_kill",
+      },
+    ] as any;
+
+    const queue = generateDynamicNightQueue(orderEntries, snap, {
+      isFirstNight: false,
+    });
+    const legionNodes = queue.filter((q) => q.roleId === "legion");
+    expect(legionNodes).toHaveLength(1);
+    expect(legionNodes[0].wakeMessage).toContain(
+      "请同时唤醒所有的军团玩家（座位号：4号、5号、6号、7号、8号、9号、10号）"
+    );
+    expect(legionNodes[0].meta?.isLegionUnified).toBe(true);
+    expect(legionNodes[0].meta?.legionSeatIds).toEqual([3, 4, 5, 6, 7, 8, 9]);
+  });
+});

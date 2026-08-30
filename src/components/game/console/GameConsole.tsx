@@ -388,6 +388,36 @@ export const GameConsole = React.memo(function GameConsole({
           return null;
         })()}
 
+        {/* 😈 军团统一唤醒与公式信息下发卡片 */}
+        {isNightPhase &&
+          (currentActorSeat?.role?.id === "legion" ||
+            nightInfo?.effectiveRole?.id === "legion" ||
+            currentActorRoleName?.includes("军团")) && (
+            <div className="rounded-2xl border-2 border-red-500/80 bg-gradient-to-br from-red-950/90 via-slate-900/90 to-red-950/90 p-5 shadow-2xl shadow-red-950/40 space-y-3">
+              <div className="flex items-center gap-2 text-red-300 font-extrabold text-base">
+                <span className="text-xl">😈</span>
+                <span className="tracking-wide">
+                  【军团统一唤醒与公式信息下发】
+                </span>
+              </div>
+              <div className="text-sm font-bold text-red-100 bg-black/40 p-3 rounded-xl border border-red-500/30">
+                请同时唤醒所有的军团玩家（座位号：
+                {seats
+                  .filter((s) => s.role?.id === "legion" && !s.isDead)
+                  .map(
+                    (s) =>
+                      `${s.id + 1}号${s.playerName ? `（${s.playerName}）` : ""}`
+                  )
+                  .join("、") || "无"}
+                ）
+              </div>
+              <div className="text-xs text-red-200/90 leading-relaxed">
+                界面提供统一的选择/公式信息下发控件，由说书人决定 1
+                名受害者或统一进行手势/眼神示意（支持选择任意存活玩家或不选目标空刀）。
+              </div>
+            </div>
+          )}
+
         {isNightPhase && currentActorSeat && currentActorRoleName && (
           <div className="rounded-2xl border border-emerald-400/40 bg-emerald-950/30 px-5 py-4 shadow-xl shadow-emerald-900/10 backdrop-blur-sm">
             <div className="text-[13px] font-bold uppercase tracking-wider text-emerald-400/80 mb-3 flex items-center justify-between">
