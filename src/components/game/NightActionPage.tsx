@@ -222,8 +222,47 @@ export function NightActionPage({
       }
       return { count };
     }
+    if (roleId === "bounty_hunter") {
+      const knownTargets: number[] =
+        (nightInfo as any)?.snapshot?.bountyHunterKnownTargets ?? [];
+      const aliveEvils = seats.filter(
+        (s) =>
+          s.id !== seatId &&
+          !s.isDead &&
+          s.role &&
+          !knownTargets.includes(s.id) &&
+          (s.role.type === "minion" ||
+            s.role.type === "demon" ||
+            s.isEvilConverted ||
+            (s as any).alignment === "evil")
+      );
+      const aliveGoods = seats.filter(
+        (s) =>
+          s.id !== seatId &&
+          !s.isDead &&
+          s.role &&
+          !s.isEvilConverted &&
+          (s as any).alignment !== "evil" &&
+          (s.role.type === "townsfolk" || s.role.type === "outsider")
+      );
+      // 🎯 优先级规则：只要有其他邪恶玩家在场，优先得知非恶魔的其他玩家（爪牙、转邪恶镇民等）
+      const nonDemonEvils = aliveEvils.filter((s) => s.role?.type !== "demon");
+      const priorityEvils =
+        nonDemonEvils.length > 0 ? nonDemonEvils : aliveEvils;
+
+      const targetPool =
+        isDisturbed && aliveGoods.length > 0
+          ? aliveGoods
+          : priorityEvils.length > 0
+            ? priorityEvils
+            : seats.filter((s) => s.id !== seatId && !s.isDead);
+      const chosen = targetPool[0] ?? seats[0];
+      return {
+        bountyTargetId: chosen?.id ?? 0,
+      };
+    }
     return null;
-  }, [roleId, seats, seatId]);
+  }, [roleId, seats, seatId, isDisturbed, nightInfo]);
 
   // 微调状态
   const [showOverride, setShowOverride] = useState(false);
@@ -234,6 +273,9 @@ export function NightActionPage({
     "candidates"
   );
   const [chefCount, setChefCount] = useState<number>(0);
+  const [bountyHunterTargetId, setBountyHunterTargetId] = useState<number | null>(
+    null
+  );
 
   // 初始化微调状态
   useEffect(() => {
@@ -245,6 +287,8 @@ export function NightActionPage({
       if (info.mode === "zero" || info.mode === "candidates")
         setLibrarianMode(info.mode);
       if (typeof info.count === "number") setChefCount(info.count);
+      if (typeof info.bountyTargetId === "number")
+        setBountyHunterTargetId(info.bountyTargetId);
     }
   }, [defaultAutoInfo]);
 
@@ -354,8 +398,18 @@ export function NightActionPage({
       const targetRoleName = currentGoodTwinSeat?.role?.name || "善良角色";
       return `唤醒${seatId + 1}号【镜像双子】。指向对立双子（${targetSeatNo}），并向镜像双子展示其角色标记【${targetRoleName}】。随后唤醒${targetSeatNo}，指向${seatId + 1}号并展示【镜像双子】角色标记。`;
     }
+    if (roleId === "bounty_hunter") {
+      const targetSeat =
+        bountyHunterTargetId !== null
+          ? seats.find((s) => s.id === bountyHunterTargetId)
+          : null;
+      if (targetSeat) {
+        return `唤醒${seatId + 1}号【赏金猎人】，指向${targetSeat.id + 1}号玩家【${targetSeat.role?.name || "未知"}】（告诉他${targetSeat.id + 1}号玩家是邪恶的）。`;
+      }
+      return `唤醒${seatId + 1}号【赏金猎人】，指向一名邪恶玩家。`;
+    }
     return guideText;
-  }, [roleId, seatId, currentGoodTwinSeat, guideText]);
+  }, [roleId, seatId, currentGoodTwinSeat, bountyHunterTargetId, seats, guideText]);
 
   // ─── 占卜师 (Fortune Teller) 恶魔与红罗刹判定 ─────────────────────────────
   const fortuneTellerDetection = useMemo(() => {
@@ -507,6 +561,9 @@ export function NightActionPage({
       storytellerInput.mayorBounceTargetId = mayorBounceTargetId;
     } else if (isImpSuicide) {
       storytellerInput.successorSeatId = selectedSuccessorId;
+    } else if (roleId === "bounty_hunter") {
+      storytellerInput.targetSeatId = bountyHunterTargetId;
+      storytellerInput.targetId = bountyHunterTargetId;
     }
 
     onConfirm(storytellerInput);
@@ -753,6 +810,79 @@ export function NightActionPage({
                             </span>
                           </div>
                           {isGood && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 shrink-0 font-bold">
+                              善良
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── 赏金猎人 (Bounty Hunter) 悬赏目标选择卡片 ───────────────────── */}
+          {roleId === "bounty_hunter" && !hasResult && (
+            <div className="rounded-2xl border border-red-500/40 bg-red-950/40 backdrop-blur-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎯</span>
+                  <h3 className="text-base font-bold text-red-200">
+                    赏金猎人悬赏目标选择
+                  </h3>
+                </div>
+                {bountyHunterTargetId !== null && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-600/40 text-red-200 text-xs font-bold border border-red-400/40">
+                    当前指向：{bountyHunterTargetId + 1}号【
+                    {seats.find((s) => s.id === bountyHunterTargetId)?.role?.name || "未知"}】
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-red-300/80 leading-relaxed">
+                官方规则：在首个夜晚（或得知的目标死亡当晚），唤醒赏金猎人并指向一名邪恶玩家。系统默认优先推荐非恶魔的邪恶玩家（避免开局直接暴露恶魔导致对局秒结），说书人也可直接点击换选其他要指向的玩家。
+              </p>
+
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-slate-300">
+                  选择告知的目标玩家：
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {seats
+                    .filter((s) => s.id !== seatId && !s.isDead)
+                    .map((s) => {
+                      const isSelected = bountyHunterTargetId === s.id;
+                      const isEvil =
+                        s.role?.type === "demon" ||
+                        s.role?.type === "minion" ||
+                        s.isEvilConverted ||
+                        (s as any).alignment === "evil";
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setBountyHunterTargetId(s.id)}
+                          className={`px-3 py-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-red-600 border-red-300 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-400"
+                              : isEvil
+                                ? "bg-red-950/40 border-red-700/60 text-red-200 hover:border-red-500"
+                                : "bg-slate-900/60 border-slate-700 text-slate-300 hover:border-slate-500"
+                          }`}
+                        >
+                          <div className="truncate">
+                            <span className="font-black text-sm mr-1.5">
+                              {s.id + 1}号
+                            </span>
+                            <span className="text-xs font-medium">
+                              {s.role?.name || "未分配"}
+                            </span>
+                          </div>
+                          {isEvil ? (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-500/30 text-red-300 shrink-0 font-bold border border-red-500/40">
+                              {s.isEvilConverted ? "邪恶镇民" : "邪恶"}
+                            </span>
+                          ) : (
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 shrink-0 font-bold">
                               善良
                             </span>

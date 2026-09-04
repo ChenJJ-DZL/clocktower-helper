@@ -21,6 +21,7 @@ import { GenericAlertModal } from "../modals/GenericAlertModal";
 import { GenericConfirmModal } from "../modals/GenericConfirmModal";
 import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
 import { InfoResultModal } from "../modals/InfoResultModal";
+import { JugglerJudgeModal } from "../modals/JugglerJudgeModal";
 import { KillConfirmModal } from "../modals/KillConfirmModal";
 import { KlutzChoiceModal } from "../modals/KlutzChoiceModal";
 import { LunaticRpsModal } from "../modals/LunaticRpsModal";
@@ -177,6 +178,8 @@ export function GameModals() {
     currentModal?.type === "SAVANT_RESULT" ? currentModal.data : null;
   const gamblerJudgeModal =
     currentModal?.type === "GAMBLER_JUDGE" ? currentModal.data : null;
+  const jugglerJudgeModal =
+    currentModal?.type === "JUGGLER_JUDGE" ? currentModal.data : null;
   const nightDeathReportModal =
     currentModal?.type === "NIGHT_DEATH_REPORT" ? currentModal.data : null;
   const nightActionConfirmModal =
@@ -952,6 +955,37 @@ export function GameModals() {
             说书人判定该玩家对目标角色的猜测是否正确？
           </div>
         </ModalWrapper>
+      )}
+
+      {jugglerJudgeModal && (
+        <JugglerJudgeModal
+          seatId={jugglerJudgeModal.seatId}
+          seats={seats}
+          onConfirm={(correctCount: number) => {
+            const msg = `杂耍艺人公开猜测：得知的数字为 ${correctCount}`;
+            actions.addLog(
+              `🤹 ${jugglerJudgeModal.seatId + 1}号【杂耍艺人】使用技能，说书人记录得知的数字为 ${correctCount}`
+            );
+            actions.setSeats((prev: any[]) =>
+              prev.map((s: any) =>
+                s.id === jugglerJudgeModal.seatId
+                  ? {
+                      ...s,
+                      hasUsedDayAbility: true,
+                      dayAbilityResult: {
+                        type: "JUGGLER_JUDGE",
+                        correctCount,
+                        message: msg,
+                        summary: msg,
+                      },
+                    }
+                  : s
+              )
+            );
+            actions.setCurrentModal(null);
+          }}
+          onClose={() => actions.setCurrentModal(null)}
+        />
       )}
 
       <RestartConfirmModal

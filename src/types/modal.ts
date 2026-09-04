@@ -204,6 +204,7 @@ export type ModalType =
   | { type: "ARTIST_RESULT"; data: { result: string } }
   | { type: "SAVANT_RESULT"; data: { infoA: string; infoB: string } }
   | { type: "GAMBLER_JUDGE"; data: { seatId: number } }
+  | { type: "JUGGLER_JUDGE"; data: { seatId: number } }
   | { type: "RAVENKEEPER_FAKE"; data: { targetId: number } }
   | { type: "REVIEW"; data: null }
   | { type: "GAME_RECORDS"; data: null }

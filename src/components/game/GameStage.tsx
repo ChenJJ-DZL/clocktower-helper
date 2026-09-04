@@ -318,6 +318,174 @@ export const GameStage = () => {
     return () => window.removeEventListener("resize", updateSeatScale);
   }, []);
 
+  // ── 统一提名执行逻辑（控制台与魔典圆圈点击均可调用） ───────────
+  const handlePerformNomination = useCallback(
+    (nominatorId: number, nomineeId: number) => {
+      try {
+        if (pendingVoteFor !== null) {
+          showAlert("请先完成当前的投票流程");
+          return;
+        }
+        const nominatorSeat = seats.find((s) => s.id === nominatorId);
+        const nomineeSeat = seats.find((s) => s.id === nomineeId);
+        if (nominatorSeat?.isDead || nomineeSeat?.isDead) {
+          showAlert("已死亡玩家不能发起或接受提名，请重新选择。");
+          setNominator(null);
+          setNominee(null);
+          return;
+        }
+        if (hasPlayerNominated(nominatorId)) {
+          showAlert(
+            `${nominatorId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
+          );
+          setNominator(null);
+          setNominee(null);
+          return;
+        }
+        if (hasPlayerBeenNominated(nomineeId)) {
+          showAlert(
+            `${nomineeId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
+          );
+          setNominator(null);
+          setNominee(null);
+          return;
+        }
+        if (typeof executeNomination !== "function") {
+          console.error(
+            "[GameStage] executeNomination is not a function:",
+            executeNomination
+          );
+          showAlert("错误：executeNomination 函数不可用，请刷新页面重试。");
+          return;
+        }
+        const result = executeNomination(nominatorId, nomineeId, {
+          openVoteModal: false,
+        });
+        if (
+          result === false ||
+          (typeof result === "object" &&
+            result !== null &&
+            (result as any).success === false)
+        ) {
+          setNominator(null);
+          setNominee(null);
+          return;
+        }
+        const virginHandled =
+          typeof result === "object" &&
+          result !== null &&
+          (result as any).virginHandled === true;
+
+        if (!virginHandled) {
+          const nominatorRole = seats[nominatorId]?.role?.name
+            ? `-${seats[nominatorId].role.name}`
+            : "";
+          const nomineeRole = seats[nomineeId]?.role?.name
+            ? `-${seats[nomineeId].role.name}`
+            : "";
+          addLog(
+            `📣 【${nominatorId + 1}号${nominatorRole}】提名了【${nomineeId + 1}号${nomineeRole}】`
+          );
+        }
+        playSound("execute");
+        setNominator(null);
+        setNominee(null);
+        if (virginHandled) {
+          setPendingVoteFor(null);
+          setLastNominator(null);
+        } else {
+          setPendingVoteFor(nomineeId);
+          setLastNominator(nominatorId);
+          setCurrentModal({
+            type: "VOTE_INPUT",
+            data: { voterId: nomineeId },
+          });
+        }
+      } catch (error) {
+        console.error("[GameStage] 发起提名时出错:", error);
+        showAlert(
+          `发起提名时出错: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    },
+    [
+      pendingVoteFor,
+      seats,
+      hasPlayerNominated,
+      hasPlayerBeenNominated,
+      executeNomination,
+      addLog,
+      playSound,
+      setCurrentModal,
+    ]
+  );
+
+  // ── 黄昏阶段：点击魔典座位/序号圆圈发起提名 ─────────────────
+  const handleDuskSeatClick = useCallback(
+    (seatId: number) => {
+      const clickedSeat = seats.find((s) => s.id === seatId);
+      if (clickedSeat?.isDead) {
+        showAlert(`${seatId + 1}号玩家已死亡，不能发起或接受提名。`);
+        return;
+      }
+      if (pendingVoteFor !== null) {
+        showAlert("请先完成当前的投票流程。");
+        return;
+      }
+
+      // 1. 尚未选择提名者：点击激活该座位发起提名
+      if (nominator === null) {
+        if (hasPlayerNominated(seatId)) {
+          showAlert(
+            `${seatId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
+          );
+          return;
+        }
+        setNominator(seatId);
+        return;
+      }
+
+      // 2. 再次点击已激活的提名者自身：取消激活
+      if (seatId === nominator) {
+        setNominator(null);
+        setNominee(null);
+        return;
+      }
+
+      // 3. 已激活提名者，再次点击其他座位号：选择该座位为被提名者并弹出确认发起提名
+      if (hasPlayerBeenNominated(seatId)) {
+        showAlert(
+          `${seatId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
+        );
+        return;
+      }
+
+      setNominee(seatId);
+      const nominatorName = seats[nominator]?.playerName
+        ? `${nominator + 1}号 (${seats[nominator].playerName})`
+        : `${nominator + 1}号`;
+      const nomineeName = clickedSeat?.playerName
+        ? `${seatId + 1}号 (${clickedSeat.playerName})`
+        : `${seatId + 1}号`;
+
+      showConfirm({
+        title: "📣 确认发起提名",
+        message: `确定由【${nominatorName}】发起提名【${nomineeName}】吗？\n（确认后将自动触发角色技能检测并进入投票计票）`,
+        onConfirm: () => {
+          handlePerformNomination(nominator, seatId);
+        },
+      });
+    },
+    [
+      seats,
+      pendingVoteFor,
+      nominator,
+      hasPlayerNominated,
+      hasPlayerBeenNominated,
+      handlePerformNomination,
+    ]
+  );
+
   // 供控制台 / ControlPanel 使用的禁用逻辑
   const isConfirmDisabled = useMemo(() => {
     console.log("[isConfirmDisabled] Recalculating...");
@@ -500,37 +668,7 @@ export const GameStage = () => {
                 nominationRecords={nominationRecords}
                 onSwapSeats={controller.swapSeats}
                 onSeatClick={(seat) => {
-                  // Nomination logic for dusk phase
-                  const seatId = seat;
-                  const clickedSeat = seats.find((s) => s.id === seatId);
-                  if (clickedSeat?.isDead) {
-                    showAlert(
-                      `${seatId + 1}号玩家已死亡，不能发起或接受提名。`
-                    );
-                    return;
-                  }
-                  if (nominator === null) {
-                    // 正在选择提名者：检查是否本黄昏已发起过提名
-                    if (hasPlayerNominated(seatId)) {
-                      showAlert(
-                        `${seatId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
-                      );
-                      return;
-                    }
-                    setNominator(seatId);
-                  } else if (nominee === null && seatId !== nominator) {
-                    // 正在选择被提名者：检查是否本黄昏已被提名过
-                    if (hasPlayerBeenNominated(seatId)) {
-                      showAlert(
-                        `${seatId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
-                      );
-                      return;
-                    }
-                    setNominee(seatId);
-                  } else if (nominee === null && seatId === nominator) {
-                    // Clicking the same nominator - allow deselection
-                    setNominator(null);
-                  }
+                  handleDuskSeatClick(seat);
                 }}
                 onContextMenu={(e, seatId) => {
                   e.preventDefault();
@@ -538,32 +676,7 @@ export const GameStage = () => {
                 }}
                 onTouchStart={(e, seatId) => {
                   e.stopPropagation();
-                  const clickedSeat = seats.find((s) => s.id === seatId);
-                  if (clickedSeat?.isDead) {
-                    showAlert(
-                      `${seatId + 1}号玩家已死亡，不能发起或接受提名。`
-                    );
-                    return;
-                  }
-                  if (nominator === null) {
-                    if (hasPlayerNominated(seatId)) {
-                      showAlert(
-                        `${seatId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
-                      );
-                      return;
-                    }
-                    setNominator(seatId);
-                  } else if (nominee === null && seatId !== nominator) {
-                    if (hasPlayerBeenNominated(seatId)) {
-                      showAlert(
-                        `${seatId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
-                      );
-                      return;
-                    }
-                    setNominee(seatId);
-                  } else if (nominee === null && seatId === nominator) {
-                    setNominator(null);
-                  }
+                  handleDuskSeatClick(seatId);
                 }}
                 onTouchEnd={(e, _seatId) => {
                   e.stopPropagation();
@@ -1115,111 +1228,13 @@ export const GameStage = () => {
                     }
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log("[GameStage] 点击发起提名按钮", {
-                        nominator,
-                        nominee,
-                        isNominationLocked,
-                        pendingVoteFor,
-                        executeNomination: typeof executeNomination,
-                      });
-                      try {
-                        if (pendingVoteFor !== null) {
-                          showAlert("请先完成当前的投票流程");
-                          return;
-                        }
-                        if (nominator === null || nominee === null) {
-                          showAlert(
-                            '请先在圆桌上依次点击"提名者"和"被提名者"。'
-                          );
-                          return;
-                        }
-                        const nominatorSeat = seats.find(
-                          (s) => s.id === nominator
-                        );
-                        const nomineeSeat = seats.find((s) => s.id === nominee);
-                        if (nominatorSeat?.isDead || nomineeSeat?.isDead) {
-                          showAlert(
-                            "已死亡玩家不能发起或接受提名，请重新选择。"
-                          );
-                          setNominator(null);
-                          setNominee(null);
-                          return;
-                        }
-                        if (hasPlayerNominated(nominator)) {
-                          showAlert(
-                            `${nominator + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`
-                          );
-                          setNominator(null);
-                          setNominee(null);
-                          return;
-                        }
-                        if (hasPlayerBeenNominated(nominee)) {
-                          showAlert(
-                            `${nominee + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
-                          );
-                          setNominator(null);
-                          setNominee(null);
-                          return;
-                        }
-                        if (typeof executeNomination !== "function") {
-                          console.error(
-                            "[GameStage] executeNomination is not a function:",
-                            executeNomination
-                          );
-                          showAlert(
-                            "错误：executeNomination 函数不可用，请刷新页面重试。"
-                          );
-                          return;
-                        }
-                        const result = executeNomination(nominator, nominee, {
-                          openVoteModal: false,
-                        });
-                        if (
-                          result === false ||
-                          (typeof result === "object" &&
-                            result !== null &&
-                            (result as any).success === false)
-                        ) {
-                          setNominator(null);
-                          setNominee(null);
-                          return;
-                        }
-                        const virginHandled =
-                          typeof result === "object" &&
-                          result !== null &&
-                          (result as any).virginHandled === true;
-
-                        if (!virginHandled) {
-                          const nominatorRole = seats[nominator]?.role?.name
-                            ? `-${seats[nominator].role.name}`
-                            : "";
-                          const nomineeRole = seats[nominee]?.role?.name
-                            ? `-${seats[nominee].role.name}`
-                            : "";
-                          addLog(
-                            `📣 【${nominator + 1}号${nominatorRole}】提名了【${nominee + 1}号${nomineeRole}】`
-                          );
-                        }
-                        playSound("execute");
-                        setNominator(null);
-                        setNominee(null);
-                        if (virginHandled) {
-                          setPendingVoteFor(null);
-                          setLastNominator(null);
-                        } else {
-                          setPendingVoteFor(nominee);
-                          setLastNominator(nominator);
-                          setCurrentModal({
-                            type: "VOTE_INPUT",
-                            data: { voterId: nominee },
-                          });
-                        }
-                      } catch (error) {
-                        console.error("[GameStage] 发起提名时出错:", error);
+                      if (nominator === null || nominee === null) {
                         showAlert(
-                          `发起提名时出错: ${error instanceof Error ? error.message : String(error)}`
+                          '请先在圆桌或下方矩阵依次选择"提名者"和"被提名者"。'
                         );
+                        return;
                       }
+                      handlePerformNomination(nominator, nominee);
                     }}
                     className={`py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center transition-all border shadow
                     ${
@@ -1720,10 +1735,30 @@ export const GameStage = () => {
                           variant: "primary" as const,
                         };
                       }
+                      const seatedCount = seats.filter((s: any) => !!s.role).length;
+                      const hasDemon = seats.some(
+                        (s: any) => s.role?.type === "demon" || s.role?.id === "legion"
+                      );
                       return {
-                        label: "确认无误，入夜 🌙",
+                        label: seatedCount < 5
+                          ? `落座人数不足 (${seatedCount}/5)`
+                          : !hasDemon
+                          ? "缺少恶魔角色 ⚠️"
+                          : "确认无误，入夜 🌙",
                         onClick: () => {
                           console.log("🖱️ [UI] User clicked 'Enter Night'");
+                          if (seatedCount < 5) {
+                            showAlert(
+                              `当前仅有 ${seatedCount} 名玩家分配了角色（最少需 5 人才能开局），请先在圆桌上为玩家分配角色。`
+                            );
+                            return;
+                          }
+                          if (!hasDemon) {
+                            showAlert(
+                              "当前阵容缺少恶魔（或军团）角色，无法开始游戏。请至少分配一名恶魔。"
+                            );
+                            return;
+                          }
                           if (controller.proceedToFirstNight) {
                             controller.proceedToFirstNight();
                           } else {
@@ -1735,8 +1770,8 @@ export const GameStage = () => {
                             );
                           }
                         },
-                        disabled: isConfirmDisabled,
-                        variant: "success" as const,
+                        disabled: isConfirmDisabled || seatedCount < 5 || !hasDemon,
+                        variant: seatedCount >= 5 && hasDemon ? ("success" as const) : ("warning" as const),
                       };
                     })()
                   : gamePhase === "day"

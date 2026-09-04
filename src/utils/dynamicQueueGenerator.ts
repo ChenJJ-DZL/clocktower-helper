@@ -225,6 +225,18 @@ export function generateDynamicNightQueue(
       }
     }
 
+    // 🤹 杂耍艺人（Juggler）：仅在白天声明并使用技能后，当晚才唤醒
+    if (entry.roleId === "juggler") {
+      if (isFirstNight) return false;
+      const hasUsed =
+        seat.hasUsedDayAbility ||
+        (seat as any).dayAbilityResult?.correctCount !== undefined ||
+        (snapshot as any).jugglerCorrectCount !== undefined;
+      if (!hasUsed) {
+        return false;
+      }
+    }
+
     // 自定义过滤
     if (customFilter && !customFilter(entry, seat)) {
       return false;

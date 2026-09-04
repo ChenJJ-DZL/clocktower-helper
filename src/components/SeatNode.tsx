@@ -227,10 +227,16 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         ${colorClass}
         ${isBeingDragged ? "!opacity-35 !scale-95 !border-dashed !border-amber-400" : ""}
         ${isSwapTarget ? "!ring-[6px] !ring-emerald-400 !border-emerald-400 !scale-110 !shadow-[0_0_35px_rgba(52,211,153,0.9)] animate-pulse" : ""}
-        ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
-        ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
-        ${getDisplayRoleType(s) === "minion" ? "glow-minion" : ""}
-        ${getDisplayRoleType(s) === "demon" ? "glow-demon" : ""}
+        ${
+          s.isEvilConverted
+            ? "glow-demon !border-red-600 !shadow-[0_0_20px_rgba(220,38,38,0.7)]"
+            : `
+          ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
+          ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
+          ${getDisplayRoleType(s) === "minion" ? "glow-minion" : ""}
+          ${getDisplayRoleType(s) === "demon" ? "glow-demon" : ""}
+        `
+        }
         ${nightInfo?.seat.id === s.id ? "!ring-[6px] !ring-yellow-300 !scale-125 !shadow-[0_0_50px_rgba(253,224,71,0.9)] !brightness-100 !grayscale-0 !bg-gray-900 !border-yellow-300" : ""}
         ${s.isDead && nightInfo?.seat.id !== s.id ? "dead-cracked grayscale brightness-75 bg-gray-300 border-gray-400" : ""}
         ${selectedActionTargets.includes(s.id) ? "ring-4 ring-green-500 scale-105" : ""}
@@ -293,16 +299,62 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
         {/* 左上角：座位序号 + 提名状态标签 (被提在上，已提在下，整体高度与序号圆圈相同，红色与天敌标记格式一致) */}
         <div className="absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 z-30 pointer-events-none">
-          {/* 序号圆圈 */}
-          <div
-            className={`${isPortrait ? "w-6 h-6 text-xs" : "w-9 h-9 text-lg"} rounded-full ${
-              s.isDead
-                ? "bg-gray-400 border-gray-500 text-gray-700"
-                : "bg-slate-800 border-slate-600 text-white"
-            } border-2 flex items-center justify-center font-bold shadow-md shrink-0`}
+          {/* 序号圆圈（支持直接点击激活/选择提名） */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSeatClick(s.id);
+            }}
+            title={
+              gamePhase === "dusk"
+                ? nominator === s.id
+                  ? "已激活发起提名（再次点击取消）"
+                  : nominator !== null
+                    ? `点击选择由【${nominator + 1}号】发起提名【${s.id + 1}号】`
+                    : `点击激活【${s.id + 1}号】发起提名`
+                : `${s.id + 1}号座位`
+            }
+            className={`${isPortrait ? "w-6 h-6 text-xs" : "w-9 h-9 text-lg"} rounded-full border-2 flex items-center justify-center font-bold shadow-md shrink-0 transition-all cursor-pointer pointer-events-auto select-none ${
+              nominator === s.id
+                ? "bg-amber-500 border-amber-300 text-slate-950 ring-4 ring-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.9)] animate-pulse scale-125 z-40"
+                : nominee === s.id
+                  ? "bg-cyan-500 border-cyan-300 text-slate-950 ring-4 ring-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.9)] animate-pulse scale-125 z-40"
+                  : s.isDead
+                    ? "bg-gray-400 border-gray-500 text-gray-700"
+                    : gamePhase === "dusk"
+                      ? nominator !== null
+                        ? "bg-slate-800 border-cyan-500/70 text-cyan-200 hover:border-cyan-300 hover:scale-115 hover:shadow-[0_0_15px_rgba(6,182,212,0.7)]"
+                        : "bg-slate-800 border-slate-500 text-white hover:border-amber-400 hover:scale-115 hover:shadow-[0_0_15px_rgba(251,191,36,0.7)]"
+                      : "bg-slate-800 border-slate-600 text-white hover:border-slate-400"
+            }`}
           >
             {s.id + 1}
-          </div>
+          </button>
+
+          {/* 提名状态角标（提名中 / 被提中 / 历史记录） */}
+          {nominator === s.id && (
+            <span
+              className={`flex items-center justify-center font-bold rounded ${
+                isPortrait
+                  ? "text-[8px] px-1 h-[10px]"
+                  : "text-[10px] px-1.5 h-[14px]"
+              } bg-amber-500 text-slate-950 border border-amber-300 shadow-sm leading-none whitespace-nowrap animate-pulse shrink-0 pointer-events-none`}
+            >
+              📣 提名中
+            </span>
+          )}
+          {nominee === s.id && (
+            <span
+              className={`flex items-center justify-center font-bold rounded ${
+                isPortrait
+                  ? "text-[8px] px-1 h-[10px]"
+                  : "text-[10px] px-1.5 h-[14px]"
+              } bg-cyan-500 text-slate-950 border border-cyan-300 shadow-sm leading-none whitespace-nowrap animate-pulse shrink-0 pointer-events-none`}
+            >
+              🎯 被提
+            </span>
+          )}
 
           {/* 提名标签容器：被提在上，已提在下，整体高度与序号圆圈相同 */}
           {(hasBeenNominated || hasNominated) && (

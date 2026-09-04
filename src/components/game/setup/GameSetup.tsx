@@ -10,6 +10,8 @@ import {
 import { ModalWrapper } from "../../modals/ModalWrapper";
 import { PlayerCompositionModal } from "../../modals/PlayerCompositionModal";
 import { QuickStartModal } from "../../modals/QuickStartModal";
+import { CharadeConfigModal } from "../../modals/CharadeConfigModal";
+import { gameActions, useGameContext } from "../../../contexts/GameContext";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -107,6 +109,7 @@ interface GameSetupProps {
       }
     >
   ) => void;
+  onOpenCharadeModal?: (targetSeatId?: number | null) => void;
 }
 
 const groupTitle: Record<string, string> = {
@@ -135,11 +138,190 @@ export default function GameSetup({
   handleBaronAutoRebalance,
   onQuickTest,
   onQuickStart,
+  onOpenCharadeModal,
 }: GameSetupProps) {
+  const { dispatch } = useGameContext();
   const [showCompositionModal, setShowCompositionModal] = useState(false);
   const [showCompositionGuideModal, setShowCompositionGuideModal] =
     useState(false);
   const [showQuickStartModal, setShowQuickStartModal] = useState(false);
+  const [ignoreMarionetteSetup, setIgnoreMarionetteSetup] = useState(false);
+  const [showMarionetteModal, setShowMarionetteModal] = useState(false);
+  const [showCharadeModal, setShowCharadeModal] = useState(false);
+
+  // 🎪 提线木偶座次检测（按官方规则必须与恶魔相邻；若恶魔为小怪宝则与爪牙相邻）
+  const marionetteStatus = useMemo(() => {
+    const active = seats.filter((s) => s.role);
+    const marionetteSeat = active.find((s) => s.role?.id === "marionette");
+    if (!marionetteSeat || seats.length <= 2) return null;
+
+    const hasLilMonsta = active.some((s) => s.role?.id === "lil_monsta");
+    const hasSummoner = active.some((s) => s.role?.id === "summoner");
+
+    let targetRoleDesc = "恶魔";
+    let targetSeats: Seat[] = [];
+
+    if (hasLilMonsta) {
+      targetRoleDesc = "爪牙玩家";
+      targetSeats = active.filter(
+        (s) => s.role?.type === "minion" && s.id !== marionetteSeat.id
+      );
+    } else if (hasSummoner && !active.some((s) => s.role?.type === "demon")) {
+      targetRoleDesc = "召唤师";
+      targetSeats = active.filter((s) => s.role?.id === "summoner");
+    } else {
+      targetRoleDesc = "恶魔";
+      targetSeats = active.filter((s) => s.role?.type === "demon");
+    }
+
+    if (targetSeats.length === 0) return null;
+
+    const total = seats.length;
+    const isAdjacent = targetSeats.some((target) => {
+      const diff = Math.abs(marionetteSeat.id - target.id);
+      return diff === 1 || diff === total - 1;
+    });
+
+    return {
+      valid: isAdjacent,
+      marionetteSeat,
+      targetSeats,
+      targetRoleDesc,
+    };
+  }, [seats]);
+
+  // 一键将提线木偶调整至恶魔邻座（与恶魔身旁的非恶魔座位互换角色）
+  const handleAutoFixMarionetteSeating = () => {
+    if (!marionetteStatus || marionetteStatus.valid) return;
+    const { marionetteSeat, targetSeats } = marionetteStatus;
+    const targetSeat = targetSeats[0];
+    if (!targetSeat) return;
+
+    const total = seats.length;
+    const leftId = (targetSeat.id - 1 + total) % total;
+    const rightId = (targetSeat.id + 1) % total;
+
+    let swapTargetId = leftId;
+    const leftSeat = seats.find((s) => s.id === leftId);
+    if (leftId === targetSeat.id || leftSeat?.role?.type === "demon") {
+      swapTargetId = rightId;
+    }
+
+    const s1 = seats.find((s) => s.id === marionetteSeat.id);
+    const s2 = seats.find((s) => s.id === swapTargetId);
+    if (!s1 || !s2) return;
+
+    const newSeats = seats.map((s) => {
+      if (s.id === marionetteSeat.id) {
+        return {
+          ...s,
+          role: s2.role,
+          charadeRole: s2.charadeRole,
+          displayRole: s2.displayRole,
+          apparentDemonRole: s2.apparentDemonRole,
+        };
+      }
+      if (s.id === swapTargetId) {
+        return {
+          ...s,
+          role: s1.role,
+          charadeRole: s1.charadeRole,
+          displayRole: s1.displayRole,
+          apparentDemonRole: s1.apparentDemonRole,
+        };
+      }
+      return s;
+    });
+
+    dispatch(gameActions.setSeats(newSeats));
+    dispatch(gameActions.updateState({ seats: newSeats }));
+  };
+
+  // 🎭 伪装身份检测（提线木偶、酒鬼、疯子）
+  const charadeStatus = useMemo(() => {
+    const active = seats.filter((s) => s.role);
+    const unconfigured = active.filter(
+      (s) =>
+        (s.role?.id === "drunk" && !s.charadeRole) ||
+        (s.role?.id === "marionette" && !s.charadeRole) ||
+        (s.role?.id === "lunatic" && !s.apparentDemonRole)
+    );
+    return {
+      valid: unconfigured.length === 0,
+      unconfigured,
+    };
+  }, [seats]);
+
+  // 一键为未设置伪装的角色分配不在场的合法伪装身份
+  const handleAutoAssignCharades = () => {
+    const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
+    const usedCharadeIds = new Set(
+      seats
+        .map((s) => s.charadeRole?.id || s.apparentDemonRole?.id)
+        .filter(Boolean) as string[]
+    );
+
+    const townsfolkList = filteredGroupedRoles.townsfolk || [];
+    const demonList = filteredGroupedRoles.demon || [];
+
+    let hasChanges = false;
+    const newSeats = seats.map((seat) => {
+      if (
+        (seat.role?.id === "drunk" || seat.role?.id === "marionette") &&
+        !seat.charadeRole
+      ) {
+        const unused = townsfolkList.filter(
+          (t) =>
+            !inPlayRoleIds.has(t.id) &&
+            !usedCharadeIds.has(t.id) &&
+            t.id !== "drunk"
+        );
+        const pool =
+          unused.length > 0
+            ? unused
+            : townsfolkList.filter((t) => t.id !== "drunk");
+        if (pool.length > 0) {
+          const fake = pool[Math.floor(Math.random() * pool.length)];
+          usedCharadeIds.add(fake.id);
+          hasChanges = true;
+          return {
+            ...seat,
+            charadeRole: fake,
+            displayRole: fake,
+          };
+        }
+      } else if (seat.role?.id === "lunatic" && !seat.apparentDemonRole) {
+        const unused = demonList.filter(
+          (d) =>
+            !inPlayRoleIds.has(d.id) &&
+            !usedCharadeIds.has(d.id) &&
+            d.id !== "lunatic"
+        );
+        const pool =
+          unused.length > 0
+            ? unused
+            : demonList.filter((d) => d.id !== "lunatic");
+        if (pool.length > 0) {
+          const fakeDemon = pool[Math.floor(Math.random() * pool.length)];
+          usedCharadeIds.add(fakeDemon.id);
+          hasChanges = true;
+          return {
+            ...seat,
+            apparentDemonRole: fakeDemon,
+            displayRole: fakeDemon,
+          };
+        }
+      }
+      return seat;
+    });
+
+    if (hasChanges) {
+      dispatch(gameActions.setSeats(newSeats));
+      dispatch(gameActions.updateState({ seats: newSeats }));
+      return newSeats;
+    }
+    return seats;
+  };
 
   const {
     playerCount,
@@ -152,6 +334,8 @@ export default function GameSetup({
     const active = seats.filter((s) => s.role);
     const compStatus = getCompositionStatus(active);
     const baronStat = getBaronStatus(active);
+    const marionetteOk =
+      !marionetteStatus || marionetteStatus.valid || ignoreMarionetteSetup;
     return {
       playerCount: active.length,
       counts: {
@@ -165,11 +349,50 @@ export default function GameSetup({
       baronStatus: baronStat,
       canStart:
         (compStatus.valid || ignoreBaronSetup) &&
-        (baronStat.valid || ignoreBaronSetup),
+        (baronStat.valid || ignoreBaronSetup) &&
+        marionetteOk,
     };
-  }, [seats, getCompositionStatus, getBaronStatus, ignoreBaronSetup]);
+  }, [
+    seats,
+    getCompositionStatus,
+    getBaronStatus,
+    ignoreBaronSetup,
+    marionetteStatus,
+    ignoreMarionetteSetup,
+  ]);
 
   const handleAttemptStartGame = () => {
+    if (activeSeats.length < 5) {
+      setCompositionError({
+        standard: { townsfolk: 3, outsider: 0, minion: 1, demon: 1 } as any,
+        actual: {
+          townsfolk: activeSeats.filter((s) => s.role?.type === "townsfolk").length,
+          outsider: activeSeats.filter((s) => s.role?.type === "outsider").length,
+          minion: activeSeats.filter((s) => s.role?.type === "minion").length,
+          demon: activeSeats.filter(
+            (s) => s.role?.type === "demon" || s.role?.id === "legion"
+          ).length,
+        },
+        playerCount: activeSeats.length,
+        hasBaron: false,
+      });
+      setShowCompositionModal(true);
+      return;
+    }
+    const hasDemon = activeSeats.some(
+      (s) => s.role?.type === "demon" || s.role?.id === "legion"
+    );
+    if (!hasDemon) {
+      const compStatus = getCompositionStatus(activeSeats);
+      setCompositionError({
+        standard: (compStatus.standard || { townsfolk: 3, outsider: 0, minion: 1, demon: 1 }) as any,
+        actual: compStatus.actual,
+        playerCount: compStatus.playerCount,
+        hasBaron: compStatus.hasBaron,
+      });
+      setShowCompositionModal(true);
+      return;
+    }
     const compStatus = getCompositionStatus(activeSeats);
     if (!compStatus.valid && compStatus.standard) {
       setCompositionError({
@@ -191,12 +414,30 @@ export default function GameSetup({
       setShowCompositionModal(true);
       return;
     }
+    if (!ignoreMarionetteSetup && marionetteStatus && !marionetteStatus.valid) {
+      setShowMarionetteModal(true);
+      return;
+    }
+
+    // 🎭 若场上有提线木偶、酒鬼、疯子未设定伪装身份，弹出手动选择弹窗供说书人点选
+    if (!charadeStatus.valid) {
+      if (onOpenCharadeModal) {
+        onOpenCharadeModal(null);
+      } else {
+        setShowCharadeModal(true);
+      }
+      return;
+    }
+
     setCompositionError(null);
     setBaronSetupCheck(null);
     handlePreStartNight();
   };
 
   const handleForceStartGame = () => {
+    if (!charadeStatus.valid) {
+      handleAutoAssignCharades();
+    }
     setShowCompositionModal(false);
     handlePreStartNight();
   };
@@ -368,6 +609,76 @@ export default function GameSetup({
           </div>
         )}
 
+        {/* 🎪 提线木偶座次告警 */}
+        {marionetteStatus && !marionetteStatus.valid && !ignoreMarionetteSetup && (
+          <div className="border-l-4 border-amber-500 bg-amber-950/40 p-4 text-base text-amber-100 rounded-r-xl space-y-3 shadow-lg shadow-amber-950/50">
+            <div className="flex items-center gap-2 font-bold text-amber-300">
+              <span className="text-lg">🎪</span>
+              <span>提线木偶座次违规</span>
+            </div>
+            <div className="text-sm text-amber-200/90 leading-relaxed">
+              规则要求：{marionetteStatus.marionetteSeat.id + 1}号【提线木偶】必须与
+              {marionetteStatus.targetRoleDesc}（
+              {marionetteStatus.targetSeats
+                .map((s) => `${s.id + 1}号【${s.role?.name}】`)
+                .join("或")}
+              ）物理相邻！当前未相邻。
+            </div>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <button
+                onClick={handleAutoFixMarionetteSeating}
+                className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 text-sm transition shadow-md shadow-amber-500/20"
+              >
+                🔀 一键调整提线木偶至邻座
+              </button>
+              <button
+                onClick={() => setIgnoreMarionetteSetup(true)}
+                className="rounded-lg border border-amber-400/50 hover:bg-amber-500/10 text-amber-200 px-3 py-2.5 text-sm transition"
+              >
+                忽略此检查
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 🎭 伪装身份配置提示（酒鬼、提线木偶、疯子） */}
+        {!charadeStatus.valid && (
+          <div className="border-l-4 border-indigo-500 bg-indigo-950/40 p-4 text-base text-indigo-100 rounded-r-xl space-y-3 shadow-lg shadow-indigo-950/50">
+            <div className="flex items-center gap-2 font-bold text-indigo-300">
+              <span className="text-lg">🎭</span>
+              <span>待设置伪装身份</span>
+            </div>
+            <div className="text-sm text-indigo-200/90 leading-relaxed">
+              场上有 {charadeStatus.unconfigured.length} 位角色（
+              {charadeStatus.unconfigured
+                .map((s) => `${s.id + 1}号【${s.role?.name}】`)
+                .join("、")}
+              ）需要伪装身份。开始游戏时系统将自动按规则分配不在场的合法身份，您也可提前一键分配。
+            </div>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <button
+                onClick={() => {
+                  if (onOpenCharadeModal) {
+                    onOpenCharadeModal(null);
+                  } else {
+                    setShowCharadeModal(true);
+                  }
+                }}
+                className="rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-4 py-2.5 text-sm transition shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>🎭</span>
+                <span>手动选择伪装身份</span>
+              </button>
+              <button
+                onClick={() => handleAutoAssignCharades()}
+                className="rounded-lg border border-indigo-400/50 hover:bg-indigo-500/10 text-indigo-200 px-3 py-2.5 text-sm transition cursor-pointer"
+              >
+                🎲 一键随机分配
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-300">角色列表</h3>
           <div className="text-sm text-slate-500 mb-3">
@@ -455,14 +766,16 @@ export default function GameSetup({
       <div className="shrink-0 border-t border-white/10 bg-slate-900/95 px-6 py-5">
         <button
           onClick={handleAttemptStartGame}
-          disabled={activeSeats.length === 0}
+          disabled={activeSeats.length < 5}
           className={`w-full rounded-2xl h-16 text-2xl font-black tracking-wide transition ${
-            canStart
+            canStart && activeSeats.length >= 5
               ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400"
               : "bg-amber-500/80 text-slate-950 shadow-lg shadow-amber-500/30 hover:bg-amber-400"
-          } ${activeSeats.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+          } ${activeSeats.length < 5 ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          开始游戏
+          {activeSeats.length < 5
+            ? `请先为至少5名玩家落座 (${activeSeats.length}/5)`
+            : "开始游戏"}
         </button>
       </div>
 
@@ -526,6 +839,73 @@ export default function GameSetup({
         </ModalWrapper>
       )}
 
+      {/* 🎪 提线木偶座次违规拦截弹窗 */}
+      {showMarionetteModal && marionetteStatus && (
+        <ModalWrapper
+          title="🎪 提线木偶座次违规"
+          onClose={() => setShowMarionetteModal(false)}
+          className="max-w-lg"
+          footer={
+            <div className="flex flex-col sm:flex-row gap-3 w-full justify-end">
+              <button
+                onClick={() => setShowMarionetteModal(false)}
+                className="flex-1 rounded-xl border border-white/20 bg-slate-800 text-slate-100 font-bold py-3 hover:bg-slate-700 transition"
+              >
+                返回修改
+              </button>
+              <button
+                onClick={() => {
+                  handleAutoFixMarionetteSeating();
+                  if (!charadeStatus.valid) {
+                    handleAutoAssignCharades();
+                  }
+                  setShowMarionetteModal(false);
+                  handlePreStartNight();
+                }}
+                className="flex-1 rounded-xl bg-amber-500 text-slate-950 font-bold py-3 hover:bg-amber-400 transition"
+              >
+                🔀 一键调整并开始
+              </button>
+              <button
+                onClick={() => {
+                  setIgnoreMarionetteSetup(true);
+                  if (!charadeStatus.valid) {
+                    handleAutoAssignCharades();
+                  }
+                  setShowMarionetteModal(false);
+                  handlePreStartNight();
+                }}
+                className="px-4 py-3 rounded-xl border border-amber-500/50 bg-amber-950/40 text-amber-200 font-bold hover:bg-amber-900/60 transition text-sm"
+              >
+                仍然开始
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-3 text-slate-200">
+            <p>
+              《染·钟楼谜团》官方规则要求：
+              <span className="font-bold text-amber-300">
+                提线木偶必须与{marionetteStatus.targetRoleDesc}物理相邻
+              </span>
+              。
+            </p>
+            <div className="rounded-xl border border-amber-500/40 bg-slate-800/80 p-4 text-sm space-y-2">
+              <div className="text-amber-200">
+                当前：{marionetteStatus.marionetteSeat.id + 1}号【提线木偶】与
+                {marionetteStatus.targetSeats
+                  .map((s) => `${s.id + 1}号【${s.role?.name}】`)
+                  .join("或")}
+                不相邻。
+              </div>
+              <div className="text-xs text-slate-400">
+                建议点击“一键调整并开始”，系统将自动将提线木偶与恶魔身旁的座位互换，确保规则合规。
+              </div>
+            </div>
+          </div>
+        </ModalWrapper>
+      )}
+
       {/* 官方标准阵营人数配比表弹窗 */}
       <PlayerCompositionModal
         isOpen={showCompositionGuideModal}
@@ -546,6 +926,23 @@ export default function GameSetup({
           } else if (onQuickTest) {
             onQuickTest();
           }
+        }}
+      />
+
+      {/* 🎭 伪装身份设置弹窗（提线木偶 / 酒鬼 / 疯子） */}
+      <CharadeConfigModal
+        isOpen={showCharadeModal}
+        onClose={() => setShowCharadeModal(false)}
+        seats={seats}
+        filteredGroupedRoles={filteredGroupedRoles}
+        onConfirm={(configuredSeats) => {
+          dispatch(gameActions.setSeats(configuredSeats));
+          dispatch(gameActions.updateState({ seats: configuredSeats }));
+          setShowCharadeModal(false);
+          // 伪装身份配置完成，继续进入游戏流程
+          setCompositionError(null);
+          setBaronSetupCheck(null);
+          handlePreStartNight();
         }}
       />
     </div>

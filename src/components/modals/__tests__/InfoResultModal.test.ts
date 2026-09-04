@@ -154,4 +154,33 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
     expect(res2.prefix).toBe("9号-管家获得信息");
     expect(res2.result).toBe("选择【7号】作为主人");
   });
+
+  test("赏金猎人信息 - 直接完整显示【X号玩家是邪恶的】且无悬挂括号", () => {
+    const raw1 = "2号玩家是邪恶的";
+    const res1 = parseInfoResult(raw1, "5号-赏金猎人");
+    expect(res1.prefix).toBe("5号-赏金猎人获得信息");
+    expect(res1.result).toBe("2号玩家是邪恶的");
+
+    const raw2 = "唤醒5号【赏金猎人】，指向2号玩家【罂粟种植者】（告诉他2号玩家是邪恶的）。";
+    const res2 = parseInfoResult(raw2, "5号-赏金猎人");
+    expect(res2.prefix).toBe("5号-赏金猎人获得信息");
+    expect(res2.result).toBe("2号玩家是邪恶的");
+
+    // 防御测试：去除意外的悬挂右括号
+    const raw3 = "该玩家是邪恶阵营)";
+    const res3 = parseInfoResult(raw3, "5号-赏金猎人");
+    expect(res3.result).toBe("该玩家是邪恶阵营");
+  });
+
+  test("杂耍艺人信息 - 完整大字显示【得知的数字为X】", () => {
+    const raw = "得知的数字为3";
+    const res = parseInfoResult(raw, "6号-杂耍艺人");
+    expect(res.prefix).toBe("6号-杂耍艺人获得信息");
+    expect(res.result).toBe("得知的数字为3");
+
+    const raw0 = "得知的数字为0";
+    const res0 = parseInfoResult(raw0, "6号-杂耍艺人");
+    expect(res0.prefix).toBe("6号-杂耍艺人获得信息");
+    expect(res0.result).toBe("得知的数字为0");
+  });
 });

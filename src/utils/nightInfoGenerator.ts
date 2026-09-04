@@ -180,11 +180,23 @@ export function generateNightInfo(
     addLog: () => {},
   };
 
-  // 调用 dialog 函数生成 guide/speak/action
-  const dialog = nightConfig.dialog(currentSeatId, isFirstNight, context);
-  const guide = dialog.wake || "";
-  const speak = dialog.instruction || "";
-  const action = dialog.close || "";
+  // 调用 dialog 函数生成 guide/speak/action（安全防御检查）
+  let guide = "";
+  let speak = "";
+  let action = "";
+  if (typeof nightConfig.dialog === "function") {
+    const dialog = nightConfig.dialog(currentSeatId, isFirstNight, context) || {};
+    guide = dialog.wake || "";
+    speak = dialog.instruction || "";
+    action = dialog.close || "";
+  } else if (nightConfig.dialog && typeof nightConfig.dialog === "object") {
+    const d = nightConfig.dialog as any;
+    guide = d.wake || d.action || "";
+    speak = d.instruction || "";
+    action = d.close || "";
+  } else if (typeof nightConfig.dialog === "string") {
+    guide = nightConfig.dialog;
+  }
 
   // 从 target 配置生成 targetLimit/validTargetIds
   let targetLimit = { min: 0, max: 0 };

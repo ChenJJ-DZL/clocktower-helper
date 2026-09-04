@@ -22,7 +22,7 @@ export function parseInfoResult(
   };
 
   const formatResult = (r: string) => {
-    let clean = r.trim().replace(/[。.\s]+$/, "");
+    let clean = r.trim().replace(/[。.\s]+$/, "").replace(/[）)]+$/, "");
     // 清理冗余的 "玩家 X(X号)" 为 "X号"
     clean = clean.replace(/玩家\s*\d+\s*[（(](\d+号)[）)]/g, "$1");
     clean = clean.replace(/(\d+号)\s+(的角色)/g, "$1$2");
@@ -58,6 +58,14 @@ export function parseInfoResult(
   }
 
   const trimmed = resultText.trim();
+
+  // 特殊处理杂耍艺人专属文案：“得知的数字为X”
+  if (/^得知的数字为\s*\d+$/.test(trimmed)) {
+    return {
+      prefix: roleName ? formatPrefix(`${roleName}获得信息`) : "获得信息",
+      result: trimmed,
+    };
+  }
 
   // 0. 特殊处理互认步骤（如 12号-爪牙互认、15号-恶魔互认、军团互认）
   //    第一行小字展示角色互认步骤名（如 12号-爪牙互认），后续行大字展示纯座位号互认信息

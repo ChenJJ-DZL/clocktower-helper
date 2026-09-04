@@ -167,42 +167,16 @@ export function generateAndSortQuickStartLineup(
     ...finalDemons,
   ];
 
-  // 4. 特殊角色伪装配置 (酒鬼 Drunk / 疯子 Lunatic)
-  const inPlayRoleIds = new Set(rawSelected.map((r) => r.id));
+  // 4. 特殊角色伪装配置：根据官方规则，落座时保持原角色（无伪装身份），必须由说书人右键设置或下一步强制弹窗手动选择
   const processedRoles = rawSelected.map((r) => {
     const roleCopy = { ...r } as Role & {
       charadeRole?: Role | null;
       apparentDemonRole?: Role | null;
       displayRole?: Role | null;
     };
-
-    if (r.id === "drunk") {
-      const unusedTownsfolk = groups.townsfolk.filter(
-        (t) => !inPlayRoleIds.has(t.id) && t.id !== "drunk"
-      );
-      const pool =
-        unusedTownsfolk.length > 0
-          ? unusedTownsfolk
-          : groups.townsfolk.filter((t) => t.id !== "drunk");
-      if (pool.length > 0) {
-        const fakeRole = pool[Math.floor(Math.random() * pool.length)];
-        roleCopy.charadeRole = fakeRole;
-        roleCopy.displayRole = fakeRole;
-      }
-    } else if (r.id === "lunatic") {
-      const unusedDemons = groups.demon.filter(
-        (d) => !inPlayRoleIds.has(d.id) && d.id !== "lunatic"
-      );
-      const pool =
-        unusedDemons.length > 0
-          ? unusedDemons
-          : groups.demon.filter((d) => d.id !== "lunatic");
-      if (pool.length > 0) {
-        const fakeDemon = pool[Math.floor(Math.random() * pool.length)];
-        roleCopy.apparentDemonRole = fakeDemon;
-        roleCopy.displayRole = fakeDemon;
-      }
-    }
+    roleCopy.charadeRole = null;
+    roleCopy.apparentDemonRole = null;
+    roleCopy.displayRole = null;
     return roleCopy;
   });
 
@@ -228,8 +202,11 @@ export function generateAndSortQuickStartLineup(
     return a.id.localeCompare(b.id);
   });
 
+  // 6. 🎪 提线木偶（Marionette）特殊座次规则：必须与恶魔相邻（小怪宝时与爪牙相邻）
+  const ensuredRoles = ensureMarionetteAdjacency(sortedRoles);
+
   return {
-    sortedRoles,
+    sortedRoles: ensuredRoles,
     hasBaron,
     composition: {
       townsfolk: pickedTownsfolk.length,
@@ -238,4 +215,43 @@ export function generateAndSortQuickStartLineup(
       demon: finalDemons.length,
     },
   };
+}
+
+/**
+ * 🎪 提线木偶（Marionette）邻座保障算法
+ * 官方规则：提线木偶必须与恶魔相邻；若恶魔为小怪宝（Lil' Monsta）则必须与一名爪牙相邻。
+ * 无论外部如何洗牌打乱，此函数保证提线木偶在圆环上与目标物理相邻。
+ */
+export function ensureMarionetteAdjacency<T extends { id: string; type: string }>(
+  roles: T[]
+): T[] {
+  const result = [...roles];
+  const marionetteIdx = result.findIndex((r) => r.id === "marionette");
+  if (marionetteIdx === -1 || result.length <= 2) return result;
+
+  const hasLilMonsta = result.some((r) => r.id === "lil_monsta");
+  const targetIdx = result.findIndex(
+    hasLilMonsta
+      ? (r) => r.type === "minion" && r.id !== "marionette"
+      : (r) => r.type === "demon"
+  );
+
+  if (targetIdx === -1) return result;
+
+  const len = result.length;
+  const diff = Math.abs(marionetteIdx - targetIdx);
+  const isAdjacent = diff === 1 || diff === len - 1;
+
+  if (!isAdjacent) {
+    const [mRole] = result.splice(marionetteIdx, 1);
+    const newTargetIdx = result.findIndex(
+      hasLilMonsta
+        ? (r) => r.type === "minion" && r.id !== "marionette"
+        : (r) => r.type === "demon"
+    );
+    // 优先插入到恶魔邻座（newTargetIdx + 1）
+    result.splice((newTargetIdx + 1) % (result.length + 1), 0, mRole);
+  }
+
+  return result;
 }

@@ -83,4 +83,25 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:155-0!canonical and tim
     maxUses: 1,
     target: { min: 0, max: 0 },
   },
+  night: {
+    order: (isFirstNight) => (isFirstNight ? 0 : 100),
+    target: {
+      count: { min: 0, max: 0 },
+    },
+    dialog: (playerSeatId: number, isFirstNight: boolean, context: any) => {
+      if (isFirstNight) {
+        return { wake: "", instruction: "", close: "" };
+      }
+      const seat = context?.seats?.find((s: any) => s.id === playerSeatId);
+      const correctCount =
+        seat?.dayAbilityResult?.correctCount ??
+        context?.jugglerCorrectCount ??
+        0;
+      return {
+        wake: `唤醒${playerSeatId + 1}号【杂耍艺人】，告诉他得知的数字为${correctCount}（手势比划 ${correctCount}）。`,
+        instruction: `得知的数字为${correctCount}`,
+        close: "让杂耍艺人重新入睡。",
+      };
+    },
+  },
 };

@@ -46,30 +46,53 @@ const firstDayOnlyCheck = async (
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const guesses =
-    ctx.storytellerInput?.guesses ?? (ctx.snapshot as any).jugglerGuesses ?? [];
-  let correctCount = ctx.storytellerInput?.correctCount;
+  if (ctx.aborted) return ctx;
+
+  const seat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
+  let correctCount =
+    ctx.storytellerInput?.correctCount ??
+    seat?.dayAbilityResult?.correctCount ??
+    (ctx.snapshot as any).jugglerCorrectCount;
+
   if (correctCount === undefined) {
+    const rawGuesses =
+      ctx.storytellerInput?.guesses ??
+      (ctx.snapshot as any).jugglerGuesses ??
+      [];
+    const guessList = Array.isArray(rawGuesses)
+      ? rawGuesses
+      : typeof rawGuesses === "object" && rawGuesses !== null
+        ? Object.entries(rawGuesses).map(([targetSeatId, roleName]) => ({
+            targetSeatId: Number(targetSeatId),
+            roleName:
+              typeof roleName === "string"
+                ? roleName
+                : (roleName as any)?.roleName,
+          }))
+        : [];
+
     correctCount = 0;
-    for (const g of guesses) {
-      const seat = ctx.snapshot.seats.find((s: any) => s.id === g.targetSeatId);
+    for (const g of guessList) {
+      const s = ctx.snapshot.seats.find((st: any) => st.id === g.targetSeatId);
       if (
-        seat &&
-        (seat.role?.name === g.roleName ||
-          seat.role?.id === g.roleId ||
-          (seat as any).charadeRole?.name === g.roleName)
+        s &&
+        (s.role?.name === g.roleName ||
+          s.role?.id === (g as any).roleId ||
+          (s as any).charadeRole?.name === g.roleName)
       ) {
         correctCount++;
       }
     }
   }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
-        guesses,
-        correctCount,
+        correctCount: Number(correctCount) || 0,
         used: true,
       },
     },
@@ -79,10 +102,9 @@ const calculate = async (
 const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  if (ctx.aborted) return ctx;
   const r = ctx.meta.abilityResult as any;
-  if (!ctx.aborted) {
-    consumeLimitedAbility(ctx.actionNode.seatId, "juggler_guess");
-  }
+  consumeLimitedAbility(ctx.actionNode.seatId, "juggler_guess");
   return {
     ...ctx,
     snapshot: {
@@ -99,18 +121,20 @@ const stateUpdate = async (
 const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  if (ctx.aborted) return ctx;
   const r = ctx.meta.abilityResult as any;
-  const log = `[杂耍艺人] 猜对了${r?.correctCount ?? 0}个`;
-  console.log(log);
+  const count = r?.correctCount ?? 0;
+  const log = `得知的数字为${count}（猜对了${count}个）`;
+  console.log(`[杂耍艺人] ${log}`);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: `唤醒${ctx.actionNode.seatId + 1}号【杂耍艺人】，选择5名玩家并猜测他们的角色。`,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【杂耍艺人】，告诉他得知的数字为${count}（手势比划 ${count}）。`,
       abilityLog: log,
       displayInfo: {
         type: "juggler_info",
-        correctCount: r?.correctCount ?? 0,
+        correctCount: count,
         log,
       },
     },
@@ -121,15 +145,13 @@ export const jugglerAbility = createRoleAbility({
   roleId: "juggler",
   abilityId: "juggler_guess",
   abilityName: "杂耍猜测",
-  triggerTiming: [AbilityTriggerTiming.DAY],
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT, AbilityTriggerTiming.DAY],
   firstNightPriority: null,
   otherNightPriority: 100,
   firstNightOnly: false,
   wakePromptId: "role.juggler.wake",
-  // 🔧 修复：杂耍艺人官方规则"每局一次，选择最多5名玩家"——可选0~5名（可跳过），
-  //   min:5 在存活玩家不足5人时无法满足 → I5 违规。
-  targetConfig: { min: 0, max: 5, allowSelf: false, allowDead: false },
-  preCheck: [commonPreCheckAlive, firstDayOnlyCheck, preCheckLimitedAbility],
+  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  preCheck: [commonPreCheckAlive, firstDayOnlyCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],

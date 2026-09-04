@@ -750,6 +750,13 @@ export function useDayActions(deps: DayActionsDeps) {
           );
           return;
         }
+        if (res.type === "JUGGLER_JUDGE" || res.correctCount !== undefined) {
+          showAlert(
+            `杂耍艺人公开猜测结果：\n得知的数字为 ${res.correctCount ?? 0}（猜对 ${res.correctCount ?? 0} 个角色）`,
+            "🤹 杂耍艺人技能结果"
+          );
+          return;
+        }
         if (res.message || res.summary) {
           showAlert(res.message || res.summary, `${displayRoleName} 技能结果`);
           return;
@@ -827,6 +834,19 @@ export function useDayActions(deps: DayActionsDeps) {
         );
         setCurrentModal({
           type: "GAMBLER_JUDGE",
+          data: { seatId: sourceSeatId },
+        });
+        return;
+      }
+
+      // ── 杂耍艺人专用：说书人核对座位角色并记录猜对次数 ────────────────
+      if (effectiveRole.id === "juggler") {
+        if (sourceSeat.hasUsedDayAbility) {
+          handleViewDayAbilityResult(sourceSeatId);
+          return;
+        }
+        setCurrentModal({
+          type: "JUGGLER_JUDGE",
           data: { seatId: sourceSeatId },
         });
         return;

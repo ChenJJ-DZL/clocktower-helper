@@ -315,21 +315,37 @@ export const GameConsole = React.memo(function GameConsole({
         {/* 🎪 提线木偶座次告警 */}
         {(() => {
           const marionetteSeat = seats.find((s) => s.role?.id === "marionette");
-          const demonSeat = seats.find((s) => s.role?.type === "demon");
-          if (marionetteSeat && demonSeat && seats.length > 2) {
-            const diff = Math.abs(marionetteSeat.id - demonSeat.id);
-            const isAdjacent = diff === 1 || diff === seats.length - 1;
-            if (!isAdjacent) {
-              return (
-                <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 text-amber-200 text-xs font-bold flex items-center gap-2">
-                  <span className="text-base">⚠️</span>
-                  <span>
-                    提线木偶座次告警：{marionetteSeat.id + 1}
-                    号提线木偶必须与恶魔（{demonSeat.id + 1}号）物理相邻！
-                  </span>
-                </div>
-              );
-            }
+          if (!marionetteSeat || seats.length <= 2) return null;
+
+          const hasLilMonsta = seats.some((s) => s.role?.id === "lil_monsta");
+          const targetSeats = hasLilMonsta
+            ? seats.filter(
+                (s) => s.role?.type === "minion" && s.id !== marionetteSeat.id
+              )
+            : seats.filter((s) => s.role?.type === "demon");
+
+          if (targetSeats.length === 0) return null;
+
+          const diffs = targetSeats.map((t) =>
+            Math.abs(marionetteSeat.id - t.id)
+          );
+          const isAdjacent = diffs.some(
+            (d) => d === 1 || d === seats.length - 1
+          );
+          if (!isAdjacent) {
+            const desc = hasLilMonsta ? "爪牙" : "恶魔";
+            const targetNames = targetSeats
+              .map((s) => `${s.id + 1}号【${s.role?.name}】`)
+              .join("或");
+            return (
+              <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 text-amber-200 text-xs font-bold flex items-center gap-2">
+                <span className="text-base">⚠️</span>
+                <span>
+                  提线木偶座次告警：{marionetteSeat.id + 1}号提线木偶必须与{desc}（
+                  {targetNames}）物理相邻！
+                </span>
+              </div>
+            );
           }
           return null;
         })()}
@@ -764,6 +780,10 @@ export const GameConsole = React.memo(function GameConsole({
                           <button
                             onClick={() => {
                               if (!handleDayAbility) return;
+                              if (effectiveRole?.id === "juggler") {
+                                handleDayAbility(seat.id);
+                                return;
+                              }
                               showConfirm({
                                 title: "使用技能",
                                 message: `确定使用 ${abilityName} 吗？`,

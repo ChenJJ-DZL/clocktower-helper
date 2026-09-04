@@ -10,6 +10,7 @@ import {
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
+import { showAlert } from "../utils/nativeDialogShim";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 
 /**
@@ -437,24 +438,75 @@ export function useGameFlow(): UseGameFlowResult {
   const proceedToCheckPhase = useCallback(
     (seatsToUse: Seat[]) => {
       const active = seatsToUse.filter((s) => s.role);
+      if (active.length < 5) {
+        showAlert(
+          `当前仅有 ${active.length} 名玩家落座角色（官方规则最少需 5 人才能开局）。请先在圆桌上为至少 5 名玩家分配角色。`
+        );
+        return;
+      }
+      const hasDemon = active.some(
+        (s) => s.role?.type === "demon" || s.role?.id === "legion"
+      );
+      if (!hasDemon) {
+        showAlert("当前阵容尚未分配恶魔（或军团）角色，无法开始游戏。请至少分配一名恶魔。");
+        return;
+      }
       const processedSeats = active.map((seat) => {
         let nextDisplayRole = seat.displayRole || seat.role;
-        // 处理酒鬼和疯子的初始显示
-        if (seat.role?.id === "drunk") {
+        // 处理酒鬼、提线木偶和疯子的初始显示
+        if (seat.role?.id === "drunk" || seat.role?.id === "marionette") {
           nextDisplayRole = seat.charadeRole || nextDisplayRole;
+        } else if (seat.role?.id === "lunatic") {
+          nextDisplayRole = seat.apparentDemonRole || nextDisplayRole;
         }
         return { ...seat, displayRole: nextDisplayRole };
       });
 
       const compact = processedSeats.map((s, i) => ({ ...s, id: i }));
-
-      // 占卜师红罗剎分配
       const withRed = [...compact];
+
+      // 1. 赏金猎人开局转邪恶镇民分配（必须先于红罗刹分配，确立阵营归属）
+      const bhIndex = withRed.findIndex((s) => s.role?.id === "bounty_hunter");
+      if (bhIndex !== -1 && !withRed.some((s) => s.isEvilConverted)) {
+        const townsfolkCandidates = withRed.filter(
+          (s) => s.id !== bhIndex && s.role?.type === "townsfolk"
+        );
+        if (townsfolkCandidates.length > 0) {
+          const t = getRandom(townsfolkCandidates);
+          if (t) {
+            withRed[t.id].isEvilConverted = true;
+            (withRed[t.id] as any).alignment = "evil";
+            // 官方规则：若该玩家此前有红罗刹标记，转为邪恶后必须剥离红罗刹
+            if (withRed[t.id].isRedHerring || withRed[t.id].isFortuneTellerRedHerring) {
+              withRed[t.id].isRedHerring = false;
+              withRed[t.id].isFortuneTellerRedHerring = false;
+            }
+            const prev = (withRed[t.id].statusDetails || []).filter(
+              (d) => d !== "天敌红罗剎"
+            );
+            withRed[t.id].statusDetails = prev.includes("转为邪恶")
+              ? prev
+              : [...prev, "转为邪恶"];
+            (withRed[bhIndex] as any).bountyHunterEvilConvertedId = t.id;
+            dispatch(
+              gameActions.addLog({
+                day: 0,
+                phase: "setup",
+                message: `赏金猎人在场：${t.id + 1}号【${withRed[t.id].role?.name}】转变为邪恶阵营`,
+              })
+            );
+          }
+        }
+      }
+
+      // 2. 占卜师红罗剎分配（官方规则：必须是一名真正的善良玩家，邪恶玩家绝不能是红罗刹）
       const ftIndex = withRed.findIndex((s) => s.role?.id === "fortune_teller");
       if (ftIndex !== -1 && !withRed.some((s) => s.isRedHerring)) {
         const goodCandidates = withRed.filter(
           (s) =>
             ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+            !s.isEvilConverted &&
+            (s as any).alignment !== "evil" &&
             isGoodAlignment(s)
         );
         if (goodCandidates.length > 0) {
@@ -477,6 +529,80 @@ export function useGameFlow(): UseGameFlowResult {
         }
       }
 
+      // 🎭 提线木偶、酒鬼、疯子伪装身份强制补齐与设定
+      const inPlayIds = new Set(withRed.map((s) => s.role?.id).filter(Boolean));
+      const takenCharadeIds = new Set(
+        withRed
+          .map((s) => s.charadeRole?.id || s.apparentDemonRole?.id)
+          .filter(Boolean) as string[]
+      );
+
+      const scriptRoleIds = new Set(selectedScript?.roleIds || []);
+      const scriptRoles = globalRoles.filter((r) =>
+        scriptRoleIds.size > 0 ? scriptRoleIds.has(r.id) : true
+      );
+
+      withRed.forEach((seat) => {
+        if (
+          (seat.role?.id === "drunk" || seat.role?.id === "marionette") &&
+          !seat.charadeRole
+        ) {
+          const availableTownsfolk = scriptRoles.filter(
+            (r) =>
+              r.type === "townsfolk" &&
+              !inPlayIds.has(r.id) &&
+              !takenCharadeIds.has(r.id)
+          );
+          const pool =
+            availableTownsfolk.length > 0
+              ? availableTownsfolk
+              : scriptRoles.filter((r) => r.type === "townsfolk");
+          if (pool.length > 0) {
+            const fake = getRandom(pool);
+            if (fake) {
+              takenCharadeIds.add(fake.id);
+              seat.charadeRole = fake;
+              seat.displayRole = fake;
+              const roleTitle =
+                seat.role.id === "marionette" ? "提线木偶" : "酒鬼";
+              dispatch(
+                gameActions.addLog({
+                  day: 0,
+                  phase: "setup",
+                  message: `伪装身份设定：${seat.id + 1}号【${roleTitle}】以为自己是【${fake.name}】`,
+                })
+              );
+            }
+          }
+        } else if (seat.role?.id === "lunatic" && !seat.apparentDemonRole) {
+          const availableDemons = scriptRoles.filter(
+            (r) =>
+              r.type === "demon" &&
+              !inPlayIds.has(r.id) &&
+              !takenCharadeIds.has(r.id)
+          );
+          const pool =
+            availableDemons.length > 0
+              ? availableDemons
+              : scriptRoles.filter((r) => r.type === "demon");
+          if (pool.length > 0) {
+            const fakeDemon = getRandom(pool);
+            if (fakeDemon) {
+              takenCharadeIds.add(fakeDemon.id);
+              seat.apparentDemonRole = fakeDemon;
+              seat.displayRole = fakeDemon;
+              dispatch(
+                gameActions.addLog({
+                  day: 0,
+                  phase: "setup",
+                  message: `伪装身份设定：${seat.id + 1}号【疯子】以为自己是【${fakeDemon.name}】`,
+                })
+              );
+            }
+          }
+        }
+      });
+
       dispatch(gameActions.setSeats(withRed));
       dispatch(
         gameActions.updateState({
@@ -492,7 +618,7 @@ export function useGameFlow(): UseGameFlowResult {
         })
       );
     },
-    [dispatch]
+    [dispatch, selectedScript]
   );
 
   const handlePreStartNight = useCallback(() => {
@@ -603,6 +729,24 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
+      // 🛡️ 校验落座人数（至少 5 人）
+      const seatedSeats = seats.filter((s) => !!s.role);
+      if (seatedSeats.length < 5) {
+        showAlert(
+          `当前落座玩家仅有 ${seatedSeats.length} 人（官方规则最少需 5 人才能开局），请先完成角色分配后再开始首夜。`
+        );
+        return;
+      }
+
+      // 🛡️ 校验必须包含恶魔
+      const hasDemon = seats.some(
+        (s) => s.role?.type === "demon" || s.role?.id === "legion"
+      );
+      if (!hasDemon) {
+        showAlert("当前阵容尚未分配恶魔（或军团）角色，无法开始首夜。请至少分配一名恶魔。");
+        return;
+      }
+
       // 酒鬼/提线木偶伪装身份检查 - 弹出模态框引导设置
       const missingCharadeSeat = seats.find(
         (s) =>
@@ -645,6 +789,46 @@ export function useGameFlow(): UseGameFlowResult {
         return;
       }
 
+      // 疯子伪装恶魔检查 - 若未设置，自动分配不在场的恶魔
+      const missingLunaticSeat = seats.find(
+        (s) => s.role?.id === "lunatic" && !s.apparentDemonRole
+      );
+      if (missingLunaticSeat) {
+        const seatedRoleIds = new Set(
+          seats.map((s) => s.role?.id).filter(Boolean)
+        );
+        const scriptRoles = (selectedScript?.roleIds ?? [])
+          .map((rid) => globalRoles.find((r) => r.id === rid))
+          .filter((r): r is Role => !!r);
+        const availableDemons = scriptRoles.filter(
+          (r) => r.type === "demon" && !seatedRoleIds.has(r.id)
+        );
+        const pool =
+          availableDemons.length > 0
+            ? availableDemons
+            : scriptRoles.filter((r) => r.type === "demon");
+        if (pool.length > 0) {
+          const fakeDemon = getRandom(pool);
+          if (fakeDemon) {
+            missingLunaticSeat.apparentDemonRole = fakeDemon;
+            missingLunaticSeat.displayRole = fakeDemon;
+            dispatch(
+              gameActions.setSeats(
+                seats.map((s) =>
+                  s.id === missingLunaticSeat.id
+                    ? {
+                        ...s,
+                        apparentDemonRole: fakeDemon,
+                        displayRole: fakeDemon,
+                      }
+                    : s
+                )
+              )
+            );
+          }
+        }
+      }
+
       // 红罗刹检查：有占卜师时必须设置红罗刹
       const hasFortuneTeller = seats.some(
         (s) => s.role?.id === "fortune_teller"
@@ -661,6 +845,8 @@ export function useGameFlow(): UseGameFlowResult {
             s.role &&
             s.role.type !== "demon" &&
             s.role.type !== "minion" &&
+            !s.isEvilConverted &&
+            (s as any).alignment !== "evil" &&
             !s.isDead
         );
         // 🔧 修复：自动指派红罗刹（不再强制弹窗拦截，确保 startFirstNight 正常触发）

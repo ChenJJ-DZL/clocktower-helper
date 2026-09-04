@@ -67,9 +67,14 @@ const calculateResult = async (
       }
     }
 
-    // 如果未选中（正常情况或虚假失败），从邪恶玩家中随机选
+    // 如果未选中（正常情况或虚假失败），从邪恶玩家中选择：
+    // 🎯 规则：只要有其他邪恶玩家在场，优先得知非恶魔的其他玩家（爪牙、转邪恶镇民等），避免开局直接暴露恶魔
     if (targetId === null && aliveEvils.length > 0) {
-      targetId = aliveEvils[Math.floor(Math.random() * aliveEvils.length)].id;
+      const nonDemonEvils = aliveEvils.filter(
+        (s: any) => s.role?.type !== "demon"
+      );
+      const pool = nonDemonEvils.length > 0 ? nonDemonEvils : aliveEvils;
+      targetId = pool[Math.floor(Math.random() * pool.length)].id;
     }
   }
 
@@ -151,19 +156,44 @@ const saveResult = async (
   };
 };
 
-// 日志输出
+// 日志输出与 UI 展示信息
 const logResult = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   const tag = ctx.meta.isCorrupted ? "【受干扰】" : "";
   const rot = r?.isRotationTrigger ? "（死亡轮转）" : "";
-  const log =
-    r?.targetId != null
-      ? `[BountyHunter]${tag}${rot} 得知 ${r.targetId + 1}号是邪恶玩家`
-      : "[BountyHunter] 未发现邪恶玩家";
-  console.log(log);
-  return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };
+  const selfSeatId = ctx.actionNode.seatId;
+
+  let abilityLog = "";
+  let prompt = "";
+
+  if (r?.targetId != null) {
+    abilityLog = `赏金猎人${tag}${rot}得知：${r.targetId + 1}号玩家是邪恶的`;
+    prompt = `唤醒${selfSeatId + 1}号【赏金猎人】，指向${r.targetId + 1}号玩家（告诉他${r.targetId + 1}号玩家是邪恶的）。`;
+  } else {
+    abilityLog = `赏金猎人${tag}${rot}未发现邪恶玩家`;
+    prompt = `唤醒${selfSeatId + 1}号【赏金猎人】，未发现新的邪恶玩家。`;
+  }
+
+  console.log(`[BountyHunter] ${abilityLog}`);
+
+  return {
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      abilityLog,
+      prompt,
+      displayInfo: {
+        type: "bounty_hunter_info",
+        targetId: r?.targetId,
+        targetPlayerName: r?.targetPlayerName,
+        isCorrupted: ctx.meta.isCorrupted ?? false,
+        isRotationTrigger: r?.isRotationTrigger ?? false,
+        log: abilityLog,
+      },
+    },
+  };
 };
 
 export const bounty_hunterAbility = createRoleAbility({

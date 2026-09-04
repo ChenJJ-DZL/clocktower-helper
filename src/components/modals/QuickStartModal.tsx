@@ -11,6 +11,7 @@ import {
   generateAndSortQuickStartLineup,
   STANDARD_COMPOSITIONS,
   shuffle,
+  ensureMarionetteAdjacency,
 } from "../../utils/quickStartGenerator";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -231,8 +232,10 @@ export function QuickStartModal({
             type="button"
             onClick={() => {
               if (lineupData && lineupData.sortedRoles.length > 0) {
-                // 🎲 按照当前筛选的角色清单随机分配座位号
-                const randomizedRoles = shuffle(lineupData.sortedRoles);
+                // 🎲 按照当前筛选的角色清单随机分配座位号，并严格保障提线木偶与恶魔物理相邻
+                const randomizedRoles = ensureMarionetteAdjacency(
+                  shuffle(lineupData.sortedRoles)
+                );
                 onConfirm(selectedCount, randomizedRoles);
                 onClose();
               }

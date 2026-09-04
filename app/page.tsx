@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
@@ -12,6 +12,7 @@ import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
 import type { GameRecord, NightHintState } from "../src/types/game";
 import { type Role, roles, type Seat, scripts, typeColors } from "./data";
+import { ensureMarionetteAdjacency } from "@/src/utils/quickStartGenerator";
 
 // getSeatRoleId is now imported from useGameController
 
@@ -28,6 +29,7 @@ import { GameModals } from "@/src/components/game/GameModals";
 import { GlobalNavBar } from "@/src/components/game/GlobalNavBar";
 import GameSetup from "@/src/components/game/setup/GameSetup";
 import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
+import { CharadeConfigModal } from "@/src/components/modals/CharadeConfigModal";
 import { GrimoireTooltipProvider } from "@/src/components/tooltip/GrimoireTooltip";
 import { useAudio } from "@/src/hooks/useAudio";
 
@@ -132,6 +134,10 @@ export default function Home() {
     getDisplayRoleForSeat,
     setRedNemesisTarget,
   } = controller;
+
+  // 🎭 伪装身份设置弹窗（右键座位号设置 或 开始游戏强制设置）
+  const [showCharadeModal, setShowCharadeModal] = useState<boolean>(false);
+  const [charadeModalTargetSeatId, setCharadeModalTargetSeatId] = useState<number | null>(null);
 
   // 从对局记录快照恢复游戏
   const handleContinueGame = useCallback(
@@ -409,8 +415,9 @@ export default function Home() {
       if (!selectedScript || !sortedRoles || sortedRoles.length === 0) return;
 
       const targetCount = playerCount || sortedRoles.length;
+      const ensuredRoles = ensureMarionetteAdjacency(sortedRoles);
       const newSeats: Seat[] = Array.from({ length: targetCount }, (_, i) => {
-        const roleData = sortedRoles[i] || null;
+        const roleData = ensuredRoles[i] || null;
         const baseSeat = seats[i] || {
           id: i,
           playerName: `玩家 ${i + 1}`,
@@ -471,6 +478,8 @@ export default function Home() {
           let roleName = s.role?.name || "未知";
           if (s.role?.id === "drunk" && s.charadeRole?.name) {
             roleName = `酒鬼(伪:${s.charadeRole.name})`;
+          } else if (s.role?.id === "marionette" && s.charadeRole?.name) {
+            roleName = `提线木偶(伪:${s.charadeRole.name})`;
           } else if (s.role?.id === "lunatic" && s.apparentDemonRole?.name) {
             roleName = `疯子(伪:${s.apparentDemonRole.name})`;
           }
@@ -1080,6 +1089,10 @@ export default function Home() {
                         hideSeatingChart={false}
                         onQuickTest={handleQuickTest}
                         onQuickStart={handleQuickStart}
+                        onOpenCharadeModal={(targetId?: number | null) => {
+                          setCharadeModalTargetSeatId(targetId ?? null);
+                          setShowCharadeModal(true);
+                        }}
                       />
                     </div>
                   </div>
@@ -1142,8 +1155,33 @@ export default function Home() {
                   </button>
                 )}
 
+                {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子） */}
+                {seats[contextMenu.seatId]?.role &&
+                  (seats[contextMenu.seatId]?.role?.id === "drunk" ||
+                    seats[contextMenu.seatId]?.role?.id === "marionette" ||
+                    seats[contextMenu.seatId]?.role?.id === "lunatic") && (
+                    <button
+                      className="w-full text-left px-4 py-2 hover:bg-purple-900/60 text-purple-300 font-bold text-sm flex items-center gap-2 border-b border-gray-700/50 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const seatId = contextMenu.seatId;
+                        setCharadeModalTargetSeatId(seatId);
+                        setShowCharadeModal(true);
+                        setContextMenu(null);
+                      }}
+                    >
+                      <span>🎭</span>
+                      <span>
+                        {seats[contextMenu.seatId]?.charadeRole ||
+                        seats[contextMenu.seatId]?.apparentDemonRole
+                          ? `更改伪装 (${(seats[contextMenu.seatId]?.charadeRole || seats[contextMenu.seatId]?.apparentDemonRole)?.name})`
+                          : "设置伪装身份"}
+                      </span>
+                    </button>
+                  )}
+
                 <button
-                  className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2 transition-colors"
+                  className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2 transition-colors cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (controller.setRedNemesisTarget) {
@@ -1161,6 +1199,32 @@ export default function Home() {
                 {/* 这里可以扩展更多选项，如“设为酒鬼”等 */}
               </div>
             )}
+
+            {/* 🎭 伪装身份设置弹窗（右键座位号设置 或 开始游戏强制设置） */}
+            <CharadeConfigModal
+              isOpen={showCharadeModal}
+              onClose={() => {
+                setShowCharadeModal(false);
+                setCharadeModalTargetSeatId(null);
+              }}
+              seats={seats}
+              filteredGroupedRoles={filteredGroupedRoles}
+              targetSeatId={charadeModalTargetSeatId}
+              onConfirm={(configuredSeats) => {
+                dispatch(gameActions.setSeats(configuredSeats));
+                dispatch(gameActions.updateState({ seats: configuredSeats }));
+                dispatch(gameActions.saveHistory({ seats: configuredSeats }));
+                setShowCharadeModal(false);
+                setCharadeModalTargetSeatId(null);
+                dispatch(
+                  gameActions.addLog({
+                    day: 0,
+                    phase: "setup",
+                    message: `🎭 说书人已更新伪装身份设置`,
+                  })
+                );
+              }}
+            />
           </motion.div>
         </ScaleLayout>
       </GrimoireTooltipProvider>

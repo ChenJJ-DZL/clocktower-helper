@@ -90,14 +90,13 @@ describe("QuickStartModal (快速开始) 阵容生成与排序测试", () => {
     expect(baronFound).toBe(true);
   });
 
-  it("当抽中酒鬼时，应为其自动指派不在场的镇民伪装身份", () => {
+  it("当抽中酒鬼时，落座时保持原角色无伪装身份（charadeRole为null），等待说书人手动弹窗选择", () => {
     for (let i = 0; i < 50; i++) {
       const res = generateAndSortQuickStartLineup(tbScript, roles, 9);
       const drunk = res.sortedRoles.find((r) => r.id === "drunk");
       if (drunk) {
-        expect(drunk.charadeRole).toBeDefined();
-        expect(drunk.charadeRole?.type).toBe("townsfolk");
-        expect(drunk.charadeRole?.id).not.toBe("drunk");
+        expect(drunk.charadeRole).toBeNull();
+        expect(drunk.id).toBe("drunk");
         break;
       }
     }

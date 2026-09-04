@@ -32,6 +32,7 @@ import {
   createSnapshotFromState,
   saveCurrentSnapshot,
 } from "../utils/persistence";
+import { showAlert } from "../utils/nativeDialogShim";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import {
   isZombuulNightImmune,
@@ -485,6 +486,8 @@ export function useGameController() {
               (s) =>
                 !s.isDead &&
                 ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+                !s.isEvilConverted &&
+                (s as any).alignment !== "evil" &&
                 isGoodAlignment(s) &&
                 s.id !== targetId
             );
@@ -1495,6 +1498,26 @@ export function useGameController() {
           "[GameController] Night queue is empty after startNight (engine state)",
           engineState
         );
+        const seatedSeats = seats.filter((s) => !!s.role);
+        const hasDemon = seats.some(
+          (s) => s.role?.type === "demon" || s.role?.id === "legion"
+        );
+        if (seatedSeats.length < 5) {
+          showAlert(
+            `当前仅有 ${seatedSeats.length} 名玩家落座，无法开始首夜。请先在圆桌上为玩家分配角色。`
+          );
+          return;
+        }
+        if (!hasDemon) {
+          showAlert("当前阵容缺少恶魔角色，无法开始游戏。请至少分配一名恶魔或军团。");
+          return;
+        }
+
+        // 场上角色齐全但今夜确无行动角色（如军团且罂粟种植者在场，且其他镇民首夜无唤醒能力）
+        showAlert("🌙 首夜平安度过：场上所有角色在首夜均无唤醒行动，直接进入第一天。");
+        addLog("🌙 首夜平安度过：场上无任何角色需要唤醒行动，直接进入第一天白天。");
+        setNightCount(1);
+        setGamePhase("day");
         return;
       }
 
@@ -1507,6 +1530,7 @@ export function useGameController() {
         console.warn(
           "[GameController] No matching seats found for night queue nodes"
         );
+        showAlert("夜间节点未匹配到对应座位的角色，请核对座位配置。");
         return;
       }
 

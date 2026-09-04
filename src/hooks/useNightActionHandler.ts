@@ -1002,15 +1002,43 @@ export async function executeViaNewEngine(
       //   此前仅 displayInfo.type 以 "_info" 结尾的角色才弹窗，
       //   导致僧侣/投毒者/小恶魔等行动类角色无结果展示。
       //   现在改为：只要有 displayInfo.log 就弹出 INFO_RESULT。
+      // 🎯 赏金猎人：直接向玩家展示“X号玩家是邪恶的”
+      let customResultText: string | null = null;
+      if (roleId === "bounty_hunter") {
+        const targetId =
+          displayInfo?.targetId ??
+          resultContext.meta.bountyHunterResult?.targetId ??
+          (resultContext as any)?.actionNode?.storytellerInput?.targetSeatId ??
+          (resultContext as any)?.actionNode?.storytellerInput?.targetId ??
+          context.selectedTargets?.[0];
+        if (targetId != null) {
+          customResultText = `${targetId + 1}号玩家是邪恶的`;
+        }
+      }
+
+      // 🤹 杂耍艺人：统一展示“得知的数字为X”
+      if (roleId === "juggler") {
+        const actorSeat =
+          syncedSeats.find((s) => s.id === actorId) ||
+          context.seats.find((s) => s.id === actorId);
+        const count =
+          displayInfo?.correctCount ??
+          resultContext.meta.jugglerResult?.correctCount ??
+          (resultContext as any)?.snapshot?._abilityResults?.juggler?.correctCount ??
+          (actorSeat as any)?.dayAbilityResult?.correctCount ??
+          0;
+        customResultText = `得知的数字为${count}`;
+      }
+
       const guideText = context.nightInfo?.guide || "";
       const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
       const guideInfo =
         guideMatch?.[1] && !guideText.includes("准备执行技能")
-          ? guideMatch[1].trim().replace(/^[:：]\s*/, "")
+          ? guideMatch[1].trim().replace(/^[:：]\s*/, "").replace(/[）)]+$/, "")
           : "";
-      const resultText = guideInfo
-        ? `${roleName}获得信息：${guideInfo}`
-        : displayInfo.log;
+      const resultText =
+        customResultText ||
+        (guideInfo ? `${roleName}获得信息：${guideInfo}` : displayInfo.log);
       const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
       context.setCurrentModal({
         type: "INFO_RESULT",

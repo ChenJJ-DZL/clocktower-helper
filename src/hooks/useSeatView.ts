@@ -29,9 +29,11 @@ export function useSeatView(
 ) {
   const p = getSeatPosition(index, seats.length, isPortrait);
   const displayType = getDisplayRoleType(s);
-  const colorClass = displayType
-    ? typeColors[displayType]
-    : "border-gray-600 text-gray-400";
+  const colorClass = s.isEvilConverted
+    ? "border-red-600 text-red-400"
+    : displayType
+      ? typeColors[displayType]
+      : "border-gray-600 text-gray-400";
 
   const realRole = s.role;
   // 提线木偶与酒鬼保底伪装：如果未显式指定 charadeRole，动态选择场上未出现的第一个镇民
@@ -126,6 +128,28 @@ export function useSeatView(
         duration: "永久",
       });
       processed.add("red_herring");
+    }
+
+    // 3.5 阵营转换（赏金猎人转邪恶等）
+    if (s.isEvilConverted) {
+      list.push({
+        key: `evil_converted-${s.id}`,
+        text: "转为邪恶",
+        color: "red",
+        icon: "😈",
+        duration: "永久",
+      });
+      processed.add("evil_converted");
+    }
+    if (s.isGoodConverted) {
+      list.push({
+        key: `good_converted-${s.id}`,
+        text: "转为善良",
+        color: "green",
+        icon: "🕊️",
+        duration: "永久",
+      });
+      processed.add("good_converted");
     }
 
     // 4. Detailed statuses
