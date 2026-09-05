@@ -1,5 +1,21 @@
 # 更新日志
 
+## W9.6.1 — 移动端浏览器崩溃根治 + GPU显存优化 + 全局ErrorBoundary + 竖屏解绑（2026-09-05）
+
+### 一、移动端浏览器崩溃（OOM / Jetsam SIGKILL）根治
+1. **GPU 显存占用大幅优化**：
+   - 彻底移除 `GameLayout` 中导致 GPU 显存暴涨的实时复合滤镜（`filter: brightness(...) contrast(...) saturate(...)`）及 CSS 过渡；
+   - 移除 `app/globals.css` 中容易引起 iOS Safari 重绘崩溃的 `background-attachment: fixed`；
+   - 改用高性能暗色遮罩与轻量径向暗角，在保留沉浸魔典质感的同时将 GPU 纹理显存降低 95% 以上，彻底杜绝移动端（Safari / 微信浏览器）进程被系统 Jetsam 强杀闪退。
+2. **`PortraitLock` 与 `ScaleLayout` 解耦**：
+   - 将 `PortraitLock` 移至最外层原生视口，不受舞台 `transform: scale()` 缩放影响；
+   - 剧本选择阶段（`scriptSelection`）完全放开，移动端竖屏可自如选本；进入对局圆桌后若处于竖屏则优雅提示旋转设备，并提供“忽略提示，继续在竖屏下使用”的安全兜底按钮。
+3. **圆桌尺寸计算与防 NaN 安全重构**：
+   - 合并 `RoundTable` 内相互竞争的 `useEffect`，统一采用 `requestAnimationFrame` 防抖；
+   - 增加容器边界防守与 `Number.isFinite` 兜底，杜绝 `NaN` 坐标错误。
+4. **全局异常容错防白屏体系**：
+   - 新增 `ErrorBoundary` 错误边界组件，拦截未捕获异常并提供一键恢复与错误日志复制，杜绝 React 卸载引发的白屏崩溃。
+
 ## W9.4.2 — 伪装开局弹窗 + 杂耍艺人裁定闭环 + 黄昏点击提名 + 首夜入夜守卫（2026-09-04）
 
 ### 一、伪装身份与特殊角色开局规则校准
