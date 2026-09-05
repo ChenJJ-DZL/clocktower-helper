@@ -42,8 +42,9 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
       // Virtual dimensions:
       // If screen is wider than 16:9, expand virtualWidth so the stage fills 100% of the screen width
       // without changing the scale factor or element sizes!
-      const vWidth = Math.max(BASE_WIDTH, windowWidth / newScale);
-      const vHeight = Math.max(BASE_HEIGHT, windowHeight / newScale);
+      // Bound the virtual height and width on extreme mobile ratios to prevent runaway GPU texture allocation.
+      const vWidth = Math.max(BASE_WIDTH, Math.min(2400, windowWidth / newScale));
+      const vHeight = Math.max(BASE_HEIGHT, Math.min(1400, windowHeight / newScale));
       setVirtualWidth(vWidth);
       setVirtualHeight(vHeight);
     };

@@ -58,8 +58,8 @@ export function CharadeConfigModal({
     return new Set(seats.map((s) => s.role?.id).filter(Boolean));
   }, [seats]);
 
-  const townsfolkList = filteredGroupedRoles.townsfolk || [];
-  const demonList = filteredGroupedRoles.demon || [];
+  const townsfolkList = filteredGroupedRoles?.townsfolk || [];
+  const demonList = filteredGroupedRoles?.demon || [];
 
   // 计算当前已被选中的伪装角色 ID
   const selectedRoleIds = useMemo(() => {

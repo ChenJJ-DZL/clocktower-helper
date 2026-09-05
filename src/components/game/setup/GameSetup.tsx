@@ -261,8 +261,8 @@ export default function GameSetup({
         .filter(Boolean) as string[]
     );
 
-    const townsfolkList = filteredGroupedRoles.townsfolk || [];
-    const demonList = filteredGroupedRoles.demon || [];
+    const townsfolkList = filteredGroupedRoles?.townsfolk || [];
+    const demonList = filteredGroupedRoles?.demon || [];
 
     let hasChanges = false;
     const newSeats = seats.map((seat) => {
@@ -686,7 +686,7 @@ export default function GameSetup({
           </div>
 
           <div className="space-y-4">
-            {Object.entries(filteredGroupedRoles).map(([type, list]) => (
+            {Object.entries(filteredGroupedRoles || {}).map(([type, list]) => (
               <div key={type} className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="text-lg font-bold text-slate-100">

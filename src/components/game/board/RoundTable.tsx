@@ -384,28 +384,67 @@ export function RoundTable({
   const panY = useMotionValue(0);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic radius adjustment based on viewport and seat count
+  // Dynamic radius adjustment based on viewport and seat count (NaN-safe, RAF debounced)
   useEffect(() => {
-    const calculateRadius = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let rafId: number | null = null;
+
+    const updateLayout = () => {
       if (!containerRef.current) return;
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      const minDimension = Math.min(width, height);
+      const el = containerRef.current;
+      const containerWidth = el.clientWidth || el.offsetWidth || 0;
+      const containerHeight = el.clientHeight || el.offsetHeight || 0;
+
+      // 如果容器尚未完成渲染或尺寸异常，使用兜底安全值，避免除以0产生 NaN
+      if (containerWidth < 50 || containerHeight < 50) {
+        setRadius(32);
+        setSeatSize(80);
+        return;
+      }
+
+      const minDimension = Math.min(containerWidth, containerHeight);
       const isMobile = window.innerWidth <= 768;
 
-      let baseRadius = isMobile ? 36 : 38;
-      if (seats.length > 15) baseRadius -= 2;
-      if (seats.length > 18) baseRadius -= 2;
+      // 座位基础尺寸：根据人数和视口动态伸缩
+      const baseSeatSize = isMobile ? 56 : seats.length > 15 ? 88 : 100;
+      const padding = isMobile ? 24 : 45;
+      const availableSize = minDimension - padding * 2;
 
-      setRadius(Math.max(28, Math.min(42, baseRadius)));
-      const baseSeatSize = isMobile ? 48 : 58;
-      const sizeMultiplier =
-        seats.length > 15 ? 0.85 : seats.length > 12 ? 0.92 : 1;
-      setSeatSize(Math.round(baseSeatSize * sizeMultiplier));
+      // 计算可用半径
+      const availableRadius = availableSize / 2 - baseSeatSize / 2 - (isMobile ? 8 : 12);
+      let radiusPercent = (availableRadius / minDimension) * 100;
+
+      // 席位过多时微调半径防止重叠
+      if (seats.length > 15) radiusPercent -= 1.5;
+      if (seats.length > 18) radiusPercent -= 1.5;
+
+      // 严格限制安全百分比在 22% ~ 38% 之间，杜绝 NaN 或溢出
+      const safeRadius = Number.isFinite(radiusPercent)
+        ? Math.max(22, Math.min(38, radiusPercent))
+        : 32;
+
+      setRadius(safeRadius);
+      setSeatSize(baseSeatSize);
     };
 
-    calculateRadius();
-    window.addEventListener("resize", calculateRadius);
-    return () => window.removeEventListener("resize", calculateRadius);
+    updateLayout();
+
+    const handleResize = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateLayout);
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
   }, [seats.length]);
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -437,61 +476,22 @@ export function RoundTable({
     if (onContextMenu) onContextMenu(e, seatId);
   };
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const updateLayout = () => {
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
-
-      // Base resolution: 1600x900
-      // Left panel takes remaining space after 450px right panel = ~1150px width
-      // Use the smaller dimension to ensure it fits
-      const minDimension = Math.min(containerWidth, containerHeight);
-
-      // Seat size: 112px (7rem = w-28 h-28) for "Big Seat" mode - touch-friendly
-      const seatSizePx = 112;
-
-      // Padding: 50px on each side (increased to account for larger seats)
-      const padding = 50;
-
-      // Calculate available space
-      const availableSize = minDimension - padding * 2;
-
-      // Calculate radius: (availableSize / 2) - (seatSize / 2) - some margin
-      // Convert to percentage for the 100x100 coordinate system
-      // Reduced margin to ensure seats don't get cut off
-      const availableRadius = availableSize / 2 - seatSizePx / 2 - 15; // 15px margin
-      const radiusPercent = (availableRadius / minDimension) * 100;
-
-      // Ensure radius is reasonable (between 20% and 35% - reduced to fit larger seats)
-      const clampedRadius = Math.max(20, Math.min(35, radiusPercent));
-
-      setRadius(clampedRadius);
-      setSeatSize(seatSizePx);
-    };
-
-    updateLayout();
-
-    const resizeObserver = new ResizeObserver(updateLayout);
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
   // Create a custom getSeatPosition function that uses the dynamic radius
   const getDynamicSeatPosition = (
     index: number,
     total?: number,
     _isPortrait?: boolean
   ) => {
-    const angle = (index / (total ?? seats.length)) * 2 * Math.PI - Math.PI / 2;
-    const x = 50 + radius * Math.cos(angle);
-    const y = 50 + radius * Math.sin(angle);
-    return { x: x.toFixed(2), y: y.toFixed(2) };
+    const seatCount = total ?? seats.length ?? 1;
+    const safeTotal = seatCount > 0 ? seatCount : 1;
+    const safeRadius = Number.isFinite(radius) ? radius : 32;
+    const angle = (index / safeTotal) * 2 * Math.PI - Math.PI / 2;
+    const x = 50 + safeRadius * Math.cos(angle);
+    const y = 50 + safeRadius * Math.sin(angle);
+    return {
+      x: (Number.isFinite(x) ? x : 50).toFixed(2),
+      y: (Number.isFinite(y) ? y : 50).toFixed(2),
+    };
   };
 
   return (

@@ -406,7 +406,7 @@ export function GlobalNavBar() {
           </button>
 
           <span className="text-[10px] text-slate-500 font-mono select-none px-1">
-            W8.24.2
+            W9.4.3
           </span>
         </div>
       </div>

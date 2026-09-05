@@ -334,7 +334,7 @@ body > * {
 .theme-classic body,
 .theme-classic #__next {
   background:
-    #0d0818 url("/assets/table-bg.png") center center / cover no-repeat fixed;
+    #0d0818 url("/assets/table-bg.png") center center / cover no-repeat;
   color: #f6ead0;
 }
 

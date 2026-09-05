@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
+import { ErrorBoundary } from "../src/components/common/ErrorBoundary";
 import { GameActionsProvider } from "../src/contexts/GameActionsContext";
 import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
@@ -907,11 +908,13 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <GameActionsProvider controller={controller}>
-      <GrimoireTooltipProvider>
-        <ScaleLayout>
-          <PortraitLock />
-          <motion.div
+    <ErrorBoundary fallbackTitle="魔典主舞台渲染异常" onReset={() => setGamePhase("scriptSelection")}>
+      <GameActionsProvider controller={controller}>
+        <GrimoireTooltipProvider>
+          {/* PortraitLock 位于顶层原生视口，彻底摆脱 ScaleLayout transform 的劫持 */}
+          <PortraitLock gamePhase={gamePhase} />
+          <ScaleLayout>
+            <motion.div
             className="w-full h-full text-white overflow-hidden"
             initial={{ backgroundColor: "#030712" }}
             animate={{
@@ -1229,5 +1232,6 @@ export default function Home() {
         </ScaleLayout>
       </GrimoireTooltipProvider>
     </GameActionsProvider>
+  </ErrorBoundary>
   );
 }
