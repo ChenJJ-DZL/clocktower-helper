@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Role,
   type Script,
@@ -237,52 +237,92 @@ export default function GameSetup({
     dispatch(gameActions.updateState({ seats: newSeats }));
   };
 
+  // 🎭 伪装设置拦截 Toast 状态（持续 2.7 秒，无按钮，渐入渐出）
+  const [charadeToast, setCharadeToast] = useState<{
+    id: number;
+    message: string;
+  } | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showCharadeWarningToast = (message: string) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setCharadeToast({ id: Date.now(), message });
+    toastTimerRef.current = setTimeout(() => {
+      setCharadeToast(null);
+    }, 2700);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   // 🎭 伪装身份检测（提线木偶、酒鬼、疯子）
   const charadeStatus = useMemo(() => {
     const active = seats.filter((s) => s.role);
-    const unconfigured = active.filter(
+    const charadeSeats = active.filter(
+      (s) =>
+        s.role?.id === "drunk" ||
+        s.role?.id === "marionette" ||
+        s.role?.id === "lunatic"
+    );
+    const unconfigured = charadeSeats.filter(
       (s) =>
         (s.role?.id === "drunk" && !s.charadeRole) ||
         (s.role?.id === "marionette" && !s.charadeRole) ||
         (s.role?.id === "lunatic" && !s.apparentDemonRole)
     );
+    const configured = charadeSeats.filter(
+      (s) =>
+        (s.role?.id === "drunk" && !!s.charadeRole) ||
+        (s.role?.id === "marionette" && !!s.charadeRole) ||
+        (s.role?.id === "lunatic" && !!s.apparentDemonRole)
+    );
     return {
-      valid: unconfigured.length === 0,
+      charadeSeats,
       unconfigured,
+      configured,
+      valid: unconfigured.length === 0,
     };
   }, [seats]);
 
-  // 一键为未设置伪装的角色分配不在场的合法伪装身份
+  // 一键为角色分配或重新随机分配合法不在场的伪装身份（提线木偶、酒鬼、疯子）
   const handleAutoAssignCharades = () => {
-    const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
-    const usedCharadeIds = new Set(
-      seats
-        .map((s) => s.charadeRole?.id || s.apparentDemonRole?.id)
-        .filter(Boolean) as string[]
+    const inPlayRealRoleIds = new Set(
+      seats.map((s) => s.role?.id).filter(Boolean)
     );
-
     const townsfolkList = filteredGroupedRoles?.townsfolk || [];
     const demonList = filteredGroupedRoles?.demon || [];
 
+    const usedCharadeIdsInThisBatch = new Set<string>();
+
     let hasChanges = false;
     const newSeats = seats.map((seat) => {
-      if (
-        (seat.role?.id === "drunk" || seat.role?.id === "marionette") &&
-        !seat.charadeRole
-      ) {
-        const unused = townsfolkList.filter(
+      if (seat.role?.id === "drunk" || seat.role?.id === "marionette") {
+        const currentFakeId = seat.charadeRole?.id;
+        // 候选池：不在场、本批次未选用、且非酒鬼的镇民
+        let pool = townsfolkList.filter(
           (t) =>
-            !inPlayRoleIds.has(t.id) &&
-            !usedCharadeIds.has(t.id) &&
+            !inPlayRealRoleIds.has(t.id) &&
+            !usedCharadeIdsInThisBatch.has(t.id) &&
             t.id !== "drunk"
         );
-        const pool =
-          unused.length > 0
-            ? unused
-            : townsfolkList.filter((t) => t.id !== "drunk");
+        // 若重复点击且候选池数量大于1，优先排除当前伪装，使每次随机都有明显变化
+        if (pool.length > 1 && currentFakeId) {
+          const alternatePool = pool.filter((t) => t.id !== currentFakeId);
+          if (alternatePool.length > 0) {
+            pool = alternatePool;
+          }
+        }
+        if (pool.length === 0) {
+          pool = townsfolkList.filter((t) => t.id !== "drunk");
+        }
         if (pool.length > 0) {
           const fake = pool[Math.floor(Math.random() * pool.length)];
-          usedCharadeIds.add(fake.id);
+          usedCharadeIdsInThisBatch.add(fake.id);
           hasChanges = true;
           return {
             ...seat,
@@ -290,20 +330,28 @@ export default function GameSetup({
             displayRole: fake,
           };
         }
-      } else if (seat.role?.id === "lunatic" && !seat.apparentDemonRole) {
-        const unused = demonList.filter(
+      } else if (seat.role?.id === "lunatic") {
+        const currentFakeDemonId = seat.apparentDemonRole?.id;
+        // 候选池：不在场、本批次未选用、且非疯子的恶魔
+        let pool = demonList.filter(
           (d) =>
-            !inPlayRoleIds.has(d.id) &&
-            !usedCharadeIds.has(d.id) &&
+            !inPlayRealRoleIds.has(d.id) &&
+            !usedCharadeIdsInThisBatch.has(d.id) &&
             d.id !== "lunatic"
         );
-        const pool =
-          unused.length > 0
-            ? unused
-            : demonList.filter((d) => d.id !== "lunatic");
+        // 若重复点击且候选池数量大于1，优先排除当前假恶魔，使每次随机都有明显变化
+        if (pool.length > 1 && currentFakeDemonId) {
+          const alternatePool = pool.filter((d) => d.id !== currentFakeDemonId);
+          if (alternatePool.length > 0) {
+            pool = alternatePool;
+          }
+        }
+        if (pool.length === 0) {
+          pool = demonList.filter((d) => d.id !== "lunatic");
+        }
         if (pool.length > 0) {
           const fakeDemon = pool[Math.floor(Math.random() * pool.length)];
-          usedCharadeIds.add(fakeDemon.id);
+          usedCharadeIdsInThisBatch.add(fakeDemon.id);
           hasChanges = true;
           return {
             ...seat,
@@ -318,6 +366,7 @@ export default function GameSetup({
     if (hasChanges) {
       dispatch(gameActions.setSeats(newSeats));
       dispatch(gameActions.updateState({ seats: newSeats }));
+      dispatch(gameActions.saveHistory({ seats: newSeats }));
       return newSeats;
     }
     return seats;
@@ -350,7 +399,8 @@ export default function GameSetup({
       canStart:
         (compStatus.valid || ignoreBaronSetup) &&
         (baronStat.valid || ignoreBaronSetup) &&
-        marionetteOk,
+        marionetteOk &&
+        charadeStatus.valid,
     };
   }, [
     seats,
@@ -359,6 +409,7 @@ export default function GameSetup({
     ignoreBaronSetup,
     marionetteStatus,
     ignoreMarionetteSetup,
+    charadeStatus.valid,
   ]);
 
   const handleAttemptStartGame = () => {
@@ -379,6 +430,16 @@ export default function GameSetup({
       setShowCompositionModal(true);
       return;
     }
+
+    // 🎭 伪装身份检测：未完全设置伪装前阻断开始游戏，并触发 2.7 秒渐入渐出提示
+    if (!charadeStatus.valid) {
+      const unconfiguredNames = charadeStatus.unconfigured
+        .map((s) => `${s.id + 1}号【${s.role?.name}】`)
+        .join("、");
+      showCharadeWarningToast(`请设置${unconfiguredNames}角色伪装`);
+      return;
+    }
+
     const hasDemon = activeSeats.some(
       (s) => s.role?.type === "demon" || s.role?.id === "legion"
     );
@@ -416,16 +477,6 @@ export default function GameSetup({
     }
     if (!ignoreMarionetteSetup && marionetteStatus && !marionetteStatus.valid) {
       setShowMarionetteModal(true);
-      return;
-    }
-
-    // 🎭 若场上有提线木偶、酒鬼、疯子未设定伪装身份，弹出手动选择弹窗供说书人点选
-    if (!charadeStatus.valid) {
-      if (onOpenCharadeModal) {
-        onOpenCharadeModal(null);
-      } else {
-        setShowCharadeModal(true);
-      }
       return;
     }
 
@@ -641,39 +692,156 @@ export default function GameSetup({
           </div>
         )}
 
-        {/* 🎭 伪装身份配置提示（酒鬼、提线木偶、疯子） */}
-        {!charadeStatus.valid && (
-          <div className="border-l-4 border-indigo-500 bg-indigo-950/40 p-4 text-base text-indigo-100 rounded-r-xl space-y-3 shadow-lg shadow-indigo-950/50">
-            <div className="flex items-center gap-2 font-bold text-indigo-300">
-              <span className="text-lg">🎭</span>
-              <span>待设置伪装身份</span>
-            </div>
-            <div className="text-sm text-indigo-200/90 leading-relaxed">
-              场上有 {charadeStatus.unconfigured.length} 位角色（
-              {charadeStatus.unconfigured
-                .map((s) => `${s.id + 1}号【${s.role?.name}】`)
-                .join("、")}
-              ）需要伪装身份。开始游戏时系统将自动按规则分配不在场的合法身份，您也可提前一键分配。
-            </div>
-            <div className="flex flex-wrap gap-3 pt-1">
-              <button
-                onClick={() => {
-                  if (onOpenCharadeModal) {
-                    onOpenCharadeModal(null);
-                  } else {
-                    setShowCharadeModal(true);
-                  }
-                }}
-                className="rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-4 py-2.5 text-sm transition shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer"
+        {/* 🎭 伪装身份配置面板（酒鬼、提线木偶、疯子）- 常驻保留 */}
+        {charadeStatus.charadeSeats.length > 0 && (
+          <div
+            className={`border-l-4 p-4 text-base rounded-r-xl space-y-3 shadow-lg transition-colors ${
+              charadeStatus.valid
+                ? "border-emerald-500 bg-emerald-950/30 text-emerald-100 shadow-emerald-950/40"
+                : "border-amber-500 bg-amber-950/30 text-amber-100 shadow-amber-950/40"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div
+                className={`flex items-center gap-2 font-bold ${
+                  charadeStatus.valid ? "text-emerald-300" : "text-amber-300"
+                }`}
               >
-                <span>🎭</span>
-                <span>手动选择伪装身份</span>
-              </button>
+                <span className="text-lg">🎭</span>
+                <span>
+                  {charadeStatus.valid ? "伪装身份已配置" : "待设置伪装身份"}
+                </span>
+              </div>
+              <span
+                className={`text-xs px-2.5 py-0.5 rounded-full font-mono border ${
+                  charadeStatus.valid
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                    : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                }`}
+              >
+                {charadeStatus.valid
+                  ? `已就绪 (${charadeStatus.charadeSeats.length}/${charadeStatus.charadeSeats.length})`
+                  : `待配置 (${charadeStatus.unconfigured.length}/${charadeStatus.charadeSeats.length})`}
+              </span>
+            </div>
+
+            <div
+              className={`text-sm leading-relaxed ${
+                charadeStatus.valid
+                  ? "text-emerald-200/90"
+                  : "text-amber-200/90"
+              }`}
+            >
+              {charadeStatus.valid
+                ? "已为所有角色配置伪装身份。您可点击下方角色单独调整，或再次点击一键随机重新分配："
+                : "场上有角色需要设置伪装身份。请点击下方角色单独设置，或点击一键随机分配："}
+            </div>
+
+            {/* 角色伪装列表：默认按卡片格式展示，点击具体角色进入单独设置/修改弹窗 */}
+            <div className="space-y-2 pt-1">
+              {charadeStatus.charadeSeats.map((seat) => {
+                const fakeRole =
+                  seat.role?.id === "lunatic"
+                    ? seat.apparentDemonRole
+                    : seat.charadeRole;
+                const isConfigured = !!fakeRole;
+
+                return (
+                  <button
+                    key={seat.id}
+                    type="button"
+                    onClick={() => {
+                      if (onOpenCharadeModal) {
+                        onOpenCharadeModal(seat.id);
+                      } else {
+                        setShowCharadeModal(true);
+                      }
+                    }}
+                    className={`w-full text-left rounded-xl border px-3 py-2 sm:px-3.5 sm:py-2.5 text-xs sm:text-sm transition-all duration-200 flex items-center justify-between gap-1.5 sm:gap-2 cursor-pointer group shadow-sm charade-item-single-line overflow-x-auto scrollbar-none ${
+                      isConfigured
+                        ? "border-emerald-500/60 bg-emerald-950/50 hover:bg-emerald-900/60 hover:border-emerald-400 text-emerald-200"
+                        : "border-amber-500/60 bg-amber-950/40 hover:bg-amber-900/50 hover:border-amber-400 text-amber-200"
+                    }`}
+                    style={{ whiteSpace: "nowrap", scrollbarWidth: "none" }}
+                    title={
+                      isConfigured
+                        ? `点击修改 ${seat.id + 1}号【${seat.role?.name}】的伪装身份`
+                        : `点击为 ${seat.id + 1}号【${seat.role?.name}】设置伪装身份`
+                    }
+                  >
+                    <div
+                      className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap min-w-0 shrink-0"
+                      style={{ whiteSpace: "nowrap" }}
+                    >
+                      <span
+                        className="font-bold text-slate-100 whitespace-nowrap shrink-0"
+                        style={{ whiteSpace: "nowrap" }}
+                      >
+                        {seat.id + 1}号【{seat.role?.name}】
+                      </span>
+                      <span
+                        className={`font-mono font-bold whitespace-nowrap shrink-0 ${
+                          isConfigured ? "text-emerald-400" : "text-amber-400"
+                        }`}
+                        style={{ whiteSpace: "nowrap" }}
+                      >
+                        →
+                      </span>
+                      {isConfigured ? (
+                        <span
+                          className="text-emerald-300 font-bold whitespace-nowrap shrink-0 flex items-center"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          <span style={{ whiteSpace: "nowrap" }}>伪装为</span>
+                          <span
+                            className="underline underline-offset-2 ml-0.5 text-emerald-100 group-hover:text-white whitespace-nowrap"
+                            style={{ whiteSpace: "nowrap" }}
+                          >
+                            【{fakeRole.name}】
+                          </span>
+                        </span>
+                      ) : (
+                        <span
+                          className="text-amber-300 font-bold whitespace-nowrap shrink-0 flex items-center"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          <span style={{ whiteSpace: "nowrap" }}>伪装</span>
+                          <span
+                            className="underline underline-offset-2 ml-0.5 text-amber-200 group-hover:text-white whitespace-nowrap"
+                            style={{ whiteSpace: "nowrap" }}
+                          >
+                            【未设置】
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded border whitespace-nowrap shrink-0 ml-1.5 sm:ml-2 ${
+                        isConfigured
+                          ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10 group-hover:bg-emerald-500/20"
+                          : "text-amber-300 border-amber-500/30 bg-amber-500/10 group-hover:bg-amber-500/20"
+                      }`}
+                      style={{ whiteSpace: "nowrap" }}
+                    >
+                      {isConfigured ? "修改\u00A0✎" : "设置\u00A0✎"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 省去手动分配按钮，仅保留一键随机分配按钮 */}
+            <div className="pt-1">
               <button
+                type="button"
                 onClick={() => handleAutoAssignCharades()}
-                className="rounded-lg border border-indigo-400/50 hover:bg-indigo-500/10 text-indigo-200 px-3 py-2.5 text-sm transition cursor-pointer"
+                className="w-full rounded-xl border border-indigo-400/50 bg-indigo-950/60 hover:bg-indigo-900/80 active:scale-[0.98] text-indigo-200 hover:text-white py-2.5 text-sm font-bold transition shadow-md shadow-indigo-950/40 cursor-pointer flex items-center justify-center gap-2"
+                title="一键随机分配所有角色的伪装身份"
               >
-                🎲 一键随机分配
+                <span>🎲</span>
+                <span>
+                  {charadeStatus.valid ? "再次一键随机分配" : "一键随机分配"}
+                </span>
               </button>
             </div>
           </div>
@@ -938,13 +1106,25 @@ export default function GameSetup({
         onConfirm={(configuredSeats) => {
           dispatch(gameActions.setSeats(configuredSeats));
           dispatch(gameActions.updateState({ seats: configuredSeats }));
+          dispatch(gameActions.saveHistory({ seats: configuredSeats }));
           setShowCharadeModal(false);
-          // 伪装身份配置完成，继续进入游戏流程
-          setCompositionError(null);
-          setBaronSetupCheck(null);
-          handlePreStartNight();
         }}
       />
+
+      {/* 🎭 渐入渐出无按钮提示弹窗（持续2.7秒，逐渐浮现+逐渐消失，无按钮，适配 UI） */}
+      {charadeToast && (
+        <div
+          key={charadeToast.id}
+          className="pointer-events-none fixed top-16 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-slate-900/95 border-2 border-amber-500/90 text-amber-100 shadow-2xl shadow-amber-950/80 backdrop-blur-md animate-charade-toast"
+        >
+          <span className="text-2xl drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]">
+            🎭
+          </span>
+          <span className="font-bold text-base tracking-wide text-amber-200">
+            {charadeToast.message}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

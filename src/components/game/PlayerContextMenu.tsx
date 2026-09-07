@@ -94,10 +94,11 @@ export function PlayerContextMenu() {
           🎴 身份告知与展示
         </button>
       )}
-      {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子） */}
-      {(targetSeat.role?.id === "drunk" ||
-        targetSeat.role?.id === "marionette" ||
-        targetSeat.role?.id === "lunatic") && (
+      {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子）- 仅在设置阶段可用 */}
+      {props.gamePhase === "setup" &&
+        (targetSeat.role?.id === "drunk" ||
+          targetSeat.role?.id === "marionette" ||
+          targetSeat.role?.id === "lunatic") && (
         <button
           onClick={() => {
             const roleType =

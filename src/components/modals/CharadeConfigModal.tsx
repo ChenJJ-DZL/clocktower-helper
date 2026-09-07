@@ -112,25 +112,37 @@ export function CharadeConfigModal({
     }
   };
 
-  // 为所有未选择伪装的角色一键随机生成
+  // 为角色一键随机生成伪装（若所有角色已配置，则支持再次点击重新随机分配）
   const handleRandomPickAll = () => {
+    const forceReassignAll = isAllConfigured;
     const newSelections = { ...selections };
-    const usedIds = new Set(selectedRoleIds);
+    const usedIds = new Set<string>();
+
+    if (!forceReassignAll) {
+      Object.values(selections).forEach((val) => {
+        if (val.charadeRole?.id) usedIds.add(val.charadeRole.id);
+        if (val.apparentDemonRole?.id) usedIds.add(val.apparentDemonRole.id);
+      });
+    }
 
     charadeSeats.forEach((seat) => {
       const current = newSelections[seat.id];
       if (seat.role?.id === "drunk" || seat.role?.id === "marionette") {
-        if (!current?.charadeRole) {
-          const unused = townsfolkList.filter(
+        if (forceReassignAll || !current?.charadeRole) {
+          const currentFakeId = current?.charadeRole?.id;
+          let pool = townsfolkList.filter(
             (t) =>
               !inPlayRoleIds.has(t.id) &&
               !usedIds.has(t.id) &&
               t.id !== "drunk"
           );
-          const pool =
-            unused.length > 0
-              ? unused
-              : townsfolkList.filter((t) => t.id !== "drunk");
+          if (forceReassignAll && pool.length > 1 && currentFakeId) {
+            const alternate = pool.filter((t) => t.id !== currentFakeId);
+            if (alternate.length > 0) pool = alternate;
+          }
+          if (pool.length === 0) {
+            pool = townsfolkList.filter((t) => t.id !== "drunk");
+          }
           if (pool.length > 0) {
             const picked = pool[Math.floor(Math.random() * pool.length)];
             usedIds.add(picked.id);
@@ -141,17 +153,21 @@ export function CharadeConfigModal({
           }
         }
       } else if (seat.role?.id === "lunatic") {
-        if (!current?.apparentDemonRole) {
-          const unused = demonList.filter(
+        if (forceReassignAll || !current?.apparentDemonRole) {
+          const currentFakeDemonId = current?.apparentDemonRole?.id;
+          let pool = demonList.filter(
             (d) =>
               !inPlayRoleIds.has(d.id) &&
               !usedIds.has(d.id) &&
               d.id !== "lunatic"
           );
-          const pool =
-            unused.length > 0
-              ? unused
-              : demonList.filter((d) => d.id !== "lunatic");
+          if (forceReassignAll && pool.length > 1 && currentFakeDemonId) {
+            const alternate = pool.filter((d) => d.id !== currentFakeDemonId);
+            if (alternate.length > 0) pool = alternate;
+          }
+          if (pool.length === 0) {
+            pool = demonList.filter((d) => d.id !== "lunatic");
+          }
           if (pool.length > 0) {
             const picked = pool[Math.floor(Math.random() * pool.length)];
             usedIds.add(picked.id);
@@ -227,13 +243,10 @@ export function CharadeConfigModal({
 
   if (!isOpen) return null;
 
-  // 待展示的角色列表：若传了 targetSeatId，则展示该目标座位置顶
+  // 待展示的角色列表：若传了 targetSeatId，则仅展示该目标座位，专注单独设置/修改
   const displayedSeats =
     targetSeatId !== null && targetSeatId !== undefined
-      ? [
-          ...charadeSeats.filter((s) => s.id === targetSeatId),
-          ...charadeSeats.filter((s) => s.id !== targetSeatId),
-        ]
+      ? charadeSeats.filter((s) => s.id === targetSeatId)
       : charadeSeats;
 
   const targetSeatObj =
@@ -256,11 +269,19 @@ export function CharadeConfigModal({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={handleRandomPickAll}
+              onClick={() => {
+                if (targetSeatObj) {
+                  handleRandomPickForSeat(targetSeatObj);
+                } else {
+                  handleRandomPickAll();
+                }
+              }}
               className="px-4 py-2.5 rounded-xl border border-amber-500/50 bg-amber-950/40 hover:bg-amber-900/60 text-amber-200 text-sm font-bold transition cursor-pointer flex items-center gap-1.5"
             >
               <span>🎲</span>
-              <span>一键随机分配所有未选</span>
+              <span>
+                {targetSeatObj ? "为此角色随机选择" : "一键随机分配所有未选"}
+              </span>
             </button>
             <button
               type="button"

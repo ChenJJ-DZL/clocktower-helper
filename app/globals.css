@@ -753,3 +753,47 @@ body > * {
   animation: none;
   background-image: none;
 }
+
+/* 🎭 伪装配置提示渐入渐出动画（持续2.7秒，逐渐浮现+逐渐消失，无按钮） */
+@keyframes charadeToastFadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.92);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(0.94);
+  }
+}
+
+.animate-charade-toast {
+  animation: charadeToastFadeInOut 2.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 🎭 强制伪装项在任何情况下单行展示，彻底避免任何换行 */
+.charade-item-single-line {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+}
+.charade-item-single-line * {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

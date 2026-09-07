@@ -36,7 +36,7 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
       const scaleY = windowHeight / BASE_HEIGHT;
 
       // Use the smaller scale so nothing is cut off vertically or horizontally
-      const newScale = Math.max(0.35, Math.min(scaleX, scaleY));
+      const newScale = Math.min(scaleX, scaleY);
       setScale(newScale);
 
       // Virtual dimensions:

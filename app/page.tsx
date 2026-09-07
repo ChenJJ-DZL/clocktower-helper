@@ -905,6 +905,10 @@ export default function Home() {
     }
   }, [gamePhase, playSound]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, [setMounted]);
+
   if (!mounted) return null;
 
   return (
@@ -1158,8 +1162,9 @@ export default function Home() {
                   </button>
                 )}
 
-                {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子） */}
-                {seats[contextMenu.seatId]?.role &&
+                {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子）- 仅在设置阶段可用 */}
+                {gamePhase === "setup" &&
+                  seats[contextMenu.seatId]?.role &&
                   (seats[contextMenu.seatId]?.role?.id === "drunk" ||
                     seats[contextMenu.seatId]?.role?.id === "marionette" ||
                     seats[contextMenu.seatId]?.role?.id === "lunatic") && (
