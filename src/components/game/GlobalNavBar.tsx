@@ -14,6 +14,7 @@ import {
 } from "../../utils/persistence";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { ModalWrapper } from "../modals/ModalWrapper";
+import { APP_VERSION } from "../../constants/version";
 
 /**
  * 全局导航栏 - 悬浮在页面右上角
@@ -409,7 +410,7 @@ export function GlobalNavBar() {
           </button>
 
           <span className="text-[10px] text-slate-500 font-mono select-none px-1">
-            W9.7.4
+            {APP_VERSION}
           </span>
         </div>
       </div>

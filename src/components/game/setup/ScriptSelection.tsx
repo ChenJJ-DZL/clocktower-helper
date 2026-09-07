@@ -23,6 +23,7 @@ import { createSnapshot } from "../../../utils/undoSnapshot";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { RoleCodexModal } from "../../modals/RoleCodexModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
+import { APP_VERSION } from "../../../constants/version";
 
 function getPhaseDisplayName(phase?: string): string {
   switch (phase) {
@@ -510,7 +511,7 @@ export default function ScriptSelection({
         <div className="text-center pt-2 pb-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/60 border border-white/10 text-xs font-mono text-slate-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Version W9.7.4
+            Version {APP_VERSION}
           </span>
         </div>
       </div>
