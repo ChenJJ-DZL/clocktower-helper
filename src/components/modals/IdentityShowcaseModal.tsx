@@ -51,27 +51,20 @@ export function IdentityShowcaseModal({
   const total = seatedPlayers.length;
   const currentSeat = seatedPlayers[currentIndex] || null;
 
-  // 获取当前展示角色（酒鬼、提线木偶、疯子特殊处理：默认展示其伪装身份）
-  const isDrunk = currentSeat?.role?.id === "drunk";
-  const isMarionette = currentSeat?.role?.id === "marionette";
-  const isLunatic = currentSeat?.role?.id === "lunatic";
-  const isSnitch = currentSeat?.role?.id === "snitch";
-  // 告密者：展示 3 个不在场角色（snitchAbsentRoles）
-  const snitchBluffRoles: string[] = isSnitch
-    ? ((currentSeat as any).snitchAbsentRoles ?? [])
-    : [];
+  // 获取当前展示角色（酒鬼、提线木偶、疯子特殊处理：完全呈现玩家视角所见的伪装身份）
   const displayRole: Role | null = useMemo(() => {
     if (!currentSeat) return null;
+    const roleId = currentSeat.role?.id;
     // 酒鬼/提线木偶：展示 charadeRole（说书人设置的伪装镇民身份）
-    if ((isDrunk || isMarionette) && currentSeat.charadeRole) {
+    if ((roleId === "drunk" || roleId === "marionette") && currentSeat.charadeRole) {
       return currentSeat.charadeRole;
     }
     // 疯子：展示 apparentDemonRole（疯子以为自己是的恶魔身份）
-    if (isLunatic && (currentSeat as any).apparentDemonRole) {
+    if (roleId === "lunatic" && (currentSeat as any).apparentDemonRole) {
       return (currentSeat as any).apparentDemonRole;
     }
     return currentSeat.role;
-  }, [currentSeat, isDrunk, isMarionette, isLunatic]);
+  }, [currentSeat]);
 
   // 获取详细的官方百科与玩法推荐数据
   const wikiDetails: CharacterWikiDetails | null = useMemo(() => {
@@ -438,20 +431,6 @@ export function IdentityShowcaseModal({
                       "无特殊能力描述"}
                   </p>
                 </div>
-
-                {/* 酒鬼伪装身份特别提示 (如果是酒鬼) */}
-                {isDrunk && (
-                  <div className="p-3 rounded-xl bg-purple-950/50 border border-purple-500/40 text-xs text-purple-200 space-y-1 shrink-0">
-                    <div className="flex items-center gap-1 font-bold text-purple-300">
-                      <span>🎭</span>
-                      <span>说书人专属提示</span>
-                    </div>
-                    <p className="text-slate-200">
-                      该玩家真实身份为 <b>酒鬼</b>，但他以为自己是{" "}
-                      <b>【{displayRole.name}】</b> 并已向其告知该技能。
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* ==================================================== */}
@@ -550,28 +529,6 @@ export function IdentityShowcaseModal({
                         </div>
                       </div>
                     )}
-
-                  {/* 告密者：3 个不在场角色（首夜向所有爪牙推送） */}
-                  {isSnitch && snitchBluffRoles.length > 0 && (
-                    <div className="mt-4 p-3 rounded-xl bg-cyan-900/30 border border-cyan-500/40 space-y-1.5">
-                      <div className="flex items-center gap-1 text-xs font-bold text-cyan-300">
-                        <span>🕵️</span>
-                        <span>
-                          告密者推送：3 个不在场角色（首夜向所有爪牙）
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 pl-2">
-                        {snitchBluffRoles.map((r) => (
-                          <span
-                            key={r}
-                            className="px-2 py-0.5 rounded-full bg-cyan-700/40 text-cyan-100 text-xs font-bold"
-                          >
-                            {r}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
