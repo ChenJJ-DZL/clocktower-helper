@@ -461,10 +461,10 @@ const postProcessResult = async (
   const selfSeatId = context.actionNode.seatId;
   const tag = meta.isCorrupted ? "【受干扰】" : "";
 
-  // 无爪牙在场（手势 0）
+  // 无爪牙在场（数字0）
   if (!result.roleName) {
     const simLog = `[Investigator]${tag} No minions in play (0)`;
-    const storytellerPrompt = `唤醒${selfSeatId + 1}号【调查员】，告诉他场上没有爪牙在场（手势 0）。`;
+    const storytellerPrompt = `唤醒${selfSeatId + 1}号【调查员】，告诉他场上没有爪牙在场（数字0）。`;
     const abilityLog = `调查员${tag}得知：场上没有爪牙在场`;
 
     console.log(simLog);

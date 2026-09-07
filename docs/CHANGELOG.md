@@ -1,5 +1,22 @@
 # 更新日志
 
+## W9.7.4 — 控制台操作按钮固定沉底与信息弹窗（数字0）格式单行规范化（2026-09-07）
+
+### 一、控制台底部按钮严格固定贴底修复（图1 & 图2）
+1. **移除 WebKit `position: sticky` 异常悬浮**：
+   - 原代码中 `GameConsole` 的 Zone C（操作按钮区域）带有 `sticky bottom-0`，在 `ScaleLayout` 的 `transform: scale()` 复合容器中，WebKit 会将 `sticky` 计算偏离底部，错误悬浮在屏幕正中（y ≈ 140px）并遮挡“当前的行动”与“说书人Tips”卡片；
+   - 移除 `sticky bottom-0`，采用标准纯 Flex 弹性三段式流式布局：Zone A 头部固定（`shrink-0 h-14`）、Zone B 内容自适应滚动（`flex-1 min-h-0 overflow-y-auto`）、Zone C 按钮固定贴底（`shrink-0 border-t`）；
+   - 在 WebKit 与 Chromium 真实手机视口（iPhone 17 852×393 等比缩放）下，验证按钮底部像素严格对齐控制台物理底边（`bottom === asideBottom`），永不悬浮遮挡内容。
+2. **虚拟舞台外部滚动隔离**：
+   - 在 `ScaleLayout` 内部给 `scale-layout-stage` 增加精确匹配缩放尺寸的物理占位容器（`BASE_WIDTH * scale` × `BASE_HEIGHT * scale`），彻底消除了 WebKit 因未缩放的 1600px 尺寸而在点击或聚焦时产生的意料外负滚动偏移（`scrollLeft: -339`）。
+
+### 二、信息结果弹窗格式与完整括号规范化（图3）
+1. **文案规范化为“（数字0）”**：
+   - 将图书管理员、调查员等角色在无外来者/无爪牙在场时的系统提示文案由“（手势 0）”统一规范为“（数字0）”（无空格）；
+   - 修复 `infoResultParser.ts` 盲目使用 `.replace(/[）)]+$/, "")` 切除末尾闭合右括号的缺陷；改为智能判断括号配对，仅在右括号孤立多余时才清理，若缺少右括号则自动闭合补全，确保展示结果绝对带有完整的左右双括号 `（数字0）`。
+2. **强制单行展示保护**：
+   - 确保 `InfoResultModal` 核心结果与引导说明均具备 `whitespace-nowrap`，搭配 `AutoFitContent` 智能缩放，在任何设备与分辨率下强制呈现为优雅单行，杜绝意外折行。
+
 ## W9.7.3 — 移动端横屏 PC 1600×900 严格等比还原与竖屏“请横屏使用”锁屏提示（2026-09-07）
 
 ### 一、竖屏锁屏提示（请横屏使用）

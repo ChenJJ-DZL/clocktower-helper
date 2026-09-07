@@ -255,7 +255,7 @@ export const GameConsole = React.memo(function GameConsole({
     nightCount > 1;
 
   return (
-    <div className="h-full flex flex-col bg-slate-900 border-l border-white/10">
+    <div className="h-full flex-1 flex flex-col bg-slate-900 border-l border-white/10 min-h-0 overflow-hidden">
       {/* Zone A: Header (Status) */}
       <div className="shrink-0 h-14 border-b border-white/10 bg-slate-800/50 flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-3">
@@ -985,7 +985,7 @@ export const GameConsole = React.memo(function GameConsole({
 
       {/* Zone C: Action Footer */}
       {(extraAction || primaryAction || secondaryActions.length > 0) && (
-        <div className="shrink-0 sticky bottom-0 z-30 border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-6 py-4 space-y-3 shadow-2xl">
+        <div className="shrink-0 border-t border-white/10 bg-slate-900/95 backdrop-blur-md px-6 py-4 space-y-3 shadow-2xl">
           {extraAction && (
             <button
               onClick={() => {

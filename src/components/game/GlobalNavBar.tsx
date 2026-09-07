@@ -409,7 +409,7 @@ export function GlobalNavBar() {
           </button>
 
           <span className="text-[10px] text-slate-500 font-mono select-none px-1">
-            W9.7.3
+            W9.7.4
           </span>
         </div>
       </div>

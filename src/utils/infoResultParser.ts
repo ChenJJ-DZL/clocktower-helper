@@ -22,13 +22,24 @@ export function parseInfoResult(
   };
 
   const formatResult = (r: string) => {
-    let clean = r
-      .trim()
-      .replace(/[。.\s]+$/, "")
-      .replace(/[）)]+$/, "");
+    let clean = r.trim().replace(/[。.\s]+$/, "");
+
+    // 统一将“手势0”类描述规范化为“（数字0）”，确保左右完整括号
+    clean = clean.replace(/[（(]\s*手势\s*0\s*[）)]?/g, "（数字0）");
+    clean = clean.replace(/手势\s*0/g, "（数字0）");
+
     // 清理冗余的 "玩家 X(X号)" 为 "X号"
     clean = clean.replace(/玩家\s*\d+\s*[（(](\d+号)[）)]/g, "$1");
     clean = clean.replace(/(\d+号)\s+(的角色)/g, "$1$2");
+
+    // 智能配对括号：若右括号多于左括号，去除尾部多余右括号；若左括号多于右括号，补全右括号
+    const openCount = (clean.match(/[（(]/g) || []).length;
+    const closeCount = (clean.match(/[）)]/g) || []).length;
+    if (closeCount > openCount) {
+      clean = clean.replace(/[）)]+$/, "");
+    } else if (openCount > closeCount) {
+      clean = clean + "）";
+    }
     // 清理如 "管家（9号）选择" 为 "选择" (若前缀已有角色名) 或 "管家选择"
     if (roleName) {
       const pureRoleMatch = roleName.match(/(?:^\d+号-)?(.+)$/);

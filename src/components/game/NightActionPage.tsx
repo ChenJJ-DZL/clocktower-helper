@@ -942,7 +942,7 @@ export function NightActionPage({
                     `${customC1 + 1}号 和 ${customC2 + 1}号 之中有一位是【${customRoleName}】`}
                   {roleId === "librarian" &&
                     (librarianMode === "zero"
-                      ? "场上没有外来者在场（0 外来者）"
+                      ? "场上没有外来者在场（数字0）"
                       : `${customC1 + 1}号 和 ${customC2 + 1}号 之中有一位是【${customRoleName}】`)}
                   {roleId === "investigator" &&
                     `${customC1 + 1}号 和 ${customC2 + 1}号 之中有一位是【${customRoleName}】`}

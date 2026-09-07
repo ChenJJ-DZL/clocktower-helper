@@ -450,10 +450,10 @@ const postProcessResult = async (
 
   const selfSeatId = context.actionNode.seatId;
 
-  // 无外来者在场（手势 0）
+  // 无外来者在场（数字0）
   if (!result.roleName) {
     const simLog = `[Librarian]${tag} No outsiders in play (0)`;
-    const storytellerPrompt = `唤醒${selfSeatId + 1}号【图书管理员】，告诉他场上没有外来者在场（手势 0）。`;
+    const storytellerPrompt = `唤醒${selfSeatId + 1}号【图书管理员】，告诉他场上没有外来者在场（数字0）。`;
     const abilityLog = `图书管理员${tag}得知：场上没有外来者在场`;
 
     console.log(simLog);

@@ -79,11 +79,11 @@ export const investigator: RoleDefinition = {
         return s.role.type === "minion";
       });
 
-      // 无爪牙候选 → 手势 0
+      // 无爪牙候选 → 数字0
       if (minionCandidates.length === 0) {
         return {
-          wake: `唤醒${seatNo}号【调查员】，告诉他场上没有爪牙在场（手势 0）。`,
-          instruction: "（手势 0）",
+          wake: `唤醒${seatNo}号【调查员】，告诉他场上没有爪牙在场（数字0）。`,
+          instruction: "（数字0）",
           close: "",
         };
       }

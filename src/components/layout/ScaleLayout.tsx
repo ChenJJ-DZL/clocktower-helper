@@ -72,24 +72,33 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
 
   return (
     <div className="w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center select-none">
-      {/* 1600x900 严格等比 PC 虚拟舞台 */}
+      {/* 舞台物理占位包装层：尺寸严格等于 1600*scale x 900*scale，彻底杜绝 WebKit 内部因 1600px 尺寸产生的滚动偏移 */}
       <div
-        id="scale-layout-stage"
         style={{
-          width: `${BASE_WIDTH}px`,
-          height: `${BASE_HEIGHT}px`,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
-          flexShrink: 0,
+          width: `${BASE_WIDTH * scale}px`,
+          height: `${BASE_HEIGHT * scale}px`,
         }}
-        className="relative overflow-hidden bg-slate-950 shadow-2xl"
+        className="relative flex-shrink-0 flex items-center justify-center overflow-hidden"
       >
-        {children}
-        {/* 缩放舞台内的弹窗根节点 */}
+        {/* 1600x900 严格等比 PC 虚拟舞台 */}
         <div
-          id="scale-layout-modal-root"
-          className="absolute inset-0 pointer-events-none z-[999999]"
-        />
+          id="scale-layout-stage"
+          style={{
+            width: `${BASE_WIDTH}px`,
+            height: `${BASE_HEIGHT}px`,
+            transform: `scale(${scale})`,
+            transformOrigin: "center center",
+            flexShrink: 0,
+          }}
+          className="relative overflow-hidden bg-slate-950 shadow-2xl"
+        >
+          {children}
+          {/* 缩放舞台内的弹窗根节点 */}
+          <div
+            id="scale-layout-modal-root"
+            className="absolute inset-0 pointer-events-none z-[999999]"
+          />
+        </div>
       </div>
     </div>
   );

@@ -184,4 +184,31 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
     expect(res0.prefix).toBe("6号-杂耍艺人获得信息");
     expect(res0.result).toBe("得知的数字为0");
   });
+
+  test("图书管理员与调查员 0 外来者/0 爪牙 - 严格显示为（数字0）且括号闭合完整单行", () => {
+    // 包含（手势 0）的标准引导文案
+    const raw1 =
+      "唤醒6号【图书管理员】，告诉他场上没有外来者在场（手势 0）。";
+    const res1 = parseInfoResult(raw1, "6号-图书管理员");
+    expect(res1.prefix).toBe("6号-图书管理员获得信息");
+    expect(res1.result).toBe("场上没有外来者在场（数字0）");
+
+    // 缺少右括号或手势无括号的异常文案
+    const raw2 = "场上没有外来者在场（手势 0";
+    const res2 = parseInfoResult(raw2, "6号-图书管理员");
+    expect(res2.result).toBe("场上没有外来者在场（数字0）");
+
+    // 调查员无爪牙文案
+    const raw3 = "唤醒2号【调查员】，告诉他场上没有爪牙在场（手势 0）。";
+    const res3 = parseInfoResult(raw3, "2号-调查员");
+    expect(res3.prefix).toBe("2号-调查员获得信息");
+    expect(res3.result).toBe("场上没有爪牙在场（数字0）");
+
+    // 已经规范化的（数字0）文案保持不变，不得破坏
+    const raw4 =
+      "唤醒6号【图书管理员】，告诉他场上没有外来者在场（数字0）。";
+    const res4 = parseInfoResult(raw4, "6号-图书管理员");
+    expect(res4.prefix).toBe("6号-图书管理员获得信息");
+    expect(res4.result).toBe("场上没有外来者在场（数字0）");
+  });
 });

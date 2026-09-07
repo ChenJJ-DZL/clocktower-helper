@@ -70,11 +70,11 @@ export const librarian: RoleDefinition = {
         return false;
       });
 
-      // 无外来者候选 → 手势 0
+      // 无外来者候选 → 数字0
       if (outsiderCandidates.length === 0) {
         return {
-          wake: `唤醒${seatNo}号【图书管理员】，告诉他场上没有外来者在场（手势 0）。`,
-          instruction: "（手势 0）",
+          wake: `唤醒${seatNo}号【图书管理员】，告诉他场上没有外来者在场（数字0）。`,
+          instruction: "（数字0）",
           close: "",
         };
       }
