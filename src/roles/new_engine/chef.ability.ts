@@ -500,9 +500,7 @@ const postProcessResult = async (
   const storytellerPrompt = `唤醒${selfSeatId + 1}号【厨师】，告诉他相邻邪恶玩家有 ${result} 对。`;
 
   // 中文游戏日志
-  const abilityLog =
-    `厨师${tag}获得信息：场上有 ${result} 对相邻的邪恶玩家` +
-    `（共 ${totalSeats} 个座位）`;
+  const abilityLog = `厨师${tag}获得信息：场上有 ${result} 对相邻的邪恶玩家`;
 
   console.log(simLog);
 

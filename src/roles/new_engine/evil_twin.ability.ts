@@ -12,6 +12,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { resolveEvilTwinPair } from "../../utils/evilTwinHelper";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -27,20 +28,11 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const twinId =
-    ctx.storytellerInput?.twinId ??
-    ctx.snapshot.seats.find((s: any) => s.isGoodTwin)?.id ??
-    (ctx.snapshot.evilTwinPair?.goodId !== undefined
-      ? ctx.snapshot.evilTwinPair.goodId
-      : null) ??
-    ctx.snapshot.seats.find(
-      (s: any) =>
-        s.id !== ctx.actionNode.seatId &&
-        !s.isDead &&
-        (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
-        !s.isEvilConverted
-    )?.id ??
-    null;
+  const resolved = resolveEvilTwinPair(
+    ctx.snapshot.seats,
+    ctx.snapshot.evilTwinPair
+  );
+  const twinId = ctx.storytellerInput?.twinId ?? resolved.goodTwinSeat?.id ?? null;
   return {
     ...ctx,
     meta: {
@@ -59,17 +51,19 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  const goodId = r?.twinId;
+  const evilId = ctx.actionNode.seatId;
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
       evilTwinPair: {
-        evilSeatId: ctx.actionNode.seatId,
-        goodSeatId: r?.twinId,
+        evilSeatId: evilId,
+        goodSeatId: goodId,
       },
       seats: ctx.snapshot.seats.map((s: any) => ({
         ...s,
-        isGoodTwin: s.id === r?.twinId,
+        isGoodTwin: s.id === goodId,
       })),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
@@ -133,13 +127,13 @@ export const good_twin_infoAbility = createRoleAbility({
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
   calculate: [
     async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
-      const evilTwinSeat = ctx.snapshot.seats.find(
-        (s: any) => s.role?.id === "evil_twin" && !s.isDead
+      const { evilTwinSeat } = resolveEvilTwinPair(
+        ctx.snapshot.seats,
+        ctx.snapshot.evilTwinPair
       );
       const evilSeatId = evilTwinSeat ? evilTwinSeat.id : null;
-      const evilRoleName = evilTwinSeat?.role?.name || "镜像双子";
       const log = evilTwinSeat
-        ? `${evilTwinSeat.id + 1}号玩家是【${evilRoleName}】`
+        ? `${evilTwinSeat.id + 1}号是镜像双子`
         : "得知对立双子信息";
       return {
         ...ctx,

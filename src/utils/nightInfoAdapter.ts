@@ -14,6 +14,7 @@ import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
+import { resolveEvilTwinPair } from "./evilTwinHelper";
 
 /**
  * 已迁移到新引擎的角色列表（用于追踪迁移进度）
@@ -263,7 +264,7 @@ export function calculateNightInfoViaNewEngine(
     `[NightInfoAdapter] 角色 ${roleId} 已在新引擎注册，使用 nightInfoGenerator 生成 UI 信息`
   );
 
-  return generateNightInfo(
+  const rawNightInfo = generateNightInfo(
     selectedScript,
     seats,
     currentSeatId,
@@ -285,10 +286,34 @@ export function calculateNightInfoViaNewEngine(
     _votedThisRound,
     _outsiderDiedToday
   );
+
+  if (!rawNightInfo) return null;
+
+  // 👥 镜像双子对立善良角色在首夜的信息注入
+  if (gamePhase === "firstNight" || nightCount === 1) {
+    const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+      seats,
+      (selectedScript as any)?.evilTwinPair
+    );
+    if (evilTwinSeat && isGoodTwin(currentSeatId)) {
+      const isPassiveInfo = rawNightInfo.targetLimit?.max === 0;
+      const twinPrefix = isPassiveInfo
+        ? `【双子告知】请先告知该玩家：${evilTwinSeat.id + 1}号是镜像双子！\n`
+        : `【双子告知】请先告知该玩家：${evilTwinSeat.id + 1}号是镜像双子！随后再进行角色技能操作。\n`;
+
+      return {
+        ...rawNightInfo,
+        guide: `${twinPrefix}${rawNightInfo.guide || ""}`,
+        guideText: `${twinPrefix}${rawNightInfo.guideText || ""}`,
+      };
+    }
+  }
+
+  return rawNightInfo;
 }
 
 /**
- * 生成系统信息步骤（爪牙互认 / 恶魔互认）的 NightInfoResult
+ * 生成系统信息步骤（爪牙互认 / 恶魔互认 / 双子告知）的 NightInfoResult
  */
 function generateSystemInfoViaAdapter(
   stepId: string,
@@ -298,6 +323,30 @@ function generateSystemInfoViaAdapter(
 ): NightInfoResult | null {
   const selfSeat = seats.find((s) => s.id === currentSeatId);
   if (!selfSeat) return null;
+
+  if (stepId === "good_twin_info") {
+    const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPair(
+      seats,
+      (selectedScript as any)?.evilTwinPair
+    );
+    const evilSeatNo = evilTwinSeat ? `${evilTwinSeat.id + 1}号` : "未知";
+    const goodSeat = goodTwinSeat || selfSeat;
+    const guide = `唤醒${goodSeat.id + 1}号【${goodSeat.role?.name || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
+    return {
+      roleName: `${goodSeat.id + 1}号-${goodSeat.role?.name || "善良双子"}(双子告知)`,
+      actionText: "告知对立双子",
+      guide,
+      targetLimit: { min: 0, max: 0 },
+      hasAction: true,
+      dialogTitle: `${goodSeat.id + 1}号-${goodSeat.role?.name || "对立双子"}`,
+      guideText: guide,
+      displayInfo: {
+        type: "good_twin_info",
+        log: `${evilSeatNo}是镜像双子`,
+        evilTwinSeatId: evilTwinSeat?.id,
+      },
+    } as any;
+  }
 
   const isMinionStep = stepId === "minion_info";
   const isLegionMutualStep = stepId === LEGION_MUTUAL_RECOGNITION_ID;

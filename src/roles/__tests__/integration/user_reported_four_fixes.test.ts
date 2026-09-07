@@ -5,6 +5,7 @@ import { abilityPriorityCalculation } from "../../../utils/abilityPriorityMiddle
 import { runAbilityPipeline } from "../../../utils/middlewarePipeline";
 import { vortoxAbility } from "../../new_engine/vortox.ability";
 import { evil_twinAbility } from "../../new_engine/evil_twin.ability";
+import { chefAbility } from "../../new_engine/chef.ability";
 import {
   generateDynamicNightQueue,
   type NightOrderEntry,
@@ -216,6 +217,105 @@ describe("用户实测反馈四大核心机制综合测试", () => {
 
       expect(result.isGameOver).toBe(true);
       expect(result.winner).toBe("Good");
+    });
+
+    it("情况 1（无夜间行动角色如士兵）：首夜自动注入 good_twin_info 且适配器生成双子告知引导", () => {
+      const seats = [
+        makeSeat(0, "evil_twin", "minion"),
+        makeSeat(1, "soldier", "townsfolk", { isGoodTwin: true }),
+        makeSeat(2, "imp", "demon"),
+      ];
+      const info = calculateNightInfoViaNewEngine(
+        null,
+        seats,
+        1,
+        "firstNight",
+        null,
+        1,
+        "good_twin_info"
+      );
+      expect(info).toBeDefined();
+      expect(info?.guide).toContain("1号是镜像双子");
+      expect(info?.displayInfo?.log).toContain("1号是镜像双子");
+    });
+
+    it("情况 2（被动信息角色如厨师）：首夜引导词合并显示【双子告知】先告知该玩家：X号是镜像双子", () => {
+      const seats = [
+        makeSeat(0, "evil_twin", "minion"),
+        makeSeat(1, "chef", "townsfolk", { isGoodTwin: true }),
+        makeSeat(2, "imp", "demon"),
+      ];
+      const script = {
+        id: "snv",
+        name: "SNV",
+        roleIds: ["evil_twin", "chef", "imp"],
+      } as any;
+      const info = calculateNightInfoViaNewEngine(
+        script,
+        seats,
+        1,
+        "firstNight",
+        null,
+        1
+      );
+      expect(info).toBeDefined();
+      expect(info?.guide).toContain("【双子告知】请先告知该玩家：1号是镜像双子！");
+      expect(info?.guide).toContain("告诉他相邻邪恶玩家有");
+    });
+
+    it("情况 3（主动技能角色如占卜师）：首夜引导词明确提示先告知镜像双子随后再进行技能操作", () => {
+      const seats = [
+        makeSeat(0, "evil_twin", "minion"),
+        makeSeat(1, "fortune_teller", "townsfolk", { isGoodTwin: true }),
+        makeSeat(2, "imp", "demon"),
+      ];
+      const script = {
+        id: "tb",
+        name: "TB",
+        roleIds: ["evil_twin", "fortune_teller", "imp"],
+      } as any;
+      const info = calculateNightInfoViaNewEngine(
+        script,
+        seats,
+        1,
+        "firstNight",
+        null,
+        1
+      );
+      expect(info).toBeDefined();
+      expect(info?.guide).toContain("【双子告知】请先告知该玩家：1号是镜像双子！随后再进行角色技能操作。");
+    });
+  });
+
+  describe("2.1 厨师 (Chef) 信息文案测试", () => {
+    it("厨师获得信息文案中绝对不包含'（共X个座位）'字样", async () => {
+      const seats = [
+        makeSeat(0, "chef", "townsfolk"),
+        makeSeat(1, "imp", "demon"),
+        makeSeat(2, "poisoner", "minion"),
+        makeSeat(3, "monk", "townsfolk"),
+        makeSeat(4, "empath", "townsfolk"),
+        makeSeat(5, "slayer", "townsfolk"),
+        makeSeat(6, "soldier", "townsfolk"),
+      ];
+
+      const chefCtx = {
+        actionNode: { seatId: 0, roleId: "chef", abilityId: "chef_first_night_ability" },
+        snapshot: {
+          nightCount: 1,
+          gamePhase: "firstNight",
+          seats: seats.map((s) => ({ ...s, isAlive: true })),
+        },
+        meta: {},
+        aborted: false,
+      } as any;
+
+      const result = await runAbilityPipeline(chefAbility, chefCtx);
+      expect(result.meta.abilityLog).toBeDefined();
+      expect(result.meta.abilityLog).toContain("场上有 1 对相邻的邪恶玩家");
+      expect(result.meta.abilityLog).not.toContain("共 7 个座位");
+      expect(result.meta.abilityLog).not.toContain("个座位");
+      expect(result.meta.displayInfo?.log).not.toContain("个座位");
     });
   });
 

@@ -1545,13 +1545,14 @@ export function useGameController() {
         return;
       }
 
-      // 构建系统步骤映射（minion_info / demon_info -> 队列索引 idx，避免覆盖同座位真实角色的技能）
+      // 构建系统步骤映射（minion_info / demon_info / good_twin_info -> 队列索引 idx，避免覆盖同座位真实角色的技能）
       const stepMap = new Map<number, string>();
       queue.forEach((node: any, idx: number) => {
         if (
           node.roleId === "minion_info" ||
           node.roleId === "demon_info" ||
-          node.roleId === LEGION_MUTUAL_RECOGNITION_ID
+          node.roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+          node.roleId === "good_twin_info"
         ) {
           stepMap.set(idx, node.roleId);
         }

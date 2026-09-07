@@ -5,6 +5,7 @@
 
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
+import { resolveEvilTwinPair } from "./evilTwinHelper";
 
 // 全量夜晚顺序表项
 export interface NightOrderEntry {
@@ -362,57 +363,41 @@ export function generateDynamicNightQueue(
   });
 
   // 6. 镜像双子（Evil Twin）：首夜向对立善良双子告知"X号是镜像双子"
-  // 若善良双子在首夜无唤醒技能（如士兵、圣徒、管家、市长等被动角色），单独注入唤醒节点告知
+  // 情况 1：若善良双子在首夜本身不会被唤醒（如士兵、圣徒、管家、市长等无夜间行动角色），单独注入唤醒节点告知
   if (isFirstNight) {
-    const evilTwinSeat = snapshot.seats.find(
-      (s) => s.role?.id === "evil_twin" && (includeDead || !s.isDead)
+    const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPair(
+      snapshot.seats as any,
+      snapshot.evilTwinPair
     );
-    if (evilTwinSeat) {
-      const goodTwinSeat =
-        (snapshot.evilTwinPair?.goodId !== undefined
-          ? snapshot.seats.find((s) => s.id === snapshot.evilTwinPair.goodId)
-          : null) ||
-        snapshot.seats.find(
-          (s) => s.isGoodTwin && (includeDead || !s.isDead)
-        ) ||
-        snapshot.seats.find(
-          (s) =>
-            s.id !== evilTwinSeat.id &&
-            (includeDead || !s.isDead) &&
-            (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
-            !s.isEvilConverted
+    if (evilTwinSeat && goodTwinSeat) {
+      const hasGoodTwinInQueue = consolidatedQueue.some(
+        (n) => n.seatId === goodTwinSeat.id
+      );
+      if (!hasGoodTwinInQueue) {
+        const evilTwinIdx = consolidatedQueue.findIndex(
+          (n) => n.roleId === "evil_twin"
         );
-
-      if (goodTwinSeat) {
-        const hasGoodTwinInQueue = consolidatedQueue.some(
-          (n) => n.seatId === goodTwinSeat.id
-        );
-        if (!hasGoodTwinInQueue) {
-          const evilTwinIdx = consolidatedQueue.findIndex(
-            (n) => n.roleId === "evil_twin"
-          );
-          const insertIdx =
-            evilTwinIdx !== -1 ? evilTwinIdx + 1 : consolidatedQueue.length;
-          const goodTwinNode: NightActionNode = {
-            seatId: goodTwinSeat.id,
-            roleId: "good_twin_info",
-            roleName: `${goodTwinSeat.role?.name || "善良双子"}(双子告知)`,
-            priority: 38.5,
-            isFirstNightOnly: true,
-            abilityId: "good_twin_info",
-            wakeMessage: `唤醒${goodTwinSeat.id + 1}号【${goodTwinSeat.role?.name || "对立双子"}】，告知他：${evilTwinSeat.id + 1}号是镜像双子。`,
-            firstNightPriority: 38.5,
-            otherNightPriority: null,
-            targetIds: [],
-            processed: false,
-            success: false,
-            meta: {
-              isGoodTwinInfo: true,
-              evilTwinSeatId: evilTwinSeat.id,
-            },
-          };
-          consolidatedQueue.splice(insertIdx, 0, goodTwinNode);
-        }
+        const insertIdx =
+          evilTwinIdx !== -1 ? evilTwinIdx + 1 : consolidatedQueue.length;
+        const goodTwinNode: NightActionNode = {
+          seatId: goodTwinSeat.id,
+          roleId: "good_twin_info",
+          roleName: `${goodTwinSeat.role?.name || "善良双子"}(双子告知)`,
+          priority: 38.5,
+          isFirstNightOnly: true,
+          abilityId: "good_twin_info",
+          wakeMessage: `唤醒${goodTwinSeat.id + 1}号【${goodTwinSeat.role?.name || "对立双子"}】，告知他：${evilTwinSeat.id + 1}号是镜像双子。`,
+          firstNightPriority: 38.5,
+          otherNightPriority: null,
+          targetIds: [],
+          processed: false,
+          success: false,
+          meta: {
+            isGoodTwinInfo: true,
+            evilTwinSeatId: evilTwinSeat.id,
+          },
+        };
+        consolidatedQueue.splice(insertIdx, 0, goodTwinNode);
       }
     }
   }

@@ -23,6 +23,7 @@ import { computeIsPoisoned } from "../utils/gameRules";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
+import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
@@ -340,6 +341,7 @@ export async function executeViaNewEngine(
     //   但 executeViaNewEngine 构造的快照此前不含该字段，导致送葬者
     //   preCheck 的 executedTodayCheck 找不到被处决者 → aborted → 结算弹窗不展示。
     todayExecutedId: context.todayExecutedId ?? null,
+    evilTwinPair: (context as any).evilTwinPair ?? null,
     globalEffects: { vortoxWorld: isVortox },
     vortoxWorld: isVortox,
     isVortoxWorld: isVortox,
@@ -496,11 +498,13 @@ export async function executeViaNewEngine(
         return true;
       }
 
-      // 检查是否是系统步骤（如 demon_info, minion_info）
+      // 检查是否是系统步骤（如 demon_info, minion_info, good_twin_info）
+      const isGoodTwinStep = roleId === "good_twin_info";
       const isSystemStep = [
         "demon_info",
         "minion_info",
         LEGION_MUTUAL_RECOGNITION_ID,
+        "good_twin_info",
       ].includes(roleId);
       const targetConfig =
         (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
@@ -510,6 +514,43 @@ export async function executeViaNewEngine(
       const aliveOnly = targetConfig?.aliveOnly ?? false;
 
       if (isSystemStep) {
+        if (isGoodTwinStep) {
+          const { evilTwinSeat } = resolveEvilTwinPair(
+            context.seats,
+            (context as any).evilTwinPair
+          );
+          const evilSeatNo = evilTwinSeat ? `${evilTwinSeat.id + 1}号` : "对立玩家";
+          const displayName = `${seatPrefix}${rawRoleName || "善良双子"}(双子告知)`;
+          const actionDesc = `告知对立双子：${evilSeatNo}是镜像双子`;
+          const guideInfo = `唤醒${actorId + 1}号【${rawRoleName || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
+
+          context.setCurrentModal({
+            type: "NIGHT_ACTION_CONFIRM",
+            data: {
+              roleName: displayName,
+              actionDescription: actionDesc,
+              targetDescriptions: [`【双子告知】${evilSeatNo}是镜像双子`],
+              onConfirm: () => {
+                context.setCurrentModal({
+                  type: "INFO_RESULT",
+                  data: {
+                    roleName: displayName,
+                    resultText: `【双子告知】${evilSeatNo}是镜像双子`,
+                    onNext: () => {
+                      context.setCurrentModal(null);
+                      context.continueToNextAction();
+                    },
+                  },
+                });
+              },
+              onCancel: () => {
+                context.setCurrentModal(null);
+              },
+            },
+          });
+          return true;
+        }
+
         const isLegion =
           roleId === LEGION_MUTUAL_RECOGNITION_ID ||
           (roleId === "demon_info" &&
@@ -564,13 +605,31 @@ export async function executeViaNewEngine(
           context.setCurrentModal({ type: "SPY_RECORDS", data: null });
           return true;
         }
+
+        const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+          context.seats,
+          (context as any).evilTwinPair
+        );
+        const isGoodTwinActor =
+          (context.gamePhase === "firstNight" || context.nightCount === 1) &&
+          evilTwinSeat &&
+          isGoodTwin(actorId);
+
+        const mergedActionDesc = isGoodTwinActor
+          ? `【双子告知】${evilTwinSeat.id + 1}号是镜像双子\n${displayInfo?.log || actionDescription}`
+          : displayInfo?.log || actionDescription;
+
+        const mergedTargets = isGoodTwinActor
+          ? [`【双子告知】${evilTwinSeat.id + 1}号是镜像双子`]
+          : ["（信息获取 - 无目标）"];
+
         // 执行后需要 UI 确认，不要自动跳过
         context.setCurrentModal({
           type: "NIGHT_ACTION_CONFIRM",
           data: {
             roleName,
-            actionDescription: displayInfo?.log || actionDescription,
-            targetDescriptions: ["（信息获取 - 无目标）"],
+            actionDescription: mergedActionDesc,
+            targetDescriptions: mergedTargets,
             extraNote: isCorrupted
               ? "该角色处于醉酒/中毒状态，能力可能不生效"
               : undefined,
@@ -592,119 +651,152 @@ export async function executeViaNewEngine(
       // 弹窗确认（含弹窗内安全防窥选人交互）
       const safeTargets = [...(context.selectedTargets || [])];
 
-      // 😈 小恶魔自杀转火：若在进入前已明确选择自杀，且有多名存活爪牙，直接弹出爪牙晋升选择面板
-      const isInitialImpSuicide =
-        roleId === "imp" && safeTargets[0] === actorId;
-      if (isInitialImpSuicide) {
-        const aliveMinions = context.seats.filter(
-          (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
-        );
-        if (aliveMinions.length > 1) {
-          context.setCurrentModal({
-            type: "STORYTELLER_SELECT",
-            data: {
-              sourceId: actorId,
-              roleId: "imp",
-              roleName: "小恶魔",
-              title: "😈 小恶魔自戕转火传位",
-              description: `${actorId + 1}号小恶魔选择自杀！场上有 ${aliveMinions.length} 名存活爪牙，请选择由哪位爪牙晋升为新的【小恶魔】：`,
-              targetCount: 1,
-              filterCandidates: (s: Seat) =>
-                aliveMinions.some((m) => m.id === s.id),
-              confirmLabel: "确认晋升为小恶魔",
-              onConfirm: async (targetIds: number[]) => {
-                const chosenMinionId = targetIds[0];
-                const realContext: NightActionHandlerContext = {
-                  ...context,
-                  preview: false,
-                  selectedTargets: safeTargets,
-                  actionData: { successorSeatId: chosenMinionId },
-                };
-                await executeViaNewEngine(realContext, roleId);
+      const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+        context.seats,
+        (context as any).evilTwinPair
+      );
+      const isGoodTwinActiveActor =
+        (context.gamePhase === "firstNight" || context.nightCount === 1) &&
+        evilTwinSeat &&
+        isGoodTwin(actorId);
+
+      const openActiveSkillModal = () => {
+        // 😈 小恶魔自杀转火：若在进入前已明确选择自杀，且有多名存活爪牙，直接弹出爪牙晋升选择面板
+        const isInitialImpSuicide =
+          roleId === "imp" && safeTargets[0] === actorId;
+        if (isInitialImpSuicide) {
+          const aliveMinions = context.seats.filter(
+            (s) => s.role?.type === "minion" && !s.isDead && s.id !== actorId
+          );
+          if (aliveMinions.length > 1) {
+            context.setCurrentModal({
+              type: "STORYTELLER_SELECT",
+              data: {
+                sourceId: actorId,
+                roleId: "imp",
+                roleName: "小恶魔",
+                title: "😈 小恶魔自戕转火传位",
+                description: `${actorId + 1}号小恶魔选择自杀！场上有 ${aliveMinions.length} 名存活爪牙，请选择由哪位爪牙晋升为新的【小恶魔】：`,
+                targetCount: 1,
+                filterCandidates: (s: Seat) =>
+                  aliveMinions.some((m) => m.id === s.id),
+                confirmLabel: "确认晋升为小恶魔",
+                onConfirm: async (targetIds: number[]) => {
+                  const chosenMinionId = targetIds[0];
+                  const realContext: NightActionHandlerContext = {
+                    ...context,
+                    preview: false,
+                    selectedTargets: safeTargets,
+                    actionData: { successorSeatId: chosenMinionId },
+                  };
+                  await executeViaNewEngine(realContext, roleId);
+                },
               },
-            },
-          } as any);
-          return true;
-        } else if (aliveMinions.length === 1) {
-          actionDescription = `小恶魔选择自杀，将传位给爪牙【${aliveMinions[0].id + 1}号 ${aliveMinions[0].role?.name}】成为新小恶魔。`;
+            } as any);
+            return;
+          } else if (aliveMinions.length === 1) {
+            actionDescription = `小恶魔选择自杀，将传位给爪牙【${aliveMinions[0].id + 1}号 ${aliveMinions[0].role?.name}】成为新小恶魔。`;
+          }
         }
+
+        context.setCurrentModal({
+          type: "NIGHT_ACTION_CONFIRM",
+          data: {
+            roleName,
+            actionDescription,
+            targetDescriptions,
+            targetLimit: { min: minTargets, max: maxTargets },
+            actorSeatId: actorId,
+            allowSelf,
+            aliveOnly,
+            initialSelectedTargets: safeTargets,
+            extraNote: isGoodTwinActiveActor
+              ? `👥【双子告知】已告知该玩家：${evilTwinSeat.id + 1}号是镜像双子`
+              : isCorrupted
+                ? "该角色处于醉酒/中毒状态，能力可能不生效"
+                : undefined,
+            onConfirm: async (chosenTargets?: number[]) => {
+              const finalTargets =
+                chosenTargets !== undefined ? chosenTargets : safeTargets;
+              console.log(
+                `[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`,
+                finalTargets
+              );
+
+              // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
+              const isImpSuicide =
+                roleId === "imp" && finalTargets[0] === actorId;
+              if (isImpSuicide) {
+                const aliveMinions = context.seats.filter(
+                  (s) =>
+                    s.role?.type === "minion" && !s.isDead && s.id !== actorId
+                );
+                if (aliveMinions.length > 1) {
+                  context.setCurrentModal({
+                    type: "STORYTELLER_SELECT",
+                    data: {
+                      sourceId: actorId,
+                      roleId: "imp",
+                      roleName: "小恶魔",
+                      title: "😈 小恶魔自戕转火传位",
+                      description: `${actorId + 1}号小恶魔选择自杀！场上有 ${aliveMinions.length} 名存活爪牙，请选择由哪位爪牙晋升为新的【小恶魔】：`,
+                      targetCount: 1,
+                      filterCandidates: (s: Seat) =>
+                        aliveMinions.some((m) => m.id === s.id),
+                      confirmLabel: "确认晋升为小恶魔",
+                      onConfirm: async (targetIds: number[]) => {
+                        const chosenMinionId = targetIds[0];
+                        const realContext: NightActionHandlerContext = {
+                          ...context,
+                          preview: false,
+                          selectedTargets: finalTargets,
+                          actionData: { successorSeatId: chosenMinionId },
+                        };
+                        await executeViaNewEngine(realContext, roleId);
+                      },
+                    },
+                  } as any);
+                  return;
+                }
+              }
+
+              // 用户确认后，用选中的目标参数执行真实管道
+              const realContext: NightActionHandlerContext = {
+                ...context,
+                preview: false,
+                selectedTargets: finalTargets,
+              };
+              await executeViaNewEngine(realContext, roleId);
+            },
+            onCancel: () => {
+              console.log(`[executeViaNewEngine] onCancel for ${roleId}`);
+              // 取消：清空选择，让说书人重新选
+              context.setSelectedActionTargets([]);
+            },
+          },
+        });
+      };
+
+      // 情况 3：主动技能角色，先单独唤醒告知“X号是镜像双子”，再触发技能确认弹窗和技能结果弹窗
+      if (isGoodTwinActiveActor) {
+        context.setCurrentModal({
+          type: "NIGHT_ACTION_CONFIRM",
+          data: {
+            roleName: `${roleName}（双子告知）`,
+            actionDescription: `👥【双子告知】请先告知${actorId + 1}号玩家：\n${evilTwinSeat.id + 1}号是镜像双子！`,
+            targetDescriptions: [`【双子告知】${evilTwinSeat.id + 1}号是镜像双子`],
+            onConfirm: () => {
+              openActiveSkillModal();
+            },
+            onCancel: () => {
+              context.setSelectedActionTargets([]);
+            },
+          },
+        });
+        return true;
       }
 
-      context.setCurrentModal({
-        type: "NIGHT_ACTION_CONFIRM",
-        data: {
-          roleName,
-          actionDescription,
-          targetDescriptions,
-          targetLimit: { min: minTargets, max: maxTargets },
-          actorSeatId: actorId,
-          allowSelf,
-          aliveOnly,
-          initialSelectedTargets: safeTargets,
-          extraNote: isCorrupted
-            ? "该角色处于醉酒/中毒状态，能力可能不生效"
-            : undefined,
-          onConfirm: async (chosenTargets?: number[]) => {
-            const finalTargets =
-              chosenTargets !== undefined ? chosenTargets : safeTargets;
-            console.log(
-              `[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`,
-              finalTargets
-            );
-
-            // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
-            const isImpSuicide =
-              roleId === "imp" && finalTargets[0] === actorId;
-            if (isImpSuicide) {
-              const aliveMinions = context.seats.filter(
-                (s) =>
-                  s.role?.type === "minion" && !s.isDead && s.id !== actorId
-              );
-              if (aliveMinions.length > 1) {
-                context.setCurrentModal({
-                  type: "STORYTELLER_SELECT",
-                  data: {
-                    sourceId: actorId,
-                    roleId: "imp",
-                    roleName: "小恶魔",
-                    title: "😈 小恶魔自戕转火传位",
-                    description: `${actorId + 1}号小恶魔选择自杀！场上有 ${aliveMinions.length} 名存活爪牙，请选择由哪位爪牙晋升为新的【小恶魔】：`,
-                    targetCount: 1,
-                    filterCandidates: (s: Seat) =>
-                      aliveMinions.some((m) => m.id === s.id),
-                    confirmLabel: "确认晋升为小恶魔",
-                    onConfirm: async (targetIds: number[]) => {
-                      const chosenMinionId = targetIds[0];
-                      const realContext: NightActionHandlerContext = {
-                        ...context,
-                        preview: false,
-                        selectedTargets: finalTargets,
-                        actionData: { successorSeatId: chosenMinionId },
-                      };
-                      await executeViaNewEngine(realContext, roleId);
-                    },
-                  },
-                } as any);
-                return;
-              }
-            }
-
-            // 用户确认后，用选中的目标参数执行真实管道
-            const realContext: NightActionHandlerContext = {
-              ...context,
-              preview: false,
-              selectedTargets: finalTargets,
-            };
-            await executeViaNewEngine(realContext, roleId);
-          },
-          onCancel: () => {
-            console.log(`[executeViaNewEngine] onCancel for ${roleId}`);
-            // 取消：清空选择，让说书人重新选
-            context.setSelectedActionTargets([]);
-          },
-        },
-      });
-
+      openActiveSkillModal();
       return true;
     }
 
@@ -975,7 +1067,10 @@ export async function executeViaNewEngine(
                 evilTwinPair: {
                   evilId: evilSeatId,
                   goodId: goodSeatId,
+                  evilSeatId,
+                  goodSeatId,
                 },
+                seats: syncedSeats,
               },
             });
           }
@@ -1060,19 +1155,24 @@ export async function executeViaNewEngine(
       }
 
       // 👥 对立双子在夜间获知“X号是镜像双子”
-      const isGoodTwinActor =
-        actorSeat?.isGoodTwin ||
-        actorId === (context as any)?.evilTwinPair?.goodId ||
-        actorId === (resultContext as any)?.snapshot?.evilTwinPair?.goodId;
-      const evilTwinSeat = syncedSeats.find(
-        (s) => s.role?.id === "evil_twin" && !s.isDead
+      const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+        syncedSeats.length > 0 ? syncedSeats : context.seats,
+        evilTwinPair || (context as any)?.evilTwinPair
       );
-      if (isGoodTwinActor && evilTwinSeat && context.nightCount === 1) {
+      const isGoodTwinActor =
+        (context.gamePhase === "firstNight" || context.nightCount === 1) &&
+        evilTwinSeat &&
+        isGoodTwin(actorId);
+      if (isGoodTwinActor && evilTwinSeat) {
         const twinNotice = `【双子告知】${evilTwinSeat.id + 1}号是镜像双子`;
         if (customResultText) {
-          customResultText = `${twinNotice}\n${customResultText}`;
+          if (!customResultText.includes(twinNotice)) {
+            customResultText = `${twinNotice}\n${customResultText}`;
+          }
         } else if (displayInfo?.log) {
-          displayInfo.log = `${twinNotice}\n${displayInfo.log}`;
+          if (!displayInfo.log.includes(twinNotice)) {
+            displayInfo.log = `${twinNotice}\n${displayInfo.log}`;
+          }
         } else {
           customResultText = twinNotice;
         }
@@ -1211,15 +1311,69 @@ export function useNightActionHandler() {
         return true;
       }
 
-      // ====== 系统信息步骤（爪牙互认 / 恶魔互认 / 军团互认）：驱动确认与结果展示 ======
+      // ====== 系统信息步骤（爪牙互认 / 恶魔互认 / 军团互认 / 双子告知）：驱动确认与结果展示 ======
+      const isGoodTwinStep = roleId === "good_twin_info";
       const isSystemStep =
         roleId === "minion_info" ||
         roleId === "demon_info" ||
-        roleId === LEGION_MUTUAL_RECOGNITION_ID;
+        roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+        isGoodTwinStep;
 
       if (isSystemStep) {
         const actorId = nightInfo.seat?.id ?? -1;
         const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
+        if (isGoodTwinStep) {
+          const { evilTwinSeat } = resolveEvilTwinPair(
+            context.seats,
+            (context as any).evilTwinPair
+          );
+          const evilSeatNo = evilTwinSeat ? `${evilTwinSeat.id + 1}号` : "对立玩家";
+          const displayName = `${seatPrefix}${nightInfo.effectiveRole?.name || "善良双子"}(双子告知)`;
+          const actionDesc = `告知对立双子：${evilSeatNo}是镜像双子`;
+          const guideInfo = `唤醒${actorId + 1}号【${nightInfo.effectiveRole?.name || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
+
+          if (context.preview) {
+            context.setCurrentModal({
+              type: "NIGHT_ACTION_CONFIRM",
+              data: {
+                roleName: displayName,
+                actionDescription: actionDesc,
+                targetDescriptions: [`【双子告知】${evilSeatNo}是镜像双子`],
+                onConfirm: () => {
+                  context.setCurrentModal({
+                    type: "INFO_RESULT",
+                    data: {
+                      roleName: displayName,
+                      resultText: `【双子告知】${evilSeatNo}是镜像双子`,
+                      onNext: () => {
+                        context.setCurrentModal(null);
+                        context.continueToNextAction();
+                      },
+                    },
+                  });
+                },
+                onCancel: () => {
+                  context.setCurrentModal(null);
+                },
+              },
+            });
+            return true;
+          }
+
+          context.setCurrentModal({
+            type: "INFO_RESULT",
+            data: {
+              roleName: displayName,
+              resultText: `【双子告知】${evilSeatNo}是镜像双子`,
+              onNext: () => {
+                context.setCurrentModal(null);
+                context.continueToNextAction();
+              },
+            },
+          });
+          return true;
+        }
+
         const isLegion =
           roleId === LEGION_MUTUAL_RECOGNITION_ID ||
           (roleId === "demon_info" && nightInfo.seat?.role?.id === "legion");
