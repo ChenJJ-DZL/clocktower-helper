@@ -45,7 +45,7 @@ export function RoleSelectModal({ modal }: { modal: any }) {
             的角色身份，若合法则该玩家立刻变为该角色，并按夜晚顺位在本夜被叫醒。
           </p>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="grid grid-cols-4 gap-3.5 max-h-[60vh] overflow-y-auto pr-1">
           {roles
             .filter((r: Role) => {
               if (modal.type === "philosopher" || modal.type === "cerenovus") {

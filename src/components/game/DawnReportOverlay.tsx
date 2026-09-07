@@ -37,6 +37,8 @@ export function DawnReportOverlay() {
         </button>
       </div>
     </div>,
-    document.body
+    (typeof document !== "undefined" &&
+      document.getElementById("scale-layout-modal-root")) ||
+      document.body
   );
 }

@@ -218,7 +218,7 @@ export function QuickStartModal({
       title={modalTitle}
       onClose={onClose}
       size="fullscreen90"
-      className="w-[94vw] max-w-7xl max-h-[92vh] flex flex-col p-3 overflow-hidden"
+      className="flex flex-col p-3 overflow-hidden"
       footer={
         <div className="flex items-center justify-between w-full">
           <button
@@ -260,7 +260,7 @@ export function QuickStartModal({
               配比格式：镇民 / 外来者 / 爪牙 / 恶魔
             </span>
           </div>
-          <div className="grid grid-cols-6 sm:grid-cols-11 gap-1.5">
+          <div className="grid grid-cols-11 gap-1.5">
             {playerCounts.map((count) => {
               const comp = STANDARD_COMPOSITIONS[count];
               const isSelected = selectedCount === count;
@@ -311,7 +311,7 @@ export function QuickStartModal({
         )}
 
         {/* 四大阵营分类预览区（镇民 / 外来者 / 爪牙 / 恶魔） */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3 min-h-0 overflow-y-auto">
+        <div className="flex-1 grid grid-cols-4 gap-3 min-h-0 overflow-hidden">
           {/* 1. 镇民区 */}
           <div className="flex flex-col rounded-2xl bg-blue-950/20 border border-blue-500/30 p-2.5 overflow-hidden">
             <div className="flex items-center justify-between pb-2 border-b border-blue-500/20 mb-2 shrink-0">

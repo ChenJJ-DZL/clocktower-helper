@@ -1,5 +1,26 @@
 # 更新日志
 
+## W9.7.3 — 移动端横屏 PC 1600×900 严格等比还原与竖屏“请横屏使用”锁屏提示（2026-09-07）
+
+### 一、竖屏锁屏提示（请横屏使用）
+1. **自动监听屏幕方向**：当设备处于竖屏状态（`window.innerHeight > window.innerWidth`）时，自动呼出全屏深邃暗金主题提示遮罩。
+2. **沉浸式交互引导**：
+   - 动态手机 90° 平滑旋转动画图标；
+   - 醒目大标题：`请横屏使用`；
+   - 说明文案：`《血染钟楼说书人魔典》专为横屏桌面设计，请将手机旋转至横屏，系统将自动解锁并等比例完整展现所有内容`；
+   - 状态徽章：`🔄 等待旋转设备中…`（手机旋转至横屏后自动瞬间解锁并进入游戏）。
+
+### 二、移动端（以 iPhone 17 为例）横屏严格等比还原 PC 端全部内容
+1. **虚拟舞台基准锁定 1600×900**：
+   - `ScaleLayout` 虚拟舞台尺寸锁定为 PC 端基准 `1600px × 900px`，统一缩放比 `scale = Math.min(windowWidth / 1600, windowHeight / 900)`；
+   - 在 19.5:9 的 iPhone 17 等现代全面屏横屏下（852 × 393），高度 100% 满屏贴合（393px），舞台占用 698.6px 水平居中，左右对称留出各 ~76.7px 的暗色安全缓冲区域；
+   - 物理杜绝了 iPhone 17 的灵动岛、前置打孔摄像头及屏幕大圆角对任何游戏元素、按钮或文字的遮挡。
+2. **全套 PC 桌面级网格规整**：
+   - `ScriptSelection` 剧本卡片恢复 PC 桌面标准的 3 列网格（`grid-cols-3`），标题字号采用 PC 阶梯；
+   - `QuickStartModal` 快速开始弹窗人数选择设为 `grid-cols-11` 单行，4 大阵营设为 `grid-cols-4` 横向展开并排，每个卡片内部独立滚动；
+   - `IdentityShowcaseModal` 与 `RoleCodexModal` 锁定为 `flex-row` 左右双栏结构，图鉴列表锁定为 `grid-cols-4`；
+   - `RoleSelectModal`（4列）、`DayActionModal`（6列）、`DawnReportOverlay` 与 `NoteEditModal` 挂载点统一移至 `#scale-layout-modal-root`，随 PC 舞台等比缩放。
+
 ## W9.7.2 — 彻底根除移动端（iOS Safari / 微信）选择剧本后 WebKit WebContent 进程崩溃（Jetsam OOM）（2026-09-07）
 
 ### 一、移动端 WebContent 进程崩溃（Jetsam SIGKILL）根本原因与彻底修复

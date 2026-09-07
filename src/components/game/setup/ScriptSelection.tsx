@@ -338,7 +338,7 @@ export default function ScriptSelection({
   return (
     <div className="w-full h-full flex flex-col items-center justify-center px-4 py-6 overflow-auto min-h-0 relative">
       {/* 顶部右侧主题切换胶囊 */}
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute top-4 right-6 z-50">
         <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
           <button
             onClick={() => requestTheme("classic")}
@@ -367,10 +367,10 @@ export default function ScriptSelection({
 
       <div className="w-full max-w-5xl space-y-10 flex-shrink-0 my-auto">
         <div className="text-center space-y-3">
-          <h2 className="text-4xl md:text-5xl font-black tracking-wide text-slate-50 drop-shadow">
+          <h2 className="text-5xl font-black tracking-wide text-slate-50 drop-shadow">
             请选择剧本
           </h2>
-          <p className="text-base md:text-lg text-slate-400">
+          <p className="text-lg text-slate-400">
             点击下方卡片选择本局要使用的剧本
           </p>
           <p className="text-sm text-slate-500">更多剧本开发中</p>
@@ -415,7 +415,7 @@ export default function ScriptSelection({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           {allScripts.map((script) => {
             const isUnofficial = script.isCustom || script.id === "poppyganda";
             return (
@@ -441,7 +441,7 @@ export default function ScriptSelection({
                   {/* 顶部：剧本名 + 难度标签 */}
                   <div className="flex items-center justify-between gap-3">
                     <div
-                      className={`text-xl md:text-2xl font-black truncate ${
+                      className={`text-2xl font-black truncate ${
                         isUnofficial
                           ? "text-amber-100 drop-shadow-sm"
                           : "text-slate-50"
@@ -510,7 +510,7 @@ export default function ScriptSelection({
         <div className="text-center pt-2 pb-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/60 border border-white/10 text-xs font-mono text-slate-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Version W9.7.2
+            Version W9.7.3
           </span>
         </div>
       </div>

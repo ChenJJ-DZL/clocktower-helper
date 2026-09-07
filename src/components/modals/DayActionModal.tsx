@@ -29,7 +29,7 @@ export function DayActionModal({ modal }: { modal: any }) {
         </div>
       }
     >
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3.5 p-1 w-full">
+      <div className="grid grid-cols-6 gap-3.5 p-1 w-full">
         {props.seats
           .filter((s) => {
             // 暗月初升剧本：存活玩家可以提名死人

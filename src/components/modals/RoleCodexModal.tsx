@@ -267,9 +267,9 @@ export function RoleCodexModal({
         /* ========================================================== */
         /* 角色详细说明页 (Role Detailed Card - 格式参考角色展示卡) */
         /* ========================================================== */
-        <div className="w-full h-full flex flex-col lg:flex-row gap-4 items-stretch overflow-hidden">
+        <div className="w-full h-full flex flex-row gap-4 items-stretch overflow-hidden">
           {/* 左侧核心信息栏 */}
-          <div className="w-full lg:w-[45%] xl:w-[40%] shrink-0 flex flex-col justify-between p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950 border-2 border-white/10 shadow-2xl space-y-4 overflow-y-auto">
+          <div className="w-[40%] shrink-0 flex flex-col justify-between p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950 border-2 border-white/10 shadow-2xl space-y-4 overflow-y-auto">
             {/* 顶部标题与阵营标签 */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
               <div className="flex items-center gap-2">
@@ -606,7 +606,7 @@ export function RoleCodexModal({
                     </div>
 
                     {/* 卡片网格 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-4 gap-3">
                       {rolesInGroup.map((role) => (
                         <RoleCardItem
                           key={role.id}
@@ -621,7 +621,7 @@ export function RoleCodexModal({
               })
             ) : (
               /* 平铺网格展示 */
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 {searchedRoles.map((role) => {
                   const config =
                     TYPE_CONFIG[role.type] || TYPE_CONFIG.townsfolk;

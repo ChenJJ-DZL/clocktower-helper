@@ -310,78 +310,81 @@ export function GlobalNavBar() {
         />
       )}
 
-      {/* 全局导航按钮 - 内联工具栏 */}
-      <div className="flex items-center gap-2 px-3 py-2 flex-wrap">
-        {/* 左侧：主题切换胶囊 */}
-        <div className="flex items-center">
-          <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_16px_rgba(245,158,11,0.15)]">
+      {/* 全局导航按钮 - 严密适配手机硬件圆角与下方面板 */}
+      <div className="flex items-center w-full h-full">
+        {/* 左侧容器：与下方左面板 (魔典圆桌 flex-1) 保持完全一致的几何尺寸，内容居中对齐魔典中线 */}
+        <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3 px-3 py-2">
+          {/* 主题切换胶囊 */}
+          <div className="flex items-center shrink-0">
+            <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_16px_rgba(245,158,11,0.15)]">
+              <button
+                onClick={() => requestTheme("classic")}
+                className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
+                  theme === "classic"
+                    ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="🏛️ 官方原版经典皮肤 (默认)"
+              >
+                🏛️ 经典
+              </button>
+              <button
+                onClick={() => requestTheme("modern")}
+                className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
+                  theme === "modern"
+                    ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
+              >
+                ✨ 现代
+              </button>
+            </div>
+          </div>
+
+          {/* 主页 + 撤销/重做 */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
-              onClick={() => requestTheme("classic")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
-                theme === "classic"
-                  ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-              title="🏛️ 官方原版经典皮肤 (默认)"
+              onClick={handleHome}
+              className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-600/50 transition-all active:scale-95"
+              title="返回主页（游戏进程保留）"
             >
-              🏛️ 经典
+              🏠 主页
             </button>
+
             <button
-              onClick={() => requestTheme("modern")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
-                theme === "modern"
-                  ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
-                  : "text-slate-400 hover:text-slate-200"
+              onClick={handleUndo}
+              disabled={!canUndo}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg border transition-all active:scale-95 ${
+                canUndo
+                  ? "bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50"
+                  : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
               }`}
-              title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
+              title="撤销上一步操作"
             >
-              ✨ 现代
+              ⬅️ 撤销
+            </button>
+
+            <button
+              onClick={handleRedo}
+              disabled={!canRedo}
+              className={`px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg border transition-all active:scale-95 ${
+                canRedo
+                  ? "bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50"
+                  : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
+              }`}
+              title="重做被撤销的操作"
+            >
+              重做 ➡️
             </button>
           </div>
         </div>
 
-        {/* 左侧：主页 + 撤销/重做 */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleHome}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-600/50 transition-all active:scale-95"
-            title="返回主页（游戏进程保留）"
-          >
-            🏠 主页
-          </button>
-
-          <button
-            onClick={handleUndo}
-            disabled={!canUndo}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all active:scale-95 ${
-              canUndo
-                ? "bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50"
-                : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
-            }`}
-            title="撤销上一步操作"
-          >
-            ⬅️ 撤销
-          </button>
-
-          <button
-            onClick={handleRedo}
-            disabled={!canRedo}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all active:scale-95 ${
-              canRedo
-                ? "bg-slate-800 hover:bg-slate-700 text-white border-slate-600/50"
-                : "bg-slate-800/40 text-slate-500 border-slate-700/30 cursor-not-allowed"
-            }`}
-            title="重做被撤销的操作"
-          >
-            重做 ➡️
-          </button>
-        </div>
-
-        {/* 右侧：历史、复盘、重置 */}
-        <div className="flex items-center gap-2 ml-auto">
+        {/* 右侧容器：与下方右面板 (控制台 w-[450px]) 严格对齐，具有相同的宽度和左侧边框，按钮以控制台左侧边界为准靠左对齐 */}
+        <div className="w-[450px] shrink-0 flex items-center justify-start gap-2 sm:gap-2.5 px-4 py-2 border-l border-white/10">
           <button
             onClick={handleShowRecords}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-600/50 transition-all active:scale-95"
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg border border-slate-600/50 transition-all active:scale-95"
             title="查看历史记录"
           >
             📋 历史
@@ -391,7 +394,7 @@ export function GlobalNavBar() {
             onClick={() =>
               controller.setCurrentModal({ type: "REVIEW", data: null })
             }
-            className="px-3 py-1.5 bg-indigo-800/90 hover:bg-indigo-700/90 text-white text-xs font-medium rounded-lg border border-indigo-600/50 transition-all active:scale-95"
+            className="px-2.5 sm:px-3 py-1.5 bg-indigo-800/90 hover:bg-indigo-700/90 text-white text-xs font-medium rounded-lg border border-indigo-600/50 transition-all active:scale-95"
             title="查看本局复盘"
           >
             📜 复盘
@@ -399,14 +402,14 @@ export function GlobalNavBar() {
 
           <button
             onClick={handleReset}
-            className="px-3 py-1.5 bg-red-900/80 hover:bg-red-800/80 text-white text-xs font-medium rounded-lg border border-red-700/50 transition-all active:scale-95"
+            className="px-2.5 sm:px-3 py-1.5 bg-red-900/80 hover:bg-red-800/80 text-white text-xs font-medium rounded-lg border border-red-700/50 transition-all active:scale-95"
             title="重开一局（当前游戏保存到历史记录）"
           >
             🔄 重置
           </button>
 
           <span className="text-[10px] text-slate-500 font-mono select-none px-1">
-            W9.7.2
+            W9.7.3
           </span>
         </div>
       </div>

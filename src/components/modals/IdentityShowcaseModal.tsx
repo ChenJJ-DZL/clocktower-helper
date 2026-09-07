@@ -377,11 +377,11 @@ export function IdentityShowcaseModal({
               </button>
             </div>
           ) : (
-            <div className="w-full h-full flex flex-col lg:flex-row gap-4 items-stretch overflow-hidden">
+            <div className="w-full h-full flex flex-row gap-4 items-stretch overflow-hidden">
               {/* ==================================================== */}
               {/* 左侧核心信息栏 (Left Column - 宽幅，无省略，完整展示) */}
               {/* ==================================================== */}
-              <div className="w-full lg:w-[45%] xl:w-[40%] shrink-0 flex flex-col justify-between p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950 border-2 border-white/10 shadow-2xl space-y-4 overflow-y-auto">
+              <div className="w-[40%] shrink-0 flex flex-col justify-between p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950 border-2 border-white/10 shadow-2xl space-y-4 overflow-y-auto">
                 {/* 顶部座位号与阵营徽章 */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
                   <div className="flex items-center gap-2.5">

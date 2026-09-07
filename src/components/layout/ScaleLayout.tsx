@@ -8,17 +8,16 @@ interface ScaleLayoutProps {
 }
 
 /**
- * ScaleLayout - Fixed-proportion scaling viewport with dynamic background expansion
+ * ScaleLayout - 严格等比例还原 PC 端（1600x900）完整体验的缩放容器
  *
- * Base design resolution: 1600x900
- * Keeps ALL buttons, fonts, seat sizes, and proportions 100% identical.
- * Dynamically expands the virtual width to match the screen aspect ratio,
- * eliminating left and right black bars while preserving exact UI scaling.
+ * 基准设计分辨率：1600x900（包含魔典圆桌、15座圆形阵列、右侧控制台及所有交互弹窗）
+ * 在任何屏幕（PC、平板、手机横屏）上：
+ * 通过 transform: scale(min(w/1600, h/900)) 严格等比缩放并全屏居中呈现。
+ * 在宽屏手机（如 iPhone 17 等 19.5:9 比例）上，左右自然留出对称安全区域，
+ * 物理杜绝灵动岛、刘海以及屏幕大圆角对任何游戏元素、按钮或文字的遮挡。
  */
 export function ScaleLayout({ children }: ScaleLayoutProps) {
   const [scale, setScale] = useState(1);
-  const [virtualWidth, setVirtualWidth] = useState(1600);
-  const [virtualHeight, setVirtualHeight] = useState(900);
   const [mounted, setMounted] = useState(false);
 
   const BASE_WIDTH = 1600;
@@ -31,28 +30,13 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
 
-      // Calculate scale to fit vertical dimension (900px base)
+      // 计算双向缩放比例
       const scaleX = windowWidth / BASE_WIDTH;
       const scaleY = windowHeight / BASE_HEIGHT;
 
-      // Use the smaller scale so nothing is cut off vertically or horizontally
+      // 取两者较小值，确保无论横纵方向内容 100% 完整显示、绝不被裁切
       const newScale = Math.min(scaleX, scaleY);
       setScale(newScale);
-
-      // Virtual dimensions:
-      // If screen is wider than 16:9, expand virtualWidth so the stage fills 100% of the screen width
-      // without changing the scale factor or element sizes!
-      // Bound the virtual height and width on extreme mobile ratios to prevent runaway GPU texture allocation.
-      const vWidth = Math.max(
-        BASE_WIDTH,
-        Math.min(2400, windowWidth / newScale)
-      );
-      const vHeight = Math.max(
-        BASE_HEIGHT,
-        Math.min(1400, windowHeight / newScale)
-      );
-      setVirtualWidth(vWidth);
-      setVirtualHeight(vHeight);
     };
 
     calculateScale();
@@ -68,34 +52,44 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
 
   if (!mounted) {
     return (
-      <div className="w-screen h-screen bg-slate-950 flex items-center justify-center">
+      <div className="w-screen h-screen bg-slate-950 flex items-center justify-center overflow-hidden select-none">
         <div
           style={{
             width: `${BASE_WIDTH}px`,
             height: `${BASE_HEIGHT}px`,
           }}
-          className="bg-slate-950"
+          className="bg-slate-950 relative overflow-hidden flex-shrink-0"
         >
           {children}
+          <div
+            id="scale-layout-modal-root"
+            className="absolute inset-0 pointer-events-none z-[999999]"
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center">
-      {/* The Stage - Dynamic width at exact scale factor */}
+    <div className="w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center select-none">
+      {/* 1600x900 严格等比 PC 虚拟舞台 */}
       <div
+        id="scale-layout-stage"
         style={{
-          width: `${virtualWidth}px`,
-          height: `${virtualHeight}px`,
+          width: `${BASE_WIDTH}px`,
+          height: `${BASE_HEIGHT}px`,
           transform: `scale(${scale})`,
           transformOrigin: "center center",
           flexShrink: 0,
         }}
-        className="relative overflow-hidden"
+        className="relative overflow-hidden bg-slate-950 shadow-2xl"
       >
         {children}
+        {/* 缩放舞台内的弹窗根节点 */}
+        <div
+          id="scale-layout-modal-root"
+          className="absolute inset-0 pointer-events-none z-[999999]"
+        />
       </div>
     </div>
   );

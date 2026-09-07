@@ -166,7 +166,7 @@ export function PlayerCompositionModal({
     <ModalWrapper
       title="📜 官方标准阵营人数配比表"
       onClose={onClose}
-      className="max-w-4xl w-[96vw] max-h-[90vh] flex flex-col p-2 overflow-hidden"
+      className="flex flex-col p-2 overflow-hidden"
       footer={
         <div className="flex items-center justify-between gap-4 w-full">
           <div className="text-sm sm:text-base text-slate-300">

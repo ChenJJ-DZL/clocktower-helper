@@ -264,7 +264,7 @@ export function CharadeConfigModal({
       title={modalTitle}
       onClose={onClose}
       size="fullscreen90"
-      className="w-[94vw] max-w-5xl max-h-[90vh] flex flex-col p-4 overflow-hidden"
+      className="flex flex-col p-4 overflow-hidden"
       footer={
         <div className="flex items-center justify-between w-full">
           <div className="flex gap-2">
