@@ -1024,7 +1024,8 @@ export async function executeViaNewEngine(
         const count =
           displayInfo?.correctCount ??
           resultContext.meta.jugglerResult?.correctCount ??
-          (resultContext as any)?.snapshot?._abilityResults?.juggler?.correctCount ??
+          (resultContext as any)?.snapshot?._abilityResults?.juggler
+            ?.correctCount ??
           (actorSeat as any)?.dayAbilityResult?.correctCount ??
           0;
         customResultText = `得知的数字为${count}`;
@@ -1034,7 +1035,10 @@ export async function executeViaNewEngine(
       const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
       const guideInfo =
         guideMatch?.[1] && !guideText.includes("准备执行技能")
-          ? guideMatch[1].trim().replace(/^[:：]\s*/, "").replace(/[）)]+$/, "")
+          ? guideMatch[1]
+              .trim()
+              .replace(/^[:：]\s*/, "")
+              .replace(/[）)]+$/, "")
           : "";
       const resultText =
         customResultText ||

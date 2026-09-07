@@ -116,10 +116,10 @@ export function TableCenterHUD({
   return (
     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
       <div
-        className={`compass-ring px-8 py-6 rounded-3xl shadow-2xl backdrop-blur-xl flex flex-col items-center gap-3 pointer-events-auto transition-all duration-500 ${
+        className={`compass-ring px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-3 pointer-events-auto transition-all duration-500 ${
           isGameOver
             ? "bg-red-950/95 border-2 border-red-500/80 shadow-[0_0_50px_rgba(220,38,38,0.5)]"
-            : "bg-slate-900/85 border border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_40px_rgba(245,158,11,0.12)]"
+            : "bg-slate-900/95 border border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_40px_rgba(245,158,11,0.12)]"
         }`}
       >
         {/* Phase Indicator / Victory Title */}

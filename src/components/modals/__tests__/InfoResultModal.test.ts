@@ -161,7 +161,8 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
     expect(res1.prefix).toBe("5号-赏金猎人获得信息");
     expect(res1.result).toBe("2号玩家是邪恶的");
 
-    const raw2 = "唤醒5号【赏金猎人】，指向2号玩家【罂粟种植者】（告诉他2号玩家是邪恶的）。";
+    const raw2 =
+      "唤醒5号【赏金猎人】，指向2号玩家【罂粟种植者】（告诉他2号玩家是邪恶的）。";
     const res2 = parseInfoResult(raw2, "5号-赏金猎人");
     expect(res2.prefix).toBe("5号-赏金猎人获得信息");
     expect(res2.result).toBe("2号玩家是邪恶的");

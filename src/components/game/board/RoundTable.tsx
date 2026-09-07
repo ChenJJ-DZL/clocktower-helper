@@ -413,7 +413,8 @@ export function RoundTable({
       const availableSize = minDimension - padding * 2;
 
       // 计算可用半径
-      const availableRadius = availableSize / 2 - baseSeatSize / 2 - (isMobile ? 8 : 12);
+      const availableRadius =
+        availableSize / 2 - baseSeatSize / 2 - (isMobile ? 8 : 12);
       let radiusPercent = (availableRadius / minDimension) * 100;
 
       // 席位过多时微调半径防止重叠
@@ -588,7 +589,7 @@ export function RoundTable({
 
       {/* Top-right: Night order panel */}
       <div className="absolute top-3 right-3 z-40 w-[145px] lg:w-[155px] max-w-[28vw] pointer-events-auto transition-all duration-200">
-        <div className="rounded-xl border border-white/10 bg-slate-900/90 backdrop-blur-md shadow-xl overflow-hidden">
+        <div className="rounded-xl border border-white/10 bg-slate-900/95 shadow-xl overflow-hidden">
           <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/10 bg-slate-950/60">
             <div className="text-[11px] font-bold text-slate-200 truncate">
               夜晚行动顺序

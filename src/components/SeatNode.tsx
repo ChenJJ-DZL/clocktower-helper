@@ -67,7 +67,7 @@ function StatusPill({
 
   return (
     <div
-      className={`flex items-center gap-1.5 ${sizeClass} rounded-md border shadow-md font-bold whitespace-nowrap backdrop-blur-md ${colorClasses[color]}`}
+      className={`flex items-center gap-1.5 ${sizeClass} rounded-md border shadow-md font-bold whitespace-nowrap ${colorClasses[color]}`}
     >
       {icon && (
         <span className={`${iconSize} flex items-center justify-center`}>
@@ -439,7 +439,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                   isPortrait
                     ? "text-[8px] px-1.5 py-0.5"
                     : "text-[10px] px-2 py-0.5"
-                } rounded-full border border-white/80 shadow-md font-bold whitespace-nowrap leading-none backdrop-blur-md`}
+                } rounded-full border border-white/80 shadow-md font-bold whitespace-nowrap leading-none`}
               >
                 实:{realRole?.name}
               </div>

@@ -7,11 +7,11 @@ import {
   type Seat,
   typeBgColors,
 } from "../../../../app/data";
+import { gameActions, useGameContext } from "../../../contexts/GameContext";
+import { CharadeConfigModal } from "../../modals/CharadeConfigModal";
 import { ModalWrapper } from "../../modals/ModalWrapper";
 import { PlayerCompositionModal } from "../../modals/PlayerCompositionModal";
 import { QuickStartModal } from "../../modals/QuickStartModal";
-import { CharadeConfigModal } from "../../modals/CharadeConfigModal";
-import { gameActions, useGameContext } from "../../../contexts/GameContext";
 
 interface GameSetupProps {
   seats: Seat[];
@@ -417,8 +417,10 @@ export default function GameSetup({
       setCompositionError({
         standard: { townsfolk: 3, outsider: 0, minion: 1, demon: 1 } as any,
         actual: {
-          townsfolk: activeSeats.filter((s) => s.role?.type === "townsfolk").length,
-          outsider: activeSeats.filter((s) => s.role?.type === "outsider").length,
+          townsfolk: activeSeats.filter((s) => s.role?.type === "townsfolk")
+            .length,
+          outsider: activeSeats.filter((s) => s.role?.type === "outsider")
+            .length,
           minion: activeSeats.filter((s) => s.role?.type === "minion").length,
           demon: activeSeats.filter(
             (s) => s.role?.type === "demon" || s.role?.id === "legion"
@@ -446,7 +448,12 @@ export default function GameSetup({
     if (!hasDemon) {
       const compStatus = getCompositionStatus(activeSeats);
       setCompositionError({
-        standard: (compStatus.standard || { townsfolk: 3, outsider: 0, minion: 1, demon: 1 }) as any,
+        standard: (compStatus.standard || {
+          townsfolk: 3,
+          outsider: 0,
+          minion: 1,
+          demon: 1,
+        }) as any,
         actual: compStatus.actual,
         playerCount: compStatus.playerCount,
         hasBaron: compStatus.hasBaron,
@@ -661,36 +668,39 @@ export default function GameSetup({
         )}
 
         {/* 🎪 提线木偶座次告警 */}
-        {marionetteStatus && !marionetteStatus.valid && !ignoreMarionetteSetup && (
-          <div className="border-l-4 border-amber-500 bg-amber-950/40 p-4 text-base text-amber-100 rounded-r-xl space-y-3 shadow-lg shadow-amber-950/50">
-            <div className="flex items-center gap-2 font-bold text-amber-300">
-              <span className="text-lg">🎪</span>
-              <span>提线木偶座次违规</span>
+        {marionetteStatus &&
+          !marionetteStatus.valid &&
+          !ignoreMarionetteSetup && (
+            <div className="border-l-4 border-amber-500 bg-amber-950/40 p-4 text-base text-amber-100 rounded-r-xl space-y-3 shadow-lg shadow-amber-950/50">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <span className="text-lg">🎪</span>
+                <span>提线木偶座次违规</span>
+              </div>
+              <div className="text-sm text-amber-200/90 leading-relaxed">
+                规则要求：{marionetteStatus.marionetteSeat.id + 1}
+                号【提线木偶】必须与
+                {marionetteStatus.targetRoleDesc}（
+                {marionetteStatus.targetSeats
+                  .map((s) => `${s.id + 1}号【${s.role?.name}】`)
+                  .join("或")}
+                ）物理相邻！当前未相邻。
+              </div>
+              <div className="flex flex-wrap gap-3 pt-1">
+                <button
+                  onClick={handleAutoFixMarionetteSeating}
+                  className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 text-sm transition shadow-md shadow-amber-500/20"
+                >
+                  🔀 一键调整提线木偶至邻座
+                </button>
+                <button
+                  onClick={() => setIgnoreMarionetteSetup(true)}
+                  className="rounded-lg border border-amber-400/50 hover:bg-amber-500/10 text-amber-200 px-3 py-2.5 text-sm transition"
+                >
+                  忽略此检查
+                </button>
+              </div>
             </div>
-            <div className="text-sm text-amber-200/90 leading-relaxed">
-              规则要求：{marionetteStatus.marionetteSeat.id + 1}号【提线木偶】必须与
-              {marionetteStatus.targetRoleDesc}（
-              {marionetteStatus.targetSeats
-                .map((s) => `${s.id + 1}号【${s.role?.name}】`)
-                .join("或")}
-              ）物理相邻！当前未相邻。
-            </div>
-            <div className="flex flex-wrap gap-3 pt-1">
-              <button
-                onClick={handleAutoFixMarionetteSeating}
-                className="rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 text-sm transition shadow-md shadow-amber-500/20"
-              >
-                🔀 一键调整提线木偶至邻座
-              </button>
-              <button
-                onClick={() => setIgnoreMarionetteSetup(true)}
-                className="rounded-lg border border-amber-400/50 hover:bg-amber-500/10 text-amber-200 px-3 py-2.5 text-sm transition"
-              >
-                忽略此检查
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* 🎭 伪装身份配置面板（酒鬼、提线木偶、疯子）- 常驻保留 */}
         {charadeStatus.charadeSeats.length > 0 && (

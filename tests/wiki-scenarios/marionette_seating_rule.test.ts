@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { Role, Script, Seat } from "../../app/data";
 import {
-  generateAndSortQuickStartLineup,
   ensureMarionetteAdjacency,
+  generateAndSortQuickStartLineup,
   shuffle,
 } from "../../src/utils/quickStartGenerator";
-import type { Role, Script, Seat } from "../../app/data";
 
 describe("提线木偶（Marionette）邻座规则与座次保障测试", () => {
   const isAdjacent = (id1: number, id2: number, total: number) => {
@@ -87,13 +87,25 @@ describe("提线木偶（Marionette）邻座规则与座次保障测试", () => 
   it("一键互换座位逻辑能够正确将提线木偶移动至恶魔身旁", () => {
     const total = 7;
     const seats: Seat[] = [
-      { id: 0, role: { id: "librarian", name: "图书管理员", type: "townsfolk" } } as any,
+      {
+        id: 0,
+        role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
+      } as any,
       { id: 1, role: { id: "vortox", name: "涡流", type: "demon" } } as any, // 2号
       { id: 2, role: { id: "mayor", name: "镇长", type: "townsfolk" } } as any, // 3号
       { id: 3, role: { id: "chef", name: "厨师", type: "townsfolk" } } as any,
-      { id: 4, role: { id: "marionette", name: "提线木偶", type: "minion" } } as any, // 5号
-      { id: 5, role: { id: "empath", name: "共情者", type: "townsfolk" } } as any,
-      { id: 6, role: { id: "savant", name: "博学者", type: "townsfolk" } } as any,
+      {
+        id: 4,
+        role: { id: "marionette", name: "提线木偶", type: "minion" },
+      } as any, // 5号
+      {
+        id: 5,
+        role: { id: "empath", name: "共情者", type: "townsfolk" },
+      } as any,
+      {
+        id: 6,
+        role: { id: "savant", name: "博学者", type: "townsfolk" },
+      } as any,
     ];
 
     // 当前不相邻

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Role, Seat } from "../../../app/data";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -33,7 +33,10 @@ export function CharadeConfigModal({
 
   // 本地暂存每个座位的伪装身份
   const [selections, setSelections] = useState<
-    Record<number, { charadeRole?: Role | null; apparentDemonRole?: Role | null }>
+    Record<
+      number,
+      { charadeRole?: Role | null; apparentDemonRole?: Role | null }
+    >
   >({});
 
   // 每次打开弹窗时，从 seats 初始化 selections
@@ -132,9 +135,7 @@ export function CharadeConfigModal({
           const currentFakeId = current?.charadeRole?.id;
           let pool = townsfolkList.filter(
             (t) =>
-              !inPlayRoleIds.has(t.id) &&
-              !usedIds.has(t.id) &&
-              t.id !== "drunk"
+              !inPlayRoleIds.has(t.id) && !usedIds.has(t.id) && t.id !== "drunk"
           );
           if (forceReassignAll && pool.length > 1 && currentFakeId) {
             const alternate = pool.filter((t) => t.id !== currentFakeId);
@@ -256,7 +257,7 @@ export function CharadeConfigModal({
 
   const modalTitle = targetSeatObj
     ? `🎭 为 ${targetSeatObj.id + 1}号【${targetSeatObj.role?.name}】设定伪装身份`
-    : `🎭 设定伪装身份（提线木偶 / 酒鬼 / 疯子）`;
+    : "🎭 设定伪装身份（提线木偶 / 酒鬼 / 疯子）";
 
   return (
     <ModalWrapper
@@ -302,16 +303,16 @@ export function CharadeConfigModal({
             }`}
           >
             <span>✓</span>
-            <span>
-              {targetSeatObj ? "确认并保存此伪装" : "确认伪装并继续"}
-            </span>
+            <span>{targetSeatObj ? "确认并保存此伪装" : "确认伪装并继续"}</span>
           </button>
         </div>
       }
     >
       <div className="flex flex-col gap-4 overflow-hidden flex-1 min-h-0 text-slate-200">
         <div className="rounded-xl border border-purple-500/30 bg-purple-950/20 p-3 text-xs sm:text-sm text-purple-200/90 leading-relaxed shrink-0">
-          《染·钟楼谜团》规则说明：<b>提线木偶</b>与<b>酒鬼</b>以为自己是一个善良镇民，<b>疯子</b>以为自己是一个恶魔。落座时他们保持原角色代币，请为他们手动点选伪装身份。
+          《染·钟楼谜团》规则说明：<b>提线木偶</b>与<b>酒鬼</b>
+          以为自己是一个善良镇民，<b>疯子</b>
+          以为自己是一个恶魔。落座时他们保持原角色代币，请为他们手动点选伪装身份。
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">

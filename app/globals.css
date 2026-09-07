@@ -333,8 +333,12 @@ body > * {
 /* 1. 背景底盘与边框 */
 .theme-classic body,
 .theme-classic #__next {
-  background:
-    #0d0818 url("/assets/table-bg.png") center center / cover no-repeat;
+  background: radial-gradient(
+    ellipse at center,
+    #1e1333 0%,
+    #100a1c 50%,
+    #06030c 100%
+  );
   color: #f6ead0;
 }
 

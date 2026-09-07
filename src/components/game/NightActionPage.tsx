@@ -273,9 +273,9 @@ export function NightActionPage({
     "candidates"
   );
   const [chefCount, setChefCount] = useState<number>(0);
-  const [bountyHunterTargetId, setBountyHunterTargetId] = useState<number | null>(
-    null
-  );
+  const [bountyHunterTargetId, setBountyHunterTargetId] = useState<
+    number | null
+  >(null);
 
   // 初始化微调状态
   useEffect(() => {
@@ -409,7 +409,14 @@ export function NightActionPage({
       return `唤醒${seatId + 1}号【赏金猎人】，指向一名邪恶玩家。`;
     }
     return guideText;
-  }, [roleId, seatId, currentGoodTwinSeat, bountyHunterTargetId, seats, guideText]);
+  }, [
+    roleId,
+    seatId,
+    currentGoodTwinSeat,
+    bountyHunterTargetId,
+    seats,
+    guideText,
+  ]);
 
   // ─── 占卜师 (Fortune Teller) 恶魔与红罗刹判定 ─────────────────────────────
   const fortuneTellerDetection = useMemo(() => {
@@ -835,7 +842,9 @@ export function NightActionPage({
                 {bountyHunterTargetId !== null && (
                   <span className="px-2.5 py-0.5 rounded-full bg-red-600/40 text-red-200 text-xs font-bold border border-red-400/40">
                     当前指向：{bountyHunterTargetId + 1}号【
-                    {seats.find((s) => s.id === bountyHunterTargetId)?.role?.name || "未知"}】
+                    {seats.find((s) => s.id === bountyHunterTargetId)?.role
+                      ?.name || "未知"}
+                    】
                   </span>
                 )}
               </div>

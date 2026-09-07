@@ -3,7 +3,6 @@
 import type React from "react";
 import type { Seat } from "../../../../app/data";
 import type { NightInfoResult } from "../../../types/game";
-import { StaggerContainer, StaggerItem } from "../../common/AnimationWrapper";
 import { SeatNode } from "../../SeatNode";
 
 export interface SeatGridProps {
@@ -77,49 +76,44 @@ export function SeatGrid(props: SeatGridProps) {
     onSeatDragEnd,
   } = props;
 
-  // 圆桌模式：使用 SeatNode + 圆形布局
+  // 圆桌模式：使用 SeatNode + 圆形布局（轻量直接渲染，彻底移除移动端 15 层全屏 StaggerItem 导致的 700MB+ 显存溢出与 WebKit OOM 崩溃）
   if (layoutMode === "circle") {
     return (
-      <StaggerContainer>
+      <div className="absolute inset-0 pointer-events-none">
         {seats.map((seat, index) => (
-          <StaggerItem
+          <SeatNode
             key={seat.id}
-            className="absolute inset-0 block w-full h-full pointer-events-none"
-          >
-            <SeatNode
-              key={seat.id}
-              seat={seat}
-              index={index}
-              seats={seats}
-              isPortrait={isPortrait}
-              seatScale={seatScale}
-              nightInfo={nightInfo}
-              selectedActionTargets={selectedActionTargets}
-              longPressingSeats={longPressingSeats}
-              onSeatClick={onSeatClick}
-              onContextMenu={onContextMenu}
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
-              onTouchMove={onTouchMove}
-              setSeatRef={setSeatRef}
-              getSeatPosition={getSeatPosition}
-              getDisplayRoleType={getDisplayRoleType}
-              typeColors={typeColors}
-              gamePhase={gamePhase}
-              nominationRecords={nominationRecords}
-              nominator={nominator}
-              nominee={nominee}
-              seatNote={seatNotes[seat.id]}
-              isDraggable={isDraggable}
-              isBeingDragged={activeDragSeatId === seat.id}
-              isSwapTarget={swapTargetSeatId === seat.id}
-              onSeatDragStart={onSeatDragStart}
-              onSeatDrag={onSeatDrag}
-              onSeatDragEnd={onSeatDragEnd}
-            />
-          </StaggerItem>
+            seat={seat}
+            index={index}
+            seats={seats}
+            isPortrait={isPortrait}
+            seatScale={seatScale}
+            nightInfo={nightInfo}
+            selectedActionTargets={selectedActionTargets}
+            longPressingSeats={longPressingSeats}
+            onSeatClick={onSeatClick}
+            onContextMenu={onContextMenu}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            onTouchMove={onTouchMove}
+            setSeatRef={setSeatRef}
+            getSeatPosition={getSeatPosition}
+            getDisplayRoleType={getDisplayRoleType}
+            typeColors={typeColors}
+            gamePhase={gamePhase}
+            nominationRecords={nominationRecords}
+            nominator={nominator}
+            nominee={nominee}
+            seatNote={seatNotes[seat.id]}
+            isDraggable={isDraggable}
+            isBeingDragged={activeDragSeatId === seat.id}
+            isSwapTarget={swapTargetSeatId === seat.id}
+            onSeatDragStart={onSeatDragStart}
+            onSeatDrag={onSeatDrag}
+            onSeatDragEnd={onSeatDragEnd}
+          />
         ))}
-      </StaggerContainer>
+      </div>
     );
   }
 

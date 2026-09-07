@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getRoleDefinition } from "../../src/roles";
 import { bounty_hunterAbility } from "../../src/roles/new_engine/bounty_hunter.ability";
-import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
 import type { Seat } from "../../src/types";
+import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
 
 describe("赏金猎人：设置阶段转邪恶与夜间能力结果展示", () => {
   it("getRoleDefinition 能够正确获取 bounty_hunter 定义，且 onSetup 成功将镇民转为邪恶", () => {

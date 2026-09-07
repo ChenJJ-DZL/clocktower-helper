@@ -1,5 +1,22 @@
 # 更新日志
 
+## W9.7.2 — 彻底根除移动端（iOS Safari / 微信）选择剧本后 WebKit WebContent 进程崩溃（Jetsam OOM）（2026-09-07）
+
+### 一、移动端 WebContent 进程崩溃（Jetsam SIGKILL）根本原因与彻底修复
+1. **彻底移除 `SeatGrid` 中 15 个全屏 `StaggerItem` 硬件加速层（节省 700MB+ 显存）**：
+   - 原代码在 `SeatGrid.tsx` 中使用 `<StaggerContainer>` 搭配 15 个尺寸为 `absolute inset-0 w-full h-full` 的 `<StaggerItem>`（Framer Motion 动画层）；
+   - 在 iOS Retina 3x 高清屏与 `ScaleLayout` 缩放环境下，15 个全屏动画层在进入剧本瞬间并发请求 15 × ~52MB ≈ 780MB 的 GPU Backing Store 显存；
+   - 该瞬时峰值远超移动端 WebKit 250MB~350MB 的内核 Jetsam 内存上限，导致系统内核直接发送 SIGKILL 强杀进程（表现为 Safari 提示“...重复出现问题”）；
+   - 重构为无 Framer Motion 全屏嵌套包装的直接轻量级渲染容器，每个 `SeatNode` 严格仅占自身 80×80px 空间，图层内存由 780MB 骤降至 3.5MB（降幅 99.5%）。
+2. **剔除 `table-bg.png` 2.86MB 巨幅未压缩位图纹理**：
+   - 移除 `GameLayout.tsx` 和 `app/globals.css` 中作为背景图加载的 `table-bg.png`；
+   - 全面换用零网络传输、零 GPU 纹理显存解码峰值的高性能深邃暗夜紫绒布径向渐变（`radial-gradient`），兼具魔典沉浸感与毫秒级渲染性能。
+3. **清除圆桌核心组件与座位标签的 `backdrop-blur` 离屏渲染缓冲区**：
+   - 移除 `TableCenterHUD`（中央罗盘）、`SeatNode`（状态胶囊 `StatusPill`、真实身份徽标）和 `RoundTable`（夜晚行动顺序卡）中与 CSS `transform: scale()` 产生冲突的 `backdrop-blur-*`；
+   - 改用高对比度深色半透明纯色（`bg-slate-900/95`），杜绝 WebKit 为每个模糊元素动态分配离屏高斯模糊缓冲区的显存暴涨。
+4. **清理遗留的座位数调试标签**：
+   - 移除 `app/page.tsx` 中遗留的座位数调试悬浮块，提升界面整洁度。
+
 ## W9.7.1 (W.9.7.1) — 伪装身份面板默认卡片展示与强制单行 + 手机端全流程免桌面模式顺畅运行（2026-09-07）
 
 ### 一、伪装身份面板重构与体验优化

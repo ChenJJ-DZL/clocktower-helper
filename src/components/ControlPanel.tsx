@@ -97,24 +97,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
       {/* Controls */}
       <div className="flex gap-3 justify-center">
-        {gamePhase === "setup" && (() => {
-          const activeCount = seats.filter((s) => !!s.role).length;
-          return (
-            <button
-              onClick={() => {
-                if (activeCount < 5) {
-                  showAlert(`当前仅有 ${activeCount} 名玩家落座，最少需 5 名玩家才能开始游戏。请先在圆桌上为玩家分配角色。`);
-                  return;
-                }
-                onPreStartNight();
-              }}
-              disabled={activeCount < 5}
-              className="w-full py-3 bg-indigo-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {activeCount < 5 ? `请先为至少5名玩家落座 (${activeCount}/5)` : "开始游戏 (首夜)"}
-            </button>
-          );
-        })()}
+        {gamePhase === "setup" &&
+          (() => {
+            const activeCount = seats.filter((s) => !!s.role).length;
+            return (
+              <button
+                onClick={() => {
+                  if (activeCount < 5) {
+                    showAlert(
+                      `当前仅有 ${activeCount} 名玩家落座，最少需 5 名玩家才能开始游戏。请先在圆桌上为玩家分配角色。`
+                    );
+                    return;
+                  }
+                  onPreStartNight();
+                }}
+                disabled={activeCount < 5}
+                className="w-full py-3 bg-indigo-600 rounded-xl font-bold text-base shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {activeCount < 5
+                  ? `请先为至少5名玩家落座 (${activeCount}/5)`
+                  : "开始游戏 (首夜)"}
+              </button>
+            );
+          })()}
         {gamePhase === "check" &&
           (() => {
             const seatedCount = seats.filter((s) => !!s.role).length;
@@ -131,17 +136,25 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             );
             const hasRedHerring = seats.some((s) => s.isRedHerring);
             const needsRedHerring = hasFortuneTeller && !hasRedHerring;
-            const isDisabled = seatedCount < 5 || !hasDemon || hasPendingCharade || needsRedHerring;
+            const isDisabled =
+              seatedCount < 5 ||
+              !hasDemon ||
+              hasPendingCharade ||
+              needsRedHerring;
             return (
               <div className="w-full flex flex-col gap-2">
                 <button
                   onClick={() => {
                     if (seatedCount < 5) {
-                      showAlert(`当前仅有 ${seatedCount} 名玩家分配了角色，最少需 5 人才能开局。`);
+                      showAlert(
+                        `当前仅有 ${seatedCount} 名玩家分配了角色，最少需 5 人才能开局。`
+                      );
                       return;
                     }
                     if (!hasDemon) {
-                      showAlert("当前阵容缺少恶魔（或军团）角色，无法开始游戏。");
+                      showAlert(
+                        "当前阵容缺少恶魔（或军团）角色，无法开始游戏。"
+                      );
                       return;
                     }
                     onStartNight(true);
@@ -152,8 +165,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   {seatedCount < 5
                     ? `落座人数不足 (${seatedCount}/5)`
                     : !hasDemon
-                    ? "缺少恶魔角色 ⚠️"
-                    : "确认无误，入夜"}
+                      ? "缺少恶魔角色 ⚠️"
+                      : "确认无误，入夜"}
                 </button>
                 {seatedCount < 5 && (
                   <div className="text-center text-amber-300 text-sm font-semibold">

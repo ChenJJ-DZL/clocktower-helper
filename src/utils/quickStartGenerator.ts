@@ -222,9 +222,9 @@ export function generateAndSortQuickStartLineup(
  * 官方规则：提线木偶必须与恶魔相邻；若恶魔为小怪宝（Lil' Monsta）则必须与一名爪牙相邻。
  * 无论外部如何洗牌打乱，此函数保证提线木偶在圆环上与目标物理相邻。
  */
-export function ensureMarionetteAdjacency<T extends { id: string; type: string }>(
-  roles: T[]
-): T[] {
+export function ensureMarionetteAdjacency<
+  T extends { id: string; type: string },
+>(roles: T[]): T[] {
   const result = [...roles];
   const marionetteIdx = result.findIndex((r) => r.id === "marionette");
   if (marionetteIdx === -1 || result.length <= 2) return result;

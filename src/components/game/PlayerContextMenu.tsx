@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useGameActions } from "../../contexts/GameActionsContext";
 import { roles as allSystemRoles, type Role } from "../../../app/data";
+import { useGameActions } from "../../contexts/GameActionsContext";
 
 export function PlayerContextMenu() {
   const props = useGameActions();
@@ -99,39 +99,39 @@ export function PlayerContextMenu() {
         (targetSeat.role?.id === "drunk" ||
           targetSeat.role?.id === "marionette" ||
           targetSeat.role?.id === "lunatic") && (
-        <button
-          onClick={() => {
-            const roleType =
-              targetSeat.role?.id === "lunatic" ? "demon" : "townsfolk";
-            const inPlayIds = new Set(
-              props.seats.map((s) => s.role?.id).filter(Boolean)
-            );
-            const scriptRoles = (props as any).selectedScript?.roleIds
-              ? allSystemRoles.filter((r) =>
-                  (props as any).selectedScript.roleIds.includes(r.id)
-                )
-              : allSystemRoles;
-            const available = scriptRoles.filter(
-              (r: Role) => r.type === roleType && !inPlayIds.has(r.id)
-            );
-            props.setCurrentModal({
-              type: "DRUNK_CHARADE_SELECT",
-              data: {
-                seatId: targetSeat.id,
-                availableRoles:
-                  available.length > 0
-                    ? available
-                    : scriptRoles.filter((r: Role) => r.type === roleType),
-                scriptId: (props as any).selectedScript?.id || "custom",
-              },
-            });
-            props.setContextMenu(null);
-          }}
-          className="block w-full text-left px-6 py-3 hover:bg-purple-900/80 text-purple-200 text-lg font-medium border-b border-gray-600 transition-colors cursor-pointer"
-        >
-          🎭 设置伪装身份
-        </button>
-      )}
+          <button
+            onClick={() => {
+              const roleType =
+                targetSeat.role?.id === "lunatic" ? "demon" : "townsfolk";
+              const inPlayIds = new Set(
+                props.seats.map((s) => s.role?.id).filter(Boolean)
+              );
+              const scriptRoles = (props as any).selectedScript?.roleIds
+                ? allSystemRoles.filter((r) =>
+                    (props as any).selectedScript.roleIds.includes(r.id)
+                  )
+                : allSystemRoles;
+              const available = scriptRoles.filter(
+                (r: Role) => r.type === roleType && !inPlayIds.has(r.id)
+              );
+              props.setCurrentModal({
+                type: "DRUNK_CHARADE_SELECT",
+                data: {
+                  seatId: targetSeat.id,
+                  availableRoles:
+                    available.length > 0
+                      ? available
+                      : scriptRoles.filter((r: Role) => r.type === roleType),
+                  scriptId: (props as any).selectedScript?.id || "custom",
+                },
+              });
+              props.setContextMenu(null);
+            }}
+            className="block w-full text-left px-6 py-3 hover:bg-purple-900/80 text-purple-200 text-lg font-medium border-b border-gray-600 transition-colors cursor-pointer"
+          >
+            🎭 设置伪装身份
+          </button>
+        )}
       {props.gamePhase === "dusk" && !targetSeat.isDead && (
         <button
           onClick={() => props.handleMenuAction("nominate")}

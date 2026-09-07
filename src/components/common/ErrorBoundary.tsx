@@ -26,7 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("🚨 [ErrorBoundary caught uncaught error]:", error, errorInfo);
+    console.error(
+      "🚨 [ErrorBoundary caught uncaught error]:",
+      error,
+      errorInfo
+    );
     this.setState({ errorInfo });
     // 保存错误日志至 sessionStorage 方便移动端调试
     if (typeof window !== "undefined") {

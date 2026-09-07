@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 import type { Seat } from "@/src/types/game";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -57,9 +58,7 @@ export const JugglerJudgeModal: React.FC<JugglerJudgeModalProps> = ({
       <div className="space-y-4 py-1">
         {/* 顶部规则提示 */}
         <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl p-3 text-xs leading-relaxed text-amber-200/90">
-          <p className="font-semibold text-amber-300 mb-1">
-            📜 官方运作规则：
-          </p>
+          <p className="font-semibold text-amber-300 mb-1">📜 官方运作规则：</p>
           <p>
             {jugglerName}【杂耍艺人】在首个白天公开猜测最多 5
             名玩家的角色。请说书人对照下方场上座位的真实身份核对猜测，点击他正确了几次（0~5

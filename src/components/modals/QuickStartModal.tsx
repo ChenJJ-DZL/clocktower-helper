@@ -8,10 +8,10 @@ import {
 } from "../../../app/data";
 import { nightOrderParser } from "../../utils/nightOrderParser";
 import {
+  ensureMarionetteAdjacency,
   generateAndSortQuickStartLineup,
   STANDARD_COMPOSITIONS,
   shuffle,
-  ensureMarionetteAdjacency,
 } from "../../utils/quickStartGenerator";
 import { ModalWrapper } from "./ModalWrapper";
 

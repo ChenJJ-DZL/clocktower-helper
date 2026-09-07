@@ -22,7 +22,10 @@ export function parseInfoResult(
   };
 
   const formatResult = (r: string) => {
-    let clean = r.trim().replace(/[。.\s]+$/, "").replace(/[）)]+$/, "");
+    let clean = r
+      .trim()
+      .replace(/[。.\s]+$/, "")
+      .replace(/[）)]+$/, "");
     // 清理冗余的 "玩家 X(X号)" 为 "X号"
     clean = clean.replace(/玩家\s*\d+\s*[（(](\d+号)[）)]/g, "$1");
     clean = clean.replace(/(\d+号)\s+(的角色)/g, "$1$2");

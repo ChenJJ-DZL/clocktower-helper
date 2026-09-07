@@ -25,9 +25,7 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
       {/* Top Bar - Navbar / Toolbar */}
       {topBar && (
         <div className="topbar-frost shrink-0 border-b border-white/10 bg-slate-900/95 backdrop-blur-sm z-50">
-          <ErrorBoundary fallbackTitle="导航栏异常">
-            {topBar}
-          </ErrorBoundary>
+          <ErrorBoundary fallbackTitle="导航栏异常">{topBar}</ErrorBoundary>
         </div>
       )}
 
@@ -35,12 +33,12 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Table/Seating Chart */}
         <main className="flex-1 relative overflow-hidden bg-slate-950">
-          {/* 高性能魔典桌盘背景 - 纯色与轻量纹理叠加，彻底移除导致移动端 OOM 崩溃的 CSS filter 与 transition */}
+          {/* 高性能魔典桌盘背景 - 纯色与轻量径向渐变，零网络传输、零 GPU 显存解码峰值，防止移动端 OOM 崩溃 */}
           <div
-            className="absolute inset-0 bg-no-repeat bg-center pointer-events-none opacity-80"
+            className="absolute inset-0 pointer-events-none opacity-90"
             style={{
-              backgroundImage: "url('/assets/table-bg.png')",
-              backgroundSize: "cover",
+              background:
+                "radial-gradient(ellipse at center, #1e1333 0%, #120b22 40%, #0a0614 75%, #040208 100%)",
             }}
           />
 

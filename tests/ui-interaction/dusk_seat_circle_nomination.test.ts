@@ -34,7 +34,8 @@ describe("黄昏提名阶段 - 座位号圆圈点击发起提名交互", () => {
       const clicked = seats.find((s) => s.id === seatId);
       if (clicked?.isDead) return "dead";
       if (nominator === null) {
-        if (nominationRecords.nominators.has(seatId)) return "already_nominated";
+        if (nominationRecords.nominators.has(seatId))
+          return "already_nominated";
         nominator = seatId;
         return "activated_nominator";
       }
@@ -43,7 +44,8 @@ describe("黄昏提名阶段 - 座位号圆圈点击发起提名交互", () => {
         nominee = null;
         return "deselected";
       }
-      if (nominationRecords.nominees.has(seatId)) return "already_been_nominated";
+      if (nominationRecords.nominees.has(seatId))
+        return "already_been_nominated";
       nominee = seatId;
       return "selected_nominee";
     };
@@ -85,7 +87,8 @@ describe("黄昏提名阶段 - 座位号圆圈点击发起提名交互", () => {
       const clicked = seats.find((s) => s.id === seatId);
       if (clicked?.isDead) return "dead";
       if (nominator === null) {
-        if (nominationRecords.nominators.has(seatId)) return "already_nominated";
+        if (nominationRecords.nominators.has(seatId))
+          return "already_nominated";
         nominator = seatId;
         return "activated_nominator";
       }
@@ -106,7 +109,7 @@ describe("黄昏提名阶段 - 座位号圆圈点击发起提名交互", () => {
       makeSeat(0, "washerwoman", "洗衣妇"),
       makeSeat(1, "librarian", "图书管理员"),
     ];
-    let nominator: number | null = 0; // 已激活 0 号
+    const nominator: number | null = 0; // 已激活 0 号
     let nominee: number | null = null;
     const nominationRecords = {
       nominators: new Set<number>(),
@@ -115,7 +118,8 @@ describe("黄昏提名阶段 - 座位号圆圈点击发起提名交互", () => {
 
     const handleDuskSeatClick = (seatId: number) => {
       if (nominator !== null && seatId !== nominator) {
-        if (nominationRecords.nominees.has(seatId)) return "already_been_nominated";
+        if (nominationRecords.nominees.has(seatId))
+          return "already_been_nominated";
         nominee = seatId;
         return "selected_nominee";
       }

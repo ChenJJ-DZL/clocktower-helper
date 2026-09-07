@@ -28,11 +28,11 @@ import {
   isEvil,
   isGoodAlignment,
 } from "../utils/gameRules";
+import { showAlert } from "../utils/nativeDialogShim";
 import {
   createSnapshotFromState,
   saveCurrentSnapshot,
 } from "../utils/persistence";
-import { showAlert } from "../utils/nativeDialogShim";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import {
   isZombuulNightImmune,
@@ -1509,13 +1509,19 @@ export function useGameController() {
           return;
         }
         if (!hasDemon) {
-          showAlert("当前阵容缺少恶魔角色，无法开始游戏。请至少分配一名恶魔或军团。");
+          showAlert(
+            "当前阵容缺少恶魔角色，无法开始游戏。请至少分配一名恶魔或军团。"
+          );
           return;
         }
 
         // 场上角色齐全但今夜确无行动角色（如军团且罂粟种植者在场，且其他镇民首夜无唤醒能力）
-        showAlert("🌙 首夜平安度过：场上所有角色在首夜均无唤醒行动，直接进入第一天。");
-        addLog("🌙 首夜平安度过：场上无任何角色需要唤醒行动，直接进入第一天白天。");
+        showAlert(
+          "🌙 首夜平安度过：场上所有角色在首夜均无唤醒行动，直接进入第一天。"
+        );
+        addLog(
+          "🌙 首夜平安度过：场上无任何角色需要唤醒行动，直接进入第一天白天。"
+        );
         setNightCount(1);
         setGamePhase("day");
         return;

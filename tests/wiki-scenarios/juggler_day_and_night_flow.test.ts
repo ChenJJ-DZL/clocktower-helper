@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { jugglerAbility } from "../../src/roles/new_engine/juggler.ability";
 import type { Seat } from "../../src/types/game";
 import { generateDynamicNightQueue } from "../../src/utils/dynamicQueueGenerator";
-import { nightOrderParser } from "../../src/utils/nightOrderParser";
-import { jugglerAbility } from "../../src/roles/new_engine/juggler.ability";
 import { runFullAbilityPipeline } from "../../src/utils/middlewarePipeline";
+import { nightOrderParser } from "../../src/utils/nightOrderParser";
 
 describe("杂耍艺人（Juggler）白天判定与当晚唤醒告知流程", () => {
   const fullNightOrder = [

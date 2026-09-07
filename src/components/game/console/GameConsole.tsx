@@ -341,8 +341,8 @@ export const GameConsole = React.memo(function GameConsole({
               <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 text-amber-200 text-xs font-bold flex items-center gap-2">
                 <span className="text-base">⚠️</span>
                 <span>
-                  提线木偶座次告警：{marionetteSeat.id + 1}号提线木偶必须与{desc}（
-                  {targetNames}）物理相邻！
+                  提线木偶座次告警：{marionetteSeat.id + 1}号提线木偶必须与
+                  {desc}（{targetNames}）物理相邻！
                 </span>
               </div>
             );

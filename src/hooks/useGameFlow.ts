@@ -448,7 +448,9 @@ export function useGameFlow(): UseGameFlowResult {
         (s) => s.role?.type === "demon" || s.role?.id === "legion"
       );
       if (!hasDemon) {
-        showAlert("当前阵容尚未分配恶魔（或军团）角色，无法开始游戏。请至少分配一名恶魔。");
+        showAlert(
+          "当前阵容尚未分配恶魔（或军团）角色，无法开始游戏。请至少分配一名恶魔。"
+        );
         return;
       }
       const processedSeats = active.map((seat) => {
@@ -477,7 +479,10 @@ export function useGameFlow(): UseGameFlowResult {
             withRed[t.id].isEvilConverted = true;
             (withRed[t.id] as any).alignment = "evil";
             // 官方规则：若该玩家此前有红罗刹标记，转为邪恶后必须剥离红罗刹
-            if (withRed[t.id].isRedHerring || withRed[t.id].isFortuneTellerRedHerring) {
+            if (
+              withRed[t.id].isRedHerring ||
+              withRed[t.id].isFortuneTellerRedHerring
+            ) {
               withRed[t.id].isRedHerring = false;
               withRed[t.id].isFortuneTellerRedHerring = false;
             }
@@ -743,7 +748,9 @@ export function useGameFlow(): UseGameFlowResult {
         (s) => s.role?.type === "demon" || s.role?.id === "legion"
       );
       if (!hasDemon) {
-        showAlert("当前阵容尚未分配恶魔（或军团）角色，无法开始首夜。请至少分配一名恶魔。");
+        showAlert(
+          "当前阵容尚未分配恶魔（或军团）角色，无法开始首夜。请至少分配一名恶魔。"
+        );
         return;
       }
 

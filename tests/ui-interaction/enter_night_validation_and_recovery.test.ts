@@ -8,11 +8,11 @@
  * 4. 极端空夜间队列场景（全员首夜无行动），系统友好提示并直接进入第一天白天
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
-import { generateDynamicNightQueue } from "../../src/utils/dynamicQueueGenerator";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { Seat } from "../../app/data";
 import { ENGINE_CONFIG } from "../../src/hooks/useNightEngine";
 import { registerAllNewEngineAbilities } from "../../src/roles/new_engine/abilityRegistry";
-import type { Seat } from "../../app/data";
+import { generateDynamicNightQueue } from "../../src/utils/dynamicQueueGenerator";
 
 describe("首夜入夜守卫与夜间队列容错测试", () => {
   beforeAll(() => {

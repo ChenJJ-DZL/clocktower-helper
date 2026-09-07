@@ -1735,16 +1735,20 @@ export const GameStage = () => {
                           variant: "primary" as const,
                         };
                       }
-                      const seatedCount = seats.filter((s: any) => !!s.role).length;
+                      const seatedCount = seats.filter(
+                        (s: any) => !!s.role
+                      ).length;
                       const hasDemon = seats.some(
-                        (s: any) => s.role?.type === "demon" || s.role?.id === "legion"
+                        (s: any) =>
+                          s.role?.type === "demon" || s.role?.id === "legion"
                       );
                       return {
-                        label: seatedCount < 5
-                          ? `落座人数不足 (${seatedCount}/5)`
-                          : !hasDemon
-                          ? "缺少恶魔角色 ⚠️"
-                          : "确认无误，入夜 🌙",
+                        label:
+                          seatedCount < 5
+                            ? `落座人数不足 (${seatedCount}/5)`
+                            : !hasDemon
+                              ? "缺少恶魔角色 ⚠️"
+                              : "确认无误，入夜 🌙",
                         onClick: () => {
                           console.log("🖱️ [UI] User clicked 'Enter Night'");
                           if (seatedCount < 5) {
@@ -1770,8 +1774,12 @@ export const GameStage = () => {
                             );
                           }
                         },
-                        disabled: isConfirmDisabled || seatedCount < 5 || !hasDemon,
-                        variant: seatedCount >= 5 && hasDemon ? ("success" as const) : ("warning" as const),
+                        disabled:
+                          isConfirmDisabled || seatedCount < 5 || !hasDemon,
+                        variant:
+                          seatedCount >= 5 && hasDemon
+                            ? ("success" as const)
+                            : ("warning" as const),
                       };
                     })()
                   : gamePhase === "day"

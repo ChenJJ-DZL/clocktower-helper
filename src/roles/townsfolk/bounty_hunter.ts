@@ -25,9 +25,10 @@ export const bounty_hunter: RoleDefinition = {
       const seatNo = playerSeatId + 1;
       const { seats, isActorDisabledByPoisonOrDrunk } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
-      const isCorrupted = selfSeat && isActorDisabledByPoisonOrDrunk
-        ? isActorDisabledByPoisonOrDrunk(selfSeat)
-        : false;
+      const isCorrupted =
+        selfSeat && isActorDisabledByPoisonOrDrunk
+          ? isActorDisabledByPoisonOrDrunk(selfSeat)
+          : false;
 
       // 邪恶玩家列表（恶魔、爪牙、转邪恶镇民）
       const evilSeats = seats.filter(
@@ -92,9 +93,7 @@ export const bounty_hunter: RoleDefinition = {
     // 候选人为除赏金猎人外的其他镇民
     const candidateTownsfolk = seats.filter(
       (s: Seat) =>
-        s.id !== selfId &&
-        s.role?.type === "townsfolk" &&
-        !s.isEvilConverted
+        s.id !== selfId && s.role?.type === "townsfolk" && !s.isEvilConverted
     );
 
     if (candidateTownsfolk.length > 0) {

@@ -185,7 +185,8 @@ export function generateNightInfo(
   let speak = "";
   let action = "";
   if (typeof nightConfig.dialog === "function") {
-    const dialog = nightConfig.dialog(currentSeatId, isFirstNight, context) || {};
+    const dialog =
+      nightConfig.dialog(currentSeatId, isFirstNight, context) || {};
     guide = dialog.wake || "";
     speak = dialog.instruction || "";
     action = dialog.close || "";
