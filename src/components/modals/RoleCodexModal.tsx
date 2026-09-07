@@ -446,6 +446,19 @@ export function RoleCodexModal({
                 </div>
               )}
 
+              {/* 官方具名范例 */}
+              {inspectingWikiDetails?.scenarios && (
+                <div className="space-y-1.5 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-1 text-xs font-bold text-amber-400">
+                    <span>💡</span>
+                    <span>官方百科范例</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pl-2 whitespace-pre-line">
+                    {inspectingWikiDetails.scenarios}
+                  </p>
+                </div>
+              )}
+
               {/* 伪装思路推荐 */}
               {inspectingWikiDetails?.bluffTips &&
                 inspectingWikiDetails.bluffTips.length > 0 && (

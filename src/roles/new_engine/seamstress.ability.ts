@@ -65,7 +65,10 @@ const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta, targetIds } = context;
-  const isAbilityActive = meta.isAbilityActive ?? true;
+  const isAbilityActive =
+    meta.abilityEffective !== undefined
+      ? meta.abilityEffective
+      : (meta.isAbilityActive ?? true);
 
   if (!targetIds || targetIds.length !== 2) {
     return context;
@@ -87,10 +90,13 @@ const calculateResult = async (
     if (target1.role?.id === "spy") {
       return (target1 as any).registerAsEvil === true;
     }
+    if (target1.isEvilConverted) return true;
+    if (target1.isGoodConverted) return false;
+    if ((target1 as any).alignment === "evil") return true;
+    if ((target1 as any).alignment === "good") return false;
     return (
-      (target1.role &&
-        (target1.role.type === "minion" || target1.role.type === "demon")) ||
-      !!target1.isEvilConverted
+      target1.role != null &&
+      (target1.role.type === "minion" || target1.role.type === "demon")
     );
   })();
 
@@ -102,14 +108,17 @@ const calculateResult = async (
     if (target2.role?.id === "spy") {
       return (target2 as any).registerAsEvil === true;
     }
+    if (target2.isEvilConverted) return true;
+    if (target2.isGoodConverted) return false;
+    if ((target2 as any).alignment === "evil") return true;
+    if ((target2 as any).alignment === "good") return false;
     return (
-      (target2.role &&
-        (target2.role.type === "minion" || target2.role.type === "demon")) ||
-      !!target2.isEvilConverted
+      target2.role != null &&
+      (target2.role.type === "minion" || target2.role.type === "demon")
     );
   })();
 
-  // 实际结果：是否同一阵营
+  // 实际结果：是否同一阵营（考虑陌客/间谍伪装注册）
   const actualSameAlignment = isTarget1Evil === isTarget2Evil;
 
   // 最终显示的信息
@@ -120,6 +129,7 @@ const calculateResult = async (
     finalSameAlignment = !actualSameAlignment;
   }
 
+  const isCorrupted = !isAbilityActive;
   const result = {
     targetId1,
     targetId2,
@@ -127,9 +137,18 @@ const calculateResult = async (
     isTarget2Evil,
     actualSameAlignment,
     finalSameAlignment,
+    sameAlignment: finalSameAlignment,
+    isCorrupted,
   };
 
-  return { ...context, meta: { ...context.meta, abilityResult: result } };
+  return {
+    ...context,
+    meta: {
+      ...context.meta,
+      isCorrupted,
+      abilityResult: result,
+    },
+  };
 };
 
 // 状态更新：标记能力已使用
@@ -167,20 +186,24 @@ export const seamstressAbility = createRoleAbility({
     async (context) => {
       const { meta } = context;
       const result = meta.abilityResult;
+      const isCorrupted = meta.isCorrupted ?? result?.isCorrupted ?? false;
       if (result) {
         const answer = result.finalSameAlignment ? "是" : "否";
-        const log = `女裁缝得知：${result.targetId1 + 1}号和${result.targetId2 + 1}号玩家${answer}同一阵营`;
+        const tag = isCorrupted ? "【受干扰】" : "";
+        const log = `女裁缝得知${tag}：${result.targetId1 + 1}号和${result.targetId2 + 1}号玩家${answer}同一阵营`;
         console.log(log);
         return {
           ...context,
           meta: {
             ...context.meta,
+            isCorrupted,
             abilityLog: log,
             displayInfo: {
               type: "seamstress_info",
               targetId1: result.targetId1,
               targetId2: result.targetId2,
               sameAlignment: result.finalSameAlignment ?? false,
+              isCorrupted,
               log,
             },
           },

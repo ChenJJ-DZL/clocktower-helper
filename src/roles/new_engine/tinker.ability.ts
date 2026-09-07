@@ -8,6 +8,8 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
+import { isProtectedByTeaLady } from "../../utils/bmrMechanics";
+
 // 前置校验：修补匠是被动能力，主要由说书人手动触发
 const preCheckPassive = async (
   context: MiddlewareContext
@@ -16,14 +18,22 @@ const preCheckPassive = async (
   return { ...context, meta: { ...context.meta, isPassive: true } };
 };
 
-// 计算结果：修补匠随时可能死亡，这是一个说书人手动触发的能力
+// 计算结果：修补匠随时可能死亡，但受保护时不能死亡
 const calculateResult = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  // 修补匠的死亡逻辑主要在说书人控制面板中实现
-  // 这里主要记录修补匠的状态信息
   const { snapshot, actionNode } = context;
   const tinkerSeat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+
+  const wantsToKill = context.storytellerInput?.shouldKillTinker ?? false;
+
+  // 检查是否受到茶艺师或旅店老板保护
+  const isProtected =
+    (tinkerSeat?.statusEffects ?? []).some((e: any) => e.type === "protected") ||
+    (tinkerSeat as any)?.isProtected === true ||
+    isProtectedByTeaLady(actionNode.seatId, snapshot.seats);
+
+  const shouldDie = wantsToKill && !isProtected;
 
   return {
     ...context,
@@ -32,8 +42,43 @@ const calculateResult = async (
       abilityResult: {
         tinkerSeatId: actionNode.seatId,
         isAlive: tinkerSeat?.isAlive ?? true,
-        // 说书人可以随时决定是否让修补匠死亡
-        shouldDie: context.storytellerInput?.shouldKillTinker ?? false,
+        isProtected,
+        shouldDie,
+      },
+    },
+  };
+};
+
+const stateUpdate = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const { meta, snapshot } = context;
+  const result = meta.abilityResult as any;
+
+  if (!result?.shouldDie) return context;
+
+  const seats = snapshot.seats.map((seat) => {
+    if (seat.id === result.tinkerSeatId && !seat.isDead) {
+      return {
+        ...seat,
+        isAlive: false,
+        isDead: true,
+        diedAtNight: snapshot.nightCount,
+        deathSource: "tinker_sudden_death",
+        killedBy: "tinker",
+      };
+    }
+    return seat;
+  });
+
+  return {
+    ...context,
+    snapshot: {
+      ...snapshot,
+      seats,
+      _abilityResults: {
+        ...((snapshot as any)._abilityResults ?? {}),
+        tinker: result,
       },
     },
   };
@@ -56,7 +101,7 @@ export const tinkerAbility = createRoleAbility({
   },
   preCheck: [preCheckPassive],
   calculate: [calculateResult],
-  stateUpdate: [],
+  stateUpdate: [stateUpdate],
   postProcess: [
     async (context) => {
       const { meta } = context;

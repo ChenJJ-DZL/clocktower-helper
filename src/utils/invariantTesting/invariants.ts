@@ -592,8 +592,13 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         const targetProtected = cur.some(
           (s) =>
             s.isProtected === true ||
+            s.isExecutionProtected === true ||
             (s.statusEffects ?? []).some(
-              (e: any) => e.type === "protected" || e.type === "safeguard"
+              (e: any) =>
+                e.type === "protected" ||
+                e.type === "safeguard" ||
+                e.type === "execution_protected" ||
+                e.source === "devils_advocate"
             )
         );
         const exempt =

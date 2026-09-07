@@ -37,6 +37,7 @@ export const GameStage = () => {
     timer,
     selectedActionTargets,
     isPortrait,
+    isVortoxWorld,
     longPressingSeats,
     contextMenu,
     showMenu,
@@ -1866,6 +1867,10 @@ export function GameStageWithModals() {
   const continueToNextAction = (controller as any).continueToNextAction;
 
   const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
+  const isVortoxWorld = seats.some(
+    (s: any) =>
+      s.role?.id === "vortox" || (s as any).charadeRole?.id === "vortox"
+  );
 
   // INFO_RESULT 弹窗数据（用于内联展示到 NightActionPage）
   const infoResultData =
@@ -1899,6 +1904,7 @@ export function GameStageWithModals() {
             nightInfo.isPoisoned
           }
           resultText={infoResultData?.resultText}
+          isVortoxWorld={isVortoxWorld}
           onResultConfirm={
             infoResultData?.onNext
               ? () => {

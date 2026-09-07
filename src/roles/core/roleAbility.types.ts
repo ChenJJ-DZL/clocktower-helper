@@ -20,8 +20,8 @@ export const commonPreCheckAlive = async (
 ): Promise<MiddlewareContext> => {
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-
-  if (!seat?.isAlive) {
+  const isAlive = seat ? ((seat as any).isAlive ?? !seat.isDead) : false;
+  if (!isAlive) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 

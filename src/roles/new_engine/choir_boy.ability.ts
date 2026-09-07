@@ -1,10 +1,12 @@
 /**
  * 唱诗男孩（Choir Boy）新引擎技能实现（实验角色）
  *
- * 【角色能力】"如果国王死亡，你会得知谁是恶魔。"
+ * 【官方百科能力】"如果恶魔杀死了国王，你会得知哪名玩家是恶魔。[+国王]"
  *
- * PASSIVE 触发：当国王（King）角色死亡时，唱诗男孩会得知恶魔是谁。
- * 说书人可以选择告知正确的恶魔身份，或模糊的线索。
+ * 运作方式：
+ * - 仅当恶魔杀死了国王（非其他死亡原因）时，唱诗男孩被唤醒并得知恶魔玩家。
+ * - 若国王被僧侣等保护未死亡，则不触发。
+ * - 若唱诗男孩醉酒/中毒，说书人可以给他指出非恶魔玩家（例如食人族等其他角色）。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
@@ -17,24 +19,74 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
     (s: any) => s.id === ctx.actionNode.seatId
   );
   if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+
+  // 必须是国王死于恶魔
+  const isKingKilledByDemon =
+    ctx.snapshot.isKingKilledByDemon === true ||
+    (ctx.actionNode as any).isKingKilledByDemon === true ||
+    (ctx.storytellerInput as any)?.isKingKilledByDemon === true;
+
+  if (!isKingKilledByDemon) {
+    return { ...ctx, aborted: true, abortReason: "国王未被恶魔杀死" };
+  }
+
   return ctx;
 };
 
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  // 查找恶魔
-  const demon = ctx.snapshot.seats.find(
-    (s: any) => !s.isDead && s.role && s.role.type === "demon"
+  const isAbilityActive = ctx.meta.abilityEffective ?? true;
+
+  // 寻找真实恶魔
+  const realDemon = ctx.snapshot.seats.find(
+    (s: any) => s.role && s.role.type === "demon"
   );
+
+  let targetDemonSeatId: number | null = null;
+  let isCorrupted = false;
+
+  if (isAbilityActive) {
+    // 正常状态：得知真实恶魔（支持说书人显式指定或默认）
+    targetDemonSeatId =
+      ctx.storytellerInput?.selectedSeatId ??
+      realDemon?.id ??
+      null;
+    isCorrupted = false;
+  } else {
+    // 醉酒/中毒：指出错误玩家（例如非恶魔玩家）
+    isCorrupted = true;
+    if (ctx.storytellerInput?.selectedSeatId != null) {
+      targetDemonSeatId = ctx.storytellerInput.selectedSeatId;
+    } else {
+      // 默认挑选一名非恶魔玩家作为干扰
+      const nonDemon = ctx.snapshot.seats.find(
+        (s: any) => s.id !== ctx.actionNode.seatId && (!s.role || s.role.type !== "demon")
+      );
+      targetDemonSeatId = nonDemon ? nonDemon.id : (realDemon?.id ?? 0);
+    }
+  }
+
+  const targetSeat = ctx.snapshot.seats.find((s: any) => s.id === targetDemonSeatId);
+
+  const abilityResult = {
+    demonFound: targetDemonSeatId != null,
+    demonSeatId: targetDemonSeatId,
+    demonRoleName: targetSeat?.role?.name ?? null,
+    isAbilityActive,
+    isCorrupted,
+  };
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: {
-        demonFound: demon !== undefined,
-        demonSeatId: demon?.id ?? null,
-        demonRoleName: demon?.role?.name ?? null,
+      abilityResult,
+      isCorrupted,
+      displayInfo: {
+        demonSeatId: targetDemonSeatId,
+        demonRoleName: targetSeat?.role?.name ?? null,
+        isCorrupted,
       },
     },
   };
@@ -45,7 +97,6 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.demonFound) {
-    console.log("[ChoirBoy] 未找到恶魔");
     return ctx;
   }
   return {
@@ -66,13 +117,14 @@ const postProcess = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.demonFound) return ctx;
-  const log = `[ChoirBoy] 国王死亡，恶魔是 ${r.demonSeatId + 1}号（${r.demonRoleName ?? "未知"}）`;
+  const tag = r.isCorrupted ? "【受干扰】" : "";
+  const log = `[ChoirBoy]${tag} 国王被恶魔杀害，唱诗男孩得知恶魔是 ${r.demonSeatId + 1}号（${r.demonRoleName ?? "未知"}）`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: `国王已死亡。唤醒${ctx.actionNode.seatId + 1}号【唱诗男孩】，告知${r.demonSeatId + 1}号是恶魔。`,
+      prompt: `国王被恶魔杀害。唤醒${ctx.actionNode.seatId + 1}号【唱诗男孩】，指向${r.demonSeatId + 1}号为恶魔。`,
       abilityLog: log,
     },
   };
@@ -87,7 +139,7 @@ export const choirBoyAbility = createRoleAbility({
   otherNightPriority: 84,
   firstNightOnly: false,
   wakePromptId: "role.choir_boy.wake",
-  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  targetConfig: { min: 0, max: 1, allowSelf: false, allowDead: true },
   preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

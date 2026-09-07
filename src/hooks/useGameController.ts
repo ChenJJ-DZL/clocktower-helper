@@ -158,6 +158,7 @@ export function useGameController() {
     setGossipTrueTonight,
     setGossipSourceSeatId,
     setGossipStatementToday,
+    evilTwinPair,
     setEvilTwinPair,
     pukkaPoisonQueue,
     setPukkaPoisonQueue,
@@ -722,7 +723,8 @@ export function useGameController() {
       setCurrentDuskExecution,
       setHasExecutedThisDay,
       isVortoxWorld,
-      setVictorySnapshot
+      setVictorySnapshot,
+      evilTwinPair
     );
 
   const nightSnapshot = useNightSnapshot(
@@ -880,6 +882,7 @@ export function useGameController() {
     mastermindFinalDay,
     winResult,
     winReason,
+    evilTwinPair,
     setCurrentModal,
     setSeats: commitSeats,
     setSelectedActionTargets,
@@ -997,6 +1000,8 @@ export function useGameController() {
     confirmHadesia,
     confirmSaintExecution,
     cancelSaintExecution,
+    confirmEvilTwinExecution,
+    cancelEvilTwinExecution,
     confirmRavenkeeperFake,
     confirmVirginTrigger,
     confirmRestart,
@@ -1823,6 +1828,8 @@ export function useGameController() {
       confirmHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmEvilTwinExecution,
+      cancelEvilTwinExecution,
       confirmRavenkeeperFake,
       confirmVirginTrigger,
       confirmRestart,
@@ -1986,6 +1993,9 @@ export function useGameController() {
       confirmRavenkeeperFake,
       confirmRestart,
       confirmSaintExecution,
+      cancelSaintExecution,
+      confirmEvilTwinExecution,
+      cancelEvilTwinExecution,
       confirmShootResult,
       confirmStorytellerDeath,
       confirmSweetheartDrunk,

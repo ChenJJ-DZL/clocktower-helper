@@ -18,20 +18,40 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const evilPlayers = ctx.snapshot.seats.filter(
-    (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
-  );
-  const shuffled = [...evilPlayers].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, 2);
-  const targetIds = selected.map((s: any) => s.id);
+  const isDrunkOrPoisoned = ctx.meta.abilityEffective === false;
+  const storytellerTargets = ctx.storytellerInput?.targetIds;
+  const killedByDemon = ctx.storytellerInput?.killedByDemon ?? true;
+
+  let targetIds: number[] = [];
+
+  if (storytellerTargets && Array.isArray(storytellerTargets)) {
+    targetIds = storytellerTargets;
+  } else if (!killedByDemon) {
+    targetIds = [];
+  } else if (isDrunkOrPoisoned) {
+    // 醉酒/中毒时，提供虚假信息（可能指出非恶魔玩家）
+    const nonDemons = ctx.snapshot.seats.filter((s: any) => s.role?.type !== "demon");
+    targetIds = nonDemons.slice(0, 2).map((s: any) => s.id);
+  } else {
+    // 官方规则：指出两名玩家，其中一名是恶魔
+    const demons = ctx.snapshot.seats.filter((s: any) => s.role?.type === "demon");
+    const others = ctx.snapshot.seats.filter((s: any) => s.role?.type !== "demon");
+    const chosenDemon = demons[0]?.id;
+    const chosenOther = others[0]?.id;
+    if (chosenDemon !== undefined && chosenOther !== undefined) {
+      targetIds = [chosenDemon, chosenOther];
+    }
+  }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
         targetIds,
-        killedByDemon: true,
+        killedByDemon,
         found: targetIds.length > 0,
+        isCorrupted: isDrunkOrPoisoned,
       },
     },
   };

@@ -16,7 +16,7 @@ const preCheckPublic = async (
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
   // 🔧 死亡玩家不能发动能力
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return {
       ...context,
       aborted: true,

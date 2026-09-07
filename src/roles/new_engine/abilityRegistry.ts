@@ -71,7 +71,7 @@ import { empathAbility } from "./empath.ability";
 import { engineerAbility } from "./engineer.ability";
 import { enlightenedAbility } from "./enlightened.ability";
 import { envoyAbility } from "./envoy.ability";
-import { evil_twinAbility } from "./evil_twin.ability";
+import { evil_twinAbility, good_twin_infoAbility } from "./evil_twin.ability";
 import { executionerAbility } from "./executioner.ability";
 import { exorcistAbility } from "./exorcist.ability";
 import { fang_guAbility } from "./fang_gu.ability";
@@ -325,6 +325,7 @@ export function registerAllNewEngineAbilities(): void {
     enlightenedAbility,
     envoyAbility,
     evil_twinAbility,
+    good_twin_infoAbility,
     executionerAbility,
     exorcistAbility,
     fang_guAbility,

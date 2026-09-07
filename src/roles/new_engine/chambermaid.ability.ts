@@ -33,14 +33,30 @@ const calculateResult = async (
   let wokenCount = 0;
 
   if (isAbilityActive) {
-    // 从 _abilityResults 查询两名目标玩家是否有本晚的行动记录
-    const abilityResults = (snapshot as any)._abilityResults ?? {};
-    const results = Object.values(abilityResults) as any[];
+    // 从 snapshot 查询两名目标玩家是否有本晚因自身能力唤醒的记录
     const wokenPlayers = new Set<number>();
-    for (const r of results) {
-      if (r && typeof r.seatId === "number") wokenPlayers.add(r.seatId);
-      if (r && typeof r.targetId === "number") wokenPlayers.add(r.targetId);
+    
+    // 1. 支持显式记录的本夜唤醒玩家列表
+    const explicitWoken = (snapshot as any).wokenPlayerIds ?? (snapshot as any).wokenPlayers;
+    if (Array.isArray(explicitWoken)) {
+      for (const id of explicitWoken) {
+        if (typeof id === "number") wokenPlayers.add(id);
+      }
     }
+
+    // 2. 从 _abilityResults 中收集主动行动的玩家（仅限执行者自身，不含被选择的目标）
+    const abilityResults = (snapshot as any)._abilityResults ?? {};
+    for (const [key, r] of Object.entries(abilityResults) as [string, any][]) {
+      // 恶魔若被驱魔人驱逐阻止唤醒，则不算唤醒
+      if (key === "exorcist" && r?.isTargetDemon) continue;
+      if (r && typeof r.seatId === "number") {
+        wokenPlayers.add(r.seatId);
+      }
+      if (r && typeof r.actorSeatId === "number") {
+        wokenPlayers.add(r.actorSeatId);
+      }
+    }
+
     wokenCount = targetIds.filter((tid: number) =>
       wokenPlayers.has(tid)
     ).length;

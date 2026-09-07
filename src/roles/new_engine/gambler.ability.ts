@@ -33,36 +33,70 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到目标座位" };
   }
 
-  // 检查猜测是否正确
-  const isGuessCorrect = targetSeat.roleId === guessedRole;
+  const targetRole = targetSeat.role?.id ?? targetSeat.roleId;
+  const isGuessCorrect = targetRole === guessedRole;
+
+  // 检查赌徒是否受到茶艺师或旅店老板等免死保护
+  const gamblerSeat = snapshot.seats.find((s) => s.id === gamblerSeatId);
+  const isProtected =
+    (gamblerSeat?.statusEffects ?? []).some((e: any) => e.type === "protected") ||
+    (gamblerSeat as any)?.isProtected === true ||
+    (gamblerSeatId != null &&
+      snapshot.seats.some((s) => s.role?.id === "tea_lady") &&
+      // 动态判断茶艺师邻近存活双善良保护
+      ((snapshot as any).teaLadyProtectedIds?.includes(gamblerSeatId) ||
+        (gamblerSeat && (gamblerSeat as any).protectedByTeaLady)));
+
+  const shouldDie = !isGuessCorrect && !isProtected;
 
   const result = {
     gamblerSeatId,
     targetId,
     guessedRole,
-    actualRole: targetSeat.roleId,
+    actualRole: targetRole,
     isGuessCorrect,
-    shouldDie: !isGuessCorrect,
+    isProtected,
+    shouldDie,
   };
 
   return { ...context, meta: { ...context.meta, abilityResult: result } };
 };
 
-// 状态更新：如果猜错了，则标记为死亡
+// 状态更新：如果猜错了且未受保护，则标记为死亡
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { meta } = context;
-  const result = meta.abilityResult;
+  const { meta, snapshot } = context;
+  const result = meta.abilityResult as any;
 
   if (!result?.shouldDie) {
     return context;
   }
 
-  // 状态更新逻辑会在GameController中实现
-  // 这里只传递需要更新的信息
+  const seats = snapshot.seats.map((seat) => {
+    if (seat.id === result.gamblerSeatId && !seat.isDead) {
+      return {
+        ...seat,
+        isAlive: false,
+        isDead: true,
+        diedAtNight: snapshot.nightCount,
+        deathSource: "gambler_guess_fail",
+        killedBy: "gambler",
+      };
+    }
+    return seat;
+  });
+
   return {
     ...context,
+    snapshot: {
+      ...snapshot,
+      seats,
+      _abilityResults: {
+        ...((snapshot as any)._abilityResults ?? {}),
+        gambler: result,
+      },
+    },
     meta: {
       ...context.meta,
       stateUpdates: {

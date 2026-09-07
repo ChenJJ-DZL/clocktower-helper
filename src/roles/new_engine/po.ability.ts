@@ -70,18 +70,61 @@ const updateKillState = async (
   const { snapshot, meta } = context;
   const validTargets = meta.validTargets as number[];
 
+  const isAbilityEffective = meta?.abilityEffective ?? true;
+
   if (!validTargets || validTargets.length === 0) {
-    return context;
+    return {
+      ...context,
+      snapshot: {
+        ...snapshot,
+        poCharged: isAbilityEffective,
+      },
+    };
+  }
+
+  if (!isAbilityEffective) {
+    return {
+      ...context,
+      snapshot: {
+        ...snapshot,
+        poCharged: false,
+      },
+    };
   }
 
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
   let seats = snapshot.seats.map((seat) => seat); // 拷贝数组（元素引用不变，仅替换目标）
 
+  // 按顺序结算目标（如遇莽夫，珀立即醉酒，后续目标存活）
+  const successfullyKilledIds = new Set<number>();
+  let poIsDrunkNow = false;
+
+  for (const tid of validTargets) {
+    if (poIsDrunkNow) break;
+    const targetSeat = seats.find((s: any) => s.id === tid);
+    if (!targetSeat || targetSeat.isDead) continue;
+
+    // 遇到莽夫：莽夫让珀立即醉酒，莽夫存活并转为邪恶
+    if (targetSeat.role?.id === "goon") {
+      poIsDrunkNow = true;
+      continue;
+    }
+
+    // 保护或免疫
+    const isProtected =
+      targetSeat.statusEffects?.some((e: any) => e.type === "protected") ||
+      (targetSeat as any).isProtected;
+    const soldierImmune = isImmuneToDemonKill(targetSeat, true, aliveCount);
+    if (isProtected || soldierImmune) continue;
+
+    successfullyKilledIds.add(tid);
+  }
+
   // 🔧 镇长替死机制判定（5%自己死亡，95%存活镇民替代死亡）
   const substituteIdsToKill = new Set<number>();
   const mayorSavedIds = new Set<number>();
-  for (const tid of validTargets) {
+  for (const tid of successfullyKilledIds) {
     const targetSeat = seats.find((s: any) => s.id === tid);
     if (!targetSeat) continue;
     const mayorRes = resolveMayorDemonKill(seats, targetSeat, aliveCount);
@@ -96,7 +139,7 @@ const updateKillState = async (
 
   // 🔧 梼杌替死（wiki 官方规则）：梼杌将死时若有存活且有能力的爪牙 → 不死亡，爪牙失去能力
   const taowuSavedIds = new Set<number>();
-  for (const tid of validTargets) {
+  for (const tid of successfullyKilledIds) {
     const targetSeat = seats.find((s: any) => s.id === tid);
     if (targetSeat && isTaowuSeat(targetSeat)) {
       const r = tryTaowuSubstitute(seats, targetSeat);
@@ -114,22 +157,13 @@ const updateKillState = async (
   }
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
+    poCharged: false,
     seats: seats.map((seat) => {
-      if (validTargets.includes(seat.id)) {
+      if (successfullyKilledIds.has(seat.id)) {
         // 🔧 梼杌替死成功 → 不死亡
         if (taowuSavedIds.has(seat.id)) return seat;
         // 🔧 镇长替死成功 → 镇长不死亡
         if (mayorSavedIds.has(seat.id)) return seat;
-
-        const isProtected =
-          seat.statusEffects?.some((e: any) => e.type === "protected") ||
-          (seat as any).isProtected;
-        // 🔧 士兵免疫：恶魔攻击士兵时士兵不死亡（官方规则）
-        const soldierImmune = isImmuneToDemonKill(seat, true, aliveCount);
-
-        if (isProtected || soldierImmune) {
-          return seat; // 目标被保护 / 士兵免疫，不死亡
-        }
 
         return {
           ...seat,
@@ -159,7 +193,17 @@ const updateKillState = async (
     }),
   };
 
-  return { ...context, snapshot: newSnapshot };
+  return {
+    ...context,
+    snapshot: newSnapshot,
+    meta: {
+      ...context.meta,
+      abilityResult: {
+        killed: successfullyKilledIds.size > 0 || substituteIdsToKill.size > 0,
+        killedTargetIds: Array.from(successfullyKilledIds),
+      },
+    },
+  };
 };
 
 // 🔧 结算产物：珀击杀的提示/日志/UI 数据（此前 postProcess 为空 → I9 违规）

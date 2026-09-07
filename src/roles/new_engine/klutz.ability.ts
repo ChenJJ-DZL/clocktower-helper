@@ -26,25 +26,42 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  // 找存活的善良阵营玩家（排除魔鬼、爪牙和自己）
-  const goodAlive = ctx.snapshot.seats.filter(
-    (s: any) =>
-      s.isAlive &&
-      s.id !== ctx.actionNode.seatId &&
-      s.role?.team !== "minion" &&
-      s.role?.team !== "demon"
-  );
-  const target =
-    goodAlive.length > 0
-      ? goodAlive[Math.floor(Math.random() * goodAlive.length)]
-      : null;
+  // 支持通过 targetIds[0] 或 storytellerInput.chosenSeatId 选择存活玩家
+  const targetId =
+    ctx.targetIds?.[0] ??
+    ctx.actionNode.targetIds?.[0] ??
+    ctx.storytellerInput?.chosenSeatId ??
+    null;
+
+  if (targetId == null) {
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityResult: { targetId: null, isEvil: false, evilWins: false },
+      },
+    };
+  }
+
+  const chosenSeat = ctx.snapshot.seats.find((s: any) => s.id === targetId);
+  const isEvil = (() => {
+    if (!chosenSeat) return false;
+    if (chosenSeat.isEvilConverted) return true;
+    if (chosenSeat.isGoodConverted) return false;
+    if ((chosenSeat as any).alignment === "evil") return true;
+    if ((chosenSeat as any).alignment === "good") return false;
+    const t = chosenSeat.role?.type;
+    return t === "minion" || t === "demon";
+  })();
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
-        targetId: target?.id ?? null,
-        killed: target != null,
+        targetId,
+        isEvil,
+        evilWins: isEvil,
       },
     },
   };
@@ -54,18 +71,16 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.killed) return ctx;
-  // 标记目标玩家死亡
-  const updatedSeats = ctx.snapshot.seats.map((s: any) =>
-    s.id === r.targetId ? { ...s, isAlive: false } : s
-  );
+  if (!r || r.targetId == null) return ctx;
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
-      seats: updatedSeats,
       klutzTriggered: true,
-      klutzKill: r.targetId,
+      klutzChosenSeatId: r.targetId,
+      gameOver: r.evilWins,
+      winner: r.evilWins ? "evil" : (ctx.snapshot as any).winner,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         klutz: r,

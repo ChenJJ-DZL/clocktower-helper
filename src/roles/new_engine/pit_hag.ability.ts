@@ -26,6 +26,17 @@ const calculate = async (
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
   const newRoleId =
     ctx.storytellerInput?.newRoleId ?? ctx.storytellerInput?.roleId ?? null;
+
+  // 官方规则：如果该角色在场，则无事发生
+  const seats = ctx.snapshot.seats ?? [];
+  const isAlreadyInPlay =
+    newRoleId != null &&
+    seats.some(
+      (s: any) => s.role?.id === newRoleId || (s as any).roleId === newRoleId
+    );
+
+  const canTransform = targetId !== null && newRoleId !== null && !isAlreadyInPlay;
+
   return {
     ...ctx,
     meta: {
@@ -33,7 +44,8 @@ const calculate = async (
       abilityResult: {
         targetId,
         newRoleId,
-        transformed: targetId !== null && newRoleId !== null,
+        isAlreadyInPlay,
+        transformed: canTransform,
       },
     },
   };
@@ -44,10 +56,42 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.transformed) return ctx;
+
+  const seats = ctx.snapshot.seats ?? [];
+  const targetSeat = seats.find((s: any) => s.id === r.targetId);
+  const isDemonCreated = [
+    "fang_gu",
+    "vigormortis",
+    "no_dashii",
+    "vortox",
+    "imp",
+    "zombuul",
+    "pukka",
+    "shabaloth",
+    "po",
+  ].includes(r.newRoleId);
+
+  const nextSeats = seats.map((s: any) => {
+    if (s.id === r.targetId) {
+      return {
+        ...s,
+        role: {
+          id: r.newRoleId,
+          name: r.newRoleId,
+          type: isDemonCreated ? "demon" : s.role?.type ?? "townsfolk",
+        },
+      };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: nextSeats,
+      isDemonCreatedByPitHag: isDemonCreated,
+      deathDecidedByStoryteller: isDemonCreated,
       roleChanges: [
         ...((ctx.snapshot as any).roleChanges ?? []),
         { seatId: r.targetId, newRole: r.newRoleId },

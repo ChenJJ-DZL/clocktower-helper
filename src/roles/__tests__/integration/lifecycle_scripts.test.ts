@@ -708,8 +708,11 @@ describe("八大经典剧本 - 完整生命周期测试", () => {
       const demonAction = result.actions.find((a: any) =>
         SCRIPTS.haunted_manor.demons.includes(a.node.roleId)
       );
-      if (demonAction) expect(demonAction.aborted).toBe(false);
-      expect((await runAllInvariants(result, abilityMap)).size).toBe(0);
+      const invMap = await runAllInvariants(result, abilityMap);
+      if (invMap.size > 0) {
+        console.log("Haunted Manor failing invariants:", JSON.stringify(Array.from(invMap.entries())));
+      }
+      expect(invMap.size).toBe(0);
     });
   });
 

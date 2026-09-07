@@ -37,6 +37,7 @@ export interface ExecutionHandlersDeps {
   mastermindFinalDay: { active: boolean } | null;
   winResult: "good" | "evil" | null;
   winReason: string | null;
+  evilTwinPair?: { evilId: number; goodId: number } | null;
 
   // Setters
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
@@ -149,6 +150,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     isVortoxWorld,
     todayExecutedId,
     mastermindFinalDay,
+    evilTwinPair,
     setCurrentModal,
     setSeats,
     setSelectedActionTargets,
@@ -269,6 +271,33 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           addLog(
             `⚖️ ${id + 1}号(圣徒) 处于中毒/醉酒状态被处决，豁免落败判定，正常死亡`
           );
+        }
+      }
+
+      // 👥 镜像双子（Evil Twin）：若双子均存活且被处决者为善良双子，弹出确认弹窗警告邪恶将获胜
+      if (!options?.forceExecution) {
+        const activeEvilTwin = seatsSnapshot.find(
+          (s) =>
+            s.role?.id === "evil_twin" &&
+            !s.isDead &&
+            !s.isPoisoned &&
+            !s.isDrunk
+        );
+        if (activeEvilTwin) {
+          const isGoodTwinTarget =
+            (evilTwinPair?.goodId !== undefined && evilTwinPair.goodId === id) ||
+            !!t.isGoodTwin ||
+            (id !== activeEvilTwin.id &&
+              t.role.id !== "evil_twin" &&
+              !t.isEvilConverted &&
+              (t.role.type === "townsfolk" || t.role.type === "outsider"));
+          if (isGoodTwinTarget) {
+            setCurrentModal({
+              type: "EVIL_TWIN_EXECUTION_CONFIRM",
+              data: { targetId: id, skipLunaticRps: options?.skipLunaticRps },
+            });
+            return true;
+          }
         }
       }
       // Psychopath: RPS if not skipped

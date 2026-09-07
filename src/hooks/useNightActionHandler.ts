@@ -321,6 +321,15 @@ export async function executeViaNewEngine(
     };
   });
 
+  const isVortox = Boolean(
+    context.vortoxWorld ||
+      context.seats.some(
+        (s) =>
+          (s.role?.id === "vortox" || (s as any).roleId === "vortox") &&
+          !s.isDead
+      )
+  );
+
   const gameStateSnapshot: GameStateSnapshot = {
     nightCount: context.nightCount,
     seats: snapshotSeats,
@@ -331,6 +340,9 @@ export async function executeViaNewEngine(
     //   但 executeViaNewEngine 构造的快照此前不含该字段，导致送葬者
     //   preCheck 的 executedTodayCheck 找不到被处决者 → aborted → 结算弹窗不展示。
     todayExecutedId: context.todayExecutedId ?? null,
+    globalEffects: { vortoxWorld: isVortox },
+    vortoxWorld: isVortox,
+    isVortoxWorld: isVortox,
   };
 
   const actorId =
@@ -708,6 +720,9 @@ export async function executeViaNewEngine(
       `[executeViaNewEngine] Syncing ${updatedSeats.length} seats from engine snapshot`
     );
 
+    // 提取双子对信息（供后续状态同步与结果展示共用）
+    const evilTwinPair = (resultContext as any)?.snapshot?.evilTwinPair;
+
     // 🔧 消费能力管道的 stateUpdates 指令（赌徒/水手/吟游诗人等角色经此下发状态变更）
     const stateUpdates = resultContext.meta.stateUpdates;
     if (stateUpdates) {
@@ -946,7 +961,6 @@ export async function executeViaNewEngine(
       }
 
       // 👥 镜像双子桥接：新引擎快照 evilTwinPair → legacy evilTwinPair & isGoodTwin
-      const evilTwinPair = (resultContext as any)?.snapshot?.evilTwinPair;
       if (evilTwinPair) {
         const goodSeatId = evilTwinPair.goodSeatId ?? evilTwinPair.goodId;
         const evilSeatId = evilTwinPair.evilSeatId ?? evilTwinPair.evilId;
@@ -1016,6 +1030,20 @@ export async function executeViaNewEngine(
         }
       }
 
+      // 👥 镜像双子：直接向玩家展示“对立双子是X号XX角色”
+      if (roleId === "evil_twin") {
+        const goodTwinId =
+          displayInfo?.twinId ??
+          evilTwinPair?.goodSeatId ??
+          evilTwinPair?.goodId ??
+          resultContext.meta.evilTwinResult?.twinId ??
+          syncedSeats.find((s) => s.isGoodTwin)?.id;
+        const goodTwinSeat = syncedSeats.find((s) => s.id === goodTwinId);
+        if (goodTwinSeat) {
+          customResultText = `对立双子是${goodTwinSeat.id + 1}号【${goodTwinSeat.role?.name || "未知"}】角色`;
+        }
+      }
+
       // 🤹 杂耍艺人：统一展示“得知的数字为X”
       if (roleId === "juggler") {
         const actorSeat =
@@ -1031,6 +1059,25 @@ export async function executeViaNewEngine(
         customResultText = `得知的数字为${count}`;
       }
 
+      // 👥 对立双子在夜间获知“X号是镜像双子”
+      const isGoodTwinActor =
+        actorSeat?.isGoodTwin ||
+        actorId === (context as any)?.evilTwinPair?.goodId ||
+        actorId === (resultContext as any)?.snapshot?.evilTwinPair?.goodId;
+      const evilTwinSeat = syncedSeats.find(
+        (s) => s.role?.id === "evil_twin" && !s.isDead
+      );
+      if (isGoodTwinActor && evilTwinSeat && context.nightCount === 1) {
+        const twinNotice = `【双子告知】${evilTwinSeat.id + 1}号是镜像双子`;
+        if (customResultText) {
+          customResultText = `${twinNotice}\n${customResultText}`;
+        } else if (displayInfo?.log) {
+          displayInfo.log = `${twinNotice}\n${displayInfo.log}`;
+        } else {
+          customResultText = twinNotice;
+        }
+      }
+
       const guideText = context.nightInfo?.guide || "";
       const guideMatch = guideText.match(/告诉他(.+?)[。.]?$/);
       const guideInfo =
@@ -1042,7 +1089,8 @@ export async function executeViaNewEngine(
           : "";
       const resultText =
         customResultText ||
-        (guideInfo ? `${roleName}获得信息：${guideInfo}` : displayInfo.log);
+        displayInfo.log ||
+        (guideInfo ? `${roleName}获得信息：${guideInfo}` : "技能已执行");
       const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
       context.setCurrentModal({
         type: "INFO_RESULT",

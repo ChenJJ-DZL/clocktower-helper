@@ -96,7 +96,10 @@ const calculateResult = async (
   let roleA: Role;
   let roleB: Role;
 
-  if (shouldShowCorrect) {
+  if (context.storytellerInput?.roleA && context.storytellerInput?.roleB) {
+    roleA = context.storytellerInput.roleA;
+    roleB = context.storytellerInput.roleB;
+  } else if (shouldShowCorrect) {
     // 正常情况：显示真实角色和一个对立阵营的随机角色
     const isTargetGood =
       actualRole.type === "townsfolk" ||
@@ -128,8 +131,8 @@ const calculateResult = async (
     }
   }
 
-  // 随机交换位置
-  if (Math.random() < 0.5) {
+  // 随机交换位置（如果未由说书人显式指定）
+  if (!context.storytellerInput?.roleA && Math.random() < 0.5) {
     [roleA, roleB] = [roleB, roleA];
   }
 

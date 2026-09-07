@@ -97,10 +97,14 @@ const updateResurrectionStatus = async (
             ...seat,
             isAlive: true,
             isDead: false,
+            markedForDeath: false,
+            diedAtNight: undefined,
+            killedBy: undefined,
+            deathSource: undefined,
+            deathSourceSeatId: undefined,
             isEvilConverted: false,
-            // 可以在这里添加复活相关的状态标记
             statusEffects: [
-              ...seat.statusEffects,
+              ...(seat.statusEffects ?? []),
               {
                 type: "resurrected",
                 source: "professor",

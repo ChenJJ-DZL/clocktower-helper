@@ -24,21 +24,34 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
-  // 标记邻近镇民中毒
   const seats = ctx.snapshot.seats;
-  const selfIdx = seats.findIndex((s: any) => s.id === ctx.actionNode.seatId);
-  const adjacentIds = [];
-  if (selfIdx > 0) adjacentIds.push(seats[selfIdx - 1]?.id);
-  if (selfIdx < seats.length - 1) adjacentIds.push(seats[selfIdx + 1]?.id);
-  const poisonedAdjacent = adjacentIds.filter((id: number) => {
-    const s = seats.find((x: any) => x.id === id);
-    return s?.isAlive && s?.role?.type === "townsfolk";
-  });
+  const selfId = ctx.actionNode.seatId;
+  const targetSeat = seats.find((s: any) => s.id === targetId);
+  const isProtected =
+    targetSeat?.isProtected ||
+    targetSeat?.statusEffects?.some((e: any) => e.type === "protected");
+  const isSoldierImmune =
+    targetSeat?.role?.id === "soldier" &&
+    !targetSeat?.isPoisoned &&
+    !targetSeat?.isDrunk &&
+    !targetSeat?.statusEffects?.some(
+      (e: any) => e.type === "poisoned" || e.type === "drunk"
+    );
+  const killed = Boolean(targetSeat && !isProtected && !isSoldierImmune);
+
+  const { getNoDashiiPoisonTargets } = await import("../../utils/snvMechanics");
+  const poisonedAdjacent = getNoDashiiPoisonTargets(selfId, seats);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: { targetId, killed: true, poisonedAdjacent },
+      abilityResult: {
+        targetId,
+        killed,
+        poisonedAdjacent,
+        blockedByProtection: isProtected,
+        blockedBySoldier: isSoldierImmune,
+      },
     },
   };
 };
@@ -61,20 +74,37 @@ const stateUpdate = async (
       // 🔧 修复：诺-达击杀目标必须落地死亡标记（与三恶魔一致）。
       //   syncStatusEffectsToSeat 只认 markedForDeath/isAlive===false → isDead，
       //   否则夜晚报告永远"平安夜"、死亡标记缺失、送葬者失效。
-      seats: ctx.snapshot.seats.map((seat: any) =>
-        seat.id === r.targetId && !seat.isDead
-          ? {
-              ...seat,
-              isAlive: false,
-              isDead: true,
-              markedForDeath: true,
-              diedAtNight: ctx.snapshot.nightCount,
-              killedBy: "no_dashii",
-              deathSource: "no_dashii_kill",
-              deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
-            }
-          : seat
-      ),
+      seats: ctx.snapshot.seats.map((seat: any) => {
+        let updated = seat;
+        if (seat.id === r.targetId && !seat.isDead) {
+          updated = {
+            ...updated,
+            isAlive: false,
+            isDead: true,
+            markedForDeath: true,
+            diedAtNight: ctx.snapshot.nightCount,
+            killedBy: "no_dashii",
+            deathSource: "no_dashii_kill",
+            deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+          };
+        }
+        if (r.poisonedAdjacent?.includes(seat.id)) {
+          const effects = [...(updated.statusEffects ?? [])];
+          if (!effects.some((e: any) => e.type === "poisoned" && e.source === "no_dashii")) {
+            effects.push({
+              type: "poisoned",
+              source: "no_dashii",
+              sourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+            });
+          }
+          updated = {
+            ...updated,
+            isPoisoned: true,
+            statusEffects: effects,
+          };
+        }
+        return updated;
+      }),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         no_dashii: r,

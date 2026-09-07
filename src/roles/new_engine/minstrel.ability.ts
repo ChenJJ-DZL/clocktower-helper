@@ -33,12 +33,13 @@ const calculateResult = async (
   }
 
   // 检查被处决的是否是爪牙
-  const isMinionExecuted = executedSeat.roleType === "minion";
+  const isMinionExecuted =
+    (executedSeat.role?.type ?? (executedSeat as any).roleType) === "minion";
 
   const result = {
     minstrelSeatId,
     executedSeatId,
-    executedRole: executedSeat.roleId,
+    executedRole: executedSeat.role?.id ?? (executedSeat as any).roleId,
     isMinionExecuted,
     shouldDrunkEveryone: isMinionExecuted,
   };
@@ -63,7 +64,8 @@ const stateUpdate = async (
       (seat) =>
         seat.id !== result.minstrelSeatId &&
         seat.roleType !== "traveler" &&
-        seat.isAlive
+        !seat.isDead &&
+        ((seat as any).isAlive ?? true)
     )
     .map((seat) => seat.id);
 

@@ -43,10 +43,26 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.swapped) return ctx;
+
+  const seats = ctx.snapshot.seats ?? [];
+  const seatA = seats.find((s: any) => s.id === r.swapA);
+  const seatB = seats.find((s: any) => s.id === r.swapB);
+
+  const updatedSeats = seats.map((s: any) => {
+    if (s.id === r.swapA && seatB?.role) {
+      return { ...s, role: { ...seatB.role } };
+    }
+    if (s.id === r.swapB && seatA?.role) {
+      return { ...s, role: { ...seatA.role } };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: updatedSeats,
       barberSwap: { a: r.swapA, b: r.swapB },
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),

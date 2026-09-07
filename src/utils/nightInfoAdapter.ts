@@ -363,6 +363,30 @@ function generateSystemInfoViaAdapter(
       ? `\n不在场伪装: 【${notInPlayGoodRoles.join("】、【")}】`
       : "";
 
+  // 检查场上是否有告密者
+  const hasSnitchInPlay = seats.some((s) => s.role?.id === "snitch");
+  let snitchBluffText = "";
+  if (hasSnitchInPlay) {
+    const availableGoodRoles = [...scriptTownsfolk, ...scriptOutsiders];
+    if (availableGoodRoles.length > 0) {
+      const minionIndex = Math.max(
+        0,
+        minionSeats.findIndex((s) => s.id === currentSeatId)
+      );
+      const offset = minionIndex * 3;
+      const bluffs: string[] = [];
+      for (let i = 0; i < Math.min(3, availableGoodRoles.length); i++) {
+        const r = availableGoodRoles[(offset + i) % availableGoodRoles.length];
+        if (r && !bluffs.includes(r.name)) {
+          bluffs.push(r.name);
+        }
+      }
+      if (bluffs.length > 0) {
+        snitchBluffText = `\n告密者伪装: 【${bluffs.join("】、【")}】`;
+      }
+    }
+  }
+
   if (isLegionMutualStep) {
     const aliveLegions = seats.filter(
       (s) =>
@@ -377,9 +401,11 @@ function generateSystemInfoViaAdapter(
     guide = `座位号：${legionSeatList}\n说书人同时唤醒所有的军团玩家，军团玩家互认${legionBluffText}`;
   } else if (isMinionStep) {
     if (isPoppyGrowerAlive) {
-      guide = "🌺 罂粟种植者在场，爪牙与恶魔互不相识";
+      guide = `🌺 罂粟种植者在场，爪牙与恶魔互不相识${snitchBluffText}`;
     } else {
-      guide = `恶魔是: ${demonDesc}\n爪牙队友: ${otherMinions.length > 0 ? otherMinionDesc : "无"}`;
+      guide = `恶魔是: ${demonDesc}\n爪牙队友: ${
+        otherMinions.length > 0 ? otherMinionDesc : "无"
+      }${snitchBluffText}`;
     }
   } else if (selfSeat.role?.id === "legion") {
     // 军团玩家专属夜晚信息：展示所有军团同伴 + 共享 3 不在场镇民伪装

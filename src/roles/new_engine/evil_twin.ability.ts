@@ -67,6 +67,10 @@ const stateUpdate = async (
         evilSeatId: ctx.actionNode.seatId,
         goodSeatId: r?.twinId,
       },
+      seats: ctx.snapshot.seats.map((s: any) => ({
+        ...s,
+        isGoodTwin: s.id === r?.twinId,
+      })),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         evil_twin: r,
@@ -79,9 +83,26 @@ const stateUpdate = async (
 const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const log = "[EvilTwin] 双子首夜互知完成";
-  console.log(log);
-  return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };
+  const r = ctx.meta.abilityResult as any;
+  const goodTwinSeat = ctx.snapshot.seats.find((s: any) => s.id === r?.twinId);
+  const goodRoleName = goodTwinSeat?.role?.name || "未知角色";
+  const log = goodTwinSeat
+    ? `对立双子是${goodTwinSeat.id + 1}号【${goodRoleName}】角色`
+    : "双子首夜互知完成";
+  console.log(`[EvilTwin] ${log}`);
+  return {
+    ...ctx,
+    meta: {
+      ...ctx.meta,
+      abilityLog: log,
+      displayInfo: {
+        type: "evil_twin_info",
+        log,
+        twinId: r?.twinId,
+        twinRoleName: goodRoleName,
+      },
+    },
+  };
 };
 
 export const evil_twinAbility = createRoleAbility({
@@ -98,4 +119,41 @@ export const evil_twinAbility = createRoleAbility({
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],
+});
+
+export const good_twin_infoAbility = createRoleAbility({
+  roleId: "good_twin_info",
+  abilityId: "good_twin_info",
+  abilityName: "双子告知",
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
+  firstNightPriority: 38.5,
+  otherNightPriority: null,
+  firstNightOnly: true,
+  wakePromptId: "role.good_twin_info.wake",
+  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
+  calculate: [
+    async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+      const evilTwinSeat = ctx.snapshot.seats.find(
+        (s: any) => s.role?.id === "evil_twin" && !s.isDead
+      );
+      const evilSeatId = evilTwinSeat ? evilTwinSeat.id : null;
+      const evilRoleName = evilTwinSeat?.role?.name || "镜像双子";
+      const log = evilTwinSeat
+        ? `${evilTwinSeat.id + 1}号玩家是【${evilRoleName}】`
+        : "得知对立双子信息";
+      return {
+        ...ctx,
+        meta: {
+          ...ctx.meta,
+          abilityLog: log,
+          abilityResult: { evilTwinSeatId: evilSeatId },
+          displayInfo: {
+            type: "good_twin_info",
+            log,
+            evilTwinSeatId: evilSeatId,
+          },
+        },
+      };
+    },
+  ],
 });

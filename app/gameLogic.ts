@@ -64,7 +64,12 @@ export interface GameContext {
   damselGuessed?: boolean;
   klutzGuessedEvil?: boolean;
   isVortoxWorld?: boolean;
-  evilTwinPair?: { goodId: number; evilId: number } | null;
+  evilTwinPair?: {
+    goodId?: number;
+    evilId?: number;
+    goodSeatId?: number;
+    evilSeatId?: number;
+  } | null;
   executedSeatId?: number | null; // For historical context if needed
   isMoonchildActive?: boolean;
   pacifistSaves?: boolean;
@@ -557,9 +562,11 @@ export function checkGameEnd(
         s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
     );
     if (evilTwinSeat) {
+      const goodTwinId =
+        evilTwinPair?.goodSeatId ?? evilTwinPair?.goodId;
       const goodTwinSeat =
-        (evilTwinPair?.goodId !== undefined
-          ? seats.find((s) => s.id === evilTwinPair.goodId)
+        (goodTwinId !== undefined
+          ? seats.find((s) => s.id === goodTwinId)
           : null) ||
         seats.find((s) => s.isGoodTwin && !s.isDead) ||
         seats.find(
@@ -595,10 +602,12 @@ export function checkGameEnd(
           s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
       );
       if (evilTwin) {
+        const designatedGoodId =
+          evilTwinPair?.goodSeatId ?? evilTwinPair?.goodId;
         const hasExplicitDesignation =
-          evilTwinPair?.goodId !== undefined || seats.some((s) => s.isGoodTwin);
+          designatedGoodId !== undefined || seats.some((s) => s.isGoodTwin);
         const isGoodTwin = hasExplicitDesignation
-          ? executedSeat.id === evilTwinPair?.goodId ||
+          ? executedSeat.id === designatedGoodId ||
             !!executedSeat.isGoodTwin
           : executedSeat.id !== evilTwin.id &&
             executedSeat.role?.id !== "evil_twin" &&

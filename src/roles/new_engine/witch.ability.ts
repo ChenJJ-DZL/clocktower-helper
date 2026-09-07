@@ -44,11 +44,28 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (r?.targetId == null) return ctx;
+
+  const nextSeats = (ctx.snapshot.seats ?? []).map((s: any) => {
+    if (s.id === r.targetId) {
+      const effects = [...(s.statusEffects ?? [])];
+      if (!effects.some((e: any) => e.type === "cursed" && e.source === "witch")) {
+        effects.push({
+          type: "cursed",
+          source: "witch",
+          sourceSeatId: ctx.actionNode.seatId,
+        });
+      }
+      return { ...s, isCursed: true, statusEffects: effects };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
     meta: { ...ctx.meta, witchResult: r },
     snapshot: {
       ...ctx.snapshot,
+      seats: nextSeats,
       witchCurse: {
         ...((ctx.snapshot as any).witchCurse ?? {}),
         [r.targetId]: true,
@@ -87,7 +104,7 @@ export const witchAbility = createRoleAbility({
   otherNightPriority: 29,
   firstNightOnly: false,
   wakePromptId: "role.witch.wake",
-  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  targetConfig: { min: 1, max: 1, allowSelf: true, allowDead: false },
   preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

@@ -103,6 +103,10 @@ export type ModalType =
       data: { targetId: number; skipLunaticRps?: boolean };
     }
   | {
+      type: "EVIL_TWIN_EXECUTION_CONFIRM";
+      data: { targetId: number; skipLunaticRps?: boolean };
+    }
+  | {
       type: "MADNESS_CHECK";
       data: { targetId: number; roleName: string; day: number };
     }

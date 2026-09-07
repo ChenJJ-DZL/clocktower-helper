@@ -512,6 +512,28 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     setCurrentModal(null);
   }, [setCurrentModal]);
 
+  const confirmEvilTwinExecution = useCallback(() => {
+    if (!currentModal || currentModal.type !== "EVIL_TWIN_EXECUTION_CONFIRM")
+      return;
+    const { targetId } = currentModal.data;
+    setCurrentModal(null);
+    addLog(`👥 ${targetId + 1}号(善良双子) 被处决，镜像双子能力生效，邪恶阵营直接获胜！`);
+    setWinResult("evil");
+    setWinReason("善良双子被处决（镜像双子胜利）");
+    executePlayer(targetId, { forceExecution: true });
+  }, [
+    currentModal,
+    setCurrentModal,
+    executePlayer,
+    addLog,
+    setWinResult,
+    setWinReason,
+  ]);
+
+  const cancelEvilTwinExecution = useCallback(() => {
+    setCurrentModal(null);
+  }, [setCurrentModal]);
+
   const confirmRavenkeeperFake = useCallback(
     (r: Role) => {
       if (currentModal?.type !== "RAVENKEEPER_FAKE" || !nightInfo) return;
@@ -625,6 +647,8 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       confirmHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmEvilTwinExecution,
+      cancelEvilTwinExecution,
       confirmRavenkeeperFake,
       confirmVirginTrigger,
       confirmRestart,
@@ -639,6 +663,8 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       confirmHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmEvilTwinExecution,
+      cancelEvilTwinExecution,
       confirmRavenkeeperFake,
       confirmVirginTrigger,
       confirmRestart,

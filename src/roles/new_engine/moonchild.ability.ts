@@ -8,6 +8,8 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
+import { isDrunkOrPoisoned, isGoodSeat } from "../../utils/bmrMechanics";
+
 // 前置校验：月之子能力在死亡时触发
 const preCheckOnDeath = async (
   context: MiddlewareContext
@@ -24,6 +26,7 @@ const calculateResult = async (
 
   // 获取月之子座位（已死亡）
   const moonchildSeatId = context.actionNode.seatId;
+  const moonchildSeat = snapshot.seats.find((s) => s.id === moonchildSeatId);
 
   // 获取目标座位
   const targetId = targetIds[0];
@@ -33,15 +36,21 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到目标座位" };
   }
 
-  // 月之子的能力是回溯型的：判断选择时目标是否善良
-  // 注意：这里判断的是目标的真实阵营，不考虑月之子是否醉酒中毒
-  const targetIsGood = targetSeat.alignment === "good";
+  // 判断选择时月之子是否醉酒/中毒
+  const isAbilityEffective =
+    meta.abilityEffective ?? !isDrunkOrPoisoned(moonchildSeat);
+
+  // 判断目标是否为善良阵营
+  const targetIsGood = isGoodSeat(targetSeat);
+
+  const shouldKill = targetIsGood && isAbilityEffective;
 
   const result = {
     moonchildSeatId,
     targetId,
     targetIsGood,
-    shouldKill: targetIsGood,
+    isAbilityEffective,
+    shouldKill,
   };
 
   return { ...context, meta: { ...context.meta, abilityResult: result } };

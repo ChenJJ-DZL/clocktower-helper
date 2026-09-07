@@ -21,11 +21,13 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const selfSeat = snapshot.seats.find((seat) => seat.id === actionNode.seatId);
 
-  if (!selfSeat?.isAlive) {
+  // 官方规则：僵怖首次死亡时被当作已死亡，但仍存活且保有能力。只有真正第二次死亡时才彻底死亡。
+  const isTrulyDead = (selfSeat as any)?.zombuulTrulyDead === true;
+  if (!selfSeat || (isTrulyDead && !selfSeat.isAlive)) {
     return {
       ...context,
       aborted: true,
-      abortReason: "僵怖已死亡，无法使用能力",
+      abortReason: "僵怖已真正死亡，无法使用能力",
     };
   }
 
@@ -37,10 +39,11 @@ const calculateKillTargets = async (
 ): Promise<MiddlewareContext> => {
   const { snapshot, targetIds } = context;
 
-  // 检查白天是否有人死亡
+  // 检查白天是否有人死亡（处决或白天暴毙）
+  const dayDeaths = (snapshot as any).dayDeathsToday ?? ((snapshot as any).anyoneDiedToday ? 1 : 0);
   const { lastDuskExecution } = snapshot;
-  if (lastDuskExecution !== null) {
-    // 白天有人死亡，僵怖不应该被唤醒
+  if (lastDuskExecution !== null || dayDeaths > 0) {
+    // 白天有人死亡，僵怖不发动攻击
     return {
       ...context,
       aborted: true,

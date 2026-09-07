@@ -76,6 +76,12 @@ export function isImmuneToDemonKill(
   }
   // 士兵免疫：恶魔攻击士兵无效
   if (isSoldierSeat(seat)) return true;
+  // 水手免疫：清醒健康的水手不会死亡
+  if (seat.role?.id === "sailor") return true;
+  // 弄臣首次免死
+  if (seat.role?.id === "fool" && !(seat as any).foolUsed && !(seat as any).hasUsedFoolAbility) {
+    return true;
+  }
   return false;
 }
 

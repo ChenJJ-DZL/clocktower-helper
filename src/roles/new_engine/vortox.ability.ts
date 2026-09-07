@@ -25,11 +25,41 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  if (targetId === null) {
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityResult: { targetId: null, killed: false, vortoxActive: true },
+      },
+    };
+  }
+
+  const targetSeat = ctx.snapshot.seats.find((s: any) => s.id === targetId);
+  const isProtected =
+    targetSeat?.isProtected ||
+    targetSeat?.statusEffects?.some((e: any) => e.type === "protected");
+  const isSoldierImmune =
+    targetSeat?.role?.id === "soldier" &&
+    !targetSeat?.isPoisoned &&
+    !targetSeat?.isDrunk &&
+    !targetSeat?.statusEffects?.some(
+      (e: any) => e.type === "poisoned" || e.type === "drunk"
+    );
+
+  const killed = Boolean(targetSeat && !isProtected && !isSoldierImmune);
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: { targetId, killed: true, vortoxActive: true },
+      abilityResult: {
+        targetId,
+        killed,
+        vortoxActive: true,
+        blockedByProtection: isProtected,
+        blockedBySoldier: isSoldierImmune,
+      },
     },
   };
 };
@@ -38,20 +68,19 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.killed) return ctx;
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
       lastKill: {
         demonId: ctx.actionNode.seatId,
-        targetId: r.targetId,
+        targetId: r?.targetId,
         demonRole: "vortox",
+        killed: r?.killed ?? false,
       },
       vortoxActive: true,
-      // 🔧 修复：涡流击杀目标必须落地死亡标记（与三恶魔一致）。
       seats: ctx.snapshot.seats.map((seat: any) =>
-        seat.id === r.targetId && !seat.isDead
+        r?.killed && seat.id === r.targetId && !seat.isDead
           ? {
               ...seat,
               isAlive: false,
@@ -77,10 +106,16 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const log =
-    r?.targetId != null
-      ? `[Vortox] 击杀${r.targetId + 1}号（涡流在场，镇民信息均反转）`
-      : "[Vortox] 无目标";
+  let log = "";
+  if (r?.killed) {
+    log = `[Vortox] 涡流击杀了 ${r.targetId + 1} 号`;
+  } else if (r?.blockedByProtection) {
+    log = `[Vortox] 涡流攻击了 ${r.targetId + 1} 号，但目标受到保护`;
+  } else if (r?.blockedBySoldier) {
+    log = `[Vortox] 涡流攻击了 ${r.targetId + 1} 号士兵，免疫击杀`;
+  } else {
+    log = "[Vortox] 涡流未产生击杀";
+  }
   console.log(log);
   return {
     ...ctx,

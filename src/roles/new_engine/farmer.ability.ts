@@ -1,15 +1,21 @@
 /**
  * 农夫（Farmer）新引擎技能实现（实验角色）
  *
- * 【角色能力】"如果你在夜晚死亡，一名存活的善良玩家会变成农夫。"
+ * 【官方百科能力】"当你在夜晚死亡时，一名存活的善良玩家会变成农夫。"
  *
- * PASSIVE 触发：夜晚死亡时，随机选择一名存活的善良玩家继承农夫角色。
+ * 运作方式：
+ * - 只有在夜晚死亡才触发农夫传承。白天处决或白天暴毙不触发。
+ * - 随机选择一名存活的善良玩家继承农夫角色（间谍若被当作善良也可被选中，但保持其实际阵营）。
+ * - 被选中的善良玩家角色变为农夫，失去原有能力。
+ * - 如果多名农夫连续或在同一夜晚死亡，多次传承，场上可有多个农夫（含已死亡农夫）。
+ * - 醉酒或中毒时不触发传承。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { getEligibleFarmerSuccessors } from "../../utils/expansionMechanics";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -33,7 +39,9 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
     ctx.snapshot.gamePhase === "firstNight";
   const diedAtNight =
     isNight &&
-    (seat.isDead || (ctx.snapshot.deadThisNight ?? []).includes(seat.id));
+    (seat.isDead ||
+      (ctx.snapshot.deadThisNight ?? []).includes(seat.id) ||
+      (ctx.actionNode as any).diedAtNight === true);
 
   if (!diedAtNight) {
     return { ...ctx, aborted: true, abortReason: "非夜晚死亡，不触发农夫传承" };
@@ -68,32 +76,28 @@ const calculate = async (
     };
   }
 
-  // 寻找存活的善良玩家（非邪恶类型）
-  const goodCandidates = ctx.snapshot.seats.filter(
-    (s: any) =>
-      s.isAlive &&
-      s.id !== ctx.actionNode.seatId &&
-      s.role &&
-      !s.isEvilConverted &&
-      s.alignment !== "evil" &&
-      s.role.type !== "minion" &&
-      s.role.type !== "demon"
+  // 获取所有合格的存活善良玩家（考虑间谍等）
+  const eligibleCandidates = getEligibleFarmerSuccessors(
+    ctx.snapshot.seats,
+    ctx.actionNode.seatId
   );
-  const chosen =
-    goodCandidates.length > 0
-      ? ctx.storytellerInput?.newFarmerSeatId !== undefined
-        ? ctx.snapshot.seats.find(
-            (s: any) => s.id === ctx.storytellerInput.newFarmerSeatId
-          )
-        : goodCandidates[Math.floor(Math.random() * goodCandidates.length)]
-      : null;
+
+  let chosen: any = null;
+  if (ctx.storytellerInput?.newFarmerSeatId !== undefined) {
+    chosen = ctx.snapshot.seats.find(
+      (s: any) => s.id === ctx.storytellerInput.newFarmerSeatId
+    );
+  } else if (eligibleCandidates.length > 0) {
+    chosen = eligibleCandidates[Math.floor(Math.random() * eligibleCandidates.length)];
+  }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
         newFarmerId: chosen?.id ?? null,
-        hasTransfer: chosen !== null,
+        hasTransfer: chosen != null,
       },
     },
   };
@@ -104,9 +108,9 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.hasTransfer || r.newFarmerId == null) return ctx;
+
   const updatedSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === r.newFarmerId) {
-      // 变农夫后失去原能力（清除 hasAbilityEvenDead + previous ability 标记）
       const cleanedStatusEffects = (s.statusEffects ?? []).filter(
         (e: any) =>
           ![
@@ -116,21 +120,30 @@ const stateUpdate = async (
             "pixie_farmer",
           ].includes(e.type)
       );
+      // 农夫角色本身的类型永远是 townsfolk（镇民角色）
+      // 若间谍被转为农夫，保持其实际邪恶阵营（isEvilConverted: true 或保持 evil 标记）
+      const isOriginalEvil = s.role?.type === "minion" || s.role?.type === "demon" || s.isEvilConverted || s.alignment === "evil";
       return {
         ...s,
-        role: { id: "farmer", name: "农夫", type: "townsfolk" },
+        role: {
+          id: "farmer",
+          name: "农夫",
+          type: "townsfolk",
+        },
         roleId: "farmer",
         roleName: "农夫",
         roleType: "townsfolk",
+        isEvilConverted: isOriginalEvil ? true : s.isEvilConverted,
+        alignment: isOriginalEvil ? "evil" : s.alignment,
         hasAbilityEvenDead: false,
         statusEffects: cleanedStatusEffects,
-        // 清除已获得的额外能力标记
         acquiredAbilities: [],
         statusDetails: [...(s.statusDetails || []), "成为新农夫"],
       };
     }
     return s;
   });
+
   return {
     ...ctx,
     meta: { ...ctx.meta, farmerResult: r },
@@ -153,7 +166,7 @@ const postProcess = async (
     console.log("[Farmer] 无可用继承目标");
     return ctx;
   }
-  const log = `[Farmer] 农夫死亡，${r.newFarmerId + 1}号成为新农夫`;
+  const log = `[Farmer] 农夫在夜晚死亡，${r.newFarmerId + 1}号玩家转变为新农夫！`;
   console.log(log);
   return { ...ctx, meta: { ...ctx.meta, abilityLog: log } };
 };

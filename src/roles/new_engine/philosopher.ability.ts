@@ -33,36 +33,43 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   const chosenRoleId = ctx.storytellerInput?.chosenRoleId ?? null;
 
+  const isCorrupted = ctx.meta.abilityEffective === false;
+
   if (!chosenRoleId) {
     return {
       ...ctx,
       meta: {
         ...ctx.meta,
+        isCorrupted,
         abilityResult: {
           chosenRoleId: null,
           roleInPlay: false,
           becomesDrunk: false,
           used: false,
+          isCorrupted,
         },
       },
     };
   }
 
-  // 检查该角色是否在场（是否有某位玩家的角色ID匹配）
-  const roleInPlay = ctx.snapshot.seats.some(
+  // 官方规则：如果该角色在场，该角色玩家醉酒；无论在场与否，哲学家获得该能力
+  const duplicateSeat = ctx.snapshot.seats.find(
     (s: any) =>
-      s.role?.id === chosenRoleId || s.originalRole?.id === chosenRoleId
+      s.id !== ctx.actionNode.seatId &&
+      (s.role?.id === chosenRoleId || s.originalRole?.id === chosenRoleId)
   );
 
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
+      isCorrupted,
       abilityResult: {
         chosenRoleId,
-        roleInPlay,
-        becomesDrunk: roleInPlay, // 若角色在场，哲学家变酒鬼
+        roleInPlay: !!duplicateSeat,
+        duplicateSeatId: duplicateSeat ? duplicateSeat.id : null,
         used: true,
+        isCorrupted,
       },
     },
   };
@@ -75,10 +82,35 @@ const stateUpdate = async (
   if (!ctx.aborted) {
     consumeLimitedAbility(ctx.actionNode.seatId, "philosopher_gain");
   }
+
+  let nextSeats = ctx.snapshot.seats ?? [];
+  if (r?.duplicateSeatId != null) {
+    nextSeats = nextSeats.map((s: any) => {
+      if (s.id === r.duplicateSeatId) {
+        const effects = [...(s.statusEffects ?? [])];
+        if (!effects.some((e: any) => e.type === "drunk" && e.source === "philosopher")) {
+          effects.push({
+            type: "drunk",
+            source: "philosopher",
+            sourceSeatId: ctx.actionNode.seatId,
+          });
+        }
+        return {
+          ...s,
+          isDrunk: true,
+          statusEffects: effects,
+        };
+      }
+      return s;
+    });
+  }
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: nextSeats,
+      philosopherGainedRole: r?.chosenRoleId,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         philosopher: r,
@@ -105,13 +137,15 @@ const postProcess = async (
     };
   }
 
+  const isCorrupted = ctx.meta.isCorrupted ?? ctx.meta.abilityEffective === false;
+  const tag = isCorrupted ? "【受干扰】" : "";
   let log: string;
   let prompt: string;
-  if (r.becomesDrunk) {
-    log = `[哲学家] 选择了${r.chosenRoleId}，但该角色在场，哲学家变成酒鬼`;
-    prompt = `唤醒${ctx.actionNode.seatId + 1}号【哲学家】，选择了${r.chosenRoleId}。由于该角色在场，哲学家变成酒鬼。`;
+  if (r.roleInPlay) {
+    log = `[哲学家]${tag} 获得了${r.chosenRoleId}的能力，但该角色在场，${(r.duplicateSeatId ?? 0) + 1}号玩家变成酒鬼`;
+    prompt = `唤醒${ctx.actionNode.seatId + 1}号【哲学家】，获得了${r.chosenRoleId}的能力。由于该角色在场，${(r.duplicateSeatId ?? 0) + 1}号玩家变成酒鬼。`;
   } else {
-    log = `[哲学家] 获得了${r.chosenRoleId}的能力`;
+    log = `[哲学家]${tag} 获得了${r.chosenRoleId}的能力`;
     prompt = `唤醒${ctx.actionNode.seatId + 1}号【哲学家】，获得了${r.chosenRoleId}的能力。`;
   }
   console.log(log);
@@ -119,8 +153,15 @@ const postProcess = async (
     ...ctx,
     meta: {
       ...ctx.meta,
+      isCorrupted,
       prompt,
       abilityLog: log,
+      displayInfo: {
+        type: "philosopher_gain",
+        chosenRoleId: r.chosenRoleId,
+        isCorrupted,
+        log,
+      },
     },
   };
 };

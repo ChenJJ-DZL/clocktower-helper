@@ -33,10 +33,36 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.causesDrunk) return ctx;
+
+  const seats = ctx.snapshot.seats ?? [];
+  let nextSeats = seats;
+  if (r.drunkTarget != null) {
+    nextSeats = seats.map((s: any) => {
+      if (s.id === r.drunkTarget) {
+        const effects = [...(s.statusEffects ?? [])];
+        if (!effects.some((e: any) => e.type === "drunk" && e.source === "sweetheart")) {
+          effects.push({
+            type: "drunk",
+            source: "sweetheart",
+            sourceSeatId: ctx.actionNode.seatId,
+          });
+        }
+        return {
+          ...s,
+          isDrunk: true,
+          statusEffects: effects,
+        };
+      }
+      return s;
+    });
+  }
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: nextSeats,
+      sweetheartDrunkTargetId: r.drunkTarget,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         sweetheart: r,

@@ -61,30 +61,19 @@ const calculatePoisonTargets = async (
     };
   }
 
-  // 检查保护机制
-  const isProtected =
-    targetSeat.statusEffects?.some((e: any) => e.type === "protected") ||
-    (targetSeat as any).protectedByInnkeeper === true;
-
   return {
     ...context,
-    meta: { ...context.meta, targetId, isProtected },
+    meta: { ...context.meta, targetId },
   };
 };
 
-// 状态更新：使目标中毒
+// 状态更新：使目标中毒，旧目标毒发死亡
 const updatePoisonState = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { snapshot, meta } = context;
-  const { targetId, isProtected } = meta as {
-    targetId: number;
-    isProtected: boolean;
-  };
-
-  if (isProtected) {
-    return context; // 目标被保护，不中毒
-  }
+  const isAbilityEffective = meta?.abilityEffective ?? true;
+  const targetId = (meta as any)?.targetId as number;
 
   // 生成新的状态快照（不可变）
   const newSnapshot: GameStateSnapshot = {
@@ -118,7 +107,7 @@ const updatePoisonState = async (
         };
       }
       // 新目标：下毒
-      if (seat.id === targetId) {
+      if (seat.id === targetId && isAbilityEffective) {
         return {
           ...seat,
           isPoisoned: true,

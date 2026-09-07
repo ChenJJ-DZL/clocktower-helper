@@ -30,6 +30,22 @@ const calculate = async (
       ? ctx.snapshot.seats.find((s: any) => s.id === targetId)
       : null;
   const isOutsider = target?.role?.type === "outsider";
+  const hasAlreadyJumped = !!(ctx.snapshot as any).fangGuHasJumped;
+  const isTargetAlive = target?.isAlive && !target?.isDead;
+  const isProtected =
+    target?.isProtected ||
+    target?.statusEffects?.some((e: any) => e.type === "protected");
+  const isSoldierImmune =
+    target?.role?.id === "soldier" &&
+    !target?.isPoisoned &&
+    !target?.isDrunk &&
+    !target?.statusEffects?.some(
+      (e: any) => e.type === "poisoned" || e.type === "drunk"
+    );
+
+  const blocked = isProtected || isSoldierImmune;
+  const canJump = !blocked && isOutsider && isTargetAlive && !hasAlreadyJumped;
+  const killed = !blocked && !canJump && isTargetAlive;
 
   return {
     ...ctx,
@@ -37,9 +53,12 @@ const calculate = async (
       ...ctx.meta,
       abilityResult: {
         targetId,
-        killed: !isOutsider,
-        becomesFangGu: isOutsider,
+        killed,
+        becomesFangGu: canJump,
         isOutsider,
+        targetWasDead: !isTargetAlive,
+        blockedByProtection: isProtected,
+        blockedBySoldier: isSoldierImmune,
       },
     },
   };
@@ -61,6 +80,7 @@ const stateUpdate = async (
         demonRole: "fang_gu",
       },
       fangGuJump: r.becomesFangGu ? r.targetId : null,
+      fangGuHasJumped: !!(ctx.snapshot as any).fangGuHasJumped || r.becomesFangGu,
       // 🔧 修复：方古击杀目标必须落地死亡标记（与三恶魔一致）。
       //   外来者变方古（不死亡）→ 只更新角色不改死亡状态。
       //   🔧 跳变规则补全（W8.14.14）：官方规则"在你死后你变成死亡的方古"——

@@ -20,7 +20,8 @@ export function useLogicDispatcher(
   setCurrentDuskExecution: (id: number | null) => void,
   setHasExecutedThisDay: (b: boolean) => void,
   isVortoxWorld: boolean,
-  setVictorySnapshot: (seats: Seat[]) => void
+  setVictorySnapshot: (seats: Seat[]) => void,
+  evilTwinPair?: { evilId: number; goodId: number } | null
 ) {
   const victoryRef = useRef<{ winner: "good" | "evil"; reason: string } | null>(
     null
@@ -125,6 +126,7 @@ export function useLogicDispatcher(
             klutzGuessedEvil,
             isVortoxWorld,
             isMastermindActive,
+            evilTwinPair,
           },
         };
         const snapshot = processGameEvent(seatsForCheck, gamePhase, action);
@@ -166,6 +168,7 @@ export function useLogicDispatcher(
       setVictorySnapshot,
       setCurrentModal,
       isVortoxWorld,
+      evilTwinPair,
     ]
   );
 

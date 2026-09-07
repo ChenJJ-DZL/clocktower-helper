@@ -181,6 +181,12 @@ export function generateDynamicNightQueue(
       return false;
     }
 
+    // 告密者（Snitch）为纯被动角色，夜间不单独唤醒。
+    // 其被动伪装直接在首夜爪牙互认（minion_info）环节向爪牙独立展示。
+    if (entry.roleId === "snitch") {
+      return false;
+    }
+
     // 找到对应的座位（默认只找存活玩家）
     // includeDead 全局覆盖 + deadActorWakes 角色级覆盖（如间谍死后仍唤醒）
     const effectiveIncludeDead = (entry as any).deadActorWakes || includeDead;
@@ -354,6 +360,62 @@ export function generateDynamicNightQueue(
     }
     return true;
   });
+
+  // 6. 镜像双子（Evil Twin）：首夜向对立善良双子告知"X号是镜像双子"
+  // 若善良双子在首夜无唤醒技能（如士兵、圣徒、管家、市长等被动角色），单独注入唤醒节点告知
+  if (isFirstNight) {
+    const evilTwinSeat = snapshot.seats.find(
+      (s) => s.role?.id === "evil_twin" && (includeDead || !s.isDead)
+    );
+    if (evilTwinSeat) {
+      const goodTwinSeat =
+        (snapshot.evilTwinPair?.goodId !== undefined
+          ? snapshot.seats.find((s) => s.id === snapshot.evilTwinPair.goodId)
+          : null) ||
+        snapshot.seats.find(
+          (s) => s.isGoodTwin && (includeDead || !s.isDead)
+        ) ||
+        snapshot.seats.find(
+          (s) =>
+            s.id !== evilTwinSeat.id &&
+            (includeDead || !s.isDead) &&
+            (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
+            !s.isEvilConverted
+        );
+
+      if (goodTwinSeat) {
+        const hasGoodTwinInQueue = consolidatedQueue.some(
+          (n) => n.seatId === goodTwinSeat.id
+        );
+        if (!hasGoodTwinInQueue) {
+          const evilTwinIdx = consolidatedQueue.findIndex(
+            (n) => n.roleId === "evil_twin"
+          );
+          const insertIdx =
+            evilTwinIdx !== -1 ? evilTwinIdx + 1 : consolidatedQueue.length;
+          const goodTwinNode: NightActionNode = {
+            seatId: goodTwinSeat.id,
+            roleId: "good_twin_info",
+            roleName: `${goodTwinSeat.role?.name || "善良双子"}(双子告知)`,
+            priority: 38.5,
+            isFirstNightOnly: true,
+            abilityId: "good_twin_info",
+            wakeMessage: `唤醒${goodTwinSeat.id + 1}号【${goodTwinSeat.role?.name || "对立双子"}】，告知他：${evilTwinSeat.id + 1}号是镜像双子。`,
+            firstNightPriority: 38.5,
+            otherNightPriority: null,
+            targetIds: [],
+            processed: false,
+            success: false,
+            meta: {
+              isGoodTwinInfo: true,
+              evilTwinSeatId: evilTwinSeat.id,
+            },
+          };
+          consolidatedQueue.splice(insertIdx, 0, goodTwinNode);
+        }
+      }
+    }
+  }
 
   return consolidatedQueue;
 }

@@ -28,11 +28,31 @@ const calculate = async (
   // 检查目标是否为爪牙
   const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
   const isMinion = target?.role?.type === "minion";
+  const poisonedTownsfolkId = ctx.storytellerInput?.poisonedTownsfolkId ?? null;
+  const isProtected =
+    target?.isProtected ||
+    target?.statusEffects?.some((e: any) => e.type === "protected");
+  const isSoldierImmune =
+    target?.role?.id === "soldier" &&
+    !target?.isPoisoned &&
+    !target?.isDrunk &&
+    !target?.statusEffects?.some(
+      (e: any) => e.type === "poisoned" || e.type === "drunk"
+    );
+  const killed = Boolean(target && !isProtected && !isSoldierImmune);
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: { targetId, killed: true, minionKeepsAbility: isMinion },
+      abilityResult: {
+        targetId,
+        killed,
+        minionKeepsAbility: isMinion && killed,
+        poisonedTownsfolkId: isMinion && killed ? poisonedTownsfolkId : null,
+        blockedByProtection: isProtected,
+        blockedBySoldier: isSoldierImmune,
+      },
     },
   };
 };
@@ -52,21 +72,40 @@ const stateUpdate = async (
         demonRole: "vigormortis",
         minionKeepsAbility: r.minionKeepsAbility,
       },
+      vigormortisPoisonedTownsfolkId: r.poisonedTownsfolkId,
       // 🔧 修复：亡骨魔击杀目标必须落地死亡标记（与三恶魔一致）。
-      seats: ctx.snapshot.seats.map((seat: any) =>
-        seat.id === r.targetId && !seat.isDead
-          ? {
-              ...seat,
-              isAlive: false,
-              isDead: true,
-              markedForDeath: true,
-              diedAtNight: ctx.snapshot.nightCount,
-              killedBy: "vigormortis",
-              deathSource: "vigormortis_kill",
-              deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
-            }
-          : seat
-      ),
+      seats: ctx.snapshot.seats.map((seat: any) => {
+        let updated = seat;
+        if (seat.id === r.targetId && !seat.isDead) {
+          updated = {
+            ...updated,
+            isAlive: false,
+            isDead: true,
+            markedForDeath: true,
+            diedAtNight: ctx.snapshot.nightCount,
+            killedBy: "vigormortis",
+            deathSource: "vigormortis_kill",
+            deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
+            keepsAbilityDead: r.minionKeepsAbility,
+          };
+        }
+        if (r.poisonedTownsfolkId != null && seat.id === r.poisonedTownsfolkId) {
+          const effects = [...(updated.statusEffects ?? [])];
+          if (!effects.some((e: any) => e.type === "poisoned" && e.source === "vigormortis")) {
+            effects.push({
+              type: "poisoned",
+              source: "vigormortis",
+              sourceSeatId: ctx.actionNode.seatId,
+            });
+          }
+          updated = {
+            ...updated,
+            isPoisoned: true,
+            statusEffects: effects,
+          };
+        }
+        return updated;
+      }),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         vigormortis: r,

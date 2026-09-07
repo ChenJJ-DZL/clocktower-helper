@@ -19,6 +19,8 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
+import { isProtectedByTeaLady } from "../../utils/bmrMechanics";
+
 // 前置校验：检查是否存活，是否为恶魔
 const preCheckAlive = async (
   context: MiddlewareContext
@@ -51,7 +53,7 @@ const calculateKillTargets = async (
     };
   }
 
-  // 验证所有目标是否存在且存活
+  // 验证存活目标，沙巴洛斯可选择已死亡玩家
   const validTargets = targetIds.filter((targetId) => {
     const targetSeat = snapshot.seats.find((s) => s.id === targetId);
     return targetSeat?.isAlive;
@@ -67,12 +69,12 @@ const calculateKillTargets = async (
 const updateKillState = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
+  const { snapshot, meta, storytellerInput } = context;
   const validTargets = meta.validTargets as number[];
 
-  if (!validTargets || validTargets.length === 0) {
-    return context;
-  }
+  // 反刍（复活）机制支持
+  const regurgitateTargetId =
+    storytellerInput?.regurgitatedSeatId ?? (snapshot as any).regurgitatedSeatId;
 
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
@@ -81,41 +83,66 @@ const updateKillState = async (
   // 🔧 镇长替死机制判定（5%自己死亡，95%存活镇民替代死亡）
   const substituteIdsToKill = new Set<number>();
   const mayorSavedIds = new Set<number>();
-  for (const tid of validTargets) {
-    const targetSeat = seats.find((s: any) => s.id === tid);
-    if (!targetSeat) continue;
-    const mayorRes = resolveMayorDemonKill(seats, targetSeat, aliveCount);
-    if (mayorRes.isMayor) {
-      console.log(`[Shabaloth] ${mayorRes.logMessage}`);
-      if (mayorRes.substituted && mayorRes.substituteSeat) {
-        mayorSavedIds.add(tid);
-        substituteIdsToKill.add(mayorRes.substituteSeat.id);
+  if (validTargets && validTargets.length > 0) {
+    for (const tid of validTargets) {
+      const targetSeat = seats.find((s: any) => s.id === tid);
+      if (!targetSeat) continue;
+      const mayorRes = resolveMayorDemonKill(seats, targetSeat, aliveCount);
+      if (mayorRes.isMayor) {
+        console.log(`[Shabaloth] ${mayorRes.logMessage}`);
+        if (mayorRes.substituted && mayorRes.substituteSeat) {
+          mayorSavedIds.add(tid);
+          substituteIdsToKill.add(mayorRes.substituteSeat.id);
+        }
       }
     }
   }
 
   // 🔧 梼杌替死（wiki 官方规则）：梼杌将死时若有存活且有能力的爪牙 → 不死亡，爪牙失去能力
   const taowuSavedIds = new Set<number>();
-  for (const tid of validTargets) {
-    const targetSeat = seats.find((s: any) => s.id === tid);
-    if (targetSeat && isTaowuSeat(targetSeat)) {
-      const r = tryTaowuSubstitute(seats, targetSeat);
-      if (r.saved) {
-        seats = r.seats;
-        taowuSavedIds.add(tid);
-        console.log(
-          `[Shabaloth] ${taowuSubstituteLog(
-            targetSeat,
-            seats.find((s: any) => s.id === r.lostMinionId)
-          )}`
-        );
+  if (validTargets && validTargets.length > 0) {
+    for (const tid of validTargets) {
+      const targetSeat = seats.find((s: any) => s.id === tid);
+      if (targetSeat && isTaowuSeat(targetSeat)) {
+        const r = tryTaowuSubstitute(seats, targetSeat);
+        if (r.saved) {
+          seats = r.seats;
+          taowuSavedIds.add(tid);
+          console.log(
+            `[Shabaloth] ${taowuSubstituteLog(
+              targetSeat,
+              seats.find((s: any) => s.id === r.lostMinionId)
+            )}`
+          );
+        }
       }
     }
   }
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
     seats: seats.map((seat) => {
-      if (validTargets.includes(seat.id)) {
+      // 检查反刍复活
+      if (regurgitateTargetId != null && seat.id === regurgitateTargetId && seat.isDead) {
+        return {
+          ...seat,
+          isAlive: true,
+          isDead: false,
+          markedForDeath: false,
+          diedAtNight: undefined,
+          killedBy: undefined,
+          deathSource: undefined,
+          deathSourceSeatId: undefined,
+          statusEffects: [
+            ...(seat.statusEffects ?? []),
+            {
+              type: "resurrected",
+              source: "shabaloth",
+            },
+          ],
+        };
+      }
+
+      if (validTargets && validTargets.includes(seat.id)) {
         // 🔧 梼杌替死成功 → 不死亡
         if (taowuSavedIds.has(seat.id)) return seat;
         // 🔧 镇长替死成功 → 镇长不死亡
@@ -126,9 +153,11 @@ const updateKillState = async (
           (seat as any).isProtected;
         // 🔧 士兵免疫：恶魔攻击士兵时士兵不死亡（官方规则）
         const soldierImmune = isImmuneToDemonKill(seat, true, aliveCount);
+        // 🔧 茶艺师保护
+        const teaLadyImmune = isProtectedByTeaLady(seat.id, seats);
 
-        if (isProtected || soldierImmune) {
-          return seat; // 目标被保护 / 士兵免疫，不死亡
+        if (isProtected || soldierImmune || teaLadyImmune) {
+          return seat; // 目标被保护 / 士兵免疫 / 茶艺师保护，不死亡
         }
 
         return {
@@ -181,7 +210,7 @@ export const shabalothAbility = createRoleAbility({
     min: 2,
     max: 2,
     allowSelf: false,
-    allowDead: false,
+    allowDead: true,
   },
   preCheck: [preCheckAlive],
   calculate: [calculateKillTargets],

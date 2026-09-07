@@ -45,6 +45,7 @@ import { RoleCodexModal } from "../modals/RoleCodexModal";
 import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RoleSelectModal } from "../modals/RoleSelectModal";
 import { SaintExecutionConfirmModal } from "../modals/SaintExecutionConfirmModal";
+import { EvilTwinExecutionConfirmModal } from "../modals/EvilTwinExecutionConfirmModal";
 import { SavantResultModal } from "../modals/SavantResultModal";
 import { ShamanConvertModal } from "../modals/ShamanConvertModal";
 import { ShootResultModal } from "../modals/ShootResultModal";
@@ -277,6 +278,12 @@ export function GameModals() {
         isOpen={currentModal?.type === "SAINT_EXECUTION_CONFIRM"}
         onConfirm={actions.confirmSaintExecution}
         onCancel={actions.cancelSaintExecution}
+      />
+
+      <EvilTwinExecutionConfirmModal
+        isOpen={currentModal?.type === "EVIL_TWIN_EXECUTION_CONFIRM"}
+        onConfirm={actions.confirmEvilTwinExecution}
+        onCancel={actions.cancelEvilTwinExecution}
       />
 
       <LunaticRpsModal

@@ -12,7 +12,8 @@ import type { MiddlewareContext } from "./middlewareTypes";
 export const abilityPriorityCalculation = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
+  const { snapshot } = context;
+  const meta = context.meta || {};
   const seat = snapshot.seats.find((s) => s.id === context.actionNode.seatId);
   if (!seat) return context;
 
@@ -48,18 +49,61 @@ export const abilityPriorityCalculation = async (
   // 提线木偶以为自己镇民 → 应当被反相；酒鬼以为自己是镇民但本身是 outsider → 不应反相
   // （酒鬼的认知覆盖仅是"骗他自己"，他不具有镇民能力；提线木偶则真以为自己获得
   //  了某个镇民能力并由说书人假装执行其流程，因此会被反相。）
-  // 判定：酒鬼豁免；其余按 effectiveType = charadeRole.type ?? role.type
+  // 非信息获取类镇民：技能效果（如保护、免死、醉酒、处决拦截等）绝不受涡流干扰，100% 正常生效
+  const NON_INFO_TOWNSFOLK_ROLES = new Set([
+    "monk",
+    "slayer",
+    "soldier",
+    "virgin",
+    "mayor",
+    "innkeeper",
+    "exorcist",
+    "courtier",
+    "professor",
+    "sailor",
+    "tea_lady",
+    "pacifist",
+    "fool",
+    "snake_charmer",
+    "huntsman",
+    "preacher",
+    "poppy_grower",
+    "farmer",
+    "acrobat",
+    "banshee",
+    "cult_leader",
+    "engineer",
+    "golem",
+    "nightwatchman",
+  ]);
+
   const isDrunkRole = seat.role?.id === "drunk";
   const effectiveType = isDrunkRole
     ? "outsider" // 酒鬼永远按 outsider 处理，不被反相
     : ((seat as any).charadeRole?.type ?? seat.role?.type ?? "");
-  if (snapshot.globalEffects?.vortoxWorld && effectiveType === "townsfolk") {
+  const effectiveRoleId = isDrunkRole
+    ? "drunk"
+    : ((seat as any).charadeRole?.id ?? seat.role?.id ?? "");
+
+  const isVortoxWorld = Boolean(
+    snapshot.globalEffects?.vortoxWorld ??
+      snapshot.vortoxWorld ??
+      snapshot.isVortoxWorld
+  );
+
+  // 仅信息获取类镇民在涡流下获得 100% 错误信息；非信息类镇民能力完全正常生效
+  if (
+    isVortoxWorld &&
+    effectiveType === "townsfolk" &&
+    !NON_INFO_TOWNSFOLK_ROLES.has(effectiveRoleId)
+  ) {
     return {
       ...context,
       meta: {
         ...meta,
         abilityEffective: false,
         vortoxAffected: true,
+        isCorrupted: true,
         prioritySource: "vortox",
       },
     };

@@ -33,6 +33,26 @@ const preCheckLimitedAbility = async (
   return context;
 };
 
+const calculate = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const question = context.storytellerInput?.question ?? "";
+  const answer = context.storytellerInput?.answer ?? null;
+  const isAbilityActive = context.meta.abilityEffective ?? true;
+
+  return {
+    ...context,
+    meta: {
+      ...context.meta,
+      abilityResult: {
+        question,
+        answer,
+        isCorrupted: !isAbilityActive,
+      },
+    },
+  };
+};
+
 // 状态更新：标记能力已使用
 const markAbilityUsed = async (
   context: MiddlewareContext
@@ -43,7 +63,36 @@ const markAbilityUsed = async (
     consumeLimitedAbility(actionNode.seatId, "artist_question");
   }
 
-  return context;
+  return {
+    ...context,
+    snapshot: {
+      ...context.snapshot,
+      _abilityResults: {
+        ...((context.snapshot as any)._abilityResults ?? {}),
+        artist: context.meta.abilityResult,
+      },
+    },
+  };
+};
+
+const postProcess = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const r = context.meta.abilityResult as any;
+  const log = `[艺术家] 提问: "${r?.question}" -> 回答: "${r?.answer}"`;
+  console.log(log);
+  return {
+    ...context,
+    meta: {
+      ...context.meta,
+      abilityLog: log,
+      displayInfo: {
+        type: "artist_answer",
+        question: r?.question,
+        answer: r?.answer,
+      },
+    },
+  };
 };
 
 export const artistAbility = createRoleAbility({
@@ -62,12 +111,7 @@ export const artistAbility = createRoleAbility({
     allowDead: false,
   },
   preCheck: [commonPreCheckAlive, preCheckLimitedAbility],
-  calculate: [],
+  calculate: [calculate],
   stateUpdate: [markAbilityUsed],
-  postProcess: [
-    async (context) => {
-      console.log("艺术家发动了提问技能");
-      return context;
-    },
-  ],
+  postProcess: [postProcess],
 });

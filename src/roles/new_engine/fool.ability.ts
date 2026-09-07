@@ -11,14 +11,16 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
+import { canFoolSurvive } from "../../utils/bmrMechanics";
+
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
   if (!seat) return ctx;
   if (seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
-  if ((ctx.snapshot as any).firstExecutionProtected) {
-    return { ...ctx, aborted: true, abortReason: "首次免死已使用" };
+  if (!canFoolSurvive(seat)) {
+    return { ...ctx, aborted: true, abortReason: "弄臣首次免死已失效或已使用" };
   }
   return ctx;
 };
@@ -28,7 +30,13 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   return {
     ...ctx,
-    meta: { ...ctx.meta, abilityResult: { firstExecutionProtected: true } },
+    meta: {
+      ...ctx.meta,
+      abilityResult: {
+        survived: true,
+        reason: "弄臣首次死亡免死生效",
+      },
+    },
   };
 };
 
@@ -36,11 +44,26 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  const foolSeatId = ctx.actionNode.seatId;
+
+  const seats = ctx.snapshot.seats.map((seat: any) => {
+    if (seat.id === foolSeatId) {
+      return {
+        ...seat,
+        isAlive: true,
+        isDead: false,
+        foolUsed: true,
+        hasUsedFoolAbility: true,
+      };
+    }
+    return seat;
+  });
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
-      firstExecutionProtected: true,
+      seats,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         fool: r,
@@ -53,18 +76,18 @@ const stateUpdate = async (
 const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const log = "[愚人] 首次被处决，免死";
+  const log = "[弄臣] 首次面临死亡，触发免死能力存活";
   console.log(log);
   return {
     ...ctx,
-    meta: { ...ctx.meta, abilityLog: log, prompt: "愚人首次被处决不会死亡" },
+    meta: { ...ctx.meta, abilityLog: log, prompt: "弄臣首次死亡不会死亡" },
   };
 };
 
 export const foolAbility = createRoleAbility({
   roleId: "fool",
-  abilityId: "fool_execution_save",
-  abilityName: "首次处决免死",
+  abilityId: "fool_first_death_save",
+  abilityName: "首次免死",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
   otherNightPriority: null,

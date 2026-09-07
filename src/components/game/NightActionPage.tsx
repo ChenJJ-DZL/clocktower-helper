@@ -28,6 +28,8 @@ interface NightActionPageProps {
   resultText?: string;
   /** 结果确认回调 */
   onResultConfirm?: () => void;
+  /** 是否为涡流世界（存活涡流在场） */
+  isVortoxWorld?: boolean;
 }
 
 export function NightActionPage({
@@ -42,6 +44,7 @@ export function NightActionPage({
   isDisturbed,
   resultText,
   onResultConfirm,
+  isVortoxWorld,
 }: NightActionPageProps) {
   const roleId = nightInfo.seat?.role?.id || "";
   const roleName = nightInfo.seat?.role?.name || "未知角色";
@@ -82,6 +85,18 @@ export function NightActionPage({
     },
   };
   const faction = factionColors[roleType] || factionColors.townsfolk;
+
+  // 检测全场是否有存活涡流
+  const vortoxActive = useMemo(() => {
+    if (isVortoxWorld) return true;
+    return seats.some(
+      (s) =>
+        s.role?.id === "vortox" &&
+        !s.isDead &&
+        !s.isPoisoned &&
+        !s.isDrunk
+    );
+  }, [isVortoxWorld, seats]);
 
   // ─── 1. 洗衣妇 / 图书管理员 / 调查员 / 厨师 自动推荐与微调状态 ─────────────────
   const allTownsfolkRoles = useMemo(
@@ -220,6 +235,10 @@ export function NightActionPage({
           );
         if (isCurrEvil && isNextEvil) count++;
       }
+      if (vortoxActive) {
+        // 涡流在场：厨师信息 100% 假，若真值为 0 则显示 1，若真值 > 0 则显示 0
+        count = count === 0 ? 1 : 0;
+      }
       return { count };
     }
     if (roleId === "bounty_hunter") {
@@ -262,7 +281,7 @@ export function NightActionPage({
       };
     }
     return null;
-  }, [roleId, seats, seatId, isDisturbed, nightInfo]);
+  }, [roleId, seats, seatId, isDisturbed, nightInfo, vortoxActive]);
 
   // 微调状态
   const [showOverride, setShowOverride] = useState(false);
@@ -354,9 +373,14 @@ export function NightActionPage({
   const [empathCustomCount, setEmpathCustomCount] = useState<number>(0);
   useEffect(() => {
     if (roleId === "empath") {
-      setEmpathCustomCount(empathEvilCount);
+      let count = empathEvilCount;
+      if (vortoxActive) {
+        // 涡流在场：共情者信息 100% 假
+        count = count === 0 ? 1 : 0;
+      }
+      setEmpathCustomCount(count);
     }
-  }, [roleId, empathEvilCount]);
+  }, [roleId, empathEvilCount, vortoxActive]);
 
   // ─── 镜像双子 (Evil Twin) 对立目标选择与提示同步 ────────────────────────────
   const defaultGoodTwinId = useMemo(() => {
@@ -465,9 +489,12 @@ export function NightActionPage({
     useState<boolean>(false);
   useEffect(() => {
     if (fortuneTellerDetection) {
-      setFortuneTellerCustomAnswer(fortuneTellerDetection.detected);
+      const ans = vortoxActive
+        ? !fortuneTellerDetection.detected
+        : fortuneTellerDetection.detected;
+      setFortuneTellerCustomAnswer(ans);
     }
-  }, [fortuneTellerDetection]);
+  }, [fortuneTellerDetection, vortoxActive]);
 
   // ─── 恶魔夜杀防护判定（僧侣守护与士兵免疫）────────────────────────────────
   const demonTargetProtection = useMemo(() => {
@@ -593,7 +620,7 @@ export function NightActionPage({
       <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-2xl space-y-6">
           {/* 涡流世界徽章（顶部警示） */}
-          {(nightInfo as any)?.effectiveRole?.id === "vortox" && (
+          {vortoxActive && (
             <div className="bg-gradient-to-r from-fuchsia-600 to-rose-600 text-white text-center py-2 rounded-xl border-2 border-fuchsia-300 shadow-lg font-black">
               🌪️ 涡流世界 · 镇民信息将反相
             </div>

@@ -68,10 +68,12 @@ const calculateResult = async (
 
     const demons = seats.filter(
       (s) =>
-        (s.role?.type === "demon" && s.isAlive) ||
-        (summonerInPlay && s.roleId === "summoner" && s.isAlive)
+        s.role?.type === "demon" ||
+        s.roleId === "summoner" ||
+        s.role?.id === "summoner" ||
+        (summonerInPlay && s.roleId === "summoner")
     );
-    const minions = seats.filter((s) => s.role?.type === "minion" && s.isAlive);
+    const minions = seats.filter((s) => s.role?.type === "minion");
 
     if (demons.length === 0 || minions.length === 0) {
       minDistance = 0;
