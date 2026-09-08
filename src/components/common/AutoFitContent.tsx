@@ -19,7 +19,7 @@ export function AutoFitContent({
   children,
   targetRatio = 0.88,
   className = "",
-  minScale = 0.5,
+  minScale = 0.2,
   maxScale = 5.0,
 }: AutoFitContentProps) {
   const containerRef = useRef<HTMLDivElement>(null);

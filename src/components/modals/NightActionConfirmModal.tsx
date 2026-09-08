@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { roles as defaultRoles, type Role, type Script, type Seat } from "../../../app/data";
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 export interface NightActionConfirmData {
@@ -449,36 +450,37 @@ export function NightActionConfirmModal({
           )}
         </div>
       ) : (
-        /* 无需选人时的信息角色确认布局（垂直弹性居中，排版饱满优雅） */
-        <div className="flex flex-col flex-1 my-auto justify-center items-center text-center space-y-6 max-w-2xl mx-auto p-4 w-full">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-indigo-950/80 border-2 border-indigo-500/40 flex items-center justify-center text-3xl sm:text-4xl shadow-xl shadow-indigo-900/30">
-            🌙
+        /* 无需选人时的信息角色确认布局（自适应大字号等比缩放） */
+        <AutoFitContent targetRatio={0.9} minScale={0.2} className="p-2 sm:p-4 text-white">
+          <div className="flex flex-col items-center justify-center text-center space-y-6 w-max max-w-none px-6 py-4 my-auto">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-indigo-950/80 border-2 border-indigo-500/40 flex items-center justify-center text-3xl sm:text-4xl shadow-xl shadow-indigo-900/30 select-none">
+              🌙
+            </div>
+
+            <div className="space-y-4">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 whitespace-nowrap leading-snug">
+                确认为 <span className="text-indigo-300">【{roleName}】</span> 执行行动
+              </div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-300 bg-slate-800/80 border border-slate-700/80 rounded-2xl py-3 px-6 shadow-inner whitespace-nowrap inline-block">
+                "{actionDescription}"
+              </div>
+            </div>
+
+            <p className="text-base sm:text-lg md:text-xl text-slate-300 font-medium whitespace-nowrap">
+              💡 该角色能力为
+              <span className="text-slate-100 font-bold">
+                夜间信息获取 / 自动结算
+              </span>
+              ，无需由玩家点选目标。点击下方【确认执行】后将计算并展示告知结果。
+            </p>
+
+            {extraNote && (
+              <div className="text-sm sm:text-base text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40 w-max max-w-none whitespace-nowrap">
+                ⚠️ {extraNote}
+              </div>
+            )}
           </div>
-
-          <div className="space-y-3">
-            <div className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-100 leading-snug">
-              确认为 <span className="text-indigo-300">【{roleName}】</span>{" "}
-              执行行动
-            </div>
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-amber-300 bg-slate-800/80 border border-slate-700/80 rounded-2xl py-3 px-6 shadow-inner inline-block">
-              "{actionDescription}"
-            </div>
-          </div>
-
-          <p className="text-xs sm:text-sm md:text-base text-slate-400 max-w-lg leading-relaxed">
-            💡 该角色能力为
-            <span className="text-slate-200 font-semibold">
-              夜间信息获取 / 自动结算
-            </span>
-            ，无需由玩家点选目标。点击下方【确认执行】后将计算并展示告知结果。
-          </p>
-
-          {extraNote && (
-            <div className="text-xs sm:text-sm text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40 w-full max-w-lg">
-              ⚠️ {extraNote}
-            </div>
-          )}
-        </div>
+        </AutoFitContent>
       )}
     </ModalWrapper>
   );
