@@ -238,7 +238,11 @@ interface NightLogicGameStateInput {
   todayExecutedId: number | null;
   witchCursedId: number | null;
   witchActive: boolean;
-  cerenovusTarget: { targetId: number; roleName: string } | null;
+  cerenovusTarget: {
+    targetId: number;
+    roleName: string;
+    checkedToday?: boolean;
+  } | null;
   voteRecords: Array<{ voterId: number; isDemon: boolean }>;
   nominationMap: Record<number, number>;
   poChargeState: Record<number, boolean>;

@@ -7,7 +7,7 @@ import { buildDemonFirstNightDialog } from "../demon/demonFirstNightHelper";
  */
 export const cerenovus: RoleDefinition = {
   id: "cerenovus",
-  name: "塞壬",
+  name: "洗脑师",
   type: "minion",
   detailedDescription: `【背景故事】
 "我亲爱的，你看起来如此疲惫。来，让我为你唱一首摇篮曲，让你好好休息。"
@@ -15,18 +15,23 @@ export const cerenovus: RoleDefinition = {
 每个夜晚*，你可以选择一名玩家与一个角色：他得知自己是该角色，且必须如此扮演。
 【角色信息】
 - 英文名：Cerenovus
-- 所属剧本：黯月初升
+- 所属剧本：梦殒春宵
 - 角色类型：爪牙`,
 
   firstNight: {
-    order: 2,
+    order: 25,
 
     target: {
-      count: { min: 0, max: 0 },
+      count: { min: 1, max: 1 },
     },
 
-    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
-      return buildDemonFirstNightDialog(playerSeatId, "塞壬", context);
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
+      return {
+        wake: "🎭 每个夜晚，你可以选择一名玩家与一个角色：他得知自己是该角色，且必须如此扮演。",
+        instruction:
+          '"请选择一名玩家与一个角色。他得知自己是该角色，且必须如此扮演。"',
+        close: "madness",
+      };
     },
   },
 
@@ -49,4 +54,14 @@ export const cerenovus: RoleDefinition = {
       };
     },
   },
+
+  day: {
+    name: "疯狂洗脑",
+    maxUses: 1,
+    target: {
+      min: 0,
+      max: 0,
+    },
+  },
 };
+

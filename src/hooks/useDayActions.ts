@@ -44,6 +44,12 @@ export interface DayActionsDeps {
     nominatorIsTownsfolk: boolean;
   } | null;
   dayAbilityForm: Record<string, any>;
+  cerenovusTarget?: {
+    targetId: number;
+    roleName: string;
+    checkedToday?: boolean;
+  } | null;
+  setCerenovusTarget?: (val: any) => void;
 
   // Setters
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
@@ -111,6 +117,8 @@ export function useDayActions(deps: DayActionsDeps) {
     witchActive,
     witchCursedId,
     virginGuideInfo,
+    cerenovusTarget,
+    setCerenovusTarget,
     setCurrentModal,
     setSeats,
     setNominationMap,
@@ -848,6 +856,42 @@ export function useDayActions(deps: DayActionsDeps) {
         setCurrentModal({
           type: "JUGGLER_JUDGE",
           data: { seatId: sourceSeatId },
+        });
+        return;
+      }
+
+      // ── 洗脑师专用：疯狂洗脑判定 ─────────────────────
+      if (effectiveRole.id === "cerenovus") {
+        if (sourceSeat.hasUsedDayAbility || cerenovusTarget?.checkedToday) {
+          showAlert("洗脑师今日已完成【疯狂洗脑】判定。");
+          return;
+        }
+
+        let targetId = cerenovusTarget?.targetId;
+        let roleName = cerenovusTarget?.roleName;
+
+        if (targetId === undefined || !roleName) {
+          const madSeat = seats.find(
+            (s) => s.isMad || (s as any).cerenovusMadnessRole
+          );
+          if (madSeat) {
+            targetId = madSeat.id;
+            roleName = (madSeat as any).cerenovusMadnessRole || "未知角色";
+          }
+        }
+
+        if (targetId === undefined || !roleName) {
+          showAlert("昨晚洗脑师未指定洗脑目标，无法进行判定。");
+          return;
+        }
+
+        setCurrentModal({
+          type: "MADNESS_CHECK",
+          data: {
+            targetId,
+            roleName,
+            sourceSeatId,
+          },
         });
         return;
       }

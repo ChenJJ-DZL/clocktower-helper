@@ -108,7 +108,12 @@ export type ModalType =
     }
   | {
       type: "MADNESS_CHECK";
-      data: { targetId: number; roleName: string; day: number };
+      data: {
+        targetId: number;
+        roleName: string;
+        day?: number;
+        sourceSeatId?: number;
+      };
     }
   | {
       type: "DAMSEL_GUESS";

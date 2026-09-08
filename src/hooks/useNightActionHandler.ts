@@ -760,6 +760,37 @@ export async function executeViaNewEngine(
                 }
               }
 
+              // 🧠 洗脑师：确认目标玩家后，弹出角色选择弹窗选择要疯狂扮演的角色（范围为剧本内所有角色）
+              if (roleId === "cerenovus") {
+                if (finalTargets.length !== 1) {
+                  alert("洗脑师必须选择一名玩家");
+                  return;
+                }
+                const targetId = finalTargets[0];
+                context.setCurrentModal({
+                  type: "ROLE_SELECT",
+                  data: {
+                    type: "cerenovus",
+                    targetId,
+                    onConfirm: async (chosenRoleId: string) => {
+                      const selectedRole = context.roles.find(
+                        (r) => r.id === chosenRoleId
+                      );
+                      const chosenRoleName =
+                        selectedRole?.name || chosenRoleId;
+                      const realContext: NightActionHandlerContext = {
+                        ...context,
+                        preview: false,
+                        selectedTargets: finalTargets,
+                        actionData: { roleName: chosenRoleName, chosenRoleId },
+                      };
+                      await executeViaNewEngine(realContext, roleId);
+                    },
+                  },
+                });
+                return;
+              }
+
               // 用户确认后，用选中的目标参数执行真实管道
               const realContext: NightActionHandlerContext = {
                 ...context,
@@ -885,6 +916,19 @@ export async function executeViaNewEngine(
               markedForDeath: true,
               deathSource: (next as any).deathSource || "fang_gu_jump",
             } as Seat;
+          }
+          // 🧠 洗脑师：疯狂角色与状态同步
+          if (
+            (u as any).cerenovusMadnessRole ||
+            (u as any).isMad
+          ) {
+            next = {
+              ...next,
+              isMad: true,
+              cerenovusMadnessRole:
+                (u as any).cerenovusMadnessRole ||
+                (next as any).cerenovusMadnessRole,
+            };
           }
           return next;
         })
@@ -1074,6 +1118,30 @@ export async function executeViaNewEngine(
               },
             });
           }
+        }
+      }
+
+      // 🧠 洗脑师桥接：新引擎快照/meta cerenovusResult → state cerenovusTarget
+      const cerenovusRes =
+        (resultContext as any)?.meta?.cerenovusResult ||
+        (resultContext as any)?.snapshot?._abilityResults?.cerenovus ||
+        (resultContext as any)?.snapshot?.cerenovusTarget;
+      if (
+        cerenovusRes &&
+        cerenovusRes.targetId != null &&
+        cerenovusRes.roleName
+      ) {
+        if (context.dispatch) {
+          context.dispatch({
+            type: "UPDATE_STATE",
+            updates: {
+              cerenovusTarget: {
+                targetId: cerenovusRes.targetId,
+                roleName: cerenovusRes.roleName,
+                checkedToday: false,
+              },
+            },
+          });
         }
       }
     }

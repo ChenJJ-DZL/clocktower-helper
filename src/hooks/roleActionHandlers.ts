@@ -1125,6 +1125,7 @@ export function handleCerenovusConfirm(
               return {
                 ...s,
                 isMad: true,
+                cerenovusMadnessRole: selectedRole.name,
                 statusDetails: [
                   ...(s.statusDetails || []),
                   `洗脑：我是${selectedRole.name}`,
@@ -1134,6 +1135,25 @@ export function handleCerenovusConfirm(
             return s;
           })
         );
+
+        if ((context as any).dispatch) {
+          (context as any).dispatch({
+            type: "UPDATE_STATE",
+            updates: {
+              cerenovusTarget: {
+                targetId,
+                roleName: selectedRole.name,
+                checkedToday: false,
+              },
+            },
+          });
+        } else if ((context as any).setCerenovusTarget) {
+          (context as any).setCerenovusTarget({
+            targetId,
+            roleName: selectedRole.name,
+            checkedToday: false,
+          });
+        }
 
         addLog(
           `🧠 ${cerenovusId + 1}号(洗脑师) 使 ${targetId + 1}号 对自己是【${selectedRole.name}】感到疯狂`

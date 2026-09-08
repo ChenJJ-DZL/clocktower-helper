@@ -239,10 +239,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       // --- Legacy/Standard Execution Logic ---
-      // Mid execution force override (If a player is executed due to madness, skip ability confirmations)
-      if (t.isMad && options?.forceExecution) {
+      // Mid execution force override (If a player is executed due to madness or forced execution, skip ability confirmations)
+      if (options?.forceExecution) {
         // Log it
-        addLog(`⚖️ ${t.id + 1}号因为处于疯狂状态，说书人决定强制执行处决！`);
+        addLog(`⚖️ ${t.id + 1}号被强制执行处决！`);
         dispatch({ type: "EXECUTE_PLAYER", targetId: id });
         // 实际杀死玩家
         killPlayer(id, { source: "execution", recordNightDeath: false });

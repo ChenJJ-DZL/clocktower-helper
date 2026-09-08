@@ -98,7 +98,7 @@ export interface UseGameFlowResult {
   enterNightPhase: (target: GamePhase, isFirstNight: boolean) => void;
   enterDayPhase: () => void;
   enterDuskPhase: () => void;
-  handleDayEndTransition: () => void;
+  handleDayEndTransition: (options?: { forceNight?: boolean }) => void;
   handleSwitchScript: () => void;
   handleNewGame: () => void;
   closeNightOrderPreview: () => void;
@@ -254,11 +254,31 @@ export function useGameFlow(): UseGameFlowResult {
         gossipStatementToday: "",
         gossipTrueTonight: false,
         gossipSourceSeatId: null,
+        ...(state.cerenovusTarget
+          ? {
+              cerenovusTarget: {
+                ...state.cerenovusTarget,
+                checkedToday: false,
+              },
+            }
+          : {}),
       })
     );
+    // 重置洗脑师白天技能使用标记
+    if (seats.some((s) => s.role?.id === "cerenovus")) {
+      dispatch(
+        gameActions.setSeats(
+          seats.map((s) =>
+            s.role?.id === "cerenovus"
+              ? { ...s, hasUsedDayAbility: false }
+              : s
+          )
+        )
+      );
+    }
     dispatch(gameActions.setGamePhase("day"));
     dispatch(gameActions.saveHistory({ gamePhase: "day" }));
-  }, [dispatch, nightCount]);
+  }, [dispatch, nightCount, state.cerenovusTarget, seats]);
 
   const confirmNightDeathReport = useCallback(() => {
     enterDayPhase();
@@ -343,37 +363,61 @@ export function useGameFlow(): UseGameFlowResult {
     );
   }, [currentDuskExecution, seats, dispatch, clearExpiredNightEffects]);
 
-  const handleDayEndTransition = useCallback(() => {
-    // 根据官方血染钟楼规则：白天处决后立即进入夜晚
-    // 每天最多1次正常处决，处决后不进行额外的提名和投票
+  const handleDayEndTransition = useCallback(
+    (options?: { forceNight?: boolean }) => {
+      // 根据官方血染钟楼规则：白天处决后立即进入夜晚
+      // 每天最多1次正常处决，处决后不进行额外的提名和投票
 
-    // 检查今日是否已有处决
-    const hasExecutedToday = state.hasExecutedThisDay;
-
-    if (hasExecutedToday) {
-      // 今日已有处决，直接进入夜晚
-      console.log("[handleDayEndTransition] 今日已有处决，直接进入夜晚");
-      // 🔧 处决后直接入夜会跳过 enterDuskPhase，这里先清除黄昏过期的引擎状态，
-      // 避免中毒/保护残留到下一夜（投毒者/僧侣等能力需要每晚重新生效）。
-      // W8.14.13：同样用 cleanseTempStatuses（清 statusDetails/statuses + 布尔复位）
-      const expiredCleared = seats.map((s) =>
-        cleanseTempStatuses(s, clearExpiredNightEffects)
+      // 检查今日是否已有处决或强制入夜
+      const hasExecutedToday = Boolean(
+        options?.forceNight || state.hasExecutedThisDay
       );
-      dispatch(gameActions.setSeats(expiredCleared));
-      startNight(false); // 进入夜晚（非首夜）
-    } else {
-      // 今日尚无处决，进入黄昏（可以进行提名和投票）
-      console.log("[handleDayEndTransition] 今日尚无处决，进入黄昏");
-      enterDuskPhase();
-    }
-  }, [
-    enterDuskPhase,
-    startNight,
-    state.hasExecutedThisDay,
-    seats,
-    dispatch,
-    clearExpiredNightEffects,
-  ]);
+
+      // 检查洗脑师白天技能【疯狂洗脑】是否尚未发动
+      const hasPendingCerenovusCheck = Boolean(
+        (state.cerenovusTarget && !state.cerenovusTarget.checkedToday) ||
+          seats.some(
+            (s) =>
+              s.role?.id === "cerenovus" &&
+              !s.isDead &&
+              !s.hasUsedDayAbility
+          )
+      );
+
+      if (!hasExecutedToday && hasPendingCerenovusCheck) {
+        alert(
+          "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
+        );
+        return;
+      }
+
+      if (hasExecutedToday) {
+        // 今日已有处决，直接进入夜晚
+        console.log("[handleDayEndTransition] 今日已有处决，直接进入夜晚");
+        // 🔧 处决后直接入夜会跳过 enterDuskPhase，这里先清除黄昏过期的引擎状态，
+        // 避免中毒/保护残留到下一夜（投毒者/僧侣等能力需要每晚重新生效）。
+        // W8.14.13：同样用 cleanseTempStatuses（清 statusDetails/statuses + 布尔复位）
+        const expiredCleared = seats.map((s) =>
+          cleanseTempStatuses(s, clearExpiredNightEffects)
+        );
+        dispatch(gameActions.setSeats(expiredCleared));
+        startNight(false); // 进入夜晚（非首夜）
+      } else {
+        // 今日尚无处决，进入黄昏（可以进行提名和投票）
+        console.log("[handleDayEndTransition] 今日尚无处决，进入黄昏");
+        enterDuskPhase();
+      }
+    },
+    [
+      enterDuskPhase,
+      startNight,
+      state.hasExecutedThisDay,
+      state.cerenovusTarget,
+      seats,
+      dispatch,
+      clearExpiredNightEffects,
+    ]
+  );
 
   const handleSwitchScript = useCallback(() => {
     // 结束当前游戏并重置

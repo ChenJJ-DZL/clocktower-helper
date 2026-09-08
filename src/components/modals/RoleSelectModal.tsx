@@ -16,7 +16,7 @@ export function RoleSelectModal({ modal }: { modal: any }) {
     modal.type === "philosopher"
       ? "🎭 哲学家 - 选择善良角色"
       : modal.type === "cerenovus"
-        ? "🧠 洗脑师 - 选择善良角色"
+        ? "🧠 洗脑师 - 选择疯狂角色"
         : "🧙 麻脸巫婆 - 选择角色";
 
   return (
@@ -48,8 +48,18 @@ export function RoleSelectModal({ modal }: { modal: any }) {
         <div className="grid grid-cols-4 gap-3.5 max-h-[60vh] overflow-y-auto pr-1">
           {roles
             .filter((r: Role) => {
-              if (modal.type === "philosopher" || modal.type === "cerenovus") {
+              if (modal.type === "philosopher") {
                 return r.type === "townsfolk" || r.type === "outsider";
+              }
+              if (modal.type === "cerenovus") {
+                // 洗脑师：范围是剧本内的所有角色（无论是否在场、无论阵营类型）
+                if (props.selectedScript) {
+                  return (
+                    r.script === props.selectedScript.name ||
+                    (props.selectedScript as any).roleIds?.includes(r.id)
+                  );
+                }
+                return true;
               }
               // 麻脸巫婆：仅显示当前剧本的角色，方便查阅
               if (props.selectedScript) {

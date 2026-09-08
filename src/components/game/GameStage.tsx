@@ -1784,17 +1784,38 @@ export const GameStage = () => {
                       };
                     })()
                   : gamePhase === "day"
-                    ? {
-                        label: "进入黄昏处决阶段",
-                        onClick: () => {
-                          console.log(
-                            "[GameStage] Day phase primary action -> handleDayEndTransition"
-                          );
-                          handleDayEndTransition();
-                        },
-                        disabled: false,
-                        variant: "primary" as const,
-                      }
+                    ? (() => {
+                        const hasPendingCerenovusCheck = Boolean(
+                          (cerenovusTarget && !cerenovusTarget.checkedToday) ||
+                            seats.some(
+                              (s) =>
+                                s.role?.id === "cerenovus" &&
+                                !s.isDead &&
+                                !s.hasUsedDayAbility
+                            )
+                        );
+                        return {
+                          label: hasPendingCerenovusCheck
+                            ? "需先完成洗脑师判定【疯狂洗脑】"
+                            : "进入黄昏处决阶段",
+                          onClick: () => {
+                            if (hasPendingCerenovusCheck) {
+                              alert(
+                                "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
+                              );
+                              return;
+                            }
+                            console.log(
+                              "[GameStage] Day phase primary action -> handleDayEndTransition"
+                            );
+                            handleDayEndTransition();
+                          },
+                          disabled: hasPendingCerenovusCheck,
+                          variant: hasPendingCerenovusCheck
+                            ? ("warning" as const)
+                            : ("primary" as const),
+                        };
+                      })()
                     : gamePhase === "gameOver"
                       ? {
                           label: "🏆 查看获胜结果",

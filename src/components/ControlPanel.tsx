@@ -29,7 +29,11 @@ export interface ControlPanelProps {
   evilTwinPair: { evilId: number; goodId: number } | null;
   remainingDays: number | null;
   setRemainingDays: (days: number | null) => void;
-  cerenovusTarget: { targetId: number; roleName: string } | null;
+  cerenovusTarget: {
+    targetId: number;
+    roleName: string;
+    checkedToday?: boolean;
+  } | null;
   nightCount: number;
   timer: number;
   isTimerRunning: boolean;
@@ -230,7 +234,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </button>
               </div>
             )}
-            {cerenovusTarget && (
+            {cerenovusTarget && !cerenovusTarget.checkedToday && (
               <button
                 onClick={() => {
                   const target = seats.find(
@@ -244,18 +248,46 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     });
                   }
                 }}
-                className="w-full mb-2 py-2 bg-purple-600 rounded-xl font-bold text-sm"
+                className="w-full mb-2 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold text-sm shadow-md"
               >
                 🧠 检查 {cerenovusTarget.targetId + 1}号 是否疯狂扮演{" "}
                 {cerenovusTarget.roleName}
               </button>
             )}
-            <button
-              onClick={onDayEndTransition}
-              className="w-full py-3 bg-orange-600 rounded-xl font-bold text-base"
-            >
-              进入黄昏 (提名)
-            </button>
+            {(() => {
+              const hasPendingCerenovusCheck = Boolean(
+                (cerenovusTarget && !cerenovusTarget.checkedToday) ||
+                  seats.some(
+                    (s) =>
+                      s.role?.id === "cerenovus" &&
+                      !s.isDead &&
+                      !s.hasUsedDayAbility
+                  )
+              );
+              return (
+                <button
+                  onClick={() => {
+                    if (hasPendingCerenovusCheck) {
+                      alert(
+                        "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
+                      );
+                      return;
+                    }
+                    onDayEndTransition();
+                  }}
+                  disabled={hasPendingCerenovusCheck}
+                  className={`w-full py-3 rounded-xl font-bold text-base transition-colors ${
+                    hasPendingCerenovusCheck
+                      ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                      : "bg-orange-600 hover:bg-orange-500 text-white shadow-md cursor-pointer"
+                  }`}
+                >
+                  {hasPendingCerenovusCheck
+                    ? "需先完成【疯狂洗脑】判定"
+                    : "进入黄昏 (提名)"}
+                </button>
+              );
+            })()}
           </>
         )}
         {gamePhase === "dusk" && (

@@ -75,7 +75,11 @@ export interface GameState {
   todayExecutedId: number | null;
   witchCursedId: number | null;
   witchActive: boolean;
-  cerenovusTarget: { targetId: number; roleName: string } | null;
+  cerenovusTarget: {
+    targetId: number;
+    roleName: string;
+    checkedToday?: boolean;
+  } | null;
   isVortoxWorld: boolean;
   fangGuConverted: boolean;
   jugglerGuesses: Record<number, { playerId: number; roleId: string }[]>;

@@ -58,12 +58,19 @@ const stateUpdate = async (
       );
       return {
         ...s,
+        isMad: true,
         cerenovusMadnessRole: r.roleName,
         statusDetails: [...details, `洗脑疯狂:${r.roleName}`],
       };
     }
     return s;
   });
+
+  const cerenovusData = {
+    targetId: r.targetId,
+    roleName: r.roleName,
+    checkedToday: false,
+  };
 
   return {
     ...ctx,
@@ -74,12 +81,13 @@ const stateUpdate = async (
         ...((ctx.snapshot as any).madRoles ?? {}),
         [r.targetId]: r.roleName,
       },
+      cerenovusTarget: cerenovusData,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         cerenovus: r,
       },
     },
-    meta: { ...ctx.meta, cerenovusResult: r },
+    meta: { ...ctx.meta, cerenovusResult: cerenovusData },
   };
 };
 
@@ -94,8 +102,12 @@ const postProcess = async (
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: `唤醒${ctx.actionNode.seatId + 1}号【洗脑师】，选择一名玩家和一个善良角色。`,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【洗脑师】，选择一名玩家和一个角色。`,
       abilityLog: log,
+      displayInfo: {
+        type: "cerenovus_info",
+        log: `已告知${r.targetId + 1}号玩家：必须疯狂证明自己是【${r.roleName}】`,
+      },
     },
   };
 };

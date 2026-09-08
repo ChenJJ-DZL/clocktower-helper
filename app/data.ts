@@ -206,6 +206,7 @@ export interface Seat {
   isDemonSuccessor: boolean;
   hasAbilityEvenDead: boolean; // 亡骨魔杀死的爪牙：死亡但保留能力
   isMad?: boolean; // 新增：是否处于疯狂状态（例如洗脑师、鹰身女妖效果）
+  cerenovusMadnessRole?: string; // 洗脑师要求疯狂扮演的角色名称
   statusDetails: string[];
   statuses?: StatusEffect[];
   statusEffects?: any[]; // 新引擎状态效果数组（poisoned/protected/drunk 等，与 statuses 互补）
