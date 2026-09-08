@@ -85,6 +85,7 @@ export function GameModals() {
     damselGuessUsedBy,
     reminderTokens,
     nightCount,
+    isVortoxWorld,
   } = gameState;
 
   const { nightInfo } = actions;
@@ -973,6 +974,7 @@ export function GameModals() {
         <JugglerJudgeModal
           seatId={jugglerJudgeModal.seatId}
           seats={seats}
+          isVortoxWorld={isVortoxWorld}
           onConfirm={(correctCount: number) => {
             const msg = `杂耍艺人公开猜测：得知的数字为 ${correctCount}`;
             actions.addLog(

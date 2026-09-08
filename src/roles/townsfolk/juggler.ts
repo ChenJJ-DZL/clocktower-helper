@@ -92,14 +92,51 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:155-0!canonical and tim
       if (isFirstNight) {
         return { wake: "", instruction: "", close: "" };
       }
-      const seat = context?.seats?.find((s: any) => s.id === playerSeatId);
-      const correctCount =
+      const {
+        seats = [],
+        vortoxWorld = false,
+        shouldShowFake = false,
+        isActorDisabledByPoisonOrDrunk,
+      } = context || {};
+
+      const seat = seats.find((s: any) => s.id === playerSeatId);
+      const realCount =
         seat?.dayAbilityResult?.correctCount ??
         context?.jugglerCorrectCount ??
         0;
+
+      // 检测是否受涡流或中毒/醉酒干扰
+      const hasVortox =
+        vortoxWorld ||
+        seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
+      const isDisabled =
+        shouldShowFake ||
+        (seat &&
+          typeof isActorDisabledByPoisonOrDrunk === "function" &&
+          isActorDisabledByPoisonOrDrunk(seat));
+      const mustBeFake = hasVortox || isDisabled;
+
+      let displayCount = realCount;
+      if (mustBeFake) {
+        // 杂耍艺人猜测 0~5 次，虚假数字必须在 0~5 中且不等于 realCount
+        const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
+        displayCount =
+          fakeCandidates.length > 0
+            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+            : realCount === 0
+              ? 1
+              : 0;
+      }
+
+      const interferenceTip = hasVortox
+        ? `（🌀 涡流干扰：真实猜对${realCount}，须告知错误数字${displayCount}）`
+        : isDisabled
+          ? `（⚠️ 中毒/醉酒：真实猜对${realCount}，须告知错误数字${displayCount}）`
+          : "";
+
       return {
-        wake: `唤醒${playerSeatId + 1}号【杂耍艺人】，告诉他得知的数字为${correctCount}（手势比划 ${correctCount}）。`,
-        instruction: `得知的数字为${correctCount}`,
+        wake: `唤醒${playerSeatId + 1}号【杂耍艺人】，告诉他得知的数字为${displayCount}（手势比划 ${displayCount}）。${interferenceTip}`,
+        instruction: `得知的数字为${displayCount}`,
         close: "让杂耍艺人重新入睡。",
       };
     },

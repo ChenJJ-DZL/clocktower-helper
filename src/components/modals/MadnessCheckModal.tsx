@@ -58,7 +58,7 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
     props.setCurrentModal({
       type: "EXECUTION_RESULT",
       data: {
-        message: `⚖️ 说书人判定 ${targetSeatNo}号 未能疯狂证明自己是【${roleName}】，因违反疯狂规则被立即处决死亡！今日立即结束，确认后直接进入下一个夜晚。`,
+        message: `说书人判定${targetSeatNo}号【未能疯狂证明】自己是【${roleName}】\n因违反疯狂规则被立即处决死亡!\n今日立即结束，确认后直接进入下一个夜晚。`,
         isInstantNight: true,
       },
     });

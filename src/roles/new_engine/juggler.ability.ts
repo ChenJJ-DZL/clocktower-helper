@@ -87,12 +87,43 @@ const calculate = async (
     }
   }
 
+  const realCount = Number(correctCount) || 0;
+  const isAbilityActive = ctx.meta.abilityEffective ?? true;
+  const hasVortox =
+    Boolean(
+      ctx.snapshot.globalEffects?.vortoxWorld ??
+        ctx.snapshot.vortoxWorld ??
+        ctx.snapshot.isVortoxWorld
+    ) || ctx.snapshot.seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
+  const isCorrupted = !isAbilityActive || hasVortox;
+
+  let finalCount = realCount;
+  if (ctx.storytellerInput?.overrideResult !== undefined) {
+    finalCount = Number(ctx.storytellerInput.overrideResult);
+  } else if (ctx.storytellerInput?.fakeResult !== undefined) {
+    finalCount = Number(ctx.storytellerInput.fakeResult);
+  } else if (isCorrupted && ctx.storytellerInput?.correctCount !== undefined) {
+    // 说书人在中毒/涡流时显式指定的告知数字
+    finalCount = Number(ctx.storytellerInput.correctCount);
+  } else if (isCorrupted) {
+    const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
+    finalCount =
+      fakeCandidates.length > 0
+        ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+        : realCount === 0
+          ? 1
+          : 0;
+  }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
+      isCorrupted,
       abilityResult: {
-        correctCount: Number(correctCount) || 0,
+        correctCount: finalCount,
+        realCount,
+        isCorrupted,
         used: true,
       },
     },

@@ -907,9 +907,28 @@ export function handleJugglerConfirm(
     }
   });
 
+  // 涡流或中毒/醉酒干扰判断
+  const jugglerSeat = seats.find((s) => s.id === jugglerId) || nightInfo.seat;
+  const hasVortox = seats.some((s) => s.role?.id === "vortox" && !s.isDead);
+  const isPoisonedOrDrunk =
+    context.computeIsPoisoned(jugglerSeat, seats) ||
+    jugglerSeat.isDrunk ||
+    jugglerSeat.role?.id === "drunk";
+
+  let displayCount = correctCount;
+  if (hasVortox || isPoisonedOrDrunk) {
+    const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== correctCount);
+    displayCount =
+      fakeCandidates.length > 0
+        ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+        : correctCount === 0
+          ? 1
+          : 0;
+  }
+
   setCurrentModal({
     type: "NIGHT_DEATH_REPORT",
-    data: { message: `杂耍艺人信息：你猜对了 ${correctCount} 个角色` },
+    data: { message: `杂耍艺人信息：你猜对了 ${displayCount} 个角色` },
   });
 
   setSelectedActionTargets([]);

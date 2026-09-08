@@ -1218,13 +1218,34 @@ export async function executeViaNewEngine(
         const actorSeat =
           syncedSeats.find((s) => s.id === actorId) ||
           context.seats.find((s) => s.id === actorId);
-        const count =
+        let count =
           displayInfo?.correctCount ??
           resultContext.meta.jugglerResult?.correctCount ??
           (resultContext as any)?.snapshot?._abilityResults?.juggler
             ?.correctCount ??
           (actorSeat as any)?.dayAbilityResult?.correctCount ??
           0;
+
+        // 若受到涡流或中毒/醉酒影响，且未被替换为假数字
+        const isCorrupted =
+          resultContext.meta.isCorrupted ||
+          resultContext.meta.abilityEffective === false ||
+          context.vortoxWorld ||
+          syncedSeats.some((s) => s.role?.id === "vortox" && !s.isDead) ||
+          actorSeat?.isDrunk ||
+          actorSeat?.role?.id === "drunk";
+
+        const realCount = (actorSeat as any)?.dayAbilityResult?.correctCount;
+        if (isCorrupted && realCount !== undefined && count === realCount) {
+          const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
+          count =
+            fakeCandidates.length > 0
+              ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+              : realCount === 0
+                ? 1
+                : 0;
+        }
+
         customResultText = `得知的数字为${count}`;
       }
 

@@ -6,6 +6,7 @@ import { ModalWrapper } from "./ModalWrapper";
 interface JugglerJudgeModalProps {
   seatId: number;
   seats: Seat[];
+  isVortoxWorld?: boolean;
   onConfirm: (correctCount: number) => void;
   onClose: () => void;
 }
@@ -13,10 +14,15 @@ interface JugglerJudgeModalProps {
 export const JugglerJudgeModal: React.FC<JugglerJudgeModalProps> = ({
   seatId,
   seats,
+  isVortoxWorld,
   onConfirm,
   onClose,
 }) => {
   const [selectedCount, setSelectedCount] = useState<number>(0);
+
+  const hasVortox =
+    !!isVortoxWorld ||
+    seats.some((s) => s.role?.id === "vortox" && !s.isDead);
 
   const jugglerSeat = seats.find((s) => s.id === seatId);
   const jugglerName = jugglerSeat?.playerName
@@ -56,6 +62,18 @@ export const JugglerJudgeModal: React.FC<JugglerJudgeModalProps> = ({
       }
     >
       <div className="space-y-4 py-1">
+        {/* 涡流在场醒目提示 */}
+        {hasVortox && (
+          <div className="bg-rose-950/60 border-2 border-rose-500/80 rounded-xl p-3 text-xs leading-relaxed text-rose-200 animate-pulse">
+            <div className="flex items-center gap-2 font-black text-rose-300 text-sm mb-1">
+              <span>🌀 涡流（Vortox）在场警告：</span>
+            </div>
+            <p>
+              杂耍艺人属于【镇民】角色。根据官方规则，在涡流在场时，镇民的能力必须产生<strong>虚假信息</strong>！杂耍艺人今晚得知的数字<strong>绝对不能为真实的猜对次数</strong>。系统夜间会自动对告知数字进行假信息转换，说书人亦可在此直接为他选择一个伪造的错误数字。
+            </p>
+          </div>
+        )}
+
         {/* 顶部规则提示 */}
         <div className="bg-amber-950/40 border border-amber-500/30 rounded-xl p-3 text-xs leading-relaxed text-amber-200/90">
           <p className="font-semibold text-amber-300 mb-1">📜 官方运作规则：</p>

@@ -213,11 +213,11 @@ describe("白天主动技能持久化与查看结果测试", () => {
     const handleFail = () => {
       // 1. 处决玩家
       executedPlayerId = mockModal.targetId;
-      // 2. 弹出标准处决弹窗，并带有 isInstantNight 标记
+      // 2. 弹出标准处决弹窗，并带有 isInstantNight 标记与严格分行文案
       nextModal = {
         type: "EXECUTION_RESULT",
         data: {
-          message: `⚖️ 说书人判定 ${mockModal.targetId + 1}号 未能疯狂证明自己是【${mockModal.roleName}】，因违反疯狂规则被立即处决死亡！今日立即结束，确认后直接进入下一个夜晚。`,
+          message: `说书人判定${mockModal.targetId + 1}号【未能疯狂证明】自己是【${mockModal.roleName}】\n因违反疯狂规则被立即处决死亡!\n今日立即结束，确认后直接进入下一个夜晚。`,
           isInstantNight: true,
         },
       };
@@ -228,6 +228,7 @@ describe("白天主动技能持久化与查看结果测试", () => {
     expect(executedPlayerId).toBe(2);
     expect(nextModal.type).toBe("EXECUTION_RESULT");
     expect(nextModal.data.isInstantNight).toBe(true);
+    expect(nextModal.data.message).toContain("\n因违反疯狂规则被立即处决死亡!\n");
 
     // 模拟 confirmExecutionResult 响应 isInstantNight 推进夜晚
     let nightAdvanced = false;
@@ -244,5 +245,36 @@ describe("白天主动技能持久化与查看结果测试", () => {
 
     confirmExecutionResult(nextModal);
     expect(nightAdvanced).toBe(true);
+  });
+
+  test("涡流在场时，杂耍艺人夜间获得的信息绝不能等于真实猜对次数", () => {
+    const juggler = getRoleDefinition("juggler");
+    expect(juggler).toBeDefined();
+    const seatId = 0;
+    const realCount = 2;
+
+    const mockContext: any = {
+      seats: [
+        { id: 0, role: { id: "juggler", type: "townsfolk", name: "杂耍艺人" }, isDead: false, dayAbilityResult: { correctCount: realCount } },
+        { id: 1, role: { id: "vortox", type: "demon", name: "涡流" }, isDead: false },
+        { id: 2, role: { id: "washerwoman", type: "townsfolk", name: "洗衣妇" }, isDead: false },
+      ],
+      vortoxWorld: true,
+      jugglerCorrectCount: realCount,
+    };
+
+    const dialog = juggler!.night!.dialog(seatId, false, mockContext);
+    expect(dialog.wake).toContain("涡流干扰");
+
+    // 验证无论多次运行，得到的数字都属于 [0, 5] 且绝不等于 realCount (2)
+    for (let i = 0; i < 20; i++) {
+      const d = juggler!.night!.dialog(seatId, false, mockContext);
+      const match = d.instruction.match(/得知的数字为(\d+)/);
+      expect(match).not.toBeNull();
+      const count = Number(match![1]);
+      expect(count).toBeGreaterThanOrEqual(0);
+      expect(count).toBeLessThanOrEqual(5);
+      expect(count).not.toBe(realCount);
+    }
   });
 });
