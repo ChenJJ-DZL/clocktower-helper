@@ -49,6 +49,7 @@
  * ============================================================
  */
 
+import { roles } from "../../../app/data";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -179,7 +180,7 @@ function getTownsfolkCandidates(
 }
 
 /**
- * 获取场上所有镇民角色的名称列表（用于醉酒/中毒时生成合理的假角色）
+ * 获取场上所有镇民角色的名称列表（用于醉酒/中毒/涡流时生成合理的假角色）
  */
 function getScriptTownsfolkRoles(seats: PlayerLookup[]): string[] {
   const roleNames = new Set<string>();
@@ -188,6 +189,15 @@ function getScriptTownsfolkRoles(seats: PlayerLookup[]): string[] {
       roleNames.add(seat.role.name);
     }
   }
+
+  // 兜底：从系统全部镇民中提取
+  const fallbackTownsfolk = roles
+    .filter((r) => r.type === "townsfolk")
+    .map((r) => r.name);
+  for (const name of fallbackTownsfolk) {
+    roleNames.add(name);
+  }
+
   return Array.from(roleNames);
 }
 

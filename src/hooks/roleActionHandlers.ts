@@ -1118,6 +1118,7 @@ export function handleCerenovusConfirm(
     addLog,
     continueToNextAction,
     setSelectedActionTargets,
+    insertIntoWakeQueueAfterCurrent,
   } = context;
   if (nightInfo.effectiveRole.id !== "cerenovus") return { handled: false };
 
@@ -1138,8 +1139,9 @@ export function handleCerenovusConfirm(
         const selectedRole = roles.find((r) => r.id === roleId);
         if (!selectedRole) return;
 
-        setSeats((prev: any) =>
-          prev.map((s: any) => {
+        let nextSeats: any[] = [];
+        setSeats((prev: any) => {
+          nextSeats = prev.map((s: any) => {
             if (s.id === targetId) {
               return {
                 ...s,
@@ -1152,8 +1154,9 @@ export function handleCerenovusConfirm(
               };
             }
             return s;
-          })
-        );
+          });
+          return nextSeats;
+        });
 
         if ((context as any).dispatch) {
           (context as any).dispatch({
@@ -1178,7 +1181,26 @@ export function handleCerenovusConfirm(
           `🧠 ${cerenovusId + 1}号(洗脑师) 使 ${targetId + 1}号 对自己是【${selectedRole.name}】感到疯狂`
         );
         setSelectedActionTargets([]);
-        continueToNextAction();
+
+        // 立即唤醒被洗脑的人
+        if (insertIntoWakeQueueAfterCurrent) {
+          insertIntoWakeQueueAfterCurrent(targetId, {
+            logLabel: `${targetId + 1}号(洗脑唤醒)`,
+          });
+        }
+
+        // 弹窗告诉他洗脑师的结果，格式为“你需要疯狂证明自己是【xx角色】”
+        setCurrentModal({
+          type: "INFO_RESULT",
+          data: {
+            roleName: "洗脑师",
+            resultText: `唤醒${targetId + 1}号玩家\n你需要疯狂证明自己是【${selectedRole.name}】`,
+            onNext: () => {
+              setCurrentModal(null);
+              continueToNextAction(nextSeats.length > 0 ? nextSeats : undefined);
+            },
+          },
+        });
       },
     },
   });

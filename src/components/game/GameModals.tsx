@@ -59,7 +59,6 @@ import { VirginGuideModal } from "../modals/VirginGuideModal";
 import { VirginTriggerModal } from "../modals/VirginTriggerModal";
 import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
-import { DawnReportOverlay } from "./DawnReportOverlay";
 import { GameOverOverlay } from "./GameOverOverlay";
 import { PlayerContextMenu } from "./PlayerContextMenu";
 
@@ -86,6 +85,7 @@ export function GameModals() {
     reminderTokens,
     nightCount,
     isVortoxWorld,
+    deadThisNight,
   } = gameState;
 
   const { nightInfo } = actions;
@@ -1012,9 +1012,15 @@ export function GameModals() {
         onCancel={() => actions.setCurrentModal(null)}
       />
 
-      {nightDeathReportModal && (
+      {/* 夜晚死亡结算弹窗：支持正常流转与撤销(Undo)回到 dawnReport 阶段的无缝展示 */}
+      {(nightDeathReportModal || gamePhase === "dawnReport") && (
         <NightDeathReportModal
-          message={nightDeathReportModal.message}
+          message={
+            nightDeathReportModal?.message ??
+            (deadThisNight && deadThisNight.length > 0
+              ? `昨晚${deadThisNight.map((id: number) => `${id + 1}号`).join("、")}玩家死亡`
+              : "昨天是个平安夜")
+          }
           onConfirm={() => {
             if (gamePhase === "dawnReport") {
               actions.confirmNightDeathReport();
@@ -1025,7 +1031,6 @@ export function GameModals() {
           }}
         />
       )}
-
       {currentModal?.type === "GENERIC_ALERT" && (
         <GenericAlertModal
           title={currentModal.data.title}
@@ -1050,8 +1055,6 @@ export function GameModals() {
         />
       )}
 
-      {/* Overlays: 当有NIGHT_DEATH_REPORT弹窗时不重复显示DawnReportOverlay */}
-      {!nightDeathReportModal && <DawnReportOverlay />}
       <GameOverOverlay />
       <PlayerContextMenu />
     </>

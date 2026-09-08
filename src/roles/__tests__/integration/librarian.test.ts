@@ -175,4 +175,53 @@ describe("图书管理员 引擎集成测试", () => {
     );
     expect((r.meta.abilityResult as any)?.roleName).toBe("酒鬼");
   });
+
+  test("涡流在场且场上无外来者时：图书管理员绝不能得知0，必须获得假的外来者角色和两名玩家", async () => {
+    const ss = [
+      makeSeat(0, "librarian", "townsfolk"),
+      makeSeat(1, "chef", "townsfolk"),
+      makeSeat(2, "washerwoman", "townsfolk"),
+      makeSeat(3, "vortox", "demon"),
+    ];
+    const context = ctx(0, 1, "firstNight", ss);
+    // 涡流在场
+    (context.snapshot as any).vortoxWorld = true;
+
+    // 多次执行验证每次都绝不返回空角色名（0）
+    for (let i = 0; i < 20; i++) {
+      const r = await runFullAbilityPipeline(pipe(librarianAbility), context);
+      expect(r.aborted).toBe(false);
+      const res = r.meta.abilityResult as any;
+      expect(res).toBeDefined();
+      // 绝不能为 0（即 roleName 不能为 ""）
+      expect(res.roleName).toBeTruthy();
+      expect(typeof res.roleName).toBe("string");
+      expect(res.roleName.length).toBeGreaterThan(0);
+      expect(res.seat1).toBeGreaterThanOrEqual(0);
+      expect(res.seat2).toBeGreaterThanOrEqual(0);
+      expect(r.meta.displayInfo?.hasOutsider).toBe(true);
+      expect(r.meta.abilityLog).not.toContain("场上没有外来者在场");
+    }
+  });
+
+  test("图书管理员中毒且场上无外来者时：图书管理员绝不能得知真实0，必须捏造外来者", async () => {
+    const ss = [
+      makeSeat(0, "librarian", "townsfolk", { isDrunk: true }),
+      makeSeat(1, "chef", "townsfolk"),
+      makeSeat(2, "washerwoman", "townsfolk"),
+      makeSeat(3, "imp", "demon"),
+    ];
+    const context = ctx(0, 1, "firstNight", ss);
+
+    for (let i = 0; i < 20; i++) {
+      const r = await runFullAbilityPipeline(pipe(librarianAbility), context);
+      expect(r.aborted).toBe(false);
+      const res = r.meta.abilityResult as any;
+      expect(res.roleName).toBeTruthy();
+      expect(res.roleName.length).toBeGreaterThan(0);
+      expect(r.meta.displayInfo?.hasOutsider).toBe(true);
+      expect(r.meta.abilityLog).not.toContain("场上没有外来者在场");
+    }
+  });
 });
+

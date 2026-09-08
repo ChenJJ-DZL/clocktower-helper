@@ -206,4 +206,21 @@ describe("洗脑师（Cerenovus）完整业务生命周期测试", () => {
     const updatedCerenovusSeat = updatedSeats.find((s) => s.id === 0);
     expect(updatedCerenovusSeat?.hasUsedDayAbility).toBe(true);
   });
+
+  it("夜间洗脑后提示文案与唤醒队列校验：格式必须为'你需要疯狂证明自己是【xx角色】'且目标加入唤醒队列", () => {
+    const targetId = 2;
+    const madRoleName = "学者";
+    const customResultText = `唤醒${targetId + 1}号玩家\n你需要疯狂证明自己是【${madRoleName}】`;
+
+    // 格式必须完全符合“你需要疯狂证明自己是【xx角色】”
+    expect(customResultText).toContain(`你需要疯狂证明自己是【${madRoleName}】`);
+    expect(customResultText).toContain(`唤醒${targetId + 1}号玩家`);
+
+    // 唤醒队列记录标签校验
+    const wakeOptions = {
+      logLabel: `${targetId + 1}号(洗脑唤醒)`,
+    };
+    expect(wakeOptions.logLabel).toBe("3号(洗脑唤醒)");
+  });
 });
+

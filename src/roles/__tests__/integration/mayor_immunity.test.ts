@@ -3,6 +3,11 @@ import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import type { MiddlewareContext } from "../../../utils/middlewareTypes";
 import { resolveMayorDemonKill } from "../../../utils/soldierImmunity";
 import { impAbility } from "../../new_engine/imp.ability";
+import { vortoxAbility } from "../../new_engine/vortox.ability";
+import { no_dashiiAbility } from "../../new_engine/no_dashii.ability";
+import { vigormortisAbility } from "../../new_engine/vigormortis.ability";
+import { fang_guAbility } from "../../new_engine/fang_gu.ability";
+import { ojoAbility } from "../../new_engine/ojo.ability";
 
 function mkSeat(
   id: number,
@@ -193,5 +198,230 @@ describe("小恶魔攻击镇长完整管道集成测试", () => {
       (s: any) => s.id !== 1 && s.markedForDeath === true
     );
     expect(deadOthers.length).toBe(0);
+  });
+
+  test("涡流攻击镇长时，通过 storytellerInput.mayorSubstituteId 指定替死，替死者死亡且镇长存活", async () => {
+    const mayor = mkSeat(1, "mayor", "镇长", "townsfolk");
+    const vortox = mkSeat(0, "vortox", "涡流", "demon");
+    const chef = mkSeat(2, "chef", "厨师", "townsfolk");
+    const empath = mkSeat(3, "empath", "共情者", "townsfolk");
+    const seats = [vortox, mayor, chef, empath];
+
+    const ctx: any = {
+      snapshot: {
+        nightCount: 2,
+        gamePhase: "night",
+        seats,
+        statusEffects: {},
+      },
+      actionNode: {
+        seatId: 0,
+        roleId: "vortox",
+        roleName: "涡流",
+        priority: 52,
+        targetIds: [1],
+      },
+      targetIds: [1],
+      meta: {},
+      storytellerInput: { mayorSubstituteId: 2 },
+      aborted: false,
+    };
+
+    const result = await runFullAbilityPipeline(pipe(vortoxAbility), ctx);
+    const updatedSeats = result.snapshot.seats as any[];
+    const mayorAfter = updatedSeats.find((s: any) => s.id === 1);
+    const substituteAfter = updatedSeats.find((s: any) => s.id === 2);
+
+    expect(mayorAfter.isDead).toBe(false);
+    expect(mayorAfter.markedForDeath).toBeFalsy();
+    expect(substituteAfter.isDead).toBe(true);
+    expect(substituteAfter.markedForDeath).toBe(true);
+    expect(substituteAfter.deathSource).toBe("mayor_substitute");
+    expect(result.snapshot.lastKill?.targetId).toBe(2);
+  });
+
+  test("涡流攻击镇长时，若说书人指定镇长自己死亡（mayorSubstituteId = 1），则镇长死亡", async () => {
+    const mayor = mkSeat(1, "mayor", "镇长", "townsfolk");
+    const vortox = mkSeat(0, "vortox", "涡流", "demon");
+    const chef = mkSeat(2, "chef", "厨师", "townsfolk");
+    const seats = [vortox, mayor, chef];
+
+    const ctx: any = {
+      snapshot: {
+        nightCount: 2,
+        gamePhase: "night",
+        seats,
+        statusEffects: {},
+      },
+      actionNode: {
+        seatId: 0,
+        roleId: "vortox",
+        roleName: "涡流",
+        priority: 52,
+        targetIds: [1],
+      },
+      targetIds: [1],
+      meta: {},
+      storytellerInput: { mayorSubstituteId: 1 },
+      aborted: false,
+    };
+
+    const result = await runFullAbilityPipeline(pipe(vortoxAbility), ctx);
+    const updatedSeats = result.snapshot.seats as any[];
+    const mayorAfter = updatedSeats.find((s: any) => s.id === 1);
+    const chefAfter = updatedSeats.find((s: any) => s.id === 2);
+
+    expect(mayorAfter.isDead).toBe(true);
+    expect(mayorAfter.deathSource).toBe("vortox_kill");
+    expect(chefAfter.isDead).toBe(false);
+    expect(result.snapshot.lastKill?.targetId).toBe(1);
+  });
+
+  test("诺-达鲺攻击镇长时，通过 storytellerInput.mayorSubstituteId 指定替死生效", async () => {
+    const mayor = mkSeat(1, "mayor", "镇长", "townsfolk");
+    const noDashii = mkSeat(0, "no_dashii", "诺-达鲺", "demon");
+    const chef = mkSeat(2, "chef", "厨师", "townsfolk");
+    const seats = [noDashii, mayor, chef];
+
+    const ctx: any = {
+      snapshot: {
+        nightCount: 2,
+        gamePhase: "night",
+        seats,
+        statusEffects: {},
+      },
+      actionNode: {
+        seatId: 0,
+        roleId: "no_dashii",
+        roleName: "诺-达鲺",
+        priority: 51,
+        targetIds: [1],
+      },
+      targetIds: [1],
+      meta: {},
+      storytellerInput: { mayorSubstituteId: 2 },
+      aborted: false,
+    };
+
+    const result = await runFullAbilityPipeline(pipe(no_dashiiAbility), ctx);
+    const updatedSeats = result.snapshot.seats as any[];
+    const mayorAfter = updatedSeats.find((s: any) => s.id === 1);
+    const substituteAfter = updatedSeats.find((s: any) => s.id === 2);
+
+    expect(mayorAfter.isDead).toBe(false);
+    expect(substituteAfter.isDead).toBe(true);
+    expect(substituteAfter.deathSource).toBe("mayor_substitute");
+    expect(result.snapshot.lastKill?.targetId).toBe(2);
+  });
+
+  test("亡骨魔攻击镇长时，通过 storytellerInput.mayorSubstituteId 指定替死生效", async () => {
+    const mayor = mkSeat(1, "mayor", "镇长", "townsfolk");
+    const vigormortis = mkSeat(0, "vigormortis", "亡骨魔", "demon");
+    const chef = mkSeat(2, "chef", "厨师", "townsfolk");
+    const seats = [vigormortis, mayor, chef];
+
+    const ctx: any = {
+      snapshot: {
+        nightCount: 2,
+        gamePhase: "night",
+        seats,
+        statusEffects: {},
+      },
+      actionNode: {
+        seatId: 0,
+        roleId: "vigormortis",
+        roleName: "亡骨魔",
+        priority: 53,
+        targetIds: [1],
+      },
+      targetIds: [1],
+      meta: {},
+      storytellerInput: { mayorSubstituteId: 2 },
+      aborted: false,
+    };
+
+    const result = await runFullAbilityPipeline(pipe(vigormortisAbility), ctx);
+    const updatedSeats = result.snapshot.seats as any[];
+    const mayorAfter = updatedSeats.find((s: any) => s.id === 1);
+    const substituteAfter = updatedSeats.find((s: any) => s.id === 2);
+
+    expect(mayorAfter.isDead).toBe(false);
+    expect(substituteAfter.isDead).toBe(true);
+    expect(substituteAfter.deathSource).toBe("mayor_substitute");
+    expect(result.snapshot.lastKill?.targetId).toBe(2);
+  });
+
+  test("方古攻击镇长时，通过 storytellerInput.mayorSubstituteId 指定替死生效", async () => {
+    const mayor = mkSeat(1, "mayor", "镇长", "townsfolk");
+    const fangGu = mkSeat(0, "fang_gu", "方古", "demon");
+    const chef = mkSeat(2, "chef", "厨师", "townsfolk");
+    const seats = [fangGu, mayor, chef];
+
+    const ctx: any = {
+      snapshot: {
+        nightCount: 2,
+        gamePhase: "night",
+        seats,
+        statusEffects: {},
+      },
+      actionNode: {
+        seatId: 0,
+        roleId: "fang_gu",
+        roleName: "方古",
+        priority: 50,
+        targetIds: [1],
+      },
+      targetIds: [1],
+      meta: {},
+      storytellerInput: { mayorSubstituteId: 2 },
+      aborted: false,
+    };
+
+    const result = await runFullAbilityPipeline(pipe(fang_guAbility), ctx);
+    const updatedSeats = result.snapshot.seats as any[];
+    const mayorAfter = updatedSeats.find((s: any) => s.id === 1);
+    const substituteAfter = updatedSeats.find((s: any) => s.id === 2);
+
+    expect(mayorAfter.isDead).toBe(false);
+    expect(substituteAfter.isDead).toBe(true);
+    expect(substituteAfter.deathSource).toBe("mayor_substitute");
+    expect(result.snapshot.lastKill?.targetId).toBe(2);
+  });
+
+  test("奥乔狙杀镇长时，通过 storytellerInput.mayorSubstituteId 指定替死生效", async () => {
+    const mayor = mkSeat(1, "mayor", "镇长", "townsfolk");
+    const ojo = mkSeat(0, "ojo", "奥乔", "demon");
+    const chef = mkSeat(2, "chef", "厨师", "townsfolk");
+    const seats = [ojo, mayor, chef];
+
+    const ctx: any = {
+      snapshot: {
+        nightCount: 2,
+        gamePhase: "night",
+        seats,
+        statusEffects: {},
+      },
+      actionNode: {
+        seatId: 0,
+        roleId: "ojo",
+        roleName: "奥乔",
+        priority: 54,
+        targetIds: [],
+      },
+      targetIds: [],
+      meta: {},
+      storytellerInput: { targetRoleId: "mayor", mayorSubstituteId: 2 },
+      aborted: false,
+    };
+
+    const result = await runFullAbilityPipeline(pipe(ojoAbility), ctx);
+    const updatedSeats = result.snapshot.seats as any[];
+    const mayorAfter = updatedSeats.find((s: any) => s.id === 1);
+    const substituteAfter = updatedSeats.find((s: any) => s.id === 2);
+
+    expect(mayorAfter.isDead).toBe(false);
+    expect(substituteAfter.isDead).toBe(true);
+    expect(substituteAfter.deathSource).toBe("mayor_substitute");
+    expect(result.snapshot.lastKill?.targetId).toBe(2);
   });
 });

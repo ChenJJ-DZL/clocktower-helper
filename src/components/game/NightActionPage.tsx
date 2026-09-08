@@ -142,6 +142,7 @@ export function NightActionPage({
       };
     }
     if (roleId === "librarian") {
+      const isCorrupted = vortoxActive || isDisturbed;
       const outsiders = seats.filter(
         (s) =>
           s.id !== seatId &&
@@ -151,6 +152,21 @@ export function NightActionPage({
               (s as any).registerAsGood !== false &&
               (s as any).registerAsEvil !== true))
       );
+
+      // 涡流或受干扰时：如果场上确实没有外来者，绝不能推荐真实的“0外来者”，必须给出虚假候选人
+      if (isCorrupted && outsiders.length === 0) {
+        const aliveOthers = seats.filter((s) => s.id !== seatId && !s.isDead);
+        const c1 = aliveOthers[0]?.id ?? 0;
+        const c2 = aliveOthers[1]?.id ?? 1;
+        const fakeRole = allOutsiderRoles[0]?.name || "管家";
+        return {
+          mode: "candidates" as const,
+          c1,
+          c2,
+          roleName: fakeRole,
+        };
+      }
+
       if (outsiders.length === 0) {
         return { mode: "zero" as const, c1: 0, c2: 1, roleName: "" };
       }

@@ -711,6 +711,7 @@ export async function executeViaNewEngine(
             "pukka",
             "shabaloth",
             "fang_gu",
+            "vigormortis",
             "vigor_mortis",
             "no_dashii",
             "vortox",
@@ -721,6 +722,10 @@ export async function executeViaNewEngine(
             "leviathan",
             "riot",
             "lil_monsta",
+            "taowu",
+            "qiongqi",
+            "taotie",
+            "zhen",
           ].includes(roleId);
         const effectiveMinTargets = hasToymaker && isDemonActor ? 0 : minTargets;
 
@@ -1450,6 +1455,30 @@ export async function executeViaNewEngine(
           context.selectedTargets?.[0];
         if (targetId != null) {
           customResultText = `${targetId + 1}号玩家是邪恶的`;
+        }
+      }
+
+      // 🧠 洗脑师：立即唤醒被洗脑的人，弹窗告诉他洗脑师的结果，格式为“你需要疯狂证明自己是【xx角色】”
+      if (roleId === "cerenovus") {
+        const cerenovusRes =
+          (resultContext as any)?.meta?.cerenovusResult ||
+          (resultContext as any)?.snapshot?._abilityResults?.cerenovus ||
+          (resultContext as any)?.snapshot?.cerenovusTarget;
+        const targetId =
+          cerenovusRes?.targetId ??
+          displayInfo?.targetId ??
+          context.selectedTargets?.[0];
+        const madRoleName =
+          cerenovusRes?.roleName ??
+          (context.actionData as any)?.roleName ??
+          displayInfo?.roleName;
+        if (targetId != null && madRoleName) {
+          customResultText = `唤醒${targetId + 1}号玩家\n你需要疯狂证明自己是【${madRoleName}】`;
+          if (context.insertIntoWakeQueueAfterCurrent) {
+            context.insertIntoWakeQueueAfterCurrent(targetId, {
+              logLabel: `${targetId + 1}号(洗脑唤醒)`,
+            });
+          }
         }
       }
 

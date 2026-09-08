@@ -48,6 +48,7 @@
  * ============================================================
  */
 
+import { roles } from "../../../app/data";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -190,7 +191,7 @@ function getMinionCandidates(
 }
 
 /**
- * 获取场上所有爪牙角色的名称列表（用于醉酒/中毒时生成合理的假角色）
+ * 获取场上所有爪牙角色的名称列表（用于醉酒/中毒/涡流时生成合理的假角色）
  */
 function getScriptMinionRoles(seats: PlayerLookup[]): string[] {
   const roleNames = new Set<string>();
@@ -199,6 +200,15 @@ function getScriptMinionRoles(seats: PlayerLookup[]): string[] {
       roleNames.add(seat.role.name);
     }
   }
+
+  // 兜底：从系统全部爪牙中提取（防止场上0爪牙时候选集为空）
+  const fallbackMinions = roles
+    .filter((r) => r.type === "minion")
+    .map((r) => r.name);
+  for (const name of fallbackMinions) {
+    roleNames.add(name);
+  }
+
   return Array.from(roleNames);
 }
 
@@ -256,11 +266,11 @@ function generateRealInfo(
 }
 
 /**
- * 醉酒/中毒时生成虚假信息
+ * 醉酒/中毒/涡流时生成虚假信息
  *
  * 对应规则："说书人也应该让调查员得知爪牙角色，否则等同于在明示调查员
  * 他自己醉酒中毒了"。
- * 实现策略：随机选两名玩家 + 随机选一个爪牙角色名（可能在场也可能不在场）。
+ * 若场上无爪牙（极端情况），受干扰时绝对不能得知真实“0爪牙”，必须捏造假爪牙！
  */
 function generateFakeInfo(
   seats: PlayerLookup[],
@@ -273,6 +283,15 @@ function generateFakeInfo(
   );
 
   if (others.length === 0) {
+    return { seat1: -1, seat2: -1, roleName: "投毒者" };
+  }
+
+  const minionCandidates = getMinionCandidates(seats, selfSeatId);
+  const isActuallyZero = minionCandidates.length === 0;
+
+  // 如果真实有爪牙，可以小概率给出虚假的“0”（即谎称场上无爪牙）
+  // 但若真实本身就是 0 爪牙，则绝对禁止给出 0，必须捏造一个爪牙！
+  if (!isActuallyZero && Math.random() < 0.3) {
     return { seat1: -1, seat2: -1, roleName: "" };
   }
 
@@ -280,15 +299,19 @@ function generateFakeInfo(
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
-  // 🔧 100% 错误：排除真实爪牙角色名，保证假角色名必然不同
+  // 排除真实角色名
   let filteredRoles = minionRoles;
   if (realInfo?.roleName) {
     filteredRoles = minionRoles.filter((r) => r !== realInfo.roleName);
   }
+  const realMinionNames = new Set(minionCandidates.map((c) => c.roleName));
+  const strictlyFakeRoles = filteredRoles.filter((r) => !realMinionNames.has(r));
+  const candidatePool = strictlyFakeRoles.length > 0 ? strictlyFakeRoles : filteredRoles;
+
   const roleName =
-    filteredRoles.length > 0
-      ? filteredRoles[Math.floor(Math.random() * filteredRoles.length)]
-      : "";
+    candidatePool.length > 0
+      ? candidatePool[Math.floor(Math.random() * candidatePool.length)]
+      : "投毒者";
 
   return { seat1, seat2, roleName };
 }
