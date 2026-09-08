@@ -278,10 +278,23 @@ export const calculateNightInfo = (
     findNearestAliveNeighbor,
     shouldShowFake,
     getMisinformation,
-    isActorDisabledByPoisonOrDrunk: (seat: Seat) =>
-      computeIsPoisoned(seat, seats) ||
-      seat.isDrunk ||
-      seat.role?.id === "drunk",
+    isActorDisabledByPoisonOrDrunk: (seat: Seat) => {
+      const hasVortox =
+        Boolean(vortoxWorld) ||
+        Boolean(vortoxActive) ||
+        seats.some((s) => s.role?.id === "vortox" && !s.isDead);
+      const isTownsfolk =
+        seat.role?.type === "townsfolk" ||
+        (seat.role?.id === "drunk" && seat.charadeRole?.type === "townsfolk") ||
+        (seat.role?.id === "marionette" && seat.charadeRole?.type === "townsfolk");
+      if (isTownsfolk && hasVortox) return true;
+      return (
+        computeIsPoisoned(seat, seats) ||
+        seat.isDrunk ||
+        seat.role?.id === "drunk" ||
+        seat.role?.id === "marionette"
+      );
+    },
     addLog: (_msg: string) => {}, // Dummy during calculation
   };
 

@@ -307,7 +307,11 @@ export function useGameFlow(): UseGameFlowResult {
         };
       }
       // 博学者：每天白天可使用一次技能，新白天重置使用标记与上次结果
-      if (s.role?.id === "savant" || (s.role?.id === "drunk" && s.charadeRole?.id === "savant")) {
+      if (
+        s.role?.id === "savant" ||
+        s.role?.id === "savant_mr" ||
+        (s.role?.id === "drunk" && s.charadeRole?.id === "savant")
+      ) {
         seatModified = {
           ...seatModified,
           hasUsedDayAbility: false,

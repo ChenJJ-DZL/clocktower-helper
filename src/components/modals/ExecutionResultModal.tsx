@@ -38,15 +38,17 @@ export function ExecutionResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.88} className="p-2">
-        <div className="flex flex-col items-center justify-center text-center p-2 gap-6 w-full max-w-4xl mx-auto">
-          <div className="text-6xl sm:text-8xl">{isNoDeath ? "🕊️" : "⚖️"}</div>
-          <div className="space-y-4 w-full">
-            <div className="text-lg sm:text-2xl text-slate-400 font-bold">
+      <AutoFitContent targetRatio={0.9} minScale={0.7} className="p-2 sm:p-4">
+        <div className="flex flex-col items-center justify-center text-center p-2 sm:p-4 gap-3 sm:gap-5 w-full max-w-4xl mx-auto my-auto">
+          <div className={`${message.includes("\n") ? "text-5xl sm:text-6xl" : "text-6xl sm:text-8xl"} select-none`}>
+            {isNoDeath ? "🕊️" : "⚖️"}
+          </div>
+          <div className="space-y-3 sm:space-y-4 w-full">
+            <div className="text-base sm:text-xl text-slate-400 font-bold tracking-wider">
               今日处决最终判定结果
             </div>
             {message.includes("\n") ? (
-              <div className="flex flex-col items-center gap-3 w-full">
+              <div className="flex flex-col items-center gap-2.5 sm:gap-3.5 w-full max-w-3xl mx-auto bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-slate-700/60 shadow-inner">
                 {message.split("\n").map((line, idx) => {
                   const trimmed = line.trim();
                   if (!trimmed) return null;
@@ -55,12 +57,12 @@ export function ExecutionResultModal({
                   return (
                     <div
                       key={idx}
-                      className={`font-black tracking-wide leading-relaxed drop-shadow-xl ${
+                      className={`font-black tracking-wide leading-relaxed drop-shadow-md break-words ${
                         isFirst
-                          ? "text-2xl sm:text-4xl text-amber-300"
+                          ? "text-xl sm:text-2xl md:text-3xl text-amber-300"
                           : isSecond
-                            ? "text-xl sm:text-3xl text-rose-400 font-extrabold"
-                            : "text-base sm:text-2xl text-slate-300"
+                            ? "text-lg sm:text-xl md:text-2xl text-rose-400 font-black"
+                            : "text-sm sm:text-lg md:text-xl text-sky-300 font-bold"
                       }`}
                     >
                       {trimmed}

@@ -184,11 +184,19 @@ function resolveTargetRole(
  * 规则：醉酒/中毒的守鸦人仍然被唤醒，但获得的信息可能是错误的。
  * 从场上其他玩家中随机取一个角色名作为虚假结果。
  */
-function generateFakeRoleName(seats: PlayerLookup[]): string {
-  const validSeats = seats.filter((s: any) => s.role);
-  if (validSeats.length === 0) return "洗衣妇";
-  const random = validSeats[Math.floor(Math.random() * validSeats.length)];
-  return random.role?.name ?? "洗衣妇";
+function generateFakeRoleName(
+  seats: PlayerLookup[],
+  realRoleName?: string
+): string {
+  const validCandidates = seats
+    .map((s: any) => s.role?.name)
+    .filter(
+      (name: any): name is string => Boolean(name && name !== realRoleName)
+    );
+  if (validCandidates.length > 0) {
+    return validCandidates[Math.floor(Math.random() * validCandidates.length)];
+  }
+  return realRoleName === "洗衣妇" ? "厨师" : "洗衣妇";
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
@@ -216,6 +224,15 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "守鸦人未选择目标" };
   }
 
+  const hasVortox =
+    Boolean(
+      snapshot.globalEffects?.vortoxWorld ??
+        snapshot.vortoxWorld ??
+        snapshot.isVortoxWorld
+    ) || snapshot.seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
+
+  const isCorrupted = !abilityEffective || hasVortox;
+
   // 优先级 1：说书人手动覆盖
   if (storytellerInput?.overrideResult) {
     return {
@@ -223,13 +240,13 @@ const calculateResult = async (
       meta: {
         ...context.meta,
         abilityResult: storytellerInput.overrideResult as RavenkeeperInfo,
-        isCorrupted: !abilityEffective,
+        isCorrupted,
       },
     };
   }
 
   // 优先级 2：说书人预设假信息
-  if (!abilityEffective && storytellerInput?.fakeResult) {
+  if (isCorrupted && storytellerInput?.fakeResult) {
     return {
       ...context,
       meta: {
@@ -249,9 +266,10 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "目标玩家不存在" };
   }
 
-  const roleName = abilityEffective
-    ? resolveTargetRole(targetSeat, snapshot.seats)
-    : generateFakeRoleName(snapshot.seats);
+  const realRoleName = resolveTargetRole(targetSeat, snapshot.seats);
+  const roleName = isCorrupted
+    ? generateFakeRoleName(snapshot.seats, realRoleName)
+    : realRoleName;
 
   const result: RavenkeeperInfo = {
     targetId,

@@ -878,18 +878,22 @@ export function GameModals() {
                 prev.map((s: any) => {
                   const isSavant =
                     s.role?.id === "savant" ||
+                    s.role?.id === "savant_mr" ||
                     (s.role?.id === "drunk" && s.charadeRole?.id === "savant");
-                  return isSavant
-                    ? {
-                        ...s,
-                        hasUsedDayAbility: true,
-                        dayAbilityResult: {
-                          type: "SAVANT_RESULT",
-                          infoA,
-                          infoB,
-                        },
-                      }
-                    : s;
+                  if (isSavant) {
+                    actions.markDailyAbilityUsed?.("savant", s.id);
+                    actions.markDailyAbilityUsed?.("savant_mr", s.id);
+                    return {
+                      ...s,
+                      hasUsedDayAbility: true,
+                      dayAbilityResult: {
+                        type: "SAVANT_RESULT",
+                        infoA,
+                        infoB,
+                      },
+                    };
+                  }
+                  return s;
                 })
               );
             }

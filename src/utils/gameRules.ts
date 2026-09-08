@@ -902,12 +902,24 @@ export function hasTeaLadyProtection(targetSeat: Seat, seats: Seat[]): boolean {
  */
 export function isActorDisabledByPoisonOrDrunk(
   seat: Seat | undefined,
-  knownByNightAction?: boolean
+  knownByNightAction?: boolean,
+  allSeats?: Seat[],
+  vortoxWorld?: boolean
 ): boolean {
   if (!seat) return false;
+  const isTownsfolk =
+    seat.role?.type === "townsfolk" ||
+    (seat.role?.id === "drunk" && seat.charadeRole?.type === "townsfolk") ||
+    (seat.role?.id === "marionette" && seat.charadeRole?.type === "townsfolk");
+  const hasAliveVortox =
+    Boolean(vortoxWorld) ||
+    Boolean(allSeats?.some((s) => s.role?.id === "vortox" && !s.isDead));
+  if (isTownsfolk && hasAliveVortox) {
+    return true;
+  }
   return (
     !!knownByNightAction ||
-    computeIsPoisoned(seat) ||
+    computeIsPoisoned(seat, allSeats) ||
     seat.isDrunk ||
     seat.role?.id === "drunk" ||
     seat.role?.id === "marionette"

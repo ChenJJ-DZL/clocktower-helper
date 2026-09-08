@@ -55,31 +55,86 @@ export function buildInfoMessage(
     deadThisNight?: number[];
     isPoisoned?: boolean;
     shouldShowFake?: boolean;
+    vortoxWorld?: boolean;
+    isVortoxWorld?: boolean;
   }
 ): string | null {
   const { seats, demonVotedToday, minionNominatedToday } = ctx;
 
+  const selfSeat = seats.find((s) => s.id === ctx.selfId);
+  const isTownsfolk =
+    selfSeat?.role?.type === "townsfolk" ||
+    (selfSeat?.role?.id === "drunk" && selfSeat?.charadeRole?.type === "townsfolk") ||
+    (selfSeat?.role?.id === "marionette" && selfSeat?.charadeRole?.type === "townsfolk");
+  const hasAliveVortox =
+    Boolean(ctx.vortoxWorld) ||
+    Boolean(ctx.isVortoxWorld) ||
+    seats.some((s) => s.role?.id === "vortox" && !s.isDead);
+  const isCorrupted = Boolean(
+    ctx.shouldShowFake ||
+    ctx.isPoisoned ||
+    selfSeat?.isPoisoned ||
+    selfSeat?.isDrunk ||
+    (isTownsfolk && hasAliveVortox)
+  );
+
   switch (roleId) {
-    case "flowergirl":
-      return `告诉他：恶魔今天${demonVotedToday ? "投过票" : "没有投票"}。`;
-    case "town_crier":
-      return `告诉他：今天${minionNominatedToday ? "有人提名过爪牙" : "没有人提名过爪牙"}。`;
-    case "mathematician":
-      return `告诉他：今晚有 ${(ctx as any).anomalyCount ?? 0} 名玩家的能力异常生效。`;
+    case "flowergirl": {
+      const realVal = Boolean(demonVotedToday);
+      const displayVal = isCorrupted ? !realVal : realVal;
+      return `告诉他：恶魔今天${displayVal ? "投过票" : "没有投票"}。`;
+    }
+    case "town_crier": {
+      const realVal = Boolean(minionNominatedToday);
+      const displayVal = isCorrupted ? !realVal : realVal;
+      return `告诉他：今天${displayVal ? "有人提名过爪牙" : "没有人提名过爪牙"}。`;
+    }
+    case "mathematician": {
+      const realCount = Number((ctx as any).anomalyCount ?? 0);
+      let displayCount = realCount;
+      if (isCorrupted) {
+        const fakeCandidates = [0, 1, 2, 3].filter((n) => n !== realCount);
+        displayCount =
+          fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
+          (realCount === 0 ? 1 : 0);
+      }
+      return `告诉他：今晚有 ${displayCount} 名玩家的能力异常生效。`;
+    }
     case "oracle": {
       const evilDead = seats.filter((s) => s.isDead && seatIsEvil(s)).length;
-      return `告诉他：死亡玩家中有 ${evilDead} 名邪恶阵营。`;
+      let displayEvilDead = evilDead;
+      if (isCorrupted) {
+        const fakeCandidates = [0, 1, 2, 3, 4].filter((n) => n !== evilDead);
+        displayEvilDead =
+          fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
+          (evilDead === 0 ? 1 : 0);
+      }
+      return `告诉他：死亡玩家中有 ${displayEvilDead} 名邪恶阵营。`;
     }
     case "clockmaker": {
       const dist = demonMinionDistance(seats);
-      return dist === null
-        ? "告诉他：场上没有恶魔或爪牙（无距离信息）。"
-        : `告诉他：恶魔与最近爪牙的距离是 ${dist}。`;
+      if (dist === null) {
+        return "告诉他：场上没有恶魔或爪牙（无距离信息）。";
+      }
+      let displayDist = dist;
+      if (isCorrupted) {
+        const fakeCandidates = [1, 2, 3, 4, 5].filter((d) => d !== dist);
+        displayDist =
+          fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
+          ((dist % 5) + 1);
+      }
+      return `告诉他：恶魔与最近爪牙的距离是 ${displayDist}。`;
     }
-    case "sage":
-      return `告诉他：今晚${(ctx.deadThisNight ?? []).length > 0 ? "有恶魔死亡" : "没有恶魔死亡"}。`;
-    case "banshee":
-      return `告诉他：${(ctx.deadThisNight ?? []).length > 0 ? "今晚有人死亡" : "今晚无人死亡"}。`;
+    case "sage": {
+      const realHasDead = (ctx.deadThisNight ?? []).length > 0;
+      const displayHasDead = isCorrupted ? !realHasDead : realHasDead;
+      return `告诉他：今晚${displayHasDead ? "有恶魔死亡" : "没有恶魔死亡"}。`;
+    }
+    case "banshee": {
+      const realHasDead = (ctx.deadThisNight ?? []).length > 0;
+      const displayHasDead = isCorrupted ? !realHasDead : realHasDead;
+      return `告诉他：${displayHasDead ? "今晚有人死亡" : "今晚无人死亡"}。`;
+    }
     default:
       return null;
   }

@@ -66,23 +66,26 @@ const calculateResult = async (
       return isEvilType || !!s.isEvilConverted;
     }).length;
 
-  // 检查场上是否有涡流
-  const hasVortox = snapshot.seats.some((s: Seat) => s.role?.id === "vortox");
+  // 检查场上是否有存活涡流
+  const hasVortox = snapshot.seats.some((s: Seat) => s.role?.id === "vortox" && !s.isDead);
 
   const isCorrupted = !abilityEffective || !isAbilityActive;
 
   // 确定最终显示的信息
   let finalCount = deadEvilCount;
 
-  if (storytellerInput?.fakeResult !== undefined) {
+  if (storytellerInput?.overrideResult !== undefined) {
+    finalCount = Number(storytellerInput.overrideResult);
+  } else if (storytellerInput?.fakeResult !== undefined) {
     finalCount = Number(storytellerInput.fakeResult);
   } else if (isCorrupted || hasVortox || isVortoxWorld) {
-    // 醉酒/中毒/涡流时，返回随机或错误信息
-    const randomOffset = Math.random() < 0.5 ? 1 : -1;
-    finalCount = Math.max(
-      0,
-      Math.min(snapshot.seats.length, deadEvilCount + randomOffset)
+    // 醉酒/中毒/涡流时：必须返回与 deadEvilCount 不同的错误数字
+    const fakeCandidates = [0, 1, 2, 3, 4].filter(
+      (n) => n <= snapshot.seats.length && n !== deadEvilCount
     );
+    finalCount =
+      fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
+      (deadEvilCount === 0 ? 1 : 0);
   }
 
   const result = {

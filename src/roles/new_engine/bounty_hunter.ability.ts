@@ -51,25 +51,35 @@ const calculateResult = async (
           s.alignment === "evil")
     );
 
-    if (!isActive) {
-      // 醉酒/中毒：从善良存活玩家中选目标（虚假信息）
-      const goodOnes = ctx.snapshot.seats.filter(
+    const hasVortox =
+      Boolean(
+        ctx.snapshot.globalEffects?.vortoxWorld ??
+          (ctx.snapshot as any).vortoxWorld ??
+          (ctx.snapshot as any).isVortoxWorld
+      ) ||
+      ctx.snapshot.seats.some(
+        (s: any) => s.role?.id === "vortox" && !s.isDead
+      );
+
+    const isCorrupted = !isActive || hasVortox;
+
+    if (isCorrupted) {
+      // 醉酒/中毒/涡流：必须返回虚假目标（绝对不能指向邪恶玩家）
+      const nonEvilAlive = ctx.snapshot.seats.filter(
         (s: any) =>
           s.isAlive &&
           s.id !== ctx.actionNode.seatId &&
-          s.role &&
-          !s.isEvilConverted &&
-          s.alignment !== "evil" &&
-          (s.role.type === "townsfolk" || s.role.type === "outsider")
+          !aliveEvils.some((e: any) => e.id === s.id)
       );
-      if (goodOnes.length > 0) {
-        targetId = goodOnes[Math.floor(Math.random() * goodOnes.length)].id;
+      if (nonEvilAlive.length > 0) {
+        targetId =
+          nonEvilAlive[Math.floor(Math.random() * nonEvilAlive.length)].id;
+      } else {
+        // 极端全邪恶情况，指向自己作为假目标
+        targetId = ctx.actionNode.seatId;
       }
-    }
-
-    // 如果未选中（正常情况或虚假失败），从邪恶玩家中选择：
-    // 🎯 规则：只要有其他邪恶玩家在场，优先得知非恶魔的其他玩家（爪牙、转邪恶镇民等），避免开局直接暴露恶魔
-    if (targetId === null && aliveEvils.length > 0) {
+    } else if (aliveEvils.length > 0) {
+      // 正常情况：优先得知非恶魔的邪恶玩家
       const nonDemonEvils = aliveEvils.filter(
         (s: any) => s.role?.type !== "demon"
       );

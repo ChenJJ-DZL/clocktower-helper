@@ -675,8 +675,19 @@ export function useDayActions(deps: DayActionsDeps) {
         });
         return;
       }
+      if (config.roleId === "savant" || config.roleId === "savant_mr") {
+        if (seat.hasUsedDayAbility || seat.dayAbilityResult) {
+          handleViewDayAbilityResult(seat.id);
+          return;
+        }
+        setCurrentModal({
+          type: "SAVANT_RESULT",
+          data: { infoA: "", infoB: "", isReadOnly: false },
+        });
+        return;
+      }
       if (
-        ["savant_mr", "amnesiac", "fisherman", "engineer", "gossip"].includes(
+        ["amnesiac", "fisherman", "engineer", "gossip"].includes(
           config.roleId
         )
       ) {
@@ -751,12 +762,15 @@ export function useDayActions(deps: DayActionsDeps) {
           showAlert(res.result, "🎨 艺术家技能结果");
           return;
         }
-        if (res.type === "SAVANT_RESULT" && (res.infoA || res.infoB)) {
+        if (
+          res.type === "SAVANT_RESULT" &&
+          (res.infoA || res.infoB || res.info1 || res.info2)
+        ) {
           setCurrentModal({
             type: "SAVANT_RESULT",
             data: {
-              infoA: res.infoA || "",
-              infoB: res.infoB || "",
+              infoA: res.infoA || res.info1 || "",
+              infoB: res.infoB || res.info2 || "",
               isReadOnly: true,
             },
           });
@@ -825,12 +839,12 @@ export function useDayActions(deps: DayActionsDeps) {
       }
 
       // ── 博学者专用 ────────────────────────────────────
-      if (effectiveRole.id === "savant") {
+      if (effectiveRole.id === "savant" || effectiveRole.id === "savant_mr") {
         if (sourceSeat.isDead && !sourceSeat.hasAbilityEvenDead) {
           showAlert("博学者已死亡，无法发动技能。");
           return;
         }
-        if (sourceSeat.hasUsedDayAbility) {
+        if (sourceSeat.hasUsedDayAbility || sourceSeat.dayAbilityResult) {
           handleViewDayAbilityResult(sourceSeatId);
           return;
         }
@@ -916,15 +930,13 @@ export function useDayActions(deps: DayActionsDeps) {
 
       // ── 包含模态弹窗的日间能力（如造谣者/失忆者/渔夫/技师等） ─────
       if (
-        ["savant_mr", "amnesiac", "fisherman", "engineer", "gossip"].includes(
+        ["amnesiac", "fisherman", "engineer", "gossip"].includes(
           effectiveRole.id
         )
       ) {
         if (
-          (sourceSeat.hasUsedDayAbility ||
-            (effectiveRole.id === "slayer" &&
-              sourceSeat.hasUsedSlayerAbility)) &&
-          effectiveRole.id !== "savant_mr"
+          sourceSeat.hasUsedDayAbility ||
+          (effectiveRole.id === "slayer" && sourceSeat.hasUsedSlayerAbility)
         ) {
           handleViewDayAbilityResult(sourceSeatId);
           return;

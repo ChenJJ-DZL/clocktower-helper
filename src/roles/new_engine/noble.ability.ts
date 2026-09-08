@@ -82,11 +82,52 @@ const calculate = async (
   });
 
   let chosen: any[] = [];
-  const isCorrupted = ctx.meta.isPoisoned || ctx.meta.isDrunk;
+  const hasVortox =
+    Boolean(
+      ctx.snapshot.globalEffects?.vortoxWorld ??
+        (ctx.snapshot as any).vortoxWorld ??
+        (ctx.snapshot as any).isVortoxWorld
+    ) ||
+    ctx.snapshot.seats.some(
+      (s: any) => s.role?.id === "vortox" && !s.isDead
+    );
+
+  const isCorrupted =
+    Boolean(ctx.meta.isPoisoned) ||
+    Boolean(ctx.meta.isDrunk) ||
+    ctx.meta.abilityEffective === false ||
+    hasVortox;
 
   if (isCorrupted || evilCandidates.length === 0 || goodCandidates.length < 2) {
-    const shuffled = [...seats].sort(() => Math.random() - 0.5);
-    chosen = shuffled.slice(0, 3);
+    // 严格保证选出的 3 人中邪恶玩家数量 != 1（0 邪或 >=2 邪），绝对杜绝真信息穿透
+    if (goodCandidates.length >= 3) {
+      const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);
+      chosen = shuffledGood.slice(0, 3);
+    } else if (evilCandidates.length >= 2 && goodCandidates.length >= 1) {
+      const shuffledEvil = [...evilCandidates].sort(() => Math.random() - 0.5);
+      const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);
+      chosen = [shuffledEvil[0], shuffledEvil[1], shuffledGood[0]].sort(
+        () => Math.random() - 0.5
+      );
+    } else {
+      let attempts = 0;
+      let valid = false;
+      while (attempts < 30 && !valid) {
+        attempts++;
+        const shuffled = [...seats].sort(() => Math.random() - 0.5);
+        const trio = shuffled.slice(0, 3);
+        const evilCount = trio.filter((s) =>
+          evilCandidates.some((e) => e.id === s.id)
+        ).length;
+        if (evilCount !== 1) {
+          chosen = trio;
+          valid = true;
+        }
+      }
+      if (!valid) {
+        chosen = [...seats].slice(0, 3);
+      }
+    }
   } else {
     const shuffledEvil = [...evilCandidates].sort(() => Math.random() - 0.5);
     const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);

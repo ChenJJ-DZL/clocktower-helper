@@ -85,10 +85,14 @@ export const abilityPriorityCalculation = async (
     ? "drunk"
     : ((seat as any).charadeRole?.id ?? seat.role?.id ?? "");
 
+  const hasAliveVortoxDemon = snapshot.seats.some(
+    (s: any) => s.role?.id === "vortox" && !s.isDead
+  );
   const isVortoxWorld = Boolean(
-    snapshot.globalEffects?.vortoxWorld ??
+    (snapshot.globalEffects?.vortoxWorld ??
       snapshot.vortoxWorld ??
-      snapshot.isVortoxWorld
+      snapshot.isVortoxWorld) ||
+      hasAliveVortoxDemon
   );
 
   // 仅信息获取类镇民在涡流下获得 100% 错误信息；非信息类镇民能力完全正常生效

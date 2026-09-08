@@ -57,15 +57,33 @@ const calculateResult = async (
       }
     }
 
-    wokenCount = targetIds.filter((tid: number) =>
+    const realWokenCount = targetIds.filter((tid: number) =>
       wokenPlayers.has(tid)
     ).length;
-  } else {
-    // 醉酒/中毒时，可能返回错误结果（随机值 0-2）
-    wokenCount = Math.floor(Math.random() * 3);
-  }
 
-  // 涡流在场时信息也会反转（但这里简化处理，如果涡流存在，由 storyteller 自行判断）
+    const hasVortox =
+      Boolean(
+        context.snapshot.globalEffects?.vortoxWorld ??
+          (context.snapshot as any).vortoxWorld ??
+          (context.snapshot as any).isVortoxWorld
+      ) ||
+      context.snapshot.seats.some(
+        (s: any) => s.role?.id === "vortox" && !s.isDead
+      );
+
+    if (!isAbilityActive || hasVortox) {
+      // 醉酒/中毒/涡流时：100% 返回错误结果（从 0-2 中排除 realWokenCount）
+      const fakeCandidates = [0, 1, 2].filter((v) => v !== realWokenCount);
+      wokenCount =
+        fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
+        (realWokenCount === 0 ? 1 : 0);
+    } else {
+      wokenCount = realWokenCount;
+    }
+  } else {
+    // 默认兜底假信息（排除 0）
+    wokenCount = 1;
+  }
 
   const result = {
     targetIds,

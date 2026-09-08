@@ -239,10 +239,18 @@ function resolveExecutedRole(
  */
 function generateFakeRoleName(
   executedSeatId: number,
-  seats: PlayerLookup[]
+  seats: PlayerLookup[],
+  realRoleName?: string
 ): string {
-  const others = seats.filter((s: any) => s.id !== executedSeatId && s.role);
-  if (others.length === 0) return "洗衣妇";
+  const others = seats.filter(
+    (s: any) =>
+      s.id !== executedSeatId &&
+      s.role &&
+      (!realRoleName || s.role.name !== realRoleName)
+  );
+  if (others.length === 0) {
+    return realRoleName === "洗衣妇" ? "男爵" : "洗衣妇";
+  }
   const random = others[Math.floor(Math.random() * others.length)];
   return random.role?.name ?? "洗衣妇";
 }
@@ -280,6 +288,15 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "被处决玩家数据不存在" };
   }
 
+  const hasVortox =
+    Boolean(
+      snapshot.globalEffects?.vortoxWorld ??
+        snapshot.vortoxWorld ??
+        snapshot.isVortoxWorld
+    ) || snapshot.seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
+
+  const isCorrupted = !abilityEffective || hasVortox;
+
   // 优先级 1：说书人手动覆盖
   if (storytellerInput?.overrideResult) {
     return {
@@ -287,13 +304,13 @@ const calculateResult = async (
       meta: {
         ...context.meta,
         abilityResult: storytellerInput.overrideResult as UndertakerInfo,
-        isCorrupted: !abilityEffective,
+        isCorrupted,
       },
     };
   }
 
   // 优先级 2：说书人预设假信息
-  if (!abilityEffective && storytellerInput?.fakeResult) {
+  if (isCorrupted && storytellerInput?.fakeResult) {
     return {
       ...context,
       meta: {
@@ -304,10 +321,17 @@ const calculateResult = async (
     };
   }
 
+  // 预先获取真实角色名（用于排除真角色）
+  const roleSnapshot = meta.executedRoleSnapshot as string | undefined;
+  const realRoleName =
+    roleSnapshot && roleSnapshot !== "未知角色"
+      ? roleSnapshot
+      : resolveExecutedRole(executedSeat, snapshot.seats);
+
   // 优先级 3：预置首夜信息
   if (meta.initialNightInfo?.undertakerInfo) {
     const preset = meta.initialNightInfo.undertakerInfo as UndertakerInfo;
-    if (!abilityEffective) {
+    if (isCorrupted) {
       return {
         ...context,
         meta: {
@@ -316,7 +340,8 @@ const calculateResult = async (
             executedSeatId: preset.executedSeatId,
             roleName: generateFakeRoleName(
               preset.executedSeatId,
-              snapshot.seats
+              snapshot.seats,
+              preset.roleName || realRoleName
             ),
           } as UndertakerInfo,
           isCorrupted: true,
@@ -334,13 +359,9 @@ const calculateResult = async (
   }
 
   // 优先级 4：动态计算
-  // 优先使用 preCheck 时保存的角色快照（避免处决后角色变化导致"未知角色"）
-  const roleSnapshot = meta.executedRoleSnapshot as string | undefined;
-  const roleName = abilityEffective
-    ? roleSnapshot && roleSnapshot !== "未知角色"
-      ? roleSnapshot
-      : resolveExecutedRole(executedSeat, snapshot.seats)
-    : generateFakeRoleName(executedSeatId, snapshot.seats);
+  const roleName = isCorrupted
+    ? generateFakeRoleName(executedSeatId, snapshot.seats, realRoleName)
+    : realRoleName;
 
   const result: UndertakerInfo = {
     executedSeatId,
@@ -352,7 +373,7 @@ const calculateResult = async (
     meta: {
       ...context.meta,
       abilityResult: result,
-      isCorrupted: !abilityEffective,
+      isCorrupted,
     },
   };
 };

@@ -167,15 +167,31 @@ function generateRealInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
 }
 
 function generateFakeInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
+  // 假信息定义：两名玩家中必须至少有 1 名是恶魔（真信息是"2名玩家不是恶魔"）
+  const demons = seats.filter(
+    (s: any) =>
+      s.id !== selfSeatId &&
+      !s.isDead &&
+      (s.role?.type === "demon" || DEMON_IDS.has(s.role?.id))
+  );
   const others = seats.filter(
     (s: any) => s.id !== selfSeatId && !s.isDead && s.role
   );
-  const shuffled = [...others].sort(() => Math.random() - 0.5);
-  const chosen = shuffled.slice(0, 2);
+
+  if (demons.length > 0) {
+    const demon = demons[Math.floor(Math.random() * demons.length)];
+    const otherCandidates = others.filter((s: any) => s.id !== demon.id);
+    const second =
+      otherCandidates.length > 0
+        ? otherCandidates[Math.floor(Math.random() * otherCandidates.length)]
+        : demon;
+    const pair = [demon.id, second.id].sort(() => Math.random() - 0.5);
+    return { seat1: pair[0], seat2: pair[1] };
+  }
 
   return {
-    seat1: chosen[0]?.id ?? selfSeatId,
-    seat2: chosen[1]?.id ?? chosen[0]?.id ?? selfSeatId,
+    seat1: selfSeatId,
+    seat2: selfSeatId,
   };
 }
 
@@ -191,9 +207,18 @@ function resolveKnightInfo(
     return storytellerInput.overrideResult as KnightInfo;
   }
 
-  return abilityEffective
-    ? generateRealInfo(snapshot.seats, selfSeatId)
-    : generateFakeInfo(snapshot.seats, selfSeatId);
+  const hasVortox =
+    Boolean(
+      snapshot.globalEffects?.vortoxWorld ??
+        snapshot.vortoxWorld ??
+        snapshot.isVortoxWorld
+    ) || snapshot.seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
+
+  const isCorrupted = !abilityEffective || hasVortox;
+
+  return isCorrupted
+    ? generateFakeInfo(snapshot.seats, selfSeatId)
+    : generateRealInfo(snapshot.seats, selfSeatId);
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────

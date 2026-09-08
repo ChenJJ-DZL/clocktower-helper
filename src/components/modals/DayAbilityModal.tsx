@@ -51,8 +51,10 @@ export function DayAbilityModal({ modal }: { modal: any }) {
         alert("请填写两条信息（其中一真一假）。");
         return;
       }
+      const infoA = props.dayAbilityForm.info1;
+      const infoB = props.dayAbilityForm.info2;
       props.addLog(
-        `${seat.id + 1}号(博学者) 今日私聊信息：【真/假 1】${props.dayAbilityForm.info1} | 【真/假 2】${props.dayAbilityForm.info2}`
+        `${seat.id + 1}号(博学者) 今日私聊信息：【真/假 1】${infoA} | 【真/假 2】${infoB}`
       );
       props.setDayAbilityLogs((prev: any[]) => [
         ...prev,
@@ -60,11 +62,26 @@ export function DayAbilityModal({ modal }: { modal: any }) {
           id: seat.id,
           roleId,
           day: props.nightCount,
-          text: `信息1: ${props.dayAbilityForm.info1} | 信息2: ${props.dayAbilityForm.info2}`,
+          text: `信息1: ${infoA} | 信息2: ${infoB}`,
         },
       ]);
       props.markDailyAbilityUsed?.("savant", seat.id);
       props.markDailyAbilityUsed?.("savant_mr", seat.id);
+      props.setSeats?.((prev: any[]) =>
+        prev.map((s) =>
+          s.id === seat.id
+            ? {
+                ...s,
+                hasUsedDayAbility: true,
+                dayAbilityResult: {
+                  type: "SAVANT_RESULT",
+                  infoA,
+                  infoB,
+                },
+              }
+            : s
+        )
+      );
       closeModal();
       return;
     }
