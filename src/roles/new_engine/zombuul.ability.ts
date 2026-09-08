@@ -66,7 +66,7 @@ const calculateKillTargets = async (
 const updateKillState = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { snapshot, meta } = context;
+  const { snapshot, meta, storytellerInput } = context;
   const validTargets = meta?.validTargets as number[];
 
   if (!validTargets || validTargets.length === 0) {
@@ -84,7 +84,13 @@ const updateKillState = async (
   let mayorSubstitute: any = null;
   let mayorSaved = false;
   if (targetSeat0) {
-    const mayorRes = resolveMayorDemonKill(seats, targetSeat0, aliveCount);
+    const mayorRes = resolveMayorDemonKill(
+      seats,
+      targetSeat0,
+      aliveCount,
+      undefined,
+      storytellerInput?.mayorSubstituteId
+    );
     if (mayorRes.isMayor) {
       console.log(`[Zombuul] ${mayorRes.logMessage}`);
       if (mayorRes.substituted && mayorRes.substituteSeat) {

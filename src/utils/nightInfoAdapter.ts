@@ -223,8 +223,15 @@ export function calculateNightInfoViaNewEngine(
     return null;
   }
 
-  // 系统信息步骤（minion_info / demon_info）：直接生成信息，不查角色定义
-  if (systemStepRoleId) {
+  // 系统信息步骤（minion_info / demon_info / legion / good_twin）：直接生成信息，不查角色定义
+  const isSystemStep = [
+    "minion_info",
+    "demon_info",
+    LEGION_MUTUAL_RECOGNITION_ID,
+    "good_twin_info",
+  ].includes(systemStepRoleId || "");
+
+  if (systemStepRoleId && isSystemStep) {
     return generateSystemInfoViaAdapter(
       systemStepRoleId,
       seats,
@@ -241,7 +248,8 @@ export function calculateNightInfoViaNewEngine(
     return null;
   }
 
-  const roleId = targetSeat.role.id;
+  // 若存在角色覆盖（如小精灵执行继承角色技能），使用覆盖的角色ID
+  const roleId = systemStepRoleId || targetSeat.role.id;
 
   // 🛡️ 首夜恶魔信息保障：官方规则中恶魔（如小恶魔、军团等）首夜不执行夜杀，其首夜行动均为恶魔伪装与互认信息
   if (gamePhase === "firstNight" && targetSeat.role.type === "demon") {
@@ -284,7 +292,8 @@ export function calculateNightInfoViaNewEngine(
     executedToday,
     _hasUsedAbilityFn,
     _votedThisRound,
-    _outsiderDiedToday
+    _outsiderDiedToday,
+    systemStepRoleId
   );
 
   if (!rawNightInfo) return null;

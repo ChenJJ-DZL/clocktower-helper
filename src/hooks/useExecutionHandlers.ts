@@ -649,6 +649,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             v = 0;
           }
         }
+
+        // 乞丐（Beggar）规则检查：如果乞丐选择了某玩家，该玩家参与投票时计为2票（总票数+1）
+        const beggarSeat = seats.find((s) => s.role?.id === "beggar" && !s.isDead);
+        const beggarTargetId = (beggarSeat as any)?.beggarTargetId ?? (beggarSeat as any)?.beggarVoteSource;
+        if (beggarTargetId != null && effectiveVoters.includes(beggarTargetId)) {
+          v = v + 1;
+          addLog(`🗳️ 乞丐效果生效：${beggarTargetId + 1}号投票计为 2 票（+1 票）`);
+        }
+
         voters = effectiveVoters;
       }
 
@@ -1146,10 +1155,12 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     // 重新计算非首夜的系统步骤映射（如罂粟种植者死亡触发的邪恶互认；无则清空旧首夜映射）
     const stepMap = new Map<number, string>();
     queue.forEach((node: any, idx: number) => {
+      const seat = seats.find((s: Seat) => s.id === node.seatId);
       if (
         node.roleId === "minion_info" ||
         node.roleId === "demon_info" ||
-        node.roleId === LEGION_MUTUAL_RECOGNITION_ID
+        node.roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+        (seat && node.roleId !== seat.role?.id)
       ) {
         stepMap.set(idx, node.roleId);
       }

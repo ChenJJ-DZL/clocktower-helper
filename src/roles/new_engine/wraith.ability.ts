@@ -1,10 +1,10 @@
 /**
- * 幽灵（Wraith）新引擎技能实现
+ * 亡魂 / 幽灵（Wraith）新引擎技能实现
  *
- * 【角色能力】"首夜，选择一名善良玩家。如果该玩家白天死亡，你获得其能力。"
+ * 【官方角色能力】"你可以在夜晚睁眼。当其他邪恶玩家被唤醒时，你也会被唤醒。"
  *
- * FIRST_NIGHT 触发，说书人选择一名善良玩家作为目标。
- * 记录 wraithTarget 到 snapshot，供白天死亡检测逻辑使用。
+ * 亡魂不主动选人。当说书人唤醒其他邪恶玩家时，将亡魂与邪恶玩家共同唤醒。
+ * targetConfig: min: 0, max: 0
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
@@ -23,19 +23,12 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
-  const targetRole =
-    targetId != null
-      ? (ctx.snapshot.roleAssignments?.[targetId]?.id ?? null)
-      : null;
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
-        targetId,
-        targetRole,
-        wraithTarget: targetId,
+        isWraithAwake: true,
       },
     },
   };
@@ -44,40 +37,34 @@ const calculate = async (
 const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const r = ctx.meta.abilityResult as any;
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
-      wraithTarget: r.targetId,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
-        wraith: r,
+        wraith: { active: true },
       },
     },
-    meta: { ...ctx.meta, wraithResult: r },
+    meta: { ...ctx.meta, wraithResult: { active: true } },
   };
 };
 
 const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const r = ctx.meta.abilityResult as any;
-  const log =
-    "[幽灵] " +
-    (r.targetId != null
-      ? `目标: ${r.targetId + 1} 号 (${r.targetRole ?? "未知"})`
-      : "未选择目标");
+  const log = `[亡魂/幽灵] 亡魂在场，可随其他邪恶玩家一同睁眼。`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt:
-        "唤醒" +
-        (ctx.actionNode.seatId + 1) +
-        "号【幽灵】，选择一名善良玩家作为目标。",
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【亡魂/幽灵】，提醒其可在其他邪恶玩家行动时睁眼。`,
       abilityLog: log,
+      displayInfo: {
+        type: "info",
+        log,
+      },
     },
   };
 };
@@ -85,13 +72,13 @@ const postProcess = async (
 export const wraithAbility = createRoleAbility({
   roleId: "wraith",
   abilityId: "wraith_night",
-  abilityName: "幽灵",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
+  abilityName: "亡魂",
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: 3,
   otherNightPriority: 2,
-  firstNightOnly: true,
+  firstNightOnly: false,
   wakePromptId: "role.wraith.wake",
-  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
   preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

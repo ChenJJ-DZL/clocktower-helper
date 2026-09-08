@@ -83,10 +83,25 @@ export function generateDynamicNightQueue(
     const poppyGrowerDiedAndTriggersEvil =
       (snapshot as any).poppyGrowerDead === true;
 
+    // 🧚 小精灵能力继承：若为非首夜、原本仅首夜行动的角色（如图书管理员、厨师），
+    //   但场上有存活小精灵刚刚继承了该能力且当晚尚未唤醒使用过，允许进队列！
+    const hasPixiePendingInheritedAbility =
+      !isFirstNight &&
+      firstNightOnly &&
+      snapshot.seats.some(
+        (s) =>
+          s.role?.id === "pixie" &&
+          !s.isDead &&
+          ((s as any).pixieCopiedRole === entry.roleId ||
+            (s as any).acquiredAbilities?.includes?.(entry.roleId)) &&
+          !(s as any).pixieAbilityUsed
+      );
+
     if (
       !isFirstNight &&
       firstNightOnly &&
-      !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)
+      !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil) &&
+      !hasPixiePendingInheritedAbility
     ) {
       return false;
     }
@@ -95,7 +110,8 @@ export function generateDynamicNightQueue(
     if (
       firstNightOnly &&
       (snapshot as any).hasCompletedFirstNight &&
-      !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil)
+      !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil) &&
+      !hasPixiePendingInheritedAbility
     ) {
       return false;
     }
@@ -191,11 +207,26 @@ export function generateDynamicNightQueue(
     // 找到对应的座位（默认只找存活玩家）
     // includeDead 全局覆盖 + deadActorWakes 角色级覆盖（如间谍死后仍唤醒）
     const effectiveIncludeDead = (entry as any).deadActorWakes || includeDead;
-    const seat = snapshot.seats.find(
+    const directSeat = snapshot.seats.find(
       (s) =>
         getEffectiveRoleId(s) === entry.roleId &&
         (effectiveIncludeDead || !s.isDead)
     );
+
+    // 🧚 小精灵能力继承：若原角色未找到（不在场或已死亡），检查是否有存活且已激活该能力的小精灵
+    const pixieSeat = !directSeat
+      ? snapshot.seats.find(
+          (s) =>
+            s.role?.id === "pixie" &&
+            !s.isDead &&
+            ((s as any).pixieCopiedRole === entry.roleId ||
+              (s as any).acquiredAbilities?.includes?.(entry.roleId) ||
+              ((s as any).pixieMadnessRoleId === entry.roleId &&
+                (s as any).pixieHasAbility))
+        )
+      : undefined;
+
+    const seat = directSeat || pixieSeat;
 
     if (!seat) {
       return false;
@@ -277,13 +308,36 @@ export function generateDynamicNightQueue(
       seat = snapshot.seats.find((s) => s.role?.id === "legion" && !s.isDead)!;
     } else {
       seat = snapshot.seats.find(
-        (s) => getEffectiveRoleId(s) === entry.roleId
-      )!;
+        (s) =>
+          getEffectiveRoleId(s) === entry.roleId &&
+          (includeDead || (entry as any).deadActorWakes || !s.isDead)
+      );
+      if (!seat) {
+        seat = snapshot.seats.find(
+          (s) =>
+            s.role?.id === "pixie" &&
+            !s.isDead &&
+            ((s as any).pixieCopiedRole === entry.roleId ||
+              (s as any).acquiredAbilities?.includes?.(entry.roleId) ||
+              ((s as any).pixieMadnessRoleId === entry.roleId &&
+                (s as any).pixieHasAbility))
+        )!;
+      }
     }
+
+    const isPixieActor =
+      seat?.role?.id === "pixie" && entry.roleId !== "pixie";
+
     const roleName =
       entry.roleId === "demon_info" && seat?.role?.name
         ? `${seat.role.name}(恶魔互认)`
-        : entry.roleName;
+        : isPixieActor
+          ? `${entry.roleName}(小精灵)`
+          : entry.roleName;
+
+    const wakeMessage = isPixieActor
+      ? `唤醒${seat.id + 1}号【小精灵】（使用【${entry.roleName}】能力）`
+      : entry.wakeMessage;
 
     return {
       seatId: seat.id,
@@ -291,16 +345,18 @@ export function generateDynamicNightQueue(
       roleName,
       priority: isFirstNight
         ? entry.firstNightPriority
-        : entry.otherNightPriority,
+        : entry.otherNightPriority || entry.firstNightPriority,
       isFirstNightOnly: entry.firstNightOnly,
       abilityId: entry.abilityId,
-      wakeMessage: entry.wakeMessage,
+      wakeMessage,
       firstNightPriority: entry.firstNightPriority,
       otherNightPriority: entry.otherNightPriority,
       targetIds: [],
       processed: false,
       success: false,
-      meta: {},
+      meta: isPixieActor
+        ? { isPixieInherited: true, originalRoleId: "pixie" }
+        : {},
     };
   });
 

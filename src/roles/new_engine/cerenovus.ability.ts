@@ -54,7 +54,7 @@ const stateUpdate = async (
   const updatedSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === r.targetId) {
       const details = (s.statusDetails || []).filter(
-        (d: string) => !d.startsWith("洗脑疯狂:")
+        (d: any) => typeof d === "string" ? !d.startsWith("洗脑疯狂:") : true
       );
       return {
         ...s,

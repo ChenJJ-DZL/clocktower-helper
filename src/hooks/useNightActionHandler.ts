@@ -24,6 +24,7 @@ import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
+import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
@@ -351,6 +352,13 @@ export async function executeViaNewEngine(
     context.nightInfo?.seat?.id ??
     (ability as any).seatId ??
     context.seats.find((s) => s.role?.id === roleId)?.id ??
+    context.seats.find(
+      (s) =>
+        s.role?.id === "pixie" &&
+        !s.isDead &&
+        ((s as any).pixieCopiedRole === roleId ||
+          (s as any).acquiredAbilities?.includes?.(roleId))
+    )?.id ??
     -1;
   const actorSeat = context.seats.find((s) => s.id === actorId);
   const rawRoleName =
@@ -571,12 +579,22 @@ export async function executeViaNewEngine(
           context.nightInfo?.guideText ||
           `${displayName}信息已生成`;
 
+        const isEvilSystemStep = roleId === "demon_info" || roleId === "minion_info" || isLegion;
+        const hasAliveWraith = context.seats.some(
+          (s) => s.role?.id === "wraith" && !s.isDead
+        );
+        const systemExtraNote =
+          hasAliveWraith && isEvilSystemStep
+            ? "⚠️ 场上有存活的亡魂，请将亡魂与邪恶玩家共同唤醒并在场监督。"
+            : undefined;
+
         context.setCurrentModal({
           type: "NIGHT_ACTION_CONFIRM",
           data: {
             roleName: displayName,
             actionDescription: actionDesc,
             targetDescriptions: ["（首夜信息 - 无目标）"],
+            extraNote: systemExtraNote,
             onConfirm: () => {
               context.setCurrentModal({
                 type: "INFO_RESULT",
@@ -598,7 +616,7 @@ export async function executeViaNewEngine(
         return true;
       }
 
-      if (maxTargets === 0) {
+      if (maxTargets === 0 && roleId !== "ojo" && roleId !== "brewer") {
         // 不需要选择目标的能力（信息角色、间谍魔典等）
         // 间谍特殊：需要弹出对局记录/魔典查看界面
         if (roleId === "spy") {
@@ -623,6 +641,25 @@ export async function executeViaNewEngine(
           ? [`【双子告知】${evilTwinSeat.id + 1}号是镜像双子`]
           : ["（信息获取 - 无目标）"];
 
+        const hasAliveWraith = context.seats.some(
+          (s) => s.role?.id === "wraith" && !s.isDead
+        );
+        const isEvilActor =
+          actorSeat?.role?.type === "demon" ||
+          actorSeat?.role?.type === "minion" ||
+          (actorSeat?.role as any)?.team === "evil" ||
+          (actorSeat as any)?.isEvilConverted === true ||
+          ["demon_info", "minion_info"].includes(roleId);
+        const wraithNote =
+          hasAliveWraith && isEvilActor
+            ? "⚠️ 场上有存活的亡魂，请将亡魂与邪恶玩家共同唤醒并在场监督。"
+            : undefined;
+
+        const combinedNotes = [
+          isCorrupted ? "该角色处于醉酒/中毒状态，能力可能不生效" : null,
+          wraithNote,
+        ].filter(Boolean);
+
         // 执行后需要 UI 确认，不要自动跳过
         context.setCurrentModal({
           type: "NIGHT_ACTION_CONFIRM",
@@ -630,9 +667,8 @@ export async function executeViaNewEngine(
             roleName,
             actionDescription: mergedActionDesc,
             targetDescriptions: mergedTargets,
-            extraNote: isCorrupted
-              ? "该角色处于醉酒/中毒状态，能力可能不生效"
-              : undefined,
+            extraNote:
+              combinedNotes.length > 0 ? combinedNotes.join("\n") : undefined,
             onConfirm: async () => {
               const realContext: NightActionHandlerContext = {
                 ...context,
@@ -661,6 +697,65 @@ export async function executeViaNewEngine(
         isGoodTwin(actorId);
 
       const openActiveSkillModal = () => {
+        const hasToymaker =
+          context.seats.some((s) => s.role?.id === "toymaker") ||
+          ((context as any).snapshot as any)?.fabled?.some?.((f: any) =>
+            typeof f === "string" ? f === "toymaker" : f?.id === "toymaker"
+          );
+        const isDemonActor =
+          actorSeat?.role?.type === "demon" ||
+          [
+            "imp",
+            "po",
+            "zombuul",
+            "pukka",
+            "shabaloth",
+            "fang_gu",
+            "vigor_mortis",
+            "no_dashii",
+            "vortox",
+            "ojo",
+            "al_hadikhia",
+            "legion",
+            "kazali",
+            "leviathan",
+            "riot",
+            "lil_monsta",
+          ].includes(roleId);
+        const effectiveMinTargets = hasToymaker && isDemonActor ? 0 : minTargets;
+
+        const hasAliveWraith = context.seats.some(
+          (s) => s.role?.id === "wraith" && !s.isDead
+        );
+        const isEvilActor =
+          actorSeat?.role?.type === "demon" ||
+          actorSeat?.role?.type === "minion" ||
+          (actorSeat?.role as any)?.team === "evil" ||
+          (actorSeat as any)?.isEvilConverted === true ||
+          ["demon_info", "minion_info"].includes(roleId);
+        const wraithNote =
+          hasAliveWraith && isEvilActor
+            ? "⚠️ 场上有存活的亡魂，请将亡魂与邪恶玩家共同唤醒并在场监督。"
+            : undefined;
+
+        const extraNotes: string[] = [];
+        if (isGoodTwinActiveActor) {
+          extraNotes.push(
+            `👥【双子告知】已告知该玩家：${evilTwinSeat.id + 1}号是镜像双子`
+          );
+        }
+        if (isCorrupted) {
+          extraNotes.push("该角色处于醉酒/中毒状态，能力可能不生效");
+        }
+        if (wraithNote) {
+          extraNotes.push(wraithNote);
+        }
+        if (hasToymaker && isDemonActor) {
+          extraNotes.push("🎭 玩具匠在场：恶魔可选择不选目标（空刀）跳过攻击");
+        }
+        const extraNote =
+          extraNotes.length > 0 ? extraNotes.join("\n") : undefined;
+
         // 😈 小恶魔自杀转火：若在进入前已明确选择自杀，且有多名存活爪牙，直接弹出爪牙晋升选择面板
         const isInitialImpSuicide =
           roleId === "imp" && safeTargets[0] === actorId;
@@ -706,19 +801,17 @@ export async function executeViaNewEngine(
             roleId,
             actionDescription,
             targetDescriptions,
-            targetLimit: { min: minTargets, max: maxTargets },
+            targetLimit: { min: effectiveMinTargets, max: maxTargets },
             actorSeatId: actorId,
             allowSelf,
             aliveOnly,
             initialSelectedTargets: safeTargets,
-            requiresRoleSelection: roleId === "cerenovus",
+            requiresRoleSelection: ["cerenovus", "ojo", "brewer"].includes(
+              roleId
+            ),
             availableRoles: context.roles,
             selectedScript: (context as any).selectedScript,
-            extraNote: isGoodTwinActiveActor
-              ? `👥【双子告知】已告知该玩家：${evilTwinSeat.id + 1}号是镜像双子`
-              : isCorrupted
-                ? "该角色处于醉酒/中毒状态，能力可能不生效"
-                : undefined,
+            extraNote,
             onConfirm: async (
               chosenTargets?: number[],
               chosenRoleIdOrRole?: any
@@ -730,6 +823,65 @@ export async function executeViaNewEngine(
                 finalTargets,
                 chosenRoleIdOrRole
               );
+
+              // 🎭 玩具匠跳过攻击判定
+              if (finalTargets.length === 0 && hasToymaker && isDemonActor) {
+                context.addLog(
+                  "🎭 玩具匠在场：恶魔选择跳过攻击，今晚无人被恶魔杀死"
+                );
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: [],
+                };
+                await executeViaNewEngine(realContext, roleId);
+                return;
+              }
+
+              // 🎭 镇长替死技能修正弹窗
+              const aliveCount = context.seats.filter((s) => !s.isDead).length;
+              const targetedMayor = context.seats.find(
+                (s) =>
+                  finalTargets.includes(s.id) &&
+                  s.role?.id === "mayor" &&
+                  !s.isDead &&
+                  !s.isDrunk &&
+                  !s.isPoisoned &&
+                  aliveCount >= 3
+              );
+              if (
+                isDemonActor &&
+                targetedMayor &&
+                context.actionData?.mayorSubstituteId === undefined
+              ) {
+                context.setCurrentModal({
+                  type: "STORYTELLER_SELECT",
+                  data: {
+                    sourceId: actorId,
+                    roleId: "mayor",
+                    roleName: "镇长",
+                    title: "🎭 技能修正：镇长替死判定",
+                    description: `恶魔攻击了【${targetedMayor.id + 1}号-镇长】！作为说书人，你可以选择由另一名存活玩家替死，或者选择镇长本人正常死亡：`,
+                    targetCount: 1,
+                    filterCandidates: (s: Seat) => !s.isDead,
+                    confirmLabel: "确认替死/击杀目标",
+                    onConfirm: async (targetIds: number[]) => {
+                      const chosenSubId = targetIds[0];
+                      const realContext: NightActionHandlerContext = {
+                        ...context,
+                        preview: false,
+                        selectedTargets: finalTargets,
+                        actionData: {
+                          ...(context.actionData || {}),
+                          mayorSubstituteId: chosenSubId,
+                        },
+                      };
+                      await executeViaNewEngine(realContext, roleId);
+                    },
+                  },
+                } as any);
+                return;
+              }
 
               // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
               const isImpSuicide =
@@ -785,13 +937,103 @@ export async function executeViaNewEngine(
                 const selectedRole = context.roles.find(
                   (r) => r.id === chosenRoleId
                 );
-                const chosenRoleName =
-                  selectedRole?.name || chosenRoleId;
+                const chosenRoleName = selectedRole?.name || chosenRoleId;
                 const realContext: NightActionHandlerContext = {
                   ...context,
                   preview: false,
                   selectedTargets: finalTargets,
                   actionData: { roleName: chosenRoleName, chosenRoleId },
+                };
+                await executeViaNewEngine(realContext, roleId);
+                return;
+              }
+
+              // 👁️ 奥乔：选择角色名进行暗杀
+              if (roleId === "ojo") {
+                const chosenRoleId =
+                  typeof chosenRoleIdOrRole === "string"
+                    ? chosenRoleIdOrRole
+                    : chosenRoleIdOrRole?.id;
+                if (!chosenRoleId) {
+                  alert("奥乔必须选择一个角色");
+                  return;
+                }
+                const selectedRole = context.roles.find(
+                  (r) => r.id === chosenRoleId
+                );
+                const chosenRoleName = selectedRole?.name || chosenRoleId;
+                const aliveTargetSeat = context.seats.find(
+                  (s) => s.role?.id === chosenRoleId && !s.isDead
+                );
+                if (!aliveTargetSeat) {
+                  context.setCurrentModal({
+                    type: "STORYTELLER_SELECT",
+                    data: {
+                      sourceId: actorId,
+                      roleId: "ojo",
+                      roleName: "奥乔",
+                      title: "👁️ 奥乔空刀替死指派",
+                      description: `奥乔选择了角色【${chosenRoleName}】，但该角色当前不在场或已死亡！请说书人指定一名存活玩家死亡：`,
+                      targetCount: 1,
+                      filterCandidates: (s: Seat) => !s.isDead,
+                      confirmLabel: "确认击杀该玩家",
+                      onConfirm: async (targetIds: number[]) => {
+                        const fallbackTargetId = targetIds[0];
+                        const realContext: NightActionHandlerContext = {
+                          ...context,
+                          preview: false,
+                          selectedTargets: [],
+                          actionData: {
+                            ...(context.actionData || {}),
+                            targetRoleId: chosenRoleId,
+                            fallbackTargetId,
+                          },
+                        };
+                        await executeViaNewEngine(realContext, roleId);
+                      },
+                    },
+                  } as any);
+                  return;
+                } else {
+                  const realContext: NightActionHandlerContext = {
+                    ...context,
+                    preview: false,
+                    selectedTargets: [aliveTargetSeat.id],
+                    actionData: {
+                      ...(context.actionData || {}),
+                      targetRoleId: chosenRoleId,
+                    },
+                  };
+                  await executeViaNewEngine(realContext, roleId);
+                  return;
+                }
+              }
+
+              // 🍺 酿酒师：选择镇民角色并预设信息
+              if (roleId === "brewer") {
+                const chosenRoleId =
+                  typeof chosenRoleIdOrRole === "string"
+                    ? chosenRoleIdOrRole
+                    : chosenRoleIdOrRole?.id;
+                if (!chosenRoleId) {
+                  alert("酿酒师必须选择一个镇民角色");
+                  return;
+                }
+                const selectedRole = context.roles.find(
+                  (r) => r.id === chosenRoleId
+                );
+                const chosenRoleName = selectedRole?.name || chosenRoleId;
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: [],
+                  actionData: {
+                    ...(context.actionData || {}),
+                    targetRoleId: chosenRoleId,
+                    roleId: chosenRoleId,
+                    message: `由酿酒师给出的【${chosenRoleName}】预设信息`,
+                    info: `由酿酒师给出的【${chosenRoleName}】预设信息`,
+                  },
                 };
                 await executeViaNewEngine(realContext, roleId);
                 return;
@@ -882,12 +1124,23 @@ export async function executeViaNewEngine(
         ? (resultContext as any)?.snapshot?._abilityResults?.fang_gu?.targetId
         : null;
     const fangGuActorId = (resultContext as any)?.actionNode?.seatId;
-    const syncedSeats: Seat[] = updatedSeats
+    let syncedSeats: Seat[] = updatedSeats
       ? updatedSeats.map((u: any) => {
           const prev = context.seats.find((s) => s.id === u.id);
           if (!prev) return u as Seat;
           const synced = syncStatusEffectsToSeat(prev, u);
-          let next = { ...prev, ...u, ...synced, id: prev.id } as Seat;
+          let next = {
+            ...prev,
+            ...u,
+            ...synced,
+            id: prev.id,
+            statusDetails: Array.from(
+              new Set([
+                ...(synced.statusDetails || []),
+                ...(u.statusDetails || []),
+              ])
+            ),
+          } as Seat;
           // 🔧 管家/侍从：把引擎算出的主人同步到 seat.masterId（否则投票校验读不到主人）
           if (
             butlerRec?.masterSet &&
@@ -941,6 +1194,7 @@ export async function executeViaNewEngine(
       : [];
 
     if (syncedSeats.length > 0) {
+      syncedSeats = checkAndUpdatePixieAbility(syncedSeats, context.addLog);
       context.setSeats(syncedSeats);
       // 🔧 补调 setDeadThisNight：新引擎管道（imp.ability 等）只设 markedForDeath → isDead，
       //   不调 killPlayer 也不记录 deadThisNight，导致天亮报告永远"平安夜"、
@@ -1309,6 +1563,10 @@ export async function executeViaNewEngine(
     // 标记能力已使用
     if (actorId !== undefined && actorId >= 0) {
       context.markAbilityUsed(roleId, actorId);
+      const actorSeat = syncedSeats.find((s) => s.id === actorId);
+      if (actorSeat && actorSeat.role?.id === "pixie" && roleId !== "pixie") {
+        (actorSeat as any).pixieAbilityUsed = true;
+      }
     }
 
     return true;

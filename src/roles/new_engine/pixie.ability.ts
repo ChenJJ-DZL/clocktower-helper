@@ -50,8 +50,14 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 
   const effects =
     seat.statusEffects ?? ctx.snapshot.statusEffects?.[seat.id] ?? [];
-  const isDrunk = effects.some((e: any) => e.type === "drunk");
-  const isPoisoned = effects.some((e: any) => e.type === "poisoned");
+  const isDrunk = effects.some((e: any) => e.type === "drunk") || !!seat.isDrunk;
+  const isPoisoned = effects.some((e: any) => e.type === "poisoned") || !!seat.isPoisoned;
+  const isVortox =
+    (ctx.snapshot as any).vortoxWorld ||
+    (ctx.snapshot as any).isVortoxWorld ||
+    ctx.snapshot.seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
+
+  const abilityEffective = !isDrunk && !isPoisoned && !isVortox;
 
   return {
     ...ctx,
@@ -59,7 +65,9 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
       ...ctx.meta,
       isDrunk,
       isPoisoned,
-      abilityEffective: !(isDrunk || isPoisoned),
+      isVortox,
+      abilityEffective,
+      isCorrupted: !abilityEffective,
     },
   };
 };
@@ -87,7 +95,7 @@ const calculate = async (
     };
   }
 
-  // 从所有在场 townsfolk 中随机/说书人选一个
+  // 从所有在场 townsfolk 中（排除小精灵自身）
   const allTownsfolk = ctx.snapshot.seats
     .filter(
       (s: any) => s.role?.type === "townsfolk" && s.id !== ctx.actionNode.seatId
@@ -98,27 +106,73 @@ const calculate = async (
       type: s.role.type,
     }));
 
+  const inPlayTownsfolkIds = new Set(
+    ctx.snapshot.seats
+      .filter((s: any) => s.role?.type === "townsfolk")
+      .map((s: any) => s.role?.id)
+  );
+
+  // 候选不在场镇民：优先从当前剧本中筛选不在场的镇民
+  const scriptRoles: any[] = (ctx.snapshot as any).selectedScript?.roles ?? [];
+  const outOfPlayTownsfolkFromScript = scriptRoles.filter(
+    (r: any) => r.type === "townsfolk" && !inPlayTownsfolkIds.has(r.id)
+  );
+
+  // 兜底官方标准镇民库
+  const fallbackTownsfolk = [
+    { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
+    { id: "librarian", name: "图书管理员", type: "townsfolk" },
+    { id: "investigator", name: "调查员", type: "townsfolk" },
+    { id: "chef", name: "厨师", type: "townsfolk" },
+    { id: "empath", name: "共情者", type: "townsfolk" },
+    { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
+    { id: "undertaker", name: "送葬者", type: "townsfolk" },
+    { id: "monk", name: "僧侣", type: "townsfolk" },
+    { id: "ravenkeeper", name: "守鸦人", type: "townsfolk" },
+    { id: "virgin", name: "处女", type: "townsfolk" },
+    { id: "slayer", name: "猎手", type: "townsfolk" },
+    { id: "soldier", name: "士兵", type: "townsfolk" },
+    { id: "mayor", name: "镇长", type: "townsfolk" },
+  ].filter((r) => !inPlayTownsfolkIds.has(r.id));
+
+  const outOfPlayTownsfolk =
+    outOfPlayTownsfolkFromScript.length > 0
+      ? outOfPlayTownsfolkFromScript
+      : fallbackTownsfolk;
+
   let picked: { id: string; name: string; type: string };
   if (ctx.storytellerInput?.pixieMadnessRoleId) {
-    const explicit = allTownsfolk.find(
-      (r) => r.id === ctx.storytellerInput.pixieMadnessRoleId
-    );
-    picked = explicit ??
-      allTownsfolk[0] ?? { id: "未知", name: "未知", type: "townsfolk" };
+    const explicit =
+      allTownsfolk.find(
+        (r) => r.id === ctx.storytellerInput.pixieMadnessRoleId
+      ) ||
+      outOfPlayTownsfolk.find(
+        (r) => r.id === ctx.storytellerInput.pixieMadnessRoleId
+      ) || {
+        id: ctx.storytellerInput.pixieMadnessRoleId,
+        name:
+          ctx.storytellerInput.pixieMadnessRoleName ||
+          ctx.storytellerInput.pixieMadnessRoleId,
+        type: "townsfolk",
+      };
+    picked = explicit;
+  } else if (!effective) {
+    // 醉酒/中毒/涡流：告知一个不在场的镇民角色
+    picked =
+      outOfPlayTownsfolk.length > 0
+        ? outOfPlayTownsfolk[
+            Math.floor(Math.random() * outOfPlayTownsfolk.length)
+          ]
+        : { id: "washerwoman", name: "洗衣妇", type: "townsfolk" };
   } else if (allTownsfolk.length > 0) {
-    if (!effective) {
-      // 醉酒/中毒：换一个不正确的（排除说书人指定如有）
-      const other = allTownsfolk.filter(
-        (r) => r.id !== (ctx.storytellerInput?.pixieMadnessRoleId ?? "")
-      );
-      picked =
-        other[Math.floor(Math.random() * other.length)] ?? allTownsfolk[0];
-    } else {
-      picked = allTownsfolk[Math.floor(Math.random() * allTownsfolk.length)];
-    }
+    picked = allTownsfolk[Math.floor(Math.random() * allTownsfolk.length)];
   } else {
-    picked = { id: "未知", name: "未知", type: "townsfolk" };
+    picked = { id: "chef", name: "厨师", type: "townsfolk" };
   }
+
+  const tag = !effective ? "【受干扰】" : "";
+  const infoText = `得知【${picked.name}】在场`;
+  const abilityLog = `[Pixie]${tag} 首夜得知一个在场镇民角色：${picked.name}（疯狂证明后，该镇民死亡时获得其能力）`;
 
   return {
     ...ctx,
@@ -130,6 +184,14 @@ const calculate = async (
         roleType: picked.type,
         isCorrupted: !effective,
       },
+      displayInfo: {
+        type: "pixie_info",
+        roleId: picked.id,
+        roleName: picked.name,
+        isCorrupted: !effective,
+        log: infoText,
+      },
+      abilityLog,
     },
   };
 };
@@ -146,12 +208,17 @@ const stateUpdate = async (
         ? {
             ...s,
             pixieCopiedRole: r.roleId,
+            pixieHasAbility: true,
             acquiredAbilities: [
               ...((s.acquiredAbilities as string[]) ?? []),
               ...(s.acquiredAbilities?.includes?.(r.roleId) ? [] : [r.roleId]),
             ],
             statusDetails: [
-              ...(s.statusDetails || []),
+              ...(s.statusDetails || []).filter(
+                (st: string) =>
+                  st !== "能力已激活" && !st.startsWith("获得死去镇民能力:")
+              ),
+              "能力已激活",
               `获得死去镇民能力:${r.roleName}`,
             ],
           }
@@ -170,11 +237,13 @@ const stateUpdate = async (
   const updatedSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === selfSeatId && r?.roleName) {
       const details = (s.statusDetails || []).filter(
-        (d: string) => !d.startsWith("伪装身份:")
+        (d: any) => typeof d === "string" ? !d.startsWith("伪装身份:") : true
       );
       return {
         ...s,
         pixieTargetRole: r.roleName,
+        pixieMadnessRoleId: r.roleId,
+        pixieMadnessRoleName: r.roleName,
         statusDetails: [...details, `伪装身份:${r.roleName}`],
       };
     }
@@ -207,7 +276,7 @@ const postProcess = async (
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: `唤醒${ctx.actionNode.seatId + 1}号【小精灵】，告知其一个在场镇民角色：${r?.roleName ?? "未知"}。他需"疯狂"地证明自己是该角色；当该玩家死亡时小精灵获得其能力。`,
+      prompt: `唤醒${ctx.actionNode.seatId + 1}号【小精灵】，展示角色标记告知其【${r?.roleName ?? "未知"}】在场。小精灵不知道该角色属于哪位玩家；需"疯狂"地证明自己是该角色，当该玩家死亡时小精灵获得其能力。`,
       abilityLog: log,
     },
   };
@@ -222,7 +291,7 @@ export const pixieAbility = createRoleAbility({
   otherNightPriority: null,
   firstNightOnly: true,
   wakePromptId: "role.pixie.wake",
-  targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
+  targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
   preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

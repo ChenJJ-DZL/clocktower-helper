@@ -149,7 +149,8 @@ export function resolveMayorDemonKill(
   seats: any[],
   targetSeat: SoldierCheckSeat | undefined,
   aliveCount?: number,
-  forcedRoll?: number
+  forcedRoll?: number,
+  chosenSubstituteId?: number | null
 ): MayorDemonKillResolution {
   if (!targetSeat || !isMayorSeat(targetSeat)) {
     return {
@@ -212,7 +213,32 @@ export function resolveMayorDemonKill(
     };
   }
 
-  // 4. 固定概率判定：5% 自己死亡，95% 镇民替代死亡
+  // 4. 若说书人手动指定了替死或自身死亡（技能修正交互）
+  if (chosenSubstituteId !== undefined) {
+    if (chosenSubstituteId === null || chosenSubstituteId === mayorId) {
+      return {
+        isMayor: true,
+        substituted: false,
+        substituteSeat: null,
+        reason: "self_killed_5_percent",
+        logMessage: `说书人选择镇长【${mayorName}】自己死亡（未触发替死）`,
+      };
+    }
+    const substitute = candidates.find((s: any) => s.id === chosenSubstituteId) || candidates[0];
+    const subName = substitute.playerName
+      ? `${substitute.playerName}(${substitute.id + 1}号)`
+      : `${substitute.id + 1}号`;
+    const subRoleName = substitute.role?.name || "镇民";
+    return {
+      isMayor: true,
+      substituted: true,
+      substituteSeat: substitute,
+      reason: "substituted_95_percent",
+      logMessage: `镇长【${mayorName}】触发替死能力，说书人指定【${subName}-${subRoleName}】替代死亡`,
+    };
+  }
+
+  // 5. 固定概率判定（未指定时）：5% 自己死亡，95% 镇民替代死亡
   const roll = forcedRoll !== undefined ? forcedRoll : Math.random();
   if (roll < 0.05) {
     return {

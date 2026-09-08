@@ -95,7 +95,12 @@ describe("小精灵：两阶段机制（首夜告知 + 死亡获能力）", () =
     expect(r.roleName).toBe("chef");
   });
 
-  it("醉酒/中毒：告知一个错误的镇民角色（可能不同）", async () => {
+  it("首夜 targetConfig 必须为 { min: 0, max: 0 } 无需选择目标", () => {
+    expect(pixieAbility.targetConfig.min).toBe(0);
+    expect(pixieAbility.targetConfig.max).toBe(0);
+  });
+
+  it("醉酒/中毒/涡流：告知一个不在场的镇民角色（虚假信息）", async () => {
     const seats: Seat[] = [
       makeSeat(0, "pixie", "townsfolk", { isDrunk: true }),
       makeSeat(1, "librarian", "townsfolk"),
@@ -110,33 +115,67 @@ describe("小精灵：两阶段机制（首夜告知 + 死亡获能力）", () =
     const res = await runFullAbilityPipeline(pipe(pixieAbility), ctx);
     const r = res.meta.abilityResult as any;
     expect(r.isCorrupted).toBe(true);
-    // 醉酒时应告知一个仍然正确的镇民（因为只有一个可选）
-    expect(["librarian", "chef"]).toContain(r.roleName);
+    // 醉酒/中毒时必须告知不在场的角色
+    expect(["librarian", "chef"]).not.toContain(r.roleId);
+    expect(res.meta.displayInfo?.log).toContain(r.roleName);
   });
 
-  it("死亡触发阶段：当得知的镇民玩家死亡时，小精灵获得其能力", async () => {
+  it("死亡触发阶段：当临摹镇民死亡时，小精灵角色不变并获得能力", async () => {
+    const { checkAndUpdatePixieAbility } = await import("../../../utils/pixieHelper");
     const seats: Seat[] = [
-      makeSeat(0, "pixie", "townsfolk"),
-      makeSeat(1, "librarian", "townsfolk", { isDead: true, isAlive: false }),
+      makeSeat(0, "pixie", "townsfolk", {
+        pixieMadnessRoleId: "fortune_teller",
+        pixieMadnessRoleName: "占卜师",
+      }),
+      makeSeat(1, "fortune_teller", "townsfolk", { isDead: true, isAlive: false }),
       makeSeat(2, "chef", "townsfolk"),
     ];
-    // 模拟首夜已记录：pixieMadnessRoleId = "librarian"
-    // 现在 1 号（librarian）已死亡
-    const ctx: any = {
-      actionNode: { seatId: 0, roleId: "pixie" },
-      targetIds: [],
-      snapshot: {
-        seats,
-        gamePhase: "night",
-        nightCount: 2,
-        pixieMadnessRoleId: "librarian",
-        pixieMadnessRoleName: "图书管理员",
-      },
-      meta: {},
+
+    const logs: string[] = [];
+    const updatedSeats = checkAndUpdatePixieAbility(seats, (msg) => logs.push(msg));
+
+    const pixieSeat = updatedSeats.find((s) => s.id === 0);
+    // 角色依然是小精灵，不改变
+    expect(pixieSeat?.role?.id).toBe("pixie");
+    // 获得占卜师能力
+    expect((pixieSeat as any).pixieCopiedRole).toBe("fortune_teller");
+    expect((pixieSeat as any).pixieHasAbility).toBe(true);
+    expect((pixieSeat as any).statusDetails).toContain("能力已激活");
+    expect((pixieSeat as any).statusDetails).toContain("获得死去镇民能力:占卜师");
+    expect(logs.length).toBeGreaterThan(0);
+  });
+
+  it("后续夜晚队列：临摹镇民死后，小精灵在原角色的顺位被唤醒", async () => {
+    const { generateDynamicNightQueue } = await import("../../../utils/dynamicQueueGenerator");
+    const { ENGINE_CONFIG } = await import("../../../hooks/useNightEngine");
+    const { checkAndUpdatePixieAbility } = await import("../../../utils/pixieHelper");
+
+    let seats: Seat[] = [
+      makeSeat(0, "pixie", "townsfolk", {
+        pixieMadnessRoleId: "fortune_teller",
+        pixieMadnessRoleName: "占卜师",
+      }),
+      makeSeat(1, "fortune_teller", "townsfolk", { isDead: true, isAlive: false }),
+      makeSeat(2, "imp", "demon"),
+    ];
+
+    // 占卜师死亡激活小精灵能力
+    seats = checkAndUpdatePixieAbility(seats);
+
+    const snapshot: any = {
+      seats,
+      gamePhase: "night",
+      nightCount: 2,
+      hasCompletedFirstNight: true,
     };
-    const res = await runFullAbilityPipeline(pipe(pixieAbility), ctx);
-    // 死亡触发模式：能力应被注册到 pixieCopiedRole
-    // （具体逻辑在 useNightEngine 死亡阶段，这里只验证首夜机制不被破坏）
-    expect(res.meta.abilityResult).toBeDefined();
+
+    const queue = generateDynamicNightQueue(ENGINE_CONFIG.fullNightOrder, snapshot, {
+      isFirstNight: false,
+    });
+
+    // 队列中应包含 0 号小精灵执行占卜师能力
+    const ftNode = queue.find((n) => n.roleId === "fortune_teller");
+    expect(ftNode).toBeDefined();
+    expect(ftNode?.seatId).toBe(0); // 小精灵的座位号
   });
 });

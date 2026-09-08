@@ -87,7 +87,13 @@ const updateKillState = async (
     for (const tid of validTargets) {
       const targetSeat = seats.find((s: any) => s.id === tid);
       if (!targetSeat) continue;
-      const mayorRes = resolveMayorDemonKill(seats, targetSeat, aliveCount);
+      const mayorRes = resolveMayorDemonKill(
+        seats,
+        targetSeat,
+        aliveCount,
+        undefined,
+        storytellerInput?.mayorSubstituteId
+      );
       if (mayorRes.isMayor) {
         console.log(`[Shabaloth] ${mayorRes.logMessage}`);
         if (mayorRes.substituted && mayorRes.substituteSeat) {

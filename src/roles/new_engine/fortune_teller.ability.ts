@@ -525,6 +525,7 @@ const postProcessResult = async (
           targetLabels: targetIds.map((id: number) => id + 1),
           roleName: `${(context.actionNode.seatId ?? 0) + 1}号-占卜师`,
           actorSeatNo: (context.actionNode.seatId ?? 0) + 1,
+          isCorrupted: meta.isCorrupted ?? false,
         },
       },
     },

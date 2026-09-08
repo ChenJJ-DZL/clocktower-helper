@@ -371,21 +371,87 @@ export function useDayActions(deps: DayActionsDeps) {
       }
 
       if (nominatorSeat?.role?.id === "golem") {
+        const hasUsedGolem =
+          hasUsedAbility("golem", sourceId) ||
+          nominatorSeat.hasUsedSlayerAbility ||
+          (nominatorSeat as any).golemUsed ||
+          (nominatorSeat as any).abilityUsed;
+        if (hasUsedGolem) {
+          addLog(
+            `提示：【${sourceId + 1}号-魔像】本局游戏已发起过一次提名，其能力每局限一次，本次提名无效`
+          );
+          return { success: false, virginHandled: false };
+        }
+
+        markAbilityUsed("golem", sourceId);
+
         const targetSeat = seats.find((s) => s.id === id);
+        const isRecluseDemon =
+          targetSeat?.role?.id === "recluse" &&
+          (targetSeat as any).registerAsEvil !== false;
         const isDemon =
           targetSeat &&
-          (targetSeat.role?.type === "demon" || targetSeat.isDemonSuccessor);
+          (targetSeat.role?.type === "demon" ||
+            targetSeat.isDemonSuccessor ||
+            isRecluseDemon);
+
+        setNominationRecords(
+          (prev: { nominators: Set<number>; nominees: Set<number> }) => ({
+            nominators: new Set(
+              prev?.nominators
+                ? prev.nominators instanceof Set
+                  ? prev.nominators
+                  : prev.nominators
+                : []
+            ).add(sourceId),
+            nominees: new Set(
+              prev?.nominees
+                ? prev.nominees instanceof Set
+                  ? prev.nominees
+                  : prev.nominees
+                : []
+            ).add(id),
+          })
+        );
+
+        const updatedSeats = seats.map((s) =>
+          s.id === sourceId
+            ? {
+                ...s,
+                hasUsedSlayerAbility: true,
+                golemUsed: true,
+                abilityUsed: true,
+              }
+            : s
+        );
+        setSeats(updatedSeats);
+
         if (!isDemon) {
           addLog(
-            `${sourceId + 1}号(魔像) 提名 ${id + 1}号，${id + 1}号不是恶魔，${id + 1}号死亡`
+            `🗿 【${sourceId + 1}号-魔像】提名了【${id + 1}号】，被提名者不是恶魔，被魔像直接处决杀死！（不进行常规投票）`
           );
-          dispatch({ type: "KILL_PLAYER", targetId: id, source: "golem" });
+          killPlayer(id, { source: "golem", recordNightDeath: false });
+          checkGameOver(updatedSeats, id);
+          setCurrentModal({
+            type: "EXECUTION_RESULT",
+            data: {
+              message: `【${sourceId + 1}号-魔像】提名了【${id + 1}号】！\n被提名者不是恶魔，直接被魔像处决杀死！（不进行常规投票）`,
+              isVirginTrigger: true,
+            },
+          });
+        } else {
+          addLog(
+            `🗿 【${sourceId + 1}号-魔像】提名了【${id + 1}号-恶魔】，目标是恶魔，未产生击杀。（魔像能力已消耗，不进行常规投票）`
+          );
+          setCurrentModal({
+            type: "EXECUTION_RESULT",
+            data: {
+              message: `【${sourceId + 1}号-魔像】提名了【${id + 1}号】！\n被提名者是恶魔，未产生击杀。（魔像能力已消耗，不进行常规投票）`,
+              isVirginTrigger: true,
+            },
+          });
         }
-        setSeats((p) =>
-          p.map((s) =>
-            s.id === sourceId ? { ...s, hasUsedSlayerAbility: true } : s
-          )
-        );
+        return { success: true, virginHandled: true };
       }
 
       setNominationRecords(

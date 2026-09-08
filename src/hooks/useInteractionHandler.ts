@@ -646,18 +646,44 @@ export function useInteractionHandler(deps: {
         // 小精灵"疯狂证明"状态切换
         const seatAny = seat as any;
         const isMad = !!seatAny.pixieMadnessConfirmed;
+        const nextMad = !isMad;
+        const madRoleId = seatAny.pixieMadnessRoleId;
+        const targetSeat = state.seats.find((s) => s.role?.id === madRoleId && s.id !== targetId);
+        const isTargetDead = targetSeat?.isDead === true;
+
+        const details = (seat.statusDetails || []).filter(
+          (st) => st !== "能力已激活" && !st.startsWith("获得死去镇民能力:")
+        );
+        let pixieHasAbility = false;
+        let pixieCopiedRole = undefined;
+        let acquiredAbilities: string[] = [];
+
+        if (nextMad && isTargetDead && madRoleId) {
+          pixieHasAbility = true;
+          pixieCopiedRole = madRoleId;
+          acquiredAbilities = [madRoleId];
+          const roleName = seatAny.pixieMadnessRoleName || targetSeat?.role?.name || madRoleId;
+          details.push("能力已激活", `获得死去镇民能力:${roleName}`);
+        }
+
         dispatch(
           gameActions.updateSeat(targetId, {
-            pixieMadnessConfirmed: !isMad,
+            pixieMadnessConfirmed: nextMad,
+            pixieHasAbility,
+            pixieCopiedRole,
+            acquiredAbilities,
+            statusDetails: details,
           } as any)
         );
         dispatch(
           gameActions.addLog({
             day: state.nightCount || 0,
             phase: state.gamePhase,
-            message: isMad
-              ? `🎭 已取消 ${targetId + 1}号【小精灵】的"疯狂证明"状态。`
-              : `🎭 说书人判定 ${targetId + 1}号【小精灵】足够疯狂地证明了角色身份。`,
+            message: nextMad
+              ? (isTargetDead
+                  ? `🎭 说书人确认 ${targetId + 1}号【小精灵】疯狂证明，临摹的【${seatAny.pixieMadnessRoleName || targetSeat?.role?.name || madRoleId}】已死亡，小精灵获得其能力！`
+                  : `🎭 说书人判定 ${targetId + 1}号【小精灵】足够疯狂地证明了角色身份。`)
+              : `🎭 已取消 ${targetId + 1}号【小精灵】的"疯狂证明"状态，能力已撤销。`,
           })
         );
       } else if (type === "cerenovus_execute") {

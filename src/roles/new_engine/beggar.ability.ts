@@ -39,11 +39,29 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.granted) return ctx;
+  if (!r?.granted || r?.targetId == null) return ctx;
+
+  const actorSeatId = ctx.actionNode.seatId;
+  const updatedSeats = ctx.snapshot.seats.map((s: any) => {
+    if (s.id === actorSeatId) {
+      return {
+        ...s,
+        beggarTargetId: r.targetId,
+        beggarVoteSource: r.targetId,
+        statusDetails: [
+          ...(s.statusDetails || []).filter((d: any) => typeof d === "string" ? !d.startsWith("乞丐强化选票:") : true),
+          `乞丐强化选票:${r.targetId + 1}号(计2票)`,
+        ],
+      };
+    }
+    return s;
+  });
+
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: updatedSeats,
       beggarVoteSource: r.targetId,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),

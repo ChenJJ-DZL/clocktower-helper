@@ -7,7 +7,7 @@ import { nobleAbility } from "../../new_engine/noble.ability";
 import { knightAbility } from "../../new_engine/knight.ability";
 import { oracleAbility } from "../../new_engine/oracle.ability";
 import { ravenkeeperAbility } from "../../new_engine/ravenkeeper.ability";
-import type { Seat } from "../../../app/data";
+import type { Seat } from "../../../../app/data";
 
 describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
   describe("1. Savant Daily Ability Retention & Read-Only Logic", () => {

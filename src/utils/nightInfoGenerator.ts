@@ -46,7 +46,8 @@ export function generateNightInfo(
   executedToday?: number | null,
   _hasUsedAbilityFn?: (roleId: string, seatId: number) => boolean,
   _votedThisRound?: number[],
-  outsiderDiedToday?: boolean
+  outsiderDiedToday?: boolean,
+  overrideRoleId?: string
 ): NightInfoResult | null {
   const targetSeat = seats.find((s) => s.id === currentSeatId);
   if (!targetSeat || !targetSeat.role) return null;
@@ -55,7 +56,29 @@ export function generateNightInfo(
   const isCharade =
     (targetSeat.role.id === "drunk" || targetSeat.role.id === "marionette") &&
     targetSeat.charadeRole;
-  const effectiveRole = isCharade ? targetSeat.charadeRole : targetSeat.role;
+
+  const isPixieInherited =
+    overrideRoleId &&
+    overrideRoleId !== targetSeat.role.id &&
+    targetSeat.role.id === "pixie";
+
+  const overrideRoleDef = overrideRoleId
+    ? getRoleDefinition(overrideRoleId)
+    : undefined;
+
+  const overrideRole = overrideRoleDef
+    ? ({
+        id: overrideRoleDef.id,
+        name: overrideRoleDef.name,
+        type: overrideRoleDef.type,
+      } as Role)
+    : undefined;
+
+  const effectiveRole = isCharade
+    ? targetSeat.charadeRole
+    : isPixieInherited && overrideRole
+      ? overrideRole
+      : targetSeat.role;
 
   if (!effectiveRole) return null;
 
@@ -89,7 +112,7 @@ export function generateNightInfo(
   const roleDef = getRoleDefinition(effectiveRole.id);
   const nightConfig = isFirstNight
     ? roleDef?.firstNight || roleDef?.night
-    : roleDef?.night;
+    : roleDef?.night || (isPixieInherited ? roleDef?.firstNight : undefined);
 
   if (!nightConfig) {
     // 该角色没有 legacy 夜晚行动配置时，尝试从 effectiveRole 生成基础信息

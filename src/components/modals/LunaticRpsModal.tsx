@@ -32,7 +32,7 @@ export function LunaticRpsModal({
             onClick={() => onResolve(false)}
             className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold"
           >
-            精神病患者赢/平（处决取消）
+            精神病患者赢/平（提名者死亡）
           </button>
         </div>
       }

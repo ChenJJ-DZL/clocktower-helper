@@ -127,7 +127,13 @@ const updateKillState = async (
   for (const tid of successfullyKilledIds) {
     const targetSeat = seats.find((s: any) => s.id === tid);
     if (!targetSeat) continue;
-    const mayorRes = resolveMayorDemonKill(seats, targetSeat, aliveCount);
+    const mayorRes = resolveMayorDemonKill(
+      seats,
+      targetSeat,
+      aliveCount,
+      undefined,
+      context.storytellerInput?.mayorSubstituteId
+    );
     if (mayorRes.isMayor) {
       console.log(`[Po] ${mayorRes.logMessage}`);
       if (mayorRes.substituted && mayorRes.substituteSeat) {

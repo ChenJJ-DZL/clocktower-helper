@@ -38,6 +38,7 @@ import {
   isZombuulNightImmune,
   markZombuulNightSaved,
 } from "../utils/zombuulImmunity";
+import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -539,6 +540,9 @@ export function useGameController() {
             );
           }
         }
+
+        // 🧚 小精灵能力激活检测：如果死者中有小精灵临摹的镇民，小精灵获得其能力
+        updatedSeats = checkAndUpdatePixieAbility(updatedSeats, addLog);
 
         return updatedSeats;
       });
@@ -1550,11 +1554,13 @@ export function useGameController() {
       // 构建系统步骤映射（minion_info / demon_info / good_twin_info -> 队列索引 idx，避免覆盖同座位真实角色的技能）
       const stepMap = new Map<number, string>();
       queue.forEach((node: any, idx: number) => {
+        const seat = seats.find((s) => s.id === node.seatId);
         if (
           node.roleId === "minion_info" ||
           node.roleId === "demon_info" ||
           node.roleId === LEGION_MUTUAL_RECOGNITION_ID ||
-          node.roleId === "good_twin_info"
+          node.roleId === "good_twin_info" ||
+          (seat && node.roleId !== seat.role?.id)
         ) {
           stepMap.set(idx, node.roleId);
         }

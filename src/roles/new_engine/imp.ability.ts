@@ -406,7 +406,9 @@ const stateUpdateResult = async (
       const mayorRes = resolveMayorDemonKill(
         updatedSeats,
         targetSeat,
-        aliveCount
+        aliveCount,
+        undefined,
+        storytellerInput?.mayorSubstituteId
       );
 
       if (isProtected) {

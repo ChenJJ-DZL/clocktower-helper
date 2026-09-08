@@ -26,8 +26,10 @@ export interface NightActionConfirmData {
   aliveOnly?: boolean;
   /** 初始已选中的目标ID列表 */
   initialSelectedTargets?: number[];
-  /** 是否需要同时在当前弹窗中选择洗脑角色（洗脑师专属） */
+  /** 是否需要同时在当前弹窗中选择角色（洗脑师/奥赫/酿酒师等专属） */
   requiresRoleSelection?: boolean;
+  /** 角色选择区域标题，默认为"请选择需要疯狂证明的角色（范围为当前剧本所有角色）" */
+  roleSelectionTitle?: string;
   /** 剧本或可选角色列表 */
   availableRoles?: Role[];
   /** 剧本配置 */
@@ -110,12 +112,16 @@ export function NightActionConfirmModal({
       .sort((a, b) => a.id - b.id);
   }, [seats]);
 
-  const isCerenovus =
-    data?.roleId === "cerenovus" || data?.requiresRoleSelection === true;
+  const isRoleSelectorActive =
+    data?.roleId === "cerenovus" ||
+    data?.roleId === "ojo" ||
+    data?.roleId === "brewer" ||
+    data?.requiresRoleSelection === true;
+  const isCerenovus = data?.roleId === "cerenovus";
 
   // 提取剧本内的所有角色列表（镇民、外来者、爪牙、恶魔，无论是否在场）
   const scriptRoles = useMemo(() => {
-    if (!isCerenovus) return [];
+    if (!isRoleSelectorActive) return [];
     const sourceRoles =
       data?.availableRoles && data.availableRoles.length > 0
         ? data.availableRoles
@@ -198,7 +204,10 @@ export function NightActionConfirmModal({
 
   const isConfirmDisabled = isCerenovus
     ? selectedTargets.length !== 1 || !selectedRoleId
-    : needsTargetSelection && selectedTargets.length < min;
+    : isRoleSelectorActive && !needsTargetSelection
+      ? !selectedRoleId
+      : (needsTargetSelection && selectedTargets.length < min) ||
+        (isRoleSelectorActive && !selectedRoleId);
 
   const rawTargetText = needsTargetSelection
     ? selectedTargets.length > 0
@@ -223,8 +232,11 @@ export function NightActionConfirmModal({
     if (isSubmitting || isConfirmDisabled) return;
     setIsSubmitting(true);
     try {
-      if (isCerenovus) {
-        await onConfirm(selectedTargets, chosenRoleObj || selectedRoleId || undefined);
+      if (isRoleSelectorActive) {
+        await onConfirm(
+          needsTargetSelection ? selectedTargets : undefined,
+          chosenRoleObj || selectedRoleId || undefined
+        );
       } else {
         await onConfirm(needsTargetSelection ? selectedTargets : undefined);
       }
@@ -268,17 +280,21 @@ export function NightActionConfirmModal({
                     : `确认洗脑：${selectedTargets[0] + 1}号 ➔ 【${
                         chosenRoleObj?.name || selectedRoleId
                       }】`
-                : needsTargetSelection
-                  ? selectedTargets.length === 0 && min === 0
-                    ? "确认（不选目标）"
-                    : `确认选择 (${selectedTargets.length}/${max})`
-                  : "确认执行"}
+                : isRoleSelectorActive
+                  ? !selectedRoleId
+                    ? "请选择角色"
+                    : `确认选择【${chosenRoleObj?.name || selectedRoleId}】`
+                  : needsTargetSelection
+                    ? selectedTargets.length === 0 && min === 0
+                      ? "确认（不选目标）"
+                      : `确认选择 (${selectedTargets.length}/${max})`
+                    : "确认执行"}
           </button>
         </div>
       }
     >
-      {needsTargetSelection ? (
-        /* 有目标选择交互时的布局 */
+      {needsTargetSelection || isRoleSelectorActive ? (
+        /* 有目标选择或角色选择交互时的布局 */
         <div className="space-y-4 text-white w-full flex flex-col h-full">
           {/* 顶部行动指引 */}
           <div className="text-center space-y-1.5 max-w-full">
@@ -304,6 +320,20 @@ export function NightActionConfirmModal({
                 )}
                 吗？
               </div>
+            ) : isRoleSelectorActive ? (
+              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
+                确认为
+                <span className="text-indigo-300 font-black">【{roleName}】</span>
+                选择角色：
+                {selectedRoleId ? (
+                  <span className="text-emerald-400 font-black">
+                    【{chosenRoleObj?.name || selectedRoleId}】
+                  </span>
+                ) : (
+                  <span className="text-slate-400 font-normal">【请点选下方角色】</span>
+                )}
+                吗？
+              </div>
             ) : (
               <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
                 确认为
@@ -325,71 +355,78 @@ export function NightActionConfirmModal({
           </div>
 
           {/* 选人交互网格 */}
-          <div className="pt-2 border-t border-slate-700/60 flex flex-col shrink-0">
-            <div className="flex items-center justify-between mb-2 px-1 text-xs sm:text-sm">
-              <span className="font-bold text-emerald-400 flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                请选择目标玩家（最少 {min} 人，最多 {max} 人）
-              </span>
-              <span className="text-slate-400 font-medium">
-                已选:{" "}
-                <b className="text-amber-400 text-sm sm:text-base font-black">
-                  {selectedTargets.length}
-                </b>{" "}
-                / {max}
-              </span>
+          {needsTargetSelection && (
+            <div className="pt-2 border-t border-slate-700/60 flex flex-col shrink-0">
+              <div className="flex items-center justify-between mb-2 px-1 text-xs sm:text-sm">
+                <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  请选择目标玩家（最少 {min} 人，最多 {max} 人）
+                </span>
+                <span className="text-slate-400 font-medium">
+                  已选:{" "}
+                  <b className="text-amber-400 text-sm sm:text-base font-black">
+                    {selectedTargets.length}
+                  </b>{" "}
+                  / {max}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-2.5 p-0.5">
+                {seatedPlayers.map((seat) => {
+                  const isSelected = selectedTargets.includes(seat.id);
+                  const isSelf = seat.id === actorSeatId;
+                  const isSelfDisabled = isSelf && allowSelf === false;
+                  const isDeadDisabled = seat.isDead && aliveOnly === true;
+                  const isDisabled = isSelfDisabled || isDeadDisabled;
+
+                  return (
+                    <button
+                      key={seat.id}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => handleToggleTarget(seat.id)}
+                      className={`h-11 sm:h-12 md:h-13 w-full px-1.5 rounded-xl text-center border font-bold transition-all flex flex-row items-center justify-center select-none cursor-pointer active:scale-95 shadow-sm ${
+                        isSelected
+                          ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/40 ring-2 ring-blue-400 scale-[1.02]"
+                          : isDisabled
+                            ? "bg-slate-900/40 border-slate-800 text-slate-600 opacity-40 cursor-not-allowed"
+                            : seat.isDead
+                              ? "bg-slate-800/70 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:border-slate-600"
+                              : "bg-slate-800 border-slate-700 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
+                      }`}
+                    >
+                      <span className="text-sm sm:text-base font-black tracking-tight whitespace-nowrap inline-flex items-center justify-center">
+                        <span>{seat.id + 1}号</span>
+                        {isSelf && (
+                          <span className="text-[11px] sm:text-xs text-slate-300 font-normal ml-0.5">
+                            (自己)
+                          </span>
+                        )}
+                        {seat.isDead && (
+                          <span className="text-[11px] sm:text-xs text-red-400 font-normal ml-0.5">
+                            (已死亡)
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+          )}
 
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-2.5 p-0.5">
-              {seatedPlayers.map((seat) => {
-                const isSelected = selectedTargets.includes(seat.id);
-                const isSelf = seat.id === actorSeatId;
-                const isSelfDisabled = isSelf && allowSelf === false;
-                const isDeadDisabled = seat.isDead && aliveOnly === true;
-                const isDisabled = isSelfDisabled || isDeadDisabled;
-
-                return (
-                  <button
-                    key={seat.id}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => handleToggleTarget(seat.id)}
-                    className={`h-11 sm:h-12 md:h-13 w-full px-1.5 rounded-xl text-center border font-bold transition-all flex flex-row items-center justify-center select-none cursor-pointer active:scale-95 shadow-sm ${
-                      isSelected
-                        ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/40 ring-2 ring-blue-400 scale-[1.02]"
-                        : isDisabled
-                          ? "bg-slate-900/40 border-slate-800 text-slate-600 opacity-40 cursor-not-allowed"
-                          : seat.isDead
-                            ? "bg-slate-800/70 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:border-slate-600"
-                            : "bg-slate-800 border-slate-700 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
-                    }`}
-                  >
-                    <span className="text-sm sm:text-base font-black tracking-tight whitespace-nowrap inline-flex items-center justify-center">
-                      <span>{seat.id + 1}号</span>
-                      {isSelf && (
-                        <span className="text-[11px] sm:text-xs text-slate-300 font-normal ml-0.5">
-                          (自己)
-                        </span>
-                      )}
-                      {seat.isDead && (
-                        <span className="text-[11px] sm:text-xs text-red-400 font-normal ml-0.5">
-                          (已死亡)
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 完整的剧本角色列表选择区域（洗脑师专属：同时选择座位号 + 洗脑内容） */}
-          {isCerenovus && (
+          {/* 完整的剧本角色列表选择区域（洗脑师/奥赫/酿酒师专属） */}
+          {isRoleSelectorActive && (
             <div className="pt-2 border-t border-slate-700/60 flex flex-col flex-1 min-h-0">
               <div className="flex items-center justify-between mb-2 px-1 text-xs sm:text-sm shrink-0">
                 <span className="font-bold text-amber-400 flex items-center gap-1.5">
                   <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                  请选择需要疯狂证明的角色（范围为当前剧本所有角色）
+                  {data?.roleSelectionTitle ||
+                    (isCerenovus
+                      ? "请选择需要疯狂证明的角色（范围为当前剧本所有角色）"
+                      : data?.roleId === "ojo"
+                        ? "请选择想要击杀的角色（范围为当前剧本所有角色）"
+                        : "请选择目标角色（范围为当前剧本所有角色）")}
                 </span>
                 <span className="text-slate-400 font-medium">
                   已选角色:{" "}

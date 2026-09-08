@@ -172,6 +172,7 @@ import { oracle } from "./townsfolk/oracle";
 import { pacifist } from "./townsfolk/pacifist";
 import { philosopher } from "./townsfolk/philosopher";
 import { pilgrim } from "./townsfolk/pilgrim";
+import { pixie } from "./townsfolk/pixie";
 import { poppy_grower } from "./townsfolk/poppy_grower";
 import { priestess } from "./townsfolk/priestess";
 import { princess } from "./townsfolk/princess";
@@ -240,6 +241,7 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [pacifist.id, pacifist],
   [philosopher.id, philosopher],
   [pilgrim.id, pilgrim],
+  [pixie.id, pixie],
   [princess.id, princess],
   [priestess.id, priestess],
   [poppy_grower.id, poppy_grower],

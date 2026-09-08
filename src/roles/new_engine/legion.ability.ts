@@ -76,7 +76,13 @@ const calculate = async (
   }
 
   // 市长弹刀判定
-  const mayorResult = resolveMayorDemonKill(seats, target);
+  const mayorResult = resolveMayorDemonKill(
+    seats,
+    target,
+    undefined,
+    undefined,
+    ctx.storytellerInput?.mayorSubstituteId
+  );
   if (mayorResult.substituted && mayorResult.substituteSeat) {
     return {
       ...ctx,
