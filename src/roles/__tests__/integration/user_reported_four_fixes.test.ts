@@ -236,7 +236,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       );
       expect(info).toBeDefined();
       expect(info?.guide).toContain("1号是镜像双子");
-      expect(info?.displayInfo?.log).toContain("1号是镜像双子");
+      expect((info as any)?.displayInfo?.log).toContain("1号是镜像双子");
     });
 
     it("情况 2（被动信息角色如厨师）：首夜引导词合并显示【双子告知】先告知该玩家：X号是镜像双子", () => {

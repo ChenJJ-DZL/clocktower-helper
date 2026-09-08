@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Seat } from "../../../app/data";
+import type { Seat } from "../../../../app/data";
 
 describe("IdentityShowcaseModal - 玩家视角保密性与说书人专属提示剥离测试", () => {
   // 模拟 IdentityShowcaseModal 内部的 displayRole 解析规则

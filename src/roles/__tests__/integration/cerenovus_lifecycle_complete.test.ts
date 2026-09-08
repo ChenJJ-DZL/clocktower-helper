@@ -34,6 +34,8 @@ const makeSeat = (
   hasUsedVirginAbility: false,
   isDemonSuccessor: false,
   hasAbilityEvenDead: false,
+  grandchildId: null,
+  isGrandchild: false,
   statusDetails: [],
 });
 
@@ -101,18 +103,25 @@ describe("洗脑师（Cerenovus）完整业务生命周期测试", () => {
     };
 
     const shouldBlockDusk = (target: any, currentSeats: Seat[]) => {
+      const cerenovusTargetSeat = target
+        ? currentSeats.find((s) => s.id === target.targetId)
+        : null;
+      const isCerenovusTargetDead = cerenovusTargetSeat ? cerenovusTargetSeat.isDead : false;
+
       return Boolean(
-        (target && !target.checkedToday) ||
+        (target && !target.checkedToday && !isCerenovusTargetDead) ||
           currentSeats.some(
             (s) =>
               s.role?.id === "cerenovus" &&
               !s.isDead &&
-              !s.hasUsedDayAbility
+              !s.hasUsedDayAbility &&
+              target &&
+              !isCerenovusTargetDead
           )
       );
     };
 
-    // 状态 1：尚未判定 → 必须阻断进入黄昏
+    // 状态 1：尚未判定且目标存活 → 必须阻断进入黄昏
     expect(shouldBlockDusk(cerenovusTarget, seats)).toBe(true);
 
     // 状态 2：判定完成（选“是”通过，checkedToday 设为 true，hasUsedDayAbility 设为 true）
@@ -123,5 +132,78 @@ describe("洗脑师（Cerenovus）完整业务生命周期测试", () => {
 
     // 状态 2：已完成判定 → 允许进入黄昏
     expect(shouldBlockDusk(updatedTarget, updatedSeats)).toBe(false);
+
+    // 状态 3：若洗脑目标夜间被击杀死亡（1号死亡），白天不应阻断黄昏！
+    const deadTargetSeats = [
+      makeSeat(0, "cerenovus", "minion", "洗脑师"),
+      { ...makeSeat(1, "mutant", "outsider", "畸形秀演员"), isDead: true },
+    ];
+    expect(shouldBlockDusk(cerenovusTarget, deadTargetSeats)).toBe(false);
+  });
+
+  it("边界规则：恶魔与洗脑师同选3号导致3号死亡时，进入白天清除洗脑目标与疯狂标记", () => {
+    // 初始状态：洗脑师选了1号（座位id: 1），恶魔夜间击杀了1号
+    const initialSeats: Seat[] = [
+      makeSeat(0, "cerenovus", "minion", "洗脑师"),
+      {
+        ...makeSeat(1, "mutant", "outsider", "畸形秀演员"),
+        isMad: true,
+        cerenovusMadnessRole: "钟表匠",
+        statusDetails: ["洗脑疯狂:钟表匠"],
+      },
+      makeSeat(2, "vortox", "demon", "涡流"),
+    ];
+
+    const deadThisNight = [1];
+    const initialCerenovusTarget = {
+      targetId: 1,
+      roleName: "钟表匠",
+      checkedToday: false,
+    };
+
+    // 模拟 enterDayPhase 中的清理判定逻辑
+    const targetSeat = initialSeats.find((s) => s.id === initialCerenovusTarget.targetId);
+    const isTargetDead = Boolean(
+      targetSeat?.isDead || (deadThisNight && deadThisNight.includes(initialCerenovusTarget.targetId))
+    );
+
+    let nextCerenovusTarget = null;
+    let targetDied = false;
+
+    if (isTargetDead) {
+      targetDied = true;
+      nextCerenovusTarget = null;
+    }
+
+    const updatedSeats = initialSeats.map((s) => {
+      let seatModified = s;
+      if (targetDied && s.id === initialCerenovusTarget.targetId) {
+        const cleanedDetails = (s.statusDetails || []).filter(
+          (d) => !d.startsWith("洗脑") && !d.includes("疯狂")
+        );
+        seatModified = {
+          ...seatModified,
+          isMad: false,
+          cerenovusMadnessRole: undefined,
+          statusDetails: cleanedDetails,
+        };
+      }
+      if (s.role?.id === "cerenovus") {
+        seatModified = {
+          ...seatModified,
+          hasUsedDayAbility: targetDied ? true : false,
+        };
+      }
+      return seatModified;
+    });
+
+    expect(nextCerenovusTarget).toBeNull();
+    const updatedTargetSeat = updatedSeats.find((s) => s.id === 1);
+    expect(updatedTargetSeat?.isMad).toBe(false);
+    expect(updatedTargetSeat?.cerenovusMadnessRole).toBeUndefined();
+    expect(updatedTargetSeat?.statusDetails).toEqual([]);
+
+    const updatedCerenovusSeat = updatedSeats.find((s) => s.id === 0);
+    expect(updatedCerenovusSeat?.hasUsedDayAbility).toBe(true);
   });
 });

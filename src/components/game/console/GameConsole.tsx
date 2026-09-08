@@ -766,19 +766,21 @@ export const GameConsole = React.memo(function GameConsole({
                                 </span>
                               )}
                             </div>
-                            {/* 洗脑师小字记录：“座位号 + 洗脑内容” */}
-                            {effectiveRole?.id === "cerenovus" && cerenovusTarget && (
-                              <div className="text-xs text-amber-400/90 mt-0.5 font-normal flex items-center gap-1">
-                                <span>洗脑目标：</span>
-                                <span className="font-bold text-amber-300">
-                                  {cerenovusTarget.targetId + 1}号
-                                </span>
-                                <span>➔</span>
-                                <span className="font-bold text-emerald-300">
-                                  【{cerenovusTarget.roleName}】
-                                </span>
-                              </div>
-                            )}
+                            {/* 洗脑师小字记录：“座位号 + 洗脑内容”（仅当洗脑目标存活时显示） */}
+                            {effectiveRole?.id === "cerenovus" &&
+                              cerenovusTarget &&
+                              !seats.find((s) => s.id === cerenovusTarget.targetId)?.isDead && (
+                                <div className="text-xs text-amber-400/90 mt-0.5 font-normal flex items-center gap-1">
+                                  <span>洗脑目标：</span>
+                                  <span className="font-bold text-amber-300">
+                                    {cerenovusTarget.targetId + 1}号
+                                  </span>
+                                  <span>➔</span>
+                                  <span className="font-bold text-emerald-300">
+                                    【{cerenovusTarget.roleName}】
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         </div>
 

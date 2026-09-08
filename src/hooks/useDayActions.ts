@@ -885,6 +885,12 @@ export function useDayActions(deps: DayActionsDeps) {
           return;
         }
 
+        const targetPlayerSeat = seats.find((s) => s.id === targetId);
+        if (targetPlayerSeat?.isDead) {
+          showAlert(`洗脑目标【${targetId + 1}号】已死亡，无需进行疯狂判定。`);
+          return;
+        }
+
         setCurrentModal({
           type: "MADNESS_CHECK",
           data: {

@@ -249,36 +249,70 @@ export function useGameFlow(): UseGameFlowResult {
       })
     );
     // 🔧 每天重置造谣者声明状态（造谣者每天可公开声明一次）
+    const initialCerenovusTarget = state.cerenovusTarget;
+    let nextCerenovusTarget = null;
+    let targetDied = false;
+
+    if (initialCerenovusTarget) {
+      const targetSeat = seats.find((s) => s.id === initialCerenovusTarget.targetId);
+      const isTargetDead = Boolean(
+        targetSeat?.isDead || (state.deadThisNight && state.deadThisNight.includes(initialCerenovusTarget.targetId))
+      );
+      if (isTargetDead) {
+        targetDied = true;
+        dispatch(
+          gameActions.addLog({
+            day: nightCount,
+            phase: "day",
+            message: `⚠️ 洗脑师指定目标【${initialCerenovusTarget.targetId + 1}号】昨夜已死亡，洗脑师白天技能【疯狂洗脑】不生效。`,
+          })
+        );
+      } else {
+        nextCerenovusTarget = {
+          ...initialCerenovusTarget,
+          checkedToday: false,
+        };
+      }
+    }
+
     dispatch(
       gameActions.updateState({
         gossipStatementToday: "",
         gossipTrueTonight: false,
         gossipSourceSeatId: null,
-        ...(state.cerenovusTarget
-          ? {
-              cerenovusTarget: {
-                ...state.cerenovusTarget,
-                checkedToday: false,
-              },
-            }
-          : {}),
+        cerenovusTarget: nextCerenovusTarget,
       })
     );
-    // 重置洗脑师白天技能使用标记
-    if (seats.some((s) => s.role?.id === "cerenovus")) {
-      dispatch(
-        gameActions.setSeats(
-          seats.map((s) =>
-            s.role?.id === "cerenovus"
-              ? { ...s, hasUsedDayAbility: false }
-              : s
-          )
-        )
-      );
-    }
+
+    // 更新座位状态：
+    // 1. 若洗脑目标死亡，清除其身上疯狂标记
+    // 2. 重置存活洗脑师白天技能使用标记（若目标死亡则直接置为 hasUsedDayAbility: true，避免再次提示）
+    const updatedSeats = seats.map((s) => {
+      let seatModified = s;
+      if (targetDied && initialCerenovusTarget && s.id === initialCerenovusTarget.targetId) {
+        const cleanedDetails = (s.statusDetails || []).filter(
+          (d) => !d.startsWith("洗脑") && !d.includes("疯狂")
+        );
+        seatModified = {
+          ...seatModified,
+          isMad: false,
+          cerenovusMadnessRole: undefined,
+          statusDetails: cleanedDetails,
+        };
+      }
+      if (s.role?.id === "cerenovus") {
+        seatModified = {
+          ...seatModified,
+          hasUsedDayAbility: targetDied ? true : false,
+        };
+      }
+      return seatModified;
+    });
+
+    dispatch(gameActions.setSeats(updatedSeats));
     dispatch(gameActions.setGamePhase("day"));
     dispatch(gameActions.saveHistory({ gamePhase: "day" }));
-  }, [dispatch, nightCount, state.cerenovusTarget, seats]);
+  }, [dispatch, nightCount, state.cerenovusTarget, state.deadThisNight, seats]);
 
   const confirmNightDeathReport = useCallback(() => {
     enterDayPhase();
@@ -374,13 +408,21 @@ export function useGameFlow(): UseGameFlowResult {
       );
 
       // 检查洗脑师白天技能【疯狂洗脑】是否尚未发动
+      const activeCerenovusTarget = state.cerenovusTarget;
+      const cerenovusTargetSeat = activeCerenovusTarget
+        ? seats.find((s) => s.id === activeCerenovusTarget.targetId)
+        : null;
+      const isCerenovusTargetDead = cerenovusTargetSeat ? cerenovusTargetSeat.isDead : false;
+
       const hasPendingCerenovusCheck = Boolean(
-        (state.cerenovusTarget && !state.cerenovusTarget.checkedToday) ||
+        (activeCerenovusTarget && !activeCerenovusTarget.checkedToday && !isCerenovusTargetDead) ||
           seats.some(
             (s) =>
               s.role?.id === "cerenovus" &&
               !s.isDead &&
-              !s.hasUsedDayAbility
+              !s.hasUsedDayAbility &&
+              activeCerenovusTarget &&
+              !isCerenovusTargetDead
           )
       );
 

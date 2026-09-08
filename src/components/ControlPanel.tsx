@@ -255,13 +255,20 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </button>
             )}
             {(() => {
+              const cerenovusTargetSeat = cerenovusTarget
+                ? seats.find((s) => s.id === cerenovusTarget.targetId)
+                : null;
+              const isCerenovusTargetDead = cerenovusTargetSeat ? cerenovusTargetSeat.isDead : false;
+
               const hasPendingCerenovusCheck = Boolean(
-                (cerenovusTarget && !cerenovusTarget.checkedToday) ||
+                (cerenovusTarget && !cerenovusTarget.checkedToday && !isCerenovusTargetDead) ||
                   seats.some(
                     (s) =>
                       s.role?.id === "cerenovus" &&
                       !s.isDead &&
-                      !s.hasUsedDayAbility
+                      !s.hasUsedDayAbility &&
+                      cerenovusTarget &&
+                      !isCerenovusTargetDead
                   )
               );
               return (
