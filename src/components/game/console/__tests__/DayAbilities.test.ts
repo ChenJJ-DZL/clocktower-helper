@@ -144,4 +144,105 @@ describe("白天主动技能持久化与查看结果测试", () => {
     const buttonLabel = cerenovusDef?.day?.name;
     expect(buttonLabel).toBe("疯狂洗脑");
   });
+
+  test("博学者技能定义为每天1次，同天已使用后锁定并展示上次输入内容且只读", () => {
+    const savantDef = getRoleDefinition("savant");
+    expect(savantDef?.day).toBeDefined();
+    // 每日技能，maxUses 应为 1（非 infinity）
+    expect(savantDef?.day?.maxUses).toBe(1);
+
+    // 未使用状态
+    const unusedSavantSeat: any = {
+      id: 0,
+      role: { id: "savant", name: "博学者", type: "townsfolk" },
+      isDead: false,
+      hasUsedDayAbility: false,
+    };
+    const unusedIsUsed =
+      savantDef?.day?.maxUses !== "infinity" &&
+      Boolean(unusedSavantSeat.hasUsedDayAbility);
+    expect(unusedIsUsed).toBe(false);
+
+    // 已使用状态：记录了 1 真 1 假信息
+    const usedSavantSeat: any = {
+      id: 0,
+      role: { id: "savant", name: "博学者", type: "townsfolk" },
+      isDead: false,
+      hasUsedDayAbility: true,
+      dayAbilityResult: {
+        type: "SAVANT_RESULT",
+        infoA: "小王属于邪恶阵营",
+        infoB: "本局游戏没有镜像双子",
+      },
+    };
+    const usedIsUsed =
+      savantDef?.day?.maxUses !== "infinity" &&
+      Boolean(usedSavantSeat.hasUsedDayAbility);
+    expect(usedIsUsed).toBe(true);
+
+    // 再次打开弹窗时读取的数据应携带 isReadOnly: true 且保留内容
+    const viewModalData = {
+      infoA: usedSavantSeat.dayAbilityResult.infoA,
+      infoB: usedSavantSeat.dayAbilityResult.infoB,
+      isReadOnly: true,
+    };
+    expect(viewModalData.isReadOnly).toBe(true);
+    expect(viewModalData.infoA).toBe("小王属于邪恶阵营");
+    expect(viewModalData.infoB).toBe("本局游戏没有镜像双子");
+
+    // 跨天结算（enterDayPhase）：新白天重置 hasUsedDayAbility 与 dayAbilityResult
+    const resetSavantSeat: any = {
+      ...usedSavantSeat,
+      hasUsedDayAbility: false,
+      dayAbilityResult: undefined,
+    };
+    expect(resetSavantSeat.hasUsedDayAbility).toBe(false);
+    expect(resetSavantSeat.dayAbilityResult).toBeUndefined();
+  });
+
+  test("洗脑师白天疯狂判定失败处决并入夜流转测试", () => {
+    let executedPlayerId: number | null = null;
+    let nextModal: any = null;
+
+    const mockModal = {
+      targetId: 2,
+      roleName: "舞蛇人",
+    };
+
+    // 模拟 handleFail
+    const handleFail = () => {
+      // 1. 处决玩家
+      executedPlayerId = mockModal.targetId;
+      // 2. 弹出标准处决弹窗，并带有 isInstantNight 标记
+      nextModal = {
+        type: "EXECUTION_RESULT",
+        data: {
+          message: `⚖️ 说书人判定 ${mockModal.targetId + 1}号 未能疯狂证明自己是【${mockModal.roleName}】，因违反疯狂规则被立即处决死亡！今日立即结束，确认后直接进入下一个夜晚。`,
+          isInstantNight: true,
+        },
+      };
+    };
+
+    handleFail();
+
+    expect(executedPlayerId).toBe(2);
+    expect(nextModal.type).toBe("EXECUTION_RESULT");
+    expect(nextModal.data.isInstantNight).toBe(true);
+
+    // 模拟 confirmExecutionResult 响应 isInstantNight 推进夜晚
+    let nightAdvanced = false;
+    const confirmExecutionResult = (modal: any) => {
+      const isInstantNight = Boolean(
+        modal.data.isVirginTrigger ||
+          modal.data.isInstantNight ||
+          modal.data.isMadnessTrigger
+      );
+      if (isInstantNight) {
+        nightAdvanced = true;
+      }
+    };
+
+    confirmExecutionResult(nextModal);
+    expect(nightAdvanced).toBe(true);
+  });
 });

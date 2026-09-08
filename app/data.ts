@@ -201,6 +201,7 @@ export interface Seat {
   masterId: number | null;
   hasUsedSlayerAbility: boolean; // Legacy field, kept for backward compatibility
   hasUsedDayAbility?: boolean; // Track usage of dayMeta abilities (e.g. Slayer shot)
+  dayAbilityResult?: any; // 保存白天技能执行结果（如博学者两条信息/猎手射击记录等）
   hasUsedVirginAbility: boolean;
   hasBeenNominated?: boolean; // 处女是否已被提名过（无论是否触发处决）
   isDemonSuccessor: boolean;

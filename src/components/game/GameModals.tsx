@@ -867,8 +867,11 @@ export function GameModals() {
 
       {savantResultModal && (
         <SavantResultModal
+          initialInfoA={savantResultModal.infoA}
+          initialInfoB={savantResultModal.infoB}
+          isReadOnly={savantResultModal.isReadOnly}
           onClose={(infoA, infoB) => {
-            if (infoA && infoB) {
+            if (!savantResultModal.isReadOnly && infoA && infoB) {
               actions.addLog(`博学者获得信息：\n1. ${infoA}\n2. ${infoB}`);
               actions.setSeats((prev: any[]) =>
                 prev.map((s: any) => {

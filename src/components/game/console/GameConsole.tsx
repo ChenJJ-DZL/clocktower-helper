@@ -804,6 +804,10 @@ export const GameConsole = React.memo(function GameConsole({
                           <button
                             onClick={() => {
                               if (!handleDayAbility) return;
+                              if (seat.isDead && !seat.hasAbilityEvenDead) {
+                                alert(`${displayRoleName}已死亡，无法发动技能。`);
+                                return;
+                              }
                               if (effectiveRole?.id === "juggler") {
                                 handleDayAbility(seat.id);
                                 return;
@@ -814,8 +818,13 @@ export const GameConsole = React.memo(function GameConsole({
                                 onConfirm: () => handleDayAbility(seat.id),
                               });
                             }}
+                            disabled={Boolean(seat.isDead && !seat.hasAbilityEvenDead)}
                             data-testid="start-day-ability-button"
-                            className="px-3 py-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm rounded shadow-sm transition-colors cursor-pointer"
+                            className={`px-3 py-1 text-white text-sm rounded shadow-sm transition-colors ${
+                              seat.isDead && !seat.hasAbilityEvenDead
+                                ? "bg-slate-700 opacity-50 cursor-not-allowed"
+                                : "bg-amber-600 hover:bg-amber-500 active:bg-amber-700 cursor-pointer"
+                            }`}
                           >
                             {effectiveRole?.id === "cerenovus"
                               ? "疯狂洗脑"

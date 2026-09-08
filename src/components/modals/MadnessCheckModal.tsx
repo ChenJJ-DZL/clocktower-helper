@@ -49,13 +49,19 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
 
   const handleFail = () => {
     props.addLog(
-      `⚖️ 说书人判定 ${targetSeatNo}号 未能疯狂证明自己是【${roleName}】，立即被处决！跳过黄昏，直接进入下一个夜晚。`
+      `⚖️ 说书人判定 ${targetSeatNo}号 未能疯狂证明自己是【${roleName}】，因违反疯狂规则被立即处决！跳过今日剩余阶段，进入下一个夜晚。`
     );
     markChecked();
-    // 处决玩家并跳过黄昏直接进入下一个夜晚
+    // 处决玩家
     props.executePlayer(modal.targetId, { forceExecution: true });
-    props.setCurrentModal(null);
-    props.handleDayEndTransition({ forceNight: true });
+    // 弹出标准处决结果弹窗，向说书人明确展示处决结果，确认后跳入下一夜
+    props.setCurrentModal({
+      type: "EXECUTION_RESULT",
+      data: {
+        message: `⚖️ 说书人判定 ${targetSeatNo}号 未能疯狂证明自己是【${roleName}】，因违反疯狂规则被立即处决死亡！今日立即结束，确认后直接进入下一个夜晚。`,
+        isInstantNight: true,
+      },
+    });
   };
 
   return (

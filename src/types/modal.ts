@@ -51,7 +51,12 @@ export type ModalType =
   // 白天相关弹窗
   | {
       type: "EXECUTION_RESULT";
-      data: { message: string; isVirginTrigger?: boolean };
+      data: {
+        message: string;
+        isVirginTrigger?: boolean;
+        isInstantNight?: boolean;
+        isMadnessTrigger?: boolean;
+      };
     }
   | {
       type: "PACIFIST_CONFIRM";
@@ -214,7 +219,10 @@ export type ModalType =
       data: { roleName: string; resultText: string; onNext?: () => void };
     }
   | { type: "ARTIST_RESULT"; data: { result: string } }
-  | { type: "SAVANT_RESULT"; data: { infoA: string; infoB: string } }
+  | {
+      type: "SAVANT_RESULT";
+      data: { infoA?: string; infoB?: string; isReadOnly?: boolean };
+    }
   | { type: "GAMBLER_JUDGE"; data: { seatId: number } }
   | { type: "JUGGLER_JUDGE"; data: { seatId: number } }
   | { type: "RAVENKEEPER_FAKE"; data: { targetId: number } }

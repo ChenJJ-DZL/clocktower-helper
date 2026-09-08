@@ -1211,10 +1211,21 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
   // Confirm execution result handler
   const confirmExecutionResult = useCallback(() => {
     if (currentModal?.type !== "EXECUTION_RESULT") return;
-    const isVirginTrigger = currentModal.data.isVirginTrigger;
+    const isInstantNight =
+      Boolean(
+        currentModal.data.isVirginTrigger ||
+          currentModal.data.isInstantNight ||
+          currentModal.data.isMadnessTrigger
+      );
     setCurrentModal(null);
 
-    if (isVirginTrigger) {
+    if (isInstantNight) {
+      if (winResult) {
+        console.log(
+          "[confirmExecutionResult] 处决已导致游戏结束，跳过进入夜晚"
+        );
+        return;
+      }
       startSubsequentNight();
       return;
     }

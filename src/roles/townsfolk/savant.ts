@@ -75,7 +75,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:150-0!canonical and tim
   ],
   day: {
     name: "博学者信息",
-    maxUses: "infinity" as const,
+    maxUses: 1,
     target: { min: 0, max: 0 },
   },
 };

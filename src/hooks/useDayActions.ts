@@ -752,10 +752,14 @@ export function useDayActions(deps: DayActionsDeps) {
           return;
         }
         if (res.type === "SAVANT_RESULT" && (res.infoA || res.infoB)) {
-          showAlert(
-            `博学者获得信息：\n1. ${res.infoA || "（无）"}\n2. ${res.infoB || "（无）"}`,
-            "📜 博学者技能结果"
-          );
+          setCurrentModal({
+            type: "SAVANT_RESULT",
+            data: {
+              infoA: res.infoA || "",
+              infoB: res.infoB || "",
+              isReadOnly: true,
+            },
+          });
           return;
         }
         if (res.type === "JUGGLER_JUDGE" || res.correctCount !== undefined) {
@@ -822,9 +826,17 @@ export function useDayActions(deps: DayActionsDeps) {
 
       // ── 博学者专用 ────────────────────────────────────
       if (effectiveRole.id === "savant") {
+        if (sourceSeat.isDead && !sourceSeat.hasAbilityEvenDead) {
+          showAlert("博学者已死亡，无法发动技能。");
+          return;
+        }
+        if (sourceSeat.hasUsedDayAbility) {
+          handleViewDayAbilityResult(sourceSeatId);
+          return;
+        }
         setCurrentModal({
           type: "SAVANT_RESULT",
-          data: { infoA: "", infoB: "" },
+          data: { infoA: "", infoB: "", isReadOnly: false },
         });
         return;
       }
