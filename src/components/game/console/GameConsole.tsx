@@ -56,6 +56,12 @@ interface GameConsoleProps {
   // Refresh current night step info (re-randomize prepared content)
   onRefreshNightStep?: () => void;
 
+  cerenovusTarget?: {
+    targetId: number;
+    roleName: string;
+    checkedToday?: boolean;
+  } | null;
+
   // Seat patch updater
   onUpdateSeat?: (
     seatId: number,
@@ -90,6 +96,7 @@ export const GameConsole = React.memo(function GameConsole({
   handleViewDayAbilityResult,
   onForceContinue,
   onRefreshNightStep,
+  cerenovusTarget,
   onUpdateSeat,
 }: GameConsoleProps) {
   const getPhaseLabel = () => {
@@ -743,21 +750,36 @@ export const GameConsole = React.memo(function GameConsole({
                           >
                             {seat.id + 1}号
                           </span>
-                          <span
-                            className={isUsed ? "text-slate-300" : "text-white"}
-                          >
-                            {displayRoleName}
-                            {seat.role?.id === "drunk" && (
-                              <span className="ml-1.5 text-xs text-purple-400 font-normal">
-                                (酒鬼)
-                              </span>
+                          <div>
+                            <div
+                              className={isUsed ? "text-slate-300" : "text-white"}
+                            >
+                              {displayRoleName}
+                              {seat.role?.id === "drunk" && (
+                                <span className="ml-1.5 text-xs text-purple-400 font-normal">
+                                  (酒鬼)
+                                </span>
+                              )}
+                              {seat.isDead && (
+                                <span className="ml-1.5 text-xs text-red-400 font-normal">
+                                  (已死亡)
+                                </span>
+                              )}
+                            </div>
+                            {/* 洗脑师小字记录：“座位号 + 洗脑内容” */}
+                            {effectiveRole?.id === "cerenovus" && cerenovusTarget && (
+                              <div className="text-xs text-amber-400/90 mt-0.5 font-normal flex items-center gap-1">
+                                <span>洗脑目标：</span>
+                                <span className="font-bold text-amber-300">
+                                  {cerenovusTarget.targetId + 1}号
+                                </span>
+                                <span>➔</span>
+                                <span className="font-bold text-emerald-300">
+                                  【{cerenovusTarget.roleName}】
+                                </span>
+                              </div>
                             )}
-                            {seat.isDead && (
-                              <span className="ml-1.5 text-xs text-red-400 font-normal">
-                                (已死亡)
-                              </span>
-                            )}
-                          </span>
+                          </div>
                         </div>
 
                         {isUsed ? (
@@ -793,7 +815,9 @@ export const GameConsole = React.memo(function GameConsole({
                             data-testid="start-day-ability-button"
                             className="px-3 py-1 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white text-sm rounded shadow-sm transition-colors cursor-pointer"
                           >
-                            使用 {displayRoleName}
+                            {effectiveRole?.id === "cerenovus"
+                              ? "疯狂洗脑"
+                              : `使用 ${displayRoleName}`}
                           </button>
                         )}
                       </div>

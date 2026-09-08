@@ -703,6 +703,7 @@ export async function executeViaNewEngine(
           type: "NIGHT_ACTION_CONFIRM",
           data: {
             roleName,
+            roleId,
             actionDescription,
             targetDescriptions,
             targetLimit: { min: minTargets, max: maxTargets },
@@ -710,17 +711,24 @@ export async function executeViaNewEngine(
             allowSelf,
             aliveOnly,
             initialSelectedTargets: safeTargets,
+            requiresRoleSelection: roleId === "cerenovus",
+            availableRoles: context.roles,
+            selectedScript: (context as any).selectedScript,
             extraNote: isGoodTwinActiveActor
               ? `👥【双子告知】已告知该玩家：${evilTwinSeat.id + 1}号是镜像双子`
               : isCorrupted
                 ? "该角色处于醉酒/中毒状态，能力可能不生效"
                 : undefined,
-            onConfirm: async (chosenTargets?: number[]) => {
+            onConfirm: async (
+              chosenTargets?: number[],
+              chosenRoleIdOrRole?: any
+            ) => {
               const finalTargets =
                 chosenTargets !== undefined ? chosenTargets : safeTargets;
               console.log(
                 `[executeViaNewEngine] onConfirm FIRED for ${roleId}, targets:`,
-                finalTargets
+                finalTargets,
+                chosenRoleIdOrRole
               );
 
               // 😈 小恶魔自杀转火：若有多名存活爪牙，弹出爪牙晋升选择面板
@@ -760,34 +768,32 @@ export async function executeViaNewEngine(
                 }
               }
 
-              // 🧠 洗脑师：确认目标玩家后，弹出角色选择弹窗选择要疯狂扮演的角色（范围为剧本内所有角色）
+              // 🧠 洗脑师：已在行动确认窗内同时选定目标与角色，无需二级弹窗，直接执行管道
               if (roleId === "cerenovus") {
                 if (finalTargets.length !== 1) {
                   alert("洗脑师必须选择一名玩家");
                   return;
                 }
-                const targetId = finalTargets[0];
-                context.setCurrentModal({
-                  type: "ROLE_SELECT",
-                  data: {
-                    type: "cerenovus",
-                    targetId,
-                    onConfirm: async (chosenRoleId: string) => {
-                      const selectedRole = context.roles.find(
-                        (r) => r.id === chosenRoleId
-                      );
-                      const chosenRoleName =
-                        selectedRole?.name || chosenRoleId;
-                      const realContext: NightActionHandlerContext = {
-                        ...context,
-                        preview: false,
-                        selectedTargets: finalTargets,
-                        actionData: { roleName: chosenRoleName, chosenRoleId },
-                      };
-                      await executeViaNewEngine(realContext, roleId);
-                    },
-                  },
-                });
+                const chosenRoleId =
+                  typeof chosenRoleIdOrRole === "string"
+                    ? chosenRoleIdOrRole
+                    : chosenRoleIdOrRole?.id;
+                if (!chosenRoleId) {
+                  alert("洗脑师必须选择一个角色");
+                  return;
+                }
+                const selectedRole = context.roles.find(
+                  (r) => r.id === chosenRoleId
+                );
+                const chosenRoleName =
+                  selectedRole?.name || chosenRoleId;
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: finalTargets,
+                  actionData: { roleName: chosenRoleName, chosenRoleId },
+                };
+                await executeViaNewEngine(realContext, roleId);
                 return;
               }
 

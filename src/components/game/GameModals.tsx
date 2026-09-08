@@ -264,8 +264,10 @@ export function GameModals() {
         <NightActionConfirmModal
           data={nightActionConfirmModal}
           seats={seats}
-          onConfirm={(selectedTargetIds) => {
-            nightActionConfirmModal.onConfirm(selectedTargetIds);
+          availableRoles={roles}
+          selectedScript={selectedScript}
+          onConfirm={(selectedTargetIds, chosenRole) => {
+            nightActionConfirmModal.onConfirm(selectedTargetIds, chosenRole);
           }}
           onCancel={() => {
             actions.setCurrentModal(null);

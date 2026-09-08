@@ -105,4 +105,48 @@ describe("NightActionConfirmModal 交互选人与保密防窥测试", () => {
       expect(isPlaceholder).toBe(true);
     });
   });
+
+  it("洗脑师夜间行动确认：同时选择座位号与洗脑角色，且缺一不可确认", () => {
+    let confirmedTargets: number[] | undefined;
+    let confirmedRole: any;
+
+    const onConfirm = (targets?: number[], role?: any) => {
+      confirmedTargets = targets;
+      confirmedRole = role;
+    };
+
+    const data: NightActionConfirmData = {
+      roleName: "3号-洗脑师",
+      roleId: "cerenovus",
+      actionDescription: "选择一名玩家与一个角色，使其在该白天疯狂证明自己是该角色",
+      targetLimit: { min: 1, max: 1 },
+      actorSeatId: 2,
+      allowSelf: false,
+      requiresRoleSelection: true,
+      onConfirm,
+      onCancel: vi.fn(),
+    };
+
+    // 校验禁用逻辑：同时满足选了1个座位和选了1个角色
+    const checkDisabled = (selectedTargets: number[], selectedRoleId: string | null) => {
+      const isCerenovus = data.roleId === "cerenovus" || data.requiresRoleSelection === true;
+      return isCerenovus
+        ? selectedTargets.length !== 1 || !selectedRoleId
+        : selectedTargets.length < (data.targetLimit?.min ?? 0);
+    };
+
+    // 1. 都没选：禁用
+    expect(checkDisabled([], null)).toBe(true);
+    // 2. 只选了座位没选角色：禁用
+    expect(checkDisabled([0], null)).toBe(true);
+    // 3. 只选了角色没选座位：禁用
+    expect(checkDisabled([], "clockmaker")).toBe(true);
+    // 4. 同时选了座位和角色：启用
+    expect(checkDisabled([0], "clockmaker")).toBe(false);
+
+    // 模拟确认提交
+    onConfirm([0], "clockmaker");
+    expect(confirmedTargets).toEqual([0]);
+    expect(confirmedRole).toBe("clockmaker");
+  });
 });

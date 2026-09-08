@@ -178,7 +178,10 @@ export type ModalType =
   | {
       type: "NIGHT_ACTION_CONFIRM";
       data: import("../components/modals/NightActionConfirmModal").NightActionConfirmData & {
-        onConfirm: (selectedTargetIds?: number[]) => void | Promise<void>;
+        onConfirm: (
+          selectedTargetIds?: number[],
+          chosenRole?: any
+        ) => void | Promise<void>;
         onCancel: () => void;
       };
     }

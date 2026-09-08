@@ -1604,6 +1604,7 @@ export const GameStage = () => {
             handleViewDayAbilityResult={
               (controller as any).handleViewDayAbilityResult
             }
+            cerenovusTarget={cerenovusTarget}
             onUpdateSeat={(seatId, patch) => {
               setSeats((prev) =>
                 prev.map((s) => (s.id === seatId ? { ...s, ...patch } : s))

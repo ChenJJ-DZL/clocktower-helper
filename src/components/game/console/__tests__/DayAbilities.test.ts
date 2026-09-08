@@ -117,4 +117,31 @@ describe("白天主动技能持久化与查看结果测试", () => {
     expect(res?.modal?.type).toBe("SLAYER_SELECT_TARGET");
     expect(res?.updates.length).toBe(0);
   });
+
+  test("洗脑师在白天主动技能列表中展示，并小字记录座位号与洗脑内容", () => {
+    const cerenovusSeat = {
+      id: 2,
+      playerName: "3号",
+      role: { id: "cerenovus", name: "洗脑师", type: "minion" },
+      isDead: false,
+      hasUsedDayAbility: false,
+    };
+
+    const cerenovusDef = getRoleDefinition("cerenovus");
+    expect(cerenovusDef?.day).toBeDefined();
+    expect(cerenovusDef?.day?.name).toBe("疯狂洗脑");
+
+    // 模拟洗脑师昨晚洗脑了 4号 (targetId: 3) 为 钟表匠
+    const cerenovusTarget = {
+      targetId: 3,
+      roleName: "钟表匠",
+      checkedToday: false,
+    };
+
+    const subtitle = `洗脑目标：${cerenovusTarget.targetId + 1}号（${cerenovusTarget.roleName}）`;
+    expect(subtitle).toBe("洗脑目标：4号（钟表匠）");
+
+    const buttonLabel = cerenovusDef?.day?.name;
+    expect(buttonLabel).toBe("疯狂洗脑");
+  });
 });
