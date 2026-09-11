@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Seat } from "../../../app/data";
 import { isPlayerEvil } from "../../../app/gameLogic";
 import { displayPlayerName, formatSeatLabel } from "../../utils/seatLabel";
+import { isVoteInvalidSeat, pruneInvalidVoters } from "../../utils/voteEligibility";
 import { computeVoteGrid } from "../../utils/voteGrid";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -51,6 +52,8 @@ export function VoteInputModalContent(props: {
   onCancelVote?: (nomineeId?: number) => void;
 }) {
   const [selectedVoters, setSelectedVoters] = useState<number[]>([]);
+  // 被自动剔除的失效选票（幽灵票用尽 / 已死亡），用于内联提示
+  const [prunedVoters, setPrunedVoters] = useState<number[]>([]);
   const seats = props.seats;
   const candidate = seats.find((s) => s.id === props.voterId);
 
@@ -69,10 +72,20 @@ export function VoteInputModalContent(props: {
     );
   };
 
-  const invalidDeadSelected = selectedVoters.some((id) => {
-    const seat = seats.find((s) => s.id === id);
-    return seat?.isDead && seat?.hasGhostVote === false;
-  });
+  const { valid: validVoters, pruned: invalidIds } = pruneInvalidVoters(
+    selectedVoters,
+    seats
+  );
+  const invalidDeadSelected = invalidIds.length > 0;
+
+  // 🔧 自愈：已勾选的座位若中途失效（幽灵票用尽 / 已死亡），立即剔除并内联告知。
+  // 此前只把「确认」按钮置灰且不说明原因（原来那句 alert 是死代码：按钮在同样条件下
+  // 已 disabled，永远进不去），用户与自动化驱动只能「投票 → 取消 → 重投」死循环。
+  useEffect(() => {
+    if (invalidIds.length === 0) return;
+    setPrunedVoters(invalidIds);
+    setSelectedVoters(validVoters);
+  }, [invalidIds.length, seats]);
 
   const selectedAlive = selectedVoters.filter((id) => {
     const seat = seats.find((s) => s.id === id);
@@ -106,10 +119,9 @@ export function VoteInputModalContent(props: {
   const isReachThreshold = displayVoteCount >= threshold;
 
   const handleConfirm = () => {
-    if (invalidDeadSelected) {
-      alert("选择中包含已用完幽灵票的死亡玩家");
-      return;
-    }
+    // 自愈逻辑已保证不会出现无效选择；这里仅作静默兜底，不再使用原生 alert
+    // （原生 alert 会阻塞渲染并冻结自动化会话，项目已统一避免）。
+    if (invalidDeadSelected) return;
     props.registerVotes?.(effectiveVoters);
     props.submitVotes(displayVoteCount, effectiveVoters);
     setSelectedVoters([]);
