@@ -401,7 +401,7 @@ export function IdentityShowcaseModal({
                   <RoleTokenBadge
                     name={displayRole.name}
                     tokenBg={teamTheme.tokenBg}
-                    size="lg"
+                    size="xl"
                   />
                   <div className="space-y-1 min-w-0 flex-1">
                     <h2

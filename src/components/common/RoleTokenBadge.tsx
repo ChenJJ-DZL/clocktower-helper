@@ -5,7 +5,7 @@ import { useMemo } from "react";
 export interface RoleTokenBadgeProps {
   name: string;
   tokenBg?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
 
@@ -32,7 +32,9 @@ export function RoleTokenBadge({
     // 1~3 个字：单行居中显示
     if (len <= 3) {
       let fontSize = "text-xs";
-      if (size === "lg") {
+      if (size === "xl") {
+        fontSize = len <= 2 ? "text-5xl" : "text-4xl";
+      } else if (size === "lg") {
         fontSize = len <= 2 ? "text-2xl" : "text-xl";
       } else if (size === "md") {
         fontSize = len <= 2 ? "text-[13px]" : "text-[11.5px] tracking-tight";
@@ -54,7 +56,13 @@ export function RoleTokenBadge({
     let fontSize = "text-[11px]";
     let leading = "leading-[1.1]";
 
-    if (size === "lg") {
+    if (size === "xl") {
+      if (len === 4) fontSize = "text-3xl";
+      else if (len === 5) fontSize = "text-2xl tracking-tight";
+      else if (len === 6) fontSize = "text-xl tracking-tighter";
+      else fontSize = "text-lg tracking-tighter";
+      leading = "leading-tight";
+    } else if (size === "lg") {
       if (len === 4) fontSize = "text-lg";
       else if (len === 5) fontSize = "text-base tracking-tight";
       else if (len === 6) fontSize = "text-sm tracking-tighter";
@@ -87,7 +95,9 @@ export function RoleTokenBadge({
   }, [name, size]);
 
   const sizeClass =
-    size === "lg"
+    size === "xl"
+      ? "w-32 h-32 border-4 p-2"
+      : size === "lg"
       ? "w-20 h-20 sm:w-22 sm:h-22 border-4 p-1.5"
       : size === "md"
         ? "w-11 h-11 border-2 p-0.5"
