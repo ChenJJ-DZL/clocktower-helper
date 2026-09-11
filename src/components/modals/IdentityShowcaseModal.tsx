@@ -357,7 +357,8 @@ export function IdentityShowcaseModal({
                 <h3 className="text-3xl sm:text-4xl font-black text-amber-300 tracking-wide drop-shadow-md">
                   【 {currentSeat.id + 1} 号座位玩家 】
                 </h3>
-                <p className="text-sm text-slate-400 max-w-md pt-1">
+                {/* 用户要求：这行小字强制 1 行显示（去掉 max-w-md 的宽度限制 + whitespace-nowrap） */}
+                <p className="text-[16px] text-slate-400 pt-1 whitespace-nowrap">
                   当前处于防窥遮罩状态 ·
                   拿到设备的玩家请点击屏幕翻开专属身份与技能说明
                 </p>
