@@ -44,9 +44,9 @@ export function GenericConfirmModal({
       }
     >
       <AutoFitContent
-        targetRatio={0.9}
+        targetRatio={0.99}
         minScale={0.2}
-        className="p-2 sm:p-4 text-white"
+        className="p-0 text-white"
       >
         <p className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 whitespace-pre leading-relaxed text-center">
           {message}
