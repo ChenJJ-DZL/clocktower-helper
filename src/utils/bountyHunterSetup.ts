@@ -129,6 +129,11 @@ export function selectEvilConvertedSeat<T extends BountyHunterSeatLike>(
   targetSeatId: number
 ): T[] {
   return seats.map((s) => {
+    // 赏金猎人座位上记录的「被我转成邪恶的那名镇民」要跟着改选同步更新，
+    // 否则魔典/复盘读到的仍是开局自动挑的那个（与手动改选结果不一致）。
+    if (isRealBountyHunterSeat(s) && s.id !== targetSeatId) {
+      return { ...s, bountyHunterEvilConvertedId: targetSeatId } as T;
+    }
     if (s.id === targetSeatId) {
       const details = (s.statusDetails || []).filter(
         (d) => d !== FORTUNE_TELLER_RED_HERRING_DETAIL

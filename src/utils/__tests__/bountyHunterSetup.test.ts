@@ -167,6 +167,13 @@ describe("说书人手动改选「变为邪恶」（右击菜单）：最后选�
     expect(target.isFortuneTellerRedHerring).toBe(false);
   });
 
+  it("手动改选会同步更新赏金猎人座位上的 bountyHunterEvilConvertedId", () => {
+    const before = withConverted();
+    before[0] = { ...before[0], bountyHunterEvilConvertedId: 1 } as S;
+    const after = selectEvilConvertedSeat(before, 5);
+    expect(after[0].bountyHunterEvilConvertedId).toBe(5);
+  });
+
   it("手动改选不会改动任何人的角色牌", () => {
     const before = withConverted();
     const after = selectEvilConvertedSeat(before, 5);
