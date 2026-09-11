@@ -298,7 +298,7 @@ export function generateFakeInfo(
     return { seat1: -1, seat2: -1, roleName: "" };
   }
 
-  const shuffled = shuffleArray(others);
+  const shuffled = shuffleArray(others, rng);
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
