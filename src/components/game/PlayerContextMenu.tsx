@@ -92,7 +92,7 @@ export function PlayerContextMenu() {
   return createPortal(
     <div
       ref={menuRef}
-      className="fixed bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
+      className="fixed bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-72 whitespace-nowrap overflow-hidden"
       style={{
         // ⚠️ 必须用内联样式显式声明 position/zIndex：app/globals.css 里有
         //    `body > * { position: relative; z-index: 1; }`，本菜单 portal 到 body 后
