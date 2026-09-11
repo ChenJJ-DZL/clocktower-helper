@@ -3,6 +3,7 @@ import type { GamePhase, Seat } from "@/app/data";
 import type { GameAction } from "@/app/gameLogic";
 import { processGameEvent } from "@/app/gameLogic";
 import { applyActorVictoryFlip } from "../utils/actorVictory";
+import { isSeatDead } from "../utils/seatAlive";
 import { computeIsPoisoned } from "../utils/gameRules";
 
 export function useLogicDispatcher(
@@ -109,6 +110,26 @@ export function useLogicDispatcher(
       // checkGameOver，若用击杀前的快照会回写并抹掉刚发生的死亡）。
       setSeats((prevSeats) => {
         const seatsForCheck = prevSeats;
+
+        // 🎯 官方规则：场上所有玩家均已死亡 → 对局必须立即结束，不能继续昼夜循环。
+        const aliveSeats = seatsForCheck.filter(
+          (s) => s.role && !isSeatDead(s)
+        );
+        if (seatsForCheck.some((s) => s.role) && aliveSeats.length === 0) {
+          const demonAlive = aliveSeats.some((s) => s.role?.type === "demon");
+          const w: "good" | "evil" = demonAlive ? "evil" : "good";
+          const reason = "场上所有玩家均已死亡，对局立即结束";
+          victoryRef.current = { winner: w, reason };
+          addLog(
+            "☠️ " + reason + "：" + (w === "good" ? "善良" : "邪恶") + "阵营获胜！"
+          );
+          setWinResult(w);
+          setWinReason(reason);
+          setGamePhase("gameOver");
+          setVictorySnapshot(seatsForCheck.filter((s) => s.role));
+          setCurrentModal({ type: "GAME_OVER", data: null });
+          return seatsForCheck;
+        }
         const mastermind = seatsForCheck.find(
           (s) =>
             s.role?.id === "mastermind" &&
