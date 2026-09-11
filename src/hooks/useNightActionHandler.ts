@@ -21,6 +21,11 @@ import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
+import {
+  applyFarmerSuccession,
+  FARMER_SUCCESSOR_RESULT_TEXT,
+  findFarmerSuccessionTrigger,
+} from "../utils/farmerSuccession";
 import { computeIsPoisoned } from "../utils/gameRules";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
@@ -1286,15 +1291,12 @@ export async function executeViaNewEngine(
       }
 
       // 🌾 农夫遇害传承：如果死者中有农夫且未中毒/醉酒，弹出选择新农夫面板
-      const deadFarmerId = newlyDead.find((id) => {
-        const s = prevSeats.find((seat) => seat.id === id);
-        return (
-          s?.role?.id === "farmer" &&
-          !s.isDrunk &&
-          !s.isPoisoned &&
-          !computeIsPoisoned(s, prevSeats)
-        );
-      });
+      // 判定抽到纯函数里（含「中毒/醉酒农夫不触发」的官方边界），便于单测覆盖
+      const deadFarmerId = findFarmerSuccessionTrigger(
+        prevSeats as any,
+        newlyDead,
+        (seat, all) => computeIsPoisoned(seat as any, all as any)
+      );
       const aliveGoodCandidates = syncedSeats.filter(
         (s) =>
           !s.isDead &&
@@ -1319,29 +1321,47 @@ export async function executeViaNewEngine(
             confirmLabel: "确认转变为新农夫",
             onConfirm: (targetIds: number[]) => {
               const targetId = targetIds[0];
-              const finalSeats = syncedSeats.map((s) => {
-                if (s.id === targetId) {
-                  return {
-                    ...s,
-                    role: {
-                      ...(s.role ?? {}),
-                      id: "farmer",
-                      name: "农夫",
-                      type: "townsfolk",
-                    },
-                    roleId: "farmer",
-                    roleName: "农夫",
-                    roleType: "townsfolk",
-                    statusDetails: [...(s.statusDetails || []), "成为新农夫"],
-                  } as Seat;
-                }
-                return s;
-              });
+              if (targetId === undefined || targetId === null) {
+                // 没选到人（理论上弹窗会禁用确认）→ 不改变任何座位，直接继续流程
+                context.continueToNextAction();
+                return;
+              }
+
+              // 1) 身份**整体替换**为新农夫（唯一事实来源：role 对象 + legacy roleId/roleName/roleType + 标记），
+              //    这样界面立刻显示为「农夫」，技能也随之按农夫解析。
+              const finalSeats = applyFarmerSuccession(
+                syncedSeats as any,
+                targetId
+              ).seats as unknown as Seat[];
               context.setSeats(finalSeats);
+
+              // 2) 让引擎把该玩家当作农夫处理：插入后续唤醒队列并带 roleOverride
+              //    （沿用「方古跳变」的既有范式，否则后续步骤仍按旧角色解析）。
+              context.insertIntoWakeQueueAfterCurrent?.(targetId, {
+                roleOverride: {
+                  id: "farmer",
+                  name: "农夫",
+                  type: "townsfolk",
+                } as any,
+                logLabel: `🌾 新农夫（${targetId + 1}号 · 身份变更）`,
+              });
+
               context.addLog(
                 `🌾 农夫传承完成：${targetId + 1}号玩家转变为新【农夫】`
               );
-              context.continueToNextAction(finalSeats);
+
+              // 3) 立即唤醒新农夫并展示结果页「你的身份变为【农夫】」（走既有 INFO_RESULT 机制，确认后继续夜间流程）
+              context.setCurrentModal({
+                type: "INFO_RESULT",
+                data: {
+                  roleName: "农夫",
+                  resultText: FARMER_SUCCESSOR_RESULT_TEXT,
+                  onNext: () => {
+                    context.setCurrentModal(null);
+                    context.continueToNextAction(finalSeats);
+                  },
+                },
+              } as any);
             },
           },
         } as any);
