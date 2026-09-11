@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Seat } from "../../../app/data";
 import { isPlayerEvil } from "../../../app/gameLogic";
+import { displayPlayerName, formatSeatLabel } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ButlerVoteInfo {
@@ -126,23 +127,47 @@ export function VoteInputModalContent(props: {
     }
   };
 
+  // 血染钟楼单局最多 15 人：按实际人数在 3~5 列中选最整齐的列数，
+  // 整除则整行铺满，有余数则让末行尽量填满并在行内居中，避免右侧大片留白。
+  const voters = seats.filter((s) => s.role);
+  const columns = (() => {
+    const n = voters.length;
+    if (n <= 1) return 1;
+    if (n <= 3) return n;
+    let best = 5;
+    let bestEmpty = Number.POSITIVE_INFINITY;
+    for (const cols of [5, 4, 3]) {
+      const empty = (cols - (n % cols)) % cols;
+      if (empty < bestEmpty) {
+        bestEmpty = empty;
+        best = cols;
+      }
+    }
+    return best;
+  })();
+  const voterRows: Seat[][] = [];
+  for (let i = 0; i < voters.length; i += columns) {
+    voterRows.push(voters.slice(i, i + columns));
+  }
+
   return (
     <ModalWrapper
       title="🗳️ 举手表决计票"
       onClose={handleClose}
       closeOnOverlayClick={false}
-      className="max-w-2xl"
+      widthRatio={0.98}
+      maxWidthPx={1560}
     >
-      <div className="p-4 sm:p-5 text-white text-center">
+      <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 text-white text-center">
         {/* 顶部被提名者信息与简要说明 */}
-        <div className="mb-2 text-center">
-          <div className="text-lg font-bold text-amber-300">
+        <div className="shrink-0 mb-3 text-center">
+          <div className="text-2xl font-black text-amber-300">
             当前被提名者：
             {candidate
-              ? `${candidate.id + 1}号 ${candidate.playerName || ""}`
+              ? formatSeatLabel(candidate.id, candidate.playerName)
               : "未知"}
           </div>
-          <div className="text-xs text-gray-400 mt-0.5">
+          <div className="text-sm text-gray-400 mt-1">
             请勾选本轮举手表决的玩家（存活玩家可自由举手，死亡玩家消耗 1
             张幽灵票
             {ghostHolders.length > 0
@@ -152,55 +177,69 @@ export function VoteInputModalContent(props: {
           </div>
         </div>
 
-        {/* 玩家网格：紧凑 5 列布局，一屏完整呈现 */}
-        <div className="grid grid-cols-5 gap-2 my-2.5 p-0.5">
-          {seats
-            .filter((s) => s.role)
-            .map((s) => {
-              const ghostUsed = s.isDead && s.hasGhostVote === false;
-              const disabled = ghostUsed;
-              const isSelected = selectedVoters.includes(s.id);
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => toggleVoter(s.id)}
-                  className={`py-1.5 px-1 rounded-xl border-2 text-center transition flex flex-col items-center justify-center gap-0.5 ${
-                    disabled
-                      ? "border-gray-800 bg-gray-900/60 text-gray-600 cursor-not-allowed opacity-40"
-                      : isSelected
-                        ? "border-amber-400 bg-amber-600 text-white shadow-md shadow-amber-500/30 font-bold scale-[1.02]"
-                        : "border-slate-700 bg-slate-800/90 text-slate-200 hover:border-slate-500 hover:bg-slate-700"
-                  }`}
-                  title={
-                    ghostUsed
-                      ? "幽灵票已用尽"
-                      : s.isDead
-                        ? "死亡玩家可用幽灵票"
-                        : "存活玩家"
-                  }
-                >
-                  <div className="font-bold text-sm leading-tight">
-                    {s.id + 1}号
-                  </div>
-                  <div className="text-[11px] truncate max-w-full text-slate-200 leading-tight">
-                    {s.playerName || (s.role ? s.role.name : "")}
-                  </div>
-                  <div className="text-[10px] leading-tight opacity-80">
-                    {s.isDead ? (ghostUsed ? "💀无票" : "💀幽灵票") : "🟢存活"}
-                  </div>
-                </button>
-              );
-            })}
+        {/* 玩家网格：按人数自适应列数，行等高撑满可用高度 */}
+        <div className="flex-1 min-h-0 flex flex-col justify-center gap-3 my-2">
+          {voterRows.map((row, rowIndex) => (
+            <div
+              key={rowIndex}
+              className="flex flex-1 min-h-[4.5rem] justify-center gap-3"
+            >
+              {row.map((s) => {
+                const ghostUsed = s.isDead && s.hasGhostVote === false;
+                const disabled = ghostUsed;
+                const isSelected = selectedVoters.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => toggleVoter(s.id)}
+                    style={{
+                      maxWidth: `calc((100% - ${(columns - 1) * 0.75}rem) / ${columns})`,
+                    }}
+                    className={`flex-1 min-w-0 py-3 px-2 rounded-2xl border-2 text-center transition flex flex-col items-center justify-center gap-1 ${
+                      disabled
+                        ? "border-gray-800 bg-gray-900/60 text-gray-600 cursor-not-allowed opacity-40"
+                        : isSelected
+                          ? "border-amber-400 bg-amber-600 text-white shadow-md shadow-amber-500/30 font-bold scale-[1.02]"
+                          : "border-slate-700 bg-slate-800/90 text-slate-200 hover:border-slate-500 hover:bg-slate-700"
+                    }`}
+                    title={
+                      ghostUsed
+                        ? "幽灵票已用尽"
+                        : s.isDead
+                          ? "死亡玩家可用幽灵票"
+                          : "存活玩家"
+                    }
+                  >
+                    <div className="font-black text-2xl leading-tight">
+                      {s.id + 1}号
+                    </div>
+                    <div className="text-base truncate max-w-full text-slate-200 leading-tight">
+                      {displayPlayerName(s.playerName, s.id) ||
+                        s.role?.name ||
+                        ""}
+                    </div>
+                    <div className="text-sm leading-tight opacity-80">
+                      {s.isDead
+                        ? ghostUsed
+                          ? "💀无票"
+                          : "💀幽灵票"
+                        : "🟢存活"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* 核心生效票数展示卡片（单版面直观核心） */}
-        <div className="my-2.5 py-2.5 px-4 text-sm text-gray-200 bg-slate-900/70 rounded-xl border border-slate-700/60 shadow-inner">
+        <div className="shrink-0 mt-1 py-3 px-4 text-base text-gray-200 bg-slate-900/70 rounded-xl border border-slate-700/60 shadow-inner">
           <div className="flex items-center justify-center flex-wrap gap-2">
-            <span className="text-base text-gray-100">
+            <span className="text-xl text-gray-100">
               当前生效的票数：
-              <span className="font-black text-amber-400 text-2xl mx-1">
+              <span className="font-black text-amber-400 text-4xl mx-1.5">
                 {displayVoteCount}
               </span>
               票
@@ -278,11 +317,11 @@ export function VoteInputModalContent(props: {
         )}
 
         {/* 底部操作按钮 */}
-        <div className="flex gap-4 justify-center mt-3">
+        <div className="shrink-0 flex gap-4 justify-center mt-3">
           <button
             type="button"
             onClick={handleClose}
-            className="px-6 py-2.5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold transition shadow-md"
+            className="px-10 py-3.5 text-lg bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold transition shadow-md"
           >
             取消
           </button>
@@ -290,7 +329,7 @@ export function VoteInputModalContent(props: {
             type="button"
             disabled={invalidDeadSelected}
             onClick={handleConfirm}
-            className="px-8 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-bold transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-base"
+            className="px-12 py-3.5 text-lg bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             确认（{effectiveCount} 票）
           </button>
