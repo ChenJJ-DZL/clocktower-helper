@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useRef } from "react";
 import type { Seat } from "../../../../app/data";
 import type { NightInfoResult } from "../../../types/game";
 import { SeatNode } from "../../SeatNode";
@@ -76,6 +77,12 @@ export function SeatGrid(props: SeatGridProps) {
     onSeatDragEnd,
   } = props;
 
+  // 矩阵视图（席位表）的长按触发右键菜单：触屏设备（iPhone 等）没有右键，
+  // 需长按 500ms 才能打开同一个菜单；滑动会取消，短按仍是「选中座位」。
+  // 注意：这两个 ref 必须在下面的 early return（圆桌模式）之前调用，否则违反 Hooks 规则。
+  const lpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lpFiredRef = useRef(false);
+
   // 圆桌模式：使用 SeatNode + 圆形布局（轻量直接渲染，彻底移除移动端 15 层全屏 StaggerItem 导致的 700MB+ 显存溢出与 WebKit OOM 崩溃）
   if (layoutMode === "circle") {
     return (
@@ -138,13 +145,12 @@ export function SeatGrid(props: SeatGridProps) {
         const handleTouchEnd = (e: React.TouchEvent) => {
           e.stopPropagation();
           e.preventDefault();
-          console.log(
-            "[SeatGrid matrix] Seat touched:",
-            seat.id,
-            "Selected role:",
-            seat.role?.name
-          );
-          onSeatClick(seat.id);
+          if (lpTimerRef.current) {
+            clearTimeout(lpTimerRef.current);
+            lpTimerRef.current = null;
+          }
+          // 长按已触发过菜单 → 不再当作选中；否则是按普通点击处理
+          if (!lpFiredRef.current) onSeatClick(seat.id);
         };
         return (
           <button
@@ -153,9 +159,30 @@ export function SeatGrid(props: SeatGridProps) {
             onTouchStart={(e) => {
               e.stopPropagation();
               // Don't preventDefault here to allow click events to work
+              lpFiredRef.current = false;
+              if (lpTimerRef.current) clearTimeout(lpTimerRef.current);
+              const touch = e.touches[0];
+              lpTimerRef.current = setTimeout(() => {
+                lpTimerRef.current = null;
+                lpFiredRef.current = true;
+                // 合成与右键一致的参数，复用同一个菜单组件
+                onContextMenu(
+                  {
+                    clientX: touch?.clientX ?? 0,
+                    clientY: touch?.clientY ?? 0,
+                    preventDefault() {},
+                  } as unknown as React.MouseEvent,
+                  seat.id
+                );
+              }, 500);
             }}
             onTouchMove={(e) => {
               e.stopPropagation();
+              // 滑动（例如滚动列表）应取消长按，避免误触菜单
+              if (lpTimerRef.current) {
+                clearTimeout(lpTimerRef.current);
+                lpTimerRef.current = null;
+              }
             }}
             onTouchEnd={handleTouchEnd}
             onContextMenu={(e) => onContextMenu(e, seat.id)}
