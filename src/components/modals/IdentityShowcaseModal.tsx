@@ -405,15 +405,15 @@ export function IdentityShowcaseModal({
                   />
                   <div className="space-y-1 min-w-0 flex-1">
                     <h2
-                      className={`text-6xl sm:text-7xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}
+                      className={`text-4xl sm:text-5xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}
                     >
                       {displayRole.name}
                     </h2>
-                    <p className="text-[26px] text-slate-300 font-mono font-medium">
+                    <p className="text-[19px] text-slate-300 font-mono font-medium">
                       {wikiDetails?.englishName || displayRole.id}
                     </p>
                     {wikiDetails?.script && (
-                      <p className="text-[18px] text-slate-400">
+                      <p className="text-[16px] text-slate-400">
                         所属剧本：
                         <span className="text-slate-200 font-semibold">
                           {wikiDetails.script}
@@ -425,11 +425,11 @@ export function IdentityShowcaseModal({
 
                 {/* 技能说明大卡片（字号适中，无截断） */}
                 <div className="p-4 rounded-xl bg-black/40 border border-white/15 space-y-2 flex-1 flex flex-col justify-center">
-                  <div className="flex items-center gap-2 text-[24px] font-bold text-amber-300 uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-[16px] font-bold text-amber-300 uppercase tracking-wider">
                     <span>⚡</span>
                     <span>【角色能力】</span>
                   </div>
-                  <p className="text-[40px] font-medium text-slate-100 leading-snug pl-1">
+                  <p className="text-[26px] font-medium text-slate-100 leading-relaxed pl-1">
                     {wikiDetails?.abilityText ||
                       displayRole.ability ||
                       "无特殊能力描述"}
@@ -445,7 +445,7 @@ export function IdentityShowcaseModal({
                 <div className="flex items-center justify-between border-b border-white/10 pb-2.5 shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">📖</span>
-                    <h3 className="text-[24px] font-bold text-slate-200">
+                    <h3 className="text-[20px] font-bold text-slate-200">
                       官方玩法推荐 & 进阶技巧
                     </h3>
                   </div>
@@ -466,14 +466,14 @@ export function IdentityShowcaseModal({
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                   {/* 官方名言金句 (如果有) */}
                   {wikiDetails?.flavorQuote && (
-                    <div className="p-3 rounded-xl bg-white/5 border-l-4 border-amber-500 text-[26px] text-slate-300 italic">
+                    <div className="p-3 rounded-xl bg-white/5 border-l-4 border-amber-500 text-[18px] text-slate-300 italic">
                       {wikiDetails.flavorQuote}
                     </div>
                   )}
 
                   {/* 核心打法与发言建议 (提示与技巧) */}
                   <div className="space-y-2.5">
-                    <div className="flex items-center gap-1.5 text-[18px] font-bold text-amber-300">
+                    <div className="flex items-center gap-1.5 text-[16px] font-bold text-amber-300">
                       <span>💡</span>
                       <span>核心打法与发言建议</span>
                     </div>
@@ -483,7 +483,7 @@ export function IdentityShowcaseModal({
                         {wikiDetails.strategyTips.slice(0, 6).map((tip, i) => (
                           <div
                             key={tip}
-                            className="flex items-start gap-2.5 text-[26px] text-slate-200 leading-relaxed bg-black/25 p-3 rounded-xl border border-white/5 shadow-sm"
+                            className="flex items-start gap-2.5 text-[18px] text-slate-200 leading-relaxed bg-black/25 p-3 rounded-xl border border-white/5 shadow-sm"
                           >
                             <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/30">
                               {i + 1}
@@ -507,7 +507,7 @@ export function IdentityShowcaseModal({
                         <span>📜</span>
                         <span>角色简介</span>
                       </div>
-                      <p className="text-[26px] text-slate-300 leading-relaxed pl-2">
+                      <p className="text-[18px] text-slate-300 leading-relaxed pl-2">
                         {wikiDetails.overview}
                       </p>
                     </div>
@@ -525,7 +525,7 @@ export function IdentityShowcaseModal({
                           {wikiDetails.bluffTips.slice(0, 2).map((bTip) => (
                             <p
                               key={bTip}
-                              className="text-[20px] text-slate-300 leading-relaxed"
+                              className="text-[17px] text-slate-300 leading-relaxed"
                             >
                               • {bTip}
                             </p>
