@@ -72,6 +72,13 @@ export function PlayerContextMenu() {
     ? targetSeat.charadeRole || targetSeat.role
     : targetSeat.role;
 
+  // 📱 手机（横屏 iPhone 等窄视口）整体缩到 75%：
+  //    本菜单 portal 到 body、在 1600×900 缩放舞台**之外**，所以它不跟随舞台缩放（舞台在手机上只有 ~0.43~0.53），
+  //    结果就是「座位小、菜单巨大」。窄视口下用 transform 等比缩到 75%（transform 不影响 getBoundingClientRect
+  //    的取值语义，下面的边界钳制依旧按缩放后的真实尺寸计算）。
+  const isCompactViewport =
+    typeof window !== "undefined" && window.innerWidth < 1024;
+
   // 🔧 必须 portal 到 body 并使用 position: fixed：
   //    本组件渲染在 1600×900 的缩放舞台（CSS transform: scale）内部，
   //    若用 absolute + 视口坐标（clientX/clientY），坐标会被舞台缩放二次变换，
@@ -90,6 +97,9 @@ export function PlayerContextMenu() {
         top: clampedPos?.top ?? props.contextMenu.y,
         left: clampedPos?.left ?? props.contextMenu.x,
         visibility: clampedPos ? "visible" : "hidden",
+        // 缩放锚点必须是左上角，否则菜单会相对点击点漂移
+        transformOrigin: "top left",
+        transform: isCompactViewport ? "scale(0.75)" : undefined,
       }}
     >
       {targetSeat.role && (
