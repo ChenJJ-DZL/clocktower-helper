@@ -235,7 +235,24 @@ export function IdentityShowcaseModal({
 
   return (
     <ModalWrapper
-      title="🎴 身份展示 & 逐一告知 (全屏画册)"
+      title={
+        <div className="flex items-center gap-4">
+          <span>🎴 身份展示 &amp; 逐一告知 (全屏画册)</span>
+          {/* 防窥遮罩开关合并到标题行（用户要求：只保留这一个、并放大更好点） */}
+          <button
+            type="button"
+            onClick={() => setIsMasked((prev) => !prev)}
+            className={`px-8 py-3 rounded-xl border-2 font-black text-[26px] transition shadow-lg cursor-pointer active:scale-95 ${
+              isMasked
+                ? "border-amber-400 bg-amber-500 text-slate-950 shadow-amber-500/30"
+                : "border-emerald-400/60 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
+            }`}
+            title="切换防窥遮罩（切换玩家时自动恢复防窥）"
+          >
+            {isMasked ? "👁️ 翻开身份" : "🙈 遮罩防窥"}
+          </button>
+        </div>
+      }
       onClose={onClose}
       widthRatio={0.98}
       maxWidthPx={1560}
@@ -259,18 +276,7 @@ export function IdentityShowcaseModal({
 
           {/* 上排：防窥切换键 + 座位直达指示条（占满整行、居中，排在导航按钮之上） */}
           <div className="order-1 w-full flex flex-wrap items-center justify-center gap-3 py-1">
-            <button
-              type="button"
-              onClick={() => setIsMasked((prev) => !prev)}
-              className={`px-6 py-3 rounded-xl border font-bold text-[22px] transition flex items-center gap-2 cursor-pointer shadow-md active:scale-95 ${
-                isMasked
-                  ? "border-amber-400 bg-amber-500 text-slate-950 font-black shadow-amber-500/30"
-                  : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
-              }`}
-              title="点击切换防窥遮罩（切换玩家时自动恢复防窥）"
-            >
-              <span>{isMasked ? "👁️ 翻开身份" : "🙈 遮罩防窥"}</span>
-            </button>
+            {/* 防窥遮罩开关已合并到弹窗标题行（避免两个入口、且标题行更好点） */}
 
             <div className="flex items-center gap-1">
               {seatedPlayers.map((s, idx) => (
@@ -331,13 +337,7 @@ export function IdentityShowcaseModal({
               </span>
             </span>
           </div>
-          <div className="flex items-center gap-2 text-slate-400 shrink-0">
-            <span
-              className={`px-2 py-0.5 rounded text-[11px] font-bold border ${isMasked ? "bg-amber-500/20 text-amber-300 border-amber-500/40" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"}`}
-            >
-              {isMasked ? "🙈 已遮罩" : "👁️ 已翻开"}
-            </span>
-          </div>
+          {/* 右上角原「已遮罩/已翻开」指示灯已合并进弹窗标题行的大按钮，此处不再重复显示 */}
         </div>
 
         {/* 主体展示区：全屏双栏完整展示 或 全屏防窥遮罩 */}
