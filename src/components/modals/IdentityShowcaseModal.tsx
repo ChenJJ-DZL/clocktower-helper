@@ -248,7 +248,7 @@ export function IdentityShowcaseModal({
               type="button"
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className="px-8 py-4 rounded-xl border border-white/20 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[26px] transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer active:scale-95" title="上一位（iPhone 横屏可直接点）"
+              className="px-10 py-7 rounded-xl border border-white/20 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[30px] transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer active:scale-95" title="上一位（iPhone 横屏可直接点）"
             >
               <span>⬅</span>
               <span>上一位 {prevSeat ? `(${prevSeat.id + 1}号)` : ""}</span>
@@ -276,7 +276,7 @@ export function IdentityShowcaseModal({
                   key={s.id}
                   type="button"
                   onClick={() => handleJumpTo(idx)}
-                  className={`w-12 h-12 rounded-lg text-[20px] font-bold transition-all flex items-center justify-center cursor-pointer ${
+                  className={`w-16 h-14 rounded-lg text-[22px] font-bold transition-all flex items-center justify-center cursor-pointer ${
                     idx === currentIndex
                       ? "bg-amber-500 text-slate-950 font-black ring-2 ring-amber-300 shadow-md scale-110"
                       : "bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-white/10"
@@ -294,7 +294,7 @@ export function IdentityShowcaseModal({
             <button
               type="button"
               onClick={handleNext}
-              className={`px-10 py-5 rounded-xl text-white font-black text-[30px] transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 ${
+              className={`px-12 py-8 rounded-xl text-white font-black text-[32px] transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 ${
                 currentIndex === total - 1
                   ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/40 ring-1 ring-emerald-400"
                   : "bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-amber-500/40"
@@ -366,7 +366,7 @@ export function IdentityShowcaseModal({
                   e.stopPropagation();
                   setIsMasked(false);
                 }}
-                className="px-14 py-7 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-[34px] shadow-xl shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="px-16 py-8 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-[36px] shadow-xl shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 👁️ 点击翻开我的身份
               </button>
