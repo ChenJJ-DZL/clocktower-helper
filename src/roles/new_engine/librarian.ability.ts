@@ -51,6 +51,11 @@
  */
 
 import { roles } from "../../../app/data";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -206,10 +211,13 @@ function getScriptOutsiderRoles(seats: PlayerLookup[]): string[] {
 /**
  * Fisher-Yates 洗牌算法
  */
-function shuffleArray<T>(arr: T[]): T[] {
+function shuffleArray<T>(
+  arr: T[],
+  rng: DeterministicRandom = Math.random
+): T[] {
   const shuffled = [...arr];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
@@ -225,9 +233,10 @@ function shuffleArray<T>(arr: T[]): T[] {
  *
  * 无外来者候选时返回 roleName === ""（由 postProcess 识别）。
  */
-function generateRealInfo(
+export function generateRealInfo(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  rng: DeterministicRandom = Math.random
 ): LibrarianInfo {
   const outsiderCandidates = getOutsiderCandidates(seats, selfSeatId);
 
@@ -235,7 +244,7 @@ function generateRealInfo(
     return { seat1: -1, seat2: -1, roleName: "" };
   }
 
-  const targetIdx = Math.floor(Math.random() * outsiderCandidates.length);
+  const targetIdx = Math.floor(rng() * outsiderCandidates.length);
   const { seat: targetSeat, roleName: targetRoleName } =
     outsiderCandidates[targetIdx];
 
@@ -245,11 +254,11 @@ function generateRealInfo(
   );
   const decoySeat =
     decoyPool.length > 0
-      ? decoyPool[Math.floor(Math.random() * decoyPool.length)]
+      ? decoyPool[Math.floor(rng() * decoyPool.length)]
       : targetSeat;
 
   const ids =
-    Math.random() < 0.5
+    rng() < 0.5
       ? [targetSeat.id, decoySeat.id]
       : [decoySeat.id, targetSeat.id];
 
@@ -265,10 +274,11 @@ function generateRealInfo(
  * 2. 若场上真实存在外来者（realCount > 0）：假信息可以给出数字0（表示没有外来者在场，这在真实有外来者时是100%假信息），
  *    也可以给出两名玩家与一个错误的外来者角色名（两名玩家均不是该外来者，或角色名与真实情况不同）。
  */
-function generateFakeInfo(
+export function generateFakeInfo(
   seats: PlayerLookup[],
   selfSeatId: number,
-  realInfo?: LibrarianInfo
+  realInfo?: LibrarianInfo,
+  rng: DeterministicRandom = Math.random
 ): LibrarianInfo {
   const outsiderRoles = getScriptOutsiderRoles(seats);
   const others = seats.filter(
@@ -284,7 +294,7 @@ function generateFakeInfo(
 
   // 如果真实有外来者，可以有概率给出虚假的“0”（即谎称场上无外来者）
   // 但如果真实本身就是 0（场上无外来者），则绝对禁止给出 0，必须捏造一个外来者！
-  if (!isActuallyZero && Math.random() < 0.3) {
+  if (!isActuallyZero && rng() < 0.3) {
     return { seat1: -1, seat2: -1, roleName: "" };
   }
 
@@ -304,7 +314,7 @@ function generateFakeInfo(
 
   const roleName =
     candidatePool.length > 0
-      ? candidatePool[Math.floor(Math.random() * candidatePool.length)]
+      ? candidatePool[Math.floor(rng() * candidatePool.length)]
       : "管家";
 
   return { seat1, seat2, roleName };
@@ -336,6 +346,12 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到图书管理员座位" };
   }
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的信息，否则说书人照提示念的内容会与结果弹窗、魔典标记对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("librarian", selfSeatId, snapshot.nightCount ?? 1)
+  );
+
   let info: LibrarianInfo;
 
   // 优先级 1：说书人手动完全覆盖
@@ -357,7 +373,7 @@ const calculateResult = async (
         seat2: preset.seat2,
         roleName:
           otherRoles.length > 0
-            ? otherRoles[Math.floor(Math.random() * otherRoles.length)]
+            ? otherRoles[Math.floor(rng() * otherRoles.length)]
             : preset.roleName,
       };
     } else {
@@ -367,8 +383,8 @@ const calculateResult = async (
   // 优先级 4：动态生成
   else {
     info = abilityEffective
-      ? generateRealInfo(snapshot.seats, selfSeatId)
-      : generateFakeInfo(snapshot.seats, selfSeatId, undefined);
+      ? generateRealInfo(snapshot.seats, selfSeatId, rng)
+      : generateFakeInfo(snapshot.seats, selfSeatId, undefined, rng);
   }
 
   return {
