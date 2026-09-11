@@ -23,6 +23,11 @@ export interface ModalWrapperProps {
   maxWidthPx?: number;
   /** 弹窗占可用宽度的比例，默认 0.92。 */
   widthRatio?: number;
+  /**
+   * 高度自适应内容(默认 false，固定 min(88%, 800px))。
+   * 用于卡片/网格类弹窗：人数少时不再被强行拉高留白，人数多时到 88% 封顶。
+   */
+  autoHeight?: boolean;
 }
 
 export function ModalWrapper({
@@ -35,6 +40,7 @@ export function ModalWrapper({
   size: _size = "fullscreen90",
   maxWidthPx = 1360,
   widthRatio = 0.92,
+  autoHeight = false,
 }: ModalWrapperProps) {
   // CRITICAL: Use ref to ensure key remains stable across renders
   const portalKeyRef = React.useRef(
@@ -54,8 +60,8 @@ export function ModalWrapper({
     portalNode && document.body.contains(portalNode)
       ? portalNode
       : typeof document !== "undefined"
-      ? document.getElementById("scale-layout-modal-root") || document.body
-      : null;
+        ? document.getElementById("scale-layout-modal-root") || document.body
+        : null;
 
   if (typeof document === "undefined" || !mounted || !activePortalNode) {
     return null;
@@ -114,9 +120,9 @@ export function ModalWrapper({
           className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden pointer-events-auto ${sanitizedClassName}`}
           style={{
             width: `min(${widthRatio * 100}%, ${maxWidthPx}px)`,
-            height: "min(88%, 800px)",
+            height: autoHeight ? "auto" : "min(88%, 800px)",
             maxWidth: `${widthRatio * 100}%`,
-            maxHeight: "88%",
+            maxHeight: autoHeight ? "94%" : "88%",
             margin: "auto",
             position: "relative",
             display: "flex",

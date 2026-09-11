@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Seat } from "../../../app/data";
 import { isPlayerEvil } from "../../../app/gameLogic";
 import { displayPlayerName, formatSeatLabel } from "../../utils/seatLabel";
+import { computeVoteGrid } from "../../utils/voteGrid";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ButlerVoteInfo {
@@ -127,28 +128,21 @@ export function VoteInputModalContent(props: {
     }
   };
 
-  // 血染钟楼单局最多 15 人：按实际人数在 3~5 列中选最整齐的列数，
-  // 整除则整行铺满，有余数则让末行尽量填满并在行内居中，避免右侧大片留白。
+  // 列数按实际人数自适应(见 src/utils/voteGrid.ts，最多 15 人)：
+  // 整除则整行铺满，否则末行尽量填满并在行内居中。
   const voters = seats.filter((s) => s.role);
-  const columns = (() => {
-    const n = voters.length;
-    if (n <= 1) return 1;
-    if (n <= 3) return n;
-    let best = 5;
-    let bestEmpty = Number.POSITIVE_INFINITY;
-    for (const cols of [5, 4, 3]) {
-      const empty = (cols - (n % cols)) % cols;
-      if (empty < bestEmpty) {
-        bestEmpty = empty;
-        best = cols;
-      }
-    }
-    return best;
-  })();
-  const voterRows: Seat[][] = [];
-  for (let i = 0; i < voters.length; i += columns) {
-    voterRows.push(voters.slice(i, i + columns));
-  }
+  const { columns, rows: voterRowSpecs } = computeVoteGrid(voters.length);
+  const voterRows = voterRowSpecs.map((r) =>
+    voters.slice(r.start, r.start + r.count)
+  );
+  // 卡片高度按行数收敛：3 行时必须让「确认」按钮留在弹窗内(不滚动即可计票)，
+  // 人数少时也不把单张卡片拉得过大。字号用 min(cqi,cqh) 跟着卡片宽高一起缩放。
+  const cardHeight =
+    voterRows.length >= 3
+      ? "7.75rem"
+      : voterRows.length === 2
+        ? "10.5rem"
+        : "11rem";
 
   return (
     <ModalWrapper
@@ -157,17 +151,18 @@ export function VoteInputModalContent(props: {
       closeOnOverlayClick={false}
       widthRatio={0.98}
       maxWidthPx={1560}
+      autoHeight
     >
-      <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 text-white text-center">
+      <div className="flex flex-col p-4 sm:p-5 text-white text-center">
         {/* 顶部被提名者信息与简要说明 */}
-        <div className="shrink-0 mb-3 text-center">
-          <div className="text-2xl font-black text-amber-300">
+        <div className="shrink-0 mb-1 text-center">
+          <div className="text-4xl font-black text-amber-300">
             当前被提名者：
             {candidate
               ? formatSeatLabel(candidate.id, candidate.playerName)
               : "未知"}
           </div>
-          <div className="text-sm text-gray-400 mt-1">
+          <div className="text-lg text-gray-400 mt-1.5">
             请勾选本轮举手表决的玩家（存活玩家可自由举手，死亡玩家消耗 1
             张幽灵票
             {ghostHolders.length > 0
@@ -177,13 +172,10 @@ export function VoteInputModalContent(props: {
           </div>
         </div>
 
-        {/* 玩家网格：按人数自适应列数，行等高撑满可用高度 */}
-        <div className="flex-1 min-h-0 flex flex-col justify-center gap-3 my-2">
+        {/* 玩家网格：列数随人数自适应，卡片尺寸上下封顶，避免人数少时被拉大 */}
+        <div className="flex flex-col justify-center gap-3 my-1.5">
           {voterRows.map((row, rowIndex) => (
-            <div
-              key={rowIndex}
-              className="flex flex-1 min-h-[4.5rem] justify-center gap-3"
-            >
+            <div key={rowIndex} className="flex justify-center gap-3">
               {row.map((s) => {
                 const ghostUsed = s.isDead && s.hasGhostVote === false;
                 const disabled = ghostUsed;
@@ -195,9 +187,11 @@ export function VoteInputModalContent(props: {
                     disabled={disabled}
                     onClick={() => toggleVoter(s.id)}
                     style={{
-                      maxWidth: `calc((100% - ${(columns - 1) * 0.75}rem) / ${columns})`,
+                      maxWidth: `min(calc((100% - ${(columns - 1) * 0.75}rem) / ${columns}), 19rem)`,
+                      height: cardHeight,
+                      containerType: "size",
                     }}
-                    className={`flex-1 min-w-0 py-3 px-2 rounded-2xl border-2 text-center transition flex flex-col items-center justify-center gap-1 ${
+                    className={`flex-1 min-w-0 py-2 px-2 rounded-2xl border-2 text-center transition flex flex-col items-center justify-center gap-1 overflow-hidden ${
                       disabled
                         ? "border-gray-800 bg-gray-900/60 text-gray-600 cursor-not-allowed opacity-40"
                         : isSelected
@@ -212,15 +206,25 @@ export function VoteInputModalContent(props: {
                           : "存活玩家"
                     }
                   >
-                    <div className="font-black text-2xl leading-tight">
+                    {/* 字号随卡片宽高自适应(min(cqi,cqh))：人数变化时按钮与文字同步缩放 */}
+                    <div
+                      className="font-black leading-none"
+                      style={{ fontSize: "min(19cqi, 36cqh)" }}
+                    >
                       {s.id + 1}号
                     </div>
-                    <div className="text-base truncate max-w-full text-slate-200 leading-tight">
+                    <div
+                      className="truncate max-w-full text-slate-200 leading-tight"
+                      style={{ fontSize: "min(9.5cqi, 19cqh)" }}
+                    >
                       {displayPlayerName(s.playerName, s.id) ||
                         s.role?.name ||
                         ""}
                     </div>
-                    <div className="text-sm leading-tight opacity-80">
+                    <div
+                      className="leading-none opacity-85"
+                      style={{ fontSize: "min(7cqi, 14cqh)" }}
+                    >
                       {s.isDead
                         ? ghostUsed
                           ? "💀无票"
@@ -235,11 +239,11 @@ export function VoteInputModalContent(props: {
         </div>
 
         {/* 核心生效票数展示卡片（单版面直观核心） */}
-        <div className="shrink-0 mt-1 py-3 px-4 text-base text-gray-200 bg-slate-900/70 rounded-xl border border-slate-700/60 shadow-inner">
+        <div className="shrink-0 mt-1 py-1.5 px-4 text-base text-gray-200 bg-slate-900/70 rounded-xl border border-slate-700/60 shadow-inner">
           <div className="flex items-center justify-center flex-wrap gap-2">
-            <span className="text-xl text-gray-100">
+            <span className="text-2xl text-gray-100">
               当前生效的票数：
-              <span className="font-black text-amber-400 text-4xl mx-1.5">
+              <span className="font-black text-amber-400 text-5xl mx-2">
                 {displayVoteCount}
               </span>
               票
@@ -317,11 +321,11 @@ export function VoteInputModalContent(props: {
         )}
 
         {/* 底部操作按钮 */}
-        <div className="shrink-0 flex gap-4 justify-center mt-3">
+        <div className="shrink-0 flex gap-4 justify-center mt-2">
           <button
             type="button"
             onClick={handleClose}
-            className="px-10 py-3.5 text-lg bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold transition shadow-md"
+            className="px-12 py-3 text-2xl bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold transition shadow-md"
           >
             取消
           </button>
@@ -329,7 +333,7 @@ export function VoteInputModalContent(props: {
             type="button"
             disabled={invalidDeadSelected}
             onClick={handleConfirm}
-            className="px-12 py-3.5 text-lg bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-14 py-3 text-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             确认（{effectiveCount} 票）
           </button>
