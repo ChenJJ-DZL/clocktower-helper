@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { isSeatDead } from "../utils/seatAlive";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import type { ModalType } from "../types/modal";
@@ -167,10 +168,19 @@ export function useDayActions(deps: DayActionsDeps) {
         openVoteModal?: boolean;
       }
     ) => {
+      // 🎯 官方规则（贞洁者条目原文）：「一名已死亡的玩家提名了贞洁者。然而已死亡
+      // 玩家无法发起提名。说书人宣布这次提名无效。」——执行层必须再校验，不能只靠 UI 拦。
       const nominatorSeat = seats.find((s) => s.id === sourceId);
-      if (!nominatorSeat || nominatorSeat.isDead) {
+      if (!nominatorSeat || isSeatDead(nominatorSeat)) {
         addLog("只有存活的玩家可以发起提名");
-        return;
+        return false;
+      }
+
+      // 🎯 官方规则：只能提名存活玩家，已死亡的玩家不能被提名
+      const nomineeSeat = seats.find((s) => s.id === id);
+      if (!nomineeSeat || isSeatDead(nomineeSeat)) {
+        addLog(`${id + 1}号玩家已死亡，不能被提名`);
+        return false;
       }
 
       const nominatorsSet =

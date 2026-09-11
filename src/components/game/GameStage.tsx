@@ -8,6 +8,7 @@ import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../../utils/cerenovusGate";
+import { isSeatDead } from "../../utils/seatAlive";
 import { isInformationRole } from "../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { formatSeatLabel } from "../../utils/seatLabel";
@@ -334,7 +335,8 @@ export const GameStage = () => {
         }
         const nominatorSeat = seats.find((s) => s.id === nominatorId);
         const nomineeSeat = seats.find((s) => s.id === nomineeId);
-        if (nominatorSeat?.isDead || nomineeSeat?.isDead) {
+        // 🎯 官方规则：已死亡玩家既不能发起提名，也不能被提名
+      if (isSeatDead(nominatorSeat) || isSeatDead(nomineeSeat)) {
           showAlert("已死亡玩家不能发起或接受提名，请重新选择。");
           setNominator(null);
           setNominee(null);
@@ -430,7 +432,7 @@ export const GameStage = () => {
   const handleDuskSeatClick = useCallback(
     (seatId: number) => {
       const clickedSeat = seats.find((s) => s.id === seatId);
-      if (clickedSeat?.isDead) {
+      if (isSeatDead(clickedSeat)) {
         showAlert(`${seatId + 1}号玩家已死亡，不能发起或接受提名。`);
         return;
       }
