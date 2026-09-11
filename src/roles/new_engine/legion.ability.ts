@@ -124,10 +124,22 @@ const stateUpdate = async (
   }
 
   const victimId = result.killedPlayerId;
+  // 🔧 军团死亡必须与其它击杀角色（imp 等）写同样的字段：
+  //   只写 markedForDeath 时，如果该座位没走到 syncStatusEffectsToSeat 的翻译，
+  //   isDead 就不会落地 → useNightActionHandler 的 prev/new isDead 补记逻辑不触发
+  //   → deadThisNight 永远为空 → 天亮播报错误地宣布「平安夜」（用户实测：军团局有人死亡仍报平安夜）。
+  //   因此这里同时落地 isDead / isAlive，并显式补记 deadThisNight。
+  const prevDeadThisNight: number[] = (ctx.snapshot as any).deadThisNight ?? [];
+  const nextDeadThisNight = prevDeadThisNight.includes(victimId)
+    ? prevDeadThisNight
+    : [...prevDeadThisNight, victimId];
+
   const nextSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === victimId) {
       return {
         ...s,
+        isDead: true,
+        isAlive: false,
         markedForDeath: true,
         deathSource: "demon",
         deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? -1,
@@ -140,6 +152,7 @@ const stateUpdate = async (
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      deadThisNight: nextDeadThisNight,
       seats: nextSeats,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
@@ -159,7 +172,6 @@ const postProcess = async (
       ? `[军团夜杀] 说书人决定：${victimId + 1}号玩家今晚死亡`
       : `[军团夜杀] 说书人决定：今晚无人死亡（${result?.reason || "空刀"}）`;
 
-  console.log(log);
   return {
     ...ctx,
     meta: {
