@@ -105,6 +105,39 @@ style={{ fontSize: "min(7cqi, 14cqh)" }}
 - **纯参考内容默认收起**:说书人话术/规则指南做成点击展开,省掉约 430 设计px。
 - 按钮:`py-4 px-6` + `text-[1.15em]`,不要用 `py-1.5/py-2.5`。
 
+## 3.6 技能选择页(选人弹窗)——统一用 AdaptiveSeatGrid
+
+**所有"点选目标玩家"的弹窗**(夜间行动确认、月之子陪葬、傻瓜抉择、市长转移、麻脸巫婆指定死亡…)必须用共用组件
+`src/components/common/AdaptiveSeatGrid.tsx`,不要再手写 `grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6`。
+
+理由:那种写法有两个问题 ——
+1. `sm:/md:/lg:` 断点看的是**真实视口宽度**,而应用跑在固定 1600 舞台上,导致列数随窗口大小乱跳、与在场人数无关;
+2. 人数少时卡片被固定高度压得很小,弹窗下方大片空白。
+
+用法:
+
+```tsx
+const candidates = seats.filter((s) => !s.isDead && s.id !== sourceId); // 先按业务过滤
+
+<AdaptiveSeatGrid
+  count={candidates.length}
+  renderItem={(index) => {
+    const s = candidates[index];
+    return (
+      <button className="w-full h-full rounded-2xl flex flex-col items-center justify-center gap-1">
+        <span style={{ fontSize: SEAT_CARD_FONT.primary }}>{s.id + 1}号</span>
+        <span style={{ fontSize: SEAT_CARD_FONT.secondary }}>{s.role?.name}</span>
+      </button>
+    );
+  }}
+/>
+```
+
+组件负责:列数(3~5 取末行最整齐者)、末行居中、卡片宽度上限与对齐、卡片高度按行数收敛、
+容器查询字号(`SEAT_CARD_FONT.primary/secondary/tertiary`)。调用方只需保证按钮是 `w-full h-full`。
+
+⚠️ **隐私红线**:标注了"可直接展示给玩家"的弹窗(如夜间行动确认),`renderItem` **不得渲染角色名**,只显示座位号与 (自己)/(已死亡) 之类的状态。
+
 ## 4. 验证不同人数的排版(临时预览页)
 
 游戏内很难凑齐 15 人。用**临时路由**注入 N 个合成座位,截图核对后**立即删除**(见 AGENTS.md):

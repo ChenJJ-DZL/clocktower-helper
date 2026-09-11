@@ -1,4 +1,5 @@
 import type { Seat } from "@/app/data";
+import { AdaptiveSeatGrid, SEAT_CARD_FONT } from "../common/AdaptiveSeatGrid";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface StorytellerDeathModalProps {
@@ -14,6 +15,8 @@ export function StorytellerDeathModal({
   onConfirm,
 }: StorytellerDeathModalProps) {
   if (!isOpen) return null;
+
+  const deathCandidates = seats.filter((s) => !s.isDead);
 
   return (
     <ModalWrapper
@@ -40,20 +43,32 @@ export function StorytellerDeathModal({
         <p className="text-xs sm:text-sm text-red-300 text-center">
           你通过麻脸巫婆创造了一个新恶魔。按规则，本晚通常必须有人死亡（除非你有意让这是一个特殊裁决）。
         </p>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5 sm:gap-3 p-1 w-full">
-          {seats
-            .filter((s) => !s.isDead)
-            .map((s) => (
+        <AdaptiveSeatGrid
+          count={deathCandidates.length}
+          renderItem={(index) => {
+            const s = deathCandidates[index];
+            return (
               <button
-                key={s.id}
+                type="button"
                 onClick={() => onConfirm(s.id)}
-                className="py-3 sm:py-4 px-2 border-2 border-red-400 rounded-xl text-base sm:text-lg font-black bg-slate-800/80 hover:bg-red-900/60 hover:border-red-300 transition-all flex flex-col items-center justify-center gap-0.5 shadow-sm text-white active:scale-95"
+                className="w-full h-full px-2 border-2 border-red-400 rounded-2xl font-black bg-slate-800/80 hover:bg-red-900/60 hover:border-red-300 transition-all flex flex-col items-center justify-center gap-1 shadow-sm text-white active:scale-95"
               >
-                <span className="text-amber-400 font-bold">{s.id + 1}号</span>
-                <span className="truncate">{s.role?.name ?? ""}</span>
+                <span
+                  className="text-amber-400 font-bold leading-none"
+                  style={{ fontSize: SEAT_CARD_FONT.primary }}
+                >
+                  {s.id + 1}号
+                </span>
+                <span
+                  className="truncate max-w-full leading-tight"
+                  style={{ fontSize: SEAT_CARD_FONT.secondary }}
+                >
+                  {s.role?.name ?? ""}
+                </span>
               </button>
-            ))}
-        </div>
+            );
+          }}
+        />
       </div>
     </ModalWrapper>
   );

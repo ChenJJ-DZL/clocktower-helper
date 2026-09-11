@@ -1,4 +1,5 @@
 import type { Seat } from "@/app/data";
+import { AdaptiveSeatGrid, SEAT_CARD_FONT } from "../common/AdaptiveSeatGrid";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface KlutzChoiceModalProps {
@@ -21,6 +22,8 @@ export function KlutzChoiceModal({
   onCancel,
 }: KlutzChoiceModalProps) {
   if (!isOpen) return null;
+
+  const selectableSeats = seats.filter((s) => !s.isDead && s.id !== sourceId);
 
   return (
     <ModalWrapper
@@ -54,25 +57,36 @@ export function KlutzChoiceModal({
         <p className="text-lg sm:text-xl md:text-2xl text-amber-200 font-bold text-center">
           请选择一名存活玩家：若其为邪恶，善良阵营立即失败。
         </p>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5 sm:gap-3 p-1 w-full">
-          {seats
-            .filter((s) => !s.isDead && s.id !== sourceId)
-            .map((s) => (
+        <AdaptiveSeatGrid
+          count={selectableSeats.length}
+          renderItem={(index) => {
+            const s = selectableSeats[index];
+            return (
               <button
-                key={s.id}
                 type="button"
                 onClick={() => onSelectTarget(s.id)}
-                className={`py-3 sm:py-4 px-2 border-2 rounded-xl text-base sm:text-lg font-black transition-all flex flex-col items-center justify-center gap-0.5 shadow-sm cursor-pointer ${
+                className={`w-full h-full px-2 border-2 rounded-2xl font-black transition-all flex flex-col items-center justify-center gap-1 shadow-sm cursor-pointer ${
                   selectedTarget === s.id
                     ? "border-amber-400 bg-amber-600 text-white shadow-md ring-2 ring-amber-400 scale-[1.02]"
                     : "border-slate-700 bg-slate-800/80 hover:bg-slate-700/80 text-slate-100"
                 }`}
               >
-                <span className="text-amber-300 font-bold">{s.id + 1}号</span>
-                <span className="truncate">{s.role?.name || "未知"}</span>
+                <span
+                  className="text-amber-300 font-bold leading-none"
+                  style={{ fontSize: SEAT_CARD_FONT.primary }}
+                >
+                  {s.id + 1}号
+                </span>
+                <span
+                  className="truncate max-w-full leading-tight"
+                  style={{ fontSize: SEAT_CARD_FONT.secondary }}
+                >
+                  {s.role?.name || "未知"}
+                </span>
               </button>
-            ))}
-        </div>
+            );
+          }}
+        />
       </div>
     </ModalWrapper>
   );

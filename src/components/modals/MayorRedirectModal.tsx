@@ -1,4 +1,5 @@
 import type { Seat } from "@/app/data";
+import { AdaptiveSeatGrid, SEAT_CARD_FONT } from "../common/AdaptiveSeatGrid";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface MayorRedirectModalProps {
@@ -23,6 +24,10 @@ export function MayorRedirectModal({
   onConfirmRedirect,
 }: MayorRedirectModalProps) {
   if (!isOpen) return null;
+
+  const redirectCandidates = seats.filter(
+    (s) => !s.isDead && s.id !== targetId
+  );
 
   return (
     <ModalWrapper
@@ -68,33 +73,44 @@ export function MayorRedirectModal({
         <p className="text-sm sm:text-base text-amber-200 text-center font-medium">
           是否要转移死亡目标？选择一名存活玩家代替死亡，或让市长死亡。
         </p>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5 sm:gap-3 p-1 w-full">
-          {seats
-            .filter((s) => !s.isDead && s.id !== targetId)
-            .map((seat) => (
+        <AdaptiveSeatGrid
+          count={redirectCandidates.length}
+          renderItem={(index) => {
+            const seat = redirectCandidates[index];
+            return (
               <button
-                key={seat.id}
+                type="button"
                 onClick={() => onSelectTarget(seat.id)}
-                className={`py-3 sm:py-4 px-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-0.5 ${
+                className={`w-full h-full px-2 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1 ${
                   selectedTarget === seat.id
                     ? "border-amber-400 bg-amber-500/30 ring-2 ring-amber-400 scale-[1.02]"
                     : "border-slate-700 bg-slate-800/80 hover:bg-slate-700/80"
                 }`}
               >
-                <div className="text-base sm:text-lg font-black text-amber-400">
+                <span
+                  className="font-black text-amber-400 leading-none"
+                  style={{ fontSize: SEAT_CARD_FONT.primary }}
+                >
                   {seat.id + 1}号
-                </div>
-                <div className="text-xs sm:text-sm text-slate-200 truncate">
+                </span>
+                <span
+                  className="text-slate-200 truncate max-w-full leading-tight"
+                  style={{ fontSize: SEAT_CARD_FONT.secondary }}
+                >
                   {seat.role?.name || "未分配"}
-                </div>
+                </span>
                 {seat.isProtected && (
-                  <div className="text-[10px] text-emerald-400 font-medium mt-0.5">
+                  <span
+                    className="text-emerald-400 font-medium leading-none"
+                    style={{ fontSize: SEAT_CARD_FONT.tertiary }}
+                  >
                     被保护
-                  </div>
+                  </span>
                 )}
               </button>
-            ))}
-        </div>
+            );
+          }}
+        />
       </div>
     </ModalWrapper>
   );

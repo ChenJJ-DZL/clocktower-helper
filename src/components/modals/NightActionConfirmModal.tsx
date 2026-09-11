@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { roles as defaultRoles, type Role, type Script, type Seat } from "../../../app/data";
+import {
+  roles as defaultRoles,
+  type Role,
+  type Script,
+  type Seat,
+} from "../../../app/data";
+import { AdaptiveSeatGrid, SEAT_CARD_FONT } from "../common/AdaptiveSeatGrid";
 import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -248,6 +254,9 @@ export function NightActionConfirmModal({
   return (
     <ModalWrapper
       title={`🌙 ${roleName} - 行动确认`}
+      widthRatio={0.98}
+      maxWidthPx={1560}
+      autoHeight
       onClose={onCancel}
       size="fullscreen90"
       className="w-[90vw] h-[90vh]"
@@ -301,14 +310,18 @@ export function NightActionConfirmModal({
             {isCerenovus ? (
               <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
                 确认为
-                <span className="text-indigo-300 font-black">【{roleName}】</span>
+                <span className="text-indigo-300 font-black">
+                  【{roleName}】
+                </span>
                 指定洗脑：
                 {selectedTargets.length > 0 ? (
                   <span className="text-amber-400 font-black">
                     【{selectedTargets[0] + 1}号】
                   </span>
                 ) : (
-                  <span className="text-slate-400 font-normal">【请点选座位】</span>
+                  <span className="text-slate-400 font-normal">
+                    【请点选座位】
+                  </span>
                 )}
                 &nbsp;➔ 疯狂证明自己是&nbsp;
                 {selectedRoleId ? (
@@ -316,21 +329,27 @@ export function NightActionConfirmModal({
                     【{chosenRoleObj?.name || selectedRoleId}】
                   </span>
                 ) : (
-                  <span className="text-slate-400 font-normal">【请点选角色】</span>
+                  <span className="text-slate-400 font-normal">
+                    【请点选角色】
+                  </span>
                 )}
                 吗？
               </div>
             ) : isRoleSelectorActive ? (
               <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
                 确认为
-                <span className="text-indigo-300 font-black">【{roleName}】</span>
+                <span className="text-indigo-300 font-black">
+                  【{roleName}】
+                </span>
                 选择角色：
                 {selectedRoleId ? (
                   <span className="text-emerald-400 font-black">
                     【{chosenRoleObj?.name || selectedRoleId}】
                   </span>
                 ) : (
-                  <span className="text-slate-400 font-normal">【请点选下方角色】</span>
+                  <span className="text-slate-400 font-normal">
+                    【请点选下方角色】
+                  </span>
                 )}
                 吗？
               </div>
@@ -342,7 +361,9 @@ export function NightActionConfirmModal({
                     【{targetText}】
                   </span>
                 )}
-                <span className="text-indigo-300 font-black">【{roleName}】</span>
+                <span className="text-indigo-300 font-black">
+                  【{roleName}】
+                </span>
                 执行
                 <span className="text-indigo-200"> "{actionDescription}"</span>
                 吗？
@@ -371,8 +392,12 @@ export function NightActionConfirmModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-2.5 p-0.5">
-                {seatedPlayers.map((seat) => {
+              {/* 按在场人数自适应列数 / 卡片尺寸 / 字号（与举手表决页同一套规则） */}
+              <AdaptiveSeatGrid
+                count={seatedPlayers.length}
+                gap={0.5}
+                renderItem={(index) => {
+                  const seat = seatedPlayers[index];
                   const isSelected = selectedTargets.includes(seat.id);
                   const isSelf = seat.id === actorSeatId;
                   const isSelfDisabled = isSelf && allowSelf === false;
@@ -381,11 +406,10 @@ export function NightActionConfirmModal({
 
                   return (
                     <button
-                      key={seat.id}
                       type="button"
                       disabled={isDisabled}
                       onClick={() => handleToggleTarget(seat.id)}
-                      className={`h-11 sm:h-12 md:h-13 w-full px-1.5 rounded-xl text-center border font-bold transition-all flex flex-row items-center justify-center select-none cursor-pointer active:scale-95 shadow-sm ${
+                      className={`w-full h-full px-1 rounded-2xl text-center border-2 font-bold transition-all flex flex-col items-center justify-center gap-0.5 select-none cursor-pointer active:scale-95 shadow-sm ${
                         isSelected
                           ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/40 ring-2 ring-blue-400 scale-[1.02]"
                           : isDisabled
@@ -395,23 +419,33 @@ export function NightActionConfirmModal({
                               : "bg-slate-800 border-slate-700 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
                       }`}
                     >
-                      <span className="text-sm sm:text-base font-black tracking-tight whitespace-nowrap inline-flex items-center justify-center">
-                        <span>{seat.id + 1}号</span>
-                        {isSelf && (
-                          <span className="text-[11px] sm:text-xs text-slate-300 font-normal ml-0.5">
-                            (自己)
-                          </span>
-                        )}
-                        {seat.isDead && (
-                          <span className="text-[11px] sm:text-xs text-red-400 font-normal ml-0.5">
+                      <span
+                        className="font-black whitespace-nowrap leading-none"
+                        style={{ fontSize: SEAT_CARD_FONT.primary }}
+                      >
+                        {seat.id + 1}号
+                      </span>
+                      {
+                        seat.isDead ? (
+                          <span
+                            className="whitespace-nowrap leading-none text-red-400 font-normal"
+                            style={{ fontSize: SEAT_CARD_FONT.tertiary }}
+                          >
                             (已死亡)
                           </span>
-                        )}
-                      </span>
+                        ) : isSelf ? (
+                          <span
+                            className="whitespace-nowrap leading-none text-slate-300 font-normal"
+                            style={{ fontSize: SEAT_CARD_FONT.tertiary }}
+                          >
+                            (自己)
+                          </span>
+                        ) : null /* 普通座位不显示任何角色信息：本弹窗会直接拿给玩家选人，必须隐蔽身份 */
+                      }
                     </button>
                   );
-                })}
-              </div>
+                }}
+              />
             </div>
           )}
 
@@ -488,7 +522,11 @@ export function NightActionConfirmModal({
         </div>
       ) : (
         /* 无需选人时的信息角色确认布局（自适应大字号等比缩放） */
-        <AutoFitContent targetRatio={0.9} minScale={0.2} className="p-2 sm:p-4 text-white">
+        <AutoFitContent
+          targetRatio={0.9}
+          minScale={0.2}
+          className="p-2 sm:p-4 text-white"
+        >
           <div className="flex flex-col items-center justify-center text-center space-y-6 w-max max-w-none px-6 py-4 my-auto">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-indigo-950/80 border-2 border-indigo-500/40 flex items-center justify-center text-3xl sm:text-4xl shadow-xl shadow-indigo-900/30 select-none">
               🌙
@@ -496,7 +534,8 @@ export function NightActionConfirmModal({
 
             <div className="space-y-4">
               <div className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 whitespace-nowrap leading-snug">
-                确认为 <span className="text-indigo-300">【{roleName}】</span> 执行行动
+                确认为 <span className="text-indigo-300">【{roleName}】</span>{" "}
+                执行行动
               </div>
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-300 bg-slate-800/80 border border-slate-700/80 rounded-2xl py-3 px-6 shadow-inner whitespace-nowrap inline-block">
                 "{actionDescription}"
