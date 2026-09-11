@@ -237,8 +237,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           ${getDisplayRoleType(s) === "demon" ? "glow-demon" : ""}
         `
         }
-        ${nightInfo?.seat.id === s.id ? "!ring-[6px] !ring-yellow-300 !scale-125 !shadow-[0_0_50px_rgba(253,224,71,0.9)] !brightness-100 !grayscale-0 !bg-gray-900 !border-yellow-300" : ""}
-        ${s.isDead && nightInfo?.seat.id !== s.id ? "dead-cracked grayscale brightness-75 bg-gray-300 border-gray-400" : ""}
+        ${nightInfo?.seat?.id === s.id ? "!ring-[6px] !ring-yellow-300 !scale-125 !shadow-[0_0_50px_rgba(253,224,71,0.9)] !brightness-100 !grayscale-0 !bg-gray-900 !border-yellow-300" : ""}
+        ${s.isDead && nightInfo?.seat?.id !== s.id ? "dead-cracked grayscale brightness-75 bg-gray-300 border-gray-400" : ""}
         ${selectedActionTargets.includes(s.id) ? "ring-4 ring-green-500 scale-105" : ""}
         ${longPressingSeats.has(s.id) ? "ring-4 ring-blue-400 animate-pulse" : ""}
         ${nominator === s.id ? "ring-8 ring-white scale-110 shadow-[0_0_40px_rgba(255,255,255,0.8)] animate-pulse" : ""}
@@ -247,7 +247,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
       `}
       >
         {/* === VFX Layers === */}
-        {s.isDead && nightInfo?.seat.id !== s.id && (
+        {s.isDead && nightInfo?.seat?.id !== s.id && (
           <div className="dead-blood-mark absolute inset-0 rounded-full z-20 pointer-events-none"></div>
         )}
         {ctx.vfxTrigger?.seatId === s.id &&
@@ -260,7 +260,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           )}
 
         {/* 当前行动玩家金色呼吸光环 */}
-        {nightInfo?.seat.id === s.id && (
+        {nightInfo?.seat?.id === s.id && (
           <>
             <div
               className="absolute inset-0 rounded-full border-4 border-yellow-400/60 animate-ping opacity-40 pointer-events-none"

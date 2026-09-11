@@ -429,7 +429,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
             remaining -= 1;
             if (remaining === 0) {
               addLog(
-                `${nightInfo?.seat.id + 1 || ""}号(${demonName}) 处决${finalTargets.map((x: number) => `${x + 1}号`).join("、")}`
+                `${(nightInfo?.seat?.id ?? -1) + 1 || ""}号(${demonName}) 处决${finalTargets.map((x: number) => `${x + 1}号`).join("、")}`
               );
               setTimeout(() => {
                 setWakeQueueIds((prevQueue) => {

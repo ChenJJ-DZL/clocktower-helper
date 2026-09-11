@@ -295,7 +295,7 @@ export function useSeatView(
   }, [nightInfo, s.id, s.isDead]);
 
   // 当前行动玩家强制高亮（覆盖 isValidTarget 的灰色效果）
-  const isActivePlayer = nightInfo?.seat.id === s.id;
+  const isActivePlayer = nightInfo?.seat?.id === s.id;
   const containerStyle = {
     left: `${p.x}%`,
     top: `${p.y}%`,
