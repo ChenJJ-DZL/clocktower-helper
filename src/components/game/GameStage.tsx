@@ -695,11 +695,12 @@ export const GameStage = () => {
           rightPanel={
             <div className="h-full flex flex-col justify-between p-4 relative z-40 bg-slate-900/60 backdrop-blur-md">
               {/* 顶部与主体内容区：严格自上而下顺次紧凑排列，杜绝卡片间等距散开 */}
-              <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 text-[28px] select-none">
+              {/* 字号对齐夜间/白天控制台（GameConsole 基准 13~17px）：此前基准 28px 导致处决阶段整体约为夜间 2 倍大 */}
+              <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 text-[14px] select-none">
                 {/* 顶部标题与门槛指标 */}
                 {/* 标题与门槛改为上下两行：控制台仅 450px 宽，并排会被挤到折行 */}
                 <div className="border-b border-white/10 pb-2 shrink-0 space-y-1">
-                  <h2 className="text-[1.5em] font-black text-orange-400 tracking-wide flex items-center gap-1.5">
+                  <h2 className="text-[17px] font-black text-orange-400 tracking-wide flex items-center gap-1.5">
                     <span>⚖️</span> 处决台与提名
                   </h2>
                   <div className="flex">
@@ -815,7 +816,7 @@ export const GameStage = () => {
                               : ""}
                           </span>
                         </div>
-                        <span className="text-orange-400 font-bold text-[1.5em]">
+                        <span className="text-orange-400 font-bold text-[17px]">
                           ➔
                         </span>
                         <div className="text-center">
@@ -1114,7 +1115,7 @@ export const GameStage = () => {
                       }
                       handlePerformNomination(nominator, nominee);
                     }}
-                    className={`py-4 px-6 rounded-lg font-bold text-[1.15em] flex items-center justify-center transition-all border shadow
+                    className={`py-2.5 px-4 rounded-lg font-bold text-[15px] flex items-center justify-center transition-all border shadow
                     ${
                       isNominationLocked ||
                       nominator === null ||
@@ -1144,7 +1145,7 @@ export const GameStage = () => {
                         stopDefenseTimer();
                         setDefenseSecondsLeft(0);
                       }}
-                      className="py-4 px-6 rounded-lg font-bold text-[1em] bg-red-950/70 hover:bg-red-900/80 text-red-300 border border-red-500/50 transition-all cursor-pointer shrink-0"
+                      className="py-2 px-3.5 rounded-lg font-bold text-[14px] bg-red-950/70 hover:bg-red-900/80 text-red-300 border border-red-500/50 transition-all cursor-pointer shrink-0"
                     >
                       ✕ 取消提名
                     </button>
