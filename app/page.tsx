@@ -29,6 +29,7 @@ import { GameLayout } from "@/src/components/game/GameLayout";
 // calculateNightInfo 已迁移到 src/utils/nightLogic.ts
 import { GameModals } from "@/src/components/game/GameModals";
 import { GlobalNavBar } from "@/src/components/game/GlobalNavBar";
+import { PlayerContextMenu } from "@/src/components/game/PlayerContextMenu";
 import GameSetup from "@/src/components/game/setup/GameSetup";
 import ScriptSelection from "@/src/components/game/setup/ScriptSelection";
 import { CharadeConfigModal } from "@/src/components/modals/CharadeConfigModal";
@@ -1129,7 +1130,11 @@ export default function Home() {
               不再重复渲染 GameStage（否则会叠出第二套圆桌与 GameConsole 控制台） */}
               {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
                 <>
-                  <GameStage />
+                  {/* 🔧 右键菜单改为**应用层全局挂载**：此前它只挂在 GameModals 末尾，
+                而 GameStage 在准备阶段走的是另一条 return 分支（不含 GameModals），
+                导致准备阶段等场景整个右键菜单系统失效（点了没反应）。 */}
+        <PlayerContextMenu />
+        <GameStage />
                   <GameModals />
                 </>
               )}

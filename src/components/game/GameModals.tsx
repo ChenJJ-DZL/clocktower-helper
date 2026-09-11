@@ -60,7 +60,6 @@ import { VirginTriggerModal } from "../modals/VirginTriggerModal";
 import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
 import { GameOverOverlay } from "./GameOverOverlay";
-import { PlayerContextMenu } from "./PlayerContextMenu";
 
 export function GameModals() {
   const actions = useGameActions();
@@ -1056,7 +1055,6 @@ export function GameModals() {
       )}
 
       <GameOverOverlay />
-      <PlayerContextMenu />
     </>
   );
 }
