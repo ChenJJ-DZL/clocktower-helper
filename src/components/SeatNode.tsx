@@ -721,8 +721,10 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
           if (otherBadges.length === 0) return null;
 
+          // 标签过多时以座位右下角为锚点向右下方溢出：此前锚在右上角并做 -translate-x-1/2
+          // 居中，标签一多/一宽就会向左盖住角色名（居中）与座位号。改右下角锚点后只朝右下溢出。
           return (
-            <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-start gap-1 z-40 pointer-events-none">
+            <div className="absolute left-[85%] top-[85%] flex flex-col items-start gap-1 z-40 pointer-events-none whitespace-nowrap">
               {otherBadges}
             </div>
           );
