@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Seat } from "../../../app/data";
 import { roles } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
+import { isInformationRole } from "../../utils/informationRoles";
 import { formatSeatLabel } from "../../utils/seatLabel";
 
 interface NightActionPageProps {
@@ -91,11 +92,7 @@ export function NightActionPage({
   const vortoxActive = useMemo(() => {
     if (isVortoxWorld) return true;
     return seats.some(
-      (s) =>
-        s.role?.id === "vortox" &&
-        !s.isDead &&
-        !s.isPoisoned &&
-        !s.isDrunk
+      (s) => s.role?.id === "vortox" && !s.isDead && !s.isPoisoned && !s.isDrunk
     );
   }, [isVortoxWorld, seats]);
 
@@ -143,7 +140,9 @@ export function NightActionPage({
       };
     }
     if (roleId === "librarian") {
-      const isCorrupted = vortoxActive || isDisturbed;
+      // 涡流只让「信息类」能力产出假信息：僧侣/士兵/管家等非信息镇民不受干扰
+      const isCorrupted =
+        (vortoxActive && isInformationRole(roleId, roleType)) || isDisturbed;
       const outsiders = seats.filter(
         (s) =>
           s.id !== seatId &&

@@ -5,6 +5,7 @@ import type { GamePhase, Seat } from "../../../../app/data";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { getRoleDefinition } from "../../../roles";
 import type { NightInfoResult } from "../../../types/game";
+import { isInformationRole } from "../../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
 
@@ -181,13 +182,21 @@ export const GameConsole = React.memo(function GameConsole({
       ? nightInfo?.seat?.charadeRole?.ability || nightInfo?.seat?.role?.ability
       : nightInfo?.seat?.role?.ability) || undefined;
 
+  // ⚠️ nightInfo.isPoisoned 会被涡流对所有镇民置真（用于生成假信息），
+  //    不能直接当作「受干扰」——涡流只干扰「信息类」能力。
   const isDisturbed =
     currentActorSeat?.isDrunk ||
     currentActorSeat?.isPoisoned ||
-    nightInfo?.isPoisoned ||
     currentActorSeat?.role?.id === "drunk" ||
     currentActorSeat?.role?.id === "lunatic" ||
-    currentActorSeat?.role?.id === "marionette";
+    currentActorSeat?.role?.id === "marionette" ||
+    Boolean(
+      nightInfo?.isPoisoned &&
+        isInformationRole(
+          currentActorSeat?.role?.id,
+          currentActorSeat?.role?.type
+        )
+    );
 
   // Optimize: Memoize roleDoc lookup
   const roleDoc = React.useMemo(() => {
@@ -752,7 +761,9 @@ export const GameConsole = React.memo(function GameConsole({
                           </span>
                           <div>
                             <div
-                              className={isUsed ? "text-slate-300" : "text-white"}
+                              className={
+                                isUsed ? "text-slate-300" : "text-white"
+                              }
                             >
                               {displayRoleName}
                               {seat.role?.id === "drunk" && (
@@ -769,7 +780,9 @@ export const GameConsole = React.memo(function GameConsole({
                             {/* 洗脑师小字记录：“座位号 + 洗脑内容”（仅当洗脑目标存活时显示） */}
                             {effectiveRole?.id === "cerenovus" &&
                               cerenovusTarget &&
-                              !seats.find((s) => s.id === cerenovusTarget.targetId)?.isDead && (
+                              !seats.find(
+                                (s) => s.id === cerenovusTarget.targetId
+                              )?.isDead && (
                                 <div className="text-xs text-amber-400/90 mt-0.5 font-normal flex items-center gap-1">
                                   <span>洗脑目标：</span>
                                   <span className="font-bold text-amber-300">
@@ -805,7 +818,9 @@ export const GameConsole = React.memo(function GameConsole({
                             onClick={() => {
                               if (!handleDayAbility) return;
                               if (seat.isDead && !seat.hasAbilityEvenDead) {
-                                alert(`${displayRoleName}已死亡，无法发动技能。`);
+                                alert(
+                                  `${displayRoleName}已死亡，无法发动技能。`
+                                );
                                 return;
                               }
                               if (effectiveRole?.id === "juggler") {
@@ -818,7 +833,9 @@ export const GameConsole = React.memo(function GameConsole({
                                 onConfirm: () => handleDayAbility(seat.id),
                               });
                             }}
-                            disabled={Boolean(seat.isDead && !seat.hasAbilityEvenDead)}
+                            disabled={Boolean(
+                              seat.isDead && !seat.hasAbilityEvenDead
+                            )}
                             data-testid="start-day-ability-button"
                             className={`px-3 py-1 text-white text-sm rounded shadow-sm transition-colors ${
                               seat.isDead && !seat.hasAbilityEvenDead

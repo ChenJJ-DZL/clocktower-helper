@@ -7,6 +7,7 @@ import { useGameActions } from "../../contexts/GameActionsContext";
 import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
+import { isInformationRole } from "../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { formatSeatLabel } from "../../utils/seatLabel";
 import { getStorytellerTips } from "../../utils/storytellerTips";
@@ -1825,11 +1826,17 @@ export function GameStageWithModals() {
             selectedActionTargets.length < (nightInfo.targetLimit?.min ?? 0)
           }
           guideText={nightInfo.guide}
-          isDisturbed={
+          isDisturbed={Boolean(
             nightInfo.seat?.isDrunk ||
-            nightInfo.seat?.isPoisoned ||
-            nightInfo.isPoisoned
-          }
+              nightInfo.seat?.isPoisoned ||
+              // 涡流只干扰「信息类」能力：僧侣/士兵/管家等非信息镇民不得标记受干扰
+              (isVortoxWorld &&
+                nightInfo.seat?.role?.type === "townsfolk" &&
+                isInformationRole(
+                  nightInfo.seat?.role?.id,
+                  nightInfo.seat?.role?.type
+                ))
+          )}
           resultText={infoResultData?.resultText}
           isVortoxWorld={isVortoxWorld}
           onResultConfirm={
