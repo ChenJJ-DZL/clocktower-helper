@@ -19,11 +19,11 @@ import {
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
+import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 import { computeIsPoisoned } from "../utils/gameRules";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
-import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
 
 export interface NightActionHandlerContext {
@@ -75,6 +75,9 @@ export interface NightActionHandlerContext {
   preview?: boolean; // 预览模式：只计算不修改状态，弹出确认窗
   markAbilityUsed: (roleId: string, seatId: number) => void;
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
+  /** 撤销到上一步快照（用于「撤销本次行动」）。注意：无脑调用会回退到无关操作，
+   *  只应在「该角色本夜行动已执行」时使用。 */
+  undo?: () => void;
   reviveSeat: (seat: Seat) => Seat;
   insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
   /** 🔧 守鸦人修复：恶魔杀守鸦人后动态插入新引擎觉醒节点 */
@@ -527,7 +530,9 @@ export async function executeViaNewEngine(
             context.seats,
             (context as any).evilTwinPair
           );
-          const evilSeatNo = evilTwinSeat ? `${evilTwinSeat.id + 1}号` : "对立玩家";
+          const evilSeatNo = evilTwinSeat
+            ? `${evilTwinSeat.id + 1}号`
+            : "对立玩家";
           const displayName = `${seatPrefix}${rawRoleName || "善良双子"}(双子告知)`;
           const actionDesc = `告知对立双子：${evilSeatNo}是镜像双子`;
           const guideInfo = `唤醒${actorId + 1}号【${rawRoleName || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
@@ -579,7 +584,8 @@ export async function executeViaNewEngine(
           context.nightInfo?.guideText ||
           `${displayName}信息已生成`;
 
-        const isEvilSystemStep = roleId === "demon_info" || roleId === "minion_info" || isLegion;
+        const isEvilSystemStep =
+          roleId === "demon_info" || roleId === "minion_info" || isLegion;
         const hasAliveWraith = context.seats.some(
           (s) => s.role?.id === "wraith" && !s.isDead
         );
@@ -727,7 +733,8 @@ export async function executeViaNewEngine(
             "taotie",
             "zhen",
           ].includes(roleId);
-        const effectiveMinTargets = hasToymaker && isDemonActor ? 0 : minTargets;
+        const effectiveMinTargets =
+          hasToymaker && isDemonActor ? 0 : minTargets;
 
         const hasAliveWraith = context.seats.some(
           (s) => s.role?.id === "wraith" && !s.isDead
@@ -1053,9 +1060,19 @@ export async function executeViaNewEngine(
               await executeViaNewEngine(realContext, roleId);
             },
             onCancel: () => {
-              console.log(`[executeViaNewEngine] onCancel for ${roleId}`);
-              // 取消：清空选择，让说书人重新选
+              const alreadyExecuted =
+                actorId !== null &&
+                actorId !== undefined &&
+                context.hasUsedAbility(roleId, actorId);
+              console.log(`[executeViaNewEngine] onCancel for ${roleId}`, {
+                alreadyExecuted,
+              });
               context.setSelectedActionTargets([]);
+              // 「撤销本次行动」：只有本夜该角色确实已执行过才回退，
+              // 否则会连上一步无关操作一起撤掉。
+              if (alreadyExecuted) {
+                context.undo?.();
+              }
             },
           },
         });
@@ -1068,7 +1085,9 @@ export async function executeViaNewEngine(
           data: {
             roleName: `${roleName}（双子告知）`,
             actionDescription: `👥【双子告知】请先告知${actorId + 1}号玩家：\n${evilTwinSeat.id + 1}号是镜像双子！`,
-            targetDescriptions: [`【双子告知】${evilTwinSeat.id + 1}号是镜像双子`],
+            targetDescriptions: [
+              `【双子告知】${evilTwinSeat.id + 1}号是镜像双子`,
+            ],
             onConfirm: () => {
               openActiveSkillModal();
             },
@@ -1182,10 +1201,7 @@ export async function executeViaNewEngine(
             } as Seat;
           }
           // 🧠 洗脑师：疯狂角色与状态同步
-          if (
-            (u as any).cerenovusMadnessRole ||
-            (u as any).isMad
-          ) {
+          if ((u as any).cerenovusMadnessRole || (u as any).isMad) {
             next = {
               ...next,
               isMad: true,
@@ -1520,10 +1536,14 @@ export async function executeViaNewEngine(
 
         const realCount = (actorSeat as any)?.dayAbilityResult?.correctCount;
         if (isCorrupted && realCount !== undefined && count === realCount) {
-          const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
+          const fakeCandidates = [0, 1, 2, 3, 4, 5].filter(
+            (v) => v !== realCount
+          );
           count =
             fakeCandidates.length > 0
-              ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+              ? fakeCandidates[
+                  Math.floor(Math.random() * fakeCandidates.length)
+                ]
               : realCount === 0
                 ? 1
                 : 0;
@@ -1709,7 +1729,9 @@ export function useNightActionHandler() {
             context.seats,
             (context as any).evilTwinPair
           );
-          const evilSeatNo = evilTwinSeat ? `${evilTwinSeat.id + 1}号` : "对立玩家";
+          const evilSeatNo = evilTwinSeat
+            ? `${evilTwinSeat.id + 1}号`
+            : "对立玩家";
           const displayName = `${seatPrefix}${nightInfo.effectiveRole?.name || "善良双子"}(双子告知)`;
           const actionDesc = `告知对立双子：${evilSeatNo}是镜像双子`;
           const guideInfo = `唤醒${actorId + 1}号【${nightInfo.effectiveRole?.name || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
@@ -1863,8 +1885,10 @@ export function useNightActionHandler() {
             seats.some((s) => s.role?.id === "vortox" && !s.isDead);
           const isTownsfolk =
             seat.role?.type === "townsfolk" ||
-            (seat.role?.id === "drunk" && seat.charadeRole?.type === "townsfolk") ||
-            (seat.role?.id === "marionette" && seat.charadeRole?.type === "townsfolk");
+            (seat.role?.id === "drunk" &&
+              seat.charadeRole?.type === "townsfolk") ||
+            (seat.role?.id === "marionette" &&
+              seat.charadeRole?.type === "townsfolk");
           if (isTownsfolk && hasVortox) return true;
           return (
             computeIsPoisoned(seat, seats) ||

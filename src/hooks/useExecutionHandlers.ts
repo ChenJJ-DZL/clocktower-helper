@@ -106,6 +106,7 @@ export interface ExecutionHandlersDeps {
   enqueueRavenkeeperIfNeeded: (targetId: number) => void;
   markAbilityUsed: (roleId: string, seatId: number) => void;
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
+  undo?: () => void;
   reviveSeat: (seat: Seat) => Seat;
   insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
   getMisinformation: { [roleId: string]: (data: any) => any };
@@ -197,6 +198,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     setGamePhase,
     markAbilityUsed,
     hasUsedAbility,
+    undo,
     reviveSeat,
     insertIntoWakeQueueAfterCurrent,
     getMisinformation,
@@ -285,7 +287,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         );
         if (activeEvilTwin) {
           const isGoodTwinTarget =
-            (evilTwinPair?.goodId !== undefined && evilTwinPair.goodId === id) ||
+            (evilTwinPair?.goodId !== undefined &&
+              evilTwinPair.goodId === id) ||
             !!t.isGoodTwin ||
             (id !== activeEvilTwin.id &&
               t.role.id !== "evil_twin" &&
@@ -651,11 +654,20 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         }
 
         // 乞丐（Beggar）规则检查：如果乞丐选择了某玩家，该玩家参与投票时计为2票（总票数+1）
-        const beggarSeat = seats.find((s) => s.role?.id === "beggar" && !s.isDead);
-        const beggarTargetId = (beggarSeat as any)?.beggarTargetId ?? (beggarSeat as any)?.beggarVoteSource;
-        if (beggarTargetId != null && effectiveVoters.includes(beggarTargetId)) {
+        const beggarSeat = seats.find(
+          (s) => s.role?.id === "beggar" && !s.isDead
+        );
+        const beggarTargetId =
+          (beggarSeat as any)?.beggarTargetId ??
+          (beggarSeat as any)?.beggarVoteSource;
+        if (
+          beggarTargetId != null &&
+          effectiveVoters.includes(beggarTargetId)
+        ) {
           v = v + 1;
-          addLog(`🗳️ 乞丐效果生效：${beggarTargetId + 1}号投票计为 2 票（+1 票）`);
+          addLog(
+            `🗳️ 乞丐效果生效：${beggarTargetId + 1}号投票计为 2 票（+1 票）`
+          );
         }
 
         voters = effectiveVoters;
@@ -932,6 +944,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       isConfirmed: true,
       markAbilityUsed,
       hasUsedAbility,
+      undo,
       reviveSeat,
       insertIntoWakeQueueAfterCurrent,
       vortoxWorld: isVortoxWorld,
@@ -991,6 +1004,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     getMisinformation,
     getRegistrationCached,
     hasUsedAbility,
+    undo,
     insertIntoWakeQueueAfterCurrent,
     isVortoxWorld,
     markAbilityUsed,
@@ -1032,6 +1046,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       isConfirmed: true,
       markAbilityUsed,
       hasUsedAbility,
+      undo,
       reviveSeat,
       insertIntoWakeQueueAfterCurrent,
       vortoxWorld: isVortoxWorld,
@@ -1091,6 +1106,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     getMisinformation,
     getRegistrationCached,
     hasUsedAbility,
+    undo,
     insertIntoWakeQueueAfterCurrent,
     isVortoxWorld,
     markAbilityUsed,
@@ -1222,12 +1238,11 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
   // Confirm execution result handler
   const confirmExecutionResult = useCallback(() => {
     if (currentModal?.type !== "EXECUTION_RESULT") return;
-    const isInstantNight =
-      Boolean(
-        currentModal.data.isVirginTrigger ||
-          currentModal.data.isInstantNight ||
-          currentModal.data.isMadnessTrigger
-      );
+    const isInstantNight = Boolean(
+      currentModal.data.isVirginTrigger ||
+        currentModal.data.isInstantNight ||
+        currentModal.data.isMadnessTrigger
+    );
     setCurrentModal(null);
 
     if (isInstantNight) {

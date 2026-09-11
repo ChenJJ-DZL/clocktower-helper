@@ -261,44 +261,50 @@ export function NightActionConfirmModal({
       size="fullscreen90"
       className="w-[90vw] h-[90vh]"
       footer={
-        <div className="flex gap-4 w-full">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-3 sm:py-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition text-base sm:text-lg shadow-md cursor-pointer"
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            disabled={isConfirmDisabled || isSubmitting}
-            onClick={handleConfirm}
-            className={`flex-1 py-3 sm:py-4 rounded-xl font-black transition text-base sm:text-lg shadow-lg ${
-              isConfirmDisabled || isSubmitting
-                ? "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-60"
-                : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/40 ring-2 ring-blue-400 active:scale-[0.98] cursor-pointer"
-            }`}
-          >
-            {isSubmitting
-              ? "处理中..."
-              : isCerenovus
-                ? selectedTargets.length === 0
-                  ? "请选择目标玩家"
-                  : !selectedRoleId
-                    ? `请选择洗脑角色（已选 ${selectedTargets[0] + 1}号）`
-                    : `确认洗脑：${selectedTargets[0] + 1}号 ➔ 【${
-                        chosenRoleObj?.name || selectedRoleId
-                      }】`
-                : isRoleSelectorActive
-                  ? !selectedRoleId
-                    ? "请选择角色"
-                    : `确认选择【${chosenRoleObj?.name || selectedRoleId}】`
-                  : needsTargetSelection
-                    ? selectedTargets.length === 0 && min === 0
-                      ? "确认（不选目标）"
-                      : `确认选择 (${selectedTargets.length}/${max})`
-                    : "确认执行"}
-          </button>
+        <div className="flex flex-col gap-1.5 w-full">
+          {/* 撤销提示：放在按钮正上方，避免再说一遍"本夜已执行"这类废话 */}
+          <div className="text-center text-[20px] font-medium text-amber-300/90">
+            ⚠️ 撤销后可重新发动
+          </div>
+          <div className="flex gap-4 w-full">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-3 sm:py-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition text-base sm:text-lg shadow-md cursor-pointer"
+            >
+              撤销本次行动
+            </button>
+            <button
+              type="button"
+              disabled={isConfirmDisabled || isSubmitting}
+              onClick={handleConfirm}
+              className={`flex-1 py-3 sm:py-4 rounded-xl font-black transition text-base sm:text-lg shadow-lg ${
+                isConfirmDisabled || isSubmitting
+                  ? "bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed opacity-60"
+                  : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/40 ring-2 ring-blue-400 active:scale-[0.98] cursor-pointer"
+              }`}
+            >
+              {isSubmitting
+                ? "处理中..."
+                : isCerenovus
+                  ? selectedTargets.length === 0
+                    ? "请选择目标玩家"
+                    : !selectedRoleId
+                      ? `请选择洗脑角色（已选 ${selectedTargets[0] + 1}号）`
+                      : `确认洗脑：${selectedTargets[0] + 1}号 ➔ 【${
+                          chosenRoleObj?.name || selectedRoleId
+                        }】`
+                  : isRoleSelectorActive
+                    ? !selectedRoleId
+                      ? "请选择角色"
+                      : `确认选择【${chosenRoleObj?.name || selectedRoleId}】`
+                    : needsTargetSelection
+                      ? selectedTargets.length === 0 && min === 0
+                        ? "确认（不选目标）"
+                        : `确认选择 (${selectedTargets.length}/${max})`
+                      : "确认执行"}
+            </button>
+          </div>
         </div>
       }
     >

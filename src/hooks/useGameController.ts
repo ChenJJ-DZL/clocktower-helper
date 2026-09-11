@@ -33,12 +33,12 @@ import {
   createSnapshotFromState,
   saveCurrentSnapshot,
 } from "../utils/persistence";
+import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import {
   isZombuulNightImmune,
   markZombuulNightSaved,
 } from "../utils/zombuulImmunity";
-import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -916,6 +916,7 @@ export function useGameController() {
     isActorDisabledByPoisonOrDrunk,
     getRegistrationCached,
     saveHistory,
+    undo: handleGlobalUndo,
     dispatch: logicDispatch,
     baseDispatch,
     getRandom,
