@@ -23,6 +23,8 @@ export function GenericConfirmModal({
   return (
     <ModalWrapper
       title={title}
+      widthRatio={0.98}
+      maxWidthPx={1560}
       onClose={onCancel}
       footer={
         <div className="flex gap-4 w-full justify-center">

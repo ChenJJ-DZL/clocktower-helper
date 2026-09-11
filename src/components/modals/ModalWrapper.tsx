@@ -15,6 +15,14 @@ export interface ModalWrapperProps {
   className?: string;
   /** 弹窗尺寸模式: 'default' | 'fullscreen90' (全屏 90% 宽 * 90% 高等比放大) */
   size?: "default" | "fullscreen90";
+  /**
+   * 弹窗宽度上限(设计像素，舞台坐标系)，默认 1360。
+   * 舞台固定为 1600 设计宽并按比例缩放；纯文案类弹窗可连同 widthRatio 一起调高，
+   * 以用满舞台宽度、获得更大正文字号。
+   */
+  maxWidthPx?: number;
+  /** 弹窗占可用宽度的比例，默认 0.92。 */
+  widthRatio?: number;
 }
 
 export function ModalWrapper({
@@ -25,6 +33,8 @@ export function ModalWrapper({
   closeOnOverlayClick = true,
   className = "",
   size: _size = "fullscreen90",
+  maxWidthPx = 1360,
+  widthRatio = 0.92,
 }: ModalWrapperProps) {
   // CRITICAL: Use ref to ensure key remains stable across renders
   const portalKeyRef = React.useRef(
@@ -103,9 +113,9 @@ export function ModalWrapper({
           aria-modal="true"
           className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden pointer-events-auto ${sanitizedClassName}`}
           style={{
-            width: "min(92%, 1360px)",
+            width: `min(${widthRatio * 100}%, ${maxWidthPx}px)`,
             height: "min(88%, 800px)",
-            maxWidth: "92%",
+            maxWidth: `${widthRatio * 100}%`,
             maxHeight: "88%",
             margin: "auto",
             position: "relative",

@@ -17,6 +17,8 @@ export function GenericAlertModal({
   return (
     <ModalWrapper
       title={title}
+      widthRatio={0.98}
+      maxWidthPx={1560}
       onClose={onClose}
       footer={
         <div className="flex justify-center w-full">
