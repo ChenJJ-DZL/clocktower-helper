@@ -9,6 +9,7 @@ import { GameStage } from "../src/components/game/GameStage";
 import { ScaleLayout } from "../src/components/layout/ScaleLayout";
 import PortraitLock from "../src/components/PortraitLock";
 import { GameActionsProvider } from "../src/contexts/GameActionsContext";
+import { applyBountyHunterEvilConversion } from "@/src/utils/bountyHunterSetup";
 import { gameActions, useGameContext } from "../src/contexts/GameContext";
 import { useGameController } from "../src/hooks/useGameController";
 import { useGameState } from "../src/hooks/useGameState";
@@ -527,6 +528,19 @@ export default function Home() {
       }
     };
   }, [introTimeoutRef.current, setMounted]);
+
+  // 🏹 赏金猎人「设置调整」：在**准备阶段（点击「开始游戏」之前）**就把"哪名镇民属于邪恶阵营"
+  // 结算好 —— 说书人此时即可在座位上看到（该座位圆环变为爪牙样式），并能用右键菜单「变为邪恶」纠正。
+  // 纯函数自带幂等守卫（已存在被转换者时原样返回 convertedSeatId=null），故可安全地在 seats 变化时重复调用。
+  useEffect(() => {
+    if (gamePhase !== "setup") return;
+    if (seats.filter((s) => s.role).length < 5) return;
+    const bhResult = applyBountyHunterEvilConversion(seats);
+    if (bhResult.convertedSeatId !== null) {
+      dispatch(gameActions.setSeats(bhResult.seats));
+      dispatch(gameActions.updateState({ seats: bhResult.seats }));
+    }
+  }, [gamePhase, seats, dispatch]);
 
   // Timer is now managed in useGameController
 

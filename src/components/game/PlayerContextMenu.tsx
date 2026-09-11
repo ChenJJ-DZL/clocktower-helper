@@ -357,7 +357,8 @@ export function PlayerContextMenu() {
           仅镇民可用（官方：转变的对象是镇民）；角色牌本身不变。 */}
       {props.seats.some((s) => s.role?.id === "bounty_hunter") &&
         targetSeat.role?.type === "townsfolk" &&
-        (props.gamePhase === "check" ||
+        (props.gamePhase === "setup" ||
+          props.gamePhase === "check" ||
           (props.gamePhase === "firstNight" && props.nightCount === 1)) && (
           <button
             onClick={() => {
