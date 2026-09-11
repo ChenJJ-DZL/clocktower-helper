@@ -301,19 +301,22 @@ const stateUpdateResult = async (
     };
   }
 
+  // 僧侣每夜只能保护一人：本夜第二次执行必须是【替换】而不是叠加。
+  // 因此先把本僧侣在所有座位上遗留的 protected 清除，再给新目标加上。
+  const stripMonkProtection = (effects: any[] | undefined) =>
+    (effects ?? []).filter(
+      (e: any) => !(e.type === "protected" && e.source === "monk")
+    );
+
   // 正常：为目标添加保护效果
   const newSnapshot = {
     ...snapshot,
     seats: snapshot.seats.map((seat: any) => {
       if (seat.id === targetId) {
-        const currentEffects = seat.statusEffects ?? [];
-        const filteredEffects = currentEffects.filter(
-          (e: any) => !(e.type === "protected" && e.source === "monk")
-        );
         return {
           ...seat,
           statusEffects: [
-            ...filteredEffects,
+            ...stripMonkProtection(seat.statusEffects),
             {
               type: "protected",
               source: "monk",
@@ -324,7 +327,12 @@ const stateUpdateResult = async (
           ],
         };
       }
-      return seat;
+      // 非目标座位：清掉本僧侣上一次留下的保护（避免两处同时挂 🛡️）
+      const stripped = stripMonkProtection(seat.statusEffects);
+      const original = seat.statusEffects ?? [];
+      return stripped.length === original.length
+        ? seat
+        : { ...seat, statusEffects: stripped };
     }),
     _abilityResults: {
       ...((snapshot as any)._abilityResults ?? {}),
