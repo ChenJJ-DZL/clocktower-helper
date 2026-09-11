@@ -12,6 +12,7 @@
 import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { isMarionetteSeat } from "./roleFlags";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
@@ -366,6 +367,7 @@ function generateSystemInfoViaAdapter(
   const marionetteSeat = seats.find(
     (s) => s.role?.id === "marionette" && !s.isDead
   );
+  const isMarionetteActor = isMarionetteSeat(selfSeat);
   const magicianSeat = seats.find(
     (s) => s.role?.id === "magician" && !s.isDead
   );
@@ -376,7 +378,10 @@ function generateSystemInfoViaAdapter(
     ? [...minionSeats, magicianSeat]
     : minionSeats;
 
-  const otherMinions = minionSeats.filter((s) => s.id !== currentSeatId);
+  // 官方：「其他爪牙也不会得知谁是提线木偶」→ 真爪牙看到的队友名单里必须排除提线木偶
+  const otherMinions = minionSeats.filter(
+    (s) => s.id !== currentSeatId && !isMarionetteSeat(s)
+  );
 
   // 检查是否有存活且健康的罂粟种植者
   const isPoppyGrowerAlive = seats.some(
@@ -445,6 +450,18 @@ function generateSystemInfoViaAdapter(
     }
   }
 
+  // 相克规则（官方）：提线木偶不会得知三个不在场的角色；
+  // 若提线木偶与告密者均在场，改为由恶魔额外得知三个不在场角色。
+  let snitchMarionetteExtraText = "";
+  if (hasSnitchInPlay && marionetteSeat) {
+    const extra = [...scriptTownsfolk, ...scriptOutsiders]
+      .slice(3, 6)
+      .map((r: any) => r.name);
+    if (extra.length > 0) {
+      snitchMarionetteExtraText = `\n提线木偶×告密者相克·恶魔额外伪装: 【${extra.join("】、【")}】`;
+    }
+  }
+
   if (isLegionMutualStep) {
     const aliveLegions = seats.filter(
       (s) =>
@@ -458,7 +475,12 @@ function generateSystemInfoViaAdapter(
 
     guide = `座位号：${legionSeatList}\n说书人同时唤醒所有的军团玩家，军团玩家互认${legionBluffText}`;
   } else if (isMinionStep) {
-    if (isPoppyGrowerAlive) {
+    if (isMarionetteActor) {
+      // 防御性兜底：队列生成已排除提线木偶，正常不会走到这里。
+      // 官方：提线木偶不会被唤醒进行爪牙互认，绝不能向其泄漏邪恶信息。
+      guide =
+        "⛔ 提线木偶不会被唤醒进行爪牙互认（官方规则）。请勿向该玩家展示任何邪恶信息。";
+    } else if (isPoppyGrowerAlive) {
       guide = `🌺 罂粟种植者在场，爪牙与恶魔互不相识${snitchBluffText}`;
     } else {
       guide = `恶魔是: ${demonDesc}\n爪牙队友: ${
@@ -491,7 +513,7 @@ function generateSystemInfoViaAdapter(
       if (marionetteSeat) {
         marionetteNote = `\n提线木偶: ${marionetteSeat.id + 1}号`;
       }
-      guide = `爪牙是: ${minionDesc}${marionetteNote}${regularBluffText}`;
+      guide = `爪牙是: ${minionDesc}${marionetteNote}${regularBluffText}${snitchMarionetteExtraText}`;
     }
   }
 

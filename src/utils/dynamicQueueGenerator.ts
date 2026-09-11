@@ -4,8 +4,9 @@
  */
 
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
-import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
+import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
+import { isRealMinion } from "./roleFlags";
 
 // 全量夜晚顺序表项
 export interface NightOrderEntry {
@@ -135,8 +136,10 @@ export function generateDynamicNightQueue(
       if (!isFirstNight && !poppyGrowerDiedAndTriggersEvil) {
         return false;
       }
+      // 官方：「提线木偶不会在游戏的首个夜晚被唤醒以得知其他邪恶玩家都有谁。」
+      // 它以为自己善良，因此不参与爪牙互认；若场上唯一的爪牙就是提线木偶，本步骤直接取消。
       const seat = snapshot.seats.find(
-        (s) => s.role?.type === "minion" && (includeDead || !s.isDead)
+        (s) => isRealMinion(s) && (includeDead || !s.isDead)
       );
       if (!seat) return false;
       return true;
@@ -299,9 +302,8 @@ export function generateDynamicNightQueue(
     // 系统信息步骤：按角色类型查找座位
     let seat: any;
     if (entry.roleId === "minion_info") {
-      seat = snapshot.seats.find(
-        (s) => s.role?.type === "minion" && !s.isDead
-      )!;
+      // 与上方的过滤条件保持一致：提线木偶不参与爪牙互认
+      seat = snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
     } else if (entry.roleId === "demon_info") {
       seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
     } else if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
