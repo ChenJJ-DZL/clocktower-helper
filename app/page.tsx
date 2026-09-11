@@ -1047,6 +1047,10 @@ export default function Home() {
                         <div className="w-full h-full">
                           <RoundTable
                             seats={seats}
+                            // ⚠️ 必须传真实 gamePhase：RoundTable 内部用 gamePhase 计算 isDragSwapEnabled
+                            //    （setup/check/scriptSelection 才允许拖拽换位），SeatGrid/SeatNode 也依赖它。
+                            //    此前漏传 → gamePhase 恒为 undefined → 准备阶段**拖拽换位完全不可用**。
+                            gamePhase={gamePhase}
                             nightInfo={null}
                             selectedActionTargets={[]}
                             isPortrait={false}
