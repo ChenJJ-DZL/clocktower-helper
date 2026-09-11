@@ -1,0 +1,117 @@
+/**
+ * 赏金猎人的「设置调整」：把一名镇民转为邪恶阵营。
+ *
+ * ## 官方依据（src/data/poppyganda_official_extras.json · 赏金猎人）
+ * - 角色能力：「在你的首个夜晚，你会得知一名邪恶玩家。每当你得知的玩家死亡，
+ *   你会在当晚得知另一名邪恶玩家。**[会有一名镇民转变为邪恶阵营]**」
+ * - 规则细节：「被赏金猎人转变的玩家**从一开始就已经属于邪恶阵营**…
+ *   尽管赏金猎人还未被唤醒。」
+ * - 范例1：「设置调整阶段，说书人**决定**小黑成为邪恶的茶艺师。」
+ * - 范例3：「小兰是以为自己是赏金猎人的**酒鬼**。**由于赏金猎人不在场，
+ *   没有镇民被转变为邪恶阵营。**」——所以判定必须看"真实角色卡"，
+ *   酒鬼 / 提线木偶"以为自己是谁"一律不触发。
+ *
+ * ## ⚠️ 桌规裁定（有意偏离官方，勿当 bug 改回去）
+ * 官方《规则细节》还写了「应该在首个夜晚立即告知他是邪恶的」。
+ * 本项目按用户裁定**不告知**：该玩家**永远不知道**自己是邪恶阵营，
+ * 也**不存在**任何"告知你是邪恶"的夜间步骤。请勿补上该步骤。
+ *
+ * ## 实现口径
+ * - 被转换者的**角色牌一律不变**（官方：只是把角色标记"倒转放置"）：
+ *   role.id / role.name / role.type 保持原样。
+ * - 只改三样：isEvilConverted = true、alignment = "evil"、状态明细加「转为邪恶」。
+ * - 转为邪恶者不能再是占卜师的红罗刹（官方：红罗刹必须是善良玩家）→ 顺手剥离。
+ * - **幂等**：场上已存在被转换者时不再转换（重复进入开局流程不会叠加）。
+ * - 挑选采用**确定性随机**：同一套阵容恒定转同一名镇民（便于复现与回归测试），
+ *   阵容变化时结果随之变化。
+ */
+import { createDeterministicRandom } from "../roles/core/deterministicRandom";
+
+/** 与 Seat 结构兼容的最小形状（便于纯函数测试） */
+export interface BountyHunterSeatLike {
+  id: number;
+  role?: {
+    id?: string | null;
+    name?: string | null;
+    type?: string | null;
+  } | null;
+  charadeRole?: { id?: string | null } | null;
+  apparentDemonRole?: { id?: string | null } | null;
+  isEvilConverted?: boolean;
+  alignment?: string | null;
+  isRedHerring?: boolean;
+  isFortuneTellerRedHerring?: boolean;
+  statusDetails?: string[] | null;
+  /** 赏金猎人座位上记录的"被我转成邪恶的那名镇民" */
+  bountyHunterEvilConvertedId?: number | null;
+}
+
+/** 状态明细：转换标记。各处（日志/UI）统一用它，避免字符串各写一份 */
+export const EVIL_CONVERTED_DETAIL = "转为邪恶";
+/** 状态明细：占卜师红罗刹（转邪恶时必须剥离） */
+export const FORTUNE_TELLER_RED_HERRING_DETAIL = "天敌红罗剎";
+
+/**
+ * 该座位是否为**真实**的赏金猎人。
+ *
+ * 只看真实角色卡 —— 酒鬼 / 提线木偶的 charadeRole、疯子的 apparentDemonRole
+ * 都是"他以为自己是谁"，不构成赏金猎人在场（官方范例 3）。
+ */
+export function isRealBountyHunterSeat(
+  seat: BountyHunterSeatLike | null | undefined
+): boolean {
+  return seat?.role?.id === "bounty_hunter";
+}
+
+/**
+ * 执行设置调整：把一名镇民转为邪恶阵营。
+ *
+ * @returns 处理后的座位数组副本，以及被转换者的 seatId（未转换则为 null）
+ */
+export function applyBountyHunterEvilConversion<T extends BountyHunterSeatLike>(
+  seats: readonly T[]
+): { seats: T[]; convertedSeatId: number | null } {
+  const unchanged = { seats: [...seats], convertedSeatId: null as number | null };
+
+  const hunter = seats.find((s) => isRealBountyHunterSeat(s));
+  if (!hunter) return unchanged;
+
+  // 幂等：已有被转换者（含上一轮开局流程已转换过的）就不再转换
+  if (seats.some((s) => s.isEvilConverted)) return unchanged;
+
+  // 候选 = 除赏金猎人自己以外的镇民（赏金猎人本人也是镇民，必须排除）
+  const candidates = seats.filter(
+    (s) => s.id !== hunter.id && s.role?.type === "townsfolk"
+  );
+  if (candidates.length === 0) return unchanged;
+
+  const seed = `bounty_hunter_setup|${candidates
+    .map((c) => `${c.id}:${c.role?.id ?? "?"}`)
+    .join("-")}`;
+  const rng = createDeterministicRandom(seed);
+  const target = candidates[Math.floor(rng() * candidates.length)];
+
+  const next = seats.map((s) => {
+    // 赏金猎人座位上记录被转换者（原有行为，勿丢）
+    if (s.id === hunter.id) {
+      return { ...s, bountyHunterEvilConvertedId: target.id } as T;
+    }
+    if (s.id !== target.id) return s;
+    const details = (s.statusDetails || []).filter(
+      (d) => d !== FORTUNE_TELLER_RED_HERRING_DETAIL
+    );
+    return {
+      ...s,
+      // 角色牌（id/name/type）保持不变：官方只是把标记倒转放置
+      isEvilConverted: true,
+      alignment: "evil",
+      isRedHerring: false,
+      isFortuneTellerRedHerring: false,
+      statusDetails: details.includes(EVIL_CONVERTED_DETAIL)
+        ? details
+        : [...details, EVIL_CONVERTED_DETAIL],
+    } as T;
+  });
+
+  return { seats: next, convertedSeatId: target.id };
+}

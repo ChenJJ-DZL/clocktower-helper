@@ -732,6 +732,19 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           </div>
         )}
 
+        {/* 邪恶阵营转换（赏金猎人「设置调整」）：**默认可见**的轻量标记。
+            ⚠️ 不能放进上面的「其他标签集合」——那堆徽标默认不显示
+            （SHOW_SEAT_BADGES = false），放进去会导致说书人完全看不出谁是邪恶镇民。
+            角色牌本身保持不变，这里只是一个说书人视角的提示点。 */}
+        {s.isEvilConverted && (
+          <div
+            className="absolute left-[85.4%] top-[85.4%] -translate-x-1/2 -translate-y-1/2 bg-red-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-red-300 shadow-md font-bold leading-none whitespace-nowrap z-40 pointer-events-none"
+            title="邪恶阵营（由赏金猎人的设置调整转为邪恶，角色牌照旧）"
+          >
+            邪
+          </div>
+        )}
+
         {/* 幽灵票标记 */}
         {s.isDead && s.hasGhostVote && (
           <div

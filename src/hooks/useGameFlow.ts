@@ -10,6 +10,10 @@ import {
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
+import {
+  applyBountyHunterEvilConversion,
+  isRealBountyHunterSeat,
+} from "../utils/bountyHunterSetup";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
 import { showAlert } from "../utils/nativeDialogShim";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
@@ -555,39 +559,25 @@ export function useGameFlow(): UseGameFlowResult {
       const withRed = [...compact];
 
       // 1. 赏金猎人开局转邪恶镇民分配（必须先于红罗刹分配，确立阵营归属）
-      const bhIndex = withRed.findIndex((s) => s.role?.id === "bounty_hunter");
-      if (bhIndex !== -1 && !withRed.some((s) => s.isEvilConverted)) {
-        const townsfolkCandidates = withRed.filter(
-          (s) => s.id !== bhIndex && s.role?.type === "townsfolk"
-        );
-        if (townsfolkCandidates.length > 0) {
-          const t = getRandom(townsfolkCandidates);
-          if (t) {
-            withRed[t.id].isEvilConverted = true;
-            (withRed[t.id] as any).alignment = "evil";
-            // 官方规则：若该玩家此前有红罗刹标记，转为邪恶后必须剥离红罗刹
-            if (
-              withRed[t.id].isRedHerring ||
-              withRed[t.id].isFortuneTellerRedHerring
-            ) {
-              withRed[t.id].isRedHerring = false;
-              withRed[t.id].isFortuneTellerRedHerring = false;
-            }
-            const prev = (withRed[t.id].statusDetails || []).filter(
-              (d) => d !== "天敌红罗剎"
-            );
-            withRed[t.id].statusDetails = prev.includes("转为邪恶")
-              ? prev
-              : [...prev, "转为邪恶"];
-            (withRed[bhIndex] as any).bountyHunterEvilConvertedId = t.id;
-            dispatch(
-              gameActions.addLog({
-                day: 0,
-                phase: "setup",
-                message: `赏金猎人在场：${t.id + 1}号【${withRed[t.id].role?.name}】转变为邪恶阵营`,
-              })
-            );
-          }
+      //    逻辑抽到 src/utils/bountyHunterSetup.ts（纯函数 + 官方依据 + 桌规裁定都在那里），
+      //    这里只负责把结果写回座位数组并记日志。
+      const bhResult = applyBountyHunterEvilConversion(withRed);
+      if (bhResult.convertedSeatId !== null) {
+        const idx = withRed.findIndex((s) => s.id === bhResult.convertedSeatId);
+        if (idx !== -1) {
+          withRed[idx] = bhResult.seats[idx];
+          const bhIdx = withRed.findIndex((s) =>
+            isRealBountyHunterSeat(s)
+          );
+          if (bhIdx !== -1) withRed[bhIdx] = bhResult.seats[bhIdx];
+          const t = withRed[idx];
+          dispatch(
+            gameActions.addLog({
+              day: 0,
+              phase: "setup",
+              message: `赏金猎人在场：${t.id + 1}号【${t.role?.name}】转变为邪恶阵营`,
+            })
+          );
         }
       }
 
