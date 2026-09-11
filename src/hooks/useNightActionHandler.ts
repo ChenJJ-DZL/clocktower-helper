@@ -317,12 +317,27 @@ export async function executeViaNewEngine(
 
   // ---------- 构建 MiddlewareContext ----------
   // 双向翻译：将 React Seat 的遗留字段翻译为 statusEffects
+  //
+  // 「重复执行 = 替换」通用规则（覆盖所有主动技能角色）：
+  //   执行某角色的能力前，先清除**该角色本夜先前留下**的状态效果，
+  //   避免同一角色同夜二次执行时效果叠加（僧侣两次保护、投毒者两次下毒…）。
+  //   只清「同源 + 同夜」的效果，不会误伤昨夜遗留或其他角色施加的效果。
+  const isOwnSameNightEffect = (e: any) =>
+    !!e &&
+    e.source === roleId &&
+    (e.appliedAtNight === context.nightCount ||
+      (e.appliedAtNight === undefined &&
+        e.expiresAtNight === context.nightCount + 1));
+
   const snapshotSeats: any[] = context.seats.map((s) => {
     const legacyEffects = translateLegacyStatusesToEffects(s);
+    const ownEffects = ((s as any).statusEffects || []).filter(
+      (e: any) => !isOwnSameNightEffect(e)
+    );
     return {
       ...s,
       isAlive: !s.isDead,
-      statusEffects: [...legacyEffects, ...((s as any).statusEffects || [])],
+      statusEffects: [...legacyEffects, ...ownEffects],
     };
   });
 
