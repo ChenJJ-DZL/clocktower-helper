@@ -619,8 +619,10 @@ export default function Home() {
       const fakeResult = currentHint.fakeInspectionResult;
       // 占卜师的假信息现在在玩家选择后根据真实结果生成toggleTarget 函数中
       // 这里不再预先生成假信息因为需要先知道玩家选择了谁才能计算真实结果
+      // 🛡️ effectiveRole 在系统步骤/结算步骤的 nightInfo 上可能不存在，
+      //    直接读 .id 会让整个应用白屏（实测：镜像双子步骤后必现）
       if (
-        nightInfo.effectiveRole.id !== "fortune_teller" ||
+        nightInfo.effectiveRole?.id !== "fortune_teller" ||
         !nightInfo.isPoisoned
       ) {
         fakeInspectionResultRef.current = null;
