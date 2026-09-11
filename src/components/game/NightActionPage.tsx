@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Seat } from "../../../app/data";
 import { roles } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
+import { formatSeatLabel } from "../../utils/seatLabel";
 
 interface NightActionPageProps {
   /** 当前夜间行动的角色信息 */
@@ -1042,8 +1043,7 @@ export function NightActionPage({
                         >
                           {seats.map((s) => (
                             <option key={s.id} value={s.id}>
-                              {s.id + 1}号{" "}
-                              {s.playerName ? `(${s.playerName})` : ""} -{" "}
+                              {formatSeatLabel(s.id, s.playerName)} -{" "}
                               {s.role?.name || "未知"}
                             </option>
                           ))}
@@ -1060,8 +1060,7 @@ export function NightActionPage({
                         >
                           {seats.map((s) => (
                             <option key={s.id} value={s.id}>
-                              {s.id + 1}号{" "}
-                              {s.playerName ? `(${s.playerName})` : ""} -{" "}
+                              {formatSeatLabel(s.id, s.playerName)} -{" "}
                               {s.role?.name || "未知"}
                             </option>
                           ))}

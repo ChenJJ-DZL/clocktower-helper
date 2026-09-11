@@ -1,4 +1,5 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { displayPlayerName } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
 export function DayActionModal({ modal }: { modal: any }) {
@@ -101,9 +102,9 @@ export function DayActionModal({ modal }: { modal: any }) {
               >
                 <span className="text-amber-400 font-bold">{s.id + 1}号</span>
                 <span className="truncate">{s.role?.name}</span>
-                {s.playerName && (
+                {displayPlayerName(s.playerName, s.id) && (
                   <span className="text-[10px] sm:text-xs text-slate-400 font-normal truncate">
-                    ({s.playerName})
+                    ({displayPlayerName(s.playerName, s.id)})
                   </span>
                 )}
               </button>

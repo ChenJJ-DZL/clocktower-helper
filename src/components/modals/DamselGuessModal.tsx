@@ -1,4 +1,5 @@
 import type { Seat } from "@/app/data";
+import { displayPlayerName } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface DamselGuessModalProps {
@@ -108,7 +109,7 @@ export function DamselGuessModal({
                 )
                 .map((s) => (
                   <option key={s.id} value={s.id}>
-                    [{s.id + 1}号] {s.playerName || `座位${s.id + 1}`}
+                    [{s.id + 1}号] {displayPlayerName(s.playerName, s.id)}
                   </option>
                 ))}
             </select>

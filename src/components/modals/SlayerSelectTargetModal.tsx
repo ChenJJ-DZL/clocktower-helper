@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Seat } from "../../../app/data";
+import { displayPlayerName, formatSeatLabel } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface SlayerSelectTargetModalProps {
@@ -106,7 +107,7 @@ export function SlayerSelectTargetModal({
                 射击发起者：
                 <strong className="text-white font-black text-base ml-1">
                   {shooter
-                    ? `${shooter.id + 1}号 ${shooter.playerName ? `(${shooter.playerName})` : ""} - 【${shooter.role?.name || "猎手"}】`
+                    ? `${formatSeatLabel(shooter.id, shooter.playerName)} - 【${shooter.role?.name || "猎手"}】`
                     : "未知"}
                 </strong>
               </div>
@@ -163,9 +164,9 @@ export function SlayerSelectTargetModal({
                       <div className="font-black text-base text-slate-100 truncate">
                         {s.role?.name}
                       </div>
-                      {s.playerName && (
+                      {displayPlayerName(s.playerName, s.id) && (
                         <div className="text-xs text-slate-400 truncate">
-                          {s.playerName}
+                          {displayPlayerName(s.playerName, s.id)}
                         </div>
                       )}
                     </div>
@@ -184,8 +185,8 @@ export function SlayerSelectTargetModal({
                 已锁定目标：
                 <strong className="text-white text-base ml-1">
                   【{selectedSeat.id + 1}号 - {selectedSeat.role?.name}
-                  {selectedSeat.playerName
-                    ? ` (${selectedSeat.playerName})`
+                  {displayPlayerName(selectedSeat.playerName, selectedSeat.id)
+                    ? ` (${displayPlayerName(selectedSeat.playerName, selectedSeat.id)})`
                     : ""}
                   】
                 </strong>

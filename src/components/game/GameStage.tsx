@@ -8,6 +8,7 @@ import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
+import { formatSeatLabel } from "../../utils/seatLabel";
 import { getStorytellerTips } from "../../utils/storytellerTips";
 import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
@@ -462,12 +463,11 @@ export const GameStage = () => {
       }
 
       setNominee(seatId);
-      const nominatorName = seats[nominator]?.playerName
-        ? `${nominator + 1}号 (${seats[nominator].playerName})`
-        : `${nominator + 1}号`;
-      const nomineeName = clickedSeat?.playerName
-        ? `${seatId + 1}号 (${clickedSeat.playerName})`
-        : `${seatId + 1}号`;
+      const nominatorName = formatSeatLabel(
+        nominator,
+        seats[nominator]?.playerName
+      );
+      const nomineeName = formatSeatLabel(seatId, clickedSeat?.playerName);
 
       showConfirm({
         title: "📣 确认发起提名",

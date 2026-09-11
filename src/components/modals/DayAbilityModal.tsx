@@ -1,5 +1,6 @@
 import { roles } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { formatSeatLabel } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
 export function DayAbilityModal({ modal }: { modal: any }) {
@@ -440,7 +441,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
                   </option>
                   {props.seats.map((s: any) => (
                     <option key={s.id} value={s.id}>
-                      {s.id + 1}号 {s.playerName || ""}
+                      {formatSeatLabel(s.id, s.playerName)}
                     </option>
                   ))}
                 </select>

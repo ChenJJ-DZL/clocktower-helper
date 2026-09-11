@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { GamePhase, Role, Seat } from "../../../../app/data";
 import type { NightInfoResult } from "../../../types/game";
+import { displayPlayerName } from "../../../utils/seatLabel";
 import { SeatGrid } from "./SeatGrid";
 import { TableCenterHUD } from "./TableCenterHUD";
 
@@ -701,9 +702,15 @@ export function RoundTable({
                     </div>
 
                     {/* 玩家名称提示 */}
-                    {activeSeat.playerName && (
+                    {displayPlayerName(
+                      activeSeat.playerName,
+                      activeSeat.id
+                    ) && (
                       <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-20 px-2 py-0.5 rounded-full bg-black/80 text-[10px] text-amber-200 border border-amber-500/40 whitespace-nowrap pointer-events-none">
-                        {activeSeat.playerName}
+                        {displayPlayerName(
+                          activeSeat.playerName,
+                          activeSeat.id
+                        )}
                       </div>
                     )}
                   </div>

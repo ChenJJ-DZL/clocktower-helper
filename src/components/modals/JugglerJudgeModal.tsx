@@ -1,6 +1,7 @@
 import type React from "react";
 import { useState } from "react";
 import type { Seat } from "@/src/types/game";
+import { formatSeatLabel } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface JugglerJudgeModalProps {
@@ -25,9 +26,7 @@ export const JugglerJudgeModal: React.FC<JugglerJudgeModalProps> = ({
     seats.some((s) => s.role?.id === "vortox" && !s.isDead);
 
   const jugglerSeat = seats.find((s) => s.id === seatId);
-  const jugglerName = jugglerSeat?.playerName
-    ? `${seatId + 1}号 (${jugglerSeat.playerName})`
-    : `${seatId + 1}号`;
+  const jugglerName = formatSeatLabel(seatId, jugglerSeat?.playerName);
 
   return (
     <ModalWrapper
