@@ -4,6 +4,7 @@ import type React from "react";
 import { useRef } from "react";
 import type { Seat } from "../../../../app/data";
 import type { NightInfoResult } from "../../../types/game";
+import { LONG_PRESS_MS } from "../../../utils/longPress";
 import { SeatNode } from "../../SeatNode";
 
 export interface SeatGridProps {
@@ -78,7 +79,8 @@ export function SeatGrid(props: SeatGridProps) {
   } = props;
 
   // 矩阵视图（席位表）的长按触发右键菜单：触屏设备（iPhone 等）没有右键，
-  // 需长按 500ms 才能打开同一个菜单；滑动会取消，短按仍是「选中座位」。
+  // 按住 LONG_PRESS_MS（1000ms，与圆桌 SeatNode 完全一致）即打开同一个菜单，
+  // 无需松开；滑动会取消，短按仍是「选中座位」。
   // 注意：这两个 ref 必须在下面的 early return（圆桌模式）之前调用，否则违反 Hooks 规则。
   const lpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lpFiredRef = useRef(false);
@@ -174,7 +176,7 @@ export function SeatGrid(props: SeatGridProps) {
                   } as unknown as React.MouseEvent,
                   seat.id
                 );
-              }, 500);
+              }, LONG_PRESS_MS);
             }}
             onTouchMove={(e) => {
               e.stopPropagation();

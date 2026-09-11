@@ -2,11 +2,17 @@
 
 import { motion } from "framer-motion";
 import type React from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useGameActions } from "../contexts/GameActionsContext";
 import { useSeatView } from "../hooks/useSeatView";
 import type { SeatNodeProps } from "./SeatNode.types"; // We should extract props too
+import { RoleNameLines } from "./common/RoleNameLines";
 import { useGrimoireTooltip } from "./tooltip/GrimoireTooltip";
+import {
+  DRAG_START_THRESHOLD_PX,
+  LONG_PRESS_MOVE_TOLERANCE_PX,
+  LONG_PRESS_MS,
+} from "../utils/longPress";
 
 /**
  * 判定某座位是否为「对立双子」（善良双子）。
@@ -201,6 +207,45 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
   }, [displayRole, realRole, roleName, statusList, s, getDisplayRoleType]);
   const tooltipBind = useGrimoireTooltip(tooltipData);
 
+  // ── 触屏长按 1 秒直接弹出座位菜单 ─────────────────────────────────────────────
+  // 圆桌座位此前没有任何自己的长按定时器，完全依赖浏览器原生 long-press 合成
+  // contextmenu，时机不可控（表现为「按住—松开才弹」）。这里自己计时：
+  // 按住 LONG_PRESS_MS 后立刻弹出菜单（复用与鼠标右键完全相同的入参形状），
+  // 滑动超过容差即取消；长按已弹菜单时，本次抬手不当作「选中座位」。
+  const lpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lpFiredRef = useRef(false);
+  const lpStartRef = useRef<{ x: number; y: number } | null>(null);
+  // 触屏「待定拖拽」起手点：按住不动 → 到点弹菜单；一旦位移 ≥ 阈值 → 判定为拖拽
+  const pendingDragRef = useRef<{ x: number; y: number } | null>(null);
+
+  const cancelLongPress = () => {
+    if (lpTimerRef.current) {
+      clearTimeout(lpTimerRef.current);
+      lpTimerRef.current = null;
+    }
+  };
+
+  const startLongPress = (x: number, y: number) => {
+    cancelLongPress();
+    lpFiredRef.current = false;
+    lpStartRef.current = { x, y };
+    lpTimerRef.current = setTimeout(() => {
+      lpTimerRef.current = null;
+      lpFiredRef.current = true;
+      onContextMenu(
+        {
+          clientX: x,
+          clientY: y,
+          preventDefault() {},
+        } as unknown as React.MouseEvent,
+        s.id
+      );
+    }, LONG_PRESS_MS);
+  };
+
+  // 组件卸载时清理，避免定时器泄漏后回调已卸载组件的状态
+  useEffect(() => cancelLongPress, []);
+
   return (
     <div
       key={s.id}
@@ -211,6 +256,11 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
       }}
       onClick={(e) => {
         e.stopPropagation();
+        // 长按弹出的菜单刚触发过 → 指尖抬起带出的这次 click 不再当作「选中座位」
+        if (lpFiredRef.current) {
+          lpFiredRef.current = false;
+          return;
+        }
         if (isValidTarget) onSeatClick(s.id);
       }}
       onContextMenu={(e) => {
@@ -218,17 +268,51 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         onContextMenu(e, s.id);
       }}
       onTouchStart={(e) => {
+        const t = e.touches?.[0];
         if (isDraggable) {
           e.stopPropagation();
-          onSeatDragStart?.(s.id, e as any);
+          // 不立刻启动拖拽：先记下起手点，等位移达到阈值再判定（否则「按住再拖」会被
+          // 1 秒到点的长按菜单抢先），真正启动拖拽在 onTouchMove 里完成。
+          if (t) pendingDragRef.current = { x: t.clientX, y: t.clientY };
         } else if (isValidTarget) {
           onTouchStart(e, s.id);
         }
+        if (t) startLongPress(t.clientX, t.clientY);
       }}
       onTouchEnd={(e) => {
+        const longPressFired = lpFiredRef.current;
+        pendingDragRef.current = null;
+        cancelLongPress();
+        if (longPressFired) {
+          // 菜单已弹出：本次抬手结束长按，不触发座位选中
+          e.stopPropagation();
+          return;
+        }
         if (isValidTarget) onTouchEnd(e, s.id);
       }}
       onTouchMove={(e) => {
+        const t = e.touches?.[0];
+        // 手势归属：位移 ≥ DRAG_START_THRESHOLD_PX 即判定为拖拽（取消菜单定时器），
+        // 未达阈值则继续当作长按候选。
+        const pd = pendingDragRef.current;
+        if (
+          isDraggable &&
+          pd &&
+          t &&
+          (Math.abs(t.clientX - pd.x) > DRAG_START_THRESHOLD_PX ||
+            Math.abs(t.clientY - pd.y) > DRAG_START_THRESHOLD_PX)
+        ) {
+          pendingDragRef.current = null;
+          cancelLongPress(); // 双保险：进入拖拽后绝不再弹菜单
+          onSeatDragStart?.(s.id, e as any);
+        }
+        if (t && lpStartRef.current) {
+          const dx = Math.abs(t.clientX - lpStartRef.current.x);
+          const dy = Math.abs(t.clientY - lpStartRef.current.y);
+          if (dx > LONG_PRESS_MOVE_TOLERANCE_PX || dy > LONG_PRESS_MOVE_TOLERANCE_PX) {
+            cancelLongPress();
+          }
+        }
         if (isValidTarget) onTouchMove(e, s.id);
       }}
       style={containerStyle}
@@ -248,6 +332,11 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         }}
         onClick={(e) => {
           e.stopPropagation();
+          // 同上：长按弹菜单后的抬手 click 不再选中座位
+          if (lpFiredRef.current) {
+            lpFiredRef.current = false;
+            return;
+          }
           if (isValidTarget) onSeatClick(s.id);
         }}
         className={`seat-token relative w-full h-full rounded-full touch-none select-none ${isPortrait ? "border-2" : "border-4"} flex items-center justify-center cursor-pointer z-30 bg-gray-900 transition-colors duration-200
@@ -428,12 +517,11 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
         {/* 角色名称 */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <span
+          <RoleNameLines
+            name={roleName}
             className={`${isPortrait ? "text-lg" : "text-2xl"} font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? "" : "whitespace-nowrap"} ${s.isDead ? "text-gray-400 line-through" : "text-white"}`}
             style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 4px black" }}
-          >
-            {roleName}
-          </span>
+          />
         </div>
 
         {/* 状态标签容器 */}
@@ -703,14 +791,16 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           );
         })()}
 
-        {/* 右上角「真实身份类」标记栈：与左上角座位号左右对称，统一为紧凑胶囊（同「实:X」款式）。
-            容器锚在座位右上角，向下 + 向右溢出 —— 绝不覆盖座位号（左上）与角色名（居中）；
-            同一座位同时命中多项时（如酒鬼又被指定为对立双子）纵向堆叠，互不遮挡。 */}
+        {/* 右上角「真实身份类」标记栈：与左上角座位号左右镜像对称，统一为紧凑胶囊（同「实:X」款式）。
+            锚点 = 座位号的同心位置 (85.4%, 14.6%)（座位号圆心在 (14.6%, 14.6%)，-translate-*-1/2 使其中心落在锚点）。
+            容器高度锁定为「一行胶囊」的高度，因此 -translate-y-1/2 后**首个标记的垂直中线与座位号圆心同行**，
+            后续标记依次向下堆叠；items-center 让同一栈内的多个标记共享同一条中轴（不再各自左对齐、向右下坠）。
+            胶囊高度 = 14px 字号 × leading-none + 2×2px padding + 2×1px border = 20px。 */}
         {(isMasked ||
           s.role?.id === "lunatic" ||
           s.role?.id === "evil_twin" ||
           computeIsGoodTwin(s, seats)) && (
-          <div className="absolute left-[85.4%] top-[14.6%] flex flex-col items-start gap-1 z-40 pointer-events-none whitespace-nowrap">
+          <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex h-[20px] flex-col items-center gap-1 z-40 pointer-events-none whitespace-nowrap [&>*]:shrink-0">
             {(isMasked || s.role?.id === "lunatic") && (
               <div
                 className="bg-purple-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-white/80 shadow-md font-bold leading-none whitespace-nowrap"

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { GamePhase, Role, Seat } from "../../../../app/data";
 import type { NightInfoResult } from "../../../types/game";
 import { displayPlayerName } from "../../../utils/seatLabel";
+import { RoleNameLines } from "../../common/RoleNameLines";
 import { SeatGrid } from "./SeatGrid";
 import { TableCenterHUD } from "./TableCenterHUD";
 
@@ -122,7 +123,12 @@ export function RoundTable({
   const activeDragSeatIdRef = useRef<number | null>(null);
   const swapTargetSeatIdRef = useRef<number | null>(null);
   const seatElementsRef = useRef<Record<number, HTMLDivElement | null>>({});
-  const seatSizeRef = useRef<number>(112);
+  // 座位上屏后的真实直径（client px）。旧实现恒为初始值 112（设计像素），
+  // 而座位实际远小于它（5 人局约 52 client px），导致拖动浮层比座位大 2 倍以上、
+  // 「重叠 50% 换位」判定用的矩形也偏大。这里改为拖拽起手时实测。
+  const seatSizeRef = useRef<number>(0);
+  // 浮层盒尺寸（client px）：与座位同尺寸，再由 transform 的 scale(1.1) 得到「直径 +10%」
+  const [ghostBaseSize, setGhostBaseSize] = useState<number>(0);
   const floatingTokenRef = useRef<HTMLDivElement | null>(null);
 
   const handleSetSeatRef = (id: number, el: HTMLDivElement | null) => {
@@ -238,6 +244,15 @@ export function RoundTable({
     const initialCoords = extractCoords(e);
     if (!initialCoords) return;
 
+    // 实测被拖座位的上屏直径：浮层直径 = 该值 × scale(1.1)（即用户要求的「直径 +10%」），
+    // 同时修正换位重叠判定所用矩形的大小。
+    const sourceRect = seatElementsRef.current[seatId]?.getBoundingClientRect();
+    const measuredSeatSize = sourceRect?.width ?? 0;
+    if (measuredSeatSize > 0) {
+      seatSizeRef.current = measuredSeatSize;
+      setGhostBaseSize(measuredSeatSize);
+    }
+
     dragPosRef.current = { x: initialCoords.x, y: initialCoords.y };
     activeDragSeatIdRef.current = seatId;
     swapTargetSeatIdRef.current = null;
@@ -247,7 +262,7 @@ export function RoundTable({
 
     const updateGhostPosition = (cx: number, cy: number) => {
       if (floatingTokenRef.current) {
-        floatingTokenRef.current.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(1.15)`;
+        floatingTokenRef.current.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(1.1)`;
       }
     };
 
@@ -263,7 +278,7 @@ export function RoundTable({
       updateGhostPosition(currentX, currentY);
 
       // 计算重叠 50% 判定（圆心绑定在当前鼠标 (clientX, clientY) 位置）
-      const currentSeatSize = seatSizeRef.current || seatSize || 112;
+      const currentSeatSize = seatSizeRef.current || seatSize || 72;
       const draggedRect = {
         left: currentX - currentSeatSize / 2,
         right: currentX + currentSeatSize / 2,
@@ -653,7 +668,7 @@ export function RoundTable({
                 margin: 0,
                 width: `${seatSizeRef.current || seatSize || 112}px`,
                 height: `${seatSizeRef.current || seatSize || 112}px`,
-                transform: `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(1.15)`,
+                transform: `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(1.1)`,
                 transformOrigin: "center center",
                 transition: "none",
               }}
@@ -690,15 +705,14 @@ export function RoundTable({
 
                     {/* 居中角色名称 */}
                     <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                      <span
+                      <RoleNameLines
+                        name={roleName}
                         className="text-lg md:text-2xl font-black drop-shadow-md leading-none text-center text-white"
                         style={{
                           textShadow:
                             "0 2px 4px rgba(0,0,0,0.9), 0 0 4px black",
                         }}
-                      >
-                        {roleName}
-                      </span>
+                      />
                     </div>
 
                     {/* 玩家名称提示 */}
