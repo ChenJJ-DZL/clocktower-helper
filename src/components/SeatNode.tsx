@@ -430,21 +430,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         {(() => {
           const otherBadges: React.ReactNode[] = [];
 
-          // 真实身份伪装
-          if (isMasked) {
-            otherBadges.push(
-              <div
-                key="badge-masked"
-                className={`bg-purple-700 text-white ${
-                  isPortrait
-                    ? "text-[14px] px-2.5 py-0.5"
-                    : "text-[18px] px-2 py-0.5"
-                } rounded-full border border-white/80 shadow-md font-bold whitespace-nowrap leading-none`}
-              >
-                实:{realRole?.name}
-              </div>
-            );
-          }
+          // 真实身份伪装（酒鬼/疯子）：已移出这个宽幅堆叠，改为右上角独立小标记（见下方渲染）
 
           // 主人标记
           if (seats.some((seat) => seat.masterId === s.id)) {
@@ -729,6 +715,17 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             </div>
           );
         })()}
+
+        {/* 真实身份（酒鬼/疯子等伪装角色）：右上角小标记。
+            与左上角座位号左右对称，做成紧凑胶囊而不是宽幅标签，避免遮挡座位号与角色名。 */}
+        {isMasked && (
+          <div
+            className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 bg-purple-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-white/80 shadow-md font-bold leading-none whitespace-nowrap z-40 pointer-events-none"
+            title={`真实身份：${realRole?.name ?? "未知"}`}
+          >
+            实:{realRole?.name}
+          </div>
+        )}
 
         {/* 幽灵票标记 */}
         {s.isDead && s.hasGhostVote && (
