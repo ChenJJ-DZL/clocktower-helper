@@ -50,9 +50,27 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
     };
   }, []);
 
+  // 移动端竖屏提示：本工具只针对移动设备横屏优化（竖屏信息量无法容纳）。
+  // 用纯 CSS 媒体查询控制显隐，避免 JS 判断导致的闪烁；仅触屏设备触发（pointer: coarse），
+  // 桌面端把窗口拉成竖屏也不会看到这个提示。
+  const rotateHint = (
+    <div className="rotate-hint fixed inset-0 z-[2147483000] flex-col items-center justify-center gap-6 bg-slate-950 text-slate-100">
+      <div className="text-[72px] leading-none">📱↻</div>
+      <div className="text-[28px] font-black tracking-wide">
+        请将设备旋转为横屏
+      </div>
+      <div className="text-[18px] text-slate-400 px-10 text-center leading-relaxed">
+        本工具为说书人设计，横屏才能完整显示圆桌、控制台与弹窗。
+        <br />
+        Please rotate your device to landscape.
+      </div>
+    </div>
+  );
+
   if (!mounted) {
     return (
       <div className="w-screen h-screen bg-slate-950 flex items-center justify-center overflow-hidden select-none">
+        {rotateHint}
         <div
           style={{
             width: `${BASE_WIDTH}px`,
@@ -72,6 +90,7 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
 
   return (
     <div className="w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center select-none">
+      {rotateHint}
       {/* 舞台物理占位包装层：尺寸严格等于 1600*scale x 900*scale，彻底杜绝 WebKit 内部因 1600px 尺寸产生的滚动偏移 */}
       <div
         style={{
