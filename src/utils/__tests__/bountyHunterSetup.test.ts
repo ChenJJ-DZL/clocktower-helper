@@ -3,6 +3,7 @@ import {
   applyBountyHunterEvilConversion,
   EVIL_CONVERTED_DETAIL,
   isRealBountyHunterSeat,
+  selectEvilConvertedSeat,
 } from "../bountyHunterSetup";
 
 interface S {
@@ -122,5 +123,55 @@ describe("赏金猎人「设置调整」：一名镇民转为邪恶阵营", () =
     const res = applyBountyHunterEvilConversion(seats);
     expect(res.convertedSeatId).toBeNull();
     expect(res.seats).toEqual(seats);
+  });
+});
+
+describe("说书人手动改选「变为邪恶」（右击菜单）：最后选择生效", () => {
+  const withConverted = (): S[] => {
+    const base = lineup();
+    base[1] = {
+      ...base[1],
+      isEvilConverted: true,
+      alignment: "evil",
+      statusDetails: [EVIL_CONVERTED_DETAIL],
+      isRedHerring: true,
+      isFortuneTellerRedHerring: true,
+    } as S;
+    return base;
+  };
+
+  it("选新的镇民 → 新的生效，旧的那名自动恢复为正常", () => {
+    const before = withConverted();
+    const after = selectEvilConvertedSeat(before, 5);
+    const converted = after.filter((s) => s.isEvilConverted);
+    expect(converted).toHaveLength(1);
+    expect(converted[0].id).toBe(5);
+    const old = after.find((s) => s.id === 1)!;
+    expect(old.isEvilConverted).toBe(false);
+    expect(old.alignment).toBe("good");
+    expect(old.statusDetails).not.toContain(EVIL_CONVERTED_DETAIL);
+  });
+
+  it("始终最多一名被转换者（重复改选不会累积）", () => {
+    let seats = withConverted();
+    seats = selectEvilConvertedSeat(seats, 5);
+    seats = selectEvilConvertedSeat(seats, 1);
+    expect(seats.filter((s) => s.isEvilConverted)).toHaveLength(1);
+    expect(seats.find((s) => s.isEvilConverted)!.id).toBe(1);
+  });
+
+  it("改选会剥离该座位的占卜师红罗刹（红罗刹只能是善良玩家）", () => {
+    const seats = selectEvilConvertedSeat(withConverted(), 5);
+    const target = seats.find((s) => s.id === 5)!;
+    expect(target.isRedHerring).toBe(false);
+    expect(target.isFortuneTellerRedHerring).toBe(false);
+  });
+
+  it("手动改选不会改动任何人的角色牌", () => {
+    const before = withConverted();
+    const after = selectEvilConvertedSeat(before, 5);
+    before.forEach((b) => {
+      expect(after.find((a) => a.id === b.id)!.role).toEqual(b.role);
+    });
   });
 });

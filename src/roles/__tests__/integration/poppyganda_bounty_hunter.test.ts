@@ -139,4 +139,110 @@ describe("赏金猎人：首夜 + 死亡轮转", () => {
     expect(r2.targetId).not.toBe(1);
     expect([2, 3]).toContain(r2.targetId);
   });
+
+  // ── 唤醒条件（官方：仅当"当前已知的那名玩家死亡"才在当晚再次唤醒）───────────
+  // 旧实现声明 triggerTiming: [FIRST_NIGHT, EVERY_NIGHT] 却无任何唤醒条件，
+  // 结果每夜都白送一名邪恶玩家。以下三条锁定该行为的正确性。
+  it("非首夜 + 已知目标仍存活 → 本步必须跳过（不再白送信息）", async () => {
+    const seats: Seat[] = [
+      makeSeat(0, "bounty_hunter", "townsfolk"),
+      makeSeat(1, "imp", "demon"),
+      makeSeat(2, "poisoner", "minion"),
+      makeSeat(3, "baron", "minion"),
+    ];
+    const ctx: any = {
+      actionNode: { seatId: 0, roleId: "bounty_hunter" },
+      targetIds: [],
+      snapshot: {
+        seats,
+        gamePhase: "night",
+        nightCount: 2,
+        deadThisNight: [],
+        bountyHunterKnownTargets: [1], // 已知 1 号，且其仍然存活
+      },
+      meta: {},
+    };
+    const res = await runFullAbilityPipeline(pipe(bounty_hunterAbility), ctx);
+    expect(res.aborted).toBe(true);
+    expect(String(res.abortReason)).toContain("仍存活");
+    // 绝不产生新信息 / 不追加已知列表
+    expect((res.meta as any).abilityResult ?? null).toBeNull();
+    expect((res.snapshot as any).bountyHunterKnownTargets).toEqual([1]);
+  });
+
+  it("非首夜 + 已知目标已死亡 → 唤醒并标记为死亡轮转", async () => {
+    const seats: Seat[] = [
+      makeSeat(0, "bounty_hunter", "townsfolk"),
+      makeSeat(1, "imp", "demon", { isDead: true } as any),
+      makeSeat(2, "poisoner", "minion"),
+      makeSeat(3, "baron", "minion"),
+    ];
+    const ctx: any = {
+      actionNode: { seatId: 0, roleId: "bounty_hunter" },
+      targetIds: [],
+      snapshot: {
+        seats,
+        gamePhase: "night",
+        nightCount: 2,
+        deadThisNight: [1],
+        bountyHunterKnownTargets: [1],
+      },
+      meta: {},
+    };
+    const res = await runFullAbilityPipeline(pipe(bounty_hunterAbility), ctx);
+    expect(res.aborted).toBeFalsy();
+    const r2 = res.meta.abilityResult as any;
+    expect(r2.isRotationTrigger).toBe(true);
+    expect(r2.targetId).not.toBe(1); // 不重复告知
+    expect([2, 3]).toContain(r2.targetId); // 新的邪恶玩家
+    expect((res.snapshot as any).bountyHunterKnownTargets).toContain(
+      r2.targetId
+    );
+  });
+
+  it("本夜被杀的已知目标也算数（deadThisNight 命中即唤醒）", async () => {
+    const seats: Seat[] = [
+      makeSeat(0, "bounty_hunter", "townsfolk"),
+      makeSeat(1, "imp", "demon"), // isDead 尚未落地，但本夜已死亡
+      makeSeat(2, "poisoner", "minion"),
+    ];
+    const ctx: any = {
+      actionNode: { seatId: 0, roleId: "bounty_hunter" },
+      targetIds: [],
+      snapshot: {
+        seats,
+        gamePhase: "night",
+        nightCount: 3,
+        deadThisNight: [1],
+        bountyHunterKnownTargets: [1],
+      },
+      meta: {},
+    };
+    const res = await runFullAbilityPipeline(pipe(bounty_hunterAbility), ctx);
+    expect(res.aborted).toBeFalsy();
+    expect((res.meta.abilityResult as any).targetId).toBe(2);
+  });
+
+  it("首夜不受唤醒条件影响（回归护栏）", async () => {
+    const seats: Seat[] = [
+      makeSeat(0, "bounty_hunter", "townsfolk"),
+      makeSeat(1, "imp", "demon"),
+      makeSeat(2, "poisoner", "minion"),
+    ];
+    const ctx: any = {
+      actionNode: { seatId: 0, roleId: "bounty_hunter" },
+      targetIds: [],
+      snapshot: {
+        seats,
+        gamePhase: "firstNight",
+        nightCount: 1,
+        bountyHunterKnownTargets: [],
+      },
+      meta: {},
+    };
+    const res = await runFullAbilityPipeline(pipe(bounty_hunterAbility), ctx);
+    expect(res.aborted).toBeFalsy();
+    expect((res.meta.abilityResult as any).targetId).toBeGreaterThanOrEqual(1);
+  });
 });
+

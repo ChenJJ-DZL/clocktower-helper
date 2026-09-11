@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { roles as allSystemRoles, type Role } from "../../../app/data";
+import { selectEvilConvertedSeat } from "../../utils/bountyHunterSetup";
 import { useGameActions } from "../../contexts/GameActionsContext";
 
 export function PlayerContextMenu() {
@@ -337,6 +338,47 @@ export function PlayerContextMenu() {
           🎭 选为红罗刹
         </button>
       )}
+      {/* 🏹 赏金猎人「设置调整」：把一名镇民改为**实际属于邪恶阵营**。
+          官方依据（赏金猎人·角色能力 / 范例1）：「[会有一名镇民转变为邪恶阵营]」、
+          「设置调整阶段，说书人**决定**小黑成为邪恶的茶艺师」——
+          开局已自动挑好一名，此处供说书人在进入首夜前手动纠正。
+          语义：**全局最多一名** —— 选新的会自动把之前那名清回正常（最后选择生效）。
+          仅镇民可用（官方：转变的对象是镇民）；角色牌本身不变。 */}
+      {props.seats.some((s) => s.role?.id === "bounty_hunter") &&
+        targetSeat.role?.type === "townsfolk" &&
+        (props.gamePhase === "check" ||
+          (props.gamePhase === "firstNight" && props.nightCount === 1)) && (
+          <button
+            onClick={() => {
+              // 唯一性语义（最后选择生效）与"清回正常"的规则集中在纯函数里，便于测试
+              const cleared: number[] = props.seats
+                .filter(
+                  (s) => s.isEvilConverted && s.id !== targetSeat.id
+                )
+                .map((s) => s.id);
+              props.setSeats((prev: any[]) =>
+                selectEvilConvertedSeat(prev, targetSeat.id)
+              );
+              props.addLog?.(
+                `🏹 说书人将【${targetSeat.id + 1}号-${effectiveRole?.name ?? "镇民"}】改为邪恶阵营` +
+                  (cleared.length > 0
+                    ? `（原被转换者 ${cleared.map((i) => i + 1).join("、")}号 已自动恢复为正常）`
+                    : "")
+              );
+              props.setContextMenu(null);
+            }}
+            className={`block w-full text-left px-6 py-4 text-lg font-bold border-t border-gray-700 transition-colors ${
+              targetSeat.isEvilConverted
+                ? "bg-red-800/80 hover:bg-red-700 text-red-100"
+                : "bg-red-900/30 hover:bg-red-700 text-red-100"
+            }`}
+            style={{ textShadow: "0 0 8px rgba(239, 68, 68, 0.5)" }}
+          >
+            {targetSeat.isEvilConverted
+              ? "😈 已是邪恶阵营 (本次生效中)"
+              : "😈 变为邪恶"}
+          </button>
+        )}
       {/* 镜像双子对立目标设置：当场上有镜像双子时，允许右击任意非镜像双子玩家选为/切换对立双子 */}
       {props.seats.some((s) => s.role?.id === "evil_twin") &&
         targetSeat.role?.id !== "evil_twin" && (

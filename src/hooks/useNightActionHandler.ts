@@ -12,6 +12,7 @@ import { useCallback } from "react";
 import type { Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { EVIL_CONVERTED_NOTICE_ID } from "../utils/nightStepIds";
 import {
   getAbilityForRole,
   getRawAbilityMap,
@@ -531,6 +532,7 @@ export async function executeViaNewEngine(
         "minion_info",
         LEGION_MUTUAL_RECOGNITION_ID,
         "good_twin_info",
+        EVIL_CONVERTED_NOTICE_ID,
       ].includes(roleId);
       const targetConfig =
         (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
@@ -1734,6 +1736,7 @@ export function useNightActionHandler() {
         roleId === "minion_info" ||
         roleId === "demon_info" ||
         roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+        roleId === EVIL_CONVERTED_NOTICE_ID ||
         isGoodTwinStep;
 
       if (isSystemStep) {
@@ -1784,6 +1787,60 @@ export function useNightActionHandler() {
             data: {
               roleName: displayName,
               resultText: `【双子告知】${evilSeatNo}是镜像双子`,
+              onNext: () => {
+                context.setCurrentModal(null);
+                context.continueToNextAction();
+              },
+            },
+          });
+          return true;
+        }
+
+        // 🏹 赏金猎人「阵营告知」：官方——被转变的玩家从一开始就属于邪恶阵营，
+        //    「应该在首个夜晚立即告知他是邪恶的」。行动者 = 被转变的那名镇民。
+        if (roleId === EVIL_CONVERTED_NOTICE_ID) {
+          const actorId = nightInfo.seat?.id ?? -1;
+          const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
+          const displayName = `${seatPrefix}阵营告知`;
+          const actionDesc = "告知该玩家：你已经属于邪恶阵营";
+          const guideInfo =
+            nightInfo.guide ||
+            nightInfo.guideText ||
+            `${displayName}：告知其已属于邪恶阵营`;
+
+          if (context.preview) {
+            context.setCurrentModal({
+              type: "NIGHT_ACTION_CONFIRM",
+              data: {
+                roleName: displayName,
+                actionDescription: actionDesc,
+                targetDescriptions: ["（首夜信息 - 无目标）"],
+                onConfirm: () => {
+                  context.setCurrentModal({
+                    type: "INFO_RESULT",
+                    data: {
+                      roleName: displayName,
+                      resultText: guideInfo,
+                      onNext: () => {
+                        context.setCurrentModal(null);
+                        context.continueToNextAction();
+                      },
+                    },
+                  });
+                },
+                onCancel: () => {
+                  context.setCurrentModal(null);
+                },
+              },
+            });
+            return true;
+          }
+
+          context.setCurrentModal({
+            type: "INFO_RESULT",
+            data: {
+              roleName: displayName,
+              resultText: guideInfo,
               onNext: () => {
                 context.setCurrentModal(null);
                 context.continueToNextAction();

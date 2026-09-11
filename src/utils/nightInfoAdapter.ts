@@ -12,6 +12,7 @@
 import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import { isMarionetteSeat } from "./roleFlags";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
@@ -230,6 +231,7 @@ export function calculateNightInfoViaNewEngine(
     "demon_info",
     LEGION_MUTUAL_RECOGNITION_ID,
     "good_twin_info",
+    EVIL_CONVERTED_NOTICE_ID,
   ].includes(systemStepRoleId || "");
 
   if (systemStepRoleId && isSystemStep) {
@@ -333,6 +335,26 @@ function generateSystemInfoViaAdapter(
 ): NightInfoResult | null {
   const selfSeat = seats.find((s) => s.id === currentSeatId);
   if (!selfSeat) return null;
+
+  // 🏹 赏金猎人「阵营告知」：官方《规则细节》——被转变的玩家从一开始就属于邪恶阵营，
+  //    「应该在首个夜晚立即告知他是邪恶的」。行动者 = 被转变的那名镇民（本步骤排在最前）。
+  if (stepId === EVIL_CONVERTED_NOTICE_ID) {
+    const seatName = selfSeat.role?.name || "镇民";
+    const guide = `唤醒${selfSeat.id + 1}号【${seatName}】，告知他：你已经属于邪恶阵营（赏金猎人的设置调整）。`;
+    return {
+      roleName: `${selfSeat.id + 1}号-${seatName}(阵营告知)`,
+      actionText: "告知其已属于邪恶阵营",
+      guide,
+      targetLimit: { min: 0, max: 0 },
+      hasAction: true,
+      dialogTitle: `${selfSeat.id + 1}号-${seatName}`,
+      guideText: guide,
+      displayInfo: {
+        type: EVIL_CONVERTED_NOTICE_ID,
+        log: `告知${selfSeat.id + 1}号：你已属于邪恶阵营`,
+      },
+    } as any;
+  }
 
   if (stepId === "good_twin_info") {
     const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPair(

@@ -11,10 +11,11 @@
  *   没有镇民被转变为邪恶阵营。**」——所以判定必须看"真实角色卡"，
  *   酒鬼 / 提线木偶"以为自己是谁"一律不触发。
  *
- * ## ⚠️ 桌规裁定（有意偏离官方，勿当 bug 改回去）
- * 官方《规则细节》还写了「应该在首个夜晚立即告知他是邪恶的」。
- * 本项目按用户裁定**不告知**：该玩家**永远不知道**自己是邪恶阵营，
- * 也**不存在**任何"告知你是邪恶"的夜间步骤。请勿补上该步骤。
+ * ## 首夜「告知」步骤
+ * 官方《规则细节》：「…并且你作为说书人应当在给出其他夜晚信息之前谨记这回事。」
+ * 与「应该在首个夜晚立即告知他是邪恶的」→ 首夜队列里**必须**有一个"阵营告知"步骤
+ * （见 src/utils/nightStepIds.ts 的 EVIL_CONVERTED_NOTICE_ID），排在其他夜间信息之前，
+ * 行动者 = 被转变的那名镇民。
  *
  * ## 实现口径
  * - 被转换者的**角色牌一律不变**（官方：只是把角色标记"倒转放置"）：
@@ -114,4 +115,50 @@ export function applyBountyHunterEvilConversion<T extends BountyHunterSeatLike>(
   });
 
   return { seats: next, convertedSeatId: target.id };
+}
+
+/**
+ * 说书人手动改选「哪名镇民实际属于邪恶阵营」（座位右击菜单「变为邪恶」）。
+ *
+ * 语义：**全局最多一名** —— 选中新的那名的同时，自动把其他被转换者清回正常
+ * （即"最后选择生效"），手动选择会覆盖开局自动挑的那名。
+ * 仅镇民可被指定（官方：被赏金猎人转变的是镇民）；角色牌本身一律不变。
+ */
+export function selectEvilConvertedSeat<T extends BountyHunterSeatLike>(
+  seats: readonly T[],
+  targetSeatId: number
+): T[] {
+  return seats.map((s) => {
+    if (s.id === targetSeatId) {
+      const details = (s.statusDetails || []).filter(
+        (d) => d !== FORTUNE_TELLER_RED_HERRING_DETAIL
+      );
+      return {
+        ...s,
+        isEvilConverted: true,
+        alignment: "evil",
+        // 转为邪恶者不能再是占卜师红罗刹（红罗刹必须是善良玩家）
+        isRedHerring: false,
+        isFortuneTellerRedHerring: false,
+        statusDetails: details.includes(EVIL_CONVERTED_DETAIL)
+          ? details
+          : [...details, EVIL_CONVERTED_DETAIL],
+      } as T;
+    }
+    if (s.isEvilConverted) {
+      // 最后选择生效：其余被转换者一律恢复为正常（阵营按自身角色类型回正）
+      return {
+        ...s,
+        isEvilConverted: false,
+        alignment:
+          s.role?.type === "minion" || s.role?.type === "demon"
+            ? "evil"
+            : "good",
+        statusDetails: (s.statusDetails || []).filter(
+          (d) => d !== EVIL_CONVERTED_DETAIL
+        ),
+      } as T;
+    }
+    return s;
+  });
 }

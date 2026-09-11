@@ -10,8 +10,12 @@
  * 实现要点：
  *   - setupConfig.bountyHunterEvilConvertedId 记录被转邪恶的镇民 seatId
  *   - snapshot.bountyHunterKnownTargets: number[]  维护已告知列表
- *   - 死亡轮转：由 useNightEngine 在 deadThisNight 结算时注入新 actionNode，
- *     并设 ctx.meta.isRotationTrigger = true
+ *   - 死亡轮转：由 preCheck.rotationOnlyAfterKnownDeathCheck 把关 ——
+ *     非首夜且"当前已知目标仍存活"时直接 aborted 跳过，不再每夜白送信息；
+ *     因目标死亡而唤醒时会设 ctx.meta.isRotationTrigger = true（日志显示"（死亡轮转）"）。
+ *
+ *   - 首夜阵营告知：官方《规则细节》「应该在首个夜晚立即告知他是邪恶的」——
+ *     由队列最前的 EVIL_CONVERTED_NOTICE_ID 步骤承担（见 utils/nightStepIds.ts）。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
@@ -68,6 +72,52 @@ export function pickEvilBountyTargetId(
   const pool = nonDemonEvils.length > 0 ? nonDemonEvils : aliveEvils;
   return pool[Math.floor(rng() * pool.length)].id;
 }
+
+/**
+ * preCheck 第 2 步：后续夜晚的唤醒条件
+ *
+ * 官方依据（赏金猎人·角色能力）：
+ *   「在你的首个夜晚，你会得知一名邪恶玩家。**每当你得知的玩家死亡**，
+ *    你会在当晚得知另一名邪恶玩家。」
+ *
+ * → 非首夜时，只有「当前已知的那名玩家已死亡」才需要唤醒；
+ *   否则这一步必须跳过。旧实现声明了 triggerTiming: [FIRST_NIGHT, EVERY_NIGHT]
+ *   却没有任何唤醒条件，导致**每夜都白送一名邪恶玩家**（与官方不符）。
+ *
+ * 注：本判定只看"当前已知"的那名（knownTargets 的最后一项）——
+ * 官方口径是"放置「得知」标记的那名玩家死亡时"才移动标记。
+ */
+const rotationOnlyAfterKnownDeathCheck = async (
+  context: MiddlewareContext
+): Promise<MiddlewareContext> => {
+  const snapshot = context.snapshot as any;
+  const isFirstNight =
+    snapshot?.gamePhase === "firstNight" || (snapshot?.nightCount ?? 1) <= 1;
+  if (isFirstNight) return context;
+
+  const known: number[] = snapshot?.bountyHunterKnownTargets ?? [];
+  if (known.length === 0) return context; // 异常兜底：没有已知目标时保持原行为
+
+  const current = known[known.length - 1];
+  const seat = snapshot.seats?.find((s: any) => s.id === current);
+  const diedThisNight: number[] = snapshot.deadThisNight ?? [];
+  const knownIsDead =
+    !seat ||
+    seat.isDead === true ||
+    seat.isAlive === false ||
+    diedThisNight.includes(current);
+
+  if (knownIsDead) {
+    // 因「已知目标死亡」而唤醒 → 标记为死亡轮转（日志/UI 会显示"（死亡轮转）"）
+    return { ...context, meta: { ...context.meta, isRotationTrigger: true } };
+  }
+
+  return {
+    ...context,
+    aborted: true,
+    abortReason: `赏金猎人已知的 ${current + 1}号 仍存活，本夜不唤醒（官方：仅在其死亡当晚再次得知）`,
+  };
+};
 
 // 计算阶段：选择一名邪恶玩家（支持转邪恶镇民、说书人指定输入、首夜及后续击杀死亡轮转）
 const calculateResult = async (
@@ -267,7 +317,7 @@ export const bounty_hunterAbility = createRoleAbility({
   firstNightOnly: false,
   wakePromptId: "role.bounty_hunter.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
-  preCheck: [commonPreCheckAlive],
+  preCheck: [commonPreCheckAlive, rotationOnlyAfterKnownDeathCheck],
   calculate: [calculateResult],
   stateUpdate: [saveResult],
   postProcess: [logResult],

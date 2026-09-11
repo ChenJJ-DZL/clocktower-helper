@@ -4,6 +4,7 @@
  */
 
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 import { isRealMinion } from "./roleFlags";
@@ -64,7 +65,32 @@ export function generateDynamicNightQueue(
   const { isFirstNight, includeDead = false, customFilter } = options;
 
   // 1. 过滤符合条件的角色
-  const validEntries = fullNightOrder.filter((entry) => {
+  // 🏹 赏金猎人「阵营告知」步骤：首夜时把被赏金猎人转成邪恶的那名镇民排到最前，
+  //    由说书人告知他"你已经属于邪恶阵营"（官方要求"在给出其他夜晚信息之前"）。
+  //    没有 isEvilConverted 座位时完全不注入，避免空步骤。
+  const convertedSeat: any = isFirstNight
+    ? snapshot.seats.find((s) => (s as any).isEvilConverted && !s.isDead)
+    : undefined;
+  const order: NightOrderEntry[] = convertedSeat
+    ? [
+        {
+          roleId: EVIL_CONVERTED_NOTICE_ID,
+          roleName: "邪恶阵营告知",
+          firstNightPriority: -1000, // 必须排在其他夜间信息步骤之前
+          otherNightPriority: -1000,
+          firstNightOnly: true,
+          wakeMessage: EVIL_CONVERTED_NOTICE_ID,
+          abilityId: EVIL_CONVERTED_NOTICE_ID,
+        },
+        ...fullNightOrder,
+      ]
+    : fullNightOrder;
+
+  const validEntries = order.filter((entry) => {
+    // 阵营告知步骤：仅在营转过的座位存在时保留（注入时已保证）
+    if (entry.roleId === EVIL_CONVERTED_NOTICE_ID) {
+      return Boolean(convertedSeat);
+    }
     // 首夜仅角色过滤（含字段缺失时的优先级兜底：other 有值但 first 为 0）
     const firstNightOnly =
       entry.firstNightOnly ||
@@ -155,7 +181,7 @@ export function generateDynamicNightQueue(
       const hasLegionInPlay = snapshot.seats.some(
         (s) => s.role?.id === "legion" && (includeDead || !s.isDead)
       );
-      const hasLegionMutualInOrder = fullNightOrder.some(
+      const hasLegionMutualInOrder = order.some(
         (e) => e.roleId === LEGION_MUTUAL_RECOGNITION_ID
       );
       const hasNonLegionDemon = snapshot.seats.some(
@@ -294,6 +320,10 @@ export function generateDynamicNightQueue(
   // 判定一律走唯一事实来源 isRealMinion（排除提线木偶）。
   const expandedEntries: Array<NightOrderEntry & { actorSeatId?: number }> = [];
   for (const entry of validEntries) {
+    if (entry.roleId === EVIL_CONVERTED_NOTICE_ID) {
+      expandedEntries.push({ ...entry, actorSeatId: convertedSeat!.id });
+      continue;
+    }
     if (entry.roleId === "minion_info") {
       const realMinions = snapshot.seats
         .filter((s) => isRealMinion(s) && (includeDead || !s.isDead))
@@ -333,6 +363,9 @@ export function generateDynamicNightQueue(
           : snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
     } else if (entry.roleId === "demon_info") {
       seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
+    } else if (entry.roleId === EVIL_CONVERTED_NOTICE_ID) {
+      // 行动者 = 被赏金猎人转变为邪恶的那名镇民（信息按行动者座位生成）
+      seat = snapshot.seats.find((s) => s.id === entry.actorSeatId)!;
     } else if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
       seat = snapshot.seats.find((s) => s.role?.id === "legion" && !s.isDead)!;
     } else {
