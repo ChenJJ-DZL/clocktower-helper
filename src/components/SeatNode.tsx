@@ -705,7 +705,12 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          if (otherBadges.length === 0) return null;
+          // ⚠️ 默认不显示「右下角徽标堆叠」（主人 / ⚖️上台 N票 / 👻已用幽灵票 / 🎭酒鬼未设伪装）。
+          // 用户实测反馈：这些徽标显著破坏座位圈观感，要求默认隐藏。
+          // 需要恢复时把 SHOW_SEAT_BADGES 改成 true；若想改成「悬停才显示」，
+          // 在座位根节点加 group、并把下方容器改为 hidden group-hover:flex 即可。
+          const SHOW_SEAT_BADGES = false;
+          if (!SHOW_SEAT_BADGES || otherBadges.length === 0) return null;
 
           // 标签过多时以座位右下角为锚点向右下方溢出：此前锚在右上角并做 -translate-x-1/2
           // 居中，标签一多/一宽就会向左盖住角色名（居中）与座位号。改右下角锚点后只朝右下溢出。
