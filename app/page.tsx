@@ -1128,13 +1128,16 @@ export default function Home() {
               )}
               {/* setup 阶段由上方 GameLayout 内的 RoundTable + GameSetup 负责，
               不再重复渲染 GameStage（否则会叠出第二套圆桌与 GameConsole 控制台） */}
+              {/* 🔧 右键菜单必须**无条件渲染**。
+                 踩过的两个坑（都是同一个结构问题）：
+                 ① 它原先只挂在 <GameModals/> 末尾，而 GameStage 在准备阶段走另一条 return 分支 → 准备阶段没有菜单组件；
+                 ② 搬到此处后，又被包在 `gamePhase !== "setup"` 的条件块里 → 准备阶段依然没有菜单组件。
+                 因此这里移出条件，任何阶段（含 setup / scriptSelection）都渲染。 */}
+              <PlayerContextMenu />
+
               {gamePhase !== "scriptSelection" && gamePhase !== "setup" && (
                 <>
-                  {/* 🔧 右键菜单改为**应用层全局挂载**：此前它只挂在 GameModals 末尾，
-                而 GameStage 在准备阶段走的是另一条 return 分支（不含 GameModals），
-                导致准备阶段等场景整个右键菜单系统失效（点了没反应）。 */}
-        <PlayerContextMenu />
-        <GameStage />
+                  <GameStage />
                   <GameModals />
                 </>
               )}
