@@ -1,3 +1,11 @@
+import {
+  createDeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
+  generateFakeInfo,
+  generateRealInfo,
+} from "../new_engine/librarian.ability";
 import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
@@ -30,8 +38,15 @@ export const librarian: RoleDefinition = {
     target: {
       count: { min: 0, max: 0 },
     },
+    // 🎯 单一事实来源：已迁移到新引擎的角色，其「当前的行动」提示必须复用
+    // new_engine 的结构化生成器 + 同一种子(nightInfoSeed)，否则提示与实际执行
+    // 会是两份不同的随机结果，说书人照提示念、魔典却按结果标记。
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
+      const {
+        seats,
+        isActorDisabledByPoisonOrDrunk = () => false,
+        nightCount,
+      } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
       const isDisabled =
         selfSeat &&
@@ -40,38 +55,14 @@ export const librarian: RoleDefinition = {
 
       const seatNo = playerSeatId + 1;
 
-      if (isDisabled) {
-        // 中毒/醉酒：随机选两个其他座位，外来者角色保证两名玩家均不是该角色
-        const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
-        const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
-        const seat1 = shuffled[0];
-        const seat2 = shuffled[1] || shuffled[0];
-        const seat1No = seat1 ? seat1.id + 1 : "?";
-        const seat2No = seat2 ? seat2.id + 1 : "?";
-        const fakeRoleName =
-          seat1?.role?.id === "saint" || seat2?.role?.id === "saint"
-            ? "管家"
-            : "圣徒";
-        return {
-          wake: `唤醒${seatNo}号【图书管理员】，告诉他${seat1No}号和${seat2No}号其中一位是【${fakeRoleName}】。`,
-          instruction: "受干扰状态，信息可能不准确",
-          close: "",
-        };
-      }
+      const rng = createDeterministicRandom(
+        nightInfoSeed("librarian", playerSeatId, nightCount ?? 1)
+      );
+      const info = isDisabled
+        ? generateFakeInfo(seats as never, playerSeatId, undefined, rng)
+        : generateRealInfo(seats as never, playerSeatId, rng);
 
-      // 排除自己
-      const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
-
-      // 找可被当作外来者的玩家：真正的外来者 + 间谍/陌客（可注册为外来者）
-      const outsiderCandidates = otherSeats.filter((s) => {
-        if (!s.role) return false;
-        if (s.role.type === "outsider") return true;
-        if (s.role.id === "spy" || s.role.id === "recluse") return true;
-        return false;
-      });
-
-      // 无外来者候选 → 数字0
-      if (outsiderCandidates.length === 0) {
+      if (info.seat1 < 0) {
         return {
           wake: `唤醒${seatNo}号【图书管理员】，告诉他场上没有外来者在场（数字0）。`,
           instruction: "（数字0）",
@@ -79,37 +70,9 @@ export const librarian: RoleDefinition = {
         };
       }
 
-      // 随机选一名真·外来者（或可当作外来者的玩家）
-      const targetOutsider =
-        outsiderCandidates[
-          Math.floor(Math.random() * outsiderCandidates.length)
-        ];
-
-      // 随机选一名干扰项（不能与目标相同，不能是自己）
-      const decoyPool = otherSeats.filter((s) => s.id !== targetOutsider.id);
-      const decoyPlayer =
-        decoyPool.length > 0
-          ? decoyPool[Math.floor(Math.random() * decoyPool.length)]
-          : targetOutsider; // 兜底
-
-      // 获取外来者的角色名称
-      const targetRoleName =
-        targetOutsider.effectiveRole?.name ??
-        targetOutsider.role?.name ??
-        "外来者";
-
-      // 随机打乱展示顺序
-      const shuffled =
-        Math.random() < 0.5
-          ? [targetOutsider, decoyPlayer]
-          : [decoyPlayer, targetOutsider];
-
-      const seat1No = shuffled[0].id + 1;
-      const seat2No = shuffled[1].id + 1;
-
       return {
-        wake: `唤醒${seatNo}号【图书管理员】，告诉他${seat1No}号和${seat2No}号其中一位是【${targetRoleName}】。`,
-        instruction: "",
+        wake: `唤醒${seatNo}号【图书管理员】，告诉他${info.seat1 + 1}号和${info.seat2 + 1}号其中一位是【${info.roleName}】。`,
+        instruction: isDisabled ? "受干扰状态，信息可能不准确" : "",
         close: "",
       };
     },
