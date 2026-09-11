@@ -81,6 +81,12 @@ export function PlayerContextMenu() {
       ref={menuRef}
       className="fixed bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
       style={{
+        // ⚠️ 必须用内联样式显式声明 position/zIndex：app/globals.css 里有
+        //    `body > * { position: relative; z-index: 1; }`，本菜单 portal 到 body 后
+        //    会成为 body 的直接子元素，被那条规则强制改成 relative 并压掉 z-index
+        //    （表现为菜单不跟随右击位置、被排到文档流末尾）。内联样式优先级更高。
+        position: "fixed",
+        zIndex: 3000,
         top: clampedPos?.top ?? props.contextMenu.y,
         left: clampedPos?.left ?? props.contextMenu.x,
         visibility: clampedPos ? "visible" : "hidden",
