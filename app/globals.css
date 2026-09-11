@@ -81,17 +81,6 @@ body::before {
   z-index: 0;
 }
 
-/* 移动端竖屏提示旋转：仅触屏设备 + 竖屏时显示（桌面端把窗口拉窄也不会触发）。
-   本工具只针对移动设备「横屏」优化：竖屏下圆桌+控制台+弹窗无法完整容纳。 */
-.rotate-hint {
-  display: none;
-}
-@media (orientation: portrait) and (pointer: coarse) {
-  .rotate-hint {
-    display: flex;
-  }
-}
-
 /* 确保内容在背景层之上 */
 body > * {
   position: relative;
