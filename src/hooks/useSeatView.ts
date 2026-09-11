@@ -203,19 +203,18 @@ export function useSeatView(
       });
       processed.add("poison");
     }
-    if (
-      !s.isDead &&
-      (s.role?.id === "drunk" || s.isDrunk) &&
-      !processed.has("drunk")
-    ) {
+    // 酒鬼与提线木偶的醉酒都是「角色固有属性」→ 永远显示为「永久」，
+    // 不能被 statuses 里的「至下个黄昏」（那是临时中毒/醉酒文案）覆盖。
+    const isPermanentDrunkRole =
+      s.role?.id === "drunk" || s.role?.id === "marionette";
+    if (!s.isDead && (isPermanentDrunkRole || s.isDrunk) && !processed.has("drunk")) {
       const ds = (s.statuses || []).find((st) => st.effect === "Drunk");
       list.push({
         key: "drunk",
         text: "醉酒",
         color: "yellow",
         icon: "🍺",
-        duration:
-          ds?.duration || (s.role?.id === "drunk" ? "永久" : "至下个黄昏"),
+        duration: isPermanentDrunkRole ? "永久" : ds?.duration || "至下个黄昏",
       });
       processed.add("drunk");
     }

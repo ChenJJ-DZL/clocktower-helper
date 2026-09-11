@@ -11,6 +11,38 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
+/**
+ * 提线木偶的「永久醉酒」（与酒鬼完全同链路）。
+ *
+ * 官方依据（钟楼百科·提线木偶·角色简介）：
+ *   "认为自己是提线木偶的玩家所抽取到的善良角色对应的能力不会产生任何效果，
+ *    但说书人会假装这些效果生效了。这与酒鬼的运作方式相似。"
+ * 官方依据（钟楼百科·酒鬼·角色简介）：
+ *   "酒鬼没有任何能力。…如果那个镇民能够获取信息，说书人可以对酒鬼给出错误的信息作为替代"
+ *
+ * 实现方式与酒鬼一致：写入 statusEffects 中的 type:"drunk"（permanent:true），
+ * 由 abilityPriorityMiddleware 判定 abilityEffective=false（主动技能不生效、
+ * 信息类能力走假信息路径），再由 syncStatusEffectsToSeat 翻译为 seat.isDrunk 供 UI
+ * 显示「🍺 醉酒（永久）」徽标。
+ */
+const PERMANENT_DRUNK_SOURCE = "marionette";
+
+/** 幂等地给座位补上提线木偶的永久醉酒效果（不会与其他来源的醉酒重复叠加） */
+function withPermanentDrunk(seat: any): any[] {
+  const rest = (seat?.statusEffects ?? []).filter(
+    (e: any) => !(e.type === "drunk" && e.source === PERMANENT_DRUNK_SOURCE)
+  );
+  return [
+    ...rest,
+    {
+      type: "drunk",
+      source: PERMANENT_DRUNK_SOURCE,
+      permanent: true,
+      appliedAt: Date.now(),
+    },
+  ];
+}
+
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
@@ -44,10 +76,15 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  const selfId = ctx.actionNode.seatId;
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      // 🍺 与酒鬼同链路：写入永久醉酒，使 abilityEffective=false
+      seats: (ctx.snapshot.seats as any[]).map((s: any) =>
+        s.id === selfId ? { ...s, statusEffects: withPermanentDrunk(s) } : s
+      ),
       isMarionette: true,
       marionetteMaster: r?.demonSeatId,
       _abilityResults: {
@@ -89,15 +126,17 @@ export const marionetteAbility = createRoleAbility({
     const demonSeat = seats.find(
       (s: any) => s.role?.type === "demon" && s.id !== selfId && !s.isDead
     );
-    if (demonSeat) {
-      // 设置 marionetteMasterSeatId 标识（引擎/UI 可用）
-      const marionetteSeat = seats.find((s: any) => s.id === selfId);
-      if (marionetteSeat) {
-        updates.push({
-          id: selfId,
-          marionetteMasterSeatId: demonSeat.id,
-        });
-      }
+    const marionetteSeat = seats.find((s: any) => s.id === selfId);
+    if (marionetteSeat) {
+      updates.push({
+        id: selfId,
+        // 🍺 开局即写入永久醉酒（技能不生效 / 信息类能力出假信息）；与酒鬼同链路
+        statusEffects: withPermanentDrunk(marionetteSeat),
+        // 兜底补 legacy 布尔字段，保证首次同步前 UI 也能显示醉酒徽标
+        isDrunk: true,
+        // 设置 marionetteMasterSeatId 标识（引擎/UI 可用）
+        ...(demonSeat ? { marionetteMasterSeatId: demonSeat.id } : {}),
+      });
     }
     return {
       handled: true,
