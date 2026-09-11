@@ -237,7 +237,9 @@ export function IdentityShowcaseModal({
     <ModalWrapper
       title={
         <div className="flex items-center gap-4">
-          <span>🎴 身份展示 &amp; 逐一告知 (全屏画册)</span>
+          <span className="text-[26px] font-black tracking-wide">
+            🎴 身份展示 &amp; 逐一告知 (全屏画册)
+          </span>
           {/* 防窥遮罩开关合并到标题行（用户要求：只保留这一个、并放大更好点） */}
           <button
             type="button"

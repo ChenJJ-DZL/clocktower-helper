@@ -953,7 +953,8 @@ export default function Home() {
               }}
               transition={{ duration: 1.5, ease: "easeInOut" }}
               onClick={() => {
-                setContextMenu(null);
+                // 同上：关闭也必须走 controller 的同一个实例
+                controller.setContextMenu(null);
                 setShowMenu(false);
               }}
             >
@@ -1056,7 +1057,11 @@ export default function Home() {
                             }}
                             onContextMenu={(e, seatId) => {
                               e.preventDefault();
-                              setContextMenu({
+                              // ⚠️ 必须用 controller.setContextMenu（与 PlayerContextMenu 读取的是**同一个实例**）。
+                              // 本文件里的 setContextMenu 来自独立的 useGameState() 调用，
+                              // 与 useGameController 内部那个是两份独立状态 —— 写进去菜单组件读不到，
+                              // 这正是「准备阶段右键完全没反应」的根因。
+                              controller.setContextMenu({
                                 x: e.clientX,
                                 y: e.clientY,
                                 seatId,
