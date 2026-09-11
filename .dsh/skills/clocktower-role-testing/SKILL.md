@@ -153,3 +153,9 @@ cd test_automation; npx playwright test --config=playwright.config.js   # E2E
 - 醉酒 / 中毒通常体现在 `snapshot.seats[].isDrunk / isPoisoned` 或 `statusEffects`,不要假设只在 `meta`。
 - 首夜与非首夜优先级是独立字段(`firstNightPriority` / `otherNightPriority`),恶魔类角色首夜常为 `null`。
 - 改动 `json/` 会直接破坏测试基线,不要动。
+
+## 9. UI 文案与弹窗规范
+
+- **座位标签**:一律用 `src/utils/seatLabel.ts` 的 `formatSeatLabel` / `displayPlayerName`。建局占位名「玩家 N」与座位号表达同一信息,直接渲染 `playerName` 会产生「2号 (玩家 2)」这类重复文案。
+- **弹窗正文**:用 `AutoFitContent`(`src/components/common/AutoFitContent.tsx`)+ `whitespace-nowrap` / `whitespace-pre`,实现「单行不换行、超宽等比缩放」。不要用固定大字号 + `max-w-*` 让它自然折行 —— 那会把首行挤断(例如「吗?」被孤立到第二行)。
+- 通用弹窗 `GenericConfirmModal` / `GenericAlertModal` 是所有 `showAlert` / `showConfirm` 的出口,改它们等于改全站提示样式。

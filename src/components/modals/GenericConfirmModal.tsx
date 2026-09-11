@@ -1,5 +1,6 @@
 "use client";
 
+import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface GenericConfirmModalProps {
@@ -42,11 +43,15 @@ export function GenericConfirmModal({
         </div>
       }
     >
-      <div className="flex flex-col flex-1 items-center justify-center text-center p-6 my-auto w-full">
-        <p className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 whitespace-pre-line leading-relaxed max-w-3xl">
+      <AutoFitContent
+        targetRatio={0.9}
+        minScale={0.2}
+        className="p-2 sm:p-4 text-white"
+      >
+        <p className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 whitespace-pre leading-relaxed text-center">
           {message}
         </p>
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }
