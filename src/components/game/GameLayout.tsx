@@ -63,7 +63,7 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
         </main>
 
         {/* Right Panel - Control Console - Fixed width for 1600px base */}
-        <aside className="w-[450px] h-full flex flex-col border-l border-white/10 bg-slate-900 shrink-0 overflow-hidden">
+        <aside className="w-[620px] h-full flex flex-col border-l border-white/10 bg-slate-900 shrink-0 overflow-hidden">
           <ErrorBoundary fallbackTitle="控制台渲染异常">
             {rightPanel}
           </ErrorBoundary>
