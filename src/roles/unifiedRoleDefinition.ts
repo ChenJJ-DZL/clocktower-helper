@@ -91,9 +91,6 @@ class UnifiedRoleDefinition {
   registerAbility(config: UnifiedAbilityConfig): void {
     const key = `${config.roleId}:${config.abilityId}`;
     this.abilityRegistry.set(key, config);
-    console.log(
-      `[UnifiedRoleDefinition] 注册能力: ${config.abilityName} (${key})`
-    );
   }
 
   /**
