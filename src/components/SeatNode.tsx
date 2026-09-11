@@ -8,6 +8,33 @@ import { useSeatView } from "../hooks/useSeatView";
 import type { SeatNodeProps } from "./SeatNode.types"; // We should extract props too
 import { useGrimoireTooltip } from "./tooltip/GrimoireTooltip";
 
+/**
+ * 判定某座位是否为「对立双子」（善良双子）。
+ *
+ * 该判定原先内联在徽标 IIFE 的 else 分支里；为把双子标记移到座位右上角，
+ * 抽成模块级纯函数以便复用。**判定逻辑与回退规则原样保留**，未做任何语义改动：
+ *   hasEvilTwin && (s.isGoodTwin || (场上无人被手动指定 isGoodTwin && 默认候选 === s))
+ */
+function computeIsGoodTwin(s: any, seats: any[]): boolean {
+  if (s.role?.id === "evil_twin") return false;
+  const hasEvilTwin = seats.some((seat) => seat.role?.id === "evil_twin");
+  if (!hasEvilTwin) return false;
+  if (s.isGoodTwin) return true;
+  // 已有人被手动指定 → 不再走默认回退
+  if (seats.some((seat) => seat.isGoodTwin)) return false;
+  const evilSeat = seats.find((seat) => seat.role?.id === "evil_twin");
+  if (!evilSeat) return false;
+  const defaultGoodSeat =
+    seats.find(
+      (other) =>
+        other.id !== evilSeat.id &&
+        (other.role?.type === "townsfolk" || other.role?.type === "outsider") &&
+        !other.isEvilConverted &&
+        !other.isDead
+    ) || seats.find((other) => other.id !== evilSeat.id && !other.isDead);
+  return defaultGoodSeat?.id === s.id;
+}
+
 // 状态标签组件 - 统一的状态标记样式
 interface StatusPillProps {
   icon?: React.ReactNode;
@@ -448,65 +475,10 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          // 双子标记（镜像双子与对立双子）
-          if (s.role?.id === "evil_twin") {
-            otherBadges.push(
-              <div
-                key="badge-evil-twin"
-                className={`bg-red-800 text-white ${
-                  isPortrait
-                    ? "text-[14px] px-2.5 py-0.5"
-                    : "text-[18px] px-2 py-0.5"
-                } rounded-full border border-red-400 shadow-md font-bold whitespace-nowrap leading-none`}
-                title="镜像双子 (邪恶爪牙)"
-              >
-                😈 镜像双子
-              </div>
-            );
-          } else {
-            const hasEvilTwin = seats.some(
-              (seat) => seat.role?.id === "evil_twin"
-            );
-            const isGoodTwin =
-              hasEvilTwin &&
-              (s.isGoodTwin ||
-                (!seats.some((seat) => seat.isGoodTwin) &&
-                  (() => {
-                    const evilSeat = seats.find(
-                      (seat) => seat.role?.id === "evil_twin"
-                    );
-                    if (!evilSeat) return false;
-                    const defaultGoodSeat =
-                      seats.find(
-                        (other) =>
-                          other.id !== evilSeat.id &&
-                          (other.role?.type === "townsfolk" ||
-                            other.role?.type === "outsider") &&
-                          !other.isEvilConverted &&
-                          !other.isDead
-                      ) ||
-                      seats.find(
-                        (other) => other.id !== evilSeat.id && !other.isDead
-                      );
-                    return defaultGoodSeat?.id === s.id;
-                  })()));
+          // 双子标记（镜像双子 / 对立双子）：**已移到座位右上角的标记栈**渲染
+          // （与「实:X」同一处、同一套紧凑胶囊样式），不再占用这里的宽幅堆叠。
 
-            if (isGoodTwin) {
-              otherBadges.push(
-                <div
-                  key="badge-good-twin"
-                  className={`bg-purple-700 text-white ${
-                    isPortrait
-                      ? "text-[14px] px-2.5 py-0.5"
-                      : "text-[18px] px-2 py-0.5"
-                  } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
-                  title="对立双子 (若被处决邪恶直接获胜)"
-                >
-                  👥 对立双子
-                </div>
-              );
-            }
-          }
+
 
           // 邪恶阵营转换标记（如赏金猎人指定的邪恶镇民）
           if (s.isEvilConverted) {
@@ -731,14 +703,38 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           );
         })()}
 
-        {/* 真实身份（酒鬼/疯子等伪装角色）：右上角小标记。
-            与左上角座位号左右对称，做成紧凑胶囊而不是宽幅标签，避免遮挡座位号与角色名。 */}
-        {(isMasked || s.role?.id === "lunatic") && (
-          <div
-            className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 bg-purple-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-white/80 shadow-md font-bold leading-none whitespace-nowrap z-40 pointer-events-none"
-            title={`真实身份：${isMasked ? (realRole?.name ?? "未知") : "疯子"}`}
-          >
-            实:{isMasked ? realRole?.name : "疯子"}
+        {/* 右上角「真实身份类」标记栈：与左上角座位号左右对称，统一为紧凑胶囊（同「实:X」款式）。
+            容器锚在座位右上角，向下 + 向右溢出 —— 绝不覆盖座位号（左上）与角色名（居中）；
+            同一座位同时命中多项时（如酒鬼又被指定为对立双子）纵向堆叠，互不遮挡。 */}
+        {(isMasked ||
+          s.role?.id === "lunatic" ||
+          s.role?.id === "evil_twin" ||
+          computeIsGoodTwin(s, seats)) && (
+          <div className="absolute left-[85.4%] top-[14.6%] flex flex-col items-start gap-1 z-40 pointer-events-none whitespace-nowrap">
+            {(isMasked || s.role?.id === "lunatic") && (
+              <div
+                className="bg-purple-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-white/80 shadow-md font-bold leading-none whitespace-nowrap"
+                title={`真实身份：${isMasked ? (realRole?.name ?? "未知") : "疯子"}`}
+              >
+                实:{isMasked ? realRole?.name : "疯子"}
+              </div>
+            )}
+            {s.role?.id === "evil_twin" && (
+              <div
+                className="bg-red-800 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-red-400 shadow-md font-bold leading-none whitespace-nowrap"
+                title="镜像双子 (邪恶爪牙)"
+              >
+                😈 镜像双子
+              </div>
+            )}
+            {computeIsGoodTwin(s, seats) && (
+              <div
+                className="bg-purple-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-purple-300 shadow-md font-bold leading-none whitespace-nowrap"
+                title="对立双子 (若被处决邪恶直接获胜)"
+              >
+                👥 对立双子
+              </div>
+            )}
           </div>
         )}
 
