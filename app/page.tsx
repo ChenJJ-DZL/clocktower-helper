@@ -1141,96 +1141,11 @@ export default function Home() {
 
               {/* Setup 相关的 Modals 仍然留在本组件中 */}
 
-              {/* 右键上下文菜单 (Setup 阶段专用) */}
-              {contextMenu && gamePhase === "setup" && (
-                <div
-                  className="fixed z-[9999] bg-slate-800 border border-slate-600 rounded shadow-xl py-1 min-w-[140px] flex flex-col"
-                  style={{ left: contextMenu.x, top: contextMenu.y }}
-                  onClick={(e) => e.stopPropagation()} // 防止点击菜单本身触发关闭
-                >
-                  <div className="px-3 py-1.5 text-xs text-gray-400 border-b border-gray-700 mb-1 flex items-center justify-between">
-                    <span>{contextMenu.seatId + 1}号座位</span>
-                    {seats[contextMenu.seatId]?.role && (
-                      <span className="text-purple-300 font-bold">
-                        {seats[contextMenu.seatId]?.role?.name}
-                      </span>
-                    )}
-                  </div>
+              {/* 🔧 原「右键上下文菜单 (Setup 阶段专用)」已删除：它与 src/components/game/PlayerContextMenu.tsx
+                  是**两套菜单**，导致准备阶段的菜单项/坐标与其它阶段不一致
+                  （且它位于 ScaleLayout 内部用 fixed，被 transform 劫持 → 弹窗位置严重偏移）。
+                  其准备阶段专属项「取消落座 / 设置伪装身份」已并入统一个 PlayerContextMenu。 */}
 
-                  {/* 取消落座选项 */}
-                  {seats[contextMenu.seatId]?.role && (
-                    <button
-                      className="w-full text-left px-4 py-2 hover:bg-slate-700 text-amber-300 font-bold text-sm flex items-center gap-2 border-b border-gray-700/50 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const roleName = seats[contextMenu.seatId]?.role?.name;
-                        dispatch(
-                          gameActions.updateSeat(contextMenu.seatId, {
-                            role: null,
-                            displayRole: null,
-                            charadeRole: null,
-                          })
-                        );
-                        dispatch(gameActions.setSelectedRole(null));
-                        dispatch(
-                          gameActions.addLog({
-                            day: 0,
-                            phase: "setup",
-                            message: `取消落座：${contextMenu.seatId + 1}号 - ${roleName || "角色"}`,
-                          })
-                        );
-                        setContextMenu(null);
-                      }}
-                    >
-                      <span>🚫</span> 取消落座
-                    </button>
-                  )}
-
-                  {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子）- 仅在设置阶段可用 */}
-                  {gamePhase === "setup" &&
-                    seats[contextMenu.seatId]?.role &&
-                    (seats[contextMenu.seatId]?.role?.id === "drunk" ||
-                      seats[contextMenu.seatId]?.role?.id === "marionette" ||
-                      seats[contextMenu.seatId]?.role?.id === "lunatic") && (
-                      <button
-                        className="w-full text-left px-4 py-2 hover:bg-purple-900/60 text-purple-300 font-bold text-sm flex items-center gap-2 border-b border-gray-700/50 transition-colors cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const seatId = contextMenu.seatId;
-                          setCharadeModalTargetSeatId(seatId);
-                          setShowCharadeModal(true);
-                          setContextMenu(null);
-                        }}
-                      >
-                        <span>🎭</span>
-                        <span>
-                          {seats[contextMenu.seatId]?.charadeRole ||
-                          seats[contextMenu.seatId]?.apparentDemonRole
-                            ? `更改伪装 (${(seats[contextMenu.seatId]?.charadeRole || seats[contextMenu.seatId]?.apparentDemonRole)?.name})`
-                            : "设置伪装身份"}
-                        </span>
-                      </button>
-                    )}
-
-                  <button
-                    className="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 font-bold text-sm flex items-center gap-2 transition-colors cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (controller.setRedNemesisTarget) {
-                        controller.setRedNemesisTarget(contextMenu.seatId);
-                      } else {
-                        console.error(
-                          "setRedNemesisTarget not found on controller"
-                        );
-                      }
-                      setContextMenu(null); // 关闭菜单
-                    }}
-                  >
-                    <span>🎯</span> 选为红罗刹
-                  </button>
-                  {/* 这里可以扩展更多选项，如“设为酒鬼”等 */}
-                </div>
-              )}
 
               {/* 🎭 伪装身份设置弹窗（右键座位号设置 或 开始游戏强制设置） */}
               <CharadeConfigModal

@@ -351,8 +351,33 @@ export function PlayerContextMenu() {
           🏷️ 提醒标记
         </button>
       )}
+      {/* 🚫 取消落座（仅准备阶段、且该座位已分配角色）
+          —— 由原 app/page.tsx 的「Setup 专用右键菜单」合并而来，消灭重复菜单。 */}
+      {props.gamePhase === "setup" && targetSeat.role && (
+        <button
+          onClick={() => {
+            const roleName = targetSeat.role?.name;
+            props.setSeats((prev: any[]) =>
+              prev.map((s) =>
+                s.id === targetSeat.id
+                  ? { ...s, role: null, displayRole: null, charadeRole: null }
+                  : s
+              )
+            );
+            props.addLog?.(
+              `🚫 取消落座：${targetSeat.id + 1}号 - ${roleName ?? "角色"}`
+            );
+            props.setContextMenu(null);
+          }}
+          className="block w-full text-left px-6 py-4 hover:bg-slate-700 text-amber-300 font-bold text-lg border-t border-gray-700 transition-colors cursor-pointer"
+        >
+          🚫 取消落座
+        </button>
+      )}
+
       {/* 在核对身份阶段及首夜刚开始时，允许选择红罗刹 */}
-      {(props.gamePhase === "check" ||
+      {(props.gamePhase === "setup" ||
+        props.gamePhase === "check" ||
         (props.gamePhase === "firstNight" && props.nightCount === 1)) && (
         <button
           onClick={() => props.toggleStatus("redherring", targetSeat.id)}
@@ -426,7 +451,8 @@ export function PlayerContextMenu() {
       {/* 仅在准备阶段（setup）与核对阶段（check），且仅允许能够设置伪装身份的角色（酒鬼与提线木偶）显示【身份设定】 */}
       {(props.gamePhase === "setup" || props.gamePhase === "check") &&
         (targetSeat.role?.id === "drunk" ||
-          targetSeat.role?.id === "marionette") && (
+          targetSeat.role?.id === "marionette" ||
+          targetSeat.role?.id === "lunatic") && (
           <button
             onClick={() => props.handleMenuAction("charade")}
             className="block w-full text-left px-6 py-4 hover:bg-purple-700 bg-purple-900/30 text-purple-100 text-lg font-bold border-t border-gray-700 transition-colors"
