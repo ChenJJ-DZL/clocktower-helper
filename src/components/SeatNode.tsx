@@ -60,10 +60,10 @@ function StatusPill({
   };
 
   const sizeClass = isPortrait
-    ? "text-[9px] px-1.5 py-0.5"
-    : "text-[11px] px-2 py-0.5";
+    ? "text-[16px] px-2.5 py-0.5"
+    : "text-[19px] px-2 py-0.5";
   const iconSize = isPortrait ? "w-2.5 h-2.5" : "w-3 h-3";
-  const durationSize = isPortrait ? "text-[7px]" : "text-[9px]";
+  const durationSize = isPortrait ? "text-[13px]" : "text-[16px]";
 
   return (
     <div
@@ -315,7 +315,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                     : `点击激活【${s.id + 1}号】发起提名`
                 : `${s.id + 1}号座位`
             }
-            className={`${isPortrait ? "w-6 h-6 text-xs" : "w-9 h-9 text-lg"} rounded-full border-2 flex items-center justify-center font-bold shadow-md shrink-0 transition-all cursor-pointer pointer-events-auto select-none ${
+            className={`${isPortrait ? "w-8 h-8 text-base" : "w-11 h-11 text-xl"} rounded-full border-2 flex items-center justify-center font-bold shadow-md shrink-0 transition-all cursor-pointer pointer-events-auto select-none ${
               nominator === s.id
                 ? "bg-amber-500 border-amber-300 text-slate-950 ring-4 ring-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.9)] animate-pulse scale-125 z-40"
                 : nominee === s.id
@@ -337,8 +337,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             <span
               className={`flex items-center justify-center font-bold rounded ${
                 isPortrait
-                  ? "text-[8px] px-1 h-[10px]"
-                  : "text-[10px] px-1.5 h-[14px]"
+                  ? "text-[14px] px-2 h-[16px]"
+                  : "text-[18px] px-2.5 h-[22px]"
               } bg-amber-500 text-slate-950 border border-amber-300 shadow-sm leading-none whitespace-nowrap animate-pulse shrink-0 pointer-events-none`}
             >
               📣 提名中
@@ -348,8 +348,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             <span
               className={`flex items-center justify-center font-bold rounded ${
                 isPortrait
-                  ? "text-[8px] px-1 h-[10px]"
-                  : "text-[10px] px-1.5 h-[14px]"
+                  ? "text-[14px] px-2 h-[16px]"
+                  : "text-[18px] px-2.5 h-[22px]"
               } bg-cyan-500 text-slate-950 border border-cyan-300 shadow-sm leading-none whitespace-nowrap animate-pulse shrink-0 pointer-events-none`}
             >
               🎯 被提
@@ -360,15 +360,15 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           {(hasBeenNominated || hasNominated) && (
             <div
               className={`flex flex-col justify-between ${
-                isPortrait ? "h-6 py-0.5" : "h-9 py-0.5"
+                isPortrait ? "h-8 py-0.5" : "h-11 py-0.5"
               } shrink-0`}
             >
               {hasBeenNominated ? (
                 <span
                   className={`flex items-center justify-center font-bold rounded ${
                     isPortrait
-                      ? "text-[8px] px-1 h-[10px]"
-                      : "text-[10px] px-1.5 h-[14px]"
+                      ? "text-[14px] px-2 h-[16px]"
+                      : "text-[18px] px-2.5 h-[22px]"
                   } bg-red-900/90 text-red-100 border border-red-600 shadow-sm leading-none whitespace-nowrap`}
                   title="本黄昏已被提名过"
                 >
@@ -376,15 +376,15 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 </span>
               ) : (
                 hasNominated && (
-                  <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+                  <div className={isPortrait ? "h-[16px]" : "h-[22px]"} />
                 )
               )}
               {hasNominated ? (
                 <span
                   className={`flex items-center justify-center font-bold rounded ${
                     isPortrait
-                      ? "text-[8px] px-1 h-[10px]"
-                      : "text-[10px] px-1.5 h-[14px]"
+                      ? "text-[14px] px-2 h-[16px]"
+                      : "text-[18px] px-2.5 h-[22px]"
                   } bg-red-900/90 text-red-100 border border-red-600 shadow-sm leading-none whitespace-nowrap`}
                   title="本黄昏已发起过提名"
                 >
@@ -392,7 +392,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 </span>
               ) : (
                 hasBeenNominated && (
-                  <div className={isPortrait ? "h-[10px]" : "h-[14px]"} />
+                  <div className={isPortrait ? "h-[16px]" : "h-[22px]"} />
                 )
               )}
             </div>
@@ -411,7 +411,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
         {/* 状态标签容器 */}
         <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col-reverse gap-0.5 items-center z-30 w-full px-1 pointer-events-none"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col-reverse gap-0.5 items-center z-30 w-full px-2 pointer-events-none"
           style={{ maxHeight: "60%" }}
         >
           {statusList.map((status) => (
@@ -437,8 +437,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-masked"
                 className={`bg-purple-700 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-white/80 shadow-md font-bold whitespace-nowrap leading-none`}
               >
                 实:{realRole?.name}
@@ -453,8 +453,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-master"
                 className={`bg-purple-600 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
               >
                 主人
@@ -469,8 +469,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-evil-twin"
                 className={`bg-red-800 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-red-400 shadow-md font-bold whitespace-nowrap leading-none`}
                 title="镜像双子 (邪恶爪牙)"
               >
@@ -511,8 +511,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                   key="badge-good-twin"
                   className={`bg-purple-700 text-white ${
                     isPortrait
-                      ? "text-[8px] px-1.5 py-0.5"
-                      : "text-[10px] px-2 py-0.5"
+                      ? "text-[14px] px-2.5 py-0.5"
+                      : "text-[18px] px-2 py-0.5"
                   } rounded-full border border-purple-300 shadow-md font-bold whitespace-nowrap leading-none`}
                   title="对立双子 (若被处决邪恶直接获胜)"
                 >
@@ -529,8 +529,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-evil-converted"
                 className={`bg-red-700 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-red-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
                 title="邪恶阵营（镇民伪装）"
               >
@@ -549,8 +549,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-bounty"
                 className={`bg-amber-600 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-amber-300 shadow-md font-bold whitespace-nowrap leading-none`}
                 title="赏金猎人已知邪恶目标"
               >
@@ -563,8 +563,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               key="badge-poppy"
               className={`bg-rose-600 text-white ${
                 isPortrait
-                  ? "text-[8px] px-1.5 py-0.5"
-                  : "text-[10px] px-2 py-0.5"
+                  ? "text-[14px] px-2.5 py-0.5"
+                  : "text-[18px] px-2 py-0.5"
               } rounded-full border border-rose-300 shadow-md font-bold whitespace-nowrap leading-none`}
               title="罂粟迷雾：邪恶玩家互不相识"
             >
@@ -582,8 +582,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-librarian"
                 className={`bg-blue-600 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-blue-300 shadow-md font-bold whitespace-nowrap leading-none`}
                 title="图书管理员得知目标"
               >
@@ -602,8 +602,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-pixie-target"
                 className={`bg-pink-600 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-pink-300 shadow-md font-bold whitespace-nowrap leading-none`}
               >
                 {pixieTarget}
@@ -621,8 +621,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-pixie-active"
                 className={`bg-emerald-600 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-emerald-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
               >
                 ⚡能力激活
@@ -643,8 +643,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-madness"
                 className={`bg-purple-800 text-purple-100 ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-purple-400 shadow-md font-bold whitespace-nowrap leading-none`}
                 title={`洗脑疯狂：必须扮演【${roleText}】`}
               >
@@ -660,8 +660,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-marionette"
                 className={`bg-amber-800 text-amber-100 ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-amber-400 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
                 title="提线木偶（未设置伪装身份，请右键或点击下方按钮设置）"
               >
@@ -675,8 +675,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 key="badge-drunk-unmasked"
                 className={`bg-purple-800 text-purple-100 ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-purple-400 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
                 title="酒鬼（未设置伪装身份，请右键或点击下方按钮设置）"
               >
@@ -685,18 +685,36 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          // 处决候选者标记
+          // 上台（处决候选者）标记
           if (s.isCandidate) {
             otherBadges.push(
               <div
                 key="badge-candidate"
                 className={`bg-red-600 text-white ${
                   isPortrait
-                    ? "text-[8px] px-1.5 py-0.5"
-                    : "text-[10px] px-2 py-0.5"
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
                 } rounded-full border border-red-300 shadow-md font-bold whitespace-nowrap leading-none animate-pulse`}
+                title="已上台（处决候选者）"
               >
-                ⚖️{s.voteCount}票
+                ⚖️ 上台 {s.voteCount}票
+              </div>
+            );
+          }
+
+          // 幽灵票已用尽标记（死亡且不再持有幽灵票 —— 非默认状态）
+          if (s.isDead && s.hasGhostVote === false) {
+            otherBadges.push(
+              <div
+                key="badge-ghost-used"
+                className={`bg-slate-800 text-gray-300 ${
+                  isPortrait
+                    ? "text-[14px] px-2.5 py-0.5"
+                    : "text-[18px] px-2 py-0.5"
+                } rounded-full border border-gray-500 shadow-md font-bold whitespace-nowrap leading-none`}
+                title="幽灵票已用尽，本局不能再投票"
+              >
+                👻 已用幽灵票
               </div>
             );
           }
@@ -744,15 +762,15 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
               return (
                 <div
                   key={t.id}
-                  className={`flex items-center gap-0.5 px-1 py-0.5 rounded-full border text-[9px] font-medium shadow-md ${tokenColors[t.color] || tokenColors.gray}`}
+                  className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[16px] font-medium shadow-md ${tokenColors[t.color] || tokenColors.gray}`}
                   title={t.label}
                 >
-                  <span className="text-[10px]">{t.icon}</span>
+                  <span className="text-[18px]">{t.icon}</span>
                 </div>
               );
             })}
             {reminderTokens.length > 4 && (
-              <div className="flex items-center px-1 py-0.5 rounded-full bg-gray-700/80 border border-gray-500 text-gray-200 text-[9px] font-medium shadow-md">
+              <div className="flex items-center px-2 py-0.5 rounded-full bg-gray-700/80 border border-gray-500 text-gray-200 text-[16px] font-medium shadow-md">
                 +{reminderTokens.length - 4}
               </div>
             )}
@@ -761,7 +779,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
         {/* 互换目标就绪提示徽章 */}
         {isSwapTarget && (
-          <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-emerald-300 flex items-center gap-1 z-50 animate-bounce pointer-events-none whitespace-nowrap">
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[18px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-emerald-300 flex items-center gap-1 z-50 animate-bounce pointer-events-none whitespace-nowrap">
             <span>🔄 释放换位</span>
           </div>
         )}
