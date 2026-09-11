@@ -669,11 +669,10 @@ export function NightActionPage({
                           : roleType}
                 </p>
               </div>
-              {isDisturbed && (
-                <span className="ml-auto px-3 py-1 rounded-full bg-red-900/50 text-red-300 text-sm font-bold border border-red-700/50">
-                  ⚠️ 受干扰
-                </span>
-              )}
+              {/* ⚠️ 此处原本显示「⚠️ 受干扰」徽标，已移除：
+                  技能确认页 / 结果页会视情况**交给玩家亲手点击**，
+                  「受干扰」（中毒/醉酒/涡流）属说书人视角信息，不得让玩家看到。
+                  说书人仍可在控制台的「当前的行动」里看到「行动（受干扰）」。 */}
             </div>
 
             {/* 能力描述 */}

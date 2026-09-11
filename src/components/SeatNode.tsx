@@ -705,18 +705,28 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          // ⚠️ 默认不显示「右下角徽标堆叠」（主人 / ⚖️上台 N票 / 👻已用幽灵票 / 🎭酒鬼未设伪装）。
-          // 用户实测反馈：这些徽标显著破坏座位圈观感，要求默认隐藏。
-          // 需要恢复时把 SHOW_SEAT_BADGES 改成 true；若想改成「悬停才显示」，
-          // 在座位根节点加 group、并把下方容器改为 hidden group-hover:flex 即可。
-          const SHOW_SEAT_BADGES = false;
-          if (!SHOW_SEAT_BADGES || otherBadges.length === 0) return null;
+          // 徽标分级显示（用户两轮反馈的折中）：
+          // ① 「噪音型」徽标默认隐藏 —— 主人 / ⚖️上台 / 👻已用幽灵票 / 🎭酒鬼未设伪装 / 邪恶镇民
+          //    （邪恶镇民改由座位圆环的「爪牙样式」表达；酒鬼由右上角「实:酒鬼」表达）
+          // ② 「关键信息型」徽标保留 —— 镜像双子 / 对立双子 / 赏金猎人已知目标 / 罂粟迷雾 /
+          //    图书目标 / 小精灵 / 洗脑 / 提线木偶 等，这些是判断局势必需、且不会长期占位。
+          const HIDDEN_BADGE_KEYS = new Set([
+            "badge-master",
+            "badge-evil-converted",
+            "badge-drunk-unmasked",
+            "badge-candidate",
+            "badge-ghost-used",
+          ]);
+          const visibleBadges = otherBadges.filter(
+            (b) => !HIDDEN_BADGE_KEYS.has(String((b as any)?.key ?? ""))
+          );
+          if (visibleBadges.length === 0) return null;
 
           // 标签过多时以座位右下角为锚点向右下方溢出：此前锚在右上角并做 -translate-x-1/2
           // 居中，标签一多/一宽就会向左盖住角色名（居中）与座位号。改右下角锚点后只朝右下溢出。
           return (
             <div className="absolute left-[85%] top-[85%] flex flex-col items-start gap-1 z-40 pointer-events-none whitespace-nowrap">
-              {otherBadges}
+              {visibleBadges}
             </div>
           );
         })()}

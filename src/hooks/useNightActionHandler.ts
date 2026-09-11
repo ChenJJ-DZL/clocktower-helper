@@ -773,9 +773,10 @@ export async function executeViaNewEngine(
             `👥【双子告知】已告知该玩家：${evilTwinSeat.id + 1}号是镜像双子`
           );
         }
-        if (isCorrupted) {
-          extraNotes.push("该角色处于醉酒/中毒状态，能力可能不生效");
-        }
+        // ⚠️ 原本在 isCorrupted（中毒/醉酒/涡流）时向确认弹窗追加
+        // 「该角色处于醉酒/中毒状态，能力可能不生效」——已移除：
+        // 技能确认页会视情况**交给玩家亲手点击**，「受干扰」属说书人视角信息，不得让玩家看到。
+        // 说书人仍可在控制台的「当前的行动」中看到「行动（受干扰）」（GameConsole 保留）。
         if (wraithNote) {
           extraNotes.push(wraithNote);
         }
