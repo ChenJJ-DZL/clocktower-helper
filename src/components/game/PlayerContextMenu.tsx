@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { roles as allSystemRoles, type Role } from "../../../app/data";
 import { selectEvilConvertedSeat } from "../../utils/bountyHunterSetup";
 import { useGameActions } from "../../contexts/GameActionsContext";
@@ -71,10 +72,14 @@ export function PlayerContextMenu() {
     ? targetSeat.charadeRole || targetSeat.role
     : targetSeat.role;
 
-  return (
+  // 🔧 必须 portal 到 body 并使用 position: fixed：
+  //    本组件渲染在 1600×900 的缩放舞台（CSS transform: scale）内部，
+  //    若用 absolute + 视口坐标（clientX/clientY），坐标会被舞台缩放二次变换，
+  //    表现为「右键菜单离座位很远、越靠远角偏差越大」，且边界收缩也按视口算不准。
+  return createPortal(
     <div
       ref={menuRef}
-      className="absolute bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
+      className="fixed bg-gray-800 border-2 border-gray-500 rounded-xl shadow-2xl z-[3000] w-48 overflow-hidden"
       style={{
         top: clampedPos?.top ?? props.contextMenu.y,
         left: clampedPos?.left ?? props.contextMenu.x,
@@ -471,6 +476,7 @@ export function PlayerContextMenu() {
           {(targetSeat as any).apparentDemonRole?.name ?? "未设置"}）
         </button>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
