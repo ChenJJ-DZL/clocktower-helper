@@ -237,7 +237,9 @@ export function IdentityShowcaseModal({
     <ModalWrapper
       title="🎴 身份展示 & 逐一告知 (全屏画册)"
       onClose={onClose}
-      className="max-w-7xl w-[98vw] h-[94vh] max-h-[94vh] flex flex-col p-2 overflow-hidden"
+      widthRatio={0.98}
+      maxWidthPx={1560}
+      className="max-w-[1560px] h-[94vh] max-h-[94vh] flex flex-col p-2 overflow-hidden"
       footer={
         <div className="flex flex-wrap items-center justify-between gap-3 w-full">
           {/* 左侧：上一位按钮 */}
@@ -246,7 +248,7 @@ export function IdentityShowcaseModal({
               type="button"
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className="px-4 py-2.5 rounded-xl border border-white/20 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer active:scale-95"
+              className="px-8 py-4 rounded-xl border border-white/20 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[26px] transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer active:scale-95" title="上一位（iPhone 横屏可直接点）"
             >
               <span>⬅</span>
               <span>上一位 {prevSeat ? `(${prevSeat.id + 1}号)` : ""}</span>
@@ -258,7 +260,7 @@ export function IdentityShowcaseModal({
             <button
               type="button"
               onClick={() => setIsMasked((prev) => !prev)}
-              className={`px-4 py-2 rounded-xl border font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 ${
+              className={`px-6 py-4 rounded-xl border font-bold text-[24px] transition flex items-center gap-2 cursor-pointer shadow-md active:scale-95 ${
                 isMasked
                   ? "border-amber-400 bg-amber-500 text-slate-950 font-black shadow-amber-500/30"
                   : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
@@ -274,7 +276,7 @@ export function IdentityShowcaseModal({
                   key={s.id}
                   type="button"
                   onClick={() => handleJumpTo(idx)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
+                  className={`w-12 h-12 rounded-lg text-[20px] font-bold transition-all flex items-center justify-center cursor-pointer ${
                     idx === currentIndex
                       ? "bg-amber-500 text-slate-950 font-black ring-2 ring-amber-300 shadow-md scale-110"
                       : "bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-white/10"
@@ -292,7 +294,7 @@ export function IdentityShowcaseModal({
             <button
               type="button"
               onClick={handleNext}
-              className={`px-6 py-2.5 rounded-xl text-white font-black text-sm transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 ${
+              className={`px-10 py-5 rounded-xl text-white font-black text-[30px] transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 ${
                 currentIndex === total - 1
                   ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/40 ring-1 ring-emerald-400"
                   : "bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-amber-500/40"
@@ -364,7 +366,7 @@ export function IdentityShowcaseModal({
                   e.stopPropagation();
                   setIsMasked(false);
                 }}
-                className="px-8 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-base shadow-xl shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="px-14 py-7 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-[34px] shadow-xl shadow-amber-500/30 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 👁️ 点击翻开我的身份
               </button>
