@@ -28,6 +28,13 @@ export interface ModalWrapperProps {
    * 用于卡片/网格类弹窗：人数少时不再被强行拉高留白，人数多时到 88% 封顶。
    */
   autoHeight?: boolean;
+  /**
+   * 弹窗高度占容器高度的百分比，默认 88。
+   * 仅在 autoHeight=false 时生效；用于需要更大操作区/更多触控空间的弹窗。
+   */
+  heightPercent?: number;
+  /** 弹窗高度上限(设计像素)，默认 800。与 heightPercent 一起取较小值。 */
+  maxHeightPx?: number;
 }
 
 export function ModalWrapper({
@@ -41,6 +48,8 @@ export function ModalWrapper({
   maxWidthPx = 1360,
   widthRatio = 0.92,
   autoHeight = false,
+  heightPercent = 88,
+  maxHeightPx = 800,
 }: ModalWrapperProps) {
   // CRITICAL: Use ref to ensure key remains stable across renders
   const portalKeyRef = React.useRef(
@@ -120,9 +129,11 @@ export function ModalWrapper({
           className={`relative z-10 flex flex-col bg-slate-900 rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden pointer-events-auto ${sanitizedClassName}`}
           style={{
             width: `min(${widthRatio * 100}%, ${maxWidthPx}px)`,
-            height: autoHeight ? "auto" : "min(88%, 800px)",
+            height: autoHeight
+              ? "auto"
+              : `min(${heightPercent}%, ${maxHeightPx}px)`,
             maxWidth: `${widthRatio * 100}%`,
-            maxHeight: autoHeight ? "94%" : "88%",
+            maxHeight: autoHeight ? "94%" : `${heightPercent}%`,
             margin: "auto",
             position: "relative",
             display: "flex",

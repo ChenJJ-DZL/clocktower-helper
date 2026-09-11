@@ -239,11 +239,13 @@ export function IdentityShowcaseModal({
       onClose={onClose}
       widthRatio={0.98}
       maxWidthPx={1560}
-      className="max-w-[1560px] h-[94vh] max-h-[94vh] flex flex-col p-2 overflow-hidden"
+      heightPercent={94}
+      maxHeightPx={862}
+      className="max-w-[1560px] flex flex-col p-2 overflow-hidden"
       footer={
-        <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-          {/* 左侧：上一位按钮 */}
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-5 w-full">
+          {/* 下排左：上一位按钮（与「下一位」并排，整组在弹窗底部居中） */}
+          <div className="order-2 flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrev}
@@ -255,8 +257,8 @@ export function IdentityShowcaseModal({
             </button>
           </div>
 
-          {/* 中间：防窥切换键 + 座位直达指示条 */}
-          <div className="flex items-center gap-3 overflow-x-auto py-1">
+          {/* 上排：防窥切换键 + 座位直达指示条（占满整行、居中，排在导航按钮之上） */}
+          <div className="order-1 w-full flex flex-wrap items-center justify-center gap-3 py-1">
             <button
               type="button"
               onClick={() => setIsMasked((prev) => !prev)}
@@ -289,8 +291,8 @@ export function IdentityShowcaseModal({
             </div>
           </div>
 
-          {/* 右侧：下一位 / 完成按钮 */}
-          <div className="flex items-center gap-2">
+          {/* 下排右：下一位 / 完成按钮 */}
+          <div className="order-3 flex items-center gap-2">
             <button
               type="button"
               onClick={handleNext}
