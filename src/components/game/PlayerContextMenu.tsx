@@ -66,19 +66,6 @@ export function PlayerContextMenu() {
   );
   if (!targetSeat) return null;
 
-  // 🔍 TEMP DEBUG（排查「准备阶段右键不弹菜单」，定位后立即删除）
-  if (typeof window !== "undefined") {
-    (window as any).__CTX_DEBUG = {
-      at: Date.now(),
-      cm: props.contextMenu,
-      seatsLen: props.seats.length,
-      targetFound: !!targetSeat,
-      phase: (props as any).gamePhase,
-      bhSeated: props.seats.some((s) => s.role?.id === "bounty_hunter"),
-      targetType: targetSeat.role?.type ?? null,
-    };
-  }
-
   const isCharade =
     targetSeat.role?.id === "drunk" || targetSeat.role?.id === "marionette";
   const effectiveRole = isCharade
