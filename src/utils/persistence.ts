@@ -7,6 +7,13 @@ const STORAGE_KEY = "clocktower_game_records";
 const SNAPSHOT_KEY = "clocktower_current_snapshot";
 
 /**
+ * 对局记录最多保留条数。
+ * 单条记录含完整对局快照（座位/状态/日志），体积可观，上限过大仍会写爆
+ * localStorage 配额（QuotaExceededError），导致保存静默失败、记录丢失。
+ */
+const MAX_GAME_RECORDS = 12;
+
+/**
  * 从 localStorage 加载所有游戏记录
  */
 export function loadGameRecords(): GameRecord[] {
@@ -43,9 +50,21 @@ export function saveGameRecord(record: GameRecord): void {
     } else {
       records.unshift(record);
     }
-    // 🔧 限长 30 条，避免 localStorage 配额溢出（QuotaExceededError）
-    if (records.length > 30) records.length = 30;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    // 🔧 限长：避免 localStorage 配额溢出（QuotaExceededError）
+    if (records.length > MAX_GAME_RECORDS) records.length = MAX_GAME_RECORDS;
+
+    // 🔧 配额兜底：只限条数不足以保证写得下（历史记录可能单条超大），
+    //    写入失败时逐条丢弃最旧记录重试，直到成功或只剩 1 条，
+    //    避免"保存失败且用户毫无感知"。
+    for (;;) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        break;
+      } catch (quotaError) {
+        if (records.length <= 1) throw quotaError;
+        records.length = records.length - 1;
+      }
+    }
   } catch (error) {
     console.error("Failed to save game record:", error);
   }
