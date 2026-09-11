@@ -239,18 +239,18 @@ export function IdentityShowcaseModal({
       onClose={onClose}
       widthRatio={0.98}
       maxWidthPx={1560}
-      heightPercent={94}
-      maxHeightPx={862}
+      heightPercent={98}
+      maxHeightPx={884}
       className="max-w-[1560px] flex flex-col p-2 overflow-hidden"
       footer={
-        <div className="flex flex-wrap items-center justify-center gap-5 w-full">
+        <div className="flex flex-wrap items-center justify-center gap-3 w-full">
           {/* 下排左：上一位按钮（与「下一位」并排，整组在弹窗底部居中） */}
           <div className="order-2 flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className="px-10 py-7 rounded-xl border border-white/20 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[30px] transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer active:scale-95" title="上一位（iPhone 横屏可直接点）"
+              className="px-10 py-3 rounded-xl border border-white/20 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[26px] transition disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer active:scale-95" title="上一位（iPhone 横屏可直接点）"
             >
               <span>⬅</span>
               <span>上一位 {prevSeat ? `(${prevSeat.id + 1}号)` : ""}</span>
@@ -262,7 +262,7 @@ export function IdentityShowcaseModal({
             <button
               type="button"
               onClick={() => setIsMasked((prev) => !prev)}
-              className={`px-6 py-4 rounded-xl border font-bold text-[24px] transition flex items-center gap-2 cursor-pointer shadow-md active:scale-95 ${
+              className={`px-6 py-3 rounded-xl border font-bold text-[22px] transition flex items-center gap-2 cursor-pointer shadow-md active:scale-95 ${
                 isMasked
                   ? "border-amber-400 bg-amber-500 text-slate-950 font-black shadow-amber-500/30"
                   : "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300"
@@ -296,7 +296,7 @@ export function IdentityShowcaseModal({
             <button
               type="button"
               onClick={handleNext}
-              className={`px-12 py-8 rounded-xl text-white font-black text-[32px] transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 ${
+              className={`px-12 py-4 rounded-xl text-white font-black text-[28px] transition shadow-lg flex items-center gap-2 cursor-pointer active:scale-95 ${
                 currentIndex === total - 1
                   ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/40 ring-1 ring-emerald-400"
                   : "bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-amber-500/40"
@@ -314,7 +314,7 @@ export function IdentityShowcaseModal({
     >
       <div className="flex flex-col h-full space-y-3 overflow-hidden">
         {/* 顶部进度与提示条 */}
-        <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs text-slate-300 shrink-0 gap-3">
+        <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-[18px] text-slate-300 shrink-0 gap-3">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 font-medium">
             <div className="flex items-center gap-2 shrink-0">
               <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -405,15 +405,15 @@ export function IdentityShowcaseModal({
                   />
                   <div className="space-y-1 min-w-0 flex-1">
                     <h2
-                      className={`text-3xl sm:text-4xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}
+                      className={`text-5xl sm:text-6xl font-black tracking-tight ${teamTheme.highlightText} drop-shadow-md leading-tight`}
                     >
                       {displayRole.name}
                     </h2>
-                    <p className="text-sm text-slate-300 font-mono font-medium">
+                    <p className="text-[22px] text-slate-300 font-mono font-medium">
                       {wikiDetails?.englishName || displayRole.id}
                     </p>
                     {wikiDetails?.script && (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-[18px] text-slate-400">
                         所属剧本：
                         <span className="text-slate-200 font-semibold">
                           {wikiDetails.script}
@@ -425,11 +425,11 @@ export function IdentityShowcaseModal({
 
                 {/* 技能说明大卡片（字号适中，无截断） */}
                 <div className="p-4 rounded-xl bg-black/40 border border-white/15 space-y-2 flex-1 flex flex-col justify-center">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-[20px] font-bold text-amber-300 uppercase tracking-wider">
                     <span>⚡</span>
                     <span>【角色能力】</span>
                   </div>
-                  <p className="text-base sm:text-lg font-medium text-slate-100 leading-relaxed pl-1">
+                  <p className="text-[30px] font-medium text-slate-100 leading-snug pl-1">
                     {wikiDetails?.abilityText ||
                       displayRole.ability ||
                       "无特殊能力描述"}
@@ -445,7 +445,7 @@ export function IdentityShowcaseModal({
                 <div className="flex items-center justify-between border-b border-white/10 pb-2.5 shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">📖</span>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-200">
+                    <h3 className="text-[24px] font-bold text-slate-200">
                       官方玩法推荐 & 进阶技巧
                     </h3>
                   </div>
@@ -454,7 +454,7 @@ export function IdentityShowcaseModal({
                       href={wikiDetails.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-sky-400 hover:text-sky-300 underline flex items-center gap-1 px-2 py-1 rounded bg-sky-950/40 border border-sky-500/30"
+                      className="text-[18px] text-sky-400 hover:text-sky-300 underline flex items-center gap-1 px-2 py-1 rounded bg-sky-950/40 border border-sky-500/30"
                     >
                       <span>百科原页</span>
                       <span>↗</span>
@@ -466,14 +466,14 @@ export function IdentityShowcaseModal({
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                   {/* 官方名言金句 (如果有) */}
                   {wikiDetails?.flavorQuote && (
-                    <div className="p-3 rounded-xl bg-white/5 border-l-4 border-amber-500 text-xs sm:text-sm text-slate-300 italic">
+                    <div className="p-3 rounded-xl bg-white/5 border-l-4 border-amber-500 text-[22px] text-slate-300 italic">
                       {wikiDetails.flavorQuote}
                     </div>
                   )}
 
                   {/* 核心打法与发言建议 (提示与技巧) */}
                   <div className="space-y-2.5">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                    <div className="flex items-center gap-1.5 text-[18px] font-bold text-amber-300">
                       <span>💡</span>
                       <span>核心打法与发言建议</span>
                     </div>
@@ -483,7 +483,7 @@ export function IdentityShowcaseModal({
                         {wikiDetails.strategyTips.slice(0, 6).map((tip, i) => (
                           <div
                             key={tip}
-                            className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-200 leading-relaxed bg-black/25 p-3 rounded-xl border border-white/5 shadow-sm"
+                            className="flex items-start gap-2.5 text-[22px] text-slate-200 leading-relaxed bg-black/25 p-3 rounded-xl border border-white/5 shadow-sm"
                           >
                             <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 border border-amber-500/30">
                               {i + 1}
@@ -493,7 +493,7 @@ export function IdentityShowcaseModal({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs sm:text-sm text-slate-400 pl-4">
+                      <p className="text-[20px] text-slate-400 pl-4">
                         {wikiDetails?.overview ||
                           "暂无该角色的特殊玩法技巧说明。"}
                       </p>
@@ -507,7 +507,7 @@ export function IdentityShowcaseModal({
                         <span>📜</span>
                         <span>角色简介</span>
                       </div>
-                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pl-2">
+                      <p className="text-[22px] text-slate-300 leading-relaxed pl-2">
                         {wikiDetails.overview}
                       </p>
                     </div>
@@ -525,7 +525,7 @@ export function IdentityShowcaseModal({
                           {wikiDetails.bluffTips.slice(0, 2).map((bTip) => (
                             <p
                               key={bTip}
-                              className="text-xs text-slate-300 leading-relaxed"
+                              className="text-[20px] text-slate-300 leading-relaxed"
                             >
                               • {bTip}
                             </p>
