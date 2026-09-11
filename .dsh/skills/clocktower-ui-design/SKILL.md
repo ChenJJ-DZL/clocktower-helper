@@ -44,6 +44,12 @@ bsk evaluate "(function(){var d=document.querySelector('[role=dialog][aria-modal
 
 **规则:正文别低于 40px 设计;主信息 48~64px。** 中文在小字号下尤其糊,不要照搬 Web 通用的 14~16px。
 
+### ⚠️ 不要用 sm:/md: 断点控制这个应用的字号
+
+本应用永远渲染在 1600×900 舞台里,但 **Tailwind 的 `sm:`/`md:` 断点看的是真实视口宽度**,不是舞台宽度。后果:同一个弹窗在 752px 宽的窗口上按 `sm:` 渲染成 36px,在 1000px 宽窗口上按 `md:` 渲染成 48px —— 明明舞台一样大,字号却不同。
+
+**结论:组件内字号一律写固定设计像素**(如 `text-[52px]`)。需要"随容器变化"时用容器查询 `cqi/cqh`(见第 3 节),不要用视口断点。
+
 ## 2. 弹窗规范
 
 `ModalWrapper`(`src/components/modals/ModalWrapper.tsx`) 是全站弹窗底座:
@@ -56,7 +62,9 @@ bsk evaluate "(function(){var d=document.querySelector('[role=dialog][aria-modal
 
 - 纯文案弹窗用 `widthRatio={0.98}` + `maxWidthPx={1560}` 吃满宽度。
 - 网格/卡片类弹窗用 `autoHeight`:人数少时弹窗自动变矮,不再被拉高留白。
-- 正文统一 `AutoFitContent` + `whitespace-nowrap`/`whitespace-pre`(单行不换行、超宽等比缩放),禁止固定大字号 + `max-w-*` 自然折行。
+- **正文排版要分清场景**:
+  - **纯提示/确认类弹窗**(通用 `GenericConfirmModal`/`GenericAlertModal`):**允许换行**,用固定大字 `text-[52px]` + `whitespace-pre-line`。**不要**用 `AutoFitContent` + `whitespace-pre` 强压成单行 —— 长文案会被压缩字号,手机上看不清。按钮 `py-6 text-[34px]`。
+  - **特殊角色弹窗**(圣徒处决、疯狂检测等,共 13 个):文案是逐行手写的短句,用 `AutoFitContent` + `whitespace-nowrap` 保持单行大字是刻意的设计,不要改。
 - ⚠️ 确认/提示弹窗挂在 `nativeDialogShim` 的**独立 React root**,`改样式后必须关闭再重开`,热更新不会刷新它。
 
 ## 3. 卡片/网格:尺寸与字号都要自适应人数
