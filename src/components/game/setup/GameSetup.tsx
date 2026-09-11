@@ -953,7 +953,7 @@ export default function GameSetup({
         >
           {activeSeats.length < 5
             ? `请先为至少5名玩家落座 (${activeSeats.length}/5)`
-            : "开始游戏"}
+            : "分发&核对身份"}
         </button>
       </div>
 
@@ -974,7 +974,7 @@ export default function GameSetup({
                 onClick={handleForceStartGame}
                 className="flex-1 rounded-xl bg-emerald-500 text-slate-950 font-bold py-3 hover:bg-emerald-400 transition"
               >
-                仍然开始游戏
+                仍然分发&核对身份
               </button>
             </div>
           }
