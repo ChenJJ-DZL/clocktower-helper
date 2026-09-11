@@ -286,8 +286,30 @@ export function generateDynamicNightQueue(
     return true;
   });
 
+  // 1.5 系统步骤展开：爪牙互认按「每名真爪牙一个步骤」展开
+  // 官方：所有爪牙都应在首夜得知恶魔是谁、其他爪牙是谁。
+  // 电子化下不需要「同时唤醒」，但必须逐一唤醒**每一名真爪牙**——
+  // 旧实现只有一个 minion_info 条目、只绑定一名行动者，场上有 2~3 名真爪牙时
+  // 只有第一人能拿到信息，其余爪牙完全收不到（用户实测指出）。
+  // 判定一律走唯一事实来源 isRealMinion（排除提线木偶）。
+  const expandedEntries: Array<NightOrderEntry & { actorSeatId?: number }> = [];
+  for (const entry of validEntries) {
+    if (entry.roleId === "minion_info") {
+      const realMinions = snapshot.seats
+        .filter((s) => isRealMinion(s) && (includeDead || !s.isDead))
+        .sort((a, b) => a.id - b.id);
+      // 真爪牙数为 0 时上方过滤已剔除该条目；此处兜底不再展开，避免产生无行动者的空步骤
+      for (const minionSeat of realMinions) {
+        expandedEntries.push({ ...entry, actorSeatId: minionSeat.id });
+      }
+      continue;
+    }
+    expandedEntries.push(entry);
+  }
+
   // 2. 按优先级排序（根据是否为第一夜选择对应的优先级）
-  validEntries.sort((a, b) => {
+  //    Array.prototype.sort 是稳定排序：同为 minion_info 的多名爪牙保持座位升序
+  expandedEntries.sort((a, b) => {
     const priorityA = isFirstNight
       ? a.firstNightPriority
       : a.otherNightPriority;
@@ -298,12 +320,17 @@ export function generateDynamicNightQueue(
   });
 
   // 3. 转换为NightActionNode格式
-  const queue: NightActionNode[] = validEntries.map((entry) => {
+  const queue: NightActionNode[] = expandedEntries.map((entry) => {
     // 系统信息步骤：按角色类型查找座位
     let seat: any;
     if (entry.roleId === "minion_info") {
-      // 与上方的过滤条件保持一致：提线木偶不参与爪牙互认
-      seat = snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
+      // 展开后的每个节点都绑定自己的行动者座位（多名真爪牙各占一步），
+      // 因此信息按行动者座位生成，每名爪牙都能得知恶魔与其他真爪牙。
+      const pinnedSeatId = entry.actorSeatId;
+      seat =
+        pinnedSeatId != null
+          ? snapshot.seats.find((s) => s.id === pinnedSeatId)!
+          : snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
     } else if (entry.roleId === "demon_info") {
       seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
     } else if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
