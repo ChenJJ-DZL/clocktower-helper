@@ -493,27 +493,16 @@ export const GameStage = () => {
 
   // 供控制台 / ControlPanel 使用的禁用逻辑
   const isConfirmDisabled = useMemo(() => {
-    console.log("[isConfirmDisabled] Recalculating...");
-    console.log("[isConfirmDisabled] gamePhase:", gamePhase);
-    console.log("[isConfirmDisabled] nightInfo:", nightInfo);
-
     // CRITICAL FIX: In check phase, button should always be enabled to allow drunk charade selection
     if (gamePhase === "check" || gamePhase === "day" || gamePhase === "dusk") {
-      console.log(
-        `[isConfirmDisabled] In "${gamePhase}" phase, returning false. (handled by specialized buttons)`
-      );
       return false;
     }
 
     // 特殊处理：nightInfo为空时，仍允许用户点击按钮推进
     if (!nightInfo) {
       if (gamePhase === "firstNight" || gamePhase === "night") {
-        console.log(
-          "[isConfirmDisabled] Night step with no nightInfo, allowing button (may be role with missing legacy config)"
-        );
         return false;
       }
-      console.log("[isConfirmDisabled] No nightInfo, returning true.");
       return true;
     }
 
@@ -527,21 +516,12 @@ export const GameStage = () => {
         currentModal.type === "NIGHT_DEATH_REPORT"
       );
 
-    console.log(
-      "[isConfirmDisabled] isBlockingModal:",
-      isBlockingModal,
-      "currentModal:",
-      currentModal
-    );
-
     if (isBlockingModal) {
-      console.log("[isConfirmDisabled] Has pending modals, returning true.");
       return true;
     }
 
     // 3. 目标选择已统一移至技能确认弹窗（NightActionConfirmModal）中进行，
     //    允许说书人随时点击发动/唤醒按钮弹出包含安全选人界面的确认弹窗。
-    console.log("[isConfirmDisabled] All checks passed, returning false.");
     return false;
   }, [gamePhase, nightInfo, currentModal]);
 
