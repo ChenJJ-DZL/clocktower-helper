@@ -280,7 +280,7 @@ export function useSeatView(
     // 除非有特殊限制（如不能选择自己）
     if (nightInfo.targetLimit && nightInfo.targetLimit.max > 0) {
       // 检查是否可以选中自己
-      if (s.id === nightInfo.seat.id && !nightInfo.canSelectSelf) {
+      if (s.id === nightInfo.seat?.id && !nightInfo.canSelectSelf) {
         return false;
       }
       // 检查是否可以选中死亡玩家

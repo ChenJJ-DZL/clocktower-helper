@@ -557,8 +557,9 @@ export const GameStage = () => {
   ]);
 
   // 当前/下一个行动角色信息
-  const currentWakeSeat = nightInfo
-    ? seats.find((s: Seat) => s.id === nightInfo.seat.id)
+  // 🛡️ nightInfo 存在但 seat 缺失时（部分系统步骤/结算步骤不携带座位）不能让整页崩溃
+  const currentWakeSeat = nightInfo?.seat
+    ? (seats.find((s: Seat) => s.id === nightInfo.seat?.id) ?? null)
     : null;
   const nextWakeSeatId = useMemo(() => {
     if (gamePhase !== "firstNight" && gamePhase !== "night") return null;
