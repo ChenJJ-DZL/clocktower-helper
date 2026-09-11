@@ -219,23 +219,8 @@ export function useSeatView(
       processed.add("drunk");
     }
 
-    // 5.5 疯子（Lunatic）：真实身份标记（仅说书人可见）
-    if (
-      !s.isDead &&
-      s.role?.id === "lunatic" &&
-      (s as any).apparentDemonRole &&
-      !processed.has("lunatic")
-    ) {
-      const apparentName = (s as any).apparentDemonRole?.name ?? "恶魔";
-      list.push({
-        key: `lunatic-${s.id}`,
-        text: `疯子(假${apparentName})`,
-        color: "yellow",
-        icon: "🌀",
-        duration: "永久",
-      });
-      processed.add("lunatic");
-    }
+    // 5.5 疯子（Lunatic）：真实身份不再用座位下方的宽幅徽标（用户要求），
+    // 改为 SeatNode 右上角的紧凑标记「实:疯子」，与酒鬼/提线木偶保持一致。
 
     // 6. Ability spent
     if (s.hasUsedSlayerAbility)

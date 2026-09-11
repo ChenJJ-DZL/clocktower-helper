@@ -723,12 +723,12 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
         {/* 真实身份（酒鬼/疯子等伪装角色）：右上角小标记。
             与左上角座位号左右对称，做成紧凑胶囊而不是宽幅标签，避免遮挡座位号与角色名。 */}
-        {isMasked && (
+        {(isMasked || s.role?.id === "lunatic") && (
           <div
             className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 bg-purple-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-white/80 shadow-md font-bold leading-none whitespace-nowrap z-40 pointer-events-none"
-            title={`真实身份：${realRole?.name ?? "未知"}`}
+            title={`真实身份：${isMasked ? (realRole?.name ?? "未知") : "疯子"}`}
           >
-            实:{realRole?.name}
+            实:{isMasked ? realRole?.name : "疯子"}
           </div>
         )}
 
