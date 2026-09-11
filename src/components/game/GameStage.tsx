@@ -7,6 +7,7 @@ import { useGameActions } from "../../contexts/GameActionsContext";
 import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
+import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../../utils/cerenovusGate";
 import { isInformationRole } from "../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { formatSeatLabel } from "../../utils/seatLabel";
@@ -1688,19 +1689,10 @@ export const GameStage = () => {
                           ? cerenovusTargetSeat.isDead
                           : false;
 
-                        const hasPendingCerenovusCheck = Boolean(
-                          (cerenovusTarget &&
-                            !cerenovusTarget.checkedToday &&
-                            !isCerenovusTargetDead) ||
-                            seats.some(
-                              (s) =>
-                                s.role?.id === "cerenovus" &&
-                                !s.isDead &&
-                                !s.hasUsedDayAbility &&
-                                cerenovusTarget &&
-                                !isCerenovusTargetDead
-                            )
-                        );
+                        // 🎯 只有场上确实存在存活洗脑师时才需要等待疯狂洗脑判定，
+                        // 否则上一局残留的 cerenovusTarget 会把全新一局卡死在白天。
+                        const hasPendingCerenovusCheck =
+                          hasPendingCerenovusGate(seats, cerenovusTarget);
                         return {
                           label: hasPendingCerenovusCheck
                             ? "需先完成洗脑师判定【疯狂洗脑】"

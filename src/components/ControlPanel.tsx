@@ -2,6 +2,7 @@
 
 import type React from "react";
 import type { GamePhase, Seat } from "@/app/data";
+import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
 import { showAlert } from "../utils/nativeDialogShim";
 
 function formatTimer(seconds: number): string {
@@ -258,18 +259,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               const cerenovusTargetSeat = cerenovusTarget
                 ? seats.find((s) => s.id === cerenovusTarget.targetId)
                 : null;
-              const isCerenovusTargetDead = cerenovusTargetSeat ? cerenovusTargetSeat.isDead : false;
+              const isCerenovusTargetDead = cerenovusTargetSeat
+                ? cerenovusTargetSeat.isDead
+                : false;
 
-              const hasPendingCerenovusCheck = Boolean(
-                (cerenovusTarget && !cerenovusTarget.checkedToday && !isCerenovusTargetDead) ||
-                  seats.some(
-                    (s) =>
-                      s.role?.id === "cerenovus" &&
-                      !s.isDead &&
-                      !s.hasUsedDayAbility &&
-                      cerenovusTarget &&
-                      !isCerenovusTargetDead
-                  )
+              // 🎯 只有场上确实存在存活洗脑师时才需要等待疯狂洗脑判定。
+              const hasPendingCerenovusCheck = hasPendingCerenovusGate(
+                seats,
+                cerenovusTarget
               );
               return (
                 <button

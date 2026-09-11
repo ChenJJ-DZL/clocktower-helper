@@ -9,6 +9,7 @@ import {
   type Seat,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
+import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
 import { showAlert } from "../utils/nativeDialogShim";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
@@ -421,21 +422,9 @@ export function useGameFlow(): UseGameFlowResult {
 
       // 检查洗脑师白天技能【疯狂洗脑】是否尚未发动
       const activeCerenovusTarget = state.cerenovusTarget;
-      const cerenovusTargetSeat = activeCerenovusTarget
-        ? seats.find((s) => s.id === activeCerenovusTarget.targetId)
-        : null;
-      const isCerenovusTargetDead = cerenovusTargetSeat ? cerenovusTargetSeat.isDead : false;
-
-      const hasPendingCerenovusCheck = Boolean(
-        (activeCerenovusTarget && !activeCerenovusTarget.checkedToday && !isCerenovusTargetDead) ||
-          seats.some(
-            (s) =>
-              s.role?.id === "cerenovus" &&
-              !s.isDead &&
-              !s.hasUsedDayAbility &&
-              activeCerenovusTarget &&
-              !isCerenovusTargetDead
-          )
+      const hasPendingCerenovusCheck = hasPendingCerenovusGate(
+        seats,
+        activeCerenovusTarget
       );
 
       if (!hasExecutedToday && hasPendingCerenovusCheck) {
@@ -851,6 +840,32 @@ export function useGameFlow(): UseGameFlowResult {
         );
         return;
       }
+
+      // 🧹 新局开始：清理上一局残留的「本局临时状态」，避免跨局污染。
+      // 典型症状：上一局的洗脑师目标残留后，本局白天会一直误判为「需先完成疯狂洗脑」而无法进入黄昏。
+      dispatch(
+        gameActions.updateState({
+          cerenovusTarget: null,
+          witchCursedId: null,
+          witchActive: false,
+          evilTwinPair: null,
+          jugglerGuesses: {},
+          todayDemonVoted: false,
+          todayMinionNominated: false,
+          todayExecutedId: null,
+          deadThisNight: [],
+          voteRecords: [],
+          nominationMap: {},
+          outsiderDiedToday: false,
+          fangGuConverted: false,
+          goonDrunkedThisNight: false,
+          poChargeState: {},
+          pukkaPoisonQueue: [],
+          gossipStatementToday: undefined,
+          gossipTrueTonight: false,
+          gossipSourceSeatId: undefined,
+        })
+      );
 
       // 酒鬼/提线木偶伪装身份检查 - 弹出模态框引导设置
       const missingCharadeSeat = seats.find(
