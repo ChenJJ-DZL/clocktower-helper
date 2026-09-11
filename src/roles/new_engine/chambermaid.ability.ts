@@ -4,10 +4,34 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+// ─── 辅助函数 ─────────────────────────────────────────────────────────
+
+/**
+ * 醉酒/中毒/涡流时生成虚假的「被唤醒人数」。
+ * 规则：结果必须 100% 错误，因此从 [0,1,2] 中排除真实值后随机。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export function pickFakeWokenCount(
+  realWokenCount: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  const fakeCandidates = [0, 1, 2].filter((v) => v !== realWokenCount);
+  return (
+    fakeCandidates[Math.floor(rng() * fakeCandidates.length)] ??
+    (realWokenCount === 0 ? 1 : 0)
+  );
+}
 
 // 计算结果：选择两名玩家并计算被唤醒数量
 const calculateResult = async (
@@ -28,6 +52,16 @@ const calculateResult = async (
   if (!targetIds || targetIds.length !== 2) {
     return { ...context, aborted: true, abortReason: "需要选择2名玩家" };
   }
+
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的数字，否则说书人照提示念的结果会与结果弹窗对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "chambermaid",
+      actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
+  );
 
   // 计算被唤醒数量
   let wokenCount = 0;
@@ -73,10 +107,7 @@ const calculateResult = async (
 
     if (!isAbilityActive || hasVortox) {
       // 醉酒/中毒/涡流时：100% 返回错误结果（从 0-2 中排除 realWokenCount）
-      const fakeCandidates = [0, 1, 2].filter((v) => v !== realWokenCount);
-      wokenCount =
-        fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
-        (realWokenCount === 0 ? 1 : 0);
+      wokenCount = pickFakeWokenCount(realWokenCount, rng);
     } else {
       wokenCount = realWokenCount;
     }

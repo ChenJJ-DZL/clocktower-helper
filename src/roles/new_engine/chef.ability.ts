@@ -68,6 +68,11 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -350,11 +355,13 @@ function countEvilPairs(
  *
  * @param seats     全量座位列表。
  * @param realCount 真实邪恶对数（可为 null 表示未知）。
+ * @param rng       确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）。
  * @returns 虚假数字。
  */
-function generateFakePairCount(
+export function generateFakePairCount(
   seats: PlayerLookup[],
-  realCount: number | null
+  realCount: number | null,
+  rng: DeterministicRandom = Math.random
 ): number {
   const max = Math.max(1, seats.length - 1);
   const candidates: number[] = [];
@@ -364,8 +371,8 @@ function generateFakePairCount(
   }
 
   return candidates.length > 0
-    ? candidates[Math.floor(Math.random() * candidates.length)]
-    : Math.floor(Math.random() * (max + 1));
+    ? candidates[Math.floor(rng() * candidates.length)]
+    : Math.floor(rng() * (max + 1));
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
@@ -393,6 +400,12 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "无座位数据" };
   }
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的假数字，否则说书人照提示念的结果会与结果弹窗对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("chef", context.actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
   let evilPairCount: number;
 
   // 优先级 1：说书人手动完全覆盖
@@ -408,13 +421,13 @@ const calculateResult = async (
     const realCount = meta.initialNightInfo.chefInfo as number;
     evilPairCount = abilityEffective
       ? realCount
-      : generateFakePairCount(seats, realCount);
+      : generateFakePairCount(seats, realCount, rng);
   }
   // 优先级 4：动态计算
   else {
     evilPairCount = abilityEffective
       ? countEvilPairs(seats, meta, context)
-      : generateFakePairCount(seats, null);
+      : generateFakePairCount(seats, null, rng);
   }
 
   return {

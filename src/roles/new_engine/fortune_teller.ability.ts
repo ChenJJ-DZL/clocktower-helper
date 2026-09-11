@@ -87,6 +87,11 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -229,6 +234,22 @@ function isEffectivelyDemon(
 }
 
 /**
+ * 从候选座位中挑一名"干扰项"（Boon）玩家。
+ *
+ * rng 必须由调用方注入：首夜的 calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，预演看到的干扰项与实际标记的人会不同。
+ */
+export function pickBoonSeatId(
+  candidates: PlayerLookup[],
+  fortuneTellerSeatId: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  // 极端情况（无合格候选）：选占卜师自身
+  if (candidates.length === 0) return fortuneTellerSeatId;
+  return candidates[Math.floor(rng() * candidates.length)].id;
+}
+
+/**
  * 首夜：初始化占卜师干扰项（Boon）。
  *
  * 对应规则："在为首个夜晚进行准备时，将占卜师的'干扰项'提示标记
@@ -243,7 +264,8 @@ function initializeBoon(
   seats: PlayerLookup[],
   fortuneTellerSeatId: number,
   gameId: string,
-  explicitBoonId?: number
+  explicitBoonId?: number,
+  rng: DeterministicRandom = Math.random
 ): void {
   // 已初始化则跳过
   if (fortuneTellerBoonManager.getCurrentBoon(gameId) !== null) return;
@@ -268,10 +290,7 @@ function initializeBoon(
     return true;
   });
 
-  const boonSeatId =
-    candidates.length > 0
-      ? candidates[Math.floor(Math.random() * candidates.length)].id
-      : fortuneTellerSeatId; // 极端情况：选自身
+  const boonSeatId = pickBoonSeatId(candidates, fortuneTellerSeatId, rng);
 
   fortuneTellerBoonManager.initializeBoon(
     gameId,
@@ -331,8 +350,25 @@ const calculateResult = async (
   const selfSeatId = actionNode.seatId;
   const gameId = (snapshot as any).gameId || "default";
   const isFirstNight = (snapshot.nightCount ?? 0) === 1;
+
+  // 🎲 确定性随机：同一夜、同一占卜师的重复计算（提示预演 / 实际执行）必须挑到
+  // 同一名"干扰项"，否则说书人照预演念、魔典却按另一个人标记。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "fortune_teller",
+      selfSeatId,
+      snapshot.nightCount ?? 1
+    )
+  );
+
   if (isFirstNight) {
-    initializeBoon(seats, selfSeatId, gameId, storytellerInput?.boonSeatId);
+    initializeBoon(
+      seats,
+      selfSeatId,
+      gameId,
+      storytellerInput?.boonSeatId,
+      rng
+    );
   }
 
   let result: boolean;

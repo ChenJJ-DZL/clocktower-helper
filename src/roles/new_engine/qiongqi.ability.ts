@@ -19,6 +19,11 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -65,11 +70,21 @@ function hasOutsiderDiedToday(snapshot: any): boolean {
   );
 }
 
-/** 从存活玩家中随机选一名（排除指定 id 集合） */
-function pickRandomAlive(seats: any[], exclude: Set<number>): any | null {
+/**
+ * 从存活玩家中随机选一名（排除指定 id 集合）。
+ *
+ * 抽取 rng 参数：活尸分支的「额外一名玩家死亡」只发生在 stateUpdate（执行阶段，
+ * 预览不执行），但用确定性种子可保证同一夜重复执行同一行动时选中同一名玩家，
+ * 不会因为重跑管道而换人。
+ */
+export function pickRandomAlive(
+  seats: any[],
+  exclude: Set<number>,
+  rng: DeterministicRandom = Math.random
+): any | null {
   const candidates = seats.filter((s) => !s.isDead && !exclude.has(s.id));
   if (candidates.length === 0) return null;
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  return candidates[Math.floor(rng() * candidates.length)];
 }
 
 // ─── 计算中间件 ─────────────────────────────────────────────────────────
@@ -119,6 +134,11 @@ const stateUpdateResult = async (
   const nightCount = ctx.snapshot.nightCount ?? 0;
   const updatedSeats = [...(ctx.snapshot.seats as any[])];
 
+  // 🎲 确定性随机：同一夜、同一角色的重复执行必须选出同一名额外死者
+  const rng = createDeterministicRandom(
+    nightInfoSeed("qiongqi", ctx.actionNode.seatId, nightCount || 1)
+  );
+
   const targetIdx = updatedSeats.findIndex((s: any) => s.id === targetId);
 
   const record: Record<string, any> = {
@@ -161,7 +181,8 @@ const stateUpdateResult = async (
         // 额外一名玩家死亡（说书人选择 → 引擎随机）
         const extra = pickRandomAlive(
           updatedSeats,
-          new Set([targetId, ctx.actionNode.seatId])
+          new Set([targetId, ctx.actionNode.seatId]),
+          rng
         );
         if (extra) {
           const extraIdx = updatedSeats.findIndex(

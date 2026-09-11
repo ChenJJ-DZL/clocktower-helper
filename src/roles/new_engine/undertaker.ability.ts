@@ -39,6 +39,11 @@
  * ============================================================
  */
 
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -164,9 +169,24 @@ const executedTodayCheck = async (
 
   // 保存被处决玩家的角色快照（处决后角色可能因红唇女郎等发生变化）
   // 优先使用 seatSnapshot 字段（引擎保留的处决时刻角色快照），回退到 resolveExecutedRole
+  //
+  // ⚠️ 这里的回退分支同样含随机（陌客/间谍注册为其它角色），且 preCheck 在
+  //    预演与实际执行中各跑一次 —— 必须使用与 calculate 相同的确定性种子，
+  //    否则「提示里念的角色」与「结算/魔典标记的角色」会不一致。
   const seatSnapshot = (executedSeat as any).executedRoleSnapshot;
   const roleSnapshot =
-    seatSnapshot ?? resolveExecutedRole(executedSeat, snapshot.seats);
+    seatSnapshot ??
+    resolveExecutedRole(
+      executedSeat,
+      snapshot.seats,
+      createDeterministicRandom(
+        nightInfoSeed(
+          "undertaker",
+          context.actionNode.seatId,
+          snapshot.nightCount ?? 1
+        )
+      )
+    );
   return {
     ...context,
     meta: {
@@ -185,9 +205,10 @@ const executedTodayCheck = async (
  * Recluse（陌客）：可被当作邪恶角色（minion 或 demon）。
  * 酒鬼：展示真实角色【酒鬼】角色标记而非其以为的角色标记。
  */
-function resolveExecutedRole(
+export function resolveExecutedRole(
   executedSeat: PlayerLookup,
-  seats: PlayerLookup[]
+  seats: PlayerLookup[],
+  rng: DeterministicRandom = Math.random
 ): string {
   const realRole = executedSeat.role;
 
@@ -206,8 +227,7 @@ function resolveExecutedRole(
         (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
       );
       if (evilRoles.length > 0) {
-        const randomEvil =
-          evilRoles[Math.floor(Math.random() * evilRoles.length)];
+        const randomEvil = evilRoles[Math.floor(rng() * evilRoles.length)];
         return randomEvil.role?.name ?? realRole?.name ?? "未知角色";
       }
     }
@@ -223,8 +243,7 @@ function resolveExecutedRole(
         (s: any) => s.role?.type === "townsfolk" || s.role?.type === "outsider"
       );
       if (goodRoles.length > 0) {
-        const randomGood =
-          goodRoles[Math.floor(Math.random() * goodRoles.length)];
+        const randomGood = goodRoles[Math.floor(rng() * goodRoles.length)];
         return randomGood.role?.name ?? realRole?.name ?? "未知角色";
       }
     }
@@ -237,10 +256,11 @@ function resolveExecutedRole(
 /**
  * 醉酒/中毒时生成虚假角色名，从场上其他玩家中随机取一个角色名。
  */
-function generateFakeRoleName(
+export function generateFakeRoleName(
   executedSeatId: number,
   seats: PlayerLookup[],
-  realRoleName?: string
+  realRoleName?: string,
+  rng: DeterministicRandom = Math.random
 ): string {
   const others = seats.filter(
     (s: any) =>
@@ -251,7 +271,7 @@ function generateFakeRoleName(
   if (others.length === 0) {
     return realRoleName === "洗衣妇" ? "男爵" : "洗衣妇";
   }
-  const random = others[Math.floor(Math.random() * others.length)];
+  const random = others[Math.floor(rng() * others.length)];
   return random.role?.name ?? "洗衣妇";
 }
 
@@ -297,6 +317,16 @@ const calculateResult = async (
 
   const isCorrupted = !abilityEffective || hasVortox;
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的角色名，否则说书人照提示念的内容会与结果弹窗、魔典标记对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "undertaker",
+      context.actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
+  );
+
   // 优先级 1：说书人手动覆盖
   if (storytellerInput?.overrideResult) {
     return {
@@ -326,7 +356,7 @@ const calculateResult = async (
   const realRoleName =
     roleSnapshot && roleSnapshot !== "未知角色"
       ? roleSnapshot
-      : resolveExecutedRole(executedSeat, snapshot.seats);
+      : resolveExecutedRole(executedSeat, snapshot.seats, rng);
 
   // 优先级 3：预置首夜信息
   if (meta.initialNightInfo?.undertakerInfo) {
@@ -341,7 +371,8 @@ const calculateResult = async (
             roleName: generateFakeRoleName(
               preset.executedSeatId,
               snapshot.seats,
-              preset.roleName || realRoleName
+              preset.roleName || realRoleName,
+              rng
             ),
           } as UndertakerInfo,
           isCorrupted: true,
@@ -360,7 +391,7 @@ const calculateResult = async (
 
   // 优先级 4：动态计算
   const roleName = isCorrupted
-    ? generateFakeRoleName(executedSeatId, snapshot.seats, realRoleName)
+    ? generateFakeRoleName(executedSeatId, snapshot.seats, realRoleName, rng)
     : realRoleName;
 
   const result: UndertakerInfo = {

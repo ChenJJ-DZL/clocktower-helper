@@ -17,9 +17,46 @@
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+interface PixieRoleRef {
+  id: string;
+  name: string;
+  type: string;
+}
+
+/**
+ * 选出小精灵首夜得知的「在场镇民角色」。
+ *
+ * - 正常：从在场镇民中随机挑一个；
+ * - 醉酒/中毒/涡流：从「不在场镇民」中随机挑一个（保证信息必然是假的）。
+ *
+ * 抽取 rng 参数：同一夜同一角色的「提示预演」与「实际执行」必须得到同一个
+ * 角色，否则提示里预告的角色与实际记录 / 弹窗不一致。
+ */
+export function pickPixieRole(
+  allTownsfolk: PixieRoleRef[],
+  outOfPlayTownsfolk: PixieRoleRef[],
+  effective: boolean,
+  rng: DeterministicRandom = Math.random
+): PixieRoleRef {
+  if (!effective) {
+    return outOfPlayTownsfolk.length > 0
+      ? outOfPlayTownsfolk[Math.floor(rng() * outOfPlayTownsfolk.length)]
+      : { id: "washerwoman", name: "洗衣妇", type: "townsfolk" };
+  }
+  if (allTownsfolk.length > 0) {
+    return allTownsfolk[Math.floor(rng() * allTownsfolk.length)];
+  }
+  return { id: "chef", name: "厨师", type: "townsfolk" };
+}
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -140,7 +177,12 @@ const calculate = async (
       ? outOfPlayTownsfolkFromScript
       : fallbackTownsfolk;
 
-  let picked: { id: string; name: string; type: string };
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("pixie", ctx.actionNode.seatId, ctx.snapshot.nightCount ?? 1)
+  );
+
+  let picked: PixieRoleRef;
   if (ctx.storytellerInput?.pixieMadnessRoleId) {
     const explicit =
       allTownsfolk.find(
@@ -156,18 +198,9 @@ const calculate = async (
         type: "townsfolk",
       };
     picked = explicit;
-  } else if (!effective) {
-    // 醉酒/中毒/涡流：告知一个不在场的镇民角色
-    picked =
-      outOfPlayTownsfolk.length > 0
-        ? outOfPlayTownsfolk[
-            Math.floor(Math.random() * outOfPlayTownsfolk.length)
-          ]
-        : { id: "washerwoman", name: "洗衣妇", type: "townsfolk" };
-  } else if (allTownsfolk.length > 0) {
-    picked = allTownsfolk[Math.floor(Math.random() * allTownsfolk.length)];
   } else {
-    picked = { id: "chef", name: "厨师", type: "townsfolk" };
+    // 醉酒/中毒/涡流：告知一个不在场的镇民角色；否则从在场镇民中随机挑一个
+    picked = pickPixieRole(allTownsfolk, outOfPlayTownsfolk, effective, rng);
   }
 
   const tag = !effective ? "【受干扰】" : "";

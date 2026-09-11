@@ -358,6 +358,13 @@ const stateUpdateResult = async (
     const aliveMinions = findAliveMinions(updatedSeats, actionNode.seatId);
 
     if (aliveMinions.length > 0) {
+      // ⚠️ 这里刻意保留 Math.random()：
+      //   继任者的选择只影响"一次性游戏状态"（爪牙被改写成新的小恶魔），
+      //   且位于 stateUpdate 阶段 —— preview 只跑 preCheck + calculate，
+      //   本行永远不会在"当前的行动"预演中被重算，因此不存在
+      //   "提示与实际结果不一致"的问题。说书人可用 storytellerInput.successorSeatId
+      //   手动指定继任者；未指定时由本行随机，属于一次性裁定。
+      //   若将来需要在预演里展示继任者，必须改成注入确定性 rng。
       const explicitSuccessorId = storytellerInput?.successorSeatId;
       const successor =
         explicitSuccessorId !== undefined

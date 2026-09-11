@@ -8,6 +8,11 @@
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -45,15 +50,28 @@ const firstNightCheck = async (
   return ctx;
 };
 
-const calculate = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const seats = ctx.snapshot.seats.filter(
-    (s: any) => s.id !== ctx.actionNode.seatId && !s.isDead
-  );
+/** Fisher-Yates 洗牌（用 rng 而非 Math.random，保证预演/执行结果一致） */
+export function shuffleWith<T>(
+  arr: T[],
+  rng: DeterministicRandom = Math.random
+): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
-  // 邪恶候选（真实邪恶 + 默认注册为邪恶的陌客）
-  const evilCandidates = seats.filter((s: any) => {
+/**
+ * 计算贵族可用的候选池（排除自身与死亡玩家）。
+ * evilCandidates 含真实邪恶 + 默认注册为邪恶的陌客；
+ * goodCandidates 含真实善良 + 默认注册为善良的间谍。
+ */
+export function getNobleCandidates(seats: any[], selfSeatId: number) {
+  const pool = seats.filter((s: any) => s.id !== selfSeatId && !s.isDead);
+
+  const evilCandidates = pool.filter((s: any) => {
     if (s.role?.id === "recluse") {
       return s.registerAsEvil !== false;
     }
@@ -66,8 +84,7 @@ const calculate = async (
     );
   });
 
-  // 善良候选（真实善良 + 默认注册为善良的间谍）
-  const goodCandidates = seats.filter((s: any) => {
+  const goodCandidates = pool.filter((s: any) => {
     if (s.role?.id === "recluse") {
       return s.registerAsEvil === false;
     }
@@ -81,7 +98,69 @@ const calculate = async (
     );
   });
 
+  return { pool, evilCandidates, goodCandidates };
+}
+
+/**
+ * 选出告知贵族的三名玩家。
+ *
+ * 抽取 rng 参数：同一夜同一角色的「提示预演」与「实际执行」必须选中同一组
+ * 玩家，否则说书人照提示念的三人与结果弹窗 / 魔典标记对不上。
+ */
+export function selectNobleTrio(
+  seats: any[],
+  selfSeatId: number,
+  isCorrupted: boolean,
+  rng: DeterministicRandom = Math.random
+): any[] {
+  const { pool, evilCandidates, goodCandidates } = getNobleCandidates(
+    seats,
+    selfSeatId
+  );
+
   let chosen: any[] = [];
+
+  if (isCorrupted || evilCandidates.length === 0 || goodCandidates.length < 2) {
+    // 严格保证选出的 3 人中邪恶玩家数量 != 1（0 邪或 >=2 邪），绝对杜绝真信息穿透
+    if (goodCandidates.length >= 3) {
+      chosen = shuffleWith(goodCandidates, rng).slice(0, 3);
+    } else if (evilCandidates.length >= 2 && goodCandidates.length >= 1) {
+      const shuffledEvil = shuffleWith(evilCandidates, rng);
+      const shuffledGood = shuffleWith(goodCandidates, rng);
+      chosen = shuffleWith(
+        [shuffledEvil[0], shuffledEvil[1], shuffledGood[0]],
+        rng
+      );
+    } else {
+      let attempts = 0;
+      let valid = false;
+      while (attempts < 30 && !valid) {
+        attempts++;
+        const trio = shuffleWith(pool, rng).slice(0, 3);
+        const evilCount = trio.filter((s) =>
+          evilCandidates.some((e) => e.id === s.id)
+        ).length;
+        if (evilCount !== 1) {
+          chosen = trio;
+          valid = true;
+        }
+      }
+      if (!valid) {
+        chosen = [...pool].slice(0, 3);
+      }
+    }
+  } else {
+    const shuffledEvil = shuffleWith(evilCandidates, rng);
+    const shuffledGood = shuffleWith(goodCandidates, rng);
+    chosen = shuffleWith([shuffledEvil[0], shuffledGood[0], shuffledGood[1]], rng);
+  }
+
+  return chosen;
+}
+
+const calculate = async (
+  ctx: MiddlewareContext
+): Promise<MiddlewareContext> => {
   const hasVortox =
     Boolean(
       ctx.snapshot.globalEffects?.vortoxWorld ??
@@ -98,43 +177,17 @@ const calculate = async (
     ctx.meta.abilityEffective === false ||
     hasVortox;
 
-  if (isCorrupted || evilCandidates.length === 0 || goodCandidates.length < 2) {
-    // 严格保证选出的 3 人中邪恶玩家数量 != 1（0 邪或 >=2 邪），绝对杜绝真信息穿透
-    if (goodCandidates.length >= 3) {
-      const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);
-      chosen = shuffledGood.slice(0, 3);
-    } else if (evilCandidates.length >= 2 && goodCandidates.length >= 1) {
-      const shuffledEvil = [...evilCandidates].sort(() => Math.random() - 0.5);
-      const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);
-      chosen = [shuffledEvil[0], shuffledEvil[1], shuffledGood[0]].sort(
-        () => Math.random() - 0.5
-      );
-    } else {
-      let attempts = 0;
-      let valid = false;
-      while (attempts < 30 && !valid) {
-        attempts++;
-        const shuffled = [...seats].sort(() => Math.random() - 0.5);
-        const trio = shuffled.slice(0, 3);
-        const evilCount = trio.filter((s) =>
-          evilCandidates.some((e) => e.id === s.id)
-        ).length;
-        if (evilCount !== 1) {
-          chosen = trio;
-          valid = true;
-        }
-      }
-      if (!valid) {
-        chosen = [...seats].slice(0, 3);
-      }
-    }
-  } else {
-    const shuffledEvil = [...evilCandidates].sort(() => Math.random() - 0.5);
-    const shuffledGood = [...goodCandidates].sort(() => Math.random() - 0.5);
-    chosen = [shuffledEvil[0], shuffledGood[0], shuffledGood[1]].sort(
-      () => Math.random() - 0.5
-    );
-  }
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("noble", ctx.actionNode.seatId, ctx.snapshot.nightCount ?? 1)
+  );
+
+  const chosen = selectNobleTrio(
+    ctx.snapshot.seats,
+    ctx.actionNode.seatId,
+    isCorrupted,
+    rng
+  );
 
   return {
     ...ctx,

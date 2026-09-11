@@ -11,21 +11,47 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
 
+/**
+ * 从已死亡座位中挑一名复活目标（模拟说书人的随机指定）。
+ *
+ * rng 必须由调用方注入：calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，预演提示的复活目标会与实际复活的人不同。
+ */
+export function pickFerrymanTarget(
+  deadSeats: any[],
+  rng: DeterministicRandom = Math.random
+): number | null {
+  if (deadSeats.length === 0) return null;
+  return deadSeats[Math.floor(rng() * deadSeats.length)].id;
+}
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  // 🎲 确定性随机：同一夜、同一摆渡人的重复计算必须给出同一名复活目标
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "ferryman",
+      ctx.actionNode.seatId,
+      ctx.snapshot.nightCount ?? 1
+    )
+  );
+
   const deadSeats = ctx.snapshot.seats.filter((s: any) => s.isDead && s.role);
   const targetId =
     ctx.storytellerInput?.targetId ??
     ctx.actionNode.targetIds?.[0] ??
-    (deadSeats.length > 0
-      ? deadSeats[Math.floor(Math.random() * deadSeats.length)].id
-      : null);
+    pickFerrymanTarget(deadSeats, rng);
   return {
     ...ctx,
     meta: {

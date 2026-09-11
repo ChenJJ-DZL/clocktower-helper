@@ -8,6 +8,25 @@ import {
   commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+
+/**
+ * 在两名受保护目标中挑一名"醉酒"（模拟说书人的选择）。
+ *
+ * rng 必须由调用方注入：calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，预演说"3号醉酒"、结算却让 5号醉酒。
+ */
+export function pickDrunkTargetId(
+  target1Id: number,
+  target2Id: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  return rng() < 0.5 ? target1Id : target2Id;
+}
 
 // 计算结果：选择两个目标并决定谁醉酒
 const calculateResult = async (
@@ -15,6 +34,11 @@ const calculateResult = async (
 ): Promise<MiddlewareContext> => {
   const { snapshot, actionNode, meta, targetIds } = context;
   const isAbilityActive = meta.abilityEffective ?? true;
+
+  // 🎲 确定性随机：同一夜、同一旅店老板的重复计算必须让同一名目标醉酒
+  const rng = createDeterministicRandom(
+    nightInfoSeed("innkeeper", actionNode.seatId, snapshot.nightCount ?? 1)
+  );
 
   // 检查是否有两个目标
   if (!targetIds || targetIds.length !== 2) {
@@ -28,12 +52,12 @@ const calculateResult = async (
 
   if (!isAbilityActive) {
     // 醉酒/中毒时，能力失效，但仍可能随机选择谁醉酒
-    drunkId = Math.random() < 0.5 ? target1Id : target2Id;
+    drunkId = pickDrunkTargetId(target1Id, target2Id, rng);
     drunkReason = "（旅店老板醉酒/中毒中）";
   } else {
     // 正常逻辑：说书人随机选择其中一人醉酒（实际游戏中由说书人决定）
     // 这里用随机模拟说书人的选择
-    drunkId = Math.random() < 0.5 ? target1Id : target2Id;
+    drunkId = pickDrunkTargetId(target1Id, target2Id, rng);
     drunkReason = "（说书人选择）";
   }
 

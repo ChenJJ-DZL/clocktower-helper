@@ -2,12 +2,31 @@
  * 水手（Sailor）新引擎技能实现
  */
 
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+/**
+ * 能力失效（醉酒/中毒）时，水手究竟让谁醉酒 —— 说书人在自己与目标之间随机选一个。
+ *
+ * ⚠️ 该随机值会在「当前的行动」提示预演与「实际执行」两处各算一次，
+ * 必须使用确定性随机，否则提示与结果不一致（见 core/deterministicRandom.ts）。
+ */
+export function pickDrunkIdWhenInactive(
+  selfSeatId: number,
+  targetId: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  return rng() < 0.5 ? selfSeatId : targetId;
+}
 
 // 计算结果：选择目标并决定谁醉酒
 const calculateResult = async (
@@ -30,12 +49,17 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到目标座位" };
   }
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("sailor", actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
   let drunkId: number;
   let drunkReason: string;
 
   if (!isAbilityActive) {
     // 醉酒/中毒时，能力失效，可能随机选择
-    drunkId = Math.random() < 0.5 ? actionNode.seatId : targetId;
+    drunkId = pickDrunkIdWhenInactive(actionNode.seatId, targetId, rng);
     drunkReason = "（醉酒/中毒中）";
   } else {
     // 正常逻辑：如果目标是镇民，则目标醉酒；否则自身醉酒

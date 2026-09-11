@@ -16,6 +16,11 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 /** 可被伪装的善良角色（镇民/外来者 id 池） */
 const GOOD_ROLE_IDS = [
@@ -38,6 +43,18 @@ const GOOD_ROLE_IDS = [
   "saint",
   "poisoner_target",
 ];
+
+/**
+ * 挑一个用于把恶魔伪装成善良角色的角色 id（模拟说书人的指定）。
+ *
+ * rng 必须由调用方注入：calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，预演说的伪装角色与结算/日志不一致。
+ */
+export function pickFakeGoodRoleId(
+  rng: DeterministicRandom = Math.random
+): string {
+  return GOOD_ROLE_IDS[Math.floor(rng() * GOOD_ROLE_IDS.length)];
+}
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   // 存活校验
@@ -67,6 +84,12 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const snapshot = ctx.snapshot as any;
+
+  // 🎲 确定性随机：同一夜、同一提刑官的重复计算必须把恶魔伪装成同一个善良角色
+  const rng = createDeterministicRandom(
+    nightInfoSeed("inspector", ctx.actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
   const nomination = snapshot.inspectorNomination as { targetId: number };
   const targetId = nomination.targetId;
   const target = snapshot.seats.find((s: any) => s.id === targetId);
@@ -82,8 +105,7 @@ const calculate = async (
 
   if (isDemon) {
     // 恶魔被当作某个善良角色（镇民/外来者），说书人决定 → 引擎随机
-    const fakeId =
-      GOOD_ROLE_IDS[Math.floor(Math.random() * GOOD_ROLE_IDS.length)];
+    const fakeId = pickFakeGoodRoleId(rng);
     revealedRoleId = fakeId;
     revealedRoleName = fakeId;
   } else {

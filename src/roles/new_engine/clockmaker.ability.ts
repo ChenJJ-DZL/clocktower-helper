@@ -4,9 +4,35 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+// ─── 辅助函数 ─────────────────────────────────────────────────────────
+
+/**
+ * 醉酒/中毒时生成虚假的「恶魔与爪牙最近距离」。
+ * 规则：从 [0..4] 中排除真实值后随机，保证结果与真实值不同。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export function pickFakeClockmakerDistance(
+  realDistance: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  const possibleFakeValues = [0, 1, 2, 3, 4].filter(
+    (v) => v !== realDistance
+  );
+  return (
+    possibleFakeValues[Math.floor(rng() * possibleFakeValues.length)] ??
+    Math.floor(rng() * 4) + 1
+  );
+}
 
 // 前置校验：检查是否存活、是否醉酒/中毒
 const preCheckAliveAndStatus = async (
@@ -44,20 +70,24 @@ const calculateResult = async (
   const { snapshot, meta } = context;
   const isAbilityActive = meta.isAbilityActive ?? true;
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的距离，否则说书人照提示念的结果会与结果弹窗对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "clockmaker",
+      context.actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
+  );
+
   let minDistance: number;
 
   if (!isAbilityActive) {
     // 醉酒/中毒时返回虚假信息
     const realDistance = meta.initialNightInfo?.clockmakerInfo ?? 1;
-    const possibleFakeValues = [0, 1, 2, 3, 4].filter(
-      (v) => v !== realDistance
-    );
     minDistance =
       context.storytellerInput?.fakeResult ??
-      possibleFakeValues[
-        Math.floor(Math.random() * possibleFakeValues.length)
-      ] ??
-      Math.floor(Math.random() * 4) + 1;
+      pickFakeClockmakerDistance(realDistance, rng);
   } else {
     // 正常情况：计算所有恶魔与爪牙组合的最小距离
     const seats = [...snapshot.seats];

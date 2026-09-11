@@ -13,6 +13,11 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 // 前置校验：检查是否存活、是否醉酒/中毒
 const preCheckAliveAndStatus = async (
@@ -44,6 +49,20 @@ const preCheckAliveAndStatus = async (
   };
 };
 
+/**
+ * 醉酒/中毒时随机挑一名"假孙子"。
+ *
+ * rng 必须由调用方注入：calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，预演告知的孙子与实际告知的不是同一人。
+ */
+export function pickFakeGrandchildId(
+  seats: any[],
+  rng: DeterministicRandom = Math.random
+): number {
+  if (seats.length === 0) return -1;
+  return seats[Math.floor(rng() * seats.length)].id;
+}
+
 // 计算结果：告知孙子信息
 const calculateResult = async (
   context: MiddlewareContext
@@ -51,6 +70,15 @@ const calculateResult = async (
   const { snapshot, meta, actionNode } = context;
   const isAbilityActive = meta.isAbilityActive ?? true;
   const selfSeat = snapshot.seats.find((s) => s.id === actionNode.seatId);
+
+  // 🎲 确定性随机：同一夜、同一祖母的重复计算必须得到同一名孙子
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "grandmother",
+      actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
+  );
 
   let result: {
     grandchildId: number;
@@ -61,8 +89,7 @@ const calculateResult = async (
   if (!isAbilityActive || !selfSeat) {
     // 醉酒/中毒或找不到自己时返回虚假信息
     result = {
-      grandchildId:
-        snapshot.seats[Math.floor(Math.random() * snapshot.seats.length)].id,
+      grandchildId: pickFakeGrandchildId(snapshot.seats, rng),
       grandchildRoleId: "villager",
       grandchildRoleName: "镇民",
     };

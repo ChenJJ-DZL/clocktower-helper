@@ -7,9 +7,34 @@
 import type { Seat } from "../../../app/data";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+/**
+ * 醉酒/中毒/涡流时，随机给出一个 ≠ 真实值的错误数字。
+ *
+ * 抽取 rng 参数：同一夜同一角色的「提示预演」与「实际执行」必须得到同一个
+ * 数字，否则说书人照提示念的数字与结果弹窗对不上。
+ */
+export function pickFakeDeadEvilCount(
+  deadEvilCount: number,
+  seatCount: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  const fakeCandidates = [0, 1, 2, 3, 4].filter(
+    (n) => n <= seatCount && n !== deadEvilCount
+  );
+  return (
+    fakeCandidates[Math.floor(rng() * fakeCandidates.length)] ??
+    (deadEvilCount === 0 ? 1 : 0)
+  );
+}
 
 // 前置校验：检查是否存活、是否醉酒/中毒
 const preCheckAliveAndStatus = async (
@@ -71,6 +96,11 @@ const calculateResult = async (
 
   const isCorrupted = !abilityEffective || !isAbilityActive;
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("oracle", context.actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
   // 确定最终显示的信息
   let finalCount = deadEvilCount;
 
@@ -80,12 +110,11 @@ const calculateResult = async (
     finalCount = Number(storytellerInput.fakeResult);
   } else if (isCorrupted || hasVortox || isVortoxWorld) {
     // 醉酒/中毒/涡流时：必须返回与 deadEvilCount 不同的错误数字
-    const fakeCandidates = [0, 1, 2, 3, 4].filter(
-      (n) => n <= snapshot.seats.length && n !== deadEvilCount
+    finalCount = pickFakeDeadEvilCount(
+      deadEvilCount,
+      snapshot.seats.length,
+      rng
     );
-    finalCount =
-      fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)] ??
-      (deadEvilCount === 0 ? 1 : 0);
   }
 
   const result = {

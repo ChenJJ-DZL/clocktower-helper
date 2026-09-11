@@ -54,6 +54,11 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -214,11 +219,17 @@ function getScriptMinionRoles(seats: PlayerLookup[]): string[] {
 
 /**
  * Fisher-Yates 洗牌算法
+ *
+ * rng 必须由调用方逐层传下来：本函数是"内部工具函数"，
+ * 漏传 rng 会让整条调用链在底层重新变回真随机。
  */
-function shuffleArray<T>(arr: T[]): T[] {
+function shuffleArray<T>(
+  arr: T[],
+  rng: DeterministicRandom = Math.random
+): T[] {
   const shuffled = [...arr];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
@@ -234,9 +245,10 @@ function shuffleArray<T>(arr: T[]): T[] {
  *
  * 无爪牙候选时返回角色名 ""（表示没有爪牙在场）。
  */
-function generateRealInfo(
+export function generateRealInfo(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  rng: DeterministicRandom = Math.random
 ): InvestigatorInfo {
   const minionCandidates = getMinionCandidates(seats, selfSeatId);
 
@@ -244,7 +256,7 @@ function generateRealInfo(
     return { seat1: -1, seat2: -1, roleName: "" };
   }
 
-  const targetIdx = Math.floor(Math.random() * minionCandidates.length);
+  const targetIdx = Math.floor(rng() * minionCandidates.length);
   const { seat: targetSeat, roleName: targetRoleName } =
     minionCandidates[targetIdx];
 
@@ -254,11 +266,11 @@ function generateRealInfo(
   );
   const decoySeat =
     decoyPool.length > 0
-      ? decoyPool[Math.floor(Math.random() * decoyPool.length)]
+      ? decoyPool[Math.floor(rng() * decoyPool.length)]
       : targetSeat;
 
   const ids =
-    Math.random() < 0.5
+    rng() < 0.5
       ? [targetSeat.id, decoySeat.id]
       : [decoySeat.id, targetSeat.id];
 
@@ -272,10 +284,11 @@ function generateRealInfo(
  * 他自己醉酒中毒了"。
  * 若场上无爪牙（极端情况），受干扰时绝对不能得知真实“0爪牙”，必须捏造假爪牙！
  */
-function generateFakeInfo(
+export function generateFakeInfo(
   seats: PlayerLookup[],
   selfSeatId: number,
-  realInfo?: InvestigatorInfo
+  realInfo?: InvestigatorInfo,
+  rng: DeterministicRandom = Math.random
 ): InvestigatorInfo {
   const minionRoles = getScriptMinionRoles(seats);
   const others = seats.filter(
@@ -291,11 +304,11 @@ function generateFakeInfo(
 
   // 如果真实有爪牙，可以小概率给出虚假的“0”（即谎称场上无爪牙）
   // 但若真实本身就是 0 爪牙，则绝对禁止给出 0，必须捏造一个爪牙！
-  if (!isActuallyZero && Math.random() < 0.3) {
+  if (!isActuallyZero && rng() < 0.3) {
     return { seat1: -1, seat2: -1, roleName: "" };
   }
 
-  const shuffled = shuffleArray(others);
+  const shuffled = shuffleArray(others, rng);
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
@@ -310,7 +323,7 @@ function generateFakeInfo(
 
   const roleName =
     candidatePool.length > 0
-      ? candidatePool[Math.floor(Math.random() * candidatePool.length)]
+      ? candidatePool[Math.floor(rng() * candidatePool.length)]
       : "投毒者";
 
   return { seat1, seat2, roleName };
@@ -334,7 +347,8 @@ function resolveInvestigatorInfo(
   selfSeatId: number,
   abilityEffective: boolean,
   storytellerInput?: any,
-  initialNightInfo?: any
+  initialNightInfo?: any,
+  rng: DeterministicRandom = Math.random
 ): InvestigatorInfo {
   // 优先级 1：说书人手动覆盖（无条件采用）
   if (storytellerInput?.overrideResult) {
@@ -357,7 +371,7 @@ function resolveInvestigatorInfo(
         seat2: info.seat2,
         roleName:
           others.length > 0
-            ? others[Math.floor(Math.random() * others.length)]
+            ? others[Math.floor(rng() * others.length)]
             : info.roleName,
       };
     }
@@ -366,8 +380,8 @@ function resolveInvestigatorInfo(
 
   // 优先级 4：动态生成
   return abilityEffective
-    ? generateRealInfo(snapshot.seats, selfSeatId)
-    : generateFakeInfo(snapshot.seats, selfSeatId, undefined);
+    ? generateRealInfo(snapshot.seats, selfSeatId, rng)
+    : generateFakeInfo(snapshot.seats, selfSeatId, undefined, rng);
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
@@ -391,12 +405,23 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到调查员座位" };
   }
 
+  // 🎲 确定性随机：同一夜、同一调查员的重复计算（生成"当前的行动"预演 +
+  // 真正结算）必须得到完全相同的信息，否则说书人照预演念、魔典却按另一份结果标记。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "investigator",
+      selfSeatId,
+      snapshot.nightCount ?? 1
+    )
+  );
+
   const info = resolveInvestigatorInfo(
     snapshot,
     selfSeatId,
     abilityEffective,
     storytellerInput,
-    meta.initialNightInfo
+    meta.initialNightInfo,
+    rng
   );
 
   return {

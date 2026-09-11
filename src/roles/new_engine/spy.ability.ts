@@ -67,6 +67,11 @@
  * ============================================================
  */
 
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -275,10 +280,13 @@ function buildGrimoireEntry(seat: PlayerLookup): GrimoirePlayerEntry {
 /**
  * Fisher-Yates 洗牌算法。
  */
-function shuffleIndices(n: number): number[] {
+export function shuffleIndices(
+  n: number,
+  rng: DeterministicRandom = Math.random
+): number[] {
   const arr = Array.from({ length: n }, (_, i) => i);
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
@@ -315,14 +323,17 @@ function swapRoles(players: GrimoirePlayerEntry[], i: number, j: number): void {
  * - 每对玩家只参与一次交换（Fisher-Yates 打乱后按相邻配对）
  * - 每次调用均重新随机，连续醉酒时每晚的交换对完全不同
  */
-function corruptGrimoireData(data: GrimoireData): GrimoireData {
+export function corruptGrimoireData(
+  data: GrimoireData,
+  rng: DeterministicRandom = Math.random
+): GrimoireData {
   const players = [...data.players];
   const count = players.length;
   const pairCount = Math.floor(count / 2);
 
   if (pairCount >= 1) {
     // Fisher-Yates 打乱索引，然后每相邻两个为一对进行交换
-    const indices = shuffleIndices(count);
+    const indices = shuffleIndices(count, rng);
 
     for (let p = 0; p < pairCount; p++) {
       const i = indices[p * 2];
@@ -378,11 +389,12 @@ function extractRecentActions(snapshot: any, nightCount: number): string[] {
 /**
  * 构建完整魔典数据。
  */
-function buildGrimoireData(
+export function buildGrimoireData(
   seats: PlayerLookup[],
   snapshot: any,
   nightCount: number,
-  isCorrupted: boolean
+  isCorrupted: boolean,
+  rng: DeterministicRandom = Math.random
 ): GrimoireData {
   const playerEntries = seats.map(buildGrimoireEntry);
   const globalEffects: string[] = [];
@@ -400,7 +412,7 @@ function buildGrimoireData(
   };
 
   if (isCorrupted) {
-    return corruptGrimoireData(data);
+    return corruptGrimoireData(data, rng);
   }
 
   return data;
@@ -442,12 +454,19 @@ const calculateGrimoire = async (
     };
   }
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的魔典内容（受干扰时的角色交换对也一致）。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("spy", context.actionNode.seatId, nightCount || 1)
+  );
+
   // 优先级 2：动态构建
   const grimoireData = buildGrimoireData(
     seats,
     snapshot,
     nightCount,
-    !abilityEffective
+    !abilityEffective,
+    rng
   );
 
   return {

@@ -9,11 +9,90 @@
  *   - 阶段 1（首夜）：从剧本中"不在场"角色中选 3 个善良角色 → 推送给所有存活爪牙
  *   - 提线木偶相克：marionette 在场时，跳过 marionette；改由恶魔额外推送 3 角色
  */
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+/**
+ * Fisher-Yates 洗牌（原实现用 `sort(() => Math.random() - 0.5)`，
+ * 既不是均匀分布、也无法注入确定性随机）。
+ */
+export function shuffleWithRng<T>(
+  arr: readonly T[],
+  rng: DeterministicRandom = Math.random
+): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
+ * 从「不在场角色」中选出最多 count 个作为爪牙的伪装角色名。
+ * 优先取不在场镇民，不足时用不在场外来者补齐（排除酒鬼）。
+ */
+export function pickAbsentRoleNames(
+  allRoles: any[],
+  assignedRoleIds: Set<string>,
+  rng: DeterministicRandom = Math.random,
+  count = 3
+): string[] {
+  const absentTownsfolk = allRoles.filter(
+    (r) =>
+      r.type === "townsfolk" && !assignedRoleIds.has(r.id) && r.id !== "drunk"
+  );
+  const absentOutsider = allRoles.filter(
+    (r) => r.type === "outsider" && !assignedRoleIds.has(r.id)
+  );
+
+  const shuffledTf = shuffleWithRng(absentTownsfolk, rng);
+  const shuffledOs = shuffleWithRng(absentOutsider, rng);
+
+  const picked: string[] = [];
+  for (const r of shuffledTf) {
+    if (picked.length >= count) break;
+    picked.push(r.name);
+  }
+  if (picked.length < count) {
+    for (const r of shuffledOs) {
+      if (picked.length >= count) break;
+      picked.push(r.name);
+    }
+  }
+  return picked;
+}
+
+/**
+ * 提线木偶相克时，恶魔额外得知的 count 个「不在场角色」（与 picked 不重复）。
+ */
+export function pickExtraAbsentRoleNames(
+  allRoles: any[],
+  excludeNames: readonly string[],
+  rng: DeterministicRandom = Math.random,
+  count = 3
+): string[] {
+  const remaining = allRoles.filter(
+    (r) =>
+      !excludeNames.includes(r.name) &&
+      r.id !== "drunk" &&
+      (r.type === "townsfolk" || r.type === "outsider")
+  );
+  const picked: string[] = [];
+  for (const r of shuffleWithRng(remaining, rng)) {
+    if (picked.length >= count) break;
+    picked.push(r.name);
+  }
+  return picked;
+}
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   // 仅首夜触发
@@ -33,27 +112,19 @@ const calculate = async (
   const assignedRoleIds = new Set(
     (ctx.snapshot.seats as any[]).filter((s) => s.role).map((s) => s.role.id)
   );
-  const absentTownsfolk = allRoles.filter(
-    (r) =>
-      r.type === "townsfolk" && !assignedRoleIds.has(r.id) && r.id !== "drunk"
+
+  // 🎲 确定性随机：首夜行动会被计算两次（提示预演 / 实际执行），
+  // 必须保证两次推送的是同一组不在场角色。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "snitch",
+      ctx.actionNode.seatId,
+      ctx.snapshot.nightCount ?? 1
+    )
   );
-  const absentOutsider = allRoles.filter(
-    (r) => r.type === "outsider" && !assignedRoleIds.has(r.id)
-  );
+
   // 随机选 3 个
-  const shuffledTf = [...absentTownsfolk].sort(() => Math.random() - 0.5);
-  const shuffledOs = [...absentOutsider].sort(() => Math.random() - 0.5);
-  const picked: string[] = [];
-  for (const r of shuffledTf) {
-    if (picked.length >= 3) break;
-    picked.push(r.name);
-  }
-  if (picked.length < 3) {
-    for (const r of shuffledOs) {
-      if (picked.length >= 3) break;
-      picked.push(r.name);
-    }
-  }
+  const picked = pickAbsentRoleNames(allRoles, assignedRoleIds, rng);
 
   // 提线木偶相克：marionette 在场时跳过 marionette（用 storytellerInput.marionetteSeatId 标记）
   const marionetteId = (ctx.storytellerInput as any)?.marionetteSeatId;
@@ -72,17 +143,9 @@ const calculate = async (
   const demonExtraAbsentRoles: string[] = [];
   if (skipMarionette) {
     // 重新选 3 个不同的角色（与原 picked 不同）
-    const remaining = allRoles.filter(
-      (r) =>
-        !picked.includes(r.name) &&
-        r.id !== "drunk" &&
-        (r.type === "townsfolk" || r.type === "outsider")
+    demonExtraAbsentRoles.push(
+      ...pickExtraAbsentRoleNames(allRoles, picked, rng)
     );
-    const shuffledRemaining = [...remaining].sort(() => Math.random() - 0.5);
-    for (const r of shuffledRemaining) {
-      if (demonExtraAbsentRoles.length >= 3) break;
-      demonExtraAbsentRoles.push(r.name);
-    }
   }
 
   return {

@@ -8,9 +8,28 @@
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+/**
+ * 从存活玩家中随机挑一名作为阵营翻转目标。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export function pickChaosTargetId(
+  aliveSeats: any[],
+  rng: DeterministicRandom = Math.random
+): number | null {
+  return aliveSeats.length > 0
+    ? aliveSeats[Math.floor(rng() * aliveSeats.length)].id
+    : null;
+}
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
@@ -20,10 +39,16 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const aliveSeats = ctx.snapshot.seats.filter((s: any) => s.isAlive);
-  const targetId =
-    aliveSeats.length > 0
-      ? aliveSeats[Math.floor(Math.random() * aliveSeats.length)].id
-      : null;
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须选中
+  // 同一名玩家，否则提示里写的「随机选中N号」会与结算结果对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "deus_ex_fiasco",
+      ctx.actionNode.seatId,
+      ctx.snapshot.nightCount ?? 1
+    )
+  );
+  const targetId = pickChaosTargetId(aliveSeats, rng);
   return {
     ...ctx,
     meta: {

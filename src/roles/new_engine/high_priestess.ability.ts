@@ -11,6 +11,11 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -20,16 +25,37 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
 
+/**
+ * 从其他玩家中挑一名"交流指引对象"（模拟说书人的随机指定）。
+ *
+ * rng 必须由调用方注入：calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，预演指引的人与实际指引的人不同。
+ */
+export function pickGuideTargetId(
+  candidates: any[],
+  rng: DeterministicRandom = Math.random
+): number | null {
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(rng() * candidates.length)]?.id ?? null;
+}
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  // 🎲 确定性随机：同一夜、同一女祭司的重复计算必须指引到同一名玩家
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "high_priestess",
+      ctx.actionNode.seatId,
+      ctx.snapshot.nightCount ?? 1
+    )
+  );
+
   const candidates = ctx.snapshot.seats.filter(
     (s: any) => s.id !== ctx.actionNode.seatId
   );
   const targetId =
-    ctx.storytellerInput?.targetId ??
-    candidates[Math.floor(Math.random() * candidates.length)]?.id ??
-    null;
+    ctx.storytellerInput?.targetId ?? pickGuideTargetId(candidates, rng);
   return {
     ...ctx,
     meta: {

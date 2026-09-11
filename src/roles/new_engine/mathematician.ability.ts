@@ -14,10 +14,29 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+/**
+ * 醉酒/中毒时，随机给出一个 ≠ 真实值的错误数字（0~7）。
+ *
+ * 抽取 rng 参数：同一夜同一角色的「提示预演」与「实际执行」必须得到同一个
+ * 数字，否则说书人照提示念的数字与结果弹窗对不上。
+ */
+export function pickFakeAbnormalCount(
+  abnormalCount: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  const possible = [0, 1, 2, 3, 4, 5, 6, 7].filter((n) => n !== abnormalCount);
+  return possible[Math.floor(rng() * possible.length)] ?? 0;
+}
 
 // 计算结果：从snapshot中获取异常次数
 const calculateResult = async (
@@ -29,6 +48,15 @@ const calculateResult = async (
   // 从外部获取异常计数（storyteller 或 GameController 提供）
   const abnormalCount = snapshot.abnormalAbilityCount ?? 0;
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "mathematician",
+      context.actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
+  );
+
   // 醉酒/中毒时可能看到错误数字
   let result: number;
   if (!isAbilityActive) {
@@ -38,10 +66,7 @@ const calculateResult = async (
       result = fakeResult;
     } else {
       // 否则生成一个不同的随机值（0-7之间，不等于真实值）
-      const possible = [0, 1, 2, 3, 4, 5, 6, 7].filter(
-        (n) => n !== abnormalCount
-      );
-      result = possible[Math.floor(Math.random() * possible.length)] ?? 0;
+      result = pickFakeAbnormalCount(abnormalCount, rng);
     }
   } else {
     result = abnormalCount;

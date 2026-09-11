@@ -11,6 +11,11 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -51,6 +56,22 @@ const preCheckAlive = async (
   return context;
 };
 
+// ─── 辅助函数 ────────────────────────────────────────────────────────
+
+/**
+ * 从存活爪牙中选出继任者（随机）。
+ *
+ * 抽取 rng 参数：同一夜同一角色的「提示预演」与「实际执行」必须选中同一名
+ * 继任者，否则提示里预告的新利兹与实际继任的爪牙会是两个人。
+ */
+export function pickSuccessor(
+  aliveMinions: PlayerLookup[],
+  rng: DeterministicRandom = Math.random
+): PlayerLookup | null {
+  if (aliveMinions.length === 0) return null;
+  return aliveMinions[Math.floor(rng() * aliveMinions.length)];
+}
+
 // ─── 计算中间件 ───────────────────────────────────────────────────────
 
 /**
@@ -83,10 +104,11 @@ const calculateChoice = async (
     return roleType === "minion";
   });
 
-  const successor =
-    aliveMinions.length > 0
-      ? aliveMinions[Math.floor(Math.random() * aliveMinions.length)]
-      : null;
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("liz", context.actionNode.seatId, context.snapshot.nightCount ?? 1)
+  );
+  const successor = pickSuccessor(aliveMinions as PlayerLookup[], rng);
 
   return {
     ...context,

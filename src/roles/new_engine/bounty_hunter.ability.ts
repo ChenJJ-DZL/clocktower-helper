@@ -15,10 +15,59 @@
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
   createRoleAbility,
 } from "../core/roleAbility.types";
+
+// ─── 辅助函数 ─────────────────────────────────────────────────────────
+
+/**
+ * 醉酒/中毒/涡流：从「非邪恶的存活玩家」中随机挑一名作为假目标。
+ * 极端全邪恶情况下退回指向自己。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export function pickFakeBountyTargetId(
+  seats: any[],
+  selfSeatId: number,
+  aliveEvils: any[],
+  rng: DeterministicRandom = Math.random
+): number {
+  const nonEvilAlive = seats.filter(
+    (s: any) =>
+      s.isAlive &&
+      s.id !== selfSeatId &&
+      !aliveEvils.some((e: any) => e.id === s.id)
+  );
+  if (nonEvilAlive.length === 0) {
+    // 极端全邪恶情况，指向自己作为假目标
+    return selfSeatId;
+  }
+  return nonEvilAlive[Math.floor(rng() * nonEvilAlive.length)].id;
+}
+
+/**
+ * 正常情况：优先得知非恶魔的邪恶玩家，并从中随机挑一名。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export function pickEvilBountyTargetId(
+  aliveEvils: any[],
+  rng: DeterministicRandom = Math.random
+): number | null {
+  if (aliveEvils.length === 0) return null;
+  const nonDemonEvils = aliveEvils.filter(
+    (s: any) => s.role?.type !== "demon"
+  );
+  const pool = nonDemonEvils.length > 0 ? nonDemonEvils : aliveEvils;
+  return pool[Math.floor(rng() * pool.length)].id;
+}
 
 // 计算阶段：选择一名邪恶玩家（支持转邪恶镇民、说书人指定输入、首夜及后续击杀死亡轮转）
 const calculateResult = async (
@@ -34,6 +83,16 @@ const calculateResult = async (
     (ctx.snapshot as any).bountyHunterKnownTargets ?? [];
 
   let targetId: number | null = null;
+
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须选出
+  // 同一名玩家，否则说书人照提示念的目标会与结果弹窗、魔典标记对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "bounty_hunter",
+      ctx.actionNode.seatId,
+      ctx.snapshot.nightCount ?? 1
+    )
+  );
 
   if (storytellerTarget !== undefined && storytellerTarget !== null) {
     targetId = Number(storytellerTarget);
@@ -65,26 +124,15 @@ const calculateResult = async (
 
     if (isCorrupted) {
       // 醉酒/中毒/涡流：必须返回虚假目标（绝对不能指向邪恶玩家）
-      const nonEvilAlive = ctx.snapshot.seats.filter(
-        (s: any) =>
-          s.isAlive &&
-          s.id !== ctx.actionNode.seatId &&
-          !aliveEvils.some((e: any) => e.id === s.id)
+      targetId = pickFakeBountyTargetId(
+        ctx.snapshot.seats,
+        ctx.actionNode.seatId,
+        aliveEvils,
+        rng
       );
-      if (nonEvilAlive.length > 0) {
-        targetId =
-          nonEvilAlive[Math.floor(Math.random() * nonEvilAlive.length)].id;
-      } else {
-        // 极端全邪恶情况，指向自己作为假目标
-        targetId = ctx.actionNode.seatId;
-      }
-    } else if (aliveEvils.length > 0) {
+    } else {
       // 正常情况：优先得知非恶魔的邪恶玩家
-      const nonDemonEvils = aliveEvils.filter(
-        (s: any) => s.role?.type !== "demon"
-      );
-      const pool = nonDemonEvils.length > 0 ? nonDemonEvils : aliveEvils;
-      targetId = pool[Math.floor(Math.random() * pool.length)].id;
+      targetId = pickEvilBountyTargetId(aliveEvils, rng);
     }
   }
 

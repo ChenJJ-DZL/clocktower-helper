@@ -46,6 +46,11 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -295,18 +300,21 @@ function countEvilNeighbors(
  *
  * 🔧 规则（用户确认参数）：中毒/醉酒状态下，得知的信息 100% 错误。
  * 从 0-2 中排除真实值后随机，保证必然与真实数量不同。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
  */
-function generateFakeEvilCount(
+export function generateFakeEvilCount(
   _seats: PlayerLookup[],
   _selfIdx: number,
-  realCount: number
+  realCount: number,
+  rng: DeterministicRandom = Math.random
 ): number {
   const candidates: number[] = [];
   for (let v = 0; v <= 2; v++) {
     if (v !== realCount) candidates.push(v);
   }
   return candidates.length > 0
-    ? candidates[Math.floor(Math.random() * candidates.length)]
+    ? candidates[Math.floor(rng() * candidates.length)]
     : realCount === 0
       ? 1
       : 0;
@@ -343,6 +351,12 @@ const calculateResult = async (
   }
   const selfIdx = seats.indexOf(selfSeat);
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的数字，否则说书人照提示念的结果会与结果弹窗对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("empath", actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
   let evilNeighborCount: number;
 
   // 优先级 1：说书人手动完全覆盖
@@ -358,14 +372,14 @@ const calculateResult = async (
     const realCount = meta.initialNightInfo.empathInfo as number;
     evilNeighborCount = abilityEffective
       ? realCount
-      : generateFakeEvilCount(seats, selfIdx, realCount);
+      : generateFakeEvilCount(seats, selfIdx, realCount, rng);
   }
   // 优先级 4：动态计算
   else {
     const realCount = countEvilNeighbors(seats, selfIdx, meta);
     evilNeighborCount = abilityEffective
       ? realCount
-      : generateFakeEvilCount(seats, selfIdx, realCount);
+      : generateFakeEvilCount(seats, selfIdx, realCount, rng);
   }
 
   return {

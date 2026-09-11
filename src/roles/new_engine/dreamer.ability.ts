@@ -8,6 +8,11 @@
 import type { Role } from "../../types/game";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -41,9 +46,16 @@ const preCheckAliveAndStatus = async (
   };
 };
 
-// 辅助函数：随机选择数组元素
-const getRandom = <T>(arr: T[]): T => {
-  return arr[Math.floor(Math.random() * arr.length)];
+/**
+ * 辅助函数：随机选择数组元素。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export const getRandom = <T>(
+  arr: T[],
+  rng: DeterministicRandom = Math.random
+): T => {
+  return arr[Math.floor(rng() * arr.length)];
 };
 
 // 计算结果：生成善良和邪恶角色对
@@ -67,6 +79,16 @@ const calculateResult = async (
 
   const actualRole = targetSeat.role;
   const isVortoxWorld = snapshot.isVortoxWorld ?? false;
+
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须给出
+  // 同一对角色（且同样的顺序），否则说书人照提示念的内容会与结果弹窗对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "dreamer",
+      context.actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
+  );
 
   // 检查场上是否有涡流
   const hasVortox = snapshot.seats.some((s) => s.role?.id === "vortox");
@@ -108,9 +130,9 @@ const calculateResult = async (
 
     if (isTargetGood) {
       roleA = actualRole;
-      roleB = getRandom(evilRoles);
+      roleB = getRandom(evilRoles, rng);
     } else {
-      roleA = getRandom(goodRoles);
+      roleA = getRandom(goodRoles, rng);
       roleB = actualRole;
     }
   } else {
@@ -122,17 +144,23 @@ const calculateResult = async (
 
     if (isTargetGood) {
       // 目标是善良，但显示两个虚假角色
-      roleA = getRandom(goodRoles.filter((r: Role) => r.id !== actualRole.id));
-      roleB = getRandom(evilRoles);
+      roleA = getRandom(
+        goodRoles.filter((r: Role) => r.id !== actualRole.id),
+        rng
+      );
+      roleB = getRandom(evilRoles, rng);
     } else {
       // 目标是邪恶，但显示两个虚假角色
-      roleA = getRandom(goodRoles);
-      roleB = getRandom(evilRoles.filter((r: Role) => r.id !== actualRole.id));
+      roleA = getRandom(goodRoles, rng);
+      roleB = getRandom(
+        evilRoles.filter((r: Role) => r.id !== actualRole.id),
+        rng
+      );
     }
   }
 
   // 随机交换位置（如果未由说书人显式指定）
-  if (!context.storytellerInput?.roleA && Math.random() < 0.5) {
+  if (!context.storytellerInput?.roleA && rng() < 0.5) {
     [roleA, roleB] = [roleB, roleA];
   }
 

@@ -75,6 +75,11 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -168,11 +173,14 @@ const firstNightOnlyCheck = async (
  * 1. storytellerInput.fakeRole — 说书人手动指定
  * 2. 从 seats 中随机选一个不在场的镇民角色
  * 3. 从 seats 中随机选一个在场的镇民角色（兜底）
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
  */
-function selectFakeRole(
+export function selectFakeRole(
   seats: PlayerLookup[],
   drunkSeatId: number,
-  storytellerInput?: any
+  storytellerInput?: any,
+  rng: DeterministicRandom = Math.random
 ): { id: string; name: string; type: string } {
   // 优先级 1：说书人指定
   if (storytellerInput?.fakeRole) {
@@ -196,7 +204,7 @@ function selectFakeRole(
   // 随机选一个在场镇民的角色名作为 fakeRole
   // （规则：酒鬼以为自己是场上的某个镇民角色）
   const randomSeat =
-    presentTownsfolk[Math.floor(Math.random() * presentTownsfolk.length)];
+    presentTownsfolk[Math.floor(rng() * presentTownsfolk.length)];
   return {
     id: randomSeat.role!.id,
     name: randomSeat.role!.name,
@@ -223,7 +231,18 @@ const calculateFakeRole = async (
     return { ...context, aborted: true, abortReason: "无座位数据" };
   }
 
-  const fakeRole = selectFakeRole(seats, actionNode.seatId, storytellerInput);
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须挑中
+  // 同一个镇民身份，否则说书人在提示里看到的酒鬼伪装角色会与结算结果对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("drunk", actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
+  const fakeRole = selectFakeRole(
+    seats,
+    actionNode.seatId,
+    storytellerInput,
+    rng
+  );
 
   return {
     ...context,

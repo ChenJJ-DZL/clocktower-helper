@@ -8,6 +8,11 @@
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -25,16 +30,42 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
 
+/**
+ * 从存活的其他玩家中随机挑一名带走。
+ *
+ * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
+ */
+export function pickExecutionerVictim(
+  seats: any[],
+  executionerSeatId: number,
+  rng: DeterministicRandom = Math.random
+): any | null {
+  const others = seats.filter(
+    (s: any) => s.id !== executionerSeatId && s.isAlive
+  );
+  if (others.length === 0) return null;
+  return others[Math.floor(rng() * others.length)];
+}
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  // 从存活的其他玩家中随机选一个
-  const others = ctx.snapshot.seats.filter(
-    (s: any) => s.id !== ctx.actionNode.seatId && s.isAlive
+  // 🎲 确定性随机：同一天、同一角色的重复计算（提示预演 / 实际执行）必须选中
+  // 同一名玩家，否则提示里写的随机目标会与结算结果对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed(
+      "executioner",
+      ctx.actionNode.seatId,
+      ctx.snapshot.nightCount ?? 1
+    )
   );
-  if (others.length === 0)
+  const target = pickExecutionerVictim(
+    ctx.snapshot.seats,
+    ctx.actionNode.seatId,
+    rng
+  );
+  if (!target)
     return { ...ctx, aborted: true, abortReason: "无其他存活玩家" };
-  const target = others[Math.floor(Math.random() * others.length)];
   return {
     ...ctx,
     meta: {

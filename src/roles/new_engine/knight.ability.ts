@@ -34,6 +34,11 @@
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
+import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
@@ -150,14 +155,33 @@ function getNonDemonCandidates(
   });
 }
 
-function generateRealInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
+/**
+ * Fisher-Yates 洗牌（用 rng 而非 Math.random，保证预演/执行结果一致）
+ */
+export function shuffleWith<T>(
+  arr: T[],
+  rng: DeterministicRandom = Math.random
+): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export function generateRealInfo(
+  seats: PlayerSeat[],
+  selfSeatId: number,
+  rng: DeterministicRandom = Math.random
+): KnightInfo {
   const candidates = getNonDemonCandidates(seats, selfSeatId);
 
   if (candidates.length === 0) {
     return { seat1: selfSeatId, seat2: selfSeatId };
   }
 
-  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleWith(candidates, rng);
   const chosen = shuffled.slice(0, 2);
 
   return {
@@ -166,7 +190,11 @@ function generateRealInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
   };
 }
 
-function generateFakeInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
+export function generateFakeInfo(
+  seats: PlayerSeat[],
+  selfSeatId: number,
+  rng: DeterministicRandom = Math.random
+): KnightInfo {
   // 假信息定义：两名玩家中必须至少有 1 名是恶魔（真信息是"2名玩家不是恶魔"）
   const demons = seats.filter(
     (s: any) =>
@@ -179,13 +207,13 @@ function generateFakeInfo(seats: PlayerSeat[], selfSeatId: number): KnightInfo {
   );
 
   if (demons.length > 0) {
-    const demon = demons[Math.floor(Math.random() * demons.length)];
+    const demon = demons[Math.floor(rng() * demons.length)];
     const otherCandidates = others.filter((s: any) => s.id !== demon.id);
     const second =
       otherCandidates.length > 0
-        ? otherCandidates[Math.floor(Math.random() * otherCandidates.length)]
+        ? otherCandidates[Math.floor(rng() * otherCandidates.length)]
         : demon;
-    const pair = [demon.id, second.id].sort(() => Math.random() - 0.5);
+    const pair = shuffleWith([demon.id, second.id], rng);
     return { seat1: pair[0], seat2: pair[1] };
   }
 
@@ -201,7 +229,8 @@ function resolveKnightInfo(
   snapshot: any,
   selfSeatId: number,
   abilityEffective: boolean,
-  storytellerInput?: any
+  storytellerInput?: any,
+  rng: DeterministicRandom = Math.random
 ): KnightInfo {
   if (storytellerInput?.overrideResult) {
     return storytellerInput.overrideResult as KnightInfo;
@@ -217,8 +246,8 @@ function resolveKnightInfo(
   const isCorrupted = !abilityEffective || hasVortox;
 
   return isCorrupted
-    ? generateFakeInfo(snapshot.seats, selfSeatId)
-    : generateRealInfo(snapshot.seats, selfSeatId);
+    ? generateFakeInfo(snapshot.seats, selfSeatId, rng)
+    : generateRealInfo(snapshot.seats, selfSeatId, rng);
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────
@@ -235,11 +264,17 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到骑士座位" };
   }
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("knight", selfSeatId, snapshot.nightCount ?? 1)
+  );
+
   const info = resolveKnightInfo(
     snapshot,
     selfSeatId,
     abilityEffective,
-    storytellerInput
+    storytellerInput,
+    rng
   );
 
   return {

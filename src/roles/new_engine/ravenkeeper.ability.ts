@@ -44,6 +44,11 @@
  * ============================================================
  */
 
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -133,9 +138,10 @@ const preCheckDeathAndStatus = async (
  *   按实际调用 effectiveRole / charadeRole 后的显示名返回。
  * - 酒鬼：展示酒鬼角色标记而非其以为的角色标记。
  */
-function resolveTargetRole(
+export function resolveTargetRole(
   targetSeat: PlayerLookup,
-  seats: PlayerLookup[]
+  seats: PlayerLookup[],
+  rng: DeterministicRandom = Math.random
 ): string {
   const realRole = targetSeat.role;
   const displayRole =
@@ -151,8 +157,7 @@ function resolveTargetRole(
         (s: any) => s.role?.type === "minion" || s.role?.type === "demon"
       );
       if (evilRoles.length > 0) {
-        const randomEvil =
-          evilRoles[Math.floor(Math.random() * evilRoles.length)];
+        const randomEvil = evilRoles[Math.floor(rng() * evilRoles.length)];
         return randomEvil.role?.name ?? displayRole?.name ?? "未知角色";
       }
     }
@@ -168,8 +173,7 @@ function resolveTargetRole(
         (s: any) => s.role?.type === "townsfolk" || s.role?.type === "outsider"
       );
       if (goodRoles.length > 0) {
-        const randomGood =
-          goodRoles[Math.floor(Math.random() * goodRoles.length)];
+        const randomGood = goodRoles[Math.floor(rng() * goodRoles.length)];
         return randomGood.role?.name ?? displayRole?.name ?? "未知角色";
       }
     }
@@ -184,9 +188,10 @@ function resolveTargetRole(
  * 规则：醉酒/中毒的守鸦人仍然被唤醒，但获得的信息可能是错误的。
  * 从场上其他玩家中随机取一个角色名作为虚假结果。
  */
-function generateFakeRoleName(
+export function generateFakeRoleName(
   seats: PlayerLookup[],
-  realRoleName?: string
+  realRoleName?: string,
+  rng: DeterministicRandom = Math.random
 ): string {
   const validCandidates = seats
     .map((s: any) => s.role?.name)
@@ -194,7 +199,7 @@ function generateFakeRoleName(
       (name: any): name is string => Boolean(name && name !== realRoleName)
     );
   if (validCandidates.length > 0) {
-    return validCandidates[Math.floor(Math.random() * validCandidates.length)];
+    return validCandidates[Math.floor(rng() * validCandidates.length)];
   }
   return realRoleName === "洗衣妇" ? "厨师" : "洗衣妇";
 }
@@ -266,9 +271,15 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "目标玩家不存在" };
   }
 
-  const realRoleName = resolveTargetRole(targetSeat, snapshot.seats);
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的角色名，否则说书人照提示念的内容会与结果弹窗、魔典标记对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("ravenkeeper", context.actionNode.seatId, snapshot.nightCount ?? 1)
+  );
+
+  const realRoleName = resolveTargetRole(targetSeat, snapshot.seats, rng);
   const roleName = isCorrupted
-    ? generateFakeRoleName(snapshot.seats, realRoleName)
+    ? generateFakeRoleName(snapshot.seats, realRoleName, rng)
     : realRoleName;
 
   const result: RavenkeeperInfo = {

@@ -11,6 +11,11 @@ import {
   canUseLimitedAbility,
   consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -42,6 +47,25 @@ const firstDayOnlyCheck = async (
   }
   return ctx;
 };
+
+// ─── 辅助函数 ────────────────────────────────────────────────────────
+
+/**
+ * 醉酒/中毒/涡流时，随机给出一个 ≠ 真实猜对数的数字（0~5）。
+ *
+ * 抽取 rng 参数：同一夜同一角色的「提示预演」与「实际执行」必须得到同一个
+ * 数字，否则说书人照提示念的数字与结果弹窗 / 魔典标记对不上。
+ */
+export function pickFakeCorrectCount(
+  realCount: number,
+  rng: DeterministicRandom = Math.random
+): number {
+  const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
+  if (fakeCandidates.length === 0) {
+    return realCount === 0 ? 1 : 0;
+  }
+  return fakeCandidates[Math.floor(rng() * fakeCandidates.length)];
+}
 
 const calculate = async (
   ctx: MiddlewareContext
@@ -97,6 +121,11 @@ const calculate = async (
     ) || ctx.snapshot.seats.some((s: any) => s.role?.id === "vortox" && !s.isDead);
   const isCorrupted = !isAbilityActive || hasVortox;
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
+  const rng = createDeterministicRandom(
+    nightInfoSeed("juggler", ctx.actionNode.seatId, ctx.snapshot.nightCount ?? 1)
+  );
+
   let finalCount = realCount;
   if (ctx.storytellerInput?.overrideResult !== undefined) {
     finalCount = Number(ctx.storytellerInput.overrideResult);
@@ -106,13 +135,7 @@ const calculate = async (
     // 说书人在中毒/涡流时显式指定的告知数字
     finalCount = Number(ctx.storytellerInput.correctCount);
   } else if (isCorrupted) {
-    const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
-    finalCount =
-      fakeCandidates.length > 0
-        ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
-        : realCount === 0
-          ? 1
-          : 0;
+    finalCount = pickFakeCorrectCount(realCount, rng);
   }
 
   return {

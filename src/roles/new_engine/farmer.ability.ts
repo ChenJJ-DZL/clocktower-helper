@@ -16,6 +16,11 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 import { getEligibleFarmerSuccessors } from "../../utils/expansionMechanics";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -58,10 +63,30 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   };
 };
 
+/**
+ * 从合格继承者中挑一名（模拟说书人的随机指定）。
+ *
+ * rng 必须由调用方注入：calculate 会被执行两次（生成"当前的行动"预演 +
+ * 真正结算），若两处各自调用 Math.random()，两次会挑到不同的继承者。
+ */
+export function pickFarmerSuccessor(
+  candidates: any[],
+  rng: DeterministicRandom = Math.random
+): any | null {
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(rng() * candidates.length)];
+}
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const isAbilityActive = ctx.meta.isAbilityActive !== false;
+
+  // 🎲 确定性随机：同一夜、同一农夫的重复计算（提示预演 / 实际执行）必须挑到
+  // 同一名继承者，否则「当前的行动」提示与实际改写的座位会对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("farmer", ctx.actionNode.seatId, ctx.snapshot.nightCount ?? 1)
+  );
   if (!isAbilityActive) {
     return {
       ...ctx,
@@ -87,8 +112,8 @@ const calculate = async (
     chosen = ctx.snapshot.seats.find(
       (s: any) => s.id === ctx.storytellerInput.newFarmerSeatId
     );
-  } else if (eligibleCandidates.length > 0) {
-    chosen = eligibleCandidates[Math.floor(Math.random() * eligibleCandidates.length)];
+  } else {
+    chosen = pickFarmerSuccessor(eligibleCandidates, rng);
   }
 
   return {

@@ -50,6 +50,11 @@
  */
 
 import { roles } from "../../../app/data";
+import {
+  createDeterministicRandom,
+  type DeterministicRandom,
+  nightInfoSeed,
+} from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -204,10 +209,13 @@ function getScriptTownsfolkRoles(seats: PlayerLookup[]): string[] {
 /**
  * Fisher-Yates 洗牌算法
  */
-function shuffleArray<T>(arr: T[]): T[] {
+export function shuffleArray<T>(
+  arr: T[],
+  rng: DeterministicRandom = Math.random
+): T[] {
   const shuffled = [...arr];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
@@ -224,9 +232,10 @@ function shuffleArray<T>(arr: T[]): T[] {
  * 极端情况（无镇民候选，如 5 人局 + 男爵）：
  *   对应规则："洗衣妇会得知自己与任意一名玩家之中有洗衣妇"
  */
-function generateRealInfo(
+export function generateRealInfo(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  rng: DeterministicRandom = Math.random
 ): WasherwomanInfo {
   const townsfolkCandidates = getTownsfolkCandidates(seats, selfSeatId);
 
@@ -235,13 +244,13 @@ function generateRealInfo(
     const otherAlive = seats.filter(
       (s: any) => s.id !== selfSeatId && !s.isDead && s.role
     );
-    const target = otherAlive[Math.floor(Math.random() * otherAlive.length)];
-    const ids = shuffleArray([selfSeatId, target?.id ?? selfSeatId]);
+    const target = otherAlive[Math.floor(rng() * otherAlive.length)];
+    const ids = shuffleArray([selfSeatId, target?.id ?? selfSeatId], rng);
     return { seat1: ids[0], seat2: ids[1], roleName: "洗衣妇" };
   }
 
   // 随机选择真实镇民目标
-  const targetIdx = Math.floor(Math.random() * townsfolkCandidates.length);
+  const targetIdx = Math.floor(rng() * townsfolkCandidates.length);
   const { seat: targetSeat, roleName: targetRoleName } =
     townsfolkCandidates[targetIdx];
 
@@ -252,12 +261,12 @@ function generateRealInfo(
   );
   const decoySeat =
     decoyPool.length > 0
-      ? decoyPool[Math.floor(Math.random() * decoyPool.length)]
+      ? decoyPool[Math.floor(rng() * decoyPool.length)]
       : targetSeat;
 
   // 随机打乱展示顺序
   const ids =
-    Math.random() < 0.5
+    rng() < 0.5
       ? [targetSeat.id, decoySeat.id]
       : [decoySeat.id, targetSeat.id];
 
@@ -271,17 +280,18 @@ function generateRealInfo(
  * 洗衣妇她自己醉酒中毒了"。
  * 实现策略：随机选两名玩家 + 随机选一个镇民角色名（可能在场也可能不在场）。
  */
-function generateFakeInfo(
+export function generateFakeInfo(
   seats: PlayerLookup[],
   selfSeatId: number,
-  realInfo?: WasherwomanInfo
+  realInfo?: WasherwomanInfo,
+  rng: DeterministicRandom = Math.random
 ): WasherwomanInfo {
   const townsfolkRoles = getScriptTownsfolkRoles(seats);
   const others = seats.filter(
     (s: any) => s.id !== selfSeatId && !s.isDead && s.role
   );
 
-  const shuffled = shuffleArray(others);
+  const shuffled = shuffleArray(others, rng);
   const seat1 = shuffled[0]?.id ?? selfSeatId;
   const seat2 = shuffled[1]?.id ?? seat1;
 
@@ -293,7 +303,7 @@ function generateFakeInfo(
   }
   const roleName =
     filteredRoles.length > 0
-      ? filteredRoles[Math.floor(Math.random() * filteredRoles.length)]
+      ? filteredRoles[Math.floor(rng() * filteredRoles.length)]
       : "厨师"; // 极端 fallback：返回任意其他镇民角色而非洗衣妇
 
   return { seat1, seat2, roleName };
@@ -312,12 +322,13 @@ function generateFakeInfo(
  * 注意：abilityEffective 由 abilityPriorityCalculation 中间件在
  * calculate 阶段前自动计算（处理 Vortox、咖啡师、酿酒师、醉酒/中毒等覆盖）。
  */
-function resolveWasherwomanInfo(
+export function resolveWasherwomanInfo(
   snapshot: any,
   selfSeatId: number,
   abilityEffective: boolean,
   storytellerInput?: any,
-  initialNightInfo?: any
+  initialNightInfo?: any,
+  rng: DeterministicRandom = Math.random
 ): WasherwomanInfo {
   // 优先级 1：说书人手动覆盖（无条件采用）
   if (storytellerInput?.overrideResult) {
@@ -341,7 +352,7 @@ function resolveWasherwomanInfo(
         seat2: info.seat2,
         roleName:
           others.length > 0
-            ? others[Math.floor(Math.random() * others.length)]
+            ? others[Math.floor(rng() * others.length)]
             : info.roleName,
       };
     }
@@ -350,8 +361,8 @@ function resolveWasherwomanInfo(
 
   // 优先级 4：动态生成
   return abilityEffective
-    ? generateRealInfo(snapshot.seats, selfSeatId)
-    : generateFakeInfo(snapshot.seats, selfSeatId, undefined);
+    ? generateRealInfo(snapshot.seats, selfSeatId, rng)
+    : generateFakeInfo(snapshot.seats, selfSeatId, undefined, rng);
 }
 
 // ─── 计算中间件 ───────────────────────────────────────────────────────
@@ -376,12 +387,19 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "未找到洗衣妇座位" };
   }
 
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
+  // 完全相同的信息，否则说书人照提示念的内容会与结果弹窗、魔典标记对不上。
+  const rng = createDeterministicRandom(
+    nightInfoSeed("washerwoman", selfSeatId, snapshot.nightCount ?? 1)
+  );
+
   const info = resolveWasherwomanInfo(
     snapshot,
     selfSeatId,
     abilityEffective,
     storytellerInput,
-    meta.initialNightInfo
+    meta.initialNightInfo,
+    rng
   );
 
   return {
