@@ -229,7 +229,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         ${isSwapTarget ? "!ring-[6px] !ring-emerald-400 !border-emerald-400 !scale-110 !shadow-[0_0_35px_rgba(52,211,153,0.9)] animate-pulse" : ""}
         ${
           s.isEvilConverted
-            ? "glow-demon !border-red-600 !shadow-[0_0_20px_rgba(220,38,38,0.7)]"
+            ? "glow-minion !border-red-600 !shadow-[0_0_20px_rgba(220,38,38,0.7)]"
             : `
           ${getDisplayRoleType(s) === "townsfolk" ? "glow-townsfolk" : ""}
           ${getDisplayRoleType(s) === "outsider" ? "glow-outsider" : ""}
@@ -729,19 +729,6 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             title={`真实身份：${isMasked ? (realRole?.name ?? "未知") : "疯子"}`}
           >
             实:{isMasked ? realRole?.name : "疯子"}
-          </div>
-        )}
-
-        {/* 邪恶阵营转换（赏金猎人「设置调整」）：**默认可见**的轻量标记。
-            ⚠️ 不能放进上面的「其他标签集合」——那堆徽标默认不显示
-            （SHOW_SEAT_BADGES = false），放进去会导致说书人完全看不出谁是邪恶镇民。
-            角色牌本身保持不变，这里只是一个说书人视角的提示点。 */}
-        {s.isEvilConverted && (
-          <div
-            className="absolute left-[85.4%] top-[85.4%] -translate-x-1/2 -translate-y-1/2 bg-red-700 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-red-300 shadow-md font-bold leading-none whitespace-nowrap z-40 pointer-events-none"
-            title="邪恶阵营（由赏金猎人的设置调整转为邪恶，角色牌照旧）"
-          >
-            邪
           </div>
         )}
 
