@@ -289,7 +289,8 @@ export function useSeatView(
     WebkitUserSelect: "none",
     userSelect: "none",
     WebkitTouchCallout: "none",
-    touchAction: "manipulation",
+    // 座位是拖拽面：不允许浏览器把手势判为平移/缩放（否则会抛 pointercancel 打断拖拽）。
+    touchAction: "none",
     WebkitTapHighlightColor: "transparent",
     opacity: isActivePlayer ? 1 : isValidTarget ? 1 : 0.3,
     filter: isActivePlayer

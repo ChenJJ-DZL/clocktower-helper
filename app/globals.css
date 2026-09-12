@@ -32,6 +32,8 @@ body {
   overflow: hidden;
   /* 防止移动设备上的留白 */
   -webkit-overflow-scrolling: touch;
+  /* 屏蔽移动端「下拉刷新 / 橡皮筋」这类浏览器自身手势 */
+  overscroll-behavior: none;
 }
 
 /* 全局屏蔽所有元素的长按菜单和文本选择
@@ -42,10 +44,11 @@ body {
    touch-action 不是继承属性，但会沿着祖先链取交集，所以写在 body 上同样能全局生效，
    同时还允许组件用 touch-none 把自己排除在平移/缩放手势之外。 */
 * {
-  -webkit-touch-callout: none; /* iOS Safari 长按菜单 */
+  -webkit-touch-callout: none; /* iOS Safari 长按菜单（链接/图片预览 callout） */
   -webkit-user-select: none; /* 禁用文本选择 */
   user-select: none; /* 禁用文本选择 */
   -webkit-tap-highlight-color: transparent; /* 禁用点击高亮 */
+  -webkit-user-drag: none; /* 禁用原生拖拽幻影（图片/链接被拖出时的半透明壳） */
 }
 
 /* 允许输入框和文本区域选择文本 */
@@ -54,6 +57,7 @@ textarea,
 [contenteditable="true"] {
   -webkit-user-select: text;
   user-select: text;
+  -webkit-user-drag: auto; /* 输入框保留原生行为 */
   -webkit-touch-callout: default;
 }
 

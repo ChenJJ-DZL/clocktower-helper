@@ -530,6 +530,27 @@ export default function Home() {
     };
   }, [introTimeoutRef.current, setMounted]);
 
+  // 🖱️ 屏蔽浏览器原生右键菜单：游戏 UI 全部自绘，右键 / 长按只应弹出我们自己的座位菜单。
+  //    移动端 Chrome/Edge 长按同样会派发原生 contextmenu（PC 端设备仿真同样会），不拦就会
+  //    「应用菜单 + 浏览器菜单」一起弹。输入类元素保留原生菜单（粘贴 / 拼写检查）。
+  //    注意：React 自己的 onContextMenu 处理器仍然照常触发（只是阻止浏览器的默认菜单）。
+  useEffect(() => {
+    const onContextMenu = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+    };
+    document.addEventListener("contextmenu", onContextMenu);
+    return () => document.removeEventListener("contextmenu", onContextMenu);
+  }, []);
+
   // 🏹 赏金猎人「设置调整」：在**准备阶段（点击「开始游戏」之前）**就把"哪名镇民属于邪恶阵营"
   // 结算好 —— 说书人此时即可在座位上看到（该座位圆环变为爪牙样式），并能用右键菜单「变为邪恶」纠正。
   // 纯函数自带幂等守卫（已存在被转换者时原样返回 convertedSeatId=null），故可安全地在 seats 变化时重复调用。
