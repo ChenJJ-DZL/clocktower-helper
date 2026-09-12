@@ -92,11 +92,11 @@ function StatusPill({
       "bg-amber-900/90 text-amber-100 border-amber-600 shadow-amber-900/40",
   };
 
-  const sizeClass = isPortrait
-    ? "text-[16px] px-2.5 py-0.5"
-    : "text-[19px] px-2 py-0.5";
-  const iconSize = isPortrait ? "w-2.5 h-2.5" : "w-3 h-3";
-  const durationSize = isPortrait ? "text-[13px]" : "text-[16px]";
+  // 📏 状态胶囊（醉酒/中毒/…）尺寸对齐「图书目标」的紧凑规格（text-[14px] px-1.5 py-0.5 leading-none）。
+  //    位置不变：仍然是座位圆圈的**底部居中**（见下方 statusList 容器 bottom-0 left-1/2）。
+  const sizeClass = "text-[14px] px-1.5 py-0.5 leading-none";
+  const iconSize = "w-3 h-3";
+  const durationSize = "text-[12px]";
 
   return (
     <div
