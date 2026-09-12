@@ -225,6 +225,13 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
   // 🏹 赏金猎人已知的邪恶目标：同属"关于某人是哪种身份"的首夜信息 → 一样放右上角标记栈。
   const hasBountyKnown =
     !!s.statusDetails?.includes("赏金已知") || !!(s as any).bountyHunterTarget;
+  // 🎭 洗脑疯狂（洗脑师要求他必须扮演的角色）：同属"关于身份"的信息 → 一并放右上角标记栈，
+  //    文案格式参考「实:酒鬼」，即「疯狂:X」。
+  const madnessRoleText =
+    (s.statusDetails || [])
+      .find((st) => st.startsWith("洗脑疯狂:"))
+      ?.replace("洗脑疯狂:", "")
+      .trim() || ((s as any).cerenovusMadnessRole as string | undefined);
 
   // ── 触屏长按 1 秒直接弹出座位菜单 ─────────────────────────────────────────────
   // 圆桌座位此前没有任何自己的长按定时器，完全依赖浏览器原生 long-press 合成
@@ -643,28 +650,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          // 洗脑师疯狂标记
-          const madnessDetail = s.statusDetails?.find((st) =>
-            st.startsWith("洗脑疯狂:")
-          );
-          if (madnessDetail || (s as any).cerenovusMadnessRole) {
-            const roleText = madnessDetail
-              ? madnessDetail.replace("洗脑疯狂:", "")
-              : (s as any).cerenovusMadnessRole;
-            otherBadges.push(
-              <div
-                key="badge-madness"
-                className={`bg-purple-800 text-purple-100 ${
-                  isPortrait
-                    ? "text-[14px] px-2.5 py-0.5"
-                    : "text-[18px] px-2 py-0.5"
-                } rounded-full border border-purple-400 shadow-md font-bold whitespace-nowrap leading-none`}
-                title={`洗脑疯狂：必须扮演【${roleText}】`}
-              >
-                🎭疯狂:{roleText}
-              </div>
-            );
-          }
+          // 🎭 洗脑疯狂 已上移到座位右上角标记栈（显示为「疯狂:X」，格式参考「实:酒鬼」），此处不再重复渲染
 
           // 提线木偶与酒鬼未设置伪装身份时显示告警
           if (s.role?.id === "marionette" && !isMasked) {
@@ -771,7 +757,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           hasLibrarianTarget ||
           hasWasherwomanTarget ||
           hasInvestigatorTarget ||
-          hasBountyKnown) && (
+          hasBountyKnown ||
+          !!madnessRoleText) && (
           <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex h-[20px] flex-col items-center gap-1 z-40 pointer-events-none whitespace-nowrap [&>*]:shrink-0">
             {(isMasked || s.role?.id === "lunatic") && (
               <div
@@ -835,6 +822,14 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 title="赏金猎人已知邪恶目标"
               >
                 赏金已知
+              </div>
+            )}
+            {madnessRoleText && (
+              <div
+                className="bg-purple-800 text-purple-100 text-[14px] px-1.5 py-0.5 rounded-full border border-purple-400 shadow-md font-bold leading-none whitespace-nowrap"
+                title={`洗脑疯狂：必须扮演【${madnessRoleText}】`}
+              >
+                疯狂:{madnessRoleText}
               </div>
             )}
           </div>
