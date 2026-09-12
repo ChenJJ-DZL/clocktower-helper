@@ -153,12 +153,61 @@ export function pickFakeTargets(
   return picked;
 }
 
+/** 从文本里抽取「X号」座位号（1-based，按出现顺序、去重）。 */
+export function extractSeatNumbers(text: string | null | undefined): number[] {
+  const out: number[] = [];
+  const re = /(\d+)\s*号/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text || ""))) {
+    const n = Number(m[1]);
+    if (!out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+/**
+ * 【同形最小改动】把文本里的座位号换成"别的座位号"，句式一字不改。
+ * 这是所有兜底路径的**唯一形态**：只替换座位号/角色名，绝不退化成数字或空值。
+ */
+export function shiftSeatNumbers(
+  text: string,
+  candidateSeatIds: number[] | undefined,
+  rng: () => number,
+  keepNumbers: number[] = []
+): string {
+  const numbers = extractSeatNumbers(text).filter((n) => !keepNumbers.includes(n));
+  if (numbers.length === 0) return text;
+  const pool = (candidateSeatIds ?? []).map((id) => id + 1);
+  const used = new Set<number>(keepNumbers);
+  const replacement = new Map<number, number>();
+  for (const n of numbers) {
+    const candidates = pool.filter((p) => p !== n && !used.has(p));
+    const pick =
+      candidates.length > 0
+        ? candidates[Math.floor(rng() * candidates.length)]
+        : n === 1
+          ? 2
+          : 1;
+    replacement.set(n, pick);
+    used.add(pick);
+  }
+  return text.replace(/(\d+)\s*号/g, (whole, d) => {
+    const to = replacement.get(Number(d));
+    return to === undefined ? whole : `${to}号`;
+  });
+}
+
 /** 把真值文案改写成假值文案（"只做替换，不泄露真值"）。 */
 export function rewriteTextWithFakeValue(
   truthText: string,
   kind: CorruptedInfoKind,
   fakeValue: unknown,
-  trueValue: unknown
+  trueValue: unknown,
+  opts?: {
+    candidateSeatIds?: number[];
+    rng?: () => number;
+    keepNumbers?: number[];
+  }
 ): string {
   const text = truthText ?? "";
   if (kind === "number") {
@@ -189,12 +238,25 @@ export function rewriteTextWithFakeValue(
     const trueIds = Array.isArray(trueValue) ? (trueValue as number[]) : [];
     const fakeIds = Array.isArray(fakeValue) ? (fakeValue as number[]) : [];
     let out = text;
-    trueIds.forEach((tid, idx) => {
-      const fid = fakeIds[idx];
-      if (fid === undefined) return;
-      out = out.split(`${tid + 1}号`).join(`${fid + 1}号`);
-    });
-    return out;
+    if (trueIds.length > 0 && fakeIds.length > 0) {
+      trueIds.forEach((tid, idx) => {
+        const fid = fakeIds[idx];
+        if (fid === undefined) return;
+        out = out.split(`${tid + 1}号`).join(`${fid + 1}号`);
+      });
+      if (out !== text) return out;
+    }
+    // ⚠️ 兜底（用户实测 bug 的根因）：真值没带座位数组时（例如图书管理员的结果
+    //    来自 meta.librarianResult，而不是 selectedTargets），旧实现原地返回真值，
+    //    于是 ensureNotTruth 退化成裸数字「你获得的信息：2」。
+    //    这里改为**从真值文案里直接抽座位号**做同形替换（句式一字不改）。
+    const rng = opts?.rng ?? (() => Math.random());
+    return shiftSeatNumbers(
+      text,
+      opts?.candidateSeatIds,
+      rng,
+      opts?.keepNumbers ?? []
+    );
   }
   // text 型：绝不复用真值
   return TEXT_FAKE_FALLBACK;
@@ -271,7 +333,13 @@ export function buildCorruptedInfoMask(
     input.truthText,
     kind,
     fakeValue,
-    input.trueValue
+    input.trueValue,
+    {
+      candidateSeatIds: input.candidateSeatIds,
+      rng,
+      // 不修改"行动者自己的座位号"（如「唤醒6号【图书管理员】」里的 6号）
+      keepNumbers: [input.actorSeatId + 1],
+    }
   );
 
   return {
@@ -292,14 +360,111 @@ export function ensureNotTruth(
   truthText: string,
   roleId: string,
   actorSeatId: number,
-  nightCount: number
+  nightCount: number,
+  candidateSeatIds?: number[]
 ): string {
   if (playerText && playerText !== truthText) return playerText;
+  const truth = truthText ?? "";
   const rng = createDeterministicRandom(
     `corrupted-info-fallback|${nightInfoSeed(roleId, actorSeatId, nightCount)}`
   );
-  const n = 1 + Math.floor(rng() * 3);
-  return `你获得的信息：${n}`;
+  // 【兜底原则】只做"与真值同形的最小改动"，优先级：
+  //   ① 换座位号（X号 → Y号），句式完全不变；
+  //   ② 换数字（把 X 改成 X±1），句式完全不变；
+  //   ③ 以上都不成立时，给一句**完整的中性句子**。
+  // ⚠️ 绝不允许退化成裸数字（例如「你获得的信息：2」）或空值 ——
+  //    那正是用户实测到的"结果页只有【2】"的根因。
+  const bySeat = shiftSeatNumbers(truth, candidateSeatIds, rng);
+  if (bySeat && bySeat !== truth) return bySeat;
+  const byDigit = truth.replace(/\d+/g, (d) => {
+    const n = Number(d);
+    return String(n === 0 ? 1 : n - 1);
+  });
+  if (byDigit && byDigit !== truth) return byDigit;
+  return TEXT_FAKE_FALLBACK;
+}
+
+/**
+ * 从引擎结果里收集"真值座位数组"。
+ * 不同角色的真值落点不同（displayInfo.targetIds / meta.<role>Result.seat1,seat2 /
+ * selectedTargets / abilityResult），这里统一扫描，避免各角色各写一套。
+ */
+export function collectInfoTargets(
+  meta: any,
+  displayInfo: any,
+  selectedTargets: number[] = []
+): number[] {
+  const out: number[] = [];
+  const push = (v: unknown) => {
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0 && !out.includes(v)) {
+      out.push(v);
+    }
+  };
+  const fromObject = (o: any) => {
+    if (!o || typeof o !== "object") return;
+    if (Array.isArray(o.targetIds)) o.targetIds.forEach(push);
+    if (Array.isArray(o.players)) o.players.forEach(push);
+    push(o.seat1);
+    push(o.seat2);
+    if (typeof o.targetId === "number") push(o.targetId);
+  };
+  if (Array.isArray(meta?.abilityResult)) (meta.abilityResult as unknown[]).forEach(push);
+  fromObject(displayInfo);
+  if (meta && typeof meta === "object") {
+    Object.values(meta).forEach(fromObject);
+  }
+  (selectedTargets ?? []).forEach(push);
+  return out;
+}
+
+/**
+ * 玩家视角的"信息文案"统一入口（guide / speak / 大字 / 副标题 / modal 共用）。
+ *
+ * 受干扰（中毒/醉酒/涡流/酒鬼/提线木偶）时返回**与真值同形**的假文本；
+ * 未受干扰时原样返回。任何调用方都不得绕过它自己拼玩家文案。
+ */
+export function buildCorruptedInfoPlayerText(input: {
+  roleId: string;
+  roleName: string;
+  truthText: string;
+  trueValue?: unknown;
+  meta?: any;
+  displayInfo?: any;
+  selectedTargets?: number[];
+  actorSeatId: number;
+  nightCount: number;
+  candidateSeatIds?: number[];
+  /** 该角色是否信息类（表外角色用 classifyCorruptedInfoRole 兜底） */
+  roleIsInformation?: boolean;
+  corrupted: boolean;
+}): string {
+  if (!input.corrupted || !input.truthText) return input.truthText ?? "";
+  const trueTargets =
+    Array.isArray(input.trueValue) && input.trueValue.length > 0
+      ? (input.trueValue as number[])
+      : collectInfoTargets(
+          input.meta,
+          input.displayInfo,
+          input.selectedTargets ?? []
+        );
+  const masked = buildCorruptedInfoMask({
+    roleId: input.roleId,
+    roleName: input.roleName,
+    truthText: input.truthText,
+    trueValue: trueTargets,
+    actorSeatId: input.actorSeatId,
+    nightCount: input.nightCount,
+    candidateSeatIds: input.candidateSeatIds,
+    targetCount: Math.max(1, trueTargets.length),
+  });
+  return ensureNotTruth(
+    masked.playerText,
+    input.truthText,
+    input.roleId,
+    input.actorSeatId,
+    input.nightCount,
+    input.candidateSeatIds
+  );
 }
 
 // ─── 受干扰判定（纯函数，供测试与执行链路共用）──────────────────────────────

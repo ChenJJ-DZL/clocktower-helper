@@ -252,3 +252,100 @@ describe("⑤ 最终兜底：玩家文案永远不得等于真值", () => {
     expect(finalText).not.toBe(truth);
   });
 });
+
+describe("⑥ 每个信息角色：受干扰下的玩家文案必须【与真值同形】", () => {
+  const SEAT_POOL = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const bareDigits = /^\s*[（(【\[]?\s*\d+\s*[）)】\]]?\s*$/;
+
+  interface Case {
+    roleId: string;
+    roleName: string;
+    truth: string;
+    trueValue: unknown;
+    shape: RegExp;
+  }
+
+  const CASES: Case[] = [
+    { roleId: "washerwoman", roleName: "洗衣妇", truth: "唤醒6号【洗衣妇】，告诉他12号和3号其中一位是【隐士】", trueValue: [11, 2], shape: /\d+号和\d+号其中一位是【.+】/ },
+    { roleId: "librarian", roleName: "图书管理员", truth: "唤醒6号【图书管理员】，告诉他12号和3号其中一位是【隐士】", trueValue: [11, 2], shape: /\d+号和\d+号其中一位是【.+】/ },
+    { roleId: "investigator", roleName: "调查员", truth: "唤醒6号【调查员】，告诉他12号和3号其中一位是【投毒者】", trueValue: [11, 2], shape: /\d+号和\d+号其中一位是【.+】/ },
+    { roleId: "undertaker", roleName: "送葬者", truth: "送葬者获得信息：5号玩家的角色是【男爵】", trueValue: [4], shape: /\d+号玩家的角色是【.+】/ },
+    { roleId: "ravenkeeper", roleName: "守鸦人", truth: "守鸦人获得信息：3号玩家的角色是【僧侣】", trueValue: [2], shape: /\d+号玩家的角色是【.+】/ },
+    { roleId: "dreamer", roleName: "筑梦师", truth: "筑梦师获得信息：3号与5号之中有一个是【僧侣】", trueValue: [2, 4], shape: /\d+号与\d+号之中有一个是【.+】/ },
+    { roleId: "grandmother", roleName: "祖母", truth: "祖母获得信息：5号是【僧侣】", trueValue: [4], shape: /\d+号是【.+】/ },
+    { roleId: "bounty_hunter", roleName: "赏金猎人", truth: "5号玩家是邪恶的", trueValue: [4], shape: /\d+号玩家是邪恶的/ },
+    { roleId: "fortune_teller", roleName: "占卜师", truth: "占卜师获得信息：没有恶魔", trueValue: false, shape: /占卜师获得信息：(有|没有)恶魔/ },
+    { roleId: "chef", roleName: "厨师", truth: "厨师获得信息：场上有 2 对相邻的邪恶玩家", trueValue: 2, shape: /厨师获得信息：场上有 \d+ 对相邻的邪恶玩家/ },
+    { roleId: "empath", roleName: "共情者", truth: "共情者获得信息：你两侧有 1 名邪恶玩家", trueValue: 1, shape: /共情者获得信息：你两侧有 \d+ 名邪恶玩家/ },
+    { roleId: "juggler", roleName: "杂耍艺人", truth: "杂耍艺人获得信息：得知的数字为3", trueValue: 3, shape: /杂耍艺人获得信息：得知的数字为\d+/ },
+    { roleId: "savant", roleName: "博学者", truth: "博学者获得信息：3号是僧侣。", trueValue: "3号是僧侣", shape: /.+/ },
+    { roleId: "artist", roleName: "艺术家", truth: "艺术家获得信息：是。", trueValue: "是", shape: /.+/ },
+  ];
+
+  const maskOf = (c: Case, passTrueValue = true) =>
+    buildCorruptedInfoMask({
+      roleId: c.roleId,
+      roleName: c.roleName,
+      truthText: c.truth,
+      trueValue: passTrueValue ? c.trueValue : undefined,
+      actorSeatId: 5,
+      nightCount: 1,
+      candidateSeatIds: SEAT_POOL.filter((id) => id !== 5),
+      targetCount: Array.isArray(c.trueValue) ? c.trueValue.length : 1,
+    });
+
+  for (const c of CASES) {
+    it(c.roleName + "：假值与真值同形、不等于真值、且不是裸数字", () => {
+      const mask = maskOf(c);
+      const finalText = ensureNotTruth(mask.playerText, c.truth, c.roleId, 5, 1, SEAT_POOL);
+      expect(finalText).not.toBe(c.truth);
+      expect(finalText).toMatch(c.shape);
+      expect(finalText).not.toMatch(bareDigits);
+      expect(finalText.length).toBeGreaterThan(2);
+      expect(mask.truthText).toBe(c.truth);
+    });
+
+    if (Array.isArray(c.trueValue)) {
+      it(c.roleName + "：真值座位数组缺失时（bug 路径）仍然与真值同形", () => {
+        const mask = maskOf(c, false);
+        const finalText = ensureNotTruth(mask.playerText, c.truth, c.roleId, 5, 1, SEAT_POOL);
+        expect(finalText).not.toBe(c.truth);
+        expect(finalText).toMatch(c.shape);
+        expect(finalText).not.toMatch(bareDigits);
+      });
+    }
+  }
+
+  it("全局断言：ensureNotTruth 在任何输入下都不会输出裸数字/空值", () => {
+    const samples = [
+      "唤醒6号【图书管理员】，告诉他12号和3号其中一位是【隐士】",
+      "5号玩家是邪恶的",
+      "厨师获得信息：场上有 2 对相邻的邪恶玩家",
+      "没有恶魔",
+      "",
+    ];
+    for (const s of samples) {
+      const out = ensureNotTruth("", s, "librarian", 5, 1, SEAT_POOL);
+      expect(out).not.toMatch(bareDigits);
+      expect(out.length).toBeGreaterThan(2);
+    }
+  });
+
+  it("⑦ 用户实测场景：图书管理员受干扰时，结果页必须是一句完整的话", () => {
+    const truth = "唤醒6号【图书管理员】，告诉他12号和3号其中一位是【隐士】";
+    const mask = buildCorruptedInfoMask({
+      roleId: "librarian",
+      roleName: "图书管理员",
+      truthText: truth,
+      trueValue: [],
+      actorSeatId: 5,
+      nightCount: 1,
+      candidateSeatIds: SEAT_POOL.filter((id) => id !== 5),
+      targetCount: 1,
+    });
+    const finalText = ensureNotTruth(mask.playerText, truth, "librarian", 5, 1, SEAT_POOL);
+    expect(finalText).not.toMatch(/^你获得的信息[：:]\s*\d+$/);
+    expect(finalText).toContain("其中一位是【");
+    expect(finalText).not.toBe(truth);
+  });
+});

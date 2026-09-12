@@ -29,6 +29,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Seat } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
+import {
+  CERENOVUS_NOTICE_PLAYER_SUBTITLE,
+  CERENOVUS_NOTICE_STORYTELLER_NOTE,
+  getCerenovusNoticeFromStep,
+  getCerenovusNoticePlayerText,
+  getPendingCerenovusNotice,
+} from "../../utils/cerenovusNotice";
 import { formatSeatLabel, displayPlayerName } from "../../utils/seatLabel";
 import {
   getLunaticNightHint,
@@ -36,6 +43,11 @@ import {
   getPlayerFacingSeatLabel,
   sanitizePlayerFacingText,
 } from "../../utils/playerView";
+import {
+  buildCorruptedInfoPlayerText,
+  classifyCorruptedInfoRole,
+} from "../../utils/corruptedInfo";
+import { isInformationRole } from "../../utils/informationRoles";
 import { PlayerViewProvider, StorytellerOnly } from "./PlayerViewContext";
 import { StorytellerTuningPanel } from "./StorytellerTuningPanel";
 import { useStorytellerTuning } from "./StorytellerTuningContext";
@@ -81,6 +93,21 @@ interface NightActionPageProps {
   playerView?: boolean;
   /** 座位补丁写入（说书人微调落库用） */
   onUpdateSeat?: (seatId: number, patch: Record<string, any>) => void;
+  /**
+   * 当前夜晚编号。用于「洗脑告知」节点的夜限校验 —— 换夜后旧标记自动失效，
+   * 不会把昨晚的洗脑在今晚重放一遍。
+   */
+  nightCount?: number;
+  /**
+   * 🧠 洗脑师专属结果页数据（被洗脑目标 + 疯狂角色）。
+   * 存在时本页不渲染行动者（洗脑师）的角色卡 / 指引：玩家侧只有
+   * 「你需要疯狂证明自己是【X】」+ 副标题；行动者真值只在说书人解锁视图渲染。
+   */
+  cerenovusResult?: { targetId: number; roleName: string } | null;
+  /** 🧠 说书人解锁视图的「洗脑判定」入口（复用白天技能判定链路）。 */
+  onMadnessCheck?: () => void;
+  /** 🧠 洗脑告知合成节点的确认回调（只推进队列，绝不重复执行任何技能）。 */
+  onNoticeConfirm?: () => void;
 }
 
 export function NightActionPage({
@@ -100,6 +127,10 @@ export function NightActionPage({
   isVortoxWorld,
   playerView,
   onUpdateSeat,
+  nightCount,
+  cerenovusResult,
+  onMadnessCheck,
+  onNoticeConfirm,
 }: NightActionPageProps) {
   const tuning = useStorytellerTuning();
 
@@ -211,10 +242,35 @@ export function NightActionPage({
   };
   const faction = factionColors[roleType] || factionColors.townsfolk;
 
-  /** 玩家视角指引：优先 playerFacingGuide，再过一遍脱敏。 */
-  const playerGuide = sanitizePlayerFacingText(
-    nightInfo.playerFacingGuide ?? nightInfo.guide ?? guideText ?? ""
-  );
+  /**
+   * 玩家视角指引。
+   *
+   * ⚠️ 受干扰（中毒/醉酒/涡流/酒鬼/提线木偶）时，guide 里往往**直接写着真值**
+   * （例：「唤醒6号【图书管理员】，告诉他12号和3号其中一位是【隐士】」）——
+   * 这条文案同样会显示在交给玩家的页面卡片上，因此**必须与结果页共用同一个
+   * 「受干扰 → 同形假文本」生成器**（utils/corruptedInfo.ts 的唯一出口），
+   * 不允许存在第二条绕过它的取数路径。未受干扰时原样透传。
+   */
+  const rawPlayerGuide =
+    nightInfo.playerFacingGuide ?? nightInfo.guide ?? guideText ?? "";
+  const guideIsInfoRole =
+    classifyCorruptedInfoRole(roleId) !== null ||
+    isInformationRole(roleId, nightInfo.seat?.role?.type ?? "unknown");
+  const maskedPlayerGuide =
+    isDisturbed && guideIsInfoRole && rawPlayerGuide
+      ? buildCorruptedInfoPlayerText({
+          roleId,
+          roleName: playerRoleName,
+          truthText: rawPlayerGuide,
+          actorSeatId: seatId,
+          nightCount: (nightInfo as any)?.nightCount ?? 1,
+          candidateSeatIds: seats
+            .filter((s) => s.id !== seatId)
+            .map((s) => s.id),
+          corrupted: true,
+        })
+      : rawPlayerGuide;
+  const playerGuide = sanitizePlayerFacingText(maskedPlayerGuide);
   const storytellerGuide = isDisturbed
     ? `${nightInfo.guide ?? guideText ?? ""}\n\n（说书人备注：该角色当前受干扰，能力可能不生效——玩家不可见）`
     : (nightInfo.guide ?? guideText ?? "");
@@ -222,6 +278,25 @@ export function NightActionPage({
 
   const hasResult = !!resultText;
   const playerResultText = sanitizePlayerFacingText(resultText);
+
+  // ─── 🧠 洗脑师专属：结果页 + 被洗脑玩家的独立行动节点 ───────────────────
+  /** 洗脑师刚结算完，正把「疯狂证明」告知交给被洗脑玩家（专属结果页）。 */
+  const isCerenovusResultPage = Boolean(cerenovusResult && hasResult);
+  /** 目标自身没有任何夜间技能时，由 nightInfoAdapter 产出的合成告知节点。 */
+  const cerenovusNoticeStep = getCerenovusNoticeFromStep(nightInfo as any);
+  /**
+   * 目标自身有夜间技能时，告知**合并**渲染在他自己的行动节点页上（信息不丢）；
+   * 用当夜编号做夜限，换夜后自动失效。
+   */
+  const cerenovusSeatNotice =
+    !isCerenovusResultPage && !cerenovusNoticeStep
+      ? getPendingCerenovusNotice(nightInfo?.seat as any, nightCount)
+      : null;
+  const noticeData = isCerenovusResultPage
+    ? null
+    : (cerenovusNoticeStep ?? cerenovusSeatNotice);
+  /** 纯告知节点：不渲染角色卡 / 指引，确认只推进队列。 */
+  const isNoticeOnlyStep = Boolean(cerenovusNoticeStep);
 
   // ─── A4：真恶魔本夜看到「疯子选择了谁」─────────────────────────────────
   const isDemonActor =
@@ -250,6 +325,127 @@ export function NightActionPage({
               </div>
             )}
 
+            {/* ─── 🧠 洗脑师专属结果页（玩家视角 = 纯"疯狂证明"告知）─────────
+                行动者（洗脑师）的座位号 / 角色名一律不渲染：这一页要直接交给
+                被洗脑的玩家看。说书人真值走 <StorytellerOnly>（条件渲染）。 */}
+            {isCerenovusResultPage && cerenovusResult && (
+              <>
+                <div
+                  data-testid="cerenovus-player-result"
+                  className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 backdrop-blur-xl text-center space-y-4"
+                >
+                  <p className="text-xs font-bold tracking-widest text-slate-400">
+                    技能告知
+                  </p>
+                  <div className="text-5xl select-none">🧠</div>
+                  <h2
+                    data-testid="cerenovus-player-result-text"
+                    className="text-3xl font-black text-amber-100 leading-snug"
+                  >
+                    {getCerenovusNoticePlayerText(cerenovusResult.roleName)}
+                  </h2>
+                  <p className="text-lg font-medium text-slate-300">
+                    {CERENOVUS_NOTICE_PLAYER_SUBTITLE}
+                  </p>
+                  <button
+                    onClick={onResultConfirm}
+                    className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-lg transition-colors"
+                  >
+                    确认并继续
+                  </button>
+                </div>
+
+                <StorytellerOnly>
+                  <div
+                    data-testid="cerenovus-storyteller-result"
+                    className="rounded-2xl border border-amber-500/40 bg-black/40 p-4 space-y-2"
+                  >
+                    <p className="text-sm font-black text-amber-300">
+                      🧠 洗脑师技能真值（玩家不可见）
+                    </p>
+                    <p className="text-sm text-slate-100 font-bold">
+                      {seatId + 1}号-{truthRoleName} ➔ 洗脑{" "}
+                      {cerenovusResult.targetId + 1}号 为【
+                      {cerenovusResult.roleName}】
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      目标：{cerenovusResult.targetId + 1}号 · 疯狂角色：【
+                      {cerenovusResult.roleName}】 · 判定时机：明日白天
+                    </p>
+                    {onMadnessCheck && (
+                      <button
+                        onClick={onMadnessCheck}
+                        className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-colors"
+                      >
+                        🧠 洗脑判定
+                      </button>
+                    )}
+                  </div>
+                </StorytellerOnly>
+              </>
+            )}
+
+            {/* ─── 🧠 被洗脑玩家的独立行动节点（与洗脑师那一步分开）─────────
+                · 纯告知节点（目标自身无夜间技能）：只渲染告知卡；
+                · 目标自身有夜间技能：告知合并渲染在他自己的行动页上方。 */}
+            {!isCerenovusResultPage && noticeData && (
+              <>
+                <div
+                  data-testid="cerenovus-notice-player"
+                  className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 backdrop-blur-xl text-center space-y-4"
+                >
+                  <p className="text-xs font-bold tracking-widest text-slate-400">
+                    技能告知
+                  </p>
+                  <div className="text-5xl select-none">🧠</div>
+                  <h2
+                    data-testid="cerenovus-notice-player-text"
+                    className="text-3xl font-black text-amber-100 leading-snug"
+                  >
+                    {getCerenovusNoticePlayerText(noticeData.roleName)}
+                  </h2>
+                  <p className="text-lg font-medium text-slate-300">
+                    {CERENOVUS_NOTICE_PLAYER_SUBTITLE}
+                  </p>
+                  {isNoticeOnlyStep && (
+                    <button
+                      onClick={onNoticeConfirm ?? onResultConfirm}
+                      data-testid="cerenovus-notice-confirm"
+                      className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-lg transition-colors"
+                    >
+                      确认并继续
+                    </button>
+                  )}
+                </div>
+
+                <StorytellerOnly>
+                  <div
+                    data-testid="cerenovus-notice-storyteller"
+                    className="rounded-2xl border border-amber-500/40 bg-black/40 p-4 space-y-2"
+                  >
+                    <p className="text-sm font-black text-amber-300">
+                      ⚠️ {CERENOVUS_NOTICE_STORYTELLER_NOTE}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      目标：{noticeData.targetId + 1}号 · 疯狂角色：【
+                      {noticeData.roleName}】 · 判定时机：明日白天
+                    </p>
+                    {onMadnessCheck && (
+                      <button
+                        onClick={onMadnessCheck}
+                        className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-colors"
+                      >
+                        🧠 洗脑判定
+                      </button>
+                    )}
+                  </div>
+                </StorytellerOnly>
+              </>
+            )}
+
+            {/* 常规角色页（洗脑师专属结果页 / 纯告知节点下不渲染行动者信息） */}
+            {!(isCerenovusResultPage || isNoticeOnlyStep) && (
+              <>
             {/* 角色信息卡（顶部区域长按 1.5 秒可解锁说书人视图，无任何可见提示） */}
             <div
               onPointerDown={beginLongPress}
@@ -439,6 +635,9 @@ export function NightActionPage({
               </div>
             )}
 
+              </>
+            )}
+
             {/* ─── 说书人专属微调面板（条件渲染，玩家视角不进 DOM）──────── */}
             <StorytellerOnly>
               <StorytellerTuningPanel seats={seats} onUpdateSeat={onUpdateSeat} />
@@ -449,8 +648,8 @@ export function NightActionPage({
               )}
             </StorytellerOnly>
 
-            {/* 操作按钮区 */}
-            {!hasResult && (
+            {/* 操作按钮区（纯告知节点自带"确认并继续"，不显示角色行动按钮） */}
+            {!hasResult && !isNoticeOnlyStep && (
               <div className="flex gap-4">
                 <button
                   onClick={onCancel}
