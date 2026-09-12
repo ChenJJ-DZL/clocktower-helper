@@ -9,6 +9,15 @@ import {
 } from "../../../app/data";
 import { AdaptiveSeatGrid, SEAT_CARD_FONT } from "../common/AdaptiveSeatGrid";
 import { AutoFitContent } from "../common/AutoFitContent";
+import {
+  CERENOVUS_NOTICE_PLAYER_SUBTITLE,
+  getCerenovusNoticePlayerText,
+} from "../../utils/cerenovusNotice";
+import {
+  CerenovusConfirmContent,
+  CerenovusConfirmFooter,
+  getCerenovusConfirmLabel,
+} from "./CerenovusConfirmLayout";
 import { ModalWrapper } from "./ModalWrapper";
 
 export interface NightActionConfirmData {
@@ -50,6 +59,12 @@ export interface NightActionConfirmData {
   selectedScript?: Script | null;
   /** 初始已选中的角色ID */
   initialSelectedRoleId?: string;
+  /**
+   * 🧠 洗脑师：该座位当夜有待送达的洗脑告知。
+   * 存在时确认页顶部额外渲染一张**纯玩家面**告知卡（只含"疯狂证明的对象角色"，
+   * 不含洗脑师身份/座位号）。玩家视角的正式节点见 components/modals/CerenovusMadnessModal.tsx。
+   */
+  cerenovusNotice?: { targetId: number; roleName: string };
   /** 确认回调，接收选中的目标ID列表与选中的角色对象/ID */
   onConfirm: (
     selectedTargetIds?: number[],
@@ -270,6 +285,19 @@ export function NightActionConfirmModal({
       size="fullscreen90"
       className="w-[90vw] h-[90vh]"
       footer={
+        /* 🧠 洗脑师：专属两态主按钮（未选全 → 灰显提示；选全 → 确认文案） */
+        isCerenovus ? (
+          <CerenovusConfirmFooter
+            canConfirm={!isConfirmDisabled}
+            isSubmitting={isSubmitting}
+            label={getCerenovusConfirmLabel(
+              selectedTargets,
+              chosenRoleObj?.name || selectedRoleId
+            )}
+            onCancel={onCancel}
+            onConfirm={handleConfirm}
+          />
+        ) : (
         <div className="flex flex-col gap-1.5 w-full">
           {/* 撤销提示：放在按钮正上方，避免再说一遍"本夜已执行"这类废话 */}
           <div className="text-center text-[20px] font-medium text-amber-300/90">
@@ -295,29 +323,63 @@ export function NightActionConfirmModal({
             >
               {isSubmitting
                 ? "处理中..."
-                : isCerenovus
-                  ? selectedTargets.length === 0
-                    ? "请选择目标玩家"
-                    : !selectedRoleId
-                      ? `请选择洗脑角色（已选 ${selectedTargets[0] + 1}号）`
-                      : `确认洗脑：${selectedTargets[0] + 1}号 ➔ 【${
-                          chosenRoleObj?.name || selectedRoleId
-                        }】`
-                  : isRoleSelectorActive
-                    ? !selectedRoleId
-                      ? "请选择角色"
-                      : `确认选择【${chosenRoleObj?.name || selectedRoleId}】`
-                    : needsTargetSelection
-                      ? selectedTargets.length === 0 && min === 0
-                        ? "确认（不选目标）"
-                        : `确认选择 (${selectedTargets.length}/${max})`
-                      : "确认执行"}
+                : isRoleSelectorActive
+                  ? !selectedRoleId
+                    ? "请选择角色"
+                    : `确认选择【${chosenRoleObj?.name || selectedRoleId}】`
+                  : needsTargetSelection
+                    ? selectedTargets.length === 0 && min === 0
+                      ? "确认（不选目标）"
+                      : `确认选择 (${selectedTargets.length}/${max})`
+                    : "确认执行"}
             </button>
           </div>
         </div>
+        )
       }
     >
-      {needsTargetSelection || isRoleSelectorActive ? (
+      {data?.cerenovusNotice ? (
+        /* 🧠 被洗脑玩家当夜另有自身技能时的告知卡（合并显示，信息不丢）。
+           纯玩家面：只有"疯狂证明的对象角色"，零行动者信息。 */
+        <div
+          data-testid="madness-notice-player"
+          className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 text-center space-y-3 text-white"
+        >
+          <p className="text-xs font-bold tracking-widest text-slate-400">
+            技能告知
+          </p>
+          <div className="text-5xl select-none">🧠</div>
+          <h2
+            data-testid="madness-notice-player-text"
+            className="text-3xl font-black text-amber-100 leading-snug"
+          >
+            {getCerenovusNoticePlayerText(data.cerenovusNotice.roleName)}
+          </h2>
+          <p className="text-lg font-medium text-slate-300">
+            {CERENOVUS_NOTICE_PLAYER_SUBTITLE}
+          </p>
+        </div>
+      ) : null}
+
+      {isCerenovus ? (
+        /* 🧠 洗脑师专属紧凑布局：8 列（窄屏 5 列）目标网格 + 6 列角色胶囊网格。
+           通用 AdaptiveSeatGrid 会把 15 个目标排成 3~5 列的大方块，
+           洗脑师只需要"点一个座位 + 点一个角色"，不需要那么大的点击面。 */
+        <div className="w-full flex flex-col gap-3">
+          <p className="text-center text-base font-bold text-slate-300 px-2">
+            💡 选 1 名目标 + 1 个疯狂角色：他明日白天必须疯狂扮演该角色，否则可能被处决。
+          </p>
+          <CerenovusConfirmContent
+            seats={seatedPlayers}
+            scriptRoles={scriptRoles}
+            selectedTargets={selectedTargets}
+            selectedRoleId={selectedRoleId}
+            actorSeatId={data?.actorSeatId}
+            onToggleTarget={handleToggleTarget}
+            onSelectRole={setSelectedRoleId}
+          />
+        </div>
+      ) : needsTargetSelection || isRoleSelectorActive ? (
         /* 有目标选择或角色选择交互时的布局 */
         <div className="space-y-4 text-white w-full flex flex-col h-full">
           {/* 顶部行动指引 */}

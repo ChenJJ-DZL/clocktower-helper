@@ -226,7 +226,31 @@ export type ModalType =
         realResultText?: string;
         /** 本次结果是否被"受干扰假值校验层"替换过（说书人提示用） */
         isCorruptedResult?: boolean;
+        /**
+         * 🧠 洗脑师专属结果页数据：被洗脑目标 + 疯狂角色。
+         * 存在时 GameModals 不再渲染通用 <InfoResultModal/>（它会用
+         * `${roleName} - 结果` 当标题，把行动者座位号暴露给被洗脑玩家），
+         * 改由 NightActionPage 渲染专属结果页（默认玩家视角）。
+         */
+        cerenovusResult?: { targetId: number; roleName: string } | null;
+        /** 洗脑师（行动者）座位号 —— 只在说书人解锁视图渲染 */
+        cerenovusSeatId?: number;
+        /** 洗脑师角色名 —— 只在说书人解锁视图渲染 */
+        cerenovusRoleName?: string;
         onNext?: () => void;
+      };
+    }
+  /**
+   * 🧠 洗脑师专属：被洗脑玩家的「得知自己被洗脑」夜间节点页。
+   * 玩家侧只含"疯狂证明的对象角色"，行动者信息只进解锁视图。
+   */
+  | {
+      type: "CERENOVUS_NOTICE";
+      data: {
+        targetId: number;
+        roleName: string;
+        actorSeatId?: number;
+        actorRoleName?: string;
       };
     }
   | { type: "ARTIST_RESULT"; data: { result: string } }

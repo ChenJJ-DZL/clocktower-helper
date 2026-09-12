@@ -331,7 +331,7 @@ export function NightActionPage({
             {isCerenovusResultPage && cerenovusResult && (
               <>
                 <div
-                  data-testid="cerenovus-player-result"
+                  data-testid="madness-notice-result"
                   className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 backdrop-blur-xl text-center space-y-4"
                 >
                   <p className="text-xs font-bold tracking-widest text-slate-400">
@@ -339,7 +339,7 @@ export function NightActionPage({
                   </p>
                   <div className="text-5xl select-none">🧠</div>
                   <h2
-                    data-testid="cerenovus-player-result-text"
+                    data-testid="madness-notice-result-text"
                     className="text-3xl font-black text-amber-100 leading-snug"
                   >
                     {getCerenovusNoticePlayerText(cerenovusResult.roleName)}
@@ -391,7 +391,7 @@ export function NightActionPage({
             {!isCerenovusResultPage && noticeData && (
               <>
                 <div
-                  data-testid="cerenovus-notice-player"
+                  data-testid="madness-notice-player"
                   className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 backdrop-blur-xl text-center space-y-4"
                 >
                   <p className="text-xs font-bold tracking-widest text-slate-400">
@@ -399,7 +399,7 @@ export function NightActionPage({
                   </p>
                   <div className="text-5xl select-none">🧠</div>
                   <h2
-                    data-testid="cerenovus-notice-player-text"
+                    data-testid="madness-notice-player-text"
                     className="text-3xl font-black text-amber-100 leading-snug"
                   >
                     {getCerenovusNoticePlayerText(noticeData.roleName)}
@@ -410,7 +410,7 @@ export function NightActionPage({
                   {isNoticeOnlyStep && (
                     <button
                       onClick={onNoticeConfirm ?? onResultConfirm}
-                      data-testid="cerenovus-notice-confirm"
+                      data-testid="madness-notice-confirm"
                       className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-lg transition-colors"
                     >
                       确认并继续

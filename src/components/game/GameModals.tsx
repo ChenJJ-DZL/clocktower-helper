@@ -20,6 +20,7 @@ import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { GenericAlertModal } from "../modals/GenericAlertModal";
 import { GenericConfirmModal } from "../modals/GenericConfirmModal";
 import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
+import { CerenovusMadnessModal } from "../modals/CerenovusMadnessModal";
 import { InfoResultModal } from "../modals/InfoResultModal";
 import { JugglerJudgeModal } from "../modals/JugglerJudgeModal";
 import { KillConfirmModal } from "../modals/KillConfirmModal";
@@ -173,6 +174,9 @@ export function GameModals() {
     currentModal?.type === "FORTUNE_TELLER_RESULT" ? currentModal.data : null;
   const infoResultModal =
     currentModal?.type === "INFO_RESULT" ? currentModal.data : null;
+  // 🧠 洗脑师专属：被洗脑玩家的「得知自己被洗脑」夜间节点页
+  const cerenovusNoticeModal =
+    currentModal?.type === "CERENOVUS_NOTICE" ? currentModal.data : null;
   const artistResultModal =
     currentModal?.type === "ARTIST_RESULT" ? currentModal.data : null;
   const savantResultModal =
@@ -817,7 +821,60 @@ export function GameModals() {
         />
       )}
 
-      {infoResultModal && (
+      {/* 🧠 洗脑师专属结果页 / 被洗脑告知页（默认玩家视角 + 长按 1.5 秒解锁说书人视图）。
+          玩家侧只有「你需要疯狂证明自己是【X】」+ 副标题；行动者真值只在解锁视图。 */}
+      {infoResultModal?.cerenovusResult && (
+        <CerenovusMadnessModal
+          data={{
+            targetId: infoResultModal.cerenovusResult.targetId,
+            roleName: infoResultModal.cerenovusResult.roleName,
+            actorSeatId: infoResultModal.cerenovusSeatId,
+            actorRoleName: infoResultModal.cerenovusRoleName,
+          }}
+          onConfirm={() => {
+            actions.setCurrentModal(null);
+            if (infoResultModal.onNext) {
+              infoResultModal.onNext();
+            } else {
+              actions.continueToNextAction();
+            }
+          }}
+          onMadnessCheck={
+            infoResultModal.cerenovusSeatId != null &&
+            typeof (actions as any).handleDayAbility === "function"
+              ? () =>
+                  (actions as any).handleDayAbility(
+                    infoResultModal.cerenovusSeatId
+                  )
+              : undefined
+          }
+        />
+      )}
+
+      {cerenovusNoticeModal && (
+        <CerenovusMadnessModal
+          data={cerenovusNoticeModal}
+          onConfirm={() => {
+            actions.setCurrentModal(null);
+            actions.continueToNextAction();
+          }}
+          onMadnessCheck={
+            cerenovusNoticeModal.actorSeatId != null &&
+            typeof (actions as any).handleDayAbility === "function"
+              ? () =>
+                  (actions as any).handleDayAbility(
+                    cerenovusNoticeModal.actorSeatId
+                  )
+              : undefined
+          }
+        />
+      )}
+
+      {/* 🧠 洗脑师专属结果页：改由上面的专属弹窗渲染。
+          通用 <InfoResultModal/> 的标题是「${roleName} - 结果」（例：
+          「11号-洗脑师 - 结果」），会把行动者的座位号/角色名直接暴露给
+          被洗脑的玩家 —— 这里条件跳过，玩家侧永远看不到行动者信息。 */}
+      {infoResultModal && !infoResultModal.cerenovusResult && (
         <InfoResultModal
           roleName={infoResultModal.roleName}
           resultText={infoResultModal.resultText}

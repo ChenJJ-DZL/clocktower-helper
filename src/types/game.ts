@@ -88,6 +88,14 @@ export interface NightInfoResult extends Partial<NightActionSnapshot> {
   validTargetIds?: number[];
   canSelectDead?: boolean;
   canSelectSelf?: boolean;
+
+  /**
+   * 🧠 洗脑师专属：被洗脑玩家的「得知自己被洗脑」节点数据。
+   * 由 utils/cerenovusNotice.ts 的合成节点填充（目标自身无夜间技能时）。
+   * ⚠️ 该字段含目标座位号与疯狂角色名（都是被洗脑者本人应知的），
+   * 但页面绝不能由它反推出行动者 —— 行动者信息只走 storytellerNote。
+   */
+  cerenovusNotice?: { targetId: number; roleName: string };
 }
 
 // 夜间时间线相关类型

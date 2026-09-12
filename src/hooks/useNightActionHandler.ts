@@ -40,6 +40,12 @@ import {
   FARMER_SUCCESSOR_RESULT_TEXT,
   findFarmerSuccessionTrigger,
 } from "../utils/farmerSuccession";
+import {
+  getCerenovusNoticeFromStep,
+  getCerenovusNoticePlayerText,
+  getCerenovusNoticeStepLabel,
+  getPendingCerenovusNotice,
+} from "../utils/cerenovusNotice";
 import { computeIsPoisoned } from "../utils/gameRules";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
@@ -853,6 +859,30 @@ export async function executeViaNewEngine(
           }
         }
 
+        // 🧠 洗脑师：被洗脑玩家的独立告知节点 —— 只告知，不执行任何技能。
+        //    合成节点（目标自身没有任何夜间信息）走专属页面；
+        //    目标自身有夜间技能时把告知挂到他那一步的确认页上（信息不丢）。
+        const cerenovusNoticeStep = getCerenovusNoticeFromStep(
+          context.nightInfo as any
+        );
+        const pendingCerenovusNotice =
+          cerenovusNoticeStep ??
+          getPendingCerenovusNotice(actorSeat as any, context.nightCount);
+        if (cerenovusNoticeStep) {
+          context.setCurrentModal({
+            type: "CERENOVUS_NOTICE",
+            data: {
+              targetId: cerenovusNoticeStep.targetId,
+              roleName: cerenovusNoticeStep.roleName,
+              actorSeatId: context.seats.find(
+                (s) => s.role?.id === "cerenovus" && !s.isDead
+              )?.id,
+              actorRoleName: "洗脑师",
+            },
+          } as any);
+          return;
+        }
+
         context.setCurrentModal({
           type: "NIGHT_ACTION_CONFIRM",
           data: {
@@ -865,6 +895,8 @@ export async function executeViaNewEngine(
             allowSelf,
             aliveOnly,
             initialSelectedTargets: safeTargets,
+            // 🧠 该座位当夜有待送达的洗脑告知 → 确认页顶部额外渲染告知卡（玩家面）
+            cerenovusNotice: pendingCerenovusNotice ?? undefined,
             requiresRoleSelection: ["cerenovus", "ojo", "brewer"].includes(
               roleId
             ),
@@ -1506,6 +1538,20 @@ export async function executeViaNewEngine(
             },
           });
         }
+        // 🧠 被洗脑玩家的独立行动节点：给目标座位打上"当夜待送达"的洗脑告知标记。
+        //    用夜号做夜限（cerenovusNoticeNight），换夜后自动失效，无需清理逻辑。
+        //    目标自身有夜间技能 → 该技能节点即为他的步骤，告知合并渲染；
+        //    目标没有任何夜间信息 → nightInfoAdapter 产出「得知自己被洗脑」合成节点，
+        //    避免空步骤被安全网自动跳过而丢信息。
+        if (context.setSeats) {
+          context.setSeats((prev: Seat[]) =>
+            prev.map((s) =>
+              s.id === cerenovusRes.targetId
+                ? ({ ...s, cerenovusNoticeNight: context.nightCount } as Seat)
+                : s
+            )
+          );
+        }
       }
     }
 
@@ -1623,6 +1669,13 @@ export async function executeViaNewEngine(
       //   现在改为：只要有 displayInfo.log 就弹出 INFO_RESULT。
       // 🎯 赏金猎人：直接向玩家展示“X号玩家是邪恶的”
       let customResultText: string | null = null;
+      /**
+       * 🧠 洗脑师：结构化结果（结果页据此渲染专属 UI，不从 resultText 反解）。
+       * 结果页玩家视角只允许出现「你需要疯狂证明自己是【X】」+ 副标题，
+       * 绝不出现行动者（洗脑师）的座位号或角色名。
+       */
+      let cerenovusResultData: { targetId: number; roleName: string } | null =
+        null;
       if (roleId === "bounty_hunter") {
         const targetId =
           displayInfo?.targetId ??
@@ -1650,10 +1703,15 @@ export async function executeViaNewEngine(
           (context.actionData as any)?.roleName ??
           displayInfo?.roleName;
         if (targetId != null && madRoleName) {
-          customResultText = `唤醒${targetId + 1}号玩家\n你需要疯狂证明自己是【${madRoleName}】`;
+          // 🎭 行动者口径修正：玩家看到的**只有**「你需要疯狂证明自己是【X】」，
+          //    不再出现"唤醒 N号玩家"这类指向目标/行动者的座位信息；
+          //    说书人侧真值（谁洗的、洗了谁）走 cerenovusResultData + 解锁视图。
+          customResultText = getCerenovusNoticePlayerText(madRoleName);
+          cerenovusResultData = { targetId, roleName: madRoleName };
+          // 🧠 被洗脑玩家的独立行动节点（与洗脑师这一步分开）
           if (context.insertIntoWakeQueueAfterCurrent) {
             context.insertIntoWakeQueueAfterCurrent(targetId, {
-              logLabel: `${targetId + 1}号(洗脑唤醒)`,
+              logLabel: getCerenovusNoticeStepLabel(targetId, madRoleName),
             });
           }
         }
@@ -1790,6 +1848,12 @@ export async function executeViaNewEngine(
         data: {
           roleName: playerFacingRoleLabel,
           resultText,
+          // 🧠 洗脑师专属结果页的结构化数据（玩家页据此渲染"疯狂证明"页，
+          //    行动者真值只进说书人解锁视图；缺失时退回通用结果页）
+          cerenovusResult: cerenovusResultData ?? undefined,
+          // 说书人解锁视图专用真值（玩家侧不读这两个字段）
+          cerenovusSeatId: cerenovusResultData ? actorId : undefined,
+          cerenovusRoleName: cerenovusResultData ? rawRoleName : undefined,
           // 说书人侧真值对照：只在解锁视图/控制台渲染（玩家页不读）
           realResultText: corruptedMask ? corruptedMask.truthText : undefined,
           isCorruptedResult: Boolean(corruptedMask),

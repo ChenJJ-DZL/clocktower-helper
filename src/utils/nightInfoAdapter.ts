@@ -12,6 +12,7 @@
 import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { buildCerenovusNoticeNightInfo } from "./cerenovusNotice";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import {
   MARIONETTE_NO_WAKE_NOTE,
@@ -274,10 +275,18 @@ export function calculateNightInfoViaNewEngine(
     );
   }
 
+  // 🧠 洗脑师：被洗脑玩家当夜必须拿到属于他自己的一个步骤。
+  //    若该座位自身没有任何夜间信息，则退化为「得知自己被洗脑」合成节点，
+  //    保证这一夜的信息不会因为"角色没有夜间技能 → 空步骤被自动跳过"而丢失。
+  const cerenovusNoticeInfo = buildCerenovusNoticeNightInfo(
+    targetSeat,
+    nightCount
+  );
+
   // 检查新引擎是否有该角色的能力
   if (!isRoleMigrated(roleId)) {
     console.warn(`[NightInfoAdapter] 角色 ${roleId} 未在新引擎注册，返回 null`);
-    return null;
+    return cerenovusNoticeInfo;
   }
 
   // 使用 nightInfoGenerator 从 getRoleDefinition 的 dialog/target 配置生成 NightInfoResult
@@ -309,7 +318,7 @@ export function calculateNightInfoViaNewEngine(
     systemStepRoleId
   );
 
-  if (!rawNightInfo) return null;
+  if (!rawNightInfo) return cerenovusNoticeInfo;
 
   // 👥 镜像双子对立善良角色在首夜的信息注入
   if (gamePhase === "firstNight" || nightCount === 1) {

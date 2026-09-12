@@ -1761,6 +1761,7 @@ export function GameStageWithModals() {
     selectedActionTargets,
     isPrivacyShieldActive,
     setIsPrivacyShieldActive,
+    nightCount,
   } = useGameState();
   const controller = useGameActions();
   const toggleTarget = controller.toggleTarget as (seatId: number) => void;
@@ -1835,6 +1836,22 @@ export function GameStageWithModals() {
           resultText={infoResultData?.resultText}
           realResultText={infoResultData?.realResultText}
           isCorruptedResult={infoResultData?.isCorruptedResult}
+          nightCount={nightCount}
+          // 🧠 洗脑师专属结果页：结构化真值（玩家侧只渲染"疯狂证明"告知）
+          cerenovusResult={infoResultData?.cerenovusResult}
+          // 🧠 说书人解锁视图的「洗脑判定」入口 —— 复用白天技能判定链路
+          //    （useDayActions.handleDayAbility 自带"今日已判定/目标已死"等守卫）
+          onMadnessCheck={
+            typeof (controller as any).handleDayAbility === "function"
+              ? () => (controller as any).handleDayAbility(nightInfo.seat?.id)
+              : undefined
+          }
+          onNoticeConfirm={() => {
+            setCurrentModal(null);
+            continueToNextAction?.();
+            // 🛡️ 告知结束 → 自动进入防窥遮罩，设备归还说书人
+            setIsPrivacyShieldActive(true);
+          }}
           isVortoxWorld={isVortoxWorld}
           onResultConfirm={
             infoResultData?.onNext
