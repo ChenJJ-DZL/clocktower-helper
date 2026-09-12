@@ -652,8 +652,10 @@ export default function Home() {
       };
 
       // 气球驾驶员自动记录日志被动信息技能
+      // 🛡️ 同样必须可选链：系统步骤/结算步骤的 nightInfo 上没有 effectiveRole，
+      //    直接读 .id 会让整个应用白屏（用户实测：准备阶段点「确认无误，入夜」后必崩）。
       if (
-        nightInfo.effectiveRole.id === "balloonist" &&
+        nightInfo.effectiveRole?.id === "balloonist" &&
         nightInfo.guide.includes("你得") &&
         !nightInfo.isPoisoned
       ) {
