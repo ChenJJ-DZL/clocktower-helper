@@ -22,6 +22,14 @@ export interface NightActionConfirmData {
   targetDescriptions?: string[];
   /** 附加提示，如中毒/醉酒警告 */
   extraNote?: string;
+  /**
+   * 🌀 A4：真恶魔专属提示 ——「疯子本夜选择了哪些玩家」。
+   * 官方原文（json/wiki_crawl/parsed_roles.json「疯子」）：
+   *   「真正的恶魔会知道疯子每个夜晚攻击了哪些玩家。」
+   * 因此这条不是泄漏：它只出现在**真恶魔自己的行动页**上，且每个夜晚都要出现
+   * （未选择时给出"本夜未选择"的明确文案）。由 useNightActionHandler 注入。
+   */
+  lunaticHint?: string;
   /** 目标选择配置 */
   targetLimit?: { min: number; max: number };
   /** 当前行动者座位ID（用于自身可选性判断） */
@@ -182,6 +190,7 @@ export function NightActionConfirmModal({
     actionDescription,
     targetDescriptions = [],
     extraNote,
+    lunaticHint,
     targetLimit,
     actorSeatId,
     allowSelf = true,
@@ -375,9 +384,10 @@ export function NightActionConfirmModal({
                 吗？
               </div>
             )}
+            {/* B1：这里原本写着「说书人可直接将本页面展示给该玩家…」——本页面会直接
+                交给玩家点击，任何"说书人专属说明"都不应出现，故改为纯玩家提示。 */}
             <p className="text-xs sm:text-sm text-slate-400">
-              💡
-              说书人可直接将本页面展示给该玩家进行选人操作，已完全隐蔽其他玩家角色信息。
+              💡 本页面只显示座位号，其他玩家的角色信息已完全隐蔽。
             </p>
           </div>
 
@@ -520,6 +530,12 @@ export function NightActionConfirmModal({
             </div>
           )}
 
+          {lunaticHint && (
+            <div className="text-sm sm:text-base font-black text-fuchsia-100 bg-fuchsia-900/50 rounded-xl p-3 border-2 border-fuchsia-400/70 shadow-lg shadow-fuchsia-900/40 whitespace-pre-line">
+              {lunaticHint}
+            </div>
+          )}
+
           {extraNote && (
             <div className="text-xs sm:text-sm text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40">
               ⚠️ {extraNote}
@@ -555,6 +571,12 @@ export function NightActionConfirmModal({
               </span>
               ，无需由玩家点选目标。点击下方【确认执行】后将计算并展示告知结果。
             </p>
+
+            {lunaticHint && (
+              <div className="text-base sm:text-lg font-black text-fuchsia-100 bg-fuchsia-900/50 rounded-xl p-3 border-2 border-fuchsia-400/70 shadow-lg shadow-fuchsia-900/40 whitespace-pre-line w-max max-w-none">
+                {lunaticHint}
+              </div>
+            )}
 
             {extraNote && (
               <div className="text-sm sm:text-base text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40 w-max max-w-none whitespace-nowrap">

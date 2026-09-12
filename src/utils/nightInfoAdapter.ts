@@ -13,10 +13,20 @@ import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
-import { MARIONETTE_NO_WAKE_NOTE, isMarionetteSeat } from "./roleFlags";
+import {
+  MARIONETTE_NO_WAKE_NOTE,
+  isLunaticSeat,
+  isMarionetteSeat,
+} from "./roleFlags";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
+import {
+  computeDemonBluffNames,
+  formatLunaticFakeGuide,
+  getScriptRoleIds,
+  resolveLunaticFakeInfo,
+} from "./lunaticFakeInfo";
 
 /**
  * 已迁移到新引擎的角色列表（用于追踪迁移进度）
@@ -419,13 +429,12 @@ function generateSystemInfoViaAdapter(
     otherMinions.map((s) => `${s.id + 1}号`).join("、") || "无";
 
   let guide = "";
+  /** 说书人专属补充说明（绝不进玩家页面） */
+  let storytellerNote: string | undefined;
 
   // 共享不在场镇民伪装（所有恶魔/军团共用同一套，优先筛选不在场的镇民 Townsfolk）
   const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
-  const scriptRoleIds: string[] =
-    selectedScript?.roleIds ||
-    (selectedScript as any)?.roles?.map((r: any) => r.id) ||
-    [];
+  const scriptRoleIds: string[] = getScriptRoleIds(selectedScript);
   const scriptTownsfolk = scriptRoleIds
     .map((id: string) => roles.find((r) => r.id === id))
     .filter(
@@ -434,9 +443,10 @@ function generateSystemInfoViaAdapter(
   const scriptOutsiders = scriptRoleIds
     .map((id: string) => roles.find((r) => r.id === id))
     .filter((r: any) => r && r.type === "outsider" && !inPlayRoleIds.has(r.id));
-  const notInPlayGoodRoles = [...scriptTownsfolk, ...scriptOutsiders]
-    .slice(0, 3)
-    .map((r: any) => r.name);
+  // ⚠️ 真恶魔的 3 张伪装牌与"疯子假信息"共用同一个函数，保证
+  //    utils/lunaticFakeInfo.ts 里"疯子那 3 张与恶魔这 3 张不重叠"的约束成立
+  //    （否则两处各算一套，约束会悄悄失效）。
+  const notInPlayGoodRoles = computeDemonBluffNames(seats, scriptRoleIds);
 
   const legionBluffText =
     notInPlayGoodRoles.length > 0
@@ -532,16 +542,57 @@ ${MARIONETTE_NO_WAKE_NOTE}` : "";
     } else {
       guide = `座位号：${legionSeatList}\n说书人同时唤醒所有的军团玩家，军团玩家互认${legionBluffText}`;
     }
+  } else if (isLunaticSeat(selfSeat)) {
+    // 🌀 A1：把疯子**当作真恶魔**唤醒，给出与真恶魔同款的「恶魔互认」页面，
+    //    但内容按官方与说书人裁决改为**假信息**：
+    //    「疯子会在首个夜晚被唤醒来得知三个不在场的角色，以及与当前游戏数量
+    //      符合的爪牙，但是这些信息可能是错误的。」（parsed_roles.json）
+    //    - 3 张伪装牌：本局不在场的善良角色，且优先与真恶魔那 3 张不重叠；
+    //    - 爪牙名单：数量 == 真实爪牙数，身份全部来自非邪恶座位；
+    //    - 绝不包含提线木偶提示（官方只说"恶魔会知道谁是提线木偶"）。
+    //    说书人可在解锁视图覆盖（覆盖值同样只喂给疯子，见 useSeatManager 写入）。
+    const fake = resolveLunaticFakeInfo(
+      seats as any,
+      scriptRoleIds,
+      selfSeat.id,
+      (selectedScript as any)?.id
+    );
+    const overrideBluffs = (selfSeat as any).lunaticFakeBluffNames as
+      | string[]
+      | undefined;
+    const overrideMinions = (selfSeat as any).lunaticFakeMinionIds as
+      | number[]
+      | undefined;
+    const effectiveFake = {
+      ...fake,
+      bluffNames:
+        Array.isArray(overrideBluffs) && overrideBluffs.length > 0
+          ? overrideBluffs
+          : fake.bluffNames,
+      fakeMinionIds:
+        Array.isArray(overrideMinions) && overrideMinions.length >= 0
+          ? overrideMinions
+          : fake.fakeMinionIds,
+    };
+    guide = isPoppyGrowerAlive
+      ? `🌺 罂粟种植者在场，你不知道爪牙是谁${regularBluffText}`
+      : formatLunaticFakeGuide(effectiveFake, seats as any);
   } else {
     // 常规恶魔信息
     if (isPoppyGrowerAlive) {
       guide = `🌺 罂粟种植者在场，你不知道爪牙是谁${regularBluffText}`;
     } else {
-      let marionetteNote = "";
-      if (marionetteSeat) {
-        marionetteNote = `\n提线木偶: ${marionetteSeat.id + 1}号（它不知道自己其实是爪牙，请勿让它察觉）`;
-      }
+      // ⚠️ B1：该 guide 会直接显示在"技能确认页 / 结果页"上（交给玩家点击），
+      //    因此只保留**恶魔本人该知道的信息**（官方：恶魔会知道谁是提线木偶），
+      //    去掉原本写给说书人的那句「它不知道自己其实是爪牙，请勿让它察觉」。
+      const marionetteNote = marionetteSeat
+        ? `\n提线木偶: ${marionetteSeat.id + 1}号`
+        : "";
       guide = `爪牙是: ${minionDesc}${marionetteNote}${regularBluffText}${snitchMarionetteExtraText}`;
+      // 说书人专属提醒（不进玩家页面，只由 GameConsole 渲染）
+      storytellerNote = marionetteSeat
+        ? `提线木偶: ${marionetteSeat.id + 1}号（它不知道自己其实是爪牙，请勿让它察觉）`
+        : undefined;
     }
   }
 
@@ -556,6 +607,14 @@ ${MARIONETTE_NO_WAKE_NOTE}` : "";
           : "恶魔互认",
       type: "townsfolk",
     },
+    // 🌀 A2：疯子走恶魔互认步骤时，玩家面必须显示"我以为我是的那个恶魔"，
+    //    而不是「疯子」。effectiveRole 仍保持系统步骤 id（供执行/日志使用）。
+    playerFacingRole: isLunaticSeat(selfSeat)
+      ? ((selfSeat as any).apparentDemonRole ?? undefined)
+      : undefined,
+    // ⚠️ 说书人专属：只由 GameConsole 渲染，玩家页（NightActionPage /
+    //    NIGHT_ACTION_CONFIRM / INFO_RESULT）一律不读这个字段。
+    storytellerNote,
     isPoisoned: false,
     guide,
     speak: "",

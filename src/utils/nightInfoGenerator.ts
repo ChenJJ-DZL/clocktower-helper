@@ -56,6 +56,18 @@ export function generateNightInfo(
   const isCharade =
     (targetSeat.role.id === "drunk" || targetSeat.role.id === "marionette") &&
     targetSeat.charadeRole;
+  /**
+   * 🌀 A2：疯子（Lunatic）的"我是谁"来自说书人设置的 seat.apparentDemonRole。
+   * 注意分工（不要混淆）：
+   *   - `effectiveRole` 仍是 **lunatic** → 执行链路用的就是它，保证疯子绝不真杀；
+   *   - `playerFacingRole` = apparentDemonRole → 只用于**玩家面显示**
+   *     （角色名/阵营色/指引文案/目标数量）。
+   * 这样"界面完全按假恶魔演"与"规则按疯子结算"两件事互不干扰。
+   */
+  const isLunatic = targetSeat.role.id === "lunatic";
+  const apparentDemonRole = isLunatic
+    ? (((targetSeat as any).apparentDemonRole as Role | null) ?? null)
+    : null;
 
   const isPixieInherited =
     overrideRoleId &&
@@ -81,6 +93,9 @@ export function generateNightInfo(
       : targetSeat.role;
 
   if (!effectiveRole) return null;
+
+  /** 玩家视角下的角色：疯子 → 假恶魔；酒鬼/提线木偶 → 伪装镇民；其余同 effectiveRole。 */
+  const playerFacingRole: Role = apparentDemonRole ?? effectiveRole;
 
   const isPoisoned = computeIsPoisoned(targetSeat, seats);
   const isDrunk =
@@ -114,13 +129,33 @@ export function generateNightInfo(
     ? roleDef?.firstNight || roleDef?.night
     : roleDef?.night || (isPixieInherited ? roleDef?.firstNight : undefined);
 
+  /**
+   * 🌀 A2：疯子的"玩家面配置"取自 apparentDemonRole 的角色定义 —— 于是
+   * 界面文案（dialog）、目标数量与目标规则（target）**完全按假恶魔演**
+   * （例：apparentDemonRole = vortox 时页面就是涡流的技能页）。
+   * 执行仍走 effectiveRole = lunatic，两件事互不影响。
+   * 非疯子角色：displayRoleDef === roleDef，行为与改动前完全一致。
+   */
+  const displayRoleDef = apparentDemonRole
+    ? (getRoleDefinition(apparentDemonRole.id) ?? roleDef)
+    : roleDef;
+  const displayNightConfig =
+    displayRoleDef === roleDef
+      ? nightConfig
+      : isFirstNight
+        ? displayRoleDef?.firstNight || displayRoleDef?.night
+        : displayRoleDef?.night;
+  const effectiveDisplayConfig = displayNightConfig ?? nightConfig;
+
   if (!nightConfig) {
     // 该角色没有 legacy 夜晚行动配置时，尝试从 effectiveRole 生成基础信息
     // 确保 UI 不会因 nightInfo 为空而卡死
-    const defaultGuide = `唤醒${currentSeatId + 1}号【${effectiveRole.name}】，准备执行技能。`;
+    const defaultGuide = `唤醒${currentSeatId + 1}号【${(playerFacingRole ?? effectiveRole).name}】，准备执行技能。`;
     return {
       seat: targetSeat,
       effectiveRole,
+      playerFacingRole,
+      playerFacingGuide: defaultGuide,
       isPoisoned: effectivePoisoned,
       reason,
       guide: defaultGuide,
@@ -128,7 +163,7 @@ export function generateNightInfo(
       action: "",
       roleId: effectiveRole.id,
       index: 0,
-      targetLimit: { min: 0, max: 0 },
+      targetLimit: effectiveDisplayConfig?.target?.count ?? { min: 0, max: 0 },
       canSelectDead: false,
       canSelectSelf: false,
       validTargetIds: [],
@@ -215,24 +250,46 @@ export function generateNightInfo(
     addLog: () => {},
   };
 
+
+  /** 读取某份 nightConfig 的 dialog 三件套。 */
+  const readDialog = (cfg: any) => {
+    if (!cfg?.dialog) return { guide: "", speak: "", action: "" };
+    if (typeof cfg.dialog === "function") {
+      const d = cfg.dialog(currentSeatId, isFirstNight, context) || {};
+      return {
+        guide: d.wake || "",
+        speak: d.instruction || "",
+        action: d.close || "",
+      };
+    }
+    if (typeof cfg.dialog === "object") {
+      const d = cfg.dialog as any;
+      return {
+        guide: d.wake || d.action || "",
+        speak: d.instruction || "",
+        action: d.close || "",
+      };
+    }
+    return { guide: String(cfg.dialog), speak: "", action: "" };
+  };
+
   // 调用 dialog 函数生成 guide/speak/action（安全防御检查）
-  let guide = "";
-  let speak = "";
-  let action = "";
-  if (typeof nightConfig.dialog === "function") {
-    const dialog =
-      nightConfig.dialog(currentSeatId, isFirstNight, context) || {};
-    guide = dialog.wake || "";
-    speak = dialog.instruction || "";
-    action = dialog.close || "";
-  } else if (nightConfig.dialog && typeof nightConfig.dialog === "object") {
-    const d = nightConfig.dialog as any;
-    guide = d.wake || d.action || "";
-    speak = d.instruction || "";
-    action = d.close || "";
-  } else if (typeof nightConfig.dialog === "string") {
-    guide = nightConfig.dialog;
-  }
+  // 🎭 说书人链路继续用 nightConfig（疯子 → 疯子自己的 dialog，含"不要透露其真实身份"等指令）；
+  // 👤 玩家链路用 effectiveDisplayConfig（疯子 → 假恶魔的 dialog）。
+  const storytellerDialog = readDialog(nightConfig);
+  const playerDialog =
+    effectiveDisplayConfig === nightConfig
+      ? storytellerDialog
+      : readDialog(effectiveDisplayConfig);
+  const guide = storytellerDialog.guide;
+  const speak = storytellerDialog.speak;
+  const action = storytellerDialog.action;
+  /**
+   * A2：玩家面的夜间指引。
+   * - 疯子：假恶魔（apparentDemonRole）的技能描述；
+   * - 其他角色：与说书人 guide 相同。
+   */
+  const playerFacingGuide = playerDialog.guide || guide;
 
   // 从 target 配置生成 targetLimit/validTargetIds
   let targetLimit = { min: 0, max: 0 };
@@ -240,15 +297,12 @@ export function generateNightInfo(
   let canSelectDead = false;
   let validTargetIds: number[] = [];
 
-  if (nightConfig.target) {
-    targetLimit = nightConfig.target.count;
-    if (nightConfig.target.canSelect) {
-      canSelectSelf = nightConfig.target.canSelect(
-        targetSeat,
-        targetSeat,
-        seats,
-        []
-      );
+  // 🌀 A2：目标数量/规则取**玩家面配置**（疯子 → 假恶魔，如沙巴洛斯=选 2 人）。
+  const targetConfig = effectiveDisplayConfig?.target;
+  if (targetConfig) {
+    targetLimit = targetConfig.count;
+    if (targetConfig.canSelect) {
+      canSelectSelf = targetConfig.canSelect(targetSeat, targetSeat, seats, []);
       const dummyDeadSeat =
         seats.find((s) => s.isDead) ||
         ({
@@ -256,15 +310,15 @@ export function generateNightInfo(
           isDead: true,
           role: { id: "villager", type: "townsfolk" },
         } as any);
-      canSelectDead = nightConfig.target.canSelect(
+      canSelectDead = targetConfig.canSelect(
         dummyDeadSeat,
         targetSeat,
         seats,
         []
       );
     }
-    if (nightConfig.target.validTargetIds) {
-      validTargetIds = nightConfig.target.validTargetIds(
+    if (targetConfig.validTargetIds) {
+      validTargetIds = targetConfig.validTargetIds(
         currentSeatId,
         seats,
         gamePhase
@@ -296,6 +350,11 @@ export function generateNightInfo(
   return {
     seat: targetSeat,
     effectiveRole,
+    // 👤 A2：玩家面身份/文案（疯子 → apparentDemonRole）。
+    //    消费者一律 `playerFacingRole ?? effectiveRole` /
+    //    `playerFacingGuide ?? guide`，切不可直接把 effectiveRole 交给玩家页。
+    playerFacingRole,
+    playerFacingGuide,
     isPoisoned: effectivePoisoned,
     reason,
     guide,
@@ -304,7 +363,7 @@ export function generateNightInfo(
     meta: {
       targetType: interaction.type === "choose_player" ? "player" : "none",
       amount: interaction.amount,
-      targetCount: nightConfig.target?.count,
+      targetCount: targetConfig?.count,
     },
     interaction,
     roleId: effectiveRole.id,

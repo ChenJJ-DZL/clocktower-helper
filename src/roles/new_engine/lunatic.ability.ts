@@ -88,12 +88,29 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  const targetIds: number[] = Array.isArray(r?.targetIds) ? r.targetIds : [];
+  const actorSeatId = ctx.actionNode.seatId;
+  // A4 关键：把"疯子本夜选了谁"写进**行动者座位**（而不只是快照顶层）。
+  // executeViaNewEngine 的状态合并是 { ...prev, ...updatedSeat }，
+  // 只有写进 snapshot.seats 的字段才能同步回 React 座位，
+  // 真恶魔的技能确认页 / 说书人控制台才能读到（官方：
+  // 「真正的恶魔会知道疯子每个夜晚攻击了哪些玩家。」）。
+  const stampedSeats = (ctx.snapshot.seats as any[]).map((s) =>
+    s.id === actorSeatId
+      ? {
+          ...s,
+          lunaticTarget: targetIds[0] ?? null,
+          lunaticTargetIds: targetIds,
+        }
+      : s
+  );
   return {
     ...ctx,
     snapshot: {
       ...ctx.snapshot,
+      seats: stampedSeats,
       lunaticTarget: r?.targetId,
-      lunaticTargetIds: r?.targetIds,
+      lunaticTargetIds: targetIds,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         lunatic: r,
@@ -124,6 +141,13 @@ const postProcess = async (
   const apparentName =
     (seat as any)?.apparentDemonRole?.name ?? apparentDemonId;
 
+  // 玩家面文案（A2/B1）：结果页会内联给疯子本人点击，
+  // 只能出现"你以【假恶魔】的身份做出了选择"，绝不能出现「疯子 / 模拟击杀 / 0 效果」。
+  const playerFacingLog =
+    targetDesc === "无"
+      ? `${apparentName}：本夜未选择目标。`
+      : `${apparentName}：已选择 ${targetDesc}。`;
+
   return {
     ...ctx,
     meta: {
@@ -137,6 +161,8 @@ const postProcess = async (
         apparentDemonId,
         apparentDemonName: apparentName,
         log,
+        // 玩家视角专用：INFO_RESULT 优先渲染它（见 useNightActionHandler）
+        playerFacingLog,
         isLunatic: true,
       },
     },

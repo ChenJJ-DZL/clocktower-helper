@@ -31,6 +31,17 @@ export function isMarionetteSeat(seat: SeatLike | undefined | null): boolean {
 }
 
 /**
+ * 疯子（Lunatic）：以为自己是某个恶魔，实际是善良的外来者。
+ * 官方原文（json/wiki_crawl/parsed_roles.json「疯子」）：
+ *   「你以为你是一个恶魔，但其实你不是。恶魔知道你是疯子以及你在每个夜晚选择了哪些玩家。」
+ * 凡是"要按恶魔对待疯子"或"绝不能向疯子泄漏其真实身份"的地方，一律走这个判定，
+ * 避免各处各写一套。
+ */
+export function isLunaticSeat(seat: SeatLike | undefined | null): boolean {
+  return seat?.role?.id === "lunatic";
+}
+
+/**
  * 「真正的爪牙」= 知道自己是爪牙、参与邪恶互认信息的爪牙。
  * 提线木偶被排除；恶魔（type=demon）本就不满足 minion 条件。
  */

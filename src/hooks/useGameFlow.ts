@@ -15,6 +15,7 @@ import {
   isRealBountyHunterSeat,
 } from "../utils/bountyHunterSetup";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
+import { buildLunaticFakeInfo } from "../utils/lunaticFakeInfo";
 import { showAlert } from "../utils/nativeDialogShim";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 
@@ -937,6 +938,37 @@ export function useGameFlow(): UseGameFlowResult {
             );
           }
         }
+      }
+
+      // 🌀 A1：疯子首夜"假恶魔信息"（3 张伪装牌 + 假爪牙）—— 确定性生成一次后
+      //    持久化进座位（seat.lunaticFakeInfo），保证整局稳定：重新渲染、撤销/重做、
+      //    甚至跨夜重算，疯子看到的内容都不变。
+      //    官方：「疯子会在首个夜晚被唤醒来得知三个不在场的角色，以及与当前游戏
+      //    数量符合的爪牙，但是这些信息可能是错误的。」（parsed_roles.json）
+      //    这套假信息只喂给疯子（见 utils/nightInfoAdapter.ts 的 demon_info 分支），
+      //    真恶魔/真爪牙的互认信息一字不改。
+      const lunaticMissingFakeInfo = seats.filter(
+        (s) => s.role?.id === "lunatic" && !(s as any).lunaticFakeInfo
+      );
+      if (lunaticMissingFakeInfo.length > 0) {
+        dispatch(
+          gameActions.setSeats(
+            seats.map((s) => {
+              if (s.role?.id !== "lunatic" || (s as any).lunaticFakeInfo) {
+                return s;
+              }
+              return {
+                ...s,
+                lunaticFakeInfo: buildLunaticFakeInfo(
+                  seats as any,
+                  selectedScript?.roleIds ?? [],
+                  s.id,
+                  selectedScript?.id
+                ),
+              } as any;
+            })
+          )
+        );
       }
 
       // 红罗刹检查：有占卜师时必须设置红罗刹

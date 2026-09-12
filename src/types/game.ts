@@ -41,7 +41,32 @@ export interface NightHintState {
 
 export interface NightInfoResult extends Partial<NightActionSnapshot> {
   seat: Seat;
+  /**
+   * 规则执行用的真实角色（如疯子仍是 lunatic：执行走疯子能力，绝不真杀）。
+   * ⚠️ 不可直接用于玩家视角展示 —— 玩家视角请用 `playerFacingRole`。
+   */
   effectiveRole: Role;
+  /**
+   * 玩家视角下"我以为我是谁"（A2）：
+   *   - 疯子 → seat.apparentDemonRole（涡流/沙巴洛斯…按该恶魔的能力显示）；
+   *   - 酒鬼 / 提线木偶 → seat.charadeRole；
+   *   - 其他角色 → 与 effectiveRole 相同。
+   * 由 utils/nightInfoGenerator.ts 统一填充，消费者只需 `playerFacingRole ?? effectiveRole`。
+   */
+  playerFacingRole?: Role;
+  /**
+   * 玩家视角的夜间指引文案（把说书人指令留在 guide / guideText 里，不污染玩家面）。
+   * 典型场景：疯子的 guide 是"唤醒X号【疯子】（假涡流行动）…"，而玩家面必须是
+   * 涡流自己的技能描述。
+   */
+  playerFacingGuide?: string;
+  /**
+   * 说书人专属补充说明（**绝不允许出现在玩家页面**）。
+   * 例：恶魔互认时那句「提线木偶 X号 不知道自己其实是爪牙，请勿让它察觉」——
+   * 官方只保证"恶魔知道谁是提线木偶"，这句操作提醒是说书写给说书人自己的。
+   * 只由说书人控制台（GameConsole）渲染。
+   */
+  storytellerNote?: string;
   isPoisoned: boolean;
   reason?: string;
   guide: string;

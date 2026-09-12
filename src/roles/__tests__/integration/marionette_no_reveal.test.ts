@@ -192,7 +192,16 @@ describe("④ 罂粟种植者死亡后的邪恶互认：提线木偶什么都不
     );
     // 官方：罂粟种植者死亡后恶魔会知道谁是提线木偶
     expect(String(demonInfo?.guide)).toContain("提线木偶: 4号");
-    // 且必须提醒说书人：它不知道自己其实是爪牙
-    expect(String(demonInfo?.guide)).toContain("请勿让它察觉");
+    // B1：恶魔互认的 guide 会直接显示在"技能确认页 / 结果页"上（交给玩家点击），
+    // 因此那句写给说书人的操作提醒**不得**再留在 guide 里，
+    // 改为移到说书人专属字段 storytellerNote（只由 GameConsole 渲染）。
+    expect(String(demonInfo?.guide)).not.toContain("请勿让它察觉");
+    // 且必须仍然提醒说书人：它不知道自己其实是爪牙
+    expect(String((demonInfo as any)?.storytellerNote)).toContain(
+      "请勿让它察觉"
+    );
+    expect(String((demonInfo as any)?.storytellerNote)).toContain(
+      "提线木偶: 4号"
+    );
   });
 });

@@ -203,7 +203,15 @@ export function generateDynamicNightQueue(
             : true) &&
           (includeDead || !s.isDead)
       );
-      if (!seat) return false;
+      // 🌀 A1：疯子（lunatic）在首夜必须"如同真正的恶魔"被唤醒以获取
+      //    「三个不在场的角色 + 与人数相符的爪牙」（官方原文见
+      //    json/wiki_crawl/parsed_roles.json「疯子」）。
+      //    因此即使没有额外的恶魔座位需要 demon_info，只要场上有存活疯子，
+      //    demon_info 步骤仍必须保留（其行动者由下方 1.5 展开为疯子座位）。
+      const lunaticActor = snapshot.seats.find(
+        (s) => s.role?.id === "lunatic" && (includeDead || !s.isDead)
+      );
+      if (!seat && !lunaticActor) return false;
       return true;
     }
     if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
@@ -219,6 +227,28 @@ export function generateDynamicNightQueue(
       return snapshot.seats.some(
         (s) => s.role?.id === "legion" && (includeDead || !s.isDead)
       );
+    }
+
+    // 🌀 A5：疯子（Lunatic）按 seat.apparentDemonRole 的夜间优先级被唤醒。
+    //    - 首夜：官方流程是"展示三个不在场角色 + 与人数相符的爪牙"，不杀人
+    //      （见 json/wiki_crawl/parsed_roles.json「疯子」角色简介 2）。
+    //      因此仅当假恶魔本身在首夜也有行动（如卡扎力）时才保留疯子的首夜行动节点。
+    //    - 其它夜晚：照假恶魔的 otherNightPriority；假恶魔不行动时回退疯子自身优先级，
+    //      保证"每个夜晚都被唤醒发动攻击"（官方角色简介 1）。
+    if (entry.roleId === "lunatic") {
+      const lunaticSeat = snapshot.seats.find(
+        (s) => s.role?.id === "lunatic" && (includeDead || !s.isDead)
+      );
+      const apparentId = (lunaticSeat as any)?.apparentDemonRole?.id as
+        | string
+        | undefined;
+      const apparentEntry = apparentId
+        ? order.find((e) => e.roleId === apparentId)
+        : undefined;
+      if (isFirstNight) {
+        const apparentFirst = apparentEntry?.firstNightPriority ?? 0;
+        if (!(apparentFirst > 0)) return false;
+      }
     }
 
     // 🔧 红唇女郎（Scarlet Woman）为纯被动角色，不在首夜或非首夜作为红唇女郎唤醒。
@@ -334,20 +364,57 @@ export function generateDynamicNightQueue(
       }
       continue;
     }
+    if (entry.roleId === "demon_info") {
+      // 🌀 A1：恶魔互认步骤按「每名"以为自己是恶魔"的行动者」展开。
+      //    真恶魔保持原有的单一节点（不改变既有行为与测试预期），
+      //    另外为**每一名存活疯子**追加一个专属节点：
+      //    同一个 generateSystemInfoViaAdapter("demon_info") 逻辑作用在疯子座位上，
+      //    于是疯子拿到与真恶魔同款的「爪牙 + 3 张不在场伪装」——
+      //    不新增一套并行实现，也就不会两边不一致。
+      //    注意：真爪牙的 minion_info 完全不因疯子的存在而变化（A1 硬要求）。
+      expandedEntries.push(entry);
+      const lunatics = snapshot.seats
+        .filter((s) => s.role?.id === "lunatic" && (includeDead || !s.isDead))
+        .sort((a, b) => a.id - b.id);
+      for (const lunaticSeat of lunatics) {
+        const apparentName =
+          (lunaticSeat as any).apparentDemonRole?.name ?? "恶魔";
+        expandedEntries.push({
+          ...entry,
+          actorSeatId: lunaticSeat.id,
+          roleName: `${apparentName}(恶魔互认)`,
+          meta: { isLunaticDisguisedDemon: true },
+        } as any);
+      }
+      continue;
+    }
     expandedEntries.push(entry);
   }
 
   // 2. 按优先级排序（根据是否为第一夜选择对应的优先级）
   //    Array.prototype.sort 是稳定排序：同为 minion_info 的多名爪牙保持座位升序
-  expandedEntries.sort((a, b) => {
-    const priorityA = isFirstNight
-      ? a.firstNightPriority
-      : a.otherNightPriority;
-    const priorityB = isFirstNight
-      ? b.firstNightPriority
-      : b.otherNightPriority;
-    return priorityA - priorityB;
-  });
+  // 🌀 A5：疯子节点使用其 apparentDemonRole 的夜序优先级（"就如同他是场上真正的恶魔"）。
+  const priorityOf = (entry: NightOrderEntry): number => {
+    if (entry.roleId === "lunatic") {
+      const lunaticSeat = snapshot.seats.find(
+        (s) => s.role?.id === "lunatic" && (includeDead || !s.isDead)
+      );
+      const apparentId = (lunaticSeat as any)?.apparentDemonRole?.id as
+        | string
+        | undefined;
+      const apparentEntry = apparentId
+        ? order.find((e) => e.roleId === apparentId)
+        : undefined;
+      if (apparentEntry) {
+        const p = isFirstNight
+          ? apparentEntry.firstNightPriority
+          : apparentEntry.otherNightPriority;
+        if (p > 0) return p;
+      }
+    }
+    return isFirstNight ? entry.firstNightPriority : entry.otherNightPriority;
+  };
+  expandedEntries.sort((a, b) => priorityOf(a) - priorityOf(b));
 
   // 3. 转换为NightActionNode格式
   const queue: NightActionNode[] = expandedEntries.map((entry) => {
@@ -362,7 +429,12 @@ export function generateDynamicNightQueue(
           ? snapshot.seats.find((s) => s.id === pinnedSeatId)!
           : snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
     } else if (entry.roleId === "demon_info") {
-      seat = snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
+      // 🌀 A1：疯子专属的 demon_info 节点由 1.5 展开时钉死行动者座位
+      //    （真恶魔节点仍按"第一个存活恶魔"解析，行为不变）。
+      seat =
+        entry.actorSeatId != null
+          ? snapshot.seats.find((s) => s.id === entry.actorSeatId)!
+          : snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
     } else if (entry.roleId === EVIL_CONVERTED_NOTICE_ID) {
       // 行动者 = 被赏金猎人转变为邪恶的那名镇民（信息按行动者座位生成）
       seat = snapshot.seats.find((s) => s.id === entry.actorSeatId)!;
@@ -405,9 +477,7 @@ export function generateDynamicNightQueue(
       seatId: seat.id,
       roleId: entry.roleId,
       roleName,
-      priority: isFirstNight
-        ? entry.firstNightPriority
-        : entry.otherNightPriority || entry.firstNightPriority,
+      priority: priorityOf(entry),
       isFirstNightOnly: entry.firstNightOnly,
       abilityId: entry.abilityId,
       wakeMessage,
@@ -416,9 +486,13 @@ export function generateDynamicNightQueue(
       targetIds: [],
       processed: false,
       success: false,
-      meta: isPixieActor
-        ? { isPixieInherited: true, originalRoleId: "pixie" }
-        : {},
+      meta: {
+        // 保留 1.5 展开时写入的标记（如 isLunaticDisguisedDemon）
+        ...((entry as any).meta ?? {}),
+        ...(isPixieActor
+          ? { isPixieInherited: true, originalRoleId: "pixie" }
+          : {}),
+      },
     };
   });
 
