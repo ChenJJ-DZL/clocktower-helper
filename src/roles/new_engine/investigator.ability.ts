@@ -50,6 +50,7 @@
 
 import { roles } from "../../../app/data";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { applyInfoSeatMark } from "../../utils/seatMarks";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -464,6 +465,13 @@ const stateUpdateResult = async (
     timestamp: Date.now(),
   };
 
+  // 🏷️ 落座标记「调查目标」：与「图书目标」同规格、同规则（幂等 + 可迁移）。
+  const markedSeats = applyInfoSeatMark(
+    context.snapshot.seats as any[],
+    "调查目标",
+    [result.seat1, result.seat2]
+  );
+
   return {
     ...context,
     actionNode: {
@@ -475,6 +483,7 @@ const stateUpdateResult = async (
     },
     snapshot: {
       ...context.snapshot,
+      seats: markedSeats,
       _abilityResults: {
         ...((context.snapshot as any)._abilityResults ?? {}),
         investigator: result,

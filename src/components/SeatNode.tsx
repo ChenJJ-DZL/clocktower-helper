@@ -216,6 +216,12 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     .trim();
   const hasLibrarianTarget =
     !!s.statusDetails?.includes("图书目标") || !!(s as any).librarianTarget;
+  // 🧺 / 🔍 洗衣妇、调查员的首夜信息目标：与「图书目标」完全同规格、同位置（右上角标记栈）。
+  // 数据来源统一是 seat.statusDetails（由 utils/seatMarks.ts 写入，幂等且可迁移）。
+  const hasWasherwomanTarget =
+    !!s.statusDetails?.includes("洗衣目标") || !!(s as any).washerwomanTarget;
+  const hasInvestigatorTarget =
+    !!s.statusDetails?.includes("调查目标") || !!(s as any).investigatorTarget;
   // 🏹 赏金猎人已知的邪恶目标：同属"关于某人是哪种身份"的首夜信息 → 一样放右上角标记栈。
   const hasBountyKnown =
     !!s.statusDetails?.includes("赏金已知") || !!(s as any).bountyHunterTarget;
@@ -763,6 +769,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           computeIsGoodTwin(s, seats) ||
           !!pixieInheritedRole ||
           hasLibrarianTarget ||
+          hasWasherwomanTarget ||
+          hasInvestigatorTarget ||
           hasBountyKnown) && (
           <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex h-[20px] flex-col items-center gap-1 z-40 pointer-events-none whitespace-nowrap [&>*]:shrink-0">
             {(isMasked || s.role?.id === "lunatic") && (
@@ -803,6 +811,22 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 title="图书管理员得知目标"
               >
                 图书目标
+              </div>
+            )}
+            {hasWasherwomanTarget && (
+              <div
+                className="bg-cyan-600 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-cyan-300 shadow-md font-bold leading-none whitespace-nowrap"
+                title="洗衣妇得知目标"
+              >
+                洗衣目标
+              </div>
+            )}
+            {hasInvestigatorTarget && (
+              <div
+                className="bg-indigo-600 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-indigo-300 shadow-md font-bold leading-none whitespace-nowrap"
+                title="调查员得知目标"
+              >
+                调查目标
               </div>
             )}
             {hasBountyKnown && (

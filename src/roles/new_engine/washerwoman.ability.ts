@@ -56,6 +56,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { applyInfoSeatMark } from "../../utils/seatMarks";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -439,6 +440,14 @@ const stateUpdateResult = async (
     timestamp: Date.now(),
   };
 
+  // 🏷️ 落座标记「洗衣目标」：标记被展示的两个候选座位（与「图书目标」同规格、同规则：
+  //    先清同名再落位 → 幂等、可迁移；只写 statusDetails，不新增持久化字段）。
+  const markedSeats = applyInfoSeatMark(
+    context.snapshot.seats as any[],
+    "洗衣目标",
+    [result.seat1, result.seat2]
+  );
+
   return {
     ...context,
     actionNode: {
@@ -450,6 +459,7 @@ const stateUpdateResult = async (
     },
     snapshot: {
       ...context.snapshot,
+      seats: markedSeats,
       _abilityResults: {
         ...((context.snapshot as any)._abilityResults ?? {}),
         washerwoman: result,

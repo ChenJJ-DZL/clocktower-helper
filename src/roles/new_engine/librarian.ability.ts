@@ -57,6 +57,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { applyInfoSeatMark } from "../../utils/seatMarks";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -427,25 +428,18 @@ const stateUpdateResult = async (
     timestamp: Date.now(),
   };
 
-  let updatedSeats = context.snapshot.seats;
-  if (
+  // 📖 落座标记「图书目标」：统一走 utils/seatMarks.ts（先清同名再落位）
+  //    —— 幂等、重复执行不叠加、重新指派时旧座位标记会被清掉。
+  //    没有外来者（roleName 为空）时传空数组 → 旧标记一并清除。
+  const updatedSeats = applyInfoSeatMark(
+    context.snapshot.seats as any[],
+    "图书目标",
     result.roleName &&
-    result.seat1 !== undefined &&
-    result.seat2 !== undefined
-  ) {
-    updatedSeats = context.snapshot.seats.map((s: any) => {
-      if (s.id === result.seat1 || s.id === result.seat2) {
-        const details = s.statusDetails || [];
-        return {
-          ...s,
-          statusDetails: details.includes("图书目标")
-            ? details
-            : [...details, "图书目标"],
-        };
-      }
-      return s;
-    });
-  }
+      result.seat1 !== undefined &&
+      result.seat2 !== undefined
+      ? [result.seat1, result.seat2]
+      : []
+  );
 
   return {
     ...context,
