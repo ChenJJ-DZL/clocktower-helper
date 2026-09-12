@@ -216,6 +216,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
     .trim();
   const hasLibrarianTarget =
     !!s.statusDetails?.includes("图书目标") || !!(s as any).librarianTarget;
+  // 🏹 赏金猎人已知的邪恶目标：同属"关于某人是哪种身份"的首夜信息 → 一样放右上角标记栈。
+  const hasBountyKnown =
+    !!s.statusDetails?.includes("赏金已知") || !!(s as any).bountyHunterTarget;
 
   // ── 触屏长按 1 秒直接弹出座位菜单 ─────────────────────────────────────────────
   // 圆桌座位此前没有任何自己的长按定时器，完全依赖浏览器原生 long-press 合成
@@ -595,25 +598,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             );
           }
 
-          // 赏金已知标记
-          if (
-            s.statusDetails?.includes("赏金已知") ||
-            (s as any).bountyHunterTarget
-          ) {
-            otherBadges.push(
-              <div
-                key="badge-bounty"
-                className={`bg-amber-600 text-white ${
-                  isPortrait
-                    ? "text-[14px] px-2.5 py-0.5"
-                    : "text-[18px] px-2 py-0.5"
-                } rounded-full border border-amber-300 shadow-md font-bold whitespace-nowrap leading-none`}
-                title="赏金猎人已知邪恶目标"
-              >
-                赏金已知
-              </div>
-            );
-          }
+          // 🏹 赏金已知 已上移到座位右上角标记栈（与「图书目标」/「实:X」同处），此处不再重复渲染
           s.role?.id === "poppy_grower" && !s.isDead && (
             <div
               key="badge-poppy"
@@ -777,7 +762,8 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           s.role?.id === "evil_twin" ||
           computeIsGoodTwin(s, seats) ||
           !!pixieInheritedRole ||
-          hasLibrarianTarget) && (
+          hasLibrarianTarget ||
+          hasBountyKnown) && (
           <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex h-[20px] flex-col items-center gap-1 z-40 pointer-events-none whitespace-nowrap [&>*]:shrink-0">
             {(isMasked || s.role?.id === "lunatic") && (
               <div
@@ -817,6 +803,14 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 title="图书管理员得知目标"
               >
                 图书目标
+              </div>
+            )}
+            {hasBountyKnown && (
+              <div
+                className="bg-amber-600 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-amber-300 shadow-md font-bold leading-none whitespace-nowrap"
+                title="赏金猎人已知邪恶目标"
+              >
+                赏金已知
               </div>
             )}
           </div>
