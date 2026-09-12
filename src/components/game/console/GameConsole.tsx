@@ -8,6 +8,8 @@ import type { NightInfoResult } from "../../../types/game";
 import { isInformationRole } from "../../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
+import { getLunaticNightHint } from "../../../utils/playerView";
+import { StorytellerTuningPanel } from "../StorytellerTuningPanel";
 
 interface GameConsoleProps {
   // Zone A: Header
@@ -166,6 +168,9 @@ export const GameConsole = React.memo(function GameConsole({
   const [roleDocExpanded, setRoleDocExpanded] = React.useState(
     theme === "classic"
   );
+  // 说书人「信息微调」常驻入口：**默认折叠**，未展开时面板内容不进入 DOM。
+  // 与 NightActionPage 解锁视图共用同一份状态（StorytellerTuningContext）。
+  const [tuningExpanded, setTuningExpanded] = React.useState(false);
   React.useEffect(() => {
     setRoleDocExpanded(theme === "classic");
   }, [theme]);
@@ -294,6 +299,27 @@ export const GameConsole = React.memo(function GameConsole({
 
       {/* Zone B: Active Stage (Scrollable) */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0 bg-slate-900/50">
+        {/* 🧙 说书人「信息微调」常驻入口（默认折叠；与夜间行动页解锁视图共享同一份状态） */}
+        <div className="rounded-xl border border-indigo-500/40 bg-indigo-950/30 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setTuningExpanded((v) => !v)}
+            aria-expanded={tuningExpanded}
+            className="w-full px-3 py-2 flex items-center justify-between text-xs font-bold text-indigo-200 hover:bg-indigo-900/40 transition-colors"
+          >
+            <span>🧙 信息微调（说书人·默认折叠）</span>
+            <span>{tuningExpanded ? "▲ 收起" : "▼ 展开"}</span>
+          </button>
+          {tuningExpanded && (
+            <div className="p-3 border-t border-indigo-500/30">
+              <StorytellerTuningPanel
+                seats={seats}
+                onUpdateSeat={(seatId, patch) => onUpdateSeat?.(seatId, patch)}
+              />
+            </div>
+          )}
+        </div>
+
         {/* 🌀 涡流全局假信息提醒 */}
         {seats.some(
           (s) =>
@@ -384,43 +410,56 @@ export const GameConsole = React.memo(function GameConsole({
           </div>
         )}
 
-        {/* 🌀 疯子击杀指示（恶魔唤醒时显示） */}
+        {/* 🎩 说书人专属补充说明（例如"提线木偶不知道自己其实是爪牙"）——
+            只在这里渲染，玩家页面永不出现（B1）。 */}
+        {isNightPhase && nightInfo?.storytellerNote && (
+          <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 p-3 text-amber-100 text-xs font-bold flex items-start gap-2">
+            <span className="text-base">🎩</span>
+            <span className="whitespace-pre-line">{nightInfo.storytellerNote}</span>
+          </div>
+        )}
+
+        {/* 🌀 A4：疯子击杀指示（真恶魔唤醒时显示；每个夜晚都显示、多目标全列） */}
         {(() => {
           const isDemon =
             currentActorSeat?.role?.type === "demon" ||
             nightInfo?.effectiveRole?.type === "demon" ||
             !!currentActorSeat?.isDemonSuccessor;
+          if (!isDemon) return null;
+          // 官方：「真正的恶魔会知道疯子每个夜晚攻击了哪些玩家。」
+          // 统一走 utils/playerView.ts 的 getLunaticNightHint：
+          // 有选择 → 列出全部目标；未选择 → 明确写"本夜未选择任何玩家"。
+          const hint = getLunaticNightHint(seats);
+          if (!hint) return null;
           const lunaticSeat = seats.find(
             (s) => s.role?.id === "lunatic" && !s.isDead
           );
-          if (isDemon && lunaticSeat) {
-            const lunaticTarget =
-              (lunaticSeat as any).lunaticTarget ??
-              (lunaticSeat as any).selectedTarget;
-            if (lunaticTarget !== undefined && lunaticTarget !== null) {
-              return (
-                <div className="rounded-xl border border-purple-500/60 bg-purple-950/50 p-3 flex items-center justify-between shadow-lg">
-                  <div className="text-xs text-purple-200">
-                    <span className="font-extrabold text-purple-300">
-                      🌀 疯子今晚选择了：
-                    </span>
-                    【{lunaticTarget + 1}号玩家】
-                  </div>
-                  {onTogglePlayer &&
-                    !selectedPlayers.includes(lunaticTarget) && (
-                      <button
-                        type="button"
-                        onClick={() => onTogglePlayer(lunaticTarget)}
-                        className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-lg text-xs font-bold shadow transition"
-                      >
-                        快捷同步
-                      </button>
-                    )}
-                </div>
-              );
-            }
-          }
-          return null;
+          const targetIds: number[] = (() => {
+            const ids = (lunaticSeat as any)?.lunaticTargetIds;
+            if (Array.isArray(ids)) return ids;
+            const single = (lunaticSeat as any)?.lunaticTarget;
+            return typeof single === "number" ? [single] : [];
+          })();
+          return (
+            <div className="rounded-xl border border-purple-500/60 bg-purple-950/50 p-3 flex items-center justify-between gap-3 shadow-lg">
+              <div className="text-xs text-purple-200 whitespace-pre-line">
+                <span className="font-extrabold text-purple-300">{hint}</span>
+              </div>
+              {onTogglePlayer && targetIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    targetIds.forEach((id) => {
+                      if (!selectedPlayers.includes(id)) onTogglePlayer(id);
+                    });
+                  }}
+                  className="px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-lg text-xs font-bold shadow transition whitespace-nowrap"
+                >
+                  快捷同步
+                </button>
+              )}
+            </div>
+          );
         })()}
 
         {/* 😈 军团统一唤醒与公式信息下发卡片 */}

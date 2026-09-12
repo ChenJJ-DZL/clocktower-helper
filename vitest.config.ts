@@ -33,6 +33,16 @@ export default defineConfig({
       ],
     },
   },
+  // 仓库 tsconfig 使用 jsx: "preserve"（Next.js 需要），
+  // 而 vitest 走 esbuild，遇到 .tsx 会原样保留 JSX → 解析失败。
+  // 这里显式让 esbuild 走 React 17+ 的 automatic runtime，
+  // 使 Node 环境下的组件渲染测试（react-dom/server 静态 HTML 断言）可用。
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+      importSource: "react",
+    },
+  },
   resolve: {
     alias: {
       "@": "/src",

@@ -19,6 +19,7 @@ import { GameLayout } from "./GameLayout";
 import { GameModals } from "./GameModals";
 import { GlobalNavBar } from "./GlobalNavBar";
 import { GlobalPrivacyShield } from "./GlobalPrivacyShield";
+import { StorytellerTuningProvider } from "./StorytellerTuningContext";
 import { NightActionPage } from "./NightActionPage";
 
 // 全量重写的 GameStage 组件
@@ -1785,12 +1786,30 @@ export function GameStageWithModals() {
   const blockingModal = currentModal && currentModal.type !== "INFO_RESULT";
   const showNightActionPage = isNightPhase && nightInfo && !blockingModal;
 
+  /**
+   * 说书人「信息微调」状态中心：同时包住 <GameStage/>（内含说书人控制台）
+   * 与 <NightActionPage/>（说书人解锁视图），保证两个入口改的是**同一份状态**。
+   */
+  const updateSeatPatch = (seatId: number, patch: Record<string, any>) => {
+    const setSeats = (controller as any).setSeats;
+    if (typeof setSeats === "function") {
+      setSeats((prev: any[]) =>
+        prev.map((s) => (s.id === seatId ? { ...s, ...patch } : s))
+      );
+    }
+  };
+
   return (
-    <>
+    <StorytellerTuningProvider
+      nightInfo={nightInfo}
+      seats={seats}
+      selectedTargets={selectedActionTargets}
+    >
       <GameStage />
       <GameModals />
       {showNightActionPage && (
         <NightActionPage
+          onUpdateSeat={updateSeatPatch}
           nightInfo={nightInfo}
           seats={seats}
           selectedTargets={selectedActionTargets}
@@ -1814,6 +1833,8 @@ export function GameStageWithModals() {
                 ))
           )}
           resultText={infoResultData?.resultText}
+          realResultText={infoResultData?.realResultText}
+          isCorruptedResult={infoResultData?.isCorruptedResult}
           isVortoxWorld={isVortoxWorld}
           onResultConfirm={
             infoResultData?.onNext
@@ -1833,6 +1854,6 @@ export function GameStageWithModals() {
         onDismiss={() => setIsPrivacyShieldActive(false)}
         isNightPhase={isNightPhase}
       />
-    </>
+    </StorytellerTuningProvider>
   );
 }
