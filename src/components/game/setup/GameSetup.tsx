@@ -722,17 +722,29 @@ export default function GameSetup({
                   {charadeStatus.valid ? "伪装身份已配置" : "待设置伪装身份"}
                 </span>
               </div>
-              <span
-                className={`text-xs px-2.5 py-0.5 rounded-full font-mono border ${
-                  charadeStatus.valid
-                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                    : "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                }`}
-              >
-                {charadeStatus.valid
-                  ? `已就绪 (${charadeStatus.charadeSeats.length}/${charadeStatus.charadeSeats.length})`
-                  : `待配置 (${charadeStatus.unconfigured.length}/${charadeStatus.charadeSeats.length})`}
-              </span>
+              {/* 右侧：状态徽标 + 一键随机（精简为「🎲 随机」，保证与标题同行不折行） */}
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-mono border whitespace-nowrap ${
+                    charadeStatus.valid
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                      : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                  }`}
+                >
+                  {charadeStatus.valid
+                    ? `已就绪 (${charadeStatus.charadeSeats.length}/${charadeStatus.charadeSeats.length})`
+                    : `待配置 (${charadeStatus.unconfigured.length}/${charadeStatus.charadeSeats.length})`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleAutoAssignCharades()}
+                  className="rounded-lg border border-indigo-400/50 bg-indigo-950/60 hover:bg-indigo-900/80 active:scale-[0.98] text-indigo-200 hover:text-white px-2.5 py-1 text-xs font-bold transition shadow-md shadow-indigo-950/40 cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                  title="一键随机分配所有角色的伪装身份"
+                >
+                  <span>🎲</span>
+                  <span>随机</span>
+                </button>
+              </div>
             </div>
 
             <div
@@ -743,8 +755,8 @@ export default function GameSetup({
               }`}
             >
               {charadeStatus.valid
-                ? "已为所有角色配置伪装身份。您可点击下方角色单独调整，或再次点击一键随机重新分配："
-                : "场上有角色需要设置伪装身份。请点击下方角色单独设置，或点击一键随机分配："}
+                ? "已为所有角色配置伪装身份。可点击下方角色单独调整，或点右上角 🎲 随机 重新分配。"
+                : "场上有角色需要设置伪装身份。可点击下方角色单独设置，或点右上角 🎲 随机 一键分配。"}
             </div>
 
             {/* 角色伪装列表：默认按卡片格式展示，点击具体角色进入单独设置/修改弹窗 */}
@@ -840,20 +852,7 @@ export default function GameSetup({
               })}
             </div>
 
-            {/* 省去手动分配按钮，仅保留一键随机分配按钮 */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => handleAutoAssignCharades()}
-                className="w-full rounded-xl border border-indigo-400/50 bg-indigo-950/60 hover:bg-indigo-900/80 active:scale-[0.98] text-indigo-200 hover:text-white py-2.5 text-sm font-bold transition shadow-md shadow-indigo-950/40 cursor-pointer flex items-center justify-center gap-2"
-                title="一键随机分配所有角色的伪装身份"
-              >
-                <span>🎲</span>
-                <span>
-                  {charadeStatus.valid ? "再次一键随机分配" : "一键随机分配"}
-                </span>
-              </button>
-            </div>
+            {/* 「一键随机」已上移到标题行右侧（精简为 🎲 随机），此处不再放整行按钮 */}
           </div>
         )}
 
