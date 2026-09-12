@@ -331,7 +331,7 @@ export function RoundTable({
     const handleWindowUp = () => {
       window.removeEventListener("pointermove", handleWindowMove);
       window.removeEventListener("pointerup", handleWindowUp);
-      window.removeEventListener("pointercancel", handleWindowUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
       window.removeEventListener("touchmove", handleWindowMove);
       window.removeEventListener("touchend", handleWindowUp);
       window.removeEventListener("touchcancel", handleWindowUp);
@@ -358,11 +358,19 @@ export function RoundTable({
       setDragPos(null);
     };
 
+    // 🛡️ pointercancel 加固：触摸被浏览器取消时，touch 事件流通常仍在继续
+    //    （实测：座位 touch-action 被全局 CSS 覆盖成 manipulation 时会这样），
+    //    此时若直接结束拖拽，就会出现"浮层消失、座位卡在原地"的现象。
+    //    触摸指针的 cancel 交给 touchend/touchcancel 收尾，其余（鼠标/笔）照旧结束。
+    const handlePointerCancel = (e: PointerEvent) => {
+      if (e && e.pointerType === "touch") return;
+      handleWindowUp();
+    };
     window.addEventListener("pointermove", handleWindowMove, {
       passive: false,
     });
     window.addEventListener("pointerup", handleWindowUp);
-    window.addEventListener("pointercancel", handleWindowUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
     window.addEventListener("touchmove", handleWindowMove, { passive: false });
     window.addEventListener("touchend", handleWindowUp);
     window.addEventListener("touchcancel", handleWindowUp);

@@ -34,13 +34,18 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 全局屏蔽所有元素的长按菜单和文本选择 */
+/* 全局屏蔽所有元素的长按菜单和文本选择
+   ⚠️ 注意：这里**不要**写 touch-action —— 本文件是"无 layer 的自定义 CSS"，
+   在 Tailwind v4 里优先级高于 utilities 层，写在 * 上会静默覆盖组件里的 touch-none，
+   导致 touch-action 实际是 manipulation → 浏览器会把手势判为可平移并抛 pointercancel，
+   座位拖拽随即被打断（实测：真实 touch 下浮层出现后第一次移动就卡住）。
+   touch-action 不是继承属性，但会沿着祖先链取交集，所以写在 body 上同样能全局生效，
+   同时还允许组件用 touch-none 把自己排除在平移/缩放手势之外。 */
 * {
   -webkit-touch-callout: none; /* iOS Safari 长按菜单 */
   -webkit-user-select: none; /* 禁用文本选择 */
   user-select: none; /* 禁用文本选择 */
   -webkit-tap-highlight-color: transparent; /* 禁用点击高亮 */
-  touch-action: manipulation; /* 优化触摸响应 */
 }
 
 /* 允许输入框和文本区域选择文本 */

@@ -316,7 +316,7 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         if (isValidTarget) onTouchMove(e, s.id);
       }}
       style={containerStyle}
-      className="absolute flex items-center justify-center seat-node pointer-events-auto"
+      className="absolute flex items-center justify-center seat-node pointer-events-auto touch-none"
       data-seat-id={s.id}
     >
       <motion.div
