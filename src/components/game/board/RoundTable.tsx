@@ -5,8 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { GamePhase, Role, Seat } from "../../../../app/data";
 import type { NightInfoResult } from "../../../types/game";
-import { displayPlayerName } from "../../../utils/seatLabel";
-import { RoleNameLines } from "../../common/RoleNameLines";
+import { SeatNode } from "../../SeatNode";
 import { SeatGrid } from "./SeatGrid";
 import { TableCenterHUD } from "./TableCenterHUD";
 
@@ -123,12 +122,15 @@ export function RoundTable({
   const activeDragSeatIdRef = useRef<number | null>(null);
   const swapTargetSeatIdRef = useRef<number | null>(null);
   const seatElementsRef = useRef<Record<number, HTMLDivElement | null>>({});
-  // 座位上屏后的真实直径（client px）。旧实现恒为初始值 112（设计像素），
-  // 而座位实际远小于它（5 人局约 52 client px），导致拖动浮层比座位大 2 倍以上、
-  // 「重叠 50% 换位」判定用的矩形也偏大。这里改为拖拽起手时实测。
-  const seatSizeRef = useRef<number>(0);
-  // 浮层盒尺寸（client px）：与座位同尺寸，再由 transform 的 scale(1.1) 得到「直径 +10%」
-  const [ghostBaseSize, setGhostBaseSize] = useState<number>(0);
+  // 浮层盒尺寸（**设计像素**，即座位在 1600×900 舞台内的尺寸，通常 112）：
+  // 浮层里直接渲染真实的 <SeatNode>，按设计尺寸建盒再整体按「舞台缩放 × 1.1」缩放，
+  // 这样浮层的字号/间距/标记与真实座位完全一致（旧实现对浮层单独写了一套精简排版，
+  // 且被 portal 到缩放舞台之外，导致字号按设计像素直出 = 比真座位大 2 倍多）。
+  const seatSizeRef = useRef<number>(112);
+  // 座位上屏后的真实直径（client px），供「重叠 50% 换位」判定使用
+  const clientSeatSizeRef = useRef<number>(0);
+  // 浮层整体缩放 = 舞台缩放比 × 1.1（舞台缩放比 = 上屏尺寸 / 设计尺寸，起手时实测）
+  const ghostScaleRef = useRef<number>(1.1);
   const floatingTokenRef = useRef<HTMLDivElement | null>(null);
 
   const handleSetSeatRef = (id: number, el: HTMLDivElement | null) => {
@@ -244,13 +246,20 @@ export function RoundTable({
     const initialCoords = extractCoords(e);
     if (!initialCoords) return;
 
-    // 实测被拖座位的上屏直径：浮层直径 = 该值 × scale(1.1)（即用户要求的「直径 +10%」），
-    // 同时修正换位重叠判定所用矩形的大小。
-    const sourceRect = seatElementsRef.current[seatId]?.getBoundingClientRect();
-    const measuredSeatSize = sourceRect?.width ?? 0;
-    if (measuredSeatSize > 0) {
-      seatSizeRef.current = measuredSeatSize;
-      setGhostBaseSize(measuredSeatSize);
+    // 起手实测两件事：
+    // 1) 设计尺寸 offsetWidth（浮层盒子用，与 SeatNode 内部排版同坐标系）；
+    // 2) 舞台缩放比 = 上屏尺寸 / 设计尺寸（浮层不在舞台里，必须自己补上这一层缩放，
+    //    否则浮层的字号会按设计像素直出，看起来比座位大 2 倍多）。
+    const sourceEl = seatElementsRef.current[seatId];
+    const sourceRect = sourceEl?.getBoundingClientRect();
+    const clientSize = sourceRect?.width ?? 0;
+    const designSize = sourceEl?.offsetWidth ?? 0;
+    if (designSize > 0) {
+      seatSizeRef.current = designSize;
+      clientSeatSizeRef.current = clientSize;
+      const stageScale = clientSize > 0 ? clientSize / designSize : 1;
+      // 用户要求：拖动浮层「直径 +10%」
+      ghostScaleRef.current = 1.1 * stageScale;
     }
 
     dragPosRef.current = { x: initialCoords.x, y: initialCoords.y };
@@ -262,7 +271,7 @@ export function RoundTable({
 
     const updateGhostPosition = (cx: number, cy: number) => {
       if (floatingTokenRef.current) {
-        floatingTokenRef.current.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(1.1)`;
+        floatingTokenRef.current.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${ghostScaleRef.current})`;
       }
     };
 
@@ -278,7 +287,7 @@ export function RoundTable({
       updateGhostPosition(currentX, currentY);
 
       // 计算重叠 50% 判定（圆心绑定在当前鼠标 (clientX, clientY) 位置）
-      const currentSeatSize = seatSizeRef.current || seatSize || 72;
+      const currentSeatSize = clientSeatSizeRef.current || seatSize || 72;
       const draggedRect = {
         left: currentX - currentSeatSize / 2,
         right: currentX + currentSeatSize / 2,
@@ -676,7 +685,7 @@ export function RoundTable({
                 margin: 0,
                 width: `${seatSizeRef.current || seatSize || 112}px`,
                 height: `${seatSizeRef.current || seatSize || 112}px`,
-                transform: `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(1.1)`,
+                transform: `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(${ghostScaleRef.current})`,
                 transformOrigin: "center center",
                 transition: "none",
               }}
@@ -684,58 +693,37 @@ export function RoundTable({
               {(() => {
                 const activeSeat = seats.find((s) => s.id === activeDragSeatId);
                 if (!activeSeat) return null;
-                const displayType = getDisplayRoleType(activeSeat);
-                const colorClass = displayType
-                  ? typeColors[displayType]
-                  : "border-gray-600 text-gray-400";
-                const glowClass =
-                  displayType === "townsfolk"
-                    ? "glow-townsfolk"
-                    : displayType === "outsider"
-                      ? "glow-outsider"
-                      : displayType === "minion"
-                        ? "glow-minion"
-                        : displayType === "demon"
-                          ? "glow-demon"
-                          : "";
-                const roleName = activeSeat.role?.name || "空";
-
+                // ✅ 直接渲染**真实的 SeatNode**（同组件、同 props），而不是再维护一套精简克隆：
+                //    浮层与座位的字号/间距/序号/状态标记/双子标记必然一致。
+                //    外层盒子按设计尺寸(offsetWidth)建，整体缩放交给 ghostScaleRef（=舞台缩放×1.1）。
                 return (
-                  <div
-                    className={`relative w-full h-full rounded-full border-4 ${colorClass} ${glowClass} flex items-center justify-center bg-slate-900 shadow-[0_0_50px_rgba(251,191,36,1)] ring-4 ring-amber-400`}
-                  >
-                    {/* 左上角序号圆圈 */}
-                    <div className="absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
-                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-800 border-2 border-slate-600 text-white flex items-center justify-center font-bold shadow-md text-xs md:text-sm">
-                        {activeSeat.id + 1}
-                      </div>
-                    </div>
-
-                    {/* 居中角色名称 */}
-                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                      <RoleNameLines
-                        name={roleName}
-                        className="text-lg md:text-2xl font-black drop-shadow-md leading-none text-center text-white"
-                        style={{
-                          textShadow:
-                            "0 2px 4px rgba(0,0,0,0.9), 0 0 4px black",
-                        }}
-                      />
-                    </div>
-
-                    {/* 玩家名称提示 */}
-                    {displayPlayerName(
-                      activeSeat.playerName,
-                      activeSeat.id
-                    ) && (
-                      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-20 px-2 py-0.5 rounded-full bg-black/80 text-[10px] text-amber-200 border border-amber-500/40 whitespace-nowrap pointer-events-none">
-                        {displayPlayerName(
-                          activeSeat.playerName,
-                          activeSeat.id
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <SeatNode
+                    seat={activeSeat}
+                    index={seats.findIndex((s) => s.id === activeSeat.id)}
+                    seats={seats}
+                    isPortrait={isPortrait}
+                    seatScale={1}
+                    nightInfo={nightInfo}
+                    selectedActionTargets={selectedActionTargets}
+                    longPressingSeats={longPressingSeats}
+                    onSeatClick={() => {}}
+                    onContextMenu={() => {}}
+                    onTouchStart={() => {}}
+                    onTouchEnd={() => {}}
+                    onTouchMove={() => {}}
+                    setSeatRef={() => {}}
+                    getSeatPosition={() => ({ x: "50.00", y: "50.00" })}
+                    getDisplayRoleType={getDisplayRoleType}
+                    typeColors={typeColors}
+                    gamePhase={gamePhase}
+                    nominationRecords={nominationRecords}
+                    nominator={nominator}
+                    nominee={nominee}
+                    seatNote={seatNotes[activeSeat.id]}
+                    isDraggable={false}
+                    isBeingDragged={false}
+                    isSwapTarget={false}
+                  />
                 );
               })()}
             </div>,
