@@ -18,6 +18,20 @@ import {
   getRawAbilityMap,
 } from "../roles/new_engine/abilityRegistry";
 import type { NightInfoResult } from "../types/game";
+import {
+  getLunaticNightHint,
+  getPlayerFacingRole,
+  sanitizePlayerFacingText,
+} from "../utils/playerView";
+import {
+  buildCorruptedInfoMask,
+  classifyCorruptedInfoRole,
+  discardDisguisedSideEffects,
+  ensureNotTruth,
+  isDisguisedIneffectiveActor,
+  isPlayerInfoCorrupted,
+} from "../utils/corruptedInfo";
+import { isInformationRole } from "../utils/informationRoles";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
@@ -539,8 +553,16 @@ export async function executeViaNewEngine(
         "good_twin_info",
         EVIL_CONVERTED_NOTICE_ID,
       ].includes(roleId);
-      const targetConfig =
-        (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
+      /**
+       * 🌀 A2：疯子（lunatic）在确认弹窗里的目标数量必须**照假恶魔**（如沙巴洛斯选 2 人），
+       * 而能力注册表里的 targetConfig 是静态的 1/1。因此疯子优先采用
+       * nightInfo.targetLimit（由 nightInfoGenerator 按 apparentDemonRole 计算）。
+       */
+      const isLunaticActor =
+        actorSeat?.role?.id === "lunatic" || roleId === "lunatic";
+      const targetConfig = isLunaticActor
+        ? (context.nightInfo?.targetLimit ?? (ability as any)?.targetConfig)
+        : (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
       const minTargets = targetConfig?.min ?? 0;
       const maxTargets = targetConfig?.max ?? 0;
       const allowSelf = targetConfig?.allowSelf ?? true;
@@ -790,6 +812,8 @@ export async function executeViaNewEngine(
         }
         const extraNote =
           extraNotes.length > 0 ? extraNotes.join("\n") : undefined;
+        // 🌀 A4：真恶魔（含 legion 等统一行动恶魔）在确认页要看到疯子本夜的选择。
+        //    提示内容由 utils/playerView.ts 统一生成（多目标全列、0 目标也有明确文案）。
 
         // 😈 小恶魔自杀转火：若在进入前已明确选择自杀，且有多名存活爪牙，直接弹出爪牙晋升选择面板
         const isInitialImpSuicide =
@@ -847,6 +871,10 @@ export async function executeViaNewEngine(
             availableRoles: context.roles,
             selectedScript: (context as any).selectedScript,
             extraNote,
+            // 🌀 A4：真恶魔的确认页必须看到「疯子本夜选择了谁」（官方：恶魔知道）。
+            lunaticHint: isDemonActor
+              ? (getLunaticNightHint(context.seats as Seat[]) ?? undefined)
+              : undefined,
             onConfirm: async (
               chosenTargets?: number[],
               chosenRoleIdOrRole?: any
@@ -1237,6 +1265,22 @@ export async function executeViaNewEngine(
         })
       : [];
 
+    // 🎭 酒鬼 / 提线木偶：官方明确"这些能力不会产生任何效果"（提线木偶条目：
+    //    「认为自己是提线木偶的玩家所抽取到的善良角色对应的能力不会产生任何效果，
+    //      但说书人会假装这些效果生效了。这与酒鬼的运作方式相似。」）
+    //    因此这里**丢弃管道对座位状态的改动**：不真杀、不真改状态、不影响他人。
+    //    玩家页仍会看到"生效了"的结果（由上面的假值校验层给出）。
+    syncedSeats = discardDisguisedSideEffects(
+      context.seats,
+      syncedSeats,
+      actorSeat as any
+    );
+    if (isDisguisedIneffectiveActor(actorSeat as any)) {
+      context.addLog(
+        `[规则] ${(actorSeat?.id ?? 0) + 1}号 的能力按官方规则不产生任何效果（酒鬼/提线木偶）`
+      );
+    }
+
     if (syncedSeats.length > 0) {
       syncedSeats = checkAndUpdatePixieAbility(syncedSeats, context.addLog);
       context.setSeats(syncedSeats);
@@ -1487,8 +1531,87 @@ export async function executeViaNewEngine(
     // 处理弹窗
     const modal = resultContext.meta.modal as ModalType | undefined;
     const displayInfo = resultContext.meta.displayInfo as any;
+
+    // ─── 🎭 受干扰 / 伪装身份（酒鬼·提线木偶）玩家视角假值校验层 ──────────────
+    // 用户实测两个 bug：
+    //   ① 酒鬼厨师：控制台显示「行动（受干扰）」，结果页却是真值「场上有 2 对…」；
+    //   ② 提线木偶伪装赏金猎人：拿到了正确的技能结果页（真值全泄露）。
+    // 根因相同：控制台的受干扰标记来自 React Seat 的 isDrunk/isPoisoned，
+    // 而结果文案来自能力管道产出的 displayInfo.log；新引擎链路**只打标记、
+    // 不做假值替换**（假值替换只存在于 legacy 的 utils/nightLogic.ts）。
+    // 于是只要管道算出真值，结果页就会把它直接交给玩家。
+    // 这里在"结果文案的唯一出口"强制替换成假值（说书人设定值 > 确定性假值），
+    // 绝不保留"没有假值就直接显示真值"这条路径。
+    /** 该角色的结果是否属于"信息"（需要假值）——包含赏金猎人/博学者等表外角色。 */
+    const producesPlayerInfo =
+      classifyCorruptedInfoRole(roleId) !== null ||
+      isInformationRole(roleId, actorSeat?.role?.type ?? "unknown");
+    const isCorruptedForPlayer =
+      producesPlayerInfo &&
+      isPlayerInfoCorrupted({
+        roleId,
+        metaIsCorrupted: resultContext.meta.isCorrupted === true,
+        metaAbilityEffective:
+          resultContext.meta.abilityEffective === undefined
+            ? undefined
+            : resultContext.meta.abilityEffective !== false,
+        nightInfoIsPoisoned: Boolean(context.nightInfo?.isPoisoned),
+        actorSeat: actorSeat as any,
+        isVortoxWorld: isVortox,
+        roleIsInformation: true,
+      });
+    /**
+     * 生成本次行动的"真值 vs 玩家可见假值"对照。
+     * @returns null 表示"无需/不能脱敏"（非信息类 or 未受干扰）
+     */
+    const maskCorruptedResult = (truthText: string, trueValue?: unknown) => {
+      if (!isCorruptedForPlayer || !producesPlayerInfo || !truthText) return null;
+      const masked = buildCorruptedInfoMask({
+        roleId,
+        roleName,
+        truthText,
+        trueValue,
+        actorSeatId: actorId,
+        nightCount: context.nightCount,
+        candidateSeatIds: context.seats
+          .filter((s) => s.id !== actorId)
+          .map((s) => s.id),
+        targetCount: Array.isArray(trueValue) ? trueValue.length : 1,
+      });
+      const playerText = sanitizePlayerFacingText(
+        ensureNotTruth(
+          masked.playerText,
+          truthText,
+          roleId,
+          actorId,
+          context.nightCount
+        )
+      );
+      return { ...masked, playerText };
+    };
+
     if (modal) {
-      context.setCurrentModal(modal);
+      // 🎭 受干扰时，走专属 modal 的信息类角色（占卜师/筑梦师/博学者/艺术家…）
+      //    同样必须换成假值：这里对 modal.data 里的结果文本字段做统一处理。
+      const maskedModal = (() => {
+        const data: any = (modal as any).data;
+        if (!data || !isCorruptedForPlayer || !producesPlayerInfo) return modal;
+        const fieldKeys = ["result", "resultText", "text", "answer", "message"];
+        const next = { ...data };
+        let changed = false;
+        for (const key of fieldKeys) {
+          const v = next[key];
+          if (typeof v !== "string" || v.length === 0) continue;
+          const mask = maskCorruptedResult(v, data.targetId ?? data.answer);
+          if (!mask) continue;
+          next[key] = mask.playerText;
+          next.realResultText = mask.truthText;
+          next.isCorruptedResult = true;
+          changed = true;
+        }
+        return changed ? ({ ...modal, data: next } as ModalType) : modal;
+      })();
+      context.setCurrentModal(maskedModal);
     } else if (
       displayInfo &&
       typeof displayInfo.type === "string" &&
@@ -1623,16 +1746,53 @@ export async function executeViaNewEngine(
               .replace(/^[:：]\s*/, "")
               .replace(/[）)]+$/, "")
           : "";
-      const resultText =
+      /**
+       * 🎭 B1（玩家视角脱敏）：INFO_RESULT 会内联到玩家页，因此：
+       *   1. 优先使用引擎显式给出的 displayInfo.playerFacingLog
+       *      （如疯子：只显示"你以【假恶魔】身份选择了 X"）；
+       *   2. 其余文案一律过一遍 sanitizePlayerFacingText，剥掉
+       *      【受干扰】/（虚假信息）/（中毒、醉酒状态，此为假信息）这类说书人标记；
+       *   3. 角色名前缀改用 playerFacingRole（疯子 → 其假恶魔名）。
+       * 说书人控制台与日志仍使用真实 roleName（见上方 addLog 分支），真相不丢。
+       */
+      const playerFacingRoleObj =
+        context.nightInfo?.playerFacingRole ?? getPlayerFacingRole(actorSeat);
+      const playerFacingRoleLabel = playerFacingRoleObj?.name
+        ? seatPrefix +
+          String(playerFacingRoleObj.name).replace(/^\d+号[-_]/, "")
+        : roleName;
+      const rawResultText =
+        (displayInfo as any).playerFacingLog ||
         customResultText ||
         displayInfo.log ||
-        (guideInfo ? `${roleName}获得信息：${guideInfo}` : "技能已执行");
+        (guideInfo
+          ? `${playerFacingRoleLabel}获得信息：${guideInfo}`
+          : "技能已执行");
+
+      // 🎭 受干扰 / 酒鬼·提线木偶：玩家可见结果必须替换为假值。
+      const trueValue =
+        typeof resultContext.meta.abilityResult === "number" ||
+        typeof resultContext.meta.abilityResult === "boolean"
+          ? resultContext.meta.abilityResult
+          : Array.isArray((displayInfo as any)?.targetIds) &&
+              (displayInfo as any).targetIds.length > 0
+            ? (displayInfo as any).targetIds
+            : (displayInfo as any)?.targetId != null
+              ? [(displayInfo as any).targetId]
+              : (context.selectedTargets ?? []);
+      const corruptedMask = maskCorruptedResult(rawResultText, trueValue);
+      const resultText = corruptedMask
+        ? corruptedMask.playerText
+        : sanitizePlayerFacingText(rawResultText);
       const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
       context.setCurrentModal({
         type: "INFO_RESULT",
         data: {
-          roleName,
+          roleName: playerFacingRoleLabel,
           resultText,
+          // 说书人侧真值对照：只在解锁视图/控制台渲染（玩家页不读）
+          realResultText: corruptedMask ? corruptedMask.truthText : undefined,
+          isCorruptedResult: Boolean(corruptedMask),
           onNext: () => {
             context.setCurrentModal(null);
             context.continueToNextAction(infoSynced);

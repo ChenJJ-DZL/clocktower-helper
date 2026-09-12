@@ -216,7 +216,18 @@ export type ModalType =
     }
   | {
       type: "INFO_RESULT";
-      data: { roleName: string; resultText: string; onNext?: () => void };
+      data: {
+        roleName: string;
+        resultText: string;
+        /**
+         * 🎭 受干扰（中毒/醉酒/涡流）或伪装身份（酒鬼/提线木偶）时的**真值**。
+         * 只允许在说书人解锁视图/控制台渲染；玩家页一律不读这个字段。
+         */
+        realResultText?: string;
+        /** 本次结果是否被"受干扰假值校验层"替换过（说书人提示用） */
+        isCorruptedResult?: boolean;
+        onNext?: () => void;
+      };
     }
   | { type: "ARTIST_RESULT"; data: { result: string } }
   | {
