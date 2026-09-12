@@ -7,6 +7,7 @@ import type React from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
+import { isRealMinion } from "../utils/roleFlags";
 
 /**
  * 角色确认处理上下文
@@ -688,9 +689,15 @@ export function handleImpSuicide(
   } = context;
 
   // 找到所有活着的爪牙
-  const aliveMinions = seats.filter(
+  // 🎭 提线木偶优先排除：小恶魔死亡后需由一名爪牙接任，若把提线木偶选走，
+  //    等于当场告诉它"你是爪牙"（官方相克注记点名过这一类唤醒：告密者/传教士/…/帽匠）。
+  //    只有当场上除提线木偶外已无存活爪牙时，才只能让提线木偶接任。
+  const aliveMinionsAll = seats.filter(
     (s) => s.role?.type === "minion" && !s.isDead && s.id !== impSeatId
   );
+  const realAliveMinions = aliveMinionsAll.filter((s) => isRealMinion(s));
+  const aliveMinions =
+    realAliveMinions.length > 0 ? realAliveMinions : aliveMinionsAll;
 
   if (aliveMinions.length > 0) {
     // 随机选择一个爪牙作为新的小恶魔

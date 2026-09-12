@@ -13,6 +13,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { MARIONETTE_NO_WAKE_NOTE } from "../../utils/roleFlags";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   // 小怪物持有者可能已经死亡，但能力传递仍可能发生
@@ -70,7 +71,10 @@ const postProcess = async (
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: `邪恶阵营选择谁获得【小怪物】标记。（当前持有者：${holderLabel}）`,
+      prompt:
+        `邪恶阵营选择谁获得【小怪物】标记。（当前持有者：${holderLabel}）` +
+        MARIONETTE_NO_WAKE_NOTE +
+        " 提线木偶不参与这次共同决定。",
       abilityLog: log,
     },
   };

@@ -13,7 +13,7 @@ import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
-import { isMarionetteSeat } from "./roleFlags";
+import { MARIONETTE_NO_WAKE_NOTE, isMarionetteSeat } from "./roleFlags";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { generateNightInfo } from "./nightInfoGenerator";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
@@ -497,17 +497,23 @@ function generateSystemInfoViaAdapter(
 
     guide = `座位号：${legionSeatList}\n说书人同时唤醒所有的军团玩家，军团玩家互认${legionBluffText}`;
   } else if (isMinionStep) {
+    // 🎭 提线木偶在场：必须明确告诉说书人"别把它算进互认、也别顺带通知它"。
+    //    官方相克（罂粟种植者条目）：罂粟种植者死亡后恶魔会知道谁是提线木偶，但提线木偶什么都不会知道。
+    //    ⚠️ 这里**绝不能**写出提线木偶的座号 —— 该 guide 属于爪牙环节的文案，
+    //       一旦出现座号就等于把提线木偶点给了同场的真爪牙（既有回归测试对此有硬断言）。
+    const marionetteNoWakeNote = marionetteSeat ? `
+${MARIONETTE_NO_WAKE_NOTE}` : "";
     if (isMarionetteActor) {
       // 防御性兜底：队列生成已排除提线木偶，正常不会走到这里。
       // 官方：提线木偶不会被唤醒进行爪牙互认，绝不能向其泄漏邪恶信息。
       guide =
         "⛔ 提线木偶不会被唤醒进行爪牙互认（官方规则）。请勿向该玩家展示任何邪恶信息。";
     } else if (isPoppyGrowerAlive) {
-      guide = `🌺 罂粟种植者在场，爪牙与恶魔互不相识${snitchBluffText}`;
+      guide = `🌺 罂粟种植者在场，爪牙与恶魔互不相识${snitchBluffText}${marionetteNoWakeNote}`;
     } else {
       guide = `恶魔是: ${demonDesc}\n爪牙队友: ${
         otherMinions.length > 0 ? otherMinionDesc : "无"
-      }${snitchBluffText}`;
+      }${snitchBluffText}${marionetteNoWakeNote}`;
     }
   } else if (selfSeat.role?.id === "legion") {
     // 军团玩家专属夜晚信息：展示所有军团同伴 + 共享 3 不在场镇民伪装
@@ -533,7 +539,7 @@ function generateSystemInfoViaAdapter(
     } else {
       let marionetteNote = "";
       if (marionetteSeat) {
-        marionetteNote = `\n提线木偶: ${marionetteSeat.id + 1}号`;
+        marionetteNote = `\n提线木偶: ${marionetteSeat.id + 1}号（它不知道自己其实是爪牙，请勿让它察觉）`;
       }
       guide = `爪牙是: ${minionDesc}${marionetteNote}${regularBluffText}${snitchMarionetteExtraText}`;
     }

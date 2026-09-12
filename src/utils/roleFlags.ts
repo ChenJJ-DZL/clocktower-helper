@@ -17,6 +17,14 @@ interface SeatLike {
   charadeRole?: { id?: string | null; type?: string | null } | null;
 }
 
+/**
+ * 说书人界面专用提示：凡"只应唤醒真爪牙"的环节，都必须把提线木偶排除在外，
+ * 且绝不能让它察觉自己是爪牙（否则其整局认知崩塌）。
+ * 各处的 prompt / guide 直接引用这一条，避免文案各写一套。
+ */
+export const MARIONETTE_NO_WAKE_NOTE =
+  "※ 提线木偶不得被唤醒、不得得知任何邪恶信息（官方：提线木偶不会因其他角色能力确认自己是爪牙）。";
+
 /** 提线木偶：以为自己是一个善良角色，实际是爪牙 */
 export function isMarionetteSeat(seat: SeatLike | undefined | null): boolean {
   return seat?.role?.id === "marionette";
@@ -28,4 +36,13 @@ export function isMarionetteSeat(seat: SeatLike | undefined | null): boolean {
  */
 export function isRealMinion(seat: SeatLike | undefined | null): boolean {
   return seat?.role?.type === "minion" && !isMarionetteSeat(seat);
+}
+
+/**
+ * 能否由该玩家发起「公开猜测落难少女」。
+ * 官方相克（提线木偶 × 落难少女）：「提线木偶不会得知落难少女在场。」
+ * 提线木偶既然连"落难少女在场"都不该知道，自然也不该被引导去猜测 —— 那等于当面告诉他"你是爪牙"。
+ */
+export function canGuessDamsel(seat: SeatLike | undefined | null): boolean {
+  return isRealMinion(seat);
 }

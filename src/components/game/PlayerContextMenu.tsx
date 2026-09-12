@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { roles as allSystemRoles, type Role } from "../../../app/data";
 import { selectEvilConvertedSeat } from "../../utils/bountyHunterSetup";
+import { canGuessDamsel } from "../../utils/roleFlags";
 import { useGameActions } from "../../contexts/GameActionsContext";
 
 export function PlayerContextMenu() {
@@ -186,12 +187,14 @@ export function PlayerContextMenu() {
           💥 开枪
         </button>
       )}
-      {/* 爪牙白天猜测落难少女 */}
+      {/* 爪牙白天猜测落难少女（⚠️ 用 canGuessDamsel 而非 type==="minion"：提线木偶必须排除 ——
+          官方相克「提线木偶不会得知落难少女在场」，让它去猜等于告诉他"你是爪牙"） */}
       {props.gamePhase === "day" &&
-        targetSeat.role?.type === "minion" &&
+        canGuessDamsel(targetSeat) &&
         !targetSeat.isDead &&
         props.seats.some((s) => s.role?.id === "damsel") && (
           <button
+            title="仅真爪牙可发起猜测：提线木偶不会被引导（官方相克：提线木偶不会得知落难少女在场）"
             onClick={() => props.handleMenuAction("damselGuess")}
             disabled={props.damselGuessUsedBy.includes(targetSeat.id)}
             className={`block w-full text-left px-6 py-3 text-lg font-medium border-t border-gray-700 ${

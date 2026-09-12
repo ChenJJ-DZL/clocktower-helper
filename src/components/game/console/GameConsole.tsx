@@ -377,6 +377,9 @@ export const GameConsole = React.memo(function GameConsole({
             </div>
             <div className="text-sm text-amber-100/95 leading-relaxed font-medium bg-black/30 p-3 rounded-xl border border-amber-500/20">
               因罂粟种植者已死亡，今晚邪恶阵营（恶魔与爪牙）正式互相认识！请说书人根据下方提示依次唤醒恶魔与爪牙，告知同伴身份。
+              <div className="mt-2 text-amber-200/90">
+                ※ 提线木偶不会被唤醒、也不会得知任何邪恶信息（官方相克：罂粟种植者死亡后，恶魔会知道谁是提线木偶，但提线木偶什么都不会知道）。
+              </div>
             </div>
           </div>
         )}

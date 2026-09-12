@@ -10,6 +10,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { MARIONETTE_NO_WAKE_NOTE } from "../../utils/roleFlags";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
@@ -54,7 +55,10 @@ const postProcess = async (
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: "帽匠已死亡，所有邪恶玩家可以交换角色。",
+      prompt:
+        "帽匠已死亡，所有邪恶玩家可以交换角色。" +
+        MARIONETTE_NO_WAKE_NOTE +
+        " 提线木偶不参与换角，也不要询问它想变成什么。",
       abilityLog: log,
     },
   };
