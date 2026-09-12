@@ -738,7 +738,7 @@ export default function GameSetup({
                 <button
                   type="button"
                   onClick={() => handleAutoAssignCharades()}
-                  className="rounded-lg border border-indigo-400/50 bg-indigo-950/60 hover:bg-indigo-900/80 active:scale-[0.98] text-indigo-200 hover:text-white px-2.5 py-1 text-xs font-bold transition shadow-md shadow-indigo-950/40 cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-950/40 transition-all active:scale-95 cursor-pointer flex items-center gap-1 whitespace-nowrap px-3 py-1.5"
                   title="一键随机分配所有角色的伪装身份"
                 >
                   <span>🎲</span>

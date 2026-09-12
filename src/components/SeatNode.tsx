@@ -207,6 +207,16 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
   }, [displayRole, realRole, roleName, statusList, s, getDisplayRoleType]);
   const tooltipBind = useGrimoireTooltip(tooltipData);
 
+  // 🧚📖 首夜「身份类」信息标记：小精灵的继承身份、图书管理员的已知目标。
+  //    它们和「实:X」「镜像/对立双子」同属"关于某人是哪种身份"的标记，
+  //    因此统一放到座位右上角标记栈（用户要求），不再混在右下角的状态堆叠里。
+  const pixieInheritedRole = (s.statusDetails || [])
+    .find((st) => st.startsWith("伪装身份:"))
+    ?.replace("伪装身份:", "")
+    .trim();
+  const hasLibrarianTarget =
+    !!s.statusDetails?.includes("图书目标") || !!(s as any).librarianTarget;
+
   // ── 触屏长按 1 秒直接弹出座位菜单 ─────────────────────────────────────────────
   // 圆桌座位此前没有任何自己的长按定时器，完全依赖浏览器原生 long-press 合成
   // contextmenu，时机不可控（表现为「按住—松开才弹」）。这里自己计时：
@@ -618,44 +628,10 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
             </div>
           );
 
-          // 图书目标标记
-          if (
-            s.statusDetails?.includes("图书目标") ||
-            (s as any).librarianTarget
-          ) {
-            otherBadges.push(
-              <div
-                key="badge-librarian"
-                className={`bg-blue-600 text-white ${
-                  isPortrait
-                    ? "text-[14px] px-2.5 py-0.5"
-                    : "text-[18px] px-2 py-0.5"
-                } rounded-full border border-blue-300 shadow-md font-bold whitespace-nowrap leading-none`}
-                title="图书管理员得知目标"
-              >
-                图书目标
-              </div>
-            );
-          }
+          // 📖 图书目标 已上移到座位右上角标记栈（与「实:X」/双子同处），此处不再重复渲染
 
-          // 小精灵伪装与激活标记
-          const pixieTarget = s.statusDetails?.find((st) =>
-            st.startsWith("伪装身份:")
-          );
-          if (pixieTarget) {
-            otherBadges.push(
-              <div
-                key="badge-pixie-target"
-                className={`bg-pink-600 text-white ${
-                  isPortrait
-                    ? "text-[14px] px-2.5 py-0.5"
-                    : "text-[18px] px-2 py-0.5"
-                } rounded-full border border-pink-300 shadow-md font-bold whitespace-nowrap leading-none`}
-              >
-                {pixieTarget}
-              </div>
-            );
-          }
+          // 🧚 小精灵的继承身份 已上移到座位右上角标记栈（显示为「继：X」），此处不再重复渲染
+          // 小精灵能力激活标记
           if (
             s.role?.id === "pixie" &&
             (s.hasAbilityEvenDead ||
@@ -799,7 +775,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         {(isMasked ||
           s.role?.id === "lunatic" ||
           s.role?.id === "evil_twin" ||
-          computeIsGoodTwin(s, seats)) && (
+          computeIsGoodTwin(s, seats) ||
+          !!pixieInheritedRole ||
+          hasLibrarianTarget) && (
           <div className="absolute left-[85.4%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 flex h-[20px] flex-col items-center gap-1 z-40 pointer-events-none whitespace-nowrap [&>*]:shrink-0">
             {(isMasked || s.role?.id === "lunatic") && (
               <div
@@ -823,6 +801,22 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
                 title="对立双子 (若被处决邪恶直接获胜)"
               >
                 👥 对立双子
+              </div>
+            )}
+            {pixieInheritedRole && (
+              <div
+                className="bg-pink-600 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-pink-300 shadow-md font-bold leading-none whitespace-nowrap"
+                title={`小精灵继承的首夜身份：${pixieInheritedRole}`}
+              >
+                继：{pixieInheritedRole}
+              </div>
+            )}
+            {hasLibrarianTarget && (
+              <div
+                className="bg-blue-600 text-white text-[14px] px-1.5 py-0.5 rounded-full border border-blue-300 shadow-md font-bold leading-none whitespace-nowrap"
+                title="图书管理员得知目标"
+              >
+                图书目标
               </div>
             )}
           </div>
