@@ -372,7 +372,15 @@ export function generateDynamicNightQueue(
       //    于是疯子拿到与真恶魔同款的「爪牙 + 3 张不在场伪装」——
       //    不新增一套并行实现，也就不会两边不一致。
       //    注意：真爪牙的 minion_info 完全不因疯子的存在而变化（A1 硬要求）。
-      expandedEntries.push(entry);
+      //    ⚠️ 真恶魔节点只有在"确实有恶魔座位"时才展开：否则 validEntries 虽因
+      //       疯子而保留了本条目，step 3 却找不到行动者 → seat.id 抛 TypeError
+      //       （浏览器实测崩过一次）。这里把行动者座位**预先钉死**，从根上杜绝。
+      const realDemonSeat = snapshot.seats.find(
+        (s) => s.role?.type === "demon" && (includeDead || !s.isDead)
+      );
+      if (realDemonSeat) {
+        expandedEntries.push({ ...entry, actorSeatId: realDemonSeat.id });
+      }
       const lunatics = snapshot.seats
         .filter((s) => s.role?.id === "lunatic" && (includeDead || !s.isDead))
         .sort((a, b) => a.id - b.id);
@@ -417,7 +425,9 @@ export function generateDynamicNightQueue(
   expandedEntries.sort((a, b) => priorityOf(a) - priorityOf(b));
 
   // 3. 转换为NightActionNode格式
-  const queue: NightActionNode[] = expandedEntries.map((entry) => {
+  //    ⚠️ 防御：任何解析不到行动者座位的条目直接丢弃（而不是在 seat.id 上崩）。
+  const queue: NightActionNode[] = expandedEntries
+    .map((entry): NightActionNode | null => {
     // 系统信息步骤：按角色类型查找座位
     let seat: any;
     if (entry.roleId === "minion_info") {
@@ -459,6 +469,9 @@ export function generateDynamicNightQueue(
       }
     }
 
+    // ⚠️ 防御：解析不到行动者座位的条目直接丢弃，绝不在 seat.id 上崩。
+    if (!seat) return null;
+
     const isPixieActor =
       seat?.role?.id === "pixie" && entry.roleId !== "pixie";
 
@@ -494,7 +507,8 @@ export function generateDynamicNightQueue(
           : {}),
       },
     };
-  });
+  })
+    .filter((node): node is NightActionNode => node !== null) as NightActionNode[];
 
   // 4. 军团互认与军团夜间统一唤醒节点打标及文案生成
   const flagLegion = queue.map((node) => {
