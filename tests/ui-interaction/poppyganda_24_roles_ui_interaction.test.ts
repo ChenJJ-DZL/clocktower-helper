@@ -752,7 +752,7 @@ describe("《罂粟花开》(Poppyganda) 24 角色 UI 交互与状态机联动�
     });
     expect(gameEnd.isGameOver).toBe(true);
     expect(gameEnd.winner).toBe("Good");
-    expect(gameEnd.reason).toContain("市长");
+    expect(gameEnd.reason).toContain("镇长");
   });
 
   it("19. 罂粟种植者 (Poppy Grower): 存活时邪恶互识被阻断，死亡后恢复", async () => {

@@ -109,10 +109,24 @@ export function parseInfoResult(
   }
 
   // 2. 匹配标准前缀：“...获得信息：(内容)” / “...得知：(内容)” / “...得知结果：(内容)” / “...告诉他(内容)” / “...告知(内容)”
+  //
+  // ⚠️ 2026-09-13 修复「残句」：该正则里的 `得知` / `告知` 会**匹配到句子中间**的
+  //    同形词。实测三类残句（结果页大字以上不成句的词开头）：
+  //      · 赏金猎人：「唤醒1号【赏金猎人】。如果他之前**得知**的邪恶玩家已死亡，指向…」
+  //          → 旧逻辑切成 prefix=「…如果他之前得知」/ result=「**的**邪恶玩家已死亡…」
+  //      · 小精灵：「…展示角色标记**告知**其【镇长】在场。…」
+  //          → result=「**其**【镇长】在场。…」
+  //      · 洗脑师：「…你可以选择一名玩家与一个角色：他**得知**自己是该角色…」
+  //          → result=「**自己**是该角色…」
+  //    判据：切分点后若紧跟**承接性词**（的/其/自己/他/她/它），说明这是句中切分而非
+  //    "信息头 + 信息值"的结构边界 → 放弃切分，交给下方回退分支整段展示。
   const infoPrefixRegex =
     /^(.*?(?:获得信息|得知信息|在死亡前夜得知|在死亡当夜得知|得知结果|得知|告诉他|告知他|告知))\s*[:：\s]*\s*(.+)$/;
   const infoPrefixMatch = trimmed.match(infoPrefixRegex);
-  if (infoPrefixMatch?.[1] && infoPrefixMatch[2]) {
+  const continuationGuard = /^[的其自己他她它]/.test(
+    (infoPrefixMatch?.[2] ?? "").trim()
+  );
+  if (infoPrefixMatch?.[1] && infoPrefixMatch[2] && !continuationGuard) {
     const rawHead = infoPrefixMatch[1].trim();
     // 如果头部只是纯引导动词（如 "告诉他" / "告知" / "唤醒X号【角色】，告诉他"），将 prefix 规范化为 "X号-角色获得信息"
     const prefix =

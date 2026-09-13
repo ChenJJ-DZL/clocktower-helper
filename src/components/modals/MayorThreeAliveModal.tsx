@@ -18,7 +18,7 @@ export function MayorThreeAliveModal({
 
   return (
     <ModalWrapper
-      title="⚠️ 市长 3 人存活提醒"
+      title="⚠️ 镇长 3 人存活提醒"
       onClose={onCancel}
       size="fullscreen90"
       className="w-[90vw] h-[90vh]"
@@ -55,7 +55,7 @@ export function MayorThreeAliveModal({
           <div className="text-5xl sm:text-6xl md:text-7xl select-none">🎩⚠️</div>
           <div className="space-y-3">
             <p className="text-3xl sm:text-4xl md:text-5xl font-black leading-relaxed whitespace-nowrap text-white">
-              现在只剩 3 名玩家存活，且场上有【市长 (Mayor)】。
+              现在只剩 3 名玩家存活，且场上有【镇长 (Mayor)】。
             </p>
             <p className="text-2xl sm:text-3xl md:text-4xl text-amber-300 font-bold leading-relaxed whitespace-nowrap">
               若今天最终没有任何玩家被处决，好人阵营将直接获胜。

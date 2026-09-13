@@ -1,4 +1,8 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import {
+  countChefEvilPairsForUi,
+  pickChefFakePairCount,
+} from "../new_engine/chef.ability";
 
 /**
  * 厨师 (Chef)
@@ -21,7 +25,11 @@ export const chef: RoleDefinition = {
       count: { min: 0, max: 0 },
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
-      const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
+      const {
+        seats,
+        isActorDisabledByPoisonOrDrunk = () => false,
+        nightCount = 1,
+      } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
       const isDisabled =
         selfSeat &&
@@ -29,36 +37,19 @@ export const chef: RoleDefinition = {
         isActorDisabledByPoisonOrDrunk(selfSeat);
       const seatNo = playerSeatId + 1;
 
-      // 计算相邻邪恶玩家对数
-      let evilPairs = 0;
-      for (let i = 0; i < seats.length; i++) {
-        const current = seats[i];
-        const next = seats[(i + 1) % seats.length];
-        if (current.id === playerSeatId || next.id === playerSeatId) continue;
-        // 与引擎结算保持一致：陌客 100% 注册为邪恶，间谍 100% 注册为善良。
-        const isEvilForChef = (seat: (typeof seats)[number]) =>
-          seat.role?.id === "recluse" ||
-          ((seat.role?.type === "minion" || seat.role?.type === "demon") &&
-            seat.role?.id !== "spy");
-        const currentIsEvil = isEvilForChef(current);
-        const nextIsEvil = isEvilForChef(next);
-        if (currentIsEvil && nextIsEvil) evilPairs++;
-      }
-
-      let displayPairs = evilPairs;
-      if (isDisabled) {
-        const maxLimit = Math.max(3, evilPairs + 2);
-        const fakeCandidates = Array.from(
-          { length: maxLimit + 1 },
-          (_, i) => i
-        ).filter((v) => v !== evilPairs);
-        displayPairs =
-          fakeCandidates.length > 0
-            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
-            : evilPairs === 0
-              ? 1
-              : 0;
-      }
+      // ⚠️ 「提示预演」必须与「引擎结算」用**同一实现 + 同一枚种子**：
+      //   · 真值 → countChefEvilPairsForUi（= 引擎的 countEvilPairs，单一实现）
+      //   · 假值 → pickChefFakePairCount（= 引擎 calculateResult 调用的同一个函数）
+      //
+      // 历史缺陷（2026-09-13 第4轮实测）：本 dialog 曾自带一份「跳过厨师自身相邻对」的
+      // 计算，且假数字用**裸 Math.random()** → 与引擎的确定性种子互不相干，
+      // 实测「提示」2 对 / 「结果弹窗」1 对，3/3 MISMATCH。
+      // 官方判据：厨师告知的是**全量座位**上的相邻邪恶对数（无「存活」附加条件，
+      // 也不排除厨师本人所占的相邻对），因此统一走引擎实现。
+      const evilPairs = countChefEvilPairsForUi(seats);
+      const displayPairs = isDisabled
+        ? pickChefFakePairCount(evilPairs, playerSeatId, nightCount)
+        : evilPairs;
 
       return {
         wake: `唤醒${seatNo}号【厨师】，告诉他相邻邪恶玩家有 ${displayPairs} 对。`,

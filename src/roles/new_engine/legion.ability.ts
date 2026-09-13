@@ -75,7 +75,7 @@ const calculate = async (
     };
   }
 
-  // 市长弹刀判定
+  // 镇长弹刀判定
   const mayorResult = resolveMayorDemonKill(
     seats,
     target,
@@ -92,7 +92,7 @@ const calculate = async (
           killedPlayerId: mayorResult.substituteSeat.id,
           originalTargetId: targetId,
           isRedirected: true,
-          reason: "市长转嫁伤害至替代目标",
+          reason: "镇长转嫁伤害至替代目标",
         },
       },
     };
@@ -167,16 +167,35 @@ const postProcess = async (
 ): Promise<MiddlewareContext> => {
   const result = ctx.meta.abilityResult as any;
   const victimId = result?.killedPlayerId;
-  const log =
-    victimId !== null && victimId !== undefined
-      ? `[军团夜杀] 说书人决定：${victimId + 1}号玩家今晚死亡`
-      : `[军团夜杀] 说书人决定：今晚无人死亡（${result?.reason || "空刀"}）`;
+  const hasVictim = victimId !== null && victimId !== undefined;
+  const victimLabel = hasVictim ? `${victimId + 1}号` : "无（空刀）";
+  const log = hasVictim
+    ? `[军团夜杀] 说书人决定：${victimId + 1}号玩家今晚死亡`
+    : `[军团夜杀] 说书人决定：今晚无人死亡（${result?.reason || "空刀"}）`;
+
+  const actorNo = ctx.actionNode.seatId + 1;
+
+  /** 🌙 军团夜杀为**说书人代操作**：提示词给出去向与结果，便于说书人核对后宣布 */
+  const prompt = hasVictim
+    ? `唤醒${actorNo}号【军团】（说书人代操作），由说书人独立决定今晚死亡的玩家。（已选择 ${victimLabel}，请在天亮正常宣布其死亡）`
+    : `唤醒${actorNo}号【军团】（说书人代操作），由说书人独立决定今晚死亡的玩家。（本次为空刀——但**不得**对外宣布平安夜，仍需说书人自行决定是否宣布死亡）`;
 
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
+      prompt,
       abilityLog: log,
+      displayInfo: {
+        type: "legion_night_kill",
+        targetId: hasVictim ? victimId : null,
+        targetLabel: victimLabel,
+        killed: Boolean(hasVictim),
+        isBlocked: Boolean(result?.isBlocked),
+        reason: result?.reason ?? "",
+        nightCount: (ctx.snapshot as any)?.nightCount ?? null,
+        log,
+      },
     },
   };
 };

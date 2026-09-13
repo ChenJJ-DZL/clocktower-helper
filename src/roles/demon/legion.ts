@@ -99,21 +99,50 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:72-0!canonical and time
       context?: NightActionContext
     ) => {
       const seats = context?.seats ?? [];
-      const aliveLegions = seats.filter(
-        (s) =>
-          (s.role?.id === "legion" ||
-            (s as any).charadeRole?.id === "legion") &&
-          !s.isDead
-      );
-      const seatList =
-        aliveLegions.length > 0
-          ? aliveLegions.map((s) => `${s.id + 1}号`).join("、")
-          : "无";
+      const alive = seats.filter((s) => !s.isDead);
 
-      const wake = `座位号：${seatList}\n说书人同时唤醒所有的军团玩家，由说书人决定 1 名受害者或统一进行手势/眼神示意。`;
+      /**
+       * 🌙 军团夜杀是**说书人代为操作**的步骤：军团玩家本人无需做任何选择。
+       * 官方（钟楼百科·军团）：「每个夜晚*，**可能**有一名玩家死亡」——
+       * 具体谁死由说书人决定（默认建议每晚击杀一名军团以维持平衡至终局 3 人）。
+       *
+       * 因此本页必须给说书人**完整信息**才能做决定：
+       *   · 全部在场玩家的「座位号 + 角色」
+       *   · 存活的军团名单（便于按"击杀军团"策略选择）
+       * 军团玩家全是邪恶方、说书人本就知晓全部角色 → 此页**只说书人可见**，
+       * 绝不可交给军团玩家（否则等于泄漏全员身份）。
+       */
+      const roster = alive
+        .map((s) => {
+          const name = s.role?.name ?? "未知";
+          const isLegion =
+            s.role?.id === "legion" || (s as any).charadeRole?.id === "legion";
+          return `${s.id + 1}号【${name}】${isLegion ? "（军团）" : ""}`;
+        })
+        .join("\n");
+
+      const legionList =
+        alive
+          .filter(
+            (s) =>
+              s.role?.id === "legion" ||
+              (s as any).charadeRole?.id === "legion"
+          )
+          .map((s) => `${s.id + 1}号`)
+          .join("、") || "无";
+
+      const seatNumberList = alive.map((s) => `${s.id + 1}号`).join("、");
+
+      const wake =
+        `在场玩家（共 ${alive.length} 人）：\n${roster}\n` +
+        `——————\n` +
+        `说书人独立选择今晚死亡的玩家（军团玩家无需操作，由说书人代为决定）。\n` +
+        `存活军团：${legionList}\n` +
+        `可选目标：${seatNumberList}`;
+
       return {
         wake,
-        instruction: wake,
+        instruction: "由说书人独立选择一名玩家（或空刀），该玩家于天亮正常宣布死亡。",
         close: "",
       };
     },

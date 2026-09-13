@@ -31,7 +31,7 @@ describe("镇长：3 人存活平安日好人获胜", () => {
     expect(result.winner).toBe("Good");
   });
 
-  it("市长中毒时平安日不触发获胜", () => {
+  it("镇长中毒时平安日不触发获胜", () => {
     const seats = [
       makeSeat(0, "mayor", "townsfolk", { isPoisoned: true }),
       makeSeat(1, "washerwoman", "townsfolk"),
@@ -39,7 +39,7 @@ describe("镇长：3 人存活平安日好人获胜", () => {
     ];
     const result = checkGameEnd(seats, "execution", null);
     if (result.isGameOver) {
-      expect(result.reason).not.toBe("市长触发和平获胜条件");
+      expect(result.reason).not.toBe("镇长触发和平获胜条件");
     }
   });
 
@@ -52,7 +52,7 @@ describe("镇长：3 人存活平安日好人获胜", () => {
     ];
     const result = checkGameEnd(seats, "execution", null);
     if (result.isGameOver) {
-      expect(result.reason).not.toBe("市长触发和平获胜条件");
+      expect(result.reason).not.toBe("镇长触发和平获胜条件");
     }
   });
 });

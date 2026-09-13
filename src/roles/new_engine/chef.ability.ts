@@ -92,11 +92,11 @@ interface PlayerLookup {
     name: string;
     type: string; // "townsfolk" | "outsider" | "minion" | "demon" | "traveler"
     alignment?: string; // 某些数据结构中 role 上也有 alignment
-  };
+  } | null;
   /** 扁平化字段（兼容某些旧快照） */
   roleId?: string;
-  effectiveRole?: { id: string; name: string; type: string };
-  charadeRole?: { id: string; name: string; type: string };
+  effectiveRole?: { id: string; name: string; type: string } | null;
+  charadeRole?: { id: string; name: string; type: string } | null;
   isEvilConverted?: boolean;
   isGoodConverted?: boolean;
   isDemonSuccessor?: boolean;
@@ -375,6 +375,62 @@ export function generateFakePairCount(
     : Math.floor(rng() * (max + 1));
 }
 
+// ─── 「受干扰假值」唯一口径（引擎 / 提示预演 / 玩家结果页 三处共用）────────────
+/**
+ * 厨师假数字的候选上界（含）。
+ * ⚠️ 必须与 `src/utils/corruptedInfo.ts` 的 `INFO_ROLE_KIND.chef.max` 一致——
+ *    该常量已从 corruptedInfo 反向引用本处，禁止在两处各写一份字面量。
+ */
+export const CHEF_FAKE_MAX = 5;
+
+/**
+ * 厨师「受干扰假值」的唯一种子。
+ *
+ * ⚠️ 必须与 `utils/corruptedInfo.ts::buildCorruptedInfoMask` 使用的种子**逐字一致**
+ *    （`corrupted-info|${nightInfoSeed(roleId, actorSeatId, nightCount)}`），
+ *    否则「玩家结果页」会基于引擎假值**二次随机**，与「提示预演」的数字对不上。
+ */
+export function chefFakeSeed(seatId: number, nightCount: number): string {
+  return `corrupted-info|${nightInfoSeed("chef", seatId, nightCount)}`;
+}
+
+/**
+ * 厨师受干扰时的假对数：确定性、且**永不等于真值**。
+ *
+ * 语义与 `corruptedInfo.pickFakeNumber(trueValue, max, rng)` 完全一致
+ * （候选池 0..CHEF_FAKE_MAX、排除真值、同一枚种子 → 同一结果），
+ * 因此「提示预演」「引擎结算」「玩家结果页」三处必然给出同一个数字。
+ *
+ * @param realCount 真实邪恶相邻对数（null 表示未知，此时不排除任何值）
+ */
+export function pickChefFakePairCount(
+  realCount: number | null,
+  seatId: number,
+  nightCount: number
+): number {
+  const rng = createDeterministicRandom(chefFakeSeed(seatId, nightCount));
+  const candidates: number[] = [];
+  for (let v = 0; v <= CHEF_FAKE_MAX; v++) {
+    if (v !== realCount) candidates.push(v);
+  }
+  if (candidates.length === 0) return realCount === 0 ? 1 : 0;
+  return candidates[Math.floor(rng() * candidates.length)];
+}
+
+/**
+ * 供「提示预演」路径（`roles/townsfolk/chef.ts` 的 dialog）复用的公开入口：
+ * 用与引擎结算**完全相同**的算法统计相邻邪恶对数。
+ *
+ * 单一实现 → 杜绝「dialog 自算一份、引擎再算一份」的漂移。
+ * 差异点已对齐：不再跳过厨师自身所在的相邻对（官方：邪恶对按全量座位判定，
+ * 厨师本人若因伪装/转化而属于邪恶，其相邻对同样计入）。
+ */
+export function countChefEvilPairsForUi(seats: PlayerLookup[]): number {
+  const meta: Record<string, any> = {};
+  const ctx = { snapshot: { seats } } as unknown as MiddlewareContext;
+  return countEvilPairs(seats, meta, ctx);
+}
+
 // ─── 计算中间件 ───────────────────────────────────────────────────────
 
 /**
@@ -400,34 +456,42 @@ const calculateResult = async (
     return { ...context, aborted: true, abortReason: "无座位数据" };
   }
 
-  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
-  // 完全相同的假数字，否则说书人照提示念的结果会与结果弹窗对不上。
-  const rng = createDeterministicRandom(
-    nightInfoSeed("chef", context.actionNode.seatId, snapshot.nightCount ?? 1)
-  );
+  // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行 / 玩家结果页）
+  // 必须得到**完全相同**的假数字，否则说书人照提示念的结果会与结果弹窗对不上。
+  // ⚠️ 调用 `pickChefFakePairCount`（本文件唯一口径），不要各自造 rng。
+  const seatId = context.actionNode.seatId;
+  const nightCount = snapshot.nightCount ?? 1;
 
   let evilPairCount: number;
+  /** 真值（说书人解锁视图用）。受干扰时 abilityResult 是假值，真值只落在这里。 */
+  let truePairCount: number;
 
   // 优先级 1：说书人手动完全覆盖
   if (storytellerInput?.overrideResult !== undefined) {
     evilPairCount = storytellerInput.overrideResult as number;
+    truePairCount = evilPairCount;
   }
   // 优先级 2：说书人预设假信息（仅当能力被干扰时使用）
   else if (!abilityEffective && storytellerInput?.fakeResult !== undefined) {
     evilPairCount = storytellerInput.fakeResult as number;
+    truePairCount = countEvilPairs(seats, meta, context);
   }
   // 优先级 3：预置首夜信息
   else if (meta.initialNightInfo?.chefInfo !== undefined) {
-    const realCount = meta.initialNightInfo.chefInfo as number;
+    truePairCount = meta.initialNightInfo.chefInfo as number;
     evilPairCount = abilityEffective
-      ? realCount
-      : generateFakePairCount(seats, realCount, rng);
+      ? truePairCount
+      : pickChefFakePairCount(truePairCount, seatId, nightCount);
   }
   // 优先级 4：动态计算
   else {
+    truePairCount = countEvilPairs(seats, meta, context);
+    // ⚠️ 假值必须**排除真值**：旧实现传 `null`（不排除），确定性种子下会
+    //    恒定命中某个数字——一旦该数字恰好等于真值，中毒/醉酒玩家被直接
+    //    告知真值（确定性信息泄漏，不是偶发）。
     evilPairCount = abilityEffective
-      ? countEvilPairs(seats, meta, context)
-      : generateFakePairCount(seats, null, rng);
+      ? truePairCount
+      : pickChefFakePairCount(truePairCount, seatId, nightCount);
   }
 
   return {
@@ -435,6 +499,8 @@ const calculateResult = async (
     meta: {
       ...context.meta,
       abilityResult: evilPairCount,
+      /** 真值（玩家不可见；供说书人解锁视图使用） */
+      abilityResultTrue: truePairCount,
       isCorrupted: !abilityEffective,
     },
   };
@@ -526,7 +592,17 @@ const postProcessResult = async (
       // 为 NightEngine / UI 提供标准化数据
       displayInfo: {
         type: "chef_info",
+        /** 玩家可见值（受干扰时已是假值） */
         evilPairCount: result,
+        /**
+         * 真值。受干扰时 `evilPairCount` 是假值，说书人解锁视图与
+         * 「玩家结果页脱敏」都必须用这个真值作为排除口径，
+         * 才能复现出与提示预演**同一个**假数字（避免二次随机）。
+         */
+        trueEvilPairCount:
+          typeof meta.abilityResultTrue === "number"
+            ? meta.abilityResultTrue
+            : result,
         totalSeats,
         isCorrupted: meta.isCorrupted ?? false,
         log: abilityLog,

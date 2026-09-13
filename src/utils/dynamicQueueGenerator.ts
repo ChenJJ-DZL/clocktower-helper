@@ -152,6 +152,26 @@ export function generateDynamicNightQueue(
         !s.isDrunk &&
         !s.isPoisoned
     );
+    // 🌾 农夫：官方「当你在**夜晚死亡时**，一名存活的善良玩家会变成农夫」
+    //    → **条件触发**，不是每夜唤醒。nightOrder 条目描述亦为
+    //      「**如果**农夫死于夜晚，唤醒一名存活的善良玩家告知他角色变化」。
+    //    若本夜没有农夫死亡，本步骤不得进队列 —— 否则说书人每夜被空唤醒，
+    //    且引导退化为占位文案「唤醒N号【农夫】，准备执行技能。」。
+    //    ⚠️ 判据必须用「夜间死亡」而非 `isDead`：官方明确
+    //      「在**白天**死亡的农夫（例如因处决而死亡）无法创造新的农夫」。
+    //    注：roles/new_engine/farmer.ability.ts 的 preCheck 也会 abort，
+    //    但那要等到"已进队列并执行"才生效，队列层不收进来才是根因修复。
+    if (entry.roleId === "farmer") {
+      const hasFarmerDiedAtNight = snapshot.seats.some(
+        (s) =>
+          (s.role?.id === "farmer" ||
+            (s as any).charadeRole?.id === "farmer") &&
+          (Boolean((s as any).diedAtNight) ||
+            Boolean((snapshot as any).deadThisNight?.includes?.(s.id)))
+      );
+      if (!hasFarmerDiedAtNight) return false;
+    }
+
     // 系统信息步骤（minion_info / demon_info / legion_mutual_recognition）：找到对应玩家，不需要精确 roleId 匹配
     if (entry.roleId === "minion_info") {
       // 首夜：若罂粟种植者存活且健康，爪牙互认直接取消！
@@ -385,12 +405,16 @@ export function generateDynamicNightQueue(
         .filter((s) => s.role?.id === "lunatic" && (includeDead || !s.isDead))
         .sort((a, b) => a.id - b.id);
       for (const lunaticSeat of lunatics) {
-        const apparentName =
-          (lunaticSeat as any).apparentDemonRole?.name ?? "恶魔";
+        const apparentRole = (lunaticSeat as any).apparentDemonRole;
+        const apparentName = apparentRole?.name ?? "恶魔";
+        // 🌀 2026-09-12：疯子伪装成军团时这一步是「军团互认」而非「恶魔互认」——
+        //    军团没有爪牙，它的信息形态是"军团玩家互相认亲"。
+        const stepLabel =
+          apparentRole?.id === "legion" ? "军团互认" : "恶魔互认";
         expandedEntries.push({
           ...entry,
           actorSeatId: lunaticSeat.id,
-          roleName: `${apparentName}(恶魔互认)`,
+          roleName: `${apparentName}(${stepLabel})`,
           meta: { isLunaticDisguisedDemon: true },
         } as any);
       }
@@ -401,26 +425,32 @@ export function generateDynamicNightQueue(
 
   // 2. 按优先级排序（根据是否为第一夜选择对应的优先级）
   //    Array.prototype.sort 是稳定排序：同为 minion_info 的多名爪牙保持座位升序
-  // 🌀 A5：疯子节点使用其 apparentDemonRole 的夜序优先级（"就如同他是场上真正的恶魔"）。
+  //
+  // 🌀 疯子（Lunatic）排序规则（2026-09-12 按用户实测修正，推翻旧 A5 设计）：
+  //  ①【行动节点】用**疯子自己的官方槽位**（首夜 33 / 其它夜 62），
+  //    **不受假恶魔身份影响**。
+  //    官方夜序表本身就把疯子排在所有恶魔之前（62 < 恶魔 67~84），
+  //    这正是「在恶魔被唤醒发动攻击前，唤醒疯子」的实现方式。
+  //    ⚠️ 事故：曾改成"照假恶魔的优先级"（旧 A5），当假恶魔晚于真恶魔时
+  //       （疯子以为涡流 78 / 真恶魔小恶魔 67）疯子被排到恶魔**之后** →
+  //       恶魔行动时 seat.lunaticTargetIds 还没写入 → 恶魔永远看不到本夜选择。
+  //    ⚠️ 与酒鬼/提线木偶的区别：那些角色是"扮演某**镇民**"，必须用假身份时序
+  //       才能在正确的时点醒来；疯子是"扮演**恶魔**"，而官方已给它固定槽位，
+  //       替换成假恶魔槽位既没必要、又会破坏"恶魔行动前唤醒疯子"。
+  //  ②【疯子专属的 demon_info 节点】必须排在真恶魔的 demon_info **之前**：
+  //    官方「唤醒疯子并向他提供恶魔信息。**随后**在恶魔信息环节对恶魔提供
+  //    疯子的相关信息。」→ 疯子先、真恶魔后。
+  //    ⚠️ 这两个节点 roleId 都是 "demon_info"，且展开时真恶魔先入队、疯子后入队，
+  //       优先级相同 → 稳定排序会保持"真恶魔在前"，正是用户实测到的错误顺序。
+  //       因此必须显式给疯子节点一个更小的优先级（-0.5 步长，夜序里 1.5/2.5 已在用）。
   const priorityOf = (entry: NightOrderEntry): number => {
-    if (entry.roleId === "lunatic") {
-      const lunaticSeat = snapshot.seats.find(
-        (s) => s.role?.id === "lunatic" && (includeDead || !s.isDead)
-      );
-      const apparentId = (lunaticSeat as any)?.apparentDemonRole?.id as
-        | string
-        | undefined;
-      const apparentEntry = apparentId
-        ? order.find((e) => e.roleId === apparentId)
-        : undefined;
-      if (apparentEntry) {
-        const p = isFirstNight
-          ? apparentEntry.firstNightPriority
-          : apparentEntry.otherNightPriority;
-        if (p > 0) return p;
-      }
+    const base = isFirstNight
+      ? entry.firstNightPriority
+      : entry.otherNightPriority;
+    if ((entry as any).meta?.isLunaticDisguisedDemon) {
+      return base - 0.5;
     }
-    return isFirstNight ? entry.firstNightPriority : entry.otherNightPriority;
+    return base;
   };
   expandedEntries.sort((a, b) => priorityOf(a) - priorityOf(b));
 
@@ -477,7 +507,16 @@ export function generateDynamicNightQueue(
 
     const roleName =
       entry.roleId === "demon_info" && seat?.role?.name
-        ? `${seat.role.name}(恶魔互认)`
+        ? // 🌀 2026-09-12：疯子伪装成**军团**时，这一步是「军团互认」而不是「恶魔互认」。
+          //    军团没有爪牙，它的信息形态是"军团玩家互相认亲"
+          //    （用户实测：显示「军团(恶魔互认)」与军团的身份自相矛盾）。
+          //    ⚠️ 注意：这里的名字取自**座位真实角色名**（疯子/小恶魔…），
+          //    所以疯子会显示成「疯子(军团互认)」——这是说书人侧的正确称呼。
+          `${seat.role.name}(${
+            (seat as any).apparentDemonRole?.id === "legion"
+              ? "军团互认"
+              : "恶魔互认"
+          })`
         : isPixieActor
           ? `${entry.roleName}(小精灵)`
           : entry.roleName;
@@ -569,7 +608,7 @@ export function generateDynamicNightQueue(
   });
 
   // 6. 镜像双子（Evil Twin）：首夜向对立善良双子告知"X号是镜像双子"
-  // 情况 1：若善良双子在首夜本身不会被唤醒（如士兵、圣徒、管家、市长等无夜间行动角色），单独注入唤醒节点告知
+  // 情况 1：若善良双子在首夜本身不会被唤醒（如士兵、圣徒、管家、镇长等无夜间行动角色），单独注入唤醒节点告知
   if (isFirstNight) {
     const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPair(
       snapshot.seats as any,

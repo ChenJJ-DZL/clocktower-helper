@@ -434,7 +434,7 @@ describe("全对局生命周期压测 (Full Game Lifecycle)", () => {
       // 7. 验证胜负逻辑一致性
       const seats = []; // 验证 winner 与最终状态一致
       if (result.winner === "Good") {
-        expect(result.winReason).toMatch(/恶魔.*消灭|市长|善良/);
+        expect(result.winReason).toMatch(/恶魔.*消灭|镇长|善良/);
       }
     });
   }
@@ -490,8 +490,8 @@ describe("全对局生命周期压测 (Full Game Lifecycle)", () => {
     expect(result.winner).toBe("Evil");
   });
 
-  // 市长和平获胜专项测试（平安日 = execution + executedPlayerId === null）
-  it("3人存活+平安日+市长在场 → 善良胜利", () => {
+  // 镇长和平获胜专项测试（平安日 = execution + executedPlayerId === null）
+  it("3人存活+平安日+镇长在场 → 善良胜利", () => {
     const seats = [
       makeSeat(0, { id: "mayor", name: "镇长", type: "townsfolk" }),
       makeSeat(1, { id: "soldier", name: "士兵", type: "townsfolk" }),
@@ -501,7 +501,7 @@ describe("全对局生命周期压测 (Full Game Lifecycle)", () => {
     const result = checkGameEnd(seats as any, "execution", null);
     expect(result.isGameOver).toBe(true);
     expect(result.winner).toBe("Good");
-    expect(result.reason).toContain("市长");
+    expect(result.reason).toContain("镇长");
   });
 
   // 存活≤2人专项测试

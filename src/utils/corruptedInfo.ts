@@ -41,6 +41,7 @@
  */
 
 import { createDeterministicRandom, nightInfoSeed } from "../roles/core/deterministicRandom";
+import { CHEF_FAKE_MAX } from "../roles/new_engine/chef.ability";
 
 export type CorruptedInfoKind = "number" | "boolean" | "targets" | "text";
 
@@ -53,7 +54,10 @@ interface KindSpec {
 /** 信息类角色的"信息形态"表（决定假值怎么造）。 */
 export const INFO_ROLE_KIND: Record<string, KindSpec> = {
   // 数值型
-  chef: { kind: "number", max: 5 },
+  // ⚠️ chef 的 max 必须与 `roles/new_engine/chef.ability.ts::CHEF_FAKE_MAX`
+  //    同源（引擎假值与该脱敏层的候选池必须完全一致，否则结果页会二次随机，
+  //    与提示预演的数字对不上）。禁止在此写死字面量。
+  chef: { kind: "number", max: CHEF_FAKE_MAX },
   empath: { kind: "number", max: 2 },
   clockmaker: { kind: "number", max: 6 },
   oracle: { kind: "number", max: 9 },

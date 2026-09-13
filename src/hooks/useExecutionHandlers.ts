@@ -9,6 +9,7 @@ import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelp
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
+import { shouldZeroLegionVote } from "../utils/legionVoteRule";
 import {
   shouldMorticianTransform,
   transformMorticianToDemon,
@@ -639,18 +640,16 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         }
 
         // 军团规则：若场上有军团在场，且所有投票者均为邪恶玩家（无善良玩家投票），则本次提名的表决记为 0 票，处决无效
-        const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
-        if (hasLegionInPlay && effectiveVoters.length > 0) {
-          const allEvil = effectiveVoters.every((id) => {
-            const s = seats.find((seat) => seat.id === id);
-            return s ? isPlayerEvil(s) : false;
-          });
-          if (allEvil) {
-            addLog(
-              "⚠️ 军团能力生效：本次提名的所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！"
-            );
-            v = 0;
-          }
+        // （判据已抽为纯函数 `shouldZeroLegionVote`，可单测；见 src/utils/legionVoteRule.ts）
+        if (
+          shouldZeroLegionVote(seats as any, effectiveVoters, (s) =>
+            isPlayerEvil(s as any)
+          )
+        ) {
+          addLog(
+            "⚠️ 军团能力生效：本次提名的所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！"
+          );
+          v = 0;
         }
 
         // 乞丐（Beggar）规则检查：如果乞丐选择了某玩家，该玩家参与投票时计为2票（总票数+1）

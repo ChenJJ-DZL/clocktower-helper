@@ -331,7 +331,7 @@ export function processGameEvent(
     }
     case "DECLARE_MAYOR_WIN": {
       winner = "Good";
-      winReason = "市长身份获胜";
+      winReason = "镇长身份获胜";
       break;
     }
   }
@@ -668,7 +668,7 @@ export function checkGameEnd(
     }
   }
 
-  // --- 4. 【额外层】市长/涡流 ---
+  // --- 4. 【额外层】镇长/涡流 ---
   // 涡流：每个黄昏（白天结束）若今日无人被处决，邪恶阵营立即获胜。
   //   之前仅在 execution 路径下检查，会漏掉"白天没人投票也没提名"导致游戏永远卡在 dusk。
   if (lastAction === "check_phase" && isVortoxWorld) {
@@ -698,7 +698,7 @@ export function checkGameEnd(
         reason: "主谋翻盘：额外一天无人处决",
       };
     }
-    // 市长 (Mayor): 仅剩3人且平安日 -> 好人获胜
+    // 镇长 (Mayor): 仅剩3人且平安日 -> 好人获胜
     if (aliveCount === 3) {
       const mayor = aliveSeats.find(
         (s) => s.role?.id === "mayor" && !s.isPoisoned && !s.isDrunk
@@ -707,7 +707,7 @@ export function checkGameEnd(
         return {
           isGameOver: true,
           winner: "Good",
-          reason: "市长触发和平获胜条件",
+          reason: "镇长触发和平获胜条件",
         };
       }
     }

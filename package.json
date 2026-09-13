@@ -1,7 +1,7 @@
 {
   "//": "by 拜甘教成员-大长老",
   "name": "clocktower-helper",
-  "version": "W9.12.1",
+  "version": "W9.13.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,7 +13,10 @@
     "type": "tsc --noEmit",
     "circular": "madge --circular src/index.ts",
     "check": "npm run fix && npm run type && npm run test && npm run circular",
-    "check:all": "npm run fix && npm run type && npm run test && npm run circular"
+    "check:all": "npm run fix && npm run type && npm run test && npm run circular",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:list": "playwright test --list"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -26,10 +29,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.7",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "jsdom": "^30.0.1",
     "madge": "^8.0.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",

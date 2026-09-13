@@ -67,6 +67,27 @@ export function pickFakeCorrectCount(
   return fakeCandidates[Math.floor(rng() * fakeCandidates.length)];
 }
 
+/**
+ * 供「提示预演」路径（`roles/townsfolk/juggler.ts` 的 dialog）复用的公开入口。
+ *
+ * ⚠️ 2026-09-13 修复：dialog 此前用**裸 `Math.random()`** 造假数字，
+ * 而引擎结算用 `createDeterministicRandom(nightInfoSeed("juggler", ...))`
+ * —— 两处各摇一次 → **同一夜"提示"与"结算"给出不同数字**（与厨师的
+ * `pickChefFakePairCount` 属同一类缺陷，官方要求"说书人念的数字"必须与结果一致）。
+ *
+ * 现统一到**同一枚种子 + 同一个函数**，三处（提示 / 引擎结算 / 玩家结果页）必然同值。
+ */
+export function pickJugglerFakeCountForUi(
+  realCount: number,
+  seatId: number,
+  nightCount: number
+): number {
+  const rng = createDeterministicRandom(
+    nightInfoSeed("juggler", seatId, nightCount)
+  );
+  return pickFakeCorrectCount(realCount, rng);
+}
+
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {

@@ -231,7 +231,7 @@ describe("首夜入夜守卫与夜间队列容错测试", () => {
   });
 
   it("场景 3: 罂粟种植者存活且军团无独立首夜唤醒技能时，首夜互认被规则正确过滤", () => {
-    // 罂粟种植者 + 军团 + 纯白天行动角色（如市长）
+    // 罂粟种植者 + 军团 + 纯白天行动角色（如镇长）
     const poppygandaQuietSeats: Seat[] = [
       {
         id: 0,
@@ -264,7 +264,7 @@ describe("首夜入夜守卫与夜间队列容错测试", () => {
       {
         id: 1,
         playerName: "P2",
-        role: { id: "mayor", name: "市长", type: "townsfolk" },
+        role: { id: "mayor", name: "镇长", type: "townsfolk" },
         charadeRole: null,
         isDead: false,
         isDrunk: false,
@@ -388,7 +388,7 @@ describe("首夜入夜守卫与夜间队列容错测试", () => {
       { isFirstNight: true }
     );
 
-    // 军团互认因为罂粟种植者存活被过滤，市长和罂粟种植者首夜无唤醒技能，队列合法为空
+    // 军团互认因为罂粟种植者存活被过滤，镇长和罂粟种植者首夜无唤醒技能，队列合法为空
     expect(queue.length).toBe(0);
   });
 });

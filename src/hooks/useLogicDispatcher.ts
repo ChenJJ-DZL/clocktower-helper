@@ -194,15 +194,15 @@ export function useLogicDispatcher(
   );
 
   const declareMayorImmediateWin = useCallback(() => {
-    // 🎭 戏子在场：市长宣布的善良胜利被对调为邪恶胜利
+    // 🎭 戏子在场：镇长宣布的善良胜利被对调为邪恶胜利
     const flipped = applyActorVictoryFlip("good", seats);
     addLog(
       flipped === "good"
-        ? "市长发动能力：宣布善良阵营获胜！"
-        : "🎭 戏子在场，市长宣布的善良胜利被对调：邪恶阵营获胜！"
+        ? "镇长发动能力：宣布善良阵营获胜！"
+        : "🎭 戏子在场，镇长宣布的善良胜利被对调：邪恶阵营获胜！"
     );
     setWinResult(flipped ?? "good");
-    setWinReason(flipped === "good" ? "市长能力发动" : "戏子在场，胜负对调");
+    setWinReason(flipped === "good" ? "镇长能力发动" : "戏子在场，胜负对调");
     setGamePhase("gameOver");
     setVictorySnapshot(seats.filter((s) => s.role));
     setCurrentModal({ type: "GAME_OVER", data: null });

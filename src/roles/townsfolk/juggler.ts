@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { pickJugglerFakeCountForUi } from "../new_engine/juggler.ability";
 
 /**
  * 杂耍艺人 (Juggler)
@@ -97,7 +98,8 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:155-0!canonical and tim
         vortoxWorld = false,
         shouldShowFake = false,
         isActorDisabledByPoisonOrDrunk,
-      } = context || {};
+        nightCount = 1,
+      } = (context || {}) as any;
 
       const seat = seats.find((s: any) => s.id === playerSeatId);
       const realCount =
@@ -118,14 +120,15 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:155-0!canonical and tim
 
       let displayCount = realCount;
       if (mustBeFake) {
-        // 杂耍艺人猜测 0~5 次，虚假数字必须在 0~5 中且不等于 realCount
-        const fakeCandidates = [0, 1, 2, 3, 4, 5].filter((v) => v !== realCount);
-        displayCount =
-          fakeCandidates.length > 0
-            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
-            : realCount === 0
-              ? 1
-              : 0;
+        // ⚠️ 2026-09-13 修复「提示 ≠ 结算」：原实现用**裸 `Math.random()`** 造假数字，
+        //    而引擎结算用 `createDeterministicRandom(nightInfoSeed("juggler", 座位, 夜次))`
+        //    → 同一夜两处各摇一次 → 说书人念的数字与结果弹窗对不上。
+        //    现统一调用引擎导出的 `pickJugglerFakeCountForUi`（同种子 + 同算法）。
+        displayCount = pickJugglerFakeCountForUi(
+          realCount,
+          playerSeatId,
+          nightCount
+        );
       }
 
       const interferenceTip = hasVortox

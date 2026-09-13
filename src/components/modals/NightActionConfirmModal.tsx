@@ -32,6 +32,20 @@ export interface NightActionConfirmData {
   /** 附加提示，如中毒/醉酒警告 */
   extraNote?: string;
   /**
+   * 🌙 说书人专属「完整在场名单（座位号 + 角色）」。
+   *
+   * 仅供**由说书人代操作**的步骤使用（当前唯一用例：军团夜杀 —— 军团玩家无需操作）。
+   * 官方：军团「每个夜晚*，**可能**有一名玩家死亡」，谁死由说书人独立决定，
+   * 因此说书人需要看到全员座位与角色才能判断。
+   *
+   * ⚠️ 安全约束：本字段**绝不可**出现在玩家自己操作的角色页上
+   * （会泄漏其他玩家的身份）。只由 useNightActionHandler 在军团步骤注入，
+   * 并配合 `storytellerFacing` 把页面的玩家隐私提示换成说书人提示。
+   */
+  storytellerRoster?: string[];
+  /** 该页是否面向说书人（军团代操作等）；为 true 时不显示"角色已隐蔽"的玩家提示 */
+  storytellerFacing?: boolean;
+  /**
    * 🌀 A4：真恶魔专属提示 ——「疯子本夜选择了哪些玩家」。
    * 官方原文（json/wiki_crawl/parsed_roles.json「疯子」）：
    *   「真正的恶魔会知道疯子每个夜晚攻击了哪些玩家。」
@@ -205,6 +219,8 @@ export function NightActionConfirmModal({
     actionDescription,
     targetDescriptions = [],
     extraNote,
+    storytellerRoster,
+    storytellerFacing,
     lunaticHint,
     targetLimit,
     actorSeatId,
@@ -385,7 +401,7 @@ export function NightActionConfirmModal({
           {/* 顶部行动指引 */}
           <div className="text-center space-y-1.5 max-w-full">
             {isCerenovus ? (
-              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-slate-100 break-words leading-relaxed px-2">
                 确认为
                 <span className="text-indigo-300 font-black">
                   【{roleName}】
@@ -413,7 +429,7 @@ export function NightActionConfirmModal({
                 吗？
               </div>
             ) : isRoleSelectorActive ? (
-              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-slate-100 break-words leading-relaxed px-2">
                 确认为
                 <span className="text-indigo-300 font-black">
                   【{roleName}】
@@ -431,7 +447,7 @@ export function NightActionConfirmModal({
                 吗？
               </div>
             ) : (
-              <div className="text-base sm:text-lg md:text-xl font-bold text-slate-100 break-words leading-relaxed px-2">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-slate-100 break-words leading-relaxed px-2">
                 确认为
                 {targetText && (
                   <span className="text-amber-400 font-black">
@@ -447,9 +463,13 @@ export function NightActionConfirmModal({
               </div>
             )}
             {/* B1：这里原本写着「说书人可直接将本页面展示给该玩家…」——本页面会直接
-                交给玩家点击，任何"说书人专属说明"都不应出现，故改为纯玩家提示。 */}
+                交给玩家点击，任何"说书人专属说明"都不应出现，故改为纯玩家提示。
+                🌙 例外：军团夜杀等**说书人代操作**步骤（storytellerFacing）本就面向
+                说书人，此时改为提示"请勿展示给玩家"，避免自相矛盾。 */}
             <p className="text-xs sm:text-sm text-slate-400">
-              💡 本页面只显示座位号，其他玩家的角色信息已完全隐蔽。
+              {storytellerFacing
+                ? "🎙️ 本页面为说书人代操作步骤，含全部角色信息 —— 请勿展示给玩家。"
+                : "💡 本页面只显示座位号，其他玩家的角色信息已完全隐蔽。"}
             </p>
           </div>
 
@@ -598,9 +618,27 @@ export function NightActionConfirmModal({
             </div>
           )}
 
-          {extraNote && (
-            <div className="text-xs sm:text-sm text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40">
-              ⚠️ {extraNote}
+            {/* 🌙 说书人专属：完整在场名单（座位号 + 角色）。
+                与下方「只显示座位号」的玩家提示互斥 —— 本块只在
+                storytellerFacing 的代操作步骤（军团）出现。 */}
+            {storytellerRoster && storytellerRoster.length > 0 ? (
+              <div className="text-sm sm:text-base bg-slate-900/70 rounded-xl p-3 border border-amber-500/50">
+                <div className="text-amber-300 font-bold mb-1.5">
+                  🎙️ 说书人视角 · 完整在场名单（仅说书人可见，请勿展示给玩家）
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-0.5 text-slate-100">
+                  {storytellerRoster.map((line, idx) => (
+                    <div key={idx} className="truncate">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {extraNote && (
+              <div className="text-xs sm:text-sm text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40">
+                ⚠️ {extraNote}
             </div>
           )}
         </div>
@@ -626,13 +664,12 @@ export function NightActionConfirmModal({
               </div>
             </div>
 
-            <p className="text-base sm:text-lg md:text-xl text-slate-300 font-medium whitespace-nowrap">
-              💡 该角色能力为
-              <span className="text-slate-100 font-bold">
-                夜间信息获取 / 自动结算
-              </span>
-              ，无需由玩家点选目标。点击下方【确认执行】后将计算并展示告知结果。
-            </p>
+            {/* ⚠️ P0 隐私（2026-09-13 用户指出）：本页会**直接给玩家看**，
+                因此**不得**出现任何规则叙述 / 说书人操作指引。
+                原先这里有一段
+                  「💡 该角色能力为「夜间信息获取 / 自动结算」，无需由玩家点选目标。
+                    点击下方【确认执行】后将计算并展示告知结果。」
+                属于说书人侧说明，已删除；同类内容一律放 GameConsole 的「说书人Tips」。 */}
 
             {lunaticHint && (
               <div className="text-base sm:text-lg font-black text-fuchsia-100 bg-fuchsia-900/50 rounded-xl p-3 border-2 border-fuchsia-400/70 shadow-lg shadow-fuchsia-900/40 whitespace-pre-line w-max max-w-none">

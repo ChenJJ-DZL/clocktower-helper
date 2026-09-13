@@ -38,9 +38,8 @@ export function DreamerResultModal({
           <div className="text-4xl sm:text-5xl md:text-6xl font-black text-amber-400 tracking-wider text-center drop-shadow-2xl my-4 whitespace-nowrap">
             【{roleA.name}】 或 【{roleB.name}】
           </div>
-          <p className="text-base sm:text-lg md:text-xl text-gray-300 font-medium mt-2 whitespace-nowrap">
-            请说书人向玩家告知以上信息
-          </p>
+          {/* ⚠️ P0 隐私（2026-09-13）：本页给玩家看，原「请说书人向玩家告知以上信息」
+              属说书人侧话术，已删除。 */}
         </div>
       </AutoFitContent>
     </ModalWrapper>

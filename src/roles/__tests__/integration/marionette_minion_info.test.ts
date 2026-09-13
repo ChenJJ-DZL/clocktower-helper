@@ -143,7 +143,9 @@ describe("提线木偶不参与爪牙互认（官方规则）", () => {
       1,
       "demon_info"
     );
-    expect(info?.guide).toContain("提线木偶: 4号");
+    // ⚠️ 2026-09-13 P0：座号是说书人侧信息，不得进给玩家看的 guide
+    expect(info?.guide).not.toContain("提线木偶: 4号");
+    expect(String((info as any)?.storytellerNote)).toContain("提线木偶: 4号");
   });
 
   it("④ 防御兜底：即使强行以提线木偶为行动者，也不得泄漏邪恶信息", () => {
@@ -156,7 +158,11 @@ describe("提线木偶不参与爪牙互认（官方规则）", () => {
       1,
       "minion_info"
     );
-    expect(info?.guide).toContain("提线木偶不会被唤醒进行爪牙互认");
+    // ⚠️ 2026-09-13 P0：这句是给说书人的指令，玩家页不得出现 → 移入 storytellerNote
+    expect(info?.guide).not.toContain("提线木偶不会被唤醒进行爪牙互认");
+    expect(String((info as any)?.storytellerNote)).toContain(
+      "提线木偶不会被唤醒进行爪牙互认"
+    );
     expect(info?.guide).not.toContain("恶魔是");
   });
 });

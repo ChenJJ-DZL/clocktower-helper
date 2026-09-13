@@ -157,7 +157,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       setCurrentModal(null);
 
       if (redirectTargetId === null) {
-        // 不转移市长自己死亡
+        // 不转移镇长自己死亡
         nightLogic.processDemonKill(mayorId, { skipMayorRedirectCheck: true });
         setCurrentModal(null);
         continueToNextAction();
@@ -166,7 +166,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
 
       const seatId = nightInfo?.seat?.id ?? 0;
       addLogWithDeduplication(
-        `${seatId + 1}号(${demonName}) 攻击市长 ${mayorId + 1}号，死亡转移给${redirectTargetId + 1}号`,
+        `${seatId + 1}号(${demonName}) 攻击镇长 ${mayorId + 1}号，死亡转移给${redirectTargetId + 1}号`,
         seatId,
         demonName
       );

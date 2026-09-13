@@ -717,6 +717,20 @@ export async function executeViaNewEngine(
         ].filter(Boolean);
 
         // 执行后需要 UI 确认，不要自动跳过
+        //
+        // 🌙 军团（Legion）：官方「每个夜晚*，**可能**有一名玩家死亡」——
+        //    军团玩家本人**无需任何操作**，由**说书人代为决定**今晚谁死。
+        //    因此本页对军团改为「说书人视角」：额外给出**完整在场名单（座位号+角色）**，
+        //    并把页面的玩家隐私提示换成"请勿展示给玩家"。
+        //    ⚠️ 仅在军团步骤注入 —— 其他角色页绝不显示他人角色（防泄漏）。
+        const isLegionActor =
+          roleId === "legion" || actorSeat?.role?.id === "legion";
+        const storytellerRoster = isLegionActor
+          ? context.seats
+              .filter((s: any) => !s.isDead)
+              .map((s: any) => `${s.id + 1}号【${s.role?.name ?? "未知"}】`)
+          : undefined;
+
         context.setCurrentModal({
           type: "NIGHT_ACTION_CONFIRM",
           data: {
@@ -725,6 +739,8 @@ export async function executeViaNewEngine(
             targetDescriptions: mergedTargets,
             extraNote:
               combinedNotes.length > 0 ? combinedNotes.join("\n") : undefined,
+            storytellerRoster,
+            storytellerFacing: isLegionActor,
             onConfirm: async () => {
               const realContext: NightActionHandlerContext = {
                 ...context,
@@ -1828,26 +1844,56 @@ export async function executeViaNewEngine(
           : "技能已执行");
 
       // 🎭 受干扰 / 酒鬼·提线木偶：玩家可见结果必须替换为假值。
+      // ⚠️ 优先用 `abilityResultTrue`（引擎暴露的**真值**）：脱敏层的假值生成器
+      //    「排除传入值」，只有传真值才能复现出引擎那一枚确定性假数字；若传
+      //    引擎已算好的假值，脱敏层会再排除一次 → **二次随机**，结果页数字
+      //    与说书人看到的提示预演对不上（2026-09-13 第4轮 厨师实测）。
+      const abilityResultTrue = resultContext.meta.abilityResultTrue;
       const trueValue =
-        typeof resultContext.meta.abilityResult === "number" ||
-        typeof resultContext.meta.abilityResult === "boolean"
-          ? resultContext.meta.abilityResult
-          : Array.isArray((displayInfo as any)?.targetIds) &&
-              (displayInfo as any).targetIds.length > 0
-            ? (displayInfo as any).targetIds
-            : (displayInfo as any)?.targetId != null
-              ? [(displayInfo as any).targetId]
-              : (context.selectedTargets ?? []);
+        typeof abilityResultTrue === "number" ||
+        typeof abilityResultTrue === "boolean"
+          ? abilityResultTrue
+          : typeof resultContext.meta.abilityResult === "number" ||
+              typeof resultContext.meta.abilityResult === "boolean"
+            ? resultContext.meta.abilityResult
+            : Array.isArray((displayInfo as any)?.targetIds) &&
+                (displayInfo as any).targetIds.length > 0
+              ? (displayInfo as any).targetIds
+              : (displayInfo as any)?.targetId != null
+                ? [(displayInfo as any).targetId]
+                : (context.selectedTargets ?? []);
       const corruptedMask = maskCorruptedResult(rawResultText, trueValue);
       const resultText = corruptedMask
         ? corruptedMask.playerText
         : sanitizePlayerFacingText(rawResultText);
+
+      /**
+       * 🌙 军团（Legion）特例：**技能确认页与技能结果页都只说书人可见**。
+       *
+       * 官方：军团「每个夜晚*，**可能**有一名玩家死亡」——由**说书人代为决定**
+       * 今晚谁死，军团玩家本人无需任何操作。且军团局"多数玩家为军团"，
+       * 邪恶方本就知晓彼此身份，展示真值**不构成信息泄漏**。
+       *
+       * ⇒ 军团结果页**跳过"玩家视角脱敏"**（sanitizePlayerFacingText /
+       *   maskCorruptedResult / playerFacingLog 这套是给玩家看的），
+       *   直接展示引擎真值，并置 `storytellerFacing` 让弹窗标注"说书人专用"。
+       *
+       * ⚠️ 该分支**只对军团**生效，其他角色仍走完整脱敏流程。
+       */
+      const isLegionResult =
+        roleId === "legion" || (actorSeat as any)?.role?.id === "legion";
+      const finalResultText = isLegionResult
+        ? (displayInfo as any).log || customResultText || "技能已执行"
+        : resultText;
+
       const infoSynced = syncedSeats.length > 0 ? syncedSeats : undefined;
       context.setCurrentModal({
         type: "INFO_RESULT",
         data: {
-          roleName: playerFacingRoleLabel,
-          resultText,
+          roleName: isLegionResult ? roleName : playerFacingRoleLabel,
+          resultText: finalResultText,
+          // 🌙 军团：本页为说书人代操作页，弹窗改显示"说书人专用"提示
+          storytellerFacing: isLegionResult || undefined,
           // 🧠 洗脑师专属结果页的结构化数据（玩家页据此渲染"疯狂证明"页，
           //    行动者真值只进说书人解锁视图；缺失时退回通用结果页）
           cerenovusResult: cerenovusResultData ?? undefined,

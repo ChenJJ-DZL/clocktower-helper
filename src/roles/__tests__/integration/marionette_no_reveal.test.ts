@@ -177,7 +177,13 @@ describe("④ 罂粟种植者死亡后的邪恶互认：提线木偶什么都不
       2,
       "minion_info"
     );
-    expect(String(minionInfo?.guide)).toContain(MARIONETTE_NO_WAKE_NOTE);
+    // ⚠️ 2026-09-13 P0（用户实测截图指出）：这段规则说明是**说书人侧内容**，
+    //    会渲染在「爪牙互认 - 结果」页上给玩家看 → 不得留在 guide 里，
+    //    只允许进 storytellerNote（仅 GameConsole 渲染）。
+    expect(String(minionInfo?.guide)).not.toContain(MARIONETTE_NO_WAKE_NOTE);
+    expect(String((minionInfo as any)?.storytellerNote)).toContain(
+      MARIONETTE_NO_WAKE_NOTE
+    );
     // ⚠️ 爪牙环节的文案里**绝不能**出现提线木偶的座号（否则等于点给同场真爪牙）
     expect(String(minionInfo?.guide)).not.toContain("4号");
 
@@ -190,8 +196,9 @@ describe("④ 罂粟种植者死亡后的邪恶互认：提线木偶什么都不
       2,
       "demon_info"
     );
-    // 官方：罂粟种植者死亡后恶魔会知道谁是提线木偶
-    expect(String(demonInfo?.guide)).toContain("提线木偶: 4号");
+    // ⚠️ 2026-09-13 P0：座号与「请勿让它察觉」同规则 —— 只进 storytellerNote，
+    //    绝不出现在给玩家看的 guide 里（下方紧接着断言 storytellerNote 必须含座号）。
+    expect(String(demonInfo?.guide)).not.toContain("提线木偶: 4号");
     // B1：恶魔互认的 guide 会直接显示在"技能确认页 / 结果页"上（交给玩家点击），
     // 因此那句写给说书人的操作提醒**不得**再留在 guide 里，
     // 改为移到说书人专属字段 storytellerNote（只由 GameConsole 渲染）。

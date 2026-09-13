@@ -71,6 +71,10 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:129-0!canonical and tim
       },
     },
 
+    // 🛡️ 纵深防御（2026-09-13 第2轮）：buildInfoMessage 的受干扰判定已内建
+    //   （computeIsPoisoned + statusEffects + 涡流 + 提线木偶），此处额外把
+    //   上下文的涡流世界标记显式透传，避免依赖 seats 里是否有 vortox 座位
+    //   （如 vortoxWorld 由全局效果置位、或 vortox 刚死但本夜仍生效的边界）。
     dialog: (playerSeatId: number, isFirstNight: boolean, context: any) => {
       if (isFirstNight) {
         return {
@@ -83,6 +87,13 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:129-0!canonical and tim
         seats: context?.seats ?? [],
         selfId: playerSeatId,
         nightCount: context?.nightCount ?? 0,
+        vortoxWorld: Boolean(context?.vortoxWorld),
+        isVortoxWorld: Boolean(context?.isVortoxWorld || context?.vortoxActive),
+        isPoisoned: Boolean(
+          context?.isActorDisabledByPoisonOrDrunk?.(
+            (context?.seats ?? []).find((s: any) => s.id === playerSeatId)
+          )
+        ),
       });
       return {
         wake: `唤醒${playerSeatId + 1}号【神谕者】，${info ?? "请执行行动"}`,

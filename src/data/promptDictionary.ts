@@ -166,13 +166,13 @@ export const promptDictionary: PromptTemplate[] = [
     description: "士兵技能触发提示",
     scenes: ["night"],
   },
-  // 市长
+  // 镇长
   {
     id: "role.mayor.wake",
     category: "role",
     template:
-      "今日平票，市长（{{seatNo}}号玩家）决定处决{{targetSeatNo}}号玩家",
-    description: "市长技能触发提示",
+      "今日平票，镇长（{{seatNo}}号玩家）决定处决{{targetSeatNo}}号玩家",
+    description: "镇长技能触发提示",
     scenes: ["day"],
   },
   // 隐士

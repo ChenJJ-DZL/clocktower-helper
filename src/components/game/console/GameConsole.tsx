@@ -189,11 +189,14 @@ export const GameConsole = React.memo(function GameConsole({
 
   // ⚠️ nightInfo.isPoisoned 会被涡流对所有镇民置真（用于生成假信息），
   //    不能直接当作「受干扰」——涡流只干扰「信息类」能力。
+  // ⚠️ 疯子（lunatic）**不算受干扰**：它没有中毒/醉酒，技能是真生效的
+  //    （每夜被当作假恶魔唤醒、选择目标，选择会被记录并告知真恶魔），
+  //    只是「不真正杀人」——那是角色设计，不是能力失效。
+  //    把疯子标成「行动（受干扰）」会让说书人误判其能力被禁。
   const isDisturbed =
     currentActorSeat?.isDrunk ||
     currentActorSeat?.isPoisoned ||
     currentActorSeat?.role?.id === "drunk" ||
-    currentActorSeat?.role?.id === "lunatic" ||
     currentActorSeat?.role?.id === "marionette" ||
     Boolean(
       nightInfo?.isPoisoned &&
@@ -202,6 +205,12 @@ export const GameConsole = React.memo(function GameConsole({
           currentActorSeat?.role?.type
         )
     );
+
+  // 🌀 疯子专属提示：不是「受干扰」，而是「假恶魔行动——不真正生效」。
+  //    官方：疯子每夜被当作恶魔唤醒并选择目标，但「疯子的选择没有效果」；
+  //    同时真正的恶魔会知道疯子选了谁。给说书人一个准确的中性提示，
+  //    避免误判成「能力被禁」。
+  const isLunaticActor = currentActorSeat?.role?.id === "lunatic";
 
   // Optimize: Memoize roleDoc lookup
   const roleDoc = React.useMemo(() => {
@@ -529,10 +538,16 @@ export const GameConsole = React.memo(function GameConsole({
                       className={`inline-block font-bold tracking-wide px-2 py-0.5 rounded-md mr-1 ${
                         isDisturbed
                           ? "text-red-100 bg-red-900/50"
-                          : "text-emerald-100 bg-emerald-800/40"
+                          : isLunaticActor
+                            ? "text-violet-100 bg-violet-900/60"
+                            : "text-emerald-100 bg-emerald-800/40"
                       }`}
                     >
-                      {isDisturbed ? "行动（受干扰）" : "行动"}
+                      {isDisturbed
+                        ? "行动（受干扰）"
+                        : isLunaticActor
+                          ? "行动（假恶魔 · 不真正生效）"
+                          : "行动"}
                     </span>
                     {storytellerInstruction?.actionText ? (
                       <span>{storytellerInstruction.actionText}</span>

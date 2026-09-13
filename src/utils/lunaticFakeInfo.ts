@@ -28,6 +28,7 @@
 import { roles as allRoles, type Seat } from "../../app/data";
 import { createDeterministicRandom } from "../roles/core/deterministicRandom";
 import { isRealMinion, isMarionetteSeat } from "./roleFlags";
+import { STANDARD_COMPOSITIONS } from "./quickStartGenerator";
 
 /** 疯子首夜"假恶魔信息"的持久化结构（挂在 seat 上）。 */
 export interface LunaticFakeInfo {
@@ -35,6 +36,13 @@ export interface LunaticFakeInfo {
   bluffNames: string[];
   /** 给疯子看的"爪牙队友"座位号（全部来自非邪恶座位，且不含疯子自己） */
   fakeMinionIds: number[];
+  /**
+   * 🌀 疯子伪装成**军团**时用的候选队友池（完整、已打乱、确定性）。
+   * 军团没有爪牙，它的形态是"大量军团队友"——人数按官方"正邪反转"规则确定，
+   * 通常远多于真实爪牙数，所以不能只留 `fakeMinionIds` 那点被截断的数量。
+   * 仍然**只含非邪恶座位**，绝不泄漏真实邪恶玩家。
+   */
+  teammatePool?: number[];
   /** 生成种子（可复现，便于排查） */
   seed: string;
 }
@@ -92,6 +100,34 @@ export function computeDemonBluffNames(
   scriptRoleIds: string[]
 ): string[] {
   return computeNotInPlayGoodRoleNames(seats, scriptRoleIds).slice(0, 3);
+}
+
+/**
+ * 🌀 军团（Legion）在 N 人局里的**应有总人数**（含疯子自己"以为"的那一份）。
+ *
+ * 官方「军团·角色简介」第 1 条：
+ *   「如果军团在场，推荐将在场善良和邪恶玩家的数量在通常的数量上**进行反转**。
+ *     例如，在一局**十人游戏中，你可以采取近似七名军团和三名善良玩家**的设置。」
+ * ⇒ 军团人数 == 该人数局的**标准善良人数**（镇民 + 外来者）。
+ *   验算官方范例：10 人局标准 = 7 镇民 + 0 外来者 = 7 → 7 军团 ✓
+ *   （15 人局标准 = 9 镇民 + 2 外来者 = 11 → 11 军团。）
+ * 数据源复用 `STANDARD_COMPOSITIONS`（唯一事实来源，别再手抄一份表）。
+ */
+export function computeLegionCount(playerCount: number): number {
+  const comp =
+    STANDARD_COMPOSITIONS[
+      Math.min(15, Math.max(5, Math.round(playerCount)))
+    ];
+  if (!comp) return 0;
+  return comp.townsfolk + comp.outsider;
+}
+
+/**
+ * 🌀 疯子伪装成军团时，要展示的**队友人数**（不含它自己）。
+ * = 军团应有总人数 − 1（它自己算一个军团）。
+ */
+export function computeLegionTeammateCount(playerCount: number): number {
+  return Math.max(0, computeLegionCount(playerCount) - 1);
 }
 
 /** 是否属于"邪恶阵营座位"（真恶魔/真爪牙/转邪恶）——疯子假爪牙池必须排除它们。 */
@@ -178,7 +214,7 @@ export function buildLunaticFakeInfo(
   }
   const bluffNames = Array.from(new Set(bluffShuffled)).slice(0, 3);
 
-  return { bluffNames, fakeMinionIds, seed };
+  return { bluffNames, fakeMinionIds, teammatePool: shuffled, seed };
 }
 
 /**

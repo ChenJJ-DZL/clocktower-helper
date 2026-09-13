@@ -52,9 +52,8 @@ export function FortuneTellerResultModal({
           >
             {resultText}
           </div>
-          <p className="text-sm sm:text-base md:text-lg text-gray-300 font-medium mt-2">
-            请说书人向玩家告知以上信息（{resultDesc}）
-          </p>
+          {/* ⚠️ P0 隐私（2026-09-13）：本页给玩家看，原「请说书人向玩家告知以上信息」
+              属说书人侧话术，已删除。 */}
         </div>
       </div>
     </ModalWrapper>

@@ -25,6 +25,7 @@ import { resolveEvilTwinPair } from "./evilTwinHelper";
 import {
   computeDemonBluffNames,
   formatLunaticFakeGuide,
+  computeLegionTeammateCount,
   getScriptRoleIds,
   resolveLunaticFakeInfo,
 } from "./lunaticFakeInfo";
@@ -516,23 +517,33 @@ function generateSystemInfoViaAdapter(
 
     guide = `座位号：${legionSeatList}\n说书人同时唤醒所有的军团玩家，军团玩家互认${legionBluffText}`;
   } else if (isMinionStep) {
-    // 🎭 提线木偶在场：必须明确告诉说书人"别把它算进互认、也别顺带通知它"。
+    // 🎭 提线木偶在场：必须明确告诉**说书人**"别把它算进互认、也别顺带通知它"。
     //    官方相克（罂粟种植者条目）：罂粟种植者死亡后恶魔会知道谁是提线木偶，但提线木偶什么都不会知道。
-    //    ⚠️ 这里**绝不能**写出提线木偶的座号 —— 该 guide 属于爪牙环节的文案，
-    //       一旦出现座号就等于把提线木偶点给了同场的真爪牙（既有回归测试对此有硬断言）。
-    const marionetteNoWakeNote = marionetteSeat ? `
-${MARIONETTE_NO_WAKE_NOTE}` : "";
+    //
+    // ⚠️⚠️ P0 隐私（2026-09-13 用户实测截图指出）：
+    //    本分支的 `guide` 会**原样渲染在「爪牙互认 - 结果」页上直接给玩家看**，
+    //    因此里面**绝不能**出现任何「规则叙述 / 说书人操作指引」。
+    //    原先这里把 MARIONETTE_NO_WAKE_NOTE（「※ 提线木偶不得被唤醒、不得得知任何
+    //    邪恶信息（官方：提线木偶不会因其他角色能力确认自己是爪牙）」）拼进了 guide，
+    //    等于把说书人的规则说明印在玩家页正中 —— 已改为只进 storytellerNote
+    //    （仅 GameConsole 渲染），玩家页不再出现。
+    //    ⚠️ 同时仍然**不能写出提线木偶座号**：否则等于把它点给同场的真爪牙。
+    if (marionetteSeat) {
+      storytellerNote = MARIONETTE_NO_WAKE_NOTE;
+    }
     if (isMarionetteActor) {
       // 防御性兜底：队列生成已排除提线木偶，正常不会走到这里。
       // 官方：提线木偶不会被唤醒进行爪牙互认，绝不能向其泄漏邪恶信息。
-      guide =
+      // ⚠️ 这句同样是**说书人侧**话术 → 只进 storytellerNote，玩家页留空。
+      storytellerNote =
         "⛔ 提线木偶不会被唤醒进行爪牙互认（官方规则）。请勿向该玩家展示任何邪恶信息。";
+      guide = "";
     } else if (isPoppyGrowerAlive) {
-      guide = `🌺 罂粟种植者在场，爪牙与恶魔互不相识${snitchBluffText}${marionetteNoWakeNote}`;
+      guide = `🌺 罂粟种植者在场，爪牙与恶魔互不相识${snitchBluffText}`;
     } else {
       guide = `恶魔是: ${demonDesc}\n爪牙队友: ${
         otherMinions.length > 0 ? otherMinionDesc : "无"
-      }${snitchBluffText}${marionetteNoWakeNote}`;
+      }${snitchBluffText}`;
     }
   } else if (selfSeat.role?.id === "legion") {
     // 军团玩家专属夜晚信息：展示所有军团同伴 + 共享 3 不在场镇民伪装
@@ -583,25 +594,84 @@ ${MARIONETTE_NO_WAKE_NOTE}` : "";
           ? overrideMinions
           : fake.fakeMinionIds,
     };
-    guide = isPoppyGrowerAlive
-      ? `🌺 罂粟种植者在场，你不知道爪牙是谁${regularBluffText}`
-      : formatLunaticFakeGuide(effectiveFake, seats as any);
+    // ⚠️ 2026-09-12 用户实测裁决（推翻了此前"罂粟在场就不给疯子爪牙名单"的做法）：
+    //    疯子**永远**要拿到「假爪牙名单」——数量 == 场上真实爪牙数，
+    //    座位号是**错的**（只从非邪恶座位里取），这正是官方要的假象：
+    //      官方「疯子·运作方式」：「向疯子展示"他们是你的爪牙"信息标记并指向若干名玩家，
+    //      数量等同于在场的爪牙数量。（可以指向任何玩家，无论他们是不是爪牙。）」
+    //    罂粟种植者削弱的是"真爪牙 ⇄ 真恶魔 互认"，疯子既不是爪牙也不是恶魔，
+    //    因此不适用；而且若真恶魔被罂粟屏蔽、疯子却被给了名单，反而成了破绽 → 必须一视同仁。
+    //    假名单由 utils/lunaticFakeInfo.ts 生成（已保证不含任何真实邪恶座位）。
+    //
+    // 🌀 2026-09-12 用户实测：疯子伪装成**军团**时，信息形态必须换成"军团式"。
+    //    军团（Legion）**没有爪牙**，它是"一群恶魔互相认亲"——
+    //    官方军团互认文案就是「座位号：…／说书人同时唤醒所有的军团玩家，军团玩家互认」
+    //    ＋共享的 3 张不在场伪装。
+    //    若仍按"恶魔互认"给「爪牙是: X号、Y号」，形态就与军团自相矛盾
+    //    （用户原话："军团时没有爪牙，而是大量的军团队友"）。
+    //    ⚠️ 队友座位一律取自**非邪恶座位**（复用 fakeMinionIds 这套已保证不泄漏的池子），
+    //       数量默认 == 场上真实邪恶数量；说书人可用既有的
+    //       seat.lunaticFakeMinionIds / lunaticFakeBluffNames 覆盖（信息微调面板）。
+    const isLunaticLegion =
+      (selfSeat as any).apparentDemonRole?.id === "legion";
+    if (isLunaticLegion) {
+      // 🌀 队友人数**按军团的规则**给：官方「军团」角色简介第 1 条
+      //    「将在场善良和邪恶玩家的数量在通常的数量上进行**反转**」→
+      //    军团总数 == 该人数局的标准善良人数（镇民+外来者）；队友数 = 总数 − 1（它自己）。
+      //    例：15 人局 → 9 镇民 + 2 外来者 = 11 军团 → 展示 10 名队友。
+      //    座位一律取自**非邪恶池**（teammatePool 已保证不含真实邪恶玩家）。
+      const pool = effectiveFake.teammatePool ?? effectiveFake.fakeMinionIds;
+      const wantCount = computeLegionTeammateCount(seats.length);
+      const teammateIds = pool
+        .slice(0, Math.min(wantCount, pool.length))
+        .sort((a, b) => a - b);
+      const teammateSeats =
+        teammateIds.length > 0
+          ? teammateIds.map((id) => `${id + 1}号`).join("、")
+          : "无";
+      const sharedBluffText =
+        effectiveFake.bluffNames.length > 0
+          ? `\n不在场伪装: 【${effectiveFake.bluffNames.join("】、【")}】`
+          : "";
+      guide = `座位号：${teammateSeats}\n说书人同时唤醒所有的军团玩家，军团玩家互认${sharedBluffText}`;
+    } else {
+      guide = formatLunaticFakeGuide(effectiveFake, seats as any);
+    }
   } else {
     // 常规恶魔信息
+    // 🌀 官方「疯子·运作方式」首夜流程：
+    //    「唤醒恶魔。向恶魔展示"你是"信息标记，然后是他的恶魔角色标记。
+    //      向恶魔展示"这名玩家是"信息标记，然后是**疯子角色标记**，然后指向疯子玩家。」
+    //    ⚠️ 罂粟种植者**不屏蔽**这一条：罂粟削弱的是"真爪牙 ⇄ 真恶魔 互认"，
+    //       而疯子既不是爪牙也不是恶魔 → 恶魔仍然必须知道谁是疯子，
+    //       否则无法配合演戏，也无法理解后续每晚"疯子选择了谁"的提示。
+    const lunaticSeat = seats.find(
+      (s) => s.role?.id === "lunatic" && !s.isDead
+    );
+    const lunaticNote = lunaticSeat ? `\n疯子: ${lunaticSeat.id + 1}号` : "";
     if (isPoppyGrowerAlive) {
-      guide = `🌺 罂粟种植者在场，你不知道爪牙是谁${regularBluffText}`;
+      guide = `🌺 罂粟种植者在场，你不知道爪牙是谁${lunaticNote}${regularBluffText}`;
     } else {
       // ⚠️ B1：该 guide 会直接显示在"技能确认页 / 结果页"上（交给玩家点击），
       //    因此只保留**恶魔本人该知道的信息**（官方：恶魔会知道谁是提线木偶），
       //    去掉原本写给说书人的那句「它不知道自己其实是爪牙，请勿让它察觉」。
-      const marionetteNote = marionetteSeat
-        ? `\n提线木偶: ${marionetteSeat.id + 1}号`
-        : "";
-      guide = `爪牙是: ${minionDesc}${marionetteNote}${regularBluffText}${snitchMarionetteExtraText}`;
+      // ⚠️⚠️ P0 隐私（2026-09-13 用户实测指出）：`guide` 会**原样渲染在
+      //   「技能确认页 / 技能结果页」上，是给玩家看的**，因此**绝不能**出现
+      //   任何规则类说明或只有说书人才该知道的信息（如「提线木偶: X号」）。
+      //   ⇒ 提线木偶座号只保留在 storytellerNote（仅 GameConsole 渲染），
+      //     由说书人当面指点告知恶魔，不由页面文字外泄。
+      guide = `爪牙是: ${minionDesc}${lunaticNote}${regularBluffText}${snitchMarionetteExtraText}`;
       // 说书人专属提醒（不进玩家页面，只由 GameConsole 渲染）
       storytellerNote = marionetteSeat
         ? `提线木偶: ${marionetteSeat.id + 1}号（它不知道自己其实是爪牙，请勿让它察觉）`
         : undefined;
+    }
+    // 🌀 说书人专属：疯子配合演戏提醒（同样只由 GameConsole 渲染，不进玩家页面）
+    if (lunaticSeat) {
+      const lunaticStoryNote = `疯子: ${lunaticSeat.id + 1}号（他以为自己是恶魔，请配合演戏；指向他并展示【疯子】角色标记，再告知他每夜选择了谁）`;
+      storytellerNote = storytellerNote
+        ? `${storytellerNote}\n${lunaticStoryNote}`
+        : lunaticStoryNote;
     }
   }
 

@@ -115,6 +115,19 @@ export const abilityPriorityCalculation = async (
 
   // 4. 第四优先级：醉酒/中毒
   // 🔧 同时检查新引擎 statusEffects 和遗留字段（isPoisoned/isDrunk）作为兜底
+  //
+  // ⚠️ 2026-09-13 回滚记录（重要，勿再"修"）：
+  //   本处曾因「酒鬼/提线木偶伪装态未被判为受干扰」而被改动（加 role.id 判定），
+  //   但那是**测试脚手架漏了状态效果**造成的假象，**不是缺陷**：
+  //     · drunk.ability.ts / marionette.ability.ts 会在**设置阶段**给自身座位
+  //       写入 `statusEffects:[{ type:"drunk", permanent:true }]`（见 drunk.ability.ts:301）
+  //     · 生产环境因此走 `drunkFromEffects` 分支 → abilityEffective=false ✅
+  //   而 `vortox_ability_passthrough.test.ts` 明确要求：
+  //     **酒鬼在涡流局 abilityEffective=true**（官方：酒鬼不具有镇民能力，
+  //     不会因涡流而得错误信息）；`marionette_permanent_drunk.test.ts` ③ 亦以
+  //     「**裸**木偶座位（尚无 drunk 效果）不得被判失效」作为负向对照。
+  //   ⇒ 加上 role.id 判定会同时打破这两条既有契约，故**保持原样**。
+  //     正确做法是让夹具带上 permanent drunk 效果，而不是改中间件。
   const poisonedFromEffects = effects.some((e: any) => e.type === "poisoned");
   const drunkFromEffects = effects.some((e: any) => e.type === "drunk");
   const poisonedFromLegacy = !!(seat as any).isPoisoned;

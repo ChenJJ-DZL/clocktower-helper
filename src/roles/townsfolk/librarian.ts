@@ -41,6 +41,14 @@ export const librarian: RoleDefinition = {
     // 🎯 单一事实来源：已迁移到新引擎的角色，其「当前的行动」提示必须复用
     // new_engine 的结构化生成器 + 同一种子(nightInfoSeed)，否则提示与实际执行
     // 会是两份不同的随机结果，说书人照提示念、魔典却按结果标记。
+    //
+    // 🛡️ 纵深防御（2026-09-13 第2轮）：受干扰判定**不能只依赖注入的谓词**。
+    //   实测：传入一个不查涡流的弱谓词时，本 dialog 会给出**真信息**
+    //   （涡流在场仍报真外来者「圣徒」），构成信息泄漏。
+    //   生产环境的 3 处调用点（nightInfoGenerator / nightLogic /
+    //   gameRules.isActorDisabledByPoisonOrDrunk）当前都自行补了涡流判定，
+    //   但三份实现各写一遍，一旦漂移或新增入口就会静默泄真。
+    //   ⇒ 此处再自算一遍（与谓词取「或」），只会更严格，不会与谓词冲突。
     dialog: (playerSeatId, _isFirstNight, context) => {
       const {
         seats,
@@ -48,10 +56,39 @@ export const librarian: RoleDefinition = {
         nightCount,
       } = context;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
-      const isDisabled =
+      const isDisabledByPredicate = Boolean(
         selfSeat &&
-        typeof isActorDisabledByPoisonOrDrunk === "function" &&
-        isActorDisabledByPoisonOrDrunk(selfSeat);
+          typeof isActorDisabledByPoisonOrDrunk === "function" &&
+          isActorDisabledByPoisonOrDrunk(selfSeat)
+      );
+
+      // 🛡️ 自算受干扰（不信任注入谓词；与谓词取「或」→ 只会更严格）。
+      //
+      // ⚠️ 语义必须与生产谓词 gameRules.isActorDisabledByPoisonOrDrunk **完全一致**，
+      //   否则会误判（实测教训：把 `role.id === "drunk"` 无条件算作受干扰是错误的
+      //   —— 酒鬼在 setup 后 role 已换成 charadeRole,残留的 drunk 标记不应再判醉酒；
+      //   生产谓词只在「酒鬼/木偶 且 charadeRole 是镇民」时才视为醉酒）。
+      const s: any = selfSeat;
+      const disguisedAsTownsfolk =
+        (s?.role?.id === "drunk" || s?.role?.id === "marionette") &&
+        s?.charadeRole?.type === "townsfolk";
+      const isTownsfolk = s?.role?.type === "townsfolk" || disguisedAsTownsfolk;
+      const hasAliveVortox =
+        Boolean((context as any)?.vortoxWorld) ||
+        Boolean((context as any)?.isVortoxWorld) ||
+        Boolean((context as any)?.vortoxActive) ||
+        (seats as any[]).some(
+          (x: any) => x?.role?.id === "vortox" && !x.isDead
+        );
+      const selfCorrupted =
+        Boolean(s) &&
+        ((isTownsfolk && hasAliveVortox) ||
+          Boolean(s.isDrunk) ||
+          s.role?.id === "marionette" ||
+          Boolean((s.statusEffects ?? []).some((e: any) => e.type === "drunk")) ||
+          Boolean((s.statusEffects ?? []).some((e: any) => e.type === "poisoned")) ||
+          Boolean(s.isPoisoned));
+      const isDisabled = isDisabledByPredicate || selfCorrupted;
 
       const seatNo = playerSeatId + 1;
 

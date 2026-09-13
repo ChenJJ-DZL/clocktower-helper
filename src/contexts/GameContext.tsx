@@ -220,7 +220,8 @@ export type GameAction =
 /**
  * GameReducer - 统一处理所有状态更新
  */
-function gameReducer(state: GameState, action: GameAction): GameState {
+/** 导出以便测试（相位推进 / dusk→night 契约验证） */
+export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "SAVE_HISTORY": {
       const baseState = action.overrideState
@@ -531,7 +532,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         winResult: "good",
-        winReason: "市长身份获胜",
+        winReason: "镇长身份获胜",
         gamePhase: "gameOver",
       };
 
@@ -556,7 +557,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 /**
  * 初始状态
  */
-function getInitialState(): GameState {
+/** 导出以便测试（构造真实初始 state） */
+export function getInitialState(): GameState {
   return {
     mounted: false,
     showIntroLoading: true,

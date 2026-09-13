@@ -163,12 +163,32 @@ const postProcess = async (
     log = "[Vortox] 涡流未产生击杀";
   }
   console.log(log);
+
+  // 🎯 结算 UI 数据：此前涡流只设 abilityLog、无 displayInfo，
+  //    结果页拿不到结构化内容（选目标结算通道实测：displayInfo === undefined）。
+  const targetId: number | null = r?.targetId ?? null;
+  const targetLabel = targetId !== null ? `${targetId + 1}号` : "无";
+  const substituteId: number | null = r?.substituteId ?? null;
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       prompt: `唤醒${ctx.actionNode.seatId + 1}号【涡流】，选择一名玩家杀害。`,
       abilityLog: log,
+      displayInfo: {
+        type: "vortox_kill",
+        targetId,
+        targetLabel,
+        killed: Boolean(r?.killed),
+        blockedByProtection: Boolean(r?.blockedByProtection),
+        blockedBySoldier: Boolean(r?.blockedBySoldier),
+        mayorSaved: Boolean(r?.mayorSaved),
+        substituteId,
+        substituteLabel: substituteId !== null ? `${substituteId + 1}号` : null,
+        nightCount: (ctx.snapshot as any)?.nightCount ?? null,
+        log,
+      },
     },
   };
 };

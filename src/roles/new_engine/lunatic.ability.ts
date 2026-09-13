@@ -22,29 +22,10 @@ function getApparentDemonId(ctx: MiddlewareContext): string | null {
   return (seat as any)?.apparentDemonRole?.id ?? null;
 }
 
-/** 根据假恶魔类型决定目标数量 */
-function getTargetCount(ctx: MiddlewareContext): { min: number; max: number } {
-  const apparentDemonId = getApparentDemonId(ctx);
-  switch (apparentDemonId) {
-    case "shabaloth":
-      return { min: 2, max: 2 }; // 沙巴洛斯每夜杀2人
-    case "po":
-      return { min: 1, max: 3 }; // 珀可选1-3人
-    case "pukka":
-    case "zombuul":
-    case "imp":
-    case "fang_gu":
-    case "vigormortis":
-    case "no_dashii":
-    case "vortox":
-    case "riot":
-    case "leviathan":
-    case "lil_monsta":
-      return { min: 1, max: 1 };
-    default:
-      return { min: 1, max: 1 };
-  }
-}
+// ⚠️ 目标数量（如沙巴洛斯 2、珀 1-3）**不在本文件决定**：
+//    已由 utils/nightInfoGenerator.ts 依据 seat.apparentDemonRole 的角色夜间配置
+//    算出 targetLimit，useNightActionHandler 对疯子优先采用它。
+//    （此处曾有一份 getTargetCount() 死代码，从未被调用，易误导，已删除。）
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(

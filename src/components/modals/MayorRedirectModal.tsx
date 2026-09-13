@@ -31,7 +31,7 @@ export function MayorRedirectModal({
 
   return (
     <ModalWrapper
-      title="🏛️ 市长被攻击"
+      title="🏛️ 镇长被攻击"
       onClose={() => {}} // 不允许点击遮罩关闭
       closeOnOverlayClick={false}
       size="fullscreen90"
@@ -42,7 +42,7 @@ export function MayorRedirectModal({
             onClick={onConfirmNoRedirect}
             className="flex-1 max-w-xs py-3 sm:py-4 bg-red-600 rounded-xl font-bold text-base sm:text-lg text-white hover:bg-red-500 transition shadow-md shadow-red-600/40 ring-2 ring-red-400 active:scale-[0.98]"
           >
-            不转移，让市长死亡
+            不转移，让镇长死亡
           </button>
           <button
             disabled={selectedTarget === null}
@@ -68,10 +68,10 @@ export function MayorRedirectModal({
           <span className="text-amber-400 font-black">
             【{targetId + 1}号】
           </span>{" "}
-          (市长)。
+          (镇长)。
         </p>
         <p className="text-sm sm:text-base text-amber-200 text-center font-medium">
-          是否要转移死亡目标？选择一名存活玩家代替死亡，或让市长死亡。
+          是否要转移死亡目标？选择一名存活玩家代替死亡，或让镇长死亡。
         </p>
         <AdaptiveSeatGrid
           count={redirectCandidates.length}

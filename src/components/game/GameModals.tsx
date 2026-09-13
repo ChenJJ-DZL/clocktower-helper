@@ -878,6 +878,7 @@ export function GameModals() {
         <InfoResultModal
           roleName={infoResultModal.roleName}
           resultText={infoResultModal.resultText}
+          storytellerFacing={infoResultModal.storytellerFacing}
           onConfirm={() => {
             actions.setCurrentModal(null);
             // 如果有关联的下一步动作（如占卜师需要先执行能力），调用它
