@@ -14,6 +14,7 @@
 
 import React from "react";
 import { formatSeatLabel } from "../../utils/seatLabel";
+import { isSeatEvil, isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import { useStorytellerTuning } from "./StorytellerTuningContext";
 
 interface StorytellerTuningPanelProps {
@@ -353,8 +354,7 @@ export function StorytellerTuningPanel({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {aliveSeats.map((s) => {
               const isSelected = state.evilTwinGoodId === s.id;
-              const isGood =
-                s.role?.type === "townsfolk" || s.role?.type === "outsider";
+              const isGood = isSeatTownsfolkOrOutsider(s);
               return (
                 <button
                   key={s.id}
@@ -396,11 +396,7 @@ export function StorytellerTuningPanel({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {aliveSeats.map((s) => {
               const isSelected = state.bountyHunterTargetId === s.id;
-              const isEvil =
-                s.role?.type === "demon" ||
-                s.role?.type === "minion" ||
-                s.isEvilConverted ||
-                (s as any).alignment === "evil";
+              const isEvil = isSeatEvil(s);
               return (
                 <button
                   key={s.id}

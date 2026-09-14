@@ -62,7 +62,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;

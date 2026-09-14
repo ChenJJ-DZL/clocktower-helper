@@ -23,7 +23,6 @@ function createSeat(
     id,
     playerName: `P${id + 1}`,
     isDead: !!options.isDead,
-    isAlive: !options.isDead,
     isDrunk: !!options.isDrunk,
     isPoisoned: !!options.isPoisoned,
     role: { id: roleId, name: roleName, type: roleType },

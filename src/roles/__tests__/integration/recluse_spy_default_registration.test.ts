@@ -11,31 +11,26 @@ describe("陌客默认为邪恶，间谍默认为好人（除非说书人手动�
       id: 0,
       role: { id: "chef", name: "厨师", type: "townsfolk" },
       isDead: false,
-      isAlive: true,
     },
     {
       id: 1,
       role: { id: "recluse", name: "陌客", type: "outsider" },
       isDead: false,
-      isAlive: true,
     },
     {
       id: 2,
       role: { id: "imp", name: "小恶魔", type: "demon" },
       isDead: false,
-      isAlive: true,
     },
     {
       id: 3,
       role: { id: "spy", name: "间谍", type: "minion" },
       isDead: false,
-      isAlive: true,
     },
     {
       id: 4,
       role: { id: "empath", name: "共情者", type: "townsfolk" },
       isDead: false,
-      isAlive: true,
     },
   ];
 
@@ -116,7 +111,6 @@ describe("陌客默认为邪恶，间谍默认为好人（除非说书人手动�
         id: 5,
         role: { id: "slayer", name: "狩魔人", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
     ];
 
@@ -132,7 +126,7 @@ describe("陌客默认为邪恶，间谍默认为好人（除非说书人手动�
     const killedRecluse = ctxSlayerRecluse.snapshot.seats.find(
       (s: any) => s.id === 1
     );
-    expect(killedRecluse?.isAlive).toBe(false);
+    expect(killedRecluse?.isDead).toBe(true);
 
     const ctxSlayerSpy = await (runFullAbilityPipeline as any)(slayerAbility, {
       snapshot: { seats: slayerSeats, nightCount: 1 } as any,
@@ -141,6 +135,6 @@ describe("陌客默认为邪恶，间谍默认为好人（除非说书人手动�
       meta: { target: slayerSeats[3], isAbilityActive: true },
     });
     const aliveSpy = ctxSlayerSpy.snapshot.seats.find((s: any) => s.id === 3);
-    expect(aliveSpy?.isAlive).toBe(true);
+    expect(aliveSpy?.isDead).toBe(false);
   });
 });

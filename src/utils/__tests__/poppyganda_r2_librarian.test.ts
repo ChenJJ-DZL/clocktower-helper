@@ -32,7 +32,6 @@ interface SeatLike {
   role: any;
   charadeRole?: any;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   statusEffects?: any[];
   isDrunk?: boolean;
@@ -61,7 +60,6 @@ function mkSeats(
         ? r("imp")
         : r(roleId),
     isDead: (opts.dead ?? []).includes(id),
-    isAlive: !(opts.dead ?? []).includes(id),
     playerName: opts.names?.[id],
     statusEffects: (opts.statusEffects?.[id] ?? []).map((t) => ({ type: t })),
     isDrunk: (opts.isDrunk ?? []).includes(id),

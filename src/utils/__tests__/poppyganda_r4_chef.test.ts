@@ -17,6 +17,7 @@ import { calculateNightInfoViaNewEngine } from "../nightInfoAdapter";
 import { parseInfoResult } from "../infoResultParser";
 import { generateDynamicNightQueue } from "../dynamicQueueGenerator";
 import { initializeAbilityRegistry } from "../../roles/new_engine/abilityRegistry";
+import { countChefEvilPairsForUi } from "../../roles/new_engine/chef.ability";
 
 const r = (id: string) => roles.find((x) => x.id === id)!;
 const POPPY = scripts.find((s) => s.id === "poppyganda")!;
@@ -42,7 +43,6 @@ function buildSeats(state: StateName): any[] {
     playerName: `P${i + 1}`,
     role: r(rid),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],
@@ -70,7 +70,6 @@ function buildSeats(state: StateName): any[] {
         playerName: "P7",
         role: r("poppy_grower"),
         isDead: false,
-        isAlive: true,
         statusEffects: [],
       });
       break;
@@ -165,14 +164,20 @@ describe("R4 厨师 · 3夜 × 6状态矩阵", () => {
     for (const state of STATES) {
       for (const night of [2, 3]) {
         const seats = buildSeats(state);
-        if (!queueFor(seats, night).includes("chef")) {
-          // 队列未排程即视为不唤醒（adapter 不做排程校验，不能拿它的输出当依据）
-          expect(true).toBe(true);
-          continue;
+        // 队列判定：厨师是首夜-only，第 2/3 夜**不得**被排程
+        // （adapter 不做排程校验，不能拿它的输出当"是否唤醒"的依据）
+        const scheduled = queueFor(seats, night).includes("chef");
+        expect(
+          scheduled,
+          `${state} 第${night}夜 厨师不应被排程（官方：在你的首个夜晚）`
+        ).toBe(false);
+        // 万一被排程，也不得产出对数
+        if (scheduled) {
+          expect(
+            numIn(infoFor(seats, night, state).guide),
+            `${state} 第${night}夜不应产出对数`
+          ).toBeNaN();
         }
-        // 万一被唤醒，guide 不得是厨师信息
-        const info = infoFor(seats, night, state);
-        expect(numIn(info.guide), `${state} 第${night}夜不应产出对数`).toBeNaN();
       }
     }
   });
@@ -207,14 +212,21 @@ describe("R4 厨师 · 3夜 × 6状态矩阵", () => {
       const n = numIn(info.guide);
       rows.push([state, n, numIn(info.playerFacingGuide)]);
       expect(n, `${state} 首夜应输出对数`).not.toBeNaN();
+      // ⚠️ 判据必须用**该状态棋盘自己的真值**，不能用模块级常量 TRUTH。
+      //   「提线木偶伪装」态把 seat0 换成提线木偶（**爪牙**）→ 棋盘邪恶数 2→3，
+      //   真值从 1 变 2。旧断言拿常态棋盘的 TRUTH=1 去比，是**判据错误**，
+      //   只是过去候选池恰好没抽中 1 而"碰巧通过"（2026-09-13 全量测试发现）。
+      const truth = countChefEvilPairsForUi(seats);
+      const selfSeat = seats.find((s) => s.id === 0);
       const disturbed =
         state === "中毒" || state === "酒鬼伪装" ||
-        state === "提线木偶伪装" || state === "涡流世界";
+        state === "提线木偶伪装" || state === "涡流世界" ||
+        (selfSeat?.charadeRole != null && state !== "常态");
       if (disturbed) {
-        // 官方：醉酒/中毒/涡流 → 错误信息
-        expect(n, `${state} 应给假值（真值 ${TRUTH}）`).not.toBe(TRUTH);
+        // 官方：醉酒/中毒/涡流/木偶 → 错误信息
+        expect(n, `${state} 应给假值（该棋盘真值 ${truth}）`).not.toBe(truth);
       } else {
-        expect(n, `${state} 应给真值`).toBe(TRUTH);
+        expect(n, `${state} 应给真值`).toBe(truth);
       }
     }
     console.log("\n=== 首夜各状态（guide 数字 / playerFacingGuide 数字）===");
@@ -237,8 +249,12 @@ describe("R4 厨师 · 3夜 × 6状态矩阵", () => {
     for (const state of STATES) {
       const seats = buildSeats(state);
       const g = numIn(infoFor(seats, 1, state).guide);
-      if (g === TRUTH && state !== "常态" && state !== "罂粟种植者在场") {
-        throw new Error(`${state} 提示给出真值，疑似泄漏`);
+      // 同上：真值取该状态棋盘自己的值（提线木偶态真值为 2，非常态的 1）
+      const truth = countChefEvilPairsForUi(seats);
+      const disturbed =
+        state !== "常态" && state !== "罂粟种植者在场";
+      if (disturbed && g === truth) {
+        throw new Error(`${state} 提示给出真值 ${truth}，疑似泄漏`);
       }
     }
   });

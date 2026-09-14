@@ -37,7 +37,6 @@ function seat(id: number, roleId: string, over: Partial<any> = {}): any {
     playerName: `P${id + 1}`,
     role: r(roleId),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],

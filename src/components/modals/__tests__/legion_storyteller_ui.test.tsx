@@ -38,13 +38,13 @@ afterEach(() => cleanup());
 /** 7 人局：3 个军团 + 4 个善良 */
 function seats() {
   return [
-    { id: 0, playerName: "P1", role: r("legion"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 1, playerName: "P2", role: r("mayor"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 2, playerName: "P3", role: r("legion"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 3, playerName: "P4", role: r("savant"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 4, playerName: "P5", role: r("legion"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 5, playerName: "P6", role: r("snitch"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 6, playerName: "P7", role: r("farmer"), isDead: false, isAlive: true, statusEffects: [] },
+    { id: 0, playerName: "P1", role: r("legion"), isDead: false, statusEffects: [] },
+    { id: 1, playerName: "P2", role: r("mayor"), isDead: false, statusEffects: [] },
+    { id: 2, playerName: "P3", role: r("legion"), isDead: false, statusEffects: [] },
+    { id: 3, playerName: "P4", role: r("savant"), isDead: false, statusEffects: [] },
+    { id: 4, playerName: "P5", role: r("legion"), isDead: false, statusEffects: [] },
+    { id: 5, playerName: "P6", role: r("snitch"), isDead: false, statusEffects: [] },
+    { id: 6, playerName: "P7", role: r("farmer"), isDead: false, statusEffects: [] },
   ] as any[];
 }
 

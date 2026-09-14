@@ -28,7 +28,6 @@ function seat(id: number, roleId: string, over: Partial<any> = {}): any {
     playerName: `P${id + 1}`,
     role: r(roleId),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],
@@ -91,7 +90,7 @@ describe("军团(A) 投票规则 · 只有邪恶玩家投票则记 0 票", () =>
 
   it("军团已全部死亡时规则仍然生效（官方：本局是军团局即适用）", () => {
     const seats = [
-      seat(0, "legion", { isDead: true, isAlive: false }),
+      seat(0, "legion", { isDead: true, }),
       seat(1, "baron"),
       seat(2, "mayor"),
     ];
@@ -172,7 +171,7 @@ describe("剩余 5 角色专项（drunk / snitch / evil_twin / imp / vortox）",
     // ⚠️ 小恶魔只写 `markedForDeath`，`isDead` 由 settleDawn（黎明）才落地
     //    —— 参见 legion.ability.ts 顶部注释。故判定要兼容三种死亡标记。
     const dead = (out.snapshot.seats as any[])
-      .filter((x) => x.isDead || x.markedForDeath || x.isAlive === false)
+      .filter((x) => x.isDead || x.markedForDeath)
       .map((x) => x.id);
     expect(dead).toContain(2);
   });

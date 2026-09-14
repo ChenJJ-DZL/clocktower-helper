@@ -25,11 +25,11 @@ import {
  * 无候选时返回 null。
  */
 export function pickSwapTargetId(
-  seats: Array<{ id: number; isAlive?: boolean }>,
+  seats: Array<{ id: number; isDead?: boolean }>,
   selfSeatId: number,
   rng: DeterministicRandom = Math.random
 ): number | null {
-  const aliveOthers = seats.filter((s) => s.isAlive && s.id !== selfSeatId);
+  const aliveOthers = seats.filter((s) => !s.isDead && s.id !== selfSeatId);
   if (aliveOthers.length === 0) return null;
   return aliveOthers[Math.floor(rng() * aliveOthers.length)].id;
 }
@@ -38,7 +38,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 

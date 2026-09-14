@@ -52,25 +52,21 @@ describe("干扰类型角色默认设定集成测试（该造成干扰的，默�
         id: 0,
         role: { id: "investigator", name: "调查员", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 1,
         role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 2,
         role: { id: "recluse", name: "陌客", type: "outsider" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 3,
         role: { id: "imp", name: "小恶魔", type: "demon" },
         isDead: false,
-        isAlive: true,
       },
     ];
 
@@ -96,19 +92,16 @@ describe("干扰类型角色默认设定集成测试（该造成干扰的，默�
         id: 0,
         role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 1,
         role: { id: "spy", name: "间谍", type: "minion" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 2,
         role: { id: "imp", name: "小恶魔", type: "demon" },
         isDead: false,
-        isAlive: true,
       },
     ];
 
@@ -134,25 +127,21 @@ describe("干扰类型角色默认设定集成测试（该造成干扰的，默�
         id: 0,
         role: { id: "noble", name: "贵族", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 1,
         role: { id: "recluse", name: "陌客", type: "outsider" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 2,
         role: { id: "spy", name: "间谍", type: "minion" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 3,
         role: { id: "monk", name: "僧侣", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
     ];
 
@@ -180,25 +169,21 @@ describe("干扰类型角色默认设定集成测试（该造成干扰的，默�
         id: 0,
         role: { id: "knight", name: "骑士", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 1,
         role: { id: "recluse", name: "陌客", type: "outsider" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 2,
         role: { id: "monk", name: "僧侣", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 3,
         role: { id: "empath", name: "共情者", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
     ];
 
@@ -226,25 +211,21 @@ describe("干扰类型角色默认设定集成测试（该造成干扰的，默�
         id: 0,
         role: { id: "oracle", name: "神谕者", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 1,
         role: { id: "recluse", name: "陌客", type: "outsider" },
         isDead: true,
-        isAlive: false,
       },
       {
         id: 2,
         role: { id: "spy", name: "间谍", type: "minion" },
         isDead: true,
-        isAlive: false,
       },
       {
         id: 3,
         role: { id: "monk", name: "僧侣", type: "townsfolk" },
         isDead: true,
-        isAlive: false,
       },
     ];
 
@@ -269,25 +250,21 @@ describe("干扰类型角色默认设定集成测试（该造成干扰的，默�
         id: 0,
         role: { id: "seamstress", name: "女裁缝", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 1,
         role: { id: "recluse", name: "陌客", type: "outsider" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 2,
         role: { id: "spy", name: "间谍", type: "minion" },
         isDead: false,
-        isAlive: true,
       },
       {
         id: 3,
         role: { id: "imp", name: "小恶魔", type: "demon" },
         isDead: false,
-        isAlive: true,
       },
     ];
 

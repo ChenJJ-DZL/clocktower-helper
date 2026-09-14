@@ -50,7 +50,6 @@ const stateUpdate = async (
     if (seat.id === foolSeatId) {
       return {
         ...seat,
-        isAlive: true,
         isDead: false,
         foolUsed: true,
         hasUsedFoolAbility: true,

@@ -20,7 +20,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const scapegoatSeat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!scapegoatSeat?.isAlive) {
+  if (!scapegoatSeat || scapegoatSeat.isDead) {
     return { ...ctx, aborted: true, abortReason: "替罪羊已死亡" };
   }
 
@@ -87,7 +87,6 @@ const stateUpdate = async (
       return {
         ...s,
         isDead: true,
-        isAlive: false,
         deathReason: "executed",
         statusDetails: [...(s.statusDetails ?? []), "代替同阵营玩家被处决"],
       };
@@ -97,7 +96,6 @@ const stateUpdate = async (
       return {
         ...s,
         isDead: false,
-        isAlive: true,
       };
     }
     return s;

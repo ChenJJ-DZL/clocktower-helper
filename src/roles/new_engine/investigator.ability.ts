@@ -73,7 +73,6 @@ interface InvestigatorInfo {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   effectiveRole?: { id: string; name: string; type: string };
@@ -103,7 +102,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 

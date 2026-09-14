@@ -22,7 +22,6 @@ function makeSnapshot(
       id: i,
       role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
       isDead: false,
-      isAlive: true,
       statusEffects: [],
     });
   }
@@ -32,7 +31,6 @@ function makeSnapshot(
       id: townsfolkCount + i,
       role: { id: "legion", name: "军团", type: "demon" },
       isDead: false,
-      isAlive: true,
       statusEffects: [],
     });
   }
@@ -113,7 +111,6 @@ describe("军团开局角色类型反转后 — 恶魔伪装步骤统一共享",
       id: 7,
       role: { id: "vortox", name: "涡流", type: "demon" },
       isDead: false,
-      isAlive: true,
       statusEffects: [],
     });
     const queue = generateDynamicNightQueue(
@@ -162,28 +159,24 @@ describe("军团 + 罂粟种植者互认 — 罂粟存活时 demon_info 仍进�
         id: 0,
         role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         statusEffects: [],
       },
       {
         id: 1,
         role: { id: "legion", name: "军团", type: "demon" },
         isDead: false,
-        isAlive: true,
         statusEffects: [],
       },
       {
         id: 2,
         role: { id: "legion", name: "军团", type: "demon" },
         isDead: false,
-        isAlive: true,
         statusEffects: [],
       },
       {
         id: 3,
         role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         statusEffects: [],
       },
     ];

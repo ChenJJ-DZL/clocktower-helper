@@ -143,7 +143,6 @@ describe("《暗月初升》外来者角色官方范例逐条验证 (Outsiders E
         id: 0,
         role: { id: "moonchild", name: "月之子", type: "outsider" } as any,
         isDead: false,
-        isAlive: true,
       } as any;
 
       // 月之子未死亡，无法触发死亡诅咒

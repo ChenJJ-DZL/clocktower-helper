@@ -2,6 +2,7 @@
 
 import type { GameState } from "../contexts/GameContext";
 import type { GameRecord, GameSnapshot } from "../types/game";
+import { applyCharadePermanentDrunk } from "./charadeSetup";
 
 const STORAGE_KEY = "clocktower_game_records";
 const SNAPSHOT_KEY = "clocktower_current_snapshot";
@@ -259,6 +260,53 @@ export function saveCurrentSnapshot(snapshot: GameSnapshot): void {
 }
 
 /**
+ * 把历史存档里残留的 `isAlive` 死亡标记迁移为统一的 `isDead`。
+ *
+ * 背景（2026-09-14 死亡标记统一）：
+ *   项目曾同时使用 `isDead: true` 与 `isAlive: false` 表示「已死亡」。
+ *   统一后全仓只认 `isDead`，但 **localStorage 里的旧快照**
+ *   （尤其只写了 `isAlive: false` 的引擎路径，如 shabaloth/po/zombuul/assassin）
+ *   若原样加载，会被当成**活人** → 死亡玩家复活、天亮播报错乱。
+ *   因此在**加载边界**做一次性迁移，转换后不留 `isAlive` 字段。
+ *
+ * 幂等：已迁移过的快照再跑一次无变化。
+ */
+export function migrateLegacyDeathMarkers(
+  snapshot: GameSnapshot | null
+): GameSnapshot | null {
+  if (!snapshot || !Array.isArray((snapshot as any).seats)) return snapshot;
+  let touched = false;
+  const seats = (snapshot as any).seats.map((seat: any) => {
+    if (!seat || typeof seat !== "object") return seat;
+    if (!("isAlive" in seat)) return seat;
+    touched = true;
+    const { isAlive, ...rest } = seat;
+    // 旧语义：isAlive 明确为 false ⇒ 已死亡；否则沿用已有 isDead
+    const isDead = isAlive === false ? true : rest.isDead === true;
+    return { ...rest, isDead };
+  });
+  return touched ? ({ ...(snapshot as any), seats } as GameSnapshot) : snapshot;
+}
+
+/**
+ * 读档兜底：给酒鬼 / 提线木偶补上「永久醉酒」。
+ *
+ * 为什么要在读档处也做（而不只在游戏开始处）：
+ *   旧版本存档（或"未设伪装"的进行中对局）可能只有 `charadeRole` 而没有
+ *   `statusEffects: [{ type:"drunk", permanent:true }]` → 中间件会判其能力**有效**
+ *   → 信息类能力（如赏金猎人）**泄漏真值**。用户在**进行中的对局**里遇到的就是这种。
+ * 幂等：已带该效果的座位原样保留。
+ */
+export function migrateCharadePermanentDrunk(
+  snapshot: GameSnapshot | null
+): GameSnapshot | null {
+  if (!snapshot || !Array.isArray((snapshot as any).seats)) return snapshot;
+  const seats = (snapshot as any).seats;
+  const next = applyCharadePermanentDrunk(seats as any[]);
+  return next === seats ? snapshot : ({ ...(snapshot as any), seats: next } as GameSnapshot);
+}
+
+/**
  * 从 localStorage 加载当前游戏快照
  */
 export function loadCurrentSnapshot(): GameSnapshot | null {
@@ -267,7 +315,11 @@ export function loadCurrentSnapshot(): GameSnapshot | null {
     const stored = window.localStorage.getItem(SNAPSHOT_KEY);
     if (!stored) return null;
     const snapshot = JSON.parse(stored) as GameSnapshot;
-    return snapshot;
+    // 🔧 死亡标记统一迁移（见 migrateLegacyDeathMarkers 注释）
+    const migrated = migrateLegacyDeathMarkers(snapshot);
+    // 🍺 酒鬼 / 提线木偶的「永久醉酒」兜底（见 utils/charadeSetup.ts 注释）：
+    //   旧存档可能只落了伪装身份而没落 drunk 效果 → 信息类能力会泄漏真值。
+    return migrateCharadePermanentDrunk(migrated);
   } catch (error) {
     console.error(
       "Failed to load current snapshot, clearing corrupted data:",

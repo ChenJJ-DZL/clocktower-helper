@@ -1,6 +1,7 @@
 import type { Role, RoleType, Seat, StatusEffect } from "../../app/data";
 import type { RegistrationResult } from "../types/registration";
 import { interceptInspection } from "./JinxManager";
+import { isSeatEvil, isSeatGood } from "./seatAlignment";
 
 // ======================================================================
 //  座位位置计算
@@ -326,15 +327,22 @@ export const getRegisteredAlignment = (
 
 // 统一计算中毒来源（永久、亡骨魔、普卡、日毒、状态标记）
 export const getPoisonSources = (seat: Seat) => {
-  const details = seat.statusDetails || [];
+  // ⚠️ 防御性归一化（2026-09-14）：`statusDetails` 历史上可能混入非字符串
+  //   （随机压测/旧存档/第三方写入），直接 `.includes()` 会抛
+  //   `d.includes is not a function`。统一入口后该方法被更多路径调用，
+  //   必须对脏数据免疫 —— 只接受字符串，其余静默丢弃。
+  const details = (seat.statusDetails || [])
+    .filter((d: unknown): d is string => typeof d === "string");
   const statuses = seat.statuses || [];
   // 🔧 新引擎 statusEffects[] 兜底：投毒者/普卡/诺-达等引擎结算直接写
   //   statusEffects（type:"poisoned"），若 legacy 翻译（syncStatusEffectsToSeat）
   //   未执行或遗漏，computeIsPoisoned 也必须识别——"行动当下检查角色状态"
   //   的系统性保障（实测：仅 statusEffects 时洗衣妇信息仍为真，P0）。
-  const effects = (seat as any).statusEffects || [];
+  const effects = Array.isArray((seat as any).statusEffects)
+    ? (seat as any).statusEffects
+    : [];
   const hasEnginePoison = effects.some(
-    (e: any) => e.type === "poisoned" || e.type === "poison"
+    (e: any) => e?.type === "poisoned" || e?.type === "poison"
   );
   // 检查所有带清除时间的中毒标记
   const poisonPatterns = [
@@ -359,7 +367,7 @@ export const getPoisonSources = (seat: Seat) => {
     snakeCharmer: details.some((d) => d.includes("舞蛇人中毒")),
     statusPoison:
       statuses.some(
-        (st) => st.effect === "Poison" && st.duration !== "expired"
+        (st: any) => st?.effect === "Poison" && st?.duration !== "expired"
       ) || hasEnginePoison,
     direct: seat.isPoisoned,
     anyMark: hasAnyPoisonMark,
@@ -520,50 +528,68 @@ export const addPoisonMark = (
 
 // ======================================================================
 //  阵营判定
+//  ⭐ 2026-09-14 统一：权威实现已收敛到 `utils/seatAlignment.ts`。
+//  本文件只做转出（re-export），保留旧名以免破坏调用点。
+//  背景：收敛前 gameRules / snvMechanics / bmrMechanics 各有一套，
+//  实测对同一座位给出相反答案（`alignment="evil"` 的镇民：这里判善良、
+//  那里判邪恶）→ 信息类角色结果不确定。详见 seatAlignment.ts 文件头。
 // ======================================================================
 
-// 判断玩家是否为邪恶阵营（真实阵营）
-export const isEvil = (seat: Seat): boolean => {
-  if (!seat.role) return false;
-  if (seat.isGoodConverted) return false;
-  return (
-    seat.isEvilConverted === true ||
-    seat.role.type === "demon" ||
-    seat.role.type === "minion" ||
-    seat.isDemonSuccessor
-  );
-};
+/** @deprecated 用 `isSeatEvil`（`utils/seatAlignment`），此处仅为兼容旧调用点 */
+export const isEvil = (seat: Seat): boolean => isSeatEvil(seat);
 
-export const isGoodAlignment = (seat: Seat): boolean => {
-  if (!seat.role) return false;
-  const roleType = seat.role.type;
-  if (seat.isEvilConverted) return false;
-  if (seat.isGoodConverted) return true;
-  return (
-    roleType !== "demon" && roleType !== "minion" && !seat.isDemonSuccessor
-  );
-};
+/** @deprecated 用 `isSeatGood`（`utils/seatAlignment`），此处仅为兼容旧调用点 */
+export const isGoodAlignment = (seat: Seat): boolean => isSeatGood(seat);
 
 /**
- * 检查红唇女郎是否触发变身
- * 规则：如果恶魔死亡且场上存活玩家 >= 5，红唇女郎立即变成恶魔
+ * 检查红唇女郎是否触发变身。
+ *
+ * 官方（`officialRoleDocs.json` · 红唇女郎）：
+ *   「如果大于等于五名玩家存活时（**旅行者不计算在内**）恶魔死亡，你变成那个恶魔。」
+ *   「如果在恶魔**死前**有五名或更多的玩家存活；或者说，如果在恶魔**死后**有
+ *     **四名**或更多的玩家存活，那么红唇女郎会立刻变成恶魔。」
+ *   范例：「有五名玩家存活：小恶魔，红唇女郎，男爵，两名镇民。小恶魔被处决。
+ *          红唇女郎变成了小恶魔，且游戏继续。」→ 死前 5 = 死后 4
+ *   「（前提是，红唇女郎此时能力正常生效）」
+ *
+ * ⚠️ 本函数是**在恶魔已死亡之后**调用（否则 `hasAliveDemon` 会直接拦掉），
+ *    因此阈值必须用**死后口径 = 4**。
+ *    旧实现写 `>= 5` —— 那等于要求"死前 >= 6"，阈值偏严 1 人：
+ *    上例（死前 5 / 死后 4）会被误判为"不触发"→ **善良直接获胜，改判胜负**。
+ *    （生产真正生效的路径是 `app/gameLogic.ts` 的 `aliveCount >= 4`，口径正确；
+ *      本函数此前无调用点，属未使用的导出，但阈值错误会误导后续调用者。）
  */
 export const shouldScarletWomanTransform = (
   allSeats: Seat[],
   _deadPlayerId?: number
 ): Seat | null => {
-  const alivePlayers = allSeats.filter((s) => !s.isDead);
-  if (alivePlayers.length < 5) return null;
+  // 官方：旅行者不计算在内
+  const alivePlayers = allSeats.filter(
+    (s) => !s.isDead && (s.role?.type as string | undefined) !== "traveler"
+  );
+  // 恶魔死后口径：>= 4（等价于死前 >= 5）
+  if (alivePlayers.length < 4) return null;
 
-  // 检查是否有活着的恶魔
+  // 仍有存活的恶魔 → 不需要继任
   const hasAliveDemon = allSeats.some(
-    (s) => !s.isDead && (s.role?.type === "demon" || s.isDemonSuccessor)
+    (s) =>
+      !s.isDead &&
+      (s.role?.type === "demon" || s.isDemonSuccessor) &&
+      (s.role?.type as string | undefined) !== "traveler"
   );
   if (hasAliveDemon) return null;
 
-  // 查找符合条件的红唇女郎
+  // 官方前提：红唇女郎此时能力正常生效（醉酒/中毒则不触发）
   const sw = allSeats.find(
-    (s) => !s.isDead && s.role?.id === "scarlet_woman" && !s.isDemonSuccessor
+    (s) =>
+      !s.isDead &&
+      s.role?.id === "scarlet_woman" &&
+      !s.isDemonSuccessor &&
+      !s.isDrunk &&
+      !s.isPoisoned &&
+      !(s.statusEffects ?? []).some(
+        (e: any) => e?.type === "drunk" || e?.type === "poisoned"
+      )
   );
 
   return sw || null;

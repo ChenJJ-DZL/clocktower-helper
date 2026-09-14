@@ -61,7 +61,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       const monkCtx = {
         actionNode: { seatId: 1, roleId: "monk", abilityId: "monk_protect" },
         snapshot: {
-          seats: seats.map((s) => ({ ...s, isAlive: true })),
+          seats: seats.map((s) => ({ ...s, isDead: false, })),
           isVortoxWorld: true,
           vortoxWorld: true,
         },
@@ -75,7 +75,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       const washerCtx = {
         actionNode: { seatId: 2, roleId: "washerwoman", abilityId: "washerwoman_info" },
         snapshot: {
-          seats: seats.map((s) => ({ ...s, isAlive: true })),
+          seats: seats.map((s) => ({ ...s, isDead: false, })),
           isVortoxWorld: true,
           vortoxWorld: true,
         },
@@ -90,9 +90,9 @@ describe("用户实测反馈四大核心机制综合测试", () => {
     it("涡流夜杀被僧侣保护的目标时，受保护玩家存活", async () => {
       const snapshot = {
         seats: [
-          makeSeat(0, "vortox", "demon", { isAlive: true } as any),
+          makeSeat(0, "vortox", "demon", { isDead: false, } as any),
           makeSeat(1, "washerwoman", "townsfolk", {
-            isAlive: true,
+            isDead: false,
             isProtected: true,
             statusEffects: [{ type: "protected", source: "monk" }],
           } as any),
@@ -118,8 +118,8 @@ describe("用户实测反馈四大核心机制综合测试", () => {
     it("双子首夜产生 displayInfo 并包含对立双子角色", async () => {
       const snapshot = {
         seats: [
-          makeSeat(0, "evil_twin", "minion", { isAlive: true } as any),
-          makeSeat(1, "oracle", "townsfolk", { isAlive: true } as any),
+          makeSeat(0, "evil_twin", "minion", { isDead: false, } as any),
+          makeSeat(1, "oracle", "townsfolk", { isDead: false, } as any),
         ],
         nightCount: 1,
         gamePhase: "firstNight",
@@ -304,7 +304,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
         snapshot: {
           nightCount: 1,
           gamePhase: "firstNight",
-          seats: seats.map((s) => ({ ...s, isAlive: true })),
+          seats: seats.map((s) => ({ ...s, isDead: false, })),
         },
         meta: {},
         aborted: false,
@@ -409,7 +409,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       const monkCtx = {
         actionNode: { seatId: 1, roleId: "monk", abilityId: "monk_protect" },
         snapshot: {
-          seats: seats.map((s) => ({ ...s, isAlive: true })),
+          seats: seats.map((s) => ({ ...s, isDead: false, })),
         },
         meta: {},
       } as any;

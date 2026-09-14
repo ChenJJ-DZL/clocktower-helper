@@ -13,7 +13,6 @@ function makeSeat(
     id,
     role: { id: roleId, name: roleId, type } as Role,
     isDead: false,
-    isAlive: true,
     ...overrides,
   } as unknown as Seat;
 }

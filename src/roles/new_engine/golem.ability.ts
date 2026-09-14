@@ -91,7 +91,6 @@ const stateUpdate = async (
       if (seat.id === r.targetId) {
         return {
           ...seat,
-          isAlive: false,
           isDead: true,
           deathSource: "golem_nominate",
           deathSourceSeatId: actionNode.seatId,

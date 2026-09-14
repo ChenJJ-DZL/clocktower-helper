@@ -41,7 +41,6 @@ function mkSeat(
     id,
     playerName: `P${id + 1}`,
     role: { id: roleId, name: roleId, type },
-    isAlive: true,
     isDead: false,
     isDrunk: false,
     isPoisoned: false,
@@ -71,7 +70,7 @@ function buildTbSnapshot(nightCount = 2) {
 }
 
 describe("L3.5 不变式测试", () => {
-  it("I1+I7：恶魔击杀后死亡标记必须落地（复现历史 P0：只设 isAlive 不设 isDead）", async () => {
+  it("I1+I7：恶魔击杀后死亡标记必须落地（复现历史 P0：只标 markedForDeath 而不落 isDead）", async () => {
     const fullNightOrder = buildFullNightOrder();
     const abilityMap = buildAbilityMap();
     const snapshot = buildTbSnapshot(2);
@@ -101,7 +100,6 @@ describe("L3.5 不变式测试", () => {
     const snapshot = buildTbSnapshot(2);
     // 预置一名死者（非 spy）
     snapshot.seats[2] = mkSeat(2, "butler", "outsider", {
-      isAlive: false,
       isDead: true,
     });
 
@@ -211,7 +209,6 @@ describe("L3.5 不变式测试", () => {
             s.id === action.targetIds[0]
               ? {
                   ...s,
-                  isAlive: true,
                   isDead: false,
                   markedForDeath: false,
                   diedAtNight: action.snapshot.nightCount,

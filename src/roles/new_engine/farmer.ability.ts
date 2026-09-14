@@ -16,6 +16,7 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 import { getEligibleFarmerSuccessors } from "../../utils/expansionMechanics";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -147,7 +148,8 @@ const stateUpdate = async (
       );
       // 农夫角色本身的类型永远是 townsfolk（镇民角色）
       // 若间谍被转为农夫，保持其实际邪恶阵营（isEvilConverted: true 或保持 evil 标记）
-      const isOriginalEvil = s.role?.type === "minion" || s.role?.type === "demon" || s.isEvilConverted || s.alignment === "evil";
+      // 阵营判定统一走 utils/seatAlignment
+      const isOriginalEvil = isSeatEvil(s);
       return {
         ...s,
         role: {

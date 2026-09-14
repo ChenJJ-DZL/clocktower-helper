@@ -32,7 +32,6 @@ function seat(
     id,
     playerName: `P${id + 1}`,
     isDead: !!opts.dead,
-    isAlive: !opts.dead,
     isDrunk: false,
     isPoisoned: !!opts.poisoned,
     role: { id: roleId, name: ROLE_NAMES[roleId] ?? roleId, type },

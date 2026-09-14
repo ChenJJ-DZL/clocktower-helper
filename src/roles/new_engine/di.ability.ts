@@ -16,7 +16,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   // 检查是否已使用
   const used = (ctx.snapshot as any)._abilityResults?.di?.used ?? false;
   if (used) return { ...ctx, aborted: true, abortReason: "能力已使用" };

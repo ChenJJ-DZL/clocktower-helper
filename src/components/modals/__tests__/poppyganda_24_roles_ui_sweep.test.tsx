@@ -76,7 +76,6 @@ function buildSeats(roleId: string) {
     playerName: `P${id + 1}`,
     role: r(rid),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],

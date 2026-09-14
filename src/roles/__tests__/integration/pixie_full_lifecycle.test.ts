@@ -17,7 +17,6 @@ function makeSeat(
     id,
     role: { id: roleId, name: roleName, type } as Role,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     isProtected: false,
@@ -114,7 +113,7 @@ describe("小精灵 (Pixie) 全生命周期综合测试", () => {
         pixieMadnessRoleName: "厨师",
         statusDetails: ["伪装身份:厨师"],
       }),
-      makeSeat(1, "chef", "厨师", "townsfolk", { isDead: true, isAlive: false }),
+      makeSeat(1, "chef", "厨师", "townsfolk", { isDead: true, }),
       makeSeat(2, "imp", "小恶魔", "demon"),
     ];
 
@@ -143,7 +142,6 @@ describe("小精灵 (Pixie) 全生命周期综合测试", () => {
       }),
       makeSeat(1, "fortune_teller", "占卜师", "townsfolk", {
         isDead: true,
-        isAlive: false,
       }),
       makeSeat(2, "imp", "小恶魔", "demon"),
       makeSeat(3, "chef", "厨师", "townsfolk"),

@@ -24,7 +24,7 @@ export function pickSunDirection(
 
 const pc = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const s = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
-  if (!s?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!s || s.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 const calc = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {

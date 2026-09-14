@@ -3,30 +3,25 @@
  * 涵盖：气球驾驶员 (Balloonist)、唱诗男孩 (Choirboy)、农夫 (Farmer)、政客 (Politician)、瘟疫医生 (Plague Doctor)、替罪羊 (Scapegoat)
  */
 import type { Seat } from "../../app/data";
+import { isSeatGood, isSeatDemon } from "./seatAlignment";
+import { isSeatAlive } from "./seatAlive";
 
 /**
- * 判断玩家是否存活
+ * ⭐ 存活判定已收敛到 utils/seatAlive 的 `isSeatAlive`（唯一存活判据）。
+ * 本文件不再自行实现，直接从该模块引入使用。
  */
-export function isSeatAlive(seat: Seat | undefined | null): boolean {
-  if (!seat) return false;
-  return !seat.isDead;
-}
 
 /**
  * 判断玩家是否属于善良阵营（考虑伪装和阵营转变）
  */
 export function isPlayerGood(seat: Seat | undefined | null): boolean {
   if (!seat) return false;
-  // 间谍在作为善良阵营被检测或注册时
+  // ⚠️ 登记（registration）优先于真实阵营，此处刻意保留：
+  //   间谍可被登记为善良、陌客可被登记为邪恶（对外呈现层面）。
   if (seat.role?.id === "spy" && (seat as any).registerAsGood) return true;
-  // 陌客在作为邪恶阵营被检测时
   if (seat.role?.id === "recluse" && (seat as any).registerAsEvil) return false;
-  if (seat.isEvilConverted) return false;
-  if (seat.isGoodConverted) return true;
-  if ((seat as any).alignment === "evil") return false;
-  if ((seat as any).alignment === "good") return true;
-  const roleType = seat.role?.type;
-  return roleType === "townsfolk" || roleType === "outsider";
+  // 真实阵营统一走 utils/seatAlignment（全项目唯一权威）
+  return isSeatGood(seat);
 }
 
 /**
@@ -84,7 +79,7 @@ export function checkChoirboyTrigger(
 
   let demonSeat = killerDemonSeatId != null ? seats.find((s) => s.id === killerDemonSeatId) : null;
   if (!demonSeat) {
-    demonSeat = seats.find((s) => s.role?.type === "demon" && isSeatAlive(s)) || null;
+    demonSeat = seats.find((s) => isSeatDemon(s) && isSeatAlive(s)) || null;
   }
 
   return {
@@ -130,8 +125,10 @@ export function evaluatePoliticianEndgame(
       (e) => e.type === "drunk" || e.type === "poisoned"
     );
 
-  const originalIsGood = isPlayerGood(politicianSeat);
-  const politicianTeam = originalIsGood ? "good" : "evil";
+  // 阵营标签统一由权威派生（isPlayerGood → isSeatGood），此处仅做标签转换
+  const politicianTeam: "good" | "evil" = isPlayerGood(politicianSeat)
+    ? "good" // sst-exempt-alignment-label
+    : "evil";
 
   if (politicianTeam === gameWinner) {
     return { politicianWon: true, convertedAlignment: null };

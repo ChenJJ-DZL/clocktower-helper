@@ -46,7 +46,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   effectiveRole?: { id: string; name: string; type: string };
@@ -142,7 +141,7 @@ const calculateResult = async (
     }
   } else if (abilityEffective && targetIds?.[0] !== undefined) {
     const targetSeat = snapshot.seats.find((s: any) => s.id === targetIds[0]);
-    if (targetSeat?.isAlive) {
+    if (targetSeat && !targetSeat.isDead) {
       targetSeatId = targetIds[0];
       targetDies = true;
     }
@@ -198,7 +197,7 @@ const stateUpdateResult = async (
     ) {
       return {
         ...seat,
-        isAlive: false,
+        isDead: true,
         deathReason: "被猎手复仇杀死",
         deathPhase: "night",
       };

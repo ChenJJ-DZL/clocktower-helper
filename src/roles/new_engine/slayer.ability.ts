@@ -15,7 +15,7 @@ const preCheckAliveAndUnused = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -97,7 +97,7 @@ const handleSlayerKill = async (
       if (seat.id === target.id && isTargetDemon) {
         return {
           ...seat,
-          isAlive: false,
+          isDead: true,
           deathReason: "被猎手杀死",
           deathPhase: "day",
         };

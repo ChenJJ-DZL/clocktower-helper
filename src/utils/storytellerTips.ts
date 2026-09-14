@@ -1,4 +1,5 @@
 import type { GamePhase, Seat } from "@/app/data";
+import { isSeatGood } from "./seatAlignment";
 
 type TipPhase = GamePhase | "any";
 
@@ -178,7 +179,7 @@ const BASE_TIPS: TipDefinition[] = [
 export function getStorytellerTips(ctx: TipContext): string[] {
   const computeIsGood = (seat: Seat) => {
     if (ctx.isGoodAlignment) return ctx.isGoodAlignment(seat);
-    return seat.role?.type === "townsfolk" || seat.role?.type === "outsider";
+    return isSeatGood(seat);
   };
 
   const aliveCore = ctx.seats.filter(

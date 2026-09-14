@@ -30,7 +30,6 @@ function mkSeat(id: number, roleId: string, roleName: string, roleType: string, 
   return {
     id,
     playerName: `P${id + 1}`,
-    isAlive: true,
     isDead: false,
     role: { id: roleId, name: roleName, type: roleType },
     roleId,

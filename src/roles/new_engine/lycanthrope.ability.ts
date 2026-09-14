@@ -8,6 +8,7 @@
  * 目标选择：1名玩家，不可选自己，不可选已死亡玩家。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatGood } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -25,11 +26,10 @@ const calculate = async (
 
   if (targetId != null) {
     const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
-    const roleType = target?.role?.type ?? "";
-    const alignment =
-      target?.alignment ??
-      (roleType === "townsfolk" || roleType === "outsider" ? "good" : "evil");
-    targetGood = alignment === "good";
+    // ⭐ 阵营判定统一走 utils/seatAlignment（原先此处内联了第 8 套实现：
+    //   target.alignment ?? (townsfolk|outsider ? "good" : "evil")，
+    //   既重复又漏了 traveler/转换标记）
+    targetGood = isSeatGood(target);
 
     if (effective && targetGood) {
       lycanthropeDies = true;

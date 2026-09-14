@@ -33,7 +33,6 @@ function seat(id: number, roleId: string, over: Partial<any> = {}): any {
     playerName: `P${id + 1}`,
     role: r(roleId),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],
@@ -131,7 +130,7 @@ describe("罂粟花开 · 连续三天 夜→白天 端到端集成", () => {
       );
       if (victim !== undefined) {
         s = gameReducer(s, gameActions.addDeadThisNight(victim));
-        s = gameReducer(s, gameActions.updateSeat(victim, { isDead: true, isAlive: false } as any));
+        s = gameReducer(s, gameActions.updateSeat(victim, { isDead: true, } as any));
       }
       diedByNight.set(day, s.deadThisNight);
 
@@ -197,7 +196,7 @@ describe("罂粟花开 · 连续三天 夜→白天 端到端集成", () => {
       s = gameReducer(s, gameActions.setExecutedPlayer(executed));
       expect(s.hasExecutedThisDay, "处决标记应与是否处决一致").toBe(hasExec);
       if (hasExec) {
-        s = gameReducer(s, gameActions.updateSeat(executed!, { isDead: true, isAlive: false } as any));
+        s = gameReducer(s, gameActions.updateSeat(executed!, { isDead: true, } as any));
       }
       timeline.push(`D${day} 处决·${hasExec ? `${executed! + 1}号` : "无人"}`);
 
@@ -259,7 +258,7 @@ describe("罂粟花开 · 连续三天 夜→白天 端到端集成", () => {
 
   it("军团全灭 → 善良胜（终局判定接入时间线）", () => {
     const seats = baseSeats().map((x: any) =>
-      x.role?.id === "legion" ? { ...x, isDead: true, isAlive: false } : x
+      x.role?.id === "legion" ? { ...x, isDead: true, } : x
     );
     const s = newGame(seats);
     const res = checkGameEnd(s.seats, "execution", 0);
@@ -330,7 +329,7 @@ describe("罂粟花开 · 连续三天 夜→白天 端到端集成", () => {
     s = gameReducer(s, gameActions.setExecutedPlayer(nominee));
     s = gameReducer(
       s,
-      gameActions.updateSeat(nominee, { isDead: true, isAlive: false } as any)
+      gameActions.updateSeat(nominee, { isDead: true, } as any)
     );
     expect(s.hasExecutedThisDay).toBe(true);
     expect(s.executedPlayerId).toBe(nominee);

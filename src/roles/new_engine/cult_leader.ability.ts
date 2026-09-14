@@ -19,7 +19,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
 
   const effects =
     seat.statusEffects ?? ctx.snapshot.statusEffects?.[seat.id] ?? [];
@@ -59,7 +59,7 @@ const calculate = async (
   let rightNeighbor: any = null;
   for (let i = 1; i < seats.length; i++) {
     const s = seats[(selfIndex + i) % seats.length];
-    if (s.isAlive && !s.isDead) {
+    if (!s.isDead) {
       rightNeighbor = s;
       break;
     }
@@ -69,7 +69,7 @@ const calculate = async (
   let leftNeighbor: any = null;
   for (let i = 1; i < seats.length; i++) {
     const s = seats[(selfIndex - i + seats.length) % seats.length];
-    if (s.isAlive && !s.isDead) {
+    if (!s.isDead) {
       leftNeighbor = s;
       break;
     }

@@ -12,12 +12,12 @@ import {
 
 // 最小 6 人局
 const seats: any[] = [
-  { id: 0, playerName: "间谍", isDead: false, isAlive: true, role: { id: "spy", name: "间谍", type: "minion" }, statusEffects: [] },
-  { id: 1, playerName: "洗衣妇", isDead: false, isAlive: true, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, statusEffects: [] },
-  { id: 2, playerName: "厨师", isDead: false, isAlive: true, role: { id: "chef", name: "厨师", type: "townsfolk" }, statusEffects: [] },
-  { id: 3, playerName: "圣徒", isDead: false, isAlive: true, role: { id: "saint", name: "圣徒", type: "outsider" }, statusEffects: [] },
-  { id: 4, playerName: "投毒者", isDead: false, isAlive: true, role: { id: "poisoner", name: "投毒者", type: "minion" }, statusEffects: [] },
-  { id: 5, playerName: "小恶魔", isDead: false, isAlive: true, role: { id: "imp", name: "小恶魔", type: "demon" }, statusEffects: [] },
+  { id: 0, playerName: "间谍", isDead: false, role: { id: "spy", name: "间谍", type: "minion" }, statusEffects: [] },
+  { id: 1, playerName: "洗衣妇", isDead: false, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, statusEffects: [] },
+  { id: 2, playerName: "厨师", isDead: false, role: { id: "chef", name: "厨师", type: "townsfolk" }, statusEffects: [] },
+  { id: 3, playerName: "圣徒", isDead: false, role: { id: "saint", name: "圣徒", type: "outsider" }, statusEffects: [] },
+  { id: 4, playerName: "投毒者", isDead: false, role: { id: "poisoner", name: "投毒者", type: "minion" }, statusEffects: [] },
+  { id: 5, playerName: "小恶魔", isDead: false, role: { id: "imp", name: "小恶魔", type: "demon" }, statusEffects: [] },
 ];
 
 const snapshot: any = { _abilityResults: {}, seats };

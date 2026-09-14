@@ -1,5 +1,6 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
 import {
+  chefMaxPlausiblePairs,
   countChefEvilPairsForUi,
   pickChefFakePairCount,
 } from "../new_engine/chef.ability";
@@ -48,7 +49,14 @@ export const chef: RoleDefinition = {
       // 也不排除厨师本人所占的相邻对），因此统一走引擎实现。
       const evilPairs = countChefEvilPairsForUi(seats);
       const displayPairs = isDisabled
-        ? pickChefFakePairCount(evilPairs, playerSeatId, nightCount)
+        ? pickChefFakePairCount(
+            evilPairs,
+            playerSeatId,
+            nightCount,
+            // ⚠️ 上界必须来自**本局棋盘**（与引擎同一口径），否则出现「5 对」
+            //    这种物理不可能的值 → 玩家一眼看出厨师被干扰 → 信息泄漏。
+            chefMaxPlausiblePairs(seats)
+          )
         : evilPairs;
 
       return {

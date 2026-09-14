@@ -46,7 +46,7 @@ const stateUpdate = async (
     return {
       ...s,
       statusEffects: effects,
-      ...(r.penalty === "death" ? { isDead: true, isAlive: false } : {}),
+      ...(r.penalty === "death" ? { isDead: true } : {}),
     };
   });
   return {

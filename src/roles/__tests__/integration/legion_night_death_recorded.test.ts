@@ -11,10 +11,10 @@ import { legionAbility } from "../../new_engine/legion.ability";
  */
 function makeCtx(victimId: number) {
   const seats = [
-    { id: 0, isDead: false, isAlive: true },
-    { id: 1, isDead: false, isAlive: true },
-    { id: 2, isDead: false, isAlive: true },
-    { id: 3, isDead: false, isAlive: true },
+    { id: 0, isDead: false, },
+    { id: 1, isDead: false, },
+    { id: 2, isDead: false, },
+    { id: 3, isDead: false, },
   ];
   return {
     snapshot: { seats, deadThisNight: [], nightCount: 2 },

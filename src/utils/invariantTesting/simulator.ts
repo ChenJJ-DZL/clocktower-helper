@@ -88,15 +88,19 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
 }
 
 /**
- * 判断座位是否处于"死亡"状态（兼容三种死亡标记）
+ * 判断座位是否处于"死亡或待结算死亡"状态。
+ *
+ * ⚠️ 语义与权威 `utils/seatAlive::isSeatDead` **不同**（后者只认 `isDead`）：
+ * 本函数额外把 `markedForDeath`（待黎明结算的死亡标记）也算作"将死"，
+ * 因此**故意**不复用 isSeatDead。命名保留 DeadOrPending 以示区别，避免遮蔽权威。
  *
  * 引擎层不同能力使用不同的死亡标记：
  * - imp: 仅设 markedForDeath（isDead 由 settleDawn 落地）
- * - zombuul/assassin: 直接设 isDead + isAlive=false
- * - 某些能力: 仅设 isAlive=false
+ * - zombuul/assassin: 直接设 isDead=true
+ * - 部分能力: 只设 markedForDeath，由黎明结算落 isDead
  */
-function isSeatDead(seat: any): boolean {
-  return !!seat.isDead || !!seat.markedForDeath || seat.isAlive === false;
+function isDeadOrPendingDeath(seat: any): boolean {
+  return !!seat.isDead || !!seat.markedForDeath;
 }
 
 /** 默认目标选择器：按 targetConfig 随机选合法目标 */
@@ -116,7 +120,7 @@ export function defaultTargetPicker(
   );
 
   const aliveSeats = (snapshot.seats as any[]).filter((s) => {
-    if (!tc.allowDead && isSeatDead(s)) return false;
+    if (!tc.allowDead && isDeadOrPendingDeath(s)) return false;
     return true;
   });
   const candidates = aliveSeats.filter((s) => {
@@ -153,20 +157,19 @@ export function buildContextForNode(
 /**
  * 黎明结算（复刻 UI 层 syncStatusEffectsToSeat 契约）
  *
- * 引擎层能力只负责"标记"（markedForDeath=true 或 isAlive=false），
- * isDead 的落地由 UI 层 hook 在夜晚流程中翻译（isDead || markedForDeath || isAlive===false）。
+ * 引擎层能力直接落地 isDead（2026-09-14 起 isAlive 已并入 isDead）；
+ * 仍需把 pending 的 markedForDeath 在黎明翻译为 isDead。
  * 仿真器在每夜结束后执行等价结算，保证与 UI 语义一致。
  */
 export function settleDawn(snapshot: GameStateSnapshot): GameStateSnapshot {
   const seats = (snapshot.seats as any[]).map((s) => {
     const marked = !!(s as any).markedForDeath;
-    const engineDead = (s as any).isAlive === false;
     const wasDead = !!(s as any).isDead;
-    const nowDead = wasDead || marked || engineDead;
+    const nowDead = wasDead || marked;
     if (nowDead && !wasDead) {
-      return { ...s, isDead: true, isAlive: false };
+      return { ...s, isDead: true };
     }
-    return { ...s, isAlive: !nowDead };
+    return s;
   });
   return { ...snapshot, seats };
 }

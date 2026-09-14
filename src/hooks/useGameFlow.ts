@@ -9,6 +9,7 @@ import {
   type Seat,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
+import { applyCharadePermanentDrunk } from "../utils/charadeSetup";
 import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
 import {
   applyBountyHunterEvilConversion,
@@ -686,17 +687,24 @@ export function useGameFlow(): UseGameFlowResult {
         }
       });
 
-      dispatch(gameActions.setSeats(withRed));
+      // 🍺 酒鬼 / 提线木偶：伪装身份必须与「永久醉酒」**同时**落地。
+      //   官方：其以为的镇民角色能力不生效、说书人对信息类能力给错误信息。
+      //   ⚠️ 历史缺陷（用户实测）：只写 charadeRole/displayRole 而不写 drunk 效果时，
+      //   `abilityPriorityMiddleware` 会判 abilityEffective=true → 赏金猎人之类**泄漏真值**。
+      //   （drunk.ability / marionette.ability 里的写入跑不到 —— 生产按伪装角色调度能力。）
+      const withCharade = applyCharadePermanentDrunk(withRed);
+
+      dispatch(gameActions.setSeats(withCharade));
       dispatch(
         gameActions.updateState({
-          initialSeats: JSON.parse(JSON.stringify(withRed)),
+          initialSeats: JSON.parse(JSON.stringify(withCharade)),
         })
       );
       dispatch(gameActions.setGamePhase("check"));
       dispatch(
         gameActions.saveHistory({
-          seats: withRed,
-          initialSeats: JSON.parse(JSON.stringify(withRed)),
+          seats: withCharade,
+          initialSeats: JSON.parse(JSON.stringify(withCharade)),
           gamePhase: "check",
         })
       );

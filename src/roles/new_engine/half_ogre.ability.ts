@@ -7,6 +7,7 @@
 
 import { createSettlementPostProcess } from "../../utils/abilitySettlement";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -40,7 +41,7 @@ const calculateAttackResult = async (
 
   if (targetSeat) {
     // 判断目标阵营（考虑失足效果的逻辑在更高层处理）
-    const isTargetEvil = targetSeat.role.alignment === "evil";
+    const isTargetEvil = isSeatEvil(targetSeat);
 
     // 计算结果
     const shouldKill = !isTargetEvil;

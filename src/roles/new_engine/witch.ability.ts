@@ -17,9 +17,9 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   // 三人局失去能力
-  const aliveCount = ctx.snapshot.seats.filter((s: any) => s.isAlive).length;
+  const aliveCount = ctx.snapshot.seats.filter((s: any) => !s.isDead).length;
   if (aliveCount <= 3)
     return {
       ...ctx,

@@ -26,7 +26,7 @@ const preCheckAlive = async (
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...ctx, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
   return ctx;

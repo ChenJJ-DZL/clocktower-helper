@@ -26,6 +26,7 @@ import {
 import { roles, type Seat } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
 import { isInformationRole } from "../../utils/informationRoles";
+import { isSeatEvil, isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import { setStorytellerInfoOverrides } from "../../utils/corruptedInfo";
 
 export interface StorytellerTuningState {
@@ -316,12 +317,8 @@ export function StorytellerTuningProvider({
         (s) =>
           s.id !== seatId &&
           !s.isDead &&
-          s.role &&
           !knownTargets.includes(s.id) &&
-          (s.role.type === "minion" ||
-            s.role.type === "demon" ||
-            s.isEvilConverted ||
-            (s as any).alignment === "evil")
+          isSeatEvil(s)
       );
       const aliveGoods = seats.filter(
         (s) =>
@@ -330,7 +327,7 @@ export function StorytellerTuningProvider({
           s.role &&
           !s.isEvilConverted &&
           (s as any).alignment !== "evil" &&
-          (s.role.type === "townsfolk" || s.role.type === "outsider")
+          isSeatTownsfolkOrOutsider(s)
       );
       const nonDemonEvils = aliveEvils.filter((s) => s.role?.type !== "demon");
       const priorityEvils =
@@ -401,7 +398,7 @@ export function StorytellerTuningProvider({
       seats.find(
         (s) =>
           s.id !== seatId &&
-          (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
+          isSeatTownsfolkOrOutsider(s) &&
           !s.isEvilConverted &&
           !s.isDead
       ) || seats.find((s) => s.id !== seatId && !s.isDead);

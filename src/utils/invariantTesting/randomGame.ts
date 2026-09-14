@@ -106,7 +106,6 @@ function makeSeat(
     id,
     playerName: `P${id + 1}`,
     role: { id: role.id, name: role.name, type: role.type },
-    isAlive: true,
     isDead: false,
     isDrunk: false,
     isPoisoned: false,

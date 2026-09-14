@@ -8,6 +8,7 @@ import {
   typeBgColors,
 } from "../../../../app/data";
 import { gameActions, useGameContext } from "../../../contexts/GameContext";
+import { applyCharadePermanentDrunk, withCharadePermanentDrunk } from "../../../utils/charadeSetup";
 import { CharadeConfigModal } from "../../modals/CharadeConfigModal";
 import { ModalWrapper } from "../../modals/ModalWrapper";
 import { PlayerCompositionModal } from "../../modals/PlayerCompositionModal";
@@ -324,11 +325,13 @@ export default function GameSetup({
           const fake = pool[Math.floor(Math.random() * pool.length)];
           usedCharadeIdsInThisBatch.add(fake.id);
           hasChanges = true;
-          return {
+          // 🍺 伪装身份必须与「永久醉酒」同时落地（官方：其以为的镇民能力不生效，
+          //    信息类能力由说书人给假信息）。少了这层 → 中间件判能力有效 → 泄漏真值。
+          return withCharadePermanentDrunk({
             ...seat,
             charadeRole: fake,
             displayRole: fake,
-          };
+          });
         }
       } else if (seat.role?.id === "lunatic") {
         const currentFakeDemonId = seat.apparentDemonRole?.id;
@@ -1113,9 +1116,11 @@ export default function GameSetup({
         seats={seats}
         filteredGroupedRoles={filteredGroupedRoles}
         onConfirm={(configuredSeats) => {
-          dispatch(gameActions.setSeats(configuredSeats));
-          dispatch(gameActions.updateState({ seats: configuredSeats }));
-          dispatch(gameActions.saveHistory({ seats: configuredSeats }));
+          // 🍺 弹窗只负责选伪装角色；「永久醉酒」在这里统一落地（唯一入口）
+          const withDrunk = applyCharadePermanentDrunk(configuredSeats);
+          dispatch(gameActions.setSeats(withDrunk));
+          dispatch(gameActions.updateState({ seats: withDrunk }));
+          dispatch(gameActions.saveHistory({ seats: withDrunk }));
           setShowCharadeModal(false);
         }}
       />

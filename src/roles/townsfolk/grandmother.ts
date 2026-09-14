@@ -1,5 +1,6 @@
 import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 
 /**
  * 祖母 (Grandmother)
@@ -87,7 +88,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
     const goodCandidates = seats.filter(
       (s: Seat) =>
         s.id !== selfId &&
-        (s.role?.type === "townsfolk" || s.role?.type === "outsider")
+        (isSeatTownsfolkOrOutsider(s))
     );
 
     if (goodCandidates.length > 0) {

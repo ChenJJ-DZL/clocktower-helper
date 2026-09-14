@@ -7,7 +7,6 @@ function seatAny(id: number, roleId: string, type: string) {
     id,
     role: { id: roleId, name: roleId, type },
     isDead: false,
-    isAlive: true,
     statusEffects: [],
   };
 }

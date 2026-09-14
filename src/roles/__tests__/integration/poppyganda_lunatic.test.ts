@@ -25,7 +25,6 @@ function makeSeat(
     id,
     role: { id: roleId, name: roleId, type } as Role,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     isProtected: false,
@@ -103,7 +102,6 @@ describe("疯子：每夜假击杀（apparentDemonRole 决定时序）", () => {
       makeSeat(0, "lunatic", "outsider", {
         apparentDemonRole: { id: "imp", name: "小恶魔", type: "demon" },
         isDead: true,
-        isAlive: false,
       }),
     ];
     const ctx: any = {

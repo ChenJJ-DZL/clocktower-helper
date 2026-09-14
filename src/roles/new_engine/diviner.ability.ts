@@ -6,6 +6,7 @@
  * 每夜选择一名玩家，预言家得知该玩家的所属阵营（善良或邪恶）。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -15,7 +16,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -33,7 +34,7 @@ const calculate = async (
       },
     };
   const alignment =
-    target.role?.type === "townsfolk" || target.role?.type === "outsider"
+    isSeatTownsfolkOrOutsider(target)
       ? "善良"
       : "邪恶";
   return {

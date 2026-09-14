@@ -7,6 +7,7 @@
 
 import type { Role } from "../../types/game";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isTownsfolkOrOutsiderRole } from "../../utils/seatAlignment";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -24,7 +25,7 @@ const preCheckAliveAndStatus = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -124,9 +125,7 @@ const calculateResult = async (
   } else if (shouldShowCorrect) {
     // 正常情况：显示真实角色和一个对立阵营的随机角色
     const isTargetGood =
-      actualRole.type === "townsfolk" ||
-      actualRole.type === "outsider" ||
-      actualRole.id === "drunk";
+      isTownsfolkOrOutsiderRole(actualRole) || actualRole.id === "drunk";
 
     if (isTargetGood) {
       roleA = actualRole;
@@ -138,9 +137,7 @@ const calculateResult = async (
   } else {
     // 醉酒/中毒/涡流：显示虚假信息
     const isTargetGood =
-      actualRole.type === "townsfolk" ||
-      actualRole.type === "outsider" ||
-      actualRole.id === "drunk";
+      isTownsfolkOrOutsiderRole(actualRole) || actualRole.id === "drunk";
 
     if (isTargetGood) {
       // 目标是善良，但显示两个虚假角色

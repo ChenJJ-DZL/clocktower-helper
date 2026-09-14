@@ -90,7 +90,6 @@ class UnifiedNightOrder {
               type: s.role.type || "townsfolk",
             }
           : undefined,
-        isAlive: !s.isDead,
         isDead: s.isDead || false,
       })),
       statusEffects: {} as Record<string, any[]>,

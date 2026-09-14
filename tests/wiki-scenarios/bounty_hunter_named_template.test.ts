@@ -15,7 +15,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "小艾",
         role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -26,7 +25,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "大本",
         role: { id: "harpy", name: "鹰身女妖", type: "minion" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -37,7 +35,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "小黑",
         role: { id: "tea_lady", name: "茶艺师", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: true,
@@ -64,7 +61,7 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
     expect(firstNightRes.meta.abilityResult.targetPlayerName).toBe("大本");
 
     seats = seats.map((s) =>
-      s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+      s.id === 1 ? { ...s, isDead: true, } : s
     );
     expect(seats[1].isDead).toBe(true);
 
@@ -97,7 +94,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "玩家A",
         role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -108,7 +104,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "小朱",
         role: { id: "baron", name: "男爵", type: "minion" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -119,7 +114,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "投毒者P",
         role: { id: "poisoner", name: "投毒者", type: "minion" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -130,7 +124,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "小艾",
         role: { id: "magician", name: "魔术师", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -151,7 +144,7 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
     expect(n1Res.meta.abilityResult.targetPlayerName).toBe("小朱");
 
     const poisonedSeats = seats.map((s) => {
-      if (s.id === 1) return { ...s, isDead: true, isAlive: false };
+      if (s.id === 1) return { ...s, isDead: true, };
       if (s.id === 0) return { ...s, isPoisoned: true };
       return s;
     });
@@ -187,7 +180,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
           type: "townsfolk",
         },
         isDead: false,
-        isAlive: true,
         isDrunk: true,
         isPoisoned: false,
         isEvilConverted: false,
@@ -198,7 +190,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "小明",
         role: { id: "empath", name: "共情者", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -209,7 +200,6 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
         playerName: "道哥",
         role: { id: "flowergirl", name: "卖花女孩", type: "townsfolk" },
         isDead: false,
-        isAlive: true,
         isDrunk: false,
         isPoisoned: false,
         isEvilConverted: false,
@@ -230,7 +220,7 @@ describe("【赏金猎人 (Bounty Hunter) 1:1 官方 Wiki 原装具名范例标�
     expect(n1Res.meta.abilityResult.targetPlayerName).toBe("小明");
 
     const deadSeats = seats.map((s) =>
-      s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+      s.id === 1 ? { ...s, isDead: true, } : s
     );
     const n2Ctx: any = {
       actionNode: { seatId: 0, roleId: "bounty_hunter" },

@@ -10,6 +10,7 @@ import {
   consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -83,40 +84,27 @@ const calculateResult = async (
   }
 
   // 判断玩家1是否为邪恶（陌客默认邪恶造成干扰，间谍默认善良造成干扰）
-  const isTarget1Evil = (() => {
-    if (target1.role?.id === "recluse") {
-      return (target1 as any).registerAsEvil !== false;
+  /**
+   * 判断目标是否为「邪恶」。
+   *
+   * ⚠️ 这里与真实阵营（isSeatEvil）刻意不同：陌客/间谍会**登记**为对方阵营，
+   * 属「对外呈现」层面，需优先处理（见 seatAlignment.ts 文档「登记 vs 真实阵营」）。
+   * 除去登记分支后，其余一律走统一权威 isSeatEvil。
+   */
+  const isEvilForSeamstress = (seat: typeof target1): boolean => {
+    if (seat.role?.id === "recluse") {
+      return (seat as any).registerAsEvil !== false;
     }
-    if (target1.role?.id === "spy") {
-      return (target1 as any).registerAsEvil === true;
+    if (seat.role?.id === "spy") {
+      return (seat as any).registerAsEvil === true;
     }
-    if (target1.isEvilConverted) return true;
-    if (target1.isGoodConverted) return false;
-    if ((target1 as any).alignment === "evil") return true;
-    if ((target1 as any).alignment === "good") return false;
-    return (
-      target1.role != null &&
-      (target1.role.type === "minion" || target1.role.type === "demon")
-    );
-  })();
+    return isSeatEvil(seat);
+  };
+
+  const isTarget1Evil = isEvilForSeamstress(target1);
 
   // 判断玩家2是否为邪恶（陌客默认邪恶造成干扰，间谍默认善良造成干扰）
-  const isTarget2Evil = (() => {
-    if (target2.role?.id === "recluse") {
-      return (target2 as any).registerAsEvil !== false;
-    }
-    if (target2.role?.id === "spy") {
-      return (target2 as any).registerAsEvil === true;
-    }
-    if (target2.isEvilConverted) return true;
-    if (target2.isGoodConverted) return false;
-    if ((target2 as any).alignment === "evil") return true;
-    if ((target2 as any).alignment === "good") return false;
-    return (
-      target2.role != null &&
-      (target2.role.type === "minion" || target2.role.type === "demon")
-    );
-  })();
+  const isTarget2Evil = isEvilForSeamstress(target2);
 
   // 实际结果：是否同一阵营（考虑陌客/间谍伪装注册）
   const actualSameAlignment = isTarget1Evil === isTarget2Evil;

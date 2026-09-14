@@ -1,6 +1,7 @@
 // by 拜甘教成员-大长老
 import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { isSeatEvil } from "../../utils/seatAlignment";
 
 /**
  * 赏金猎人 (Bounty Hunter)
@@ -30,22 +31,12 @@ export const bounty_hunter: RoleDefinition = {
           ? isActorDisabledByPoisonOrDrunk(selfSeat)
           : false;
 
-      // 邪恶玩家列表（恶魔、爪牙、转邪恶镇民）
+      // 邪恶玩家列表（统一走 utils/seatAlignment）
       const evilSeats = seats.filter(
-        (s) =>
-          s.id !== playerSeatId &&
-          !s.isDead &&
-          (s.role?.type === "demon" ||
-            s.role?.type === "minion" ||
-            s.isEvilConverted ||
-            (s as any).alignment === "evil")
+        (s) => s.id !== playerSeatId && !s.isDead && isSeatEvil(s)
       );
       const goodSeats = seats.filter(
-        (s) =>
-          s.id !== playerSeatId &&
-          !s.isDead &&
-          !s.isEvilConverted &&
-          (s as any).alignment !== "evil"
+        (s) => s.id !== playerSeatId && !s.isDead && !isSeatEvil(s)
       );
 
       // 🎯 优先级规则：只要有其他邪恶玩家在场，优先推荐非恶魔玩家（爪牙、转邪恶镇民）

@@ -12,6 +12,7 @@
  * 触发：仅当 selectedScript.id === "poppyganda" 且 seats 中存在 role.id === "legion" 时
  */
 import type { Role, Seat } from "../../app/data";
+import { isSeatEvil, isSeatTownsfolkOrOutsider } from "./seatAlignment";
 
 export interface LegionSwapInput {
   /** 当前座位快照 */
@@ -63,15 +64,12 @@ export function applyLegionRoleSwap(input: LegionSwapInput): LegionSwapResult {
     (s) =>
       s.role &&
       s.role.id !== "legion" &&
-      (s.role.type === "townsfolk" || s.role.type === "outsider")
+      isSeatTownsfolkOrOutsider(s)
   );
   // 找出原 恶魔+爪牙 玩家（将变 townsfolk）
   // 注意：legion 不应再次被转换
   const demonAndMinionSeats = seats.filter(
-    (s) =>
-      s.role &&
-      s.role.id !== "legion" &&
-      (s.role.type === "demon" || s.role.type === "minion")
+    (s) => s.role && s.role.id !== "legion" && isSeatEvil(s)
   );
 
   // 找可用 townsfolk/outsider Roles 作为新的善良身份（确保各不相同）
@@ -106,7 +104,7 @@ export function applyLegionRoleSwap(input: LegionSwapInput): LegionSwapResult {
     if (!s.role) return s;
     // 原 legion 跳过（保持不变）
     if (s.role.id === "legion") return s;
-    if (s.role.type === "townsfolk" || s.role.type === "outsider") {
+    if (isSeatTownsfolkOrOutsider(s)) {
       // 变 legion
       return {
         ...s,
@@ -126,7 +124,7 @@ export function applyLegionRoleSwap(input: LegionSwapInput): LegionSwapResult {
         isEvilConverted: true,
       };
     }
-    if (s.role.type === "demon" || s.role.type === "minion") {
+    if (isSeatEvil(s)) {
       // 变 townsfolk（保留恶魔/爪牙座位上的玩家变为镇民）
       let assignedRole: Role = defaultTownsfolk;
       const unusedGood = allGoodScriptRoles.find(

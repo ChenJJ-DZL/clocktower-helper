@@ -5,7 +5,7 @@
  * - 连续多夜模拟（默认 5 夜），跨夜推进死亡/中毒/复活状态
  * - 每局固定种子可复现，默认跑 N 局
  * - 断言：多重死亡结算、复活后投票权恢复、保护抵消、疯狂/变异/伪装身份
- * - 核心：整夜不变式全绿 + 状态一致性（isDead/isAlive 协同、无死锁）
+ * - 核心：整夜不变式全绿 + 状态一致性（isDead 单一死亡标记、无死锁）
  *
  * 运行：npx tsx src/utils/invariantTesting/stressTest.ts [剧本] [局数] [夜数] [玩家数]
  *   npx tsx src/utils/invariantTesting/stressTest.ts bmr 20 5 9
@@ -151,7 +151,6 @@ function makeSeat(
     id,
     playerName: `P${id + 1}`,
     role: { id: role.id, name: role.name, type: role.type },
-    isAlive: true,
     isDead: false,
     isDrunk: false,
     isPoisoned: false,

@@ -9,11 +9,10 @@ import {
   pickChaosTargetId,
 } from "../../new_engine/deus_ex_fiasco.ability";
 
-const seat = (id: number, roleId: string, type: string, isAlive = true) => ({
+const seat = (id: number, roleId: string, type: string, alive = true) => ({
   id,
   playerName: `P${id + 1}`,
-  isDead: !isAlive,
-  isAlive,
+  isDead: !alive,
   role: { id: roleId, name: roleId, type },
   statusEffects: [],
 });
@@ -81,7 +80,7 @@ describe("天降横祸：提示预演与实际执行必须选中同一名玩家�
   });
 
   it("底层选择函数：同种子一致、跨夜仍随机、无存活玩家时返回 null", () => {
-    const alive = seats().filter((s) => s.isAlive);
+    const alive = seats().filter((s) => !s.isDead);
     const a = pickChaosTargetId(alive, createDeterministicRandom(seedFor(0, 1)));
     const b = pickChaosTargetId(alive, createDeterministicRandom(seedFor(0, 1)));
     expect(b).toBe(a);

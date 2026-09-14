@@ -566,7 +566,7 @@ describe("《暗月初升》镇民角色官方范例逐条验证 (Townsfolk Exam
       const r = await runFullAbilityPipeline(pipe(professorAbility), ctx);
       expect(r.meta.resurrectionSuccess).toBe(true);
       expect(r.snapshot.seats[1].isDead).toBe(false);
-      expect(r.snapshot.seats[1].isAlive).toBe(true);
+      expect(r.snapshot.seats[1].isDead).toBe(false);
     });
 
     it("范例 3: 醉酒的教授尝试复活死去的弄臣，无事发生且能力已消耗。", async () => {

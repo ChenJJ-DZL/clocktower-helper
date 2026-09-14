@@ -29,7 +29,6 @@ function seat(id: number, roleId: string, over: Partial<any> = {}): any {
     playerName: `P${id + 1}`,
     role: r(roleId),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],
@@ -104,7 +103,7 @@ describe("罂粟花开 · 前三日夜/白天跨天契约", () => {
   it("夜间死亡后：该座位在后续夜晚队列中消失", () => {
     const seats = baseGame();
     // 第 2 夜僧侣死亡
-    seats[2] = { ...seats[2], isDead: true, isAlive: false };
+    seats[2] = { ...seats[2], isDead: true, };
     const ids = queue(seats, 3).map((n) => n.roleId);
     expect(ids).not.toContain("monk");
     // 其他活着的其他夜角色仍在
@@ -115,7 +114,7 @@ describe("罂粟花开 · 前三日夜/白天跨天契约", () => {
     // 官方罂粟种植者：爪牙与恶魔互不相识，**直到罂粟种植者死亡**
     const seats = baseGame();
     // 第 2 夜罂粟种植者死亡 → 当晚应触发邪恶互认
-    seats[8] = { ...seats[8], isDead: true, isAlive: false };
+    seats[8] = { ...seats[8], isDead: true, };
     const q2 = queue(seats, 2, { poppyGrowerDead: true });
     const ids = q2.map((n) => n.roleId);
     expect(ids, "罂粟死亡当晚应重新出现爪牙互认").toContain("minion_info");
@@ -145,7 +144,7 @@ describe("罂粟花开 · 前三日夜/白天跨天契约", () => {
       // —— 黎明：模拟一次夜间死亡（第2天杀农夫位除外，这里杀 5 号酒鬼）——
       const victimId = day === 1 ? 5 : 6;
       if (day <= 2) {
-        seats[victimId] = { ...seats[victimId], isDead: true, isAlive: false };
+        seats[victimId] = { ...seats[victimId], isDead: true, };
       }
       const aliveNo = seats.filter((s) => !s.isDead).map((s) => s.id + 1);
       const deadThisNight = day <= 2 ? [victimId] : [];
@@ -166,7 +165,7 @@ describe("罂粟花开 · 前三日夜/白天跨天契约", () => {
 
   it("deadThisNight 只表示『今晚死的』，与累计死亡可区分", () => {
     const seats = baseGame();
-    seats[5] = { ...seats[5], isDead: true, isAlive: false }; // 第1夜死
+    seats[5] = { ...seats[5], isDead: true, }; // 第1夜死
     const deadThisNightNight2 = [6]; // 第2夜死的是 6 号
     const allDead = seats.filter((s) => s.isDead).map((s) => s.id);
     expect(allDead).toEqual([5]);

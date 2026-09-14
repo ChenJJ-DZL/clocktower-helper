@@ -90,7 +90,6 @@ const updateAssassinationStatus = async (
           if (seat.id === targetId) {
             return {
               ...seat,
-              isAlive: false,
               isDead: true,
               // 标记为刺客击杀，无视保护
               deathSource: "assassin_kill",

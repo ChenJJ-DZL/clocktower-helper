@@ -17,7 +17,7 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return {
       ...context,
       aborted: true,
@@ -53,7 +53,7 @@ const calculatePoisonTargets = async (
     };
   }
 
-  if (!targetSeat.isAlive) {
+  if (targetSeat.isDead) {
     return {
       ...context,
       aborted: true,
@@ -91,7 +91,6 @@ const updatePoisonState = async (
       if (oldPoison && !seat.isDead) {
         return {
           ...seat,
-          isAlive: false,
           isDead: true,
           markedForDeath: true,
           diedAtNight: snapshot.nightCount,

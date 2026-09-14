@@ -19,7 +19,6 @@ export interface TaowuSeatLike {
   id: number;
   role?: { id?: string; type?: string } | null;
   isDead?: boolean;
-  isAlive?: boolean;
   statusEffects?: Array<{ type?: string }>;
   [key: string]: any;
 }
@@ -33,7 +32,7 @@ export function isTaowuSeat(seat: TaowuSeatLike | undefined): boolean {
  * 判断爪牙是否"具有能力"（未被中毒/醉酒/失去能力）。
  */
 export function isMinionCapable(seat: TaowuSeatLike | undefined): boolean {
-  if (!seat || seat.isDead || seat.isAlive === false) return false;
+  if (!seat || seat.isDead) return false;
   if (seat.role?.type !== "minion") return false;
   const effects = seat.statusEffects ?? [];
   const lost = effects.some(

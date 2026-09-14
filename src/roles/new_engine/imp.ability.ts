@@ -78,7 +78,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
@@ -115,7 +114,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -178,7 +177,7 @@ function findAliveMinions(
 ): PlayerLookup[] {
   const minions = seats.filter((s: PlayerLookup) => {
     if (s.id === excludeId) return false;
-    if (s.isDead || s.isAlive === false) return false;
+    if (s.isDead === true) return false;
     return getRoleType(s) === "minion";
   });
 
@@ -415,7 +414,8 @@ const stateUpdateResult = async (
         targetSeat,
         aliveCount,
         undefined,
-        storytellerInput?.mayorSubstituteId
+        storytellerInput?.mayorSubstituteId,
+        `mayorKill|${(snapshot as any)?.nightCount ?? 0}|imp`
       );
 
       if (isProtected) {

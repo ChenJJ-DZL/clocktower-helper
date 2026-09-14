@@ -28,7 +28,7 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive || seat.role.type !== "demon") {
+  if (!seat || seat.isDead || seat.role.type !== "demon") {
     return {
       ...context,
       aborted: true,
@@ -56,7 +56,7 @@ const calculateKillTargets = async (
   // 验证存活目标，沙巴洛斯可选择已死亡玩家
   const validTargets = targetIds.filter((targetId) => {
     const targetSeat = snapshot.seats.find((s) => s.id === targetId);
-    return targetSeat?.isAlive;
+    return !targetSeat?.isDead;
   });
 
   return {
@@ -92,7 +92,8 @@ const updateKillState = async (
         targetSeat,
         aliveCount,
         undefined,
-        storytellerInput?.mayorSubstituteId
+        storytellerInput?.mayorSubstituteId,
+        `mayorKill|${(snapshot as any)?.nightCount ?? 0}|shabaloth`
       );
       if (mayorRes.isMayor) {
         console.log(`[Shabaloth] ${mayorRes.logMessage}`);
@@ -131,7 +132,6 @@ const updateKillState = async (
       if (regurgitateTargetId != null && seat.id === regurgitateTargetId && seat.isDead) {
         return {
           ...seat,
-          isAlive: true,
           isDead: false,
           markedForDeath: false,
           diedAtNight: undefined,
@@ -168,7 +168,6 @@ const updateKillState = async (
 
         return {
           ...seat,
-          isAlive: false,
           isDead: true,
           markedForDeath: true,
           diedAtNight: snapshot.nightCount,
@@ -181,7 +180,6 @@ const updateKillState = async (
       if (substituteIdsToKill.has(seat.id)) {
         return {
           ...seat,
-          isAlive: false,
           isDead: true,
           markedForDeath: true,
           diedAtNight: snapshot.nightCount,

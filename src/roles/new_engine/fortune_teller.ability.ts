@@ -99,7 +99,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   alignment?: string;
   role?: {
@@ -134,7 +133,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -250,26 +249,48 @@ export function pickBoonSeatId(
 }
 
 /**
+ * 读取座位数组上由说书人在开局写下的「天敌红罗刹」标记。
+ *
+ * ⚠️ 单一事实来源铁律（2026-09-14 用户实测缺陷后确立）：
+ *  工程里曾经同时存在两套彼此独立的红罗刹机制 ——
+ *   ① 座位标记 `isRedHerring` / `isFortuneTellerRedHerring`
+ *      （`useGameFlow.proceedToCheckPhase` 开局写入、说书人可见、随快照存档）
+ *   ② 内存 Map `fortuneTellerBoonManager`（本能力内部又自己随机挑一次、说书人不可见、不存档）
+ *  官方只允许**恰好 1 名**天敌红罗刹 → 两套各自随机必然打架：
+ *  说书人标记 3 号、能力却随机到 2 号，于是「占卜 1+2 号（都善良）报『有』」这种凭空造恶魔。
+ *
+ *  ⇒ 座位标记是**唯一权威来源**，内存 Boon 只是它的缓存视图。
+ */
+export function findSeatFlaggedRedHerring(
+  seats: PlayerLookup[]
+): number | null {
+  const flagged = seats.find(
+    (s: any) => s.isRedHerring === true || s.isFortuneTellerRedHerring === true
+  );
+  return flagged ? flagged.id : null;
+}
+
+/**
  * 首夜：初始化占卜师干扰项（Boon）。
  *
  * 对应规则："在为首个夜晚进行准备时，将占卜师的'干扰项'提示标记
  * 放置在任意善良角色标记旁，标记那名玩家为'干扰项'。"
  *
- * 实现：从非占卜师、非邪恶的存活玩家中随机选一名。
- * 如果不存在（极端情况），则选占卜师自身作为干扰项。
- *
- * 复用项目中已有的 FortuneTellerBoonManager。
+ * 取值优先级（从高到低）：
+ *  1. `storytellerInput.boonSeatId`                 — 说书人本次显式指定
+ *  2. 座位标记 `isRedHerring`/`isFortuneTellerRedHerring` — 开局已写下的**唯一事实来源**
+ *  3. 两者都缺位 → **不启用干扰项**（绝不随机发明一个红罗刹）
  */
 function initializeBoon(
   seats: PlayerLookup[],
   fortuneTellerSeatId: number,
   gameId: string,
-  explicitBoonId?: number,
-  rng: DeterministicRandom = Math.random
+  explicitBoonId?: number
 ): void {
   // 已初始化则跳过
   if (fortuneTellerBoonManager.getCurrentBoon(gameId) !== null) return;
 
+  // 优先级 1：说书人本次显式指定
   if (explicitBoonId !== undefined) {
     fortuneTellerBoonManager.initializeBoon(
       gameId,
@@ -279,27 +300,30 @@ function initializeBoon(
     return;
   }
 
-  // 筛选候选：存活、非占卜师、非邪恶
-  const candidates = seats.filter((s: PlayerLookup) => {
-    if (s.id === fortuneTellerSeatId) return false;
-    if (s.isDead) return false;
-    const roleType = s.role?.type ?? "";
-    if (roleType === "demon" || roleType === "minion") return false;
-    if (s.alignment === "evil") return false;
-    if (s.isEvilConverted) return false;
-    return true;
-  });
+  // 优先级 2：开局由 useGameFlow 写下的座位标记 —— 必须尊重，不得另行随机
+  const flaggedSeatId = findSeatFlaggedRedHerring(seats);
+  if (flaggedSeatId !== null) {
+    fortuneTellerBoonManager.initializeBoon(
+      gameId,
+      fortuneTellerSeatId,
+      flaggedSeatId
+    );
+    console.log(
+      `[FortuneTeller] Boon from seat flag: FT=${fortuneTellerSeatId}, boon=${flaggedSeatId}`
+    );
+    return;
+  }
 
-  const boonSeatId = pickBoonSeatId(candidates, fortuneTellerSeatId, rng);
-
-  fortuneTellerBoonManager.initializeBoon(
-    gameId,
-    fortuneTellerSeatId,
-    boonSeatId
-  );
-
-  console.log(
-    `[FortuneTeller] Boon initialized: FT=${fortuneTellerSeatId}, boon=${boonSeatId}`
+  // 优先级 3：无座位标记 → **不发明红罗刹**。
+  //
+  //  ⚠️ 铁律（2026-09-14 用户实测缺陷）：绝不能"随机挑一个人当红罗刹"。
+  //  曾经这里兜底随机 → 无标记的纯净局面下，占卜两名善良玩家会凭空报「有」，
+  //  即**无中生有地捏造一名恶魔**。红罗刹只能由说书人在开局显式放置
+  //  （`useGameFlow.proceedToCheckPhase` / `proceedToFirstNight` 写座位标记），
+  //  能力本身**无权决定谁是红罗刹**。
+  console.warn(
+    `[FortuneTeller] 座位无红罗刹标记 → 本次不启用干扰项误报（不发明红罗刹）。` +
+      `FT=${fortuneTellerSeatId}, 候选=${seats.length} 人`
   );
 }
 
@@ -351,24 +375,12 @@ const calculateResult = async (
   const gameId = (snapshot as any).gameId || "default";
   const isFirstNight = (snapshot.nightCount ?? 0) === 1;
 
-  // 🎲 确定性随机：同一夜、同一占卜师的重复计算（提示预演 / 实际执行）必须挑到
-  // 同一名"干扰项"，否则说书人照预演念、魔典却按另一个人标记。
-  const rng = createDeterministicRandom(
-    nightInfoSeed(
-      "fortune_teller",
-      selfSeatId,
-      snapshot.nightCount ?? 1
-    )
-  );
-
+  // 🎲 已废弃「能力内部自行随机挑干扰项」的做法（2026-09-14）：
+  //  干扰项的唯一来源是说书人开局写下的座位标记 `isRedHerring`
+  //  （`useGameFlow.proceedToCheckPhase` / `proceedToFirstNight`），
+  //  因此这里不再需要确定性随机器。历史教训：内部随机 → 无标记局凭空捏造恶魔。
   if (isFirstNight) {
-    initializeBoon(
-      seats,
-      selfSeatId,
-      gameId,
-      storytellerInput?.boonSeatId,
-      rng
-    );
+    initializeBoon(seats, selfSeatId, gameId, storytellerInput?.boonSeatId);
   }
 
   let result: boolean;

@@ -6,6 +6,7 @@ import {
   typeLabels,
 } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { isTownsfolkOrOutsiderRole } from "../../utils/seatAlignment";
 import { ModalWrapper } from "./ModalWrapper";
 
 export function RoleSelectModal({ modal }: { modal: any }) {
@@ -49,7 +50,7 @@ export function RoleSelectModal({ modal }: { modal: any }) {
           {roles
             .filter((r: Role) => {
               if (modal.type === "philosopher") {
-                return r.type === "townsfolk" || r.type === "outsider";
+                return isTownsfolkOrOutsiderRole(r);
               }
               if (modal.type === "cerenovus") {
                 // 洗脑师：范围是剧本内的所有角色（无论是否在场、无论阵营类型）

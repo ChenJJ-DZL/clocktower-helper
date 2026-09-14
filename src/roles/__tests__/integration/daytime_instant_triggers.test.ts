@@ -1,7 +1,7 @@
 /**
  * 白天即时结算/特殊处决/公开击杀 — 状态原子性专项测试
  *
- * W8.19.9 — 验证所有白天即时触发角色的 isAlive/abilityUsed/canNominate 原子性
+ * W8.19.9 — 验证所有白天即时触发角色的 isDead/abilityUsed/canNominate 原子性
  *
  * 角色矩阵：
  * 1. 贞洁者 (Virgin)：提名者立即处决 + 能力消耗
@@ -33,7 +33,6 @@ function mkSeat(
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     role: { id: roleId, name: roleName, type },
     effectiveRole: null,
     charadeRole: null,
@@ -86,7 +85,7 @@ describe("贞洁者 (Virgin) — 白天即时处决原子性", () => {
     };
   }
 
-  test("镇民提名贞洁者 → 提名者 isAlive=false + 贞洁者 abilityUsed=true", async () => {
+  test("镇民提名贞洁者 → 提名者 isDead=true + 贞洁者 abilityUsed=true", async () => {
     const virgin = mkSeat(0, "virgin", "贞洁者", "townsfolk");
     const chef = mkSeat(1, "chef", "厨师", "townsfolk");
     const ctx = buildVirginCtx([virgin, chef], 1);
@@ -100,7 +99,7 @@ describe("贞洁者 (Virgin) — 白天即时处决原子性", () => {
     // 贞洁者能力已消耗
     expect(virginAfter.abilityUsed).toBe(true);
     // 提名者（厨师）被处决
-    expect(chefAfter.isAlive).toBe(false);
+    expect(chefAfter.isDead).toBe(true);
     expect(chefAfter.executedToday).toBe(true);
     expect(chefAfter.deathReason).toBe("被贞洁者处决");
   });
@@ -133,7 +132,7 @@ describe("贞洁者 (Virgin) — 白天即时处决原子性", () => {
     // 贞洁者能力仍消耗
     expect(virginAfter.abilityUsed).toBe(true);
     // 投毒者不被处决
-    expect(poisonerAfter.isAlive).toBe(true);
+    expect(poisonerAfter.isDead).toBe(false);
     expect(poisonerAfter.executedToday).toBeUndefined();
   });
 
@@ -154,7 +153,7 @@ describe("贞洁者 (Virgin) — 白天即时处决原子性", () => {
     // 能力仍消耗（规则：不论是否醉酒中毒，都要放置"失去能力"标记）
     expect(virginAfter.abilityUsed).toBe(true);
     // 醉酒能力无效，不处决
-    expect(chefAfter.isAlive).toBe(true);
+    expect(chefAfter.isDead).toBe(false);
   });
 
   test("已使用能力的贞洁者再次被提名 → 管道中止", async () => {
@@ -201,7 +200,7 @@ describe("魔像 (Golem) — 提名击杀原子性", () => {
     };
   }
 
-  test("魔像提名非恶魔 → 目标 isAlive=false + 限次能力消耗", async () => {
+  test("魔像提名非恶魔 → 目标 isDead=true + 限次能力消耗", async () => {
     const golem = mkSeat(0, "golem", "魔像", "outsider");
     const chef = mkSeat(1, "chef", "厨师", "townsfolk");
     const ctx = buildGolemCtx([golem, chef], 1);
@@ -212,7 +211,7 @@ describe("魔像 (Golem) — 提名击杀原子性", () => {
     const chefAfter = seats.find((s: any) => s.id === 1);
 
     // 目标死亡
-    expect(chefAfter.isAlive).toBe(false);
+    expect(chefAfter.isDead).toBe(true);
     expect(chefAfter.isDead).toBe(true);
     expect(chefAfter.deathSource).toBe("golem_nominate");
     expect(result.meta.targetKilled).toBe(true);
@@ -229,7 +228,7 @@ describe("魔像 (Golem) — 提名击杀原子性", () => {
     const impAfter = seats.find((s: any) => s.id === 1);
 
     // 恶魔不死
-    expect(impAfter.isAlive).toBe(true);
+    expect(impAfter.isDead).toBe(false);
     // 但能力已消耗（限次）
     expect(canUseLimitedAbility(0, "golem_nominate")).toBe(false);
   });
@@ -281,7 +280,7 @@ describe("猎手 (Slayer) — 点射恶魔原子性", () => {
     };
   }
 
-  test("猎手点射真恶魔 → 恶魔 isAlive=false + 能力消耗", async () => {
+  test("猎手点射真恶魔 → 恶魔 isDead=true + 能力消耗", async () => {
     const slayer = mkSeat(0, "slayer", "猎手", "townsfolk");
     const imp = mkSeat(1, "imp", "小恶魔", "demon");
     const ctx = buildSlayerCtx([slayer, imp], 1);
@@ -293,7 +292,7 @@ describe("猎手 (Slayer) — 点射恶魔原子性", () => {
     const impAfter = seats.find((s: any) => s.id === 1);
 
     // 恶魔死亡
-    expect(impAfter.isAlive).toBe(false);
+    expect(impAfter.isDead).toBe(true);
     expect(impAfter.deathReason).toBe("被猎手杀死");
     // 猎手能力消耗
     expect(slayerAfter.abilityUsed).toBe(true);
@@ -314,7 +313,7 @@ describe("猎手 (Slayer) — 点射恶魔原子性", () => {
     const chefAfter = seats.find((s: any) => s.id === 1);
 
     // 目标不死
-    expect(chefAfter.isAlive).toBe(true);
+    expect(chefAfter.isDead).toBe(false);
     // 猎手能力消耗
     expect(slayerAfter.abilityUsed).toBe(true);
     // 游戏不结束
@@ -336,7 +335,7 @@ describe("猎手 (Slayer) — 点射恶魔原子性", () => {
     const impAfter = seats.find((s: any) => s.id === 1);
 
     // 醉酒能力无效，恶魔不死
-    expect(impAfter.isAlive).toBe(true);
+    expect(impAfter.isDead).toBe(false);
     // 但能力仍消耗
     expect(slayerAfter.abilityUsed).toBe(true);
   });
@@ -385,7 +384,7 @@ describe("精神病患者 (Psychopath) — 公开击杀原子性", () => {
     };
   }
 
-  test("精神病患者击杀目标 → 目标 isAlive=false", async () => {
+  test("精神病患者击杀目标 → 目标 isDead=true", async () => {
     const psychopath = mkSeat(0, "psychopath", "精神病患者", "minion");
     const chef = mkSeat(1, "chef", "厨师", "townsfolk");
     const ctx = buildPsychopathCtx([psychopath, chef], 1);
@@ -396,14 +395,13 @@ describe("精神病患者 (Psychopath) — 公开击杀原子性", () => {
     const chefAfter = seats.find((s: any) => s.id === 1);
 
     // 目标死亡
-    expect(chefAfter.isAlive).toBe(false);
+    expect(chefAfter.isDead).toBe(true);
     expect(chefAfter.isDead).toBe(true);
     expect(chefAfter.deathSource).toBe("psychopath_kill");
   });
 
   test("精神病患者死亡时 → 管道中止", async () => {
     const psychopath = mkSeat(0, "psychopath", "精神病患者", "minion", {
-      isAlive: false,
       isDead: true,
     });
     const chef = mkSeat(1, "chef", "厨师", "townsfolk");
@@ -460,7 +458,7 @@ describe("交叉场景 — 多角色白天连续即时触发", () => {
     const seatsAfterVirgin = virginResult.snapshot.seats as any[];
 
     // 厨师已死
-    expect(seatsAfterVirgin.find((s: any) => s.id === 1).isAlive).toBe(false);
+    expect(seatsAfterVirgin.find((s: any) => s.id === 1).isDead).toBe(true);
     // 贞洁者能力已消耗
     expect(seatsAfterVirgin.find((s: any) => s.id === 0).abilityUsed).toBe(
       true
@@ -503,7 +501,7 @@ describe("交叉场景 — 多角色白天连续即时触发", () => {
       true
     );
     // 恶魔死亡
-    expect(seatsAfterSlayer.find((s: any) => s.id === 3).isAlive).toBe(false);
+    expect(seatsAfterSlayer.find((s: any) => s.id === 3).isDead).toBe(true);
     // 游戏结束
     expect(slayerResult.snapshot.gamePhase).toBe("gameOver");
   });

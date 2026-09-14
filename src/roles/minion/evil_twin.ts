@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 
 /**
  * 镜像双子
@@ -113,7 +114,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
         seats.find(
           (s: any) =>
             s.id !== playerSeatId &&
-            (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
+            (isSeatTownsfolkOrOutsider(s)) &&
             !s.isEvilConverted &&
             !s.isDead
         ) ||

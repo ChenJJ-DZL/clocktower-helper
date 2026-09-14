@@ -38,7 +38,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const aliveSeats = ctx.snapshot.seats.filter((s: any) => s.isAlive);
+  const aliveSeats = ctx.snapshot.seats.filter((s: any) => !s.isDead);
   // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须选中
   // 同一名玩家，否则提示里写的「随机选中N号」会与结算结果对不上。
   const rng = createDeterministicRandom(

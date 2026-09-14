@@ -19,7 +19,6 @@ function makeSeat(
     id,
     role: { id: roleId, name: roleId, type } as Role,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     isProtected: false,

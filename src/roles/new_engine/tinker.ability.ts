@@ -41,7 +41,7 @@ const calculateResult = async (
       ...context.meta,
       abilityResult: {
         tinkerSeatId: actionNode.seatId,
-        isAlive: tinkerSeat?.isAlive ?? true,
+        isDead: tinkerSeat?.isDead === true,
         isProtected,
         shouldDie,
       },
@@ -61,7 +61,6 @@ const stateUpdate = async (
     if (seat.id === result.tinkerSeatId && !seat.isDead) {
       return {
         ...seat,
-        isAlive: false,
         isDead: true,
         diedAtNight: snapshot.nightCount,
         deathSource: "tinker_sudden_death",

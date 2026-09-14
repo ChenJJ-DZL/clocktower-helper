@@ -14,7 +14,6 @@ function mkSeat(
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     role: { id: roleId, name: roleName, type },
     isDrunk: false,
     isPoisoned: false,
@@ -74,7 +73,7 @@ describe("士兵免疫恶魔攻击（imp 杀人路径）", () => {
     const updatedSeat = result.snapshot.seats.find((s: any) => s.id === 0);
     expect(updatedSeat.markedForDeath).toBeUndefined();
     expect(updatedSeat.isDead).toBeFalsy();
-    expect(updatedSeat.isAlive).not.toBe(false);
+    expect(updatedSeat.isDead).not.toBe(true);
   });
 
   test("小恶魔杀普通镇民 -> 目标死亡", async () => {

@@ -63,7 +63,6 @@ function seats(
       id: i,
       role: r(id),
       isDead: dead.has(i),
-      isAlive: !dead.has(i),
       isDrunk: !!(opts.drunk && i === 0),
       isPoisoned: !!(opts.poisoned && i === 0),
     };
@@ -199,7 +198,6 @@ describe("第1轮 · 神谕者 oracle（3 夜 × 6 状态）", () => {
         id,
         role: { id: roleId, name: roleId, type } as any,
         isDead: dead,
-        isAlive: !dead,
       } as any);
 
     const seatsArr = [
@@ -238,9 +236,9 @@ describe("第1轮 · 神谕者 oracle（3 夜 × 6 状态）", () => {
 
   it("④ 变邪恶的镇民也应计入（官方：任何属于邪恶阵营的玩家）", async () => {
     const seatsArr = [
-      { id: 0, role: r("oracle"), isDead: false, isAlive: true },
-      { id: 1, role: r("chef"), isDead: true, isAlive: false, isEvilConverted: true },
-      { id: 2, role: r("imp"), isDead: true, isAlive: false },
+      { id: 0, role: r("oracle"), isDead: false, },
+      { id: 1, role: r("chef"), isDead: true, isEvilConverted: true },
+      { id: 2, role: r("imp"), isDead: true, },
     ] as any;
     const res = await runFullAbilityPipeline(pipe(oracleAbility), {
       actionNode: { seatId: 0, roleId: "oracle" },
@@ -259,10 +257,10 @@ describe("第1轮 · 神谕者 oracle（3 夜 × 6 状态）", () => {
 
   it("⑤ 陌客/间谍默认登记：核实是否为官方口径", async () => {
     const seatsArr = [
-      { id: 0, role: r("oracle"), isDead: false, isAlive: true },
-      { id: 1, role: r("recluse"), isDead: true, isAlive: false }, // 无 registerAsEvil 字段
-      { id: 2, role: r("spy"), isDead: true, isAlive: false }, // 无 registerAsEvil 字段
-      { id: 3, role: r("imp"), isDead: true, isAlive: false },
+      { id: 0, role: r("oracle"), isDead: false, },
+      { id: 1, role: r("recluse"), isDead: true, }, // 无 registerAsEvil 字段
+      { id: 2, role: r("spy"), isDead: true, }, // 无 registerAsEvil 字段
+      { id: 3, role: r("imp"), isDead: true, },
     ] as any;
     const res = await runFullAbilityPipeline(pipe(oracleAbility), {
       actionNode: { seatId: 0, roleId: "oracle" },

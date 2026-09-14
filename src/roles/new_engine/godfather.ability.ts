@@ -16,7 +16,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -66,7 +66,6 @@ const stateUpdate = async (
         seat.id === r.targetId && !seat.isDead
           ? {
               ...seat,
-              isAlive: false,
               isDead: true,
               markedForDeath: true,
               diedAtNight: ctx.snapshot.nightCount,

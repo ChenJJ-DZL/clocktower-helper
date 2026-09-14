@@ -47,6 +47,7 @@ import {
   buildCorruptedInfoPlayerText,
   classifyCorruptedInfoRole,
 } from "../../utils/corruptedInfo";
+import { chefMaxPlausiblePairs } from "../../roles/new_engine/chef.ability";
 import { isInformationRole } from "../../utils/informationRoles";
 import { PlayerViewProvider, StorytellerOnly } from "./PlayerViewContext";
 import { StorytellerTuningPanel } from "./StorytellerTuningPanel";
@@ -267,6 +268,13 @@ export function NightActionPage({
           candidateSeatIds: seats
             .filter((s) => s.id !== seatId)
             .map((s) => s.id),
+          // ⚠️ 厨师「相邻邪恶对」的上界依赖本局棋盘（邪恶人数 - 1）。
+          //    必须与 `pickChefFakePairCount` 收到的上界**同一个值**，
+          //    否则玩家结果页会重新随机出一个与提示/结算不同的数字（越界值还会泄漏干扰）。
+          maxValue:
+            roleId === "chef"
+              ? chefMaxPlausiblePairs(seats as any)
+              : undefined,
           corrupted: true,
         })
       : rawPlayerGuide;

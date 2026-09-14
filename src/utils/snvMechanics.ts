@@ -2,15 +2,14 @@
  * 《梦殒春宵》（Sects & Violets）专属规则与判定工具库
  */
 import type { Seat } from "../../app/data";
+import { isSeatGood } from "./seatAlignment";
 
+/**
+ * @deprecated 用 `isSeatGood`（`utils/seatAlignment`）。
+ * 保留旧名仅为兼容调用点；实现已转发到全项目唯一权威。
+ */
 export function isGoodAlignment(seat: Seat | undefined | null): boolean {
-  if (!seat) return false;
-  if (seat.isEvilConverted) return false;
-  if (seat.isGoodConverted) return true;
-  if ((seat as any).alignment === "evil") return false;
-  if ((seat as any).alignment === "good") return true;
-  const roleType = seat.role?.type;
-  return roleType === "townsfolk" || roleType === "outsider";
+  return isSeatGood(seat);
 }
 
 export function calculateClockmakerDistance(seats: Seat[]): number {

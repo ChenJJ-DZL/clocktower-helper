@@ -39,7 +39,7 @@ const preCheckAlive = async (
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...ctx, aborted: true, abortReason: "穷奇已死亡，技能失效" };
   }
   if ((ctx.snapshot.nightCount ?? 1) === 1) {
@@ -167,7 +167,6 @@ const stateUpdateResult = async (
         });
         updatedSeats[targetIdx] = {
           ...target,
-          isAlive: false,
           isDead: true,
           markedForDeath: true,
           diedAtNight: nightCount,
@@ -191,7 +190,6 @@ const stateUpdateResult = async (
           if (extraIdx !== -1) {
             updatedSeats[extraIdx] = {
               ...updatedSeats[extraIdx],
-              isAlive: false,
               isDead: true,
               markedForDeath: true,
               diedAtNight: nightCount,

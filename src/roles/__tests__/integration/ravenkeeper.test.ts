@@ -18,7 +18,6 @@ function s(
     id,
     playerName: `P${id + 1}`,
     isDead: !!o?.dead,
-    isAlive: !o?.dead,
     isDrunk: false,
     isPoisoned: false,
     role: { id: rid, name: n[rid] || rid, type: rt },

@@ -81,7 +81,8 @@ const calculate = async (
     target,
     undefined,
     undefined,
-    ctx.storytellerInput?.mayorSubstituteId
+    ctx.storytellerInput?.mayorSubstituteId,
+    `mayorKill|${(ctx.snapshot as any)?.nightCount ?? 0}|legion`
   );
   if (mayorResult.substituted && mayorResult.substituteSeat) {
     return {
@@ -128,7 +129,7 @@ const stateUpdate = async (
   //   只写 markedForDeath 时，如果该座位没走到 syncStatusEffectsToSeat 的翻译，
   //   isDead 就不会落地 → useNightActionHandler 的 prev/new isDead 补记逻辑不触发
   //   → deadThisNight 永远为空 → 天亮播报错误地宣布「平安夜」（用户实测：军团局有人死亡仍报平安夜）。
-  //   因此这里同时落地 isDead / isAlive，并显式补记 deadThisNight。
+  //   因此这里直接落地 isDead，并显式补记 deadThisNight。
   const prevDeadThisNight: number[] = (ctx.snapshot as any).deadThisNight ?? [];
   const nextDeadThisNight = prevDeadThisNight.includes(victimId)
     ? prevDeadThisNight
@@ -139,7 +140,6 @@ const stateUpdate = async (
       return {
         ...s,
         isDead: true,
-        isAlive: false,
         markedForDeath: true,
         deathSource: "demon",
         deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? -1,

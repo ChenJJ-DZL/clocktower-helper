@@ -7,6 +7,7 @@
  * 若无可杀目标（全场无善良存活），则跳过。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -16,7 +17,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (seat?.isAlive) return { ...ctx, aborted: true, abortReason: "尚未死亡" };
+  if (seat && !seat.isDead) return { ...ctx, aborted: true, abortReason: "尚未死亡" };
   // 已触发过则不再触发
   if ((ctx.snapshot as any).klutzTriggered)
     return { ...ctx, aborted: true, abortReason: "已触发过" };
@@ -44,15 +45,8 @@ const calculate = async (
   }
 
   const chosenSeat = ctx.snapshot.seats.find((s: any) => s.id === targetId);
-  const isEvil = (() => {
-    if (!chosenSeat) return false;
-    if (chosenSeat.isEvilConverted) return true;
-    if (chosenSeat.isGoodConverted) return false;
-    if ((chosenSeat as any).alignment === "evil") return true;
-    if ((chosenSeat as any).alignment === "good") return false;
-    const t = chosenSeat.role?.type;
-    return t === "minion" || t === "demon";
-  })();
+  // 阵营判定统一走 utils/seatAlignment（转换标记 > 角色类型 > 兼容 alignment）
+  const isEvil = isSeatEvil(chosenSeat);
 
   return {
     ...ctx,

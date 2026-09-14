@@ -28,7 +28,6 @@ function seat(
     playerName: `P${id + 1}`,
     role: r(roleId),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],
@@ -37,7 +36,7 @@ function seat(
 }
 
 /** 把一个座位标记为死亡 */
-const dead = (s: any) => ({ ...s, isDead: true, isAlive: false });
+const dead = (s: any) => ({ ...s, isDead: true, });
 
 describe("罂粟花开 · 白天/终局胜负规则", () => {
   // ─── 军团 ───────────────────────────────────────────────

@@ -48,7 +48,7 @@ const preCheckTargetDead = async (
   }
 
   const targetSeat = snapshot.seats.find((s) => s.id === targetId);
-  if (!targetSeat || targetSeat.isAlive) {
+  if (!targetSeat || !targetSeat.isDead) {
     return {
       ...context,
       aborted: true,
@@ -95,7 +95,6 @@ const updateResurrectionStatus = async (
         if (seat.id === targetId) {
           return {
             ...seat,
-            isAlive: true,
             isDead: false,
             markedForDeath: false,
             diedAtNight: undefined,

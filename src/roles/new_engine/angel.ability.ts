@@ -7,6 +7,7 @@
  * 首夜保护一名玩家。若目标为善良，双方互知。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -16,7 +17,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -28,8 +29,7 @@ const calculate = async (
     targetId != null
       ? ctx.snapshot.seats.find((s: any) => s.id === targetId)
       : null;
-  const isGood =
-    target?.role?.type === "townsfolk" || target?.role?.type === "outsider";
+  const isGood = isSeatTownsfolkOrOutsider(target);
 
   return {
     ...ctx,

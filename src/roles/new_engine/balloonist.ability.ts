@@ -41,7 +41,7 @@ const calculateResult = async (
   }
 
   // 存活玩家候选池
-  const aliveSeats = snapshot.seats.filter((s: any) => s.isAlive);
+  const aliveSeats = snapshot.seats.filter((s: any) => !s.isDead);
 
   let candidateSeats: any[] = [];
   if (isAbilityActive) {

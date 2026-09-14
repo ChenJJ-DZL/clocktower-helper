@@ -18,6 +18,7 @@
  *     由队列最前的 EVIL_CONVERTED_NOTICE_ID 步骤承担（见 utils/nightStepIds.ts）。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -45,7 +46,7 @@ export function pickFakeBountyTargetId(
 ): number {
   const nonEvilAlive = seats.filter(
     (s: any) =>
-      s.isAlive &&
+      !s.isDead &&
       s.id !== selfSeatId &&
       !aliveEvils.some((e: any) => e.id === s.id)
   );
@@ -102,10 +103,7 @@ const rotationOnlyAfterKnownDeathCheck = async (
   const seat = snapshot.seats?.find((s: any) => s.id === current);
   const diedThisNight: number[] = snapshot.deadThisNight ?? [];
   const knownIsDead =
-    !seat ||
-    seat.isDead === true ||
-    seat.isAlive === false ||
-    diedThisNight.includes(current);
+    !seat || seat.isDead === true || diedThisNight.includes(current);
 
   if (knownIsDead) {
     // 因「已知目标死亡」而唤醒 → 标记为死亡轮转（日志/UI 会显示"（死亡轮转）"）
@@ -150,14 +148,10 @@ const calculateResult = async (
     // 排除：自己 + 已告知 + （默认）已死亡
     const aliveEvils = ctx.snapshot.seats.filter(
       (s: any) =>
-        s.isAlive &&
+        !s.isDead &&
         s.id !== ctx.actionNode.seatId &&
-        s.role &&
         !knownTargets.includes(s.id) &&
-        (s.role.type === "minion" ||
-          s.role.type === "demon" ||
-          s.isEvilConverted ||
-          s.alignment === "evil")
+        isSeatEvil(s)
     );
 
     const hasVortox =

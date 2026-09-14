@@ -5,6 +5,7 @@ import type React from "react";
 import { useEffect, useMemo, useRef } from "react";
 import { useGameActions } from "../contexts/GameActionsContext";
 import { useSeatView } from "../hooks/useSeatView";
+import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
 import type { SeatNodeProps } from "./SeatNode.types"; // We should extract props too
 import { RoleNameLines } from "./common/RoleNameLines";
 import { useGrimoireTooltip } from "./tooltip/GrimoireTooltip";
@@ -34,7 +35,7 @@ function computeIsGoodTwin(s: any, seats: any[]): boolean {
     seats.find(
       (other) =>
         other.id !== evilSeat.id &&
-        (other.role?.type === "townsfolk" || other.role?.type === "outsider") &&
+        isSeatTownsfolkOrOutsider(other) &&
         !other.isEvilConverted &&
         !other.isDead
     ) || seats.find((other) => other.id !== evilSeat.id && !other.isDead);

@@ -54,7 +54,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   effectiveRole?: { id: string; name: string; type: string };
@@ -141,7 +140,7 @@ const calculateResult = async (
     }
   } else if (abilityEffective && targetIds?.[0] !== undefined) {
     const targetSeat = snapshot.seats.find((s: any) => s.id === targetIds[0]);
-    if (targetSeat?.isAlive) {
+    if (targetSeat && !targetSeat.isDead) {
       substituteSeatId = targetIds[0];
       substitutionHappens = true;
     }
@@ -196,7 +195,7 @@ const stateUpdateResult = async (
     if (seat.id === selfSeatId) {
       return {
         ...seat,
-        isAlive: true,
+        isDead: false,
         deathReason: undefined,
         deathPhase: undefined,
         executedToday: undefined,
@@ -205,7 +204,7 @@ const stateUpdateResult = async (
     if (seat.id === result.substituteSeatId) {
       return {
         ...seat,
-        isAlive: false,
+        isDead: true,
         deathReason: originalDeathReason,
         deathPhase: seat.deathPhase ?? "night",
         substitutedForMayor: true,

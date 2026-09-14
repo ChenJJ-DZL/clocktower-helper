@@ -80,7 +80,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
@@ -109,7 +108,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return {
       ...context,
       aborted: true,
@@ -147,7 +146,7 @@ const checkDemonDeathCondition = async (
 
   // 存活玩家计数（排除旅行者 — 规则："旅行者的数量不会计算在内"）
   const aliveNonTravelerCount = seats.filter((s: PlayerLookup) => {
-    if (s.isDead || s.isAlive === false) return false;
+    if (s.isDead === true) return false;
     const roleType = s.role?.type ?? s.roleType ?? "";
     return roleType !== "traveler";
   }).length;
@@ -155,7 +154,7 @@ const checkDemonDeathCondition = async (
   // 检测是否有恶魔死亡
   const demonDead = seats.some((s: PlayerLookup) => {
     const roleType = s.role?.type ?? s.roleType ?? "";
-    return roleType === "demon" && (s.isDead || s.isAlive === false);
+    return roleType === "demon" && (s.isDead === true);
   });
 
   return {
@@ -191,7 +190,7 @@ function getRoleId(seat: PlayerLookup): string {
 function findDeadDemonRoleId(seats: PlayerLookup[]): string {
   const deadDemon = seats.find((s: PlayerLookup) => {
     const roleType = s.role?.type ?? s.roleType ?? "";
-    return roleType === "demon" && (s.isDead || s.isAlive === false);
+    return roleType === "demon" && (s.isDead === true);
   });
   return deadDemon ? getRoleId(deadDemon) || "imp" : "imp";
 }
@@ -244,7 +243,7 @@ const calculateTransformCondition = async (
   // 尝试获取恶魔的中文名
   const deadDemonSeat = seats.find((s: PlayerLookup) => {
     const roleType = s.role?.type ?? s.roleType ?? "";
-    return roleType === "demon" && (s.isDead || s.isAlive === false);
+    return roleType === "demon" && (s.isDead === true);
   });
   const demonName =
     deadDemonSeat?.role?.name ?? deadDemonSeat?.roleName ?? "小恶魔";

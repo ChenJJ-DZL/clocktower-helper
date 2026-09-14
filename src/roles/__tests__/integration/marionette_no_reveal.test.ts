@@ -41,7 +41,6 @@ const mkSeat = (
   ({
     id,
     playerName: `P${id + 1}`,
-    isAlive: true,
     isDead: false,
     role: { id: roleId, name: roleName, type: roleType },
     roleId,

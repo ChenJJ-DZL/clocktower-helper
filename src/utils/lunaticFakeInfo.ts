@@ -28,6 +28,7 @@
 import { roles as allRoles, type Seat } from "../../app/data";
 import { createDeterministicRandom } from "../roles/core/deterministicRandom";
 import { isRealMinion, isMarionetteSeat } from "./roleFlags";
+import { isTownsfolkOrOutsiderRole } from "./seatAlignment";
 import { STANDARD_COMPOSITIONS } from "./quickStartGenerator";
 
 /** 疯子首夜"假恶魔信息"的持久化结构（挂在 seat 上）。 */
@@ -71,7 +72,7 @@ export function getScriptRoleIds(script: any): string[] {
 export function computeScriptGoodRoleNames(scriptRoleIds: string[]): string[] {
   return scriptRoleIds
     .map((id) => allRoles.find((r) => r.id === id))
-    .filter((r: any) => r && (r.type === "townsfolk" || r.type === "outsider"))
+    .filter((r: any) => r && isTownsfolkOrOutsiderRole(r))
     .map((r: any) => r.name as string);
 }
 
@@ -85,7 +86,7 @@ export function computeNotInPlayGoodRoleNames(
   );
   return scriptRoleIds
     .map((id) => allRoles.find((r) => r.id === id))
-    .filter((r: any) => r && (r.type === "townsfolk" || r.type === "outsider"))
+    .filter((r: any) => r && isTownsfolkOrOutsiderRole(r))
     .filter((r: any) => !inPlay.has(r.id))
     .map((r: any) => r.name as string);
 }

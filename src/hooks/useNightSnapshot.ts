@@ -255,7 +255,7 @@ export function useNightSnapshot(
             continue;
           }
           const isDead =
-            candidateSeat.isDead || (candidateSeat as any).isAlive === false;
+            candidateSeat.isDead;
           if (!isDead) break;
           const roleId = candidateSeat.role?.id;
           const canActWhileDead =
@@ -330,7 +330,7 @@ export function useNightSnapshot(
         }
 
         const isDead =
-          candidateSeat.isDead || (candidateSeat as any).isAlive === false;
+          candidateSeat.isDead;
         if (!isDead) {
           // 存活玩家正常行动
           break;

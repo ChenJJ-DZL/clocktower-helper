@@ -35,7 +35,6 @@ describe("杂耍艺人（Juggler）白天判定与当晚唤醒告知流程", () 
         roleId: "juggler",
         roleType: "townsfolk",
         isDead: false,
-        isAlive: true,
       } as any,
     ];
 
@@ -60,7 +59,6 @@ describe("杂耍艺人（Juggler）白天判定与当晚唤醒告知流程", () 
         roleId: "juggler",
         roleType: "townsfolk",
         isDead: false,
-        isAlive: true,
         hasUsedDayAbility: false,
       } as any,
     ];
@@ -86,7 +84,6 @@ describe("杂耍艺人（Juggler）白天判定与当晚唤醒告知流程", () 
         roleId: "juggler",
         roleType: "townsfolk",
         isDead: false,
-        isAlive: true,
         hasUsedDayAbility: true,
         dayAbilityResult: {
           type: "JUGGLER_JUDGE",
@@ -117,7 +114,6 @@ describe("杂耍艺人（Juggler）白天判定与当晚唤醒告知流程", () 
         roleId: "juggler",
         roleType: "townsfolk",
         isDead: false,
-        isAlive: true,
         hasUsedDayAbility: true,
         dayAbilityResult: {
           type: "JUGGLER_JUDGE",
@@ -164,7 +160,6 @@ describe("杂耍艺人（Juggler）白天判定与当晚唤醒告知流程", () 
         roleId: "juggler",
         roleType: "townsfolk",
         isDead: false,
-        isAlive: true,
         hasUsedDayAbility: true,
         dayAbilityResult: {
           type: "JUGGLER_JUDGE",

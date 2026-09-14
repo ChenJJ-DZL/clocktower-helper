@@ -26,8 +26,8 @@ const preCheckAliveAndStatus = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  const isAlive = seat ? ((seat as any).isAlive ?? !seat.isDead) : false;
-  if (!isAlive) {
+  const actorAlive = seat ? !(seat as any).isDead : false;
+  if (!actorAlive) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 

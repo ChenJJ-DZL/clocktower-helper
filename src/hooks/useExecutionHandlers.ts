@@ -10,6 +10,7 @@ import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
 import { shouldZeroLegionVote } from "../utils/legionVoteRule";
+import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
 import {
   shouldMorticianTransform,
   transformMorticianToDemon,
@@ -294,7 +295,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             (id !== activeEvilTwin.id &&
               t.role.id !== "evil_twin" &&
               !t.isEvilConverted &&
-              (t.role.type === "townsfolk" || t.role.type === "outsider"));
+              isSeatTownsfolkOrOutsider(t));
           if (isGoodTwinTarget) {
             setCurrentModal({
               type: "EVIL_TWIN_EXECUTION_CONFIRM",

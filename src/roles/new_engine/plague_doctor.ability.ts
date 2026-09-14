@@ -20,7 +20,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
     (s: any) => s.id === ctx.actionNode.seatId
   );
   // 必须处于死亡状态才结算死亡获得爪牙能力
-  if (seat?.isAlive) {
+  if (seat && !seat.isDead) {
     return { ...ctx, aborted: true, abortReason: "瘟疫医生尚未死亡" };
   }
   return ctx;

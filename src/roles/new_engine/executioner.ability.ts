@@ -41,7 +41,7 @@ export function pickExecutionerVictim(
   rng: DeterministicRandom = Math.random
 ): any | null {
   const others = seats.filter(
-    (s: any) => s.id !== executionerSeatId && s.isAlive
+    (s: any) => s.id !== executionerSeatId && !s.isDead
   );
   if (others.length === 0) return null;
   return others[Math.floor(rng() * others.length)];
@@ -84,7 +84,7 @@ const stateUpdate = async (
   const r = ctx.meta.abilityResult as any;
   // 标记目标玩家死亡
   const updatedSeats = ctx.snapshot.seats.map((s: any) =>
-    s.id === r?.targetId ? { ...s, isAlive: false } : s
+    s.id === r?.targetId ? { ...s, isDead: true } : s
   );
   return {
     ...ctx,

@@ -15,7 +15,7 @@ import { applyInfoSeatMark } from "../../../utils/seatMarks";
 const seats = (marks: Record<number, string[]> = {}) =>
   [0, 1, 2, 3, 4].map((id) => ({
     id,
-    isAlive: true,
+    isDead: false,
     statusDetails: marks[id] ?? [],
   }));
 
@@ -89,7 +89,6 @@ const ROLE_NAMES: Record<string, string> = {
 const makeSeat = (id: number, roleId: string, type: string) => ({
   id,
   playerName: `玩家${id + 1}`,
-  isAlive: true,
   isDead: false,
   role: { id: roleId, name: ROLE_NAMES[roleId] ?? roleId, type },
   statusEffects: [],

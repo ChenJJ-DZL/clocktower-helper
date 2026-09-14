@@ -15,11 +15,11 @@ import {
 // 最小 5 人局：洗衣妇 0 + 两名镇民 + 一名外来者 + 恶魔
 // 镇民候选 >1，保证「随机挑镇民 / 挑干扰项 / 打乱顺序」三个随机点都被走到
 const seats: any[] = [
-  { id: 0, playerName: "洗衣妇", isDead: false, isAlive: true, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } },
-  { id: 1, playerName: "厨师", isDead: false, isAlive: true, role: { id: "chef", name: "厨师", type: "townsfolk" } },
-  { id: 2, playerName: "士兵", isDead: false, isAlive: true, role: { id: "soldier", name: "士兵", type: "townsfolk" } },
-  { id: 3, playerName: "圣徒", isDead: false, isAlive: true, role: { id: "saint", name: "圣徒", type: "outsider" } },
-  { id: 4, playerName: "小恶魔", isDead: false, isAlive: true, role: { id: "imp", name: "小恶魔", type: "demon" } },
+  { id: 0, playerName: "洗衣妇", isDead: false, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } },
+  { id: 1, playerName: "厨师", isDead: false, role: { id: "chef", name: "厨师", type: "townsfolk" } },
+  { id: 2, playerName: "士兵", isDead: false, role: { id: "soldier", name: "士兵", type: "townsfolk" } },
+  { id: 3, playerName: "圣徒", isDead: false, role: { id: "saint", name: "圣徒", type: "outsider" } },
+  { id: 4, playerName: "小恶魔", isDead: false, role: { id: "imp", name: "小恶魔", type: "demon" } },
 ];
 
 const seedFor = (actorId: number, night: number) =>

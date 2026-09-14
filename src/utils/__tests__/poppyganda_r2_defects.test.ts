@@ -22,7 +22,6 @@ function mk(roleIds: string[], selfIdx = 0) {
     id: i,
     role: r(rid),
     isDead: false,
-    isAlive: true,
     ...(roleIds[i] === "drunk" ? { charadeRole: r("librarian") } : {}),
   })) as any[];
 }
@@ -139,7 +138,7 @@ describe("R2 回归 · 提示预演不得因弱谓词而泄漏真值", () => {
     ]);
     // 造 1 名死亡邪恶（imp 死亡）→ 真值 = 1
     seats[2].isDead = true;
-    seats[2].isAlive = false;
+    seats[2].isDead = true;
     const out = (oracle as any).night.dialog(0, false, {
       seats,
       nightCount: 2,
@@ -162,7 +161,7 @@ describe("R2 回归 · 提示预演不得因弱谓词而泄漏真值", () => {
       "soldier",
     ]);
     seats[2].isDead = true;
-    seats[2].isAlive = false;
+    seats[2].isDead = true;
     const out = (oracle as any).night.dialog(0, false, {
       seats,
       nightCount: 2,

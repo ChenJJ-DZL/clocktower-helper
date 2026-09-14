@@ -25,7 +25,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead?: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
@@ -49,7 +48,7 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s: any) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "利兹已死亡，技能失效" };
   }
 
@@ -99,7 +98,7 @@ const calculateChoice = async (
   // 寻找存活爪牙
   const aliveMinions = context.snapshot.seats.filter((s: any) => {
     if (s.id === context.actionNode.seatId) return false;
-    if (!s.isAlive) return false;
+    if (s.isDead) return false;
     const roleType = s.role?.type ?? s.roleType ?? "";
     return roleType === "minion";
   });

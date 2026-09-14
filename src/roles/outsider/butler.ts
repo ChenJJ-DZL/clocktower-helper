@@ -49,7 +49,12 @@ export const butler: RoleDefinition = {
 
     dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（管家）。`,
+        // ⚠️ 官方：「每个夜晚，你要选择除你以外的一名玩家：明天白天，只有他投票时
+        //    你才能投票。」`wake` 是**说书人实际念/看的引导文案**（`guide`），
+        //    必须自带行动说明 —— 旧文案只有「唤醒N号玩家（管家）。」，
+        //    与同类夜间选目标角色（僧侣/投毒者/间谍）的格式不一致，
+        //    说书人看不到"该让管家选主人"这件事。
+        wake: `唤醒${playerSeatId + 1}号【管家】，让他选择一名玩家作为主人（明天白天只有主人投票时他才能投票）。`,
         instruction: "选择你的主人（除你以外的任意一名玩家）",
         close: "",
       };
@@ -76,7 +81,12 @@ export const butler: RoleDefinition = {
 
     dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
-        wake: `唤醒${playerSeatId + 1}号玩家（管家）。`,
+        // ⚠️ 官方：「每个夜晚，你要选择除你以外的一名玩家：明天白天，只有他投票时
+        //    你才能投票。」`wake` 是**说书人实际念/看的引导文案**（`guide`），
+        //    必须自带行动说明 —— 旧文案只有「唤醒N号玩家（管家）。」，
+        //    与同类夜间选目标角色（僧侣/投毒者/间谍）的格式不一致，
+        //    说书人看不到"该让管家选主人"这件事。
+        wake: `唤醒${playerSeatId + 1}号【管家】，让他选择一名玩家作为主人（明天白天只有主人投票时他才能投票）。`,
         instruction: "选择你的主人（除你以外的任意一名玩家）",
         close: "",
       };

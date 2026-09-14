@@ -14,7 +14,6 @@ function s(id: number, rid: string, rt: string) {
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     role: { id: rid, name: n[rid] || rid, type: rt },

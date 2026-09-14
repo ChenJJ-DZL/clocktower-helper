@@ -12,9 +12,13 @@
  * 因此凡"只有真爪牙才应获得的邪恶信息"，都必须把它排除在外。
  */
 
+import { isSeatMinion } from "./seatAlignment";
+
 interface SeatLike {
   role?: { id?: string | null; type?: string | null } | null;
   charadeRole?: { id?: string | null; type?: string | null } | null;
+  roleType?: string | null;
+  effectiveRole?: { id?: string | null; type?: string | null } | null;
 }
 
 /**
@@ -44,9 +48,13 @@ export function isLunaticSeat(seat: SeatLike | undefined | null): boolean {
 /**
  * 「真正的爪牙」= 知道自己是爪牙、参与邪恶互认信息的爪牙。
  * 提线木偶被排除；恶魔（type=demon）本就不满足 minion 条件。
+ *
+ * ⚠️ 类型判定走 `seatAlignment::isSeatMinion` 权威（自动兼容
+ * `role.type` / 扁平 `roleType` / `effectiveRole.type` 三种表示），
+ * 不要内联 `seat.role.type === "minion"` —— 那会漏掉后两种。
  */
 export function isRealMinion(seat: SeatLike | undefined | null): boolean {
-  return seat?.role?.type === "minion" && !isMarionetteSeat(seat);
+  return isSeatMinion(seat as any) && !isMarionetteSeat(seat);
 }
 
 /**

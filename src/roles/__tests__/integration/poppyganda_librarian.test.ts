@@ -8,7 +8,6 @@ function makeSeat(id: number, roleId: string, type: string): Seat {
     id,
     role: { id: roleId, name: roleId, type } as Role,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusDetails: [],

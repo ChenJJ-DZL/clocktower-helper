@@ -23,7 +23,7 @@ const preCheckAlive = async (
 
   // 官方规则：僵怖首次死亡时被当作已死亡，但仍存活且保有能力。只有真正第二次死亡时才彻底死亡。
   const isTrulyDead = (selfSeat as any)?.zombuulTrulyDead === true;
-  if (!selfSeat || (isTrulyDead && !selfSeat.isAlive)) {
+  if (!selfSeat || (isTrulyDead && selfSeat.isDead)) {
     return {
       ...context,
       aborted: true,
@@ -54,7 +54,7 @@ const calculateKillTargets = async (
   // 验证目标合法性
   const validTargets = targetIds.filter((targetId) => {
     const targetSeat = snapshot.seats.find((seat) => seat.id === targetId);
-    return targetSeat?.isAlive;
+    return !targetSeat?.isDead;
   });
 
   return {
@@ -89,7 +89,8 @@ const updateKillState = async (
       targetSeat0,
       aliveCount,
       undefined,
-      storytellerInput?.mayorSubstituteId
+      storytellerInput?.mayorSubstituteId,
+        `mayorKill|${(snapshot as any)?.nightCount ?? 0}|zombuul`
     );
     if (mayorRes.isMayor) {
       console.log(`[Zombuul] ${mayorRes.logMessage}`);
@@ -136,7 +137,6 @@ const updateKillState = async (
 
         return {
           ...seat,
-          isAlive: false,
           isDead: true,
           markedForDeath: true,
           diedAtNight: snapshot.nightCount,
@@ -149,7 +149,6 @@ const updateKillState = async (
       if (mayorSubstitute && seat.id === mayorSubstitute.id) {
         return {
           ...seat,
-          isAlive: false,
           isDead: true,
           markedForDeath: true,
           diedAtNight: snapshot.nightCount,

@@ -13,7 +13,6 @@ function s(id: number, rid: string, rt: string, o?: { drunk?: boolean }) {
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     isDrunk: !!o?.drunk,
     isPoisoned: false,
     role: { id: rid, name: n[rid] || rid, type: rt },

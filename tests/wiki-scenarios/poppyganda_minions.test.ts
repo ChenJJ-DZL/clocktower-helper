@@ -20,14 +20,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "洗脑P",
           role: { id: "cerenovus", name: "洗脑师", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "理发师P",
           role: { id: "barber", name: "理发师", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -50,14 +48,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "洗脑P",
           role: { id: "cerenovus", name: "洗脑师", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "艺术家P",
           role: { id: "artist", name: "艺术家", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const ctx: any = {
@@ -78,14 +74,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "洗脑P",
           role: { id: "cerenovus", name: "洗脑师", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "卖花女P",
           role: { id: "flowergirl", name: "卖花女孩", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -109,14 +103,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "邪双子",
           role: { id: "evil_twin", name: "镜像双子", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "好双子",
           role: { id: "oracle", name: "神谕者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -138,25 +130,22 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "邪双子",
           role: { id: "evil_twin", name: "镜像双子", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "好双子",
           role: { id: "artist", name: "艺术家", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: true,
-          isAlive: false,
         },
       ];
-      expect(seats[0].isAlive).toBe(true);
-      expect(seats[1].isAlive).toBe(true);
+      expect(seats[0].isDead).toBe(false);
+      expect(seats[1].isDead).toBe(false);
     });
 
     it("范例 3: 善良双子死于处决 -> 邪恶阵营直接获胜", async () => {
@@ -166,14 +155,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "邪双子",
           role: { id: "evil_twin", name: "镜像双子", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "好双子",
           role: { id: "sage", name: "贤者", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
       ];
       expect(seats[1].isDead).toBe(true);
@@ -202,7 +189,6 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
@@ -210,7 +196,6 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           role: { id: "marionette", name: "提线木偶", type: "minion" },
           charadeRole: { id: "undertaker", name: "送葬者" },
           isDead: false,
-          isAlive: true,
           isDrunk: true,
         },
       ];
@@ -233,14 +218,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "小兰",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小美",
           role: { id: "empath", name: "共情者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[1].role.id).toBe("empath");
@@ -253,14 +236,12 @@ describe("【《罂粟花开》爪牙 (Minions) 1:1 官方 Wiki 原装独立范�
           playerName: "小黑",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "小八",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].isDead).toBe(true);

@@ -25,7 +25,7 @@ const preCheckAlive = async (
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...ctx, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
   return ctx;
@@ -48,7 +48,7 @@ const calculateResult = async (
   }
 
   const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
-  if (target?.isAlive !== false) {
+  if (target?.isDead !== true) {
     return { ...ctx, aborted: true, abortReason: "目标玩家尚未死亡，技能无效" };
   }
 
@@ -86,7 +86,6 @@ const stateUpdateResult = async (
     updatedSeats[targetIdx] = {
       ...updatedSeats[targetIdx],
       isDead: false,
-      isAlive: true,
       markedForDeath: false,
       deathSource: undefined,
       deathSourceSeatId: undefined,

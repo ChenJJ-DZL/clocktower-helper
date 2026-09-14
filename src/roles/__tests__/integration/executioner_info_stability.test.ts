@@ -9,11 +9,10 @@ import {
   pickExecutionerVictim,
 } from "../../new_engine/executioner.ability";
 
-const seat = (id: number, roleId: string, type: string, isAlive = true) => ({
+const seat = (id: number, roleId: string, type: string, alive = true) => ({
   id,
   playerName: `P${id + 1}`,
-  isDead: !isAlive,
-  isAlive,
+  isDead: !alive,
   role: { id: roleId, name: roleId, type },
   statusEffects: [],
 });

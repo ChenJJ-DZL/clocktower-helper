@@ -14,7 +14,6 @@ describe("黄昏提名阶段 - 座位号圆圈点击发起提名交互", () => {
       role: { id: roleId, name: roleName, type: "townsfolk" },
       roleId,
       isDead,
-      isAlive: !isDead,
     }) as any;
 
   it("首次点击合法存活座位，激活该玩家作为发起提名者", () => {

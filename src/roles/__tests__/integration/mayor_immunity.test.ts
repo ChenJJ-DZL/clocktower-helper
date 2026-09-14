@@ -20,7 +20,6 @@ function mkSeat(
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     role: { id: roleId, name: roleName, type },
     isDrunk: false,
     isPoisoned: false,

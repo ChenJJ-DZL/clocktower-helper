@@ -29,7 +29,6 @@ function createMockSeat(
     id,
     playerName: `玩家${id + 1}`,
     isDead,
-    isAlive: !isDead,
     isDrunk,
     isPoisoned,
     role: { id: roleId, name: getRoleName(roleId), type: roleType },
@@ -110,13 +109,13 @@ describe("洗衣妇 (Washerwoman)", () => {
   describe("存活状态检查", () => {
     test("存活时应触发能力", () => {
       const seat = createMockSeat(0, "washerwoman", "townsfolk");
-      expect(seat.isAlive).toBe(true);
+      expect(seat.isDead).toBe(false);
       expect(seat.isDead).toBe(false);
     });
 
     test("死亡后不应触发能力", () => {
       const seat = createMockSeat(0, "washerwoman", "townsfolk", true);
-      expect(seat.isAlive).toBe(false);
+      expect(seat.isDead).toBe(true);
       expect(seat.isDead).toBe(true);
     });
   });

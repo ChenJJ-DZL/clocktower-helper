@@ -17,7 +17,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -29,7 +29,7 @@ const calculate = async (
 
   // 找到拥有该角色的存活玩家
   const targetSeat = targetRoleId
-    ? seats.find((s: any) => s.role?.id === targetRoleId && s.isAlive)
+    ? seats.find((s: any) => s.role?.id === targetRoleId && !s.isDead)
     : null;
 
   // 如果角色不在场，说书人手动指定目标
@@ -49,7 +49,8 @@ const calculate = async (
         chosenSeat,
         aliveCount,
         undefined,
-        ctx.storytellerInput?.mayorSubstituteId
+        ctx.storytellerInput?.mayorSubstituteId,
+        `mayorKill|${(ctx.snapshot as any)?.nightCount ?? 0}|ojo`
       );
       if (mayorRes.isMayor) {
         console.log(`[Ojo] ${mayorRes.logMessage}`);
@@ -94,7 +95,6 @@ const stateUpdate = async (
       return {
         ...s,
         isDead: true,
-        isAlive: false,
         markedForDeath: true,
         diedAtNight: ctx.snapshot.nightCount,
         killedBy: "mayor_substitute",
@@ -106,7 +106,6 @@ const stateUpdate = async (
       return {
         ...s,
         isDead: true,
-        isAlive: false,
         markedForDeath: true,
         diedAtNight: ctx.snapshot.nightCount,
         killedBy: "ojo",

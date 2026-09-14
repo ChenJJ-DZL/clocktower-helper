@@ -6,6 +6,7 @@
  * 被动触发，不唤醒。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -16,10 +17,7 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   const seats = ctx.snapshot.seats ?? [];
   const initialEvilCount = (ctx.snapshot as any).initialEvilCount ?? 0;
-  const currentEvilCount = seats.filter(
-    (s: any) =>
-      s.role?.type === "demon" || s.role?.type === "minion" || s.isEvilConverted
-  ).length;
+  const currentEvilCount = seats.filter((s: any) => isSeatEvil(s)).length;
   const extraEvil = Math.max(0, currentEvilCount - initialEvilCount);
 
   return {

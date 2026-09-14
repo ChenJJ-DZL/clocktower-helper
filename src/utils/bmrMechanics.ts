@@ -12,37 +12,42 @@
  */
 
 import type { Seat } from "../../app/data";
+import { isSeatGood } from "./seatAlignment";
+import { isSeatDisabled } from "./seatDisabled";
+import { isSeatAlive } from "./seatAlive";
 
 /**
- * 判断玩家是否为善良阵营
+ * @deprecated 用 `isSeatGood`（`utils/seatAlignment`）。
+ * 保留旧名仅为兼容调用点；实现已转发到全项目唯一权威。
  */
 export function isGoodSeat(seat: Seat | undefined | null): boolean {
-  if (!seat) return false;
-  if ((seat as any).isEvilConverted === true) return false;
-  if ((seat as any).alignment === "evil") return false;
-  if ((seat as any).alignment === "good") return true;
-  return seat.role?.type === "townsfolk" || seat.role?.type === "outsider";
+  return isSeatGood(seat);
 }
 
 /**
- * 判断玩家是否醉酒或中毒
+ * 判断玩家是否醉酒或中毒。
+ *
+ * ⭐ 2026-09-14 统一：转发到 `utils/seatDisabled::isSeatDisabled`。
+ * 旧实现只认 `statusEffects[]` + 布尔位，**漏掉 `statusDetails` 中文标记与
+ * `statuses[] effect=Poison`** —— 而生产 `addPoisonMark` 写的正是中文
+ * `statusDetails` ⇒ 被投毒者会被 BMR 系列角色当作清醒（实测分叉，见 seatDisabled.ts）。
+ *
+ * ⚠️ 保留签名以兼容既有调用点；新代码请直接用 `isSeatDisabled`。
  */
-export function isDrunkOrPoisoned(seat: Seat | undefined | null): boolean {
-  if (!seat) return false;
-  if (seat.isDrunk || seat.isPoisoned) return true;
-  const effects = seat.statusEffects ?? [];
-  return effects.some(
-    (e: any) => e.type === "drunk" || e.type === "poison" || e.type === "poisoned"
-  );
+export function isDrunkOrPoisoned(
+  seat: Seat | undefined | null,
+  allSeats?: Seat[]
+): boolean {
+  return isSeatDisabled(seat, allSeats);
 }
 
 /**
  * 判断玩家是否存活
+ * @deprecated 逻辑已收敛到 utils/seatAlive（`isSeatAlive`，唯一存活判据）。
+ * 此处仅为兼容既有调用保留的薄转发；新代码请直接从 utils/seatAlive 引入。
  */
 export function isAliveSeat(seat: Seat | undefined | null): boolean {
-  if (!seat) return false;
-  if ((seat as any).isAlive !== undefined) return (seat as any).isAlive;
-  return !seat.isDead;
+  return isSeatAlive(seat);
 }
 
 /**
@@ -171,7 +176,6 @@ export function checkGrandmotherDeath(
           grandmotherDied = true;
           return {
             ...s,
-            isAlive: false,
             isDead: true,
             diedAtNight: nightCount,
             killedBy: "grandmother_curse",

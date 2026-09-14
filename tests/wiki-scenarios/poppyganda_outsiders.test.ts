@@ -26,7 +26,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "empath", name: "共情者" },
           isDead: false,
-          isAlive: true,
           isDrunk: true,
         },
         {
@@ -34,7 +33,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].isDrunk).toBe(true);
@@ -48,7 +46,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "ravenkeeper", name: "守鸦人" },
           isDead: true,
-          isAlive: false,
           isDrunk: true,
         },
         {
@@ -56,7 +53,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "圣徒P",
           role: { id: "saint", name: "圣徒", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].charadeRole.id).toBe("ravenkeeper");
@@ -70,7 +66,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "undertaker", name: "送葬者" },
           isDead: false,
-          isAlive: true,
           isDrunk: true,
         },
       ];
@@ -88,21 +83,18 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           role: { id: "lunatic", name: "疯子", type: "outsider" },
           apparentDemonRole: { id: "shabaloth", name: "沙巴洛斯" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小美",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小八",
           role: { id: "saint", name: "圣徒", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -125,14 +117,12 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           role: { id: "lunatic", name: "疯子", type: "outsider" },
           apparentDemonRole: { id: "zombuul", name: "僵怖" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "真僵怖",
           role: { id: "zombuul", name: "僵怖", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].apparentDemonRole.id).toBe("zombuul");
@@ -148,7 +138,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "畸形秀P",
           role: { id: "mutant", name: "畸形秀演员", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -170,7 +159,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "小文",
           role: { id: "mutant", name: "畸形秀演员", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -191,7 +179,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "小文",
           role: { id: "mutant", name: "畸形秀演员", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -212,7 +199,6 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "小文",
           role: { id: "mutant", name: "畸形秀演员", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -236,21 +222,18 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "告密P",
           role: { id: "snitch", name: "告密者", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "主谋P",
           role: { id: "mastermind", name: "主谋", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "女巫P",
           role: { id: "witch", name: "女巫", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -290,28 +273,24 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "告密P",
           role: { id: "snitch", name: "告密者", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "主谋P",
           role: { id: "mastermind", name: "主谋", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "女巫P",
           role: { id: "witch", name: "女巫", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "恐惧P",
           role: { id: "fearmonger", name: "恐惧之灵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -351,14 +330,12 @@ describe("【《罂粟花开》外来者 (Outsiders) 1:1 官方 Wiki 原装独�
           playerName: "新告密P",
           role: { id: "snitch", name: "告密者", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "主谋P",
           role: { id: "mastermind", name: "主谋", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].role.id).toBe("snitch");

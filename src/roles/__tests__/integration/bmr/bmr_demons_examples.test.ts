@@ -30,14 +30,12 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
         id: 0,
         role: { id: "zombuul", name: "僵怖", type: "demon" } as any,
         isDead: true, // 登记为已死亡
-        isAlive: false,
         zombuulTrulyDead: false, // 并非真正彻底死亡
       } as any;
       const villager: Seat = {
         id: 1,
         role: { id: "sailor", name: "水手", type: "townsfolk" } as any,
         isDead: false,
-        isAlive: true,
       } as any;
 
       // 白天有人死亡（处决僵怖） -> lastDuskExecution 不为 null，僵怖当晚不发动攻击
@@ -61,13 +59,11 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
         id: 0,
         role: { id: "zombuul", name: "僵怖", type: "demon" } as any,
         isDead: false,
-        isAlive: true,
       } as any;
       const target: Seat = {
         id: 1,
         role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any,
         isDead: false,
-        isAlive: true,
       } as any;
 
       // 白天无人死亡 -> 僵怖成功杀人
@@ -108,9 +104,9 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
   // -------------------------------------------------------------
   describe("普卡 (Pukka)", () => {
     it("范例 1: 普卡使侍女中毒，侍女得到错误信息，下一夜侍女死亡。", async () => {
-      const pukka: Seat = { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, isAlive: true } as any;
-      const chambermaid: Seat = { id: 1, role: { id: "chambermaid", name: "侍女", type: "townsfolk" } as any, isDead: false, isAlive: true, statusDetails: [] } as any;
-      const bystander: Seat = { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, isAlive: true, statusDetails: [] } as any;
+      const pukka: Seat = { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, } as any;
+      const chambermaid: Seat = { id: 1, role: { id: "chambermaid", name: "侍女", type: "townsfolk" } as any, isDead: false, statusDetails: [] } as any;
+      const bystander: Seat = { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, statusDetails: [] } as any;
 
       // 第一晚：普卡使侍女中毒
       const ctx1: any = {
@@ -139,16 +135,15 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
     });
 
     it("范例 2: 普卡选择受旅店老板保护的玩家，该玩家中毒(旅店老板只防死不防毒)；下夜该玩家死亡。", async () => {
-      const pukka: Seat = { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, isAlive: true } as any;
+      const pukka: Seat = { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, } as any;
       const protectedPlayer: Seat = {
         id: 1,
         role: { id: "gossip", name: "造谣者", type: "townsfolk" } as any,
         isDead: false,
-        isAlive: true,
         statusEffects: [{ type: "protected", source: "innkeeper" }],
         statusDetails: [],
       } as any;
-      const target2: Seat = { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, isAlive: true, statusDetails: [] } as any;
+      const target2: Seat = { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, statusDetails: [] } as any;
 
       // 第一晚：下毒受旅店老板保护的玩家，成功中毒
       const ctx1: any = {
@@ -177,14 +172,13 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
         id: 1,
         role: { id: "pacifist", name: "和平主义者", type: "townsfolk" } as any,
         isDead: false,
-        isAlive: true,
         isPoisoned: true,
         statusDetails: [{ type: "poison", source: "pukka" }, "普卡中毒（永久）"],
       } as any;
 
       // 驱魔人阻止普卡本晚发动新攻击，但旧中毒目标依然在普卡毒杀逻辑中结算死亡
       const seats = [
-        { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, isAlive: true } as any,
+        { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, } as any,
         poisonedPacifist,
       ];
       const ctx: any = {
@@ -198,8 +192,8 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
     });
 
     it("范例 4: 普卡醉酒时尝试下毒新目标失败。", async () => {
-      const pukka: Seat = { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, isAlive: true, isDrunk: true } as any;
-      const target: Seat = { id: 1, role: { id: "tinker", name: "修补匠", type: "outsider" } as any, isDead: false, isAlive: true, statusDetails: [] } as any;
+      const pukka: Seat = { id: 0, role: { id: "pukka", name: "普卡", type: "demon" } as any, isDead: false, isDrunk: true } as any;
+      const target: Seat = { id: 1, role: { id: "tinker", name: "修补匠", type: "outsider" } as any, isDead: false, statusDetails: [] } as any;
 
       const ctx: any = {
         snapshot: { nightCount: 2, seats: [pukka, target] } as any,
@@ -218,9 +212,9 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
   describe("沙巴洛斯 (Shabaloth)", () => {
     it("范例 1: 沙巴洛斯攻击造谣者和赌徒，造谣者死亡，受旅店老板保护的赌徒存活。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "gossip", name: "造谣者", type: "townsfolk" } as any, isDead: false, isAlive: true, statusEffects: [] },
-        { id: 2, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, isAlive: true, statusEffects: [{ type: "protected", source: "innkeeper" }] },
+        { id: 0, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false, },
+        { id: 1, role: { id: "gossip", name: "造谣者", type: "townsfolk" } as any, isDead: false, statusEffects: [] },
+        { id: 2, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, statusEffects: [{ type: "protected", source: "innkeeper" }] },
       ] as any;
 
       const ctx: any = {
@@ -236,9 +230,9 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
 
     it("范例 2: 沙巴洛斯攻击已死亡的驱魔人和存活的侍臣。侍臣死亡，下一夜说书人反刍复活驱魔人。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any, isDead: false, isAlive: true, statusEffects: [] },
-        { id: 2, role: { id: "exorcist", name: "驱魔人", type: "townsfolk" } as any, isDead: true, isAlive: false, statusEffects: [] },
+        { id: 0, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false, },
+        { id: 1, role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any, isDead: false, statusEffects: [] },
+        { id: 2, role: { id: "exorcist", name: "驱魔人", type: "townsfolk" } as any, isDead: true, statusEffects: [] },
       ] as any;
 
       // 沙巴洛斯可选择已死玩家与存活玩家
@@ -262,15 +256,15 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
       const r2 = await runFullAbilityPipeline(pipe(shabalothAbility), ctx2);
       const revived = r2.snapshot.seats.find((s: any) => s.id === 2);
       expect(revived?.isDead).toBe(false);
-      expect(revived?.isAlive).toBe(true);
+      expect(revived?.isDead).toBe(false);
     });
 
     it("范例 3: 沙巴洛斯攻击茶艺师的邻近玩家，然后是茶艺师。邻近玩家受保护免死，随后茶艺师死亡。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "tea_lady", name: "茶艺师", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 3, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, },
+        { id: 1, role: { id: "tea_lady", name: "茶艺师", type: "townsfolk" } as any, isDead: false, },
+        { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, },
+        { id: 3, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false, },
       ] as any;
 
       // 0号受茶艺师保护
@@ -294,11 +288,11 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
   describe("珀 (Po)", () => {
     it("范例 1: 第二夜杀1人，第三夜选0人不攻击，第四夜攻击3人。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "po", name: "珀", type: "demon" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 3, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 4, role: { id: "exorcist", name: "驱魔人", type: "townsfolk" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "po", name: "珀", type: "demon" } as any, isDead: false, },
+        { id: 1, role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any, isDead: false, },
+        { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, },
+        { id: 3, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, },
+        { id: 4, role: { id: "exorcist", name: "驱魔人", type: "townsfolk" } as any, isDead: false, },
       ] as any;
 
       // 第三夜：选择不杀任何人（蓄力）
@@ -326,10 +320,10 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
 
     it("范例 2: 珀蓄力时醉酒，次夜中毒选择3人无一人死亡；恢复清醒后攻击1人死亡。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "po", name: "珀", type: "demon" } as any, isDead: false, isAlive: true, isPoisoned: true },
-        { id: 1, role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 2, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 3, role: { id: "exorcist", name: "驱魔人", type: "townsfolk" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "po", name: "珀", type: "demon" } as any, isDead: false, isPoisoned: true },
+        { id: 1, role: { id: "courtier", name: "侍臣", type: "townsfolk" } as any, isDead: false, },
+        { id: 2, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, },
+        { id: 3, role: { id: "exorcist", name: "驱魔人", type: "townsfolk" } as any, isDead: false, },
       ] as any;
 
       // 中毒期间选择3人，无事发生
@@ -360,10 +354,10 @@ describe("《暗月初升》恶魔角色官方范例逐条验证 (Demons Example
 
     it("范例 3: 珀攻击月之子，然后是莽夫，最后是祖母。只有月之子死亡，因为攻击莽夫时珀醉酒了。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "po", name: "珀", type: "demon" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "moonchild", name: "月之子", type: "outsider" } as any, isDead: false, isAlive: true },
-        { id: 2, role: { id: "goon", name: "莽夫", type: "outsider" } as any, isDead: false, isAlive: true },
-        { id: 3, role: { id: "grandmother", name: "祖母", type: "townsfolk" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "po", name: "珀", type: "demon" } as any, isDead: false, },
+        { id: 1, role: { id: "moonchild", name: "月之子", type: "outsider" } as any, isDead: false, },
+        { id: 2, role: { id: "goon", name: "莽夫", type: "outsider" } as any, isDead: false, },
+        { id: 3, role: { id: "grandmother", name: "祖母", type: "townsfolk" } as any, isDead: false, },
       ] as any;
 
       const ctx: any = {

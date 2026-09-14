@@ -100,7 +100,6 @@ function buildSeats(roleId: string, state: StateName): any[] {
     playerName: `P${id + 1}`,
     role: r(rid),
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     statusEffects: [],
@@ -211,7 +210,7 @@ describe("罂粟花开 · 选目标类角色「选完目标后结算」采集通
             // 「含死者」需要先造一个死者
             if (strategy === "含死者") {
               seats[3].isDead = true;
-              seats[3].isAlive = false;
+              seats[3].isDead = true;
             }
 
             const targets = pickTargets(seats, 0, tc, strategy);

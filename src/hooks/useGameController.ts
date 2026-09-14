@@ -1763,7 +1763,6 @@ export function useGameController() {
         //    疯子伪装成军团时面板仍显示「疯子(恶魔互认)」，与身份自相矛盾。
         //    （顺序修正不依赖该字段，所以之前只修顺序时看起来"标签没跟着变"。）
         apparentDemonRole: (s as any).apparentDemonRole,
-        isAlive: !s.isDead,
         isDead: !!s.isDead,
         isDemonSuccessor: s.isDemonSuccessor,
       })),

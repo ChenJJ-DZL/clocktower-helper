@@ -18,12 +18,11 @@ const ROLE_NAMES: Record<string, string> = {
   empath: "共情者",
 };
 
-function seat(id: number, roleId: string, type: string, isAlive = true) {
+function seat(id: number, roleId: string, type: string, alive = true) {
   return {
     id,
     playerName: `P${id + 1}`,
-    isDead: !isAlive,
-    isAlive,
+    isDead: !alive,
     role: { id: roleId, name: ROLE_NAMES[roleId] ?? roleId, type },
     statusEffects: [] as Array<{ type: string }>,
   };

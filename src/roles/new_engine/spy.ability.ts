@@ -73,6 +73,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -84,7 +85,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   alignment?: string;
   role?: { id: string; name: string; type: string };
@@ -118,8 +118,8 @@ interface GrimoirePlayerEntry {
   alignment: "good" | "evil";
   /** 角色标记是否倒置（阵营已变化） */
   alignmentFlipped: boolean;
-  /** 是否存活 */
-  isAlive: boolean;
+  /** 是否已死亡（死亡标记已统一为 isDead） */
+  isDead: boolean;
   /** 状态效果列表 */
   statusEffects: Array<{ type: string; source?: string }>;
   /** 说书人提示标记 */
@@ -170,7 +170,7 @@ const preCheckStatusOnly = async (
       isDrunk,
       isPoisoned,
       isAbilityActive: !(isDrunk || isPoisoned),
-      isDead: !seat?.isAlive,
+      isDead: seat?.isDead,
     },
   };
 };
@@ -201,24 +201,13 @@ function getRoleType(seat: PlayerLookup): string {
 /**
  * 判断玩家当前阵营是否为邪恶。
  *
- * 判定优先级：
- * 1. isGoodConverted → 善良
- * 2. isEvilConverted → 邪恶
- * 3. role.type === "demon" / "minion" → 邪恶
- * 4. seat.alignment === "evil" → 邪恶（兼容预计算快照）
- * 5. isDemonSuccessor → 邪恶
- * 6. 其余 → 善良
+ * ⭐ 已收敛：全项目唯一权威 = utils/seatAlignment 的 isSeatEvil。
+ * （转换标记 > 恶魔继任者 > 角色类型 > 兼容 alignment 字段）
+ * 魔典条目的 `alignment` 字段由 buildGrimoireEntry 调用本函数派生，
+ * 因此魔典统计（evilCount）与真实阵营同源，不会分叉。
  */
 function isEvilAlignment(seat: PlayerLookup): boolean {
-  if (seat.isGoodConverted) return false;
-  if (seat.isEvilConverted) return true;
-
-  const roleType = getRoleType(seat);
-  if (roleType === "demon" || roleType === "minion") return true;
-  if (seat.alignment === "evil") return true;
-  if (seat.isDemonSuccessor) return true;
-
-  return false;
+  return isSeatEvil(seat as any);
 }
 
 /**
@@ -271,7 +260,7 @@ function buildGrimoireEntry(seat: PlayerLookup): GrimoirePlayerEntry {
     roleType: getRoleType(seat),
     alignment: isEvilAlignment(seat) ? "evil" : "good",
     alignmentFlipped: isAlignmentFlipped(seat),
-    isAlive: !seat.isDead && seat.isAlive !== false,
+    isDead: seat.isDead === true,
     statusEffects: extractStatusEffects(seat),
     reminderTokens: extractReminderTokens(seat),
   };

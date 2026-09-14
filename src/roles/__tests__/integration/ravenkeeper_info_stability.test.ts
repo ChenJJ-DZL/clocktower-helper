@@ -17,7 +17,6 @@ const seats: any[] = [
   {
     id: 0,
     isDead: true,
-    isAlive: false,
     diedAtNight: 3,
     playerName: "守鸦人",
     role: { id: "ravenkeeper", name: "守鸦人", type: "townsfolk" },
@@ -25,35 +24,30 @@ const seats: any[] = [
   {
     id: 1,
     isDead: false,
-    isAlive: true,
     playerName: "陌客",
     role: { id: "recluse", name: "陌客", type: "outsider" },
   },
   {
     id: 2,
     isDead: false,
-    isAlive: true,
     playerName: "间谍",
     role: { id: "spy", name: "间谍", type: "minion" },
   },
   {
     id: 3,
     isDead: false,
-    isAlive: true,
     playerName: "士兵",
     role: { id: "soldier", name: "士兵", type: "townsfolk" },
   },
   {
     id: 4,
     isDead: false,
-    isAlive: true,
     playerName: "小恶魔",
     role: { id: "imp", name: "小恶魔", type: "demon" },
   },
   {
     id: 5,
     isDead: false,
-    isAlive: true,
     playerName: "男爵",
     role: { id: "baron", name: "男爵", type: "minion" },
   },

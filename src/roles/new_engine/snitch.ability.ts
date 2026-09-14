@@ -15,6 +15,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isTownsfolkOrOutsiderRole } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -84,7 +85,7 @@ export function pickExtraAbsentRoleNames(
     (r) =>
       !excludeNames.includes(r.name) &&
       r.id !== "drunk" &&
-      (r.type === "townsfolk" || r.type === "outsider")
+      isTownsfolkOrOutsiderRole(r)
   );
   const picked: string[] = [];
   for (const r of shuffleWithRng(remaining, rng)) {
@@ -132,7 +133,7 @@ const calculate = async (
 
   // 受推送的爪牙
   const minionSeats = (ctx.snapshot.seats as any[]).filter((s) => {
-    if (!s.isAlive) return false;
+    if (s.isDead) return false;
     if (s.role?.type !== "minion") return false;
     if (skipMarionette && s.id === marionetteId) return false;
     return true;

@@ -24,7 +24,6 @@ function makeSeat(
     id,
     role: { id: roleId, name: roleId, type } as Role,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     isProtected: false,
@@ -127,7 +126,7 @@ describe("小精灵：两阶段机制（首夜告知 + 死亡获能力）", () =
         pixieMadnessRoleId: "fortune_teller",
         pixieMadnessRoleName: "占卜师",
       }),
-      makeSeat(1, "fortune_teller", "townsfolk", { isDead: true, isAlive: false }),
+      makeSeat(1, "fortune_teller", "townsfolk", { isDead: true, }),
       makeSeat(2, "chef", "townsfolk"),
     ];
 
@@ -155,7 +154,7 @@ describe("小精灵：两阶段机制（首夜告知 + 死亡获能力）", () =
         pixieMadnessRoleId: "fortune_teller",
         pixieMadnessRoleName: "占卜师",
       }),
-      makeSeat(1, "fortune_teller", "townsfolk", { isDead: true, isAlive: false }),
+      makeSeat(1, "fortune_teller", "townsfolk", { isDead: true, }),
       makeSeat(2, "imp", "demon"),
     ];
 

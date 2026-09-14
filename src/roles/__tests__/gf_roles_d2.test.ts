@@ -29,7 +29,6 @@ function mkSeat(
     id,
     playerName: `P${id + 1}`,
     role: { id: roleId, name: roleId, type },
-    isAlive: true,
     isDead: false,
     isDrunk: false,
     isPoisoned: false,
@@ -83,7 +82,7 @@ describe("Wave D2 国风角色官方规则", () => {
   describe("知府（每晚得知是否有非镇民且非旅行者死亡）", () => {
     it("当晚有爪牙死亡 → 得知'是'", async () => {
       const seats = seatsFor("prefect");
-      seats[2] = { ...seats[2], isAlive: false, isDead: true, diedAtNight: 2 };
+      seats[2] = { ...seats[2], isDead: true, diedAtNight: 2 };
       const r = await runNight(seats, 2);
       const act = r.actions.find((a) => a.node.roleId === "prefect")!;
       expect(act.context.meta.abilityResult.hasNonTownsfolkDeath).toBe(true);

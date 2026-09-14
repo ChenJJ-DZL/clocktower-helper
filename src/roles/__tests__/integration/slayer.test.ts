@@ -14,7 +14,6 @@ function s(id: number, rid: string, rt: string) {
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     role: { id: rid, name: n[rid] || rid, type: rt },
     isDrunk: false,
     isPoisoned: false,
@@ -60,7 +59,7 @@ describe("猎手 引擎集成测试", () => {
     );
     expect(res.aborted).toBe(false);
     expect(res.snapshot.seats[0].abilityUsed).toBe(true);
-    expect(res.snapshot.seats[1].isAlive).toBe(false);
+    expect(res.snapshot.seats[1].isDead).toBe(true);
   });
 
   test("能力管道执行 - 酒鬼伪装猎手射击恶魔无效且标记已使用", async () => {
@@ -76,6 +75,6 @@ describe("猎手 引擎集成测试", () => {
     expect(res.aborted).toBe(false);
     expect(res.snapshot.seats[0].abilityUsed).toBe(true);
     // 恶魔存活
-    expect(res.snapshot.seats[1].isAlive).toBe(true);
+    expect(res.snapshot.seats[1].isDead).toBe(false);
   });
 });

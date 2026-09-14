@@ -30,21 +30,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "图书官",
           role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小八",
           role: { id: "saint", name: "圣徒", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小莱",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -68,14 +65,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "图书官",
           role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "陌客P",
           role: { id: "recluse", name: "陌客", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -98,7 +93,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "图书官",
           role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
@@ -106,14 +100,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "monk", name: "僧侣" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "道哥",
           role: { id: "undertaker", name: "送葬者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -135,7 +127,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "图书官",
           role: { id: "librarian", name: "图书管理员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           isPoisoned: true,
         },
         {
@@ -143,14 +134,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "村民A",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "村民B",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -176,35 +165,30 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "厨师P",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "村民1",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "男爵P",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 4,
           playerName: "村民2",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -223,42 +207,36 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "厨师P",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "男爵P",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "村民P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 4,
           playerName: "投毒者P",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 5,
           playerName: "红唇P",
           role: { id: "scarlet_woman", name: "红唇女郎", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -277,14 +255,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "厨师P",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
@@ -292,35 +268,30 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "scapegoat", name: "替罪羊", type: "outsider" },
           isEvilConverted: true,
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "红唇P",
           role: { id: "scarlet_woman", name: "红唇女郎", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 4,
           playerName: "村民P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 5,
           playerName: "投毒者P",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 6,
           playerName: "男爵P",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -339,28 +310,24 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "厨师P",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "村民P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "男爵P",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -382,35 +349,30 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "厨师P",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "陌客P",
           role: { id: "recluse", name: "陌客", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "投毒者P",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 4,
           playerName: "僧侣P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -436,21 +398,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小艾",
           role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "大本",
           role: { id: "harpy", name: "鹰身女妖", type: "minion" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 2,
           playerName: "小黑",
           role: { id: "tea_lady", name: "茶艺师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           isEvilConverted: true,
           alignment: "evil",
         },
@@ -459,7 +418,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "村民A",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       // 首夜：大本存活，得知大本
@@ -467,7 +425,7 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
         actionNode: { seatId: 0, roleId: "bounty_hunter" },
         snapshot: {
           seats: seats.map((s) =>
-            s.id === 1 ? { ...s, isDead: false, isAlive: true } : s
+            s.id === 1 ? { ...s, isDead: false, } : s
           ),
           gamePhase: "firstNight",
           nightCount: 1,
@@ -502,7 +460,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "赏金猎人P",
           role: { id: "bounty_hunter", name: "赏金猎人", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           isPoisoned: true,
         },
         {
@@ -510,21 +467,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小朱",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 2,
           playerName: "小艾",
           role: { id: "artist", name: "魔术师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "村民B",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       // 中毒时：不传 targetSeatId，让引擎从善良玩家中随机选（虚假信息）
@@ -550,7 +504,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "bounty_hunter", name: "赏金猎人" },
           isDead: false,
-          isAlive: true,
           isDrunk: true,
         },
         {
@@ -558,21 +511,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小明",
           role: { id: "empath", name: "共情者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "道哥",
           role: { id: "flowergirl", name: "卖花女孩", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "村民C",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       // 首夜：酒鬼醉酒，说书人选择告知善良共情者（虚假信息）
@@ -592,7 +542,7 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
 
       // 小明死后：酒鬼仍醉酒，说书人选择告知善良卖花女孩（虚假）
       const seats2 = seats.map((s) =>
-        s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+        s.id === 1 ? { ...s, isDead: true, } : s
       );
       const ctx2: any = {
         actionNode: { seatId: 0, roleId: "bounty_hunter" },
@@ -618,14 +568,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小米",
           role: { id: "pixie", name: "小精灵", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "将军P",
           role: { id: "general", name: "将军", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const n1Ctx: any = {
@@ -646,7 +594,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "pixie", name: "小精灵" },
           isDead: false,
-          isAlive: true,
           statusEffects: [{ type: "drunk" }],
         },
         {
@@ -654,7 +601,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "半兽人P",
           role: { id: "ogre", name: "食人魔", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -674,14 +620,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小精灵P",
           role: { id: "pixie", name: "小精灵", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "士兵P",
           role: { id: "soldier", name: "士兵", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const ctx: any = {
@@ -709,28 +653,24 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "镇长P",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "送葬者P",
           role: { id: "undertaker", name: "送葬者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "厨师P",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -759,21 +699,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "共情者P",
           role: { id: "empath", name: "共情者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -801,21 +738,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "存活小恶魔",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "死亡小恶魔",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const ctx: any = {
@@ -843,7 +777,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
@@ -851,7 +784,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "saint", name: "圣徒", type: "outsider" },
           isRedHerring: true,
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -880,7 +812,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           isPoisoned: true,
         },
         {
@@ -888,14 +819,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "共情者P",
           role: { id: "empath", name: "共情者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -926,14 +855,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "僧侣P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -954,14 +881,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "僧侣P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "镇长P",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -982,14 +907,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "僧侣P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1010,7 +933,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "僧侣P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           isPoisoned: true,
         },
         {
@@ -1018,7 +940,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1041,21 +962,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "神谕者P",
           role: { id: "oracle", name: "神谕者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "卖花女P",
           role: { id: "flowergirl", name: "卖花女孩", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 2,
           playerName: "杂耍P",
           role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const ctx: any = {
@@ -1075,21 +993,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "神谕者P",
           role: { id: "oracle", name: "神谕者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "邪死者1",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 2,
           playerName: "邪死者2",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 3,
@@ -1097,21 +1012,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "beggar", name: "乞丐", type: "traveler" },
           isEvilConverted: true,
           isDead: true,
-          isAlive: false,
         },
         {
           id: 4,
           playerName: "爪牙死者",
           role: { id: "witch", name: "女巫", type: "minion" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 5,
           playerName: "善死者1",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const ctx: any = {
@@ -1131,7 +1043,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "神谕者P",
           role: { id: "oracle", name: "神谕者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           statusEffects: [{ type: "poisoned" }],
         },
         {
@@ -1139,7 +1050,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "邪死者1",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const ctx: any = {
@@ -1163,7 +1073,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "公告员",
           role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1188,7 +1097,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "公告员",
           role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1213,7 +1121,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "公告员",
           role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1239,7 +1146,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "公告员",
           role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           statusEffects: [{ type: "poisoned" }],
         },
       ];
@@ -1269,28 +1175,24 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "杂耍P",
           role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小明",
           role: { id: "town_crier", name: "城镇公告员", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小兰",
           role: { id: "no_dashii", name: "诺-达鲺", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "小黑",
           role: { id: "empath", name: "共情者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1318,21 +1220,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "新杂耍P",
           role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小八",
           role: { id: "pit_hag", name: "麻脸巫婆", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小米",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1360,7 +1259,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "杂耍P",
           role: { id: "juggler", name: "杂耍艺人", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           isPoisoned: true,
         },
       ];
@@ -1385,7 +1283,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "博学P",
           role: { id: "savant", name: "博学者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1414,7 +1311,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "博学P",
           role: { id: "savant", name: "博学者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1443,7 +1339,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "博学P",
           role: { id: "savant", name: "博学者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1467,7 +1362,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "博学P",
           role: { id: "savant", name: "博学者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1494,7 +1388,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "博学P",
           role: { id: "savant", name: "博学者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           statusEffects: [{ type: "poisoned" }],
         },
       ];
@@ -1522,21 +1415,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小佳",
           role: { id: "farmer", name: "农夫", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "小美",
           role: { id: "alchemist", name: "炼金术士", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小文",
           role: { id: "fearmonger", name: "恐惧之灵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1561,14 +1451,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小佳",
           role: { id: "farmer", name: "农夫", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "小美",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1588,7 +1476,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小佳",
           role: { id: "farmer", name: "农夫", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
           statusEffects: [{ type: "poisoned" }],
         },
         {
@@ -1596,7 +1483,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小美",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1622,28 +1508,24 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "农夫P",
           role: { id: "farmer", name: "农夫", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "小精灵P",
           role: { id: "pixie", name: "小精灵", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "异端分子P",
           role: { id: "heretic", name: "异端分子", type: "outsider" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "村民D",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx1: any = {
@@ -1663,7 +1545,7 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
 
       // 第二轮：新农夫(1)也夜间死亡，异端分子(2)成为新农夫
       const seats2 = res1.snapshot.seats.map((s: any) =>
-        s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+        s.id === 1 ? { ...s, isDead: true, } : s
       );
       const ctx2: any = {
         actionNode: { seatId: 1, roleId: "farmer" },
@@ -1693,14 +1575,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "农夫P",
           role: { id: "farmer", name: "农夫", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "间谍P",
           role: { id: "spy", name: "间谍", type: "minion" },
           isDead: false,
-          isAlive: true,
           alignment: "good",
         },
         {
@@ -1708,7 +1588,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "村民E",
           role: { id: "chef", name: "厨师", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1740,14 +1619,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "镇长P",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "守鸦人P",
           role: { id: "ravenkeeper", name: "守鸦人", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1768,21 +1645,18 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "镇长P",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "村民1",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1796,7 +1670,7 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
         },
         meta: {},
       };
-      expect(seats.filter((s) => s.isAlive).length).toBe(3);
+      expect(seats.filter((s) => !s.isDead).length).toBe(3);
     });
 
     it("范例 3: 镇长中毒时被攻击 -> 替死能力失效", async () => {
@@ -1806,7 +1680,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "镇长P",
           role: { id: "mayor", name: "镇长", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
           statusEffects: [{ type: "poisoned" }],
         },
         {
@@ -1814,7 +1687,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "村民P",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -1837,28 +1709,24 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "罂粟P",
           role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "投毒者P",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "女巫P",
           role: { id: "witch", name: "女巫", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const q1 = generateDynamicNightQueue(
@@ -1876,28 +1744,24 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "罂粟P",
           role: { id: "poppy_grower", name: "罂粟种植者", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "沙巴洛斯",
           role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "教父P",
           role: { id: "godfather", name: "教父", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "男爵P",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const q2 = generateDynamicNightQueue(
@@ -1916,7 +1780,6 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           role: { id: "drunk", name: "酒鬼", type: "outsider" },
           charadeRole: { id: "poppy_grower", name: "罂粟种植者" },
           isDead: false,
-          isAlive: true,
           isDrunk: true,
         },
         {
@@ -1924,14 +1787,12 @@ describe("【《罂粟花开》镇民 (Townsfolk) 1:1 官方 Wiki 原装独立�
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "男爵P",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const q1 = generateDynamicNightQueue(

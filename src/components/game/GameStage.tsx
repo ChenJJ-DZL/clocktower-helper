@@ -570,7 +570,7 @@ export const GameStage = () => {
       const candidateId = wakeQueueIds[i];
       const s = seats.find((seat: Seat) => seat.id === candidateId);
       if (!s) continue;
-      const isDead = s.isDead || (s as any).isAlive === false;
+      const isDead = s.isDead === true;
       const canActWhileDead =
         s.hasAbilityEvenDead ||
         (s.role?.id === "ravenkeeper" && deadThisNight.includes(candidateId)) ||

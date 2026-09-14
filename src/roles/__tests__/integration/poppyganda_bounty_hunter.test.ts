@@ -21,7 +21,6 @@ function makeSeat(
     id,
     role: { id: roleId, name: roleId, type } as Role,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     isProtected: false,
@@ -126,7 +125,7 @@ describe("赏金猎人：首夜 + 死亡轮转", () => {
         bountyHunterKnownTargets: res1.snapshot.bountyHunterKnownTargets,
         // 模拟 1 号死亡
         seats: ctx1.snapshot.seats.map((s: Seat) =>
-          s.id === 1 ? { ...s, isDead: true, isAlive: false } : s
+          s.id === 1 ? { ...s, isDead: true, } : s
         ),
       },
       meta: { isRotationTrigger: true },

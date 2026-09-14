@@ -32,13 +32,13 @@ const scriptRoles: any[] = [
 
 // 已分配：洗衣妇 / 厨师 / 士兵 / 圣徒 / 告密者 / 投毒者 / 小恶魔
 const seats: any[] = [
-  { id: 0, playerName: "洗衣妇", isDead: false, isAlive: true, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } },
-  { id: 1, playerName: "厨师", isDead: false, isAlive: true, role: { id: "chef", name: "厨师", type: "townsfolk" } },
-  { id: 2, playerName: "士兵", isDead: false, isAlive: true, role: { id: "soldier", name: "士兵", type: "townsfolk" } },
-  { id: 3, playerName: "圣徒", isDead: false, isAlive: true, role: { id: "saint", name: "圣徒", type: "outsider" } },
-  { id: 4, playerName: "告密者", isDead: false, isAlive: true, role: { id: "snitch", name: "告密者", type: "minion" } },
-  { id: 5, playerName: "投毒者", isDead: false, isAlive: true, role: { id: "poisoner", name: "投毒者", type: "minion" } },
-  { id: 6, playerName: "小恶魔", isDead: false, isAlive: true, role: { id: "imp", name: "小恶魔", type: "demon" } },
+  { id: 0, playerName: "洗衣妇", isDead: false, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" } },
+  { id: 1, playerName: "厨师", isDead: false, role: { id: "chef", name: "厨师", type: "townsfolk" } },
+  { id: 2, playerName: "士兵", isDead: false, role: { id: "soldier", name: "士兵", type: "townsfolk" } },
+  { id: 3, playerName: "圣徒", isDead: false, role: { id: "saint", name: "圣徒", type: "outsider" } },
+  { id: 4, playerName: "告密者", isDead: false, role: { id: "snitch", name: "告密者", type: "minion" } },
+  { id: 5, playerName: "投毒者", isDead: false, role: { id: "poisoner", name: "投毒者", type: "minion" } },
+  { id: 6, playerName: "小恶魔", isDead: false, role: { id: "imp", name: "小恶魔", type: "demon" } },
 ];
 
 const assignedRoleIds = new Set(seats.map((s) => s.role.id));

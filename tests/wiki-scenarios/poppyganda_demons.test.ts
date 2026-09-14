@@ -18,21 +18,18 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: true,
-          isAlive: false,
         },
         {
           id: 1,
           playerName: "小文",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小美",
           role: { id: "baron", name: "男爵", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].isDead).toBe(true);
@@ -45,14 +42,12 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "小恶魔P",
           role: { id: "imp", name: "小恶魔", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "投毒者P",
           role: { id: "poisoner", name: "投毒者", type: "minion" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -75,7 +70,6 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "涡流P",
           role: { id: "vortox", name: "涡流", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -95,7 +89,6 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "涡流P",
           role: { id: "vortox", name: "涡流", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].role.id).toBe("vortox");
@@ -108,7 +101,6 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "涡流P",
           role: { id: "vortox", name: "涡流", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       expect(seats[0].role.id).toBe("vortox");
@@ -131,7 +123,6 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "涡流P",
           role: { id: "vortox", name: "涡流", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
       ];
       const ctx: any = {
@@ -154,56 +145,48 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "军团1",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "军团2",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "军团3",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "军团4",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 4,
           playerName: "军团5",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 5,
           playerName: "军团6",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 6,
           playerName: "猎手P",
           role: { id: "slayer", name: "猎手", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 7,
           playerName: "占卜师P",
           role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" },
           isDead: true,
-          isAlive: false,
         },
       ];
       const result = checkGameEnd(seats, "execution", 7);
@@ -219,28 +202,24 @@ describe("【《罂粟花开》恶魔 (Demons) 1:1 官方 Wiki 原装独立范�
           playerName: "军团1",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 1,
           playerName: "军团2",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 2,
           playerName: "小佳",
           role: { id: "legion", name: "军团", type: "demon" },
           isDead: false,
-          isAlive: true,
         },
         {
           id: 3,
           playerName: "小艾",
           role: { id: "monk", name: "僧侣", type: "townsfolk" },
           isDead: false,
-          isAlive: true,
         },
       ];
 

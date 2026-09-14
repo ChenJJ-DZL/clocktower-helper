@@ -27,7 +27,6 @@ function makeSeat(
     id,
     playerName: "玩家" + (id + 1),
     isDead,
-    isAlive: !isDead,
     role: { id: roleId, name: roleName, type: roleType },
     statusEffects: [],
   };

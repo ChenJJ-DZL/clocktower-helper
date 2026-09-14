@@ -15,10 +15,9 @@ function makeSeat(
     isDead?: boolean;
     isDrunk?: boolean;
     isPoisoned?: boolean;
-    isAlive?: boolean;
   }
 ) {
-  const isAlive = opts?.isAlive ?? !(opts?.isDead ?? false);
+  const alive = !(opts?.isDead ?? false);
   const statusEffects: Array<{ type: string }> = [];
   if (opts?.isDrunk) statusEffects.push({ type: "drunk" });
   if (opts?.isPoisoned) statusEffects.push({ type: "poisoned" });
@@ -41,8 +40,7 @@ function makeSeat(
   return {
     id,
     playerName: `玩家${id + 1}`,
-    isDead: !isAlive,
-    isAlive,
+    isDead: !alive,
     isDrunk: opts?.isDrunk ?? false,
     isPoisoned: opts?.isPoisoned ?? false,
     role: { id: roleId, name: names[roleId] || roleId, type: roleType },

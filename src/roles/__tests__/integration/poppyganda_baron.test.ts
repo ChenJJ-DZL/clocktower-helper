@@ -8,7 +8,6 @@ function makeSeat(id: number): Seat {
     id,
     role: { id: "baron", name: "男爵", type: "minion" },
     isDead: false,
-    isAlive: true,
   } as unknown as Seat;
 }
 

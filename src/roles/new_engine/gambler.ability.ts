@@ -77,7 +77,6 @@ const stateUpdate = async (
     if (seat.id === result.gamblerSeatId && !seat.isDead) {
       return {
         ...seat,
-        isAlive: false,
         isDead: true,
         diedAtNight: snapshot.nightCount,
         deathSource: "gambler_guess_fail",

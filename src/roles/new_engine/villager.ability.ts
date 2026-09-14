@@ -3,6 +3,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -15,7 +16,7 @@ const preCheckAliveAndStatus = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -28,7 +29,7 @@ const preCheckAliveAndStatus = async (
 
   // 村夫的特殊醉酒机制：如果有多个村夫，其中一个会醉酒
   const villagerCount = snapshot.seats.filter(
-    (s) => s.roleId === "villager" && s.isAlive
+    (s) => s.roleId === "villager" && !s.isDead
   ).length;
 
   // 检查这个村夫是否是醉酒的那个
@@ -59,7 +60,7 @@ const calculateResult = async (
   // 获取目标玩家（由说书人选择或随机选择
   const targetSeatId =
     context.storytellerInput?.targetSeatId ??
-    snapshot.seats.find((s) => s.isAlive && s.id !== actionNode.seatId)?.id;
+    snapshot.seats.find((s) => !s.isDead && s.id !== actionNode.seatId)?.id;
 
   const targetSeat = snapshot.seats.find((s) => s.id === targetSeatId);
 
@@ -71,11 +72,11 @@ const calculateResult = async (
 
   if (!isAbilityActive) {
     // 🔧 醉酒/中毒时，返回 100% 错误信息（与真实阵营相反）
-    const realIsEvil = targetSeat.alignment === "evil";
+    const realIsEvil = isSeatEvil(targetSeat);
     isEvil = context.storytellerInput?.fakeAlignment ?? !realIsEvil;
   } else {
     // 正常情况：返回真实阵营
-    isEvil = targetSeat.alignment === "evil";
+    isEvil = isSeatEvil(targetSeat);
   }
 
   const result = {

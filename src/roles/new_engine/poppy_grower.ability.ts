@@ -30,7 +30,7 @@ const preCheckTrivial = async (
 /**
  * calculate：检测罂粟种植者当前是否存活
  *
- * 从 snapshot.seats 中找到罂粟种植者的座位，检查 isAlive 状态。
+ * 从 snapshot.seats 中找到罂粟种植者的座位，检查存活状态（isDead）。
  */
 const calculateResult = async (
   ctx: MiddlewareContext
@@ -58,8 +58,8 @@ const calculateResult = async (
         (s.statusDetails ?? []).includes("成为新农夫")
     );
 
-  const isAlive = poppySeat?.isAlive !== false && !turnedFarmer; // 活着才算 active
-  const poppyGrowerActive = (!!poppySeat || turnedFarmer) && isAlive;
+  const poppyGrowerAlive = poppySeat?.isDead !== true && !turnedFarmer; // 活着才算 active
+  const poppyGrowerActive = (!!poppySeat || turnedFarmer) && poppyGrowerAlive;
 
   return {
     ...ctx,
@@ -68,7 +68,7 @@ const calculateResult = async (
       abilityResult: {
         poppyGrowerActive,
         poppySeatId: poppySeat?.id ?? null,
-        isAlive,
+        poppyGrowerAlive,
       },
     },
   };
@@ -89,7 +89,6 @@ const stateUpdateResult = async (
     | {
         poppyGrowerActive: boolean;
         poppySeatId: number | null;
-        isAlive: boolean;
       }
     | undefined;
 

@@ -8,6 +8,7 @@ import {
   type GameStateSnapshot,
   historySnapshotManager,
 } from "./historySnapshot";
+import { isSeatEvil } from "./seatAlignment";
 
 /**
  * 玩家死亡记录
@@ -286,15 +287,10 @@ export function getPlayerAlignmentChanges(
   for (const snapshot of snapshots) {
     const seat = snapshot.seats.find((s) => s.id === seatId);
     if (seat?.role) {
-      // 根据角色类型判断阵营
-      const alignment = ["townsfolk", "outsider"].includes(seat.role.type)
-        ? "good"
-        : "evil";
-      const actualAlignment = seat.isEvilConverted
-        ? "evil"
-        : seat.isGoodConverted
-          ? "good"
-          : alignment;
+      // ⭐ 阵营判定统一走 utils/seatAlignment
+      // （原先此处内联了第 9 套实现：先按 townsfolk/outsider 判，再看转换标记；
+      //   顺序与权威相反，且漏了 traveler）
+      const actualAlignment = isSeatEvil(seat) ? "evil" : "good";
 
       if (actualAlignment !== lastAlignment) {
         if (lastAlignment !== undefined) {

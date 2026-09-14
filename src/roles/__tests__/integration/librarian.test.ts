@@ -24,7 +24,6 @@ function makeSeat(
     id,
     playerName: `P${id + 1}`,
     isDead: !!opts?.isDead,
-    isAlive: !opts?.isDead,
     isDrunk: !!opts?.isDrunk,
     isPoisoned: false,
     role: { id: rid, name: n[rid] || rid, type: rt },

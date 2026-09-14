@@ -3,6 +3,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatGood } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -33,7 +34,7 @@ const calculateResult = async (
   }
 
   // 检查被处决的是否是善良玩家
-  const isGoodExecuted = executedSeat.alignment === "good";
+  const isGoodExecuted = isSeatGood(executedSeat);
 
   // 说书人决定是否让善良玩家存活
   const shouldSave = storytellerInput?.shouldSave ?? false;

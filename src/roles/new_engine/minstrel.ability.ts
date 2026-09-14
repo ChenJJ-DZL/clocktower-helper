@@ -65,7 +65,7 @@ const stateUpdate = async (
         seat.id !== result.minstrelSeatId &&
         seat.roleType !== "traveler" &&
         !seat.isDead &&
-        ((seat as any).isAlive ?? true)
+        ((seat as any).isDead !== true)
     )
     .map((seat) => seat.id);
 

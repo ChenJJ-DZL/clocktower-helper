@@ -19,7 +19,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
     (s: any) => s.id === ctx.actionNode.seatId
   );
   // 🔧 修复：死亡玩家不得发动能力（I3 不变式）。原实现死亡时直接返回 ctx → 不中止。
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...ctx, aborted: true, abortReason: "邪恶双子已死亡" };
   }
   return ctx;

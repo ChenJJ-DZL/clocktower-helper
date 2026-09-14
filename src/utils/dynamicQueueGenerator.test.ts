@@ -11,7 +11,6 @@ function seat(id: number, roleId: string, opts: any = {}) {
     role: { id: roleId, name: roleId, type: opts.type ?? "townsfolk" },
     charadeRole: opts.charadeRole ?? null,
     isDead: opts.isDead ?? false,
-    isAlive: !(opts.isDead ?? false),
   };
 }
 

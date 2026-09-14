@@ -28,8 +28,8 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
   describe("教父 (Godfather)", () => {
     it("范例 1: 外来者(疯子)死于处决，当晚教父获得击杀能力，成功杀害和平主义者。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "godfather", name: "教父", type: "minion" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "pacifist", name: "和平主义者", type: "townsfolk" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "godfather", name: "教父", type: "minion" } as any, isDead: false, },
+        { id: 1, role: { id: "pacifist", name: "和平主义者", type: "townsfolk" } as any, isDead: false, },
       ] as any;
 
       // 今天有外来者死亡 -> outsiderDiedToday = true
@@ -47,8 +47,8 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
 
     it("范例 2: 外来者未死于处决(修补匠被代言人保护)，教父当晚无法行动；次日修补匠死亡后，教父可行动并自杀假装善良。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "godfather", name: "教父", type: "minion" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "tinker", name: "修补匠", type: "outsider" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "godfather", name: "教父", type: "minion" } as any, isDead: false, },
+        { id: 1, role: { id: "tinker", name: "修补匠", type: "outsider" } as any, isDead: false, },
       ] as any;
 
       // 阶段 1：修补匠受保护未死，outsiderDiedToday = false
@@ -82,7 +82,7 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
   describe("魔鬼代言人 (Devil's Advocate)", () => {
     it("范例 1: 夜晚魔鬼代言人保护自己，次日白天被处决但依然存活。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "devils_advocate", name: "魔鬼代言人", type: "minion" } as any, isDead: false, isAlive: true, statusEffects: [] },
+        { id: 0, role: { id: "devils_advocate", name: "魔鬼代言人", type: "minion" } as any, isDead: false, statusEffects: [] },
       ] as any;
 
       const ctx: any = {
@@ -99,8 +99,8 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
 
     it("范例 2: 魔鬼代言人保护僵怖，僵怖被处决依然存活。不能连续两晚选同一人。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "devils_advocate", name: "魔鬼代言人", type: "minion" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "zombuul", name: "僵怖", type: "demon" } as any, isDead: false, isAlive: true, statusEffects: [] },
+        { id: 0, role: { id: "devils_advocate", name: "魔鬼代言人", type: "minion" } as any, isDead: false, },
+        { id: 1, role: { id: "zombuul", name: "僵怖", type: "demon" } as any, isDead: false, statusEffects: [] },
       ] as any;
 
       // 第一夜保护僵怖
@@ -128,9 +128,9 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
 
     it("范例 3: 魔鬼代言人保护教父，教父免于处决；次夜代言人改选修补匠。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "devils_advocate", name: "魔鬼代言人", type: "minion" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "godfather", name: "教父", type: "minion" } as any, isDead: false, isAlive: true, statusEffects: [] },
-        { id: 2, role: { id: "tinker", name: "修补匠", type: "outsider" } as any, isDead: false, isAlive: true, statusEffects: [] },
+        { id: 0, role: { id: "devils_advocate", name: "魔鬼代言人", type: "minion" } as any, isDead: false, },
+        { id: 1, role: { id: "godfather", name: "教父", type: "minion" } as any, isDead: false, statusEffects: [] },
+        { id: 2, role: { id: "tinker", name: "修补匠", type: "outsider" } as any, isDead: false, statusEffects: [] },
       ] as any;
 
       // 第一夜保护教父
@@ -162,8 +162,8 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
   describe("刺客 (Assassin)", () => {
     it("范例 1: 刺客选择杀死弄臣。尽管弄臣拥有免死能力，弄臣仍被刺客强杀并保持死亡。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "fool", name: "弄臣", type: "townsfolk" } as any, isDead: false, isAlive: true, foolUsed: false },
+        { id: 0, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, },
+        { id: 1, role: { id: "fool", name: "弄臣", type: "townsfolk" } as any, isDead: false, foolUsed: false },
       ] as any;
 
       const ctx: any = {
@@ -180,10 +180,10 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
 
     it("范例 2: 刺客击杀受到茶艺师免死保护的玩家，刺客无视茶艺师保护成功击杀目标。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 1, role: { id: "tea_lady", name: "茶艺师", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, isAlive: true },
-        { id: 3, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "gambler", name: "赌徒", type: "townsfolk" } as any, isDead: false, },
+        { id: 1, role: { id: "tea_lady", name: "茶艺师", type: "townsfolk" } as any, isDead: false, },
+        { id: 2, role: { id: "sailor", name: "水手", type: "townsfolk" } as any, isDead: false, },
+        { id: 3, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, },
       ] as any;
 
       // 2号水手受到茶艺师保护
@@ -202,8 +202,8 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
 
     it("范例 3: 吟游诗人在场，爪牙被处决后刺客醉酒，刺客暗杀月之子失败且消耗能力。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, isAlive: true, isDrunk: true, statusEffects: [{ type: "drunk", source: "minstrel" }] },
-        { id: 1, role: { id: "moonchild", name: "月之子", type: "outsider" } as any, isDead: false, isAlive: true },
+        { id: 0, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, isDrunk: true, statusEffects: [{ type: "drunk", source: "minstrel" }] },
+        { id: 1, role: { id: "moonchild", name: "月之子", type: "outsider" } as any, isDead: false, },
       ] as any;
 
       const ctx: any = {
@@ -218,8 +218,8 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
     });
 
     it("范例 4: 因侍臣而醉酒的刺客想要暗杀莽夫。刺客失效，莽夫存活但转为邪恶。", async () => {
-      const assassinSeat: Seat = { id: 0, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, isAlive: true, isDrunk: true, statusEffects: [{ type: "drunk", source: "courtier" }] } as any;
-      const goonSeat: Seat = { id: 1, role: { id: "goon", name: "莽夫", type: "outsider" } as any, isDead: false, isAlive: true, alignment: "good" } as any;
+      const assassinSeat: Seat = { id: 0, role: { id: "assassin", name: "刺客", type: "minion" } as any, isDead: false, isDrunk: true, statusEffects: [{ type: "drunk", source: "courtier" }] } as any;
+      const goonSeat: Seat = { id: 1, role: { id: "goon", name: "莽夫", type: "outsider" } as any, isDead: false, alignment: "good" } as any;
 
       // 刺客选择莽夫 -> 莽夫转变为刺客阵营(邪恶)，刺客醉酒无法杀人
       const res = handleGoonInteraction(assassinSeat, goonSeat, 3);
@@ -238,7 +238,7 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
         snapshot: {
           demonExecutedToday: true,
           seats: [
-            { id: 0, role: { id: "mastermind", name: "主谋", type: "minion" } as any, isDead: false, isAlive: true },
+            { id: 0, role: { id: "mastermind", name: "主谋", type: "minion" } as any, isDead: false, },
           ],
         } as any,
         actionNode: { seatId: 0, roleId: "mastermind", roleName: "主谋" } as any,
@@ -262,7 +262,7 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
         snapshot: {
           demonExecutedToday: false,
           seats: [
-            { id: 0, role: { id: "mastermind", name: "主谋", type: "minion" } as any, isDead: false, isAlive: true },
+            { id: 0, role: { id: "mastermind", name: "主谋", type: "minion" } as any, isDead: false, },
           ],
         } as any,
         actionNode: { seatId: 0, roleId: "mastermind", roleName: "主谋" } as any,
@@ -276,7 +276,7 @@ describe("《暗月初升》爪牙角色官方范例逐条验证 (Minions Exampl
         snapshot: {
           demonExecutedToday: true,
           seats: [
-            { id: 0, role: { id: "mastermind", name: "主谋", type: "minion" } as any, isDead: false, isAlive: true },
+            { id: 0, role: { id: "mastermind", name: "主谋", type: "minion" } as any, isDead: false, },
           ],
         } as any,
         actionNode: { seatId: 0, roleId: "mastermind", roleName: "主谋" } as any,

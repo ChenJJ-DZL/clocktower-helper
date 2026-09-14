@@ -27,7 +27,6 @@ function seat(
     id,
     playerName: `P${id + 1}`,
     isDead: dead,
-    isAlive: !dead,
     isDrunk: drunk,
     isPoisoned: pois,
     role: { id: rid, name: n[rid] || rid, type: rt },

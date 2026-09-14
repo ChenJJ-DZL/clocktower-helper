@@ -90,7 +90,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
@@ -123,7 +122,7 @@ const preCheckAliveOnly = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "酒鬼已死亡" };
   }
 

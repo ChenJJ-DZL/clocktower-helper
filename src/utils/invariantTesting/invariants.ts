@@ -4,7 +4,7 @@
  * 每条不变式都是"任何情况下都必须成立"的规则，返回违规描述列表：
  *   [] = 通过；非空 = 违规（每条描述一次违规）。
  *
- * I1 死亡标记一致性    — 死亡状态字段必须协同落地（isDead/isAlive/markedForDeath/...）
+ * I1 死亡标记一致性    — isDead 与 markedForDeath 的落地关系（isAlive 已于 2026-09-14 并入 isDead）
  * I2 队列合法性        — 夜间队列不得包含死亡/被动/未注册角色
  * I3 死亡玩家拦截      — 死亡玩家的能力必须被 preCheck 中止（间谍例外）
  * I4 信息干扰          — 中毒/醉酒的信息角色结果必须标记受干扰（isCorrupted）
@@ -42,19 +42,14 @@ export const I1DeathMarkersConsistent: InvariantCheck = (result) => {
   for (const seat of (result.finalSnapshot.seats as any[]) ?? []) {
     const id = seat.id;
     const {
-      isAlive,
       isDead,
       markedForDeath,
       diedAtNight,
       killedBy,
       deathSource,
     } = seat;
-    if (isDead === true && isAlive !== false) {
-      errs.push(`I1: 座位${id + 1} isDead=true 但 isAlive=${isAlive}`);
-    }
-    if (isAlive === true && isDead === true) {
-      errs.push(`I1: 座位${id + 1} isAlive 与 isDead 同时为 true`);
-    }
+    // 死亡标记已统一为 isDead（2026-09-14）：
+    //   `isAlive` 与 `isDead` 的一致性检查随之作废，无需再断言两者同步。
     if (markedForDeath === true && isDead !== true) {
       errs.push(`I1: 座位${id + 1} markedForDeath=true 但 isDead=${isDead}`);
     }
@@ -132,7 +127,7 @@ export const I3DeadPlayerAbilityBlocked: InvariantCheck = async (
     const timings = (ability.triggerTiming ?? []) as string[];
     if (timings.includes("passive")) continue;
 
-    const deadSeat = { ...seat, isAlive: false, isDead: true };
+    const deadSeat = { ...seat, isDead: true };
     const snapshot: any = {
       ...result.finalSnapshot,
       seats: finalSeats.map((s) => (s.id === seat.id ? deadSeat : s)),
@@ -246,9 +241,8 @@ export const I5TargetLegality: InvariantCheck = (result, abilityMap) => {
           `I5: ${action.node.roleId} 选择自己为目标（allowSelf=false）`
         );
       }
-      // 检查三种死亡标记：isDead / markedForDeath / isAlive===false
-      const dead =
-        target.isDead || target.markedForDeath || target.isAlive === false;
+      // 检查两种死亡标记：isDead（已落地）/ markedForDeath（待黎明结算）
+      const dead = target.isDead || target.markedForDeath;
       if (!tc.allowDead && dead) {
         errs.push(
           `I5: ${action.node.roleId} 选择死亡玩家 ${tid + 1}号 为目标（allowDead=false）`
@@ -570,21 +564,19 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
     switch (semantics) {
       case "kill": {
         // 死亡标记（引擎契约：恶魔只标 markedForDeath，黎明才落 isDead；
-        // 刺客/半兽人等直接落 isAlive:false/isDead:true）
+        // 刺客/半兽人等直接落 isDead=true）
         const isDeadMark = (s: any) =>
-          s.markedForDeath === true || s.isAlive === false || s.isDead === true;
+          s.markedForDeath === true || s.isDead === true;
         // ① 全新死亡标记（prev 无 → cur 有）
         const prevDeadIds = new Set(prev.filter(isDeadMark).map((s) => s.id));
         const newDeath = cur.some(
           (s) => isDeadMark(s) && !prevDeadIds.has(s.id)
         );
-        // ② 死亡深化（prev 仅 mfd → cur 死透 isAlive:false/isDead:true）
+        // ② 死亡深化（prev 仅 mfd → cur 死透 isDead:true）
         const deepDeath = cur.some(
           (s) =>
-            (s.isAlive === false || s.isDead === true) &&
-            prev.some(
-              (x) => x.id === s.id && x.isAlive !== false && x.isDead !== true
-            )
+            s.isDead === true &&
+            prev.some((x) => x.id === s.id && x.isDead !== true)
         );
         // 条件豁免：能力结果明确声明"未击杀/免疫/不应杀"，或目标被保护
         // （monk/innkeeper 等 statusEffects.protected / isProtected），
@@ -680,7 +672,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         ok = cur.some((s) => {
           const p = prev.find((x) => x.id === s.id);
           return (
-            p?.isDead === true && (s.isDead === false || s.isAlive === true)
+            p?.isDead === true && s.isDead === false
           );
         });
         break;

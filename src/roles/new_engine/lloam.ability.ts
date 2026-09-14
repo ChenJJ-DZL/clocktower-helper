@@ -18,7 +18,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead?: boolean;
-  isAlive?: boolean;
   playerName?: string;
   statusEffects?: Array<{ type: string; [key: string]: any }>;
   markedForDeath?: boolean;
@@ -38,7 +37,7 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s: any) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "罗姆已死亡，技能失效" };
   }
 
@@ -57,7 +56,7 @@ const findPoisonedTargets = async (
 
   const poisonedTargets = snapshot.seats
     .filter((s: any) => {
-      if (!s.isAlive) return false;
+      if (s.isDead) return false;
       const effects = s.statusEffects ?? snapshot.statusEffects?.[s.id] ?? [];
       return effects.some((e: any) => e.type === "poisoned");
     })

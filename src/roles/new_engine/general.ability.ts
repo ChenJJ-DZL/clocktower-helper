@@ -6,6 +6,7 @@
  * 将军可以感知己方阵营的局势，了解善良与邪恶阵营谁占优势。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -15,7 +16,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -25,15 +26,15 @@ const calculate = async (
   const seats = ctx.snapshot.seats;
   const evil = seats.filter(
     (s: any) =>
-      s.isAlive &&
+      !s.isDead &&
       s.role &&
       (s.role.type === "minion" || s.role.type === "demon")
   ).length;
   const good = seats.filter(
     (s: any) =>
-      s.isAlive &&
+      !s.isDead &&
       s.role &&
-      (s.role.type === "townsfolk" || s.role.type === "outsider")
+      (isSeatTownsfolkOrOutsider(s))
   ).length;
   const status =
     evil > good ? "邪恶占优" : good > evil ? "善良占优" : "势均力敌";

@@ -118,16 +118,24 @@ export function resetStorytellerInfoOverrides(): void {
 
 // ─── 假值生成 ────────────────────────────────────────────────────────────
 
-/** 数值型假值：确定性、且 != 真值。 */
+/**
+ * number 型假值：在 [0, max] 内确定性取值并**排除真值**。
+ *
+ * ⚠️ 退化局面（`max === 0`，即棋盘上物理上界为 0）：
+ *    旧实现返回 `trueValue === 0 ? 1 : 0` → 可能返回 **1 > max**，
+ *    即一个物理上界的越界值（玩家一眼看出"这个数不可能"→ 暴露被干扰）。
+ *    改为返回 `max` 本身（宁可等于真值，也不给越界值）。
+ */
 export function pickFakeNumber(
   trueValue: number | null | undefined,
   max: number,
   rng: () => number
 ): number {
+  const cap = Math.max(0, max);
   const candidates: number[] = [];
-  for (let i = 0; i <= Math.max(0, max); i++) candidates.push(i);
+  for (let i = 0; i <= cap; i++) candidates.push(i);
   const pool = candidates.filter((n) => n !== trueValue);
-  if (pool.length === 0) return trueValue === 0 ? 1 : 0;
+  if (pool.length === 0) return cap;
   return pool[Math.floor(rng() * pool.length)];
 }
 
@@ -280,6 +288,17 @@ export interface CorruptedMaskInput {
   candidateSeatIds?: number[];
   /** 需要造几个目标 */
   targetCount?: number;
+  /**
+   * number 型假值的**动态上界**（覆盖 `INFO_ROLE_KIND[roleId].max`）。
+   *
+   * ⚠️ 用于「上界依赖本局棋盘」的角色 —— 目前只有厨师：
+   *    相邻邪恶对的上界 = 棋盘上注册为邪恶的人数 - 1。
+   *    不给它传 → 落到常量 5 → 7~8 人局会出现「5 对」这种物理不可能的值，
+   *    玩家一眼看出自己被干扰 → 信息泄漏。
+   *    ⚠️ 必须与 `pickChefFakePairCount` 收到的上界**同一个值**，
+   *       否则「提示预演 / 引擎结算 / 玩家结果页」三处数字对不上。
+   */
+  maxValue?: number;
 }
 
 export interface CorruptedMaskResult {
@@ -317,7 +336,8 @@ export function buildCorruptedInfoMask(
   } else if (kind === "number") {
     fakeValue = pickFakeNumber(
       typeof input.trueValue === "number" ? input.trueValue : null,
-      spec?.max ?? 3,
+      // 动态上界优先（厨师的棋盘物理上界），其次才是角色常量
+      input.maxValue ?? spec?.max ?? 3,
       rng
     );
   } else if (kind === "boolean") {
@@ -440,6 +460,8 @@ export function buildCorruptedInfoPlayerText(input: {
   candidateSeatIds?: number[];
   /** 该角色是否信息类（表外角色用 classifyCorruptedInfoRole 兜底） */
   roleIsInformation?: boolean;
+  /** number 型假值的动态上界（见 `CorruptedMaskInput.maxValue`；厨师必须传） */
+  maxValue?: number;
   corrupted: boolean;
 }): string {
   if (!input.corrupted || !input.truthText) return input.truthText ?? "";
@@ -460,6 +482,7 @@ export function buildCorruptedInfoPlayerText(input: {
     nightCount: input.nightCount,
     candidateSeatIds: input.candidateSeatIds,
     targetCount: Math.max(1, trueTargets.length),
+    maxValue: input.maxValue,
   });
   return ensureNotTruth(
     masked.playerText,

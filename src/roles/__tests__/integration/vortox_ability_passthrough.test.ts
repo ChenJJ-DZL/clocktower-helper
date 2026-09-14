@@ -41,7 +41,6 @@ function buildCtx(args: {
           },
           ...(args.charadeRole ? { charadeRole: args.charadeRole } : {}),
           isDead: false,
-          isAlive: true,
           statusEffects: [],
         },
       ],

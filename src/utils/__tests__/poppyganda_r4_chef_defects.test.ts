@@ -57,10 +57,18 @@ function mkSeats(layout: string[], mode: PoisonMode, alignment?: Record<number, 
     id: i,
     role: r(rid),
     isDead: false,
-    isAlive: true,
     playerName: `P${i + 1}`,
     statusEffects: [],
-    ...(alignment?.[i] ? { alignment: alignment[i] } : {}),
+    // 兼容两种写法：{ 5: "evil" }（旧：历史 alignment 字段）
+    //                { 5: "registerAsEvil:true" }（新：真实登记通路）
+    ...(alignment?.[i]
+      ? alignment[i].includes(":")
+        ? (() => {
+            const [k, v] = alignment[i].split(":");
+            return { [k]: v === "true" ? true : v === "false" ? false : v };
+          })()
+        : { alignment: alignment[i] }
+      : {}),
   }));
   if (mode === "bool") seats[0].isPoisoned = true;
   if (mode === "status") {
@@ -229,9 +237,10 @@ describe("R4 厨师 · 缺陷回归", () => {
       "chef", "poisoner", "baron", "mayor",
       "imp", "scapegoat", "scarlet_woman", "mutant", "snitch",
     ];
-    // 替罪羊在本项目登记为 outsider；官方把它作为「邪恶阵营」参与本例，
-    // 因此夹具给它打 seat.alignment = "evil"（引擎 isEvilForChef 优先级 5）。
-    const s = await settle(mkSeats(L, "none", { 5: "evil" }));
+    // 替罪羊在本项目登记为 outsider（善良）；官方把它作为「邪恶阵营」参与本例。
+    // ⚠️ 这属于**登记**（说书人决定"当作邪恶"），不是历史字段 seat.alignment
+    //    （生产从不写入该字段）。引擎的通用登记通路读的是 `registerAsEvil`。
+    const s = await settle(mkSeats(L, "none", { 5: "registerAsEvil:true" }));
     expect(s.player).toBe(3);
   });
 
@@ -249,7 +258,7 @@ describe("R4 厨师 · 缺陷回归", () => {
     const L = ["chef", "imp", "poisoner", "mayor", "mutant", "snitch"];
     const seats = mkSeats(L, "none");
     seats[2].isDead = true;
-    seats[2].isAlive = false;
+    seats[2].isDead = true;
     const s = await settle(seats);
     expect(s.player).toBe(1); // 小恶魔-投毒者仍相邻
   });
@@ -275,5 +284,49 @@ describe("R4 厨师 · 缺陷回归", () => {
       seen.add(pickChefFakePairCount(1, 0, night));
     }
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+// ── 登记通路（2026-09-14 通用化）─────────────────────────────────────
+describe("R4 厨师 · 登记（registerAsEvil）通路", () => {
+  const L = [
+    "chef", "poisoner", "baron", "mayor",
+    "imp", "scapegoat", "scarlet_woman", "mutant", "snitch",
+  ];
+
+  it("R12. 无登记 → 替罪羊按真实阵营（善良）→ 1", async () => {
+    const s = await settle(mkSeats(L, "none"));
+    expect(s.truth).toBe(1);
+  });
+
+  it("R13. registerAsEvil=true → 替罪羊被当作邪恶 → 3（官方范例3）", async () => {
+    const s = await settle(mkSeats(L, "none", { 5: "registerAsEvil:true" }));
+    expect(s.truth).toBe(3);
+  });
+
+  it("R14. registerAsEvil 对**任意**角色生效（通用登记，不限于陌客/间谍）", async () => {
+    // 把 3 号 mayor（镇民）登记为邪恶 → 应多出 imp-mayor、mayor-scapegoat 两对中的变化
+    const base = await settle(mkSeats(L, "none"));
+    const reg = await settle(mkSeats(L, "none", { 3: "registerAsEvil:true" }));
+    expect(reg.truth).toBeGreaterThan(base.truth);
+  });
+
+  it("R15. registerAsEvil=false 显式善良：可覆盖原本邪恶角色 → 0", async () => {
+    // 把 imp(4号) 与 poisoner(1号)/baron(2号)/scarlet_woman(6号) 全登记为善良 → 0
+    const s = await settle(
+      mkSeats(L, "none", {
+        1: "registerAsEvil:false",
+        2: "registerAsEvil:false",
+        4: "registerAsEvil:false",
+        6: "registerAsEvil:false",
+      })
+    );
+    expect(s.truth).toBe(0);
+  });
+
+  it("R16. 登记不得依赖历史字段 seat.alignment（生产从不写入）", async () => {
+    // 仅给 alignment 而**不给** registerAsEvil → 必须按真实阵营（1），不受污染
+    const s = await settle(mkSeats(L, "none", { 5: "evil" }));
+    expect(s.truth).toBe(1);
   });
 });

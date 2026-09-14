@@ -26,7 +26,6 @@ function seat(id: number, rid: string, rt: string, extra: Record<string, any> = 
     id,
     playerName: `P${id + 1}`,
     isDead: false,
-    isAlive: true,
     isDrunk: false,
     isPoisoned: false,
     role: { id: rid, name: NAMES[rid] || rid, type: rt },

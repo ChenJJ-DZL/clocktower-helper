@@ -30,7 +30,7 @@ const preCheckAlive = async (
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...ctx, aborted: true, abortReason: "梼杌已死亡，技能失效" };
   }
   if ((ctx.snapshot.nightCount ?? 1) === 1) {

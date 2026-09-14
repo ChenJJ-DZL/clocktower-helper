@@ -25,7 +25,7 @@ const calculate = async (
     (s: any) => s.id === ctx.actionNode.seatId
   );
   const isExecuted =
-    !seat?.isAlive &&
+    !!seat?.isDead &&
     ctx.snapshot.lastExecution?.seatId === ctx.actionNode.seatId;
   return {
     ...ctx,

@@ -20,7 +20,6 @@ function mkSeat(
     id,
     playerName: `P${id + 1}`,
     role: { id: roleId, name: roleId, type },
-    isAlive: true,
     isDead: false,
     isDrunk: false,
     isPoisoned: false,
@@ -61,7 +60,6 @@ describe("Wave D1 国风角色官方规则", () => {
       mkSeat(0, "qiongqi", "demon"),
       mkSeat(1, "outsider_dummy", "outsider", {
         isDead: true,
-        isAlive: false,
         diedAtNight: 1,
       }),
       mkSeat(2, "investigator", "townsfolk"),

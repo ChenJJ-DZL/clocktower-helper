@@ -31,10 +31,10 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
   describe("气球驾驶员 (Balloonist)", () => {
     it("范例 1: 小艾是维齐尔(爪牙)，小莱是女祭司(镇民)，小美是政客(外来者)。首个夜晚，气球驾驶员得知了小艾。第二个夜晚，气球驾驶员得知了小莱。第三个夜晚，气球驾驶员得知了小美。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "balloonist", name: "气球驾驶员", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 1, role: { id: "vizier", name: "维齐尔", type: "minion" } as any, isAlive: true, isDead: false },
-        { id: 2, role: { id: "priestess", name: "女祭司", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 3, role: { id: "politician", name: "政客", type: "outsider" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "balloonist", name: "气球驾驶员", type: "townsfolk" } as any, isDead: false },
+        { id: 1, role: { id: "vizier", name: "维齐尔", type: "minion" } as any, isDead: false },
+        { id: 2, role: { id: "priestess", name: "女祭司", type: "townsfolk" } as any, isDead: false },
+        { id: 3, role: { id: "politician", name: "政客", type: "outsider" } as any, isDead: false },
       ] as any;
 
       // 首个夜晚：得知小艾 (1号, minion)
@@ -76,10 +76,10 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 2: 小朱是守夜人，小艾是士兵，小兰是解谜大师。首夜得知小朱(镇民)。第二夜气球驾驶员中毒，说书人让他得知了另一个镇民小艾。第三夜气球驾驶员清醒，得知与小艾不同类型的小兰(外来者)。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "balloonist", name: "气球驾驶员", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 1, role: { id: "night_watchman", name: "守夜人", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 2, role: { id: "soldier", name: "士兵", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 3, role: { id: "puzzlemaster", name: "解谜大师", type: "outsider" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "balloonist", name: "气球驾驶员", type: "townsfolk" } as any, isDead: false },
+        { id: 1, role: { id: "night_watchman", name: "守夜人", type: "townsfolk" } as any, isDead: false },
+        { id: 2, role: { id: "soldier", name: "士兵", type: "townsfolk" } as any, isDead: false },
+        { id: 3, role: { id: "puzzlemaster", name: "解谜大师", type: "outsider" } as any, isDead: false },
       ] as any;
 
       // 首夜得知小朱 (1号, townsfolk)
@@ -123,10 +123,10 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
   describe("唱诗男孩 (Choirboy)", () => {
     it("范例 1: 小恶魔攻击共情者死亡；次夜小恶魔攻击被僧侣保护的国王未死亡；第三夜小恶魔攻击国王死亡。唱诗男孩被唤醒，得知小恶魔身份。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "choir_boy", name: "唱诗男孩", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 1, role: { id: "king", name: "国王", type: "townsfolk" } as any, isAlive: false, isDead: true },
-        { id: 2, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isAlive: true, isDead: false },
-        { id: 3, role: { id: "monk", name: "僧侣", type: "townsfolk" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "choir_boy", name: "唱诗男孩", type: "townsfolk" } as any, isDead: false },
+        { id: 1, role: { id: "king", name: "国王", type: "townsfolk" } as any, isDead: true },
+        { id: 2, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isDead: false },
+        { id: 3, role: { id: "monk", name: "僧侣", type: "townsfolk" } as any, isDead: false },
       ] as any;
 
       // 验证机制纯函数
@@ -152,10 +152,10 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 2: 沙巴洛斯杀死了国王。醉酒的唱诗男孩被唤醒，得知了角色为食人族的玩家是恶魔（错误信息）。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "choir_boy", name: "唱诗男孩", type: "townsfolk" } as any, isAlive: true, isDead: false, isDrunk: true },
-        { id: 1, role: { id: "king", name: "国王", type: "townsfolk" } as any, isAlive: false, isDead: true },
-        { id: 2, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isAlive: true, isDead: false },
-        { id: 3, role: { id: "cannibal", name: "食人族", type: "townsfolk" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "choir_boy", name: "唱诗男孩", type: "townsfolk" } as any, isDead: false, isDrunk: true },
+        { id: 1, role: { id: "king", name: "国王", type: "townsfolk" } as any, isDead: true },
+        { id: 2, role: { id: "shabaloth", name: "沙巴洛斯", type: "demon" } as any, isDead: false },
+        { id: 3, role: { id: "cannibal", name: "食人族", type: "townsfolk" } as any, isDead: false },
       ] as any;
 
       const ctx: any = {
@@ -180,9 +180,9 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
   describe("农夫 (Farmer)", () => {
     it("范例 1: 小佳是农夫，恶魔在夜晚杀死他。小文是恐惧之灵(邪恶爪牙)，小美是炼金术士(善良镇民)。小美在当晚变成了农夫，小文无法变成农夫因为他是邪恶玩家。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "farmer", name: "农夫", type: "townsfolk" } as any, isAlive: false, isDead: true },
-        { id: 1, role: { id: "fearmonger", name: "恐惧之灵", type: "minion" } as any, isAlive: true, isDead: false },
-        { id: 2, role: { id: "alchemist", name: "炼金术士", type: "townsfolk" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "farmer", name: "农夫", type: "townsfolk" } as any, isDead: true },
+        { id: 1, role: { id: "fearmonger", name: "恐惧之灵", type: "minion" } as any, isDead: false },
+        { id: 2, role: { id: "alchemist", name: "炼金术士", type: "townsfolk" } as any, isDead: false },
       ] as any;
 
       // 检查合格继承者只有小美 (2号)
@@ -208,9 +208,9 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 2: 在第二个夜晚，农夫死亡，小精灵变成了农夫。在第三个夜晚，新的农夫死亡，善良的异端分子变成了农夫。场上有三名农夫，其中两名已死亡。", async () => {
       let seats: Seat[] = [
-        { id: 0, role: { id: "farmer", name: "农夫", type: "townsfolk" } as any, isAlive: false, isDead: true },
-        { id: 1, role: { id: "pixie", name: "小精灵", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 2, role: { id: "heretic", name: "异端分子", type: "outsider" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "farmer", name: "农夫", type: "townsfolk" } as any, isDead: true },
+        { id: 1, role: { id: "pixie", name: "小精灵", type: "townsfolk" } as any, isDead: false },
+        { id: 2, role: { id: "heretic", name: "异端分子", type: "outsider" } as any, isDead: false },
       ] as any;
 
       // 第二夜传承给小精灵 (1号)
@@ -243,9 +243,9 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 3: 农夫在夜晚死亡。间谍被当作了善良阵营，并因此变成了农夫，但实际上他仍然保持为邪恶阵营不变。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "farmer", name: "农夫", type: "townsfolk" } as any, isAlive: false, isDead: true },
-        { id: 1, role: { id: "spy", name: "间谍", type: "minion" } as any, isAlive: true, isDead: false, registerAsGood: true },
-        { id: 2, role: { id: "slayer", name: "杀手", type: "townsfolk" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "farmer", name: "农夫", type: "townsfolk" } as any, isDead: true },
+        { id: 1, role: { id: "spy", name: "间谍", type: "minion" } as any, isDead: false, registerAsGood: true },
+        { id: 2, role: { id: "slayer", name: "杀手", type: "townsfolk" } as any, isDead: false },
       ] as any;
 
       const eligible = getEligibleFarmerSuccessors(seats, 0);
@@ -278,7 +278,6 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
       const politicianSeat: Seat = {
         id: 0,
         role: { id: "politician", name: "政客", type: "outsider" } as any,
-        isAlive: true,
         isDead: false,
         isDrunk: false,
         isPoisoned: false,
@@ -303,7 +302,6 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
       const politicianSeat: Seat = {
         id: 0,
         role: { id: "politician", name: "政客", type: "outsider" } as any,
-        isAlive: false,
         isDead: true,
       } as any;
 
@@ -326,7 +324,6 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
       const politicianSeat: Seat = {
         id: 0,
         role: { id: "politician", name: "政客", type: "outsider" } as any,
-        isAlive: true,
         isDead: false,
       } as any;
 
@@ -339,7 +336,6 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
       const politicianSeat: Seat = {
         id: 0,
         role: { id: "politician", name: "政客", type: "outsider" } as any,
-        isAlive: true,
         isDead: false,
       } as any;
 
@@ -355,8 +351,8 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
   describe("瘟疫医生 (Plague Doctor)", () => {
     it("范例 1: 瘟疫医生死亡。说书人获得了投毒者的能力，并在随后的每个夜晚选择一名玩家使其中毒。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "plague_doctor", name: "瘟疫医生", type: "outsider" } as any, isAlive: false, isDead: true },
-        { id: 1, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "plague_doctor", name: "瘟疫医生", type: "outsider" } as any, isDead: true },
+        { id: 1, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isDead: false },
       ] as any;
 
       const ctx: any = {
@@ -373,8 +369,8 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 2: 瘟疫医生死于处决，说书人获得了洗脑师的能力。当晚麻脸巫婆将女巫变成洗脑师。场上有两个具有洗脑师能力的人——说书人和新洗脑师。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "plague_doctor", name: "瘟疫医生", type: "outsider" } as any, isAlive: false, isDead: true },
-        { id: 1, role: { id: "witch", name: "女巫", type: "minion" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "plague_doctor", name: "瘟疫医生", type: "outsider" } as any, isDead: true },
+        { id: 1, role: { id: "witch", name: "女巫", type: "minion" } as any, isDead: false },
       ] as any;
 
       const ctx: any = {
@@ -389,7 +385,7 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 3: 瘟疫医生死亡，说书人获得街头风琴手能力。两天后瘟疫医生因吟游诗人效果醉酒。说书人仍具有街头风琴手能力，因为该能力在死亡时已归属说书人。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "plague_doctor", name: "瘟疫医生", type: "outsider" } as any, isAlive: false, isDead: true },
+        { id: 0, role: { id: "plague_doctor", name: "瘟疫医生", type: "outsider" } as any, isDead: true },
       ] as any;
 
       const ctx: any = {
@@ -413,9 +409,9 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
   describe("替罪羊 (Scapegoat)", () => {
     it("范例 1: 在占卜师即将被处决的时候，说书人决定由替罪羊代替占卜师被处决。因此占卜师存活而替罪羊死亡。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "scapegoat", name: "替罪羊", type: "traveler" } as any, isAlive: true, isDead: false, alignment: "good" },
-        { id: 1, role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" } as any, isAlive: true, isDead: false },
-        { id: 2, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "scapegoat", name: "替罪羊", type: "traveler" } as any, isDead: false, alignment: "good" },
+        { id: 1, role: { id: "fortune_teller", name: "占卜师", type: "townsfolk" } as any, isDead: false },
+        { id: 2, role: { id: "imp", name: "小恶魔", type: "demon" } as any, isDead: false },
       ] as any;
 
       expect(canScapegoatSubstitute(seats[0], seats[1])).toBe(true);
@@ -439,8 +435,8 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 2: 在投毒者即将被处决时，说书人决定由邪恶的替罪羊代替投毒者被处决。这时候说书人也可以选择让投毒者直接死亡，只是他没有这么选。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "scapegoat", name: "替罪羊", type: "traveler" } as any, isAlive: true, isDead: false, alignment: "evil", isEvilConverted: true },
-        { id: 1, role: { id: "poisoner", name: "投毒者", type: "minion" } as any, isAlive: true, isDead: false },
+        { id: 0, role: { id: "scapegoat", name: "替罪羊", type: "traveler" } as any, isDead: false, alignment: "evil", isEvilConverted: true },
+        { id: 1, role: { id: "poisoner", name: "投毒者", type: "minion" } as any, isDead: false },
       ] as any;
 
       // 同属邪恶，允许替代
@@ -459,8 +455,8 @@ describe("《扩展与进阶角色》官方百科范例逐条验证 (Expansion R
 
     it("范例 3: 在间谍即将被处决的时候，说书人决定由善良的替罪羊代替间谍被处决，因为间谍此时被当作是善良阵营的。", async () => {
       const seats: Seat[] = [
-        { id: 0, role: { id: "scapegoat", name: "替罪羊", type: "traveler" } as any, isAlive: true, isDead: false, alignment: "good" },
-        { id: 1, role: { id: "spy", name: "间谍", type: "minion" } as any, isAlive: true, isDead: false, registerAsGood: true },
+        { id: 0, role: { id: "scapegoat", name: "替罪羊", type: "traveler" } as any, isDead: false, alignment: "good" },
+        { id: 1, role: { id: "spy", name: "间谍", type: "minion" } as any, isDead: false, registerAsGood: true },
       ] as any;
 
       // 间谍伪装注册为善良，与善良替罪羊一致

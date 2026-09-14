@@ -166,9 +166,9 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
     it("chambermaid: wokenCount must not equal realWokenCount under Vortox", async () => {
       const snapshot: any = {
         seats: [
-          { id: 0, role: { id: "chambermaid", name: "侍女", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isAlive: true, isDead: false },
+          { id: 0, role: { id: "chambermaid", name: "侍女", type: "townsfolk" }, isDead: false },
+          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false },
+          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isDead: false },
         ],
         nightActionHistory: [],
         vortoxWorld: true,
@@ -191,11 +191,11 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
       const snapshot: any = {
         nightCount: 1,
         seats: [
-          { id: 0, role: { id: "noble", name: "贵族", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 3, role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 4, role: { id: "empath", name: "共情者", type: "townsfolk" }, isAlive: true, isDead: false },
+          { id: 0, role: { id: "noble", name: "贵族", type: "townsfolk" }, isDead: false },
+          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false },
+          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isDead: false },
+          { id: 3, role: { id: "chef", name: "厨师", type: "townsfolk" }, isDead: false },
+          { id: 4, role: { id: "empath", name: "共情者", type: "townsfolk" }, isDead: false },
         ],
         vortoxWorld: true,
       };
@@ -218,10 +218,10 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
       const snapshot: any = {
         nightCount: 1,
         seats: [
-          { id: 0, role: { id: "knight", name: "骑士", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 3, role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false },
+          { id: 0, role: { id: "knight", name: "骑士", type: "townsfolk" }, isDead: false },
+          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false },
+          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isDead: false },
+          { id: 3, role: { id: "chef", name: "厨师", type: "townsfolk" }, isDead: false },
         ],
         vortoxWorld: true,
       };
@@ -241,9 +241,9 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
     it("oracle: finalCount must not equal deadEvilCount under Vortox", async () => {
       const snapshot: any = {
         seats: [
-          { id: 0, role: { id: "oracle", name: "神谕者", type: "townsfolk" }, isAlive: true, isDead: false },
-          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isAlive: false, isDead: true },
+          { id: 0, role: { id: "oracle", name: "神谕者", type: "townsfolk" }, isDead: false },
+          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false },
+          { id: 2, role: { id: "washerwoman", name: "洗衣妇", type: "townsfolk" }, isDead: true },
         ],
         vortoxWorld: true,
       };
@@ -264,9 +264,9 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
       const snapshot: any = {
         nightCount: 2,
         seats: [
-          { id: 0, role: { id: "ravenkeeper", name: "守鸦人", type: "townsfolk" }, isAlive: false, isDead: true, diedAtNight: 2 },
-          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isAlive: true, isDead: false },
-          { id: 2, role: { id: "chef", name: "厨师", type: "townsfolk" }, isAlive: true, isDead: false },
+          { id: 0, role: { id: "ravenkeeper", name: "守鸦人", type: "townsfolk" }, isDead: true, diedAtNight: 2 },
+          { id: 1, role: { id: "vortox", name: "涡流", type: "demon" }, isDead: false },
+          { id: 2, role: { id: "chef", name: "厨师", type: "townsfolk" }, isDead: false },
         ],
         vortoxWorld: true,
       };

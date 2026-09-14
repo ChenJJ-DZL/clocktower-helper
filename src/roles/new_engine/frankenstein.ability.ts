@@ -18,7 +18,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   );
   if (!seat) return { ...ctx, aborted: true, abortReason: "不存在" };
   // 必须在死亡时触发
-  if (seat.isAlive) return { ...ctx, aborted: true, abortReason: "尚未死亡" };
+  if (!seat.isDead) return { ...ctx, aborted: true, abortReason: "尚未死亡" };
   return ctx;
 };
 

@@ -10,7 +10,6 @@ const seat = (id: number, roleId: string, type: string) => ({
   id,
   playerName: `P${id + 1}`,
   isDead: false,
-  isAlive: true,
   role: { id: roleId, name: roleId, type },
   statusEffects: [],
 });

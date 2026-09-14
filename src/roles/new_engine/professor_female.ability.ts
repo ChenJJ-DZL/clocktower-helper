@@ -13,6 +13,7 @@ import {
   consumeLimitedAbility,
 } from "../../utils/LimitedAbilityManager";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatGood } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -23,7 +24,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead?: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
@@ -46,7 +46,7 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s: any) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "教授已死亡，技能失效" };
   }
 
@@ -98,7 +98,7 @@ const preCheckTarget = async (
     };
   }
 
-  if (targetSeat.isAlive) {
+  if (targetSeat && !targetSeat.isDead) {
     return {
       ...context,
       aborted: true,
@@ -106,12 +106,8 @@ const preCheckTarget = async (
     };
   }
 
-  // 判断是否为善良阵营
-  const isGood =
-    targetSeat.isGood === true ||
-    targetSeat.alignment === "good" ||
-    targetSeat.role?.type === "townsfolk" ||
-    targetSeat.role?.type === "outsider";
+  // 判断是否为善良阵营（统一走 utils/seatAlignment）
+  const isGood = isSeatGood(targetSeat);
 
   if (!isGood) {
     return {
@@ -155,7 +151,6 @@ const updateResurrection = async (
         if (seat.id === targetId) {
           return {
             ...seat,
-            isAlive: true,
             isDead: false,
             statusEffects: [
               ...seat.statusEffects,

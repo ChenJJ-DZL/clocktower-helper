@@ -16,7 +16,7 @@ const preCheckPassive = async (
 ): Promise<MiddlewareContext> => {
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s) => s.id === actionNode.seatId);
-  if (!seat || !seat.isAlive || seat.isDead) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "茶艺师已死亡" };
   }
   if (isDrunkOrPoisoned(seat)) {

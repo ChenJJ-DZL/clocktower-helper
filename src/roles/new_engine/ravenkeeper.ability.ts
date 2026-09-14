@@ -50,6 +50,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -66,7 +67,6 @@ interface RavenkeeperInfo {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   diedAtNight?: number;
   markedForDeath?: boolean;
@@ -170,7 +170,7 @@ export function resolveTargetRole(
       (targetSeat as any).registerAsEvil !== true;
     if (isGood) {
       const goodRoles = seats.filter(
-        (s: any) => s.role?.type === "townsfolk" || s.role?.type === "outsider"
+        (s: any) => isSeatTownsfolkOrOutsider(s)
       );
       if (goodRoles.length > 0) {
         const randomGood = goodRoles[Math.floor(rng() * goodRoles.length)];

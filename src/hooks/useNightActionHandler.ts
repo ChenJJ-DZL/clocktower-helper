@@ -32,6 +32,7 @@ import {
   isPlayerInfoCorrupted,
 } from "../utils/corruptedInfo";
 import { isInformationRole } from "../utils/informationRoles";
+import { chefMaxPlausiblePairs } from "../roles/new_engine/chef.ability";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
@@ -134,11 +135,10 @@ export function syncStatusEffectsToSeat(
   const hasProtect = effects.some((e: any) => e.type === "protected");
   const hasDrunk = effects.some((e: any) => e.type === "drunk");
   const markedDead = !!(updated as any).markedForDeath;
-  // 🔧 修复：新引擎大量角色（shabaloth/po/zombuul/assassin/hunter 等）击杀时
-  //   只设 `isAlive: false`（引擎字段）而不设 markedForDeath/isDead，
-  //   导致 syncStatusEffectsToSeat 翻译不落地 → 天亮报告永远"平安夜"、死亡标记缺失、
-  //   送葬者失效、游戏拖入死循环。此处将 `isAlive === false` 一并翻译为 isDead。
-  const engineDead = (updated as any).isAlive === false;
+  // 🔧 死亡标记已统一（2026-09-14）：引擎侧一律直接落地 `isDead`，
+  //   过去「引擎只写 isAlive=false、由本处翻译成 isDead」的缝合层已拆除。
+  //   这里仍接受 `markedForDeath`（黎明前待结算）与引擎刚落地的 isDead。
+  const engineDead = (updated as any).isDead === true;
 
   // 🔧 以新引擎 statusEffects 为准同步 legacy 展示字段：
   //   仅当新引擎存在该效果时为 true；不存在时显式清除，
@@ -362,7 +362,6 @@ export async function executeViaNewEngine(
     );
     return {
       ...s,
-      isAlive: !s.isDead,
       statusEffects: [...legacyEffects, ...ownEffects],
     };
   });
@@ -1293,7 +1292,6 @@ export async function executeViaNewEngine(
           ) {
             next = {
               ...next,
-              isAlive: false,
               isDead: true,
               markedForDeath: true,
               deathSource: (next as any).deathSource || "fang_gu_jump",
@@ -1639,6 +1637,12 @@ export async function executeViaNewEngine(
           .filter((s) => s.id !== actorId)
           .map((s) => s.id),
         targetCount: Array.isArray(trueValue) ? trueValue.length : 1,
+        // 厨师的假值上界依赖本局棋盘（邪恶人数 - 1）—— 必须与提示预演 /
+        // 引擎结算用同一个上界，否则三处数字对不上（旧缺陷的同类）。
+        maxValue:
+          roleId === "chef"
+            ? chefMaxPlausiblePairs(context.seats as any)
+            : undefined,
       });
       const playerText = sanitizePlayerFacingText(
         ensureNotTruth(

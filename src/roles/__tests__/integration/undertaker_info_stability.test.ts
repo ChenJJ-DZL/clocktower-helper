@@ -13,12 +13,12 @@ import {
 
 // 最小 6 人局：送葬者 0 存活，今日被处决者 1（陌客，会走随机注册分支）
 const seats: any[] = [
-  { id: 0, playerName: "送葬者", isDead: false, isAlive: true, role: { id: "undertaker", name: "送葬者", type: "townsfolk" }, statusEffects: [] },
-  { id: 1, playerName: "陌客", isDead: true, isAlive: false, executedToday: true, role: { id: "recluse", name: "陌客", type: "outsider" }, statusEffects: [] },
-  { id: 2, playerName: "间谍", isDead: false, isAlive: true, role: { id: "spy", name: "间谍", type: "minion" }, statusEffects: [] },
-  { id: 3, playerName: "士兵", isDead: false, isAlive: true, role: { id: "soldier", name: "士兵", type: "townsfolk" }, statusEffects: [] },
-  { id: 4, playerName: "投毒者", isDead: false, isAlive: true, role: { id: "poisoner", name: "投毒者", type: "minion" }, statusEffects: [] },
-  { id: 5, playerName: "小恶魔", isDead: false, isAlive: true, role: { id: "imp", name: "小恶魔", type: "demon" }, statusEffects: [] },
+  { id: 0, playerName: "送葬者", isDead: false, role: { id: "undertaker", name: "送葬者", type: "townsfolk" }, statusEffects: [] },
+  { id: 1, playerName: "陌客", isDead: true, executedToday: true, role: { id: "recluse", name: "陌客", type: "outsider" }, statusEffects: [] },
+  { id: 2, playerName: "间谍", isDead: false, role: { id: "spy", name: "间谍", type: "minion" }, statusEffects: [] },
+  { id: 3, playerName: "士兵", isDead: false, role: { id: "soldier", name: "士兵", type: "townsfolk" }, statusEffects: [] },
+  { id: 4, playerName: "投毒者", isDead: false, role: { id: "poisoner", name: "投毒者", type: "minion" }, statusEffects: [] },
+  { id: 5, playerName: "小恶魔", isDead: false, role: { id: "imp", name: "小恶魔", type: "demon" }, statusEffects: [] },
 ];
 
 const seedFor = (actorId: number, night: number) =>

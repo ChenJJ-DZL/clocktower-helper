@@ -45,6 +45,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -61,7 +62,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   alignment?: string;
   role?: {
@@ -101,7 +101,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -135,19 +135,10 @@ const preCheckAliveAndStatus = async (
  *  7. 其余情况                           → 非邪恶
  */
 function isEvilForEmpath(seat: PlayerLookup): boolean {
+  // ⭐ 2026-09-14 统一：转发到全项目唯一权威 `isSeatEvil`
+  //（旧实现是与 chef 逐行重复的 7 级优先级链，与权威可能给出不同答案）。
   if (!seat.role && !seat.roleId) return false;
-
-  if (seat.isGoodConverted) return false;
-  if (seat.isEvilConverted) return true;
-
-  const roleType = seat.role?.type ?? "";
-  if (roleType === "demon" || roleType === "minion") return true;
-
-  if (seat.isDemonSuccessor) return true;
-  if (seat.alignment === "evil") return true;
-  if (seat.role?.alignment === "evil") return true;
-
-  return false;
+  return isSeatEvil(seat as any);
 }
 
 /**
@@ -255,7 +246,7 @@ function getNearestAliveNeighbors(
   // 向左搜索最近的存活玩家
   for (let i = 1; i < count; i++) {
     const idx = (selfIdx - i + count) % count;
-    if (seats[idx].isAlive && !seats[idx].isDead) {
+    if (!seats[idx].isDead) {
       left = seats[idx];
       break;
     }
@@ -264,7 +255,7 @@ function getNearestAliveNeighbors(
   // 向右搜索最近的存活玩家
   for (let i = 1; i < count; i++) {
     const idx = (selfIdx + i) % count;
-    if (seats[idx].isAlive && !seats[idx].isDead) {
+    if (!seats[idx].isDead) {
       right = seats[idx];
       break;
     }

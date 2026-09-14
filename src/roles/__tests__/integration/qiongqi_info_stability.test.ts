@@ -24,7 +24,6 @@ function seat(id: number, roleId: string, type: string, dead = false) {
     id,
     playerName: `P${id + 1}`,
     isDead: dead,
-    isAlive: !dead,
     role: { id: roleId, name: ROLE_NAMES[roleId] ?? roleId, type },
     statusEffects: [] as Array<{ type: string }>,
   };

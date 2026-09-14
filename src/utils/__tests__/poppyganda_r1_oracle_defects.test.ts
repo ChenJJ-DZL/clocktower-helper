@@ -37,9 +37,9 @@ describe("第1轮 神谕者 · 回归固化", () => {
   // ── P1-1 伪装身份 / 中毒来源 ─────────────────────────────
   it("R1. 提线木偶伪装神谕者 → 必须给出【不等于真实值】的假信息", () => {
     const seats: any[] = [
-      { id: 0, role: r("marionette"), charadeRole: r("oracle"), isDead: false, isAlive: true },
-      { id: 1, role: r("imp"), isDead: true, isAlive: false },
-      { id: 2, role: r("chef"), isDead: true, isAlive: false },
+      { id: 0, role: r("marionette"), charadeRole: r("oracle"), isDead: false, },
+      { id: 1, role: r("imp"), isDead: true, },
+      { id: 2, role: r("chef"), isDead: true, },
     ];
     const got = num(buildInfoMessage("oracle", { seats, selfId: 0, nightCount: 2 } as any));
     const truth = 1; // 1 名死亡邪恶（小恶魔）
@@ -53,11 +53,10 @@ describe("第1轮 神谕者 · 回归固化", () => {
         id: 0,
         role: r("oracle"),
         isDead: false,
-        isAlive: true,
         statusEffects: [{ type: "poisoned", source: "pukka" }],
       },
-      { id: 1, role: r("imp"), isDead: true, isAlive: false },
-      { id: 2, role: r("chef"), isDead: true, isAlive: false },
+      { id: 1, role: r("imp"), isDead: true, },
+      { id: 2, role: r("chef"), isDead: true, },
     ];
     const got = num(buildInfoMessage("oracle", { seats, selfId: 0, nightCount: 2 } as any));
     expect(got).not.toBe(1);
@@ -65,18 +64,18 @@ describe("第1轮 神谕者 · 回归固化", () => {
 
   it("R3. 常态 → 必须给出真实值（不得误伤）", () => {
     const seats: any[] = [
-      { id: 0, role: r("oracle"), isDead: false, isAlive: true },
-      { id: 1, role: r("imp"), isDead: true, isAlive: false },
-      { id: 2, role: r("chef"), isDead: true, isAlive: false },
+      { id: 0, role: r("oracle"), isDead: false, },
+      { id: 1, role: r("imp"), isDead: true, },
+      { id: 2, role: r("chef"), isDead: true, },
     ];
     expect(num(buildInfoMessage("oracle", { seats, selfId: 0, nightCount: 2 } as any))).toBe(1);
   });
 
   it("R4. 涡流在场（镇民）→ 即使未中毒也必须给假信息", () => {
     const seats: any[] = [
-      { id: 0, role: r("oracle"), isDead: false, isAlive: true },
-      { id: 1, role: r("vortox"), isDead: false, isAlive: true },
-      { id: 2, role: r("imp"), isDead: true, isAlive: false },
+      { id: 0, role: r("oracle"), isDead: false, },
+      { id: 1, role: r("vortox"), isDead: false, },
+      { id: 2, role: r("imp"), isDead: true, },
     ];
     const got = num(buildInfoMessage("oracle", { seats, selfId: 0, nightCount: 2 } as any));
     expect(got).not.toBe(1); // 真实值 1
@@ -86,9 +85,9 @@ describe("第1轮 神谕者 · 回归固化", () => {
   it("R5. 同一夜：guide 数字 == 结算 finalCount（中毒态，跑 12 次）", async () => {
     for (let i = 0; i < 12; i++) {
       const seats: any[] = [
-        { id: 0, role: r("oracle"), isDead: false, isAlive: true, isPoisoned: true },
-        { id: 1, role: r("imp"), isDead: true, isAlive: false },
-        { id: 2, role: r("chef"), isDead: true, isAlive: false },
+        { id: 0, role: r("oracle"), isDead: false, isPoisoned: true },
+        { id: 1, role: r("imp"), isDead: true, },
+        { id: 2, role: r("chef"), isDead: true, },
       ];
       const info: any = calculateNightInfoViaNewEngine(
         { id: "poppyganda" } as any,
@@ -119,9 +118,9 @@ describe("第1轮 神谕者 · 回归固化", () => {
 
   it("R6. 同一夜重复调用 guide 必须稳定（确定性随机）", () => {
     const seats: any[] = [
-      { id: 0, role: r("oracle"), isDead: false, isAlive: true, isPoisoned: true },
-      { id: 1, role: r("imp"), isDead: true, isAlive: false },
-      { id: 2, role: r("chef"), isDead: true, isAlive: false },
+      { id: 0, role: r("oracle"), isDead: false, isPoisoned: true },
+      { id: 1, role: r("imp"), isDead: true, },
+      { id: 2, role: r("chef"), isDead: true, },
     ];
     const a = buildInfoMessage("oracle", { seats, selfId: 0, nightCount: 3 } as any);
     const b = buildInfoMessage("oracle", { seats, selfId: 0, nightCount: 3 } as any);
@@ -131,7 +130,7 @@ describe("第1轮 神谕者 · 回归固化", () => {
   // ── 官方数值口径 ─────────────────────────────────────────
   it("R7. 官方范例2 复现：2已死邪恶 + 1邪恶旅行者 + 1当晚被杀的爪牙 = 4", async () => {
     const mk = (id: number, roleId: string, type: string, dead = false) =>
-      ({ id, role: { id: roleId, name: roleId, type }, isDead: dead, isAlive: !dead } as any);
+      ({ id, role: { id: roleId, name: roleId, type }, isDead: dead } as any);
     const seats = [
       mk(0, "oracle", "townsfolk"),
       mk(1, "cerenovus", "minion", true),
@@ -162,9 +161,9 @@ describe("第1轮 神谕者 · 回归固化", () => {
 
   it("R8. 变邪恶的镇民计入（官方：任何属于邪恶阵营的玩家）", async () => {
     const seats = [
-      { id: 0, role: r("oracle"), isDead: false, isAlive: true },
-      { id: 1, role: r("chef"), isDead: true, isAlive: false, isEvilConverted: true },
-      { id: 2, role: r("imp"), isDead: true, isAlive: false },
+      { id: 0, role: r("oracle"), isDead: false, },
+      { id: 1, role: r("chef"), isDead: true, isEvilConverted: true },
+      { id: 2, role: r("imp"), isDead: true, },
     ] as any;
     const res = await runFullAbilityPipeline(
       {

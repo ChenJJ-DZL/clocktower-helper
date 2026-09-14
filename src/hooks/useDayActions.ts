@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { withCharadePermanentDrunk } from "../utils/charadeSetup";
 import { isSeatDead } from "../utils/seatAlive";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
@@ -694,12 +695,15 @@ export function useDayActions(deps: DayActionsDeps) {
             addLog(
               `为 ${s.id + 1}号 ${roleName} 设置伪装身份：${selectedRole.name}`
             );
-            return {
+            // 🍺 伪装身份必须与「永久醉酒」同时落地（唯一入口）。
+            //   ⚠️ 历史缺陷（用户实测）：这里曾只给**酒鬼**设 `isDrunk`，
+            //   提线木偶既没 isDrunk 也没 statusEffects → 中间件判能力有效
+            //   → 木偶被当作赏金猎人时**得知真实邪恶玩家**（违反官方）。
+            return withCharadePermanentDrunk({
               ...s,
               charadeRole: selectedRole,
               displayRole: selectedRole,
-              isDrunk: s.role?.id === "drunk" ? true : s.isDrunk,
-            };
+            });
           }
           return s;
         })

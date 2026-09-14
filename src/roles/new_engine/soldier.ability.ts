@@ -46,7 +46,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   effectiveRole?: { id: string; name: string; type: string };
@@ -95,7 +94,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -161,7 +160,7 @@ const calculateResult = async (
  * stateUpdate 阶段：应用免疫效果。
  *
  * 当士兵免疫恶魔杀戮时，取消即将发生的死亡效果：
- * - 恢复 isAlive、清除 deathReason/deathPhase
+ * - 恢复存活（isDead=false）、清除 deathReason/deathPhase
  * - 记录免疫事件到 actionNode.meta.soldierResult
  */
 const stateUpdateResult = async (
@@ -178,7 +177,7 @@ const stateUpdateResult = async (
       if (seat.id === actionNode.seatId) {
         return {
           ...seat,
-          isAlive: true,
+          isDead: false,
           deathReason: undefined,
           deathPhase: undefined,
           executedToday: undefined,

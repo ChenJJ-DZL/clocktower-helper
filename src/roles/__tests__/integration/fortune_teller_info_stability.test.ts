@@ -22,18 +22,23 @@ function makeSeat(id: number, roleId: string, roleName: string, roleType: string
     id,
     playerName: "玩家" + (id + 1),
     isDead: false,
-    isAlive: true,
     role: { id: roleId, name: roleName, type: roleType },
     statusEffects: [],
   };
 }
 
 // 最小座位集：0号占卜师 + 3 名善良候选 + 1 名爪牙 + 1 名恶魔（后两者不可当干扰项）
+// ⚠️ 2026-09-14：干扰项改为「说书人开局在座位上的标记」唯一来源，
+//    因此夹具必须像生产一样，把 `isRedHerring` 写在座位 3（圣徒）上。
 const seats = () => [
   makeSeat(0, "fortune_teller", "占卜师", "townsfolk"),
   makeSeat(1, "chef", "厨师", "townsfolk"),
   makeSeat(2, "soldier", "士兵", "townsfolk"),
-  makeSeat(3, "saint", "圣徒", "outsider"),
+  {
+    ...makeSeat(3, "saint", "圣徒", "outsider"),
+    isRedHerring: true,
+    isFortuneTellerRedHerring: true,
+  },
   makeSeat(4, "poisoner", "投毒者", "minion"),
   makeSeat(5, "imp", "小恶魔", "demon"),
 ];
@@ -130,7 +135,12 @@ describe("占卜师：提示预演与实际执行必须标记同一个干扰项�
     expect(pickBoonSeatId([], 0, createDeterministicRandom(seedFor(0, 1)))).toBe(0);
   });
 
-  it("管道级：两次独立的首夜计算（不同对局 id）初始化出同一个干扰项", async () => {
+  it("管道级：两次独立的首夜计算（不同对局 id）解析出同一个干扰项", async () => {
+    // ⚠️ 2026-09-14 变更：干扰项来源已收敛为**说书人开局的座位标记**
+    //   （`isRedHerring`），能力内部不再自行随机。
+    //   本用例的旧版本断言"内部随机会挑到同一个 boon"，那是**缺陷的固化**：
+    //   内部随机正是「无标记局凭空捏造恶魔」与「说书人标记与能力判定分叉」的根因。
+    //   现在改为：把座位标记写好，两次计算必须解析出这个**同一个** boon。
     const gameIdA = "ft-stability-a-" + Date.now();
     const gameIdB = "ft-stability-b-" + Date.now();
 
@@ -140,11 +150,45 @@ describe("占卜师：提示预演与实际执行必须标记同一个干扰项�
     const boonA = fortuneTellerBoonManager.getCurrentBoon(gameIdA);
     const boonB = fortuneTellerBoonManager.getCurrentBoon(gameIdB);
 
-    expect(boonA).not.toBeNull();
+    // 座位标记写在 3 号（圣徒），两处必须解析出同一个值
+    expect(boonA).toBe(3);
     expect(boonB).toBe(boonA);
-    // 干扰项只能是善良候选之一，不能是占卜师自己、爪牙或恶魔
-    expect(candidates().map((s) => s.id)).toContain(boonA);
     // 两次计算的占卜结果也一致
     expect(execResult.meta.abilityResult).toBe(previewResult.meta.abilityResult);
+  });
+
+  it("管道级：座位没有红罗刹标记时 → 不发明干扰项（boon 保持未初始化）", async () => {
+    // 对应「无中生有捏造恶魔」缺陷的回归：无标记 = 无干扰项，绝不随机挑人。
+    const gameId = "ft-nomarker-" + Date.now();
+    const unmarked = () =>
+      seats().map((s) => {
+        const { isRedHerring, isFortuneTellerRedHerring, ...rest } =
+          s as any;
+        return rest;
+      });
+    await runFullAbilityPipeline(
+      {
+        preCheck: fortuneTellerAbility.preCheck,
+        calculate: fortuneTellerAbility.calculate,
+        stateUpdate: fortuneTellerAbility.stateUpdate,
+        postProcess: fortuneTellerAbility.postProcess,
+      },
+      {
+        ...makeContext({
+          nightCount: 1,
+          preview: false,
+          gameId,
+          targetIds: [1, 2],
+        }),
+        snapshot: {
+          nightCount: 1,
+          gamePhase: "firstNight",
+          seats: unmarked(),
+          statusEffects: {},
+          gameId,
+        },
+      }
+    );
+    expect(fortuneTellerBoonManager.getCurrentBoon(gameId)).toBeNull();
   });
 });

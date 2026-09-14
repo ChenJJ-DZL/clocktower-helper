@@ -108,16 +108,15 @@ function makeSeats(real: number, corrupt: boolean) {
       playerName: "P1",
       role: r("juggler"),
       isDead: false,
-      isAlive: true,
       isDrunk: false,
       isPoisoned: corrupt,
       statusEffects: corrupt ? [{ type: "poisoned" }] : [],
       dayAbilityResult: { correctCount: real },
     },
-    { id: 1, playerName: "P2", role: r("mayor"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 2, playerName: "P3", role: r("savant"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 3, playerName: "P4", role: r("baron"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 4, playerName: "P5", role: r("imp"), isDead: false, isAlive: true, statusEffects: [] },
+    { id: 1, playerName: "P2", role: r("mayor"), isDead: false, statusEffects: [] },
+    { id: 2, playerName: "P3", role: r("savant"), isDead: false, statusEffects: [] },
+    { id: 3, playerName: "P4", role: r("baron"), isDead: false, statusEffects: [] },
+    { id: 4, playerName: "P5", role: r("imp"), isDead: false, statusEffects: [] },
   ] as any[];
 }
 

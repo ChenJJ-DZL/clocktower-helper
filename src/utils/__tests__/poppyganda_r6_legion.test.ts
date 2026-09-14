@@ -26,13 +26,13 @@ const r = (id: string) => roles.find((x) => x.id === id)!;
 
 function seats(): any[] {
   return [
-    { id: 0, playerName: "P1", role: r("legion"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 1, playerName: "P2", role: r("mayor"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 2, playerName: "P3", role: r("snitch"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 3, playerName: "P4", role: r("savant"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 4, playerName: "P5", role: r("legion"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 5, playerName: "P6", role: r("baron"), isDead: false, isAlive: true, statusEffects: [] },
-    { id: 6, playerName: "P7", role: r("farmer"), isDead: false, isAlive: true, statusEffects: [] },
+    { id: 0, playerName: "P1", role: r("legion"), isDead: false, statusEffects: [] },
+    { id: 1, playerName: "P2", role: r("mayor"), isDead: false, statusEffects: [] },
+    { id: 2, playerName: "P3", role: r("snitch"), isDead: false, statusEffects: [] },
+    { id: 3, playerName: "P4", role: r("savant"), isDead: false, statusEffects: [] },
+    { id: 4, playerName: "P5", role: r("legion"), isDead: false, statusEffects: [] },
+    { id: 5, playerName: "P6", role: r("baron"), isDead: false, statusEffects: [] },
+    { id: 6, playerName: "P7", role: r("farmer"), isDead: false, statusEffects: [] },
   ];
 }
 
@@ -80,7 +80,7 @@ describe("军团 · 说书人代操作与结算 UI 回归", () => {
   it("② 技能确认页 guide 的「在场人数」与实际存活数一致，且不含已死亡玩家", () => {
     const s = seats();
     s[3].isDead = true;
-    s[3].isAlive = false;
+    s[3].isDead = true;
     const g = guideOf(s);
     expect(g).toContain("共 6 人");
     expect(g).not.toContain("4号【博学者】");

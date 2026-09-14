@@ -8,6 +8,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -18,7 +19,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead?: boolean;
-  isAlive?: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   roleId?: string;
@@ -44,7 +44,7 @@ const preCheckAlive = async (
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s: any) => s.id === actionNode.seatId);
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "提图斯已死亡，技能失效" };
   }
 
@@ -79,12 +79,8 @@ const calculateExecution = async (
     };
   }
 
-  // 判断目标是否为邪恶阵营
-  const isEvil =
-    target.isEvil === true ||
-    target.alignment === "evil" ||
-    target.role?.type === "demon" ||
-    target.role?.type === "minion";
+  // 判断目标是否为邪恶阵营（统一走 utils/seatAlignment）
+  const isEvil = isSeatEvil(target);
 
   return {
     ...context,
@@ -93,7 +89,7 @@ const calculateExecution = async (
       abilityResult: {
         targetId,
         isEvil,
-        isAlive: target.isAlive,
+        isDead: target.isDead,
       },
     },
   };
@@ -120,7 +116,7 @@ const updateState = async (
 
   // 如果目标存活，标记死亡
   const updatedSeats = snapshot.seats.map((seat: any) => {
-    if (seat.id === r.targetId && seat.isAlive) {
+    if (seat.id === r.targetId && !seat.isDead) {
       return {
         ...seat,
         markedForDeath: true,
@@ -174,7 +170,7 @@ const postProcess = async (
   const targetLabel = `${r.targetId + 1}号`;
 
   // 如果目标已死亡（空刀），则无人死亡
-  const executionNote = r.isAlive
+  const executionNote = !r.isDead
     ? `，${targetLabel}将在今晚被处决`
     : `，但${targetLabel}已死亡（无人被处决）`;
 

@@ -39,8 +39,9 @@
  *     动作，由保护层决定实际死亡。
  *
  *   "如果提名贞洁者的玩家是镇民，他立刻被处决。"
- *   → 提名者是间谍时也可以触发（间谍可被当作镇民）。
- *   → 隐士有 50% 概率被当作镇民触发。
+ *   → 提名者是间谍时也可以触发（间谍可被当作**善良镇民**）。
+ *   → 提名者是**陌客时不触发**：官方陌客条目穷举其可被当作的角色类型为
+ *     「外来者、爪牙或恶魔」——**不含镇民**（阵营可以是善良，但角色类型不是镇民）。
  *   → 提名自己时无效果（但能力仍消耗）。
  *
  * ============================================================
@@ -59,7 +60,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   role?: { id: string; name: string; type: string };
   effectiveRole?: { id: string; name: string; type: string };
@@ -88,7 +88,7 @@ const preCheckAliveAndUnused = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -136,7 +136,7 @@ const preCheckAliveAndUnused = async (
 function isEligibleNominator(
   nominator: PlayerLookup,
   selfSeatId: number,
-  meta: Record<string, any>
+  _meta: Record<string, any>
 ): boolean {
   if (!nominator || nominator.id === selfSeatId) return false;
 
@@ -145,14 +145,20 @@ function isEligibleNominator(
 
   if (roleId === "spy") return true;
 
-  if (roleId === "recluse") {
-    const key = `virgin_recluse_${nominator.id}`;
-    if (meta[key] === undefined) {
-      // 🔧 陌客判定为邪恶：100% 触发（不再 50% 随机）
-      meta[key] = true;
-    }
-    return meta[key] as boolean;
-  }
+  // 陌客（recluse）：**永不**因贞洁者被处决。
+  //
+  // 官方（`officialRoleDocs.json` · 陌客）穷举了它可被当作的**角色类型**：
+  //   「你可能会被当作邪恶阵营、爪牙角色或恶魔角色」「陌客能在同一个夜晚的不同
+  //     能力中分别被当作善良或邪恶阵营，**外来者、爪牙或恶魔角色**。」
+  //   —— **不含「镇民」**。而贞洁者要求「提名你的玩家是**镇民**」才触发。
+  //   阵营可以是善良，但角色类型永远不可能是镇民 ⇒ 一律不触发。
+  //
+  // ⚠️ 历史实现错误（2026-09-13 修）：
+  //   · 旧版 50% 随机「被当作镇民」→ 无依据；
+  //   · 后改为 `meta[...] = true`（100% 触发），理由写的是「陌客判定为邪恶：100% 触发」
+  //     —— 理由本身是反的：陌客登记为**邪恶**时恰恰**不是**镇民，更不该触发。
+  //   正确行为：返回 false（不处决陌客），提名流程照常继续。
+  if (roleId === "recluse") return false;
 
   return roleType === "townsfolk";
 }
@@ -244,7 +250,7 @@ const stateUpdateResult = async (
       if (seat.id === result.executedSeatId) {
         return {
           ...seat,
-          isAlive: false,
+          isDead: true,
           executedToday: true,
           deathReason: "被贞洁者处决",
           deathPhase: "nomination",

@@ -171,9 +171,9 @@ describe("④ 洗脑师确认页（CerenovusConfirmLayout）", () => {
 
   it("内容区渲染存活座位与可选角色胶囊", () => {
     const seats = [
-      { id: 0, playerName: "P1", role: r("cerenovus"), isDead: false, isAlive: true, statusEffects: [] },
-      { id: 1, playerName: "P2", role: r("mayor"), isDead: false, isAlive: true, statusEffects: [] },
-      { id: 2, playerName: "P3", role: r("savant"), isDead: false, isAlive: true, statusEffects: [] },
+      { id: 0, playerName: "P1", role: r("cerenovus"), isDead: false, statusEffects: [] },
+      { id: 1, playerName: "P2", role: r("mayor"), isDead: false, statusEffects: [] },
+      { id: 2, playerName: "P3", role: r("savant"), isDead: false, statusEffects: [] },
     ] as any[];
     const scriptRoles = [r("mayor"), r("savant"), r("baron"), r("legion")];
 
@@ -200,8 +200,8 @@ describe("④ 洗脑师确认页（CerenovusConfirmLayout）", () => {
 
   it("内容区把行动者（洗脑师本人）标记为不可选", () => {
     const seats = [
-      { id: 0, playerName: "P1", role: r("cerenovus"), isDead: false, isAlive: true, statusEffects: [] },
-      { id: 1, playerName: "P2", role: r("mayor"), isDead: false, isAlive: true, statusEffects: [] },
+      { id: 0, playerName: "P1", role: r("cerenovus"), isDead: false, statusEffects: [] },
+      { id: 1, playerName: "P2", role: r("mayor"), isDead: false, statusEffects: [] },
     ] as any[];
     const { container } = render(
       <CerenovusConfirmContent

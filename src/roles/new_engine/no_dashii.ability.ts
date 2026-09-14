@@ -20,7 +20,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
   return ctx;
 };
 
@@ -57,7 +57,8 @@ const calculate = async (
       targetSeat,
       aliveCount,
       undefined,
-      ctx.storytellerInput?.mayorSubstituteId
+      ctx.storytellerInput?.mayorSubstituteId,
+        `mayorKill|${(ctx.snapshot as any)?.nightCount ?? 0}|no_dashii`
     );
     if (mayorRes.isMayor) {
       console.log(`[NoDashii] ${mayorRes.logMessage}`);
@@ -108,7 +109,7 @@ const stateUpdate = async (
       },
       noDashiiPoisoned: r.poisonedAdjacent,
       // 🔧 修复：诺-达击杀目标必须落地死亡标记（与三恶魔一致）。
-      //   syncStatusEffectsToSeat 只认 markedForDeath/isAlive===false → isDead，
+      //   syncStatusEffectsToSeat 只认 markedForDeath/isDead===true，
       //   否则夜晚报告永远"平安夜"、死亡标记缺失、送葬者失效。
       seats: ctx.snapshot.seats.map((seat: any) => {
         let updated = seat;
@@ -118,7 +119,6 @@ const stateUpdate = async (
         } else if (r?.substituteId != null && seat.id === r.substituteId) {
           updated = {
             ...updated,
-            isAlive: false,
             isDead: true,
             markedForDeath: true,
             diedAtNight: ctx.snapshot.nightCount,
@@ -129,7 +129,6 @@ const stateUpdate = async (
         } else if (seat.id === r.targetId && !seat.isDead) {
           updated = {
             ...updated,
-            isAlive: false,
             isDead: true,
             markedForDeath: true,
             diedAtNight: ctx.snapshot.nightCount,

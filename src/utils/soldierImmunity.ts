@@ -11,12 +11,13 @@
  * vigormortis/vortox 等）都必须调用本工具检查目标是否为士兵/镇长。
  */
 
+import { createDeterministicRandom } from "../roles/core/deterministicRandom";
+
 interface SoldierCheckSeat {
   role?: { id?: string; name?: string } | null;
   effectiveRole?: { id?: string; name?: string } | null;
   charadeRole?: { id?: string; name?: string } | null;
   isDead?: boolean;
-  isAlive?: boolean;
   statusEffects?: Array<{ type?: string }>;
   isProtected?: boolean;
   [key: string]: any;
@@ -144,13 +145,19 @@ export interface MayorDemonKillResolution {
  * @param targetSeat 恶魔攻击的目标座位
  * @param aliveCount 当前存活人数
  * @param forcedRoll 可选的概率投掷覆盖（0~1），用于确定性单测或调试
+ * @param chosenSubstituteId 说书人手动指定的替死目标（null = 指定镇长自己死）
+ * @param seed 确定性种子（建议传 `mayorKill|<夜次>|<恶魔座位>`）。
+ *   传入后 5%/95% 判定与替死目标选取都走确定性序列 —— **同一夜晚重复计算必得同一结果**，
+ *   否则"预演提示"与"执行结果"会各自摇一次随机数而对不上（见 deterministicRandom.ts 文档）。
+ *   不传则退回 `Math.random()`（仅兼容旧调用/测试）。
  */
 export function resolveMayorDemonKill(
   seats: any[],
   targetSeat: SoldierCheckSeat | undefined,
   aliveCount?: number,
   forcedRoll?: number,
-  chosenSubstituteId?: number | null
+  chosenSubstituteId?: number | null,
+  seed?: string
 ): MayorDemonKillResolution {
   if (!targetSeat || !isMayorSeat(targetSeat)) {
     return {
@@ -200,7 +207,7 @@ export function resolveMayorDemonKill(
 
   // 3. 寻找可替代死亡的存活玩家（官方规则：可由除镇长外的任意其他存活玩家代为死亡）
   const candidates = seats.filter(
-    (s: any) => s && !s.isDead && s.isAlive !== false && s.id !== mayorId
+    (s: any) => s && !s.isDead && s.id !== mayorId
   );
 
   if (candidates.length === 0) {
@@ -238,8 +245,13 @@ export function resolveMayorDemonKill(
     };
   }
 
-  // 5. 固定概率判定（未指定时）：5% 自己死亡，95% 镇民替代死亡
-  const roll = forcedRoll !== undefined ? forcedRoll : Math.random();
+  // 5. 概率判定（未指定时）：5% 自己死亡，95% 镇民替代死亡
+  //    ⚠️ 必须用确定性随机：同一夜晚的「预演提示」与「执行结算」是两次独立计算，
+  //    若各自调用 Math.random()，会出现提示说"某号替死"、结算却"镇长自己死"的分叉。
+  const rng = seed
+    ? createDeterministicRandom(`mayor|${seed}`)
+    : Math.random.bind(Math);
+  const roll = forcedRoll !== undefined ? forcedRoll : rng();
   if (roll < 0.05) {
     return {
       isMayor: true,
@@ -251,7 +263,7 @@ export function resolveMayorDemonKill(
   }
 
   // 95% 概率：随机选取一名存活镇民替代死亡
-  const substitute = candidates[Math.floor(Math.random() * candidates.length)];
+  const substitute = candidates[Math.floor(rng() * candidates.length)];
   const subName = substitute.playerName
     ? `${substitute.playerName}(${substitute.id + 1}号)`
     : `${substitute.id + 1}号`;

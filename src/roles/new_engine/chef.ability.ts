@@ -39,7 +39,7 @@
  *   "厨师的能力探查的是相邻玩家，且并未加'存活'这一附加条件。"
  *   → 关键规则：已死亡玩家仍然计入相邻对计算。
  *     实现：countEvilPairs 遍历 snapshot.seats（全量列表），
- *     不按 isAlive/isDead 过滤。
+ *     不按是否存活过滤。
  *
  * 【范例】（取自暗流涌动官方规则）
  *   示例：5 人局，座位顺序 [善良A, 邪恶爪牙, 善良B, 邪恶恶魔, 善良C]
@@ -67,6 +67,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatEvil } from "../../utils/seatAlignment";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -83,7 +84,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   /** 某些快照会在 seat 上预计算 alignment */
   alignment?: string;
@@ -120,7 +120,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -181,30 +181,12 @@ const firstNightOnlyCheck = async (
  * 因此依赖 seat.alignment 或 role.alignment 字段。
  */
 function isEvilForChef(seat: PlayerLookup): boolean {
-  // 没有角色信息时无法判定
+  // ⭐ 2026-09-14 统一：转发到全项目唯一权威 `isSeatEvil`。
+  // 旧实现是一段与权威高度重复的 7 级优先级链，且**漏了 `isGoodConverted`
+  // 与 `role.type=traveler` 的处理**，与权威可能给出不同答案。
+  // 这里保留「无角色信息时返回 false」的前置守卫以兼容既有语义。
   if (!seat.role && !seat.roleId) return false;
-
-  // 优先级 1：被舞蛇人等转化为善良 → 不算邪恶
-  if (seat.isGoodConverted) return false;
-
-  // 优先级 2：被灵言师等转化为邪恶 → 算邪恶
-  if (seat.isEvilConverted) return true;
-
-  // 优先级 3：根据角色类型判定
-  const roleType = seat.role?.type ?? "";
-  if (roleType === "demon" || roleType === "minion") return true;
-
-  // 优先级 4：恶魔继任者（红唇女郎变身后）
-  if (seat.isDemonSuccessor) return true;
-
-  // 优先级 5：seat 级别预计算的 alignment（邪恶旅行者等情况）
-  if (seat.alignment === "evil") return true;
-
-  // 优先级 6：role 级别预计算的 alignment
-  if (seat.role?.alignment === "evil") return true;
-
-  // 优先级 7：非邪恶
-  return false;
+  return isSeatEvil(seat as any);
 }
 
 /**
@@ -280,8 +262,15 @@ function resolveSpyForChef(
 /**
  * 判断给定玩家在相邻对中是否「有效」视为邪恶（考虑 Recluse / Spy 干扰）。
  *
- * Recluse：原本非邪恶 → 50% 概率变为邪恶
- * Spy：    原本邪恶     → 50% 概率变为非邪恶
+ * 官方规则细节："厨师的单次能力会为玩家进行多次检测判断。因此具有互动干扰类
+ * 能力的角色可能会在与其左右相邻的玩家组合中被当作不同的阵营。"
+ *
+ * 通用化（2026-09-14）：
+ *   · 说书人可在任意座位上设置 `registerAsEvil`（UI：玩家右键 / 信息微调面板 /
+ *     控制台），表示"本次探查中把该玩家当作邪恶"。此前只有 recluse 会读该标记，
+ *     导致官方范例 3「**邪恶的替罪羊**」只能靠伪造历史字段 `seat.alignment` 才能表达。
+ *   · 现在统一：`registerAsEvil` 标记对**任何**角色生效（替罪羊/旅行者/任意"被当作
+ *     邪恶"的玩家），与 recluse 走同一条登记通路 —— 读的是生产真正会写入的字段。
  */
 function isEffectivelyEvil(
   seat: PlayerLookup,
@@ -290,6 +279,14 @@ function isEffectivelyEvil(
 ): boolean {
   const roleId = seat.role?.id ?? seat.roleId ?? "";
   const baseIsEvil = isEvilForChef(seat);
+
+  // ⭐ 通用登记：说书人显式把该座位「当作邪恶」（任何角色都适用）
+  //    必须在 role.type 判定之前生效（登记优先于真实阵营）。
+  if (roleId !== "recluse" && roleId !== "spy") {
+    const registeredAsEvil = (seat as any).registerAsEvil;
+    if (registeredAsEvil === true) return true;
+    if (registeredAsEvil === false) return false;
+  }
 
   // Recluse：可能被当作邪恶（无论原本阵营）
   if (roleId === "recluse") {
@@ -395,26 +392,65 @@ export function chefFakeSeed(seatId: number, nightCount: number): string {
 }
 
 /**
- * 厨师受干扰时的假对数：确定性、且**永不等于真值**。
+ * 厨师受干扰时的假对数：确定性、且**永不等于真值**（k>=2 的常规局面）。
  *
  * 语义与 `corruptedInfo.pickFakeNumber(trueValue, max, rng)` 完全一致
- * （候选池 0..CHEF_FAKE_MAX、排除真值、同一枚种子 → 同一结果），
+ * （候选池 0..max、排除真值、同一枚种子 → 同一结果），
  * 因此「提示预演」「引擎结算」「玩家结果页」三处必然给出同一个数字。
  *
- * @param realCount 真实邪恶相邻对数（null 表示未知，此时不排除任何值）
+ * ⚠️⚠️ 上界必须是**本局棋盘的物理上界**，不能是一个与棋盘无关的常量。
+ *   官方要求说书人给「看似合理的数字」；旧实现固定用 `CHEF_FAKE_MAX`(=5)，
+ *   在 7~8 人局（邪恶 2 人 → 相邻对最多 1 对）会给出「5 对」这种**物理不可能**的值。
+ *   说书人照念 → 玩家立刻看出数字不可能 → **直接暴露厨师被醉酒/中毒**，
+ *   而醉酒/中毒的全部意义就是「玩家不该知道」→ 信息泄漏级缺陷。
+ *   正解：`max = 棋盘上注册为邪恶的人数 - 1`（邪恶全相邻时的相邻对数上限），
+ *   并仍以 `CHEF_FAKE_MAX` 作为绝对上限兜底。
+ *
+ * @param realCount    真实邪恶相邻对数（null 表示未知，此时不排除任何值）
+ * @param maxPlausible 本局棋盘物理上界（由 `chefMaxPlausiblePairs` 计算）
  */
 export function pickChefFakePairCount(
   realCount: number | null,
   seatId: number,
-  nightCount: number
+  nightCount: number,
+  maxPlausible: number = CHEF_FAKE_MAX
 ): number {
   const rng = createDeterministicRandom(chefFakeSeed(seatId, nightCount));
+  const cap = Math.max(0, Math.min(maxPlausible, CHEF_FAKE_MAX));
   const candidates: number[] = [];
-  for (let v = 0; v <= CHEF_FAKE_MAX; v++) {
+  for (let v = 0; v <= cap; v++) {
     if (v !== realCount) candidates.push(v);
   }
-  if (candidates.length === 0) return realCount === 0 ? 1 : 0;
+  // 候选池为空的**退化局面**：棋盘上只可能有 1 名邪恶（k<=1）→ 上限 0，
+  // 而 0 恰是真值，不存在"看似合理且不等于真值"的数。
+  // 此时返回 cap（=真值）→ 宁可让被干扰者拿到一个**不违反物理上界**的数，
+  // 也不返回一个一眼假的数（后者会泄漏"我被干扰了"）。
+  // 现实剧本每局至少 1 爪牙（k>=2），故该分支实际不可达。
+  if (candidates.length === 0) return cap;
   return candidates[Math.floor(rng() * candidates.length)];
+}
+
+/**
+ * 本局棋盘上「相邻邪恶对」的**物理上界**。
+ *
+ * 官方计数规则：k 名邪恶玩家若全部连续相邻成一段弧，则相邻对 = k-1
+ * （例：3 连邪恶 = 2 对，4 连 = 3 对）；若全桌皆邪恶则 = 座位数。
+ * 因此上界 = (注册为邪恶的人数 - 1)，且不超过 `CHEF_FAKE_MAX`。
+ *
+ * 注册口径与真值计算同源（`isEffectivelyEvil`，含陌客登记为邪恶、
+ * 间谍登记为善良的干扰）→ 保证上界与真值同处一个视角。
+ */
+export function chefMaxPlausiblePairs(seats: PlayerLookup[]): number {
+  const meta: Record<string, any> = {};
+  const ctx = { snapshot: { seats } } as unknown as MiddlewareContext;
+  const total = seats.length;
+  if (total === 0) return 0;
+  let evilCount = 0;
+  for (const s of seats) {
+    if (isEffectivelyEvil(s, meta, ctx)) evilCount++;
+  }
+  const boardBound = evilCount >= total ? total : Math.max(0, evilCount - 1);
+  return Math.min(boardBound, CHEF_FAKE_MAX);
 }
 
 /**
@@ -481,7 +517,12 @@ const calculateResult = async (
     truePairCount = meta.initialNightInfo.chefInfo as number;
     evilPairCount = abilityEffective
       ? truePairCount
-      : pickChefFakePairCount(truePairCount, seatId, nightCount);
+      : pickChefFakePairCount(
+          truePairCount,
+          seatId,
+          nightCount,
+          chefMaxPlausiblePairs(seats)
+        );
   }
   // 优先级 4：动态计算
   else {
@@ -491,7 +532,12 @@ const calculateResult = async (
     //    告知真值（确定性信息泄漏，不是偶发）。
     evilPairCount = abilityEffective
       ? truePairCount
-      : pickChefFakePairCount(truePairCount, seatId, nightCount);
+      : pickChefFakePairCount(
+          truePairCount,
+          seatId,
+          nightCount,
+          chefMaxPlausiblePairs(seats)
+        );
   }
 
   return {

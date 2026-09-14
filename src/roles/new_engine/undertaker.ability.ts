@@ -45,6 +45,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -61,7 +62,6 @@ interface UndertakerInfo {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive: boolean;
   playerName?: string;
   executedToday?: boolean;
   role?: { id: string; name: string; type: string };
@@ -92,7 +92,7 @@ const preCheckAliveAndStatus = async (
     (s: any) => s.id === actionNode.seatId
   );
 
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
 
@@ -240,7 +240,7 @@ export function resolveExecutedRole(
       (executedSeat as any).registerAsEvil !== true;
     if (isGood) {
       const goodRoles = seats.filter(
-        (s: any) => s.role?.type === "townsfolk" || s.role?.type === "outsider"
+        (s: any) => isSeatTownsfolkOrOutsider(s)
       );
       if (goodRoles.length > 0) {
         const randomGood = goodRoles[Math.floor(rng() * goodRoles.length)];

@@ -13,10 +13,10 @@ import {
 const preCheckAlive = async (context: any) => {
   const { snapshot, actionNode } = context;
   const seat = snapshot.seats.find((s: any) => s.id === actionNode.seatId);
-  if (!seat?.isAlive) {
+  if (!seat || seat.isDead) {
     return { ...context, aborted: true, abortReason: "玩家已死亡，技能失效" };
   }
-  return { ...context, meta: { ...context.meta, isAlive: true } };
+  return context;
 };
 
 const calculate = async (context: any) => {

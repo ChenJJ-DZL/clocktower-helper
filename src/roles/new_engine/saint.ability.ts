@@ -60,7 +60,6 @@ import {
 interface PlayerLookup {
   id: number;
   isDead: boolean;
-  isAlive?: boolean;
   playerName?: string;
   /** 标记该玩家是否在今天白天被提名处决且票数通过 */
   executedToday?: boolean;

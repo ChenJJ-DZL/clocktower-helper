@@ -1,4 +1,5 @@
 import type { Seat } from "../types/game";
+import { isSeatTownsfolkOrOutsider } from "./seatAlignment";
 
 export interface ResolvedEvilTwinPair {
   evilTwinSeat: Seat | null;
@@ -48,13 +49,11 @@ export function resolveEvilTwinPair(
         (s) =>
           s.id !== evilTwinSeat.id &&
           !s.isDead &&
-          (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
+          isSeatTownsfolkOrOutsider(s) &&
           !s.isEvilConverted
       ) ||
       seats.find(
-        (s) =>
-          s.id !== evilTwinSeat.id &&
-          (s.role?.type === "townsfolk" || s.role?.type === "outsider")
+        (s) => s.id !== evilTwinSeat.id && isSeatTownsfolkOrOutsider(s)
       ) ||
       null;
   }

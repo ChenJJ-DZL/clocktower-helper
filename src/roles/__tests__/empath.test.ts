@@ -1,114 +1,82 @@
-import { describe, expect, test } from "vitest";
-import { empath } from "../townsfolk/empath";
+import { describe, expect, it } from "vitest";
+import { initializeAbilityRegistry } from "../new_engine/abilityRegistry";
+import { board, nightInfoFor, queueFor } from "./_tbHarness";
 
-function seat(
-  id: number,
-  rid: string,
-  rt: string,
-  isEvil = false,
-  isDead = false,
-  isDrunk = false
-) {
-  const n: Record<string, string> = {
-    empath: "共情者",
-    imp: "小恶魔",
-    spy: "间谍",
-    soldier: "士兵",
-    recluse: "陌客",
-    butler: "管家",
-    saint: "圣徒",
-  };
-  return {
-    id,
-    isDead,
-    isAlive: !isDead,
-    isDrunk,
-    isPoisoned: false,
-    role: { id: rid, name: n[rid] || rid, type: rt },
-    _isEvil: () => isEvil || rid === "imp" || rid === "spy",
-  };
-}
-
-function countEvilNeighbors(
-  seats: ReturnType<typeof seat>[],
-  targetIdx: number
-): number {
-  const n = seats.length;
-  let cnt = 0;
-  for (let d = -1; d <= 1; d += 2) {
-    for (let step = 1; step < n; step++) {
-      const idx = (((targetIdx + d * step) % n) + n) % n;
-      const s = seats[idx];
-      if (!s.isAlive) continue;
-      if (s._isEvil()) cnt++;
-      break;
-    }
-  }
-  return cnt;
-}
-
+/**
+ * 共情者 (Empath) —— 官方：
+ * 【角色能力】每个夜晚，你会得知与你邻近的**两名存活的玩家**中邪恶玩家的数量。
+ * 【角色简介】「共情者不会探查已死亡的玩家。因此，如果共情者与一位已死亡玩家
+ *   相邻，他不会获取到有关死亡玩家的任何信息。取而代之的是，他会获取与那位
+ *   死亡玩家同一方向上**最近的存活玩家**。」
+ */
 describe("共情者 (Empath)", () => {
-  test("Wiki-JSON一致", () => {
-    expect("每个夜晚，你会得知与你邻近的两名存活的玩家中邪恶玩家的数量。").toBe(
-      "每个夜晚，你会得知与你邻近的两名存活的玩家中邪恶玩家的数量。"
-    );
-  });
-  test("首夜+其他夜均唤醒", () => {
-    expect(true).toBe(true);
-  });
-  test("两旁都是善良-返回0", () => {
-    const ss = [
-      seat(1, "soldier", "townsfolk"),
-      seat(0, "empath", "townsfolk"),
-      seat(2, "butler", "outsider"),
-    ];
-    expect(countEvilNeighbors(ss, 1)).toBe(0);
-  });
-  test("一旁邪恶-返回1", () => {
-    const ss = [
-      seat(1, "imp", "demon"),
-      seat(0, "empath", "townsfolk"),
-      seat(2, "soldier", "townsfolk"),
-    ];
-    expect(countEvilNeighbors(ss, 1)).toBe(1);
-  });
-  test("两旁邪恶-返回2", () => {
-    const ss = [
-      seat(1, "imp", "demon"),
-      seat(0, "empath", "townsfolk"),
-      seat(2, "spy", "minion"),
-    ];
-    expect(countEvilNeighbors(ss, 1)).toBe(2);
-  });
-  test("跳过死亡邻座", () => {
-    const ss = [
-      seat(1, "imp", "demon"),
-      seat(0, "empath", "townsfolk"),
-      seat(3, "saint", "outsider"),
-      seat(2, "spy", "minion", false, true),
-    ];
-    const c = countEvilNeighbors(ss, 1);
-    expect(c).toBe(1);
-  });
-  test("醉酒能力失效", () => {
-    const em = seat(0, "empath", "townsfolk", false, false, true);
-    expect(em.isDrunk || em.isPoisoned).toBe(true);
-  });
-  test("中毒/受干扰状态下，dialog 生成的信息 100% 为错误数字且绝非真实值", () => {
-    const ss = [
-      seat(0, "empath", "townsfolk"),
-      seat(1, "soldier", "townsfolk"),
-      seat(2, "butler", "outsider"),
-    ];
-    // 真实值应为 0
-    for (let i = 0; i < 20; i++) {
-      const dialog = (empath.night as any).dialog(0, false, {
-        seats: ss,
-        isActorDisabledByPoisonOrDrunk: () => true,
-      });
-      // 必须不是 0
-      expect(dialog.wake).not.toContain("0 名");
-      expect(dialog.wake).toMatch(/([12]) 名/);
+  initializeAbilityRegistry();
+
+  /** 位 0 共情者；环形邻居 = 位 4 与位 1 */
+  const twoEvilNeighbors = () =>
+    board(["empath", "imp", "chef", "soldier", "poisoner"]);
+  const oneEvilNeighbor = () =>
+    board(["empath", "chef", "soldier", "mayor", "poisoner"]);
+
+  it("三个夜晚都唤醒（官方「每个夜晚」）", () => {
+    const seats = twoEvilNeighbors();
+    for (const night of [1, 2, 3]) {
+      expect(queueFor(seats, 0, night)).toContain("empath");
     }
   });
+
+  it("⭐ 邻近两名邪恶 → 2", () => {
+    const n = numOfNight(twoEvilNeighbors());
+    expect(n).toBe(2);
+  });
+
+  it("⭐ 邻近一名邪恶 → 1", () => {
+    expect(numOfNight(oneEvilNeighbor())).toBe(1);
+  });
+
+  it("⭐ 邻近全善良 → 0", () => {
+    const seats = board(["empath", "chef", "soldier", "mayor", "butler"]);
+    expect(numOfNight(seats)).toBe(0);
+  });
+
+  it("⭐⭐ 官方：不探查死者 —— 邻居死亡时改看同方向最近的存活玩家", () => {
+    // 原局：邻居 = 位4(投毒者,邪恶) 与 位1(小恶魔,邪恶) → 2
+    const seats = twoEvilNeighbors();
+    // 杀掉位 4 → 该方向改看位 3(士兵,善良)；另一侧位 1(小恶魔) 仍存活 → 1
+    seats[4] = { ...seats[4], isDead: true, };
+    expect(
+      numOfNight(seats),
+      "死者不参与，且要沿同方向跳到最近的存活玩家（另一侧仍是邪恶）"
+    ).toBe(1);
+
+    // 再把位 1 也杀掉 → 两侧都跳过死者 → 邻居变成位3(士兵)与位2(厨师) → 0
+    const bothDead = twoEvilNeighbors();
+    bothDead[4] = { ...bothDead[4], isDead: true, };
+    bothDead[1] = { ...bothDead[1], isDead: true, };
+    expect(numOfNight(bothDead), "两侧死者都跳过后应为 0").toBe(0);
+  });
+
+  it("⭐ 信息计数恒在 0~2 之间（官方：只报数量，不报是谁）", () => {
+    for (const seats of [twoEvilNeighbors(), oneEvilNeighbor()]) {
+      const n = numOfNight(seats);
+      expect(n).toBeGreaterThanOrEqual(0);
+      expect(n).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("中毒时给出与常态不同的（假）数字", () => {
+    const seats = oneEvilNeighbor();
+    const poisoned = seats.map((s) =>
+      s.id === 0
+        ? { ...s, statusEffects: [{ type: "poisoned", source: "poisoner" }] }
+        : s
+    );
+    expect(numOfNight(poisoned)).not.toBe(numOfNight(seats));
+  });
+
+  function numOfNight(seats: any[]): number {
+    const { guide } = nightInfoFor(seats, 0, 1);
+    const m = String(guide).match(/有\s*(\d+)\s*名/);
+    return m ? Number(m[1]) : NaN;
+  }
 });

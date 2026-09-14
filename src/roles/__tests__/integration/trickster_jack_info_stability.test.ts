@@ -12,11 +12,11 @@ import {
 
 // 最小 5 人局：恶作剧杰克 0 + 3 名存活其他玩家 + 1 名已死亡玩家
 const seats: any[] = [
-  { id: 0, playerName: "恶作剧杰克", isDead: false, isAlive: true, role: { id: "trickster_jack", name: "恶作剧杰克", type: "townsfolk" }, statusEffects: [] },
-  { id: 1, playerName: "厨师", isDead: false, isAlive: true, role: { id: "chef", name: "厨师", type: "townsfolk" }, statusEffects: [] },
-  { id: 2, playerName: "士兵", isDead: false, isAlive: true, role: { id: "soldier", name: "士兵", type: "townsfolk" }, statusEffects: [] },
-  { id: 3, playerName: "圣徒", isDead: false, isAlive: true, role: { id: "saint", name: "圣徒", type: "outsider" }, statusEffects: [] },
-  { id: 4, playerName: "已死者", isDead: true, isAlive: false, role: { id: "imp", name: "小恶魔", type: "demon" }, statusEffects: [] },
+  { id: 0, playerName: "恶作剧杰克", isDead: false, role: { id: "trickster_jack", name: "恶作剧杰克", type: "townsfolk" }, statusEffects: [] },
+  { id: 1, playerName: "厨师", isDead: false, role: { id: "chef", name: "厨师", type: "townsfolk" }, statusEffects: [] },
+  { id: 2, playerName: "士兵", isDead: false, role: { id: "soldier", name: "士兵", type: "townsfolk" }, statusEffects: [] },
+  { id: 3, playerName: "圣徒", isDead: false, role: { id: "saint", name: "圣徒", type: "outsider" }, statusEffects: [] },
+  { id: 4, playerName: "已死者", isDead: true, role: { id: "imp", name: "小恶魔", type: "demon" }, statusEffects: [] },
 ];
 
 const seedFor = (actorId: number, night: number) =>

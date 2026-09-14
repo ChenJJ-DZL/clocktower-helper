@@ -31,7 +31,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
-  if (!seat?.isAlive) return { ...ctx, aborted: true, abortReason: "已死亡" };
+  if (!seat || seat.isDead) return { ...ctx, aborted: true, abortReason: "已死亡" };
 
   // 戏子（改）相克：在场时疯子不会因戏子（改）醉酒/不参与互认
   // → 疯子仍然按原样行动，不因 actor_modified 而失能
