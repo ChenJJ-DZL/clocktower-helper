@@ -5,6 +5,7 @@ import type { GamePhase, Seat } from "../../../../app/data";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { getRoleDefinition } from "../../../roles";
 import type { NightInfoResult } from "../../../types/game";
+import { getCharadeDisplayRole } from "../../../utils/charadeDisplay";
 import { isInformationRole } from "../../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
@@ -745,11 +746,8 @@ export const GameConsole = React.memo(function GameConsole({
             const dayAbilitySeats = seats.filter((s) => {
               if (!s.role) return false;
 
-              const isCharade =
-                s.role?.id === "drunk" || s.role?.id === "marionette";
-              const effectiveRole = isCharade
-                ? s.charadeRole || s.role
-                : s.role;
+              // ⚠️ 伪装身份统一走 SST 助手（2026-09-14 第 9 次 SST 事故）
+              const effectiveRole = getCharadeDisplayRole(s);
               if (!effectiveRole) return false;
 
               // Check legacy dayMeta
@@ -884,6 +882,12 @@ export const GameConsole = React.memo(function GameConsole({
                                 handleDayAbility(seat.id);
                                 return;
                               }
+                              // ⚠️ 2026-09-14：畸形秀演员与洗脑师同构 —— 说书人独立仲裁，
+                              //   直接进专属弹窗，不再弹通用 confirm（旧实现在 DayAbilityModal 里）。
+                              if (effectiveRole?.id === "mutant") {
+                                handleDayAbility(seat.id);
+                                return;
+                              }
                               showConfirm({
                                 title: "使用技能",
                                 message: `确定使用 ${abilityName} 吗？`,
@@ -902,7 +906,9 @@ export const GameConsole = React.memo(function GameConsole({
                           >
                             {effectiveRole?.id === "cerenovus"
                               ? "疯狂洗脑"
-                              : `使用 ${displayRoleName}`}
+                              : effectiveRole?.id === "mutant"
+                                ? "疯狂仲裁"
+                                : `使用 ${displayRoleName}`}
                           </button>
                         )}
                       </div>

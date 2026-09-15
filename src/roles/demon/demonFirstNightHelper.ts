@@ -14,6 +14,9 @@ export function buildDemonFirstNightDialog(
 ): NightDialog {
   const { seats, poppyGrowerDead, selfId, roles = [] } = context;
   const currentSeatId = selfId;
+  // ⚠️ 确定性铁律：凡"选择/洗牌/掷骰"必须走注入的 rng（`context.rng`），
+  //    禁止裸 `Math.random()` —— 否则测试无法复现，且破坏确定性护栏。
+  const rng: () => number = context.rng ?? Math.random;
 
   // 检查罂粟种植者状态：如果罂粟种植者在场且存活，恶魔不知道爪牙是谁
   const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
@@ -36,11 +39,9 @@ export function buildDemonFirstNightDialog(
   const absentTownsfolk = absentRoles.filter((r) => r.type === "townsfolk");
   const absentOutsider = absentRoles.filter((r) => r.type === "outsider");
 
-  // 随机打乱并选取（使用简单的随机选择）
-  const shuffledTownsfolk = [...absentTownsfolk].sort(
-    () => Math.random() - 0.5
-  );
-  const shuffledOutsider = [...absentOutsider].sort(() => Math.random() - 0.5);
+  // 随机打乱并选取（使用注入的 rng，保证可复现）
+  const shuffledTownsfolk = [...absentTownsfolk].sort(() => rng() - 0.5);
+  const shuffledOutsider = [...absentOutsider].sort(() => rng() - 0.5);
 
   const selectedAbsent: string[] = [];
   // 先取镇民，最多3个

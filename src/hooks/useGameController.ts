@@ -17,6 +17,10 @@ import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
 import { generateDynamicNightQueue } from "../utils/dynamicQueueGenerator";
 import {
+  roleHasNightAction,
+  seatHasNightAction,
+} from "../utils/dynamicQueueGenerator";
+import {
   addPoisonMark,
   computeIsPoisoned,
   getAliveNeighbors,
@@ -405,6 +409,26 @@ export function useGameController() {
 
   const insertIntoWakeQueueAfterCurrent = useCallback(
     (id: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => {
+      // 🌺 队列准入不变式：没有夜间行动的角色（纯被动，如罂粟种植者）永远不得入队。
+      //    `nightInfoGenerator` 对"无 night 配置"的角色有合成文案兜底
+      //    （「唤醒N号【角色名】，准备执行技能。」，全库 50+ 角色命中，不能删），
+      //    一旦纯被动角色被塞进 wakeQueueIds，就会被"唤醒"并弹出
+      //    「N号-角色名 - 结果」信息窗 —— 这正是罂粟种植者被动技能被误唤醒的成因。
+      //    本入口只按座位 id 插入、无反向校验，故必须在此兜住。
+      const seatForCheck = seats.find((s) => s.id === id);
+      // 有 roleOverride 时以 override 为准（如假死转生 / 伪装能力），
+      // 否则用座位版本（酒鬼 / 提线木偶会按其伪装身份判断）。
+      const allowed = opts?.roleOverride?.id
+        ? roleHasNightAction(opts.roleOverride.id)
+        : seatHasNightAction(seatForCheck);
+      if (!allowed) {
+        console.log(
+          `[insertIntoWakeQueueAfterCurrent] ⛔ 拒绝入队：${
+            opts?.roleOverride?.id ?? seatForCheck?.role?.id ?? "未知"
+          } 无夜间行动（纯被动角色）`
+        );
+        return;
+      }
       setWakeQueueIds((prev: number[]) => {
         if (prev.includes(id)) return prev;
         const processed = prev.slice(0, currentWakeIndex + 1);

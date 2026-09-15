@@ -8,11 +8,19 @@ import { useAudio } from "../../hooks/useAudio";
 import { useGameState } from "../../hooks/useGameState";
 import { setAntagonismGlobalOverride } from "../../utils/antagonism";
 import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../../utils/cerenovusGate";
+import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../../utils/mutantGate";
+import {
+  canBeNominated,
+  canNominate,
+  clearVoteSettled,
+  consumeVoteSettled,
+} from "../../utils/nominationEligibility";
 import { isSeatDead } from "../../utils/seatAlive";
 import { isInformationRole } from "../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { formatSeatLabel } from "../../utils/seatLabel";
 import { getStorytellerTips } from "../../utils/storytellerTips";
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import { RoundTable } from "./board/RoundTable";
 import { GameConsole } from "./console/GameConsole";
 import { GameLayout } from "./GameLayout";
@@ -82,27 +90,14 @@ export const GameStage = () => {
   } = gameState;
 
   // 检查玩家本黄昏是否已发起提名/已被提名
+  // 🗣️ 判定统一走 utils/nominationEligibility（兼容 Set / Array 两种形态）
   const hasPlayerNominated = useCallback(
-    (seatId: number) => {
-      if (!nominationRecords?.nominators) return false;
-      return nominationRecords.nominators instanceof Set
-        ? nominationRecords.nominators.has(seatId)
-        : Array.isArray(nominationRecords.nominators)
-          ? (nominationRecords.nominators as number[]).includes(seatId)
-          : false;
-    },
+    (seatId: number) => !canNominate(nominationRecords ?? null, seatId).ok,
     [nominationRecords]
   );
 
   const hasPlayerBeenNominated = useCallback(
-    (seatId: number) => {
-      if (!nominationRecords?.nominees) return false;
-      return nominationRecords.nominees instanceof Set
-        ? nominationRecords.nominees.has(seatId)
-        : Array.isArray(nominationRecords.nominees)
-          ? (nominationRecords.nominees as number[]).includes(seatId)
-          : false;
-    },
+    (seatId: number) => !canBeNominated(nominationRecords ?? null, seatId).ok,
     [nominationRecords]
   );
 
@@ -281,6 +276,8 @@ export const GameStage = () => {
       setDefenseSecondsLeft(0);
       setLastCallSecondsLeft(0);
       setIsNominationLocked(false);
+      // 🗣️ 新黄昏开始，清空上一次投票的结算闩锁
+      clearVoteSettled();
     }
   }, [gamePhase, stopDefenseTimer, stopLastCallTimer]); // 简化依赖项，只在 gamePhase 变化时执行
 
@@ -294,10 +291,20 @@ export const GameStage = () => {
       currType === null &&
       pendingVoteFor !== null
     ) {
-      console.log(
-        "[GameStage] 投票模态关闭，取消当个黄昏已提和被提标记并清除 pendingVoteFor"
-      );
-      cancelNomination?.(lastNominator, pendingVoteFor);
+      // 🗣️ 关键分流：投票**已计票结算**时，提名资格是既成事实，绝不能回退。
+      //    只有「说书人取消投票」才恢复资格。
+      //    修复前这里无条件 cancelNomination → 投完一次票后同一黄昏内可再提名/再被提名。
+      //    结算闩锁由 useExecutionHandlers.submitVotes 置位（跨组件，见 nominationEligibility）。
+      if (consumeVoteSettled()) {
+        console.log(
+          "[GameStage] 投票已计票结算，保留本黄昏的提名/被提名记录（不恢复资格）"
+        );
+      } else {
+        console.log(
+          "[GameStage] 投票被取消，恢复当个黄昏的提名/被提名资格并清除 pendingVoteFor"
+        );
+        cancelNomination?.(lastNominator, pendingVoteFor);
+      }
       setPendingVoteFor(null);
       setLastNominator(null);
     }
@@ -405,6 +412,8 @@ export const GameStage = () => {
         } else {
           setPendingVoteFor(nomineeId);
           setLastNominator(nominatorId);
+          // 🗣️ 打开新的投票弹窗 → 清空上一次的结算闩锁
+          clearVoteSettled();
           setCurrentModal({
             type: "VOTE_INPUT",
             data: { voterId: nomineeId },
@@ -1174,6 +1183,8 @@ export const GameStage = () => {
                           }
                           stopDefenseTimer();
                           setDefenseSecondsLeft(0);
+                          // 🗣️ 打开新的投票弹窗 → 清空上一次的结算闩锁
+                          clearVoteSettled();
                           setCurrentModal({
                             type: "VOTE_INPUT",
                             data: { voterId: pendingVoteFor },
@@ -1678,14 +1689,30 @@ export const GameStage = () => {
                         // 否则上一局残留的 cerenovusTarget 会把全新一局卡死在白天。
                         const hasPendingCerenovusCheck =
                           hasPendingCerenovusGate(seats, cerenovusTarget);
+
+                        // 🎭 畸形秀演员【疯狂仲裁】同理（2026-09-14 新增，与洗脑师同构）：
+                        // 只有场上存在存活畸形秀演员、且今日尚未仲裁时才需要门禁。
+                        const hasPendingMutantCheck =
+                          hasPendingMutantGate(seats);
+
+                        const isBlocked =
+                          hasPendingCerenovusCheck || hasPendingMutantCheck;
                         return {
                           label: hasPendingCerenovusCheck
                             ? "需先完成洗脑师判定【疯狂洗脑】"
-                            : "进入黄昏处决阶段",
+                            : hasPendingMutantCheck
+                              ? "需先完成畸形秀演员判定【疯狂仲裁】"
+                              : "进入黄昏处决阶段",
                           onClick: () => {
                             if (hasPendingCerenovusCheck) {
                               alert(
                                 "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
+                              );
+                              return;
+                            }
+                            if (hasPendingMutantCheck) {
+                              alert(
+                                "畸形秀演员的白天技能【疯狂仲裁】尚未发动，必须先由说书人裁定并完成判定后才能进入黄昏！"
                               );
                               return;
                             }
@@ -1694,8 +1721,8 @@ export const GameStage = () => {
                             );
                             handleDayEndTransition();
                           },
-                          disabled: hasPendingCerenovusCheck,
-                          variant: hasPendingCerenovusCheck
+                          disabled: isBlocked,
+                          variant: isBlocked
                             ? ("warning" as const)
                             : ("primary" as const),
                         };
@@ -1773,10 +1800,14 @@ export function GameStageWithModals() {
   const continueToNextAction = (controller as any).continueToNextAction;
 
   const isNightPhase = gamePhase === "firstNight" || gamePhase === "night";
-  const isVortoxWorld = seats.some(
-    (s: any) =>
-      s.role?.id === "vortox" || (s as any).charadeRole?.id === "vortox"
-  );
+  // 🌪️ 涡流世界判定（2026-09-15 收口）
+  //   官方：涡流**存活**时所有信息为假；涡流死亡后信息恢复正常。
+  //   ⚠️ 旧实现漏了 `!s.isDead` —— 涡流死后 isVortoxWorld 仍为 true，
+  //      会让 `gameLogic.checkGameEnd` 的「涡流：今日无人被处决 → 邪恶获胜」误触发。
+  //   ✅ 现已收口到唯一事实来源 `src/utils/vortoxWorld.ts`
+  //      （与 `roleActionHandlers.ts` / `useNightActionHandler.ts` / `checkGameEnd` 同源）；
+  //      `charadeRole` 分支由该模块内部处理（伪装成涡流的酒鬼/提线木偶同样要求存活）。
+  const isVortoxWorld = isVortoxWorldActive(seats);
 
   // INFO_RESULT 弹窗数据（用于内联展示到 NightActionPage）
   const infoResultData =

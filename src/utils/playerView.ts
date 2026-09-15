@@ -275,3 +275,27 @@ export function getLunaticNoChoiceHint(
 export function getLunaticNightHint(seats: Seat[]): string | null {
   return getLunaticChoiceHint(seats) ?? getLunaticNoChoiceHint(seats);
 }
+
+/**
+ * 🌀 A4（座位高亮版 · 2026-09-14 用户要求）：
+ * 返回「疯子本夜选择的所有座位 ID」——去重 + 升序。
+ *
+ * 用途：真恶魔的夜间确认页把**疯子选中的座位卡片**改成紫色描边 + 紫色色块，
+ * 并在座位号上打「🌀 疯子目标」角标。官方原文：
+ *   「真正的恶魔会知道疯子每个夜晚攻击了哪些玩家。」
+ * 因此这不是泄漏 —— 它只在该页的**真恶魔分支**渲染。
+ *
+ * 与 `getLunaticNightHint`（纯文案）互补：文案负责"疯子选了几号"的兜底说明，
+ * 本函数负责"哪几张卡片要变色"的结构化数据。
+ * 场上无疯子 / 疯子未选择时返回 `[]`（调用方据此不渲染任何高亮）。
+ */
+export function getLunaticTargetSeatIds(seats: Seat[]): number[] {
+  const set = new Set<number>();
+  for (const seat of seats || []) {
+    if (seat?.role?.id !== "lunatic") continue;
+    for (const id of getLunaticChosenTargetIds(seat)) {
+      if (typeof id === "number" && Number.isFinite(id)) set.add(id);
+    }
+  }
+  return Array.from(set).sort((a, b) => a - b);
+}

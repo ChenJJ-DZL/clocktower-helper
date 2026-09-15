@@ -22,6 +22,7 @@ import {
   type RegistrationCacheOptions,
   shouldShowFakeInfo,
 } from "./gameRules";
+import { isSeatAlive } from "./seatAlive";
 
 export const calculateNightInfo = (
   selectedScript: Script | null,
@@ -753,7 +754,8 @@ function generateFakeNightInfo(
 
 export const generateNightTimeline = (
   seats: Seat[],
-  isFirstNight: boolean
+  isFirstNight: boolean,
+  nightCount: number = isFirstNight ? 0 : 1
 ): TimelineStep[] => {
   const steps: TimelineStep[] = [];
 
@@ -823,6 +825,22 @@ export const generateNightTimeline = (
         : seat.role;
     const merged = getMergedRoleMeta(effectiveRole);
     const meta = isFirstNight ? merged.firstMeta : merged.otherMeta;
+
+    // 🔧 条件唤醒门控（官方：赏金猎人「每当你得知的玩家死亡…当晚」、
+    //    农夫「当你在夜晚死亡时」等 → 不是每夜唤醒）。
+    //    ⚠️ 必须是**队列层**的根因修复：旧实现只要角色声明了 `night` 块就每夜入选，
+    //      于是引导页显示"请睁眼"、说书人却无事可做，且会白送信息。
+    //    `shouldWake` 由角色定义声明，未声明时行为完全不变（向后兼容）。
+    const roleDefForGate = getRoleDefinition(effectiveRole.id);
+    if (roleDefForGate?.shouldWake) {
+      const gateApplies =
+        isSeatAlive(seat) ||
+        meta?.wakesIfDead === true ||
+        seat.hasAbilityEvenDead;
+      if (gateApplies && !roleDefForGate.shouldWake(isFirstNight, seats, nightCount)) {
+        return false;
+      }
+    }
 
     if (!seat.isDead && meta) {
       if (seat.statusDetails?.includes("驱魔者选中")) return false;

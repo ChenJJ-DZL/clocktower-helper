@@ -108,6 +108,33 @@ export function parseInfoResult(
     }
   }
 
+  // 1.5 🌾 引导式陈述句（农夫死亡传承）：`唤醒XX号玩家，告知他/她：<正文>`
+  //
+  // 为什么必须**单独**处理，而不是塞进下面的通用正则：
+  //   通用正则的头部部分用 `.*?`（非贪婪），遇到「唤醒5号玩家，告**知**他/她：」
+  //   会优先在最短处收口 —— 实测把 rawHead 切成「唤醒5号玩家，告」，
+  //   于是「知他/她：…」整段被当成"信息值"落到第二行大字，前缀判定也随之失配。
+  //
+  // 本条规则刻意写得**极窄**（必须同时满足"以唤醒X号玩家开头"+"告知他/她"），
+  // 从而对既有 ~50 个角色的 `唤醒X号【角色】，告诉他…` 形态**零影响**
+  // （那种形态走步骤 1 由 nightInfoGenerator 产出的多行/通用分支，行为不变）。
+  //
+  // 契约（与用户明确要求一致）：
+  //   第一行 = 「唤醒XX号玩家，告知他/她：」（XX = **新农夫**座位号，取自文案本身，
+  //            而非 `roleName` —— `roleName` 是**死掉的旧农夫**）；
+  //   第二行 = 该告知新农夫的话（冒号后的全部内容，原样保留）。
+  // ⚠️ 不能用 `s` 标志（tsconfig target = ES2017，TS1501）——用 `[\s\S]` 等价表示"任意字符含换行"。
+  const guideDirectiveMatch = trimmed.match(
+    /^唤醒\s*(\d+)\s*号玩家[，,]\s*告知(?:他|她|他\/她|她\/他)\s*[:：]\s*([\s\S]+)$/
+  );
+  if (guideDirectiveMatch?.[2]) {
+    const successorSeatNo = guideDirectiveMatch[1];
+    return {
+      prefix: `唤醒${successorSeatNo}号玩家，告知他/她：`,
+      result: formatResult(guideDirectiveMatch[2]),
+    };
+  }
+
   // 2. 匹配标准前缀：“...获得信息：(内容)” / “...得知：(内容)” / “...得知结果：(内容)” / “...告诉他(内容)” / “...告知(内容)”
   //
   // ⚠️ 2026-09-13 修复「残句」：该正则里的 `得知` / `告知` 会**匹配到句子中间**的
@@ -120,6 +147,12 @@ export function parseInfoResult(
   //          → result=「**自己**是该角色…」
   //    判据：切分点后若紧跟**承接性词**（的/其/自己/他/她/它），说明这是句中切分而非
   //    "信息头 + 信息值"的结构边界 → 放弃切分，交给下方回退分支整段展示。
+  //
+  // ⚠️ 2026-09-14 第二类残句（农夫传承引导语）已由上方 **步骤 1.5** 单独拦下，
+  //    本条通用正则**刻意保持原样**（连分隔符 `[:：\s]*` 的宽松语义都不动）。
+  //    原因：实测「把 `告知他/她` 并进备选项」会连带改动 ~5 处既有形态
+  //    （如「唤醒5号【赏金猎人】，指向2号玩家【罂粟种植者】（告诉他2号玩家是邪恶的）」
+  //    的第二行被整段吞掉）——爆炸半径太大，得不偿失。
   const infoPrefixRegex =
     /^(.*?(?:获得信息|得知信息|在死亡前夜得知|在死亡当夜得知|得知结果|得知|告诉他|告知他|告知))\s*[:：\s]*\s*(.+)$/;
   const infoPrefixMatch = trimmed.match(infoPrefixRegex);
@@ -128,13 +161,18 @@ export function parseInfoResult(
   );
   if (infoPrefixMatch?.[1] && infoPrefixMatch[2] && !continuationGuard) {
     const rawHead = infoPrefixMatch[1].trim();
-    // 如果头部只是纯引导动词（如 "告诉他" / "告知" / "唤醒X号【角色】，告诉他"），将 prefix 规范化为 "X号-角色获得信息"
-    const prefix =
-      rawHead.includes("唤醒") || /^(告诉他|告知他|告知)$/.test(rawHead)
-        ? roleName
-          ? formatPrefix(`${roleName}获得信息`)
-          : "获得信息"
-        : formatPrefix(rawHead);
+    // 头部是**纯引导语**（不含任何"获得信息/得知"类结果动词）时，不能把它当"信息头"，
+    // 否则第一行会变成「唤醒5号玩家，告知他/她」这种四不像。两类纯引导语：
+    //   · 纯动词：「告诉他」/「告知」/「唤醒X号【角色】，告诉他」；
+    //   · 引导式陈述句：「唤醒X号玩家，告知他/她」（走上方步骤 1.5，不到这里）。
+    // 规范化目标是「X号-角色获得信息」，X 取 `roleName`（= 行动者座位）。
+    const hasResultVerb = /获得信息|得知信息|得知结果|得知/.test(rawHead);
+    const isGuideHead = !hasResultVerb && /唤醒|告诉他|告知他|告诉|告知/.test(rawHead);
+    const prefix = isGuideHead
+      ? roleName
+        ? formatPrefix(`${roleName}获得信息`)
+        : "获得信息"
+      : formatPrefix(rawHead);
     const result = formatResult(infoPrefixMatch[2]);
     return { prefix, result };
   }
@@ -161,4 +199,69 @@ export function parseInfoResult(
     prefix: roleName ? formatPrefix(`${roleName}获得信息`) : "",
     result: formatResult(trimmed),
   };
+}
+
+/**
+ * 把「结果大字」按**自然语义边界**折成若干行，供结果页展示。
+ *
+ * 背景（2026-09-14 用户实测 · 僧侣结果页）：
+ *   `僧侣保护了【1号】，该玩家今晚免受恶魔负面效果影响` 这类**长单句**原先
+ *   在弹窗里用 `whitespace-nowrap` 渲染 → 溢出右侧被裁掉；而且"从中间断"很难看。
+ *   用户要求：**改为 2 行**，且必须完整显示在弹窗内。
+ *
+ * 规则：
+ *   · 已有 `\n` 的（解析器产出的多行列表）**原样返回**，不干预；
+ *   · 否则在**中文标点**（，。；、！？）之后寻找**最接近中点**的切分点，
+ *     折成 2 行（切分后标点保留在上一行末尾）；
+ *   · 单句本身很短（≤ {@link MAX_SINGLE_LINE_CHARS} 字）**不折**，保持一行；
+ *   · 找不到合适标点时**不硬折**（交给渲染层 `break-words` 兜底）。
+ *
+ * ⚠️ 这是**纯展示层**的折行，不修改任何结果文本本身（日志/持久化仍存原文）。
+ */
+export const MAX_SINGLE_LINE_CHARS = 16;
+
+export function splitResultForDisplay(result: string): string[] {
+  if (!result) return [];
+  // 已含换行的多行结果：原样拆分，不重新排版
+  if (result.includes("\n")) {
+    return result
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+  }
+
+  const trimmed = result.trim();
+  if (trimmed.length <= MAX_SINGLE_LINE_CHARS) return [trimmed];
+
+  // 收集所有「中文标点之后」的切分位置
+  const breakPoints: number[] = [];
+  const punctRe = /[，。；、！？,;!?]/g;
+  let m: RegExpExecArray | null;
+  while ((m = punctRe.exec(trimmed)) !== null) {
+    const idx = m.index + 1; // 切在标点之后
+    if (idx > 0 && idx < trimmed.length) breakPoints.push(idx);
+  }
+  if (breakPoints.length === 0) return [trimmed];
+
+  // 选最接近中点、且不把任一行留得过短的切分点
+  const mid = trimmed.length / 2;
+  let best = -1;
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const idx of breakPoints) {
+    const leftLen = idx;
+    const rightLen = trimmed.length - idx;
+    // 两行都不少于 4 字，且尽量均衡
+    if (leftLen < 4 || rightLen < 4) continue;
+    const score = Math.abs(idx - mid);
+    if (score < bestScore) {
+      bestScore = score;
+      best = idx;
+    }
+  }
+
+  if (best === -1) return [trimmed];
+
+  const line1 = trimmed.slice(0, best).trim();
+  const line2 = trimmed.slice(best).trim();
+  return [line1, line2].filter((l) => l.length > 0);
 }

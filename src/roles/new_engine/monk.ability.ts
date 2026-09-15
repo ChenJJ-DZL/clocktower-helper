@@ -404,6 +404,11 @@ const postProcessResult = async (
     : `唤醒${selfSeatId + 1}号【僧侣】，让他选择一名其他存活玩家进行保护。（由于醉酒/中毒，保护未生效）`;
 
   // 中文游戏日志
+  // ⚠️ 2026-09-14：**不要**在这里插入 `\n` —— InfoResultModal 的解析器会把
+  //   "最后一行"之外的所有行当作 prefix（小字标题），插入换行会让
+  //   「僧侣保护了【1号】，」跑到标题里，破坏结构。
+  //   单行过长导致的溢出，改在**渲染层**修复（见 InfoResultModal 单行分支：
+  //   允许折行 + 限宽，不再 `whitespace-nowrap`）。
   const abilityLog = record.isProtected
     ? `僧侣保护了【${targetLabel}】，该玩家今晚免受恶魔负面效果影响`
     : `僧侣${tag}试图保护【${targetLabel}】，但自身醉酒/中毒未生效`;

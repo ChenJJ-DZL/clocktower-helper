@@ -1708,9 +1708,7 @@
   {
     "id": "poppy_grower",
     "name": "poppy grower",
-    "type": "demon",
-    "firstNightOrder": 8,
-    "otherNightOrder": 6
+    "type": "townsfolk"
   },
   {
     "id": "pukka",

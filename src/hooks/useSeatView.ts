@@ -2,6 +2,10 @@ import type React from "react";
 import { useMemo } from "react";
 import type { Seat } from "@/app/data";
 import type { NightInfoResult } from "@/src/types/game";
+import {
+  getCharadeDisplayRole,
+  isCharadeMasked,
+} from "@/src/utils/charadeDisplay";
 
 interface StatusItem {
   key: string;
@@ -71,16 +75,21 @@ export function useSeatView(
     );
   }, [s.role?.id, s.charadeRole, seats]);
 
-  const displayRole =
-    s.displayRole ||
-    (s.role?.id === "drunk" || s.role?.id === "marionette"
-      ? s.charadeRole || s.role
-      : s.role);
-  const isMasked = !!(
-    realRole &&
-    s.charadeRole &&
-    realRole.id !== s.charadeRole.id
-  );
+  // ⚠️⚠️ 单一事实来源铁律（2026-09-14 用户实测缺陷，第 9 次 SST 事故）：
+  //   酒鬼 / 提线木偶"以为自己是谁"的**权威字段是 `charadeRole`**；
+  //   `displayRole` 只是渲染缓存（多处以 `Math.random()` 写入，容易与权威分叉）。
+  //
+  //   历史缺陷：本文件原来写成 `s.displayRole || charadeRole`，
+  //   而**身份告知牌**（`IdentityShowcaseModal`）只读 `charadeRole`，
+  //   **控制台**（`GameConsole`）读 `charadeRole || role`。
+  //   三处口径不一 ⇒ displayRole 与 charadeRole 一旦分叉，
+  //   **座位卡与告知牌会显示两个不同角色**（用户看到：座位卡"赏金猎人"、
+  //   告知牌首开"罂粟种植者"）。
+  //   ⇒ 修法：优先级**收敛到唯一一份** `getCharadeDisplayRole()`，
+  //     本文件与另两处消费者一律调用它，禁止各写各的 `x || y`。
+  //   回归测试：`src/utils/__tests__/charadeDisplay_single_source.test.ts`
+  const displayRole = getCharadeDisplayRole(s);
+  const isMasked = isCharadeMasked(s);
 
   const roleName =
     s.isDemonSuccessor && realRole?.id === "imp"

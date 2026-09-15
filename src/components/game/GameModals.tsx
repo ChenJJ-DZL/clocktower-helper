@@ -22,11 +22,13 @@ import { GenericConfirmModal } from "../modals/GenericConfirmModal";
 import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
 import { CerenovusMadnessModal } from "../modals/CerenovusMadnessModal";
 import { InfoResultModal } from "../modals/InfoResultModal";
+import { StorytellerCorrectionModal } from "../modals/StorytellerCorrectionModal";
 import { JugglerJudgeModal } from "../modals/JugglerJudgeModal";
 import { KillConfirmModal } from "../modals/KillConfirmModal";
 import { KlutzChoiceModal } from "../modals/KlutzChoiceModal";
 import { LunaticRpsModal } from "../modals/LunaticRpsModal";
 import { MadnessCheckModal } from "../modals/MadnessCheckModal";
+import { MutantMadnessModal } from "../modals/MutantMadnessModal";
 import { MayorThreeAliveModal } from "../modals/MayorThreeAliveModal";
 import { ModalWrapper } from "../modals/ModalWrapper";
 import { MoonchildKillModal } from "../modals/MoonchildKillModal";
@@ -152,6 +154,9 @@ export function GameModals() {
     currentModal?.type === "ROLE_SELECT" ? currentModal.data : null;
   const madnessCheckModal =
     currentModal?.type === "MADNESS_CHECK" ? currentModal.data : null;
+  // 🎭 畸形秀演员白天疯狂仲裁（说书人独立操作）
+  const mutantMadnessModal =
+    currentModal?.type === "MUTANT_MADNESS" ? currentModal.data : null;
   const dayActionModal =
     currentModal?.type === "DAY_ACTION" ? currentModal.data : null;
   const dayAbilityModal =
@@ -189,6 +194,9 @@ export function GameModals() {
     currentModal?.type === "NIGHT_DEATH_REPORT" ? currentModal.data : null;
   const nightActionConfirmModal =
     currentModal?.type === "NIGHT_ACTION_CONFIRM" ? currentModal.data : null;
+  // 🎙️ 说书人「技能修正页」：结果页确认后弹出，只说书人可见
+  const storytellerCorrectionModal =
+    currentModal?.type === "STORYTELLER_CORRECTION" ? currentModal.data : null;
 
   return (
     <>
@@ -233,6 +241,9 @@ export function GameModals() {
 
       {roleSelectModal && <RoleSelectModal modal={roleSelectModal} />}
       {madnessCheckModal && <MadnessCheckModal modal={madnessCheckModal} />}
+      {mutantMadnessModal && (
+        <MutantMadnessModal modal={mutantMadnessModal} />
+      )}
       {dayActionModal && <DayActionModal modal={dayActionModal} />}
       {virginGuideInfo && <VirginGuideModal />}
       {dayAbilityModal && <DayAbilityModal modal={dayAbilityModal} />}
@@ -880,6 +891,31 @@ export function GameModals() {
           resultText={infoResultModal.resultText}
           storytellerFacing={infoResultModal.storytellerFacing}
           onConfirm={() => {
+            /**
+             * 🎙️ 技能修正页（2026-09-14 用户要求）：
+             * 结果页是给玩家看的，不能写"击杀失败/被僧侣挡下"；
+             * 若引擎给出了 `storytellerCorrection`，则在玩家点完「确认结果」后
+             * **紧接着**弹出**说书人专用**修正页，说明真实原因；
+             * 说书人点「知道了，继续」后才真正推进夜间流程。
+             */
+            if (infoResultModal.storytellerCorrection) {
+              actions.setCurrentModal({
+                type: "STORYTELLER_CORRECTION",
+                data: {
+                  correction: infoResultModal.storytellerCorrection,
+                  roleName: infoResultModal.roleName,
+                  onNext: () => {
+                    actions.setCurrentModal(null);
+                    if (infoResultModal.onNext) {
+                      infoResultModal.onNext();
+                    } else {
+                      actions.continueToNextAction();
+                    }
+                  },
+                },
+              });
+              return;
+            }
             actions.setCurrentModal(null);
             // 如果有关联的下一步动作（如占卜师需要先执行能力），调用它
             if (infoResultModal.onNext) {
@@ -892,6 +928,15 @@ export function GameModals() {
             actions.setCurrentModal(null);
             actions.setSelectedActionTargets([]);
           }}
+        />
+      )}
+
+      {/* 🎙️ 说书人「技能修正页」：结果页确认后弹出，只说书人可见。 */}
+      {storytellerCorrectionModal && (
+        <StorytellerCorrectionModal
+          correction={storytellerCorrectionModal.correction}
+          roleName={storytellerCorrectionModal.roleName}
+          onNext={storytellerCorrectionModal.onNext}
         />
       )}
 

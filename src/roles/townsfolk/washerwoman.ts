@@ -21,6 +21,11 @@ export const washerwoman: RoleDefinition = {
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
       const { seats, roles = [], isActorDisabledByPoisonOrDrunk } = context;
+      // 🎲 确定性随机：本 dialog 产出的是**说书人念的提示文案**，
+      //    而"哪两名玩家"这一事实还会在真正结算/魔典标记时再算一次。
+      //    用 context.rng（由 nightInfoGenerator 按 roleId+seatId+nightCount 播种）
+      //    保证两处得到同一份信息；未注入时回退 Math.random 保持兼容。
+      const rng: () => number = context.rng ?? Math.random;
 
       const targetSeat = seats.find((s) => s.id === playerSeatId);
       const effectiveRole =
@@ -46,7 +51,7 @@ export const washerwoman: RoleDefinition = {
       if (isDisabled) {
         // 中毒/醉酒：随机选两个其他有角色的座位，角色从剧本镇民中选取（保证两名玩家均不是该角色）
         const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
-        const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+        const shuffled = [...otherSeats].sort(() => rng() - 0.5);
         const seat1 = shuffled[0];
         const seat2 = shuffled[1] || shuffled[0];
         const seat1No = seat1 ? seat1.id + 1 : "?";
@@ -61,9 +66,7 @@ export const washerwoman: RoleDefinition = {
         const fallbackTownsfolk = roles.filter((r) => r.type === "townsfolk");
         const fakeRole =
           scriptTownsfolk.length > 0
-            ? scriptTownsfolk[
-                Math.floor(Math.random() * scriptTownsfolk.length)
-              ]
+            ? scriptTownsfolk[Math.floor(rng() * scriptTownsfolk.length)]
             : fallbackTownsfolk.length > 0
               ? fallbackTownsfolk[0]
               : null;
@@ -83,7 +86,7 @@ export const washerwoman: RoleDefinition = {
 
       if (townsfolkSeats.length === 0) {
         const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
-        const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+        const shuffled = [...otherSeats].sort(() => rng() - 0.5);
         const seat1 = shuffled[0];
         const seat2 = shuffled[1] || shuffled[0];
         const seat1No = seat1 ? seat1.id + 1 : "?";
@@ -97,7 +100,7 @@ export const washerwoman: RoleDefinition = {
       }
 
       const targetTownsfolk =
-        townsfolkSeats[Math.floor(Math.random() * townsfolkSeats.length)];
+        townsfolkSeats[Math.floor(rng() * townsfolkSeats.length)];
 
       const otherSeats = seats.filter(
         (s) => s.id !== playerSeatId && s.id !== targetTownsfolk.id && s.role
@@ -105,11 +108,11 @@ export const washerwoman: RoleDefinition = {
 
       const targetOther =
         otherSeats.length > 0
-          ? otherSeats[Math.floor(Math.random() * otherSeats.length)]
+          ? otherSeats[Math.floor(rng() * otherSeats.length)]
           : targetTownsfolk;
 
       const shuffledTargets =
-        Math.random() < 0.5
+        rng() < 0.5
           ? [targetOther, targetTownsfolk]
           : [targetTownsfolk, targetOther];
 

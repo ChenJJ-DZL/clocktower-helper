@@ -61,6 +61,19 @@ export interface NightInfoResult extends Partial<NightActionSnapshot> {
    */
   playerFacingGuide?: string;
   /**
+   * 🌺 纯被动角色标记：该角色的"有效角色"没有任何夜间行动
+   * （既无新引擎夜序优先级，也无 legacy night/firstNight 配置）。
+   *
+   * 由 utils/nightInfoGenerator.ts 的兜底分支填充（该分支为"UI 不为空"服务，
+   * 全库 50+ 角色命中，不可删除）。下游（useNightActionHandler / 队列推进）
+   * 见到本标记为 true 时必须**跳过唤醒与能力派发**，否则会误弹
+   * 「N号-角色名 - 结果」信息窗（罂粟种植者实测缺陷）。
+   *
+   * 正常情况下纯被动角色不应进入 wakeQueueIds（见 dynamicQueueGenerator
+   * 的 roleHasNightAction 准入不变式），本标记是第二道防线。
+   */
+  passiveNoAction?: boolean;
+  /**
    * 说书人专属补充说明（**绝不允许出现在玩家页面**）。
    * 例：恶魔互认时那句「提线木偶 X号 不知道自己其实是爪牙，请勿让它察觉」——
    * 官方只保证"恶魔知道谁是提线木偶"，这句操作提醒是说书写给说书人自己的。

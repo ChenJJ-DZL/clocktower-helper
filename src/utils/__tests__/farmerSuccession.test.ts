@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   FARMER_SUCCESSOR_RESULT_TEXT,
   applyFarmerSuccession,
+  buildFarmerSuccessorGuide,
   findFarmerSuccessionTrigger,
 } from "../farmerSuccession";
+import { parseInfoResult } from "../infoResultParser";
 
 const seat = (id: number, roleId: string, type: string) => ({
   id,
@@ -61,6 +63,30 @@ describe("农夫遇害传承：身份替换（用户实测缺陷回归）", () =
 
   it("结果页文案固定为「你的身份变为【农夫】」", () => {
     expect(FARMER_SUCCESSOR_RESULT_TEXT).toBe("你的身份变为【农夫】");
+  });
+});
+
+describe("农夫遇害传承：夜间引导语（2026-09-14 用户实测缺陷回归）", () => {
+  it("引导语第一行必须是「唤醒XX号玩家，告知他/她：」，XX 为**新农夫**座位（1-based）", () => {
+    // targetId=4 → 5号玩家（新农夫），绝不能出现行动者座位
+    expect(buildFarmerSuccessorGuide(4)).toBe(
+      "唤醒5号玩家，告知他/她：你的身份变为【农夫】"
+    );
+  });
+
+  it("第二行与 FARMER_SUCCESSOR_RESULT_TEXT 保持同一份正文（单一事实来源）", () => {
+    const guide = buildFarmerSuccessorGuide(0);
+    const [, line2] = guide.split("：");
+    expect(line2).toBe(FARMER_SUCCESSOR_RESULT_TEXT);
+  });
+
+  it("引导语经解析器后：第一行保留引导语、第二行是该告诉新农夫的话", () => {
+    const { prefix, result } = parseInfoResult(
+      buildFarmerSuccessorGuide(4),
+      "1号-农夫"
+    );
+    expect(prefix).toBe("唤醒5号玩家，告知他/她：");
+    expect(result).toBe(FARMER_SUCCESSOR_RESULT_TEXT);
   });
 });
 

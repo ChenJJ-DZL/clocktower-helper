@@ -27,6 +27,9 @@ export const undertaker: RoleDefinition = {
         isActorDisabledByPoisonOrDrunk = () => false,
         executedToday,
       } = context;
+      // 🎲 确定性随机：中毒/醉酒时展示的"假角色"必须稳定复现
+      //    （同一夜重复计算 → 说书人念的与结算落地的一致）。
+      const rng: () => number = context.rng ?? Math.random;
       const selfSeat = seats.find((s: any) => s.id === playerSeatId);
       const isDisabled =
         selfSeat &&
@@ -53,7 +56,7 @@ export const undertaker: RoleDefinition = {
           .filter(Boolean);
         roleName =
           otherRoles.length > 0
-            ? otherRoles[Math.floor(Math.random() * otherRoles.length)]
+            ? otherRoles[Math.floor(rng() * otherRoles.length)]
             : realRoleName === "男爵"
               ? "共情者"
               : "男爵";

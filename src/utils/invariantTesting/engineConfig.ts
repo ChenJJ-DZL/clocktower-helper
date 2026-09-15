@@ -71,6 +71,8 @@ export function buildFullNightOrder(): NightOrderEntry[] {
         (ability.triggerTiming as string[])?.includes(
           AbilityTriggerTiming.ON_DEATH
         ) ?? false,
+      // 赏金猎人：仅在"得知的玩家死亡"当晚才入队（与 useNightEngine 同源）
+      requiresKnownTargetDead: ability.roleId === "bounty_hunter",
     });
   }
 

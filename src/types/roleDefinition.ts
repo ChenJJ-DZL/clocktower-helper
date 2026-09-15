@@ -72,6 +72,22 @@ export interface NightActionContext {
   drunkFirstInfoMap?: Map<number, boolean>;
 
   /**
+   * 🎲 确定性随机源（可选）。
+   *
+   * ⚠️ **信息类角色的 dialog 里凡是要"选择/洗牌/掷骰"的地方，必须用这个 rng，
+   * 不得直接用 `Math.random()`。**
+   *
+   * 原因：dialog 生成的是**说书人念出来的提示文案**，而同一份事实还会在
+   * 真正结算时被再算一次。若两处各自调 `Math.random()`，说书人念的与结算
+   * 落地/魔典标记的就会不是同一份信息（"双写入点必分叉"）。
+   *
+   * 由 `nightInfoGenerator.generateNightInfo` 用
+   * `nightInfoSeed(roleId, currentSeatId, nightCount)` 播种后注入。
+   * 未注入时（如纯 legacy 调用路径）回退到 `Math.random`，保持向后兼容。
+   */
+  rng?: () => number;
+
+  /**
    * 辅助函数（主要用于需要弹窗回调更新状态的角色）
    */
   helpers?: {
@@ -411,4 +427,31 @@ export interface RoleDefinition {
    * 如果角色有白天主动发动的技能，可以在此配置
    */
   day?: DayActionConfig;
+
+  /**
+   * 🔧 条件唤醒门控（可选）。
+   *
+   * 官方规则里有一类角色**不是每夜都该被唤醒**，而是满足某个条件才唤醒，例如：
+   *   - 赏金猎人：「每当你**得知**的玩家死亡，你会在**当晚**得知另一名邪恶玩家」
+   *     → 非首夜时，只有"当前得知的那名邪恶玩家已死亡"才唤醒。
+   *   - 农夫：「当你在夜晚死亡时…」→ 本夜没有农夫死亡就不唤醒。
+   *   - 送葬者：「如果当天有任何玩家死于处决…」→ 无死刑则唤醒。
+   *
+   * 旧实现只声明 `night` 块，`generateNightTimeline` 的过滤条件就是
+   * 「该角色有次夜配置」→ 于是**每夜无条件入选**，与官方不符。
+   * 本字段提供声明式门控：返回 false 时该角色在**生成时间线阶段**就被剔除，
+   * 不会出现"引导页显示请睁眼、说书人却无事可做"的空唤醒。
+   *
+   * ⚠️ 与 `roles/new_engine/*.ability.ts` 的 `preCheck` 是**两层**：
+   *    那边是执行期兜底（条目已进队列后才 abort），本字段是队列层的**根因修复**。
+   *
+   * @param isFirstNight 是否为首夜（首夜一般无条件唤醒，直接返回 true）
+   * @param seats 全部座位
+   * @param nightCount 当前夜次
+   */
+  shouldWake?: (
+    isFirstNight: boolean,
+    seats: Seat[],
+    nightCount: number
+  ) => boolean;
 }

@@ -4,6 +4,8 @@
  */
 
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
+import { getRoleDefinition } from "../roles";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
@@ -26,6 +28,11 @@ export interface NightOrderEntry {
   /** 🔧 依赖"今日有玩家死于处决"才入队（送葬者）：
    *    平票平安日 / 镇长免疫处决等无人死亡场景，不应唤醒送葬者 */
   requiresExecutedToday?: boolean;
+  /** 🏹 依赖"已知目标死亡"才入队（赏金猎人）：
+   *    官方「每当你**得知**的玩家死亡，你会在**当晚**得知另一名邪恶玩家」
+   *    → 非首夜时，仅当"当前得知的那名玩家（bountyHunterKnownTargets 末项）"
+   *      已死亡才入队；否则说书人每夜被空唤醒、且白送一名邪恶玩家。 */
+  requiresKnownTargetDead?: boolean;
 }
 
 // 生成队列选项
@@ -48,6 +55,74 @@ function getEffectiveRoleId(seat: any): string | undefined {
     return seat.charadeRole?.id ?? seat.role.id;
   }
   return seat.role.id;
+}
+
+/**
+ * 🌺 角色是否「有夜间行动」——即是否**可能**需要被唤醒。
+ *
+ * 这是夜间队列的**准入不变式**：没有夜间行动的角色（纯被动角色，
+ * 如罂粟种植者「爪牙和恶魔互相不认识」持续被动生效）**永远不得**
+ * 进入 `wakeQueueIds`。
+ *
+ * ⚠️ 为什么必须单独抽出来：
+ *   1. `nightInfoGenerator` 对「无 night 配置」的角色有一个兜底分支，
+ *      会合成文案「唤醒N号【角色名】，准备执行技能。」
+ *      （全库 **50+ 个角色**命中该分支，是"UI 不为空"的必需品，不能删）。
+ *      → 一旦某个纯被动角色被塞进队列，就会走到该兜底、被"唤醒"、
+ *        并弹出「N号-角色名 - 结果」信息窗（罂粟种植者缺陷的成因）。
+ *   2. 队列生成器（`generateDynamicNightQueue`）本身已按
+ *      `fullNightOrder`（只含真正申报过夜序的能力）过滤，是安全的；
+ *      但**动态插入**入口（`insertIntoWakeQueueAfterCurrent`）只按座位 id
+ *      插入，完全没有反向校验 → 必须用它兜住。
+ *
+ * 判定标准（任一满足即视为"有夜间行动"）：
+ *   · 新引擎：`firstNightPriority` / `otherNightPriority` 有正数
+ *   · 旧引擎：RoleDefinition 声明了 `firstNight` 或 `night` 配置
+ */
+export function roleHasNightAction(roleId: string | undefined | null): boolean {
+  if (!roleId) return false;
+  // 系统步骤（爪牙互认 / 恶魔互认 / 军团互认 / 转邪通知等）不是角色，放行
+  if (
+    roleId === "minion_info" ||
+    roleId === "demon_info" ||
+    roleId === LEGION_MUTUAL_RECOGNITION_ID ||
+    roleId === EVIL_CONVERTED_NOTICE_ID ||
+    roleId === "good_twin_info"
+  ) {
+    return true;
+  }
+
+  // 1) 新引擎能力注册表：有夜序优先级即视为有夜间行动
+  try {
+    const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
+    const ability = abilities.find((a) => a?.roleId === roleId);
+    if (ability) {
+      const fn = ability.firstNightPriority;
+      const on = ability.otherNightPriority;
+      const hasFn = typeof fn === "number" && fn > 0;
+      const hasOn = typeof on === "number" && on > 0;
+      // 注册表里存在该能力：以优先级为准（纯 passive → 两者皆空 → false）
+      if (hasFn || hasOn) return true;
+      // 注册表明确声明了（passive）能力但无夜序 —— 继续用旧定义兜底判断
+    }
+  } catch {
+    // 注册表未初始化时静默降级到旧定义判断
+  }
+
+  // 2) 旧引擎：RoleDefinition 的 night / firstNight 配置
+  try {
+    const def = getRoleDefinition(roleId) as any;
+    if (def && (def.firstNight || def.night)) return true;
+  } catch {
+    /* 角色定义缺失时视为无夜间行动 */
+  }
+
+  return false;
+}
+
+/** 座位版本：酒鬼 / 提线木偶按伪装身份判断 */
+export function seatHasNightAction(seat: any): boolean {
+  return roleHasNightAction(getEffectiveRoleId(seat));
 }
 
 /**
@@ -319,6 +394,34 @@ export function generateDynamicNightQueue(
       const diedThisNight = seat.isDead && deadThisNight.includes(seat.id);
       if (!diedThisNight) {
         return false;
+      }
+    }
+
+    // 🏹 赏金猎人：官方「每当你**得知**的玩家死亡，你会在**当晚**得知另一名邪恶玩家」
+    //    → 这是**条件唤醒**，不是每夜唤醒。首夜必唤醒（得知第一名邪恶玩家）；
+    //      其后仅在"当前得知的那名玩家已死亡"的当晚唤醒。
+    //    ⚠️ 判据取 `bountyHunterKnownTargets` 的末项（= 魔典上"得知"标记所在的那名），
+    //       官方口径是"放置「得知」标记的玩家死亡时"才移动标记。
+    //    ⚠️ 与 roles/new_engine/bounty_hunter.ability.ts 的 `rotationOnlyAfterKnownDeathCheck`
+    //       **同源**：那边是执行期兜底，这里才是根因（不让它进队列）。
+    if (entry.requiresKnownTargetDead) {
+      if (isFirstNight) {
+        // 首夜必唤醒（官方：在你的首个夜晚，你会得知一名邪恶玩家）
+      } else {
+        const known: number[] =
+          (snapshot as any).bountyHunterKnownTargets ?? [];
+        if (known.length === 0) {
+          // 异常兜底：没有"已知"记录时不做拦截，交回执行期判定
+        } else {
+          const current = known[known.length - 1];
+          const knownSeat = snapshot.seats.find((s: any) => s.id === current);
+          const deadThisNight: number[] = (snapshot as any).deadThisNight ?? [];
+          const knownIsDead =
+            !knownSeat ||
+            knownSeat.isDead === true ||
+            deadThisNight.includes(current);
+          if (!knownIsDead) return false;
+        }
       }
     }
 

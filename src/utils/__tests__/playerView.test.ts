@@ -4,6 +4,7 @@ import {
   PLAYER_VIEW_FORBIDDEN_TERMS,
   findPlayerViewLeaks,
   getLunaticNightHint,
+  getLunaticTargetSeatIds,
   getPlayerFacingRole,
   getPlayerFacingRoleName,
   getPlayerFacingRoleType,
@@ -132,5 +133,73 @@ describe("playerView · A4 真恶魔提示（每夜、多目标、0 目标也有
         { id: 0, role: { id: "chef", name: "厨师", type: "townsfolk" } } as any,
       ])
     ).toBeNull();
+  });
+});
+
+/**
+ * 🌀 A4（座位高亮版 · 2026-09-14 用户要求）
+ * 「真恶魔的疯子提示不够明显」→ 把疯子选中的座位改成紫色描边 + 紫色色块
+ * + 座位号上「🌀 疯子目标」角标。本组测试覆盖提供结构化座位 ID 的纯函数。
+ */
+describe("playerView · getLunaticTargetSeatIds（疯子目标座位高亮数据源）", () => {
+  const lun = (id: number, targetIds?: number[], target?: number) =>
+    ({
+      id,
+      role: { id: "lunatic", name: "疯子", type: "outsider" },
+      lunaticTargetIds: targetIds,
+      lunaticTarget: target,
+      isDead: false,
+    }) as unknown as Seat;
+
+  it("多目标 → 返回全部座位 ID", () => {
+    expect(getLunaticTargetSeatIds([lun(1, [2, 4])])).toEqual([2, 4]);
+  });
+
+  it("兼容单目标历史字段 lunaticTarget", () => {
+    expect(getLunaticTargetSeatIds([lun(1, undefined, 0)])).toEqual([0]);
+  });
+
+  it("未选择 / 空数组 → 返回空数组（不渲染任何高亮）", () => {
+    expect(getLunaticTargetSeatIds([lun(1, [])])).toEqual([]);
+    expect(getLunaticTargetSeatIds([lun(1)])).toEqual([]);
+  });
+
+  it("场上没有疯子 → 返回空数组（绝不高亮，避免误导真恶魔）", () => {
+    expect(
+      getLunaticTargetSeatIds([
+        { id: 0, role: { id: "chef", name: "厨师", type: "townsfolk" } } as any,
+      ])
+    ).toEqual([]);
+  });
+
+  it("座位 ID 去重 + 升序（重复目标不得重复高亮）", () => {
+    expect(getLunaticTargetSeatIds([lun(1, [3, 1, 3]), lun(5, [1, 7])])).toEqual([
+      1, 3, 7,
+    ]);
+  });
+
+  it("非数字 / NaN / Infinity 脏数据必须被过滤（否则 Set.has 永远不命中）", () => {
+    expect(
+      getLunaticTargetSeatIds([
+        lun(1, [2, "x" as any, NaN, Infinity, null as any]),
+      ])
+    ).toEqual([2]);
+  });
+
+  it("死亡疯子仍提供数据（官方：真恶魔每夜都应知道，不因疯子死亡而丢失）", () => {
+    expect(
+      getLunaticTargetSeatIds([
+        { ...(lun(1, [4]) as any), isDead: true } as Seat,
+      ])
+    ).toEqual([4]);
+  });
+
+  it("与 getLunaticNightHint 数据同源：文案里出现的座位号必须都在 ID 列表里", () => {
+    const seats = [lun(1, [2, 4])];
+    const hint = getLunaticNightHint(seats)!;
+    const ids = getLunaticTargetSeatIds(seats);
+    for (const id of ids) {
+      expect(hint).toContain(`${id + 1}号玩家`);
+    }
   });
 });

@@ -20,6 +20,7 @@ import {
 import type { NightInfoResult } from "../types/game";
 import {
   getLunaticNightHint,
+  getLunaticTargetSeatIds,
   getPlayerFacingRole,
   sanitizePlayerFacingText,
 } from "../utils/playerView";
@@ -38,7 +39,7 @@ import type { NightActionContext } from "../types/roleDefinition";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 import {
   applyFarmerSuccession,
-  FARMER_SUCCESSOR_RESULT_TEXT,
+  buildFarmerSuccessorGuide,
   findFarmerSuccessionTrigger,
 } from "../utils/farmerSuccession";
 import {
@@ -52,6 +53,7 @@ import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
+import { isVortoxWorldActive } from "../utils/vortoxWorld";
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
@@ -367,12 +369,7 @@ export async function executeViaNewEngine(
   });
 
   const isVortox = Boolean(
-    context.vortoxWorld ||
-      context.seats.some(
-        (s) =>
-          (s.role?.id === "vortox" || (s as any).roleId === "vortox") &&
-          !s.isDead
-      )
+    context.vortoxWorld || isVortoxWorldActive(context.seats)
   );
 
   const gameStateSnapshot: GameStateSnapshot = {
@@ -922,6 +919,11 @@ export async function executeViaNewEngine(
             lunaticHint: isDemonActor
               ? (getLunaticNightHint(context.seats as Seat[]) ?? undefined)
               : undefined,
+            // 🌀 A4（座位高亮版）：同一份数据以**结构化座位 ID** 再传一次，
+            // 供选人网格把疯子选中的卡片改成紫色描边 + 紫色色块 + 「🌀 疯子目标」角标。
+            lunaticTargetIds: isDemonActor
+              ? getLunaticTargetSeatIds(context.seats as Seat[])
+              : undefined,
             onConfirm: async (
               chosenTargets?: number[],
               chosenRoleIdOrRole?: any
@@ -1440,12 +1442,17 @@ export async function executeViaNewEngine(
                 `🌾 农夫传承完成：${targetId + 1}号玩家转变为新【农夫】`
               );
 
-              // 3) 立即唤醒新农夫并展示结果页「你的身份变为【农夫】」（走既有 INFO_RESULT 机制，确认后继续夜间流程）
+              // 3) 立即唤醒新农夫并展示结果页。
+              //    🌾 2026-09-14 用户实测缺陷修复：本页在传承场景下是**说书人执行指令**，
+              //    第一行必须写「唤醒XX号玩家，告知他/她：」（XX = 新农夫座位号），
+              //    而不是通用的「农夫获得信息」——后者既没告诉说书人该叫谁，
+              //    又暗示"农夫获得了某条信息"，与"角色变更"的语义不符。
+              //    ⚠️ XX 必须取 `targetId`（新农夫），绝不能取行动者（已死的旧农夫）。
               context.setCurrentModal({
                 type: "INFO_RESULT",
                 data: {
                   roleName: "农夫",
-                  resultText: FARMER_SUCCESSOR_RESULT_TEXT,
+                  resultText: buildFarmerSuccessorGuide(targetId),
                   onNext: () => {
                     context.setCurrentModal(null);
                     context.continueToNextAction(finalSeats);
@@ -1907,6 +1914,16 @@ export async function executeViaNewEngine(
           // 说书人侧真值对照：只在解锁视图/控制台渲染（玩家页不读）
           realResultText: corruptedMask ? corruptedMask.truthText : undefined,
           isCorruptedResult: Boolean(corruptedMask),
+          /**
+           * 🎙️ 说书人「技能修正页」（2026-09-14 用户要求）：
+           * 结果页是给玩家看的（如恶魔只看「你选择了【1号】」），
+           * 但"因僧侣保护 / 士兵免疫 ⇒ 未能造成伤亡"必须让说书人知道。
+           * 该字段由引擎在 `displayInfo.storytellerCorrection` 显式给出；
+           * 有值时 GameModals 会在结果页「确认」后**紧接着**弹出修正页。
+           * ⚠️ 玩家视角永不渲染该字段。
+           */
+          storytellerCorrection:
+            (displayInfo as any).storytellerCorrection ?? undefined,
           onNext: () => {
             context.setCurrentModal(null);
             context.continueToNextAction(infoSynced);
@@ -1960,6 +1977,18 @@ export function useNightActionHandler() {
       // 男爵：纯被动设置角色，不唤醒且不弹窗，直接推进
       if (roleId === "baron") {
         console.log("[handleNightAction] 男爵为被动设置角色，跳过夜间行动");
+        context.continueToNextAction();
+        return true;
+      }
+
+      // 🌺 纯被动角色通用兜底（罂粟种植者等）：其"有效角色"没有任何夜间行动
+      //    （见 nightInfoGenerator 的 passiveNoAction 标记 / dynamicQueueGenerator
+      //    的 roleHasNightAction 准入不变式）。这类角色绝不能跑能力管道，
+      //    否则 postProcess 的 displayInfo.log 会弹出「N号-角色名 - 结果」信息窗。
+      if ((nightInfo as any).passiveNoAction === true) {
+        console.log(
+          `[handleNightAction] 🌺 ${roleId} 为纯被动角色（无夜间行动），跳过唤醒与能力派发`
+        );
         context.continueToNextAction();
         return true;
       }

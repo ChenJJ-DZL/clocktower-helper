@@ -208,6 +208,12 @@ export interface Seat {
   hasAbilityEvenDead: boolean; // 亡骨魔杀死的爪牙：死亡但保留能力
   isMad?: boolean; // 新增：是否处于疯狂状态（例如洗脑师、鹰身女妖效果）
   cerenovusMadnessRole?: string; // 洗脑师要求疯狂扮演的角色名称
+  /**
+   * 今日是否已完成「畸形秀演员疯狂仲裁」（说书人独立裁定）。
+   * 与 cerenovusTarget.checkedToday 同构，用于白天→黄昏门禁
+   * （见 `src/utils/mutantGate.ts`）；每日推进时复位（useGameFlow.enterDayPhase）。
+   */
+  mutantMadnessCheckedToday?: boolean;
   statusDetails: string[];
   statuses?: StatusEffect[];
   statusEffects?: any[]; // 新引擎状态效果数组（poisoned/protected/drunk 等，与 statuses 互补）

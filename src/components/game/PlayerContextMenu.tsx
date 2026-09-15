@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { roles as allSystemRoles, type Role } from "../../../app/data";
 import { selectEvilConvertedSeat } from "../../utils/bountyHunterSetup";
+import { canNominate } from "../../utils/nominationEligibility";
 import { canGuessDamsel } from "../../utils/roleFlags";
 import { useGameActions } from "../../contexts/GameActionsContext";
 
@@ -159,13 +160,16 @@ export function PlayerContextMenu() {
         <button
           onClick={() => props.handleMenuAction("nominate")}
           disabled={
-            props.contextMenu
-              ? props.nominationRecords.nominators.has(props.contextMenu.seatId)
-              : false
+            !canNominate(
+              props.nominationRecords ?? null,
+              props.contextMenu?.seatId ?? -1
+            ).ok
           }
           className={`block w-full text-left px-6 py-4 hover:bg-purple-900 text-purple-300 font-bold text-lg border-b border-gray-600 ${
-            props.contextMenu &&
-            props.nominationRecords.nominators.has(props.contextMenu.seatId)
+            !canNominate(
+              props.nominationRecords ?? null,
+              props.contextMenu?.seatId ?? -1
+            ).ok
               ? "opacity-50 cursor-not-allowed"
               : ""
           }`}

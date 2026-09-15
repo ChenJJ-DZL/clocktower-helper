@@ -70,11 +70,32 @@ export const bounty_hunter: RoleDefinition = {
     dialog: (playerSeatId) => {
       const seatNo = playerSeatId + 1;
       return {
-        wake: `唤醒${seatNo}号【赏金猎人】。如果他之前得知的邪恶玩家已死亡，指向一名新的邪恶玩家。`,
-        instruction: "如果之前得知的目标已死亡，告知新邪恶目标；否则无需告知",
+        wake: `唤醒${seatNo}号【赏金猎人】。（他之前得知的邪恶玩家已死亡）指向一名新的邪恶玩家。`,
+        instruction: "告诉他新的邪恶目标；同一名邪恶玩家不会被告知两次",
         close: "让赏金猎人重新入睡。",
       };
     },
+  },
+
+  /**
+   * 🔧 条件唤醒门控（官方：「每当你**得知**的玩家死亡，你会在**当晚**得知
+   *    另一名邪恶玩家」——**不是每夜发动**）。
+   *
+   * 旧实现的 `night` 块没有任何门控，`generateNightTimeline` 的过滤条件就是
+   * 「该角色有次夜配置」→ **每夜无条件唤醒**，说书人被空唤醒且每夜白送一名邪恶玩家。
+   *
+   * 判据：首夜必唤醒；其后仅当"当前得知的那名玩家（statusDetails 含「赏金已知」，
+   * 即魔典上"得知"标记所在的那名）已死亡"的当晚唤醒。
+   * ⚠️ 与 `roles/new_engine/bounty_hunter.ability.ts` 的
+   *    `rotationOnlyAfterKnownDeathCheck` 同源（那边是执行期兜底，此处是队列层根因修复）。
+   */
+  shouldWake: (isFirstNight, seats) => {
+    if (isFirstNight) return true;
+    const known = seats.filter((s) => s.statusDetails?.includes("赏金已知"));
+    if (known.length === 0) return true; // 异常兜底：无标记时保持原行为
+    // 只认最后一枚"得知"标记：官方口径是"放置「得知」标记的玩家死亡时"才移动标记
+    const current = known[known.length - 1];
+    return current.isDead === true;
   },
 
   // 赏金猎人在场时，设置阶段自动将一名镇民转变为邪恶阵营

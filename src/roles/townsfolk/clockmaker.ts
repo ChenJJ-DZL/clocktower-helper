@@ -94,6 +94,8 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
         return { wake: "", instruction: "", close: "" };
       }
       const { seats, isActorDisabledByPoisonOrDrunk } = context;
+      // 🎲 确定性随机：受干扰时的"假距离"必须稳定复现（同一夜重复计算一致）。
+      const rng: () => number = context.rng ?? Math.random;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
       const isDisabled =
         selfSeat &&
@@ -125,7 +127,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:26-0!canonical and time
         ).filter((v) => v !== minDistance);
         displayDistance =
           fakeCandidates.length > 0
-            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+            ? fakeCandidates[Math.floor(rng() * fakeCandidates.length)]
             : minDistance === 1
               ? 2
               : 1;

@@ -1,9 +1,12 @@
 import { useMemo } from "react";
-import { parseInfoResult } from "../../utils/infoResultParser";
+import {
+  parseInfoResult,
+  splitResultForDisplay,
+} from "../../utils/infoResultParser";
 import { AutoFitContent } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
-export { parseInfoResult };
+export { parseInfoResult, splitResultForDisplay };
 
 interface InfoResultModalProps {
   roleName: string;
@@ -27,11 +30,17 @@ export function InfoResultModal({
   storytellerFacing,
 }: InfoResultModalProps) {
   const { prefix, result } = parseInfoResult(resultText, roleName);
-  const isMultiLine = result.includes("\n");
+  // ⚠️ 2026-09-14：统一走 splitResultForDisplay —— 长单句按中文标点折成 2 行，
+  //   多行结果原样保留。取代原先 isMultiLine 的二分支（那条单行分支用
+  //   whitespace-nowrap 会把长句撑出弹窗被裁掉）。
   const resultLines = useMemo(
-    () => result.split("\n").filter((l) => l.trim().length > 0),
+    () => splitResultForDisplay(result),
     [result]
   );
+  const isMultiLine = resultLines.length > 1;
+  // 原始就是多行（互认名单 / 两条信息等**列表型**内容）→ 保留左对齐；
+  // 由展示层拆分出来的 2 行（**长单句折行**，如僧侣）→ 居中更好读。
+  const splitByDisplayLayer = !result.includes("\n") && isMultiLine;
 
   return (
     <ModalWrapper
@@ -66,10 +75,17 @@ export function InfoResultModal({
 
           {/* ⚠️ 2026-09-13：多行结果**不能再用 `whitespace-nowrap` + `w-max`** ——
               只要有一行较长，AutoFitContent 就会把整块缩到很小（用户实测"字体太小"）。
-              改为允许折行 + 限制最大宽度，字号整体上调，保证可读。 */}
+              改为允许折行 + 限制最大宽度，字号整体上调，保证可读。
+              ⚠️ 2026-09-14（僧侣）：单行分支原用 `whitespace-nowrap` → 长单句
+              溢出弹窗被裁。现**两个分支都允许折行 + 限宽**，且长单句会被
+              `splitResultForDisplay` 预先按中文标点折成 2 行，保证**完整显示在弹窗内**。 */}
           {isMultiLine ? (
             <div className="flex justify-center my-3 max-w-[86vw]">
-              <div className="inline-block text-left font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-xl space-y-3 text-3xl sm:text-4xl md:text-5xl">
+              <div
+                className={`inline-block ${
+                  splitByDisplayLayer ? "text-center" : "text-left"
+                } font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-xl space-y-3 text-3xl sm:text-4xl md:text-5xl`}
+              >
                 {resultLines.map((line, idx) => (
                   <div key={idx} className="break-words">
                     {line}
@@ -78,8 +94,8 @@ export function InfoResultModal({
               </div>
             </div>
           ) : (
-            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-nowrap px-2 my-4 text-5xl sm:text-6xl md:text-7xl">
-              {result}
+            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-normal break-words max-w-[86vw] mx-auto px-2 my-4 text-4xl sm:text-5xl md:text-6xl">
+              {resultLines[0] ?? result}
             </div>
           )}
 

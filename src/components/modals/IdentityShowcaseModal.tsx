@@ -6,6 +6,7 @@ import {
   type CharacterWikiDetails,
   getCharacterWikiDetails,
 } from "../../utils/characterWikiLookup";
+import { getCharadeDisplayRole } from "../../utils/charadeDisplay";
 import { RoleTokenBadge } from "../common/RoleTokenBadge";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -52,19 +53,16 @@ export function IdentityShowcaseModal({
   const currentSeat = seatedPlayers[currentIndex] || null;
 
   // 获取当前展示角色（酒鬼、提线木偶、疯子特殊处理：完全呈现玩家视角所见的伪装身份）
-  const displayRole: Role | null = useMemo(() => {
-    if (!currentSeat) return null;
-    const roleId = currentSeat.role?.id;
-    // 酒鬼/提线木偶：展示 charadeRole（说书人设置的伪装镇民身份）
-    if ((roleId === "drunk" || roleId === "marionette") && currentSeat.charadeRole) {
-      return currentSeat.charadeRole;
-    }
-    // 疯子：展示 apparentDemonRole（疯子以为自己是的恶魔身份）
-    if (roleId === "lunatic" && (currentSeat as any).apparentDemonRole) {
-      return (currentSeat as any).apparentDemonRole;
-    }
-    return currentSeat.role;
-  }, [currentSeat]);
+  //
+  // ⚠️ 2026-09-14 第 9 次 SST 事故：本组件**以前只读 `charadeRole`**，
+  //    而座位卡（`useSeatView`）却以 `displayRole` 优先 —— 两处字段分叉时
+  //    **座位卡与告知牌会显示两个不同角色**（用户实测：座位卡"赏金猎人"、
+  //    告知牌首开"罂粟种植者"）。
+  //    ⇒ 改为统一调用 `getCharadeDisplayRole()`（唯一事实来源）。
+  const displayRole: Role | null = useMemo(
+    () => getCharadeDisplayRole(currentSeat) as Role | null,
+    [currentSeat]
+  );
 
   // 获取详细的官方百科与玩法推荐数据
   const wikiDetails: CharacterWikiDetails | null = useMemo(() => {

@@ -13,6 +13,7 @@ import {
   isActorDisabledByPoisonOrDrunk,
   isGoodAlignment,
 } from "../src/utils/gameRules";
+import { isVortoxWorldActive } from "../src/utils/vortoxWorld";
 import type { GamePhase, Seat } from "./data";
 import { roles } from "./data";
 
@@ -669,9 +670,19 @@ export function checkGameEnd(
   }
 
   // --- 4. 【额外层】镇长/涡流 ---
-  // 涡流：每个黄昏（白天结束）若今日无人被处决，邪恶阵营立即获胜。
-  //   之前仅在 execution 路径下检查，会漏掉"白天没人投票也没提名"导致游戏永远卡在 dusk。
-  if (lastAction === "check_phase" && isVortoxWorld) {
+  // 🌪️ 涡流世界判定（2026-09-15 收口）
+  //   官方：涡流**存活**时所有信息为假，且「每个白天若无人被处决 → 邪恶获胜」。
+  //   ⚠️ 旧实现**完全依赖调用方传入的 `isVortoxWorld`**：一旦调用方漏传/传了陈旧值
+  //      （如 `processGameEvent` 走外部 context、或涡流刚死但 state 未刷新），
+  //      涡流平安日获胜会**静默失效**，游戏卡在白天。
+  //   ✅ 现在改为**从 seats 自推导**：座位上有存活涡流（或伪装成涡流的酒鬼/提线木偶）
+  //      即成立，与 `GameStage` / `roleActionHandlers` / `useNightActionHandler` 同源
+  //      （唯一事实来源 `src/utils/vortoxWorld.ts`）。
+  //      入参 `isVortoxWorld` 仅作为「额外成立」的补充（保持向后兼容，
+  //      例如涡流已死但本轮仍按涡流世界结算的历史行为）。
+  const vortoxInSeats = isVortoxWorldActive(seats);
+  const vortoxEffective = isVortoxWorld || vortoxInSeats;
+  if (lastAction === "check_phase" && vortoxEffective) {
     const todayHasExecution = (options as any).todayHasExecution === true;
     if (!todayHasExecution) {
       return {
@@ -683,7 +694,7 @@ export function checkGameEnd(
   }
   if (lastAction === "execution" && executedPlayerId === null) {
     // 涡流 (Vortox): 平安日直接邪恶获胜
-    if (isVortoxWorld) {
+    if (vortoxEffective) {
       return {
         isGameOver: true,
         winner: "Evil",

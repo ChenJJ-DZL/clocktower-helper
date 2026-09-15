@@ -3,6 +3,10 @@
 import type React from "react";
 import type { GamePhase, Seat } from "@/app/data";
 import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
+import {
+  hasPendingMutantMadnessCheck as hasPendingMutantGate,
+  listPendingMutantSeats,
+} from "../utils/mutantGate";
 import { showAlert } from "../utils/nativeDialogShim";
 
 function formatTimer(seconds: number): string {
@@ -268,28 +272,62 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 seats,
                 cerenovusTarget
               );
+
+              // 🎭 畸形秀演员【疯狂仲裁】门禁（2026-09-14，与洗脑师同构）。
+              const pendingMutantSeats = listPendingMutantSeats(seats as any);
+              const hasPendingMutantCheck = hasPendingMutantGate(seats as any);
+
+              const isBlocked =
+                hasPendingCerenovusCheck || hasPendingMutantCheck;
+
               return (
-                <button
-                  onClick={() => {
-                    if (hasPendingCerenovusCheck) {
-                      alert(
-                        "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
-                      );
-                      return;
-                    }
-                    onDayEndTransition();
-                  }}
-                  disabled={hasPendingCerenovusCheck}
-                  className={`w-full py-3 rounded-xl font-bold text-base transition-colors ${
-                    hasPendingCerenovusCheck
-                      ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                      : "bg-orange-600 hover:bg-orange-500 text-white shadow-md cursor-pointer"
-                  }`}
-                >
-                  {hasPendingCerenovusCheck
-                    ? "需先完成【疯狂洗脑】判定"
-                    : "进入黄昏 (提名)"}
-                </button>
+                <>
+                  {hasPendingMutantCheck && (
+                    <button
+                      onClick={() => {
+                        alert(
+                          `畸形秀演员【${pendingMutantSeats
+                            .map((id) => `${id + 1}号`)
+                            .join("、")}】的白天技能【疯狂仲裁】尚未完成。\n` +
+                            `请到右侧控制台的「⚡️ 可用主动技能」中点击「疯狂仲裁」进行裁定。`
+                        );
+                      }}
+                      className="w-full mb-2 py-2 bg-rose-700 hover:bg-rose-600 rounded-xl font-bold text-sm shadow-md"
+                    >
+                      🎭 畸形秀演员疯狂仲裁（待裁定：
+                      {pendingMutantSeats.map((id) => `${id + 1}号`).join("、")}）
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (hasPendingCerenovusCheck) {
+                        alert(
+                          "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
+                        );
+                        return;
+                      }
+                      if (hasPendingMutantCheck) {
+                        alert(
+                          "畸形秀演员的白天技能【疯狂仲裁】尚未发动，必须先由说书人裁定并完成判定后才能进入黄昏！"
+                        );
+                        return;
+                      }
+                      onDayEndTransition();
+                    }}
+                    disabled={isBlocked}
+                    className={`w-full py-3 rounded-xl font-bold text-base transition-colors ${
+                      isBlocked
+                        ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                        : "bg-orange-600 hover:bg-orange-500 text-white shadow-md cursor-pointer"
+                    }`}
+                  >
+                    {hasPendingCerenovusCheck
+                      ? "需先完成【疯狂洗脑】判定"
+                      : hasPendingMutantCheck
+                        ? "需先完成【疯狂仲裁】判定"
+                        : "进入黄昏 (提名)"}
+                  </button>
+                </>
               );
             })()}
           </>

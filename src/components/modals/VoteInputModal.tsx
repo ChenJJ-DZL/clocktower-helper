@@ -122,6 +122,8 @@ export function VoteInputModalContent(props: {
     // 自愈逻辑已保证不会出现无效选择；这里仅作静默兜底，不再使用原生 alert
     // （原生 alert 会阻塞渲染并冻结自动化会话，项目已统一避免）。
     if (invalidDeadSelected) return;
+    // ⚠️ 「已结算」闩锁由 submitVotes 内部置位（见 utils/nominationEligibility），
+    //    因为 submitVotes 会提前 return（票数非法/被过滤），那些情况都不算结算。
     props.registerVotes?.(effectiveVoters);
     props.submitVotes(displayVoteCount, effectiveVoters);
     setSelectedVoters([]);
@@ -132,6 +134,7 @@ export function VoteInputModalContent(props: {
   };
 
   const handleClose = () => {
+    // 🗣️ 取消 = 说书人反悔，**只有这里**才应该恢复提名资格。
     setSelectedVoters([]);
     props.onCancelVote?.(candidate?.id);
     props.setCurrentModal(null);

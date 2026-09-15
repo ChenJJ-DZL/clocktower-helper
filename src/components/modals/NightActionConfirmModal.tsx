@@ -53,6 +53,19 @@ export interface NightActionConfirmData {
    * （未选择时给出"本夜未选择"的明确文案）。由 useNightActionHandler 注入。
    */
   lunaticHint?: string;
+  /**
+   * 🌀 A4（座位高亮 · 2026-09-14 用户要求）：「疯子本夜选择了哪些座位」。
+   *
+   * 与 `lunaticHint` 同源、同时注入，但用途不同：
+   * `lunaticHint` 是文案兜底，本字段是**结构化座位 ID**，
+   * 用于把选人网格里对应座位的卡片改成
+   * **紫色描边 + 紫色色块 + 座位号上「🌀 疯子目标」角标**，
+   * 让真恶魔一眼看到"疯子选了谁"（旧版仅一行紫字，用户反馈不够明显）。
+   *
+   * 由 `useNightActionHandler` 经 `getLunaticTargetSeatIds()` 注入，
+   * **仅真恶魔分支**有值；玩家自己的角色页永远为 undefined。
+   */
+  lunaticTargetIds?: number[];
   /** 目标选择配置 */
   targetLimit?: { min: number; max: number };
   /** 当前行动者座位ID（用于自身可选性判断） */
@@ -222,6 +235,7 @@ export function NightActionConfirmModal({
     storytellerRoster,
     storytellerFacing,
     lunaticHint,
+    lunaticTargetIds,
     targetLimit,
     actorSeatId,
     allowSelf = true,
@@ -231,6 +245,9 @@ export function NightActionConfirmModal({
   const min = targetLimit?.min ?? 0;
   const max = targetLimit?.max ?? 0;
   const needsTargetSelection = max > 0;
+
+  /** 🌀 A4：疯子本夜选择的目标座位集合（O(1) 查询）。空集合时不做任何高亮。 */
+  const lunaticTargetSet = new Set<number>(lunaticTargetIds ?? []);
 
   const handleToggleTarget = (seatId: number) => {
     setSelectedTargets((prev) => {
@@ -491,9 +508,11 @@ export function NightActionConfirmModal({
               </div>
 
               {/* 按在场人数自适应列数 / 卡片尺寸 / 字号（与举手表决页同一套规则） */}
+              {/* 🌀 pt-1：给首行「疯子目标」角标留出绝对定位的溢出空间 */}
               <AdaptiveSeatGrid
                 count={seatedPlayers.length}
                 gap={0.5}
+                className="pt-1.5"
                 renderItem={(index) => {
                   const seat = seatedPlayers[index];
                   const isSelected = selectedTargets.includes(seat.id);
@@ -501,30 +520,50 @@ export function NightActionConfirmModal({
                   const isSelfDisabled = isSelf && allowSelf === false;
                   const isDeadDisabled = seat.isDead && aliveOnly === true;
                   const isDisabled = isSelfDisabled || isDeadDisabled;
+                  // 🌀 A4：该座位是否为「疯子本夜选择的目标」——真恶魔专属高亮。
+                  const isLunaticTarget = lunaticTargetSet.has(seat.id);
 
                   return (
                     <button
                       type="button"
                       disabled={isDisabled}
                       onClick={() => handleToggleTarget(seat.id)}
-                      className={`w-full h-full px-1 rounded-2xl text-center border-2 font-bold transition-all flex flex-col items-center justify-center gap-0.5 select-none cursor-pointer active:scale-95 shadow-sm ${
+                      data-lunatic-target={isLunaticTarget ? "true" : undefined}
+                      className={`relative w-full h-full px-1 rounded-2xl text-center border-2 font-bold transition-all flex flex-col items-center justify-center gap-0.5 select-none cursor-pointer active:scale-95 shadow-sm ${
                         isSelected
                           ? "bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/40 ring-2 ring-blue-400 scale-[1.02]"
                           : isDisabled
                             ? "bg-slate-900/40 border-slate-800 text-slate-600 opacity-40 cursor-not-allowed"
-                            : seat.isDead
-                              ? "bg-slate-800/70 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:border-slate-600"
-                              : "bg-slate-800 border-slate-700 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
+                            : isLunaticTarget
+                              ? // 🌀 疯子目标：紫色描边 + 紫色色块（官方：真恶魔知道疯子攻击了谁）
+                                "bg-fuchsia-700/80 border-fuchsia-400 text-fuchsia-50 shadow-lg shadow-fuchsia-500/40 ring-2 ring-fuchsia-400/70 hover:bg-fuchsia-600/80 hover:border-fuchsia-300"
+                              : seat.isDead
+                                ? "bg-slate-800/70 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:border-slate-600"
+                                : "bg-slate-800 border-slate-700 text-slate-100 hover:bg-slate-700 hover:border-slate-500"
                       }`}
                     >
+                      {isLunaticTarget && (
+                        <span
+                          className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap rounded-full bg-fuchsia-500 text-white font-black px-1.5 shadow-md shadow-fuchsia-900/50 leading-tight"
+                          style={{ fontSize: SEAT_CARD_FONT.tertiary }}
+                        >
+                          🌀 疯子目标
+                        </span>
+                      )}
                       <span
                         className="font-black whitespace-nowrap leading-none"
                         style={{ fontSize: SEAT_CARD_FONT.primary }}
                       >
                         {seat.id + 1}号
                       </span>
-                      {
-                        seat.isDead ? (
+                      {isLunaticTarget ? (
+                        <span
+                          className="whitespace-nowrap leading-none text-fuchsia-200 font-bold"
+                          style={{ fontSize: SEAT_CARD_FONT.tertiary }}
+                        >
+                          (疯子选中)
+                        </span>
+                      ) : seat.isDead ? (
                           <span
                             className="whitespace-nowrap leading-none text-red-400 font-normal"
                             style={{ fontSize: SEAT_CARD_FONT.tertiary }}

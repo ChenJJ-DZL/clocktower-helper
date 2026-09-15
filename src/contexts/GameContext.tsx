@@ -33,6 +33,45 @@ export { createSnapshot, restoreSnapshot, SNAPSHOT_KEYS };
 export type VfxTrigger = { seatId: number; type: "slayer" | "virgin" } | null;
 
 /**
+ * 🎫 幽灵票「单向锁存」保护
+ *
+ * 官方规则：每名死亡玩家**整局游戏只有一张**幽灵票，一旦用掉就永久消耗，
+ * 无论再过多少个夜晚 / 白天都不能再用。
+ *
+ * 因此 `hasGhostVote` 是一个**单向锁存位**：`true → false` 允许（消耗），
+ * `false → true` **只允许在「复活」时发生**，其余任何整表覆盖都必须被拦截。
+ *
+ * 为什么需要它：`seats` 是一整块被到处整体覆盖的状态（撤销/重做、白天重建、
+ * 读档恢复、外来快照……），任何一次「回滚到消耗之前」的整表覆盖都会把
+ * 已经用掉的幽灵票悄悄还回来。把守卫放在**唯一的状态写入咽喉**
+ * （reducer 的 seats 分支）上，比在每个调用点补丁更安全。
+ *
+ * 判定复活：`prev.isDead === true` 且 `next.isDead !== true`。
+ */
+function preserveGhostVote(prevSeats: Seat[], nextSeats: Seat[]): Seat[] {
+  if (!Array.isArray(nextSeats) || nextSeats.length === 0) return nextSeats;
+  if (!Array.isArray(prevSeats) || prevSeats.length === 0) return nextSeats;
+
+  let touched = false;
+  const merged = nextSeats.map((next) => {
+    const prev = prevSeats.find((p) => p?.id === next?.id);
+    if (!prev) return next;
+
+    // 只要之前已经「用掉了幽灵票」，就不允许任何整表覆盖把它还回来
+    if (prev.hasGhostVote !== false || next.hasGhostVote !== true) return next;
+
+    // 例外：真实的复活（死亡 → 存活）才允许重新获得幽灵票
+    const revived = prev.isDead === true && next.isDead !== true;
+    if (revived) return next;
+
+    touched = true;
+    return { ...next, hasGhostVote: false };
+  });
+
+  return touched ? merged : nextSeats;
+}
+
+/**
  * 游戏状态接口 - 单一数据源
  * 所有游戏状态都存储在这里
  */
@@ -328,18 +367,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, selectedActionTargets: action.targets };
 
     case "SET_SEATS":
-      return { ...state, seats: action.seats };
+      return { ...state, seats: preserveGhostVote(state.seats, action.seats) };
 
     case "UPDATE_SEATS": {
       const newSeats = action.updater(state.seats);
-      return { ...state, seats: newSeats };
+      return { ...state, seats: preserveGhostVote(state.seats, newSeats) };
     }
 
     case "UPDATE_SEAT": {
       const updatedSeats = state.seats.map((seat) =>
         seat.id === action.seatId ? { ...seat, ...action.updates } : seat
       );
-      return { ...state, seats: updatedSeats };
+      return { ...state, seats: preserveGhostVote(state.seats, updatedSeats) };
     }
 
     case "INCREMENT_NIGHT_COUNT":
@@ -450,9 +489,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const isEnteringGameOver =
         action.updates.gamePhase === "gameOver" &&
         state.gamePhase !== "gameOver";
+      const updates = { ...action.updates };
+      // 🎫 幽灵票单向锁存：任何经 UPDATE_STATE 写入的 seats（撤销/重做、读档、整表重建）
+      //    都不得把已经用掉的幽灵票还回来
+      if (updates.seats !== undefined) {
+        updates.seats = preserveGhostVote(state.seats, updates.seats);
+      }
       return {
         ...state,
-        ...action.updates,
+        ...updates,
         ...(isEnteringGameOver && action.updates.currentModal === undefined
           ? { currentModal: { type: "GAME_OVER", data: null } }
           : {}),

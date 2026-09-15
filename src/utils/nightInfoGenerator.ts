@@ -17,6 +17,11 @@ import {
   type Seat,
 } from "../../app/data";
 import { getRoleDefinition } from "../roles";
+import { roleHasNightAction } from "./dynamicQueueGenerator";
+import {
+  createDeterministicRandom,
+  nightInfoSeed,
+} from "../roles/core/deterministicRandom";
 import type { NightInfoResult } from "../types/game";
 import type { RegistrationResult } from "../types/registration";
 import type { NightActionContext } from "../types/roleDefinition";
@@ -150,7 +155,17 @@ export function generateNightInfo(
   if (!nightConfig) {
     // 该角色没有 legacy 夜晚行动配置时，尝试从 effectiveRole 生成基础信息
     // 确保 UI 不会因 nightInfo 为空而卡死
-    const defaultGuide = `唤醒${currentSeatId + 1}号【${(playerFacingRole ?? effectiveRole).name}】，准备执行技能。`;
+    //
+    // 🌺 但**纯被动角色**（如罂粟种植者「爪牙和恶魔互相不认识」持续被动生效）
+    //    根本没有"睁眼做事"这回事。此处若照常合成「唤醒N号【角色名】，准备执行技能。」
+    //    并让下游跑能力管道，就会出现：
+    //      夜间走到该座位 → 弹「N号-角色名 - 结果」信息窗（用户实测缺陷）。
+    //    → 对这类角色不合成唤醒文案，改标注 `passiveNoAction`，由下游跳过唤醒与能力派发。
+    const hasAnyNightAction = roleHasNightAction(effectiveRole.id);
+    const seatName = (playerFacingRole ?? effectiveRole).name;
+    const defaultGuide = hasAnyNightAction
+      ? `唤醒${currentSeatId + 1}号【${seatName}】，准备执行技能。`
+      : `${currentSeatId + 1}号【${seatName}】为被动技能，无需唤醒。`;
     return {
       seat: targetSeat,
       effectiveRole,
@@ -163,6 +178,8 @@ export function generateNightInfo(
       action: "",
       roleId: effectiveRole.id,
       index: 0,
+      /** 🌺 纯被动角色：下游必须跳过"唤醒 + 能力派发"，否则会误弹结果窗 */
+      passiveNoAction: !hasAnyNightAction,
       targetLimit: effectiveDisplayConfig?.target?.count ?? { min: 0, max: 0 },
       canSelectDead: false,
       canSelectSelf: false,
@@ -186,6 +203,15 @@ export function generateNightInfo(
     : [];
 
   // 构建 NightActionContext（供 dialog 函数使用）
+  //
+  // 🎲 确定性随机源：dialog 里凡是要"选人/洗牌/掷骰"的地方必须用 `context.rng`，
+  //    不得用裸 `Math.random()`。同一份事实（如"调查员看到哪两名玩家"）会在
+  //    「生成提示文案」与「真正结算/魔典标记」两处各算一次，若各调一次真随机
+  //    就会分叉（说书人念的 ≠ 实际落地的）。
+  const dialogRng = createDeterministicRandom(
+    nightInfoSeed(targetSeat.role.id, currentSeatId, nightCount)
+  );
+
   const context: NightActionContext = {
     seats,
     targets: [],
@@ -205,13 +231,21 @@ export function generateNightInfo(
     lastDuskExecution,
     outsiderDiedToday,
     deadThisNight,
+    rng: dialogRng,
     getRegistration: (
       _seat: Seat,
       _viewer?: Role | null
     ): RegistrationResult => ({
       alignment: "Good" as const,
       roleType: _seat.role?.type || "townsfolk",
-      registersAsDemon: _seat.role?.id === "recluse" && Math.random() < 0.5,
+      // 🔒 隐士登记为恶魔：与 `gameRules.getRegistration` 保持同一语义
+      //    （读显式设置的 registerAsEvil/registerAsDemon 开关），
+      //    且不再掷骰 —— 该字段此前是"假随机"（未消费 caller 状态），
+      //    同一局面重复调用会给出不同答案。
+      registersAsDemon:
+        _seat.role?.id === "recluse" &&
+        (_seat as any).registerAsEvil !== false &&
+        (_seat as any).registerAsDemon !== false,
       registersAsMinion: false,
       registersAsOutsider: false,
       registersAsTownsfolk: false,

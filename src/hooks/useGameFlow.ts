@@ -11,6 +11,7 @@ import {
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { applyCharadePermanentDrunk } from "../utils/charadeSetup";
 import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
+import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../utils/mutantGate";
 import {
   applyBountyHunterEvilConversion,
   isRealBountyHunterSeat,
@@ -313,6 +314,20 @@ export function useGameFlow(): UseGameFlowResult {
           hasUsedDayAbility: targetDied ? true : false,
         };
       }
+      // 畸形秀演员：与洗脑师同构 —— 每个白天可重新进行一次【疯狂仲裁】。
+      // （2026-09-14：官方为"说书人独立裁定"，因此每天复位仲裁标记与日间使用标记。）
+      // ⚠️ 含酒鬼/提线木偶伪装成畸形秀演员的情形（effectiveRole === mutant）。
+      if (
+        s.role?.id === "mutant" ||
+        (s.role?.id === "drunk" && s.charadeRole?.id === "mutant") ||
+        (s.role?.id === "marionette" && s.charadeRole?.id === "mutant")
+      ) {
+        seatModified = {
+          ...seatModified,
+          hasUsedDayAbility: false,
+          mutantMadnessCheckedToday: false,
+        };
+      }
       // 博学者：每天白天可使用一次技能，新白天重置使用标记与上次结果
       if (
         s.role?.id === "savant" ||
@@ -433,9 +448,19 @@ export function useGameFlow(): UseGameFlowResult {
         activeCerenovusTarget
       );
 
+      // 检查畸形秀演员白天技能【疯狂仲裁】是否尚未发动（2026-09-14 新增，与洗脑师同构）
+      const hasPendingMutantCheck = hasPendingMutantGate(seats);
+
       if (!hasExecutedToday && hasPendingCerenovusCheck) {
         alert(
           "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
+        );
+        return;
+      }
+
+      if (!hasExecutedToday && hasPendingMutantCheck) {
+        alert(
+          "畸形秀演员的白天技能【疯狂仲裁】尚未发动，必须先由说书人裁定并完成判定后才能进入黄昏！"
         );
         return;
       }

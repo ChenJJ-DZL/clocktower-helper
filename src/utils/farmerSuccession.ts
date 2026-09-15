@@ -14,6 +14,28 @@ import type { Seat } from "../../app/data";
 /** 新农夫身份变化后，展示给该玩家的结果页文案（走既有 INFO_RESULT 机制） */
 export const FARMER_SUCCESSOR_RESULT_TEXT = "你的身份变为【农夫】";
 
+/**
+ * 🌾 农夫传承夜间「引导语」——结果页第一行 + 第二行的**唯一事实来源**。
+ *
+ * 官方「运作方式」（见 `src/data/nightOrder.json` 农夫条目）：
+ *   「如果农夫死于夜晚，唤醒一名存活的善良玩家**告知他角色变化**。」
+ *
+ * 两个必须是这个形态的理由（2026-09-14 用户实测缺陷）：
+ *  1. **引导语要指向"新农夫"**：等价的模板文案 `role.farmer.wake` 里用的是
+ *     `{{successorSeatNo}}`，而**不能**用通用的 `{{seatNo}}` —— 后者在引擎里
+ *     等于**行动者**（= 那个已经死掉的旧农夫），会引导说书人去唤醒一个死人。
+ *  2. **结果页第一行必须是"唤醒X号玩家，告知他/她："**，而不是
+ *     「X号-农夫获得信息」：结果页在传承场景下是**说书人执行指令**，
+ *     不是"某角色获得了什么信息"。
+ *
+ * 第二行与 {@link FARMER_SUCCESSOR_RESULT_TEXT} **刻意分开**：
+ * 前者是"说书人该念的话"（可带标点、可含括号装饰），后者是玩家结果页正文，
+ * 两者一旦合并，改其中一处就会悄悄改掉另一处。
+ */
+export function buildFarmerSuccessorGuide(successorSeatId: number): string {
+  return `唤醒${successorSeatId + 1}号玩家，告知他/她：${FARMER_SUCCESSOR_RESULT_TEXT}`;
+}
+
 export interface FarmerSuccessionSeatLike {
   id: number;
   role?: {

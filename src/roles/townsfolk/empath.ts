@@ -79,6 +79,8 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
     dialog: (playerSeatId, _isFirstNight, context) => {
       const seatNo = playerSeatId + 1;
       const { seats, isActorDisabledByPoisonOrDrunk } = context;
+      // 🎲 确定性随机：受干扰时的"假数字"必须稳定复现（同一夜重复计算一致）。
+      const rng: () => number = context.rng ?? Math.random;
 
       // 计算共情者最近的存活邻座
       const selfIdx = seats.findIndex((s) => s.id === playerSeatId);
@@ -133,7 +135,7 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:88-0!canonical and time
         const fakeCandidates = [0, 1, 2].filter((v) => v !== evilCount);
         resultCount =
           fakeCandidates.length > 0
-            ? fakeCandidates[Math.floor(Math.random() * fakeCandidates.length)]
+            ? fakeCandidates[Math.floor(rng() * fakeCandidates.length)]
             : evilCount === 0
               ? 1
               : 0;

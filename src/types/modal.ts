@@ -121,6 +121,20 @@ export type ModalType =
       };
     }
   | {
+      /**
+       * 🎭 畸形秀演员（Mutant）白天「疯狂仲裁」—— **由说书人独立操作**。
+       *
+       * 官方：说书人自行判断畸形秀演员是否"疯狂"地证明自己是外来者；
+       * 若是，则立即处决他，并在白天的常规处决之前直接进入夜晚。
+       * 与 MADNESS_CHECK（洗脑师判定被洗脑玩家）同构但语义相反。
+       */
+      type: "MUTANT_MADNESS";
+      data: {
+        targetId: number;
+        day?: number;
+      };
+    }
+  | {
       type: "DAMSEL_GUESS";
       data: { minionId: number | null; targetId: number | null };
     }
@@ -244,7 +258,30 @@ export type ModalType =
         cerenovusSeatId?: number;
         /** 洗脑师角色名 —— 只在说书人解锁视图渲染 */
         cerenovusRoleName?: string;
+        /**
+         * 🎙️ 说书人「技能修正页」（2026-09-14）。
+         *
+         * 结果页是**给玩家看的**，因此不能写"击杀失败/被僧侣挡下"这类真相；
+         * 但说书人必须知道。玩家点「确认结果」后**紧接着**弹出本页，
+         * 写清这一夜实际发生了什么，说书人确认后才继续夜间流程。
+         * 玩家视角永不读取。
+         */
+        storytellerCorrection?: import("../utils/storytellerCorrection").StorytellerCorrection;
         onNext?: () => void;
+      };
+    }
+  /**
+   * 🎙️ 说书人「技能修正页」：结果页确认后弹出，只说书人可见。
+   * 见 INFO_RESULT.data.storytellerCorrection 的说明。
+   */
+  | {
+      type: "STORYTELLER_CORRECTION";
+      data: {
+        correction: import("../utils/storytellerCorrection").StorytellerCorrection;
+        /** 角色名（如「13号-小恶魔」），用于标题 */
+        roleName?: string;
+        /** 确认后继续夜间流程 */
+        onNext: () => void;
       };
     }
   /**

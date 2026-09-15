@@ -3,6 +3,10 @@
 
 import { useCallback, useMemo } from "react";
 import { withCharadePermanentDrunk } from "../utils/charadeSetup";
+import {
+  checkNominationPair,
+  revokeNominationOnVoteCancelled,
+} from "../utils/nominationEligibility";
 import { isSeatDead } from "../utils/seatAlive";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
@@ -201,15 +205,15 @@ export function useDayActions(deps: DayActionsDeps) {
                 : []
             );
 
-      if (nominatorsSet.has(sourceId)) {
-        addLog(
-          `每名玩家每个黄昏只能发起一次提名（${sourceId + 1}号本黄昏已发起过提名）`
-        );
-        return false;
-      }
-
-      if (nomineesSet.has(id)) {
-        addLog(`每名玩家每个黄昏只能被提名一次（${id + 1}号本黄昏已被提名过）`);
+      // 🗣️ 每个黄昏「每名玩家最多发起 1 次提名、最多被提名 1 次」（官方规则）。
+      //    判定收口在 utils/nominationEligibility，避免各调用点各写一份。
+      const pairCheck = checkNominationPair(
+        { nominators: nominatorsSet, nominees: nomineesSet },
+        sourceId,
+        id
+      );
+      if (!pairCheck.ok) {
+        addLog(pairCheck.reason!);
         return false;
       }
 
@@ -228,7 +232,10 @@ export function useDayActions(deps: DayActionsDeps) {
           return false;
         }
       }
-      setNominationMap({ [id]: sourceId });
+      // 🗣️ 合并写入而不是整体覆盖：nominationMap 是「被提名者 → 提名者」的映射，
+      //    同一黄昏内可能已存在他人提名的条目；覆盖会让先前条目的 UI 高亮消失。
+      //    （对"每人每黄昏各限 1 次"无直接影响——那条由 nominationRecords 保证。）
+      setNominationMap((prev) => ({ ...(prev || {}), [id]: sourceId }));
 
       // 爪牙提名判定（城镇公告员）：
       // 陌客默认注册为邪恶爪牙（造成干扰），间谍默认注册为善良（不主动算爪牙）
@@ -523,29 +530,10 @@ export function useDayActions(deps: DayActionsDeps) {
   const cancelNomination = useCallback(
     (nominatorId?: number | null, nomineeId?: number | null) => {
       setNominationRecords(
-        (prev: { nominators: Set<number>; nominees: Set<number> }) => {
-          const newNominators = new Set(
-            prev?.nominators
-              ? prev.nominators instanceof Set
-                ? prev.nominators
-                : prev.nominators
-              : []
-          );
-          const newNominees = new Set(
-            prev?.nominees
-              ? prev.nominees instanceof Set
-                ? prev.nominees
-                : prev.nominees
-              : []
-          );
-          if (nominatorId !== undefined && nominatorId !== null) {
-            newNominators.delete(nominatorId);
-          }
-          if (nomineeId !== undefined && nomineeId !== null) {
-            newNominees.delete(nomineeId);
-          }
-          return { nominators: newNominators, nominees: newNominees };
-        }
+        (prev: { nominators: Set<number>; nominees: Set<number> }) =>
+          // 🗣️ 走共享模块：只有**显式取消**才恢复资格。
+          //    （投票完成时上层用 consumeVoteSettled() 分流，不会走到这里。）
+          revokeNominationOnVoteCancelled(prev, nominatorId ?? null, nomineeId ?? null)
       );
       setNominationMap((prev) => {
         if (!prev) return {};
@@ -1003,6 +991,33 @@ export function useDayActions(deps: DayActionsDeps) {
             targetId,
             roleName,
             sourceSeatId,
+          },
+        });
+        return;
+      }
+
+      // ── 畸形秀演员专用：说书人独立仲裁【疯狂证明自己是外来者】────────
+      // ⚠️ 2026-09-14：官方运作方式是**说书人独立裁定**，不是玩家主动发动。
+      //   与洗脑师同构（否则玩家不点按钮说书人就无从仲裁），
+      //   同时白天必须完成本仲裁才能进入黄昏（门禁见 utils/mutantGate.ts）。
+      if (effectiveRole.id === "mutant") {
+        if (
+          sourceSeat.hasUsedDayAbility ||
+          (sourceSeat as any).mutantMadnessCheckedToday
+        ) {
+          showAlert("畸形秀演员今日已完成【疯狂仲裁】判定。");
+          return;
+        }
+        if (sourceSeat.isDead) {
+          showAlert(
+            `畸形秀演员【${sourceSeatId + 1}号】已死亡，无需进行疯狂仲裁。`
+          );
+          return;
+        }
+        setCurrentModal({
+          type: "MUTANT_MADNESS",
+          data: {
+            targetId: sourceSeatId,
           },
         });
         return;

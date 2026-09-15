@@ -431,12 +431,19 @@ export const generatedRoleWakeTemplates = [
     scenes: ["night"],
   },
   {
+    // 🌾 农夫是**被动死亡触发**角色：它被唤醒时"做事的人"不是自己，
+    //    而是**被传承者（新农夫）**。因此这里刻意使用 `{{successorSeatNo}}`
+    //    而非通用的 `{{seatNo}}`（行动者=死掉的旧农夫），
+    //    否则文案会引导说书人去唤醒一名已经死掉的玩家。
+    //    渲染时由 farmerSuccession 在 `farmer.ability.ts` 的 postProcess 里
+    //    显式注入（见 utils/farmerSuccession.ts 的 FARMER_NEW_FARMER_WAKE_TEMPLATE）。
+    //    ⚠️ 该模板的占位符若缺值会被退回原文，届时 farmerGuideDirective 会兜底。
     id: "role.farmer.wake",
     category: "role",
     template:
-      "唤醒{{seatNo}}号【农夫（实验角色）】：当你在夜晚死亡时，一名存活的善良玩家会变成农夫",
+      "唤醒{{successorSeatNo}}号玩家，告知他/她：你的身份变为【农夫】，你原本的能力已失效",
     description:
-      "农夫（实验角色）唤醒提示（自动生成，源:实验性角色、梦殒春宵）",
+      "农夫死亡传承唤醒提示（实验性角色）——引导说书人唤醒**新农夫**并告知身份变化",
     scenes: ["night"],
   },
   {

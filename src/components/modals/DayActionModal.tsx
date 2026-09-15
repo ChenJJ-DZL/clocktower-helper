@@ -1,4 +1,8 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import {
+  canBeNominated,
+  canNominate,
+} from "../../utils/nominationEligibility";
 import { displayPlayerName } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -46,18 +50,14 @@ export function DayActionModal({ modal }: { modal: any }) {
             return !s.isDead;
           })
           .map((s) => {
-            // 8. 提名限制：检查是否已被提名或被提名过
-            // 规则特例：玩家可以对自己发起提名（规则书中没有提及"不能对自己提名"）
-            const isSelfNomination =
-              modal.type === "nominate" && s.id === modal.sourceId;
+            // 🗣️ 提名限制：本黄昏该提名者是否已发起过提名 / 该座位是否已被提名过。
+            //    判定统一走 utils/nominationEligibility（唯一事实来源），
+            //    与 executeNomination 的执行层守卫保持完全一致。
             const isDisabled =
               modal.type === "nominate"
-                ? // 如果提名自己，检查自己是否已被提名过
-                  isSelfNomination
-                  ? props.nominationRecords.nominees.has(s.id) ||
-                    props.nominationRecords.nominators.has(modal.sourceId)
-                  : props.nominationRecords.nominees.has(s.id) ||
-                    props.nominationRecords.nominators.has(modal.sourceId)
+                ? !canNominate(props.nominationRecords ?? null, modal.sourceId)
+                    .ok ||
+                  !canBeNominated(props.nominationRecords ?? null, s.id).ok
                 : modal.type === "lunaticKill"
                   ? s.id === modal.sourceId
                   : false;

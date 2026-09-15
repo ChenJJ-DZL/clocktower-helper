@@ -10,6 +10,7 @@ import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
 import { shouldZeroLegionVote } from "../utils/legionVoteRule";
+import { markVoteSettled } from "../utils/nominationEligibility";
 import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
 import {
   shouldMorticianTransform,
@@ -674,6 +675,11 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       saveHistory();
+
+      // 🗣️ 到此为止本次投票**一定会计入结算**（票数校验/过滤/管家/军团规则都已过），
+      //    打上「已结算」闩锁：随后 setCurrentModal(null) 触发的弹窗关闭，
+      //    绝不能把提名者/被提名者的资格恢复（官方规则：每个黄昏各限 1 次）。
+      markVoteSettled();
 
       const voteRecord = voteRecords.find((r) => r.voterId === voterId);
       const isDemonVote = voteRecord?.isDemon || false;

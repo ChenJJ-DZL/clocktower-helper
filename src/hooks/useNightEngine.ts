@@ -193,6 +193,9 @@ function generateNightOrderFromParser(): NightOrderEntry[] {
       // 🔧 死亡触发型角色（守鸦人 ON_DEATH）：仅当晚死亡时入队
       deathTriggered:
         ability.triggerTiming?.includes(AbilityTriggerTiming.ON_DEATH) ?? false,
+      // 🏹 赏金猎人：仅在"得知的玩家死亡"当晚才入队（官方：每当你得知的玩家死亡，
+      //    你会在当晚得知另一名邪恶玩家）——不是每夜唤醒。
+      requiresKnownTargetDead: ability.roleId === "bounty_hunter",
     });
   }
 

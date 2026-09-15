@@ -71,6 +71,10 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import {
+  buildDemonKillCorrection,
+  getDemonPlayerFacingResultText,
+} from "../../utils/storytellerCorrection";
 
 // ─── 辅助类型 ────────────────────────────────────────────────────────
 
@@ -551,6 +555,8 @@ const postProcessResult = async (
         mayorSubstituted?: boolean;
         substituteId?: number;
         actualKilledId?: number;
+        /** 击杀被挡下的原因标记（blockedByProtection / blockedBySoldier） */
+        log?: Record<string, unknown>;
       }
     | undefined;
 
@@ -577,22 +583,63 @@ const postProcessResult = async (
   let simLog: string;
   let storytellerPrompt: string;
   let abilityLog: string;
+  /**
+   * 🎙️ 玩家可见文案（与 abilityLog 真值分离）。
+   *
+   * ⚠️ 2026-09-14 用户实测：恶魔结果页显示
+   *   「小恶魔试图杀死【1号】，但未能造成伤亡」→ 直接泄漏"击杀失败"，
+   *   等于告诉恶魔"你被僧侣挡了/目标是士兵"，违反官方
+   *   「恶魔不知道哪一名玩家受到了保护」。
+   * ⇒ 玩家面只给**中性事实**（"你选择了谁"），成败不在结果页揭晓；
+   *   真相改由「技能修正页」只说书人可见（见 storytellerCorrection）。
+   */
+  let playerFacingLog: string | undefined;
+  /**
+   * 🎙️ 说书人「技能修正页」数据：玩家点完"确认结果"后弹出，
+   *   写清"这一夜实际发生了什么、为什么没死人"，避免说书人连续点击时
+   *   "瞬间搞不清楚状况"。玩家视角永不读取。
+   */
+  let storytellerCorrection:
+    | import("../../utils/storytellerCorrection").StorytellerCorrection
+    | undefined;
 
   const selfSeatId = context.actionNode.seatId;
+  const demonLabel = `${selfSeatId + 1}号`;
 
   if (record.isSuicide && record.killed) {
     simLog = `[Imp]${tag} Committed suicide — demon passed to a living minion`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了自杀（${record.targetId + 1}号），已有一名存活爪牙继任恶魔）`;
     abilityLog = `小恶魔${tag}自杀了，恶魔血脉已传递给一名存活爪牙`;
+    // 自杀是公开事实（恶魔自己做的选择），玩家面可如实显示。
+    playerFacingLog = `你选择了自杀，恶魔血脉已传递给一名存活爪牙`;
+    storytellerCorrection = buildDemonKillCorrection({
+      reason: "demon_self_kill",
+      targetLabel,
+      demonLabel,
+    }) ?? undefined;
   } else if (record.mayorSubstituted && record.substituteId !== undefined) {
     const subLabel = findLabel(record.substituteId);
     simLog = `[Imp]${tag} Attacked Mayor ${targetLabel} — triggered substitution (95%), killed substitute: ${subLabel}`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（小恶魔选择了【${targetLabel}】，触发替死能力：【${subLabel}】替代死亡）`;
     abilityLog = `小恶魔${tag}攻击了【${targetLabel}】，触发镇长替死能力：【${subLabel}】替代死亡`;
+    // ⚠️ 替死真相不告知恶魔：玩家面只显示"选了她"。
+    playerFacingLog = getDemonPlayerFacingResultText(targetLabel);
+    storytellerCorrection = buildDemonKillCorrection({
+      reason: "mayor_substitution",
+      targetLabel,
+      demonLabel,
+      extraNote: `【${subLabel}】替代死亡`,
+    }) ?? undefined;
   } else if (record.killed && isDeadTarget) {
     simLog = `[Imp]${tag} Selected dead player ${targetLabel} — no kill tonight (faking Soldier/Monk)`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了已死亡的${record.targetId + 1}号，今晚无人死亡）`;
     abilityLog = `小恶魔${tag}选择了已死亡的【${targetLabel}】，今晚无人死亡`;
+    playerFacingLog = getDemonPlayerFacingResultText(targetLabel);
+    storytellerCorrection = buildDemonKillCorrection({
+      reason: "target_already_dead",
+      targetLabel,
+      demonLabel,
+    }) ?? undefined;
   } else if (record.killed) {
     const actualLabel =
       record.actualKilledId !== undefined
@@ -601,10 +648,26 @@ const postProcessResult = async (
     simLog = `[Imp]${tag} Killed: ${actualLabel}`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（选择了${record.targetId + 1}号，他将在今晚死亡）`;
     abilityLog = `小恶魔${tag}杀死了【${actualLabel}】`;
+    // 正常击杀：成败会在黎明公布，结果页同样只给中性事实。
+    playerFacingLog = getDemonPlayerFacingResultText(targetLabel);
+    // 无需修正页（没有"玩家不可见但要告知说书人"的隐藏真相）。
   } else {
     simLog = `[Imp]${tag} Drunk/poisoned/protected — no kill (target: ${targetLabel})`;
     storytellerPrompt = `唤醒${selfSeatId + 1}号【小恶魔】，让他选择一名玩家杀死。（未造成死亡）`;
     abilityLog = `小恶魔${tag}试图杀死【${targetLabel}】，但未能造成伤亡`;
+    // ⚠️ 核心修复：绝不把"未能造成伤亡"给玩家看。
+    playerFacingLog = getDemonPlayerFacingResultText(targetLabel);
+    const blockLog = (record.log as any) ?? {};
+    storytellerCorrection =
+      buildDemonKillCorrection({
+        reason: blockLog.blockedByProtection
+          ? "monk_protection"
+          : blockLog.blockedBySoldier
+            ? "soldier_immunity"
+            : "no_kill_other",
+        targetLabel,
+        demonLabel,
+      }) ?? undefined;
   }
 
   console.log(simLog);
@@ -625,6 +688,17 @@ const postProcessResult = async (
         isCorrupted: meta.isCorrupted ?? false,
         nightCount: record.nightCount,
         log: abilityLog,
+        /**
+         * 🎙️ 玩家可见的**中性**文案（"你选择了【X】"）。
+         * useNightActionHandler 的 B1 脱敏层**优先**取这个字段渲染结果页，
+         * 因此「未能造成伤亡」永远不会出现在恶魔（玩家）眼前。
+         */
+        playerFacingLog: playerFacingLog,
+        /**
+         * 🎙️ 说书人「技能修正页」数据：结果页确认后弹出，说明真实原因。
+         * 仅说书人可见（玩家页不读此字段）。
+         */
+        storytellerCorrection,
       },
     },
   };

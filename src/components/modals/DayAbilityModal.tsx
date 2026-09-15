@@ -110,17 +110,16 @@ export function DayAbilityModal({ modal }: { modal: any }) {
       closeModal();
       return;
     }
+    // ⚠️ 2026-09-14：畸形秀演员已从"通用日间弹窗"迁出 ——
+    //   官方为「说书人独立裁定」，现走专属弹窗 `MUTANT_MADNESS`
+    //   （见 `components/modals/MutantMadnessModal.tsx`）+
+    //   白天→黄昏门禁（`utils/mutantGate.ts`）。
+    //   这里保留一个守卫，避免旧入口被再次触发时静默无事发生。
     if (roleId === "mutant") {
-      // 畸形秀演员违反疯狂仲裁处决
-      if (
-        confirm(`确定判定 ${seat.id + 1}号【畸形秀演员】违反疯狂并立即处决？`)
-      ) {
-        props.addLog(
-          `⚠️ 说书人裁定：${seat.id + 1}号(畸形秀演员) 违反疯狂，立即处决！`
-        );
-        props.executePlayer?.(seat.id);
-        closeModal();
-      }
+      alert(
+        "畸形秀演员的【疯狂仲裁】已迁移到专属判定页，请从右侧控制台「⚡️ 可用主动技能」中点击「疯狂仲裁」进行裁定。"
+      );
+      closeModal();
       return;
     }
     if (roleId === "amnesiac") {
@@ -497,14 +496,17 @@ export function DayAbilityModal({ modal }: { modal: any }) {
         {roleId === "mutant" && (
           <div className="space-y-4 text-center py-4">
             <div className="text-base text-red-300 font-bold">
-              🎭 畸形秀演员疯狂仲裁
+              🎭 畸形秀演员疯狂仲裁（已迁移）
             </div>
             <p className="text-sm text-slate-300 leading-relaxed">
-              如果畸形秀演员在白天试图向其他玩家明示或暗示自己是外来者，说书人可裁定其违反疯狂并立即处决。
+              该技能已迁移至专属判定页：请从右侧控制台「⚡️ 可用主动技能」中点击
+              「疯狂仲裁」。判定页提供两个按钮：
+              <br />
+              <span className="text-emerald-300 font-bold">「否，无事发生」</span>
+              （绿色，白天继续）与
+              <span className="text-rose-300 font-bold">「是，执行处决」</span>
+              （红色，立即处决并跳过黄昏入夜）。
             </p>
-            <div className="p-4 bg-red-950/60 border border-red-800 rounded-xl text-xs text-red-200">
-              ⚠️ 点击确认处决后将立即触发处决流程并结束今日白天！
-            </div>
           </div>
         )}
 

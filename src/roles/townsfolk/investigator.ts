@@ -32,6 +32,11 @@ export const investigator: RoleDefinition = {
     },
     dialog: (playerSeatId, _isFirstNight, context) => {
       const { seats, isActorDisabledByPoisonOrDrunk = () => false } = context;
+      // 🎲 确定性随机：本 dialog 产出的是**说书人念的提示文案**，
+      //    而"哪两名玩家"这一事实还会在真正结算/魔典标记时再算一次。
+      //    用 context.rng（由 nightInfoGenerator 按 roleId+seatId+nightCount 播种）
+      //    保证两处得到同一份信息；未注入时回退 Math.random 保持兼容。
+      const rng: () => number = context.rng ?? Math.random;
       const selfSeat = seats.find((s) => s.id === playerSeatId);
       const isDisabled =
         selfSeat &&
@@ -43,7 +48,7 @@ export const investigator: RoleDefinition = {
       if (isDisabled) {
         // 中毒/醉酒：随机选两个其他座位，爪牙角色保证两名玩家均不是该角色
         const otherSeats = seats.filter((s) => s.id !== playerSeatId && s.role);
-        const shuffled = [...otherSeats].sort(() => Math.random() - 0.5);
+        const shuffled = [...otherSeats].sort(() => rng() - 0.5);
         const seat1 = shuffled[0];
         const seat2 = shuffled[1] || shuffled[0];
         const seat1No = seat1 ? seat1.id + 1 : "?";
@@ -56,7 +61,7 @@ export const investigator: RoleDefinition = {
         );
         const fakeRole =
           minions.length > 0
-            ? minions[Math.floor(Math.random() * minions.length)].role
+            ? minions[Math.floor(rng() * minions.length)].role
             : null;
         const fakeRoleName =
           fakeRole?.name ||
@@ -90,13 +95,13 @@ export const investigator: RoleDefinition = {
 
       // 随机选一名真·爪牙（或可当作爪牙的玩家）
       const targetMinion =
-        minionCandidates[Math.floor(Math.random() * minionCandidates.length)];
+        minionCandidates[Math.floor(rng() * minionCandidates.length)];
 
       // 随机选一名干扰项（不能与目标相同，不能是自己）
       const decoyPool = otherSeats.filter((s) => s.id !== targetMinion.id);
       const decoyPlayer =
         decoyPool.length > 0
-          ? decoyPool[Math.floor(Math.random() * decoyPool.length)]
+          ? decoyPool[Math.floor(rng() * decoyPool.length)]
           : targetMinion; // 兜底
 
       // 获取爪牙的角色名称（使用 effectiveRole 以防酒鬼）
@@ -105,7 +110,7 @@ export const investigator: RoleDefinition = {
 
       // 随机打乱展示顺序
       const shuffled =
-        Math.random() < 0.5
+        rng() < 0.5
           ? [targetMinion, decoyPlayer]
           : [decoyPlayer, targetMinion];
 

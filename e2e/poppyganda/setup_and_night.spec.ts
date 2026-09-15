@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readAssigned, readCamps, resolveCharades, T } from "../helpers/poppy";
+import { readAssigned, readCamps, resolveCharades, T } from "../helpers/scriptFlow";
 
 /**
  * 罂粟花开 · **落座与发牌 真实点击流**

@@ -8,6 +8,7 @@ import type { GamePhase, Role, Seat } from "../../app/data";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { isRealMinion } from "../utils/roleFlags";
+import { isVortoxWorldActive } from "../utils/vortoxWorld";
 
 /**
  * 角色确认处理上下文
@@ -916,7 +917,7 @@ export function handleJugglerConfirm(
 
   // 涡流或中毒/醉酒干扰判断
   const jugglerSeat = seats.find((s) => s.id === jugglerId) || nightInfo.seat;
-  const hasVortox = seats.some((s) => s.role?.id === "vortox" && !s.isDead);
+  const hasVortox = isVortoxWorldActive(seats);
   const isPoisonedOrDrunk =
     context.computeIsPoisoned(jugglerSeat, seats) ||
     jugglerSeat.isDrunk ||
