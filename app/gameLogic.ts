@@ -585,7 +585,14 @@ export function checkGameEnd(
     if (!goodWinBlockedByTwin) {
       return { isGameOver: true, winner: "Good", reason: "恶魔已被彻底消灭" };
     }
-    // 如果被双子阻止，游戏继续（除非触发下面的邪恶胜利）
+    // ⚠️ 被双子阻止 → 善良**无法**获胜，但**不代表**邪恶立刻获胜：
+    //    官方 Evil Twin："Good can't win if you both live."
+    //      → 只剥夺善良的胜利条件，游戏继续（好人还需处决邪恶双子）。
+    //    此时若人数已到官方阈值（仅剩 2 人非旅行者存活）→ 邪恶仍然获胜：
+    //      官方 Evil Twin Tips："evil will win if the Evil Twin and the Demon are
+    //      both alive when just 3 players are left alive"
+    //      （3 人 → 好人无处分票，下一轮必然只剩 2 人 → 邪恶胜）。
+    //    因此这里**继续向下**走 1.5 的人数阈值判定，而非直接 return。
   }
 
   // --- 1.2 【处决特殊结算】特殊角色导致邪恶获胜 (圣徒、地精、双子) ---
@@ -626,17 +633,37 @@ export function checkGameEnd(
     }
   }
 
-  // --- 1.5 【核心】邪恶存活数 ≥ 善良存活数 -> 邪恶获胜 (需仍有恶魔在场) ---
+  // --- 1.5 【核心】邪恶阵营终局条件 ---
   // 旅行者(traveler)不计入阵营人数（与投票门槛逻辑一致）
   const aliveNonTraveler = aliveSeats.filter(
     (s) => s.role?.type !== "traveler"
   );
   const aliveEvil = aliveNonTraveler.filter((s) => isPlayerEvil(s));
   const aliveGood = aliveNonTraveler.filter((s) => !isPlayerEvil(s));
+  const aliveNonTravelerCount = aliveNonTraveler.length;
+
+  // ⚠️⚠️ 2026-09-15 修正：**删除杜撰的「存活邪恶 ≥ 存活善良」终局规则**。
+  //
+  //   官方规则书（Running the Game → Ending the Game）**只有一条**邪恶终局条件：
+  //     "Good wins if the Demon dies.
+  //      **Evil wins if only two players are left alive** (Travelers and Fabled do
+  //      not count toward this).
+  //      If both teams would win at the same time, good wins.
+  //      … **if there is any way for the losing team to win, keep the game going.**"
+  //   Glossary · Evil: "Evil wins when just 2 players are alive (not counting Travelers)."
+  //
+  //   旧实现（commit 7c42dbc 凭空插入、提交信息未提、无缺陷报告支撑）用
+  //   `aliveEvil.length >= aliveGood.length` 在 **3 人及以上**时就判邪恶胜：
+  //     · 4 人存活、2 好 : 2 恶  → 误判邪恶胜（用户截图实测）
+  //     · 3 人存活、2 恶 : 1 好  → 误判邪恶胜（善良次日仍可提名处决恶魔）
+  //   这与官方「固定阈值 = 2 人」及「善良还有翻盘路径就别判负」**直接冲突**。
+  //
+  //   保留的**唯一**提前判负情形，是官方明确点名的例子：
+  //     全场存活者**全为邪恶**（善良已无人可提名恶魔）→ 邪恶胜。
 
   if (hasLegionInPlay) {
     // 军团在场专属规则：
-    // 军团开局占全场多数，故豁免常规存活邪恶>=存活善良判定
+    // 军团开局占全场多数，故豁免常规人数阈值判定
     // 邪恶获胜条件：存活善良人数 <= 1（无法达成全灭恶魔）或存活总人数 <= 2 且有军团存活
     if (
       aliveGood.length <= 1 ||
@@ -649,22 +676,33 @@ export function checkGameEnd(
       };
     }
   } else {
-    // 常规对局：存活邪恶 >= 存活善良 -> 邪恶获胜
-    if (totalEffectiveDemons > 0 && aliveEvil.length >= aliveGood.length) {
+    // 官方点名允许的提前结束：存活者**全部为邪恶** → 善良无法提名恶魔
+    if (
+      totalEffectiveDemons > 0 &&
+      aliveGood.length === 0 &&
+      aliveEvil.length > 0
+    ) {
       return {
         isGameOver: true,
         winner: "Evil",
-        reason: "邪恶阵营人数占优（存活邪恶 ≥ 存活善良）",
+        reason: "存活玩家全为邪恶阵营，善良无法提名恶魔",
       };
     }
 
-    // --- 3. 【第三优先级】存活人数判定 ---
-    // 只有在恶魔还活着的情况下（或者恶魔死了但好人被双子阻止赢），人数不足才判邪恶赢
-    if (aliveCount <= 2) {
+    // --- 3. 【第三优先级】官方固定阈值：**仅剩 2 人存活**（旅行者不计入）---
+    // 官方原文："Evil wins if only two players are left alive (Travelers and Fabled
+    //            do not count toward this)."
+    //
+    // ⚠️ 不附加"恶魔必须存活"的条件：
+    //    分支 1.1 已在恶魔全灭时返回善良胜（除非被双子阻挡）。能走到这里的
+    //    「恶魔全灭」只可能是**被存活的邪恶双子阻挡**——此时善良无法获胜
+    //    （官方："Good can't win if you both live."），而人数已到阈值，
+    //    邪恶获胜（官方 Evil Twin Tips 印证 3 人 → 2 人的必然收敛）。
+    if (aliveNonTravelerCount <= 2) {
       return {
         isGameOver: true,
         winner: "Evil",
-        reason: "存活人数仅剩 2 人且恶魔存活",
+        reason: "存活人数仅剩 2 人",
       };
     }
   }

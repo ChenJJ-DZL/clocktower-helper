@@ -194,40 +194,56 @@ async function isGameOver(page: import("@playwright/test").Page) {
 
 /** 点「主页」回到设置页，准备重开一局 */
 async function backToHome(page: import("@playwright/test").Page) {
-  await page.evaluate(async () => {
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const btns = Array.from(document.querySelectorAll("button")) as any[];
-    const home = btns.find((b) => /主页/.test((b.textContent || "").trim()));
-    if (home) {
-      home.click();
-      await sleep(800);
-    }
+  // ⚠️ 不能用「点主页按钮 + 固定 sleep」：SPA 路由切换耗时不定，
+  //    固定 800ms 有时不够 → 后续操作在旧页面上执行、报错方向完全误导。
+  //    ⚠️ 也不能等「⚡ 快速开始」—— 那个按钮在**剧本配置页**，不在首页！
+  //       `page.goto("/")` 落到的是**剧本列表**（「请选择剧本」+ 各剧本卡片），
+  //       后续 `enterFirstNight → enterScriptConfig` 会自己点「进入配置」进配置页。
+  //    ⇒ 只需硬导航 + 等**首页标志元素**就绪即可。
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("请选择剧本").first()).toBeVisible({
+    timeout: T.visible,
   });
 }
 
 /**
  * 开局跑到黄昏，并保证这局**没有提前终局**。
  *
- * ⚠️ 为什么需要"重试"（2026-09-14 实测踩坑）：
- *   5 人局 = 1 恶魔 + 1 爪牙 + 3 善良。若首夜恶魔刀中善良玩家 →
- *   存活变成 2 善良 vs 2 邪恶 → **立刻触发「存活邪恶 ≥ 存活善良」终局**。
- *   此时页面弹出「游戏结束 · 邪恶阵营获胜」→ 圆桌座位全部点不动 →
+ * ⚠️ 为什么保留"重试"（2026-09-15 更新）：
+ *   5 人局 = 1 恶魔 + 1 爪牙 + 3 善良。若首夜恶魔刀中善良玩家 → 存活变成 2 善良
+ *   vs 2 邪恶 → **旧版引擎会立刻触发「存活邪恶 ≥ 存活善良」终局**（已修复：
+ *   该规则为杜撰，官方只认「仅剩 2 人存活」，见
+ *   `src/roles/__tests__/game_end_official_contract.test.ts`）。
+ *   现在 2 好 : 2 恶 不再终局，但**若再死一人**（存活的非旅行者只剩 2 人）
+ *   仍会按官方规则终局。故保留重试作为防御。
+ *
+ *   终局时页面弹出「游戏结束 · 邪恶阵营获胜」→ 圆桌座位全部点不动 →
  *   用例会以"第 1 次提名应进入计票面板 = false"报红，**报错方向完全被误导**。
  *
- * ⚠️ 为什么不改成 7 人局：7 人局角色池会引入「间谍查看魔典」这类
- *   **没有确认按钮**的队列步骤，通用驱动循环处理不了 → `advanceNightFast`
- *   直接熔断返回 timeout（实测 test① 由绿转红）。人数一变，夹具假设就失效。
- *   ⇒ 保持 5 人局（夹具已验证），用**重开重试**规避终局随机性。
+ * ⚠️ 为什么不改成 7 人局（2026-09-15 更正原注释）：
+ *   原注释说「7 人局角色池才会引入『间谍查看魔典』」—— **这是错的**。
+ *   实测证据：5 人局失败快照的夜间行动顺序直接出现
+ *   `[4号] 间谍 / 唤醒4号【间谍】，告知恶魔及爪牙座位号…让他查看魔典。`
+ *   → **间谍在 5 人局同样会出场**（随机发牌）。所以「换人数」不解决问题。
+ *   正解是**识别并跳过**：`advanceNightFast` 命中间谍步骤会返回 `"spy"`，
+ *   本夹具据此重开一局（发牌随机，重开即换阵容）。
+ *   🧠 教训：**别用"改人数"去绕一个跟人数无关的随机性**——
+ *     人数一变，`enterFirstNight/enterDusk` 的夹具假设全部失效（实测 test① 由绿转红）。
  *
- * @returns "dusk" 成功；"gave-up" 连续多局都首夜终局（极小概率）
+ * @returns "dusk" 成功；"gave-up" 连续多局都不可用（首夜终局 / 一直抽到间谍，极小概率）
  */
 async function setupToDusk(page: import("@playwright/test").Page) {
-  const MAX_ATTEMPTS = 4;
+  const MAX_ATTEMPTS = 6;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     if (attempt > 1) await backToHome(page);
 
     await enterFirstNight(page, 5, "暗流涌动");
     const reached = await advanceNightFast(page);
+
+    // ⚠️ 抽到间谍 → 其「查看魔典」步骤无确认按钮、无法自动驱动 → 重开一局。
+    //    （游戏构成是随机发牌，重开即可换掉间谍；不该为它破坏自动化前提。）
+    if (reached === "spy") continue;
+
     expect(reached, `第 ${attempt} 次开局：应能推完首夜抵达白天`).toBe("day");
 
     if (await isGameOver(page)) {

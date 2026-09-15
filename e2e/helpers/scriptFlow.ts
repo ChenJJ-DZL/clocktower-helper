@@ -77,17 +77,35 @@ export async function enterScriptConfig(
   playerCount: number
 ) {
   // ⚠️ 剧本卡片定位：卡内同时含剧本名与「进入配置」按钮。
-  //    用 `:has-text` 收窄到该卡片，再 `.last()` 取真正的交互节点
-  //    （列表在页面上可能有重复渲染层）。
+  //    坑 1：`div:has-text(...)` 会命中**多层祖先 div**，`.last()` 可能落到
+  //          最外层容器 → 其 `.getByText("进入配置")` 解析到**不可点的文本节点**，
+  //          点击静默无效 → 仍在剧本列表页 → 下一步「⚡ 快速开始」15s 超时
+  //          （实测：重试路径 attempt≥2 才暴露，因为首次 goto 后元素恰好可点）。
+  //          故用 `getByRole("button")` 精确锁到**按钮**。
+  //    坑 2：列表在页面上可能有重复渲染层 → 取 `.last()` 的真实按钮。
+  //    坑 3：点击后必须**等配置页就绪**再继续，否则后续 find 会在旧页面上跑。
   await page
-    .locator(`div:has-text("${scriptName}")`)
-    .filter({ hasText: "进入配置" })
+    .getByRole("button", { name: new RegExp(scriptName) })
     .last()
-    .getByText("进入配置")
-    .first()
     .click({ timeout: T.click });
 
-  await page.getByText("⚡ 快速开始").first().click({ timeout: T.click });
+  // 等配置页标志元素就绪（「剧本配置」/「快速开始」/「随机落座」任一出现即可）
+  const quickStart = page.getByText("⚡ 快速开始").first();
+  const ready = await quickStart
+    .waitFor({ state: "visible", timeout: T.visible })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!ready) {
+    // 兜底：有些剧本卡片按钮名不完全等于剧本名，退化用 has-text 精确定位
+    await page
+      .locator(`button:has-text("${scriptName}")`)
+      .last()
+      .click({ timeout: T.click });
+    await expect(quickStart).toBeVisible({ timeout: T.visible });
+  }
+
+  await quickStart.click({ timeout: T.click });
   await page
     .getByText(`${playerCount}人`, { exact: false })
     .first()
@@ -360,7 +378,21 @@ async function pickTargetsInDialog(
  *
  * @returns "day" | "timeout"
  */
-export async function advanceNightFast(page: Page): Promise<"day" | "timeout"> {
+/**
+ * 推进夜间到白天。
+ *
+ * 返回 `"spy"` 表示：本局抽到了**间谍（spy）**——其「查看魔典」步骤
+ * 在 UI 上**没有独立的确认按钮**（说书人只是把魔典递给玩家看，点主按钮即可），
+ * `advanceNightFast` 无法自动完成这个语义步骤，会空转到熔断。
+ * 调用方（如 `setupToDusk`）应把它当作「这局不适合自动驱动」的信号，
+ * **重开一局**（游戏构成是随机发牌，重开即可换掉间谍）。
+ *
+ * 为什么不硬点过去：间谍步骤里「恶魔 2号，爪牙 」这类文案需要说书人**人工读图**，
+ * 自动化点了也拿不到正确的核对结果，属于**不该自动化**的步骤。
+ */
+export async function advanceNightFast(
+  page: Page
+): Promise<"day" | "timeout" | "spy"> {
   return (await page.evaluate(async () => {
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     const norm = (el: any) =>
@@ -383,8 +415,19 @@ export async function advanceNightFast(page: Page): Promise<"day" | "timeout"> {
     let stall = 0;
     let lastSig = "";
 
+    // ⚠️ 间谍（spy）探测：「查看魔典」步骤没有确认按钮，自动驱动会空转。
+    //    判定特征：夜间行动顺序 / 当前行动文案里出现「间谍」且含「查看魔典」。
+    //    一旦命中就立刻退出，交给调用方重开一局。
+    const spyActive = () => {
+      const t = bodyText();
+      if (/查看魔典/.test(t) && /间谍/.test(t)) return true;
+      // 兜底：当前行动栏直接点名间谍
+      return /唤醒\d+号【间谍】/.test(t);
+    };
+
     for (let i = 0; i < MAX_STEPS; i++) {
       if (isDay()) return "day";
+      if (spyActive()) return "spy";
 
       // 进度签名：用「可见弹窗文本 + 主按钮文本」做指纹
       const dlg = document.querySelector('[role="dialog"]');
@@ -392,9 +435,11 @@ export async function advanceNightFast(page: Page): Promise<"day" | "timeout"> {
         /确认&下一步|下一步|天亮了/.test(norm(b))
       );
       const sig = `${dlg ? norm(dlg).slice(0, 80) : ""}||${mainBtn ? norm(mainBtn) : ""}`;
+      // ⚠️ 间谍步骤会「有主按钮可点、但点了不推进」→ 仍按签名无变化熔断；
+      //    这里把 stall 上界收紧到 40，避免白等 120 轮（每轮 45ms → 5.4s）。
       if (sig === lastSig) {
         stall++;
-        if (stall > 120) return "timeout"; // 连续 120 次无变化 → 熔断
+        if (stall > 40) return spyActive() ? "spy" : "timeout";
       } else {
         stall = 0;
         lastSig = sig;
@@ -437,8 +482,9 @@ export async function advanceNightFast(page: Page): Promise<"day" | "timeout"> {
 
       await sleep(45);
     }
-    return isDay() ? "day" : "timeout";
-  })) as "day" | "timeout";
+    if (isDay()) return "day";
+    return spyActive() ? "spy" : "timeout";
+  })) as "day" | "timeout" | "spy";
 }
 
 /**
