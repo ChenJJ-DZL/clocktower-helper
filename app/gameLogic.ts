@@ -661,6 +661,41 @@ export function checkGameEnd(
   //   保留的**唯一**提前判负情形，是官方明确点名的例子：
   //     全场存活者**全为邪恶**（善良已无人可提名恶魔）→ 邪恶胜。
 
+  // ⭐⭐ 官方优先规则：「If both teams would win at the same time, good wins.」
+  //
+  //   镇长和平获胜与邪恶人数阈值用的是**两套不同的计数口径**（官方明写）：
+  //     · 镇长：**恰好 3 人存活，旅行者算玩家**
+  //       "Travellers count as players for the Mayor's victory, so must be exiled first."
+  //     · 邪恶：**非旅行者仅剩 2 人**
+  //       "Evil wins if only two players are left alive (Travelers and Fabled do not
+  //        count toward this)."
+  //   ⇒ 两套口径可以**同时成立**，此时官方裁定**善良优先**：
+  //     例：镇长 + 恶魔 + 1 名旅行者 = 存活 3 人 / 非旅行者 2 人
+  //         · 镇长条件成立（3 人含旅行者）→ 善良胜
+  //         · 邪恶条件成立（非旅行者 2 人）→ 邪恶胜
+  //         · 官方并行成立 → **善良胜**
+  //   ⚠️ 因此这一判定必须放在人数阈值**之前**，否则邪恶会抢先返回。
+  //   （本项目未建模 Fabled，故无需处理「Fabled 不计入」的附加条款。）
+  const hasMayorPeacefulWin =
+    lastAction === "execution" &&
+    executedPlayerId === null && // 平安日：当日无人被处决
+    aliveCount === 3 && // 恰好 3 人存活（aliveSeats 含旅行者 → 与官方口径一致）
+    aliveSeats.some(
+      (s) => s.role?.id === "mayor" && !s.isPoisoned && !s.isDrunk
+    );
+
+  // ⭐ 官方优先规则：「If both teams would win at the same time, good wins.」
+  //   镇长和平获胜是**硬性**胜利条件，必须放在人数阈值**与军团分支之前**结算：
+  //     · 放阈值之前 → 否则「镇长 + 恶魔 + 旅行者」被人数阈值抢先判邪恶；
+  //     · 放军团分支之前 → 否则军团局（如 镇长 + 2 邪恶存活、平安日）会漏判。
+  if (hasMayorPeacefulWin) {
+    return {
+      isGameOver: true,
+      winner: "Good",
+      reason: "镇长触发和平获胜条件",
+    };
+  }
+
   if (hasLegionInPlay) {
     // 军团在场专属规则：
     // 军团开局占全场多数，故豁免常规人数阈值判定
@@ -707,7 +742,7 @@ export function checkGameEnd(
     }
   }
 
-  // --- 4. 【额外层】镇长/涡流 ---
+  // --- 4. 【额外层】涡流（镇长和平获胜已上移至 1.5 之前，见 `hasMayorPeacefulWin`）---
   // 🌪️ 涡流世界判定（2026-09-15 收口）
   //   官方：涡流**存活**时所有信息为假，且「每个白天若无人被处决 → 邪恶获胜」。
   //   ⚠️ 旧实现**完全依赖调用方传入的 `isVortoxWorld`**：一旦调用方漏传/传了陈旧值
@@ -747,19 +782,10 @@ export function checkGameEnd(
         reason: "主谋翻盘：额外一天无人处决",
       };
     }
-    // 镇长 (Mayor): 仅剩3人且平安日 -> 好人获胜
-    if (aliveCount === 3) {
-      const mayor = aliveSeats.find(
-        (s) => s.role?.id === "mayor" && !s.isPoisoned && !s.isDrunk
-      );
-      if (mayor) {
-        return {
-          isGameOver: true,
-          winner: "Good",
-          reason: "镇长触发和平获胜条件",
-        };
-      }
-    }
+    // 镇长 (Mayor): 和平获胜已**上移**到「1.5 邪恶人数阈值之前」统一结算
+    //   —— 官方优先规则「两条同时成立时善良优先」要求它先于人数阈值。
+    //   ⚠️ 唯一事实来源 = 上方 `hasMayorPeacefulWin`，此处**不得**重复实现
+    //      （否则两处口径会分叉：一处含旅行者、一处不含）。
   }
 
   // --- 5. 【特殊角色胜利条件】利维坦、恐惧之灵、异端分子、无神论者、炸弹人等 ---
