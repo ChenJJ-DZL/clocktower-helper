@@ -328,6 +328,33 @@ function initializeBoon(
 }
 
 /**
+ * 派生出**跨局隔离**的 game-scoped id（P0-7 修复）。
+ *
+ * 规则：
+ *  1. 上层显式提供 `snapshot.gameId` → 直接采用（最终事实）；
+ *  2. 否则用 `座位构成指纹 + 首夜标记` 派生：
+ *     - 座位构成 = 所有 `id:roleId` 排序后拼接 → 不同开局名单 → 不同 key；
+ *     - 同一局重入 → 同一 key（保证幂等，不重复初始化干扰项）。
+ *
+ * ⚠️ **绝不**使用 `"default"` 之类的全局常量兜底 —— 那会让所有对局共用一个
+ *   key，配合模块级 Map 不清理 → 跨局串味（本文件曾因此误报假恶魔）。
+ */
+function deriveGameScopedId(
+  snapshot: any,
+  fortuneTellerSeatId: number
+): string {
+  const explicit = snapshot?.gameId;
+  if (typeof explicit === "string" && explicit.length > 0) {
+    return explicit;
+  }
+  const fingerprint = (snapshot?.seats ?? [])
+    .map((s: any) => `${s.id}:${s.role?.id ?? "?"}`)
+    .sort()
+    .join("|");
+  return `ft_${fortuneTellerSeatId}_${fingerprint}`;
+}
+
+/**
  * 生成醉酒/中毒时的虚假结果。
  *
  * 🔧 规则（用户确认参数）：中毒/醉酒状态下，得知的信息 100% 错误。
@@ -372,7 +399,16 @@ const calculateResult = async (
 
   // 首夜：初始化干扰项
   const selfSeatId = actionNode.seatId;
-  const gameId = (snapshot as any).gameId || "default";
+  // ⚠️⚠️ 2026-09-20 修复 P0-7：**禁止 `|| "default"` 兜底**。
+  //   旧实现 `(snapshot as any).gameId || "default"` → 当 gameId 缺失时，
+  //   所有对局共用同一 key `"default"`，而模块级 Map **不清理**，
+  //   ⇒ 连开两局（未刷新页面）时，第二局会读到第一局留下的干扰项：
+  //      第一局把 7 号设为红罗刹 → 第二局 7 号是普通善良
+  //      → 占卜两名善良玩家却报「有恶魔」，**无中生有捏造恶魔**。
+  //
+  //   正解：由**座位内容 + 首夜序数**派生一个稳定的 game-scoped key，
+  //   保证跨局隔离；若上层已提供显式 gameId，则优先采用。
+  const gameId = deriveGameScopedId(snapshot, selfSeatId);
   const isFirstNight = (snapshot.nightCount ?? 0) === 1;
 
   // 🎲 已废弃「能力内部自行随机挑干扰项」的做法（2026-09-14）：

@@ -11,6 +11,7 @@
  */
 
 import type { Seat } from "../../app/data";
+import { grantAbilityToSeat } from "./grantedAbilityHelper";
 
 /**
  * 检查并更新场上小精灵的能力激活状态
@@ -73,16 +74,10 @@ export function checkAndUpdatePixieAbility(
       }
 
       return {
-        ...seat,
+        ...grantAbilityToSeat(seat, madnessRoleId),
         pixieCopiedRole: madnessRoleId,
         pixieHasAbility: true,
         pixieMadnessConfirmed: true,
-        acquiredAbilities: [
-          ...((seatAny.acquiredAbilities as string[]) ?? []),
-          ...(seatAny.acquiredAbilities?.includes?.(madnessRoleId)
-            ? []
-            : [madnessRoleId]),
-        ],
         statusDetails: [
           ...details,
           "能力已激活",

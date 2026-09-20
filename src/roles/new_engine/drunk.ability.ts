@@ -2,6 +2,25 @@
  * 酒鬼（Drunk）新引擎技能实现
  *
  * ============================================================
+ * ⚠️⚠️ 重要：本文件当前**不会被执行**（2026-09-21 实测确认）
+ * ============================================================
+ * 本能力 `firstNightPriority: null` / `otherNightPriority: null` ⇒ **永不入夜序队列**；
+ * 其 `triggerTiming` 含 `PASSIVE`，而全仓对 `triggerTiming` 的唯一生产消费方是
+ * `useNightEngine.ts:195` 的 `ON_DEATH` 判定 ⇒ 管道（preCheck/calculate/stateUpdate/
+ * postProcess）**永不运行**。实测：注册表 213 个能力中 82 个 PASSIVE 全部如此。
+ *
+ * 酒鬼的**真实生效路径（SST）**：
+ *   ① `src/utils/charadeSetup.ts` 在开局写 `seat.charadeRole`（认知覆盖：伪装成镇民）
+ *      与 `seat.statusEffects: [{type:"drunk"}]`（永久醉酒）
+ *   ② 夜间按 `charadeRole` 唤醒（"以酒鬼的镇民角色来让酒鬼进行行动"）
+ *   ③ 能力是否生效由 `utils/seatDisabled.ts` 的醉酒判定统一裁决
+ *
+ * 因此本文件是**平行死代码**。保留（未来剧本素材，勿删），登记在
+ * `roles/__tests__/poppyganda_ability_path_truth.test.ts` 的真值表 `LEGACY` 项中，
+ * 以免后人误判"酒鬼由新引擎管"。
+ * ============================================================
+ *
+ * ============================================================
  * 实现依据（引用自 json/full/all_characters.json — 酒鬼条目）
  * ============================================================
  *

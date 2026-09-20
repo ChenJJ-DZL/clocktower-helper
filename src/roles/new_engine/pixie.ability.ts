@@ -67,10 +67,21 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const nightCount = ctx.snapshot.nightCount ?? 0;
   if (nightCount !== 1 && ctx.snapshot.gamePhase !== "firstNight") {
     // 阶段 2（死亡触发）：首夜已记录疯狂角色且该镇民死亡 → 允许唤醒继承能力
-    const madRoleId = (ctx.snapshot as any).pixieMadnessRoleId;
-    if (madRoleId && nightCount > 1) {
+    //
+    // ⚠️⚠️ 2026-09-20 修复 P1-3：**判据改读座位级 `pixieMadnessRoleId`**。
+    //   旧实现只读 `snapshot.pixieMadnessRoleId` —— 但**座位级才真正回流 React**
+    //   （stateUpdate 同时写 seat.pixieMadnessRoleId 与 snapshot 字段，而
+    //    `useNightActionHandler` 只把 `snapshot.seats` 经 setSeats 落库，
+    //    顶层 `snapshot.pixieMadnessRoleId` 不回流）→ 生产环境下这里**恒为 undefined**
+    //   → 死亡继承不可达（目前靠 legacy `pixieHelper` 兜住，一旦旧通路清理即爆）。
+    //
+    //   正解：优先座位级（唯一事实来源），snapshot 级仅作兼容回退。
+    const seatMadRoleId =
+      (seat as any).pixieMadnessRoleId ??
+      (ctx.snapshot as any).pixieMadnessRoleId;
+    if (seatMadRoleId && nightCount > 1) {
       const madRoleSeat = ctx.snapshot.seats.find(
-        (s: any) => s.role?.id === madRoleId
+        (s: any) => s.role?.id === seatMadRoleId
       );
       // 记录的镇民仍在场且存活 → 不触发继承
       if (madRoleSeat && !madRoleSeat.isDead) {
@@ -80,7 +91,14 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
           abortReason: "记录的镇民未死亡，小精灵不获得能力",
         };
       }
-      return { ...ctx, meta: { ...ctx.meta, isPixieDeathTrigger: true } };
+      return {
+        ...ctx,
+        meta: {
+          ...ctx.meta,
+          isPixieDeathTrigger: true,
+          pixieMadRoleId: seatMadRoleId,
+        },
+      };
     }
     return { ...ctx, aborted: true, abortReason: "非首夜，小精灵不唤醒" };
   }
@@ -116,9 +134,19 @@ const calculate = async (
 
   // 阶段 2：死亡触发，直接继承记录的镇民能力
   if ((ctx.meta as any).isPixieDeathTrigger) {
-    const madRoleId = (ctx.snapshot as any).pixieMadnessRoleId;
+    // ⚠️ P1-3：优先 meta（preCheck 从座位级读到的），再回退座位级 / snapshot 级
+    const selfSeat = ctx.snapshot.seats.find(
+      (s: any) => s.id === ctx.actionNode.seatId
+    );
+    const madRoleId =
+      (ctx.meta as any).pixieMadRoleId ??
+      (selfSeat as any)?.pixieMadnessRoleId ??
+      (ctx.snapshot as any).pixieMadnessRoleId;
     const madRoleName =
-      (ctx.snapshot as any).pixieMadnessRoleName ?? madRoleId ?? "未知";
+      (selfSeat as any)?.pixieMadnessRoleName ??
+      (ctx.snapshot as any).pixieMadnessRoleName ??
+      madRoleId ??
+      "未知";
     return {
       ...ctx,
       meta: {

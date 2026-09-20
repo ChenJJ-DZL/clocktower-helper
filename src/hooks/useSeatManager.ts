@@ -5,6 +5,7 @@ import { useCallback, useMemo } from "react";
 import type { Role, Seat } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import { getRoleDefinition } from "../roles";
+import { getAbilityForRole } from "../roles/new_engine/abilityRegistry";
 import { checkMutualExclusion, isAntagonismEnabled } from "../utils/antagonism";
 import { applyLegionRoleSwap } from "../utils/legionSetupSwap";
 
@@ -169,32 +170,74 @@ export function useSeatManager(): UseSeatManagerResult {
       );
 
       // NEW: Trigger automated onSetup for the role
+      //
+      // ⚠️⚠️ 2026-09-20 修复 P0-11：**必须同时尝试新引擎的 onSetup**。
+      //   旧实现只调 `getRoleDefinition(newRoleId)`（legacy 定义）→ 但
+      //   `marionette` 等角色的 setup 逻辑**只写在新引擎里**
+      //   （`marionette.ability.ts::onSetup`：写永久醉酒 + marionetteMasterSeatId），
+      //   legacy `minion/marionette.ts` **没有 onSetup** ⇒ 提线木偶的 setup
+      //   **从不执行**，永久醉酒不落地、与恶魔的邻座关系也不记录。
+      //
+      //   修复策略（零回归）：先跑 legacy（保持原行为），**再跑新引擎**（若存在）。
+      //   两者都以「返回 updates 列表」的形式表达变更，故合并应用即可。
       const def = getRoleDefinition(newRoleId);
       console.log(
         `[useSeatManager] Triggering onSetup for ${newRoleId} (Seat ${seatId + 1})`
       );
+      const collectedUpdates: Array<{ id: number; [key: string]: any }> = [];
+      const collectedLogs: string[] = [];
+
       if (def?.onSetup) {
         const setupResult = def.onSetup({ seats, selfId: seatId });
-        if (setupResult?.updates) {
-          setupResult.updates.forEach((update: any) => {
-            const { id, ...patch } = update;
-            dispatch(gameActions.updateSeat(id, patch));
-          });
-        }
+        if (setupResult?.updates) collectedUpdates.push(...setupResult.updates);
         if (setupResult?.logs) {
-          const logMsg =
+          const m =
             setupResult.logs.privateLog || setupResult.logs.publicLog;
-          if (logMsg) {
-            dispatch(
-              gameActions.addLog({
-                day: state.nightCount,
-                phase: state.gamePhase,
-                message: `⚙️ [Setup] ${logMsg}`,
-              })
-            );
-          }
+          if (m) collectedLogs.push(m);
         }
       }
+
+      const newEngineAbility = getAbilityForRole(newRoleId);
+      if (
+        newEngineAbility?.onSetup &&
+        newEngineAbility.roleId === newRoleId // 精确匹配，拒绝前缀误伤
+      ) {
+        try {
+          const engineResult = (newEngineAbility.onSetup as any)({
+            seats,
+            selfId: seatId,
+          });
+          if (engineResult?.updates)
+            collectedUpdates.push(...engineResult.updates);
+          if (engineResult?.logs) {
+            const m =
+              engineResult.logs.privateLog || engineResult.logs.publicLog;
+            if (m) collectedLogs.push(`[新引擎] ${m}`);
+          }
+        } catch (err) {
+          // 不静默：setup 钩子抛错必须暴露，否则又会变成"测试绿、实测不对"
+          console.error(
+            `[useSeatManager] 新引擎 onSetup 执行失败 (${newRoleId}):`,
+            err
+          );
+        }
+      }
+
+      if (collectedUpdates.length > 0) {
+        collectedUpdates.forEach((update) => {
+          const { id, ...patch } = update;
+          dispatch(gameActions.updateSeat(id, patch));
+        });
+      }
+      collectedLogs.forEach((logMsg) => {
+        dispatch(
+          gameActions.addLog({
+            day: state.nightCount,
+            phase: state.gamePhase,
+            message: `⚙️ [Setup] ${logMsg}`,
+          })
+        );
+      });
 
       dispatch(
         gameActions.addLog({

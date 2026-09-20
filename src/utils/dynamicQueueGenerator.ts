@@ -8,6 +8,11 @@ import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { getRoleDefinition } from "../roles";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import { resolveEvilTwinPair } from "./evilTwinHelper";
+import {
+  findAbilityGrantingSeat,
+  isInheritedAbilityConsumed,
+  seatHasAcquiredAbility,
+} from "./grantedAbilityHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 import { isRealMinion } from "./roleFlags";
 
@@ -199,11 +204,34 @@ export function generateDynamicNightQueue(
           !(s as any).pixieAbilityUsed
       );
 
+    // 🧠 哲学家能力继承（2026-09-20 泛化，SST：utils/grantedAbilityHelper）
+    //   官方范例：「哲学家选择获得筑梦师能力。**从现在起，他将在筑梦师应该行动时
+    //   进行行动。**」→ 与"首夜限定"无关：被继承角色是首夜角色就首夜行动，
+    //   是每夜角色就每夜行动；能力性质/频次**完全照搬原角色**。
+    //   ⚠️ 与 pixie 的关键差异：pixie 仅在"非首夜 + 被继承角色是首夜角色"时才需要
+    //      特殊放行（因为首夜已过）；哲学家则**任何夜**都要参与，故不设 firstNightOnly 条件。
+    //   ⚠️ 判据一律走 seatHasAcquiredAbility，绝不再内联 role.id 比较。
+    //   ⚠️ 一次性语义：若该能力**已被消耗**（一次性技能用过一次），不得再入队，
+    //      否则会持续空唤醒说书人（用户实测明确反对的行为）。
+    const philosopherGrantingSeat = findAbilityGrantingSeat(
+      snapshot.seats as any[],
+      entry.roleId
+    );
+    const hasPhilosopherGrantedAbility = Boolean(philosopherGrantingSeat);
+    const philosopherGrantAbilityConsumed = philosopherGrantingSeat
+      ? isInheritedAbilityConsumed(
+          philosopherGrantingSeat,
+          entry.roleId,
+          isFirstNight
+        )
+      : false;
+
     if (
       !isFirstNight &&
       firstNightOnly &&
       !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil) &&
-      !hasPixiePendingInheritedAbility
+      !hasPixiePendingInheritedAbility &&
+      !(hasPhilosopherGrantedAbility && !philosopherGrantAbilityConsumed)
     ) {
       return false;
     }
@@ -213,7 +241,8 @@ export function generateDynamicNightQueue(
       firstNightOnly &&
       (snapshot as any).hasCompletedFirstNight &&
       !(isSystemEvilInfo && poppyGrowerDiedAndTriggersEvil) &&
-      !hasPixiePendingInheritedAbility
+      !hasPixiePendingInheritedAbility &&
+      !(hasPhilosopherGrantedAbility && !philosopherGrantAbilityConsumed)
     ) {
       return false;
     }
@@ -367,20 +396,13 @@ export function generateDynamicNightQueue(
         (effectiveIncludeDead || !s.isDead)
     );
 
-    // 🧚 小精灵能力继承：若原角色未找到（不在场或已死亡），检查是否有存活且已激活该能力的小精灵
-    const pixieSeat = !directSeat
-      ? snapshot.seats.find(
-          (s) =>
-            s.role?.id === "pixie" &&
-            !s.isDead &&
-            ((s as any).pixieCopiedRole === entry.roleId ||
-              (s as any).acquiredAbilities?.includes?.(entry.roleId) ||
-              ((s as any).pixieMadnessRoleId === entry.roleId &&
-                (s as any).pixieHasAbility))
-        )
+    // 🎭 能力继承（SST：utils/grantedAbilityHelper）
+    //   小精灵 / 哲学家「角色不变、能力叠加」——原角色不在场时由继承者顶上其行动槽。
+    const grantingSeat = !directSeat
+      ? findAbilityGrantingSeat(snapshot.seats as any[], entry.roleId)
       : undefined;
 
-    const seat = directSeat || pixieSeat;
+    const seat = directSeat || grantingSeat;
 
     if (!seat) {
       return false;
@@ -408,12 +430,29 @@ export function generateDynamicNightQueue(
       if (isFirstNight) {
         // 首夜必唤醒（官方：在你的首个夜晚，你会得知一名邪恶玩家）
       } else {
-        const known: number[] =
-          (snapshot as any).bountyHunterKnownTargets ?? [];
-        if (known.length === 0) {
+        // ⚠️⚠️ 2026-09-20 修复 P1-1：**判据改用座位级「赏金已知」标记**。
+        //   旧实现读 `snapshot.bountyHunterKnownTargets` —— 该字段是**幽灵**：
+        //     · 生产快照（useGameController 的队列预览）**从不写入它**；
+        //     · 管道内 `saveResult` 写进 `ctx.snapshot`，而管道快照**不回流 React**。
+        //   ⇒ 门恒走「没有已知记录 → 不拦截」兜底 → **赏金猎人每夜都被排进队列**、
+        //      白送一名邪恶玩家（官方只在"得知目标死亡"当晚唤醒）。
+        //
+        //   正解：与 legacy `roles/townsfolk/bounty_hunter.ts::shouldWake` **同源**，
+        //   读 `seat.statusDetails` 里的 `"赏金已知"` —— 这个标记是**真正落地**的
+        //   （由 saveResult 写座位 → 经 setSeats 回流 state）。
+        const knownSeats = snapshot.seats.filter((s: any) =>
+          (s.statusDetails ?? []).includes("赏金已知")
+        );
+        // 兼容保留：若上层确实提供了 snapshot 级记录，两者取并集
+        const knownIds: number[] = (
+          (snapshot as any).bountyHunterKnownTargets ?? []
+        )
+          .concat(knownSeats.map((s: any) => s.id));
+
+        if (knownIds.length === 0) {
           // 异常兜底：没有"已知"记录时不做拦截，交回执行期判定
         } else {
-          const current = known[known.length - 1];
+          const current = knownIds[knownIds.length - 1];
           const knownSeat = snapshot.seats.find((s: any) => s.id === current);
           const deadThisNight: number[] = (snapshot as any).deadThisNight ?? [];
           const knownIsDead =
@@ -589,24 +628,19 @@ export function generateDynamicNightQueue(
           getEffectiveRoleId(s) === entry.roleId &&
           (includeDead || (entry as any).deadActorWakes || !s.isDead)
       );
+      // 🎭 能力继承兜底（SST：utils/grantedAbilityHelper）
       if (!seat) {
-        seat = snapshot.seats.find(
-          (s) =>
-            s.role?.id === "pixie" &&
-            !s.isDead &&
-            ((s as any).pixieCopiedRole === entry.roleId ||
-              (s as any).acquiredAbilities?.includes?.(entry.roleId) ||
-              ((s as any).pixieMadnessRoleId === entry.roleId &&
-                (s as any).pixieHasAbility))
-        )!;
+        seat = findAbilityGrantingSeat(snapshot.seats as any[], entry.roleId);
       }
     }
 
     // ⚠️ 防御：解析不到行动者座位的条目直接丢弃，绝不在 seat.id 上崩。
     if (!seat) return null;
 
-    const isPixieActor =
-      seat?.role?.id === "pixie" && entry.roleId !== "pixie";
+    // 🎭 继承者代打：行动者角色 ≠ 本条目角色（原角色不在场，由继承者顶上）
+    const isInheritedActor =
+      seat?.role?.id !== entry.roleId &&
+      seatHasAcquiredAbility(seat, entry.roleId);
 
     const roleName =
       entry.roleId === "demon_info" && seat?.role?.name
@@ -620,12 +654,17 @@ export function generateDynamicNightQueue(
               ? "军团互认"
               : "恶魔互认"
           })`
-        : isPixieActor
-          ? `${entry.roleName}(小精灵)`
+        : isInheritedActor
+          ? // 🧚 小精灵 →「(小精灵)」；🧠 哲学家 →「(哲学家)」
+            `${entry.roleName}(${
+              seat.role?.id === "philosopher" ? "哲学家" : "小精灵"
+            })`
           : entry.roleName;
 
-    const wakeMessage = isPixieActor
-      ? `唤醒${seat.id + 1}号【小精灵】（使用【${entry.roleName}】能力）`
+    const wakeMessage = isInheritedActor
+      ? `唤醒${seat.id + 1}号【${
+          seat.role?.id === "philosopher" ? "哲学家" : "小精灵"
+        }】（使用【${entry.roleName}】能力）`
       : entry.wakeMessage;
 
     return {
@@ -644,8 +683,17 @@ export function generateDynamicNightQueue(
       meta: {
         // 保留 1.5 展开时写入的标记（如 isLunaticDisguisedDemon）
         ...((entry as any).meta ?? {}),
-        ...(isPixieActor
-          ? { isPixieInherited: true, originalRoleId: "pixie" }
+        // 🎭 能力继承标记（SST 助手判定；哲学家与小精灵同构）
+        ...(isInheritedActor
+          ? {
+              isInheritedAbilityActor: true,
+              originalRoleId: seat.role?.id,
+              inheritedAbilityRoleId: entry.roleId,
+              // 兼容旧消费点（历史上仅小精灵使用）
+              ...(seat.role?.id === "pixie"
+                ? { isPixieInherited: true, originalRoleId: "pixie" }
+                : {}),
+            }
           : {}),
       },
     };

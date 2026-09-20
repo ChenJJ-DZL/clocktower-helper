@@ -37,6 +37,7 @@ import { chefMaxPlausiblePairs } from "../roles/new_engine/chef.ability";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
+import { findAbilityGrantingSeat, seatHasAcquiredAbility } from "../utils/grantedAbilityHelper";
 import {
   applyFarmerSuccession,
   buildFarmerSuccessorGuide,
@@ -49,6 +50,10 @@ import {
   getPendingCerenovusNotice,
 } from "../utils/cerenovusNotice";
 import { computeIsPoisoned } from "../utils/gameRules";
+import {
+  createDeterministicRandom,
+  nightInfoSeed,
+} from "../roles/core/deterministicRandom";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
@@ -388,17 +393,14 @@ export async function executeViaNewEngine(
     isVortoxWorld: isVortox,
   };
 
+  // 🎭 能力继承路由（SST：utils/grantedAbilityHelper）
+  //   小精灵/哲学家「角色不变、能力叠加」——原角色不在场时由继承者顶上其行动槽。
+  //   ⚠️ 2026-09-20：此前这里硬编码 `role.id === "pixie"`，哲学家无法走通。
   const actorId =
     context.nightInfo?.seat?.id ??
     (ability as any).seatId ??
     context.seats.find((s) => s.role?.id === roleId)?.id ??
-    context.seats.find(
-      (s) =>
-        s.role?.id === "pixie" &&
-        !s.isDead &&
-        ((s as any).pixieCopiedRole === roleId ||
-          (s as any).acquiredAbilities?.includes?.(roleId))
-    )?.id ??
+    findAbilityGrantingSeat(context.seats as any[], roleId)?.id ??
     -1;
   const actorSeat = context.seats.find((s) => s.id === actorId);
   const rawRoleName =
@@ -568,7 +570,24 @@ export async function executeViaNewEngine(
       const minTargets = targetConfig?.min ?? 0;
       const maxTargets = targetConfig?.max ?? 0;
       const allowSelf = targetConfig?.allowSelf ?? true;
-      const aliveOnly = targetConfig?.aliveOnly ?? false;
+      /**
+       * ⚠️⚠️ 2026-09-21 修复 P1-13（真实 bug，非报告描述的"两套实现分叉"）：
+       *   `aliveOnly` 此前的判据是 `targetConfig?.aliveOnly` —— 但新引擎 `targetConfig` 的
+       *   官方字段名是 **`allowDead`**（见 `roles/core/roleAbility.types.ts:134`），
+       *   **全部 214 个能力都只定义 `allowDead`，没有任何一个定义 `aliveOnly`**。
+       *   ⇒ `targetConfig?.aliveOnly` 恒为 `undefined` ⇒ `?? false` ⇒ **aliveOnly 永远是 false**
+       *   ⇒ `NightActionConfirmModal.tsx:521` 的 `isDeadDisabled = seat.isDead && aliveOnly`
+       *      **恒为 false** ⇒ **确认弹窗里已死玩家永远可以被点选**！
+       *   说书人可误选死者产生非法行动（例如僧侣保护一具尸体），且事后无法撤销。
+       *
+       *   修法：消费方同时兼容两种命名 —— 显式 `aliveOnly` 优先，否则取 `!allowDead`。
+       *   （不改 214 个能力定义，避免大范围回归；`allowDead` 是 SST。）
+       */
+      const aliveOnly =
+        (targetConfig as any)?.aliveOnly ??
+        (typeof (targetConfig as any)?.allowDead === "boolean"
+          ? !(targetConfig as any).allowDead
+          : false);
 
       if (isSystemStep) {
         if (isGoodTwinStep) {
@@ -1785,10 +1804,22 @@ export async function executeViaNewEngine(
           const fakeCandidates = [0, 1, 2, 3, 4, 5].filter(
             (v) => v !== realCount
           );
+          // ⚠️⚠️ 2026-09-20 修复 P0-4：**禁止裸 `Math.random()`**（铁律）。
+          //   旧实现每次打开结果页都重新摇号 → 中毒/醉酒杂耍艺人反复查看时
+          //   数字乱跳（5→2→4），说书人无法复现、无法记录。
+          //   正解：与 `juggler.ability.ts:146` **同一枚种子 + 同一生成函数**，
+          //   保证「提示预演」与「结果弹窗」以及**多次重看**都得到同一个数字。
+          const jugglerRng = createDeterministicRandom(
+            nightInfoSeed(
+              "juggler",
+              actorId,
+              context.nightCount ?? 1
+            )
+          );
           count =
             fakeCandidates.length > 0
               ? fakeCandidates[
-                  Math.floor(Math.random() * fakeCandidates.length)
+                  Math.floor(jugglerRng() * fakeCandidates.length)
                 ]
               : realCount === 0
                 ? 1
@@ -1942,8 +1973,22 @@ export async function executeViaNewEngine(
     if (actorId !== undefined && actorId >= 0) {
       context.markAbilityUsed(roleId, actorId);
       const actorSeat = syncedSeats.find((s) => s.id === actorId);
-      if (actorSeat && actorSeat.role?.id === "pixie" && roleId !== "pixie") {
-        (actorSeat as any).pixieAbilityUsed = true;
+      // 🎭 继承者代打后须标记「该继承来的能力已消耗」（一次性语义）
+      //   SST：utils/grantedAbilityHelper::isInheritedAbilityConsumed 会读这些标记，
+      //   避免队列层反复把一次性能力排进后续夜晚（空唤醒）。
+      //   ⚠️ 2026-09-20：此前只认 pixie；现泛化到所有继承型角色（含哲学家）。
+      if (actorSeat && seatHasAcquiredAbility(actorSeat, roleId)) {
+        if (actorSeat.role?.id === "pixie") {
+          (actorSeat as any).pixieAbilityUsed = true;
+        }
+        const consumed: string[] = Array.isArray(
+          (actorSeat as any).inheritedAbilityConsumed
+        )
+          ? (actorSeat as any).inheritedAbilityConsumed
+          : [];
+        if (!consumed.includes(roleId)) {
+          (actorSeat as any).inheritedAbilityConsumed = [...consumed, roleId];
+        }
       }
     }
 

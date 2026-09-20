@@ -202,7 +202,22 @@ export const farmerAbility = createRoleAbility({
   roleId: "farmer",
   abilityId: "farmer_death_transfer",
   abilityName: "农夫继承",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  /**
+   * 【官方原文】"当你在夜晚死亡时，一名存活的善良玩家会变成农夫。"
+   * 【运作方式】"如果农夫在夜晚死亡，**唤醒**一名存活的善良玩家。"
+   *
+   * ⚠️⚠️ 2026-09-21 修复 P1-6：原为 `[PASSIVE]` → **农夫死亡当晚永不入队**。
+   *   根因：`useNightEngine.ts:194` 用 `triggerTiming.includes(ON_DEATH)` 打
+   *   `deathTriggered` 标，`dynamicQueueGenerator.ts:414` 据此门控"仅在当晚死亡时才入队"。
+   *   声明 PASSIVE ⇒ deathTriggered=false ⇒ 门控不生效 ⇒ **农夫死亡那一夜，
+   *   新农夫的传承步骤永远不出现在队列里**（说书人看不到"唤醒 X 号，告知他成为农夫"）。
+   *
+   *   这与 ravenkeeper(80) / banshee(86) / moonchild(75) / plague_doctor(83) 的结构
+   *   **完全一致**（一律 firstNightPriority:null + otherNightPriority:N），
+   *   它们都正确声明了 ON_DEATH。farmer 是唯一一个"死亡触发却写 PASSIVE"的数据错误。
+   *   详见 `roles/__tests__/poppyganda_ability_path_truth.test.ts` 的真值表护栏。
+   */
+  triggerTiming: [AbilityTriggerTiming.ON_DEATH],
   firstNightPriority: null,
   otherNightPriority: 85,
   firstNightOnly: false,

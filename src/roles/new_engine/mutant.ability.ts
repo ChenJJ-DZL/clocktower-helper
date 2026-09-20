@@ -3,8 +3,22 @@
  *
  * 【角色能力】"如果你公开声明自己是变种人，你可能会被处决。"
  *
- * 被动检测变种人是否公开暴露身份。若暴露，标记 mutantRevealed，
- * 由上层逻辑根据此标志判定是否允许处决。
+ * ============================================================
+ * ⚠️⚠️ 重要：本文件当前**不会被执行**（2026-09-21 实测确认）
+ * ============================================================
+ * 本能力 `triggerTiming: [PASSIVE]` 且 `firstNightPriority/otherNightPriority = null`
+ * ⇒ 永不入夜序队列；且 `triggerTiming` 的唯一生产消费方是 `useNightEngine.ts:195`
+ * 的 `ON_DEATH` 判定 ⇒ 管道永不运行。
+ *
+ * 变种人的**真实生效路径（SST）**是日间门禁三件套：
+ *   ① `src/utils/mutantGate.ts::hasPendingMutantMadnessCheck`  — 门禁判据（SST）
+ *   ② `components/ControlPanel.tsx:7`                          — 门禁消费点 1
+ *   ③ `components/game/GameStage.tsx:11`                       — 门禁消费点 2
+ *   ④ `hooks/useGameFlow.ts:14`（`handleDayEndTransition`）     — 门禁消费点 3
+ *   ⑤ `hooks/useDayActions.ts:1086`                            — 日间能力通路（公开声明）
+ *
+ * 登记在 `roles/__tests__/poppyganda_ability_path_truth.test.ts` 真值表 `LEGACY` 项中。
+ * ============================================================
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {

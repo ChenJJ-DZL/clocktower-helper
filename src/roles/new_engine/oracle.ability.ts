@@ -6,6 +6,7 @@
 
 import type { Seat } from "../../../app/data";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { countDeadEvilPlayers } from "../../utils/deadEvilCount";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -76,20 +77,17 @@ const calculateResult = async (
   // 获取当晚死亡的玩家ID列表
   const deadThisNight = snapshot.deadThisNight ?? [];
 
-  // 计算所有已死亡玩家（包括当晚刚刚死去的）中属于邪恶阵营的人数
-  const deadEvilCount = snapshot.seats
-    .filter((s: Seat) => s.isDead || deadThisNight?.includes(s.id))
-    .filter((s: Seat) => {
-      if (s.role?.id === "recluse") {
-        return (s as any).registerAsEvil !== false;
-      }
-      if (s.role?.id === "spy") {
-        return (s as any).registerAsEvil === true;
-      }
-      const isEvilType =
-        s.role && (s.role.type === "minion" || s.role.type === "demon");
-      return isEvilType || !!s.isEvilConverted;
-    }).length;
+  // ⚠️⚠️ 2026-09-20 修复 P0-2：**漏计邪恶旅行者 / 登记为邪恶的玩家**。
+  //   旧实现内联 `role.type === "minion" | "demon"` → 漏掉：
+  //     · 邪恶**旅行者**（type = "traveler"，阵营另算）
+  //     · 登记为邪恶的陌客 / 登记为善良的间谍
+  //   官方（神谕者）：「能检测死去的爪牙和恶魔，以及**任何属于邪恶阵营的玩家**。
+  //                    例如**邪恶的旅行者**，或者变得邪恶的镇民或外来者。」
+  //   ⇒ 收敛到唯一事实来源 `utils/deadEvilCount.ts`，禁止再内联。
+  const deadEvilCount = countDeadEvilPlayers(
+    snapshot.seats as any[],
+    deadThisNight
+  );
 
   // 检查场上是否有存活涡流
   const hasVortox = snapshot.seats.some((s: Seat) => s.role?.id === "vortox" && !s.isDead);

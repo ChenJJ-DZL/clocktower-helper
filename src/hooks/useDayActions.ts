@@ -12,10 +12,11 @@ import type { GamePhase, Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import type { ModalType } from "../types/modal";
 import type { DayActionContext } from "../types/roleDefinition";
+import { checkCannotGainAbility, isAntagonismEnabled } from "../utils/antagonism";
 import {
-  checkCannotGainAbility,
-  isAntagonismEnabled,
-} from "../utils/antagonism";
+  executeDayAbilityViaNewEngine,
+  getNewEngineDayAbility,
+} from "../utils/dayAbilityBridge";
 import { showAlert } from "../utils/nativeDialogShim";
 
 /**
@@ -39,6 +40,8 @@ export interface DayActionsDeps {
   roles: Role[];
   currentModal: ModalType;
   gamePhase: GamePhase;
+  /** ⭐ 当前夜数（P0-3：供日间桥接的确定性随机播种，必须与结算路径同源） */
+  nightCount?: number;
   nominationMap: Record<number, number>;
   nominationRecords: { nominators: Set<number>; nominees: Set<number> };
   witchActive: boolean;
@@ -118,6 +121,7 @@ export function useDayActions(deps: DayActionsDeps) {
     roles,
     currentModal,
     gamePhase,
+    nightCount,
     nominationMap,
     nominationRecords,
     witchActive,
@@ -891,6 +895,85 @@ export function useDayActions(deps: DayActionsDeps) {
         : sourceSeat.role;
       if (!effectiveRole) return;
 
+      // ── 新引擎日间能力：统一桥接执行（SST：utils/dayAbilityBridge）────────
+      // ⚠️ 2026-09-20 新增。根因：`AbilityTriggerTiming.DAY` 此前**全仓库无消费方**，
+      //   新引擎的日间能力永不执行（落进下方通用回退，只标记已使用 + 记日志）。
+      //
+      // 分层职责（避免与现有弹窗体系冲突）：
+      //   · 引擎侧：本块负责「真实执行」—— 走 middleware 管道，
+      //     产出 abilityResult / displayInfo，并把结构化结果写回 seat.dayAbilityResult。
+      //   · UI 侧：下方既有弹窗分支保持原样（艺术家问答窗 / 博学者双信息窗 / 杂耍判定窗…），
+      //     仅消费引擎产出的结果，不再自行「假装执行」。
+      //
+      // 异步说明：handleDayAbility 为同步回调，而管道是异步的。此处 fire-and-forget，
+      //   引擎结果通过 setSeats 异步落库；说书人弹窗同步打开，两者解耦。
+      //   若角色无新引擎 DAY 能力，则整块跳过，行为与改动前一致（零回归风险）。
+      const newEngineAbility = getNewEngineDayAbility(effectiveRole.id);
+      if (newEngineAbility) {
+        const isActorDisabled = isActorDisabledByPoisonOrDrunk(sourceSeat);
+        void executeDayAbilityViaNewEngine(
+          {
+            seatId: sourceSeatId,
+            seats,
+            roles,
+            gamePhase,
+            targetIds: targetSeatId !== undefined ? [targetSeatId] : [],
+            storytellerInput: (deps.dayAbilityForm ?? {}) as Record<
+              string,
+              any
+            >,
+            vortoxWorld: seats.some(
+              (s) => s.role?.id === "vortox" && !s.isDead
+            ),
+            // ⚠️ P0-3：真实夜数必须传入，否则确定性种子与结算路径错位
+            nightCount,
+          },
+          effectiveRole.id,
+          newEngineAbility
+        ).then((bridge) => {
+          if (!bridge.success) {
+            // preCheck 中止（已死亡 / 已使用等）：明确告知，不静默。
+            if (bridge.abortReason) {
+              addLog(
+                `[${effectiveRole.name}] 日间能力未执行：${bridge.abortReason}`
+              );
+            }
+            return;
+          }
+
+          const info = bridge.displayInfo ?? {};
+          const result = bridge.abilityResult ?? {};
+
+          // 引擎侧痕迹：写入 _abilityResults（与夜间通路同构，测试可断言）。
+          setSeats((prev) =>
+            prev.map((s) => {
+              if (s.id !== sourceSeatId) return s;
+              const prevResults = (s as any)._abilityResults ?? {};
+              return {
+                ...s,
+                _abilityResults: {
+                  ...prevResults,
+                  [effectiveRole.id]: result,
+                },
+                // 结构化结果回流，供既有 handleViewDayAbilityResult 回显。
+                dayAbilityResult:
+                  (s as any).dayAbilityResult ??
+                  {
+                    type: `${effectiveRole.id.toUpperCase()}_ENGINE_RESULT`,
+                    message:
+                      info.playerFacingLog ?? info.log ?? bridge.abilityLog,
+                    summary: info.log ?? bridge.abilityLog,
+                    abilityResult: result,
+                    isActorDisabled,
+                  },
+              } as any;
+            })
+          );
+
+          if (bridge.abilityLog) addLog(bridge.abilityLog);
+        });
+      }
+
       // ── 艺术家专用 ────────────────────────────────────
       if (effectiveRole.id === "artist") {
         if (sourceSeat.hasUsedDayAbility) {
@@ -1267,6 +1350,7 @@ export function useDayActions(deps: DayActionsDeps) {
               type: "philosopher",
               targetId: sourceSeatId,
               onConfirm: (roleId: string) => {
+                // 🎭 剧本扩展规则保留（罂粟花开 antagonism）：敌意互斥检查
                 if (isAntagonismEnabled(seats)) {
                   const decision = checkCannotGainAbility({
                     seats,
@@ -1281,8 +1365,74 @@ export function useDayActions(deps: DayActionsDeps) {
                   }
                 }
 
-                changeRole(sourceSeatId, roleId, roles);
-                logMessage += ` 获得了 [${roles.find((r) => r.id === roleId)?.name || roleId}] 的能力`;
+                // ⚠️ 2026-09-20 修正（官方语义）：哲学家「获得能力」而非「变成该角色」。
+                //   官方范例 1：「哲学家选择获得筑梦师能力。**从现在起，他将在筑梦师
+                //   应该行动时进行行动。**」→ 身份不变、能力叠加。
+                //   旧实现调 changeRole() 直接改写 seat.role（变身），
+                //   导致身份/阵营/夜序全部错乱，且违反"角色不变"。
+                //   现改为写入 acquiredAbilities（SST：utils/grantedAbilityHelper），
+                //   由夜间引擎按被继承角色的既有 rule 唤醒与结算——
+                //   一次性技能即为一次性，持续技能即为持续。
+                const grantedRole = roles.find((r) => r.id === roleId);
+                const grantedName = grantedRole?.name || roleId;
+
+                // 官方：若所选角色**在场**，该角色玩家变成酒鬼（哲学家仍获得能力）
+                const duplicateSeat = seats.find(
+                  (s) =>
+                    s.id !== sourceSeatId &&
+                    (s.role?.id === roleId ||
+                      (s as any).originalRole?.id === roleId)
+                );
+
+                setSeats((prev) =>
+                  prev.map((s) => {
+                    // ① 哲学家自身：记录继承的能力（身份不变）
+                    if (s.id === sourceSeatId) {
+                      const existing: string[] = Array.isArray(
+                        (s as any).acquiredAbilities
+                      )
+                        ? (s as any).acquiredAbilities
+                        : [];
+                      const details = (s.statusDetails || []).filter(
+                        (d: string) => !d.startsWith("获得能力:")
+                      );
+                      return {
+                        ...s,
+                        philosopherGainedRole: roleId,
+                        acquiredAbilities: existing.includes(roleId)
+                          ? existing
+                          : [...existing, roleId],
+                        statusDetails: [
+                          ...details,
+                          `获得能力:${grantedName}`,
+                        ],
+                      };
+                    }
+                    // ② 在场同名角色：变成酒鬼（官方规则）
+                    if (duplicateSeat && s.id === duplicateSeat.id) {
+                      const effects = [...((s as any).statusEffects ?? [])];
+                      if (
+                        !effects.some(
+                          (e: any) =>
+                            e.type === "drunk" && e.source === "philosopher"
+                        )
+                      ) {
+                        effects.push({
+                          type: "drunk",
+                          source: "philosopher",
+                          sourceSeatId,
+                        });
+                      }
+                      return { ...s, isDrunk: true, statusEffects: effects };
+                    }
+                    return s;
+                  })
+                );
+
+                logMessage += ` 获得了 [${grantedName}] 的能力`;
+                if (duplicateSeat) {
+                  logMessage += `（该角色在场，${duplicateSeat.id + 1}号玩家变成酒鬼）`;
+                }
                 addLog(logMessage);
               },
             },
@@ -1309,6 +1459,7 @@ export function useDayActions(deps: DayActionsDeps) {
       handleViewDayAbilityResult,
       isActorDisabledByPoisonOrDrunk,
       setDayAbilityForm,
+      deps.dayAbilityForm,
     ]
   );
 

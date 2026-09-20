@@ -71,7 +71,11 @@ export const fearmongerAbility = createRoleAbility({
   roleId: "fearmonger",
   abilityId: "fearmonger_fear",
   abilityName: "散布恐惧",
-  triggerTiming: [AbilityTriggerTiming.DAY],
+  // ⚠️ 2026-09-20 修正：官方原文「每个夜晚，你要选择一名玩家…」
+  //   旧值 [AbilityTriggerTiming.DAY] 是错的 → 导致该爪牙错误出现在**日间**按钮列表，
+  //   说书人白天可误触发。夜间优先级 firstNightPriority/otherNightPriority 本已存在，
+  //   说明真实设计意图就是夜间唤醒，DAY 标记属残留。
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: 41,
   otherNightPriority: 31,
   firstNightOnly: false,

@@ -3,8 +3,32 @@
  *
  * 【角色能力】"当罂粟种植者存活时，邪恶玩家互不认识。"
  *
+ * ============================================================
+ * ⚠️⚠️ 重要：本文件当前**不会被执行**（2026-09-21 实测确认）
+ * ============================================================
+ * 本能力声明 `triggerTiming: [PASSIVE]`，而全仓库对 `triggerTiming` 的**唯一生产消费方**
+ * 是 `useNightEngine.ts:195` 的 `ON_DEATH` 判定（用于 `deathTriggered` 打标）。
+ * `PASSIVE` 没有任何执行入口 ⇒ `calculate / stateUpdate / postProcess` 永不运行。
+ * （实测：注册表 213 个能力中有 **82 个 PASSIVE**，全部如此。）
+ *
+ * 罂粟种植者的**真实生效路径（SST）**是 legacy 链路：
+ *   ① `hooks/useGameController.ts:557` 玩家死亡时判 `role.id === "poppy_grower"`
+ *      且 `!isDrunk && !isPoisoned` → `setPoppyGrowerDead(true)`
+ *   ② `hooks/useNightSnapshot.ts` 把 `poppyGrowerDead` 注入快照
+ *   ③ `roles/demon/demonFirstNightHelper.ts:23-28` 据此隐藏爪牙名单（恶魔首夜互认）
+ *   ④ `components/game/console/GameConsole.tsx:405` 渲染"邪恶互认"步骤卡片
+ *
+ * 因此本文件里写的 `snapshot.evilHidden` 是**第 13 次 SST 分叉**：
+ * 与真实的 `snapshot.poppyGrowerDead` 是两个名字、两个写入点，且 `evilHidden` 全仓无读者。
+ *
+ * 【处置决定】保留文件（未来剧本素材，勿删），但：
+ *   - 保留 `evilHidden` 写出（不删，避免破坏可能的未来消费方），
+ *     同时**并行写出 SST 字段 `poppyGrowerDead`**，让两条口径在"若本文件被执行"时收敛；
+ *   - 由静态护栏测试 `poppy_grower_path_unification.test.ts` 钉死 SST 链路不被改坏。
+ * ============================================================
+ *
  * PASSIVE 触发，不唤醒。
- * 存活时设置 poppyGrowerActive 标记，引擎据此隐藏邪恶玩家之间的身份信息。
+ * 存活时标记 poppyGrowerActive，引擎据此隐藏邪恶玩家之间的身份信息。
  * 死亡时清除该标记。
  */
 
@@ -79,8 +103,12 @@ const calculateResult = async (
 /**
  * stateUpdate：设置 / 清除 poppyGrowerActive 标记
  *
- * 罂粟种植者存活时，snapshot.evilHidden = true，引擎据此隐藏邪恶玩家互识信息。
- * 死亡时，snapshot.evilHidden = false 或移除该标记。
+ * 存活时 → 隐藏邪恶互识信息；死亡时 → 恢复。
+ *
+ * ⚠️ 字段名收敛（2026-09-21）：真实 SST 是 `snapshot.poppyGrowerDead`（见文件头说明），
+ *    本函数在"若被执行"时**同时**写出两个字段，保证不会出现第三种口径：
+ *      - `poppyGrowerDead`  ← SST，供 demonFirstNightHelper / GameConsole 消费
+ *      - `evilHidden`       ← 本文件历史字段，保留兼容（无读者，勿依赖）
  */
 const stateUpdateResult = async (
   ctx: MiddlewareContext
@@ -105,6 +133,8 @@ const stateUpdateResult = async (
     snapshot: {
       ...ctx.snapshot,
       evilHidden: abilityResult.poppyGrowerActive,
+      // ⭐ 与真实 SST 收敛：存活 = 未死亡
+      poppyGrowerDead: !abilityResult.poppyGrowerActive,
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         poppy_grower: record,

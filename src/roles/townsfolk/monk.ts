@@ -17,7 +17,15 @@ export const monk: RoleDefinition = {
     "相克规则：利维坦：如果利维坦在场，僧侣保护玩家免受利维坦处决的影响。暴乱：如果暴乱在场，僧侣保护玩家免受暴乱提名的影响。",
   ],
   night: {
-    order: (isFirstNight) => (isFirstNight ? 80 : 80),
+    /**
+     * ⚠️ 死字段（2026-09-21 核验）：本字段只被 `utils/nightLogic.ts::generateNightTimeline`
+     * 消费，而该函数**在生产代码中已无消费方**（仅测试引用 legacy 通道）。
+     * 新引擎的真实夜序由 `new_engine/monk.ability.ts` 的
+     * `firstNightPriority: null` / `otherNightPriority: 24` / `otherNightOnly: true` 决定
+     * ——**首夜不唤醒**（已实测：ENGINE_CONFIG.fullNightOrder 中 monk 的 firstNightPriority = 0）。
+     * 此处把值改为官方语义，避免后来读者误以为"僧侣首夜也唤醒"（官方原文：`每个夜晚*` 的 * = 非首夜）。
+     */
+    order: (isFirstNight) => (isFirstNight ? 0 : 80),
     target: {
       count: { min: 1, max: 1 },
       canSelect: (target: Seat, self: Seat) => {

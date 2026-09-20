@@ -1041,6 +1041,7 @@ export function useGameController() {
     roles,
     currentModal,
     gamePhase,
+    nightCount,
     nominationMap,
     nominationRecords,
     witchActive,
@@ -1789,6 +1790,11 @@ export function useGameController() {
         apparentDemonRole: (s as any).apparentDemonRole,
         isDead: !!s.isDead,
         isDemonSuccessor: s.isDemonSuccessor,
+        // ⚠️⚠️ 2026-09-20 修复 P1-1：队列快照此前**漏掉 statusDetails** ——
+        //   而赏金猎人的条件唤醒门（`requiresKnownTargetDead`）判据正是
+        //   `seat.statusDetails` 里的「赏金已知」标记。漏掉 → 门读不到 →
+        //   每夜都被排入队列、白送一名邪恶玩家。
+        statusDetails: (s as any).statusDetails,
       })),
       statusEffects: {},
       gamePhase: isFirstNight ? ("firstNight" as const) : ("night" as const),

@@ -1,23 +1,13 @@
 import type { Role, Script } from "../../app/data";
 import { nightOrderParser } from "./nightOrderParser";
+import {
+  STANDARD_COMPOSITIONS as SST_STANDARD_COMPOSITIONS,
+  computeSetupComposition,
+} from "./setupComposition";
 
-// 官方标准人数阵营配比 (5 ~ 15 人)
-export const STANDARD_COMPOSITIONS: Record<
-  number,
-  { townsfolk: number; outsider: number; minion: number; demon: number }
-> = {
-  5: { townsfolk: 3, outsider: 0, minion: 1, demon: 1 },
-  6: { townsfolk: 3, outsider: 1, minion: 1, demon: 1 },
-  7: { townsfolk: 5, outsider: 0, minion: 1, demon: 1 },
-  8: { townsfolk: 5, outsider: 1, minion: 1, demon: 1 },
-  9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1 },
-  10: { townsfolk: 7, outsider: 0, minion: 2, demon: 1 },
-  11: { townsfolk: 7, outsider: 1, minion: 2, demon: 1 },
-  12: { townsfolk: 7, outsider: 2, minion: 2, demon: 1 },
-  13: { townsfolk: 9, outsider: 0, minion: 3, demon: 1 },
-  14: { townsfolk: 9, outsider: 1, minion: 3, demon: 1 },
-  15: { townsfolk: 9, outsider: 2, minion: 3, demon: 1 },
-};
+// ⚠️ 2026-09-20（P0-10）：配比表已收敛为**唯一事实来源** `utils/setupComposition.ts`。
+//   此处改为再导出（保持既有 import 路径兼容），**不得**再另行定义一份。
+export const STANDARD_COMPOSITIONS = SST_STANDARD_COMPOSITIONS;
 
 /**
  * 随机洗牌
@@ -146,13 +136,22 @@ export function generateAndSortQuickStartLineup(
     pickedMinions = pick(groups.minion, baseComp.minion);
     hasBaron = pickedMinions.some((r) => r.id === "baron");
 
-    let outsiderCount = baseComp.outsider;
-    let townsfolkCount = baseComp.townsfolk;
-    if (hasBaron) {
-      const maxOutsidersAvailable = groups.outsider.length;
-      const addedOutsiders = Math.min(2, maxOutsidersAvailable - outsiderCount);
-      outsiderCount += addedOutsiders;
-      townsfolkCount = Math.max(0, townsfolkCount - addedOutsiders);
+    // ⚠️⚠️ 2026-09-20 修复 P0-10：男爵 +2 **改为走唯一事实来源**。
+    //   旧实现内联 `Math.min(2, maxOutsidersAvailable - outsiderCount)`
+    //   且**静默少配**（池子不足时不提示），与 setup UI / 男爵能力三方分叉。
+    //   现在统一调用 `computeSetupComposition`，并把告警带出去。
+    const composition = computeSetupComposition(playerCount, {
+      baronInPlay: hasBaron,
+      availableOutsiderPool: groups.outsider.length,
+    });
+    let outsiderCount = composition.counts.outsider;
+    let townsfolkCount = composition.counts.townsfolk;
+    if (composition.warnings.length > 0) {
+      // 不静默：开局前把配比告警打到控制台（UI 层应同样展示）
+      console.warn(
+        "[quickStartGenerator] 配比告警：\n" +
+          composition.warnings.map((w) => ` · ${w}`).join("\n")
+      );
     }
 
     pickedOutsiders = pick(groups.outsider, outsiderCount);

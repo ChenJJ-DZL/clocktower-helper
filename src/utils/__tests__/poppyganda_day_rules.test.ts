@@ -187,7 +187,20 @@ describe("罂粟花开 · 白天/终局胜负规则", () => {
     expect(res.winner).toBe("Good");
   });
 
-  it("涡流存活 + 邪恶人数达标 → 邪恶获胜", () => {
+  it("涡流存活 + 3 人存活 + 该白天无人被处决 → 善良获胜（官方优先规则）", () => {
+    // ⚠️ 2026-09-21 修正期望值（原为 Evil，是 P0-1 修复前固化的**错误行为**）。
+    //
+    // 官方原文（src/data/officialRoleDocs.json）：
+    //   · 镇长：「如果只有三名玩家存活**且白天没有人被处决**，你的阵营获胜。」
+    //   · 涡流：「**如果白天没人被处决，邪恶阵营获胜。**」
+    // 本夹具恰好**同时满足两者**（存活 vortox + baron + mayor = 3 人；
+    // lastAction = "check_phase" 即该白天无人被处决）。
+    // ⇒ 命中官方优先规则「If both teams would win at the same time, good wins.」
+    //   ⇒ **善良胜**，而非邪恶胜。
+    //
+    // 原断言把「涡流下午无人被处决 = 邪恶胜」当作唯一结论，忽略了镇长的
+    // 硬性胜利条件与官方同时成立时的优先规则。详见 app/gameLogic.ts 的
+    // hasMayorPeacefulWin（已上移到人数阈值与军团分支之前）。
     const seats = [
       seat(0, "vortox"),
       seat(1, "baron"),
@@ -197,6 +210,31 @@ describe("罂粟花开 · 白天/终局胜负规则", () => {
     ];
     const res = checkGameEnd(seats, "check_phase");
     expect(res.isGameOver).toBe(true);
-    expect(res.winner).toBe("Evil");
+    expect(
+      res.winner,
+      "镇长(3人存活+无人被处决) 与 涡流(无人被处决) 同时成立 → 官方优先善良胜"
+    ).toBe("Good");
+    expect(res.reason ?? "").toContain("镇长");
+  });
+
+  it("涡流存活 + 4 人存活 + 该白天有人被处决 → 镇长不触发，游戏继续", () => {
+    // 对照组：说明「镇长和平获胜」与「涡流白天无人被处决」两条规则**互不相同、必须分开判**。
+    //   · 4 人存活 → 镇长条件（恰好 3 人）不满足 → 不触发；
+    //   · 该白天有人被处决 → 涡流条件（无人被处决）不满足 → 不触发。
+    // ⇒ 两条都不成立 ⇒ 游戏继续（本用例证明前一条的 `expect(winner).toBe("Good")`
+    //   不是"恒真"—— 换个夹具结果就变，护栏有效）。
+    const seats = [
+      seat(0, "vortox"),
+      seat(1, "baron"),
+      seat(2, "mayor"),
+      seat(3, "savant"),
+      dead(seat(4, "farmer")),
+    ];
+    const res = checkGameEnd(seats, "execution", 3);
+    expect(
+      res.isGameOver,
+      "4 人存活 + 有处决 → 镇长与涡流两条规则都不成立 → 游戏继续"
+    ).toBe(false);
+    expect(res.winner).toBeNull();
   });
 });

@@ -153,7 +153,14 @@ export function buildInfoMessage(
     case "town_crier": {
       const realVal = Boolean(minionNominatedToday);
       const displayVal = isCorrupted ? !realVal : realVal;
-      return `告诉他：今天${displayVal ? "有人提名过爪牙" : "没有人提名过爪牙"}。`;
+      // ⚠️⚠️ 2026-09-20 修复 P0-9：**主谓颠倒**。
+      //   旧文案「有人提名过爪牙」把 **提名者** 与 **被提名者** 弄反了：
+      //   官方能力是「得知在今天白天时**是否有爪牙发起过提名**」
+      //     【范例】"今天白天，仅有一名镇民玩家发起提名。当晚，得知'否'。"
+      //     【范例】"有四名玩家发起提名。其中两名是爪牙。……得知'是'。"
+      //   ⇒ 判据是**提名者是否爪牙**，不是"是否有人提名了爪牙"。
+      //   玩家据此完全反推白天谁在行动 → 推理链整条歪掉。
+      return `告诉他：今天${displayVal ? "有爪牙发起过提名" : "没有爪牙发起过提名"}。`;
     }
     case "mathematician": {
       const realCount = Number((ctx as any).anomalyCount ?? 0);

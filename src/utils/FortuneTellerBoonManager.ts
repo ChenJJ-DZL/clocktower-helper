@@ -6,6 +6,38 @@
 import { continuousDetectionManager } from "./ContinuousDetectionManager";
 import { unifiedEventBus } from "./unifiedEventBus";
 
+/**
+ * ⭐ 座位快照提供者（P0-8 修复）
+ *
+ * 为什么需要它：`selectNewBoon` 在实现时**拿不到游戏状态**，
+ * 因此被写成了 `console.log` 桩函数恒返回 `null`
+ * ⇒ 干扰项一旦变邪恶，**永远无法重选**，占卜师此后每夜多报一名假恶魔。
+ *
+ * 正解：由**上层（React 侧）注入一个只读的座位提供者**，
+ * 本管理器在被触发时同步拉取当前座位，自行挑一名**存活的善良玩家**
+ * （官方：「一旦被他标记为'干扰项'的那名玩家变为邪恶阵营，
+ *          说书人就需要**重新选择另一名善良玩家**」）。
+ */
+export type BoonSeatSnapshot = Array<{
+  id: number;
+  isDead?: boolean;
+  role?: { id?: string; type?: string } | null;
+  isEvilConverted?: boolean;
+  isGoodConverted?: boolean;
+  registerAsEvil?: boolean;
+  registerAsGood?: boolean;
+  [key: string]: any;
+}>;
+
+let boonSeatProvider: (() => BoonSeatSnapshot) | null = null;
+
+/** 由 React 层注入座位快照提供者（每个新局都应注入一次） */
+export function setBoonSeatProvider(
+  provider: (() => BoonSeatSnapshot) | null
+): void {
+  boonSeatProvider = provider;
+}
+
 export interface FortuneTellerBoonConfig {
   /** 游戏ID */
   gameId: string;
@@ -167,17 +199,66 @@ class FortuneTellerBoonManager {
 
   /**
    * 选择新的干扰项
+   *
+   * ⚠️⚠️ P0-8 修复（2026-09-20）：旧实现是 `console.log` 桩函数，**恒返回 null**
+   *   → 干扰项变邪恶后永不重选 → 占卜师每夜持续多报一名假恶魔，且无 UI 可改。
+   *
+   * 正解：从注入的座位提供者拉取当前座位，挑一名**存活的善良玩家**：
+   *   · 排除旧干扰项本人（已变邪恶）
+   *   · 排除已死亡玩家（官方语境是「另一名善良玩家」）
+   *   · 排除阵营为邪恶者
+   *   · 确定性挑选（按座位 id 升序取第一个）——避免随机导致同一局面不可复现
+   *
+   * 若提供者未注入 / 无可选玩家 → 返回 null，并**明确告警**（不静默）。
    */
   private async selectNewBoon(
-    _gameId: string,
-    _oldBoonSeatId: number
+    gameId: string,
+    oldBoonSeatId: number
   ): Promise<number | null> {
-    // 这里需要从游戏状态中获取所有善良玩家
-    // 暂时返回null，实际实现需要游戏状态信息
-    console.log(
-      "[FortuneTellerBoonManager] 需要从游戏状态中选择新的干扰项，但游戏状态接口未实现"
-    );
-    return null;
+    if (!boonSeatProvider) {
+      console.warn(
+        "[FortuneTellerBoonManager] 座位提供者未注入，无法自动重选干扰项" +
+          `（gameId=${gameId}）。请调用 setBoonSeatProvider() 后重试。`
+      );
+      return null;
+    }
+
+    let seats: BoonSeatSnapshot;
+    try {
+      seats = boonSeatProvider();
+    } catch (err) {
+      console.error(
+        "[FortuneTellerBoonManager] 座位提供者抛错，无法重选干扰项:",
+        err
+      );
+      return null;
+    }
+
+    const candidate = seats
+      .filter((s) => s.id !== oldBoonSeatId)
+      .filter((s) => !s.isDead)
+      .filter((s) => !this.isSeatEvil(s))
+      .sort((a, b) => a.id - b.id)[0];
+
+    if (!candidate) {
+      console.warn(
+        `[FortuneTellerBoonManager] 找不到可用的新干扰项（gameId=${gameId}），` +
+          "干扰项保持原状，需说书人手动指定。"
+      );
+      return null;
+    }
+
+    return candidate.id;
+  }
+
+  /** 判定座位在结算时是否被当作邪恶（含转换与登记） */
+  private isSeatEvil(seat: BoonSeatSnapshot[number]): boolean {
+    if (seat.isEvilConverted) return true;
+    if (seat.isGoodConverted) return false;
+    if (seat.registerAsEvil === true) return true;
+    if (seat.registerAsGood === true) return false;
+    const t = seat.role?.type;
+    return t === "demon" || t === "minion" || seat.role?.id === "legion";
   }
 
   /**

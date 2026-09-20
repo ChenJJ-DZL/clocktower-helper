@@ -2,6 +2,7 @@
 import type { Seat } from "../../../app/data";
 import type { RoleDefinition } from "../../types/roleDefinition";
 import { isSeatEvil } from "../../utils/seatAlignment";
+import { applyBountyHunterEvilConversion } from "../../utils/bountyHunterSetup";
 
 /**
  * 赏金猎人 (Bounty Hunter)
@@ -99,43 +100,48 @@ export const bounty_hunter: RoleDefinition = {
   },
 
   // 赏金猎人在场时，设置阶段自动将一名镇民转变为邪恶阵营
+  //
+  // ⚠️⚠️ 2026-09-20 修复 P1-2：**本 onSetup 与 `utils/bountyHunterSetup.ts` 曾双写入点分叉**。
+  //   旧实现内联了转换逻辑，与 SST 有三处不一致：
+  //     ① 用**裸 `Math.random()`**（SST 用 `createDeterministicRandom(seed)`）
+  //        → 同一开局重开两次，转邪恶的可能是**不同的人**，无法复现上一局；
+  //     ② **不剥离红罗刹**（SST 明确剥离）→ 红罗刹可能被误转邪恶，与说书人意图相悖；
+  //     ③ 不检查幂等（SST 有 `seats.some(isEvilConverted)` 短路）。
+  //   ⇒ 现改为**委托唯一事实来源** `applyBountyHunterEvilConversion`，
+  //      本处只负责把结果翻译成 onSetup 的 updates 格式。
   onSetup: (context: { seats: Seat[]; selfId: number }) => {
-    const { seats, selfId } = context;
+    const { seats } = context;
 
-    // 候选人为除赏金猎人外的其他镇民
-    const candidateTownsfolk = seats.filter(
-      (s: Seat) =>
-        s.id !== selfId && s.role?.type === "townsfolk" && !s.isEvilConverted
-    );
+    const { seats: converted, convertedSeatId } =
+      applyBountyHunterEvilConversion(seats as any);
 
-    if (candidateTownsfolk.length > 0) {
-      const randomIndex = Math.floor(Math.random() * candidateTownsfolk.length);
-      const evilTarget = candidateTownsfolk[randomIndex];
-
-      const prevDetails = evilTarget.statusDetails || [];
-      const updatedDetails = prevDetails.includes("转为邪恶")
-        ? prevDetails
-        : [...prevDetails, "转为邪恶"];
-
-      return {
-        updates: [
-          {
-            id: evilTarget.id,
-            isEvilConverted: true,
-            alignment: "evil",
-            statusDetails: updatedDetails,
-          },
-          {
-            id: selfId,
-            bountyHunterEvilConvertedId: evilTarget.id,
-          },
-        ],
-        logs: {
-          privateLog: `赏金猎人在场：${evilTarget.id + 1}号【${evilTarget.role?.name}】转变为邪恶阵营`,
-        },
-      } as any;
+    if (convertedSeatId === null) {
+      return { handled: false };
     }
 
-    return { handled: false };
+    // 只回传**实际发生变化**的座位：被转换者 + 赏金猎人（记录 convertedId）
+    const changed = converted.filter((s: any, i: number) => {
+      const before = (seats as any)[i];
+      if (!before) return true;
+      return (
+        s.isEvilConverted !== before.isEvilConverted ||
+        s.alignment !== before.alignment ||
+        (s.statusDetails ?? []).join("|") !==
+          (before.statusDetails ?? []).join("|") ||
+        s.bountyHunterEvilConvertedId !== before.bountyHunterEvilConvertedId
+      );
+    });
+
+    const targetSeat = converted.find((s: any) => s.id === convertedSeatId);
+    return {
+      handled: true,
+      updates: changed.map((s: any) => {
+        const { id, ...patch } = s;
+        return { id, ...patch };
+      }),
+      logs: {
+        privateLog: `赏金猎人在场：${convertedSeatId + 1}号【${targetSeat?.role?.name ?? "镇民"}】转变为邪恶阵营（确定性抽取）`,
+      },
+    } as any;
   },
 };

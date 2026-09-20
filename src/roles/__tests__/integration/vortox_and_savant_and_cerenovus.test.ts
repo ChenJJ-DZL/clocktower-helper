@@ -128,6 +128,14 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
     });
 
     it("town_crier: should invert minion nomination info under Vortox", () => {
+      // ⚠️ 2026-09-21 修正断言措辞（原为「没有人提名过爪牙」，是**主谓颠倒**的错误文案）。
+      //
+      // 官方原文（src/data/officialRoleDocs.json · 城镇公告员）：
+      //   「每个夜晚*，你会得知在今天白天时**是否有爪牙发起过提名**。」
+      //   「他**不会得知哪些玩家是爪牙**……只会得知今天白天是否有**爪牙发起了提名**。」
+      // ⇒ 信息主体是「**爪牙是否提名**」（谁提名），**不是**「有人提名爪牙」（谁被提名）。
+      //   旧文案「没有人提名过爪牙」把主宾颠倒了，会让说书人误报成"没人提名爪牙玩家"。
+      //   已在 utils/infoMessageBuilder.ts 的 town_crier 分支修正。
       const msgNominated = buildInfoMessage("town_crier", {
         seats,
         selfId: 0,
@@ -135,7 +143,9 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
         minionNominatedToday: true,
         vortoxWorld: true,
       });
-      expect(msgNominated).toContain("没有人提名过爪牙");
+      // 真实值 = true（有爪牙提名），涡流下必须反转 → 告知「没有爪牙发起过提名」
+      expect(msgNominated).toContain("没有爪牙发起过提名");
+      expect(msgNominated).not.toContain("有人提名过爪牙");
 
       const msgNotNominated = buildInfoMessage("town_crier", {
         seats,
@@ -144,7 +154,8 @@ describe("Savant, Cerenovus & Global Vortox False Info Fixes", () => {
         minionNominatedToday: false,
         vortoxWorld: true,
       });
-      expect(msgNotNominated).toContain("有人提名过爪牙");
+      // 真实值 = false，涡流下反转 → 告知「有爪牙发起过提名」
+      expect(msgNotNominated).toContain("有爪牙发起过提名");
     });
 
     it("oracle: dead evil count must strictly not equal real count under Vortox", () => {

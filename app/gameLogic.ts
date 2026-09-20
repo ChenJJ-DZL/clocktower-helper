@@ -676,9 +676,26 @@ export function checkGameEnd(
   //         · 官方并行成立 → **善良胜**
   //   ⚠️ 因此这一判定必须放在人数阈值**之前**，否则邪恶会抢先返回。
   //   （本项目未建模 Fabled，故无需处理「Fabled 不计入」的附加条款。）
+  //
+  // ⚠️⚠️ 2026-09-20 修复 P0-1：**「平安日」不能靠 `lastAction === "execution"` 判定**。
+  //   真实分发有两条入口（均已核对调用点）：
+  //     · `useLogicDispatcher.ts:144`  → `executedPlayerId ? "execution" : "check_phase"`
+  //       ⇒ **普通平安日**（无人被处决）传的是 `"check_phase"`，永远不满足 `==="execution"`！
+  //     · `useExecutionHandlers.ts:1303` → `executedId: undefined, lastAction: "execution"`
+  //       ⇒ 仅**涡流平票平安日**这一条冷门路径会传 `execution` + `null`。
+  //   于是旧判据下：**普通平安日镇长永远不和平获胜**，反而被下方
+  //   「存活仅 2 人 → 邪恶胜」抢判（实测 A 组 → Evil，官方应 Good）。
+  //
+  //   ⇒ 正解：改用**语义判据**「本轮没有人被处决」= `executedPlayerId === null`
+  //      且 `lastAction` 属于**阶段结算类**（`check_phase` / `execution`），
+  //      不再要求恰好等于 `"execution"`。
+  //      这样 A、B 两条入口都收敛到同一口径（唯一事实来源）。
+  const isNoExecutionResolution =
+    executedPlayerId === null &&
+    (lastAction === "execution" || lastAction === "check_phase");
+
   const hasMayorPeacefulWin =
-    lastAction === "execution" &&
-    executedPlayerId === null && // 平安日：当日无人被处决
+    isNoExecutionResolution &&
     aliveCount === 3 && // 恰好 3 人存活（aliveSeats 含旅行者 → 与官方口径一致）
     aliveSeats.some(
       (s) => s.role?.id === "mayor" && !s.isPoisoned && !s.isDrunk

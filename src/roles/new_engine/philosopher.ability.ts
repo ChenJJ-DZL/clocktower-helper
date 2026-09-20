@@ -105,6 +105,32 @@ const stateUpdate = async (
     });
   }
 
+  // 🎭 能力继承写入（SST：utils/grantedAbilityHelper）
+  //   官方：「哲学家获得该角色的能力」——身份**不变**，能力叠加。
+  //   写入通用载体 acquiredAbilities，供夜间队列 / 能力执行两处路由识别；
+  //   被继承角色是一次性技能 → 继承后亦为一次性；是持续技能 → 亦为持续。
+  if (r?.chosenRoleId) {
+    nextSeats = nextSeats.map((s: any) =>
+      s.id === ctx.actionNode.seatId
+        ? {
+            ...s,
+            philosopherGainedRole: r.chosenRoleId,
+            acquiredAbilities: Array.isArray(s.acquiredAbilities)
+              ? s.acquiredAbilities.includes(r.chosenRoleId)
+                ? s.acquiredAbilities
+                : [...s.acquiredAbilities, r.chosenRoleId]
+              : [r.chosenRoleId],
+            statusDetails: [
+              ...((s.statusDetails || []) as string[]).filter(
+                (d: string) => !d.startsWith("获得能力:")
+              ),
+              `获得能力:${r.chosenRoleId}`,
+            ],
+          }
+        : s
+    );
+  }
+
   return {
     ...ctx,
     snapshot: {
