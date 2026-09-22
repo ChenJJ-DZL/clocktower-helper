@@ -88,6 +88,68 @@ export function checkChoirboyTrigger(
   };
 }
 
+/**
+ * ⭐ 【设置调整】`[+国王]` —— 唱诗男孩的伴随角色注入
+ *
+ * 官方【唱诗男孩】原文：
+ *   「**在游戏设置阶段，如果唱诗男孩在场而国王不在场，那么国王就会被添加进来
+ *     并替换掉一个其他镇民。**而如果国王已经在场，唱诗男孩不会因此再将另外一名
+ *     国王添加进场。」
+ *
+ * 🔒 **本泛型版是唯一实现**（`Seat[]` 版只是适配层）—— 设置阶段的**所有**组装点
+ *    都必须调用它，**禁止**在任何一处写专属特例：
+ *      · 手动设置换角 → `choir_boy.ability.ts::onSetup`（经 `applyChoirboyKingSetup` 适配）
+ *      · 快速开局生成 → `quickStartGenerator.ts`（直接调用本函数）
+ *
+ * 行为：若「存在 choir_boy」且「不存在 king」⇒ 把一名**其他镇民**替换为 king。
+ *   · **替换而非新增**（人数与阵营配比不变）
+ *   · 已存在 king ⇒ 原样返回（官方明文不重复添加）
+ *   · 无可替换镇民 / king 角色缺失 ⇒ 原样返回并给出 `reason`
+ */
+export function injectChoirboyKing<T extends { id: string; type: string }>(
+  items: T[],
+  kingRole: T | undefined
+): { items: T[]; changed: boolean; replacedId: string | null; reason?: string } {
+  if (!items.some((r) => r.id === "choir_boy")) {
+    return { items, changed: false, replacedId: null, reason: "唱诗男孩不在场" };
+  }
+  if (items.some((r) => r.id === "king")) {
+    return { items, changed: false, replacedId: null, reason: "国王已在场（官方：不重复添加）" };
+  }
+  if (!kingRole) {
+    return { items, changed: false, replacedId: null, reason: "king 角色未注册" };
+  }
+  const target = items.find((r) => r.type === "townsfolk" && r.id !== "choir_boy");
+  if (!target) {
+    return { items, changed: false, replacedId: null, reason: "无可用镇民可替换" };
+  }
+  const next = items.map((r) => (r === target ? { ...(kingRole as T) } : r));
+  return { items: next, changed: true, replacedId: target.id };
+}
+
+/** `Seat[]` 适配层（`IRoleAbility.onSetup` 用的就是它）—— 逻辑全在 `injectChoirboyKing` */
+export function applyChoirboyKingSetup(
+  seats: Seat[],
+  kingRole: { id: string; name: string; [k: string]: any } | undefined
+): { seats: Seat[]; changed: boolean; replacedSeatId: number | null; reason?: string } {
+  const roles = seats.map((s) => ({ ...((s as any).role ?? { id: "__none__", type: "__none__" }) }));
+  const res = injectChoirboyKing(roles as any[], kingRole as any);
+  if (!res.changed) {
+    return { seats, changed: false, replacedSeatId: null, reason: res.reason };
+  }
+  // 找出被替换的座位：原本是目标镇民、现在应当变成 king 的那个
+  const targetSeat = seats.find(
+    (s: any) => s.role?.type === "townsfolk" && s.role?.id !== "choir_boy"
+  );
+  if (!targetSeat) {
+    return { seats, changed: false, replacedSeatId: null, reason: "无可用镇民可替换" };
+  }
+  const next = seats.map((s) =>
+    s.id === targetSeat.id ? ({ ...s, role: kingRole as any } as Seat) : s
+  );
+  return { seats: next, changed: true, replacedSeatId: targetSeat.id };
+}
+
 // ─── 3. 农夫 (Farmer) ──────────────────────────────────────────────────
 
 /**

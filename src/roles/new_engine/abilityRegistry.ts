@@ -244,6 +244,12 @@ function convertToUnifiedAbility(ability: any): UnifiedAbilityConfig {
     abilityId: ability.abilityId,
     abilityName: ability.abilityName,
     triggerTiming: ability.triggerTiming,
+    /**
+     * ⚠️ 2026-09-21：本注册表是**逐字段白名单复制** —— 新增  字段时
+     *   必须在这里同步添加，否则字段在 registry 中**静默丢失**（本轮踩到：
+     *   `deathEventWatch` 写过但 `getAllAbilities()` 读不到 ⇒ 护栏 ⑦ 红）。
+     */
+    deathEventWatch: (ability as any).deathEventWatch,
     firstNightPriority: ability.firstNightPriority ?? null,
     otherNightPriority: ability.otherNightPriority ?? null,
     firstNightOnly: ability.firstNightOnly ?? false,

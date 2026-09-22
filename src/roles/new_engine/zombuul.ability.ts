@@ -69,6 +69,35 @@ const updateKillState = async (
   const { snapshot, meta, storytellerInput } = context;
   const validTargets = meta?.validTargets as number[];
 
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P0-B（醉酒/中毒门控缺失）：
+   *   本 `updateKillState` 此前**完全不消费 `context.meta.abilityEffective`**
+   *   ⇒ 中毒/醉酒的恶魔照样杀人（与已修的 cerenovus / vortox 同类）。
+   *
+   * 🔒 blocked 分支**只记「选择」**，刻意**不写** `snapshot.seats`
+   *   （死亡本身就是"效果"，写了就等于能力生效）。
+   *   ⚠️ 但**必须写 `lastKill`（`killed:false`）** ——
+   *   `invariantTesting/invariants.ts:605` 把 `snap.lastKill !== undefined`
+   *   列为 kill 语义的通过条件之一，缺了会触发不变量违规。
+   */
+
+  const abilityEffective = context.meta.abilityEffective ?? true;
+  if (!abilityEffective) {
+    return {
+      ...context,
+      snapshot: {
+        ...context.snapshot,
+        lastKill: {
+          demonId: context.actionNode.seatId,
+          targetId: null,
+          demonRole: "zombuul",
+          killed: false,
+        },
+      },
+      meta: { ...context.meta, isCorrupted: true },
+    };
+  }
+
   if (!validTargets || validTargets.length === 0) {
     return context;
   }

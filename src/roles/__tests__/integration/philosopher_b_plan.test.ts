@@ -17,11 +17,12 @@
  * ⚠️ 防假绿自检：把 philosopher.ability.ts 的 acquiredAbilities 写入注释掉，
  *    I2/I3 必须变红。见文件末尾「反例验证」。
  */
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { Seat } from "../../../../app/data";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import { philosopherAbility } from "../../new_engine/philosopher.ability";
 import { unifiedRoleDefinition } from "../../unifiedRoleDefinition";
+import { resetLimitedAbilityUses } from "../../../utils/LimitedAbilityManager";
 import {
   findAbilityGrantingSeat,
   seatHasAcquiredAbility,
@@ -73,6 +74,23 @@ async function runPhilosopher(
 // ─────────────────────────────────────────────────────────────────────
 // I1 + I2：身份不变 / 能力落载体
 // ─────────────────────────────────────────────────────────────────────
+/**
+ * ⚠️ 2026-09-21 补：限次能力的 `instanceUses` / `globalUses` 是**模块级单例**、
+ *   会**跨用例累积**。用例 A 用过之后，用例 B 会被 `preCheck` 拒绝
+ *   （表现为 `abilityResult === undefined`）。
+ *
+ *   ⚠️ 此前不暴露：P0-A 修复前 `initializeLimitedAbilityManager()` 生产零调用
+ *   ⇒ `definitions` 为空 ⇒ 校验恒真且**不记账** ⇒ 用例之间无污染。
+ *   修好 P0-A（模块级自初始化）后，记账才真正生效 ⇒ 必须在每个用例前重置。
+ *
+ *   ⚠️ 必须用**无参**调用清空全部 ——
+ *   `resetLimitedAbilityUses(seatId, abilityId)` 只删 `instanceUses`、
+ *   **不删 `globalUses`**，对 `global: true` 的能力（如女裁缝）重置无效。
+ */
+beforeEach(() => {
+  resetLimitedAbilityUses();
+});
+
 describe("哲学家 · I1 身份不变 + I2 能力落载体", () => {
   it("选择不在场的筑梦师 → 哲学家身份仍是 philosopher，acquiredAbilities 含 dreamer", async () => {
     const seats = [

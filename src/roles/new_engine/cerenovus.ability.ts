@@ -51,6 +51,38 @@ const stateUpdate = async (
   const r = ctx.meta.abilityResult as any;
   if (r?.targetId == null) return ctx;
 
+  // ⚠️⚠️ 2026-09-21 修复 P0：洗脑师自身醉酒/中毒时 **不得施加疯狂**。
+  //
+  // 官方原文（投毒者 / 规则书「醉酒与中毒」）：
+  //   "中毒的玩家会失去能力……他的能力**不会真实地影响游戏**。"
+  // ⇒ 被下毒的洗脑师仍会被唤醒、仍会被要求选目标+角色（说书人走场），
+  //   **但目标不会真的需要「疯狂」**（处决时不会被判定为违反疯狂）。
+  //
+  // 实测证据（2026-09-21 探针 zz_probe_drunk_effect_gate）：
+  //   修复前 drunk=true（醉酒洗脑师照样施加 isMad）—— 与 imp/monk 的正确行为相反。
+  //
+  // 实现：abilityEffective=false 时只记录选择，绝不写 isMad / madRoles / statusDetails。
+  const abilityEffective = ctx.meta.abilityEffective ?? true;
+  if (!abilityEffective) {
+    const cerenovusData = {
+      targetId: r.targetId,
+      roleName: r.roleName,
+      checkedToday: false,
+      blockedByDrunkOrPoison: true,
+    };
+    return {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        _abilityResults: {
+          ...((ctx.snapshot as any)._abilityResults ?? {}),
+          cerenovus: { ...r, mad: false, blockedByDrunkOrPoison: true },
+        },
+      },
+      meta: { ...ctx.meta, cerenovusResult: cerenovusData, isCorrupted: true },
+    };
+  }
+
   const updatedSeats = ctx.snapshot.seats.map((s: any) => {
     if (s.id === r.targetId) {
       const details = (s.statusDetails || []).filter(

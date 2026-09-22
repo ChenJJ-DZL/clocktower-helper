@@ -1114,8 +1114,28 @@ export function GameModals() {
         onCancel={() => actions.setCurrentModal(null)}
       />
 
-      {/* 夜晚死亡结算弹窗：支持正常流转与撤销(Undo)回到 dawnReport 阶段的无缝展示 */}
-      {(nightDeathReportModal || gamePhase === "dawnReport") && (
+      {/**
+       * ⚠️⚠️ 2026-09-21 修复 P0（用户实测报告）：「刚进白天点撤销，只能看到平安夜弹窗，
+       *   只能点『进入白天』，实际无法撤销。」
+       *
+       * 旧条件：`(nightDeathReportModal || gamePhase === "dawnReport")`
+       *   —— 撤销会把 `gamePhase` **从快照恢复**成 `"dawnReport"`
+       *      （见 `utils/undoSnapshot.ts:110`：它只清了 `currentModal`，
+       *        但 `gamePhase` 在 `SNAPSHOT_KEYS` 里，会被一并还原）；
+       *   —— 于是这个 `|| gamePhase === "dawnReport"` 分支**强制重新渲染**
+       *      平安夜弹窗，且它**全屏 + 只有一个「确认」出口**
+       *      （`onConfirm` → `confirmNightDeathReport()` → 推进到白天）
+       *   ⇒ 撤销按钮被弹窗遮住 ⇒ **撤销链被彻底截断**（点一次撤销 = 原地打转）。
+       *
+       * 改为**只认 `currentModal`**：
+       *   · 正常流转仍显示 —— 夜晚结束一定由
+       *     `useNightSnapshot.continueToNextAction()` 设置
+       *     `{ type: "NIGHT_DEATH_REPORT", data: { message } }`（:386-400），
+       *     该弹窗照常弹出，行为不变；
+       *   · 撤销后 `currentModal` 已被 `undoSnapshot` 清空 ⇒ 弹窗不再出现
+       *     ⇒ 说书人可以继续点撤销逐级回退。
+       */}
+      {nightDeathReportModal && (
         <NightDeathReportModal
           message={
             nightDeathReportModal?.message ??

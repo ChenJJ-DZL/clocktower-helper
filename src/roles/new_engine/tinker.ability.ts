@@ -9,6 +9,7 @@ import {
 } from "../core/roleAbility.types";
 
 import { isProtectedByTeaLady } from "../../utils/bmrMechanics";
+import { isDrunkOrPoisoned } from "../../utils/bmrMechanics";
 
 // 前置校验：修补匠是被动能力，主要由说书人手动触发
 const preCheckPassive = async (
@@ -52,6 +53,30 @@ const calculateResult = async (
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * ⚠️⚠️ 2026-09-21 修复【醉酒/中毒失效门控缺失】：
+   * 官方核心规则：醉酒或中毒的玩家**失去其能力**（说书人只装作其仍有能力、走过场执行）。
+   * 修补匠：`你可能会在任何时候死亡，即使没有玩家选择你。`
+   *   ⇒ 醉酒/中毒的修补匠**不得**因此死亡。
+   * 🔴 原实现：本文件全篇**无任何**有效性判定，而 `stateUpdate` 在
+   *   `src/utils/middlewarePipeline.ts:91` 被**无条件**执行 ⇒ 醉酒/中毒的修补匠依然令效果落地。
+   * ✅ 修法：状态落地前用 SST `isDrunkOrPoisoned`（→ `utils/seatDisabled::isSeatDisabled`，
+   *   已覆盖 `statusEffects` / `statuses` / 中文 `statusDetails`）判定；受干扰时**只记选择、不写状态**。
+   */
+  {
+    const _seats = (context.snapshot.seats ?? []) as any[];
+    const _actor = _seats.find((s: any) => s.id === ((context.meta.abilityResult as any)?.tinkerSeatId));
+    if (isDrunkOrPoisoned(_actor, _seats)) {
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityResult: { ...(context.meta.abilityResult as any), suppressedByImpairment: true },
+        },
+      };
+    }
+  }
+
   const { meta, snapshot } = context;
   const result = meta.abilityResult as any;
 

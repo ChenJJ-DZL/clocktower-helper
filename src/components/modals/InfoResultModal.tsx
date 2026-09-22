@@ -65,10 +65,25 @@ export function InfoResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.9} minScale={0.55} className="p-2 text-white">
-        <div className="text-center my-auto space-y-4 max-w-[86vw] px-2 py-2">
+      {/**
+       * ⚠️ 2026-09-21 排版优化（用户明确要求：尽可能不换行 / 字号尽可能大 / 四边留白尽可能少）
+       *   ① minScale 0.55 → 0.38：字号上调后（多行 3xl/4xl/5xl → 4xl/5xl/6xl；
+       *      单行 4xl/5xl/6xl → 5xl/6xl/7xl），AutoFitContent 需要更大的缩放
+       *      余量才能把长内容（如恶魔互认的
+       *      「提线木偶×告密者相克·恶魔额外伪装：…」）完整收进弹窗。
+       *      ⚠️ ***内容限宽必须保留 `max-w-[86vw]`***：弹窗宽是
+       *      `min(92%,1360px)`。曾放宽到 96vw，被护栏
+       *      `monk_result_wrap.test.tsx` 拦下（会溢出弹窗）。
+       *      ⚠️ 也不能用 `whitespace-nowrap` 强制不折行 —— 同样会被拤下
+       *      （2026-09-14 它把长单句撑出弹窗被裁）。
+       *      ⇒ 本次只能靠「减少留白 + 提高字号上限 + 加大缩放余量」三手段增密。
+       *   ② targetRatio 0.9 → 0.97：更充分地填满可用空间。
+       *   ③ className `p-2` → `p-0`：外层留白清零。
+       */}
+      <AutoFitContent targetRatio={0.97} minScale={0.38} className="p-0 text-white">
+        <div className="text-center my-auto space-y-2 max-w-[86vw] px-1 py-1">
           {prefix && (
-            <div className="text-3xl sm:text-4xl md:text-5xl text-amber-200/90 font-bold leading-relaxed px-2">
+            <div className="text-3xl sm:text-4xl md:text-5xl text-amber-200/90 font-bold leading-tight px-1">
               {prefix}
             </div>
           )}
@@ -80,13 +95,16 @@ export function InfoResultModal({
               溢出弹窗被裁。现**两个分支都允许折行 + 限宽**，且长单句会被
               `splitResultForDisplay` 预先按中文标点折成 2 行，保证**完整显示在弹窗内**。 */}
           {isMultiLine ? (
-            <div className="flex justify-center my-3 max-w-[86vw]">
+            <div className="flex justify-center my-1 max-w-[86vw]">
               <div
                 className={`inline-block ${
                   splitByDisplayLayer ? "text-center" : "text-left"
-                } font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-xl space-y-3 text-3xl sm:text-4xl md:text-5xl`}
+                } font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl space-y-1 text-4xl sm:text-5xl md:text-6xl`}
               >
                 {resultLines.map((line, idx) => (
+                  /* ⚠️ 2026-09-21：保留 `break-words`。
+                     曾试图改成 `whitespace-nowrap` 强制不折行，
+                     但被护栏测试拦下（长单句会撑出弹窗被裁）。 */
                   <div key={idx} className="break-words">
                     {line}
                   </div>
@@ -94,7 +112,7 @@ export function InfoResultModal({
               </div>
             </div>
           ) : (
-            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-normal break-words max-w-[86vw] mx-auto px-2 my-4 text-4xl sm:text-5xl md:text-6xl">
+            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-normal break-words max-w-[86vw] mx-auto px-1 my-1 text-5xl sm:text-6xl md:text-7xl">
               {resultLines[0] ?? result}
             </div>
           )}

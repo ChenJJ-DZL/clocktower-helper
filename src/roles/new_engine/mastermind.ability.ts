@@ -10,6 +10,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { isDrunkOrPoisoned } from "../../utils/bmrMechanics";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
@@ -31,6 +32,30 @@ const calculate = async (
 const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * ⚠️⚠️ 2026-09-21 修复【醉酒/中毒失效门控缺失】：
+   * 官方核心规则：醉酒或中毒的玩家**失去其能力**（说书人只装作其仍有能力、走过场执行）。
+   * 主谋：`如果恶魔死于处决而因此导致游戏结束时，再额外进行一个夜晚和一个白天。`
+   *   ⇒ 主谋醉酒/中毒时，恶魔死后的游戏**应当正常结束**（不得延长）。
+   * 🔴 原实现：本文件全篇**无任何**有效性判定，而 `stateUpdate` 在
+   *   `src/utils/middlewarePipeline.ts:91` 被**无条件**执行 ⇒ 醉酒/中毒的主谋依然令效果落地。
+   * ✅ 修法：状态落地前用 SST `isDrunkOrPoisoned`（→ `utils/seatDisabled::isSeatDisabled`，
+   *   已覆盖 `statusEffects` / `statuses` / 中文 `statusDetails`）判定；受干扰时**只记选择、不写状态**。
+   */
+  {
+    const _seats = (ctx.snapshot.seats ?? []) as any[];
+    const _actor = _seats.find((s: any) => s.id === ((ctx.snapshot.seats ?? [] as any[]).find((s: any) => s.role?.id === "mastermind" || s.roleId === "mastermind")?.id));
+    if (isDrunkOrPoisoned(_actor, _seats)) {
+      return {
+        ...ctx,
+        meta: {
+          ...ctx.meta,
+          abilityResult: { ...(ctx.meta.abilityResult as any), suppressedByImpairment: true },
+        },
+      };
+    }
+  }
+
   const r = ctx.meta.abilityResult as any;
   if (!r?.gameExtended) return ctx;
   return {

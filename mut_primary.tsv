@@ -1,0 +1,37 @@
+balloonist|src/roles/new_engine/balloonist.ability.ts|37|prevNight >= 1|prevNight >= 99
+mathematician|src/roles/new_engine/mathematician.ability.ts|37|n !== abnormalCount|n === abnormalCount
+clockmaker|src/roles/new_engine/clockmaker.ability.ts|97|s.roleId === "summoner"|s.roleId === "summoner_x"
+seamstress|src/roles/new_engine/seamstress.ability.ts|165|min: 2,|min: 1,
+town_crier|src/roles/new_engine/town_crier.ability.ts|26|e.type === "poisoned"|e.type === "poisoned_x"
+juggler|src/roles/new_engine/juggler.ability.ts|41|dayCount !== 1|dayCount !== 2
+philosopher|src/roles/new_engine/philosopher.ability.ts|38|if (!chosenRoleId) {|if (chosenRoleId) {
+artist|src/roles/new_engine/artist.ability.ts|25|"artist_question"|"artist_question_x"
+courtier|src/roles/new_engine/courtier.ability.ts|166|allowSelf: false|allowSelf: true
+choir_boy|src/roles/new_engine/choir_boy.ability.ts|29|if (!isKingKilledByDemon) {|if (isKingKilledByDemon) {
+mutant|src/roles/new_engine/mutant.ability.ts|101|allowSelf: false|allowSelf: true
+barber|src/roles/new_engine/barber.ability.ts|45|if (!r?.swapped) return ctx;|if (r?.swapped) return ctx;
+fool|src/roles/new_engine/fool.ability.ts|22|if (!canFoolSurvive(seat)) {|if (canFoolSurvive(seat)) {
+saint|src/roles/new_engine/saint.ability.ts|97|if (!seat.executedToday) {|if (seat.executedToday) {
+witch|src/roles/new_engine/witch.ability.ts|23|aliveCount <= 3|aliveCount <= 4
+godfather|src/roles/new_engine/godfather.ability.ts|29|if (!outsiderDiedToday) {|if (outsiderDiedToday) {
+assassin|src/roles/new_engine/assassin.ability.ts|41|if (snapshot.isFirstNight) {|if (!snapshot.isFirstNight) {
+devils_advocate|src/roles/new_engine/devils_advocate.ability.ts|33|targetId === lastTarget|targetId !== lastTarget
+no_dashii|src/roles/new_engine/no_dashii.ability.ts|46|e.type === "protected"|e.type === "protected_x"
+fang_gu|src/roles/new_engine/fang_gu.ability.ts|36|target?.role?.type === "outsider"|target?.role?.type === "townsfolk"
+pukka|src/roles/new_engine/pukka.ability.ts|89|return d?.source === "pukka";|return d?.source === "pukka_x";
+washerwoman|src/roles/new_engine/washerwoman.ability.ts|134|nightCount !== 1|nightCount !== 2
+investigator|src/roles/new_engine/investigator.ability.ts|136|nightCount !== 1|nightCount !== 2
+chef|src/roles/new_engine/chef.ability.ts|156|nightCount !== 1|nightCount !== 2
+librarian|src/roles/new_engine/librarian.ability.ts|138|nightCount !== 1|nightCount !== 2
+empath|src/roles/new_engine/empath.ability.ts|140|if (!seat.role && !seat.roleId) return false;|if (!seat.role && !seat.roleId) return true;
+fortune_teller|src/roles/new_engine/fortune_teller.ability.ts|184|if (roleType === "demon") return true;|if (roleType === "demon") return false;
+monk|src/roles/new_engine/monk.ability.ts|127|nightCount === 1|nightCount === 2
+ravenkeeper|src/roles/new_engine/ravenkeeper.ability.ts|107|if (!diedTonight) {|if (diedTonight) {
+butler|src/roles/new_engine/butler.ability.ts|181|if (isExile) return true;|if (isExile) return false;
+drunk|src/roles/new_engine/drunk.ability.ts|174|nightCount !== 1|nightCount !== 2
+recluse|src/roles/new_engine/recluse.ability.ts|154|seat.registerAsEvil !== false|seat.registerAsEvil === false
+poisoner|src/roles/new_engine/poisoner.ability.ts|185|if (targetSeat.isDead && abilityEffective)|if (targetSeat.isDead)
+scarlet_woman|src/roles/new_engine/scarlet_woman.ability.ts|151|return roleType !== "traveler";|return roleType === "traveler";
+baron|src/roles/new_engine/baron.ability.ts|139|(config.townsfolkCount ?? 0) - 2|(config.townsfolkCount ?? 0) - 1
+imp|src/roles/new_engine/imp.ability.ts|152|nightCount === 1|nightCount === 2
+zombuul|src/roles/new_engine/zombuul.ability.ts|45|dayDeaths > 0|dayDeaths > 99

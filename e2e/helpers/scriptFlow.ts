@@ -447,12 +447,74 @@ export async function advanceNightFast(
 
       if (dlg) {
         const hint = (dlg.textContent || "").replace(/\s+/g, "");
-        if (/请选择目标玩家/.test(hint)) {
+
+        /**
+         * ⚠️ 双选择弹窗（目标 + 角色）—— 目前已知：洗脑师（cerenovus）。
+         *
+         * 官方能力：洗脑师选「一名玩家」+「一个善良角色」，让该玩家疯狂扮演这个角色。
+         * 因此该弹窗有**两组必选项**，缺任一主按钮都灰显（文案「请先选择目标与疯狂角色」）。
+         *
+         * 🐛 修复（2026-09-21 探针实测）：上一版 helper 只处理座位卡片（`/^\d+号/`），
+         *    **不认识角色胶囊** ⇒ 洗脑师步骤永远满足不了 → 空转熔断 `timeout`。
+         *    探针 5 局对照：含洗脑师的 2 局全部 timeout，其余 3 局正常到 day，
+         *    根因即此（**不是生产缺陷** —— 弹窗实现完整，人工可正常选）。
+         *
+         * ✅ 用**稳定测试属性**定位（`data-testid="cerenovus-role-grid"` /
+         *    `data-role-id`），不依赖文案 —— 文案改版不会让自动化静默失效。
+         */
+        const roleGrid = dlg.querySelector('[data-testid="cerenovus-role-grid"]');
+        if (roleGrid) {
+          // ① 先选目标（座位卡，排除自己/已死/已选）
+          const targetCards = Array.from(
+            dlg.querySelectorAll('[data-testid="cerenovus-target-grid"] button[data-seat-id]')
+          ) as any[];
+          const unselected = targetCards.filter(
+            (b) => b.getAttribute("data-selected") !== "true" && !b.disabled
+          );
+          if (unselected.length > 0) {
+            unselected[0].click();
+            await sleep(30);
+          }
+          // ② 再选疯狂角色（取第一个未选中的胶囊）
+          const roleCaps = Array.from(
+            roleGrid.querySelectorAll("button[data-role-id]")
+          ) as any[];
+          const roleUnsel = roleCaps.find(
+            (b) => b.getAttribute("data-selected") !== "true" && !b.disabled
+          );
+          if (roleUnsel) {
+            roleUnsel.click();
+            await sleep(30);
+          }
+        } else if (/请选择目标玩家/.test(hint)) {
+          /**
+           * 通用「目标选择」弹窗。
+           *
+           * ⚠️ 军团（legion）特例（2026-09-21 探针实测）：
+           *   官方「夜晚**可能**有 1 人死亡」⇒ `targetConfig {min:0,max:1}`
+           *   ⇒ 主按钮是 **「确认（不选目标）」**，而 `确认&下一步` 恒 disabled。
+           *   本分支的既有逻辑「picked >= need」在 need=0 时**一个都不点**，
+           *   随后 `CONFIRM` 正则能匹配到「确认（不选目标）」→ 可以推进 ✅。
+           *   但为使**死亡能落库**（便于 L4 断言死亡契约），这里主动选 1 个
+           *   非自己/非军团的存活目标，模拟说书人代操作。
+           *   —— 军团局邪恶互认，杀自己人无意义；优先选非军团座位。
+           */
+          const isLegionStep = /军团/.test(hint);
           const m = hint.match(/最少(\d+)人/);
-          const need = m ? Number(m[1]) : 1;
+          let need = m ? Number(m[1]) : 1;
           const cards = btnsIn(dlg).filter((b) => /^\d+号/.test(norm(b)));
+          if (isLegionStep && need === 0) need = 1; // 主动代选，让伤亡可断言
           let picked = 0;
-          for (const c of cards) {
+          // 军团局优先选「非军团」座位（杀军团同伴无意义）
+          const ordered = isLegionStep
+            ? [
+                ...cards.filter(
+                  (c) => !/军团/.test(norm(c)) && !/\(自己\)/.test(norm(c))
+                ),
+                ...cards,
+              ]
+            : cards;
+          for (const c of ordered) {
             if (picked >= need) break;
             if (norm(c).includes("(自己)")) continue;
             if (c.disabled) continue;
@@ -507,7 +569,7 @@ export async function advanceNightFast(
  */
 export async function completeDuskEnterNight(
   page: Page,
-  maxModalSteps = 60
+  maxModalSteps = 90
 ): Promise<"night" | "timeout"> {
   return (await page.evaluate(async (maxSteps) => {
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -516,35 +578,136 @@ export async function completeDuskEnterNight(
     const allBtns = () =>
       Array.from(document.querySelectorAll("button")) as any[];
     const text = () => document.body.textContent || "";
-    const CONFIRM = /确认|提交|确定|继续|下一步|完成了|知道了/;
+    const CONFIRM = /确认|提交|确定|继续|下一步|完成了|知道了|好的/;
 
-    // ── 1~3：提名 ──
+    /**
+     * ⚠️⚠️ 修复（2026-09-21 探针实测）：本函数原先**直接开始提名**，
+     *   但 `advanceNightFast` 结束时页面停在 **白天(day)**，
+     *   必须先点「进入黄昏处决阶段」才能提名。
+     *   ⇒ 原版 3/3 局全部 `timeout`（提名按钮根本不在页面上）。
+     *   探针证据：按钮列表里存在「进入黄昏处决阶段」，但 helper 从没点它。
+     *
+     * 同时处理**日间能力门禁**（记忆里的「白天必须发动才能进黄昏」）：
+     *   例：畸形秀演员(mutant) 的「疯狂仲裁」—— 页面会出现
+     *   `需先完成畸形秀演员判定【疯狂仲裁】[disabled]`。
+     *   此时「进入黄昏」按钮是 disabled，必须先点日间技能按钮。
+     *   ⚠️ 这是**生产的正确行为**（门禁），不是缺陷；自动化必须配合它。
+     */
+    const clickByPattern = async (re: RegExp): Promise<boolean> => {
+      const b = allBtns().find((x) => re.test(norm(x)) && !x.disabled);
+      if (!b) return false;
+      b.click();
+      await sleep(400);
+      return true;
+    };
+
+    // ── 0：日间能力门禁（若存在必须先解决，否则「进入黄昏」永久禁用）──
+    /**
+     * ⚠️⚠️ 修复（2026-09-21 探针实测，8 局中 2 局失败）：
+     *
+     * 门禁的真实 DOM（探针抓取，`GT_2`/`GT_4` 实证）：
+     *   ✔ `疯狂仲裁`                              → **`disabled: false`** ← 要点这个
+     *   ✘ `需先完成畸形秀演员判定【疯狂仲裁】`    → `disabled: true`      ← 只是提示
+     *   同理：`疯狂洗脑`（洗脑师门禁）可点；
+     *        `需先完成洗脑师判定【疯狂洗脑】` 是 disabled 提示。
+     *
+     * 原版缺陷：匹配式 `/^(使用|发动|进行).+/` **漏掉了「疯狂仲裁」「疯狂洗脑」**
+     *   这两个门禁按钮的文案（既不以"使用"开头，也不含"判定"时的可点项），
+     *   于是门禁没完成 → 「进入黄昏」永久 disabled → `timeout`。
+     *
+     * ✅ 正确策略：**凡是「可点」且**文案命中门禁词（疯狂仲裁/疯狂洗脑/判定/使用/发动）
+     *    的按钮，都是候选；并**排除 disabled 的提示按钮**。
+     *    ⚠️ 绝不能靠「文案含判定」——提示按钮也含「判定」二字（歧义）。
+     */
+    const GATE_BTN = /疯狂仲裁|疯狂洗脑|^(使用|发动|进行).+|判定(?!$)/;
+    const isHintBtn = (t: string) => /^需先完成|^请先|^待完成/.test(t);
+    for (let g = 0; g < 10; g++) {
+      const gated = /需先完成|请先完成/.test(text());
+      const candidates = allBtns().filter(
+        (b) =>
+          !b.disabled &&
+          !isHintBtn(norm(b)) &&
+          GATE_BTN.test(norm(b))
+      );
+      if (candidates.length === 0) break;
+      // 只在门禁提示存在、或「进入黄昏」被禁用时才动手，避免抢走正常流程
+      const duskBtnDisabled =
+        allBtns().find((b) => /进入黄昏/.test(norm(b)))?.disabled === true;
+      if (!gated && !duskBtnDisabled) break;
+      candidates[0].click();
+      await sleep(500);
+      // 处理随之弹出的确认/选择弹窗
+      for (let k = 0; k < 12; k++) {
+        const dlg = document.querySelector('[role="dialog"]');
+        if (!dlg) break;
+        const dlgBtns = Array.from(dlg.querySelectorAll("button")) as any[];
+
+        /**
+         * ⚠️⚠️ 「疯狂仲裁」类门禁弹窗的按钮**不在 CONFIRM 正则里**（探针 `G2_3` 实证）：
+         *   弹窗：`🎭判定【1号】玩家是否疯狂证明自己是外来者？`
+         *   按钮：`取消` | **`否，无事发生`** | **`是，执行处决`**
+         * 原版只找 `/确认|确定|继续|下一步|好的/` ⇒ **一个都匹配不到**
+         *   ⇒ 弹窗永不关闭 ⇒ 「进入黄昏」恒 disabled ⇒ `timeout`（8 局中 2 局）。
+         *
+         * ✅ 策略：优先点「否，无事发生」（保守 —— 不处决、不跳过黄昏，
+         *    让流程继续走正常黄昏；这是自动化最安全的选择）。
+         *    ⚠️ 绝不能默认点「是，执行处决」—— 那会**处决玩家并跳过黄昏**，
+         *    把测试局面改得与"正常走一遍"完全不同（污染后续断言）。
+         */
+        const noop = dlgBtns.find((b) => /^否|无事发生|^取消/.test(norm(b)) && !b.disabled);
+        if (noop) {
+          noop.click();
+          await sleep(450);
+          continue;
+        }
+        const ok =
+          dlgBtns.find((b) => CONFIRM.test(norm(b)) && !b.disabled) ??
+          dlgBtns.find((b) => !b.disabled);
+        if (!ok) break;
+        ok.click();
+        await sleep(350);
+      }
+    }
+
+    // ── 1：进入黄昏处决阶段（原版缺失的关键一步）──
+    for (let i = 0; i < 6; i++) {
+      const entered =
+        /黄昏/.test(text()) &&
+        !allBtns().some((b) => /进入黄昏/.test(norm(b)) && !b.disabled);
+      if (entered) break;
+      const ok = await clickByPattern(/进入黄昏/);
+      if (!ok) break;
+    }
+
+    // ── 2：提名（点两个座位 → 确认发起提名）──
     const seatBtns = allBtns().filter((b) => /^[1-9]\d*$/.test(norm(b)));
     if (seatBtns.length >= 2) {
       seatBtns[0].click();
-      await sleep(250);
+      await sleep(300);
       seatBtns[1].click();
-      await sleep(250);
+      await sleep(300);
     }
-    const nominate = allBtns().find(
-      (b) => /确认发起提名/.test(norm(b)) && !b.disabled
-    );
-    if (nominate) {
-      nominate.click();
-      await sleep(600);
+    if (await clickByPattern(/确认发起提名/)) {
+      await sleep(700);
     }
 
-    // ── 4~5：处理投票/处决弹窗，直到出现「入夜」 ──
+    // ── 3：处理投票/处决弹窗，直到出现「入夜」 ──
     for (let i = 0; i < maxSteps; i++) {
       const dlg = document.querySelector('[role="dialog"]');
       if (dlg) {
+        const dlgBtns = Array.from(dlg.querySelectorAll("button")) as any[];
+        // 门禁类弹窗（疯狂仲裁等）：点「否，无事发生」而非确认
+        const noop = dlgBtns.find(
+          (b) => /^否|无事发生|^取消/.test(norm(b)) && !b.disabled
+        );
+        if (noop && /判定|疯狂|仲裁/.test((dlg.textContent || "").replace(/\s+/g, ""))) {
+          noop.click();
+          await sleep(450);
+          continue;
+        }
         const ok =
-          (Array.from(dlg.querySelectorAll("button")) as any[]).find(
-            (b) => CONFIRM.test(norm(b)) && !b.disabled
-          ) ??
-          (Array.from(dlg.querySelectorAll("button")) as any[]).find(
-            (b) => !b.disabled
-          );
+          dlgBtns.find((b) => CONFIRM.test(norm(b)) && !b.disabled) ??
+          dlgBtns.find((b) => !b.disabled);
         if (ok) {
           ok.click();
           await sleep(350);
@@ -658,3 +821,105 @@ export async function readCamps(
 }
 
 export { T };
+
+// ═══════════════════════════════════════════════════════════════════════
+// ⭐ L4 状态断言支持（2026-09-21 新增）
+// ═══════════════════════════════════════════════════════════════════════
+/**
+ * ⚠️⚠️ 为什么需要这一段（诚实审计结论）
+ * ---------------------------------------------------------------------
+ * 审计发现：`e2e/` 里 **0 个状态断言** —— 全部 36 条断言都是
+ * `toBeVisible` / `toContainText` / `getByText`（**文案层**）。
+ * 这导致「弹窗文字对了 → 测试绿」，但**状态字段有没有真的变**完全没验：
+ *   例：投毒者选人后，中毒者座位有没有真的带 `statusEffects:[{type:"poisoned"}]`？
+ *      被杀者有没有 `markedForDeath`？幽灵票有没有被消耗？
+ * 这正是本项目「测试全绿、人工实测完全不同」的同一病灶，只是发生在 E2E 层。
+ *
+ * ✅ 正解：读应用**真实的持久化快照**（`localStorage["clocktower_current_snapshot"]`，
+ *    由 `utils/persistence.ts::saveCurrentSnapshot` 写入的是**完整 GameSnapshot**），
+ *    在 E2E 里断言状态字段，而不是断言文案。
+ *
+ * 判据：**弹窗文字可以改、文案可以本地化，但 `isPoisoned` / `markedForDeath`
+ *      这类字段是引擎的契约，改了就一定影响结算。**
+ */
+export const SNAPSHOT_KEY = "clocktower_current_snapshot";
+
+/** 读取应用真实持久化快照（未保存/未开局时返回 null） */
+export async function readSnapshot(page: Page): Promise<any | null> {
+  return page.evaluate((key) => {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }, SNAPSHOT_KEY);
+}
+
+/** 取某座位（0 基 id）的状态字段；找不到返回 null */
+export async function readSeat(page: Page, seatId: number): Promise<any | null> {
+  const snap = await readSnapshot(page);
+  if (!snap?.seats) return null;
+  return snap.seats.find((s: any) => s.id === seatId) ?? null;
+}
+
+/** 等待快照满足条件（应用写入是异步的 → 必须重试轮询，不能读一次就断言） */
+export async function waitForSnapshot(
+  page: Page,
+  pred: (snap: any) => boolean,
+  timeoutMs = 15_000
+): Promise<any | null> {
+  const deadline = Date.now() + timeoutMs;
+  let last: any = null;
+  while (Date.now() < deadline) {
+    last = await readSnapshot(page);
+    if (last && pred(last)) return last;
+    await page.waitForTimeout(150);
+  }
+  return last;
+}
+
+/**
+ * ⭐ 断言「某座位在快照里满足条件」——E2E 层的状态断言入口。
+ *
+ * 用法：
+ * ```ts
+ * await expectSeatState(page, 2, (s) => s.isPoisoned === true, "3号应已中毒");
+ * ```
+ * ⚠️ 不要用 `expect(text).toContain(...)` 代替本函数 —— 那测的是文案不是状态。
+ */
+export async function expectSeatState(
+  page: Page,
+  seatId: number,
+  pred: (seat: any) => boolean,
+  message: string,
+  timeoutMs = 15_000
+): Promise<void> {
+  const snap = await waitForSnapshot(
+    page,
+    (s) => {
+      const seat = s?.seats?.find((x: any) => x.id === seatId);
+      return Boolean(seat) && pred(seat);
+    },
+    timeoutMs
+  );
+  const seat = snap?.seats?.find((x: any) => x.id === seatId);
+  if (!seat || !pred(seat)) {
+    throw new Error(
+      `${message}\n实际座位状态: ${JSON.stringify(
+        seat
+          ? {
+              id: seat.id,
+              isDead: seat.isDead,
+              isPoisoned: seat.isPoisoned,
+              isDrunk: seat.isDrunk,
+              markedForDeath: seat.markedForDeath,
+              statusEffects: seat.statusEffects,
+            }
+          : null
+      )}`
+    );
+  }
+}
+

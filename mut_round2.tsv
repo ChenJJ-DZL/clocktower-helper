@@ -1,0 +1,6 @@
+mathematician|src/roles/new_engine/mathematician.ability.ts|37|n !== abnormalCount|n === abnormalCount
+clockmaker|src/roles/new_engine/clockmaker.ability.ts|111|minDistance = seatCount;|minDistance = 0;
+town_crier|src/roles/new_engine/town_crier.ability.ts|46|minionNominated: isCorrupted ? !minionNominated : minionNominated,|minionNominated: minionNominated,
+artist|src/roles/new_engine/artist.ability.ts|50|isCorrupted: !isAbilityActive,|isCorrupted: isAbilityActive,
+witch|src/roles/new_engine/witch.ability.ts|23|aliveCount <= 3|aliveCount <= 4
+pukka|src/roles/new_engine/pukka.ability.ts|89|return d?.source === "pukka";|return d?.source === "pukka_x";

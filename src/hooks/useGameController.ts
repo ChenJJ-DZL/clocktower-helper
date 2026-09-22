@@ -50,6 +50,7 @@ import { useDayActions } from "./useDayActions";
 import { useExecutionHandlers } from "./useExecutionHandlers";
 import { useGameFlow } from "./useGameFlow";
 import { useGameRecords } from "./useGameRecords";
+import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import { useGameState } from "./useGameState";
 import { useHistoryController } from "./useHistoryController";
 import { useInteractionHandler } from "./useInteractionHandler";
@@ -408,7 +409,24 @@ export function useGameController() {
   );
 
   const insertIntoWakeQueueAfterCurrent = useCallback(
-    (id: number, opts?: { roleOverride?: Role | null; logLabel?: string }) => {
+    (
+      id: number,
+      opts?: {
+        roleOverride?: Role | null;
+        logLabel?: string;
+        /**
+         * ⭐ 2026-09-21（洗脑师告知流程，用户实测报告「被洗脑者不会被唤醒」）：
+         * 跳过「有无夜间行动」准入检查。
+         *
+         * 该检查的存在意义是**防止纯被动角色（如罂粟种植者）被误唤醒**并弹出
+         * 「N号-角色名 - 结果」空壳信息窗。但「被洗脑告知」是**说书人主动发起的
+         * 系统通知步骤**，被通知者（可能是毫无夜间技能的镇民）**必须**被唤醒 ——
+         * 官方规则要求他当场知道「你需要疯狂证明自己是【X】」。
+         * ⇒ 这类调用方显式传 `force: true`，责任自负。
+         */
+        force?: boolean;
+      }
+    ) => {
       // 🌺 队列准入不变式：没有夜间行动的角色（纯被动，如罂粟种植者）永远不得入队。
       //    `nightInfoGenerator` 对"无 night 配置"的角色有合成文案兜底
       //    （「唤醒N号【角色名】，准备执行技能。」，全库 50+ 角色命中，不能删），
@@ -418,9 +436,12 @@ export function useGameController() {
       const seatForCheck = seats.find((s) => s.id === id);
       // 有 roleOverride 时以 override 为准（如假死转生 / 伪装能力），
       // 否则用座位版本（酒鬼 / 提线木偶会按其伪装身份判断）。
-      const allowed = opts?.roleOverride?.id
-        ? roleHasNightAction(opts.roleOverride.id)
-        : seatHasNightAction(seatForCheck);
+      const allowed =
+        opts?.force === true
+          ? true
+          : opts?.roleOverride?.id
+            ? roleHasNightAction(opts.roleOverride.id)
+            : seatHasNightAction(seatForCheck);
       if (!allowed) {
         console.log(
           `[insertIntoWakeQueueAfterCurrent] ⛔ 拒绝入队：${
@@ -795,17 +816,21 @@ export function useGameController() {
     setActiveNightStep,
   } = nightSnapshot;
 
-  // 🔧 守鸦人修复：恶魔杀守鸦人后入队觉醒（操作真正驱动夜间 UI 的 wakeQueueIds）。
+  // 🔧 死亡触发角色修复（2026-09-21 P1-9）：恶魔/处决杀死某角色后，**当晚**为其插入唤醒节点。
+  //   ⚠️ 原为硬编码 `getSeatRoleId(targetId) !== "ravenkeeper"`（函数名亦为
+  //   `enqueueRavenkeeperIfNeeded`）⇒ 其他死亡触发角色（farmer/banshee/moonchild/
+  //   plague_doctor/sweetheart/barber/hatter）死亡当晚**静默返回、永不入队**。
+  //   ✅ 改走 SST `isDeathTriggeredRole`，与 `GameStage.tsx::canActWhileDead` 同源。
+  //   🔒 禁止在此硬编码角色名（护栏 ⑥ 源码级扫描会把关）。
   //   插入点用 wakeIndexRef.current + 1（当前行动节点之后），不能用 React state
   //   currentWakeIndex（滞后，小恶魔行动时仍是上一个角色的索引，会把守鸦人插到
   //   当前行动节点之前而被跳过）。同时同步写 wakeQueueIdsRef 供
   //   useNightSnapshot 的 continueToNextAction/updateSnapshot 读取最新队列。
-  const enqueueRavenkeeperIfNeeded = useCallback(
+  const enqueueDeathTriggeredIfNeeded = useCallback(
     (targetId: number) => {
-      if (getSeatRoleId(targetId) !== "ravenkeeper") return;
-      // 🔧 守鸦人结果不展示修复：入队时同步设置 hasAbilityEvenDead=true，
-      //   否则死亡后确认执行时被 preProcessAbility 的"已死亡"校验拦截，
-      //   导致守鸦人选择了目标却没有任何结算结果。
+      if (!isDeathTriggeredRole(getSeatRoleId(targetId))) return;
+      // 🔧 结果不展示修复：入队时同步设置 hasAbilityEvenDead=true，
+      //   否则死亡后执行时被 preProcessAbility 的"已死亡"校验拦截，导致没有任何结算结果。
       commitSeats((prev: Seat[]) =>
         prev.map((s) =>
           s.id === targetId && !s.hasAbilityEvenDead
@@ -950,7 +975,7 @@ export function useGameController() {
     computeIsPoisoned,
     handleNightAction: nightActionHandler.handleNightAction,
     executePoisonActionFn: executePoisonAction,
-    enqueueRavenkeeperIfNeeded,
+    enqueueDeathTriggeredIfNeeded,
     nightLogic,
     getMisinformation,
     findNearestAliveNeighbor,
@@ -1146,11 +1171,11 @@ export function useGameController() {
           reviveSeat,
           insertIntoWakeQueueAfterCurrent,
           // 🔧 守鸦人修复：恶魔杀守鸦人后入队觉醒。
-          //   必须用本组件的旧版 enqueueRavenkeeperIfNeeded（操作真正驱动夜间
+          //   必须用本组件的旧版 enqueueDeathTriggeredIfNeeded（操作真正驱动夜间
           //   UI 的 wakeQueueIds + 设 hasAbilityEvenDead），不能用 nightLogic
           //   的新引擎版（插入 NightEngine.queue，但该队列不驱动夜间 UI，
           //   且后续夜晚 engine.queueIterator 为 null → 插入无效）。
-          enqueueRavenkeeperIfNeeded,
+          enqueueDeathTriggeredIfNeeded,
           preview: true, // 始终以预览模式进入，新引擎内部决定是否弹确认窗
         }
       );
@@ -1971,7 +1996,7 @@ export function useGameController() {
       loadGameRecords,
       saveGameRecord,
       cleanStatusesForNewDay,
-      enqueueRavenkeeperIfNeeded,
+      enqueueDeathTriggeredIfNeeded,
       resetRegistrationCache,
       getRegistrationCached,
       getFilteredRoles,
@@ -2011,7 +2036,7 @@ export function useGameController() {
       loadGameRecords,
       saveGameRecord,
       cleanStatusesForNewDay,
-      enqueueRavenkeeperIfNeeded,
+      enqueueDeathTriggeredIfNeeded,
       resetRegistrationCache,
       getRegistrationCached,
       getFilteredRoles,

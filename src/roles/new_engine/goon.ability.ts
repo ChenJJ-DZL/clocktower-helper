@@ -12,6 +12,7 @@ import {
 } from "../core/roleAbility.types";
 
 import { isGoodSeat } from "../../utils/bmrMechanics";
+import { isDrunkOrPoisoned } from "../../utils/bmrMechanics";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -63,6 +64,30 @@ const calculate = async (
 const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * ⚠️⚠️ 2026-09-21 修复【醉酒/中毒失效门控缺失】：
+   * 官方核心规则：醉酒或中毒的玩家**失去其能力**（说书人只装作其仍有能力、走过场执行）。
+   * 莽夫：`每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。你会转变为他的阵营。`
+   *   ⇒ 醉酒/中毒的莽夫**不得**令选者醉酒，也**不得**改变自身阵营。
+   * 🔴 原实现：本文件全篇**无任何**有效性判定，而 `stateUpdate` 在
+   *   `src/utils/middlewarePipeline.ts:91` 被**无条件**执行 ⇒ 醉酒/中毒的莽夫依然令效果落地。
+   * ✅ 修法：状态落地前用 SST `isDrunkOrPoisoned`（→ `utils/seatDisabled::isSeatDisabled`，
+   *   已覆盖 `statusEffects` / `statuses` / 中文 `statusDetails`）判定；受干扰时**只记选择、不写状态**。
+   */
+  {
+    const _seats = (ctx.snapshot.seats ?? []) as any[];
+    const _actor = _seats.find((s: any) => s.id === (ctx.actionNode.seatId));
+    if (isDrunkOrPoisoned(_actor, _seats)) {
+      return {
+        ...ctx,
+        meta: {
+          ...ctx.meta,
+          abilityResult: { ...(ctx.meta.abilityResult as any), suppressedByImpairment: true },
+        },
+      };
+    }
+  }
+
   const r = ctx.meta.abilityResult as any;
   if (!r?.alignmentChanged) return ctx;
 

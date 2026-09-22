@@ -45,7 +45,7 @@ import {
   roleHasNightAction,
   seatHasNightAction,
 } from "../dynamicQueueGenerator";
-import { generateNightTimeline } from "../nightLogic";
+import { generateNightTimeline, calculateNightInfo } from "../nightLogic";
 import { generateNightInfo } from "../nightInfoGenerator";
 import type { Seat } from "../../types";
 
@@ -370,5 +370,121 @@ describe("🌺 接线回归 · insertIntoWakeQueueAfterCurrent 准入闸门", ()
       /passiveNoAction/.test(handlerSource),
       "useNightActionHandler 必须检查 passiveNoAction，否则仍会弹结果窗"
     ).toBe(true);
+  });
+});
+
+// ─── 7. 🔒 罂粟门控真值（calculateNightInfo 第 10 参数 poppyGrowerDead）─────
+//
+// 【为什么单列一组】此前全仓库**没有任何测试直接调用 calculateNightInfo**，
+//   门控分支（nightLogic.ts:461-484）处于**零覆盖**状态：
+//   把 shouldHideDemon 恒置 false，全部既有测试仍然全绿。
+//
+// 【官方规则】「爪牙和恶魔互相不认识。如果你死亡，当晚他们会互相认识。」
+//   ⇒ 首次夜间"爪牙认恶魔"环节是否展示恶魔，取决于罂粟是否在**首夜结算时**
+//     仍然生效（存活 + 未被永久驱散）。
+//
+// 【行动者为什么用 baron】该分支的进入条件是 `!nightConfig`
+//   （nightLogic.ts:300 的 `if (nightConfig) … else …`）。
+//   有夜序配置的爪牙（poisoner/spy/cerenovus/evil_twin）走 if 分支，
+//   **永远到不了**这个门控；只有 baron / marionette 这类**无夜序爪牙**
+//   才会落进 else → 门控真实生效对象。用 baron 才能测到真东西。
+//
+// 【断言的是状态，不是文案】用 action 字段（"无信息" / "展示恶魔"）
+//   作为**机器可判定的语义**，guide 文案仅作辅助佐证。
+
+describe("🌺 罂粟门控真值 · calculateNightInfo(…, poppyGrowerDead)", () => {
+  const script = null as any;
+  const firstNight = "firstNight" as any;
+
+  // baron 座位（无夜序配置的爪牙 → 唯一落入门控分支的角色类型）
+  const baronSeat = (id = 1): Seat =>
+    ({
+      id,
+      role: { id: "baron", name: "男爵", type: "minion" } as any,
+      isDead: false,
+      statusDetails: [],
+    }) as any;
+
+  // 爪牙视角（召唤"爪牙认恶魔"分支）
+  const minionView = (seats: Seat[], poppyGrowerDead?: boolean) =>
+    calculateNightInfo(
+      script,
+      seats,
+      baronSeat().id, // currentSeatId = 1
+      firstNight,
+      null,
+      1, // nightCount
+      undefined,
+      undefined,
+      undefined,
+      poppyGrowerDead
+    ) as any;
+
+  it("罂粟存活且生效（poppyGrowerDead===false）→ 爪牙不认恶魔，action=无信息", () => {
+    const res = minionView([impSeat(), baronSeat(), poppySeat()], false);
+    expect(res, "爪牙首夜应产出节点").toBeTruthy();
+    expect(res.roleId, "行动者应是男爵").toBe("baron");
+    expect(
+      res.action,
+      "罂粟生效时不得展示恶魔（应为『无信息』），实际 " + res.action
+    ).toBe("无信息");
+    expect(res.guide).toContain("罂粟种植者在场");
+    expect(res.guide).not.toContain("爪牙认恶魔环节");
+  });
+
+  it("🔴 罂粟死亡当晚（poppyGrowerDead===true）→ 爪牙互认恶魔，action=展示恶魔", () => {
+    const res = minionView([impSeat(), baronSeat(), poppySeat()], true);
+    expect(res, "爪牙首夜应产出节点").toBeTruthy();
+    expect(
+      res.action,
+      "罂粟失效时爪牙必须认恶魔（应为『展示恶魔』），实际 " + res.action
+    ).toBe("展示恶魔");
+    expect(res.guide).toContain("爪牙认恶魔环节");
+    expect(res.guide, "应告知恶魔座位").toContain("1号"); // impSeat id=0 → 显示 1号
+    expect(res.guide).not.toContain("罂粟种植者在场");
+  });
+
+  it("🔴 罂粟座位已死（isDead=true）→ 即使 poppyGrowerDead 未传也认恶魔", () => {
+    const deadPoppy = poppySeat({ isDead: true });
+    const res = minionView([impSeat(), baronSeat(), deadPoppy]); // 不传第 10 参数
+    expect(
+      res.action,
+      "罂粟已死时爪牙必须认恶魔，实际 " + res.action
+    ).toBe("展示恶魔");
+  });
+
+  it("🔴 本局无罂粟 → 正常爪牙认恶魔（不误伤常规局）", () => {
+    const res = minionView([impSeat(), baronSeat()], undefined);
+    expect(
+      res.action,
+      "无罂粟的常规首夜爪牙必须认恶魔，实际 " + res.action
+    ).toBe("展示恶魔");
+  });
+
+  it("🔒 反例守护：poppyGrowerDead===undefined（调用方未计算）时**不得**静默屏蔽", () => {
+    // 若把门控写成 `poppyGrowerDead !== true` 之类的宽松判定，
+    // 未传参（undefined）时会错误地屏蔽邪恶互认 → 本断言会红。
+    const res = minionView([impSeat(), baronSeat(), poppySeat()], undefined);
+    expect(
+      res.action,
+      "未显式传入 poppyGrowerDead=false 时不应屏蔽（严格 === false 语义）"
+    ).toBe("展示恶魔");
+  });
+
+  it("🔒 门控只作用于 firstNight：其他夜晚不产出认恶魔节点", () => {
+    const res = calculateNightInfo(
+      script,
+      [impSeat(), baronSeat(), poppySeat()],
+      baronSeat().id,
+      "night" as any,
+      null,
+      2,
+      undefined,
+      undefined,
+      undefined,
+      true
+    ) as any;
+    // 非首夜：爪牙分支不进入 → 不得是『展示恶魔』
+    expect(res?.action ?? "跳过").not.toBe("展示恶魔");
   });
 });

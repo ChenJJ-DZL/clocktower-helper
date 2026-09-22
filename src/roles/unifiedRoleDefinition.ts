@@ -21,6 +21,8 @@ export interface UnifiedAbilityConfig {
   abilityName: string;
   /** 触发时机 */
   triggerTiming: AbilityTriggerTiming[];
+  /** 【声明式】他人死亡订阅（透传 IRoleAbility.deathEventWatch，见 roleAbility.types.ts） */
+  deathEventWatch?: { roleId: string; cause?: "night_kill" | "execution" | "any" };
   /** 首夜唤醒优先级，null 表示首夜不唤醒 */
   firstNightPriority: number | null;
   /** 其他夜晚唤醒优先级，null 表示其他夜不唤醒 */

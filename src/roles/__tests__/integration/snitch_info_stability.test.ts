@@ -160,8 +160,29 @@ describe("告密者：提示预演与实际执行必须推送同一组伪装（�
     expect(execute.meta.abilityResult.absentRoles).toEqual(
       preview.meta.abilityResult.absentRoles
     );
+
+    // ⚠️⚠️ 防假绿补强（2026-09-21 变异检验实测）：
+    //   旧版只断言「两次运行结果**相等**」——把生产改成 `absentRoles: []`，
+    //   两次都空、依然相等 ⇒ **照样绿**；而且下面那个 for 循环遍历空数组
+    //   等于零次断言。这是典型的"自证式"断言。
+    //   ⇒ 必须补**绝对断言**：伪装数量必须恰好 3 且都是真实不在场的角色名。
+    const absent = preview.meta.abilityResult.absentRoles as string[];
+    expect(
+      absent.length,
+      "❌ 告密者必须推送恰好 3 个不在场角色（旧版空数组也能过，假绿）"
+    ).toBe(3);
+    expect(new Set(absent).size, "3 个伪装必须互不相同").toBe(3);
+    for (const name of absent) {
+      const role = scriptRoles.find((r) => r.name === name);
+      expect(role, `伪装「${name}」必须是合法角色名`).toBeDefined();
+      expect(
+        assignedRoleIds.has(role!.id),
+        `伪装「${name}」必须**不在场**（不得与已分配角色重复）`
+      ).toBe(false);
+    }
+
     // 说书人提示词里念的角色 = 实际推送的角色
-    for (const name of preview.meta.abilityResult.absentRoles) {
+    for (const name of absent) {
       expect(execute.meta.prompt).toContain(name);
     }
   });
@@ -178,6 +199,21 @@ describe("告密者：提示预演与实际执行必须推送同一组伪装（�
     expect(execute.meta.abilityResult.demonExtraAbsentRoles).toEqual(
       preview.meta.abilityResult.demonExtraAbsentRoles
     );
+    // ⚠️ 防假绿补强：不能只断言"两次一致"（都空也一致）。
+    const extra = preview.meta.abilityResult.demonExtraAbsentRoles as string[];
+    expect(
+      extra.length,
+      "❌ 提线木偶被跳过时，恶魔必须**额外**得知 3 个不在场角色"
+    ).toBe(3);
+    expect(new Set(extra).size, "额外伪装必须互不相同").toBe(3);
+    // 与告密者常规推送的 3 个不得重复（官方：「重新选 3 个不同的角色」）
+    const base = preview.meta.abilityResult.absentRoles as string[];
+    for (const name of extra) {
+      expect(
+        base,
+        `额外伪装「${name}」与常规伪装重复了（须为不同的角色）`
+      ).not.toContain(name);
+    }
     // 被跳过的提线木偶不在推送目标里
     expect(execute.meta.abilityResult.minionSeatIds).not.toContain(5);
   });

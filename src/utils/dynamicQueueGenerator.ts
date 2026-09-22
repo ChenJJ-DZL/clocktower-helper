@@ -4,6 +4,7 @@
  */
 
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
 import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { getRoleDefinition } from "../roles";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
@@ -84,6 +85,161 @@ function getEffectiveRoleId(seat: any): string | undefined {
  *   · 新引擎：`firstNightPriority` / `otherNightPriority` 有正数
  *   · 旧引擎：RoleDefinition 声明了 `firstNight` 或 `night` 配置
  */
+/**
+ * 判定某角色是否为「死亡触发」型（官方语义：当你死亡时 / 如果你死亡）。
+ *
+ * ⚠️⚠️ 本函数是 `useNightEngine.ts:194` 打 `deathTriggered` 标的**同源判定**，
+ *   `GameStage.tsx` 的「死后仍可唤醒」也必须走这里 —— 千万不要再硬编码角色名白名单。
+ *
+ * 🔴 历史缺陷（2026-09-21 修）：`GameStage.tsx:585-586` 原为
+ *     `s.role?.id === "ravenkeeper" || "sage"` 的**硬编码白名单**
+ *   ⇒ 其他死亡触发角色（farmer / banshee / moonchild / plague_doctor /
+ *     sweetheart / barber / hatter…）在**死亡当晚拿不到唤醒节点**。
+ *   实测暴露方式：把 `sweetheart`/`barber`/`sage` 的 `triggerTiming` 从 PASSIVE
+ *   改为 ON_DEATH 后，只有 `sage` 因白名单仍能唤醒。
+ *
+ * 🔒 判定来源：`unifiedRoleDefinition.getAllAbilities()`（与 `roleHasNightAction` 同一注册表）。
+ */
+/**
+ * 【声明式】该角色是否订阅了「他人死亡」事件。
+ * 对应 `IRoleAbility.deathEventWatch`（如 choir_boy ⇒ king）。
+ */
+export function hasDeathEventWatch(roleId: string | undefined | null): boolean {
+  return getDeathEventWatchTarget(roleId) !== null;
+}
+
+/** 该角色订阅的是哪个角色的死亡（无订阅 ⇒ null） */
+export function getDeathEventWatchTarget(
+  roleId: string | undefined | null
+): string | null {
+  if (!roleId) return null;
+  try {
+    const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
+    const ability = abilities.find((ab) => ab?.roleId === roleId);
+    const watched = ability?.deathEventWatch?.roleId;
+    return typeof watched === "string" && watched.length > 0 ? watched : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 该角色能否因「死亡事件」被唤醒 —— 两类合一的唯一判据：
+ *   ① **自己死亡触发**：`triggerTiming` 含 `ON_DEATH`（守鸦人/农夫/心上人/理发师/贤者…）
+ *   ② **他人死亡订阅**：声明了 `deathEventWatch`（唱诗男孩 ⇒ 国王）
+ *
+ * 🔒 引擎中所有「死亡后是否还能唤醒」的判定都必须走本函数（或它的两个分量）。
+ */
+export function canWakeOnDeathEvent(roleId: string | undefined | null): boolean {
+  return isDeathTriggeredRole(roleId) || hasDeathEventWatch(roleId);
+}
+
+/** 因某个死亡事件而需要在**当晚**唤醒的座位 */
+export interface DeathEventWakeup {
+  seatId: number;
+  roleId: string;
+  /** self = 自己死亡触发；watch = 订阅了他人的死亡 */
+  reason: "self" | "watch";
+}
+
+/**
+ * ⭐ 死亡事件统一分发器（SST）——**所有死因、所有相关角色**的唯一入口。
+ *
+ * 输入一个死亡事件（谁死了、什么角色），输出「当晚需要插入唤醒队列的座位」：
+ *   1. **自己死亡触发**：死者本人的能力 `triggerTiming` 含 `ON_DEATH` ⇒ 唤醒他
+ *   2. **他人死亡订阅**：**存活**座位中订阅了 `deadRoleId` 的角色 ⇒ 唤醒他们
+ *      （如唱诗男孩订阅国王 ⇒ 恶魔杀国王当晚唤醒唱诗男孩）
+ *
+ * ⚠️ 调用方（`useNightActionHandler` 的 newlyDead 检测 / 处决链）**不要**自己判断角色，
+ *   统一走本函数，否则又会退化成散落各处的硬编码白名单。
+ */
+export function resolveDeathEventWakeups(
+  seats: any[],
+  deadSeatId: number,
+  deadRoleId: string | undefined | null
+): DeathEventWakeup[] {
+  const out: DeathEventWakeup[] = [];
+  const seen = new Set<number>();
+
+  // ① 自己死亡触发
+  if (isDeathTriggeredRole(deadRoleId)) {
+    out.push({ seatId: deadSeatId, roleId: deadRoleId as string, reason: "self" });
+    seen.add(deadSeatId);
+  }
+
+  // ② 他人死亡订阅（仅存活座位）
+  if (deadRoleId) {
+    for (const s of seats ?? []) {
+      if (!s || seen.has(s.id)) continue;
+      if (s.isDead === true) continue;
+      const rid: string | undefined = s.role?.id;
+      if (!rid) continue;
+      if (getDeathEventWatchTarget(rid) === deadRoleId) {
+        out.push({ seatId: s.id, roleId: rid, reason: "watch" });
+        seen.add(s.id);
+      }
+    }
+  }
+
+  return out;
+}
+
+export function isDeathTriggeredRole(roleId: string | undefined | null): boolean {
+  if (!roleId) return false;
+  try {
+    const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
+    const ability = abilities.find((ab) => ab?.roleId === roleId);
+    const timings = (ability?.triggerTiming ?? []) as string[];
+    return timings.includes(AbilityTriggerTiming.ON_DEATH);
+  } catch {
+    // 注册表未初始化时静默降级：不视为死亡触发（与旧行为一致，只影响唤醒时机）
+    return false;
+  }
+}
+
+/**
+ * 👑 2026-09-21 P1-16：把「**当日被处决**」的**死亡触发**角色补进夜间唤醒队列。
+ *
+ * 官方【帽匠】范例：「刺客杀死了一名玩家。**帽匠被处决了。当晚**，刺客选择变成了主谋。」
+ *   ⇒「如果你死亡」类（心上人 / 理发师 / 贤者 / 呆瓜 / 帽匠…）**不分死因**、**当晚**生效。
+ *
+ * 🔴 为什么必须**单独补**（而不是让静态队列生成器产出）：
+ *   `deathTriggered` 角色**刻意不走静态队列生成器** —— **既有设计契约**
+ *   （`ravenkeeper.test.ts`：「入队由击杀后专用路径注入，非队列生成器」；
+ *     `trouble_brewing_matrix_full.test.ts`：「即便本人当晚已死，队列生成器也不产出其节点」）。
+ *   队列在**夜晚开始时**生成，而「恶魔杀谁」在**夜晚过程中**才发生
+ *   ⇒ 由 `useNightActionHandler` 的 newlyDead 动态插入兜住。
+ *   ⚠️ 但**处决**发生在**黄昏（dusk）**，走不到那条路径 ⇒ 处决死的死亡触发角色**无任何入队路径**。
+ *   ⚠️ 且 `enterNightPhase` 会**清空 `deadThisNight`** ⇒ 即便处决写了它也留不住。
+ *
+ * ✅ 判据：`todayExecutedId`（进入夜晚时**仍有效**；`enterDayPhase` 在新白天才清空）。
+ *   角色资格走**同源** `canWakeOnDeathEvent`（自己死亡触发 ∪ 他人死亡订阅）。
+ *   结果**追加在队尾**（优先级位于恶魔等常规角色之后，与官方「恶魔行动后唤醒」口径一致）。
+ *
+ * 🔒 唯一实现：`useExecutionHandlers::startSubsequentNight` 调它；禁止再内联复制。
+ *
+ * ⚠️⚠️ **纯函数契约：恒返回「新数组」，绝不返回入参 `wakeIds` 的引用。**
+ *   2026-09-21 P0 教训（后续夜晚队列恒为空、恶魔永不杀人）：
+ *     `return wakeIds;` 返回**同一引用** ⇒ 调用方「先 `wakeIds.length = 0`、
+ *     再 `wakeIds.push(...返回值)`」⇒ 清空源后再 spread 空数组 ⇒ **结果恒为空**。
+ *   只要本函数可能返回入参引用，调用方的任何原地改就都是雷。
+ *   ⇒ 这里统一 `return [...wakeIds]` 切断别名；测试用 `toEqual` 不校验身份，故不受影响。
+ */
+export function appendExecutedDeathTriggeredToQueue(
+  seats: any[],
+  todayExecutedId: number | null | undefined,
+  wakeIds: number[]
+): number[] {
+  const base = Array.isArray(wakeIds) ? wakeIds : [];
+  // ⚠️ 一律返回**副本**（下方所有分支同此契约）
+  if (typeof todayExecutedId !== "number") return [...base];
+  if (base.includes(todayExecutedId)) return [...base];
+  const seat = (seats ?? []).find((s: any) => s?.id === todayExecutedId);
+  if (!seat) return [...base];
+  if (!canWakeOnDeathEvent(seat.role?.id)) return [...base];
+  return [...base, todayExecutedId];
+}
+
 export function roleHasNightAction(roleId: string | undefined | null): boolean {
   if (!roleId) return false;
   // 系统步骤（爪牙互认 / 恶魔互认 / 军团互认 / 转邪通知等）不是角色，放行
@@ -389,6 +545,7 @@ export function generateDynamicNightQueue(
 
     // 找到对应的座位（默认只找存活玩家）
     // includeDead 全局覆盖 + deadActorWakes 角色级覆盖（如间谍死后仍唤醒）
+    // + **deathTriggered 角色级覆盖**（见下方 P1-16 说明）
     const effectiveIncludeDead = (entry as any).deadActorWakes || includeDead;
     const directSeat = snapshot.seats.find(
       (s) =>
@@ -417,6 +574,15 @@ export function generateDynamicNightQueue(
       if (!diedThisNight) {
         return false;
       }
+    }
+
+    // 🔔 【他人死亡订阅】声明了 `deathEventWatch` 的角色（如唱诗男孩订阅国王）：
+    //   队列生成时死亡事件**尚未发生**（恶魔还没行动）⇒ **一律静态排除**，
+    //   只在运行时由死亡事件分发器（`resolveDeathEventWakeups`）动态插入。
+    //   ⚠️ 此前它靠 `otherNightPriority: 84` 每夜入队（说书人看到多余步骤），
+    //      且「国王是否被杀」无从判断 ⇒ 现已统一到死亡事件分发。
+    if (hasDeathEventWatch(entry.roleId)) {
+      return false;
     }
 
     // 🏹 赏金猎人：官方「每当你**得知**的玩家死亡，你会在**当晚**得知另一名邪恶玩家」

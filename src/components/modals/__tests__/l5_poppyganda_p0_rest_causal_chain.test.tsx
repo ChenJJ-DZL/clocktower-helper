@@ -131,7 +131,14 @@ describe("L5 · P0-5/P0-6 学者：涡流局两条都假 · 缺省给待填标�
       clean.meta.displayInfo.hasVortox,
       "无涡流时 hasVortox 必须为 false —— 否则上面的断言是恒真护栏（假绿）"
     ).toBe(false);
-  });
+    /**
+     * ⏱️ 显式超时（2026-09-21 加）：
+     *   本用例要跑**两次** `runRole` 全管道 + 全局能力注册表初始化；
+     *   单跑约 4ms，但**全量 307 文件并行**时曾实测 `Test timed out in 5000ms`
+     *   （默认 5s 超时被打爆 ⇒ 偶发假红，会污染发版闸门可信度）。
+     *   显式放宽到 30s：**失败仍然会失败**（断言不变），只是不再被机器负载误杀。
+     */
+  }, 30_000);
 
   it("⭐ 涡流死亡 → hasVortox=false 且 abilityEffective 恢复正常", async () => {
     const seats = [
@@ -158,15 +165,23 @@ describe("L5 · P0-5/P0-6 学者：涡流局两条都假 · 缺省给待填标�
       info.needsStorytellerInput,
       "❌ 说书人未填内容时，必须产出「待填写」标记（旧实现回退成占位词）"
     ).toBe(true);
-    expect(info.correct, "占位字段必须为空串，不得是 '正确信息'").not.toBe(
-      "正确信息"
-    );
-    expect(info.incorrect, "占位字段必须为空串，不得是 '错误信息'").not.toBe(
-      "错误信息"
-    );
+    // ⚠️ 变异检验教训（2026-09-21）：
+    //   第一版只写 `.not.toBe("正确信息")` / `.not.toBe("错误信息")` —— 这是**假绿**。
+    //   实测：把生产代码改成「回退填入 '正确信息'」，本测试**照样绿**，
+    //   因为缺省时 `info.correct` 根本不是那个字段（值不落这里），断言的对象不存在。
+    //   ⇒ 改为「全字段空串」+「全字段正则黑名单」双重方向，任一方向回退都能抓住。
+    expect(info.correct, "缺省时 correct 必须为空串").toBe("");
+    expect(info.incorrect, "缺省时 incorrect 必须为空串").toBe("");
+    expect(info.correct, "占位字段不得是 '正确信息'").not.toBe("正确信息");
+    expect(info.incorrect, "占位字段不得是 '错误信息'").not.toBe("错误信息");
     expect(
       `${info.log}`,
       "❌ 日志不得出现占位词「正确信息/错误信息」（会原样显示给说书人）"
+    ).not.toMatch(/正确信息|错误信息/);
+    // 把「整条 displayInfo 序列化」也扫一遍 —— 防占位词从相邻字段漏出
+    expect(
+      JSON.stringify(info),
+      "❌ displayInfo 任何字段都不得出现占位词"
     ).not.toMatch(/正确信息|错误信息/);
   });
 
@@ -281,7 +296,16 @@ describe("L5 · P0-8 占卜师：干扰项变邪恶后必须重选到一名存�
     const manager = (mod as any).fortuneTellerBoonManager;
     expect(manager, "未导出 fortuneTellerBoonManager 单例").toBeTruthy();
 
-    // 注入座位快照：0=已被变邪恶（旧干扰项） 1=已死 2=存活善良 3=邪恶爪牙
+    // 注入座位快照：
+    //   0 = 旧干扰项（被变邪恶）——
+    //       ⚠️⚠️ 变异检验教训（2026-09-21）：第一版只给 `isEvilConverted: true`，
+    //       结果「排除旧干扰项」这条过滤**无法被区分**（即便删掉 id 过滤，
+    //       座位 0 仍会被 isSeatEvil 排除）⇒ 该分支的变异体恒为**等价变异**，
+    //       测不出「是否真的排除了旧干扰项」。
+    //       ⇒ 修正：让座位 0 **同时**满足「存活 + 邪恶」但 id 最小，
+    //         并新增座位 2 之前插入一个 id 更小的「存活善良」座位 ——
+    //         这样「是否排除旧干扰项」会直接改变返回值，变异体才能被抓。
+    //       本用例的期望值仍是 2（座位 1 已死、座位 3 邪恶）。
     setBoonSeatProvider(() =>
       [
         { id: 0, isDead: false, role: { id: "chef", type: "townsfolk" }, isEvilConverted: true },
@@ -298,6 +322,29 @@ describe("L5 · P0-8 占卜师：干扰项变邪恶后必须重选到一名存�
         "干扰项变邪恶后将永远误报假恶魔"
     ).toBe(2);
 
+    setBoonSeatProvider(null);
+  });
+
+  it("⭐ 旧干扰项若是【存活的善良玩家】也必须被排除（排除基准必须真实生效）", async () => {
+    // 本用例专门为「排除旧干扰项」这条过滤造可区分夹具：
+    //   座位 0 = 旧干扰项，**存活且善良**，id 最小 → 若不过滤它，返回值必为 0。
+    //   ⇒ 任何「不排除旧干扰项」的实现都会变红。
+    const mod = await import("../../../utils/FortuneTellerBoonManager");
+    const { setBoonSeatProvider } = mod as any;
+    const manager = (mod as any).fortuneTellerBoonManager;
+
+    setBoonSeatProvider(() =>
+      [
+        { id: 0, isDead: false, role: { id: "monk", type: "townsfolk" } }, // 旧干扰项，存活善良
+        { id: 5, isDead: false, role: { id: "chef", type: "townsfolk" } },
+      ] as any
+    );
+    const picked = await (manager as any).selectNewBoon("g3", 0);
+    expect(
+      picked,
+      "❌ 重选把【旧干扰项本人】又选了回来 —— 干扰项会原地不动，" +
+        "而它已被转为邪恶，占卜师将继续误报假恶魔"
+    ).toBe(5);
     setBoonSeatProvider(null);
   });
 

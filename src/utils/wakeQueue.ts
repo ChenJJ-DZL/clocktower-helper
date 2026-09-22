@@ -17,6 +17,7 @@
  */
 
 import type { Seat } from "../../app/data";
+import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import type { NightActionNode } from "./nightStateMachine";
 
 // ─── NightActionNode 版本的归一化（新 API） ─────────────
@@ -56,8 +57,13 @@ export function normalizeNightActionQueue(
   const shouldRemoveFromQueue = (node: NightActionNode) => {
     const seat = seats.find((s) => s.id === node.seatId);
     if (!seat) return true;
-    // Ravenkeeper: 当晚死亡仍要叫醒
-    if (seat.role?.id === "ravenkeeper" && deadSeatIds.has(seat.id)) {
+    // ⚠️ 2026-09-21 修复 P1-13【白名单扩散第 5 处】：
+    //   原为 `seat.role?.id === "ravenkeeper"` ⇒ 其他死亡触发角色（farmer/sweetheart/
+    //   barber/sage/banshee/moonchild/plague_doctor/hatter）当晚死亡会被**误剔除出队列**。
+    //   ✅ 走 SST `isDeathTriggeredRole`。
+    //   📌 可达性登记：本函数当前**零生产调用**（仅同文件 normalizeWakeQueueForDeaths 调用，
+    //      而后者亦无调用点）⇒ 属**死代码**。仍修正实现，避免将来启用时成为活 bug。
+    if (isDeathTriggeredRole(seat.role?.id) && deadSeatIds.has(seat.id)) {
       return false;
     }
     // hasAbilityEvenDead 的玩家死亡后仍可叫醒

@@ -1794,6 +1794,22 @@ export const roles: Role[] = [
       "如果国王死亡，你会得知谁是恶魔。说书人可以直接告知恶魔身份，或提供模糊线索。",
     script: "实验性角色",
   },
+  {
+    // ⚠️ 2026-09-21 注册（P1-15）：`king` 此前**不在 roles 表**（`king.ability.ts` 已存在并注册到
+    //   abilityRegistry，但 `app/data.ts` 无此条目）⇒ `r("king")` 为 undefined ⇒
+    //   生产牌局 seats 里永不出现 king 座位 ⇒ 唱诗男孩（订阅 king）与
+    //   `expansionMechanics::checkChoirboyTrigger` **双双不可达**。
+    //   本条目按**官方**文本填写（注意：官方 King 语义 = 每夜条件性存活角色信息，
+    //   叠加「恶魔知道你是国王」，见 king.ability.ts 顶部注释）。
+    id: "king",
+    name: "国王",
+    type: "townsfolk",
+    ability:
+      "每个夜晚，如果死亡的玩家数量大于或等于存活的玩家数量，你会得知一个存活的角色。恶魔知道你是国王。",
+    fullDescription:
+      "每个夜晚，如果死亡的玩家数量大于或等于存活的玩家数量，你会得知一个存活的角色。恶魔知道你是国王。（官方标记 [+国王]：若唱诗男孩在场而国王不在场，设置阶段国王会被加入并替换掉一名其他镇民。）",
+    script: "实验性角色",
+  },
   // ========== 外来者 (Outsider) - 暗流涌动 + 黯月初升 + 梦殒春宵 + 实验性角色 ==========
   {
     id: "damsel",

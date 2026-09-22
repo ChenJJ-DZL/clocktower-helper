@@ -94,6 +94,38 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P0-B（醉酒/中毒门控缺失）：
+   *   本 `stateUpdate` 此前**完全不消费 `ctx.meta.abilityEffective`**
+   *   ⇒ 中毒/醉酒的该角色照样施加效果（与已修的 cerenovus / vortox 同类）。
+   *
+   * 🔒 blocked 分支**只记「选择」与「已受干扰」**，刻意**不写**：
+   *   · `snapshot.seats`（死亡 / 状态效果本身就是"效果"，写了就等于能力生效）
+   *   · 各角色的特征副作用字段（如相邻中毒名单 / 变身标记 / 交换标记）
+   *   ⇒ 说书人能看到技能被发动过，但世界没有变化。
+   */
+
+  const abilityEffective = ctx.meta.abilityEffective ?? true;
+  if (!abilityEffective) {
+    return {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        lastKill: {
+          demonId: ctx.actionNode.seatId,
+          targetId: null,
+          demonRole: "fang_gu",
+          killed: false,
+        },
+        _abilityResults: {
+          ...((ctx.snapshot as any)._abilityResults ?? {}),
+          fang_gu: { ...r, blockedByDrunkOrPoison: true },
+        },
+      },
+      meta: { ...ctx.meta, isCorrupted: true },
+    };
+  }
+
   if (r?.targetId == null) return ctx;
   const fangGuSeatId = ctx.actionNode.seatId;
   const actualKilledId = r?.mayorSaved ? r?.substituteId : r.targetId;

@@ -127,6 +127,23 @@ export const I3DeadPlayerAbilityBlocked: InvariantCheck = async (
     const timings = (ability.triggerTiming ?? []) as string[];
     if (timings.includes("passive")) continue;
 
+    /**
+     * ⚠️⚠️ 2026-09-21 修复：**「死亡触发」也必须是 I3 的例外**。
+     *
+     * 官方语义：守鸦人「如果你在**夜晚死亡**，你会**被唤醒**并得知一名玩家」/
+     *   农夫 / 报丧女妖 / 月之子 / 瘟疫医生 / 心上人 / 理发师 / 贤者——
+     *   这些角色的能力**恰恰是死后才生效**，其入队本身已被
+     *   `dynamicQueueGenerator.ts:411` 的 `deathTriggered` 门控限定为「仅在当晚死亡时」。
+     *   ⇒ 对它们断言「死亡 ⇒ 能力必须被 preCheck 中止」是**语义错误**，与 spy 同类。
+     *
+     * 🔴 原先只豁免 `passive` ⇒ 一旦某 ON_DEATH 角色的 preCheck 恰好不做死亡检查
+     *   （如 `barber.ability.ts` / `sweetheart.ability.ts`），J3 就会**误报**
+     *   「死亡玩家的能力未被中止」。此前未暴露纯属巧合 ——
+     *   `ravenkeeper` / `farmer` 等的 preCheck 碰巧会 abort。
+     *   （2026-09-21 修 P1-7 把 `sweetheart`/`barber`/`sage` 从 PASSIVE 改为 ON_DEATH 后立刻暴露。）
+     */
+    if (timings.includes("on_death")) continue;
+
     const deadSeat = { ...seat, isDead: true };
     const snapshot: any = {
       ...result.finalSnapshot,

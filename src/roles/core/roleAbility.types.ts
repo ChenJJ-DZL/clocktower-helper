@@ -137,6 +137,27 @@ export interface IRoleAbility {
   globalRules?: GlobalRule[];
   /** 效果语义（I11 校验"声明的效果真的落地"；默认 info） */
   effectSemantics?: EffectSemantics;
+  /**
+   * 【声明式】「他人死亡」事件订阅（2026-09-21 新增）。
+   *
+   * 官方语义为「**如果某角色死亡，则你会…**」的能力用此声明，例如：
+   *   · 唱诗男孩：「如果恶魔杀死了**国王**，你会得知哪名玩家是恶魔。」
+   *     ⇒ `deathEventWatch: { roleId: "king" }`
+   *
+   * 🔒 引擎统一分发（SST `utils/dynamicQueueGenerator.ts::resolveDeathEventWakeups`）：
+   *   任意玩家死亡时，凡是**存活**且订阅了 `roleId` 的座位，会在**当晚**被插入唤醒队列。
+   *   ⇒ **禁止**再为这类角色写专属的入队特例（它是「他人死亡触发」，
+   *      与 `triggerTiming: [ON_DEATH]`（自己死亡触发）不同型，由同一分发器统一处理）。
+   *
+   * ⚠️ 声明了本字段的角色**静态不入夜间队列**（队列生成时死亡事件尚未发生），
+   *   只由运行时死亡事件驱动入队。
+   */
+  deathEventWatch?: {
+    /** 被订阅的角色 id（该角色死亡时唤醒本角色的持有者） */
+    roleId: string;
+    /** 可选：限制死因（不填 = 任意死因，官方「如果你死亡」口径不分死因） */
+    cause?: "night_kill" | "execution" | "any";
+  };
 
   // 技能处理中间件
   preCheck: PreCheckMiddleware[];

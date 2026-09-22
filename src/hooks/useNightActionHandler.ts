@@ -9,6 +9,7 @@
  */
 
 import { useCallback } from "react";
+import { resolveDeathEventWakeups } from "../utils/dynamicQueueGenerator";
 import type { Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
@@ -115,7 +116,7 @@ export interface NightActionHandlerContext {
   reviveSeat: (seat: Seat) => Seat;
   insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
   /** 🔧 守鸦人修复：恶魔杀守鸦人后动态插入新引擎觉醒节点 */
-  enqueueRavenkeeperIfNeeded?: (targetId: number) => void;
+  enqueueDeathTriggeredIfNeeded?: (targetId: number, roleId?: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -687,6 +688,35 @@ export async function executeViaNewEngine(
         return true;
       }
 
+      /**
+       * 🌙 军团（Legion）「说书人代操作」名单 —— **SST，必须在两条弹窗分支之前算好**。
+       *
+       * 官方：军团「每个夜晚*，**可能**有一名玩家死亡」——军团玩家本人**无需操作**，
+       * 由**说书人代为决定**今晚谁死。因此该页面向说书人，需给出**完整在场名单**，
+       * 并把玩家隐私提示换成「请勿展示给玩家」。
+       *
+       * ⚠️⚠️ 2026-09-21 修复 P0（真实缺陷，曾被**手搓 data** 的 UI 测试完全掩盖）：
+       *   本计算原先只写在下方 `maxTargets === 0` 的「无目标信息角色」分支里，
+       *   但 `legion.ability.ts` 的 targetConfig 是 **`{ min: 0, max: 1 }`**（≥1 目标），
+       *   ⇒ 军团走的是**主动技能分支**（`maxTargets > 0`），**永远进不了**那个分支
+       *   ⇒ `storytellerRoster` / `storytellerFacing` **恒为 undefined**
+       *   ⇒ 军团局说书人**看不到完整在场名单**，页面还显示**玩家版隐私提示**
+       *     （军团局邪恶方互相知情，无泄漏风险；但说书人缺少代操作所需的关键信息）。
+       *
+       *   `legion_storyteller_ui.test.tsx` 的 6 条用例**手搓 data** 自传 roster，
+       *   因此生产分支写错也照样全绿 —— 本文件即为此而建（`l5_legion_confirm_chain`）。
+       *
+       * 修法：上移到分支之前，两个 setCurrentModal 都注入。
+       * ⚠️ 仅在军团步骤注入 —— 其他角色页绝不显示他人角色（防泄漏）。
+       */
+      const isLegionActor =
+        roleId === "legion" || actorSeat?.role?.id === "legion";
+      const legionStorytellerRoster = isLegionActor
+        ? context.seats
+            .filter((s: any) => !s.isDead)
+            .map((s: any) => `${s.id + 1}号【${s.role?.name ?? "未知"}】`)
+        : undefined;
+
       if (maxTargets === 0 && roleId !== "ojo" && roleId !== "brewer") {
         // 不需要选择目标的能力（信息角色、间谍魔典等）
         // 间谍特殊：需要弹出对局记录/魔典查看界面
@@ -732,20 +762,6 @@ export async function executeViaNewEngine(
         ].filter(Boolean);
 
         // 执行后需要 UI 确认，不要自动跳过
-        //
-        // 🌙 军团（Legion）：官方「每个夜晚*，**可能**有一名玩家死亡」——
-        //    军团玩家本人**无需任何操作**，由**说书人代为决定**今晚谁死。
-        //    因此本页对军团改为「说书人视角」：额外给出**完整在场名单（座位号+角色）**，
-        //    并把页面的玩家隐私提示换成"请勿展示给玩家"。
-        //    ⚠️ 仅在军团步骤注入 —— 其他角色页绝不显示他人角色（防泄漏）。
-        const isLegionActor =
-          roleId === "legion" || actorSeat?.role?.id === "legion";
-        const storytellerRoster = isLegionActor
-          ? context.seats
-              .filter((s: any) => !s.isDead)
-              .map((s: any) => `${s.id + 1}号【${s.role?.name ?? "未知"}】`)
-          : undefined;
-
         context.setCurrentModal({
           type: "NIGHT_ACTION_CONFIRM",
           data: {
@@ -754,7 +770,8 @@ export async function executeViaNewEngine(
             targetDescriptions: mergedTargets,
             extraNote:
               combinedNotes.length > 0 ? combinedNotes.join("\n") : undefined,
-            storytellerRoster,
+            // 军团名单（在分支前统一算好，见上方 SST 说明）
+            storytellerRoster: legionStorytellerRoster,
             storytellerFacing: isLegionActor,
             onConfirm: async () => {
               const realContext: NightActionHandlerContext = {
@@ -943,6 +960,10 @@ export async function executeViaNewEngine(
             lunaticTargetIds: isDemonActor
               ? getLunaticTargetSeatIds(context.seats as Seat[])
               : undefined,
+            // 🌙 军团（P0 修复）：主动技能分支也必须注入说书人名单。
+            //   军团 targetConfig 是 {min:0,max:1} → 走本分支（不是 maxTargets===0 那个）。
+            storytellerRoster: legionStorytellerRoster,
+            storytellerFacing: isLegionActor,
             onConfirm: async (
               chosenTargets?: number[],
               chosenRoleIdOrRole?: any
@@ -1373,16 +1394,33 @@ export async function executeViaNewEngine(
       //   （W8.10.5 把守鸦人改为 deathTriggered 条件入队，但夜间开始生成队列时
       //    守鸦人还活着 → 被过滤；小恶魔正常杀人路径又未调用入队函数，
       //    导致守鸦人被恶魔杀后永远不觉醒。此处对 newlyDead 中守鸦人补调。）
-      if (newlyDead.length > 0 && context.enqueueRavenkeeperIfNeeded) {
+      if (newlyDead.length > 0 && context.enqueueDeathTriggeredIfNeeded) {
         for (const id of newlyDead) {
           const deadSeat = syncedSeats.find((s) => s.id === id);
-          if (deadSeat?.role?.id === "ravenkeeper") {
-            // 🔧 守鸦人修复：就地修改 syncedSeats 闭包引用设置 hasAbilityEvenDead=true，
-            //   让下方 continueToNextAction(syncedSeats) 传入的 latestSeats 含该标记，
-            //   否则 updateSnapshot→calculateNightInfo 生成 nightInfo.seat 时 isDead=true
-            //   且 hasAbilityEvenDead=undefined → preProcessAbility blocked → 守鸦人永远无法行动
-            deadSeat.hasAbilityEvenDead = true;
-            context.enqueueRavenkeeperIfNeeded(id);
+          if (!deadSeat) continue;
+          /**
+           * ⭐ 2026-09-21：统一走**死亡事件分发器**（SST `resolveDeathEventWakeups`）。
+           *   一次覆盖两类，且**不再**在调用点判断角色名：
+           *     ① 自己死亡触发（`triggerTiming` 含 ON_DEATH）：守鸦人/农夫/报丧女妖/
+           *        月之子/瘟疫医生/心上人/理发师/贤者/帽匠…
+           *     ② 他人死亡订阅（`deathEventWatch`）：唱诗男孩（订阅国王）
+           *
+           * ⚠️ 原为硬编码 `=== "ravenkeeper"`（P1-10 修）⇒ 再退化成散落白名单就麻烦了。
+           */
+          const wakeups = resolveDeathEventWakeups(
+            syncedSeats,
+            id,
+            deadSeat.role?.id
+          );
+          for (const w of wakeups) {
+            const target = syncedSeats.find((s) => s.id === w.seatId);
+            if (!target) continue;
+            // 🔧 `hasAbilityEvenDead` 只给「自己死亡触发」的**死者**设置：
+            //   让下方 continueToNextAction(syncedSeats) 的 latestSeats 含该标记，
+            //   否则 nightInfo.seat 的 isDead=true + 无标记 → preProcessAbility blocked → 永不行动。
+            //   （订阅类座位是**存活**的，无需该标记。）
+            if (w.reason === "self") target.hasAbilityEvenDead = true;
+            context.enqueueDeathTriggeredIfNeeded(w.seatId, w.roleId);
           }
         }
       }
@@ -1755,8 +1793,14 @@ export async function executeViaNewEngine(
           customResultText = getCerenovusNoticePlayerText(madRoleName);
           cerenovusResultData = { targetId, roleName: madRoleName };
           // 🧠 被洗脑玩家的独立行动节点（与洗脑师这一步分开）
+          // ⚠️ 2026-09-21 修复：必须 `force: true` —— 被洗脑者可能是**毫无夜间技能的镇民**
+          //   （如镇长/农夫），`insertIntoWakeQueueAfterCurrent` 的
+          //   `seatHasNightAction` 准入检查会直接拒绝他入队 ⇒
+          //   官方要求的「洗脑师技能结束后立即唤醒被洗脑者并告知」**永远不发生**。
+          //   `nightInfoAdapter` 侧对这类座位会返回「被洗脑告知」合成节点（见该文件对应分支）。
           if (context.insertIntoWakeQueueAfterCurrent) {
             context.insertIntoWakeQueueAfterCurrent(targetId, {
+              force: true,
               logLabel: getCerenovusNoticeStepLabel(targetId, madRoleName),
             });
           }

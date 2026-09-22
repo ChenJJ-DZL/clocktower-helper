@@ -96,7 +96,25 @@ export const sageAbility = createRoleAbility({
   roleId: "sage",
   abilityId: "sage_death",
   abilityName: "被恶魔杀得知邪恶",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P1-7【死亡触发角色误标 PASSIVE】：
+   * 官方【角色能力】：「如果恶魔杀死了你，在当晚你会被唤醒并得知两名玩家，其中一名是杀死你的那个恶魔。」
+   *   ⇒ 这是**死亡触发**能力，不是常驻被动。
+   *
+   * 🔴 原为 `[PASSIVE]` 的后果（与 `farmer.ability.ts:210-218` 的 P1-6 **完全同型**）：
+   *   `useNightEngine.ts:194` 用 `triggerTiming.includes(ON_DEATH)` 打 `deathTriggered` 标，
+   *   `dynamicQueueGenerator.ts:414` 据此做「仅在当晚死亡时才入队」门控。
+   *   声明 PASSIVE ⇒ `deathTriggered=false` ⇒ **门控不生效** ⇒ 该角色**存活时也被排入夜间队列**
+   *   （实测：二夜存活仍入队，见 `zz` 探针 / 真值表护栏）。
+   *
+   * ✅ 修法：`[PASSIVE]` → `[ON_DEATH]`，与 `farmer`(P1-6) / `ravenkeeper` / `banshee` /
+   *   `moonchild` / `plague_doctor` 的既定范式一致（一律 `firstNightPriority: null` +
+   *   `otherNightPriority: 81`）。本文件的夜序优先级此前已正确，**无需改动**。
+   *
+   * 🔎 漏网原因：罂粟花开批次的能力通路真值表护栏只覆盖 24 个罂粟花开角色，
+   *   而本角色属**梦陨春宵**（内置剧本）⇒ 不在护栏覆盖范围内。护栏本轮已扩展。
+   */
+  triggerTiming: [AbilityTriggerTiming.ON_DEATH],
   firstNightPriority: null,
   otherNightPriority: 81,
   firstNightOnly: false,

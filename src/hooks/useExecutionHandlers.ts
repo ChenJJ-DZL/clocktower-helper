@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { appendExecutedDeathTriggeredToQueue } from "../utils/dynamicQueueGenerator";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { isPlayerEvil } from "../../app/gameLogic";
 import { gameActions } from "../contexts/GameContext";
@@ -106,7 +107,7 @@ export interface ExecutionHandlersDeps {
     ctx: NightActionHandlerContext
   ) => boolean | Promise<boolean>;
   executePoisonActionFn: typeof executePoisonAction;
-  enqueueRavenkeeperIfNeeded: (targetId: number) => void;
+  enqueueDeathTriggeredIfNeeded: (targetId: number, roleId?: string) => void;
   markAbilityUsed: (roleId: string, seatId: number) => void;
   hasUsedAbility: (roleId: string, seatId: number) => boolean;
   undo?: () => void;
@@ -191,7 +192,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     computeIsPoisoned,
     handleNightAction,
     executePoisonActionFn,
-    enqueueRavenkeeperIfNeeded,
+    enqueueDeathTriggeredIfNeeded,
     nightLogic,
     processingRef,
     moonchildChainPendingRef,
@@ -499,7 +500,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
 
         setWakeQueueIds((prev) => prev.filter((id) => id !== impSeat.id));
         setDeadThisNight((prev) => [...prev, impSeat.id]);
-        enqueueRavenkeeperIfNeeded(impSeat.id);
+        enqueueDeathTriggeredIfNeeded(impSeat.id, impSeat.role?.id);
 
         // 🔧 W8.14.13：传星后新恶魔必须加入本夜唤醒队列（按恶魔优先级排序）。
         //   否则新恶魔不在夜间队列 → 夜晚无恶魔杀人 → 平安夜死循环（实测 9 人局死局）。
@@ -557,7 +558,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     getRandom,
     setWakeQueueIds,
     setDeadThisNight,
-    enqueueRavenkeeperIfNeeded,
+    enqueueDeathTriggeredIfNeeded,
     nightLogic,
     moonchildChainPendingRef,
     dispatch,
@@ -1170,9 +1171,60 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     // 3. 由队列节点 seatId 推导 wakeQueueIds（仅保留在场座位）
     //    与首夜 handleStartFirstNight 逻辑对齐：依据当前引擎快照重新生成队列，
     //    这样白天被处决/夜晚死亡的玩家不会在后续夜晚被错误唤醒。
-    const wakeIds: number[] = queue
+    const baseWakeIds: number[] = queue
       .map((node: any) => node.seatId)
       .filter((id: number) => seats.some((s: Seat) => s.id === id));
+
+    /**
+     * 👑 2026-09-21 修复 P1-16【处决死的「死亡触发」角色当晚不被唤醒】
+     *
+     * 官方【帽匠】范例：「刺客杀死了一名玩家。**帽匠被处决了。当晚**，刺客选择变成了主谋。」
+     *   ⇒「如果你死亡」类（心上人 / 理发师 / 贤者 / 呆瓜 / 帽匠…）**不分死因**、**当晚**生效。
+     *
+     * 🔴 为什么这里必须**手工补**：
+     *   `deathTriggered` 角色**刻意不走静态队列生成器** —— 这是**既有设计契约**
+     *   （`ravenkeeper.test.ts`：「入队由击杀后专用路径注入，非队列生成器」；
+     *     `trouble_brewing_matrix_full.test.ts`：「即便本人当晚已死，队列生成器也不产出其节点」）。
+     *   原因：队列在**夜晚开始时**生成，而「恶魔杀谁」在**夜晚过程中**才发生
+     *   ⇒ 由 `useNightActionHandler` 的 newlyDead 动态插入兜住。
+     *   ⚠️ 但**处决**发生在**黄昏（dusk）**，走不到那条路径
+     *   ⇒ 处决死的死亡触发角色**没有任何入队路径** ⇒ 效果落空。
+     *   ⚠️ 且 `enterNightPhase` 会**清空 `deadThisNight`** ⇒ 即便处决写了它也留不住。
+     *
+     * ✅ 判据用 `todayExecutedId`（进入夜晚时**仍有效**，到「新白天」才被 `enterDayPhase` 清空）
+     *   + `currentDuskExecution` / `lastDuskExecution` 兜底；
+     *   角色资格走**同源** `canWakeOnDeathEvent`（= 自己死亡触发 ∪ 他人死亡订阅）。
+     *   排在队尾（优先级上位于恶魔之后，与官方「恶魔行动后」的口径一致）。
+     */
+    // ⚠️ 只取 `todayExecutedId`：它就是「**当日**被处决」的权威字段，且在本 hook 作用域内
+    //   （`enterDayPhase` 会在新白天把它清空 ⇒ 进入夜晚时仍有效）。
+    //   `currentDuskExecution` / `lastDuskExecution` 不在本 hook 作用域，且语义重叠，不引入。
+    // 🔒 逻辑收敛到 SST 纯函数（可单测）：`dynamicQueueGenerator::appendExecutedDeathTriggeredToQueue`
+    //
+    // 🐛🔴 2026-09-21 修复 P0【**后续夜晚队列恒为空** ⇒ 无人被唤醒 ⇒ 恶魔永不杀人】
+    //   原写法（本轮 P1-16 引入，属**回归**）：
+    //     const wakeIdsWithExecuted = append…(seats, todayExecutedId, wakeIds);
+    //     wakeIds.length = 0;                       // ← 原地清空
+    //     wakeIds.push(...wakeIdsWithExecuted);     // ← 再从「已空的同一个数组」spread
+    //   `appendExecutedDeathTriggeredToQueue` 在**无需追加**时执行 `return wakeIds;`
+    //   —— 返回的是**同一个引用** ⇒ `wakeIdsWithExecuted === wakeIds`
+    //   ⇒ 第 2 行把源数据清空、第 3 行 spread 空数组 ⇒ `wakeIds` **恒为空**。
+    //
+    //   🔬 实测证据（E2E 探针，日志 `[DBG-*]`）：
+    //     `[DBG-queue]   len=5 queueSeatIds=[1,2,4,6,3]`
+    //     `[DBG-wakeIds] computed= [1,2,4,6,3]`          ← 队列本身完全正确
+    //     `[startSubsequentNight] 进入第 2 夜，队列长度: 0` ← 打印时已被清空
+    //   后果：第二夜起 `wakeQueueIds=[]` ⇒ 引擎逐个能力都不派发 ⇒
+    //     **整晚「平安夜」**（UI 上仍显示完整的「夜晚行动顺序」面板，极具欺骗性）。
+    //   ⚠️ 这正是「**双写入点/别名**」类反模式的又一次命中（累计第 9 次）：
+    //     纯函数只要**可能返回入参引用**，调用方就**禁止原地改**。
+    //
+    // ✅ 正确写法：**整体替换**，绝不原地清空；且 SST 纯函数已改为**恒返回新数组**。
+    const wakeIds: number[] = appendExecutedDeathTriggeredToQueue(
+      seats as any[],
+      todayExecutedId,
+      baseWakeIds
+    );
 
     // 重新计算非首夜的系统步骤映射（如罂粟种植者死亡触发的邪恶互认；无则清空旧首夜映射）
     const stepMap = new Map<number, string>();

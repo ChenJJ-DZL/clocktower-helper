@@ -13,6 +13,7 @@
  * 加 poisoned 标记（UI 层按中毒渲染）。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatDisabled } from "../../utils/seatDisabled";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -36,11 +37,41 @@ const calculate = async (
       : null;
   const isDemon =
     target?.role?.type === "demon" || target?.isDemonSuccessor === true;
+
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P1-17【醉酒/中毒时「交换角色」仍然生效】
+   *
+   * 官方核心规则：**醉酒或中毒的玩家失去其能力**（说书人只装作他仍有能力、走过场执行）。
+   * 舞蛇人：「每个夜晚，你要选择一名存活玩家：他中毒直到下个黄昏。**如果他明天被处决，
+   *   他会死亡而你变成他的角色。**」
+   *   ⇒ 醉酒/中毒的舞蛇人**不得**交换角色、**不得**施加中毒。
+   *
+   * 🔴 原实现：`swapTriggered: isDemon` —— **只判目标是不是恶魔**，
+   *   **完全没考虑自身是否醉酒/中毒** ⇒ 醉酒的舞蛇人选中恶魔照样完成交换。
+   *
+   * 🔒 门控用**本地判定** `isSeatDisabled`（SST → `utils/seatDisabled`，已覆盖
+   *   `statusEffects` / `statuses` / 中文 `statusDetails`），而**不是** `ctx.meta.abilityEffective`
+   *   —— 因为本文件的 `preCheck: [preCheck]` 是**自有实现**（不含 `commonPreCheckAlive`），
+   *   `meta.abilityEffective` 可能**恒为 undefined** ⇒ `?? true` 会变成**假门控**。
+   */
+  const selfSeat = (ctx.snapshot.seats ?? []).find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
+  const isAbilityActive = !isSeatDisabled(
+    selfSeat as any,
+    (ctx.snapshot.seats ?? []) as any
+  );
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      abilityResult: { targetId, isDemon, swapTriggered: isDemon },
+      abilityResult: {
+        targetId,
+        isDemon,
+        isAbilityActive,
+        swapTriggered: isDemon && isAbilityActive,
+      },
     },
   };
 };

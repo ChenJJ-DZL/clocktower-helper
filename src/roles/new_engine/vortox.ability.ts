@@ -93,7 +93,50 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  // ⚠️⚠️ 2026-09-21 修复 P0：涡流自身醉酒/中毒时必须 **不下杀手**。
+  //
+  // 官方原文（投毒者 / 规则书「醉酒与中毒」）：
+  //   "中毒的玩家会失去能力……他的能力**不会真实地影响游戏**。"
+  //   "如果一名中毒的玩家……使用了能力，他无法再次使用这项能力。"（走场原则）
+  // ⇒ 被投毒者下毒的涡流，仍会被唤醒、仍会被要求选人（说书人装作他还有能力），
+  //   **但选中的玩家不会死**。
+  //
+  // 实测证据（2026-09-21 探针 zz_probe_drunk_effect_gate）：
+  //   修复前 drunk=true（醉酒涡流照样杀人）—— 与 imp/monk 的正确行为相反。
+  //
+  // 实现：abilityEffective=false 时只记录选择（供说书人核对 / UI 展示），
+  //       绝不写 isDead / markedForDeath / lastKill.killed。
+  const abilityEffective = ctx.meta.abilityEffective ?? true;
   const actualKilledId = r?.mayorSaved ? r?.substituteId : r?.targetId;
+
+  if (!abilityEffective) {
+    return {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        // 涡流世界标记仍照常（涡流在世界中即成立，与本次击杀是否生效无关）
+        vortoxActive: true,
+        // lastKill 仍要写（killed:false）—— 说书人据此播报「平安夜」，
+        // 不写会让下游「昨晚发生了什么」无处可读（与 imp 的记录选择 一致）。
+        lastKill: {
+          demonId: ctx.actionNode.seatId,
+          targetId: null,
+          demonRole: "vortox",
+          killed: false,
+        },
+        _abilityResults: {
+          ...((ctx.snapshot as any)._abilityResults ?? {}),
+          vortox: { ...r, killed: false, blockedByDrunkOrPoison: true },
+        },
+      },
+      meta: {
+        ...ctx.meta,
+        vortoxResult: { ...r, killed: false },
+        isCorrupted: true,
+      },
+    };
+  }
+
   return {
     ...ctx,
     snapshot: {

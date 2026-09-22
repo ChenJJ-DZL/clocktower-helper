@@ -75,6 +75,29 @@ describe("疯子：每夜假击杀（apparentDemonRole 决定时序）", () => {
     expect(r.apparentDemonId).toBe("imp");
     expect(r.fakeKill).toBe(true);
     expect(r.realKill).toBe(false);
+
+    // ⚠️⚠️ 防假绿补强（2026-09-21 变异检验实测）：
+    //   旧版只断言 **calculate 阶段**的 `meta.abilityResult` ——
+    //   把 stateUpdate 里写座位的 `lunaticTarget/lunaticTargetIds` 删掉，本文件照样绿。
+    //   而 A4 关键恰恰是**写进行动者座位**（executeViaNewEngine 的状态合并是
+    //   `{...prev, ...updatedSeat}`，只有写进 snapshot.seats 才能同步回 React），
+    //   否则真恶魔的技能确认页/说书人控制台读不到「疯子攻击了谁」。
+    const actor = (res.snapshot.seats as any[]).find((s) => s.id === 0);
+    expect(
+      actor?.lunaticTarget,
+      "❌ 未把疯子本夜目标写进**行动者座位** —— 真恶魔看不到疯子攻击了谁（A4 回归）"
+    ).toBe(1);
+    expect(
+      actor?.lunaticTargetIds,
+      "❌ 未把疯子本夜目标列表写进行动者座位"
+    ).toEqual([1]);
+
+    // 疯子绝不真正杀人：目标座位不得被标记死亡
+    const target = (res.snapshot.seats as any[]).find((s) => s.id === 1);
+    expect(
+      target?.isDead,
+      "❌ 疯子是假击杀，目标绝不能被标记死亡 —— 否则等于多了一个真恶魔"
+    ).toBeFalsy();
   });
 
   it("apparentDemonRole=shabaloth → 选 2 名目标", async () => {

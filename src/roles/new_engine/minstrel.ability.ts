@@ -7,6 +7,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { isDrunkOrPoisoned } from "../../utils/bmrMechanics";
 
 // 前置校验：吟游诗人的能力在爪牙被处决时触发
 const preCheckOnExecution = async (
@@ -51,6 +52,30 @@ const calculateResult = async (
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * ⚠️⚠️ 2026-09-21 修复【醉酒/中毒失效门控缺失】：
+   * 官方核心规则：醉酒或中毒的玩家**失去其能力**（说书人只装作其仍有能力、走过场执行）。
+   * 吟游诗人：`当一名爪牙死于处决时，除了你和旅行者以外的所有其他玩家醉酒直到明天黄昏。`
+   *   官方明文：「如果一名爪牙玩家在吟游诗人**醉酒或中毒期间**死于处决时，吟游诗人的能力**不会触发**。」
+   * 🔴 原实现：本文件全篇**无任何**有效性判定，而 `stateUpdate` 在
+   *   `src/utils/middlewarePipeline.ts:91` 被**无条件**执行 ⇒ 醉酒/中毒的吟游诗人依然令效果落地。
+   * ✅ 修法：状态落地前用 SST `isDrunkOrPoisoned`（→ `utils/seatDisabled::isSeatDisabled`，
+   *   已覆盖 `statusEffects` / `statuses` / 中文 `statusDetails`）判定；受干扰时**只记选择、不写状态**。
+   */
+  {
+    const _seats = (context.snapshot.seats ?? []) as any[];
+    const _actor = _seats.find((s: any) => s.id === ((context.meta.abilityResult as any)?.minstrelSeatId));
+    if (isDrunkOrPoisoned(_actor, _seats)) {
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityResult: { ...(context.meta.abilityResult as any), suppressedByImpairment: true },
+        },
+      };
+    }
+  }
+
   const { meta, snapshot } = context;
   const result = meta.abilityResult;
 

@@ -17,6 +17,7 @@ import {
 } from "../../utils/nominationEligibility";
 import { isSeatDead } from "../../utils/seatAlive";
 import { isInformationRole } from "../../utils/informationRoles";
+import { isDeathTriggeredRole } from "../../utils/dynamicQueueGenerator";
 import { showAlert, showConfirm } from "../../utils/nativeDialogShim";
 import { formatSeatLabel } from "../../utils/seatLabel";
 import { getStorytellerTips } from "../../utils/storytellerTips";
@@ -580,10 +581,14 @@ export const GameStage = () => {
       const s = seats.find((seat: Seat) => seat.id === candidateId);
       if (!s) continue;
       const isDead = s.isDead === true;
+      // ⚠️ 2026-09-21 数据化（原为硬编码 ravenkeeper/sage 白名单）：
+      //   死亡触发角色的判定必须与 `useNightEngine.ts:194` 的 `deathTriggered` **同源**
+      //   （`isDeathTriggeredRole` ⇒ `triggerTiming` 含 ON_DEATH）。
+      //   硬编码白名单会让 farmer / sweetheart / barber / banshee / moonchild /
+      //   plague_doctor / hatter 等死亡当晚**拿不到唤醒节点**。
       const canActWhileDead =
         s.hasAbilityEvenDead ||
-        (s.role?.id === "ravenkeeper" && deadThisNight.includes(candidateId)) ||
-        (s.role?.id === "sage" && deadThisNight.includes(candidateId));
+        (isDeathTriggeredRole(s.role?.id) && deadThisNight.includes(candidateId));
       if (!isDead || canActWhileDead) {
         return candidateId;
       }

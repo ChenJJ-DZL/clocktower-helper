@@ -83,6 +83,34 @@ const stateUpdate = async (
     consumeLimitedAbility(ctx.actionNode.seatId, "philosopher_gain");
   }
 
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P0-B（醉酒/中毒门控缺失）：
+   *   `stateUpdate` 此前不消费 `abilityEffective` ⇒ 中毒的哲学家
+   *   照样获得能力继承 / 让目标醉酒。
+   *
+   * 🔒 注意 **`consumeLimitedAbility` 保留在门控之前** ——
+   *   官方：中毒玩家的能力「不生效，但能力仍被消耗（说书人走过场）」。
+   *   blocked 分支**不写** `snapshot.seats`（`isDrunk` / 能力继承都是"效果"）。
+   */
+  const abilityEffective = ctx.meta.abilityEffective ?? true;
+  if (!abilityEffective) {
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        philosopherResult: { ...r, blockedByDrunkOrPoison: true },
+        isCorrupted: true,
+      },
+      snapshot: {
+        ...ctx.snapshot,
+        _abilityResults: {
+          ...((ctx.snapshot as any)._abilityResults ?? {}),
+          philosopher: { ...r, blockedByDrunkOrPoison: true },
+        },
+      },
+    };
+  }
+
   let nextSeats = ctx.snapshot.seats ?? [];
   if (r?.duplicateSeatId != null) {
     nextSeats = nextSeats.map((s: any) => {

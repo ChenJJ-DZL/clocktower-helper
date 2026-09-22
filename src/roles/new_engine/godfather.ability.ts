@@ -52,6 +52,35 @@ const stateUpdate = async (
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
   if (!r?.killed) return ctx;
+
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P0-B（醉酒/中毒门控缺失）：
+   *   `stateUpdate` 此前不消费 `ctx.meta.abilityEffective`
+   *   ⇒ 中毒/醉酒的教父照样击杀外来者。
+   *
+   * 🔒 blocked 分支刻意**不写** `snapshot.seats`（死亡就是"效果"），
+   *   但**必须写 `lastKill`（`killed:false`）** ——
+   *   `invariantTesting/invariants.ts:605` 把 `snap.lastKill !== undefined`
+   *   列为 kill 语义的通过条件之一。
+   *   ⚠️ 字段名与本角色一致（`minionId` / `minionRole`，不是 `demonId`）。
+   */
+  const abilityEffective = ctx.meta.abilityEffective ?? true;
+  if (!abilityEffective) {
+    return {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        lastKill: {
+          minionId: ctx.actionNode.seatId,
+          targetId: null,
+          minionRole: "godfather",
+          killed: false,
+        },
+      },
+      meta: { ...ctx.meta, isCorrupted: true },
+    };
+  }
+
   return {
     ...ctx,
     snapshot: {

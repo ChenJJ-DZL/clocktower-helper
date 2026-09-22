@@ -13,7 +13,7 @@ import { board, queueFor } from "./_tbHarness";
  * ⚠️ 入队机制（重要，别断言错层）：
  *   · 排程元数据里 `deathTriggered = true`（来自能力的 ON_DEATH 声明）是"武装"；
  *   · 但**队列生成器本身不生成他的节点** —— 生产是恶魔击杀之后由
- *     `enqueueRavenkeeperIfNeeded`（useGameController.ts）把座位**插到当前行动节点之后**。
+ *     `enqueueDeathTriggeredIfNeeded`（useGameController.ts）把座位**插到当前行动节点之后**。
  *   ⇒ 断言"队列应唤醒守鸦人"属断言错层（见 skill「剧本全量测试」§2.2 陷阱 9）。
  */
 describe("守鸦人 (Ravenkeeper)", () => {

@@ -31,6 +31,12 @@ export const imp: RoleDefinition = {
     dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
       const { seats, poppyGrowerDead, roles = [] } = context;
 
+      // ⚠️ 确定性铁律：凡"选择/洗牌/掷骰"必须走注入的 rng（`context.rng`），
+      //    禁止裸 `Math.random()` —— 否则同一夜「提示预演」与「实际执行」
+      //    会各自摇号，"不在场角色"集合同局面下不稳定（说书人照提示念 → 与结果对不上）。
+      //    与 `demonFirstNightHelper.ts` 保持同一写法。
+      const rng: () => number = context.rng ?? Math.random;
+
       const poppyGrower = seats.find((s) => s.role?.id === "poppy_grower");
       const shouldHideMinions =
         poppyGrower &&
@@ -54,13 +60,9 @@ export const imp: RoleDefinition = {
       const absentTownsfolk = absentRoles.filter((r) => r.type === "townsfolk");
       const absentOutsider = absentRoles.filter((r) => r.type === "outsider");
 
-      // 随机打乱并选取
-      const shuffledTownsfolk = [...absentTownsfolk].sort(
-        () => Math.random() - 0.5
-      );
-      const shuffledOutsider = [...absentOutsider].sort(
-        () => Math.random() - 0.5
-      );
+      // 随机打乱并选取（使用注入的 rng，保证可复现）
+      const shuffledTownsfolk = [...absentTownsfolk].sort(() => rng() - 0.5);
+      const shuffledOutsider = [...absentOutsider].sort(() => rng() - 0.5);
 
       const selectedAbsent: string[] = [];
       // 先取镇民，最多3个

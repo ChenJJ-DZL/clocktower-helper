@@ -245,7 +245,7 @@ describe("暗流涌动 · 全角色 × 状态 批量矩阵", () => {
     // ⚠️ 判定层次（踩坑记录）：**队列生成器不是守鸦人的入队机制**。
     //    · 队列生成器侧：守鸦人座位已死而 `deadActorWakes` 仅间谍为真
     //      （useNightEngine.ts:190）→ directSeat 查不到 → 不入队。**这是设计如此**。
-    //    · 生产真正的入队：恶魔击杀后由 `enqueueRavenkeeperIfNeeded`
+    //    · 生产真正的入队：恶魔击杀后由 `enqueueDeathTriggeredIfNeeded`
     //      （useGameController.ts:779）把座位**插到当前行动节点之后**，
     //      并置 `hasAbilityEvenDead=true`（否则被 preProcessAbility 的已死亡校验拦掉）。
     //    ⇒ 若在此断言"队列应唤醒守鸦人"，就是**断言错了层**（假缺陷）。

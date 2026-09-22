@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
+import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import { getRoleDefinition } from "../roles/index";
 import type {
   NightActionContext,
@@ -245,10 +246,15 @@ export function useRoleAction() {
       // Poisoner: Cannot target dead players
       if (roleId === "poisoner" && targetSeat.isDead) return false;
 
-      // Ravenkeeper: Can only target if they died tonight
-      if (roleId === "ravenkeeper") {
+      // ⚠️ 2026-09-21 修复 P1-12【白名单扩散第 4 处】：
+      //   原为 `roleId === "ravenkeeper"` ⇒ 其他死亡触发角色（sweetheart/barber/
+      //   sage/hatter…）的「当晚未死亡 ⇒ 不可选目标」限制缺失。
+      //   ✅ 走 SST `isDeathTriggeredRole`（与 useNightEngine / GameStage 同源）。
+      //   注：多数死亡触发角色 targetConfig 为 min:0/max:0（本就不选目标），
+      //   此 fallback 对它们无副作用；泛化只为消除漂移风险。
+      if (isDeathTriggeredRole(roleId)) {
         if (deadThisNight && !deadThisNight.includes(performerId)) {
-          return false; // Disable all targets if ravenkeeper didn't die tonight
+          return false; // 死亡触发角色当晚未死亡 ⇒ 禁用全部目标
         }
       }
 

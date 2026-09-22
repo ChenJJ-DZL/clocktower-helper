@@ -266,11 +266,28 @@ describe("L5 · P1-13 弹窗禁用态：aliveOnly 必须真的作用到已死座
     const idx = code.indexOf("const aliveOnly");
     expect(idx, "未找到 `const aliveOnly`，疑似被重命名").toBeGreaterThan(-1);
     const win = code.slice(idx, idx + 400);
+    // ⚠️⚠️ 变异检验教训（2026-09-21，实测踩到）：
+    //   第一版写成 `expect(win.includes("allowDead")).toBe(true)` —— **假绿**。
+    //   实测：把推导改成 `const aliveOnly = false; // 忽略 allowDead`（注释里保留字段名），
+    //   本断言**照样绿**（400 字窗口内注释仍含 "allowDead" 字样）。
+    //   ⇒ 必须做**整段表达式归一化 + 双向正则**，把「取反」这个语义本身钉死：
+    //     ① 必须出现 `!...allowDead`
+    //     ② 必须出现 `aliveOnly ??`（显式优先分支，不得无条件覆盖）
+    //     ③ 不得出现「把已死座位放行」的一刀切常量
+    const winNorm = win.replace(/\s+/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
     expect(
-      win.includes("allowDead"),
-      "❌ aliveOnly 的推导没有引用 allowDead（新引擎 targetConfig 的 SST 字段名）" +
-        "—— isDeadDisabled 会恒为 false，已死玩家可被点选（P1-13 回归）"
+      /!\s*[^;]{0,40}allowDead/.test(winNorm),
+      "❌ aliveOnly 的推导没有对 allowDead 取反 —— 新引擎只定义 allowDead，" +
+        "不取反则 isDeadDisabled 恒 false，已死玩家可被点选（P1-13 回归）"
     ).toBe(true);
+    expect(
+      /aliveOnly\s*\?\?/.test(winNorm),
+      "❌ 缺少「显式 aliveOnly 优先」分支 —— 消费方必须同时兼容两种命名（allowDead 仍是 SST）"
+    ).toBe(true);
+    expect(
+      /aliveOnly\s*=\s*(true|false)\s*;/.test(winNorm),
+      "❌ aliveOnly 被写成一刀切常量 —— 与 allowDead 无关，护栏失效"
+    ).toBe(false);
 
     // 行为级：复刻推导并验证 monk（allowDead:false）→ true
     const derive = (tc: any): boolean =>

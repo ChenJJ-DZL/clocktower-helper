@@ -13,6 +13,8 @@ import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import { buildCerenovusNoticeNightInfo } from "./cerenovusNotice";
+// ⚠️ 单向依赖：dynamicQueueGenerator 不 import 本文件，无循环引用风险。
+import { seatHasNightAction } from "./dynamicQueueGenerator";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import {
   MARIONETTE_NO_WAKE_NOTE,
@@ -284,6 +286,29 @@ export function calculateNightInfoViaNewEngine(
     nightCount
   );
 
+  /**
+   * 🧠 2026-09-21 修复（用户实测：「洗脑师洗脑后缺少唤醒被洗脑者的环节」）
+   * ------------------------------------------------------------------
+   * 洗脑师执行成功后，`useNightActionHandler:1778` 会用
+   * `insertIntoWakeQueueAfterCurrent(targetId, { force: true })`
+   * 把**被洗脑者**作为独立节点插进本夜队列。
+   *
+   * 但队列节点只存**座位 id**，而 `systemStepRoleIds`（`useGameController`
+   * 开局一次性构建）里并没有这个新节点的 index ⇒ 下游算出的 `roleId` 是该座位的
+   * **真实角色**（如 `soldier`），`isRoleMigrated` 为真 ⇒ 下方分支**不会返回告知信息**
+   * ⇒ 被洗脑者被唤醒后看到的是自己的技能页，永远收不到
+   * 「你需要疯狂证明自己是【X】」。
+   *
+   * ⇒ 判据：**该座位自身没有夜间行动**时（这个节点只可能是我们插进来的告知节点），
+   *   直接返回洗脑告知信息。
+   *   ⚠️ 有夜间行动的座位**不会**被重复插入（`insertIntoWakeQueueAfterCurrent`
+   *   有 `prev.includes(id)` 去重），他会在**自己的技能步骤**里被唤醒并当场被告知
+   *   ⇒ 此处不能返回告知信息，否则会顶掉他的技能结果。
+   */
+  if (cerenovusNoticeInfo && !seatHasNightAction(targetSeat)) {
+    return cerenovusNoticeInfo;
+  }
+
   // 检查新引擎是否有该角色的能力
   if (!isRoleMigrated(roleId)) {
     console.warn(`[NightInfoAdapter] 角色 ${roleId} 未在新引擎注册，返回 null`);
@@ -362,6 +387,23 @@ function generateSystemInfoViaAdapter(
     const seatName = selfSeat.role?.name || "镇民";
     const guide = `唤醒${selfSeat.id + 1}号【${seatName}】，告知他：你已经属于邪恶阵营（赏金猎人的设置调整）。`;
     return {
+      // ⚠️⚠️ 2026-09-21 修复 P0（用户实测报告）：系统步骤**必须自带
+      //   `effectiveRole` 与 `seat`**，否则下游 `useNightActionHandler.ts:2039`
+      //   的裸读 `nightInfo.effectiveRole.id` 会抛
+      //   「Cannot read properties of undefined (reading 'id')」——
+      //   被 `abilityExecutor` 的 try/catch 吞掉后打印
+      //   「步骤 unknown 无 handler 实现，自动推进」⇒ **该步骤的信息弹窗静默丢失**。
+      //   对照：demon_info / minion_info / legion 互认走主 return（本文件 :678-688），
+      //   那里**已经**填了 effectiveRole —— 只有本函数这两个 early-return 漏了。
+      seat: selfSeat,
+      effectiveRole: {
+        id: stepId,
+        name: "阵营告知",
+        type: "townsfolk",
+      },
+      roleId: stepId,
+      index: 0,
+      isPoisoned: false,
       roleName: `${selfSeat.id + 1}号-${seatName}(阵营告知)`,
       actionText: "告知其已属于邪恶阵营",
       guide,
@@ -385,6 +427,18 @@ function generateSystemInfoViaAdapter(
     const goodSeat = goodTwinSeat || selfSeat;
     const guide = `唤醒${goodSeat.id + 1}号【${goodSeat.role?.name || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
     return {
+      // ⚠️⚠️ 2026-09-21 修复 P0（同 EVIL_CONVERTED_NOTICE_ID 分支）：
+      //   系统步骤缺 `effectiveRole` ⇒ 下游裸读 `nightInfo.effectiveRole.id` 抛异常
+      //   ⇒ 善良双子告知弹窗静默丢失。详见上方 EVIL_CONVERTED_NOTICE_ID 注释。
+      seat: goodSeat,
+      effectiveRole: {
+        id: stepId,
+        name: "双子告知",
+        type: "townsfolk",
+      },
+      roleId: stepId,
+      index: 0,
+      isPoisoned: false,
       roleName: `${goodSeat.id + 1}号-${goodSeat.role?.name || "善良双子"}(双子告知)`,
       actionText: "告知对立双子",
       guide,
@@ -674,6 +728,31 @@ function generateSystemInfoViaAdapter(
         : lunaticStoryNote;
     }
   }
+
+  /**
+   * 👑 官方【国王】：「**恶魔知道你是国王**。」
+   * 官方补充：「在游戏开始时的第一个夜晚，恶魔会得知谁是国王。**如果国王在游戏中途
+   *   被创造，恶魔会在当晚得知谁是国王。**」
+   *
+   * 落点：恶魔互认步骤（`demon_info`）—— 恶魔在首夜互认时**一并**得知国王身份。
+   *   ⚠️ 当前**唯一**「创造国王」的入口是设置阶段的 `[+国王]`
+   *      （`expansionMechanics::injectChoirboyKing`），发生在首夜之前 ⇒ 本处已覆盖
+   *      「中途被创造」的口径。
+   *
+   * 写入 `storytellerNote`（说书人专属，由 `GameConsole` 渲染）而非 `guide`：
+   *   官方运作方式是「唤醒恶魔…**指向**国王玩家」，属**说书人操作步骤**；
+   *   且 `guide` 在本函数多个分支内为 `const`，不可追加。
+   *   ⚠️ 仅限 `demon_info`（`minion_info` 走同一 return ⇒ 不得泄漏给爪牙）。
+   */
+  if (stepId === "demon_info") {
+    const kingSeat = seats.find((x: any) => x.role?.id === "king");
+    if (kingSeat) {
+      storytellerNote = `${
+        storytellerNote ? storytellerNote + " " : ""
+      }[国王告知] 唤醒恶魔后指向 ${kingSeat.id + 1}号（国王）—— 官方：恶魔知道你是国王`;
+    }
+  }
+
 
   return {
     seat: selfSeat,

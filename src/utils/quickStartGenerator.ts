@@ -1,5 +1,6 @@
-import type { Role, Script } from "../../app/data";
+import { roles as ALL_ROLES, type Role, type Script } from "../../app/data";
 import { nightOrderParser } from "./nightOrderParser";
+import { injectChoirboyKing } from "./expansionMechanics";
 import {
   STANDARD_COMPOSITIONS as SST_STANDARD_COMPOSITIONS,
   computeSetupComposition,
@@ -204,8 +205,24 @@ export function generateAndSortQuickStartLineup(
   // 6. 🎪 提线木偶（Marionette）特殊座次规则：必须与恶魔相邻（小怪宝时与爪牙相邻）
   const ensuredRoles = ensureMarionetteAdjacency(sortedRoles);
 
+  // 7. 👑 [+国王] 设置调整：唱诗男孩在场且国王不在场 ⇒ 用国王**替换**一名其他镇民
+  //    官方：「在游戏设置阶段，如果唱诗男孩在场而国王不在场，那么国王就会被添加进来
+  //    并替换掉一个其他镇民。」
+  //    ⚠️ 快速开局**不经 `useSeatManager.changeRole`** ⇒ 不会触发 `IRoleAbility.onSetup`，
+  //      因此必须在此显式调用**同一个** SST 纯函数（否则两条设置路径行为不一致）。
+  const kingRole = (ALL_ROLES as any[]).find((r: any) => r.id === "king");
+  const kingInjected = injectChoirboyKing(
+    ensuredRoles.map((r: any) => ({ id: r.id, type: r.type, __src: r })) as any[],
+    kingRole ? ({ id: kingRole.id, type: kingRole.type, __src: kingRole } as any) : undefined
+  );
+  const finalRoles = kingInjected.changed
+    ? ensuredRoles.map((r: any) =>
+        r.id === kingInjected.replacedId ? (kingRole as any) : r
+      )
+    : ensuredRoles;
+
   return {
-    sortedRoles: ensuredRoles,
+    sortedRoles: finalRoles,
     hasBaron,
     composition: {
       townsfolk: pickedTownsfolk.length,

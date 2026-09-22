@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { canWakeOnDeathEvent } from "../utils/dynamicQueueGenerator";
 import type {
   GamePhase,
   LogEntry,
@@ -145,7 +146,7 @@ export interface NightLogicActions {
   resetRegistrationCache: (key: string) => void;
   getSeatRoleId: (seat?: Seat | null) => string | null;
   getDemonDisplayName: (roleId?: string, fallbackName?: string) => string;
-  enqueueRavenkeeperIfNeeded: (targetId: number) => void;
+  enqueueDeathTriggeredIfNeeded: (targetId: number, roleId?: string) => void;
   continueToNextAction: () => void;
   currentWakeIndexRef: React.MutableRefObject<number>;
 }
@@ -434,20 +435,28 @@ export function useNightEngine(gameState: NightLogicGameState) {
     []
   );
 
-  // 🔧 守鸦人修复：新引擎版动态入队（恶魔杀守鸦人后插入觉醒节点）。
-  //   夜间开始生成队列时守鸦人存活（deathTriggered 被过滤），小恶魔杀他后
-  //   useNightActionHandler 在 newlyDead 检测处调用本函数，把守鸦人觉醒节点
-  //   插入当前节点之后 → 守鸦人被恶魔杀当晚觉醒并获得信息。
-  const enqueueRavenkeeperIfNeeded = useCallback(
-    (targetId: number) => {
+  // 🔧 死亡触发角色动态入队：恶魔/处决杀死某死亡触发角色后，插入其觉醒节点。
+  //
+  // ⚠️⚠️ 2026-09-21 修复 P1-11【白名单扩散第 3 处，本函数体整段写死】：
+  //   原实现在**函数体内**写死 `entry.roleId === "ravenkeeper"`、`roleId: "ravenkeeper"`、
+  //   `roleName || "守鸦人"`、`priority || 80` ⇒ 只有守鸦人能入队。
+  //   ✅ 改为由**调用方传入 `roleId`**（调用方都已持有 seat 对象），内部统一走
+  //      SST `isDeathTriggeredRole` 早退 + 按该 roleId 查 `fullNightOrder` 的 entry。
+  //   🔒 今后禁止在此硬编码角色名（护栏 ⑥ 已覆盖本文件）。
+  const enqueueDeathTriggeredIfNeeded = useCallback(
+    (targetId: number, roleId?: string) => {
+      // 未传 roleId 或该角色不因死亡事件唤醒 ⇒ 直接返回。
+      // ⚠️ 2026-09-21：判据从 `isDeathTriggeredRole` 升级为 `canWakeOnDeathEvent`
+      //   —— 后者 = 自己死亡触发（ON_DEATH）∪ 他人死亡订阅（deathEventWatch，如唱诗男孩⇒国王）。
+      if (!roleId || !canWakeOnDeathEvent(roleId)) return;
       const entry = ENGINE_CONFIG.fullNightOrder.find(
-        (e) => e.roleId === "ravenkeeper"
+        (e) => e.roleId === roleId
       );
       if (!entry) return;
       engine.enqueueWakeNode({
         seatId: targetId,
-        roleId: "ravenkeeper",
-        roleName: entry.roleName || "守鸦人",
+        roleId,
+        roleName: entry.roleName || roleId,
         priority: entry.otherNightPriority || 80,
         isFirstNightOnly: false,
         abilityId: entry.abilityId,
@@ -483,7 +492,7 @@ export function useNightEngine(gameState: NightLogicGameState) {
       endNight,
       processDemonKill,
       // 🔧 守鸦人修复：新引擎版动态入队（恶魔杀守鸦人后插入觉醒节点）
-      enqueueRavenkeeperIfNeeded,
+      enqueueDeathTriggeredIfNeeded,
 
       // 新引擎扩展字段
       engineState,
@@ -501,7 +510,7 @@ export function useNightEngine(gameState: NightLogicGameState) {
       finalizeNightStart,
       endNight,
       processDemonKill,
-      enqueueRavenkeeperIfNeeded,
+      enqueueDeathTriggeredIfNeeded,
       engine,
     ]
   );

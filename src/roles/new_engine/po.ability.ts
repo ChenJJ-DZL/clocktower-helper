@@ -73,11 +73,63 @@ const updateKillState = async (
   const isAbilityEffective = meta?.abilityEffective ?? true;
 
   if (!validTargets || validTargets.length === 0) {
+    /**
+     * ⚠️⚠️ 2026-09-21 修复（与 shabaloth / zombuul 同型的「kill 语义空转」缺陷）：
+     *
+     * 官方【角色能力】：「每个夜晚*，**你可以**选择一名玩家：他死亡。
+     *   如果你上次选择时**没有选择任何玩家**，当晚你要选择三名玩家：他们死亡。」
+     * ⇒ 「**一个都不选**」是**合法状态**（本文件 `targetConfig.min = 0` 也据此设定），
+     *   官方范例明确：「在第三个夜晚，珀**选择不攻击任何人**」。
+     *
+     * 🔴 缺陷：本分支原先**只写 `poCharged`**，既不写 `lastKill`，
+     *   也不写 `meta.abilityResult`。而 `invariantTesting/invariants.ts:605`
+     *   的 kill 语义不变量要求：
+     *     ok = newDeath || deepDeath || snap.lastKill !== undefined
+     *        || snap.fangGuJump !== undefined || snap.taowuSubstitute !== undefined
+     *        || exempt;   // exempt 含 meta.abilityResult?.killed === false
+     *   ⇒ 「蓄力」之夜**六个条件全不成立** ⇒ 判
+     *     「po 声明语义 kill 但执行后无对应状态落地（**空转能力**）」
+     *   ⇒ `stress.test.ts` 之类的不变量压测会随机复现失败
+     *     （并非每次：只有当某局恰好出现「珀选择不杀人」时才会触发）。
+     *
+     * 🔒 修法（双保险，与 shabaloth 一致）：
+     *   ① `meta.abilityResult.killed = false` ⇒ 命中 I11 的 `exempt` 分支
+     *   ② `lastKill: { killed: false }` ⇒ 留下「本夜被选择过」的记录
+     *      （珀是**状态型**恶魔：`poCharged` 会决定下一夜能否三杀，
+     *        这条记录对回溯排查同样有价值）
+     */
     return {
       ...context,
       snapshot: {
         ...snapshot,
-        poCharged: isAbilityEffective,
+        /**
+         * ⚠️⚠️ 2026-09-21 修复（第二处，官方冲突）：
+         *
+         * 官方原文：「如果珀在上一个夜晚**不选择任何人时处于醉酒或中毒**，
+         *   当晚珀**仍然能够选择三名玩家**。」
+         * ⇒ 「不选择」这个事实**本身就完成充能**，与珀当夜是否受干扰**无关**。
+         *
+         * 🔴 原实现：`poCharged: isAbilityEffective`（受干扰 ⇒ false）
+         *   ⇒ 醉酒/中毒的珀「不选择」时**不充能** ⇒ 下一夜无法三杀
+         *   ⇒ **直接违反官方明文**（且这条正是珀的核心机制之一）。
+         *
+         * ✅ 改为无条件 `true`：走到本分支 = 珀本夜一个目标都没选 ⇒ 必然蓄力。
+         */
+        poCharged: true,
+        lastKill: {
+          demonId: (context.actionNode as any)?.seatId ?? null,
+          targetId: null,
+          demonRole: "po",
+          killed: false,
+        },
+      },
+      meta: {
+        ...context.meta,
+        abilityResult: {
+          killed: false,
+          killedTargetIds: [],
+          chargedNextNight: true,
+        },
       },
     };
   }

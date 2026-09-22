@@ -660,7 +660,7 @@ export function handleImpSuicide(
     setWakeQueueIds: React.Dispatch<React.SetStateAction<number[]>>;
     setDeadThisNight: React.Dispatch<React.SetStateAction<number[]>>;
     checkGameOver: (seats: Seat[], executedPlayerId?: number) => boolean;
-    enqueueRavenkeeperIfNeeded: (targetId: number) => void;
+    enqueueDeathTriggeredIfNeeded: (targetId: number, roleId?: string) => void;
     killPlayer: (targetId: number, options?: any) => void;
     addLogWithDeduplication: (
       msg: string,
@@ -683,7 +683,7 @@ export function handleImpSuicide(
     setWakeQueueIds,
     setDeadThisNight,
     checkGameOver,
-    enqueueRavenkeeperIfNeeded,
+    enqueueDeathTriggeredIfNeeded,
     killPlayer,
     addLogWithDeduplication,
     getRandom,
@@ -759,7 +759,7 @@ export function handleImpSuicide(
 
     // 记录原小恶魔的死亡
     setDeadThisNight((p) => [...p, impSeatId]);
-    enqueueRavenkeeperIfNeeded(impSeatId);
+    enqueueDeathTriggeredIfNeeded(impSeatId);
 
     return { handled: true, shouldContinue: false };
   } else {

@@ -27,19 +27,72 @@ const definitions = new Map<string, LimitedAbilityDefinition>();
  */
 const predefinedDefinitions: LimitedAbilityDefinition[] = [
   {
-    abilityId: "philosopher_use",
+    /**
+     * ⚠️ 2026-09-21 修复 D3：原为 `"philosopher_use"`，但**实际调用方**
+     *   `philosopher.ability.ts:25,83` 用的是 `"philosopher_gain"`
+     *   ⇒ 查不到定义 ⇒ 「每局限一次」**静默失效**。已对齐到实际调用名。
+     *   （旧 id `philosopher_use` 经 grep 确认零引用，安全替换。）
+     */
+    abilityId: "philosopher_gain",
     maxUses: 1,
     global: false,
     resetOnRoleChange: true,
   },
   {
-    abilityId: "artist_paint",
+    /**
+     * ⚠️ 2026-09-21 新增（D3）：`juggler.ability.ts:30,182` 调用此 id，
+     *   但本表**从未注册过它**，且全仓无自注册 ⇒ 「每局限一次」静默失效。
+     */
+    abilityId: "juggler_guess",
     maxUses: 1,
     global: false,
     resetOnRoleChange: true,
   },
   {
-    abilityId: "seamstress_ability",
+    /**
+     * ⚠️ 2026-09-21 新增（D3）：`fisherman.ability.ts:27,59` 调用此 id，
+     *   但本表**从未注册过它** ⇒ 「每局限一次」静默失效。
+     *   （渔夫：每局一次「向说书人求建议」。）
+     */
+    abilityId: "fisherman_advice",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    /**
+     * ⚠️ 2026-09-21 新增（D3）：`professor_female.ability.ts:64,171` 调用此 id，
+     *   但本表**从未注册过它** ⇒ 「每局限一次」静默失效。
+     *   （女教授：每局一次复活一名镇民 —— 与 `professor_resurrect` 同语义、不同 id。）
+     */
+    abilityId: "professor_female_resurrect",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    /**
+     * ⚠️⚠️ 2026-09-21 修复 P0（子 agent 审计 + 我逐条核验确认）：
+     *   这里原先注册的是 `"artist_paint"` / `"seamstress_ability"`，
+     *   但**实际调用方**用的是 `"artist_question"` / `"seamstress_check"`：
+     *     · `src/roles/new_engine/artist.ability.ts:25,63`
+     *     · `src/roles/new_engine/seamstress.ability.ts:27,149`
+     *   而 `resolveDef()`（本文件 :76-78）查不到定义时，
+     *   `canUseLimitedAbility`(:107) 与 `consumeLimitedAbility`(:122) **都直接 return true**
+     *   ⇒ **限制完全失效**：「艺术家/女裁缝每局限一次」形同虚设，可无限次发动
+     *     （且 `instanceUses` / `globalUses` 根本不记账）。
+     *
+     *   两个旧 id 经 grep 全仓确认**零引用**（只在定义处出现）⇒ 直接对齐到实际使用名。
+     *   🔒 若将来新增限次能力，**务必让调用方 id 与本表严格一致**，
+     *     因为「查不到定义」是**静默放行**而不是报错。
+     */
+    abilityId: "artist_question",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    abilityId: "seamstress_check",
     maxUses: 1,
     global: true,
     resetOnRoleChange: false,
@@ -74,7 +127,28 @@ const predefinedDefinitions: LimitedAbilityDefinition[] = [
 
 /** 抽取公共定义查找逻辑 */
 function resolveDef(abilityId: string, custom?: LimitedAbilityDefinition) {
-  return custom ?? definitions.get(abilityId);
+  const def = custom ?? definitions.get(abilityId);
+  /**
+   * ⚠️ 2026-09-21（D3-①）：把「**静默**放行」变成「**可见**放行」。
+   *
+   * 原实现查不到定义时直接 `return true`，**不记账、不报错**
+   * ⇒ 一旦调用方写错 abilityId（已发现 4 个：
+   *   `philosopher_gain` / `juggler_guess` / `fisherman_advice` / `professor_female_resurrect`），
+   *   「每局限一次」就会**静默失效**，没有任何信号。
+   *
+   * ⚠️ 这里**只告警、不改变返回值**（仍 `return true`）——
+   *   因为若直接改成 `return false`，在定义表未装载的路径上
+   *   会让所有限次能力**第一次就被拒**（比现状更糟）。
+   *   等 4 个 id 全部对齐/自注册后，再把返回值收紧为 `false` 并配测试。
+   */
+  if (!def) {
+    console.warn(
+      `[LimitedAbilityManager] ⚠️ 未注册的限次能力 id: "${abilityId}" —— ` +
+        `本次按「无限制」放行（不记账）。` +
+        `这通常意味着调用方 id 与定义表不一致，请核对 predefinedDefinitions / 自注册。`
+    );
+  }
+  return def;
 }
 
 /**
@@ -175,3 +249,31 @@ export function onLimitedAbilityRoleChanged(seatId: number) {
     }
   }
 }
+
+/* ============================================================================
+ * ⚠️⚠️ 2026-09-21 修复 P0（由 full-snv / full-ws / full-bmr 三方独立审计发现，
+ *        我逐条核验确认）：**「每局限一次」在整个生产环境里从未生效**
+ * ----------------------------------------------------------------------------
+ * 根因链：
+ *   ① `definitions`（本文件 :23）是**模块级 Map，初始为空**；
+ *   ② `initializeLimitedAbilityManager()`（:98）是**唯一**往 Map 里灌入
+ *      `predefinedDefinitions` 的地方；
+ *   ③ 而它在**生产代码里零调用** —— 全仓唯一的调用点都在测试文件里
+ *      （`bmr_l5_causal.test.ts:123` / `ws_l5_causal.test.ts:122`）。
+ *      ⇒ **生产运行时 `definitions` 永远是空 Map**；
+ *   ④ `resolveDef()`（:92）查不到即返回 `undefined`
+ *      ⇒ `canUseLimitedAbility()`（:117）走 `if (!def) return true` **静默放行**
+ *      ⇒ `consumeLimitedAbility()` 同样直接 `return true` **且不记账**。
+ *   ⇒ 后果：**艺术家 / 女裁缝 / 哲学家 / 杂耍艺人 / 教授 / 女教授 / 渔夫 /
+ *      刺客 / 魔像 / 甄** 等全部限次能力的「每局限一次」**形同虚设，可无限次发动**。
+ *
+ * 🔒 修法：**模块级自初始化（幂等）**。
+ *   任何 `import` 本模块的地方（10 个角色 ability 文件已 import）都会自动装载定义表，
+ *   **不依赖任何渲染时序 / 生命周期 / 启动路径**，天然免疫这类「忘了初始化」的缺陷。
+ *   ⚠️ 这也修掉了「**测试自己调了一次 initialize，于是测试环境与生产环境是两套行为**」
+ *      这个更隐蔽的差异（测试里绿、生产里坏）。
+ *
+ * ⚠️ 同时保留显式导出的 `initializeLimitedAbilityManager()`（幂等，可重复调用），
+ *   以便任何显式初始化点继续工作。
+ * ========================================================================== */
+initializeLimitedAbilityManager();

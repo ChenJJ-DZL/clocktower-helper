@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Script, Seat } from "@/app/data";
+import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import type { NightInfoResult } from "@/src/types/game";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 
@@ -258,11 +259,12 @@ export function useNightSnapshot(
             candidateSeat.isDead;
           if (!isDead) break;
           const roleId = candidateSeat.role?.id;
+          // ⚠️ 2026-09-21 修复 P1-10：原为硬编码 ravenkeeper/sage 白名单 ⇒
+          //   其他死亡触发角色拿不到唤醒。改走 SST（与 GameStage.tsx 同源）。
           const canActWhileDead =
             candidateSeat.hasAbilityEvenDead ||
-            (roleId === "ravenkeeper" &&
-              deadThisNight.includes(candidateSeatId)) ||
-            (roleId === "sage" && deadThisNight.includes(candidateSeatId));
+            (isDeathTriggeredRole(roleId) &&
+              deadThisNight.includes(candidateSeatId));
           if (canActWhileDead) break;
           firstValidIndex++;
         }
@@ -338,11 +340,11 @@ export function useNightSnapshot(
 
         // 已死亡玩家：检测是否具有死后行动能力或当晚死亡唤醒（守鸦人、贤者、hasAbilityEvenDead）
         const roleId = candidateSeat.role?.id;
+        // ⚠️ 2026-09-21 修复 P1-10：同 ①，去掉 ravenkeeper/sage 硬编码。
         const canActWhileDead =
           candidateSeat.hasAbilityEvenDead ||
-          (roleId === "ravenkeeper" &&
-            deadThisNight.includes(candidateSeatId)) ||
-          (roleId === "sage" && deadThisNight.includes(candidateSeatId));
+          (isDeathTriggeredRole(roleId) &&
+            deadThisNight.includes(candidateSeatId));
 
         if (canActWhileDead) {
           break;

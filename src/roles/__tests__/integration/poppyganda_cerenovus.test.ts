@@ -68,6 +68,14 @@ describe("洗脑师：每夜选择目标 + 善良角色", () => {
     const ft = (res.snapshot.seats as any[]).find((s) => s.id === 1);
     expect(ft?.cerenovusMadnessRole).toBe("monk");
     expect(ft?.statusDetails?.[0]).toContain("洗脑疯狂:monk");
+    // ⚠️⚠️ 防假绿补强（2026-09-21 变异检验实测）：
+    //   旧版只断言 `cerenovusMadnessRole` 与 statusDetails（文本）——
+    //   把 stateUpdate 的 `isMad: true` 改成 `false`，本文件照样绿（假绿）。
+    //   `isMad` 才是「疯狂」判定的**布尔事实源**（处决/仲裁走它，不走文案）。
+    expect(
+      ft?.isMad,
+      "❌ 被洗脑者必须写入 isMad=true —— 否则白天疯狂仲裁（可能被处决）全部失效"
+    ).toBe(true);
   });
 
   it("选择自己（洗脑师）无效（preCheck 拒绝）", async () => {

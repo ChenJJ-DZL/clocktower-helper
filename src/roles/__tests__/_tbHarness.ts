@@ -78,6 +78,14 @@ export interface RunOpts {
   meta?: Record<string, any>;
   /** 覆盖 actionNode.meta */
   nodeMeta?: Record<string, any>;
+  /**
+   * 说书人输入（**ctx 顶层字段**，不是 meta 里的）。
+   * ⚠️ 角色读取方式是 `ctx.storytellerInput?.xxx`（见 MiddlewareContext:40）。
+   *   放在 `meta` 里角色读不到（会静默用默认值 → 测试绿但没测到目标分支）。
+   */
+  storytellerInput?: Record<string, any>;
+  /** preview=true → 只跑 preCheck+calculate，跳过 stateUpdate（不写状态） */
+  preview?: boolean;
 }
 
 /** 跑某个角色的完整能力管道，返回**最终上下文**（含 meta.abilityResult） */
@@ -115,6 +123,10 @@ export async function runRole(
     targetIds: opts.targets ?? [],
     meta: { ...(opts.meta ?? {}) },
     aborted: false,
+    ...(opts.storytellerInput !== undefined
+      ? { storytellerInput: opts.storytellerInput }
+      : {}),
+    ...(opts.preview ? { preview: true } : {}),
   };
   return runFullAbilityPipeline(pipe(ability), ctx);
 }

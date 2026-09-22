@@ -68,7 +68,16 @@ export const hatterAbility = createRoleAbility({
   roleId: "hatter",
   abilityId: "hatter_swap",
   abilityName: "死后邪恶换角",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  /**
+   * ⚠️⚠️ 2026-09-21 修复 P1-8【死亡触发角色误标 PASSIVE】（与 farmer / sweetheart /
+   *   barber / sage 同型）：
+   * 官方【角色能力】：「**如果你死亡**，当晚爪牙和恶魔玩家可以选择变成新的爪牙和恶魔角色。」
+   *   ⇒ 死亡触发，非常驻被动。
+   * 🔴 标 PASSIVE ⇒ `deathTriggered=false` ⇒ `dynamicQueueGenerator.ts:414` 的
+   *   「仅在当晚死亡时才入队」门控**失效** ⇒ 该角色存活时也被排入夜间队列。
+   * ✅ 修法：`[PASSIVE]` → `[ON_DEATH]`；夜序优先级保持不变。
+   */
+  triggerTiming: [AbilityTriggerTiming.ON_DEATH],
   firstNightPriority: null,
   otherNightPriority: 5,
   firstNightOnly: false,

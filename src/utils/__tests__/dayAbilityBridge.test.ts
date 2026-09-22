@@ -24,6 +24,7 @@ import {
 } from "../../utils/dayAbilityBridge";
 import type { Seat } from "../../../app/data";
 
+import { resetLimitedAbilityUses } from "../../utils/LimitedAbilityManager";
 function mkSeat(id: number, roleId: string, name: string, extra: any = {}): Seat {
   return {
     id,
@@ -38,6 +39,23 @@ const baseCtx = (seats: Seat[]) => ({
   seats,
   roles: [] as any[],
   gamePhase: "day" as any,
+});
+
+/**
+ * ⚠️ 2026-09-21 补：限次能力的 `instanceUses` / `globalUses` 是**模块级单例**、
+ *   会**跨用例累积**。用例 A 用过之后，用例 B 会被 `preCheck` 拒绝
+ *   （表现为 `abilityResult === undefined`）。
+ *
+ *   ⚠️ 此前不暴露：P0-A 修复前 `initializeLimitedAbilityManager()` 生产零调用
+ *   ⇒ `definitions` 为空 ⇒ 校验恒真且**不记账** ⇒ 用例之间无污染。
+ *   修好 P0-A（模块级自初始化）后，记账才真正生效 ⇒ 必须在每个用例前重置。
+ *
+ *   ⚠️ 必须用**无参**调用清空全部 ——
+ *   `resetLimitedAbilityUses(seatId, abilityId)` 只删 `instanceUses`、
+ *   **不删 `globalUses`**，对 `global: true` 的能力（如女裁缝）重置无效。
+ */
+beforeEach(() => {
+  resetLimitedAbilityUses();
 });
 
 describe("日间新引擎能力桥接（L5 因果链）", () => {

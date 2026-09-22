@@ -8,6 +8,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { isDrunkOrPoisoned } from "../../utils/bmrMechanics";
 
 // 前置校验：和平主义者的能力在处决时触发
 const preCheckOnExecution = async (
@@ -54,6 +55,30 @@ const calculateResult = async (
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * ⚠️⚠️ 2026-09-21 修复【醉酒/中毒失效门控缺失】：
+   * 官方核心规则：醉酒或中毒的玩家**失去其能力**（说书人只装作其仍有能力、走过场执行）。
+   * 和平主义者：`被处决的善良玩家可能不会死亡。`
+   *   ⇒ 醉酒/中毒的和平主义者**不得**免除处决死亡。
+   * 🔴 原实现：本文件全篇**无任何**有效性判定，而 `stateUpdate` 在
+   *   `src/utils/middlewarePipeline.ts:91` 被**无条件**执行 ⇒ 醉酒/中毒的和平主义者依然令效果落地。
+   * ✅ 修法：状态落地前用 SST `isDrunkOrPoisoned`（→ `utils/seatDisabled::isSeatDisabled`，
+   *   已覆盖 `statusEffects` / `statuses` / 中文 `statusDetails`）判定；受干扰时**只记选择、不写状态**。
+   */
+  {
+    const _seats = (context.snapshot.seats ?? []) as any[];
+    const _actor = _seats.find((s: any) => s.id === ((context.meta.abilityResult as any)?.pacifistSeatId));
+    if (isDrunkOrPoisoned(_actor, _seats)) {
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityResult: { ...(context.meta.abilityResult as any), suppressedByImpairment: true },
+        },
+      };
+    }
+  }
+
   const { meta } = context;
   const result = meta.abilityResult;
 

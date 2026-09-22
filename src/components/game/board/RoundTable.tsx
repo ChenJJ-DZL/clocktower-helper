@@ -262,12 +262,23 @@ export function RoundTable({
       ghostScaleRef.current = 1.1 * stageScale;
     }
 
+    // ⚠️⚠️ 2026-09-21 修复 D1（准备/查验阶段「点座位无法落座」）：
+    //   原实现在 **pointerdown 时就立即进入拖拽态**（设置 activeDragSeatId、
+    //   显示拖拽浮层、绑定 window move/up）。后果：
+    //     ① 浮层立刻压在光标下，吃掉后续 mouseup/click；
+    //     ② 即便用户只是「轻点」座位（零位移），也永远走拖拽分支，
+    //        `onSeatClick` **永不触发** ⇒ setup/check 两阶段手动落座全失效。
+    //   ⇒ 改为**延迟启动**：落下时只记录起点，等位移超过阈值才真正进拖拽；
+    //     若抬起时从未超过阈值，则在 handleWindowUp 里按**点击**处理。
+    const dragStartX = initialCoords.x;
+    const dragStartY = initialCoords.y;
+    const DRAG_START_THRESHOLD_PX = 4;
+    let dragStarted = false;
+
     dragPosRef.current = { x: initialCoords.x, y: initialCoords.y };
-    activeDragSeatIdRef.current = seatId;
     swapTargetSeatIdRef.current = null;
-    setActiveDragSeatId(seatId);
-    setSwapTargetSeatId(null);
-    setDragPos({ x: initialCoords.x, y: initialCoords.y });
+    // 注意：这里**故意不设置** activeDragSeatIdRef / setActiveDragSeatId /
+    //       setDragPos —— 拖拽正式启动时（见 handleWindowMove）才设置。
 
     const updateGhostPosition = (cx: number, cy: number) => {
       if (floatingTokenRef.current) {
@@ -275,13 +286,28 @@ export function RoundTable({
       }
     };
 
-    updateGhostPosition(initialCoords.x, initialCoords.y);
+    // ⚠️ 不在此处显示浮层 —— 等位移超过阈值、真正进入拖拽时再显示（见 handleWindowMove）。
 
     const handleWindowMove = (moveEvent: PointerEvent | TouchEvent) => {
       const coords = extractCoords(moveEvent);
       if (!coords) return;
       const currentX = coords.x;
       const currentY = coords.y;
+
+      // ⚠️ D1 修复：首次移动时先判位移阈值。
+      //   未超过 ⇒ 仍按「可能的点击」处理，什么都不做（尤其**不显示浮层**，
+      //            否则浮层会压住光标并吞掉后续 mouseup/click）；
+      //   超过 ⇒ 正式进入拖拽态（此刻才设置 activeDragSeatId / 显示浮层）。
+      if (!dragStarted) {
+        const dx = currentX - dragStartX;
+        const dy = currentY - dragStartY;
+        if (Math.hypot(dx, dy) < DRAG_START_THRESHOLD_PX) return;
+        dragStarted = true;
+        activeDragSeatIdRef.current = seatId;
+        setActiveDragSeatId(seatId);
+        setSwapTargetSeatId(null);
+        setDragPos({ x: currentX, y: currentY });
+      }
 
       dragPosRef.current = { x: currentX, y: currentY };
       updateGhostPosition(currentX, currentY);
@@ -344,6 +370,26 @@ export function RoundTable({
       window.removeEventListener("touchmove", handleWindowMove);
       window.removeEventListener("touchend", handleWindowUp);
       window.removeEventListener("touchcancel", handleWindowUp);
+
+      // ⚠️ D1 修复（第二版，修正第一版的重复调用缺陷）：
+      //   若整个手势期间位移**从未超过阈值**，说明用户是在「点击」而非拖拽。
+      //
+      //   🔴 第一版曾在此处**主动调用 `onSeatClick(seatId)`** —— 那是错的：
+      //     浮层不再出现后，`SeatNode` 自己的 `onClick`（`SeatNode.tsx:284-291`）
+      //     **本来就会正常触发**，于是同一次点击被处理两遍：
+      //       ① `SeatNode.onClick` → 落座成功（并把 selectedRole 清空）
+      //       ② 本函数再调一次 → 座位已有人 → 按 `useInteractionHandler` 的设计
+      //          「点击已有角色的座位 = 取消落座」⇒ **刚落上又立刻被取消**
+      //     实测日志：`selectedRole=washerwoman` → `selectedRole=null` 连续两次调用。
+      //
+      //   ⇒ 现在只做**状态清理**，点击交给 `SeatNode.onClick`（单一入口，SST）。
+      if (!dragStarted) {
+        dragPosRef.current = null;
+        activeDragSeatIdRef.current = null;
+        swapTargetSeatIdRef.current = null;
+        // ⚠️ 刻意不调用 setActiveDragSeatId / setDragPos —— 它们从未被置位过
+        return;
+      }
 
       if (floatingTokenRef.current) {
         floatingTokenRef.current.style.transform =
