@@ -89,7 +89,10 @@ function demonSeatOf(snap: any): any {
 
 /**
  * 从首夜推进到**第二夜开局**（停在该夜队列已生成、尚未执行的状态）。
- * @returns "night" 成功 / "gate" 白天门禁挡住（洗脑师「疯狂洗脑」等，自动化无法解除）
+ * @returns "night" 成功 / "gate" 未能进入夜晚
+ *   ⚠️ 2026-09-22 前这里的注释写「洗脑师【疯狂洗脑】门禁自动化无法解除」——
+ *      **那是错的**，根因是 E2E helper 会误点弹窗里的「取消」把技能取消掉（已修）。
+ *      现在含存活洗脑师的局也能正常走完黄昏进入夜晚。
  */
 async function toNight2(
   page: any
@@ -232,13 +235,25 @@ test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真�
     await enterFirstNight(page, SEAT_COUNT, SCRIPT);
 
     const gate = await toNight2(page);
-    if (!gate.ok) {
-      test.skip(
-        true,
-        "本局白天存在日间门禁（洗脑师【疯狂洗脑】），自动化无法解除" +
-          "—— 非生产缺陷（已知待裁决项）；本用例在该局面下不适用"
-      );
-    }
+    /**
+     * 🔴🔴 2026-09-22 起**不再 skip**（原为 `test.skip`，理由是「洗脑师门禁自动化无法解除」）。
+     *
+     * 那条「无法解除」是**错的** —— 根因在 E2E helper 自己身上：
+     *   `completeDuskEnterNight` 的弹窗判据是 `/^否|无事发生|^取消/`，
+     *   而「**使用技能** · 确定使用 疯狂洗脑 吗？」弹窗里有 **取消** 按钮
+     *   ⇒ helper **每次都把技能取消掉** ⇒ 门禁永不解除 ⇒ 超时
+     *   ⇒ 被误读成「按钮点了没反应 / 门禁无法自动解除」，还差点登记成生产缺陷。
+     *
+     * ✅ 已修：判据收紧为 `/无事发生/`（精确命中三类弹窗的**保守项**）。
+     * 🔬 修复后实测（罂粟花开 与 梦殒春宵**逐步骤完全镜像**）：
+     *   点「疯狂洗脑」→ 弹「确定使用疯狂洗脑吗？」→ 确认
+     *   → 弹「🧠疯狂洗脑判定…[是(通过/无事发生)]」→ 点「是」→ 门禁解除、「进入黄昏」可点。
+     *   ⇒ **生产无缺陷**；本用例恢复为**硬断言**（再 timeout 就是新问题，必须吵）。
+     */
+    expect(
+      gate.ok,
+      "❌ 含存活洗脑师的局走不完黄昏 —— helper 修复已生效过，此处再失败说明出现了**新**问题"
+    ).toBe(true);
 
     const snap2 = await waitForSnapshot(
       page,
@@ -294,14 +309,14 @@ test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真�
     ).toBe(0);
 
     // ── 进入第二夜 ──
+    // ⚠️ 2026-09-22 起**不再 skip**：原 skip 的理由「洗脑师门禁自动化无法解除」是
+    //    E2E helper 自身的判据 bug（会误点「取消」而取消技能），**已修**。
+    //    详见本文件 `toNight2` 上方与 `helpers/scriptFlow.ts` 的详细说明。
     const dusk = await completeDuskEnterNight(page);
-    if (dusk === "timeout") {
-      test.skip(
-        true,
-        "本局白天存在日间门禁（可能是洗脑师【疯狂洗脑】），自动化无法解除" +
-          "—— 非生产缺陷（已知待裁决项）；本用例在该局面下不适用"
-      );
-    }
+    expect(
+      dusk,
+      "❌ 黄昏未能推进到夜晚（含存活洗脑师的局也必须能走完）"
+    ).toBe("night");
 
     const n2 = await advanceNightFast(page);
     test.skip(n2 === "spy", "本局为间谍局，自动驱动不适用");
