@@ -396,7 +396,8 @@ describe("L3 · §C 日间能力入口（GameConsole「⚡️ 可用主动技能
     Boolean(getRoleDefinition(roleId)?.day) || Boolean(r(roleId)?.dayMeta);
 
   it("⑬ 新引擎 DAY 触发角色必须被桥接层识别为日间能力", () => {
-    for (const id of ["savant", "artist", "philosopher", "juggler"]) {
+    // ✅ 2026-09-22：`philosopher` 已按官方从 DAY 改为 EVERY_NIGHT（选角色移到夜间）⇒ 移出本列表
+    for (const id of ["savant", "artist", "juggler"]) {
       expect(
         isNewEngineDayAbility(id),
         `❌ ${id} 的 triggerTiming 含 DAY，桥接层必须识别（否则日间能力永不执行）`
@@ -411,15 +412,29 @@ describe("L3 · §C 日间能力入口（GameConsole「⚡️ 可用主动技能
   });
 
   it("⑭ GameConsole 日间技能按钮的数据来源必须覆盖本剧本的日间角色", () => {
-    // 这 6 个角色在 UI 上必须有「⚡️ 可用主动技能」入口
-    for (const id of ["savant", "artist", "philosopher", "juggler", "cerenovus", "mutant"]) {
+    /**
+     * 这 5 个角色在 UI 上必须有「⚡️ 可用主动技能」入口。
+     * ✅ 2026-09-22 移除 `philosopher` —— 官方【哲学家】是「**在夜晚时**」能力
+     *   ⇒ 已删 `philosopher.ts` 的 `day:` 块、`triggerTiming` 改 `EVERY_NIGHT`，
+     *     选角色改在**夜间**行动确认窗（`requiresRoleSelection`）完成。
+     *   ⚠️ 顺带把它移到下面的「不得误挂日间入口」清单 —— **两侧都断言**，
+     *     防「删掉就绿」的自证式断言。
+     */
+    for (const id of ["savant", "artist", "juggler", "cerenovus", "mutant"]) {
       expect(
         hasConsoleDayEntry(id),
         `❌ ${id} 在 GameConsole 里拿不到日间技能入口（getRoleDefinition.day / dayMeta 均为空）`
       ).toBe(true);
     }
     // 纯被动/纯夜间角色不得误挂日间入口
-    for (const id of ["barber", "sweetheart", "sage", "clockmaker", "fang_gu"]) {
+    for (const id of [
+      "barber",
+      "sweetheart",
+      "sage",
+      "clockmaker",
+      "fang_gu",
+      "philosopher",
+    ]) {
       expect(
         hasConsoleDayEntry(id),
         `❌ ${id} 是纯被动/纯夜间角色，不应出现在「可用主动技能」里`

@@ -22,7 +22,8 @@
  *   直接序列化了状态对象 —— 这才是真正的泄漏通道。
  *
  * ⚠️ **只加测试、不改生产**。本文件发现的所有偏差一律"冻结 + 报告"
- *    （见 §A③ 的 `TL_DEVIATION`、§C 的 `DAY_DEF_DEVIATION`，以及交付报告）。
+ *    （见 §A③ 的 `TL_DEVIATION`——**2026-09-22 已按官方原文裁决收敛为 1 条**；
+ *      §C ⑨ 的「赌徒日间按钮」已按官方修成**负向对照**，`DAY_DEF_DEVIATION` 已撤销）。
  *
  * ── 真值表来源 ────────────────────────────────────────────────
  *   全部字段由**探针实测**得到（`calculateNightInfoViaNewEngine` +
@@ -153,16 +154,32 @@ const SPEC: Record<string, Row> = {
  * 这些是**实测值**（不是期望值）—— 冻结它们是为了让"改动必须被看见"，
  * 同时把偏差登记进交付报告。**修好之后请把这些条目删掉**，让断言回归 `targetConfig`。
  */
+/**
+ * ✅ 2026-09-22 **按官方原文裁决后收敛**（原 3 条 → 现 1 条）
+ * ================================================================
+ * 官方裁决依据（逐字引自 `src/data/officialRoleDocs.json`）：
+ *
+ * · `assassin` —— 【运作方式】：「唤醒刺客。刺客**要么摇头表示不使用能力**，
+ *   要么指向任意一名玩家。」⇒ 官方**允许 0 目标**。
+ *   ⇒ `targetConfig.min = 0`（新引擎声明）**本来就对**；错的是 legacy
+ *     `src/roles/minion/assassin.ts` 的 `night.target.count {1,1}`（说书人界面
+ *     **无法表示"不使用"**）⇒ **已改为 `{0,1}`** ⇒ 本条偏差**消除**。
+ *
+ * · `gambler` —— 【角色能力】：「**每个夜晚\***，你要选择一名玩家并猜测…」
+ *   ⇒ 官方是**纯夜间**能力、且选人**强制**。
+ *   ⇒ 原 `src/roles/townsfolk/gambler.ts` 缺 `night` 块（回落 0~0）且**多了个 `day` 块**
+ *     ⇒ **已补 `night.target.count {1,1}` + `dialog`、删除 `day`** ⇒ 本条偏差**消除**。
+ *
+ * · `gossip` —— 【运作方式】：「将造谣者的"死亡"提示标记放置到**魔典左侧的中央**，
+ *   来提醒自己当晚需要放置该标记。」⇒ 官方在**夜间没有"玩家选目标"这一步**
+ *   （由说书人决定谁死）⇒ 夜间节点 `{0,0}` **符合官方**，`targetConfig {0,1}`
+ *   描述的是「当晚最多 1 名玩家死亡」⇒ **两者语义不同，不是缺陷**。
+ *   ⇒ 保留本条，但性质从「待人工拍板」变为「**已按官方裁决 = 正确**」。
+ */
 const TL_DEVIATION: Record<string, { min: number; max: number }> = {
-  // 造谣者：夜间节点是「声明正确后的死亡结算」（0 目标），
-  // 而 targetConfig 的 0~1 描述的是**白天发表声明**时的目标 ⇒ 两个阶段的课税面不同
+  // 造谣者：夜间节点是「声明正确后的死亡结算」（**官方无玩家选目标步骤**），
+  // 而 targetConfig 的 0~1 描述「当晚最多 1 人死亡」⇒ 两个阶段语义不同，**符合官方**。
   gossip: { min: 0, max: 0 },
-  // 刺客：官方「你要选择一名玩家」（恰好 1 名），队列节点也是 1~1，
-  // 但 targetConfig.min = 0（疑似把"可以不下手"当成了合法）
-  assassin: { min: 1, max: 1 },
-  // 赌徒：官方「你要选择一名玩家并猜测」（恰好 1 名），targetConfig 也是 1~1，
-  // 但队列节点只给到 0~0 ⇒ 说书人界面上「要不要选人」永远是可选的
-  gambler: { min: 0, max: 0 },
 };
 
 /** 内部字段名：出现在渲染文本里即视为状态泄漏 */
@@ -569,26 +586,171 @@ describe("L3 · §C 日间主动技能按钮", () => {
     expect(bodyText(), "❌ 无日间技能时不应渲染面板标题").not.toContain("可用主动技能");
   });
 
-  it("⑨ ⚠️已冻结偏差：赌徒(gambler) 声明了 day 能力，官方却是夜间能力", () => {
-    // 官方（赌徒）：「每个夜晚*，你要选择一名玩家并猜测该玩家的角色」
-    //   ⇒ 只应在**夜间**唤醒，白天的「⚡️ 可用主动技能」里不该出现赌徒。
-    // 实测：`src/roles/townsfolk/gambler.ts:69-73` 声明了
-    //   `day: { name: "赌徒猜测", maxUses: 1, target: { min: 1, max: 1 } }`
-    //   ⇒ GameConsole 把赌徒当成日间角色（按钮文案「使用 赌徒」）。
-    // 本用例冻结「按钮会出现」这一现状；一旦生产把 day 块删掉，这里会红 ——
-    // 提醒同步把本条改成负向对照。
+  it("⑨ ✅ 已按官方修：赌徒(gambler) 是**纯夜间**能力 ⇒ 不得出现日间主动按钮", () => {
+    /**
+     * 官方【赌徒】→【角色能力】（逐字）：
+     *   「**每个夜晚\***，你要选择一名玩家并猜测该玩家的角色：如果你猜错了，你会死亡。」
+     * ⇒ **纯夜间能力，没有日间能力** ⇒ 白天的「⚡️ 可用主动技能」里不该出现赌徒。
+     *
+     * ✅ 2026-09-22 **按官方原文修正**（本条由「冻结偏差」→ **负向对照**）：
+     *   · 删除 `src/roles/townsfolk/gambler.ts` 的
+     *     `day: { name: "赌徒猜测", maxUses: 1, target: { min: 1, max: 1 } }` 块
+     *     —— 它让 GameConsole 把赌徒当成日间角色（按钮「使用 赌徒」），与官方不符；
+     *   · 同时**补上** `night: { order: 21, target: { count: {min:1,max:1} }, dialog }`
+     *     —— 官方「**你要**选择一名玩家」是**强制**的，而原先夜间目标数缺省为 0~0
+     *     （说书人界面「要不要选人」永远可选）⇒ 同样与官方不符。
+     */
     mountConsole(layoutFor("gambler"));
     const labels = dayBtnLabels();
     expect(
       labels,
-      `ℹ️ 赌徒不应有日间主动按钮（实际：${JSON.stringify(labels)}）`
-    ).toContain(`使用 ${r("gambler").name}`);
+      `❌ 赌徒是纯夜间能力，不应出现日间技能按钮（实际：${JSON.stringify(labels)}）`
+    ).not.toContain(`使用 ${r("gambler").name}`);
     expect(
       labels.length,
-      `ℹ️ 赌徒布局只应多出它自己那一个按钮（实际：${JSON.stringify(labels)}）`
-    ).toBe(1);
-    // 对照：赌徒的夜间引导语确实是夜间能力 → 与「白天按钮」自相矛盾
+      `❌ 赌徒布局不应多出日间按钮（实际：${JSON.stringify(labels)}）`
+    ).toBe(0);
+    // 正向对照：夜间引导语必须含赌徒角色名 —— 证明它确实是「夜间角色」，
+    // 而不是「改坏成两边都没有」（防"删掉就绿"的自证式断言）
     const g = String(engineInfo("gambler", 2)?.guide ?? "");
-    expect(g, "❌ 赌徒夜间引导语异常").toContain(r("gambler").name);
+    expect(g, "❌ 赌徒夜间引导语异常（应含角色名）").toContain(r("gambler").name);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════
+//  §E 渲染层边界自证（兜底名单棘轮）—— 2026-09-22 建
+// ══════════════════════════════════════════════════════════════════════
+/**
+ * 🔬 **本节的由来（梦殒春宵「全量变异检验」暴露的「假绿层」，照搬其结论）**
+ * ------------------------------------------------------------------
+ * 2026-09-22 对梦殒春宵 25 角色做「能力管道全量中和」变异：
+ *   L2（23/25 红）、L5（70 红）**大面积变红**，而 **L3 的 64 条全绿**。
+ * 追查（探针实测）后确认是**分层必然，但绿灯有歧义**：
+ *   · 本文件的 `guide` 来自 `utils/nightInfoAdapter`；它对**有 `nightInfoGenerator`
+ *     分支**的角色能**独立于能力管道**产出语义化文案，对其余角色落**通用兜底**。
+ *   · 「兜底文案」与「语义化文案」**都非空** ⇒ §A 的「非空」断言对两者
+ *     **不可区分**。所以单看 L3 的绿灯，**证明不了**「适配器的语义化分支还在」。
+ *
+ * ⇒ 本节把这条边界**显式钉住**（棘轮）：兜底名单**只许变小**，禁止静默退化。
+ *
+ * ⚠️ 本节**不试图**让 L3 覆盖能力语义 —— 那是 L5 的职责（分层设计使然）。
+ *    本节只回答一个问题：**「适配器的语义化分支有没有被悄悄删掉？」**
+ *
+ * ⚠️ 与 snv_l3_ui §E 的**一处差异**（别照抄时改错）：
+ *   snv 那边要区分 `engineGuide`（传 `SYS_STEP`）与 `engineGuideNoSysStep`（不传），
+ *   因为 7 个邪恶角色会被 `minion_info`/`demon_info` 系统步骤污染。
+ *   本文件的 `engineInfo()` **本就不传第 7 参**（`systemStepRoleId = undefined`）
+ *   ⇒ 取到的**天然就是「无系统步骤」的引导语**，无需再造一个变体函数。
+ */
+describe("L3 · §E 渲染层边界自证（兜底名单棘轮：只许变小）", () => {
+  /**
+   * 判据：`guide` 是否只是**通用兜底**（与角色语义无关）。
+   * 两种形态（与 snv_l3_ui §E 保持同一口径，实测枚举）：
+   *   · `唤醒N号玩家（角色名）。`
+   *   · `唤醒N号【角色名】，准备执行技能。`
+   * 空串也算兜底（渲染为空 ⇒ §A 的「非空」断言会先红）。
+   */
+  const isFallbackGuide = (g: unknown): boolean => {
+    const t = String(g ?? "").replace(/\s+/g, "");
+    if (!t) return true;
+    return (
+      /^唤醒\d+号玩家（.+）。$/.test(t) ||
+      /^唤醒\d+号【.+?】，准备执行技能。$/.test(t)
+    );
+  };
+
+  /** 该角色在夜 1 / 夜 2 **都**只有兜底 ⇒ 记为「兜底角色」 */
+  const fallbackRoles = () =>
+    ROSTER.filter((rid) => {
+      const g1 = String(engineInfo(rid, 1, buildSeats(rid))?.guide ?? "");
+      const g2 = String(engineInfo(rid, 2, buildSeats(rid))?.guide ?? "");
+      return isFallbackGuide(g1) && isFallbackGuide(g2);
+    });
+
+  /** 同样口径下的「语义化」角色 */
+  const semanticRoles = () =>
+    ROSTER.filter((rid) => {
+      const g1 = String(engineInfo(rid, 1, buildSeats(rid))?.guide ?? "");
+      const g2 = String(engineInfo(rid, 2, buildSeats(rid))?.guide ?? "");
+      return !(isFallbackGuide(g1) && isFallbackGuide(g2));
+    });
+
+  /**
+   * 🔒 已登记的兜底角色（2026-09-22 探针实测快照）—— **13 个，逐个都不是缺陷**。
+   *
+   * 探针口径：`engineInfo(rid, 1|2, buildSeats(rid))` ⇒ 同时打印 `guide` / `speak` /
+   * `targetLimit`（**不是只读 guide 就下结论** —— 判「信息完整」要看这三处）。
+   * 分组依据是**实测形态**，不是推测：
+   *
+   * ── A. 窃窃私语 9 个 ────────────────────────────────────────────
+   *   · `chambermaid`：guide 兜底，但 `speak` = **「选择两名除你以外的存活玩家。」**
+   *     + `targetLimit 2-2` ⇒ 行动指令完整，guide 只是首行引导。
+   *   · `gossip`：`speak` = 「如果该玩家今日发表了正确的传闻，说书人应选择一名玩家额外死亡。」
+   *     + `targetLimit 0-0`（该夜节点是**声明后的死亡结算**，本就 0 目标）。
+   *   · `witch` / `assassin` / `devils_advocate`：`speak` = 「请执行行动」+ `targetLimit 1-1`
+   *     ⇒ 与 snv_l3_ui §E 登记的 `witch` **同一形态**（说书人界面靠 targetLimit 驱动选人）。
+   *     ⚠️ `assassin` / `innkeeper` 的**夜 1 guide 为空是正确的**：
+   *     两者官方都是「每个夜晚**\***」（非首夜），`firstNightPriority === null` ⇒ 首夜不唤醒。
+   *   · `plague_doctor`（ON_DEATH）：平时不该被唤醒，只有死亡当晚由死亡事件分发器入队。
+   *   · `saint`（**外来者版**）/ `recluse`（PASSIVE）：**根本没有夜间步骤**
+   *     ⇒ guide 为空是**正确**的（弹窗本就不该出现）；`saint` 走 legacy `checkGameEnd`。
+   *
+   * ── B. 无名之墓 4 个（本文件是两剧本并集，一并登记；属下一轮的债）────────
+   *   · `clockmaker`：`speak` = 「说书人告知：恶魔与爪牙最近距离为 1（邻座为1）。」
+   *     ⇒ 信息由**能力管道**产出；L3 只渲染、不跑管道 ⇒ 取到兜底属预期
+   *     （与 snv_l3_ui §E 的 `clockmaker` 记录完全一致）。
+   *   · `sailor`：`speak` = 「请指向一名存活玩家（包括你自己）。你或他之一会醉酒至下个黄昏。」
+   *   · `gambler` / `farmer`：ON_DEATH / 首夜条件类，平时不唤醒。
+   */
+  const REGISTERED_FALLBACK = [
+    // A. 窃窃私语（9）
+    "chambermaid", "gossip", "innkeeper", "saint", "recluse",
+    "plague_doctor", "witch", "assassin", "devils_advocate",
+    // B. 无名之墓（4）
+    "gambler", "clockmaker", "sailor", "farmer",
+  ];
+
+  it("⑮ ⭐ 分类器正向对照：必须能识别出**语义化**引导（防「全判兜底」导致下面恒绿）", () => {
+    const semantic = semanticRoles();
+    /**
+     * 🔒 棘轮下限：2026-09-22 实测 **19 个语义化**（32 − 13 兜底）。
+     *    取 18 留 1 个余量；**只许上调**。若某角色从语义化退化成兜底，
+     *    语义数会掉下去 ⇒ 本用例先红（与 ⑯ 形成双保险）。
+     */
+    expect(
+      semantic.length,
+      "❌ 识别出的语义化角色偏少 —— 分类器或适配器坏了，下面的棘轮不可信"
+    ).toBeGreaterThanOrEqual(18);
+    for (const rid of ["oracle", "mathematician", "po"]) {
+      expect(
+        semantic,
+        `❌ ${rid} 的引导应被判为语义化（已知样本，防分类器写反）`
+      ).toContain(rid);
+    }
+    expect(
+      semantic.length + fallbackRoles().length,
+      "❌ 语义化 + 兜底必须恰好覆盖全部 32 个角色（分类器漏判）"
+    ).toBe(ROSTER.length);
+  });
+
+  it("⑯ ⭐ 棘轮：兜底名单不得**新增**（防适配器语义化分支被静默删掉）", () => {
+    const now = fallbackRoles();
+    const regressed = now.filter((r) => !REGISTERED_FALLBACK.includes(r));
+    expect(
+      regressed,
+      "❌ 以下角色**从语义化退化成了通用兜底** —— 适配器的语义化分支可能被删/改坏" +
+        "（这类退化**不会**被 L5 抓到：L3 本就不跑能力管道）：" +
+        regressed.join("、")
+    ).toEqual([]);
+  });
+
+  it("⑰ 防腐烂：登记表里不得残留「其实已语义化」的陈旧条目（与 TL_DEVIATION 同惯例）", () => {
+    const now = fallbackRoles();
+    const stale = REGISTERED_FALLBACK.filter((r) => !now.includes(r));
+    expect(
+      stale,
+      "ℹ️ 以下角色已不再是兜底（适配器补了语义化分支？）—— 请从 §E 的 REGISTERED_FALLBACK 删除：" +
+        stale.join("、")
+    ).toEqual([]);
   });
 });

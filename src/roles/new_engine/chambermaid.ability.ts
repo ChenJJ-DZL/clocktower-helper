@@ -64,12 +64,26 @@ const calculateResult = async (
   );
 
   // 计算被唤醒数量
+  /**
+   * 🔴 2026-09-22 修复（P1）：「真实值」的计算**必须放在门控之外**。
+   *
+   * 原实现把它整个包在 `if (isAbilityActive) { … } else { wokenCount = 1; }` 里
+   * ⇒ 醉酒/中毒时走 `else` 分支，把展示值**硬编码成 1**。
+   * 后果：只要真实值恰为 1（两名目标里恰有一人当晚被唤醒 —— 很常见），
+   * 中毒者拿到的就是**与真值完全相同**的信息 ⇒ 违反官方
+   * 「中毒的玩家会失去能力……他的能力**不会真实地影响游戏**」，
+   * 也违反本文件 `pickFakeWokenCount` 自述的「结果必须 100% 错误」契约。
+   * （附带：原内层 `!isAbilityActive || hasVortox` 中的 `!isAbilityActive` 是
+   *   **死条件** —— 外层已保证 `isAbilityActive === true`。）
+   *
+   * ✅ 修法：先把真值算出来，再**统一**用 `pickFakeWokenCount(真值, rng)` 生成假值
+   *   （该函数保证从 0~2 中**排除**真值）。
+   */
   let wokenCount = 0;
-
-  if (isAbilityActive) {
+  {
     // 从 snapshot 查询两名目标玩家是否有本晚因自身能力唤醒的记录
     const wokenPlayers = new Set<number>();
-    
+
     // 1. 支持显式记录的本夜唤醒玩家列表
     const explicitWoken = (snapshot as any).wokenPlayerIds ?? (snapshot as any).wokenPlayers;
     if (Array.isArray(explicitWoken)) {
@@ -106,14 +120,11 @@ const calculateResult = async (
       );
 
     if (!isAbilityActive || hasVortox) {
-      // 醉酒/中毒/涡流时：100% 返回错误结果（从 0-2 中排除 realWokenCount）
+      // 醉酒/中毒/涡流时：100% 返回错误结果（从 0~2 中排除 realWokenCount）
       wokenCount = pickFakeWokenCount(realWokenCount, rng);
     } else {
       wokenCount = realWokenCount;
     }
-  } else {
-    // 默认兜底假信息（排除 0）
-    wokenCount = 1;
   }
 
   const result = {

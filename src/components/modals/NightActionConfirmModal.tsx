@@ -632,6 +632,13 @@ export function NightActionConfirmModal({
                             <button
                               key={role.id}
                               type="button"
+                              /**
+                               * ⭐ 2026-09-22 加稳定定位：供 E2E 在「必须选角色」的角色
+                               *   （洗脑师 / 奥乔 / 酿酒师 / **哲学家**）上自动点选一个角色。
+                               *   ⚠️ 不选角色的后果是「确认选择」按钮 **disabled**
+                               *   ⇒ E2E 盲点"下一步"会**永远卡死**在此弹窗。
+                               */
+                              data-role-id={role.id}
                               onClick={() => setSelectedRoleId(role.id)}
                               className={`h-11 sm:h-12 px-2 rounded-xl text-center border font-bold transition-all text-xs sm:text-sm flex items-center justify-center cursor-pointer select-none active:scale-95 shadow-sm ${
                                 isRoleSelected

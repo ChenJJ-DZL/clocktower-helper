@@ -244,7 +244,22 @@ describe("L5 · 水手(sailor)", () => {
     ).toBe(0);
   });
 
-  it("③ 醉酒：能力失效但仍需落一个 drunk（不得两个都不醉）", async () => {
+  /**
+   * 🔴 2026-09-22 **修复：原用例把「违反官方」的行为固化成了正向断言**。
+   *
+   * 原用例标题：「③ 醉酒：**能力失效但仍需落一个 drunk**（不得两个都不醉）」，
+   *   body 断言 `[0, 1].includes(drunkId)` + 对应座位 `isDrunk === true`。
+   *   —— 这条**要求本身**就与官方矛盾（旧实现用 `pickDrunkIdWhenInactive` 随机挑人醉酒）。
+   *
+   * 🔎 官方【水手】→【提示标记】→「醉酒」→ 放置条件（逐字引用
+   *   `src/data/officialRoleDocs.json`）：
+   *     「…由说书人来选择水手醉酒还是水手选择的玩家醉酒，并在对应角色标记旁放置醉酒
+   *       提示标记。水手无法选择已死亡的玩家。**若此时水手醉酒中毒，不放置该标记。**」
+   *   ⇒ 失效时**任何人都不该被弄醉**（`drunkId === null`，且不写 `stateUpdates`）。
+   *
+   * 修法：`sailor.ability.ts` 删除 `pickDrunkIdWhenInactive`，失效分支改为 `drunkId = null`。
+   */
+  it("③ 负向对照（官方）：**能力失效 ⇒ 不放置醉酒标记**，任何人都不被弄醉", async () => {
     const seats = board(layout("sailor"));
     drunk(seats, 0);
     const res = await runRole(sailorAbility, seats, 0, {
@@ -252,16 +267,17 @@ describe("L5 · 水手(sailor)", () => {
       phase: "night",
       targets: [1],
     });
-    const drunkId = res.meta.abilityResult.drunkId;
+    expect(res.aborted, "❌ 失效只是不生效，不应中止（说书人仍要走过场）").toBeFalsy();
     expect(
-      [0, 1].includes(drunkId),
-      `❌ 醉酒水手的 drunkId 必须是自己或目标（实际 ${drunkId}）`
-    ).toBe(true);
-    expect(res.meta.abilityResult.isDrunk, "❌ 醉酒标记应为 true").toBe(true);
+      res.meta.abilityResult.drunkId,
+      "❌ 官方：失效时「不放置该标记」⇒ drunkId 必须为 null（原用例要求落一个 drunk 是错的）"
+    ).toBeNull();
+    expect(res.meta.abilityResult.isDrunk, "ℹ️ isDrunk 保留以标注本次失效").toBe(true);
     expect(
-      seatAfter(res, drunkId)?.isDrunk,
-      `❌ 醉酒水手仍必须让 ${drunkId + 1}号 进入醉酒（形态①直接改座位）`
-    ).toBe(true);
+      (seatAfter(res, 1).statusEffects ?? []).some((e: any) => e.type === "drunk"),
+      "❌ 官方「不放置该标记」⇒ 目标不得获得 drunk 效果"
+    ).toBe(false);
+    expect(res.meta.stateUpdates, "❌ 不应写出 stateUpdates（没有醉酒要落地）").toBeUndefined();
   });
 });
 

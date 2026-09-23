@@ -282,6 +282,17 @@ export interface Script {
   maxPlayers?: number; // 剧本支持/建议最大人数与默认座位数
   isCustom?: boolean; // 是否是自定义/导入的剧本
   roleIds?: string[]; // 剧本包含的角色 ID 列表
+  /**
+   * ⭐ 2026-09-22 新增：**剧本级特殊规则**（原先数据模型没有承载位，
+   *   导致部分剧本在简介里承诺的机制**无处声明、从未实现**）。
+   *   判据唯一事实源：`src/utils/scriptSpecialRules.ts`（禁止在调用点硬编码）。
+   */
+  specialRules?: {
+    /** 恶魔不会在夜晚攻击（其夜间能力不造成死亡；非死亡效果照常） */
+    demonCannotKill?: boolean;
+    /** 进入第 (N+1) 个夜晚时（= 第 N 个白天结束）若恶魔存活 ⇒ 邪恶自动获胜 */
+    evilAutoWinOnEnteringNight?: number;
+  };
 }
 
 // 剧本列表
@@ -546,6 +557,23 @@ export const scripts: Script[] = [
       "no_dashii",
       "vortox",
     ],
+    /**
+     * ⭐ 剧本级特殊规则（2026-09-22 新增，此前数据模型无承载位 ⇒ 从未实现）
+     *
+     * 官方中文 wiki（`json/play/游园惊梦.json` 的 `url`，页面 oldid=3175）
+     *   简介逐字：「……**恶魔不会在夜晚攻击，但是会在固定的天数后自动获胜**。……」
+     *
+     * ⚠️ 该 wiki 页面**只有简介，没有规则细节** —— 「固定的天数」官方未给数字。
+     * ⇒ **天数与判定时点由用户裁定（2026-09-22）**：
+     *    · 天数 **可配置**，默认 **3**；
+     *    · 判定时点 = **第 3 个黄昏结束 / 进入第 4 个夜晚时**，若恶魔仍存活 ⇒ 邪恶获胜。
+     * ⇒ 改天数只需改这里的数字（判据唯一事实源：`src/utils/scriptSpecialRules.ts`，
+     *    测试用注入值，不写死）。
+     */
+    specialRules: {
+      demonCannotKill: true,
+      evilAutoWinOnEnteringNight: 3,
+    },
   },
   {
     id: "poppyganda",

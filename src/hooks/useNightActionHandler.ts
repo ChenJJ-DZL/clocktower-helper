@@ -56,6 +56,8 @@ import {
   nightInfoSeed,
 } from "../roles/core/deterministicRandom";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
+import { isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
+import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
@@ -431,6 +433,13 @@ export async function executeViaNewEngine(
     meta: {},
     aborted: false,
     preview: !!context.preview,
+    /**
+     * ⭐ 2026-09-22：把**当前剧本的剧本级特殊规则**注入管道
+     *   （用于「恶魔不会在夜晚攻击」= 游园惊梦；判据源 `utils/scriptSpecialRules.ts`）。
+     */
+    scriptSpecialRules: getScriptSpecialRules(
+      (context as any).selectedScript ?? null
+    ),
   };
 
   try {
@@ -945,10 +954,34 @@ export async function executeViaNewEngine(
             initialSelectedTargets: safeTargets,
             // 🧠 该座位当夜有待送达的洗脑告知 → 确认页顶部额外渲染告知卡（玩家面）
             cerenovusNotice: pendingCerenovusNotice ?? undefined,
-            requiresRoleSelection: ["cerenovus", "ojo", "brewer"].includes(
-              roleId
-            ),
-            availableRoles: context.roles,
+            /**
+             * 🧠 需要「选角色」的角色白名单。
+             * ✅ 2026-09-22 加入 `philosopher` —— 官方【哲学家】：
+             *   「每局游戏限一次，**在夜晚时**，你可以选择一个善良角色：你获得该角色的能力。」
+             *   ⇒ 选角色这一步**必须发生在夜间**（原先只在日间 `useDayActions` 的
+             *     `ROLE_SELECT` 弹出，且 legacy 同时写了 `day:` 块 ⇒ 夜/日双入口、
+             *     而夜间那条其实给的是**座位**选择，语义都不对）。
+             *   本弹窗（`NightActionConfirmModal`）**本就支持选角色**
+             *   （`onConfirm(targets, chosenRole)`，与洗脑师/奥乔同一条通路）⇒ 直接复用。
+             */
+            requiresRoleSelection: [
+              "cerenovus",
+              "ojo",
+              "brewer",
+              "philosopher",
+            ].includes(roleId),
+            /**
+             * 🧠 哲学家：官方限定**只能选「善良角色」**（镇民 / 外来者）
+             * ⇒ 候选角色表按阵营过滤，避免说书人误选爪牙/恶魔。
+             * ⚠️ 阵营判定**必须走** `utils/seatAlignment::isTownsfolkOrOutsiderRole`
+             *   （项目护栏明令：不许手写 `r.type === "townsfolk" || ...`）。
+             */
+            availableRoles:
+              roleId === "philosopher"
+                ? context.roles.filter((r: any) =>
+                    isTownsfolkOrOutsiderRole(r as any)
+                  )
+                : context.roles,
             selectedScript: (context as any).selectedScript,
             extraNote,
             // 🌀 A4：真恶魔的确认页必须看到「疯子本夜选择了谁」（官方：恶魔知道）。
@@ -1070,6 +1103,44 @@ export async function executeViaNewEngine(
                   } as any);
                   return;
                 }
+              }
+
+              /**
+               * 🧠 **哲学家**：官方「每局游戏限一次，**在夜晚时**，你可以选择一个善良角色：
+               *   你获得该角色的能力。如果这个角色在场，他醉酒。」
+               *
+               * ✅ 2026-09-22 从「日间」迁到「夜间」（原先唯一可用的入口是日间
+               *   `useDayActions` 的 `ROLE_SELECT`，而夜间节点给的是**座位**选择 —— 语义都不对）。
+               *   走的是与**洗脑师 / 奥乔完全相同的通路**：确认窗内选角色
+               *   ⇒ 把所选角色喂给 `actionData.chosenRoleId`
+               *   ⇒ `useNightActionHandler` 把 `context.actionData` 整体作为
+               *     `storytellerInput` 传给管道（本文件 `storytellerInput: context.actionData`）
+               *   ⇒ `philosopher.ability.ts::calculate` 读 `ctx.storytellerInput?.chosenRoleId` ✓
+               *
+               * ⚠️ `selectedTargets` 传 `finalTargets`（通常为空 —— 哲学家选的是**角色**不是座位），
+               *   但保留原值以免影响「能力本体已按角色运行」之外既有语义。
+               */
+              if (roleId === "philosopher") {
+                const chosenRoleId =
+                  typeof chosenRoleIdOrRole === "string"
+                    ? chosenRoleIdOrRole
+                    : chosenRoleIdOrRole?.id;
+                if (!chosenRoleId) {
+                  alert("哲学家必须选择一个善良角色");
+                  return;
+                }
+                const selectedRole = context.roles.find(
+                  (r) => r.id === chosenRoleId
+                );
+                const chosenRoleName = selectedRole?.name || chosenRoleId;
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: finalTargets,
+                  actionData: { roleName: chosenRoleName, chosenRoleId },
+                };
+                await executeViaNewEngine(realContext, roleId);
+                return;
               }
 
               // 🧠 洗脑师：已在行动确认窗内同时选定目标与角色，无需二级弹窗，直接执行管道

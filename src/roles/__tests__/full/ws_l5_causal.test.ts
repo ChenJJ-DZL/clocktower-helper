@@ -26,23 +26,23 @@
  *   ③ 先怀疑测试再怀疑实现：规则分歧一律回到 `officialRoleDocs.json` 官方原文
  *      （已逐条摘录在 `ws_l1_l2.test.ts` 的 ROLE_SPEC.official）。
  *
- * ── ⚠️ `it.fails` 的用法（已知缺陷登记）──────────────────────────
- *   本文件用 `it.fails` 记录了 **7 个实测确认的 P1 缺陷**，分两类：
+ * ── ⚠️ `it.fails` 的历史与**本轮审计结论**（2026-09-22 全部结清）──────
+ *   本文件 2026-09-21 曾用 `it.fails` 登记「效果类角色不消费 abilityEffective」类缺陷。
+ *   头部原写「**7 个**」，**与文件实际不符**（仅 5 条 `it.fails`）。
  *
- *   【A 类 · 效果类角色不消费 abilityEffective —— 6 个】
- *   （`zombuul` / `shabaloth` / `witch` / `gambler` / `sailor` / `gossip`）
- *   的 `stateUpdate` **没有消费 `meta.abilityEffective`** ⇒ 醉酒/中毒时
- *   效果照旧生效（探针实测：abilityEffective=false 但目标仍然死亡/被诅咒/被醉酒）。
- *   官方（醉酒与中毒）：「中毒的玩家会失去能力……他的能力**不会真实地影响游戏**。」
+ *   🔬 2026-09-22 逐条探针审计（**座位中毒 + `abilityPriorityCalculation` 忠实路径**）：
  *
- *   【B 类 · 信息类角色中毒兜底可撞真值 —— 1 个】
- *   `chambermaid.ability.ts:114-117` 中毒兜底把 wokenCount 硬编码为 1，
- *   与真实值 1 相撞 ⇒ 中毒者得到**完全正确**的信息（违反本文件
- *   `pickFakeWokenCount` 自述的「结果必须 100% 错误」契约）。
+ *   | 角色 | 原登记 | 实测结论 | 处理 |
+ *   |---|---|---|---|
+ *   | `witch` / `zombuul` / `shabaloth` | P1 缺陷 | **缺陷已不存在**（门控生效）；且原 body **自相矛盾**（同时断言 `=== true` 与 `=== false`）⇒ **必然失败** ⇒ `it.fails` **恒过** = **永久假绿** | 转正向断言 |
+ *   | `chambermaid` | B 类（兜底撞真值） | ✅ **真缺陷**（硬编码 `wokenCount = 1`，真值=1 时相撞） | **修生产** + 转正向 |
+ *   | `sailor` | A 类 | ✅ **真缺陷**（失效时仍随机让「自己/目标」醉酒，违反官方「**不放置该标记**」） | **修生产** + 转正向 |
+ *   | `gossip` / `gambler` | 头部声称有缺陷，**实际从未写过 `it.fails`** | 二者的门控断言**早已存在且已是正向**（各标「✅ 已修 P0-B」，断言 `stateUpdates` 未产出） | **无需改动**，只是头部计数写错了 |
  *
- *   ⇒ 断言"官方正确行为"必然红 ⇒ 用 `it.fails` 钉住：
- *     ① 它同时是**缺陷文档**；② 它也是**回归护栏**（谁修好了它会立刻红，
- *        强迫把该用例从 `it.fails` 移出）。详见审计清单。
+ *   ⇒ **教训（可复用）**：`it.fails` 的 body **必须只断言一件可判真伪的事**。
+ *     写成「先断言缺陷现状、再断言官方正确行为」⇒ 必然失败 ⇒ `it.fails` 恒过，
+ *     既不能证明缺陷存在，也**不会在缺陷被修好时报警** —— 这是**比空断言更隐蔽的假绿**。
+ *     （同类问题 → skill §35.11）
  */
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -152,25 +152,39 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(String(res.abortReason)).toContain("2名");
     });
 
-    it.fails("⚠️[已知缺陷 it.fails] 中毒 → 结果必须 100% 错（从 0~2 中排除真实值）", async () => {
+    /**
+     * ✅ 2026-09-22 **已修**（原为 `it.fails` 登记的 P1 缺陷，现转正向断言）。
+     *
+     * 原缺陷：`calculate` 把真值计算包在 `if (isAbilityActive)` 内，失效时走
+     *   `else { wokenCount = 1 }` **硬编码 1** ⇒ 真值恰为 1 时中毒者拿到**完全正确**的信息。
+     * 修法：把真值计算**提到门控之外**，统一用 `pickFakeWokenCount(真值, rng)`
+     *   （保证从 0~2 中**排除**真值）。
+     *
+     * 官方依据（【醉酒与中毒】）：「中毒的玩家会失去能力……他的能力**不会真实地影响游戏**。」
+     */
+    it("⭐⭐ 中毒 → 结果必须 100% 错（从 0~2 中排除真实值，含真值=1 的相撞用例）", async () => {
       const seats = poison(safeBoard("chambermaid"));
       const res = await runRole(chambermaidAbility, seats, 0, {
         targets: [1, 2],
-        snapshot: { wokenPlayerIds: [1] },
+        snapshot: { wokenPlayerIds: [1] }, // 真值 = 1
       });
       expect(res.meta.abilityResult.isDrunk, "❌ 中毒标记未透出").toBe(true);
       expect(res.meta.abilityResult.targetIds).toEqual([1, 2]);
-      // 官方（醉酒与中毒）：「中毒的玩家会失去能力……他的能力不会真实地影响游戏。」
-      // 本文件 `pickFakeWokenCount`（chambermaid.ability.ts:25）自己声明契约
-      // 「结果必须 100% 错误」——但 calculate 的 `else` 兜底分支
-      // （chambermaid.ability.ts:114-117）把 wokenCount 硬编码成 1，
-      // 恰与真实值 1 相撞 ⇒ 中毒者拿到的是**与真值完全相同**的信息。
-      // 根因：内层 `!isAbilityActive || hasVortox` 是死条件（外层已保证 true），
-      // 真正的假值逻辑 pickFakeWokenCount 在中毒路径上永远跑不到。
       expect(
         res.meta.abilityResult.wokenCount,
-        "缺陷：chambermaid.ability.ts:114 中毒兜底硬编码 wokenCount=1，可撞真值"
+        "❌ 中毒者拿到了与真值相同的数字（真值=1）—— 官方：能力不得真实影响游戏"
       ).not.toBe(1);
+
+      // 正向对照：同一局面下未被干扰 ⇒ 必须给出**真值 1**（证明上面的 ≠1 不是「永远给错」）
+      const clean = await runRole(chambermaidAbility, safeBoard("chambermaid"), 0, {
+        targets: [1, 2],
+        snapshot: { wokenPlayerIds: [1] },
+      });
+      expect(
+        clean.meta.abilityResult.wokenCount,
+        "❌ 未中毒时应给出真值 1"
+      ).toBe(1);
+      expect(clean.meta.abilityResult.isDrunk).toBe(false);
     });
 
     it("⭐ 涡流在场 → 与中毒同样反转（官方：涡流下镇民信息必错）", async () => {
@@ -357,6 +371,41 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(res.meta.abilityResult).toBeUndefined();
       expect(at(res, 0).isDead, "❌ 死亡状态不应被管道改写").toBe(true);
     });
+
+    /**
+     * ⭐⭐ 2026-09-22 补（**全量变异检验实测暴露的断言缺口**）
+     * ------------------------------------------------------------------
+     * 把 `artist.ability.ts` 的 `isCorrupted: !isAbilityActive` 改成
+     * `isCorrupted: isAbilityActive`（**语义反转**）后，本文件原有 3 条用例**全绿**
+     * —— 因为它们只断言了 question/answer 透传、每局限一次、死亡中止，
+     * **没有一条**看 `isCorrupted`。
+     *
+     * 🔎 官方依据（【醉酒与中毒】）：「中毒的玩家会失去能力……他的能力不会真实地影响游戏」
+     *    ⇒ 中毒的艺术家问是非题时，说书人**必须给错误答案**。而 `isCorrupted`
+     *      正是"这条答案是真是假"的唯一落库标记 ⇒ 漏了它，中毒就等于没生效。
+     */
+    it("⭐⭐ 醉酒/中毒 ⇒ isCorrupted 必须为 true（官方：能力失效者得到**错误**答案）", async () => {
+      const active = await runRole(artistAbility, safeBoard("artist"), 0, {
+        phase: "day",
+        storytellerInput: { question: "q", answer: "a" },
+      });
+      expect(
+        active.meta.abilityResult?.isCorrupted,
+        "❌ 未被干扰时 isCorrupted 应为 false（否则玩家会以为自己被下毒）"
+      ).toBe(false);
+
+      // ⚠️ 艺术家「每局限一次」是**模块级**状态 ⇒ 同一条用例里跑第二次前必须清账，
+      //    否则第二次会被限次表拦住（abort）⇒ 得到假红。
+      resetLimitedAbilityUses();
+      const drunk = await runRole(artistAbility, poison(safeBoard("artist")), 0, {
+        phase: "day",
+        storytellerInput: { question: "q", answer: "a" },
+      });
+      expect(
+        drunk.meta.abilityResult?.isCorrupted,
+        "❌ 中毒的艺术家未被标记 isCorrupted —— 玩家会把错误答案当真值（中毒失效）"
+      ).toBe(true);
+    });
   });
 
   // ─────────────────────────── 卖花女孩 ───────────────────────────
@@ -466,6 +515,126 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(res.aborted, "❌ 中毒弄臣仍免死").toBe(true);
       expect(res.meta.abilityResult).toBeUndefined();
       expect(at(res, 0).foolUsed).toBeUndefined();
+    });
+
+    /**
+     * ✅ 2026-09-22 **已修**（原为 `it.fails` 登记，现转为正向断言 + 4 条负向对照）。
+     *
+     * 官方【弄臣】：「当你**首次**将要死亡时，你不会死亡。」⇒ 免死**只生效一次**，
+     *   且**不分死因**（恶魔击杀 / 处决 / 其他能力击杀都适用）。
+     *
+     * 🔴 修复的两处缺口（探针实测确认过）：
+     *   ① **不消费** ⇒ 对恶魔击杀**永久免疫**：
+     *      `foolUsed` / `hasUsedFoolAbility` 的生产写入点原本只有 `fool.ability.ts`
+     *      ——而弄臣是 PASSIVE（`fn/on` 皆 null）⇒ **该管道永不运行**。
+     *      ✅ 修法：管道后置中间件 `createFoolImmunityConsumer`（`middlewarePipeline.ts`），
+     *        由 `buildAbilityPipe` 注入 ⇒ 覆盖**全部 10 个恶魔**，单点。
+     *   ② **不覆盖处决/能力击杀** ⇒ 处决一个尚未使用免死的弄臣会直接死。
+     *      ✅ 修法：`killPlayer` 在 `commitSeats` **之前**提前返回（见下）。
+     *
+     * 🔒 单点消费为什么**不会踩「提示预演」的坑**：
+     *   该中间件挂在 `postProcess` 末尾，而 `runFullAbilityPipeline` 在
+     *   `preview === true` 时**跳过 `stateUpdate` 与 `postProcess`**
+     *   ⇒ **提示预演绝不消耗免死**（本项目复发多次的「提示 ≠ 结算」根因）。
+     *   ⚠️ 这也正是**不能**把消费写进 `isImmuneToDemonKill` 的原因：那个判定
+     *   在 `calculate` 阶段就被调用 ⇒ 预演会提前吃掉免死。
+     */
+    it("⭐⭐ 首次免死：恶魔击杀后**不死且必须消费**免死（第 2 次攻击必死）", async () => {
+      const seats = board([
+        "vortox",
+        "fool",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "chef",
+      ]);
+      const r1 = await runRole(vortoxAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [1],
+      });
+      const s1 = (r1.snapshot.seats as any[]).find((s: any) => s.id === 1);
+      expect(s1?.isDead, "官方：首次面临死亡的弄臣不会死亡").toBe(false);
+      expect(
+        s1?.foolUsed,
+        "首次免死后**必须消费** foolUsed —— 未消费 ⇒ 弄臣对恶魔永久免疫"
+      ).toBe(true);
+      expect(s1?.hasUsedFoolAbility).toBe(true);
+
+      // 已消费 ⇒ 第 2 次恶魔攻击必须死亡
+      const seats2 = (r1.snapshot.seats as any[]).map((s: any) => ({ ...s }));
+      const r2 = await runRole(vortoxAbility, seats2, 0, {
+        night: 3,
+        phase: "night",
+        targets: [1],
+      });
+      const s2 = (r2.snapshot.seats as any[]).find((s: any) => s.id === 1);
+      expect(
+        s2?.isDead,
+        "免死已用过，第二次恶魔攻击仍不死亡 —— 免死只应生效一次"
+      ).toBe(true);
+    });
+
+    it("⭐⭐ 负向对照①：能力失效（醉/毒的恶魔）⇒ **不得**消耗免死", async () => {
+      // 官方：醉/毒的恶魔压根没有杀人 ⇒ 弄臣的免死没被用掉
+      const seats = board(["vortox", "fool", "chambermaid", "gossip", "tinker", "chef"]);
+      seats[0] = { ...seats[0], statusEffects: [{ type: "poisoned" }] };
+      const res = await runRole(vortoxAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [1],
+      });
+      const f = (res.snapshot.seats as any[]).find((s: any) => s.id === 1);
+      expect(f?.isDead).toBe(false);
+      expect(f?.foolUsed, "能力失效却消耗了免死 —— 凭空剥夺弄臣的免死").toBeUndefined();
+    });
+
+    it("⭐⭐ 负向对照②：**非击杀类**能力选到弄臣 ⇒ 不得消耗免死", async () => {
+      // 侍女是纯信息能力（effectSemantics 非 kill）⇒ 选到弄臣只是「查信息」
+      const res = await runRole(
+        chambermaidAbility,
+        board(["chambermaid", "fool", "gossip", "oracle", "tinker", "chef"]),
+        0,
+        { night: 2, phase: "night", targets: [1, 2], snapshot: { wokenPlayerIds: [1] } }
+      );
+      const f = (res.snapshot.seats as any[]).find((s: any) => s.id === 1);
+      expect(f?.foolUsed, "非击杀能力误消耗了弄臣免死").toBeUndefined();
+    });
+
+    it("⭐⭐ 负向对照③：弄臣另有保护（旅店老板「不会死亡」）⇒ 不消耗免死（官方明示）", async () => {
+      // 官方【弄臣】运作细节：已有其他保护时**不消耗**免死（`canFoolSurvive` 注释亦如此声明）
+      const seats = board(["vortox", "fool", "chambermaid", "gossip", "tinker", "chef"]);
+      seats[1] = {
+        ...seats[1],
+        statusEffects: [{ type: "protected", source: "innkeeper" }],
+      };
+      const res = await runRole(vortoxAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [1],
+      });
+      const f = (res.snapshot.seats as any[]).find((s: any) => s.id === 1);
+      expect(f?.isDead).toBe(false);
+      expect(
+        f?.foolUsed,
+        "被其他保护救下却消耗了免死 —— 官方：另有一层保护时不动用弄臣自己的免死"
+      ).toBeUndefined();
+    });
+
+    it("⭐⭐ 负向对照④：**提示预演（preview）** 绝不消耗免死（「提示 ≠ 结算」护栏）", async () => {
+      const seats = board(["vortox", "fool", "chambermaid", "gossip", "tinker", "chef"]);
+      const res = await runRole(vortoxAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [1],
+        preview: true,
+      });
+      expect(res.meta?._pipelinePreview, "本局应走预览分支").toBe(true);
+      const f = (res.snapshot.seats as any[]).find((s: any) => s.id === 1);
+      expect(
+        f?.foolUsed,
+        "提示预演消耗了免死 —— 说书人照提示念一遍就把玩家的能力吃掉了（提示 ≠ 结算根因）"
+      ).toBeUndefined();
     });
   });
 
@@ -654,6 +823,28 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(String(res.abortReason)).toContain("3");
     });
 
+    /**
+     * ⭐⭐ 2026-09-22 补（**全量变异检验实测暴露的断言缺口**）
+     * ------------------------------------------------------------------
+     * 把 `witch.ability.ts` 的 `aliveCount <= 3` 改成 `aliveCount <= 4`
+     * （**阈值偏移**）后，本文件原有 4 条用例**全绿** —— 因为它们只覆盖了
+     * 「3 人 ⇒ 中止」，**没有**覆盖「4 人 ⇒ **不**中止」这个**上边界**。
+     *
+     * 🔎 官方依据（【女巫】）：「…**如果只有三名存活的玩家**，你失去此能力。」
+     *    ⇒ 阈值是 `aliveCount < 4`（恰 3 人及以下失效）；**4 人时必须仍有效**。
+     */
+    it("⭐⭐ 边界：存活恰好 **4** 人 → 女巫**仍能**发动（官方阈值是「只有三名」）", async () => {
+      const seats = board(["witch", "gossip", "tinker", "chef", "baron", "imp"]);
+      seats[2] = { ...seats[2], isDead: true };
+      seats[5] = { ...seats[5], isDead: true }; // 存活 = witch/gossip/chef/baron = 4
+      const res = await runRole(witchAbility, seats, 0, { night: 2, targets: [1] });
+      expect(
+        res.aborted,
+        "❌ 存活 4 人时女巫**不应**失去能力（官方阈值是「只有三名存活」）"
+      ).toBeFalsy();
+      expect(at(res, 1).isCursed, "❌ 存活 4 人时诅咒未落库").toBe(true);
+    });
+
     it("⭐ 边界：女巫已死亡 → 管道中止，无诅咒", async () => {
       const seats = safeBoard("witch");
       seats[0] = { ...seats[0], isDead: true };
@@ -663,21 +854,37 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(res.snapshot.witchCurse ?? undefined).toBeUndefined();
     });
 
-    it.fails("⚠️[已知缺陷 it.fails] 中毒的女巫 → 官方：不应诅咒任何人", async () => {
+    /**
+     * ✅ 2026-09-22 **转正向断言**（原为 `it.fails`）。
+     *
+     * ⚠️ 原 body 是**自相矛盾的**：先断言 `isCursed === true`（"缺陷现状"），
+     *   紧接着断言 `isCursed === undefined`（"官方正确行为"）—— 两者**不可能同时成立**
+     *   ⇒ 该 body **必然失败** ⇒ `it.fails` **永远通过** ⇒ **永久假绿**，
+     *   既不证明缺陷存在，也不在缺陷修好时报警。
+     *
+     * 🔬 2026-09-22 探针实测（座位中毒、走 `abilityPriorityCalculation` 忠实路径）：
+     *   中毒女巫 `abilityEffective=false`，目标 `isCursed=undefined`、无 `cursed` 效果
+     *   ⇒ **门控早已生效**，缺陷不复存在 ⇒ 转为正向断言。
+     */
+    it("⭐⭐ 中毒的女巫 → 官方：不应诅咒任何人（门控必须生效）", async () => {
       const res = await runRole(witchAbility, poison(safeBoard("witch")), 0, {
         night: 2,
         targets: [1],
       });
       // 官方（醉酒与中毒）：「中毒的玩家会失去能力……他的能力不会真实地影响游戏」
-      expect(res.aborted).toBeFalsy();
+      expect(res.aborted, "❌ 中毒只是失效，不应中止（说书人仍要走过场）").toBeFalsy();
       expect(
         at(res, 1).isCursed,
-        "（缺陷现状：中毒的女巫仍然诅咒成功）"
-      ).toBe(true);
-      expect(
-        at(res, 1).isCursed,
-        "缺陷：witch.ability.ts::stateUpdate 未消费 meta.abilityEffective"
+        "❌ 中毒的女巫仍然诅咒成功 —— stateUpdate 未消费 abilityEffective"
       ).toBeUndefined();
+      expect(
+        hasEffect(at(res, 1), "cursed", "witch"),
+        "❌ 中毒的女巫仍落地了 cursed 效果"
+      ).toBe(false);
+      expect(
+        res.snapshot.witchCurse?.[1],
+        "❌ 中毒的女巫仍写入了 snapshot.witchCurse"
+      ).not.toBe(true);
     });
   });
 
@@ -886,17 +1093,32 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(at(res, 1).deathSource).toBeUndefined();
     });
 
-    it.fails("⚠️[已知缺陷 it.fails] 中毒的僵怖 → 官方：不应杀人", async () => {
+    /**
+     * ✅ 2026-09-22 **转正向断言**（原为 `it.fails`）。
+     * ⚠️ 原 body **自相矛盾**（同时断言 `isDead === true` 与 `isDead === false`）
+     *   ⇒ 必然失败 ⇒ `it.fails` 恒过 ⇒ **永久假绿**。
+     *
+     * 🔬 探针实测：中毒僵怖 `abilityEffective=false` ⇒ 目标 `isDead=false`、
+     *   `lastKill.killed=false` ⇒ **门控早已生效** ⇒ 转正向。
+     */
+    it("⭐⭐ 中毒的僵怖 → 官方：不应杀人（门控必须生效 + 不得污染 deathSource）", async () => {
       const res = await runRole(zombuulAbility, poison(safeBoard("zombuul")), 0, {
         night: 2,
         snapshot: { lastDuskExecution: null, dayDeathsToday: 0 },
         targets: [1],
       });
-      expect(res.aborted).toBeFalsy();
-      expect(at(res, 1).isDead, "（缺陷现状：中毒的僵怖仍然杀人）").toBe(true);
+      expect(res.aborted, "❌ 条件满足时不应中止").toBeFalsy();
       expect(
         at(res, 1).isDead,
-        "缺陷：zombuul.ability.ts::updateKillState 未消费 meta.abilityEffective"
+        "❌ 中毒的僵怖仍然杀人 —— updateKillState 未消费 abilityEffective"
+      ).toBe(false);
+      expect(
+        at(res, 1).deathSource,
+        "❌ 中毒的僵怖仍给目标写了死因字段（幽灵死亡）"
+      ).toBeUndefined();
+      expect(
+        res.snapshot.lastKill?.killed,
+        "❌ 被拦下时应留下 killed=false 的「被拦记录」"
       ).toBe(false);
     });
   });
@@ -1286,19 +1508,33 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(at(res, 0).isDrunk).toBe(false);
     });
 
-    it.fails("⚠️[已知缺陷 it.fails] 中毒的水手 → 官方：不应让任何人醉酒", async () => {
+    /**
+     * ⭐⭐ 2026-09-22 **已修**（原为 `it.fails` 登记的 P1 缺陷，现转正向断言）。
+     *
+     * 原缺陷：失效分支 `pickDrunkIdWhenInactive` 在「自己 / 目标」间**随机挑一个**施加 drunk。
+     * 🔎 官方【水手】→【提示标记】→「醉酒」→ 放置条件（逐字）：
+     *   「……水手无法选择已死亡的玩家。**若此时水手醉酒中毒，不放置该标记。**」
+     *   ⇒ 中毒/醉酒的水手**不得让任何人（含自己）醉酒**。
+     * 修法：失效时 `drunkId = null`（`stateUpdate` 随即早返回），并删除该辅助函数。
+     */
+    it("⭐⭐ 中毒的水手 → 官方：**不放置醉酒标记**，任何人都不醉酒", async () => {
       const res = await runRole(sailorAbility, poison(safeBoard("sailor")), 0, {
         night: 2,
         targets: [1],
       });
-      // 官方（醉酒与中毒）：「中毒的玩家会失去能力……他的能力不会真实地影响游戏」
-      expect(res.aborted).toBeFalsy();
-      expect(res.meta.abilityResult, "（缺陷现状：中毒水手仍判定出了醉酒者）").toBeDefined();
+      expect(res.aborted, "❌ 中毒只是失效，不应中止").toBeFalsy();
       expect(
-        effectsOf(at(res, 1)).some((e) => e.type === "drunk") ||
-          effectsOf(at(res, 0)).some((e) => e.type === "drunk"),
-        "缺陷：sailor.ability.ts::stateUpdate 未消费 meta.abilityEffective"
-      ).toBe(false);
+        res.meta.abilityResult.drunkId,
+        "❌ 中毒水手仍指定了醉酒者 —— 官方明确「不放置醉酒标记」"
+      ).toBeNull();
+      expect(res.meta.abilityResult.isDrunk, "ℹ️ isDrunk 保留以标注本次失效").toBe(true);
+      for (const id of [0, 1]) {
+        expect(
+          effectsOf(at(res, id)).some((e) => e.type === "drunk"),
+          "❌ " + (id + 1) + "号在中毒水手的结算里被弄醉了（官方：不放置标记）"
+        ).toBe(false);
+      }
+      expect(res.meta.stateUpdates, "❌ 不应写出 stateUpdates").toBeUndefined();
     });
   });
 
@@ -1600,17 +1836,33 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
       expect(hasEffect(revived, "resurrected", "shabaloth")).toBe(true);
     });
 
-    it.fails("⚠️[已知缺陷 it.fails] 中毒的沙巴洛斯 → 官方：不应杀人", async () => {
+    /**
+     * ✅ 2026-09-22 **转正向断言**（原为 `it.fails`）。
+     * ⚠️ 原 body **自相矛盾**（同时断言 `isDead === true` 与 `isDead === false`）
+     *   ⇒ 必然失败 ⇒ `it.fails` 恒过 ⇒ **永久假绿**。
+     *
+     * 🔬 探针实测：中毒沙巴洛斯 ⇒ 两目标 `isDead=false`、`lastKill.killed=false`
+     *   ⇒ **门控早已生效** ⇒ 转正向。
+     */
+    it("⭐⭐ 中毒的沙巴洛斯 → 官方：不应杀人（双杀目标都不得落地）", async () => {
       const res = await runRole(shabalothAbility, poison(safeBoard("shabaloth")), 0, {
         night: 2,
         targets: [1, 2],
       });
-      // 官方（醉酒与中毒）：「中毒的玩家会失去能力……他的能力不会真实地影响游戏」
-      expect(res.aborted).toBeFalsy();
-      expect(at(res, 1).isDead, "（缺陷现状：中毒沙巴洛斯仍然杀人）").toBe(true);
+      expect(res.aborted, "❌ 中毒只是失效，不应中止").toBeFalsy();
+      for (const id of [1, 2]) {
+        expect(
+          at(res, id).isDead,
+          "❌ 中毒的沙巴洛斯仍然杀了 " + (id + 1) + "号 —— updateKillState 未消费 abilityEffective"
+        ).toBe(false);
+        expect(
+          at(res, id).deathSource,
+          "❌ " + (id + 1) + "号被写了死因字段（幽灵死亡）"
+        ).toBeUndefined();
+      }
       expect(
-        at(res, 1).isDead,
-        "缺陷：shabaloth.ability.ts::updateKillState 未消费 meta.abilityEffective"
+        res.snapshot.lastKill?.killed,
+        "❌ 被拦下时应留下 killed=false 的「被拦记录」"
       ).toBe(false);
     });
   });

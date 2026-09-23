@@ -38,6 +38,7 @@ import {
   saveCurrentSnapshot,
 } from "../utils/persistence";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
+import { canFoolSurvive } from "../utils/bmrMechanics";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import {
   isZombuulNightImmune,
@@ -288,6 +289,30 @@ export function useGameController() {
   //   时实时感知"（修复投毒者→洗衣妇时序 P0 的系统性方案，覆盖所有角色）。
   const seatsRef = useRef<Seat[]>(seats);
   seatsRef.current = seats; // 渲染期同步（React commit 后 state 已更新）
+
+  /**
+   * 🔴 2026-09-22 新增：**能力击杀后的终局判定入口**。
+   *
+   * 背景（真实缺陷，E2E 实测抓到）：
+   *   `killPlayer` 只改座位状态，**从不**判终局；而终局判定在各**调用方**手里
+   *   （`checkGameOver`，由 `useLogicDispatcher` 提供）。夜间路径与处决路径都各自补了，
+   *   但**白天能力击杀路径漏了** —— 例如「女巫诅咒杀死提名者」
+   *   （`useDayActions.ts` 里 `killPlayer(sourceId, { skipGameOverCheck: false })`
+   *   之后直接 `return`，没有任何终局判定）。
+   *   ⇒ 若被诅咒的提名者**就是恶魔**，则「恶魔死了却继续进下一夜」，违反官方
+   *     「**Good wins if the Demon dies**」。
+   *
+   * ⚠️ 为什么用 ref 而不是直接调 `checkGameOver`：
+   *   `checkGameOver` 由 `useLogicDispatcher` 返回，而它的调用位置在本文件**更靠后**
+   *   （`killPlayer` 定义在前）⇒ 定义期引用会踩 TDZ。用 ref 在渲染期回填
+   *   （与上面 `seatsRef.current = seats` 同一套路），调用期已是可用函数。
+   *
+   * ⚠️ `killPlayer` 与 `useLogicDispatcher` **走的是同一条写入路径**
+   *   （`useLogicDispatcher(seats, commitSeats, …)` 把 `commitSeats` 当 `setSeats` 用）
+   *   ⇒ 不存在「双写入点分叉」，只是**调用方漏调**。
+   */
+  const gameOverRef = useRef<{ run: (s: Seat[]) => void }>({ run: () => {} });
+
   const commitSeats = useCallback(
     (next: Seat[] | ((prev: Seat[]) => Seat[])) => {
       const resolved =
@@ -488,7 +513,52 @@ export function useGameController() {
         source = "ability",
         recordNightDeath = true,
         onAfterKill,
+        /**
+         * 🔴 2026-09-22：该字段此前是**死字段**（全仓 6 处传入、`killPlayer` 从不消费）。
+         * 现已按它**本来的语义**落地：
+         *   · 默认 `false` ⇒ **每次击杀后都判终局**（官方「恶魔死亡 ⇒ 善良胜」是通用规则）
+         *   · 传 `true` ⇒ 跳过（多目标击杀的中间步骤用，避免 N 次重复判定）
+         * 幂等保护：`gameOverRef.run` 内部先看 `victoryRef.current`，已终局就不再判。
+         */
+        skipGameOverCheck = false,
       } = options;
+
+      /**
+       * 🃏 **弄臣首次免死 —— 不分死因**（2026-09-22 修复）
+       * ==================================================================
+       * 官方【弄臣】：「**当你首次将要死亡时，你不会死亡。**」—— 措辞是**通用**的，
+       *   对恶魔击杀 / 处决 / 其他能力击杀**一律适用**。
+       *
+       * 🔴 修复的缺陷：`isImmuneToDemonKill`（内含 fool 分支）**只被恶魔能力消费**，
+       *   而 `useExecutionHandlers` 全文**搜不到 `fool`** ⇒ **处决一个尚未使用免死的弄臣
+       *   会直接死亡**。`killPlayer` 是「处决 + 能力击杀」的唯一咽喉 ⇒ 在此补齐。
+       *
+       * ⚠️⚠️ **必须在这里（`commitSeats` 之前）提前 `return`** —— 这是本修复的关键，
+       *   踩过的坑记下来：`commitSeats(...)` 之后还有**两条无条件**副作用
+       *     `setDeadThisNight(...)` 与 `setOutsiderDiedToday(true)`（弄臣是**外来者**）
+       *   ⇒ 若只在 `commitSeats` 的 updater 里「让他不死」，就会出现
+       *     「**人还活着，却被记成今夜死者 + 今日有外来者死亡**」的**更严重**不一致
+       *     （连带影响夜报 / 送葬者 / **教父的「今日有外来者死亡」额外杀人前置**）。
+       *
+       * ✅ 与夜杀路径**互不冲突**：恶魔夜杀已被 `isImmuneToDemonKill` 提前拦下、
+       *   不走 `killPlayer`；那条路径的「消费」由管道后置中间件
+       *   `createFoolImmunityConsumer` 负责（两者判据同源 `canFoolSurvive` ⇒ 幂等）。
+       */
+      if (canFoolSurvive(seatsRef.current.find((s) => s.id === targetId))) {
+        addLog(
+          `🃏 ${targetId + 1}号(弄臣) 首次面临死亡，免死能力生效 —— 他不会死亡`
+        );
+        commitSeats((prev) =>
+          prev.map((s) =>
+            s.id === targetId
+              ? { ...s, isDead: false, foolUsed: true, hasUsedFoolAbility: true }
+              : s
+          )
+        );
+        // 流程仍需继续（调用方靠 onAfterKill 推进）；但**不**记夜死、**不**记外来者死亡、**不**判终局
+        if (onAfterKill) onAfterKill();
+        return;
+      }
 
       // 首先处理死亡逻辑
       commitSeats((prev: Seat[]) => {
@@ -597,6 +667,12 @@ export function useGameController() {
           prev.includes(targetId) ? prev : [...prev, targetId]
         );
       if (getSeatRoleId(targetId) === "outsider") setOutsiderDiedToday(true);
+      /**
+       * 🔴 先判终局、再跑 `onAfterKill`：
+       *   放在 `onAfterKill` **之前**，是为了让调用方自己的 `checkGameOver(...)`
+       *   （如小恶魔传位要带 `executedPlayerId`）最终**覆盖**这里的通用判定。
+       */
+      if (!skipGameOverCheck) gameOverRef.current.run(seatsRef.current);
       if (onAfterKill) onAfterKill();
     },
     [
@@ -773,8 +849,24 @@ export function useGameController() {
       setHasExecutedThisDay,
       isVortoxWorld,
       setVictorySnapshot,
-      evilTwinPair
+      evilTwinPair,
+      // ⭐ 剧本级特殊规则所需输入（见 utils/scriptSpecialRules.ts）
+      selectedScript,
+      nightCount
     );
+
+  /**
+   * 🔴 渲染期回填「能力击杀后的终局判定」入口（与 `seatsRef.current = seats` 同一套路）。
+   *
+   * ⚠️ 幂等保护：`victoryRef.current` 已有值 ⇒ 说明本局已终局 ⇒ **跳过**，
+   *   避免「小恶魔传位」等既有路径（自己也会调 `checkGameOver`）造成**重复判定/重复战报日志**。
+   */
+  gameOverRef.current = {
+    run: (_s: Seat[]) => {
+      if (victoryRef.current) return;
+      checkGameOver(seatsRef.current);
+    },
+  };
 
   const nightSnapshot = useNightSnapshot(
     seats,

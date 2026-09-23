@@ -224,7 +224,25 @@ export const philosopherAbility = createRoleAbility({
   roleId: "philosopher",
   abilityId: "philosopher_gain",
   abilityName: "哲人之力",
-  triggerTiming: [AbilityTriggerTiming.DAY],
+  /**
+   * ✅ 2026-09-22 按**官方**修正：`[DAY]` → `[EVERY_NIGHT]`
+   * ------------------------------------------------------------------
+   * 官方【哲学家】：「每局游戏限一次，**在夜晚时**，你可以选择一个善良角色：
+   *   你获得该角色的能力。如果这个角色在场，他醉酒。」
+   * ⇒ 触发时机是**夜晚**（"每局限一次"由 `preCheckLimitedAbility` 保证），
+   *   与同为「每局游戏限一次·在夜晚时」的 `courtier` / `assassin`
+   *   （二者都声明 `EVERY_NIGHT`）保持一致。
+   *
+   * 🔴 原状 `[DAY]` 造成「夜/日双入口」：日间按钮走 `dayAbilityBridge`
+   *   → `useDayActions` 的 `ROLE_SELECT`；夜间节点却给**座位**选择。
+   *
+   * ✅ 迁移落点（已在同轮完成）：
+   *   · `useNightActionHandler`：`requiresRoleSelection` 加 `philosopher`
+   *     + 新增哲学家分支，把所选角色写进 `actionData.chosenRoleId`
+   *     （`context.actionData` 会整体作为 `storytellerInput` 传入管道）；
+   *   · `philosopher.ts`：删除 `day:` 块（撤销日间按钮）。
+   */
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: 6,
   otherNightPriority: 4,
   firstNightOnly: false,

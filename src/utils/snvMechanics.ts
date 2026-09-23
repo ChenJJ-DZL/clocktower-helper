@@ -45,6 +45,20 @@ export function calculateClockmakerDistance(seats: Seat[]): number {
   return minDistance;
 }
 
+/**
+ * 取诺-达鲺两侧**最近的镇民**（顺时针 1 名 + 逆时针 1 名）。
+ *
+ * ✅ 2026-09-22 按**官方原文**修正：**不再跳过已死亡的镇民**
+ * ------------------------------------------------------------------
+ * 官方【诺-达鲺】→【角色简介】（逐字）：
+ *   「在诺-达鲺顺时针和逆时针方向上最近的镇民中毒，
+ *     **无论这些镇民是存活还是死亡**。……
+ *     总是会有两名镇民玩家因此中毒，诺-达鲺的效果会**跳过与他相邻的非镇民角色**。」
+ * ⇒ 原实现的 `!s.isDead` 过滤会把「已死亡的最近镇民」跳过去、继续往外找，
+ *   导致**中毒对象错位**（本该中毒的死镇民没被标记，而更远的活镇民被误标）
+ *   —— 与官方「总是会有**两名**镇民中毒」也不符（可能只标到 0~1 名）。
+ * ⚠️ 注意：官方同时强调**跳过非镇民**（`role.type === "townsfolk"` 过滤要保留）。
+ */
 export function getNoDashiiPoisonTargets(
   noDashiiSeatId: number,
   seats: Seat[]
@@ -57,17 +71,19 @@ export function getNoDashiiPoisonTargets(
 
   const targets: number[] = [];
 
+  // 顺时针：最近的镇民（**不论存活/死亡**）
   for (let i = 1; i < n; i++) {
     const s = seats[(centerIdx + i) % n];
-    if (!s.isDead && s.role?.type === "townsfolk") {
+    if (s.role?.type === "townsfolk") {
       targets.push(s.id);
       break;
     }
   }
 
+  // 逆时针：最近的镇民（**不论存活/死亡**）
   for (let i = 1; i < n; i++) {
     const s = seats[(centerIdx - i + n) % n];
-    if (!s.isDead && s.role?.type === "townsfolk") {
+    if (s.role?.type === "townsfolk") {
       if (!targets.includes(s.id)) {
         targets.push(s.id);
       }

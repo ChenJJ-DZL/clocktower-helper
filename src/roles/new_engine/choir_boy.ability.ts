@@ -221,7 +221,20 @@ export const choirBoyAbility = createRoleAbility({
     };
   },
   firstNightPriority: null,
-  otherNightPriority: 84,
+  /**
+   * ✅ 2026-09-22 按**官方**修正：`84` → `0`
+   * ------------------------------------------------------------------
+   * 官方【唱诗男孩】：「**如果恶魔杀死了国王**，你会得知哪名玩家是恶魔。[+国王]」
+   * ⇒ **事件触发**（国王被恶魔杀死时），官方夜序表里**没有常驻夜间槽位**。
+   *   `src/data/rolesData.json` 也明确 `otherNightOrder: 0`。
+   *
+   * 🔴 原状 `84` 是「每夜入队」的申报值，与官方/rolesData 直接冲突；
+   *   上一轮已把**动态唤醒**接好（`deathEventWatch: { roleId: "king" }`
+   *   ⇒ 由 `dynamicQueueGenerator::resolveDeathEventWakeups` 在国王死亡当晚插入队列，
+   *   且**静态队列自动排除**声明了 deathEventWatch 的角色）
+   *   —— 只差把这条**残留的静态申报值**一并归零，否则声明层永远与官方矛盾。
+   */
+  otherNightPriority: 0,
   firstNightOnly: false,
   wakePromptId: "role.choir_boy.wake",
   targetConfig: { min: 0, max: 1, allowSelf: false, allowDead: true },

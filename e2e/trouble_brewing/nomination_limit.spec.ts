@@ -87,6 +87,56 @@ async function attemptNomination(
       const allBtns = () =>
         Array.from(document.querySelectorAll("button")) as any[];
 
+      /**
+       * ⭐ 2026-09-22 抖动加固（本用例 ①② 曾禁重试偶发红：`locator.click ... Timeout`）
+       * ------------------------------------------------------------------
+       * 🔴 原写法：`n.click(); await sleep(350); m.click(); await sleep(350);`
+       *   然后**立刻**找「确认发起提名」按钮 ⇒ React 慢一档时按钮还没渲染出来 ⇒
+       *   `confirmAppeared=false` ⇒ 用例偶发失败（复跑即绿 = 抖动，不是缺陷）。
+       * ✅ 新写法：
+       *   1) 点完用 `waitFor` **等确认按钮真的出现**（最多 6s，比盲等 350ms 稳得多）；
+       *   2) 没出现就**重试点击**一次（对付"点了没生效"）；
+       *   3) 找不到按钮时用 `clickAndSettle`（等 DOM 变化）替代固定 sleep。
+       */
+      const waitFor = async (pred: () => boolean, ms = 6000, interval = 100) => {
+        const t0 = Date.now();
+        while (Date.now() - t0 < ms) {
+          try {
+            if (pred()) return true;
+          } catch {
+            /* 查不到元素属正常 */
+          }
+          await sleep(interval);
+        }
+        return false;
+      };
+      const pageSig = () =>
+        (document.body.textContent || "").length +
+        "|" +
+        document.querySelectorAll('[role="dialog"]').length +
+        "|" +
+        document.querySelectorAll("button:not([disabled])").length;
+      const clickAndSettle = async (btn: any, maxMs = 3000) => {
+        const before = pageSig();
+        btn.click();
+        if (await waitFor(() => pageSig() !== before, maxMs, 80)) return true;
+        await sleep(300);
+        return false;
+      };
+      const findConfirm = () =>
+        allBtns().find(
+          (b) => /确认发起提名|确认/.test(norm(b)) && !b.disabled
+        );
+      /** ⭐ 点两个座位 → **等确认按钮出现**；没出现就重试（最多 3 轮） */
+      const pickSeatsUntilConfirm = async (a: any, b: any) => {
+        for (let i = 0; i < 3; i++) {
+          await clickAndSettle(a);
+          await clickAndSettle(b);
+          if (await waitFor(() => !!findConfirm(), 2000)) return true;
+        }
+        return !!findConfirm();
+      };
+
       // 圆桌座位按钮：UI 实测其文本就是**纯座位号**（`"1"` / `"2"` …，无「号」后缀）。
       // 注意排除计票面板里的「N号」卡片与「0:01」计时器。
       const seatBtns = allBtns().filter((b) => /^[1-9]\d*$/.test(norm(b)));
@@ -102,19 +152,13 @@ async function attemptNomination(
       const n = seatBtns[Math.min(nominatorIdx, seatBtns.length - 1)];
       const m = seatBtns[Math.min(nomineeIdx, seatBtns.length - 1)];
 
-      n.click();
-      await sleep(350);
-      m.click();
-      await sleep(350);
+      await pickSeatsUntilConfirm(n, m);
 
       // 选完后应出现「确认发起提名」按钮（showConfirm）
-      const confirmBtn = allBtns().find(
-        (b) => /确认发起提名|确认/.test(norm(b)) && !b.disabled
-      );
+      const confirmBtn = findConfirm();
       const confirmAppeared = !!confirmBtn;
       if (confirmBtn) {
-        confirmBtn.click();
-        await sleep(900);
+        await clickAndSettle(confirmBtn, 4000);
       }
 
       // 计票面板出现？

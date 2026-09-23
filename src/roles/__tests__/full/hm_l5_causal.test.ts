@@ -226,22 +226,44 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       expect(res.snapshot._abilityResults?.balloonist).toBeUndefined();
     });
 
-    it.fails(
-      "❌ 待修 P2：官方允许向气球驾驶员展示「已死亡」玩家，但候选池只有存活者且 allowDead=false",
-      async () => {
-        const seats = board(["balloonist", ...SAFE4]);
-        seats[1].isDead = true;
-        const res = await runRole(balloonistAbility, seats, 0, {
-          night: 2,
-          phase: "night",
-        });
-        // 官方：「向气球驾驶员展示的玩家可以存活或死亡」
-        expect(
-          res.meta.abilityResult.targetId,
-          "官方允许展示死亡玩家，默认候选池不应排除死者"
-        ).toBe(1);
-      }
-    );
+    it("⭐⭐ 候选池含**已死亡**玩家：官方「向气球驾驶员展示的玩家可以存活或死亡」", async () => {
+      /**
+       * ✅ 2026-09-22 按**官方原文**修正（原为 `it.fails` 登记「待修 P2」）。
+       *
+       * 官方【气球驾驶员】→【角色简介】（逐字）：
+       *   「向气球驾驶员展示的玩家**可以存活或死亡**。」
+       *   「向气球驾驶员展示的玩家可以善良或邪恶。」
+       *
+       * 🔴 缺陷形态：候选池写成 `snapshot.seats.filter(s => !s.isDead)`（纯存活池），
+       *   且 `targetConfig.allowDead: false` ⇒ 说书人**无法**向气球驾驶员展示死者。
+       *
+       * ⚠️ **判据必须构造得能区分新旧实现**（本用例首版写错过，记下来）：
+       *   无上夜记录时不按角色类型过滤，取 `candidateSeats[0]`（= 池内首个座位）。
+       *   · 把气球驾驶员放在 **2 号**、让 **0 号死亡**：
+       *       旧实现（纯存活池 `[1,2,3,4]`）⇒ 首个候选 = **1** ⇒ 本断言**红**
+       *       修复后（`[0,1,2,3,4]`）      ⇒ 首个候选 = **0（死者）** ⇒ 本断言**绿**
+       *   （若把气球驾驶员放在 0 号，池首永远是"自己" ⇒ 新旧实现都是 0 ⇒ **区分不出**，
+       *     这正是我第一版写成 `targetId===1` 会假红的原因。）
+       */
+      const seats = board(["chef", "gossip", "balloonist", "tinker", "artist"]);
+      seats[0].isDead = true; // 1号镇民已死
+
+      const res = await runRole(balloonistAbility, seats, 2, {
+        night: 2,
+        phase: "night",
+      });
+      expect(
+        res.meta.abilityResult.targetId,
+        "官方允许展示死亡玩家，候选池不应排除死者（旧实现会给 1）"
+      ).toBe(0);
+
+      // 声明侧也要对（两处都改，避免只改一处又埋一个不一致）
+      const tc: any = (balloonistAbility as any)?.targetConfig;
+      expect(
+        tc?.allowDead,
+        "`targetConfig.allowDead` 应为 true —— 官方「可以存活或死亡」"
+      ).toBe(true);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────
@@ -836,22 +858,40 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       expect(res.meta.abilityResult.demonSeatId).not.toBeNull();
     });
 
-    it.fails(
-      "❌ 待修 P1：唱诗男孩是「事件触发」（恶魔杀国王时才唤醒），却申报 otherNightPriority=84 → 每夜入队",
-      async () => {
-        const { buildFullNightOrder } = await import(
-          "../../../utils/invariantTesting/engineConfig"
-        );
-        const e = buildFullNightOrder().find(
-          (x: any) => x.roleId === "choir_boy"
-        );
-        // 官方夜序表（rolesData.json）中 choir_boy 的 otherNightOrder = 0（无夜序）
-        expect(
-          e?.otherNightPriority,
-          "官方夜序表给出 0（不唤醒），实现却申报 84 ⇒ 每夜被唤醒"
-        ).toBe(0);
-      }
-    );
+    it("⭐⭐ 事件触发角色**不得**出现在静态夜序表：官方「如果恶魔杀死了国王」才唤醒", async () => {
+      /**
+       * ✅ 2026-09-22 按**官方**修正（原为 `it.fails` 登记「待修 P1」）。
+       *
+       * 官方【唱诗男孩】：「**如果恶魔杀死了国王**，你会得知哪名玩家是恶魔。[+国王]」
+       *   ⇒ **事件触发**（国王死亡时才唤醒），官方夜序表
+       *     （`src/data/rolesData.json::otherNightOrder`）给出 **0 = 无常驻夜间槽位**。
+       *
+       * 🔴 缺陷形态：`choir_boy.ability.ts` 申报 `otherNightPriority: 84`
+       *   ⇒ 静态队列**每夜**都排它（说书人每夜看到多余步骤）。
+       * ✅ 修法：① 申报值归 **0**；② 动态唤醒由
+       *   `deathEventWatch: { roleId: "king" }` 负责
+       *   （`dynamicQueueGenerator::resolveDeathEventWakeups` 在国王死亡当晚插入队列，
+       *    且静态队列**自动排除**声明了 deathEventWatch 的角色）。
+       *
+       * ⚠️ 判据说明（首版写错、记下来）：`buildFullNightOrder()` 对
+       *   `priority > 0` 才生成条目 ⇒ 归零后 choir_boy **根本不在表里**
+       *   （`find()` 返回 `undefined`）⇒ **不能断言 `otherNightPriority === 0`**，
+       *   正确的官方契约是「**不出现在静态夜序表**」= `toBeUndefined()`。
+       */
+      const { buildFullNightOrder } = await import(
+        "../../../utils/invariantTesting/engineConfig"
+      );
+      const e = buildFullNightOrder().find((x: any) => x.roleId === "choir_boy");
+      expect(
+        e,
+        "唱诗男孩是事件触发角色，不应出现在静态夜序表（官方 rolesData.otherNightOrder = 0）"
+      ).toBeUndefined();
+      // 正向对照：确认它确实**申报了动态唤醒钩子**（不是"删掉了就绿"）
+      expect(
+        (choirBoyAbility as any).deathEventWatch?.roleId,
+        "必须以 deathEventWatch 订阅国王死亡，否则事件触发路径丢失"
+      ).toBe("king");
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────
@@ -1013,32 +1053,41 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       expect(res.snapshot._abilityResults?.fool).toBeUndefined();
     });
 
-    it.fails(
-      "❌ 待修 P1：免死能力零接线 —— 处决流程从不调用 foolAbility/canFoolSurvive，且 preCheck 要求 isDead=false 与处决先置 isDead=true 互斥",
-      async () => {
-        // 根因（双向互斥，缺一都会让技能永不触发）：
-        //  ① `useExecutionHandlers.ts` 的处决结算只特判了 mayor(:320) / saint(:264)
-        //     / tea_lady(:865) 与 `onExecution`（仅 zombuul / psychopath / moonchild
-        //     / saint 四个旧引擎角色实现了 onExecution），**弄臣不在任何一处**
-        //     ⇒ 处决弄臣时直接 `killPlayer(id, { source: "execution" })`（:253/:338）
-        //     并顺手置 `isDead=true` + `executedToday=true`（useGameController.ts:509-515）。
-        //  ② `fool.ability.ts:21` 的 preCheck 先判 `if (seat.isDead) abort("已死亡")`，
-        //     而 `canFoolSurvive`（src/utils/bmrMechanics.ts:133）又要求 `isAliveSeat(seat)`
-        //     ⇒ 处决已把座位置为死者后，能力**必然**在 preCheck 中止。
-        //  官方期望：因处决而面临死亡的弄臣（首次）应存活。下面按官方期望断言。
-        const seats = board(["fool", ...SAFE4]);
-        seats[0] = { ...seats[0], isDead: true, executedToday: true };
-        const res = await runRole(foolAbility, seats, 0, {
-          night: 2,
-          phase: "night",
-        });
-        expect(res.aborted, "官方：首次被处决的弄臣不应被中止").toBeFalsy();
-        expect(seatAt(res, 0)?.isDead, "官方：首次被处决时不会死亡").toBe(
-          false
-        );
-        expect(seatAt(res, 0)?.foolUsed, "免死标记必须落库").toBe(true);
-      }
-    );
+    /**
+     * ✅ 2026-09-22 **已修**（原为 `it.fails` 登记「免死能力零接线」）—— 现转为正向断言。
+     *
+     * 原登记的两条根因**都已消除**：
+     *   ① 处决流程不再「绕过」弄臣 —— `killPlayer`（处决 + 能力击杀的唯一咽喉）
+     *      现在会在 `commitSeats` **之前** `canFoolSurvive(...)` 提前返回
+     *      （见 `useGameController.ts::killPlayer` 的详细注释）。
+     *   ② `preCheck` 与「处决先置 `isDead=true`」的互斥**不再成立**：
+     *      被免死挡下的处决**根本不会**把弄臣置为 `isDead` ⇒ 不存在那个冲突状态。
+     *
+     * ⚠️ 原 body 构造的是「弄臣已被置为 `isDead=true, executedToday=true` 再跑管道」
+     *   —— 修复后这是一个**不可达状态**；若继续用 `it.fails` 会退化成
+     *   「永远失败 ⇒ 恒过」的**无意义登记**（假绿的温和形态）⇒ 改为断言**可达**契约。
+     *
+     * 🔎 本用例同时覆盖**消费**（官方：免死只生效一次）——
+     *   这正是另一处缺口：`foolUsed` 的生产写入点原本只有 PASSIVE 的 `fool.ability.ts`，
+     *   恶魔夜杀路径从不消费 ⇒ 弄臣对恶魔击杀**永久免疫**。
+     *   修法：管道后置中间件 `createFoolImmunityConsumer`（`middlewarePipeline.ts`，
+     *   由 `buildAbilityPipe` 注入，`preview` 时被跳过 ⇒ 不会出现「提示 ≠ 结算」）。
+     */
+    it("✅ 弄臣首次免死已接线：存活 + 未被保护 ⇒ 恶魔击杀后**不死且必须消费**免死", async () => {
+      const seats = board(["fang_gu", "fool", ...SAFE4]);
+      const res = await runRole(fang_guAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [1],
+      });
+      const f = seatAt(res, 1);
+      expect(f?.isDead, "官方：首次面临死亡的弄臣不会死亡").toBe(false);
+      expect(
+        f?.foolUsed,
+        "首次免死后必须消费 foolUsed —— 未消费 ⇒ 弄臣对恶魔击杀永久免疫"
+      ).toBe(true);
+      expect(f?.hasUsedFoolAbility).toBe(true);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────
@@ -1077,16 +1126,53 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       expect(res.snapshot.gameResult?.winner).toBe("evil");
     });
 
-    it.fails(
-      "❌ 待修 P1：凶宅魅影的 saint 是外来者(outsider)，但注册的 saintAbility.roleId='saint_townsfolk' ⇒ isRoleMigrated('saint')=false",
-      async () => {
-        const { isRoleMigrated } = await import("../../../utils/nightInfoAdapter");
-        expect(
-          isRoleMigrated("saint"),
-          "剧本角色 id `saint` 应能在新引擎注册表里被查到"
-        ).toBe(true);
-      }
-    );
+    it("⭐⭐ 官方契约成立 + 钉住架构债：外来者版 saint 走 legacy 通路，行为已双重覆盖", async () => {
+      /**
+       * ✅ 2026-09-22 复核结论（原为 `it.fails` 登记「待修 P1」，**判据错位**）：
+       *
+       * 官方【圣徒】（逐字）：「如果你死于处决，你的阵营落败。」
+       *   官方【角色简介】：「如果圣徒因处决而死亡，游戏结束。善良阵营落败，邪恶阵营获胜。」
+       *   「如果圣徒因处决**以外**的任何方式死亡——例如被恶魔杀死——游戏仍会继续。」
+       *
+       * **官方规则层面无缺陷** —— 行为已被两处独立覆盖：
+       *   ① `src/roles/__tests__/full_game_lifecycle.test.ts`「圣徒被处决 → 邪恶阵营胜利」
+       *      （**legacy `checkGameEnd`** 通路，即生产实际走的那条）
+       *   ② 本文件 ⑭「主路径：被处决 → gameOver + winner=evil」（新引擎 `saintAbility`）
+       *
+       * ⚠️ 唯余**架构债**（**不是**官方规则缺陷，故不再用 `it.fails` 冒充"待修缺陷"）：
+       *   `saint.ability.ts` 注册的 `roleId` 是 `saint_townsfolk`（**镇民版**圣徒），
+       *   而凶宅魅影/窃窃私语用的是**外来者版** `saint`
+       *   ⇒ `isRoleMigrated("saint") === false` ⇒ 生产对该角色走 legacy 通路（行为正确）。
+       *   若将来要让外来者圣徒也走新引擎，应**新增** `roleId: "saint"` 的注册，
+       *   **不要**把 `saint_townsfolk` 改名（会打断镇民版）。
+       *
+       * ⇒ 本条改为：**断言官方契约成立** + **钉住架构债现状**
+       *   （若哪天完成迁移，这条会红并提醒同步更新说明 —— 这是我们要的棘轮行为）。
+       */
+      const { isRoleMigrated } = await import("../../../utils/nightInfoAdapter");
+      expect(
+        isRoleMigrated("saint"),
+        "⚠️ 架构债（非官方缺陷）：外来者版 saint 未迁新引擎（saint.ability.ts 注册为 saint_townsfolk）" +
+          "⇒ 生产走 legacy 通路；官方行为由 full_game_lifecycle + 本文件 ⑭ 双重覆盖。" +
+          "若已迁移到新引擎 ⇒ 请把本条改成 isRoleMigrated===true 并更新说明。"
+      ).toBe(false);
+
+      // ⭐ 官方契约（必须成立的那件事）：死于处决 ⇒ 游戏结束、邪恶获胜
+      const seats = board(["saint", ...SAFE4]);
+      seats[0] = { ...seats[0], isDead: true, executedToday: true };
+      const res = await runRole(saintAbility, seats, 0, { phase: "day" });
+      expect(res.snapshot.gamePhase, "官方：宣布游戏结束").toBe("gameOver");
+      expect(res.snapshot.gameResult?.winner, "官方：善良落败、邪恶获胜").toBe("evil");
+
+      // ⭐ 官方负向：非处决死因 ⇒ 游戏继续（不得误判终局）
+      const seats2 = board(["saint", ...SAFE4]);
+      seats2[0] = { ...seats2[0], isDead: true }; // 已死但**非处决**
+      const res2 = await runRole(saintAbility, seats2, 0, { phase: "day" });
+      expect(
+        res2.aborted,
+        "官方：圣徒因处决以外的方式死亡 ⇒ 游戏仍会继续（能力不应触发）"
+      ).toBe(true);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────
@@ -1425,22 +1511,32 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       }
     );
 
-    it.fails(
-      "❌ 待修 P1：官方「无论这些镇民是存活还是死亡」都应中毒，实现却跳过已死亡镇民（snvMechanics.ts:62,70 的 !s.isDead）",
-      async () => {
-        const seats = L();
-        seats[1].isDead = true; // 2号共情者（镇民）已死
-        const res = await runRole(no_dashiiAbility, seats, 0, {
-          night: 2,
-          phase: "night",
-          targets: [2],
-        });
-        expect(
-          res.meta.abilityResult.poisonedAdjacent,
-          "官方：死亡的镇民同样要被诺-达鲺标记中毒"
-        ).toContain(1);
-      }
-    );
+    it("⭐⭐ 中毒对象：官方「无论这些镇民是存活还是死亡」⇒ **已死亡的最近镇民也要中毒**", async () => {
+      /**
+       * ✅ 2026-09-22 按**官方原文**修正（原为 `it.fails` 登记「待修 P1」）。
+       *
+       * 官方【诺-达鲺】→【角色简介】（逐字）：
+       *   「在诺-达鲺顺时针和逆时针方向上最近的镇民中毒，
+       *     **无论这些镇民是存活还是死亡**。……
+       *     总是会有两名镇民玩家因此中毒，诺-达鲺的效果会跳过与他相邻的非镇民角色。」
+       *
+       * 🔴 缺陷形态：`snvMechanics.getNoDashiiPoisonTargets` 曾用 `!s.isDead` 过滤
+       *   ⇒ 跳过「已死亡的最近镇民」继续往外找 ⇒ **中毒对象错位**
+       *   （本该中毒的死镇民没被标记、更远的活镇民被误标），
+       *   且与官方「**总是**两名镇民中毒」不符。
+       */
+      const seats = L();
+      seats[1].isDead = true; // 2号共情者（镇民）已死
+      const res = await runRole(no_dashiiAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [2],
+      });
+      expect(
+        res.meta.abilityResult.poisonedAdjacent,
+        "官方：死亡的镇民同样要被诺-达鲺标记中毒（不得跳过它去找更远的人）"
+      ).toContain(1);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────
@@ -1605,29 +1701,45 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       ).toBe(false);
     });
 
-    it.fails(
-      "❌ 待修 P1：醉酒/中毒的普卡当晚仍让「上一名中毒者」毒发死亡（pukka.ability.ts:91-107 的旧目标分支未读 isAbilityEffective）",
-      async () => {
-        const seats = board(["pukka", ...SAFE4]);
-        seats[1] = {
-          ...seats[1],
-          statusDetails: ["普卡中毒（永久）"],
-          isPoisoned: true,
-        };
-        seats[0] = { ...seats[0], isDrunk: true };
-        const res = await runRole(pukkaAbility, seats, 0, {
-          night: 3,
-          phase: "night",
-          targets: [2],
-        });
-        expect(res.meta.abilityEffective).toBe(false);
-        // 官方：「如果普卡在上一个夜晚选择玩家时是清醒的，但是当晚醉酒了，该玩家不会死亡」
-        expect(
-          seatAt(res, 1)?.isDead,
-          "醉酒普卡当晚不得让旧中毒者死亡"
-        ).toBe(false);
-      }
-    );
+    it("⭐⭐ 醉酒夜的普卡**不得**让旧中毒者毒发；且中毒标记必须保留（官方：恢复清醒后仍会杀他）", async () => {
+      /**
+       * ✅ 2026-09-22 按**官方原文**修正（原为 `it.fails` 登记「待修 P1」）。
+       *
+       * 官方【普卡】→【角色简介】（逐字）：
+       *   「如果**普卡在上一个夜晚选择玩家时是清醒的，但是当晚醉酒了，该玩家不会死亡**。
+       *     但是当普卡恢复清醒，中毒效果会恢复，且会在随后的夜晚杀死该玩家。」
+       *
+       * 🔴 缺陷形态：`pukka.ability.ts` 的「旧目标毒发」分支**没读 `isAbilityEffective`**
+       *   ⇒ 醉/毒的普卡当晚照样让旧目标毒发身亡（而同一函数「下毒」那一支是读了门控的）。
+       */
+      const seats = board(["pukka", ...SAFE4]);
+      seats[1] = {
+        ...seats[1],
+        statusDetails: ["普卡中毒（永久）"],
+        isPoisoned: true,
+      };
+      seats[0] = { ...seats[0], isDrunk: true };
+      const res = await runRole(pukkaAbility, seats, 0, {
+        night: 3,
+        phase: "night",
+        targets: [2],
+      });
+      expect(res.meta.abilityEffective).toBe(false);
+      // 官方：「…但是当晚醉酒了，该玩家不会死亡」
+      expect(
+        seatAt(res, 1)?.isDead,
+        "醉酒普卡当晚不得让旧中毒者死亡"
+      ).toBe(false);
+      // 官方：「当普卡恢复清醒，中毒效果会恢复，且会在**随后的夜晚**杀死该玩家」
+      // ⇒ 本次只跳过毒发，**中毒标记不能清**
+      const marks: any[] = seatAt(res, 1)?.statusDetails ?? [];
+      expect(
+        marks.some((d: any) =>
+          typeof d === "string" ? d.includes("普卡中毒") : d?.source === "pukka"
+        ),
+        "中毒标记被清掉了 —— 普卡恢复清醒后就再也杀不死他了（应保留标记、只跳过本次毒发）"
+      ).toBe(true);
+    });
   });
 });
 

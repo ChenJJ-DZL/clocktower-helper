@@ -15,18 +15,20 @@ import { ENGINE_CONFIG } from "../../hooks/useNightEngine";
 import { generateDynamicNightQueue } from "../../utils/dynamicQueueGenerator";
 import { calculateNightInfoViaNewEngine } from "../../utils/nightInfoAdapter";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
-import { runFullAbilityPipeline } from "../../utils/middlewarePipeline";
+import {
+  buildAbilityPipe,
+  runFullAbilityPipeline,
+} from "../../utils/middlewarePipeline";
 
 export const r = (id: string) => roles.find((x) => x.id === id)!;
 export const TB = scripts.find((s) => s.id === "trouble_brewing")!;
 
-/** 把注册表里的 ability 对象折成 pipeline 需要的形状 */
-export const pipe = (a: any) => ({
-  preCheck: a?.preCheck,
-  calculate: a?.calculate,
-  stateUpdate: a?.stateUpdate,
-  postProcess: a?.postProcess,
-});
+/** 把注册表里的 ability 对象折成 pipeline 需要的形状
+ *  ⚠️ 2026-09-22：改为委托 `buildAbilityPipe` —— 与**生产**（`runAbilityPipeline`）
+ *     共用同一份组装逻辑，否则生产里后置注入的「全局后置中间件」
+ *     （如 🃏 弄臣免死消费）在测试里**不生效** ⇒ 测试和生产跑的是两条管道（假绿温床）。
+ */
+export const pipe = (a: any) => buildAbilityPipe(a);
 
 export interface SeatOverrides {
   isDead?: boolean;

@@ -109,14 +109,38 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:152-0!canonical and tim
     dialog: (playerSeatId: number, _isFirstNight: boolean) => {
       return {
         wake: `唤醒${playerSeatId + 1}号玩家（哲学家）。`,
-        instruction: "请执行行动",
+        /**
+         * ✅ 2026-09-22 按**官方**修正引导语（原先只有「请执行行动」，说书人看不出要做什么）。
+         *   官方【角色能力】：「每局游戏限一次，在夜晚时，你可以选择一个善良角色：
+         *   你获得该角色的能力。**如果这个角色在场，他醉酒。**」
+         * ⇒ 选角色在**夜间行动确认窗**里完成（`NightActionConfirmModal` 的角色选择器，
+         *   与洗脑师/奥乔同一条通路），候选表按阵营过滤为**善良角色**。
+         */
+        instruction:
+          "让哲学家选择一个善良角色（镇民/外来者）：他获得该角色的能力。若该角色在场，其玩家醉酒。",
         close: "",
       };
     },
   },
-  day: {
-    name: "哲学之道",
-    maxUses: 1,
-    target: { min: 0, max: 0 },
-  },
+
+  /**
+   * ❌ 2026-09-22 **按官方删除日间通路**（原来这里有一个 `day: { name: "哲学之道", … }` 块）
+   * ------------------------------------------------------------------
+   * 官方【哲学家】：「每局游戏限一次，**在夜晚时**，你可以选择一个善良角色……」
+   *   ⇒ 纯夜间能力，**没有日间能力**。
+   *
+   * 🔴 原缺陷（「夜/日双入口」）：
+   *   · 本 `day` 块让 GameConsole 在白天渲染「使用 哲学家」按钮，
+   *     经 `dayAbilityBridge` → `useDayActions` 的 `ROLE_SELECT` 弹出选角窗
+   *     —— 而这条**日间**通路其实是当时**唯一能用**的选角入口；
+   *   · 同时新引擎声明 `triggerTiming: [DAY]`，而夜间节点给的却是**座位**选择
+   *     （`tl: [1,1]`、引导语「请执行行动」）⇒ 语义都不对。
+   *
+   * ✅ 迁移顺序（先立后破，避免"砍掉唯一入口"）：
+   *   ① 先让**夜间**行动确认窗能选角色（`requiresRoleSelection` 加 `philosopher`
+   *      + `useNightActionHandler` 的哲学家分支把 `chosenRoleId` 喂给管道）；
+   *   ② 再把 `triggerTiming` 改为 `EVERY_NIGHT`（"每局限一次"由
+   *      `preCheckLimitedAbility` 保证）；
+   *   ③ **最后**删除本 `day` 块（即本次操作）。
+   */
 };

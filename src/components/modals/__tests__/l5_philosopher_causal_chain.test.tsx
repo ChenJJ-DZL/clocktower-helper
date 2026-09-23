@@ -197,3 +197,107 @@ describe("L5 · 哲学家 ③ 生效（获得的能力 → 夜序真的执行）
     expect(node!.roleName, "说书人侧应能看出是哲学家在代打").toContain("哲学家");
   });
 });
+
+// ═════════════════════════════════════════════════════════════
+// ④ ✅ 2026-09-22 **夜间**选角 —— 迁移后的**真实**路径
+// ═════════════════════════════════════════════════════════════
+/**
+ * 背景（按官方迁移）：官方【哲学家】「每局游戏限一次，**在夜晚时**，你可以选择一个
+ * 善良角色：你获得该角色的能力。」
+ *   · 原先唯一可用的选角入口在**日间**（上面 ① 的 `RoleSelectModal`，经 `useDayActions`
+ *     的 `transform_ability` 分支），且 `philosopher.ts` 同时写了 `day:` 块 ⇒ 夜/日双入口，
+ *     而夜间节点给的却是**座位**选择 —— 语义都不对。
+ *   · 迁移后：选角改在**夜间行动确认窗**（`NightActionConfirmModal` 的角色选择器，
+ *     与洗脑师/奥乔同一条通路）完成
+ *     ⇒ `useNightActionHandler` 的 `requiresRoleSelection` 列表加 `philosopher`
+ *       + 新增哲学家分支把 `chosenRoleId` 写进 `actionData`。
+ *
+ * ⚠️ 为什么必须有这条：只改个白名单数组是"看不见的行为变更"——
+ *   若不渲染，没人知道夜间到底有没有角色可点。
+ */
+describe("L5 · 哲学家 ④ 夜间选角（迁移后的真实路径）", () => {
+  const script = "凶宅魅影";
+  const availableRoles = [
+    { id: "chef", name: "厨师", type: "townsfolk", script },
+    { id: "saint", name: "圣徒", type: "outsider", script },
+    { id: "poisoner", name: "投毒者", type: "minion", script },
+    { id: "imp", name: "小恶魔", type: "demon", script },
+  ];
+  const seats = [
+    { id: 0, role: availableRoles[0], isDead: false },
+    { id: 1, role: availableRoles[1], isDead: false },
+    { id: 2, role: availableRoles[2], isDead: false },
+    { id: 3, role: availableRoles[3], isDead: false },
+  ];
+
+  it("⭐ roleId=philosopher ⇒ 夜间确认窗**必须**渲染角色选项，选中后 onConfirm 能收到该角色", async () => {
+    const { NightActionConfirmModal } = await import("../NightActionConfirmModal");
+    const onConfirm = vi.fn();
+    render(
+      <NightActionConfirmModal
+        data={{
+          roleId: "philosopher",
+          requiresRoleSelection: true,
+          roleName: "1号-哲学家",
+          actionDescription: "选择一名善良角色",
+          targetLimit: { min: 0, max: 0 },
+          onConfirm,
+        } as any}
+        seats={seats as any}
+        availableRoles={availableRoles as any}
+        selectedScript={undefined as any}
+        onConfirm={onConfirm}
+        onCancel={() => {}}
+      />
+    );
+
+    /**
+     * ⚠️ **必须查 `document.body`**：`ModalWrapper` 会把弹窗 **portal 到 body**，
+     *   因此 RTL `render()` 返回的 `container` 里是**空的**（本项目记录在案的坑）。
+     */
+    const options = document.body.querySelectorAll("button[data-role-id]");
+    expect(
+      options.length,
+      "❌ 夜间确认窗没有渲染角色选项 —— 哲学家在夜里将**无法发动能力**（迁移失败）"
+    ).toBeGreaterThan(0);
+
+    // 点第一个角色选项 → 再点确认 → onConfirm 必须带回该角色
+    fireEvent.click(options[0]);
+    const confirmBtn = Array.from(document.body.querySelectorAll("button")).find(
+      (b) => /确认选择/.test(b.textContent ?? "")
+    ) as HTMLButtonElement | undefined;
+    expect(confirmBtn, "❌ 找不到「确认选择」按钮").toBeTruthy();
+    fireEvent.click(confirmBtn!);
+    expect(onConfirm, "❌ 确认后未回调 onConfirm").toHaveBeenCalledTimes(1);
+    const chosen = onConfirm.mock.calls[0][1];
+    const chosenId = typeof chosen === "string" ? chosen : chosen?.id;
+    expect(
+      ["chef", "saint", "poisoner", "imp"],
+      "❌ onConfirm 未把所选角色带回（拿到 " + JSON.stringify(chosen) + "）"
+    ).toContain(chosenId);
+  });
+
+  it("负向对照：**非**选角类夜间步骤不得渲染角色选项（防白名单写宽）", async () => {
+    const { NightActionConfirmModal } = await import("../NightActionConfirmModal");
+    render(
+      <NightActionConfirmModal
+        data={{
+          roleId: "chef",
+          roleName: "1号-厨师",
+          actionDescription: "无目标",
+          targetLimit: { min: 0, max: 0 },
+          onConfirm: vi.fn(),
+        } as any}
+        seats={seats as any}
+        availableRoles={availableRoles as any}
+        selectedScript={undefined as any}
+        onConfirm={vi.fn()}
+        onCancel={() => {}}
+      />
+    );
+    expect(
+      document.body.querySelectorAll("button[data-role-id]").length,
+      "❌ 普通夜间步骤不该出现角色选项"
+    ).toBe(0);
+  });
+});

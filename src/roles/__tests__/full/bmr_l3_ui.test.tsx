@@ -123,9 +123,12 @@ const GUIDE_KIND: Record<string, GuideKind> = {
 
 /** 冻结的「目标数量约束」偏差（adapter 的 targetLimit vs 能力 targetConfig） */
 const TARGET_LIMIT_DEVIATION: Record<string, { min: number; max: number }> = {
-  gambler: { min: 0, max: 0 }, // ability 是 {1,1}：说书人可不选目标 ⇒ 与官方「你要选择一名玩家」不符
-  moonchild: { min: 0, max: 0 }, // ability 是 {1,1}
-  assassin: { min: 1, max: 1 }, // ability 是 {0,1}：官方「你可以选择」⇒ 应可放弃
+  // ✅ 2026-09-22 按**官方原文**修复后已删除两条：
+  //   · `gambler` —— 官方「**每个夜晚\***，你要选择一名玩家并猜测…」⇒ 选人**强制**
+  //     （原 0~0 与官方不符）⇒ 已给 `townsfolk/gambler.ts` 补 `night.target.count {1,1}`。
+  //   · `assassin` —— 官方【运作方式】：「刺客**要么摇头表示不使用能力**…」⇒ 允许 0
+  //     （原 1~1 与官方不符）⇒ 已改 `minion/assassin.ts` 为 `{0,1}`。
+  moonchild: { min: 0, max: 0 }, // ability 是 {1,1}：官方「**当你死亡时**」才选人 ⇒ 夜间本就不该有选人步骤
 };
 
 const ROSTER = Object.keys(WAKE_NIGHT);
@@ -417,15 +420,20 @@ describe("L3 · §C 日间主动技能按钮", () => {
     expect(bodyText(), "❌ 无日间技能时不应渲染面板标题").not.toContain("可用主动技能");
   });
 
-  it("⑦ 已冻结偏差：赌徒(gambler) 不该有日间技能，但 legacy 定义里有", () => {
+  it("⑦ ✅ 已按官方修：赌徒(gambler) 是**纯夜间**能力 ⇒ 不得出现日间技能按钮", () => {
     mountConsole(["gambler", "chambermaid", "sailor", "exorcist", "professor", "zombuul"]);
     const labels = dayBtnLabels();
-    // 官方：赌徒是「每个夜晚」的技能；legacy `townsfolk/gambler.ts:69` 却写了
-    // `day: { name: "赌徒猜测", maxUses: 1 }` ⇒ 白天会多出一个按钮。
-    // 本用例冻结该偏差（若已修复请改为 toBe(0)）。
+    /**
+     * 官方【赌徒】：「**每个夜晚\***，你要选择一名玩家并猜测该玩家的角色…」
+     * ⇒ 纯夜间能力，官方**没有日间能力**。
+     *
+     * ✅ 2026-09-22 按官方修正：删除 `townsfolk/gambler.ts` 的
+     *   `day: { name: "赌徒猜测", maxUses: 1 }` 块（原会让白天多出一个「使用 赌徒」按钮）
+     *   ⇒ 本条由「冻结偏差（断言按钮存在）」改为**负向对照**。
+     */
     expect(
       labels.some((l) => l.includes("赌徒")),
-      `ℹ️ 赌徒的日间按钮偏差已冻结（legacy day 定义未清理）。实际按钮：${JSON.stringify(labels)}`
-    ).toBe(true);
+      `❌ 赌徒是纯夜间能力，不应出现日间技能按钮（实际：${JSON.stringify(labels)}）`
+    ).toBe(false);
   });
 });

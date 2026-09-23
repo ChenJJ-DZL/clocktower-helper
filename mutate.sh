@@ -8,11 +8,13 @@
 cd "$(dirname "$0")"
 PASS="${1:-primary}"
 TSV="mut_${PASS}.tsv"
-TESTS="src/roles/__tests__/full/hm_l1_l2.test.ts src/roles/__tests__/full/hm_l3_ui.test.tsx src/roles/__tests__/full/hm_l5_causal.test.ts"
+# 🔧 2026-09-22：TESTS 支持用环境变量覆盖（默认仍是 haunted_manor 的三件套，保持向后兼容）。
+#    换剧本时不再需要复制本脚本：MUT_TESTS="src/roles/__tests__/ws_l2_matrix.test.ts ..." bash mutate.sh ws
+TESTS="${MUT_TESTS:-src/roles/__tests__/full/hm_l1_l2.test.ts src/roles/__tests__/full/hm_l3_ui.test.tsx src/roles/__tests__/full/hm_l5_causal.test.ts}"
 OUT="temp_mutations_${PASS}.tsv"
 SNAP="./temp_hm_snap_${PASS}"
 rm -rf "$SNAP"; mkdir -p "$SNAP"
-awk -F'|' '{ if ($2 != "") print $2 }' "$TSV" | sort -u > ./temp_hm_targets.txt
+awk -F'|' '{ if ($2 != "" && $1 !~ /^#/) print $2 }' "$TSV" | sort -u > ./temp_hm_targets.txt
 while read -r f; do mkdir -p "$SNAP/$(dirname "$f")"; cp "$f" "$SNAP/$f"; done < ./temp_hm_targets.txt
 
 restore() {

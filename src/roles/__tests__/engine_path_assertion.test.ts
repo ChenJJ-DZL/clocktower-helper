@@ -113,11 +113,16 @@ const NO_HANDLER_BASELINE = new Set<string>([
   "src/roles/townsfolk/juggler.ts",
   "src/roles/townsfolk/artist.ts",
   "src/roles/townsfolk/fisherman.ts",
-  "src/roles/townsfolk/philosopher.ts",
+  // ✅ 2026-09-22 按官方移除 `philosopher.ts`：官方「在夜晚时」⇒ 已删 `day:` 块、
+  //   触发时机改 `EVERY_NIGHT`（选角色改在**夜间**行动确认窗完成）⇒ 不再是日间角色，
+  //   按棘轮（只许下调）必须从本基线移除。
   "src/roles/outsider/tinker.ts",
   "src/roles/minion/cerenovus.ts",
   "src/roles/outsider/mutant.ts",
-  "src/roles/townsfolk/gambler.ts",
+  // ✅ 2026-09-22 已按官方移除 `src/roles/townsfolk/gambler.ts`：
+  //   官方【赌徒】是「每个夜晚*」的**纯夜间**能力，原先那个
+  //   `day: { name: "赌徒猜测", maxUses: 1 }` 块已删除 ⇒ 它不再是日间角色
+  //   ⇒ 按棘轮（只许下调）**必须**从本基线移除。
   "src/roles/townsfolk/minstrel.ts",
 ]);
 

@@ -161,10 +161,14 @@ const SPEC: Record<string, Row> = {
     // ⚠️ 2026-09-21 修 P1-14：唱诗男孩是**「他人死亡触发」**（官方「如果恶魔杀死了国王」），
     //   现声明 `deathEventWatch: { roleId: "king" }` ⇒ **静态不入夜间队列**，
     //   只在国王死亡当晚由死亡事件分发器（`resolveDeathEventWakeups`）动态插入。
+    // ✅ 2026-09-22 按**官方**修正：`guide` "std" → **"passive"**
+    //   原先申报 `otherNightPriority: 84` ⇒ 每夜入队 ⇒ 引导语带「唤醒N号」前缀；
+    //   归零后（官方 `rolesData.otherNightOrder = 0`）该节点不再有唤醒步骤，
+    //   引导语变为「N号【唱诗男孩】为被动技能，无需唤醒。」
     script: "hm", main: 2,
     n: {
-      1: { guide: "std", queued: false, tl: [0, 0] },
-      2: { guide: "std", queued: false, tl: [0, 0] },
+      1: { guide: "passive", queued: false, tl: [0, 0] },
+      2: { guide: "passive", queued: false, tl: [0, 0] },
     },
   },
   mutant: {
@@ -217,8 +221,11 @@ const SPEC: Record<string, Row> = {
     script: "hm", main: 2,
     n: {
       // 首夜不行动（preCheckNotFirstNight），只被排入爪牙互认
-      1: { guide: "silent", queued: false, seed: "minion_info", tl: [1, 1] },
-      2: { guide: "plain", queued: true, tl: [1, 1] },
+      // ✅ 2026-09-22 按官方修正：`tl` 由 [1,1] → [0,1]
+      //   官方【运作方式】：「刺客**要么摇头表示不使用能力**，要么指向任意一名玩家。」
+      //   ⇒ 目标数下限必须是 0（legacy `minion/assassin.ts` 已同步改为 `{0,1}`）
+      1: { guide: "silent", queued: false, seed: "minion_info", tl: [0, 1] },
+      2: { guide: "plain", queued: true, tl: [0, 1] },
     },
   },
   devils_advocate: {
@@ -398,10 +405,10 @@ const INTERNAL_TOKENS = [
  * 全部为实测值，理由写在每条的注释里。**修好后请把条目删掉**，让断言回归 `targetConfig`。
  */
 const TL_DEVIATION: Record<string, { min: number; max: number; why: string }> = {
-  assassin: {
-    min: 1, max: 1,
-    why: "节点 1~1，但 targetConfig.min=0（把「可以不下手」当成了合法选择）⇒ P2",
-  },
+  // ✅ 2026-09-22 按**官方原文**修复后已删除 `assassin` 条目：
+  //   官方【刺客】【运作方式】：「刺客**要么摇头表示不使用能力**，要么指向任意一名玩家。」
+  //   ⇒ 夜间目标数**下限必须是 0** ⇒ legacy `src/roles/minion/assassin.ts`
+  //   的 `night.target.count {1,1}` 已改为 `{0,1}`，与新引擎 `targetConfig` 一致。
   balloonist: {
     min: 0, max: 0,
     why: "节点 0~0（说书人展示），targetConfig 却是 0~1（用 targetConfig 承载「展示哪一名」）⇒ P2",
@@ -788,7 +795,7 @@ describe("L3 · §B 敏感信息不得泄漏（不得从 seats 反推）", () =>
 describe("L3 · §C 日间主动技能按钮", () => {
   /** 官方日间能力角色 → 按钮文案（`mutant` 走独立仲裁弹窗，文案是「疯狂仲裁」） */
   const DAY_ROLES: Array<[string, string]> = [
-    ["philosopher", `使用 ${r("philosopher").name}`],
+    // ✅ 2026-09-22 移除：哲学家已按官方迁到**夜间**（选角色在夜间行动确认窗完成）
     ["artist", `使用 ${r("artist").name}`],
     ["juggler", `使用 ${r("juggler").name}`],
     ["mutant", "疯狂仲裁"],
@@ -830,8 +837,8 @@ describe("L3 · §C 日间主动技能按钮", () => {
     });
   });
 
-  it("⑧ 穷尽性：37 角色中**只有** philosopher / artist / juggler / mutant 有日间按钮", () => {
-    const WITH_DAY = new Set(["philosopher", "artist", "juggler", "mutant"]);
+  it("⑧ 穷尽性：37 角色中**只有** artist / juggler / mutant 有日间按钮（哲学家 2026-09-22 已按官方迁到夜间）", () => {
+    const WITH_DAY = new Set(["artist", "juggler", "mutant"]);
     const seen: Array<[string, number]> = [];
     for (const id of ROSTER) {
       cleanup();

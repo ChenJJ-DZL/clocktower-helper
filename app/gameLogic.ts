@@ -14,6 +14,7 @@ import {
   isGoodAlignment,
 } from "../src/utils/gameRules";
 import { isVortoxWorldActive } from "../src/utils/vortoxWorld";
+import { resolveScriptAutoEvilWin } from "../src/utils/scriptSpecialRules";
 import type { GamePhase, Seat } from "./data";
 import { roles } from "./data";
 
@@ -82,6 +83,16 @@ export interface GameContext {
   fearmongerNominated?: boolean; // 恐惧之灵是否已提名目标
   // 异端分子相关状态
   hereticActive?: boolean; // 异端分子是否在场且生效
+  /**
+   * ⭐ 2026-09-22 新增：**剧本级特殊规则**（见 `src/utils/scriptSpecialRules.ts`）。
+   * 由 `useLogicDispatcher::checkGameOver` 注入，判据**不在本文件硬编码**。
+   */
+  scriptSpecialRules?: {
+    demonCannotKill?: boolean;
+    evilAutoWinOnEnteringNight?: number;
+  } | null;
+  /** 当前 `nightCount`（剧本级「固定天数后自动获胜」判据需要） */
+  nightCount?: number;
   // 无神论者相关状态
   atheistPresent?: boolean; // 无神论者是否在场
   storytellerExecuted?: boolean; // 说书人是否被处决
@@ -515,6 +526,27 @@ export function checkGameEnd(
   }
   if (klutzGuessedEvil) {
     return { isGameOver: true, winner: "Evil", reason: "呆瓜误判" };
+  }
+
+  /**
+   * ⭐ 2026-09-22 新增：**剧本级特殊规则 —— 「固定天数后自动获胜」**
+   * ------------------------------------------------------------------
+   * 官方（游园惊梦）简介逐字：「恶魔不会在夜晚攻击，**但是会在固定的天数后自动获胜**。」
+   *   该剧本的官方 wiki 页面只有简介、无规则细节 ⇒ 天数与判定时点由**用户裁定**
+   *   （2026-09-22）：天数可配置（默认 3）、判定时点 = **进入第 N+1 个夜晚时**。
+   * 判据唯一事实源：`src/utils/scriptSpecialRules.ts::resolveScriptAutoEvilWin`。
+   * ⚠️ 恶魔已死时不触发（让官方「恶魔死 ⇒ 善良胜」优先）。
+   */
+  const scriptAutoEvilWin = resolveScriptAutoEvilWin({
+    script:
+      options.scriptSpecialRules != null
+        ? { specialRules: options.scriptSpecialRules }
+        : null,
+    nightCount: options.nightCount ?? 0,
+    demonAlive: seats.some((s) => s.role?.type === "demon" && !s.isDead),
+  });
+  if (scriptAutoEvilWin) {
+    return { isGameOver: true, winner: "Evil", reason: scriptAutoEvilWin };
   }
 
   const aliveSeats = seats.filter((s) => !s.isDead);

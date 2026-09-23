@@ -38,6 +38,14 @@ export interface MiddlewareContext {
   targetIds: number[];
   /** 说书人输入的额外参数 */
   storytellerInput?: any;
+  /**
+   * ⭐ 2026-09-22：当前剧本的**剧本级特殊规则**（判据源 `utils/scriptSpecialRules.ts`）。
+   * 用于「恶魔不会在夜晚攻击」（游园惊梦）等剧本级机制；未声明规则的剧本为 null/undefined。
+   */
+  scriptSpecialRules?: {
+    demonCannotKill?: boolean;
+    evilAutoWinOnEnteringNight?: number;
+  } | null;
   /** 中间件执行过程中传递的临时数据 */
   meta: Record<string, any>;
   /** 是否终止执行管道 */

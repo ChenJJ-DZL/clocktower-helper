@@ -1,4 +1,54 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+
+/**
+ * ⏱️ **等待「两者之一」出现**（可选弹窗的正确等待法）
+ * ==================================================================
+ * ⚠️⚠️ 为什么必须用它、而不是 `if (await x.isVisible({ timeout: 2500 }))`
+ * ------------------------------------------------------------------
+ * Playwright 的 `locator.isVisible()` **不会等待** —— `timeout` 选项对
+ * `isVisible/isHidden/isEnabled/isChecked/isEditable` 这些**即时查询无效**
+ * （它们是「现在看一眼」的语义）。⇒ 用「`isVisible({timeout})`」来表达
+ * 「等一个**可能**出现的弹窗」，**必然偶发漏判**：弹窗稍晚出现就被跳过，
+ * 后续断言再超时报红。
+ *
+ * 🔴 本项目实测踩到（2026-09-22）：`confirmAndEnterNight` 里
+ *   `if (await force.isVisible({ timeout: 2500 }))` 用来兜「仍然分发&核对身份」，
+ *   而该弹窗是**点完「分发&核对身份」之后异步出现**的
+ *   ⇒ 漏判后「确认无误…入夜」永不出现 ⇒ **逐角色点击流偶发卡 20s 超时**
+ *   （同代码两次运行失败集合不同 = 非确定性，极易被误判成生产回归）。
+ *
+ * ✅ 本函数用**轮询 + 即时查询**实现真正的「等」，并对**两个候选**同时轮询
+ *   —— 这样「正常路径」不会被「弹窗没出现」白白拖满超时。
+ *
+ * @returns "a"｜"b"｜"none"（都不出现）
+ */
+export async function waitForEither(
+  a: Locator,
+  b: Locator,
+  timeoutMs = 8000,
+  stepMs = 200
+): Promise<"a" | "b" | "none"> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      if (await a.isVisible()) return "a";
+      if (await b.isVisible()) return "b";
+    } catch {
+      // 元素在导航/重渲染中 detached —— 继续等
+    }
+    if (Date.now() >= deadline) return "none";
+    await new Promise((r) => setTimeout(r, stepMs));
+  }
+}
+
+/** 等**单个**可选元素出现（同样不能用 `isVisible({timeout})`） */
+export async function waitForOptional(
+  locator: Locator,
+  timeoutMs = 6000,
+  stepMs = 200
+): Promise<boolean> {
+  return (await waitForEither(locator, locator, timeoutMs, stepMs)) !== "none";
+}
 
 /**
  * 血染钟楼 E2E **剧本无关**共享夹具
@@ -84,6 +134,34 @@ export async function enterScriptConfig(
   //          故用 `getByRole("button")` 精确锁到**按钮**。
   //    坑 2：列表在页面上可能有重复渲染层 → 取 `.last()` 的真实按钮。
   //    坑 3：点击后必须**等配置页就绪**再继续，否则后续 find 会在旧页面上跑。
+  /**
+   * ⭐ 2026-09-22 抖动加固（**修正版**）
+   * ------------------------------------------------------------------
+   * 🔴 首版改错了地方（实测把 setup 流程改坏：12/13 红），已回滚卡片点击逻辑。
+   * 🔍 真凶：`quickStart` 会「**可见但不可点**」（例如被入场动画/遮罩压住、或列表层重渲染）
+   *   ⇒ 原写法 `await quickStart.click({ timeout: T.click })` 单点一次、等满 15s 才报
+   *   `TimeoutError: locator.click`，且**报错点在下游** ⇒ 根因被藏起来。
+   * ✅ 修法：**保持原定位与顺序不变**，只把"点一次"改成"**点一次，不行就再试一次**"，
+   *   并先确保可见（`expect(toBeVisible)` 已在上方保证）。这样：
+   *     · 正常路径：行为与原来完全一致（一次点击即成功，零额外耗时）；
+   *     · 抖动路径：多试 1~2 次即通过，而不是等满 15s 失败。
+   */
+  const clickWithRetry = async (
+    loc: ReturnType<Page["getByText"]>,
+    tries = 3
+  ): Promise<void> => {
+    for (let i = 0; i < tries; i++) {
+      try {
+        await loc.click({ timeout: 4_000 });
+        return;
+      } catch {
+        await page.waitForTimeout(250); // 让动画/重渲染稳定后再试
+      }
+    }
+    // 最后一搏：用完整超时抛错，错误信息里能看到真正的元素与超时值
+    await loc.click({ timeout: T.click });
+  };
+
   await page
     .getByRole("button", { name: new RegExp(scriptName) })
     .last()
@@ -105,7 +183,7 @@ export async function enterScriptConfig(
     await expect(quickStart).toBeVisible({ timeout: T.visible });
   }
 
-  await quickStart.click({ timeout: T.click });
+  await clickWithRetry(quickStart);
   await page
     .getByText(`${playerCount}人`, { exact: false })
     .first()
@@ -305,6 +383,38 @@ async function pickTargetsInDialog(
   dialog: any
 ): Promise<boolean> {
   const hintText = (await dialog.innerText().catch(() => "")) as string;
+
+  /**
+   * 🧠 **必须先处理「角色选择」**（2026-09-22 新增）
+   * ------------------------------------------------------------------
+   * 洗脑师 / 奥乔 / 酿酒师 / **哲学家** 的夜间确认窗除了选目标，还**必须选一个角色**
+   * （`NightActionConfirmModal` 的 `isRoleSelectorActive`）——未选时
+   * 「确认选择」按钮是 **disabled** ⇒ 下面的 `okBtn.click()` 会点了没反应
+   * ⇒ **整条夜间流程永远卡死**（这是一个真实风险：哲学家在 2026-09-22
+   *   从"日间选角"迁到"夜间选角"后，E2E 抽到哲学家就会中招）。
+   *
+   * 做法：若弹窗里出现角色选项（`button[data-role-id]`，仅角色胶囊带此属性，
+   *   座位卡不带 ⇒ 不会误点）就点**第一个**。
+   *   取第一个即可 —— E2E 只验证"流程能走通"，不校验选得对不对；
+   *   即使已经选过，再点第一个也只是改选，幂等无害。
+   */
+  const roleOptions = dialog.locator("button[data-role-id]");
+  if ((await roleOptions.count()) > 0) {
+    /**
+     * ⭐ 2026-09-22 抖动加固：**先等可见再点**，且**不吞异常**。
+     * 🔴 原写法 `.click({timeout:5000}).catch(()=>{})` 有两个问题：
+     *   ① 静默吞掉失败 ⇒ 后面「确认选择」仍 disabled ⇒ 用例**在别处以超时暴露**，
+     *      排查时看不到根因（同类事故：ws 的 `isVisible({timeout})` 不会等待）；
+     *   ② 固定 `waitForTimeout(150)` 不等于"点击已生效"。
+     * ✅ 改为 Playwright 的 actionability 自动等待（`toBeVisible` 后点），
+     *   并把"点了有没有生效"交给后续的确认按钮断言去暴露。
+     */
+    const first = roleOptions.first();
+    await first.waitFor({ state: "visible", timeout: 10_000 });
+    await first.click({ timeout: 10_000 });
+    await page.waitForTimeout(120);
+  }
+
   const m = hintText.match(/最少\s*(\d+)\s*人/);
   const need = m ? Number(m[1]) : 1;
   if (need <= 0) {
@@ -593,11 +703,39 @@ export async function completeDuskEnterNight(
      *   此时「进入黄昏」按钮是 disabled，必须先点日间技能按钮。
      *   ⚠️ 这是**生产的正确行为**（门禁），不是缺陷；自动化必须配合它。
      */
+    /**
+     * ⭐ 2026-09-22 抖动加固：点完**等 DOM 真的变了**再返回（而不是盲等固定 400ms）。
+     *
+     * 🔴 原形态（`b.click(); await sleep(400)`）的缺陷：React 在慢一档时会 >400ms 才
+     *   提交下一次渲染 ⇒ 调用方紧接着查条件时看到的是**旧 DOM** ⇒ 偶发失败
+     *   （实测：全量 E2E 禁重试下 `snv/state_assertions` ③④、`tb/nomination_limit` ①② 出现
+     *     `locator.click: Timeout 15000ms exceeded`，复跑即绿 ⇒ 抖动而非回归）。
+     * ✅ 新形态：`clickAndSettle` = 点一次 → 轮询"页面签名变化" → **最多等 `maxMs`** →
+     *   变了就立刻返回（常规 <150ms，比固定 400ms **更快**）；没变则兜底 300ms。
+     *   ⇒ 既消除抖动，又不拖慢用例。
+     */
+    const pageSig = () =>
+      (document.body.textContent || "").length +
+      "|" +
+      document.querySelectorAll('[role="dialog"]').length +
+      "|" +
+      document.querySelectorAll("button:not([disabled])").length;
+    const clickAndSettle = async (btn: any, maxMs = 3000): Promise<boolean> => {
+      const before = pageSig();
+      btn.click();
+      const t0 = Date.now();
+      while (Date.now() - t0 < maxMs) {
+        if (pageSig() !== before) return true;
+        await sleep(80);
+      }
+      await sleep(300); // 兜底：签名没变（幂等点击）也不至于太早返回
+      return false;
+    };
+
     const clickByPattern = async (re: RegExp): Promise<boolean> => {
       const b = allBtns().find((x) => re.test(norm(x)) && !x.disabled);
       if (!b) return false;
-      b.click();
-      await sleep(400);
+      await clickAndSettle(b);
       return true;
     };
 

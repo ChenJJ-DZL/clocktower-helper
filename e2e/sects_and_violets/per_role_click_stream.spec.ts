@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   readSnapshot,
   resolveCharades,
+  waitForEither,
   waitForSnapshot,
 } from "../helpers/scriptFlow";
 
@@ -191,20 +192,27 @@ async function confirmAndEnterNight(page: Page) {
 
   // 阵容不符（如配比错误）→ 弹窗「仍然分发&核对身份」；本文件阵容都是合法的，
   // 若这里出现说明 compFor 构造错了（要吵，不许静默点过去）
+  //
+  // ⚠️⚠️ 2026-09-22 修复**竞态**：该弹窗**异步出现**，而原实现用
+  //   `await force.isVisible({ timeout: 2500 })` 判断 —— **`isVisible()` 不会等待**
+  //   （`timeout` 对即时查询无效）⇒ 弹窗稍晚出现就会**漏判**
+  //   ⇒ 本该「吵」的负向断言变成**静默通过**（假绿）。
+  //   ✅ 改用共享夹具 `waitForEither`：同时轮询「仍然分发」与「确认无误…入夜」，
+  //      只要前者出现过就报红。
   const force = page
     .locator("button")
     .filter({ hasText: /仍然分发&核对身份/ })
     .first();
-  const forced = await force.isVisible({ timeout: 2500 }).catch(() => false);
-  expect(
-    forced,
-    "❌ 出现「仍然分发&核对身份」弹窗 —— 说明本文件构造的阵容配比不合法（compFor 有误）"
-  ).toBe(false);
-
   const enterNight = page
     .locator("button")
     .filter({ hasText: /确认无误[\s\S]*入夜/ })
     .first();
+  const which = await waitForEither(force, enterNight, 15_000);
+  expect(
+    which,
+    "❌ 出现「仍然分发&核对身份」弹窗 —— 说明本文件构造的阵容配比不合法（compFor 有误）"
+  ).not.toBe("a");
+
   await expect(
     enterNight,
     "❌ 找不到「确认无误，入夜」——可能因缺少恶魔/配比不符而禁用"

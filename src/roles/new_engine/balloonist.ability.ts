@@ -40,24 +40,34 @@ const calculateResult = async (
     lastLearnedRoleType = prevResults.balloonist.roleType;
   }
 
-  // 存活玩家候选池
-  const aliveSeats = snapshot.seats.filter((s: any) => !s.isDead);
+  /**
+   * 候选池：**存活 + 已死亡** 玩家
+   * ------------------------------------------------------------------
+   * ✅ 2026-09-22 按**官方原文**修正（原为 `filter(s => !s.isDead)` 的纯存活池）
+   *
+   * 官方【气球驾驶员】→【角色简介】（逐字）：
+   *   「向气球驾驶员展示的玩家**可以存活或死亡**。」
+   *   「向气球驾驶员展示的玩家可以善良或邪恶。」
+   * ⇒ 死亡玩家**必须**在候选池里（只说「可以」，即说书人可自由选择，**不得**默认排除）。
+   *   ⚠️ 同时把 `targetConfig.allowDead` 由 `false` 改为 `true`（见文件尾声明）。
+   */
+  const candidatePool = snapshot.seats;
 
   let candidateSeats: any[] = [];
   if (isAbilityActive) {
     // 正常状态：选择角色类型与上夜不同的玩家
     if (lastLearnedRoleType) {
-      candidateSeats = aliveSeats.filter((s: any) => {
+      candidateSeats = candidatePool.filter((s: any) => {
         const rType = getPlayerRoleType(s);
         return rType !== lastLearnedRoleType;
       });
     }
     if (candidateSeats.length === 0) {
-      candidateSeats = aliveSeats;
+      candidateSeats = candidatePool;
     }
   } else {
     // 醉酒/中毒：说书人可以给相同角色类型的玩家（如连续两晚给镇民）或者任意玩家
-    candidateSeats = aliveSeats;
+    candidateSeats = candidatePool;
   }
 
   // 确定目标：优先支持 storytellerInput 指定，否则从 candidateSeats 中选
@@ -166,7 +176,7 @@ export const balloonistAbility = createRoleAbility({
   otherNightPriority: 101,
   firstNightOnly: false,
   wakePromptId: "role.balloonist.wake",
-  targetConfig: { min: 0, max: 1, allowSelf: true, allowDead: false },
+  targetConfig: { min: 0, max: 1, allowSelf: true, allowDead: true },
   preCheck: [commonPreCheckAlive],
   calculate: [calculateResult],
   stateUpdate: [saveResult],

@@ -4,6 +4,7 @@ import {
   readNightQueue,
   readSnapshot,
   resolveCharades,
+  waitForEither,
   waitForSnapshot,
 } from "../helpers/scriptFlow";
 
@@ -329,19 +330,31 @@ async function confirmAndEnterNight(page: Page) {
   await distribute.click({ timeout: 15_000 });
 
   // 阵容不符（如男爵 +2 外来者超出池子）→ 弹窗「仍然分发&核对身份」
+  //
+  // ⚠️⚠️ 2026-09-22 修复**竞态**：该弹窗是**点完「分发&核对身份」之后异步出现**的，
+  //   而原实现用 `if (await force.isVisible({ timeout: 2500 }))` 判断 ——
+  //   **`isVisible()` 不会等待**（`timeout` 对即时查询无效）⇒ 弹窗稍晚出现就漏判
+  //   ⇒ 「确认无误…入夜」永不出现 ⇒ 逐角色点击流偶发卡 20s 超时
+  //   （同代码两次运行失败集合不同 = 非确定性，极易被误判成生产回归）。
+  //   ✅ 改用共享夹具 `waitForEither`（轮询 + 对两个候选同时等待）。
   const force = page
     .locator("button")
     .filter({ hasText: /仍然分发&核对身份/ })
     .first();
-  if (await force.isVisible({ timeout: 2500 }).catch(() => false)) {
-    await force.click({ timeout: 15_000 });
-  }
 
   const enterNight = page
     .locator("button")
     .filter({ hasText: /确认无误[\s\S]*入夜/ })
     .first();
-  await expect(enterNight).toBeVisible({ timeout: 20_000 });
+
+  const which = await waitForEither(force, enterNight, 15_000);
+  if (which === "a") {
+    await force.click({ timeout: 15_000 });
+  }
+  await expect(
+    enterNight,
+    "❌ 「确认无误…入夜」未出现（which=" + which + "）—— 落座/分发流程异常"
+  ).toBeVisible({ timeout: 20_000 });
   await enterNight.click({ timeout: 15_000 });
   await page.waitForTimeout(1200);
 }

@@ -592,22 +592,54 @@ test.describe("L4 · 无上愉悦：第二剧本必须可独立跑通", () => {
 
     // ⭐⭐ L4 最深的一条：小恶魔点了确认 ⇒ 快照里真的有人 isDead
     const armed = armedStates(day2);
-    expect(
-      armed.dead,
-      `❌ 第 2 夜小恶魔应杀死恰好 1 人，实际 ${armed.dead} 人\n` +
-        `死亡座位：${JSON.stringify(
-          seatsOf(day2)
-            .filter((s: any) => s.isDead === true)
-            .map((s: any) => ({ seat: s.id + 1, role: s.role?.id }))
-        )}`
-    ).toBe(1);
+
+    /**
+     * ⚠️⚠️ 2026-09-22 修复**假红**：「恰好 1 人死亡」是**有前提**的，不是无条件成立。
+     *
+     * 实测失败现场（`test-results/…/error-context.md`）：页面上有座位带 **「受保护」** 标记、
+     * 且死亡数为 0 —— 即**小恶魔的刀被「不会死亡」类保护挡下了**
+     * （旅店老板/茶艺师…；`isImmuneToDemonKill` 里还有士兵/水手/弄臣等分支）。
+     * ⇒ 这正是「**「可能」≠「必然」**」：`imp` 是「必须杀」，但**被保护的目标杀不掉**。
+     *
+     * ⇒ 判据改为**条件契约**：场上**无保护类效果**时，才强断言「恰好 1 人」；
+     *   有保护时退化为「至多 1 人」并打印说明（不再误报）。
+     */
+    const protectedSeats = seatsOf(day2).filter(
+      (s: any) =>
+        s.isProtected === true ||
+        (s.statusEffects ?? []).some((e: any) => e?.type === "protected")
+    );
+    if (protectedSeats.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log(
+        "ℹ️ [hm-l4 用例⑥] 本局有「不会死亡」保护效果在场（" +
+          protectedSeats.map((s: any) => s.id + 1 + "号").join("、") +
+          "）⇒ 小恶魔的刀可能被挡下，改为断言上界"
+      );
+      expect(
+        armed.dead,
+        `❌ 第 2 夜死亡人数不应超过 1（保护只影响「是否被杀」）`
+      ).toBeLessThanOrEqual(1);
+    } else {
+      expect(
+        armed.dead,
+        `❌ 第 2 夜小恶魔应杀死恰好 1 人（场上无保护），实际 ${armed.dead} 人\n` +
+          `死亡座位：${JSON.stringify(
+            seatsOf(day2)
+              .filter((s: any) => s.isDead === true)
+              .map((s: any) => ({ seat: s.id + 1, role: s.role?.id }))
+          )}`
+      ).toBe(1);
+    }
     const deadSeat = seatsOf(day2).find((s: any) => s.isDead === true);
-    expect(
-      deadSeat?.deathSource !== undefined ||
-        deadSeat?.deathAtNight !== undefined ||
-        deadSeat?.killedBy !== undefined,
-      `❌ 死亡座位没有记录任何死亡来源字段：${JSON.stringify(Object.keys(deadSeat ?? {}))}`
-    ).toBe(true);
+    if (deadSeat) {
+      expect(
+        deadSeat?.deathSource !== undefined ||
+          deadSeat?.deathAtNight !== undefined ||
+          deadSeat?.killedBy !== undefined,
+        `❌ 死亡座位没有记录任何死亡来源字段：${JSON.stringify(Object.keys(deadSeat ?? {}))}`
+      ).toBe(true);
+    }
   });
 });
 

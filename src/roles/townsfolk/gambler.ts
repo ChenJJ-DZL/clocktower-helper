@@ -65,10 +65,36 @@ Transclusion expansion time report (%,ms,calls,template)
 Saved in parser cache with key gstone_wiki:pcache:idhash:16-0!canonical and timestamp 20260120025721 and revision id 5419. Serialized with JSON.`,
 
   // 赌徒的具体夜晚结算逻辑由 nightLogic + 说书人手动裁定（通过 UI 记录猜测与结果）完成
-  // 这里不实现自动判定，只保留角色元数据（夜序等）在 rolesData.json 中配置
-  day: {
-    name: "赌徒猜测",
-    maxUses: 1,
-    target: { min: 1, max: 1 },
+  // 这里不实现自动判定，只保留角色元数据（夜序等）
+  //
+  /**
+   * ✅ 2026-09-22 按**官方原文**修正（两处）
+   * ------------------------------------------------------------------
+   * 官方【赌徒】→【角色能力】（逐字）：
+   *   「**每个夜晚\***，你要选择一名玩家并猜测该玩家的角色：如果你猜错了，你会死亡。」
+   * 官方【运作方式】：「除了首个夜晚以外的每个夜晚，唤醒赌徒。
+   *   让赌徒**指向任意一名玩家**，然后指向角色列表上的任意一个角色图标。」
+   *
+   * ① **删除了原来的 `day: { name: "赌徒猜测", maxUses: 1, … }`** ——
+   *    官方是「每个夜晚\*」的**纯夜间**能力，**没有日间能力**
+   *    ⇒ 原 `day` 块会让玩家在白天看到一个多余的「使用 赌徒」按钮（与官方不符）。
+   * ② **补上夜间目标数 `{min:1, max:1}`** —— 官方「你要选择一名玩家」是**强制**的
+   *    （提示标记条件也只依赖"猜错"，没有"可以不猜"）
+   *    ⇒ 原先夜间 `count` 缺省为 `{0,0}`，说书人界面上「要不要选人」永远可选，
+   *      与官方「**你要**选择」不符（新引擎侧 `gambler.ability.ts` 的
+   *      `targetConfig {min:1,max:1}` 本来就是对的，两处曾不一致）。
+   */
+  night: {
+    // 与 `rolesData.json` 的 `otherNightOrder: 21` 一致（**不改夜序**，只补齐目标数与引导语）
+    order: 21,
+    target: {
+      count: { min: 1, max: 1 },
+    },
+    dialog: (playerSeatId: number) => ({
+      wake: `唤醒${playerSeatId + 1}号玩家（赌徒）。`,
+      instruction:
+        "让他选择一名玩家，并在角色列表上指向一个角色图标来猜测该玩家的角色。如果猜错，他会在当晚死亡。",
+      close: "",
+    }),
   },
 };

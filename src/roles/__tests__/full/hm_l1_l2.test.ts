@@ -236,7 +236,7 @@ const SPEC: Spec[] = [
     scripts: ["haunted_manor"],
     // 官方：「你可以选择一个善良**角色**：你获得该角色的能力」——选角色不选玩家
     target: { min: 0, max: 0, allowSelf: false, allowDead: false },
-    timing: ["day"],
+    timing: ["every_night"],
     neg: "deadActor",
     gate: "ungated",
   },
@@ -662,12 +662,12 @@ const ORDER_DEVIATION: Record<
   string,
   { fno?: number | null; ono?: number | null; why: string }
 > = {
-  choir_boy: {
-    ono: 84,
-    why:
-      "官方 rolesData otherNightOrder=0（事件触发，非固定夜序）；实现申报 84 ⇒ 每夜入队 ⇒ P1" +
-      "（见 hm_l5_causal.test.ts「唱诗男孩」用例）",
-  },
+  // ✅ 2026-09-22 按**官方**修复后已删除 `choir_boy` 条目：
+  //   官方【唱诗男孩】「**如果恶魔杀死了国王**，你会得知哪名玩家是恶魔」= 事件触发，
+  //   官方夜序表（`rolesData.json::otherNightOrder`）给出 **0**。
+  //   原先实现申报 `otherNightPriority: 84` ⇒ 静态队列每夜入队 ⇒ 已改为 **0**，
+  //   动态唤醒交给 `deathEventWatch: { roleId: "king" }`
+  //   ⇒ 本条偏差消除，断言直接回归 `rolesData`（= 官方夜序唯一数据源）。
   baron: {
     fno: null,
     why:
@@ -693,11 +693,14 @@ const TARGET_DEVIATION: Record<
     min: 0,
     max: 1,
     allowSelf: true,
-    allowDead: false,
+    // ✅ 2026-09-22 按**官方原文**修正：false → true
+    //   官方【气球驾驶员】→【角色简介】：「向气球驾驶员展示的玩家**可以存活或死亡**。」
+    //   原先实现 `allowDead: false` + 候选池 `filter(!isDead)` ⇒ 说书人无法展示死者。
+    allowDead: true,
     why:
       "官方：「每个夜晚，你会得知一名玩家…」——由说书人展示、玩家不选目标 ⇒ 官方" +
       "targetConfig 为 0 人；实现用 0~1 承载「展示哪一名座位」，且 allowSelf=true、" +
-      "allowDead=false（官方明写展示的玩家**可以存活或死亡**）⇒ 语义不同 ⇒ P2" +
+      "allowDead=true（官方明写展示的玩家**可以存活或死亡**，2026-09-22 已按官方修正）" +
       "（见 hm_l5 同角色用例）",
   },
   courtier: {
@@ -1398,15 +1401,34 @@ describe("L2c · 夜序边界", () => {
       typeof barber.ability.otherNightPriority,
       "理发师有夜序定位（官方 #78）"
     ).toBe("number");
-    // 但队列门控看的是 ON_DEATH ⇒ PASSIVE 会让 deathTriggered 恒 false（见 hm_l5 的 it.fails）
+    // 但队列门控看的是 ON_DEATH ⇒ PASSIVE 会让 deathTriggered 恒 false（见 hm_l5）
     const choir = SPEC.find((x) => x.id === "choir_boy")!;
     expect(choir.ability.triggerTiming, "唱诗男孩当前被标为 passive").toEqual([
       "passive",
     ]);
+    /**
+     * ✅ 2026-09-22 按**官方**修复后，`ORDER_DEVIATION.choir_boy` **条目已删除**
+     *   （申报 `otherNightPriority: 84` → **0**，动态唤醒交给 `deathEventWatch`）
+     * ⇒ 原先「点名唱诗男孩必须有 why」的断言失去对象（`undefined.length` 抛 TypeError）。
+     * ✅ 改为**通用不变量**：**凡登记在 `ORDER_DEVIATION` 里的条目，都必须写清理由**
+     *   —— 这样既不再点名某个角色（角色修好后自动不冲突），又保留了「不许无理由冻结」的约束。
+     */
+    const entries = Object.entries(ORDER_DEVIATION);
     expect(
-      ORDER_DEVIATION.choir_boy?.why.length,
-      "唱诗男孩的夜序偏差必须登记理由"
+      entries.length,
+      "ORDER_DEVIATION 应仍有条目（若全部结清，请连同本节一起清理并在交付报告登记）"
     ).toBeGreaterThan(0);
+    for (const [role, dev] of entries) {
+      expect(
+        (dev?.why ?? "").length,
+        `ORDER_DEVIATION.${role} 必须登记「为什么冻结」（不许无理由冻结）`
+      ).toBeGreaterThan(0);
+    }
+    // 唱诗男孩的夜序偏差已结清 ⇒ 不得再有登记条目
+    expect(
+      ORDER_DEVIATION.choir_boy,
+      "唱诗男孩夜序偏差已按官方修复（84→0），不得再登记"
+    ).toBeUndefined();
     expect(
       ORDER_DEVIATION.barber,
       "理发师的 deathTriggered 缺口已在 hm_l5_causal.test.ts 记录，此处不得重复登记夜序偏差"

@@ -186,7 +186,7 @@ const SPEC: Spec[] = [
     docsName: "哲学家",
     scripts: ["sects_and_violets"],
     target: { min: 0, max: 0, allowSelf: false, allowDead: false },
-    timing: ["day"],
+    timing: ["every_night"],
     neg: "deadActor",
     effectField: "philosopherGainedRole",
   },

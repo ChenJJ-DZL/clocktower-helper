@@ -71,8 +71,20 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:141-0!canonical and tim
     order: (isFirstNight) => (isFirstNight ? 0 : 12),
 
     target: {
+      /**
+       * ✅ 2026-09-22 按**官方原文**修正：`{1,1}` → `{0,1}`
+       *
+       * 官方【刺客】→【运作方式】（逐字）：
+       *   「除了首个夜晚以外的每个夜晚，唤醒刺客。刺客**要么摇头表示不使用能力**，
+       *     要么指向任意一名玩家。让刺客重新入睡。」
+       * ⇒ 官方**明确允许"不使用能力"**（摇头）⇒ 夜间目标数**下限必须是 0**。
+       *
+       * ⚠️ 原值 `{1,1}` 会让说书人界面上「选人」成为**强制**步骤，
+       *   无法表达官方的「摇头表示不使用」⇒ 与官方不符（新引擎侧
+       *   `assassin.ability.ts` 的 `targetConfig.min = 0` 本来就是对的，两处曾不一致）。
+       */
       count: {
-        min: 1,
+        min: 0,
         max: 1,
       },
     },

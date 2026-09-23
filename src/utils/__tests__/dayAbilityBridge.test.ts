@@ -146,7 +146,8 @@ describe("日间新引擎能力桥接（L5 因果链）", () => {
       "gunslinger",
       "hells_librarian",
       "juggler",
-      "philosopher",
+      // ✅ 2026-09-22 移除：官方「在夜晚时」⇒ triggerTiming 已改 EVERY_NIGHT，
+      //   选角色改在夜间行动确认窗（`requiresRoleSelection`）完成，不再走日间桥接。
       "psychopath",
       "puzzlemaster",
       "riot",
