@@ -187,8 +187,7 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
 
   test("图书管理员与调查员 0 外来者/0 爪牙 - 严格显示为（数字0）且括号闭合完整单行", () => {
     // 包含（手势 0）的标准引导文案
-    const raw1 =
-      "唤醒6号【图书管理员】，告诉他场上没有外来者在场（手势 0）。";
+    const raw1 = "唤醒6号【图书管理员】，告诉他场上没有外来者在场（手势 0）。";
     const res1 = parseInfoResult(raw1, "6号-图书管理员");
     expect(res1.prefix).toBe("6号-图书管理员获得信息");
     expect(res1.result).toBe("场上没有外来者在场（数字0）");
@@ -205,10 +204,55 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
     expect(res3.result).toBe("场上没有爪牙在场（数字0）");
 
     // 已经规范化的（数字0）文案保持不变，不得破坏
-    const raw4 =
-      "唤醒6号【图书管理员】，告诉他场上没有外来者在场（数字0）。";
+    const raw4 = "唤醒6号【图书管理员】，告诉他场上没有外来者在场（数字0）。";
     const res4 = parseInfoResult(raw4, "6号-图书管理员");
     expect(res4.prefix).toBe("6号-图书管理员获得信息");
     expect(res4.result).toBe("场上没有外来者在场（数字0）");
+  });
+
+  test("⭐ 行首系统标签 - 不得出现悬挂右括号（【双子告知】11号是镜像双子）", () => {
+    // 🔴 现场（2026-09-24 用户实测 · 涡流+镜像双子 首夜结果页）：
+    //   文本 `【双子告知】11号是镜像双子` 走过通用切分正则时，备选词里的 `告知`
+    //   被非贪婪 `.*?` 在**标签内部**命中 ⇒ head=`【双子告知` / rest=`】11号是镜像双子`
+    //   ⇒ 左括号被吞、右括号悬挂在结果行首，玩家看到「】11号是镜像双子」。
+    const raw = "【双子告知】11号是镜像双子";
+    const res = parseInfoResult(raw, "2号-双子告知");
+    expect(res.prefix).toBe("2号-双子告知获得信息");
+    expect(res.result).toBe("11号是镜像双子");
+    // 双向断言：结果既不悬挂右括号，prefix 也不悬挂左括号
+    expect(res.result.startsWith("】")).toBe(false);
+    expect(res.prefix.endsWith("【")).toBe(false);
+    // 🧹 且必须比旧实现更精简（旧 prefix 是「2号-双子告知(双子告知)获得信息」）
+    expect(res.prefix).not.toContain("(双子告知)(双子告知)");
+  });
+
+  test("⭐ 反向对照：标签内**无**结果动词时不得接管（保留原冒号分割行为）", () => {
+    // 涡流警示语：标签内无「告知/得知/获得信息/告诉」⇒ **不得**被行首标签分支接管，
+    // 仍应走通用「冒号分割」⇒ 标签完整保留在 prefix、正文进 result。
+    const raw = "【涡流全局扭曲中】：所有存活镇民获取的信息必须为假！";
+    const res = parseInfoResult(raw, "涡流");
+    expect(res.prefix).toContain("【涡流全局扭曲中】");
+    expect(res.result).toBe("所有存活镇民获取的信息必须为假！");
+    expect(res.result.startsWith("】")).toBe(false);
+    expect(res.prefix.endsWith("【")).toBe(false);
+  });
+
+  test("⭐ 守卫：任何输入都不得产出「悬挂右括号」结果", () => {
+    // 泛化守卫 —— 覆盖本次新增分支的爆炸半径：模拟多种带标签的系统文案。
+    const cases = [
+      "【双子告知】11号是镜像双子",
+      "【阵营告知】你已经属于邪恶阵营",
+      "【爪牙互认】恶魔是: 15号",
+      "【恶魔互认】爪牙是: 12号、13号",
+    ];
+    for (const raw of cases) {
+      const res = parseInfoResult(raw, "5号-测试");
+      expect(res.result.startsWith("】"), `「${raw}」产出了悬挂右括号`).toBe(
+        false
+      );
+      expect(res.prefix.endsWith("【"), `「${raw}」产出了悬挂左括号`).toBe(
+        false
+      );
+    }
   });
 });

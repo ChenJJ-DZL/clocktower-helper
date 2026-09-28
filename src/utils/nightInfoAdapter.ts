@@ -12,7 +12,7 @@
 import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
-import { buildCerenovusNoticeNightInfo } from "./cerenovusNotice";
+import { buildCerenovusNoticeNightInfo, CERENOVUS_NOTICE_STEP_ID } from "./cerenovusNotice";
 // ⚠️ 单向依赖：dynamicQueueGenerator 不 import 本文件，无循环引用风险。
 import { seatHasNightAction } from "./dynamicQueueGenerator";
 import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
@@ -305,7 +305,14 @@ export function calculateNightInfoViaNewEngine(
    *   有 `prev.includes(id)` 去重），他会在**自己的技能步骤**里被唤醒并当场被告知
    *   ⇒ 此处不能返回告知信息，否则会顶掉他的技能结果。
    */
-  if (cerenovusNoticeInfo && !seatHasNightAction(targetSeat)) {
+  if (
+    cerenovusNoticeInfo &&
+    (!seatHasNightAction(targetSeat) ||
+      // ⭐ 2026-09-24：**显式告知节点**（`insertIntoWakeQueueAfterCurrent` 带
+      //   `stepOverride: CERENOVUS_NOTICE_STEP_ID` 插入的）恒返回告知信息 ——
+      //   否则有夜间技能的座位会按真实角色再弹一次技能页（见上方 2026-09-21 注释）。
+      systemStepRoleId === CERENOVUS_NOTICE_STEP_ID)
+  ) {
     return cerenovusNoticeInfo;
   }
 

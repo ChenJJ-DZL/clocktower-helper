@@ -181,6 +181,10 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     hadesiaChoiceEnabled: state.hadesiaChoiceEnabled,
     lastExecutedPlayerId: state.lastExecutedPlayerId,
     fangGuConvertedSeatId: null,
+    // 📋 操作记录随快照持久化（2026-09-24 用户实测：刷新/继续对局后复盘"没有信息"
+    //    —— 快照此前不含 gameLogs ⇒ 自动恢复的对局只剩恢复之后新产生的日志）。
+    //    复盘从落座开始依赖完整日志，必须随档走。
+    gameLogs: safeJsonClone((state as any).gameLogs ?? []),
     selectedScript: state.selectedScript
       ? safeJsonClone(state.selectedScript)
       : null,
@@ -238,6 +242,11 @@ export function saveCurrentSnapshot(snapshot: GameSnapshot): void {
           ...slim,
           history: [],
           dayAbilityLogs: [],
+          // 📋 日志是复盘的生命线：配额吃紧时**截断到最近 150 条**而不是清空
+          //    （清空 = 恢复对局后复盘"没有信息"，正是 2026-09-24 用户实测的缺陷形态）
+          gameLogs: Array.isArray((slim as any).gameLogs)
+            ? (slim as any).gameLogs.slice(-150)
+            : [],
         };
         // 清理过期的游戏档案
         const records = loadGameRecords();

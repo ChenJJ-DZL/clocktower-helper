@@ -9,22 +9,28 @@
  */
 
 import { useCallback } from "react";
-import { resolveDeathEventWakeups } from "../utils/dynamicQueueGenerator";
 import type { Role, Seat } from "../../app/data";
 import { getRoleDefinition } from "../roles";
+import {
+  createDeterministicRandom,
+  nightInfoSeed,
+} from "../roles/core/deterministicRandom";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
-import { EVIL_CONVERTED_NOTICE_ID } from "../utils/nightStepIds";
 import {
   getAbilityForRole,
   getRawAbilityMap,
 } from "../roles/new_engine/abilityRegistry";
+import { chefMaxPlausiblePairs } from "../roles/new_engine/chef.ability";
 import type { NightInfoResult } from "../types/game";
+import type { ModalType } from "../types/modal";
+import type { NightActionContext } from "../types/roleDefinition";
 import {
-  getLunaticNightHint,
-  getLunaticTargetSeatIds,
-  getPlayerFacingRole,
-  sanitizePlayerFacingText,
-} from "../utils/playerView";
+  CERENOVUS_NOTICE_STEP_ID,
+  getCerenovusNoticeFromStep,
+  getCerenovusNoticePlayerText,
+  getCerenovusNoticeStepLabel,
+  getPendingCerenovusNotice,
+} from "../utils/cerenovusNotice";
 import {
   buildCorruptedInfoMask,
   classifyCorruptedInfoRole,
@@ -33,34 +39,32 @@ import {
   isDisguisedIneffectiveActor,
   isPlayerInfoCorrupted,
 } from "../utils/corruptedInfo";
-import { isInformationRole } from "../utils/informationRoles";
-import { chefMaxPlausiblePairs } from "../roles/new_engine/chef.ability";
-import type { ModalType } from "../types/modal";
-import type { NightActionContext } from "../types/roleDefinition";
+import { resolveDeathEventWakeups } from "../utils/dynamicQueueGenerator";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
-import { findAbilityGrantingSeat, seatHasAcquiredAbility } from "../utils/grantedAbilityHelper";
 import {
   applyFarmerSuccession,
   buildFarmerSuccessorGuide,
   findFarmerSuccessionTrigger,
 } from "../utils/farmerSuccession";
-import {
-  getCerenovusNoticeFromStep,
-  getCerenovusNoticePlayerText,
-  getCerenovusNoticeStepLabel,
-  getPendingCerenovusNotice,
-} from "../utils/cerenovusNotice";
 import { computeIsPoisoned } from "../utils/gameRules";
 import {
-  createDeterministicRandom,
-  nightInfoSeed,
-} from "../roles/core/deterministicRandom";
+  findAbilityGrantingSeat,
+  seatHasAcquiredAbility,
+} from "../utils/grantedAbilityHelper";
+import { isInformationRole } from "../utils/informationRoles";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
-import { isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
-import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
+import { EVIL_CONVERTED_NOTICE_ID } from "../utils/nightStepIds";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
+import {
+  getLunaticNightHint,
+  getLunaticTargetSeatIds,
+  getPlayerFacingRole,
+  sanitizePlayerFacingText,
+} from "../utils/playerView";
+import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
+import { isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
 import { isVortoxWorldActive } from "../utils/vortoxWorld";
 
 export interface NightActionHandlerContext {
@@ -1701,6 +1705,26 @@ export async function executeViaNewEngine(
             )
           );
         }
+        // ⭐⭐ 2026-09-24（用户实测复报「洗脑后缺少唤醒被洗脑者的环节」，参考镜像双子流程）：
+        //   把被洗脑者作为**独立节点**插进本夜唤醒队列，**紧跟洗脑师当前步骤之后**。
+        // 🔴 此前只打 `cerenovusNoticeNight` 标记、从不入队 ⇒ 目标无夜间技能时
+        //    `nightInfoAdapter` 的合成告知节点（cerenovus_notice）**没有触发机会**
+        //    ⇒ 玩家永远收不到「你需要疯狂证明自己是【X】」。
+        //   · `force`：告知是说书人主动发起的系统步骤，目标可能毫无夜间技能
+        //     （镇长/农夫/罂粟种植者…）⇒ 必须绕过「有夜间行动才准入」的闸门；
+        //   · `position: "next"`：官方要求当场告知（镜像双子的告知节点同样紧随其后，
+        //     见 `dynamicQueueGenerator` 第 6 步 `evilTwinIdx + 1`）；
+        //   · `stepOverride`：队列只存座位 id ⇒ 不登记系统步骤的话，适配器会按该座位
+        //     **真实角色**解析 ⇒ 有夜间技能的座位会再弹一次技能页而非告知页；
+        //   · `reinsertIfProcessed`：洗脑师夜序晚于多数镇民 ⇒ 目标往往已经行动过；
+        //     仍在剩余队列里的目标照旧去重（他会在自己的步骤里被合并告知，不重复唤醒）。
+        context.insertIntoWakeQueueAfterCurrent?.(cerenovusRes.targetId, {
+          force: true,
+          position: "next",
+          stepOverride: CERENOVUS_NOTICE_STEP_ID,
+          reinsertIfProcessed: true,
+          logLabel: `🧠 洗脑告知（${cerenovusRes.targetId + 1}号）`,
+        });
       }
     }
 
@@ -1741,8 +1765,24 @@ export async function executeViaNewEngine(
     const producesPlayerInfo =
       classifyCorruptedInfoRole(roleId) !== null ||
       isInformationRole(roleId, actorSeat?.role?.type ?? "unknown");
+    /**
+     * ⭐ 引擎自治脱敏角色（2026-09-24 用户实测修复）：
+     * 这些角色受干扰时，**引擎自己**已产出同形假值 —— pixie.ability 的
+     * `pickPixieRole` 在中毒/醉酒/涡流下直接给**不在场**镇民，文案仍是
+     * `得知【X】在场`（格式不变，玩家无法察觉被干扰；契约 =
+     * `pixie_abnormal_states.test.ts` ②③④⑤）。
+     *
+     * 🔴 豁免前的事故链：pixie 不在 `INFO_ROLE_KIND` 表 ⇒ 本层兜底 kind="text"
+     *    ⇒ `TEXT_FAKE_FALLBACK`「你获得了一条信息（内容由说书人裁定）」把引擎的
+     *    同形假值**盖掉** ⇒ 确认页「得知【占卜师】在场」、结果页却是中性兜底文案，
+     *    两页不一致且暴露干扰 —— 正是用户实测截图的现场。
+     * ⇒ 这类角色本层**不得**二次替换：正常态 log=真值（直接显示），受干扰态
+     *    log=引擎同形假值（直接显示），确认页与结果页天然一致。
+     */
+    const ENGINE_SELF_MASKING_ROLES: ReadonlySet<string> = new Set(["pixie"]);
     const isCorruptedForPlayer =
       producesPlayerInfo &&
+      !ENGINE_SELF_MASKING_ROLES.has(roleId) &&
       isPlayerInfoCorrupted({
         roleId,
         metaIsCorrupted: resultContext.meta.isCorrupted === true,
@@ -1760,7 +1800,8 @@ export async function executeViaNewEngine(
      * @returns null 表示"无需/不能脱敏"（非信息类 or 未受干扰）
      */
     const maskCorruptedResult = (truthText: string, trueValue?: unknown) => {
-      if (!isCorruptedForPlayer || !producesPlayerInfo || !truthText) return null;
+      if (!isCorruptedForPlayer || !producesPlayerInfo || !truthText)
+        return null;
       const masked = buildCorruptedInfoMask({
         roleId,
         roleName,
@@ -1925,17 +1966,11 @@ export async function executeViaNewEngine(
           //   正解：与 `juggler.ability.ts:146` **同一枚种子 + 同一生成函数**，
           //   保证「提示预演」与「结果弹窗」以及**多次重看**都得到同一个数字。
           const jugglerRng = createDeterministicRandom(
-            nightInfoSeed(
-              "juggler",
-              actorId,
-              context.nightCount ?? 1
-            )
+            nightInfoSeed("juggler", actorId, context.nightCount ?? 1)
           );
           count =
             fakeCandidates.length > 0
-              ? fakeCandidates[
-                  Math.floor(jugglerRng() * fakeCandidates.length)
-                ]
+              ? fakeCandidates[Math.floor(jugglerRng() * fakeCandidates.length)]
               : realCount === 0
                 ? 1
                 : 0;
@@ -2234,7 +2269,18 @@ export function useNightActionHandler() {
           const evilSeatNo = evilTwinSeat
             ? `${evilTwinSeat.id + 1}号`
             : "对立玩家";
-          const displayName = `${seatPrefix}${nightInfo.effectiveRole?.name || "善良双子"}(双子告知)`;
+          /**
+           * 🏷️ 2026-09-24 用户要求「弹窗信息尽可能精简准确」：
+           * 旧实现用 `nightInfo.effectiveRole?.name`（= **步骤名**「双子告知」）
+           * 再拼一个 `(双子告知)` ⇒ 渲染成「2号-双子告知(双子告知)」，自我重复。
+           *
+           * 改为与**本函数内既有惯例**（赏金猎人 `阵营告知`，见下方
+           * `EVIL_CONVERTED_NOTICE_ID` 分支）同构：`<座位>号-<步骤名>`。
+           * ⚠️ 刻意**不**取 `seat.role.name`（真实角色名）—— 该系统步骤的目标玩家
+           *   可能正处于伪装身份（酒鬼/疯子/提线木偶），显示真名会**泄漏**；
+           *   步骤名不含角色信息，故对本条文案零泄漏风险。
+           */
+          const displayName = `${seatPrefix}双子告知`;
           const actionDesc = `告知对立双子：${evilSeatNo}是镜像双子`;
           const guideInfo = `唤醒${actorId + 1}号【${nightInfo.effectiveRole?.name || "对立双子"}】，告知他：${evilSeatNo}是镜像双子。`;
 

@@ -338,8 +338,11 @@ describe("🌺 接线回归 · insertIntoWakeQueueAfterCurrent 准入闸门", ()
   it("insertIntoWakeQueueAfterCurrent 内必须调用准入判定（roleHasNightAction / seatHasNightAction）", () => {
     const start = source.indexOf("const insertIntoWakeQueueAfterCurrent = useCallback(");
     expect(start, "未找到 insertIntoWakeQueueAfterCurrent 定义").toBeGreaterThan(-1);
-    // 取该函数开头 1200 字符窗口（足够覆盖闸门代码）
-    const window = source.slice(start, start + 1200);
+    // 取该函数开头 4000 字符窗口（足够覆盖闸门代码）。
+    // ⚠️ 2026-09-24：1200 → 4000 —— opts 类型文档注释扩充（position/stepOverride/
+    //    reinsertIfProcessed 三个新选项的语义说明）后，闸门代码被挤出原窗口；
+    //    护栏本意是「函数体内必须有准入判定」，不是「前 1200 字符必须有」。
+    const window = source.slice(start, start + 4000);
     expect(
       /roleHasNightAction|seatHasNightAction/.test(window),
       "insertIntoWakeQueueAfterCurrent 必须调用夜序准入判定，否则纯被动角色可被塞进队列"

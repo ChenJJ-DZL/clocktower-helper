@@ -215,6 +215,8 @@ export interface GameSnapshot {
   selectedScript?: any;
   scriptId?: string;
   scriptName?: string;
+  /** 📋 操作记录（随快照持久化；2026-09-24 修复「继续对局后复盘没有信息」） */
+  gameLogs?: LogEntry[];
 }
 
 // 对局记录数据结构

@@ -1,0 +1,32 @@
+# 窃窃私语（whispering_secrets）· 逐角色**语义变异**台账（2026-09-22）
+#
+# 格式：role|file|line|from|to
+# 用法：MUT_TESTS="<ws 四层文件>" bash mutate.sh ws
+#
+# 🔒 铁律
+#   · 每个角色**恰好一条**，且必须是**语义变异**（改具体判据 / 阈值 / 结果值 / 效果），
+#     **不是** `calculate: []` / `stateUpdate: []` 那种「清空整段」
+#     —— 后者只能证明「测试依赖该段」，证明不了覆盖段内分支（skill §A.2）。
+#   · `from` 与 `to` 字段**不得含 `|`**（mutate.sh 用 `IFS='|'` 切字段）。
+#   · ⚠️ `saint` **不在表内**：窃窃私语里的圣徒是**外来者版**，
+#     `src/roles/new_engine/saint.ability.ts` 的 `roleId` 是 `saint_townsfolk`，
+#     ⇒ 本剧本的 `saint` **没有新引擎能力可变异**（处决诅咒走 legacy `checkGameEnd`）。
+#     这是**已登记的既有设计**，不是漏做；由 `ws_l2_matrix` ⓪ 与 `ws_l5_causal_plus` 例外用例双向锁住。
+chambermaid|src/roles/new_engine/chambermaid.ability.ts|112|wokenCount = realWokenCount;|wokenCount = realWokenCount + 1;
+gossip|src/roles/new_engine/gossip.ability.ts|47|shouldKill: isStatementTrue,|shouldKill: !isStatementTrue,
+oracle|src/roles/new_engine/oracle.ability.ts|120|finalCount,|finalCount: finalCount + 1,
+mathematician|src/roles/new_engine/mathematician.ability.ts|76|abnormalCount: result,|abnormalCount: result + 1,
+artist|src/roles/new_engine/artist.ability.ts|50|isCorrupted: !isAbilityActive,|isCorrupted: isAbilityActive,
+flowergirl|src/roles/new_engine/flowergirl.ability.ts|37|hasVoted,|hasVoted: !hasVoted,
+innkeeper|src/roles/new_engine/innkeeper.ability.ts|97|seat.id === result.drunkId;|seat.id !== result.drunkId;
+fool|src/roles/new_engine/fool.ability.ts|53|isDead: false,|isDead: true,
+recluse|src/roles/new_engine/recluse.ability.ts|172|registersAsEvil: true,|registersAsEvil: false,
+politician|src/roles/new_engine/politician.ability.ts|53|politicianWon: evaluation.politicianWon,|politicianWon: !evaluation.politicianWon,
+spy|src/roles/new_engine/spy.ability.ts|334|isCorrupted: true };|isCorrupted: false };
+witch|src/roles/new_engine/witch.ability.ts|23|aliveCount <= 3|aliveCount <= 4
+assassin|src/roles/new_engine/assassin.ability.ts|93|isDead: true,|isDead: false,
+devils_advocate|src/roles/new_engine/devils_advocate.ability.ts|47|protected: isAbilityActive,|protected: !isAbilityActive,
+vortox|src/roles/new_engine/vortox.ability.ts|174|diedAtNight: ctx.snapshot.nightCount,|diedAtNight: ctx.snapshot.nightCount + 1,
+po|src/roles/new_engine/po.ability.ts|219|poCharged: false,|poCharged: true,
+zombuul|src/roles/new_engine/zombuul.ability.ts|44|const { lastDuskExecution } = snapshot;|const lastDuskExecution: any = null;
+plague_doctor|src/roles/new_engine/plague_doctor.ability.ts|45|storytellerAcquired: true,|storytellerAcquired: false,

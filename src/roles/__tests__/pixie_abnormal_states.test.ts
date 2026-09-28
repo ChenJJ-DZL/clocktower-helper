@@ -13,16 +13,28 @@ import { board, runRole } from "./_tbHarness";
  * （`得知【XX】在场`），否则玩家会据此推理出真实身份。
  *
  * ⚠️ 判据不锚在文案，锚在**事实**：「给出的角色 id 是否真的在场」。
+ *
+ * ⚠️⚠️ 2026-09-24 二次实测（同根因的第二段）：引擎（本文件 ①~⑤ 测的）产出的
+ *   同形文案会在**结果文案唯一出口**被"受干扰脱敏层"（useNightActionHandler 的
+ *   `maskCorruptedResult`）二次处理 —— pixie 不在 `INFO_ROLE_KIND` 表 ⇒
+ *   kind 兜底 "text" ⇒ `TEXT_FAKE_FALLBACK`「你获得了一条信息（内容由说书人裁定）」
+ *   把引擎同形假值**盖掉** ⇒ 确认页「得知【占卜师】在场」、结果页却是中性兜底，
+ *   两页不一致且暴露干扰（用户实测截图现场）。
+ *   ⇒ 已在脱敏层加 `ENGINE_SELF_MASKING_ROLES` 豁免名单（含 pixie），
+ *     源码级护栏见本文件 ⑥ —— 名单被删/被绕过即红。
  */
+
+const HANDLER_SRC = require("fs").readFileSync(
+  require("path").resolve(__dirname, "../../hooks/useNightActionHandler.ts"),
+  "utf-8"
+) as string;
 
 /** 场上布局：0号=小精灵，其余为在场陪衬（含 1 个镇民 + 1 个爪牙 + 1 个恶魔） */
 const BASE = ["pixie", "soldier", "chef", "imp", "baron"];
 
 function inPlayTownsfolkIds(seats: any[]): Set<string> {
   return new Set(
-    seats
-      .filter((s) => s.role?.type === "townsfolk")
-      .map((s) => s.role?.id)
+    seats.filter((s) => s.role?.type === "townsfolk").map((s) => s.role?.id)
   );
 }
 
@@ -52,7 +64,7 @@ describe("小精灵首夜信息 · 多状态显示（罂粟花开）", () => {
     expect(
       inPlay.has(r.roleId),
       `❌ 正常态给出的【${r.roleName}】不在场（在场镇民：${[...inPlay].join("、")}）` +
-        `—— 小精灵必须得知一个**在场**镇民`
+        "—— 小精灵必须得知一个**在场**镇民"
     ).toBe(true);
     expect(
       String(res?.meta?.displayInfo?.log ?? ""),
@@ -75,7 +87,7 @@ describe("小精灵首夜信息 · 多状态显示（罂粟花开）", () => {
     expect(
       inPlay.has(r.roleId),
       `❌ 中毒态给出的【${r.roleName}】**竟然在场** —— 假信息必须是不在场角色，` +
-        `否则玩家能反推出真身`
+        "否则玩家能反推出真身"
     ).toBe(false);
   });
 
@@ -132,5 +144,36 @@ describe("小精灵首夜信息 · 多状态显示（罂粟花开）", () => {
         `❌ 涡流局的兜底选角【${r.roleName}】落在了在场角色上 —— 泄漏真身`
       ).toBe(false);
     }
+  });
+
+  it("⑥⭐ 源码级护栏：脱敏层必须把 pixie 列入 ENGINE_SELF_MASKING_ROLES 豁免", () => {
+    // 结果文案唯一出口（useNightActionHandler 的 maskCorruptedResult）在
+    // isCorruptedForPlayer=true 时会替换玩家文案 —— pixie 的同形假值由引擎自治
+    // 产出（②③④⑤），本层再跑 text 兜底就会盖成「你获得了一条信息（内容由说书人
+    // 裁定）」（2026-09-24 用户实测：确认页与结果页不一致）。名单被删即本条变红。
+    expect(
+      HANDLER_SRC.includes("ENGINE_SELF_MASKING_ROLES"),
+      "❌ 脱敏层的引擎自治豁免名单 ENGINE_SELF_MASKING_ROLES 消失了 —— " +
+        "pixie 的同形假值会被 TEXT_FAKE_FALLBACK 盖掉"
+    ).toBe(true);
+    const at = HANDLER_SRC.indexOf(
+      "ENGINE_SELF_MASKING_ROLES: ReadonlySet<string>"
+    );
+    expect(at, "❌ 豁免名单定义形态变了（不再是 ReadonlySet）").toBeGreaterThan(
+      -1
+    );
+    const win = HANDLER_SRC.slice(at, at + 120);
+    expect(
+      win.includes('"pixie"'),
+      "❌ 豁免名单里没有 pixie —— 引擎同形假值会被中性兜底盖掉"
+    ).toBe(true);
+    // 豁免必须真正作用于 isCorruptedForPlayer（而不是只声明不消费）
+    const used = HANDLER_SRC.includes(
+      "!ENGINE_SELF_MASKING_ROLES.has(roleId) &&"
+    );
+    expect(
+      used,
+      "❌ 豁免名单声明了但没有作用于 isCorruptedForPlayer 判定"
+    ).toBe(true);
   });
 });

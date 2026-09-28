@@ -15,8 +15,10 @@ import { getRoleDefinition } from "../roles";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
-import { generateDynamicNightQueue } from "../utils/dynamicQueueGenerator";
+import { canFoolSurvive } from "../utils/bmrMechanics";
 import {
+  generateDynamicNightQueue,
+  isDeathTriggeredRole,
   roleHasNightAction,
   seatHasNightAction,
 } from "../utils/dynamicQueueGenerator";
@@ -38,7 +40,6 @@ import {
   saveCurrentSnapshot,
 } from "../utils/persistence";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
-import { canFoolSurvive } from "../utils/bmrMechanics";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import {
   isZombuulNightImmune,
@@ -51,7 +52,6 @@ import { useDayActions } from "./useDayActions";
 import { useExecutionHandlers } from "./useExecutionHandlers";
 import { useGameFlow } from "./useGameFlow";
 import { useGameRecords } from "./useGameRecords";
-import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import { useGameState } from "./useGameState";
 import { useHistoryController } from "./useHistoryController";
 import { useInteractionHandler } from "./useInteractionHandler";
@@ -450,6 +450,38 @@ export function useGameController() {
          * ⇒ 这类调用方显式传 `force: true`，责任自负。
          */
         force?: boolean;
+        /**
+         * ⭐ 2026-09-24（用户要求「参考镜像双子的流程，洗脑后**立即**增加唤醒环节」）：
+         * 插入位置。
+         *   · `"priority"`（默认，既有行为）：按 `firstNightOrder/otherNightOrder`
+         *     插入到剩余队列的**正确夜序位置**，无夜序者落到队尾。
+         *   · `"next"`：**紧跟当前步骤之后**（`currentWakeIndex + 1`）。
+         *
+         * 用于「说书人主动发起的即时告知步骤」——官方要求洗脑师选完人**当场**唤醒
+         * 被洗脑者告知，而不是等到队尾。镜像双子的告知节点也是紧随其后的
+         * （`dynamicQueueGenerator` 第 6 步：`evilTwinIdx + 1`）。
+         *
+         * ⚠️ 仍然受 `prev.includes(id)` 去重保护 ⇒ 已在队列中的座位不会被重复唤醒、
+         *    更不会被提前（他自己的技能步骤照旧）。
+         */
+        position?: "next" | "priority";
+        /**
+         * ⭐ 2026-09-24（洗脑师告知）：把本节点登记为**系统步骤**。
+         *
+         * 队列只存座位 id，`systemStepRoleIds`（key = **队列 index**，
+         * 见 `useNightSnapshot::updateSnapshot`）里没有新节点 ⇒ 下游适配器会按
+         * 该座位的**真实角色**解析 —— 有夜间技能的座位会再弹一次技能页、
+         * 永远收不到告知。登记后适配器按该系统步骤 id 走专属分支。
+         */
+        stepOverride?: string;
+        /**
+         * ⭐ 2026-09-24（洗脑师告知）：允许**重插已处理过**的座位。
+         * 洗脑师夜序晚于多数镇民 ⇒ 目标往往已经行动过（在 processed 段）；
+         * 默认的 `prev.includes(id)` 全局去重会拒绝入队 ⇒ 告知丢失。
+         * 开启后：目标仍在**剩余队列**里 ⇒ 照旧去重（他会在自己的步骤里被告知）；
+         * 已处理/不在队列 ⇒ 允许作为独立告知节点重插。
+         */
+        reinsertIfProcessed?: boolean;
       }
     ) => {
       // 🌺 队列准入不变式：没有夜间行动的角色（纯被动，如罂粟种植者）永远不得入队。
@@ -473,6 +505,46 @@ export function useGameController() {
             opts?.roleOverride?.id ?? seatForCheck?.role?.id ?? "未知"
           } 无夜间行动（纯被动角色）`
         );
+        return;
+      }
+      // ⭐ position:"next"（2026-09-24 洗脑师告知）：**紧跟当前步骤**插入。
+      //    基于 `wakeQueueIdsRef`（最新队列）同步计算，直接写 ref + setState ——
+      //    不走 setState updater（纯函数约束：updater 里做 map 修正这类副作用
+      //    在 StrictMode 下会被双调用执行两次 ⇒ shift 两次 = 错位）。
+      if (opts?.position === "next") {
+        const prev = wakeQueueIdsRef.current ?? [];
+        const rest = prev.slice(currentWakeIndex + 1);
+        // 去重：目标仍在剩余队列 ⇒ 照旧去重（他会在自己的步骤里被告知）；
+        // 已处理/不在队列 + reinsertIfProcessed ⇒ 允许作为独立告知节点重插。
+        if (
+          prev.includes(id) &&
+          !(opts?.reinsertIfProcessed === true && !rest.includes(id))
+        ) {
+          return;
+        }
+        const insertPos = currentWakeIndex + 1;
+        const next = [
+          ...prev.slice(0, insertPos),
+          id,
+          ...prev.slice(insertPos),
+        ];
+        wakeQueueIdsRef.current = next;
+        setWakeQueueIds(next);
+        // 🧠 systemStepRoleIds 同步：key = 队列 index ⇒ 插入点之后的既有映射
+        //    整体右移一位，再登记本节点的系统步骤 id。**不修正的话，插入点之后
+        //    的系统步骤（minion_info/demon_info/双子告知…）会串到错误的节点上**。
+        if (opts?.stepOverride || systemStepRoleIdsRef.current.size > 0) {
+          const shifted = new Map<number, string>();
+          systemStepRoleIdsRef.current.forEach((roleId, idx) => {
+            shifted.set(idx >= insertPos ? idx + 1 : idx, roleId);
+          });
+          if (opts?.stepOverride) {
+            shifted.set(insertPos, opts.stepOverride);
+          }
+          systemStepRoleIdsRef.current = shifted;
+          setSystemStepRoleIds?.(shifted);
+        }
+        if (opts?.logLabel) addLog(`${opts.logLabel} 已加入本夜唤醒队列`);
         return;
       }
       setWakeQueueIds((prev: number[]) => {
@@ -504,7 +576,16 @@ export function useGameController() {
       });
       if (opts?.logLabel) addLog(`${opts.logLabel} 已加入本夜唤醒队列`);
     },
-    [gamePhase, currentWakeIndex, seats, setWakeQueueIds, addLog]
+    [
+      gamePhase,
+      currentWakeIndex,
+      seats,
+      setWakeQueueIds,
+      addLog,
+      wakeQueueIdsRef,
+      systemStepRoleIdsRef,
+      setSystemStepRoleIds,
+    ]
   );
 
   const killPlayer = useCallback(
@@ -551,7 +632,12 @@ export function useGameController() {
         commitSeats((prev) =>
           prev.map((s) =>
             s.id === targetId
-              ? { ...s, isDead: false, foolUsed: true, hasUsedFoolAbility: true }
+              ? {
+                  ...s,
+                  isDead: false,
+                  foolUsed: true,
+                  hasUsedFoolAbility: true,
+                }
               : s
           )
         );
@@ -826,6 +912,9 @@ export function useGameController() {
         seatNotes: snap.seatNotes || {},
         hadesiaChoiceEnabled: snap.hadesiaChoiceEnabled ?? false,
         lastExecutedPlayerId: snap.lastExecutedPlayerId ?? null,
+        // 📋 恢复操作记录（2026-09-24 用户实测「继续对局后复盘没有信息」：
+        //   恢复此前不含 gameLogs ⇒ 座位/阶段都在而日志全丢）。旧档无此字段 ⇒ 空数组。
+        gameLogs: (snap as any).gameLogs ?? [],
       };
       if (script) updates.selectedScript = script;
       baseDispatch(gameActions.updateState(updates));

@@ -33,10 +33,7 @@ export function InfoResultModal({
   // ⚠️ 2026-09-14：统一走 splitResultForDisplay —— 长单句按中文标点折成 2 行，
   //   多行结果原样保留。取代原先 isMultiLine 的二分支（那条单行分支用
   //   whitespace-nowrap 会把长句撑出弹窗被裁掉）。
-  const resultLines = useMemo(
-    () => splitResultForDisplay(result),
-    [result]
-  );
+  const resultLines = useMemo(() => splitResultForDisplay(result), [result]);
   const isMultiLine = resultLines.length > 1;
   // 原始就是多行（互认名单 / 两条信息等**列表型**内容）→ 保留左对齐；
   // 由展示层拆分出来的 2 行（**长单句折行**，如僧侣）→ 居中更好读。
@@ -71,17 +68,31 @@ export function InfoResultModal({
        *      单行 4xl/5xl/6xl → 5xl/6xl/7xl），AutoFitContent 需要更大的缩放
        *      余量才能把长内容（如恶魔互认的
        *      「提线木偶×告密者相克·恶魔额外伪装：…」）完整收进弹窗。
-       *      ⚠️ ***内容限宽必须保留 `max-w-[86vw]`***：弹窗宽是
-       *      `min(92%,1360px)`。曾放宽到 96vw，被护栏
-       *      `monk_result_wrap.test.tsx` 拦下（会溢出弹窗）。
-       *      ⚠️ 也不能用 `whitespace-nowrap` 强制不折行 —— 同样会被拤下
-       *      （2026-09-14 它把长单句撑出弹窗被裁）。
+       *      ⚠️ 也不能用 `whitespace-nowrap` 强制不折行 —— 会被护栏
+       *      `monk_result_wrap.test.tsx` 拤下（2026-09-14 它把长单句撑出弹窗被裁）。
        *      ⇒ 本次只能靠「减少留白 + 提高字号上限 + 加大缩放余量」三手段增密。
        *   ② targetRatio 0.9 → 0.97：更充分地填满可用空间。
        *   ③ className `p-2` → `p-0`：外层留白清零。
+       *
+       * ⚠️⚠️ 2026-09-24 用户实测（涡流+镜像双子 结果页）：**左右边距仍明显偏大**。
+       *   根因 = 内层限宽用的是 `max-w-[86vw]` —— **视口单位**，而弹窗宽是
+       *   `min(92%, 1360px)`（见 ModalWrapper）。二者不同基准 ⇒ 86vw < 弹窗宽，
+       *   凭空多出约 6% 的水平空白（左右各 3%），叠加 ModalWrapper 的 `p-5`（20 设计
+       *   像素 ≈ 1.5%）与 AutoFit 的 targetRatio 余量 ⇒ 目测左右边距 ≈ 5~6%。
+       *   用户要求：**左右边距各不超过弹窗宽度的 4%**。
+       *   ✅ 修法 = 把限宽改为**相对父容器**的 `max-w-full`（不再跨基准换算）：
+       *     容器宽 = 弹窗宽 − 2×p-5 ⇒ 左右边距 = 1.5%（p-5）+ 1.5%（targetRatio 余量）
+       *     ≈ **3% ≤ 4%** ✅。
+       *   ⚠️ `max-w-full` 是"相对父容器"的限宽，**永远不会溢出弹窗**；这比原来的
+       *      `86vw` / 曾经失败的 `96vw`（视口基准，可能大于容器）**更安全**，
+       *      护栏语义（"必须有限宽，防长句溢出"）同样满足。
        */}
-      <AutoFitContent targetRatio={0.97} minScale={0.38} className="p-0 text-white">
-        <div className="text-center my-auto space-y-2 max-w-[86vw] px-1 py-1">
+      <AutoFitContent
+        targetRatio={0.97}
+        minScale={0.38}
+        className="p-0 text-white"
+      >
+        <div className="text-center my-auto space-y-2 max-w-full px-0 py-1">
           {prefix && (
             <div className="text-3xl sm:text-4xl md:text-5xl text-amber-200/90 font-bold leading-tight px-1">
               {prefix}
@@ -95,7 +106,7 @@ export function InfoResultModal({
               溢出弹窗被裁。现**两个分支都允许折行 + 限宽**，且长单句会被
               `splitResultForDisplay` 预先按中文标点折成 2 行，保证**完整显示在弹窗内**。 */}
           {isMultiLine ? (
-            <div className="flex justify-center my-1 max-w-[86vw]">
+            <div className="flex justify-center my-1 max-w-full">
               <div
                 className={`inline-block ${
                   splitByDisplayLayer ? "text-center" : "text-left"
@@ -112,7 +123,7 @@ export function InfoResultModal({
               </div>
             </div>
           ) : (
-            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-normal break-words max-w-[86vw] mx-auto px-1 my-1 text-5xl sm:text-6xl md:text-7xl">
+            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-normal break-words max-w-full mx-auto px-0 my-1 text-5xl sm:text-6xl md:text-7xl">
               {resultLines[0] ?? result}
             </div>
           )}
@@ -125,7 +136,8 @@ export function InfoResultModal({
               确认页与结果页**都只说书人可见**，故此处改为明确的"说书人专用"标注。 */}
           {storytellerFacing && (
             <div className="text-xs sm:text-sm text-amber-300 bg-amber-950/40 rounded-xl p-3 border border-amber-500/50">
-              🎙️ 本页为**说书人专用**（军团代操作）：含真值与全员信息，请勿展示给玩家。
+              🎙️
+              本页为**说书人专用**（军团代操作）：含真值与全员信息，请勿展示给玩家。
             </div>
           )}
         </div>

@@ -9,16 +9,17 @@ import {
   type Seat,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
-import { applyCharadePermanentDrunk } from "../utils/charadeSetup";
-import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
-import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../utils/mutantGate";
 import {
   applyBountyHunterEvilConversion,
   isRealBountyHunterSeat,
 } from "../utils/bountyHunterSetup";
+import { hasPendingCerenovusCheck as hasPendingCerenovusGate } from "../utils/cerenovusGate";
+import { applyCharadePermanentDrunk } from "../utils/charadeSetup";
 import { getRandom, isGoodAlignment } from "../utils/gameRules";
 import { buildLunaticFakeInfo } from "../utils/lunaticFakeInfo";
+import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../utils/mutantGate";
 import { showAlert } from "../utils/nativeDialogShim";
+import { isSeatMinionOrDemon, isSeatTraveler } from "../utils/seatAlignment";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 
 /**
@@ -262,9 +263,13 @@ export function useGameFlow(): UseGameFlowResult {
     let targetDied = false;
 
     if (initialCerenovusTarget) {
-      const targetSeat = seats.find((s) => s.id === initialCerenovusTarget.targetId);
+      const targetSeat = seats.find(
+        (s) => s.id === initialCerenovusTarget.targetId
+      );
       const isTargetDead = Boolean(
-        targetSeat?.isDead || (state.deadThisNight && state.deadThisNight.includes(initialCerenovusTarget.targetId))
+        targetSeat?.isDead ||
+          (state.deadThisNight &&
+            state.deadThisNight.includes(initialCerenovusTarget.targetId))
       );
       if (isTargetDead) {
         targetDied = true;
@@ -297,7 +302,11 @@ export function useGameFlow(): UseGameFlowResult {
     // 2. 重置存活洗脑师白天技能使用标记（若目标死亡则直接置为 hasUsedDayAbility: true，避免再次提示）
     const updatedSeats = seats.map((s) => {
       let seatModified = s;
-      if (targetDied && initialCerenovusTarget && s.id === initialCerenovusTarget.targetId) {
+      if (
+        targetDied &&
+        initialCerenovusTarget &&
+        s.id === initialCerenovusTarget.targetId
+      ) {
         const cleanedDetails = (s.statusDetails || []).filter(
           (d) => !d.startsWith("洗脑") && !d.includes("疯狂")
         );
@@ -582,6 +591,34 @@ export function useGameFlow(): UseGameFlowResult {
         return { ...seat, displayRole: nextDisplayRole };
       });
 
+      // 📋 开局落座记录（2026-09-24 用户要求：对局复盘要从落座开始详细记录）。
+      //   写在 proceedToCheckPhase（开局唯一咽喉，快速开局/手动落座都走这里），
+      //   特殊设置（赏金猎人转邪 / 红罗剎 / 伪装身份）各有自己的日志在后面。
+      dispatch(
+        gameActions.addLog({
+          day: 0,
+          phase: "setup",
+          message: `🎬 开局落座完成：${active.length} 人局，剧本【${selectedScript?.name ?? "自定义"}】`,
+        })
+      );
+      processedSeats.forEach((s) => {
+        // ⚠️ 阵营标签必须走 seatAlignment（护栏：禁内联 role.type 裸判断）。
+        //   落座时点在赏金猎人转邪**之前** ⇒ 这里显示的是**发牌牌面**阵营，
+        //   转邪/阵营调整各有专属日志随后写入。
+        const teamTag = isSeatMinionOrDemon(s)
+          ? "😈 邪恶"
+          : isSeatTraveler(s)
+            ? "🧳 旅行者"
+            : "😇 善良";
+        dispatch(
+          gameActions.addLog({
+            day: 0,
+            phase: "setup",
+            message: `【落座】${s.id + 1}号 = 【${s.role?.name}】（${teamTag}）`,
+          })
+        );
+      });
+
       const compact = processedSeats.map((s, i) => ({ ...s, id: i }));
       const withRed = [...compact];
 
@@ -593,9 +630,7 @@ export function useGameFlow(): UseGameFlowResult {
         const idx = withRed.findIndex((s) => s.id === bhResult.convertedSeatId);
         if (idx !== -1) {
           withRed[idx] = bhResult.seats[idx];
-          const bhIdx = withRed.findIndex((s) =>
-            isRealBountyHunterSeat(s)
-          );
+          const bhIdx = withRed.findIndex((s) => isRealBountyHunterSeat(s));
           if (bhIdx !== -1) withRed[bhIdx] = bhResult.seats[bhIdx];
           const t = withRed[idx];
           dispatch(

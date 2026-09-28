@@ -17,13 +17,22 @@
  * 本文件钉死：
  *   ① 僧侣结果**渲染为 2 行**（DOM 里是 2 个独立 div）；
  *   ② 结果区**绝不能再出现 `whitespace-nowrap`**（防溢出回归）；
- *   ③ 结果容器带限宽类（`max-w-[86vw]`），保证在弹窗内；
+ *   ③ 结果容器带限宽类（`max-w-full`，**相对父容器**），保证在弹窗内；
  *   ④ 两行拼接后的纯文本 == 引擎原文（零字符丢失）。
+ *
+ * ⚠️ 2026-09-24 更新（用户实测：结果页左右边距偏大）：
+ *   限宽类由 `max-w-[86vw]` 改为 `max-w-full`。
+ *   原因：`86vw` 是**视口**单位，而弹窗宽是 `min(92%, 1360px)` —— 基准不同，
+ *   凭空多出约 6% 水平空白（左右各 3%），叠加 ModalWrapper `p-5` 后目测 ≈5~6%，
+ *   超过用户要求的「左右边距各 ≤ 弹窗宽 4%」。
+ *   `max-w-full` 相对父容器 ⇒ 边距只剩 `p-5`(1.5%) + AutoFit 余量(1.5%) ≈ 3% ✅，
+ *   且**只会更安全**（父容器永远在弹窗内，不可能溢出）。
  */
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { cleanup, render } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { InfoResultModal } from "../InfoResultModal";
 
 beforeAll(() => {
@@ -38,8 +47,7 @@ beforeAll(() => {
 
 afterEach(() => cleanup());
 
-const MONK_PROTECTED =
-  "僧侣保护了【1号】，该玩家今晚免受恶魔负面效果影响";
+const MONK_PROTECTED = "僧侣保护了【1号】，该玩家今晚免受恶魔负面效果影响";
 
 function renderResult(resultText: string, roleName = "15号-僧侣") {
   return render(
@@ -98,10 +106,14 @@ describe("僧侣结果页 · 折 2 行", () => {
     ).toBe(false);
   });
 
-  it("结果容器带限宽类（max-w-[86vw]），确保在弹窗内", () => {
+  it("结果容器带限宽类（max-w-full，相对父容器），确保在弹窗内", () => {
     renderResult(MONK_PROTECTED);
     const html = document.body.innerHTML;
-    expect(html).toContain("max-w-[86vw]");
+    expect(html).toContain("max-w-full");
+    // ⚠️ 反向断言：不得再退回**视口基准**的限宽（86vw/96vw 会凭空产生额外水平空白，
+    //    是 2026-09-24「左右边距过大」的直接根因）。
+    expect(html).not.toContain("max-w-[86vw]");
+    expect(html).not.toContain("max-w-[96vw]");
   });
 
   it("允许折行：结果区含 break-words", () => {
