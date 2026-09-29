@@ -207,7 +207,7 @@
   },
   {
     "id": "courtier",
-    "name": "廷臣",
+    "name": "侍臣",
     "type": "townsfolk",
     "firstNightOrder": 32,
     "otherNightOrder": 15,
@@ -385,7 +385,7 @@
   },
   {
     "id": "fool",
-    "name": "愚人",
+    "name": "弄臣",
     "type": "townsfolk",
     "triggerMeta": {
       "onNightDeath": true,
@@ -1001,7 +1001,7 @@
   },
   {
     "id": "tea_lady",
-    "name": "茶女",
+    "name": "茶艺师",
     "type": "townsfolk",
     "triggerMeta": {
       "onExecution": true,
@@ -1159,7 +1159,7 @@
   },
   {
     "id": "goon",
-    "name": "暴徒",
+    "name": "莽夫",
     "type": "outsider",
     "triggerMeta": {
       "onSelected": true

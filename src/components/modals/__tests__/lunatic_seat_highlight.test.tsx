@@ -26,8 +26,6 @@
  */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import type { Seat } from "../../../../app/data";
 import {
   NightActionConfirmModal,
@@ -208,23 +206,3 @@ describe("🌀 真恶魔夜间确认页 · 疯子目标座位高亮", () => {
   });
 });
 
-describe("🛡️ 源码级护栏（防真恶魔专属信息泄漏到玩家页）", () => {
-  const SRC = readFileSync(
-    resolve(__dirname, "../NightActionConfirmModal.tsx"),
-    "utf-8"
-  );
-  const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-
-  it("⭐ 高亮数据来源必须是 data.lunaticTargetIds，不得从 seats 反推疯子", () => {
-    // 弹窗内不得直接读 lunaticTargetIds / lunaticTarget（那是 useNightActionHandler 的职责）
-    expect(code).not.toMatch(/\bseat[s]?\s*[?.]?\s*\[?[^)]*lunaticTargetIds/);
-    expect(code).toContain("lunaticTargetIds");
-    // 必须存在「由 data 注入 → Set」的收敛点
-    expect(code).toMatch(/new Set<number>\(\s*lunaticTargetIds/);
-  });
-
-  it("⭐ 弹窗组件内不得出现「疯子」以外的角色真相读取（不读 seat.role.id === 'lunatic'）", () => {
-    expect(code).not.toContain('role?.id === "lunatic"');
-    expect(code).not.toContain("apparentDemonRole");
-  });
-});

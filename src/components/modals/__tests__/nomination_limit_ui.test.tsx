@@ -18,9 +18,6 @@
  */
 import { describe, expect, it, beforeAll, afterEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 // GameActionsContext 提供 props；这里用 mock 注入可控状态
 const mockActions: any = {};
 vi.mock("../../../contexts/GameActionsContext", () => ({
@@ -142,46 +139,4 @@ describe("🗣️ 提名上限 · 提名选择面板（DayActionModal）", () =>
   });
 });
 
-/**
- * 📌 座位角标的 DOM 契约 —— 2026-09-14 E2E 踩坑后补的护栏。
- *
- * 事故经过：`e2e/trouble_brewing/nomination_limit.spec.ts` 用
- * `document.body.textContent.includes("已提名")` 断言角标存在 →
- * 真实浏览器里**必然 false**（DOM 可见文本只有两个短字「已提」/「被提」，
- * 完整语义挂在 `title` 属性上），于是产品明明是好的，E2E 却报红。
- *
- * 这里把 SeatNode 的角标文案 + title **双向钉死**：
- * 任何一方被改动，单测立刻红，不会等到 E2E 才暴露。
- */
-describe("📌 座位角标文案契约（SeatNode）", () => {
-  it("提名者角标文本为「已提」、title 为「本黄昏已发起过提名」", () => {
-    const src = readFileSync(
-      resolve(__dirname, "../../SeatNode.tsx"),
-      "utf-8"
-    );
-    expect(src).toContain('title="本黄昏已发起过提名"');
-    // 角标可见文本：紧跟 title 的 > 里的短文案
-    expect(src).toMatch(/title="本黄昏已发起过提名"\s*>\s*已提\s*</);
-  });
-
-  it("被提名角标文本为「被提」、title 为「本黄昏已被提名过」", () => {
-    const src = readFileSync(
-      resolve(__dirname, "../../SeatNode.tsx"),
-      "utf-8"
-    );
-    expect(src).toContain('title="本黄昏已被提名过"');
-    expect(src).toMatch(/title="本黄昏已被提名过"\s*>\s*被提\s*</);
-  });
-
-  it("SeatNode 的角标数据源直读 nominationRecords（Set / Array 双兼容）", () => {
-    const src = readFileSync(
-      resolve(__dirname, "../../SeatNode.tsx"),
-      "utf-8"
-    );
-    // 与 utils/nominationEligibility 的资格判定同源，避免角标与资格脱节
-    expect(src).toContain("nominationRecords?.nominators");
-    expect(src).toContain("nominationRecords?.nominees");
-    expect(src).toContain("instanceof Set");
-    expect(src).toContain(".includes(s.id)");
-  });
-});
+// 源码级护栏已移至 source_guardrails.test.ts（node 环境，可读 fs）

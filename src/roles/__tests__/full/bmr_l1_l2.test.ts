@@ -71,13 +71,8 @@ const rdata = (id: string): any => (rolesData as any[]).find((x) => x.id === id)
  * 这些是**历史遗留数据**，不属于本轮「三处名称一致」的比对范围（比对用的是
  * app/data.ts / officialRoleDocs.json / wake 模板三处）。此处显式记录，避免误判为缺陷。
  * 见交付报告「可疑点」栏。
+ * 2026-09-29：rolesData.json 已统一为 app/data.ts 的中文名，此映射不再需要。
  */
-const ROLESDATA_LEGACY_ALIAS: Record<string, string> = {
-  tea_lady: "茶女",
-  courtier: "廷臣",
-  fool: "愚人",
-  goon: "暴徒",
-};
 
 /** 负向对照种类（每种都指向一条官方前提） */
 type NegKind =

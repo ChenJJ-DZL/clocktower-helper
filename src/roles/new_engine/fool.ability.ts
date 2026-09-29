@@ -43,6 +43,9 @@ const calculate = async (
 const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  const abilityEffective = ctx.meta.abilityEffective ?? true;
+  if (!abilityEffective) return ctx;
+
   const r = ctx.meta.abilityResult as any;
   const foolSeatId = ctx.actionNode.seatId;
 

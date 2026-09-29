@@ -29,8 +29,6 @@
  *   且**只会更安全**（父容器永远在弹窗内，不可能溢出）。
  */
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { InfoResultModal } from "../InfoResultModal";
@@ -85,25 +83,6 @@ describe("僧侣结果页 · 折 2 行", () => {
     const html = document.body.innerHTML;
     // 渲染产物里不得出现 nowrap 类
     expect(html).not.toContain("whitespace-nowrap");
-  });
-
-  it("⭐⭐ 源码级护栏：InfoResultModal 的结果渲染**不得再出现** whitespace-nowrap", () => {
-    // ⚠️ 上一条断言只覆盖"当前这条文本走的分支" —— 若某条结果走了别的分支
-    //    （或折行器失效导致又回到单行分支），它可能漏检（已实测到假绿）。
-    //    因此这里再加一道**源码扫描**：只允许注释里提到 whitespace-nowrap
-    //    （作为历史说明），**不允许任何 className 使用它**。
-    const src = readFileSync(
-      resolve(__dirname, "../InfoResultModal.tsx"),
-      "utf-8"
-    );
-    // 去掉注释后，检查 className 里是否仍使用 whitespace-nowrap
-    const withoutComments = src
-      .replace(/\/\*[\s\S]*?\*\//g, "") // 块注释
-      .replace(/^\s*\/\/.*$/gm, ""); // 行注释
-    expect(
-      withoutComments.includes("whitespace-nowrap"),
-      "InfoResultModal 的 className 不得再使用 whitespace-nowrap（会导致长句溢出弹窗被裁）"
-    ).toBe(false);
   });
 
   it("结果容器带限宽类（max-w-full，相对父容器），确保在弹窗内", () => {

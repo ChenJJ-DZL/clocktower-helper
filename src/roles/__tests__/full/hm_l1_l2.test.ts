@@ -626,9 +626,7 @@ const SPEC: Spec[] = [
 const ROLESDATA_NAME_DEVIATION: Record<string, string> = {
   balloonist: "balloonist", // rolesData.json 该条 name 直接写英文 id
   artist: "艺人",
-  courtier: "廷臣",
   mutant: "变种人",
-  fool: "愚人",
   recluse: "隐士",
   scarlet_woman: "红罗刹",
   no_dashii: "诺-达", // 官方「诺-达鲺」，rolesData.json 少写最后一个「鲺」字

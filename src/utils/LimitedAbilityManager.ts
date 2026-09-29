@@ -123,6 +123,28 @@ const predefinedDefinitions: LimitedAbilityDefinition[] = [
     global: true,
     resetOnRoleChange: false,
   },
+  {
+    /**
+     * ⚠️ 2026-09-29 P0-B 补齐：`golem.ability.ts:36,83,103` 调用此 id，
+     *   但本表从未注册 ⇒ 「每局限一次」静默失效。
+     *   （魔像：每局一次提名时杀死被提名者。）
+     */
+    abilityId: "golem_nominate",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
+  {
+    /**
+     * ⚠️ 2026-09-29 P0-B 补齐：`zhen.ability.ts:51,133` 调用此 id，
+     *   但本表从未注册 ⇒ 「每局限一次」静默失效。
+     *   （甄：每局一次下毒。）
+     */
+    abilityId: "zhen_poison",
+    maxUses: 1,
+    global: false,
+    resetOnRoleChange: true,
+  },
 ];
 
 /** 抽取公共定义查找逻辑 */
