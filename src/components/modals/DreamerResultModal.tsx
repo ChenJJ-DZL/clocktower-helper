@@ -1,5 +1,5 @@
 import type { Role } from "../../../app/data";
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface DreamerResultModalProps {
@@ -30,12 +30,12 @@ export function DreamerResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.85} className="p-2 sm:p-6 text-white">
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-2 sm:p-6 text-white">
         <div className="text-center my-auto space-y-4">
-          <div className="text-xl sm:text-2xl md:text-3xl text-amber-200/90 font-bold leading-relaxed whitespace-nowrap">
+          <div className="text-lg sm:text-xl md:text-2xl text-amber-200/90 font-bold leading-relaxed">
             筑梦师得知目标玩家的角色是以下之一：
           </div>
-          <div className="text-4xl sm:text-5xl md:text-6xl font-black text-amber-400 tracking-wider text-center drop-shadow-2xl my-4 whitespace-nowrap">
+          <div className="text-4xl sm:text-5xl md:text-6xl font-black text-amber-400 tracking-wider text-center drop-shadow-2xl my-4 break-words">
             【{roleA.name}】 或 【{roleB.name}】
           </div>
           {/* ⚠️ P0 隐私（2026-09-13）：本页给玩家看，原「请说书人向玩家告知以上信息」

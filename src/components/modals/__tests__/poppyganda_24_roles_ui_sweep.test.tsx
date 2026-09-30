@@ -191,7 +191,7 @@ describe("24 角色 × 通用弹窗 数据驱动 UI 渲染扫描", () => {
       // 结果页必须把「解析后的核心结果」真实呈现出来。
       // ⚠️ 比较必须**两侧同时归一化**：渲染文本里角色名外面有【】装饰，
       //    只剥一侧会得出假的不匹配（第一版就这么错）。
-      const norm = (x: string) => x.replace(/[【】\s]/g, "");
+      const norm = (x: string) => x.replace(/[【】\s:：]/g, "");
       if (parsed.result && !norm(t).includes(norm(parsed.result))) {
         mismatched.push(
           `${roleId}：期望含「${parsed.result}」，实际「${t.slice(0, 100)}」`

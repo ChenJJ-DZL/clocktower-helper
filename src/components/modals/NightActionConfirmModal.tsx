@@ -8,7 +8,7 @@ import {
   type Seat,
 } from "../../../app/data";
 import { AdaptiveSeatGrid, SEAT_CARD_FONT } from "../common/AdaptiveSeatGrid";
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import {
   CERENOVUS_NOTICE_PLAYER_SUBTITLE,
   getCerenovusNoticePlayerText,
@@ -691,8 +691,7 @@ export function NightActionConfirmModal({
       ) : (
         /* 无需选人时的信息角色确认布局（自适应大字号等比缩放） */
         <AutoFitContent
-          targetRatio={0.9}
-          minScale={0.2}
+          {...SKILL_PAGE_AUTOFIT}
           className="p-2 sm:p-4 text-white"
         >
           <div className="flex flex-col items-center justify-center text-center space-y-6 w-max max-w-none px-6 py-4 my-auto">
@@ -701,11 +700,11 @@ export function NightActionConfirmModal({
             </div>
 
             <div className="space-y-4">
-              <div className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 whitespace-nowrap leading-snug">
+              <div className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-100 break-words leading-snug">
                 确认为 <span className="text-indigo-300">【{roleName}】</span>{" "}
                 执行行动
               </div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-300 bg-slate-800/80 border border-slate-700/80 rounded-2xl py-3 px-6 shadow-inner whitespace-nowrap inline-block">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-300 bg-slate-800/80 border border-slate-700/80 rounded-2xl py-3 px-6 shadow-inner break-words inline-block">
                 "{actionDescription}"
               </div>
             </div>
@@ -718,13 +717,13 @@ export function NightActionConfirmModal({
                 属于说书人侧说明，已删除；同类内容一律放 GameConsole 的「说书人Tips」。 */}
 
             {lunaticHint && (
-              <div className="text-base sm:text-lg font-black text-fuchsia-100 bg-fuchsia-900/50 rounded-xl p-3 border-2 border-fuchsia-400/70 shadow-lg shadow-fuchsia-900/40 whitespace-pre-line w-max max-w-none">
+              <div className="text-base sm:text-lg font-black text-fuchsia-100 bg-fuchsia-900/50 rounded-xl p-3 border-2 border-fuchsia-400/70 shadow-lg shadow-fuchsia-900/40 whitespace-pre-line w-max max-w-none break-words">
                 {lunaticHint}
               </div>
             )}
 
             {extraNote && (
-              <div className="text-sm sm:text-base text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40 w-max max-w-none whitespace-nowrap">
+              <div className="text-sm sm:text-base text-yellow-300 bg-yellow-950/40 rounded-xl p-3 border border-yellow-600/40 w-max max-w-none break-words">
                 ⚠️ {extraNote}
               </div>
             )}

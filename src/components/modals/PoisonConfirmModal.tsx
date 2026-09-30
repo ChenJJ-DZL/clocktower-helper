@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface PoisonConfirmModalProps {
@@ -124,15 +125,17 @@ export function PoisonConfirmModal({
         </div>
       }
     >
-      <div className="flex flex-col flex-1 p-2 sm:p-6 space-y-4 text-center my-auto w-full">
-        <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white leading-relaxed">
-          确认对{" "}
-          <span className="text-amber-400 font-black">
-            【{targetId + 1}号】
-          </span>{" "}
-          玩家下毒吗？
-        </p>
-      </div>
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-2 sm:p-6 text-white">
+        <div className="flex flex-col flex-1 space-y-4 text-center my-auto w-full">
+          <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed break-words">
+            确认对{" "}
+            <span className="text-amber-400 font-black">
+              【{targetId + 1}号】
+            </span>{" "}
+            玩家下毒吗？
+          </p>
+        </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

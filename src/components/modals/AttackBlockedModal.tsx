@@ -1,4 +1,4 @@
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface AttackBlockedModalProps {
@@ -36,11 +36,11 @@ export function AttackBlockedModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.85} className="p-4">
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-4">
         <div className="flex flex-col items-center justify-center text-center p-4 gap-6 my-auto w-full">
           <div className="text-7xl sm:text-8xl">🛡️</div>
           <div className="space-y-4 max-w-4xl">
-            <div className="text-white text-3xl sm:text-5xl font-black text-center leading-relaxed">
+            <div className="text-white text-3xl sm:text-4xl md:text-5xl font-black text-center leading-relaxed break-words">
               {demonName
                 ? `恶魔【${demonName}】攻击 ${targetId + 1}号，但因为【${reason}】，该玩家未死亡。`
                 : `${targetId + 1}号因【${reason}】未受到本次攻击的影响。`}

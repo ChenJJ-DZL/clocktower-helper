@@ -1,4 +1,4 @@
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ShootResultModalProps {
@@ -58,21 +58,21 @@ export function ShootResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.85} className="p-4">
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-4">
         <div className="flex flex-col items-center justify-center text-center p-4 gap-6 my-auto">
           <div className="text-7xl sm:text-8xl animate-bounce">
             {isDemonDead ? "🏆" : "💨"}
           </div>
 
           <div className="space-y-3 max-w-3xl">
-            <div className="text-lg sm:text-xl text-slate-300 font-bold leading-relaxed whitespace-nowrap">
+            <div className="text-lg sm:text-xl text-slate-300 font-bold leading-relaxed break-words">
               {actionDescription}
             </div>
             <div
-              className={`text-4xl sm:text-6xl font-black tracking-wide drop-shadow-2xl py-2 whitespace-nowrap ${
+              className={`text-4xl sm:text-5xl font-black tracking-wide drop-shadow-2xl py-2 break-words ${
                 isDemonDead
-                  ? "text-red-400 font-black"
-                  : "text-amber-300 font-black"
+                  ? "text-red-400"
+                  : "text-amber-300"
               }`}
             >
               【{resultText}】

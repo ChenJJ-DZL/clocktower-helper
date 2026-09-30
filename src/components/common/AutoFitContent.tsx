@@ -12,6 +12,22 @@ interface AutoFitContentProps {
   maxScale?: number;
 }
 
+/**
+ * 技能确认页 / 结果页 / 修正页的统一 AutoFitContent 配置。
+ *
+ * 所有技能页面共用同一套缩放参数，避免每个页面各自调参导致的碎片化。
+ * - targetRatio=0.9：四周留 5% 呼吸空间，够 ModalWrapper p-5 内边距
+ * - minScale=0.25：覆盖最长句子在 text-5xl 下的缩放需求，手机横屏实机仍可读
+ *
+ * 例外（不使用此常量）：
+ * - JugglerJudgeModal：需按「卡片宽÷最长字形数」逐卡片反算字号
+ * - ExecutionResultModal(多行)：每行字号递减，统一缩放会压坏最小行
+ */
+export const SKILL_PAGE_AUTOFIT = {
+  targetRatio: 0.9,
+  minScale: 0.25,
+} as const;
+
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LogEntry, ReminderToken, Seat } from "../../../app/data";
 import { roles } from "../../../app/data";
@@ -133,6 +134,9 @@ export function SpyGrimoireModal({
 
   // ─── 当前选中聚焦的座位（用于圆桌点击联动右侧情报） ───────────────────────
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
+
+  // ─── 全屏圆桌视图 ─────────────────────────────────────────────────────
+  const [isFullscreenTable, setIsFullscreenTable] = useState(false);
 
   // ─── 右侧日志的筛选 Tab（"all" | "night-0" (首夜) | "night-1" | "night-2" ... | "day"） ──
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -445,6 +449,7 @@ export function SpyGrimoireModal({
     containerHeight > 0 ? ((2 * B) / containerHeight) * 100 : 88;
 
   return (
+    <>
     <ModalWrapper
       title="📖 间谍椭圆魔典 (全知全景)"
       onClose={onClose}
@@ -771,6 +776,14 @@ export function SpyGrimoireModal({
                 );
               })}
             </div>
+
+            {/* 全屏按钮 - 左下角 */}
+            <button
+              onClick={() => setIsFullscreenTable(true)}
+              className="absolute bottom-2 left-2 z-30 px-2.5 py-1.5 rounded-lg bg-slate-800/90 text-amber-200 text-[11px] font-bold border border-amber-500/40 hover:bg-slate-700 hover:border-amber-400 transition-all shadow-lg backdrop-blur-sm active:scale-95"
+            >
+              ⛶ 全屏
+            </button>
           </div>
 
           {/* ─── 右栏：每个玩家每个晚上做了什么、得知了什么 (50% 宽) ──────── */}
@@ -930,5 +943,196 @@ export function SpyGrimoireModal({
         </div>
       </div>
     </ModalWrapper>
+
+    {/* 全屏圆桌视图 — Portal 直接挂 document.body，绕过 ScaleLayout 的 transform 缩放 */}
+    {isFullscreenTable &&
+      (() => {
+        const pad = 16;
+        const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
+        const vh = typeof window !== "undefined" ? window.innerHeight : 1080;
+        const RATIO = 1.4;
+
+        // 1.4:1 容器，最大化利用屏幕
+        let W = vw - pad * 2;
+        let H = W / RATIO;
+        if (H > vh - pad * 2) { H = vh - pad * 2; W = H * RATIO; }
+        W = Math.floor(W);
+        H = Math.floor(H);
+
+        const activeSeats = seats.filter(s => s.role);
+        const N = activeSeats.length;
+
+        // 椭圆半轴（占容器百分比）
+        const RxPct = 44; // 水平半轴 %
+        const RyPct = 44; // 垂直半轴 %
+        const Rx = (RxPct / 100) * W;
+        const Ry = (RyPct / 100) * H;
+
+        // 计算每个座位的角度和弧长，找出最小弧间距 → 座位直径
+        const angles: number[] = [];
+        for (let i = 0; i < N; i++) angles.push((2 * Math.PI * i) / N - Math.PI / 2);
+
+        // 椭圆弧长微分: ds = sqrt((Rx·sin(t))^2 + (Ry·cos(t))^2) · dt
+        const arcLen = (t1: number, t2: number) => {
+          const STEPS = 50;
+          const dt = (t2 - t1) / STEPS;
+          let s = 0;
+          for (let k = 0; k < STEPS; k++) {
+            const t = t1 + (k + 0.5) * dt;
+            s += Math.sqrt((Rx * Math.sin(t)) ** 2 + (Ry * Math.cos(t)) ** 2) * Math.abs(dt);
+          }
+          return s;
+        };
+
+        let minArc = Infinity;
+        for (let i = 0; i < N; i++) {
+          const a1 = angles[i];
+          const a2 = angles[(i + 1) % N];
+          let da = a2 - a1;
+          if (da <= 0) da += 2 * Math.PI;
+          const d = arcLen(a1, a1 + da);
+          if (d < minArc) minArc = d;
+        }
+
+        // 座位直径 = 最小弧间距 × 0.85（留15%间隙），且不超出容器边缘
+        const maxDiamByArc = minArc * 0.85;
+        const maxDiamByEdge = Math.min(Rx * (1 - RxPct / 100), Ry * (1 - RyPct / 100)) * 2;
+        const seatPx = Math.floor(Math.min(maxDiamByArc, maxDiamByEdge));
+
+        // 字号
+        const roleFont = Math.max(13, Math.floor(seatPx * 0.22));
+        const subFont = Math.max(10, Math.floor(seatPx * 0.14));
+        const badgeFont = Math.max(11, Math.floor(seatPx * 0.17));
+        const badgeSize = Math.max(20, Math.floor(seatPx * 0.28));
+        const statusFont = Math.max(9, Math.floor(seatPx * 0.11));
+
+        // 座位坐标百分比
+        const seatCoords = angles.map(a => ({
+          x: 50 + RxPct * Math.cos(a),
+          y: 50 + RyPct * Math.sin(a),
+        }));
+
+        return createPortal(
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 2147483647 }}
+            className="bg-slate-950 select-none"
+            onClick={() => setIsFullscreenTable(false)}
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsFullscreenTable(false); }}
+              className="absolute bottom-3 right-3 z-[10] px-5 py-2.5 rounded-xl bg-slate-800/95 text-amber-200 text-base font-black border-2 border-amber-500/60 hover:bg-slate-700 transition active:scale-95 cursor-pointer shadow-lg"
+            >⊟ 缩小</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsFullscreenTable(false); }}
+              className="absolute top-3 right-3 z-[10] px-5 py-2.5 rounded-xl bg-slate-800/95 text-amber-200 text-base font-black border-2 border-amber-500/60 hover:bg-slate-700 transition active:scale-95 cursor-pointer shadow-lg"
+            >✕ 退出全屏</button>
+
+            {/* 椭圆桌 — 1.4:1 居中 */}
+            <div
+              style={{ width: W, height: H, position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute inset-0 rounded-[50%] border-2 border-amber-500/20 bg-gradient-to-b from-slate-900/60 to-slate-950/90 shadow-[inset_0_0_120px_rgba(0,0,0,0.8)]" />
+              <div className="absolute inset-[2%] rounded-[50%] border border-dashed border-amber-500/10" />
+
+              {/* 中心 HUD */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[5] rounded-2xl bg-slate-900/95 border-2 border-amber-400/50 shadow-2xl backdrop-blur-md flex flex-col items-center justify-center text-center pointer-events-none p-2"
+                style={{ width: Math.floor(Math.min(W, H) * 0.16), height: Math.floor(Math.min(W, H) * 0.12) }}
+              >
+                <div style={{ fontSize: Math.max(9, Math.floor(Math.min(W, H) * 0.013)) }} className="text-amber-400 font-black tracking-widest mb-0.5">📖 间谍全屏</div>
+                <div style={{ fontSize: Math.max(14, Math.floor(Math.min(W, H) * 0.022)) }} className="text-white font-black">
+                  {seats.filter(s => s.isDead).length > 0 ? `${seats.filter(s => !s.isDead).length}人存活` : `${seats.length}人局`}
+                </div>
+                <div style={{ fontSize: Math.max(9, Math.floor(Math.min(W, H) * 0.013)) }} className="text-cyan-300 font-bold mt-0.5">
+                  {seats.filter(s => s.isDead).length > 0 ? `${seats.filter(s => s.isDead).length}人死亡` : "全员存活"}
+                </div>
+              </div>
+
+              {/* 座位节点 */}
+              {seats.map((seat, index) => {
+                if (!seat.role) return null;
+                const coord = seatCoords[index] || { x: 50, y: 50 };
+
+                const isDemon = seat.role.type === "demon" || seat.isDemonSuccessor;
+                const isMinion = seat.role.type === "minion";
+                const isOutsider = seat.role.type === "outsider";
+                const isEvil = seat.isEvilConverted || (!seat.isGoodConverted && (isDemon || isMinion));
+
+                const bgClass = seat.isDead ? "bg-slate-900/90 opacity-75"
+                  : isDemon ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-950"
+                  : isMinion ? "bg-gradient-to-br from-amber-950 via-slate-900 to-orange-950"
+                  : isEvil ? "bg-gradient-to-br from-purple-950 via-slate-900 to-red-950"
+                  : "bg-gradient-to-b from-slate-800 to-slate-900";
+
+                const borderColor = isDemon ? "border-red-500 shadow-[0_0_16px_rgba(239,68,68,0.5)]"
+                  : isMinion ? "border-orange-500 shadow-[0_0_14px_rgba(249,115,22,0.4)]"
+                  : isOutsider ? "border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.35)]"
+                  : "border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.2)]";
+
+                const nameColor = isDemon ? "text-red-400"
+                  : isMinion ? "text-orange-400"
+                  : isOutsider ? "text-cyan-300" : "text-blue-300";
+
+                const statusList: Array<{ icon: string; label: string; cls: string }> = [];
+                if (seat.isPoisoned) statusList.push({ icon: "🧪", label: "中毒", cls: "bg-green-950/90 text-green-300 border-green-700" });
+                if (seat.isDrunk && seat.role.id !== "drunk") statusList.push({ icon: "🍺", label: "醉酒", cls: "bg-amber-950/90 text-amber-300 border-amber-700" });
+                if (seat.isProtected) statusList.push({ icon: "🛡️", label: "守护", cls: "bg-blue-950/90 text-blue-300 border-blue-700" });
+                if (seat.isRedHerring) statusList.push({ icon: "🎯", label: "红罗刹", cls: "bg-red-950/90 text-red-300 border-red-700" });
+                if (seat.isDemonSuccessor) statusList.push({ icon: "💋", label: "继任", cls: "bg-purple-950/90 text-purple-300 border-purple-700" });
+                const tokens = reminderTokens[seat.id] || [];
+
+                return (
+                  <div
+                    key={seat.id}
+                    style={{ left: `${coord.x}%`, top: `${coord.y}%`, transform: "translate(-50%, -50%)", width: seatPx, height: seatPx }}
+                    className={`absolute rounded-full border-2 flex flex-col items-center justify-center z-20 ${bgClass} ${borderColor}`}
+                  >
+                    <div
+                      style={{ width: badgeSize, height: badgeSize }}
+                      className={`absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 flex items-center justify-center font-black z-30 shadow-md ${seat.isDead ? "bg-slate-800 border-slate-600 text-slate-400" : "bg-slate-900 border-amber-400 text-amber-300"}`}
+                    ><span style={{ fontSize: badgeFont }}>{seat.id + 1}</span></div>
+
+                    {seat.isDead && (
+                      <div className="absolute -top-1 -right-1 bg-slate-950/90 text-gray-300 border border-slate-700 px-1 rounded-full z-30" style={{ fontSize: badgeFont }}>
+                        💀{seat.hasGhostVote && "👻"}
+                      </div>
+                    )}
+
+                    <span style={{ fontSize: roleFont }} className={`font-black tracking-tight leading-none text-center ${nameColor} ${seat.isDead ? "line-through opacity-80" : ""}`}>
+                      {seat.role.name}
+                    </span>
+
+                    {seat.role.id === "drunk" && seat.charadeRole ? (
+                      <span style={{ fontSize: subFont }} className="text-purple-300 font-medium whitespace-nowrap leading-none mt-0.5">(伪:{seat.charadeRole.name})</span>
+                    ) : (
+                      <span style={{ fontSize: subFont }} className="text-slate-400 font-normal leading-none mt-0.5">
+                        {isDemon ? "恶魔" : isMinion ? "爪牙" : isOutsider ? "外来者" : "镇民"}
+                      </span>
+                    )}
+
+                    {statusList.length > 0 && (
+                      <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5 max-w-[95%]">
+                        {statusList.map((s, i) => (
+                          <span key={i} style={{ fontSize: statusFont }} className={`px-1 py-px rounded border font-bold whitespace-nowrap ${s.cls}`}>{s.icon}{s.label}</span>
+                        ))}
+                      </div>
+                    )}
+                    {tokens.length > 0 && (
+                      <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5 max-w-[95%]">
+                        {tokens.map((token, tIdx) => (
+                          <span key={tIdx} style={{ fontSize: statusFont }} className="px-1 rounded bg-slate-800 text-amber-200 border border-slate-600 font-medium truncate max-w-[50px]" title={token.label}>🏷️{token.label}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>,
+          document.body
+        );
+      })()
+    }
+    </>
   );
 }

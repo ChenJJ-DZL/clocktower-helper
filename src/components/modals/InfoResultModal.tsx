@@ -3,10 +3,34 @@ import {
   parseInfoResult,
   splitResultForDisplay,
 } from "../../utils/infoResultParser";
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 export { parseInfoResult, splitResultForDisplay };
+
+/**
+ * 将多行结果解析为"标题-内容"对，供多信息页（恶魔互认/爪牙互认等）统一排版。
+ * 每行按首个冒号拆分：冒号左侧为 title，右侧为 value。
+ * 无冒号的行只有 value，title 为空。
+ */
+function parseItemsForDisplay(
+  lines: string[]
+): Array<{ title: string; value: string }> {
+  return lines.map((line) => {
+    const colonIdx = line.indexOf(":");
+    const fullColonIdx = line.indexOf("：");
+    const idx =
+      colonIdx === -1
+        ? fullColonIdx
+        : fullColonIdx === -1
+          ? colonIdx
+          : Math.min(colonIdx, fullColonIdx);
+    if (idx > 0) {
+      return { title: line.slice(0, idx).trim(), value: line.slice(idx + 1).trim() };
+    }
+    return { title: "", value: line.trim() };
+  });
+}
 
 interface InfoResultModalProps {
   roleName: string;
@@ -30,13 +54,21 @@ export function InfoResultModal({
   storytellerFacing,
 }: InfoResultModalProps) {
   const { prefix, result } = parseInfoResult(resultText, roleName);
-  // ⚠️ 2026-09-14：统一走 splitResultForDisplay —— 长单句按中文标点折成 2 行，
-  //   多行结果原样保留。取代原先 isMultiLine 的二分支（那条单行分支用
-  //   whitespace-nowrap 会把长句撑出弹窗被裁掉）。
   const resultLines = useMemo(() => splitResultForDisplay(result), [result]);
   const isMultiLine = resultLines.length > 1;
-  // 原始就是多行（互认名单 / 两条信息等**列表型**内容）→ 保留左对齐；
-  // 由展示层拆分出来的 2 行（**长单句折行**，如僧侣）→ 居中更好读。
+
+  // 多信息页（恶魔互认/爪牙互认等）：每行按首个冒号拆成标题-内容对，
+  // 统一字号、每条消息 = 1行标题 + 1行内容。
+  const displayItems = useMemo(
+    () => (isMultiLine ? parseItemsForDisplay(resultLines) : null),
+    [isMultiLine, resultLines]
+  );
+  const hasItemPattern =
+    displayItems !== null &&
+    displayItems.length > 1 &&
+    displayItems.some((it) => it.title);
+
+  // 非 item 模式的多行：原始多行（无冒号列表）左对齐；展示层折行居中。
   const splitByDisplayLayer = !result.includes("\n") && isMultiLine;
 
   return (
@@ -62,60 +94,37 @@ export function InfoResultModal({
         </div>
       }
     >
-      {/**
-       * ⚠️ 2026-09-21 排版优化（用户明确要求：尽可能不换行 / 字号尽可能大 / 四边留白尽可能少）
-       *   ① minScale 0.55 → 0.38：字号上调后（多行 3xl/4xl/5xl → 4xl/5xl/6xl；
-       *      单行 4xl/5xl/6xl → 5xl/6xl/7xl），AutoFitContent 需要更大的缩放
-       *      余量才能把长内容（如恶魔互认的
-       *      「提线木偶×告密者相克·恶魔额外伪装：…」）完整收进弹窗。
-       *      ⚠️ 也不能用 `whitespace-nowrap` 强制不折行 —— 会被护栏
-       *      `monk_result_wrap.test.tsx` 拤下（2026-09-14 它把长单句撑出弹窗被裁）。
-       *      ⇒ 本次只能靠「减少留白 + 提高字号上限 + 加大缩放余量」三手段增密。
-       *   ② targetRatio 0.9 → 0.97：更充分地填满可用空间。
-       *   ③ className `p-2` → `p-0`：外层留白清零。
-       *
-       * ⚠️⚠️ 2026-09-24 用户实测（涡流+镜像双子 结果页）：**左右边距仍明显偏大**。
-       *   根因 = 内层限宽用的是 `max-w-[86vw]` —— **视口单位**，而弹窗宽是
-       *   `min(92%, 1360px)`（见 ModalWrapper）。二者不同基准 ⇒ 86vw < 弹窗宽，
-       *   凭空多出约 6% 的水平空白（左右各 3%），叠加 ModalWrapper 的 `p-5`（20 设计
-       *   像素 ≈ 1.5%）与 AutoFit 的 targetRatio 余量 ⇒ 目测左右边距 ≈ 5~6%。
-       *   用户要求：**左右边距各不超过弹窗宽度的 4%**。
-       *   ✅ 修法 = 把限宽改为**相对父容器**的 `max-w-full`（不再跨基准换算）：
-       *     容器宽 = 弹窗宽 − 2×p-5 ⇒ 左右边距 = 1.5%（p-5）+ 1.5%（targetRatio 余量）
-       *     ≈ **3% ≤ 4%** ✅。
-       *   ⚠️ `max-w-full` 是"相对父容器"的限宽，**永远不会溢出弹窗**；这比原来的
-       *      `86vw` / 曾经失败的 `96vw`（视口基准，可能大于容器）**更安全**，
-       *      护栏语义（"必须有限宽，防长句溢出"）同样满足。
-       */}
       <AutoFitContent
-        targetRatio={0.97}
-        minScale={0.38}
+        {...SKILL_PAGE_AUTOFIT}
         className="p-0 text-white"
       >
         <div className="text-center my-auto space-y-2 max-w-full px-0 py-1">
           {prefix && (
-            <div className="text-3xl sm:text-4xl md:text-5xl text-amber-200/90 font-bold leading-tight px-1">
+            <div className="text-lg sm:text-xl md:text-2xl text-amber-200/90 font-bold leading-tight px-1">
               {prefix}
             </div>
           )}
 
-          {/* ⚠️ 2026-09-13：多行结果**不能再用 `whitespace-nowrap` + `w-max`** ——
-              只要有一行较长，AutoFitContent 就会把整块缩到很小（用户实测"字体太小"）。
-              改为允许折行 + 限制最大宽度，字号整体上调，保证可读。
-              ⚠️ 2026-09-14（僧侣）：单行分支原用 `whitespace-nowrap` → 长单句
-              溢出弹窗被裁。现**两个分支都允许折行 + 限宽**，且长单句会被
-              `splitResultForDisplay` 预先按中文标点折成 2 行，保证**完整显示在弹窗内**。 */}
-          {isMultiLine ? (
+          {hasItemPattern ? (
+            /* 多信息页：每条消息 = 标题行 + 内容行，所有条目统一字号 */
+            <div className="space-y-3 my-1 max-w-full">
+              {displayItems!.map((item, idx) => (
+                <div key={idx} className="font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl text-3xl sm:text-4xl md:text-5xl">
+                  {item.title && (
+                    <div className="text-amber-200/80">{item.title}</div>
+                  )}
+                  <div>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          ) : isMultiLine ? (
             <div className="flex justify-center my-1 max-w-full">
               <div
                 className={`inline-block ${
                   splitByDisplayLayer ? "text-center" : "text-left"
-                } font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl space-y-1 text-4xl sm:text-5xl md:text-6xl`}
+                } font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl space-y-1 text-3xl sm:text-4xl md:text-5xl`}
               >
                 {resultLines.map((line, idx) => (
-                  /* ⚠️ 2026-09-21：保留 `break-words`。
-                     曾试图改成 `whitespace-nowrap` 强制不折行，
-                     但被护栏测试拦下（长单句会撑出弹窗被裁）。 */
                   <div key={idx} className="break-words">
                     {line}
                   </div>
@@ -123,17 +132,11 @@ export function InfoResultModal({
               </div>
             </div>
           ) : (
-            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl whitespace-normal break-words max-w-full mx-auto px-0 my-1 text-5xl sm:text-6xl md:text-7xl">
+            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl break-words max-w-full mx-auto px-0 my-1 text-4xl sm:text-5xl md:text-6xl">
               {resultLines[0] ?? result}
             </div>
           )}
 
-          {/* ⚠️ P0 隐私（2026-09-13 用户截图指出）：本页给玩家看，
-              原先这里有一行「请说书人向玩家告知以上信息」属于**说书人侧话术**，
-              已删除；该类提示统一放 GameConsole 的「说书人Tips」。
-
-              🌙 例外（同日，军团）：军团夜杀由说书人代操作，
-              确认页与结果页**都只说书人可见**，故此处改为明确的"说书人专用"标注。 */}
           {storytellerFacing && (
             <div className="text-xs sm:text-sm text-amber-300 bg-amber-950/40 rounded-xl p-3 border border-amber-500/50">
               🎙️

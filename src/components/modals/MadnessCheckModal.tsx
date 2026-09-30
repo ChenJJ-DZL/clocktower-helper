@@ -1,5 +1,5 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 export function MadnessCheckModal({ modal }: { modal: any }) {
@@ -98,14 +98,14 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.9} minScale={0.2} className="p-2 sm:p-4 text-white">
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-2 sm:p-4 text-white">
         <div className="flex flex-col items-center justify-center text-center space-y-6 sm:space-y-8 w-max max-w-none px-6 py-4 my-auto">
           <div className="text-5xl sm:text-6xl md:text-7xl drop-shadow-xl select-none">
             🧠
           </div>
 
           <div className="space-y-3 sm:space-y-4">
-            <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed tracking-wide whitespace-nowrap drop-shadow-md">
+            <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed tracking-wide break-words drop-shadow-md">
               判定{" "}
               <span className="text-amber-400 font-black">
                 【{targetSeatNo}号】
@@ -113,7 +113,7 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
               玩家是否真正“疯狂证明自己”：
             </div>
 
-            <div className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-300 whitespace-nowrap">
+            <div className="text-2xl sm:text-3xl md:text-4xl font-black text-amber-300 break-words">
               要求扮演角色：
               <span className="text-emerald-300 font-black">
                 【{roleName}】
@@ -122,14 +122,14 @@ export function MadnessCheckModal({ modal }: { modal: any }) {
           </div>
 
           <div className="text-base sm:text-lg md:text-xl text-slate-200 bg-slate-800/90 px-8 sm:px-10 py-5 sm:py-6 rounded-2xl border border-white/15 space-y-3 text-left shadow-2xl w-max max-w-none backdrop-blur-sm">
-            <div className="whitespace-nowrap flex items-center gap-2">
+            <div className="break-words flex items-center gap-2">
               <span className="text-emerald-400 text-lg sm:text-xl font-black">•</span>
               <span>
                 <strong className="text-emerald-400 font-black">选择“是”</strong>
                 ：玩家疯狂表现合格，无事发生，白天继续。
               </span>
             </div>
-            <div className="whitespace-nowrap flex items-center gap-2">
+            <div className="break-words flex items-center gap-2">
               <span className="text-rose-400 text-lg sm:text-xl font-black">•</span>
               <span>
                 <strong className="text-rose-400 font-black">选择“否”</strong>

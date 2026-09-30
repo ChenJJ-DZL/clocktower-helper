@@ -1,3 +1,4 @@
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface KillConfirmModalProps {
@@ -40,29 +41,31 @@ export function KillConfirmModal({
         </div>
       }
     >
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-4 my-auto w-full">
-        <div className="text-6xl sm:text-7xl">
-          {isImpSelfKill ? "👑" : "💀"}
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-6">
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 my-auto w-full">
+          <div className="text-6xl sm:text-7xl">
+            {isImpSelfKill ? "👑" : "💀"}
+          </div>
+          {isImpSelfKill ? (
+            <>
+              <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed break-words">
+                确认选择自己自杀传位吗？
+              </p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-amber-300 break-words">
+                小恶魔身份将转移给场上的一名存活爪牙，你将在今晚死亡。
+              </p>
+            </>
+          ) : (
+            <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed break-words">
+              确认杀死{" "}
+              <span className="text-amber-400 font-black">
+                【{targetId + 1}号】
+              </span>{" "}
+              玩家吗？
+            </p>
+          )}
         </div>
-        {isImpSelfKill ? (
-          <>
-            <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed">
-              确认选择自己自杀传位吗？
-            </p>
-            <p className="text-base sm:text-xl md:text-2xl font-bold text-amber-300">
-              小恶魔身份将转移给场上的一名存活爪牙，你将在今晚死亡。
-            </p>
-          </>
-        ) : (
-          <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-relaxed">
-            确认杀死{" "}
-            <span className="text-amber-400 font-black">
-              【{targetId + 1}号】
-            </span>{" "}
-            玩家吗？
-          </p>
-        )}
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

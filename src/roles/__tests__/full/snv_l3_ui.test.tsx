@@ -219,7 +219,7 @@ describe("L3 · §A 25 角色 × 通用弹窗数据驱动扫描", () => {
         />
       );
       const t = allText();
-      const norm = (x: string) => x.replace(/[【】\s]/g, "");
+      const norm = (x: string) => x.replace(/[【】\s:：]/g, "");
       if (parsed.result && !norm(t).includes(norm(parsed.result))) {
         mismatched.push(
           `${roleId}：期望含「${parsed.result}」，实际「${t.slice(0, 100)}」`

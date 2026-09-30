@@ -1,3 +1,4 @@
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface FortuneTellerResultModalProps {
@@ -42,20 +43,20 @@ export function FortuneTellerResultModal({
         </div>
       }
     >
-      <div className="p-2 sm:p-6 text-white flex flex-col flex-1 my-auto w-full">
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-2 sm:p-6 text-white">
         <div className="text-center my-auto space-y-4">
           <div className="text-lg sm:text-xl md:text-2xl text-amber-200/90 font-bold leading-relaxed">
             占卜师（目标：{targetLabels.join("、")}号）得知所选玩家是否有恶魔：
           </div>
           <div
-            className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black ${resultColor} tracking-widest text-center drop-shadow-2xl my-4`}
+            className={`text-5xl sm:text-6xl font-black ${resultColor} tracking-widest text-center drop-shadow-2xl my-4`}
           >
             {resultText}
           </div>
           {/* ⚠️ P0 隐私（2026-09-13）：本页给玩家看，原「请说书人向玩家告知以上信息」
               属说书人侧话术，已删除。 */}
         </div>
-      </div>
+      </AutoFitContent>
     </ModalWrapper>
   );
 }

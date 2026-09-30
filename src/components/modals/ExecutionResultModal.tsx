@@ -1,4 +1,4 @@
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ExecutionResultModalProps {
@@ -38,7 +38,7 @@ export function ExecutionResultModal({
         </div>
       }
     >
-      <AutoFitContent targetRatio={0.9} minScale={0.7} className="p-2 sm:p-4">
+      <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-2 sm:p-4">
         <div className="flex flex-col items-center justify-center text-center p-2 sm:p-4 gap-3 sm:gap-5 w-full max-w-4xl mx-auto my-auto">
           <div className={`${message.includes("\n") ? "text-5xl sm:text-6xl" : "text-6xl sm:text-8xl"} select-none`}>
             {isNoDeath ? "🕊️" : "⚖️"}

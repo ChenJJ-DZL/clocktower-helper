@@ -1,4 +1,4 @@
-import { AutoFitContent } from "../common/AutoFitContent";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { ModalWrapper } from "./ModalWrapper";
 import type { StorytellerCorrection } from "../../utils/storytellerCorrection";
 
@@ -61,21 +61,20 @@ export function StorytellerCorrectionModal({
       }
     >
       <AutoFitContent
-        targetRatio={0.9}
-        minScale={0.35}
+        {...SKILL_PAGE_AUTOFIT}
         className="p-2 sm:p-4 text-white"
       >
         <div className="flex flex-col items-center justify-center text-center space-y-5 sm:space-y-7 w-max max-w-none px-6 py-4 my-auto">
           {/* 页头：明确标注本页性质 */}
-          <div className="rounded-2xl border-2 border-amber-500/70 bg-amber-950/50 px-6 sm:px-8 py-3 text-amber-200 font-black text-base sm:text-lg md:text-xl whitespace-nowrap">
+          <div className="rounded-2xl border-2 border-amber-500/70 bg-amber-950/50 px-6 sm:px-8 py-3 text-amber-200 font-black text-sm sm:text-base md:text-lg break-words">
             🎙️ 说书人专用 · 本页含玩家不可见信息，请勿展示给玩家
           </div>
 
-          <div className="text-5xl sm:text-6xl md:text-7xl drop-shadow-xl select-none">
+          <div className="text-5xl sm:text-6xl drop-shadow-xl select-none">
             🛠️
           </div>
 
-          <div className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-md">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-400 tracking-wide leading-relaxed drop-shadow-md break-words">
             {correction.title}
           </div>
 
