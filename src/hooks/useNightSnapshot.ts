@@ -29,7 +29,7 @@ export function useNightSnapshot(
   wakeQueueIds: number[],
   currentWakeIndex: number,
   setCurrentWakeIndex: (idx: number) => void,
-  addLog: (msg: string) => void,
+  addLog: (msg: string | { message: string; summary?: string }) => void,
   setCurrentModal: (m: any) => void,
   wakeQueueIdsRef?: React.MutableRefObject<number[]>,
   // 🔧 跨角色状态时序统一机制：useGameController 的 seatsRef（commitSeats

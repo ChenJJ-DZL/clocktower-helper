@@ -89,7 +89,7 @@ export interface DayActionsDeps {
   setVotedThisRound: React.Dispatch<React.SetStateAction<number[]>>;
 
   // Functions
-  addLog: (msg: string) => void;
+  addLog: (msg: string | { message: string; summary?: string }) => void;
   killPlayer: (targetId: number, options?: any) => void;
   checkGameOver: (
     seats: Seat[],

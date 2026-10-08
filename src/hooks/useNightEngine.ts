@@ -120,7 +120,7 @@ export interface NightLogicActions {
   setNightQueuePreviewTitle: React.Dispatch<React.SetStateAction<string>>;
   setStartTime: React.Dispatch<React.SetStateAction<Date | null>>;
   setMayorRedirectTarget: React.Dispatch<React.SetStateAction<number | null>>;
-  addLog: (message: string) => void;
+  addLog: (message: string | { message: string; summary?: string }) => void;
   addLogWithDeduplication: (
     msg: string,
     playerId?: number,

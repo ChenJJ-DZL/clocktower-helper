@@ -12,6 +12,7 @@ export { parseInfoResult, splitResultForDisplay };
  * 将多行结果解析为"标题-内容"对，供多信息页（恶魔互认/爪牙互认等）统一排版。
  * 每行按首个冒号拆分：冒号左侧为 title，右侧为 value。
  * 无冒号的行只有 value，title 为空。
+ * 展示层采用单行合并（标题：内容），避免标题与内容分成两行。
  */
 function parseItemsForDisplay(
   lines: string[]
@@ -106,14 +107,11 @@ export function InfoResultModal({
           )}
 
           {hasItemPattern ? (
-            /* 多信息页：每条消息 = 标题行 + 内容行，所有条目统一字号 */
-            <div className="space-y-3 my-1 max-w-full">
+            /* 多信息页：每条消息强制一行显示（标题：内容） */
+            <div className="space-y-2 my-1 max-w-full">
               {displayItems!.map((item, idx) => (
-                <div key={idx} className="font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl text-3xl sm:text-4xl md:text-5xl">
-                  {item.title && (
-                    <div className="text-amber-200/80">{item.title}</div>
-                  )}
-                  <div>{item.value}</div>
+                <div key={idx} className="font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl text-3xl sm:text-4xl md:text-5xl break-words">
+                  {item.title ? `${item.title}：${item.value}` : item.value}
                 </div>
               ))}
             </div>

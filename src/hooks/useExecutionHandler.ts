@@ -32,7 +32,7 @@ export interface ExecutionHandlerContext {
   setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>>;
 
   // 辅助函数
-  addLog: (message: string) => void;
+  addLog: (message: string | { message: string; summary?: string }) => void;
   checkGameOver: (updatedSeats: Seat[], deadPlayerId?: number | null) => void;
 
   // 弹窗控制（如果需要）

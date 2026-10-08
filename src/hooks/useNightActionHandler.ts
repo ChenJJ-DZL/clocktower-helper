@@ -110,7 +110,7 @@ export interface NightActionHandlerContext {
   dispatch?: (action: any) => void;
 
   // 辅助函数
-  addLog: (message: string) => void;
+  addLog: (message: string | { message: string; summary?: string }) => void;
   continueToNextAction: (latestSeats?: Seat[]) => void;
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
   preview?: boolean; // 预览模式：只计算不修改状态，弹出确认窗
@@ -1741,7 +1741,10 @@ export async function executeViaNewEngine(
       ) {
         formattedLog = `【${actorSeatNo}号-${roleName}】${rawAbilityLog.replace(new RegExp(`^${roleName}`), "")}`;
       }
-      context.addLog(`[能力] ${formattedLog}`);
+      context.addLog({
+        message: `[能力] ${formattedLog}`,
+        summary: (resultContext.meta.displayInfo as any)?.log || undefined,
+      });
     }
 
     // 清空选中的目标

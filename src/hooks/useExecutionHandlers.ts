@@ -77,9 +77,9 @@ export interface ExecutionHandlersDeps {
   systemStepRoleIdsRef?: React.MutableRefObject<Map<number, string>>;
 
   // Functions
-  addLog: (msg: string) => void;
+  addLog: (msg: string | { message: string; summary?: string }) => void;
   addLogWithDeduplication: (
-    msg: string,
+    msg: string | { message: string; summary?: string },
     playerId?: number,
     roleName?: string
   ) => void;

@@ -92,7 +92,7 @@ export interface NightActionContext {
    */
   helpers?: {
     setSeats: React.Dispatch<React.SetStateAction<Seat[]>>;
-    addLog: (msg: string) => void;
+    addLog: (msg: string | { message: string; summary?: string }) => void;
     setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
     continueToNextAction: () => void;
     markAbilityUsed: (roleId: string, seatId: number) => void;

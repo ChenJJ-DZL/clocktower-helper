@@ -127,7 +127,8 @@ export function useRoleAction() {
           })),
         getMisinformation: options.getMisinformation || {},
         findNearestAliveNeighbor: options.findNearestAliveNeighbor,
-        addLog: (msg: string) => console.log(msg),
+        addLog: (msg: string | { message: string; summary?: string }) =>
+          console.log(typeof msg === "string" ? msg : msg.message),
         isActorDisabledByPoisonOrDrunk: (s: Seat) => s.isPoisoned || s.isDrunk,
       };
 

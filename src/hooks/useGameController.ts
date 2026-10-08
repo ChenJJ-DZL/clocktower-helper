@@ -388,14 +388,19 @@ export function useGameController() {
   } = gameFlow;
 
   const addLog = useCallback(
-    (msg: string) => {
+    (msgOrEntry: string | { message: string; summary?: string }) => {
+      const entry =
+        typeof msgOrEntry === "string"
+          ? { message: msgOrEntry }
+          : msgOrEntry;
       logSeqRef.current += 1;
       village.setGameLogs((p) => [
         ...(p as any),
         {
           day: gamePhase === "setup" ? 0 : nightCount,
           phase: gamePhase,
-          message: msg,
+          message: entry.message,
+          summary: entry.summary,
           ts: Date.now(),
           seq: logSeqRef.current,
         },
@@ -405,7 +410,15 @@ export function useGameController() {
   );
 
   const addLogWithDeduplication = useCallback(
-    (msg: string, playerId?: number, roleName?: string) => {
+    (
+      msgOrEntry: string | { message: string; summary?: string },
+      playerId?: number,
+      roleName?: string
+    ) => {
+      const entry =
+        typeof msgOrEntry === "string"
+          ? { message: msgOrEntry }
+          : msgOrEntry;
       village.setGameLogs((prev: any[]) => {
         const filtered =
           playerId !== undefined && roleName
@@ -423,7 +436,8 @@ export function useGameController() {
           {
             day: gamePhase === "setup" ? 0 : nightCount,
             phase: gamePhase,
-            message: msg,
+            message: entry.message,
+            summary: entry.summary,
             ts: Date.now(),
             seq: logSeqRef.current,
           },

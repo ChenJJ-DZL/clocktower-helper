@@ -137,6 +137,7 @@ export function SpyGrimoireModal({
 
   // ─── 全屏圆桌视图 ─────────────────────────────────────────────────────
   const [isFullscreenTable, setIsFullscreenTable] = useState(false);
+  const [fullscreenActiveTab, setFullscreenActiveTab] = useState<string>("all");
 
   // ─── 右侧日志的筛选 Tab（"all" | "night-0" (首夜) | "night-1" | "night-2" ... | "day"） ──
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -260,7 +261,7 @@ export function SpyGrimoireModal({
         return true;
       })
       .map((log, index) => {
-        let text = log.message.trim().replace(/^\[能力\]\s*/, "");
+      let text = (log.summary ?? log.message).trim().replace(/^\[能力\]\s*/, "");
 
         // 提取本条日志涉及的座位号（0-indexed）
         const involvedSeats = new Set<number>();
@@ -779,7 +780,18 @@ export function SpyGrimoireModal({
 
             {/* 全屏按钮 - 左下角 */}
             <button
-              onClick={() => setIsFullscreenTable(true)}
+              onClick={() => {
+                const latestNight = parsedLogs.reduce((max, item) => {
+                  if (item.phase === "firstNight" || item.phase === "night") {
+                    return Math.max(max, item.day ?? 0);
+                  }
+                  return max;
+                }, -1);
+                setFullscreenActiveTab(
+                  latestNight >= 0 ? `night-${latestNight}` : activeTab
+                );
+                setIsFullscreenTable(true);
+              }}
               className="absolute bottom-2 left-2 z-30 px-2.5 py-1.5 rounded-lg bg-slate-800/90 text-amber-200 text-[11px] font-bold border border-amber-500/40 hover:bg-slate-700 hover:border-amber-400 transition-all shadow-lg backdrop-blur-sm active:scale-95"
             >
               ⛶ 全屏
@@ -944,189 +956,295 @@ export function SpyGrimoireModal({
       </div>
     </ModalWrapper>
 
-    {/* 全屏圆桌视图 — Portal 直接挂 document.body，绕过 ScaleLayout 的 transform 缩放 */}
+    {/* 全屏当晚行动记录视图 — Portal 直接挂 document.body，绕过 ScaleLayout 的 transform 缩放 */}
     {isFullscreenTable &&
       (() => {
-        const pad = 16;
-        const vw = typeof window !== "undefined" ? window.innerWidth : 1920;
-        const vh = typeof window !== "undefined" ? window.innerHeight : 1080;
-        const RATIO = 1.4;
+        const seatFilterOptions = [
+          { value: "all" as const, label: "全部座位" },
+          ...seats.map((seat) => ({
+            value: seat.id,
+            label: `#${seat.id + 1}号${seat.role?.name ? ` · ${seat.role.name}` : ""}`,
+          })),
+        ];
 
-        // 1.4:1 容器，最大化利用屏幕
-        let W = vw - pad * 2;
-        let H = W / RATIO;
-        if (H > vh - pad * 2) { H = vh - pad * 2; W = H * RATIO; }
-        W = Math.floor(W);
-        H = Math.floor(H);
-
-        const activeSeats = seats.filter(s => s.role);
-        const N = activeSeats.length;
-
-        // 椭圆半轴（占容器百分比）
-        const RxPct = 44; // 水平半轴 %
-        const RyPct = 44; // 垂直半轴 %
-        const Rx = (RxPct / 100) * W;
-        const Ry = (RyPct / 100) * H;
-
-        // 计算每个座位的角度和弧长，找出最小弧间距 → 座位直径
-        const angles: number[] = [];
-        for (let i = 0; i < N; i++) angles.push((2 * Math.PI * i) / N - Math.PI / 2);
-
-        // 椭圆弧长微分: ds = sqrt((Rx·sin(t))^2 + (Ry·cos(t))^2) · dt
-        const arcLen = (t1: number, t2: number) => {
-          const STEPS = 50;
-          const dt = (t2 - t1) / STEPS;
-          let s = 0;
-          for (let k = 0; k < STEPS; k++) {
-            const t = t1 + (k + 0.5) * dt;
-            s += Math.sqrt((Rx * Math.sin(t)) ** 2 + (Ry * Math.cos(t)) ** 2) * Math.abs(dt);
-          }
-          return s;
+        const normalizeTab = (tab: string) => {
+          if (tab === "all" || tab === "day") return tab;
+          if (tab.startsWith("night-")) return tab;
+          return "all";
         };
 
-        let minArc = Infinity;
-        for (let i = 0; i < N; i++) {
-          const a1 = angles[i];
-          const a2 = angles[(i + 1) % N];
-          let da = a2 - a1;
-          if (da <= 0) da += 2 * Math.PI;
-          const d = arcLen(a1, a1 + da);
-          if (d < minArc) minArc = d;
+        const effectiveFullscreenTab = normalizeTab(fullscreenActiveTab);
+
+        let fullscreenLogs = parsedLogs;
+        if (effectiveFullscreenTab === "night-0") {
+          fullscreenLogs = parsedLogs.filter(
+            (item) =>
+              item.phase === "firstNight" ||
+              (item.day === 0 && item.phase !== "day" && item.phase !== "dusk")
+          );
+        } else if (effectiveFullscreenTab.startsWith("night-")) {
+          const target = parseInt(effectiveFullscreenTab.replace("night-", ""), 10);
+          fullscreenLogs = parsedLogs.filter(
+            (item) =>
+              item.day === target &&
+              (item.phase === "night" || item.phase === "dawnReport")
+          );
+        } else if (effectiveFullscreenTab === "day") {
+          fullscreenLogs = parsedLogs.filter(
+            (item) => item.phase === "day" || item.phase === "dusk"
+          );
         }
 
-        // 座位直径 = 最小弧间距 × 0.85（留15%间隙），且不超出容器边缘
-        const maxDiamByArc = minArc * 0.85;
-        const maxDiamByEdge = Math.min(Rx * (1 - RxPct / 100), Ry * (1 - RyPct / 100)) * 2;
-        const seatPx = Math.floor(Math.min(maxDiamByArc, maxDiamByEdge));
+        if (selectedSeatId !== null) {
+          fullscreenLogs = fullscreenLogs.filter((item) =>
+            item.involvedSeats.includes(selectedSeatId)
+          );
+        }
 
-        // 字号
-        const roleFont = Math.max(13, Math.floor(seatPx * 0.22));
-        const subFont = Math.max(10, Math.floor(seatPx * 0.14));
-        const badgeFont = Math.max(11, Math.floor(seatPx * 0.17));
-        const badgeSize = Math.max(20, Math.floor(seatPx * 0.28));
-        const statusFont = Math.max(9, Math.floor(seatPx * 0.11));
+        const fullscreenNightOptions = Array.from(
+          parsedLogs.reduce((set, item) => {
+            if (item.phase === "firstNight" || item.phase === "night") {
+              set.add(item.day ?? 0);
+            }
+            return set;
+          }, new Set<number>())
+        ).sort((a, b) => a - b);
 
-        // 座位坐标百分比
-        const seatCoords = angles.map(a => ({
-          x: 50 + RxPct * Math.cos(a),
-          y: 50 + RyPct * Math.sin(a),
-        }));
+        const seatChip = (seat: Seat) => {
+          const isDemon = seat.role?.type === "demon" || seat.isDemonSuccessor;
+          const isMinion = seat.role?.type === "minion";
+          const isOutsider = seat.role?.type === "outsider";
+          const isEvil = seat.isEvilConverted || (!seat.isGoodConverted && (isDemon || isMinion));
+
+          const bg = seat.isDead
+            ? "bg-slate-900/90"
+            : isDemon
+              ? "bg-red-950/80"
+              : isMinion
+                ? "bg-amber-950/80"
+                : isEvil
+                  ? "bg-purple-950/80"
+                  : "bg-slate-900/80";
+          const border = seat.isDead
+            ? "border-slate-700"
+            : isDemon
+              ? "border-red-600"
+              : isMinion
+                ? "border-orange-500"
+                : isOutsider
+                  ? "border-cyan-500"
+                  : "border-amber-500/70";
+          const text = seat.isDead
+            ? "text-slate-300"
+            : isDemon
+              ? "text-red-300"
+              : isMinion
+                ? "text-orange-300"
+                : isOutsider
+                  ? "text-cyan-200"
+                  : "text-blue-200";
+
+          return (
+            <div
+              key={seat.id}
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${bg} ${border} ${text}`}
+            >
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-900 border border-amber-500/70 text-amber-200 text-[11px] font-black">
+                {seat.id + 1}
+              </span>
+              <span className="truncate max-w-[88px]">{seat.role?.name || "未知角色"}</span>
+              <span className="text-[10px] text-slate-300 font-medium">
+                {seat.isDead ? "已死亡" : "存活"}
+              </span>
+            </div>
+          );
+        };
 
         return createPortal(
           <div
             style={{ position: "fixed", inset: 0, zIndex: 2147483647 }}
-            className="bg-slate-950 select-none"
+            className="bg-slate-950 select-none flex flex-col"
             onClick={() => setIsFullscreenTable(false)}
           >
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsFullscreenTable(false); }}
-              className="absolute bottom-3 right-3 z-[10] px-5 py-2.5 rounded-xl bg-slate-800/95 text-amber-200 text-base font-black border-2 border-amber-500/60 hover:bg-slate-700 transition active:scale-95 cursor-pointer shadow-lg"
-            >⊟ 缩小</button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsFullscreenTable(false); }}
-              className="absolute top-3 right-3 z-[10] px-5 py-2.5 rounded-xl bg-slate-800/95 text-amber-200 text-base font-black border-2 border-amber-500/60 hover:bg-slate-700 transition active:scale-95 cursor-pointer shadow-lg"
-            >✕ 退出全屏</button>
+            <div className="absolute top-2 right-2 z-[10] flex items-center gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsFullscreenTable(false); }}
+                className="px-6 py-3 rounded-2xl bg-slate-800/95 text-amber-200 text-lg font-black border-2 border-amber-500/60 hover:bg-slate-700 transition active:scale-95 cursor-pointer shadow-lg"
+              >
+                ⊟ 缩小
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsFullscreenTable(false); }}
+                className="px-8 py-4 rounded-2xl bg-slate-800/95 text-amber-200 text-xl font-black border-2 border-amber-500/60 hover:bg-slate-700 transition active:scale-95 cursor-pointer shadow-lg"
+              >
+                ✕ 退出全屏
+              </button>
+            </div>
 
-            {/* 椭圆桌 — 1.4:1 居中 */}
             <div
-              style={{ width: W, height: H, position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+              className="relative flex flex-col flex-1 min-h-0 p-2 sm:p-3"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="absolute inset-0 rounded-[50%] border-2 border-amber-500/20 bg-gradient-to-b from-slate-900/60 to-slate-950/90 shadow-[inset_0_0_120px_rgba(0,0,0,0.8)]" />
-              <div className="absolute inset-[2%] rounded-[50%] border border-dashed border-amber-500/10" />
+              <div className="flex flex-col flex-1 min-h-0 rounded-3xl border border-amber-500/40 bg-slate-950/95 shadow-2xl backdrop-blur-xl overflow-hidden">
+                <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-4 border-b border-white/10 bg-slate-950/90 shrink-0">
+                  <div className="flex flex-col gap-1">
+                    <div className="text-amber-400 font-black tracking-widest text-xs sm:text-sm">
+                      📖 间谍全屏 · 当晚行动记录
+                    </div>
+                    <div className="text-white font-black text-lg sm:text-xl leading-tight">
+                      {seats.filter((s) => s.isDead).length > 0
+                        ? `${seats.filter((s) => !s.isDead).length}人存活`
+                        : `${seats.length}人局`}
+                    </div>
+                    <div className="text-cyan-300 font-bold text-xs sm:text-sm">
+                      {seats.filter((s) => s.isDead).length > 0
+                        ? `${seats.filter((s) => s.isDead).length}人死亡`
+                        : "全员存活"}
+                    </div>
+                  </div>
 
-              {/* 中心 HUD */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[5] rounded-2xl bg-slate-900/95 border-2 border-amber-400/50 shadow-2xl backdrop-blur-md flex flex-col items-center justify-center text-center pointer-events-none p-2"
-                style={{ width: Math.floor(Math.min(W, H) * 0.16), height: Math.floor(Math.min(W, H) * 0.12) }}
-              >
-                <div style={{ fontSize: Math.max(9, Math.floor(Math.min(W, H) * 0.013)) }} className="text-amber-400 font-black tracking-widest mb-0.5">📖 间谍全屏</div>
-                <div style={{ fontSize: Math.max(14, Math.floor(Math.min(W, H) * 0.022)) }} className="text-white font-black">
-                  {seats.filter(s => s.isDead).length > 0 ? `${seats.filter(s => !s.isDead).length}人存活` : `${seats.length}人局`}
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-300">
+                    <select
+                      value={selectedSeatId ?? "all"}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setSelectedSeatId(value === "all" ? null : Number(value));
+                      }}
+                      className="rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-xs text-amber-100 font-bold shadow-inner"
+                    >
+                      {seatFilterOptions.map((option) => (
+                        <option key={String(option.value)} value={String(option.value)}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div style={{ fontSize: Math.max(9, Math.floor(Math.min(W, H) * 0.013)) }} className="text-cyan-300 font-bold mt-0.5">
-                  {seats.filter(s => s.isDead).length > 0 ? `${seats.filter(s => s.isDead).length}人死亡` : "全员存活"}
+
+                <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-white/10 bg-slate-950/80 shrink-0">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setFullscreenActiveTab("all"); }}
+                    className={`text-sm px-4 py-2 rounded-xl font-bold transition ${
+                      effectiveFullscreenTab === "all"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    全部行动与情报
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setFullscreenActiveTab("night-0"); }}
+                    className={`text-sm px-4 py-2 rounded-xl font-bold transition ${
+                      effectiveFullscreenTab === "night-0"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    首夜
+                  </button>
+                  {fullscreenNightOptions.map((night) => (
+                    <button
+                      key={night}
+                      onClick={(e) => { e.stopPropagation(); setFullscreenActiveTab(`night-${night}`); }}
+                      className={`text-sm px-4 py-2 rounded-xl font-bold transition ${
+                        effectiveFullscreenTab === `night-${night}`
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40"
+                          : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      }`}
+                    >
+                      第 {night + 1} 夜
+                    </button>
+                  ))}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setFullscreenActiveTab("day"); }}
+                    className={`text-sm px-4 py-2 rounded-xl font-bold transition ${
+                      effectiveFullscreenTab === "day"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    ☀️ 白天事件
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto border-b border-white/5 bg-slate-950/70 shrink-0">
+                  {seats.map((seat) => seatChip(seat))}
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-3">
+                  {fullscreenLogs.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                      <span className="text-5xl mb-4 opacity-60">📜</span>
+                      <p className="text-base font-bold text-slate-200">
+                        暂无当晚行动记录
+                      </p>
+                      <p className="text-sm text-slate-400 mt-2 max-w-xl">
+                        选择的阶段或聚焦的座位暂无对应的夜间行动日志，可切换阶段或清除座位聚焦后再试。
+                      </p>
+                    </div>
+                  ) : (
+                    fullscreenLogs.map((log) => {
+                      const borderClass = log.isKillOrDeath
+                        ? "border-red-900/70 bg-gradient-to-r from-red-950/50 to-slate-900/60"
+                        : log.isInfo
+                          ? "border-cyan-900/70 bg-gradient-to-r from-cyan-950/50 to-slate-900/60"
+                          : log.isStatus
+                            ? "border-emerald-900/70 bg-gradient-to-r from-emerald-950/50 to-slate-900/60"
+                            : "border-slate-800 bg-slate-900/60";
+                      const badgeClass = log.isKillOrDeath
+                        ? "bg-red-900 text-red-200 border-red-700"
+                        : log.isInfo
+                          ? "bg-cyan-900 text-cyan-200 border-cyan-700"
+                          : log.isStatus
+                            ? "bg-emerald-900 text-emerald-200 border-emerald-700"
+                            : "bg-slate-800 text-slate-300 border-slate-700";
+                      const phaseLabel =
+                        log.phase === "firstNight"
+                          ? "首夜"
+                          : log.phase === "night"
+                            ? `第 ${log.day + 1} 夜`
+                            : log.phase === "day"
+                              ? `第 ${log.day + 1} 天`
+                              : log.phase === "dusk"
+                                ? `第 ${log.day + 1} 天黄昏`
+                                : "黎明";
+
+                      return (
+                        <div
+                          key={`fullscreen-${log.id}`}
+                          className={`p-4 rounded-2xl border text-base leading-relaxed transition shadow-sm ${borderClass}`}
+                        >
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span
+                              className={`text-xs px-2.5 py-1 rounded font-mono font-bold border ${badgeClass}`}
+                            >
+                              {phaseLabel}
+                            </span>
+                            {log.isInfo && (
+                              <span className="text-xs px-2.5 py-1 rounded bg-blue-900/80 text-blue-200 border border-blue-700 font-bold flex items-center gap-1">
+                                <span>🔮</span> 查验/得知情报
+                              </span>
+                            )}
+                            {log.isKillOrDeath && (
+                              <span className="text-xs px-2.5 py-1 rounded bg-red-900/80 text-red-200 border border-red-700 font-bold flex items-center gap-1">
+                                <span>⚔️</span> 击杀/处决
+                              </span>
+                            )}
+                            {log.isStatus && !log.isInfo && !log.isKillOrDeath && (
+                              <span className="text-xs px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-200 border border-emerald-700 font-bold flex items-center gap-1">
+                                <span>🧪</span> 状态更迭
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-slate-100 font-semibold select-text whitespace-pre-wrap">
+                            {log.formattedText}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-
-              {/* 座位节点 */}
-              {seats.map((seat, index) => {
-                if (!seat.role) return null;
-                const coord = seatCoords[index] || { x: 50, y: 50 };
-
-                const isDemon = seat.role.type === "demon" || seat.isDemonSuccessor;
-                const isMinion = seat.role.type === "minion";
-                const isOutsider = seat.role.type === "outsider";
-                const isEvil = seat.isEvilConverted || (!seat.isGoodConverted && (isDemon || isMinion));
-
-                const bgClass = seat.isDead ? "bg-slate-900/90 opacity-75"
-                  : isDemon ? "bg-gradient-to-br from-red-950 via-slate-900 to-red-950"
-                  : isMinion ? "bg-gradient-to-br from-amber-950 via-slate-900 to-orange-950"
-                  : isEvil ? "bg-gradient-to-br from-purple-950 via-slate-900 to-red-950"
-                  : "bg-gradient-to-b from-slate-800 to-slate-900";
-
-                const borderColor = isDemon ? "border-red-500 shadow-[0_0_16px_rgba(239,68,68,0.5)]"
-                  : isMinion ? "border-orange-500 shadow-[0_0_14px_rgba(249,115,22,0.4)]"
-                  : isOutsider ? "border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.35)]"
-                  : "border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.2)]";
-
-                const nameColor = isDemon ? "text-red-400"
-                  : isMinion ? "text-orange-400"
-                  : isOutsider ? "text-cyan-300" : "text-blue-300";
-
-                const statusList: Array<{ icon: string; label: string; cls: string }> = [];
-                if (seat.isPoisoned) statusList.push({ icon: "🧪", label: "中毒", cls: "bg-green-950/90 text-green-300 border-green-700" });
-                if (seat.isDrunk && seat.role.id !== "drunk") statusList.push({ icon: "🍺", label: "醉酒", cls: "bg-amber-950/90 text-amber-300 border-amber-700" });
-                if (seat.isProtected) statusList.push({ icon: "🛡️", label: "守护", cls: "bg-blue-950/90 text-blue-300 border-blue-700" });
-                if (seat.isRedHerring) statusList.push({ icon: "🎯", label: "红罗刹", cls: "bg-red-950/90 text-red-300 border-red-700" });
-                if (seat.isDemonSuccessor) statusList.push({ icon: "💋", label: "继任", cls: "bg-purple-950/90 text-purple-300 border-purple-700" });
-                const tokens = reminderTokens[seat.id] || [];
-
-                return (
-                  <div
-                    key={seat.id}
-                    style={{ left: `${coord.x}%`, top: `${coord.y}%`, transform: "translate(-50%, -50%)", width: seatPx, height: seatPx }}
-                    className={`absolute rounded-full border-2 flex flex-col items-center justify-center z-20 ${bgClass} ${borderColor}`}
-                  >
-                    <div
-                      style={{ width: badgeSize, height: badgeSize }}
-                      className={`absolute left-[14.6%] top-[14.6%] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 flex items-center justify-center font-black z-30 shadow-md ${seat.isDead ? "bg-slate-800 border-slate-600 text-slate-400" : "bg-slate-900 border-amber-400 text-amber-300"}`}
-                    ><span style={{ fontSize: badgeFont }}>{seat.id + 1}</span></div>
-
-                    {seat.isDead && (
-                      <div className="absolute -top-1 -right-1 bg-slate-950/90 text-gray-300 border border-slate-700 px-1 rounded-full z-30" style={{ fontSize: badgeFont }}>
-                        💀{seat.hasGhostVote && "👻"}
-                      </div>
-                    )}
-
-                    <span style={{ fontSize: roleFont }} className={`font-black tracking-tight leading-none text-center ${nameColor} ${seat.isDead ? "line-through opacity-80" : ""}`}>
-                      {seat.role.name}
-                    </span>
-
-                    {seat.role.id === "drunk" && seat.charadeRole ? (
-                      <span style={{ fontSize: subFont }} className="text-purple-300 font-medium whitespace-nowrap leading-none mt-0.5">(伪:{seat.charadeRole.name})</span>
-                    ) : (
-                      <span style={{ fontSize: subFont }} className="text-slate-400 font-normal leading-none mt-0.5">
-                        {isDemon ? "恶魔" : isMinion ? "爪牙" : isOutsider ? "外来者" : "镇民"}
-                      </span>
-                    )}
-
-                    {statusList.length > 0 && (
-                      <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5 max-w-[95%]">
-                        {statusList.map((s, i) => (
-                          <span key={i} style={{ fontSize: statusFont }} className={`px-1 py-px rounded border font-bold whitespace-nowrap ${s.cls}`}>{s.icon}{s.label}</span>
-                        ))}
-                      </div>
-                    )}
-                    {tokens.length > 0 && (
-                      <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5 max-w-[95%]">
-                        {tokens.map((token, tIdx) => (
-                          <span key={tIdx} style={{ fontSize: statusFont }} className="px-1 rounded bg-slate-800 text-amber-200 border border-slate-600 font-medium truncate max-w-[50px]" title={token.label}>🏷️{token.label}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           </div>,
           document.body

@@ -51,7 +51,7 @@ export interface ConfirmHandlersDeps {
   setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>>;
 
   // Functions
-  addLog: (msg: string) => void;
+  addLog: (msg: string | { message: string; summary?: string }) => void;
   addLogWithDeduplication: (
     msg: string,
     playerId?: number,

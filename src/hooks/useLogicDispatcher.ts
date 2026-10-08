@@ -19,7 +19,7 @@ export function useLogicDispatcher(
   setSeats: Dispatch<SetStateAction<Seat[]>>,
   gamePhase: GamePhase,
   setGamePhase: (p: GamePhase) => void,
-  addLog: (msg: string) => void,
+  addLog: (msg: string | { message: string; summary?: string }) => void,
   setWinResult: (r: "good" | "evil" | null) => void,
   setWinReason: (reason: string) => void,
   setCurrentModal: (m: any) => void,
