@@ -1,3 +1,4 @@
+import type { Seat } from "../../types/game";
 import type { RoleDefinition } from "../../types/roleDefinition";
 
 /**
@@ -81,11 +82,26 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:43-0!canonical and timestamp 20260120031216 and revision id 4805. Serialized with JSON.`,
   night: {
-    order: 0,
-    target: { count: { min: 0, max: 0 } },
-    dialog: () => ({
-      wake: "",
-      instruction: "",
+    /**
+     * ⚠️ 死字段（同 monk.ts 惯例）：只被已无生产消费方的 generateNightTimeline 读取。
+     * 新引擎真实夜序由 `new_engine/half_ogre.ability.ts` 决定：
+     * `firstNightPriority: null`（首夜不行动）/ `otherNightPriority: 44`（恶魔之前行动）。
+     * 官方：「除首个夜晚之外的每个夜晚，唤醒半兽人」——按官方语义写值，避免误导读者。
+     */
+    order: (isFirstNight?: boolean) => (isFirstNight ? 0 : 18),
+    target: {
+      // ⭐ 与新引擎 targetConfig 对齐（两套目标数声明并存，两边都要对——铁律）：
+      // 官方「让他指向任意一名存活的玩家」，允许选自己（失足标记可放半兽人自己身上）。
+      // 此前 {0,0} 会让说书人界面无法选择目标（generator 直接消费本字段合成 targetLimit）。
+      count: { min: 1, max: 1 },
+      canSelect: (target: Seat, self: Seat) => !target.isDead,
+    },
+    dialog: (playerSeatId: number) => ({
+      // 此前为空壳（wake:""）⇒ 队列已唤醒但 guide 为空（矩阵硬错误，2026-10-08 孤儿审计）。
+      // 文案判据 = 官方原文（本文件 detailedDescription【运作方式】段）。
+      wake: `唤醒${playerSeatId + 1}号【半兽人】，让他指向任意一名存活的玩家，随后让他入睡。`,
+      instruction:
+        "若被指玩家为善良：该玩家死亡，且今晚恶魔不会造成死亡；若为邪恶：无事发生。",
       close: "",
     }),
   },

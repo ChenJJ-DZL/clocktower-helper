@@ -41,6 +41,17 @@ const preCheckAlive = async (
     return { ...context, aborted: true, abortReason: "罗姆已死亡，技能失效" };
   }
 
+  // 🔴 effect_gate_contract（2026-10-08）：kill 类能力必须消费全局门控——
+  //    罗姆醉酒/中毒时「中毒玩家死亡」失效（官方通用规则：醉酒/中毒能力失效）
+  const effective = context.meta.abilityEffective ?? true;
+  if (!effective) {
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "罗姆醉酒或中毒，能力失效",
+    };
+  }
+
   return context;
 };
 
@@ -161,6 +172,7 @@ const postProcess = async (
 
 export const lloamAbility = createRoleAbility({
   roleId: "lloam",
+  effectSemantics: "kill", // 官方「夜晚中毒玩家死亡」= 杀型；此前缺省 info（I-S3 语义守恒违规）
   abilityId: "lloam_night_ability",
   abilityName: "毒杀处决",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

@@ -62,11 +62,14 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:410-0!canonical and timestamp 20260120052346 and revision id 3335. Serialized with JSON.`,
   night: {
+    // ⚠️ 死字段（同 monk.ts 惯例）：新引擎真实夜序 = steward.ability.ts firstNightPriority:64（首夜 only）。
     order: 0,
+    // 说书人展示型信息，无目标选择 → target 保持 {0,0}
     target: { count: { min: 0, max: 0 } },
-    dialog: () => ({
-      wake: "",
-      instruction: "",
+    dialog: (playerSeatId: number) => ({
+      // 判据 = 本文件【运作方式】官方原文：展示标记「得知」的那名善良玩家。
+      wake: `唤醒${playerSeatId + 1}号【事务官】，向他展示一名善良玩家，随后让他入睡。`,
+      instruction: "向他展示的这名玩家是善良阵营。",
       close: "",
     }),
   },

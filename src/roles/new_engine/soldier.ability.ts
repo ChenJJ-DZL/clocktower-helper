@@ -67,7 +67,7 @@ const DEMON_ROLE_IDS = new Set([
   "vigormortis",
   "ojo",
   "alhadikhia",
-  "lleech",
+  "leech",
   "lilmonsta",
   "yaggababble",
   "kazali",

@@ -87,10 +87,19 @@ export const angelAbility = createRoleAbility({
   roleId: "angel",
   abilityId: "angel_protect",
   abilityName: "天使庇护",
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
-  firstNightPriority: 35,
+  /**
+   * 🔴 孤儿审计修复（2026-10-08）：天使在 `app/data.ts` 的官方类型是 **fabled（传奇）**
+   * ——传奇是说书人工具，**没有玩家夜间行动节点**（保护由说书人私下标记，
+   * 官方原文：「所有的玩家都会知道哪名玩家被天使保护了」=公开标记，非夜间选人）。
+   * 此前 firstNightPriority: 35 让传奇角色泄漏进夜序（矩阵断言「traveler/fabled 不入夜序」抓到）。
+   * ability 本体保留（保留能力台账只许变大，reserved_abilities_ledger），
+   * triggerTiming 降为 PASSIVE + 双 priority 归 null —— 满足 I8 配置自洽
+   * （fuzz 压测曾报「声明 FIRST_NIGHT 触发但 priority 为空」）。
+   */
+  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  firstNightPriority: null,
   otherNightPriority: null,
-  firstNightOnly: true,
+  firstNightOnly: false,
   wakePromptId: "role.angel.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
   preCheck: [preCheck],

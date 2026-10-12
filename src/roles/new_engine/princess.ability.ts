@@ -77,9 +77,16 @@ export const princessAbility = createRoleAbility({
   roleId: "princess",
   abilityId: "princess_nomination_save",
   abilityName: "公主豁免",
+  /**
+   * 🔴 孤儿审计修复（2026-10-08）：官方公主是**纯白天条件角色**——
+   * 「在你的首个白天，如果你提名并处决了一名玩家，当晚恶魔不会造成死亡」。
+   * 官方【运作方式】里公主**没有任何夜间行动节点**；此前 otherNightPriority:43
+   * 让她每夜被唤醒「展示身份」（杜撰机制，矩阵硬错误「队列已唤醒但 guide 为空」来源）。
+   * 效果本体（处决不致死/恶魔当夜禁杀）由白天提名链路驱动，不依赖本夜间节点。
+   */
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
-  otherNightPriority: 43,
+  otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "role.princess.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },

@@ -705,9 +705,11 @@ describe("L3 · §E 渲染层边界自证（兜底名单棘轮：只许变小）
   const REGISTERED_FALLBACK = [
     // A. 窃窃私语（9）
     "chambermaid", "gossip", "innkeeper", "saint", "recluse",
-    "plague_doctor", "witch", "assassin", "devils_advocate",
+    "witch", "assassin", "devils_advocate",
     // B. 无名之墓（4）
-    "gambler", "clockmaker", "sailor", "farmer",
+    "gambler", "clockmaker", "sailor",
+    // 2026-10-08 下调：plague_doctor / farmer 已由 generatedRoleWakeTemplates
+    // 词表回退（nightInfoGenerator 早退分支）语义化 —— 棘轮只许变小。
   ];
 
   it("⑮ ⭐ 分类器正向对照：必须能识别出**语义化**引导（防「全判兜底」导致下面恒绿）", () => {

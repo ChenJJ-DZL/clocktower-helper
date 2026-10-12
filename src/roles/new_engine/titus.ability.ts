@@ -48,6 +48,17 @@ const preCheckAlive = async (
     return { ...context, aborted: true, abortReason: "提图斯已死亡，技能失效" };
   }
 
+  // 🔴 effect_gate_contract（2026-10-08）：kill 类能力必须消费全局门控——
+  //    提图斯醉酒/中毒时处决失效（官方通用规则：醉酒/中毒能力失效）
+  const effective = context.meta.abilityEffective ?? true;
+  if (!effective) {
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "提图斯醉酒或中毒，处决失效",
+    };
+  }
+
   return context;
 };
 
@@ -193,6 +204,7 @@ const postProcess = async (
 
 export const titusAbility = createRoleAbility({
   roleId: "titus",
+  effectSemantics: "kill", // 官方「每夜处决一名玩家并获知阵营」= 杀型；此前缺省 info
   abilityId: "titus_night_ability",
   abilityName: "恶魔处决",
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],

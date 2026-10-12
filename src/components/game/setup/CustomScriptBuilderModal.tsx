@@ -470,6 +470,10 @@ export function CustomScriptBuilderModal({
                       <button
                         key={r.id}
                         type="button"
+                        // 🔴 孤儿审计（2026-10-08）：补 data-role-id —— 构建器角色卡数据源
+                        //    存在简繁异体（如「造夢師/鐘表匠」），按文本定位不可靠；
+                        //    同时这也是可访问性改进（自动化/读屏可按 id 定位）。
+                        data-role-id={r.id}
                         onClick={() => toggleRole(r.id)}
                         className={`relative flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-left h-20 backdrop-blur-sm cursor-pointer
                           ${

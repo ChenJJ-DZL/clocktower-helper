@@ -1,4 +1,4 @@
-// 自动生成：212 条（官方文档 165 / 兜底 47，跳过已有 0）
+// 自动生成：212 条（官方文档 165 / 兜底 47，跳过已有 0）+ 2026-10-08 孤儿审计手补 2 条（missionary/leech）
 export const generatedRoleWakeTemplates = [
   {
     id: "role.acrobat.wake",
@@ -13,6 +13,22 @@ export const generatedRoleWakeTemplates = [
     category: "role",
     template: "唤醒{{seatNo}}号【戏子】：所有戏子互相认识",
     description: "戏子唤醒提示（自动生成，源:华灯初上）",
+    scenes: ["night"],
+  },
+  {
+    id: "role.missionary.wake",
+    category: "role",
+    template:
+      "唤醒{{seatNo}}号【传教士】：选择一名玩家，如果你选择了一名爪牙，他会得知他被传教士选中，且其能力被封禁",
+    description: "传教士唤醒提示（2026-10-08 孤儿审计手补，源:实验性角色）",
+    scenes: ["night"],
+  },
+  {
+    id: "role.leech.wake",
+    category: "role",
+    template:
+      "唤醒{{seatNo}}号【痢蛭】：选择一名玩家作为宿主，只有宿主死亡后痢蛭才会死亡",
+    description: "痢蛭唤醒提示（2026-10-08 孤儿审计手补，源:实验性角色）",
     scenes: ["night"],
   },
   {

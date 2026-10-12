@@ -87,10 +87,15 @@ export const pilgrimAbility = createRoleAbility({
   roleId: "pilgrim",
   abilityId: "pilgrim_nightly_direction",
   abilityName: "邪恶感知",
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  /**
+   * 🔴 孤儿审计修复（2026-10-08）：官方能力是「在你的**首个**夜晚，你会得知……」
+   * （见 townsfolk/pilgrim.ts detailedDescription——此前头注漏抄了「首个」二字，
+   *  导致 16/16 每夜唤醒）。官方 = 首夜 only ⇒ otherNightPriority 归 null。
+   */
+  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
   firstNightPriority: 16,
-  otherNightPriority: 16,
-  firstNightOnly: false,
+  otherNightPriority: null,
+  firstNightOnly: true,
   wakePromptId: "role.pilgrim.wake",
   targetConfig: { min: 0, max: 0, allowSelf: false, allowDead: false },
   preCheck: [preCheck],

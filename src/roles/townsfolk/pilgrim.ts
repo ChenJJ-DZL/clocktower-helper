@@ -69,11 +69,16 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:485-0!canonical and timestamp 20260120014602 and revision id 3951. Serialized with JSON.`,
   night: {
+    // ⚠️ 死字段（同 monk.ts 惯例）：新引擎真实夜序 = pilgrim.ability.ts
+    // firstNightPriority:16 / otherNightPriority:null（官方「在你的首个夜晚」= 首夜 only）。
     order: 0,
+    // 说书人指方向型信息，无目标选择 → target 保持 {0,0}
     target: { count: { min: 0, max: 0 } },
-    dialog: () => ({
-      wake: "",
-      instruction: "",
+    dialog: (playerSeatId: number) => ({
+      // 判据 = 本文件【运作方式】官方原文：指向最近邪恶玩家所在一侧（相等时由说书人决定）。
+      wake: `唤醒${playerSeatId + 1}号【修行者】，用手指指向与他距离最近的邪恶玩家所在的一侧，随后让他入睡。`,
+      instruction:
+        "若两侧最近邪恶玩家距离相等，告知的信息由说书人决定，用手指指向对应一侧。",
       close: "",
     }),
   },

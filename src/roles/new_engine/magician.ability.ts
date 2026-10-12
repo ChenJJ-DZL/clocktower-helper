@@ -61,7 +61,7 @@ export const magicianAbility = createRoleAbility({
   abilityId: "magician_passive",
   abilityName: "魔术师",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  firstNightPriority: 10,
+  firstNightPriority: null,
   otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "",

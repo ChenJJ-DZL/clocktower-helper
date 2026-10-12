@@ -80,7 +80,7 @@ const postProcess = async (
 
 export const lleechAbility = createRoleAbility({
   /** 水蛭（Lleech）标识符 */
-  roleId: "lleech",
+  roleId: "leech", // 🔴 孤儿审计修复：对齐 app/data.ts（此前 "lleech" 拼写错位 → 痢蛭永不接线，P0）
   /** 能力标识符 */
   abilityId: "lleech_host",
   /** 能力中文名 */

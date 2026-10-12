@@ -206,17 +206,34 @@ export const professorFemaleAbility = createRoleAbility({
       const targetId = targetIds?.[0];
       const success = meta.resurrectionSuccess as boolean | undefined;
 
+      // 🔴 结算通道修复（2026-10-08）：此前只 console.log 不写 meta 文案
+      //    ⇒ 说书人结算后零提示（I-S2「未 abort 但 prompt/abilityLog 空」）。
+      //    对照 professor.ability.ts（男版）补齐 abilityLog + prompt + displayInfo。
+      let log = "";
+      let prompt = "";
       if (success && targetId != null) {
-        console.log(
-          `[ProfessorFemale] ${actionNode.seatId + 1}号(教授·女) 成功复活了 ${targetId + 1}号玩家`
-        );
+        log = `${actionNode.seatId + 1}号(教授·女) 成功复活了 ${targetId + 1}号玩家`;
+        prompt = `唤醒${actionNode.seatId + 1}号【教授（女）】：${targetId + 1}号玩家已复活。`;
       } else if (targetId != null) {
-        console.log(
-          `[ProfessorFemale] ${actionNode.seatId + 1}号(教授·女) 尝试复活 ${targetId + 1}号玩家，但技能已使用或醉酒/中毒失效`
-        );
+        log = `${actionNode.seatId + 1}号(教授·女) 尝试复活 ${targetId + 1}号玩家，但技能已使用或醉酒/中毒失效`;
+        prompt = `唤醒${actionNode.seatId + 1}号【教授（女）】：复活失败（${meta?.targetIsTownsfolk ? "技能已使用或受干扰" : "目标不是善良玩家"}）。`;
       }
+      if (log) console.log(`[ProfessorFemale] ${log}`);
 
-      return context;
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityLog: log,
+          prompt,
+          displayInfo: {
+            type: "professor_female_resurrect",
+            targetId: targetId ?? null,
+            success: !!success,
+            log,
+          },
+        },
+      };
     },
   ],
 });

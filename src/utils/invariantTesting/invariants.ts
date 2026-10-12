@@ -285,6 +285,7 @@ export const ROLE_ID_ALIASES: Record<string, string> = {
   nightwatchman: "night_watchman",
   choirboy: "choir_boy",
   puppet: "marionette",
+  lleech: "leech", // 2026-10-08 孤儿审计：官方拼写 Lleech（双e）↔ app/data.ts "leech"
 };
 
 /** JSON 已收录夜晚顺序但能力确实未实现/未注册的角色（非 8 官方剧本范围） */
@@ -597,7 +598,9 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         );
         // 条件豁免：能力结果明确声明"未击杀/免疫/不应杀"，或目标被保护
         // （monk/innkeeper 等 statusEffects.protected / isProtected），
-        // 或击杀被士兵/镇长免疫（imp 记录 blockedBySoldier）
+        // 或击杀被士兵/镇长免疫（imp 记录 blockedBySoldier）；
+        // 🔴 pairwise 穷尽新增（2026-10-08）：**目标在行动前已死亡** → 合法无法击杀
+        //   （实例：赌徒猜错自杀后，imp 随机目标恰好是死者 → 「今晚无人死亡」非空转）
         const targetProtected = cur.some(
           (s) =>
             s.isProtected === true ||
@@ -610,11 +613,16 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
                 e.source === "devils_advocate"
             )
         );
+        const targetId = meta.abilityResult?.targetId ?? meta.targetId;
+        const targetDeadInPrev =
+          targetId != null &&
+          prev.some((s) => s.id === targetId && s.isDead === true);
         const exempt =
           meta.abilityResult?.killed === false ||
           meta.abilityResult?.shouldKill === false ||
           meta.abilityResult?.immune === true ||
           meta.impResult?.log?.blockedBySoldier === true ||
+          targetDeadInPrev ||
           targetProtected;
         ok =
           newDeath ||

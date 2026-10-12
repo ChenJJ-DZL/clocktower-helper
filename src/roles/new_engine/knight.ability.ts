@@ -75,7 +75,7 @@ const DEMON_IDS = new Set([
   "leviathan",
   "kazali",
   "lil_monsta",
-  "lleech",
+  "leech",
   "lord_of_typhon",
   "hadesia",
   "riot",

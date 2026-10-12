@@ -197,6 +197,10 @@ export const dreamerAbility = createRoleAbility({
       const { meta } = context;
       // null guard handled above
       const result = meta.abilityResult;
+      // 🔴 pairwise 穷尽修复（2026-10-08）：醉酒/中毒时补 isCorrupted 标记
+      //   （I4 信息干扰违规：引擎判定受干扰但结果未标记 → 玩家面无法显示「受干扰」）
+      const isCorrupted =
+        meta.isCorrupted === true || meta.abilityEffective === false;
       if (result && (result.roleA || result.roleB)) {
         const a = result.roleA?.name ?? "未知";
         const b = result.roleB?.name ?? "未知";
@@ -207,11 +211,13 @@ export const dreamerAbility = createRoleAbility({
           meta: {
             ...context.meta,
             abilityLog: log,
+            isCorrupted,
             displayInfo: {
               type: "dreamer_info",
               targetId: result.targetId,
               roleA: a,
               roleB: b,
+              isCorrupted,
               log,
             },
           },

@@ -123,6 +123,7 @@ import { legionAbility } from "./legion.ability";
 import { leviathanAbility } from "./leviathan.ability";
 import { librarianAbility } from "./librarian.ability";
 import { lil_monstaAbility } from "./lil_monsta.ability";
+import { missionaryAbility } from "./missionary.ability";
 import { lizAbility } from "./liz.ability";
 import { lleechAbility } from "./lleech.ability";
 import { lloamAbility } from "./lloam.ability";
@@ -379,6 +380,7 @@ export function registerAllNewEngineAbilities(): void {
     knightAbility,
     legionAbility,
     leviathanAbility,
+    missionaryAbility,
     librarianAbility,
     lil_monstaAbility,
     lleechAbility,
@@ -668,6 +670,7 @@ export { legionAbility } from "./legion.ability";
 export { leviathanAbility } from "./leviathan.ability";
 export { librarianAbility } from "./librarian.ability";
 export { lil_monstaAbility } from "./lil_monsta.ability";
+export { missionaryAbility } from "./missionary.ability";
 export { lizAbility } from "./liz.ability";
 export { lleechAbility } from "./lleech.ability";
 export { lloamAbility } from "./lloam.ability";

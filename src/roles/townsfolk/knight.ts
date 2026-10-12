@@ -75,11 +75,16 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:403-0!canonical and timestamp 20260120052340 and revision id 4591. Serialized with JSON.`,
   night: {
+    // ⚠️ 死字段（同 monk.ts 惯例）：只被已无生产消费方的 generateNightTimeline 读取。
+    // 新引擎真实夜序 = knight.ability.ts firstNightPriority:65 / otherNightPriority:null（首夜 only）。
     order: 0,
+    // 说书人展示型信息（指向标记「得知」的玩家），无目标选择 → target 保持 {0,0}
     target: { count: { min: 0, max: 0 } },
-    dialog: () => ({
-      wake: "",
-      instruction: "",
+    dialog: (playerSeatId: number) => ({
+      // 此前为空壳（队列已唤醒但 guide 为空）——判据 = 本文件【运作方式】官方原文：
+      // 「在首个夜晚，唤醒骑士，并指向标记有"得知"的两名玩家。让骑士重新入睡。」
+      wake: `唤醒${playerSeatId + 1}号【骑士】，向他展示两名非恶魔玩家，随后让他入睡。`,
+      instruction: "向他展示的两名玩家角色都不是恶魔。",
       close: "",
     }),
   },

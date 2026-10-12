@@ -73,11 +73,14 @@ Transclusion expansion time report (%,ms,calls,template)
 100.00%    0.000      1 -total
 Saved in parser cache with key gstone_wiki:pcache:idhash:418-0!canonical and timestamp 20260120043108 and revision id 3476. Serialized with JSON.`,
   night: {
+    // ⚠️ 死字段（同 monk.ts 惯例）：新引擎真实夜序 = priestess.ability.ts 19/19（每个夜晚）。
     order: 0,
+    // 说书人指人型信息，无目标选择 → target 保持 {0,0}
     target: { count: { min: 0, max: 0 } },
-    dialog: () => ({
-      wake: "",
-      instruction: "",
+    dialog: (playerSeatId: number) => ({
+      // 判据 = 本文件【运作方式】官方原文：「每个夜晚，唤醒女祭司。指向一名玩家。」
+      wake: `唤醒${playerSeatId + 1}号【女祭司】，向他指向一名你最应该让他与其交流的玩家，随后让他入睡。`,
+      instruction: "由说书人判断哪名玩家最值得与他交流。",
       close: "",
     }),
   },

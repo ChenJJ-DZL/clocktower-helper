@@ -53,6 +53,10 @@ const calculateAttackResult = async (
         targetId,
         isTargetEvil,
         shouldKill,
+        // 🔴 pairwise 穷尽修复（2026-10-08）：shouldKill 需同时在 abilityResult 里
+        //   （I11 效果语义落地的豁免判据读 meta.abilityResult?.shouldKill——
+        //    此前只写 meta 顶层 ⇒ 「目标邪恶不杀」的合法空转被误判为违规）
+        abilityResult: { targetId, isTargetEvil, shouldKill },
       },
     };
   }

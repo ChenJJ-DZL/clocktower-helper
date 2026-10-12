@@ -18,8 +18,8 @@ export const leechAbility = createRoleAbility({
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  firstNightPriority: null,
-  otherNightPriority: null,
+  firstNightPriority: 46, // 官方「首夜必须选宿主」——此前双null致痢蛭永不寄生（恶魔级P0）
+  otherNightPriority: 45,
   firstNightOnly: false,
   wakePromptId: "role.leech.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

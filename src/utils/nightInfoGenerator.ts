@@ -18,6 +18,7 @@ import {
 } from "../../app/data";
 import { getRoleDefinition } from "../roles";
 import { roleHasNightAction } from "./dynamicQueueGenerator";
+import { generatedRoleWakeTemplates } from "../data/generatedRoleWakeTemplates";
 import {
   createDeterministicRandom,
   nightInfoSeed,
@@ -26,6 +27,11 @@ import type { NightInfoResult } from "../types/game";
 import type { RegistrationResult } from "../types/registration";
 import type { NightActionContext } from "../types/roleDefinition";
 import { computeIsPoisoned, getPoisonSources } from "./gameRules";
+
+/** 唤醒词表快查表（模块级一次构建；id 形如 role.<roleId>.wake） */
+const WAKE_TEMPLATE_MAP = new Map(
+  generatedRoleWakeTemplates.map((t) => [t.id, t.template])
+);
 
 /**
  * 生成夜间信息结果
@@ -163,8 +169,25 @@ export function generateNightInfo(
     //    → 对这类角色不合成唤醒文案，改标注 `passiveNoAction`，由下游跳过唤醒与能力派发。
     const hasAnyNightAction = roleHasNightAction(effectiveRole.id);
     const seatName = (playerFacingRole ?? effectiveRole).name;
+    // ⭐ 孤儿审计回退（2026-10-08）：无 legacy night 配置但有夜间行动的角色，
+    //   优先用 generatedRoleWakeTemplates 的官方唤醒词表（22 孤儿全覆盖，
+    //   含 {{seatNo}} 占位符），替代空泛的「准备执行技能」占位句。
+    //   词表缺词条时才退化到占位句（棘轮断言占位=0，见 orphan_roles_matrix.test.ts）。
+    const wakeTemplate = hasAnyNightAction
+      ? WAKE_TEMPLATE_MAP.get(`role.${effectiveRole.id}.wake`)
+      : undefined;
+    // {{seatNo}} / {{successorSeatNo}}（农夫继任者语境 = 当前节点座位）统一替换为座位号；
+    // 其余无法确定的语义占位符（{{...}} 残留）→ 弃用词条，回退通用占位句。
+    const resolvedWake = wakeTemplate
+      ? wakeTemplate
+          .replace(/\{\{seatNo\}\}/g, String(currentSeatId + 1))
+          .replace(/\{\{successorSeatNo\}\}/g, String(currentSeatId + 1))
+      : null;
+    const safeWake =
+      resolvedWake && !/\{\{/.test(resolvedWake) ? resolvedWake : null;
     const defaultGuide = hasAnyNightAction
-      ? `唤醒${currentSeatId + 1}号【${seatName}】，准备执行技能。`
+      ? (safeWake ??
+        `唤醒${currentSeatId + 1}号【${seatName}】，准备执行技能。`)
       : `${currentSeatId + 1}号【${seatName}】为被动技能，无需唤醒。`;
     return {
       seat: targetSeat,

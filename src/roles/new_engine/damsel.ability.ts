@@ -60,7 +60,7 @@ export const damselAbility = createRoleAbility({
   abilityId: "damsel_guessed",
   abilityName: "身份暴露",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
-  firstNightPriority: 13,
+  firstNightPriority: null,
   otherNightPriority: null,
   firstNightOnly: false,
   wakePromptId: "",

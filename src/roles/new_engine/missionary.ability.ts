@@ -18,8 +18,8 @@ export const missionaryAbility = createRoleAbility({
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  firstNightPriority: null,
-  otherNightPriority: null,
+  firstNightPriority: 20, // 官方「每个夜晚」（无*）——此前双null致传教士永不行动（孤儿审计P1）
+  otherNightPriority: 20,
   firstNightOnly: false,
   wakePromptId: "role.missionary.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },
@@ -68,8 +68,19 @@ export const missionaryAbility = createRoleAbility({
   postProcess: [
     async (ctx) => {
       const r = ctx.meta.abilityResult;
-      if (r?.isMinion) console.log("[Missionary] 选中的爪牙能力被封禁");
-      return ctx;
+      // 🔴 孤儿审计修复（2026-10-08）：此前只 console.log 不写 meta 文案（I-S2 零提示）
+      const log = r?.isMinion
+        ? "[Missionary] 选中的爪牙能力被封禁"
+        : "[Missionary] 选中的玩家不是爪牙，无事发生";
+      console.log(log);
+      return {
+        ...ctx,
+        meta: {
+          ...ctx.meta,
+          abilityLog: log,
+          prompt: `唤醒${ctx.actionNode.seatId + 1}号【传教士】，选择一名玩家：若他是爪牙，其能力被封禁且他会得知被选中。`,
+        },
+      };
     },
   ],
 });

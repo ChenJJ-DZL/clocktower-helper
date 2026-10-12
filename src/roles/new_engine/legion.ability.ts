@@ -21,6 +21,12 @@ import {
 } from "../core/roleAbility.types";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+  // 🔴 pairwise 穷尽修复（2026-10-08）：此前纯透传 → 死亡的军团仍被唤醒执行
+  //   （I3 死亡玩家拦截违规）。对齐其他恶魔补存活拦截。
+  const seat = ctx.snapshot.seats.find((s: any) => s.id === ctx.actionNode.seatId);
+  if (!seat || seat.isDead) {
+    return { ...ctx, aborted: true, abortReason: "军团已死亡，技能失效" };
+  }
   return ctx;
 };
 
