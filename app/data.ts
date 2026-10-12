@@ -176,6 +176,12 @@ export interface Seat {
    */
   displayRole?: Role | null;
   /**
+   * 流放死标记（Round 10b）：true = 该座位死于流放（Exile）而非处决/夜间击杀。
+   * ⚠️ 送葬者只认处决死（executedToday），流放死**不得**被送葬者得知
+   *    （官方：「对旅行者的流放，不算在内」）。判据：src/utils/exile.ts。
+   */
+  exiled?: boolean;
+  /**
    * Legacy field for Drunk mask before `displayRole` was introduced.
    * Kept for backward compatibility with existing logic.
    */
@@ -187,6 +193,10 @@ export interface Seat {
    */
   apparentDemonRole?: Role | null;
   isDead: boolean;
+  /** 死亡日期标注：夜杀写 nightCount（判据 diedAtNight===nightCount）；
+   *  处决死走 diedOnDay + executedToday；流放死只写 diedOnDay（不写 executedToday） */
+  diedAtNight?: number;
+  diedOnDay?: number;
   hasGhostVote?: boolean; // 死者票是否可用
   isEvilConverted?: boolean; // 通过灵言师等效果被转为邪恶
   isGoodConverted?: boolean; // 特殊效果被转为善良（如舞蛇人命中恶魔）
@@ -295,6 +305,14 @@ export interface Script {
     /** 进入第 (N+1) 个夜晚时（= 第 N 个白天结束）若恶魔存活 ⇒ 邪恶自动获胜 */
     evilAutoWinOnEnteringNight?: number;
   };
+  /**
+   * ⭐ 2026-10-12 缺口补齐 G1：本局生效的**传奇角色（fabled）** id 列表。
+   *   官方设计：fabled 不占座位、作为全局规则生效、不计入邪恶获胜阈值。
+   *   修复前 CustomScriptBuilderModal 勾选后**三个调用点均未传出**
+   *   （onSave/onStartDirectly 只收 name+roleIds）⇒ 勾选静默丢失。
+   *   契约由 fabled_ids_persistence.test.ts 锁定。
+   */
+  fabledIds?: string[];
 }
 
 // 剧本列表
@@ -1897,21 +1915,31 @@ export const roles: Role[] = [
     script: "夜半狂欢",
   },
   // ========== 传奇角色 (Legendary) ==========
+  // ⚠️ 2026-10-12 数据修正（缺口补齐计划 G3）：
+  //   官方口径（officialRoleDocs.json：「哨兵」「圣洁之魂」角色类型均为
+  //   **传奇角色**，并列于官方传奇角色列表 [自定义游戏] 段）——
+  //   原 type: "traveler" 与官方冲突。同时这两个 id 在 FABLED_ROLES
+  //   有正牌定义（不占座位、作为全局规则生效），此处置 hidden 防止
+  //   它们作为座位角色候选进入自定义剧本（validateComposition 对
+  //   fabled 无桶位，选了也无意义）。双宿主一致性由
+  //   fabled_traveler_data.test.ts 契约锁定。
   {
     id: "sentinel",
     name: "哨兵",
-    type: "traveler",
+    type: "fabled",
     ability: "在初始设置时，可能会额外增加或减少一个外来者。",
     fullDescription: "在初始设置时，可能会额外增加或减少一个外来者。",
     script: "夜半狂欢",
+    hidden: true,
   },
   {
     id: "spirit_of_ivory",
     name: "圣洁之魂",
-    type: "traveler",
+    type: "fabled",
     ability: "游戏过程中邪恶玩家的总数最多比初始设置多一名。",
     fullDescription: "游戏过程中邪恶玩家的总数最多比初始设置多一名。",
     script: "夜半狂欢",
+    hidden: true,
   },
   {
     id: "legion",
@@ -2008,22 +2036,10 @@ export const roles: Role[] = [
 ];
 
 // ======================================================================
-//  隐藏占位：旅行者与实验角色（默认不在前台展示/分配）
+//  隐藏占位：实验性外来者角色（默认不在前台展示/分配）
 //  仅保留规则要点/引用，等待未来启用
 // ======================================================================
 roles.push(
-  // 旅行者（暗流涌动）
-  {
-    id: "traveler_official",
-    name: "（旅行者占位）",
-    type: "traveler",
-    ability: "包含官员、乞丐、枪手、窃贼、替罪羊等，请参考官方长文档。",
-    fullDescription: "旅行者合集占位，参见官方文档详细规则。",
-    script: "暗流涌动",
-
-    ruleNotes: "旅行者不计入角色配比，可随时加入/离开，详见官方文档。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#travelers",
-  },
   // 实验性外来者角色（默认不在前台展示/分配）
   {
     id: "snitch",
@@ -2140,161 +2156,6 @@ roles.push(
     ruleNotes:
       "当游戏结束时,如果政客是善良阵营落败负最大责任的人,政客会加入邪恶阵营并一起获胜。政客也可以和其他角色一样,以善良阵营获胜。中毒或醉酒的政客不能转变阵营。",
     docRef: "blood_clocktower_所有外来者.json#政客",
-  },
-  // 实验性角色（暗流涌动卡牌版附带）
-  {
-    id: "experimental_sing_boy",
-    name: "唱诗男孩",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_king",
-    name: "国王",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_general",
-    name: "将军",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_balloonist",
-    name: "气球驾驶员",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_bounty_hunter",
-    name: "赏金猎人",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_nightwatchman",
-    name: "守夜人",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_pixie",
-    name: "小精灵",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_heretic",
-    name: "异教领袖",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_snitch",
-    name: "告密者",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_goblin",
-    name: "哥布林",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_puppet",
-    name: "提线木偶",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_boomdandy",
-    name: "炸弹人",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_leviathan",
-    name: "利维坦",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
-  },
-  {
-    id: "experimental_mafia",
-    name: "黑帮",
-    type: "traveler",
-    ability: "实验角色占位，详见官方长文档。",
-    fullDescription: "实验角色占位，详见官方长文档。",
-    script: "暗流涌动",
-
-    ruleNotes: "实验性角色占位，未在当前引擎启用。",
-    docRef: "blood_clocktower_data_spider-暗流涌动.json#experimental",
   }
 );
 
@@ -2341,11 +2202,11 @@ export const typeBgColors: Record<string, string> = {
 export const FABLED_ROLES: Role[] = [
   {
     id: "spirit_of_ivory",
-    name: "象牙之魂",
+    name: "圣洁之魂",
     type: "fabled",
     ability: "游戏过程中邪恶玩家的总数最多能比初始设置多一名。",
     fullDescription:
-      "象牙之魂限制邪恶阵营额外生成上限为1名。当已有1名额外邪恶玩家被转化时，阻止后续转化。",
+      "圣洁之魂限制邪恶阵营额外生成上限为1名。当已有1名额外邪恶玩家被转化时，阻止后续转化。",
     ruleNotes:
       "当通过角色能力将善良玩家转变为邪恶阵营时，如果已经有一名额外邪恶角色在场，则阻止转变。",
     hidden: false,
@@ -2421,3 +2282,153 @@ export const FABLED_ROLES: Role[] = [
 
 // 把寓言角色推入角色池
 roles.push(...FABLED_ROLES);
+
+// 官方旅行者（15 个，三套剧本各 5；数据源 json/wiki_crawl/parsed_roles.json）
+export const TRAVELER_ROLES: Role[] = [
+  {
+    id: "bureaucrat",
+    name: "官员",
+    type: "traveler",
+    ability: "每个夜晚，你要选择除你以外的一名玩家：明天白天，他的投票算作三票。",
+    fullDescription: "官员可以给一名玩家的选择提供更多的票数。",
+    script: "暗流涌动",
+    docRef: "json/wiki_crawl/parsed_roles.json#官员",
+  },
+  {
+    id: "beggar",
+    name: "乞丐",
+    type: "traveler",
+    ability: "你只能使用投票标记才能投票。\n\n死亡的玩家可以将他的投票标记给你，如果他这么做，你会得知他的阵营。\n\n你不会中毒和醉酒。",
+    fullDescription: "乞丐不能投票，除非有人给乞丐投票标记。",
+    script: "暗流涌动",
+    docRef: "json/wiki_crawl/parsed_roles.json#乞丐",
+  },
+  {
+    id: "gunslinger",
+    name: "枪手",
+    type: "traveler",
+    ability: "每个白天，当首次投票被统计后，你可以选择一名刚投过票的玩家：他死亡。",
+    fullDescription: "枪手会杀死投票的玩家。",
+    script: "暗流涌动",
+    docRef: "json/wiki_crawl/parsed_roles.json#枪手",
+  },
+  {
+    id: "thief",
+    name: "窃贼",
+    type: "traveler",
+    ability: "每个夜晚，你要选择除你以外的一名玩家：明天白天他的投票会被算作负数。",
+    fullDescription: "窃贼会从一名玩家那儿偷取投票权，使得他的投票以负数计算。",
+    script: "暗流涌动",
+    docRef: "json/wiki_crawl/parsed_roles.json#窃贼",
+  },
+  {
+    // ⚠️ 2026-10-12 id 后缀锁宿主（元教训「同名 type 先锁宿主」）：
+    //   官方 Scapegoat **只有 traveler 一版**（wiki_crawl roles_index：
+    //   outsider 24 个无替罪羊）。data.ts 另有一条 id="scapegoat" 的
+    //   outsider 条目（script「无名之墓」，约 865 行），系历史误植
+    //   （官方无名之墓角色列表无替罪羊）⇒ traveler 正身改用
+    //   scapegoat_traveler，与误植条目隔离；误植条目的删除留待
+    //   独立批次（涉 scapegoat.ability.ts / 无名之墓 roleIds 连锁）。
+    //   项目先例：saint_townsfolk（扩展镇民版后缀）。
+    id: "scapegoat_traveler",
+    name: "替罪羊",
+    type: "traveler",
+    ability: "如果你的阵营的一名玩家被处决，你可能会代替他被处决。",
+    fullDescription: "替罪羊会代替一名盟友被处决。",
+    script: "暗流涌动",
+    docRef: "json/wiki_crawl/parsed_roles.json#替罪羊",
+  },
+  {
+    id: "butcher",
+    name: "屠夫",
+    type: "traveler",
+    ability: "每个白天，首次处决后，你可以再次发起提名。",
+    fullDescription: "屠夫会允许每天发生第二次处决。",
+    script: "梦殒春宵",
+    docRef: "json/wiki_crawl/parsed_roles.json#屠夫",
+  },
+  {
+    id: "bone_collector",
+    name: "集骨者",
+    type: "traveler",
+    ability: "每局游戏限一次，在夜晚时*，你可以选择一名死亡的玩家：他重新获得能力直到下个黄昏。",
+    fullDescription: "集骨者会给已死亡的玩家提供重新获得自身能力的机会。",
+    script: "梦殒春宵",
+    docRef: "json/wiki_crawl/parsed_roles.json#集骨者",
+  },
+  {
+    id: "harlot",
+    name: "流莺",
+    type: "traveler",
+    ability: "每个夜晚*，你要选择一名存活的玩家：如果他同意，你会得知他的角色，但是你们两个可能同时死亡。",
+    fullDescription: "流莺会得知愿意揭露其角色的玩家角色，但他们都要为此冒巨大风险。",
+    script: "梦殒春宵",
+    docRef: "json/wiki_crawl/parsed_roles.json#流莺",
+  },
+  {
+    id: "barista",
+    name: "咖啡师",
+    type: "traveler",
+    ability: "每个夜晚，直至下个黄昏，由说书人二选一：1）一名玩家解除并免受醉酒和中毒影响，且会得知正确信息；2）一名玩家的能力可以生效两次。该玩家会得知是哪个效果。",
+    fullDescription: "咖啡师要么使得玩家变得清醒且健康，要么允许他们行动两次。",
+    script: "梦殒春宵",
+    docRef: "json/wiki_crawl/parsed_roles.json#咖啡师",
+  },
+  {
+    id: "deviant",
+    name: "怪咖",
+    type: "traveler",
+    ability: "如果你表现得很有趣，当天你不能被流放。",
+    fullDescription: "怪咖可以避免被流放，只要他能够在今天带来一些欢乐。",
+    script: "梦殒春宵",
+    docRef: "json/wiki_crawl/parsed_roles.json#怪咖",
+  },
+  {
+    id: "apprentice",
+    name: "学徒",
+    type: "traveler",
+    ability: "在你的首个夜晚，如果你是善良的，你会获得一个镇民角色的能力；如果你是邪恶的，你会获得一个爪牙角色的能力。",
+    fullDescription: "学徒拥有一个镇民或者是爪牙的能力。",
+    script: "黯月初升",
+    docRef: "json/wiki_crawl/parsed_roles.json#学徒",
+  },
+  {
+    id: "matron",
+    name: "女舍监",
+    type: "traveler",
+    ability: "每个白天，你可以选择至多三对玩家交换座位。\n\n玩家不能离开座位私聊。",
+    fullDescription: "女舍监能够选择让玩家应该坐在哪个座位。",
+    script: "黯月初升",
+    docRef: "json/wiki_crawl/parsed_roles.json#女舍监",
+  },
+  {
+    id: "voudon",
+    name: "巫毒师",
+    type: "traveler",
+    ability: "只有你和死亡的玩家可以投票，且投票不需要使用投票标记。忽略票数需要过半的要求。",
+    fullDescription: "巫毒师能让已死亡的玩家像活着一样进行投票，但让存活的玩家不能投票。",
+    script: "黯月初升",
+    docRef: "json/wiki_crawl/parsed_roles.json#巫毒师",
+  },
+  {
+    id: "judge",
+    name: "法官",
+    type: "traveler",
+    ability: "每局游戏限一次，如果其他玩家发起了提名，你可以选择让本次提名直接执行处决或让投票无效。",
+    fullDescription: "法官能够决定一次处决投票是否成功，无论谁投了多少票。",
+    script: "黯月初升",
+    docRef: "json/wiki_crawl/parsed_roles.json#法官",
+  },
+  {
+    id: "bishop",
+    name: "主教",
+    type: "traveler",
+    ability: "只有说书人可以发起提名。每个白天说书人至少要提名一名你对立阵营的玩家。",
+    fullDescription: "主教使得所有玩家无法进行提名。取而代之的是由说书人来进行所有的提名。",
+    script: "黯月初升",
+    docRef: "json/wiki_crawl/parsed_roles.json#主教",
+  },
+];
+
+// 把官方旅行者并入角色池（图鉴可查；不占剧本配比）
+roles.push(...TRAVELER_ROLES);

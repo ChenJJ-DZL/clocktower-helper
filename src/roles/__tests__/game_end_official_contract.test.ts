@@ -126,10 +126,10 @@ describe("🏆 终局条件 · 官方规则契约（evil wins only when 2 player
 
   // ── 旅行者不计入 ────────────────────────────────────────────────────
   it("✅ 旅行者不计入「仅剩 2 人」阈值：1 恶 + 1 好 + 1 旅行者 → 仍邪恶获胜", () => {
-    // ⚠️ 用 `app/data.ts` 里确定 type=traveler 的 `traveler_official` 占位角色。
+    // ⚠️ 用 `app/data.ts` 里确定 type=traveler 的 `beggar` 占位角色。
     //    注意 `scapegoat` 在 `app/data.ts` 里是 outsider（无名之墓），
     //    但在 `src/data/rolesData.json` 里是 traveler —— 双数据源不一致（另案处理）。
-    const s = [seat(0, "soldier"), seat(1, "imp"), seat(2, "traveler_official")];
+    const s = [seat(0, "soldier"), seat(1, "imp"), seat(2, "beggar")];
     const res = checkGameEnd(s as any, "check_phase", null, {} as any);
     expect(res.winner).toBe("Evil");
   });

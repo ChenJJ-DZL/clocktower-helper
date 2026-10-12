@@ -185,6 +185,9 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     //    —— 快照此前不含 gameLogs ⇒ 自动恢复的对局只剩恢复之后新产生的日志）。
     //    复盘从落座开始依赖完整日志，必须随档走。
     gameLogs: safeJsonClone((state as any).gameLogs ?? []),
+    // ⭐ 传奇角色 / 旅行者座位随快照持久化（刷新恢复不得丢选择）
+    activeFabled: safeJsonClone(state.activeFabled ?? []),
+    travelers: safeJsonClone(state.travelers ?? []),
     selectedScript: state.selectedScript
       ? safeJsonClone(state.selectedScript)
       : null,

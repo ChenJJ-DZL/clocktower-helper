@@ -22,7 +22,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { roles, scripts } from "../../../app/data";
+import { roles, scripts, TRAVELER_ROLES } from "../../../app/data";
 import { ENGINE_CONFIG } from "../../hooks/useNightEngine";
 import {
   collectScriptMatrix,
@@ -60,15 +60,12 @@ const ORPHAN_ROSTER = {
 } as const;
 
 /** 旅行者 + 传奇（官方不进夜序；这里只做负向断言与定义核对） */
+// 口径：官方旅行者 15 + fabled 8（sentinel/spirit_of_ivory 双宿主去重后 6）
 const TRAVELER_FABLED_IDS = [
-  // traveler（17）
-  "sentinel", "spirit_of_ivory", "traveler_official", "experimental_sing_boy",
-  "experimental_king", "experimental_general", "experimental_balloonist",
-  "experimental_bounty_hunter", "experimental_nightwatchman", "experimental_pixie",
-  "experimental_heretic", "experimental_snitch", "experimental_goblin",
-  "experimental_puppet", "experimental_boomdandy", "experimental_leviathan",
-  "experimental_mafia",
+  // traveler（官方 15 个，来自 TRAVELER_ROLES）
+  ...TRAVELER_ROLES.map((r) => r.id),
   // fabled（8；sentinel/spirit_of_ivory 同 id 双定义，去重后 6 个新 id）
+  "sentinel", "spirit_of_ivory",
   "revolutionary", "doomsayer", "fibbin", "hells_librarian", "buddhist", "angel",
 ];
 
@@ -379,8 +376,14 @@ describe("孤儿角色审计 · 自定义剧本场景（84 孤儿 / 常规 59 �
   });
 
   it("traveler / fabled：官方设计不进夜序 —— fullNightOrder 不得出现这些 id", () => {
+    // 例外台账：bureaucrat / thief 官方即有夜间行动（每夜选人改票），
+    // 新引擎自 W8.x 起已有正式实现（bureaucrat.ability.ts / thief.ability.ts）
+    // —— 它们是唯一允许出现在夜序中的旅行者；新增例外必须先登记于此。
+    const NIGHT_ACTION_TRAVELERS = new Set(["bureaucrat", "thief"]);
     const entryIds = new Set(ENGINE_CONFIG.fullNightOrder.map((e) => e.roleId));
-    const leaked = TRAVELER_FABLED_IDS.filter((id) => entryIds.has(id));
+    const leaked = TRAVELER_FABLED_IDS.filter(
+      (id) => entryIds.has(id) && !NIGHT_ACTION_TRAVELERS.has(id)
+    );
     expect(
       leaked,
       `旅行者/传奇泄漏进夜序（它们不该被剧本队列唤醒）：${leaked.join(",")}`

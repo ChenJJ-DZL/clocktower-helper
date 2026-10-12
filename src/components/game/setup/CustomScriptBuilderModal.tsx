@@ -12,8 +12,21 @@ import { ModalWrapper } from "../../modals/ModalWrapper";
 interface CustomScriptBuilderModalProps {
   isOpen?: boolean;
   onClose: () => void;
-  onSave: (scriptName: string, selectedRoleIds: string[]) => void;
-  onStartDirectly?: (scriptName: string, selectedRoleIds: string[]) => void;
+  /**
+   * ⭐ 2026-10-12 缺口补齐 G1：第三个参数 fabledIds 为此局生效的传奇角色。
+   *   修复前三个调用点（211/221/223 行）均未传 ⇒ 用户在寓言角色区勾选
+   *   后静默丢失（UI 却宣称「作为全局规则生效」）。禁止再删此参数。
+   */
+  onSave: (
+    scriptName: string,
+    selectedRoleIds: string[],
+    fabledIds: string[]
+  ) => void;
+  onStartDirectly?: (
+    scriptName: string,
+    selectedRoleIds: string[],
+    fabledIds: string[]
+  ) => void;
 }
 
 /** 阵营徽章配色 */
@@ -115,7 +128,13 @@ export function CustomScriptBuilderModal({
   );
 
   const builderRoles = useMemo(() => {
-    return roles.filter((r) => !r.hidden);
+    // ⚠️ 2026-10-12 缺口补齐 G3：排除 fabled（传奇角色）。
+    //   官方设计「传奇角色不占座位、作为全局规则生效」——它们虽经
+    //   roles.push(...FABLED_ROLES) 进入 roles 供 RoleCodexModal 图鉴
+    //   展示，但绝不可作为座位角色候选（validateComposition 对 fabled
+    //   无桶位，选了也无意义；且同 id 双入口会污染配比统计）。
+    //   契约由 fabled_traveler_data.test.ts 锁定。
+    return roles.filter((r) => !r.hidden && r.type !== "fabled");
   }, []);
 
   const filteredRolesBySearch = useMemo(() => {
@@ -208,7 +227,7 @@ export function CustomScriptBuilderModal({
       return;
     }
     const name = getFinalName();
-    onSave(name, Array.from(selectedRoleIds));
+    onSave(name, Array.from(selectedRoleIds), Array.from(selectedFabledIds));
   };
 
   const handleStartNow = () => {
@@ -218,9 +237,13 @@ export function CustomScriptBuilderModal({
     }
     const name = getFinalName();
     if (onStartDirectly) {
-      onStartDirectly(name, Array.from(selectedRoleIds));
+      onStartDirectly(
+        name,
+        Array.from(selectedRoleIds),
+        Array.from(selectedFabledIds)
+      );
     } else {
-      onSave(name, Array.from(selectedRoleIds));
+      onSave(name, Array.from(selectedRoleIds), Array.from(selectedFabledIds));
     }
   };
 
@@ -533,7 +556,7 @@ export function CustomScriptBuilderModal({
                 / {FABLED_ROLES.length}
               </span>
               <span className="text-[10px] text-amber-400/60 ml-auto">
-                不占座位，作为全局规则生效
+                备忘配置：不占座位；开局不自动生效，对局中在圆桌「说书人」座选择
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">

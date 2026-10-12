@@ -14,6 +14,7 @@ import {
   getRawAbilityMap,
   initializeAbilityRegistry,
 } from "../../roles/new_engine/abilityRegistry";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../../roles/demon/demonFirstNightHelper";
 import { unifiedRoleDefinition } from "../../roles/unifiedRoleDefinition";
 import type { NightOrderEntry } from "../dynamicQueueGenerator";
 import { nightOrderParser } from "../nightOrderParser";
@@ -96,6 +97,19 @@ export function buildFullNightOrder(): NightOrderEntry[] {
     firstNightOnly: true,
     otherNightOnly: false,
     wakeMessage: "demon_info",
+  });
+  // 军团专项：首夜在恶魔信息前插入「全员互认」步骤（官方运作方式）
+  // ⚠️ 与 useNightEngine.ts::generateNightOrderFromParser 同源；曾缺失导致
+  //    镜像分叉（2026-10-12 night_order_mirror 对拍抓出），改动须同步对拍测试。
+  entries.push({
+    roleId: LEGION_MUTUAL_RECOGNITION_ID,
+    roleName: "军团互认",
+    abilityId: LEGION_MUTUAL_RECOGNITION_ID,
+    firstNightPriority: 2.25,
+    otherNightPriority: 0,
+    firstNightOnly: true,
+    otherNightOnly: false,
+    wakeMessage: LEGION_MUTUAL_RECOGNITION_ID,
   });
 
   entries.sort((a, b) => {

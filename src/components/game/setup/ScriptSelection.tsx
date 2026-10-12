@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  FABLED_ROLES,
   type GamePhase,
+  type Role,
   roles,
   type Script,
   type Seat,
@@ -23,6 +25,8 @@ import { createSnapshot } from "../../../utils/undoSnapshot";
 import { GameRecordsModal } from "../../modals/GameRecordsModal";
 import { RoleCodexModal } from "../../modals/RoleCodexModal";
 import { CustomScriptBuilderModal } from "./CustomScriptBuilderModal";
+import { FabledBadgeTray } from "./FabledBadgeTray";
+import { TRAVELER_MAX } from "../../../utils/fabledLock";
 import { APP_VERSION } from "../../../constants/version";
 
 function getPhaseDisplayName(phase?: string): string {
@@ -148,6 +152,14 @@ export default function ScriptSelection({
         nominators: new Set<number>(),
         nominees: new Set<number>(),
       },
+      // ⭐ 2026-10-12 用户口径「默认不设置传奇角色和旅行者」：
+      //   传奇/旅行者均为「每局说书人临时决定」的配置 —— 新开一局一律为空，
+      //   **不**从剧本的 fabledIds 继承（剧本级 fabledIds 仅作建造器里的
+      //   备忘记录，开局后以圆桌说书人座（TableCenterHUD）手动选择为准）。
+      //   resume（快照恢复）不受影响——恢复的是当局实际状态。
+      activeFabled: [],
+      // 旅行者同理：不随剧本、每局重置为空（官方：对局中动态加入/离开）
+      travelers: Array.from({ length: TRAVELER_MAX }, () => null),
     };
 
     // 🎯 建立落座阶段（空座位）基准快照（index = 0），支持后续一路撤销回退至此
@@ -221,6 +233,25 @@ export default function ScriptSelection({
         localStorage.setItem("customScripts", JSON.stringify(updated));
       },
     });
+  };
+
+  /**
+   * ⭐ 2026-10-12 缺口补齐 G2：在剧本选择页直接切换某自定义剧本生效的
+   *   传奇角色（fabled）。此前 FabledBadgeTray 是零引用孤儿组件，
+   *   且建造器勾选的 fabledIds 无处可改。
+   * 持久化与删除剧本同路径（customScripts → localStorage）。
+   */
+  const handleToggleScriptFabled = (scriptId: string, role: Role) => {
+    const updated = customScripts.map((s) => {
+      if (s.id !== scriptId) return s;
+      const cur = s.fabledIds ?? [];
+      const next = cur.includes(role.id)
+        ? cur.filter((id) => id !== role.id)
+        : [...cur, role.id];
+      return { ...s, fabledIds: next.length > 0 ? next : undefined };
+    });
+    setCustomScripts(updated);
+    localStorage.setItem("customScripts", JSON.stringify(updated));
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,14 +330,22 @@ export default function ScriptSelection({
     reader.readAsText(file);
   };
 
-  const handleSaveCustomScript = (scriptName: string, roleIds: string[]) => {
+  const handleSaveCustomScript = (
+    scriptName: string,
+    roleIds: string[],
+    fabledIds: string[] = []
+  ) => {
     const newScript: Script = {
       id: `custom_${Date.now()}`,
       name: scriptName,
       difficulty: "自定义",
-      description: `自由组合剧本 (${roleIds.length} 个角色)`,
+      description: `自由组合剧本 (${roleIds.length} 个角色${
+        fabledIds.length > 0 ? ` + ${fabledIds.length} 条寓言规则` : ""
+      })`,
       isCustom: true,
       roleIds,
+      // ⭐ 2026-10-12 G1：fabled 落库（修复前勾选静默丢失）
+      fabledIds: fabledIds.length > 0 ? fabledIds : undefined,
     };
 
     const updated = [...customScripts, newScript];
@@ -315,14 +354,21 @@ export default function ScriptSelection({
     setShowBuilderModal(false);
   };
 
-  const handleStartCustomScript = (scriptName: string, roleIds: string[]) => {
+  const handleStartCustomScript = (
+    scriptName: string,
+    roleIds: string[],
+    fabledIds: string[] = []
+  ) => {
     const newScript: Script = {
       id: `custom_${Date.now()}`,
       name: scriptName,
       difficulty: "自定义",
-      description: `自由组合剧本 (${roleIds.length} 个角色)`,
+      description: `自由组合剧本 (${roleIds.length} 个角色${
+        fabledIds.length > 0 ? ` + ${fabledIds.length} 条寓言规则` : ""
+      })`,
       isCustom: true,
       roleIds,
+      fabledIds: fabledIds.length > 0 ? fabledIds : undefined,
     };
 
     const updated = [...customScripts, newScript];
@@ -419,6 +465,9 @@ export default function ScriptSelection({
         <div className="grid grid-cols-3 gap-6">
           {allScripts.map((script) => {
             const isUnofficial = script.isCustom || script.id === "poppyganda";
+            const activeFabled = FABLED_ROLES.filter((f) =>
+              script.fabledIds?.includes(f.id)
+            );
             return (
               <button
                 key={script.id}
@@ -501,6 +550,25 @@ export default function ScriptSelection({
                       </span>
                     </div>
                   </div>
+
+                  {/* ⭐ 寓言角色托盘（G2：仅自定义剧本；点击不冒泡到卡片）。
+                      ⚠️ 2026-10-12 用户口径「默认不设置」：此处保存的是
+                      建造器备忘，开局不自动生效——对局中请在圆桌
+                      「说书人」座手动选择（落座确认后锁定）。 */}
+                  {script.id.startsWith("custom_") && (
+                    <div
+                      className="relative z-10"
+                      onClick={(e) => e.stopPropagation()}
+                      title="保存为剧本备忘配置；新开对局不会自动生效，请在圆桌「说书人」座选择"
+                    >
+                      <FabledBadgeTray
+                        activeFabled={activeFabled}
+                        onToggle={(role) =>
+                          handleToggleScriptFabled(script.id, role)
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </button>
             );

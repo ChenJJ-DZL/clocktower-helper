@@ -929,6 +929,13 @@ export function useGameController() {
         // 📋 恢复操作记录（2026-09-24 用户实测「继续对局后复盘没有信息」：
         //   恢复此前不含 gameLogs ⇒ 座位/阶段都在而日志全丢）。旧档无此字段 ⇒ 空数组。
         gameLogs: (snap as any).gameLogs ?? [],
+        // ⭐ 恢复传奇角色 / 旅行者座位（随快照持久化，刷新/继续对局不得丢选择）
+        activeFabled: (snap as any).activeFabled ?? [],
+        travelers:
+          Array.isArray((snap as any).travelers) &&
+          (snap as any).travelers.length === 4
+            ? (snap as any).travelers
+            : Array.from({ length: 4 }, () => null),
       };
       if (script) updates.selectedScript = script;
       baseDispatch(gameActions.updateState(updates));

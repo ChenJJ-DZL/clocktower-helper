@@ -217,6 +217,10 @@ export interface GameSnapshot {
   scriptName?: string;
   /** 📋 操作记录（随快照持久化；2026-09-24 修复「继续对局后复盘没有信息」） */
   gameLogs?: LogEntry[];
+  /** ⭐ 传奇角色（不占座位，全局规则生效；随快照持久化防刷新丢失） */
+  activeFabled?: any[];
+  /** 🧳 旅行者座位（位置化定长 4 位，null=空位；随快照持久化防刷新丢失） */
+  travelers?: (any | null)[];
 }
 
 // 对局记录数据结构

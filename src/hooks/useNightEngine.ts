@@ -154,8 +154,12 @@ export interface NightLogicActions {
 /**
  * 从 unifiedRoleDefinition 的能力注册表生成 NightOrderEntry
  * 优先度直接取自 ability 文件（已对齐 JSON 官方规则）
+ *
+ * ⚠️ 导出仅为「镜像对拍」测试服务（与 invariantTesting/engineConfig
+ *   ::buildFullNightOrder 逐字段比对）——两处是同源双份，历史上已出现
+ *   军团互认步骤只写在一侧的分叉。改此函数必须同步对拍测试。
  */
-function generateNightOrderFromParser(): NightOrderEntry[] {
+export function generateNightOrderFromParser(): NightOrderEntry[] {
   const allAbilities = unifiedRoleDefinition.getAllAbilities();
   const firstNightOrder = nightOrderParser.getFirstNightOrder();
   const otherNightOrder = nightOrderParser.getOtherNightOrder();

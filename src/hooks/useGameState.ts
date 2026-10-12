@@ -136,6 +136,7 @@ export function useGameState() {
     hadesiaChoiceEnabled,
     vfxTrigger,
     activeFabled,
+    travelers,
     isPrivacyShieldActive,
   } = state;
 
@@ -1187,6 +1188,8 @@ export function useGameState() {
       historyIndex,
       reminderTokens,
       setHistory,
+      activeFabled,
+      travelers,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
       togglePrivacyShield,
@@ -1299,6 +1302,8 @@ export function useGameState() {
       currentWakeIndexRef,
       showIntroLoading,
       vfxTrigger,
+      activeFabled,
+      travelers,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
       togglePrivacyShield,

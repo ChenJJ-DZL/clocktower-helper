@@ -13,6 +13,7 @@
  * I7 夜间死亡有来源    — 当晚死亡的玩家必须带有 killedBy/deathSource（可追溯）
  */
 import type { IRoleAbility } from "../../roles/core/roleAbility.types";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../../roles/demon/demonFirstNightHelper";
 import { collectGlobalRules } from "../globalRuleEngine";
 import { runFullAbilityPipeline } from "../middlewarePipeline";
 import { nightOrderParser } from "../nightOrderParser";
@@ -300,6 +301,11 @@ const SYSTEM_STEP_IDS = new Set([
   "info_roles_start",
   "minion_info",
   "demon_info",
+  // 军团专项：首夜「全员互认」系统步骤（与 minion_info/demon_info 同类，
+  // 官方 legion 运作方式）。⚠️ 2026-10-12 缺口补齐：engineConfig 补上
+  // 军团互认步骤后暴露此白名单缺口（I2/I9 误报）——当时 buildFullNightOrder
+  // 与生产路径 useNightEngine 分叉，白名单只跟着既有（错误的）不变式路径写。
+  LEGION_MUTUAL_RECOGNITION_ID,
   "dusk",
   "dawn",
 ]);

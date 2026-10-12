@@ -24,6 +24,12 @@ import {
   restoreSnapshot,
   SNAPSHOT_KEYS,
 } from "../utils/undoSnapshot";
+import { TRAVELER_MAX } from "../utils/fabledLock";
+import {
+  applyExileDeath,
+  exileThreshold,
+  isExilePassed,
+} from "../utils/exile";
 
 export { createSnapshot, restoreSnapshot, SNAPSHOT_KEYS };
 
@@ -192,6 +198,24 @@ export interface GameState {
   vfxTrigger: VfxTrigger;
   // 寓言角色（Fabled）全局配置 — 不占座位，作为对局规则生效
   activeFabled: import("../../app/data").Role[];
+  // 旅行者（Traveler）— 不占玩家的 15 个座位，最多 4 名，独立于 seats
+  // 位置化定长数组：长度恒为 4，null = 该座位为空
+  travelers: (import("../../app/data").Role | null)[];
+  /**
+   * 流放（Exile）进行中投票（Round 10b）— null = 无进行中的流放投票。
+   * 官方口径：门槛 = 全体玩家（含死者）一半向上取整；任何人（含死者）
+   * 可提议/可表决且不消耗投票标记；一日可流放多人；不产生终局。
+   * ⚠️ targetKind 区分两类目标：
+   *   "traveler" —— 旅行者席位（travelers 数组索引）：流放 = 离开游戏
+   *                （置 null；旅行者不占座位、不参与任何计数）；
+   *   "seat"     —— 玩家座位（seats.id）：流放 = applyExileDeath 死。
+   */
+  exileProposedToday: {
+    targetKind: "traveler" | "seat";
+    targetId: number; // traveler 模式 = travelers 索引；seat 模式 = seats.id
+    proposerId: number; // 提议者（可含死者；0 = 说书人代提议）
+    votes: number[]; // 赞成者座位 id 数组（可含死者，去重）
+  } | null;
   // 全局防窥遮罩状态
   isPrivacyShieldActive: boolean;
 }
@@ -253,6 +277,16 @@ export type GameAction =
   | { type: "DECLARE_MAYOR_WIN" }
   | { type: "SET_ACTIVE_FABLED"; fabled: Role[] }
   | { type: "TOGGLE_FABLED"; role: Role }
+  // ── 流放（Exile · Round 10b）─────────────────────────────────────
+  | {
+      type: "PROPOSE_EXILE";
+      targetKind: "traveler" | "seat";
+      targetId: number;
+      proposerId: number;
+    }
+  | { type: "CAST_EXILE_VOTE"; voterId: number }
+  | { type: "RESOLVE_EXILE" }
+  | { type: "CANCEL_EXILE" }
   | { type: "SAVE_HISTORY"; overrideState?: Partial<GameState> };
 // ... 可以继续添加更多Action
 
@@ -594,6 +628,76 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    // ── 流放（Exile · Round 10b）────────────────────────────────────
+    // ⚠️ 流放死亡绕过 killPlayer 咽喉（useGameController.ts:605）：
+    //    不触发终局检查、不触发死亡类能力、不写 executedToday
+    //    （送葬者只认处决死）。判据：src/utils/exile.ts + 派单规格。
+    case "PROPOSE_EXILE":
+      return {
+        ...state,
+        exileProposedToday: {
+          targetKind: action.targetKind,
+          targetId: action.targetId,
+          proposerId: action.proposerId,
+          votes: [],
+        },
+      };
+
+    case "CAST_EXILE_VOTE": {
+      if (!state.exileProposedToday) return state;
+      const { votes } = state.exileProposedToday;
+      if (votes.includes(action.voterId)) return state; // 重复投票去重
+      return {
+        ...state,
+        exileProposedToday: {
+          ...state.exileProposedToday,
+          votes: [...votes, action.voterId],
+        },
+      };
+    }
+
+    case "RESOLVE_EXILE": {
+      const proposal = state.exileProposedToday;
+      if (!proposal) return state;
+      // 门槛 = 全体玩家（无论生死）一半向上取整。
+      // ⚠️ 「全体玩家」含旅行者（官方：旅行者是玩家，只是不占剧本配比）——
+      //    2026-10-12 交互审查修正：曾漏计 travelers，15 人局 +2 旅行者时
+      //    门槛应为 ceil(17/2)=9 而非 8。
+      const totalPlayers =
+        state.seats.length +
+        (state.travelers ?? []).filter(Boolean).length;
+      const threshold = exileThreshold(totalPlayers);
+      const passed = isExilePassed(proposal.votes.length, threshold);
+      if (!passed) {
+        return { ...state, exileProposedToday: null };
+      }
+      if (proposal.targetKind === "traveler") {
+        // 旅行者流放 = 离开游戏：置 null（不占座位、不触发任何死亡语义）
+        const travelers = state.travelers.map((t, i) =>
+          i === proposal.targetId ? null : t
+        );
+        return { ...state, travelers, exileProposedToday: null };
+      }
+      // 玩家座位流放 = 死（绕过 killPlayer：不触发终局/能力/executedToday）。
+      // dayCount 用 nightCount 近似（引擎无独立 dayCount 字段）。
+      const outcome = applyExileDeath(
+        state.seats,
+        proposal.targetId,
+        state.nightCount
+      );
+      return {
+        ...state,
+        seats: outcome.seats,
+        exileProposedToday: null,
+      };
+    }
+
+    case "CANCEL_EXILE":
+      // 取消投票：无副作用清空（区别于 RESOLVE_EXILE 的结算语义）。
+      // 无提案时原样返回（保持引用相等，防调用方无谓重渲染）。
+      if (!state.exileProposedToday) return state;
+      return { ...state, exileProposedToday: null };
+
     default:
       return state;
   }
@@ -701,6 +805,8 @@ export function getInitialState(): GameState {
     gossipSourceSeatId: null,
     vfxTrigger: null,
     activeFabled: [],
+    travelers: Array.from({ length: TRAVELER_MAX }, () => null),
+    exileProposedToday: null,
     isPrivacyShieldActive: false,
   };
 }
@@ -877,6 +983,23 @@ export const gameActions = {
     type: "TOGGLE_FABLED",
     role,
   }),
+  // ── 流放（Exile · Round 10b）─────────────────────────────────────
+  proposeExile: (
+    targetKind: "traveler" | "seat",
+    targetId: number,
+    proposerId = 0
+  ): GameAction => ({
+    type: "PROPOSE_EXILE",
+    targetKind,
+    targetId,
+    proposerId,
+  }),
+  castExileVote: (voterId: number): GameAction => ({
+    type: "CAST_EXILE_VOTE",
+    voterId,
+  }),
+  resolveExile: (): GameAction => ({ type: "RESOLVE_EXILE" }),
+  cancelExile: (): GameAction => ({ type: "CANCEL_EXILE" }),
   setSelectedRole: (selectedRole: Role | null): GameAction => ({
     type: "UPDATE_STATE",
     updates: { selectedRole },

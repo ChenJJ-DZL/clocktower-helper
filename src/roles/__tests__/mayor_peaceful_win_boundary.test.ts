@@ -75,7 +75,7 @@ describe("🏛️ 镇长和平获胜 —— 官方边界（just three players al
     //      (Travelers and Fabled do not count toward this)" → 非旅行者 2 人 → 邪恶胜
     //   ③ "If both teams would win at the same time, good wins." → **善良胜**
     // ⇒ 旧引擎先结算人数阈值 → 误判邪恶；2026-09-16 修正为善良优先。
-    const three = [seat(0, "mayor"), seat(1, "imp"), seat(2, "traveler_official")];
+    const three = [seat(0, "mayor"), seat(1, "imp"), seat(2, "beggar")];
     const res = checkGameEnd(three as any, "execution", null, {} as any);
     expect(res.isGameOver).toBe(true);
     expect(res.winner).toBe("Good");
@@ -84,7 +84,7 @@ describe("🏛️ 镇长和平获胜 —— 官方边界（just three players al
 
   it("✅ 同上是**反派局**：2 名非旅行者（无镇长）+ 1 名旅行者 → 邪恶胜（人数阈值）", () => {
     // 没有镇长时，善良优先规则不适用：非旅行者仅 2 人 → 官方邪恶胜。
-    const three = [seat(0, "soldier"), seat(1, "imp"), seat(2, "traveler_official")];
+    const three = [seat(0, "soldier"), seat(1, "imp"), seat(2, "beggar")];
     const res = checkGameEnd(three as any, "execution", null, {} as any);
     expect(res.isGameOver).toBe(true);
     expect(res.winner).toBe("Evil");
@@ -95,8 +95,8 @@ describe("🏛️ 镇长和平获胜 —— 官方边界（just three players al
     const four = [
       seat(0, "mayor"),
       seat(1, "imp"),
-      seat(2, "traveler_official"),
-      seat(3, "traveler_official"),
+      seat(2, "beggar"),
+      seat(3, "beggar"),
     ];
     const res = checkGameEnd(four as any, "execution", null, {} as any);
     expect(res.isGameOver).toBe(true);
@@ -108,7 +108,7 @@ describe("🏛️ 镇长和平获胜 —— 官方边界（just three players al
     const three = [
       seat(0, "mayor", { isPoisoned: true }),
       seat(1, "imp"),
-      seat(2, "traveler_official"),
+      seat(2, "beggar"),
     ];
     const res = checkGameEnd(three as any, "execution", null, {} as any);
     expect(res.isGameOver).toBe(true);

@@ -1873,6 +1873,7 @@
     "id": "beggar",
     "name": "乞丐",
     "type": "traveler",
+    "ability": "你只能使用投票标记才能投票。\n\n死亡的玩家可以将他的投票标记给你，如果他这么做，你会得知他的阵营。\n\n你不会中毒和醉酒。",
     "otherNightMeta": {
       "script": "乞丐请睁眼...",
       "instruction": "说书人将执行乞讨选票的能力",
@@ -1903,6 +1904,7 @@
     "id": "bureaucrat",
     "name": "官员",
     "type": "traveler",
+    "ability": "每个夜晚，你要选择除你以外的一名玩家：明天白天，他的投票算作三票。",
     "otherNightMeta": {
       "script": "官员请睁眼...",
       "instruction": "说书人将执行三倍选票的能力",
@@ -2005,6 +2007,7 @@
     "id": "gunslinger",
     "name": "枪手",
     "type": "traveler",
+    "ability": "每个白天，当首次投票被统计后，你可以选择一名刚投过票的玩家：他死亡。",
     "otherNightMeta": {
       "script": "枪手请睁眼...",
       "instruction": "说书人将执行正义枪击的能力",
@@ -2141,6 +2144,7 @@
     "id": "scapegoat",
     "name": "替罪羊",
     "type": "traveler",
+    "ability": "如果你的阵营的一名玩家被处决，你可能会代替他被处决。",
     "otherNightMeta": {
       "script": "替罪羊请睁眼...",
       "instruction": "说书人将执行替死转嫁的能力",
@@ -2171,6 +2175,7 @@
     "id": "thief",
     "name": "窃贼",
     "type": "traveler",
+    "ability": "每个夜晚，你要选择除你以外的一名玩家：明天白天他的投票会被算作负数。",
     "otherNightMeta": {
       "script": "窃贼请睁眼...",
       "instruction": "说书人将执行妙手空空的能力",

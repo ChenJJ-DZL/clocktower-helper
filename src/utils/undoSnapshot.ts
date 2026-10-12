@@ -56,6 +56,7 @@ export const SNAPSHOT_KEYS = [
   "winResult",
   "winReason",
   "activeFabled",
+  "travelers",
 ] as const;
 
 /**
