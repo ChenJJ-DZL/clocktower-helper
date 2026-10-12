@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyExileDeath,
   exileThreshold,
+  isExileBlockedByDeviant,
   isExiledToday,
   isExilePassed,
 } from "../exile";
@@ -309,5 +310,80 @@ describe("GameReducer 流放流程（真实 reducer，禁 mock）", () => {
     }
     s = gameReducer(s, gameActions.resolveExile());
     expect(s.seats[3].exiled).toBe(true);
+  });
+
+  // ── 怪咖（Deviant）官方豁免（Round 11）────────────────────────────
+  // 官方：「如果你表现得很有趣，当天你不能被流放。」
+  // ⚠️ 与铁律 6「不受任何能力影响」不冲突：那条指的是**处决向**免疫
+  //    （镇长/士兵/圣徒），怪咖是**流放专属**的官方明文反制。
+
+  it("㉒ 纯函数：只有 deviant + 说书人判定有趣 才豁免", () => {
+    expect(isExileBlockedByDeviant("deviant", true)).toBe(true);
+    expect(isExileBlockedByDeviant("deviant", false)).toBe(false);
+    expect(isExileBlockedByDeviant("chef", true)).toBe(false);
+    expect(isExileBlockedByDeviant(null, true)).toBe(false);
+    expect(isExileBlockedByDeviant(undefined, true)).toBe(false);
+  });
+
+  it("㉓ 座位怪咖：票数达标 + 判定有趣 ⇒ 不生效（未死、提案清空）", () => {
+    let s = base();
+    s.seats[3] = seat(3, {
+      role: { id: "deviant", name: "怪咖", type: "traveler" } as any,
+    });
+    s = gameReducer(s, gameActions.proposeExile("seat", 3, 0));
+    for (const v of [0, 1, 2, 5]) s = gameReducer(s, gameActions.castExileVote(v));
+    expect(s.exileProposedToday!.votes.length).toBe(4); // 已达门槛 4
+    s = gameReducer(s, gameActions.resolveExile(true));
+    expect(s.seats[3].isDead, "怪咖被豁免 ⇒ 不得死").toBe(false);
+    expect(s.seats[3].exiled).toBeFalsy();
+    expect(s.exileProposedToday).toBeNull();
+  });
+
+  it("㉔ 负例：同为怪咖但说书人未判定有趣 ⇒ 正常流放死", () => {
+    let s = base();
+    s.seats[3] = seat(3, {
+      role: { id: "deviant", name: "怪咖", type: "traveler" } as any,
+    });
+    s = gameReducer(s, gameActions.proposeExile("seat", 3, 0));
+    for (const v of [0, 1, 2, 5]) s = gameReducer(s, gameActions.castExileVote(v));
+    s = gameReducer(s, gameActions.resolveExile(false));
+    expect(s.seats[3].isDead, "未判定有趣 ⇒ 正常流放").toBe(true);
+    expect(s.seats[3].exiled).toBe(true);
+  });
+
+  it("㉕ 旅行者怪咖：判定有趣 ⇒ 不离开游戏（travelers 槽位保留）", () => {
+    let s = base();
+    s = {
+      ...s,
+      travelers: [
+        { id: "deviant", name: "怪咖", type: "traveler" } as any,
+        null,
+        null,
+        null,
+      ],
+    };
+    s = gameReducer(s, gameActions.proposeExile("traveler", 0, 0));
+    // 7 座位 + 1 旅行者 = 8 ⇒ 门槛 4
+    for (const v of [0, 1, 2, 3]) s = gameReducer(s, gameActions.castExileVote(v));
+    s = gameReducer(s, gameActions.resolveExile(true));
+    expect(s.travelers[0], "被豁免 ⇒ 旅行者不得离开").not.toBeNull();
+    expect(s.travelers[0]!.id).toBe("deviant");
+  });
+
+  it("㉖ 负例：旅行者怪咖未判定有趣 ⇒ 离开游戏（置 null）", () => {
+    let s = base();
+    s = {
+      ...s,
+      travelers: [
+        { id: "deviant", name: "怪咖", type: "traveler" } as any,
+        null,
+        null,
+        null,
+      ],
+    };
+    s = gameReducer(s, gameActions.proposeExile("traveler", 0, 0));
+    for (const v of [0, 1, 2, 3]) s = gameReducer(s, gameActions.castExileVote(v));
+    s = gameReducer(s, gameActions.resolveExile(false));
+    expect(s.travelers[0]).toBeNull();
   });
 });

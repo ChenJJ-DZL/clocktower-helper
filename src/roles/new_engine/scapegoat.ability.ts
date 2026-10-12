@@ -145,9 +145,14 @@ const postProcess = async (
   };
 };
 
-export const scapegoatAbility = createRoleAbility({
-  roleId: "scapegoat",
-  abilityId: "scapegoat_execution_substitution",
+/**
+ * 替罪代刑 · 能力配置（宿主无关）
+ *
+ * ⚠️ 官方替罪羊**仅 traveler**（`roles_index` outsider 24 个中无替罪羊）。
+ * 仓库内另有一条 outsider 侧 `scapegoat`（剧本「无名之墓」），系**历史误植**，
+ * 删除留待独立批次。故 traveler 正身 id 隔离为 `scapegoat_traveler`。
+ */
+const scapegoatConfig = {
   abilityName: "替罪代刑",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
@@ -159,4 +164,28 @@ export const scapegoatAbility = createRoleAbility({
   calculate: [calculate],
   stateUpdate: [stateUpdate],
   postProcess: [postProcess],
+};
+
+export const scapegoatAbility = createRoleAbility({
+  ...scapegoatConfig,
+  roleId: "scapegoat",
+  abilityId: "scapegoat_execution_substitution",
+});
+
+/**
+ * ⭐ 旅行者正身别名（2026-10-13 修「零接线」缺陷）
+ *
+ * 缺陷事实：能力查找 `getAbilityForRole` 走
+ *   `abilityId.startsWith(roleId) || ability.roleId === roleId`
+ * 两个判据对 `scapegoat_traveler` **都不成立**（注册键为
+ * `scapegoat_execution_substitution`，roleId 为 `scapegoat`）
+ * ⇒ 圆桌上落座的旅行者替罪羊**查不到任何能力**。
+ *
+ * 修法：显式注册同形别名，使 traveler 正身可被命中；
+ * 两套 id 各自独立，不影响 outsider 侧误植条目的后续删除。
+ */
+export const scapegoatTravelerAbility = createRoleAbility({
+  ...scapegoatConfig,
+  roleId: "scapegoat_traveler",
+  abilityId: "scapegoat_traveler_execution_substitution",
 });

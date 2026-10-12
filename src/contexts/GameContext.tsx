@@ -28,6 +28,7 @@ import { TRAVELER_MAX } from "../utils/fabledLock";
 import {
   applyExileDeath,
   exileThreshold,
+  isExileBlockedByDeviant,
   isExilePassed,
 } from "../utils/exile";
 
@@ -285,7 +286,14 @@ export type GameAction =
       proposerId: number;
     }
   | { type: "CAST_EXILE_VOTE"; voterId: number }
-  | { type: "RESOLVE_EXILE" }
+  | {
+      type: "RESOLVE_EXILE";
+      /**
+       * 说书人主观判定：目标是怪咖（Deviant）且「表现得有趣」
+       * ⇒ 官方豁免，当日不可被流放。默认 false。
+       */
+      deviantAmusing?: boolean;
+    }
   | { type: "CANCEL_EXILE" }
   | { type: "SAVE_HISTORY"; overrideState?: Partial<GameState> };
 // ... 可以继续添加更多Action
@@ -671,6 +679,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!passed) {
         return { ...state, exileProposedToday: null };
       }
+
+      // ── 怪咖（Deviant）官方豁免 ──────────────────────────────────
+      // 「如果你表现得很有趣，当天你不能被流放。」
+      // ⇒ 票数够了也不生效，且不消耗本次提案（直接作废）。
+      const targetRoleId =
+        proposal.targetKind === "traveler"
+          ? (state.travelers?.[proposal.targetId]?.id ?? null)
+          : (state.seats.find((s) => s.id === proposal.targetId)?.role?.id ??
+            null);
+      if (
+        isExileBlockedByDeviant(targetRoleId, action.deviantAmusing === true)
+      ) {
+        return { ...state, exileProposedToday: null };
+      }
+
       if (proposal.targetKind === "traveler") {
         // 旅行者流放 = 离开游戏：置 null（不占座位、不触发任何死亡语义）
         const travelers = state.travelers.map((t, i) =>
@@ -998,7 +1021,10 @@ export const gameActions = {
     type: "CAST_EXILE_VOTE",
     voterId,
   }),
-  resolveExile: (): GameAction => ({ type: "RESOLVE_EXILE" }),
+  resolveExile: (deviantAmusing = false): GameAction => ({
+    type: "RESOLVE_EXILE",
+    deviantAmusing,
+  }),
   cancelExile: (): GameAction => ({ type: "CANCEL_EXILE" }),
   setSelectedRole: (selectedRole: Role | null): GameAction => ({
     type: "UPDATE_STATE",

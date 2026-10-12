@@ -82,3 +82,23 @@ export function applyExileDeath(
 export function isExiledToday(seat: Seat, dayCount: number): boolean {
   return seat.isDead && seat.exiled === true && seat.diedOnDay === dayCount;
 }
+
+/**
+ * 怪咖（Deviant）官方豁免：「如果你表现得很有趣，当天你不能被流放。」
+ *
+ * ⚠️ 与上面铁律 6「不受任何能力影响」**不冲突**——
+ *    铁律 6 指的是**处决向**的免疫类能力（镇长/士兵/圣徒一概不挡流放）；
+ *    怪咖是**流放专属**的反制规则，写在它自己的角色能力里，属于官方明文例外。
+ *
+ * 「表现得有趣」是**说书人主观判定**，不是引擎可推导的事实，
+ * 因此必须由说书人在结算时显式传入（默认 false = 未达豁免条件）。
+ *
+ * @param targetRoleId  被流放目标的角色 id（`deviant` 才可能豁免）
+ * @param deviantAmusing 说书人是否判定该怪咖「有趣」
+ */
+export function isExileBlockedByDeviant(
+  targetRoleId: string | null | undefined,
+  deviantAmusing: boolean
+): boolean {
+  return targetRoleId === "deviant" && deviantAmusing === true;
+}

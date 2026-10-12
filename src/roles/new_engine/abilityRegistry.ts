@@ -184,7 +184,7 @@ import { sageAbility } from "./sage.ability";
 import { sailorAbility } from "./sailor.ability";
 import { saintAbility } from "./saint.ability";
 import { savantAbility } from "./savant.ability";
-import { scapegoatAbility } from "./scapegoat.ability";
+import { scapegoatAbility, scapegoatTravelerAbility } from "./scapegoat.ability";
 import { scarletWomanAbility } from "./scarlet_woman.ability";
 import { scholarAbility } from "./scholar.ability";
 import { scribeAbility } from "./scribe.ability";
@@ -443,6 +443,7 @@ export function registerAllNewEngineAbilities(): void {
     saintAbility,
     savantAbility,
     scapegoatAbility,
+    scapegoatTravelerAbility,
     scarletWomanAbility,
     scholarAbility,
     scribeAbility,
@@ -734,7 +735,10 @@ export { sageAbility } from "./sage.ability";
 export { sailorAbility } from "./sailor.ability";
 export { saintAbility } from "./saint.ability";
 export { savantAbility } from "./savant.ability";
-export { scapegoatAbility } from "./scapegoat.ability";
+export {
+  scapegoatAbility,
+  scapegoatTravelerAbility as scapegoat_travelerAbility,
+} from "./scapegoat.ability";
 export {
   scarletWomanAbility,
   scarletWomanAbility as scarlet_womanAbility,

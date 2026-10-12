@@ -456,13 +456,21 @@ export function TableCenterHUD({
           }
           targetKind={exileProposedToday.targetKind}
           proposerLabel="说书人"
+          targetRoleId={
+            exileProposedToday.targetKind === "traveler"
+              ? (travelers[exileProposedToday.targetId]?.id ?? null)
+              : (seats.find((s) => s.id === exileProposedToday.targetId)?.role
+                  ?.id ?? null)
+          }
           seats={seats}
           votes={exileProposedToday.votes}
           threshold={exileThreshold(totalPlayers)}
           onVote={(voterId) =>
             dispatch(gameActions.castExileVote(voterId))
           }
-          onResolve={() => dispatch(gameActions.resolveExile())}
+          onResolve={(deviantAmusing) =>
+            dispatch(gameActions.resolveExile(deviantAmusing))
+          }
           onClose={() => dispatch(gameActions.cancelExile())}
         />
       )}
