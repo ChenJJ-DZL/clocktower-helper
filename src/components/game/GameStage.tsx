@@ -28,6 +28,7 @@ import { GameLayout } from "./GameLayout";
 import { GameModals } from "./GameModals";
 import { GlobalNavBar } from "./GlobalNavBar";
 import { GlobalPrivacyShield } from "./GlobalPrivacyShield";
+import { TwilightPanel } from "./TwilightPanel";
 import { StorytellerTuningProvider } from "./StorytellerTuningContext";
 import { NightActionPage } from "./NightActionPage";
 
@@ -1781,6 +1782,9 @@ export const GameStage = () => {
         onDismiss={() => setIsPrivacyShieldActive(false)}
         isNightPhase={gamePhase === "firstNight" || gamePhase === "night"}
       />
+      {/* 🌆 暮色（官方 Dusk）：入夜之前逐个唤醒有行动的旅行者。
+          无旅行者需行动时组件自行返回 null（阶段也不会被插入）。 */}
+      <TwilightPanel />
     </>
   );
 };

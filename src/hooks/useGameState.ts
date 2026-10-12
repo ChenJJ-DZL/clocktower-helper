@@ -137,6 +137,8 @@ export function useGameState() {
     vfxTrigger,
     activeFabled,
     travelers,
+    /** 暮色（官方 Dusk）阶段当前步骤游标；步骤由 travelerDusk 即时推导 */
+    twilightStepIndex,
     isPrivacyShieldActive,
   } = state;
 
@@ -1190,6 +1192,7 @@ export function useGameState() {
       setHistory,
       activeFabled,
       travelers,
+      twilightStepIndex,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
       togglePrivacyShield,
@@ -1304,6 +1307,7 @@ export function useGameState() {
       vfxTrigger,
       activeFabled,
       travelers,
+      twilightStepIndex,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
       togglePrivacyShield,

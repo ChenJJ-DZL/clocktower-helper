@@ -13,6 +13,14 @@ export type GamePhase =
   | "scriptSelection"
   | "setup"
   | "check"
+  /**
+   * 暮色（官方 Dusk）—— **入夜之前**旅行者（及传奇角色）行动的时刻。
+   *
+   * ⚠️ 与 `dusk` **不是一回事**：本仓库的 `dusk` 是「白天提名/处决阶段」，
+   *    官方的 Dusk 在**夜晚开始时**。为避免撞名，新增独立阶段 `twilight`。
+   * 见 `src/utils/travelerDusk.ts`（暮色步骤唯一事实源）。
+   */
+  | "twilight"
   | "firstNight"
   | "day"
   | "dusk"

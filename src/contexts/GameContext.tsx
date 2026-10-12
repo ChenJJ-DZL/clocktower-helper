@@ -217,6 +217,14 @@ export interface GameState {
     proposerId: number; // 提议者（可含死者；0 = 说书人代提议）
     votes: number[]; // 赞成者座位 id 数组（可含死者，去重）
   } | null;
+  /**
+   * 暮色（Twilight = 官方 Dusk）阶段：当前执行到第几步。
+   *
+   * 步骤由 `buildTwilightSteps(state.travelers, isFirstNight)` **即时推导**，
+   * 不存进 state（避免 travelers 变动时步骤数组过期）；这里只存游标。
+   * ⚠️ 本仓库 `dusk` 是白天提名阶段，官方 Dusk 另用 `twilight`，勿混。
+   */
+  twilightStepIndex: number;
   // 全局防窥遮罩状态
   isPrivacyShieldActive: boolean;
 }
@@ -228,6 +236,8 @@ export type GameAction =
   | { type: "SET_PRIVACY_SHIELD_ACTIVE"; active: boolean }
   | { type: "TOGGLE_PRIVACY_SHIELD" }
   | { type: "SET_GAME_PHASE"; phase: GamePhase }
+  /** 暮色阶段：设置当前步骤游标（进入暮色时由调用方先置 0） */
+  | { type: "SET_TWILIGHT_STEP"; index: number }
   | { type: "SET_NIGHT_ACTION_QUEUE"; queue: Seat[] }
   | { type: "NEXT_NIGHT_ACTION" }
   | { type: "PREV_NIGHT_ACTION" }
@@ -342,6 +352,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         );
       }
       return { ...state, gamePhase: action.phase };
+
+    case "SET_TWILIGHT_STEP":
+      return { ...state, twilightStepIndex: Math.max(0, action.index) };
 
     case "SET_NIGHT_ACTION_QUEUE":
       return {
@@ -830,6 +843,7 @@ export function getInitialState(): GameState {
     activeFabled: [],
     travelers: Array.from({ length: TRAVELER_MAX }, () => null),
     exileProposedToday: null,
+    twilightStepIndex: 0,
     isPrivacyShieldActive: false,
   };
 }
@@ -881,6 +895,11 @@ export const gameActions = {
   setGamePhase: (phase: GamePhase): GameAction => ({
     type: "SET_GAME_PHASE",
     phase,
+  }),
+  /** 暮色阶段：设置当前步骤游标 */
+  setTwilightStep: (index: number): GameAction => ({
+    type: "SET_TWILIGHT_STEP",
+    index,
   }),
   setNightActionQueue: (queue: Seat[]): GameAction => ({
     type: "SET_NIGHT_ACTION_QUEUE",

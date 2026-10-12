@@ -21,6 +21,7 @@ import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../utils/m
 import { showAlert } from "../utils/nativeDialogShim";
 import { isSeatMinionOrDemon, isSeatTraveler } from "../utils/seatAlignment";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
+import { hasTwilightPhase } from "../utils/travelerDusk";
 
 /**
  * 🔧 跨角色状态时序修复（W8.14.13）：清除"次日黄昏"类临时标记并同步重置布尔。
@@ -104,6 +105,8 @@ export interface UseGameFlowResult {
   setNightCount: React.Dispatch<React.SetStateAction<number>>;
   setTimer: React.Dispatch<React.SetStateAction<number>>;
   startNight: (isFirstNight: boolean) => void;
+  /** 暮色（官方 Dusk）：入夜之前逐个唤醒有行动的旅行者 */
+  enterTwilight: () => void;
   enterNightPhase: (target: GamePhase, isFirstNight: boolean) => void;
   enterDayPhase: () => void;
   enterDuskPhase: () => void;
@@ -212,13 +215,41 @@ export function useGameFlow(): UseGameFlowResult {
       // 非首夜统一走 startSubsequentNight 完整流程：重新生成夜间队列，
       // 避免沿用首夜残留队列导致洗衣妇/厨师等“仅首夜”角色在后续夜被重复唤醒。
       if (!isFirstNight) {
+        // 🌆 暮色闸门：有旅行者需行动时先走暮色阶段（无则直接入夜，行为不变）。
+        //    ⚠️ 这里**内联** dispatch 而不是调用 enterTwilight ——
+        //    enterTwilight 定义在下方，放进依赖数组会触发 TDZ。
+        if (hasTwilightPhase(state.travelers ?? [], false)) {
+          dispatch(gameActions.setTwilightStep(0));
+          dispatch(gameActions.setGamePhase("twilight"));
+          return;
+        }
         unifiedEventBus.emit("startSubsequentNight", {});
         return;
       }
       dispatch(gameActions.setGamePhase("firstNight"));
     },
-    [dispatch]
+    [dispatch, state.travelers]
   );
+
+  /**
+   * 暮色（Twilight = 官方 Dusk）：进入"旅行者行动"阶段。
+   *
+   * ⚠️ 本仓库 `dusk` 是**白天提名阶段**，官方 Dusk 在**入夜之前**，
+   *    两者不可混用 ⇒ 独立 `twilight` 阶段。
+   * 步骤由 `buildTwilightSteps(travelers, isFirstNight)` 在 UI 侧即时推导，
+   * 这里只把游标归零并切阶段。
+   */
+  const enterTwilight = useCallback(() => {
+    dispatch(gameActions.setTwilightStep(0));
+    dispatch(gameActions.setGamePhase("twilight"));
+    dispatch(
+      gameActions.addLog({
+        day: nightCount,
+        phase: "dusk",
+        message: "🌆 进入暮色（旅行者行动）",
+      })
+    );
+  }, [dispatch, nightCount]);
 
   const enterNightPhase = useCallback(
     (target: GamePhase, isFirstNight: boolean) => {
@@ -850,21 +881,34 @@ export function useGameFlow(): UseGameFlowResult {
     );
   }, [pendingNightQueue, dispatch, gamePhase]);
 
-  const handleStartNight = useCallback(
+  /**
+   * 入夜核心（**唯一**发射点，避免两条路径分叉）。
+   * ⚠️ 首夜必须 emit startFirstNight，否则只切 phase 会缺夜间队列
+   *    （小恶魔等恶魔不被唤醒）。
+   */
+  const startNightCore = useCallback(
     (isFirst: boolean) => {
-      // 占卜师红罗剎重指派逻辑...
       if (isFirst) {
-        // 🔧 修复：首夜必须走完整启动流程（emit startFirstNight 触发新引擎队列），
-        //   否则只切换 gamePhase 会导致夜间队列缺失（小恶魔等恶魔不被唤醒）。
-        //   与 GameStage 的 proceedToFirstNight 路径保持一致，保证夜间队列完整。
         dispatch(gameActions.setGamePhase("firstNight"));
         unifiedEventBus.emit("startFirstNight", {});
         return;
       }
-      // 非首夜统一走 startSubsequentNight 完整流程（重建队列 + 更新阶段/夜数）。
       unifiedEventBus.emit("startSubsequentNight", {});
     },
     [dispatch]
+  );
+
+  const handleStartNight = useCallback(
+    (isFirst: boolean) => {
+      // 🌆 暮色（官方 Dusk）：入夜之前先逐个唤醒有行动的旅行者。
+      //    无旅行者需要行动时不插入空阶段，直接入夜（行为与修复前一致）。
+      if (hasTwilightPhase(state.travelers ?? [], isFirst)) {
+        enterTwilight();
+        return;
+      }
+      startNightCore(isFirst);
+    },
+    [startNightCore, enterTwilight, state.travelers]
   );
 
   // 使用 ref 存储 proceedToFirstNight 以便在模态框回调中重新调用
@@ -1079,10 +1123,26 @@ export function useGameFlow(): UseGameFlowResult {
         // 继续流程（不再 return 拦截）
       }
 
+      // 🌆 暮色闸门：首夜同样先走暮色（官方 Dusk 在入夜之前）。
+      //    放在**所有首夜准备之后**——这样暮色结束回到 `startFirstNight` 时，
+      //    疯子假信息/红罗刹/木偶伪装等准备都已完成，不会被跳过。
+      if (hasTwilightPhase(state.travelers ?? [], true)) {
+        enterTwilight();
+        return;
+      }
+
       // 直接启动首夜（不再弹预览窗口）
       unifiedEventBus.emit("startFirstNight", {});
     },
-    [seats, dispatch, gamePhase, selectedScript?.id, selectedScript?.roleIds]
+    [
+      seats,
+      dispatch,
+      gamePhase,
+      selectedScript?.id,
+      selectedScript?.roleIds,
+      state.travelers,
+      enterTwilight,
+    ]
   );
 
   proceedToFirstNightRef.current = proceedToFirstNight;
@@ -1125,6 +1185,7 @@ export function useGameFlow(): UseGameFlowResult {
         dispatch(gameActions.setTimer(next));
       },
       startNight,
+      enterTwilight,
       enterNightPhase,
       enterDayPhase,
       enterDuskPhase,
@@ -1149,6 +1210,7 @@ export function useGameFlow(): UseGameFlowResult {
       handleTimerStart,
       handleTimerReset,
       startNight,
+      enterTwilight,
       enterNightPhase,
       enterDayPhase,
       enterDuskPhase,
