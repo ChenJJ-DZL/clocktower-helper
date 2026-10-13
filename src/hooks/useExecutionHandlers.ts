@@ -42,6 +42,14 @@ export interface ExecutionHandlersDeps {
   winResult: "good" | "evil" | null;
   winReason: string | null;
   evilTwinPair?: { evilId: number; goodId: number } | null;
+  /**
+   * 暮色阶段官员/窃贼选中的投票目标（官方：明天白天生效）。
+   * 由 `useGameController` 从 `state.twilightVoteTargets` 透传进来。
+   */
+  twilightVoteTargets?: {
+    bureaucratTargetId: number | null;
+    thiefTargetId: number | null;
+  };
 
   // Setters
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
@@ -156,6 +164,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     todayExecutedId,
     mastermindFinalDay,
     evilTwinPair,
+    twilightVoteTargets,
     setCurrentModal,
     setSeats,
     setSelectedActionTargets,
@@ -655,20 +664,41 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           v = 0;
         }
 
-        // 乞丐（Beggar）规则检查：如果乞丐选择了某玩家，该玩家参与投票时计为2票（总票数+1）
-        const beggarSeat = seats.find(
-          (s) => s.role?.id === "beggar" && !s.isDead
-        );
-        const beggarTargetId =
-          (beggarSeat as any)?.beggarTargetId ??
-          (beggarSeat as any)?.beggarVoteSource;
+        // 🔴 2026-10-13 移除一段**假规则**（原地修，非 workaround）
+        //    旧代码在这里写「乞丐选择某玩家 ⇒ 该玩家投票计 2 票（+1）」，**三重错误**：
+        //      ① 官方原文（parsed_roles.json「乞丐」）是：
+        //         「你只能使用投票标记才能投票。死亡的玩家可以将他的投票标记给你，
+        //           如果他这么做，你会得知他的阵营。你不会中毒和醉酒。」
+        //         —— **根本没有 +1 票这回事**，这是凭空发明的规则；
+        //      ② 乞丐是 **traveler**，而 `seats.find(s => s.role?.id === "beggar")`
+        //         永远为 undefined（旅行者不占 seats）⇒ 这段代码**永不执行**；
+        //      ③ 即使将来旅行者进了 seats，也会按**错的规则**结算。
+        //    ⇒ 删除；乞丐的真实缺口登记在 `traveler_wiring_contract.test.ts`
+        //      的 `REGISTERED_ONLY` 档，补实现时请按官方原文三条落地。
+        //
+        // ⭐ 官员 / 窃贼（同为 traveler）的正确写法见下方 `twilightVoteTargets`：
+        //    目标存在**独立 state**（不进 seats），所以真能读到。
+
+        // 🗳️ 官员（Bureaucrat）：「明天白天，他的投票算作三票。」
+        //    该玩家本次投票已计入 v（1 票）⇒ 再 +2 使其合计 3 票。
+        const bureaucratTarget = twilightVoteTargets?.bureaucratTargetId;
         if (
-          beggarTargetId != null &&
-          effectiveVoters.includes(beggarTargetId)
+          bureaucratTarget != null &&
+          effectiveVoters.includes(bureaucratTarget)
         ) {
-          v = v + 1;
+          v = v + 2;
           addLog(
-            `🗳️ 乞丐效果生效：${beggarTargetId + 1}号投票计为 2 票（+1 票）`
+            `🗳️ 官员效果生效：${bureaucratTarget + 1}号投票算作三票（+2 票）`
+          );
+        }
+
+        // 🗳️ 窃贼（Thief）：「明天白天他的投票会被算作负数。」
+        //    官方语义：该玩家这一票算 -1。现 v 里已按 +1 计入 ⇒ 扣 2 变为 -1。
+        const thiefTarget = twilightVoteTargets?.thiefTargetId;
+        if (thiefTarget != null && effectiveVoters.includes(thiefTarget)) {
+          v = v - 2;
+          addLog(
+            `🗳️ 窃贼效果生效：${thiefTarget + 1}号投票算作负数（−1 票）`
           );
         }
 

@@ -221,6 +221,19 @@ export interface GameSnapshot {
   activeFabled?: any[];
   /** 🧳 旅行者座位（位置化定长 4 位，null=空位；随快照持久化防刷新丢失） */
   travelers?: (any | null)[];
+  /**
+   * 🌆 暮色阶段当前步骤索引（旅行者行进中，0-based）。
+   * ⚠️ 漏登记 ⇒ 刷新/恢复对局后暮色从第一步重头开始（2026-10-13 E2E ⑥ 实测发现）。
+   */
+  twilightStepIndex?: number;
+  /**
+   * 🌆 暮色阶段投票目标（官员/窃贼在暮色选定，次日白天投票结算时消费）。
+   * ⚠️ 漏登记 ⇒ 刷新后"选了目标却失效"。
+   */
+  twilightVoteTargets?: {
+    bureaucratTargetId: number | null;
+    thiefTargetId: number | null;
+  };
 }
 
 // 对局记录数据结构
@@ -244,6 +257,7 @@ export const phaseNames: Record<string, string> = {
   firstNight: "首夜",
   day: "白天",
   dusk: "黄昏/处决",
+  twilight: "暮色",
   night: "夜晚",
   dawnReport: "天亮结算",
   gameOver: "游戏结束",

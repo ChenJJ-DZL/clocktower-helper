@@ -220,6 +220,7 @@ export function useGameFlow(): UseGameFlowResult {
         //    enterTwilight 定义在下方，放进依赖数组会触发 TDZ。
         if (hasTwilightPhase(state.travelers ?? [], false)) {
           dispatch(gameActions.setTwilightStep(0));
+          dispatch(gameActions.clearTwilightVoteTargets());
           dispatch(gameActions.setGamePhase("twilight"));
           return;
         }
@@ -241,6 +242,9 @@ export function useGameFlow(): UseGameFlowResult {
    */
   const enterTwilight = useCallback(() => {
     dispatch(gameActions.setTwilightStep(0));
+    // ⚠️ 必须清零上一夜的官员/窃贼目标：否则本夜取消发动时，
+    //    白天投票仍会被残留目标错误加成/扣减。
+    dispatch(gameActions.clearTwilightVoteTargets());
     dispatch(gameActions.setGamePhase("twilight"));
     dispatch(
       gameActions.addLog({

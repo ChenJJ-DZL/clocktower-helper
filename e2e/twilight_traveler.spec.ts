@@ -117,4 +117,41 @@ test.describe("暮色阶段（官方 Dusk）", () => {
     );
     expect(night, "无旅行者应直接入夜").not.toBeNull();
   });
+
+  test("⑥ 官员选目标 ⇒ 真的写进状态（twilightVoteTargets.bureaucratTargetId）", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await enterScriptConfig(page, "暗流涌动", 7);
+    await resolveCharades(page);
+
+    await seatTraveler(page, SPECIALIST);
+    await page.getByText("分发&核对身份").first().click();
+    await page
+      .locator("button")
+      .filter({ hasText: /确认无误[\s\S]*入夜/ })
+      .first()
+      .click();
+
+    await expect(page.getByText(`唤醒：${SPECIALIST}`).first()).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // 点 2 号座位作为官员目标
+    await page.getByText(/选择目标玩家/).first().waitFor({ state: "visible" });
+    await page.getByRole("button", { name: /^2号/ }).first().click();
+    await expect(page.getByText(/已选\s*2\s*号/).first()).toBeVisible();
+
+    // 入夜后快照里必须读到该目标（防"点了没落库"）
+    await page.getByText("暮色结束，入夜").first().click();
+    const night = await waitForSnapshot(
+      page,
+      (s: any) =>
+        (s?.gamePhase === "firstNight" || s?.gamePhase === "night") &&
+        s?.twilightVoteTargets != null,
+      20_000
+    );
+    expect(night, "应已入夜").not.toBeNull();
+    expect(night.twilightVoteTargets.bureaucratTargetId).toBe(1);
+  });
 });

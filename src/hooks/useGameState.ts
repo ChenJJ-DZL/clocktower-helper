@@ -139,6 +139,8 @@ export function useGameState() {
     travelers,
     /** 暮色（官方 Dusk）阶段当前步骤游标；步骤由 travelerDusk 即时推导 */
     twilightStepIndex,
+    /** 暮色阶段官员/窃贼选中的投票目标（明天白天生效） */
+    twilightVoteTargets,
     isPrivacyShieldActive,
   } = state;
 
@@ -199,6 +201,12 @@ export function useGameState() {
       },
       [dispatch, state.gamePhase]
     );
+  /** 暮色阶段：官员/窃贼选定投票目标（传 null = 取消选择） */
+  const setTwilightVoteTarget = useCallback(
+    (role: "bureaucrat" | "thief", targetId: number | null) =>
+      dispatch(gameActions.setTwilightVoteTarget(role, targetId)),
+    [dispatch]
+  );
   const setSelectedScript = useCallback(
     (val: Script | null) =>
       dispatch(gameActions.updateState({ selectedScript: val })),
@@ -1193,6 +1201,8 @@ export function useGameState() {
       activeFabled,
       travelers,
       twilightStepIndex,
+      twilightVoteTargets,
+      setTwilightVoteTarget,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
       togglePrivacyShield,
@@ -1308,6 +1318,8 @@ export function useGameState() {
       activeFabled,
       travelers,
       twilightStepIndex,
+      twilightVoteTargets,
+      setTwilightVoteTarget,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
       togglePrivacyShield,

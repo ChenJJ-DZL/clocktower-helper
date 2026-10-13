@@ -57,6 +57,11 @@ export const SNAPSHOT_KEYS = [
   "winReason",
   "activeFabled",
   "travelers",
+  // 🌆 暮色（官方 Dusk）阶段：步骤游标 + 官员/窃贼投票目标
+  //    （漏登记 ⇒ 撤销/重做与 localStorage 快照都会丢掉这些字段，
+  //      表现为"选了目标、入夜后失效"）
+  "twilightStepIndex",
+  "twilightVoteTargets",
 ] as const;
 
 /**

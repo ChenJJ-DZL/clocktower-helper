@@ -188,6 +188,14 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
     // ⭐ 传奇角色 / 旅行者座位随快照持久化（刷新恢复不得丢选择）
     activeFabled: safeJsonClone(state.activeFabled ?? []),
     travelers: safeJsonClone(state.travelers ?? []),
+    // 🌆 暮色（官方 Dusk）：步骤游标 + 官员/窃贼投票目标
+    //    ⚠️ 漏登记 ⇒ 刷新/恢复对局后"选了目标却失效"（2026-10-13 实测：
+    //       E2E 断言快照时才发现字段根本没进 localStorage）
+    twilightStepIndex: state.twilightStepIndex ?? 0,
+    twilightVoteTargets: {
+      bureaucratTargetId: state.twilightVoteTargets?.bureaucratTargetId ?? null,
+      thiefTargetId: state.twilightVoteTargets?.thiefTargetId ?? null,
+    },
     selectedScript: state.selectedScript
       ? safeJsonClone(state.selectedScript)
       : null,

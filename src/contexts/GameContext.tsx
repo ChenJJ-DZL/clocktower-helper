@@ -225,6 +225,24 @@ export interface GameState {
    * ⚠️ 本仓库 `dusk` 是白天提名阶段，官方 Dusk 另用 `twilight`，勿混。
    */
   twilightStepIndex: number;
+  /**
+   * 暮色（Twilight = 官方 Dusk）阶段：**官员 / 窃贼** 选中的投票目标。
+   *
+   * 官方口径（parsed_roles.json）：
+   *   · 官员：「每个夜晚，你要选择除你以外的一名玩家：明天白天，他的投票算作三票。」
+   *   · 窃贼：「每个夜晚，你要选择除你以外的一名玩家：明天白天他的投票会被算作负数。」
+   * ⇒ 在**第 N 夜的暮色**选定，作用于**第 N 个白天**的投票结算。
+   *
+   * ⚠️ 为什么不用 `seat.beggarTargetId` 那种写法（`useExecutionHandlers.ts` 旧代码）：
+   *    旅行者**不占 seats**，把目标挂在座位字段上 ⇒ `seats.find(role.id==="beggar")`
+   *    永远为 undefined ⇒ 永不执行。本字段是**独立 state**，与 seats 解耦。
+   *
+   * 生命周期：进入暮色时清零 → 暮色中选择写入 → 白天投票结算时读取。
+   */
+  twilightVoteTargets: {
+    bureaucratTargetId: number | null;
+    thiefTargetId: number | null;
+  };
   // 全局防窥遮罩状态
   isPrivacyShieldActive: boolean;
 }
@@ -238,6 +256,21 @@ export type GameAction =
   | { type: "SET_GAME_PHASE"; phase: GamePhase }
   /** 暮色阶段：设置当前步骤游标（进入暮色时由调用方先置 0） */
   | { type: "SET_TWILIGHT_STEP"; index: number }
+  /**
+   * 暮色阶段：官员/窃贼选定投票目标。
+   * 传 `null` = 取消选择（该角色当晚不发动）。
+   */
+  | {
+      type: "SET_TWILIGHT_VOTE_TARGET";
+      role: "bureaucrat" | "thief";
+      targetId: number | null;
+    }
+  /**
+   * 清空暮色投票目标。
+   * ⚠️ 必须在**进入暮色时**调用：否则上一夜的目标会残留到本夜，
+   *    即使本夜该旅行者取消发动，白天投票仍会被错误加成/扣减。
+   */
+  | { type: "CLEAR_TWILIGHT_VOTE_TARGETS" }
   | { type: "SET_NIGHT_ACTION_QUEUE"; queue: Seat[] }
   | { type: "NEXT_NIGHT_ACTION" }
   | { type: "PREV_NIGHT_ACTION" }
@@ -355,6 +388,37 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "SET_TWILIGHT_STEP":
       return { ...state, twilightStepIndex: Math.max(0, action.index) };
+
+    case "SET_TWILIGHT_VOTE_TARGET": {
+      // ⚠️ `action.role` 是 "bureaucrat"/"thief"，而 state 字段名是
+      //    `bureaucratTargetId`/`thiefTargetId` —— 直接 `[action.role]` 会写进
+      //    错误键名、让字段永远为 null（2026-10-13 实测踩到，由
+      //    `twilight_vote_effects.test.ts` ② 抓到）。必须显式映射。
+      const key =
+        action.role === "bureaucrat"
+          ? "bureaucratTargetId"
+          : "thiefTargetId";
+      return {
+        ...state,
+        twilightVoteTargets: {
+          ...state.twilightVoteTargets,
+          [key]: action.targetId,
+        },
+      };
+    }
+
+    case "CLEAR_TWILIGHT_VOTE_TARGETS":
+      // 引用相等优化：本来就没有目标时返回原 state，避免无谓重渲染
+      if (
+        state.twilightVoteTargets.bureaucratTargetId === null &&
+        state.twilightVoteTargets.thiefTargetId === null
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        twilightVoteTargets: { bureaucratTargetId: null, thiefTargetId: null },
+      };
 
     case "SET_NIGHT_ACTION_QUEUE":
       return {
@@ -844,6 +908,7 @@ export function getInitialState(): GameState {
     travelers: Array.from({ length: TRAVELER_MAX }, () => null),
     exileProposedToday: null,
     twilightStepIndex: 0,
+    twilightVoteTargets: { bureaucratTargetId: null, thiefTargetId: null },
     isPrivacyShieldActive: false,
   };
 }
@@ -900,6 +965,19 @@ export const gameActions = {
   setTwilightStep: (index: number): GameAction => ({
     type: "SET_TWILIGHT_STEP",
     index,
+  }),
+  /** 暮色阶段：官员/窃贼选定（或取消）投票目标 */
+  setTwilightVoteTarget: (
+    role: "bureaucrat" | "thief",
+    targetId: number | null
+  ): GameAction => ({
+    type: "SET_TWILIGHT_VOTE_TARGET",
+    role,
+    targetId,
+  }),
+  /** 进入暮色时清空上一夜的投票目标（防残留加成） */
+  clearTwilightVoteTargets: (): GameAction => ({
+    type: "CLEAR_TWILIGHT_VOTE_TARGETS",
   }),
   setNightActionQueue: (queue: Seat[]): GameAction => ({
     type: "SET_NIGHT_ACTION_QUEUE",

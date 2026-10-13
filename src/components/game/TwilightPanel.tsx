@@ -33,11 +33,29 @@ export function TwilightPanel() {
   const current = steps[idx];
   const isLast = idx >= steps.length - 1;
 
+  // 官员 / 窃贼需要"选择除自己以外的一名玩家"——旅行者不占 seats，
+  // 所以可选集合就是**全部玩家座位**；已选目标供回显与取消。
+  const needsVoteTarget =
+    current?.roleId === "bureaucrat" || current?.roleId === "thief";
+  const pickedTarget =
+    current?.roleId === "bureaucrat"
+      ? state.twilightVoteTargets?.bureaucratTargetId
+      : state.twilightVoteTargets?.thiefTargetId;
+
   const goNext = () => {
     dispatch({ type: "SET_TWILIGHT_STEP", index: idx + 1 });
   };
   const goPrev = () => {
     dispatch({ type: "SET_TWILIGHT_STEP", index: Math.max(0, idx - 1) });
+  };
+  const pickVoteTarget = (seatId: number) => {
+    if (!current) return;
+    dispatch({
+      type: "SET_TWILIGHT_VOTE_TARGET",
+      role: current.roleId === "bureaucrat" ? "bureaucrat" : "thief",
+      // 再点一次已选目标 = 取消选择（该角色当晚不发动）
+      targetId: pickedTarget === seatId ? null : seatId,
+    });
   };
   const finish = () => {
     // 暮色结束 → 入夜。首夜与否由引擎侧 hasCompletedFirstNight 推导。
@@ -47,7 +65,7 @@ export function TwilightPanel() {
       phase: isFirstNight ? "firstNight" : "night",
     });
     // ⚠️ 必须 emit（不能只切 phase）：首夜走 startFirstNight 才会生成夜间队列，
-    //    否则小恶魔等恶魔不会被唤醒。与 useGameFlow::startNightCore 同口径。
+    //    否则小恶魔等恶魔不被唤醒。与 useGameFlow::startNightCore 同口径。
     unifiedEventBus.emit(
       isFirstNight ? "startFirstNight" : "startSubsequentNight",
       {}
@@ -92,6 +110,43 @@ export function TwilightPanel() {
               <span className="font-bold">说书人操作：</span>
               {current.hint}
             </div>
+
+            {/* 官员 / 窃贼：选择投票目标（官方「选择除你以外的一名玩家」） */}
+            {needsVoteTarget && (
+              <div className="mt-3 rounded-lg border-2 border-sky-400/40 bg-sky-500/10 px-3 py-3">
+                <div className="text-base font-bold text-sky-100 mb-2">
+                  选择目标玩家（明天白天其投票按该旅行者规则计数）
+                  {pickedTarget != null && (
+                    <span className="ml-2 text-emerald-300">
+                      已选 {pickedTarget + 1} 号
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {state.seats.map((s) => {
+                    const picked = pickedTarget === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => pickVoteTarget(s.id)}
+                        className={`px-2 py-1.5 rounded-lg border text-sm font-bold transition-colors cursor-pointer ${
+                          picked
+                            ? "border-emerald-400 bg-emerald-500/30 text-emerald-100"
+                            : "border-white/15 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60"
+                        }`}
+                        title={picked ? "再点一次取消选择" : undefined}
+                      >
+                        {s.id + 1}号{s.isDead ? " 💀" : ""}
+                        {picked && " ✓"}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-xs text-sky-200/70 mt-2">
+                  旅行者不占座位，故全部玩家均为候选；可再点一次已选项取消（该角色当晚不发动）。
+                </div>
+              </div>
+            )}
           </div>
         )}
 

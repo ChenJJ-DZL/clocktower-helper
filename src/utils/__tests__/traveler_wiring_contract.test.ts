@@ -48,25 +48,47 @@ import { TWILIGHT_TRAVELERS } from "../travelerDusk";
 initializeAbilityRegistry();
 
 /** ① 效果已落地：真实对局里这条规则真的会改变状态 */
-const EFFECT_LANDED: string[] = ["deviant"];
+const EFFECT_LANDED: string[] = [
+  "deviant", // 怪咖 · 流放豁免（exile.ts 钩子）
+  "bureaucrat", // 官员 · 三票（twilightVoteTargets + submitVotes +2）
+  "thief", // 窃贼 · 负票（twilightVoteTargets + submitVotes -2）
+];
 
 /** ①b 效果落地项的**证据**（宿主文件 + 判据函数） */
 const HOOK_EVIDENCE: Record<
   string,
-  { 宿主: string; 判据: string; 说明: string }
+  { 宿主: string; 文件: string; 判据: string; 说明: string }
 > = {
   deviant: {
-    宿主: "src/contexts/GameContext.tsx::RESOLVE_EXILE",
+    宿主: "RESOLVE_EXILE",
+    文件: "../../contexts/GameContext.tsx",
     判据: "isExileBlockedByDeviant",
     说明: "怪咖：说书人判定「表现得有趣」⇒ 当日不可被流放（2026-10-13 落地）",
+  },
+  bureaucrat: {
+    宿主: "submitVotes",
+    文件: "../../hooks/useExecutionHandlers.ts",
+    判据: "twilightVoteTargets",
+    说明:
+      "官员：暮色选目标 ⇒ 明天白天该玩家投票算作三票（v += 2，2026-10-13 落地）",
+  },
+  thief: {
+    宿主: "submitVotes",
+    文件: "../../hooks/useExecutionHandlers.ts",
+    判据: "twilightVoteTargets",
+    说明:
+      "窃贼：暮色选目标 ⇒ 明天白天该玩家投票算作负数（v -= 2，净 -1，2026-10-13 落地）",
   },
 };
 
 /**
- * ② 暮色可达：会被 `twilight` 阶段唤醒，**效果待落地**
- *   （暮色面板目前负责「唤醒 + 官方原文提示 + 逐步确认」，不做结算）
+ * ② 暮色可达：会被 `twilight` 阶段唤醒。
+ *   **效果已落地的**（EFFECT_LANDED 里的官员/窃贼）不计入本档 ——
+ *   否则四档并集会重复计数（2026-10-13 实测踩到）。
  */
-const TWILIGHT_REACHABLE: string[] = Object.keys(TWILIGHT_TRAVELERS);
+const TWILIGHT_REACHABLE: string[] = Object.keys(TWILIGHT_TRAVELERS).filter(
+  (id) => !EFFECT_LANDED.includes(id)
+);
 
 /** ③ 仅注册：有能力文件 + 可查到，但**没有任何路径触达** */
 const REGISTERED_ONLY: string[] = [
@@ -121,22 +143,36 @@ describe("旅行者接线契约（Round 11 · 棘轮）", () => {
 
   it("①c 效果落地项：判据函数在宿主文件里真被调用（源码级防漂移）", () => {
     for (const [id, spec] of Object.entries(HOOK_EVIDENCE)) {
+      const src = readFileSync(resolve(__dirname, spec.文件), "utf-8");
       expect(
-        GAME_CONTEXT_SRC.includes(spec.判据),
-        `${id} 的判据 ${spec.判据} 应出现在 ${spec.宿主}`
+        src.includes(spec.判据),
+        `${id} 的判据 ${spec.判据} 应出现在 ${spec.宿主}（${spec.文件}）`
       ).toBe(true);
-      // 只 import 不算接线：必须出现在调用位置（判据名后紧跟 "(" ）
+      // 只 import 不算接线：判据必须以**函数调用** `(` 或**成员访问** `.`/`?.`
+      // 的形态出现（属性型判据如 `twilightVoteTargets` 走成员访问）。
       expect(
-        new RegExp(`${spec.判据}\\s*\\(`).test(GAME_CONTEXT_SRC),
-        `${id} 的判据 ${spec.判据} 必须被真正调用，不能只 import`
+        new RegExp(`${spec.判据}\\s*(\\(|\\??\\.)`).test(src),
+        `${id} 的判据 ${spec.判据} 必须被真正使用，不能只 import`
       ).toBe(true);
     }
   });
 
-  it("② 暮色可达项与暮色阶段注册表**逐字一致**（防两处口径漂移）", () => {
-    expect([...TWILIGHT_REACHABLE].sort()).toEqual(
-      Object.keys(TWILIGHT_TRAVELERS).sort()
-    );
+  it("② 暮色名单 ⊆ TWILIGHT_TRAVELERS，且差额恰为效果已落地的暮色旅行者", () => {
+    const allTwilight = Object.keys(TWILIGHT_TRAVELERS).sort();
+    const reachable = [...TWILIGHT_REACHABLE].sort();
+    // 可达档必须是暮色名单的子集
+    for (const id of reachable) {
+      expect(
+        Object.prototype.hasOwnProperty.call(TWILIGHT_TRAVELERS, id),
+        `${id} 应在暮色名单中`
+      ).toBe(true);
+    }
+    // 差额 = 暮色名单里效果已落地的那几个（目前是官员/窃贼）
+    const diff = allTwilight.filter((id) => !reachable.includes(id)).sort();
+    const landedInTwilight = EFFECT_LANDED.filter((id) =>
+      Object.prototype.hasOwnProperty.call(TWILIGHT_TRAVELERS, id)
+    ).sort();
+    expect(diff).toEqual(landedInTwilight);
   });
 
   it("②b 暮色阶段真的被接进流程（阶段枚举 + 面板挂载）", () => {

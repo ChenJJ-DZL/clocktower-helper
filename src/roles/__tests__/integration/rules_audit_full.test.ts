@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { TRAVELER_ROLES } from "../../../../app/data";
 import { runFullAbilityPipeline } from "../../../utils/middlewarePipeline";
 import { wraithAbility } from "../../new_engine/wraith.ability";
 import { cultLeaderAbility } from "../../new_engine/cult_leader.ability";
@@ -80,20 +81,23 @@ describe("12角色交互与规则整改专项测试", () => {
   });
 
   // 4. 乞丐
-  it("4. 乞丐 (Beggar): 白天技能，选择一个座位并标记 beggarTargetId", async () => {
-    const seats = [
-      mkSeat(0, "beggar", "乞丐", "traveler"),
-      mkSeat(1, "washerwoman", "洗衣妇", "townsfolk"),
-    ];
-    const ctx: any = {
-      actionNode: { seatId: 0, roleId: "beggar", targetIds: [1] },
-      snapshot: { seats },
-      meta: {},
-      targetIds: [1],
-    };
-    const res = await runFullAbilityPipeline(pipe(beggarAbility), ctx);
-    const beggarSeat = res.snapshot.seats.find((s: any) => s.id === 0);
-    expect(beggarSeat.beggarTargetId).toBe(1);
+  // 🔴 2026-10-13 口径纠错：原断言写「白天技能，选择一个座位并标记 beggarTargetId」
+  //    —— 与**官方原文完全不符**。官方（parsed_roles.json「乞丐」）：
+  //      「你只能使用投票标记才能投票。死亡的玩家可以将他的投票标记给你，
+  //        如果他这么做，你会得知他的阵营。你不会中毒和醉酒。」
+  //    ⇒ 乞丐**没有**"选择玩家"的动作，更没有"被选者投票计 2 票"这回事
+  //      （`useExecutionHandlers.ts` 里曾有一段据此写成的 +1 票代码，已删除）。
+  //    本用例改为锁定**官方原文本身**：能力文本必须含这三条语义。
+  it("4. 乞丐 (Beggar): 官方能力=投票标记限制+死者赠标记+免疫中毒醉酒（无选人动作）", () => {
+    const official = TRAVELER_ROLES.find((r) => r.id === "beggar");
+    expect(official, "乞丐应在 TRAVELER_ROLES（官方 15 旅行者）中").toBeTruthy();
+    const text = official!.ability ?? "";
+    expect(text).toContain("投票标记");
+    expect(text).toMatch(/死亡/);
+    expect(text).toMatch(/中毒/);
+    expect(text).toMatch(/醉酒/);
+    // 反向锁死：不得把"选人"写成乞丐的能力
+    expect(text).not.toMatch(/选择/);
   });
 
   // 5. 佛教徒与天文学家
