@@ -101,6 +101,7 @@ body > * {
   @apply bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl;
 }
 
+
 @keyframes breath-shadow {
   0% {
     text-shadow:
@@ -545,40 +546,38 @@ body > * {
    主题类挂载于 <html>，所有主题差异通过作用域选择器实现
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Modern S1: 纸上棋局 · Editorial Minimal（暗色变体）── */
+/* ── Modern v2: 报刊亭 · Editorial Light（亮色杂志风）── */
+/* 定位：经典=暗色皮质魔典 / 现代=亮色印刷周刊。规范见 temp/design/modern_magazine_spec_v2_light.md */
 
-/* 三级 token：§4.1 原始 → §4.2 语义 → §4.3 字体 */
+/* 三级 token：原始 → 语义 → 字体 */
 .theme-modern {
-  /* 纸与墨（原始 token） */
-  --ink-950: #0f1215; /* 页面底 */
-  --ink-900: #15191d; /* 面板纸面 */
-  --ink-800: #1d2227; /* 浮起卡片 */
-  --ink-700: #262c32; /* hover 面 */
-  /* 字（暖调印刷白） */
-  --paper-50: #edeae3; /* 主文字 */
-  --paper-300: #b9b4a9; /* 次级文字 */
-  --paper-500: #8b8679; /* 注释/禁用 */
-  /* 发丝线 */
-  --hairline: rgba(237, 234, 227, 0.16);
-  --hairline-strong: rgba(237, 234, 227, 0.3);
-  /* 朱砂强调（唯一强调色） */
-  --accent: #c5482e;
-  --accent-soft: rgba(197, 72, 46, 0.14);
-  /* 阵营油墨色（降饱和语义色） */
-  --align-townsfolk: #c9a24b;
-  --align-outsider: #6e8f6b;
-  --align-minion: #b06b2e;
-  --align-demon: #a63d33;
+  /* 原始：纸与墨 */
+  --paper-0: #ffffff; /* 卡片纸面 */
+  --paper-1: #faf6ee; /* 页面底（米白纸） */
+  --paper-2: #f1eadc; /* 次级面 */
+  --ink-900: #14110e; /* 主文字（暖黑） */
+  --ink-600: #4a423a; /* 次级文字 */
+  --ink-400: #857c70; /* 注释/禁用 */
+  --rule: #14110e; /* 栏线 */
+  --rule-soft: rgba(20, 17, 14, 0.16);
+  /* 原始：鲜艳色（杂志三色） */
+  --red: #e0362a;
+  --blue: #1b4db1;
+  --yellow: #f2b705;
+  /* 语义：阵营色（亮底高对比版） */
+  --align-townsfolk: #a16207;
+  --align-outsider: #15803d;
+  --align-minion: #c2410c;
+  --align-demon: #b91c1c;
   /* 语义 token */
-  --color-bg: var(--ink-950);
-  --color-surface: var(--ink-900);
-  --color-surface-raised: var(--ink-800);
-  --color-text: var(--paper-50);
-  --color-text-secondary: var(--paper-300);
-  --color-text-muted: var(--paper-500);
-  --color-border: var(--hairline);
-  --color-primary: var(--accent);
-  --gradient-surface: linear-gradient(180deg, var(--ink-900) 0%, var(--ink-950) 100%);
+  --color-bg: var(--paper-1);
+  --color-surface: var(--paper-0);
+  --color-surface-alt: var(--paper-2);
+  --color-text: var(--ink-900);
+  --color-text-secondary: var(--ink-600);
+  --color-text-muted: var(--ink-400);
+  --color-border: var(--rule-soft);
+  --color-primary: var(--red);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --z-dropdown: 100;
   --z-sticky: 200;
@@ -590,7 +589,7 @@ body > * {
   --font-body: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", system-ui, sans-serif;
 }
 
-/* §5.1 body：墨色纸面，去掉全局聚光灯 */
+/* §5.1 纸白基底：去掉暗色聚光灯与暗角 */
 .theme-modern body {
   background: var(--color-bg);
   color: var(--color-text);
@@ -601,34 +600,124 @@ body > * {
   background: none;
 }
 
-/* §5.1 顶部导航条：墨黑条 + 底部 1px 发丝线，无圆角胶囊/无 blur/无阴影 */
+.theme-modern #__next {
+  background: transparent;
+}
+
+/* §5.1 顶部导航条：纸白条 + 2px 墨色栏线（报刊头版分隔） */
 .theme-modern .topbar-frost {
-  background: color-mix(in srgb, var(--ink-950) 95%, transparent);
+  background: var(--color-surface);
   border: none;
-  border-bottom: 1px solid var(--hairline);
+  border-bottom: 2px solid var(--rule);
   border-radius: 0;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   box-shadow: none;
 }
 
-/* §5.2 座位代币：纸面填充 + 1.5px 发丝环 */
+/* §6.3 圆桌区：隐藏三层暗色背景（深紫渐变 / 暗色遮罩 / 徕卡暗角），改纸白 */
+.theme-modern [data-skin-dark] {
+  opacity: 0 !important;
+}
+
+
+/* ⚠️ 亮色翻底：批量把硬编码 slate 暗色系映射到纸墨系
+   （与 .theme-classic 批量映射 slate 的既有做法同构，避免逐个组件改类名） */
+.theme-modern [class*="bg-slate-9"] {
+  background-color: var(--paper-0);
+}
+
+.theme-modern [class*="bg-slate-8"],
+.theme-modern [class*="bg-slate-7"] {
+  background-color: var(--paper-2);
+}
+
+.theme-modern [class*="border-white/"] {
+  border-color: var(--rule-soft);
+}
+
+.theme-modern [data-surface="table"] {
+  background-color: var(--paper-1);
+}
+
+/* §6.3 控制台容器：白纸面 + 墨色左栏线 */
+.theme-modern [data-surface="console"] {
+  background-color: var(--paper-0);
+  border-left: 1px solid var(--rule-soft);
+}
+
+.theme-modern .text-white,
+.theme-modern .text-slate-50,
+.theme-modern .text-slate-100,
+.theme-modern .text-slate-200 {
+  color: var(--ink-900);
+}
+
+.theme-modern .text-slate-300,
+.theme-modern .text-slate-400 {
+  color: var(--ink-600);
+}
+
+.theme-modern .text-slate-500 {
+  color: var(--ink-400);
+}
+
+/* 亮色语义色校正：浅色 Tailwind 文本色（原本服务暗底）在纸白上对比度不足，
+   统一压深一档，保住「阶段名 / 状态色」的语义同时满足 AA */
+.theme-modern .text-blue-400,
+.theme-modern .text-blue-300 {
+  color: var(--blue);
+}
+
+.theme-modern .text-purple-400,
+.theme-modern .text-purple-300 {
+  color: #6d28d9;
+}
+
+.theme-modern .text-cyan-400,
+.theme-modern .text-cyan-300 {
+  color: #0e7490;
+}
+
+.theme-modern .text-orange-400,
+.theme-modern .text-amber-400 {
+  color: var(--align-minion);
+}
+
+.theme-modern .text-yellow-400 {
+  color: var(--align-townsfolk);
+}
+
+.theme-modern .text-emerald-400,
+.theme-modern .text-green-400 {
+  color: var(--align-outsider);
+}
+
+.theme-modern .text-red-400,
+.theme-modern .text-rose-400 {
+  color: var(--align-demon);
+}
+
+/* 主按钮内文字必须保持白字（防上面批量映射误伤） */
+.theme-modern .btn-arcane-primary,
+.theme-modern .btn-arcane-primary * {
+  color: #fff;
+}
+
+/* §5.2 座位代币：白纸填充 + 2px 阵营色实环（亮底需更粗才立得住） */
 .theme-modern .seat-token {
   background: var(--color-surface);
-  border: 1.5px solid var(--hairline);
+  border: 2px solid var(--rule);
   box-shadow: none;
   transition:
     transform 150ms var(--ease-out),
     opacity 150ms var(--ease-out);
 }
 
-/* hover = 环变强 + 纸面上浮 1px（仅 transform） */
 .theme-modern .seat-token:hover {
   transform: translateY(-1px);
-  border-color: var(--hairline-strong);
 }
 
-/* 阵营色只染环，不发光 */
 .theme-modern .seat-token.glow-townsfolk {
   border-color: var(--align-townsfolk);
   box-shadow: none;
@@ -649,24 +738,25 @@ body > * {
   box-shadow: none;
 }
 
-/* §5.5 死亡态：整体降透明 0.45 + 对角一道发丝斜线（去掉干裂纹理与血色 ✕） */
+/* §5.6 死亡态：降透明 0.4 + 一道墨色斜线（去掉血色 ✕ 与干裂纹理） */
 .theme-modern .seat-token.dead-cracked {
   background: var(--color-surface);
   background-image: linear-gradient(
     to top right,
     transparent calc(50% - 1px),
-    var(--hairline-strong) calc(50% - 1px),
-    var(--hairline-strong) calc(50% + 1px),
+    var(--rule) calc(50% - 1px),
+    var(--rule) calc(50% + 1px),
     transparent calc(50% + 1px)
   );
-  opacity: 0.45;
+  opacity: 0.4;
+  border-color: var(--rule-soft);
 }
 
-/* §5.3 主按钮：朱砂实底白字方角 */
+/* §5.3 主按钮：正红实底白字方角 */
 .theme-modern .btn-arcane-primary {
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  color: var(--paper-50);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  color: #fff;
   font-weight: 700;
   border-radius: 2px;
   box-shadow: none;
@@ -680,20 +770,20 @@ body > * {
   transform: translateY(-1px);
 }
 
-/* §5.5 Disabled：文字降级 + 发丝边 + not-allowed */
+/* §5.6 Disabled：文字降级 + 淡栏线 + not-allowed */
 .theme-modern .btn-arcane-primary:disabled {
-  background: transparent;
-  border-color: var(--hairline);
-  color: var(--paper-500);
+  background: var(--paper-2);
+  border-color: var(--rule-soft);
+  color: var(--ink-400);
   cursor: not-allowed;
   animation: none;
 }
 
-/* §5.3 次按钮：透明底 + 发丝边 */
+/* §5.3 次按钮：墨框透明底 */
 .theme-modern .btn-arcane-info {
   background: transparent;
-  border: 1px solid var(--hairline-strong);
-  color: var(--color-text);
+  border: 1px solid var(--rule);
+  color: var(--ink-900);
   border-radius: 2px;
   box-shadow: none;
   animation: none;
@@ -703,12 +793,12 @@ body > * {
 }
 
 .theme-modern .btn-arcane-info:hover:not(:disabled) {
-  background: var(--ink-700);
+  background: var(--paper-2);
 }
 
 .theme-modern .btn-arcane-info:disabled {
-  border-color: var(--hairline);
-  color: var(--paper-500);
+  border-color: var(--rule-soft);
+  color: var(--ink-400);
   cursor: not-allowed;
   animation: none;
 }

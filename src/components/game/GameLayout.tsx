@@ -32,9 +32,14 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
       {/* Main content area */}
       <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
         {/* Left Panel - Table/Seating Chart */}
-        <main className="flex-1 relative overflow-hidden bg-slate-950">
+        <main
+          data-surface="table"
+          className="flex-1 relative overflow-hidden bg-slate-950"
+        >
           {/* 高性能魔典桌盘背景 - 纯色与轻量径向渐变，零网络传输、零 GPU 显存解码峰值，防止移动端 OOM 崩溃 */}
+          {/* ⭐ theme-modern 下由 [data-skin-dark] 整体置透明，改走纸白底（亮色杂志风） */}
           <div
+            data-skin-dark="gradient"
             className="absolute inset-0 pointer-events-none opacity-90"
             style={{
               background:
@@ -43,10 +48,14 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
           />
 
           {/* 深邃暗光遮罩层：以极低开销实现原本 filter 的明暗与对比度质感 */}
-          <div className="absolute inset-0 bg-slate-950/30 pointer-events-none z-0" />
+          <div
+            data-skin-dark="mask"
+            className="absolute inset-0 bg-slate-950/30 pointer-events-none z-0"
+          />
 
           {/* 徕卡风格柔和暗角 (Soft Vignette) */}
           <div
+            data-skin-dark="vignette"
             className="absolute inset-0 pointer-events-none z-0"
             style={{
               background:
@@ -63,7 +72,10 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
         </main>
 
         {/* Right Panel - Control Console - Fixed width for 1600px base */}
-        <aside className="w-[450px] h-full flex flex-col border-l border-white/10 bg-slate-900 shrink-0 overflow-hidden">
+        <aside
+          data-surface="console"
+          className="w-[450px] h-full flex flex-col border-l border-white/10 bg-slate-900 shrink-0 overflow-hidden"
+        >
           <ErrorBoundary fallbackTitle="控制台渲染异常">
             {rightPanel}
           </ErrorBoundary>
