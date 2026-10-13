@@ -35,6 +35,13 @@ export interface ModalWrapperProps {
   heightPercent?: number;
   /** 弹窗高度上限(设计像素)，默认 800。与 heightPercent 一起取较小值。 */
   maxHeightPx?: number;
+  /**
+   * 隐藏右上角 ✕ 关闭按钮（默认 false）。
+   * 用于**流程强制阶段**的弹窗（如暮色 Twilight）：不允许用户溜掉，
+   * 唯一出口是流程自身的确认按钮；避免渲染一个点了没反应的死 ✕。
+   * ⚠️ 仅隐藏按钮；closeOnOverlayClick 仍需调用方自行关为 false。
+   */
+  hideClose?: boolean;
 }
 
 export function ModalWrapper({
@@ -50,6 +57,7 @@ export function ModalWrapper({
   autoHeight = false,
   heightPercent = 88,
   maxHeightPx = 800,
+  hideClose = false,
 }: ModalWrapperProps) {
   // CRITICAL: Use ref to ensure key remains stable across renders
   const portalKeyRef = React.useRef(
@@ -159,13 +167,15 @@ export function ModalWrapper({
                 title
               )}
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white shrink-0 text-2xl cursor-pointer active:scale-90 ml-3"
-              aria-label="关闭"
-            >
-              ✕
-            </button>
+            {!hideClose && (
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white shrink-0 text-2xl cursor-pointer active:scale-90 ml-3"
+                aria-label="关闭"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* 2. 内容区：弹性伸缩，支持平滑触控滚动 */}
