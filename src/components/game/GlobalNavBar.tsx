@@ -317,13 +317,13 @@ export function GlobalNavBar() {
         <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3 px-3 py-2">
           {/* 主题切换胶囊 */}
           <div className="flex items-center shrink-0">
-            <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10 theme-modern:border-amber-500/20 theme-modern:shadow-[0_0_16px_rgba(245,158,11,0.15)]">
+            <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
               <button
                 onClick={() => requestTheme("classic")}
                 className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
                   theme === "classic"
                     ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-400 hover:text-slate-200 theme-modern:bg-transparent theme-modern:text-[var(--paper-300)] theme-modern:shadow-none"
                 }`}
                 title="🏛️ 官方原版经典皮肤 (默认)"
               >
@@ -333,8 +333,8 @@ export function GlobalNavBar() {
                 onClick={() => requestTheme("modern")}
                 className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
                   theme === "modern"
-                    ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30 theme-modern:bg-transparent theme-modern:text-[var(--paper-50)] theme-modern:shadow-none theme-modern:font-bold theme-modern:[font-family:var(--font-display)] theme-modern:[border-bottom:2px_solid_var(--accent)]"
+                    : "text-slate-400 hover:text-slate-200 theme-modern:bg-transparent theme-modern:text-[var(--paper-300)] theme-modern:shadow-none"
                 }`}
                 title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
               >
