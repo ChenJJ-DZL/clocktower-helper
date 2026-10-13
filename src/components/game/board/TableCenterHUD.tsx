@@ -14,7 +14,7 @@ import {
 } from "../../../utils/fabledLock";
 import { exileThreshold } from "../../../utils/exile";
 import { ExileVoteModal } from "../../modals/ExileVoteModal";
-import { ModalWrapper } from "../../modals/ModalWrapper";
+import { RolePickerModal } from "./RolePickerModal";
 
 interface TableCenterHUDProps {
   gamePhase: GamePhase;
@@ -357,93 +357,44 @@ export function TableCenterHUD({
         </div>
       </div>
 
-      {/* 传奇角色选择弹窗（上限 1：选第 2 个 = 替换） */}
-      {showFabledPicker && (
-        <ModalWrapper
-          title="选择传奇角色（上限 1 个）"
-          onClose={() => setShowFabledPicker(false)}
-          maxWidthPx={960}
-          autoHeight
-        >
-          <div className="flex flex-col gap-2">
-            {FABLED_ROLES.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => handlePickFabled(f)}
-                className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-colors cursor-pointer ${
-                  selectedFabled?.id === f.id
-                    ? "border-amber-400/90 bg-amber-500/20"
-                    : "border-white/10 bg-slate-800/60 hover:bg-slate-700/60"
-                }`}
-              >
-                <div className="text-4xl font-bold text-amber-200">{f.name}</div>
-                <div className="text-xl text-slate-300 mt-1">{f.ability}</div>
-              </button>
-            ))}
-            <button
-              onClick={handleClearFabled}
-              className="w-full px-4 py-3 rounded-xl border-2 border-white/10 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-2xl font-bold transition-colors cursor-pointer"
-            >
-              移除传奇角色
-            </button>
-          </div>
-        </ModalWrapper>
-      )}
+      {/* 传奇角色选择弹窗（上限 1：选第 2 个 = 替换）
+          ⭐ 2026-10-13 视觉重做：内联竖直列表 → 抽出 RolePickerModal
+          （代币徽章 + 卡片网格 + 能力全文，对齐「角色图鉴」「自定义剧本」设计语言） */}
+      <RolePickerModal
+        open={showFabledPicker}
+        kind="fabled"
+        title="选择传奇角色（上限 1 个）"
+        roles={FABLED_ROLES}
+        selectedId={selectedFabled?.id ?? null}
+        countLabel={`已选 ${selectedFabled ? 1 : 0} / ${FABLED_MAX}`}
+        hint="传奇角色不占玩家座位、规则全局生效；同一时间只会有 1 个生效（再选一个 = 替换）。落座确认后锁定，新开一局可修改。"
+        onPick={handlePickFabled}
+        onClear={handleClearFabled}
+        clearLabel="移除传奇角色"
+        onClose={() => setShowFabledPicker(false)}
+      />
 
       {/* 旅行者选择弹窗（位置化：只为第 travelerSeatIndex 座选择） */}
-      {travelerSeatIndex !== null && !gameEnded && (
-        <ModalWrapper
-          title={`为座位 ${travelerSeatIndex + 1} 选择旅行者`}
-          onClose={() => setTravelerSeatIndex(null)}
-          maxWidthPx={960}
-          autoHeight
-        >
-          <div className="flex flex-col gap-2">
-            {TRAVELER_ROLES.map((t) => {
-              // 已被其他座位占用的角色禁用（同一旅行者不得占两个座位）
-              const occupiedByOther = travelers.some(
-                (x, i) => x && x.id === t.id && i !== travelerSeatIndex
-              );
-              const chosenHere =
-                travelers[travelerSeatIndex]?.id === t.id;
-              return (
-                <button
-                  key={t.id}
-                  disabled={occupiedByOther}
-                  onClick={() => handlePickTraveler(t)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-colors ${
-                    chosenHere
-                      ? "border-sky-400/90 bg-sky-500/20"
-                      : "border-white/10 bg-slate-800/60"
-                  } ${
-                    occupiedByOther
-                      ? "opacity-40 cursor-not-allowed"
-                      : "cursor-pointer hover:bg-slate-700/60"
-                  }`}
-                  title={occupiedByOther ? "已被其他座位占用" : undefined}
-                >
-                  <div className="text-4xl font-bold text-sky-200">
-                    {t.name}
-                    {chosenHere && (
-                      <span className="text-xl ml-2">✓ 当前座位</span>
-                    )}
-                    {occupiedByOther && (
-                      <span className="text-xl ml-2">已被其他座位占用</span>
-                    )}
-                  </div>
-                  <div className="text-xl text-slate-300 mt-1">{t.ability}</div>
-                </button>
-              );
-            })}
-            <button
-              onClick={handleClearTravelerSeat}
-              className="w-full px-4 py-3 rounded-xl border-2 border-white/10 bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 text-2xl font-bold transition-colors cursor-pointer"
-            >
-              清空该座位
-            </button>
-          </div>
-        </ModalWrapper>
-      )}
+      <RolePickerModal
+        open={travelerSeatIndex !== null && !gameEnded}
+        kind="traveler"
+        title={`为座位 ${(travelerSeatIndex ?? 0) + 1} 选择旅行者`}
+        roles={TRAVELER_ROLES}
+        selectedId={
+          travelerSeatIndex !== null
+            ? (travelers[travelerSeatIndex]?.id ?? null)
+            : null
+        }
+        disabledIds={travelers
+          .map((t, i) => (t && i !== travelerSeatIndex ? t.id : null))
+          .filter((x): x is string => !!x)}
+        countLabel={`已占 ${travelerCount} / ${TRAVELER_MAX}`}
+        hint="旅行者不占玩家座位；游戏中可随时加入或离开，且同一个旅行者不能同时占两个座位（已被占用的会置灰）。"
+        onPick={handlePickTraveler}
+        onClear={handleClearTravelerSeat}
+        clearLabel="清空该座位"
+        onClose={() => setTravelerSeatIndex(null)}
+      />
 
       {/* 流放投票弹窗（Round 10b） */}
       {exileProposedToday && !gameEnded && (

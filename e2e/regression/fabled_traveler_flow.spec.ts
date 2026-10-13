@@ -55,6 +55,16 @@ async function enterFirstNightHere(page: Page) {
   }
   await expect(enterNight).toBeVisible({ timeout: 20_000 });
   await enterNight.click();
+  // ⭐ W10.13.2 起：落座旅行者 ⇒ 入夜前先停在暮色（官方 Dusk）面板。
+  //    必须点「暮色结束，入夜」才真正进入 firstNight（既有回归修复 2026-10-13）。
+  const twilightEnd = page.getByText("暮色结束，入夜").first();
+  const inTwilight = await twilightEnd
+    .isVisible({ timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (inTwilight) {
+    await twilightEnd.click();
+  }
   await expect(page.getByText("夜晚行动顺序").first()).toBeVisible({
     timeout: 20_000,
   });

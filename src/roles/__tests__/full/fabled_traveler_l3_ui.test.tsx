@@ -23,6 +23,8 @@ import { TableCenterHUD } from "../../../components/game/board/TableCenterHUD";
 import type { GamePhase } from "../../../../app/data";
 // @ts-expect-error vite raw 导入（无内置类型声明）：源码级护栏判据
 import hudSrc from "../../../components/game/board/TableCenterHUD.tsx?raw";
+// @ts-expect-error vite raw 导入：选人弹窗独立组件（2026-10-13 抽出）
+import pickerRaw from "../../../components/game/board/RolePickerModal.tsx?raw";
 
 function renderHUD(gamePhase: GamePhase = "setup") {
   return render(
@@ -39,6 +41,10 @@ function renderHUD(gamePhase: GamePhase = "setup") {
 }
 
 const code = (hudSrc as string)
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/^\s*\/\/.*$/gm, "");
+
+const pickerSrc = (pickerRaw as string)
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/^\s*\/\/.*$/gm, "");
 
@@ -178,17 +184,27 @@ describe("③④ 旅行者座位行展开 + 位置化选择", () => {
 });
 
 describe("⑤⑥ 源码级护栏：弹窗宽度禁视口单位 + 字号合规", () => {
-  it("⑤ TableCenterHUD 不得使用 vw/vh 视口单位（monk_result_wrap 同类护栏）", () => {
+  // ⭐ 2026-10-13 视觉重做：选人弹窗从 TableCenterHUD 内联 JSX 抽出为
+  //    RolePickerModal —— 护栏锚点随之迁移，意图不变：
+  //    「弹窗尺寸走设计像素（maxWidthPx/autoHeight），禁 vw/vh 视口单位」。
+  it("⑤ 弹窗不得使用 vw/vh 视口单位；尺寸必须走设计像素（monk_result_wrap 同类护栏）", () => {
+    // HUD 本体与选择器组件都禁视口单位
     expect(code).not.toMatch(/\d\s*(vw|vh)\b/);
     expect(code).not.toMatch(/-\[\s*\d+(vw|vh)/);
-    // 弹窗宽度走 ModalWrapper 的 maxWidthPx / autoHeight（设计像素）
-    expect(code).toContain("maxWidthPx");
-    expect(code).toContain("autoHeight");
+    expect(pickerSrc).not.toMatch(/\d\s*(vw|vh)\b/);
+    expect(pickerSrc).not.toMatch(/-\[\s*\d+(vw|vh)/);
+    // 弹窗宽度仍由 ModalWrapper 的 maxWidthPx / autoHeight（设计像素）支配
+    expect(pickerSrc).toContain("maxWidthPx");
+    expect(pickerSrc).toContain("autoHeight");
+    // HUD 必须通过 RolePickerModal 选人（禁止再内联一套弹窗造成双事实源）
+    expect(code).toContain("RolePickerModal");
   });
 
-  it("⑥ 角色名字号为 text-4xl（36px，手机缩放后可读）", () => {
-    expect(code).toContain("text-4xl font-bold text-amber-200");
-    expect(code).toContain("text-4xl font-bold text-sky-200");
-    expect(code).not.toContain("text-2xl font-bold text-amber-200");
+  it("⑥ 字号合规：卡片角色名 text-lg 起步、能力全文 text-[15px] 且禁止截断", () => {
+    // 角色名：text-lg font-black（对齐图鉴卡片语言；再小不可读）
+    expect(pickerSrc).toContain("text-lg font-black");
+    // 能力全文：固定设计像素 15px，且不得加 line-clamp（用户要求「保持技能效果清晰描述」）
+    expect(pickerSrc).toContain("text-[15px]");
+    expect(pickerSrc).not.toMatch(/line-clamp-\d/);
   });
 });
