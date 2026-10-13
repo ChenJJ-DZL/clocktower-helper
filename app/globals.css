@@ -580,8 +580,8 @@ body > * {
 }
 
 .theme-modern .seat-nameplate {
-  background: var(--paper-0);
-  border: 1px solid var(--rule);
+  background: transparent;
+  border: none;
   color: var(--ink-900);
 }
 
@@ -1069,14 +1069,14 @@ body > * {
   animation: none;
 }
 
-/* ── 座位号牌：墨黑圆形白字（圆润浮卡，替代 v5 红方块） ── */
-.theme-modern .seat-node .rounded-full.border-2 {
-  background: var(--ink-900);
-  border-color: var(--ink-900);
-  border-radius: 999px;
-  color: #fff;
+/* ── 座位号牌：白卡小圆牌（2026-10-14 用户裁定：墨黑实心圆 = 多余黑色底纹）
+   只作用于默认态（bg-slate-800）；提名高亮态（amber/cyan 底）与死亡态不受影响 ── */
+.theme-modern .seat-node .rounded-full.border-2.bg-slate-800 {
+  background: var(--paper-0);
+  border-color: var(--ink-400);
+  color: var(--ink-900);
   font-family: var(--font-body);
-  box-shadow: 0 3px 8px rgba(17, 17, 17, 0.22);
+  box-shadow: var(--sh1);
 }
 
 /* ── HUD：纯白浮卡 + 大圆角 + 三级阴影（无描边） ── */
@@ -1117,13 +1117,14 @@ body > * {
   border-color: var(--line);
 }
 
-/* ── 名牌：不透明白底 + 极细描边（**禁投影**：护栏 seat_nameplate_readability_guard）
-   ⚠️ 上方 .theme-modern .seat-nameplate 段已声明底色/文字色，此处只补圆角与描边 ── */
+/* ── 名牌：纯文字（2026-10-14 用户裁定：不要底板盒、不要边框）
+   可读性由白卡座位代币本身保证；仍禁投影/文字阴影（护栏 seat_nameplate_readability_guard）── */
 .theme-modern .seat-nameplate {
-  background: var(--paper-0);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   box-shadow: none;
+  padding: 0;
 }
 
 /* ── 弹窗（ModalWrapper）：白卡 + 大圆角 + 最重阴影 ── */
@@ -1131,6 +1132,16 @@ body > * {
   background-color: var(--paper-0) !important;
   border: 1px solid var(--line) !important;
   border-radius: 20px;
+}
+
+/* 弹窗卡片本体：ModalWrapper 用**内联样式**写死 backgroundColor rgb(15 23 42)
+   ⇒ 普通 CSS 压不过内联，必须 author !important（优先级高于内联非 important）。
+   [class*="bg-slate-9"] 用于区分卡片（bg-slate-900）与外层遮罩（bg-black/85）——
+   遮罩必须保持暗色压暗页面。 */
+.theme-modern div[role="dialog"][class*="bg-slate-9"] {
+  background-color: var(--paper-0) !important;
+  border-color: var(--line) !important;
+  box-shadow: var(--sh3) !important;
 }
 
 /* 无障碍：系统减弱动效时关闭 transition */

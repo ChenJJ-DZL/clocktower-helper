@@ -95,4 +95,23 @@ describe("现代版 V2 圆润浮卡主题护栏", () => {
     // 状态 chip 浅色字（text-red-100 等）必须压深到 --red（否则软红底上 ratio 1.08）
     expect(block(".theme-modern .text-red-100")).toContain("var(--red)");
   });
+
+  it("⑧ 座位号牌 = 白卡小圆牌（2026-10-14 用户裁定墨黑实心圆为多余黑色底纹）", () => {
+    // 只允许作用默认态（.bg-slate-800），提名高亮态（amber/cyan）不得被波及
+    const badge = block(
+      ".theme-modern .seat-node .rounded-full.border-2.bg-slate-800",
+    );
+    expect(badge).toContain("var(--paper-0)");
+    expect(badge).toContain("var(--ink-900)");
+    // 旧的墨黑实心圆规则不得复活（无作用域限定的号牌规则）
+    expect(CSS).not.toMatch(
+      /\.theme-modern \.seat-node \.rounded-full\.border-2\s*\{[^}]*var\(--ink-900\);\s*border-color:\s*var\(--ink-900\)/,
+    );
+  });
+
+  it("⑨ 弹窗卡片本体必须翻白（ModalWrapper 内联 slate-900 ⇒ 必须 author !important 压制）", () => {
+    const card = block('.theme-modern div[role="dialog"][class*="bg-slate-9"]');
+    expect(card).toContain("!important");
+    expect(card).toContain("var(--paper-0)");
+  });
 });

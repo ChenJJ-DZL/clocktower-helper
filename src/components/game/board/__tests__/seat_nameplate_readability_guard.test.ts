@@ -46,11 +46,12 @@ describe("座位角色名牌可读性契约", () => {
     expect(CSS).toMatch(/\.seat-nameplate \*[\s\S]{0,80}text-shadow:\s*none\s*!important/);
   });
 
-  it("③ 两主题名牌配色齐备（classic 深底浅字 / modern 白底墨字）", () => {
+  it("③ 名牌：classic 深底浅字 / modern 纯文字（2026-10-14 用户裁定去底板盒与边框）", () => {
     expect(CSS).toMatch(/\.theme-classic \.seat-nameplate\s*\{/);
     expect(CSS).toMatch(/\.theme-modern \.seat-nameplate\s*\{/);
     const modern = CSS.slice(CSS.indexOf(".theme-modern .seat-nameplate {"));
-    expect(modern.slice(0, 200)).toMatch(/var\(--paper-0\)/);
+    expect(modern.slice(0, 200)).toMatch(/background:\s*transparent/);
+    expect(modern.slice(0, 200)).toMatch(/border:\s*none/);
     expect(modern.slice(0, 200)).toMatch(/var\(--ink-900\)/);
   });
 });
