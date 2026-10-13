@@ -251,7 +251,7 @@ export function TableCenterHUD({
                 ? "选择传奇角色（落座确认后锁定）"
                 : "落座确认后已锁定，新开一局可修改"
             }
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 min-h-[68px] rounded-2xl border-2 transition-colors ${
               selectedFabled
                 ? "border-amber-400/80 bg-amber-500/20 text-amber-200"
                 : "border-white/15 bg-slate-800/60 text-slate-300"
@@ -276,7 +276,7 @@ export function TableCenterHUD({
           {/* 旅行者开关 */}
           <button
             onClick={() => setShowTravelerRow((v) => !v)}
-            className={`px-4 py-2 rounded-2xl border-2 transition-colors cursor-pointer ${
+            className={`flex items-center justify-center px-4 py-2 min-h-[68px] rounded-2xl border-2 transition-colors cursor-pointer ${
               showTravelerRow
                 ? "border-sky-400/80 bg-sky-500/20 text-sky-200"
                 : "border-white/15 bg-slate-800/60 text-slate-300 hover:bg-slate-700/60"
