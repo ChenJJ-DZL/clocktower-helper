@@ -1120,7 +1120,8 @@ export default function Home() {
                   rightPanel={
                     <div className="h-full flex flex-col overflow-hidden">
                       <div className="px-4 py-2 border-b border-white/10 shrink-0 h-16 flex items-center">
-                        <h2 className="text-lg font-bold text-purple-300">
+                        {/* 2026-10-13 现代杂志风：标题用衬线墨黑（紫罗兰残留是拼贴感来源） */}
+                        <h2 className="text-lg font-bold text-purple-300 theme-modern:text-[color:var(--ink-900)] theme-modern:[font-family:var(--font-display)]">
                           说书人控制台
                         </h2>
                       </div>

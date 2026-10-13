@@ -601,40 +601,55 @@ body > * {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  /* 自下而上：纤维噪点 → 纵横向纸筋 → 斑驳 → 中心纸盘（柔化蒙版） */
+  /* 自下而上：纤维噪点 → 长纤维纹 → 纸筋 → 霉斑/亮斑 → 中心纸盘（柔化蒙版 + 边缘烘焙焦边）
+     2026-10-13 用户反馈：质感不够 ⇒ 噪点加强 + 纸盘扩大 + 纤维/霉斑层新增 */
   background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.30'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.74' numOctaves='5' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.46'/></svg>"),
     repeating-linear-gradient(
-      96deg,
-      rgba(120, 92, 52, 0.05) 0px,
-      rgba(120, 92, 52, 0.05) 1px,
+      93deg,
+      rgba(255, 236, 196, 0.07) 0px,
+      rgba(255, 236, 196, 0.07) 1px,
       transparent 1px,
-      transparent 4px
+      transparent 9px
     ),
     repeating-linear-gradient(
-      6deg,
-      rgba(88, 66, 36, 0.045) 0px,
-      rgba(88, 66, 36, 0.045) 1px,
+      91deg,
+      rgba(84, 62, 32, 0.06) 0px,
+      rgba(84, 62, 32, 0.06) 1px,
       transparent 1px,
-      transparent 6px
+      transparent 13px
+    ),
+    repeating-linear-gradient(
+      8deg,
+      rgba(74, 54, 26, 0.05) 0px,
+      rgba(74, 54, 26, 0.05) 1px,
+      transparent 1px,
+      transparent 7px
     ),
     radial-gradient(
-      circle at 33% 28%,
-      rgba(255, 240, 208, 0.16) 0%,
-      transparent 42%
+      circle 190px at 18% 82%,
+      rgba(96, 68, 30, 0.16) 0%,
+      rgba(96, 68, 30, 0.05) 60%,
+      transparent 75%
     ),
     radial-gradient(
-      circle at 72% 76%,
-      rgba(92, 66, 32, 0.22) 0%,
-      transparent 46%
+      circle 150px at 84% 16%,
+      rgba(255, 244, 214, 0.14) 0%,
+      transparent 70%
     ),
     radial-gradient(
-      ellipse 66% 64% at 50% 50%,
-      rgba(222, 192, 143, 0.95) 0%,
-      rgba(203, 170, 118, 0.88) 38%,
-      rgba(166, 134, 84, 0.66) 58%,
-      rgba(104, 79, 45, 0.28) 72%,
-      rgba(40, 28, 16, 0) 86%
+      circle 130px at 78% 82%,
+      rgba(88, 62, 28, 0.13) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 80% 76% at 50% 50%,
+      rgba(228, 199, 150, 0.97) 0%,
+      rgba(215, 183, 130, 0.93) 42%,
+      rgba(196, 162, 108, 0.82) 60%,
+      rgba(158, 126, 76, 0.62) 74%,
+      rgba(96, 72, 40, 0.34) 84%,
+      rgba(34, 24, 13, 0) 94%
     );
   mix-blend-mode: normal;
   opacity: 1;
@@ -679,6 +694,8 @@ body > * {
   --color-border: var(--rule-soft);
   --color-primary: var(--red);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* 印刷分层：几乎无投影，靠「叠印细线 + 极轻纸影」建立层级 */
+  --shadow-print: 0 1px 0 rgba(20, 17, 14, 0.05), 0 14px 30px rgba(20, 17, 14, 0.1);
   --z-dropdown: 100;
   --z-sticky: 200;
   --z-overlay: 300;
@@ -697,7 +714,8 @@ body > * {
 }
 
 .theme-modern body::before {
-  background: none;
+  /* 印刷颗粒：极淡纸纹，给大面米白加入「纸的密度」 */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='0.05'/></svg>");
 }
 
 .theme-modern #__next {
@@ -848,9 +866,7 @@ body > * {
   background-color: var(--align-demon);
 }
 
-/* 主行动按钮：亮底上把浅色系按钮压深一档，保白字对比度 ≥4.5:1 */
-.theme-modern .bg-emerald-600,
-.theme-modern .bg-emerald-500,
+/* 主行动按钮：亮底上压深（绿系语义按钮） */
 .theme-modern .bg-green-600,
 .theme-modern .bg-green-500 {
   background-color: var(--align-outsider);
@@ -875,8 +891,12 @@ body > * {
 /* §5.2 座位代币：白纸填充 + 2px 阵营色实环（亮底需更粗才立得住） */
 .theme-modern .seat-token {
   background: var(--color-surface);
-  border: 2px solid var(--rule);
-  box-shadow: none;
+  border: 2.5px solid var(--rule);
+  /* 双圈印刷环：阵营色实环 + 白隙 + 墨色外圈 + 极轻纸影 */
+  box-shadow:
+    0 0 0 3px var(--paper-0),
+    0 0 0 4.5px var(--rule),
+    var(--shadow-print);;
   transition:
     transform 150ms var(--ease-out),
     opacity 150ms var(--ease-out);
@@ -888,22 +908,34 @@ body > * {
 
 .theme-modern .seat-token.glow-townsfolk {
   border-color: var(--align-townsfolk);
-  box-shadow: none;
+  box-shadow:
+    0 0 0 3px var(--paper-0),
+    0 0 0 4.5px var(--rule),
+    var(--shadow-print);;
 }
 
 .theme-modern .seat-token.glow-outsider {
   border-color: var(--align-outsider);
-  box-shadow: none;
+  box-shadow:
+    0 0 0 3px var(--paper-0),
+    0 0 0 4.5px var(--rule),
+    var(--shadow-print);;
 }
 
 .theme-modern .seat-token.glow-minion {
   border-color: var(--align-minion);
-  box-shadow: none;
+  box-shadow:
+    0 0 0 3px var(--paper-0),
+    0 0 0 4.5px var(--rule),
+    var(--shadow-print);;
 }
 
 .theme-modern .seat-token.glow-demon {
   border-color: var(--align-demon);
-  box-shadow: none;
+  box-shadow:
+    0 0 0 3px var(--paper-0),
+    0 0 0 4.5px var(--rule),
+    var(--shadow-print);;
 }
 
 /* §5.6 死亡态：降透明 0.4 + 一道墨色斜线（去掉血色 ✕ 与干裂纹理） */
@@ -969,6 +1001,120 @@ body > * {
   color: var(--ink-400);
   cursor: not-allowed;
   animation: none;
+}
+
+/* ── v3 印刷密度升级：从「线框草图」到「印刷周刊」（2026-10-13 用户反馈）── */
+
+/* 座位号：正红方块白字（印刷贴纸），替代裸数字 */
+.theme-modern .seat-node .rounded-full.border-2 {
+  background: var(--red);
+  border-color: var(--red);
+  border-radius: 3px;
+  color: #fff;
+  font-family: var(--font-body);
+  box-shadow: none;
+}
+
+/* HUD 卡：白纸 + 8px 正红顶带 + 墨框 + 纸影（替代圆角大阴影卡） */
+.theme-modern .compass-ring {
+  background: var(--paper-0) !important;
+  border: 1px solid var(--rule) !important;
+  border-top: 8px solid var(--red) !important;
+  border-radius: 3px !important;
+  box-shadow: var(--shadow-print) !important;
+}
+
+/* 阶段名：衬线特大号 + 墨黑（覆盖 text-slate-400 的降级映射） */
+.theme-modern .compass-ring > div:first-child {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--ink-900) !important;
+}
+
+/* 控制台节标题与标题文字：衬线化（杂志标题语言） */
+.theme-modern h1,
+.theme-modern h2,
+.theme-modern h3 {
+  font-family: var(--font-display);
+  color: var(--ink-900);
+}
+
+/* ⚠️ 控制台标题（page.tsx「说书人控制台」h2.text-purple-300）：
+   批量语义映射 .theme-modern .text-purple-300 (0,2,0) 特异性更高，
+   且 theme-modern: 变体经 :where() 归零 ⇒ 必须用 (0,2,1) 压回墨黑 */
+.theme-modern h2.text-purple-300,
+.theme-modern h2.text-purple-200 {
+  color: var(--ink-900);
+}
+
+/* 控制台蓝色竖条标题记号 → 正红 */
+.theme-modern .bg-blue-500 {
+  background-color: var(--red) !important;
+}
+
+/* 淡紫/淡蓝半透面板（原为暗底设计）→ 白纸 + 淡栏线 */
+.theme-modern [class*="bg-indigo-9"],
+.theme-modern [class*="bg-violet-9"],
+.theme-modern [class*="bg-blue-9"] {
+  background-color: var(--paper-0);
+}
+
+.theme-modern [class*="border-indigo-"],
+.theme-modern [class*="border-violet-"],
+.theme-modern [class*="border-blue-6"] {
+  border-color: var(--rule-soft);
+}
+
+.theme-modern .text-indigo-100,
+.theme-modern .text-indigo-200,
+.theme-modern .text-indigo-300,
+.theme-modern .text-violet-100,
+.theme-modern .text-violet-200,
+.theme-modern .text-violet-300,
+.theme-modern .text-blue-100,
+.theme-modern .text-blue-200,
+.theme-modern .text-blue-300 {
+  color: var(--ink-600);
+}
+
+.theme-modern .text-blue-400 {
+  color: var(--blue);
+}
+
+/* 主行动 CTA：正红实底（绿色系让位给成功语义） */
+.theme-modern .bg-emerald-500,
+.theme-modern .bg-emerald-600 {
+  background-color: var(--red);
+}
+
+.theme-modern .bg-emerald-400 {
+  background-color: var(--red);
+}
+
+/* 红底 CTA 上的近黑文字（text-slate-950）必须翻白，否则红底黑字对比崩坏 */
+.theme-modern .bg-emerald-500.text-slate-950,
+.theme-modern .bg-emerald-600.text-slate-950,
+.theme-modern .bg-red-600.text-slate-950 {
+  color: #fff;
+}
+
+/* 控制台面板标题残留的蓝色文字 → 墨黑 */
+.theme-modern .text-blue-500,
+.theme-modern .text-indigo-400,
+.theme-modern .text-indigo-500 {
+  color: var(--ink-900);
+}
+
+.theme-modern .hover\:bg-emerald-400:hover,
+.theme-modern .hover\:bg-emerald-500:hover {
+  background-color: #c22f24;
+}
+
+/* 名牌：加一枚正红左齿（印刷标签的裁口感） */
+.theme-modern .seat-nameplate {
+  border-left: 4px solid var(--red);
+  box-shadow: var(--shadow-print);
 }
 
 /* 无障碍：系统减弱动效时关闭 transition */

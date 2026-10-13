@@ -50,16 +50,16 @@ export function GameLayout({ topBar, leftPanel, rightPanel }: GameLayoutProps) {
           {/* 深邃暗光遮罩层：以极低开销实现原本 filter 的明暗与对比度质感 */}
           <div
             data-skin-dark="mask"
-            className="absolute inset-0 bg-slate-950/30 pointer-events-none z-0"
+            className="absolute inset-0 bg-slate-950/20 pointer-events-none z-0"
           />
 
-          {/* 徕卡风格柔和暗角 (Soft Vignette) */}
+          {/* 徕卡风格柔和暗角 (Soft Vignette) —— 2026-10-13 用户反馈：暗角与中心亮度差异过大 ⇒ 收窄范围减弱强度 */}
           <div
             data-skin-dark="vignette"
             className="absolute inset-0 pointer-events-none z-0"
             style={{
               background:
-                "radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(2, 6, 23, 0.45) 85%, rgba(2, 6, 23, 0.8) 100%)",
+                "radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 68%, rgba(2, 6, 23, 0.26) 88%, rgba(2, 6, 23, 0.52) 100%)",
             }}
           />
 
