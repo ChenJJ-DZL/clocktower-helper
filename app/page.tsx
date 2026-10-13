@@ -1051,7 +1051,7 @@ export default function Home() {
               )}
               {/* ===== 剧本选择页：占满整个舞台区域，禁止二次缩放 ===== */}
               {gamePhase === "scriptSelection" && (
-                <div className="w-full h-full flex flex-col bg-slate-950 text-white">
+                <div data-stage="script-select" className="w-full h-full flex flex-col bg-slate-950 text-white">
                   <ScriptSelection
                     onScriptSelect={setSelectedScript}
                     saveHistory={saveHistory}

@@ -591,110 +591,54 @@ body > * {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Classic 圆桌牛皮纸底（2026-10-13 用户要求恢复）
-   ⚠️ 纯 CSS 合成，零网络请求、零大图解码——历史教训：
-     2.86MB 的 table-bg.png 曾导致移动端 WebKit Jetsam OOM（b7709fd）。
-   ══════════════════════════════════════════════════════════════ */
-.theme-classic [data-surface="table"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  /* 自下而上：纤维噪点 → 长纤维纹 → 纸筋 → 霉斑/亮斑 → 中心纸盘（柔化蒙版 + 边缘烘焙焦边）
-     2026-10-13 用户反馈：质感不够 ⇒ 噪点加强 + 纸盘扩大 + 纤维/霉斑层新增 */
-  background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.74' numOctaves='5' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.46'/></svg>"),
-    repeating-linear-gradient(
-      93deg,
-      rgba(255, 236, 196, 0.07) 0px,
-      rgba(255, 236, 196, 0.07) 1px,
-      transparent 1px,
-      transparent 9px
-    ),
-    repeating-linear-gradient(
-      91deg,
-      rgba(84, 62, 32, 0.06) 0px,
-      rgba(84, 62, 32, 0.06) 1px,
-      transparent 1px,
-      transparent 13px
-    ),
-    repeating-linear-gradient(
-      8deg,
-      rgba(74, 54, 26, 0.05) 0px,
-      rgba(74, 54, 26, 0.05) 1px,
-      transparent 1px,
-      transparent 7px
-    ),
-    radial-gradient(
-      circle 190px at 18% 82%,
-      rgba(96, 68, 30, 0.16) 0%,
-      rgba(96, 68, 30, 0.05) 60%,
-      transparent 75%
-    ),
-    radial-gradient(
-      circle 150px at 84% 16%,
-      rgba(255, 244, 214, 0.14) 0%,
-      transparent 70%
-    ),
-    radial-gradient(
-      circle 130px at 78% 82%,
-      rgba(88, 62, 28, 0.13) 0%,
-      transparent 70%
-    ),
-    radial-gradient(
-      ellipse 80% 76% at 50% 50%,
-      rgba(228, 199, 150, 0.97) 0%,
-      rgba(215, 183, 130, 0.93) 42%,
-      rgba(196, 162, 108, 0.82) 60%,
-      rgba(158, 126, 76, 0.62) 74%,
-      rgba(96, 72, 40, 0.34) 84%,
-      rgba(34, 24, 13, 0) 94%
-    );
-  mix-blend-mode: normal;
-  opacity: 1;
-}
-
-/* ══════════════════════════════════════════════════════════════
    双主题系统 (Dual Theme System)
-   .theme-modern — 亮色杂志风（报刊亭）| .theme-classic — 暗色皮质魔典
+   .theme-modern — 黑底色块拼版 | .theme-classic — 暗色皮质魔典（不做修改）
    主题类挂载于 <html>，所有主题差异通过作用域选择器实现
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Modern v2: 报刊亭 · Editorial Light（亮色杂志风）── */
-/* 定位：经典=暗色皮质魔典 / 现代=亮色印刷周刊。规范见 temp/design/modern_magazine_spec_v2_light.md */
+/* ── Modern v5: 黑底色块拼版 · Color-Block Editorial ── */
+/* 定位：黑色舞台 + 高饱和色板（奶油/柠黄/薄荷/珊瑚）拼贴。
+   参考用户提供的 One Day One Design 板块化样张（2026-10-13）。
+   规范见 temp/design/modern_magazine_spec_v2_light.md（v2 亮色版历史） */
 
 /* 三级 token：原始 → 语义 → 字体 */
 .theme-modern {
-  /* 原始：纸与墨 */
-  --paper-0: #ffffff; /* 卡片纸面 */
-  --paper-1: #faf6ee; /* 页面底（米白纸） */
-  --paper-2: #f1eadc; /* 次级面 */
-  --ink-900: #14110e; /* 主文字（暖黑） */
+  /* 原始：舞台与墨 */
+  --stage: #141414; /* 页面黑（参考样的黑画布） */
+  --stage-deep: #0e0e0e; /* 牌桌黑 */
+  /* 原始：纸白（座位代币/名牌继续用，黑底上最跳） */
+  --paper-0: #ffffff;
+  --paper-1: #f7f2e6;
+  --paper-2: #efe8d6;
+  --ink-900: #14110e; /* 主文字（暖黑，压在色板上） */
   --ink-600: #4a423a; /* 次级文字 */
   --ink-400: #857c70; /* 注释/禁用 */
   --rule: #14110e; /* 栏线 */
   --rule-soft: rgba(20, 17, 14, 0.16);
-  /* 原始：鲜艳色（杂志三色） */
-  --red: #e0362a;
-  --blue: #1b4db1;
-  --yellow: #f2b705;
-  /* 语义：阵营色（亮底高对比版，与代币既有约定一致：村民蓝/外来者绿/爪牙橙/恶魔红） */
-  --align-townsfolk: var(--blue);
+  /* 原始：色板四色（板块化核心） */
+  --plate-cream: #f3ead0; /* 奶油板（大面容器） */
+  --plate-yellow: #ffd732; /* 柠黄板（强调/HUD/CTA） */
+  --plate-mint: #a8d8b4; /* 薄荷板（信息/注册类面板） */
+  --plate-coral: #ef8f66; /* 珊瑚板（警示类面板） */
+  /* 语义：阵营色（色板上高对比版） */
+  --align-townsfolk: #1b4db1;
   --align-outsider: #15803d;
   --align-minion: #c2410c;
   --align-demon: #b91c1c;
+  --red: #e0362a;
+  --blue: #1b4db1;
+  --yellow: #ffd732;
   /* 语义 token */
-  --color-bg: var(--paper-1);
+  --color-bg: var(--stage);
   --color-surface: var(--paper-0);
-  --color-surface-alt: var(--paper-2);
+  --color-surface-alt: var(--plate-cream);
   --color-text: var(--ink-900);
   --color-text-secondary: var(--ink-600);
   --color-text-muted: var(--ink-400);
   --color-border: var(--rule-soft);
   --color-primary: var(--red);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  /* 印刷分层：几乎无投影，靠「叠印细线 + 极轻纸影」建立层级 */
+  /* 印刷分层：色块靠描边与轻影建立层级 */
   --shadow-print: 0 1px 0 rgba(20, 17, 14, 0.05), 0 14px 30px rgba(20, 17, 14, 0.1);
   --z-dropdown: 100;
   --z-sticky: 200;
@@ -706,25 +650,26 @@ body > * {
   --font-body: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", system-ui, sans-serif;
 }
 
-/* §5.1 纸白基底：去掉暗色聚光灯与暗角 */
+/* §5.1 黑色舞台基底 */
 .theme-modern body {
-  background: var(--color-bg);
+  background: var(--stage);
   color: var(--color-text);
   font-family: var(--font-body);
 }
 
 .theme-modern body::before {
-  /* 印刷颗粒：极淡纸纹，给大面米白加入「纸的密度」 */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='0.05'/></svg>");
+  /* 黑面颗粒：极淡，给大黑加入「印刷黑」的密度 */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='0.04'/></svg>");
 }
 
 .theme-modern #__next {
   background: transparent;
 }
 
-/* §5.1 顶部导航条：纸白条 + 2px 墨色栏线（报刊头版分隔） */
+/* §5.1 顶部导航条：奶油板 + 2px 墨线（参考样顶部的奶油横条）
+   ⚠️ 元素同时挂 bg-slate-900/95，批量映射 (0,2,0) 在文件更后 ⇒ 必须 !important 压回 */
 .theme-modern .topbar-frost {
-  background: var(--color-surface);
+  background: var(--plate-cream) !important;
   border: none;
   border-bottom: 2px solid var(--rule);
   border-radius: 0;
@@ -733,14 +678,14 @@ body > * {
   box-shadow: none;
 }
 
-/* §6.3 圆桌区：隐藏三层暗色背景（深紫渐变 / 暗色遮罩 / 徕卡暗角），改纸白 */
+/* §6.3 圆桌区：隐藏三层暗色背景（深紫渐变 / 暗色遮罩 / 徕卡暗角），改纯黑舞台 */
 .theme-modern [data-skin-dark] {
   opacity: 0 !important;
 }
 
 
-/* ⚠️ 亮色翻底：批量把硬编码 slate 暗色系映射到纸墨系
-   （与 .theme-classic 批量映射 slate 的既有做法同构，避免逐个组件改类名） */
+/* ⚠️ 批量翻底（弹窗等 body 级面板仍走白纸，保持可读）：
+   slate 暗底 → 白纸面板；范围收窄见下方「控制台/牌桌」作用域覆写 */
 .theme-modern [class*="bg-slate-9"] {
   background-color: var(--paper-0);
 }
@@ -754,14 +699,57 @@ body > * {
   border-color: var(--rule-soft);
 }
 
+/* §6.3 牌桌：纯黑舞台（白代币与柠黄 HUD 在黑上最跳） */
 .theme-modern [data-surface="table"] {
-  background-color: var(--paper-1);
+  background-color: var(--stage-deep);
 }
 
-/* §6.3 控制台容器：白纸面 + 墨色左栏线 */
+/* §6.3 控制台容器：整块奶油板（板块化的大面板） */
 .theme-modern [data-surface="console"] {
+  background-color: var(--plate-cream);
+  border-left: 2px solid var(--rule);
+}
+
+/* 剧本选择页：奶油板舞台（script 卡片本就是浅色板，白底太素 ⇒ 露奶油）
+   ⚠️ 元素挂 bg-slate-950，批量映射更靠后 ⇒ 需提高特异性 */
+.theme-modern [data-stage="script-select"][class*="bg-slate-9"] {
+  background-color: var(--plate-cream);
+}
+
+/* ── 控制台内：容器透明化露出奶油底，卡片翻白板（板中板） ──
+   (0,3,0) 特异性压过上面的 (0,2,0) 批量映射 */
+.theme-modern [data-surface="console"] [class*="bg-slate-9"],
+.theme-modern [data-surface="console"] [class*="bg-black/"] {
+  background-color: transparent;
+}
+
+.theme-modern [data-surface="console"] [class*="bg-slate-8"],
+.theme-modern [data-surface="console"] [class*="bg-slate-7"] {
   background-color: var(--paper-0);
-  border-left: 1px solid var(--rule-soft);
+}
+
+/* 渐变一律拍平：编辑风禁渐变（罂粟花/军团的紫金渐变卡 → 奶油板） */
+.theme-modern [class*="bg-gradient-to"] {
+  background-image: none;
+  background-color: var(--plate-cream);
+}
+
+/* 特殊面板 → 色板：信息/注册类薄荷板 */
+.theme-modern [class*="bg-indigo-9"],
+.theme-modern [class*="bg-violet-9"],
+.theme-modern [class*="bg-purple-9"],
+.theme-modern [class*="bg-blue-9"] {
+  background-color: var(--plate-mint);
+}
+
+/* 警示类琥珀板 / 危险类珊瑚板 */
+.theme-modern [class*="bg-amber-9"] {
+  background-color: var(--plate-yellow);
+}
+
+.theme-modern [class*="bg-rose-9"],
+.theme-modern [class*="bg-red-9"] {
+  background-color: var(--plate-coral);
 }
 
 .theme-modern .text-white,
@@ -797,6 +785,12 @@ body > * {
   color: #0e7490;
 }
 
+/* sky 系（自建剧本等 chip）在奶油板上对比不足 ⇒ 压深 */
+.theme-modern .text-sky-300,
+.theme-modern .text-sky-400 {
+  color: #0e7490;
+}
+
 .theme-modern .text-orange-400,
 .theme-modern .text-amber-400 {
   color: var(--align-minion);
@@ -807,7 +801,9 @@ body > * {
 }
 
 .theme-modern .text-emerald-400,
-.theme-modern .text-green-400 {
+.theme-modern .text-emerald-300,
+.theme-modern .text-green-400,
+.theme-modern .text-green-300 {
   color: var(--align-outsider);
 }
 
@@ -958,7 +954,7 @@ body > * {
   border: 1px solid var(--color-primary);
   color: #fff;
   font-weight: 700;
-  border-radius: 2px;
+  border-radius: 12px;
   box-shadow: none;
   animation: none;
   transition:
@@ -984,7 +980,7 @@ body > * {
   background: transparent;
   border: 1px solid var(--rule);
   color: var(--ink-900);
-  border-radius: 2px;
+  border-radius: 12px;
   box-shadow: none;
   animation: none;
   transition:
@@ -1015,12 +1011,11 @@ body > * {
   box-shadow: none;
 }
 
-/* HUD 卡：白纸 + 8px 正红顶带 + 墨框 + 纸影（替代圆角大阴影卡） */
+/* HUD 卡：柠黄板 + 2px 墨框 + 大圆角（参考样的黄色块 + 黑描边语言） */
 .theme-modern .compass-ring {
-  background: var(--paper-0) !important;
-  border: 1px solid var(--rule) !important;
-  border-top: 8px solid var(--red) !important;
-  border-radius: 3px !important;
+  background: var(--plate-yellow) !important;
+  border: 2px solid var(--rule) !important;
+  border-radius: 18px !important;
   box-shadow: var(--shadow-print) !important;
 }
 
@@ -1053,12 +1048,7 @@ body > * {
   background-color: var(--red) !important;
 }
 
-/* 淡紫/淡蓝半透面板（原为暗底设计）→ 白纸 + 淡栏线 */
-.theme-modern [class*="bg-indigo-9"],
-.theme-modern [class*="bg-violet-9"],
-.theme-modern [class*="bg-blue-9"] {
-  background-color: var(--paper-0);
-}
+/* （indigo/violet/blue-9 → 薄荷板的映射已前移到色板块，避免重复规则互相覆盖） */
 
 .theme-modern [class*="border-indigo-"],
 .theme-modern [class*="border-violet-"],
