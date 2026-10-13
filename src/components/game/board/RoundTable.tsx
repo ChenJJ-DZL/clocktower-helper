@@ -528,7 +528,23 @@ export function RoundTable({
   }, [seats.length]);
 
   const handleWheel = (e: React.WheelEvent) => {
-    // Only zoom if pressing ctrl/cmd or if on a trackpad
+    // 🔴 2026-10-13 修复「选完传奇角色/旅行者后整个 UI 缩小到很小」：
+    //   ModalWrapper（传奇/旅行者选人弹窗）虽 portal 到 scale-layout-modal-root，
+    //   但 **wheel 事件沿 React 组件树（而非 DOM 树）冒泡**，会钻进本 handler。
+    //   用户在弹窗里滚动 15 个旅行者/8 个传奇列表时，每一格滚轮都在
+    //   `scale -= deltaY*0.002` ⇒ 圆桌被滚到 0.5 下限（Playwright 实测：
+    //   弹窗内滚 10 格，座位 112px→56px、中央面板 522px→266px）。
+    //
+    //   修复两条（与下方原注释「Only zoom if pressing ctrl/cmd」的意图对齐，
+    //   原实现从未落实该意图）：
+    //   ① 事件源在弹窗内 ⇒ 直接放行，滚轮交还弹窗自身滚动；
+    //   ② 仅 Ctrl/⌘ + 滚轮（触控板捏合手势）才缩放，普通滚轮/双指滑动不误触。
+    if (e.target instanceof Element && e.target.closest('[role="dialog"]')) {
+      return;
+    }
+    if (!e.ctrlKey && !e.metaKey) {
+      return;
+    }
     if (e.cancelable) {
       e.preventDefault();
     }
