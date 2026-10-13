@@ -541,8 +541,108 @@ body > * {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   座位角色名牌（两主题通用）
+   设计目标：**可读性优先**——不透明底板 + 零投影零发光。
+   用户反馈（2026-10-13）：原先角色名直接压在代币渐变上，还叠加
+   text-shadow + drop-shadow-md，在缩放舞台上笔画糊成一团。
+   ⇒ 名牌自带底衬，任何底色/缩放比例下文字都清晰。
+   ══════════════════════════════════════════════════════════════ */
+.seat-nameplate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 94%;
+  padding: 4px 10px;
+  border-radius: 3px;
+  background: rgba(8, 5, 14, 0.9);
+  border: 1px solid rgba(217, 181, 106, 0.55);
+  color: #fffbeb;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+/* 掉投影：覆盖 .theme-classic .seat-node span 的 text-shadow 与任何继承特效 */
+.seat-nameplate,
+.seat-nameplate * {
+  text-shadow: none !important;
+  filter: none;
+}
+
+.theme-classic .seat-nameplate {
+  background: rgba(8, 5, 14, 0.9);
+  border-color: rgba(217, 181, 106, 0.55);
+  color: #fffbeb;
+}
+
+.theme-classic .seat-nameplate.seat-nameplate-dead {
+  color: #b9b4a9;
+  text-decoration: line-through;
+}
+
+.theme-modern .seat-nameplate {
+  background: var(--paper-0);
+  border: 1px solid var(--rule);
+  color: var(--ink-900);
+}
+
+.theme-modern .seat-nameplate.seat-nameplate-dead {
+  color: var(--ink-600);
+  text-decoration: line-through;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Classic 圆桌牛皮纸底（2026-10-13 用户要求恢复）
+   ⚠️ 纯 CSS 合成，零网络请求、零大图解码——历史教训：
+     2.86MB 的 table-bg.png 曾导致移动端 WebKit Jetsam OOM（b7709fd）。
+   ══════════════════════════════════════════════════════════════ */
+.theme-classic [data-surface="table"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* 自下而上：纤维噪点 → 纵横向纸筋 → 斑驳 → 中心纸盘（柔化蒙版） */
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='0.30'/></svg>"),
+    repeating-linear-gradient(
+      96deg,
+      rgba(120, 92, 52, 0.05) 0px,
+      rgba(120, 92, 52, 0.05) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    repeating-linear-gradient(
+      6deg,
+      rgba(88, 66, 36, 0.045) 0px,
+      rgba(88, 66, 36, 0.045) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    radial-gradient(
+      circle at 33% 28%,
+      rgba(255, 240, 208, 0.16) 0%,
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 72% 76%,
+      rgba(92, 66, 32, 0.22) 0%,
+      transparent 46%
+    ),
+    radial-gradient(
+      ellipse 66% 64% at 50% 50%,
+      rgba(222, 192, 143, 0.95) 0%,
+      rgba(203, 170, 118, 0.88) 38%,
+      rgba(166, 134, 84, 0.66) 58%,
+      rgba(104, 79, 45, 0.28) 72%,
+      rgba(40, 28, 16, 0) 86%
+    );
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+/* ══════════════════════════════════════════════════════════════
    双主题系统 (Dual Theme System)
-   .theme-modern — 暗黑哥特拟物风 | .theme-classic — 高对比扁平风
+   .theme-modern — 亮色杂志风（报刊亭）| .theme-classic — 暗色皮质魔典
    主题类挂载于 <html>，所有主题差异通过作用域选择器实现
    ══════════════════════════════════════════════════════════════ */
 
@@ -564,8 +664,8 @@ body > * {
   --red: #e0362a;
   --blue: #1b4db1;
   --yellow: #f2b705;
-  /* 语义：阵营色（亮底高对比版） */
-  --align-townsfolk: #a16207;
+  /* 语义：阵营色（亮底高对比版，与代币既有约定一致：村民蓝/外来者绿/爪牙橙/恶魔红） */
+  --align-townsfolk: var(--blue);
   --align-outsider: #15803d;
   --align-minion: #c2410c;
   --align-demon: #b91c1c;
@@ -696,6 +796,74 @@ body > * {
 .theme-modern .text-red-400,
 .theme-modern .text-rose-400 {
   color: var(--align-demon);
+}
+
+/* 语义浅色文字（原为暗底设计）在纸白上再压深一档 */
+.theme-modern .text-emerald-100,
+.theme-modern .text-emerald-200,
+.theme-modern .text-emerald-300 {
+  color: var(--align-outsider);
+}
+
+.theme-modern .text-cyan-100,
+.theme-modern .text-cyan-200 {
+  color: #0e7490;
+}
+
+.theme-modern .text-amber-100,
+.theme-modern .text-amber-200,
+.theme-modern .text-amber-300 {
+  color: #b45309;
+}
+
+.theme-modern .text-rose-100,
+.theme-modern .text-rose-200 {
+  color: var(--align-demon);
+}
+
+.theme-modern .text-purple-100,
+.theme-modern .text-purple-200 {
+  color: #6d28d9;
+}
+
+/* ⭐ 阵营分布：高饱和四色块 + 白字（亮色杂志风的核心识别元素） */
+.theme-modern [data-align] {
+  color: #fff;
+  border-color: transparent;
+}
+
+.theme-modern [data-align="townsfolk"] {
+  background-color: var(--align-townsfolk);
+}
+
+.theme-modern [data-align="outsider"] {
+  background-color: var(--align-outsider);
+}
+
+.theme-modern [data-align="minion"] {
+  background-color: var(--align-minion);
+}
+
+.theme-modern [data-align="demon"] {
+  background-color: var(--align-demon);
+}
+
+/* 主行动按钮：亮底上把浅色系按钮压深一档，保白字对比度 ≥4.5:1 */
+.theme-modern .bg-emerald-600,
+.theme-modern .bg-emerald-500,
+.theme-modern .bg-green-600,
+.theme-modern .bg-green-500 {
+  background-color: var(--align-outsider);
+}
+
+.theme-modern .bg-amber-600,
+.theme-modern .bg-amber-500 {
+  background-color: #b45309;
+}
+
+.theme-modern .bg-rose-600,
+.theme-modern .bg-red-600 {
+  background-color: var(--align-demon);
 }
 
 /* 主按钮内文字必须保持白字（防上面批量映射误伤） */

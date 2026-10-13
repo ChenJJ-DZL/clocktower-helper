@@ -542,13 +542,15 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
           )}
         </div>
 
-        {/* 角色名称 */}
+        {/* 角色名称牌：不透明底板保证任何底色/缩放比例下都可读
+            ⚠️ 不设 text-shadow / drop-shadow —— 投影在缩小舞台上会把笔画糊成一团（用户 2026-10-13 反馈） */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <RoleNameLines
-            name={roleName}
-            className={`${isPortrait ? "text-lg" : "text-2xl"} font-black drop-shadow-md leading-none text-center ${roleName.length > 4 ? "" : "whitespace-nowrap"} ${s.isDead ? "text-gray-400 line-through" : "text-white"}`}
-            style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9), 0 0 4px black" }}
-          />
+          <div className={`seat-nameplate${s.isDead ? " seat-nameplate-dead" : ""}`}>
+            <RoleNameLines
+              name={roleName}
+              className={`${isPortrait ? "text-lg" : "text-2xl"} font-black leading-tight text-center ${roleName.length > 4 ? "" : "whitespace-nowrap"}`}
+            />
+          </div>
         </div>
 
         {/* 状态标签容器 */}

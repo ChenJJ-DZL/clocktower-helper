@@ -507,8 +507,14 @@ export default function GameSetup({
     setShowCompositionModal(false);
   };
 
-  const buildBadge = (label: string, value: number, color: string) => (
+  const buildBadge = (
+    label: string,
+    value: number,
+    color: string,
+    align: "townsfolk" | "outsider" | "minion" | "demon"
+  ) => (
     <div
+      data-align={align}
       className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm ${color}`}
     >
       <span className="font-semibold whitespace-nowrap">{label}</span>
@@ -585,22 +591,26 @@ export default function GameSetup({
             {buildBadge(
               "村民",
               counts.townsfolk,
-              "border-emerald-500/40 bg-emerald-900/40 text-emerald-100"
+              "border-emerald-500/40 bg-emerald-900/40 text-emerald-100",
+              "townsfolk"
             )}
             {buildBadge(
               "外来者",
               counts.outsider,
-              "border-cyan-400/40 bg-cyan-900/40 text-cyan-100"
+              "border-cyan-400/40 bg-cyan-900/40 text-cyan-100",
+              "outsider"
             )}
             {buildBadge(
               "爪牙",
               counts.minion,
-              "border-amber-400/40 bg-amber-900/40 text-amber-100"
+              "border-amber-400/40 bg-amber-900/40 text-amber-100",
+              "minion"
             )}
             {buildBadge(
               "恶魔",
               counts.demon,
-              "border-rose-400/40 bg-rose-900/40 text-rose-100"
+              "border-rose-400/40 bg-rose-900/40 text-rose-100",
+              "demon"
             )}
           </div>
         </div>
