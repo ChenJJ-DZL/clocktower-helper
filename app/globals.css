@@ -756,6 +756,19 @@ body > * {
   background-color: var(--paper-0);
 }
 
+/* 任意 inset 暗角阴影一律禁用（桌面层 vignette / 间谍魔典内阴影 / GameBoard 氛围层）
+   —— 亮色主题下这些"暗角"会变成脏灰块 */
+.theme-modern [class*="shadow-[inset"] {
+  box-shadow: none !important;
+}
+
+/* 竖屏旋转提示遮罩：内联 backgroundColor rgb(2 6 23 / 98%) + text-white
+   ⇒ 亮色主题下会变成「深藏青底 + 墨黑字」不可读，必须 author !important 翻白 */
+.theme-modern [data-testid="portrait-lock-overlay"] {
+  background-color: var(--paper) !important;
+  color: var(--ink-900) !important;
+}
+
 /* 特殊面板 → 语义软底 */
 .theme-modern [class*="bg-indigo-9"],
 .theme-modern [class*="bg-violet-9"],
@@ -776,6 +789,24 @@ body > * {
 .theme-modern [class*="bg-emerald-9"],
 .theme-modern [class*="bg-green-9"] {
   background-color: var(--green-bg);
+}
+
+/* 青系（sky/cyan/teal）深底 → 浅青软底（模板 chip / 外来者列 / 夜间确认按钮） */
+.theme-modern [class*="bg-sky-9"],
+.theme-modern [class*="bg-cyan-9"],
+.theme-modern [class*="bg-teal-9"] {
+  background-color: #e6f0f4;
+}
+
+/* 橙系深底 → 浅橙软底（爪牙计数 / 角色提示卡） */
+.theme-modern [class*="bg-orange-9"] {
+  background-color: #f7ecdc;
+}
+
+/* 粉/品红系深底 → 浅粉软底（梦殒春宵模板 / 夜间特殊提示） */
+.theme-modern [class*="bg-pink-9"],
+.theme-modern [class*="bg-fuchsia-9"] {
+  background-color: #f8e9f2;
 }
 
 /* ── 文字：亮底压深，保证 AA ── */
@@ -821,6 +852,74 @@ body > * {
 
 .theme-modern .text-yellow-400 {
   color: #8a6100;
+}
+
+/* 补漏（2026-10-14 全阶段审计）：弹窗 ✕ 关闭钮 gray-400 在白底仅 2.6:1 */
+.theme-modern .text-gray-400,
+.theme-modern .text-gray-300 {
+  color: var(--ink-600);
+}
+
+/* 青系浅字压深（teal/sky/cyan 100~300 在浅青软底上原为 1.2~1.5:1） */
+.theme-modern .text-teal-100,
+.theme-modern .text-teal-200,
+.theme-modern .text-teal-300,
+.theme-modern .text-teal-400 {
+  color: #0f766e;
+}
+
+.theme-modern .text-sky-100,
+.theme-modern .text-sky-200,
+.theme-modern .text-cyan-100,
+.theme-modern .text-cyan-200 {
+  color: #0e7490;
+}
+
+/* 粉/品红系浅字压深（梦殒春宵模板 chip 1.25:1） */
+.theme-modern .text-pink-100,
+.theme-modern .text-pink-200,
+.theme-modern .text-pink-300 {
+  color: #9d174d;
+}
+
+.theme-modern .text-fuchsia-100,
+.theme-modern .text-fuchsia-200,
+.theme-modern .text-fuchsia-300 {
+  color: #86198f;
+}
+
+/* 橙系浅字压深（爪牙 chip 1.71:1） */
+.theme-modern .text-orange-100,
+.theme-modern .text-orange-200,
+.theme-modern .text-orange-300 {
+  color: var(--orange);
+}
+
+/* 紫罗兰系浅字压深 */
+.theme-modern .text-violet-100,
+.theme-modern .text-violet-200,
+.theme-modern .text-violet-300 {
+  color: var(--purple);
+}
+
+/* 灰系半透明深底（历史记录 chip bg-gray-800/80 等）→ 次级纸底 */
+.theme-modern [class*="bg-gray-8"] {
+  background-color: var(--paper-2);
+}
+
+/* 黄系浅字压深（历史 chip text-yellow-200 白底 1.16:1） */
+.theme-modern .text-yellow-100,
+.theme-modern .text-yellow-200,
+.theme-modern .text-yellow-300 {
+  color: #8a6100;
+}
+
+/* 夜间恶魔告知卡 text-emerald-50 浅绿字压浅绿底 1.05:1 */
+.theme-modern .text-emerald-50,
+.theme-modern .text-green-50,
+.theme-modern .text-green-100,
+.theme-modern .text-green-200 {
+  color: var(--green);
 }
 
 /* ⭐ 语义色铁律：绿色系保持绿（正常/可执行），红色系保持红（异常/危险） */
@@ -1061,6 +1160,22 @@ body > * {
 
 .theme-modern .btn-arcane-info:hover:not(:disabled) {
   background: var(--paper-3);
+}
+
+/* (0,3,0) 兜底：按钮同时带 text-white 时会被 .bg-X-600.text-white→#fff (0,3,0) 抢走白字，
+   白字压 paper-2 底仅 1.1:1 ⇒ 此条同特异性但更靠后，赢回墨字 */
+.theme-modern .btn-arcane-info.text-white {
+  color: var(--ink-900);
+}
+
+/* 夜间行动者高亮态：源码带 Tailwind important（!bg-gray-900）压过主题映射
+   ⇒ 必须 author important 反压回白卡，否则行动座位是一团黑。
+   ⚠️ 层叠铁律：important 的层序反转 —— unlayered important 低于 @layer utilities，
+   故本条必须包进 utilities 层，以 (0,3,0) 特异性胜过 .\!bg-gray-900 的 (0,1,0) */
+@layer utilities {
+  .theme-modern .seat-token[class*="bg-gray-900"] {
+    background-color: var(--paper-0) !important;
+  }
 }
 
 .theme-modern .btn-arcane-info:disabled {
