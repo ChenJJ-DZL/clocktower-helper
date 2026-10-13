@@ -592,54 +592,70 @@ body > * {
 
 /* ══════════════════════════════════════════════════════════════
    双主题系统 (Dual Theme System)
-   .theme-modern — 黑底色块拼版 | .theme-classic — 暗色皮质魔典（不做修改）
-   主题类挂载于 <html>，所有主题差异通过作用域选择器实现
+   .theme-modern  — V2 圆润浮卡 Soft Layers（亮色：米白纸底 + 纯白浮卡 + 三级柔和阴影）
+   .theme-classic — 官方原版暗色魔典（**不做任何修改**，见 block 末尾回退段）
+   主题类挂载于 <html>/<body>，所有差异通过作用域选择器实现。
+   ──────────────────────────────────────────────────────────────
+   ⭐ 铁律 1：布局 1:1 以经典 UI 实测坐标为准 —— 本段只允许写
+             颜色 / 质感 / 圆角 / 阴影，禁止写 position / size / 排序。
+   ⭐ 铁律 2：语义色 —— 绿=正常·可执行，红=异常·提醒·危险，二者不得互换。
+   ⭐ 铁律 3：theme-modern: 变体经 :where() 归零特异性 ⇒ 被本段批量映射
+              盖过的元素，必须在本段用更高特异性覆盖，且改完必须截图复测。
    ══════════════════════════════════════════════════════════════ */
 
-/* ── Modern v5: 黑底色块拼版 · Color-Block Editorial ── */
-/* 定位：黑色舞台 + 高饱和色板（奶油/柠黄/薄荷/珊瑚）拼贴。
-   参考用户提供的 One Day One Design 板块化样张（2026-10-13）。
-   规范见 temp/design/modern_magazine_spec_v2_light.md（v2 亮色版历史） */
-
-/* 三级 token：原始 → 语义 → 字体 */
+/* ── V2 tokens：纸 / 卡 / 墨 / 线 / 语义色 / 三级阴影 ── */
 .theme-modern {
-  /* 原始：舞台与墨 */
-  --stage: #141414; /* 页面黑（参考样的黑画布） */
-  --stage-deep: #0e0e0e; /* 牌桌黑 */
-  /* 原始：纸白（座位代币/名牌继续用，黑底上最跳） */
-  --paper-0: #ffffff;
-  --paper-1: #f7f2e6;
-  --paper-2: #efe8d6;
-  --ink-900: #14110e; /* 主文字（暖黑，压在色板上） */
-  --ink-600: #4a423a; /* 次级文字 */
-  --ink-400: #857c70; /* 注释/禁用 */
-  --rule: #14110e; /* 栏线 */
-  --rule-soft: rgba(20, 17, 14, 0.16);
-  /* 原始：色板四色（板块化核心） */
-  --plate-cream: #f3ead0; /* 奶油板（大面容器） */
-  --plate-yellow: #ffd732; /* 柠黄板（强调/HUD/CTA） */
-  --plate-mint: #a8d8b4; /* 薄荷板（信息/注册类面板） */
-  --plate-coral: #ef8f66; /* 珊瑚板（警示类面板） */
-  /* 语义：阵营色（色板上高对比版） */
-  --align-townsfolk: #1b4db1;
-  --align-outsider: #15803d;
-  --align-minion: #c2410c;
-  --align-demon: #b91c1c;
-  --red: #e0362a;
-  --blue: #1b4db1;
-  --yellow: #ffd732;
-  /* 语义 token */
-  --color-bg: var(--stage);
+  /* 纸与卡 */
+  --paper: #f2eee5;      /* 舞台纸底（米白） */
+  --paper-0: #ffffff;    /* 纯白卡（最上一层） */
+  --paper-1: #faf8f3;    /* 次级卡底 */
+  --paper-2: #f6f3ec;    /* 凹槽 / 次级底 */
+  --paper-3: #ece7db;    /* 最深的纸（分隔/舞台边缘） */
+  /* 墨（文字） */
+  --ink-900: #111111;
+  --ink-600: #6f6a60;
+  --ink-400: #8a8478;
+  /* 线 */
+  --rule: #111111;
+  --line: rgba(17, 17, 17, 0.07);
+  --rule-soft: rgba(17, 17, 17, 0.07);
+  /* 语义色（语义锁死，不得互换） */
+  --green: #15803d;      /* 正常 / 可执行 / 成功 */
+  --green-bg: #eef6f0;
+  --red: #b91c1c;        /* 异常 / 提醒 / 危险 / 被处决 */
+  --red-bg: #fbeeee;
+  --blue: #1b4db1;       /* 村民 / 信息 */
+  --blue-bg: #eef1f9;
+  --orange: #b45309;     /* 爪牙 / 需注意 */
+  --orange-bg: #faf3e6;
+  --purple: #6d28d9;     /* 转为邪恶 */
+  --purple-bg: #f4f0fd;
+  --yellow: #f2b705;     /* 醉酒 / 中性提示 */
+  --yellow-bg: #fdf6e3;
+  /* 阵营色（沿用语义） */
+  --align-townsfolk: var(--blue);
+  --align-outsider: var(--green);
+  --align-minion: var(--orange);
+  --align-demon: var(--red);
+  /* 圆角分层（大圆角 = 浮卡语言） */
+  --r-plate: 26px;   /* 大面板：控制台 / HUD / 牌桌容器 */
+  --r-card: 16px;    /* 卡内小卡 */
+  --r-chip: 999px;   /* 胶囊 */
+  /* 阴影分层（唯一允许的"立体感"来源；不透明底板禁投影） */
+  --sh1: 0 1px 2px rgba(17, 17, 17, 0.04), 0 6px 16px rgba(17, 17, 17, 0.05);
+  --sh2: 0 2px 5px rgba(17, 17, 17, 0.06), 0 12px 28px rgba(17, 17, 17, 0.09);
+  --sh3: 0 4px 10px rgba(17, 17, 17, 0.06), 0 30px 70px rgba(17, 17, 17, 0.16);
+  --shadow-print: var(--sh2);
+  /* 语义 token（兼容既有引用） */
+  --color-bg: var(--paper);
   --color-surface: var(--paper-0);
-  --color-surface-alt: var(--plate-cream);
+  --color-surface-alt: var(--paper-1);
   --color-text: var(--ink-900);
   --color-text-secondary: var(--ink-600);
   --color-text-muted: var(--ink-400);
-  --color-border: var(--rule-soft);
-  --color-primary: var(--red);
+  --color-border: var(--line);
+  --color-primary: var(--green);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  /* 印刷分层：色块靠描边与轻影建立层级 */
-  --shadow-print: 0 1px 0 rgba(20, 17, 14, 0.05), 0 14px 30px rgba(20, 17, 14, 0.1);
   --z-dropdown: 100;
   --z-sticky: 200;
   --z-overlay: 300;
@@ -650,42 +666,40 @@ body > * {
   --font-body: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", system-ui, sans-serif;
 }
 
-/* §5.1 黑色舞台基底 */
+/* ── 舞台基底：米白纸底（亮色） ── */
 .theme-modern body {
-  background: var(--stage);
-  color: var(--color-text);
+  background: var(--paper);
+  color: var(--ink-900);
   font-family: var(--font-body);
 }
 
+/* 纸面不再叠加颗粒（亮底上颗粒会显脏） */
 .theme-modern body::before {
-  /* 黑面颗粒：极淡，给大黑加入「印刷黑」的密度 */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='220' height='220' filter='url(%23n)' opacity='0.04'/></svg>");
+  background-image: none;
 }
 
 .theme-modern #__next {
   background: transparent;
 }
 
-/* §5.1 顶部导航条：奶油板 + 2px 墨线（参考样顶部的奶油横条）
-   ⚠️ 元素同时挂 bg-slate-900/95，批量映射 (0,2,0) 在文件更后 ⇒ 必须 !important 压回 */
+/* ── 顶部导航条：纯白卡 + 极细描边 + 轻影（V2 浮卡）
+   ⚠️ 元素同时挂 bg-slate-900/95，批量映射 (0,2,0) 在文件更后 ⇒ 必须 !important */
 .theme-modern .topbar-frost {
-  background: var(--plate-cream) !important;
+  background: var(--paper-0) !important;
   border: none;
-  border-bottom: 2px solid var(--rule);
+  border-bottom: 1px solid var(--line);
   border-radius: 0;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: none;
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
 }
 
-/* §6.3 圆桌区：隐藏三层暗色背景（深紫渐变 / 暗色遮罩 / 徕卡暗角），改纯黑舞台 */
+/* 圆桌区：隐藏三层暗色背景（深紫渐变 / 暗色遮罩 / 徕卡暗角） */
 .theme-modern [data-skin-dark] {
   opacity: 0 !important;
 }
 
-
-/* ⚠️ 批量翻底（弹窗等 body 级面板仍走白纸，保持可读）：
-   slate 暗底 → 白纸面板；范围收窄见下方「控制台/牌桌」作用域覆写 */
+/* ── 批量翻底（暗底 → 亮卡） ── */
 .theme-modern [class*="bg-slate-9"] {
   background-color: var(--paper-0);
 }
@@ -696,27 +710,35 @@ body > * {
 }
 
 .theme-modern [class*="border-white/"] {
-  border-color: var(--rule-soft);
+  border-color: var(--line);
 }
 
-/* §6.3 牌桌：纯黑舞台（白代币与柠黄 HUD 在黑上最跳） */
+/* 牌桌：米白纸底 + 极淡中心提亮（浮卡的"卡下纸面"，无暗角、无蒙版） */
 .theme-modern [data-surface="table"] {
-  background-color: var(--stage-deep);
+  background-color: var(--paper);
+  background-image: radial-gradient(
+    circle at 50% 46%,
+    #fbf9f4 0%,
+    var(--paper) 58%,
+    var(--paper-3) 100%
+  );
 }
 
-/* §6.3 控制台容器：整块奶油板（板块化的大面板） */
+/* 控制台容器：纯白浮卡（右贴边 ⇒ 左侧大圆角） */
 .theme-modern [data-surface="console"] {
-  background-color: var(--plate-cream);
-  border-left: 2px solid var(--rule);
+  background-color: var(--paper-0);
+  border-left: 1px solid var(--line);
+  border-radius: var(--r-plate) 0 0 var(--r-plate);
+  box-shadow: var(--sh3);
 }
 
-/* 剧本选择页：奶油板舞台（script 卡片本就是浅色板，白底太素 ⇒ 露奶油）
+/* 剧本选择页：米白纸底
    ⚠️ 元素挂 bg-slate-950，批量映射更靠后 ⇒ 需提高特异性 */
 .theme-modern [data-stage="script-select"][class*="bg-slate-9"] {
-  background-color: var(--plate-cream);
+  background-color: var(--paper);
 }
 
-/* ── 控制台内：容器透明化露出奶油底，卡片翻白板（板中板） ──
+/* ── 控制台内：容器透明化露出白卡底，卡内小卡走次级底 ──
    (0,3,0) 特异性压过上面的 (0,2,0) 批量映射 */
 .theme-modern [data-surface="console"] [class*="bg-slate-9"],
 .theme-modern [data-surface="console"] [class*="bg-black/"] {
@@ -725,33 +747,38 @@ body > * {
 
 .theme-modern [data-surface="console"] [class*="bg-slate-8"],
 .theme-modern [data-surface="console"] [class*="bg-slate-7"] {
+  background-color: var(--paper-1);
+}
+
+/* 渐变一律拍平（V2 禁渐变）：落回白卡 */
+.theme-modern [class*="bg-gradient-to"] {
+  background-image: none;
   background-color: var(--paper-0);
 }
 
-/* 渐变一律拍平：编辑风禁渐变（罂粟花/军团的紫金渐变卡 → 奶油板） */
-.theme-modern [class*="bg-gradient-to"] {
-  background-image: none;
-  background-color: var(--plate-cream);
-}
-
-/* 特殊面板 → 色板：信息/注册类薄荷板 */
+/* 特殊面板 → 语义软底 */
 .theme-modern [class*="bg-indigo-9"],
 .theme-modern [class*="bg-violet-9"],
 .theme-modern [class*="bg-purple-9"],
 .theme-modern [class*="bg-blue-9"] {
-  background-color: var(--plate-mint);
+  background-color: var(--blue-bg);
 }
 
-/* 警示类琥珀板 / 危险类珊瑚板 */
 .theme-modern [class*="bg-amber-9"] {
-  background-color: var(--plate-yellow);
+  background-color: var(--yellow-bg);
 }
 
 .theme-modern [class*="bg-rose-9"],
 .theme-modern [class*="bg-red-9"] {
-  background-color: var(--plate-coral);
+  background-color: var(--red-bg);
 }
 
+.theme-modern [class*="bg-emerald-9"],
+.theme-modern [class*="bg-green-9"] {
+  background-color: var(--green-bg);
+}
+
+/* ── 文字：亮底压深，保证 AA ── */
 .theme-modern .text-white,
 .theme-modern .text-slate-50,
 .theme-modern .text-slate-100,
@@ -768,8 +795,6 @@ body > * {
   color: var(--ink-400);
 }
 
-/* 亮色语义色校正：浅色 Tailwind 文本色（原本服务暗底）在纸白上对比度不足，
-   统一压深一档，保住「阶段名 / 状态色」的语义同时满足 AA */
 .theme-modern .text-blue-400,
 .theme-modern .text-blue-300 {
   color: var(--blue);
@@ -777,46 +802,47 @@ body > * {
 
 .theme-modern .text-purple-400,
 .theme-modern .text-purple-300 {
-  color: #6d28d9;
+  color: var(--purple);
 }
 
 .theme-modern .text-cyan-400,
-.theme-modern .text-cyan-300 {
-  color: #0e7490;
-}
-
-/* sky 系（自建剧本等 chip）在奶油板上对比不足 ⇒ 压深 */
+.theme-modern .text-cyan-300,
 .theme-modern .text-sky-300,
 .theme-modern .text-sky-400 {
   color: #0e7490;
 }
 
 .theme-modern .text-orange-400,
-.theme-modern .text-amber-400 {
-  color: var(--align-minion);
+.theme-modern .text-amber-400,
+.theme-modern .text-amber-500,
+.theme-modern .text-orange-500 {
+  color: var(--orange);
 }
 
 .theme-modern .text-yellow-400 {
-  color: var(--align-townsfolk);
+  color: #8a6100;
 }
 
+/* ⭐ 语义色铁律：绿色系保持绿（正常/可执行），红色系保持红（异常/危险） */
 .theme-modern .text-emerald-400,
 .theme-modern .text-emerald-300,
 .theme-modern .text-green-400,
 .theme-modern .text-green-300 {
-  color: var(--align-outsider);
+  color: var(--green);
 }
 
 .theme-modern .text-red-400,
-.theme-modern .text-rose-400 {
-  color: var(--align-demon);
+.theme-modern .text-red-300,
+.theme-modern .text-red-200,
+.theme-modern .text-red-100,
+.theme-modern .text-rose-400,
+.theme-modern .text-rose-300 {
+  color: var(--red);
 }
 
-/* 语义浅色文字（原为暗底设计）在纸白上再压深一档 */
 .theme-modern .text-emerald-100,
-.theme-modern .text-emerald-200,
-.theme-modern .text-emerald-300 {
-  color: var(--align-outsider);
+.theme-modern .text-emerald-200 {
+  color: var(--green);
 }
 
 .theme-modern .text-cyan-100,
@@ -827,55 +853,83 @@ body > * {
 .theme-modern .text-amber-100,
 .theme-modern .text-amber-200,
 .theme-modern .text-amber-300 {
-  color: #b45309;
+  color: var(--orange);
 }
 
 .theme-modern .text-rose-100,
 .theme-modern .text-rose-200 {
-  color: var(--align-demon);
+  color: var(--red);
 }
 
 .theme-modern .text-purple-100,
 .theme-modern .text-purple-200 {
-  color: #6d28d9;
+  color: var(--purple);
 }
 
-/* ⭐ 阵营分布：高饱和四色块 + 白字（亮色杂志风的核心识别元素） */
+.theme-modern .text-indigo-100,
+.theme-modern .text-indigo-200,
+.theme-modern .text-indigo-300,
+.theme-modern .text-violet-100,
+.theme-modern .text-violet-200,
+.theme-modern .text-violet-300,
+.theme-modern .text-blue-100,
+.theme-modern .text-blue-200 {
+  color: var(--ink-600);
+}
+
+.theme-modern .text-blue-500,
+.theme-modern .text-indigo-400,
+.theme-modern .text-indigo-500 {
+  color: var(--ink-900);
+}
+
+/* 阵营分布 chip：软底 + 语义字色（V2 不用高饱和实色块） */
 .theme-modern [data-align] {
-  color: #fff;
+  color: var(--ink-900);
   border-color: transparent;
 }
 
 .theme-modern [data-align="townsfolk"] {
-  background-color: var(--align-townsfolk);
+  background-color: var(--blue-bg);
+  color: var(--blue);
 }
 
 .theme-modern [data-align="outsider"] {
-  background-color: var(--align-outsider);
+  background-color: var(--green-bg);
+  color: var(--green);
 }
 
 .theme-modern [data-align="minion"] {
-  background-color: var(--align-minion);
+  background-color: var(--orange-bg);
+  color: var(--orange);
 }
 
 .theme-modern [data-align="demon"] {
-  background-color: var(--align-demon);
+  background-color: var(--red-bg);
+  color: var(--red);
 }
 
-/* 主行动按钮：亮底上压深（绿系语义按钮） */
+/* ── 按钮：绿=主行动，红=危险，灰=次级 ── */
 .theme-modern .bg-green-600,
-.theme-modern .bg-green-500 {
-  background-color: var(--align-outsider);
+.theme-modern .bg-green-500,
+.theme-modern .bg-emerald-500,
+.theme-modern .bg-emerald-600,
+.theme-modern .bg-emerald-400 {
+  background-color: var(--green);
 }
 
 .theme-modern .bg-amber-600,
 .theme-modern .bg-amber-500 {
-  background-color: #b45309;
+  background-color: var(--orange);
 }
 
 .theme-modern .bg-rose-600,
 .theme-modern .bg-red-600 {
-  background-color: var(--align-demon);
+  background-color: var(--red);
+}
+
+.theme-modern .bg-blue-500 {
+  background-color: var(--blue);
 }
 
 /* 主按钮内文字必须保持白字（防上面批量映射误伤） */
@@ -884,15 +938,45 @@ body > * {
   color: #fff;
 }
 
-/* §5.2 座位代币：白纸填充 + 2px 阵营色实环（亮底需更粗才立得住） */
+.theme-modern .bg-emerald-500.text-slate-950,
+.theme-modern .bg-emerald-600.text-slate-950,
+.theme-modern .bg-green-600.text-slate-950,
+.theme-modern .bg-red-600.text-slate-950 {
+  color: #fff;
+}
+
+/* 实色语义按钮：元素自带 text-white 时必须保住白字
+   （(0,3,0) 压过 .theme-modern .text-white → 墨黑的批量映射，否则红底黑字对比度仅 2.9） */
+.theme-modern .bg-red-600.text-white,
+.theme-modern .bg-red-500.text-white,
+.theme-modern .bg-rose-600.text-white,
+.theme-modern .bg-rose-500.text-white,
+.theme-modern .bg-green-600.text-white,
+.theme-modern .bg-green-500.text-white,
+.theme-modern .bg-emerald-600.text-white,
+.theme-modern .bg-emerald-500.text-white,
+.theme-modern .bg-amber-600.text-white,
+.theme-modern .bg-amber-500.text-white,
+.theme-modern .bg-blue-600.text-white,
+.theme-modern .bg-indigo-600.text-white,
+.theme-modern .bg-purple-600.text-white,
+.theme-modern .bg-purple-700.text-white,
+.theme-modern .bg-violet-600.text-white,
+.theme-modern .bg-violet-700.text-white {
+  color: #fff;
+}
+
+.theme-modern .hover\:bg-emerald-400:hover,
+.theme-modern .hover\:bg-emerald-500:hover,
+.theme-modern .hover\:bg-green-500:hover {
+  background-color: #166534;
+}
+
+/* ── 座位代币：纯白卡 + 极细描边 + 柔和浮影（V2 圆润浮卡） ── */
 .theme-modern .seat-token {
-  background: var(--color-surface);
-  border: 2.5px solid var(--rule);
-  /* 双圈印刷环：阵营色实环 + 白隙 + 墨色外圈 + 极轻纸影 */
-  box-shadow:
-    0 0 0 3px var(--paper-0),
-    0 0 0 4.5px var(--rule),
-    var(--shadow-print);;
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh2);
   transition:
     transform 150ms var(--ease-out),
     opacity 150ms var(--ease-out);
@@ -904,58 +988,46 @@ body > * {
 
 .theme-modern .seat-token.glow-townsfolk {
   border-color: var(--align-townsfolk);
-  box-shadow:
-    0 0 0 3px var(--paper-0),
-    0 0 0 4.5px var(--rule),
-    var(--shadow-print);;
+  box-shadow: 0 0 0 3px rgba(27, 77, 177, 0.16), var(--sh2);
 }
 
 .theme-modern .seat-token.glow-outsider {
   border-color: var(--align-outsider);
-  box-shadow:
-    0 0 0 3px var(--paper-0),
-    0 0 0 4.5px var(--rule),
-    var(--shadow-print);;
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.16), var(--sh2);
 }
 
 .theme-modern .seat-token.glow-minion {
   border-color: var(--align-minion);
-  box-shadow:
-    0 0 0 3px var(--paper-0),
-    0 0 0 4.5px var(--rule),
-    var(--shadow-print);;
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.16), var(--sh2);
 }
 
 .theme-modern .seat-token.glow-demon {
   border-color: var(--align-demon);
-  box-shadow:
-    0 0 0 3px var(--paper-0),
-    0 0 0 4.5px var(--rule),
-    var(--shadow-print);;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.16), var(--sh2);
 }
 
-/* §5.6 死亡态：降透明 0.4 + 一道墨色斜线（去掉血色 ✕ 与干裂纹理） */
+/* 死亡态：降透明 + 一道墨色斜线 */
 .theme-modern .seat-token.dead-cracked {
-  background: var(--color-surface);
+  background: var(--paper-0);
   background-image: linear-gradient(
     to top right,
     transparent calc(50% - 1px),
-    var(--rule) calc(50% - 1px),
-    var(--rule) calc(50% + 1px),
+    var(--ink-600) calc(50% - 1px),
+    var(--ink-600) calc(50% + 1px),
     transparent calc(50% + 1px)
   );
   opacity: 0.4;
-  border-color: var(--rule-soft);
+  border-color: var(--line);
 }
 
-/* §5.3 主按钮：正红实底白字方角 */
+/* ── 按钮组件（.btn-arcane-*）── */
 .theme-modern .btn-arcane-primary {
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary);
+  background: var(--green);
+  border: 1px solid var(--green);
   color: #fff;
   font-weight: 700;
-  border-radius: 12px;
-  box-shadow: none;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(21, 128, 61, 0.28);
   animation: none;
   transition:
     transform 150ms var(--ease-out),
@@ -966,21 +1038,20 @@ body > * {
   transform: translateY(-1px);
 }
 
-/* §5.6 Disabled：文字降级 + 淡栏线 + not-allowed */
 .theme-modern .btn-arcane-primary:disabled {
   background: var(--paper-2);
-  border-color: var(--rule-soft);
+  border-color: var(--line);
   color: var(--ink-400);
   cursor: not-allowed;
+  box-shadow: none;
   animation: none;
 }
 
-/* §5.3 次按钮：墨框透明底 */
 .theme-modern .btn-arcane-info {
-  background: transparent;
-  border: 1px solid var(--rule);
+  background: var(--paper-2);
+  border: 1px solid transparent;
   color: var(--ink-900);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow: none;
   animation: none;
   transition:
@@ -989,34 +1060,31 @@ body > * {
 }
 
 .theme-modern .btn-arcane-info:hover:not(:disabled) {
-  background: var(--paper-2);
+  background: var(--paper-3);
 }
 
 .theme-modern .btn-arcane-info:disabled {
-  border-color: var(--rule-soft);
   color: var(--ink-400);
   cursor: not-allowed;
   animation: none;
 }
 
-/* ── v3 印刷密度升级：从「线框草图」到「印刷周刊」（2026-10-13 用户反馈）── */
-
-/* 座位号：正红方块白字（印刷贴纸），替代裸数字 */
+/* ── 座位号牌：墨黑圆形白字（圆润浮卡，替代 v5 红方块） ── */
 .theme-modern .seat-node .rounded-full.border-2 {
-  background: var(--red);
-  border-color: var(--red);
-  border-radius: 3px;
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  border-radius: 999px;
   color: #fff;
   font-family: var(--font-body);
-  box-shadow: none;
+  box-shadow: 0 3px 8px rgba(17, 17, 17, 0.22);
 }
 
-/* HUD 卡：柠黄板 + 2px 墨框 + 大圆角（参考样的黄色块 + 黑描边语言） */
+/* ── HUD：纯白浮卡 + 大圆角 + 三级阴影（无描边） ── */
 .theme-modern .compass-ring {
-  background: var(--plate-yellow) !important;
-  border: 2px solid var(--rule) !important;
-  border-radius: 18px !important;
-  box-shadow: var(--shadow-print) !important;
+  background: var(--paper-0) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-plate) !important;
+  box-shadow: var(--sh3) !important;
 }
 
 /* 阶段名：衬线特大号 + 墨黑（覆盖 text-slate-400 的降级映射） */
@@ -1027,7 +1095,7 @@ body > * {
   color: var(--ink-900) !important;
 }
 
-/* 控制台节标题与标题文字：衬线化（杂志标题语言） */
+/* 控制台节标题与标题文字：衬线化 */
 .theme-modern h1,
 .theme-modern h2,
 .theme-modern h3 {
@@ -1036,75 +1104,33 @@ body > * {
 }
 
 /* ⚠️ 控制台标题（page.tsx「说书人控制台」h2.text-purple-300）：
-   批量语义映射 .theme-modern .text-purple-300 (0,2,0) 特异性更高，
-   且 theme-modern: 变体经 :where() 归零 ⇒ 必须用 (0,2,1) 压回墨黑 */
+   批量语义映射 (0,2,0) 特异性更高，且 theme-modern: 变体经 :where() 归零
+   ⇒ 必须用 (0,2,1) 压回墨黑 */
 .theme-modern h2.text-purple-300,
 .theme-modern h2.text-purple-200 {
   color: var(--ink-900);
 }
 
-/* 控制台蓝色竖条标题记号 → 正红 */
-.theme-modern .bg-blue-500 {
-  background-color: var(--red) !important;
-}
-
-/* （indigo/violet/blue-9 → 薄荷板的映射已前移到色板块，避免重复规则互相覆盖） */
-
 .theme-modern [class*="border-indigo-"],
 .theme-modern [class*="border-violet-"],
 .theme-modern [class*="border-blue-6"] {
-  border-color: var(--rule-soft);
+  border-color: var(--line);
 }
 
-.theme-modern .text-indigo-100,
-.theme-modern .text-indigo-200,
-.theme-modern .text-indigo-300,
-.theme-modern .text-violet-100,
-.theme-modern .text-violet-200,
-.theme-modern .text-violet-300,
-.theme-modern .text-blue-100,
-.theme-modern .text-blue-200,
-.theme-modern .text-blue-300 {
-  color: var(--ink-600);
-}
-
-.theme-modern .text-blue-400 {
-  color: var(--blue);
-}
-
-/* 主行动 CTA：正红实底（绿色系让位给成功语义） */
-.theme-modern .bg-emerald-500,
-.theme-modern .bg-emerald-600 {
-  background-color: var(--red);
-}
-
-.theme-modern .bg-emerald-400 {
-  background-color: var(--red);
-}
-
-/* 红底 CTA 上的近黑文字（text-slate-950）必须翻白，否则红底黑字对比崩坏 */
-.theme-modern .bg-emerald-500.text-slate-950,
-.theme-modern .bg-emerald-600.text-slate-950,
-.theme-modern .bg-red-600.text-slate-950 {
-  color: #fff;
-}
-
-/* 控制台面板标题残留的蓝色文字 → 墨黑 */
-.theme-modern .text-blue-500,
-.theme-modern .text-indigo-400,
-.theme-modern .text-indigo-500 {
-  color: var(--ink-900);
-}
-
-.theme-modern .hover\:bg-emerald-400:hover,
-.theme-modern .hover\:bg-emerald-500:hover {
-  background-color: #c22f24;
-}
-
-/* 名牌：加一枚正红左齿（印刷标签的裁口感） */
+/* ── 名牌：不透明白底 + 极细描边（**禁投影**：护栏 seat_nameplate_readability_guard）
+   ⚠️ 上方 .theme-modern .seat-nameplate 段已声明底色/文字色，此处只补圆角与描边 ── */
 .theme-modern .seat-nameplate {
-  border-left: 4px solid var(--red);
-  box-shadow: var(--shadow-print);
+  background: var(--paper-0);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+/* ── 弹窗（ModalWrapper）：白卡 + 大圆角 + 最重阴影 ── */
+.theme-modern [role="dialog"] > div {
+  background-color: var(--paper-0) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 20px;
 }
 
 /* 无障碍：系统减弱动效时关闭 transition */
@@ -1114,6 +1140,31 @@ body > * {
   .theme-modern .btn-arcane-info {
     transition: none;
   }
+}
+
+/* ── 主题切换胶囊（顶栏 / 剧本选择页）──
+   容器同时挂 bg-slate-900/80，会被上方批量映射翻白；本段更靠后、同特异性 ⇒ 以次级纸底取胜。
+   选中态 = 墨黑实心胶囊白字（(0,3,0) 压过 .theme-modern .text-white 的 (0,2,0)） */
+.theme-modern .theme-capsule {
+  background-color: var(--paper-1);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.theme-modern .theme-capsule-btn {
+  color: var(--ink-600);
+}
+
+.theme-modern .theme-capsule-btn:hover {
+  color: var(--ink-900);
+}
+
+.theme-modern .theme-capsule-btn.is-active,
+.theme-modern .theme-capsule-btn.is-active:hover {
+  background-color: var(--ink-900);
+  color: #fff;
+  box-shadow: none;
+  font-family: var(--font-display);
 }
 
 /* ── Classic: 确保扁平高对比回退（显式重置，零迁移成本）── */

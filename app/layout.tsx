@@ -29,7 +29,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        {/* 主题预热：在首帧之前把上次选择的主题类挂到 <html>，避免亮/暗主题闪切。
+            默认经典；仅当 localStorage 明确存过 "modern" 时才挂现代。
+            与 src/contexts/ThemeContext.tsx 的 THEME_STORAGE_KEY 保持一致。 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("clocktower_theme");document.documentElement.classList.add(t==="modern"?"theme-modern":"theme-classic");}catch(e){document.documentElement.classList.add("theme-classic");}})();`,
+          }}
+        />
+      </head>
       <body className="antialiased">
         <ThemeProvider>
           <AudioProvider>

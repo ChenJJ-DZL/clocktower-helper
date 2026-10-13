@@ -317,13 +317,13 @@ export function GlobalNavBar() {
         <div className="flex-1 flex items-center justify-center gap-2 sm:gap-3 px-3 py-2">
           {/* 主题切换胶囊 */}
           <div className="flex items-center shrink-0">
-            <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
+            <div className="theme-capsule flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
               <button
                 onClick={() => requestTheme("classic")}
-                className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
+                className={`theme-capsule-btn px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
                   theme === "classic"
-                    ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
-                    : "text-slate-400 hover:text-slate-200 theme-modern:bg-transparent theme-modern:text-[var(--paper-300)] theme-modern:shadow-none"
+                    ? "is-active bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
                 title="🏛️ 官方原版经典皮肤 (默认)"
               >
@@ -331,12 +331,12 @@ export function GlobalNavBar() {
               </button>
               <button
                 onClick={() => requestTheme("modern")}
-                className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
+                className={`theme-capsule-btn px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
                   theme === "modern"
-                    ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30 theme-modern:bg-transparent theme-modern:text-[var(--paper-50)] theme-modern:shadow-none theme-modern:font-bold theme-modern:[font-family:var(--font-display)] theme-modern:[border-bottom:2px_solid_var(--accent)]"
-                    : "text-slate-400 hover:text-slate-200 theme-modern:bg-transparent theme-modern:text-[var(--paper-300)] theme-modern:shadow-none"
+                    ? "is-active bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
-                title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
+                title="✨ 现代版皮肤（亮色浮卡 · 可随时与经典互相切换）"
               >
                 ✨ 现代
               </button>

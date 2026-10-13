@@ -386,12 +386,12 @@ export default function ScriptSelection({
     <div className="w-full h-full flex flex-col items-center justify-center px-4 py-6 overflow-auto min-h-0 relative">
       {/* 顶部右侧主题切换胶囊 */}
       <div className="absolute top-4 right-6 z-50">
-        <div className="flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
+        <div className="theme-capsule flex items-center rounded-full border p-0.5 transition-all duration-300 bg-slate-900/80 border-white/10">
           <button
             onClick={() => requestTheme("classic")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
+            className={`theme-capsule-btn px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
               theme === "classic"
-                ? "bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
+                ? "is-active bg-amber-600 text-white font-bold shadow-md shadow-amber-500/30"
                 : "text-slate-400 hover:text-slate-200"
             }`}
             title="🏛️ 官方原版经典皮肤 (默认)"
@@ -400,12 +400,12 @@ export default function ScriptSelection({
           </button>
           <button
             onClick={() => requestTheme("modern")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
+            className={`theme-capsule-btn px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 active:scale-95 cursor-pointer ${
               theme === "modern"
-                ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
+                ? "is-active bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30"
                 : "text-slate-400 hover:text-slate-200"
             }`}
-            title="✨ 现代暗黑版 (开发中，连续点击8次开启)"
+            title="✨ 现代版皮肤（亮色浮卡 · 可随时与经典互相切换）"
           >
             ✨ 现代
           </button>

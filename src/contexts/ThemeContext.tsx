@@ -6,10 +6,8 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
 } from "react";
-import { showAlert } from "../utils/nativeDialogShim";
 
 export type Theme = "modern" | "classic";
 
@@ -26,8 +24,23 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readInitialTheme(): Theme {
-  // 现代版皮肤未开发完成，默认强制进入官方原版经典皮肤
+  // 记住上次选择（默认经典）。用户可在对局任意阶段自由切换。
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === "modern" || saved === "classic") return saved;
+  } catch {
+    /* 隐私模式等场景读不到 localStorage ⇒ 回落默认 */
+  }
   return DEFAULT_THEME;
+}
+
+function persistTheme(theme: Theme) {
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    /* 忽略写入失败（不影响本次会话切换） */
+  }
 }
 
 function applyThemeClass(theme: Theme) {
@@ -43,7 +56,6 @@ function applyThemeClass(theme: Theme) {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
-  const modernClicksRef = useRef<number>(0);
 
   useEffect(() => {
     const initial = readInitialTheme();
@@ -54,41 +66,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
     applyThemeClass(next);
+    persistTheme(next);
   }, []);
 
+  /**
+   * 切换主题 —— 任意阶段、任意次数均可自由切换（无点击次数门禁、无确认弹窗）。
+   * 保留 requestTheme 这个入口名是为了不动既有调用点（GlobalNavBar / ScriptSelection）。
+   */
   const requestTheme = useCallback(
     (targetTheme: Theme) => {
-      if (targetTheme === "classic") {
-        modernClicksRef.current = 0;
-        setTheme("classic");
-        return;
-      }
-
-      if (targetTheme === "modern") {
-        if (theme === "modern") {
-          return;
-        }
-
-        modernClicksRef.current += 1;
-        if (modernClicksRef.current < 8) {
-          showAlert("该功能正在开发中……", "功能提示");
-        } else {
-          // 连续点击 8 次，开启现代版 UI
-          modernClicksRef.current = 0;
-          setTheme("modern");
-          showAlert(
-            "已开启现代版UI调试模式！\n再次点击1次「经典」即可切换回原版。",
-            "开发者调试"
-          );
-        }
-      }
+      setTheme(targetTheme);
     },
-    [setTheme, theme]
+    [setTheme]
   );
 
   const toggleTheme = useCallback(() => {
-    requestTheme(theme === "modern" ? "classic" : "modern");
-  }, [requestTheme, theme]);
+    setTheme(theme === "modern" ? "classic" : "modern");
+  }, [setTheme, theme]);
 
   return (
     <ThemeContext.Provider
