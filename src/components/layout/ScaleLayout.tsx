@@ -15,6 +15,14 @@ interface ScaleLayoutProps {
  * 通过 transform: scale(min(w/1600, h/900)) 严格等比缩放并全屏居中呈现。
  * 在宽屏手机（如 iPhone 17 等 19.5:9 比例）上，左右自然留出对称安全区域，
  * 物理杜绝灵动岛、刘海以及屏幕大圆角对任何游戏元素、按钮或文字的遮挡。
+ *
+ * ⭐ 2026-10-15 手机横屏修正（仅两项，均「桌面不可见」）：
+ *  ① 外层用 `h-dvh`（而非 `h-screen`=100vh）——iOS Safari 的 100vh 是「工具栏收起后」
+ *     的大视口，大于可见高度，会把舞台底部推到浏览器工具栏底下；dvh 跟随可见视口。
+ *     老浏览器兜底见 globals.css 的 `@supports not (height: 100dvh)`。
+ *  ② 外层挂 `data-scale-layout="root"`，供主题 CSS 定位「信箱区」——
+ *     16:9 舞台在 19.5:9 横屏手机上左右各露 ~76.7px，现代主题需将其刷成纸底同色，
+ *     否则会出现「纯白条夹米白舞台」的双色接缝。
  */
 export function ScaleLayout({ children }: ScaleLayoutProps) {
   const [scale, setScale] = useState(1);
@@ -54,7 +62,10 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
   // 不要在这里再加一份，否则会出现两层重叠浮层。
   if (!mounted) {
     return (
-      <div className="w-screen h-screen bg-slate-950 flex items-center justify-center overflow-hidden select-none">
+      <div
+        className="w-screen h-dvh bg-slate-950 flex items-center justify-center overflow-hidden select-none"
+        data-scale-layout="root"
+      >
         <div
           style={{
             width: `${BASE_WIDTH}px`,
@@ -73,7 +84,10 @@ export function ScaleLayout({ children }: ScaleLayoutProps) {
   }
 
   return (
-    <div className="w-screen h-screen bg-slate-950 overflow-hidden flex items-center justify-center select-none">
+    <div
+      className="w-screen h-dvh bg-slate-950 overflow-hidden flex items-center justify-center select-none"
+      data-scale-layout="root"
+    >
       {/* 舞台物理占位包装层：尺寸严格等于 1600*scale x 900*scale，彻底杜绝 WebKit 内部因 1600px 尺寸产生的滚动偏移 */}
       <div
         style={{

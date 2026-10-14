@@ -691,7 +691,7 @@ body > * {
   border-radius: 0;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.04);
+  box-shadow: none; /* 2026-10-15：除按钮外不允许有投影 */
 }
 
 /* 圆桌区：隐藏三层暗色背景（深紫渐变 / 暗色遮罩 / 徕卡暗角） */
@@ -724,12 +724,13 @@ body > * {
   );
 }
 
-/* 控制台容器：纯白浮卡（右贴边 ⇒ 左侧大圆角） */
+/* 控制台容器：纯白浮卡（右贴边 ⇒ 左侧大圆角）
+   ⚠️ 2026-10-15 用户裁定：除按钮外不允许有投影 ⇒ 去掉 --sh3（原 `0 30px 70px .16`）。 */
 .theme-modern [data-surface="console"] {
   background-color: var(--paper-0);
   border-left: 1px solid var(--line);
   border-radius: var(--r-plate) 0 0 var(--r-plate);
-  box-shadow: var(--sh3);
+  box-shadow: none;
 }
 
 /* 剧本选择页：米白纸底
@@ -1071,11 +1072,15 @@ body > * {
   background-color: #166534;
 }
 
-/* ── 座位代币：纯白卡 + 极细描边 + 柔和浮影（V2 圆润浮卡） ── */
+/* ── 座位代币：白底 + 阵营描边（2026-10-15 用户裁定）──
+   ① 圆圈本身必须纯白：`background: var(--paper-0)`
+   ② 阵营只用**描边**区分：`border-color: var(--align-*)`（glow-* 规则）
+   ③ **不得再叠加彩色外环**（原 `box-shadow: 0 0 0 3px rgba(...,.16)`）与浮影（原 `--sh2`）
+   ⇒ 装饰性 box-shadow 全部移除。状态高亮（夜行黄圈 / 提名 / 待选）走 Tailwind
+      arbitrary 值 `shadow-[0_0_40px_...]` 与 `!shadow-[...]`，不受本段影响，功能反馈保留。 */
 .theme-modern .seat-token {
   background: var(--paper-0);
   border: 1px solid var(--line);
-  box-shadow: var(--sh2);
   transition:
     transform 150ms var(--ease-out),
     opacity 150ms var(--ease-out);
@@ -1087,22 +1092,18 @@ body > * {
 
 .theme-modern .seat-token.glow-townsfolk {
   border-color: var(--align-townsfolk);
-  box-shadow: 0 0 0 3px rgba(27, 77, 177, 0.16), var(--sh2);
 }
 
 .theme-modern .seat-token.glow-outsider {
   border-color: var(--align-outsider);
-  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.16), var(--sh2);
 }
 
 .theme-modern .seat-token.glow-minion {
   border-color: var(--align-minion);
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.16), var(--sh2);
 }
 
 .theme-modern .seat-token.glow-demon {
   border-color: var(--align-demon);
-  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.16), var(--sh2);
 }
 
 /* 死亡态：降透明 + 一道墨色斜线 */
@@ -1126,7 +1127,8 @@ body > * {
   color: #fff;
   font-weight: 700;
   border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(21, 128, 61, 0.28);
+  /* 按钮投影：大幅缩小（原 `0 6px 18px rgba(21,128,61,.28)` 绿色大投影）⇒ 微弱且范围很小 */
+  box-shadow: 0 1px 3px rgba(17, 17, 17, 0.08);
   animation: none;
   transition:
     transform 150ms var(--ease-out),
@@ -1151,7 +1153,7 @@ body > * {
   border: 1px solid transparent;
   color: var(--ink-900);
   border-radius: 14px;
-  box-shadow: none;
+  /* 按钮投影统一由下方 @layer utilities 的「按钮例外」段接管（微弱小范围），此处不写 box-shadow */
   animation: none;
   transition:
     transform 150ms var(--ease-out),
@@ -1177,12 +1179,76 @@ body > * {
   background-color: var(--paper) !important;
 }
 
+/* ── 投影策略（2026-10-15 用户裁定）─────────────────────────────
+   「当前的投影效果太强了，不需要，除了按钮外，不允许有投影，
+     按钮的投影也要大幅缩小，仅作微弱且范围很小的投影效果。」
+
+   ⚠️ 只抹平**具名** shadow 工具类（用 [class~=] 精确 token 匹配）。
+   **绝不匹配 arbitrary 值** `shadow-[0_0_40px_...]` / `!shadow-[...]` ——
+   那些是夜行行动者黄圈、提名/被提名光环、待选绿框等功能态反馈，不是装饰投影。
+   （历史依据：W10.14.4 只处理了 shadow-2xl，导致其余具名投影继续生效。） */
+@layer utilities {
+  .theme-modern [class~="shadow-2xs"],
+  .theme-modern [class~="shadow-xs"],
+  .theme-modern [class~="shadow-sm"],
+  .theme-modern [class~="shadow-md"],
+  .theme-modern [class~="shadow-lg"],
+  .theme-modern [class~="shadow-xl"],
+  .theme-modern [class~="shadow-2xl"] {
+    box-shadow: none !important;
+  }
+
+  /* @apply shadow-2xl 编译进规则本身（元素上没有 shadow-2xl 类名）⇒ 单独补一条 */
+  .theme-modern .glass-panel {
+    box-shadow: none !important;
+  }
+
+  /* 按钮例外：上面已抹平，此处以更高特异性 + 同层 important 赢回「微弱小范围」投影。
+     ⚠️ 必须与上面同层（layered important 高于 unlayered important，层序反转铁律），
+        且特异性更高（button.X = (0,2,1) > [class~=] 的 (0,2,0)）。 */
+  .theme-modern button[class~="shadow-2xs"],
+  .theme-modern button[class~="shadow-xs"],
+  .theme-modern button[class~="shadow-sm"],
+  .theme-modern button[class~="shadow-md"],
+  .theme-modern button[class~="shadow-lg"],
+  .theme-modern button[class~="shadow-xl"],
+  .theme-modern button[class~="shadow-2xl"],
+  .theme-modern button.btn-arcane-primary,
+  .theme-modern button.btn-arcane-info {
+    box-shadow: 0 1px 2px rgba(17, 17, 17, 0.06) !important;
+  }
+
+  /* 禁用态：不投影（(0,3,1) 高过上面 (0,2,1)） */
+  .theme-modern button.btn-arcane-primary:disabled,
+  .theme-modern button.btn-arcane-info:disabled {
+    box-shadow: none !important;
+  }
+}
+
 /* 舞台根容器自带 Tailwind shadow-2xl（黑 0.25）：
    PC 视口内投影在视口外不可见，但手机 scale≈0.433 时舞台小于视口 ⇒ 四周露黑边。
-   亮色主题一律去掉（utilities 层，important 反向层序铁律）。 */
+   已被上方统一抹平，此条保留作语义说明锚点。 */
 @layer utilities {
   .theme-modern .shadow-2xl {
     box-shadow: none !important;
+  }
+}
+
+/* ── 手机横屏信箱区：与页面纸底同色，消除双色接缝 ──
+   舞台是 16:9，横屏手机是 19.5:9（852×393）⇒ scale 被高度锁死，左右各露 ~76.7px。
+   该区域由 ScaleLayout 外层容器承载：其 bg-slate-950 被批量映射
+   `[class*="bg-slate-9"] → --paper-0(#ffffff)` 翻白，而舞台可见表面 data-stage-bg 是
+   `--paper(#f2eee5)`、body 也是 `--paper` ⇒ 出现「纯白条夹米白舞台」的接缝。
+   桌面端视口接近 16:9，信箱区宽度≈0 不可见 ⇒ 此缺陷只在横屏手机暴露。
+   ⚠️ 仅作用于现代主题；经典主题为暗色、信箱区与舞台同为深底，且用户已裁定冻结不改。 */
+.theme-modern div[data-scale-layout="root"] {
+  background-color: var(--paper);
+}
+
+/* 老浏览器无 dvh 支持时的兜底（Tailwind h-dvh 会被丢弃 ⇒ height 塌成 auto） */
+@supports not (height: 100dvh) {
+  [data-scale-layout="root"] {
+    height: 100vh;
   }
 }
 
@@ -1209,15 +1275,15 @@ body > * {
   border-color: var(--ink-400);
   color: var(--ink-900);
   font-family: var(--font-body);
-  box-shadow: var(--sh1);
+  box-shadow: 0 1px 2px rgba(17, 17, 17, 0.05); /* 按钮：微弱小范围（原 --sh1，2026-10-15 缩） */
 }
 
-/* ── HUD：纯白浮卡 + 大圆角 + 三级阴影（无描边） ── */
+/* ── HUD：纯白浮卡 + 大圆角（无描边、无投影 —— 2026-10-15 用户裁定） ── */
 .theme-modern .compass-ring {
   background: var(--paper-0) !important;
   border: 1px solid var(--line) !important;
   border-radius: var(--r-plate) !important;
-  box-shadow: var(--sh3) !important;
+  box-shadow: none !important;
 }
 
 /* 阶段名：衬线特大号 + 墨黑（覆盖 text-slate-400 的降级映射） */
@@ -1274,7 +1340,7 @@ body > * {
 .theme-modern div[role="dialog"][class*="bg-slate-9"] {
   background-color: var(--paper-0) !important;
   border-color: var(--line) !important;
-  box-shadow: var(--sh3) !important;
+  box-shadow: none !important; /* 除按钮外不允许有投影（2026-10-15） */
 }
 
 /* 无障碍：系统减弱动效时关闭 transition */
