@@ -963,7 +963,9 @@ export default function Home() {
           {/* PortraitLock 位于顶层原生视口，彻底摆脱 ScaleLayout transform 的劫持 */}
           <PortraitLock gamePhase={gamePhase} />
           <ScaleLayout>
+            {/* data-stage-bg：舞台日夜渐变动画层（经典=深蓝日夜 / 现代=米白纸底，CSS 端覆盖） */}
             <motion.div
+              data-stage-bg=""
               className="w-full h-full text-white overflow-hidden"
               initial={{ backgroundColor: "#030712" }}
               animate={{

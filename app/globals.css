@@ -1168,6 +1168,24 @@ body > * {
   color: var(--ink-900);
 }
 
+/* 舞台日夜渐变动画层（page.tsx motion.div，data-stage-bg）：
+   经典主题保留「夜=深蓝 / 昼=藏蓝 / 黄昏=深褐」过渡动画；
+   现代主题必须拍平为米白纸底 —— 否则深色层会从控制台 26px 左上圆角、
+   圆桌与卡片间隙等处露出（用户 2026-10-14 反馈的「控制台圆角处黑色底色」）。
+   ⚠️ framer-motion 持续写内联 backgroundColor（非 important），author !important 可压过。 */
+.theme-modern [data-stage-bg] {
+  background-color: var(--paper) !important;
+}
+
+/* 舞台根容器自带 Tailwind shadow-2xl（黑 0.25）：
+   PC 视口内投影在视口外不可见，但手机 scale≈0.433 时舞台小于视口 ⇒ 四周露黑边。
+   亮色主题一律去掉（utilities 层，important 反向层序铁律）。 */
+@layer utilities {
+  .theme-modern .shadow-2xl {
+    box-shadow: none !important;
+  }
+}
+
 /* 夜间行动者高亮态：源码带 Tailwind important（!bg-gray-900）压过主题映射
    ⇒ 必须 author important 反压回白卡，否则行动座位是一团黑。
    ⚠️ 层叠铁律：important 的层序反转 —— unlayered important 低于 @layer utilities，
