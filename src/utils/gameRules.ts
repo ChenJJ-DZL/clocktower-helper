@@ -421,7 +421,25 @@ export const getNoDashiiPoisonedPlayers = (allSeats: Seat[]): number[] => {
   return poisonedIds;
 };
 
+/**
+ * ☕ 咖啡师（traveler）：该座位是否处于「解除并**免受**醉酒和中毒影响」状态。
+ *
+ * 官方原文：「每个夜晚，直至下个黄昏，由说书人二选一：1）一名玩家解除并免受
+ *   醉酒和中毒影响，且会得知正确信息；……」
+ *
+ * ⭐ 这是「免疫」的**唯一判据**（不再只是"清一次状态"）：
+ *   `computeIsPoisoned`（信息正确）与 `isActorDisabledByPoisonOrDrunk`
+ *   （能力不受毒醉影响）两个权威判据都读它。
+ *   标记由 `GameContext::SET_BARISTA_EFFECT("clear")` 写入，
+ *   由 `CLEAR_BARISTA_EFFECT`（下个暮色）撤销。
+ */
+export function isBaristaCleared(seat: any): boolean {
+  return seat?.baristaCleared === true;
+}
+
 export const computeIsPoisoned = (seat: Seat, allSeats?: Seat[]) => {
+  // ☕ 咖啡师：「解除并免受醉酒和中毒影响，且会得知正确信息」
+  if (isBaristaCleared(seat)) return false;
   const src = getPoisonSources(seat);
   let poisoned =
     src.permanent ||
@@ -933,6 +951,9 @@ export function isActorDisabledByPoisonOrDrunk(
   vortoxWorld?: boolean
 ): boolean {
   if (!seat) return false;
+  // ☕ 咖啡师（traveler）：「解除并免受醉酒和中毒影响」⇒ 其能力不受毒/醉影响。
+  //   与本文件 computeIsPoisoned 同源（同一个判据函数，两个权威读点各读一次）。
+  if (isBaristaCleared(seat)) return false;
   const isTownsfolk =
     seat.role?.type === "townsfolk" ||
     (seat.role?.id === "drunk" && seat.charadeRole?.type === "townsfolk") ||

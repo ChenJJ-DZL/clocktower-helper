@@ -12,6 +12,15 @@ import type { ModalType } from "../types/modal";
 import { hasTeaLadyProtection } from "../utils/gameRules";
 import { shouldZeroLegionVote } from "../utils/legionVoteRule";
 import { markVoteSettled } from "../utils/nominationEligibility";
+import {
+  travelerScapegoatCanSubstitute,
+  travelerExecutedId,
+  travelerSlotId,
+  formatVoterLabel,
+  hasTravelerRole,
+  voudonSkipsGhostVote,
+  voudonThreshold,
+} from "../utils/travelerHooks";
 import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
 import {
   shouldMorticianTransform,
@@ -50,6 +59,26 @@ export interface ExecutionHandlersDeps {
     bureaucratTargetId: number | null;
     thiefTargetId: number | null;
   };
+  /**
+   * 旅行者接线（批 1）：替罪羊 / 枪手 的说书人裁决与频次闩锁。
+   * 由 `useGameController` 从 `state.travelerHookChoices` 透传进来。
+   * 判据见 `src/utils/travelerHooks.ts`（旅行者不占 seats，走独立 state）。
+   */
+  travelerHookChoices?: {
+    scapegoatSubstituteForId: number | null;
+    gunslingerEligibleVoterIds: number[];
+    gunslingerTargetId: number | null;
+    gunslingerWindowNight: number | null;
+    gunslingerUsedNight: number | null;
+    /** ⚖️ 法官「每局限一次」闩锁（本轮新增，供类型对齐） */
+    judgeUsedThisGame?: boolean;
+    /** 🥩 屠夫「本白天已用第二次处决」标记（= 使用时的 nightCount） */
+    butcherExtraExecutionDay?: number | null;
+  };
+  /** `state.travelers`：旅行者槽位（定长 4，null = 空/已离场）。旅行者判据必须读此数组 */
+  travelers?: (Role | null)[];
+  /** 旅行者阵营映射（P0）：说书人落座时逐个指定，判据唯一收口 `isTravelerEvil` */
+  travelerAlignments?: { [slot: number]: "good" | "evil" };
 
   // Setters
   setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>>;
@@ -165,6 +194,9 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     mastermindFinalDay,
     evilTwinPair,
     twilightVoteTargets,
+    travelerHookChoices,
+    travelers,
+    travelerAlignments,
     setCurrentModal,
     setSeats,
     setSelectedActionTargets,
@@ -224,7 +256,12 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
   const executePlayer = useCallback(
     (
       id: number,
-      options?: { skipLunaticRps?: boolean; forceExecution?: boolean }
+      options?: {
+        skipLunaticRps?: boolean;
+        forceExecution?: boolean;
+        /** 跳过替罪羊代刑裁决（说书人已选「正常处决」时用，避免重复弹窗） */
+        skipScapegoat?: boolean;
+      }
     ) => {
       let seatsSnapshot = seats;
       const t = seatsSnapshot.find((s) => s.id === id);
@@ -338,6 +375,41 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         //   但该全局变量从未被赋值 → 死代码，todayExecutedId 从未真正设置。
         //   直接使用 hook 内的 setTodayExecutedId（并加入依赖数组）。
         setTodayExecutedId(id);
+        return true;
+      }
+
+      // 🐑 替罪羊（traveler）：说书人裁定代刑 —— 替罪羊死、原被处决者免死。
+      //   判据：utils/travelerHooks.ts::travelerScapegoatCanSubstitute（读 state.travelers，
+      //   旅行者不占 seats）。说书人未选中（scapegoatSubstituteForId !== id）⇒ 不触发，
+      //   保持改动前行为（零回归）。官方原文：「如果你的阵营的一名玩家被处决，
+      //   你可能会代替他被处决。」
+      const scapegoatCand = travelerScapegoatCanSubstitute(
+        travelers,
+        t,
+        travelerAlignments
+      );
+      if (scapegoatCand && !options?.skipScapegoat) {
+        if (travelerHookChoices?.scapegoatSubstituteForId === id) {
+          // 说书人已裁定「代刑」⇒ 执行：替罪羊死、原被处决者免死
+          addLog(
+            `🐑 替罪羊代刑：${id + 1}号免于处决，旅行者替罪羊代为受刑死亡`
+          );
+          setTodayExecutedId(travelerExecutedId(scapegoatCand.travelerIndex));
+          dispatch({
+            type: "EXECUTE_TRAVELER_SLOT",
+            index: scapegoatCand.travelerIndex,
+          });
+          setCurrentModal({
+            type: "EXECUTION_RESULT",
+            data: { message: `${id + 1}号被替罪羊代为受刑，免于死亡` },
+          });
+          return true;
+        }
+        // 尚未裁定 ⇒ 弹窗让说书人裁决（官方「可能会代替他被处决」= 主观判断）
+        setCurrentModal({
+          type: "TRAVELER_SCAPEGOAT_CHOICE",
+          data: { targetId: id, scapegoatIndex: scapegoatCand.travelerIndex },
+        });
         return true;
       }
 
@@ -586,24 +658,38 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         initialSeats.length > 0
           ? initialSeats.filter((s) => s.role !== null).length
           : seats.filter((s) => s.role !== null).length;
+      // 🧳 旅行者不占 seats，但**可以投票** ⇒ 票数上限须把他们计入，
+      //    否则「4 名旅行者全举手」会被误判为非法票数而弹 alert 卡死投票。
+      const aliveTravelerCount = (travelers ?? []).filter(Boolean).length;
+      // 🧙 巫毒师（voudon）：官方「只有你和死亡的玩家可以投票，且投票不需要
+      //   使用投票标记。忽略票数需要过半的要求。」
+      //   ⇒ 本函数内三处受其影响：幽灵票过滤 / 幽灵票消耗 / 上台门槛。
+      const voudonHere = hasTravelerRole(travelers, "voudon");
 
       if (Number.isNaN(v) || v < 0 || !Number.isInteger(v)) {
         alert("票数必须是大于等于0的整数");
         return;
       }
 
-      if (v > initialPlayerCount) {
-        alert(`票数不能超过开局时的玩家数${initialPlayerCount}人`);
+      if (v > initialPlayerCount + aliveTravelerCount) {
+        alert(
+          `票数不能超过开局时的玩家数${initialPlayerCount}人${
+            aliveTravelerCount > 0 ? `（+${aliveTravelerCount} 名旅行者）` : ""
+          }`
+        );
         return;
       }
 
       if (voters && voters.length > 0) {
         // 🔧 幽灵票防御：静默过滤已用完幽灵票的死亡玩家（正常 UI 已禁用此类按钮，
         // 此处兜底修正数据错乱，避免 alert + return 导致投票弹窗永久卡死）
-        let effectiveVoters = voters.filter((id) => {
-          const seat = seats.find((s) => s.id === id);
-          return !(seat?.isDead && seat.hasGhostVote === false);
-        });
+        // 🧙 巫毒师在场时**跳过**该过滤（死者投票不需要投票标记）
+        let effectiveVoters = voudonSkipsGhostVote(voudonHere)
+          ? [...voters]
+          : voters.filter((id) => {
+              const seat = seats.find((s) => s.id === id);
+              return !(seat?.isDead && seat.hasGhostVote === false);
+            });
 
         // 管家（Butler）规则检查：如果管家投票但主人不投票，管家票计为0
         for (const voterId of [...effectiveVoters]) {
@@ -633,7 +719,8 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
               // 移除管家的投票记录
               effectiveVoters = effectiveVoters.filter((id) => id !== voterId);
               // 🔧 管家已举手：即便票作废，其幽灵票同样视为已使用（官方规则：死者每天仅一票）
-              if (voterSeat.isDead) {
+              // 🧙 巫毒师在场 ⇒ 死者投票不消耗幽灵票，此处同样豁免
+              if (voterSeat.isDead && !voudonSkipsGhostVote(voudonHere)) {
                 setSeats((prev) =>
                   prev.map((s) =>
                     s.id === voterId ? { ...s, hasGhostVote: false } : s
@@ -712,6 +799,38 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       //    绝不能把提名者/被提名者的资格恢复（官方规则：每个黄昏各限 1 次）。
       markVoteSettled();
 
+      // 🥣 乞丐（traveler）：以自己名义投票 ⇒ 消耗 1 枚投票标记。
+      //   官方：「你只能使用投票标记才能投票。」标记由死亡玩家交出（见 reducer
+      //   GIVE_BEGGAR_TOKEN）。UI 已在无标记时置灰，此处为**咽喉兜底**：
+      //   即便绕过 UI 提交，也只会把 tokens 减到 0 为止（reducer 不许为负）。
+      const beggarIndex = (travelers ?? []).findIndex(
+        (r) => r?.id === "beggar"
+      );
+      if (
+        beggarIndex >= 0 &&
+        voters?.includes(travelerSlotId(beggarIndex))
+      ) {
+        dispatch(gameActions.consumeBeggarToken());
+        addLog("🥣 乞丐使用 1 枚投票标记举手投票（其投票标记数 -1）");
+      }
+
+      // 🔫 枪手（traveler）：当天**首次**投票被统计后开窗选目标。
+      //   官方：「每个白天，当首次投票被统计后，你可以选择一名刚投过票的玩家：他死亡。」
+      //   「仅首次」「每白天一次」由 reducer 把关（OPEN_GUNSLINGER_WINDOW / FIRE_GUNSLINGER）。
+      //   「刚投过票」= 本次投票结算的真实投票人（voters 已被上面重算为 effectiveVoters）。
+      const hasGunslinger = travelers?.some((r) => r?.id === "gunslinger");
+      if (hasGunslinger && voters && voters.length > 0) {
+        dispatch({
+          type: "OPEN_GUNSLINGER_WINDOW",
+          voterIds: voters,
+          night: nightCount,
+        });
+        setCurrentModal({
+          type: "TRAVELER_GUNSLINGER_CHOICE",
+          data: { eligibleVoterIds: voters, night: nightCount },
+        });
+      }
+
       const voteRecord = voteRecords.find((r) => r.voterId === voterId);
       const isDemonVote = voteRecord?.isDemon || false;
       if (isDemonVote) {
@@ -722,12 +841,22 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         (s) => !s.isDead && s.role && s.role.type !== "traveler"
       );
       const aliveCount = aliveCoreSeats.length;
-      const threshold = Math.max(1, Math.ceil(aliveCount / 2));
+      // 🧙 巫毒师：官方「忽略票数需要过半的要求」⇒ 门槛降为 1
+      const threshold = voudonThreshold(
+        voudonHere,
+        Math.max(1, Math.ceil(aliveCount / 2))
+      );
 
       setSeats((prev) =>
         prev.map((s) => {
           let next = s;
-          if (voters?.includes(s.id) && s.isDead && s.hasGhostVote) {
+          // 🧙 巫毒师在场 ⇒ 死亡玩家投票**不消耗**幽灵票（官方：不需要投票标记）
+          if (
+            !voudonSkipsGhostVote(voudonHere) &&
+            voters?.includes(s.id) &&
+            s.isDead &&
+            s.hasGhostVote
+          ) {
             next = { ...next, hasGhostVote: false };
           }
           if (s.id === voterId) {
@@ -748,9 +877,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       const voterListText = voters?.length
         ? ` | 投票者: ${voters
             .map((id) => {
+              const label = formatVoterLabel(id, seats, travelers);
               const s = seats.find((seat) => seat.id === id);
               const rName = s?.role?.name ? `-${s.role.name}` : "";
-              return `【${id + 1}号${rName}】`;
+              return `【${label}${rName}】`;
             })
             .join("、")}`
         : "";
@@ -842,11 +972,23 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
 
     // 检查今天是否已经有过处决
     if (todayExecutedId !== null) {
-      setCurrentModal({
-        type: "EXECUTION_RESULT",
-        data: { message: "今天已经有过处决，不能再进行处决" },
-      });
-      return;
+      // 🥩 屠夫（traveler）：官方「每个白天，首次处决后，你可以再次发起提名。」
+      //   ⇒ 首次处决之后允许**第二次**处决（且仅第二次；每个白天限一次）。
+      //   判据：屠夫在场（travelers 槽位，不读 seats）+ 本白天尚未用过。
+      const butcherExtraAvailable =
+        hasTravelerRole(travelers, "butcher") &&
+        travelerHookChoices?.butcherExtraExecutionDay !== nightCount;
+      if (!butcherExtraAvailable) {
+        setCurrentModal({
+          type: "EXECUTION_RESULT",
+          data: { message: "今天已经有过处决，不能再进行处决" },
+        });
+        return;
+      }
+      dispatch(gameActions.markButcherExtraExecution(nightCount));
+      addLog(
+        "🥩 屠夫效果生效：首次处决后允许再次发起提名 —— 本次为当日第二次处决"
+      );
     }
 
     const cands = seats

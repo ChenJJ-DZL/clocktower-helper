@@ -31,6 +31,11 @@ import { GlobalPrivacyShield } from "./GlobalPrivacyShield";
 import { TwilightPanel } from "./TwilightPanel";
 import { StorytellerTuningProvider } from "./StorytellerTuningContext";
 import { NightActionPage } from "./NightActionPage";
+import {
+  hasTravelerRole,
+  listAliveTravelerSlots,
+} from "../../utils/travelerHooks";
+import { isStorytellerNominatorId, STORYTELLER_NOMINATOR_ID } from "../../utils/fabledLock";
 
 // 全量重写的 GameStage 组件
 export const GameStage = () => {
@@ -401,8 +406,12 @@ export const GameStage = () => {
           const nomineeRole = seats[nomineeId]?.role?.name
             ? `-${seats[nomineeId].role.name}`
             : "";
+          // 🕊️ 主教：说书人提名的提名者是**虚拟 id**（-100）⇒ 直接 +1 会打印「-99号」
+          const nominatorLabel = isStorytellerNominatorId(nominatorId)
+            ? "说书人"
+            : `${nominatorId + 1}号${nominatorRole}`;
           addLog(
-            `📣 【${nominatorId + 1}号${nominatorRole}】提名了【${nomineeId + 1}号${nomineeRole}】`
+            `📣 【${nominatorLabel}】提名了【${nomineeId + 1}号${nomineeRole}】`
           );
         }
         playSound("execute");
@@ -416,10 +425,28 @@ export const GameStage = () => {
           setLastNominator(nominatorId);
           // 🗣️ 打开新的投票弹窗 → 清空上一次的结算闩锁
           clearVoteSettled();
-          setCurrentModal({
-            type: "VOTE_INPUT",
-            data: { voterId: nomineeId },
-          });
+          // ⚖️ 法官（traveler）介入点：官方「**每局游戏限一次**，如果其他玩家
+          //   发起了提名，你可以选择让本次提名**直接执行处决**或让**投票无效**。」
+          //   时机 = 提名已成立、投票尚未开始。说书人不使用能力则不置闩锁，
+          //   后续每次提名都会再问一次。
+          const judgeSlot = listAliveTravelerSlots(gameState.travelers).find(
+            (t) => t.role.id === "judge"
+          );
+          if (judgeSlot && !gameState.travelerHookChoices?.judgeUsedThisGame) {
+            setCurrentModal({
+              type: "TRAVELER_JUDGE_CHOICE",
+              data: {
+                nomineeId,
+                nominatorId,
+                judgeIndex: judgeSlot.index,
+              },
+            });
+          } else {
+            setCurrentModal({
+              type: "VOTE_INPUT",
+              data: { voterId: nomineeId },
+            });
+          }
         }
       } catch (error) {
         console.error("[GameStage] 发起提名时出错:", error);
@@ -455,6 +482,29 @@ export const GameStage = () => {
 
       // 1. 尚未选择提名者：点击激活该座位发起提名
       if (nominator === null) {
+        // 🕊️ 主教（traveler）：官方「**只有说书人可以发起提名。**」
+        //   ⇒ 玩家不能把自己激活为提名者；本次点击直接以「说书人」为提名者
+        //     选定被提名者（sourceId = STORYTELLER_NOMINATOR_ID）。
+        if (hasTravelerRole(gameState.travelers, "bishop")) {
+          if (hasPlayerBeenNominated(seatId)) {
+            showAlert(
+              `${seatId + 1}号玩家在本黄昏已经被提名过，每个角色每黄昏只能被提名 1 次。`
+            );
+            return;
+          }
+          setNominee(seatId);
+          showConfirm({
+            title: "🕊️ 说书人发起提名（主教规则）",
+            message:
+              `主教在场：只有说书人可以发起提名。\n` +
+              `确定由【说书人】提名【${formatSeatLabel(seatId, clickedSeat?.playerName)}】吗？\n` +
+              `（确认后将自动触发角色技能检测并进入投票计票）`,
+            onConfirm: () => {
+              handlePerformNomination(STORYTELLER_NOMINATOR_ID, seatId);
+            },
+          });
+          return;
+        }
         if (hasPlayerNominated(seatId)) {
           showAlert(
             `${seatId + 1}号玩家在本黄昏已经发起过提名，每个角色每黄昏只能发起 1 次提名。`

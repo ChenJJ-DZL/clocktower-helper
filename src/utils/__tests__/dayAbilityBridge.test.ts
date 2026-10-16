@@ -138,7 +138,10 @@ describe("日间新引擎能力桥接（L5 因果链）", () => {
     // 注：fearmonger 已于 2026-09-20 从 DAY 修正为 EVERY_NIGHT，故不在列。
     const DAY_ROLE_IDS = [
       "artist",
-      "beggar",
+      // 🔴 2026-10-16 移除：官方乞丐三条（投票标记限制 / 死者赠标记 / 免疫中毒醉酒）
+      //   均为**投票期被动规则**，没有任何"日间主动选人"动作 ⇒ 能力声明已改 PASSIVE
+      //   （见 `src/roles/new_engine/beggar.ability.ts` 头部）。其真实接线由
+      //   `traveler_wiring_contract.test.ts` 的 EFFECT_LANDED 档覆盖。
       "doomsayer",
       "fisherman",
       "golem",

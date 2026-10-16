@@ -78,6 +78,16 @@ function preserveGhostVote(prevSeats: Seat[], nextSeats: Seat[]): Seat[] {
   return touched ? merged : nextSeats;
 }
 
+import {
+  travelerScapegoatCanSubstitute,
+  travelerGunslingerCanShoot,
+  travelerGunslingerEligibleTargets,
+  hasTravelerRole,
+} from "../utils/travelerHooks";
+import { isPlayerEvil } from "../../app/gameLogic";
+// ⭐ 存活判据唯一权威（禁止内联 `!x.isDead`，见 deathMarkerUnification 棘轮）
+import { isSeatAlive } from "../utils/seatAlive";
+
 /**
  * 游戏状态接口 - 单一数据源
  * 所有游戏状态都存储在这里
@@ -243,6 +253,172 @@ export interface GameState {
     bureaucratTargetId: number | null;
     thiefTargetId: number | null;
   };
+  /**
+   * 旅行者接线（批 1）：替罪羊 / 枪手 的**说书人裁决**与频次闩锁。
+   *
+   * ⚠️ 与 `twilightVoteTargets` 同范式：旅行者**不占 seats**，本字段是
+   *    **独立 state**，与 seats 解耦；判据见 `utils/travelerHooks.ts`。
+   *
+   * 生命周期：
+   *   · 替罪羊 —— 说书人写入 `scapegoatSubstituteForId`（默认 null = 不触发，
+   *     零回归）；处决结算消费后清 null；
+   *   · 枪手   —— 当天**首次**投票结算后开启窗口（`gunslingerWindowNight`），
+   *     说书人选目标即射击（`gunslingerUsedNight` 每白天一次闩锁）。
+   *   两者用 `nightCount` 自校验日期，无需每日手动清零。
+   */
+  travelerHookChoices: {
+    /** 说书人裁定：替罪羊代刑的被处决者座位 id；null = 不触发（默认） */
+    scapegoatSubstituteForId: number | null;
+    /** 枪手：当天首次投票结算的投票人（=「刚投过票」，来自真实 voters 字段） */
+    gunslingerEligibleVoterIds: number[];
+    /** 说书人裁定的射击目标座位 id；null = 未射击 */
+    gunslingerTargetId: number | null;
+    /** 枪手射击窗口开启时的 nightCount（仅当天首次投票结算开一次） */
+    gunslingerWindowNight: number | null;
+    /** 枪手已射击时的 nightCount（每白天一次闩锁） */
+    gunslingerUsedNight: number | null;
+    /**
+     * ⚖️ 法官（traveler）：官方「**每局游戏限一次**，如果其他玩家发起了提名，
+     *   你可以选择让本次提名直接执行处决或让投票无效。」
+     *
+     * ⚠️ 频次是**整局一次**（不是每天一次）⇒ 用布尔闩锁，`RESET_GAME` 才清零。
+     *   说书人「不使用能力」**不**置位 ⇒ 后续每次提名仍会再问一次。
+     */
+    judgeUsedThisGame: boolean;
+    /**
+     * 🥩 屠夫（traveler）：官方「每个白天，首次处决后，你可以**再次发起提名**。」
+     *   ⇒ 该白天允许**第二次**处决。字段记录"在哪个 nightCount 用过"，
+     *   每个白天各可一次（`nightCount` 自校验日期，无需每日手动清零）。
+     */
+    butcherExtraExecutionDay: number | null;
+    /**
+     * 🦴 集骨者（traveler）：官方「**每局游戏限一次**，在夜晚时*，你可以选择一名
+     *   死亡的玩家：他**重新获得能力**直到下个黄昏。」
+     *
+     * 落地口径：
+     *   · `boneCollectorUsed` —— 整局一次闩锁（`RESET_GAME` 才清零）；
+     *   · `boneCollectorTargetId` —— 当前被祝福的座位；其实现在
+     *     `seats[id].hasAbilityEvenDead = true`（夜间队列据此**不剔除**该死者，
+     *     即"重新获得能力"）；到**下个暮色**开始时由
+     *     `CLEAR_BONE_COLLECTOR_BLESSING` 撤销。
+     */
+    boneCollectorUsed: boolean;
+    boneCollectorTargetId: number | null;
+    /**
+     * ☕ 咖啡师（traveler）：官方「每个夜晚，**直至下个黄昏**，由说书人二选一：
+     *   1）一名玩家解除并免受醉酒和中毒影响，且会得知正确信息；
+     *   2）一名玩家的能力可以生效两次。该玩家会得知是哪个效果。」
+     *
+     * 落地口径：
+     *   · `"clear"` —— 清 `isPoisoned/isDrunk` 并给座位打 `baristaCleared`，
+     *     该标记被 `computeIsPoisoned` 与 `isActorDisabledByPoisonOrDrunk`
+     *     **两个权威判据**读取 ⇒「解除 + 免受 + 信息正确」全部真实生效；
+     *   · `"double"` —— 打 `baristaDouble` 标记 + 日志提示说书人执行第二次
+     *     （引擎没有通用的"同一能力执行两次"机制，此档为说书人助手口径）。
+     */
+    baristaTargetId: number | null;
+    baristaEffect: "clear" | "double" | null;
+    /**
+     * 🌙 流莺（traveler）：官方「每个夜晚*，你要选择一名存活的玩家：如果他同意，
+     *   你会得知他的角色，但是你们两个可能同时死亡。」
+     *
+     * 说书人主观裁决分两步：`harlotAgreed`（对方是否同意）→
+     * `harlotDoomed`（是否让两人同时死亡）。
+     */
+    harlotTargetId: number | null;
+    harlotAgreed: boolean;
+    harlotDoomed: boolean;
+    /**
+     * 🎓 学徒（traveler）：官方「在你的**首个夜晚**，如果你是善良的，你会获得一个
+     *   镇民角色的能力；如果你是邪恶的，你会获得一个爪牙角色的能力。」
+     *
+     * 落地口径（**诚实标注**）：说书人从候选角色（按学徒阵营过滤：善良→镇民 /
+     *   邪恶→爪牙）中点选一个，本字段记录该 roleId，暮色面板据此回显并写日志。
+     *   ⚠️ 本仓库的夜间派发按 `seat.role.id` **静态**解析角色能力，没有通用的
+     *   "为某座位动态挂载一个能力"机制 ⇒ 本字段是**说书人助手口径**：
+     *   面板给出候选与确认，具体夜间行动由说书人按该能力手动处理。
+     *   （不做假实现：不假装引擎会自动按授予能力唤醒。）
+     */
+    apprenticeGrantedRoleId: string | null;
+    /**
+     * 🪑 女舍监（traveler）：官方「每个白天，你可以选择**至多三对**玩家交换座位。
+     *   玩家不能离开座位私聊。」
+     *
+     * 落地口径（真实座位交换）：
+     *   交换 `seats[a]` 与 `seats[b]` 的**内容**但**保留各自 id** ⇒
+     *   "两个人换了物理座位"，因此按 `id ± 1` 计算的邻座关系确实随之改变
+     *   （角色/玩家名/状态都跟着人走）。`matronSwaps` 记录本白天已交换的对，
+     *   上限 3 对；新白天由 `CLEAR_MATRON_SWAPS` 清空。
+     *   ⚠️ 诚实标注：**当轮已产生的投票/提名记录不会随之改写**（它们以座位 id 为键）
+     *   ⇒ 换座前后若同一提名仍在进行，请由说书人重新核对。
+     */
+    matronSwaps: { a: number; b: number }[];
+  };
+  /**
+   * 旅行者阵营映射（P0，2026-10-16）：key = travelers 槽位下标（0..3），
+   * value = 本局说书人在落座时指定的阵营。
+   *
+   * ⚠️⚠️ 必须走独立 state，**禁止**改 `role.type` 或 `seatAlignment.ts` 的
+   *   `GOOD_ROLE_TYPES` —— 前者是静态角色定义、后者波及所有玩家。
+   *   判据唯一收口：`utils/travelerHooks.ts::isTravelerEvil`。
+   *   背景：`traveler` 被硬编码进 GOOD_ROLE_TYPES ⇒ 邪恶旅行者无法表达
+   *   ⇒ 替罪羊代刑对邪恶玩家永不触发（官方规则静默失效）。
+   */
+  travelerAlignments: { [slot: number]: "good" | "evil" };
+  /**
+   * 🎴 传奇角色（Fabled）说书人状态容器（2026-10-16）。
+   *
+   * 传奇角色**不占座位、不入夜序**（`fabledLock.ts` 已钉死），
+   * 官方把它们的裁定权交给说书人 ⇒ 统一走这一个容器，
+   * 由 `FabledPanel` 操作、由各消费点读取。
+   */
+  fabledState: {
+    /** 🔮 骗人精：每局限一次，让一名**善良**玩家得知「有问题」的信息 */
+    fibbinUsed: boolean;
+    fibbinTargetId: number | null;
+    /** 😇 天使：被庇护的新手玩家 / 对其死亡负最大责任者（「不好的事」） */
+    angelProtectedSeatId: number | null;
+    angelPunishedSeatId: number | null;
+    /** ✊ 革命者：公开声明的一对**邻座**玩家（本局一直保持同一阵营） */
+    revolutionaryPair: { a: number; b: number } | null;
+    /** ✊ 革命者：每局限一次「其中一人被当作其他角色/阵营」是否已用 */
+    revolutionaryDisguiseUsed: boolean;
+    /** 🛡️ 哨兵：初始设置的外来者数量修正（-1 / 0 / +1） */
+    sentinelOutsiderDelta: number;
+    /** 🕊️ 圣洁之魂：邪恶玩家数已达「初始 + 1」上限（禁止再增邪恶） */
+    spiritOfIvoryCapped: boolean;
+    /** 🚣 摆渡人：游戏最后一天「所有已死亡玩家重获投票标记」是否已结算 */
+    ferrymanLastDayResolved: boolean;
+    /** 🧸 玩具匠：恶魔已使用过「放弃攻击」（每局至少一次） */
+    toymakerAttackSkipped: boolean;
+  };
+  /**
+   * 🥣 乞丐（traveler）投票标记账本。
+   *
+   * 官方原文：「你只能使用投票标记才能投票。死亡的玩家可以将他的投票标记给你，
+   *   如果他这么做，你会得知他的阵营。你不会中毒和醉酒。」
+   *
+   * 语义：
+   *   · 乞丐**自带 0 枚**标记 ⇒ 默认无法举手（他是旅行者，不占座位、
+   *     也没有普通玩家那样每日恢复的投票标记）；
+   *   · 死亡玩家把自己的标记给他 ⇒ `tokens + 1`，同时乞丐
+   *     **得知该玩家的阵营**（记录进 `donations`，落定后不再改变）；
+   *   · 乞丐每次以自己名义投票 ⇒ `tokens - 1`（标记一次性）。
+   *
+   * ⚠️ 「免疫中毒醉酒」在旅行者语境下**天然成立**：中毒/醉酒一律写在
+   *   `seats[*].isPoisoned / isDrunk`，而旅行者不占 seats
+   *   ⇒ 全仓所有毒/醉播撒路径（`roleActionHandlers` / `pukka` 等 5 处）
+   *   都无法命中旅行者。该条由 `travelerHooks.test.ts` 反向断言钉死。
+   */
+  beggarState: {
+    /** 当前可用投票标记数（每次以乞丐身份投票消耗 1） */
+    tokens: number;
+    /**
+     * 捐赠记录：`donorSeatId` 给了标记 ⇒ 乞丐得知其阵营。
+     * 每条对应一枚已收下的标记（同一座位只可捐一次）。
+     */
+    donations: { donorSeatId: number; knownAlignment: "good" | "evil" }[];
+  };
   // 全局防窥遮罩状态
   isPrivacyShieldActive: boolean;
 }
@@ -271,6 +447,113 @@ export type GameAction =
    *    即使本夜该旅行者取消发动，白天投票仍会被错误加成/扣减。
    */
   | { type: "CLEAR_TWILIGHT_VOTE_TARGETS" }
+  // ── 旅行者接线（批 1）：替罪羊 / 枪手 ────────────────────────────
+  /**
+   * 说书人裁定：替罪羊代刑目标（= 被处决者座位 id）。
+   * 传 `null` = 不触发（默认）。reducer 内以纯函数判据把关。
+   */
+  | { type: "SET_SCAPEGOAT_SUBSTITUTE"; targetId: number | null }
+  /**
+   * 枪手：当天**首次**投票结算后开启射击窗口（记录「刚投过票」名单）。
+   * 同一 nightCount 只允许开一次（reducer 把关）。
+   */
+  | { type: "OPEN_GUNSLINGER_WINDOW"; voterIds: number[]; night: number }
+  /**
+   * 说书人裁定：枪手射击目标（座位 id）。写入即射击（消费点走 killPlayer
+   * 统一死亡入口），reducer 内以纯函数判据把关 + 打「每白天一次」闩锁。
+   */
+  | { type: "FIRE_GUNSLINGER"; targetId: number; night: number }
+  /**
+   * ⚖️ 法官（traveler）行使能力（每局限一次）。
+   * `outcome` 只用于日志语义，状态效果相同：整局闩锁置位。
+   *   · `"execute"` —— 本次提名直接执行处决；
+   *   · `"void"`    —— 本次提名投票无效。
+   */
+  | { type: "MARK_JUDGE_USED"; outcome: "execute" | "void" }
+  /**
+   * 🥩 屠夫（traveler）：本白天使用「首次处决后再提名」⇒ 允许第二次处决。
+   * 幂等：同一 `night` 只记一次；屠夫不在场则 no-op。
+   */
+  | { type: "MARK_BUTCHER_EXTRA_EXECUTION"; night: number }
+  /**
+   * 🦴 集骨者（traveler）：祝福一名**已死亡**玩家 —— 他重新获得能力直到下个黄昏。
+   * reducer 校验：集骨者在场 + 整局未用过 + 目标存在且已死亡。
+   */
+  | { type: "BONE_COLLECTOR_BLESS"; seatId: number }
+  /** 🦴 集骨者：撤销祝福（下个暮色开始时调用 ⇒ 官方「直到下个黄昏」） */
+  | { type: "CLEAR_BONE_COLLECTOR_BLESSING" }
+  /**
+   * ☕ 咖啡师（traveler）：说书人为一名玩家二选一 —— `clear` 解除并免疫中毒/醉酒
+   * （信息正确） / `double` 能力可生效两次。
+   */
+  | { type: "SET_BARISTA_EFFECT"; targetId: number; effect: "clear" | "double" }
+  /** ☕ 咖啡师：撤销效果（下个暮色开始时调用） */
+  | { type: "CLEAR_BARISTA_EFFECT" }
+  /**
+   * 🌙 流莺（traveler）：说书人裁定 —— `agreed` 对方是否同意（同意后得知其角色）；
+   * `doomed` 是否让两人同时死亡。传 `targetId` 即选定目标。
+   */
+  | {
+      type: "SET_HARLOT_OUTCOME";
+      targetId: number | null;
+      agreed?: boolean;
+      doomed?: boolean;
+    }
+  /**
+   * 🎓 学徒（traveler）：首个夜晚由说书人选定被授予的角色（善良→镇民 / 邪恶→爪牙）。
+   * 传 `null` = 清除选择。
+   */
+  | { type: "SET_APPRENTICE_ROLE"; roleId: string | null }
+  /**
+   * 🪑 女舍监（traveler）：交换两名玩家的座位（内容互换、id 保留）。
+   * reducer 校验：女舍监在场 + 两个座位都存在且不同 + 本白天尚未超过 **3 对**。
+   */
+  | { type: "MATRON_SWAP"; a: number; b: number }
+  /** 🪑 女舍监：新白天清空本日换座记录（每白天上限 3 对） */
+  | { type: "CLEAR_MATRON_SWAPS" }
+  /**
+   * 🎴 传奇角色：统一的「部分更新」入口（说书人裁定）。
+   * 各字段语义见 `GameState.fabledState`。传 `null` 显式清除可选字段。
+   */
+  | { type: "SET_FABLED_STATE"; updates: Partial<GameState["fabledState"]> }
+  /**
+   * 🚣 摆渡人：游戏**最后一天**结算 —— 所有已死亡玩家重新获得投票标记。
+   *
+   * ⚠️ 这是官方规则对「幽灵票单向锁存」的**合法豁免**：本 action 直接写
+   *   `hasGhostVote = true`，**刻意不走** `preserveGhostVote`（后者用于拦截
+   *   撤销/读档等**意外**回滚，不是拦截官方规则）。
+   */
+  | { type: "FERRYMAN_LAST_DAY" }
+  /**
+   * 旅行者槽位离场（死亡/被流放）：把 `travelers[index]` 置 null。
+   * 旅行者不占 seats ⇒ 其"死亡"的唯一表达就是槽位置空。
+   * 替罪羊代刑、枪手射中旅行者等场景使用。
+   */
+  | { type: "EXECUTE_TRAVELER_SLOT"; index: number }
+  /**
+   * 旅行者阵营指定（落座时说书人逐个选择，官方：旅行者可善良可邪恶）。
+   * value 传 null = 清除该槽位指定（回到默认善良）。
+   */
+  | {
+      type: "SET_TRAVELER_ALIGNMENT";
+      slot: number;
+      alignment: "good" | "evil" | null;
+    }
+  /**
+   * 🥣 乞丐：某名**死亡玩家**把自己的投票标记给乞丐。
+   * reducer 校验（全部满足才写入）：
+   *   1. 场上有乞丐（`travelers` 槽位非 null 且 id 为 `beggar`）；
+   *   2. 捐赠者是**座位**（旅行者之间不互赠）、存在、已死亡；
+   *   3. 捐赠者仍有幽灵票（`hasGhostVote !== false`）—— 给标记即消耗；
+   *   4. 该座位未捐过（`donations` 去重，一人一枚）。
+   * 写入效果：`tokens + 1`，并追加 `{donorSeatId, alignment}`（乞丐得知阵营）。
+   */
+  | { type: "GIVE_BEGGAR_TOKEN"; donorSeatId: number }
+  /**
+   * 🥣 乞丐：以自己名义投票 ⇒ 消耗 1 枚投票标记。
+   * 无标记时 reduce 为 no-op（不产生负数）。
+   */
+  | { type: "CONSUME_BEGGAR_TOKEN" }
   | { type: "SET_NIGHT_ACTION_QUEUE"; queue: Seat[] }
   | { type: "NEXT_NIGHT_ACTION" }
   | { type: "PREV_NIGHT_ACTION" }
@@ -419,6 +702,399 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         twilightVoteTargets: { bureaucratTargetId: null, thiefTargetId: null },
       };
+
+    // ── 旅行者接线（批 1）：替罪羊 / 枪手 ────────────────────────────
+    // 判据层：utils/travelerHooks.ts（纯函数，旅行者以 state.travelers 为准）
+    case "SET_SCAPEGOAT_SUBSTITUTE": {
+      const current = state.travelerHookChoices;
+      if (action.targetId === null) {
+        if (current.scapegoatSubstituteForId === null) return state;
+        return {
+          ...state,
+          travelerHookChoices: {
+            ...current,
+            scapegoatSubstituteForId: null,
+          },
+        };
+      }
+      // 判据把关：替罪羊存活（travelers 槽位非 null）且与被处决者同阵营。
+      // 不满足则写入无效（保持 null = 不触发，零回归）。
+      const nominatedSeat =
+        state.seats.find((s) => s.id === action.targetId) ?? null;
+      const candidate = travelerScapegoatCanSubstitute(
+        state.travelers,
+        nominatedSeat,
+        state.travelerAlignments
+      );
+      if (!candidate) return state;
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          scapegoatSubstituteForId: action.targetId,
+        },
+      };
+    }
+
+    case "OPEN_GUNSLINGER_WINDOW": {
+      const current = state.travelerHookChoices;
+      // 「当天首次投票结算后」才开窗：同一 nightCount 只开一次；
+      // 当天已射击（每白天一次）也不再开。
+      if (
+        current.gunslingerWindowNight === action.night ||
+        current.gunslingerUsedNight === action.night
+      ) {
+        return state;
+      }
+      // 「刚投过票」= 本次投票结算的真实投票人名单（宿主从 voters 字段传入）
+      const eligible = travelerGunslingerEligibleTargets(
+        state.travelers,
+        action.voterIds
+      );
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          gunslingerEligibleVoterIds: eligible,
+          gunslingerWindowNight: action.night,
+        },
+      };
+    }
+
+    case "FIRE_GUNSLINGER": {
+      const current = state.travelerHookChoices;
+      // 频次闩锁：每个白天一次（nightCount 自校验日期）
+      if (current.gunslingerUsedNight === action.night) return state;
+      // 判据把关：枪手存活（travelers 槽位非 null）且目标属于「刚投过票」名单
+      if (
+        !travelerGunslingerCanShoot(
+          state.travelers,
+          current.gunslingerEligibleVoterIds,
+          action.targetId
+        )
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          gunslingerTargetId: action.targetId,
+          gunslingerUsedNight: action.night,
+          gunslingerEligibleVoterIds: [],
+        },
+      };
+    }
+
+    // ── ⚖️ 法官（traveler）：每局限一次改写本次提名的结局 ──────────────
+    case "MARK_JUDGE_USED": {
+      const current = state.travelerHookChoices;
+      // 频次闩锁：整局一次（已用过 ⇒ 幂等 no-op）
+      if (current.judgeUsedThisGame) return state;
+      // 判据把关：法官必须在场（旅行者槽位非 null，不读 seats）
+      if (!hasTravelerRole(state.travelers, "judge")) return state;
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          judgeUsedThisGame: true,
+        },
+      };
+    }
+
+    // ── 🥩 屠夫（traveler）：首次处决后的第二次提名/处决 ───────────────
+    case "MARK_BUTCHER_EXTRA_EXECUTION": {
+      const current = state.travelerHookChoices;
+      // 判据把关：屠夫必须在场（旅行者槽位非 null，不读 seats）
+      if (!hasTravelerRole(state.travelers, "butcher")) return state;
+      // 每个白天一次：已记过同一 night ⇒ 幂等 no-op
+      if (current.butcherExtraExecutionDay === action.night) return state;
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          butcherExtraExecutionDay: action.night,
+        },
+      };
+    }
+
+    // ── 🦴 集骨者（traveler）：死者重新获得能力直到下个黄昏 ──────────────
+    case "BONE_COLLECTOR_BLESS": {
+      const current = state.travelerHookChoices;
+      // 判据① 集骨者必须在场
+      if (!hasTravelerRole(state.travelers, "bone_collector")) return state;
+      // 判据② 每局游戏限一次
+      if (current.boneCollectorUsed) return state;
+      // 判据③ 目标存在且**已死亡**（官方：选择一名死亡的玩家）
+      const target = state.seats.find((x) => x.id === action.seatId);
+      // ⚠️ 官方「选择一名**死亡的**玩家」⇒ 存活者一律拒绝
+      if (!target || isSeatAlive(target)) return state;
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.id === action.seatId
+            ? ({ ...x, hasAbilityEvenDead: true } as Seat)
+            : x
+        ),
+        travelerHookChoices: {
+          ...current,
+          boneCollectorUsed: true,
+          boneCollectorTargetId: action.seatId,
+        },
+      };
+    }
+
+    case "CLEAR_BONE_COLLECTOR_BLESSING": {
+      const current = state.travelerHookChoices;
+      const tid = current.boneCollectorTargetId;
+      // 无祝福在身 ⇒ no-op
+      if (tid === null) return state;
+      // ⚠️ used 闩锁**不清**（每局一次）；只撤销"重新获得能力"这个临时效果
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.id === tid ? ({ ...x, hasAbilityEvenDead: false } as Seat) : x
+        ),
+        travelerHookChoices: { ...current, boneCollectorTargetId: null },
+      };
+    }
+
+    // ── ☕ 咖啡师（traveler）：解除并免疫中毒醉酒 / 能力两次 ────────────
+    case "SET_BARISTA_EFFECT": {
+      if (!hasTravelerRole(state.travelers, "barista")) return state;
+      const target = state.seats.find((x) => x.id === action.targetId);
+      if (!target) return state;
+      const current = state.travelerHookChoices;
+      if (action.effect === "clear") {
+        // 「解除并**免受**醉酒和中毒影响，且会得知正确信息」
+        // ⚠️ `baristaCleared` 被 computeIsPoisoned / isActorDisabledByPoisonOrDrunk
+        //   两个权威判据读取 ⇒ 免疫是真实的，不只是清一次状态。
+        return {
+          ...state,
+          seats: state.seats.map((x) =>
+            x.id === action.targetId
+              ? ({
+                  ...x,
+                  isPoisoned: false,
+                  isDrunk: false,
+                  baristaCleared: true,
+                } as Seat)
+              : x
+          ),
+          travelerHookChoices: {
+            ...current,
+            baristaTargetId: action.targetId,
+            baristaEffect: "clear",
+          },
+        };
+      }
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.id === action.targetId
+            ? ({ ...x, baristaDouble: true } as Seat)
+            : x
+        ),
+        travelerHookChoices: {
+          ...current,
+          baristaTargetId: action.targetId,
+          baristaEffect: "double",
+        },
+      };
+    }
+
+    case "CLEAR_BARISTA_EFFECT": {
+      const current = state.travelerHookChoices;
+      const tid = current.baristaTargetId;
+      if (tid === null) return state;
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.id === tid
+            ? ({
+                ...x,
+                baristaCleared: false,
+                baristaDouble: false,
+              } as Seat)
+            : x
+        ),
+        travelerHookChoices: {
+          ...current,
+          baristaTargetId: null,
+          baristaEffect: null,
+        },
+      };
+    }
+
+    // ── 🌙 流莺（traveler）：同意后得知角色，两人可能同死 ────────────────
+    case "SET_HARLOT_OUTCOME": {
+      if (!hasTravelerRole(state.travelers, "harlot")) return state;
+      const current = state.travelerHookChoices;
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          harlotTargetId: action.targetId,
+          harlotAgreed: action.agreed ?? current.harlotAgreed,
+          harlotDoomed: action.doomed ?? current.harlotDoomed,
+        },
+      };
+    }
+
+    // ── 🎓 学徒（traveler）：首个夜晚获得一个能力 ───────────────────────
+    case "SET_APPRENTICE_ROLE": {
+      if (!hasTravelerRole(state.travelers, "apprentice")) return state;
+      const current = state.travelerHookChoices;
+      if (
+        action.roleId !== null &&
+        current.apprenticeGrantedRoleId === action.roleId
+      ) {
+        // 重复点同一角色 ⇒ 视为取消（可反悔）
+        return {
+          ...state,
+          travelerHookChoices: { ...current, apprenticeGrantedRoleId: null },
+        };
+      }
+      return {
+        ...state,
+        travelerHookChoices: {
+          ...current,
+          apprenticeGrantedRoleId: action.roleId,
+        },
+      };
+    }
+
+    // ── 🪑 女舍监（traveler）：每个白天最多三对座位交换 ─────────────────
+    case "MATRON_SWAP": {
+      if (!hasTravelerRole(state.travelers, "matron")) return state;
+      const { a, b } = action;
+      if (!Number.isInteger(a) || !Number.isInteger(b) || a === b) return state;
+      const seatA = state.seats.find((x) => x.id === a);
+      const seatB = state.seats.find((x) => x.id === b);
+      if (!seatA || !seatB) return state;
+      const swaps = state.travelerHookChoices.matronSwaps ?? [];
+      // 官方「至多三对」
+      if (swaps.length >= 3) return state;
+      // 交换**内容**但保留各自 id（= 两个人换了物理座位）
+      const nextSeats = state.seats.map((x) => {
+        if (x.id === a) return { ...seatB, id: a };
+        if (x.id === b) return { ...seatA, id: b };
+        return x;
+      });
+      return {
+        ...state,
+        seats: nextSeats,
+        travelerHookChoices: {
+          ...state.travelerHookChoices,
+          matronSwaps: [...swaps, { a, b }],
+        },
+      };
+    }
+
+    case "CLEAR_MATRON_SWAPS": {
+      const swaps = state.travelerHookChoices.matronSwaps ?? [];
+      if (swaps.length === 0) return state;
+      return {
+        ...state,
+        travelerHookChoices: { ...state.travelerHookChoices, matronSwaps: [] },
+      };
+    }
+
+    // ── 🎴 传奇角色（Fabled）：说书人裁定状态 ───────────────────────────
+    case "SET_FABLED_STATE": {
+      const prev = state.fabledState;
+      return {
+        ...state,
+        fabledState: { ...prev, ...action.updates },
+      };
+    }
+
+    // ── 🚣 摆渡人：最后一天，所有已死亡玩家重新获得投票标记 ──────────────
+    case "FERRYMAN_LAST_DAY": {
+      // 判据：摆渡人必须在场（传奇角色，读 activeFabled，不读 seats）
+      const hasFerryman = (state.activeFabled ?? []).some(
+        (r: Role) => r.id === "ferryman"
+      );
+      if (!hasFerryman) return state;
+      if (state.fabledState.ferrymanLastDayResolved) return state;
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.isDead ? ({ ...x, hasGhostVote: true } as Seat) : x
+        ),
+        fabledState: { ...state.fabledState, ferrymanLastDayResolved: true },
+      };
+    }
+
+    case "EXECUTE_TRAVELER_SLOT": {      const i = action.index;
+      if (!Array.isArray(state.travelers)) return state;
+      if (i < 0 || i >= state.travelers.length) return state;
+      if (state.travelers[i] === null) return state;
+      const next = [...state.travelers];
+      next[i] = null;
+      return { ...state, travelers: next };
+    }
+
+    case "SET_TRAVELER_ALIGNMENT": {
+      const slot = action.slot;
+      if (!Number.isInteger(slot) || slot < 0 || slot >= TRAVELER_MAX) {
+        return state;
+      }
+      const prev = state.travelerAlignments ?? {};
+      const nextAlign: { [k: number]: "good" | "evil" } = { ...prev };
+      if (action.alignment === null) {
+        delete nextAlign[slot];
+      } else {
+        nextAlign[slot] = action.alignment;
+      }
+      return { ...state, travelerAlignments: nextAlign };
+    }
+
+    // ── 🥣 乞丐：投票标记账本 ─────────────────────────────────────────
+    case "GIVE_BEGGAR_TOKEN": {
+      // ① 乞丐必须在场（旅行者槽位非 null、id 为 beggar）
+      if (!hasTravelerRole(state.travelers, "beggar")) return state;
+      // ② 捐赠者必须是**座位**且已死亡（官方：死亡的玩家可以给你投票标记）
+      const donor = state.seats.find((s) => s.id === action.donorSeatId);
+      // ⚠️ 官方「**死亡的**玩家可以将他的投票标记给你」⇒ 存活者不能赠予
+      if (!donor || isSeatAlive(donor)) return state;
+      // ③ 捐赠者仍有幽灵票（给标记 = 消耗掉他唯一的那张）
+      if ((donor as any).hasGhostVote === false) return state;
+      const ledger = state.beggarState ?? { tokens: 0, donations: [] };
+      // ④ 同一座位只可捐一次
+      if (ledger.donations.some((d) => d.donorSeatId === action.donorSeatId)) {
+        return state;
+      }
+      const alignment: "good" | "evil" = isPlayerEvil(donor as any)
+        ? "evil"
+        : "good";
+      // 捐赠 = 消耗该死者的标记（官方：死亡的玩家**把**他的投票标记给你）
+      // ⚠️ `hasGhostVote` 是单向锁存位；true → false 本就被允许，
+      //    这里显式置 false 并仍过一遍 preserveGhostVote 保持唯一写入咽喉原则。
+      const nextSeats = state.seats.map((s) =>
+        s.id === action.donorSeatId ? { ...s, hasGhostVote: false } : s
+      );
+      return {
+        ...state,
+        seats: preserveGhostVote(state.seats, nextSeats),
+        beggarState: {
+          tokens: ledger.tokens + 1,
+          donations: [
+            ...ledger.donations,
+            { donorSeatId: action.donorSeatId, knownAlignment: alignment },
+          ],
+        },
+      };
+    }
+
+    case "CONSUME_BEGGAR_TOKEN": {
+      const ledger = state.beggarState ?? { tokens: 0, donations: [] };
+      if (ledger.tokens <= 0) return state;
+      return {
+        ...state,
+        beggarState: { ...ledger, tokens: ledger.tokens - 1 },
+      };
+    }
 
     case "SET_NIGHT_ACTION_QUEUE":
       return {
@@ -909,6 +1585,38 @@ export function getInitialState(): GameState {
     exileProposedToday: null,
     twilightStepIndex: 0,
     twilightVoteTargets: { bureaucratTargetId: null, thiefTargetId: null },
+    travelerHookChoices: {
+      scapegoatSubstituteForId: null,
+      gunslingerEligibleVoterIds: [],
+      gunslingerTargetId: null,
+      gunslingerWindowNight: null,
+      gunslingerUsedNight: null,
+      judgeUsedThisGame: false,
+      butcherExtraExecutionDay: null,
+      boneCollectorUsed: false,
+      boneCollectorTargetId: null,
+      baristaTargetId: null,
+      baristaEffect: null,
+      harlotTargetId: null,
+      harlotAgreed: false,
+      harlotDoomed: false,
+      apprenticeGrantedRoleId: null,
+      matronSwaps: [],
+    },
+    fabledState: {
+      fibbinUsed: false,
+      fibbinTargetId: null,
+      angelProtectedSeatId: null,
+      angelPunishedSeatId: null,
+      revolutionaryPair: null,
+      revolutionaryDisguiseUsed: false,
+      sentinelOutsiderDelta: 0,
+      spiritOfIvoryCapped: false,
+      ferrymanLastDayResolved: false,
+      toymakerAttackSkipped: false,
+    },
+    travelerAlignments: {},
+    beggarState: { tokens: 0, donations: [] },
     isPrivacyShieldActive: false,
   };
 }
@@ -974,6 +1682,77 @@ export const gameActions = {
     type: "SET_TWILIGHT_VOTE_TARGET",
     role,
     targetId,
+  }),
+  /** 旅行者阵营指定（落座时说书人选择；null = 清除，回到默认善良） */
+  setTravelerAlignment: (
+    slot: number,
+    alignment: "good" | "evil" | null
+  ): GameAction => ({
+    type: "SET_TRAVELER_ALIGNMENT",
+    slot,
+    alignment,
+  }),
+  /** 🥣 乞丐：死亡玩家把投票标记给他（⇒ tokens+1 且乞丐得知其阵营） */
+  giveBeggarToken: (donorSeatId: number): GameAction => ({
+    type: "GIVE_BEGGAR_TOKEN",
+    donorSeatId,
+  }),
+  /** 🥣 乞丐：以自己名义投票 ⇒ 消耗 1 枚投票标记 */
+  consumeBeggarToken: (): GameAction => ({ type: "CONSUME_BEGGAR_TOKEN" }),
+  /** ⚖️ 法官：行使能力（每局限一次）—— `execute` 直接处决 / `void` 投票无效 */
+  markJudgeUsed: (outcome: "execute" | "void"): GameAction => ({
+    type: "MARK_JUDGE_USED",
+    outcome,
+  }),
+  /** 🥩 屠夫：本白天使用「首次处决后再提名」（允许第二次处决） */
+  markButcherExtraExecution: (night: number): GameAction => ({
+    type: "MARK_BUTCHER_EXTRA_EXECUTION",
+    night,
+  }),
+  /** 🦴 集骨者：祝福一名已死亡玩家（重新获得能力直到下个黄昏，每局限一次） */
+  boneCollectorBless: (seatId: number): GameAction => ({
+    type: "BONE_COLLECTOR_BLESS",
+    seatId,
+  }),
+  /** 🦴 集骨者：撤销祝福（下个暮色开始时调用） */
+  clearBoneCollectorBlessing: (): GameAction => ({
+    type: "CLEAR_BONE_COLLECTOR_BLESSING",
+  }),
+  /** ☕ 咖啡师：说书人为一名玩家二选一（清除并免疫毒醉 / 能力两次） */
+  setBaristaEffect: (
+    targetId: number,
+    effect: "clear" | "double"
+  ): GameAction => ({ type: "SET_BARISTA_EFFECT", targetId, effect }),
+  /** ☕ 咖啡师：撤销效果（下个暮色开始时调用） */
+  clearBaristaEffect: (): GameAction => ({ type: "CLEAR_BARISTA_EFFECT" }),
+  /** 🎴 传奇角色：说书人裁定的部分状态更新 */
+  setFabledState: (
+    updates: Partial<GameState["fabledState"]>
+  ): GameAction => ({ type: "SET_FABLED_STATE", updates }),
+  /** 🚣 摆渡人：最后一天，所有已死亡玩家重新获得投票标记 */
+  ferrymanLastDay: (): GameAction => ({ type: "FERRYMAN_LAST_DAY" }),
+  /** 🪑 女舍监：交换两名玩家的座位（每白天至多三对） */
+  matronSwap: (a: number, b: number): GameAction => ({
+    type: "MATRON_SWAP",
+    a,
+    b,
+  }),
+  /** 🪑 女舍监：新白天清空本日换座记录 */
+  clearMatronSwaps: (): GameAction => ({ type: "CLEAR_MATRON_SWAPS" }),
+  /** 🎓 学徒：首个夜晚选定被授予的角色（善良→镇民 / 邪恶→爪牙） */
+  setApprenticeGrantedRole: (roleId: string | null): GameAction => ({
+    type: "SET_APPRENTICE_ROLE",
+    roleId,
+  }),
+  /** 🌙 流莺：说书人裁定目标 / 是否同意 / 是否双死 */
+  setHarlotOutcome: (
+    targetId: number | null,
+    opts?: { agreed?: boolean; doomed?: boolean }
+  ): GameAction => ({
+    type: "SET_HARLOT_OUTCOME",
+    targetId,
+    agreed: opts?.agreed,
+    doomed: opts?.doomed,
   }),
   /** 进入暮色时清空上一夜的投票目标（防残留加成） */
   clearTwilightVoteTargets: (): GameAction => ({

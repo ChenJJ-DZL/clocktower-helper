@@ -62,6 +62,15 @@ export const SNAPSHOT_KEYS = [
   //      表现为"选了目标、入夜后失效"）
   "twilightStepIndex",
   "twilightVoteTargets",
+  "travelerHookChoices",
+  "travelerAlignments",
+  // 🥣 乞丐投票标记账本（tokens + 得知的阵营）——
+  //    漏登记 ⇒ 撤销/重做与刷新恢复会把"收到的标记"清零，乞丐突然又能投票
+  "beggarState",
+  // 🎴 传奇角色说书人状态（fibbin / 天使 / 革命者 / 哨兵 / 圣洁之魂 / 摆渡人 / 玩具匠）
+  //    ⚠️ 2026-10-16 实测：只加了 persistence + types 而漏了本处 ⇒
+  //       三处白名单契约测试当场变红（`snapshot_keys_contract`）。切记三处同改。
+  "fabledState",
 ] as const;
 
 /**

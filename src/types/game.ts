@@ -234,6 +234,53 @@ export interface GameSnapshot {
     bureaucratTargetId: number | null;
     thiefTargetId: number | null;
   };
+  /** 旅行者接线（批 1）：替罪羊 / 枪手 的说书人裁决与频次闩锁 */
+  travelerHookChoices?: {
+    scapegoatSubstituteForId: number | null;
+    gunslingerEligibleVoterIds: number[];
+    gunslingerTargetId: number | null;
+    gunslingerWindowNight: number | null;
+    gunslingerUsedNight: number | null;
+    /** ⚖️ 法官「每局限一次」闩锁（漏登记 ⇒ 刷新后能力可被反复使用） */
+    judgeUsedThisGame?: boolean;
+    /** 🥩 屠夫「本白天已用第二次处决」标记（= 使用时的 nightCount） */
+    butcherExtraExecutionDay?: number | null;
+    /** 🦴 集骨者整局一次闩锁 */
+    boneCollectorUsed?: boolean;
+    /** 🦴 集骨者当前祝福的座位（死者重新获得能力，直到下个黄昏） */
+    boneCollectorTargetId?: number | null;
+    /** ☕ 咖啡师：目标与效果（clear = 解除并免疫毒醉 / double = 能力两次） */
+    baristaTargetId?: number | null;
+    baristaEffect?: "clear" | "double" | null;
+    /** 🌙 流莺：目标 / 是否同意 / 是否双死 */
+    harlotTargetId?: number | null;
+    harlotAgreed?: boolean;
+    harlotDoomed?: boolean;
+    /** 🎓 学徒：首个夜晚被授予的角色 id（说书人助手口径） */
+    apprenticeGrantedRoleId?: string | null;
+    /** 🪑 女舍监本日已交换的座位对（每白天至多 3 对） */
+    matronSwaps?: { a: number; b: number }[];
+  };
+  /** 🎴 传奇角色说书人状态（fibbin / 天使 / 革命者 / 哨兵 / 圣洁之魂 / 摆渡人 / 玩具匠） */
+  fabledState?: {
+    fibbinUsed?: boolean;
+    fibbinTargetId?: number | null;
+    angelProtectedSeatId?: number | null;
+    angelPunishedSeatId?: number | null;
+    revolutionaryPair?: { a: number; b: number } | null;
+    revolutionaryDisguiseUsed?: boolean;
+    sentinelOutsiderDelta?: number;
+    spiritOfIvoryCapped?: boolean;
+    ferrymanLastDayResolved?: boolean;
+    toymakerAttackSkipped?: boolean;
+  };
+  /** 旅行者阵营映射（P0）：key = travelers 槽位下标，value = 本局指定阵营 */
+  travelerAlignments?: { [slot: number]: "good" | "evil" };
+  /** 🥣 乞丐投票标记账本：tokens = 可用标记数；donations = 捐赠者与得知的阵营 */
+  beggarState?: {
+    tokens: number;
+    donations: { donorSeatId: number; knownAlignment: "good" | "evil" }[];
+  };
 }
 
 // 对局记录数据结构

@@ -214,6 +214,9 @@ import { tinkerAbility } from "./tinker.ability";
 import { titusAbility } from "./titus.ability";
 import { town_crierAbility } from "./town_crier.ability";
 import { toymakerAbility } from "./toymaker.ability";
+import { fiddlerAbility } from "./fiddler.ability";
+import { duchessAbility } from "./duchess.ability";
+import { djinnAbility } from "./djinn.ability";
 import { traitorousMinisterAbility } from "./traitorous_minister.ability";
 import { trickster_jackAbility } from "./trickster_jack.ability";
 import { undertakerAbility } from "./undertaker.ability";
@@ -471,6 +474,9 @@ export function registerAllNewEngineAbilities(): void {
     titusAbility,
     town_crierAbility,
     toymakerAbility,
+    fiddlerAbility,
+    duchessAbility,
+    djinnAbility,
     traitorousMinisterAbility,
     trickster_jackAbility,
     undertakerAbility,
@@ -775,6 +781,9 @@ export { tinkerAbility } from "./tinker.ability";
 export { titusAbility } from "./titus.ability";
 export { town_crierAbility } from "./town_crier.ability";
 export { toymakerAbility } from "./toymaker.ability";
+export { fiddlerAbility } from "./fiddler.ability";
+export { duchessAbility } from "./duchess.ability";
+export { djinnAbility } from "./djinn.ability";
 export { traitorousMinisterAbility } from "./traitorous_minister.ability";
 export { trickster_jackAbility } from "./trickster_jack.ability";
 export { undertakerAbility } from "./undertaker.ability";

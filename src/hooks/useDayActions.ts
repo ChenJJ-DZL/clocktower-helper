@@ -18,6 +18,8 @@ import {
   getNewEngineDayAbility,
 } from "../utils/dayAbilityBridge";
 import { showAlert } from "../utils/nativeDialogShim";
+import { hasTravelerRole } from "../utils/travelerHooks";
+import { isStorytellerNominatorId } from "../utils/fabledLock";
 
 /**
  * DayAbilityConfig 类型重新声明（与 useGameController 中一致）
@@ -46,6 +48,11 @@ export interface DayActionsDeps {
   nominationRecords: { nominators: Set<number>; nominees: Set<number> };
   witchActive: boolean;
   witchCursedId: number | null;
+  /**
+   * 🧳 旅行者槽位（定长 4，null = 空/已离场）。
+   * 主教（Bishop）等旅行者规则需要读它 —— **禁止** `seats.filter(type==="traveler")`。
+   */
+  travelers?: (Role | null)[];
   virginGuideInfo: {
     targetId: number;
     nominatorId: number;
@@ -126,6 +133,7 @@ export function useDayActions(deps: DayActionsDeps) {
     nominationRecords,
     witchActive,
     witchCursedId,
+    travelers,
     virginGuideInfo,
     cerenovusTarget,
     setCerenovusTarget,
@@ -177,10 +185,29 @@ export function useDayActions(deps: DayActionsDeps) {
         openVoteModal?: boolean;
       }
     ) => {
+      // 🕊️ 主教（traveler）：官方「**只有说书人可以发起提名**。每个白天说书人
+      //   至少要提名一名你对立阵营的玩家。」
+      //   ⇒ 主教在场时，提名者不再是座位，而是「说书人」（sourceId =
+      //     STORYTELLER_NOMINATOR_ID）。反过来，**非**主教在场时不允许说书人提名。
+      const isStorytellerNomination = isStorytellerNominatorId(sourceId);
+      const bishopInPlay = hasTravelerRole(travelers, "bishop");
+      if (isStorytellerNomination && !bishopInPlay) {
+        addLog("说书人只有在主教（旅行者）在场时才能发起提名");
+        return false;
+      }
+      if (!isStorytellerNomination && bishopInPlay) {
+        addLog(
+          "🕊️ 主教在场：只有说书人可以发起提名（玩家无法自行提名）"
+        );
+        return false;
+      }
+
       // 🎯 官方规则（贞洁者条目原文）：「一名已死亡的玩家提名了贞洁者。然而已死亡
       // 玩家无法发起提名。说书人宣布这次提名无效。」——执行层必须再校验，不能只靠 UI 拦。
-      const nominatorSeat = seats.find((s) => s.id === sourceId);
-      if (!nominatorSeat || isSeatDead(nominatorSeat)) {
+      const nominatorSeat = isStorytellerNomination
+        ? null
+        : seats.find((s) => s.id === sourceId);
+      if (!isStorytellerNomination && (!nominatorSeat || isSeatDead(nominatorSeat))) {
         addLog("只有存活的玩家可以发起提名");
         return false;
       }
@@ -494,7 +521,11 @@ export function useDayActions(deps: DayActionsDeps) {
           ).add(id),
         })
       );
-      addLog(`${sourceId + 1}号提名 ${id + 1}号`);
+      addLog(
+        isStorytellerNomination
+          ? `🕊️ 说书人（主教规则）提名 ${id + 1}号`
+          : `${sourceId + 1}号提名 ${id + 1}号`
+      );
       setVoteInputValue("");
       setShowVoteErrorToast(false);
       if (options?.openVoteModal !== false) {
@@ -505,6 +536,7 @@ export function useDayActions(deps: DayActionsDeps) {
     [
       nominationRecords,
       seats,
+      travelers,
       witchActive,
       witchCursedId,
       killPlayer,

@@ -27,8 +27,11 @@ describe("fabled / traveler 数据一致性契约", () => {
     }
   });
 
-  it("FABLED_ROLES 数量为 8（增减须先改本契约）", () => {
-    expect(FABLED_ROLES.length).toBe(8);
+  it("FABLED_ROLES 数量为官方全量 14（增减须先改本契约）", () => {
+    // 2026-10-16 批次：先补登记 deus_ex_fiasco + ferryman（文件早存在却漏登记），
+    // 再补齐 toymaker / fiddler / duchess / djinn ⇒ 达到**官方 legendary 全量 14 个**。
+    // 契约棘轮：增减 FABLED 须先改本契约。
+    expect(FABLED_ROLES.length).toBe(14);
   });
 
   it("FABLED_ROLES 经 push 全部并入 roles（图鉴可查），但同 id 至多一个非 hidden 条目", () => {

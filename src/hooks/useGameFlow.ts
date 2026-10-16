@@ -221,6 +221,10 @@ export function useGameFlow(): UseGameFlowResult {
         if (hasTwilightPhase(state.travelers ?? [], false)) {
           dispatch(gameActions.setTwilightStep(0));
           dispatch(gameActions.clearTwilightVoteTargets());
+          // 🦴 集骨者祝福失效（官方「直到**下个黄昏**」）
+          dispatch(gameActions.clearBoneCollectorBlessing());
+          // ☕ 咖啡师效果失效（官方「直至下个黄昏」）
+          dispatch(gameActions.clearBaristaEffect());
           dispatch(gameActions.setGamePhase("twilight"));
           return;
         }
@@ -245,6 +249,10 @@ export function useGameFlow(): UseGameFlowResult {
     // ⚠️ 必须清零上一夜的官员/窃贼目标：否则本夜取消发动时，
     //    白天投票仍会被残留目标错误加成/扣减。
     dispatch(gameActions.clearTwilightVoteTargets());
+    // 🦴 集骨者祝福失效（官方「重新获得能力**直到下个黄昏**」）
+    dispatch(gameActions.clearBoneCollectorBlessing());
+    // ☕ 咖啡师效果失效（官方「**直至下个黄昏**」）
+    dispatch(gameActions.clearBaristaEffect());
     dispatch(gameActions.setGamePhase("twilight"));
     dispatch(
       gameActions.addLog({
@@ -279,6 +287,8 @@ export function useGameFlow(): UseGameFlowResult {
     // 否则一旦某天处决过，executeJudgment 会永远判定“今天已经有过处决”，
     // 导致后续所有白天都无法再处决，游戏永远无法推进/结束。
     dispatch(gameActions.updateState({ todayExecutedId: null }));
+    // 🪑 女舍监换座额度按**白天**重置（官方「每个白天至多三对」）
+    dispatch(gameActions.clearMatronSwaps());
     // 首个夜晚一旦结束，首夜信息类角色不再参与后续任何夜晚，
     // 即使后续夜序被重置为“首夜”也不重复唤醒。
     if (nightCount === 1) {

@@ -2286,6 +2286,75 @@ export const FABLED_ROLES: Role[] = [
     ruleNotes: "被保护玩家死亡时，对其死负主要责任的人会受到惩罚。",
     hidden: false,
   },
+  {
+    id: "deus_ex_fiasco",
+    name: "失败的上帝",
+    type: "fabled",
+    ability:
+      "每局游戏至少一次，说书人将会出现失误，但会纠正并公开承认自己曾处理有误。",
+    fullDescription:
+      "失败的上帝给说书人一个台阶：允许说书人犯错并公开纠正，缓解说书人压力。",
+    ruleNotes:
+      "每局至少一次。说书人犯错后必须纠正并公开承认（2026-10-16 补登记：能力文件已存在，结算尚未接线）。",
+    hidden: false,
+  },
+  {
+    id: "ferryman",
+    name: "摆渡人",
+    type: "fabled",
+    ability: "在游戏的最后一天，所有已死亡玩家会重新获得投票标记。",
+    fullDescription:
+      "摆渡人让死者在最后一天重新发声，避免终局只剩活人决策。",
+    ruleNotes:
+      "仅游戏最后一天生效；死亡玩家重获投票标记（2026-10-16 已接线：FabledPanel → FERRYMAN_LAST_DAY，真实重置死者幽灵票）。",
+    hidden: false,
+  },
+  {
+    id: "toymaker",
+    name: "玩具匠",
+    type: "fabled",
+    ability: "恶魔可以在夜晚选择放弃攻击（每局游戏至少一次）。邪恶玩家照常获取初始信息。",
+    fullDescription:
+      "玩具匠给恶魔一个「手下留情」的选项，让对局节奏更可控。",
+    ruleNotes:
+      "恶魔放弃攻击（每局至少一次）；邪恶玩家照常获取初始信息（2026-10-16 补登记：能力文件早已存在，结算入口见 FabledPanel）。",
+    hidden: false,
+  },
+  {
+    id: "fiddler",
+    name: "小提琴手",
+    type: "fabled",
+    ability:
+      "每局游戏限一次，恶魔可以秘密选择一名对立阵营的玩家，所有玩家要表决：这两名玩家中谁的阵营获胜。（平局邪恶阵营获胜）",
+    fullDescription:
+      "小提琴手把终局交给一次公开表决，平局时邪恶阵营获胜。",
+    ruleNotes:
+      "每局限一次；表决由说书人主持，平局邪恶胜（2026-10-16 新增：PASSIVE 声明 + FabledPanel 入口）。",
+    hidden: false,
+  },
+  {
+    id: "duchess",
+    name: "公爵夫人",
+    type: "fabled",
+    ability:
+      "每个白天，三名玩家可以一起拜访你。当晚*，他们会得知他们之中有几个是邪恶的，但其中一人的信息是错的。",
+    fullDescription:
+      "公爵夫人为三人小组提供一次「有瑕疵」的邪恶统计信息。",
+    ruleNotes:
+      "三名玩家一起拜访；当晚他们得知组内邪恶数，但其中一人信息错误（2026-10-16 新增：PASSIVE 声明 + FabledPanel 入口）。",
+    hidden: false,
+  },
+  {
+    id: "djinn",
+    name: "灯神",
+    type: "fabled",
+    ability: "使用灯神的相克规则。所有玩家都会知道其内容。",
+    fullDescription:
+      "灯神启用「相克规则」：一组针对本局角色的特殊互动规则，并向所有玩家公示。",
+    ruleNotes:
+      "启用相克规则并公示（2026-10-16 新增：PASSIVE 声明；对局内复用既有相克规则开关，不另起第二套）。",
+    hidden: false,
+  },
 ];
 
 // 把寓言角色推入角色池

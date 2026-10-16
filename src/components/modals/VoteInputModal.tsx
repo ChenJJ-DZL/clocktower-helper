@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
-import type { Seat } from "../../../app/data";
+import type { Role, Seat } from "../../../app/data";
 import { isPlayerEvil } from "../../../app/gameLogic";
 import { displayPlayerName, formatSeatLabel } from "../../utils/seatLabel";
 import { isVoteInvalidSeat, pruneInvalidVoters } from "../../utils/voteEligibility";
 import { computeVoteGrid } from "../../utils/voteGrid";
+import {
+  isTravelerSlotId,
+  listAliveTravelerSlots,
+  voudonAllowsVoter,
+  voudonThreshold,
+} from "../../utils/travelerHooks";
 import { ModalWrapper } from "./ModalWrapper";
 
 interface ButlerVoteInfo {
@@ -45,6 +51,36 @@ function computeButlerInfos(
 export function VoteInputModalContent(props: {
   voterId: number | null;
   seats: Seat[];
+  /**
+   * 🧳 旅行者槽位（定长 4，null = 空/已离场）。
+   * ⚠️ 旅行者**不占 seats**，但**可以投票**（官方：旅行者与玩家一样举手）
+   *   ⇒ 必须单独传进来才能出现在投票名单里。id 用负数插槽编码
+   *   （`travelerSlotId(index) = -(index+1)`），与座位 id 永不冲突。
+   */
+  travelers?: (Role | null)[];
+  /**
+   * 🥣 乞丐（traveler）：官方「你只能使用投票标记才能投票。死亡的玩家可以将他的
+   *   投票标记给你，如果他这么做，你会得知他的阵营。」⇒
+   *   · `beggarSlotId` 非 null 时启用门控：乞丐无标记则在名单上置灰；
+   *   · `beggarEligibleDonors` = 可捐标记的死亡座位（已死 + 仍有幽灵票 + 未捐过）；
+   *   · `beggarDonations` 仅用于展示「乞丐已得知谁是什么阵营」。
+   */
+  beggarSlotId?: number | null;
+  beggarTokens?: number;
+  beggarEligibleDonors?: number[];
+  beggarDonations?: {
+    donorSeatId: number;
+    knownAlignment: "good" | "evil";
+  }[];
+  onGiveBeggarToken?: (donorSeatId: number) => void;
+  /**
+   * 🧙 巫毒师（voudon）：官方「只有你和死亡的玩家可以投票，且投票不需要使用
+   *   投票标记。忽略票数需要过半的要求。」
+   *   · `voudonActive` ⇒ 存活玩家不可举手、死亡玩家不消耗幽灵票、门槛降为 1；
+   *   · `voudonSlotId` = 巫毒师自己的插槽 id（他自己**可以**投票）。
+   */
+  voudonActive?: boolean;
+  voudonSlotId?: number | null;
   registerVotes?: (seatIds: number[]) => void;
   submitVotes: (count: number, voters?: number[]) => void;
   setCurrentModal: (modal: any) => void;
@@ -55,6 +91,16 @@ export function VoteInputModalContent(props: {
   // 被自动剔除的失效选票（幽灵票用尽 / 已死亡），用于内联提示
   const [prunedVoters, setPrunedVoters] = useState<number[]>([]);
   const seats = props.seats;
+  const travelers = props.travelers;
+  const travelerSlots = listAliveTravelerSlots(travelers);
+  // 🥣 乞丐门控：无投票标记 ⇒ 在名单上置灰（官方：只能用投票标记投票）
+  const beggarSlotId = props.beggarSlotId ?? null;
+  const beggarTokens = props.beggarTokens ?? 0;
+  const beggarEligibleDonors = props.beggarEligibleDonors ?? [];
+  const beggarDonations = props.beggarDonations ?? [];
+  // 🧙 巫毒师：改写「谁可投票 / 是否耗幽灵票 / 门槛」
+  const voudonActive = props.voudonActive ?? false;
+  const voudonSlotId = props.voudonSlotId ?? null;
   const candidate = seats.find((s) => s.id === props.voterId);
 
   if (props.voterId === null) return null;
@@ -64,7 +110,11 @@ export function VoteInputModalContent(props: {
     const roleType = (s.role as any)?.type;
     return !s.isDead && roleType !== "traveler";
   });
-  const threshold = Math.max(1, Math.ceil(aliveCore.length / 2));
+  // 门槛：常规 = 存活核心半数向上取整；巫毒师在场 ⇒ 官方「忽略过半要求」= 1
+  const threshold = voudonThreshold(
+    voudonActive,
+    Math.max(1, Math.ceil(aliveCore.length / 2))
+  );
 
   const toggleVoter = (id: number) => {
     setSelectedVoters((prev) =>
@@ -74,7 +124,12 @@ export function VoteInputModalContent(props: {
 
   const { valid: validVoters, pruned: invalidIds } = pruneInvalidVoters(
     selectedVoters,
-    seats
+    seats,
+    // 🧳 旅行者不占 seats ⇒ 不能被「查不到座位」误判为失效票
+    // 🧙 巫毒师在场 ⇒ 死亡玩家不需要投票标记，幽灵票用尽也仍然有效
+    (id) =>
+      isTravelerSlotId(id) ||
+      (voudonActive && Boolean(seats.find((s) => s.id === id)?.isDead))
   );
   const invalidDeadSelected = invalidIds.length > 0;
 
@@ -87,11 +142,15 @@ export function VoteInputModalContent(props: {
     setSelectedVoters(validVoters);
   }, [invalidIds.length, seats]);
 
+  // 🧳 旅行者举手单列（负数插槽 id；他们不占座位、也没有幽灵票概念）
+  const selectedTravelerCount = selectedVoters.filter(isTravelerSlotId).length;
   const selectedAlive = selectedVoters.filter((id) => {
+    if (isTravelerSlotId(id)) return false;
     const seat = seats.find((s) => s.id === id);
     return seat && !seat.isDead;
   }).length;
-  const selectedDead = selectedVoters.length - selectedAlive;
+  const selectedDead =
+    selectedVoters.length - selectedAlive - selectedTravelerCount;
 
   const ghostHolders = seats
     .filter((s) => s.isDead && s.hasGhostVote !== false)
@@ -185,6 +244,12 @@ export function VoteInputModalContent(props: {
               : ""}
             ）
           </div>
+          {voudonActive && (
+            <div className="text-base text-fuchsia-300 font-bold mt-1">
+              🧙 巫毒师在场：只有巫毒师本人与死亡玩家可以投票，且投票不需要使用投票标记；
+              忽略票数需要过半的要求（1 票即上台）
+            </div>
+          )}
         </div>
 
         {/* 玩家网格：列数随人数自适应，卡片尺寸上下封顶，避免人数少时被拉大 */}
@@ -192,8 +257,16 @@ export function VoteInputModalContent(props: {
           {voterRows.map((row, rowIndex) => (
             <div key={rowIndex} className="flex justify-center gap-3">
               {row.map((s) => {
-                const ghostUsed = s.isDead && s.hasGhostVote === false;
-                const disabled = ghostUsed;
+                // 🧙 巫毒师：死亡玩家投票不需投票标记 ⇒ 幽灵票用尽也能投
+                const ghostUsed =
+                  s.isDead && s.hasGhostVote === false && !voudonActive;
+                // 🧙 巫毒师：只有他本人与死亡玩家可投票 ⇒ 存活玩家一律置灰
+                const voudonBlocked = !voudonAllowsVoter(
+                  voudonActive,
+                  Boolean(s.isDead),
+                  false
+                );
+                const disabled = ghostUsed || voudonBlocked;
                 const isSelected = selectedVoters.includes(s.id);
                 return (
                   <button
@@ -214,11 +287,13 @@ export function VoteInputModalContent(props: {
                           : "border-slate-700 bg-slate-800/90 text-slate-200 hover:border-slate-500 hover:bg-slate-700"
                     }`}
                     title={
-                      ghostUsed
-                        ? "幽灵票已用尽"
-                        : s.isDead
-                          ? "死亡玩家可用幽灵票"
-                          : "存活玩家"
+                      voudonBlocked
+                        ? "巫毒师在场：只有巫毒师本人与死亡玩家可以投票"
+                        : ghostUsed
+                          ? "幽灵票已用尽"
+                          : s.isDead
+                            ? "死亡玩家可用幽灵票"
+                            : "存活玩家"
                     }
                   >
                     {/* 字号随卡片宽高自适应(min(cqi,cqh))：人数变化时按钮与文字同步缩放 */}
@@ -240,11 +315,15 @@ export function VoteInputModalContent(props: {
                       className="leading-none opacity-85"
                       style={{ fontSize: "min(7cqi, 14cqh)" }}
                     >
-                      {s.isDead
-                        ? ghostUsed
-                          ? "💀无票"
-                          : "💀幽灵票"
-                        : "🟢存活"}
+                      {voudonBlocked
+                        ? "🚫不可投票"
+                        : s.isDead
+                          ? voudonActive
+                            ? "💀可投票(免标记)"
+                            : ghostUsed
+                              ? "💀无票"
+                              : "💀幽灵票"
+                          : "🟢存活"}
                     </div>
                   </button>
                 );
@@ -252,6 +331,123 @@ export function VoteInputModalContent(props: {
             </div>
           ))}
         </div>
+
+        {/* 🧳 旅行者举手区：旅行者不占座位，用负数插槽 id 独立成排 */}
+        {travelerSlots.length > 0 && (
+          <div className="shrink-0 mt-1.5">
+            <div className="text-sm text-yellow-300/90 mb-1.5">
+              🧳 旅行者举手（不占座位；旅行者与玩家一样可以投票）
+            </div>
+            <div className="flex justify-center gap-3 flex-wrap">
+              {travelerSlots.map((t) => {
+                const isSelected = selectedVoters.includes(t.slotId);
+                // 🥣 乞丐：没有投票标记时不可举手（官方：只能用投票标记才能投票）
+                const isBeggarWithoutToken =
+                  beggarSlotId !== null &&
+                  t.slotId === beggarSlotId &&
+                  beggarTokens <= 0;
+                // 🧙 巫毒师在场：旅行者中**只有巫毒师自己**可以投票
+                const voudonBlockedTraveler = !voudonAllowsVoter(
+                  voudonActive,
+                  false,
+                  t.slotId === voudonSlotId
+                );
+                const travelerDisabled =
+                  isBeggarWithoutToken || voudonBlockedTraveler;
+                return (
+                  <button
+                    key={t.slotId}
+                    type="button"
+                    disabled={travelerDisabled}
+                    onClick={() => toggleVoter(t.slotId)}
+                    className={`min-w-[9rem] px-5 py-2.5 rounded-2xl border-2 text-center transition flex flex-col items-center justify-center gap-0.5 ${
+                      travelerDisabled
+                        ? "border-gray-800 bg-gray-900/60 text-gray-600 cursor-not-allowed opacity-50"
+                        : isSelected
+                          ? "border-amber-400 bg-amber-600 text-white font-bold scale-[1.02] shadow-md shadow-amber-500/30"
+                          : "border-yellow-700/70 bg-yellow-900/40 text-yellow-100 hover:border-yellow-500 hover:bg-yellow-800/50"
+                    }`}
+                    title={
+                      isBeggarWithoutToken
+                        ? "乞丐没有投票标记 —— 需先由一名死亡玩家把投票标记交给他"
+                        : voudonBlockedTraveler
+                          ? "巫毒师在场：只有巫毒师本人与死亡玩家可以投票"
+                          : "旅行者（不占座位，不可被提名，只能被流放）"
+                    }
+                  >
+                    <div className="text-xl font-black leading-none">
+                      🧳 {t.role.name}
+                    </div>
+                    <div className="text-xs opacity-85 leading-none">
+                      {isBeggarWithoutToken
+                        ? "无投票标记·不可举手"
+                        : voudonBlockedTraveler
+                          ? "巫毒师规则·不可举手"
+                          : `旅行者·第${t.index + 1}位`}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 🥣 乞丐：死亡玩家交出投票标记（交出 ⇒ 乞丐 +1 枚且得知其阵营） */}
+        {beggarSlotId !== null && (
+          <div className="shrink-0 mt-1.5 rounded-xl border-2 border-amber-500/40 bg-amber-950/30 px-4 py-2">
+            <div className="text-base text-amber-100 font-bold">
+              🥣 乞丐投票标记：
+              <span className="text-amber-300 text-2xl mx-1">
+                {beggarTokens}
+              </span>
+              枚（每次以乞丐身份投票消耗 1 枚）
+            </div>
+            {beggarEligibleDonors.length > 0 ? (
+              <div className="mt-1.5">
+                <div className="text-xs text-amber-200/80 mb-1">
+                  死亡玩家可把自己的投票标记交给乞丐（交出后消耗其幽灵票，
+                  乞丐随之得知其阵营）：
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {beggarEligibleDonors.map((id) => {
+                    const s = seats.find((seat) => seat.id === id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => props.onGiveBeggarToken?.(id)}
+                        className="px-3 py-1.5 rounded-lg border border-amber-500/60 bg-amber-900/40 text-amber-100 text-sm font-bold hover:bg-amber-800/60 transition"
+                      >
+                        💀 {id + 1}号
+                        {displayPlayerName(s?.playerName, id)
+                          ? `(${displayPlayerName(s?.playerName, id)})`
+                          : ""}{" "}
+                        交出投票标记
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-1 text-xs text-amber-200/60">
+                当前没有可交出投票标记的死亡玩家（需已死亡且仍持有幽灵票、且未交出过）
+              </div>
+            )}
+            {beggarDonations.length > 0 && (
+              <div className="mt-1.5 text-xs text-emerald-300/90">
+                乞丐已得知：
+                {beggarDonations
+                  .map(
+                    (d) =>
+                      `${d.donorSeatId + 1}号是${
+                        d.knownAlignment === "evil" ? "邪恶" : "善良"
+                      }`
+                  )
+                  .join("、")}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 核心生效票数展示卡片（单版面直观核心） */}
         <div className="shrink-0 mt-1 py-1.5 px-4 text-base text-gray-200 bg-slate-900/70 rounded-xl border border-slate-700/60 shadow-inner">
@@ -293,6 +489,15 @@ export function VoteInputModalContent(props: {
               死亡举手:{" "}
               <strong className="text-gray-200">{selectedDead}</strong> 人
             </span>
+            {selectedTravelerCount > 0 && (
+              <span className="text-yellow-300/90">
+                🧳 旅行者举手:{" "}
+                <strong className="text-gray-200">
+                  {selectedTravelerCount}
+                </strong>{" "}
+                位
+              </span>
+            )}
             {excludedButlers.length > 0 && (
               <span className="text-yellow-300 font-medium">
                 ⚠️ 已剔除 {excludedButlers.length} 张管家无效票（主人未举手）

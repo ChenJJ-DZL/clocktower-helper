@@ -6,6 +6,7 @@ import type { GamePhase, Role, Seat } from "../../app/data";
 import type { GameRecord, NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import { showConfirm } from "../utils/nativeDialogShim";
+import { useGameContext } from "../contexts/GameContext";
 
 /**
  * 确认弹窗处理函数的依赖接口
@@ -104,6 +105,10 @@ export interface ConfirmHandlersDeps {
  * 从 useGameController 中提取的 Group A 函数
  */
 export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
+  // 旅行者接线：需要派发 GameContext 的 action（替罪羊代刑 / 枪手射击）
+  const { dispatch } = useGameContext() as unknown as {
+    dispatch: (action: any) => void;
+  };
   const {
     nightInfo,
     currentModal,
@@ -512,6 +517,56 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     setCurrentModal(null);
   }, [setCurrentModal]);
 
+  /**
+   * 🐑 旅行者 · 替罪羊：说书人裁定「代刑」。
+   * 官方原文：「如果你的阵营的一名玩家被处决，你可能会代替他被处决。」
+   * 写入 `travelerHookChoices.scapegoatSubstituteForId` 后重走处决流程，
+   * `executePlayer` 内的代刑分支会读到该裁定（判据见 utils/travelerHooks.ts）。
+   */
+  const confirmScapegoatSubstitute = useCallback(() => {
+    if (!currentModal || currentModal.type !== "TRAVELER_SCAPEGOAT_CHOICE")
+      return;
+    const { targetId } = currentModal.data;
+    setCurrentModal(null);
+    dispatch({ type: "SET_SCAPEGOAT_SUBSTITUTE", targetId });
+    addLog(`🐑 说书人裁定：旅行者替罪羊为${targetId + 1}号代为受刑`);
+    executePlayer(targetId);
+  }, [currentModal, setCurrentModal, dispatch, executePlayer, addLog]);
+
+  /** 替罪羊：说书人裁定「不代刑」⇒ 正常处决（零回归路径） */
+  const cancelScapegoatSubstitute = useCallback(() => {
+    if (!currentModal || currentModal.type !== "TRAVELER_SCAPEGOAT_CHOICE")
+      return;
+    const { targetId } = currentModal.data;
+    setCurrentModal(null);
+    addLog(`⚖️ 说书人裁定：${targetId + 1}号正常被处决（替罪羊不代刑）`);
+    executePlayer(targetId);
+  }, [currentModal, setCurrentModal, executePlayer, addLog]);
+
+  /**
+   * 🔫 旅行者 · 枪手：说书人从「刚投过票」名单中选射击目标。
+   * 官方原文：「每个白天，当首次投票被统计后，你可以选择一名刚投过票的玩家：他死亡。」
+   * 目标合法性由 reducer 的纯函数判据把关（travelerGunslingerCanShoot）。
+   */
+  const fireGunslinger = useCallback(
+    (targetId: number) => {
+      if (!currentModal || currentModal.type !== "TRAVELER_GUNSLINGER_CHOICE")
+        return;
+      const { night } = currentModal.data;
+      setCurrentModal(null);
+      dispatch({ type: "FIRE_GUNSLINGER", targetId, night });
+      addLog(`🔫 枪手射击：${targetId + 1}号（刚投过票）立即死亡`);
+      killPlayer(targetId, { source: "execution", recordNightDeath: false });
+    },
+    [currentModal, setCurrentModal, dispatch, killPlayer, addLog]
+  );
+
+  /** 枪手：说书人放弃射击 ⇒ 关窗（当天不再开窗） */
+  const cancelGunslingerFire = useCallback(() => {
+    setCurrentModal(null);
+    addLog(`🔫 枪手未在本次白天射击`);
+  }, [setCurrentModal, addLog]);
+
   const confirmEvilTwinExecution = useCallback(() => {
     if (!currentModal || currentModal.type !== "EVIL_TWIN_EXECUTION_CONFIRM")
       return;
@@ -647,6 +702,10 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       confirmHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmScapegoatSubstitute,
+      cancelScapegoatSubstitute,
+      fireGunslinger,
+      cancelGunslingerFire,
       confirmEvilTwinExecution,
       cancelEvilTwinExecution,
       confirmRavenkeeperFake,
@@ -663,6 +722,10 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       confirmHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmScapegoatSubstitute,
+      cancelScapegoatSubstitute,
+      fireGunslinger,
+      cancelGunslingerFire,
       confirmEvilTwinExecution,
       cancelEvilTwinExecution,
       confirmRavenkeeperFake,

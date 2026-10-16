@@ -196,6 +196,45 @@ export function createSnapshotFromState(state: GameState): GameSnapshot {
       bureaucratTargetId: state.twilightVoteTargets?.bureaucratTargetId ?? null,
       thiefTargetId: state.twilightVoteTargets?.thiefTargetId ?? null,
     },
+    travelerHookChoices: {
+      scapegoatSubstituteForId:
+        state.travelerHookChoices?.scapegoatSubstituteForId ?? null,
+      gunslingerEligibleVoterIds:
+        state.travelerHookChoices?.gunslingerEligibleVoterIds ?? [],
+      gunslingerTargetId: state.travelerHookChoices?.gunslingerTargetId ?? null,
+      gunslingerWindowNight:
+        state.travelerHookChoices?.gunslingerWindowNight ?? null,
+      gunslingerUsedNight: state.travelerHookChoices?.gunslingerUsedNight ?? null,
+      // ⚖️ 法官「每局限一次」闩锁（漏登记 ⇒ 刷新后法官能力可被反复使用）
+      judgeUsedThisGame:
+        state.travelerHookChoices?.judgeUsedThisGame ?? false,
+      // 🥩 屠夫「本白天已用第二次处决」（漏登记 ⇒ 刷新后可反复二次处决）
+      butcherExtraExecutionDay:
+        state.travelerHookChoices?.butcherExtraExecutionDay ?? null,
+      // 🦴 集骨者（漏登记 ⇒ 刷新后"每局限一次"失效 + 死者祝福丢失）
+      boneCollectorUsed: state.travelerHookChoices?.boneCollectorUsed ?? false,
+      boneCollectorTargetId:
+        state.travelerHookChoices?.boneCollectorTargetId ?? null,
+      // ☕ 咖啡师 / 🌙 流莺（漏登记 ⇒ 刷新后效果与裁定全部丢失）
+      baristaTargetId: state.travelerHookChoices?.baristaTargetId ?? null,
+      baristaEffect: state.travelerHookChoices?.baristaEffect ?? null,
+      harlotTargetId: state.travelerHookChoices?.harlotTargetId ?? null,
+      harlotAgreed: state.travelerHookChoices?.harlotAgreed ?? false,
+      harlotDoomed: state.travelerHookChoices?.harlotDoomed ?? false,
+      // 🎓 学徒（漏登记 ⇒ 刷新后"获得的能力"丢失）
+      apprenticeGrantedRoleId:
+        state.travelerHookChoices?.apprenticeGrantedRoleId ?? null,
+      // 🪑 女舍监本日换座记录（漏登记 ⇒ 刷新后"至多三对"上限失效）
+      matronSwaps: state.travelerHookChoices?.matronSwaps ?? [],
+    },
+    // 🎴 传奇角色说书人状态（漏登记 ⇒ 刷新后 fibbin/天使/革命者 等裁定全部丢失）
+    fabledState: safeJsonClone(state.fabledState ?? {}),
+    travelerAlignments: state.travelerAlignments ?? {},
+    // 🥣 乞丐投票标记账本（漏登记 ⇒ 刷新后标记清零、乞丐"又没票了"）
+    beggarState: {
+      tokens: state.beggarState?.tokens ?? 0,
+      donations: state.beggarState?.donations ?? [],
+    },
     selectedScript: state.selectedScript
       ? safeJsonClone(state.selectedScript)
       : null,

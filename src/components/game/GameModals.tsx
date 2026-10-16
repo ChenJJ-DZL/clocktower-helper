@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ReminderToken } from "@/app/data";
 import type { GameRecord } from "@/src/types/game";
 import { roles } from "../../../app/data";
+import { isPlayerEvil } from "../../../app/gameLogic";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameState } from "../../hooks/useGameState";
@@ -19,6 +20,7 @@ import { ExecutionResultModal } from "../modals/ExecutionResultModal";
 import { GameRecordsModal } from "../modals/GameRecordsModal";
 import { GenericAlertModal } from "../modals/GenericAlertModal";
 import { GenericConfirmModal } from "../modals/GenericConfirmModal";
+import { ConfirmChoiceModal } from "../modals/ConfirmChoiceModal";
 import { IdentityShowcaseModal } from "../modals/IdentityShowcaseModal";
 import { CerenovusMadnessModal } from "../modals/CerenovusMadnessModal";
 import { InfoResultModal } from "../modals/InfoResultModal";
@@ -62,6 +64,8 @@ import { VirginGuideModal } from "../modals/VirginGuideModal";
 import { VirginTriggerModal } from "../modals/VirginTriggerModal";
 import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
+import { listAliveTravelerSlots } from "../../utils/travelerHooks";
+import { markVoteSettled } from "../../utils/nominationEligibility";
 import { GameOverOverlay } from "./GameOverOverlay";
 
 export function GameModals() {
@@ -143,9 +147,27 @@ export function GameModals() {
     actions,
   ]);
 
+  // 🥣 乞丐：投票标记账本 + 可捐赠者（已死 / 仍有幽灵票 / 未捐过）
+  const aliveTravelerSlots = listAliveTravelerSlots(gameState.travelers);
+  const beggarTraveler =
+    aliveTravelerSlots.find((t) => t.role.id === "beggar") ?? null;
+  // 🧙 巫毒师：改写投票规则（只有他本人与死亡玩家可投票、免投票标记、忽略过半）
+  const voudonTraveler =
+    aliveTravelerSlots.find((t) => t.role.id === "voudon") ?? null;
+  const beggarLedger = gameState.beggarState ?? { tokens: 0, donations: [] };
+  const beggarEligibleDonors = beggarTraveler
+    ? seats
+        .filter(
+          (s) =>
+            s.isDead &&
+            (s as any).hasGhostVote !== false &&
+            !beggarLedger.donations.some((d) => d.donorSeatId === s.id)
+        )
+        .map((s) => s.id)
+    : [];
+
   // Modal data extraction
-  const nightOrderModal =
-    currentModal?.type === "NIGHT_ORDER_PREVIEW" ? currentModal.data : null;
+  const nightOrderModal =    currentModal?.type === "NIGHT_ORDER_PREVIEW" ? currentModal.data : null;
   const drunkCharadeSelectModal =
     currentModal?.type === "DRUNK_CHARADE_SELECT" ? currentModal.data : null;
   const voteInputModal =
@@ -230,6 +252,23 @@ export function GameModals() {
         <VoteInputModalContent
           voterId={voteInputModal.voterId}
           seats={seats}
+          travelers={gameState.travelers ?? []}
+          beggarSlotId={beggarTraveler?.slotId ?? null}
+          beggarTokens={beggarLedger.tokens}
+          beggarEligibleDonors={beggarEligibleDonors}
+          beggarDonations={beggarLedger.donations}
+          voudonActive={voudonTraveler !== null}
+          voudonSlotId={voudonTraveler?.slotId ?? null}
+          onGiveBeggarToken={(donorSeatId) => {
+            dispatch(gameActions.giveBeggarToken(donorSeatId));
+            const donorSeat = seats.find((s) => s.id === donorSeatId);
+            const alignment = donorSeat && isPlayerEvil(donorSeat) ? "邪恶" : "善良";
+            actions.addLog?.({
+              day: nightCount,
+              phase: gamePhase,
+              message: `🥣 ${donorSeatId + 1}号（死亡）把自己的投票标记交给乞丐，乞丐得知其阵营为「${alignment}」`,
+            } as any);
+          }}
           registerVotes={actions.registerVotes}
           submitVotes={actions.submitVotes}
           onCancelVote={(nomineeId) =>
@@ -295,6 +334,105 @@ export function GameModals() {
         isOpen={currentModal?.type === "SAINT_EXECUTION_CONFIRM"}
         onConfirm={actions.confirmSaintExecution}
         onCancel={actions.cancelSaintExecution}
+      />
+
+      {/* 🐑 旅行者 · 替罪羊：说书人裁定是否代刑 */}
+      <ConfirmChoiceModal
+        isOpen={currentModal?.type === "TRAVELER_SCAPEGOAT_CHOICE"}
+        title="🐑 替罪羊代刑"
+        message={
+          currentModal?.type === "TRAVELER_SCAPEGOAT_CHOICE"
+            ? `${currentModal.data.targetId + 1}号即将被处决。旅行者「替罪羊」与他同阵营且存活，是否由替罪羊代为受刑？`
+            : ""
+        }
+        options={[
+          { label: "🐑 替罪羊代刑", value: "substitute" },
+          { label: "⚖️ 正常处决", value: "pass" },
+        ]}
+        onSelect={(v) => {
+          if (v === "substitute") actions.confirmScapegoatSubstitute();
+          else actions.cancelScapegoatSubstitute();
+        }}
+        onCancel={actions.cancelScapegoatSubstitute}
+      />
+
+      {/* 🔫 旅行者 · 枪手：首次投票统计后选射击目标 */}
+      <ConfirmChoiceModal
+        isOpen={currentModal?.type === "TRAVELER_GUNSLINGER_CHOICE"}
+        title="🔫 枪手射击"
+        message="首次投票已被统计。枪手可以选择一名刚投过票的玩家射击（该玩家立即死亡）："
+        options={
+          currentModal?.type === "TRAVELER_GUNSLINGER_CHOICE"
+            ? currentModal.data.eligibleVoterIds.map((id) => ({
+                label: `${id + 1}号`,
+                value: String(id),
+              }))
+            : []
+        }
+        onSelect={(v) => actions.fireGunslinger(Number(v))}
+        onCancel={actions.cancelGunslingerFire}
+      />
+
+      {/* ⚖️ 旅行者 · 法官：提名后、投票前，说书人裁定本次提名结局（每局限一次） */}
+      <ConfirmChoiceModal
+        isOpen={currentModal?.type === "TRAVELER_JUDGE_CHOICE"}
+        title="⚖️ 法官裁决"
+        message={
+          currentModal?.type === "TRAVELER_JUDGE_CHOICE"
+            ? `${currentModal.data.nominatorId + 1}号提名了${currentModal.data.nomineeId + 1}号。旅行者「法官」可（每局限一次）改写本次提名：直接执行处决，或让本次投票无效。`
+            : ""
+        }
+        options={[
+          { label: "⚖️ 直接执行处决", value: "execute" },
+          { label: "🚫 让投票无效", value: "void" },
+        ]}
+        onSelect={(v) => {
+          if (currentModal?.type !== "TRAVELER_JUDGE_CHOICE") return;
+          const { nomineeId } = currentModal.data;
+          if (v === "execute") {
+            dispatch(gameActions.markJudgeUsed("execute"));
+            // 该提名就此结算（官方：法官改写了本次提名的结局）⇒ 打结算闩锁
+            markVoteSettled();
+            dispatch(
+              gameActions.updateState({
+                todayExecutedId: nomineeId,
+                hasExecutedThisDay: true,
+              })
+            );
+            actions.addLog?.({
+              day: nightCount,
+              phase: gamePhase,
+              message: `⚖️ 法官行使能力：本次提名直接执行处决 —— ${nomineeId + 1}号被处决`,
+            } as any);
+            (actions as any).executePlayer?.(nomineeId);
+          } else {
+            dispatch(gameActions.markJudgeUsed("void"));
+            markVoteSettled();
+            actions.addLog?.({
+              day: nightCount,
+              phase: gamePhase,
+              message: `⚖️ 法官行使能力：本次提名投票无效 —— ${nomineeId + 1}号不会被处决`,
+            } as any);
+            actions.setCurrentModal?.({
+              type: "EXECUTION_RESULT",
+              data: { message: `⚖️ 法官宣布本次提名投票无效，无人被处决` },
+            } as any);
+          }
+        }}
+        onCancel={() => {
+          // 「不使用能力」⇒ 不置闩锁（后续每次提名仍会再问一次），照常进入投票
+          if (currentModal?.type !== "TRAVELER_JUDGE_CHOICE") return;
+          const { nomineeId } = currentModal.data;
+          actions.addLog?.({
+            day: nightCount,
+            phase: gamePhase,
+            message: `⚖️ 法官未行使能力，本次提名照常投票`,
+          } as any);
+          actions.setCurrentModal?.({
+            type: "VOTE_INPUT",
+            data: { voterId: nomineeId },
+          } as any);
+        }}
       />
 
       <EvilTwinExecutionConfirmModal

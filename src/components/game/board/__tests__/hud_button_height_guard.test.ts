@@ -29,8 +29,17 @@ describe("TableCenterHUD 传奇/旅行者按钮等高契约", () => {
     );
   });
 
-  it("③ 两按钮 padding 基线一致（px-4 py-2），防止只改高度不改内距造成视觉失衡", () => {
+  it("③ 同类按钮 padding 基线一致（px-4 py-2），防止只改高度不改内距造成视觉失衡", () => {
     const matches = SRC.match(/px-4 py-2 min-h-\[68px\]/g) ?? [];
-    expect(matches.length).toBe(2);
+    // 传奇 / 旅行者 / 女舍监换座（2026-10-16 新增）——同类按钮 ≥ 2 且都走同一基线。
+    // ⚠️ 用 `>=` 而非精确相等：新增同类按钮（如旅行者功能入口）不应让本护栏误红；
+    //    真正的契约是"凡带 min-h-[68px] 的按钮，padding 必须同为 px-4 py-2"。
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+    // 反向断言：不得出现带 min-h-[68px] 却使用其它 padding 基线的同类按钮
+    const minHCount = (SRC.match(/min-h-\[68px\]/g) ?? []).length;
+    expect(
+      matches.length,
+      "所有带 min-h-[68px] 的按钮都必须使用 px-4 py-2 基线"
+    ).toBe(minHCount);
   });
 });

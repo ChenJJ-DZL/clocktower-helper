@@ -52,6 +52,18 @@ const EFFECT_LANDED: string[] = [
   "deviant", // 怪咖 · 流放豁免（exile.ts 钩子）
   "bureaucrat", // 官员 · 三票（twilightVoteTargets + submitVotes +2）
   "thief", // 窃贼 · 负票（twilightVoteTargets + submitVotes -2）
+  "scapegoat_traveler", // 替罪羊 · 代刑（executePlayer 处决结算 + 说书人裁决）
+  "gunslinger", // 枪手 · 首次投票后射击刚投票者（submitVotes 开窗 + reducer 判据）
+  "beggar", // 乞丐 · 投票标记（VoteInputModal 门控 + submitVotes 消耗 + GameContext 账本）
+  "voudon", // 巫毒师 · 只有他本人与死者可投票 / 免投票标记 / 忽略过半门槛
+  "judge", // 法官 · 提名后（投票前）直接处决或作废本次投票，每局限一次
+  "butcher", // 屠夫 · 首次处决后可再次提名 ⇒ 解除「当日已处决」门控
+  "bishop", // 主教 · 只有说书人可发起提名（提名者改用 STORYTELLER_NOMINATOR_ID）
+  "bone_collector", // 集骨者 · 暮色祝福死者重新获得能力直到下个黄昏（每局限一次）
+  "barista", // 咖啡师 · 暮色二选一：解除并免疫毒醉 / 能力两次
+  "harlot", // 流莺 · 暮色选存活玩家：同意则得知角色，两人可能同时死亡
+  "apprentice", // 学徒 · 首夜按阵营获得镇民/爪牙能力（说书人助手口径）
+  "matron", // 女舍监 · 每个白天至多三对座位交换（内容互换、id 保留）
 ];
 
 /** ①b 效果落地项的**证据**（宿主文件 + 判据函数） */
@@ -79,6 +91,100 @@ const HOOK_EVIDENCE: Record<
     说明:
       "窃贼：暮色选目标 ⇒ 明天白天该玩家投票算作负数（v -= 2，净 -1，2026-10-13 落地）",
   },
+  scapegoat_traveler: {
+    宿主: "executePlayer（处决结算，死亡落定前）",
+    文件: "../../hooks/useExecutionHandlers.ts",
+    判据: "travelerScapegoatCanSubstitute",
+    说明:
+      "替罪羊：同阵营玩家被处决时说书人可裁定代刑 —— 替罪羊死、原玩家免死（2026-10-16 落地）",
+  },
+  gunslinger: {
+    宿主: "submitVotes（首次投票结算后开窗）→ reducer FIRE_GUNSLINGER",
+    文件: "../../contexts/GameContext.tsx",
+    判据: "travelerGunslingerCanShoot",
+    说明:
+      "枪手：每天首次投票统计后，可射击一名刚投过票的玩家使其死亡（2026-10-16 落地）",
+  },
+  beggar: {
+    宿主:
+      "submitVotes（投票落定后消耗 1 枚标记）+ VoteInputModal（无标记置灰）+ GameContext 账本",
+    文件: "../../hooks/useExecutionHandlers.ts",
+    判据: "travelerSlotId",
+    说明:
+      "乞丐：只能用投票标记投票 —— 死亡玩家赠标记（GIVE_BEGGAR_TOKEN，乞丐同时得知其阵营），投票时消耗（2026-10-16 落地）",
+  },
+  voudon: {
+    宿主:
+      "submitVotes（幽灵票豁免 + 门槛降为 1）+ VoteInputModal（只有他本人与死亡玩家可举手）",
+    文件: "../../hooks/useExecutionHandlers.ts",
+    判据: "voudonSkipsGhostVote",
+    说明:
+      "巫毒师：只有他与死亡玩家可以投票、不需要投票标记、忽略过半要求（2026-10-16 落地）",
+  },
+  judge: {
+    宿主:
+      "GameStage 提名后介入（弹窗）→ GameModals 裁决 → GameContext MARK_JUDGE_USED 整局闩锁",
+    文件: "../../contexts/GameContext.tsx",
+    判据: "hasTravelerRole",
+    说明:
+      "法官：每局限一次，提名后可直接执行处决或让投票无效（2026-10-16 落地）",
+  },
+  butcher: {
+    宿主:
+      "executeJudgment（首次处决后解除「今日已处决」门控 ⇒ 允许当日第二次处决）",
+    文件: "../../hooks/useExecutionHandlers.ts",
+    判据: "hasTravelerRole",
+    说明:
+      "屠夫：每个白天首次处决后可以再次发起提名（当日第二次处决，每白天一次）（2026-10-16 落地）",
+  },
+  bishop: {
+    宿主:
+      "useDayActions.executeNomination（玩家提名被拒 / 说书人提名放行）+ GameStage 说书人提名交互",
+    文件: "../../hooks/useDayActions.ts",
+    判据: "hasTravelerRole",
+    说明:
+      "主教：只有说书人可以发起提名（提名者改用 STORYTELLER_NOMINATOR_ID）（2026-10-16 落地）",
+  },
+  bone_collector: {
+    宿主:
+      "TwilightPanel 选死者 → GameContext BONE_COLLECTOR_BLESS 写入 hasAbilityEvenDead（useGameFlow 下个暮色撤销）",
+    文件: "../../contexts/GameContext.tsx",
+    判据: "hasTravelerRole",
+    说明:
+      "集骨者：每局限一次，暮色选一名已死亡玩家使其重新获得能力直到下个黄昏（2026-10-16 落地）",
+  },
+  barista: {
+    宿主:
+      "TwilightPanel 二选一 → GameContext SET_BARISTA_EFFECT（clear 写 baristaCleared；useGameFlow 下个暮色撤销）",
+    文件: "../../utils/gameRules.ts",
+    判据: "isBaristaCleared",
+    说明:
+      "咖啡师：解除并免疫中毒/醉酒（computeIsPoisoned 与 isActorDisabledByPoisonOrDrunk 双判据读取）/ 能力可生效两次（2026-10-16 落地）",
+  },
+  harlot: {
+    宿主:
+      "TwilightPanel 选存活玩家 → SET_HARLOT_OUTCOME（同意则显示角色）→ killPlayer + EXECUTE_TRAVELER_SLOT 双死",
+    文件: "../../components/game/TwilightPanel.tsx",
+    判据: "killPlayer",
+    说明:
+      "流莺：选一名存活玩家，若对方同意则得知其角色，但两人可能同时死亡（说书人两次裁定）（2026-10-16 落地）",
+  },
+  apprentice: {
+    宿主:
+      "TwilightPanel 首夜按阵营列候选（镇民/爪牙）→ GameContext SET_APPRENTICE_ROLE 记录",
+    文件: "../../components/game/TwilightPanel.tsx",
+    判据: "setApprenticeGrantedRole",
+    说明:
+      "学徒：首夜善良获镇民能力 / 邪恶获爪牙能力（说书人助手口径：面板记录 + 提示，引擎不自动挂载）（2026-10-16 落地）",
+  },
+  matron: {
+    宿主:
+      "TableCenterHUD 换座面板（点两名玩家）→ GameContext MATRON_SWAP（内容互换保留 id，每白天至多 3 对）",
+    文件: "../../components/game/board/TableCenterHUD.tsx",
+    判据: "matronSwap",
+    说明:
+      "女舍监：每个白天至多交换三对玩家座位（换座改变物理邻座关系；当轮已产生的投票记录不随之改写）（2026-10-16 落地）",
+  },
 };
 
 /**
@@ -92,22 +198,17 @@ const TWILIGHT_REACHABLE: string[] = Object.keys(TWILIGHT_TRAVELERS).filter(
 
 /** ③ 仅注册：有能力文件 + 可查到，但**没有任何路径触达** */
 const REGISTERED_ONLY: string[] = [
-  "beggar", // 乞丐 · 投票标记规则 —— 无投票流程挂钩
-  "gunslinger", // 枪手 · 白天击杀 —— 无白天结算挂钩
-  "scapegoat_traveler", // 替罪羊 · 代刑（别名已修，但处决结算未挂钩）
+  // 🎉 2026-10-16：本档已清零 ——  beggar 已移入 EFFECT_LANDED。
+  //    保持空数组（而非删常量）是为了让 ① 四档并集断言结构不变，
+  //    将来出现新的"有文件但不触达"角色时直接往这里加。
 ];
 
 /** ④ 未接线：连能力文件都没有 —— 每项附缺口原因，实现后移出 */
-const UNWIRED: Record<string, string> = {
-  butcher: "白天首次处决后可再次提名，提名流程无二次提名入口",
-  judge: "每局限一次直接执行或作废提名，提名结算无介入点",
-  matron: "白天交换至多三对玩家座位，座位置换 UI/状态未实现",
-  bishop: "只有说书人可发起提名，提名发起权限模型未建立",
-  voudon: "仅自己与死者可投票且不需投票标记、忽略过半，投票规则未参数化",
-};
+/** ④ 未接线：连能力文件都没有 —— **2026-10-16 起已清零**（15/15 全部落地） */
+const UNWIRED: Record<string, string> = {};
 
-/** 棘轮基线：UNWIRED 只许变少（2026-10-13 从 9 → 5） */
-const UNWIRED_CEILING = 5;
+/** 棘轮基线：UNWIRED 只许变少（2026-10-13：9 → 5；2026-10-16：**清零**） */
+const UNWIRED_CEILING = 0;
 
 const GAME_CONTEXT_SRC = readFileSync(
   resolve(__dirname, "../../contexts/GameContext.tsx"),

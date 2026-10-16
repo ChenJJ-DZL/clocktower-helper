@@ -107,6 +107,25 @@ export type ModalType =
       type: "SAINT_EXECUTION_CONFIRM";
       data: { targetId: number; skipLunaticRps?: boolean };
     }
+  /** 旅行者 · 替罪羊：说书人裁定是否代刑（官方「可能会代替他被处决」） */
+  | {
+      type: "TRAVELER_SCAPEGOAT_CHOICE";
+      data: { targetId: number; scapegoatIndex: number };
+    }
+  /** 旅行者 · 枪手：首次投票结算后，说书人从「刚投过票」者中选射击目标 */
+  | {
+      type: "TRAVELER_GUNSLINGER_CHOICE";
+      data: { eligibleVoterIds: number[]; night: number };
+    }
+  /**
+   * ⚖️ 旅行者 · 法官：官方「每局游戏限一次，如果**其他玩家**发起了提名，
+   *   你可以选择让本次提名**直接执行处决**或让**投票无效**。」
+   *   时机 = 提名发起后、投票开始前（说书人问法官是否行使能力）。
+   */
+  | {
+      type: "TRAVELER_JUDGE_CHOICE";
+      data: { nomineeId: number; nominatorId: number; judgeIndex: number };
+    }
   | {
       type: "EVIL_TWIN_EXECUTION_CONFIRM";
       data: { targetId: number; skipLunaticRps?: boolean };

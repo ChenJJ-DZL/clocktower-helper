@@ -24,14 +24,23 @@ export function isVoteInvalidSeat(
  * 用于「勾选时还有幽灵票 → 提交前被翻成 false」的场景：
  * 必须自动剔除，否则确认按钮会永久处于禁用态且无任何提示，
  * 把用户与自动化驱动逼进「投票 → 取消 → 重投」的死循环。
+ *
+ * @param isNonSeatVoter 非座位投票者谓词（如旅行者插槽 id 为负数）。
+ *   旅行者**不占 seats** ⇒ `seats.find` 恒找不到 ⇒ 会被误判为失效而剔除。
+ *   传入该谓词后，命中的 id 直接视为**有效**并原样保留。
  */
 export function pruneInvalidVoters<T extends VoteSeat>(
   selected: readonly number[],
-  seats: readonly T[]
+  seats: readonly T[],
+  isNonSeatVoter?: (id: number) => boolean
 ): { valid: number[]; pruned: number[] } {
   const valid: number[] = [];
   const pruned: number[] = [];
   for (const id of selected) {
+    if (isNonSeatVoter?.(id)) {
+      valid.push(id);
+      continue;
+    }
     const seat = seats.find((s) => s.id === id);
     if (isVoteInvalidSeat(seat)) pruned.push(id);
     else valid.push(id);

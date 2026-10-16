@@ -30,6 +30,14 @@ import * as fibbinMod from "../../new_engine/fibbin.ability";
 import * as hellsLibrarianMod from "../../new_engine/hells_librarian.ability";
 import * as buddhistMod from "../../new_engine/buddhist.ability";
 import * as angelMod from "../../new_engine/angel.ability";
+// 2026-10-16 补登记：官方 legendary 有、能力文件早已存在却漏登记进 FABLED_ROLES
+import * as deusExFiascoMod from "../../new_engine/deus_ex_fiasco.ability";
+import * as ferrymanMod from "../../new_engine/ferryman.ability";
+// 2026-10-16 补齐：官方 legendary 全量 14（toymaker 文件早已存在；其余 3 个本轮新建）
+import * as toymakerMod from "../../new_engine/toymaker.ability";
+import * as fiddlerMod from "../../new_engine/fiddler.ability";
+import * as duchessMod from "../../new_engine/duchess.ability";
+import * as djinnMod from "../../new_engine/djinn.ability";
 
 const docs = officialRoleDocs as Record<string, string>;
 const registry: any = abilityRegistry;
@@ -43,6 +51,12 @@ const FABLED_MODULES: Record<string, object> = {
   hells_librarian: hellsLibrarianMod,
   buddhist: buddhistMod,
   angel: angelMod,
+  deus_ex_fiasco: deusExFiascoMod,
+  ferryman: ferrymanMod,
+  toymaker: toymakerMod,
+  fiddler: fiddlerMod,
+  duchess: duchessMod,
+  djinn: djinnMod,
 };
 
 /** 仓库译名 → 官方文档键（既有翻译差异登记册口径） */
@@ -76,9 +90,10 @@ beforeAll(() => {
 });
 
 describe("L1 全局数据契约", () => {
-  it("FABLED_ROLES 恰好 8 个、id 唯一、type 全为 fabled", () => {
-    expect(FABLED_ROLES).toHaveLength(8);
-    expect(new Set(FABLED_IDS).size).toBe(8);
+  it("FABLED_ROLES 恰好 14 个（官方 legendary 全量）、id 唯一、type 全为 fabled", () => {
+    // 2026-10-16：10（含补登记的 deus_ex_fiasco/ferryman）→ 14（补齐 toymaker/fiddler/duchess/djinn）
+    expect(FABLED_ROLES).toHaveLength(14);
+    expect(new Set(FABLED_IDS).size).toBe(14);
     expect(FABLED_ROLES.every((f) => f.type === "fabled")).toBe(true);
   });
 
@@ -120,9 +135,9 @@ describe("L1 全局数据契约", () => {
     }
   });
 
-  it("23 个 id 全量清单 = 8 fabled + 15 traveler", () => {
-    expect(ALL_IDS).toHaveLength(23);
-    expect(new Set(ALL_IDS).size).toBe(23);
+  it("29 个 id 全量清单 = 14 fabled + 15 traveler", () => {
+    expect(ALL_IDS).toHaveLength(29);
+    expect(new Set(ALL_IDS).size).toBe(29);
     expect(nightOrderIds.size).toBeGreaterThan(0);
   });
 });
@@ -275,8 +290,8 @@ describe.each(TRAVELER_ROLES.map((r) => [r.id, r] as const))(
   }
 );
 
-describe("负向对照全量（23 个 id 逐一独立 expect）", () => {
-  it("23 个 id：夜间旅行者（官员/窃贼）应在夜序，其余不得泄漏", () => {
+describe("负向对照全量（25 个 id 逐一独立 expect）", () => {
+  it("25 个 id：夜间旅行者（官员/窃贼）应在夜序，其余不得泄漏", () => {
     expect(ENGINE_CONFIG.fullNightOrder.length).toBeGreaterThan(0);
     for (const id of ALL_IDS) {
       if (OFFICIAL_NIGHT_TRAVELERS.has(id)) {
@@ -287,7 +302,7 @@ describe("负向对照全量（23 个 id 逐一独立 expect）", () => {
     }
   });
 
-  it("23 个 id 全部不得进入任何剧本 roleIds", () => {
+  it("25 个 id 全部不得进入任何剧本 roleIds", () => {
     expect(scripts.length).toBeGreaterThan(0);
     for (const id of ALL_IDS) {
       const hits = scripts.filter((s) => (s.roleIds ?? []).includes(id));

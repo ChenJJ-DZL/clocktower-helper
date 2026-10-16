@@ -149,6 +149,9 @@ export function useGameController() {
     votedThisRound,
     setVotedThisRound,
     twilightVoteTargets,
+    travelerHookChoices,
+    travelers,
+    travelerAlignments,
     setTwilightVoteTarget,
     outsiderDiedToday,
     setOutsiderDiedToday,
@@ -938,6 +941,52 @@ export function useGameController() {
           (snap as any).travelers.length === 4
             ? (snap as any).travelers
             : Array.from({ length: 4 }, () => null),
+        // 🔴 2026-10-16 修复：以下字段是**独立 state**（不存在于 seats 里），
+        //    restore 的显式白名单此前漏掉它们 ⇒「继续对局」后表现为：
+        //      · 暮色步骤回到第 1 步、官员/窃贼当晚选的加成目标蒸发；
+        //      · 替罪羊/枪手的说书人裁决与频次闩锁丢失（同一天可再射一次）；
+        //      · **旅行者阵营全部回到默认善良**（邪恶替罪羊代刑永久失效）；
+        //      · 乞丐收到的投票标记清零（"又能无限投票了"）。
+        twilightStepIndex: (snap as any).twilightStepIndex ?? 0,
+        twilightVoteTargets: (snap as any).twilightVoteTargets ?? {
+          bureaucratTargetId: null,
+          thiefTargetId: null,
+        },
+        travelerHookChoices: (snap as any).travelerHookChoices ?? {
+          scapegoatSubstituteForId: null,
+          gunslingerEligibleVoterIds: [],
+          gunslingerTargetId: null,
+          gunslingerWindowNight: null,
+          gunslingerUsedNight: null,
+          judgeUsedThisGame: false,
+          butcherExtraExecutionDay: null,
+          boneCollectorUsed: false,
+          boneCollectorTargetId: null,
+          baristaTargetId: null,
+          baristaEffect: null,
+          harlotTargetId: null,
+          harlotAgreed: false,
+          harlotDoomed: false,
+          apprenticeGrantedRoleId: null,
+          matronSwaps: [],
+        },
+        fabledState: (snap as any).fabledState ?? {
+          fibbinUsed: false,
+          fibbinTargetId: null,
+          angelProtectedSeatId: null,
+          angelPunishedSeatId: null,
+          revolutionaryPair: null,
+          revolutionaryDisguiseUsed: false,
+          sentinelOutsiderDelta: 0,
+          spiritOfIvoryCapped: false,
+          ferrymanLastDayResolved: false,
+          toymakerAttackSkipped: false,
+        },
+        travelerAlignments: (snap as any).travelerAlignments ?? {},
+        beggarState: (snap as any).beggarState ?? {
+          tokens: 0,
+          donations: [],
+        },
       };
       if (script) updates.selectedScript = script;
       baseDispatch(gameActions.updateState(updates));
@@ -1141,6 +1190,9 @@ export function useGameController() {
     winReason,
     evilTwinPair,
     twilightVoteTargets,
+    travelerHookChoices,
+    travelers,
+    travelerAlignments,
     setCurrentModal,
     setSeats: commitSeats,
     setSelectedActionTargets,
@@ -1259,6 +1311,10 @@ export function useGameController() {
     confirmHadesia,
     confirmSaintExecution,
     cancelSaintExecution,
+    confirmScapegoatSubstitute,
+    cancelScapegoatSubstitute,
+    fireGunslinger,
+    cancelGunslingerFire,
     confirmEvilTwinExecution,
     cancelEvilTwinExecution,
     confirmRavenkeeperFake,
@@ -1276,6 +1332,7 @@ export function useGameController() {
     nominationRecords,
     witchActive,
     witchCursedId,
+    travelers,
     virginGuideInfo: gameState.virginGuideInfo,
     dayAbilityForm: gameState.dayAbilityForm,
     cerenovusTarget: gameState.cerenovusTarget,
@@ -2102,6 +2159,10 @@ export function useGameController() {
       confirmHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmScapegoatSubstitute,
+      cancelScapegoatSubstitute,
+      fireGunslinger,
+      cancelGunslingerFire,
       confirmEvilTwinExecution,
       cancelEvilTwinExecution,
       confirmRavenkeeperFake,
@@ -2272,6 +2333,10 @@ export function useGameController() {
       confirmRestart,
       confirmSaintExecution,
       cancelSaintExecution,
+      confirmScapegoatSubstitute,
+      cancelScapegoatSubstitute,
+      fireGunslinger,
+      cancelGunslingerFire,
       confirmEvilTwinExecution,
       cancelEvilTwinExecution,
       confirmShootResult,

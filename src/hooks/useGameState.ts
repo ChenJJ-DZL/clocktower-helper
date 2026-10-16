@@ -141,6 +141,10 @@ export function useGameState() {
     twilightStepIndex,
     /** 暮色阶段官员/窃贼选中的投票目标（明天白天生效） */
     twilightVoteTargets,
+    travelerHookChoices,
+    travelerAlignments,
+    beggarState,
+    fabledState,
     isPrivacyShieldActive,
   } = state;
 
@@ -1202,6 +1206,10 @@ export function useGameState() {
       travelers,
       twilightStepIndex,
       twilightVoteTargets,
+    travelerHookChoices,
+    travelerAlignments,
+      beggarState,
+      fabledState,
       setTwilightVoteTarget,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,
@@ -1319,6 +1327,10 @@ export function useGameState() {
       travelers,
       twilightStepIndex,
       twilightVoteTargets,
+    travelerHookChoices,
+    travelerAlignments,
+      beggarState,
+      fabledState,
       setTwilightVoteTarget,
       isPrivacyShieldActive,
       setIsPrivacyShieldActive,

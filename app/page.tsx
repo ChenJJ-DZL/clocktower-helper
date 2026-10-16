@@ -234,6 +234,58 @@ export default function Home() {
           seatNotes: snap.seatNotes || {},
           hadesiaChoiceEnabled: snap.hadesiaChoiceEnabled ?? false,
           lastExecutedPlayerId: snap.lastExecutedPlayerId ?? null,
+          // 🔴 2026-10-16 修复（与 useGameController.handleContinueGame 同源缺陷）：
+          //   以下均为**独立 state**（不在 seats 里），此前恢复白名单漏掉它们
+          //   ⇒ 刷新/继续对局后：传奇角色与旅行者座位消失、旅行者阵营回到默认善良、
+          //     乞丐投票标记清零、暮色步骤与官员/窃贼加成目标蒸发。
+          // ⚠️ 注意本文件与 useGameController 各有一份恢复白名单（双写入点）——
+          //   改动这里时务必同步另一处，否则两条入口行为分叉。
+          activeFabled: (snap as any).activeFabled ?? [],
+          travelers:
+            Array.isArray((snap as any).travelers) &&
+            (snap as any).travelers.length === 4
+              ? (snap as any).travelers
+              : Array.from({ length: 4 }, () => null),
+          twilightStepIndex: (snap as any).twilightStepIndex ?? 0,
+          twilightVoteTargets: (snap as any).twilightVoteTargets ?? {
+            bureaucratTargetId: null,
+            thiefTargetId: null,
+          },
+          travelerHookChoices: (snap as any).travelerHookChoices ?? {
+            scapegoatSubstituteForId: null,
+            gunslingerEligibleVoterIds: [],
+            gunslingerTargetId: null,
+            gunslingerWindowNight: null,
+            gunslingerUsedNight: null,
+            judgeUsedThisGame: false,
+            butcherExtraExecutionDay: null,
+            boneCollectorUsed: false,
+            boneCollectorTargetId: null,
+            baristaTargetId: null,
+            baristaEffect: null,
+            harlotTargetId: null,
+            harlotAgreed: false,
+            harlotDoomed: false,
+            apprenticeGrantedRoleId: null,
+            matronSwaps: [],
+          },
+          fabledState: (snap as any).fabledState ?? {
+            fibbinUsed: false,
+            fibbinTargetId: null,
+            angelProtectedSeatId: null,
+            angelPunishedSeatId: null,
+            revolutionaryPair: null,
+            revolutionaryDisguiseUsed: false,
+            sentinelOutsiderDelta: 0,
+            spiritOfIvoryCapped: false,
+            ferrymanLastDayResolved: false,
+            toymakerAttackSkipped: false,
+          },
+          travelerAlignments: (snap as any).travelerAlignments ?? {},
+          beggarState: (snap as any).beggarState ?? {
+            tokens: 0,
+            donations: [],
+          },
         })
       );
     },

@@ -8,12 +8,24 @@ import { gameActions, useGameContext } from "../../../contexts/GameContext";
 import {
   canEditFabled,
   FABLED_MAX,
+  FABLED_SEAT_ID,
   setTravelerAt,
   TRAVELER_MAX,
   withFabled,
 } from "../../../utils/fabledLock";
+
+/**
+ * 传奇角色的展示标签（虚拟座位号 77）。
+ * ⚠️ 刻意放在**组件层**而非 `fabledLock.ts`：后者有硬性不变量
+ *   「不得出现含中文的字符串字面量」（fabled_lock.test.ts 不变量 5）。
+ */
+const FABLED_SEAT_LABEL = `${FABLED_SEAT_ID}号位(传奇)`;
 import { exileThreshold } from "../../../utils/exile";
+import { listAliveTravelerSlots } from "../../../utils/travelerHooks";
+import { ModalWrapper } from "../../modals/ModalWrapper";
+import { FabledPanel } from "../FabledPanel";
 import { ExileVoteModal } from "../../modals/ExileVoteModal";
+import { ConfirmChoiceModal } from "../../modals/ConfirmChoiceModal";
 import { RolePickerModal } from "./RolePickerModal";
 
 interface TableCenterHUDProps {
@@ -80,8 +92,35 @@ export function TableCenterHUD({
   const [showFabledPicker, setShowFabledPicker] = useState(false);
   const [showTravelerRow, setShowTravelerRow] = useState(false);
   // 旅行者弹窗按位置打开：null = 关闭，数字 = 正在为第 i 个座位选人
+  /** 刚落座、待指定阵营的旅行者槽位（null = 无需指定） */
+  const [alignPickSlot, setAlignPickSlot] = useState<number | null>(null);
   const [travelerSeatIndex, setTravelerSeatIndex] = useState<number | null>(
     null
+  );
+
+  // 🪑 女舍监：每个白天至多三对座位交换（旅行者不占 seats，走独立 state）
+  const matronSwaps = state.travelerHookChoices?.matronSwaps ?? [];
+  const matronInPlay = listAliveTravelerSlots(travelers).some(
+    (t) => t.role.id === "matron"
+  );
+  const [showMatronSwap, setShowMatronSwap] = useState(false);
+  /** 🎴 传奇角色操作面板（说书人裁定入口） */
+  const [showFabledPanel, setShowFabledPanel] = useState(false);
+  const [matronPick, setMatronPick] = useState<number | null>(null);
+  const handleMatronPick = useCallback(
+    (seatId: number) => {
+      if (matronPick === null) {
+        setMatronPick(seatId);
+        return;
+      }
+      if (matronPick === seatId) {
+        setMatronPick(null);
+        return;
+      }
+      dispatch(gameActions.matronSwap(matronPick, seatId));
+      setMatronPick(null);
+    },
+    [matronPick, dispatch]
   );
 
   const handleFabledSeatClick = useCallback(() => {
@@ -92,26 +131,47 @@ export function TableCenterHUD({
   const handlePickFabled = useCallback(
     (role: Role) => {
       dispatch(gameActions.setActiveFabled(withFabled(activeFabled, role)));
+      // ⭐ 传奇角色的虚拟座位号（77）在此**首次被真实消费**：写进操作记录，
+      //   让复盘能一眼分辨「这条规则来自传奇位 77，不是某个玩家」。
+      dispatch(
+        gameActions.addLog({
+          day: state.nightCount ?? 0,
+          phase: state.gamePhase,
+          message: `🪑 说书人选定传奇角色【${role.name}】—— 虚拟座位 ${FABLED_SEAT_LABEL}，不占任何玩家座位`,
+        } as any)
+      );
       setShowFabledPicker(false);
     },
-    [dispatch, activeFabled]
+    [dispatch, activeFabled, state.nightCount, state.gamePhase]
   );
 
   const handleClearFabled = useCallback(() => {
     dispatch(gameActions.setActiveFabled([]));
+    dispatch(
+      gameActions.addLog({
+        day: state.nightCount ?? 0,
+        phase: state.gamePhase,
+        message: `🪑 移除传奇角色（虚拟座位 ${FABLED_SEAT_LABEL} 已空置）`,
+      } as any)
+    );
     setShowFabledPicker(false);
-  }, [dispatch]);
+  }, [dispatch, state.nightCount, state.gamePhase]);
 
   // 为第 seatIndex 个旅行者座位指定/更换角色（位置化写入）
+  // ⭐ 落座后立即弹窗指定阵营（官方：旅行者可善良可邪恶，由说书人决定）——
+  //   背景 P0：`traveler` 被 seatAlignment 硬编码为善良 ⇒ 邪恶旅行者无法表达，
+  //   替罪羊代刑等依赖阵营的规则会静默失效。故落座即选，不省略。
   const handlePickTraveler = useCallback(
     (role: Role) => {
       if (travelerSeatIndex === null) return;
+      const slot = travelerSeatIndex;
       dispatch(
         gameActions.updateState({
-          travelers: setTravelerAt(travelers, travelerSeatIndex, role),
+          travelers: setTravelerAt(travelers, slot, role),
         })
       );
       setTravelerSeatIndex(null);
+      setAlignPickSlot(slot);
     },
     [dispatch, travelers, travelerSeatIndex]
   );
@@ -265,6 +325,7 @@ export function TableCenterHUD({
             <span className="flex flex-col items-start leading-tight">
               <span className="text-xs text-slate-400">
                 说书人 · 传奇角色（{selectedFabled ? 1 : 0}/{FABLED_MAX}）
+                <span className="ml-1 text-amber-300">{FABLED_SEAT_LABEL}</span>
               </span>
               <span className="text-2xl font-bold">
                 {selectedFabled ? selectedFabled.name : "未选择"}
@@ -272,6 +333,38 @@ export function TableCenterHUD({
             </span>
             {!fabledEditable && <span className="text-xs">🔒</span>}
           </button>
+
+          {/* 🎴 传奇角色操作入口（仅已选传奇角色时显示） */}
+          {selectedFabled && (
+            <button
+              onClick={() => setShowFabledPanel(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 min-h-[68px] rounded-2xl border-2 border-violet-400/60 bg-violet-500/10 text-violet-100 transition-colors cursor-pointer hover:bg-violet-500/20"
+              title="传奇角色的说书人操作（摆渡人 / 玩具匠 / 骗人精 / 天使 / 革命者 / 哨兵 / 圣洁之魂 / 佛教徒）"
+            >
+              <span className="text-xl">🎴</span>
+              <span className="flex flex-col items-start leading-tight">
+                <span className="text-xs text-violet-200/80">传奇角色 · 操作</span>
+                <span className="text-xl font-bold">{selectedFabled.name}</span>
+              </span>
+            </button>
+          )}
+
+          {/* 🪑 女舍监换座入口（仅女舍监在场时显示；官方「每个白天至多三对」） */}
+          {matronInPlay && (
+            <button
+              onClick={() => setShowMatronSwap(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 min-h-[68px] rounded-2xl border-2 border-amber-400/60 bg-amber-500/10 text-amber-100 transition-colors cursor-pointer hover:bg-amber-500/20"
+              title="女舍监：每个白天至多交换三对玩家的座位"
+            >
+              <span className="text-xl">🪑</span>
+              <span className="flex flex-col items-start leading-tight">
+                <span className="text-xs text-amber-200/80">女舍监 · 换座</span>
+                <span className="text-xl font-bold">
+                  已用 {matronSwaps.length} / 3 对
+                </span>
+              </span>
+            </button>
+          )}
 
           {/* 旅行者开关 */}
           <button
@@ -374,6 +467,71 @@ export function TableCenterHUD({
         onClose={() => setShowFabledPicker(false)}
       />
 
+      {/* 🎴 传奇角色操作面板 */}
+      <FabledPanel
+        isOpen={showFabledPanel}
+        onClose={() => setShowFabledPanel(false)}
+      />
+
+      {/* 🪑 女舍监：交换座位（官方「每个白天，你可以选择至多三对玩家交换座位」） */}
+      {matronInPlay && showMatronSwap && (
+        <ModalWrapper
+          title={`🪑 女舍监 · 交换座位（已用 ${matronSwaps.length} / 3 对）`}
+          onClose={() => {
+            setShowMatronSwap(false);
+            setMatronPick(null);
+          }}
+          widthRatio={0.86}
+          autoHeight
+        >
+          <div className="flex flex-col gap-4 p-5 text-white">
+            <div className="text-lg text-slate-300 leading-relaxed">
+              点选**两名**玩家即完成一次换座（两个人互换物理座位，角色与状态随人走）。
+              {matronPick !== null && (
+                <span className="ml-2 text-emerald-300 font-bold">
+                  已选第一名：{matronPick + 1} 号，请点第二名
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {seats.map((s) => {
+                const picked = matronPick === s.id;
+                const swapped = matronSwaps.some(
+                  (w) => w.a === s.id || w.b === s.id
+                );
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleMatronPick(s.id)}
+                    className={`px-4 py-2.5 rounded-xl border-2 text-base font-bold transition-colors cursor-pointer active:scale-95 ${
+                      picked
+                        ? "border-emerald-300 bg-emerald-600 text-white"
+                        : swapped
+                          ? "border-amber-400/70 bg-amber-900/30 text-amber-100"
+                          : "border-white/15 bg-slate-800/70 text-slate-200 hover:bg-slate-700"
+                    }`}
+                  >
+                    {s.id + 1} 号
+                    {swapped ? " ⇄" : ""}
+                  </button>
+                );
+              })}
+            </div>
+            {matronSwaps.length > 0 && (
+              <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-base text-amber-100">
+                本日已换：
+                {matronSwaps.map((w) => `${w.a + 1}↔${w.b + 1}`).join("、")}
+              </div>
+            )}
+            <div className="text-sm text-slate-400 leading-relaxed">
+              ⚠️ 换座按官方改变**物理邻座关系**；但本仓库的投票/提名记录以座位 id 为键，
+              换座前已产生的记录不会随之改写 —— 若同一提名仍在进行，请由说书人重新核对。
+            </div>
+          </div>
+        </ModalWrapper>
+      )}
+
       {/* 旅行者选择弹窗（位置化：只为第 travelerSeatIndex 座选择） */}
       <RolePickerModal
         open={travelerSeatIndex !== null && !gameEnded}
@@ -394,6 +552,35 @@ export function TableCenterHUD({
         onClear={handleClearTravelerSeat}
         clearLabel="清空该座位"
         onClose={() => setTravelerSeatIndex(null)}
+      />
+
+      {/* ⭐ 旅行者阵营指定（落座即选）—— 官方：旅行者可善良可邪恶，由说书人决定 */}
+      <ConfirmChoiceModal
+        isOpen={alignPickSlot !== null}
+        title="⚔️ 旅行者阵营"
+        message={`请为刚落座的旅行者（${(alignPickSlot ?? 0) + 1}号旅行者位）指定阵营。官方规则：旅行者可以是善良或邪恶，由说书人决定。`}
+        options={[
+          { label: "🛡️ 善良", value: "good" },
+          { label: "⚔️ 邪恶", value: "evil" },
+        ]}
+        onSelect={(v) => {
+          if (alignPickSlot !== null) {
+            dispatch(
+              gameActions.setTravelerAlignment(
+                alignPickSlot,
+                v === "evil" ? "evil" : "good"
+              )
+            );
+          }
+          setAlignPickSlot(null);
+        }}
+        onCancel={() => {
+          // 不选 = 默认善良（清除显式指定，回到 isTravelerEvil 的默认口径）
+          if (alignPickSlot !== null) {
+            dispatch(gameActions.setTravelerAlignment(alignPickSlot, null));
+          }
+          setAlignPickSlot(null);
+        }}
       />
 
       {/* 流放投票弹窗（Round 10b） */}

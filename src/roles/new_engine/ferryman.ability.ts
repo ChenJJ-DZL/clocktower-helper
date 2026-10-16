@@ -104,11 +104,18 @@ export const ferrymanAbility = createRoleAbility({
   roleId: "ferryman",
   abilityId: "ferryman_cross",
   abilityName: "灵魂摆渡",
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  /**
+   * ⭐ 修正（2026-10-16）：官方原文「在游戏的**最后一天**，所有已死亡玩家
+   * 会重新获得投票标记」⇒ **不是夜间行动**，故 triggerTiming 改 PASSIVE、
+   * 夜序优先级全 null、清空 wakePromptId。
+   *   ⚠️ 原写 `EVERY_NIGHT` + `otherNightPriority: 40` 会被排进 fullNightOrder
+   *   ⇒ 违反契约「传奇角色不得进夜序」（fabled_traveler_l1_l2 L2 负向对照）。
+   */
+  triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
-  otherNightPriority: 40,
+  otherNightPriority: null,
   firstNightOnly: false,
-  wakePromptId: "role.ferryman.wake",
+  wakePromptId: "",
   targetConfig: { min: 0, max: 1, allowSelf: false, allowDead: true },
   preCheck: [preCheck],
   calculate: [calculate],
