@@ -65,7 +65,7 @@ describe("① 说书人座位渲染与弹窗（createPortal → document.body）
   it("渲染不白屏，点击说书人座位后弹窗出现在 document.body", () => {
     const { container } = renderHUD("setup");
     expect(container.textContent).toContain("说书人");
-    expect(container.textContent).toContain("传奇角色（0/1）");
+    expect(container.textContent).toContain("传奇角色 0/1");
     const seat = container.querySelector(
       'button[title="选择传奇角色（落座确认后锁定）"]'
     );
@@ -96,7 +96,7 @@ describe("② 选择展示与锁定（复用 GamePhase 判定）", () => {
     fireEvent.click(candidates[0]);
     const pickedName = candidates[0].querySelector("div")?.textContent?.trim() ?? "";
     expect(pickedName.length).toBeGreaterThan(0);
-    expect(container.textContent).toContain("传奇角色（1/1）");
+    expect(container.textContent).toContain("传奇角色 1/1");
   });
 
   it('gamePhase="check" 时说书人座位 disabled（落座确认后锁定）', () => {
@@ -116,7 +116,7 @@ describe("③④ 旅行者座位行展开 + 位置化选择", () => {
   it("点击旅行者按钮展开座位行，渲染 4 个座位", () => {
     const { container } = renderHUD("setup");
     const toggle = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("旅行者（0/4）")
+      b.textContent?.includes("旅行者 0/4")
     );
     expect(toggle, "旅行者开关按钮应存在").toBeTruthy();
     fireEvent.click(toggle!);
@@ -124,15 +124,16 @@ describe("③④ 旅行者座位行展开 + 位置化选择", () => {
       'button[title="空旅行者座位（点击指定旅行者）"]'
     );
     expect(seats.length).toBe(4);
-    expect(container.textContent).toContain("座位 1");
-    expect(container.textContent).toContain("座位 4");
+    // 2026-10-19 紧凑化后槽位只显示序号，语义走 aria-label（避免面板纵向溢出）
+    expect(container.innerHTML).toContain('aria-label="座位 1');
+    expect(container.innerHTML).toContain('aria-label="座位 4');
   });
 
   it("点「座位 3」弹窗标题为「为座位 3 选择旅行者」（位置化不串位）", () => {
     const { container } = renderHUD("setup");
     fireEvent.click(
       Array.from(container.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("旅行者（0/4）")
+        b.textContent?.includes("旅行者 0/4")
       )!
     );
     const seats = Array.from(
@@ -152,7 +153,7 @@ describe("③④ 旅行者座位行展开 + 位置化选择", () => {
     const { container } = renderHUD("setup");
     fireEvent.click(
       Array.from(container.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("旅行者（0/4）")
+        b.textContent?.includes("旅行者 0/4")
       )!
     );
     const seats = Array.from(

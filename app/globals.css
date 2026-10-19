@@ -542,10 +542,12 @@ body > * {
 
 /* ══════════════════════════════════════════════════════════════
    座位角色名牌（两主题通用）
-   设计目标：**可读性优先**——不透明底板 + 零投影零发光。
-   用户反馈（2026-10-13）：原先角色名直接压在代币渐变上，还叠加
-   text-shadow + drop-shadow-md，在缩放舞台上笔画糊成一团。
-   ⇒ 名牌自带底衬，任何底色/缩放比例下文字都清晰。
+   设计目标：**纯文字**——零底板盒、零边框、零投影零发光。
+   用户反馈（2026-10-13）：投影/特效让笔画糊成一团 ⇒ 禁投影。
+   用户裁定（2026-10-14 现代 / 2026-10-19 经典）：两主题均去掉
+   底板盒与边框 ⇒ 可读性由座位代币自身底色保证：
+   · classic 存活代币 = 深色 ⇒ 米白字；死亡代币 = 浅灰 ⇒ 深褐字
+   · modern 代币 = 白卡 ⇒ 墨字
    ══════════════════════════════════════════════════════════════ */
 .seat-nameplate {
   display: inline-flex;
@@ -568,14 +570,21 @@ body > * {
   filter: none;
 }
 
+/* ── 名牌：纯文字（2026-10-19 用户裁定：经典主题同样去掉底板盒与边框）──
+   存活代币为深色（bg-gray-900 + 阵营辉光）⇒ 米白字直接可读；
+   死亡代币为浅灰（bg-gray-300）⇒ 深褐字（见下方 dead 规则）。
+   仍禁投影/文字阴影（护栏 seat_nameplate_readability_guard）。 */
 .theme-classic .seat-nameplate {
-  background: rgba(8, 5, 14, 0.9);
-  border-color: rgba(217, 181, 106, 0.55);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
   color: #fffbeb;
 }
 
 .theme-classic .seat-nameplate.seat-nameplate-dead {
-  color: #b9b4a9;
+  color: #44403c;
   text-decoration: line-through;
 }
 
@@ -1063,6 +1072,17 @@ body > * {
 .theme-modern .bg-purple-700.text-white,
 .theme-modern .bg-violet-600.text-white,
 .theme-modern .bg-violet-700.text-white {
+  color: #fff;
+}
+
+/* ⭐ 座位徽标：元素同时声明「实色 bg-*」与「text-white」⇒ 必须保住白字。
+   2026-10-19 用户反馈（现代 UI）：镜像双子徽标 bg-red-800 + text-white 被上面的
+   `.theme-modern .text-white → var(--ink-900)` 压成墨色，深红底配深字几乎读不出。
+   根因是上方白名单只**枚举**了 red-500/600 等档位，漏了红 700/800、purple-800、
+   pink-600、cyan-600、amber-800 等深底徽标 ⇒ 改为**结构判据**：只要元素自己
+   同时带了 bg-* 与 text-white，就按白字渲染（不再逐个补颜色档位）。
+   特异性 (0,4,0) > `.theme-modern .text-white` (0,2,0)，无需 !important。 */
+.theme-modern .seat-token [class*="bg-"][class*="text-white"] {
   color: #fff;
 }
 

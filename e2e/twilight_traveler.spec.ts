@@ -42,6 +42,12 @@ async function seatTraveler(page: import("@playwright/test").Page, name: string)
   // 3) 在选择弹窗里点目标旅行者
   const modal = page.locator('[role="dialog"], .fixed').last();
   await modal.getByText(name, { exact: true }).first().click();
+  // 4) 落座即弹「旅行者阵营」确认框（2026-10-13 起）—— 不点掉会挡住后续点击
+  await page
+    .getByRole("button", { name: /善良/ })
+    .first()
+    .click({ timeout: 10_000 })
+    .catch(() => {});
 }
 
 test.describe("暮色阶段（官方 Dusk）", () => {
@@ -56,7 +62,7 @@ test.describe("暮色阶段（官方 Dusk）", () => {
 
     // 确认落座生效（用 UI 判据：准备阶段的快照尚未写 localStorage，
     // 而圆桌 HUD 的计数与座位名是同一份 state 的即时渲染）
-    await expect(page.getByText("旅行者（1/4）").first()).toBeVisible({
+    await expect(page.getByText("旅行者 1/4").first()).toBeVisible({
       timeout: 10_000,
     });
     await expect(page.getByText(SPECIALIST, { exact: true }).first()).toBeVisible();

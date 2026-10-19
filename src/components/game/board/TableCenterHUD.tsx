@@ -254,7 +254,7 @@ export function TableCenterHUD({
   return (
     <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
       <div
-        className={`compass-ring px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-3 pointer-events-auto transition-all duration-500 theme-modern:rounded-sm theme-modern:shadow-none theme-modern:border theme-modern:border-[color:var(--rule)] theme-modern:bg-[color:var(--color-surface)] theme-modern:border-t-[6px] theme-modern:border-t-[color:var(--color-primary)] ${
+        className={`compass-ring px-4 py-4 rounded-3xl shadow-2xl flex flex-col items-center gap-2 pointer-events-auto transition-all duration-500 theme-modern:rounded-sm theme-modern:shadow-none theme-modern:border theme-modern:border-[color:var(--rule)] theme-modern:bg-[color:var(--color-surface)] theme-modern:border-t-[6px] theme-modern:border-t-[color:var(--color-primary)] ${
           isGameOver
             ? "bg-red-950/95 border-2 border-red-500/80 shadow-[0_0_50px_rgba(220,38,38,0.5)]"
             : "bg-slate-900/95 border border-white/10"
@@ -301,8 +301,11 @@ export function TableCenterHUD({
           </div>
         </div>
 
-        {/* 说书人（传奇角色）座位 —— 不占玩家座位，全局规则生效 */}
-        <div className="flex items-center gap-2">
+        {/* 说书人（传奇角色）座位 —— 不占玩家座位，全局规则生效
+            ⚠️ 换行 + 限宽护栏（2026-10-19）：选中传奇角色后本行会多出「传奇角色·操作」
+            按钮（三按钮 ≈686px）⇒ 无约束时面板会重新撑宽、四角顶到座位环内沿。
+            限宽 520 后三按钮改为换行（面板变高而非变宽），常见两按钮布局不受影响。 */}
+        <div className="flex items-center justify-center gap-2 flex-wrap max-w-[540px]">
           <button
             onClick={handleFabledSeatClick}
             disabled={!fabledEditable}
@@ -323,11 +326,12 @@ export function TableCenterHUD({
           >
             <span className="text-xl">🪑</span>
             <span className="flex flex-col items-start leading-tight">
+              {/* 2026-10-19：去掉「77号位(传奇)」注记（约 72px）——三按钮同行时它是
+                  把面板撑宽、逼出换行的主因；虚拟座位号仍在操作日志与 title 里保留。 */}
               <span className="text-xs text-slate-400">
-                说书人 · 传奇角色（{selectedFabled ? 1 : 0}/{FABLED_MAX}）
-                <span className="ml-1 text-amber-300">{FABLED_SEAT_LABEL}</span>
+                说书人 · 传奇角色 {selectedFabled ? 1 : 0}/{FABLED_MAX}
               </span>
-              <span className="text-2xl font-bold">
+              <span className="text-xl font-bold">
                 {selectedFabled ? selectedFabled.name : "未选择"}
               </span>
             </span>
@@ -342,9 +346,9 @@ export function TableCenterHUD({
               title="传奇角色的说书人操作（摆渡人 / 玩具匠 / 骗人精 / 天使 / 革命者 / 哨兵 / 圣洁之魂 / 佛教徒）"
             >
               <span className="text-xl">🎴</span>
-              <span className="flex flex-col items-start leading-tight">
-                <span className="text-xs text-violet-200/80">传奇角色 · 操作</span>
-                <span className="text-xl font-bold">{selectedFabled.name}</span>
+              <span className="flex items-center gap-1 leading-tight">
+                <span className="text-xs text-violet-200/80">操作</span>
+                <span className="text-base font-bold">{selectedFabled.name}</span>
               </span>
             </button>
           )}
@@ -376,25 +380,30 @@ export function TableCenterHUD({
             }`}
             title="显示/隐藏旅行者座位行（与传奇角色不同：旅行者游戏中可随时加入/离开，落座确认后不锁定）"
           >
-            <span className="text-2xl font-bold">
-              🧳 旅行者（{travelerCount}/{TRAVELER_MAX}）
+            <span className="text-xl font-bold">
+              🧳 旅行者 {travelerCount}/{TRAVELER_MAX}
             </span>
           </button>
         </div>
 
-        {/* 旅行者座位行 —— 默认隐藏，位置化 4 座，不占玩家 15 座 */}
+        {/* 旅行者座位行 —— 默认隐藏，位置化 4 座，不占玩家 15 座
+            ⚠️ 单行紧凑版（2026-10-19）：原「座位 N」+ 角色名两行（text-2xl）使面板
+            高度 272→344，四角归一化 0.986 且与 2/13 号座位实际相交。
+            改为「序号 · 角色名」一行的胶囊（py-1 / text-sm），面板高度回落 ~304，
+            四角 < 0.9 留出安全间隙；双主题几何一致。 */}
         {showTravelerRow && (
           <div className="flex items-center gap-2">
             {travelers.map((traveler, i) => (
               <div key={`traveler-seat-${i}`} className="relative">
                 <button
+                  aria-label={`座位 ${i + 1}${traveler ? `：${traveler.name}` : "（空）"}`}
                   onClick={() => {
                     // 互斥：流放投票进行中禁止打开选人弹窗（防双 modal 叠加）
                     if (exileProposedToday) return;
                     setTravelerSeatIndex(i);
                   }}
                   disabled={!!exileProposedToday}
-                  className={`flex flex-col items-center justify-center min-w-[110px] px-2 py-1.5 rounded-xl border-2 transition-colors ${
+                  className={`flex items-center justify-center gap-1.5 min-w-[92px] px-2 py-0.5 rounded-xl border-2 transition-colors ${
                     traveler
                       ? "border-sky-400/80 bg-sky-500/20 text-sky-200"
                       : "border-dashed border-white/20 bg-slate-800/40 text-slate-400 hover:bg-slate-700/50"
@@ -411,8 +420,10 @@ export function TableCenterHUD({
                         : "空旅行者座位（点击指定旅行者）"
                   }
                 >
-                  <span className="text-[10px] text-slate-400">座位 {i + 1}</span>
-                  <span className="text-2xl font-bold leading-tight">
+                  <span className="text-[11px] text-slate-400 leading-none">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-bold leading-none">
                     {traveler ? traveler.name : "＋"}
                   </span>
                 </button>
@@ -445,7 +456,7 @@ export function TableCenterHUD({
         )}
 
         {/* Credits */}
-        <div className="mt-1 text-[11px] text-slate-400 font-medium tracking-wide">
+        <div className="text-[11px] text-slate-400 font-medium tracking-wide">
           拜甘教设计
         </div>
       </div>

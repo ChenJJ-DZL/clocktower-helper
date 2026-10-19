@@ -10,7 +10,8 @@
  * 本护栏钉住三件事：
  *   ① SeatNode 使用 `seat-nameplate` 且不再出现 drop-shadow / 内联 textShadow；
  *   ② globals.css 定义名牌样式且显式 `text-shadow: none`；
- *   ③ 两主题都有名牌配色（classic 深底浅字 / modern 白底墨字），保证对比度。
+ *   ③ 两主题名牌均为纯文字（无底板盒/无边框），配色随代币底色
+ *      （classic 深代币米白字 / 浅灰死亡代币深褐字；modern 白卡墨字）。
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -46,9 +47,20 @@ describe("座位角色名牌可读性契约", () => {
     expect(CSS).toMatch(/\.seat-nameplate \*[\s\S]{0,80}text-shadow:\s*none\s*!important/);
   });
 
-  it("③ 名牌：classic 深底浅字 / modern 纯文字（2026-10-14 用户裁定去底板盒与边框）", () => {
+  it("③ 名牌：两主题均为纯文字（2026-10-14 modern / 2026-10-19 classic 用户裁定去底板盒与边框）", () => {
     expect(CSS).toMatch(/\.theme-classic \.seat-nameplate\s*\{/);
     expect(CSS).toMatch(/\.theme-modern \.seat-nameplate\s*\{/);
+    // classic：透明底 + 无边框 + 无内衬；存活深代币配米白字
+    const classic = CSS.slice(CSS.indexOf(".theme-classic .seat-nameplate {"));
+    expect(classic.slice(0, 200)).toMatch(/background:\s*transparent/);
+    expect(classic.slice(0, 200)).toMatch(/border:\s*none/);
+    expect(classic.slice(0, 200)).toMatch(/padding:\s*0/);
+    expect(classic.slice(0, 200)).toMatch(/#fffbeb/);
+    // classic 死亡态：浅灰代币 ⇒ 必须换深褐字（去掉底板后可读性前提）
+    expect(CSS).toMatch(
+      /\.theme-classic \.seat-nameplate\.seat-nameplate-dead\s*\{[^}]*color:\s*#44403c/
+    );
+    // modern：白卡代币 ⇒ 墨字
     const modern = CSS.slice(CSS.indexOf(".theme-modern .seat-nameplate {"));
     expect(modern.slice(0, 200)).toMatch(/background:\s*transparent/);
     expect(modern.slice(0, 200)).toMatch(/border:\s*none/);

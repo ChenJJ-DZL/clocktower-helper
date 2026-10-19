@@ -11,6 +11,19 @@ const FABLED_SEAT_LOCKED = 'button[title*="已锁定"]';
 const EMPTY_TRAVELER_SEAT = 'button[title="空旅行者座位（点击指定旅行者）"]';
 const MODAL = '[role="dialog"][aria-modal="true"]';
 
+/**
+ * 落座旅行者后会立刻弹「旅行者阵营」确认框（2026-10-13 起，官方：旅行者
+ * 可善良可邪恶由说书人决定）。**不点掉它会挡住后续所有点击**（黑底遮罩
+ * 拦 pointer events）⇒ 统一在这里收掉：选「善良」。
+ */
+async function dismissTravelerAlignment(page: Page) {
+  await page
+    .getByRole("button", { name: /善良/ })
+    .first()
+    .click({ timeout: 10_000 })
+    .catch(() => {});
+}
+
 /** setup 阶段：落座 + 选传奇角色 + 选旅行者（全部 DOM 断言，严禁读快照） */
 async function selectFabledAndTraveler(page: Page) {
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -23,11 +36,11 @@ async function selectFabledAndTraveler(page: Page) {
   await expect(modal).toBeVisible({ timeout: 20_000 });
   await modal.locator("button").filter({ hasText: "圣洁之魂" }).first().click();
   await expect(modal).toBeHidden({ timeout: 20_000 });
-  await expect(page.locator(FABLED_SEAT)).toContainText("（1/1）");
+  await expect(page.locator(FABLED_SEAT)).toContainText("传奇角色 1/1");
   await expect(page.locator(FABLED_SEAT)).toContainText("圣洁之魂");
 
   // —— 旅行者：展开 4 座 → 第 3 座指定角色 ——
-  await page.locator("button").filter({ hasText: "旅行者（0/4）" }).first().click();
+  await page.locator("button").filter({ hasText: "旅行者 0/4" }).first().click();
   await expect(page.locator(EMPTY_TRAVELER_SEAT)).toHaveCount(4);
   await page.locator(EMPTY_TRAVELER_SEAT).nth(2).click();
   await expect(modal).toContainText("为座位 3 选择旅行者");
@@ -36,6 +49,7 @@ async function selectFabledAndTraveler(page: Page) {
     .filter({ hasNotText: "清空该座位" })
     .first()
     .click();
+  await dismissTravelerAlignment(page);
   await expect(modal).toBeHidden({ timeout: 20_000 });
   await expect(page.locator(EMPTY_TRAVELER_SEAT)).toHaveCount(3);
 }
@@ -78,9 +92,9 @@ test("落座阶段：说书人座位与旅行者按钮真实可见（未白屏�
   const seat = page.locator(FABLED_SEAT);
   await expect(seat).toBeVisible({ timeout: 20_000 });
   await expect(seat).toBeEnabled();
-  await expect(seat).toContainText("说书人 · 传奇角色（0/1）");
+  await expect(seat).toContainText("说书人 · 传奇角色 0/1");
   await expect(
-    page.locator("button").filter({ hasText: "旅行者（0/4）" }).first()
+    page.locator("button").filter({ hasText: "旅行者 0/4" }).first()
   ).toBeVisible();
   expect(errors).toHaveLength(0);
 });
@@ -95,14 +109,14 @@ test("选 1 个传奇角色 → 座位显示 1/1 且上限为 1", async ({ page 
   await expect(modal).toContainText("选择传奇角色（上限 1 个）");
   await modal.locator("button").filter({ hasText: "圣洁之魂" }).first().click();
   await expect(modal).toBeHidden({ timeout: 20_000 });
-  await expect(page.locator(FABLED_SEAT)).toContainText("（1/1）");
+  await expect(page.locator(FABLED_SEAT)).toContainText("传奇角色 1/1");
   await expect(page.locator(FABLED_SEAT)).toContainText("圣洁之魂");
   await page.locator(FABLED_SEAT).click();
   await expect(modal).toBeVisible({ timeout: 20_000 });
   await expect(modal).toContainText("移除传奇角色");
   await modal.locator("button").filter({ hasText: "移除传奇角色" }).first().click();
   await expect(modal).toBeHidden({ timeout: 20_000 });
-  await expect(page.locator(FABLED_SEAT)).toContainText("（0/1）");
+  await expect(page.locator(FABLED_SEAT)).toContainText("传奇角色 0/1");
   await expect(page.locator(FABLED_SEAT)).toContainText("未选择");
 });
 
@@ -110,7 +124,7 @@ test("选旅行者到「座位 3」→ 位置化不串位", async ({ page }) => 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await enterScriptConfig(page, "暗流涌动", 7);
   await resolveCharades(page);
-  await page.locator("button").filter({ hasText: "旅行者（0/4）" }).first().click();
+  await page.locator("button").filter({ hasText: "旅行者 0/4" }).first().click();
   await expect(page.locator(EMPTY_TRAVELER_SEAT)).toHaveCount(4);
   await page.locator(EMPTY_TRAVELER_SEAT).nth(2).click();
   const modal = page.locator(MODAL);
@@ -121,6 +135,7 @@ test("选旅行者到「座位 3」→ 位置化不串位", async ({ page }) => 
     .filter({ hasNotText: "清空该座位" })
     .first()
     .click();
+  await dismissTravelerAlignment(page);
   await expect(modal).toBeHidden({ timeout: 20_000 });
   await expect(page.locator(EMPTY_TRAVELER_SEAT)).toHaveCount(3);
   const titles = await page
