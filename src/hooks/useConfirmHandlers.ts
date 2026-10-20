@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import { resolveKlutzOutcome } from "../utils/klutzRule";
 import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import type { GameRecord, NightInfoResult } from "../types/game";
@@ -320,20 +321,43 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     setCurrentModal(null);
     setKlutzChoiceTarget(null);
     const seatsToUse = seats;
-    const isEvilPick = isEvil(target);
-    if (isEvilPick) {
+
+    /**
+     * ⚠️ 2026-10-21：判据抽到 `utils/klutzRule::resolveKlutzOutcome`（可单测）。
+     *
+     * 官方措辞是「如果他是邪恶的，**你的阵营**落败」，原实现把落败方**写死**成
+     * 「善良阵营立即失败」—— 呆瓜是外来者（善良）时恰好等价，
+     * 但呆瓜被转为邪恶（`isEvilConverted`）时就会**判反**。
+     */
+    const klutzSeat = seatsToUse.find((s) => s.id === sourceId);
+    const outcome = resolveKlutzOutcome(klutzSeat as any, target as any);
+
+    if (!outcome.gameOver) {
       addLog(
-        `${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，邪恶，善良阵营立即失败`
+        `${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，${outcome.reason}`
       );
-      checkGameOver(seats, undefined, undefined, undefined, true);
+      if (onResolve) {
+        onResolve(seatsToUse);
+      } else {
+        checkGameOver(seatsToUse);
+      }
       return;
     }
-    addLog(`${sourceId + 1}号(呆瓜) 选择${target.id + 1}号，非邪恶，无事发生`);
-    if (onResolve) {
-      onResolve(seatsToUse);
-    } else {
-      checkGameOver(seatsToUse);
+
+    if (outcome.losingAlignment === "evil") {
+      // 呆瓜自身已被转为邪恶 ⇒ 选中邪恶时落败的是**邪恶**阵营（官方「你的阵营」）
+      addLog(
+        `${sourceId + 1}号(呆瓜) 选择${target.id + 1}号（邪恶）；呆瓜属邪恶阵营 ⇒ 邪恶阵营落败，善良获胜`
+      );
+      setWinResult("good");
+      setGamePhase("gameOver");
+      return;
     }
+
+    addLog(
+      `${sourceId + 1}号(呆瓜) 选择${target.id + 1}号（邪恶）⇒ 善良阵营落败`
+    );
+    checkGameOver(seats, undefined, undefined, undefined, true);
   }, [
     currentModal,
     klutzChoiceTarget,
@@ -343,6 +367,8 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     setCurrentModal,
     setKlutzChoiceTarget,
     addLog,
+    setWinResult,
+    setGamePhase,
   ]);
 
   const confirmStorytellerDeath = useCallback(

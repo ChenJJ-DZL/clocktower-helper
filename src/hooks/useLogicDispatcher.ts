@@ -35,7 +35,17 @@ export function useLogicDispatcher(
    *   （「游园惊梦」的"固定天数后自动获胜"，见 `utils/scriptSpecialRules.ts`）。
    */
   selectedScript?: { specialRules?: unknown } | null,
-  nightCount?: number
+  nightCount?: number,
+  /**
+   * ⭐ 2026-10-21：主谋「额外一夜一昼」状态写入口。
+   *
+   * 🔴 修复的缺陷：`mastermindFinalDay` 此前**只有 `setMastermindFinalDay(null)`**，
+   *   从来没有任何地方把它设为 `{active:true}` ⇒ 额外一天永远不被标记，
+   *   「那个白天有人被处决则其阵营落败」这条官方规则完全没生效。
+   *
+   * 可选参数：不传则退化为旧行为（不标记），避免影响其他调用方/测试。
+   */
+  setMastermindFinalDay?: (v: { active: boolean; triggeredAtNight: number } | null) => void
 ) {
   const victoryRef = useRef<{ winner: "good" | "evil"; reason: string } | null>(
     null
@@ -173,6 +183,17 @@ export function useLogicDispatcher(
           },
         };
         const snapshot = processGameEvent(seatsForCheck, gamePhase, action);
+
+        // 🧠 主谋：恶魔死于处决 ⇒ 进入「额外一夜一昼」，激活状态标记
+        if (
+          (snapshot as any).nextActionHint === "MASTERMIND_EXTRA_DAY" &&
+          setMastermindFinalDay
+        ) {
+          setMastermindFinalDay({
+            active: true,
+            triggeredAtNight: nightCountOverride ?? nightCount ?? 0,
+          });
+        }
 
         if (snapshot.logs.length > 0) {
           for (const msg of snapshot.logs) {

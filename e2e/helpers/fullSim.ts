@@ -74,9 +74,30 @@ export function shuffle<T>(arr: T[], rand: () => number): T[] {
  *   页面「邪恶阵营胜利 + 7号已死亡」而快照 11 人全活/winResult 空）。
  *   终局校验一律走 DOM/HUD/终局弹窗的活状态。
  */
+/**
+ * 🏁 读取终局卡片里的「胜利依据」文案。
+ *   必须在终局弹窗**已打开**时调用（未打开时先点「查看获胜结果」）。
+ *   拿不到就返回 null —— 判据会因此报红，不许静默放过。
+ */
+export async function readWinReasonFromOverlay(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const norm = (t: string) => t.replace(/\s+/g, "");
+    for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (el.children.length > 0) continue;
+      if (norm(el.textContent || "") !== "胜利依据") continue;
+      const card = (el as HTMLElement).closest("div")?.parentElement;
+      const p = card?.querySelector("p");
+      if (p) return norm(p.textContent || "").slice(0, 120);
+    }
+    return null;
+  });
+}
+
 export async function readLiveEndState(page: Page): Promise<{
   winner: string | null; // "good" | "evil" | null
   winnerText: string | null;
+  /** 终局「胜利依据」文案（专属胜利必须靠它自证） */
+  winnerReason: string | null;
   deadSeats: number[];
   gameOverUi: boolean;
 }> {
@@ -94,6 +115,35 @@ export async function readLiveEndState(page: Page): Promise<{
         break;
       }
     }
+    // 胜利依据：终局卡片里「胜利依据」标签后的第一个 <p>
+    let winnerReason: string | null = null;
+    // ① 终局卡片（需要先点开「查看获胜结果」才在 DOM 里）
+    for (const el of Array.from(document.querySelectorAll("body *"))) {
+      if (el.children.length > 0) continue;
+      if (norm(el.textContent || "") !== "胜利依据") continue;
+      const card = el.closest("div")?.parentElement;
+      const p = card?.querySelector("p");
+      if (p) winnerReason = norm(p.textContent || "").slice(0, 120);
+      break;
+    }
+    // ② 对局日志（终局那一刻必然写一条「☠️ <胜因>：XX阵营获胜！」）
+    if (!winnerReason) {
+      try {
+        const raw = window.localStorage.getItem("clocktower_current_snapshot");
+        const logs = raw ? (JSON.parse(raw).gameLogs ?? []) : [];
+        for (let i = logs.length - 1; i >= 0; i--) {
+          const msg = String((logs[i] as any)?.message ?? "");
+          const m = msg.match(/☠️\s*(.+?)：(?:善良|邪恶)阵营获胜/);
+          if (m) {
+            winnerReason = m[1].trim().slice(0, 120);
+            break;
+          }
+        }
+      } catch {
+        /* 读不到就算了，交给判据报红 */
+      }
+    }
+
     // 死亡标记：只扫 .seat-node 座位卡（避免祖先容器捎带别座文本）
     const deadSeats: number[] = [];
     for (const el of Array.from(document.querySelectorAll(".seat-node"))) {
@@ -111,6 +161,7 @@ export async function readLiveEndState(page: Page): Promise<{
     return {
       winner: winnerText === "善良阵营胜利" ? "good" : winnerText === "邪恶阵营胜利" ? "evil" : null,
       winnerText,
+      winnerReason,
       deadSeats: deadSeats.sort((a, b) => a - b),
       gameOverUi: hasGameOverBtn,
     };
@@ -240,6 +291,8 @@ export interface NightStepRecord {
   targets: number[];
   /** 步骤确认后从快照读取的首目标状态（无目标为 null） */
   after: {
+    /** 目标座位的真实角色 id —— 官方「转火」类豁免的精确判据 */
+    roleId?: string | null;
     isProtected?: boolean;
     markedForDeath?: boolean;
     isPoisoned?: boolean;
@@ -407,6 +460,7 @@ export async function advanceNightRandom(
         const seat = (snap.seats || []).find((x: any) => x.id === seatId);
         if (!seat) return null;
         return {
+          roleId: seat.role?.id ?? null,
           isProtected: !!seat.isProtected,
           markedForDeath: !!seat.markedForDeath,
           isPoisoned: !!seat.isPoisoned,
@@ -939,6 +993,32 @@ export function verifyDuskSemantics(
  *   I12 信息：信息类角色步骤的弹窗必须有实质内容（info 被展示，不是空壳）
  *   I13 覆盖：弹窗出现过的座位必须在本夜唤醒队列里（防「偷偷多跑一个技能步骤」）
  */
+/**
+ * 从「夜晚结算报告」里解析出**本夜死亡的座位**（0 基）。
+ *
+ * 报告文案形如：「💀说书人宣布黎明信息：昨晚1号、4号、9号玩家死亡确认并进入白天」。
+ *
+ * ⚠️⚠️ 为什么 I13 需要它（2026-10-21 9 剧本矩阵实测）：
+ *   死亡触发类角色（瘟疫医生 / 理发师 / 守鸦人 / 智者 …）是在**死亡发生之后**
+ *   才被动态唤醒的，而唤醒队列是**夜晚开始前**生成的快照 ⇒ 它们必然不在队列里。
+ *   实测两例：窃窃私语 1号瘟疫医生被「珀」杀死后醒、凶宅魅影 6号理发师被刺客
+ *   暗杀后醒 —— 行为完全正确，但 I13 直接判成「偷偷多跑一个步骤」。
+ *
+ *   修法不能靠角色名白名单（会腐烂），必须用**行为判据**：
+ *   「该座位本夜确实死了」⇒ 死后唤醒合法；活人跑到队列外 ⇒ 仍然报错。
+ */
+export function deadSeatsFromNightReport(journal: NightStepRecord[]): Set<number> {
+  const out = new Set<number>();
+  for (const j of journal) {
+    const t = j.dialogText ?? "";
+    if (!t.includes("死亡")) continue;
+    const m = t.match(/昨晚([^。]{0,120}?)死亡/);
+    if (!m) continue;
+    for (const g of m[1].matchAll(/(\d+)号/g)) out.add(Number(g[1]) - 1);
+  }
+  return out;
+}
+
 export function verifyNightSemantics(
   journal: NightStepRecord[],
   queue: QueueEntry[],
@@ -1022,8 +1102,15 @@ export function verifyNightSemantics(
     ...qSeats,
     ...queue.map((q) => q.seatId),
   ]);
+  /**
+   * 死后唤醒豁免：本夜确实死亡的座位，允许出现在队列之外
+   * （死亡触发类能力的**唯一**合法例外，见 `deadSeatsFromNightReport` 注释）。
+   * 活人若跑到队列外，下面仍然照常报 I13。
+   */
+  const diedTonight = deadSeatsFromNightReport(journal);
   // 队列为空（面板与执行侧都没读到）⇒ 无判据，不能把全部座位判成队列外
   for (const seat of qSeatSet.size > 0 ? seatSeq : []) {
+    if (diedTonight.has(seat)) continue;
     if (!qSeatSet.has(seat)) {
       V(
         "I13-unqueued",
@@ -1056,8 +1143,26 @@ export function verifyNightSemantics(
     }
   }
 
-  // I11 效果
+  /**
+   * 🎯 只判「最终执行步骤」：同一 (座位, 角色) 在一夜里可能出现多次——
+   *   preview 的「行动确认」步骤（等说书人在修正窗里选目标）+ 真正的执行步骤。
+   *   preview 步骤的快照本就不会有死亡标记 ⇒ 拿它判 I11 必假红。
+   *   取「该组合最后一次带目标的步骤」作为判据对象；一次都没带目标则跳过该角色。
+   */
+  const lastEffectStep = new Map<string, number>();
   for (const j of journal) {
+    if (!j.roleName || j.seatId === null || j.seatId === undefined) continue;
+    if (!j.after || (j.targets?.length ?? 0) === 0) continue;
+    // 「行动确认」预览步骤（带「撤销后可重新发动」按钮）：此时技能**尚未执行**，
+    //   说书人可能接着在修正窗里改目标（镇长替死等）⇒ 不能拿它的快照判效果。
+    if (/撤销后可重新发动/.test(j.dialogText)) continue;
+    lastEffectStep.set(`${j.seatId}|${j.roleName}`, j.stepIdx);
+  }
+
+  // I11 效果（只判最终执行步骤，见上面 lastEffectStep 注释）
+  for (const j of journal) {
+    const key = `${j.seatId}|${j.roleName}`;
+    if (lastEffectStep.get(key) !== j.stepIdx) continue;
     if (!j.roleName) continue;
     // 施法者被醉酒/中毒 ⇒ 技能合法失效，不能断言目标必须被影响
     if (j.seatId !== null && disabledSeats.has(j.seatId)) continue;
@@ -1072,7 +1177,19 @@ export function verifyNightSemantics(
       }
     }
     if (/(小恶魔|军团)/.test(j.roleName) && t !== null && j.after) {
-      if (!j.after.markedForDeath && !j.after.isDead && !j.after.isProtected) {
+      /**
+       * 🎩 市长夜杀转火（官方）：「如果你在夜晚被杀，另一名玩家**可能**代替你死亡。」
+       *   ⇒ 被攻击的市长**不会** markedForDeath，死者是别人。
+       *   豁免必须带反证：当夜**确实有人死了**（diedTonight.size > 0）；
+       *   否则击杀就是真的没落库（沉默失败），照样报 I11。
+       */
+      const mayorRedirect = j.after.roleId === "mayor" && diedTonight.size > 0;
+      if (
+        !mayorRedirect &&
+        !j.after.markedForDeath &&
+        !j.after.isDead &&
+        !j.after.isProtected
+      ) {
         V("I11-effect", `${j.roleName}选中 ${t + 1}号 后目标既无 markedForDeath 也未死亡（击杀未落库）`);
       }
     }

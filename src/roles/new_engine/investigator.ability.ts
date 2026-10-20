@@ -182,16 +182,23 @@ function getMinionCandidates(
     }
   }
 
-  // 兜底：若因间谍伪装导致没有候选，则允许间谍作为候选
-  if (candidates.length === 0) {
-    for (const seat of seats) {
-      if (seat.id === selfSeatId || seat.isDead || !seat.role) continue;
-      if (seat.role.type === "minion") {
-        candidates.push({ seat, roleName: seat.role.name });
-      }
-    }
-  }
-
+  /**
+   * ⚠️⚠️ 2026-10-20 修复（用户规则澄清）：**删掉了原来的「空候选兜底」**。
+   *
+   * 旧实现：若因间谍伪装导致候选为空，就把间谍塞回候选池。
+   * 后果与规则相反 —— 当**间谍是场上唯一爪牙**时，调查员会得到
+   * 「X号和Y号之中有一名是【间谍】」，等于把间谍直接交出去。
+   *
+   * 正确行为：间谍被识别为**好人**，所以此时调查员应得到
+   * 「**没有爪牙**」——即 `generateRealInfo` 在候选为空时返回
+   * `{ seat1: -1, seat2: -1, roleName: "" }`（上述分支已实现）。
+   *
+   * 不会误伤正常局：非间谍爪牙（男爵/刺客/投毒者等）`type === "minion"`
+   * 且 `isSpyAsGood` 不成立 ⇒ 一定会进候选池，只有「唯一爪牙是间谍」
+   * 这一种情况才会走到空候选，而那时「没有爪牙」正是正确答案。
+   * 若说书人手动把间谍指定为邪恶（`registerAsEvil === true`），
+   * `isSpyAsGood` 为 false ⇒ 间谍仍会作为候选被查出（合法）。
+   */
   return candidates;
 }
 

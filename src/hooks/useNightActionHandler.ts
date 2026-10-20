@@ -1532,6 +1532,22 @@ export async function executeViaNewEngine(
         if (deadDemon != null) {
           context.checkGameOver(syncedSeats, deadDemon, false);
           context.addLog(`⚔️ 恶魔 ${deadDemon + 1} 号死亡，触发胜负判定`);
+        } else {
+          /**
+           * ⭐ 2026-10-21 补：官方「仅剩 2 名玩家存活 ⇒ 邪恶胜」。
+           *   此前这段只在「死者里有恶魔」时判终局 —— 恶魔活着把人杀光时**永不终局**。
+           *   5 人局 E2E 实测：4 死 1 活（恶魔）仍显示对局继续，12 个昼夜都不结束。
+           *   判据交给 checkGameOver（内部按官方四条算），这里只负责「死亡落库后立刻问一次」。
+           */
+          const aliveAfterNight = syncedSeats.filter(
+            (s: any) => s.role && s.isDead !== true
+          ).length;
+          if (aliveAfterNight <= 2) {
+            context.checkGameOver(syncedSeats, null as any, false);
+            context.addLog(
+              `⚖️ 夜后仅剩 ${aliveAfterNight} 名存活玩家，触发胜负判定`
+            );
+          }
         }
       }
 

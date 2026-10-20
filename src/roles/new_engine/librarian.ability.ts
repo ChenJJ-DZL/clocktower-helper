@@ -160,7 +160,8 @@ const firstNightOnlyCheck = async (
  */
 function getOutsiderCandidates(
   seats: PlayerLookup[],
-  selfSeatId: number
+  selfSeatId: number,
+  rng: DeterministicRandom = Math.random
 ): Array<{ seat: PlayerLookup; roleName: string }> {
   const candidates: Array<{ seat: PlayerLookup; roleName: string }> = [];
 
@@ -169,14 +170,31 @@ function getOutsiderCandidates(
 
     const realRole = seat.role;
 
-    // spy 可被当作外来者，recluse 可被当作外来者
-    const canRegisterAsOutsider =
-      realRole.id === "spy" || realRole.id === "recluse";
-
-    if (realRole.type === "outsider" || canRegisterAsOutsider) {
-      // 酒鬼是外来者，但必须向图书管理员展示“酒鬼”，不能展示其伪装的镇民身份。
+    if (realRole.type === "outsider") {
+      // 酒鬼是外来者，但必须向图书管理员展示「酒鬼」，不能展示其伪装的镇民身份。
       candidates.push({ seat, roleName: realRole.name ?? "外来者" });
+      continue;
     }
+
+    /**
+     * ⚠️⚠️ 2026-10-20 修复（暗流涌动 seed=4 实测定罪 + 用户规则澄清）：
+     *   **间谍对本能力完全不可见** —— 不得作为外来者候选，也不得报出「间谍」。
+     *
+     * 规则依据（用户明确表述）：间谍被识别为**好人**，因此图书管理员（查外来者）
+     * 不能得知间谍。若场上真外来者为 0（间谍是唯一"可疑"者），图书管理员应
+     * 得到「没有外来者」——由 `generateRealInfo` 在候选为空时返回 `roleName: ""`。
+     *
+     * 实测旧实现：输出「2号和10号之中有一名是【间谍】」，而
+     *   2号=间谍(爪牙)、10号=士兵(镇民)，候选对里没有任何外来者，
+     *   报出的角色名也不是外来者 ⇒ 双重违规。
+     *
+     * 佐证：`SpyDisguiseModal` 的「受影响角色」列表只含
+     *   厨师 / 共情者 / 调查员 / 占卜师 —— **本来就不含图书管理员**，
+     *   说明设计意图就是「间谍不干扰外来者识别」。
+     *
+     * ⇒ 间谍座位在此直接跳过（既不参与候选，也不提供角色名）。
+     */
+    if (realRole.id === "spy") continue;
   }
 
   return candidates;
@@ -192,9 +210,9 @@ function getScriptOutsiderRoles(seats: PlayerLookup[]): string[] {
     if (seat.role?.type === "outsider") {
       roleNames.add(seat.role.name);
     }
-    if (seat.role?.id === "spy" || seat.role?.id === "recluse") {
-      roleNames.add(seat.role.name);
-    }
+    // ⚠️ 2026-10-20：**不再**把 spy 的名字塞进外来者名池 —— 间谍不是外来者，
+    //    把它当外来者角色名报出去等于泄露间谍身份（见 getOutsiderCandidates 注释）。
+    //    陌客本身 type === "outsider"，由上面第一条分支覆盖，无需单独处理。
   }
 
   // 兜底：从系统全部外来者中提取（防止场上0外来者时候选集为空）
@@ -238,7 +256,7 @@ export function generateRealInfo(
   selfSeatId: number,
   rng: DeterministicRandom = Math.random
 ): LibrarianInfo {
-  const outsiderCandidates = getOutsiderCandidates(seats, selfSeatId);
+  const outsiderCandidates = getOutsiderCandidates(seats, selfSeatId, rng);
 
   if (outsiderCandidates.length === 0) {
     return { seat1: -1, seat2: -1, roleName: "" };
@@ -289,7 +307,7 @@ export function generateFakeInfo(
     return { seat1: -1, seat2: -1, roleName: "管家" };
   }
 
-  const outsiderCandidates = getOutsiderCandidates(seats, selfSeatId);
+  const outsiderCandidates = getOutsiderCandidates(seats, selfSeatId, rng);
   const isActuallyZero = outsiderCandidates.length === 0;
 
   // 如果真实有外来者，可以有概率给出虚假的“0”（即谎称场上无外来者）

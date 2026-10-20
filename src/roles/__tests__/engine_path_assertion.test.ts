@@ -116,7 +116,8 @@ const NO_HANDLER_BASELINE = new Set<string>([
   // ✅ 2026-09-22 按官方移除 `philosopher.ts`：官方「在夜晚时」⇒ 已删 `day:` 块、
   //   触发时机改 `EVERY_NIGHT`（选角色改在**夜间**行动确认窗完成）⇒ 不再是日间角色，
   //   按棘轮（只许下调）必须从本基线移除。
-  "src/roles/outsider/tinker.ts",
+  // ✅ 2026-10-21 按官方修好并移出基线：修补匠补上 `day.handler`（说书人「随时可杀」，
+  //   保护优先走 `utils/tinkerRule.canTinkerDieByOwnAbility`），不再落进通用回退空转。
   "src/roles/minion/cerenovus.ts",
   "src/roles/outsider/mutant.ts",
   // ✅ 2026-09-22 已按官方移除 `src/roles/townsfolk/gambler.ts`：

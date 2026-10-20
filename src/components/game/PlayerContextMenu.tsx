@@ -199,13 +199,13 @@ export function PlayerContextMenu() {
       {props.gamePhase === "day" &&
         canGuessDamsel(targetSeat) &&
         !targetSeat.isDead &&
-        props.seats.some((s) => s.role?.id === "damsel") && (
+        props.seats.some((s) => s.role?.id === "damsel" && !s.isDead) && (
           <button
             title="仅真爪牙可发起猜测：提线木偶不会被引导（官方相克：提线木偶不会得知落难少女在场）"
             onClick={() => props.handleMenuAction("damselGuess")}
-            disabled={props.damselGuessUsedBy.includes(targetSeat.id)}
+            disabled={props.damselGuessUsedBy.length > 0}
             className={`block w-full text-left px-6 py-3 text-lg font-medium border-t border-gray-700 ${
-              props.damselGuessUsedBy.includes(targetSeat.id)
+              props.damselGuessUsedBy.length > 0
                 ? "text-gray-500 cursor-not-allowed bg-gray-800"
                 : "hover:bg-pink-900 text-pink-300"
             }`}
@@ -318,31 +318,11 @@ export function PlayerContextMenu() {
             🗣️ 造谣者：记录/裁定
           </button>
         )}
-      {/* 拜访说书人：白天主动触发私密能力交互 */}
-      {props.gamePhase === "day" &&
-        !targetSeat.isDead &&
-        effectiveRole?.dayMeta &&
-        !targetSeat.hasUsedDayAbility && (
-          <button
-            onClick={() => props.handleMenuAction("visit_storyteller")}
-            className="block w-full text-left px-6 py-3 hover:bg-indigo-900 text-indigo-200 text-lg font-medium border-t border-gray-700"
-          >
-            📜 拜访说书人
-          </button>
-        )}
-      {/* 公开声明使用能力：所有玩家可见 */}
-      {props.gamePhase === "day" &&
-        !targetSeat.isDead &&
-        effectiveRole?.dayMeta &&
-        !targetSeat.hasUsedDayAbility &&
-        effectiveRole.dayMeta.publicActivation && (
-          <button
-            onClick={() => props.handleMenuAction("public_activate_ability")}
-            className="block w-full text-left px-6 py-3 hover:bg-amber-900 text-amber-200 text-lg font-medium border-t border-gray-700"
-          >
-            📣 公开使用能力
-          </button>
-        )}
+      {/* ⚠️ 2026-10-21 删除两个「永不成立」的菜单项：
+          原「拜访说书人」「公开使用能力」的显示条件都是 `effectiveRole?.dayMeta`，
+          但 `dayMeta` 在 app/data.ts 里**没有任何角色赋值**（只有接口声明）
+          ⇒ 两个按钮在全剧本全角色下都不会出现，属于幽灵入口。
+          日间主动能力的真实入口是 `GameConsole` 的「可用主动技能」区（走 RoleDefinition.day）。 */}
       <button
         onClick={() => props.toggleStatus("dead")}
         className="block w-full text-left px-6 py-3 hover:bg-gray-700 text-lg font-medium transition-colors"

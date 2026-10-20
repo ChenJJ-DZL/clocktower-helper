@@ -1,4 +1,5 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { resolveVirginTrigger, shouldExecuteNominator } from "../../utils/virginRule";
 import {
   canBeNominated,
   canNominate,
@@ -70,17 +71,24 @@ export function DayActionModal({ modal }: { modal: any }) {
                       const nominatorSeat = props.seats.find(
                         (seat: any) => seat.id === modal.sourceId
                       );
-                      const isRealTownsfolk = !!(
-                        nominatorSeat &&
-                        nominatorSeat.role?.type === "townsfolk" &&
-                        nominatorSeat.role?.id !== "drunk" &&
-                        !nominatorSeat.isDrunk
+                      /**
+                       * ⚠️ 2026-10-21：判据已抽到 `utils/virginRule`（可单测）。
+                       *   旧实现在这里内联判断「镇民 + 非酒鬼 + 未醉酒」，
+                       *   纯函数测不到，规则正确性只能靠整局 E2E 偶然撞见。
+                       */
+                      const virginRes = resolveVirginTrigger(
+                        s as any,
+                        nominatorSeat as any
                       );
                       props.setVirginGuideInfo({
                         targetId: s.id,
                         nominatorId: modal.sourceId ?? 0,
-                        isFirstTime: !s.hasBeenNominated,
-                        nominatorIsTownsfolk: isRealTownsfolk,
+                        isFirstTime: virginRes.isFirstTime,
+                        nominatorIsTownsfolk: virginRes.nominatorIsTownsfolk,
+                        shouldExecuteNominator: shouldExecuteNominator(
+                          s as any,
+                          nominatorSeat as any
+                        ),
                       });
                       // Trigger VFX on Virgin
                       props.setVfxTrigger({ seatId: s.id, type: "virgin" });

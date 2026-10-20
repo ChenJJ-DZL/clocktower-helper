@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
+import { canTinkerDieByOwnAbility } from "../../utils/tinkerRule";
 
 /**
  * 修补匠 (Tinker)
@@ -80,5 +81,44 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:133-0!canonical and tim
     name: "猝死",
     maxUses: "infinity",
     target: { min: 0, max: 0 },
+    /**
+     * 官方（officialRoleDocs · 修补匠）：「你随时可能死亡」「说书人随时可以杀死修补匠」，
+     *   且「修补匠在受到免于死亡的能力保护时，不能因自己的能力而死亡」。
+     *
+     * 🔴 修复前：本配置只有 name/maxUses/target，**没有 handler** ⇒
+     *   useDayActions 落进「无 handler → 通用回退」，只记一条「发动技能」日志，
+     *   玩家血量毫无变化 —— 菜单按钮是假的。
+     * 判据唯一事实源：utils/tinkerRule::canTinkerDieByOwnAbility（保护优先）。
+     */
+    handler: (context) => {
+      const self = context.seats.find((s) => s.id === context.selfId);
+      const check = canTinkerDieByOwnAbility(
+        self as any,
+        context.seats as any
+      );
+      if (!check.canDie) {
+        return {
+          updates: [],
+          logs: {
+            privateLog: `🛠️ 修补匠（${context.selfId + 1}号）不能因自身能力死亡：${check.reason}`,
+          },
+        };
+      }
+      // 夜晚死亡要进黎明报告；白天死亡当场公布（官方「运作方式」）
+      const isNightPhase =
+        context.gamePhase === "firstNight" ||
+        context.gamePhase === "night" ||
+        context.gamePhase === "twilight";
+      context.killPlayer(context.selfId, {
+        source: "ability",
+        recordNightDeath: isNightPhase,
+      });
+      return {
+        updates: [],
+        logs: {
+          privateLog: `🛠️ 说书人裁定：修补匠（${context.selfId + 1}号）突发死亡`,
+        },
+      };
+    },
   },
 };

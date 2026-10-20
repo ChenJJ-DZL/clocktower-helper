@@ -1,10 +1,20 @@
 /**
- * 笨蛋（Klutz）新引擎技能实现
+ * 呆瓜（Klutz）新引擎技能实现
  *
- * 【角色能力】"当你第一次死亡时，随机一名善良玩家死亡。"
+ * 【角色能力】官方原文（`src/data/officialRoleDocs.json` · 呆瓜）：
+ *   「当你得知你死亡时，你要**公开选择一名存活的玩家**：
+ *     如果他是邪恶的，**你的阵营落败**。」
  *
- * 被动检测笨蛋首次死亡。从存活善良玩家中随机选择一名标记死亡。
- * 若无可杀目标（全场无善良存活），则跳过。
+ * ⚠️⚠️ 2026-10-21 修正注释（原注释写的是**另一个角色的能力**）：
+ *   旧注释写「当你第一次死亡时，**随机一名善良玩家死亡**」——
+ *   那是「死时随机带人走」类能力，与呆瓜的「公开选人 + 选错阵营落败」完全不同。
+ *   代码实现一直是对的（`evilWins = isEvil(chosenSeat)`、`klutzTriggered`），
+ *   只有注释与 `postProcess` 文案把它描述错了 —— 这种「注释比代码更骗人」
+ *   最容易把后来的维护者带偏（本项目已有先例）。
+ *
+ * 触发前提：座位**已死亡**且未触发过（`preCheck`）。
+ * 选人来源：`targetIds[0]` / `actionNode.targetIds[0]` / 说书人 `chosenSeatId`。
+ * 未选人 ⇒ `targetId: null`，不产生任何胜负变化。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import { isSeatEvil } from "../../utils/seatAlignment";
@@ -88,16 +98,23 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const status = r?.killed
-    ? `随机杀死 ${(r.targetId ?? 0) + 1} 号玩家`
-    : "无可杀目标";
-  const log = `[笨蛋] ${status}`;
+  /**
+   * ⚠️ 旧文案写「随机杀死 N 号玩家」——与官方不符（呆瓜不杀人，是判阵营）。
+   *   改为按真实语义输出，避免日志把说书人带偏。
+   */
+  const status =
+    r?.targetId == null
+      ? "未选择玩家（不产生胜负变化）"
+      : `公开选择 ${(r.targetId ?? 0) + 1} 号玩家 ⇒ ${
+          r?.evilWins ? "该玩家邪恶，呆瓜所在阵营落败" : "该玩家善良，无事发生"
+        }`;
+  const log = `[呆瓜] ${status}`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
-      prompt: "检测笨蛋死亡效果。",
+      prompt: "呆瓜死亡：公开选择一名存活玩家（选中邪恶则其阵营落败）。",
       abilityLog: log,
     },
   };
@@ -106,7 +123,7 @@ const postProcess = async (
 export const klutzAbility = createRoleAbility({
   roleId: "klutz",
   abilityId: "klutz_death",
-  abilityName: "笨手笨脚",
+  abilityName: "公开指控",
   triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
   otherNightPriority: null,

@@ -8,6 +8,10 @@
  */
 
 import {
+  resolveMastermindExtraDay,
+  shouldEnterMastermindExtraDay,
+} from "../src/utils/mastermindRule";
+import {
   hasExecutionProof,
   hasTeaLadyProtection,
   isActorDisabledByPoisonOrDrunk,
@@ -26,6 +30,12 @@ export interface GameEndResult {
   isGameOver: boolean;
   winner: Faction | null; // null 表示游戏未结束
   reason: string | null;
+  /**
+   * ⭐ 2026-10-21：主谋「额外一夜一昼」标记。
+   * 由 `processGameEvent` 转成 `nextActionHint = "MASTERMIND_EXTRA_DAY"`，
+   * 供调用方（`useLogicDispatcher`）激活 `mastermindFinalDay` 状态。
+   */
+  extraDay?: boolean;
 }
 
 export interface NightActionSnapshot {
@@ -62,6 +72,12 @@ export interface GameStateSnapshot {
 // Context for logic decisions that depend on external state
 export interface GameContext {
   isMastermindActive?: boolean;
+  /**
+   * 当前是否处于「主谋额外白天」——与 `isMastermindActive`（主谋在场）**不同**：
+   * 前者只在恶魔死于处决后的那一个白天为 true。二者混用会导致
+   * 「主谋在场 + 普通平安日 ⇒ 邪恶获胜」这种误判。
+   */
+  isMastermindExtraDay?: boolean;
   todayHasExecution?: boolean;
   damselGuessed?: boolean;
   klutzGuessedEvil?: boolean;
@@ -366,6 +382,7 @@ export function processGameEvent(
   const result = checkGameEnd(nextSeats, lastActionType, executedId, context);
   winner = result.winner;
   winReason = result.reason;
+  if (result.extraDay) nextActionHint = "MASTERMIND_EXTRA_DAY";
 
   return {
     seats: nextSeats,
@@ -504,6 +521,7 @@ export function checkGameEnd(
 ): GameEndResult {
   const {
     isMastermindActive = false,
+    isMastermindExtraDay = false,
     damselGuessed = false,
     klutzGuessedEvil = false,
     isVortoxWorld = false,
@@ -575,15 +593,19 @@ export function checkGameEnd(
     }
 
     // 特例：主谋 (Mastermind) 触发用于在处决导致恶魔死亡时延续游戏
-    if (isMastermindActive && lastAction === "execution") {
+    if (lastAction === "execution") {
+      const demoSeat = seats.find((s) => s.id === executedPlayerId);
       const demonDied =
-        seats.find((s) => s.id === executedPlayerId)?.role?.type === "demon" ||
-        seats.find((s) => s.id === executedPlayerId)?.role?.id === "legion";
-      if (demonDied) {
+        demoSeat?.role?.type === "demon" || demoSeat?.role?.id === "legion";
+      // 唯一判据：utils/mastermindRule
+      if (
+        shouldEnterMastermindExtraDay({ mastermindActive: isMastermindActive, demonDiedByExecution: demonDied })
+      ) {
         return {
           isGameOver: false,
           winner: null,
-          reason: "主谋使游戏在恶魔死后继续",
+          reason: "主谋使游戏在恶魔死后继续（额外一夜一昼）",
+          extraDay: true,
         };
       }
     }
@@ -823,12 +845,25 @@ export function checkGameEnd(
         reason: "涡流：今日无人被处决",
       };
     }
-    // 主谋 (Mastermind): 额外一天若无人被处决 -> 邪恶获胜
-    if (isMastermindActive) {
+    /**
+     * 主谋（Mastermind）额外一天：**无人被处决 ⇒ 善良获胜**。
+     *
+     * 🔴 2026-10-21 修正：原实现是「无人处决 ⇒ **邪恶**获胜」，与官方**判反**。
+     *   官方原文：「如果一名邪恶玩家被处决，或者**没有人被处决**，
+     *   则**善良阵营获胜**。」
+     *
+     * ⚠️ 判据必须用 `isMastermindExtraDay`（只在恶魔死于处决后的那个白天为 true），
+     *   **不能**用 `isMastermindActive`（主谋在场就为 true）——否则
+     *   「主谋在场 + 普通平安日」会被误判成邪恶获胜。
+     */
+    if (isMastermindExtraDay) {
+      const r = resolveMastermindExtraDay(null);
       return {
         isGameOver: true,
-        winner: "Evil",
-        reason: "主谋翻盘：额外一天无人处决",
+        // ⚠️ 胜负**必须从纯函数派生**，不能另写字面量 ——
+        //    否则两处会分叉，改一处不改另一处，测试也抓不到。
+        winner: r.winner === "good" ? "Good" : "Evil",
+        reason: r.reason,
       };
     }
     // 镇长 (Mayor): 和平获胜已**上移**到「1.5 邪恶人数阈值之前」统一结算

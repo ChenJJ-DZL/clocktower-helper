@@ -6,6 +6,7 @@ import type { Seat } from "../../app/data";
 import { roles } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
+import { canOpenDamselGuess } from "../utils/damselRule";
 
 /**
  * UseInteractionHandlerResult - 交互管理 Hook 的返回结果
@@ -470,6 +471,51 @@ export function useInteractionHandler(deps: {
             },
           })
         );
+      } else if (action === "damselGuess") {
+        // 🎯 落难少女：官方「每局游戏限一次，任意爪牙可以公开猜测」。
+        //    判据唯一事实源 = utils/damselRule；旧实现在这里**没有任何分支**，
+        //    菜单能点但弹窗永不打开 ⇒ 该角色的核心胜负规则不可达。
+        const damselGuard = canOpenDamselGuess({
+          seats: seats as any,
+          minionId: seatId,
+          alreadyGuessed:
+            (state as any).damselGuessed === true ||
+            (((state as any).damselGuessUsedBy as number[] | undefined)
+              ?.length ??
+              0) > 0,
+        });
+        if (!damselGuard.allowed) {
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount ?? 0,
+              phase: state.gamePhase,
+              message: `🎯 无法发起落难少女猜测：${damselGuard.reason}`,
+            })
+          );
+          return;
+        }
+        dispatch(
+          gameActions.setModal({
+            type: "DAMSEL_GUESS",
+            data: { minionId: seatId, targetId: null },
+          })
+        );
+      } else if (action === "tinker_die" || action === "gossip_record") {
+        // 🛠️ 修补匠「猝死」/ 🗣️ 造谣者「记录声明」：都走统一日间能力入口。
+        //    · 修补匠 → RoleDefinition.day.handler（保护优先，见 utils/tinkerRule）
+        //    · 造谣者 → DAY_ABILITY 弹窗（真假裁定已实现）
+        //    旧实现：菜单发出动作，全仓没有处理者 ⇒ 点击毫无反应。
+        if (typeof deps.handleDayAbility === "function") {
+          deps.handleDayAbility(seatId);
+        } else {
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount ?? 0,
+              phase: state.gamePhase,
+              message: "⚠️ 日间能力入口未接线（handleDayAbility 缺失）",
+            })
+          );
+        }
       } else if (action === "reminder_tokens") {
         // 打开提醒标记面板
         dispatch(

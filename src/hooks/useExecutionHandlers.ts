@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import { resolveMastermindExtraDay } from "../utils/mastermindRule";
+import { checkPacifistSave } from "../utils/pacifistRule";
 import { useCallback, useMemo } from "react";
 import { appendExecutedDeathTriggeredToQueue } from "../utils/dynamicQueueGenerator";
 import type { GamePhase, Role, Seat } from "../../app/data";
@@ -366,21 +368,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         });
         return true;
       }
-      // 🔧 Mayor: 白天处决镇长不死（官方规则基础部分）。
-      //   完整版还应判断"3人特殊胜利"，但留作后续——当前先保证不死。
-      if (t.role.id === "mayor") {
-        addLog(`⚖️ ${id + 1}号镇长被处决但因规则未死亡`);
-        setCurrentModal({
-          type: "EXECUTION_RESULT",
-          data: { message: `${id + 1}号镇长被处决但因规则未死亡` },
-        });
-        // 设置今天已处决过（防止重复提名）
-        // 🔧 修复：原代码从 globalThis.__setTodayExecutedId 取 setter，
-        //   但该全局变量从未被赋值 → 死代码，todayExecutedId 从未真正设置。
-        //   直接使用 hook 内的 setTodayExecutedId（并加入依赖数组）。
-        setTodayExecutedId(id);
-        return true;
-      }
+      // ❌ 2026-10-21 删除「镇长被处决不死」——这是**自造规则**。
+    //   官方【镇长】只写：「如果仅有 3 名玩家存活，且**没有发生处决**，你的阵营获胜。」
+    //   ⇒ 镇长**没有**处决免疫，被处决就是死。
+    //   旧实现（注释自承「当前先保证不死」）导致：处决镇长 ⇒ 无人死亡 ⇒
+    //   白天不消耗性命、终局阈值永远推不动。5 人局 E2E 一跑就抓到：
+    //   dusk#2「执行了处决结算但无新增死亡（死前=5号 死后=5号）」。
+    //   「3 人存活 + 平安日 ⇒ 善良胜」由 app/gameLogic.ts::hasMayorPeacefulWin
+    //   自动结算，与本分支无关，删除后不影响那条规则。
 
       // 🐑 替罪羊（traveler）：说书人裁定代刑 —— 替罪羊死、原被处决者免死。
       //   判据：utils/travelerHooks.ts::travelerScapegoatCanSubstitute（读 state.travelers，
@@ -1047,13 +1042,17 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       // 2. 和平主义者逻辑
-      const activePacifist = seats.find(
-        (s) =>
-          s.role?.id === "pacifist" &&
-          !s.isDead &&
-          !isActorDisabledByPoisonOrDrunk(s)
+      /**
+       * ⚠️ 2026-10-21：判据抽到 `utils/pacifistRule::checkPacifistSave`（可单测）。
+       *   原实现在这里内联 `find(... role.id==="pacifist" && !isDead && !disabled)`
+       *   再叠加 `isGoodAlignment(executed)`，逻辑虽对但**无法单测**，
+       *   「只救善良 / 醉毒不生效 / 已死不生效」三条只能靠整局偶然撞见。
+       */
+      const pacifistCheck = checkPacifistSave(
+        executed as any,
+        seats as any
       );
-      if (activePacifist && isGoodAlignment(executed)) {
+      if (pacifistCheck.shouldPrompt) {
         setCurrentModal({
           type: "PACIFIST_CONFIRM",
           data: {
@@ -1492,16 +1491,28 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       return;
     }
 
-    // BMR：主谋额外一天的结算
+    /**
+     * BMR：主谋「额外一夜一昼」的结算。
+     *
+     * 官方：「在那个白天如果有玩家被处决，**他的阵营落败**」；
+     *      「若一名邪恶玩家被处决，或者**没有人被处决**，则**善良阵营获胜**」。
+     *
+     * 🔴 2026-10-21 修正两处：
+     *   ① 原来这里 dispatch `CHECK_GAME_OVER` 并把 `isMastermindActive` 传 true，
+     *      会落进 `checkGameEnd` 的「无人处决 ⇒ 邪恶获胜」分支（本来就是**判反**的）；
+     *   ② `mastermindFinalDay` 从未被激活 ⇒ 这段代码根本不执行。
+     *   ⇒ 现在改为直接用唯一判据 `utils/mastermindRule::resolveMastermindExtraDay`。
+     */
     if (mastermindFinalDay?.active) {
-      dispatch({
-        type: "CHECK_GAME_OVER",
-        executedId: todayExecutedId ?? undefined,
-        lastAction: todayExecutedId ? "execution" : "check_phase",
-        context: {
-          isMastermindActive: true,
-        },
-      });
+      const executedSeat =
+        todayExecutedId === null || todayExecutedId === undefined
+          ? null
+          : seats.find((s) => s.id === todayExecutedId) ?? null;
+      const extra = resolveMastermindExtraDay(executedSeat as any);
+      addLog(`🧠 ${extra.reason}`);
+      setWinResult(extra.winner);
+      setWinReason(extra.reason);
+      setGamePhase("gameOver");
       setMastermindFinalDay(null);
       return;
     }
@@ -1562,6 +1573,11 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     setMastermindFinalDay,
     startSubsequentNight,
     winResult,
+    // 主谋额外一天结算用到（缺失只会触发 lint 警告，但补上更严谨）
+    setWinResult,
+    setWinReason,
+    setGamePhase,
+    addLog,
   ]);
 
   // Resolve lunatic RPS handler

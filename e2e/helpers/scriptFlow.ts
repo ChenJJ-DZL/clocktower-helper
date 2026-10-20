@@ -565,12 +565,20 @@ export async function advanceNightFast(
 
     for (let i = 0; i < MAX_STEPS; i++) {
       if (isDay()) return "day";
-      if (spyActive()) return "spy";
+      // ⚠️ 2026-10-20：**不再**在循环开头因「检测到间谍」就提前返回。
+      //    旧实现一旦看到「查看魔典 + 间谍」就 return "spy"，把整局判为
+      //    「不可自动驱动」并让调用方 skip —— 实测应用侧完全正常：
+      //    点「展开对局记录」→ 魔典弹出 → 点「我已查看完毕」→ 正常进白天。
+      //    ⇒ 现在是**真正驱动它**，只有真的点不动时才由下面的 stall 熔断兜底。
 
       // 进度签名：用「可见弹窗文本 + 主按钮文本」做指纹
       const dlg = document.querySelector('[role="dialog"]');
       const mainBtn = btnsIn(document).find((b) =>
-        /确认&下一步|下一步|天亮了/.test(norm(b))
+        // ⚠️ 2026-10-20 实测补：间谍步骤的主推进按钮**不叫「下一步」**，
+        //    而是「📋 展开对局记录」（打开魔典）与「✓ 我已查看完毕 (下一步)」
+        //    （关闭魔典）。旧正则漏了这两个文案，导致间谍局被判「不可驱动」
+        //    并整局 skip —— 实际应用完全正常，是驱动器认不出按钮。
+        /确认&下一步|下一步|天亮了|展开对局记录|我已查看完毕/.test(norm(b))
       );
       const sig = `${dlg ? norm(dlg).slice(0, 80) : ""}||${mainBtn ? norm(mainBtn) : ""}`;
       // ⚠️ 间谍步骤会「有主按钮可点、但点了不推进」→ 仍按签名无变化熔断；

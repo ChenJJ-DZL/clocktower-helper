@@ -321,3 +321,52 @@ describe("I11 效果的前提：施法者被醉酒/中毒 ⇒ 技能合法失效
     expect(verifyNightSemantics(journal, [{ seatId: 2, label: "小恶魔" }])).toEqual([]);
   });
 });
+
+describe("I13 死亡豁免：死亡触发类角色在死亡后合法唤醒", () => {
+  const q = [{ seatId: 3, label: "主谋" }];
+
+  /**
+   * ⚠️ 编号换算：journal 里的 `seatId` 是 **0 基**，而报告文案是 **N号**（1 基）。
+   *   第一版写「座位 6 死」却让报告说「6号死亡」⇒ 实际豁免的是座位 5，
+   *   于是断言假红。测试里的两套编号必须显式对齐。
+   */
+  it("✅ 本夜死亡的座位出现在队列外 ⇒ 不报 I13（死后唤醒合法）", () => {
+    const journal = [
+      step(0, 3, "主谋"),
+      step(1, 6, "瘟疫医生"), // 0 基 6 = 7号
+      step(2, null as unknown as number, "夜晚结算报告", {
+        dialogText: "🌙 夜晚结算报告 💀说书人宣布黎明信息：昨晚7号玩家死亡确认并进入白天",
+      }),
+    ];
+    expect(verifyNightSemantics(journal, q)).toEqual([]);
+  });
+
+  it("🔴 活人出现在队列外 ⇒ 仍必须报 I13（豁免不得放水）", () => {
+    const journal = [
+      step(0, 3, "主谋"),
+      step(1, 4, "理发师"), // 0 基 4 = 5号，不在队列且没死
+      step(2, null as unknown as number, "夜晚结算报告", {
+        dialogText: "🌙 夜晚结算报告 💀说书人宣布黎明信息：昨晚7号玩家死亡确认并进入白天",
+      }),
+    ];
+    const out = verifyNightSemantics(journal, q);
+    const hit = out.find((v) => v.invariant === "I13-unqueued");
+    expect(hit, "活人跑到队列外必须报错").toBeTruthy();
+    expect(hit!.detail).toContain("5号");
+  });
+
+  it("✅ 多人死亡报告解析：昨晚1号、4号、9号玩家死亡 ⇒ 三个座位均豁免", () => {
+    const journal = [
+      step(0, 3, "主谋"),
+      step(1, 0, "瘟疫医生"),
+      step(2, 3, "理发师"), // 与队列同座位，不参与 I13
+      step(3, 8, "智者"),
+      step(4, null as unknown as number, "夜晚结算报告", {
+        dialogText: "💀说书人宣布黎明信息：昨晚1号、4号、9号玩家死亡确认并进入白天",
+      }),
+    ];
+    const out = verifyNightSemantics(journal, q);
+    // 座位 0 与 8 都在死亡名单 ⇒ 只剩「3 号在队列内」的合法情况
+    expect(out.filter((v) => v.invariant === "I13-unqueued")).toEqual([]);
+  });
+});

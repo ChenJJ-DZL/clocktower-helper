@@ -68,7 +68,7 @@ describe("L5 补强 · 变异检验反推的盲点（12 条）", () => {
   });
 
   // ────────────────────────────────────────────────────────────────────
-  it("G2 图书管理员：间谍是场上唯一「外来者候选」时，必须给出外来者信息", async () => {
+  it("G2 图书管理员：间谍被识别为好人 ⇒ 不得作为外来者被告知（2026-10-20 规则更正）", async () => {
     /**
      * 变异点：`librarian.ability.ts:174`
      *   `realRole.id === "spy" || realRole.id === "recluse";`  →  `realRole.id === "recluse";`
@@ -98,15 +98,32 @@ describe("L5 补强 · 变异检验反推的盲点（12 条）", () => {
       snapshot: { nightCount: 1 },
     });
     const info = res.meta.abilityResult;
+    /**
+     * ⚠️⚠️ 2026-10-20 规则更正（用户定调 + E2E 实测定罪）：
+     *   **间谍被识别为「好人」，因此图书管理员（查外来者）不能得知间谍。**
+     *
+     * 本用例原来断言「间谍必须被当作外来者告知」并报出 `r("spy").name`，
+     * 那正是缺陷本身：实测暗流涌动 seed=4 输出
+     *   「2号和10号之中有一名是【间谍】」——
+     * 2号=间谍(爪牙)、10号=士兵(镇民)，候选对里没有任何外来者，
+     * 报出的角色名也不是外来者 ⇒ 信息双重违规，且把间谍身份直接交给善良方。
+     *
+     * 佐证：`SpyDisguiseModal` 的「受影响角色」只列 厨师/共情者/调查员/占卜师，
+     * **本来就不含图书管理员** —— 设计意图即「间谍不干扰外来者识别」。
+     *
+     * 现行为：间谍不进候选 ⇒ 场上 0 真外来者 ⇒ 返回「没有外来者」。
+     * 契约锁定见 `src/roles/__tests__/integration/spy_registration_contract.test.ts`。
+     */
     expect(
       info?.roleName,
-      "❌ 间谍默认可注册为外来者（librarian.ability.ts:174），必须被当作外来者告知"
-    ).toBe(r("spy").name);
-    expect([info?.seat1, info?.seat2], "❌ 两候选里必须包含间谍所在的 2号座位").toContain(1);
+      "❌ 间谍对图书管理员不可见 ⇒ 应报「没有外来者」（roleName 为空）"
+    ).toBe("");
+    expect(info?.seat1, "❌ 无外来者候选时应返回 -1").toBe(-1);
+    expect(info?.seat2, "❌ 无外来者候选时应返回 -1").toBe(-1);
     expect(
       res.meta.librarianResult?.hasOutsider,
-      "❌ 场上确有（注册为）外来者 → hasOutsider 必须为 true（librarian.ability.ts:425）"
-    ).toBe(true);
+      "❌ 场上没有真外来者 → hasOutsider 必须为 false"
+    ).toBe(false);
   });
 
   // ────────────────────────────────────────────────────────────────────

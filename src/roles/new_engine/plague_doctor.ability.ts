@@ -14,6 +14,7 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 import { grantStorytellerMinionAbility } from "../../utils/expansionMechanics";
+import { roles } from "../../../app/data";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -41,7 +42,17 @@ const calculate = async (
       ...ctx.meta,
       abilityResult: {
         plagueDoctorSeatId: ctx.actionNode.seatId,
+        /** 内部用：爪牙角色 id（如 poisoner） */
         grantedMinionRole,
+        /**
+         * ⚠️⚠️ 2026-10-20 修复（L1 矩阵 G2b 抓出）：
+         *   旧实现把 `grantedMinionRole`（英文 id）直接拼进玩家/说书人可见文案，
+         *   实测输出「说书人已获得爪牙【poisoner】能力」。
+         *   `prompt` 与 `displayInfo.log` 都会上屏，必须用中文名。
+         */
+        grantedMinionRoleName:
+          roles.find((x) => x.id === grantedMinionRole)?.name ??
+          grantedMinionRole,
         storytellerAcquired: true,
       },
     },
@@ -84,14 +95,15 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  const log = `[PlagueDoctor] 瘟疫医生死亡，说书人获得了【${r.grantedMinionRole}】爪牙能力！`;
+  const roleName = r.grantedMinionRoleName ?? r.grantedMinionRole;
+  const log = `[PlagueDoctor] 瘟疫医生死亡，说书人获得了【${roleName}】爪牙能力！`;
   console.log(log);
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityLog: log,
-      prompt: `瘟疫医生死亡。说书人已获得爪牙【${r.grantedMinionRole}】能力。`,
+      prompt: `瘟疫医生死亡。说书人已获得爪牙【${roleName}】能力。`,
       displayInfo: {
         type: "plague_doctor_storyteller_gain",
         minionRole: r.grantedMinionRole,

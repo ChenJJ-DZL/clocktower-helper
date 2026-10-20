@@ -66,6 +66,7 @@ import { VirginTriggerModal } from "../modals/VirginTriggerModal";
 import { VizierExecutionModal } from "../modals/VizierExecutionModal";
 import { VoteInputModalContent } from "../modals/VoteInputModal";
 import { listAliveTravelerSlots } from "../../utils/travelerHooks";
+import { resolveDamselGuess } from "../../utils/damselRule";
 import { markVoteSettled } from "../../utils/nominationEligibility";
 import { GameOverOverlay } from "./GameOverOverlay";
 import { showAlert } from "../../utils/nativeDialogShim";
@@ -90,6 +91,7 @@ export function GameModals() {
     gameRecords,
     selectedScript,
     damselGuessUsedBy,
+    damselGuessed,
     reminderTokens,
     nightCount,
     isVortoxWorld,
@@ -857,32 +859,39 @@ export function GameModals() {
             damselModalData.targetId === null
           )
             return;
-          const minionId = damselModalData.minionId;
-          const guessSeat = seats.find(
-            (s: any) => s.id === damselModalData.targetId
-          );
-          const isCorrect =
-            guessSeat?.role?.id === "damsel" && !guessSeat.isDead;
+          const { minionId, targetId } = damselModalData;
+          // 判据唯一事实源：utils/damselRule（官方原文逐条落库）
+          const resolution = resolveDamselGuess({
+            seats,
+            minionId,
+            targetId,
+            // 「已被猜测」是**全局一次**：旧实现按 per-minion 记账 → 违规
+            alreadyGuessed:
+              damselGuessed === true || damselGuessUsedBy.length > 0,
+          });
           actions.setCurrentModal(null);
+          if (!resolution.consumesGuess) {
+            actions.addLog(
+              `🎯 ${minionId + 1}号的猜测未生效：${resolution.reason}`
+            );
+            return;
+          }
           actions.setDamselGuessUsedBy((prev: any[]) =>
             prev.includes(minionId) ? prev : [...prev, minionId]
           );
-          if (isCorrect) {
+          if (resolution.evilWins) {
+            // 落状态（快照/持久化/能力管道都要读到），再判终局
+            actions.setDamselGuessed?.(true);
             actions.addLog(
-              `爪牙猜测成功：${damselModalData.targetId + 1}号是落难少女，邪恶获胜`
+              `🎯 爪牙猜中 ${targetId + 1}号是落难少女 —— 邪恶阵营获胜`
             );
             actions.checkGameOver(seats, undefined, undefined, true);
-          } else {
-            const updatedSeats = seats.map((s: any) =>
-              s.id === minionId ? { ...s, isDead: true, isSentenced: false } : s
-            );
-            actions.setSeats(updatedSeats);
-            actions.addLog(`${minionId + 1}号爪牙猜错落难少女，当场死亡。`);
-            actions.addLog(
-              `爪牙猜测失败：${damselModalData.targetId + 1}号不是落难少女`
-            );
-            actions.checkGameOver(updatedSeats, minionId);
+            return;
           }
+          // 官方：猜测错误「无事发生」—— 旧实现让猜测者当场死亡，违规
+          actions.addLog(
+            `🎯 爪牙猜测失败：${targetId + 1}号不是落难少女；本局猜测机会已用完`
+          );
         }}
       />
 

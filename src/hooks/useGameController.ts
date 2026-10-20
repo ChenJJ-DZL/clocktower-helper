@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import { resolveMinstrelIntoxication } from "../utils/minstrelRule";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -645,6 +646,23 @@ export function useGameController() {
        *   不走 `killPlayer`；那条路径的「消费」由管道后置中间件
        *   `createFoolImmunityConsumer` 负责（两者判据同源 `canFoolSurvive` ⇒ 幂等）。
        */
+      /**
+       * 🤪 呆瓜（Klutz）：死亡后必须公开选择一名存活玩家。
+       *
+       * 🔴 2026-10-21 修复死路径：`KLUTZ_CHOICE` 弹窗此前**全仓没有触发点**
+       *   （`KlutzChoiceModal` / `confirmKlutzChoice` / `types/modal.ts` 三处齐全，
+       *   但搜遍 `src/` 没有任何 `setCurrentModal({type:"KLUTZ_CHOICE"})`）
+       *   ⇒ 呆瓜的核心能力在生产里**永远不会发生**。
+       *
+       * 这里在死亡**之前**捕获身份（提交后 `isDead` 已变），死亡落库后再开弹窗；
+       * 用函数式更新读 `prev`，避免覆盖已经弹出的 `GAME_OVER`（处决恶魔致死等）。
+       */
+      const klutzBeforeDeath = seatsRef.current.find((s) => s.id === targetId);
+      const klutzWillResolve =
+        klutzBeforeDeath?.isDead !== true &&
+        ((klutzBeforeDeath as any)?.charadeRole?.id === "klutz" ||
+          klutzBeforeDeath?.role?.id === "klutz");
+
       if (canFoolSurvive(seatsRef.current.find((s) => s.id === targetId))) {
         addLog(
           `🃏 ${targetId + 1}号(弄臣) 首次面临死亡，免死能力生效 —— 他不会死亡`
@@ -762,6 +780,63 @@ export function useGameController() {
           }
         }
 
+        /**
+         * 🎵 吟游诗人：**爪牙死于处决** ⇒ 除吟游诗人与旅行者外的**所有人**醉酒
+         * 直到明天黄昏。
+         *
+         * ⚠️ 必须放在这里（死亡已落库之后、返回之前）：
+         *   · 判据要读「被处决者是否真的死了」⇒ 弄臣/士兵/魔鬼代言人保护下不死时
+         *     官方明确不触发，`isDead !== true` 天然掐掉；
+         *   · `source === "execution"` 才进（夜间死亡不触发，官方明确）。
+         * 判据唯一入口：`utils/minstrelRule::resolveMinstrelIntoxication`。
+         */
+        if (source === "execution") {
+          const minstrelHit = resolveMinstrelIntoxication(
+            updatedSeats as any,
+            targetId,
+            "execution"
+          );
+          if (minstrelHit.triggered) {
+            const drunkIds = new Set(minstrelHit.intoxicatedSeatIds);
+            updatedSeats = updatedSeats.map((s) =>
+              drunkIds.has(s.id)
+                ? {
+                    ...s,
+                    isDrunk: true,
+                    statusEffects: [
+                      ...(s.statusEffects ?? []).filter(
+                        (e: any) => !(e.type === "drunk" && e.source === "minstrel")
+                      ),
+                      {
+                        type: "drunk",
+                        source: "minstrel",
+                        appliedAtNight: nightCount,
+                        expiresAtNight: nightCount + 1,
+                        duration: 1,
+                      },
+                    ],
+                    statuses: [
+                      ...((s as any).statuses ?? []).filter(
+                        (st: any) =>
+                          !(st.effect === "Drunk" && st.duration === "至下个黄昏")
+                      ),
+                      { effect: "Drunk", duration: "至下个黄昏" },
+                    ],
+                    statusDetails: [
+                      ...(s.statusDetails || []).filter(
+                        (d: string) => !d.includes("醉酒（至下个黄昏）")
+                      ),
+                      "醉酒（至下个黄昏）",
+                    ],
+                  }
+                : s
+            );
+            addLog(
+              `🎵 吟游诗人能力触发：${targetId + 1}号（爪牙）被处决致死，除吟游诗人与旅行者外全体醉酒直到明天黄昏（${minstrelHit.intoxicatedSeatIds.length} 人）`
+            );
+          }
+        }
+
         // 🧚 小精灵能力激活检测：如果死者中有小精灵临摹的镇民，小精灵获得其能力
         updatedSeats = checkAndUpdatePixieAbility(updatedSeats, addLog);
 
@@ -779,6 +854,17 @@ export function useGameController() {
        *   （如小恶魔传位要带 `executedPlayerId`）最终**覆盖**这里的通用判定。
        */
       if (!skipGameOverCheck) gameOverRef.current.run(seatsRef.current);
+
+      // 🤪 呆瓜死亡 ⇒ 打开「公开选择一名存活玩家」弹窗（官方：死亡后立即选）
+      if (klutzWillResolve) {
+        addLog(`🤪 ${targetId + 1}号(呆瓜) 死亡，必须公开选择一名存活玩家`);
+        setCurrentModal((prev: any) =>
+          prev?.type === "GAME_OVER"
+            ? prev
+            : { type: "KLUTZ_CHOICE", data: { sourceId: targetId } }
+        );
+      }
+
       if (onAfterKill) onAfterKill();
     },
     [
@@ -789,6 +875,7 @@ export function useGameController() {
       getSeatRoleId,
       addLog,
       setPoppyGrowerDead,
+      setCurrentModal,
     ]
   );
 
@@ -1014,7 +1101,9 @@ export function useGameController() {
       evilTwinPair,
       // ⭐ 剧本级特殊规则所需输入（见 utils/scriptSpecialRules.ts）
       selectedScript,
-      nightCount
+      nightCount,
+      // 🧠 主谋「额外一夜一昼」状态写入（此前该状态从未被激活 ⇒ 规则不生效）
+      setMastermindFinalDay
     );
 
   /**
@@ -1464,6 +1553,8 @@ export function useGameController() {
       // 新引擎能力则由 executeViaNewEngine 接管弹窗→确认→推进流程。
     },
     nightInfo,
+    // 🛠️ 右键菜单「修补匠猝死 / 造谣者声明」的统一日间能力入口
+    handleDayAbility,
   });
   const {
     handleSeatClick: interactionHandleSeatClick,
@@ -1577,61 +1668,17 @@ export function useGameController() {
   useEffect(() => {
     if (gamePhase !== "firstNight" && gamePhase !== "night") return;
     if (currentWakeIndex >= (wakeQueueIds?.length || 0)) {
-      // 🔧 吟游歌手（Minstrel）被动：夜晚有镇民死亡 → 爪牙醉酒直到明天黄昏
-      const townsfolkDied = (deadThisNight || []).some((id: number) => {
-        const seat = seats.find((s) => s.id === id);
-        return seat?.role?.type === "townsfolk";
-      });
-      const minstrelAlive = seats.some(
-        (s) => s.role?.id === "minstrel" && !s.isDead
-      );
-      if (townsfolkDied && minstrelAlive) {
-        const minionIds = seats
-          .filter((s) => !s.isDead && s.role?.type === "minion")
-          .map((s) => s.id);
-        if (minionIds.length > 0) {
-          commitSeats((prev: Seat[]) =>
-            prev.map((s) =>
-              minionIds.includes(s.id)
-                ? {
-                    ...s,
-                    isDrunk: true,
-                    statusEffects: [
-                      ...(s.statusEffects ?? []).filter(
-                        (e: any) =>
-                          !(e.type === "drunk" && e.source === "minstrel")
-                      ),
-                      {
-                        type: "drunk",
-                        source: "minstrel",
-                        appliedAtNight: nightCount,
-                        expiresAtNight: nightCount + 1,
-                        duration: 1,
-                      },
-                    ],
-                    statuses: [
-                      ...(s.statuses ?? []).filter(
-                        (st: any) =>
-                          !(
-                            st.effect === "Drunk" &&
-                            st.duration === "至下个黄昏"
-                          )
-                      ),
-                      { effect: "Drunk", duration: "至下个黄昏" },
-                    ],
-                    statusDetails: [
-                      ...(s.statusDetails || []).filter(
-                        (d) => !d.includes("醉酒（至下个黄昏）")
-                      ),
-                      "醉酒（至下个黄昏）",
-                    ],
-                  }
-                : s
-            )
-          );
-          addLog("🎵 吟游歌手能力触发：夜晚有镇民死亡，爪牙们醉酒直到明天黄昏");
-        }
-      }
+      /**
+       * 🔴🔴 2026-10-21 移除：原来这里写着
+       *   「夜晚有镇民死亡 ⇒ 让**爪牙**醉酒」
+       * 与官方**三处全反**（详见 `utils/minstrelRule.ts` 头注释）：
+       *   · 触发事件应为「爪牙**死于处决**」，不是「夜晚有镇民死亡」；
+       *   · 受罚对象应为「除吟游诗人与旅行者外的**所有人**」，不是只爪牙。
+       * 而且写在这里（夜晚结束分支）根本无法命中处决场景 ——
+       * 处决发生在白天。
+       * ⇒ 正确实现已迁到 `killPlayer`（处决致死后的唯一咽喉），
+       *   判据唯一入口 `resolveMinstrelIntoxication()`。
+       */
 
       // 🔧 月之子（Moonchild）夜晚死亡：弹窗让说书人选择诅咒目标
       const moonchildDead = (deadThisNight || []).find((id: number) => {
