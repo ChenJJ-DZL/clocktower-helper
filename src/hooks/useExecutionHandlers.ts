@@ -1326,9 +1326,10 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     if (queue.length === 0) {
       // 兜底：即使队列为空也强制进入夜晚，避免卡在 dusk
       console.warn("[startSubsequentNight] 引擎队列为空，强制进入夜晚");
+      // 🔴 夜数必须函数式自增：闭包里的 nightCount 可能是旧值（实测冻在 3）
+      baseDispatch(gameActions.incrementNightCount());
       baseDispatch(
         gameActions.updateState({
-          nightCount: nightCount + 1,
           currentWakeIndex: 0,
           deadThisNight: [],
         })
@@ -1434,13 +1435,14 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     //    - 切换 gamePhase 到 "night" 并关闭模态框（修复 W7.2.2 dusk→night 死循环）
     //    关键：此处必须用 baseDispatch（上下文真正 reducer）而非 logicDispatch，
     //    因为 logicDispatch 不会更新 gamePhase / wakeQueueIds 等主状态。
+    // 🔴 夜数必须函数式自增（判据在 reducer：state.nightCount + 1）
+    baseDispatch(gameActions.incrementNightCount());
     baseDispatch(
       gameActions.updateState({
         wakeQueueIds: wakeIds,
         currentWakeIndex: 0,
         selectedActionTargets: [],
         inspectionResult: null,
-        nightCount: nightCount + 1,
         // 🔧 新夜晚清空 deadThisNight，避免死亡报告跨夜累积
         deadThisNight: [],
         nightOrderPreview: preview,

@@ -72,6 +72,8 @@ export interface FullSimSummary {
   };
   snapAlive: number;
   snapWinResult: unknown;
+  /** 终局快照里的夜数（用于验证 nightCount 是否真的递增） */
+  snapNightCount?: number | null;
   lineup: string;
   rngSrc: string;
   trail: string[];
@@ -85,6 +87,8 @@ export interface FullSimSummary {
   duskExecs: Array<{ cycle: number; exec: unknown }>;
   jsErrors: string[];
   violations: SimContext["violations"];
+  /** 驱动超时时的现场（DOM/按钮/弹窗/座位），未超时为 null */
+  stuck?: unknown;
 }
 
 /**
@@ -286,6 +290,11 @@ export async function runFullGameSim(
     });
   }
 
+  // 卡死现场（仅在 timeout 时由驱动写入）
+  const stuck = await page
+    .evaluate(() => (window as any).__ctStuck ?? null)
+    .catch(() => null);
+
   const summary: FullSimSummary = {
     script,
     players,
@@ -299,6 +308,7 @@ export async function runFullGameSim(
     terminal,
     snapAlive: alive,
     snapWinResult: finalSnap?.winResult ?? null,
+    snapNightCount: (finalSnap as any)?.nightCount ?? null,
     lineup,
     rngSrc,
     trail,
@@ -306,6 +316,7 @@ export async function runFullGameSim(
     duskExecs,
     jsErrors: jsErrors.slice(0, 20),
     violations: ctx.violations,
+    stuck,
   };
 
   // 落盘（机器可读 + 人可读）；按剧本分文件，避免 9 剧本互相覆盖

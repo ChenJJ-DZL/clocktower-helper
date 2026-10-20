@@ -168,6 +168,7 @@ export function NightActionConfirmModal({
       .sort((a, b) => a.id - b.id);
   }, [seats]);
 
+
   const isRoleSelectorActive =
     data?.roleId === "cerenovus" ||
     data?.roleId === "ojo" ||
@@ -245,6 +246,25 @@ export function NightActionConfirmModal({
   const min = targetLimit?.min ?? 0;
   const max = targetLimit?.max ?? 0;
   const needsTargetSelection = max > 0;
+  /**
+   * 🛟 可选座位数：与下面 renderItem 的 `isDisabled` 判据**必须同源**
+   *   （自己不允许 ⇒ 禁；aliveOnly 且已死 ⇒ 禁）。
+   *   用途：min ≥ 1 但一个都选不了时，允许「无合法目标 ⇒ 跳过」，否则夜序死锁。
+   */
+  const selectableCount = useMemo(
+    () =>
+      seatedPlayers.filter(
+        (s) =>
+          !(
+            (s.id === actorSeatId && allowSelf === false) ||
+            (s.isDead && aliveOnly === true)
+          )
+      ).length,
+    [seatedPlayers, actorSeatId, allowSelf, aliveOnly]
+  );
+  /** 需要选目标、但场上没有任何合法目标 ⇒ 必须放行「跳过」 */
+  const noLegalTarget =
+    needsTargetSelection && min >= 1 && selectableCount === 0;
 
   /** 🌀 A4：疯子本夜选择的目标座位集合（O(1) 查询）。空集合时不做任何高亮。 */
   const lunaticTargetSet = new Set<number>(lunaticTargetIds ?? []);
@@ -269,7 +289,7 @@ export function NightActionConfirmModal({
     ? selectedTargets.length !== 1 || !selectedRoleId
     : isRoleSelectorActive && !needsTargetSelection
       ? !selectedRoleId
-      : (needsTargetSelection && selectedTargets.length < min) ||
+      : (needsTargetSelection && selectedTargets.length < min && !noLegalTarget) ||
         (isRoleSelectorActive && !selectedRoleId);
 
   const rawTargetText = needsTargetSelection
@@ -334,7 +354,9 @@ export function NightActionConfirmModal({
         <div className="flex flex-col gap-1.5 w-full">
           {/* 撤销提示：放在按钮正上方，避免再说一遍"本夜已执行"这类废话 */}
           <div className="text-center text-[20px] font-medium text-amber-300/90">
-            ⚠️ 撤销后可重新发动
+            {noLegalTarget
+              ? "🛟 场上没有可选目标 —— 直接确认即视为「无人受影响」"
+              : "⚠️ 撤销后可重新发动"}
           </div>
           <div className="flex gap-4 w-full">
             <button

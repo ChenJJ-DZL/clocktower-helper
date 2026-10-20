@@ -397,10 +397,48 @@ export async function advanceNightRandom(
     // ⚠️ 终局判定必须「结构化」：只认「🏆 查看获胜结果」按钮（仅 gamePhase=gameOver 渲染）。
     //   禁用 body 文本匹配 —— textContent 含**隐藏 DOM** 的角色描述
     //   （镜像双子范例「邪恶阵营胜利」等）⇒ 开局即误判终局（2026-10-20 实测）。
+    /** 阶段真值（快照 gamePhase），避免用文案猜昼夜 */
+    const phaseNow = (): string | null => {
+      try {
+        const raw = window.localStorage.getItem("clocktower_current_snapshot");
+        if (!raw) return null;
+        return JSON.parse(raw).gamePhase ?? null;
+      } catch {
+        return null;
+      }
+    };
+
     const gameEnded = () =>
       Array.from(document.querySelectorAll("button")).some((b) =>
         /查看获胜结果/.test((b.textContent || "").replace(/\s+/g, ""))
       );
+
+    /** 卡死现场：DOM 文案 + 可见按钮 + 弹窗 + 快照座位真值 */
+    const captureStuck = (tag: string) => {
+      const dlg = document.querySelector('[role="dialog"]') as HTMLElement | null;
+      let snap: any = null;
+      try {
+        const raw = window.localStorage.getItem("clocktower_current_snapshot");
+        snap = raw ? JSON.parse(raw) : null;
+      } catch {
+        snap = null;
+      }
+      return {
+        tag,
+        dayText: (document.body.textContent || "").replace(/\s+/g, "").slice(0, 300),
+        dialog: dlg ? (dlg.textContent || "").replace(/\s+/g, "").slice(0, 500) : null,
+        buttons: Array.from(document.querySelectorAll("button"))
+          .filter((b) => !(b as HTMLButtonElement).disabled)
+          .map((b) => ((b.textContent || "").replace(/\s+/g, "")).slice(0, 24))
+          .slice(0, 40),
+        seats: (snap?.seats ?? []).map((x: any) => ({
+          id: x.id,
+          role: x.role?.id ?? null,
+          isDead: x.isDead === true,
+          marked: x.markedForDeath === true,
+        })),
+      };
+    };
 
     // ── 语义日志：夜序对账 + 效果对账 + 弹窗内容留证 ──
     const journal: any[] = [];
@@ -511,7 +549,13 @@ export async function advanceNightRandom(
       }`;
       if (sig === lastSig) {
         stall++;
-        if (stall > 45) return isDay() ? "day" : "timeout";
+        if (stall > 45) {
+          if (!isDay()) {
+            (window as any).__ctStuck = captureStuck("night-driver-stall");
+            return "timeout";
+          }
+          return "day";
+        }
       } else {
         stall = 0;
         lastSig = sig;
@@ -600,7 +644,15 @@ export async function advanceNightRandom(
       await sleep(45);
     }
     return {
-      status: isDay() ? "day" : gameEnded() ? "gameover" : "timeout",
+      status: (() => {
+        const phase = phaseNow();
+        if (gameEnded() || phase === "gameOver") return "gameover";
+        if (phase === "day" || phase === "dusk" || phase === "dawnReport")
+          return "day";
+        if (isDay()) return "day";
+        (window as any).__ctStuck = captureStuck("night-driver-end");
+        return "timeout";
+      })(),
       journal,
       queue,
       wakeStart,
@@ -748,6 +800,17 @@ export async function driveDuskRandom(
     // ⚠️ 应用守卫：有未结算处决时点「入夜」会弹「处决未结算」确认框
     //   （confirmLabel=执行处决 / cancelLabel=返回）——处决不可跳过（官方规则）。
     //   2026-10-20 实测：驱动器误点「返回」曾造成黄昏死循环假卡死。
+    /** 阶段真值（快照 gamePhase），避免用文案猜昼夜 */
+    const phaseNow = (): string | null => {
+      try {
+        const raw = window.localStorage.getItem("clocktower_current_snapshot");
+        if (!raw) return null;
+        return JSON.parse(raw).gamePhase ?? null;
+      } catch {
+        return null;
+      }
+    };
+
     const gameEndedBtn = () =>
       Array.from(document.querySelectorAll("button")).some((b) =>
         /查看获胜结果/.test((b.textContent || "").replace(/\s+/g, ""))
@@ -828,6 +891,9 @@ export async function driveDuskRandom(
         if (!toNight) {
           // 入夜按钮消失 = 已进夜晚（或已终局）
           if (gameEndedBtn()) return "gameover";
+          const ph = phaseNow();
+          if (ph === "night" || ph === "firstNight" || ph === "twilight")
+            return "night";
           if (/夜晚行动顺序|天亮了|唤醒/.test(text())) return "night";
           return null;
         }
@@ -847,8 +913,15 @@ export async function driveDuskRandom(
         await sleep(400);
         const stillDusk = allBtns().some((b) => /入夜/.test(norm(b)) && !b.disabled);
         if (!stillDusk) {
-          return gameEndedBtn() ? "gameover" : "night";
+          if (gameEndedBtn()) return "gameover";
+          const ph2 = phaseNow();
+          if (ph2 === "night" || ph2 === "firstNight" || ph2 === "twilight")
+            return "night";
+          return "night";
         }
+        const ph3 = phaseNow();
+        if (ph3 === "night" || ph3 === "firstNight" || ph3 === "twilight")
+          return "night";
         if (/夜晚行动顺序|唤醒\d+号/.test(text())) return "night";
       }
       return null;
