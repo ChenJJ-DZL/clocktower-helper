@@ -7,6 +7,7 @@ import { roles } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
 import type { NightInfoResult } from "../types/game";
 import { canOpenDamselGuess } from "../utils/damselRule";
+import { canOpenShamanConvert } from "../utils/shamanRule";
 
 /**
  * UseInteractionHandlerResult - 交互管理 Hook 的返回结果
@@ -516,6 +517,29 @@ export function useInteractionHandler(deps: {
             })
           );
         }
+      } else if (action === "shaman_convert") {
+        // 🪬 灵言师：官方「第一个公开说出关键词的善良玩家，当晚变成邪恶」。
+        //    旧实现该弹窗**全仓没有生产点**（右键/控制台都没有入口）⇒ 转化不可达。
+        const shamanGuard = canOpenShamanConvert({
+          seats: seats as any,
+          gamePhase: state.gamePhase,
+        });
+        if (!shamanGuard.allowed) {
+          dispatch(
+            gameActions.addLog({
+              day: state.nightCount ?? 0,
+              phase: state.gamePhase,
+              message: `🪬 无法打开灵言师转化：${shamanGuard.reason}`,
+            })
+          );
+          return;
+        }
+        dispatch(
+          gameActions.setModal({
+            type: "SHAMAN_CONVERT",
+            data: null,
+          })
+        );
       } else if (action === "reminder_tokens") {
         // 打开提醒标记面板
         dispatch(

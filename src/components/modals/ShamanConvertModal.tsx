@@ -1,5 +1,6 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { ModalWrapper } from "./ModalWrapper";
+import { resolveShamanConversion } from "../../utils/shamanRule";
 
 export function ShamanConvertModal() {
   const props = useGameActions();
@@ -29,41 +30,25 @@ export function ShamanConvertModal() {
             className="flex-1 max-w-xs py-3 sm:py-4 bg-purple-600 hover:bg-purple-500 rounded-xl text-white font-black text-base sm:text-lg shadow-lg shadow-purple-600/40 ring-2 ring-purple-400 active:scale-[0.98] transition"
             onClick={() => {
               if (props.shamanConvertTarget === null) return;
-              const target = props.seats.find(
-                (s: any) => s.id === props.shamanConvertTarget
-              );
-              if (!target) return;
-              if (
-                target.role &&
-                ["townsfolk", "outsider"].includes(target.role.type)
-              ) {
+              // 判据唯一事实源：utils/shamanRule（官方「第一个说出关键词的善良玩家变邪恶」）
+              const resolution = resolveShamanConversion({
+                seats: props.seats as any,
+                targetId: props.shamanConvertTarget,
+              });
+              if (resolution.outcome === "converted" && resolution.patch) {
                 props.setSeats((prev: any[]) =>
                   prev.map((s: any) =>
-                    s.id === target.id
-                      ? {
-                          ...s,
-                          isEvil: true,
-                          reminderTokens: [
-                            ...(s.reminderTokens || []),
-                            {
-                              id: `shaman_evil_${Date.now()}`,
-                              name: "被视为邪恶(灵言师)",
-                              type: "poison",
-                              sourceRole: "shaman",
-                            },
-                          ],
-                        }
+                    // 🔴 旧实现写的是 isEvil —— 全仓没人读（seatAlignment 只认
+                    //    isEvilConverted）⇒ 日志写了、阵营没变。这里写权威字段。
+                    s.id === props.shamanConvertTarget
+                      ? { ...s, ...resolution.patch }
                       : s
                   )
                 );
-                props.addLog(
-                  `灵言师触发：${target.id + 1}号(${target.role.name})公开说出关键词，当晚起被视为邪恶阵营！`
-                );
-              } else {
-                props.addLog(
-                  `灵言师触发：${target.id + 1}号公开说出关键词，但其非善良身份，未发生阵营转变。`
-                );
               }
+              props.addLog(
+                `灵言师触发：${props.shamanConvertTarget + 1}号 —— ${resolution.reason}`
+              );
               props.setCurrentModal(null);
               props.setShamanConvertTarget(null);
             }}

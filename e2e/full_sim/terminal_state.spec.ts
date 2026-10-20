@@ -17,19 +17,52 @@ import { runFullGameSim } from "../helpers/fullSimRunner";
  */
 const MAX_CYCLES = Number(process.env.SIM_TERMINAL_CYCLES ?? "12");
 
-/** 挑两个机制差异最大的官方剧本：暗流涌动（基础）/ 黯月初升（复杂死亡与保护） */
+/** 9 个剧本全覆盖：每局 5 人，死亡 3 人即到「存活 ≤2」阈值，通常 1~5 昼夜终局 */
 const TERMINAL_CASES = [
   { name: "暗流涌动", players: 5, seed: 91001 },
   { name: "黯月初升", players: 5, seed: 91002 },
+  { name: "梦殒春宵", players: 5, seed: 91003 },
+  { name: "窃窃私语", players: 5, seed: 91004 },
+  { name: "无名之墓", players: 5, seed: 91005 },
+  { name: "无上愉悦", players: 5, seed: 91006 },
+  { name: "罂粟花开", players: 5, seed: 91009 },
 ];
 
-for (const entry of TERMINAL_CASES) {
+/**
+ * ⚠️ 已知卡死（不是「跳过」，是**断言它仍然失败**）。
+ *   Playwright 的 `test.fail()` 语义：本用例预期失败 —— 若哪天修好了，
+ *   它会变成 "unexpectedly passed" 直接报红，强制把条目移回 TERMINAL_CASES。
+ *   ⇒ 缺陷保持可见，且不会被误当成通过。
+ */
+const KNOWN_STUCK = [
+  {
+    name: "凶宅魅影",
+    players: 5,
+    seed: 91007,
+    reason:
+      "白天驱动器在 dusk#2 超时（提名/投票/入夜流程没有可推进出口）；" +
+      "待定位是驱动缺陷还是门派门禁卡死",
+  },
+  {
+    name: "游园惊梦",
+    players: 5,
+    seed: 91008,
+    reason:
+      "night#5 超时：场上只剩方古存活，其余座位已被标记击杀，" +
+      "但快照仍显示 3 人存活 ⇒ 怀疑「方古击杀落库/黎明批量结算」在该剧本下未生效",
+  },
+];
+
+for (const entry of [...TERMINAL_CASES, ...KNOWN_STUCK]) {
+  const stuck = KNOWN_STUCK.find((x) => x.seed === entry.seed);
   test.describe(`终局四条 · ${entry.name}（${entry.players} 人）`, () => {
     test.setTimeout(20 * 60 * 1000);
 
     test(`seed=${entry.seed} 必须跑到终局，且胜负符合官方四条`, async ({
       page,
     }) => {
+      // 已知卡死：断言「仍然失败」，修好后会报 unexpectedly passed
+      if (stuck) test.fail(true, stuck.reason);
       const summary = await runFullGameSim(page, {
         script: entry.name,
         players: entry.players,
@@ -50,7 +83,12 @@ for (const entry of TERMINAL_CASES) {
         summary.terminal,
         "到达终局但没有产出终局判据（runner 逻辑缺失）"
       ).toBeTruthy();
-      expect(summary.terminal?.expected, "四条规则都算不出胜方").not.toBeNull();
+      // 通用四条算不出胜方时，必须由**专属规则**给出胜因（两者必居其一）
+      expect(
+        summary.terminal?.expected !== null ||
+          summary.terminal?.special === true,
+        "既不符合通用四条，也没有专属胜因"
+      ).toBe(true);
       expect(
         summary.terminal?.ok,
         `终局判定与官方四条不一致：${summary.terminal?.reason ?? ""}`

@@ -114,11 +114,6 @@ const LEGACY: Record<string, { kind: LegacyKind; reason: string }> = {
     reason:
       "同上：唯一入口在 GameHeader，而 GameHeader 全仓 0 个渲染点（已死组件）—— 待裁决补入口或删除",
   },
-  SHAMAN_CONVERT: {
-    kind: "ENTRY_LOST",
-    reason:
-      "灵言师「关键词被说出→转化」专属弹窗无生产点；目前只能用控制台的阵营切换手动落地 —— 待接一条正式入口",
-  },
   SPY_GRIMOIRE: {
     kind: "SUPERSEDED",
     reason: "魔典由 SPY_RECORDS 复用同一个 SpyGrimoireModal 组件",

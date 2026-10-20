@@ -772,6 +772,8 @@ export async function driveDuskRandom(
       }
     };
     (window as any).__duskExecLog = null;
+    /** 处决过程中最后一帧弹窗文案（识别免死类处决用） */
+    let duskDlgText = "";
 
     const settleAndEnterNight = async (): Promise<"night" | "gameover" | null> => {
       // ① 先点「执行处决结算」（提名通过后的正式结算入口）
@@ -789,6 +791,7 @@ export async function driveDuskRandom(
         for (let j = 0; j < 8; j++) {
           const dlg = document.querySelector('[role="dialog"]');
           if (!dlg) break;
+          duskDlgText = (dlg.textContent || "").replace(/\s+/g, "");
           const dlgBtns = Array.from(dlg.querySelectorAll("button")) as any[];
           const ok =
             dlgBtns.find((b) => /执行处决|确认/.test(norm(b)) && !b.disabled && !CANCEL.test(norm(b))) ??
@@ -803,6 +806,20 @@ export async function driveDuskRandom(
           before: execBefore,
           after: readDeadIds(),
           gameOver: gameEndedBtn(),
+          resultText: duskDlgText.slice(0, 200),
+          executedRoleId: (() => {
+            const m = duskDlgText.match(/【(\d+)号被处决】/);
+            if (!m) return null;
+            const seatId = Number(m[1]) - 1;
+            try {
+              const raw = window.localStorage.getItem("clocktower_current_snapshot");
+              const snap = raw ? JSON.parse(raw) : null;
+              const seat = (snap?.seats ?? []).find((x: any) => Number(x.id) === seatId);
+              return seat?.role?.id ?? null;
+            } catch {
+              return null;
+            }
+          })(),
         };
       }
       // ② 点「入夜」并验证相位真的切换（弹「处决未结算」就按「执行处决」）
@@ -934,6 +951,10 @@ export async function driveDuskRandom(
 export interface DuskExecRecord {
   before: number[] | null;
   after: number[] | null;
+  /** 处决过程中最后一帧弹窗文案（用于识别「官方允许的免死处决」） */
+  resultText?: string | null;
+  /** 被处决者的真实角色 id（从「【N号被处决】」+ 快照反查） */
+  executedRoleId?: string | null;
   /** 该次结算后是否立即终局（终局不落快照，after 可能是冻结值） */
   gameOver: boolean;
 }
@@ -964,7 +985,25 @@ export function verifyDuskSemantics(
 
   const beforeSet = new Set(before);
   const newlyDead = after.filter((id) => !beforeSet.has(id));
-  if (newlyDead.length === 0) {
+  /**
+   * 官方允许「处决但不死」的角色：和平主义者（说书人裁定存活）、弄臣（首次免死）、
+   * 士兵/茶艺师/旅店老板等保护、以及替罪羊代刑。判据取处决过程弹窗原文，
+   * 命中即豁免；拿不到文案时**照报**（不豁免）。
+   */
+  const SAVE_RE = /和平主义者|弄臣|士兵|茶艺师|旅店老板|僧侣|代刑|免死|未死亡|不会死亡/;
+  /** 官方「处决但不死」的角色（弄臣首次免死 / 和平主义者说书人裁定 / 士兵类保护） */
+  const SAVE_ROLE_IDS = new Set([
+    "fool",
+    "pacifist",
+    "soldier",
+    "tea_lady",
+    "innkeeper",
+    "devils_advocate",
+  ]);
+  const savedByRule =
+    SAVE_RE.test(executed.resultText ?? "") ||
+    SAVE_ROLE_IDS.has(executed.executedRoleId ?? "");
+  if (newlyDead.length === 0 && !savedByRule) {
     out.push({
       invariant: "I14-execute",
       step: "dusk-semantic",

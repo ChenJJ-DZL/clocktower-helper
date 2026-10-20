@@ -307,6 +307,18 @@ export function PlayerContextMenu() {
             🛠️ 修补匠：裁定死亡
           </button>
         )}
+      {/* 🪬 灵言师：第一个说出关键词的善良玩家当晚变成邪恶（说书人手动触发） */}
+      {props.gamePhase !== "setup" &&
+        effectiveRole?.id === "shaman" &&
+        !targetSeat.isDead && (
+          <button
+            onClick={() => props.handleMenuAction("shaman_convert")}
+            className="block w-full text-left px-6 py-3 hover:bg-fuchsia-900 text-fuchsia-200 text-lg font-medium border-t border-gray-700"
+          >
+            🪬 灵言师：关键词被说出
+          </button>
+        )}
+
       {/* 造谣者：白天记录造谣并由说书人裁定真假（若为真，今晚额外死一人） */}
       {props.gamePhase === "day" &&
         effectiveRole?.id === "gossip" &&

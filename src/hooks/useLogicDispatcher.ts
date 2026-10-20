@@ -262,6 +262,37 @@ export function useLogicDispatcher(
     checkGameOver(seats, null, false, false, false, nightCount);
   }, [gamePhase, nightCount, selectedScript, checkGameOver, seats]);
 
+  /**
+   * 🛟 存活阈值兜底（2026-10-21）：进入白天时若「可计存活 ≤ 2」而还没有胜负，
+   *   立刻补判一次终局。
+   *
+   *   为什么需要：夜杀有多条路径（新引擎 markedForDeath、旧 killPlayer、
+   *   角色专属钩子如方古/军团/对局外来源），只要有一条漏了 `checkGameOver`，
+   *   游戏就会带着 1 个活人继续跑夜晚 —— 实测 5 人局跑到「只有恶魔存活」仍在
+   *   唤醒方古选目标，而场上已无人可杀（夜间驱动器直接超时）。
+   *   幂等：`thresholdFiredRef` 记录 (阶段+夜数)，`checkGameOver` 内另有 victoryRef 守卫。
+   */
+  const thresholdFiredRef = useRef<string | null>(null);
+  useEffect(() => {
+    // 官方「仅剩 2 名玩家存活 ⇒ 邪恶胜」不分昼夜：任何阶段切换都要兜一次
+    if (
+      gamePhase !== "day" &&
+      gamePhase !== "dawnReport" &&
+      gamePhase !== "dusk" &&
+      gamePhase !== "twilight" &&
+      gamePhase !== "night" &&
+      gamePhase !== "firstNight"
+    )
+      return;
+    if (victoryRef.current) return;
+    const alive = seats.filter((s) => s.role && !isSeatDead(s));
+    if (alive.length > 2) return;
+    const key = `${gamePhase}:${nightCount}:${alive.length}`;
+    if (thresholdFiredRef.current === key) return;
+    thresholdFiredRef.current = key;
+    checkGameOver(seats, null, false, false, false, nightCount);
+  }, [gamePhase, nightCount, seats, checkGameOver]);
+
   const declareMayorImmediateWin = useCallback(() => {
     // 🎭 戏子在场：镇长宣布的善良胜利被对调为邪恶胜利
     const flipped = applyActorVictoryFlip("good", seats);
