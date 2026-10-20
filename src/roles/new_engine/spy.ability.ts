@@ -530,6 +530,10 @@ const postProcessGrimoire = async (
   const playerCount = grimoireData.players.length;
 
   // 魔典摘要统计
+  // ℹ️ 铁律豁免（2026-10-20 显式标注）：此处 p 是 GrimoirePlayerEntry
+  //    （魔典视图的自有展示字段，构建时已按 utils/seatAlignment 快照），
+  //    不是 Seat —— 不参与胜负/判据，仅统计魔典视图自身显示的阵营数。
+  //    Seat 上的阵营判据一律走 utils/seatAlignment（禁裸 .alignment ===）。
   const evilCount = grimoireData.players.filter(
     (p) => p.alignment === "evil"
   ).length;

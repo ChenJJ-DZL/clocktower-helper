@@ -7,6 +7,7 @@
  * allowSelf: false — 不能选择自己
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -54,12 +55,39 @@ const calculate = async (
   const candidates = ctx.snapshot.seats.filter(
     (s: any) => s.id !== ctx.actionNode.seatId
   );
-  const targetId =
+  const trueTargetId =
     ctx.storytellerInput?.targetId ?? pickGuideTargetId(candidates, rng);
+
+  /**
+   * ⭐ 2026-10-20 修复（用户实测：涡流局信息并非 100% 错）：
+   * 【官方原文·女祭司】"每个夜晚，你会得知一名说书人认为你最应该与其交流的玩家。"
+   * ⇒ 这是信息类能力：受干扰（涡流/中毒/醉酒/能力失效）时**必须给错误玩家**。
+   *   旧实现无论干扰与否都返回同一个 targetId ⇒ 涡流下仍有真值泄漏。
+   */
+  const hasVortox =
+    isVortoxWorldActive(ctx.snapshot.seats as any) ||
+    Boolean((ctx.snapshot as any).isVortoxWorld);
+  const isCorrupted =
+    hasVortox ||
+    ctx.meta?.isAbilityActive === false ||
+    ctx.meta?.abilityEffective === false;
+
+  let targetId: number | null = trueTargetId;
+  if (isCorrupted && trueTargetId != null) {
+    // 受干扰 ⇒ 从其余玩家里挑一个**不等于真值**的（仍然确定性）
+    const others = candidates.filter((s: any) => s.id !== trueTargetId);
+    targetId =
+      others.length > 0
+        ? (pickGuideTargetId(others, rng) ?? trueTargetId)
+        : trueTargetId;
+  }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
+      isCorrupted,
+      hasVortox,
       abilityResult: { targetId },
     },
   };

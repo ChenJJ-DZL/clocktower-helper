@@ -1,204 +1,54 @@
 /**
- * 哈德西亚（Hadesia）新引擎技能实现
+ * 哈迪寂亚（Hadesia）新引擎技能实现
  *
- * 【角色能力】"每夜，选择一名死亡玩家。该玩家复活并变成爪牙。"
+ * 【角色能力】官方：「每个夜晚*，你可以选择三名玩家（所有玩家都会得知你选了谁）：
+ *   他们分别秘密决定自己的生死，然后如果他们都存活则都死亡。」
  *
- * 每夜选择一名已死亡的玩家，让其复活并转化为爪牙阵营。
- * allowDead: true — 必须选择已死亡的玩家
+ * ⚠️ 2026-10-20 语义修正：原实现误为「选一名死亡玩家复活并转化为爪牙」
+ *   （与官方完全不符，系「哈德西亚」误记）。现改为官方的「选 3 人定生死」，
+ *   结算中间件复用 al_hadikhia.ability（同一套逻辑的唯一事实源）。
+ *   拂晓的生/死选择与结算走 HADESIA_KILL_CONFIRM 弹窗（GameModals 挂载）。
  */
-
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
-
-// ─── 前置校验中间件 ────────────────────────────────────────────────────
-
-/**
- * preCheck：存活检测
- * 哈德西亚死亡时技能不应触发。
- */
-const preCheckAlive = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const seat = ctx.snapshot.seats.find(
-    (s: any) => s.id === ctx.actionNode.seatId
-  );
-  if (!seat || seat.isDead) {
-    return { ...ctx, aborted: true, abortReason: "玩家已死亡，技能失效" };
-  }
-  return ctx;
-};
-
-// ─── 计算中间件 ─────────────────────────────────────────────────────────
-
-/**
- * calculate：确定目标玩家
- *
- * 哈德西亚必须选择一名已死亡的玩家。
- * 目标通过 targetIds[0] 传入。
- */
-const calculateResult = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const targetId = ctx.targetIds?.[0];
-  if (targetId === undefined || targetId === null) {
-    return { ...ctx, aborted: true, abortReason: "哈德西亚未选择目标" };
-  }
-
-  const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
-  if (target?.isDead !== true) {
-    return { ...ctx, aborted: true, abortReason: "目标玩家尚未死亡，技能无效" };
-  }
-
-  return {
-    ...ctx,
-    meta: {
-      ...ctx.meta,
-      abilityResult: { targetId, resurrected: true, convertedToMinion: true },
-    },
-  };
-};
-
-// ─── 状态更新中间件 ────────────────────────────────────────────────────
-
-/**
- * stateUpdate：执行复活和转化
- *
- * 1. 目标玩家复活（isDead: false, markedForDeath: false）
- * 2. 目标玩家转化为爪牙（role.type = "minion"）
- */
-const stateUpdateResult = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const abilityResult = ctx.meta.abilityResult as
-    | { targetId: number; resurrected: boolean; convertedToMinion: boolean }
-    | undefined;
-
-  if (!abilityResult) return ctx;
-
-  const { targetId } = abilityResult;
-  const updatedSeats = [...ctx.snapshot.seats];
-  const targetIdx = updatedSeats.findIndex((s: any) => s.id === targetId);
-
-  if (targetIdx !== -1) {
-    updatedSeats[targetIdx] = {
-      ...updatedSeats[targetIdx],
-      isDead: false,
-      markedForDeath: false,
-      deathSource: undefined,
-      deathSourceSeatId: undefined,
-      role: {
-        ...(updatedSeats[targetIdx].role ?? {}),
-        type: "minion",
-      },
-      roleType: "minion",
-      statusDetails: [
-        ...(updatedSeats[targetIdx].statusDetails ?? []),
-        "被哈德西亚复活并转化为爪牙",
-      ],
-    };
-  }
-
-  const record = {
-    targetId,
-    resurrected: true,
-    convertedToMinion: true,
-    nightCount: ctx.snapshot.nightCount ?? 0,
-    timestamp: Date.now(),
-  };
-
-  return {
-    ...ctx,
-    snapshot: {
-      ...ctx.snapshot,
-      seats: updatedSeats,
-      _abilityResults: {
-        ...((ctx.snapshot as any)._abilityResults ?? {}),
-        hadesia: record,
-      },
-    },
-    meta: {
-      ...ctx.meta,
-      hadesiaResult: record,
-    },
-  };
-};
-
-// ─── 后置处理中间件 ────────────────────────────────────────────────────
-
-/**
- * postProcess：生成日志和说书人提示词
- */
-const postProcessResult = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  const record = ctx.meta.hadesiaResult as
-    | { targetId: number; resurrected: boolean }
-    | undefined;
-
-  if (!record) return ctx;
-
-  const targetLabel = `${record.targetId + 1}号`;
-
-  const simLog = `[哈德西亚] 复活了 ${targetLabel} 并转化为爪牙`;
-  const storytellerPrompt = `唤醒${ctx.actionNode.seatId + 1}号【哈德西亚】，选择一名已死亡的玩家。该玩家将复活并变成爪牙。（选择了${targetLabel}，已复活转化）`;
-  const abilityLog = `哈德西亚复活了【${targetLabel}】并将其转化为爪牙`;
-
-  console.log(simLog);
-
-  return {
-    ...ctx,
-    meta: {
-      ...ctx.meta,
-      prompt: storytellerPrompt,
-      abilityLog,
-      displayInfo: {
-        type: "hadesia_action",
-        targetId: record.targetId,
-        targetLabel: record.targetId + 1,
-        resurrected: true,
-        convertedToMinion: true,
-        log: abilityLog,
-      },
-    },
-  };
-};
-
-// ─── 导出能力注册 ─────────────────────────────────────────────────────
+import {
+  preCheck as alHadikhiaPreCheck,
+  calculate as alHadikhiaCalculate,
+  stateUpdate as alHadikhiaStateUpdate,
+  postProcess as alHadikhiaPostProcess,
+} from "./al_hadikhia.ability";
 
 export const hadesiaAbility = createRoleAbility({
-  /** 角色标识符 */
+  /** 角色标识符：data.ts 的哈迪寂亚座位 */
   roleId: "hadesia",
   /** 能力标识符 */
-  abilityId: "hadesia_resurrect",
+  abilityId: "hadesia_night",
   /** 能力中文名 */
-  abilityName: "复活与转化",
+  abilityName: "选择三名玩家决定生死",
 
-  /** 触发时机：每晚 */
+  /** 触发时机：每个夜晚*（不含首夜） */
   triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
-  /** 唤醒优先级（恶魔级别，与 imp 一致） */
   firstNightPriority: null,
-  otherNightPriority: 41,
-  /** 首夜可行动 */
+  otherNightPriority: 51,
   firstNightOnly: false,
   /** 唤醒提示词 ID */
   wakePromptId: "role.hadesia.wake",
 
   /**
-   * 目标选择配置
-   * 必须选择一名已死亡的玩家。
+   * 目标选择配置：必须恰好选择三名玩家。
    */
   targetConfig: {
-    min: 1,
-    max: 1,
+    min: 3,
+    max: 3,
     allowSelf: false,
-    allowDead: true,
+    allowDead: false,
   },
 
-  preCheck: [preCheckAlive],
-  calculate: [calculateResult],
-  stateUpdate: [stateUpdateResult],
-  postProcess: [postProcessResult],
+  preCheck: [alHadikhiaPreCheck],
+  calculate: [alHadikhiaCalculate],
+  stateUpdate: [alHadikhiaStateUpdate],
+  postProcess: [alHadikhiaPostProcess],
 });

@@ -1,3 +1,8 @@
+/**
+ * ⚠️ 命名陷阱（known-issues §四）：文件名 LunaticRpsModal 里的「Lunatic（疯子）」是**误记**。
+ * 本弹窗的真实内容是**精神病患者（Psychopath）**的猜拳机制 —— 疯子（Lunatic）没有猜拳。
+ * 精神病患者不属于罂粟花开，属暗流涌动扩展爪牙。改名影响面大暂保留文件名，引用时勿被名字误导。
+ */
 import { ModalWrapper } from "./ModalWrapper";
 
 interface LunaticRpsModalProps {

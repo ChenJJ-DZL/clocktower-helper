@@ -28,7 +28,6 @@ import {
   CERENOVUS_NOTICE_STEP_ID,
   getCerenovusNoticeFromStep,
   getCerenovusNoticePlayerText,
-  getCerenovusNoticeStepLabel,
   getPendingCerenovusNotice,
 } from "../utils/cerenovusNotice";
 import {
@@ -38,6 +37,7 @@ import {
   ensureNotTruth,
   isDisguisedIneffectiveActor,
   isPlayerInfoCorrupted,
+  shouldUiRemaskForCorruption,
 } from "../utils/corruptedInfo";
 import { resolveDeathEventWakeups } from "../utils/dynamicQueueGenerator";
 import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
@@ -64,11 +64,14 @@ import {
   sanitizePlayerFacingText,
 } from "../utils/playerView";
 import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
-import { isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
+import { isSeatEvil, isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
 import { isVortoxWorldActive } from "../utils/vortoxWorld";
+import { showAlert } from "../utils/nativeDialogShim";
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
+  /** 传奇角色在场名单（fabled 不占 seats） */
+  activeFabled?: any[] | null;
   seats: Seat[];
   selectedTargets: number[];
   gamePhase: string;
@@ -398,6 +401,10 @@ export async function executeViaNewEngine(
     globalEffects: { vortoxWorld: isVortox },
     vortoxWorld: isVortox,
     isVortoxWorld: isVortox,
+    // ✊ 革命者「被当作其他」：管道 calculate 阶段要据此生成他人感知视图
+    //   （utils/revolutionaryDisguise + middlewarePipeline）。不透传则效果空转。
+    fabledState: (context as any).fabledState ?? null,
+    activeFabled: (context as any).activeFabled ?? null,
   };
 
   // 🎭 能力继承路由（SST：utils/grantedAbilityHelper）
@@ -507,7 +514,11 @@ export async function executeViaNewEngine(
           .map((id) => `${id + 1}号`)
           .join("和");
         const resultText = abilityResult ? "有恶魔" : "没有恶魔";
-        const corruptionTag = isCorrupted ? "【受中毒/醉酒干扰】" : "";
+        const corruptionTag = isCorrupted
+          ? isVortox
+            ? "【涡流干扰·信息必假】"
+            : "【受中毒/醉酒干扰】"
+          : "";
         actionDescription = `${roleName}${corruptionTag}探查【${targetLabels}】：${resultText}`;
       }
 
@@ -770,7 +781,17 @@ export async function executeViaNewEngine(
             : undefined;
 
         const combinedNotes = [
-          isCorrupted ? "该角色处于醉酒/中毒状态，能力可能不生效" : null,
+          // ⚠️ 干扰提示必须按**成因**分语义（2026-10-20 用户质询）：
+          //   · 醉酒/中毒：官方「能力可能不生效」——效果可能被取消；
+          //   · 涡流在场：官方「信息**一定**是错误的」——能力生效，产出必假。
+          //   旧实现一刀切写「醉酒/中毒状态，能力可能不生效」，在纯涡流局
+          //   （无人醉毒）里是假话 + 语义反了。本条只进说书人操作页
+          //   （findPlayerViewLeaks 词表已禁「能力可能不生效」入玩家页）。
+          isCorrupted
+            ? isVortox
+              ? "涡流在场：该角色的信息必定错误（哪怕其醉酒/中毒，信息也一定错误）"
+              : "该角色处于醉酒/中毒状态，能力可能不生效"
+            : null,
           wraithNote,
         ].filter(Boolean);
 
@@ -1130,7 +1151,7 @@ export async function executeViaNewEngine(
                     ? chosenRoleIdOrRole
                     : chosenRoleIdOrRole?.id;
                 if (!chosenRoleId) {
-                  alert("哲学家必须选择一个善良角色");
+                  showAlert("哲学家必须选择一个善良角色");
                   return;
                 }
                 const selectedRole = context.roles.find(
@@ -1150,7 +1171,7 @@ export async function executeViaNewEngine(
               // 🧠 洗脑师：已在行动确认窗内同时选定目标与角色，无需二级弹窗，直接执行管道
               if (roleId === "cerenovus") {
                 if (finalTargets.length !== 1) {
-                  alert("洗脑师必须选择一名玩家");
+                  showAlert("洗脑师必须选择一名玩家");
                   return;
                 }
                 const chosenRoleId =
@@ -1158,7 +1179,7 @@ export async function executeViaNewEngine(
                     ? chosenRoleIdOrRole
                     : chosenRoleIdOrRole?.id;
                 if (!chosenRoleId) {
-                  alert("洗脑师必须选择一个角色");
+                  showAlert("洗脑师必须选择一个角色");
                   return;
                 }
                 const selectedRole = context.roles.find(
@@ -1182,7 +1203,7 @@ export async function executeViaNewEngine(
                     ? chosenRoleIdOrRole
                     : chosenRoleIdOrRole?.id;
                 if (!chosenRoleId) {
-                  alert("奥乔必须选择一个角色");
+                  showAlert("奥乔必须选择一个角色");
                   return;
                 }
                 const selectedRole = context.roles.find(
@@ -1243,7 +1264,7 @@ export async function executeViaNewEngine(
                     ? chosenRoleIdOrRole
                     : chosenRoleIdOrRole?.id;
                 if (!chosenRoleId) {
-                  alert("酿酒师必须选择一个镇民角色");
+                  showAlert("酿酒师必须选择一个镇民角色");
                   return;
                 }
                 const selectedRole = context.roles.find(
@@ -1782,10 +1803,21 @@ export async function executeViaNewEngine(
      * ⇒ 这类角色本层**不得**二次替换：正常态 log=真值（直接显示），受干扰态
      *    log=引擎同形假值（直接显示），确认页与结果页天然一致。
      */
-    const ENGINE_SELF_MASKING_ROLES: ReadonlySet<string> = new Set(["pixie"]);
+    /**
+     * 🎭 双掩码判定（2026-10-20 类问题修复，判据在 utils/corruptedInfo）：
+     *   受干扰时若**引擎已自产假值**（占卜师二次取反会翻回真值、赏金猎人
+     *   假目标被当真值二次随机会翻真），本层必须放行原文；
+     *   只打标记型（渔夫/气球人…）才由本层替换假值。
+     */
+    const engineAlreadyMasked = !shouldUiRemaskForCorruption({
+      roleId,
+      metaIsCorrupted: resultContext.meta.isCorrupted === true,
+      playerInfoAlreadyMasked:
+        (resultContext.meta as any).playerInfoAlreadyMasked === true,
+    });
     const isCorruptedForPlayer =
       producesPlayerInfo &&
-      !ENGINE_SELF_MASKING_ROLES.has(roleId) &&
+      !engineAlreadyMasked &&
       isPlayerInfoCorrupted({
         roleId,
         metaIsCorrupted: resultContext.meta.isCorrupted === true,
@@ -1812,8 +1844,12 @@ export async function executeViaNewEngine(
         trueValue,
         actorSeatId: actorId,
         nightCount: context.nightCount,
+        // 🎯 指控型信息（赏金猎人「X号玩家是邪恶的」）的假目标候选池必须
+        //    **结构性排除真邪恶**：这句话为假 ⇔ 指向善良。若池里有邪恶，
+        //    随机换座可能翻真（2026-10-20 双掩码事故的第二道防线）。
         candidateSeatIds: context.seats
           .filter((s) => s.id !== actorId)
+          .filter((s) => (roleId === "bounty_hunter" ? !isSeatEvil(s) : true))
           .map((s) => s.id),
         targetCount: Array.isArray(trueValue) ? trueValue.length : 1,
         // 厨师的假值上界依赖本局棋盘（邪恶人数 - 1）—— 必须与提示预演 /
@@ -1908,17 +1944,21 @@ export async function executeViaNewEngine(
           customResultText = getCerenovusNoticePlayerText(madRoleName);
           cerenovusResultData = { targetId, roleName: madRoleName };
           // 🧠 被洗脑玩家的独立行动节点（与洗脑师这一步分开）
-          // ⚠️ 2026-09-21 修复：必须 `force: true` —— 被洗脑者可能是**毫无夜间技能的镇民**
-          //   （如镇长/农夫），`insertIntoWakeQueueAfterCurrent` 的
-          //   `seatHasNightAction` 准入检查会直接拒绝他入队 ⇒
-          //   官方要求的「洗脑师技能结束后立即唤醒被洗脑者并告知」**永远不发生**。
-          //   `nightInfoAdapter` 侧对这类座位会返回「被洗脑告知」合成节点（见该文件对应分支）。
-          if (context.insertIntoWakeQueueAfterCurrent) {
-            context.insertIntoWakeQueueAfterCurrent(targetId, {
-              force: true,
-              logLabel: getCerenovusNoticeStepLabel(targetId, madRoleName),
-            });
-          }
+          //
+          // 🔴🔴 2026-10-20 修复（E2E 实测 seed=2026 实锤「首夜唤醒神谕者」）：
+          //   此处**曾经还有第二处** `insertIntoWakeQueueAfterCurrent(targetId, {force:true})`
+          //   —— 无 `position`（走默认 "priority" 按夜序插队）、无 `stepOverride`
+          //   （适配器按座位**真实角色**解析）。后果实测：
+          //     · 洗脑目标 = 8号【神谕者】，首夜被追加到队列**末尾**并执行
+          //       「邪恶亡灵侦测」——而神谕者 `firstNightPriority: null`，
+          //       首夜本不该行动（官方「每个夜晚*」= 首夜除外）；
+          //     · 同一座位因此出现**两个**队列节点（告知节点 + 真实角色节点），
+          //       `systemStepRoleIds` 下标随之被撑开，后续座位步骤错位。
+          //   ✅ 唯一正确的插入点在上方（`position:"next"` + `stepOverride`），
+          //     那里已保证「紧跟洗脑师、按告知页渲染、已处理座位可重插」。
+          //   🔒 本处只负责**结果文案**（玩家面「你需要疯狂证明自己是【X】」），
+          //     绝不再碰队列 —— 队列写入点必须**唯一**。
+          //   （反模式第 10 次命中：同一语义双写入点必分叉。）
         }
       }
 

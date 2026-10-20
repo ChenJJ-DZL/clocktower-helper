@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import type { GameRecord, NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
-import { showConfirm } from "../utils/nativeDialogShim";
+import { showAlert, showConfirm } from "../utils/nativeDialogShim";
 import { useGameContext } from "../contexts/GameContext";
 
 /**
@@ -309,12 +309,12 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     if (currentModal?.type !== "KLUTZ_CHOICE") return;
     const { sourceId, onResolve } = currentModal.data;
     if (klutzChoiceTarget === null) {
-      alert("请选择一名存活玩家");
+      showAlert("请选择一名存活玩家");
       return;
     }
     const target = seats.find((s) => s.id === klutzChoiceTarget);
     if (!target || target.isDead) {
-      alert("必须选择一名存活玩家");
+      showAlert("必须选择一名存活玩家");
       return;
     }
     setCurrentModal(null);
@@ -409,12 +409,12 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         (id: number) => `[${id + 1}号${choiceMap[id] === "die" ? "死" : "生"}]`
       )
       .join("、");
-    addLog(`${nightInfo.seat.id + 1}号(${demonName}) 选择${choiceDesc}`);
+    addLog(`${nightInfo.seat ? nightInfo.seat.id + 1 : "?"}号(${demonName}) 选择${choiceDesc}`);
     if (allChooseLive) {
       addLog(`三名玩家都选择"生"，按规则三人全部死亡`);
     } else if (finalTargets.length > 0) {
       addLog(
-        `选择"生"的玩家${finalTargets.map((x: number) => `${x + 1}号`).join("、")}将立即死亡`
+        `选择"死"的玩家${finalTargets.map((x: number) => `${x + 1}号`).join("、")}将立即死亡`
       );
     } else {
       addLog('未选择"生"的玩家，未触发死亡');
@@ -493,6 +493,30 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     setSelectedActionTargets,
     setWakeQueueIds,
     setCurrentWakeIndex,
+  ]);
+
+  /**
+   * 哈迪寂亚生/死抉择「取消」（2026-10-20 修复 P1）。
+   * 官方交互无取消概念；等价于「三人全部选死」⇒ 无人死亡。
+   * ⚠️ 必须推进夜队列（continueToNextAction）——原 onCancel 只关弹窗不推进 ⇒ 夜序卡死。
+   */
+  const cancelHadesia = useCallback(() => {
+    if (currentModal?.type !== "HADESIA_KILL_CONFIRM") {
+      setCurrentModal(null);
+      return;
+    }
+    addLog("哈迪寂亚的生/死抉择已取消，本次未触发死亡");
+    setCurrentModal(null);
+    setSelectedActionTargets([]);
+    setHadesiaChoices({});
+    continueToNextAction();
+  }, [
+    currentModal,
+    addLog,
+    setCurrentModal,
+    setSelectedActionTargets,
+    setHadesiaChoices,
+    continueToNextAction,
   ]);
 
   const confirmSaintExecution = useCallback(() => {
@@ -598,8 +622,8 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         setInspectionResult(resultText);
         setInspectionResultKey((k) => k + 1);
         addLogWithDeduplication(
-          `${nightInfo.seat.id + 1}号(守鸦人) 查验 ${targetId + 1}号 -> 伪 ${r.name}`,
-          nightInfo.seat.id,
+          `${nightInfo.seat ? nightInfo.seat.id + 1 : "?"}号(守鸦人) 查验 ${targetId + 1}号 -> 伪 ${r.name}`,
+          nightInfo.seat?.id ?? -1,
           "守鸦人"
         );
       }
@@ -700,6 +724,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       confirmKlutzChoice,
       confirmStorytellerDeath,
       confirmHadesia,
+      cancelHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
       confirmScapegoatSubstitute,
@@ -720,6 +745,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       confirmKlutzChoice,
       confirmStorytellerDeath,
       confirmHadesia,
+      cancelHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
       confirmScapegoatSubstitute,

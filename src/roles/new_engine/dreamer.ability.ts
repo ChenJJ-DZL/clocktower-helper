@@ -8,6 +8,7 @@
 import type { Role } from "../../types/game";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import { isTownsfolkOrOutsiderRole } from "../../utils/seatAlignment";
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -91,8 +92,10 @@ const calculateResult = async (
     )
   );
 
-  // 检查场上是否有涡流
-  const hasVortox = snapshot.seats.some((s) => s.role?.id === "vortox");
+  // 检查场上是否有**存活**涡流（官方：涡流死亡后信息立即恢复正常）
+  // ⚠️ 2026-10-20 修复：旧写法 `role?.id === "vortox"` 漏了存活判断，
+  //   涡流死后仍会把信息作假。统一走 SST `isVortoxWorldActive`。
+  const hasVortox = isVortoxWorldActive(snapshot.seats as any);
 
   // 确定是否应该显示正确信息
   let shouldShowCorrect = isAbilityActive;

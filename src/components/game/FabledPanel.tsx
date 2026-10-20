@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import { isPlayerEvil } from "../../../app/gameLogic";
+import { isSeatAlive } from "../../utils/seatAlive";
+import { roles as ALL_ROLES } from "../../../app/data";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
+import { useOptionalGameActions } from "../../contexts/GameActionsContext";
 import { ModalWrapper } from "../modals/ModalWrapper";
+import { RolePickerModal } from "./board/RolePickerModal";
+
+/** 角色 id → 中文名（革命者「被当作」显示用） */
+function roleNameOf(id: string | null | undefined): string | null {
+  if (!id) return null;
+  return ALL_ROLES.find((r) => r.id === id)?.name ?? id;
+}
 
 /**
  * 🎴 传奇角色（Fabled）说书人操作面板（2026-10-16）
@@ -26,7 +36,18 @@ export function FabledPanel({
   onClose: () => void;
 }) {
   const { state, dispatch } = useGameContext();
+  // 🎯 真实效果需要 killPlayer / addPoisonMark（天使·地狱藏书员的「不好的事」）
+  const actions = useOptionalGameActions() ?? ({} as any);
   const [pickA, setPickA] = useState<number | null>(null);
+  /** ✊ 革命者：「被当作其他」的选人与内容（2026-10-20 补齐交互） */
+  const [disguiseSeat, setDisguiseSeat] = useState<number | null>(null);
+  const [asRoleId, setAsRoleId] = useState<string | null>(null);
+  const [asAlignment, setAsAlignment] = useState<"good" | "evil" | null>(null);
+  const [showRolePicker, setShowRolePicker] = useState(false);
+  /** 🛡️ 哨兵：换角（外来者 ±1 的真实落地） */
+  const [sentinelSeat, setSentinelSeat] = useState<number | null>(null);
+  const [showSentinelRolePicker, setShowSentinelRolePicker] = useState(false);
+  const [sentinelToOutsider, setSentinelToOutsider] = useState(true);
 
   const fabled = state.activeFabled ?? [];
   if (!isOpen || fabled.length === 0) return null;
@@ -153,7 +174,9 @@ export function FabledPanel({
                   s.id,
                   `${s.id + 1} 号`,
                   () => {
-                    upd({ fibbinUsed: true, fibbinTargetId: s.id });
+                    // ⭐ 2026-10-20 真实效果：给目标打 fibbin_misinfo 状态
+                    //   （原只写 fabledState 字段无人读 = 假效果）
+                    dispatch(gameActions.fabledFibbinMisinfo(s.id));
                     log(
                       `🔮 骗人精：${s.id + 1}号（善良）本次得知的信息「有问题」（每局限一次，已用）`
                     );
@@ -208,6 +231,35 @@ export function FabledPanel({
                 )
               )}
             </div>
+            {/* ⭐ 2026-10-20 真实效果：「不好的事」必须落地（原只写字段无人读 = 假效果） */}
+            {fs.angelPunishedSeatId != null && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pid = fs.angelPunishedSeatId!;
+                    actions.killPlayer(pid, { source: "fabled" });
+                    log(
+                      `😇 天使「不好的事」：${pid + 1}号 死亡（官方：对新玩家死亡负最大责任者遭遇不好的事）`
+                    );
+                  }}
+                  className="px-5 py-2.5 rounded-xl border-2 border-rose-400/80 bg-rose-600 text-white font-bold hover:bg-rose-500 cursor-pointer"
+                >
+                  💀 执行惩罚：{fs.angelPunishedSeatId + 1} 号死亡
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pid = fs.angelPunishedSeatId!;
+                    actions.toggleStatus("poisoned", pid);
+                    log(`😇 天使「不好的事」：${pid + 1}号 中毒`);
+                  }}
+                  className="px-5 py-2.5 rounded-xl border-2 border-purple-400/80 bg-purple-600 text-white font-bold hover:bg-purple-500 cursor-pointer"
+                >
+                  ☠️ 执行惩罚：{fs.angelPunishedSeatId + 1} 号中毒
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -254,27 +306,111 @@ export function FabledPanel({
             {fs.revolutionaryPair && (
               <div className="text-base text-emerald-300 font-bold">
                 已声明：{fs.revolutionaryPair.a + 1} 号 ↔ {fs.revolutionaryPair.b + 1} 号
+                （本局一直保持同一阵营）
               </div>
             )}
-            <button
-              type="button"
-              disabled={!fs.revolutionaryPair || fs.revolutionaryDisguiseUsed}
-              onClick={() => {
-                upd({ revolutionaryDisguiseUsed: true });
-                log(
-                  "✊ 革命者：本局限一次 —— 其中一人被当作其他角色/阵营（由说书人选择哪一人）"
-                );
-              }}
-              className={`px-6 py-3 rounded-xl border-2 text-lg font-black transition-colors ${
-                !fs.revolutionaryPair || fs.revolutionaryDisguiseUsed
-                  ? "border-slate-800 bg-slate-900/50 text-slate-600 cursor-not-allowed"
-                  : "border-amber-400/80 bg-amber-600 text-slate-950 hover:bg-amber-500 cursor-pointer active:scale-[0.98]"
-              }`}
-            >
-              {fs.revolutionaryDisguiseUsed
-                ? "✓ 本局「被当作其他」已使用"
-                : "✊ 使用：其中一人被当作其他角色/阵营（每局限一次）"}
-            </button>
+
+            {/* ── 步骤 2/3：「被当作其他」——必须指明哪一名玩家、被当作什么 ──
+                ⚠️ 2026-10-20 补交互（用户实测：旧版只有开关，无从落地）：
+                官方要求说书人**选择其中一人**被当作其他角色和/或阵营；
+                此前只有 `revolutionaryDisguiseUsed` 布尔位 ⇒ 效果无处生效。 */}
+            {fs.revolutionaryPair && !fs.revolutionaryDisguiseUsed && (
+              <>
+                <div className="text-base text-amber-200">
+                  步骤 2：选择**哪一名**玩家「被当作其他」（每局限一次）：
+                </div>
+                <div className="flex gap-2">
+                  {([fs.revolutionaryPair.a, fs.revolutionaryPair.b] as number[]).map(
+                    (id) =>
+                      seatBtn(
+                        id,
+                        `${id + 1} 号被当作其他`,
+                        () => setDisguiseSeat(id),
+                        disguiseSeat === id
+                      )
+                  )}
+                </div>
+              </>
+            )}
+
+            {disguiseSeat !== null && !fs.revolutionaryDisguiseUsed && (
+              <>
+                <div className="text-base text-slate-300">
+                  步骤 3：指定 {disguiseSeat + 1} 号「被当作」的角色和/或阵营
+                  （可只改其一，也可都改）：
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowRolePicker(true)}
+                    className="px-4 py-2 rounded-lg border-2 border-sky-400/70 bg-sky-500/15 text-sky-100 cursor-pointer"
+                  >
+                    被当作角色：{roleNameOf(asRoleId) ?? "不改（保持真实角色认知）"}
+                  </button>
+                  {(["good", "evil"] as const).map((al) => (
+                    <button
+                      key={al}
+                      type="button"
+                      onClick={() =>
+                        setAsAlignment((cur) => (cur === al ? null : al))
+                      }
+                      className={`px-4 py-2.5 rounded-xl border-2 text-base font-bold transition-colors cursor-pointer ${
+                        asAlignment === al
+                          ? "border-emerald-300 bg-emerald-600 text-white"
+                          : "border-white/15 bg-slate-800/70 text-slate-200 hover:bg-slate-700"
+                      }`}
+                    >
+                      {al === "good" ? "被当作善良" : "被当作邪恶"}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setAsAlignment(null)}
+                    className="px-4 py-2 rounded-lg border-2 border-slate-500 text-slate-300 cursor-pointer"
+                  >
+                    阵营不改
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!asRoleId && !asAlignment) {
+                      log(
+                        "✊ 革命者：未指定任何「被当作」内容，未发动（请至少改角色或阵营之一）"
+                      );
+                      return;
+                    }
+                    upd({
+                      revolutionaryDisguise: {
+                        seatId: disguiseSeat,
+                        asRoleId,
+                        asAlignment,
+                      },
+                      revolutionaryDisguiseUsed: true,
+                    });
+                    log(
+                      `✊ 革命者（限一次）：${disguiseSeat + 1}号 被当作 ${roleNameOf(asRoleId) ?? "原角色"} / ${asAlignment === "good" ? "善良" : asAlignment === "evil" ? "邪恶" : "原阵营"} —— 其他角色的信息类能力将按此认知该玩家`
+                    );
+                  }}
+                  className="px-6 py-3 rounded-xl border-2 border-amber-400/80 bg-amber-600 text-slate-950 text-lg font-black hover:bg-amber-500 cursor-pointer active:scale-[0.98]"
+                >
+                  ✊ 发动「被当作其他」（每局限一次）
+                </button>
+              </>
+            )}
+
+            {fs.revolutionaryDisguise && (
+              <div className="text-base text-emerald-300 font-bold">
+                ✓ 已发动：{fs.revolutionaryDisguise.seatId + 1} 号被当作{" "}
+                {roleNameOf(fs.revolutionaryDisguise.asRoleId) ?? "原角色"} /
+                {fs.revolutionaryDisguise.asAlignment === "good"
+                  ? " 善良"
+                  : fs.revolutionaryDisguise.asAlignment === "evil"
+                    ? " 邪恶"
+                    : " 原阵营"}
+                （其他角色的信息类能力按此认知；真实身份与胜负判定不变）
+              </div>
+            )}
           </div>
         )}
 
@@ -284,32 +420,53 @@ export function FabledPanel({
             <div className="text-lg text-slate-200">
               官方：在初始设置时，可能会额外增加或减少一个外来者。
             </div>
+            {/* ⭐ 2026-10-20 真实效果：±1 不再只是记录 —— 选座位换角色（内容换、id 保留） */}
             <div className="flex flex-wrap gap-3">
-              {[-1, 0, 1].map((d) => (
+              {[
+                { label: "外来者 +1", toOutsider: true },
+                { label: "外来者 −1", toOutsider: false },
+              ].map((opt) => (
                 <button
-                  key={d}
+                  key={opt.label}
                   type="button"
                   onClick={() => {
-                    upd({ sentinelOutsiderDelta: d });
-                    log(
-                      d === 0
-                        ? "🛡️ 哨兵：本次设置不调整外来者数量"
-                        : `🛡️ 哨兵：本次设置外来者数量 ${d > 0 ? "+1" : "-1"}`
-                    );
+                    setSentinelToOutsider(opt.toOutsider);
+                    setSentinelSeat(-1); // 进入选座位模式
+                    upd({ sentinelOutsiderDelta: opt.toOutsider ? 1 : -1 });
                   }}
                   className={`px-6 py-3 rounded-xl border-2 text-lg font-black transition-colors cursor-pointer active:scale-[0.98] ${
-                    fs.sentinelOutsiderDelta === d
+                    sentinelSeat === -1 && sentinelToOutsider === opt.toOutsider
                       ? "border-emerald-300 bg-emerald-600 text-white"
                       : "border-white/15 bg-slate-800/70 text-slate-200 hover:bg-slate-700"
                   }`}
                 >
-                  {d === 0 ? "不调整" : d > 0 ? "外来者 +1" : "外来者 −1"}
+                  {opt.label}
                 </button>
               ))}
             </div>
+            {sentinelSeat === -1 && (
+              <div className="text-base text-amber-200">
+                选择要{sentinelToOutsider ? "改成外来者" : "改成镇民"}的座位：
+              </div>
+            )}
+            {sentinelSeat === -1 && (
+              <div className="flex flex-wrap gap-2">
+                {state.seats.map((s) =>
+                  seatBtn(
+                    s.id,
+                    `${s.id + 1} 号（${s.role?.name ?? "?"}）`,
+                    () => {
+                      setSentinelSeat(s.id);
+                      setShowSentinelRolePicker(true);
+                    },
+                    false
+                  )
+                )}
+              </div>
+            )}
             <div className="text-sm text-slate-400 leading-relaxed">
-              ⚠️ 本仓库的配比校验读的是剧本配比 + 男爵等角色修正；
-              哨兵的调整需说书人在「角色配置」环节据此手动设置（面板记录裁定，不擅自改配比）。
+              ⚠️ 选择座位后会打开角色选择器，把该座位换成对应类型的角色
+              （外来者 / 镇民）—— 这是**真实换角**，配比随之改变。
             </div>
           </div>
         )}
@@ -400,7 +557,231 @@ export function FabledPanel({
           </div>
         )}
 
-        {/* 其余传奇角色（末日预言者 / 地狱藏书员 / 失败的上帝） */}
+        {/* 💀 末日预言者 —— 每名存活玩家限一次：公开要求杀死同阵营玩家 */}
+        {role.id === "doomsayer" && (
+          <div className="flex flex-col gap-3">
+            <div className="text-lg text-slate-200">
+              官方：如果大于等于四名玩家存活，每名当前存活的玩家可以公开要求你杀死一名
+              **与他阵营相同**的玩家（每名玩家限一次）。
+            </div>
+            <div className="text-base text-slate-300">① 谁提出请求？</div>
+            <div className="flex flex-wrap gap-2">
+              {state.seats
+                .filter((s) => isSeatAlive(s as any))
+                .map((s) =>
+                  seatBtn(s.id, `${s.id + 1} 号`, () => setPickA(s.id), pickA === s.id)
+                )}
+            </div>
+            {pickA !== null && (
+              <>
+                <div className="text-base text-amber-200">
+                  ② 杀死一名**与 {pickA + 1} 号同阵营**的存活玩家（真实死亡）：
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {state.seats
+                    .filter(
+                      (s) =>
+                        !s.isDead &&
+                        s.id !== pickA &&
+                        isPlayerEvil(s) === isPlayerEvil(
+                          state.seats.find((x) => x.id === pickA)!
+                        )
+                    )
+                    .map((s) =>
+                      seatBtn(s.id, `${s.id + 1} 号`, () => {
+                        actions.killPlayer(s.id, { source: "fabled" });
+                        log(
+                          `💀 末日预言者：${pickA + 1}号 公开请求 ⇒ ${s.id + 1}号（同阵营）死亡`
+                        );
+                        setPickA(null);
+                      })
+                    )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 📕 地狱藏书员 —— 说书人宣布安静时，仍在说话者遭遇「不好的事」 */}
+        {role.id === "hells_librarian" && (
+          <div className="flex flex-col gap-3">
+            <div className="text-lg text-slate-200">
+              官方：当说书人宣布安静时，仍在说话的玩家可能会遭遇一些不好的事情。
+            </div>
+            <div className="text-base text-slate-300">
+              选择「仍在说话」的玩家，执行「不好的事」（真实生效）：
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {state.seats
+                .filter((s) => isSeatAlive(s as any))
+                .map((s) => (
+                  <div key={s.id} className="flex flex-col gap-1">
+                    {seatBtn(s.id, `${s.id + 1} 号`, () => setPickA(s.id), pickA === s.id)}
+                    {pickA === s.id && (
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            actions.killPlayer(s.id, { source: "fabled" });
+                            log(`📕 地狱藏书员：${s.id + 1}号 仍在说话 ⇒ 死亡（不好的事）`);
+                            setPickA(null);
+                          }}
+                          className="px-2 py-1 text-xs rounded bg-rose-600 text-white cursor-pointer"
+                        >
+                          死亡
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            actions.toggleStatus("poisoned", s.id);
+                            log(`📕 地狱藏书员：${s.id + 1}号 仍在说话 ⇒ 中毒（不好的事）`);
+                            setPickA(null);
+                          }}
+                          className="px-2 py-1 text-xs rounded bg-purple-600 text-white cursor-pointer"
+                        >
+                          中毒
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* 🎻 小提琴手 —— 恶魔秘密选对立玩家 → 全员表决谁的阵营获胜（平局邪恶胜） */}
+        {role.id === "fiddler" && (
+          <div className="flex flex-col gap-3">
+            <div className="text-lg text-slate-200">
+              官方：每局游戏限一次，恶魔可以秘密选择一名**对立阵营**的玩家，
+              所有玩家要表决：这两名玩家中谁的阵营获胜。（平局邪恶阵营获胜）
+            </div>
+            <div className="text-base text-slate-300">① 选择两名玩家（恶魔 + 对立阵营）：</div>
+            <div className="flex flex-wrap gap-2">
+              {state.seats.map((s) =>
+                seatBtn(
+                  s.id,
+                  `${s.id + 1} 号`,
+                  () => {
+                    if (pickA === null) setPickA(s.id);
+                    else if (pickA !== s.id) {
+                      upd({ fiddlerPair: { a: pickA, b: s.id } });
+                      log(`🎻 小提琴手：${pickA + 1}号 与 ${s.id + 1}号 进入最终表决`);
+                      setPickA(null);
+                    }
+                  },
+                  pickA === s.id || fs.fiddlerPair?.a === s.id || fs.fiddlerPair?.b === s.id
+                )
+              )}
+            </div>
+            {fs.fiddlerPair && (
+              <>
+                <div className="text-base text-slate-300">
+                  ② 表决结果（得票多者阵营获胜；**平局 = 邪恶获胜**）：
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {([fs.fiddlerPair.a, fs.fiddlerPair.b] as number[]).map((id) => {
+                    const evil = isPlayerEvil(
+                      state.seats.find((x) => x.id === id)!
+                    );
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          const winner: "good" | "evil" = evil ? "evil" : "good";
+                          upd({ fiddlerWinner: winner, fiddlerUsed: true });
+                          log(
+                            `🎻 小提琴手表决：${id + 1}号（${evil ? "邪恶" : "善良"}）胜出 ⇒ 游戏以${evil ? "邪恶" : "善良"}阵营获胜结束`
+                          );
+                          actions.setWinResult?.(winner);
+                          actions.setWinReason?.("小提琴手表决（fiddler）");
+                        }}
+                        className="px-5 py-2.5 rounded-xl border-2 border-amber-400/80 bg-amber-600 text-slate-950 font-bold hover:bg-amber-500 cursor-pointer"
+                      >
+                        {id + 1} 号（{evil ? "邪恶" : "善良"}）胜出
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      upd({ fiddlerWinner: "evil", fiddlerUsed: true });
+                      log("🎻 小提琴手表决平局 ⇒ 官方：平局邪恶阵营获胜");
+                      actions.setWinResult?.("evil");
+                      actions.setWinReason?.("小提琴手表决平局（fiddler）");
+                    }}
+                    className="px-5 py-2.5 rounded-xl border-2 border-rose-400/80 bg-rose-600 text-white font-bold hover:bg-rose-500 cursor-pointer"
+                  >
+                    平局 ⇒ 邪恶获胜
+                  </button>
+                </div>
+              </>
+            )}
+            {fs.fiddlerUsed && (
+              <div className="text-base text-emerald-300 font-bold">
+                ✓ 已结算：{fs.fiddlerWinner === "evil" ? "邪恶" : "善良"}阵营获胜
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 👑 公爵夫人 —— 三名玩家拜访 → 当晚得知其中几人邪恶（一人信息错） */}
+        {role.id === "duchess" && (
+          <div className="flex flex-col gap-3">
+            <div className="text-lg text-slate-200">
+              官方：每个白天，三名玩家可以一起拜访你。当晚*，他们会得知他们之中有几个是邪恶的，
+              但其中一人的信息是错的。
+            </div>
+            <div className="text-base text-slate-300">
+              选择来访的三名玩家（已选 {pickA !== null ? 1 : 0} / 3，点击加入）：
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {state.seats.map((s) => {
+                const chosen = (fs.duchessVisitIds ?? []).includes(s.id);
+                return seatBtn(
+                  s.id,
+                  `${s.id + 1} 号`,
+                  () => {
+                    const cur = fs.duchessVisitIds ?? [];
+                    const next = chosen
+                      ? cur.filter((x) => x !== s.id)
+                      : cur.length < 3
+                        ? [...cur, s.id]
+                        : cur;
+                    upd({ duchessVisitIds: next });
+                  },
+                  chosen
+                );
+              })}
+            </div>
+            {(fs.duchessVisitIds ?? []).length === 3 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const ids = fs.duchessVisitIds!;
+                  const evilCount = ids.filter((id) =>
+                    isPlayerEvil(state.seats.find((x) => x.id === id)!)
+                  ).length;
+                  upd({ duchessEvilCount: evilCount });
+                  log(
+                    `👑 公爵夫人：${ids.map((i) => i + 1).join("、")}号 拜访 ⇒ 真实邪恶数 ${evilCount}（其中一人的信息是错的，由说书人裁定给谁）`
+                  );
+                }}
+                className="px-5 py-2.5 rounded-xl border-2 border-amber-400/80 bg-amber-600 text-slate-950 font-bold hover:bg-amber-500 cursor-pointer"
+              >
+                👑 结算拜访：生成当晚信息
+              </button>
+            )}
+            {fs.duchessEvilCount != null && (
+              <div className="text-base text-emerald-300 font-bold">
+                ✓ 当晚信息：三人中有 {fs.duchessEvilCount} 名邪恶（其中一人的信息是错的）
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 其余传奇角色（失败的上帝 = 桌面礼节） */}
         {![
           "ferryman",
           "toymaker",
@@ -413,14 +794,69 @@ export function FabledPanel({
           "fiddler",
           "duchess",
           "djinn",
+          "doomsayer",
+          "hells_librarian",
         ].includes(role.id) && (
           <div className="rounded-xl border border-white/15 bg-slate-800/60 px-4 py-3 text-base text-slate-300 leading-relaxed">
             该传奇角色的规则由说书人按官方说明执行。
-            {role.id === "doomsayer" &&
-              "（末日预言者 / 地狱藏书员 已有日间桥接入口；失败的上帝为「承认失误」的桌面礼节。）"}
+            {role.id === "deus_ex_fiasco" &&
+              "（失败的上帝：说书人出现失误并公开承认 —— 桌面礼节，引擎不模拟。）"}
           </div>
         )}
       </div>
+
+      {/* ✊ 革命者：「被当作角色」选择器（复用 RolePickerModal 设计语言） */}
+      <RolePickerModal
+        open={showRolePicker && role.id === "revolutionary"}
+        kind="fabled"
+        title={`选择 ${disguiseSeat != null ? disguiseSeat + 1 + " 号" : ""} 被当作的角色`}
+        roles={ALL_ROLES}
+        selectedId={asRoleId}
+        countLabel="可选任意角色"
+        hint="革命者效果：每局限一次，可使这对玩家中的一人「被当作」其他角色和/或阵营（其他角色的信息类能力按此认知）。选「清空」= 不改角色认知。"
+        onPick={(r) => {
+          setAsRoleId(r.id);
+          setShowRolePicker(false);
+        }}
+        onClear={() => {
+          setAsRoleId(null);
+          setShowRolePicker(false);
+        }}
+        clearLabel="不改角色（保持真实认知）"
+        onClose={() => setShowRolePicker(false)}
+      />
+
+      {/* 🛡️ 哨兵：换角选择器（外来者 ↔ 镇民，真实改变座位角色） */}
+      <RolePickerModal
+        open={showSentinelRolePicker && role.id === "sentinel"}
+        kind="fabled"
+        title={`哨兵：把 ${sentinelSeat != null && sentinelSeat >= 0 ? sentinelSeat + 1 + " 号" : ""} 换成${sentinelToOutsider ? "外来者" : "镇民"}`}
+        roles={ALL_ROLES.filter((r) =>
+          sentinelToOutsider ? r.type === "outsider" : r.type === "townsfolk"
+        )}
+        selectedId={null}
+        countLabel={sentinelToOutsider ? "外来者角色" : "镇民角色"}
+        hint="哨兵官方：初始设置时可能额外增加或减少一个外来者。选中角色后该座位**真实换角**（内容换、座位 id 保留）。"
+        onClear={() => {
+          setShowSentinelRolePicker(false);
+          setSentinelSeat(null);
+        }}
+        clearLabel="取消换角"
+        onPick={(r) => {
+          if (sentinelSeat != null && sentinelSeat >= 0) {
+            dispatch(gameActions.fabledSwapRole(sentinelSeat, r));
+            log(
+              `🛡️ 哨兵：${sentinelSeat + 1}号 换角为【${r.name}】（${sentinelToOutsider ? "外来者 +1" : "外来者 −1"}，真实生效）`
+            );
+          }
+          setShowSentinelRolePicker(false);
+          setSentinelSeat(null);
+        }}
+        onClose={() => {
+          setShowSentinelRolePicker(false);
+          setSentinelSeat(null);
+        }}
+      />
     </ModalWrapper>
   );
 }

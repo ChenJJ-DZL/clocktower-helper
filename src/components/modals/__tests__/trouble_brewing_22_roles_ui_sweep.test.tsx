@@ -17,7 +17,7 @@
  *     ⑥ 间谍 → 酒鬼伪装身份在魔典中显示为「(伪:角色名)」而不泄漏真实身份
  *     ⑦ 小恶魔 → `KillConfirmModal`（含自刀语义）
  *     ⑧ 僧侣/士兵 → `AttackBlockedModal`
- *     ⑨ 镇长 → `MayorRedirectModal` + `MayorThreeAliveModal`（命名不得回退为「市长」）
+ *     ⑨ 镇长 → `MayorThreeAliveModal`（命名不得回退为「市长」）
  *     ○  酒鬼 → `DrunkCharadeSelectModal` / `CharadeConfigModal`（酒鬼是 TB 外来者）
  *
  * ⚠️ 关键测试陷阱（沿用罂粟花开经验）：
@@ -36,7 +36,6 @@ import { NightActionConfirmModal } from "../NightActionConfirmModal";
 import { SpyGrimoireModal } from "../SpyGrimoireModal";
 import { KillConfirmModal } from "../KillConfirmModal";
 import { AttackBlockedModal } from "../AttackBlockedModal";
-import { MayorRedirectModal } from "../MayorRedirectModal";
 import { MayorThreeAliveModal } from "../MayorThreeAliveModal";
 import { CharadeConfigModal } from "../CharadeConfigModal";
 import { DrunkCharadeSelectModal } from "../DrunkCharadeSelectModal";
@@ -448,24 +447,6 @@ describe("暗流涌动 · §B 专属弹窗真实渲染", () => {
   it("⑩ 镇长替死与三人和平胜：命名必须与 app/data 一致（不得回退为「市长」）", () => {
     cleanup();
     render(
-      <MayorRedirectModal
-        isOpen
-        targetId={1}
-        demonName="小恶魔"
-        seats={spySeats() as any}
-        selectedTarget={null}
-        onSelectTarget={() => {}}
-        onConfirmNoRedirect={() => {}}
-        onConfirmRedirect={() => {}}
-      />
-    );
-    let t = allText();
-    expect(t, "镇长 UI 必须使用与 app/data 一致的角色名「镇长」").toContain("镇长");
-    expect(t, "不得再出现旧译名「市长」").not.toContain("市长");
-    expect(t).toContain("小恶魔");
-
-    cleanup();
-    render(
       <MayorThreeAliveModal
         isOpen
         onContinue={() => {}}
@@ -473,7 +454,7 @@ describe("暗流涌动 · §B 专属弹窗真实渲染", () => {
         onCancel={() => {}}
       />
     );
-    t = allText();
+    const t = allText();
     expect(t).toContain("镇长");
     expect(t, "不得再出现旧译名「市长」").not.toContain("市长");
     expect(t).toMatch(/胜利|获胜/);

@@ -1695,4 +1695,28 @@ export const generatedRoleWakeTemplates = [
     description: "僵怖唤醒提示（自动生成，源:黯月初升）",
     scenes: ["night"],
   },
+  {
+    id: "role.al_hadikhia.wake",
+    category: "role",
+    template:
+      "唤醒{{seatNo}}号【哈迪寂亚】：每个夜晚*，你可以选择三名玩家（所有玩家都会得知你选了谁）：他们分别秘密决定自己的生死，然后如果他们都存活则都死亡",
+    description: "哈迪寂亚唤醒提示（2026-10-20 手补，源:官方文档）",
+    scenes: ["night"],
+  },
+  {
+    id: "role.shaman.wake",
+    category: "role",
+    template:
+      "唤醒{{seatNo}}号【灵言师】：在你的首个夜晚，你会得知一个关键词。首个说出该关键词的善良玩家会在当晚转变为邪恶阵营",
+    description: "灵言师唤醒提示（2026-10-20 手补，源:官方文档）",
+    scenes: ["night"],
+  },
+  {
+    id: "role.good_twin_info.wake",
+    category: "role",
+    template:
+      "唤醒{{seatNo}}号【镜像双子】：你与一名对立阵营的玩家互相知道对方是什么角色。如果其中善良玩家被处决，邪恶阵营获胜；如果你们都存活，善良阵营无法获胜",
+    description: "镜像双子（善良方互认）唤醒提示（2026-10-20 手补，源:官方文档）",
+    scenes: ["night"],
+  },
 ];

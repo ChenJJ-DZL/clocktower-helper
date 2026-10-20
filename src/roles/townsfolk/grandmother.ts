@@ -81,8 +81,15 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
   ],
 
   // 祖母的首夜需要得知孙子，我们在 setup 阶段随机指定一个善良玩家作为孙子
-  onSetup: (context: { seats: Seat[]; selfId: number }) => {
+  onSetup: (context: {
+    seats: Seat[];
+    selfId: number;
+    /** 🎲 确定性随机：由 nightInfoGenerator 按 roleId+seed 播种注入；
+     *  未注入时回退 Math.random 保持兼容（与 washerwoman 等 7 处同款范式） */
+    rng?: () => number;
+  }) => {
     const { seats, selfId } = context;
+    const rng: () => number = context.rng ?? Math.random;
 
     // 孙子必须是善良玩家（镇民或外来者），且不是祖母自己
     const goodCandidates = seats.filter(
@@ -92,8 +99,8 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:11-0!canonical and time
     );
 
     if (goodCandidates.length > 0) {
-      // 随机选一个孙子
-      const randomIndex = Math.floor(Math.random() * goodCandidates.length);
+      // 随机选一个孙子（禁裸 Math.random ⇒ 保证提示预演与结算同源）
+      const randomIndex = Math.floor(rng() * goodCandidates.length);
       const grandchild = goodCandidates[randomIndex];
 
       return {

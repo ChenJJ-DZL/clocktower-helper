@@ -52,3 +52,11 @@ export function useGameActions(): GameActionsType {
   }
   return context;
 }
+
+/**
+ * useOptionalGameActions —— Provider 缺失时返回 undefined（不抛）。
+ * 给「增强型面板」用：没有 controller 时优雅降级为只读/日志模式。
+ */
+export function useOptionalGameActions(): GameActionsType | undefined {
+  return useContext(GameActionsContext);
+}

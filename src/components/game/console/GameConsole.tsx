@@ -873,7 +873,7 @@ export const GameConsole = React.memo(function GameConsole({
                             onClick={() => {
                               if (!handleDayAbility) return;
                               if (seat.isDead && !seat.hasAbilityEvenDead) {
-                                alert(
+                                showAlert(
                                   `${displayRoleName}已死亡，无法发动技能。`
                                 );
                                 return;

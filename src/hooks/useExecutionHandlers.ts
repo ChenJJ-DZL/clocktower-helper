@@ -30,6 +30,7 @@ import type { executePoisonAction } from "./roleActionHandlers";
 // 单数 useExecutionHandler 为本文件直接依赖的活代码（非死文件；勿因与复数 useExecutionHandlers 命名撞车而误删）
 import { useExecutionHandler } from "./useExecutionHandler";
 import type { NightActionHandlerContext } from "./useNightActionHandler";
+import { showAlert } from "../utils/nativeDialogShim";
 
 /**
  * 处决/击杀/投票处理函数的依赖接口
@@ -77,6 +78,8 @@ export interface ExecutionHandlersDeps {
   };
   /** `state.travelers`：旅行者槽位（定长 4，null = 空/已离场）。旅行者判据必须读此数组 */
   travelers?: (Role | null)[];
+  /** ✊ 传奇角色在场名单（fabled 不占 seats）——玩具匠等传奇效果要读它 */
+  activeFabled?: Role[] | null;
   /** 旅行者阵营映射（P0）：说书人落座时逐个指定，判据唯一收口 `isTravelerEvil` */
   travelerAlignments?: { [slot: number]: "good" | "evil" };
 
@@ -196,6 +199,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     twilightVoteTargets,
     travelerHookChoices,
     travelers,
+    activeFabled,
     travelerAlignments,
     setCurrentModal,
     setSeats,
@@ -667,12 +671,12 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       const voudonHere = hasTravelerRole(travelers, "voudon");
 
       if (Number.isNaN(v) || v < 0 || !Number.isInteger(v)) {
-        alert("票数必须是大于等于0的整数");
+        showAlert("票数必须是大于等于0的整数");
         return;
       }
 
       if (v > initialPlayerCount + aliveTravelerCount) {
-        alert(
+        showAlert(
           `票数不能超过开局时的玩家数${initialPlayerCount}人${
             aliveTravelerCount > 0 ? `（+${aliveTravelerCount} 名旅行者）` : ""
           }`
@@ -1127,6 +1131,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       reviveSeat,
       insertIntoWakeQueueAfterCurrent,
       vortoxWorld: isVortoxWorld,
+      activeFabled: activeFabled ?? null,
       getRegistration: getRegistrationCached,
       getMisinformation,
       findNearestAliveNeighbor,
@@ -1229,6 +1234,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       reviveSeat,
       insertIntoWakeQueueAfterCurrent,
       vortoxWorld: isVortoxWorld,
+      activeFabled: activeFabled ?? null,
       getRegistration: getRegistrationCached,
       getMisinformation,
       findNearestAliveNeighbor,
@@ -1640,7 +1646,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
 
       const target = seats.find((s) => s.id === targetId);
       if (!target) {
-        alert("目标不存在");
+        showAlert("目标不存在");
         setCurrentModal(null);
         return;
       }

@@ -151,6 +151,7 @@ export function useGameController() {
     twilightVoteTargets,
     travelerHookChoices,
     travelers,
+    activeFabled,
     travelerAlignments,
     setTwilightVoteTarget,
     outsiderDiedToday,
@@ -1309,6 +1310,7 @@ export function useGameController() {
     confirmKlutzChoice,
     confirmStorytellerDeath,
     confirmHadesia,
+    cancelHadesia,
     confirmSaintExecution,
     cancelSaintExecution,
     confirmScapegoatSubstitute,
@@ -2082,6 +2084,14 @@ export function useGameController() {
         //   `seat.statusDetails` 里的「赏金已知」标记。漏掉 → 门读不到 →
         //   每夜都被排入队列、白送一名邪恶玩家。
         statusDetails: (s as any).statusDetails,
+        // ⚠️⚠️ 2026-10-20 修复（E2E 实测 seed=2026 实锤）：本预览快照此前**漏掉
+        //   `isEvilConverted`** ⇒ `generateDynamicNightQueue` 的「邪恶阵营告知」分支
+        //   （`convertedSeat` 判定）读不到该标记 → **面板队列缺首步**、与实际执行
+        //   队列分叉。实证：真实生成器含 `9号:邪恶阵营告知` 且排在最前，面板却没有；
+        //   该步骤又与图书管理员**同座位 8**，I10 按座位对账时被它抢走槽位 ⇒
+        //   连带 4 条「步骤越序」全是误报。
+        //   🔒 凡是 `generateDynamicNightQueue` 会读取的座位字段，本快照都必须透传。
+        isEvilConverted: (s as any).isEvilConverted,
       })),
       statusEffects: {},
       gamePhase: isFirstNight ? ("firstNight" as const) : ("night" as const),
@@ -2157,6 +2167,7 @@ export function useGameController() {
       confirmKlutzChoice,
       confirmStorytellerDeath,
       confirmHadesia,
+      cancelHadesia,
       confirmSaintExecution,
       cancelSaintExecution,
       confirmScapegoatSubstitute,
@@ -2320,6 +2331,7 @@ export function useGameController() {
       closeNightOrderPreview,
       confirmExecutionResult,
       confirmHadesia,
+      cancelHadesia,
       confirmHadesiaKill,
       confirmKill,
       confirmKlutzChoice,

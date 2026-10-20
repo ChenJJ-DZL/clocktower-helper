@@ -6,7 +6,7 @@
  * （InfoResultModal / NightActionConfirmModal / NightDeathReportModal / VoteInputModal），
  * **角色专属弹窗 0 个被验证**。本文件补上罂粟花开 4 个专属 UI 面：
  *
- *   · 占卜师 FortuneTellerResultModal（是/否 两态）
+ *   · （占卜师专属弹窗已删——本就是零引用死代码，线上走通用 InfoResultModal）
  *   · 博学者 SavantResultModal（两条信息 + 只读态）
  *   · 镜像双子 EvilTwinExecutionConfirmModal（处决警告，含关闭态）
  *   · 洗脑师 CerenovusConfirmLayout（确认文案 getCerenovusConfirmLabel + 内容区渲染）
@@ -18,7 +18,6 @@
 import { describe, expect, it, beforeAll, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { roles } from "../../../../app/data";
-import { FortuneTellerResultModal } from "../FortuneTellerResultModal";
 import { SavantResultModal } from "../SavantResultModal";
 import { EvilTwinExecutionConfirmModal } from "../EvilTwinExecutionConfirmModal";
 import {
@@ -42,63 +41,6 @@ afterEach(() => cleanup());
 /** portal 内容在 body，裸内容在 container —— 两处一起读 */
 const allText = () => document.body.textContent ?? "";
 
-describe("① 占卜师结果页（FortuneTellerResultModal）", () => {
-  /**
-   * ⚠️ 重要发现（2026-09-13 实测）：本组件当前**零引用 = 死代码**。
-   * 占卜师线上实际走**通用** `InfoResultModal`
-   * （见 `GameModals.tsx` 的 `FORTUNE_TELLER_RESULT` 分支：
-   *  `resultText = result ? "有" : "没有"`）。
-   * 本组用例用于**固化该组件的既有行为**，防止有人误以为它在生效。
-   *
-   * ⚠️ 另一个坑：本组件的 `targetLabels` 期望**裸座位号字符串**（如 `["3","5"]`），
-   * 组件内部自己拼「号」（`{targetLabels.join("、")}号`）。
-   * 传 `["3号","5号"]` 会渲染成「3号、5号号」（我第一次就踩了）。
-   */
-  it("有恶魔 → 渲染【是】", () => {
-    render(
-      <FortuneTellerResultModal
-        result={true}
-        targetLabels={["3", "5"]}
-        onConfirm={() => {}}
-        onModify={() => {}}
-      />
-    );
-    const t = allText();
-    expect(t).toContain("占卜师");
-    expect(t).toContain("是");
-    // 座位号不得出现重复的「号」字
-    expect(t).toContain("3、5号");
-    expect(t).not.toContain("号号");
-  });
-
-  it("无恶魔 → 渲染【否】", () => {
-    render(
-      <FortuneTellerResultModal
-        result={false}
-        targetLabels={["3", "5"]}
-        onConfirm={() => {}}
-        onModify={() => {}}
-      />
-    );
-    const t = allText();
-    expect(t).toContain("否");
-    expect(t).not.toContain("号号");
-  });
-
-  it("两个目标座位号都显示", () => {
-    render(
-      <FortuneTellerResultModal
-        result={true}
-        targetLabels={["3", "5"]}
-        onConfirm={() => {}}
-        onModify={() => {}}
-      />
-    );
-    const t = allText();
-    expect(t).toContain("3");
-    expect(t).toContain("5");
-  });
-});
 
 describe("② 博学者信息页（SavantResultModal）", () => {
   it("渲染两条信息（一对一错由说书人录入）", () => {

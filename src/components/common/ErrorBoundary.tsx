@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Component, type ErrorInfo, type ReactNode } from "react";
+import { showAlert } from "../../utils/nativeDialogShim";
 
 interface Props {
   children: ReactNode;
@@ -63,8 +64,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (typeof window === "undefined" || !navigator.clipboard) return;
     const errorDetails = `Error: ${this.state.error?.message}\nStack: ${this.state.error?.stack}\nComponent: ${this.state.errorInfo?.componentStack}`;
     navigator.clipboard.writeText(errorDetails).then(
-      () => alert("错误信息已复制到剪贴板"),
-      () => alert("复制失败，请截图保存")
+      () => showAlert("错误信息已复制到剪贴板"),
+      () => showAlert("复制失败，请截图保存")
     );
   };
 

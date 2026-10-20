@@ -1761,13 +1761,13 @@ export const GameStage = () => {
                               : "进入黄昏处决阶段",
                           onClick: () => {
                             if (hasPendingCerenovusCheck) {
-                              alert(
+                              showAlert(
                                 "洗脑师的白天技能【疯狂洗脑】尚未发动，必须先发动并完成判定后才能进入黄昏！"
                               );
                               return;
                             }
                             if (hasPendingMutantCheck) {
-                              alert(
+                              showAlert(
                                 "畸形秀演员的白天技能【疯狂仲裁】尚未发动，必须先由说书人裁定并完成判定后才能进入黄昏！"
                               );
                               return;

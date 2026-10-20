@@ -2,6 +2,7 @@ import { roles } from "../../../app/data";
 import { useGameActions } from "../../contexts/GameActionsContext";
 import { formatSeatLabel } from "../../utils/seatLabel";
 import { ModalWrapper } from "./ModalWrapper";
+import { showAlert } from "../../utils/nativeDialogShim";
 
 export function DayAbilityModal({ modal }: { modal: any }) {
   const props = useGameActions();
@@ -24,7 +25,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
       const statement = (props.dayAbilityForm.info1 || "").trim();
       const verdict = props.dayAbilityForm.info2 || ""; // 'true' | 'false' | ''
       if (!statement) {
-        alert("请填写造谣内容（说书人记录）。");
+        showAlert("请填写造谣内容（说书人记录）。");
         return;
       }
       const isTrue = verdict === "true";
@@ -49,7 +50,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     }
     if (roleId === "savant" || roleId === "savant_mr") {
       if (!props.dayAbilityForm.info1 || !props.dayAbilityForm.info2) {
-        alert("请填写两条信息（其中一真一假）。");
+        showAlert("请填写两条信息（其中一真一假）。");
         return;
       }
       const infoA = props.dayAbilityForm.info1;
@@ -89,7 +90,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     if (roleId === "juggler") {
       const guesses = props.dayAbilityForm.jugglerGuesses || [];
       if (guesses.length === 0) {
-        alert("请至少添加 1 条杂耍艺人猜测。");
+        showAlert("请至少添加 1 条杂耍艺人猜测。");
         return;
       }
       const guessSummaries = guesses
@@ -116,7 +117,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     //   白天→黄昏门禁（`utils/mutantGate.ts`）。
     //   这里保留一个守卫，避免旧入口被再次触发时静默无事发生。
     if (roleId === "mutant") {
-      alert(
+      showAlert(
         "畸形秀演员的【疯狂仲裁】已迁移到专属判定页，请从右侧控制台「⚡️ 可用主动技能」中点击「疯狂仲裁」进行裁定。"
       );
       closeModal();
@@ -124,7 +125,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     }
     if (roleId === "amnesiac") {
       if (!props.dayAbilityForm.guess || !props.dayAbilityForm.feedback) {
-        alert("请填写猜测和反馈。");
+        showAlert("请填写猜测和反馈。");
         return;
       }
       props.addLog(
@@ -145,7 +146,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
     }
     if (roleId === "fisherman") {
       if (!props.dayAbilityForm.advice) {
-        alert("请填写说书人提供的建议。");
+        showAlert("请填写说书人提供的建议。");
         return;
       }
       props.addLog(
@@ -168,21 +169,21 @@ export function DayAbilityModal({ modal }: { modal: any }) {
       const mode = props.dayAbilityForm.engineerMode;
       const newRoleId = props.dayAbilityForm.engineerRoleId;
       if (!mode) {
-        alert("请选择改造目标（恶魔或爪牙）。");
+        showAlert("请选择改造目标（恶魔或爪牙）。");
         return;
       }
       if (!newRoleId) {
-        alert("请选择要改造成为的角色。");
+        showAlert("请选择要改造成为的角色。");
         return;
       }
       const newRole = roles.find((r) => r.id === newRoleId);
       if (!newRole) return;
       if (mode === "demon" && newRole.type !== "demon") {
-        alert("请选择一个恶魔角色。");
+        showAlert("请选择一个恶魔角色。");
         return;
       }
       if (mode === "minion" && newRole.type !== "minion") {
-        alert("请选择一个爪牙角色。");
+        showAlert("请选择一个爪牙角色。");
         return;
       }
       if (mode === "demon") {
@@ -190,7 +191,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
           (s: any) => s.role?.type === "demon" || s.isDemonSuccessor
         );
         if (!demonSeat) {
-          alert("场上没有可改造的恶魔。");
+          showAlert("场上没有可改造的恶魔。");
           return;
         }
         props.setSeats((prev: any[]) =>
@@ -219,7 +220,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
           (s: any) => s.role?.type === "minion"
         );
         if (minions.length === 0) {
-          alert("场上没有可改造的爪牙。");
+          showAlert("场上没有可改造的爪牙。");
           return;
         }
         props.setSeats((prev: any[]) =>
@@ -468,7 +469,7 @@ export function DayAbilityModal({ modal }: { modal: any }) {
                       "juggler-role"
                     ) as HTMLSelectElement;
                     if (!targetEl.value || !roleEl.value) {
-                      alert("请选择目标玩家与猜测角色");
+                      showAlert("请选择目标玩家与猜测角色");
                       return;
                     }
                     const targetSeatId = Number(targetEl.value);

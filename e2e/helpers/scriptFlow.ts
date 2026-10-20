@@ -92,8 +92,36 @@ export const DEFAULT_SCRIPT = "罂粟花开";
 export async function enterFirstNight(
   page: Page,
   playerCount = 5,
-  scriptName: string = DEFAULT_SCRIPT
+  scriptName: string = DEFAULT_SCRIPT,
+  /**
+   * 发牌种子（可选，2026-10-20 新增）。
+   *
+   * ⚠️⚠️ 为什么需要：`SEED` 此前**只控驱动器的点击选择**，而「随机落座 +
+   *   分发身份」用的是应用内的 `Math.random` ⇒ 同一个 seed 两次实跑会出
+   *   完全不同的阵容（实测 seed=2026 一次涡流局、一次军团×7 局）。
+   *   后果是**回归不成立**：每局都是新样本，覆盖只能靠运气累积，无法针对
+   *   某个角色定向补测。
+   *
+   * 修法：在 `page.goto` **之前**注入 `addInitScript`，把页面内的
+   *   `Math.random` 换成可复现 LCG。必须在导航前注册，否则对当前文档无效。
+   *
+   * 不传则保持原行为（真随机），不影响其它既有用例。
+   */
+  seed?: number
 ) {
+  if (seed !== undefined) {
+    // ⚠️ 只注入「发牌专用种子」，**不覆盖全局 Math.random**。
+    //   实测教训（2026-10-20）：覆盖全局 Math.random 确实成功（E2E 里
+    //   `String(Math.random)` 已是 LCG 实现），但发牌仍不可复现 ——
+    //   因为渲染路径（React key / 快照 id / 提醒标记 id）也在消耗同一个
+    //   随机序列，且调用次数随渲染批次变化。修法是让发牌用**独立随机源**
+    //   `utils/dealRng.ts`，这里只负责把种子交给它。
+    await page.addInitScript((seedNum: number) => {
+      (window as unknown as { __CT_DEAL_SEED__?: number }).__CT_DEAL_SEED__ =
+        seedNum;
+    }, seed);
+  }
+
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   await enterScriptConfig(page, scriptName, playerCount);

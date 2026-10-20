@@ -1,6 +1,7 @@
 import { roles as ALL_ROLES, type Role, type Script } from "../../app/data";
 import { nightOrderParser } from "./nightOrderParser";
 import { injectChoirboyKing } from "./expansionMechanics";
+import { nextDealRandom } from "./dealRng";
 import {
   STANDARD_COMPOSITIONS as SST_STANDARD_COMPOSITIONS,
   computeSetupComposition,
@@ -12,11 +13,16 @@ export const STANDARD_COMPOSITIONS = SST_STANDARD_COMPOSITIONS;
 
 /**
  * 随机洗牌
+ *
+ * ⚠️ 2026-10-20：随机源改为**发牌专用** `nextDealRandom()`，不再直接用全局
+ *   `Math.random`。原因：同页面里渲染路径也在调 `Math.random`（React key /
+ *   快照 id 等），调用次数随渲染批次变化 ⇒ 同一 E2E seed 每次发出的阵容都不同，
+ *   回归不成立。详见 `utils/dealRng.ts` 注释。
  */
 export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(nextDealRandom() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;

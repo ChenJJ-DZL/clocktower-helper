@@ -108,7 +108,7 @@ export const imp: RoleDefinition = {
 
     target: {
       count: {
-        min: 1,
+        min: 0,
         max: 1,
       },
 

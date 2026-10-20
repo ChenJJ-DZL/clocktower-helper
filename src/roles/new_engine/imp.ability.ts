@@ -260,6 +260,26 @@ const calculateResult = async (
   }
 
   if (targetId === undefined || targetId === null) {
+    /**
+     * 🧸 玩具匠（Toymaker）官方："恶魔可以在夜晚选择放弃攻击（每局游戏至少一次）。"
+     *   ⇒ 玩具匠在场时允许 0 目标（空刀 = 放弃攻击）；否则仍必须选一。
+     *   2026-10-20 审计补齐：此前 targetConfig.min:1 卡死 ⇒ 玩具匠效果永不生效。
+     */
+    const toymakerInPlay = ((context.snapshot as any)?.activeFabled ?? []).some(
+      (f: any) => f?.id === "toymaker"
+    );
+    if (toymakerInPlay) {
+      return {
+        ...context,
+        aborted: true,
+        abortReason: "放弃攻击（玩具匠：恶魔本夜不杀）",
+        meta: {
+          ...context.meta,
+          toymakerAttackSkipped: true,
+          abilityResult: { skipped: true },
+        },
+      };
+    }
     return {
       ...context,
       aborted: true,
@@ -732,13 +752,13 @@ export const impAbility = createRoleAbility({
 
   /**
    * 目标选择配置
-   * 小恶魔必须选择一名玩家。
-   * min: 1, max: 1 — 必须选恰好一名
+   * 玩具匠在场时可放弃攻击（0 目标 = 空刀，见 calculateResult）；
+   * 无玩具匠时 calculateResult 仍会强制要求选一。
    * allowSelf: true — 可选自己（自杀传刀）
    * allowDead: true — 可选死亡玩家（空刀伪装士兵/僧侣）
    */
   targetConfig: {
-    min: 1,
+    min: 0,
     max: 1,
     allowSelf: true,
     allowDead: true,

@@ -361,7 +361,7 @@ const SPEC: Record<string, Row> = {
     script: "hp", main: 2,
     n: {
       1: { guide: "seed", queued: false, seed: "demon_info", tl: [0, 0] },
-      2: { guide: "std", queued: true, tl: [1, 1] },
+      2: { guide: "std", queued: true, tl: [0, 1] },
     },
   },
   zombuul: {
@@ -404,7 +404,13 @@ const INTERNAL_TOKENS = [
  * ⚠️ **冻结偏差 2**：夜间节点的目标数与能力声明（`targetConfig`）不一致。
  * 全部为实测值，理由写在每条的注释里。**修好后请把条目删掉**，让断言回归 `targetConfig`。
  */
-const TL_DEVIATION: Record<string, { min: number; max: number; why: string }> = {
+const TL_DEVIATION: Record<string, {
+ min: number; max: number; why: string }> = {
+  imp: {
+    min: 0,
+    max: 1,
+    why: "🧸 玩具匠官方「恶魔可以放弃攻击」⇒ 2026-10-20 起 targetConfig 放宽 0~1（0=空刀）",
+  },
   // ✅ 2026-09-22 按**官方原文**修复后已删除 `assassin` 条目：
   //   官方【刺客】【运作方式】：「刺客**要么摇头表示不使用能力**，要么指向任意一名玩家。」
   //   ⇒ 夜间目标数**下限必须是 0** ⇒ legacy `src/roles/minion/assassin.ts`

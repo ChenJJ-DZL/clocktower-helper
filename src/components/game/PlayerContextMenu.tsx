@@ -4,10 +4,13 @@ import { roles as allSystemRoles, type Role } from "../../../app/data";
 import { selectEvilConvertedSeat } from "../../utils/bountyHunterSetup";
 import { canNominate } from "../../utils/nominationEligibility";
 import { canGuessDamsel } from "../../utils/roleFlags";
+import { isEvilConversionBlockedBySpiritOfIvory } from "../../utils/spiritOfIvory";
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { useGameContext } from "../../contexts/GameContext";
 
 export function PlayerContextMenu() {
   const props = useGameActions();
+  const { state: ctxState } = useGameContext();
   const menuRef = useRef<HTMLDivElement>(null);
   const [clampedPos, setClampedPos] = useState<{
     top: number;
@@ -404,6 +407,23 @@ export function PlayerContextMenu() {
           (props.gamePhase === "firstNight" && props.nightCount === 1)) && (
           <button
             onClick={() => {
+              // 🕊️ 圣洁之魂：邪恶总数最多比初始多一名 —— 引擎强制拦截（2026-10-20 审计补齐）
+              //   旧实现只在 FabledPanel 提示"说书人应拒绝"，此处根本不查 ⇒ 假效果。
+              if (
+                isEvilConversionBlockedBySpiritOfIvory({
+                  seats: props.seats as any[],
+                  initialSeats: ctxState.initialSeats as any[],
+                  spiritOfIvoryInPlay: (ctxState.activeFabled ?? []).some(
+                    (f: any) => f.id === "spirit_of_ivory"
+                  ),
+                })
+              ) {
+                props.addLog?.(
+                  "🕊️ 圣洁之魂封顶：邪恶玩家已达「初始 + 1」上限，本次「转为邪恶」被阻止（官方规则）"
+                );
+                props.setContextMenu(null);
+                return;
+              }
               // 唯一性语义（最后选择生效）与"清回正常"的规则集中在纯函数里，便于测试
               const cleared: number[] = props.seats
                 .filter(

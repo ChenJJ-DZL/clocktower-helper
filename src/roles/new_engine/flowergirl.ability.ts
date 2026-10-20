@@ -8,6 +8,7 @@
  */
 
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import {
   AbilityTriggerTiming,
   commonPreCheckAlive,
@@ -24,8 +25,9 @@ const calculateResult = async (
   // 从snapshot中获取恶魔今天是否投票的信息
   const demonVotedToday = snapshot.demonVotedToday ?? false;
 
-  // 涡流在场会使信息反转
-  const hasVortox = snapshot.seats.some((s) => s.role?.id === "vortox");
+  // 涡流在场且**存活**会使信息反转（官方：涡流死亡后恢复正常）
+  // ⚠️ 2026-10-20 修复：旧写法漏了 `!isDead`，涡流死后仍反转让信息反而成了假。
+  const hasVortox = isVortoxWorldActive(snapshot.seats as any);
 
   // 醉酒/中毒 或 涡流时，信息反转
   let hasVoted = demonVotedToday;

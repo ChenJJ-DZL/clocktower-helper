@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { pixieAbility } from "../new_engine/pixie.ability";
+import {
+  ENGINE_SELF_FAKING_ROLE_IDS,
+  shouldUiRemaskForCorruption,
+} from "../../utils/corruptedInfo";
 import { board, runRole } from "./_tbHarness";
 
 /**
@@ -20,12 +24,17 @@ import { board, runRole } from "./_tbHarness";
  *   kind 兜底 "text" ⇒ `TEXT_FAKE_FALLBACK`「你获得了一条信息（内容由说书人裁定）」
  *   把引擎同形假值**盖掉** ⇒ 确认页「得知【占卜师】在场」、结果页却是中性兜底，
  *   两页不一致且暴露干扰（用户实测截图现场）。
- *   ⇒ 已在脱敏层加 `ENGINE_SELF_MASKING_ROLES` 豁免名单（含 pixie），
- *     源码级护栏见本文件 ⑥ —— 名单被删/被绕过即红。
+ *   ⇒ 豁免机制已迁移（2026-10-20 双掩码类问题修复）：统一为
+ *     `utils/corruptedInfo::ENGINE_SELF_FAKING_ROLE_IDS`（含 pixie）+
+ *     `shouldUiRemaskForCorruption` 判据，源码级护栏见本文件 ⑥。
  */
 
 const HANDLER_SRC = require("fs").readFileSync(
   require("path").resolve(__dirname, "../../hooks/useNightActionHandler.ts"),
+  "utf-8"
+) as string;
+const REGISTRY_SRC = require("fs").readFileSync(
+  require("path").resolve(__dirname, "../../utils/corruptedInfo.ts"),
   "utf-8"
 ) as string;
 
@@ -146,34 +155,35 @@ describe("小精灵首夜信息 · 多状态显示（罂粟花开）", () => {
     }
   });
 
-  it("⑥⭐ 源码级护栏：脱敏层必须把 pixie 列入 ENGINE_SELF_MASKING_ROLES 豁免", () => {
+  it("⑥⭐ 源码级护栏：pixie 必须列入引擎自产假值登记表（UI 脱敏层放行）", async () => {
     // 结果文案唯一出口（useNightActionHandler 的 maskCorruptedResult）在
     // isCorruptedForPlayer=true 时会替换玩家文案 —— pixie 的同形假值由引擎自治
     // 产出（②③④⑤），本层再跑 text 兜底就会盖成「你获得了一条信息（内容由说书人
-    // 裁定）」（2026-09-24 用户实测：确认页与结果页不一致）。名单被删即本条变红。
+    // 裁定）」（2026-09-24 用户实测：确认页与结果页不一致）。
+    // 2026-10-20 起豁免判据 = utils/corruptedInfo::ENGINE_SELF_FAKING_ROLE_IDS
+    // + shouldUiRemaskForCorruption（名单被删/被绕过即红）。
     expect(
-      HANDLER_SRC.includes("ENGINE_SELF_MASKING_ROLES"),
-      "❌ 脱敏层的引擎自治豁免名单 ENGINE_SELF_MASKING_ROLES 消失了 —— " +
+      REGISTRY_SRC.includes("ENGINE_SELF_FAKING_ROLE_IDS"),
+      "❌ 引擎自产假值登记表 ENGINE_SELF_FAKING_ROLE_IDS 消失了 —— " +
         "pixie 的同形假值会被 TEXT_FAKE_FALLBACK 盖掉"
     ).toBe(true);
-    const at = HANDLER_SRC.indexOf(
-      "ENGINE_SELF_MASKING_ROLES: ReadonlySet<string>"
-    );
-    expect(at, "❌ 豁免名单定义形态变了（不再是 ReadonlySet）").toBeGreaterThan(
-      -1
-    );
-    const win = HANDLER_SRC.slice(at, at + 120);
+    // 行为级：判据函数对 pixie 必须返回「不再替换」
     expect(
-      win.includes('"pixie"'),
-      "❌ 豁免名单里没有 pixie —— 引擎同形假值会被中性兜底盖掉"
+      ENGINE_SELF_FAKING_ROLE_IDS.has("pixie"),
+      "❌ 登记表里没有 pixie —— 引擎同形假值会被中性兜底盖掉"
     ).toBe(true);
-    // 豁免必须真正作用于 isCorruptedForPlayer（而不是只声明不消费）
-    const used = HANDLER_SRC.includes(
-      "!ENGINE_SELF_MASKING_ROLES.has(roleId) &&"
-    );
     expect(
-      used,
-      "❌ 豁免名单声明了但没有作用于 isCorruptedForPlayer 判定"
+      shouldUiRemaskForCorruption({
+        roleId: "pixie",
+        metaIsCorrupted: true,
+        playerInfoAlreadyMasked: false,
+      }),
+      "❌ pixie 被判为仍需 UI 二次替换（会盖掉引擎同形假值）"
+    ).toBe(false);
+    // 判据必须真正被结果文案唯一出口消费（而不是只声明不使用）
+    expect(
+      HANDLER_SRC.includes("shouldUiRemaskForCorruption"),
+      "❌ 脱敏层没有消费 shouldUiRemaskForCorruption —— 豁免声明了但不生效"
     ).toBe(true);
   });
 });

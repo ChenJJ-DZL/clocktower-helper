@@ -685,8 +685,16 @@ const ORDER_DEVIATION: Record<
  */
 const TARGET_DEVIATION: Record<
   string,
-  { min: number; max: number; allowSelf: boolean; allowDead: boolean; why: string }
+  {
+ min: number; max: number; allowSelf: boolean; allowDead: boolean; why: string }
 > = {
+  imp: {
+    min: 0,
+    max: 1,
+    allowSelf: true,
+    allowDead: true,
+    why: "🧸 玩具匠官方「恶魔可以放弃攻击」⇒ 2026-10-20 起 targetConfig 放宽 0~1（0=空刀，无玩具匠仍强制选一）",
+  },
   balloonist: {
     min: 0,
     max: 1,

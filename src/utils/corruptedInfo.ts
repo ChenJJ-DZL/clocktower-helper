@@ -95,6 +95,93 @@ export function classifyCorruptedInfoRole(
   return INFO_ROLE_KIND[roleId] ?? null;
 }
 
+// ─── 引擎自产假值登记（双掩码防线 · 唯一事实源）────────────────────────────
+/**
+ * 【为什么需要这张表】2026-10-20 涡流实测事故（赏金猎人 + 占卜师）：
+ *   引擎受干扰时**已经**把假值写进 `abilityResult`/`displayInfo`（自产假值型），
+ *   本层 `buildCorruptedInfoMask` 却把那枚假值当**真值**再变换一次：
+ *     · boolean 二次取反 ⇒ **必然翻回真值**（占卜师「没有恶魔」→「有恶魔」实测）；
+ *     · number/targets 二次随机 ⇒ **可能翻真**（赏金猎人假目标被当真值排除后
+ *       重新随机，翻到真邪恶「X号是邪恶的」= 真信息）。
+ *
+ * 【两类角色的分界】（2026-10-20 逐文件核实）：
+ *   A. **自产假值型**（本表成员）：受干扰时引擎改写 abilityResult 为假值——
+ *      UI 脱敏层**必须跳过**二次替换，直接放行引擎假值（与提示预演一致）。
+ *      生成器接线证据（定义+调用≥2 或取反式）：
+ *        generateFakeInfo / pickFakeXxx / pickPixieRole / pickChefFakePairCount /
+ *        generateFakeResult / 取反式（finalSameAlignment=!actual 等）/ noble 三选防穿透。
+ *   B. **只打标记型**（不在表内）：受干扰时引擎只写 isCorrupted、结果仍是真值
+ *      （如渔夫的自由文本建议、气球人的真实角色类型）——
+ *      UI 脱敏层**必须**替换假值，否则真值直泄玩家页。
+ *
+ * ⚠️ 名单错一个就是真信息泄漏（B 误入 A）或双掩码翻真（A 漏入 B）。
+ *    由 `src/utils/__tests__/engine_self_faking_registry.test.ts` 双向静态锁死：
+ *    表内成员必须有假值生成器接线；有接线的必须在表内。
+ */
+export const ENGINE_SELF_FAKING_ROLE_IDS: ReadonlySet<string> = new Set([
+  // 首夜/每夜信息（假值生成器接线）
+  "washerwoman",
+  "librarian",
+  "investigator",
+  "chef",
+  "clockmaker",
+  "knight",
+  "empath",
+  "fortune_teller",
+  "undertaker",
+  "ravenkeeper",
+  "oracle",
+  "mathematician",
+  "grandmother",
+  "juggler",
+  "chambermaid",
+  "pixie",
+  "sage",
+  "seamstress",
+  "town_crier",
+  "dreamer",
+  "flowergirl",
+  "noble",
+  "inspector",
+  // 涡流契约 ② 组（结果取反/换目标）
+  "shugenja",
+  "high_priestess",
+  "huntsman",
+  // 指控型（假目标必指善良）
+  "bounty_hunter",
+]);
+
+/**
+ * 该角色受干扰时是否由**引擎自产假值**（UI 脱敏层必须跳过二次替换）。
+ * 显式声明 `playerInfoAlreadyMasked` 优先于静态名单（引擎按次声明）。
+ */
+export function isEngineSelfFakingRole(roleId: string | null | undefined): boolean {
+  return !!roleId && ENGINE_SELF_FAKING_ROLE_IDS.has(roleId);
+}
+
+/**
+ * 「UI 脱敏层本次是否还需要替换假值」——双掩码判定（纯函数，UI/测试共用）。
+ *
+ * 返回 false（跳过）的两种情形：
+ *   1. 引擎按次显式声明 `playerInfoAlreadyMasked`（如赏金猎人受干扰时
+ *      产出的假目标本身即同形假值）；
+ *   2. 自产假值型角色且引擎已置 `isCorrupted`（引擎已把假值写进结果）。
+ *
+ * 返回 true（必须替换）：只打标记型（渔夫/气球人…）或引擎未受干扰
+ *   但 UI 侧另有干扰源（提线木偶伪装 / 骗人精标记 / nightInfo.isPoisoned）。
+ */
+export function shouldUiRemaskForCorruption(input: {
+  roleId: string;
+  metaIsCorrupted?: boolean;
+  playerInfoAlreadyMasked?: boolean;
+}): boolean {
+  if (input.playerInfoAlreadyMasked === true) return false;
+  if (input.metaIsCorrupted === true && isEngineSelfFakingRole(input.roleId)) {
+    return false;
+  }
+  return true;
+}
+
 // ─── 说书人设定值（模块级快照）────────────────────────────────────────────
 /**
  * 说书人在"信息微调"面板里设定的假值。
@@ -546,6 +633,11 @@ export function isPlayerInfoCorrupted(
     input.nightInfoIsPoisoned === true ||
     input.actorSeat?.isDrunk === true ||
     isDisguised ||
+    // 🔮 骗人精（Fibbin）：官方「一名善良玩家可能得知'有问题'的信息」
+    //   打上 fibbin_misinfo 状态后，其信息类结果一律按假处理（2026-10-20 落地）。
+    (input.actorSeat as any)?.statusEffects?.some?.(
+      (e: any) => e?.type === "fibbin_misinfo"
+    ) === true ||
     (input.isVortoxWorld === true && input.roleIsInformation !== false)
   );
 }

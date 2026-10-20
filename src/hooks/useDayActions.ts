@@ -621,7 +621,7 @@ export function useDayActions(deps: DayActionsDeps) {
         const shooter = seats.find((s) => s.id === sourceId);
         if (!shooter) return;
         if (shooter.hasUsedSlayerAbility) {
-          alert("该玩家已经使用过猎手能力了！");
+          showAlert("该玩家已经使用过猎手能力了！");
           return;
         }
         if (shooter.isDead) {
@@ -707,7 +707,7 @@ export function useDayActions(deps: DayActionsDeps) {
 
       const selectedRole = roles.find((r) => r.id === selectedCharadeRoleId);
       if (!selectedRole) {
-        alert("选择的伪装身份无效，请重试。");
+        showAlert("选择的伪装身份无效，请重试。");
         setCurrentModal(null);
         return;
       }
@@ -1263,7 +1263,7 @@ export function useDayActions(deps: DayActionsDeps) {
       }
 
       if (sourceSeat.hasUsedDayAbility) {
-        alert("此玩家已经使用过技能了！");
+        showAlert("此玩家已经使用过技能了！");
         return;
       }
 
@@ -1292,14 +1292,14 @@ export function useDayActions(deps: DayActionsDeps) {
         if (!targetSeat) {
           logMessage += " -> ❌ 目标不存在";
           addLog(logMessage);
-          alert("❌ 目标座位不存在");
+          showAlert("❌ 目标座位不存在");
           return;
         }
 
         if (targetSeat.isDead) {
           logMessage += " -> 💨 未命中 (目标已死亡)";
           addLog(logMessage);
-          alert("💨 杀手射击失败。\n目标已死亡。");
+          showAlert("💨 杀手射击失败。\n目标已死亡。");
           return;
         }
 
@@ -1350,7 +1350,7 @@ export function useDayActions(deps: DayActionsDeps) {
                   "猎手的子弹击中了恶魔，但红唇女郎（存活≥4人）继承为新的恶魔，游戏继续！"
                 );
               }
-              alert(
+              showAlert(
                 `🎯 杀手射击成功！\n${targetSeatId + 1}号 [${targetRole?.name || "未知"}] 死亡！`
               );
             },
@@ -1365,7 +1365,7 @@ export function useDayActions(deps: DayActionsDeps) {
             logMessage += " -> 💨 未命中 (目标不是恶魔)";
           }
           addLog(logMessage);
-          alert(`💨 杀手射击未生效。\n${targetSeatId + 1}号未死亡。`);
+          showAlert(`💨 杀手射击未生效。\n${targetSeatId + 1}号未死亡。`);
         }
       } else if (meta.effectType === "kill" && targetSeatId !== undefined) {
         const targetSeat = seats.find((s) => s.id === targetSeatId);
@@ -1391,7 +1391,7 @@ export function useDayActions(deps: DayActionsDeps) {
                     roles,
                   });
                   if (!decision.allowed) {
-                    alert(decision.reason);
+                    showAlert(decision.reason);
                     addLog(`⛔ ${decision.reason}（哲学家本次使用视作已消耗）`);
                     return;
                   }
@@ -1470,7 +1470,7 @@ export function useDayActions(deps: DayActionsDeps) {
             },
           });
         } else {
-          alert("🧠 变身逻辑待UI配合 (需选择角色列表)");
+          showAlert("🧠 变身逻辑待UI配合 (需选择角色列表)");
         }
       } else {
         addLog(logMessage);

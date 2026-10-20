@@ -7,6 +7,7 @@ import type { IRoleAbility } from "../roles/core/roleAbility.types";
 import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 import { applyRulesByPhase, collectGlobalRules } from "./globalRuleEngine";
 import { getScriptSpecialRules } from "./scriptSpecialRules";
+import { getRevolutionaryDisguise } from "./revolutionaryDisguise";
 import type {
   AbilityMiddlewareSet,
   MiddlewareContext,
@@ -99,7 +100,61 @@ export async function runFullAbilityPipeline(
   // 全局规则：before_calculate（如掮客目标重定向）
   ctx = applyRulesByPhase(globalRules, "before_calculate", ctx);
 
+  /**
+   * ✊ 革命者（Revolutionary）「被当作其他」—— **只影响「别人怎么看他」**。
+   *
+   * 【官方原文】"每局游戏限一次，你可以使被标记了'被当作其他'的玩家之一
+   *   被当作另一个角色和/或阵营" ⇒ 其他角色的**信息类能力**按伪装认知该玩家；
+   *   该玩家本人的能力、真实身份、胜负判定均不受影响。
+   *
+   * 实现：calculate 阶段换上「他人感知」的座位视图（**仅替换被伪装的那一个座位对象**，
+   * 其余座位保持同一引用）；stateUpdate/postProcess 立即恢复真实 seats
+   * —— 写入绝不允许落到伪装视图上。
+   * 若当前行动者就是被伪装者本人 ⇒ 不做变换（他看自己是真实身份）。
+   */
+  const disguise = getRevolutionaryDisguise(initialContext.snapshot as any);
+  const realSeats = ctx.snapshot?.seats;
+  const disguiseApplies =
+    !!disguise &&
+    Array.isArray(realSeats) &&
+    disguise.seatId !== (initialContext.actionNode?.seatId ?? -1);
+  if (disguiseApplies && realSeats) {
+    const d = disguise!;
+    ctx = {
+      ...ctx,
+      snapshot: {
+        ...ctx.snapshot,
+        seats: realSeats.map((s: any) =>
+          s?.id !== d.seatId
+            ? s
+            : {
+                ...s,
+                role: s.role
+                  ? {
+                      ...s.role,
+                      ...(d.asRoleId ? { id: d.asRoleId } : {}),
+                      ...(d.asAlignment
+                        ? {
+                            type:
+                              d.asAlignment === "evil" ? "minion" : "townsfolk",
+                          }
+                        : {}),
+                    }
+                  : s.role,
+                charadeRole: s.charadeRole,
+              }
+        ),
+      },
+    };
+  }
+
   ctx = await runMiddlewarePipeline(enhancedCalculate, ctx);
+
+  // 恢复真实座位视图（stateUpdate / postProcess 必须写真实状态）
+  if (disguiseApplies) {
+    ctx = { ...ctx, snapshot: { ...ctx.snapshot, seats: realSeats } };
+  }
+
   if (ctx.aborted) return ctx;
 
   // 全局规则：after_calculate（如酿酒师信息替换）

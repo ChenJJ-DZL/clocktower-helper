@@ -19,6 +19,7 @@
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import { isSeatEvil } from "../../utils/seatAlignment";
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
@@ -36,6 +37,13 @@ import {
  * 醉酒/中毒/涡流：从「非邪恶的存活玩家」中随机挑一名作为假目标。
  * 极端全邪恶情况下退回指向自己。
  *
+ * ⚠️ 排除判据必须是 `isSeatEvil` **本体**（2026-10-20 修复）：
+ *   旧实现只排除传入的 `aliveEvils`，而调用方的 aliveEvils 带
+ *   `!knownTargets.includes` 过滤 —— 于是「已告知过的邪恶」既不在
+ *   aliveEvils 里、又活着 ⇒ 回流进假目标池 ⇒ 假信息「X号是邪恶的」
+ *   指向真邪恶 = **翻真**（模拟器实测 + bounty_hunter_vortox_truth_leak
+ *   实验 E1 复现）。假信息的语义是「必须指善良」，与是否已告知无关。
+ *
  * @param rng 确定性随机源（默认 Math.random，管线内传入按夜次播种的序列）
  */
 export function pickFakeBountyTargetId(
@@ -48,6 +56,7 @@ export function pickFakeBountyTargetId(
     (s: any) =>
       !s.isDead &&
       s.id !== selfSeatId &&
+      !isSeatEvil(s) &&
       !aliveEvils.some((e: any) => e.id === s.id)
   );
   if (nonEvilAlive.length === 0) {
@@ -142,8 +151,33 @@ const calculateResult = async (
     )
   );
 
+  // 涡流判定统一走 SST（utils/vortoxWorld）——禁内联 role?.id==="vortox"
+  // （三份各写各的实现漏存活检查的教训见该模块头注释）。
+  const hasVortox = isVortoxWorldActive(ctx.snapshot.seats as any);
+  // 🎪 骗人精（Fibbin）：官方「一名善良玩家可能得知"有问题"的信息」——
+  //   打了 fibbin_misinfo 标记即按受干扰处理（与 utils/corruptedInfo 口径一致）。
+  const actorSeat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
+  const hasFibbin =
+    (actorSeat as any)?.statusEffects?.some?.(
+      (e: any) => e?.type === "fibbin_misinfo"
+    ) === true;
+  const isCorrupted = !isActive || hasVortox || hasFibbin;
+
   if (storytellerTarget !== undefined && storytellerTarget !== null) {
     targetId = Number(storytellerTarget);
+    // 受干扰时说书人指定值也不得指向真邪恶（否则假信息翻真）。
+    // 说书人若主动指定善良玩家作为假目标则尊重其裁量。
+    const specified = ctx.snapshot.seats.find((s: any) => s.id === targetId);
+    if (isCorrupted && specified && isSeatEvil(specified)) {
+      targetId = pickFakeBountyTargetId(
+        ctx.snapshot.seats,
+        ctx.actionNode.seatId,
+        [],
+        rng
+      );
+    }
   } else {
     // 排除：自己 + 已告知 + （默认）已死亡
     const aliveEvils = ctx.snapshot.seats.filter(
@@ -153,18 +187,6 @@ const calculateResult = async (
         !knownTargets.includes(s.id) &&
         isSeatEvil(s)
     );
-
-    const hasVortox =
-      Boolean(
-        ctx.snapshot.globalEffects?.vortoxWorld ??
-          (ctx.snapshot as any).vortoxWorld ??
-          (ctx.snapshot as any).isVortoxWorld
-      ) ||
-      ctx.snapshot.seats.some(
-        (s: any) => s.role?.id === "vortox" && !s.isDead
-      );
-
-    const isCorrupted = !isActive || hasVortox;
 
     if (isCorrupted) {
       // 醉酒/中毒/涡流：必须返回虚假目标（绝对不能指向邪恶玩家）
@@ -198,7 +220,16 @@ const calculateResult = async (
         evilFound: targetId !== null,
         isRotationTrigger: (ctx.meta as any).isRotationTrigger === true,
       },
-      isCorrupted: !isActive,
+      // ⚠️ 2026-10-20 修复：旧实现只写 `isCorrupted: !isActive`，漏了涡流分量
+      //   且不写 hasVortox ⇒ UI 脱敏层拿不到干扰信号（实验 E2 复现）。
+      //   两条标记都必须随涡流置真。
+      hasVortox,
+      isCorrupted,
+      // 🎭 引擎已自掩码：受干扰时产出的目标本身就是同形假值
+      //   （「X号玩家是邪恶的」指向的是**善良**玩家）。
+      //   UI 脱敏层据此跳过二次替换 —— 旧缺陷正是把这枚假目标当真值
+      //   再随机一次，翻到真邪恶 = 假信息变真信息（实验 E3 复现的事故链）。
+      playerInfoAlreadyMasked: isCorrupted,
     },
   };
 };

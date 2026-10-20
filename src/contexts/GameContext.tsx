@@ -383,6 +383,22 @@ export interface GameState {
     revolutionaryPair: { a: number; b: number } | null;
     /** ✊ 革命者：每局限一次「其中一人被当作其他角色/阵营」是否已用 */
     revolutionaryDisguiseUsed: boolean;
+    /** ✊ 革命者：「被当作其他」的具体内容（2026-10-20 补交互：必须指明**哪一名**玩家被当作什么） */
+    revolutionaryDisguise: {
+      /** 被当作其他的那名玩家（revolutionaryPair 中的一人） */
+      seatId: number;
+      /** 被当作的角色 id（null = 不改角色） */
+      asRoleId: string | null;
+      /** 被当作的阵营（null = 不改阵营） */
+      asAlignment: "good" | "evil" | null;
+    } | null;
+    /** 🎻 小提琴手：最终表决的一对玩家 + 结果 */
+    fiddlerPair: { a: number; b: number } | null;
+    fiddlerWinner: "good" | "evil" | null;
+    fiddlerUsed: boolean;
+    /** 👑 公爵夫人：来访三人 + 当晚真实邪恶数 */
+    duchessVisitIds: number[];
+    duchessEvilCount: number | null;
     /** 🛡️ 哨兵：初始设置的外来者数量修正（-1 / 0 / +1） */
     sentinelOutsiderDelta: number;
     /** 🕊️ 圣洁之魂：邪恶玩家数已达「初始 + 1」上限（禁止再增邪恶） */
@@ -524,6 +540,8 @@ export type GameAction =
    *   撤销/读档等**意外**回滚，不是拦截官方规则）。
    */
   | { type: "FERRYMAN_LAST_DAY" }
+  | { type: "FABLED_SWAP_ROLE"; seatId: number; role: Role }
+  | { type: "FABLED_FIBBIN_MISINFO"; seatId: number }
   /**
    * 旅行者槽位离场（死亡/被流放）：把 `travelers[index]` 置 null。
    * 旅行者不占 seats ⇒ 其"死亡"的唯一表达就是槽位置空。
@@ -1023,6 +1041,46 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           x.isDead ? ({ ...x, hasGhostVote: true } as Seat) : x
         ),
         fabledState: { ...state.fabledState, ferrymanLastDayResolved: true },
+      };
+    }
+
+    case "FABLED_SWAP_ROLE": {
+      // 哨兵（Sentinel）官方："在初始设置时，可能会额外增加或减少一个外来者。"
+      // 真实效果：把指定座位的角色换成同剧本的另一角色（镇民↔外来者），内容换、id 保留。
+      const target = state.seats.find((x) => x.id === action.seatId);
+      if (!target || !action.role) return state;
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.id === action.seatId
+            ? ({
+                ...x,
+                role: action.role,
+                charadeRole: null,
+                displayRole: null,
+              } as Seat)
+            : x
+        ),
+      };
+    }
+
+    case "FABLED_FIBBIN_MISINFO": {
+      // 骗人精（Fibbin）官方："每局游戏限一次，一名善良玩家可能会得知'有问题'的信息。"
+      // 真实效果：给目标座位打 fibbin_misinfo 状态 ⇒ 其后续信息被假信息判据消费。
+      return {
+        ...state,
+        seats: state.seats.map((x) =>
+          x.id === action.seatId
+            ? ({
+                ...x,
+                statusEffects: [
+                  ...((x as any).statusEffects ?? []),
+                  { type: "fibbin_misinfo" },
+                ],
+              } as Seat)
+            : x
+        ),
+        fabledState: { ...state.fabledState, fibbinUsed: true, fibbinTargetId: action.seatId },
       };
     }
 
@@ -1614,6 +1672,12 @@ export function getInitialState(): GameState {
       spiritOfIvoryCapped: false,
       ferrymanLastDayResolved: false,
       toymakerAttackSkipped: false,
+      revolutionaryDisguise: null,
+      fiddlerPair: null,
+      fiddlerWinner: null,
+      fiddlerUsed: false,
+      duchessVisitIds: [],
+      duchessEvilCount: null,
     },
     travelerAlignments: {},
     beggarState: { tokens: 0, donations: [] },
@@ -1731,6 +1795,15 @@ export const gameActions = {
   ): GameAction => ({ type: "SET_FABLED_STATE", updates }),
   /** 🚣 摆渡人：最后一天，所有已死亡玩家重新获得投票标记 */
   ferrymanLastDay: (): GameAction => ({ type: "FERRYMAN_LAST_DAY" }),
+  fabledSwapRole: (seatId: number, role: Role): GameAction => ({
+    type: "FABLED_SWAP_ROLE",
+    seatId,
+    role,
+  }),
+  fabledFibbinMisinfo: (seatId: number): GameAction => ({
+    type: "FABLED_FIBBIN_MISINFO",
+    seatId,
+  }),
   /** 🪑 女舍监：交换两名玩家的座位（每白天至多三对） */
   matronSwap: (a: number, b: number): GameAction => ({
     type: "MATRON_SWAP",

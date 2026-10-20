@@ -10,7 +10,7 @@
  *   · 酒鬼 → `DrunkCharadeSelectModal`（选伪装镇民）
  *   · 酒鬼/提线木偶 → `CharadeConfigModal`（伪装配置）
  *   · 疯子 → `LunaticRpsModal`（猜拳）
- *   · 镇长 → `MayorRedirectModal`（替死转嫁）+ `MayorThreeAliveModal`（3人和平胜）
+ *   · 镇长 → `MayorThreeAliveModal`（3人和平胜；替死转嫁由 imp 管道 resolveMayorDemonKill 处理）
  *   · 小恶魔/涡流 → `KillConfirmModal`（击杀确认）
  *   · 僧侣/士兵 → `AttackBlockedModal`（攻击被挡）
  *
@@ -25,7 +25,6 @@ import { JugglerJudgeModal } from "../JugglerJudgeModal";
 import { DrunkCharadeSelectModal } from "../DrunkCharadeSelectModal";
 import { CharadeConfigModal } from "../CharadeConfigModal";
 import { LunaticRpsModal } from "../LunaticRpsModal";
-import { MayorRedirectModal } from "../MayorRedirectModal";
 import { MayorThreeAliveModal } from "../MayorThreeAliveModal";
 import { KillConfirmModal } from "../KillConfirmModal";
 import { AttackBlockedModal } from "../AttackBlockedModal";
@@ -239,43 +238,6 @@ describe("⑤ 猜拳弹窗（实为精神病患者 Psychopath，非罂粟花开�
     expect(t).toContain("石头剪刀布");
     expect(t).toContain("精神病患者");
     expect(t).toContain("2号");
-  });
-});
-
-// ══════════════════════════════════════════════════════════════
-describe("⑥ 镇长替死 MayorRedirectModal", () => {
-  it("isOpen=false 不渲染", () => {
-    render(
-      <MayorRedirectModal
-        isOpen={false}
-        targetId={1}
-        demonName="涡流"
-        seats={seats7()}
-        selectedTarget={null}
-        onSelectTarget={() => {}}
-        onConfirmNoRedirect={() => {}}
-        onConfirmRedirect={() => {}}
-      />
-    );
-    expect(allText()).not.toContain("镇长");
-  });
-
-  it("isOpen=true 渲染替死目标选择", () => {
-    render(
-      <MayorRedirectModal
-        isOpen
-        targetId={1}
-        demonName="涡流"
-        seats={seats7()}
-        selectedTarget={null}
-        onSelectTarget={() => {}}
-        onConfirmNoRedirect={() => {}}
-        onConfirmRedirect={() => {}}
-      />
-    );
-    const t = allText();
-    expect(t).toContain("镇长");
-    expect(t).toContain("涡流");
   });
 });
 

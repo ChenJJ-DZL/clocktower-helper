@@ -34,6 +34,7 @@ import { MutantMadnessModal } from "../modals/MutantMadnessModal";
 import { MayorThreeAliveModal } from "../modals/MayorThreeAliveModal";
 import { ModalWrapper } from "../modals/ModalWrapper";
 import { MoonchildKillModal } from "../modals/MoonchildKillModal";
+import { HadesiaKillConfirmModal } from "../modals/HadesiaKillConfirmModal";
 import { NightActionConfirmModal } from "../modals/NightActionConfirmModal";
 import { NightDeathReportModal } from "../modals/NightDeathReportModal";
 import { NightOrderPreviewModal } from "../modals/NightOrderPreviewModal";
@@ -67,6 +68,7 @@ import { VoteInputModalContent } from "../modals/VoteInputModal";
 import { listAliveTravelerSlots } from "../../utils/travelerHooks";
 import { markVoteSettled } from "../../utils/nominationEligibility";
 import { GameOverOverlay } from "./GameOverOverlay";
+import { showAlert } from "../../utils/nativeDialogShim";
 
 export function GameModals() {
   const actions = useGameActions();
@@ -92,6 +94,7 @@ export function GameModals() {
     nightCount,
     isVortoxWorld,
     deadThisNight,
+    hadesiaChoices,
   } = gameState;
 
   const { nightInfo } = actions;
@@ -214,6 +217,8 @@ export function GameModals() {
     currentModal?.type === "JUGGLER_JUDGE" ? currentModal.data : null;
   const nightDeathReportModal =
     currentModal?.type === "NIGHT_DEATH_REPORT" ? currentModal.data : null;
+  const hadesiaKillModal =
+    currentModal?.type === "HADESIA_KILL_CONFIRM" ? currentModal.data : null;
   const nightActionConfirmModal =
     currentModal?.type === "NIGHT_ACTION_CONFIRM" ? currentModal.data : null;
   // 🎙️ 说书人「技能修正页」：结果页确认后弹出，只说书人可见
@@ -507,6 +512,18 @@ export function GameModals() {
         }}
       />
 
+      {hadesiaKillModal && (
+        <HadesiaKillConfirmModal
+          isOpen={true}
+          targetIds={hadesiaKillModal.targetIds}
+          seats={seats}
+          choices={hadesiaChoices ?? {}}
+          onSetChoice={actions.setHadesiaChoice}
+          onConfirm={actions.confirmHadesia}
+          onCancel={actions.cancelHadesia}
+        />
+      )}
+
       <MoonchildKillModal
         isOpen={currentModal?.type === "MOONCHILD_KILL"}
         sourceId={
@@ -761,14 +778,14 @@ export function GameModals() {
           const rangerModalData =
             currentModal?.type === "RANGER" ? currentModal.data : null;
           if (!rangerModalData?.roleId) {
-            alert("必须选择一个未在场的镇民角色");
+            showAlert("必须选择一个未在场的镇民角色");
             return;
           }
           const newRole = roles.find(
             (r) => r.id === rangerModalData?.roleId && r.type === "townsfolk"
           );
           if (!newRole) {
-            alert("角色无效，请重新选择");
+            showAlert("角色无效，请重新选择");
             return;
           }
           const targetId = rangerModalData.targetId;

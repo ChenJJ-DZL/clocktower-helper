@@ -7,6 +7,7 @@
  * allowSelf: false — 不能追捕自己
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -27,13 +28,40 @@ const calculate = async (
   if (targetId == null)
     return { ...ctx, aborted: true, abortReason: "未选择目标" };
   const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
+  const trueRoleId = target?.roleId ?? target?.role?.id ?? "unknown";
+
+  /**
+   * ⭐ 2026-10-20 修复（用户实测：涡流局信息并非 100% 错）：
+   * 猎人的追捕结果会告知目标角色（信息类能力）⇒ 受干扰时**必须给假角色**。
+   * 旧实现无论干扰与否都直接回显真实 targetRole ⇒ 涡流下真值直漏。
+   */
+  const hasVortox =
+    isVortoxWorldActive(ctx.snapshot.seats as any) ||
+    Boolean((ctx.snapshot as any).isVortoxWorld);
+  const isCorrupted =
+    hasVortox ||
+    ctx.meta?.isAbilityActive === false ||
+    ctx.meta?.abilityEffective === false;
+
+  let targetRole = trueRoleId;
+  if (isCorrupted) {
+    // 从在场角色里挑一个 ≠ 真角色的（保持确定性：按 id 排序后取第一个可选）
+    const pool = (ctx.snapshot.seats as any[])
+      .map((s) => s.role?.id ?? s.roleId)
+      .filter((id): id is string => !!id && id !== trueRoleId)
+      .sort();
+    if (pool.length > 0) targetRole = pool[0];
+  }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
+      isCorrupted,
+      hasVortox,
       abilityResult: {
         targetId,
-        targetRole: target?.roleId ?? target?.role?.id ?? "unknown",
+        targetRole,
         huntsmanId: ctx.actionNode.seatId,
       },
     },

@@ -12,7 +12,7 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
+export const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
     (s: any) => s.id === ctx.actionNode.seatId
   );
@@ -20,7 +20,7 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   return ctx;
 };
 
-const calculate = async (
+export const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const targetIds =
@@ -41,7 +41,7 @@ const calculate = async (
   };
 };
 
-const stateUpdate = async (
+export const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
@@ -60,7 +60,7 @@ const stateUpdate = async (
   };
 };
 
-const postProcess = async (
+export const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
@@ -74,6 +74,16 @@ const postProcess = async (
       ...ctx.meta,
       abilityLog: log,
       prompt: `唤醒${ctx.actionNode.seatId + 1}号【哈迪哈】，选择3名玩家。`,
+      // 拂晓生/死交互：3 目标齐时挂 HADESIA_KILL_CONFIRM 弹窗
+      // （GameModals 挂载，confirmHadesia 按官方规则结算：都活→全灭，否则选死者亡）
+      ...(r?.targetIds?.length === 3
+        ? {
+            modal: {
+              type: "HADESIA_KILL_CONFIRM",
+              data: { targetIds: r.targetIds },
+            },
+          }
+        : {}),
     },
   };
 };
