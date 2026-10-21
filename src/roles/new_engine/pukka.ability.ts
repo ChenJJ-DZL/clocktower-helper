@@ -117,14 +117,43 @@ const updatePoisonState = async (
             if (typeof d === "string") return !d.includes("普卡中毒");
             return d?.source !== "pukka";
           }),
+          // 同步清除**普卡自己**下的中毒效果（其它来源的中毒不受影响）
+          statusEffects: (seat.statusEffects ?? []).filter(
+            (e: any) => e?.source !== "pukka"
+          ),
           isPoisoned: false,
         };
       }
       // 新目标：下毒
       if (seat.id === targetId && isAbilityEffective) {
+        /**
+         * 🔧 2026-10-24 修复（普卡下毒不落库 `isPoisoned`）：
+         *   本能力原先**只**写 legacy 布尔 `isPoisoned: true`，
+         *   而 `useNightActionHandler::syncStatusEffectsToSeat` 是按
+         *   **statusEffects** 反推 legacy 布尔字段的
+         *   （`isPoisoned = statusEffects.some(e => e.type === "poisoned")`），
+         *   且它在合并顺序上**排在管道快照之后** ⇒ 把能力刚写下的
+         *   `isPoisoned: true` **覆盖回 false**
+         *   ⇒ 快照里查不到中毒（说书人界面 / 中毒信息造假都读不到）。
+         *   ⇒ 与其它中毒能力（亡骨魔 / 诺-达 / 吹笛人）**同源**：
+         *     同时写入带 source 的 statusEffects。
+         */
+        const effects = [...(seat.statusEffects ?? [])];
+        if (
+          !effects.some(
+            (e: any) => e.type === "poisoned" && e.source === "pukka"
+          )
+        ) {
+          effects.push({
+            type: "poisoned",
+            source: "pukka",
+            sourceSeatId: (context.actionNode as any)?.seatId ?? null,
+          });
+        }
         return {
           ...seat,
           isPoisoned: true,
+          statusEffects: effects,
           statusDetails: [
             ...(seat.statusDetails || []).filter((d: any) => {
               if (typeof d === "string") return !d.includes("普卡中毒");

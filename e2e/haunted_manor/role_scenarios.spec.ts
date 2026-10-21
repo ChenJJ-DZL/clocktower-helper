@@ -150,22 +150,38 @@ test.describe("凶宅魅影 · G1 S18 首夜", () => {
     expect.soft(balloonSeat, "气球驾驶员应在场").toBeGreaterThanOrEqual(0);
 
     /**
-     * 🔴 2026-10-22 实测：哲学家的首夜弹窗只有
-     *   「🌙15号-哲学家-行动确认 —— 执行行动"哲人之力"」，**没有任何「选择一个善良角色」的界面**。
-     * 官方【哲学家】：「每局游戏限一次，在夜晚时，你可以选择一个善良角色：你获得该角色的能力。
-     *   如果这个角色在场，他醉酒。」
-     * ⇒ 「选角色」这一步在 UI 层缺失，哲学家拿不到任何能力。
+     * ✅ 2026-10-23 修复后的回归断言（原登记缺口已闭合）。
+     *
+     * 官方【哲学家】：「每局游戏限一次，在夜晚时，**你可以选择一个善良角色**：
+     *   你获得该角色的能力。如果这个角色在场，他醉酒。」
+     *
+     * 修前：`targetConfig = {min:0,max:0}` ⇒ 掉进 `useNightActionHandler` 的
+     *   「`maxTargets === 0` 无目标信息角色」简易确认窗 ⇒ 说书人只看到「执行」
+     *   ⇒ `storytellerInput.chosenRoleId` 恒 null ⇒ 能力完全不生效。
+     * 修后：与 `ojo`/`brewer` 一起排除出该分支，走 `NIGHT_ACTION_CONFIRM`
+     *   的角色选择通路（`requiresRoleSelection` 白名单本就有 philosopher）。
      */
     const philSteps = stepsOf(n1, "philosopher");
     expect.soft(philSteps.length, "哲学家首夜应被唤醒").toBeGreaterThan(0);
+
+    const philDialog = philSteps.map((x) => x.dialog).join("|");
+    // ✅ 核心：弹窗必须提供角色选择（修前只有「执行」）
     expect
       .soft(
-        philSteps.some((x) => /请选择|选择.+角色|角色选择/.test(x.dialog) && !/行动确认/.test(x.dialog)),
-        "官方：哲学家必须能「选择一个善良角色」并据其获得能力（实测无角色选择界面）"
+        /请选择目标角色|请选择需要.*的角色/.test(philDialog),
+        `官方：哲学家必须能「选择一个善良角色」⇒ 弹窗要有角色选择（实测：${philDialog.slice(0, 140)}）`
       )
       .toBe(true);
+    // ✅ 候选范围只含善良角色（镇民/外来者），不得出现爪牙/恶魔
+    if (/请选择目标角色/.test(philDialog)) {
+      expect
+        .soft(
+          !/爪牙\(/.test(philDialog) && !/恶魔\(/.test(philDialog),
+          `哲学家的候选只应含镇民/外来者（实测：${philDialog.slice(-160)}）`
+        )
+        .toBe(true);
+    }
     expect.soft(philSeat, "哲学家应在场").toBeGreaterThanOrEqual(0);
-    test.fail(true, "哲学家首夜只有「哲人之力」确认，缺「选择一个善良角色」的交互 ⇒ 拿不到能力");
 
     // ── 侍臣：官方「每局一次，选一名角色：他醉酒 3 天 3 夜」──
     const cStep = stepsOf(n1, "courtier").find((x) => /朝臣醉酒|醉酒/.test(x.dialog));
@@ -275,21 +291,33 @@ test.describe("凶宅魅影 · G3 S20 普卡局", () => {
     expect(n1.status, "首夜应到白天").toBe("day");
 
     /**
-     * 🔴 2026-10-22 实测：**普卡首夜不下毒**（S20 与黯月初升 S04 都如此）。
-     *   注册表配了 `firstNightPriority: 45`，但首夜步骤里没有任何「普卡毒杀」；
-     *   第 2 夜才出现「普卡对1号玩家下毒，该玩家将于明晚毒发死亡」。
-     * 官方【普卡】：「每个夜晚，选择一名玩家：他中毒。上一个中毒的玩家会死亡并恢复健康。」
+     * ✅ 2026-10-24 修复后的回归用例（原登记缺口已闭合）。
+     *
+     * 官方【普卡】：「**每个夜晚**，选择一名玩家：他中毒。上一个中毒的玩家会死亡并恢复健康。」
+     *   —— **无星号** ⇒ 首夜必须下毒（角色简介原文：「**不同于其他恶魔，普卡在首个夜晚就会行动**」）。
+     *
+     * 🔴 修前实测：**普卡首夜不下毒**（S20 与黯月初升 S04 都如此），第 2 夜才出现
+     *   「普卡对1号玩家下毒，该玩家将于明晚毒发死亡」
      *   ⇒ 首夜缺一次下毒，会让「第 2 夜毒发」整体后移一晚。
+     *   真根因：`utils/nightInfoAdapter.ts` 的「首夜恶魔信息保障」分支把首夜恶魔座位
+     *   **一律**转成 `demon_info`，吞掉了普卡自己的首夜能力节点。
      */
     const p1Steps = resultSteps(n1, "pukka", /毒/);
     expect.soft(p1Steps.length, "官方：普卡「每个夜晚」⇒ 首夜必须下毒（实测无）").toBeGreaterThan(0);
+    expect
+      .soft(p1Steps[0]?.dialog ?? "", "普卡首夜结果必须写明「该玩家将于明晚毒发死亡」")
+      .toContain("明晚");
+
+    // 首夜下毒必须落库 isPoisoned=true（1 人）
+    const afterN1 = await snapNow(page);
+    const poisoned = (afterN1?.seats ?? []).filter((s: any) => s.isPoisoned === true);
+    expect.soft(poisoned.length, "普卡首夜必须落库 isPoisoned=true（1 人）").toBe(1);
 
     expect((await driveDusk(page, {})).status, "第 1 昼应能直接入夜").toBe("night");
     const n2 = await driveNight(page, []);
     const pStep = resultSteps(n2, "pukka", /毒/)[0];
     expect.soft(pStep, "普卡第 2 夜必须下毒").toBeTruthy();
     expect.soft(pStep?.dialog ?? "", "结果必须写明「该玩家将于明晚毒发死亡」").toContain("明晚");
-    test.fail(true, "普卡首夜不下毒（仅第 2 夜起才下毒）⇒ 毒发整体后移一晚");
 
     const after = await snapNow(page);
 

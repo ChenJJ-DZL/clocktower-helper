@@ -156,19 +156,25 @@ describe("L5 · 祖母(grandmother)", () => {
     ).toBe(true);
   });
 
-  it("② 负向对照：未配置孙子（grandchildId=null）⇒ 必须给空信息，不得瞎报", async () => {
+  /**
+   * 🔴 2026-10-23 判据更新（原断言锁的是缺陷行为）：
+   *   官方【祖母】：「在你的首个夜晚，你会得知**一名善良玩家**和他的角色。」
+   *   旧实现从 `seat.grandchildId` 读，而**全仓库没有写入点** ⇒ 恒 -1 ⇒ 永远空信息。
+   *   现在：说书人未指定时由引擎**确定性**挑一名「存活且善良、非自己」的玩家。
+   *   ⇒ 本用例改为「未配置时也必须给出一名**合法**孙子并产出展示信息」。
+   */
+  it("② 未配置孙子（grandchildId=null）⇒ 引擎自动分配一名善良玩家并产出信息", async () => {
     const seats = board(layout("grandmother"));
     (seats[0] as any).grandchildId = null;
     const res = await runRole(grandmotherAbility, seats, 0, {
       night: 1,
       phase: "firstNight",
     });
-    expect(res.meta.abilityResult.grandchildId, "❌ 未配置孙子时应为 -1").toBe(-1);
-    expect(res.meta.abilityResult.grandchildRoleName, "❌ 未配置孙子时角色名应为空").toBe("");
-    expect(
-      res.meta.displayInfo,
-      "❌ 未配置孙子时不得产出展示信息（否则说书人会念出空孙子）"
-    ).toBeUndefined();
+    const id = res.meta.abilityResult.grandchildId as number;
+    expect(id, "❌ 未配置时也必须给出一名孙子（官方：你会得知一名善良玩家）").toBeGreaterThanOrEqual(0);
+    expect(id, "❌ 孙子不得是祖母自己").not.toBe(0);
+    expect(res.meta.abilityResult.grandchildRoleName, "❌ 必须带上孙子的角色名").toBeTruthy();
+    expect(res.meta.displayInfo, "❌ 必须产出展示信息（说书人要念给玩家）").toBeTruthy();
   });
 
   it("③ 醉酒：必须给 100% 错误信息（假身份=镇民），且不得等于真值", async () => {

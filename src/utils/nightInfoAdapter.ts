@@ -202,6 +202,28 @@ export function getMigratedRoleCount(): number {
 }
 
 /**
+ * 该角色是否在**首夜**就有自己的夜间行动。
+ *
+ * 🔒 唯一事实来源：新引擎能力注册表 `unifiedRoleDefinition.getAllAbilities()`
+ *    的 `firstNightPriority > 0`（与队列生成器 `generateNightOrderFromParser` 同源）。
+ *
+ * 📌 用途：区分「首夜只有恶魔互认的恶魔」（小恶魔/军团/僵怖/沙巴洛斯/珀…）
+ *    与「首夜**另有**自己行动的恶魔」（普卡/卡扎力/lléech）。
+ */
+export function hasOwnFirstNightAbility(roleId: string | undefined | null): boolean {
+  if (!roleId) return false;
+  try {
+    const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
+    const ability = abilities.find((a) => a?.roleId === roleId);
+    const fn = ability?.firstNightPriority;
+    return fn !== null && fn !== undefined && fn > 0;
+  } catch {
+    // 注册表未初始化时静默降级：视为无首夜行动（保持旧行为）
+    return false;
+  }
+}
+
+/**
  * 通过新引擎计算夜间信息（同步版本）
  * 如果新引擎没有该角色的能力，立即回退到旧引擎
  *
@@ -269,7 +291,19 @@ export function calculateNightInfoViaNewEngine(
   const roleId = systemStepRoleId || targetSeat.role.id;
 
   // 🛡️ 首夜恶魔信息保障：官方规则中恶魔（如小恶魔、军团等）首夜不执行夜杀，其首夜行动均为恶魔伪装与互认信息
-  if (gamePhase === "firstNight" && targetSeat.role.type === "demon") {
+  //
+  // ⚠️ 2026-10-24 修复（普卡首夜不下毒）：
+  //   「首夜恶魔不杀人」只针对**杀人的那一手**，**不针对恶魔的所有首夜行动**。
+  //   官方【普卡】明写「**不同于其他恶魔，普卡在首个夜晚就会行动**」（「每个夜晚」无星号）；
+  //   【卡扎力】首夜可「将爪牙变为不在场的恶魔」、【lléech】首夜可「选择一名玩家成为宿主」
+  //   —— 这三个恶魔在首夜**有自己的能力节点**（能力注册表 `firstNightPriority > 0`）。
+  //   ⇒ 原先在此处**一律**转成 demon_info，会把它们的**首夜能力节点整个吞掉**：
+  //     普卡 ⇒ 首夜不下毒 ⇒ 中毒链整体后移一晚（毒发无人接续）。
+  if (
+    gamePhase === "firstNight" &&
+    targetSeat.role.type === "demon" &&
+    !hasOwnFirstNightAbility(targetSeat.role.id)
+  ) {
     return generateSystemInfoViaAdapter(
       "demon_info",
       seats,

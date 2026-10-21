@@ -18,6 +18,7 @@ import {
   type DeterministicRandom,
   nightInfoSeed,
 } from "../core/deterministicRandom";
+import { isSeatGood } from "../../utils/seatAlignment";
 
 // 前置校验：检查是否存活、是否醉酒/中毒
 const preCheckAliveAndStatus = async (
@@ -94,8 +95,28 @@ const calculateResult = async (
       grandchildRoleName: "镇民",
     };
   } else {
-    // 从selfSeat中获取预先设置的孙子ID
-    const grandchildId = (selfSeat as any).grandchildId;
+    /**
+     * 🔴 2026-10-23 修复（真缺陷，黯月初升 S03/S05/S06 三场一致）：
+     *   `selfSeat.grandchildId` **全仓库没有任何写入点** ⇒ 恒为 undefined
+     *   ⇒ `result.grandchildId = -1` ⇒ `postProcess` 不产生 `displayInfo`
+     *   ⇒ 祖母**首夜只有「行动确认」，永远拿不到「孙子 + 他的角色」**。
+     *
+     * 官方【祖母】：「在你的首个夜晚，你会得知一名善良玩家和他的角色。」
+     *   由说书人指定（本引擎里说书人没有该入口时）⇒ 引擎应**确定性地**
+     *   挑一名「存活且善良、非自己」的玩家作为孙子，并在 `stateUpdate` 落库，
+     *   供「若恶魔杀死他，你也会死」的后续判定使用。
+     */
+    let grandchildId = (selfSeat as any).grandchildId;
+
+    if (grandchildId === undefined || grandchildId === null) {
+      const candidates = snapshot.seats.filter(
+        (s: any) => s.id !== actionNode.seatId && !s.isDead && isSeatGood(s)
+      );
+      grandchildId =
+        candidates.length > 0
+          ? candidates[Math.floor(rng() * candidates.length)].id
+          : -1;
+    }
 
     if (grandchildId === undefined || grandchildId === null) {
       result = {
@@ -142,7 +163,34 @@ export const grandmotherAbility = createRoleAbility({
   },
   preCheck: [preCheckAliveAndStatus],
   calculate: [calculateResult],
-  stateUpdate: [],
+  /**
+   * 🔴 2026-10-23：`stateUpdate` 原本是**空数组** ⇒ 算出来的孙子既没写回祖母座位
+   *   （`grandchildId`），也没在孙子座位上留痕（`isGrandchild`）
+   *   ⇒ 「如果恶魔杀死了他，你也会死」这条规则也拿不到判据。
+   *   现在把两处都写回（座位会同步并进持久化）。
+   *   ⚠️ 醉/毒时不写（那是假信息，不能污染真值）。
+   */
+  stateUpdate: [
+    async (context) => {
+      const r = context.meta.abilityResult as any;
+      const active = context.meta.isAbilityActive ?? true;
+      if (!active || !r || r.grandchildId == null || r.grandchildId < 0) {
+        return context;
+      }
+      const selfId = context.actionNode.seatId;
+      return {
+        ...context,
+        snapshot: {
+          ...context.snapshot,
+          seats: context.snapshot.seats.map((s: any) => {
+            if (s.id === selfId) return { ...s, grandchildId: r.grandchildId };
+            if (s.id === r.grandchildId) return { ...s, isGrandchild: true };
+            return s;
+          }),
+        },
+      };
+    },
+  ],
   postProcess: [
     async (context) => {
       const { meta, actionNode } = context;

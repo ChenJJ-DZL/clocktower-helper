@@ -945,13 +945,29 @@ describe("祖母：报的「孙子」必须是自己被指定的那名玩家", (
     expect(info.grandchildRoleId).toBe("soldier");
   });
 
-  it("✅ 未指定孙子 ⇒ 必须明确返回 -1（不得瞎报）", async () => {
+  /**
+   * 🔴 2026-10-23 判据更新（原断言「未指定 ⇒ -1」其实锁的是**缺陷行为**）：
+   *   官方【祖母】：「在你的首个夜晚，你会得知**一名善良玩家**和他的角色。」
+   *   ⇒ 说书人未指定（引擎里 `grandchildId` 没有写入点）时，引擎必须
+   *     **自动挑一名存活且善良、非自己**的玩家，而不是报 -1（那等于什么都不给）。
+   *   「不得瞎报」的含义从此是：**报出来的必须是真实存在且善良的座位**。
+   */
+  it("✅ 未指定孙子 ⇒ 必须自动挑一名存活的善良玩家（不得 -1，不得是自己/邪恶）", async () => {
     const seats = withSelf("grandmother");
     const res = await runRole(BY_ROLE.grandmother, seats, 0, {
       night: 1,
       phase: "firstNight",
     });
-    expect(res.meta.abilityResult.grandchildId).toBe(-1);
+    const id = res.meta.abilityResult.grandchildId as number;
+    expect(id, "❌ 未指定时也必须给出一名孙子（官方：你会得知一名善良玩家）").toBeGreaterThanOrEqual(0);
+    expect(id, "❌ 孙子不得是祖母自己").not.toBe(0);
+    const seat = seats.find((s: any) => s.id === id);
+    expect(seat, "❌ 报出的孙子必须是场上真实存在的座位").toBeTruthy();
+    const roleType = seat?.role?.type;
+    expect(
+      roleType === "townsfolk" || roleType === "outsider",
+      `❌ 孙子必须是善良玩家，实测类型=${roleType}`
+    ).toBe(true);
   });
 
   it("🔴 中毒 ⇒ 报出的孙子不得是真实指定者", async () => {

@@ -229,7 +229,26 @@ test.describe("梦殒春宵 · G2 S08 亡骨魔局", () => {
     expect(cmStep, "钟表匠必须被唤醒").toBeTruthy();
     const said = Number((cmStep!.dialog.match(/最近距离为(\d+)/) ?? [])[1] ?? NaN);
     const expected = computeClockmaker(after);
-    expect.soft(said, `钟表匠距离应等于复算值 ${expected}（实测 ${said}）`).toBe(expected);
+    /**
+     * ⚠️ 2026-10-23：判据必须按**钟表匠自身是否被干扰**分叉。
+     *   本轮修好哲学家后，驱动器会替说书人给哲学家选一个角色（默认第一个胶囊），
+     *   实测 S08 选中的是「钟表匠」——而官方【哲学家】「**如果这个角色在场，他醉酒**」
+     *   ⇒ 钟表匠醉酒 ⇒ 官方要求「醉酒/中毒时信息必须为假」
+     *   ⇒ 它报 6（≠ 真值 2）是**正确行为**，不能按「必须等于真值」判。
+     *   （这条连锁反应本身就是「哲学家真的生效了」的旁证。）
+     */
+    const cmSeatObj = (after?.seats ?? []).find((x: any) => x.id === cmSeat);
+    const cmImpaired = cmSeatObj?.isDrunk === true || cmSeatObj?.isPoisoned === true;
+    if (cmImpaired) {
+      expect
+        .soft(
+          said,
+          `钟表匠被干扰（醉=${cmSeatObj?.isDrunk}/毒=${cmSeatObj?.isPoisoned}）⇒ 必须报假值（真值 ${expected}，实测 ${said}）`
+        )
+        .not.toBe(expected);
+    } else {
+      expect.soft(said, `钟表匠距离应等于复算值 ${expected}（实测 ${said}）`).toBe(expected);
+    }
     expect.soft(cmSeat, "钟表匠应在场").toBeGreaterThanOrEqual(0);
 
     // ── 女裁缝：「每局一次，夜晚选两名玩家，得知他们是否同阵营」⇒ 首夜应被唤醒 ──

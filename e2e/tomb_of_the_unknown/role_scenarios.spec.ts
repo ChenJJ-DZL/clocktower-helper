@@ -4,6 +4,7 @@ import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
 import {
   isMinionOrDemonRole,
+  isTownsfolkOrOutsiderRole,
   isTownsfolkRole,
 } from "../../src/utils/seatAlignment";
 import {
@@ -408,19 +409,20 @@ test.describe("无名之墓 · G4 S15 僵怖与水手", () => {
 test.describe("无名之墓 · G5 S15 农夫与畸形秀演员", () => {
   test.setTimeout(7 * 60_000);
 
-  test("镇民夜间死亡 ⇒ 农夫继承其能力（疑似缺陷，已登记）", async ({ page }) => {
+  test("农夫夜里死亡 ⇒ 一名存活的善良玩家变成农夫（官方原文方向）", async ({ page }) => {
     /**
-     * ⚠️ 实测未通过（**疑似产品缺陷，待确认**，不是「通过」）：
-     *   第 2 夜僵怖按计划杀死了「杂耍艺人」（镇民），但整份快照里
-     *   **没有任何座位**留下 `statusDetails` 含「成为新农夫」的痕迹，
-     *   也没有 `role.id` 从 farmer 变成被继承角色。
-     *   代码侧落点见 `src/roles/new_engine/farmer.ability.ts::stateUpdate`
-     *   （写 `statusDetails: […, "成为新农夫"]` + `_abilityResults.farmer`），
-     *   说明**死亡事件没有把能力转移派发给农夫**（或字段没落进快照）。
-     *   两种可能都要人看：① 农夫订阅未被死亡事件触发；② 落点字段未被快照收录。
-     *   登记 test.fail，修好后自动变红提醒转真断言。
+     * 🔴 2026-10-23 **判据纠错**（我上一轮把官方规则读反了）：
+     *   官方【农夫】：「**当你在夜晚死亡时**，一名存活的善良玩家会变成农夫。」
+     *   （英文：When you die at night, an alive good player becomes a Farmer.）
+     *
+     *   我上一版写的是「别的镇民死了 ⇒ 农夫继承其能力」，那是**反的**
+     *   ⇒ 断言必然恒假，被误登记成产品缺陷。实现侧
+     *   `farmer.ability::stateUpdate` 正是按官方方向写的：
+     *   把 `newFarmerId` 那个座位改成 `role.id = "farmer"` 并追加
+     *   `statusDetails: […, "成为新农夫"]`。
+     *
+     * 本用例：僵怖夜杀农夫 ⇒ 必须有一名**别的**存活善良玩家变成农夫。
      */
-    test.fail(true, "农夫未继承：快照无「成为新农夫」痕迹（疑似死亡事件未派发）");
     const { script, game } = loadScene("S15");
     const snap = await bootScene(page, {
       script,
@@ -429,41 +431,63 @@ test.describe("无名之墓 · G5 S15 农夫与畸形秀演员", () => {
       lineup: game.seats.map((s: any) => s.id),
     });
     const farmerSeat = seatByRole(snap, "farmer");
-    const zombuulSeat = seatByRole(snap, "zombuul");
-    // 选一名镇民作为僵怖的击杀目标（农夫继承的对象）
-    const townsfolkSeat = (snap.seats as any[]).find(
-      (s) => isTownsfolkRole(s.role) && s.id !== farmerSeat && s.id !== zombuulSeat
-    ).id as number;
 
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
     expect((await driveDusk(page, {})).status, "第 1 昼应能入夜").toBe("night");
 
     const n2 = await driveNight(page, [
-      { role: "zombuul", targets: [townsfolkSeat + 1], note: "杀镇民，供农夫继承" },
+      { role: "zombuul", targets: [farmerSeat + 1], note: "夜杀农夫，触发转移" },
     ]);
     expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
 
     const after = await snapNow(page);
-    const dead = after?.seats?.find((s: any) => s.id === townsfolkSeat);
-    expect.soft(dead?.isDead, "被选中的镇民应死亡").toBe(true);
+    const farmer = after?.seats?.find((s: any) => s.id === farmerSeat);
+    expect.soft(farmer?.isDead, "农夫应被夜杀").toBe(true);
 
-    // 农夫：官方「一名镇民死亡后，你获得其能力」
-    //   引擎的实现落点是 `statusDetails` 里的「成为新农夫」+ `_abilityResults.farmer`
-    //   （见 `src/roles/new_engine/farmer.ability.ts::stateUpdate`）
-    const details = (after?.seats ?? []).flatMap((s: any) =>
-      Array.isArray(s.statusDetails) ? s.statusDetails : []
+    // 官方：一名**存活的善良**玩家变成农夫 ⇒ 除原农夫外，恰好多一个 farmer
+    const newFarmers = (after?.seats ?? []).filter(
+      (s: any) => s.role?.id === "farmer" && s.id !== farmerSeat && s.isDead !== true
     );
     expect
-      .soft(
-        details.some((d: any) => typeof d === "string" && d.includes("成为新农夫")),
-        "镇民死亡后应留下「成为新农夫」的转移痕迹（不得纹丝不动）"
-      )
-      .toBe(true);
-  });
+      .soft(newFarmers.length, "官方：农夫夜死后应该有 1 名存活玩家变成农夫（实测 0 名）")
+      .toBe(1);
+    if (newFarmers.length === 1) {
+      const nf = newFarmers[0];
+      expect
+        .soft(
+          (nf.statusDetails ?? []).some(
+            (d: any) => typeof d === "string" && d.includes("成为新农夫")
+          ),
+          "新农夫应留下「成为新农夫」痕迹"
+        )
+        .toBe(true);
+      // 反证：新农夫必须是善良（官方：an alive **good** player）
+      expect
+        .soft(isTownsfolkOrOutsiderRole(nf.role), "新农夫原本身份应是善良（镇民/外来者）")
+        .toBe(true);
+    }
 
-  test("畸形秀演员门禁：进入黄昏前必须完成【疯狂仲裁】，且仲裁后仍能正常入夜", async ({
-    page,
-  }) => {
+    // 反证：不得把所有善良都变成农夫
+    const allFarmers = (after?.seats ?? []).filter((s: any) => s.role?.id === "farmer");
+    expect.soft(allFarmers.length, "只应新增 1 名农夫（不能全体转农夫）").toBe(2);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G5b · S15 畸形秀演员的【疯狂仲裁】门禁
+// ═══════════════════════════════════════════════════════════════════
+test.describe("无名之墓 · G5b 畸形秀演员门禁", () => {
+  test.setTimeout(5 * 60_000);
+
+  test("畸形秀演员在场 ⇒ 白天出现【疯狂仲裁】门禁，仲裁后能正常入夜", async ({ page }) => {
+    /**
+     * 官方【畸形秀演员】：「如果你在白天**公开宣称自己是畸形秀演员**，
+     *   你可能被处决，但不会被杀死。」
+     * 引擎的做法：白天给一个「疯狂仲裁」入口，说书人裁定他是否公开宣称
+     *   ⇒ 选「是，执行处决」会**立即终结白天**（isInstantNight）；
+     *   ⇒ 选「否，无事发生」则正常继续到黄昏/入夜。
+     * 本用例验「门禁存在 + 选保守项后能进夜」，不介入裁定本身。
+     */
     const { script, game } = loadScene("S15");
     const snap = await bootScene(page, {
       script,
@@ -471,43 +495,41 @@ test.describe("无名之墓 · G5 S15 农夫与畸形秀演员", () => {
       seed: game.seed,
       lineup: game.seats.map((s: any) => s.id),
     });
-    expect.soft(seatByRole(snap, "mutant") >= 0, "畸形秀演员（mutant）应在场").toBe(true);
+    const mutantSeat = seatByRole(snap, "mutant");
+    expect.soft(mutantSeat, "畸形秀演员（mutant）应在场").toBeGreaterThanOrEqual(0);
+
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
 
-    // 白日里应能看到「需先完成…【疯狂仲裁】」的门禁提示（畸形秀演员在场）
-    const gateText = await page.evaluate(() =>
-      (document.body.textContent ?? "").replace(/\s+/g, "")
-    );
-    expect
-      .soft(gateText, "畸形秀演员在场时应有【疯狂仲裁】门禁")
-      .toContain("疯狂仲裁");
+    // 门禁按钮必须存在（这是 mutant 的日间入口）
+    const gate = page.locator("button").filter({ hasText: /^疯狂仲裁$/ }).first();
+    const gateCount = await gate.count();
+    expect.soft(gateCount, "白天应出现【疯狂仲裁】门禁按钮").toBeGreaterThan(0);
 
+    // 驱动器（driveDusk）已实现「仲裁永远走保守项」，这里直接验能进夜
     const dusk = await driveDusk(page, {});
-    expect.soft(dusk.status, "仲裁后必须能正常进入夜晚（门禁不得卡死）").toBe("night");
+    expect.soft(dusk.status, "仲裁选保守项后应能正常入夜").toBe("night");
   });
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// G6 · S14 白天：艺术家 / 博学者 的日间技能入口真的能打开
+// G6 · S14 白天：艺术家 / 博学者 的日间技能入口
 // ═══════════════════════════════════════════════════════════════════
 test.describe("无名之墓 · G6 日间技能入口", () => {
   test.setTimeout(5 * 60_000);
 
-  test("艺术家 / 博学者 的白天技能入口（已知缺口：入口状态待确认）", async ({ page }) => {
+  test("艺术家 / 博学者 的日间技能入口存在且可用", async ({ page }) => {
     /**
-     * ⚠️ 实测结果（登记为缺口，不是「通过」）：
-     *   · 「使用艺术家」按钮**存在**，但首夜结束后的白天里是 **disabled**；
-     *   · 「使用博学者」入口在该时点**查不到**。
-     *   两种可能都要人判断：① 这两个日间技能需要先选座位才可用；
-     *   ② 入口状态被夜序错误地锁掉（那就是缺陷）。
-     *   在确认之前，本用例只登记现象，不做「已验证」的结论。
-     */
-    test.fail(true, "艺术家入口 disabled / 博学者入口缺失，待确认是交互前置还是缺陷");
-    /**
-     * ⚠️ 本用例只验到「入口存在且可用」这一层：
-     *   实测点下去之后**没有** `[role="dialog"]` 出现（这两个角色的日间技能
-     *   走的是另一套容器/需要先选座位），当前无法稳定断言弹窗内容。
-     *   ⇒ 断言收紧为「入口在、且不是 disabled」，并把「弹窗内容」列为待补项。
+     * 🔴 2026-10-23 **判据纠错**（上一轮把「查不到」误判成产品缺陷）：
+     *
+     * 按钮文案不是「使用艺术家」，而是 **`使用 ${abilityName}`**
+     *   （见 `GameConsole.tsx:914` → `使用 ${abilityName}`；
+     *     博学者是「使用 私下询问」这类能力名，中间**有空格**）。
+     *   而且每个座位卡上的按钮都带 `data-testid="start-day-ability-button"`。
+     *   ⇒ 用 `/使用艺术家/` 或 `/使用博学者/` 去匹配**永远查不到**，
+     *      上一轮据此登记的「入口 disabled / 缺失」是我的选择器错，不是缺陷。
+     *
+     * 正确判据：按 `data-testid="start-day-ability-button"` 数入口，
+     *   再按所在卡片里的座位号定位到具体角色，断言「存在 + 可点」。
      */
     const { script, game } = loadScene("S14");
     const snap = await bootScene(page, {
@@ -516,25 +538,36 @@ test.describe("无名之墓 · G6 日间技能入口", () => {
       seed: game.seed,
       lineup: game.seats.map((s: any) => s.id),
     });
-    expect.soft(seatByRole(snap, "artist") >= 0, "艺术家（artist）应在场").toBe(true);
-    expect.soft(seatByRole(snap, "savant") >= 0, "博学者（savant）应在场").toBe(true);
+    const artistSeat = seatByRole(snap, "artist");
+    const savantSeat = seatByRole(snap, "savant");
+    expect.soft(artistSeat, "艺术家（artist）应在场").toBeGreaterThanOrEqual(0);
+    expect.soft(savantSeat, "博学者（savant）应在场").toBeGreaterThanOrEqual(0);
 
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
 
-    const entry = async (label: RegExp) => {
-      const btn = page.locator("button").filter({ hasText: label }).first();
+    // 所有日间技能入口
+    const entries = page.locator('[data-testid="start-day-ability-button"]');
+    const total = await entries.count();
+    expect.soft(total, "白天应渲染出日间技能入口（至少艺术家/博学者两个）").toBeGreaterThanOrEqual(2);
+
+    /** 按座位号定位某个座位的入口按钮（卡片内先出现「N号」再是按钮） */
+    const entryOf = async (seatId: number) => {
+      const card = page
+        .locator("div")
+        .filter({ has: page.locator(`text="${seatId + 1}号"`) })
+        .filter({ has: page.locator('[data-testid="start-day-ability-button"]') })
+        .last();
+      const btn = card.locator('[data-testid="start-day-ability-button"]').first();
       const count = await btn.count();
-      if (count === 0) return { count, enabled: false };
-      return { count, enabled: await btn.isEnabled() };
+      return { count, enabled: count > 0 ? await btn.isEnabled() : false };
     };
 
-    expect.soft((await entry(/使用艺术家/)).count, "应有「使用艺术家」的日间入口").toBeGreaterThan(0);
-    expect.soft((await entry(/使用艺术家/)).enabled, "艺术家的日间入口应可用").toBe(true);
-    /**
-     * 博学者（savant）：入场后「使用博学者」入口在**首夜结束后的白天查不到**
-     * （首夜开始前的探针里能看到该按钮）。当前只能断言角色在场；
-     * 入口是否被夜序消耗/改名，列为待确认项，不在此处声称已验证。
-     */
-    expect.soft(seatByRole(snap, "savant") >= 0, "博学者应在场").toBe(true);
+    const artistEntry = await entryOf(artistSeat);
+    expect.soft(artistEntry.count, `艺术家（${artistSeat + 1}号）应有一个「开始日间技能」按钮`).toBeGreaterThan(0);
+    expect.soft(artistEntry.enabled, "艺术家的日间入口应可点（官方：每局一次，白天可问一个是非问题）").toBe(true);
+
+    const savantEntry = await entryOf(savantSeat);
+    expect.soft(savantEntry.count, `博学者（${savantSeat + 1}号）应有一个「开始日间技能」按钮`).toBeGreaterThan(0);
+    expect.soft(savantEntry.enabled, "博学者的日间入口应可点（官方：每个白天可问两条信息）").toBe(true);
   });
 });

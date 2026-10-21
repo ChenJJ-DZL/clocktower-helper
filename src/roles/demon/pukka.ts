@@ -1,6 +1,5 @@
 import type { Seat } from "../../types/game";
 import type { RoleDefinition } from "../../types/roleDefinition";
-import { buildDemonFirstNightDialog } from "./demonFirstNightHelper";
 
 /**
  * 普卡
@@ -31,15 +30,40 @@ export const pukka: RoleDefinition = {
     `相克规则（与华灯系列角色）：戏子：在戏子存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己"想要死亡"。说书人会在当晚杀死这名玩家。戏子（改）：在戏子（改）存在于剧本中时，普卡可以在游戏中任意时候向说书人示意自己"想要死亡"。说书人会在当晚杀死这名玩家。`,
   ],
 
+  /**
+   * ⚠️ 2026-10-24 修复（普卡首夜不下毒）：
+   *   此处原先是**通用恶魔首夜**配置（`buildDemonFirstNightDialog` + 0 目标），
+   *   与官方明写的「**不同于其他恶魔，普卡在首个夜晚就会行动**」矛盾
+   *   （角色简介原文：「不同于其他恶魔，普卡在首个夜晚就会行动」）。
+   *   ⇒ 首夜必须与其它夜**同样**执行「选择一名玩家：他中毒」，
+   *     否则首夜能力节点渲染出的是「恶魔互认」文案、目标数为 0，说书人无从下毒。
+   */
   firstNight: {
     order: 6,
 
     target: {
-      count: { min: 0, max: 0 },
+      count: {
+        min: 1,
+        max: 1,
+      },
+      canSelect: (
+        _target: Seat,
+        _self: Seat,
+        _allSeats: Seat[],
+        _selectedTargets: number[]
+      ) => {
+        // 普卡可以选择任何人（包括自己）
+        return true;
+      },
     },
 
-    dialog: (playerSeatId: number, _isFirstNight: boolean, context) => {
-      return buildDemonFirstNightDialog(playerSeatId, "普卡", context);
+    dialog: (_playerSeatId: number, _isFirstNight: boolean, _context) => {
+      return {
+        wake: "☠️ 每个夜晚，你要选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。",
+        instruction:
+          '"请选择一名玩家。他现在中毒。上个因你的能力中毒的玩家会死亡并恢复健康。"',
+        close: "poison",
+      };
     },
   },
 

@@ -24,8 +24,22 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
+  /**
+   * 🔴 2026-10-23：确认窗回传的字段名是 `chosenRoleId`（与洗脑师/哲学家同一通路），
+   *   本文件原先只认 `newRoleId / roleId` ⇒ 恒 null ⇒ `transformed` 恒 false
+   *   ⇒ **角色变换永不生效**（游园惊梦 S21 实测：第 2 夜前后角色表一字未变）。
+   */
+  /**
+   * ⚠️ 优先级：`newRoleId`（**专用字段**）> `chosenRoleId`（确认窗通用字段）> `roleId`。
+   *   不能让 `chosenRoleId` 抢在前面 —— 单测/其它角色会把 `chosenRoleId` 塞进共享入参
+   *   （`snv_l1_l2::COMMON_INPUT` 就有 `chosenRoleId: "chambermaid"` 给哲学家），
+   *   优先读它会让麻脸巫婆拿到别人的角色，且该角色可能已在场 ⇒ 变换被 `isAlreadyInPlay` 挡掉。
+   */
   const newRoleId =
-    ctx.storytellerInput?.newRoleId ?? ctx.storytellerInput?.roleId ?? null;
+    ctx.storytellerInput?.newRoleId ??
+    ctx.storytellerInput?.chosenRoleId ??
+    ctx.storytellerInput?.roleId ??
+    null;
 
   // 官方规则：如果该角色在场，则无事发生
   const seats = ctx.snapshot.seats ?? [];

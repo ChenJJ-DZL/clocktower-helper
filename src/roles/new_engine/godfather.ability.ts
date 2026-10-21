@@ -11,6 +11,7 @@ import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
+import { isSeatOutsider } from "../../utils/seatAlignment";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -23,6 +24,39 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * 🔴 2026-10-23 修复（真缺陷，黯月初升 S03/S05/S06 三场一致）：
+   *
+   * 官方【教父】有**两条**能力：
+   *   ① 「在你的**首个夜晚**，你会得知有哪些外来者角色在场。」
+   *   ② 「如果有外来者在**白天**死亡，你会在当晚被唤醒并且你要选择一名玩家：他死亡。」
+   *
+   * 而本实现把它做成了**单一击杀能力** ⇒
+   *   · 首夜**完全没有「得知外来者」这条信息**（注册表里没有对应的 info 分支）；
+   *   · 首夜还照样走「替身击杀」的选目标流程（虽然 `outsiderDiedToday` 会中止，
+   *     但说书人仍被问「杀谁」，且步骤名写成「替身击杀」）。
+   *
+   * 修法：首夜只产出「在场外来者」信息（`killed: false`），不进入击杀。
+   *   判据用 `nightCount === 1`（首夜）—— 后续夜才按 `outsiderDiedToday` 判定。
+   */
+  const isFirstNight = (ctx.snapshot as any)?.nightCount === 1;
+  if (isFirstNight) {
+    const outsiders = ctx.snapshot.seats
+      .filter((s: any) => !s.isDead && isSeatOutsider(s))
+      .map((s: any) => ({ id: s.id, name: s.role?.name ?? s.role?.id ?? "?" }));
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityResult: {
+          isFirstNight: true,
+          killed: false,
+          outsiderInfo: outsiders,
+        },
+      },
+    };
+  }
+
   const outsiderDiedToday = ctx.snapshot.outsiderDiedToday ?? false;
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
 
@@ -51,7 +85,8 @@ const stateUpdate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
-  if (!r?.killed) return ctx;
+  // 首夜（isFirstNight）只有信息、没有击杀 ⇒ 直接返回
+  if (r?.isFirstNight === true || !r?.killed) return ctx;
 
   /**
    * ⚠️⚠️ 2026-09-21 修复 P0-B（醉酒/中毒门控缺失）：
@@ -117,6 +152,33 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+
+  if (r?.isFirstNight === true) {
+    /**
+     * 首夜：把「在场外来者」做成说书人可见的信息页。
+     * 官方只要求「你会得知有哪些外来者角色在场」——不含座位号也可以，
+     * 这里一并给出座位，便于说书人核对（信息更完整不会破坏规则）。
+     */
+    const list: Array<{ id: number; name: string }> = r.outsiderInfo ?? [];
+    const text =
+      list.length === 0
+        ? "本局没有存活的外来者"
+        : list.map((x) => `${x.id + 1}号【${x.name}】`).join("、");
+    const log = `[Godfather] 首夜得知在场外来者：${text}`;
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityLog: log,
+        displayInfo: {
+          type: "godfather_outsider_info",
+          outsiders: list,
+          log,
+        },
+      },
+    };
+  }
+
   const log = r?.killed
     ? `[Godfather] 有外来者死亡，击杀 ${r.targetId + 1}号`
     : "[Godfather] 今日无外来者死亡";

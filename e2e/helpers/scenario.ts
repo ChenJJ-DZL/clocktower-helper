@@ -336,11 +336,53 @@ export async function driveNight(
             }
           }
 
+          /**
+           * ②b **角色选择补位**（2026-10-23 新增，麻脸巫婆 S21 实测）：
+           *   角色胶囊的选中态是 modal **内部 state**（`NightActionConfirmModal`
+           *   `setSelectedRoleId`）。点目标座位会让父组件重渲染
+           *   ⇒ 已选的角色可能被重置回「未选择」⇒ 确认按钮 disabled
+           *   ⇒ 弹窗永远走不完（现象：`已选角色:未选择`，座位却已点）。
+           *   这里在点确认**之前**再补一次：若仍显示「未选择」就点一个角色胶囊。
+           */
+          {
+            /**
+             * ⚠️ 判据用「**当前有没有可用的确认按钮**」，不要用文本
+             *   （`已选角色: 【X】` 中间有空格，且行文随角色类型变化 —— 用文本判会漏）。
+             *   实测（游园惊梦 S21）：点完座位后角色胶囊仍在，但确认按钮 disabled
+             *   ⇒ 这里补点一个胶囊就恢复可用。
+             *   查询必须走 **document 级**：modal 重新挂载后循环开头抓的 `dlg` 会失效。
+             */
+            const roleCaps2 = Array.from(
+              document.querySelectorAll("button[data-role-id]")
+            ) as any[];
+            /**
+             * ⚠️ 判据必须读**整页文本**（`document.body`）：
+             *   该弹窗是**嵌套 dialog**（外层行动确认 + 内层角色列表，实测 dialogCount=2），
+             *   外层里还混着「确认&下一步」，所以「有没有可用确认按钮」无法区分
+             *   （实测被它挡掉、一次都没点胶囊）。而「已选角色: 未选择」只会出现在这份弹窗里。
+             */
+            const bodyNorm = (document.body.textContent || "").replace(/\s+/g, "");
+            const stillUnselected = /已选角色:未选择/.test(bodyNorm);
+            if (roleCaps2.length > 0 && stillUnselected) {
+              const want = pick?.roleChoice
+                ? roleCaps2.find(
+                    (b: any) =>
+                      b.getAttribute("data-role-id") === pick.roleChoice &&
+                      !b.disabled
+                  )
+                : null;
+              const chosen = want ?? roleCaps2.find((b: any) => !b.disabled) ?? roleCaps2[0];
+              if (chosen) await clickSettled(chosen, 300);
+            }
+          }
+
           // 「确认替死/击杀目标」等说书人修正按钮优先
+          // ⚠️ 同样用 document 级查询：modal 重新挂载后旧 `dlg` 引用会失效
+          const okBtns = btnsIn(document.querySelector('[role="dialog"]') ?? dlg);
           const ok =
-            btnsIn(dlg).find((b: any) => /确认替死|确认选择|确认击杀/.test(norm(b)) && !b.disabled) ??
-            btnsIn(dlg).find((b: any) => CONFIRM.test(norm(b)) && !b.disabled) ??
-            btnsIn(dlg).find((b: any) => !b.disabled);
+            okBtns.find((b: any) => /确认替死|确认选择|确认击杀/.test(norm(b)) && !b.disabled) ??
+            okBtns.find((b: any) => CONFIRM.test(norm(b)) && !b.disabled) ??
+            okBtns.find((b: any) => !b.disabled);
           if (ok) {
             // ⚠️ 记录这一次「弹窗 + 选择 + 结果」，作为该步的留证
             const before = slice(snapNow());

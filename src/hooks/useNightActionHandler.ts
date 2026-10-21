@@ -656,11 +656,22 @@ export async function executeViaNewEngine(
         roleId === "po"
           ? poAllowedTargetCount(actorSeat, context.nightCount)
           : null;
+      /**
+       * 👤 教父（godfather）**首夜只告知「在场外来者」**，不选击杀目标。
+       *   官方：「在你的首个夜晚，你会得知有哪些外来者角色在场。」
+       *   能力侧 `godfather.ability::calculate` 已在首夜短路成信息分支，
+       *   但注册表的 `targetConfig` 是静态 `{min:1,max:1}` ⇒ 说书人仍被逼着选一个人
+       *   （选了也不产生击杀，纯干扰）。这里把首夜的上下限收到 0。
+       */
+      const godfatherFirstNight =
+        roleId === "godfather" && context.nightCount === 1;
       const targetConfig = isLunaticActor
         ? (context.nightInfo?.targetLimit ?? (ability as any)?.targetConfig)
         : roleId === "po" && poMaxTargets != null
           ? { ...((ability as any)?.targetConfig ?? {}), max: poMaxTargets }
-          : (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
+          : godfatherFirstNight
+            ? { ...((ability as any)?.targetConfig ?? {}), min: 0, max: 0 }
+            : (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
       const minTargets = targetConfig?.min ?? 0;
       const maxTargets = targetConfig?.max ?? 0;
       const allowSelf = targetConfig?.allowSelf ?? true;
@@ -810,7 +821,22 @@ export async function executeViaNewEngine(
             .map((s: any) => `${s.id + 1}号【${s.role?.name ?? "未知"}】`)
         : undefined;
 
-      if (maxTargets === 0 && roleId !== "ojo" && roleId !== "brewer") {
+      /**
+       * 🧠 **哲学家必须排除在本分支之外**（2026-10-23 修复，凶宅魅影 S18/S19 实测）：
+       *   哲学家 `targetConfig` 是 `{min:0,max:0}`（选的是**角色**不是座位），
+       *   于是掉进这个「无目标信息角色」的简易确认窗
+       *   ⇒ 说书人只看到一个「执行」按钮，**永远拿不到角色选择**
+       *   ⇒ `storytellerInput.chosenRoleId` 恒为 null
+       *   ⇒ `philosopher.ability::calculate` 走「没选角色」分支，能力完全没生效。
+       *   上面 1072 行那套 `requiresRoleSelection` 白名单是对的，但根本执行不到。
+       *   ⇒ 与 `ojo` / `brewer`（同样选角色、同样 0 目标）一起排除，让它们走主分支。
+       */
+      if (
+        maxTargets === 0 &&
+        roleId !== "ojo" &&
+        roleId !== "brewer" &&
+        roleId !== "philosopher"
+      ) {
         // 不需要选择目标的能力（信息角色、间谍魔典等）
         // 间谍特殊：需要弹出对局记录/魔典查看界面
         if (roleId === "spy") {
@@ -1063,6 +1089,15 @@ export async function executeViaNewEngine(
               "ojo",
               "brewer",
               "philosopher",
+              /**
+               * 🧙 麻脸巫婆（pit_hag）：官方「选择一名玩家**和一个角色**，
+               *   如果该角色不在场，他变成该角色。」
+               *   ⚠️ 2026-10-23 实测：它原先**只选座位、没有角色步骤**
+               *   ⇒ `pit_hag.ability::calculate` 读的 `newRoleId` 恒为 null
+               *   ⇒ `transformed` 恒 false ⇒ 角色变换永不生效
+               *   （游园惊梦 S21 第 2 夜前后 15 个座位角色表一字未变）。
+               */
+              "pit_hag",
             ].includes(roleId),
             /**
              * 🧠 哲学家：官方限定**只能选「善良角色」**（镇民 / 外来者）
@@ -1072,10 +1107,12 @@ export async function executeViaNewEngine(
              */
             availableRoles:
               roleId === "philosopher"
-                ? context.roles.filter((r: any) =>
+                ? // 哲学家只能选**善良角色**（镇民/外来者）
+                  context.roles.filter((r: any) =>
                     isTownsfolkOrOutsiderRole(r as any)
                   )
-                : context.roles,
+                : // 麻脸巫婆可选任意角色（「不在场则生效」由能力侧 `isAlreadyInPlay` 判定）
+                  context.roles,
             selectedScript: (context as any).selectedScript,
             extraNote,
             // 🌀 A4：真恶魔的确认页必须看到「疯子本夜选择了谁」（官方：恶魔知道）。
@@ -1214,6 +1251,30 @@ export async function executeViaNewEngine(
                * ⚠️ `selectedTargets` 传 `finalTargets`（通常为空 —— 哲学家选的是**角色**不是座位），
                *   但保留原值以免影响「能力本体已按角色运行」之外既有语义。
                */
+              /**
+               * 🧙 **麻脸巫婆**：官方「选择一名玩家**和一个角色**，如果该角色不在场，
+               *   他变成该角色」。选中的角色必须喂给能力侧的 `calculate`
+               *   （它读 `storytellerInput.chosenRoleId / newRoleId`）。
+               */
+              if (roleId === "pit_hag") {
+                const chosenRoleId =
+                  typeof chosenRoleIdOrRole === "string"
+                    ? chosenRoleIdOrRole
+                    : chosenRoleIdOrRole?.id;
+                if (!chosenRoleId) {
+                  showAlert("麻脸巫婆必须选择一个角色");
+                  return;
+                }
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: finalTargets,
+                  actionData: { chosenRoleId, newRoleId: chosenRoleId, roleId: chosenRoleId },
+                };
+                await executeViaNewEngine(realContext, roleId);
+                return;
+              }
+
               if (roleId === "philosopher") {
                 const chosenRoleId =
                   typeof chosenRoleIdOrRole === "string"
