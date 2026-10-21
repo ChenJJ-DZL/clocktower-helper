@@ -543,8 +543,8 @@ export async function advanceNightRandom(
 
       const dlg = document.querySelector('[role="dialog"]');
       const sig = `${dlg ? norm(dlg).slice(0, 60) : ""}||${
-        btnsIn(document).find((b) => /下一步|天亮了/.test(norm(b)))
-          ? norm(btnsIn(document).find((b) => /下一步|天亮了/.test(norm(b))))
+        btnsIn(document).find((b) => /下一步|天亮了|展开对局记录/.test(norm(b)))
+          ? norm(btnsIn(document).find((b) => /下一步|天亮了|展开对局记录/.test(norm(b))))
           : ""
       }`;
       if (sig === lastSig) {
@@ -656,8 +656,15 @@ export async function advanceNightRandom(
         continue;
       }
 
+      /**
+       * 🔴 2026-10-22（X05 45 局矩阵）：间谍的夜间主按钮文案是
+       *   **「展开对局记录」**（`GameStage.tsx` 的 `isSpyTurn` 分支），
+       *   不匹配原来的 `/确认&下一步|下一步|天亮了/` ⇒ driver 找不到按钮 ⇒
+       *   「间谍首夜第二次唤醒」永远卡死（实测 94001/94002/94018/94019 全卡）。
+       *   这不是产品缺陷 —— 按钮就在页面上（stuck.buttons 里可见），是驱动器覆盖不足。
+       */
       const next = btnsIn(document).find(
-        (b) => /确认&下一步|下一步|天亮了/.test(norm(b)) && !b.disabled
+        (b) => /确认&下一步|下一步|天亮了|展开对局记录/.test(norm(b)) && !b.disabled
       );
       if (next) {
         await clickSettled(next, 45);
