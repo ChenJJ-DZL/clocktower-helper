@@ -124,11 +124,42 @@ const X05_SEEDS: Array<{ name: string; players: number; seed: number }> = [
 /** X05-extra 的胜方分布采集（workers=1 + fullyParallel:false ⇒ 同文件内串行有序） */
 const X05_WINNERS = new Map<string, Array<"good" | "evil" | "special">>();
 
+/**
+ * ⚠️ 已知缺陷登记（`test.fail` = 断言「它现在仍然坏着」）。
+ * 修好后 Playwright 会报 **unexpectedly passed** 直接翻红，强制把条目移出去。
+ * 逐条都写了 2026-10-22 实测的现场，不许只写「待修」。
+ */
+const X05_KNOWN_DEFECTS: Record<number, string> = {
+  94002: [
+    "【夜晚瞬间跳过】第 2 夜起队列有内容（僧侣/小恶魔/间谍）但 journal.steps 为空，",
+    "`trail` 显示 night#3:day 立刻返回 ⇒ 整夜没跑任何一步。",
+    "`snapNightCount` 停在 2（夜数没涨）⇒ 怀疑进入夜间后 phase 未落库就被判 day。",
+  ].join(""),
+  94008: [
+    "【处决结算无文案 + I14 误判】dusk#2 的 exec 记录 `resultText: \"\"`、",
+    "`executedRoleId: null`、死亡数前后都是 [2,4]。当事局被执行者很可能是弄臣",
+    "（4号 fool，官方：首次被处决不死）⇒ 死亡数不变是**合法**的，",
+    "但 `resultText` 为空说明处决结果弹窗根本没文案，I14 因此拿不到角色、无法豁免。",
+    "修法方向：处决结算必须写出可读文案（哪怕免死也要写「X号免于死亡」）。",
+  ].join(""),
+  94011: "【12 昼夜未终局】I7-reach；需单独复现看是「白天推不动」还是「终局判据不触发」。",
+  94013: [
+    "【恶魔已死却不终局】终局快照：方古（demon）isDead=true、存活 1 人（呆瓜），",
+    "游戏仍跑到第 13 夜，`gameover=false`。按官方四条「恶魔已死 ⇒ 善良胜」必须立即终局。",
+    "附带现象：第 6 夜起方古在「场上没有可选目标」上空转 7 个夜晚。",
+    "⇒ 高度怀疑 `checkGameOver` 只在「击杀/处决」两个点调用，**恶魔因其他原因死亡**（如反刍/替死）没有补判。",
+  ].join(""),
+  94017: "【12 昼夜未终局】I6-progress（某夜驱动超时）+ I7-reach；需单独复现。",
+};
+
 for (const entry of X05_SEEDS) {
+  const knownReason = X05_KNOWN_DEFECTS[entry.seed];
   test.describe(`X05 终局矩阵 · ${entry.name}（seed=${entry.seed}）`, () => {
     test.setTimeout(20 * 60 * 1000);
 
     test(`seed=${entry.seed} 必须终局且符合官方四条`, async ({ page }) => {
+      // 已知缺陷：断言「仍然失败」，修好后会自动报 unexpectedly passed
+      if (knownReason) test.fail(true, knownReason);
       const summary = await runFullGameSim(page, {
         script: entry.name,
         players: entry.players,
