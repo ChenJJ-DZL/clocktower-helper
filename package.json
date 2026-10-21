@@ -16,7 +16,10 @@
     "check:all": "npm run fix && npm run type && npm run test && npm run circular",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:list": "playwright test --list"
+    "test:e2e:list": "playwright test --list",
+    "verify:all": "node scripts/verify-all.mjs",
+    "verify:list": "node scripts/verify-all.mjs --list",
+    "coverage:audit": "tsx scripts/coverage-audit.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
