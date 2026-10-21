@@ -293,7 +293,15 @@ export async function driveNight(
           //   ⚠️ 文案有两种：普通角色「请选择目标玩家（最少 N 人）」、
           //   说书人修正类「请选择1名目标玩家」（如镇长替死判定）——
           //   旧正则 `/请选择目标玩家/` 漏了后者 ⇒ 选不到目标 ⇒ 死循环到 timeout。
-          if (/请选择(?:\d+\s*名)?目标玩家/.test(hint)) {
+          /**
+           * 🔴 2026-10-23 修复：洗脑师（cerenovus）的弹窗文案是
+           *   「请选择需要洗脑的目标（1人）」——既不是「请选择目标玩家」，
+           *   也不带「最少N人」。
+           *   旧正则漏掉它 ⇒ 只点了角色胶囊、没点目标 ⇒ 弹窗永不满足
+           *   ⇒ `driveNight` 在同一弹窗上空转到 maxSteps（实测 S07/S10 各 203 步 timeout）。
+           *   ⇒ 正则放宽为「请选择…目标」，覆盖这两种写法。
+           */
+          if (/请选择(?:需要洗脑的)?目标|请选择(?:\d+\s*名)?目标玩家/.test(hint)) {
             const m = hint.match(/最少(\d+)人/);
             const need = m ? Number(m[1]) : 1;
             const cards = btnsIn(dlg).filter((b: any) =>

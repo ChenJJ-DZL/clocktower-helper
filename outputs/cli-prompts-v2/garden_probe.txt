@@ -1,0 +1,46 @@
+你是本仓库的编码代理。工作目录 = C:\\Users\\chenj\\WorkBuddy\\血染说书人\\clocktower-helper（已在此目录）。
+
+# 唯一任务（只需 3 个动作，别做别的）
+把「游园惊梦」四场（S21–S24）的**夜间弹窗文案**跑出来，整理成一份报告。
+
+探针文件**已经写好了**：`e2e/garden_of_dreams/_probe.spec.ts`（不要改它，除非它跑不起来）。
+
+## 动作 1：跑探针，把输出存成文件
+```
+npx playwright test e2e/garden_of_dreams/_probe.spec.ts --retries=0 --workers=1 --timeout=600000 > outputs/probe-garden_of_dreams.log 2>&1
+```
+
+## 动作 2：从日志里抽出所有以 `>>` 或两个空格 + 角色名开头的行
+（用 node 或 grep 都行，只要结果准确）
+
+## 动作 3：写 `outputs/probe-garden_of_dreams.md`
+格式严格如下（**不要写别的分析**）：
+
+```
+# 游园惊梦 · 探针实测（自动整理）
+
+## S21（15 人）
+- 阵容：`1:xxx 2:yyy …`
+- 第 1 夜：`role@seat [picked] 弹窗前 170 字`
+- 黄昏：status / nominated / deadAfter
+- 第 2 夜：同上
+
+## S22 …（同格式）
+```
+
+要求：
+- **每个场次的每个步骤都要保留**，不要摘选、不要总结成一句话；
+- 弹窗文案原样保留（可以截断到 170 字，但不要改写）；
+- 如果某个场次跑失败/超时，在那一节写 `⚠️ 跑失败：<错误前 200 字>`，**不要编造数据**。
+
+# 硬规则
+- **不得修改** `src/` 下任何文件、`e2e/helpers/` 下任何文件、探针文件。
+- **不得跑** `next build` / `next dev` / `next start`（dev 已在 3100 跑）。
+- 不要写 `role_scenarios.spec.ts`（那是下一步的事，本轮不做）。
+
+# 输出协议
+- 每条回复 ≤ 150 字；
+- **一条回复只做一个动作**（跑 1 条命令 或 写 1 个文件）；
+- 本条回复必须直接执行，不要先解释计划。
+
+全部完成后回报一行：`报告已生成：outputs/probe-garden_of_dreams.md（N 个场次，M 个步骤）`

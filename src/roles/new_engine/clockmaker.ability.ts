@@ -2,6 +2,7 @@
  * 钟表匠（Clockmaker）新引擎技能实现
  */
 
+import { isVortoxWorldActive } from "../../utils/vortoxWorld";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   createDeterministicRandom,
@@ -82,8 +83,31 @@ const calculateResult = async (
 
   let minDistance: number;
 
-  if (!isAbilityActive) {
-    // 醉酒/中毒时返回虚假信息
+  /**
+   * 🌪️ 涡流世界：官方「所有镇民玩家的能力都会产生错误信息」——
+   *   **哪怕没有被醉/毒，也必须取假**。
+   *
+   * 🔴 2026-10-22 实测（梦殒春宵 S10，涡流局）：钟表匠（9号）报「最近距离 2」，
+   *   而独立复算的真值也是 2 ⇒ **信息没有取假**，违反涡流契约。
+   *   根因：本文件只有「醉/毒 ⇒ 假值」分支，**完全没有涡流分支**
+   *   （对照 `chambermaid.ability.ts` 是有 `hasVortox` 判定的）。
+   *   修法：把涡流也算进「必须给假值」，与醉/毒共用 `pickFakeClockmakerDistance`
+   *   （该函数保证从 0..seatCount 中**排除真值**）。
+   */
+  /**
+   * ⚠️ 判据必须走 SST `isVortoxWorldActive`（`vortox_info_contract` 的静态护栏会抓内联写法：
+   *   漏掉「涡流是否存活」就会出现「涡流死后仍取假」）。
+   */
+  const hasVortox =
+    isVortoxWorldActive(snapshot.seats) ||
+    Boolean(
+      (snapshot as any).globalEffects?.vortoxWorld ??
+        (snapshot as any).vortoxWorld ??
+        (snapshot as any).isVortoxWorld
+    );
+
+  if (!isAbilityActive || hasVortox) {
+    // 醉酒/中毒/**涡流世界**时返回虚假信息（涡流不受醉毒影响，一样必假）
     const realDistance = meta.initialNightInfo?.clockmakerInfo ?? 1;
     minDistance =
       context.storytellerInput?.fakeResult ??
