@@ -29,6 +29,9 @@ const NODE = process.execPath;
  * steps[].status:
  *   ready     —— 已实现，跑就完事
  *   pending   —— 计划里有、代码还没有（**不许算通过**）
+ *
+ * 🔴 跑之前**必须先停 dev server**：第 3 步是 `next build`，而 build 与 dev 共用 `.next`
+ *    ⇒ 并行会把 `.next` 写坏，页面直接 500，E2E 只报「点击超时」（2026-10-22 实测 9 剧场次全红）。
  */
 const steps = [
   {
@@ -105,13 +108,32 @@ const steps = [
   },
   {
     id: "roleCoverage",
-    title: "定向角色覆盖（C1，191 个二元组）",
-    status: "pending",
+    title: "逐角色覆盖台账（9 剧本 × 全部角色）",
+    status: "ready",
     cmd: NPX,
-    args: ["playwright", "test", "e2e/full_sim/role_coverage.spec.ts", "--workers=2", "--reporter=line"],
+    args: ["tsx", "scripts/audit-role-e2e.ts", "--strict"],
     env: { NODE_OPTIONS: "" },
-    desc: "计划 W1+W3：靠 __CT_FORCE_LINEUP__ 固定阵容逐角色跑",
-    pending: "未实现：计划 W1（强制阵容注入）+ W3（定向角色覆盖 spec）",
+    desc: "每个角色都要在自己的 role_scenarios.spec.ts 里被显式引用；缺失即红（--strict）",
+    /**
+     * 2026-10-22 接线：原先这一步标 pending，理由是「未实现计划 W1 强制阵容注入 +
+     * W3 定向角色覆盖 spec」。这两件事已经做完（`window.__CT_FORCE_LINEUP__` +
+     * `e2e/<剧本>/role_scenarios.spec.ts` + `npm run audit:roles`），只是脚本没接。
+     * ⚠️ 口径：本步骤只证明「有用例文件且角色被引用」，不证明断言有效 ——
+     * 真跑绿在下一步 `roleScenarios`。
+     */
+  },
+  {
+    id: "roleScenarios",
+    title: "逐角色场景层真跑（所有剧本的 role_scenarios.spec.ts）",
+    status: "ready",
+    cmd: NODE,
+    // ⚠️ 不能把 glob 直接交给 playwright：spawn 不过 shell，Node 不展开 `**`
+    //    ⇒ 用包装脚本在 Node 里扫出真实文件列表（新增剧本不用改这里）
+    args: ["scripts/run-role-scenarios.mjs"],
+    env: { NODE_OPTIONS: "" },
+    desc: "全绿才算通过；有 test.fail 登记缺口时仍算绿（Playwright 语义）",
+    needsServer: true,
+    timeoutMs: 40 * 60 * 1000,
   },
   {
     id: "nightOrder",

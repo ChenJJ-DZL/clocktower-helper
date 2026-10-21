@@ -638,6 +638,17 @@ export function useGameController() {
     ]
   );
 
+  /**
+   * 🌙 **本夜已因自身能力被唤醒过的座位**（跨角色累积，跨夜晚清空）。
+   *
+   * 为什么需要：侍女的「你们中有几人当晚因其自身能力被唤醒」要读
+   * `snapshot.wokenPlayerIds`，而夜间管道的快照是**每次行动现构**的
+   * ⇒ 不动用外部容器的话，后行动的角色看不到前面谁被叫过（实测恒报 0）。
+   * 与「一状态一镜像」同源：这份集合只允许一个 owner（本 ref），
+   * `useNightActionHandler` 只读不写（除把自己加进来）。
+   */
+  const wokenThisNightRef = useRef<Set<number>>(new Set());
+
   const killPlayer = useCallback(
     (targetId: number, options: any = {}) => {
       const {
@@ -1601,6 +1612,8 @@ export function useGameController() {
           // 🗣️ 造谣者：白天声明与真假裁定必须进管道（否则夜间恒判「声明错误」）
           gossipStatementToday,
           gossipTrueTonight,
+          // 🌙 本夜已唤醒集合（侍女统计的唯一来源）
+          wokenThisNight: wokenThisNightRef.current,
           setEvilTwinPair,
           dispatch: baseDispatch,
           // 🔧 恶魔死亡判胜：新引擎击杀恶魔后立即触发胜负判定（否则拖到白天）。
@@ -2095,6 +2108,8 @@ export function useGameController() {
         setCurrentModal({ type: "GAME_OVER", data: null });
         return;
       }
+      // 🌙 新的一夜：清空「本夜已唤醒」，否则上一夜的唤醒记录会污染侍女统计
+      wokenThisNightRef.current = new Set();
       startSubsequentNight();
     };
     const listenerId = unifiedEventBus.on(

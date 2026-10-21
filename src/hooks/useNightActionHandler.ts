@@ -113,6 +113,19 @@ export interface NightActionHandlerContext {
    */
   gossipStatementToday?: string;
   gossipTrueTonight?: boolean;
+  /**
+   * 🌙 **本夜已经因自身能力被唤醒过的座位集合**（由 useGameController 持有同一个 Set）。
+   *
+   * 🔴 2026-10-22 修复：侍女「你们中有几人**当晚因其自身能力被唤醒**」此前**恒报 0**。
+   *   根因：`chambermaid.ability` 从 `snapshot._abilityResults` / `snapshot.wokenPlayerIds`
+   *   统计唤醒者，而 `executeViaNewEngine` 每次行动都**现构**一份临时快照
+   *   ⇒ 前一个角色的结果不会传给后一个角色 ⇒ 集合永远是空的
+   *   ⇒ 真值恒 0（实测黯月初升 S03：侍女查 1 号魔鬼代言人、2 号侍臣，
+   *      两人本夜都行动过，却报「0 人被唤醒」）。
+   *   修法：由 controller 持一个 `Set`，每个角色行动前 join、快照里带出去；
+   *   进入新夜晚时清空。
+   */
+  wokenThisNight?: Set<number>;
   // 🔧 恶魔死亡判胜：新引擎击杀（executeViaNewEngine）只补记 deadThisNight，
   //   从不触发 checkGameOver → 恶魔夜晚被杀后游戏不立即结束，继续跑白天/黄昏
   //   流程（官方规则：恶魔死亡立即善良获胜）。此回调用于击杀恶魔后立即判胜。
@@ -399,6 +412,16 @@ export async function executeViaNewEngine(
     context.vortoxWorld || isVortoxWorldActive(context.seats)
   );
 
+  /**
+   * 🌙 当前正在行动的是谁（用于「本夜已唤醒」集合）。
+   *   必须在构造 snapshot **之前**算出来：侍女的统计要的是「她之前被唤醒过的人」，
+   *   不含她自己。所以顺序是「先取值 → 构造快照 → 再把它自己加进集合」。
+   */
+  const currentActorId =
+    (context.nightInfo?.seat?.id as number | undefined) ??
+    context.seats.find((s) => s.role?.id === roleId)?.id ??
+    -1;
+
   const gameStateSnapshot: GameStateSnapshot = {
     nightCount: context.nightCount,
     seats: snapshotSeats,
@@ -416,11 +439,19 @@ export async function executeViaNewEngine(
     // 🗣️ 造谣者：白天声明的内容与真假裁定（能力侧读不到 storytellerInput 时兜底）
     gossipStatementToday: (context as any).gossipStatementToday ?? "",
     gossipTrueTonight: (context as any).gossipTrueTonight ?? false,
+    // 🌙 本夜已唤醒过的座位（侍女据此统计；空数组 = 今夜还没人行动）
+    wokenPlayerIds: Array.from(context.wokenThisNight ?? []),
     // ✊ 革命者「被当作其他」：管道 calculate 阶段要据此生成他人感知视图
     //   （utils/revolutionaryDisguise + middlewarePipeline）。不透传则效果空转。
     fabledState: (context as any).fabledState ?? null,
     activeFabled: (context as any).activeFabled ?? null,
   };
+
+  // 🌙 本角色**已经**被唤醒过 ⇒ 记进本夜集合（供之后行动的角色统计）。
+  //   与能力是否生效无关（官方：被叫起来就算「被唤醒」）。
+  if (currentActorId >= 0) {
+    context.wokenThisNight?.add(currentActorId);
+  }
 
   // 🎭 能力继承路由（SST：utils/grantedAbilityHelper）
   //   小精灵/哲学家「角色不变、能力叠加」——原角色不在场时由继承者顶上其行动槽。

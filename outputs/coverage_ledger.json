@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-21T05:46:51.393Z",
+  "generatedAt": "2026-10-21T17:15:29.093Z",
   "method": "roleIds ← app/data.ts scripts[].roleIds；阵容 ← temp/(terminal|full_sim)_<seed>.json 的 lineup",
   "totals": {
     "scripts": 9,
