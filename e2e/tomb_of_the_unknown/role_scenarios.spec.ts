@@ -365,8 +365,17 @@ test.describe("无名之墓 · G4 S15 僵怖与水手", () => {
      *       显然没被执行到 —— 否则 `foolUsed` 会被写成 true。
      *   ⇒ 结论：**处决路径没有走到 `killPlayer` 的这段代码**（`handleExecution`
      *     对 fool 提前 `handled` 掉了，或 legacy 分支的调用顺序被别的分支拦截）。
-     *   下一轮定位顺序：① `getRoleDefinition("fool").onExecution` 是否存在；
-     *   ② `handleExecution` 返回 handled 的分支；③ 最后才看 `killPlayer`。
+     *   已排除：`getRoleDefinition("fool").onExecution` **不存在**（fool.ts 只有 70 行、
+     *   无 onExecution）⇒ `handleExecution` 直接返回 null，走 legacy 分支，
+     *   该分支**确实**调了 `killPlayer(id,{source:"execution"})`。
+     *   ⇒ 最可能的原因（下一轮先验证这一条）：legacy 分支里**先**
+     *     `dispatch({type:"EXECUTE_PLAYER"})` 把座位标成 `isDead=true`，
+     *     **再**调 `killPlayer`；而 `canFoolSurvive()` 开头就有
+     *     `if (!isAliveSeat(seat)) return false;` ⇒ 此时弄臣已"死"，
+     *     免死判据直接短路 ⇒ 免死分支永不进入。
+     *   修法候选：① `executePlayer` 里把 `dispatch(EXECUTE_PLAYER)` 移到
+     *     `killPlayer` **之后**；或 ② `canFoolSurvive` 的存活前置改为
+     *     「未消费过免死」（`foolUsed !== true`），不看当前 isDead。
      */
     test.fail(true, "弄臣处决免死未生效：executePlayer 不走 killPlayer 的 canFoolSurvive 分支");
     const { script, game } = loadScene("S15");
