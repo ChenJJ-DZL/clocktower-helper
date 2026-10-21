@@ -118,6 +118,9 @@ const postProcess = async (
     ...context,
     meta: {
       ...context.meta,
+      // X03 矩阵（2026-10-22）：顶层必须与其余信息角色同契约；
+      // 旧实现只写在 abilityResult 内层，消费方按 meta.isCorrupted 判断会漏掉。
+      isCorrupted: r?.isCorrupted ?? false,
       prompt: `告知${actionNode.seatId + 1}号【数学家】：今晚有 ${count} 名玩家的能力异常生效了。`,
       abilityLog: log,
       displayInfo: {

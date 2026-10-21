@@ -50,6 +50,7 @@ import {
   nightInfoSeed,
 } from "../core/deterministicRandom";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatDisabled } from "../../utils/seatDisabled";
 import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
@@ -112,17 +113,21 @@ const preCheckDeathAndStatus = async (
     };
   }
 
-  const effects = seat.statusEffects ?? snapshot.statusEffects?.[seat.id] ?? [];
-  const isDrunk = effects.some((e: any) => e.type === "drunk");
-  const isPoisoned = effects.some((e: any) => e.type === "poisoned");
+  /**
+   * X03 矩阵（2026-10-22）：与 clockmaker 同型缺陷 —— 原先只读 `statusEffects`，
+   * 漏掉布尔位 `isPoisoned` / `isDrunk` 与中文 statusDetails 标记，
+   * 被投毒的守鸦人照样产出真值。统一走 `isSeatDisabled`（唯一权威）。
+   */
+  const disabled = isSeatDisabled(seat as any, snapshot.seats as any);
 
   return {
     ...context,
     meta: {
       ...context.meta,
-      isDrunk,
-      isPoisoned,
-      isAbilityActive: !(isDrunk || isPoisoned),
+      isDrunk: (seat as any).isDrunk === true,
+      isPoisoned: (seat as any).isPoisoned === true,
+      isAbilityActive: !disabled,
+      abilityEffective: !disabled,
     },
   };
 };

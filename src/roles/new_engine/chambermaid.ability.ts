@@ -194,12 +194,17 @@ export const chambermaidAbility = createRoleAbility({
         ...context,
         meta: {
           ...context.meta,
+          // X03 矩阵（2026-10-22）：本角色原先只用内层 `isDrunk` 表达「可能不准确」，
+          // 字段名与其他信息角色不统一（其余 12 个用 isCorrupted），
+          // 且 displayInfo 里完全没有标记 ⇒ 消费方无法判定这条信息可信度。
+          isCorrupted: Boolean(result?.isDrunk),
           prompt: `唤醒${actionNode.seatId + 1}号【侍女】，选择2名玩家（不含自己）。告知结果：${targetText} 中有 ${wokenText} 人曾因能力被唤醒。`,
           abilityLog: log,
           displayInfo: {
             type: "chambermaid_info",
             targetIds: result?.targetIds ?? [],
             wokenCount: wokenText,
+            isCorrupted: Boolean(result?.isDrunk),
             log,
           },
         },

@@ -86,6 +86,9 @@ const postProcess = async (
     ...ctx,
     meta: {
       ...ctx.meta,
+      // X03 矩阵（2026-10-22）：顶层契约字段；本角色原先完全没有 displayInfo，
+      // 只把 isCorrupted 塞在 abilityResult 里 ⇒ 消费方读顶层时漏判。
+      isCorrupted: r?.isCorrupted ?? false,
       prompt: "哲人在夜晚被恶魔杀死，告知其2名邪恶玩家。",
       abilityLog: log,
     },

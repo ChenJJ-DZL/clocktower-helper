@@ -97,6 +97,8 @@ export const flowergirlAbility = createRoleAbility({
         ...context,
         meta: {
           ...context.meta,
+          // X03 矩阵（2026-10-22）：顶层契约字段，旧实现只写在内层 abilityResult。
+          isCorrupted: result?.isCorrupted ?? false,
           prompt: `告知${context.actionNode.seatId + 1}号【卖花女孩】：恶魔今天${votedText}投过票。`,
           abilityLog: log,
           displayInfo: {
