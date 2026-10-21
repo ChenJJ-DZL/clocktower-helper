@@ -1,0 +1,38 @@
+你是本仓库的编码代理。工作目录 = C://Users//chenj//WorkBuddy//血染说书人//clocktower-helper（已在此目录）。
+
+# 任务（只做这一件事）
+新建 `e2e/poppyganda/role_scenarios.spec.ts`（**路径必须逐字一致**，台账脚本按这个路径统计），
+把「罂粟花开」剧本的 **24 个角色**逐个做定向场景验证，
+形状照抄模板 `e2e/trouble_brewing/role_scenarios.spec.ts`，驱动器只用 `e2e/helpers/scenario.ts`。
+
+先读这两份（各读一次，别重复读）：
+1. `outputs/CLI派单-逐角色E2E-8剧本.md`（硬规则、API、验收标准；**必须遵守**）
+2. `e2e/trouble_brewing/role_scenarios.spec.ts`（模板）
+
+# 本剧本的场次与角色
+- 场次：`outputs/scenes.json` 里 `script === "罂粟花开"` 的场次（S25–S27（15/9/15 人））
+- 必须覆盖（24 个，一个都不能漏）：
+  librarian, chef, bounty_hunter, pixie, fortune_teller, monk, oracle, drunk, lunatic, mutant, snitch, cerenovus, evil_twin, baron, imp, town_crier, juggler, savant, farmer, mayor, marionette, vortox, poppy_grower, legion
+
+# 关键提醒（都是模板里已经踩过的坑，别再踩）
+- 阵容必须原样注入：`games[j].seats.map(s => s.id)`；
+- 白天 → 黄昏 → 入夜必须显式 `driveDusk(page, {})`；
+- 投毒者/僧侣/恶魔每夜都行动 ⇒ **必须显式给 targets**，否则驱动器按第一个可选座位选人，
+  可能毒到/保护到你要测的那个人（模板里因此假红过 3 次）；
+- 终局不落快照 ⇒ 终局断言用 `readLiveEndState` + 点开「查看获胜结果」读胜因；
+- 若某角色的能力是「说书人可选」或「可能」，断言写成**两种分支都成立的不变量**，不要写死分支；
+- 不许 `.skip`/`.fixme`，不许删断言来「变绿」；真跑不通先留证据再判断是不是产品 bug。
+
+# 执行方式
+1. 先写探针（放 `e2e/poppyganda/_probe.spec.ts`）把每个角色的真实弹窗文案打出来；
+2. 再写正式用例；写完删除探针文件；
+3. 自己跑：
+   `npx playwright test e2e/poppyganda/role_scenarios.spec.ts --retries=0 --timeout=300000`
+   （dev server 已在 127.0.0.1:3100 跑着；**不要**自己起 server、**不要**跑 next build）
+4. 红了就改，直到 **全绿**。
+
+# 输出协议（强制）
+- 每条回复思考 ≤ 150 字；
+- **一条回复只做一个动作**（写 1 个文件 或 跑 1 条命令）；
+- 本条回复必须直接写文件，不要输出长篇解释；
+- 全部绿了之后，用 brief 第 8 节的格式回报一次。

@@ -20,7 +20,8 @@
     "verify:all": "node scripts/verify-all.mjs",
     "verify:list": "node scripts/verify-all.mjs --list",
     "coverage:audit": "tsx scripts/coverage-audit.ts",
-    "plan:scenes": "tsx scripts/plan-scenes.ts"
+    "plan:scenes": "tsx scripts/plan-scenes.ts",
+    "audit:roles": "tsx scripts/audit-role-e2e.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
