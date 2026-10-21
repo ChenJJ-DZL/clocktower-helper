@@ -145,6 +145,17 @@ function armedHardStates(before: any[], after: any[]): string[] {
 type NegKind =
   /** 演员已死亡 + 无任何输入 ⇒ 必须中止且零座位变化 */
   | "deadActor"
+  /**
+   * 演员**真正**死亡（僵怖专用）。
+   *
+   * ⚠️ 为什么僵怖不能用 `deadActor`：官方规则「**若你第一次死亡，你看起来是死的，
+   *   但你仍然活着**」⇒ 只把 `isDead` 置 true 的僵怖**必须继续行动**，
+   *   拿它做「死亡即中止」的负向对照会反过来要求实现违反官方规则
+   *   （2026-10-21 实测：该负向对照此前能过，是因为僵怖的「白天有人死亡」判据
+   *    有一个 `undefined !== null` 的误判把每次行动都中止了 —— 绿灯是假的）。
+   *   本类型改为置 `zombuulTrulyDead: true`（= 第二次死亡，真正下场）。
+   */
+  | "trulyDeadActor"
   /** 被动/设置类：不中止，但不得产生任何座位级状态变化 */
   | "passiveNoChange"
   /** 理发师（官方：恶魔「可以选择不交换」）⇒ 未指定交换时不得改角色 */
@@ -610,7 +621,7 @@ const SPEC: Spec[] = [
     // ⇒ 官方 min 应为 1；实现 min=0（允许空刀）→ 登记偏差。
     target: { min: 1, max: 1, allowSelf: false, allowDead: false },
     timing: ["every_night"],
-    neg: "deadActor",
+    neg: "trulyDeadActor",
     gate: "ungated",
   },
 ];
@@ -986,9 +997,15 @@ describe("L2 · 凶宅魅影/无上愉悦 · 引擎不变量层（37 唯一角�
     });
 
     it("⑤ 负向对照：前置条件不满足时，不得产生任何座位级状态变化", async () => {
-      if (spec.neg === "deadActor") {
+      if (spec.neg === "deadActor" || spec.neg === "trulyDeadActor") {
         const seats = board([spec.id, ...SAFE]);
-        seats[0] = { ...seats[0], isDead: true };
+        seats[0] = {
+          ...seats[0],
+          isDead: true,
+          ...(spec.neg === "trulyDeadActor"
+            ? { zombuulTrulyDead: true }
+            : {}),
+        };
         const before = JSON.parse(JSON.stringify(seats));
         const res = await runRole(spec.ability, seats, 0, {
           night: 2,

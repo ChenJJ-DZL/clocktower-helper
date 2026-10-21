@@ -466,6 +466,15 @@ export async function executeViaNewEngine(
       context.addLog(
         `[系统] ⚠️ ${roleId} 能力被跳过: ${resultContext.abortReason ?? "管道中止"}`
       );
+      /**
+       * ⚠️ 2026-10-21 修复 P0（僵怖「白天有人死亡 ⇒ 不攻击」中止后弹窗关不掉）：
+       *   现象：能力被管道中止时，只 `continueToNextAction()` 推进了夜序，
+       *        **确认窗却留在屏幕上**（说书人看到的是上一条能力的旧弹窗，
+       *        而夜序已经走到下一位 ⇒ UI 与状态错位）。
+       *   根因：中止分支没有清 `currentModal`（正常结算分支都会 `setCurrentModal(...)` 换掉它）。
+       *   修法：中止时显式关掉当前弹窗，再推进夜序。
+       */
+      context.setCurrentModal(null);
       context.continueToNextAction();
       return true;
     }

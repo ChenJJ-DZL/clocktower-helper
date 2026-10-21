@@ -2,6 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
+import {
+  isMinionOrDemonRole,
+  isTownsfolkRole,
+} from "../../src/utils/seatAlignment";
 import { computeSetupComposition } from "../../src/utils/setupComposition";
 import { bootScene, driveDusk, driveNight, seatOf, stepsOf, type NightReport } from "../helpers/scenario";
 import { waitForSnapshot } from "../helpers/scriptFlow";
@@ -92,7 +96,7 @@ function adjacentEvilPairs(snap: any): number {
   const evil = (i: number) => {
     const s = seats[i];
     if (s.role?.id === "recluse") return true; // 陌客：默认登记为邪恶
-    return s.role?.type === "minion" || s.role?.type === "demon";
+    return isMinionOrDemonRole(s.role);
   };
   let count = 0;
   for (let i = 0; i < n; i++) {
@@ -109,7 +113,7 @@ function neighborEvilCount(snap: any, seatId: number): number {
     const s = seatAt(snap, id);
     if (!s || s.isDead) return false;
     if (s.role?.id === "recluse") return true; // 陌客：默认登记为邪恶
-    return s.role?.type === "minion" || s.role?.type === "demon";
+    return isMinionOrDemonRole(s.role);
   }).length;
 }
 
@@ -239,7 +243,7 @@ test.describe("无上愉悦 · G1 S16 首夜信息与干扰", () => {
     ).id as number;
     // 管家的主人：选一个善良座位（不选自己）
     const masterSeat = (snap.seats as any[]).find(
-      (s) => s.id !== butlerSeat && s.role?.type === "townsfolk"
+      (s) => s.id !== butlerSeat && isTownsfolkRole(s.role)
     ).id as number;
 
     const report = await driveNight(page, [
@@ -449,7 +453,7 @@ test.describe("无上愉悦 · G3 恶魔继承", () => {
     const demonSeat = seatOf(snap, "imp");
     const swSeat = seatOf(snap, "scarlet_woman");
     const nominator = (snap.seats as any[]).find(
-      (s: any) => s.id !== demonSeat && s.role?.type === "townsfolk"
+      (s: any) => s.id !== demonSeat && isTownsfolkRole(s.role)
     ).id as number;
 
     const n1 = await driveNight(page, [
@@ -506,7 +510,7 @@ test.describe("无上愉悦 · G4 S17 首夜信息与男爵", () => {
     const drunkSeat = seatOf(snap, "drunk");
     const recluseSeat = seatOf(snap, "recluse");
     const masterSeat = (snap.seats as any[]).find(
-      (s) => s.id !== butlerSeat && s.role?.type === "townsfolk"
+      (s) => s.id !== butlerSeat && isTownsfolkRole(s.role)
     ).id as number;
 
     // ── 男爵：配比修正（外来者池只有 3 ⇒ +2 被钳制到 +1）──
@@ -632,7 +636,7 @@ test.describe("无上愉悦 · G5 S17 僵怖夜杀与守鸦人", () => {
     const baronSeat = seatOf(snap, "baron");
     // 守鸦人死后要查看的玩家（选一个存活善良座位）
     const rkTarget = (snap.seats as any[]).find(
-      (s: any) => s.id !== rkSeat && s.role?.type === "townsfolk" && !s.isDead
+      (s: any) => s.id !== rkSeat && isTownsfolkRole(s.role) && !s.isDead
     ).id as number;
 
     expect((await driveNight(page, [{ role: "poisoner", targets: [baronSeat + 1] }])).status).toBe(

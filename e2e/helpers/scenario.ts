@@ -522,14 +522,36 @@ export async function driveDusk(page: Page, plan: DuskPlan = {}): Promise<DuskRe
       };
 
       // ── 0：日间门禁（进入黄昏被禁用时先解除）──
+      /**
+       * ⚠️ 2026-10-21 修复（无名之墓剧本暴露的真实缺陷）：
+       *   畸形秀演员(mutant) 的【疯狂仲裁】是**进入黄昏的硬门禁**。
+       *   门禁期间，「进入黄昏处决阶段」按钮**被替换成 disabled 的提示按钮**
+       *   「需先完成畸形秀演员判定【疯狂仲裁】」（见 GameStage.tsx 的 label 三态）。
+       *   ⇒ 旧代码用 `/进入黄昏/` 找按钮 ⇒ **找不到** ⇒ `!duskBtn` ⇒ 直接 break
+       *      ⇒ 门禁永不解除 ⇒ 提名/处决全流程静默失败
+       *      （且末尾的 status 判据被正文里的「夜晚行动顺序」误命中 ⇒ 假报 "night"）。
+       *
+       *   修法（不猜文案、只认门禁提示本身）：
+       *   ① 找 disabled 的提示按钮（`/^需先完成|^请先|^待完成/`）；
+       *   ② 从它的文案里抽出 `【xxx】`（= 门禁项名字，如「疯狂仲裁」「疯狂洗脑」）；
+       *   ③ 点**同名且 enabled** 的那个按钮；
+       *   ④ 弹窗里只点**保守项**「无事发生」（不处决、不跳过黄昏）。
+       *   ⚠️ 旧实现里的候选式 `/^(使用|发动|进行)/` 会误点「使用 博学者」等
+      *    正常日间技能（DOM 顺序在前）⇒ 一并收紧为「必须命中门禁项名字」。
+       */
       for (let g = 0; g < 10; g++) {
-        const duskBtn = allBtns().find((b) => /进入黄昏/.test(norm(b)));
-        if (!duskBtn || duskBtn.disabled === false) break;
+        const hintBtn = allBtns().find(
+          (b) =>
+            b.disabled === true &&
+            /^需先完成|^请先|^待完成/.test(norm(b))
+        );
+        if (!hintBtn) break;
+        const gateNames = [...norm(hintBtn).matchAll(/【(.+?)】/g)].map((m) => m[1]);
         const cand = allBtns().filter(
           (b) =>
             !b.disabled &&
             !/^需先完成|^请先|^待完成/.test(norm(b)) &&
-            /疯狂|判定|^(使用|发动|进行)/.test(norm(b))
+            gateNames.some((g2) => norm(b) === g2 || norm(b).includes(g2))
         );
         if (cand.length === 0) break;
         await clickSettled(cand[0], 500);
@@ -655,10 +677,19 @@ export async function driveDusk(page: Page, plan: DuskPlan = {}): Promise<DuskRe
         await sleep(200);
       }
 
+      /**
+       * ⚠️ 2026-10-21 修复（无名之墓剧本暴露）：
+       *   旧判据里有 `/夜晚行动顺序/.test(text())` 这条兜底 —— 但该标题**常驻页面**，
+       *   于是「黄昏流程根本没跑起来」时也会命中 ⇒ 假报 status="night"，
+       *   把「提名/处决全部没发生」伪装成「成功入夜」（用例假绿/假红都难查）。
+       *   修法：兜底条件加一条「当前不在白天」——与 `driveNight` 内部的
+       *   `isDay()`（`/第\s*\d+\s*天/`）保持同一判据。
+       */
+      const inDayPhase = /第\s*\d+\s*天/.test(text());
       const status: any = gameEnded()
         ? "gameover"
         : /night|firstNight|twilight/i.test(phaseNow() ?? "") ||
-            /夜晚行动顺序/.test(text())
+            (!inDayPhase && /夜晚行动顺序/.test(text()))
           ? "night"
           : "timeout";
 

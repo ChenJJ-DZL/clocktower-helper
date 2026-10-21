@@ -39,10 +39,28 @@ const calculateKillTargets = async (
 ): Promise<MiddlewareContext> => {
   const { snapshot, targetIds } = context;
 
-  // 检查白天是否有人死亡（处决或白天暴毙）
+  /**
+   * ⚠️⚠️ 2026-10-21 修复 P0（无上愉悦剧本：僵怖每夜都杀不了人）
+   * ==================================================================
+   * 现象：僵怖的「僵怖击杀」弹窗点得动、也走完了确认窗，但引擎每夜都直接跳过：
+   *      游戏日志写「[系统] ⚠️ zombuul 能力被跳过: 今天白天有人死亡，僵怖不会被唤醒」，
+   *      而实际白天**无人死亡** ⇒ 僵怖等于没有夜间攻击能力（本剧本的恶魔彻底失效）。
+   * 根因：中间件快照（`useNightActionHandler.executeViaNewEngine` 构造的
+   *      `GameStateSnapshot`）**不含 `lastDuskExecution` 字段** ⇒ 解构得到 `undefined`，
+   *      而判据写的是 `lastDuskExecution !== null` ⇒ `undefined !== null` 为真
+   *      ⇒ 每夜都被误判成「今天白天有人死亡」而中止。
+   *      （`src/roles/__tests__/integration/bmr_demon_l5.test.ts` 早就用
+   *        `snapshot: { lastDuskExecution: null }` 绕开了这个坑，并留言「更稳的写法是 `!= null`」）
+   * 修法：判据改成「**有值**才算白天有人死亡」——
+   *      · `lastDuskExecution`：字段缺失（undefined）不再被误判；
+   *      · 另取应用内「**当日**被处决」的权威字段 `todayExecutedId`
+   *        （`useExecutionHandlers.ts` 已注明：进入夜晚仍有效，新白天才清空）；
+   *      · `dayDeathsToday / anyoneDiedToday` 保留（供显式传入的调用方使用）。
+   */
   const dayDeaths = (snapshot as any).dayDeathsToday ?? ((snapshot as any).anyoneDiedToday ? 1 : 0);
-  const { lastDuskExecution } = snapshot;
-  if (lastDuskExecution !== null || dayDeaths > 0) {
+  const lastDuskExecution = (snapshot as any).lastDuskExecution ?? null;
+  const executedToday = (snapshot as any).todayExecutedId ?? null;
+  if (lastDuskExecution !== null || executedToday !== null || dayDeaths > 0) {
     // 白天有人死亡，僵怖不发动攻击
     return {
       ...context,
@@ -56,6 +74,27 @@ const calculateKillTargets = async (
     const targetSeat = snapshot.seats.find((seat) => seat.id === targetId);
     return !targetSeat?.isDead;
   });
+
+  /**
+   * ⭐ 2026-10-21：**选了人、但没有一个是活人** ⇒ 显式中止并留痕。
+   *
+   * 为什么必须显式中止（而不是「安静地什么都不做」）：
+   *   `ws_l2_matrix` 的「静默空转护栏」要求每种边界场景**要么中止、要么有产出、
+   *   要么改变状态**；`目标为已死亡的座位` 这一场景在修掉「白天死亡误判」之后
+   *   变成了纯静默（`meta.validTargets=[]`，无 abort、无日志、无状态变化）
+   *   ⇒ 说书人看到确认窗走完但什么都不发生，事后也无法从日志追溯原因。
+   *   官方语义也支持中止：对已死亡玩家攻击没有任何效果。
+   *
+   * ⚠️ `targetIds` 为空（说书人主动跳过）**不算**异常，保持原行为不自中止。
+   */
+  if (targetIds.length > 0 && validTargets.length === 0) {
+    return {
+      ...context,
+      meta: { ...context.meta, validTargets },
+      aborted: true,
+      abortReason: "所选目标均已死亡，僵怖本次攻击无效",
+    };
+  }
 
   return {
     ...context,
