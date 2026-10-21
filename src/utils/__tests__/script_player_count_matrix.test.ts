@@ -22,6 +22,9 @@ import { generateAndSortQuickStartLineup } from "../quickStartGenerator";
 
 const SAMPLES = 30;
 
+/** 除男爵外还会改开局配比的角色（官方 setup 修正） */
+const OTHER_SETUP_ROLES = ["fang_gu", "vigormortis", "godfather", "balloonist"];
+
 type Counts = { townsfolk: number; outsider: number; minion: number; demon: number };
 
 function four(o: unknown): Counts {
@@ -96,7 +99,15 @@ describe.each(cells)("$scriptName · $playerCount 人", ({ scriptName, playerCou
       const sample: Sample = { index: i, sorted, hasBaron: res.hasBaron, actual };
 
       // ① 无静默少配 + ② 少配必须由池不足解释（池不足格才允许放行，探针未发现此类格）
-      const need = base;
+      //    ⚠️ 2026-10-21：官方配比会随**在场角色**变化（方古 / 亡骨魔 / 教父 / 气球驾驶员），
+      //    「需要多少」必须按本次样本的在场角色算，不能用不含修正的 cell 级 base。
+      const need = four(
+        computeSetupComposition(playerCount, {
+          baronInPlay: res.hasBaron,
+          availableOutsiderPool: pool.outsider,
+          inPlayRoleIds: sorted.map((r) => r.id),
+        }),
+      );
       const poolSufficient =
         pool.townsfolk >= need.townsfolk &&
         pool.outsider >= need.outsider &&
@@ -125,6 +136,9 @@ describe.each(cells)("$scriptName · $playerCount 人", ({ scriptName, playerCou
         const verdict = validateSetupComposition(playerCount, actual, {
           baronInPlay: res.hasBaron,
           availableOutsiderPool: pool.outsider,
+          // ⚠️ 2026-10-21：配比随在场角色变化 ⇒ 校验必须拿到**在场角色 id**，
+          //    否则会把「方古在场（+1 外来者）」误判成配比非法。
+          inPlayRoleIds: sorted.map((r) => r.id),
         });
         expect(
           verdict.valid,
@@ -154,8 +168,11 @@ describe.each(cells)("$scriptName · $playerCount 人", ({ scriptName, playerCou
     }
 
     // ⑥ 男爵局外来者/镇民守恒
+    //    ⚠️ 其他 setup 修正角色在场时配比会再被调整（方古 +1 / 亡骨魔 -1 …），
+    //    「守恒」公式只适用于「男爵是唯一修正来源」的样本；其余样本交给 ④ 判定。
     const added = Math.min(2, pool.outsider - base.outsider);
     for (const s of baronSamples) {
+      if (s.sorted.some((r) => OTHER_SETUP_ROLES.includes(r.id))) continue;
       expect(
         s.actual.outsider,
         `[${scriptName}/${playerCount}人/样本#${s.index}] 男爵局外来者守恒`,

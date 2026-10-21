@@ -183,6 +183,10 @@ export function generateAndSortQuickStartLineup(
       const expected = computeSetupComposition(playerCount, {
         baronInPlay: forcedRoles.some((r) => r.id === "baron"),
         availableOutsiderPool: groups.outsider.length,
+        // ⚠️ 2026-10-21：强制阵容里**所有**角色都已知 ⇒ 把在场 id 全部传进去。
+        //   否则 setup 修正角色（方古 / 亡骨魔 / 教父 / 气球驾驶员）会被漏算，
+        //   配比期望值偏掉 ⇒ 误判「配比非法」抛错（E2E 卡死）。
+        inPlayRoleIds: forcedRoles.map((r) => r.id),
       });
       const exp = expected.counts;
       const mismatch: string[] = [];
@@ -250,12 +254,19 @@ export function generateAndSortQuickStartLineup(
       //   旧实现内联 `Math.min(2, maxOutsidersAvailable - outsiderCount)`
       //   且**静默少配**（池子不足时不提示），与 setup UI / 男爵能力三方分叉。
       //   现在统一调用 `computeSetupComposition`，并把告警带出去。
+      // ⚠️⚠️ 2026-10-21：setup 修正角色（方古 / 亡骨魔 / 教父 / 气球驾驶员）的配比
+      //   修正也统一由 `computeSetupComposition` 出数 —— 把**已抽到的**
+      //   爪牙 + 恶魔 id 传进去（这四种角色在本仓分属爪牙/恶魔，抽到即在场）。
       const composition = computeSetupComposition(playerCount, {
         baronInPlay: hasBaron,
         availableOutsiderPool: groups.outsider.length,
+        inPlayRoleIds: [
+          ...pickedMinions.map((r) => r.id),
+          ...pickedDemon.map((r) => r.id),
+        ],
       });
-      let outsiderCount = composition.counts.outsider;
-      let townsfolkCount = composition.counts.townsfolk;
+      const outsiderCount = composition.counts.outsider;
+      const townsfolkCount = composition.counts.townsfolk;
       if (composition.warnings.length > 0) {
         // 不静默：开局前把配比告警打到控制台（UI 层应同样展示）
         console.warn(
