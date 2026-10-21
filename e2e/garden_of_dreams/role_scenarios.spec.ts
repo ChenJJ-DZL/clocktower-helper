@@ -226,13 +226,18 @@ test.describe("游园惊梦 · G1 S21 首夜", () => {
 
     /**
      * ⚠️ **未验证（驱动器限制，非产品缺陷）**：座位角色表是否真的变化。
-     *   实测驱动器的角色胶囊点击在**嵌套 dialog** 结构下点不中
-     *   （`dialogCount=2`，外层混着「确认&下一步」），所以本用例无法确认
-     *   `transformed` 是否真的落地。产品的通路已接通（弹窗有角色选择 +
-     *   `actionData.chosenRoleId` → `pit_hag.ability::calculate`），
-     *   但「点完之后角色真的变了」这一步仍需人工或更强驱动器验证。
+     *
+     * 已确认的事实链：
+     *   · 弹窗**有**角色胶囊（`button[data-role-id="clockmaker"]` 等，共 20 个）；
+     *   · 手工在同一弹窗里 `cap.click()` 后，可见文本从「已选角色:未选择」变成
+     *     「已选角色: **【钟表匠】**」⇒ **UI 状态机是通的**；
+     *   · 但驱动器走完整流程时：① 弹窗按钮序列是 `[撤销本次行动] [请选择角色]`，
+     *     兜底原本会点「撤销」（已修：排除撤销/取消/返回）；② 修完仍点不通 ——
+     *     手工复现时点完胶囊后「确认选择【X】」按钮**不出现**（`confirmTxt: none`），
+     *     推测弹窗在这条路径上被重新挂载、内部 `selectedRoleId` 被重置。
+     * ⇒ 产品侧**仅验证到「弹窗提供角色选择」**；「选完真的变身」留给人工或更强驱动器。
      */
-    test.fail(true, "麻脸巫婆角色变换未验证：驱动器在嵌套 dialog 里点不中角色胶囊（产品通路已接通）");
+    test.fail(true, "麻脸巫婆角色变换未验证：驱动器在此弹窗上点胶囊后「确认选择」按钮不出现（产品通路已接通）");
     const after2 = await snapNow(page);
     const rolesBefore2 = (snap.seats as any[]).map((x) => `${x.id}:${x.role.id}`).join(",");
     const rolesAfter2 = (after2?.seats ?? []).map((x: any) => `${x.id}:${x.role?.id}`).join(",");

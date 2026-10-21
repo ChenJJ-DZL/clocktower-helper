@@ -276,8 +276,14 @@ export async function driveNight(
          *   只要出现「角色胶囊 + 已选角色:未选择」就先点一个，然后重新进入循环。
          */
         {
+          /**
+           * ⚠️ 判据不要用「已选角色:未选择」——实测该行文本里混着不可见字符，
+           *   `replace(/\s+/g,"")` 之后仍匹配不上（第 5 种尝试失败在这里）。
+           *   改用**确认按钮的文案**：未选角色时它显示「请选择角色」（disabled），
+           *   选中后变成「确认选择【X】」。这是 DOM 里最稳的信号。
+           */
           const bodyNorm = (document.body.textContent || "").replace(/\s+/g, "");
-          if (/已选角色:未选择/.test(bodyNorm)) {
+          if (/请选择角色/.test(bodyNorm)) {
             const caps = Array.from(
               document.querySelectorAll("button[data-role-id]")
             ) as any[];
@@ -410,10 +416,21 @@ export async function driveNight(
           // 「确认替死/击杀目标」等说书人修正按钮优先
           // ⚠️ 同样用 document 级查询：modal 重新挂载后旧 `dlg` 引用会失效
           const okBtns = btnsIn(document.querySelector('[role="dialog"]') ?? dlg);
+          /**
+           * 🔴 2026-10-23 实锤（麻脸巫婆 S21）：兜底**不能**取「第一个可用按钮」。
+           *   行动确认弹窗的按钮顺序是 `[撤销本次行动] [请选择角色]`，
+           *   「撤销本次行动」排在前面且**一直可用** ⇒ 兜底会点它
+           *   ⇒ 整段能力被**静默撤销**（驱动器还以为自己推进了一步，
+           *     表现为 `status=day`、座位角色表一字未变）。
+           *   ⇒ 兜底必须排除撤销/取消/返回类。
+           */
           const ok =
             okBtns.find((b: any) => /确认替死|确认选择|确认击杀/.test(norm(b)) && !b.disabled) ??
             okBtns.find((b: any) => CONFIRM.test(norm(b)) && !b.disabled) ??
-            okBtns.find((b: any) => !b.disabled);
+            okBtns.find(
+              (b: any) =>
+                !b.disabled && !/撤销|取消|返回|关闭|跳过/.test(norm(b))
+            );
           if (ok) {
             // ⚠️ 记录这一次「弹窗 + 选择 + 结果」，作为该步的留证
             const before = slice(snapNow());
