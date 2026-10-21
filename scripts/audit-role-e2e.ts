@@ -77,7 +77,7 @@ function main() {
   let coveredRoles = 0;
   const missingByScript: Array<{ script: string; roles: string[]; file: string }> = [];
 
-  console.log("剧本\t角色数\t已写入用例\t缺失");
+  console.log("剧本\t角色数\t已写入用例\t已知缺口\t缺失");
   console.log("─".repeat(72));
 
   for (const s of scenes.scripts) {
@@ -101,8 +101,10 @@ function main() {
         file: rel ?? "(未登记)",
       });
     }
+    // `test.fail(...)` = 显式登记的已知缺口（红着跑，修好会翻绿提醒）
+    const gaps = src ? (src.match(/test\.fail\(true/g) ?? []).length : 0;
     console.log(
-      `${s.script}\t${roleIds.length}\t${covered.length}\t${
+      `${s.script}\t${roleIds.length}\t${covered.length}\t${gaps === 0 ? "0" : `${gaps} 条`}\t${
         missing.length === 0 ? "—" : `${missing.length} 个`
       }${src ? "" : "\t(用例文件不存在)"}`
     );
