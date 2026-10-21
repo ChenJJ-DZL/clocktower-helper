@@ -3,6 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
 import {
+  isMinionOrDemonRole,
+  isTownsfolkRole,
+} from "../../src/utils/seatAlignment";
+import {
   bootScene,
   driveDusk,
   driveNight,
@@ -213,7 +217,7 @@ test.describe("无名之墓 · G2 S14 第 2 夜", () => {
     const deadEvil = (after?.seats ?? []).filter(
       (s: any) =>
         s.isDead &&
-        (s.role?.type === "minion" || s.role?.type === "demon" || s.isEvilConverted === true)
+        (isMinionOrDemonRole(s.role) || s.isEvilConverted === true)
     ).length;
     expect.soft(oracleNum, "神谕者数字应等于死亡座位里的邪恶数").toBe(deadEvil);
   });
@@ -352,32 +356,15 @@ test.describe("无名之墓 · G4 S15 僵怖与水手", () => {
     expect.soft(sailorDialog, "水手应给出醉酒结果").toMatch(/醉|水手/);
   });
 
-  test("弄臣被处决 ⇒ 首次不得死亡（⚠️ 已确认为产品缺陷）", async ({ page }) => {
+  test("弄臣被处决 ⇒ 首次不得死亡，且免死标记被消费", async ({ page }) => {
     /**
-     * 🔴 2026-10-21 实测确认的**产品缺陷**（不是驱动问题）：
-     *   处决弄臣后快照 `dead=[8]` —— 弄臣**第一次被处决就死了**。
-     *   官方：「如果你第一次被处决，你不会死亡。」
-     *   追加证据（2026-10-21 探针）：
-     *     · 处决前/后弄臣座位的 `foolUsed / hasUsedFoolAbility / hasUsedAbility`
-     *       **全是 undefined**，`isDrunk/isPoisoned` 都是 false
-     *       ⇒ `canFoolSurvive()` 此刻**必然返回 true**（它只否掉「已用过」和「醉/毒」）；
-     *     · 但 `killPlayer` 里那条 `canFoolSurvive` 免死分支（useGameController:693）
-     *       显然没被执行到 —— 否则 `foolUsed` 会被写成 true。
-     *   ⇒ 结论：**处决路径没有走到 `killPlayer` 的这段代码**（`handleExecution`
-     *     对 fool 提前 `handled` 掉了，或 legacy 分支的调用顺序被别的分支拦截）。
-     *   已排除：`getRoleDefinition("fool").onExecution` **不存在**（fool.ts 只有 70 行、
-     *   无 onExecution）⇒ `handleExecution` 直接返回 null，走 legacy 分支，
-     *   该分支**确实**调了 `killPlayer(id,{source:"execution"})`。
-     *   ⇒ 最可能的原因（下一轮先验证这一条）：legacy 分支里**先**
-     *     `dispatch({type:"EXECUTE_PLAYER"})` 把座位标成 `isDead=true`，
-     *     **再**调 `killPlayer`；而 `canFoolSurvive()` 开头就有
-     *     `if (!isAliveSeat(seat)) return false;` ⇒ 此时弄臣已"死"，
-     *     免死判据直接短路 ⇒ 免死分支永不进入。
-     *   修法候选：① `executePlayer` 里把 `dispatch(EXECUTE_PLAYER)` 移到
-     *     `killPlayer` **之后**；或 ② `canFoolSurvive` 的存活前置改为
-     *     「未消费过免死」（`foolUsed !== true`），不看当前 isDead。
+     * 🔴 2026-10-21 修复的真实缺陷（本用例就是回归证据）：
+     *   处决主链 legacy 分支**先** dispatch `EXECUTE_PLAYER`（reducer 里 `isDead=true`），
+     *   **再**调 `killPlayer`；而 `canFoolSurvive()` 开头有 `isAliveSeat(seat)` 前置
+     *   ⇒ 判免死时弄臣已经"死"了 ⇒ 免死永不生效（实测 `dead=[8]`、`foolUsed` 仍 undefined）。
+     *   修法：`canFoolSurvive(seat, { ignoreAlive: true })` 仅在**处决来源**生效，
+     *   判据改为「免死是否已消费」（foolUsed/hasUsedFoolAbility）。
      */
-    test.fail(true, "弄臣处决免死未生效：executePlayer 不走 killPlayer 的 canFoolSurvive 分支");
     const { script, game } = loadScene("S15");
     const snap = await bootScene(page, {
       script,
@@ -386,7 +373,7 @@ test.describe("无名之墓 · G4 S15 僵怖与水手", () => {
       lineup: game.seats.map((s: any) => s.id),
     });
     const foolSeat = seatByRole(snap, "fool");
-    const nominator = [1, 3, 4, 5].find((x) => x !== foolSeat + 1)!;
+    const nominator = [1, 3, 5, 12].find((x) => x !== foolSeat + 1)!;
 
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
 
@@ -400,6 +387,15 @@ test.describe("无名之墓 · G4 S15 僵怖与水手", () => {
     const after = await snapNow(page);
     const fool = after?.seats?.find((s: any) => s.id === foolSeat);
     expect.soft(fool?.isDead, "弄臣第一次被处决不得死亡").toBe(false);
+    expect
+      .soft(fool?.foolUsed === true || fool?.hasUsedFoolAbility === true, "免死应被消费（foolUsed=true）")
+      .toBe(true);
+    expect
+      .soft(
+        after?.seats?.filter((s: any) => s.isDead).length,
+        "本次处决不应死人（弄臣免死生效）"
+      )
+      .toBe(0);
 
     const live = await readLiveEndState(page);
     expect.soft(live?.gameOverUi, "弄臣活着 ⇒ 不得因此终局").toBe(false);
@@ -436,7 +432,7 @@ test.describe("无名之墓 · G5 S15 农夫与畸形秀演员", () => {
     const zombuulSeat = seatByRole(snap, "zombuul");
     // 选一名镇民作为僵怖的击杀目标（农夫继承的对象）
     const townsfolkSeat = (snap.seats as any[]).find(
-      (s) => s.role?.type === "townsfolk" && s.id !== farmerSeat && s.id !== zombuulSeat
+      (s) => isTownsfolkRole(s.role) && s.id !== farmerSeat && s.id !== zombuulSeat
     ).id as number;
 
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");

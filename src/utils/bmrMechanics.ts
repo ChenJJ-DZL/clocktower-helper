@@ -128,9 +128,28 @@ export function isProtectedBySailor(seat: Seat | undefined | null): boolean {
  * 判定弄臣首次免死
  * 官方规则：弄臣清醒时，首次死亡免死。若已有其他保护（茶艺师/旅店老板），则不消耗弄臣的免死。
  */
-export function canFoolSurvive(seat: Seat | undefined | null): boolean {
+export function canFoolSurvive(
+  seat: Seat | undefined | null,
+  options?: {
+    /**
+     * 🔴 2026-10-21：忽略「当前 isDead」这一前置。
+     *
+     * 为什么需要（真实缺陷，无名之墓 S15 实测）：
+     *   处决主链的 legacy 分支**先** `dispatch({type:"EXECUTE_PLAYER"})`
+     *   —— 那个 reducer 会把目标 `isDead` 置 true —— **再**调 `killPlayer`。
+     *   于是在 `killPlayer` 里判免死时，弄臣**已经被标成死人**，
+     *   `isAliveSeat()` 直接返回 false ⇒ 免死永不生效 ⇒ 弄臣第一次被处决就死。
+     *   官方：「当你首次将要死亡时，你不会死亡」——判据应看「免死是否已消费」，
+     *   而不是「此刻是否已被乐观地标死」。
+     *
+     * ⚠️ 只在**处决来源**传 true（见 `useGameController::killPlayer`）：
+     *   夜杀路径在标记死亡之前就判过免疫，不需要也不应该忽略存活前置。
+     */
+    ignoreAlive?: boolean;
+  }
+): boolean {
   if (!seat || seat.role?.id !== "fool") return false;
-  if (!isAliveSeat(seat)) return false;
+  if (!options?.ignoreAlive && !isAliveSeat(seat)) return false;
   if (isDrunkOrPoisoned(seat)) return false;
   const hasUsed =
     (seat as any).foolUsed === true ||

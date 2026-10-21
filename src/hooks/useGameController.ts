@@ -690,7 +690,18 @@ export function useGameController() {
         ((klutzBeforeDeath as any)?.charadeRole?.id === "klutz" ||
           klutzBeforeDeath?.role?.id === "klutz");
 
-      if (canFoolSurvive(seatsRef.current.find((s) => s.id === targetId))) {
+      /**
+       * 🔴 2026-10-21：处决来源要**忽略「刚被 EXECUTE_PLAYER 标死」**这一事实。
+       *
+       * `useExecutionHandlers::executePlayer` 的 legacy 分支先 dispatch
+       * `EXECUTE_PLAYER`（reducer 里 `target.isDead = true`），再调本函数；
+       * 若这里按 `isAliveSeat` 判，弄臣永远救不回来（无名之墓 S15 实测：
+       * 处决弄臣 `dead=[8]`，`foolUsed` 仍为 undefined）。
+       */
+      const foolProbe = seatsRef.current.find((s) => s.id === targetId);
+      if (
+        canFoolSurvive(foolProbe, { ignoreAlive: source === "execution" })
+      ) {
         addLog(
           `🃏 ${targetId + 1}号(弄臣) 首次面临死亡，免死能力生效 —— 他不会死亡`
         );
