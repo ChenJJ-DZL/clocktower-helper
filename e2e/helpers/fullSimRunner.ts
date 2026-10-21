@@ -70,6 +70,8 @@ export interface FullSimSummary {
     special?: boolean;
     reason: string;
   };
+  /** 跑满圈数上限仍未终局（兜底命中，不是违规） */
+  hitCycleCap?: boolean;
   snapAlive: number;
   snapWinResult: unknown;
   /** 终局快照里的夜数（用于验证 nightCount 是否真的递增） */
@@ -140,6 +142,8 @@ export async function runFullGameSim(
   // ── 整局循环：夜 → 昼 → 夜 … ──
   let cycles = 0;
   let gameover = false;
+  /** 跑满圈数上限仍未终局（兜底命中，不是违规） */
+  let hitCycleCap = false;
   const trail: string[] = [];
   /**
    * ⚠️ 处决结算留痕：**必须落进报告**，否则「I14 永远读到 null ⇒ 永远跳过」
@@ -292,6 +296,14 @@ export async function runFullGameSim(
       step: `cycles#${cycles}`,
       detail: `未在 ${maxCycles} 个昼夜内终局（恶魔仍存活 / 白天未推进）`,
     });
+  } else {
+    /**
+     * 兜底命中：**只告警，不判红**。
+     * 15 人局要死 13 人才到「存活 ≤2」，20 圈内死不到是正常现象；
+     * 矩阵的职责是「角色技能与流程合规」，终局判据由 5 人局的 terminal_state 专项负责。
+     */
+    hitCycleCap = true;
+    trail.push(`⚠️ 达到 ${maxCycles} 圈上限仍未终局（兜底命中，不计违规）`);
   }
 
   // 中心 HUD 的阶段标签（state 真值的第一手呈现，不再靠文案猜）
