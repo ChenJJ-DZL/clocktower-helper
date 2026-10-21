@@ -16,7 +16,7 @@ import { getAllRoleDefinitions, getRoleDefinition } from "../roles";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
-import { canFoolSurvive } from "../utils/bmrMechanics";
+import { canFoolSurvive, isProtectedByDevilsAdvocate } from "../utils/bmrMechanics";
 import {
   generateDynamicNightQueue,
   isDeathTriggeredRole,
@@ -718,6 +718,49 @@ export function useGameController() {
           )
         );
         // 流程仍需继续（调用方靠 onAfterKill 推进）；但**不**记夜死、**不**记外来者死亡、**不**判终局
+        if (onAfterKill) onAfterKill();
+        return;
+      }
+
+      /**
+       * 😈 **魔鬼代言人：处决豁免（2026-10-22 修复）**
+       * ==================================================================
+       * 官方【魔鬼代言人】：「每个夜晚，你要选择一名存活的玩家（与上个夜晚不同）：
+       *   **如果明天白天他被处决，他不会死亡。**」
+       *
+       * 🔴 修复的缺陷：`devils_advocate.ability.ts::stateUpdate` 一直**写**着
+       *   `isExecutionProtected: true` + `statusEffects[{type:"execution_protected"}]`，
+       *   而 `bmrMechanics::isProtectedByDevilsAdvocate` 也一早写好了判据 ——
+       *   但**全仓库没有任何生产代码调用它**（`grep -rn isProtectedByDevilsAdvocate src/ app/`
+       *   只命中定义与 `__tests__`）⇒ 保护标记写了没人读 ⇒ 保护对象照样被处决死。
+       *   实测：窃窃私语 S13 第 1 夜保护 2 号，第 1 昼处决 2 号 ⇒ `isDead=true`。
+       *
+       * ⚠️ 与弄臣分支同构，且必须做两件事：
+       *   ① `isDead: false` —— 处决主链的 legacy 分支**先** dispatch `EXECUTE_PLAYER`
+       *      把目标标死，再调本函数，所以这里必须把「刚被标死」回滚；
+       *   ② **消费掉标记**（`isExecutionProtected: false` + 清 statusEffects 里的
+       *      `devils_advocate` 项）—— 保护只挡「明天那一次处决」，不能永久生效。
+       *   只在 `source === "execution"` 生效：夜杀不走这条豁免（官方只管处决）。
+       */
+      const daProbe = seatsRef.current.find((s) => s.id === targetId);
+      if (source === "execution" && isProtectedByDevilsAdvocate(daProbe)) {
+        addLog(
+          `😈 ${targetId + 1}号 受魔鬼代言人保护 —— 本次处决不会死亡`
+        );
+        commitSeats((prev) =>
+          prev.map((s) =>
+            s.id === targetId
+              ? {
+                  ...s,
+                  isDead: false,
+                  isExecutionProtected: false,
+                  statusEffects: (s.statusEffects ?? []).filter(
+                    (e: any) => e?.source !== "devils_advocate"
+                  ),
+                }
+              : s
+          )
+        );
         if (onAfterKill) onAfterKill();
         return;
       }

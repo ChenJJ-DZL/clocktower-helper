@@ -524,38 +524,29 @@ export function useGameState() {
     (val: boolean) => dispatch(gameActions.setOutsiderDiedToday(val)),
     [dispatch]
   );
+  /**
+   * 造谣者三个字段的 setter —— **各自只写自己那一项**。
+   *
+   * 🔴 2026-10-22 修复（真实缺陷）：旧实现每个 setter 都把三项一起 dispatch，
+   *   而另外两项取自**同一帧的 `state`** ⇒ 连续调用时后一次用旧值覆盖前一次：
+   *   实测连点「声明 → 来源座位 → 真假」后，快照只剩 `gossipTrueTonight=true`，
+   *   声明为空、来源为 null ⇒ 夜间结算一律判「声明错误」，「为真」永不生效。
+   *   现在只写单项（reducer 做局部合并），依赖数组因此可以退化成 `[dispatch]`。
+   */
   const setGossipStatementToday = useCallback(
     (val: string) =>
-      dispatch(
-        gameActions.setGossipState(
-          val,
-          state.gossipTrueTonight,
-          state.gossipSourceSeatId
-        )
-      ),
-    [dispatch, state.gossipTrueTonight, state.gossipSourceSeatId]
+      dispatch(gameActions.setGossipState({ statement: val })),
+    [dispatch]
   );
   const setGossipTrueTonight = useCallback(
     (val: boolean) =>
-      dispatch(
-        gameActions.setGossipState(
-          state.gossipStatementToday,
-          val,
-          state.gossipSourceSeatId
-        )
-      ),
-    [dispatch, state.gossipStatementToday, state.gossipSourceSeatId]
+      dispatch(gameActions.setGossipState({ isTrue: val })),
+    [dispatch]
   );
   const setGossipSourceSeatId = useCallback(
     (val: number | null) =>
-      dispatch(
-        gameActions.setGossipState(
-          state.gossipStatementToday,
-          state.gossipTrueTonight,
-          val
-        )
-      ),
-    [dispatch, state.gossipStatementToday, state.gossipTrueTonight]
+      dispatch(gameActions.setGossipState({ sourceId: val })),
+    [dispatch]
   );
   const setCurrentModal: React.Dispatch<React.SetStateAction<ModalType>> =
     useCallback(

@@ -595,11 +595,21 @@ export type GameAction =
   | { type: "SET_HISTORY"; history: any[] } // 设置历史记录
   | { type: "UPDATE_STATE"; updates: Partial<GameState> } // 通用更新Action
   | { type: "SET_OUTSIDER_DIED_TODAY"; died: boolean }
+  /**
+   * 🔴 2026-10-22：三个字段改为**可选**（局部更新）。
+   *
+   * 旧实现三个 setter 各带全量三字段，而三者都从**同一次渲染的 `state`** 读另外两项
+   * ⇒ 连续 dispatch 时后一次用**陈旧值**覆盖前一次：
+   *   实测 `setGossipStatementToday("…")` → `setGossipSourceSeatId(6)` → `setGossipTrueTonight(true)`
+   *   之后快照变成 `{statement:"", isTrue:true, sourceId:null}` —— 只有最后一次落地。
+   *   后果：造谣者夜间结算永远读到空声明 ⇒ 一律判「声明错误」，「为真」永远不产生死亡。
+   * 改为局部更新后，每个 setter 只写自己那一个字段，天然无竞态。
+   */
   | {
       type: "SET_GOSSIP_STATE";
-      statement: string;
-      isTrue: boolean;
-      sourceId: number | null;
+      statement?: string;
+      isTrue?: boolean;
+      sourceId?: number | null;
     }
   | { type: "SET_MODAL"; modal: ModalType }
   | { type: "SET_VOTE_INPUT"; value: string }
@@ -1361,11 +1371,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, outsiderDiedToday: action.died };
 
     case "SET_GOSSIP_STATE":
+      // 局部合并：只覆盖 action 里**显式给出**的字段（`null` 是合法值，用 !== undefined 判）
       return {
         ...state,
-        gossipStatementToday: action.statement,
-        gossipTrueTonight: action.isTrue,
-        gossipSourceSeatId: action.sourceId,
+        ...(action.statement !== undefined
+          ? { gossipStatementToday: action.statement }
+          : {}),
+        ...(action.isTrue !== undefined
+          ? { gossipTrueTonight: action.isTrue }
+          : {}),
+        ...(action.sourceId !== undefined
+          ? { gossipSourceSeatId: action.sourceId }
+          : {}),
       };
 
     case "SET_MODAL":
@@ -1902,11 +1919,11 @@ export const gameActions = {
     type: "SET_OUTSIDER_DIED_TODAY",
     died,
   }),
-  setGossipState: (
-    statement: string,
-    isTrue: boolean,
-    sourceId: number | null
-  ): GameAction => ({ type: "SET_GOSSIP_STATE", statement, isTrue, sourceId }),
+  setGossipState: (partial: {
+    statement?: string;
+    isTrue?: boolean;
+    sourceId?: number | null;
+  }): GameAction => ({ type: "SET_GOSSIP_STATE", ...partial }),
   setModal: (modal: ModalType): GameAction => ({ type: "SET_MODAL", modal }),
   setVoteInput: (value: string): GameAction => ({
     type: "SET_VOTE_INPUT",
