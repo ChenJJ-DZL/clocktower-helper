@@ -2,41 +2,35 @@
 
 import { useCallback } from "react";
 import type { Seat } from "../../app/data";
+import {
+  computeSetupComposition,
+  STANDARD_COMPOSITIONS,
+} from "../utils/setupComposition";
 
+/**
+ * ⚠️ 2026-10-21：这里原来**自己抄了一份 5~15 人的配比表**，并且只认「男爵 +2」。
+ * 后果：方古（+1 外来者）/亡骨魔（−1）在场时，界面会弹「阵容配置错误」
+ * （期望 9/2、实际 8/3），把一个**合法**阵容拦住 —— E2E 直接卡在入夜前。
+ * 修法：配比只允许一个事实源 `computeSetupComposition`，本文件只负责「比对」。
+ *
+ * @param availableOutsiderPool 当前剧本的外来者池大小（用于钳制 +2/+1 的上限）。
+ *   不传则不做池钳制（老调用方行为不变）。
+ */
 export function useSetupManager(
   seats: Seat[],
-  setSeats: React.Dispatch<React.SetStateAction<Seat[]>>
+  setSeats: React.Dispatch<React.SetStateAction<Seat[]>>,
+  availableOutsiderPool?: number
 ) {
+  /** 基础配比（**不含**角色修正）；唯一事实源 = STANDARD_COMPOSITIONS */
   const getStandardComposition = useCallback((n: number) => {
-    const table: Record<
-      number,
-      {
-        townsfolk: number;
-        outsider: number;
-        minion: number;
-        demon: number;
-        total: number;
-      }
-    > = {
-      5: { townsfolk: 3, outsider: 0, minion: 1, demon: 1, total: 5 },
-      6: { townsfolk: 3, outsider: 1, minion: 1, demon: 1, total: 6 },
-      7: { townsfolk: 5, outsider: 0, minion: 1, demon: 1, total: 7 },
-      8: { townsfolk: 5, outsider: 1, minion: 1, demon: 1, total: 8 },
-      9: { townsfolk: 5, outsider: 2, minion: 1, demon: 1, total: 9 },
-      10: { townsfolk: 7, outsider: 0, minion: 2, demon: 1, total: 10 },
-      11: { townsfolk: 7, outsider: 1, minion: 2, demon: 1, total: 11 },
-      12: { townsfolk: 7, outsider: 2, minion: 2, demon: 1, total: 12 },
-      13: { townsfolk: 9, outsider: 0, minion: 3, demon: 1, total: 13 },
-      14: { townsfolk: 9, outsider: 1, minion: 3, demon: 1, total: 14 },
-      15: { townsfolk: 9, outsider: 2, minion: 3, demon: 1, total: 15 },
-    };
-    return table[n] || null;
+    const base = STANDARD_COMPOSITIONS[n];
+    if (!base) return null;
+    return { ...base, total: n };
   }, []);
 
   const getCompositionStatus = useCallback(
     (activeSeats: Seat[]) => {
       const playerCount = activeSeats.length;
-      const standard = getStandardComposition(playerCount);
       const actual = {
         townsfolk: activeSeats.filter((s) => s.role?.type === "townsfolk")
           .length,
@@ -49,42 +43,41 @@ export function useSetupManager(
       const hasBaron = activeSeats.some((s) => s.role?.id === "baron");
       const hasLegion = activeSeats.some((s) => s.role?.id === "legion");
 
-      let valid = false;
+      // 军团：多数为军团、无爪牙、至少 1 名善良 —— 不适用常规配比
       if (hasLegion) {
-        // 军团专属配置：多数玩家为军团（恶魔），无爪牙，至少 1 名善良玩家
         const goodCount = actual.townsfolk + actual.outsider;
-        valid =
-          actual.demon > goodCount && actual.minion === 0 && goodCount >= 1;
-      } else if (standard) {
-        if (hasBaron) {
-          // 有男爵时，按照男爵规则验证：减少2镇民，增加2外来者
-          const expectedTownsfolk = standard.townsfolk - 2;
-          const expectedOutsider = standard.outsider + 2;
-          valid =
-            actual.townsfolk === expectedTownsfolk &&
-            actual.outsider === expectedOutsider &&
-            actual.minion === standard.minion &&
-            actual.demon === standard.demon;
-        } else {
-          // 无男爵时，按标准配置验证
-          valid =
-            actual.townsfolk === standard.townsfolk &&
-            actual.outsider === standard.outsider &&
-            actual.minion === standard.minion &&
-            actual.demon === standard.demon;
-        }
+        return {
+          valid: actual.demon > goodCount && actual.minion === 0 && goodCount >= 1,
+          standard: null,
+          actual,
+          playerCount,
+          hasBaron,
+          hasLegion,
+        };
       }
+
+      const expected = computeSetupComposition(playerCount, {
+        baronInPlay: hasBaron,
+        availableOutsiderPool,
+        inPlayRoleIds: activeSeats
+          .map((s) => s.role?.id)
+          .filter((id): id is string => typeof id === "string"),
+      });
+      const standard = { ...expected.counts, total: playerCount };
+      const valid =
+        actual.townsfolk === standard.townsfolk &&
+        actual.outsider === standard.outsider &&
+        actual.minion === standard.minion &&
+        actual.demon === standard.demon;
 
       return { valid, standard, actual, playerCount, hasBaron, hasLegion };
     },
-    [getStandardComposition]
+    [availableOutsiderPool]
   );
 
   const getBaronStatus = useCallback(
     (activeSeats: Seat[]) => {
       const playerCount = activeSeats.length;
-      const std = getStandardComposition(playerCount);
-      const hasBaron = activeSeats.some((s) => s.role?.id === "baron");
       const actual = {
         townsfolk: activeSeats.filter((s) => s.role?.type === "townsfolk")
           .length,
@@ -92,26 +85,28 @@ export function useSetupManager(
         minion: activeSeats.filter((s) => s.role?.type === "minion").length,
         demon: activeSeats.filter((s) => s.role?.type === "demon").length,
       };
+      const hasBaron = activeSeats.some((s) => s.role?.id === "baron");
+      const base = getStandardComposition(playerCount);
+      if (!hasBaron) {
+        return { valid: true, recommended: base, current: actual, playerCount };
+      }
 
-      if (!hasBaron)
-        return { valid: true, recommended: std, current: actual, playerCount };
-
-      const recommended = std
-        ? {
-            ...std,
-            townsfolk: std.townsfolk - 2,
-            outsider: std.outsider + 2,
-          }
-        : null;
-
-      const valid = recommended
-        ? actual.townsfolk === recommended.townsfolk &&
-          actual.outsider === recommended.outsider
-        : false;
+      // 男爵只是「配比修正」的一种 ⇒ 期望值统一由 computeSetupComposition 出
+      const expected = computeSetupComposition(playerCount, {
+        baronInPlay: true,
+        availableOutsiderPool,
+        inPlayRoleIds: activeSeats
+          .map((s) => s.role?.id)
+          .filter((id): id is string => typeof id === "string"),
+      });
+      const recommended = { ...expected.counts, total: playerCount };
+      const valid =
+        actual.townsfolk === recommended.townsfolk &&
+        actual.outsider === recommended.outsider;
 
       return { valid, recommended, current: actual, playerCount };
     },
-    [getStandardComposition]
+    [availableOutsiderPool, getStandardComposition]
   );
 
   const validateCompositionSetup = useCallback(

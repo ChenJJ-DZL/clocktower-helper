@@ -12,7 +12,7 @@ import {
   scripts,
 } from "../../app/data";
 import { gameActions, useGameContext } from "../contexts/GameContext";
-import { getRoleDefinition } from "../roles";
+import { getAllRoleDefinitions, getRoleDefinition } from "../roles";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
@@ -341,7 +341,19 @@ export function useGameController() {
   );
   const gameFlow = useGameFlow();
   const nightActionHandler = useNightActionHandler();
-  const setupManager = useSetupManager(seats, commitSeats);
+  /**
+   * 当前剧本的「外来者池」大小——用于配比修正的钳制上限。
+   * 例：无名之墓只有 2 个外来者，男爵想 +2 也加不满 ⇒ 期望值必须是 9/2 而不是 7/4。
+   */
+  const availableOutsiderPool = useMemo(() => {
+    const ids = (selectedScript as any)?.roleIds as string[] | undefined;
+    if (!Array.isArray(ids) || ids.length === 0) return undefined;
+    return (getAllRoleDefinitions() as any[]).filter(
+      (r) => ids.includes(r.id) && r.type === "outsider"
+    ).length;
+  }, [selectedScript]);
+
+  const setupManager = useSetupManager(seats, commitSeats, availableOutsiderPool);
 
   const setGameRecordsProp = useCallback(
     (val: React.SetStateAction<GameRecord[]>) => {

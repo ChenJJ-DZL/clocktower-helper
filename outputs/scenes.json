@@ -1,18 +1,16 @@
 {
-  "generatedAt": "2026-10-21T06:52:30.042Z",
+  "generatedAt": "2026-10-21T07:34:26.916Z",
   "method": "roleIds ← app/data.ts；配比 ← STANDARD_COMPOSITIONS + 角色自带修正（男爵/方古/亡骨魔）；独立复算校验",
   "totals": {
     "scenes": 27,
     "rolePairs": 191,
-    "coveredPairs": 190,
-    "coverage": 0.9948,
-    "nonDealablePairs": [
-      "无名之墓:scapegoat"
-    ]
+    "coveredPairs": 191,
+    "coverage": 1,
+    "nonDealablePairs": []
   },
   "warnings": [
-    "无名之墓 G1: 修正需 4 外来者，池仅 2 ⇒ 钳制（预期运行时告警）",
-    "无名之墓 G2: 修正需 4 外来者，池仅 2 ⇒ 钳制（预期运行时告警）",
+    "无名之墓 G1: 修正需 4 外来者，池仅 3 ⇒ 钳制（预期运行时告警）",
+    "无名之墓 G2: 修正需 4 外来者，池仅 3 ⇒ 钳制（预期运行时告警）",
     "无上愉悦 G2: 修正需 4 外来者，池仅 3 ⇒ 钳制（预期运行时告警）"
   ],
   "scripts": [
@@ -655,7 +653,7 @@
             },
             {
               "id": "pit_hag",
-              "name": "坑道巫婆",
+              "name": "麻脸巫婆",
               "type": "minion"
             },
             {
@@ -1037,19 +1035,17 @@
       "scriptId": "tomb_of_the_unknown",
       "pool": {
         "townsfolk": 11,
-        "outsider": 2,
+        "outsider": 3,
         "minion": 3,
         "demon": 2
       },
-      "travelerOrFabled": [
-        "scapegoat"
-      ],
+      "travelerOrFabled": [],
       "games": [
         {
           "players": 15,
           "counts": {
-            "townsfolk": 9,
-            "outsider": 2,
+            "townsfolk": 8,
+            "outsider": 3,
             "minion": 3,
             "demon": 1
           },
@@ -1095,9 +1091,9 @@
               "type": "townsfolk"
             },
             {
-              "id": "sailor",
-              "name": "水手",
-              "type": "townsfolk"
+              "id": "scapegoat",
+              "name": "替罪羊",
+              "type": "outsider"
             },
             {
               "id": "drunk",
@@ -1136,12 +1132,17 @@
         {
           "players": 15,
           "counts": {
-            "townsfolk": 9,
-            "outsider": 2,
+            "townsfolk": 8,
+            "outsider": 3,
             "minion": 3,
             "demon": 1
           },
           "seats": [
+            {
+              "id": "sailor",
+              "name": "水手",
+              "type": "townsfolk"
+            },
             {
               "id": "farmer",
               "name": "农夫",
@@ -1178,14 +1179,9 @@
               "type": "townsfolk"
             },
             {
-              "id": "juggler",
-              "name": "杂耍艺人",
-              "type": "townsfolk"
-            },
-            {
-              "id": "clockmaker",
-              "name": "钟表匠",
-              "type": "townsfolk"
+              "id": "scapegoat",
+              "name": "替罪羊",
+              "type": "outsider"
             },
             {
               "id": "drunk",
@@ -1506,8 +1502,8 @@
               "type": "townsfolk"
             },
             {
-              "id": "mathematician",
-              "name": "数学家",
+              "id": "king",
+              "name": "国王",
               "type": "townsfolk"
             },
             {
@@ -1716,7 +1712,7 @@
             },
             {
               "id": "pit_hag",
-              "name": "坑道巫婆",
+              "name": "麻脸巫婆",
               "type": "minion"
             },
             {
@@ -1920,7 +1916,7 @@
             },
             {
               "id": "pit_hag",
-              "name": "坑道巫婆",
+              "name": "麻脸巫婆",
               "type": "minion"
             },
             {

@@ -17,8 +17,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { scripts } from "../app/data";
-import { getAllRoleDefinitions } from "../src/roles";
+import { roles as appRoles, scripts } from "../app/data";
 
 const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(ROOT, "outputs", "scenes.json");
@@ -45,9 +44,15 @@ type Role = { id: string; name: string; type: string };
 type Game = { players: number; counts: Record<string, number>; seats: Role[] };
 
 /** 角色注册表（同 id 冲突时优先非 demon 的正式定义） */
+/**
+ * 角色表来源 = `app/data.ts::roles`（**与应用发牌同源**）。
+ * 不能用 `getAllRoleDefinitions()`：那里没有 `scapegoat`（替罪羊在 data 里是
+ * 一条「待删的 outsider 误植」，正身是 `scapegoat_traveler`），
+ * 用注册表会导致「无名之墓 19 个角色只能覆盖 18 个」。
+ */
 function loadDefs(): Map<string, any> {
   const defs = new Map<string, any>();
-  for (const d of getAllRoleDefinitions() as any[]) {
+  for (const d of appRoles as any[]) {
     if (!d?.id) continue;
     const prev = defs.get(d.id);
     if (!prev) defs.set(d.id, d);
@@ -183,10 +188,29 @@ function buildScript(script: any, defs: Map<string, any>) {
 
     const o = take(O, needO);
     const t = take(T, needT);
+    const seats: Role[] = [...t, ...o, ...m, ...d];
+    /**
+     * 唱诗男孩（choir_boy）的官方 setup：「[+国王]」—— 会把一名镇民换成国王。
+     * 应用的 `applyChoirboyKingSetup` 会自动做这件事，若不提前对齐，
+     * 强制注入的阵容会被它改掉一个角色 ⇒ 「发出的牌 === 注入的牌」断言必红。
+     */
+    if (seats.some((r) => r.id === "choir_boy") && !seats.some((r) => r.id === "king")) {
+      const kingDef = defs.get("king");
+      for (let i = seats.length - 1; i >= 0; i--) {
+        if (seats[i].type === "townsfolk" && seats[i].id !== "choir_boy") {
+          seats[i] = {
+            id: "king",
+            name: kingDef?.name ?? "国王",
+            type: kingDef?.type ?? "townsfolk",
+          };
+          break;
+        }
+      }
+    }
     games.push({
       players: n,
       counts: { townsfolk: t.length, outsider: o.length, minion: m.length, demon: d.length },
-      seats: [...t, ...o, ...m, ...d],
+      seats,
     });
   }
 

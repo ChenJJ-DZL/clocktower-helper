@@ -73,8 +73,12 @@ export function getRoleActionSortWeight(roleId: string): number {
 /** 长度不符的告警只打印一次/人数，避免预览重算刷屏 */
 const warnedMismatch = new Set<number>();
 
+/** 官方 setup 规则会**凭空注入**的角色：唱诗男孩在场时必须带国王 */
+const SETUP_INJECTABLE_ROLE_IDS = new Set(["king"]);
+
 function readForcedLineup(
   availableRoles: Role[],
+  allRoles: Role[],
   playerCount: number,
   scriptName: string
 ): Role[] | null {
@@ -103,7 +107,12 @@ function readForcedLineup(
   const out: Role[] = [];
   const missing: string[] = [];
   for (const id of forced) {
-    const hit = byId.get(String(id));
+    // 唱诗男孩会把一名镇民换成国王（官方 [+国王]），这个 id 可能不在剧本池里
+    const hit =
+      byId.get(String(id)) ??
+      (SETUP_INJECTABLE_ROLE_IDS.has(String(id))
+        ? allRoles.find((r) => r.id === String(id))
+        : undefined);
     if (!hit) {
       missing.push(String(id));
       continue;
@@ -150,7 +159,7 @@ export function generateAndSortQuickStartLineup(
   };
 
   /** E2E 强制阵容（未注入时为 null ⇒ 走原随机路径） */
-  const forcedRoles = readForcedLineup(availableRoles, playerCount, script.name);
+  const forcedRoles = readForcedLineup(availableRoles, allRoles, playerCount, script.name);
 
   const baseComp = STANDARD_COMPOSITIONS[playerCount] || {
     townsfolk: Math.max(0, playerCount - 2),
