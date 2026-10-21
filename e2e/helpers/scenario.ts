@@ -265,6 +265,37 @@ export async function driveNight(
         const pick = act ? pickFor(act.role) : null;
         const picked: number[] = [];
 
+        /**
+         * ⓪ **全局角色胶囊兜底**（2026-10-23，麻脸巫婆 S21 实测）
+         * ---------------------------------------------------------------
+         * 「选角色」的 UI 是**嵌套 dialog**（实测 `dialogCount=2`：外层行动确认 +
+         * 内层角色列表），外层里还混着「确认&下一步」。之前把这段逻辑写在
+         * `if (dlg)` 里面，被外层 dialog 的其它按钮抢走，一次都没点到胶囊
+         * （症状：`已选角色:未选择` + 座位已点 + 弹窗卡住）。
+         * ⇒ 挪到**任何 dialog 判断之前**，用整页文本 + document 级查询，
+         *   只要出现「角色胶囊 + 已选角色:未选择」就先点一个，然后重新进入循环。
+         */
+        {
+          const bodyNorm = (document.body.textContent || "").replace(/\s+/g, "");
+          if (/已选角色:未选择/.test(bodyNorm)) {
+            const caps = Array.from(
+              document.querySelectorAll("button[data-role-id]")
+            ) as any[];
+            const want = pick?.roleChoice
+              ? caps.find(
+                  (b: any) =>
+                    b.getAttribute("data-role-id") === pick.roleChoice &&
+                    !b.disabled
+                )
+              : null;
+            const chosen = want ?? caps.find((b: any) => !b.disabled) ?? caps[0];
+            if (chosen) {
+              await clickSettled(chosen, 400);
+              continue;
+            }
+          }
+        }
+
         if (dlg) {
           const hint = norm(dlg);
 

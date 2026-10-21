@@ -1,0 +1,53 @@
+你是本仓库的编码代理。工作目录 = C:\Users\chenj\WorkBuddy\血染说书人\clocktower-helper（已在此目录）。
+
+# 唯一任务：修掉「普卡（pukka）首夜不下毒」
+
+## 现象（已实测，不要再去证明它存在）
+- 剧本「黯月初升」S04（9 人，普卡 + 疯子）与「凶宅魅影」S20（15 人，普卡）
+  **第 1 夜** 的夜间步骤里，普卡只有「恶魔互认」相关的两步，**没有任何「普卡毒杀」**。
+- 第 2 夜起才出现：「普卡对 N 号玩家下毒，该玩家将于明晚毒发死亡」。
+- 官方【普卡】：「**每个夜晚**，你要选择一名玩家：他中毒。上个因你的能力中毒的玩家会死亡并恢复健康。」
+  —— 没有星号 ⇒ **首夜必须下毒**。缺一次 ⇒ 毒发整体后移一晚。
+
+## 已排除（别再查这些）
+- `src/roles/new_engine/pukka.ability.ts:158-165` 的注册配置是**对的**：
+  `triggerTiming: [FIRST_NIGHT, EVERY_NIGHT]`、`firstNightPriority: 45`、`otherNightPriority: 47`。
+- `src/data/nightOrder.json::firstNight` 里 `pukka` 存在（rank 63）。
+- `src/utils/dynamicQueueGenerator.ts:320-400` 的首夜/后续夜过滤逻辑对「两夜都有值」的条目
+  不会剔除（`firstNightOnly=false`、`otherNightOnly=false`）。
+
+## 建议排查顺序（按这个走，别发散）
+1. 在 `e2e/bad_moon_rising/_p.spec.ts` 写一个最小探针（模板见 `e2e/helpers/scenario.ts` 的
+   `bootScene` / `driveNight`），跑 S04 首夜，**打印 `n1.steps` 全部内容**（不要 slice），
+   同时打印 `window.localStorage.getItem("clocktower_current_snapshot")` 里的
+   `wakeQueueIds`（若有）。确认 pukka 到底在不在队列里。
+2. 若**不在队列**：查 `src/utils/nightOrderParser.ts`（或同名文件）构造 `NightOrderEntry` 时
+   有没有把 `firstNightPriority` / `otherNightPriority` 填进条目；再查
+   `generateDynamicNightQueue` 里 `entry.roleId === "demon_info"` 的展开逻辑
+   （`dynamicQueueGenerator.ts:453-500`）是否把恶魔自身的行动槽吃掉了
+   （已知现象：S04 首夜出现了**两次** demon_info）。
+3. 若**在队列但被跳过**：查 `src/hooks/useNightActionHandler.ts` 里 `preCheck` / 目标上限
+   （普卡 `targetConfig: {min:1,max:1}`，若候选池被算成 0 会中止）。
+4. 修好后**不要删**任何既有测试；若某条既有单测因为它而红，先读它为什么红（可能是「因 bug 才绿」）。
+
+## 验收（必须自己跑，全绿才算完成）
+```
+npx tsc --noEmit
+npx playwright test e2e/bad_moon_rising/role_scenarios.spec.ts --retries=0 --workers=1 --timeout=600000
+npx playwright test e2e/haunted_manor/role_scenarios.spec.ts --retries=0 --workers=1 --timeout=600000
+```
+两条命令目前都是**绿**的（因为相关断言被 `test.fail(true, ...)` 登记着）。修好后会出现
+`Expected to fail, but passed` —— 那是**好事**，说明缺陷被修掉了。此时你要做的是：
+- 删掉 `e2e/bad_moon_rising/role_scenarios.spec.ts` 里那条
+  `test.fail(true, "普卡首夜没有「下毒」步骤（首夜队列里被两次 demon_info 挤掉）");`
+- 删掉 `e2e/haunted_manor/role_scenarios.spec.ts` 里那条
+  `test.fail(true, "普卡首夜不下毒（仅第 2 夜起才下毒）⇒ 毒发整体后移一晚");`
+- 把受害者断言改成首夜即可验证：`expect.soft(poisoned.length, "普卡首夜必须落库 isPoisoned=true（1 人）").toBe(1);`
+  相关代码块里已有 `resultSteps(n1, "pukka", /毒/)` 的现成写法，照着用。
+
+# 输出协议（强制）
+- 每条回复思考 ≤ 150 字；
+- **一条回复只做一个动作**（写 1 个文件 或 跑 1 条命令），不许一次规划多个文件；
+- **前 3 条回复里必须至少有 1 次写文件**；做不到就说明在空转；
+- 禁止派子代理；同一份文件不许读第二遍；
+- 不许 `.skip`；不许为了让测试变绿而删断言。
