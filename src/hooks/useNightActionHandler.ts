@@ -21,6 +21,7 @@ import {
   getRawAbilityMap,
 } from "../roles/new_engine/abilityRegistry";
 import { chefMaxPlausiblePairs } from "../roles/new_engine/chef.ability";
+import { poAllowedTargetCount } from "../roles/new_engine/po.ability";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
 import type { NightActionContext } from "../types/roleDefinition";
@@ -101,6 +102,17 @@ export interface NightActionHandlerContext {
   //   无此桥接时女巫诅咒写入快照后永不落地，被诅咒者发起提名不死亡（引擎 P0）。
   setWitchCursedId?: (id: number | null) => void;
   setWitchActive?: (v: boolean) => void;
+  /**
+   * 🗣️ 造谣者白天声明的两项状态（必须透传进管道快照）。
+   *
+   * 🔴 2026-10-22 修复：`gossip.ability.ts::calculateResult` 读的是
+   *   `storytellerInput?.statement / isStatementTrue`，而 `storytellerInput`
+   *   恒等于 `context.actionData`（只装本次弹窗的座位选择）⇒ `isStatementTrue` 恒 false
+   *   ⇒ 夜间永远输出「声明错误」，「为真」永不产生死亡（实测 S13）。
+   *   这里把两项带进快照，能力侧用 `storytellerInput?.x ?? snapshot.gossipX` 兜底。
+   */
+  gossipStatementToday?: string;
+  gossipTrueTonight?: boolean;
   // 🔧 恶魔死亡判胜：新引擎击杀（executeViaNewEngine）只补记 deadThisNight，
   //   从不触发 checkGameOver → 恶魔夜晚被杀后游戏不立即结束，继续跑白天/黄昏
   //   流程（官方规则：恶魔死亡立即善良获胜）。此回调用于击杀恶魔后立即判胜。
@@ -401,6 +413,9 @@ export async function executeViaNewEngine(
     globalEffects: { vortoxWorld: isVortox },
     vortoxWorld: isVortox,
     isVortoxWorld: isVortox,
+    // 🗣️ 造谣者：白天声明的内容与真假裁定（能力侧读不到 storytellerInput 时兜底）
+    gossipStatementToday: (context as any).gossipStatementToday ?? "",
+    gossipTrueTonight: (context as any).gossipTrueTonight ?? false,
     // ✊ 革命者「被当作其他」：管道 calculate 阶段要据此生成他人感知视图
     //   （utils/revolutionaryDisguise + middlewarePipeline）。不透传则效果空转。
     fabledState: (context as any).fabledState ?? null,
@@ -598,9 +613,23 @@ export async function executeViaNewEngine(
        */
       const isLunaticActor =
         actorSeat?.role?.id === "lunatic" || roleId === "lunatic";
+      /**
+       * 🐍 珀（po）：官方「你可以选择一名玩家…**如果你上次选择时没有选择任何玩家**，
+       *   当晚你要选择三名玩家」。能力注册表里的 `targetConfig` 是静态 `{min:0,max:3}`
+       *   ⇒ 说书人每夜都能选 3 人（实测 S12 第 2/3 夜都是「最多3人」）。
+       *   蓄力标记现写在恶魔**座位**上（`seat.poCharged`，随座位同步+持久化），
+       *   这里按它动态收紧上限：已蓄力 3 名，否则 1 名。
+       */
+      // 判据复用能力侧（`po.ability.ts::poAllowedTargetCount`），避免两处各写一份
+      const poMaxTargets =
+        roleId === "po"
+          ? poAllowedTargetCount(actorSeat, context.nightCount)
+          : null;
       const targetConfig = isLunaticActor
         ? (context.nightInfo?.targetLimit ?? (ability as any)?.targetConfig)
-        : (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
+        : roleId === "po" && poMaxTargets != null
+          ? { ...((ability as any)?.targetConfig ?? {}), max: poMaxTargets }
+          : (ability as any)?.targetConfig || context.nightInfo?.targetLimit;
       const minTargets = targetConfig?.min ?? 0;
       const maxTargets = targetConfig?.max ?? 0;
       const allowSelf = targetConfig?.allowSelf ?? true;

@@ -17,6 +17,7 @@ import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelp
 import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
 import { canFoolSurvive, isProtectedByDevilsAdvocate } from "../utils/bmrMechanics";
+import { isVortoxDuskWinActive } from "../utils/vortoxWorld";
 import {
   generateDynamicNightQueue,
   isDeathTriggeredRole,
@@ -167,6 +168,7 @@ export function useGameController() {
     setHasExecutedThisDay,
     selectedActionTargets,
     setSelectedActionTargets,
+    gossipStatementToday,
     gossipTrueTonight,
     gossipSourceSeatId,
     setGossipTrueTonight,
@@ -1596,6 +1598,9 @@ export function useGameController() {
           // 🔧 女巫诅咒桥接：新引擎快照 witchCurse → legacy witchCursedId（useDayActions 消费端）。
           setWitchCursedId,
           setWitchActive,
+          // 🗣️ 造谣者：白天声明与真假裁定必须进管道（否则夜间恒判「声明错误」）
+          gossipStatementToday,
+          gossipTrueTonight,
           setEvilTwinPair,
           dispatch: baseDispatch,
           // 🔧 恶魔死亡判胜：新引擎击杀恶魔后立即触发胜负判定（否则拖到白天）。
@@ -2066,6 +2071,30 @@ export function useGameController() {
   useEffect(() => {
     const handleStartSubsequentNight = () => {
       console.log("[GameController] Received startSubsequentNight event");
+      /**
+       * 🌪️ 涡流「今日无人被处决 ⇒ 邪恶获胜」——**黄昏 → 入夜的唯一收口点**。
+       *
+       * 🔴 2026-10-22 修复：这条规则此前只在「有提名、但最终没处决」的路径里生效
+       *   （`gameLogic.checkGameEnd` 的 `lastAction === "execution"` 分支）。
+       *   玩家**完全跳过提名、直接点「入夜」**时没人判胜 ⇒ 游戏照常进第 2 夜
+       *   （实测 S11：第 1 昼不提名，`isVortoxDuskWinActive` 这个 SST 判据
+       *   **全仓库零生产调用点**，只有它自己的单测）。
+       *   这里在入夜前补一次判定，与上面那条路径共用同一个判据与胜因文案，
+       *   并按项目既有约定（终局四条）写 `winResult/winReason/gamePhase/GAME_OVER`。
+       *
+       * ⚠️ 幂等：`victoryRef.current` 已有值（上一路径已判过）⇒ 直接进夜。
+       */
+      if (
+        !victoryRef.current &&
+        isVortoxDuskWinActive(seatsRef.current, todayExecutedId != null)
+      ) {
+        addLog("⚖️ 涡流：今日无人被处决 ⇒ 邪恶阵营获胜！");
+        setWinResult("evil");
+        setWinReason("涡流：今日无人被处决");
+        setGamePhase("gameOver");
+        setCurrentModal({ type: "GAME_OVER", data: null });
+        return;
+      }
       startSubsequentNight();
     };
     const listenerId = unifiedEventBus.on(
@@ -2075,7 +2104,9 @@ export function useGameController() {
     return () => {
       unifiedEventBus.off("startSubsequentNight", listenerId);
     };
-  }, [startSubsequentNight]);
+    // todayExecutedId 必须进依赖：否则闭包读到白天开始时的旧值（= null），
+    // 处决过的一天也会被误判成「今日无人被处决」
+  }, [startSubsequentNight, todayExecutedId]);
 
   // 初始化/刷新夜晚步骤信息
   const lastNightRefreshIdxRef = useRef<number | null>(null);

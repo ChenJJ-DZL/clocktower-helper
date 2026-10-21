@@ -37,6 +37,22 @@ const preCheckAlive = async (
   return context;
 };
 
+/**
+ * 🐍 珀「本夜允许选择几名」——官方：「每个夜晚*，你可以选择一名玩家：他死亡。
+ *   如果你上次选择时**没有选择任何玩家**，当晚你要选择三名玩家：他们死亡。」
+ *
+ * 🔴 2026-10-22：蓄力标记 `poCharged` 原先只写在**每次行动现构的临时快照顶层**
+ *   ⇒ 从不同步回状态、不进持久化 ⇒ 下一夜读不到（三杀机制等于不存在）；
+ *   而 `targetConfig` 又写死 `{min:0,max:3}` ⇒ 说书人每夜都能选 3 人。
+ *   现在蓄力连同「哪一夜蓄的」（`poChargedNight`）写进**恶魔座位**：
+ *   只有紧接的下一夜（`nightCount - 1`）才算数 ⇒ 天然一次性、不依赖记得清标记。
+ */
+export function poAllowedTargetCount(seat: any, nightCount: number): number {
+  const chargedNight = (seat as any)?.poChargedNight;
+  if ((seat as any)?.poCharged === true && chargedNight === nightCount - 1) return 3;
+  return 1;
+}
+
 // 计算阶段：验证目标合法性
 const calculateKillTargets = async (
   context: MiddlewareContext
@@ -98,10 +114,16 @@ const updateKillState = async (
      *      （珀是**状态型**恶魔：`poCharged` 会决定下一夜能否三杀，
      *        这条记录对回溯排查同样有价值）
      */
+    const chargedSeats = snapshot.seats.map((s: any) =>
+      s.id === (context.actionNode as any)?.seatId
+        ? { ...s, poCharged: true, poChargedNight: snapshot.nightCount }
+        : s
+    );
     return {
       ...context,
       snapshot: {
         ...snapshot,
+        seats: chargedSeats,
         /**
          * ⚠️⚠️ 2026-09-21 修复（第二处，官方冲突）：
          *

@@ -79,6 +79,25 @@ const stateUpdate = async (
     snapshot: {
       ...ctx.snapshot,
       storytellerAbilities: updatedAbilities,
+      /**
+       * 🔴 2026-10-22：`snapshot.storytellerAbilities` 是**每次行动现构的临时快照**，
+       *   既不同步回 React 状态、也不在持久化白名单里 ⇒ 刷新即丢、事后无法追溯
+       *   （实测 `clocktower_current_snapshot` 里根本没有这个字段）。
+       *   这里额外把「获得了哪个爪牙能力」记到**瘟疫医生自己的座位上**
+       *   （座位会同步 + 进快照），保证这条规则至少**可追溯**。
+       *   ⚠️ 仍未做：说书人没有「使用该爪牙能力」的 UI 入口（见 §17.3 缺口 5）。
+       */
+      seats: (ctx.snapshot.seats ?? []).map((seat: any) =>
+        seat.id === r.plagueDoctorSeatId
+          ? {
+              ...seat,
+              storytellerGrantedMinion: r.grantedMinionRole,
+              storytellerGrantedMinionName: r.grantedMinionRoleName,
+              storytellerAbilityGrantedAtNight:
+                ctx.snapshot?.nightCount ?? null,
+            }
+          : seat
+      ),
       _abilityResults: {
         ...((ctx.snapshot as any)._abilityResults ?? {}),
         plague_doctor: r,

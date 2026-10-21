@@ -36,9 +36,21 @@ const calculateResult = async (
   // 获取造谣者座位
   const gossipSeatId = context.actionNode.seatId;
 
-  // 获取公开声明内容
-  const statement = storytellerInput?.statement;
-  const isStatementTrue = storytellerInput?.isStatementTrue ?? false;
+  /**
+   * 获取公开声明内容。
+   *
+   * 🔴 2026-10-22 修复：这里原本只读 `storytellerInput`，而夜间管道的
+   *   `storytellerInput` 恒为 `context.actionData`（只装本次弹窗的座位选择），
+   *   **从不含造谣内容与真假裁定** ⇒ `isStatementTrue` 恒 false
+   *   ⇒ 夜间永远输出「声明错误」，「为真」永不产生死亡（实测 S13）。
+   *   现在改为「弹窗选择优先，其次白天表单落库的快照字段」。
+   */
+  const statement =
+    storytellerInput?.statement ?? (snapshot as any)?.gossipStatementToday ?? "";
+  const isStatementTrue =
+    storytellerInput?.isStatementTrue ??
+    (snapshot as any)?.gossipTrueTonight ??
+    false;
 
   const result = {
     gossipSeatId,

@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
-import { isMinionOrDemonRole } from "../../src/utils/seatAlignment";
+import { isMinionOrDemonRole, isSeatDemon } from "../../src/utils/seatAlignment";
 import {
   bootScene,
   driveDusk,
@@ -327,15 +327,27 @@ test.describe("窃窃私语 · G2 S13 第 2 夜", () => {
 test.describe("窃窃私语 · G3 涡流强制假信息", () => {
   test.setTimeout(6 * 60_000);
 
-  test("S11 涡流局：侍女/卖花女孩/神谕者 三项「真值必为 0/没有」的信息都必须被翻转", async ({
+  test("S11 涡流局：侍女信息被强制取假 + 数学家必须明示「信息必定错误」+ night* 角色首夜不唤醒", async ({
     page,
   }) => {
-    // S11：1涡流 2圣徒 3旅店老板 4陌客 5间谍 6神谕者 7侍女 8数学家 9造谣者 10女巫 11艺术家 12卖花女孩
+    /**
+     * 涡流契约的验证方式：**不比对上一次结果**，而是挑「当夜必无夜间能力」的座位，
+     * 让真值可以独立推出（= 0）⇒ 报出非 0 就证明强制取假成立。
+     *
+     * ⚠️ 为什么本用例只覆盖首夜：
+     *   涡流还有一条「白天无人被处决 ⇒ 邪恶获胜」，本轮已修到「黄昏→入夜」的收口点
+     *   （见 G5），因此**第 1 昼必须真的处决掉一个人**才能进第 2 夜；
+     *   而本剧本（12 人）的投票弹窗在本驱动器里点不动（票数恒 0，见 §17.3 备注），
+     *   拿不到处决 ⇒ 进不了第 2 夜。
+     *   ⇒ 卖花女孩/神谕者的「涡流反转」改由两处证据覆盖：
+     *     ① 契约单测 `vortox_info_contract`；
+     *     ② 本轮探针实测（S11 第 2 夜：今天无人投票却报「恶魔投过票」、0 死亡却报「2 名」，
+     *        同处境在非涡流的 S13 报的是真值）—— 证据留在 §17.6。
+     */
     const snap = await bootS(page, "S11");
     const saintSeat = seatByRole(snap, "saint"); // 2
     const recluseSeat = seatByRole(snap, "recluse"); // 4
 
-    // 侍女查「圣徒 + 陌客」（当夜都没有夜间能力 ⇒ 真值 0）
     const n1 = await driveNight(page, [
       {
         role: "chambermaid",
@@ -345,6 +357,7 @@ test.describe("窃窃私语 · G3 涡流强制假信息", () => {
     ]);
     expect(n1.status, "首夜应到白天").toBe("day");
 
+    // ── 侍女：真值必为 0 ⇒ 涡流世界必须报非 0 ──
     const cm = resultStep(n1, "chambermaid");
     expect(cm, "侍女必须被唤醒").toBeTruthy();
     const cmNum = Number((cm!.dialog.match(/(\d+)\s*人被唤醒/) ?? [])[1] ?? NaN);
@@ -355,41 +368,20 @@ test.describe("窃窃私语 · G3 涡流强制假信息", () => {
       )
       .toBe(true);
 
-    // 第 1 昼不提名 ⇒ 今天无人投票、无人死亡
-    expect((await driveDusk(page, {})).status, "第 1 昼应能直接入夜").toBe("night");
-
-    // 第 2 夜：涡流攻击 1 号自己以外的座位，避免把信息源杀掉
-    // ⚠️ 目标不能是卖花女孩(12)/神谕者(6)：涡流会把人**杀死**，死者不再被唤醒 ⇒ 断言落空
-    const n2 = await driveNight(page, [{ role: "vortox", targets: [11] }]);
-    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
-
-    // ── 卖花女孩：今天无人投票 ⇒ 真值「没有」，涡流必须答「有」 ──
-    const fg = resultStep(n2, "flowergirl");
-    expect(fg, "卖花女孩必须被唤醒").toBeTruthy();
-    expect
-      .soft(
-        fg!.dialog.includes("有投过票") && !fg!.dialog.includes("没有投过票"),
-        `涡流世界：今天无人投票（真值「没有」）⇒ 必须答「有」，实测：${fg!.dialog.slice(-40)}`
-      )
-      .toBe(true);
-
-    // ── 神谕者：今天 0 人死亡 ⇒ 真值 0，涡流必须答非 0 ──
-    const orc = resultStep(n2, "oracle");
-    expect(orc, "神谕者必须被唤醒").toBeTruthy();
-    const orcNum = Number((orc!.dialog.match(/(\d+)\s*名死亡玩家/) ?? [])[1] ?? NaN);
-    expect
-      .soft(
-        orcNum !== 0,
-        `涡流世界：0 名死亡（真值 0）⇒ 必须答非 0，实测 ${orcNum}`
-      )
-      .toBe(true);
-
-    // ── 数学家：涡流世界必须给出「信息必定错误」的说书人提示 ──
-    const mathStep = stepsOf(n2, "mathematician").find((x) => /行动确认/.test(x.dialog));
+    // ── 数学家：确认窗必须明示「信息必定错误」 ──
+    const mathStep = stepsOf(n1, "mathematician").find((x) => /行动确认/.test(x.dialog));
     expect(mathStep, "数学家应有行动确认步骤").toBeTruthy();
     expect
       .soft(mathStep!.dialog, "涡流世界必须在确认窗上明示「信息必定错误」")
       .toContain("涡流在场");
+
+    // ── night* 语义：卖花女孩/神谕者「每个夜晚*」⇒ 首夜不得被唤醒 ──
+    expect
+      .soft(stepsOf(n1, "flowergirl").length, "官方：卖花女孩是「每个夜晚*」⇒ 首夜不唤醒")
+      .toBe(0);
+    expect
+      .soft(stepsOf(n1, "oracle").length, "官方：神谕者是「每个夜晚*」⇒ 首夜不唤醒")
+      .toBe(0);
   });
 });
 
@@ -431,41 +423,66 @@ test.describe("窃窃私语 · G4 女巫魔咒", () => {
     expect.soft(witchSeat, "女巫座位应在场").toBeGreaterThanOrEqual(0);
   });
 
-  test("被诅咒者次日在提名时立刻死亡（⚠️ 新引擎未桥接 legacy 状态）", async ({ page }) => {
+  test("被诅咒者次日的提名被当场拦下（不进投票），并因当日无执行触发涡流判胜", async ({
+    page,
+  }) => {
     /**
-     * 🔴 2026-10-22 实测：**魔咒不会杀人**（真实缺陷）。
+     * ✅ 链路已实测打通（曾经被我误判成「桥接缺失」，此处留档以免重犯）：
+     *   `witch.ability` 写 `snapshot.witchCurse` → `useNightActionHandler` 桥接成
+     *   legacy `witchCursedId/witchActive`（实测快照 `{witchCursedId:2, witchActive:true}`）
+     *   → `useDayActions::executeNomination` 命中分支：写下
+     *   「N号发起提名触发女巫诅咒立刻死亡」日志 + `killPlayer` + **拒绝本次提名**（return false）。
      *
-     * 引擎侧：`witch.ability.ts::stateUpdate` 正常写 `snapshot.witchCurse` + `seat.isCursed`。
-     * 白天侧：`useDayActions.ts:253` 的杀人条件是
-     *   `witchActive && witchCursedId !== null && witchCursedId === sourceId`
-     *   —— 这两个都是 **legacy React 状态**，只有 `setWitchCursedId/setWitchActive` 能写入。
-     * 🔴 但**全仓库搜不到任何把 `snapshot.witchCurse` 桥接到 `setWitchCursedId` 的代码**
-     *   （`grep -rn "witchCurse" src/hooks/` 只有 `useExecutionHandlers.ts:113` 的一句
-     *   **注释**说「需桥接」，实现从来没有）⇒ `witchCursedId` 恒为 null ⇒ 白天永不触发。
-     * 实测：3 号发起提名后 `isDead=false`，只有涡流规则因「今日无人被处决」判邪恶胜。
+     * ⚠️ 为什么不断言 `isDead`：本剧本（S11）同时有**涡流**，
+     *   而涡流「当天无人被处决 ⇒ 邪恶获胜」会在同一黄昏立即终局；
+     *   终局后持久化快照**停止写入**（项目既有约定：终局不落快照），
+     *   所以死亡只能从「提名被拒绝 + 当日无执行 + 涡流判胜」这条链上间接确认。
      *
-     * 修法方向：在新引擎夜间结算回写状态的那一处（与 `setDeadThisNight` 同一出口）
-     * 补桥接：`setWitchCursedId(snapshot.witchCurse ?? null)` + `setWitchActive(涡流局外??)`，
-     * 并保证「只有存活巫婆 + 未中毒/醉酒」时 `witchActive` 为 true。
+     * 因此本用例的判据（都可观测）：
+     *   ① 提名**没有进入投票**（弹窗序列里没有「举手表决计票」）；
+     *   ② 游戏立刻终局、胜者是邪恶、胜因写明「涡流：今日无人被处决」。
      */
-    test.fail(true, "女巫诅咒未桥接到 legacy witchCursedId ⇒ 白天提名不会死");
-
     const snap = await bootS(page, "S11");
     const cursed = 3;
-    expect((await driveNight(page, [{ role: "witch", targets: [cursed] }])).status, "首夜应到白天").toBe("day");
+    const witchSeat = seatByRole(snap, "witch");
+    expect.soft(roleAt(snap, cursed - 1), "被诅咒者应为 3 号旅店老板").toBe("innkeeper");
 
-    const dusk = await driveDusk(page, { nominator: cursed, nominee: 5, decision: "noop" });
-    expect.soft(dusk.nominated, "3 号应成功发起提名").toBe(true);
+    const n1 = await driveNight(page, [{ role: "witch", targets: [cursed] }]);
+    expect(n1.status, "首夜应到白天").toBe("day");
 
-    const after = await snapNow(page);
+    // 诅咒必须落库（引擎→legacy 桥接的可见证据）
+    const afterNight = await snapNow(page);
+    expect.soft((afterNight as any)?.witchCursedId, "诅咒应桥接到 legacy witchCursedId").toBe(
+      cursed - 1
+    );
+    expect.soft((afterNight as any)?.witchActive, "witchActive 应为 true").toBe(true);
     expect
       .soft(
-        (after?.seats ?? []).find((s: any) => s.id === cursed - 1)?.isDead,
-        "官方：被女巫诅咒者白天发起提名 ⇒ 立即死亡"
+        (afterNight?.seats ?? []).find((s: any) => s.id === cursed - 1)?.isCursed,
+        "被诅咒座位应标记 isCursed"
       )
       .toBe(true);
-    expect.soft(roleAt(after, cursed - 1), "被诅咒者身份不变").toBe("innkeeper");
-    expect.soft(snap.seats.length, "12 人局不应在此时终局").toBe(12);
+    expect.soft(witchSeat, "女巫座位应在场").toBeGreaterThanOrEqual(0);
+
+    const dusk = await driveDusk(page, { nominator: cursed, nominee: 5 });
+    // ① 提名被当场拦下 ⇒ 不会出现投票弹窗
+    const sawVote = dusk.dialogs.some((t) => /举手表决计票/.test(t));
+    expect
+      .soft(sawVote, "被诅咒者发起提名应被拦下（不得进入投票环节）")
+      .toBe(false);
+    expect.soft(dusk.nominated, "「确认发起提名」这一步本身应被点过").toBe(true);
+
+    // ② 当日无执行 ⇒ 涡流判邪恶胜，胜因可读
+    const live = await waitLive(page, (l) => l?.gameOverUi === true);
+    expect.soft(live?.gameOverUi, "当日无人被处决 ⇒ 应立即终局").toBe(true);
+    expect.soft(live?.winner, "胜者应为邪恶").toBe("evil");
+    // ⚠️ 这里读**整页文本**而不是第一个 dialog：终局时「确认发起提名」的残窗还压在栈底，
+    //   `querySelector('[role="dialog"]')` 会先命中它（实测）。胜因本身在终局卡片里。
+    const overlay = await page.evaluate(() =>
+      (document.body.innerText || "").replace(/\s+/g, "")
+    );
+    expect.soft(overlay, "胜因应写明涡流的处决强制规则").toContain("涡流");
+    expect.soft(overlay, "胜因应点明「今日无人被处决」").toContain("无人被处决");
   });
 });
 
@@ -508,28 +525,71 @@ test.describe("窃窃私语 · G5 涡流处决强制", () => {
     expect.soft(overlay, "胜利依据应点明「无人被处决」").toContain("无人被处决");
   });
 
-  test("第 1 昼完全无人提名 ⇒ 也应判邪恶获胜（⚠️ 该路径未接线）", async ({ page }) => {
+  test("第 1 昼完全无人提名 ⇒ 入夜前也要判邪恶获胜", async ({ page }) => {
     /**
-     * 🔴 2026-10-22 实测：**「无人提名直接入夜」这条路径没有判胜**。
-     *
-     * 上面那条用例证明规则本身是通的（有提名路径会判），但玩家完全跳过提名、
-     * 直接点「入夜」时，`checkGameEnd` 的涡流分支不会被跑到 ⇒ 游戏继续进第 2 夜。
-     * `src/utils/vortoxWorld.ts::isVortoxDuskWinActive` 这个唯一事实源**没有任何生产调用点**
-     * （`grep -rn isVortoxDuskWinActive src/ app/` 只命中定义与 `__tests__`；
-     * `GameStage.tsx` 里那处是注释），判胜逻辑散落在提名/处决链里，没有收口。
-     *
-     * 修法方向：把「黄昏结束 → 入夜」收成唯一出口（`startSubsequentNight` 之前），
-     * 在那里统一调 `isVortoxDuskWinActive(seatsRef.current, todayExecutedId !== null)`。
+     * 🔴 2026-10-22 修复：这条规则此前只在「**有提名**但最终没处决」的路径生效
+     *   （`gameLogic.checkGameEnd` 的 `lastAction === "execution"` 分支）。
+     *   玩家完全跳过提名、直接点「入夜」时**没人判胜** ⇒ 游戏照常进第 2 夜；
+     *   而 SST 判据 `isVortoxDuskWinActive` 当时**全仓库零生产调用点**。
+     *   修法：在「黄昏 → 入夜」的唯一收口点（`startSubsequentNight` 监听器）补判，
+     *   与既有路径共用同一判据与胜因文案，并按终局四条写 winResult/winReason/phase。
      */
-    test.fail(true, "涡流：无人提名直接入夜时未判胜（规则散落在处决链，未收口到入夜出口）");
+    const snap = await bootS(page, "S11");
+    const vottoxSeat = seatByRole(snap, "vortox");
+    const spySeat = seatByRole(snap, "spy");
+    const witchSeat = seatByRole(snap, "witch");
 
-    await bootS(page, "S11");
-    expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
+    const n1 = await driveNight(page, []);
+    expect(n1.status, "首夜应到白天").toBe("day");
+
+    // ── 涡流本身：是唯一恶魔，且「恶魔互认」要列出两名爪牙 + 3 个不在场伪装 ──
+    expect.soft(roleAt(snap, vottoxSeat), "涡流应坐镇 1 号").toBe("vortox");
+    expect
+      .soft(
+        (snap.seats as any[]).filter((s: any) => isSeatDemon(s)).length,
+        "本局只能有 1 名恶魔"
+      )
+      .toBe(1);
+    const demonStep = stepsOf(n1, "vortox").find((x) => /不在场伪装/.test(x.dialog));
+    expect(demonStep, "涡流应收到恶魔互认 + 伪装告知").toBeTruthy();
+    expect.soft(demonStep!.dialog, "互认必须列出间谍").toContain(`${spySeat + 1}号`);
+    expect.soft(demonStep!.dialog, "互认必须列出女巫").toContain(`${witchSeat + 1}号`);
+    const inPlay = new Set(
+      (snap.seats as any[]).map((s: any) => NAME_OF[s.role.id] ?? s.role.name)
+    );
+    const bluffs = (demonStep!.dialog.match(/【([^】]+)】/g) ?? []).map((x) =>
+      x.replace(/[【】]/g, "")
+    );
+    expect.soft(bluffs.length, "官方：恶魔被告知 3 个不在场角色").toBe(3);
+    expect
+      .soft(bluffs.filter((b) => inPlay.has(b)), "伪装角色不得是本局在场角色")
+      .toEqual([]);
+
     const dusk = await driveDusk(page, {});
     expect.soft(dusk.nominated, "本用例刻意不提名").toBe(false);
-    const live = await readLiveEndState(page);
-    expect.soft(live?.gameOverUi, "官方：当天无人被处决 ⇒ 应立即终局").toBe(true);
+
+    const live = await waitLive(page, (l) => l?.gameOverUi === true);
+    expect.soft(live?.gameOverUi, "官方：当天无人被处决 ⇒ 应立刻终局").toBe(true);
     expect.soft(live?.winner, "胜者应为邪恶").toBe("evil");
+
+    // 终局横幅必然写明阵营（seat 网格里也有「涡流」字样，不能拿它当胜因证据）
+    const banner = await page.evaluate(() =>
+      (document.body.innerText || "").replace(/\s+/g, "")
+    );
+    expect.soft(banner, "终局横幅应写明邪恶阵营胜利").toContain("邪恶阵营胜利");
+
+    // 打开「查看获胜结果」读胜因（每局只渲染一次）
+    const winBtn = page.locator("button").filter({ hasText: /查看获胜结果/ }).first();
+    const hasWinBtn = (await winBtn.count()) > 0;
+    expect.soft(hasWinBtn, "终局应提供「查看获胜结果」入口").toBe(true);
+    if (hasWinBtn) {
+      await winBtn.click({ timeout: 8000 });
+      const card = await page.evaluate(() =>
+        (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
+      );
+      expect.soft(card, "胜因卡片应写明涡流规则").toContain("涡流");
+      expect.soft(card, "胜因卡片应点明「无人被处决」").toContain("无人被处决");
+    }
   });
 });
 
@@ -642,52 +702,76 @@ test.describe("窃窃私语 · G7 刺客限一次", () => {
 // G8 · S12 珀：目标数契约（已登记缺口）
 // ═══════════════════════════════════════════════════════════════════
 test.describe("窃窃私语 · G8 珀的目标数", () => {
-  test.setTimeout(8 * 60_000);
+  test.setTimeout(10 * 60_000);
 
-  test("珀平时只能选 1 名；只有「上次未选任何人」才可选 3 名（⚠️ 实测恒为 3）", async ({
-    page,
-  }) => {
+  test("珀：未蓄力只能选 1 名；「上次没选人」后当晚可选 3 名并真的三杀", async ({ page }) => {
     /**
-     * 🔴 2026-10-22 实测：`po.ability.ts` 的 `targetConfig` 是**硬编码**
-     *   `{ min: 0, max: 3 }`，没有任何「上次是否选了人」的状态判据
-     *   （全文件只有一处 `if (targetIds.length > 3)` 兜底）。
-     *   ⇒ 实测第 2 夜、第 3 夜（第 2 夜已选 1 名）都显示「最多3人」，
-     *     说书人每夜都能杀 3 人。
+     * 🔴 2026-10-22 修的两个缺陷（本用例是回归证据）：
+     * ① 蓄力标记 `poCharged` 只写在**中间件快照顶层**（每次行动现构的临时对象）
+     *    ⇒ 从不同步回状态、也不进持久化 ⇒ **下一夜读不到**，三杀机制根本不存在；
+     * ② `targetConfig` 写死 `{min:0,max:3}` ⇒ 说书人每夜都能选 3 人（实测第 2/3 夜都是「最多3人」）。
+     * 修法：蓄力写回**恶魔座位**（座位会同步+持久化）；弹窗上限按座位标记动态取 1/3；
+     *       能力侧再加一道预检（超量直接中止并留原因）。
      *
-     * 官方：「每个夜晚*，你可以选择一名玩家：他死亡。**如果你上次选择时没有选择
-     *      任何玩家**，当晚你要选择三名玩家：他们死亡。」
-     *
-     * 修法方向：把 `max` 做成动态值 —— 读 `snapshot._abilityResults.po.lastTargetCount`
-     * （或新增 `poChoseNoOne` 布尔），为 0/未记录时 max=3，否则 max=1；
-     * 并注意第 1 夜不行动（night*），「上次」应指上一次**被唤醒的夜晚**。
+     * 官方：「每个夜晚*，你可以选择一名玩家：他死亡。
+     *   如果你上次选择时没有选择任何玩家，当晚你要选择三名玩家：他们死亡。」
      */
-    test.fail(true, "珀的目标上限恒为 3（应：平时 1 名，仅上次未选人时 3 名）");
-
     const snap = await bootS(page, "S12");
+    const poSeat = seatByRole(snap, "po"); // 1
+    const maxOf = (dlg: string) => (dlg.match(/最多(\d+)人/) ?? [])[1] ?? "?";
+
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
     expect((await driveDusk(page, {})).status, "第 1 昼应能直接入夜").toBe("night");
 
+    // ── 第 2 夜：首次真正行动（此前没有「上次选择」）⇒ 只能选 1 名 ──
     const n2 = await driveNight(page, [
       { role: "assassin", targets: [], note: "不选目标" },
-      { role: "po", targets: [2], note: "选 1 名" },
+      { role: "po", targets: [], note: "本夜刻意一个都不选（蓄力）" },
     ]);
     const po2 = stepsOf(n2, "po").find((x) => /行动确认/.test(x.dialog));
     expect(po2, "珀第 2 夜应被唤醒").toBeTruthy();
-    expect.soft(po2!.dialog, "第 2 夜『上次』= 首夜（不行动）⇒ 允许 3 名").toContain("最多3人");
+    expect
+      .soft(maxOf(po2!.dialog), "未蓄力时官方只允许选 1 名（首夜不行动算「没有上次」）")
+      .toBe("1");
 
+    // 蓄力必须落到**座位**上（否则下一夜读不到）
+    let after2 = await snapNow(page);
+    expect
+      .soft(
+        (after2?.seats ?? []).find((s: any) => s.id === poSeat)?.poCharged,
+        "「一个都不选」必须把蓄力标记写到恶魔座位上"
+      )
+      .toBe(true);
+    expect
+      .soft(
+        (after2?.seats ?? []).filter((s: any) => s.isDead).length,
+        "第 2 夜无人死亡（珀没选人、刺客也没杀）"
+      )
+      .toBe(0);
+
+    // ── 第 3 夜：已蓄力 ⇒ 可选 3 名，并且真的三杀 ──
     expect((await driveDusk(page, {})).status, "第 2 昼应能直接入夜").toBe("night");
+    const kills = [2, 3, 4]; // 造谣者 / 数学家 / 神谕者
     const n3 = await driveNight(page, [
       { role: "assassin", targets: [], note: "不选目标" },
-      { role: "po", targets: [2], note: "选 1 名" },
+      { role: "po", targets: kills, note: "蓄力后三杀" },
     ]);
     const po3 = stepsOf(n3, "po").find((x) => /行动确认/.test(x.dialog));
     expect(po3, "珀第 3 夜应被唤醒").toBeTruthy();
+    expect.soft(maxOf(po3!.dialog), "已蓄力 ⇒ 官方允许选 3 名").toBe("3");
+    expect.soft(po3!.picked, "实际点选的三个座位应与计划一致").toEqual(kills);
+
+    const after3 = await snapNow(page);
+    const dead = (after3?.seats ?? []).filter((s: any) => s.isDead).map((s: any) => s.id + 1);
+    expect.soft(dead.sort(), "蓄力三杀必须三具尸体（无保护角色干扰）").toEqual(kills);
+    // 蓄力是**一次性**：标记带「哪一夜蓄的」，只有紧接的下一夜才算数
+    //   （不依赖「记得清标记」——实测击杀分支里清会被 React 座位回写覆盖）
     expect
       .soft(
-        po3!.dialog,
-        "上次已选过 1 名 ⇒ 官方只允许选 1 名，弹窗应是「最多1人」"
+        (after3?.seats ?? []).find((s: any) => s.id === poSeat)?.poChargedNight,
+        "蓄力应记录生效夜晚（第 2 夜），因此第 3 夜一次性用掉"
       )
-      .toContain("最多1人");
+      .toBe(2);
   });
 });
 
@@ -780,6 +864,10 @@ test.describe("窃窃私语 · G10 造谣者声明", () => {
       { role: "innkeeper", targets: [11, 12], note: "保护两人" },
       { role: "devils_advocate", targets: [2], note: "常规保护" },
       { role: "zombuul", targets: [], note: "不选目标" },
+      // ⚠️ 造谣者的击杀目标由说书人在**夜间确认窗**里选（最少 0 / 最多 1）
+      //   ⇒ 不选目标就什么都不会发生（那是「未选目标」，不是缺陷）。
+      //   这里照实选 8 号，用来证明「声明为假时，即使指定了目标也不会死」。
+      { role: "gossip", targets: [8], note: "指定致死目标（应被声明为假挡下）" },
     ]);
     expect.soft(n2.status, "第 2 夜应到白天").toBe("day");
 
@@ -799,38 +887,31 @@ test.describe("窃窃私语 · G10 造谣者声明", () => {
     expect.soft(gossipSeat, "造谣者座位应在场").toBeGreaterThanOrEqual(0);
   });
 
-  test("裁定「为真」⇒ 当晚必有人被这条声明害死（⚠️ 夜间未读到声明）", async ({ page }) => {
+  test("裁定「为真」⇒ 当晚必有人被这条声明害死", async ({ page }) => {
     /**
-     * 🔴 2026-10-22 实测：**「为真」不会产生死亡**，且夜间结算恒判「声明错误」。
-     *
-     * 已修掉的一半（本轮已提交）：日间表单的三个字段互相覆盖 ——
-     *   `setGossipStatementToday / setGossipSourceSeatId / setGossipTrueTonight`
-     *   各自把三项一起 dispatch，另两项取自**同一帧的 `state`** ⇒ 后一次用旧值覆盖前一次。
-     *   修好后快照正确落库：`{statement:"今天会有坏人被投出去", isTrue:true, sourceId:6}`（实测）。
-     *
-     * 仍未修的一半：
-     *   `gossip.ability.ts::calculateResult` 读的是
-     *     `storytellerInput?.statement` / `storytellerInput?.isStatementTrue ?? false`
-     *   而夜间管道的 `storytellerInput` 来自 `useNightActionHandler.ts:443`
-     *     `storytellerInput: context.actionData`
-     *   `actionData` 只装「本次弹窗的选择」（座位），**从不含造谣内容与真假裁定**
-     *   ⇒ `isStatementTrue` 恒为 false ⇒ 永远「声明错误」、永不杀人。
-     *   修法：① `gameStateSnapshot` 补 `gossipStatementToday / gossipTrueTonight`
-     *        （`useNightActionHandler.ts` 的快照构造处，与 `todayExecutedId` 同批）；
-     *        ② `gossip.ability.ts` 改成 `storytellerInput?.x ?? snapshot.gossipX` 兜底。
+     * 🔴 2026-10-22 修的两个真实缺陷（本用例就是回归证据）：
+     * ① **三字段互相覆盖**：三个 setter 各带全量三项、另两项取自同一帧 `state`
+     *    ⇒ 连续调用只剩最后一项落库（`{statement:"", isTrue:true, sourceId:null}`）。
+     *    改成 reducer 局部合并 + setter 只写自己那一项。
+     * ② **夜间读不到声明**：`gossip.ability` 读 `storytellerInput.statement/isStatementTrue`，
+     *    而夜间管道的 `storytellerInput` 恒为「本次弹窗的座位选择」
+     *    ⇒ `isStatementTrue` 恒 false ⇒ 永远「声明错误」。
+     *    修法：把两项带进夜间管道快照（`gossipStatementToday/gossipTrueTonight`），
+     *    能力侧 `storytellerInput?.x ?? snapshot.gossipX` 兜底。
      */
-    test.fail(true, "夜间管道未传造谣内容/真假（storytellerInput 仅含座位）⇒ 恒判声明错误");
-
     await bootS(page, "S13");
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
 
     await declare(page, "今天会有坏人被投出去", "true");
     expect((await driveDusk(page, {})).status, "第 1 昼应能直接入夜").toBe("night");
 
+    const killTarget = 8; // 8 号陌客（不在旅店老板保护名单里）
     const n2 = await driveNight(page, [
       { role: "innkeeper", targets: [11, 12], note: "保护 11/12，避免误挡" },
       { role: "devils_advocate", targets: [2], note: "常规保护" },
       { role: "zombuul", targets: [], note: "不选目标" },
+      // 造谣者的致死目标由说书人在夜间确认窗里指定
+      { role: "gossip", targets: [killTarget], note: "指定致死目标" },
     ]);
     expect.soft(n2.status, "第 2 夜应到白天").toBe("day");
 
@@ -841,16 +922,11 @@ test.describe("窃窃私语 · G10 造谣者声明", () => {
     const deaths = (after?.seats ?? [])
       .filter((s: any) => s.isDead)
       .map((s: any) => s.id + 1);
-    // 不变量：要么死 1 人（正常），要么死者正好落在旅店老板保护的 11/12（被挡下）
-    const ok =
-      deaths.length === 1 ||
-      (deaths.length === 0 && /受到保护|保护|未死亡/.test(gossipDialog));
+    // 声明为真 ⇒ 说书人指定的那个人必须死，且当晚只死这一个
     expect
-      .soft(
-        ok,
-        `声明为真 ⇒ 当晚应有 1 人死亡（若受害者被旅店老板保护则为 0），实测死亡：${deaths.join(",")}`
-      )
-      .toBe(true);
+      .soft(deaths, `声明为真 ⇒ 指定的 ${killTarget} 号必须死亡`)
+      .toEqual([killTarget]);
+    expect.soft(gossipDialog, "结算文案应点明受害者").toContain(`${killTarget}号`);
   });
 });
 
@@ -981,25 +1057,18 @@ test.describe("窃窃私语 · G13 魔鬼代言人保护", () => {
 test.describe("窃窃私语 · G14 瘟疫医生", () => {
   test.setTimeout(6 * 60_000);
 
-  test("瘟疫医生被夜杀 ⇒ 说书人获得一个爪牙能力（⚠️ 该字段未进快照）", async ({
-    page,
-  }) => {
+  test("瘟疫医生被夜杀 ⇒ 「说书人获得一个爪牙能力」必须可追溯", async ({ page }) => {
     /**
-     * ⚠️ 登记缺口（不是「通过」）：实测**两个落点都读不到**。
+     * 官方：「当你死亡时，说书人会获得一个爪牙能力。」
      *
-     * 引擎侧确实写了 `plague_doctor.ability.ts::stateUpdate` →
-     *   `snapshot.storytellerAbilities = grantStorytellerMinionAbility(...)`
-     *   `snapshot._abilityResults.plague_doctor = { grantedMinionRole, … }`
-     * 但读回到的 `clocktower_current_snapshot` 里，`storytellerAbilities` 与
-     * `_abilityResults` **都不存在** ⇒ 该字段没进快照白名单（`persistence` /
-     * `undoSnapshot` 两处白名单），所以「说书人获得爪牙能力」这件事
-     * 在 UI/存档层面不可见、刷新即丢。
+     * 🔴 2026-10-22 修：引擎把这条写在 `snapshot.storytellerAbilities`，
+     *   而那是**每次行动现构的临时快照** —— 不同步回 React 状态、也不在持久化白名单
+     *   ⇒ 实测 `clocktower_current_snapshot` 里根本没这个字段，刷新即丢、事后无法追溯。
+     *   修法：额外把「获得了哪个爪牙能力」记到**瘟疫医生的座位**上（座位会同步+持久化）。
      *
-     * 下一步：① 确认 `storytellerAbilities` 是否应进 `SNAPSHOT_KEYS`；
-     * ② 补一个「说书人技能栏」的可见入口（当前全仓没有渲染 `storytellerAbilities`）。
-     * 修好后本用例会自动变红，提醒转真断言。
+     * ⚠️ 仍未做（登记在 §17.3 缺口 5 的后半段）：说书人目前**没有入口去『使用』**
+     *   这个爪牙能力。本用例只证明「它被记录、可追溯」，不声称能力可用。
      */
-    test.fail(true, "storytellerAbilities / _abilityResults.plague_doctor 均未进快照，读不到");
     const snap = await bootS(page, "S12");
     const pdSeat = seatByRole(snap, "plague_doctor"); // 8
     expect.soft(pdSeat, "瘟疫医生应在场").toBeGreaterThanOrEqual(0);
@@ -1016,18 +1085,24 @@ test.describe("窃窃私语 · G14 瘟疫医生", () => {
     const after = await snapNow(page);
     const pd = (after?.seats ?? []).find((s: any) => s.id === pdSeat);
     expect.soft(pd?.isDead, "瘟疫医生应被暗杀").toBe(true);
-
-    const abilities = (after as any)?.storytellerAbilities;
-    const hasAbility =
-      Array.isArray(abilities) && abilities.length > 0
-        ? true
-        : Boolean((after as any)?._abilityResults?.plague_doctor?.grantedMinionRole);
     expect
       .soft(
-        hasAbility,
-        "官方：当你死亡时，说书人会获得一个爪牙能力 ⇒ 该能力必须落库（storytellerAbilities）"
+        pd?.storytellerGrantedMinion,
+        "死亡时必须记录「说书人获得的爪牙能力」（座位级，可持久化）"
       )
-      .toBe(true);
+      .toBeTruthy();
+    expect
+      .soft(
+        pd?.storytellerGrantedMinionName,
+        "记录里必须带**中文名**（英文 id 不能上屏，见既往 L1 矩阵 G2b 修复）"
+      )
+      .not.toBe(pd?.storytellerGrantedMinion);
+    expect
+      .soft(
+        pd?.storytellerAbilityGrantedAtNight,
+        "记录里应带获得时的夜数，便于追溯"
+      )
+      .toBe(2);
   });
 });
 
