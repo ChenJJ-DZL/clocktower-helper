@@ -70,7 +70,6 @@ import { no_dashii } from "./demon/no_dashii";
 import { po } from "./demon/po";
 import { pukka } from "./demon/pukka";
 import { riot } from "./demon/riot";
-import { saint as demon_saint } from "./demon/saint"; // Rename to avoid conflict with outsider saint
 import { shabaloth } from "./demon/shabaloth";
 import { titus } from "./demon/titus";
 import { vigormortis } from "./demon/vigormortis";
@@ -332,7 +331,6 @@ export const roleRegistry: Map<string, RoleDefinition> = new Map([
   [lord_of_typhon.id, lord_of_typhon],
   [kazali.id, kazali],
   [lloam.id, lloam],
-  [demon_saint.id, demon_saint],
   [titus.id, titus],
   [leviathan.id, leviathan],
   [liz.id, liz],
