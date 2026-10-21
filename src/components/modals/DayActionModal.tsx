@@ -97,8 +97,17 @@ export function DayActionModal({ modal }: { modal: any }) {
                       props.setCurrentModal(null);
                       return;
                     }
+                    /**
+                     * 🔴 2026-10-21 修复（E2E 实测）：这里原来还有一句
+                     *   `props.setCurrentModal(null)`。
+                     *   而 `handleDayAction` 对**猎手**是「先清空、再打开
+                     *   `SLAYER_SELECT_TARGET` 目标选择弹窗」⇒ 这句紧随其后
+                     *   把刚打开的弹窗又清掉 ⇒ 白天开枪点了目标之后**什么都不发生**
+                     *   （无死亡、无结果弹窗），技能整条流程走不通。
+                     *   `handleDayAction` 内部已经 `setCurrentModal(null)`，
+                     *   这里不得再清一次（要清的是「旧弹窗」，不是「新弹窗」）。
+                     */
                     props.handleDayAction(s.id);
-                    props.setCurrentModal(null);
                   }
                 }}
                 disabled={isDisabled}

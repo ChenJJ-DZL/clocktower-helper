@@ -343,14 +343,29 @@ export function useGameController() {
   const nightActionHandler = useNightActionHandler();
   /**
    * 当前剧本的「外来者池」大小——用于配比修正的钳制上限。
-   * 例：无名之墓只有 2 个外来者，男爵想 +2 也加不满 ⇒ 期望值必须是 9/2 而不是 7/4。
+   * 例：无名之墓只有 3 个外来者，男爵想 +2 也加不满 ⇒ 期望值必须是 8/3 而不是 7/4。
+   *
+   * 🔴 2026-10-21 修复（S14 卡死根因）：
+   *   这里原来用 `getAllRoleDefinitions()`（**新引擎注册表**）统计外来者。
+   *   但该注册表**缺 `scapegoat`**（替罪羊只有 app/data 的数据条目 + ability
+   *   文件，没进 roleRegistry）⇒ 无名之墓被算成「外来者池 = 2」。
+   *   后果：15 人男爵局 —— 发牌器按池 3 发成 8镇民/3外来者（合法），
+   *   而 setup 校验按池 2 期望 9镇民/2外来者 ⇒ 弹「⚠️ 阵容配置错误」
+   *   ⇒「确认无误…入夜」永不出现，整场 E2E 卡在分发之后。
+   *   修法：**与 setup UI 用同一张表**（`app/data.ts::roles`），
+   *   引擎注册表只作兜底（同 id 在 app/data 里查不到时才看它）。
    */
   const availableOutsiderPool = useMemo(() => {
     const ids = (selectedScript as any)?.roleIds as string[] | undefined;
     if (!Array.isArray(ids) || ids.length === 0) return undefined;
-    return (getAllRoleDefinitions() as any[]).filter(
-      (r) => ids.includes(r.id) && r.type === "outsider"
-    ).length;
+    const wanted = new Set(ids);
+    const fromData = new Set(
+      roles.filter((r) => wanted.has(r.id) && r.type === "outsider").map((r) => r.id)
+    );
+    for (const def of getAllRoleDefinitions() as any[]) {
+      if (wanted.has(def.id) && def.type === "outsider") fromData.add(def.id);
+    }
+    return fromData.size;
   }, [selectedScript]);
 
   const setupManager = useSetupManager(seats, commitSeats, availableOutsiderPool);
@@ -1115,7 +1130,10 @@ export function useGameController() {
       selectedScript,
       nightCount,
       // 🧠 主谋「额外一夜一昼」状态写入（此前该状态从未被激活 ⇒ 规则不生效）
-      setMastermindFinalDay
+      setMastermindFinalDay,
+      // 🔴 共享座位镜像：杜绝「控制器 ref 已更新、dispatcher ref 仍是上一帧」
+      //   导致的 checkGameOver 旧数组写回（贞洁者处决被抹掉的根因）
+      seatsRef
     );
 
   /**

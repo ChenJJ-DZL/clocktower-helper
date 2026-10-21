@@ -45,7 +45,23 @@ export function useLogicDispatcher(
    *
    * 可选参数：不传则退化为旧行为（不标记），避免影响其他调用方/测试。
    */
-  setMastermindFinalDay?: (v: { active: boolean; triggeredAtNight: number } | null) => void
+  setMastermindFinalDay?: (v: { active: boolean; triggeredAtNight: number } | null) => void,
+  /**
+   * 🔴 2026-10-21：**共享座位镜像**（可选）。
+   *
+   * 为什么需要（真实缺陷，贞洁者 E2E 实测抓到）：
+   *   本 hook 曾自己维护一份 `seatsRef`，在**渲染期**同步 `seats` prop。
+   *   而 `useDayActions` 是先 `commitSeats(updatedSeats)`（控制器那一份 ref 立刻更新），
+   *   紧接着调用 `checkGameOver(...)`。此时本 hook 的 ref 仍是**上一帧**的座位
+   *   ⇒ `checkGameOver` 按旧座位判定后 `commitSeats(snapshot.seats)` 把**旧数组写回**
+   *   ⇒ 刚刚落库的「贞洁者处决提名者」被抹掉：
+   *     · 座位 `isDead` 从 true 变回 false（死亡丢失）；
+   *     · `hasUsedVirginAbility` 也被回滚（技能可重复触发）；
+   *     · 只有 `executedPlayerId / todayExecutedId` 这两个标量活下来。
+   *   这类「两份 ref 各自同步」必然分叉 —— 修法是**只留一份**：由调用方把
+   *   `useGameController` 的 `seatsRef` 传进来，两边读写同一对象。
+   */
+  sharedSeatsRef?: { current: Seat[] }
 ) {
   const victoryRef = useRef<{ winner: "good" | "evil"; reason: string } | null>(
     null
@@ -72,8 +88,11 @@ export function useLogicDispatcher(
    *   同一 tick 内连续 dispatch 也能看到彼此的写入（commitSeats 会同步更新 ref），
    *   语义不比原来的函数式更新弱。
    */
-  const seatsRef = useRef<Seat[]>(seats);
-  seatsRef.current = seats; // 渲染期同步（幂等赋值，React 许可）
+  const localSeatsRef = useRef<Seat[]>(seats);
+  // 兼容旧调用方（未传共享镜像）：本 hook 在渲染期自同步；
+  // 传了共享镜像时，同步责任在 useGameController（同一份 ref，勿重复写）。
+  if (!sharedSeatsRef) localSeatsRef.current = seats;
+  const seatsRef = sharedSeatsRef ?? localSeatsRef;
   const commitSeats = useCallback(
     (next: Seat[]) => {
       seatsRef.current = next;

@@ -119,12 +119,39 @@ describe("🛡️ useLogicDispatcher 副作用的落点", () => {
     ).toEqual([]);
   });
 
-  it("④ 必须有 seatsRef 与 commitSeats（同步镜像 + 纯写入）", () => {
-    const src = readFileSync(
+  /**
+   * 🔴 2026-10-21 收紧（贞洁者 E2E 实锤）：
+   *   本 hook 曾**自己**持有一份 `seatsRef` 并在渲染期同步 `seats` prop。
+   *   而 `useDayActions` 先 `commitSeats(updatedSeats)`（控制器那份 ref 立刻更新）
+   *   再调 `checkGameOver(...)` ⇒ 本 hook 的 ref 还是上一帧 ⇒ 旧数组被写回
+   *   ⇒ 刚处决的提名者 `isDead` 被抹掉、`hasUsedVirginAbility` 被回滚。
+   *   ⇒ 现在要求**只有一份镜像**：调用方把 `useGameController` 的 `seatsRef` 传进来。
+   */
+  it("④ 必须有共享 seatsRef + commitSeats（单一镜像 + 纯写入）", () => {
+    const dispatcher = readFileSync(
       join(ROOT, "src/hooks/useLogicDispatcher.ts"),
       "utf-8"
     );
-    expect(src).toContain("const seatsRef = useRef<Seat[]>(seats);");
-    expect(src).toContain("const commitSeats = useCallback(");
+    // ① hook 必须接受共享镜像，并优先使用它（= 单一事实源）
+    expect(dispatcher).toContain("sharedSeatsRef?: { current: Seat[] }");
+    expect(dispatcher).toContain(
+      "const seatsRef = sharedSeatsRef ?? localSeatsRef;"
+    );
+    expect(dispatcher).toContain("const commitSeats = useCallback(");
+
+    // ② 控制器必须真的把 ref 传进去（否则共享形同虚设）
+    const controller = readFileSync(
+      join(ROOT, "src/hooks/useGameController.ts"),
+      "utf-8"
+    );
+    // 锚点用「主谋写入入口」这个**倒数第二个**实参，再断言紧随其后的是 seatsRef
+    //   （不能贪心匹配整个文件：注释里也出现过 `useLogicDispatcher(seats, …)` 字样）
+    const wired = /setMastermindFinalDay,\s*[\s\S]{0,600}?seatsRef\s*\)\s*;/.test(
+      controller
+    );
+    expect(
+      wired,
+      "useGameController 调 useLogicDispatcher 时，最后一个实参必须是共享的 seatsRef"
+    ).toBe(true);
   });
 });
