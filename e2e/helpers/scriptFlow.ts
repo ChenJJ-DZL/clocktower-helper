@@ -107,8 +107,25 @@ export async function enterFirstNight(
    *
    * 不传则保持原行为（真随机），不影响其它既有用例。
    */
-  seed?: number
+  seed?: number,
+  /**
+   * 强制阵容（可选，2026-10-21 新增）：角色 id 数组，长度必须等于人数。
+   *
+   * 为什么要它：`seed` 只能保证「同一颗种子出同一套牌」，**不能指定出哪套牌**。
+   * 按剧本逐角色验证时，需要「这一局必须有洗衣妇+守鸦人+…」——
+   * 靠随机碰 15 个指定角色等于不可能。注入后由 `quickStartGenerator` 照单发。
+   *
+   * 与 `seed` 同时传时不冲突：强制阵容优先，种子只影响其它随机（提醒标记 id 等）。
+   */
+  lineup?: string[]
 ) {
+  if (lineup && lineup.length > 0) {
+    await page.addInitScript((ids: string[]) => {
+      (window as unknown as { __CT_FORCE_LINEUP__?: string[] }).__CT_FORCE_LINEUP__ =
+        ids;
+    }, lineup);
+  }
+
   if (seed !== undefined) {
     // ⚠️ 只注入「发牌专用种子」，**不覆盖全局 Math.random**。
     //   实测教训（2026-10-20）：覆盖全局 Math.random 确实成功（E2E 里

@@ -58,6 +58,67 @@ export function getRoleActionSortWeight(roleId: string): number {
 /**
  * 按照规则为指定人数生成随机阵容，并按角色行动顺序排序
  */
+
+/**
+ * E2E 专用：强制指定阵容（`window.__CT_FORCE_LINEUP__ = string[]`）。
+ *
+ * 为什么要它：按剧本逐角色验证时，靠随机发牌碰角色是不可控也不可复现的
+ * （15 人局要凑齐 15 个指定角色，命中概率接近 0）。注入后发牌器照单发。
+ *
+ * 安全边界：
+ *   · 未注入 / 空数组 ⇒ 返回 null，**行为与原来完全一致**（生产路径不受影响）；
+ *   · 长度与人数不符 ⇒ 抛错（不静默补人）；
+ *   · 含剧本外角色 / 未注册 id ⇒ 抛错并列出名字（不静默换人）。
+ */
+/** 长度不符的告警只打印一次/人数，避免预览重算刷屏 */
+const warnedMismatch = new Set<number>();
+
+function readForcedLineup(
+  availableRoles: Role[],
+  playerCount: number,
+  scriptName: string
+): Role[] | null {
+  if (typeof window === "undefined") return null;
+  const forced = (window as any).__CT_FORCE_LINEUP__;
+  if (!Array.isArray(forced) || forced.length === 0) return null;
+  if (forced.length !== playerCount) {
+    /**
+     * ⚠️ 长度不符**不能抛错**：`QuickStartModal` 在打开时会用默认人数
+     *   （5 人）先算一次预览阵容，注入了 15 人阵容时这里必然不等 ——
+     *   抛错会把弹窗直接打崩，连人数都选不了（实测）。
+     *   正确语义：这次调用不是给它的 ⇒ 返回 null 走随机，并留一条告警。
+     *   真正的兜底在 E2E 侧：用例会断言「发出的牌 === 注入的牌」，
+     *   注入长度写错时该断言必然失败，不会静默放过。
+     */
+    if (!warnedMismatch.has(playerCount)) {
+      warnedMismatch.add(playerCount);
+      console.warn(
+        `[quickStartGenerator] __CT_FORCE_LINEUP__ 长度 ${forced.length} ≠ 人数 ${playerCount}` +
+          ` ⇒ 本次调用按随机发牌（预览路径），实际发牌时人数必须相等`
+      );
+    }
+    return null;
+  }
+  const byId = new Map(availableRoles.map((r) => [r.id, r]));
+  const out: Role[] = [];
+  const missing: string[] = [];
+  for (const id of forced) {
+    const hit = byId.get(String(id));
+    if (!hit) {
+      missing.push(String(id));
+      continue;
+    }
+    out.push(hit);
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `[quickStartGenerator] __CT_FORCE_LINEUP__ 含不在剧本「${scriptName}」的角色：` +
+        missing.join(", ")
+    );
+  }
+  return out;
+}
+
 export function generateAndSortQuickStartLineup(
   script: Script,
   allRoles: Role[],
@@ -88,6 +149,9 @@ export function generateAndSortQuickStartLineup(
     demon: availableRoles.filter((r) => r.type === "demon"),
   };
 
+  /** E2E 强制阵容（未注入时为 null ⇒ 走原随机路径） */
+  const forcedRoles = readForcedLineup(availableRoles, playerCount, script.name);
+
   const baseComp = STANDARD_COMPOSITIONS[playerCount] || {
     townsfolk: Math.max(0, playerCount - 2),
     outsider: 0,
@@ -95,75 +159,115 @@ export function generateAndSortQuickStartLineup(
     demon: 1,
   };
 
-  // 1. 抽取恶魔
-  const pickedDemon = pick(groups.demon, baseComp.demon);
-  const isLegion = pickedDemon.some((r) => r.id === "legion");
-
   let pickedMinions: Role[] = [];
   let pickedOutsiders: Role[] = [];
   let pickedTownsfolk: Role[] = [];
   let finalDemons: Role[] = [];
   let hasBaron = false;
 
-  if (isLegion) {
-    // 军团（Legion）专属开局规则：
-    // 1. 无爪牙 (No Minions)
-    // 2. 善良玩家数量减少（反转，等于通常邪恶数量 minion + demon）
-    // 3. 其余所有玩家均为【军团】(Legion, Demon)
-    // 4. 共享 3 个不在场的镇民伪装
-    const targetGoodCount = Math.max(1, baseComp.minion + baseComp.demon);
-    const targetOutsiders = Math.min(
-      baseComp.outsider > 0 ? 1 : 0,
-      groups.outsider.length,
-      Math.max(0, targetGoodCount - 1)
-    );
-    const targetTownsfolk = targetGoodCount - targetOutsiders;
-    pickedTownsfolk = pick(groups.townsfolk, targetTownsfolk);
-    pickedOutsiders = pick(groups.outsider, targetOutsiders);
-    pickedMinions = [];
-    hasBaron = false;
-
-    const legionCount =
-      playerCount - (pickedTownsfolk.length + pickedOutsiders.length);
-    const legionTemplate =
-      pickedDemon.find((r) => r.id === "legion") ||
-      ({
-        id: "legion",
-        name: "军团",
-        type: "demon",
-        ability:
-          "每个夜晚*，可能有一名玩家死亡。如果一项提名只有邪恶玩家投票，投票无效。你也会被当作是爪牙。[多数玩家为军团]",
-      } as Role);
-
-    finalDemons = Array.from({ length: legionCount }, () => ({
-      ...legionTemplate,
-    }));
-  } else {
-    // 常规模式：优先抽取爪牙与男爵判定
-    pickedMinions = pick(groups.minion, baseComp.minion);
-    hasBaron = pickedMinions.some((r) => r.id === "baron");
-
-    // ⚠️⚠️ 2026-09-20 修复 P0-10：男爵 +2 **改为走唯一事实来源**。
-    //   旧实现内联 `Math.min(2, maxOutsidersAvailable - outsiderCount)`
-    //   且**静默少配**（池子不足时不提示），与 setup UI / 男爵能力三方分叉。
-    //   现在统一调用 `computeSetupComposition`，并把告警带出去。
-    const composition = computeSetupComposition(playerCount, {
-      baronInPlay: hasBaron,
-      availableOutsiderPool: groups.outsider.length,
-    });
-    let outsiderCount = composition.counts.outsider;
-    let townsfolkCount = composition.counts.townsfolk;
-    if (composition.warnings.length > 0) {
-      // 不静默：开局前把配比告警打到控制台（UI 层应同样展示）
-      console.warn(
-        "[quickStartGenerator] 配比告警：\n" +
-          composition.warnings.map((w) => ` · ${w}`).join("\n")
-      );
+  if (forcedRoles) {
+    /**
+     * 强制阵容分支：只校验「能不能发」，不替调用方补齐。
+     * 配比与人数配比不一致时**抛错**——否则会出现「注入了 15 个角色，
+     * 实际发出 14 个 + 随机补 1 个」的静默走私，覆盖表就失真了。
+     */
+    const cnt = { townsfolk: 0, outsider: 0, minion: 0, demon: 0 };
+    for (const r of forcedRoles) {
+      if (r.type === "townsfolk") cnt.townsfolk++;
+      else if (r.type === "outsider") cnt.outsider++;
+      else if (r.type === "minion") cnt.minion++;
+      else if (r.type === "demon") cnt.demon++;
     }
+    const forcedLegion = forcedRoles.some((r) => r.id === "legion");
+    if (!forcedLegion) {
+      const expected = computeSetupComposition(playerCount, {
+        baronInPlay: forcedRoles.some((r) => r.id === "baron"),
+        availableOutsiderPool: groups.outsider.length,
+      });
+      const exp = expected.counts;
+      const mismatch: string[] = [];
+      if (cnt.townsfolk !== exp.townsfolk) mismatch.push(`镇民 ${cnt.townsfolk}≠${exp.townsfolk}`);
+      if (cnt.outsider !== exp.outsider) mismatch.push(`外来者 ${cnt.outsider}≠${exp.outsider}`);
+      if (cnt.minion !== exp.minion) mismatch.push(`爪牙 ${cnt.minion}≠${exp.minion}`);
+      if (cnt.demon !== exp.demon) mismatch.push(`恶魔 ${cnt.demon}≠${exp.demon}`);
+      if (mismatch.length > 0) {
+        throw new Error(
+          `[quickStartGenerator] __CT_FORCE_LINEUP__ 配比非法（${script.name} ${playerCount} 人）：` +
+            mismatch.join("，")
+        );
+      }
+    }
+    pickedTownsfolk = forcedRoles.filter((r) => r.type === "townsfolk");
+    pickedOutsiders = forcedRoles.filter((r) => r.type === "outsider");
+    pickedMinions = forcedRoles.filter((r) => r.type === "minion");
+    finalDemons = forcedRoles.filter((r) => r.type === "demon");
+    hasBaron = forcedRoles.some((r) => r.id === "baron");
+  } else {
+    // 1. 抽取恶魔
+    const pickedDemon = pick(groups.demon, baseComp.demon);
+    const isLegion = pickedDemon.some((r) => r.id === "legion");
 
-    pickedOutsiders = pick(groups.outsider, outsiderCount);
-    pickedTownsfolk = pick(groups.townsfolk, townsfolkCount);
-    finalDemons = pickedDemon;
+
+    if (isLegion) {
+      // 军团（Legion）专属开局规则：
+      // 1. 无爪牙 (No Minions)
+      // 2. 善良玩家数量减少（反转，等于通常邪恶数量 minion + demon）
+      // 3. 其余所有玩家均为【军团】(Legion, Demon)
+      // 4. 共享 3 个不在场的镇民伪装
+      const targetGoodCount = Math.max(1, baseComp.minion + baseComp.demon);
+      const targetOutsiders = Math.min(
+        baseComp.outsider > 0 ? 1 : 0,
+        groups.outsider.length,
+        Math.max(0, targetGoodCount - 1)
+      );
+      const targetTownsfolk = targetGoodCount - targetOutsiders;
+      pickedTownsfolk = pick(groups.townsfolk, targetTownsfolk);
+      pickedOutsiders = pick(groups.outsider, targetOutsiders);
+      pickedMinions = [];
+      hasBaron = false;
+
+      const legionCount =
+        playerCount - (pickedTownsfolk.length + pickedOutsiders.length);
+      const legionTemplate =
+        pickedDemon.find((r) => r.id === "legion") ||
+        ({
+          id: "legion",
+          name: "军团",
+          type: "demon",
+          ability:
+            "每个夜晚*，可能有一名玩家死亡。如果一项提名只有邪恶玩家投票，投票无效。你也会被当作是爪牙。[多数玩家为军团]",
+        } as Role);
+
+      finalDemons = Array.from({ length: legionCount }, () => ({
+        ...legionTemplate,
+      }));
+    } else {
+      // 常规模式：优先抽取爪牙与男爵判定
+      pickedMinions = pick(groups.minion, baseComp.minion);
+      hasBaron = pickedMinions.some((r) => r.id === "baron");
+
+      // ⚠️⚠️ 2026-09-20 修复 P0-10：男爵 +2 **改为走唯一事实来源**。
+      //   旧实现内联 `Math.min(2, maxOutsidersAvailable - outsiderCount)`
+      //   且**静默少配**（池子不足时不提示），与 setup UI / 男爵能力三方分叉。
+      //   现在统一调用 `computeSetupComposition`，并把告警带出去。
+      const composition = computeSetupComposition(playerCount, {
+        baronInPlay: hasBaron,
+        availableOutsiderPool: groups.outsider.length,
+      });
+      let outsiderCount = composition.counts.outsider;
+      let townsfolkCount = composition.counts.townsfolk;
+      if (composition.warnings.length > 0) {
+        // 不静默：开局前把配比告警打到控制台（UI 层应同样展示）
+        console.warn(
+          "[quickStartGenerator] 配比告警：\n" +
+            composition.warnings.map((w) => ` · ${w}`).join("\n")
+        );
+      }
+
+      pickedOutsiders = pick(groups.outsider, outsiderCount);
+      pickedTownsfolk = pick(groups.townsfolk, townsfolkCount);
+      finalDemons = pickedDemon;
+    }
   }
 
   const rawSelected: Role[] = [
