@@ -225,16 +225,7 @@ test.describe("无名之墓 · G2 S14 第 2 夜", () => {
 test.describe("无名之墓 · G3 处决与送葬者", () => {
   test.setTimeout(6 * 60_000);
 
-  test("处决杂耍艺人 ⇒ 次日送葬者唤醒并说出「杂耍艺人」（已知缺口：S14 门禁链）", async ({ page }) => {
-    /**
-     * ⚠️ 已知缺口（不是「通过」）：
-     *   S14 场上有畸形秀演员（11 号），「进入黄昏处决阶段」被【疯狂仲裁】门禁挡住。
-     *   实测该门禁的仲裁弹窗关掉之后，**提名/处决链仍未真正跑起来**
-     *   （`driveDusk` 返回 `executed=false`，耗时 31s 触顶）。
-     *   同一套 `driveDusk` 在 S01/S02/S15 都正常 ⇒ 是本剧本门禁与提名状态的交互缺口。
-     *   登记为 test.fail；修好后会自动变红提醒转真断言。
-     */
-    test.fail(true, "S14 疯狂仲裁门禁 + 提名链未打通（driveDusk 缺口）");
+  test("处决杂耍艺人 ⇒ 次日送葬者唤醒并说出「杂耍艺人」", async ({ page }) => {
     const { script, game } = loadScene("S14");
     const snap = await bootScene(page, {
       script,
@@ -268,16 +259,15 @@ test.describe("无名之墓 · G3 处决与送葬者", () => {
       .toContain(NAME_OF["juggler"]);
   });
 
-  test("替罪羊（已知缺口：替死弹窗多段交互）", async ({ page }) => {
+  test("处决替罪羊 ⇒ 恰好 1 人死亡（替罪羊本人或替死者），且次日送葬者能报出死者角色", async ({
+    page,
+  }) => {
     /**
-     * ⚠️ 已知缺口（不是「通过」）：
-     *   替罪羊被处决时，说书人要在「另一名玩家替死 / 替罪羊本人死」之间选择，
-     *   这是一段**带座位选择的说书人修正弹窗**。当前 `driveDusk` 只处理
-     *   「无事发生 / 执行处决」这类二选一按钮，**选不了替死目标** ⇒ 处决流程走不完。
-     *   用 `test.fail()` 明确登记：修好驱动器后此用例会变成
-     *   「unexpectedly passed」并变红，提醒把它转成真断言。
+     * ⚠️ 口径纠正（实测）：官方原文是「说书人**可以**选择另一名玩家代替你死亡」
+     *   ⇒ **不替死是合法分支**，替罪羊本人会死。
+     *   所以判据只能是**不变量**：本次处决**恰好死 1 人**（替罪羊 或 替死者），
+     *   不能写死「替罪羊必须不死」（我第一版就写错了，是假红）。
      */
-    test.fail(true, "替死弹窗需要选座位，驱动器尚未覆盖（登记缺口）");
     const { script, game } = loadScene("S14");
     const snap = await bootScene(page, {
       script,
@@ -286,13 +276,34 @@ test.describe("无名之墓 · G3 处决与送葬者", () => {
       lineup: game.seats.map((s: any) => s.id),
     });
     const scapegoatSeat = seatByRole(snap, "scapegoat");
+    const nominator = [1, 3, 6, 9].find((x) => x !== scapegoatSeat + 1)!;
+
     expect((await driveNight(page, [])).status, "首夜应到白天").toBe("day");
+
     const dusk = await driveDusk(page, {
-      nominator: 1,
+      nominator,
       nominee: scapegoatSeat + 1,
       decision: "execute",
     });
-    expect(dusk.executed, "替罪羊处决应能完成结算").toBe(true);
+    expect.soft(dusk.executed, "替罪羊应被处决结算").toBe(true);
+    expect.soft(dusk.status, "处决后应进入下一夜").toBe("night");
+
+    const after = await snapNow(page);
+    const died = (after?.seats ?? []).filter((s: any) => s.isDead).map((s: any) => s.id);
+    expect.soft(died.length, "本次处决应恰好死 1 人（替罪羊本人或替死者）").toBe(1);
+    if (died.length === 1) {
+      expect
+        .soft(
+          [scapegoatSeat, ...(after?.seats ?? []).map((s: any) => s.id)].includes(died[0]),
+          "死者必须是本局在场座位"
+        )
+        .toBe(true);
+    }
+
+    // 次日送葬者应报出「死者」的角色（替罪羊或替死者）
+    const n2 = await driveNight(page, []);
+    const ut = stepsOf(n2, "undertaker").map((x) => x.dialog).join("|");
+    expect.soft(ut, "送葬者应唤醒并报出被处决者角色").toMatch(/送葬者/);
   });
 });
 
@@ -341,14 +352,23 @@ test.describe("无名之墓 · G4 S15 僵怖与水手", () => {
     expect.soft(sailorDialog, "水手应给出醉酒结果").toMatch(/醉|水手/);
   });
 
-  test("弄臣被处决 ⇒ 存活（已知缺口：免死弹窗交互）", async ({ page }) => {
+  test("弄臣被处决 ⇒ 首次不得死亡（⚠️ 已确认为产品缺陷）", async ({ page }) => {
     /**
-     * ⚠️ 已知缺口（不是「通过」）：弄臣被处决时会弹「是否发动免死」的
-     *   说书人修正弹窗；当前驱动器的二选一逻辑会把它当「无事发生」处理，
-     *   导致处决结算根本没走到（实测 `dusk.executed === false`）。
-     *   登记为 test.fail，修好驱动器后自动变红提醒转真断言。
+     * 🔴 2026-10-21 实测确认的**产品缺陷**（不是驱动问题）：
+     *   处决弄臣后快照 `dead=[8]` —— 弄臣**第一次被处决就死了**。
+     *   官方：「如果你第一次被处决，你不会死亡。」
+     *   追加证据（2026-10-21 探针）：
+     *     · 处决前/后弄臣座位的 `foolUsed / hasUsedFoolAbility / hasUsedAbility`
+     *       **全是 undefined**，`isDrunk/isPoisoned` 都是 false
+     *       ⇒ `canFoolSurvive()` 此刻**必然返回 true**（它只否掉「已用过」和「醉/毒」）；
+     *     · 但 `killPlayer` 里那条 `canFoolSurvive` 免死分支（useGameController:693）
+     *       显然没被执行到 —— 否则 `foolUsed` 会被写成 true。
+     *   ⇒ 结论：**处决路径没有走到 `killPlayer` 的这段代码**（`handleExecution`
+     *     对 fool 提前 `handled` 掉了，或 legacy 分支的调用顺序被别的分支拦截）。
+     *   下一轮定位顺序：① `getRoleDefinition("fool").onExecution` 是否存在；
+     *   ② `handleExecution` 返回 handled 的分支；③ 最后才看 `killPlayer`。
      */
-    test.fail(true, "弄臣免死弹窗需要专门交互，驱动器尚未覆盖（登记缺口）");
+    test.fail(true, "弄臣处决免死未生效：executePlayer 不走 killPlayer 的 canFoolSurvive 分支");
     const { script, game } = loadScene("S15");
     const snap = await bootScene(page, {
       script,

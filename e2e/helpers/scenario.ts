@@ -504,9 +504,20 @@ export async function driveDusk(page: Page, plan: DuskPlan = {}): Promise<DuskRe
           const decision = btns.filter(
             (b) => /无事发生|执行处决|是，|否，/.test(norm(b)) && !b.disabled
           );
+          /**
+           * 🔴 2026-10-21 修复（S14 卡死根因）：
+           *   `plan.decision === "execute"` 是给「今日处决最终判定」用的，
+           *   但它**误伤了畸形秀演员的【疯狂仲裁】** —— 仲裁弹窗里也有
+           *   「是，执行处决」按钮，于是驱动器把「是否处决畸形秀演员」判成了「是」
+           *   ⇒ 白天被立即终结（isInstantNight）⇒ 提名/处决全流程根本没发生，
+           *   表现为 `nominated=false / executed=false`，且整局跳到夜里。
+           *   ⇒ 仲裁类弹窗**永远走保守项**（否，无事发生），不吃 plan.decision。
+           */
+          const isMadnessArbitration = /畸形秀演员|疯狂仲裁|疯狂洗脑/.test(t);
           if (decision.length > 0 && /判定|疯狂|仲裁|处决确认|是否/.test(t)) {
-            const want =
-              plan.decision === "execute"
+            const want = isMadnessArbitration
+              ? decision.find((b) => /无事发生|否，|^否/.test(norm(b)))
+              : plan.decision === "execute"
                 ? decision.find((b) => /执行处决|是，|^是/.test(norm(b)))
                 : decision.find((b) => /无事发生|否，|^否/.test(norm(b)));
             const chosen = want ?? decision[0];
