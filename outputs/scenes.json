@@ -1,0 +1,2185 @@
+{
+  "generatedAt": "2026-10-21T06:12:24.978Z",
+  "method": "roleIds ← app/data.ts；配比 ← STANDARD_COMPOSITIONS + 角色自带修正（男爵/方古/亡骨魔）；独立复算校验",
+  "totals": {
+    "scenes": 27,
+    "rolePairs": 191,
+    "coveredPairs": 190,
+    "coverage": 0.9948,
+    "nonDealablePairs": [
+      "无名之墓:scapegoat"
+    ]
+  },
+  "warnings": [
+    "无名之墓 G1: 修正需 4 外来者，池仅 2 ⇒ 钳制（预期运行时告警）",
+    "无名之墓 G2: 修正需 4 外来者，池仅 2 ⇒ 钳制（预期运行时告警）",
+    "无上愉悦 G2: 修正需 4 外来者，池仅 3 ⇒ 钳制（预期运行时告警）"
+  ],
+  "scripts": [
+    {
+      "script": "暗流涌动",
+      "scriptId": "trouble_brewing",
+      "pool": {
+        "townsfolk": 13,
+        "outsider": 4,
+        "minion": 4,
+        "demon": 1
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "washerwoman",
+              "name": "洗衣妇",
+              "type": "townsfolk"
+            },
+            {
+              "id": "librarian",
+              "name": "图书管理员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "investigator",
+              "name": "调查员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chef",
+              "name": "厨师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "empath",
+              "name": "共情者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fortune_teller",
+              "name": "占卜师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "undertaker",
+              "name": "送葬者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "monk",
+              "name": "僧侣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "ravenkeeper",
+              "name": "守鸦人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "butler",
+              "name": "管家",
+              "type": "outsider"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "poisoner",
+              "name": "投毒者",
+              "type": "minion"
+            },
+            {
+              "id": "spy",
+              "name": "间谍",
+              "type": "minion"
+            },
+            {
+              "id": "scarlet_woman",
+              "name": "红唇女郎",
+              "type": "minion"
+            },
+            {
+              "id": "imp",
+              "name": "小恶魔",
+              "type": "demon"
+            }
+          ],
+          "id": "S01",
+          "seed": 92001
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 7,
+            "outsider": 4,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "virgin",
+              "name": "贞洁者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "slayer",
+              "name": "猎手",
+              "type": "townsfolk"
+            },
+            {
+              "id": "soldier",
+              "name": "士兵",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mayor",
+              "name": "镇长",
+              "type": "townsfolk"
+            },
+            {
+              "id": "washerwoman",
+              "name": "洗衣妇",
+              "type": "townsfolk"
+            },
+            {
+              "id": "librarian",
+              "name": "图书管理员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "investigator",
+              "name": "调查员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "recluse",
+              "name": "陌客",
+              "type": "outsider"
+            },
+            {
+              "id": "saint",
+              "name": "圣徒",
+              "type": "outsider"
+            },
+            {
+              "id": "butler",
+              "name": "管家",
+              "type": "outsider"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "baron",
+              "name": "男爵",
+              "type": "minion"
+            },
+            {
+              "id": "poisoner",
+              "name": "投毒者",
+              "type": "minion"
+            },
+            {
+              "id": "spy",
+              "name": "间谍",
+              "type": "minion"
+            },
+            {
+              "id": "imp",
+              "name": "小恶魔",
+              "type": "demon"
+            }
+          ],
+          "id": "S02",
+          "seed": 92002
+        }
+      ]
+    },
+    {
+      "script": "黯月初升",
+      "scriptId": "bad_moon_rising",
+      "pool": {
+        "townsfolk": 13,
+        "outsider": 4,
+        "minion": 4,
+        "demon": 4
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "grandmother",
+              "name": "祖母",
+              "type": "townsfolk"
+            },
+            {
+              "id": "sailor",
+              "name": "水手",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chambermaid",
+              "name": "侍女",
+              "type": "townsfolk"
+            },
+            {
+              "id": "exorcist",
+              "name": "驱魔人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "innkeeper",
+              "name": "旅店老板",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gambler",
+              "name": "赌徒",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "courtier",
+              "name": "侍臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "professor",
+              "name": "教授",
+              "type": "townsfolk"
+            },
+            {
+              "id": "tinker",
+              "name": "修补匠",
+              "type": "outsider"
+            },
+            {
+              "id": "moonchild",
+              "name": "月之子",
+              "type": "outsider"
+            },
+            {
+              "id": "godfather",
+              "name": "教父",
+              "type": "minion"
+            },
+            {
+              "id": "devils_advocate",
+              "name": "魔鬼代言人",
+              "type": "minion"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "zombuul",
+              "name": "僵怖",
+              "type": "demon"
+            }
+          ],
+          "id": "S03",
+          "seed": 92003
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 5,
+            "outsider": 2,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "minstrel",
+              "name": "吟游诗人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "tea_lady",
+              "name": "茶艺师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "pacifist",
+              "name": "和平主义者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fool",
+              "name": "弄臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "grandmother",
+              "name": "祖母",
+              "type": "townsfolk"
+            },
+            {
+              "id": "goon",
+              "name": "莽夫",
+              "type": "outsider"
+            },
+            {
+              "id": "lunatic",
+              "name": "疯子",
+              "type": "outsider"
+            },
+            {
+              "id": "mastermind",
+              "name": "主谋",
+              "type": "minion"
+            },
+            {
+              "id": "pukka",
+              "name": "普卡",
+              "type": "demon"
+            }
+          ],
+          "id": "S04",
+          "seed": 92004
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 5,
+            "outsider": 2,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "grandmother",
+              "name": "祖母",
+              "type": "townsfolk"
+            },
+            {
+              "id": "sailor",
+              "name": "水手",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chambermaid",
+              "name": "侍女",
+              "type": "townsfolk"
+            },
+            {
+              "id": "exorcist",
+              "name": "驱魔人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "innkeeper",
+              "name": "旅店老板",
+              "type": "townsfolk"
+            },
+            {
+              "id": "tinker",
+              "name": "修补匠",
+              "type": "outsider"
+            },
+            {
+              "id": "moonchild",
+              "name": "月之子",
+              "type": "outsider"
+            },
+            {
+              "id": "godfather",
+              "name": "教父",
+              "type": "minion"
+            },
+            {
+              "id": "shabaloth",
+              "name": "沙巴洛斯",
+              "type": "demon"
+            }
+          ],
+          "id": "S05",
+          "seed": 92005
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "grandmother",
+              "name": "祖母",
+              "type": "townsfolk"
+            },
+            {
+              "id": "sailor",
+              "name": "水手",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chambermaid",
+              "name": "侍女",
+              "type": "townsfolk"
+            },
+            {
+              "id": "exorcist",
+              "name": "驱魔人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "innkeeper",
+              "name": "旅店老板",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gambler",
+              "name": "赌徒",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "courtier",
+              "name": "侍臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "professor",
+              "name": "教授",
+              "type": "townsfolk"
+            },
+            {
+              "id": "tinker",
+              "name": "修补匠",
+              "type": "outsider"
+            },
+            {
+              "id": "moonchild",
+              "name": "月之子",
+              "type": "outsider"
+            },
+            {
+              "id": "godfather",
+              "name": "教父",
+              "type": "minion"
+            },
+            {
+              "id": "devils_advocate",
+              "name": "魔鬼代言人",
+              "type": "minion"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "po",
+              "name": "珀",
+              "type": "demon"
+            }
+          ],
+          "id": "S06",
+          "seed": 92006
+        }
+      ]
+    },
+    {
+      "script": "梦殒春宵",
+      "scriptId": "sects_and_violets",
+      "pool": {
+        "townsfolk": 13,
+        "outsider": 4,
+        "minion": 4,
+        "demon": 4
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 8,
+            "outsider": 3,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "snake_charmer",
+              "name": "舞蛇人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "town_crier",
+              "name": "城镇公告员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "sweetheart",
+              "name": "心上人",
+              "type": "outsider"
+            },
+            {
+              "id": "barber",
+              "name": "理发师",
+              "type": "outsider"
+            },
+            {
+              "id": "evil_twin",
+              "name": "镜像双子",
+              "type": "minion"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "cerenovus",
+              "name": "洗脑师",
+              "type": "minion"
+            },
+            {
+              "id": "fang_gu",
+              "name": "方古",
+              "type": "demon"
+            }
+          ],
+          "id": "S07",
+          "seed": 92007
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 6,
+            "outsider": 1,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "seamstress",
+              "name": "女裁缝",
+              "type": "townsfolk"
+            },
+            {
+              "id": "philosopher",
+              "name": "哲学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "juggler",
+              "name": "杂耍艺人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "sage",
+              "name": "贤者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "klutz",
+              "name": "呆瓜",
+              "type": "outsider"
+            },
+            {
+              "id": "pit_hag",
+              "name": "坑道巫婆",
+              "type": "minion"
+            },
+            {
+              "id": "vigormortis",
+              "name": "亡骨魔",
+              "type": "demon"
+            }
+          ],
+          "id": "S08",
+          "seed": 92008
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 5,
+            "outsider": 2,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "snake_charmer",
+              "name": "舞蛇人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "sweetheart",
+              "name": "心上人",
+              "type": "outsider"
+            },
+            {
+              "id": "evil_twin",
+              "name": "镜像双子",
+              "type": "minion"
+            },
+            {
+              "id": "no_dashii",
+              "name": "诺-达",
+              "type": "demon"
+            }
+          ],
+          "id": "S09",
+          "seed": 92009
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "snake_charmer",
+              "name": "舞蛇人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "town_crier",
+              "name": "城镇公告员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "seamstress",
+              "name": "女裁缝",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "sweetheart",
+              "name": "心上人",
+              "type": "outsider"
+            },
+            {
+              "id": "evil_twin",
+              "name": "镜像双子",
+              "type": "minion"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "cerenovus",
+              "name": "洗脑师",
+              "type": "minion"
+            },
+            {
+              "id": "vortox",
+              "name": "涡流",
+              "type": "demon"
+            }
+          ],
+          "id": "S10",
+          "seed": 92010
+        }
+      ]
+    },
+    {
+      "script": "窃窃私语",
+      "scriptId": "whispering_secrets",
+      "pool": {
+        "townsfolk": 8,
+        "outsider": 4,
+        "minion": 4,
+        "demon": 3
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 12,
+          "counts": {
+            "townsfolk": 7,
+            "outsider": 2,
+            "minion": 2,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "chambermaid",
+              "name": "侍女",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "innkeeper",
+              "name": "旅店老板",
+              "type": "townsfolk"
+            },
+            {
+              "id": "saint",
+              "name": "圣徒",
+              "type": "outsider"
+            },
+            {
+              "id": "recluse",
+              "name": "陌客",
+              "type": "outsider"
+            },
+            {
+              "id": "spy",
+              "name": "间谍",
+              "type": "minion"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "vortox",
+              "name": "涡流",
+              "type": "demon"
+            }
+          ],
+          "id": "S11",
+          "seed": 92011
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 5,
+            "outsider": 2,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "fool",
+              "name": "弄臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chambermaid",
+              "name": "侍女",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "politician",
+              "name": "政客",
+              "type": "outsider"
+            },
+            {
+              "id": "plague_doctor",
+              "name": "瘟疫医生",
+              "type": "outsider"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "po",
+              "name": "珀",
+              "type": "demon"
+            }
+          ],
+          "id": "S12",
+          "seed": 92012
+        },
+        {
+          "players": 12,
+          "counts": {
+            "townsfolk": 7,
+            "outsider": 2,
+            "minion": 2,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "chambermaid",
+              "name": "侍女",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "innkeeper",
+              "name": "旅店老板",
+              "type": "townsfolk"
+            },
+            {
+              "id": "saint",
+              "name": "圣徒",
+              "type": "outsider"
+            },
+            {
+              "id": "recluse",
+              "name": "陌客",
+              "type": "outsider"
+            },
+            {
+              "id": "devils_advocate",
+              "name": "魔鬼代言人",
+              "type": "minion"
+            },
+            {
+              "id": "spy",
+              "name": "间谍",
+              "type": "minion"
+            },
+            {
+              "id": "zombuul",
+              "name": "僵怖",
+              "type": "demon"
+            }
+          ],
+          "id": "S13",
+          "seed": 92013
+        }
+      ]
+    },
+    {
+      "script": "无名之墓",
+      "scriptId": "tomb_of_the_unknown",
+      "pool": {
+        "townsfolk": 11,
+        "outsider": 2,
+        "minion": 3,
+        "demon": 2
+      },
+      "travelerOrFabled": [
+        "scapegoat"
+      ],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "undertaker",
+              "name": "送葬者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gambler",
+              "name": "赌徒",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "juggler",
+              "name": "杂耍艺人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "sailor",
+              "name": "水手",
+              "type": "townsfolk"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "baron",
+              "name": "男爵",
+              "type": "minion"
+            },
+            {
+              "id": "poisoner",
+              "name": "投毒者",
+              "type": "minion"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "shabaloth",
+              "name": "沙巴洛斯",
+              "type": "demon"
+            }
+          ],
+          "id": "S14",
+          "seed": 92014
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "farmer",
+              "name": "农夫",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fool",
+              "name": "弄臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "undertaker",
+              "name": "送葬者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gambler",
+              "name": "赌徒",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "gossip",
+              "name": "造谣者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "juggler",
+              "name": "杂耍艺人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "baron",
+              "name": "男爵",
+              "type": "minion"
+            },
+            {
+              "id": "poisoner",
+              "name": "投毒者",
+              "type": "minion"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "zombuul",
+              "name": "僵怖",
+              "type": "demon"
+            }
+          ],
+          "id": "S15",
+          "seed": 92015
+        }
+      ]
+    },
+    {
+      "script": "无上愉悦",
+      "scriptId": "high_pleasure",
+      "pool": {
+        "townsfolk": 8,
+        "outsider": 3,
+        "minion": 3,
+        "demon": 2
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 12,
+          "counts": {
+            "townsfolk": 7,
+            "outsider": 2,
+            "minion": 2,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "washerwoman",
+              "name": "洗衣妇",
+              "type": "townsfolk"
+            },
+            {
+              "id": "investigator",
+              "name": "调查员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chef",
+              "name": "厨师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "librarian",
+              "name": "图书管理员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "empath",
+              "name": "共情者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fortune_teller",
+              "name": "占卜师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "monk",
+              "name": "僧侣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "butler",
+              "name": "管家",
+              "type": "outsider"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "poisoner",
+              "name": "投毒者",
+              "type": "minion"
+            },
+            {
+              "id": "scarlet_woman",
+              "name": "红唇女郎",
+              "type": "minion"
+            },
+            {
+              "id": "imp",
+              "name": "小恶魔",
+              "type": "demon"
+            }
+          ],
+          "id": "S16",
+          "seed": 92016
+        },
+        {
+          "players": 12,
+          "counts": {
+            "townsfolk": 6,
+            "outsider": 3,
+            "minion": 2,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "ravenkeeper",
+              "name": "守鸦人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "washerwoman",
+              "name": "洗衣妇",
+              "type": "townsfolk"
+            },
+            {
+              "id": "investigator",
+              "name": "调查员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chef",
+              "name": "厨师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "librarian",
+              "name": "图书管理员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "empath",
+              "name": "共情者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "recluse",
+              "name": "陌客",
+              "type": "outsider"
+            },
+            {
+              "id": "butler",
+              "name": "管家",
+              "type": "outsider"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "baron",
+              "name": "男爵",
+              "type": "minion"
+            },
+            {
+              "id": "poisoner",
+              "name": "投毒者",
+              "type": "minion"
+            },
+            {
+              "id": "zombuul",
+              "name": "僵怖",
+              "type": "demon"
+            }
+          ],
+          "id": "S17",
+          "seed": 92017
+        }
+      ]
+    },
+    {
+      "script": "凶宅魅影",
+      "scriptId": "haunted_manor",
+      "pool": {
+        "townsfolk": 11,
+        "outsider": 3,
+        "minion": 4,
+        "demon": 3
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "balloonist",
+              "name": "气球驾驶员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "seamstress",
+              "name": "女裁缝",
+              "type": "townsfolk"
+            },
+            {
+              "id": "juggler",
+              "name": "杂耍艺人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "philosopher",
+              "name": "哲学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "town_crier",
+              "name": "城镇公告员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "courtier",
+              "name": "侍臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "barber",
+              "name": "理发师",
+              "type": "outsider"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "godfather",
+              "name": "教父",
+              "type": "minion"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "no_dashii",
+              "name": "诺-达",
+              "type": "demon"
+            }
+          ],
+          "id": "S18",
+          "seed": 92018
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 4,
+            "outsider": 3,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "choir_boy",
+              "name": "唱诗男孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fool",
+              "name": "弄臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "balloonist",
+              "name": "气球驾驶员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "saint",
+              "name": "圣徒",
+              "type": "outsider"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "barber",
+              "name": "理发师",
+              "type": "outsider"
+            },
+            {
+              "id": "devils_advocate",
+              "name": "魔鬼代言人",
+              "type": "minion"
+            },
+            {
+              "id": "fang_gu",
+              "name": "方古",
+              "type": "demon"
+            }
+          ],
+          "id": "S19",
+          "seed": 92019
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "balloonist",
+              "name": "气球驾驶员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "seamstress",
+              "name": "女裁缝",
+              "type": "townsfolk"
+            },
+            {
+              "id": "juggler",
+              "name": "杂耍艺人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "philosopher",
+              "name": "哲学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "town_crier",
+              "name": "城镇公告员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "courtier",
+              "name": "侍臣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "barber",
+              "name": "理发师",
+              "type": "outsider"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "godfather",
+              "name": "教父",
+              "type": "minion"
+            },
+            {
+              "id": "assassin",
+              "name": "刺客",
+              "type": "minion"
+            },
+            {
+              "id": "pukka",
+              "name": "普卡",
+              "type": "demon"
+            }
+          ],
+          "id": "S20",
+          "seed": 92020
+        }
+      ]
+    },
+    {
+      "script": "游园惊梦",
+      "scriptId": "garden_of_dreams",
+      "pool": {
+        "townsfolk": 9,
+        "outsider": 4,
+        "minion": 3,
+        "demon": 4
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 8,
+            "outsider": 3,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "seamstress",
+              "name": "女裁缝",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "sweetheart",
+              "name": "心上人",
+              "type": "outsider"
+            },
+            {
+              "id": "barber",
+              "name": "理发师",
+              "type": "outsider"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "cerenovus",
+              "name": "洗脑师",
+              "type": "minion"
+            },
+            {
+              "id": "pit_hag",
+              "name": "坑道巫婆",
+              "type": "minion"
+            },
+            {
+              "id": "fang_gu",
+              "name": "方古",
+              "type": "demon"
+            }
+          ],
+          "id": "S21",
+          "seed": 92021
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 6,
+            "outsider": 1,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "sage",
+              "name": "贤者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "klutz",
+              "name": "呆瓜",
+              "type": "outsider"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "vigormortis",
+              "name": "亡骨魔",
+              "type": "demon"
+            }
+          ],
+          "id": "S22",
+          "seed": 92022
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 5,
+            "outsider": 2,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "sweetheart",
+              "name": "心上人",
+              "type": "outsider"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "no_dashii",
+              "name": "诺-达",
+              "type": "demon"
+            }
+          ],
+          "id": "S23",
+          "seed": 92023
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 9,
+            "outsider": 2,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "clockmaker",
+              "name": "钟表匠",
+              "type": "townsfolk"
+            },
+            {
+              "id": "dreamer",
+              "name": "筑梦师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mathematician",
+              "name": "数学家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "flowergirl",
+              "name": "卖花女孩",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "seamstress",
+              "name": "女裁缝",
+              "type": "townsfolk"
+            },
+            {
+              "id": "artist",
+              "name": "艺术家",
+              "type": "townsfolk"
+            },
+            {
+              "id": "sage",
+              "name": "贤者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "sweetheart",
+              "name": "心上人",
+              "type": "outsider"
+            },
+            {
+              "id": "witch",
+              "name": "女巫",
+              "type": "minion"
+            },
+            {
+              "id": "cerenovus",
+              "name": "洗脑师",
+              "type": "minion"
+            },
+            {
+              "id": "pit_hag",
+              "name": "坑道巫婆",
+              "type": "minion"
+            },
+            {
+              "id": "vortox",
+              "name": "涡流",
+              "type": "demon"
+            }
+          ],
+          "id": "S24",
+          "seed": 92024
+        }
+      ]
+    },
+    {
+      "script": "罂粟花开",
+      "scriptId": "poppyganda",
+      "pool": {
+        "townsfolk": 13,
+        "outsider": 4,
+        "minion": 4,
+        "demon": 3
+      },
+      "travelerOrFabled": [],
+      "games": [
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 7,
+            "outsider": 4,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "librarian",
+              "name": "图书管理员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chef",
+              "name": "厨师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "bounty_hunter",
+              "name": "赏金猎人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "pixie",
+              "name": "小精灵",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fortune_teller",
+              "name": "占卜师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "monk",
+              "name": "僧侣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "oracle",
+              "name": "神谕者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "lunatic",
+              "name": "疯子",
+              "type": "outsider"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "snitch",
+              "name": "告密者",
+              "type": "outsider"
+            },
+            {
+              "id": "cerenovus",
+              "name": "洗脑师",
+              "type": "minion"
+            },
+            {
+              "id": "evil_twin",
+              "name": "镜像双子",
+              "type": "minion"
+            },
+            {
+              "id": "baron",
+              "name": "男爵",
+              "type": "minion"
+            },
+            {
+              "id": "imp",
+              "name": "小恶魔",
+              "type": "demon"
+            }
+          ],
+          "id": "S25",
+          "seed": 92025
+        },
+        {
+          "players": 9,
+          "counts": {
+            "townsfolk": 5,
+            "outsider": 2,
+            "minion": 1,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "town_crier",
+              "name": "城镇公告员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "juggler",
+              "name": "杂耍艺人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "savant",
+              "name": "博学者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "farmer",
+              "name": "农夫",
+              "type": "townsfolk"
+            },
+            {
+              "id": "mayor",
+              "name": "镇长",
+              "type": "townsfolk"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "lunatic",
+              "name": "疯子",
+              "type": "outsider"
+            },
+            {
+              "id": "marionette",
+              "name": "提线木偶",
+              "type": "minion"
+            },
+            {
+              "id": "vortox",
+              "name": "涡流",
+              "type": "demon"
+            }
+          ],
+          "id": "S26",
+          "seed": 92026
+        },
+        {
+          "players": 15,
+          "counts": {
+            "townsfolk": 7,
+            "outsider": 4,
+            "minion": 3,
+            "demon": 1
+          },
+          "seats": [
+            {
+              "id": "poppy_grower",
+              "name": "罂粟种植者",
+              "type": "townsfolk"
+            },
+            {
+              "id": "librarian",
+              "name": "图书管理员",
+              "type": "townsfolk"
+            },
+            {
+              "id": "chef",
+              "name": "厨师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "bounty_hunter",
+              "name": "赏金猎人",
+              "type": "townsfolk"
+            },
+            {
+              "id": "pixie",
+              "name": "小精灵",
+              "type": "townsfolk"
+            },
+            {
+              "id": "fortune_teller",
+              "name": "占卜师",
+              "type": "townsfolk"
+            },
+            {
+              "id": "monk",
+              "name": "僧侣",
+              "type": "townsfolk"
+            },
+            {
+              "id": "drunk",
+              "name": "酒鬼",
+              "type": "outsider"
+            },
+            {
+              "id": "lunatic",
+              "name": "疯子",
+              "type": "outsider"
+            },
+            {
+              "id": "mutant",
+              "name": "畸形秀演员",
+              "type": "outsider"
+            },
+            {
+              "id": "snitch",
+              "name": "告密者",
+              "type": "outsider"
+            },
+            {
+              "id": "cerenovus",
+              "name": "洗脑师",
+              "type": "minion"
+            },
+            {
+              "id": "evil_twin",
+              "name": "镜像双子",
+              "type": "minion"
+            },
+            {
+              "id": "baron",
+              "name": "男爵",
+              "type": "minion"
+            },
+            {
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
+            }
+          ],
+          "id": "S27",
+          "seed": 92027
+        }
+      ]
+    }
+  ]
+}

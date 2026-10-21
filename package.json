@@ -19,7 +19,8 @@
     "test:e2e:list": "playwright test --list",
     "verify:all": "node scripts/verify-all.mjs",
     "verify:list": "node scripts/verify-all.mjs --list",
-    "coverage:audit": "tsx scripts/coverage-audit.ts"
+    "coverage:audit": "tsx scripts/coverage-audit.ts",
+    "plan:scenes": "tsx scripts/plan-scenes.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
