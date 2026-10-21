@@ -52,6 +52,153 @@ const KNOWN_STUCK: Array<{
   reason: string;
 }> = [];
 
+/**
+ * 专项 X05（45 条 = 9 剧本 × 5 局）—— 见
+ * `outputs/全量验证计划V2-场次用例清单-2026-10-21.md` §X05。
+ *
+ * 与上面 9 条基线（seed 91001–91009）的分工：
+ *   · 910xx：**每剧本 1 局**，锁「终局判据本身对不对」（已经是 CI 基线）；
+ *   · 940xx：**每剧本 5 局**，锁「同一套判据在不同牌局下都成立」，
+ *     并额外要求「5 局里至少出现 1 次专属胜因」与「胜方不是一边倒」。
+ *
+ * ⚠️ 5 人局：3 镇民 + 1 爪牙 + 1 恶魔（官方标准表）。死亡 3 人即「可计存活 ≤2」，
+ *   通常 1~5 个昼夜终局，单局几十秒。
+ */
+const X05_SEEDS: Array<{ name: string; players: number; seed: number }> = [
+  // 暗流涌动
+  { name: "暗流涌动", players: 5, seed: 94001 },
+  { name: "暗流涌动", players: 5, seed: 94002 },
+  { name: "暗流涌动", players: 5, seed: 94003 },
+  { name: "暗流涌动", players: 5, seed: 94004 },
+  { name: "暗流涌动", players: 5, seed: 94005 },
+  // 黯月初升
+  { name: "黯月初升", players: 5, seed: 94006 },
+  { name: "黯月初升", players: 5, seed: 94007 },
+  { name: "黯月初升", players: 5, seed: 94008 },
+  { name: "黯月初升", players: 5, seed: 94009 },
+  { name: "黯月初升", players: 5, seed: 94010 },
+  // 梦殒春宵
+  { name: "梦殒春宵", players: 5, seed: 94011 },
+  { name: "梦殒春宵", players: 5, seed: 94012 },
+  { name: "梦殒春宵", players: 5, seed: 94013 },
+  { name: "梦殒春宵", players: 5, seed: 94014 },
+  { name: "梦殒春宵", players: 5, seed: 94015 },
+  // 窃窃私语
+  { name: "窃窃私语", players: 5, seed: 94016 },
+  { name: "窃窃私语", players: 5, seed: 94017 },
+  { name: "窃窃私语", players: 5, seed: 94018 },
+  { name: "窃窃私语", players: 5, seed: 94019 },
+  { name: "窃窃私语", players: 5, seed: 94020 },
+  // 无名之墓
+  { name: "无名之墓", players: 5, seed: 94021 },
+  { name: "无名之墓", players: 5, seed: 94022 },
+  { name: "无名之墓", players: 5, seed: 94023 },
+  { name: "无名之墓", players: 5, seed: 94024 },
+  { name: "无名之墓", players: 5, seed: 94025 },
+  // 无上愉悦
+  { name: "无上愉悦", players: 5, seed: 94026 },
+  { name: "无上愉悦", players: 5, seed: 94027 },
+  { name: "无上愉悦", players: 5, seed: 94028 },
+  { name: "无上愉悦", players: 5, seed: 94029 },
+  { name: "无上愉悦", players: 5, seed: 94030 },
+  // 凶宅魅影
+  { name: "凶宅魅影", players: 5, seed: 94031 },
+  { name: "凶宅魅影", players: 5, seed: 94032 },
+  { name: "凶宅魅影", players: 5, seed: 94033 },
+  { name: "凶宅魅影", players: 5, seed: 94034 },
+  { name: "凶宅魅影", players: 5, seed: 94035 },
+  // 游园惊梦
+  { name: "游园惊梦", players: 5, seed: 94036 },
+  { name: "游园惊梦", players: 5, seed: 94037 },
+  { name: "游园惊梦", players: 5, seed: 94038 },
+  { name: "游园惊梦", players: 5, seed: 94039 },
+  { name: "游园惊梦", players: 5, seed: 94040 },
+  // 罂粟花开
+  { name: "罂粟花开", players: 5, seed: 94041 },
+  { name: "罂粟花开", players: 5, seed: 94042 },
+  { name: "罂粟花开", players: 5, seed: 94043 },
+  { name: "罂粟花开", players: 5, seed: 94044 },
+  { name: "罂粟花开", players: 5, seed: 94045 },
+];
+
+/** X05-extra 的胜方分布采集（workers=1 + fullyParallel:false ⇒ 同文件内串行有序） */
+const X05_WINNERS = new Map<string, Array<"good" | "evil" | "special">>();
+
+for (const entry of X05_SEEDS) {
+  test.describe(`X05 终局矩阵 · ${entry.name}（seed=${entry.seed}）`, () => {
+    test.setTimeout(20 * 60 * 1000);
+
+    test(`seed=${entry.seed} 必须终局且符合官方四条`, async ({ page }) => {
+      const summary = await runFullGameSim(page, {
+        script: entry.name,
+        players: entry.players,
+        seed: entry.seed,
+        maxCycles: MAX_CYCLES,
+        requireGameOver: true,
+        reportName: `x05_${entry.seed}`,
+      });
+
+      expect(
+        summary.gameover,
+        `${entry.name} seed=${entry.seed} 在 ${MAX_CYCLES} 个昼夜内没有终局 —— 不能算通过`
+      ).toBe(true);
+      expect(summary.terminal, "到达终局但没有产出终局判据").toBeTruthy();
+      expect(
+        summary.terminal?.expected !== null ||
+          summary.terminal?.special === true,
+        "既不符合通用四条，也没有专属胜因"
+      ).toBe(true);
+      expect(
+        summary.terminal?.ok,
+        `终局判定与官方四条不一致：${summary.terminal?.reason ?? ""}`
+      ).toBe(true);
+
+      const winner: "good" | "evil" | "special" =
+        summary.terminal?.expected === "good"
+          ? "good"
+          : summary.terminal?.expected === "evil"
+            ? "evil"
+            : "special";
+      const list = X05_WINNERS.get(entry.name) ?? [];
+      list.push(winner);
+      X05_WINNERS.set(entry.name, list);
+    });
+  });
+}
+
+test.describe("X05-extra 胜方分布", () => {
+  test.setTimeout(60_000);
+  test("9 剧本里至少 7 个同时出现 good 与 evil（判据不是只覆盖一半分支）", () => {
+    const rows = [...X05_WINNERS.entries()].map(([script, ws]) => {
+      const set = new Set(ws);
+      return {
+        script,
+        winners: ws.join(","),
+        hasBoth: set.has("good") && set.has("evil"),
+      };
+    });
+
+    // 一个剧本都没跑（例如 -g 过滤掉了所有 X05 用例）⇒ 明确跳过，不伪装成通过
+    if (rows.length === 0) {
+      test.skip(true, "本次运行没有执行 X05 矩阵（被 -g 过滤），分布断言不适用");
+      return;
+    }
+
+    const both = rows.filter((r) => r.hasBoth).length;
+    expect(
+      both,
+      `同时出现 good 与 evil 的剧本只有 ${both} 个（要求 ≥ 7）。实测：\n` +
+        rows.map((r) => `  · ${r.script}: ${r.winners}`).join("\n")
+    ).toBeGreaterThanOrEqual(Math.min(7, rows.length));
+
+    // 专属胜因至少出现 1 次（圣徒 / 涡流 / 利维坦 / 游园自动获胜 / 镇长三人存活）
+    const specialCount = rows
+      .flatMap((r) => r.winners.split(","))
+      .filter((w) => w === "special").length;
+    expect.soft(specialCount, "5 局 × 9 剧本里应至少出现 1 次专属胜因").toBeGreaterThan(0);
+  });
+});
+
 for (const entry of [...TERMINAL_CASES, ...KNOWN_STUCK]) {
   const stuck = KNOWN_STUCK.find((x) => x.seed === entry.seed);
   test.describe(`终局四条 · ${entry.name}（${entry.players} 人）`, () => {

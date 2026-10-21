@@ -104,16 +104,32 @@ export const moonchildAbility = createRoleAbility({
     async (context) => {
       const { meta } = context;
       const result = meta.abilityResult;
-      if (result.shouldKill) {
-        console.log(
-          `月之子选择了${result.targetId + 1}号，该玩家是善良阵营，将在当晚死亡`
-        );
-      } else {
-        console.log(
-          `月之子选择了${result.targetId + 1}号，该玩家是邪恶阵营，无事发生`
-        );
-      }
-      return context;
+      /**
+       * 🔴 2026-10-22（X07-07 矩阵查出）：本分支原先**只 console.log**，
+       *   不产 `displayInfo` ⇒ 说书人/玩家界面都没有结果页，
+       *   玩家看不到「你选了谁 / 是否触发诅咒」，也没法留证。
+       *   官方运作方式：「唤醒月之子，让他选择一名玩家。」
+       */
+      const targetNo = (result?.targetId ?? -1) + 1;
+      const log = result?.shouldKill
+        ? `月之子选择了${targetNo}号，该玩家是善良阵营，将在当晚死亡`
+        : `月之子选择了${targetNo}号，该玩家是邪恶阵营，无事发生`;
+      console.log(log);
+      return {
+        ...context,
+        meta: {
+          ...context.meta,
+          abilityLog: log,
+          prompt: `唤醒${(context.actionNode.seatId ?? 0) + 1}号【月之子】，选择一名玩家。告知：${log}`,
+          displayInfo: {
+            type: "moonchild_info",
+            targetId: result?.targetId ?? null,
+            shouldKill: Boolean(result?.shouldKill),
+            isCorrupted: meta.abilityEffective === false,
+            log,
+          },
+        },
+      };
     },
   ],
 });

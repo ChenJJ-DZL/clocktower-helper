@@ -109,7 +109,16 @@ export async function runFullGameSim(
 
   const jsErrors: string[] = [];
   page.on("pageerror", (e) => jsErrors.push(String(e)));
+  /**
+   * `CT_SIM_VERBOSE=1` 时把**全部**浏览器 console 打到测试输出。
+   * 排查「队列推进到某人就没弹窗」这类问题时，handler 自己的
+   * `[handleNightAction] …` 日志是唯一能说明「跳过还是根本没进」的证据。
+   */
+  const verboseConsole = process.env.CT_SIM_VERBOSE === "1";
   page.on("console", (msg) => {
+    if (verboseConsole) {
+      console.log(`[browser:${msg.type()}] ${msg.text().slice(0, 300)}`);
+    }
     // React 渲染崩溃通常伴随 console.error，收集作为 I5 旁证
     if (msg.type() === "error") {
       const t = msg.text();
@@ -156,17 +165,38 @@ export async function runFullGameSim(
     ctx.step = `night#${cycles + 1}`;
     const nightRun = await advanceNightRandom(page, seed + cycles * 7919);
     const nightResult = nightRun.status;
+    /**
+     * 🔴 2026-10-22（X05 矩阵首次跑 45 局时踩到）：
+     *   `nightRun.journal` 偶发为 `undefined`（同一段代码在 94003–94005 正常，
+     *   94001/94002 直接 `TypeError: journal is not iterable`）。
+     *   TypeError 会**吞掉真正的诊断信息**（连 status 都看不到），
+     *   违反「不许静默/不许崩在基建层」的原则 ⇒ 这里兜底成空数组，
+     *   并把「journal 缺失」记成 I6 违规（否则 I10/I11 会拿空 journal 假绿）。
+     */
+    const nightJournal = Array.isArray(nightRun.journal)
+      ? nightRun.journal
+      : [];
+    const nightQueue = Array.isArray(nightRun.queue) ? nightRun.queue : [];
+    if (!Array.isArray(nightRun.journal) || !Array.isArray(nightRun.queue)) {
+      ctx.violations.push({
+        invariant: "I6-progress",
+        step: `${ctx.step}(journal-missing)`,
+        detail:
+          `advanceNightRandom 返回的 journal/queue 不是数组（status=${nightResult}, ` +
+          `keys=${Object.keys(nightRun ?? {}).join(",")}）`,
+      });
+    }
     nightJournals.push({
       cycle: cycles + 1,
-      queue: nightRun.queue,
-      steps: nightRun.journal,
+      queue: nightQueue,
+      steps: nightJournal,
       wakeStart: nightRun.wakeStart,
       wakeEnd: nightRun.wakeEnd,
     });
     // I10/I11/I12/I13 语义对账
     const sem = verifyNightSemantics(
-      nightRun.journal,
-      nightRun.queue,
+      nightJournal,
+      nightQueue,
       nightRun.wakeStart?.ids ?? null
     );
     ctx.violations.push(...sem.map((v) => ({ ...v, step: `${ctx.step}(semantic)` })));

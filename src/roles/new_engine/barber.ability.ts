@@ -6,6 +6,7 @@
  * PASSIVE 触发：夜晚死亡时触发，可交换两名玩家角色。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatDemon } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -24,6 +25,28 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   const swapA = ctx.storytellerInput?.swapA ?? null;
   const swapB = ctx.storytellerInput?.swapB ?? null;
+
+  /**
+   * 🔴 2026-10-22（X07-05 矩阵查出）：官方【角色能力】写的是
+   *   「…可以选择两名玩家（**不能选择其他恶魔**）交换角色。」
+   *   【规则细节】「恶魔可以选择自己进行角色交换。**恶魔不能选择另一名恶魔玩家**。」
+   *   ⇒ 唯一的非法组合是「两名**恶魔**之间交换」；
+   *     恶魔 + 爪牙 / 恶魔 + 镇民 都是合法的（官方范例：涡流与女巫交换）。
+   *
+   *   原实现**完全没有校验**，直接交换任意两座位 ⇒ 双恶魔局里能把两个恶魔互换。
+   */
+  const seatA = ctx.snapshot.seats.find((s: any) => s.id === swapA);
+  const seatB = ctx.snapshot.seats.find((s: any) => s.id === swapB);
+  // 走 SST 判据（`singleSourceOfTruth.test.ts` 的棘轮会抓内联 `role.type === "demon"`）
+  const bothDemons = isSeatDemon(seatA as any) && isSeatDemon(seatB as any);
+  const sameSeat = swapA !== null && swapA === swapB;
+  const rejectedReason = bothDemons
+    ? "不能在两名恶魔之间交换角色"
+    : sameSeat
+      ? "不能与自己交换角色"
+      : null;
+  const swapped = swapA !== null && swapB !== null && rejectedReason === null;
+
   return {
     ...ctx,
     meta: {
@@ -32,7 +55,8 @@ const calculate = async (
         barberDied: true,
         swapA,
         swapB,
-        swapped: swapA !== null && swapB !== null,
+        swapped,
+        rejectedReason,
       },
     },
   };

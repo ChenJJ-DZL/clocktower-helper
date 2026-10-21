@@ -81,6 +81,13 @@ const updateResurrectionStatus = async (
   const actualRole =
     targetSeat.role?.id === "drunk" ? targetSeat.charadeRole : targetSeat.role;
 
+  /**
+   * 官方【角色能力】：「…选择一名死亡的玩家：**如果他是镇民**，你会将他起死回生。」
+   * 【角色简介】：「如果教授选择了外来者、爪牙或恶魔，则无事发生，并且教授失去自己的能力。」
+   * 官方范例：「…该玩家实际上是疯子（外来者）。无人被复活。」
+   * ⇒ **只能复活镇民**，不是「镇民或外来者」（2026-10-22 曾误改，被
+   *   `bmr_townsfolk_examples.test.ts` 的官方范例逐条验证抓回）。
+   */
   const isTownsfolk = actualRole?.type === "townsfolk";
   const shouldResurrect = isAbilityEffective && isTownsfolk;
 

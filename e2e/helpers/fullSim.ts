@@ -550,11 +550,33 @@ export async function advanceNightRandom(
       if (sig === lastSig) {
         stall++;
         if (stall > 45) {
+          /**
+           * 🔴 2026-10-22（X05 45 局矩阵）：这里原先**直接 `return "timeout"` /
+           *   `return "day"`（裸字符串）**，而函数声明返回
+           *   `{status, journal, queue, wakeStart, wakeEnd}` ⇒ 调用方拿到字符串：
+           *     · `nightRun.status === undefined`（走路径判断全失效）
+           *     · `nightRun.journal === undefined`（`journal is not iterable` TypeError）
+           *   于是「夜间卡死」被伪装成基建崩溃，真正的卡死现场（`__ctStuck`）反而没人看。
+           *   实测 94001：`Object.keys(返回值)` = `0..6`（正好是 "timeout" 的 7 个字符）。
+           *   ⇒ 必须返回完整对象，让卡死进入 I6-progress 诊断而不是 TypeError。
+           */
           if (!isDay()) {
             (window as any).__ctStuck = captureStuck("night-driver-stall");
-            return "timeout";
+            return {
+              status: "timeout" as const,
+              journal,
+              queue,
+              wakeStart,
+              wakeEnd: readWakeIds(),
+            };
           }
-          return "day";
+          return {
+            status: "day" as const,
+            journal,
+            queue,
+            wakeStart,
+            wakeEnd: readWakeIds(),
+          };
         }
       } else {
         stall = 0;
