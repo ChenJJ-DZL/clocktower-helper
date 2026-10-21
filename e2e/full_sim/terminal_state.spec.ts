@@ -25,6 +25,8 @@ const TERMINAL_CASES = [
   { name: "窃窃私语", players: 5, seed: 91004 },
   { name: "无名之墓", players: 5, seed: 91005 },
   { name: "无上愉悦", players: 5, seed: 91006 },
+  { name: "凶宅魅影", players: 5, seed: 91007 },
+  { name: "游园惊梦", players: 5, seed: 91008 },
   { name: "罂粟花开", players: 5, seed: 91009 },
 ];
 
@@ -33,25 +35,22 @@ const TERMINAL_CASES = [
  *   Playwright 的 `test.fail()` 语义：本用例预期失败 —— 若哪天修好了，
  *   它会变成 "unexpectedly passed" 直接报红，强制把条目移回 TERMINAL_CASES。
  *   ⇒ 缺陷保持可见，且不会被误当成通过。
+ *
+ * 📌 2026-10-21：**已清零**。
+ *   · 游园惊梦（91008）：剧本级「第 3 个白天结束 ⇒ 邪恶自动获胜」现在真的触发，
+ *     3 个昼夜终局；根因是 `useLogicDispatcher` 把胜负副作用写在 `setSeats` updater
+ *     里，`setGamePhase("gameOver")` 被丢弃，状态卡在「已有胜负 + 阶段仍是 day」。
+ *   · 凶宅魅影（91007）：根因是普卡把**对象**写进 `statusDetails`（类型是 string[]），
+ *     进黄昏时 `cleanseTempStatuses` 的 `.includes()` 抛
+ *     `includes is not a function` ⇒ 「进入黄昏处决阶段」永远失败、白天推进不到夜晚。
+ *   两个剧本修好后都是 "unexpectedly passed"（棘轮正常报警），已移到 TERMINAL_CASES。
  */
-const KNOWN_STUCK = [
-  {
-    name: "凶宅魅影",
-    players: 5,
-    seed: 91007,
-    reason:
-      "白天驱动器在 dusk#2 超时（提名/投票/入夜流程没有可推进出口）；" +
-      "待定位是驱动缺陷还是门派门禁卡死",
-  },
-  {
-    name: "游园惊梦",
-    players: 5,
-    seed: 91008,
-    reason:
-      "night#5 超时：场上只剩方古存活，其余座位已被标记击杀，" +
-      "但快照仍显示 3 人存活 ⇒ 怀疑「方古击杀落库/黎明批量结算」在该剧本下未生效",
-  },
-];
+const KNOWN_STUCK: Array<{
+  name: string;
+  players: number;
+  seed: number;
+  reason: string;
+}> = [];
 
 for (const entry of [...TERMINAL_CASES, ...KNOWN_STUCK]) {
   const stuck = KNOWN_STUCK.find((x) => x.seed === entry.seed);

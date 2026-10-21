@@ -130,11 +130,15 @@ const updatePoisonState = async (
               if (typeof d === "string") return !d.includes("普卡中毒");
               return d?.source !== "pukka";
             }),
-            {
-              type: "poison",
-              source: "pukka",
-              timestamp: Date.now(),
-            },
+            /**
+             * 🔴 2026-10-21：**只写字符串，不再往 statusDetails 里塞对象**。
+             *   `statusDetails` 的类型就是 `string[]`，混入 `{type,source,…}`
+             *   会让全仓所有 `d.includes(...)` 读取点抛
+             *   `includes is not a function` —— 实测（凶宅魅影 seed=91007）：
+             *   点「进入黄昏处决阶段」⇒ `cleanseTempStatuses` 抛异常 ⇒
+             *   白天永远推进不到夜晚（E2E 报 I6-progress 超时）。
+             *   语义不受影响：「普卡中毒」字符串本来就是旧毒目标的识别依据。
+             */
             "普卡中毒（永久）",
           ],
         };

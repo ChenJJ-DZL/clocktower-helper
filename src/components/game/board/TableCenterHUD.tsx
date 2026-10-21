@@ -261,7 +261,7 @@ export function TableCenterHUD({
         }`}
       >
         {/* Phase Indicator / Victory Title */}
-        <div className={`text-4xl font-black tracking-wide ${getPhaseColor()}`}>
+        <div data-testid="hud-phase-label" className={`text-4xl font-black tracking-wide ${getPhaseColor()}`}>
           {getPhaseLabel()}
         </div>
 

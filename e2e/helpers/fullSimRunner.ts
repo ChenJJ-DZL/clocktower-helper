@@ -89,6 +89,10 @@ export interface FullSimSummary {
   violations: SimContext["violations"];
   /** 驱动超时时的现场（DOM/按钮/弹窗/座位），未超时为 null */
   stuck?: unknown;
+  /** 按钮点击抛出的异常（含栈） */
+  actionError?: { where: string; message: string; stack: string } | null;
+  /** 中心 HUD 的阶段标签（第 N 夜 / 第 N 天 / 黄昏…） */
+  uiPhaseLabel?: string | null;
 }
 
 /**
@@ -290,6 +294,18 @@ export async function runFullGameSim(
     });
   }
 
+  // 中心 HUD 的阶段标签（state 真值的第一手呈现，不再靠文案猜）
+  const uiPhaseLabel = await page
+    .locator('[data-testid="hud-phase-label"]')
+    .first()
+    .textContent()
+    .catch(() => null);
+
+  /** 按钮点击时抛出的异常（含栈）—— 否则只剩「操作失败: xxx」一句，定位不到行 */
+  const actionError = await page
+    .evaluate(() => (window as any).__ctLastActionError ?? null)
+    .catch(() => null);
+
   // 卡死现场（仅在 timeout 时由驱动写入）
   const stuck = await page
     .evaluate(() => (window as any).__ctStuck ?? null)
@@ -317,6 +333,8 @@ export async function runFullGameSim(
     jsErrors: jsErrors.slice(0, 20),
     violations: ctx.violations,
     stuck,
+    uiPhaseLabel,
+    actionError,
   };
 
   // 落盘（机器可读 + 人可读）；按剧本分文件，避免 9 剧本互相覆盖

@@ -35,18 +35,25 @@ function cleanseTempStatuses(
   seat: Seat,
   clearExpired: (s: Seat) => Seat
 ): Seat {
-  const filteredStatusDetails = (seat.statusDetails || []).filter((st) => {
-    if (st.includes("永久中毒") || st.includes("永久")) return true;
-    if (st.includes("普卡中毒")) return true;
-    return !(
-      st.includes("次日黄昏清除") ||
-      st.includes("下个黄昏清除") ||
-      st.includes("至下个黄昏清除") ||
-      st.includes("黄昏清除") || // 🔧 兼容"新引擎中毒（黄昏清除）"等格式
-      st.includes("次日黄昏") ||
-      st.includes("下个黄昏")
-    );
-  });
+  // 🔴 2026-10-21：必须先剔除非字符串条目再调用 `.includes`。
+  //   实测（凶宅魅影 5 人局 seed=91007）：普卡（新引擎主动毒）会把**对象**写进
+  //   `statusDetails`（`{type:"poisoned",…}`），此处直接 `st.includes(...)` 抛
+  //   `e.includes is not a function` ⇒ 点「进入黄昏处决阶段」弹「操作失败」，
+  //   白天永远推进不到夜晚（E2E 记 I6-progress 超时）。
+  const filteredStatusDetails = (seat.statusDetails || [])
+    .filter((st): st is string => typeof st === "string")
+    .filter((st) => {
+      if (st.includes("永久中毒") || st.includes("永久")) return true;
+      if (st.includes("普卡中毒")) return true;
+      return !(
+        st.includes("次日黄昏清除") ||
+        st.includes("下个黄昏清除") ||
+        st.includes("至下个黄昏清除") ||
+        st.includes("黄昏清除") || // 🔧 兼容"新引擎中毒（黄昏清除）"等格式
+        st.includes("次日黄昏") ||
+        st.includes("下个黄昏")
+      );
+    });
 
   const filteredStatuses = (seat.statuses || []).filter((status) => {
     const isTempPoisonOrDrunk =

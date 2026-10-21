@@ -484,7 +484,12 @@ export const addPoisonMark = (
     | "widow",
   clearTime: string
 ): { statusDetails: string[]; statuses: StatusEffect[] } => {
-  const details = seat.statusDetails || [];
+  // 🔴 2026-10-21：与 `getPoisonSources` 同因 —— `statusDetails` 可能混入对象
+  //   （新引擎普卡等直接写 `{type:"poisoned"}`），下面的 `.includes()` 会抛
+  //   `includes is not a function`。先按字符串归一化再过滤。
+  const details = (seat.statusDetails || []).filter(
+    (d: unknown): d is string => typeof d === "string"
+  );
   const statuses = seat.statuses || [];
 
   let markText = "";

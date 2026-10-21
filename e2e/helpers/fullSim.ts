@@ -714,6 +714,50 @@ export async function driveDuskRandom(
     const norm = (el: any) =>
       ((el?.textContent as string) || "").replace(/\s+/g, "");
     const allBtns = () => Array.from(document.querySelectorAll("button")) as any[];
+
+    /**
+     * 白天驱动的卡死留证。
+     * ⚠️ 夜间驱动早就有 captureStuck，白天驱动一直没有 ⇒ 「dusk 超时」只剩一行
+     *   文案，无从判断是「按钮被禁用」还是「弹窗没关」。这里补上同样的现场快照。
+     */
+    const duskCapture = (tag: string): "timeout" => {
+      try {
+        const dlg = document.querySelector('[role="dialog"]') as HTMLElement | null;
+        let snap: any = null;
+        try {
+          const raw = window.localStorage.getItem("clocktower_current_snapshot");
+          snap = raw ? JSON.parse(raw) : null;
+        } catch {
+          snap = null;
+        }
+        (window as any).__ctStuck = {
+          tag,
+          dialog: dlg
+            ? (dlg.textContent || "").replace(/\s+/g, "").slice(0, 500)
+            : null,
+          bodyText: (document.body.textContent || "")
+            .replace(/\s+/g, "")
+            .slice(0, 400),
+          buttons: Array.from(document.querySelectorAll("button"))
+            .filter((b) => !(b as HTMLButtonElement).disabled)
+            .map((b) => ((b.textContent || "").replace(/\s+/g, "")).slice(0, 24))
+            .slice(0, 40),
+          disabledButtons: Array.from(document.querySelectorAll("button"))
+            .filter((b) => (b as HTMLButtonElement).disabled)
+            .map((b) => ((b.textContent || "").replace(/\s+/g, "")).slice(0, 24))
+            .slice(0, 20),
+          seats: (snap?.seats ?? []).map((x: any) => ({
+            id: x.id,
+            role: x.role?.id ?? null,
+            isDead: x.isDead === true,
+            marked: x.markedForDeath === true,
+          })),
+          phase: snap?.gamePhase ?? null,
+          nightCount: snap?.nightCount ?? null,
+        };
+      } catch {}
+      return "timeout";
+    };
     const text = () => document.body.textContent || "";
     const CONFIRM = /执行处决|确认|提交|确定|继续|下一步|完成了|知道了|好的/;
     const CANCEL = /取消|返回/;
@@ -1001,7 +1045,7 @@ export async function driveDuskRandom(
           if (toNight) {
             const r = await settleAndEnterNight();
             if (r) return r;
-            return "timeout";
+            return duskCapture("dusk-enter-night-no-status");
           }
           await sleep(220);
         }
@@ -1010,7 +1054,7 @@ export async function driveDuskRandom(
 
     // ── 收尾：提名轮结束后仍要入夜 ──
     const r = await settleAndEnterNight();
-    return r ?? "timeout";
+    return r ?? duskCapture("dusk-driver-timeout");
   }, seed)) as "night" | "gameover" | "timeout";
 
   const executed = (await page.evaluate(

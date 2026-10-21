@@ -8,6 +8,26 @@ import type { NightInfoResult } from "../../../types/game";
 import { getCharadeDisplayRole } from "../../../utils/charadeDisplay";
 import { isInformationRole } from "../../../utils/informationRoles";
 import { showAlert, showConfirm } from "../../../utils/nativeDialogShim";
+
+/**
+ * 记录「按钮点击时抛出的异常」的完整栈。
+ *
+ * 为什么需要：这些 catch 只把 `error.message` 弹给用户（"操作失败: xxx"），
+ *   而 console.error 输出的是 Error 对象、在自动化里拿不到可读栈 ⇒ 全剧本回归
+ *   只能看到「操作失败: e.includes is not a function」这一句，定位不到代码行。
+ *   这里把 `{ where, message, stack }` 落到 window 上，E2E 报告直接带走。
+ */
+function recordActionError(where: string, error: unknown) {
+  try {
+    const w = window as any;
+    w.__ctLastActionError = {
+      where,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? (error.stack ?? "") : "",
+      at: Date.now(),
+    };
+  } catch {}
+}
 import { getRoleDocSummary } from "../../../utils/roleDocLookup";
 import { getLunaticNightHint } from "../../../utils/playerView";
 import { StorytellerTuningPanel } from "../StorytellerTuningPanel";
@@ -1117,6 +1137,7 @@ export const GameConsole = React.memo(function GameConsole({
                       "[GameConsole] Error in extra action:",
                       error
                     );
+                    recordActionError("extra", error);
                     showAlert(
                       `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
                     );
@@ -1149,6 +1170,7 @@ export const GameConsole = React.memo(function GameConsole({
                       "[GameConsole] Error in primary action:",
                       error
                     );
+                    recordActionError("primary", error);
                     showAlert(
                       `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
                     );
@@ -1186,6 +1208,7 @@ export const GameConsole = React.memo(function GameConsole({
                             "[GameConsole] Error in secondary action:",
                             error
                           );
+                    recordActionError("secondary", error);
                           showAlert(
                             `操作失败: ${error instanceof Error ? error.message : "未知错误"}`
                           );

@@ -51,6 +51,37 @@ export function useLogicDispatcher(
     null
   );
 
+  /**
+   * 🔴 2026-10-21：座位真值的**同步镜像** —— 把「副作用」从 `setSeats(updater)` 里救出来。
+   *
+   * 背景（实测证据，游园惊梦 5 人局 seed=91008）：
+   *   旧实现把 `addLog / setWinResult / setGamePhase("gameOver") / setCurrentModal`
+   *   **全部写在 `setSeats(prev => { ... })` 的 updater 内部**。updater 属于 React
+   *   的**渲染期**执行路径，React 允许它被**多次调用或整体丢弃**（并发渲染 / 紧急更新
+   *   打断），因此在里面 dispatch 其它状态是未定义行为。
+   *
+   *   症状：第 3 个白天「存活 ≤ 2」判出邪恶胜 ⇒ `setWinResult("evil")` 生效了，
+   *   但同一批的 `setGamePhase("gameOver")` 被丢弃 ⇒ 状态机成了
+   *   「已有胜负 + 阶段仍是 day」的诡异中间态：
+   *     · HUD 显示「第 4 天」而不是「邪恶阵营胜利」；
+   *     · 快照保存 effect 的 `!winResult` 门禁把写入整段掐断（快照冻结在第 3 夜）；
+   *     · 剧本级自动获胜 effect 被 `victoryRef` 挡住 ⇒ 永不触发。
+   *
+   * 修法：用 `seatsRef` 同步镜像最新座位，`processGameEvent` 与胜负判定都在
+   *   **普通函数体**里算完，副作用按常规 dispatch 发出，最后才把座位一次性写入。
+   *   同一 tick 内连续 dispatch 也能看到彼此的写入（commitSeats 会同步更新 ref），
+   *   语义不比原来的函数式更新弱。
+   */
+  const seatsRef = useRef<Seat[]>(seats);
+  seatsRef.current = seats; // 渲染期同步（幂等赋值，React 许可）
+  const commitSeats = useCallback(
+    (next: Seat[]) => {
+      seatsRef.current = next;
+      setSeats(next);
+    },
+    [setSeats]
+  );
+
   const logicDispatch = useCallback(
     (action: GameAction) => {
       if (victoryRef.current && action.type !== "CHECK_GAME_OVER") {
@@ -58,56 +89,54 @@ export function useLogicDispatcher(
         return;
       }
 
-      setSeats((prevSeats) => {
-        const snapshot = processGameEvent(prevSeats, gamePhase, action);
+      // ⚠️ 不在 updater 里做任何副作用（见 seatsRef 注释）
+      const snapshot = processGameEvent(seatsRef.current, gamePhase, action);
+      commitSeats(snapshot.seats);
 
-        if (snapshot.logs.length > 0) {
-          for (const msg of snapshot.logs) {
-            addLog(msg);
+      if (snapshot.logs.length > 0) {
+        for (const msg of snapshot.logs) {
+          addLog(msg);
+        }
+      }
+
+      if (snapshot.winner) {
+        const w = snapshot.winner === "Good" ? "good" : "evil";
+        const reason = snapshot.winReason || "未知原因";
+        victoryRef.current = { winner: w, reason };
+        setWinResult(w);
+        setWinReason(reason);
+        setGamePhase("gameOver");
+        // 冻结此时的座位状态作为复盘快照（只保留有角色的座位）
+        setVictorySnapshot(snapshot.seats.filter((s) => s.role));
+        setCurrentModal({ type: "GAME_OVER", data: null });
+      }
+
+      if (!victoryRef.current) {
+        if (snapshot.nextActionHint === "BARBER_SWAP_NEEDED") {
+          const demon = snapshot.seats.find(
+            (s) =>
+              (s.role?.type === "demon" || s.isDemonSuccessor) && !s.isDead
+          );
+          if (demon) {
+            setCurrentModal({
+              type: "BARBER_SWAP",
+              data: { demonId: demon.id, firstId: null, secondId: null },
+            });
           }
         }
+      }
 
-        if (snapshot.winner) {
-          const w = snapshot.winner === "Good" ? "good" : "evil";
-          const reason = snapshot.winReason || "未知原因";
-          victoryRef.current = { winner: w, reason };
-          setWinResult(w);
-          setWinReason(reason);
-          setGamePhase("gameOver");
-          // 冻结此时的座位状态作为复盘快照（只保留有角色的座位）
-          setVictorySnapshot(snapshot.seats.filter((s) => s.role));
-          setCurrentModal({ type: "GAME_OVER", data: null });
-        }
-
-        if (!victoryRef.current) {
-          if (snapshot.nextActionHint === "BARBER_SWAP_NEEDED") {
-            const demon = snapshot.seats.find(
-              (s) =>
-                (s.role?.type === "demon" || s.isDemonSuccessor) && !s.isDead
-            );
-            if (demon) {
-              setCurrentModal({
-                type: "BARBER_SWAP",
-                data: { demonId: demon.id, firstId: null, secondId: null },
-              });
-            }
-          }
-        }
-
-        if (action.type === "EXECUTE_PLAYER") {
-          setExecutedPlayerId(action.targetId);
-          setTodayExecutedId(action.targetId);
-          setCurrentDuskExecution(action.targetId);
-          setHasExecutedThisDay(true);
-        }
-
-        return snapshot.seats;
-      });
+      if (action.type === "EXECUTE_PLAYER") {
+        setExecutedPlayerId(action.targetId);
+        setTodayExecutedId(action.targetId);
+        setCurrentDuskExecution(action.targetId);
+        setHasExecutedThisDay(true);
+      }
     },
     [
       gamePhase,
       addLog,
-      setSeats,
+      commitSeats,
       setWinResult,
       setWinReason,
       setCurrentModal,
@@ -134,12 +163,12 @@ export function useLogicDispatcher(
        */
       nightCountOverride?: number
     ) => {
-      // 关键修复：基于最新 React 状态(prevSeats)判定胜负，避免用外部传入的
-      // 陈旧快照覆盖并发的击杀/状态变更（例如 executePlayer 先 killPlayer 再
-      // checkGameOver，若用击杀前的快照会回写并抹掉刚发生的死亡）。
-      setSeats((prevSeats) => {
-        const seatsForCheck = prevSeats;
+      // 关键：基于 `seatsRef` 里的**最新座位**判定胜负，避免用外部传入的陈旧快照
+      // 覆盖并发的击杀/状态变更（例如 executePlayer 先 killPlayer 再 checkGameOver）。
+      // ⚠️ 副作用不得写进 setSeats updater（见文件内 seatsRef 的长注释）。
+      const seatsForCheck = seatsRef.current;
 
+      {
         // 🎯 官方规则：场上所有玩家均已死亡 → 对局必须立即结束，不能继续昼夜循环。
         const aliveSeats = seatsForCheck.filter(
           (s) => s.role && !isSeatDead(s)
@@ -157,7 +186,7 @@ export function useLogicDispatcher(
           setGamePhase("gameOver");
           setVictorySnapshot(seatsForCheck.filter((s) => s.role));
           setCurrentModal({ type: "GAME_OVER", data: null });
-          return seatsForCheck;
+          return;
         }
         const mastermind = seatsForCheck.find(
           (s) =>
@@ -219,13 +248,14 @@ export function useLogicDispatcher(
           setVictorySnapshot(snapshot.seats.filter((s) => s.role));
           setCurrentModal({ type: "GAME_OVER", data: null });
         }
-        return snapshot.seats;
-      });
+        // 座位写回放在**所有副作用之后**，且是纯写入（不再有 updater 内副作用）
+        commitSeats(snapshot.seats);
+      }
     },
     [
       gamePhase,
       addLog,
-      setSeats,
+      commitSeats,
       setWinResult,
       setWinReason,
       setGamePhase,
