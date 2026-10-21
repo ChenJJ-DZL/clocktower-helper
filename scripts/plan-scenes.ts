@@ -124,9 +124,38 @@ function buildScript(script: any, defs: Map<string, any>) {
     }
 
     let { t: needT, o: needO, m: needM, d: needD } = COMP[n];
+    /**
+     * 军团（Legion）是唯一「多数玩家为军团」的特殊配比：
+     *   善良席位 = 基础配比的爪牙数 + 恶魔数（15 人 = 3+1 = 4），
+     *   其中最多 1 个外来者，其余全是军团，且**没有爪牙**。
+     * 手写这一场时我按普通恶魔配了「1 军团 + 3 爪牙」，被应用的校验直接拒了
+     * （`随机落座` 按钮消失 = 弹窗抛错），所以这里单独处理。
+     */
     const demons = D.filter((r) => !used.has(r.id));
     const d = demons.length ? [demons[0]] : [D[0]];
     d.forEach((r) => used.add(r.id));
+
+    const willLegion = (demons.length ? demons[0] : D[0]).id === "legion";
+    if (willLegion) {
+      const good = COMP[n].m + COMP[n].d;
+      const lo = Math.min(COMP[n].o > 0 ? 1 : 0, O.length, Math.max(0, good - 1));
+      const lt = Math.max(1, good - lo);
+      const legionCount = n - lt - lo;
+      const legionRole = (demons.length ? demons[0] : D[0]);
+      used.add(legionRole.id);
+      const ltRoles = take(T, lt);
+      const loRoles = take(O, lo);
+      games.push({
+        players: n,
+        counts: { townsfolk: ltRoles.length, outsider: loRoles.length, minion: 0, demon: legionCount },
+        seats: [
+          ...ltRoles,
+          ...loRoles,
+          ...Array.from({ length: legionCount }, () => legionRole),
+        ],
+      });
+      continue;
+    }
 
     // 先发爪牙，再按「实际发到的人」算配比修正——
     // 用整个爪牙池判断会把「池子里有男爵」误当成本场有男爵（实测多 1 外来者）
@@ -194,6 +223,20 @@ function validate(plan: any[]): { bad: string[]; warn: string[] } {
         else cnt.other++;
       }
       const ids = new Set((g.seats as Role[]).map((r) => r.id));
+      /**
+       * 军团（Legion）是唯一的特殊配比：**没有爪牙、军团占多数**。
+       * 用常规配比去校验它必然报红 ⇒ 单独一条判据。
+       */
+      if (ids.has("legion") && cnt.d > 1) {
+        const legionOk =
+          cnt.m === 0 && cnt.d > g.players / 2 && cnt.t + cnt.o + cnt.d === g.players;
+        if (!legionOk) {
+          bad.push(
+            `${tag}: 军团配比非法（爪牙 ${cnt.m}，军团 ${cnt.d}，镇民 ${cnt.t}，外来者 ${cnt.o}）`
+          );
+        }
+        continue;
+      }
       let delta = 0;
       if (ids.has("baron")) delta += 2;
       if (ids.has("fang_gu")) delta += 1;

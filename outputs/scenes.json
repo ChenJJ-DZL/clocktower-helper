@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-21T06:12:24.978Z",
+  "generatedAt": "2026-10-21T06:52:30.042Z",
   "method": "roleIds ← app/data.ts；配比 ← STANDARD_COMPOSITIONS + 角色自带修正（男爵/方古/亡骨魔）；独立复算校验",
   "totals": {
     "scenes": 27,
@@ -2094,10 +2094,10 @@
         {
           "players": 15,
           "counts": {
-            "townsfolk": 7,
-            "outsider": 4,
-            "minion": 3,
-            "demon": 1
+            "townsfolk": 3,
+            "outsider": 1,
+            "minion": 0,
+            "demon": 11
           },
           "seats": [
             {
@@ -2116,59 +2116,59 @@
               "type": "townsfolk"
             },
             {
-              "id": "bounty_hunter",
-              "name": "赏金猎人",
-              "type": "townsfolk"
-            },
-            {
-              "id": "pixie",
-              "name": "小精灵",
-              "type": "townsfolk"
-            },
-            {
-              "id": "fortune_teller",
-              "name": "占卜师",
-              "type": "townsfolk"
-            },
-            {
-              "id": "monk",
-              "name": "僧侣",
-              "type": "townsfolk"
-            },
-            {
               "id": "drunk",
               "name": "酒鬼",
               "type": "outsider"
             },
             {
-              "id": "lunatic",
-              "name": "疯子",
-              "type": "outsider"
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
             },
             {
-              "id": "mutant",
-              "name": "畸形秀演员",
-              "type": "outsider"
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
             },
             {
-              "id": "snitch",
-              "name": "告密者",
-              "type": "outsider"
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
             },
             {
-              "id": "cerenovus",
-              "name": "洗脑师",
-              "type": "minion"
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
             },
             {
-              "id": "evil_twin",
-              "name": "镜像双子",
-              "type": "minion"
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
             },
             {
-              "id": "baron",
-              "name": "男爵",
-              "type": "minion"
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
+            },
+            {
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
+            },
+            {
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
+            },
+            {
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
+            },
+            {
+              "id": "legion",
+              "name": "军团",
+              "type": "demon"
             },
             {
               "id": "legion",
