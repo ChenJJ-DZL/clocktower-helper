@@ -244,10 +244,39 @@ async function backToHome(page: import("@playwright/test").Page) {
   //       `page.goto("/")` 落到的是**剧本列表**（「请选择剧本」+ 各剧本卡片），
   //       后续 `enterFirstNight → enterScriptConfig` 会自己点「进入配置」进配置页。
   //    ⇒ 只需硬导航 + 等**首页标志元素**就绪即可。
+  /**
+   * 🔴 2026-10-22（TB 回归里稳定复现的用例隔离缺陷）：
+   *   上一局进行中时，`goto("/")` 会被应用的「自动恢复」接管，
+   *   在**剧本列表之上**弹一个 z-[9999] 遮罩（夜晚结算/终局等）。
+   *   此时 `请选择剧本` 仍在 DOM 里（断言照样通过），
+   *   但下一次点剧本卡会被遮罩拦截 15s ⇒ 报成「点击超时」，方向完全误导。
+   *   修法：回首页前先清持久化；导航后再兜底关掉任何仍开着的弹窗。
+   */
+  await page
+    .evaluate(() => {
+      try {
+        localStorage.clear();
+      } catch {
+        /* 隐私模式等场景忽略 */
+      }
+    })
+    .catch(() => {});
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("请选择剧本").first()).toBeVisible({
     timeout: T.visible,
   });
+
+  // 兜底：任何残留遮罩（role=dialog）都先关掉，避免后续点击被吃掉
+  for (let i = 0; i < 3; i++) {
+    const hasDialog = await page.evaluate(
+      () => !!document.querySelector('[role="dialog"]')
+    );
+    if (!hasDialog) break;
+    const closer = page.locator('[role="dialog"] button').last();
+    await closer.click({ timeout: 3000 }).catch(async () => {
+      await page.keyboard.press("Escape").catch(() => {});
+    });
+  }
 }
 
 /**
