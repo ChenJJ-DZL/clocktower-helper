@@ -36,6 +36,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { board, runRole } from "./_tbHarness";
+import {
+  isDemonKillSource,
+  resolveGrandmotherChainDeaths,
+} from "../../utils/grandmotherChain";
 import { buildAbilityMap } from "../../utils/invariantTesting/engineConfig";
 import { resetLimitedAbilityUses } from "../../utils/LimitedAbilityManager";
 import {
@@ -518,7 +522,13 @@ describe("X07 死亡链", () => {
     expect(f.role.id, "农夫的传承应仍在").toBe("farmer");
   });
 
-  it.fails("X07-11 孙子被恶魔杀死时祖母也应死亡", async () => {
+  /**
+   * ⚠️ 判据搬家（2026-10-22）：祖母**不是被唤醒的角色**，而是「别人死了我也死」——
+   *   判据不在 `grandmother.ability.ts`（那里只有 FIRST_NIGHT 得知孙子），
+   *   而在击杀咽喉 `killPlayer`（接入 `utils/grandmotherChain`）。
+   *   所以本用例改为直接断言那两份纯函数（能力层已由前一条用例覆盖「得知孙子」）。
+   */
+  it("X07-11 孙子被恶魔杀死 ⇒ 祖母连带死亡（引擎层判据）", async () => {
     const seats = board([
       "grandmother",
       "sweetheart",
@@ -529,23 +539,46 @@ describe("X07 死亡链", () => {
       "imp",
     ]) as any[];
 
+    // ① 首夜：祖母锁定一名孙子（能力层自己的职责）
     const ctxG = await runRole(BY_ROLE.grandmother, seats, 0, {
       night: 1,
       phase: "firstNight",
     });
     const grandchildId = ctxG.meta.abilityResult.grandchildId;
-    const seats2 = ctxG.snapshot.seats as any[];
-    seats2[grandchildId].isDead = true;
-    seats2[grandchildId].diedAtNight = 2;
-    seats2[grandchildId].killedBy = "imp";
+    expect(grandchildId, "祖母必须锁定一名孙子").toBeGreaterThanOrEqual(0);
 
-    // 能力层再跑一次祖母的能力（引擎死亡结算层不在本能力里）
-    const ctx2 = await runRole(BY_ROLE.grandmother, seats2, 0, { night: 2 });
+    const afterNight = ctxG.snapshot.seats as any[];
+
+    // ② 恶魔杀死孙子 ⇒ 连带死亡名单必须包含祖母
+    const chain = resolveGrandmotherChainDeaths(afterNight, grandchildId, true);
+    expect(chain, "孙子被恶魔杀死时祖母必须同死").toContain(0);
+
+    // ③ 反向：非恶魔杀（刺客/处决）⇒ 不得连带
     expect(
-      seatOf(ctx2, 0).isDead,
-      "孙子被恶魔杀死时祖母也应死亡",
+      resolveGrandmotherChainDeaths(afterNight, grandchildId, false),
+      "非恶魔杀死孙子时祖母不得同死"
+    ).toEqual([]);
+
+    // ④ 死因识别：恶魔杀 vs 处决 vs 刺客
+    expect(isDemonKillSource("imp_kill"), "小恶魔击杀算恶魔杀").toBe(true);
+    expect(
+      isDemonKillSource("shabaloth", [{ id: "shabaloth", type: "demon" } as any]),
+      "角色 id 当死因时按 type=demon 认"
     ).toBe(true);
-    expect(ctx2.meta.abilityResult?.grandmotherDied).toBe(true);
+    expect(isDemonKillSource("execution"), "处决不算恶魔杀").toBe(false);
+    expect(
+      isDemonKillSource("assassin", [{ id: "assassin", type: "minion" } as any]),
+      "刺客（爪牙）不算恶魔杀"
+    ).toBe(false);
+
+    // ⑤ 祖母自己已死 ⇒ 不重复连带
+    const deadGranny = afterNight.map((s: any) =>
+      s.id === 0 ? { ...s, isDead: true } : s
+    );
+    expect(
+      resolveGrandmotherChainDeaths(deadGranny, grandchildId, true),
+      "已死的祖母不再连带"
+    ).toEqual([]);
   });
 });
 

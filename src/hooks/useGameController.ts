@@ -47,6 +47,10 @@ import {
   isZombuulNightImmune,
   markZombuulNightSaved,
 } from "../utils/zombuulImmunity";
+import {
+  isDemonKillSource,
+  resolveGrandmotherChainDeaths,
+} from "../utils/grandmotherChain";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -807,6 +811,44 @@ export function useGameController() {
           }
           return next;
         });
+
+        /**
+         * 👵 祖母连带死亡（官方：「如果**恶魔杀死了他**，你也会死。」）
+         *
+         * ⚠️ 只做**纯座位变换**（本函数在 `commitSeats` 的 updater 内，
+         *    不得有 addLog / setState 之类的副作用 —— 见本文件 seatsRef 的长注释）。
+         * 判据抽在 `utils/grandmotherChain`，可单测。
+         */
+        {
+          const deadNow = updatedSeats.find((s) => s.id === targetId);
+          if (deadNow?.isDead) {
+            const byDemon = isDemonKillSource(
+              String((deadNow as any).deathSource ?? source),
+              roles as any
+            );
+            const chain = resolveGrandmotherChainDeaths(
+              updatedSeats as any,
+              targetId,
+              byDemon
+            );
+            if (chain.length > 0) {
+              updatedSeats = updatedSeats.map((s) =>
+                chain.includes(s.id)
+                  ? {
+                      ...s,
+                      isDead: true,
+                      diedOnDay: nightCount,
+                      deathSource: "grandmother_chain",
+                      statusDetails: [
+                        ...((s as any).statusDetails ?? []),
+                        `孙子${targetId + 1}号被恶魔杀死`,
+                      ],
+                    }
+                  : s
+              );
+            }
+          }
+        }
 
         // 红罗刹死亡自动转移逻辑
         const targetSeat = updatedSeats.find((s) => s.id === targetId);
