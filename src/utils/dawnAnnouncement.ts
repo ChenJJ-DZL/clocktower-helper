@@ -100,3 +100,52 @@ export function collectRevivedThisNight(
   }
   return out.sort((a, b) => a - b);
 }
+
+/**
+ * 从**权威座位表**算死亡名单 —— 修复「死了一个人，播报却说平安夜」。
+ *
+ * 🔴 实测缺陷（2026-10-22，seed 94001 · 第 2 夜）：
+ *   小恶魔杀了 1 号（座位 `isDead:true`、`diedAtNight=2`），
+ *   黎明播报却是「昨天是个平安夜」。
+ *   根因：`deadThisNight` 是 **React state**，而播报在
+ *   `setTimeout(() => continueToNextAction(), 50)` 的闭包里构造 ——
+ *   拿到的是击杀之前的渲染快照 ⇒ 名单为空。
+ *
+ * 判据优先级：
+ *   ① 座位表（`seatsRef.current`，击杀时同步写入）—— 权威；
+ *   ② `deadThisNight` state —— 只作兜底（某些路径不写 `diedAtNight`）。
+ *   两者取并集，**不是二选一**：漏报比「多报一个已确认死者」更严重。
+ */
+export function buildDawnAnnouncementFromSeats(
+  seats:
+    | Array<{
+        id: number;
+        isDead?: boolean;
+        diedAtNight?: number | null;
+        revivedAtNight?: number | null;
+      }>
+    | null
+    | undefined,
+  nightCount: number,
+  fallbackDeadThisNight?: Array<number | null | undefined> | null,
+  fallbackRevivedThisNight?: Array<number | null | undefined> | null
+): string {
+  const list = Array.isArray(seats) ? seats : [];
+  const deadFromSeats = list
+    .filter(
+      (s) =>
+        s &&
+        s.isDead === true &&
+        Number(s.diedAtNight) === Number(nightCount)
+    )
+    .map((s) => s.id);
+
+  return buildDawnAnnouncement({
+    // 并集：座位表权威 + state 兜底（见上）
+    deadThisNight: [...(fallbackDeadThisNight ?? []), ...deadFromSeats],
+    revivedThisNight: [
+      ...(fallbackRevivedThisNight ?? []),
+      ...collectRevivedThisNight(list, nightCount),
+    ],
+  });
+}

@@ -1412,6 +1412,43 @@ export function verifyNightSemantics(
     }
   }
 
+  /**
+   * I15 黎明播报：**夜里死了人，黎明必须报出来**（官方：「在黎明时宣布哪些玩家死亡」）。
+   *
+   * 🔴 2026-10-22 实测（seed=94001 · 第 2 夜）：小恶魔杀了 1 号，座位已是
+   *   `isDead:true`，黎明弹窗却是「昨天是个平安夜」。
+   *   根因：播报文案在 `setTimeout` 闭包里读 `deadThisNight`（React state），
+   *   拿到的是击杀**之前**的渲染快照 ⇒ 名单为空。
+   *   修复：`utils/dawnAnnouncement::buildDawnAnnouncementFromSeats`
+   *   以座位表（`seatsRef.current`）为权威，state 只兜底。
+   *
+   * 判据（单向，宁缺勿误报）：本次夜间日志里**出现 `after.markedForDeath === true`**
+   *   的座位，必须出现在黎明播报的死亡名单里。
+   *   不反向断言（播报里有、日志里没有）—— 能力 stateUpdate 直接杀人的步骤
+   *   未必带 `after`，反向断言会误报。
+   */
+  const announcedDead = deadSeatsFromNightReport(journal);
+  const killedByJournal = new Set<number>();
+  for (const j of journal) {
+    if (j.after && j.after.isDead === true && j.after.markedForDeath === true) {
+      if (j.targets?.[0] !== undefined) killedByJournal.add(j.targets[0]);
+    }
+  }
+  const missingFromDawn = [...killedByJournal].filter(
+    (id) => !announcedDead.has(id)
+  );
+  if (missingFromDawn.length > 0) {
+    V(
+      "I15-dawn-report",
+      `${missingFromDawn.map((x) => `${x + 1}号`).join("、")} 本夜已被击杀（座位 isDead），` +
+        `但黎明播报的死亡名单里没有（播报=${[
+          ...announcedDead,
+        ]
+          .map((x) => `${x + 1}号`)
+          .join("、") || "（平安夜）"}）`
+    );
+  }
+
   // I12 信息：信息类角色的弹窗必须有实质内容
   const INFO_ROLES = /图书管理员|厨师|占卜师|神谕者|城镇公告员|博学者|告密者|小精灵|共情者|洗衣妇|调查员|送葬者/;
   for (const j of journal) {

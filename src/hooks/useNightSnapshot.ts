@@ -3,10 +3,7 @@ import type { Script, Seat } from "@/app/data";
 import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import type { NightInfoResult } from "@/src/types/game";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
-import {
-  buildDawnAnnouncement,
-  collectRevivedThisNight,
-} from "../utils/dawnAnnouncement";
+import { buildDawnAnnouncementFromSeats } from "../utils/dawnAnnouncement";
 
 /**
  * 🌅 黎明播报的唯一构造点（本文件内）。
@@ -20,10 +17,11 @@ function buildDawnMessageFor(
   currentSeats: Seat[] | null | undefined,
   nightCount: number
 ): string {
-  return buildDawnAnnouncement({
-    deadThisNight,
-    revivedThisNight: collectRevivedThisNight(currentSeats as any, nightCount),
-  });
+  return buildDawnAnnouncementFromSeats(
+    currentSeats as any,
+    nightCount,
+    deadThisNight
+  );
 }
 
 export function useNightSnapshot(

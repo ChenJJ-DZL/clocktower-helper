@@ -138,11 +138,6 @@ const X05_KNOWN_DEFECTS: Record<number, string> = {
    *   · 快照保存 effect 覆盖 `gameOver`（否则快照里角色身份仍是跳变前的旧值）
    *   现在这里是空的；再出现红时请**先修**，不要往里塞。
    */
-  94002: [
-    "【夜晚瞬间跳过】第 2 夜起队列有内容（僧侣/小恶魔/间谍）但 journal.steps 为空，",
-    "`trail` 显示 night#3:day 立刻返回 ⇒ 整夜没跑任何一步。",
-    "`snapNightCount` 停在 2（夜数没涨）⇒ 怀疑进入夜间后 phase 未落库就被判 day。",
-  ].join(""),
 };
 
 for (const entry of X05_SEEDS) {

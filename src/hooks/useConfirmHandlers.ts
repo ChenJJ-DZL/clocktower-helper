@@ -2,7 +2,7 @@
 "use client";
 
 import { resolveKlutzOutcome } from "../utils/klutzRule";
-import { buildDawnAnnouncement } from "../utils/dawnAnnouncement";
+import { buildDawnAnnouncementFromSeats } from "../utils/dawnAnnouncement";
 import { resolveHadesiaOutcome } from "../utils/hadesiaRule";
 import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
@@ -536,10 +536,12 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
                       setCurrentModal({
                         type: "NIGHT_DEATH_REPORT",
                         data: {
-                          message: buildDawnAnnouncement({
+                          message: buildDawnAnnouncementFromSeats(
+                            latestSeats,
+                            nightCount,
                             deadThisNight,
-                            revivedThisNight: revivedIds,
-                          }),
+                            revivedIds
+                          ),
                         },
                       });
                     }, 50);

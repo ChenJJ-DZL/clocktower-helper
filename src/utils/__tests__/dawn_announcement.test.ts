@@ -107,3 +107,49 @@ describe("DawnAnnouncement · collectRevivedThisNight（判据只能认 revivedA
     expect(collectRevivedThisNight(seats, 2)).toEqual([1, 3, 5]);
   });
 });
+
+describe("DawnAnnouncement · buildDawnAnnouncementFromSeats（座位表权威）", () => {
+  /**
+   * 🔴 实测缺陷（seed 94001 · 第 2 夜）：小恶魔杀了 1 号，黎明却说「平安夜」。
+   * 根因是播报在 setTimeout 闭包里读 `deadThisNight` **state**（击杀前的渲染快照）。
+   * 修法：以座位表（`seatsRef.current`，击杀时同步写）为权威，state 只兜底取并集。
+   */
+  it("state 还是空（旧闭包）时，也必须按座位表报出死者", async () => {
+    const { buildDawnAnnouncementFromSeats } = await import("../dawnAnnouncement");
+    const seats = [
+      { id: 0, isDead: true, diedAtNight: 2 },
+      { id: 1, isDead: false },
+    ];
+    expect(
+      buildDawnAnnouncementFromSeats(seats as any, 2, []),
+      "座位表已经是权威真相，不得因为 state 落后就报平安夜"
+    ).toBe("昨晚1号玩家死亡");
+  });
+
+  it("座位表与 state 取并集（state 里有、座位表没写 diedAtNight 的也要报）", async () => {
+    const { buildDawnAnnouncementFromSeats } = await import("../dawnAnnouncement");
+    const seats = [{ id: 0, isDead: true, diedAtNight: 2 }];
+    expect(buildDawnAnnouncementFromSeats(seats as any, 2, [2])).toBe(
+      "昨晚1号、3号玩家死亡"
+    );
+  });
+
+  it("上一夜的死亡不得混进本夜（diedAtNight 不等于当前夜）", async () => {
+    const { buildDawnAnnouncementFromSeats } = await import("../dawnAnnouncement");
+    const seats = [{ id: 0, isDead: true, diedAtNight: 1 }];
+    expect(buildDawnAnnouncementFromSeats(seats as any, 2, [])).toBe(
+      "昨天是个平安夜"
+    );
+  });
+
+  it("同夜复活的人不得被当成死者（isDead=false）+ 复活段照常播", async () => {
+    const { buildDawnAnnouncementFromSeats } = await import("../dawnAnnouncement");
+    const seats = [
+      { id: 0, isDead: false, revivedAtNight: 2 },
+      { id: 1, isDead: true, diedAtNight: 2 },
+    ];
+    expect(buildDawnAnnouncementFromSeats(seats as any, 2, [])).toBe(
+      "昨晚2号玩家死亡；1号玩家复活"
+    );
+  });
+});
