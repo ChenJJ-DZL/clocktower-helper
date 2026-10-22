@@ -345,13 +345,22 @@ export function useLogicDispatcher(
   const declareMayorImmediateWin = useCallback(() => {
     // 🎭 戏子在场：镇长宣布的善良胜利被对调为邪恶胜利
     const flipped = applyActorVictoryFlip("good", seats);
+    const winner = flipped ?? "good";
+    const reason = flipped === "good" ? "镇长能力发动" : "戏子在场，胜负对调";
     addLog(
       flipped === "good"
         ? "镇长发动能力：宣布善良阵营获胜！"
         : "🎭 戏子在场，镇长宣布的善良胜利被对调：邪恶阵营获胜！"
     );
-    setWinResult(flipped ?? "good");
-    setWinReason(flipped === "good" ? "镇长能力发动" : "戏子在场，胜负对调");
+    /**
+     * ⚠️ 2026-10-21（seed 94013 的同型缺陷）：终局**必须**同时置位 `victoryRef`。
+     *   `victoryRef` 是「本局已终局」的**唯一**权威标记（推进夜序、终局兜底判据、
+     *   重复判定都靠它门禁）。此前镇长路径只改相位/弹窗、不置 `victoryRef`
+     *   ⇒ 相位可以被后续流程覆盖，且兜底判据会**再次**判胜负（判出相反胜方）。
+     */
+    victoryRef.current = { winner, reason };
+    setWinResult(winner);
+    setWinReason(reason);
     setGamePhase("gameOver");
     setVictorySnapshot(seats.filter((s) => s.role));
     setCurrentModal({ type: "GAME_OVER", data: null });

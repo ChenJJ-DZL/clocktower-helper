@@ -1294,7 +1294,7 @@ export function useGameController() {
   );
 
   // 包装 continueToNextAction，在推进队列前重置预览状态
-  // 自动保存游戏快照到 localStorage（仅在真正实质进行中的对局阶段保存，排除 setup/check/scriptSelection/gameOver）
+  // 自动保存游戏快照到 localStorage（进行中的对局：排除 setup/check/scriptSelection/gameOver）
   useEffect(() => {
     const inProgressPhases = [
       "firstNight",
@@ -1304,7 +1304,23 @@ export function useGameController() {
       "voting",
       "nightSummary",
     ];
-    if (inProgressPhases.includes(gamePhase) && !gameState.winResult) {
+    /**
+     * ⚠️ 2026-10-21（seed 94013 实测）：**终局快照必须落盘**。
+     *
+     *   此前只存「进行中」的快照 ⇒ 终局那一刻的状态（尤其**角色身份的变化**）
+     *   永远存不下来。典型：方古跳变（外来者变恶魔、原恶魔死亡）恰好就是终局条件，
+     *   于是持久化快照里的该座位仍是**旧身份**（外来者）⇒ 任何按快照复核
+     *   「官方四条」的判据都会读出「恶魔已死 ⇒ 善良胜」，与真实胜方（邪恶胜）相反。
+     *
+     *   终局快照带 `winResult` + `gamePhase=gameOver`
+     *   ⇒ `isRealUnfinishedGame` 判 false ⇒ 不会被当成「可续局对局」，
+     *   与「终局不可续局」的既有语义一致。
+     */
+    const isTerminal = gamePhase === "gameOver" || !!gameState.winResult;
+    if (
+      isTerminal ||
+      (inProgressPhases.includes(gamePhase) && !gameState.winResult)
+    ) {
       const snapshot = createSnapshotFromState(gameState as any);
       saveCurrentSnapshot(snapshot);
     }
@@ -1312,11 +1328,25 @@ export function useGameController() {
 
   const continueToNextAction = useCallback(
     (latestSeats?: Seat[]) => {
+      /**
+       * 🏁 终局态**不可被推进覆盖**（2026-10-21 · seed 94013 实测）。
+       *
+       *   真实缺陷链（梦殒春宵 5 人局）：
+       *     ① 第 4 夜方古杀死外来者呆瓜 ⇒ 呆瓜变方古、原方古死亡（角色身份转移）；
+       *     ② `checkGameOver` 判出「存活仅剩 2 人 ⇒ 邪恶胜」⇒ 相位已置 `gameOver`；
+       *     ③ 但紧接着的「夜晚结束」把相位改回 `dawnReport`、并用「平安夜」弹窗
+       *        顶掉胜利弹窗 ⇒ **终局被抹掉**，对局继续跑到第 13 夜仍未终局。
+       *     ④ 更糟的是 `victoryRef` 已置位 ⇒ 后续所有终局兜底判据（存活阈值等）
+       *        全部被 `victoryRef.current` 门禁挡掉 ⇒ 永远补不回来。
+       *
+       *   ⇒ 胜负一旦判出，夜晚**不得**再推进/切相位。
+       */
+      if (victoryRef.current) return;
       rawContinueToNextAction(latestSeats);
       // BUG FIX: 推进到下一步时必须清除已选目标，否则下一个步骤会沿用旧的目标
       setSelectedActionTargets([]);
     },
-    [rawContinueToNextAction, setSelectedActionTargets]
+    [rawContinueToNextAction, setSelectedActionTargets, victoryRef]
   );
 
   const nightLogic = useNightEngine({

@@ -1,4 +1,17 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+/**
+ * `@` 别名必须与 tsconfig.json 的 paths（`"@/*": ["./*"]`）一致 —— 指向**仓库根**。
+ * ⚠️ 旧值 `"@": "/src"` 与 tsconfig 不一致：它把 `@/app/data` 解析成
+ *    `<root>/src/app/data`（不存在），把 `@/src/types/game` 解析成
+ *    `<root>/src/src/types/game`（也不存在）⇒ 任何**值导入**（非 type-only）
+ *    的 `@/...` 模块都会在 vite import-analysis 阶段直接解析失败。
+ */
+const repoRoot = fileURLToPath(new URL(".", import.meta.url)).replace(
+  /[\\/]$/,
+  ""
+);
 
 export default defineConfig({
   test: {
@@ -48,7 +61,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": "/src",
+      "@": repoRoot,
     },
   },
 });
