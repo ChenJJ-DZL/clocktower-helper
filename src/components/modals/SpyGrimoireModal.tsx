@@ -142,6 +142,10 @@ export function SpyGrimoireModal({
   // ─── 右侧日志的筛选 Tab（"all" | "night-0" (首夜) | "night-1" | "night-2" ... | "day"） ──
   const [activeTab, setActiveTab] = useState<string>("all");
 
+  // 🔒 行动记录默认隐藏：官方只授权间谍看「魔典」（角色标记/提示标记/阵营），
+  //    他人夜间做了什么、得知了什么**不在**魔典范围内 ⇒ 需说书人显式展开。
+  const [showActionLog, setShowActionLog] = useState(false);
+
   // 椭圆容器 Ref 用于等弧长尺寸测量
   const ellipseContainerRef = useRef<HTMLDivElement>(null);
   const {
@@ -406,6 +410,9 @@ export function SpyGrimoireModal({
     return list;
   }, [parsedLogs, selectedSeatId, activeTab]);
 
+  /** 过闸门后的日志（普通视图）：默认隐藏，仅说书人显式展开后可见 */
+  const visibleLogs = showActionLog ? filteredLogs : [];
+
   // 获取现存最大天数用于生成 Tab
   const availableNights = useMemo(() => {
     const days = new Set<number>();
@@ -478,10 +485,13 @@ export function SpyGrimoireModal({
           {/* 左侧：倒计时控制 */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
+              {/* 官方【运作方式】：「让他**按自己意愿的时长**查看魔典」
+                  ⇒ 这里只是**建议用时**，不计时关闭、不做红色催促（2026-10-22） */}
               <span
-                className={`text-xs font-black tracking-wide ${timeLeft <= 5 ? "text-red-400 animate-pulse" : timeLeft <= 10 ? "text-amber-300" : "text-emerald-300"}`}
+                className={`text-xs font-black tracking-wide ${timeLeft <= 10 ? "text-amber-300" : "text-emerald-300"}`}
+                title="官方：间谍可按自己意愿的时长查看魔典。本计时仅为说书人参考，不会自动关闭。"
               >
-                ⏳ 查阅倒计时:{" "}
+                ⏳ 建议用时（不会自动关闭）:{" "}
                 <span className="font-mono text-sm font-bold">{timeLeft}s</span>
               </span>
               <div className="w-28 h-2 bg-slate-800 rounded-full overflow-hidden border border-white/10">
@@ -866,20 +876,43 @@ export function SpyGrimoireModal({
 
             {/* 情报与行动列表（宽幅舒适展示） */}
             <div className="flex-1 overflow-y-auto pr-1.5 space-y-2.5">
-              {filteredLogs.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                  <span className="text-4xl mb-3 opacity-60">📜</span>
-                  <p className="text-sm font-bold text-slate-300">
-                    暂无对应行动或情报记录
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1.5">
-                    {selectedSeatId !== null
-                      ? `该玩家（#${selectedSeatId + 1}号）尚未有记录在册的夜间行动或已知信息`
-                      : "当前阶段尚未产生夜间操作日志"}
-                  </p>
-                </div>
+              {visibleLogs.length === 0 ? (
+                showActionLog ? (
+                  /* 原有「暂无记录」空态，原样保留 */
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                    <span className="text-4xl mb-3 opacity-60">📜</span>
+                    <p className="text-sm font-bold text-slate-300">
+                      暂无对应行动或情报记录
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1.5">
+                      {selectedSeatId !== null
+                        ? `该玩家（#${selectedSeatId + 1}号）尚未有记录在册的夜间行动或已知信息`
+                        : "当前阶段尚未产生夜间操作日志"}
+                    </p>
+                  </div>
+                ) : (
+                  /* 🔒 默认隐藏：这是**规则要求**，不是加载失败 */
+                  <div className="h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <span className="text-4xl opacity-70">🔒</span>
+                    <p className="text-sm font-black text-amber-200">
+                      行动记录默认隐藏
+                    </p>
+                    <p className="text-xs leading-relaxed text-slate-400 max-w-xs">
+                      官方：间谍只能查看【魔典】（角色标记 / 提示标记 / 阵营）。
+                      <br />
+                      他人的夜间行动与所得情报不在魔典范围内。
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowActionLog(true)}
+                      className="mt-1 px-3 py-1.5 rounded-lg bg-amber-800/70 hover:bg-amber-700 text-amber-100 text-[11px] font-bold border border-amber-600 transition"
+                    >
+                      🎙️ 说书人视角 · 展开行动记录（请勿展示给玩家）
+                    </button>
+                  </div>
+                )
               ) : (
-                filteredLogs.map((log) => {
+                visibleLogs.map((log) => {
                   // 卡片样式根据日志类型标色
                   const isInfo = log.isInfo;
                   const isKill = log.isKillOrDeath;
@@ -1000,6 +1033,9 @@ export function SpyGrimoireModal({
             item.involvedSeats.includes(selectedSeatId)
           );
         }
+
+        /** 过闸门后的日志（全屏视图）：默认隐藏，仅说书人显式展开后可见 */
+        const visibleFullscreenLogs = showActionLog ? fullscreenLogs : [];
 
         const fullscreenNightOptions = Array.from(
           parsedLogs.reduce((set, item) => {
@@ -1172,18 +1208,41 @@ export function SpyGrimoireModal({
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-3">
-                  {fullscreenLogs.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                      <span className="text-5xl mb-4 opacity-60">📜</span>
-                      <p className="text-base font-bold text-slate-200">
-                        暂无当晚行动记录
-                      </p>
-                      <p className="text-sm text-slate-400 mt-2 max-w-xl">
-                        选择的阶段或聚焦的座位暂无对应的夜间行动日志，可切换阶段或清除座位聚焦后再试。
-                      </p>
-                    </div>
+                  {visibleFullscreenLogs.length === 0 ? (
+                    showActionLog ? (
+                      /* 原有「暂无当晚行动记录」空态，原样保留 */
+                      <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
+                        <span className="text-5xl mb-4 opacity-60">📜</span>
+                        <p className="text-base font-bold text-slate-200">
+                          暂无当晚行动记录
+                        </p>
+                        <p className="text-sm text-slate-400 mt-2 max-w-xl">
+                          选择的阶段或聚焦的座位暂无对应的夜间行动日志，可切换阶段或清除座位聚焦后再试。
+                        </p>
+                      </div>
+                    ) : (
+                      /* 🔒 默认隐藏：这是**规则要求**，不是加载失败 */
+                      <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+                        <span className="text-5xl opacity-70">🔒</span>
+                        <p className="text-base font-black text-amber-200">
+                          行动记录默认隐藏
+                        </p>
+                        <p className="text-sm leading-relaxed text-slate-400 max-w-xl">
+                          官方：间谍只能查看【魔典】（角色标记 / 提示标记 / 阵营）。
+                          <br />
+                          他人的夜间行动与所得情报不在魔典范围内。
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowActionLog(true)}
+                          className="mt-1 px-4 py-2 rounded-lg bg-amber-800/70 hover:bg-amber-700 text-amber-100 text-sm font-bold border border-amber-600 transition"
+                        >
+                          🎙️ 说书人视角 · 展开行动记录（请勿展示给玩家）
+                        </button>
+                      </div>
+                    )
                   ) : (
-                    fullscreenLogs.map((log) => {
+                    visibleFullscreenLogs.map((log) => {
                       const borderClass = log.isKillOrDeath
                         ? "border-red-900/70 bg-gradient-to-r from-red-950/50 to-slate-900/60"
                         : log.isInfo

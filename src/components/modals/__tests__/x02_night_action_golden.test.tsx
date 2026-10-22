@@ -450,7 +450,9 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
         isOpen={true}
         onClose={onClose}
         seats={mkSeats()}
-        gameLogs={[]}
+        gameLogs={[
+          { day: 1, phase: "night", message: "1号(占卜师) 查验 2号玩家" } as any,
+        ]}
         nightCount={1}
         reminderTokens={{}}
       />
@@ -462,6 +464,20 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
     // ② 标题逐字一致
     expect(modalTitle()).toBe("📖 间谍椭圆魔典 (全知全景)");
     expect(t).toContain("📖 间谍椭圆魔典 (全知全景)");
+
+    // ②b 倒计时只是「建议用时」，不制造「按自己意愿的时长」的压力
+    //     官方【运作方式】：「让他按自己意愿的时长查看魔典」
+    expect(t).toContain("建议用时（不会自动关闭）");
+
+    // ②c 行动记录默认隐藏（官方只授权间谍看魔典，不含他人夜间行动/所得情报）
+    expect(t).toContain("行动记录默认隐藏");
+    expect(t, "默认不得展示他人行动日志").not.toContain("查验 2号玩家");
+    expect(t, "默认不得展示他人行动日志").not.toContain("查验");
+
+    // ②d 说书人显式展开闸门 → 隐藏提示消失，日志才可见
+    fireEvent.click(screen.getByText(/展开行动记录/));
+    expect(bodyText()).not.toContain("行动记录默认隐藏");
+    expect(bodyText()).toContain("查验");
 
     // ③ 主按钮文案逐字一致
     expect(buttonTexts()).toContain("✓ 我已查看完毕 (下一步)");
