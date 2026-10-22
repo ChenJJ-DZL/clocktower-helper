@@ -555,7 +555,11 @@ export function VoteInputModalContent(props: {
             onClick={handleConfirm}
             className="px-14 py-3 text-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            确认（{effectiveCount} 票）
+            {/* 票数取 displayVoteCount（= 生效票数），不能取 effectiveCount：
+                军团触发时生效票数为 0，按钮若显示原票数会与上方「当前生效的票数」自相矛盾。
+                官方（officialRoleDocs.json · 军团 · 角色简介）：「如果一项提名中只有邪恶玩家参与了投票，
+                那么在统计票数的时候会记为零票。」 */}
+            确认（{displayVoteCount} 票）
           </button>
         </div>
       </div>

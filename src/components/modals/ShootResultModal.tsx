@@ -38,7 +38,13 @@ export function ShootResultModal({
 
   return (
     <ModalWrapper
-      title={isDemonDead ? "💥 恶魔死亡 - 善良阵营获胜！" : "💥 猎手射击结果"}
+      // 标题只陈述「猎手能力的结果（目标死亡）」，**不宣告阵营胜负**：
+      // 官方（officialRoleDocs.json · 镜像双子 · 角色简介）：「两个双子都存活时善良阵营无法获胜。
+      // 此时即使恶魔死亡，游戏也会继续。」⇒ 恶魔死亡 ≠ 善良阵营必然获胜，
+      // 胜负由引擎 gameLogic 判定后由胜利结算界面宣告（app/gameLogic.ts:613-650 已正确阻挡）。
+      // 官方（officialRoleDocs.json · 猎手 · 角色能力）：「每局游戏限一次，你可以在白天时公开选择
+      // 一名玩家：如果他是恶魔，他死亡。」
+      title={isDemonDead ? "💥 恶魔死亡！" : "💥 猎手射击结果"}
       onClose={onConfirm}
       size="fullscreen90"
       className={`w-[94vw] max-w-7xl max-h-[92vh] flex flex-col p-3 overflow-hidden ${
@@ -81,7 +87,9 @@ export function ShootResultModal({
 
           {isDemonDead && (
             <div className="p-4 rounded-2xl bg-red-950/50 border border-red-500/50 text-red-200 text-base sm:text-lg font-bold max-w-xl shadow-lg whitespace-nowrap">
-              🎉 恶魔已被猎手成功击杀！系统已判定善良阵营获得最终胜利！
+              {/* 同上：不宣告「善良阵营获得最终胜利」——邪恶双子在场时恶魔死亡后游戏仍会继续。
+                  官方（officialRoleDocs.json · 镜像双子 · 角色能力）：「如果你们都存活，善良阵营无法获胜。」 */}
+              🎉 恶魔已被猎手成功击杀！
             </div>
           )}
         </div>

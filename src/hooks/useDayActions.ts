@@ -628,7 +628,9 @@ export function useDayActions(deps: DayActionsDeps) {
           addLog(`${sourceId + 1}号已死亡无法开枪`);
           setCurrentModal({
             type: "SHOOT_RESULT",
-            data: { message: "无事发生射手已死亡", isDemonDead: false },
+            // 官方（officialRoleDocs.json · 猎手 · 角色能力）：「每局游戏限一次，你可以在白天时
+            // 公开选择一名玩家：如果他是恶魔，他死亡。」——射手已死亡 ⇒ 能力无从发动 ⇒ 无事发生。
+            data: { message: "无事发生（射手已死亡）", isDemonDead: false },
           });
           return;
         }

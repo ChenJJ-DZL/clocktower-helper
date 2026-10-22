@@ -242,6 +242,47 @@ describe("X02 · 白天/处决弹窗 golden 基线", () => {
     expect(setCurrentModal).toHaveBeenCalledWith(null);
   });
 
+  /* ─────────── X02-19b ─────────── */
+  it("X02-19b VOTE_INPUT · 军团：只有邪恶玩家投票 ⇒ 生效票数 0（提交按钮同步显示 0 票）", () => {
+    const submitVotes = vi.fn();
+    const setCurrentModal = vi.fn();
+
+    // 官方（officialRoleDocs.json · 军团 · 角色简介）：「如果一项提名中只有邪恶玩家参与了投票，
+    // 那么在统计票数的时候会记为零票。」
+    const seats: Seat[] = [
+      mkSeat(0, "legion", "军团", "demon"),
+      mkSeat(1, "imp", "小恶魔", "demon"),
+      mkSeat(2, "empath", "共情者", "townsfolk"),
+    ];
+
+    render(
+      <VoteInputModalContent
+        voterId={2}
+        seats={seats}
+        submitVotes={submitVotes}
+        setCurrentModal={setCurrentModal}
+      />
+    );
+
+    // 只勾两名邪恶玩家（军团 + 小恶魔）⇒ 触发军团「本次表决记为 0 票」
+    fireEvent.click(findButtonStartingWith("1号军团"));
+    fireEvent.click(findButtonStartingWith("2号小恶魔"));
+
+    // 生效票数被清零
+    expect(bodyText()).toMatch(/当前生效的票数：\s*0\s*票/);
+    expect(bodyText()).toContain(
+      "军团能力触发：所有投票者均为邪恶阵营（无善良玩家投票），本次表决记为 0 票，处决无效！"
+    );
+
+    // 提交按钮的票数必须与「当前生效的票数」一致（此前取 effectiveCount 会显示 2 票）
+    expect(buttonTexts()).toContain("确认（0 票）");
+    expect(buttonTexts()).not.toContain("确认（2 票）");
+
+    // 实际提交的也是 0 票
+    fireEvent.click(findButton("确认（0 票）"));
+    expect(submitVotes).toHaveBeenCalledWith(0, [0, 1]);
+  });
+
   /* ─────────── X02-20 ─────────── */
   it("X02-20 EXECUTION_RESULT · 处决结果判定（原样显示 message）", () => {
     const onConfirm = vi.fn();
@@ -456,7 +497,7 @@ describe("X02 · 白天/处决弹窗 golden 基线", () => {
 
     let t = assertRendered();
 
-    // ① 标题逐字一致（源码三元：isDemonDead ? "💥 恶魔死亡 - 善良阵营获胜！" : "💥 猎手射击结果"）
+    // ① 标题逐字一致（源码三元：isDemonDead ? "💥 恶魔死亡！" : "💥 猎手射击结果"）
     expect(modalTitle()).toBe("💥 猎手射击结果");
     expect(t).toContain("💥 猎手射击结果");
 
@@ -489,12 +530,16 @@ describe("X02 · 白天/处决弹窗 golden 基线", () => {
 
     t = assertRendered();
 
-    expect(modalTitle()).toBe("💥 恶魔死亡 - 善良阵营获胜！");
-    expect(t).toContain("💥 恶魔死亡 - 善良阵营获胜！");
+    expect(modalTitle()).toBe("💥 恶魔死亡！");
+    expect(t).toContain("💥 恶魔死亡！");
     expect(t).toContain("猎手 在 白天阶段 向【2号】玩家开枪：");
     expect(t).toContain("【命中恶魔】");
-    //    胜利横幅整句
-    expect(t).toContain("🎉 恶魔已被猎手成功击杀！系统已判定善良阵营获得最终胜利！");
+    //    胜利横幅整句（只陈述猎手能力的结果，不宣告阵营胜负）
+    expect(t).toContain("🎉 恶魔已被猎手成功击杀！");
+    //    官方（officialRoleDocs.json · 镜像双子 · 角色简介）：「两个双子都存活时善良阵营无法获胜。
+    //    此时即使恶魔死亡，游戏也会继续。」⇒ 弹窗不得无条件宣告善良阵营获胜
+    expect(t).not.toContain("善良阵营获胜");
+    expect(t).not.toContain("系统已判定");
 
     expect(buttonTexts()).toContain("确认并返回");
 
@@ -552,9 +597,13 @@ describe("X02 · 白天/处决弹窗 golden 基线", () => {
     // ③ 关键整句逐字
     //    射击发起者：`${formatSeatLabel(shooter.id, shooter.playerName)} - 【${role.name}】`
     expect(t).toContain("3号 - 【猎手】");
+    //    规则说明逐字引用官方（officialRoleDocs.json · 猎手 · 角色能力）：
+    //    「每局游戏限一次，你可以在白天时公开选择一名玩家：如果他是恶魔，他死亡。」
+    //    ⇒ 不得出现官方【角色能力】里没有的「善良阵营获胜」
     expect(t).toContain(
-      "规则说明：整局游戏限一次。公开选择一名玩家开枪。如果目标是恶魔，该恶魔立即死亡，善良阵营获胜！"
+      "规则说明：每局游戏限一次，你可以在白天时公开选择一名玩家：如果他是恶魔，他死亡。"
     );
+    expect(t).not.toContain("善良阵营获胜");
 
     // ④ 座位卡片文案逐字一致（座位号 + 阵营徽章 + 角色名；**不含射击者自己**）
     expect(buttonTexts()).toContain("1镇民厨师");
