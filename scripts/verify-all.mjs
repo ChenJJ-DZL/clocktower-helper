@@ -258,8 +258,15 @@ if (LIST_ONLY) {
     if (s.pending) console.log(`              ↳ ${s.pending}`);
   }
   const pending = selected.filter((s) => s.status === "pending").length;
+  /**
+   * ⚠️ 结语必须跟着 `pending` 走。
+   *   原实现把「还不能说全部验证过」写死了 —— 2026-10-23 清到 PENDING 0 时
+   *   清单仍打印这句话，等于自己否认自己，容易让人以为还有欠账。
+   */
   console.log(
-    `\n共 ${selected.length} 步，其中 PENDING ${pending} 步 ⇒ 目前**还不能**说「全部验证过」。`
+    pending === 0
+      ? `\n共 ${selected.length} 步，PENDING 0 步 ⇒ 清单已全部接线（跑 \`npm run verify:all\` 逐项执行并判红）。`
+      : `\n共 ${selected.length} 步，其中 PENDING ${pending} 步 ⇒ 目前**还不能**说「全部验证过」。`
   );
   process.exit(0);
 }
