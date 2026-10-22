@@ -520,3 +520,103 @@ test.describe("梦殒春宵 · G4 S10 涡流局", () => {
     expect.soft(banner, "终局横幅应写明邪恶阵营胜利").toContain("邪恶阵营胜利");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G5 · 女巫 / 女裁缝 / 方古（2026-10-22 补：三条强判据 + 反证）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("梦殒春宵 · G5 诅咒与转化", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("女巫：被诅咒者白天发起提名 ⇒ 当场死亡", async ({ page }) => {
+    const snap = await bootS(page, "S07");
+    const witchSeat = snap.seats.find((s: any) => s.role?.id === "witch").id as number;
+    const target = snap.seats.find(
+      (s: any) => s.id !== witchSeat && s.role?.type !== "demon"
+    ).id as number;
+
+    // 官方：「每个夜晚，你要选择一名玩家：如果他明天白天发起提名，他死亡。」
+    const n1 = await driveNight(page, [
+      { role: "witch", targets: [target + 1], note: "诅咒该玩家" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const dusk = await driveDusk(page, {
+      nominator: target + 1,
+      nominee: witchSeat + 1,
+    });
+    expect.soft(dusk.nominated, "被诅咒者应能正常发起提名").toBe(true);
+
+    const after = await snapNow(page);
+    expect
+      .soft(
+        after?.seats?.find((x: any) => x.id === target)?.isDead,
+        "被诅咒者一发起提名就必须死亡（女巫诅咒）"
+      )
+      .toBe(true);
+    expect
+      .soft(
+        after?.seats?.find((x: any) => x.id === witchSeat)?.isDead,
+        "女巫本人不得因自己的诅咒死亡"
+      )
+      .toBe(false);
+  });
+
+  test("女裁缝：选一好一坏 ⇒ 必须回答「不同阵营」", async ({ page }) => {
+    // 🔴 已知缺陷（2026-10-22 探针实锤）：**女裁缝首夜根本没进唤醒队列**。
+    //   S08 首夜 steps 只有：pit_hag 互认 → vigormortis 互认 → philosopher → clockmaker
+    //   → 夜晚结算报告，**没有 seamstress 步骤**，所以也没有任何结果弹窗。
+    //   而 `seamstress.ability.ts:159-161` 明确写了
+    //     `triggerTiming: [EVERY_NIGHT]` + `firstNightPriority: 63` + `firstNightOnly: false`
+    //   ⇒ 作者意图是首夜可行动，但队列生成阶段把她过滤掉了。
+    //   （与「坑道巫婆首夜不唤醒」同型：ability 声明了 priority，`nightOrder` 静态表里没有。）
+    //   ⇒ 待查 `utils/dynamicQueueGenerator` 的「首夜角色」判定来源。
+    test.fail(true, "女裁缝首夜未进唤醒队列（ability 声明 firstNightPriority 63，见注释）");
+    const snap = await bootS(page, "S08");
+    const ssSeat = snap.seats.find((s: any) => s.role?.id === "seamstress").id as number;
+    const evilIds = ["vigormortis", "pit_hag"];
+    const evil = snap.seats.find((s: any) => evilIds.includes(s.role?.id)).id as number;
+    const good = snap.seats.find(
+      (s: any) => s.id !== evil && s.id !== ssSeat && !evilIds.includes(s.role?.id)
+    ).id as number;
+
+    // 官方：「每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：
+    //   你会得知他们是否为同一阵营。」
+    const n1 = await driveNight(page, [
+      { role: "seamstress", targets: [good + 1, evil + 1], note: "一好一坏" },
+    ]);
+
+    const r = resultStep(n1, "seamstress", /阵营/) ?? resultStep(n1, "seamstress");
+    const dialog = r?.dialog ?? "";
+    expect.soft(dialog, "女裁缝应给出「是否同一阵营」的结果弹窗").toMatch(
+      /同一阵营|相同阵营|不同阵营|不是同一/
+    );
+    expect.soft(dialog, "一好一坏必须判为「不同阵营」").toMatch(/不同阵营|不是同一/);
+  });
+
+  test("方古：夜杀外来者 ⇒ 外来者变邪恶方古、方古自己死亡", async ({ page }) => {
+    const snap = await bootS(page, "S07");
+    const fgSeat = snap.seats.find((s: any) => s.role?.id === "fang_gu").id as number;
+    const outsiderIds = ["mutant", "sweetheart", "barber"];
+    const outsider = snap.seats.find((s: any) =>
+      outsiderIds.includes(s.role?.id)
+    ).id as number;
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 官方：「被该能力杀死的外来者改为变成邪恶的方古且你代替他死亡，
+    //   但每局游戏仅能成功转化一次。」
+    const n2 = await driveNight(page, [
+      { role: "fang_gu", targets: [outsider + 1], note: "杀死外来者以转化" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const o = after?.seats?.find((x: any) => x.id === outsider);
+    const fg = after?.seats?.find((x: any) => x.id === fgSeat);
+    expect.soft(o?.role?.id, "被转化的外来者应变成方古").toBe("fang_gu");
+    expect.soft(o?.isEvilConverted, "转化后阵营应为邪恶").toBe(true);
+    expect.soft(o?.isDead, "转化后的新方古不得死亡").toBe(false);
+    expect.soft(fg?.isDead, "原方古应代替他死亡").toBe(true);
+  });
+});
