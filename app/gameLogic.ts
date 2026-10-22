@@ -279,7 +279,14 @@ export function processGameEvent(
       }
 
       // --- Side Effects (Hint for Modal) ---
-      if (target.role?.id === "barber_mr") {
+      /**
+       * 🔴 2026-10-22 修复（两处）：
+       *   ① 判据写的是 `barber_mr` —— **全仓不存在这个角色 id**（真实 id = `barber`，
+       *      见 `src/roles/outsider/barber.ts`）⇒ 交换窗从不弹出。
+       *   ② 只在 `KILL_PLAYER` 分支判，`EXECUTE_PLAYER` 分支没有
+       *      ⇒ 官方「如果你死亡」（**不分死因**）被缩成了「只在夜杀时」。
+       */
+      if (target.role?.id === "barber") {
         nextActionHint = "BARBER_SWAP_NEEDED";
         logs.push("理发师死亡，触发交换");
       }
@@ -327,6 +334,13 @@ export function processGameEvent(
 
       // Trigger death events
       handlePostDeathTriggers(target, nextSeats, logs, "execution");
+
+      // 🪒 理发师：官方「如果你死亡，在当晚，说书人可以选择两名玩家：他们交换角色」
+      //   ⇒ 死因不限（处决同样触发）。此前这里缺判据，只有 KILL_PLAYER 分支有（且 id 写错）。
+      if (target.role?.id === "barber") {
+        nextActionHint = "BARBER_SWAP_NEEDED";
+        logs.push("理发师死亡，触发交换");
+      }
       break;
     }
     case "CHECK_GAME_OVER": {
