@@ -147,6 +147,30 @@ export function NightActionConfirmModal({
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * 🔴🔴 2026-10-22 修复（麻脸巫婆「选完角色确认按钮消失」的真因）
+   *
+   * 原实现：`useEffect(..., [data])` —— 依赖**整个 data 对象引用**。
+   *   而这个弹窗的 data 由上层（`NIGHT_ACTION_CONFIRM`）在每次选座位 / 重渲染时
+   *   重新构造 ⇒ `data` 引用变 ⇒ effect 重跑 ⇒ `setSelectedRoleId(null)`。
+   *
+   * 症状（两处一致）：
+   *   · E2E：点角色胶囊后再点座位，已选角色被清空 ⇒ 「确认选择【X】」永远不会出现；
+   *   · 手工：点完胶囊瞬间 UI 显示「已选角色:【钟表匠】」，但下一次渲染后回到「未选择」
+   *     ⇒ 之前误判成「驱动器限制」，其实是**产品的状态被自己重置**。
+   *
+   * 修法：依赖收敛到「**弹窗身份**」三个字段（角色 + 座位 + 是否需选角色）。
+   *   `data` 引用变化但身份不变时**不重置**，从而保住用户已选的角色。
+   *   ⚠️ 不要改用 `useRef` 记 identity —— 本组件在每次开窗时都会卸载重挂，
+   *      ref 本身就会重置；直接收敛依赖更直白。
+   */
+  const modalIdentity = [
+    data?.roleId ?? "",
+    // roleName 形如「11号-麻脸巫婆」⇒ 天然带座位号，能区分「同一角色不同座位」
+    data?.roleName ?? "",
+    String(data?.requiresRoleSelection ?? ""),
+  ].join("|");
+
   useEffect(() => {
     setIsSubmitting(false);
     if (data?.initialSelectedTargets) {
@@ -159,7 +183,8 @@ export function NightActionConfirmModal({
     } else {
       setSelectedRoleId(null);
     }
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalIdentity]);
 
   // 筛选已分配角色的座位，按座位号升序展示
   const seatedPlayers = useMemo(() => {

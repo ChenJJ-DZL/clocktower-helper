@@ -202,7 +202,37 @@ test.describe("游园惊梦 · G1 S21 首夜", () => {
     const rolesBefore = (snap.seats as any[]).map((x) => `${x.id}:${x.role.id}`).join(",");
 
     expect((await driveDusk(page, {})).status, "第 1 昼应能直接入夜").toBe("night");
-    const n2 = await driveNight(page, []);
+
+    /**
+     * ✅ 2026-10-22 修复并转正：真因是**弹窗自己的状态被重置**，不是驱动器限制。
+     *
+     * `NightActionConfirmModal` 的重置 effect 依赖**整个 `data` 对象引用**
+     *   ⇒ 上层每次选座位/重渲染都会重建 data ⇒ `data` 引用变 ⇒ effect 重跑
+     *   ⇒ `setSelectedRoleId(null)` ⇒ 刚点的角色被清空
+     *   ⇒ 确认按钮永远停在「请选择角色」（disabled）。
+     * 症状与手工复现完全一致：点完胶囊瞬间显示「已选角色:【钟表匠】」，
+     *   下一次渲染又回到「未选择」；当时误判成「驱动器点不通」。
+     *
+     * 修法：重置 effect 的依赖收敛到「弹窗身份」（roleId + sourceId + requiresRoleSelection），
+     *   `data` 引用变化但身份不变时**不重置**。
+     */
+    /**
+     * ⚠️ 必须选一个**不在场**的角色：官方「**如果该角色不在场**，他变成该角色」。
+     *   实测本局 14 号就是 clockmaker ⇒ 选它会被 `isAlreadyInPlay` 正确挡掉
+     *   （第一次转正时踩过：断言「变成 clockmaker」失败，其实是产品对、用例错）。
+     *   本剧本含 `sage`（智者）但本局未发到 ⇒ 用它。
+     */
+    const hagTarget = (snap.seats as any[]).find(
+      (x: any) => x.role?.id !== "sage" && x.id !== hagSeat
+    ).id as number;
+    const n2 = await driveNight(page, [
+      {
+        role: "pit_hag",
+        targets: [hagTarget + 1],
+        roleChoice: "sage",
+        note: "把该玩家变成智者（智者不在场）",
+      },
+    ]);
     const hagSteps2 = stepsOf(n2, "pit_hag");
     expect
       .soft(hagSteps2.length, "官方：麻脸巫婆「每个夜晚*」⇒ 第 2 夜必须被唤醒")
@@ -237,16 +267,22 @@ test.describe("游园惊梦 · G1 S21 首夜", () => {
      *     推测弹窗在这条路径上被重新挂载、内部 `selectedRoleId` 被重置。
      * ⇒ 产品侧**仅验证到「弹窗提供角色选择」**；「选完真的变身」留给人工或更强驱动器。
      */
-    test.fail(true, "麻脸巫婆角色变换未验证：驱动器在此弹窗上点胶囊后「确认选择」按钮不出现（产品通路已接通）");
     const after2 = await snapNow(page);
     const rolesBefore2 = (snap.seats as any[]).map((x) => `${x.id}:${x.role.id}`).join(",");
     const rolesAfter2 = (after2?.seats ?? []).map((x: any) => `${x.id}:${x.role?.id}`).join(",");
     expect
       .soft(
         rolesAfter2 === rolesBefore2,
-        `官方：选中角色后该座位应变成新角色（实测一字未变：${rolesBefore2}）`
+        `官方：选中角色后该座位应变成新角色（选前：${rolesBefore2}）`
       )
       .toBe(false);
+    // 精确断言：目标座位必须变成钟表匠
+    expect
+      .soft(
+        after2?.seats?.find((x: any) => x.id === hagTarget)?.role?.id,
+        `被麻脸巫婆选中的 ${hagTarget + 1} 号应变成 sage（智者不在场）`
+      )
+      .toBe("sage");
     expect.soft(hagSeat, "麻脸巫婆应在场").toBeGreaterThanOrEqual(0);
   });
 });

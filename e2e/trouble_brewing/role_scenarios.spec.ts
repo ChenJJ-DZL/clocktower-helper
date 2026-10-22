@@ -473,6 +473,15 @@ test.describe("暗流涌动 · G4 善良方日间角色与男爵", () => {
 
     const winBtn = page.locator("button").filter({ hasText: /查看获胜结果/ }).first();
     await winBtn.click({ timeout: 8000 }).catch(() => {});
+    // ⚠️ 点击后终局卡片是**异步挂载**的：直接读 `[role="dialog"]` 会拿到 ""（实测 flaky）。
+    //   按项目铁律不用 waitForTimeout，改用 waitForFunction 等 DOM 真的出现。
+    await page
+      .waitForFunction(
+        () => (document.querySelector('[role="dialog"]')?.textContent ?? "").trim().length > 0,
+        undefined,
+        { timeout: 8000 }
+      )
+      .catch(() => {});
     const overlay = await page.evaluate(
       () => (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
     );
@@ -694,6 +703,15 @@ test.describe("暗流涌动 · G5 士兵 / 镇长 / 猎手", () => {
 
     const winBtn = page.locator("button").filter({ hasText: /查看获胜结果/ }).first();
     await winBtn.click({ timeout: 8000 }).catch(() => {});
+    // ⚠️ 点击后终局卡片是**异步挂载**的：直接读 `[role="dialog"]` 会拿到 ""（实测 flaky）。
+    //   按项目铁律不用 waitForTimeout，改用 waitForFunction 等 DOM 真的出现。
+    await page
+      .waitForFunction(
+        () => (document.querySelector('[role="dialog"]')?.textContent ?? "").trim().length > 0,
+        undefined,
+        { timeout: 8000 }
+      )
+      .catch(() => {});
     const overlay = await page.evaluate(
       () => (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
     );
@@ -1003,6 +1021,15 @@ test.describe("暗流涌动 · G7 关键分支", () => {
 
     const winBtn = page.locator("button").filter({ hasText: /查看获胜结果/ }).first();
     await winBtn.click({ timeout: 8000 }).catch(() => {});
+    // ⚠️ 点击后终局卡片是**异步挂载**的：直接读 `[role="dialog"]` 会拿到 ""（实测 flaky）。
+    //   按项目铁律不用 waitForTimeout，改用 waitForFunction 等 DOM 真的出现。
+    await page
+      .waitForFunction(
+        () => (document.querySelector('[role="dialog"]')?.textContent ?? "").trim().length > 0,
+        undefined,
+        { timeout: 8000 }
+      )
+      .catch(() => {});
     const overlay = await page.evaluate(
       () => (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
     );
