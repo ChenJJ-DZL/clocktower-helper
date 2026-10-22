@@ -81,7 +81,8 @@ export function KlutzChoiceModal({
                   className="truncate max-w-full leading-tight"
                   style={{ fontSize: SEAT_CARD_FONT.secondary }}
                 >
-                  {s.role?.name || "未知"}
+                  {/* 🔒 只显示玩家名，不显示角色名：呆瓜是公开选择，看到角色名等于开挂 */}
+                  {s.playerName ?? ""}
                 </span>
               </button>
             );

@@ -555,10 +555,19 @@ describe("X02 · 白天行动弹窗 golden 基线（批 4）", () => {
     //    「当你得知你死亡时，你要公开选择一名存活的玩家：如果他是邪恶的，你的阵营落败。」
     expect(t).toContain("请选择一名存活玩家：若其为邪恶，你的阵营立即落败。");
 
-    // ④ 可选座位卡片文案逐字（"N号" + 角色名）；死者/自己不在候选里
-    expect(buttonTexts()).toContain("2号厨师");
-    expect(buttonTexts()).toContain("3号小恶魔");
+    /**
+     * ④ 可选座位卡片文案逐字（"N号" + **玩家名**）；死者/自己不在候选里。
+     *
+     * 🔒 2026-10-22（X02 文案对账）：卡片上**不得**出现角色名 ——
+     *   呆瓜是官方「公开选择一名玩家」，看到角色名等于开挂（邪恶/善良一眼分明）。
+     *   这是信息泄露修复的反向断言，别把它当成"文案变了"随手改回去。
+     */
+    expect(buttonTexts()).toContain("2号玩家2");
+    expect(buttonTexts()).toContain("3号玩家3");
     expect(buttonTexts()).not.toContain("1号呆瓜");
+    expect(buttonTexts().join("|"), "座位卡片不得泄露角色名").not.toMatch(
+      /号(厨师|小恶魔|士兵|共情者|呆瓜)/
+    );
 
     // ⑤ 按钮文案逐字一致（主 + 取消）；未选人时「确认选择」为 disabled
     expect(buttonTexts()).toContain("取消");
@@ -566,7 +575,8 @@ describe("X02 · 白天行动弹窗 golden 基线（批 4）", () => {
     expect((findButton("确认选择") as HTMLButtonElement).disabled).toBe(true);
 
     // ⑥ 点座位卡片 ⇒ onSelectTarget(座位 id)
-    fireEvent.click(findButton("3号小恶魔"));
+    //    🔒 卡片按「座位号 + 玩家名」定位（不含角色名 —— 见 ④ 的信息泄露反向断言）
+    fireEvent.click(findButton("3号玩家3"));
     expect(onSelectTarget).toHaveBeenCalledWith(2);
 
     // ⑦ 取消 ⇒ onCancel

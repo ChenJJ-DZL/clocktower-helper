@@ -106,7 +106,8 @@ export function BarberSwapModal() {
                 )
                 .map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    [{s.id + 1}号] {s.role?.name}
+                    {/* 🔒 只显示座位号+玩家名：恶魔不该知道全场角色 */}
+                    [{s.id + 1}号] {s.playerName ?? ""}
                   </option>
                 ))}
             </select>
@@ -139,7 +140,8 @@ export function BarberSwapModal() {
                 )
                 .map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    [{s.id + 1}号] {s.role?.name}
+                    {/* 🔒 只显示座位号+玩家名：恶魔不该知道全场角色 */}
+                    [{s.id + 1}号] {s.playerName ?? ""}
                   </option>
                 ))}
             </select>

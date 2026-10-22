@@ -52,7 +52,8 @@ export function MoonchildKillModal({
                   className="truncate max-w-full leading-tight"
                   style={{ fontSize: SEAT_CARD_FONT.secondary }}
                 >
-                  {s.role?.name ?? "未知"}
+                  {/* 🔒 只显示玩家名，不显示角色名：官方是「公开选择」，角色信息不能白给 */}
+                  {s.playerName ?? ""}
                 </span>
               </button>
             );

@@ -366,10 +366,14 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
 
     // ③ 主按钮文案逐字一致
     //    该弹窗无 footer，主操作是「选一个座位」按钮：
-    //    按钮文案 = 座位号 span + 角色名 span，拼出来逐字为 "1号厨师"（1号 = 自己，已被排除）
-    expect(buttonTexts()).toContain("1号厨师");
-    expect(buttonTexts()).toContain("3号共情者");
+    //    按钮文案 = 座位号 span + **玩家名** span（1号 = 自己，已被排除）
+    //    🔒 不显示角色名：月之子是「公开选择」，角色信息不能白给
+    expect(buttonTexts()).toContain("1号P1");
+    expect(buttonTexts()).toContain("3号P3");
     expect(buttonTexts()).not.toContain("2号小恶魔");
+    expect(buttonTexts().join("|"), "座位卡片不得泄露角色名").not.toMatch(
+      /号(厨师|小恶魔|士兵|共情者|呆瓜)/
+    );
 
     // ④ 关闭不抛错
     //    该组件的 onClose 是内联空函数（不允许点击遮罩关闭），拿不到 onClose prop
