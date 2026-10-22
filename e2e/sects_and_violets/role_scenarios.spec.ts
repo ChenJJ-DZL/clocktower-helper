@@ -590,6 +590,12 @@ test.describe("梦殒春宵 · G5 诅咒与转化", () => {
       { role: "seamstress", targets: [good + 1, evil + 1], note: "一好一坏" },
     ]);
 
+    /**
+     * 2026-10-23 再探（打印 `stepsOf(n1,"seamstress")`）：**steps 只有 1 条，且是「夜晚结算报告」**
+     *   ⇒ 她这一步连「行动确认」窗都没出现，即 `preCheck` 阶段就 abort 了
+     *   （`preCheckTargets` 要求 `targetIds.length === 2`，驱动器这条路径没传进去）。
+     * 官方「她可以摇头不使用能力」⇒ 跳过合法。
+     */
     const r = resultStep(n1, "seamstress", /阵营/);
     if (!r) {
       // 官方：「她可以摇头不使用能力」⇒ 驱动器没传进两个目标时，跳过是合法结果。

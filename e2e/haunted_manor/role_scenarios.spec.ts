@@ -503,18 +503,16 @@ test.describe("凶宅魅影 · G4 角色级补测", () => {
      *
      * 判据本身已由 `src/utils/__tests__/barber_swap_hint.test.ts` 三条单测锁定
      *   （夜杀 / 处决 / 非理发师反证，全绿）。
-     * 剩余工作：在 `executePlayer` 的处决分支里补一次 `setCurrentModal(BARBER_SWAP)`，
-     *   并接上「交换完成后继续推进白天」的续接 —— 这会动处决主链，单独一轮做。
+     *
+     * ✅ 2026-10-23 已补 UI 通路：`confirmExecutionResult` 在处决结果确认**之后**
+     *   检查今日被处决者是否为 barber ⇒ 弹 `BARBER_SWAP`（不动 `executePlayer`，
+     *   避免顶掉 `EXECUTION_RESULT` 且关闭后无人推进）。
      */
     /**
      * ⚠️ 换场次：S18 是 15 人局（处决需 8 票，驱动器实测 `executedSeat=null`）；
      *   **S19 只有 9 人（处决 5 票即可）**，同样有理发师 + 畸形秀演员，
      *   是本条唯一可行的验证场次。
      */
-    test.fixme(
-      true,
-      "处决主链走 reducer 分支、不经 processGameEvent ⇒ 不弹 BARBER_SWAP；判据已由单测锁定"
-    );
     const snap = await bootS(page, "S19");
     const barberSeat = seatByRole(snap, "barber");
     expect.soft(barberSeat, "理发师应在场").toBeGreaterThanOrEqual(0);

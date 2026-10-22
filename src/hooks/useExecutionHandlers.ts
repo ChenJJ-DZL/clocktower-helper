@@ -2,8 +2,9 @@
 "use client";
 
 import { resolveMastermindExtraDay } from "../utils/mastermindRule";
+import { isSeatDemon } from "../utils/seatAlignment";
 import { checkPacifistSave } from "../utils/pacifistRule";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { appendExecutedDeathTriggeredToQueue } from "../utils/dynamicQueueGenerator";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { isPlayerEvil } from "../../app/gameLogic";
@@ -1321,6 +1322,12 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
    * 现在对齐首夜进入逻辑：先跑引擎生成唤醒队列，再从引擎读取队列，
    * 完整设置 React 夜晚状态（wakeQueueIds / currentWakeIndex / gamePhase / nightCount）。
    */
+  /**
+   * 🪒 理发师交换窗的幂等标记（按「今日被处决座位」记）。
+   *   只作组件内瞬时记忆：同一次处决只弹一次，关窗后再次入夜不再重复打扰。
+   */
+  const barberSwapShownRef = useRef<number | null>(null);
+
   const startSubsequentNight = useCallback(() => {
     /**
      * 🧠 主谋：**额外那个白天结束**时的结算（无人被处决的路径）。
@@ -1346,6 +1353,38 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         setGamePhase("gameOver");
         setMastermindFinalDay?.(null);
         setCurrentModal({ type: "GAME_OVER", data: null });
+        return;
+      }
+    }
+
+    /**
+     * 🪒 **理发师**：官方「如果你死亡，在当晚，说书人可以选择两名玩家：他们交换角色。」
+     *
+     * 🔴 2026-10-23 补的 UI 通路（此前完全缺失）。为什么放在「入夜前」这个收口点：
+     *   · 处决主链 `executePlayer` 走 `dispatch({type:"EXECUTE_PLAYER"})`（**reducer 分支**），
+     *     只置 `isDead = true`，**不经过 `processGameEvent`** ⇒ `gameLogic` 里
+     *     `BARBER_SWAP_NEEDED` 那条判据在处决路径上根本不执行；
+     *   · 也不适合塞进 `executePlayer`：它的返回值被调用方当成「已弹过窗，别再弹
+     *     EXECUTION_RESULT」，塞进去会顶掉处决结果窗、且关窗后无人推进；
+     *   · `confirmExecutionResult` 也不稳（实测本局处决没走那个弹窗）。
+     *   ⇒ 放在**入夜前**：此时处决流程已收尾，弹窗不会覆盖任何东西；
+     *     关窗后白天仍可正常「进入黄昏 → 入夜」，第二次进来靠 ref 幂等不再弹。
+     */
+    if (todayExecutedId !== null && todayExecutedId !== undefined) {
+      const executedForBarber = seats.find((s) => s.id === todayExecutedId);
+      if (
+        executedForBarber?.role?.id === "barber" &&
+        barberSwapShownRef.current !== todayExecutedId
+      ) {
+        barberSwapShownRef.current = todayExecutedId;
+        const demon = seats.find((s) => isSeatDemon(s) && s.isDead !== true);
+        addLog(
+          "🪒 理发师死亡：说书人可以选择两名玩家交换角色（关闭后再次入夜即可）"
+        );
+        setCurrentModal({
+          type: "BARBER_SWAP",
+          data: { demonId: demon?.id ?? null, firstId: null, secondId: null },
+        } as any);
         return;
       }
     }
