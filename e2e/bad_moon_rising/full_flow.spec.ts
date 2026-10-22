@@ -696,13 +696,14 @@ test.describe("L4 · 黯月初升 C12（12人）", () => {
 //  §D · D12（12 人）：普卡首夜中毒 + 第二夜整夜驱动
 // ══════════════════════════════════════════════════════════════════════════
 test.describe("L4 · 黯月初升 D12（12人）", () => {
-  // ⛔ 整例跳过（test.fixme 于注册期生效，函数体完全不执行）——
-  //    P0：普卡首夜下毒在**真实点击流**里完全不落库（实测 pukkaPoisonQueue=[]、
-  //        12 个座位全无 isPoisoned/statusDetails、dialogs=[]，即
-  //        src/hooks/roleActionHandlers.ts:800 的「普卡必须选择且仅选择一名玩家」
-  //        告警分支从未触发），且同一根因导致「推进到白天」在普卡选目标处卡死超时。
-  //    ⇒ 修复后删除 `.fixme` 即可自动转为正常断言；函数体保留作为定点复现脚本。
-  test.fixme("⑦ ⭐⭐ 首夜推进到底 ⇒ 普卡首夜真的让人中毒（官方：普卡首夜就行动）· 无死亡", async ({
+  // ✅ 2026-10-23 转正（原 `test.fixme` 整例跳过）——
+  //    普卡已迁到新引擎（`src/roles/new_engine/pukka.ability.ts`），
+  //    旧 `roleActionHandlers.ts::handlePukkaConfirm` 已不存在，
+  //    「能力没执行」的证据（`pukkaPoisonQueue=[]` + 无告警）不再成立；
+  //    且 `isPoisoned` 落库补了同源的 `statusEffects:{type:"poisoned",source:"pukka"}`
+  //    （否则 `syncStatusEffectsToSeat` 按 effects 反推会把布尔覆盖回 false）。
+  //    函数体保留完整诊断（queue / dialogs / 座位快照），失败时直接给证据。
+  test("⑦ ⭐⭐ 首夜推进到底 ⇒ 普卡首夜真的让人中毒（官方：普卡首夜就行动）· 无死亡", async ({
     page,
   }) => {
     test.setTimeout(300_000);

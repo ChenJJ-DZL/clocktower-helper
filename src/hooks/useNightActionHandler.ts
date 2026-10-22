@@ -182,6 +182,33 @@ export function syncStatusEffectsToSeat(
   //   过去「引擎只写 isAlive=false、由本处翻译成 isDead」的缝合层已拆除。
   //   这里仍接受 `markedForDeath`（黎明前待结算）与引擎刚落地的 isDead。
   const engineDead = (updated as any).isDead === true;
+  /**
+   * 🔴 2026-10-23 修复 P0（**复活被「死亡闩锁」静默回滚** —— 沙巴洛斯反刍的最后一公里）：
+   *
+   *   本函数返回的 `isDead` 原写法是 `prev.isDead || markedDead || engineDead`
+   *   —— 一个**单向闩锁**：一旦 `prev.isDead === true`，引擎再怎么把
+   *   `isDead: false` 写回来，都会被这一行**覆盖回 true**。
+   *
+   *   E2E 实证（黯月初升 S05 第 3 夜，反刍）：
+   *     座位同时出现 `revivedAtNight: 3` + `statusEffects:[{type:"resurrected"}]`
+   *     **与** `isDead: true`，且死亡字段全被清空（`diedAtNight/killedBy/deathSource`
+   *     均为 undefined）⇒ 能力的复活分支**确实执行过**，却在合并层被 `prev.isDead` 顶掉。
+   *     这也解释了「在能力层加守卫无效」——这一刀根本不在能力层。
+   *
+   *   ⇒ 判据：**引擎显式给出 `isDead === false` 且带复活证据时，以引擎为准**。
+   *     复活证据取二选一（都在能力侧显式写入，不会由普通 seat 拷贝误带）：
+   *       ① `statusEffects` 含 `{ type: "resurrected" }`；
+   *       ② `revivedAtNight` 非空（黎明播报「宣布谁复活了」的唯一数据源）。
+   *     ⚠️ 刻意**不**用「裸 isDead===false」当判据：`CANCEL_DEATH` 等
+   *       路径也会写 false，语义是「本次不死亡」而非「曾经死亡者复活」，
+   *       放宽会把死亡闩锁彻底拆掉（一个已死玩家被任何能力扫过就活过来）。
+   */
+  const resurrectedEffect = effects.some(
+    (e: any) => e?.type === "resurrected"
+  );
+  const explicitlyRevived =
+    (updated as any).isDead === false &&
+    (resurrectedEffect || (updated as any).revivedAtNight != null);
 
   // 🔧 以新引擎 statusEffects 为准同步 legacy 展示字段：
   //   仅当新引擎存在该效果时为 true；不存在时显式清除，
@@ -228,7 +255,7 @@ export function syncStatusEffectsToSeat(
     isPoisoned,
     isProtected,
     isDrunk,
-    isDead: prev.isDead || markedDead || engineDead,
+    isDead: explicitlyRevived ? false : prev.isDead || markedDead || engineDead,
     statuses: [...stripEngineStatuses(prev.statuses), ...extraStatuses],
     statusDetails: [...stripEngineDetails(prev.statusDetails), ...extraDetails],
     // 🔧 显式保留引擎状态效果数组，确保管道 abilityPriorityCalculation 能读取到中毒/醉酒/保护

@@ -1297,10 +1297,23 @@ test.describe("黯月初升 · G10 沙巴洛斯反刍", () => {
    *   下一步：在 `useNightActionHandler` / `commitSeats` 侧查同夜二次提交的来源
    *     （`grep -n "setSeats(" src/hooks/useNightActionHandler.ts`，对比各次提交的 seats 版本）。
    */
-  test.fixme(
-    true,
-    "反刍能力层已修（单测锁定）；结算后 isDead 被无死亡字段的回写覆盖 —— 已知缺口，见注释"
-  );
+  /**
+   * ✅ 2026-10-23 **已转正**（原 `test.fixme(true, …)` 整组跳过）。
+   *
+   * 两个缺陷都已闭合，证据如下：
+   *   ① 能力层：`regurgitatedSeatId` 原零写入方 ⇒ 反刍是死代码。
+   *      改为「上一夜 `diedAtNight` + `deathSource=shabaloth` + 当前已死」确定性推导
+   *      （`src/roles/new_engine/shabaloth.ability.ts`），单测
+   *      `src/roles/__tests__/full/shabaloth_regurgitate.test.ts` 三条锁定。
+   *   ② 结算层（真正的最后一公里，**不在能力层**）：
+   *      `useNightActionHandler::syncStatusEffectsToSeat` 的 `isDead` 是单向闩锁
+   *        `prev.isDead || markedForDeath || engineDead`
+   *      ⇒ 引擎把 `isDead: false` 写回来后被这一行覆盖回 true。
+   *      症状正是本条当初记录的那一组：`revivedAtNight` 与 `resurrected` 效果都在，
+   *      但 `isDead: true` 且死亡字段全空。
+   *      ⇒ 判据改为「引擎显式 `isDead === false` 且带复活证据（`resurrected` 效果
+   *        或 `revivedAtNight`）时以引擎为准」。
+   */
   test("沙巴洛斯：第 3 夜点「上一夜被选且已死」的目标 ⇒ 该玩家复活", async ({ page }) => {
     /**
      * 官方【沙巴洛斯】：「每个夜晚*，你要选择两名玩家：他们死亡。
