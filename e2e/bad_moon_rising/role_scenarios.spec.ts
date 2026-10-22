@@ -1021,3 +1021,83 @@ test.describe("黯月初升 · G7 水手免死", () => {
       .toBe(false);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G8 · S04 收尾：茶艺师（邻座免死）/ 莽夫（被选中转阵营）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("黯月初升 · G8 免死与转阵营", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("茶艺师：两个存活邻座都是善良 ⇒ 夜里被杀也不会死", async ({ page }) => {
+    // ⚠️ 待修（驱动器限制，2026-10-22）：第 2 夜 `driveNight` 返回 timeout。
+    //   现场：S04 的恶魔是普卡，攻击被茶艺师挡下后弹窗文案/按钮序列与其它恶魔不同，
+    //   驱动器在「普卡中毒 + 免死」组合步骤上点不动。
+    //   ⇒ 产品行为**尚未验证**（不是缺陷，也不是通过），标 fixme 等驱动器增强后转正。
+    test.fixme(true, "驱动器在「普卡攻击被茶艺师挡下」这一步 timeout，产品行为未验证");
+    const snap = await bootS(page, "S04");
+    const teaSeat = seatByRole(snap, "tea_lady");
+    const n = (snap.seats as any[]).length;
+    const nbrs = [(teaSeat - 1 + n) % n, (teaSeat + 1) % n];
+    // 官方：「如果与你邻近的两名存活的玩家是善良的，他们不会死亡。」
+    // ⇒ 只有两名邻座都善良时官方条件才成立，否则本用例无意义。
+    const evilIds = new Set(
+      (snap.seats as any[])
+        .filter((s: any) => ["mastermind", "pukka"].includes(s.role?.id))
+        .map((s: any) => s.id)
+    );
+    const goodNbrs = nbrs.filter((id) => !evilIds.has(id));
+    test.skip(goodNbrs.length < 2, "本局茶艺师的邻座含邪恶 ⇒ 官方条件不成立");
+
+    const victim = goodNbrs[0];
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    const n2 = await driveNight(page, [
+      { role: "pukka", targets: [victim + 1], note: "恶魔攻击茶艺师的善良邻座" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const v = after?.seats?.find((x: any) => x.id === victim);
+    expect
+      .soft(v?.isDead, "茶艺师的善良邻座不得因恶魔攻击而死亡")
+      .toBe(false);
+    expect
+      .soft(
+        after?.seats?.find((x: any) => x.id === teaSeat)?.isDead,
+        "茶艺师本人不得因此死亡"
+      )
+      .toBe(false);
+  });
+
+  test("莽夫：被邪恶玩家选中 ⇒ 转变为邪恶阵营", async ({ page }) => {
+    // 🔴 已知缺陷（2026-10-22 实锤）：`goon.ability.ts:28` 读
+    //   `ctx.meta.chooserSeatId ?? ctx.actionNode.chooserSeatId`，
+    //   但 **全仓 `chooserSeatId` 只出现在 goon.ability.ts 内部**（grep 5 处全是自读自用），
+    //   没有任何选择者的行动管道给它传值 ⇒ `chooserSeat` 恒 undefined
+    //   ⇒ `alignmentChanged: false` ⇒ **莽夫永远不转阵营、也永远不让人醉酒**。
+    //   （与主谋 `mastermindFinalDay` 同型：判据齐全、零传入点。）
+    //   修法：在「选择一名玩家」的能力落地管道里，把 `chooserSeatId` 写进被选者的 goon 管道入参
+    //   （最自然的落点 = `middlewarePipeline` 里对所有 PASSIVE 角色广播 chooser 座位）。
+    test.fail(true, "chooserSeatId 零传入点 ⇒ 莽夫转阵营永不生效（见注释）");
+    const snap = await bootS(page, "S04");
+    const goonSeat = seatByRole(snap, "goon");
+    const demonSeat = seatByRole(snap, "pukka");
+
+    // 官方：「每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。
+    //   **你会转变为他的阵营。**」⇒ 被恶魔（邪恶）选中 ⇒ 莽夫转邪恶。
+    const n1 = await driveNight(page, [
+      { role: "pukka", targets: [goonSeat + 1], note: "恶魔选中莽夫" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const goon = after?.seats?.find((x: any) => x.id === goonSeat);
+    expect
+      .soft(goon?.isEvilConverted, "莽夫被邪恶玩家选中后应转为邪恶阵营")
+      .toBe(true);
+    // 反证：莽夫的物理角色不变（只是阵营变了）
+    expect.soft(goon?.role?.id, "莽夫的角色不得被改写").toBe("goon");
+    expect.soft(demonSeat >= 0, "恶魔应真实在场").toBe(true);
+  });
+});
