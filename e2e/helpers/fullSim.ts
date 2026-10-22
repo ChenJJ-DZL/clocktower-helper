@@ -943,6 +943,19 @@ export async function driveDuskRandom(
           after: readDeadIds(),
           gameOver: gameEndedBtn(),
           resultText: duskDlgText.slice(0, 200),
+          nominatedSeatId: (window as any).__duskNominationSeat ?? null,
+          nominatedRoleId: (() => {
+            const seatId = (window as any).__duskNominationSeat;
+            if (typeof seatId !== "number") return null;
+            try {
+              const raw = window.localStorage.getItem("clocktower_current_snapshot");
+              const snap = raw ? JSON.parse(raw) : null;
+              const seat = (snap?.seats ?? []).find((x: any) => Number(x.id) === seatId);
+              return seat?.role?.id ?? null;
+            } catch {
+              return null;
+            }
+          })(),
           executedRoleId: (() => {
             const m = duskDlgText.match(/【(\d+)号被处决】/);
             if (!m) return null;
@@ -1013,6 +1026,13 @@ export async function driveDuskRandom(
       await clickSettled(seatBtns[0], 280);
       const second =
         seatBtns.find((b) => norm(b) !== norm(seatBtns[0])) ?? seatBtns[1];
+      /**
+       * 🔴 2026-10-22（X05 的 I14 误报排查）：**必须记下被提名者座位**。
+       * 处决结果弹窗对玩家不暴露角色，所以 `executedRoleId` 只能靠
+       * 「【N号被处决】」文案回查；一旦该弹窗缺失（免死/僵怖/时序问题），
+       * I14 就只剩「有人死了吗」这一个信号，根本无法判断是谁、该不该豁免。
+       */
+      (window as any).__duskNominationSeat = Number(norm(second)) - 1;
       await clickSettled(second, 280);
       if (await clickByPattern(/确认发起提名/)) {
         await sleep(650);
@@ -1101,6 +1121,10 @@ export interface DuskExecRecord {
   resultText?: string | null;
   /** 被处决者的真实角色 id（从「【N号被处决】」+ 快照反查） */
   executedRoleId?: string | null;
+  /** 本轮被提名者座位（0 基）；`executedRoleId` 拿不到时的回查依据 */
+  nominatedSeatId?: number | null;
+  /** 被提名者的角色 id（从快照回查）—— 处决结果弹窗缺失时唯一能用的角色证据 */
+  nominatedRoleId?: string | null;
   /** 该次结算后是否立即终局（终局不落快照，after 可能是冻结值） */
   gameOver: boolean;
 }
@@ -1145,10 +1169,18 @@ export function verifyDuskSemantics(
     "tea_lady",
     "innkeeper",
     "devils_advocate",
+    /**
+     * 🧟 僵怖（Zombuul）官方：「如果你在白天死亡，你不会死（改为在夜晚死亡）。」
+     *   ⇒ 处决僵怖不产生死亡**是合法的**，I14 必须豁免。
+     *   （2026-10-22 X05：94008 / 94017 两条红都指向这里。）
+     */
+    "zombuul",
   ]);
+  const probedRoleId =
+    executed.executedRoleId ?? executed.nominatedRoleId ?? "";
   const savedByRule =
     SAVE_RE.test(executed.resultText ?? "") ||
-    SAVE_ROLE_IDS.has(executed.executedRoleId ?? "");
+    SAVE_ROLE_IDS.has(probedRoleId);
   if (newlyDead.length === 0 && !savedByRule) {
     out.push({
       invariant: "I14-execute",
