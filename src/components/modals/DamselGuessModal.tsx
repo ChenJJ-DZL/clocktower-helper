@@ -57,8 +57,14 @@ export function DamselGuessModal({
     >
       <div className="space-y-4 p-2 sm:p-4 flex flex-col flex-1 w-full">
         <div className="text-xs sm:text-sm text-pink-200">
-          规则：每名存活爪牙每局仅可猜测 1
-          次落难少女。若猜中落难少女，邪恶阵营立即获胜。
+          {/* 官方（officialRoleDocs.json · 落难少女 · 角色能力）：
+              「所有爪牙都知道落难少女在场。**每局游戏限一次**，**任意爪牙**可以公开猜测你是落难少女，
+                如果猜对，你的阵营落败。」
+              【运作方式】：「…如果一名爪牙公开猜测谁是落难少女且结果**错误**，使用"已被猜测"标记
+                落难少女。**后续的所有来自爪牙的猜测都不再产生效果**。」
+              ⇒ 旧文案「每名存活爪牙每局仅可猜测 1 次」把「全局一次」放大成「每人一次」。 */}
+          规则：每局游戏限一次，任意一名爪牙可公开猜测谁是落难少女；猜对则落难少女的阵营落败。
+          若猜错，落难少女获得「已被猜测」标记，后续所有爪牙猜测都不再生效。
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

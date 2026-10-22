@@ -242,8 +242,12 @@ describe("X02 · 白天行动弹窗 golden 基线（批 4）", () => {
     expect(t).toContain("👧 爪牙猜测落难少女");
 
     // ③ 关键整句逐字（源码模板的规则说明第二句）
-    expect(t).toContain("若猜中落难少女，邪恶阵营立即获胜。");
-    expect(t).toContain("规则：每名存活爪牙每局仅可猜测 1");
+    // 官方措辞是「你的阵营落败」（不是「邪恶阵营获胜」——落难少女若被转化则方向相反）
+    expect(t).toContain("猜对则落难少女的阵营落败。");
+    // 官方（officialRoleDocs.json · 落难少女 · 角色能力）：「每局游戏限一次，任意爪牙可以公开猜测」
+    // ⇒ 旧文案「每名存活爪牙每局仅可猜测 1 次」把「全局一次」放大成「每人一次」。
+    expect(t).toContain("每局游戏限一次，任意一名爪牙可公开猜测谁是落难少女");
+    expect(t).toContain("后续所有爪牙猜测都不再生效");
 
     // ④ 「猜角色」选择区存在：两个 select（发起爪牙 / 被猜玩家）+ 两个 label
     const selects = screen.getAllByRole("combobox");
@@ -625,7 +629,7 @@ describe("X02 · 白天行动弹窗 golden 基线（批 4）", () => {
 
     // ③ 关键整句逐字（「当晚起被视为邪恶」）
     expect(t).toContain(
-      "请选择第一个公开说出关键词的玩家：若他是善良阵营（镇民/外来者），当晚起被视为邪恶；若本就是邪恶，则不产生额外效果。"
+      "请选择第一个说出关键词的玩家（公开说出，或私下对说书人说出）：若他是善良阵营（镇民/外来者），当晚起被视为邪恶；若本就是邪恶，则不产生额外效果。"
     );
 
     // ④ 玩家下拉列出存活玩家（"N号" + 角色名）
@@ -657,7 +661,7 @@ describe("X02 · 白天行动弹窗 golden 基线（批 4）", () => {
     expect(next.find((s: any) => s.id === 2).isEvilConverted).toBe(undefined);
 
     expect(gameActionsMock.addLog).toHaveBeenCalledWith(
-      "灵言师触发：1号 —— 善良玩家公开说出关键词，当晚起被视为邪恶"
+      "灵言师触发：1号 —— 善良玩家说出关键词，当晚起被视为邪恶"
     );
     expect(gameActionsMock.setCurrentModal).toHaveBeenCalledWith(null);
     expect(gameActionsMock.setShamanConvertTarget).toHaveBeenCalledWith(null);

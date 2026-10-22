@@ -141,6 +141,7 @@ export function resolveShamanConversion(input: {
         },
       ],
     },
-    reason: "善良玩家公开说出关键词，当晚起被视为邪恶",
+    // 官方（officialRoleDocs.json · 灵言师 · 角色简介）：「不论是公开说出或是私下对说书人说出…」
+    reason: "善良玩家说出关键词，当晚起被视为邪恶",
   };
 }

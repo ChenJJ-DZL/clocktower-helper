@@ -60,7 +60,10 @@ export function ShamanConvertModal() {
     >
       <div className="space-y-4 p-2 sm:p-4 flex flex-col flex-1 w-full">
         <div className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-          请选择第一个公开说出关键词的玩家：若他是善良阵营（镇民/外来者），当晚起被视为邪恶；若本就是邪恶，则不产生额外效果。
+          {/* 官方（officialRoleDocs.json · 灵言师 · 角色简介）：「如果善良玩家说出了关键词，
+              不论是**公开说出或是私下对说书人说出**，他就会在当晚转为邪恶阵营。」
+              ⇒ 旧文案只写「公开说出」，漏掉了官方明确允许的「私下对说书人说出」。 */}
+          请选择第一个说出关键词的玩家（公开说出，或私下对说书人说出）：若他是善良阵营（镇民/外来者），当晚起被视为邪恶；若本就是邪恶，则不产生额外效果。
         </div>
         <select
           className="w-full bg-slate-800 border border-slate-600 rounded-xl p-3 text-white text-base sm:text-lg font-bold focus:outline-none focus:border-purple-500"
