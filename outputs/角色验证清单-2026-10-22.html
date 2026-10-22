@@ -125,7 +125,7 @@
   <div class="kpi ok">
     <div class="n">44<span style="font-size:15px;color:#94a3b8">/192</span></div>
     <div class="l">角色级深度验收（官方分支 × 反证）</div>
-    <div class="pct">9 剧本 105 条用例 <b>105 passed</b> · 零失败 · 零跳过 ｜ 累计修 9 处产品缺陷</div>
+    <div class="pct">9 剧本 108 条用例 <b>108 passed</b> · 零失败 · 零跳过 ｜ 累计修 10 处产品缺陷</div>
   </div>
 </div>
 
@@ -150,12 +150,18 @@
   修法：preCheck 改「<b>preview 空手放行 / 真实结算空手按摇头中止 / 数量不对才拦</b>」；
   契约测试 <code>snv_l5_causal</code> ④⑤（无目标不中止、3 目标仍中止）+
   <code>snv_l2_matrix</code>「不选目标必须有明确去向」两条一起兜住。<br><br>
-  <b>累计修复产品缺陷 9 处</b>：主谋 / 莽夫 / 麻脸巫婆 / 亡骨魔×2 / 理发师×3 / <b>女裁缝×1</b>。
+  <b>累计修复产品缺陷 10 处</b>：主谋 / 莽夫 / 麻脸巫婆 / 亡骨魔×2 / 理发师×3 / 女裁缝×1 / <b>心上人×1</b>。<br><br>
+  <b style="color:#065f46">本轮新增（第 10 处）· 心上人</b>：官方「当你死亡时，<b>会</b>有一名玩家开始醉酒」——
+  「会」是强制效果，说书人只决定「醉谁」，不能取消。而实现只读
+  <code>storytellerInput.drunkTarget</code>，<b>全仓没有任何 UI 给它传值</b> ⇒ 恒 null ⇒
+  心上人死了却<b>没有任何人醉酒</b>（E2E 实测 S09：醉酒者 0）。
+  修法同亡骨魔/莽夫范式：未指定时<b>确定性推导</b>（座位号最小的存活非自己），
+  并把两条既有单测的旧语义一并纠正（它们把「可选目标」读成了「可取消效果」，与官方相反）。
 </div>
 
 <h3 class="sec">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 4 4-7"/></svg>
-  9 剧本跑批结果（2026-10-23 00:2x 实跑，<b>192/192 角色已有断言</b>，105 条用例 / <b style="color:#065f46">105 passed · 零失败 · 零跳过</b>）
+  9 剧本跑批结果（2026-10-23 01:0x 实跑，<b>192/192 角色已有断言</b>，108 条用例 / <b style="color:#065f46">108 passed · 零失败 · 零跳过</b>）
 </h3>
 <table>
   <thead>
@@ -163,15 +169,15 @@
   </thead>
   <tbody>
     <tr><td class="role">暗流涌动</td><td>22</td><td>19</td><td><b style="color:#065f46">19 passed</b></td><td><b>22/22 有分支断言</b>；6 个未覆盖分支已登记</td></tr>
-    <tr><td class="role">黯月初升</td><td>25</td><td>21</td><td><b style="color:#065f46">21 passed</b></td><td><b style="color:#065f46">25/25 ✅</b>：主谋 / 莽夫 / 茶艺师三条全部修复并转正（零 skip、零 xfail）</td></tr>
-    <tr><td class="role">梦殒春宵</td><td>25</td><td>14</td><td><b style="color:#065f46">14 passed</b></td><td><b style="color:#065f46">25/25 全部通过</b>：新增<b>舞蛇人</b>（选恶魔互换+中毒）/ <b>数学家</b>（异常次数）/ <b>亡骨魔</b>（修 2 处真缺陷）/ <b>畸形秀演员</b>（S09 门禁）/ <b>女裁缝</b>（<b>修 P0：能力整局不可用</b>）</td></tr>
-    <tr><td class="role">窃窃私语</td><td>19</td><td>18</td><td><b style="color:#065f46">18 passed</b></td><td>覆盖 14/19；那条基线红已修（<b>不投票 ≠ 否决</b>：必须 `voters: []` 造票数不足）</td></tr>
+    <tr><td class="role">黯月初升</td><td>25</td><td>22</td><td><b style="color:#065f46">22 passed</b></td><td><b style="color:#065f46">25/25 ✅</b>：主谋 / 莽夫 / 茶艺师三条修复转正 + 新增<b>修补匠</b>负向对照（说书人未裁定不得无故死亡）</td></tr>
+    <tr><td class="role">梦殒春宵</td><td>25</td><td>15</td><td><b style="color:#065f46">15 passed</b></td><td><b style="color:#065f46">25/25 全部通过</b>：新增<b>舞蛇人</b>（选恶魔互换+中毒）/ <b>数学家</b>（异常次数）/ <b>亡骨魔</b>（修 2 处真缺陷）/ <b>畸形秀演员</b>（S09 门禁）/ <b>女裁缝</b>（<b>修 P0：能力整局不可用</b>）+ 新增<b>心上人</b>（死亡⇒一名玩家醉酒，<b>修第 10 处缺陷</b>）</td></tr>
+    <tr><td class="role">窃窃私语</td><td>19</td><td>19</td><td><b style="color:#065f46">19 passed</b></td><td>覆盖 15/19；新增<b>隐士</b>（登记≠真实阵营契约）；基线红已修（<b>不投票 ≠ 否决</b>：必须 `voters: []` 造票数不足）</td></tr>
     <tr><td class="role">无名之墓</td><td>19</td><td>9</td><td><b style="color:#065f46">9 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：9 条 / 19 角色</td></tr>
     <tr><td class="role">无上愉悦</td><td>16</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：5 条 / 16 角色</td></tr>
     <tr><td class="role">凶宅魅影</td><td>21</td><td>8</td><td><b style="color:#065f46">8 passed</b></td><td><b style="color:#065f46">新增 3 条</b>：诺-达鲺（邻座镇民中毒+反证 ✅）/ 教父（负向对照 ✅）/ 理发师（<b>修 2 处真缺陷 + 补 UI 通路</b>，交换窗已能弹出 ✅）· <b>8/8 全绿</b></td></tr>
     <tr><td class="role">游园惊梦</td><td>20</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#065f46">麻脸巫婆已转正</b>（角色变换真正生效）；其余 4 条覆盖互认/钟表匠/涡流</td></tr>
     <tr><td class="role">罂粟花开</td><td>24</td><td>6</td><td><b style="color:#065f46">6 passed</b></td><td><b style="color:#065f46">24/24 有用例</b>：新增<b>图书管理员</b>（外来者真值 ✅）/ <b>博学者</b>（<b>日间</b>一真一假信息 ✅ —— 之前记成「官方每夜」是我引用错了原文，官方是「每个**白天**」）；<b>24/24 全部通过</b></td></tr>
-    <tr><td class="role"><b>合计</b></td><td><b>191</b></td><td><b>105</b></td><td><b style="color:#065f46">105 passed</b> · 零跳过</td><td><b style="color:#065f46">9 剧本全绿、无 skip 无 xfail</b>：暗流 22/22 · 黯月 25/25 · 梦殒 25/25 · 凶宅 8/8 · 罂粟 24/24 均已到角色级</td></tr>
+    <tr><td class="role"><b>合计</b></td><td><b>191</b></td><td><b>108</b></td><td><b style="color:#065f46">108 passed</b> · 零跳过</td><td><b style="color:#065f46">9 剧本全绿、无 skip 无 xfail</b>：暗流 22/22 · 黯月 25/25 · 梦殒 25/25 · 凶宅 8/8 · 罂粟 24/24 均已到角色级</td></tr>
   </tbody>
 </table>
 
@@ -212,7 +218,7 @@
 <section class="script">
   <div class="script-head">
     <h2>黯月初升</h2>
-    <span class="cnt"><span class="ok-n">25 已</span> / 25 · <b style="color:#065f46">全部通过</b>（21 条用例零 skip 零 xfail）</span>
+    <span class="cnt"><span class="ok-n">25 已</span> / 25 · <b style="color:#065f46">全部通过</b>（22 条用例零 skip 零 xfail · 含修补匠负向对照）</span>
   </div>
   <div class="bar"><i style="width:88%"></i></div>
   <div class="chips">
@@ -248,7 +254,7 @@
 <section class="script">
   <div class="script-head">
     <h2>梦殒春宵</h2>
-    <span class="cnt">用例 <b>14</b> 条 / 角色 25 · <b style="color:#065f46">14 passed 全绿</b>（女裁缝 P0 已修：preCheck 预览阶段不再中止）</span>
+    <span class="cnt">用例 <b>15</b> 条 / 角色 25 · <b style="color:#065f46">15 passed 全绿</b>（女裁缝 P0 + 心上人零传入点均已修）</span>
   </div>
   <div class="bar"><i style="width:56%"></i></div>
   <div class="chips">
@@ -284,7 +290,7 @@
 <section class="script">
   <div class="script-head">
     <h2>窃窃私语</h2>
-    <span class="cnt">用例 <b>18</b> 条 / 角色 19 · <b style="color:#065f46">18 passed 全绿</b></span>
+    <span class="cnt">用例 <b>19</b> 条 / 角色 19 · <b style="color:#065f46">19 passed 全绿</b>（新增隐士：登记≠真实阵营）</span>
   </div>
   <div class="bar"><i style="width:68%"></i></div>
   <div class="chips">
@@ -371,7 +377,7 @@
 <section class="script">
   <div class="script-head">
     <h2>凶宅魅影</h2>
-    <span <span class="cnt">用例 <b>8</b> 条 / 角色 21 · <b style="color:#065f46">8 passed 全绿</b>（理发师交换窗已转正）</span>
+    <span class="cnt">用例 <b>8</b> 条 / 角色 21 · <b style="color:#065f46">8 passed 全绿</b>（理发师交换窗已转正）</span>
   </div>
   <div class="bar"><i style="width:57%"></i></div>
   <div class="chips">
@@ -434,7 +440,7 @@
 <section class="script">
   <div class="script-head">
     <h2>罂粟花开</h2>
-    <span class="cnt">用例 <b>4</b> 条 / 角色 24 · <b style="color:#9a3412">4 passed · 严重不足</b></span>
+    <span class="cnt">用例 <b>6</b> 条 / 角色 24 · <b style="color:#065f46">6 passed 全绿</b>（图书管理员真值 + 博学者日间一真一假）</span>
   </div>
   <div class="bar hot"><i style="width:29%"></i></div>
   <div class="chips">
@@ -630,7 +636,7 @@
   数据源：<code>outputs/coverage_ledger.json</code> · <code>outputs/X02-文案对账-2026-10-22.md</code> · <code>outputs/全量验证计划-2026-10-21.md</code> §5<br>
   剧本级验收报告：<code>outputs/暗流涌动-角色级验收-2026-10-22.md</code> · <code>outputs/黯月初升-角色级验收-2026-10-22.md</code><br>
   「K / G」= 该角色在整局模拟里被抽到的局数（旧）或所属用例组（新），仅作证据定位，不代表断言强度。<br>
-  生成于 2026-10-22 · <b>00:2x 更新</b>（9 剧本 105 条用例 / <b>105 passed · 零失败 · 零跳过</b>；累计修 <b>9 处产品缺陷</b>，最后一条女裁缝为 P0「能力整局不可用」）· 未发版（线上 W10.20.1）
+  生成于 2026-10-22 · <b>01:0x 更新</b>（9 剧本 108 条用例 / <b>108 passed · 零失败 · 零跳过</b>；累计修 <b>10 处产品缺陷</b>，新增心上人「死亡却无人醉酒」）· 未发版（线上 W10.20.1）
 </footer>
 
 </div>

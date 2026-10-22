@@ -685,18 +685,46 @@ describe("L5 · 外来者", () => {
       expect(after(res, 3)?.isDrunk, "❌ 4号必须醉酒").toBe(true);
       expect(after(res, 2)?.isDrunk, "❌ 未被选中的 3号不得醉酒").toBe(false);
     });
-    it("③ 负向对照：未指定目标 ⇒ 无人醉酒（不得随机选人）", async () => {
+    /**
+     * ✅ 2026-10-23 语义修正：本用例原名「未指定目标 ⇒ 无人醉酒（不得随机选人）」。
+     *
+     *   官方原文：「当你死亡时，**会**有一名玩家开始醉酒。」
+     *   —— 「会」= **强制效果**，说书人只能在「醉谁」上决定，**不能取消**。
+     *   旧断言把「说书人选择目标」读成了「说书人可以取消效果」，与官方相反
+     *   （与亡骨魔「邻近两名镇民**之一**中毒」同型）。
+     *
+     *   而「不得随机选人」这一层仍然成立：兜底必须是**确定性**的
+     *   （取座位号最小的存活非自己），不能是 Math.random。
+     */
+    it("③ 未指定目标 ⇒ 确定性取第一名存活非自己（官方「会有一名玩家」= 强制）", async () => {
       const seats = board(["sweetheart", ...SAFE]);
       seats[0].isDead = true;
       const res = await runRole(sweetheartAbility, seats, 0, {
         night: 2,
         phase: "night",
       });
-      expect(
-        (res?.snapshot?.seats ?? []).some((s: any) => s.isDrunk === true),
-        "❌ 未指定目标却出现醉酒者"
-      ).toBe(false);
-      expect(snap(res, "sweetheartDrunkTargetId")).toBeNull();
+      const drunk = (res?.snapshot?.seats ?? []).filter((s: any) => s.isDrunk === true);
+      expect(drunk.length, "官方：必须恰好一名玩家醉酒").toBe(1);
+      expect(drunk[0]?.id, "兜底应取座位号最小的存活非自己（2号）").toBe(1);
+      expect(snap(res, "sweetheartDrunkTargetId")).toBe(1);
+      expect(after(res, 0)?.isDrunk, "❌ 不得醉自己（已死亡）").not.toBe(true);
+    });
+
+    it("④ 确定性：同一输入连跑两次，醉酒者必须是同一人（防隐藏随机）", async () => {
+      const run = async () => {
+        const seats = board(["sweetheart", ...SAFE]);
+        seats[0].isDead = true;
+        const res = await runRole(sweetheartAbility, seats, 0, {
+          night: 2,
+          phase: "night",
+        });
+        return (res?.snapshot?.seats ?? [])
+          .filter((s: any) => s.isDrunk === true)
+          .map((s: any) => s.id);
+      };
+      const a = await run();
+      const b = await run();
+      expect(a, "❌ 两次结果不同 ⇒ 兜底里混入了随机").toEqual(b);
     });
   });
 

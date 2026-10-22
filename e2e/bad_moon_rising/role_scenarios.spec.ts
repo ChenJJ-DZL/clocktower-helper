@@ -1225,3 +1225,51 @@ test.describe("黯月初升 · G8 免死与转阵营", () => {
       .toBe(true);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G9 · 角色级补测：修补匠（被动「随时可能死亡」的负向对照）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("黯月初升 · G9 修补匠", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("修补匠：说书人未裁定 ⇒ 不得无故死亡", async ({ page }) => {
+    /**
+     * 官方【修补匠】：「你随时可能死亡。」
+     *   ⇒ 这是**说书人裁定**类能力（`storytellerInput.shouldKillTinker`），
+     *     不是自动触发。因此可验证的硬判据是**负向对照**：
+     *     说书人没有裁定死亡时，修补匠不得因为「在场」而莫名死掉。
+     *   （若这里红了，说明有自动击杀逻辑误命中修补匠，属严重体验问题。）
+     *
+     * 场次 S05（9 人）：1祖母 2水手 3侍女 4驱魔人 5旅店老板 6修补匠 7月之子 8教父 9沙巴洛斯
+     * 恶魔沙巴洛斯每夜杀 2 人 ⇒ 必须**显式避开**修补匠，否则测的是恶魔击杀而非修补匠自身。
+     */
+    const snap = await bootS(page, "S05");
+    const tinkerSeat = seatByRole(snap, "tinker");
+    expect.soft(tinkerSeat, "修补匠应在场").toBeGreaterThanOrEqual(0);
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 沙巴洛斯杀 2 人：挑两个非修补匠座位
+    const victims = (snap.seats as any[])
+      .filter((s: any) => s.id !== tinkerSeat)
+      .slice(0, 2)
+      .map((s: any) => s.id + 1);
+    const n2 = await driveNight(page, [
+      { role: "shabaloth", targets: victims, note: "避开修补匠" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const t = after?.seats?.find((x: any) => x.id === tinkerSeat);
+    expect
+      .soft(t?.isDead, "官方「你随时可能死亡」= 说书人裁定；未裁定时不得自动死亡")
+      .toBe(false);
+    expect
+      .soft(
+        t?.deathSource ?? t?.killedBy ?? null,
+        "❌ 修补匠被标记了致死来源（说明有自动击杀误命中）"
+      )
+      .not.toBe("tinker");
+  });
+});

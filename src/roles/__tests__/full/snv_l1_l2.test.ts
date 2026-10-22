@@ -61,7 +61,7 @@ const rdata = (id: string): any => (rolesData as any[]).find((x) => x.id === id)
 type NegKind =
   | "deadActor"
   | "sageNotKilledByDemon"
-  | "sweetheartNoTarget"
+  | "sweetheartAutoTarget"
   | "barberNoSwap"
   | "klutzAlive";
 
@@ -240,7 +240,7 @@ const SPEC: Spec[] = [
     scripts: ["sects_and_violets", "garden_of_dreams"],
     target: { min: 0, max: 0, allowSelf: false, allowDead: false },
     timing: ["on_death"],
-    neg: "sweetheartNoTarget",
+    neg: "sweetheartAutoTarget",
     effectField: "sweetheartDrunkTargetId",
   },
   {
@@ -607,21 +607,25 @@ describe("L2 · 梦殒春宵/游园惊梦 · 引擎不变量层（25 唯一角�
           res?.meta?.abilityResult?.found,
           `❌ 贤者非被恶魔杀死时 found 应为 false`
         ).toBe(false);
-      } else if (spec.neg === "sweetheartNoTarget") {
+      } else if (spec.neg === "sweetheartAutoTarget") {
+        /**
+         * ✅ 2026-10-23 语义修正：原名 `sweetheartNoTarget`，断言「未指定 ⇒ 无人醉酒」。
+         *
+         *   官方原文：「当你死亡时，**会**有一名玩家开始醉酒。」——「会」是强制效果，
+         *   说书人只决定「醉谁」，不能取消。旧断言把「可选目标」读成了「可取消效果」，
+         *   与官方相反（与亡骨魔「邻近两名镇民**之一**中毒」同型）。
+         *
+         *   而原用例想守的「不得随机」这一层保留：兜底必须确定性
+         *   （座位号最小的存活非自己 = 1 号），且**恰好一人**。
+         */
         const seats = board(["sweetheart", ...SAFE]);
-        const before = JSON.parse(JSON.stringify(seats));
         const res = await runRole(spec.ability, seats, 0, {
           night: 2,
           phase: "night",
         });
-        expect(
-          changedSeats(before, res?.snapshot?.seats ?? []),
-          `❌ 心上人未指定醉酒目标时不得让任何玩家进入醉酒状态`
-        ).toEqual([]);
-        expect(
-          (res?.snapshot?.seats ?? []).some((s: any) => s.isDrunk === true),
-          `❌ 未指定目标却出现醉酒者`
-        ).toBe(false);
+        const drunk = (res?.snapshot?.seats ?? []).filter((s: any) => s.isDrunk === true);
+        expect(drunk.length, `❌ 官方「会有一名玩家醉酒」⇒ 必须恰好一人`).toBe(1);
+        expect(drunk[0]?.id, `❌ 兜底应确定性取 1 号（座位号最小的存活非自己）`).toBe(1);
       } else if (spec.neg === "barberNoSwap") {
         const seats = board(["barber", ...SAFE]);
         seats[0].isDead = true; // 理发师死亡才触发

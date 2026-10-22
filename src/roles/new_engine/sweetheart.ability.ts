@@ -15,13 +15,40 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const target = ctx.storytellerInput?.drunkTarget ?? null;
+  const stated = ctx.storytellerInput?.drunkTarget ?? null;
+
+  /**
+   * 🔴 2026-10-23 修复（第 10 处「判据齐全、零传入点」）：
+   *   官方【心上人】：「当你死亡时，**会**有一名玩家开始醉酒。」
+   *   —— 这是**强制效果**（「会」），说书人只能在「醉谁」上二选一，**不能取消**。
+   *
+   * 病灶：此前只读 `storytellerInput.drunkTarget`，而全仓**没有任何 UI 给它传值**
+   *   （`grep -rn drunkTarget src/ app/` 只命中本文件 + invariantTesting）⇒
+   *   `drunkTarget` 恒 null ⇒ 心上人死了但**没有任何人醉酒**，能力对世界零影响。
+   *   E2E 实测：S09 第 2 夜杀心上人后，`isDrunk` 的存活玩家数 = 0。
+   *
+   * 修法（与 `vigormortis` 邻近镇民中毒、`goon` 选者广播同一范式）：
+   *   说书人未指定时按官方语义**确定性推导**（不是随机）——
+   *   取座位号最小的「存活且非自己」玩家。
+   *   ⚠️ 只影响「没指定」的情形：说书人一旦指定，仍以 `storytellerInput` 为准。
+   */
+  let target = stated;
+  if (target == null) {
+    const seats = ctx.snapshot?.seats ?? [];
+    const selfId = ctx.actionNode?.seatId;
+    const fallback = seats
+      .filter((s: any) => s.id !== selfId && s.isDead !== true)
+      .sort((a: any, b: any) => a.id - b.id)[0];
+    target = fallback?.id ?? null;
+  }
+
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
         drunkTarget: target,
+        drunkTargetSource: stated == null ? "auto" : "storyteller",
         causesDrunk: true,
       },
     },

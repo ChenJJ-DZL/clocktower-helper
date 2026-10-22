@@ -876,3 +876,52 @@ test.describe("梦殒春宵 · G7 S08 收尾", () => {
     expect.soft(duskEnabled, "疯狂仲裁未完成前，不得存在可用的「进入黄昏」按钮").toBe(false);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G8 · 角色级补测：心上人（死亡时令一名玩家醉酒）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("梦殒春宵 · G8 心上人", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("心上人：死亡 ⇒ 必须有一名玩家开始醉酒", async ({ page }) => {
+    /**
+     * 官方【心上人】：「当你死亡时，会有一名玩家开始醉酒。」
+     *   ⇒ 三段硬判据：① 心上人确实死亡；② 场上出现**恰好一名**新的醉酒者；
+     *     ③ 反证：醉酒者不得是心上人自己（她已死，醉一个死人无任何效果）。
+     *
+     * 场次 S09（9 人）：1钟表匠 2筑梦师 3弄蛇人 4数学家 5卖花女孩
+     *                  6变种人 7心上人 8邪恶双子 9诺-达
+     * 诺-达只在 otherNights 行动 ⇒ 第 2 夜击杀心上人。
+     */
+    const snap = await bootS(page, "S09");
+    const swSeat = seatByRole(snap, "sweetheart");
+    expect.soft(swSeat, "心上人应在场").toBeGreaterThanOrEqual(0);
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+    const n2 = await driveNight(page, [
+      { role: "no_dashii", targets: [swSeat + 1], note: "夜杀心上人" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const sw = after?.seats?.find((x: any) => x.id === swSeat);
+    expect.soft(sw?.isDead, "心上人应因夜杀死亡（否则测不到死亡触发）").toBe(true);
+
+    const drunks = (after?.seats ?? []).filter(
+      (s: any) => s.isDrunk === true && s.isDead !== true
+    );
+    expect
+      .soft(
+        drunks.length,
+        `官方：死亡时「会有一名玩家开始醉酒」（实测醉酒者：${drunks.map((x: any) => x.id + 1).join("," ) || "无"}）`
+      )
+      .toBe(1);
+    expect
+      .soft(
+        drunks.some((x: any) => x.id === swSeat),
+        "❌ 醉酒者不得是心上人自己（已死亡，醉酒无意义）"
+      )
+      .toBe(false);
+  });
+});

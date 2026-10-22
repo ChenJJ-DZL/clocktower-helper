@@ -2,7 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
-import { isMinionOrDemonRole, isSeatDemon } from "../../src/utils/seatAlignment";
+import {
+  isMinionOrDemonRole,
+  isSeatDemon,
+  isSeatEvil,
+  isSeatMinion,
+} from "../../src/utils/seatAlignment";
 import {
   bootScene,
   driveDusk,
@@ -1153,5 +1158,52 @@ test.describe("窃窃私语 · G15 政客", () => {
         "政客不应无故死亡"
       )
       .toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G9 · 角色级补测：隐士（登记 ≠ 真实阵营 / 角色类型）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("窃窃私语 · G9 隐士", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("隐士：可被当作邪恶，但真实阵营仍是善良、类型仍是外来者", async ({ page }) => {
+    /**
+     * 官方【隐士】（本剧本对 recluse 的本地化）：
+     *   「你拥有所有外来者能力。」+ 相克规则单独说明。
+     * 通用规则（陌客原文）：「你可能会被当作邪恶阵营、爪牙角色或恶魔角色，即使你已死亡。」
+     *
+     * 🔒 本项目铁律：**登记（别人怎么看）≠ 真实阵营**。
+     *   判胜 / 存活 / 毒醉一律只认真实字段，绝不能让「登记为邪恶」污染判胜。
+     *   ⇒ 本用例锁的就是这条边界：
+     *     ① 角色类型 = outsider（占外来者配额，不占爪牙/恶魔配额）
+     *     ② 真实阵营 = 善良（isSeatEvil === false）
+     *     ③ 不得被 isSeatMinion / isSeatDemon 判成爪牙或恶魔
+     *     ④ 反证：死字段 `isEvil` 不得被写成 true（那是历史遗留的死字段，
+     *        一旦被写就会让「登记」渗透进真实阵营判据）
+     */
+    const snap = await bootS(page, "S13");
+    const rec = (snap.seats as any[]).find((s: any) => s.role?.id === "recluse");
+    expect.soft(rec != null, "隐士应在场").toBe(true);
+    if (!rec) return;
+
+    expect.soft(rec.role?.type, "隐士必须是外来者（占外来者配额）").toBe("outsider");
+    expect.soft(isSeatEvil(rec), "真实阵营必须是善良（登记可为邪恶，但那只是「被当作」）").toBe(
+      false
+    );
+    expect.soft(isSeatMinion(rec), "❌ 隐士不得被判成爪牙").toBe(false);
+    expect.soft(isSeatDemon(rec), "❌ 隐士不得被判成恶魔").toBe(false);
+    expect.soft(isMinionOrDemonRole(rec.role), "❌ 隐士的角色类型不得算作爪牙/恶魔").toBe(false);
+    expect.soft((rec as any).isEvil, "❌ 死字段 isEvil 不得被写成 true").not.toBe(true);
+
+    // 与真实登记能力的一致性：登记字段若已落库，必须与「真实阵营」分离存储
+    if ((rec as any).registerAsEvil !== undefined) {
+      expect
+        .soft(
+          (rec as any).registerAsEvil !== true || isSeatEvil(rec) === false,
+          "登记为邪恶时，真实阵营仍必须是善良"
+        )
+        .toBe(true);
+    }
   });
 });
