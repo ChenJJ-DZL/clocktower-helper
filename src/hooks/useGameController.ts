@@ -51,6 +51,10 @@ import {
   isDemonKillSource,
   resolveGrandmotherChainDeaths,
 } from "../utils/grandmotherChain";
+import {
+  buildDawnAnnouncement,
+  collectRevivedThisNight,
+} from "../utils/dawnAnnouncement";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -1905,10 +1909,14 @@ export function useGameController() {
                 setGossipSourceSeatId?.(null);
                 // 随后进入黎明报告
                 setGamePhase("dawnReport");
-                const msg =
-                  deadThisNight.length > 0
-                    ? `昨晚${deadThisNight.map((id: number) => `${id + 1}号`).join("、")}玩家死亡`
-                    : "昨天是个平安夜";
+                // 🌅 唯一格式化入口（官方：先宣布死亡，再宣布复活；不说明原因）
+                const msg = buildDawnAnnouncement({
+                  deadThisNight,
+                  revivedThisNight: collectRevivedThisNight(
+                    seatsRef.current,
+                    nightCount
+                  ),
+                });
                 setCurrentModal({
                   type: "NIGHT_DEATH_REPORT",
                   data: { message: msg },
@@ -1919,10 +1927,14 @@ export function useGameController() {
         }
       } else if (currentModal?.type !== "NIGHT_DEATH_REPORT") {
         // 夜晚结束，进入黎明报告阶段
-        const msg =
-          deadThisNight.length > 0
-            ? `昨晚${deadThisNight.map((id) => `${id + 1}号`).join("、")}玩家死亡`
-            : "昨天是个平安夜";
+        // 🌅 唯一格式化入口（同上；此前这里也漏了复活段）
+        const msg = buildDawnAnnouncement({
+          deadThisNight,
+          revivedThisNight: collectRevivedThisNight(
+            seatsRef.current,
+            nightCount
+          ),
+        });
 
         // 直接设置游戏阶段和模态框，避免使用baseDispatch可能导致的冲突
         setGamePhase("dawnReport");
