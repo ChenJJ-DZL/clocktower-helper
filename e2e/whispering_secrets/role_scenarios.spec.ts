@@ -1207,3 +1207,108 @@ test.describe("窃窃私语 · G9 隐士", () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G10 · 角色级补测：造谣者（白天声明为真 ⇒ 当晚指名一人死亡）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("窃窃私语 · G10 造谣者", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("造谣者：声明为真 ⇒ 当晚指名者死亡；为假 ⇒ 无人因此死亡", async ({ page }) => {
+    /**
+     * 官方【造谣者】：「每个白天，你可以公开发表一个声明。如果该声明正确，
+     *   在当晚会有一名玩家死亡。」
+     *
+     * 通路：右键造谣者座位 → 「🗣️ 造谣者：记录/裁定」→ 填声明 + 选「为真/为假」→ 确认
+     *   （`PlayerContextMenu` 的 `gossip_record` + `DayAbilityModal` 的 gossip 表单）
+     * 落库：`SET_GOSSIP_STATE` → `gossipStatementToday` / `gossipTrueTonight`
+     * 夜间：`gossip.ability` 读到为真 ⇒ `stateUpdates: MARK_FOR_DEATH`
+     *   ⇒ 目标 `markedForDeath + deathSource = "造谣者的声明正确"`（`useNightActionHandler:266`）
+     *
+     * 场次 S12（9 人）：1弄臣 2侍女 3造谣者 4神谕者 5数学家 6politician 7plague doctor 8刺客 9珀
+     *   ⚠️ 有两个邪恶杀手（刺客 / 珀），所有夜杀一律显式指定目标，
+     *      否则驱动器默认点第一个座位，会把我用来对照的「无辜者」杀掉 ⇒ 假红。
+     */
+    const snap = await bootS(page, "S12");
+    const gossipSeat = seatByRole(snap, "gossip");
+    expect.soft(gossipSeat, "造谣者应在场").toBeGreaterThanOrEqual(0);
+
+    /**
+     * 🔴 目标必须按**真实阵营**挑，不能按座位号挑：
+     *   `__CT_FORCE_LINEUP__` 只保证「角色集合」，**不保证座位顺序**（实测被打乱）。
+     *   第一次写死 `alive[0]` 当受害者，结果那一桌正好坐着珀（恶魔）
+     *   ⇒ 造谣者把恶魔杀了 ⇒ 第 2 夜直接「善良阵营胜利」gameover，用例假红。
+     *   ⇒ 只从**善良阵营**里挑：受害 / 对照 / 两晚的恶魔口粮。
+     */
+    const goodSeats = (snap.seats as any[])
+      .filter((s: any) => s.id !== gossipSeat && !isMinionOrDemonRole(s.role))
+      .map((s: any) => s.id)
+      .sort((a: number, b: number) => a - b);
+    expect
+      .soft(goodSeats.length, `本局善良座位不足（实测 ${goodSeats.length} 个）⇒ 无法构造对照`)
+      .toBeGreaterThanOrEqual(4);
+    const [victim, innocent, demonMeat1, demonMeat2] = goodSeats;
+
+    /** 右键造谣者座位 → 记录/裁定 → 填声明 + 选真假 → 确认 */
+    const fileGossip = async (truth: "true" | "false", text: string) => {
+      const seatBtn = page
+        .locator("button")
+        .filter({ hasText: new RegExp(`^${gossipSeat + 1}$`) })
+        .first();
+      await seatBtn.click({ button: "right", timeout: 15_000 });
+      const menu = page.locator("button").filter({ hasText: /造谣者：记录\/裁定/ }).first();
+      await expect(menu, "右键菜单应出现「造谣者：记录/裁定」").toBeVisible({ timeout: 10_000 });
+      await menu.click({ timeout: 10_000 });
+
+      const dlg = page.locator('[role="dialog"]').last();
+      await expect(dlg, "应弹出造谣者记录弹窗").toBeVisible({ timeout: 10_000 });
+      await dlg.locator("textarea").fill(text);
+      await dlg.locator("select").selectOption(truth);
+      await dlg.locator("button").filter({ hasText: /^确认$/ }).first().click({ timeout: 10_000 });
+    };
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+
+    // ── 第 1 天：声明「为真」⇒ 第 2 晚指名者必死 ──
+    await fileGossip("true", "本局有 3 名爪牙");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    const n2 = await driveNight(page, [
+      { role: "gossip", targets: [victim + 1], note: "造谣者指名" },
+      { role: "po", targets: [demonMeat1 + 1], note: "恶魔吃别人，别干扰对照" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const afterTruth = await snapNow(page);
+    const v = afterTruth?.seats?.find((x: any) => x.id === victim);
+    const vDead =
+      v?.isDead === true ||
+      v?.markedForDeath === true ||
+      /造谣/.test(String(v?.deathSource ?? ""));
+    expect
+      .soft(
+        vDead,
+        `官方：声明正确 ⇒ 当晚点名者死亡（实测 isDead=${v?.isDead} marked=${v?.markedForDeath} source=${v?.deathSource}）`
+      )
+      .toBe(true);
+
+    // ── 第 2 天：声明「为假」⇒ 第 3 晚对照位不得因造谣死亡 ──
+    await fileGossip("false", "本局有 3 名爪牙");
+    expect((await driveDusk(page, {})).status, "第 2 昼不提名应能入夜").toBe("night");
+
+    const n3 = await driveNight(page, [
+      { role: "gossip", targets: [innocent + 1], note: "为假时即使指名也不该生效" },
+      { role: "po", targets: [demonMeat2 + 1], note: "恶魔吃别人" },
+    ]);
+    expect.soft(n3.status, "第 3 夜应推进到白天").toBe("day");
+
+    const afterFalse = await snapNow(page);
+    const g = afterFalse?.seats?.find((x: any) => x.id === innocent);
+    expect
+      .soft(
+        /造谣/.test(String(g?.deathSource ?? "")),
+        `官方：声明错误 ⇒ 不得有「造谣」致死来源（实测 source=${g?.deathSource}）`
+      )
+      .toBe(false);
+  });
+});
