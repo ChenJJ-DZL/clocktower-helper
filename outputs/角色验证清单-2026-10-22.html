@@ -136,10 +136,13 @@
 </div>
 
 <div class="note" style="border-left-color:#f97316">
-  <b>剩余缺口：0 条产品缺陷（截至 2026-10-22 22:0x）</b>
+  <b>剩余缺口：0 条产品缺陷（截至 2026-10-22 23:1x）</b>
   <ul>
-    <li><b>女裁缝</b>（1 skip · 已定性非缺陷）：队列里有她，驱动器未把 2 个目标传进能力；
-      官方允许「摇头不使用能力」⇒ 跳过合法，产品不算错。</li>
+    <li><b>女裁缝</b>（skip · 非缺陷）：队列里有她，驱动器未把 2 个目标传进能力；官方允许「摇头」。</li>
+    <li><b>理发师</b>（skip · 判据已修）：`barber_mr` 这个 id 全仓不存在（真实 `barber`）+ 处决分支缺失，
+      两处已修并由 <code>barber_swap_hint</code> 单测锁定；E2E 卡在 15 人局投票驱动。</li>
+    <li><b>博学者</b>（skip · 口径偏差待裁定）：官方「每个夜晚」，实现是 <code>triggerTiming:[DAY]</code>
+      且两个 priority 全 null ⇒ 夜间永不唤醒（功能以日间入口提供）。</li>
   </ul>
   <b>已修（本轮 4 条）</b>：<b>主谋</b>「额外一夜一昼」（真因=第二条判胜入口 <code>logicDispatch</code> 漏传 <code>isMastermindActive</code>）；
   <b>莽夫</b>转阵营/令选者醉酒（新增全局 postProcess 广播中间件 <code>utils/goonBroadcast</code>）；
@@ -151,7 +154,7 @@
 
 <h3 class="sec">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 4 4-7"/></svg>
-  9 剧本跑批结果（2026-10-22 22:0x 实跑，<b>192/192 角色已有断言</b>，96 条用例 / <b style="color:#065f46">95 passed + 1 skip · 零失败</b>）
+  9 剧本跑批结果（2026-10-22 23:1x 实跑，<b>192/192 角色已有断言</b>，105 条用例 / <b style="color:#065f46">102 passed + 3 skip · 零失败</b>）
 </h3>
 <table>
   <thead>
@@ -160,14 +163,14 @@
   <tbody>
     <tr><td class="role">暗流涌动</td><td>22</td><td>19</td><td><b style="color:#065f46">19 passed</b></td><td><b>22/22 有分支断言</b>；6 个未覆盖分支已登记</td></tr>
     <tr><td class="role">黯月初升</td><td>25</td><td>21</td><td><b style="color:#065f46">21 passed</b></td><td><b style="color:#065f46">25/25 ✅</b>：主谋 / 莽夫 / 茶艺师三条全部修复并转正（零 skip、零 xfail）</td></tr>
-    <tr><td class="role">梦殒春宵</td><td>25</td><td>10</td><td><b style="color:#065f46">10 passed</b></td><td>新增 <b>女巫</b>（诅咒提名即死）/ <b>方古</b>（转化外来者）两条强判据；<b style="color:#92400e">女裁缝</b>：已定性**非缺陷**（队列里有她，驱动器未传 2 个目标，官方允许摇头）⇒ 1 skip</td></tr>
+    <tr><td class="role">梦殒春宵</td><td>25</td><td>14</td><td><b style="color:#065f46">13 passed</b> + 1 skipped</td><td><b style="color:#065f46">25/25 有用例</b>：新增<b>舞蛇人</b>（选恶魔互换+中毒）/ <b>数学家</b>（异常次数）/ <b>亡骨魔</b>（杀爪牙保留能力+邻座中毒，<b>修 2 处真缺陷</b>）/ <b>畸形秀演员</b>（S09 门禁）；女裁缝 skip（驱动器）</td></tr>
     <tr><td class="role">窃窃私语</td><td>19</td><td>18</td><td><b style="color:#065f46">18 passed</b></td><td>覆盖 14/19；那条基线红已修（<b>不投票 ≠ 否决</b>：必须 `voters: []` 造票数不足）</td></tr>
     <tr><td class="role">无名之墓</td><td>19</td><td>9</td><td><b style="color:#065f46">9 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：9 条 / 19 角色</td></tr>
     <tr><td class="role">无上愉悦</td><td>16</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：5 条 / 16 角色</td></tr>
-    <tr><td class="role">凶宅魅影</td><td>21</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：5 条 / 21 角色</td></tr>
+    <tr><td class="role">凶宅魅影</td><td>21</td><td>8</td><td><b style="color:#065f46">7 passed</b> + 1 skipped</td><td><b style="color:#065f46">新增 3 条</b>：诺-达鲺（邻座镇民中毒+反证）/ 理发师（<b>修 2 处真缺陷</b>，E2E 待投票驱动）/ 教父（负向对照）</td></tr>
     <tr><td class="role">游园惊梦</td><td>20</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#065f46">麻脸巫婆已转正</b>（角色变换真正生效）；其余 4 条覆盖互认/钟表匠/涡流</td></tr>
-    <tr><td class="role">罂粟花开</td><td>24</td><td>4</td><td><b style="color:#065f46">4 passed</b></td><td><b style="color:#9a3412">严重不足</b>：4 条 / 24 角色</td></tr>
-    <tr><td class="role"><b>合计</b></td><td><b>191</b></td><td><b>96</b></td><td><b style="color:#065f46">95 passed</b> + 1 skip</td><td>暗流 22/22 · 黯月 25/25 · 游园麻脸巫婆已转正；其余剧本 192/192 引用已齐</td></tr>
+    <tr><td class="role">罂粟花开</td><td>24</td><td>6</td><td><b style="color:#065f46">5 passed</b> + 1 skipped</td><td><b style="color:#065f46">24/24 有用例</b>：新增<b>图书管理员</b>（外来者真值）；<b>博学者</b>口径偏差登记（官方「每夜」vs 实现 DAY）</td></tr>
+    <tr><td class="role"><b>合计</b></td><td><b>191</b></td><td><b>105</b></td><td><b style="color:#065f46">102 passed</b> + 3 skip</td><td>9 剧本全部跑过、零失败；暗流 22/22 · 黯月 25/25 已到角色级；余下 skip 全是驱动器/口径偏差，无产品缺陷</td></tr>
   </tbody>
 </table>
 
@@ -626,7 +629,7 @@
   数据源：<code>outputs/coverage_ledger.json</code> · <code>outputs/X02-文案对账-2026-10-22.md</code> · <code>outputs/全量验证计划-2026-10-21.md</code> §5<br>
   剧本级验收报告：<code>outputs/暗流涌动-角色级验收-2026-10-22.md</code> · <code>outputs/黯月初升-角色级验收-2026-10-22.md</code><br>
   「K / G」= 该角色在整局模拟里被抽到的局数（旧）或所属用例组（新），仅作证据定位，不代表断言强度。<br>
-  生成于 2026-10-22 · <b>22:0x 更新</b>（剧本 1 = 22/22；剧本 2 = 25/25 全绿；麻脸巫婆转正；<b>0 条产品缺陷未修</b>）· 未发版（线上 W10.20.1）
+  生成于 2026-10-22 · <b>23:1x 更新</b>（9 剧本 105 条用例 / 102 passed + 3 skip；本轮再修 <b>5 处产品缺陷</b>：主谋·莽夫·麻脸巫婆·亡骨魔×2·理发师×2；<b>0 条产品缺陷未修</b>）· 未发版（线上 W10.20.1）
 </footer>
 
 </div>
