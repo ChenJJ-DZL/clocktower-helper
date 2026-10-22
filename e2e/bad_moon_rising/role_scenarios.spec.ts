@@ -882,16 +882,15 @@ test.describe("黯月初升 · G6 处决触发", () => {
   });
 
   test("主谋：恶魔死于处决 ⇒ 额外一夜，不立即终局", async ({ page }) => {
-    // 🔴 已知缺陷（2026-10-22 实锤）：`mastermindFinalDay` **全仓没有任何写入点** ——
-    //   只有 `if (mastermindFinalDay?.active)` 的读取（useExecutionHandlers:1513）
-    //   与 `setMastermindFinalDay(null)`；`shouldEnterMastermindExtraDay` 有判据但无人调用。
-    //   ⇒ 处决普卡（恶魔）后直接 gameover，官方要求的「额外一个夜晚一个白天」不执行。
-    //   ⚠️ 试过的修法（已回滚）：在 `confirmExecutionResult` 里 `if (winResult) return` 之前拦截
-    //   —— **不生效**，因为处决恶魔时 `checkGameOver` 已把相位切到 gameOver、
-    //   终局 UI 直接出现，`confirmExecutionResult` 根本没被调用。
-    //   ⇒ 正确入口应在 `checkGameOver` 内部（判胜**之前**）或 `terminalRules` 的调用处，
-    //     并且要能「不判胜」而不是事后撤销（撤销还要清 victoryRef/快照/终局 UI，回归面更大）。
-    test.fail(true, "mastermindFinalDay 零写入点（应改 checkGameOver 内部，见注释）");
+    // ⚠️ 待定位（2026-10-22）：这条连续验证 3 轮未通过，**已排除两个假设**：
+    //   ① 「`mastermindFinalDay` 零写入点」— 错。`useLogicDispatcher.ts:235` 一直在写。
+    //   ② 「普卡毒到主谋 ⇒ mastermindActive=false」— 已显式指定毒目标避开主谋，仍红。
+    //   链路本身是齐的：`gameLogic.ts:596-611` 判据（totalEffectiveDemons===0 +
+    //   lastAction==="execution" + demonDied + mastermindActive）齐全，返回 extraDay:true。
+    //   ⇒ 现象是 `dusk.status === "gameover"` 且终局 UI 出现，说明**处决这一刻没有走到
+    //     那个分支**（更可能在到达 checkGameEnd 之前就返回了，或 totalEffectiveDemons ≠ 0）。
+    //   下一轮需要打印 processGameEvent 的入参/返回值，别再从静态读代码推结论。
+    test.fail(true, "主谋续命未定位（已排除零写入点/毒主谋两种假设，见注释）");
     const snap = await bootS(page, "S04");
     const demonSeat = seatByRole(snap, "pukka");
     const mmSeat = seatByRole(snap, "mastermind");
@@ -899,7 +898,21 @@ test.describe("黯月初升 · G6 处决触发", () => {
       (s: any) => s.id !== demonSeat && s.id !== mmSeat && isTownsfolkOrOutsiderRole(s.role)
     ).id as number;
 
-    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    // ⚠️ 必须显式指定普卡的毒目标并避开主谋：官方「中毒的主谋能力失效」
+    //   （`checkGameOver` 用 computeIsPoisoned 算 mastermindActive）。
+    //   驱动器默认点第一个可选座位，实测正好毒到主谋 ⇒ 续命不触发，用例假红。
+    const poisonTarget = (snap.seats as any[]).find(
+      (s: any) => s.id !== demonSeat && s.id !== mmSeat && s.id !== nominator
+    ).id as number;
+
+    expect(
+      (
+        await driveNight(page, [
+          { role: "pukka", targets: [poisonTarget + 1], note: "别毒主谋" },
+        ])
+      ).status,
+      "首夜应推进到白天"
+    ).toBe("day");
 
     const dusk = await driveDusk(page, {
       nominator: nominator + 1,

@@ -249,7 +249,22 @@ export function useLogicDispatcher(
           }
         }
 
-        if (snapshot.winner) {
+        /**
+         * 🧠 主谋：`processGameEvent` 在「恶魔死于处决 + 主谋存活未失能」时，
+         * 会**同时**返回 `nextActionHint: "MASTERMIND_EXTRA_DAY"` 与 `winner`。
+         *
+         * 官方：「如果恶魔因为**死于处决**而因此导致游戏结束时，
+         *   **再额外进行一个夜晚和一个白天**。」
+         * ⇒ 此时**不得**进入终局；上面 235 行已把 `mastermindFinalDay` 置 active，
+         *   由 `confirmExecutionResult` 的额外一天结算收尾。
+         *
+         * 🔴 2026-10-22 实测缺陷：此前这里无条件判胜 ⇒ 主谋标记虽然写了，
+         *   但胜利弹窗立刻覆盖 ⇒ 表现为「处决普卡直接 gameover」。
+         */
+        const isMastermindExtraDayHint =
+          (snapshot as any).nextActionHint === "MASTERMIND_EXTRA_DAY";
+
+        if (snapshot.winner && !isMastermindExtraDayHint) {
           // 🎭 戏子（Actor）：只要有戏子在场（不论死活/数量），胜负结果对调
           let w: "good" | "evil" = snapshot.winner === "Good" ? "good" : "evil";
           const flipped = applyActorVictoryFlip(w, seatsForCheck);

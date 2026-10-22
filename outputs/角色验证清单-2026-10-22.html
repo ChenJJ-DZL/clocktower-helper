@@ -135,6 +135,28 @@
   <span><i class="dot" style="background:#f97316"></i>有已登记缺口（规则 / 文案待裁决）</span>
 </div>
 
+<h3 class="sec">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 4 4-7"/></svg>
+  9 剧本跑批结果（2026-10-22 20:40 实跑，共 93 条用例）
+</h3>
+<table>
+  <thead>
+    <tr><th style="width:110px">剧本</th><th style="width:64px">角色</th><th style="width:64px">用例</th><th style="width:150px">实跑结果</th><th>角色级覆盖判定</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="role">暗流涌动</td><td>22</td><td>19</td><td><b style="color:#065f46">19 passed</b></td><td><b>22/22 有分支断言</b>；6 个未覆盖分支已登记</td></tr>
+    <tr><td class="role">黯月初升</td><td>25</td><td>21</td><td><b style="color:#065f46">20 passed</b> + 1 skipped</td><td>22/25；主谋（待定位）、莽夫（缺陷）为 P0；茶艺师待驱动器</td></tr>
+    <tr><td class="role">梦殒春宵</td><td>25</td><td>7</td><td><b style="color:#065f46">7 passed</b></td><td><b style="color:#92400e">覆盖不足</b>：7 条 / 25 角色</td></tr>
+    <tr><td class="role">窃窃私语</td><td>19</td><td>18</td><td>17 passed + <b style="color:#9a3412">1 既有红</b></td><td>覆盖较好；1 条为基线红（已 stash 验证非本轮引入）</td></tr>
+    <tr><td class="role">无名之墓</td><td>19</td><td>9</td><td><b style="color:#065f46">9 passed</b></td><td><b style="color:#92400e">覆盖不足</b>：9 条 / 19 角色</td></tr>
+    <tr><td class="role">无上愉悦</td><td>16</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">覆盖不足</b>：5 条 / 16 角色</td></tr>
+    <tr><td class="role">凶宅魅影</td><td>21</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">覆盖不足</b>：5 条 / 21 角色</td></tr>
+    <tr><td class="role">游园惊梦</td><td>20</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">覆盖不足</b>：5 条 / 20 角色</td></tr>
+    <tr><td class="role">罂粟花开</td><td>24</td><td>4</td><td><b style="color:#065f46">4 passed</b></td><td><b style="color:#9a3412">严重不足</b>：4 条 / 24 角色</td></tr>
+    <tr><td class="role"><b>合计</b></td><td><b>191</b></td><td><b>93</b></td><td><b style="color:#065f46">91 passed</b> + 1 skip + 1 红</td><td>前 2 个剧本达标；后 7 个仍待逐角色补测</td></tr>
+  </tbody>
+</table>
+
 <!-- ══════════ 暗流涌动 ══════════ -->
 <section class="script">
   <div class="script-head">
@@ -208,7 +230,7 @@
 <section class="script">
   <div class="script-head">
     <h2>梦殒春宵</h2>
-    <span class="cnt"><span class="ok-n">14 已</span> / 25 · 待真跑 11</span>
+    <span class="cnt">用例 <b>7</b> 条 / 角色 25 · <b style="color:#92400e">7 passed · 覆盖不足</b></span>
   </div>
   <div class="bar"><i style="width:56%"></i></div>
   <div class="chips">
@@ -244,7 +266,7 @@
 <section class="script">
   <div class="script-head">
     <h2>窃窃私语</h2>
-    <span class="cnt"><span class="ok-n">13 已</span> / 19 · 待真跑 6</span>
+    <span class="cnt">用例 <b>18</b> 条 / 角色 19 · <b style="color:#065f46">17 passed</b> + <b style="color:#9a3412">1 既有红</b></span>
   </div>
   <div class="bar"><i style="width:68%"></i></div>
   <div class="chips">
@@ -274,7 +296,7 @@
 <section class="script">
   <div class="script-head">
     <h2>无名之墓</h2>
-    <span class="cnt"><span class="ok-n">12 已</span> / 19 · 待真跑 7</span>
+    <span class="cnt">用例 <b>9</b> 条 / 角色 19 · <b style="color:#92400e">9 passed · 覆盖不足</b></span>
   </div>
   <div class="bar"><i style="width:63%"></i></div>
   <div class="chips">
@@ -304,7 +326,7 @@
 <section class="script">
   <div class="script-head">
     <h2>无上愉悦</h2>
-    <span class="cnt"><span class="ok-n">12 已</span> / 16 · 待真跑 4</span>
+    <span class="cnt">用例 <b>5</b> 条 / 角色 16 · <b style="color:#92400e">5 passed · 覆盖不足</b></span>
   </div>
   <div class="bar"><i style="width:75%"></i></div>
   <div class="chips">
@@ -331,7 +353,7 @@
 <section class="script">
   <div class="script-head">
     <h2>凶宅魅影</h2>
-    <span class="cnt"><span class="ok-n">12 已</span> / 21 · 待真跑 9</span>
+    <span class="cnt">用例 <b>5</b> 条 / 角色 21 · <b style="color:#92400e">5 passed · 覆盖不足</b></span>
   </div>
   <div class="bar"><i style="width:57%"></i></div>
   <div class="chips">
@@ -363,7 +385,7 @@
 <section class="script">
   <div class="script-head">
     <h2>游园惊梦</h2>
-    <span class="cnt"><span class="ok-n">13 已</span> / 20 · 待真跑 7</span>
+    <span class="cnt">用例 <b>5</b> 条 / 角色 20 · <b style="color:#92400e">5 passed · 覆盖不足</b></span>
   </div>
   <div class="bar"><i style="width:65%"></i></div>
   <div class="chips">
@@ -394,7 +416,7 @@
 <section class="script">
   <div class="script-head">
     <h2>罂粟花开</h2>
-    <span class="cnt"><span class="ok-n">7 已</span> / 24 · <b style="color:#9a3412">待真跑 17</b></span>
+    <span class="cnt">用例 <b>4</b> 条 / 角色 24 · <b style="color:#9a3412">4 passed · 严重不足</b></span>
   </div>
   <div class="bar hot"><i style="width:29%"></i></div>
   <div class="chips">
