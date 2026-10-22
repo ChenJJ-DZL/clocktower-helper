@@ -650,3 +650,141 @@ test.describe("黯月初升 · G4 S06 珀", () => {
       .toBe(/猜错/.test(g!.dialog));
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G5 · 死亡链：免死 / 穿透 / 假死（2026-10-22 补：官方三半边的「反证」）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("黯月初升 · G5 死亡链", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("魔鬼代言人：被保护者白天被处决 ⇒ 不死（保护标记被消费）", async ({ page }) => {
+    const snap = await bootS(page, "S03");
+    const daSeat = seatByRole(snap, "devils_advocate");
+    const demonSeat = seatByRole(snap, "zombuul");
+    const target = (snap.seats as any[]).find(
+      (s: any) => s.id !== daSeat && s.id !== demonSeat && isTownsfolkOrOutsiderRole(s.role)
+    );
+    expect.soft(target, "S03 应有一个可保护的善良玩家").toBeTruthy();
+
+    const n1 = await driveNight(page, [
+      { role: "devils_advocate", targets: [target.id + 1], note: "保护这名玩家" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const s1 = await snapNow(page);
+    expect
+      .soft(
+        s1?.seats?.find((x: any) => x.id === target.id)?.isExecutionProtected,
+        "保护标记 isExecutionProtected 应落库"
+      )
+      .toBe(true);
+
+    const nominator = (snap.seats as any[]).find(
+      (s: any) =>
+        s.id !== target.id &&
+        s.id !== daSeat &&
+        isTownsfolkOrOutsiderRole(s.role)
+    ).id as number;
+
+    const dusk = await driveDusk(page, {
+      nominator: nominator + 1,
+      nominee: target.id + 1,
+      decision: "execute",
+    } as any);
+    expect.soft(dusk.executed, "应执行处决结算").toBe(true);
+
+    const after = await snapNow(page);
+    const t = after?.seats?.find((x: any) => x.id === target.id);
+    // 官方：「如果明天白天他被处决，他不会死亡」
+    expect.soft(t?.isDead, "被魔鬼代言人保护的玩家处决后不得死亡").toBe(false);
+    expect
+      .soft(t?.isExecutionProtected, "保护只在当天生效 ⇒ 结算后应被消费")
+      .not.toBe(true);
+    expect.soft(dusk.status, "处决仍然发生过 ⇒ 白天照常结束（入夜）").toBe("night");
+  });
+
+  test("刺客：无视「不会死亡」⇒ 夜杀水手必死", async ({ page }) => {
+    const snap = await bootS(page, "S03");
+    const assassinSeat = seatByRole(snap, "assassin");
+    const sailorSeat = seatByRole(snap, "sailor");
+    const demonSeat = seatByRole(snap, "zombuul");
+    const other = (snap.seats as any[]).find(
+      (s: any) =>
+        s.id !== sailorSeat && s.id !== assassinSeat && s.id !== demonSeat
+    ).id as number;
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 官方：刺客「他死亡，即使因为任何原因让他不会死亡」——水手「你不会死亡」也不能挡
+    const n2 = await driveNight(page, [
+      { role: "zombuul", targets: [other + 1], note: "恶魔杀别人，别撞水手" },
+      { role: "assassin", targets: [sailorSeat + 1], note: "刺客杀水手" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    expect
+      .soft(
+        after?.seats?.find((x: any) => x.id === sailorSeat)?.isDead,
+        "刺客必须穿透水手的「不会死亡」"
+      )
+      .toBe(true);
+    // 刺客是「每局限一次」，但限次由模块级 `LimitedAbilityManager`
+    // （`canUseLimitedAbility/consumeLimitedAbility`）管理，**不落座位字段**
+    // ⇒ 判据改为死亡来源，确认这一刀确实是刺客造成的。
+    const sailor = after?.seats?.find((x: any) => x.id === sailorSeat);
+    expect
+      .soft(
+        `${sailor?.deathSource ?? ""}|${sailor?.killedBy ?? ""}`,
+        "死亡来源必须记录为刺客（否则可能是恶魔杀的，用例失去意义）"
+      )
+      .toMatch(/assassin/);
+  });
+
+  // ⚠️ 观察项（2026-10-22）：僵怖「首次死亡不真死」的计数器有两个可疑字段名
+  //   （`zombuulTrulyDead` 在 zombuul.ability.ts:25 读、`isZombuulTrulyDead` 在
+  //   zombuulImmunity.ts:4 读），静态 grep 只看到读取、看不到写入。
+  //   下面的用例会**实测**这两个字段到底有没有落库 —— 若都 undefined 即为真缺陷。
+  test("僵怖：白天被处决 ⇒ 不死（仍存活，但被当作死亡）", async ({ page }) => {
+    // 🔴 已知缺陷（2026-10-22 实锤）：处决僵怖后 `isDead === false`（没死，符合官方），
+    //    但「已假死过一次」的标记**恒为 false**（`zombuulTrulyDead` / `isZombuulTrulyDead`
+    //    / `zombuulLives` 三个候选字段都没有被置真）⇒ 计数无法累积，
+    //    与官方「当你首次死亡后，你仍存活，但会被当作死亡」不符（第二次死亡时无从判断）。
+    //    修复要动击杀咽喉（`killPlayer`）与免疫判据（`utils/zombuulImmunity`，
+    //    现有实现是「处决能杀、夜晚免疫」，与官方「首次死亡不真死」相反），单开一轮做。
+    test.fail(true, "僵怖假死计数器未落库（marker=false）");
+    const snap = await bootS(page, "S03");
+    const zombuulSeat = seatByRole(snap, "zombuul");
+    const nominator = (snap.seats as any[]).find(
+      (s: any) => s.id !== zombuulSeat && isTownsfolkOrOutsiderRole(s.role)
+    ).id as number;
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    const dusk = await driveDusk(page, {
+      nominator: nominator + 1,
+      nominee: zombuulSeat + 1,
+      decision: "execute",
+    } as any);
+    expect.soft(dusk.executed, "应执行处决结算").toBe(true);
+
+    const after = await snapNow(page);
+    const z = after?.seats?.find((x: any) => x.id === zombuulSeat);
+    // 官方：「当你首次死亡后，你仍存活，但会被当作死亡」
+    expect
+      .soft(z?.isDead, "僵怖首次死亡后 isDead 不得为 true（仍存活）")
+      .not.toBe(true);
+    // 两个候选字段名都认（静态 grep 显示读的是 zombuulTrulyDead / isZombuulTrulyDead）
+    const marker = z?.zombuulTrulyDead ?? z?.isZombuulTrulyDead ?? z?.zombuulLives;
+    expect
+      .soft(
+        marker,
+        "必须留下「已假死过一次」的痕迹（zombuulTrulyDead / isZombuulTrulyDead / zombuulLives）"
+      )
+      .toBeTruthy();
+
+    // 反证：恶魔未真正死亡 ⇒ 不得判终局
+    const live = await waitLive(page, (l) => l?.gameOverUi === true, 4_000);
+    expect.soft(live?.gameOverUi, "僵怖假死不得判终局").not.toBe(true);
+  });
+});
