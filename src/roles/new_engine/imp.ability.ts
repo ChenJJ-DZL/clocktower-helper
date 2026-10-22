@@ -442,7 +442,21 @@ const stateUpdateResult = async (
         `mayorKill|${(snapshot as any)?.nightCount ?? 0}|imp`
       );
 
-      if (isProtected) {
+      /**
+       * 🔴 2026-10-22（seed=94027 实测）：目标**已经死了** ⇒ 不得再写死亡字段。
+       *
+       * 原实现无条件 `diedAtNight: snapshot.nightCount` ⇒ 把「上一夜死亡」的时间
+       * **篡改成今夜**，于是黎明播报会把同一个死者**每夜重复播报一遍**
+       * （实测：1 号第 2 夜死于小恶魔，第 3 夜小恶魔又点了这个已死的人，
+       *  黎明又说「昨晚1号玩家死亡」，而说书人修正窗同时写着「今晚无新增伤亡」）。
+       * 官方：对已死玩家选击杀**不产生任何效果**。
+       * 同型缺陷 2026-09-21 已在 `shabaloth.ability.ts` 修过（本质一致，别再犯）。
+       */
+      if (targetSeat.isDead) {
+        record.log = record.log || {};
+        (record.log as any).blockedByAlreadyDead = true;
+        record.killed = false;
+      } else if (isProtected) {
         record.log = record.log || {};
         (record.log as any).blockedByProtection = true;
         record.killed = false;

@@ -197,7 +197,8 @@ export async function runFullGameSim(
     const sem = verifyNightSemantics(
       nightJournal,
       nightQueue,
-      nightRun.wakeStart?.ids ?? null
+      nightRun.wakeStart?.ids ?? null,
+      cycles + 1
     );
     ctx.violations.push(...sem.map((v) => ({ ...v, step: `${ctx.step}(semantic)` })));
     trail.push(`${ctx.step}:${nightResult}`);

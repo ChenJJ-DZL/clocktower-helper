@@ -503,6 +503,13 @@ export async function advanceNightRandom(
           markedForDeath: !!seat.markedForDeath,
           isPoisoned: !!seat.isPoisoned,
           isDead: !!seat.isDead,
+          /**
+           * 🌅 判定「本夜新增死亡」必须看 `diedAtNight`，不能只看 `isDead`：
+           * 已死玩家被恶魔再点一次时 `isDead`/`markedForDeath` 都是旧的 true，
+           * 只看它们会把「往年旧死」误判成本夜漏报（seed=94027 实测）。
+           */
+          diedAtNight: seat.diedAtNight ?? null,
+          revivedAtNight: seat.revivedAtNight ?? null,
           statusTypes: (seat.statusEffects || []).map((e: any) => String(e.type)),
         };
       } catch {
@@ -1250,7 +1257,9 @@ export function verifyNightSemantics(
    * 图书管理员同座位 8，抢走队列槽位 → 后续 5/3/9 号连锁误报）。
    * ⇒ 有执行侧真值时**一律以它为准**，面板队列只作兜底。
    */
-  wakeIds?: number[] | null
+  wakeIds?: number[] | null,
+  /** 本场是第几夜（1 基）。I15 用它判断「本夜新增死亡」。 */
+  nightNumber?: number | null
 ): Violation[] {
   const out: Violation[] = [];
   const V = (invariant: string, detail: string) =>
@@ -1427,16 +1436,29 @@ export function verifyNightSemantics(
    *   不反向断言（播报里有、日志里没有）—— 能力 stateUpdate 直接杀人的步骤
    *   未必带 `after`，反向断言会误报。
    */
+  /**
+   * 终局夜不判：局在夜里结束（恶魔被反伤/刺杀等）时**没有黎明播报**，
+   * 播报名单必然是空的 —— 那是设计，不是漏报。
+   * （seed=94025 实测：沙巴洛斯第 3 夜击杀后 `gameOverAfter: true`，
+   *   没有 NIGHT_DEATH_REPORT 步骤，I15 误报。）
+   */
+  const nightEndedInGameOver = journal.some((j) => j.gameOverAfter === true);
   const announcedDead = deadSeatsFromNightReport(journal);
   const killedByJournal = new Set<number>();
   for (const j of journal) {
-    if (j.after && j.after.isDead === true && j.after.markedForDeath === true) {
-      if (j.targets?.[0] !== undefined) killedByJournal.add(j.targets[0]);
+    const a: any = j.after;
+    if (!a) continue;
+    // 只认「本夜新增死亡」：diedAtNight 必须是本夜号
+    const diedThisNight =
+      a.isDead === true &&
+      (nightNumber == null || Number(a.diedAtNight) === Number(nightNumber));
+    if (diedThisNight && j.targets?.[0] !== undefined) {
+      killedByJournal.add(j.targets[0]);
     }
   }
-  const missingFromDawn = [...killedByJournal].filter(
-    (id) => !announcedDead.has(id)
-  );
+  const missingFromDawn = nightEndedInGameOver
+    ? []
+    : [...killedByJournal].filter((id) => !announcedDead.has(id));
   if (missingFromDawn.length > 0) {
     V(
       "I15-dawn-report",
