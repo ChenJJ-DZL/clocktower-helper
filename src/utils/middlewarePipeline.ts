@@ -8,6 +8,7 @@ import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
 import { applyRulesByPhase, collectGlobalRules } from "./globalRuleEngine";
 import { getScriptSpecialRules } from "./scriptSpecialRules";
 import { getRevolutionaryDisguise } from "./revolutionaryDisguise";
+import { createGoonBroadcast } from "./goonBroadcast";
 import type {
   AbilityMiddlewareSet,
   MiddlewareContext,
@@ -342,6 +343,9 @@ export function buildAbilityPipe(
     postProcess: [
       ...(ability.postProcess ?? []),
       createFoolImmunityConsumer(ability.effectSemantics),
+      // 🪤 莽夫：被本次能力选中 ⇒ 选者醉酒 + 莽夫转阵营（每夜首个选者）
+      //   与弄臣免死同位置（postProcess）⇒ preview 阶段被跳过，提示不会误触发
+      createGoonBroadcast(),
       // ⭐ 2026-09-22 剧本级规则：恶魔夜晚不攻击（游园惊梦）。放在最后 ⇒ 覆盖本步所有写入
       createScriptRuleNightKillSuppressor(),
     ],

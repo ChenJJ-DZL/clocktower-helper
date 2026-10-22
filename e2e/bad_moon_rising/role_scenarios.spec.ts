@@ -1115,33 +1115,69 @@ test.describe("黯月初升 · G8 免死与转阵营", () => {
   });
 
   test("莽夫：被邪恶玩家选中 ⇒ 转变为邪恶阵营", async ({ page }) => {
-    // 🔴 已知缺陷（2026-10-22 实锤）：`goon.ability.ts:28` 读
-    //   `ctx.meta.chooserSeatId ?? ctx.actionNode.chooserSeatId`，
-    //   但 **全仓 `chooserSeatId` 只出现在 goon.ability.ts 内部**（grep 5 处全是自读自用），
-    //   没有任何选择者的行动管道给它传值 ⇒ `chooserSeat` 恒 undefined
-    //   ⇒ `alignmentChanged: false` ⇒ **莽夫永远不转阵营、也永远不让人醉酒**。
-    //   （与主谋 `mastermindFinalDay` 同型：判据齐全、零传入点。）
-    //   修法：在「选择一名玩家」的能力落地管道里，把 `chooserSeatId` 写进被选者的 goon 管道入参
-    //   （最自然的落点 = `middlewarePipeline` 里对所有 PASSIVE 角色广播 chooser 座位）。
-    test.fail(true, "chooserSeatId 零传入点 ⇒ 莽夫转阵营永不生效（见注释）");
-    const snap = await bootS(page, "S04");
-    const goonSeat = seatByRole(snap, "goon");
-    const demonSeat = seatByRole(snap, "pukka");
+    /**
+     * ✅ 2026-10-22 已修复。
+     *
+     * 真因：`goon.ability.ts` 读 `ctx.meta.chooserSeatId`，但**全仓零传入点**
+     *   （5 处全是本文件自读自用）。莽夫是 PASSIVE（两个 priority 都是 null）
+     *   ⇒ 自己永不进夜序 ⇒ `chooserSeat` 恒 undefined ⇒ `alignmentChanged` 恒 false
+     *   ⇒ 既不转阵营、也不让选者醉酒（与主谋「额外一天」同型的「判据齐全、无调用方」）。
+     *
+     * 修法：新增全局 postProcess 中间件 `utils/goonBroadcast::createGoonBroadcast`
+     *   （由 `buildAbilityPipe` 统一注入，覆盖全部角色的能力管道）：
+     *   本次能力的目标里若有存活、未醉毒的莽夫 ⇒ 令行动者醉酒 + 莽夫转为行动者阵营，
+     *   并用 `goonTriggeredAtNight` 保证**每夜只认首个选者**。
+     *   放在 postProcess 而非 calculate：preview 阶段会整段跳过 ⇒ 说书人预演不会误触发。
+     */
+    const snap = await bootScene(page, {
+      script: "黯月初升",
+      players: 9,
+      seed: 0,
+      /**
+       * ⚠️ 不能用 S04：那里唯一的夜间选人者是普卡，而普卡的「选中」= 下毒，
+       *   官方「中毒的莽夫失去能力」⇒ 走不到转阵营分支（实测 2 次假红）。
+       *   改用自定义 9 人局（5 镇民 + 2 外来者 + 1 爪牙 + 1 恶魔），
+       *   由**魔鬼代言人**（邪恶、选人但**不致死**）来选莽夫。
+       */
+      lineup: [
+        "tea_lady",
+        "pacifist",
+        "fool",
+        "sailor",
+        "grandmother",
+        "goon",
+        "moonchild",
+        "devils_advocate",
+        "pukka",
+      ],
+    });
+    const goonSeat = seatOf(snap, "goon");
+    const daSeat = seatOf(snap, "devils_advocate");
+    const demonSeat = seatOf(snap, "pukka");
+    // 普卡必须毒别人（否则毒到莽夫 ⇒ 能力失效，与官方一致但测不到本分支）
+    const poisonTarget = (snap.seats as any[]).find(
+      (s: any) => s.id !== goonSeat && s.id !== daSeat && s.id !== demonSeat
+    ).id as number;
 
     // 官方：「每个夜晚，首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。
-    //   **你会转变为他的阵营。**」⇒ 被恶魔（邪恶）选中 ⇒ 莽夫转邪恶。
+    //   **你会转变为他的阵营。**」⇒ 被魔鬼代言人（邪恶）选中 ⇒ 莽夫转邪恶。
     const n1 = await driveNight(page, [
-      { role: "pukka", targets: [goonSeat + 1], note: "恶魔选中莽夫" },
+      { role: "pukka", targets: [poisonTarget + 1], note: "别毒莽夫" },
+      { role: "devils_advocate", targets: [goonSeat + 1], note: "DA 选中莽夫" },
     ]);
     expect.soft(n1.status, "首夜应推进到白天").toBe("day");
 
     const after = await snapNow(page);
     const goon = after?.seats?.find((x: any) => x.id === goonSeat);
+    const da = after?.seats?.find((x: any) => x.id === daSeat);
     expect
       .soft(goon?.isEvilConverted, "莽夫被邪恶玩家选中后应转为邪恶阵营")
       .toBe(true);
     // 反证：莽夫的物理角色不变（只是阵营变了）
     expect.soft(goon?.role?.id, "莽夫的角色不得被改写").toBe("goon");
-    expect.soft(demonSeat >= 0, "恶魔应真实在场").toBe(true);
+    // 官方同句：「首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏」
+    expect
+      .soft(da?.isDrunk, "选中莽夫的邪恶玩家应醉酒（直到下个黄昏）")
+      .toBe(true);
   });
 });
