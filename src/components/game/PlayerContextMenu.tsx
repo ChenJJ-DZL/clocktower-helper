@@ -121,6 +121,33 @@ export function PlayerContextMenu() {
           🎴 身份告知与展示
         </button>
       )}
+      {/**
+       * ℹ️ 角色资料（游戏内入口，定位于**该座位扮演的角色**）
+       * ----------------------------------------------------------------
+       * 🔴 2026-10-23 补接线：`ROLE_INFO` 此前是 **ENTRY_LOST**
+       *   —— 唯一入口在 `GameHeader`，而 `GameHeader` 全仓 0 个渲染点（死组件）
+       *   ⇒ 任何一局都点不开它。
+       *
+       * ⚠️ 同批还修了一个真 bug：`GameModals` 对 `ROLE_INFO` **同时渲染了两个弹窗**
+       *   （`RoleInfoModal` 与 `RoleCodexModal` 两个分支都吃这个 type）⇒ 一旦点开
+       *   就是叠加双窗。已收敛为只渲染 `RoleCodexModal`（它是超集：图鉴 + 详情）；
+       *   `RoleInfoModal` 需要 `selectedScript / groupedRoles / filteredGroupedRoles`
+       *   四份 setup 期 props，游戏内本就构造不出来 —— 那正是它一直是死代码的原因。
+       */}
+      {targetSeat.role && (
+        <button
+          onClick={() => {
+            props.setCurrentModal({
+              type: "ROLE_INFO",
+              data: { roleId: targetSeat.role?.id },
+            });
+            props.setContextMenu(null);
+          }}
+          className="block w-full text-left px-6 py-3 hover:bg-sky-900/80 text-sky-200 text-lg font-medium border-b border-gray-600 transition-colors"
+        >
+          ℹ️ 角色资料
+        </button>
+      )}
       {/* 🎭 设置伪装身份选项（提线木偶 / 酒鬼 / 疯子）- 仅在设置阶段可用 */}
       {props.gamePhase === "setup" &&
         (targetSeat.role?.id === "drunk" ||

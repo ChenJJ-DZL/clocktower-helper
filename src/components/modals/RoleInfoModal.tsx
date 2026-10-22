@@ -1,3 +1,16 @@
+/**
+ * ⚠️ 2026-10-23 起**不再有渲染点**（保留文件供历史对读，勿新增引用）
+ * ======================================================================
+ * 它曾挂在 `GameModals` 的 `currentModal?.type === "ROLE_INFO"` 分支上，而同一分支
+ * 下方还有一段 `(ROLE_CODEX || ROLE_INFO) → RoleCodexModal` ⇒ 同一个 type 会
+ * **同时弹出两个窗**（叠加）。收敛时保留的是 `RoleCodexModal`，因为：
+ *   · 它是超集：图鉴（全剧本浏览）+ 角色详情（能力/简介/运作/范例/提示）；
+ *   · 本组件的 props 里 `filteredGroupedRoles` / `groupedRoles` / `selectedScript`
+ *     只有 **setup 期**才构造得出来，游戏内根本喂不进 —— 这也正是它长期
+ *     `ENTRY_LOST`（零生产点）的原因，不是「忘了接线」而是「接上也用不了」。
+ * `ROLE_INFO` 这个 ModalType **仍然有效**，现在由 `RoleCodexModal` 承载，
+ * 入口：座位右键菜单「ℹ️ 角色资料」（带 `data.roleId` 直达该角色）。
+ */
 import {
   type Role,
   type Script,

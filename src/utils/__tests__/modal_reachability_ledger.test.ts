@@ -104,16 +104,19 @@ const LEGACY: Record<string, { kind: LegacyKind; reason: string }> = {
     kind: "SUPERSEDED",
     reason: "守鸦人假信息并入 INFO_RESULT + storytellerCorrection",
   },
-  ROLE_CODEX: {
-    kind: "ENTRY_LOST",
-    reason:
-      "图鉴弹窗只在开局前（ScriptSelection 本地 state）可打开；游戏内入口随 GameHeader 弃用而丢失 —— 待补一条入口",
-  },
-  ROLE_INFO: {
-    kind: "ENTRY_LOST",
-    reason:
-      "同上：唯一入口在 GameHeader，而 GameHeader 全仓 0 个渲染点（已死组件）—— 待裁决补入口或删除",
-  },
+  /**
+   * ✅ 2026-10-23 `ROLE_CODEX` / `ROLE_INFO` 两条 **ENTRY_LOST 已清零**，条目已删除
+   * （台账规则②要求「登记的类型必须确实没有生产点」，所以接线后必须删条目，不能留在名单里）。
+   *
+   *   补的两个真实入口：
+   *     · `ROLE_CODEX` ← `GlobalNavBar` 右侧「📖 图鉴」按钮
+   *       （原来全仓唯一能开的地方是开局前的 `ScriptSelection`，那里用本地 state 直渲染，
+   *        不走 modal 系统 ⇒ 对局中零入口）
+   *     · `ROLE_INFO`  ← 座位右键菜单「ℹ️ 角色资料」，带 `data.roleId` 直达该角色
+   *       （原来唯一入口在 `GameHeader`，而 `GameHeader` 全仓 0 个渲染点）
+   *   同批还修了真 bug：`GameModals` 对 `ROLE_INFO` 同时渲染 `RoleInfoModal` +
+   *   `RoleCodexModal` 两个弹窗（叠加双窗），已收敛为只渲染 `RoleCodexModal`。
+   */
   SPY_GRIMOIRE: {
     kind: "SUPERSEDED",
     reason: "魔典由 SPY_RECORDS 复用同一个 SpyGrimoireModal 组件",

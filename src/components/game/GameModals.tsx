@@ -52,7 +52,6 @@ import { ReminderTokenPanel } from "../modals/ReminderTokenPanel";
 import { RestartConfirmModal } from "../modals/RestartConfirmModal";
 import { ReviewModal } from "../modals/ReviewModal";
 import { RoleCodexModal } from "../modals/RoleCodexModal";
-import { RoleInfoModal } from "../modals/RoleInfoModal";
 import { RoleSelectModal } from "../modals/RoleSelectModal";
 import { SaintExecutionConfirmModal } from "../modals/SaintExecutionConfirmModal";
 import { EvilTwinExecutionConfirmModal } from "../modals/EvilTwinExecutionConfirmModal";
@@ -610,14 +609,17 @@ export function GameModals() {
         onContinue={(actions as any).handleContinueGame}
       />
 
-      <RoleInfoModal
-        isOpen={currentModal?.type === "ROLE_INFO"}
-        onClose={() => actions.setCurrentModal(null)}
-        selectedScript={selectedScript}
-        filteredGroupedRoles={actions.filteredGroupedRoles}
-        roles={roles}
-        groupedRoles={actions.groupedRoles}
-      />
+      {/**
+       * ⚠️ 2026-10-23 删掉了一段**重复渲染**：这里原本还有
+       *   `<RoleInfoModal isOpen={currentModal?.type === "ROLE_INFO"} …/>`，
+       *   而下方 `(ROLE_CODEX || ROLE_INFO)` 分支又会渲染 `RoleCodexModal`
+       *   ⇒ 同一个 `ROLE_INFO` 会**同时弹出两个窗**（叠加）。
+       *   且 `RoleInfoModal` 需要 `filteredGroupedRoles / groupedRoles` 等
+       *   setup 期才有的四份 props，游戏内根本构造不出来 —— 这正是它
+       *   长期 `ENTRY_LOST`（零生产点）的根因。
+       *   ⇒ 统一由 `RoleCodexModal` 承担（超集：图鉴 + 角色详情），
+       *     入口见 `GlobalNavBar` 的「📖 图鉴」与座位右键「ℹ️ 角色资料」。
+       */}
 
       <ExecutionResultModal
         isOpen={currentModal?.type === "EXECUTION_RESULT"}

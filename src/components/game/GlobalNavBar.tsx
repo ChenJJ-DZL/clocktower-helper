@@ -401,6 +401,31 @@ export function GlobalNavBar() {
             📜 复盘
           </button>
 
+          {/**
+           * 📖 角色图鉴（游戏内入口）
+           * ----------------------------------------------------------------
+           * 🔴 2026-10-23 补接线：`ROLE_CODEX` 此前是 **ENTRY_LOST**
+           *   —— 类型（`src/types/modal.ts`）、组件（`RoleCodexModal`）、
+           *   消费端（`GameModals` 的 `currentModal?.type === "ROLE_CODEX"` 分支）
+           *   三者齐全，**唯独没有生产点**：
+           *   全仓唯一能打开它的地方是开局前的 `ScriptSelection`，
+           *   而那里用的是本地 state 直渲染 `RoleCodexModal`，不走 modal 系统。
+           *   ⇒ 对局中想说书人查一个角色的官方能力 / 相克细节，没有任何入口。
+           *
+           * 这是本项目反复复发的「类型 + 组件 + 消费端齐全，只缺生产点」死形态
+           * （台账 `modal_reachability_ledger.test.ts` 专门盯着这一类）。
+           * 修法就是补这一行：与 📜 复盘同一条 `setCurrentModal` 通路。
+           */}
+          <button
+            onClick={() =>
+              controller.setCurrentModal({ type: "ROLE_CODEX", data: null })
+            }
+            className="px-2.5 sm:px-3 py-1.5 bg-emerald-800/90 hover:bg-emerald-700/90 text-white text-xs font-medium rounded-lg border border-emerald-600/50 transition-all active:scale-95"
+            title="查看角色图鉴（官方能力 / 简介 / 运作方式 / 相克）"
+          >
+            📖 图鉴
+          </button>
+
           <button
             onClick={handleReset}
             className="px-2.5 sm:px-3 py-1.5 bg-red-900/80 hover:bg-red-800/80 text-white text-xs font-medium rounded-lg border border-red-700/50 transition-all active:scale-95"
