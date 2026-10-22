@@ -340,7 +340,7 @@ describe("暗流涌动 · §B 专属弹窗真实渲染", () => {
     const t = allText();
     expect(t, "缺少标题").toContain("间谍椭圆魔典");
     expect(t, "缺少魔典中心 HUD").toContain("魔典中心");
-    expect(t, "缺少建议用时").toContain("建议用时（不会自动关闭）");
+    expect(t, "缺少不限时说明").toContain("不限时");
     // 计数徽章
     expect(t).toContain("总人数");
     expect(t).toContain("善良");
@@ -348,14 +348,9 @@ describe("暗流涌动 · §B 专属弹窗真实渲染", () => {
     expect(t).toContain("死亡");
     // 情报筛选 Tab
     expect(t).toContain("全部行动与情报");
-    expect(t, "默认应渲染「行动记录默认隐藏」闸门").toContain(
-      "行动记录默认隐藏"
-    );
+    expect(t, "无日志时应渲染空态").toContain("暂无对应行动或情报记录");
     // 关闭入口
     expect(t).toContain("我已查看完毕");
-    // 倒计时控制
-    expect(t).toMatch(/暂停|继续/);
-    expect(t).toContain("+15s");
   });
 
   it("⑥ 间谍魔典：酒鬼座位显示为「(伪:角色名)」，不得泄漏真实身份（隐私不变量）", () => {

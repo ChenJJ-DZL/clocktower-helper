@@ -308,7 +308,7 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
   });
 
   /* ─────────── X02-04 ─────────── */
-  it("X02-04 HADESIA_KILL_CONFIRM · 哈迪寂亚：决定命运", () => {
+  it("X02-04 HADESIA_KILL_CONFIRM · 哈迪寂亚：决定命运（三人同屏）", () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();
     const onSetChoice = vi.fn();
@@ -332,42 +332,47 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
     expect(modalTitle()).toBe("⚔️ 哈迪寂亚：决定命运");
     expect(t).toContain("⚔️ 哈迪寂亚：决定命运");
 
-    // ③ 逐个结算：第 1 位，主按钮是「下一位」（此时不得出现「确定」）
-    expect(t).toContain("第 1 / 3 位");
-    expect(buttonTexts()).toContain("下一位");
-    expect(buttonTexts()).not.toContain("确定");
+    /**
+     * ③ 布局 = **三人同屏**（2026-10-22 用户明确允许）。
+     *    依次唤醒 + 静默是官方【运作方式】对**玩家**的要求，由说书人执行
+     *    （把设备一位一位递过去），所以界面不切三步向导，改为常驻操作提示。
+     *    ⇒ 三张卡必须同时在场，且**不得**出现「第 n / 3 位」「下一位」这类向导痕迹。
+     */
+    const cards = document.querySelectorAll(
+      '[data-testid="hadesia-target-card"]'
+    );
+    expect(cards.length, "三名被选玩家必须同屏展示").toBe(3);
+    expect(t).toContain("[1号]");
+    expect(t).toContain("[2号]");
+    expect(t).toContain("[3号]");
+    expect(t).toContain("依次"); // 操作提示：请把设备依次交给三位玩家
+    expect(t).not.toContain("第 1 / 3 位");
+    expect(buttonTexts()).not.toContain("下一位");
+
+    // ④ 主按钮文案逐字一致
+    expect(buttonTexts()).toContain("确定");
     expect(buttonTexts()).toContain("取消");
 
-    // ④ 第一位：先点「生」→ onSetChoice 收到当前座位 id
-    fireEvent.click(findButton("生"));
-    expect(onSetChoice).toHaveBeenCalledTimes(1);
-    expect(onSetChoice.mock.calls[0][0]).toBe(0);
-    expect(onSetChoice.mock.calls[0][1]).toBe("live");
+    // ⑤ 三张卡各自可点「生 / 死」→ onSetChoice 收到对应座位 id
+    const liveButtons = screen.getAllByRole("button", { name: "生" });
+    const dieButtons = screen.getAllByRole("button", { name: "死" });
+    expect(liveButtons.length, "每张卡一个「生」").toBe(3);
+    expect(dieButtons.length, "每张卡一个「死」").toBe(3);
+    fireEvent.click(liveButtons[0]);
+    expect(onSetChoice).toHaveBeenLastCalledWith(0, "live");
+    fireEvent.click(dieButtons[1]);
+    expect(onSetChoice).toHaveBeenLastCalledWith(1, "die");
 
-    // ⑤ 点「下一位」→ 第 2 位；上一位的座位号必须从页面消失（官方要求前一位的选择对后一位保密）
-    fireEvent.click(findButton("下一位"));
-    const t2 = bodyText();
-    expect(t2).toContain("第 2 / 3 位");
-    expect(t2).not.toContain("[1号]");
-    const card2 = document.querySelector('[data-testid="hadesia-current-target"]');
-    expect(card2?.textContent).toContain("[2号]");
-    expect(card2?.textContent).not.toContain("[1号]");
-
-    // ⑥ 页面不得泄露角色名
+    /**
+     * ⑥ 反向护栏：座位卡不得泄露角色名。
+     *    所有玩家都会得知被选的是谁，但没人该知道他们的身份
+     *    （三个页面同款判据见 X02-05 / X02-32）。
+     */
     expect(t).not.toMatch(/号(厨师|小恶魔|士兵|共情者|呆瓜)/);
-    expect(t2).not.toMatch(/号(厨师|小恶魔|士兵|共情者|呆瓜)/);
 
-    // ⑦ 再点一次「下一位」→ 第 3 位（最后一位），主按钮变「确定」
-    fireEvent.click(findButton("下一位"));
-    const t3 = bodyText();
-    expect(t3).toContain("第 3 / 3 位");
-    expect(t3).not.toContain("[2号]");
-    expect(buttonTexts()).toContain("确定");
-    expect(buttonTexts()).not.toContain("下一位");
+    // ⑦ 关闭 / 确认
     fireEvent.click(findButton("确定"));
     expect(onConfirm).toHaveBeenCalled();
-
-    // ⑧ 关闭不抛错
     fireEvent.click(findButton("取消"));
     expect(onCancel).toHaveBeenCalled();
   });
@@ -465,19 +470,23 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
     expect(modalTitle()).toBe("📖 间谍椭圆魔典 (全知全景)");
     expect(t).toContain("📖 间谍椭圆魔典 (全知全景)");
 
-    // ②b 倒计时只是「建议用时」，不制造「按自己意愿的时长」的压力
-    //     官方【运作方式】：「让他按自己意愿的时长查看魔典」
-    expect(t).toContain("建议用时（不会自动关闭）");
+    // ②b 不设倒计时（官方：按自己意愿的时长查看魔典）
+    expect(t).toContain("不限时");
+    expect(t).not.toContain("倒计时");
+    expect(t).not.toContain("建议用时");
 
-    // ②c 行动记录默认隐藏（官方只授权间谍看魔典，不含他人夜间行动/所得情报）
-    expect(t).toContain("行动记录默认隐藏");
-    expect(t, "默认不得展示他人行动日志").not.toContain("查验 2号玩家");
-    expect(t, "默认不得展示他人行动日志").not.toContain("查验");
+    // ②c 行动记录默认就显示（超出魔典范围的部分靠上下滑动查看，不做隐藏）
+    expect(t).not.toContain("行动记录默认隐藏");
+    expect(t).toContain("查验"); // gameLogs 里那条「1号(占卜师) 查验 2号玩家」
 
-    // ②d 说书人显式展开闸门 → 隐藏提示消失，日志才可见
-    fireEvent.click(screen.getByText(/展开行动记录/));
-    expect(bodyText()).not.toContain("行动记录默认隐藏");
-    expect(bodyText()).toContain("查验");
+    // ②d 列表容器必须可纵向滚动
+    const scrollers = Array.from(
+      document.querySelectorAll<HTMLElement>(".overflow-y-auto")
+    );
+    expect(
+      scrollers.length,
+      "行动记录必须放在 overflow-y-auto 容器里（否则超出部分看不到）"
+    ).toBeGreaterThan(0);
 
     // ③ 主按钮文案逐字一致
     expect(buttonTexts()).toContain("✓ 我已查看完毕 (下一步)");

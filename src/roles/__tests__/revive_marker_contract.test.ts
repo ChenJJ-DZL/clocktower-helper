@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { board, runRole } from "./_tbHarness";
 import { buildAbilityMap } from "../../utils/invariantTesting/engineConfig";
+import { resetLimitedAbilityUses } from "../../utils/LimitedAbilityManager";
+
+/**
+ * ⚠️ 限次能力注册表（`LimitedAbilityManager`）是**模块级**状态，按 seatId 记用量。
+ * 不重置的话，同一文件里第二条「教授在 1 号位复活」会被判成「已经用过复活能力」，
+ * 直接 abort —— 我曾因此误以为产品坏了。
+ */
+beforeEach(() => {
+  resetLimitedAbilityUses();
+});
 
 /** roleId → ability（`buildAbilityMap()` 的 key 是 abilityId，须按 roleId 反查） */
 const BY_ROLE: Record<string, any> = (() => {
@@ -124,5 +134,49 @@ describe("revivedAtNight · 复活必须打本夜戳", () => {
       "上一夜的复活不得在本夜重复播报"
     ).toEqual([]);
     expect(collectRevivedThisNight(seats as any, 1)).toEqual([0]);
+  });
+});
+
+describe("黎明播报 · 教授复活必须在黎明被宣告", () => {
+  it("教授复活后，黎明文案必须包含「复活」段（官方：宣布哪些玩家复活了）", async () => {
+    const { buildDawnAnnouncementFromSeats } = await import(
+      "../../utils/dawnAnnouncement"
+    );
+    const seats = board([
+      "professor",
+      "soldier",
+      "poisoner",
+      "imp",
+      "chef",
+      "butler",
+    ]) as any[];
+    seats[1].isDead = true;
+
+    const ctx = await runRole(BY_ROLE.professor, seats, 0, {
+      night: 2,
+      targets: [1],
+    });
+
+    // 能力层：复活成功 + 打了本夜戳
+    expect(seatOf(ctx, 1).isDead).toBe(false);
+    expect(seatOf(ctx, 1).revivedAtNight).toBe(2);
+
+    // 播报层：必须说出来（这是用户点名要的那一段）
+    const msg = buildDawnAnnouncementFromSeats(ctx.snapshot.seats as any, 2, []);
+    expect(msg).toBe("昨晚无人死亡；2号玩家复活");
+    expect(msg).toContain("复活");
+  });
+
+  it("同夜既有人死又有人复活 ⇒ 先死亡、后复活（官方顺序）", async () => {
+    const { buildDawnAnnouncementFromSeats } = await import(
+      "../../utils/dawnAnnouncement"
+    );
+    const seats = [
+      { id: 0, isDead: true, diedAtNight: 2 },
+      { id: 1, isDead: false, revivedAtNight: 2 },
+    ];
+    expect(buildDawnAnnouncementFromSeats(seats as any, 2, [])).toBe(
+      "昨晚1号玩家死亡；2号玩家复活"
+    );
   });
 });

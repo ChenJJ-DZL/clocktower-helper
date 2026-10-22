@@ -545,10 +545,19 @@ export async function advanceNightRandom(
     };
 
     for (let i = 0; i < MAX_STEPS; i++) {
-      if (isDay()) return { status: "day", journal, queue };
-      if (gameEnded()) return { status: "gameover", journal, queue };
-
+      /**
+       * 🔴 2026-10-22（94002 复现）：**先看有没有弹窗，再判白天**。
+       *
+       * 原顺序是 `if (isDay()) return "day"` 排在最前 —— 只要阶段标签变成
+       * dawnReport/day，即使「夜晚结算报告」弹窗还开着、还没点「确认并进入白天」，
+       * 也会直接退出 ⇒ 黎明报告被跳过、夜数不推进、下一圈从白天倒回夜晚时卡死
+       * （实测 trail 里 night#2 → day 反复 12 次）。
+       *
+       * 正确语义：**没有未处理弹窗**时才算这一天真的开始。
+       */
       const dlg = document.querySelector('[role="dialog"]');
+      if (gameEnded()) return { status: "gameover", journal, queue };
+      if (isDay() && !dlg) return { status: "day", journal, queue };
       const sig = `${dlg ? norm(dlg).slice(0, 60) : ""}||${
         btnsIn(document).find((b) => /下一步|天亮了|展开对局记录/.test(norm(b)))
           ? norm(btnsIn(document).find((b) => /下一步|天亮了|展开对局记录/.test(norm(b))))
@@ -674,7 +683,14 @@ export async function advanceNightRandom(
         (b) => /确认&下一步|下一步|天亮了|展开对局记录/.test(norm(b)) && !b.disabled
       );
       if (next) {
-        await clickSettled(next, 45);
+        /**
+         * 🔴 2026-10-22（94002 复现）：这里原先是 `clickSettled(next, 45)` —— 45ms。
+         *   弹窗（尤其间谍魔典这种大组件）挂载一旦超过 45ms，下一轮就会**再点一次同一个按钮**
+         *   （控制台的「展开对局记录」是开/关同一个弹窗）⇒ 弹窗刚开就被自己点关，
+         *   整夜卡住、夜数不再推进。
+         *   ⇒ 给到 1200ms，并在 `clickSettled` 里把「弹窗出现」也当作已生效信号。
+         */
+        await clickSettled(next, 1200);
         continue;
       }
       await sleep(45);

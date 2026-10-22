@@ -249,8 +249,14 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         ["townsfolk", "outsider"].includes(targetSeat.role.type);
 
       if (isGood) {
+        /**
+         * 🌙 月之子结算日志（2026-10-22 用户要求补全文案）。
+         * 官方：「你要**公开**选择一名存活的玩家。如果他是善良的，在当晚他会死亡。」
+         * ⇒ 日志写「谁选了谁 + 结果」，但**不写目标阵营**（阵营由玩家自己从死亡与否推断，
+         *   说书人日志不该把答案直接摆出来）。
+         */
         addLog(
-          `${sourceId + 1}号(月之子) 公开选择 ${targetId + 1}号；若其为善良，该玩家在当晚死亡`
+          `${sourceId + 1}号(月之子) 公开选择 ${targetId + 1}号：该玩家在当晚死亡`
         );
         killPlayer(targetId, {
           onAfterKill: (latestSeats: Seat[]) => {
@@ -263,7 +269,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         });
       } else {
         addLog(
-          `${sourceId + 1}号(月之子) 选择 ${targetId + 1}号，但该目标非善良，未死亡`
+          `${sourceId + 1}号(月之子) 公开选择 ${targetId + 1}号：该玩家未死亡`
         );
         moonchildChainPendingRef.current = false;
         onResolve?.();
