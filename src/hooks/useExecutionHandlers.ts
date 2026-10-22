@@ -50,7 +50,11 @@ export interface ExecutionHandlersDeps {
   voteRecords: { voterId: number; isDemon: boolean }[];
   isVortoxWorld: boolean;
   todayExecutedId: number | null;
-  mastermindFinalDay: { active: boolean } | null;
+  /**
+   * 🧠 2026-10-22：补上 `triggeredAtNight` —— 「额外一夜一昼」的结算时机判据。
+   *   没有它无法区分「触发当天」（应进额外一夜）与「额外那个白天」（应结算）。
+   */
+  mastermindFinalDay: { active: boolean; triggeredAtNight?: number } | null;
   winResult: "good" | "evil" | null;
   winReason: string | null;
   evilTwinPair?: { evilId: number; goodId: number } | null;
@@ -104,9 +108,9 @@ export interface ExecutionHandlersDeps {
   setWinReason: React.Dispatch<React.SetStateAction<string | null>>;
   setWinResult: React.Dispatch<React.SetStateAction<"good" | "evil" | null>>;
   setGamePhase: React.Dispatch<React.SetStateAction<GamePhase>>;
-  setMastermindFinalDay: React.Dispatch<
-    React.SetStateAction<{ active: boolean } | null>
-  >;
+  setMastermindFinalDay: (
+    v: { active: boolean; triggeredAtNight?: number } | null
+  ) => void;
   setVoteInputValue: (val: string) => void;
   setShowVoteErrorToast: (val: boolean) => void;
   // 🔧 女巫诅咒桥接（可选）：透传给 handleNightAction → executeViaNewEngine，
@@ -1318,6 +1322,34 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
    * 完整设置 React 夜晚状态（wakeQueueIds / currentWakeIndex / gamePhase / nightCount）。
    */
   const startSubsequentNight = useCallback(() => {
+    /**
+     * 🧠 主谋：**额外那个白天结束**时的结算（无人被处决的路径）。
+     *
+     * 官方：「在那个白天如果有玩家被处决，他的阵营落败。」
+     *   ⇒ 无人被处决 ⇒ 善良获胜（判据 `utils/mastermindRule::resolveMastermindExtraDay(null)`）。
+     *
+     * 时序判据与 `confirmExecutionResult` 保持一致：
+     *   `triggeredAtNight` = 触发夜晚数 N；`nightCount > N` 说明已经过完额外一夜，
+     *   此刻再要「入夜」就意味着额外那个白天已结束 ⇒ 必须结算，不能再进夜晚。
+     */
+    if (mastermindFinalDay?.active) {
+      const triggeredNight = mastermindFinalDay.triggeredAtNight ?? 0;
+      if (nightCount > triggeredNight) {
+        const executedSeat =
+          todayExecutedId === null || todayExecutedId === undefined
+            ? null
+            : seats.find((s) => s.id === todayExecutedId) ?? null;
+        const extra = resolveMastermindExtraDay(executedSeat as any);
+        addLog(`🧠 ${extra.reason}`);
+        setWinResult(extra.winner);
+        setWinReason(extra.reason);
+        setGamePhase("gameOver");
+        setMastermindFinalDay?.(null);
+        setCurrentModal({ type: "GAME_OVER", data: null });
+        return;
+      }
+    }
+
     // 1. 运行引擎生成夜晚队列（供新引擎能力管道使用）
     nightLogic.startNight(false);
 
@@ -1475,6 +1507,15 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
     baseDispatch,
     setSystemStepRoleIds,
     systemStepRoleIdsRef,
+    // 🧠 主谋「额外一天」结算所需（见函数开头守卫）
+    mastermindFinalDay,
+    todayExecutedId,
+    addLog,
+    setWinResult,
+    setWinReason,
+    setGamePhase,
+    setMastermindFinalDay,
+    setCurrentModal,
   ]);
 
   // Confirm execution result handler
@@ -1511,6 +1552,24 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
      *   ⇒ 现在改为直接用唯一判据 `utils/mastermindRule::resolveMastermindExtraDay`。
      */
     if (mastermindFinalDay?.active) {
+      /**
+       * 🧠 2026-10-22 修复：这段此前**在触发当天就结算**，与官方时序相反。
+       *
+       * 官方：「恶魔因为死于处决而因此导致游戏结束时，**再额外进行一个夜晚和一个白天**。
+       *   在那个白天如果有玩家被处决，他的阵营落败。」
+       * ⇒ 触发当天只是「进入额外一夜」，**不能**立刻用今天的处决者判胜；
+       *   真正的结算必须等到**额外那个白天**结束。
+       *
+       * 判据：`triggeredAtNight` = 触发时所在夜晚数（第 N 夜）。
+       *   · 触发当天（`nightCount === N`）⇒ 进额外一夜，标记保留；
+       *   · 额外白天（`nightCount === N + 1`）⇒ 这时候的处决才参与结算。
+       */
+      const triggeredNight = mastermindFinalDay.triggeredAtNight ?? 0;
+      if (nightCount <= triggeredNight) {
+        addLog("🧠 主谋：恶魔死于处决 ⇒ 额外进行一个夜晚和一个白天");
+        startSubsequentNight();
+        return;
+      }
       const executedSeat =
         todayExecutedId === null || todayExecutedId === undefined
           ? null

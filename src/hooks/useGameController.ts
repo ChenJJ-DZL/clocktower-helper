@@ -306,6 +306,36 @@ export function useGameController() {
   seatsRef.current = seats; // 渲染期同步（React commit 后 state 已更新）
 
   /**
+   * 🧠 2026-10-22：主谋「额外一夜一昼」状态的读取镜像（与上面 `seatsRef` 同一套路）。
+   *
+   * 为什么不能直接读 state：`checkGameOver` 是 `useCallback`，闭包捕获的是**创建时**的
+   * `mastermindFinalDay`；而主谋触发的写入（`setMastermindFinalDay({active:true})`）与
+   * 随后的第二次判胜在**同一个 tick** 内发生 ⇒ 闭包里的值仍是 `null`
+   * ⇒ 守卫失效、判胜照常执行（实测：标记 true 与 winResult:"good" 同时存在）。
+   * ref 是同步可读的，跨 tick 取值正确。
+   */
+  const mastermindFinalDayRef = useRef<{
+    active: boolean;
+    triggeredAtNight?: number;
+  } | null>(null);
+  /**
+   * 唯一 setter：**先同步写 ref、再 dispatch**。
+   *
+   * 🔴 为什么必须在 setter 里写 ref（第一版守卫生效不了的真因）：
+   *   主谋的写入与「第二次判胜」发生在**同一 tick**，React 还没重新渲染
+   *   ⇒ 渲染期同步（`ref.current = state`）拿到的仍是 `null`
+   *   ⇒ `checkGameOver` 的守卫看到 null ⇒ 判胜照常执行、覆盖标记。
+   */
+  const commitMastermindFinalDay = useCallback(
+    (v: { active: boolean; triggeredAtNight?: number } | null) => {
+      mastermindFinalDayRef.current = v;
+      setMastermindFinalDay(v);
+    },
+    [setMastermindFinalDay]
+  );
+  mastermindFinalDayRef.current = mastermindFinalDay ?? null;
+
+  /**
    * 🔴 2026-09-22 新增：**能力击杀后的终局判定入口**。
    *
    * 背景（真实缺陷，E2E 实测抓到）：
@@ -1241,9 +1271,13 @@ export function useGameController() {
       selectedScript,
       nightCount,
       // 🧠 主谋「额外一夜一昼」状态写入（此前该状态从未被激活 ⇒ 规则不生效）
-      setMastermindFinalDay,
+      //    ⚠️ 必须用 commitMastermindFinalDay：同一 tick 内的判胜守卫要读到最新值
+      commitMastermindFinalDay,
+      // 🧠 主谋状态读取镜像：active 期间常规判胜必须停火（见 useLogicDispatcher 参数注释）
+      mastermindFinalDayRef,
       // 🔴 共享座位镜像：杜绝「控制器 ref 已更新、dispatcher ref 仍是上一帧」
       //   导致的 checkGameOver 旧数组写回（贞洁者处决被抹掉的根因）
+      //   ⚠️ 必须是**最后一个实参**（status_details_contract 棘轮）
       seatsRef
     );
 
@@ -1468,7 +1502,8 @@ export function useGameController() {
     setWinResult,
     setWinReason,
     setGamePhase,
-    setMastermindFinalDay,
+    // 🧠 同一 setter 出口：清标记时也要同步清 ref，否则守卫会永久停火
+    setMastermindFinalDay: commitMastermindFinalDay,
     setVoteInputValue,
     setShowVoteErrorToast,
     setWitchCursedId,

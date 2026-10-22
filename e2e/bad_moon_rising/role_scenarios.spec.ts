@@ -882,15 +882,23 @@ test.describe("黯月初升 · G6 处决触发", () => {
   });
 
   test("主谋：恶魔死于处决 ⇒ 额外一夜，不立即终局", async ({ page }) => {
-    // ⚠️ 待定位（2026-10-22）：这条连续验证 3 轮未通过，**已排除两个假设**：
-    //   ① 「`mastermindFinalDay` 零写入点」— 错。`useLogicDispatcher.ts:235` 一直在写。
-    //   ② 「普卡毒到主谋 ⇒ mastermindActive=false」— 已显式指定毒目标避开主谋，仍红。
-    //   链路本身是齐的：`gameLogic.ts:596-611` 判据（totalEffectiveDemons===0 +
-    //   lastAction==="execution" + demonDied + mastermindActive）齐全，返回 extraDay:true。
-    //   ⇒ 现象是 `dusk.status === "gameover"` 且终局 UI 出现，说明**处决这一刻没有走到
-    //     那个分支**（更可能在到达 checkGameEnd 之前就返回了，或 totalEffectiveDemons ≠ 0）。
-    //   下一轮需要打印 processGameEvent 的入参/返回值，别再从静态读代码推结论。
-    test.fail(true, "主谋续命未定位（已排除零写入点/毒主谋两种假设，见注释）");
+    /**
+     * ✅ 2026-10-22 已修复（真因由探针锁定，前两次判断都错了）：
+     *   ① 不是「`mastermindFinalDay` 零写入点」—— `useLogicDispatcher` 一直在写；
+     *   ② 不是「普卡毒到主谋」—— 显式避开后仍红；
+     *   ③ **真因：同一处决触发了两次判胜**。第一次命中主谋分支、写入 `active=true`；
+     *      随即第二次判胜（`executedId` 已为空 ⇒ 主谋条件不满足）落到
+     *      `gameLogic.ts:640`「恶魔已被彻底消灭」⇒ `setGamePhase("gameOver")` +
+     *      `GAME_OVER` 弹窗覆盖了 `EXECUTION_RESULT` ⇒ `confirmExecutionResult` 不被调用
+     *      ⇒ 额外一天成了死代码。探针快照实证：
+     *        `mastermindFinalDay:{active:true}` 与 `winResult:"good"` **同时存在**。
+     *
+     * 修法（三处闭环）：
+     *   · `useLogicDispatcher.checkGameOver` 开头：主谋 active ⇒ 常规判胜**停火**
+     *     （读 ref 而非 state —— 写入与二次判胜在同一 tick，闭包里的 state 仍是 null）；
+     *   · `confirmExecutionResult`：触发当天只「进额外一夜」，不结算；
+     *   · `startSubsequentNight` 开头：额外白天结束（无人被处决）才结算 = 善良胜。
+     */
     const snap = await bootS(page, "S04");
     const demonSeat = seatByRole(snap, "pukka");
     const mmSeat = seatByRole(snap, "mastermind");
@@ -936,6 +944,29 @@ test.describe("黯月初升 · G6 处决触发", () => {
     const live = await waitLive(page, (l) => l?.gameOverUi === true, 5_000);
     expect.soft(live?.gameOverUi, "主谋在场时恶魔死于处决不得立即终局").not.toBe(true);
     expect.soft(dusk.status, "应进入额外的一夜（而不是判善良胜）").toBe("night");
+
+    /**
+     * ── 完整闭环（官方时序）：额外一夜 → 额外那个白天 **无人被处决** ⇒ 善良获胜 ──
+     * 官方：「在下一个白天，如果一名善良玩家被处决 —— 邪恶阵营获胜；
+     *        如果一名邪恶玩家被处决，或者**没有人被处决**，则**善良阵营获胜**。」
+     * 这条同时验证「结算时机」：触发当天不得结算，必须等到额外白天结束。
+     */
+    const n2 = await driveNight(page, []);
+    expect.soft(n2.status, "额外一夜应推进到额外那个白天").toBe("day");
+
+    const dusk2 = await driveDusk(page, {});
+    const end = await readLiveEndState(page);
+    expect.soft(dusk2.status, "额外白天结束（无人处决）⇒ 必须判终局").toBe(
+      "gameover"
+    );
+    expect
+      .soft(end?.winner, "额外白天无人被处决 ⇒ 善良阵营获胜")
+      .toBe("good");
+    // 胜因：终局快照里的 winReason（项目约定「终局快照必须带 winResult」）
+    const endSnap = await snapNow(page);
+    expect
+      .soft(endSnap?.winReason ?? end?.winnerReason, "胜因应写明「主谋额外一天」")
+      .toContain("主谋");
   });
 
   test("吟游诗人：爪牙死于处决 ⇒ 除自己外全员醉酒", async ({ page }) => {

@@ -47,6 +47,24 @@ export function useLogicDispatcher(
    */
   setMastermindFinalDay?: (v: { active: boolean; triggeredAtNight: number } | null) => void,
   /**
+   * 🧠 2026-10-22：主谋「额外一夜一昼」状态的**读取镜像**（必需，不是可选）。
+   *
+   * 🔴 为什么必须读（探针实锤，S04 处决普卡）：
+   *   同一动作里判胜被触发**两次**——
+   *     ① `logicDispatch` 处理 `EXECUTE_PLAYER` 时，`checkGameEnd` 拿到
+   *        `executedId` = 恶魔、`lastAction="execution"`，但**调用方没传**
+   *        `isMastermindActive` ⇒ 主谋分支不命中 ⇒ 直接判「恶魔已被彻底消灭」；
+   *     ② `checkGameOver` 再判时已经晚了（相位已切 gameOver、弹窗被覆盖）。
+   *   实测快照：`mastermindFinalDay:{active:true}` 与 `winResult:"good"` **同时存在**。
+   *
+   * 必须用 ref 而不是 state：写入与后续判胜在**同一 tick**，`useCallback` 闭包里的
+   *   `mastermindFinalDay` 仍是 `null` ⇒ 守卫失效（第一版守卫无效的真因）。
+   *
+   * ⚠️ 位置固定在 `sharedSeatsRef` **之前**：`status_details_contract` 棘轮要求
+   *   「调 useLogicDispatcher 时最后一个实参必须是共享 seatsRef」，别调换。
+   */
+  mastermindFinalDayRef?: { current: { active: boolean; triggeredAtNight?: number } | null },
+  /**
    * 🔴 2026-10-21：**共享座位镜像**（可选）。
    *
    * 为什么需要（真实缺陷，贞洁者 E2E 实测抓到）：
@@ -118,7 +136,38 @@ export function useLogicDispatcher(
         }
       }
 
-      if (snapshot.winner) {
+      /**
+       * 🧠 主谋「额外一夜一昼」—— **第二条判胜路径的守卫**（2026-10-22 真凶）。
+       *
+       * `checkGameOver`（另一处）早就在 235 行写过 `mastermindFinalDay.active`，
+       * 但**本函数是完全独立的判胜入口**：它直接 `if (snapshot.winner)` 就落终局，
+       * 既不看 `nextActionHint`，也不看主谋标记。
+       *
+       * 探针实证（S04 处决普卡）：
+       *   · `checkGameOver` 只被调用 **1 次**，`hint=MASTERMIND_EXTRA_DAY`、`winner=null`
+       *     ⇒ 它这一侧是干净的；
+       *   · 终局却照样出现、`winReason="恶魔已被彻底消灭"`（`gameLogic.ts:640`）
+       *     ⇒ 唯一可能是**这里**把同一次判胜的 winner 落了库。
+       *
+       * 修法两条：
+       *   ① 命中 `MASTERMIND_EXTRA_DAY` ⇒ 先写激活标记（本路径也必须写，不能只靠 checkGameOver）；
+       *   ② 只要标记已激活或本条 hint 命中 ⇒ **不判胜**，让 `EXECUTION_RESULT` 弹窗存活，
+       *      由 `confirmExecutionResult` / `startSubsequentNight` 按官方时序结算。
+       */
+      if (
+        snapshot.nextActionHint === "MASTERMIND_EXTRA_DAY" &&
+        setMastermindFinalDay
+      ) {
+        setMastermindFinalDay({
+          active: true,
+          triggeredAtNight: nightCount ?? 0,
+        });
+      }
+      const skipVictoryForMastermind =
+        snapshot.nextActionHint === "MASTERMIND_EXTRA_DAY" ||
+        mastermindFinalDayRef?.current?.active === true;
+
+      if (snapshot.winner && !skipVictoryForMastermind) {
         const w = snapshot.winner === "Good" ? "good" : "evil";
         const reason = snapshot.winReason || "未知原因";
         victoryRef.current = { winner: w, reason };
@@ -207,6 +256,22 @@ export function useLogicDispatcher(
           setCurrentModal({ type: "GAME_OVER", data: null });
           return;
         }
+        /**
+         * 🧠 主谋「额外一夜一昼」进行中 ⇒ 常规判胜全部停火。
+         *
+         * 官方：「如果恶魔因为死于处决而因此导致游戏结束时，再额外进行一个夜晚和一个白天。」
+         * ⇒ 从触发那一刻起，到额外那个白天结束之前，**任何**常规判胜都不成立。
+         *   额外那天的胜负由 `confirmExecutionResult`（有人被处决）或
+         *   `startSubsequentNight` 开头（无人被处决）用
+         *   `utils/mastermindRule::resolveMastermindExtraDay` 单独结算。
+         *
+         * 🔴 没有这道守卫的实测症状（S04）：标记写对了、但被同 tick 的第二次判胜覆盖
+         *   ⇒ 处决普卡后直接 gameOver，`EXECUTION_RESULT` 弹窗被 GAME_OVER 顶掉。
+         */
+        if (mastermindFinalDayRef?.current?.active) {
+          return;
+        }
+
         const mastermind = seatsForCheck.find(
           (s) =>
             s.role?.id === "mastermind" &&
@@ -231,6 +296,7 @@ export function useLogicDispatcher(
           },
         };
         const snapshot = processGameEvent(seatsForCheck, gamePhase, action);
+
 
         // 🧠 主谋：恶魔死于处决 ⇒ 进入「额外一夜一昼」，激活状态标记
         if (

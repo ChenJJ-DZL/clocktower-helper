@@ -144,13 +144,25 @@ describe("🛡️ useLogicDispatcher 副作用的落点", () => {
       join(ROOT, "src/hooks/useGameController.ts"),
       "utf-8"
     );
-    // 锚点用「主谋写入入口」这个**倒数第二个**实参，再断言紧随其后的是 seatsRef
-    //   （不能贪心匹配整个文件：注释里也出现过 `useLogicDispatcher(seats, …)` 字样）
-    const wired = /setMastermindFinalDay,\s*[\s\S]{0,600}?seatsRef\s*\)\s*;/.test(
-      controller
-    );
+    /**
+     * 锚点：直接取**最后一次** `useLogicDispatcher( … );` 调用块，剥掉行注释后
+     *   断言 ① 传了 `seatsRef`；② 它是**最后一个实参**。
+     *
+     * ⚠️ 2026-10-22 收紧口径：原来用 `setMastermindFinalDay, [\s\S]{0,600}?seatsRef);`
+     *   做锚点，一旦主谋写入入口改名/中间插了注释就误报（本次 `commitMastermindFinalDay`
+     *   正是这种情况）。改为「解析实参块 + 断言尾参」，不再依赖任何中间实参的名字。
+     */
+    const calls = controller.match(/useLogicDispatcher\([\s\S]*?\n\s*\);/g) ?? [];
+    const lastCall = calls[calls.length - 1] ?? "";
+    expect(lastCall, "必须存在 useLogicDispatcher(...) 调用").not.toBe("");
+    expect(lastCall, "必须把控制器的共享 seatsRef 传进去").toContain("seatsRef");
+
+    const argsOnly = lastCall
+      .replace(/\/\/[^\n]*/g, "")
+      .replace(/useLogicDispatcher\(/, "")
+      .replace(/\);\s*$/, "");
     expect(
-      wired,
+      argsOnly.trim().endsWith("seatsRef"),
       "useGameController 调 useLogicDispatcher 时，最后一个实参必须是共享的 seatsRef"
     ).toBe(true);
   });

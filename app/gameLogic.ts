@@ -520,7 +520,7 @@ export function checkGameEnd(
   options: GameContext = {}
 ): GameEndResult {
   const {
-    isMastermindActive = false,
+    isMastermindActive: isMastermindActiveOpt,
     isMastermindExtraDay = false,
     damselGuessed = false,
     klutzGuessedEvil = false,
@@ -569,6 +569,31 @@ export function checkGameEnd(
 
   const aliveSeats = seats.filter((s) => !s.isDead);
   const aliveCount = aliveSeats.length;
+
+  /**
+   * 🧠 主谋「是否生效」的**兜底自算**（2026-10-22 真凶修复）。
+   *
+   * 🔴 缺陷：`isMastermindActive` 默认 `false`，完全依赖**调用方**在
+   *   `GameAction.context` 里显式传值。而判胜有**两个入口**：
+   *     · `useLogicDispatcher.checkGameOver` —— 传了（算得很细，含中毒）；
+   *     · `useLogicDispatcher.logicDispatch` 处理 `EXECUTE_PLAYER` —— **没传**。
+   *   于是处决恶魔那一刻 `logicDispatch` 先判：「恶魔已被彻底消灭 ⇒ 善良胜」
+   *   （探针实证：`{"action":"EXECUTE_PLAYER","winner":"Good","hint":null}`），
+   *   主谋分支根本没被执行；等 `checkGameOver` 再判时已经晚了。
+   *
+   * 修法：调用方给值就以调用方为准；**没给就按座位真值自算**
+   *   （存活 + 非中毒 + 非醉酒 —— 与 `computeIsPoisoned` 的口径一致）。
+   *   这样任何新增的判胜入口都不会再漏掉主谋。
+   */
+  const isMastermindActive =
+    isMastermindActiveOpt ??
+    seats.some(
+      (s) =>
+        s.role?.id === "mastermind" &&
+        !s.isDead &&
+        !s.isPoisoned &&
+        !s.isDrunk
+    );
 
   const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
 
