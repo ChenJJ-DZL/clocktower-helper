@@ -666,7 +666,20 @@ export async function advanceNightFast(
           const m = hint.match(/最少(\d+)人/);
           let need = m ? Number(m[1]) : 1;
           const cards = btnsIn(dlg).filter((b) => /^\d+号/.test(norm(b)));
-          if (isLegionStep && need === 0) need = 1; // 主动代选，让伤亡可断言
+          /**
+           * 🔴 2026-10-22（trouble_brewing `deathSource` 用例稳定红）：
+           *   **恶魔的击杀步骤也必须在 need === 0 时主动代选 1 人。**
+           *
+           *   官方小恶魔：「每个夜晚*，选择一名玩家：他死亡」—— `min: 0` 只是为了让
+           *   「场上没有合法目标」成为合法操作，**不是说书人该放弃击杀**。
+           *   而 `advanceNightFast` 在 `need === 0` 时一个卡片都不点 ⇒ 主按钮命中
+           *   「确认（不选目标）」⇒ 第二夜必然 0 人死亡，与官方契约相反。
+           *   （实测：G1 阵容第 2 夜 `dead=0 marked=0`，`deathSource` 用例稳定红。）
+           *
+           *   ⇒ 与军团同一处理：恶魔/军团步骤且 need === 0 时，代选 1 个合法目标。
+           */
+          const isDemonKillStep = /恶魔|军团/.test(hint);
+          if (isDemonKillStep && need === 0) need = 1; // 主动代选，让伤亡可断言
           let picked = 0;
           // 军团局优先选「非军团」座位（杀军团同伴无意义）
           const ordered = isLegionStep
