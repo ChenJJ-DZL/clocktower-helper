@@ -430,6 +430,41 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(res?.aborted, "❌ 官方要求选两名玩家 ⇒ 只选一人必须中止").toBe(true);
       expect(res?.meta?.abilityResult, "❌ 中止时不得产出结果").toBeUndefined();
     });
+
+    /**
+     * ④ 🔴 2026-10-23 回归护栏（P0）：「唤醒/预览阶段没有目标」**绝不能中止**。
+     *
+     * 此前 `preCheckTargets` 死判 `targetIds.length !== 2` 就 abort，
+     * 而流水线在 preview（玩家还没选人）时也跑 preCheck ⇒ 置 `_preCheckAborted`
+     * ⇒ `useNightActionHandler:510` 直接「关弹窗 + 推进下一位」
+     * ⇒ **连选目标的弹窗都不会打开**，女裁缝的能力整局都无法使用。
+     *
+     * 断言两件事：不 abort、且没有 `_preCheckAborted`（后者才是弹窗被跳过的真判据）。
+     */
+    it("④ 唤醒/预览（未选目标）⇒ 不得中止，否则弹窗永远打不开", async () => {
+      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const res = await runRole(seamstressAbility, seats, 0, {
+        night: 1,
+        phase: "night",
+        targets: [],
+        preview: true,
+      });
+      expect(res?.aborted, "❌ 未选目标时中止 ⇒ 女裁缝永远没有机会使用能力").not.toBe(true);
+      expect(
+        res?.meta?._preCheckAborted,
+        "❌ 置了 _preCheckAborted ⇒ 调用方会直接关弹窗跳过本角色"
+      ).not.toBe(true);
+    });
+
+    it("⑤ 反证：传 3 名目标 ⇒ 数量校验仍在（修 ④ 不得把校验削掉）", async () => {
+      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const res = await runRole(seamstressAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [1, 2, 3],
+      });
+      expect(res?.aborted, "❌ 官方只要两名玩家 ⇒ 三个目标必须中止").toBe(true);
+    });
   });
 
   describe("艺术家 artist", () => {

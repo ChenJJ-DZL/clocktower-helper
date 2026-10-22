@@ -43,13 +43,52 @@ const preCheckLimitedAbility = async (
   return context;
 };
 
-// 前置校验：检查是否选择了两名目标
+/**
+ * 前置校验：目标数量（**只在「已经选了目标」时才校验**）
+ *
+ * 🔴 2026-10-23 修复 P0：女裁缝的能力此前**完全无法使用**。
+ *
+ * 病灶：旧写法定死 `targetIds.length !== 2` 就 abort。但流水线在
+ *   **唤醒/预览阶段**（`preview = true`，此时玩家还没选目标，`targetIds` 为空）也会跑
+ *   preCheck；一 abort 就置 `meta._preCheckAborted = true`，
+ *   而 `useNightActionHandler:510` 对 `_preCheckAborted` 的处理是
+ *   「记日志 → 关弹窗 → 直接推进下一位」—— **连选目标的弹窗都不会打开**。
+ *   ⇒ 说书人永远没有机会为她选那两名玩家。
+ *
+ * 为什么只有她一个角色踩到：其余 2 目标角色（管家/旅店老板/占卜师/麻脸巫婆…）
+ *   的 preCheck 只有 `commonPreCheckAlive`，数量完全交给 `targetConfig.min/max`
+ *   由 UI 强制（弹窗在 `selectedTargets.length < min` 时确认键 disabled）。
+ *   女裁缝是唯一在 preCheck 里自己数目标的。
+ *
+ * 修法：**「空手」放行，「选错」才拦**。
+ *   · 没目标（唤醒/预览）⇒ 放行，让 targetConfig(min=2) 把弹窗打开；
+ *   · 有目标但不是 2 个 ⇒ 仍中止（防止程序化调用传错数量）；
+ *   · 选中自己 ⇒ 仍中止（`allowSelf: false` 之外的第二道防线）。
+ */
 const preCheckTargets = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { targetIds, actionNode } = context;
 
-  if (!targetIds || targetIds.length !== 2) {
+  const provided = Array.isArray(targetIds) ? targetIds.filter((x) => typeof x === "number") : [];
+  if (provided.length === 0) {
+    /**
+     * 分两种「空手」，语义完全不同，必须分开：
+     *   · `preview === true` = **唤醒/预览阶段**（`useGameController:1744` 恒以 preview 进入）。
+     *     此时玩家还没看到弹窗、更没选人 ⇒ 放行，让 `targetConfig.min = 2`
+     *     把「请选择目标玩家（最少 2 人）」弹窗打开。
+     *   · 非 preview = **真实结算却没带目标** ⇒ 就是官方说的「她可以摇头不使用能力」，
+     *     中止并给出原因（不能静默空转 —— L2 矩阵契约要求「有明确去向」）。
+     */
+    if (context.preview === true) return context;
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "女裁缝选择不使用能力（未选择目标）",
+    };
+  }
+
+  if (provided.length !== 2) {
     return {
       ...context,
       aborted: true,

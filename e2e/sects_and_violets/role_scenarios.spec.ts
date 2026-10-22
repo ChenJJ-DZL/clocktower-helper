@@ -5,6 +5,7 @@ import { roles as APP_ROLES } from "../../app/data";
 import {
   isMinionOrDemonRole,
   isSeatDemon,
+  isSeatEvil,
   isSeatMinion,
 } from "../../src/utils/seatAlignment";
 import {
@@ -563,13 +564,22 @@ test.describe("梦殒春宵 · G5 诅咒与转化", () => {
 
   test("女裁缝：选一好一坏 ⇒ 必须回答「不同阵营」", async ({ page }) => {
     /**
-     * ✅ 2026-10-22 定性：**不是产品缺陷，是驱动器传参边界**。
-     *   探针实锤：S08 首夜 `wakeQueueIds` = `[2:pit_hag, 4:vigormortis,
-     *   6:philosopher, 7:clockmaker, 8:seamstress]` —— **队列里有她，且在最后一位**。
-     *   但执行到她时被静默跳过：`preCheckTargets` 要求 `targetIds.length === 2`，
-     *   驱动器没能把两个目标传进来 ⇒ 能力 abort ⇒ 不产生 step。
-     *   而官方明确「她可以**摇头不使用能力**」⇒ 跳过本身合法，产品不算错。
-     *   ⇒ 本用例改为条件断言：出现结果就校验内容；没出现则标 skip（不假绿）。
+     * 🔴 2026-10-23 修复 P0：这条此前被登记成「驱动器传参边界」是**错的**。
+     *
+     * 真因（产品）：`seamstress.ability.ts` 的 `preCheckTargets` 死判
+     *   `targetIds.length !== 2` 就 abort；而流水线在**唤醒/预览阶段**
+     *   （玩家还没选目标，`targetIds` 为空）同样会跑 preCheck ⇒ 置
+     *   `meta._preCheckAborted` ⇒ `useNightActionHandler:510` 直接
+     *   「记日志 → 关弹窗 → 推进下一位」⇒ **选目标的弹窗根本不会打开**。
+     *   ⇒ 女裁缝的能力整局**完全无法使用**（不是她「摇头」，是说书人没机会点）。
+     *   其余 2 目标角色（管家/旅店老板/占卜师/麻脸巫婆）都不在 preCheck 里数目标，
+     *   数量由 `targetConfig.min/max` 交给 UI 强制 ⇒ 只有她踩到。
+     *
+     * 修法：preCheck 改为「空手放行、选错才拦」；契约测试见
+     *   `src/roles/__tests__/full/snv_l5_causal.test.ts` ④⑤（无目标不中止 / 3 目标仍中止）。
+     *
+     * 官方：「每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：
+     *      你会得知他们是否为同一阵营。」
      */
     const snap = await bootS(page, "S08");
     const ssSeat = snap.seats.find((s: any) => s.role?.id === "seamstress").id as number;
@@ -579,34 +589,69 @@ test.describe("梦殒春宵 · G5 诅咒与转化", () => {
       (s: any) => s.id !== evil && s.id !== ssSeat && !evilIds.includes(s.role?.id)
     ).id as number;
 
-    // 官方：「每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：
-    //   你会得知他们是否为同一阵营。」
-    // ⚠️ 必须显式指定哲学家的选角：驱动器默认选 clockmaker，而 clockmaker 在场
-    //   ⇒ 官方「如果这个角色在场，他醉酒」会把 8 号（正好是女裁缝）弄成酒鬼
-    //   ⇒ 被醉的角色不产出信息，用例会误判成「女裁缝没实现」。
-    //   选一个**不在本局**的善良角色（dreamer）⇒ 无人醉酒。
+    // 哲学家默认会选 clockmaker（本局在场）⇒ 官方「该角色在场则他醉酒」会醉到女裁缝
+    // ⇒ 显式选一个不在场的善良角色（dreamer），避免能力被醉酒口径抑制。
     const n1 = await driveNight(page, [
       { role: "philosopher", roleChoice: "dreamer", note: "选不在场角色，避免有人醉酒" },
       { role: "seamstress", targets: [good + 1, evil + 1], note: "一好一坏" },
     ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    // ① 她必须真的被唤醒并结算（此前的缺陷表现就是这里为空）
+    const ssSteps = stepsOf(n1, "seamstress");
+    expect
+      .soft(
+        ssSteps.length,
+        `官方：每局限一次、每夜可唤醒 ⇒ 必须有行动步骤（实测 ${ssSteps.length} 条）`
+      )
+      .toBeGreaterThan(0);
 
     /**
-     * 2026-10-23 再探（打印 `stepsOf(n1,"seamstress")`）：**steps 只有 1 条，且是「夜晚结算报告」**
-     *   ⇒ 她这一步连「行动确认」窗都没出现，即 `preCheck` 阶段就 abort 了
-     *   （`preCheckTargets` 要求 `targetIds.length === 2`，驱动器这条路径没传进去）。
-     * 官方「她可以摇头不使用能力」⇒ 跳过合法。
+     * ② 答案回查真值（不硬编「不同阵营」）。
+     *
+     * 为什么不写死：驱动器点座位时，第一张卡片点击后网格会重渲染，
+     *   第二张的点选可能落到相邻座位（实测本局计划 [1号, 2号]，结果答的是「1号和3号」）。
+     *   写死「必须是不同阵营」会把**驱动器点偏**误判成**产品算错**（本项目已踩过多次）。
+     * ⇒ 正确判据：从弹窗里解析出它**实际用的那两个座位**，回座位表复算阵营，
+     *   再与它给的「是/否」比对 —— 这才是在验产品，而不是在验驱动器。
      */
-    const r = resultStep(n1, "seamstress", /阵营/);
-    if (!r) {
-      // 官方：「她可以摇头不使用能力」⇒ 驱动器没传进两个目标时，跳过是合法结果。
-      test.skip(true, "驱动器未把两个目标传给女裁缝 ⇒ 说书人选择不使用能力（官方允许）");
-      return;
+    const dialog = ssSteps.map((x) => x.dialog).join(" | ");
+    const m = dialog.match(/(\d+)号和(\d+)号玩家([是否])同一阵营/);
+    expect
+      .soft(m != null, `应给出「X号和Y号玩家是否同一阵营」的结果（实测：${dialog.slice(0, 180)}）`)
+      .toBe(true);
+    if (m) {
+      const a = Number(m[1]);
+      const b = Number(m[2]);
+      const saidSame = m[3] === "是";
+      // 官方：「选择除你以外的两名玩家」⇒ 不得把女裁缝自己算进去
+      expect.soft(a, "不得选择自己").not.toBe(ssSeat + 1);
+      expect.soft(b, "不得选择自己").not.toBe(ssSeat + 1);
+      expect.soft(a, "必须选两名不同的玩家").not.toBe(b);
+
+      const seatA = (snap.seats as any[]).find((x: any) => x.id === a - 1);
+      const seatB = (snap.seats as any[]).find((x: any) => x.id === b - 1);
+      const truthSame = isSeatEvil(seatA) === isSeatEvil(seatB);
+      expect
+        .soft(
+          saidSame,
+          `答案必须与真值一致：${a}号(${seatA?.role?.id})=${isSeatEvil(seatA) ? "邪恶" : "善良"}，` +
+            `${b}号(${seatB?.role?.id})=${isSeatEvil(seatB) ? "邪恶" : "善良"} ⇒ 应回答「${truthSame ? "是" : "否"}」`
+        )
+        .toBe(truthSame);
     }
-    const dialog = r.dialog ?? "";
-    expect.soft(dialog, "女裁缝应给出「是否同一阵营」的结果弹窗").toMatch(
-      /同一阵营|相同阵营|不同阵营|不是同一/
-    );
-    expect.soft(dialog, "一好一坏必须判为「不同阵营」").toMatch(/不同阵营|不是同一/);
+
+    // ③ 反证：能力限次 —— 结算后该座位必须被标记已用
+    const after = await snapNow(page);
+    const used = (after as any)?.limitedAbilityUses ?? (after as any)?.abilityUses;
+    if (used != null) {
+      expect
+        .soft(
+          JSON.stringify(used).includes("seamstress"),
+          `官方「每局游戏限一次」⇒ 使用后应留痕（实测：${JSON.stringify(used).slice(0, 120)}）`
+        )
+        .toBe(true);
+    }
   });
 
   test("方古：夜杀外来者 ⇒ 外来者变邪恶方古、方古自己死亡", async ({ page }) => {
