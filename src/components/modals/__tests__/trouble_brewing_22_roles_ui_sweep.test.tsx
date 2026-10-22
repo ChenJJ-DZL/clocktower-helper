@@ -340,7 +340,7 @@ describe("暗流涌动 · §B 专属弹窗真实渲染", () => {
     const t = allText();
     expect(t, "缺少标题").toContain("间谍椭圆魔典");
     expect(t, "缺少魔典中心 HUD").toContain("魔典中心");
-    expect(t, "缺少查阅倒计时").toContain("查阅倒计时");
+    expect(t, "缺少建议用时").toContain("建议用时（不会自动关闭）");
     // 计数徽章
     expect(t).toContain("总人数");
     expect(t).toContain("善良");
@@ -348,7 +348,9 @@ describe("暗流涌动 · §B 专属弹窗真实渲染", () => {
     expect(t).toContain("死亡");
     // 情报筛选 Tab
     expect(t).toContain("全部行动与情报");
-    expect(t, "无日志时应渲染空态").toContain("暂无对应行动或情报记录");
+    expect(t, "默认应渲染「行动记录默认隐藏」闸门").toContain(
+      "行动记录默认隐藏"
+    );
     // 关闭入口
     expect(t).toContain("我已查看完毕");
     // 倒计时控制
