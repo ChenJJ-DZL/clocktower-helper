@@ -1,7 +1,7 @@
 {
   "//": "by 拜甘教成员-大长老",
   "name": "clocktower-helper",
-  "version": "W10.20.1",
+  "version": "W10.21.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

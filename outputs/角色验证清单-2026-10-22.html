@@ -125,7 +125,7 @@
   <div class="kpi ok">
     <div class="n">191<span style="font-size:15px;color:#94a3b8">/191</span></div>
     <div class="l"><b>每剧本内角色都有专属场景</b></div>
-    <div class="pct">117 条用例 <b>117 passed</b> + 0 fixme（沙巴洛斯反刍已闭环）｜ 全局去重 85/85 ｜ 9 剧本角色 0 缺口 ｜ 修 13 处缺陷</div>
+    <div class="pct">117 条用例 <b>117 passed</b> + 0 fixme（沙巴洛斯反刍已闭环）｜ 全局去重 85/85 ｜ 9 剧本角色 0 缺口 ｜ 修 14 处缺陷 ｜ <b>全量 E2E 209 passed · 0 failed</b></div>
   </div>
 </div>
 
@@ -154,7 +154,7 @@
   修法：preCheck 改「<b>preview 空手放行 / 真实结算空手按摇头中止 / 数量不对才拦</b>」；
   契约测试 <code>snv_l5_causal</code> ④⑤（无目标不中止、3 目标仍中止）+
   <code>snv_l2_matrix</code>「不选目标必须有明确去向」两条一起兜住。<br><br>
-    <b>累计修复产品缺陷 13 处</b>：主谋 / 莽夫 / 麻脸巫婆 / 亡骨魔×2 / 理发师×3 / 女裁缝×1 / 心上人×1 /
+    <b>累计修复产品缺陷 14 处</b>：主谋 / 莽夫 / 麻脸巫婆 / 亡骨魔×2 / 理发师×3 / 女裁缝×1 / 心上人×1 /
   <b>沙巴洛斯反刍×2（能力层 + 结算层）</b> / <b>终局猎手提示自相矛盾×1（文案）</b>。<br><br>
   <b style="color:#065f46">沙巴洛斯「反刍」已完整闭环（能力层 + 结算层）</b> ——
   能力层的真因是 <code>regurgitatedSeatId</code> 零写入方（反刍是死代码），已改为按
@@ -167,6 +167,14 @@
   修法：引擎<b>显式</b>给出 <code>isDead === false</code> 且带复活证据（<code>resurrected</code> 效果或
   <code>revivedAtNight</code>）时以引擎为准；刻意不用「裸 isDead===false」，否则死亡闩锁会被彻底拆掉
   （已死玩家被任何能力扫过就活过来）。契约：<code>e2e/bad_moon_rising/role_scenarios.spec.ts</code> G10 已转正。<br><br>
+  <b style="color:#065f46">第 14 处（本轮新增）· 罂粟种植者：队列标签骗人</b> ——
+  官方【罂粟种植者】·运作方式逐字：「在首个夜晚，<b>唤醒恶魔</b>。对他展示“这些角色不在场”…
+  然后让恶魔重新入睡。<b>不要进行“爪牙信息”和“恶魔信息”步骤。</b>」
+  ⇒ 首夜罂粟健康时恶魔仍会被唤醒，但那次唤醒<b>只给 3 个不在场角色</b>，不是互认。
+  实现里对话框层早就藏了爪牙（<code>shouldHideMinions</code>），
+  <b>唯独队列标签还写着「X(恶魔互认)」</b> —— 说书人照班次表念，就会去做官方明令不做的事。
+  已修为仅该情形改叫「(不在场角色)」；对应 e2e 从「随机发牌 + 条件断言」
+  改成<b>两条固定阵容各跑一次</b>，两个分支都是硬断言。<br><br>
   <b style="color:#065f46">同批转正：普卡首夜下毒（原 P0 fixme）</b> ——
   旧证据是「<code>pukkaPoisonQueue=[]</code> + 12 个座位全无 <code>isPoisoned</code> + 零告警」。
   追溯发现普卡早已迁到新引擎（<code>pukka.ability.ts</code>），旧 <code>roleActionHandlers::handlePukkaConfirm</code>
@@ -659,8 +667,9 @@
   数据源：<code>outputs/coverage_ledger.json</code> · <code>outputs/X02-文案对账-2026-10-22.md</code> · <code>outputs/全量验证计划-2026-10-21.md</code> §5<br>
   剧本级验收报告：<code>outputs/暗流涌动-角色级验收-2026-10-22.md</code> · <code>outputs/黯月初升-角色级验收-2026-10-22.md</code><br>
   「K / G」= 该角色在整局模拟里被抽到的局数（旧）或所属用例组（新），仅作证据定位，不代表断言强度。<br>
-  生成于 2026-10-22 · <b>03:5x 更新</b>（9 剧本 <b>117 条 · 117 passed + 0 fixme</b>；本剧本内专属 191/191、全局 85/85；
-  累计修 13 处缺陷；<b>弹窗文案对账 43/43</b>；<b>ENTRY_LOST 已清零</b>（ROLE_CODEX / ROLE_INFO 均补了游戏内入口）；
+  生成于 2026-10-22 · <b>07:2x 更新（W10.21.0）</b>（9 剧本 <b>117 条 · 117 passed + 0 fixme</b>；本剧本内专属 191/191、全局 85/85；
+  累计修 14 处缺陷；<b>弹窗文案对账 43/43</b>；<b>ENTRY_LOST 已清零</b>（ROLE_CODEX / ROLE_INFO 均补了游戏内入口）；
+  <b>旧 L4 红灯清零</b>（原 11 条全绿：9 条是阵容非法/随机采样，2 条是真产品缺口）；
   <b>覆盖率棘轮已接线</b>（<code>coverage_ratchet.test.ts</code>，场次 27 / 角色位 192 / 入口覆盖 100% / 执行证据 ≥109））· 未发版（线上 W10.20.1）
 </footer>
 
