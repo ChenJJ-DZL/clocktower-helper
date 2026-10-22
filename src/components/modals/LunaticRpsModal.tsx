@@ -37,7 +37,7 @@ export function LunaticRpsModal({
             onClick={() => onResolve(false)}
             className="w-full py-3 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold"
           >
-            精神病患者赢/平（提名者死亡）
+            精神病患者赢/平（他存活）
           </button>
         </div>
       }
@@ -51,7 +51,10 @@ export function LunaticRpsModal({
         {targetId + 1}号(精神病患者)
       </p>
       <p className="text-sm text-gray-400 mt-2">
-        若精神病患者赢：他不死，提名他的人死亡；若精神病患者输：他才会被正常处决。
+        若精神病患者赢或平：他不会死亡，处决取消；若精神病患者输：他才会被处决。
+        {/* 官方（officialRoleDocs.json · 精神病患者 · 运作方式）：
+            「如果精神病患者在猜拳中平局或获胜，他会仍然存活。
+              不论猜拳是哪种结果，白天阶段会随即结束。」—— 官方从未让提名者死亡。 */}
       </p>
     </ModalWrapper>
   );

@@ -124,14 +124,18 @@ export const JugglerJudgeModal: React.FC<JugglerJudgeModalProps> = ({
 
         {/* 官方规则（压成一行，字号让步给座位区） */}
         <div className="shrink-0 text-[19px] leading-snug text-amber-200/85 truncate">
-          📜 {jugglerName}【杂耍艺人】首个白天公开猜测最多 5 名玩家的角色；请对照下表
+          📜 {jugglerName}【杂耍艺人】首个白天公开猜测最多 5 次（玩家和角色可以相同也可以不同）；请对照下表
           <strong className="text-amber-300">真实身份</strong>核对，点选他猜对了几次（0~5）。
         </div>
 
         {/* ── 全场座位与真实角色：flex-1 吃满剩余高度，不裁剪、不滚动 ── */}
         <div className="flex-1 min-h-0 flex flex-col gap-1">
           <div className="shrink-0 flex items-center justify-between text-[20px] font-bold text-slate-400 px-1">
-            <span>全场座位与实际角色（用于对照核实）：</span>
+            {/* 这是说书人的对照表（含全场真实角色）—— 必须显式标注，避免被当成玩家页面展示 */}
+            <span>
+              <strong className="text-amber-300">🎙️ 说书人专用 · 请勿展示给玩家</strong>
+              <span className="ml-2">全场座位与实际角色（用于对照核实）：</span>
+            </span>
             <span className="text-slate-300">
               共 {seats.length} 人 · {cols} 列
             </span>

@@ -67,6 +67,7 @@ import {
 import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
 import { isSeatEvil, isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
 import { isVortoxWorldActive } from "../utils/vortoxWorld";
+import { availableRolesForRoleSelection } from "../utils/roleSelectionPool";
 import { showAlert } from "../utils/nativeDialogShim";
 
 export interface NightActionHandlerContext {
@@ -1105,14 +1106,20 @@ export async function executeViaNewEngine(
              * ⚠️ 阵营判定**必须走** `utils/seatAlignment::isTownsfolkOrOutsiderRole`
              *   （项目护栏明令：不许手写 `r.type === "townsfolk" || ...`）。
              */
-            availableRoles:
-              roleId === "philosopher"
-                ? // 哲学家只能选**善良角色**（镇民/外来者）
-                  context.roles.filter((r: any) =>
-                    isTownsfolkOrOutsiderRole(r as any)
-                  )
-                : // 麻脸巫婆可选任意角色（「不在场则生效」由能力侧 `isAlreadyInPlay` 判定）
-                  context.roles,
+            /**
+             * 🎯 候选角色池收口到 `utils/roleSelectionPool`（可单测）。
+             *
+             * 🔴 2026-10-22（文案对账批 2）：原先只给哲学家过滤善良角色，
+             *   洗脑师拿到的是**全部角色** ⇒ 说书人能把「小恶魔」当成疯狂角色。
+             *   官方（officialRoleDocs.json · 洗脑师 · 角色简介）：
+             *   「洗脑师会选择让一名玩家"疯狂"地证明自己是**某个镇民或外来者角色**。」
+             *   ⇒ 洗脑师与哲学家同属「只能选善良角色」。
+             *   麻脸巫婆 / 奥乔 / 酿酒师 仍是任意角色（官方没有善良限定）。
+             */
+            availableRoles: availableRolesForRoleSelection(
+              roleId,
+              context.roles as any[]
+            ),
             selectedScript: (context as any).selectedScript,
             extraNote,
             // 🌀 A4：真恶魔的确认页必须看到「疯子本夜选择了谁」（官方：恶魔知道）。

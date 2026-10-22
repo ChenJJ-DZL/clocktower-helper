@@ -435,6 +435,10 @@ describe("X02 · 夜间信息弹窗 golden 基线", () => {
     expect(buttonTexts()).toContain("确认记录 (0次)");
     expect(buttonTexts()).toContain("取消");
 
+    // ③b 这张表含全场真实角色 ⇒ 必须显式标「说书人专用」
+    expect(t).toContain("🎙️ 说书人专用 · 请勿展示给玩家");
+    expect(t).toContain("全场座位与实际角色（用于对照核实）");
+
     // ④ 关闭可用
     fireEvent.click(findButton("取消"));
     expect(onClose).toHaveBeenCalled();
@@ -462,8 +466,12 @@ describe("X02 · 夜间信息弹窗 golden 基线", () => {
     expect(t).toContain("提名者：2号 VS 3号(精神病患者)");
 
     // ③ 主按钮文案逐字一致
+    //    官方（officialRoleDocs.json · 精神病患者 · 运作方式）：
+    //    「如果精神病患者在猜拳中平局或获胜，他会仍然存活。」
+    //    ⇒ 赢/平**不处决提名者**（旧文案写的「提名者死亡」是自创规则）
     expect(buttonTexts()).toContain("精神病患者输（被处决）");
-    expect(buttonTexts()).toContain("精神病患者赢/平（提名者死亡）");
+    expect(buttonTexts()).toContain("精神病患者赢/平（他存活）");
+    expect(t).toContain("若精神病患者赢或平：他不会死亡，处决取消");
 
     // ④ 关闭可用（onClose 是内联空函数且禁止点击遮罩关闭 ⇒ 断言 ✕ 存在且可用）
     const close = closeButton();

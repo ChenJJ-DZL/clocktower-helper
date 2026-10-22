@@ -1604,26 +1604,24 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
           data: { message: `${targetId + 1}号被处决，石头剪刀布落败` },
         });
       } else {
-        if (nominatorId !== null) {
-          addLog(
-            `${targetId + 1}号(精神病患者) 在石头剪刀布中获胜或打平，${nominatorNote}提名者被处决`
-          );
-          killPlayer(nominatorId);
-          setCurrentModal({
-            type: "EXECUTION_RESULT",
-            data: {
-              message: `${nominatorId + 1}号被处决，因精神病患者猜拳获胜`,
-            },
-          });
-        } else {
-          addLog(
-            `${targetId + 1}号(精神病患者) 在石头剪刀布中获胜或打平${nominatorNote}，处决取消`
-          );
-          setCurrentModal({
-            type: "EXECUTION_RESULT",
-            data: { message: `${targetId + 1}号存活，处决取消` },
-          });
-        }
+        /**
+         * 🔴 2026-10-22（文案对账批 2 查出）：官方【运作方式】原文
+         *   「如果精神病患者在猜拳中输了，那么他死亡。
+         *     **如果精神病患者在猜拳中平局或获胜，他会仍然存活。**
+         *     不论猜拳是哪种结果，白天阶段会随即结束。」
+         *   范例三连：三次猜拳里精神病患者都存活，**没有任何一处提到提名者死亡**。
+         *
+         * 原实现把「赢/平」处理成**提名者被处决** —— 这是自创规则，
+         * 而且方向与官方相反（官方根本不让提名者死）。
+         * ⇒ 赢/平：谁也不死，处决取消，白天结束。
+         */
+        addLog(
+          `${targetId + 1}号(精神病患者) 在石头剪刀布中获胜或打平${nominatorNote}，他不会死亡，处决取消`
+        );
+        setCurrentModal({
+          type: "EXECUTION_RESULT",
+          data: { message: `${targetId + 1}号存活，处决取消` },
+        });
         setSeats((p: Seat[]) =>
           p.map((s) => ({ ...s, isCandidate: false, voteCount: undefined }))
         );
