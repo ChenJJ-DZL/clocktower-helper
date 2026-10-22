@@ -164,14 +164,14 @@
   一个<b>单向闩锁</b>，一旦座位已死，引擎再怎么把 <code>isDead: false</code> 写回来都会被这一行覆盖回 true。
   这正好解释了当初观测到的怪相：<code>revivedAtNight: 3</code> 与 <code>resurrected</code> 效果都在、
   死亡字段却全被清空、<code>isDead</code> 仍是 true（也正是「在击杀分支加守卫无效」的原因 —— 那一刀不在能力层）。<br>
-  修法：引擎**显式**给出 <code>isDead === false</code> 且带复活证据（<code>resurrected</code> 效果或
+  修法：引擎<b>显式</b>给出 <code>isDead === false</code> 且带复活证据（<code>resurrected</code> 效果或
   <code>revivedAtNight</code>）时以引擎为准；刻意不用「裸 isDead===false」，否则死亡闩锁会被彻底拆掉
   （已死玩家被任何能力扫过就活过来）。契约：<code>e2e/bad_moon_rising/role_scenarios.spec.ts</code> G10 已转正。<br><br>
   <b style="color:#065f46">同批转正：普卡首夜下毒（原 P0 fixme）</b> ——
   旧证据是「<code>pukkaPoisonQueue=[]</code> + 12 个座位全无 <code>isPoisoned</code> + 零告警」。
   追溯发现普卡早已迁到新引擎（<code>pukka.ability.ts</code>），旧 <code>roleActionHandlers::handlePukkaConfirm</code>
   已不存在，那段证据整体失效；真正补上的一刀是「只写 legacy 布尔 <code>isPoisoned</code>」不够 ——
-  <code>syncStatusEffectsToSeat</code> 是按 <code>statusEffects</code> **反推**布尔字段的，且合并顺序在后
+  <code>syncStatusEffectsToSeat</code> 是按 <code>statusEffects</code> <b>反推</b>布尔字段的，且合并顺序在后
   ⇒ 必须同源写 <code>{type:"poisoned", source:"pukka"}</code>。E2E 实测已落库（1 号座位 isPoisoned=true +
   普卡中毒 statusDetails）。<br><br>
   <b style="color:#065f46">本轮新增（第 10 处）· 心上人</b>：官方「当你死亡时，<b>会</b>有一名玩家开始醉酒」——
@@ -199,7 +199,7 @@
     <tr><td class="role">无上愉悦</td><td>16</td><td>5</td><td><b style="color:#065f46">5 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：5 条 / 16 角色</td></tr>
     <tr><td class="role">凶宅魅影</td><td>21</td><td>12</td><td><b style="color:#065f46">12 passed</b></td><td><b style="color:#065f46">新增 5 条</b>：诺-达鲺（邻座镇民中毒+反证 ✅）/ 教父（负向对照 ✅）/ 理发师（<b>修 2 处真缺陷 + 补 UI 通路</b> ✅）/ <b>女巫</b>（诅咒提名即死）/ <b>刺客</b>（限一次 + 穿透免死）/ 四角色契约 + 魔鬼代言人保护标记 · <b>12/12 全绿</b></td></tr>
     <tr><td class="role">游园惊梦</td><td>20</td><td>6</td><td><b style="color:#065f46">6 passed</b></td><td><b style="color:#065f46">20/20 无缺口</b>：麻脸巫婆转正 + 新增九角色契约（筑梦师取信息回查真值 / 博学者日间入口 / 变种人门禁等）</td></tr>
-    <tr><td class="role">罂粟花开</td><td>24</td><td>8</td><td><b style="color:#065f46">8 passed</b></td><td><b style="color:#065f46">24/24 有用例</b>：新增<b>图书管理员</b>（外来者真值 ✅）/ <b>博学者</b>（<b>日间</b>一真一假信息 ✅ —— 之前记成「官方每夜」是我引用错了原文，官方是「每个**白天**」）；<b>24/24 无缺口</b>（新增 S25 六角色 + S26 四角色契约）</td></tr>
+    <tr><td class="role">罂粟花开</td><td>24</td><td>8</td><td><b style="color:#065f46">8 passed</b></td><td><b style="color:#065f46">24/24 有用例</b>：新增<b>图书管理员</b>（外来者真值 ✅）/ <b>博学者</b>（<b>日间</b>一真一假信息 ✅ —— 之前记成「官方每夜」是我引用错了原文，官方是「每个<b>白天</b>」）；<b>24/24 无缺口</b>（新增 S25 六角色 + S26 四角色契约）</td></tr>
     <tr><td class="role"><b>合计</b></td><td><b>191</b></td><td><b>117</b></td><td><b style="color:#065f46">117 passed</b> + 0 fixme</td><td><b style="color:#065f46">9 剧本全绿、无 skip 无 xfail</b>：9 剧本 <b>本剧本内专属缺口全部 0</b>（暗流 22/22 · 黯月 25/25 · 梦殒 25/25 · 窃窃 19/19 · 无名 19/19 · 无上 16/16 · 凶宅 22/22 · 游园 20/20 · 罂粟 24/24）</td></tr>
   </tbody>
 </table>
