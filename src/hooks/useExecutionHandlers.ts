@@ -322,7 +322,12 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         if (!isSaintDisabled) {
           setCurrentModal({
             type: "SAINT_EXECUTION_CONFIRM",
-            data: { targetId: id, skipLunaticRps: options?.skipLunaticRps },
+            data: {
+              targetId: id,
+              skipLunaticRps: options?.skipLunaticRps,
+              // 官方是「圣徒**自己的阵营**落败」⇒ 判定时要知道他此刻的阵营
+              saintIsEvil: !isGoodAlignment(t),
+            },
           });
           return true;
         } else {

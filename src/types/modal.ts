@@ -105,7 +105,16 @@ export type ModalType =
     }
   | {
       type: "SAINT_EXECUTION_CONFIRM";
-      data: { targetId: number; skipLunaticRps?: boolean };
+      data: {
+        targetId: number;
+        skipLunaticRps?: boolean;
+        /**
+         * 圣徒**自己**的阵营（官方：「如果你死于处决，**你的阵营**落败」）。
+         * 例：邪恶的圣徒被处决 ⇒ 善良阵营获胜（官方范例原话）。
+         * 缺省按 `false`（善良）处理，保持旧行为。
+         */
+        saintIsEvil?: boolean;
+      };
     }
   /** 旅行者 · 替罪羊：说书人裁定是否代刑（官方「可能会代替他被处决」） */
   | {

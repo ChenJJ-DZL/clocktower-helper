@@ -1551,6 +1551,7 @@ export function useGameController() {
     killPlayer,
     continueToNextAction,
     checkGameOver,
+    victoryRef,
     isEvil,
     isActorDisabledByPoisonOrDrunk,
     addDrunkMark,

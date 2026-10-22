@@ -68,6 +68,15 @@ export interface ConfirmHandlersDeps {
     damselGuessed?: boolean,
     klutzGuessedEvil?: boolean
   ) => void;
+  /**
+   * 「本局已终局」的唯一权威标记（`useLogicDispatcher` 持有）。
+   * 任何直接判胜负的路径都必须置位，否则终局会被后续流程覆盖
+   * （镇长路径 2026-10-21、圣徒路径 2026-10-22 都栽在这）。
+   */
+  victoryRef: React.MutableRefObject<{
+    winner: "good" | "evil";
+    reason: string;
+  } | null>;
   isEvil: (seat: Seat) => boolean;
   isActorDisabledByPoisonOrDrunk: (seat: Seat) => boolean;
   addDrunkMark: (
@@ -144,6 +153,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     killPlayer,
     continueToNextAction,
     checkGameOver,
+    victoryRef,
     isEvil,
     isActorDisabledByPoisonOrDrunk,
     addDrunkMark,
@@ -548,10 +558,26 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
   const confirmSaintExecution = useCallback(() => {
     if (!currentModal || currentModal.type !== "SAINT_EXECUTION_CONFIRM")
       return;
-    const { targetId } = currentModal.data;
+    const { targetId, saintIsEvil } = currentModal.data;
     setCurrentModal(null);
-    addLog(`${targetId + 1}号(圣徒) 被处决，善良阵营直接落败`);
-    setWinResult("evil");
+    /**
+     * 🔴 2026-10-22（X02 文案对账查出）：原先**写死** `setWinResult("evil")`，
+     *   而官方原文是「如果你死于处决，**你的阵营**落败」
+     *   （范例原话：「如果一名**邪恶的圣徒**被处决，**善良阵营获胜**」）。
+     *   ⇒ 圣徒被转化后方向会写反。
+     *   同时补 `victoryRef` —— 它是「本局已终局」的唯一权威标记，
+     *   只改相位/胜方而不置位，会出现与镇长路径同型的「终局被后续流程覆盖」。
+     */
+    // 这里只是把**已确定的阵营结论**转成胜负标签，不含阵营判定
+    // sst-exempt-alignment-label
+    const winner: "good" | "evil" = saintIsEvil ? "good" : "evil"; // sst-exempt-alignment-label
+    addLog(
+      `${targetId + 1}号(圣徒) 被处决，其阵营（${saintIsEvil ? "邪恶" : "善良"}）落败 ⇒ ${
+        winner === "good" ? "善良" : "邪恶"
+      }阵营获胜`
+    );
+    victoryRef.current = { winner, reason: "圣徒被处决" };
+    setWinResult(winner);
     setWinReason("圣徒被处决");
     executePlayer(targetId, { forceExecution: true });
   }, [
