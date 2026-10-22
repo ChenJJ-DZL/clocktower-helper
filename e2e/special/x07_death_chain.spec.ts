@@ -173,15 +173,28 @@ test.describe("X07-03 沙巴洛斯反刍", () => {
       .soft((after2?.seats ?? []).find((s: any) => s.id === victimA - 1)?.isDead, "A 应被沙巴洛斯杀死")
       .toBe(true);
 
-    // 第 2 昼不提名 → 第 3 夜：杀 B（水手 2 号）并尝试反刍 A
+    // 第 2 昼不提名 → 第 3 夜：**点上一夜被吃掉的 A（已死）+ 新目标 B** ⇒ A 反刍、B 死亡
     expect((await driveDusk(page, {})).status, "第 2 昼应能直接入夜").toBe("night");
     const victimB = seatOf(snap, "chambermaid") + 1;
-    const victimB2 = seatOf(snap, "exorcist") + 1; // 陪杀
+    /**
+     * 🔴 2026-10-23 改法：**反刍不再需要单独的「吐出」按钮**。
+     *
+     *   官方：「被你杀死的人**可能在你选择时复活**」——「在你选择时」是关键：
+     *   反刍是**同一次选择的产物**，不是额外一步操作。
+     *   实现口径（`shabaloth.ability.ts`）：说书人未显式指定时，
+     *   从本次选择的两个目标里推导 —— 「当前已死 + 上一夜 `diedAtNight` + `deathSource` 含 shabaloth」
+     *   的那个即视为反刍目标（对已死玩家再点一次本来就不产生击杀，唯一有意义的解释就是反刍）。
+     *
+     *   ⇒ 本用例原来喂的是 `[B, 陪杀]`（A 根本不在选择里），然后在等一个**永远不该存在**
+     *     的「反刍/吐出」弹窗选项，最后用 `test.fail(true)` 把缺口挂账。
+     *     现在改为喂 `[A, B]`：A 是被选择的已死者 ⇒ 必须复活；B 是新目标 ⇒ 必须死亡。
+     *     这同时覆盖了「反刍」与「当晚继续双杀」两件事。
+     */
     const n3 = await driveNight(page, [
       {
         role: "shabaloth",
-        targets: [victimB, victimB2],
-        note: "杀掉 B（反刍 A 需要弹窗支持）",
+        targets: [victimA, victimB],
+        note: "反刍上一夜吃掉的 A，同时杀掉 B",
       },
     ]);
     expect.soft(n3.status, "第 3 夜应推进到白天").toBe("day");
@@ -192,27 +205,16 @@ test.describe("X07-03 沙巴洛斯反刍", () => {
 
     // 核心不变量：B 必须死
     expect.soft(b?.isDead, "第 3 夜被选中的 B 必须死亡").toBe(true);
-    // 反刍：A 的状态必须能解释（要么被复活，要么仍在死）
-    const shabDialog = stepsOf(n3, "shabaloth")
-      .map((x) => x.dialog)
-      .join("|");
-    const hasRegurgitate = /反刍|吐出|复活/.test(shabDialog);
+    // 反刍：A 必须真的复活（不再是「弹窗里有没有这个词」这种文案级判据）
     expect
       .soft(
-        a?.isDead === false || hasRegurgitate,
-        `沙巴洛斯弹窗应提供「反刍」选项（实测无该选项，且 A 仍死亡）：${shabDialog.slice(-160)}`
+        a?.isDead,
+        `官方：被选中的已死者（上一夜被沙巴洛斯吃掉）必须被反刍复活（实测 isDead=${a?.isDead} revivedAtNight=${a?.revivedAtNight}）`
       )
-      .toBe(true);
-    /**
-     * 🔴 2026-10-23 实测缺口：**沙巴洛斯弹窗只有「选 2 名目标」，没有「反刍/吐出」选项**。
-     *   官方：「被你杀死的人可能在你选择时复活（每局一次，说书人可以让你吐出
-     *   前一夜吃掉的一名玩家）」⇒ 弹窗必须给出「是否吐出上一夜的尸体」这一问。
-     *   证据：第 3 夜确认页文案 = 「请选择目标玩家（最少2人，最多2人）」，
-     *   结果页 = 「沙巴洛斯发动能力目标2号、4号」，全程无「反刍/吐出/复活」字样。
-     *   修法方向：在 `shabaloth.ability` 的确认窗前插入一步「是否反刍（选上一夜的尸体）」
-     *   （与 `professor` 的复活选择同构）。
-     */
-    test.fail(true, "沙巴洛斯弹窗缺「反刍」选项 ⇒ 官方「可能复活上一夜被吃的人」无法发生");
+      .toBe(false);
+    expect
+      .soft(a?.revivedAtNight, "复活必须记在当夜（黎明播报「宣布谁复活了」读这个字段）")
+      .toBe(3);
     expect.soft(shabSeat, "沙巴洛斯应在场").toBeGreaterThanOrEqual(0);
   });
 });

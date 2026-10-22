@@ -33,13 +33,25 @@ const SNV = "梦殒春宵";
 const GARDEN = "游园惊梦";
 
 /**
- * 7 人局合法阵容（5 镇民 / 0 外来者 / 1 爪牙 / 1 恶魔），
- * 全部取自**梦殒春宵本剧本**，且都不含免死/免疫角色。
+ * 7 人局合法阵容。
+ *
+ * 🔴 2026-10-23 修正（本条曾长期红，**不是产品问题，是阵容本身非法**）：
+ *   官方【方古】带 `[+1 外来者]` 的设置修正 ⇒ 7 人局的标准配比在这一局里
+ *   被修正为 **4 镇民 / 1 外来者 / 1 爪牙 / 1 恶魔**，而原阵容是 5 镇民 / 0 外来者
+ *   ⇒ `useSetupManager::getCompositionStatus` 判 invalid ⇒ 点「分发&核对身份」时
+ *   弹「⚠️ 阵容配置错误」窗（标准 4/1/1/1 vs 当前 5/0/1/1），用例没处理这个窗
+ *   ⇒ 后面那句 `确认无误…入夜` 永远等不到按钮，超时红。
+ *   证据：`temp/_probe_snv.mjs` 探针抓到的 dialog 原文即上面那两句。
+ *
+ *   修法：把一名镇民换成**无夜间动作的外来者** —— 心上人（sweetheart）：
+ *     · 只在**死亡**时触发（`triggerTiming: PASSIVE`）⇒ 不改变首夜唤醒队列；
+ *     · 两个剧本（梦殒春宵 / 游园惊梦）的角色池都含它。
+ *   保留方古而不是换成无修正的恶魔，是为了让本文件继续覆盖「恶魔互认」这一步。
  */
 const SNV_COMP = [
   "clockmaker", // 镇民（首夜 61）
   "dreamer", // 镇民（首夜 62）
-  "oracle", // 镇民（其他夜 98）
+  "sweetheart", // 外来者（无夜间动作，满足方古的 +1 外来者）
   "sage", // 镇民（死亡触发）
   "artist", // 镇民（日间）
   "witch", // 爪牙（首夜 39）
@@ -50,7 +62,7 @@ const SNV_COMP = [
 const SEAT_LABEL: Record<string, string> = {
   clockmaker: "钟表匠",
   dreamer: "筑梦师",
-  oracle: "神谕者",
+  sweetheart: "心上人",
   sage: "贤者",
   artist: "艺术家",
   witch: "女巫",
@@ -367,8 +379,10 @@ test.describe("L4 · 游园惊梦：第二剧本必须可独立跑通", () => {
     expect(queue.length, "❌ 游园惊梦夜间队列为空").toBeGreaterThan(0);
   });
 
-  test("⑥ 游园惊梦手动落座 4 名本剧本角色 ⇒ 快照逐位对上", async ({ page }) => {
-    const comp = ["clockmaker", "dreamer", "oracle", "sage", "artist", "witch", "fang_gu"];
+  test("⑥ 游园惊梦手动落座 7 名本剧本角色 ⇒ 快照逐位对上", async ({ page }) => {
+    // ⚠️ 与 `SNV_COMP` 同一份阵容（两个剧本共用同一个角色池），
+    //    含方古 ⇒ 必须带 1 名外来者，否则会弹「阵容配置错误」把流程挡住（见 SNV_COMP 注释）。
+    const comp = SNV_COMP;
     await enterConfigManual(page, GARDEN, 7);
     await assignComp(page, comp);
     await confirmAndEnterNight(page);

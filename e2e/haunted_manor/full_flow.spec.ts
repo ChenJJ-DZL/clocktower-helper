@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
   advanceNightFast,
-  advanceNightToDay,
   completeDuskEnterNight,
   readNightQueue,
   readSnapshot,
@@ -127,8 +126,10 @@ const TYPE: Record<string, string> = {
   recluse: "outsider", poisoner: "minion", scarlet_woman: "minion",
   baron: "minion", imp: "demon", zombuul: "demon",
 };
-/** 7 人局标准配比（本脚本两个剧本都是 7-15 / 5-8 人，7 人 = 5T/0O/1M/1D） */
-const SEVEN = { townsfolk: 5, outsider: 0, minion: 1, demon: 1 };
+/**
+ * ⛔ 原常量 `SEVEN = {5,0,1,1}` 已删除（2026-10-23）——
+ *   它不是 7 人局的恒定配额，见下方 `expectSevenQuota` 的说明。
+ */
 
 // ─────────────────────────── helpers ───────────────────────────
 
@@ -231,6 +232,38 @@ function campCounts(snap: any) {
     if (t in out) out[t]++;
   }
   return out;
+}
+
+/**
+ * 🔴 2026-10-23 修正：`SEVEN = {5,0,1,1}` **不是 7 人局的恒定配额**。
+ *
+ * 官方有**角色自带设置修正**，`utils/setupComposition.ts` 已经实现并在发牌时生效：
+ *   · 方古 fang_gu —— **+1 外来者（镇民 −1）** ⇒ 7 人局实际是 **4 / 1 / 1 / 1**
+ *   · 亡骨魔 vigormortis —— −1 外来者（7 人局基准外来者已是 0 ⇒ 钳成 0，仍 5/0）
+ *   · 男爵 baron —— +2 外来者
+ * 而 `campCounts === SEVEN` 的写法在**随机发牌**下时红时绿：凶宅魅影 / 无上愉悦的角色池里
+ * 都有方古 ⇒ 只要它被抽到，配额就是 4/1，断言却写死 5/0
+ * （实测症状：用例⑦「刷新后阵营配额变化（序列化丢字段）」——
+ *   `rolesAfter === rolesBefore` 明明通过，唯独配额这一条红，让人误以为是持久化丢字段）。
+ *
+ * ⇒ 只断言**与角色无关的结构不变量**（恶魔 1 / 爪牙 1 / 善良共 5 / 总数 7）。
+ *   这才是「发牌与人数预设一致」的真正判据；具体 T/O 拆分由 `setupComposition` 负责，
+ *   它有自己的单测与 `plan:scenes` 配比断言，不需要 e2e 再抄一份。
+ */
+function expectSevenQuota(counts: Record<string, number>, label: string) {
+  expect(Number(counts.demon), `${label}：恶魔必须恰好 1`).toBe(1);
+  expect(Number(counts.minion), `${label}：爪牙必须恰好 1`).toBe(1);
+  expect(
+    Number(counts.townsfolk) + Number(counts.outsider),
+    `${label}：善良（镇民+外来者）必须恰好 5`
+  ).toBe(5);
+  expect(
+    Number(counts.townsfolk) +
+      Number(counts.outsider) +
+      Number(counts.minion) +
+      Number(counts.demon),
+    `${label}：四个阵营之和必须恰好 7（少于 7 说明有座位的 role.type 丢了）`
+  ).toBe(7);
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -366,10 +399,7 @@ test.describe("L4 · 凶宅魅影：真实点击流必须产生真实状态", ()
       seatsOf(snap).map((s: any) => s.role?.type),
       `❌ 快照里的阵营与独立真值不一致：${JSON.stringify(got)}`
     ).toEqual(got.map((id: string) => TYPE[id]));
-    expect(
-      campCounts(snap),
-      "❌ 7 人局阵营配额不是 5/0/1/1（发牌与人数预设不一致）"
-    ).toEqual(SEVEN);
+    expectSevenQuota(campCounts(snap), "凶宅魅影 7 人局配额");
   });
 
   test("② 入夜后队列：首夜角色必在、其他夜角色必不在、爪牙/恶魔互认必在", async ({
@@ -509,7 +539,7 @@ test.describe("L4 · 无上愉悦：第二剧本必须可独立跑通", () => {
         `❌ 无上愉悦发出了不属于本剧本的角色：${id}（全部：${JSON.stringify(got)}）`
       ).toBe(true);
     }
-    expect(campCounts(snap), "❌ 7 人局阵营配额不是 5/0/1/1").toEqual(SEVEN);
+    expectSevenQuota(campCounts(snap), "无上愉悦 7 人局配额");
 
     const queue = await readNightQueue(page, 20_000);
     expect(queue.length, "❌ 无上愉悦夜间队列为空").toBeGreaterThan(0);
@@ -579,8 +609,18 @@ test.describe("L4 · 无上愉悦：第二剧本必须可独立跑通", () => {
     const dusk = await completeDuskEnterNight(page);
     expect(dusk, `❌ 未能从白天进入第 2 夜（返回 ${dusk}）`).toBe("night");
 
-    const reachedDay2 = await advanceNightToDay(page);
-    expect(reachedDay2, "❌ 第 2 夜未能推进到第 2 天").toBe(true);
+    /**
+     * 🔴 2026-10-23 换驱动器：`advanceNightToDay` → `advanceNightFast`。
+     *
+     *   旧驱动器对「恶魔选目标」这一环不够：它只在弹窗里出现「请选择目标玩家」字样时
+     *   才去点座位；而小恶魔的确认窗在部分路径下不带这句提示，于是它**不选目标直接确认**
+     *   ⇒ 快照里 `dead=0`，断言红成「第 2 夜小恶魔应杀死恰好 1 人，实际 0 人」。
+     *   这跟产品无关（9 套 `role_scenarios` 用 `advanceNightFast` 跑了几十次击杀，全绿）。
+     *   `advanceNightFast` 是逐角色用例在用的同一份驱动器，选目标/确认/推进都在里面。
+     */
+    const r2 = await advanceNightFast(page);
+    test.skip(r2 === "spy", "本局含间谍步骤，自动驱动不适用");
+    expect(r2, `❌ 第 2 夜未能推进到白天（返回 ${r2}）`).toBe("day");
 
     const day2 = await waitForSnapshot(
       page,
@@ -667,9 +707,6 @@ test.describe("L4 · 快照完整性（与角色无关的结构契约）", () =>
       expect(s.role?.type, `❌ 刷新后 ${s.id + 1}号 的 role.type 丢失`).toBeTruthy();
       expect(typeof s.isDead, `❌ 刷新后 ${s.id + 1}号 isDead 不是布尔`).toBe("boolean");
     }
-    expect(
-      campCounts(second),
-      "❌ 刷新后阵营配额变化（序列化丢字段）"
-    ).toEqual(SEVEN);
+    expectSevenQuota(campCounts(second), "刷新后配额");
   });
 });

@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { isSeatTownsfolk } from "../../src/utils/seatAlignment";
+import { driveDusk } from "../helpers/scenario";
 import {
   advanceNightFast,
-  completeDuskEnterNight,
   enterFirstNight,
   readSnapshot,
   waitForSnapshot,
@@ -126,8 +127,48 @@ function hasProtectionOnBoard(seats: any[]): boolean {
 async function duskStep(
   page: any
 ): Promise<{ ok: boolean; reason?: "gameover" }> {
-  const dusk = await completeDuskEnterNight(page);
-  if (dusk === "night") return { ok: true };
+  /**
+   * 🔴 2026-10-23 换驱动器：`completeDuskEnterNight` → `driveDusk(...)`（**定向**处决）。
+   *
+   *   旧驱动器有两处抽奖，本文件 ③④ 各踩了一次：
+   *     ① 它固定点「座位按钮的第 1、2 个」发起提名 ⇒ **被处决者恒为 1 号**。
+   *        而 `__CT_FORCE_LINEUP__` 只保证角色集合、**不保证座位顺序** ⇒
+   *        1 号有时就是恶魔 ⇒ 处决恶魔 ⇒ 善良胜 ⇒ 后续「第二夜」断言全部失效。
+   *     ② 收尾「入夜」那一下偶发点空（返回 `"night"` 但 `nightCount` 仍为 1）
+   *        ⇒ 报「nightCount 未推进到第 2 夜（实际 1）」，看起来像阶段推进的产品缺陷。
+   *
+   *   但本剧本又**不能**像梦殒春宵那样干脆「不提名直接入夜」：
+   *     官方【涡流】「如果白天没有玩家被处决，邪恶阵营获胜」⇒ 该剧本一旦抽到涡流，
+   *     不处决就当场判邪恶胜（这条在 `duskStep` 的 gameover 分支里也有记录）。
+   *
+   *   ⇒ 采取**两全**做法：先读快照，定向处决一名**非恶魔的存活镇民**。
+   *     · 满足涡流（白天确实有人被处决）；
+   *     · 恶魔必然存活 ⇒ 第二夜仍可断言「恶魔有动作 / 产生伤亡」。
+   *   用的是 9 套 `role_scenarios` 逐角色用例在跑的同一份驱动器（117 条全绿）。
+   */
+  const pre = await readSnapshot(page).catch(() => null);
+  const preSeats = seatsOf(pre);
+  const demonSeat = demonSeatOf(pre);
+  const demonSeatId = demonSeat ? Number(demonSeat.id) : -1;
+  const alive = preSeats.filter((s: any) => s?.isDead !== true && s?.role?.id);
+  /** 优先挑镇民（外来者/爪牙被处决会改配比与判胜条件，镇民最中性） */
+  const victim =
+    alive.find(
+      (s: any) => Number(s.id) !== demonSeatId && isSeatTownsfolk(s)
+    ) ?? alive.find((s: any) => Number(s.id) !== demonSeatId);
+  const nominator = alive.find((s: any) => Number(s.id) !== Number(victim?.id));
+
+  const plan =
+    victim && nominator
+      ? {
+          nominator: Number(nominator.id) + 1,
+          nominee: Number(victim.id) + 1,
+          decision: "execute" as const,
+        }
+      : {};
+
+  const duskReport = await driveDusk(page, plan);
+  if (duskReport.status === "night") return { ok: true };
 
   /**
    * 走到这里 ⇒ 黄昏没能进入夜晚。**只有两种合法解释**，逐一鉴别（不许静默跳过）：

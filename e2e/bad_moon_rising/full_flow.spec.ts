@@ -811,11 +811,23 @@ test.describe("L4 · 黯月初升 D12（12人）", () => {
      *
      *   用 `test.fixme` 固化：当前必被跳过（缺陷在案），修复后自动转入正常断言。
      */
-    test.fixme(
-      !poisonRecorded,
-      "🔴 待修 P0：首夜普卡下毒未落库（pukkaPoisonQueue 空 + 座位无 isPoisoned + 无告警弹窗）" +
-        "—— 真实点击流里普卡夜步被静默走过，说书人未被要求选人"
-    );
+    /**
+     * ✅ 2026-10-23 缺口已关闭 —— 条件 `test.fixme` 删除，改为**硬断言**（下方 expect）。
+     *
+     * 复查结论：上面那段「待修 P0」的证据**整体过期**。普卡早已迁到新引擎
+     *   （`src/roles/new_engine/pukka.ability.ts`），旧 `roleActionHandlers::handlePukkaConfirm`
+     *   **全仓已不存在** ⇒「它的告警分支从未触发」不再有任何含义。
+     *
+     * 真正补上的一刀是：能力只写 legacy 布尔 `isPoisoned: true` 不够 ——
+     *   `useNightActionHandler::syncStatusEffectsToSeat` 是按 **statusEffects 反推**布尔字段的，
+     *   且合并顺序在管道快照之后 ⇒ 必须同源写 `{ type:"poisoned", source:"pukka" }`。
+     *
+     * 实测（本用例 D12 首夜）：1 号座位 `isPoisoned=true` +
+     *   `statusEffects:[{type:"poisoned",source:"pukka",sourceSeatId:11}]` +
+     *   `statusDetails:["普卡中毒（永久）"]`。
+     * ⚠️ `pukkaPoisonQueue` 仍是 `[]`（旧实现遗留，新引擎不用它）⇒
+     *   判据只认**座位状态字段**，别再把那个队列当唯一证据。
+     */
     expect(
       poisonRecorded,
       "❌ 首夜普卡已行动（且选目标成功），却没有任何中毒记录 —— 状态没落库。" +

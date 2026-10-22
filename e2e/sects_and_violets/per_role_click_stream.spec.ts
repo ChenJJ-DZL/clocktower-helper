@@ -34,8 +34,10 @@ import {
  *     ⚠️ 7 人局标准配比是 0 外来者 ⇒ 硬塞会触发「阵容配置错误」弹窗、进不了夜。
  *   · **爪牙**（4）→ 7 人局：`[5 镇民 + 本角色 + 1 恶魔]`
  *   · **恶魔**（4）→ 7 人局：`[5 镇民 + 1 爪牙 + 本角色]`
- * 🔎 已核实：SNV 25 个角色**全都没有 `setupAdjustment`**（`[+1外来者]` 等只是文案标记）
- *   ⇒ 配比校验只看数量，不需要额外补偿。
+ * 🔎 已核实（⚠️ 2026-10-23 更正）：SNV 里**绝大多数**角色没有设置修正，
+ *   但**方古有 `+1 外来者`**（见下方 `DEMON_OUTSIDER_DELTA`）——
+ *   原句「25 个角色全都没有 setupAdjustment」在 2026-10-21 补齐四种 setup 修正后已过时，
+ *   照旧写会让 ⑦-4（四个恶魔）红成「阵容配置错误」。
  *
  * ── 填充角色怎么选（防假红）────────────────────────────────────────
  * 默认填充一律取「无设置修正、不改变配比、不会让入夜被拦」的角色：
@@ -73,6 +75,22 @@ const DEMON = ROSTER.filter((r) => TYPE[r] === "demon");
 const FILL_T = ["clockmaker", "dreamer", "oracle", "artist", "sage", "juggler"];
 const FILL_M = "witch";
 const FILL_D = "no_dashii";
+/** 外来者填充：**无夜间动作**（只在死亡时触发）⇒ 不改变入夜流程 */
+const FILL_O = "sweetheart";
+
+/**
+ * 恶魔的**设置配比修正**（事实源 = `src/utils/setupComposition.ts` 的修正表）。
+ *
+ * 🔴 2026-10-23 修正文件头那句「SNV 25 个角色全都没有 setupAdjustment」——
+ *   那句话曾经成立，但 2026-10-21 补齐四种 setup 修正后就**过时**了：
+ *     · **方古 fang_gu = +1 外来者（镇民 −1）**
+ *     · 亡骨魔 vigormortis = −1 外来者 ⇒ 7 人局基准外来者已是 0，被钳成 0 ⇒ 仍 5T/0O
+ *     · 诺-达 / 涡流 = 无修正
+ *   后果：`compFor("fang_gu")` 造的 5 镇民/0 外来者会被 `getCompositionStatus` 判非法
+ *   （期望 4 镇民/1 外来者）⇒ 弹「阵容配置错误」⇒ 本文件那句
+ *   「❌ 出现『仍然分发&核对身份』弹窗」应声红（⑦-4 就是这么挂的）。
+ */
+const DEMON_OUTSIDER_DELTA: Record<string, number> = { fang_gu: +1 };
 
 /** 按角色阵营构造**合法配比**阵容 + 该局人数 */
 function compFor(roleId: string): { count: number; comp: string[] } {
@@ -86,7 +104,14 @@ function compFor(roleId: string): { count: number; comp: string[] } {
   if (MINION.includes(roleId)) {
     return { count: 7, comp: [...FILL_T.slice(0, 5), roleId, FILL_D] };
   }
-  return { count: 7, comp: [...FILL_T.slice(0, 5), FILL_M, roleId] };
+  // 恶魔：7 人局基准 5T/0O/1M/1D，按该恶魔的外来者修正挪动镇民↔外来者
+  const delta = DEMON_OUTSIDER_DELTA[roleId] ?? 0;
+  const townsfolk = FILL_T.slice(0, 5 - delta);
+  const outsiders = delta > 0 ? Array.from({ length: delta }, () => FILL_O) : [];
+  return {
+    count: 7,
+    comp: [...townsfolk, ...outsiders, FILL_M, roleId],
+  };
 }
 
 // ─────────────────────────── helpers ───────────────────────────

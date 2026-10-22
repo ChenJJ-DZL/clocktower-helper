@@ -131,7 +131,21 @@ test.describe("L4 状态断言 · 罂粟花开：真实点击流必须产生真�
   test("⭐ 第二夜恶魔行动后：凡死亡/待死者必须落成状态字段（isDead + 死因）", async ({
     page,
   }) => {
-    await enterFirstNight(page);
+    /**
+     * 🔒 固定 5 人阵容（3 镇民 / 0 外来者 / 1 爪牙 / 1 恶魔）—— 2026-10-23 加。
+     *
+     * 原先是**随机发牌**，而罂粟花开的恶魔池是 `imp / vortox / legion`：
+     *   · `legion` 夜间「**可能**杀 0 人」（`targetConfig {min:0,max:1}`）—— 本用例已单独分支处理；
+     *   · `vortox` 只要当天没处决就判邪恶胜，黄昏驱动器一旦没凑够票就**当场终局**；
+     *   · 随机阵容还可能带洗脑师/麻脸巫婆，把白天门禁叠进来。
+     * 实测症状：同一条用例单跑绿、三文件连跑红（`dead=0 marked=0, nightCount=2`），
+     * 报错点还漂移 ⇒ 采样问题被误读成「恶魔没落库」。
+     *
+     * ⇒ 钉死一局「每个步骤都可驱动、且恶魔必杀」的牌：小恶魔 + 镜像双子（首夜一次，无门禁）
+     *   + 三名**无夜间动作**的镇民（农夫 / 镇长 / 博学者）。
+     */
+    const LINEUP = ["farmer", "mayor", "savant", "evil_twin", "imp"];
+    await enterFirstNight(page, SEAT_COUNT, undefined, undefined, LINEUP);
 
     // ⚠️ 设计铁律①：首夜恶魔不行动（官方）⇒ 首夜必无人死。
     //    先断言这一点，既验证规则、又证明「本用例的死亡断言不是空转」。

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { driveDusk } from "../helpers/scenario";
 import {
   advanceNightFast,
   completeDuskEnterNight,
@@ -68,6 +69,39 @@ const SNV_ROLES = [
 /** 官方「每个夜晚* 必须杀死一名玩家」的恶魔（梦殒春宵四恶魔全部命中） */
 const MUST_KILL_DEMONS = ["fang_gu", "vigormortis", "no_dashii", "vortox"];
 
+/**
+ * 🔒 固定阵容（5 镇民 / 0 外来者 / 1 爪牙 / 1 恶魔 = 7 人 · 涡流无设置修正）。
+ *
+ * 🔴 为什么要钉死：这两条用例原先走**随机发牌**（`enterFirstNight(page, 7, SCRIPT)`），
+ *   而随机阵容里会出现「驱动器过不去的组合」——
+ *   实测同一文件连跑两次，④ 一次卡在「首夜推进不到白天」、一次卡在「黄昏推不进夜晚」。
+ *   典型不可自动驱动的：
+ *     · 洗脑师 → 白天有【疯狂洗脑】门禁，必须先判定才能进黄昏（能解，但多一层时序）；
+ *     · 麻脸巫婆 → 夜步用 `ROLE_SELECT` 选角色；
+ *     · 镜像双子 → 首夜要连选两名玩家。
+ *   随机 ⇒ 失败不可复现、报错点漂移、看起来像产品回归，实际是采样问题。
+ *   ⇒ 钉一套**每个步骤都可驱动**的阵容，让失败只可能来自产品。
+ *
+ * 选型理由：亡骨魔（vigormortis）在 7 人局**没有实际设置修正**
+ *   （基准 5/0/1/1，`−1 外来者` 在外来者已是 0 时被钳成 0 ⇒ 仍 5/0/1/1），
+ *   且 `otherNightPriority` 有击杀 ⇒ 第二夜必产生伤亡（③ 的历史实证就是它）。
+ *   ⚠️ 特意**不用涡流**：官方「如果今天没有玩家被处决，邪恶阵营获胜」——
+ *     黄昏驱动器若没能凑够票数处决，游戏会**当场判邪恶胜**，
+ *     后续「第二夜」的断言全部失去意义（实测就这么红过一次）。
+ *   其余：女巫只有**首夜**一次行动（目标选择驱动器能处理）；
+ *   五名镇民分别是「首夜信息 / 首夜信息 / 其他夜信息 / 死亡触发 / 日间」，均无门禁。
+ */
+const SNV_LINEUP = [
+  "clockmaker",
+  "dreamer",
+  "oracle",
+  "sage",
+  "artist",
+  "witch",
+  "vigormortis",
+];
+
+
 function seatsOf(snap: any): any[] {
   return Array.isArray(snap?.seats) ? snap.seats : [];
 }
@@ -101,18 +135,31 @@ async function toNight2(
   test.skip(n1 === "spy", "本局为间谍局，自动驱动不适用");
   expect(n1, "❌ 首夜未能推进到白天").toBe("day");
 
-  const dusk = await completeDuskEnterNight(page);
-  if (dusk !== "night") {
-    return { ok: false, reason: "gate" };
-  }
-  return { ok: true };
+  /**
+   * 🔴 2026-10-23 换驱动器：`completeDuskEnterNight` → `driveDusk(page, {})`。
+   *
+   *   旧驱动器的行为是「**必须发起一次提名并走完投票**」，而它固定点
+   *   `seatBtns[0]` / `seatBtns[1]`（即 1 号被 2 号提名）。于是：
+   *     · 若恶魔恰好坐在 1 号 ⇒ 处决掉恶魔 ⇒ **善良阵营当场获胜** ⇒ 后面的
+   *       「第二夜」断言全部失去意义（实测：本文件 ④ 就这么红成
+   *       「黄昏未能推进到夜晚」，而页面快照里写着「善良阵营胜利 · 1号 亡骨魔 已死亡」）。
+   *     · `__CT_FORCE_LINEUP__` **只保证角色集合、不保证座位顺序** ⇒ 恶魔坐几号是随机的
+   *       ⇒ 同一条用例时红时绿，报错点还会漂移。
+   *
+   *   `driveDusk(page, {})` **不提名**，只走「进入黄昏 → 直接入夜」，
+   *   与本文件 ③④ 的语义完全一致（它们要看的是**第二夜的恶魔击杀**，不是处决）。
+   *   这也是 9 套 `role_scenarios` 逐角色用例在用的同一份驱动器（117 条全绿）。
+   */
+  const dusk = await driveDusk(page, {});
+  if (dusk.status === "night") return { ok: true };
+  return { ok: false, reason: dusk.status };
 }
 
 test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真实状态变更", () => {
   test("① ⭐ 入夜后快照必须真实落库：座位数 / role.id / gamePhase / 字段契约", async ({
     page,
   }) => {
-    await enterFirstNight(page, SEAT_COUNT, SCRIPT);
+    await enterFirstNight(page, SEAT_COUNT, SCRIPT, undefined, SNV_LINEUP);
 
     const snap = await waitForSnapshot(
       page,
@@ -181,7 +228,7 @@ test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真�
   test("② ⭐ 状态效果形状：statusEffects 每项必须是 {type, ...}（若存在）", async ({
     page,
   }) => {
-    await enterFirstNight(page, SEAT_COUNT, SCRIPT);
+    await enterFirstNight(page, SEAT_COUNT, SCRIPT, undefined, SNV_LINEUP);
     const snap = await readSnapshot(page);
     const seats = seatsOf(snap);
     expect(seats.length).toBe(SEAT_COUNT);
@@ -232,7 +279,7 @@ test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真�
      * ✅ 判据用**状态字段** `wakeQueueIds`（`persistence.ts:109` 已持久化），
      *    不用 console 文案 —— 文案可被改，状态不会说谎。
      */
-    await enterFirstNight(page, SEAT_COUNT, SCRIPT);
+    await enterFirstNight(page, SEAT_COUNT, SCRIPT, undefined, SNV_LINEUP);
 
     const gate = await toNight2(page);
     /**
@@ -291,7 +338,7 @@ test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真�
   test("④ ⭐ 首夜不杀人 → 第二夜：必杀恶魔必须产生伤亡，且死者必须落成状态字段", async ({
     page,
   }) => {
-    await enterFirstNight(page, SEAT_COUNT, SCRIPT);
+    await enterFirstNight(page, SEAT_COUNT, SCRIPT, undefined, SNV_LINEUP);
 
     // ⚠️ 设计铁律①：首夜恶魔不行动 ⇒ 首夜必无人死。
     //    先断言这一点，既验证规则、又证明「本用例的死亡断言不是空转」。
@@ -312,10 +359,13 @@ test.describe("L4 状态断言 · 梦殒春宵：真实点击流必须产生真�
     // ⚠️ 2026-09-22 起**不再 skip**：原 skip 的理由「洗脑师门禁自动化无法解除」是
     //    E2E helper 自身的判据 bug（会误点「取消」而取消技能），**已修**。
     //    详见本文件 `toNight2` 上方与 `helpers/scriptFlow.ts` 的详细说明。
-    const dusk = await completeDuskEnterNight(page);
+    // ⚠️ 2026-10-23：驱动器换成 `driveDusk(page, {})`（不提名）——
+    //    旧驱动器固定处决 1 号，而 1 号可能是恶魔 ⇒ 游戏当场判善良胜，
+    //    本用例的「第二夜必有伤亡」就永远测不到了。原因详见 `toNight2` 注释。
+    const dusk = await driveDusk(page, {});
     expect(
-      dusk,
-      "❌ 黄昏未能推进到夜晚（含存活洗脑师的局也必须能走完）"
+      dusk.status,
+      "❌ 黄昏未能推进到夜晚（不提名直接入夜也失败 ⇒ 驱动器或阶段推进有问题）"
     ).toBe("night");
 
     const n2 = await advanceNightFast(page);
