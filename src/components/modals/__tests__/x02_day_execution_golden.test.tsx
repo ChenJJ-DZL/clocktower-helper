@@ -305,9 +305,11 @@ describe("X02 · 白天/处决弹窗 golden 基线", () => {
     expect(modalTitle()).toBe("🕊️ 和平主义者裁定");
     expect(t).toContain("🕊️ 和平主义者裁定");
 
-    // ③ 关键整句逐字（源码模板：`【{targetId + 1}号】 镇民被处决：是否触发【和平主义者】使其免于死亡？`）
+    // ③ 关键整句逐字（源码模板：`【{targetId + 1}号】 善良玩家被处决：是否触发【和平主义者】使其免于死亡？`）
+    //    官方原文（officialRoleDocs.json · 和平主义者·角色能力）：「被处决的善良玩家可能不会死亡。」
     expect(t).toContain("【3号】");
-    expect(t).toContain("镇民被处决：是否触发【和平主义者】使其免于死亡？");
+    expect(t).toContain("善良玩家被处决：是否触发【和平主义者】使其免于死亡？");
+    expect(t).toContain("规则：和平主义者让“被处决的善良玩家可能不会死亡”，由说书人裁定。");
 
     // ④ 按钮文案逐字一致
     expect(buttonTexts()).toContain("正常处决");
@@ -344,7 +346,7 @@ describe("X02 · 白天/处决弹窗 golden 基线", () => {
 
     // ③ 关键整句逐字
     expect(t).toContain("你即将处决的是【圣徒 (Saint)】！");
-    expect(t).toContain("一旦执行，善良阵营立即失败，邪恶阵营立刻获胜！");
+    expect(t).toContain("一旦执行，【圣徒】的阵营立即落败（善良阵营失败、邪恶阵营获胜）！");
     expect(t).toContain("若你确认要执行，请点击下方【确认处决圣徒并结束游戏】。");
 
     // ④ 按钮文案逐字一致

@@ -22,7 +22,7 @@ export function MoonchildKillModal({
 
   return (
     <ModalWrapper
-      title="🌙 月之子已死：选择陪葬目标"
+      title="🌙 月之子已死：选择一名存活玩家"
       onClose={() => {}} // 不允许点击遮罩关闭
       closeOnOverlayClick={false}
       size="fullscreen90"
@@ -30,7 +30,7 @@ export function MoonchildKillModal({
     >
       <div className="flex flex-col flex-1 p-2 sm:p-4 space-y-4 w-full">
         <p className="text-lg sm:text-xl md:text-2xl text-amber-200 font-bold text-center">
-          请选择一名玩家与其陪葬：
+          请公开选择一名存活的玩家：如果他是善良的，他将在当晚死亡。
         </p>
         <AdaptiveSeatGrid
           count={votableSeats.length}

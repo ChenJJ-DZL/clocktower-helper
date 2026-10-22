@@ -48,12 +48,12 @@ export function PacifistConfirmModal({
               <span className="text-amber-400 font-black">
                 【{targetId + 1}号】
               </span>{" "}
-              镇民被处决：
+              善良玩家被处决：
               <br />
               是否触发【和平主义者】使其免于死亡？
             </p>
             <p className="text-lg sm:text-xl text-slate-300 font-medium leading-relaxed">
-              规则：和平主义者让“被处决的镇民可能不会死亡”，由说书人裁定（通常随机）。
+              规则：和平主义者让“被处决的善良玩家可能不会死亡”，由说书人裁定。
             </p>
           </div>
         </div>

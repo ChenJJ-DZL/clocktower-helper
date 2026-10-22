@@ -551,7 +551,9 @@ describe("X02 · 白天行动弹窗 golden 基线（批 4）", () => {
     expect(t).toContain("🤪 呆瓜死亡判定");
 
     // ③ 关键整句逐字
-    expect(t).toContain("请选择一名存活玩家：若其为邪恶，善良阵营立即失败。");
+    //    官方原文（officialRoleDocs.json · 呆瓜·角色能力）：
+    //    「当你得知你死亡时，你要公开选择一名存活的玩家：如果他是邪恶的，你的阵营落败。」
+    expect(t).toContain("请选择一名存活玩家：若其为邪恶，你的阵营立即落败。");
 
     // ④ 可选座位卡片文案逐字（"N号" + 角色名）；死者/自己不在候选里
     expect(buttonTexts()).toContain("2号厨师");

@@ -47,7 +47,7 @@ export function SaintExecutionConfirmModal({
               你即将处决的是【圣徒 (Saint)】！
             </p>
             <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-red-300 leading-relaxed whitespace-nowrap">
-              一旦执行，善良阵营立即失败，邪恶阵营立刻获胜！
+              一旦执行，【圣徒】的阵营立即落败（善良阵营失败、邪恶阵营获胜）！
             </p>
             <p className="text-base sm:text-xl text-red-200 mt-2 font-medium whitespace-nowrap">
               若你确认要执行，请点击下方【确认处决圣徒并结束游戏】。

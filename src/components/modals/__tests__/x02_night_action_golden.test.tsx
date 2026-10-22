@@ -342,7 +342,7 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
   });
 
   /* ─────────── X02-05 ─────────── */
-  it("X02-05 MOONCHILD_KILL · 月之子已死：选择陪葬目标", () => {
+  it("X02-05 MOONCHILD_KILL · 月之子已死：选择一名存活玩家", () => {
     const onConfirm = vi.fn();
 
     render(
@@ -358,8 +358,11 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
     const t = assertRendered();
 
     // ② 标题逐字一致
-    expect(modalTitle()).toBe("🌙 月之子已死：选择陪葬目标");
-    expect(t).toContain("🌙 月之子已死：选择陪葬目标");
+    expect(modalTitle()).toBe("🌙 月之子已死：选择一名存活玩家");
+    expect(t).toContain("🌙 月之子已死：选择一名存活玩家");
+    //    官方原文（officialRoleDocs.json · 月之子·角色能力）：
+    //    「当你得知你死亡时，你要公开选择一名存活的玩家。如果他是善良的，在当晚他会死亡。」
+    expect(t).toContain("请公开选择一名存活的玩家：如果他是善良的，他将在当晚死亡。");
 
     // ③ 主按钮文案逐字一致
     //    该弹窗无 footer，主操作是「选一个座位」按钮：

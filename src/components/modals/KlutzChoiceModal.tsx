@@ -55,7 +55,7 @@ export function KlutzChoiceModal({
     >
       <div className="flex flex-col flex-1 p-2 sm:p-4 space-y-4 w-full">
         <p className="text-lg sm:text-xl md:text-2xl text-amber-200 font-bold text-center">
-          请选择一名存活玩家：若其为邪恶，善良阵营立即失败。
+          请选择一名存活玩家：若其为邪恶，你的阵营立即落败。
         </p>
         <AdaptiveSeatGrid
           count={selectableSeats.length}
