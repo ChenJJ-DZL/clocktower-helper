@@ -400,3 +400,86 @@ test.describe("罂粟花开 · G4 S27 军团局", () => {
       .toMatch(/无人死亡|空刀|目标/);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G5 · 角色级补测：图书管理员（外来者真值）/ 博学者（两条信息一真一假）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("罂粟花开 · G5 角色级补测", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("图书管理员：首夜信息必须点名一名「在场外来者」（或明确说没有）", async ({
+    page,
+  }) => {
+    /**
+     * 官方【图书管理员】：「每个夜晚，你会得知一名特定的外来者，或者得知**没有**外来者在场。」
+     * ⇒ 两段硬判据：
+     *   ① 场上有外来者 ⇒ 信息里必须出现**其中一个在场外来者**的角色名；
+     *   ② 场上没有外来者 ⇒ 信息必须明确表达「没有」。
+     */
+    const snap = await bootS(page, "S25");
+    const libSeat = seatByRole(snap, "librarian");
+    expect.soft(libSeat, "图书管理员应在场").toBeGreaterThanOrEqual(0);
+
+    const nameOf: Record<string, string> = Object.fromEntries(
+      APP_ROLES.map((r: any) => [r.id, r.name])
+    );
+    const outsiderNames = (snap.seats as any[])
+      .filter((s: any) => s.role?.type === "outsider")
+      .map((s: any) => nameOf[s.role?.id] ?? s.role?.id)
+      .filter(Boolean) as string[];
+
+    const n1 = await driveNight(page, []);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const dialog = stepsOf(n1, "librarian").map((x) => x.dialog).join(" | ");
+    const haystack = dialog + " | " + (await page.locator("body").innerText());
+
+    expect
+      .soft(dialog.length > 0, `图书管理员应产出信息（实测：${dialog.slice(0, 120)}）`)
+      .toBe(true);
+
+    if (outsiderNames.length > 0) {
+      expect
+        .soft(
+          outsiderNames.some((n) => haystack.includes(n)),
+          `场上有外来者（${outsiderNames.join("/")}）⇒ 信息必须点名其中之一`
+        )
+        .toBe(true);
+    } else {
+      expect
+        .soft(/没有|无外来者/.test(haystack), "场上无外来者 ⇒ 信息必须明确说「没有」")
+        .toBe(true);
+    }
+  });
+
+  test("博学者：官方是「每个夜晚」但实现做成日间技能（口径偏差登记）", async ({
+    page,
+  }) => {
+    /**
+     * 官方【博学者】：「每个夜晚，你会得知两条信息，其中一条为真、一条为假。」
+     *
+     * ⚠️ 实测偏差（2026-10-22，**登记而非断言通过**）：
+     *   `savant.ability.ts:116-119` = `triggerTiming: [DAY]` + 两个 priority 全 null
+     *   ⇒ 夜间**永不唤醒**，`nightOrder.json` 里也查不到 savant（first=0 / other=0）
+     *   ⇒ 本局首夜 `stepsOf(n1, "savant")` 为空。
+     *
+     * 说明：该角色在项目里被实现为**日间**能力（入口在白天，已由无名之墓的
+     *   「艺术家 / 博学者 的日间技能入口存在且可用」覆盖），因此功能可用，
+     *   但**触发时机与官方不一致**（官方是「每个夜晚」）。
+     *
+     * 处理：E2E 侧标 fixme —— 既不能按夜间断言（实现没有夜间步骤），
+     *   也不能写成「通过」（会掩盖口径偏差）。是否改为 EVERY_NIGHT 需产品裁定。
+     */
+    test.fixme(
+      true,
+      "博学者实现为 DAY 触发（官方为「每个夜晚」）⇒ 夜间无步骤；口径偏差待裁定"
+    );
+    const snap = await bootS(page, "S26");
+    const savantSeat = seatByRole(snap, "savant");
+    expect.soft(savantSeat, "博学者应在场").toBeGreaterThanOrEqual(0);
+    const n1 = await driveNight(page, []);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+    const dialog = stepsOf(n1, "savant").map((x) => x.dialog).join(" | ");
+    expect.soft(dialog.length > 0, "（如果改回夜间，这条会开始生效）").toBe(true);
+  });
+});
