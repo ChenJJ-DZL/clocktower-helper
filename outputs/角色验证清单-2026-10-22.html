@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>血染钟楼 · 角色验证清单 2026-10-22</title>
+<style>
+  :root{
+    --bg:#f8fafc; --panel:#ffffff; --line:#e2e8f0; --ink:#0f172a; --muted:#64748b;
+    --ok-bg:#ecfdf5; --ok-bd:#10b981; --ok-ink:#065f46;
+    --half-bg:#fffbeb; --half-bd:#f59e0b; --half-ink:#92400e;
+    --risk-bg:#fff7ed; --risk-bd:#f97316; --risk-ink:#9a3412;
+    --accent:#2563eb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.6; padding:32px 20px 72px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  header{margin-bottom:28px}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+  h1 svg{flex:none}
+  .sub{color:var(--muted);font-size:13px;margin-top:6px}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:24px 0 8px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+  .kpi.ok::before{background:var(--ok-bd)}
+  .kpi.half::before{background:var(--half-bd)}
+  .kpi.risk::before{background:var(--risk-bd)}
+  .kpi .n{font-size:28px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+  .kpi .pct{font-size:11px;color:var(--muted);margin-top:2px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:16px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:12px 16px;margin:20px 0 28px;font-size:12.5px}
+  .legend span{display:flex;align-items:center;gap:6px;color:var(--muted)}
+  .dot{width:10px;height:10px;border-radius:3px;flex:none}
+
+  section.script{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin-bottom:18px}
+  .script-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .script-head h2{font-size:17px;font-weight:650}
+  .script-head .cnt{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .script-head .ok-n{color:var(--ok-ink);font-weight:600}
+  .bar{height:6px;background:#eef2f6;border-radius:99px;overflow:hidden;margin:10px 0 16px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:99px}
+  .bar.hot i{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:5px 9px;
+    font-size:12.5px;border:1px solid;white-space:nowrap;cursor:default
+  }
+  .chip .k{font-variant-numeric:tabular-nums;font-size:10.5px;opacity:.72;font-weight:600}
+  .chip.ok{background:var(--ok-bg);border-color:#a7f3d0;color:var(--ok-ink)}
+  .chip.half{background:var(--half-bg);border-color:#fde68a;color:var(--half-ink)}
+  .chip.risk{background:var(--risk-bg);border-color:#fed7aa;color:var(--risk-ink)}
+
+  h3.sec{font-size:15px;font-weight:650;margin:34px 0 12px;display:flex;align-items:center;gap:8px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:12.5px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  th{background:#f8fafc;font-weight:600;font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+  tr:last-child td{border-bottom:none}
+  td.role{font-weight:600;white-space:nowrap}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:5px;
+    background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;margin-left:6px;font-weight:600}
+  .tag.gap{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+  .tag.ok{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+
+  .note{background:#f8fafc;border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:8px;padding:14px 16px;font-size:12.5px;color:#334155;margin-top:14px}
+  .note b{color:var(--ink)}
+  .note ul{margin:8px 0 0 18px}
+  .note li{margin:3px 0}
+
+  footer{margin-top:36px;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.9}
+  @media(max-width:640px){
+    body{padding:20px 12px 48px}
+    h1{font-size:20px}
+    .kpi .n{font-size:22px}
+    table{font-size:11.5px}
+    th,td{padding:7px 8px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+    角色验证清单 · 详细到角色
+  </h1>
+  <div class="sub">
+    基准：<code>outputs/coverage_ledger.json</code>（2026-10-22 05:35 生成）· 计划判定 9 项 ·
+    9 剧本 × 191 个(剧本,角色)二元组 + 1 个旅行者（替罪羊）
+  </div>
+</header>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="n">192</div>
+    <div class="l">角色总数（9 剧本）</div>
+    <div class="pct">定向用例引用 192 / 192</div>
+  </div>
+  <div class="kpi ok">
+    <div class="n">109</div>
+    <div class="l">已双验：用例 + 整局真跑到</div>
+    <div class="pct">占 191 的 57.1%</div>
+  </div>
+  <div class="kpi half">
+    <div class="n">82</div>
+    <div class="l">仅用例：整局没抽到过</div>
+    <div class="pct">占 191 的 42.9%</div>
+  </div>
+  <div class="kpi risk">
+    <div class="n">29<span style="font-size:15px;color:#94a3b8">/43</span></div>
+    <div class="l">弹窗文案逐字对账</div>
+    <div class="pct">剩 14 个未对</div>
+  </div>
+  <div class="kpi ok">
+    <div class="n">44<span style="font-size:15px;color:#94a3b8">/192</span></div>
+    <div class="l">角色级深度验收（官方分支 × 反证）</div>
+    <div class="pct">暗流涌动 22/22 ✅ · 黯月初升 22/25（1 条真缺陷登记）</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:#10b981"></i>已双验（有定向场景 + 整局真跑到，<b style="color:#065f46">K</b> = 被跑到的局数）</span>
+  <span><i class="dot" style="background:#f59e0b"></i>仅用例（定向场景已覆盖，整局随机没抽到）</span>
+  <span><i class="dot" style="background:#f97316"></i>有已登记缺口（规则 / 文案待裁决）</span>
+</div>
+
+<!-- ══════════ 暗流涌动 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>暗流涌动</h2>
+    <span class="cnt"><span class="ok-n">13 已</span> / 22 · 待真跑 9</span>
+  </div>
+  <div class="bar"><i style="width:59%"></i></div>
+  <div class="chips">
+    <span class="chip ok">洗衣妇<span class="k">K1</span></span>
+    <span class="chip ok">调查员<span class="k">K1</span></span>
+    <span class="chip ok">厨师<span class="k">K1</span></span>
+    <span class="chip ok">共情者<span class="k">K1</span></span>
+    <span class="chip ok">占卜师<span class="k">K2</span></span>
+    <span class="chip half">图书管理员</span>
+    <span class="chip ok">士兵<span class="k">K1</span></span>
+    <span class="chip half">送葬者</span>
+    <span class="chip half">僧侣</span>
+    <span class="chip half">守鸦人</span>
+    <span class="chip half">贞洁者<span class="tag gap">缺口</span></span>
+    <span class="chip half">猎手<span class="tag gap">缺口</span></span>
+    <span class="chip ok">镇长<span class="k">K1</span></span>
+    <span class="chip ok">管家<span class="k">K1</span></span>
+    <span class="chip ok">酒鬼<span class="k">K1</span></span>
+    <span class="chip half">陌客</span>
+    <span class="chip half">圣徒<span class="tag gap">缺口</span></span>
+    <span class="chip ok">投毒者<span class="k">K1</span></span>
+    <span class="chip half">间谍</span>
+    <span class="chip ok">红唇女郎<span class="k">K1</span></span>
+    <span class="chip ok">男爵<span class="k">K1</span></span>
+    <span class="chip ok">小恶魔<span class="k">K2</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 黯月初升 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>黯月初升</h2>
+    <span class="cnt"><span class="ok-n">22 已</span> / 25 · 剩 3 待补</span>
+  </div>
+  <div class="bar"><i style="width:88%"></i></div>
+  <div class="chips">
+    <span class="chip ok">祖母<span class="k">G1</span></span>
+    <span class="chip ok">水手<span class="k">G7</span></span>
+    <span class="chip ok">侍女<span class="k">G1</span></span>
+    <span class="chip ok">驱魔人<span class="k">G1</span></span>
+    <span class="chip ok">旅店老板<span class="k">G3</span></span>
+    <span class="chip ok">赌徒<span class="k">G4</span></span>
+    <span class="chip ok">造谣者<span class="k">G1b</span></span>
+    <span class="chip ok">侍臣<span class="k">G1b</span></span>
+    <span class="chip ok">教授<span class="k">G1</span></span>
+    <span class="chip ok">吟游诗人<span class="k">G6</span></span>
+    <span class="chip half">茶艺师</span>
+    <span class="chip half">和平主义者</span>
+    <span class="chip ok">弄臣<span class="k">G6</span></span>
+    <span class="chip half">修补匠</span>
+    <span class="chip ok">月之子<span class="k">G1</span></span>
+    <span class="chip half">莽夫</span>
+    <span class="chip ok">疯子<span class="k">G2</span></span>
+    <span class="chip ok">教父<span class="k">G1</span></span>
+    <span class="chip ok">魔鬼代言人<span class="k">G5</span></span>
+    <span class="chip ok">刺客<span class="k">G5</span></span>
+    <span class="chip ok">主谋<span class="k">G6</span><span class="tag gap">缺陷</span></span>
+    <span class="chip ok">僵怖<span class="k">G5</span></span>
+    <span class="chip ok">普卡<span class="k">G2</span></span>
+    <span class="chip ok">沙巴洛斯<span class="k">G3</span></span>
+    <span class="chip ok">珀<span class="k">G4</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 梦殒春宵 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>梦殒春宵</h2>
+    <span class="cnt"><span class="ok-n">14 已</span> / 25 · 待真跑 11</span>
+  </div>
+  <div class="bar"><i style="width:56%"></i></div>
+  <div class="chips">
+    <span class="chip ok">钟表匠<span class="k">K1</span></span>
+    <span class="chip ok">筑梦师<span class="k">K1</span></span>
+    <span class="chip ok">舞蛇人<span class="k">K1</span></span>
+    <span class="chip ok">数学家<span class="k">K2</span></span>
+    <span class="chip half">卖花女孩</span>
+    <span class="chip ok">城镇公告员<span class="k">K1</span></span>
+    <span class="chip ok">神谕者<span class="k">K1</span></span>
+    <span class="chip half">博学者</span>
+    <span class="chip ok">女裁缝<span class="k">K1</span></span>
+    <span class="chip ok">哲学家<span class="k">K1</span></span>
+    <span class="chip ok">艺术家<span class="k">K1</span></span>
+    <span class="chip half">杂耍艺人</span>
+    <span class="chip half">贤者</span>
+    <span class="chip half">畸形秀演员<span class="tag gap">缺口</span></span>
+    <span class="chip half">心上人</span>
+    <span class="chip half">理发师</span>
+    <span class="chip ok">呆瓜<span class="k">K1</span></span>
+    <span class="chip ok">镜像双子<span class="k">K1</span><span class="tag gap">缺口</span></span>
+    <span class="chip half">女巫</span>
+    <span class="chip ok">洗脑师<span class="k">K1</span><span class="tag gap">缺口</span></span>
+    <span class="chip half">坑道巫婆</span>
+    <span class="chip half">方古</span>
+    <span class="chip half">亡骨魔</span>
+    <span class="chip ok">诺-达<span class="k">K1</span></span>
+    <span class="chip ok">涡流<span class="k">K1</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 窃窃私语 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>窃窃私语</h2>
+    <span class="cnt"><span class="ok-n">13 已</span> / 19 · 待真跑 6</span>
+  </div>
+  <div class="bar"><i style="width:68%"></i></div>
+  <div class="chips">
+    <span class="chip ok">侍女<span class="k">K1</span></span>
+    <span class="chip ok">造谣者<span class="k">K1</span></span>
+    <span class="chip ok">神谕者<span class="k">K2</span></span>
+    <span class="chip ok">数学家<span class="k">K1</span></span>
+    <span class="chip ok">艺术家<span class="k">K1</span></span>
+    <span class="chip ok">卖花女孩<span class="k">K1</span></span>
+    <span class="chip ok">旅店老板<span class="k">K2</span></span>
+    <span class="chip ok">弄臣<span class="k">K1</span></span>
+    <span class="chip half">圣徒<span class="tag gap">缺口</span></span>
+    <span class="chip half">陌客</span>
+    <span class="chip half">政客</span>
+    <span class="chip half">间谍</span>
+    <span class="chip ok">女巫<span class="k">K1</span></span>
+    <span class="chip ok">刺客<span class="k">K1</span></span>
+    <span class="chip ok">魔鬼代言人<span class="k">K1</span></span>
+    <span class="chip half">涡流</span>
+    <span class="chip ok">珀<span class="k">K2</span></span>
+    <span class="chip half">僵怖</span>
+    <span class="chip ok">瘟疫医生<span class="k">K1</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 无名之墓 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>无名之墓</h2>
+    <span class="cnt"><span class="ok-n">12 已</span> / 19 · 待真跑 7</span>
+  </div>
+  <div class="bar"><i style="width:63%"></i></div>
+  <div class="chips">
+    <span class="chip ok">送葬者<span class="k">K2</span></span>
+    <span class="chip ok">赌徒<span class="k">K2</span></span>
+    <span class="chip ok">博学者<span class="k">K1</span></span>
+    <span class="chip half">造谣者</span>
+    <span class="chip half">艺术家</span>
+    <span class="chip half">杂耍艺人</span>
+    <span class="chip ok">钟表匠<span class="k">K1</span></span>
+    <span class="chip half">神谕者</span>
+    <span class="chip ok">水手<span class="k">K1</span></span>
+    <span class="chip ok">农夫<span class="k">K1</span></span>
+    <span class="chip ok">弄臣<span class="k">K2</span></span>
+    <span class="chip half">替罪羊<span class="tag">旅行者·X04</span></span>
+    <span class="chip half">酒鬼</span>
+    <span class="chip ok">畸形秀演员<span class="k">K1</span><span class="tag gap">缺口</span></span>
+    <span class="chip half">男爵</span>
+    <span class="chip ok">投毒者<span class="k">K2</span></span>
+    <span class="chip ok">刺客<span class="k">K1</span></span>
+    <span class="chip ok">沙巴洛斯<span class="k">K1</span></span>
+    <span class="chip ok">僵怖<span class="k">K1</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 无上愉悦 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>无上愉悦</h2>
+    <span class="cnt"><span class="ok-n">12 已</span> / 16 · 待真跑 4</span>
+  </div>
+  <div class="bar"><i style="width:75%"></i></div>
+  <div class="chips">
+    <span class="chip ok">洗衣妇<span class="k">K1</span></span>
+    <span class="chip ok">调查员<span class="k">K1</span></span>
+    <span class="chip ok">厨师<span class="k">K1</span></span>
+    <span class="chip half">图书管理员</span>
+    <span class="chip ok">共情者<span class="k">K2</span></span>
+    <span class="chip half">占卜师</span>
+    <span class="chip ok">僧侣<span class="k">K1</span></span>
+    <span class="chip ok">守鸦人<span class="k">K2</span></span>
+    <span class="chip ok">管家<span class="k">K1</span></span>
+    <span class="chip ok">酒鬼<span class="k">K1</span></span>
+    <span class="chip ok">陌客<span class="k">K1</span></span>
+    <span class="chip half">投毒者</span>
+    <span class="chip ok">红唇女郎<span class="k">K2</span></span>
+    <span class="chip ok">男爵<span class="k">K1</span></span>
+    <span class="chip ok">小恶魔<span class="k">K2</span></span>
+    <span class="chip half">僵怖</span>
+  </div>
+</section>
+
+<!-- ══════════ 凶宅魅影 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>凶宅魅影</h2>
+    <span class="cnt"><span class="ok-n">12 已</span> / 21 · 待真跑 9</span>
+  </div>
+  <div class="bar"><i style="width:57%"></i></div>
+  <div class="chips">
+    <span class="chip ok">气球驾驶员<span class="k">K1</span></span>
+    <span class="chip ok">数学家<span class="k">K1</span></span>
+    <span class="chip ok">钟表匠<span class="k">K2</span></span>
+    <span class="chip half">女裁缝</span>
+    <span class="chip half">杂耍艺人</span>
+    <span class="chip half">哲学家</span>
+    <span class="chip ok">艺术家<span class="k">K1</span></span>
+    <span class="chip ok">城镇公告员<span class="k">K2</span></span>
+    <span class="chip half">侍臣</span>
+    <span class="chip ok">唱诗男孩<span class="k">K1</span></span>
+    <span class="chip half">畸形秀演员<span class="tag gap">缺口</span></span>
+    <span class="chip ok">理发师<span class="k">K1</span></span>
+    <span class="chip ok">弄臣<span class="k">K1</span></span>
+    <span class="chip half">圣徒<span class="tag gap">缺口</span></span>
+    <span class="chip half">女巫</span>
+    <span class="chip half">教父</span>
+    <span class="chip ok">刺客<span class="k">K2</span></span>
+    <span class="chip ok">魔鬼代言人<span class="k">K1</span></span>
+    <span class="chip ok">诺-达<span class="k">K1</span></span>
+    <span class="chip half">方古</span>
+    <span class="chip ok">普卡<span class="k">K1</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 游园惊梦 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>游园惊梦</h2>
+    <span class="cnt"><span class="ok-n">13 已</span> / 20 · 待真跑 7</span>
+  </div>
+  <div class="bar"><i style="width:65%"></i></div>
+  <div class="chips">
+    <span class="chip ok">钟表匠<span class="k">K2</span></span>
+    <span class="chip ok">筑梦师<span class="k">K1</span></span>
+    <span class="chip ok">数学家<span class="k">K1</span></span>
+    <span class="chip ok">卖花女孩<span class="k">K1</span></span>
+    <span class="chip ok">神谕者<span class="k">K1</span></span>
+    <span class="chip ok">博学者<span class="k">K2</span></span>
+    <span class="chip half">女裁缝</span>
+    <span class="chip ok">艺术家<span class="k">K1</span></span>
+    <span class="chip half">贤者</span>
+    <span class="chip ok">畸形秀演员<span class="k">K1</span><span class="tag gap">缺口</span></span>
+    <span class="chip half">心上人</span>
+    <span class="chip half">理发师</span>
+    <span class="chip ok">呆瓜<span class="k">K1</span></span>
+    <span class="chip ok">女巫<span class="k">K1</span></span>
+    <span class="chip ok">洗脑师<span class="k">K1</span><span class="tag gap">缺口</span></span>
+    <span class="chip half">坑道巫婆</span>
+    <span class="chip ok">方古<span class="k">K1</span></span>
+    <span class="chip half">亡骨魔</span>
+    <span class="chip ok">诺-达<span class="k">K1</span></span>
+    <span class="chip half">涡流</span>
+  </div>
+</section>
+
+<!-- ══════════ 罂粟花开 ══════════ -->
+<section class="script">
+  <div class="script-head">
+    <h2>罂粟花开</h2>
+    <span class="cnt"><span class="ok-n">7 已</span> / 24 · <b style="color:#9a3412">待真跑 17</b></span>
+  </div>
+  <div class="bar hot"><i style="width:29%"></i></div>
+  <div class="chips">
+    <span class="chip half">图书管理员</span>
+    <span class="chip half">厨师</span>
+    <span class="chip ok">赏金猎人<span class="k">K2</span></span>
+    <span class="chip half">小精灵</span>
+    <span class="chip half">占卜师</span>
+    <span class="chip half">僧侣</span>
+    <span class="chip ok">神谕者<span class="k">K2</span></span>
+    <span class="chip half">城镇公告员</span>
+    <span class="chip ok">杂耍艺人<span class="k">K1</span></span>
+    <span class="chip half">博学者</span>
+    <span class="chip half">农夫</span>
+    <span class="chip half">镇长</span>
+    <span class="chip half">罂粟种植者</span>
+    <span class="chip half">酒鬼</span>
+    <span class="chip half">疯子</span>
+    <span class="chip half">畸形秀演员<span class="tag gap">缺口</span></span>
+    <span class="chip ok">告密者<span class="k">K1</span></span>
+    <span class="chip half">洗脑师<span class="tag gap">缺口</span></span>
+    <span class="chip half">镜像双子<span class="tag gap">缺口</span></span>
+    <span class="chip half">男爵</span>
+    <span class="chip ok">提线木偶<span class="k">K1</span></span>
+    <span class="chip half">小恶魔</span>
+    <span class="chip ok">涡流<span class="k">K1</span></span>
+    <span class="chip ok">军团<span class="k">K8</span></span>
+  </div>
+</section>
+
+<!-- ══════════ 已登记缺口（按角色归属） ══════════ -->
+<h3 class="sec">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+  已登记缺口（12 条，全部有官方原文依据）
+</h3>
+<table>
+  <thead>
+    <tr><th style="width:110px">角色</th><th style="width:150px">缺口</th><th>依据 / 现状</th><th style="width:90px">状态</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="role">猎手</td>
+      <td>已死目标被 UI 置灰<span class="tag gap">P9</span></td>
+      <td>官方「即使猎手选中了一个已死亡的恶魔，也会无事发生」⇒ 允许选死玩家。引擎 `handleSlayerTargetSelect` 有该分支，被 UI 挡住。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">猎手 / 镜像双子</td>
+      <td>目标网格显示真实角色 + 阵营徽章<span class="tag gap">P7</span></td>
+      <td>无「🎙️ 说书人专用」标注。若投屏 / 截图给玩家 = 全盘身份泄露。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">镜像双子</td>
+      <td>术语「善良双子」≠ 官方「对立双子」<span class="tag gap">P5</span></td>
+      <td>仅表述不一致，改动需连带多处断言。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">镜像双子</td>
+      <td>`goodId` 未指定时兜底任意善良玩家<span class="tag gap">P6</span></td>
+      <td>兜底分支下「你即将处决的是【对立善良双子】」不一定成立。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">猎手</td>
+      <td>陌客被当作恶魔仍判善良胜<span class="tag gap">P8</span></td>
+      <td>官方范例：「猎手选择了陌客…陌客死亡…但<b>游戏继续</b>」。本仓 `registersAsDemon` 命中时直接判胜。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">贞洁者</td>
+      <td>结算文案点名「贞洁者」<span class="tag gap">P4</span></td>
+      <td>官方只要求「立即宣布那名发起提名的玩家被处决」，未要求宣告被提名者身份。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">畸形秀演员</td>
+      <td>「立即进入下一个夜晚」写成无条件<span class="tag gap">缺口</span></td>
+      <td>官方是条件句「如果这次处决发生在白天的常规处决之前」；引擎 `isInstantNight` 恒为真。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">畸形秀演员</td>
+      <td>仲裁页显示真实身份<span class="tag gap">缺口</span></td>
+      <td>说书人页，缺「说书人专用」标注（同 P7 型）。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">洗脑师</td>
+      <td>共享告知语「明天白天」窄于官方<span class="tag gap">缺口</span></td>
+      <td>官方是「明天白天<b>和夜晚</b>」。常量被 3 个不可改测试引用，改动面大。</td>
+      <td>待裁决</td>
+    </tr>
+    <tr>
+      <td class="role">圣徒</td>
+      <td>方向已修，待整局复验<span class="tag ok">已修</span></td>
+      <td>官方「你的阵营落败」，已改为按 `saintIsEvil` 判 + 补 `victoryRef`。整局 9 次抽取中 seen=0，未真跑。</td>
+      <td>待复验</td>
+    </tr>
+    <tr>
+      <td class="role">落难少女</td>
+      <td>「全局一次」已修<span class="tag ok">已修</span></td>
+      <td>旧文案「每名爪牙各一次」→ 官方「每局游戏限一次，任意爪牙」。已修 + 加「猜错后失效」。</td>
+      <td>已闭环</td>
+    </tr>
+    <tr>
+      <td class="role">灵言师</td>
+      <td>漏「私下对说书人说出」<span class="tag ok">已修</span></td>
+      <td>弹窗 + `shamanRule.reason` 两处已去掉「公开」限定。</td>
+      <td>已闭环</td>
+    </tr>
+    <tr>
+      <td class="role">主谋</td>
+      <td>「额外一夜一昼」永不触发<span class="tag gap">P0</span></td>
+      <td>官方「恶魔死于处决导致游戏结束时，额外进行一个夜晚和一个白天」。实测处决普卡后直接 gameover。
+        `mastermindFinalDay` <b>全仓零写入点</b>：只有读取（`useExecutionHandlers:1513`）与 `setMastermindFinalDay(null)`；
+        `shouldEnterMastermindExtraDay` 有判据但无人调用。<br>
+        已试并回滚：在 `confirmExecutionResult` 拦截<b>不生效</b>（处决恶魔时相位已切终局，该函数不被调用）。
+        正确入口 = `checkGameOver` 内部判胜之前。</td>
+      <td>待修（已 test.fail 登记）</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ══════════ 三个测量口径缺口 ══════════ -->
+<h3 class="sec">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+  测量口径缺口（3 条，不修就判不出绿）
+</h3>
+<table>
+  <thead>
+    <tr><th style="width:180px">缺口</th><th>说明</th><th style="width:120px">影响判定项</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="role">coverage-audit 口径落后</td>
+      <td>只扫 `e2e/full_sim` 的 18 局（109/191），<b>未计入</b> 9 套 `role_scenarios.spec.ts`（192/192 引用已齐）。⇒ 计划第 2/3 项永远判不出绿，真实覆盖被低估 83 个角色。</td>
+      <td>判定项 2 / 3</td>
+    </tr>
+    <tr>
+      <td class="role">ENTRY_LOST 未清零</td>
+      <td>3 条：`ROLE_CODEX` / `ROLE_INFO`（入口随 GameHeader 弃用而丢失）+ 第 3 条待接线。计划要求 ENTRY_LOST = 0。</td>
+      <td>判定项 5</td>
+    </tr>
+    <tr>
+      <td class="role">W2 双台账棘轮未建</td>
+      <td>`verify-all` 唯一 PENDING 步骤。没有它，覆盖率可以无声回退。</td>
+      <td>判定项 9</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ══════════ 完成度 ══════════ -->
+<h3 class="sec">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+  已经收口的五块（不用再管）
+</h3>
+<div class="note">
+  <ul>
+    <li><b>定向场景层 192 / 192</b>：9 套 `role_scenarios.spec.ts`，每角色至少一条显式断言，`audit:roles --strict` 退出码 0。</li>
+    <li><b>弹窗 golden 43 / 43</b>：全部真实 render，0 条降级为静态护栏；标题用 `h2.textContent` 完全相等判定。</li>
+    <li><b>终局矩阵 45 / 45</b>：9 剧本 × 5 局，`terminal.ok` 全 true、违例 0；另有 9 条基线场次。</li>
+    <li><b>夜序对账 9 / 9</b>：队列与 `nightOrder.json` 的 firstNight 下标逐条对齐，真值取自静态 json 不走解析器。</li>
+    <li><b>中毒 / 醉酒 36 / 36、配比 17 / 17、死亡链 12 / 12、疯狂 4 / 4、旅行者与传奇 29 / 29</b>。</li>
+  </ul>
+</div>
+
+<div class="note" style="border-left-color:#f59e0b">
+  <b>下一步只做三件事：</b>
+  <ul>
+    <li>改 `coverage-audit.ts`，把 9 套 `role_scenarios.spec.ts` 纳入扫描 → 一次把 83 个角色从「仅用例」升成「已双验」，判定项 2/3 直接跳到 100%。</li>
+    <li>剩余 14 个弹窗文案对账（夜间行动 4 + 旅行者 / 系统 10）。</li>
+    <li>ENTRY_LOST 3 条接线 + W2 棘轮落地，`verify-all` 才会从 10 READY / 1 PENDING 变成 11 / 0。</li>
+  </ul>
+</div>
+
+<footer>
+  数据源：<code>outputs/coverage_ledger.json</code> · <code>outputs/X02-文案对账-2026-10-22.md</code> · <code>outputs/全量验证计划-2026-10-21.md</code> §5<br>
+  剧本级验收报告：<code>outputs/暗流涌动-角色级验收-2026-10-22.md</code> · <code>outputs/黯月初升-角色级验收-2026-10-22.md</code><br>
+  「K / G」= 该角色在整局模拟里被抽到的局数（旧）或所属用例组（新），仅作证据定位，不代表断言强度。<br>
+  生成于 2026-10-22 · <b>20:35 更新</b>（剧本 1 完成 22/22；剧本 2 达 22/25，主谋缺陷登记）· 未发版（线上 W10.20.1）
+</footer>
+
+</div>
+</body>
+</html>
