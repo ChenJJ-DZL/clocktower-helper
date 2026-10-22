@@ -505,6 +505,10 @@ test.describe("窃窃私语 · G5 涡流处决强制", () => {
       nominator: 3,
       nominee: 5,
       decision: "noop",
+      // 🔴 2026-10-22 修复：只给 `decision:"noop"` 不够 —— 那条分支只有在
+      //   「处决判定弹窗」真的出现时才生效；本局票数够就直接判死。
+      //   要构造「有人提名但没人被处决」，必须让票数不足 ⇒ `voters: []`（一票不投）。
+      voters: [],
     });
     expect.soft(dusk.nominated, "应成功发起提名").toBe(true);
     // ⚠️ 不用 `dusk.executed`（那是「点过处决相关按钮」的痕迹，不是真死亡）；
