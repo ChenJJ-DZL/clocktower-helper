@@ -630,3 +630,198 @@ test.describe("梦殒春宵 · G5 诅咒与转化", () => {
     expect.soft(fg?.isDead, "原方古应代替他死亡").toBe(true);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G6 · 角色级强判据补测：舞蛇人 / 亡骨魔 / 数学家 / 畸形秀演员
+// ═══════════════════════════════════════════════════════════════════
+test.describe("梦殒春宵 · G6 角色级强判据", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("舞蛇人：选中恶魔 ⇒ 角色与阵营互换，原恶魔中毒", async ({ page }) => {
+    /**
+     * 官方【舞蛇人】：「每个夜晚，你要选择一名存活的玩家：
+     *   如果你选中了恶魔，你和他交换角色和阵营，然后他中毒。」
+     * ⇒ 三段断言：① 舞蛇人变成恶魔 ② 原恶魔变成舞蛇人 ③ 原恶魔中毒。
+     * 反证：交换本身不得让任何一方死亡（恶魔数量始终为 1 ⇒ 不判终局）。
+     *
+     * ⚠️ S07 的恶魔是方古（`每个夜晚*`）⇒ 首夜不行动，不会干扰交换。
+     */
+    const snap = await bootS(page, "S07");
+    const scSeat = seatByRole(snap, "snake_charmer");
+    const demonSeat = seatByRole(snap, "fang_gu");
+    expect.soft(scSeat, "舞蛇人应在场").toBeGreaterThanOrEqual(0);
+    expect.soft(demonSeat, "方古应在场").toBeGreaterThanOrEqual(0);
+
+    const n1 = await driveNight(page, [
+      { role: "snake_charmer", targets: [demonSeat + 1], note: "选中恶魔" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const sc = after?.seats?.find((x: any) => x.id === scSeat);
+    const dm = after?.seats?.find((x: any) => x.id === demonSeat);
+
+    expect
+      .soft(sc?.role?.id, "舞蛇人应变成恶魔（方古）")
+      .toBe("fang_gu");
+    expect
+      .soft(dm?.role?.id, "原恶魔应变成舞蛇人")
+      .toBe("snake_charmer");
+    expect.soft(dm?.isPoisoned, "原恶魔应中毒").toBe(true);
+    // 反证：交换不等于死亡
+    expect.soft(dm?.isDead, "交换不得导致原恶魔死亡").toBe(false);
+    expect.soft(sc?.isDead, "交换不得导致舞蛇人死亡").toBe(false);
+  });
+
+  test("数学家：必须给出「能力未正常生效人数」且落在合法区间", async ({ page }) => {
+    /**
+     * 官方【数学家】：「每个夜晚，你会得知有多少名玩家的能力因为其他角色的能力
+     *   而未正常生效。（从上个黎明到你被唤醒时）」
+     * ⇒ 判定：弹窗必须出现、必须含数字、且 0 ≤ n ≤ 存活人数。
+     *   （精确真值需要完整扰动账本，E2E 里只做区间 + 存在性硬断言，精确对账留给单测。）
+     */
+    const snap = await bootS(page, "S09");
+    const mathSeat = seatByRole(snap, "mathematician");
+    expect.soft(mathSeat, "数学家应在场").toBeGreaterThanOrEqual(0);
+
+    const n1 = await driveNight(page, []);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const allSteps = stepsOf(n1, "mathematician");
+    const dialog = allSteps.map((x) => x.dialog).join(" | ");
+    expect
+      .soft(dialog.length > 0, `数学家应产出信息弹窗（实测：${dialog.slice(0, 120)}）`)
+      .toBe(true);
+    // 实现文案：`[Mathematician]异常能力次数【N】`；官方措辞「今晚有 N 名玩家的能力异常生效了」
+    const m =
+      dialog.match(/异常能力次数【(\d+)】/) ?? dialog.match(/今晚有\s*(\d+)\s*名/);
+    expect
+      .soft(m != null, `信息里必须含「异常能力次数【N】」（实测：${dialog.slice(0, 120)}）`)
+      .toBe(true);
+    if (m) {
+      const val = Number(m[1]);
+      expect.soft(val, "「能力未正常生效人数」不能为负").toBeGreaterThanOrEqual(0);
+      expect
+        .soft(val, "「能力未正常生效人数」不能超过在场人数")
+        .toBeLessThanOrEqual((snap.seats as any[]).length);
+    }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G7 · S08 收尾：亡骨魔（杀爪牙保留能力 + 邻近镇民中毒）/ 畸形秀演员（疯狂仲裁门禁）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("梦殒春宵 · G7 S08 收尾", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("亡骨魔：杀爪牙 ⇒ 保留能力（hasAbilityEvenDead）+ 邻近镇民中毒", async ({
+    page,
+  }) => {
+    /**
+     * 官方【亡骨魔】：「每个夜晚*，你要选择一名玩家：他死亡。
+     *   **被你杀死的爪牙保留他的能力，且与他邻近的两名镇民之一中毒**。」
+     *
+     * 🔴 2026-10-22 修复的两处（都是「判据齐全、零消费/零传入」）：
+     *   ① `keepsAbilityDead` 全仓零消费 ⇒ 改用唯一生效字段 `hasAbilityEvenDead`
+     *      （`useDayActions:1028` 用它决定「死亡后还能不能发动能力」）。
+     *   ② `poisonedTownsfolkId` 只从 `storytellerInput` 读，而全仓无传入点
+     *      ⇒ 邻近镇民永不中毒。改为说书人未指定时按官方语义确定性推导
+     *      （取被杀爪牙左右邻座中第一个存活镇民）。
+     */
+    const snap = await bootS(page, "S08");
+    const minionSeat = seatByRole(snap, "pit_hag");
+    const demonSeat = seatByRole(snap, "vigormortis");
+    expect.soft(minionSeat, "爪牙（麻脸巫婆）应在场").toBeGreaterThanOrEqual(0);
+    expect.soft(demonSeat, "亡骨魔应在场").toBeGreaterThanOrEqual(0);
+
+    // 首夜：亡骨魔是 `每个夜晚*` ⇒ 不行动
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe(
+      "night"
+    );
+
+    const n2 = await driveNight(page, [
+      { role: "vigormortis", targets: [minionSeat + 1], note: "杀爪牙" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const killed = after?.seats?.find((x: any) => x.id === minionSeat);
+    expect.soft(killed?.isDead, "被杀的爪牙应死亡").toBe(true);
+    expect
+      .soft(
+        killed?.hasAbilityEvenDead,
+        "官方：被你杀死的爪牙**保留他的能力** ⇒ hasAbilityEvenDead 必须为 true"
+      )
+      .toBe(true);
+
+    // 邻近镇民之一中毒：座位表里应恰有一个新增的 vigormortis 中毒者
+    const poisoned = (after?.seats ?? []).filter((s: any) =>
+      (s.statusEffects ?? []).some(
+        (e: any) => e?.type === "poisoned" && e?.source === "vigormortis"
+      )
+    );
+    expect
+      .soft(
+        poisoned.length,
+        `官方：邻近两名镇民之一中毒（实测中毒者：${poisoned.map((x: any) => x.id + 1).join(",") || "无"}）`
+      )
+      .toBe(1);
+  });
+
+  test("畸形秀演员：畸形秀演员在场 ⇒ 进入黄昏必须先是「疯狂仲裁」门禁", async ({
+    page,
+  }) => {
+    /**
+     * 官方【畸形秀演员】：「如果你“疯狂”地证明自己是外来者，你可能被处决。」
+     *
+     * 产品实现：白天「进入黄昏」被替换成 disabled 的
+     *   「需先完成畸形秀演员判定【疯狂仲裁】」⇒ 说书人必须先裁定。
+     * 断言：① 门禁按钮存在且 disabled；② 强行点也进不了黄昏（有拦截提示）。
+     */
+    /**
+     * ⚠️ 场次选择有讲究：
+     *   · S08（9 人）配比里没有外来者位给畸形秀演员（实测阵容无 mutant）；
+     *   · S07 虽在，但**洗脑师门禁优先**（实测按钮表：「需先完成洗脑师判定【疯狂洗脑】」disabled，
+     *     「疯狂仲裁」是可点的**仲裁入口**而非门禁）⇒ 测不到畸形秀演员把门。
+     *   · **S09 有 mutant 且没有 cerenovus** ⇒ 门禁文案才是「需先完成畸形秀演员判定【疯狂仲裁】」。
+     */
+    const snap = await bootS(page, "S09");
+    const mutantSeat = seatByRole(snap, "mutant");
+    expect.soft(mutantSeat, "畸形秀演员应在场").toBeGreaterThanOrEqual(0);
+    // ⚠️ `seatByRole` 找不到会抛错 ⇒ 用直接查表判断「不在场」
+    expect
+      .soft(
+        (snap.seats as any[]).some((x: any) => x.role?.id === "cerenovus"),
+        "本场不得有洗脑师（否则门禁优先级被抢）"
+      )
+      .toBe(false);
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+
+    // ① 门禁：出现 disabled 的「需先完成畸形秀演员判定【疯狂仲裁】」按钮
+    const gateText = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll("button")) as any[];
+      const g = btns.find((b) => /需先完成畸形秀演员判定/.test((b.textContent || "").replace(/\s+/g, "")));
+      return g ? { found: true, disabled: g.disabled === true } : { found: false, disabled: false };
+    });
+    expect
+      .soft(gateText.found, "畸形秀演员在场 ⇒ 白天「进入黄昏」必须被【疯狂仲裁】门禁替换")
+      .toBe(true);
+    expect
+      .soft(gateText.disabled, "门禁按钮必须 disabled（否则等于没有门禁）")
+      .toBe(true);
+
+    // ② 仲裁入口必须可用（说书人据此裁定「是否处决」）
+    const arbBtn = page.locator("button").filter({ hasText: /^疯狂仲裁$/ }).first();
+    expect
+      .soft(await arbBtn.isVisible().catch(() => false), "必须提供可点的【疯狂仲裁】入口")
+      .toBe(true);
+
+    // ③ 反证：不存在可用的「进入黄昏」按钮
+    const duskEnabled = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll("button")) as any[];
+      return btns.some((b) => /进入黄昏/.test((b.textContent || "").replace(/\s+/g, "")) && b.disabled !== true);
+    });
+    expect.soft(duskEnabled, "疯狂仲裁未完成前，不得存在可用的「进入黄昏」按钮").toBe(false);
+  });
+});

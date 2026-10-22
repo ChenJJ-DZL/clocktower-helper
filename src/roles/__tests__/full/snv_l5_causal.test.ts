@@ -983,7 +983,16 @@ describe("L5 · 恶魔", () => {
       expect(after(res, 2)?.isPoisoned).toBe(true);
       expect(snap(res, "vigormortisPoisonedTownsfolkId")).toBe(2);
     });
-    it("③ 负向对照：击杀爪牙但未指定中毒目标 ⇒ 不得凭空毒人", async () => {
+    /**
+     * ✅ 2026-10-22 语义修正：本用例原名「未指定中毒目标 ⇒ 不得凭空毒人」，
+     *   但官方原文是「被你杀死的爪牙保留他的能力，**且**与他邻近的两名镇民之一中毒」——
+     *   这是**强制效果**，说书人只能在「邻近两名镇民」里二选一，**不能取消**。
+     *   旧断言把「二选一」读成了「可以取消」，与官方相反。
+     *
+     * 现改为：未指定时按官方语义**确定性推导**（第一个存活邻座镇民）；
+     * 真正的负向对照下沉到 ④「击杀的不是爪牙 ⇒ 不得产生中毒者」。
+     */
+    it("③ 未指定中毒目标 ⇒ 自动取邻近镇民之一（官方「且…之一中毒」为强制）", async () => {
       const seats = board(["vigormortis", "witch", "chambermaid", "gossip", "grandmother"]);
       const res = await runRole(vigormortisAbility, seats, 0, {
         night: 2,
@@ -991,10 +1000,31 @@ describe("L5 · 恶魔", () => {
         targets: [1],
       });
       expect(after(res, 1)?.isDead).toBe(true);
+      // 被杀爪牙（1）的邻座 = 0（恶魔，非镇民）与 2（chambermaid，镇民）⇒ 只能是 2
+      expect(
+        after(res, 2)?.isPoisoned,
+        "官方：被杀爪牙的邻近镇民之一必须中毒（强制效果）"
+      ).toBe(true);
+      expect(snap(res, "vigormortisPoisonedTownsfolkId")).toBe(2);
+    });
+
+    it("④ 负向对照：击杀的不是爪牙 ⇒ 不得产生任何中毒者", async () => {
+      // 目标是 2 号 chambermaid（镇民，不是爪牙）⇒ 「杀爪牙」的两个连锁效果都不该发生
+      const seats = board(["vigormortis", "witch", "chambermaid", "gossip", "grandmother"]);
+      const res = await runRole(vigormortisAbility, seats, 0, {
+        night: 2,
+        phase: "night",
+        targets: [2],
+      });
+      expect(after(res, 2)?.isDead).toBe(true);
       expect(
         (res?.snapshot?.seats ?? []).some((s: any) => s.isPoisoned === true),
-        "❌ 未指定中毒目标却出现中毒者"
+        "❌ 目标不是爪牙却出现中毒者"
       ).toBe(false);
+      expect(
+        after(res, 2)?.hasAbilityEvenDead,
+        "❌ 目标不是爪牙却拿到「死亡后仍可发动能力」"
+      ).not.toBe(true);
     });
   });
 

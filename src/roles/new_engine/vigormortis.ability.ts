@@ -16,6 +16,39 @@ import {
   isImmuneToDemonKill,
   resolveMayorDemonKill,
 } from "../../utils/soldierImmunity";
+import { isSeatMinion, isSeatTownsfolk } from "../../utils/seatAlignment";
+
+/**
+ * 🔴 2026-10-22 修复：官方「与你杀死的爪牙**邻近的两名镇民之一中毒**」。
+ *
+ * 原实现的 `poisonedTownsfolkId` 只从 `storytellerInput?.poisonedTownsfolkId` 读，
+ * 而**全仓没有任何地方传这个字段**（`grep poisonedTownsfolkId src/ app/` 只命中本文件）
+ * ⇒ 邻近镇民**永不中毒**（与主谋 / 莽夫同型的「判据齐全、零传入点」）。
+ *
+ * 修法：说书人没指定时，按官方语义**确定性推导** —— 取被杀爪牙左右邻座中
+ *   第一个存活的镇民（官方是「之一」，此处不引入随机，保证 E2E 可复现）。
+ */
+function pickAdjacentTownsfolk(
+  seats: any[],
+  centerSeatId: number | null
+): number | null {
+  if (centerSeatId == null) return null;
+  const alive = seats.filter((s) => s && s.isDead !== true);
+  if (alive.length === 0) return null;
+  const n = seats.length;
+  const order = seats.map((s) => s?.id).filter((x) => typeof x === "number") as number[];
+  const pos = order.indexOf(centerSeatId);
+  if (pos < 0) return null;
+  const candidates = [
+    order[(pos - 1 + n) % n],
+    order[(pos + 1) % n],
+  ];
+  for (const id of candidates) {
+    const seat = seats.find((s) => s.id === id);
+    if (seat && seat.isDead !== true && isSeatTownsfolk(seat)) return id;
+  }
+  return null;
+}
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -31,8 +64,8 @@ const calculate = async (
   const targetId = ctx.targetIds?.[0] ?? ctx.actionNode.targetIds?.[0] ?? null;
   // 检查目标是否为爪牙
   const target = ctx.snapshot.seats.find((s: any) => s.id === targetId);
-  const isMinion = target?.role?.type === "minion";
-  const poisonedTownsfolkId = ctx.storytellerInput?.poisonedTownsfolkId ?? null;
+  const isMinion = isSeatMinion(target);
+  const declaredPoison = ctx.storytellerInput?.poisonedTownsfolkId ?? null;
   const isProtected =
     target?.isProtected ||
     target?.statusEffects?.some((e: any) => e.type === "protected");
@@ -75,7 +108,14 @@ const calculate = async (
         substituteId,
         mayorResolution,
         minionKeepsAbility: isMinion && killed && !mayorSaved,
-        poisonedTownsfolkId: isMinion && killed && !mayorSaved ? poisonedTownsfolkId : null,
+        /**
+         * 官方：「与被杀爪牙邻近的两名镇民之一中毒」。
+         * 说书人显式指定优先；未指定则自动取邻座第一个存活镇民（见 `pickAdjacentTownsfolk`）。
+         */
+        poisonedTownsfolkId:
+          isMinion && killed && !mayorSaved
+            ? (declaredPoison ?? pickAdjacentTownsfolk(ctx.snapshot.seats as any[], targetId))
+            : null,
         blockedByProtection: isProtected,
         blockedBySoldier: isSoldierImmune,
       },
@@ -158,6 +198,18 @@ const stateUpdate = async (
             deathSource: "vigormortis_kill",
             deathSourceSeatId: (ctx.actionNode as any)?.seatId ?? null,
             keepsAbilityDead: r.minionKeepsAbility,
+            /**
+             * 🔴 2026-10-22 修复：官方「被你杀死的爪牙**保留他的能力**」。
+             *
+             * 原实现只写了 `keepsAbilityDead` —— 而**全仓没有任何消费点**
+             * （`grep keepsAbilityDead` 只命中本文件这一行）。
+             * 真正决定「死亡后能否继续发动能力」的字段是 `hasAbilityEvenDead`：
+             *   · `useDayActions.ts:1028`：`if (sourceSeat.isDead && !sourceSeat.hasAbilityEvenDead) return`
+             *   · `useGameController.ts:1354`：入队时置 `hasAbilityEvenDead = true`
+             * ⇒ 两个字段名分叉 ⇒ 亡骨魔「爪牙保留能力」从未生效（僵怖假死同型）。
+             */
+            hasAbilityEvenDead:
+              r.minionKeepsAbility === true ? true : seat.hasAbilityEvenDead,
           };
         }
         if (r.poisonedTownsfolkId != null && seat.id === r.poisonedTownsfolkId) {
