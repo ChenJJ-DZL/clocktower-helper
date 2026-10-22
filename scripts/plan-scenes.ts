@@ -23,11 +23,18 @@ const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(ROOT, "outputs", "scenes.json");
 
 /**
- * 官方类型修正：本仓库里 `id: "saint"` 同时被 `src/roles/outsider/saint.ts`
- * 和占位文件 `src/roles/demon/saint.ts` 声明，运行时解析成 demon（见计划 P0-1）。
- * 计划口径按**官方**类型算，等 P0-1 修好后这张表可以删掉。
+ * 官方类型修正表（**当前为空，保留结构备用**）。
+ *
+ * 历史：本表曾有 `{ saint: "outsider" }` —— 当时 `app/data.ts` 里 `id:"saint"`
+ *   同时被「外来者 圣徒」和「恶魔 占位 圣徒」两条声明，`loadDefs` 的同 id 去重
+ *   会优先保留非 demon 的那条，但仍属「一份 id 两种类型」的脏数据。
+ * ✅ 2026-10-23 核对：恶魔那条已改名为独立的 `saint_demon`（实验性角色，正常发牌），
+ *   `saint` 只剩 `src/roles/outsider/saint.ts` 一处定义，
+ *   `scripts[].roleIds`（暗流涌动）引用的也是 `saint` ⇒ 配比计算不再需要外部覆盖。
+ *   本表因此清空；**若将来再出现「同 id 两种官方类型」，在这里登记并在注释里写清证据**。
  */
-const OFFICIAL_TYPE: Record<string, string> = { saint: "outsider" };
+const OFFICIAL_TYPE: Record<string, string> = {};
+
 
 const COMP: Record<number, { t: number; o: number; m: number; d: number }> = {
   9: { t: 5, o: 2, m: 1, d: 1 },

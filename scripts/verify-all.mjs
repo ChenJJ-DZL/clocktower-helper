@@ -75,14 +75,31 @@ const steps = [
     softFail: true,
   },
   {
+    /**
+     * ✅ 2026-10-23 接线（原为 pending「计划 W2 未实现」）：
+     *   实现落在 `src/utils/__tests__/coverage_ratchet.test.ts`，8 条判据分两组：
+     *     A/B 场次台账（`outputs/scenes.json` + 9 套 `role_scenarios.spec.ts`，**已入库**）
+     *        —— 9 剧本 / 27 场 / 192 个角色位，逐剧本设下限，且每个角色位都必须被
+     *           **本剧本自己的**用例显式引用（一剧本一文件，禁止跨剧本蹭覆盖率）；
+     *     C   审计台账（`outputs/coverage_ledger.json`）—— `reachCoverage === 1`，
+     *           且「整局模拟执行证据」不得低于 109 对。
+     *
+     *   同批修掉的两个问题：
+     *     ① **口径断裂**：`coverage-audit.ts` 原先只扫 `temp/` 的 18 局整局模拟
+     *        ⇒ 报 109/191，而实际上 `role_scenarios` 是 192/192 全覆盖。
+     *        现在台账并列三层 `seen`（执行证据）／`scenes`（场次编排）／`specRef`（用例引用），
+     *        并分别报 `executedCoverage` 与 `reachCoverage`，棘轮同时盯两个数。
+     *     ② **ENTRY_LOST 清零**：`ROLE_CODEX` 补了 `GlobalNavBar`「📖 图鉴」入口，
+     *        `ROLE_INFO` 补了座位右键「ℹ️ 角色资料」入口（并删掉 `GameModals` 里
+     *        同一 type 渲染两个弹窗的重复分支）。
+     */
     id: "ratchet",
     title: "覆盖率台账棘轮（不许回退）",
-    status: "pending",
+    status: "ready",
     cmd: NPX,
     args: ["vitest", "run", "src/utils/__tests__/coverage_ratchet.test.ts", "--reporter=dot"],
     env: { NODE_OPTIONS: "" },
-    desc: "计划 W2：任一格下降即红",
-    pending: "未实现：计划 W2（先落地 coverage_ledger 的 e2e/unit 双台账）",
+    desc: "计划 W2：任一格下降即红（场次 27 / 角色位 192 / 入口覆盖 100% / 执行证据 ≥109）",
   },
   {
     id: "terminal",
@@ -136,24 +153,68 @@ const steps = [
     timeoutMs: 40 * 60 * 1000,
   },
   {
+    /**
+     * ✅ 2026-10-22 接线（原为 pending「计划 W7 未实现」）：
+     *   实现落在 `e2e/special/x01_night_order.spec.ts`，9 剧本各一场，
+     *   读入夜快照的 `wakeQueueIds` 与 `src/data/nightOrder.json` 的 firstNight 下标对账。
+     *   真值取自**静态 json**，刻意不走 `nightOrderParser`（否则是自己证自己）。
+     *
+     * ⚠️ 三个现实（都写在 spec 注释里，别当 bug 改回去）：
+     *   ① 同一座位可多次入队（爪牙互认按人展开 / 间谍看魔典 / 赏金猎人告知）
+     *      ⇒ 取「最后一次出现」当该角色自身技能步骤；
+     *   ② 官方表不含恶魔与部分爪牙（由 di 一步覆盖）⇒ 不参与 rank 比较；
+     *   ③ 不做「漏唤醒」反向断言（剧本可自定义角色类型，如罂粟花开把 snitch 当外来者）。
+     *
+     * ⚠️ 本步依赖外部 dev server（playwright.config 刻意不用 webServer，见其注释）。
+     */
     id: "nightOrder",
     title: "夜序对官方顺序（C4）",
-    status: "pending",
+    status: "ready",
     cmd: NPX,
-    args: ["vitest", "run", "src/utils/__tests__/night_order_official.test.ts", "--reporter=dot"],
+    args: [
+      "playwright",
+      "test",
+      "e2e/special/x01_night_order.spec.ts",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line",
+    ],
     env: { NODE_OPTIONS: "" },
-    desc: "计划 W7：每局实际唤醒序列 == 官方 rank 过滤后的顺序",
-    pending: "未实现：计划 W7（当前只有 I10：弹窗序 = 队列，不证队列 = 官方序）",
+    desc: "计划 W7：每局实际唤醒序列 == 官方 rank 过滤后的顺序（9 剧本各一场）",
+    timeoutMs: 15 * 60 * 1000,
   },
   {
+    /**
+     * ✅ 2026-10-22 接线（原为 pending「计划 W6 未实现」）：
+     *   43 个可达弹窗的 golden 分 6 个批文件落地，全部真实 render（0 条降级为静态护栏）。
+     *   判据比计划更严：标题用 `h2.textContent` **完全相等**、按钮 trim 后完全相等、
+     *   关闭回调 `vi.fn()` 断言；每批都做过变异验证。
+     *
+     * ⚠️ 本步只判「弹窗能开 + 文案没漂移」，**不判文案对不对**。
+     *   逐字对账（拿 officialRoleDocs 比）是更深一层，进度写在
+     *   `outputs/X02-文案对账-2026-10-22.md`（✅ 2026-10-23 已 43/43 收口）。
+     *   `ENTRY_LOST` 收口已同批清零（`ROLE_CODEX` ← GlobalNavBar「📖 图鉴」、
+     *   `ROLE_INFO` ← 座位右键「ℹ️ 角色资料」），棘轮见 `coverage_ratchet.test.ts`。
+     */
     id: "modals",
     title: "弹窗 golden（C3）",
-    status: "pending",
+    status: "ready",
     cmd: NPX,
-    args: ["vitest", "run", "src/utils/__tests__/modal_goldens.test.ts", "--reporter=dot"],
+    args: [
+      "vitest",
+      "run",
+      "src/components/modals/__tests__/x02_night_action_golden.test.tsx",
+      "src/components/modals/__tests__/x02_night_info_golden.test.tsx",
+      "src/components/modals/__tests__/x02_day_execution_golden.test.tsx",
+      "src/components/modals/__tests__/x02_day_actions_golden.test.tsx",
+      "src/components/modals/__tests__/x02_traveler_system_golden.test.tsx",
+      "src/components/modals/__tests__/x02_traveler_judge_golden.test.tsx",
+      "src/utils/__tests__/modal_reachability_ledger.test.ts",
+      "--reporter=dot",
+    ],
     env: { NODE_OPTIONS: "" },
-    desc: "计划 W6：43 个可达弹窗各有 golden，ENTRY_LOST = 0",
-    pending: "未实现：计划 W6（22 条不可达要逐条收口 + 43 份 golden 待批准）",
+    desc: "计划 W6：43 个可达弹窗各有 golden（43/43，0 降级）",
+    timeoutMs: 10 * 60 * 1000,
   },
 ];
 

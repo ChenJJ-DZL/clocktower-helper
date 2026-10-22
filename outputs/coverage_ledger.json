@@ -1,23 +1,28 @@
 {
-  "generatedAt": "2026-10-21T17:15:29.093Z",
-  "method": "roleIds ← app/data.ts scripts[].roleIds；阵容 ← temp/(terminal|full_sim)_<seed>.json 的 lineup",
+  "generatedAt": "2026-10-22T17:59:44.690Z",
+  "method": "roleIds ← app/data.ts scripts[].roleIds；seen ← temp/(terminal|full_sim)_<seed>.json 的 lineup；scenes ← outputs/scenes.json 的 27 个逐角色场次；specRef ← e2e/<script>/role_scenarios.spec.ts",
   "totals": {
     "scripts": 9,
     "games": 18,
     "rolePairs": 191,
-    "coveredPairs": 108,
-    "coverage": 0.5654
+    "coveredPairs": 109,
+    "executedCoverage": 0.5707,
+    "reachPairs": 191,
+    "reachCoverage": 1
   },
   "scripts": {
     "暗流涌动": {
       "scriptId": "trouble_brewing",
       "roleCount": 22,
       "games": 2,
+      "scenes": 2,
       "roles": [
         {
           "id": "washerwoman",
           "name": "洗衣妇",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "terminal_91001"
           ]
@@ -26,12 +31,16 @@
           "id": "librarian",
           "name": "图书管理员",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "investigator",
           "name": "调查员",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -40,6 +49,8 @@
           "id": "chef",
           "name": "厨师",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -48,6 +59,8 @@
           "id": "empath",
           "name": "共情者",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -56,6 +69,8 @@
           "id": "fortune_teller",
           "name": "占卜师",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90001",
             "terminal_91001"
@@ -65,36 +80,48 @@
           "id": "undertaker",
           "name": "送葬者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "monk",
           "name": "僧侣",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "ravenkeeper",
           "name": "守鸦人",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "virgin",
           "name": "贞洁者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "slayer",
           "name": "猎手",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "soldier",
           "name": "士兵",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -103,6 +130,8 @@
           "id": "mayor",
           "name": "镇长",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91001"
           ]
@@ -111,6 +140,8 @@
           "id": "butler",
           "name": "管家",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -119,6 +150,8 @@
           "id": "drunk",
           "name": "酒鬼",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -127,18 +160,24 @@
           "id": "recluse",
           "name": "陌客",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "saint",
           "name": "圣徒",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "poisoner",
           "name": "投毒者",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -147,12 +186,16 @@
           "id": "spy",
           "name": "间谍",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "scarlet_woman",
           "name": "红唇女郎",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91001"
           ]
@@ -161,6 +204,8 @@
           "id": "baron",
           "name": "男爵",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90001"
           ]
@@ -169,6 +214,8 @@
           "id": "imp",
           "name": "小恶魔",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90001",
             "terminal_91001"
@@ -180,11 +227,14 @@
       "scriptId": "bad_moon_rising",
       "roleCount": 25,
       "games": 2,
+      "scenes": 4,
       "roles": [
         {
           "id": "grandmother",
           "name": "祖母",
           "seen": 2,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90002",
             "terminal_91002"
@@ -194,6 +244,8 @@
           "id": "sailor",
           "name": "水手",
           "seen": 2,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90002",
             "terminal_91002"
@@ -203,6 +255,8 @@
           "id": "chambermaid",
           "name": "侍女",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -211,12 +265,16 @@
           "id": "exorcist",
           "name": "驱魔人",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "innkeeper",
           "name": "旅店老板",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "terminal_91002"
           ]
@@ -225,6 +283,8 @@
           "id": "gambler",
           "name": "赌徒",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -233,6 +293,8 @@
           "id": "gossip",
           "name": "造谣者",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -241,12 +303,16 @@
           "id": "courtier",
           "name": "侍臣",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "professor",
           "name": "教授",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -255,12 +321,16 @@
           "id": "minstrel",
           "name": "吟游诗人",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "tea_lady",
           "name": "茶艺师",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -269,24 +339,32 @@
           "id": "pacifist",
           "name": "和平主义者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "fool",
           "name": "弄臣",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "tinker",
           "name": "修补匠",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "moonchild",
           "name": "月之子",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -295,18 +373,24 @@
           "id": "goon",
           "name": "莽夫",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "lunatic",
           "name": "疯子",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "godfather",
           "name": "教父",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "terminal_91002"
           ]
@@ -315,6 +399,8 @@
           "id": "devils_advocate",
           "name": "魔鬼代言人",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -323,6 +409,8 @@
           "id": "assassin",
           "name": "刺客",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90002"
           ]
@@ -331,30 +419,40 @@
           "id": "mastermind",
           "name": "主谋",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "zombuul",
           "name": "僵怖",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "pukka",
           "name": "普卡",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "shabaloth",
           "name": "沙巴洛斯",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "po",
           "name": "珀",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90002",
             "terminal_91002"
@@ -366,11 +464,14 @@
       "scriptId": "sects_and_violets",
       "roleCount": 25,
       "games": 2,
+      "scenes": 4,
       "roles": [
         {
           "id": "clockmaker",
           "name": "钟表匠",
           "seen": 1,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -379,6 +480,8 @@
           "id": "dreamer",
           "name": "筑梦师",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -387,6 +490,8 @@
           "id": "snake_charmer",
           "name": "舞蛇人",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -395,6 +500,8 @@
           "id": "mathematician",
           "name": "数学家",
           "seen": 2,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90003",
             "terminal_91003"
@@ -404,12 +511,16 @@
           "id": "flowergirl",
           "name": "卖花女孩",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "town_crier",
           "name": "城镇公告员",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "terminal_91003"
           ]
@@ -418,6 +529,8 @@
           "id": "oracle",
           "name": "神谕者",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "terminal_91003"
           ]
@@ -426,12 +539,16 @@
           "id": "savant",
           "name": "博学者",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "seamstress",
           "name": "女裁缝",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -440,6 +557,8 @@
           "id": "philosopher",
           "name": "哲学家",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -448,6 +567,8 @@
           "id": "artist",
           "name": "艺术家",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -456,36 +577,48 @@
           "id": "juggler",
           "name": "杂耍艺人",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "sage",
           "name": "贤者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "mutant",
           "name": "畸形秀演员",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "sweetheart",
           "name": "心上人",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "barber",
           "name": "理发师",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "klutz",
           "name": "呆瓜",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -494,6 +627,8 @@
           "id": "evil_twin",
           "name": "镜像双子",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "terminal_91003"
           ]
@@ -502,12 +637,16 @@
           "id": "witch",
           "name": "女巫",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "cerenovus",
           "name": "洗脑师",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -516,24 +655,32 @@
           "id": "pit_hag",
           "name": "坑道巫婆",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "fang_gu",
           "name": "方古",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "vigormortis",
           "name": "亡骨魔",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "no_dashii",
           "name": "诺-达",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90003"
           ]
@@ -542,6 +689,8 @@
           "id": "vortox",
           "name": "涡流",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91003"
           ]
@@ -552,11 +701,14 @@
       "scriptId": "whispering_secrets",
       "roleCount": 19,
       "games": 2,
+      "scenes": 3,
       "roles": [
         {
           "id": "chambermaid",
           "name": "侍女",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -565,6 +717,8 @@
           "id": "gossip",
           "name": "造谣者",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -573,6 +727,8 @@
           "id": "oracle",
           "name": "神谕者",
           "seen": 2,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90004",
             "terminal_91004"
@@ -582,6 +738,8 @@
           "id": "mathematician",
           "name": "数学家",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -590,6 +748,8 @@
           "id": "artist",
           "name": "艺术家",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -598,6 +758,8 @@
           "id": "flowergirl",
           "name": "卖花女孩",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -606,6 +768,8 @@
           "id": "innkeeper",
           "name": "旅店老板",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90004",
             "terminal_91004"
@@ -615,6 +779,8 @@
           "id": "fool",
           "name": "弄臣",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91004"
           ]
@@ -623,30 +789,40 @@
           "id": "saint",
           "name": "圣徒",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "recluse",
           "name": "陌客",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "politician",
           "name": "政客",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "spy",
           "name": "间谍",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "witch",
           "name": "女巫",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -655,6 +831,8 @@
           "id": "assassin",
           "name": "刺客",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -663,6 +841,8 @@
           "id": "devils_advocate",
           "name": "魔鬼代言人",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91004"
           ]
@@ -671,12 +851,16 @@
           "id": "vortox",
           "name": "涡流",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "po",
           "name": "珀",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90004",
             "terminal_91004"
@@ -686,12 +870,16 @@
           "id": "zombuul",
           "name": "僵怖",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "plague_doctor",
           "name": "瘟疫医生",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90004"
           ]
@@ -702,11 +890,14 @@
       "scriptId": "tomb_of_the_unknown",
       "roleCount": 19,
       "games": 2,
+      "scenes": 2,
       "roles": [
         {
           "id": "undertaker",
           "name": "送葬者",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90005",
             "terminal_91005"
@@ -716,6 +907,8 @@
           "id": "gambler",
           "name": "赌徒",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90005",
             "terminal_91005"
@@ -725,6 +918,8 @@
           "id": "savant",
           "name": "博学者",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -733,24 +928,32 @@
           "id": "gossip",
           "name": "造谣者",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "artist",
           "name": "艺术家",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "juggler",
           "name": "杂耍艺人",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "clockmaker",
           "name": "钟表匠",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -759,12 +962,16 @@
           "id": "oracle",
           "name": "神谕者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "sailor",
           "name": "水手",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -773,6 +980,8 @@
           "id": "farmer",
           "name": "农夫",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -781,6 +990,8 @@
           "id": "fool",
           "name": "弄臣",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90005",
             "terminal_91005"
@@ -790,18 +1001,24 @@
           "id": "scapegoat",
           "name": "scapegoat",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "drunk",
           "name": "酒鬼",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "mutant",
           "name": "畸形秀演员",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -810,12 +1027,16 @@
           "id": "baron",
           "name": "男爵",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "poisoner",
           "name": "投毒者",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90005",
             "terminal_91005"
@@ -825,6 +1046,8 @@
           "id": "assassin",
           "name": "刺客",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -833,6 +1056,8 @@
           "id": "shabaloth",
           "name": "沙巴洛斯",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90005"
           ]
@@ -841,6 +1066,8 @@
           "id": "zombuul",
           "name": "僵怖",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91005"
           ]
@@ -851,11 +1078,14 @@
       "scriptId": "high_pleasure",
       "roleCount": 16,
       "games": 2,
+      "scenes": 2,
       "roles": [
         {
           "id": "washerwoman",
           "name": "洗衣妇",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -864,6 +1094,8 @@
           "id": "investigator",
           "name": "调查员",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -872,6 +1104,8 @@
           "id": "chef",
           "name": "厨师",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "terminal_91006"
           ]
@@ -880,12 +1114,16 @@
           "id": "librarian",
           "name": "图书管理员",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "empath",
           "name": "共情者",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90006",
             "terminal_91006"
@@ -895,12 +1133,16 @@
           "id": "fortune_teller",
           "name": "占卜师",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "monk",
           "name": "僧侣",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -909,6 +1151,8 @@
           "id": "ravenkeeper",
           "name": "守鸦人",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90006",
             "terminal_91006"
@@ -918,6 +1162,8 @@
           "id": "butler",
           "name": "管家",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -926,6 +1172,8 @@
           "id": "drunk",
           "name": "酒鬼",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -934,6 +1182,8 @@
           "id": "recluse",
           "name": "陌客",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -942,12 +1192,16 @@
           "id": "poisoner",
           "name": "投毒者",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "scarlet_woman",
           "name": "红唇女郎",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90006",
             "terminal_91006"
@@ -957,6 +1211,8 @@
           "id": "baron",
           "name": "男爵",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90006"
           ]
@@ -965,6 +1221,8 @@
           "id": "imp",
           "name": "小恶魔",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90006",
             "terminal_91006"
@@ -974,6 +1232,8 @@
           "id": "zombuul",
           "name": "僵怖",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         }
       ]
@@ -982,11 +1242,14 @@
       "scriptId": "haunted_manor",
       "roleCount": 21,
       "games": 2,
+      "scenes": 3,
       "roles": [
         {
           "id": "balloonist",
           "name": "气球驾驶员",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -995,6 +1258,8 @@
           "id": "mathematician",
           "name": "数学家",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "terminal_91007"
           ]
@@ -1003,6 +1268,8 @@
           "id": "clockmaker",
           "name": "钟表匠",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90007",
             "terminal_91007"
@@ -1012,24 +1279,32 @@
           "id": "seamstress",
           "name": "女裁缝",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "juggler",
           "name": "杂耍艺人",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "philosopher",
           "name": "哲学家",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "artist",
           "name": "艺术家",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -1038,6 +1313,8 @@
           "id": "town_crier",
           "name": "城镇公告员",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90007",
             "terminal_91007"
@@ -1047,12 +1324,16 @@
           "id": "courtier",
           "name": "侍臣",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "choir_boy",
           "name": "唱诗男孩",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -1061,12 +1342,16 @@
           "id": "mutant",
           "name": "畸形秀演员",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "barber",
           "name": "理发师",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -1075,6 +1360,8 @@
           "id": "fool",
           "name": "弄臣",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -1083,24 +1370,32 @@
           "id": "saint",
           "name": "圣徒",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "witch",
           "name": "女巫",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "godfather",
           "name": "教父",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "assassin",
           "name": "刺客",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90007",
             "terminal_91007"
@@ -1110,6 +1405,8 @@
           "id": "devils_advocate",
           "name": "魔鬼代言人",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -1118,6 +1415,8 @@
           "id": "no_dashii",
           "name": "诺-达",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90007"
           ]
@@ -1126,12 +1425,16 @@
           "id": "fang_gu",
           "name": "方古",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "pukka",
           "name": "普卡",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91007"
           ]
@@ -1142,11 +1445,14 @@
       "scriptId": "garden_of_dreams",
       "roleCount": 20,
       "games": 2,
+      "scenes": 4,
       "roles": [
         {
           "id": "clockmaker",
           "name": "钟表匠",
           "seen": 2,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90008",
             "terminal_91008"
@@ -1156,6 +1462,8 @@
           "id": "dreamer",
           "name": "筑梦师",
           "seen": 1,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1164,6 +1472,8 @@
           "id": "mathematician",
           "name": "数学家",
           "seen": 1,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1172,6 +1482,8 @@
           "id": "flowergirl",
           "name": "卖花女孩",
           "seen": 1,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1180,6 +1492,8 @@
           "id": "oracle",
           "name": "神谕者",
           "seen": 1,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1188,6 +1502,8 @@
           "id": "savant",
           "name": "博学者",
           "seen": 2,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90008",
             "terminal_91008"
@@ -1197,27 +1513,34 @@
           "id": "seamstress",
           "name": "女裁缝",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "artist",
           "name": "艺术家",
-          "seen": 2,
+          "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
-            "full_sim_90008",
-            "terminal_91008"
+            "full_sim_90008"
           ]
         },
         {
           "id": "sage",
           "name": "贤者",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "mutant",
           "name": "畸形秀演员",
           "seen": 1,
+          "scenes": 3,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1226,24 +1549,34 @@
           "id": "sweetheart",
           "name": "心上人",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "barber",
           "name": "理发师",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "klutz",
           "name": "呆瓜",
-          "seen": 0,
-          "evidence": []
+          "seen": 1,
+          "scenes": 1,
+          "specRef": true,
+          "evidence": [
+            "terminal_91008"
+          ]
         },
         {
           "id": "witch",
           "name": "女巫",
           "seen": 1,
+          "scenes": 4,
+          "specRef": true,
           "evidence": [
             "terminal_91008"
           ]
@@ -1252,6 +1585,8 @@
           "id": "cerenovus",
           "name": "洗脑师",
           "seen": 1,
+          "scenes": 2,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1260,12 +1595,16 @@
           "id": "pit_hag",
           "name": "坑道巫婆",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "fang_gu",
           "name": "方古",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91008"
           ]
@@ -1274,12 +1613,16 @@
           "id": "vigormortis",
           "name": "亡骨魔",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "no_dashii",
           "name": "诺-达",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90008"
           ]
@@ -1288,6 +1631,8 @@
           "id": "vortox",
           "name": "涡流",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         }
       ]
@@ -1296,23 +1641,30 @@
       "scriptId": "poppyganda",
       "roleCount": 24,
       "games": 2,
+      "scenes": 3,
       "roles": [
         {
           "id": "librarian",
           "name": "图书管理员",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "chef",
           "name": "厨师",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "bounty_hunter",
           "name": "赏金猎人",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90009",
             "terminal_91009"
@@ -1322,24 +1674,32 @@
           "id": "pixie",
           "name": "小精灵",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "fortune_teller",
           "name": "占卜师",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "monk",
           "name": "僧侣",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "oracle",
           "name": "神谕者",
           "seen": 2,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90009",
             "terminal_91009"
@@ -1349,12 +1709,16 @@
           "id": "town_crier",
           "name": "城镇公告员",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "juggler",
           "name": "杂耍艺人",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91009"
           ]
@@ -1363,48 +1727,64 @@
           "id": "savant",
           "name": "博学者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "farmer",
           "name": "农夫",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "mayor",
           "name": "镇长",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "poppy_grower",
           "name": "罂粟种植者",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "drunk",
           "name": "酒鬼",
           "seen": 0,
+          "scenes": 3,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "lunatic",
           "name": "疯子",
           "seen": 0,
+          "scenes": 2,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "mutant",
           "name": "畸形秀演员",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "snitch",
           "name": "告密者",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "full_sim_90009"
           ]
@@ -1413,24 +1793,32 @@
           "id": "cerenovus",
           "name": "洗脑师",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "evil_twin",
           "name": "镜像双子",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "baron",
           "name": "男爵",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "marionette",
           "name": "提线木偶",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91009"
           ]
@@ -1439,12 +1827,16 @@
           "id": "imp",
           "name": "小恶魔",
           "seen": 0,
+          "scenes": 1,
+          "specRef": true,
           "evidence": []
         },
         {
           "id": "vortox",
           "name": "涡流",
           "seen": 1,
+          "scenes": 1,
+          "specRef": true,
           "evidence": [
             "terminal_91009"
           ]
@@ -1453,6 +1845,8 @@
           "id": "legion",
           "name": "军团",
           "seen": 8,
+          "scenes": 11,
+          "specRef": true,
           "evidence": [
             "full_sim_90009"
           ]
