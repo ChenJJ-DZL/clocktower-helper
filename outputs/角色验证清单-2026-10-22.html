@@ -136,14 +136,15 @@
 </div>
 
 <div class="note" style="border-left-color:#f97316">
-  <b>剩余 4 条缺口（截至 2026-10-22 21:20，全部已定性、均未修）</b>
+  <b>剩余 2 条缺口（截至 2026-10-22 21:5x，两条产品缺陷已修，只剩驱动器限制）</b>
   <ul>
-    <li><b>莽夫</b>（P0·产品）：<code>chooserSeatId</code> 零传入点 ⇒ 永不转阵营/永不令选者醉酒。落点 <code>abilityExecutor::executeRoleAbility</code>，须防重入 + 全量回归。</li>
-    <li><b>主谋</b>（P0·产品）：额外一夜一昼不触发。判据 <code>gameLogic.ts:596-611</code> 齐全但没命中；守卫 <code>isMastermindExtraDayHint</code> 已加。下一步只在 <code>checkGameOver</code> 打印四项入参，别再静态推。</li>
-    <li><b>麻脸巫婆</b>（P1·驱动器）：嵌套 dialog 点不中角色胶囊，已试 4 种判据。</li>
     <li><b>茶艺师</b>（P1·驱动器）：普卡攻击被挡那步 <code>timeout</code>，需按 <code>stuck.buttons</code> 补分支。</li>
+    <li><b>麻脸巫婆</b>（P1·驱动器）：嵌套 dialog 点不中角色胶囊，已试 4 种判据。</li>
   </ul>
-  修法细节见 <code>outputs/剩余缺口修法-2026-10-22.md</code>。
+  <b>已修（本轮）</b>：<b>主谋</b>「额外一夜一昼」真正跑通（真因=第二条判胜入口 <code>logicDispatch</code> 漏传 <code>isMastermindActive</code>）；
+  <b>莽夫</b>转阵营/令选者醉酒（新增全局 postProcess 广播中间件 <code>utils/goonBroadcast</code>）。
+  细节见 <code>outputs/剩余缺口修法-2026-10-22.md</code>。<br>
+  <b>已定性非缺陷</b>：女裁缝（队列里有她，驱动器未传 2 个目标；官方允许摇头）。
 </div>
 
 <h3 class="sec">
@@ -156,7 +157,7 @@
   </thead>
   <tbody>
     <tr><td class="role">暗流涌动</td><td>22</td><td>19</td><td><b style="color:#065f46">19 passed</b></td><td><b>22/22 有分支断言</b>；6 个未覆盖分支已登记</td></tr>
-    <tr><td class="role">黯月初升</td><td>25</td><td>21</td><td><b style="color:#065f46">20 passed</b> + 1 skipped</td><td>22/25；主谋（待定位）、莽夫（缺陷）为 P0；茶艺师待驱动器</td></tr>
+    <tr><td class="role">黯月初升</td><td>25</td><td>21</td><td><b style="color:#065f46">20 passed</b> + 1 skipped</td><td><b style="color:#065f46">24/25</b>：主谋 ✅ 莽夫 ✅ 已修；茶艺师待驱动器</td></tr>
     <tr><td class="role">梦殒春宵</td><td>25</td><td>10</td><td><b style="color:#065f46">10 passed</b></td><td>新增 <b>女巫</b>（诅咒提名即死）/ <b>方古</b>（转化外来者）两条强判据；<b style="color:#9a3412">女裁缝首夜不唤醒</b>（缺陷，test.fail）</td></tr>
     <tr><td class="role">窃窃私语</td><td>19</td><td>18</td><td><b style="color:#065f46">18 passed</b></td><td>覆盖 14/19；那条基线红已修（<b>不投票 ≠ 否决</b>：必须 `voters: []` 造票数不足）</td></tr>
     <tr><td class="role">无名之墓</td><td>19</td><td>9</td><td><b style="color:#065f46">9 passed</b></td><td><b style="color:#92400e">引用已齐·用例密度低</b>：9 条 / 19 角色</td></tr>
@@ -224,12 +225,12 @@
     <span class="chip ok">弄臣<span class="k">G6</span></span>
     <span class="chip half">修补匠</span>
     <span class="chip ok">月之子<span class="k">G1</span></span>
-    <span class="chip half">莽夫<span class="tag gap">缺陷</span></span>
+    <span class="chip ok">莽夫<span class="k">G8</span></span>
     <span class="chip ok">疯子<span class="k">G2</span></span>
     <span class="chip ok">教父<span class="k">G1</span></span>
     <span class="chip ok">魔鬼代言人<span class="k">G5</span></span>
     <span class="chip ok">刺客<span class="k">G5</span></span>
-    <span class="chip ok">主谋<span class="k">G6</span><span class="tag gap">缺陷</span></span>
+    <span class="chip ok">主谋<span class="k">G6</span></span>
     <span class="chip ok">僵怖<span class="k">G5</span></span>
     <span class="chip ok">普卡<span class="k">G2</span></span>
     <span class="chip ok">沙巴洛斯<span class="k">G3</span></span>
@@ -542,24 +543,27 @@
     </tr>
     <tr>
       <td class="role">主谋</td>
-      <td>「额外一夜一昼」永不触发<span class="tag gap">P0</span></td>
-      <td>官方「恶魔死于处决导致游戏结束时，额外进行一个夜晚和一个白天」。实测处决普卡后直接 gameover。
-        `mastermindFinalDay` <b>全仓零写入点</b>：只有读取（`useExecutionHandlers:1513`）与 `setMastermindFinalDay(null)`；
-        `shouldEnterMastermindExtraDay` 有判据但无人调用。<br>
-        已试并回滚：在 `confirmExecutionResult` 拦截<b>不生效</b>（处决恶魔时相位已切终局，该函数不被调用）。
-        正确入口 = `checkGameOver` 内部判胜之前。</td>
-      <td>待修（已 test.fail 登记）</td>
+      <td>「额外一夜一昼」永不触发<span class="tag ok">已修</span></td>
+      <td>真因（探针实证，前两次判断都错）：判胜有<b>两个入口</b>，<code>logicDispatch</code> 处理
+        <code>EXECUTE_PLAYER</code> 时<b>没传</b> <code>isMastermindActive</code> ⇒ 主谋分支不命中 ⇒
+        直接判「恶魔已被彻底消灭」并覆盖 <code>EXECUTION_RESULT</code> 弹窗。<br>
+        修法三层：① <code>checkGameEnd</code> 的 <code>isMastermindActive</code> 改为「未传则按座位真值自算」；
+        ② <code>logicDispatch</code> 补主谋守卫 + 写激活标记；③ 结算时点改为「触发当天只进额外一夜，
+        额外白天结束才结算」。<br>
+        E2E 已补完整闭环：处决恶魔 → 额外一夜 → 额外白天无人处决 ⇒ <b>善良阵营获胜</b>。</td>
+      <td><span class="tag ok">已修 · 闭环验证</span></td>
     </tr>
     <tr>
       <td class="role">莽夫</td>
-      <td>转阵营 / 令选者醉酒 <b>永不触发</b><span class="tag gap">P0</span></td>
-      <td>官方「首个使用其自身能力选择了你的玩家会醉酒直到下个黄昏。<b>你会转变为他的阵营</b>」。
-        实测恶魔选中莽夫后 <code>isEvilConverted</code> 仍为 undefined。<br>
-        根因：<code>goon.ability.ts:28</code> 读 <code>ctx.meta.chooserSeatId ?? ctx.actionNode.chooserSeatId</code>，
-        但<b>全仓 <code>chooserSeatId</code> 只出现在 goon.ability.ts 内部</b>（5 处全是自读自用），
-        没有任何选择者的行动管道给它传值 ⇒ <code>chooserSeat</code> 恒 undefined ⇒ <code>alignmentChanged:false</code>。<br>
-        修法：在「选择一名玩家」落地管道里把 <code>chooserSeatId</code> 广播给 PASSIVE 的莽夫（落点疑为 <code>middlewarePipeline</code>）。</td>
-      <td>待修（已 test.fail 登记）</td>
+      <td>转阵营 / 令选者醉酒 <b>永不触发</b><span class="tag ok">已修</span></td>
+      <td>根因：<code>goon.ability.ts</code> 读 <code>ctx.meta.chooserSeatId</code>，但<b>全仓零传入点</b>
+        （5 处全是本文件自读自用）；莽夫是 PASSIVE（两个 priority 皆 null）⇒ 自己永不进夜序
+        ⇒ <code>alignmentChanged</code> 恒 false（与主谋同型的「判据齐全、无调用方」）。<br>
+        修法：新增全局 postProcess 中间件 <code>utils/goonBroadcast::createGoonBroadcast</code>，
+        由 <code>buildAbilityPipe</code> 统一注入：目标含存活未醉毒的莽夫 ⇒ 行动者醉酒 +
+        莽夫转为行动者阵营，<code>goonTriggeredAtNight</code> 保证每夜首个；
+        放 postProcess 而非 calculate ⇒ preview 整段跳过，预演不会误触发。</td>
+      <td><span class="tag ok">已修 · 用例转正</span></td>
     </tr>
   </tbody>
 </table>
@@ -620,7 +624,7 @@
   数据源：<code>outputs/coverage_ledger.json</code> · <code>outputs/X02-文案对账-2026-10-22.md</code> · <code>outputs/全量验证计划-2026-10-21.md</code> §5<br>
   剧本级验收报告：<code>outputs/暗流涌动-角色级验收-2026-10-22.md</code> · <code>outputs/黯月初升-角色级验收-2026-10-22.md</code><br>
   「K / G」= 该角色在整局模拟里被抽到的局数（旧）或所属用例组（新），仅作证据定位，不代表断言强度。<br>
-  生成于 2026-10-22 · <b>20:35 更新</b>（剧本 1 完成 22/22；剧本 2 达 22/25，主谋缺陷登记）· 未发版（线上 W10.20.1）
+  生成于 2026-10-22 · <b>21:5x 更新</b>（剧本 1 完成 22/22；剧本 2 达 24/25，主谋 + 莽夫两条 P0 已修并闭环验证）· 未发版（线上 W10.20.1）
 </footer>
 
 </div>

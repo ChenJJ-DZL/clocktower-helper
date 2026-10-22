@@ -1073,45 +1073,89 @@ test.describe("黯月初升 · G8 免死与转阵营", () => {
   test.setTimeout(8 * 60_000);
 
   test("茶艺师：两个存活邻座都是善良 ⇒ 夜里被杀也不会死", async ({ page }) => {
-    // ⚠️ 待修（驱动器限制，2026-10-22）：第 2 夜 `driveNight` 返回 timeout。
-    //   现场：S04 的恶魔是普卡，攻击被茶艺师挡下后弹窗文案/按钮序列与其它恶魔不同，
-    //   驱动器在「普卡中毒 + 免死」组合步骤上点不动。
-    //   ⇒ 产品行为**尚未验证**（不是缺陷，也不是通过），标 fixme 等驱动器增强后转正。
-    test.fixme(true, "驱动器在「普卡攻击被茶艺师挡下」这一步 timeout，产品行为未验证");
-    const snap = await bootS(page, "S04");
-    const teaSeat = seatByRole(snap, "tea_lady");
+    /**
+     * ✅ 2026-10-22 转正（原 fixme：驱动器在「普卡双重弹窗」步骤 timeout）。
+     *
+     * 根因不是产品，是**普卡的能力形态与本次验证不匹配**：
+     *   普卡 = 「选中 ⇒ 中毒；上一夜中毒者死亡」⇒ 击杀发生在**下一夜**，
+     *   且弹窗序列是「下毒确认 → 死亡结算」两段，驱动器在免死与毒发的叠加态上点不动。
+     * ⇒ 改用**僵怖**（直接击杀，单一弹窗），并把阵容改成自定义 9 人局：
+     *   5 镇民（含茶艺师）+ 2 外来者 + 1 爪牙 + 1 恶魔（僵怖）。
+     *   `seed: 1` 实测发牌：茶艺师 1 号，邻座 2 号 / 9 号，**两名邻座都是善良**（邪恶在 6/8 号）。
+     *
+     * 官方：「如果与你邻近的两名存活的玩家是善良的，他们不会死亡。」
+     */
+    const snap = await bootScene(page, {
+      script: "黯月初升",
+      players: 9,
+      seed: 1,
+      lineup: [
+        "tea_lady",
+        "pacifist",
+        "fool",
+        "sailor",
+        "grandmother",
+        "goon",
+        "moonchild",
+        "mastermind",
+        "zombuul",
+      ],
+    });
+    const teaSeat = seatOf(snap, "tea_lady");
     const n = (snap.seats as any[]).length;
     const nbrs = [(teaSeat - 1 + n) % n, (teaSeat + 1) % n];
-    // 官方：「如果与你邻近的两名存活的玩家是善良的，他们不会死亡。」
-    // ⇒ 只有两名邻座都善良时官方条件才成立，否则本用例无意义。
+    // 官方条件：两名邻座必须**都是善良**才有保护
     const evilIds = new Set(
       (snap.seats as any[])
-        .filter((s: any) => ["mastermind", "pukka"].includes(s.role?.id))
+        .filter((s: any) => ["mastermind", "zombuul"].includes(s.role?.id))
         .map((s: any) => s.id)
     );
-    const goodNbrs = nbrs.filter((id) => !evilIds.has(id));
-    test.skip(goodNbrs.length < 2, "本局茶艺师的邻座含邪恶 ⇒ 官方条件不成立");
+    expect
+      .soft(
+        nbrs.every((id) => !evilIds.has(id)),
+        `发牌须满足「两邻座皆善良」才有验证意义（实测 seed=1：茶艺师${teaSeat + 1}号，邻座${nbrs.map((x) => x + 1).join("/")}号）`
+      )
+      .toBe(true);
 
-    const victim = goodNbrs[0];
+    const victim = nbrs[0];
+    // 反证目标：一个**非邻座**的人。僵怖首夜不行动（`firstNightPriority: null`），
+    //   所以反证放在第 3 夜 —— 若第 3 夜他确实死了，就证明「击杀链本身有效」，
+    //   从而排除「第 2 夜邻座没死只是因为恶魔压根没攻击」这种假绿。
+    const safeTarget = (snap.seats as any[]).find(
+      (s: any) => s.id !== teaSeat && !nbrs.includes(s.id)
+    ).id as number;
+
     expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
-    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe(
+      "night"
+    );
 
     const n2 = await driveNight(page, [
-      { role: "pukka", targets: [victim + 1], note: "恶魔攻击茶艺师的善良邻座" },
+      { role: "zombuul", targets: [victim + 1], note: "攻击茶艺师的善良邻座" },
     ]);
     expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 2 昼不提名应能入夜").toBe(
+      "night"
+    );
+
+    const n3 = await driveNight(page, [
+      { role: "zombuul", targets: [safeTarget + 1], note: "反证：杀非邻座" },
+    ]);
+    expect.soft(n3.status, "第 3 夜应推进到白天").toBe("day");
 
     const after = await snapNow(page);
     const v = after?.seats?.find((x: any) => x.id === victim);
+    const t = after?.seats?.find((x: any) => x.id === teaSeat);
+    const safe = after?.seats?.find((x: any) => x.id === safeTarget);
+
+    // 反证：第 3 夜的击杀确实发生了 ⇒ 击杀链有效
+    expect
+      .soft(safe?.isDead, "第 3 夜的非邻座目标应确实死亡（证明击杀链有效）")
+      .toBe(true);
     expect
       .soft(v?.isDead, "茶艺师的善良邻座不得因恶魔攻击而死亡")
       .toBe(false);
-    expect
-      .soft(
-        after?.seats?.find((x: any) => x.id === teaSeat)?.isDead,
-        "茶艺师本人不得因此死亡"
-      )
-      .toBe(false);
+    expect.soft(t?.isDead, "茶艺师本人不得因此死亡").toBe(false);
   });
 
   test("莽夫：被邪恶玩家选中 ⇒ 转变为邪恶阵营", async ({ page }) => {
