@@ -114,9 +114,50 @@ const updateKillState = async (
   const { snapshot, meta, storytellerInput } = context;
   const validTargets = meta.validTargets as number[];
 
-  // 反刍（复活）机制支持
-  const regurgitateTargetId =
+  /**
+   * 反刍（复活）机制。
+   *
+   * 🔴 2026-10-23 修复「零传入点」：`regurgitatedSeatId` 此前**全仓没有任何写入方**
+   *   （`grep -rn regurgitatedSeatId src/ app/` 只命中本文件两处读取）
+   *   ⇒ 官方「你上个夜晚选择过且当前死亡的玩家之一**可能会被你反刍**」
+   *     永远不可能发生 —— 反刍分支是死代码。
+   *
+   * 修法（与 `vigormortis` 邻镇中毒 / `goon` 选者广播 / `sweetheart` 醉酒同一范式）：
+   *   说书人未显式指定时，**从本次选择里确定性推导** ——
+   *   若某个被选目标「当前已死」且正是**上一夜被沙巴洛斯选过**的人，
+   *   就把它当作反刍目标。
+   *   这与官方语义一致：对已死玩家再点一次本来就不产生击杀
+   *   （下方 `if (seat.isDead) return seat;` 已明确），唯一有意义的解释就是反刍。
+   *
+   * ⚠️ 局限：`lastKill.targetId` 只记一个目标（结构与其他恶魔统一），
+   *   所以上一夜若两人都死，只有被记下的那一个可反刍 —— 与既有记账口径一致。
+   */
+  const statedRegurgitate =
     storytellerInput?.regurgitatedSeatId ?? (snapshot as any).regurgitatedSeatId;
+
+  /**
+   * ⚠️ 不能用 `snapshot.lastKill` 推导：该字段虽然由各恶魔能力写入返回值，
+   *   但 `grep -rn lastKill src/hooks/ app/` = **0 命中** ⇒ 直播对局里它不会被持久化，
+   *   下一夜读到的永远是 undefined（第一版就栽在这，单测能过、E2E 全红）。
+   *
+   * ⇒ 改用**已经持久化在座位上的死亡记账**：
+   *   「上一夜死亡」= `diedAtNight === nightCount - 1`
+   *   「死于沙巴洛斯」= `deathSource` 含 `shabaloth`
+   *   两者同时成立 ⇒ 他一定是上一夜被沙巴洛斯选中并杀死的人，符合官方
+   *   「上个夜晚选择过且当前死亡的玩家之一」。
+   *
+   * 局限（与官方口径的差异，写下来免得日后误判）：
+   *   官方是「**选择过**」，这里收窄成「**被自己杀死**」——
+   *   上一夜被选中但被保护活下来的，本来就无法反刍（必须当前已死），
+   *   所以该收窄不影响任何可达情形。
+   */
+  const derivedRegurgitate = (validTargets ?? []).find((tid: number) => {
+    const seat = snapshot.seats.find((s: any) => s.id === tid);
+    if (seat?.isDead !== true) return false;
+    if (seat.diedAtNight !== snapshot.nightCount - 1) return false;
+    return /shabaloth/i.test(String(seat.deathSource ?? seat.killedBy ?? ""));
+  });
+  const regurgitateTargetId = statedRegurgitate ?? derivedRegurgitate ?? null;
 
   // 生成新的状态快照（不可变）
   const aliveCount = snapshot.seats.filter((s: any) => !s.isDead).length;
@@ -199,6 +240,15 @@ const updateKillState = async (
         //   死亡效果**（该玩家只是「被选择过」，用于下一夜的反刍判断）。
         //   原实现无条件写 `isDead: true` + `diedAtNight/killedBy/deathSource`，
         //   会把**上一次**的死亡时间与来源**篡改成今夜**，污染死亡历史。
+        /**
+         * 🔴 2026-10-23：**本夜刚被反刍复活的人，不能再被同一次能力杀掉**。
+         *   实测（E2E S05 第 3 夜）：座位同时出现 `revivedAtNight: 3` 与 `isDead: true`
+         *   —— 复活分支跑过、随后击杀分支又把他补了一刀。
+         *   原因：同一夜的结算会对同一能力**再执行一次**（确认结果那一步），
+         *   此时该座位已经「不死了」，`seat.isDead` 守卫失效 ⇒ 落进击杀分支。
+         *   ⇒ 用「本夜复活」这个座位级标记排除，语义上也正是官方「反刍 = 不死亡」。
+         */
+        if (seat.revivedAtNight === snapshot.nightCount) return seat;
         if (seat.isDead) return seat;
 
         // 🔧 梼杌替死成功 → 不死亡

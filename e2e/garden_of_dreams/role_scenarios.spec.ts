@@ -2,7 +2,12 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
-import { isMinionOrDemonRole, isSeatDemon, isSeatMinion } from "../../src/utils/seatAlignment";
+import {
+  isMinionOrDemonRole,
+  isSeatDemon,
+  isSeatEvil,
+  isSeatMinion,
+} from "../../src/utils/seatAlignment";
 import {
   bootScene,
   driveDusk,
@@ -487,5 +492,146 @@ test.describe("游园惊梦 · G4 S24 涡流局", () => {
     expect.soft(live?.winner, "胜者应为邪恶").toBe("evil");
     const banner = await page.evaluate(() => (document.body.innerText || "").replace(/\s+/g, ""));
     expect.soft(banner, "终局横幅应写明邪恶阵营胜利").toContain("邪恶阵营胜利");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G4 · 本剧本内角色契约：筑梦师 / 博学者 / 女裁缝 / 变种人 / 心上人 /
+//                            女巫 / 洗脑师 / 麻脸巫婆 / 方古
+// ═══════════════════════════════════════════════════════════════════
+test.describe("游园惊梦 · G4 角色契约（9 角色）", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("游园九角色：筑梦师 / 博学者 / 女裁缝 / 变种人 / 心上人 / 女巫 / 洗脑师 / 麻脸巫婆 / 方古 —— 在场且类型/阵营正确", async ({
+    page,
+  }) => {
+    /**
+     * 目的：把「本剧本内没有专属断言」的 9 个角色一次补齐到**契约层**。
+     *
+     * 为什么分两层：
+     *   · **机制深验**已经在各自最合适的剧本做过（如女裁缝在梦殒、心上人在梦殒、
+     *     女巫/刺客在凶宅、洗脑师/麻脸巫婆在游园主线、方古在梦殒）；
+     *   · 本用例负责的是**本剧本这一桌**的契约：角色真的在场、类型与阵营对、
+     *     且各自的入口/门禁成立 —— 这一层能抓到「配比错、类型写错、能力没注册」，
+     *     但**不能**替代机制深验（注释里逐条标明深验位置）。
+     *
+     * 场次 S21（15 人）：1钟表匠 2筑梦师 3数学家 4卖花女孩 5神谕者 6博学者 7女裁缝
+     *   8艺人 9变种人 10心上人 11理发师 12女巫 13洗脑师 14麻脸巫婆 15方古
+     */
+    const snap = await bootS(page, "S21");
+    const expectRole = (id: string, type: string, evil?: boolean) => {
+      const seat = (snap.seats as any[]).find((s: any) => s.role?.id === id);
+      expect.soft(seat != null, `${id} 应在场`).toBe(true);
+      if (!seat) return;
+      expect.soft(seat.role?.type, `${id} 类型应为 ${type}`).toBe(type);
+      if (evil !== undefined) {
+        expect.soft(isMinionOrDemonRole(seat.role), `${id} 阵营判定（邪恶=${evil}）`).toBe(evil);
+      }
+    };
+
+    // 镇民
+    expectRole("dreamer", "townsfolk", false);
+    expectRole("savant", "townsfolk", false);
+    expectRole("seamstress", "townsfolk", false);
+    expectRole("artist", "townsfolk", false);
+    // 外来者
+    expectRole("mutant", "outsider", false);
+    expectRole("sweetheart", "outsider", false);
+    expectRole("barber", "outsider", false);
+    // 爪牙 / 恶魔
+    expectRole("witch", "minion", true);
+    expectRole("cerenovus", "minion", true);
+    expectRole("pit_hag", "minion", true);
+    expectRole("fang_gu", "demon", true);
+
+    // ① 筑梦师：夜里选一名玩家 ⇒ 必须给出「善良/邪恶」且与真值一致
+    const dreamerSeat = seatByRole(snap, "dreamer");
+    const target = (snap.seats as any[])
+      .filter((s: any) => s.id !== dreamerSeat)
+      .map((s: any) => s.id)
+      .sort((a: number, b: number) => a - b)[0];
+    const n1 = await driveNight(page, [
+      { role: "dreamer", targets: [target + 1], note: "筑梦师取信息" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+    /**
+     * ⚠️ 判据纠错（第一版写错）：筑梦师**不是**告诉你「善良/邪恶」，
+     *   官方是「你会得知一个善良角色和一个邪恶角色，**其中一个是该玩家的真实角色**」。
+     *   实现文案：`筑梦师选择了N号位，得知：<角色A> 或 <角色B>`（`dreamer.ability.ts:210`）。
+     *   ⇒ 硬判据：解析两个角色名，**目标真实角色必须是其中之一**（这才是官方语义）。
+     */
+    const dreamerDialog = stepsOf(n1, "dreamer")
+      .map((x) => x.dialog)
+      .join(" | ");
+    expect
+      .soft(
+        /得知/.test(dreamerDialog),
+        `筑梦师应给出「得知：A 或 B」（实测：${dreamerDialog.slice(0, 200)}）`
+      )
+      .toBe(true);
+    const pair = dreamerDialog.match(/得知\s*[:：]?\s*([^或|]+?)\s*或\s*([^|]+)/);
+    if (pair) {
+      const targetSeat = (snap.seats as any[]).find((s: any) => s.id === target);
+      const trueName = NAME_OF[targetSeat?.role?.id ?? ""] ?? targetSeat?.role?.id ?? "";
+      const a = pair[1].trim();
+      const b = pair[2].trim();
+      expect
+        .soft(
+          trueName.length > 0 && (a.includes(trueName) || b.includes(trueName)),
+          `官方：两个候选角色中必须有一个是目标的真实角色（真实=${trueName}，候选=${a} / ${b}）`
+        )
+        .toBe(true);
+    } else {
+      expect.soft(false, `未能解析出「得知：A 或 B」（实测：${dreamerDialog.slice(0, 200)}）`).toBe(true);
+    }
+
+    // ② 博学者：白天日间入口可点，过确认后给出「一真一假」
+    const savantSeat = seatByRole(snap, "savant");
+    const card = page
+      .locator("div")
+      .filter({ has: page.locator(`text="${savantSeat + 1}号"`) })
+      .filter({ has: page.locator('[data-testid="start-day-ability-button"]') })
+      .last();
+    const dayBtn = card.locator('[data-testid="start-day-ability-button"]').first();
+    const hasDayBtn = (await dayBtn.count()) > 0;
+    expect
+      .soft(hasDayBtn, `博学者（${savantSeat + 1}号）应有日间技能入口`)
+      .toBe(true);
+    if (hasDayBtn) {
+      await dayBtn.click({ timeout: 8_000 }).catch(() => {});
+      await page
+        .locator('[role="dialog"] button')
+        .filter({ hasText: /^确认$|^确定$/ })
+        .first()
+        .click({ timeout: 5_000 })
+        .catch(() => {});
+      const dlg = await page.evaluate(
+        () => (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
+      );
+      expect
+        .soft(
+          /真/.test(dlg) && /假/.test(dlg),
+          `博学者应给出「一真一假」两条信息（实测：${dlg.slice(0, 120)}）`
+        )
+        .toBe(true);
+    }
+
+    /**
+     * ③ 白天的「进入黄昏」必须被某个**判定门禁**替换（disabled）。
+     * ⚠️ S21 同时有**洗脑师**（cerenovus），门禁优先级是「洗脑师 > 变种人」
+     *   ⇒ 这里只能断言「存在一个『需先完成…判定』的 disabled 按钮」，
+     *     并打印它到底是哪一个（避免把「洗脑师优先」误判成「变种人门禁没实现」）。
+     */
+    const gate = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll("button")) as any[];
+      const g = btns.find((b) => /需先完成.+判定/.test((b.textContent || "").replace(/\s+/g, "")));
+      return g
+        ? { found: true, disabled: g.disabled === true, text: (g.textContent || "").replace(/\s+/g, "").slice(0, 30) }
+        : { found: false, disabled: false, text: "" };
+    });
+    expect
+      .soft(gate.found, "白天的「进入黄昏」必须被判定门禁替换（本局洗脑师优先于变种人）")
+      .toBe(true);
+    expect.soft(gate.disabled, `门禁按钮必须 disabled（实测文案：${gate.text}）`).toBe(true);
   });
 });

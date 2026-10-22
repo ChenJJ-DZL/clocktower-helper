@@ -5,6 +5,7 @@ import { roles as APP_ROLES } from "../../app/data";
 import {
   isMinionOrDemonRole,
   isSeatDemon,
+  isSeatEvil,
   isSeatMinion,
   isSeatTownsfolk,
 } from "../../src/utils/seatAlignment";
@@ -748,5 +749,95 @@ test.describe("凶宅魅影 · G5 女巫与刺客", () => {
     expect
       .soft(s2?.isDead, "官方「每局游戏限一次」⇒ 第 2 次不得再击杀")
       .not.toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G6 · 本剧本内角色契约：女裁缝 / 杂耍艺人 / 艺人 / 变种人 / 魔鬼代言人
+// ═══════════════════════════════════════════════════════════════════
+test.describe("凶宅魅影 · G6 角色契约（5 角色）", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("S18 四角色：女裁缝 / 杂耍艺人 / 艺人 / 变种人 在场且类型正确", async ({ page }) => {
+    /**
+     * 契约层：这 4 个角色在凶宅这一桌没有专属断言（机制深验位置：
+     *   女裁缝 → 梦殒春宵；变种人 → 梦殒春宵；杂耍艺人 / 艺人 → 窃窃私语 / 无名之墓）。
+     * 本用例锁「配比 + 类型 + 阵营」，并验证变种人的门禁确实存在。
+     *
+     * 场次 S18（15 人）：1balloonist 2数学家 3钟表匠 4女裁缝 5杂耍艺人 6哲学家 7艺人
+     *   8城镇公告员 9侍臣 10变种人 11理发师 12女巫 13教父 14刺客 15诺-达
+     */
+    const snap = await bootS(page, "S18");
+    for (const [id, type] of [
+      ["seamstress", "townsfolk"],
+      ["juggler", "townsfolk"],
+      ["artist", "townsfolk"],
+      ["mutant", "outsider"],
+    ] as const) {
+      const s = (snap.seats as any[]).find((x: any) => x.role?.id === id);
+      expect.soft(s != null, `${id} 应在场`).toBe(true);
+      if (!s) continue;
+      expect.soft(s.role?.type, `${id} 类型 = ${type}`).toBe(type);
+      expect.soft(isSeatEvil(s), `${id} 真实阵营 = 善良`).toBe(false);
+    }
+
+    // 变种人门禁：白天的「进入黄昏」必须被【疯狂仲裁】替换（disabled）
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    const gate = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll("button")) as any[];
+      const g = btns.find((b) => /需先完成畸形秀演员判定/.test((b.textContent || "").replace(/\s+/g, "")));
+      return g ? { found: true, disabled: g.disabled === true } : { found: false, disabled: false };
+    });
+    expect.soft(gate.found, "变种人在场 ⇒ 必须存在【疯狂仲裁】门禁按钮").toBe(true);
+    expect.soft(gate.disabled, "门禁按钮必须 disabled").toBe(true);
+  });
+
+  test("S19 魔鬼代言人：爪牙、邪恶，且夜选目标后保护标记必须落库", async ({ page }) => {
+    /**
+     * 契约层 + 一次行为：官方【魔鬼代言人】「每个夜晚，你要选择一名玩家：
+     *   如果他在白天被处决，他不会死亡。」
+     *   机制深验（保护 → 处决不死 → 标记消费）已在黯月初升做过完整闭环；
+     *   本用例补凶宅这一桌的**在场契约 + 保护标记真的写到目标身上**。
+     *
+     * 场次 S19（9 人）：1唱诗男孩 2弄臣 3balloonist 4king 5圣徒 6变种人 7理发师 8魔鬼代言人 9方古
+     */
+    const snap = await bootS(page, "S19");
+    const daSeat = seatByRole(snap, "devils_advocate");
+    expect.soft(daSeat, "魔鬼代言人应在场").toBeGreaterThanOrEqual(0);
+    const da = (snap.seats as any[]).find((x: any) => x.role?.id === "devils_advocate");
+    expect.soft(da?.role?.type, "魔鬼代言人类型 = minion").toBe("minion");
+    expect.soft(isSeatMinion(da), "isSeatMinion 必须为 true").toBe(true);
+
+    // 夜选一名善良玩家保护
+    const target = (snap.seats as any[])
+      .filter((s: any) => !isMinionOrDemonRole(s.role))
+      .map((s: any) => s.id)
+      .sort((a: number, b: number) => a - b)[0];
+    const n1 = await driveNight(page, [
+      { role: "devils_advocate", targets: [target + 1], note: "保护一名善良玩家" },
+      { role: "fang_gu", targets: [(target + 1) % 9 + 1], note: "恶魔吃别人" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    const after = await snapNow(page);
+    const t = after?.seats?.find((x: any) => x.id === target);
+    /**
+     * ⚠️ 标记类型是 `execution_protected`（不是 `protected`）：
+     *   实现用 `source: "devils_advocate"` + `expiresAtDusk: true` 表达「只防处决、黄昏失效」。
+     */
+    const protectedOk =
+      t?.isProtected === true ||
+      (t?.statusEffects ?? []).some(
+        (e: any) =>
+          e?.type === "execution_protected" ||
+          (e?.type === "protected" && e?.source === "devils_advocate")
+      ) ||
+      (after as any)?.devilsAdvocateProtectedId === target;
+    expect
+      .soft(
+        protectedOk,
+        `保护标记必须落到 ${target + 1} 号（实测 isProtected=${t?.isProtected} effects=${JSON.stringify(t?.statusEffects ?? [])}）`
+      )
+      .toBe(true);
   });
 });

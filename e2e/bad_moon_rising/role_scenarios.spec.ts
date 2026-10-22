@@ -1273,3 +1273,102 @@ test.describe("黯月初升 · G9 修补匠", () => {
       .not.toBe("tinker");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G10 · 沙巴洛斯：反刍（上一夜选过且当前死亡者，可被复活）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("黯月初升 · G10 沙巴洛斯反刍", () => {
+  test.setTimeout(8 * 60_000);
+
+  /**
+   * 🔴 2026-10-23 **能力层已修、结算层仍有一个回写缺口** —— 本条 fixme，属**已知产品缺口**，不是驱动器问题。
+   *
+   * 已修（单测锁定 `src/roles/__tests__/full/shabaloth_regurgitate.test.ts`）：
+   *   `regurgitatedSeatId` 原来零写入方 ⇒ 反刍是死代码。现在改为推导
+   *   「上一夜 diedAtNight + deathSource=shabaloth + 当前已死」⇒ 反刍目标。
+   *
+   * 仍差最后一公里（E2E 探针实证，S05 第 3 夜）：
+   *   座位同时出现 `revivedAtNight: 3` 与 `isDead: true`，
+   *   且**没有任何死亡字段**（无 diedAtNight / deathSource / killedBy）
+   *   ⇒ 复活分支确实跑过（否则不会有 revivedAtNight 与 resurrected 状态），
+   *     但之后有一次**只带 isDead 的状态回写**把它覆盖了
+   *     （与记忆里「旧数组回写把 isDead 静默回滚」同型）。
+   *   已尝试的守卫：击杀分支排除「本夜已复活者」——无效，说明这一刀不在能力层。
+   *   下一步：在 `useNightActionHandler` / `commitSeats` 侧查同夜二次提交的来源
+   *     （`grep -n "setSeats(" src/hooks/useNightActionHandler.ts`，对比各次提交的 seats 版本）。
+   */
+  test.fixme(
+    true,
+    "反刍能力层已修（单测锁定）；结算后 isDead 被无死亡字段的回写覆盖 —— 已知缺口，见注释"
+  );
+  test("沙巴洛斯：第 3 夜点「上一夜被选且已死」的目标 ⇒ 该玩家复活", async ({ page }) => {
+    /**
+     * 官方【沙巴洛斯】：「每个夜晚*，你要选择两名玩家：他们死亡。
+     *   你**上个夜晚选择过且当前死亡的玩家之一可能会被你反刍**。」
+     *
+     * 🔴 修复前：`regurgitatedSeatId` 零写入方 ⇒ 反刍分支是死代码，官方这条规则永不发生。
+     *   修法：说书人未显式指定时，从本次选择里推导 —— 选中的「已死且上一夜被选过」者
+     *   即视为反刍目标（对已死玩家再点一次本来就不产生击杀，唯一有意义的解释就是反刍）。
+     *
+     * 场次 S05（9 人）：1祖母 2水手 3侍女 4驱魔人 5旅店老板 6修补匠 7月之子 8教父 9沙巴洛斯
+     *   ⚠️ 水手受「你不会死亡」保护 ⇒ 目标一律从**非水手**的善良座位里挑。
+     */
+    const snap = await bootS(page, "S05");
+    const demonSeat = seatByRole(snap, "shabaloth");
+    expect.soft(demonSeat, "沙巴洛斯应在场").toBeGreaterThanOrEqual(0);
+
+    const goodSeats = (snap.seats as any[])
+      .filter(
+        (s: any) =>
+          s.id !== demonSeat &&
+          !s.role?.id?.includes("sailor") &&
+          !["minion", "demon"].includes(s.role?.type)
+      )
+      .map((s: any) => s.id)
+      .sort((a: number, b: number) => a - b);
+    expect.soft(goodSeats.length, "可牺牲的善良座位不足").toBeGreaterThanOrEqual(3);
+    const [victim1, victim2, extra] = goodSeats;
+
+    // 第 1 夜：沙巴洛斯是 `每个夜晚*` ⇒ 不行动
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 第 2 夜：杀两人
+    const n2 = await driveNight(page, [
+      { role: "shabaloth", targets: [victim1 + 1, victim2 + 1], note: "杀两人" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+    const after2 = await snapNow(page);
+    expect
+      .soft(after2?.seats?.find((x: any) => x.id === victim1)?.isDead, "第 1 个目标应死亡")
+      .toBe(true);
+
+    expect((await driveDusk(page, {})).status, "第 2 昼不提名应能入夜").toBe("night");
+
+    // 第 3 夜：点「已死的第 1 个目标」+ 一个活人 ⇒ 前者被反刍
+    const n3 = await driveNight(page, [
+      { role: "shabaloth", targets: [victim1 + 1, extra + 1], note: "反刍上一夜的目标" },
+    ]);
+    expect.soft(n3.status, "第 3 夜应推进到白天").toBe("day");
+
+    const after3 = await snapNow(page);
+    const revived = after3?.seats?.find((x: any) => x.id === victim1);
+    expect
+      .soft(
+        revived?.isDead,
+        `官方：上一夜选过且当前死亡者可被反刍 ⇒ 必须复活（实测 isDead=${revived?.isDead} revivedAtNight=${revived?.revivedAtNight}）`
+      )
+      .toBe(false);
+    expect
+      .soft(revived?.revivedAtNight, "复活必须记在当夜（黎明播报「宣布谁复活了」用）")
+      .toBe(3);
+
+    // 反证：第 2 个受害者（本夜未被选中）不得复活
+    expect
+      .soft(
+        after3?.seats?.find((x: any) => x.id === victim2)?.isDead,
+        "❌ 本夜没被选中的死者不得复活"
+      )
+      .toBe(true);
+  });
+});

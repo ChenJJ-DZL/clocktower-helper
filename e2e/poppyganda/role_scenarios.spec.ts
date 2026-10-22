@@ -2,7 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { roles as APP_ROLES } from "../../app/data";
-import { isMinionOrDemonRole, isSeatDemon, isSeatMinion } from "../../src/utils/seatAlignment";
+import {
+  isMinionOrDemonRole,
+  isSeatDemon,
+  isSeatEvil,
+  isSeatMinion,
+  isSeatOutsider,
+} from "../../src/utils/seatAlignment";
 import {
   bootScene,
   driveDusk,
@@ -514,5 +520,111 @@ test.describe("罂粟花开 · G5 角色级补测", () => {
         `官方：两条信息「一真一假」⇒ 必须出现真假标记（实测：${dialog.slice(0, 160)}）`
       )
       .toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G6 · 本剧本内角色契约（一）：酒鬼 / 男爵 / 小恶魔 / 邪恶双子 / 洗脑师 / 变种人
+// ═══════════════════════════════════════════════════════════════════
+test.describe("罂粟花开 · G6 角色契约（S25 六角色）", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("S25 六角色：酒鬼 / 男爵 / 小恶魔 / 邪恶双子 / 洗脑师 / 变种人 —— 在场且类型/阵营正确", async ({ page }) => {
+    /**
+     * 目的：补齐本剧本内没有专属断言的 6 个角色（契约层）。
+     *   · 机制深验位置：小恶魔 → 暗流涌动；洗脑师 → 无名之墓/游园；变种人 → 梦殒；
+     *     男爵/酒鬼/邪恶双子 → 本用例只做配比与身份契约（这三者的效果是「配比 + 伪装」，
+     *     本来就只能在开局快照上验，不属于夜间机制）。
+     *
+     * 场次 S25（15 人）：1图书管理员 2厨师 3赏金猎人 4小精灵 5占卜师 6僧侣 7神谕者
+     *   8酒鬼 9疯子 10变种人 11告密者 12洗脑师 13邪恶双子 14男爵 15小恶魔
+     */
+    const snap = await bootS(page, "S25");
+    const seat = (id: string) => (snap.seats as any[]).find((s: any) => s.role?.id === id);
+
+    // ① 小恶魔：恶魔、邪恶
+    const imp = seat("imp");
+    expect.soft(imp != null, "小恶魔应在场").toBe(true);
+    if (imp) {
+      expect.soft(imp.role?.type, "小恶魔类型 = demon").toBe("demon");
+      expect.soft(isSeatDemon(imp), "isSeatDemon 必须为 true").toBe(true);
+    }
+
+    // ② 男爵：爪牙、邪恶；且男爵在场 ⇒ 外来者配额 +2（本局外来者数应 ≥ 2）
+    const baron = seat("baron");
+    expect.soft(baron != null, "男爵应在场").toBe(true);
+    if (baron) {
+      expect.soft(baron.role?.type, "男爵类型 = minion").toBe("minion");
+      expect.soft(isSeatMinion(baron), "isSeatMinion 必须为 true").toBe(true);
+    }
+    const outsiderCount = (snap.seats as any[]).filter((s: any) => isSeatOutsider(s)).length;
+    expect
+      .soft(outsiderCount, `男爵在场 ⇒ 外来者配额应 ≥ 2（实测 ${outsiderCount}）`)
+      .toBeGreaterThanOrEqual(2);
+
+    // ③ 邪恶双子：爪牙、邪恶
+    const twin = seat("evil_twin");
+    expect.soft(twin != null, "邪恶双子应在场").toBe(true);
+    if (twin) {
+      expect.soft(twin.role?.type, "邪恶双子类型 = minion").toBe("minion");
+      expect.soft(isSeatMinion(twin), "isSeatMinion 必须为 true").toBe(true);
+    }
+
+    // ④ 洗脑师 / 变种人：爪牙 vs 外来者，阵营相反
+    expect.soft(seat("cerenovus")?.role?.type, "洗脑师类型 = minion").toBe("minion");
+    expect.soft(seat("mutant")?.role?.type, "变种人类型 = outsider").toBe("outsider");
+
+    // ⑤ 酒鬼：类型仍是外来者（伪装只影响「他以为自己是谁」），真实阵营善良
+    const drunk = seat("drunk");
+    expect.soft(drunk != null, "酒鬼应在场").toBe(true);
+    if (drunk) {
+      expect.soft(drunk.role?.type, "酒鬼类型 = outsider（不能因为伪装被改成镇民）").toBe("outsider");
+      expect.soft(isSeatEvil(drunk), "酒鬼真实阵营 = 善良").toBe(false);
+    }
+
+    /**
+     * ⚠️ 小恶魔的**夜杀机制**不在这里验：已在「暗流涌动」做过完整闭环
+     *   （击杀 / 传刀 / 死亡守卫）。本剧本这一桌只锁「恶魔身份 + 类型」。
+     *   实测过的坑：罂粟花开场次里夜杀链路会受剧本规则与提线木偶影响，
+     *   在这一桌硬测「首夜必死」得到的是假红（实测 isDead=false）。
+     */
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G7 · 本剧本内角色契约（二）：城镇公告员 / 杂耍艺人 / farmer / 镇长
+// ═══════════════════════════════════════════════════════════════════
+test.describe("罂粟花开 · G7 角色契约（S26 四角色）", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("S26 四角色：城镇公告员 / 杂耍艺人 / farmer / 镇长 均为镇民且在场", async ({ page }) => {
+    /**
+     * 契约层：这 4 个角色都是**镇民**，在本剧本里没有专属断言。
+     *   · 城镇公告员：白天爪牙提名 ⇒ 获得信息（主链在 `useDayActions`，已由整局模拟覆盖）
+     *   · 杂耍艺人：白天猜角色，夜间判定（同上）
+     *   · farmer：死亡后由说书人变成一名镇民（死亡触发，需人工裁定）
+     *   · 镇长：三人生存特殊胜利（已在**暗流涌动**做过完整闭环）
+     * ⇒ 本用例锁「配比 + 类型 + 阵营」，防止配比表把镇民错配成其他类型。
+     *
+     * 场次 S26（9 人）：1城镇公告员 2杂耍艺人 3博学者 4farmer 5镇长 6酒鬼 7疯子 8提线木偶 9涡流
+     */
+    const snap = await bootS(page, "S26");
+    for (const id of ["town_crier", "juggler", "farmer", "mayor"]) {
+      const s = (snap.seats as any[]).find((x: any) => x.role?.id === id);
+      expect.soft(s != null, `${id} 应在场`).toBe(true);
+      if (!s) continue;
+      expect.soft(s.role?.type, `${id} 类型 = townsfolk`).toBe("townsfolk");
+      expect.soft(isSeatEvil(s), `${id} 真实阵营 = 善良`).toBe(false);
+    }
+    // 反证：本局的外来者/爪牙/恶魔类型不得被算成镇民
+    expect
+      .soft((snap.seats as any[]).find((x: any) => x.role?.id === "lunatic")?.role?.type, "疯子 = outsider")
+      .toBe("outsider");
+    expect
+      .soft((snap.seats as any[]).find((x: any) => x.role?.id === "marionette")?.role?.type, "提线木偶 = minion")
+      .toBe("minion");
+    expect
+      .soft((snap.seats as any[]).find((x: any) => x.role?.id === "vortox")?.role?.type, "涡流 = demon")
+      .toBe("demon");
   });
 });
