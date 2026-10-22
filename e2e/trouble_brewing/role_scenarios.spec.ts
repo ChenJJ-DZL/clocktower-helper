@@ -706,6 +706,385 @@ test.describe("暗流涌动 · G5 士兵 / 镇长 / 猎手", () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// G6 · 负向对照：官方「不该发生」的分支
+// ═══════════════════════════════════════════════════════════════════
+test.describe("暗流涌动 · G6 负向对照", () => {
+  test.setTimeout(6 * 60_000);
+
+  test("贞洁者：由爪牙提名 ⇒ 技能不触发，提名者不被处决", async ({ page }) => {
+    const { script, game } = loadScene("S02");
+    const snap = await bootScene(page, {
+      script,
+      players: game.players,
+      seed: game.seed,
+      lineup: game.seats.map((s: any) => s.id),
+    });
+    const virginSeat = seatByRole(snap, "virgin");
+    // 官方：只有「镇民」提名才触发。间谍被当作镇民 ⇒ 排除；陌客永不触发本轮不在场。
+    const minionSeat = (snap.seats as any[]).find(
+      (s: any) => TYPE_OF[s.role?.id ?? ""] === "minion" && s.role?.id !== "spy"
+    ).id as number;
+
+    // 投毒者目标必须避开贞洁者与提名用的爪牙（否则毒到谁都会改变判据）
+    const poisonTarget = (snap.seats as any[]).find(
+      (s: any) =>
+        s.id !== virginSeat &&
+        s.id !== minionSeat &&
+        TYPE_OF[s.role?.id ?? ""] === "minion" &&
+        s.role?.id === "spy"
+    )?.id as number | undefined;
+
+    await driveNight(
+      page,
+      poisonTarget === undefined ? [] : [{ role: "poisoner", targets: [poisonTarget + 1] }]
+    );
+
+    // voters: [] ⇒ 一票都不投 ⇒ 不足以处决，能干净观察「提名者有没有被贞洁者打死」
+    const dusk = await driveDusk(page, {
+      nominator: minionSeat + 1,
+      nominee: virginSeat + 1,
+      voters: [],
+    });
+    expect.soft(dusk.nominated, "应成功发起「爪牙提名贞洁者」").toBe(true);
+
+    const after = await waitForSnapshot(
+      page,
+      (s) => Array.isArray(s?.seats) && s.seats.length > 0,
+      8_000
+    );
+    const virgin = after?.seats?.find((s: any) => s.id === virginSeat);
+    const minion = after?.seats?.find((s: any) => s.id === minionSeat);
+
+    // ① 反证：提名者是爪牙 ⇒ 不得被立刻处决
+    expect.soft(minion?.isDead, "爪牙提名贞洁者不得被处决（官方只对镇民生效）").toBe(false);
+    // ② 官方【运作方式】原文：「如果首次提名贞洁者的玩家**不是**镇民，照常继续进行投票。
+    //    贞洁者**失去他的能力** —— 将贞洁者的『失去能力』提示标记放置在其角色标记旁。」
+    //    ⇒ 爪牙提名同样消耗能力，只是不处决提名者。
+    expect
+      .soft(virgin?.hasUsedVirginAbility, "爪牙提名同样消耗贞洁者的能力（官方：失去他的能力）")
+      .toBe(true);
+    // ③ 提名流程本身要正常走完（不能因为不触发就卡住）
+    expect.soft(dusk.status, "不触发的提名仍应能推进到入夜").toBe("night");
+  });
+
+  test("猎手：白天开枪打非恶魔 ⇒ 无事发生，游戏继续", async ({ page }) => {
+    const { script, game } = loadScene("S02");
+    const snap = await bootScene(page, {
+      script,
+      players: game.players,
+      seed: game.seed,
+      lineup: game.seats.map((s: any) => s.id),
+    });
+    const slayerSeat = seatByRole(snap, "slayer");
+    const mayorSeat = seatByRole(snap, "mayor");
+
+    // 首夜显式指定投毒目标：避免毒到猎手（中毒猎手开枪本就无事发生，会把用例变成假绿）
+    const safe = (snap.seats as any[]).find(
+      (s: any) => s.id !== slayerSeat && TYPE_OF[s.role?.id ?? ""] === "minion"
+    )?.id as number;
+    await driveNight(page, [{ role: "poisoner", targets: [safe + 1] }]);
+
+    // 右键猎手 → 开枪 → 选镇长（镇民，非恶魔）
+    const slayerBtn = page
+      .locator("button")
+      .filter({ hasText: new RegExp(`^${slayerSeat + 1}$`) })
+      .first();
+    await slayerBtn.click({ button: "right", timeout: 15_000 });
+    const shotMenu = page.locator("button").filter({ hasText: /开枪/ }).first();
+    await expect(shotMenu, "右键菜单应出现「💥开枪」").toBeVisible({ timeout: 10_000 });
+    await shotMenu.click({ timeout: 10_000 });
+
+    const card1 = page
+      .locator('[role="dialog"]')
+      .last()
+      .locator("button")
+      .filter({ hasText: new RegExp(`${mayorSeat + 1}号`) })
+      .first();
+    await expect(card1, "应弹出目标选择并列出镇长座位").toBeVisible({ timeout: 10_000 });
+    await card1.click({ timeout: 10_000 });
+
+    const confirmShot = page
+      .locator('[role="dialog"]')
+      .last()
+      .locator("button")
+      .filter({ hasText: /确认射击/ })
+      .first();
+    await expect(confirmShot, "选完目标后应出现「确认射击」").toBeVisible({ timeout: 10_000 });
+    const card2 = page
+      .locator('[role="dialog"]')
+      .last()
+      .locator("button")
+      // ⚠️ 射击弹窗的卡片文案是「14 镇民 镇长」（座位号与身份之间**没有「号」字**），
+      //    与第一段 DayActionModal 的「14号…」不同 ⇒ 正则必须兼容两种形态。
+      .filter({ hasText: new RegExp(`^${mayorSeat + 1}\\s*(镇民|外来者|爪牙|恶魔)`) })
+      .first();
+    await card2.click({ timeout: 10_000 });
+    await confirmShot.click({ timeout: 10_000 });
+
+    // 官方：「如果他是恶魔，他死亡」⇒ 不是恶魔 ⇒ 不死、不终局
+    const live = await waitLive(page, (l) => l?.gameOverUi === true, 6_000);
+    expect.soft(live?.gameOverUi, "打中非恶魔不得进入终局").not.toBe(true);
+
+    const after = await waitForSnapshot(page, (s) => Array.isArray(s?.seats), 8_000);
+    const mayor = after?.seats?.find((s: any) => s.id === mayorSeat);
+    expect.soft(mayor?.isDead, "被猎手打中的镇民不得死亡").toBe(false);
+    // 能力仍应被消耗（每局限一次，打空也算用过）
+    const slayer = after?.seats?.find((s: any) => s.id === slayerSeat);
+    expect
+      .soft(slayer?.hasUsedSlayerAbility ?? slayer?.abilityUsed, "开枪后应标记能力已用")
+      .toBeTruthy();
+  });
+
+  test("士兵：白天被处决 ⇒ 会死（只免疫恶魔的夜间能力）", async ({ page }) => {
+    const { script, game } = loadScene("S02");
+    const snap = await bootScene(page, {
+      script,
+      players: game.players,
+      seed: game.seed,
+      lineup: game.seats.map((s: any) => s.id),
+    });
+    const soldierSeat = seatByRole(snap, "soldier");
+    const nominator = (snap.seats as any[]).find(
+      (s: any) => TYPE_OF[s.role?.id ?? ""] === "townsfolk" && s.id !== soldierSeat
+    ).id as number;
+
+    await driveNight(page, []);
+    const dusk = await driveDusk(page, {
+      nominator: nominator + 1,
+      nominee: soldierSeat + 1,
+    });
+    expect.soft(dusk.executed, "应执行处决结算").toBe(true);
+
+    const after = await waitForSnapshot(page, (s) => Array.isArray(s?.seats), 10_000);
+    const soldier = after?.seats?.find((s: any) => s.id === soldierSeat);
+    // 官方士兵只免疫「恶魔的负面能力」；处决不是恶魔能力
+    expect.soft(soldier?.isDead, "士兵被处决必须死亡").toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// G7 · 关键分支：官方原文里最容易漏掉的半边
+// ═══════════════════════════════════════════════════════════════════
+test.describe("暗流涌动 · G7 关键分支", () => {
+  test.setTimeout(8 * 60_000);
+
+  test("红唇女郎：恶魔死时存活仅 4（死后 3）⇒ 不继承，善良获胜", async ({ page }) => {
+    // 5 人局：3 镇民 + 1 爪牙 + 1 恶魔（官方配比）
+    const snap = await bootScene(page, {
+      script: "暗流涌动",
+      players: 5,
+      seed: 92031,
+      lineup: ["imp", "scarlet_woman", "soldier", "chef", "empath"],
+    });
+    const impSeat = seatByRole(snap, "imp");
+    const swSeat = seatByRole(snap, "scarlet_woman");
+    const chefSeat = seatByRole(snap, "chef");
+    const nominator = seatByRole(snap, "soldier");
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 第 2 夜杀 1 人 ⇒ 存活 4
+    const n2 = await driveNight(page, [
+      { role: "imp", targets: [chefSeat + 1], note: "杀厨师（把存活压到 4）" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    // 处决恶魔：死前 4、死后 3 ⇒ 官方「≥5 死前 / ≥4 死后」都不成立 ⇒ 不变身
+    const dusk = await driveDusk(page, { nominator: nominator + 1, nominee: impSeat + 1 });
+    expect.soft(dusk.executed, "应处决小恶魔").toBe(true);
+
+    const after = await waitForSnapshot(page, (s) => Array.isArray(s?.seats), 10_000);
+    const sw = after?.seats?.find((s: any) => s.id === swSeat);
+    expect
+      .soft(sw?.role?.id, "存活不足 5 时红唇女郎不得继承（官方：≥5 名玩家存活）")
+      .toBe("scarlet_woman");
+
+    const live = await waitLive(page, (l) => l?.gameOverUi === true, 12_000);
+    expect.soft(live?.gameOverUi, "没有继承者 ⇒ 恶魔死 ⇒ 应进入终局").toBe(true);
+    expect.soft(live?.winner, "恶魔死亡且无人继承 ⇒ 善良获胜").toBe("good");
+    expect.soft(sw?.isDead, "未继承的红唇女郎仍然存活").toBe(false);
+  });
+
+  test("小恶魔：夜间自杀 ⇒ 一名爪牙变成小恶魔，游戏继续", async ({ page }) => {
+    const snap = await bootScene(page, {
+      script: "暗流涌动",
+      players: 5,
+      seed: 92032,
+      lineup: ["imp", "poisoner", "soldier", "chef", "empath"],
+    });
+    const impSeat = seatByRole(snap, "imp");
+    const poisonerSeat = seatByRole(snap, "poisoner");
+
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 第 2 夜：小恶魔选自己
+    const n2 = await driveNight(page, [
+      { role: "imp", targets: [impSeat + 1], note: "小恶魔自杀" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after = await waitForSnapshot(page, (s) => Array.isArray(s?.seats), 10_000);
+    const imp = after?.seats?.find((s: any) => s.id === impSeat);
+    const heir = after?.seats?.find((s: any) => s.id === poisonerSeat);
+
+    expect.soft(imp?.isDead, "自杀的小恶魔应死亡").toBe(true);
+    // 官方：用多出来的小恶魔标记替换一名存活爪牙的角色标记
+    expect
+      .soft(heir?.role?.id, "一名存活爪牙必须变成小恶魔")
+      .toBe("imp");
+    expect.soft(heir?.isDead, "继承者不得死亡").toBe(false);
+
+    const live = await waitLive(page, (l) => l?.gameOverUi === true, 4_000);
+    expect
+      .soft(live?.gameOverUi, "有继承者时游戏必须继续（恶魔未真正灭亡）")
+      .not.toBe(true);
+  });
+
+  test("镇长：剩 3 人存活且白天无人被处决 ⇒ 善良阵营获胜", async ({ page }) => {
+    // 5 人局：3 镇民 + 1 爪牙 + 1 恶魔。镇长必须活到只剩 3 人。
+    const snap = await bootScene(page, {
+      script: "暗流涌动",
+      players: 5,
+      seed: 92034,
+      lineup: ["mayor", "chef", "empath", "spy", "imp"],
+    });
+    const mayorSeat = seatByRole(snap, "mayor");
+    const chefSeat = seatByRole(snap, "chef");
+    const empathSeat = seatByRole(snap, "empath");
+    const impSeat = seatByRole(snap, "imp");
+
+    // ⚠️ 牺牲者必须是「会被恶魔杀死」的镇民：
+    //   士兵/弄臣/茶艺师等免死角色当靶子会让「无人死亡」被误读成规则缺陷。
+    const victims = [chefSeat, empathSeat].filter((x) => x !== mayorSeat);
+    expect.soft(victims.length, "两个可牺牲的镇民都不得是镇长").toBe(2);
+
+    // ⚠️ 这一局故意**不放投毒者**：驱动器的默认毒目标会随阵容变化，
+    //    5 人局实测正好毒到小恶魔 ⇒ 恶魔杀不了人，整条链路判据全落空。
+    //    用间谍（无夜间行动）当爪牙，击杀链最干净。
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    // 第 2 夜杀 1 人 ⇒ 存活 4
+    const n2 = await driveNight(page, [
+      { role: "imp", targets: [victims[0] + 1], note: "杀第 1 个镇民" },
+    ]);
+    expect.soft(n2.status, "第 2 夜应推进到白天").toBe("day");
+    const after2 = await readSnapshotSafe(page);
+    expect
+      .soft((after2?.seats ?? []).filter((s: any) => !s.isDead).length, "第 2 夜后应剩 4 人存活")
+      .toBe(4);
+    const dusk2 = await driveDusk(page, {});
+    // 存活 4 ⇒ 镇长特殊胜利**不该**触发
+    expect.soft(dusk2.status, "存活 4 人时镇长特殊胜利不得触发").toBe("night");
+
+    // 第 3 夜杀第 2 人 ⇒ 存活 3（镇长 + 爪牙 + 恶魔）
+    const n3 = await driveNight(page, [
+      { role: "imp", targets: [victims[1] + 1], note: "杀第 2 个镇民" },
+    ]);
+    expect.soft(n3.status, "第 3 夜应推进到白天").toBe("day");
+
+    const before = await readSnapshotSafe(page);
+    const alive = (before?.seats ?? []).filter((s: any) => !s.isDead);
+    expect.soft(alive.length, "此时应恰好 3 人存活").toBe(3);
+    expect
+      .soft(alive.map((s: any) => s.id), "镇长必须在存活 3 人里")
+      .toContain(mayorSeat);
+
+    // 白天不提名、不处决，直接入夜 ⇒ 官方「只有三名玩家存活且白天没有人被处决，你的阵营获胜」
+    const dusk3 = await driveDusk(page, {});
+    expect.soft(dusk3.status, "3 人存活且无人被处决 ⇒ 应直接判胜，不再入夜").toBe("gameover");
+
+    const live = await waitLive(page, (l) => l?.gameOverUi === true, 12_000);
+    expect.soft(live?.gameOverUi, "镇长特殊胜利应进入终局 UI").toBe(true);
+    expect.soft(live?.winner, "镇长（善良）特殊胜利 ⇒ 善良阵营获胜").toBe("good");
+
+    const winBtn = page.locator("button").filter({ hasText: /查看获胜结果/ }).first();
+    await winBtn.click({ timeout: 8000 }).catch(() => {});
+    const overlay = await page.evaluate(
+      () => (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
+    );
+    expect.soft(overlay, "胜因必须可读（指明镇长/存活三人）").toMatch(/镇长|三人|存活/);
+
+    // 反证：恶魔不得因为镇长获胜而被误标为死亡
+    expect
+      .soft(before?.seats?.find((s: any) => s.id === impSeat)?.isDead, "小恶魔不得因此死亡")
+      .toBe(false);
+  });
+
+  test("占卜师：选中「干扰项」⇒ 仍回答【有】", async ({ page }) => {
+    const { script, game } = loadScene("S01");
+    const snap = await bootScene(page, {
+      script,
+      players: game.players,
+      seed: game.seed,
+      lineup: game.seats.map((s: any) => s.id),
+    });
+    const demonSeat = seatByRole(snap, "imp");
+    const redHerring = (snap.seats as any[]).find(
+      (s: any) => s.isFortuneTellerRedHerring === true
+    )?.id as number;
+    expect(redHerring, "S01 应已放置占卜师的『干扰项』标记").toBeGreaterThanOrEqual(0);
+
+    // 干扰项必须是一名善良玩家（官方：始终有一名善良玩家被当作恶魔）
+    const rhRole = roleAt(snap, redHerring);
+    expect.soft(
+      TYPE_OF[rhRole ?? ""] === "townsfolk" || TYPE_OF[rhRole ?? ""] === "outsider",
+      `干扰项应为善良玩家，实际是【${rhRole}】`
+    ).toBe(true);
+
+    // 一个明确的好人：既不是恶魔也不是干扰项
+    const goodSeat = (snap.seats as any[]).find(
+      (s: any) =>
+        s.id !== demonSeat &&
+        s.id !== redHerring &&
+        TYPE_OF[s.role?.id ?? ""] === "townsfolk" ||
+        TYPE_OF[s.role?.id ?? ""] === "outsider"
+    ).id as number;
+
+    const report = await driveNight(page, [
+      { role: "poisoner", targets: [demonSeat + 1], note: "毒恶魔，避开占卜师" },
+      {
+        role: "fortune_teller",
+        targets: [redHerring + 1, goodSeat + 1],
+        note: "干扰项 + 好人",
+      },
+    ]);
+
+    const ft = resultStep(report, "fortune_teller")?.dialog ?? "";
+    // 官方：「会有一名善良玩家始终被你的能力当作恶魔」
+    expect.soft(ft, "占卜师查询「干扰项 + 好人」必须回答【有】").toMatch(/【有】/);
+    expect.soft(ft, "不得回答【没有】（干扰项恒被当作恶魔）").not.toMatch(/【没有】/);
+  });
+
+  test("调查员：唯一爪牙是间谍 ⇒ 报「没有爪牙在场」", async ({ page }) => {
+    const snap = await bootScene(page, {
+      script: "暗流涌动",
+      players: 5,
+      seed: 92033,
+      lineup: ["investigator", "chef", "soldier", "spy", "imp"],
+    });
+    const spySeat = seatByRole(snap, "spy");
+
+    const report = await driveNight(page, []);
+    const inv = stepsOf(report, "investigator")
+      .map((x) => x.dialog)
+      .join("|");
+
+    expect.soft(inv, "调查员必须被唤醒并给出信息").toMatch(/获得信息|爪牙/);
+    // 官方：仅有一名爪牙且为间谍时，调查员可能得知「没有爪牙」；本仓契约取这条口径
+    expect
+      .soft(inv, "唯一爪牙是间谍时，应报「没有爪牙」")
+      .toMatch(/没有爪牙|无爪牙/);
+    expect
+      .soft(inv, "此时不得给出「A号和B号之中有一名是【X】」的候选")
+      .not.toMatch(/\d+号和\d+号之中有一名是/);
+    expect.soft(spySeat >= 0, "间谍应真实在场（否则本用例测的是别的分支）").toBe(true);
+  });
+});
+
 /** 轮询「活终态」（终局不落快照，只能读 DOM） */
 async function waitLive(
   page: Page,

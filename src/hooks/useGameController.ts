@@ -18,6 +18,7 @@ import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
 import { canFoolSurvive, isProtectedByDevilsAdvocate } from "../utils/bmrMechanics";
 import { isVortoxDuskWinActive } from "../utils/vortoxWorld";
+import { resolveMayorDuskWin } from "../utils/mayorRule";
 import {
   generateDynamicNightQueue,
   isDeathTriggeredRole,
@@ -2185,6 +2186,43 @@ export function useGameController() {
         setGamePhase("gameOver");
         setCurrentModal({ type: "GAME_OVER", data: null });
         return;
+      }
+      /**
+       * 👑 镇长「三人生存」特殊胜利 —— **同一个黄昏 → 入夜收口点**。
+       *
+       * 官方【角色能力】「如果只有三名玩家存活且白天没有人被处决，你的阵营获胜。」
+       * 官方【运作方式】「在黄昏时，如果正好有三名玩家存活，且当天没有玩家被处决，
+       *   宣布镇长所在的阵营获胜。」
+       *
+       * 🔴 2026-10-22 修复：此前全仓只有文案/唤醒提示，**零生产判据**
+       *   ⇒ 3 人存活 + 无人处决时游戏照常进夜（实测 5 人局第 3 夜，
+       *   `gamePhase` 从 day 直接变 night，终局 UI 永不出现）。
+       *
+       * 判据收口在 `utils/mayorRule::resolveMayorDuskWin`（纯函数，可单测）：
+       *   · 存活（排除旅行者）恰好 3 人
+       *   · 今天**确实没有人被处决**
+       *   · 镇长存活且未醉/毒（官方规则细节）
+       *   · 胜方 = **镇长自己的阵营**（异端/政客转换后可能是邪恶）
+       *
+       * 幂等：`victoryRef.current` 已由涡流或其它路径置位时不再覆盖。
+       */
+      if (!victoryRef.current) {
+        const mayorWin = resolveMayorDuskWin(
+          seatsRef.current,
+          todayExecutedId != null
+        );
+        if (mayorWin) {
+          addLog(
+            `☠️ ${mayorWin.reason}：${
+              mayorWin.winner === "good" ? "善良" : "邪恶"
+            }阵营获胜！`
+          );
+          setWinResult(mayorWin.winner);
+          setWinReason(mayorWin.reason);
+          setGamePhase("gameOver");
+          setCurrentModal({ type: "GAME_OVER", data: null });
+          return;
+        }
       }
       // 🌙 新的一夜：清空「本夜已唤醒」，否则上一夜的唤醒记录会污染侍女统计
       wokenThisNightRef.current = new Set();
