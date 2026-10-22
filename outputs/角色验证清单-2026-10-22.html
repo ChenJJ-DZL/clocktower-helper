@@ -135,6 +135,17 @@
   <span><i class="dot" style="background:#f97316"></i>有已登记缺口（规则 / 文案待裁决）</span>
 </div>
 
+<div class="note" style="border-left-color:#f97316">
+  <b>剩余 4 条缺口（截至 2026-10-22 21:20，全部已定性、均未修）</b>
+  <ul>
+    <li><b>莽夫</b>（P0·产品）：<code>chooserSeatId</code> 零传入点 ⇒ 永不转阵营/永不令选者醉酒。落点 <code>abilityExecutor::executeRoleAbility</code>，须防重入 + 全量回归。</li>
+    <li><b>主谋</b>（P0·产品）：额外一夜一昼不触发。判据 <code>gameLogic.ts:596-611</code> 齐全但没命中；守卫 <code>isMastermindExtraDayHint</code> 已加。下一步只在 <code>checkGameOver</code> 打印四项入参，别再静态推。</li>
+    <li><b>麻脸巫婆</b>（P1·驱动器）：嵌套 dialog 点不中角色胶囊，已试 4 种判据。</li>
+    <li><b>茶艺师</b>（P1·驱动器）：普卡攻击被挡那步 <code>timeout</code>，需按 <code>stuck.buttons</code> 补分支。</li>
+  </ul>
+  修法细节见 <code>outputs/剩余缺口修法-2026-10-22.md</code>。
+</div>
+
 <h3 class="sec">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 4 4-7"/></svg>
   9 剧本跑批结果（2026-10-22 21:15 实跑，<b>192/192 角色已有断言</b>，93 条用例 / 91 绿）
