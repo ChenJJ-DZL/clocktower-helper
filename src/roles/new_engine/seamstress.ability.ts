@@ -22,7 +22,15 @@ const preCheckLimitedAbility = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const { actionNode } = context;
-  const seatId = actionNode.seatId;
+  const seatId = actionNode?.seatId;
+
+  /**
+   * 🔴 2026-10-22：队列生成/预览阶段**没有 actionNode**。
+   *   旧写法 `actionNode.seatId` 会在这里抛 TypeError，
+   *   导致女裁缝在「这夜要不要唤醒」的判定中被剔掉 —— 表现为首夜永远不进队列。
+   *   ⇒ 没有 actionNode 时直接放行（是否真用得上由执行阶段再判）。
+   */
+  if (typeof seatId !== "number") return context;
 
   if (!canUseLimitedAbility(seatId, "seamstress_check")) {
     return {
@@ -50,7 +58,7 @@ const preCheckTargets = async (
   }
 
   // 确保没有选择自己
-  if (targetIds.includes(actionNode.seatId)) {
+  if (targetIds.includes(actionNode?.seatId as number)) {
     return {
       ...context,
       aborted: true,

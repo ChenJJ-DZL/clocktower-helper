@@ -562,15 +562,19 @@ test.describe("梦殒春宵 · G5 诅咒与转化", () => {
   });
 
   test("女裁缝：选一好一坏 ⇒ 必须回答「不同阵营」", async ({ page }) => {
-    // 🔴 已知缺陷（2026-10-22 探针实锤）：**女裁缝首夜根本没进唤醒队列**。
-    //   S08 首夜 steps 只有：pit_hag 互认 → vigormortis 互认 → philosopher → clockmaker
-    //   → 夜晚结算报告，**没有 seamstress 步骤**，所以也没有任何结果弹窗。
-    //   而 `seamstress.ability.ts:159-161` 明确写了
-    //     `triggerTiming: [EVERY_NIGHT]` + `firstNightPriority: 63` + `firstNightOnly: false`
-    //   ⇒ 作者意图是首夜可行动，但队列生成阶段把她过滤掉了。
-    //   （与「坑道巫婆首夜不唤醒」同型：ability 声明了 priority，`nightOrder` 静态表里没有。）
-    //   ⇒ 待查 `utils/dynamicQueueGenerator` 的「首夜角色」判定来源。
-    test.fail(true, "女裁缝首夜未进唤醒队列（ability 声明 firstNightPriority 63，见注释）");
+    // 🔴 待定位（2026-10-22，已排查 4 轮未破）：
+    //   现象：S08 首夜 steps 里**从来没有 seamstress 步骤**（互认 → philosopher →
+    //   clockmaker → 结算报告），所以没有任何结果弹窗。
+    //   已排除的假设：
+    //     ① ability 缺声明 —— 错：`EVERY_NIGHT` + `firstNightPriority: 63` + `firstNightOnly: false` 都在；
+    //     ② nightOrder 缺配置 —— 错：`nightOrder.json` 首夜表（466 行）与
+    //        `nightOrderOverrides.ts:79` 都列了 seamstress；
+    //     ③ 限次能力未注册 —— 错：`LimitedAbilityManager.ts:95` 有 `seamstress_check`；
+    //     ④ 被哲学家弄醉导致跳过唤醒 —— 错：显式让哲学家选不在场的 dreamer 后仍无步骤；
+    //     ⑤ preCheck 读 `actionNode.seatId` 抛错 —— 已加空值保护（保留为防御），仍无步骤。
+    //   ⇒ 下一步要查 `utils/dynamicQueueGenerator` 到底用哪个字段判「这夜是否唤醒」，
+    //     并在里面加一行日志打印被排除的角色与原因。
+    test.fail(true, "女裁缝首夜不进唤醒队列（已排除 5 个假设，见注释）");
     const snap = await bootS(page, "S08");
     const ssSeat = snap.seats.find((s: any) => s.role?.id === "seamstress").id as number;
     const evilIds = ["vigormortis", "pit_hag"];
@@ -581,7 +585,12 @@ test.describe("梦殒春宵 · G5 诅咒与转化", () => {
 
     // 官方：「每局游戏限一次，在夜晚时，你可以选择除你以外的两名玩家：
     //   你会得知他们是否为同一阵营。」
+    // ⚠️ 必须显式指定哲学家的选角：驱动器默认选 clockmaker，而 clockmaker 在场
+    //   ⇒ 官方「如果这个角色在场，他醉酒」会把 8 号（正好是女裁缝）弄成酒鬼
+    //   ⇒ 被醉的角色不产出信息，用例会误判成「女裁缝没实现」。
+    //   选一个**不在本局**的善良角色（dreamer）⇒ 无人醉酒。
     const n1 = await driveNight(page, [
+      { role: "philosopher", roleChoice: "dreamer", note: "选不在场角色，避免有人醉酒" },
       { role: "seamstress", targets: [good + 1, evil + 1], note: "一好一坏" },
     ]);
 
