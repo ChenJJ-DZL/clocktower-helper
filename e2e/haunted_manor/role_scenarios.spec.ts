@@ -489,13 +489,33 @@ test.describe("凶宅魅影 · G4 角色级补测", () => {
      *   必须先在用例里手动把门禁走完（选保守项「否，无事发生」），否则驱动器拿不到处决。
      */
     /**
-     * ⚠️ E2E 侧标 fixme：产品判据已由单测锁定
-     *   （`src/utils/__tests__/barber_swap_hint.test.ts` 三条：夜杀 / 处决 / 非理发师反证）。
-     *   这里卡的是**驱动器**：15 人局的投票流程拿不到 `executed=true`
-     *   （实测 `executedSeat=null`，dialogs 只剩提名确认一条）。
+     * ⚠️ 标 fixme，但原因**不是驱动器，是产品侧缺一条 UI 通路**（2026-10-23 探针更正）：
+     *
+     * 实测链路（S19 9 人局，处决已真实发生）：
+     *   提名 ✓ → 举手表决 ✓ → `executed=true` ✓ → 理发师 `isDead=true` ✓
+     *   但 `dialogs` 里**没有**交换窗。
+     *
+     * 根因：处决主链 `useExecutionHandlers.executePlayer` 用的是
+     *   `dispatch({ type: "EXECUTE_PLAYER" })`（**reducer 分支**，只做 `isDead = true`），
+     *   **不经过 `processGameEvent`** ⇒ `gameLogic` 里我修好的
+     *   `BARBER_SWAP_NEEDED` 判据在这条路径上根本不会执行。
+     *   （只有 `logicDispatch` 那条才会跑 `processGameEvent`。）
+     *
+     * 判据本身已由 `src/utils/__tests__/barber_swap_hint.test.ts` 三条单测锁定
+     *   （夜杀 / 处决 / 非理发师反证，全绿）。
+     * 剩余工作：在 `executePlayer` 的处决分支里补一次 `setCurrentModal(BARBER_SWAP)`，
+     *   并接上「交换完成后继续推进白天」的续接 —— 这会动处决主链，单独一轮做。
      */
-    test.fixme(true, "15 人局投票驱动未通；判据已由 barber_swap_hint 单测锁定");
-    const snap = await bootS(page, "S18");
+    /**
+     * ⚠️ 换场次：S18 是 15 人局（处决需 8 票，驱动器实测 `executedSeat=null`）；
+     *   **S19 只有 9 人（处决 5 票即可）**，同样有理发师 + 畸形秀演员，
+     *   是本条唯一可行的验证场次。
+     */
+    test.fixme(
+      true,
+      "处决主链走 reducer 分支、不经 processGameEvent ⇒ 不弹 BARBER_SWAP；判据已由单测锁定"
+    );
+    const snap = await bootS(page, "S19");
     const barberSeat = seatByRole(snap, "barber");
     expect.soft(barberSeat, "理发师应在场").toBeGreaterThanOrEqual(0);
     const nominator = (snap.seats as any[]).find(

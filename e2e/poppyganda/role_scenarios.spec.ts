@@ -452,34 +452,67 @@ test.describe("罂粟花开 · G5 角色级补测", () => {
     }
   });
 
-  test("博学者：官方是「每个夜晚」但实现做成日间技能（口径偏差登记）", async ({
-    page,
-  }) => {
+  test("博学者：白天可私下询问 ⇒ 必须给出「一真一假」两条信息", async ({ page }) => {
     /**
-     * 官方【博学者】：「每个夜晚，你会得知两条信息，其中一条为真、一条为假。」
+     * 🔴 2026-10-23 **判据纠错（第 8 次「测试错、产品对」）**：
+     *   上一版把这条登记成「官方是『每个夜晚』，实现做成 DAY ⇒ 口径偏差」。
+     *   查 `officialRoleDocs.json` 原文才知道**是我记错了**：
+     *     官方【博学者】：「**每个白天**，你可以私下询问说书人以得知两条信息：
+     *       一个是正确的，一个是错误的。」
+     *     【运作方式】：「**每个白天仅限一次**，如果博学者要求与你进行私聊……」
+     *   ⇒ `triggerTiming: [DAY]` + `firstNightPriority/otherNightPriority 均为 null`
+     *     **完全正确**，夜间不该有步骤。
      *
-     * ⚠️ 实测偏差（2026-10-22，**登记而非断言通过**）：
-     *   `savant.ability.ts:116-119` = `triggerTiming: [DAY]` + 两个 priority 全 null
-     *   ⇒ 夜间**永不唤醒**，`nightOrder.json` 里也查不到 savant（first=0 / other=0）
-     *   ⇒ 本局首夜 `stepsOf(n1, "savant")` 为空。
-     *
-     * 说明：该角色在项目里被实现为**日间**能力（入口在白天，已由无名之墓的
-     *   「艺术家 / 博学者 的日间技能入口存在且可用」覆盖），因此功能可用，
-     *   但**触发时机与官方不一致**（官方是「每个夜晚」）。
-     *
-     * 处理：E2E 侧标 fixme —— 既不能按夜间断言（实现没有夜间步骤），
-     *   也不能写成「通过」（会掩盖口径偏差）。是否改为 EVERY_NIGHT 需产品裁定。
+     * 正确判据（按 `data-testid="start-day-ability-button"` 定位入口，
+     *   不要用「使用博学者」文案去匹配 —— 按钮是 `使用 ${abilityName}`，中间有空格）：
+     *   ① 白天必须存在可点的日间技能入口；
+     *   ② 点开后必须给出两条信息，并标明真假。
      */
-    test.fixme(
-      true,
-      "博学者实现为 DAY 触发（官方为「每个夜晚」）⇒ 夜间无步骤；口径偏差待裁定"
-    );
     const snap = await bootS(page, "S26");
     const savantSeat = seatByRole(snap, "savant");
     expect.soft(savantSeat, "博学者应在场").toBeGreaterThanOrEqual(0);
+
     const n1 = await driveNight(page, []);
     expect.soft(n1.status, "首夜应推进到白天").toBe("day");
-    const dialog = stepsOf(n1, "savant").map((x) => x.dialog).join(" | ");
-    expect.soft(dialog.length > 0, "（如果改回夜间，这条会开始生效）").toBe(true);
+
+    // 夜间不该有博学者步骤（官方是白天能力）
+    expect
+      .soft(
+        stepsOf(n1, "savant").length,
+        "官方：博学者是「每个白天」⇒ 夜间不得有唤醒步骤"
+      )
+      .toBe(0);
+
+    const card = page
+      .locator("div")
+      .filter({ has: page.locator(`text="${savantSeat + 1}号"`) })
+      .filter({ has: page.locator('[data-testid="start-day-ability-button"]') })
+      .last();
+    const btn = card.locator('[data-testid="start-day-ability-button"]').first();
+    expect
+      .soft(await btn.count(), `博学者（${savantSeat + 1}号）应有日间技能入口`)
+      .toBeGreaterThan(0);
+    expect.soft(await btn.isEnabled().catch(() => false), "日间入口应可点").toBe(true);
+
+    await btn.click({ timeout: 8000 }).catch(() => {});
+    // ① 先过「确定使用博学者信息吗？」这层确认窗
+    const confirmBtn = page
+      .locator('[role="dialog"] button')
+      .filter({ hasText: /^确认$|^确定$/ })
+      .first();
+    await confirmBtn.click({ timeout: 5000 }).catch(() => {});
+    // ② 再读信息窗
+    const dialog = await page.evaluate(
+      () => (document.querySelector('[role="dialog"]')?.textContent ?? "").replace(/\s+/g, "")
+    );
+    expect
+      .soft(dialog.length > 0, `点开日间入口后应弹出信息窗（实测：${dialog.slice(0, 100)}）`)
+      .toBe(true);
+    expect
+      .soft(
+        /真/.test(dialog) && /假/.test(dialog),
+        `官方：两条信息「一真一假」⇒ 必须出现真假标记（实测：${dialog.slice(0, 160)}）`
+      )
+      .toBe(true);
   });
 });
