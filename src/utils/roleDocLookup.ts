@@ -17,13 +17,35 @@ type RoleDocSummary = {
 
 import officialDocs from "../data/officialRoleDocs.json";
 
+/**
+ * 🀄 官方文档的**译名分歧**别名表（本地显示名 → `officialRoleDocs.json` 的键）
+ * ======================================================================
+ * `officialRoleDocs.json` 的键是**官方中文 wiki 的译名**，而本仓库部分角色沿用了
+ * 早期社区译名 ⇒ 直接按 `role.name` 查会 miss，退回 `def.detailedDescription`
+ * （内容更短、且缺【范例】【运作方式】）。
+ *
+ * 已确认的两个（2026-10-23 核对 `json/full/all_characters.json` 的 `英文名` 字段）：
+ *   · `pit_hag`    本地「坑道巫婆」/ 官方「麻脸巫婆」—— 英文名同为 **Pit-Hag**
+ *   · `no_dashii`  本地「诺-达」  / 官方「诺-达鲺」 —— 英文名同为 **No Dashii**
+ * ⇒ 同一角色的两种译名，不是两个角色。别名只影响**文档查找**，
+ *   不参与发牌、判胜、夜序任何逻辑（那是 `app/data.ts` 的 roleId 说了算）。
+ */
+const ROLE_DOC_ALIASES: Record<string, string> = {
+  坑道巫婆: "麻脸巫婆",
+  "诺-达": "诺-达鲺",
+  /** 性别变体（`app/data.ts` 里为同一规则的男女两版，官方文本只有一版） */
+  "教授（女）": "教授",
+  "僧侣（女）": "僧侣",
+};
+
 // We first try to get the official verbatim doc from officialRoleDocs.json.
 // If it's not present (e.g. custom roles), we fall back to the RoleDefinition.
 const getRoleDocFromRegistry = (roleName: string): string | undefined => {
-  // Direct lookup in official docs by name
-  if (officialDocs && (officialDocs as Record<string, string>)[roleName]) {
-    return (officialDocs as Record<string, string>)[roleName];
-  }
+  const table = officialDocs as Record<string, string>;
+  // Direct lookup in official docs by name（先原名，再别名）
+  if (officialDocs && table[roleName]) return table[roleName];
+  const alias = ROLE_DOC_ALIASES[roleName];
+  if (alias && table[alias]) return table[alias];
 
   // Fallback to RoleDefinitions using ID or name
   const allDefs = getAllRoleDefinitions();

@@ -85,6 +85,25 @@ for (const char of poppygandaExtraList) {
 }
 
 /**
+ * 🀄 译名分歧别名表（本地显示名 → `json/full/all_characters.json` 的 `名称`）
+ * ======================================================================
+ * 百科数据的键是**官方中文 wiki 译名**，本仓库个别角色沿用早期社区译名
+ * ⇒ 按 `role.name` 直接查会 miss，然后掉进「自定义角色」兜底：
+ * 图鉴里只剩一行 `role.ability`，【角色简介】【运作方式】【范例】【提示与技巧】全空。
+ *
+ * 已核对（英文名同为同一角色，不是两个角色）：
+ *   · `pit_hag`   「坑道巫婆」↔ 官方「麻脸巫婆」（Pit-Hag）
+ *   · `no_dashii` 「诺-达」  ↔ 官方「诺-达鲺」（No Dashii）
+ */
+const WIKI_ALIASES: Record<string, string> = {
+  坑道巫婆: "麻脸巫婆",
+  "诺-达": "诺-达鲺",
+  /** 性别变体（同一规则的男女两版，百科只有一版） */
+  "教授（女）": "教授",
+  "僧侣（女）": "僧侣",
+};
+
+/**
  * 将长文本拆分为条理分明的要点段落
  */
 function parseToPoints(text?: string): string[] {
@@ -117,9 +136,11 @@ export function getCharacterWikiDetails(
 
   if (typeof roleOrName === "string") {
     const trimmed = roleOrName.trim();
+    const alias = WIKI_ALIASES[trimmed];
     raw =
       nameIndex.get(trimmed) ||
       nameIndex.get(trimmed.replace(/[\s\-_]/g, "")) ||
+      (alias ? nameIndex.get(alias) : undefined) ||
       englishIndex.get(trimmed.toLowerCase()) ||
       englishIndex.get(trimmed.toLowerCase().replace(/[\s\-_]/g, "")) ||
       idIndex.get(trimmed);
@@ -127,9 +148,11 @@ export function getCharacterWikiDetails(
     // Role object
     if (roleOrName.name) {
       const trimmedName = roleOrName.name.trim();
+      const alias = WIKI_ALIASES[trimmedName];
       raw =
         nameIndex.get(trimmedName) ||
-        nameIndex.get(trimmedName.replace(/[\s\-_]/g, ""));
+        nameIndex.get(trimmedName.replace(/[\s\-_]/g, "")) ||
+        (alias ? nameIndex.get(alias) : undefined);
     }
     if (!raw && roleOrName.id) {
       const trimmedId = roleOrName.id.trim().toLowerCase();

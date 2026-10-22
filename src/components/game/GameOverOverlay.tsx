@@ -158,9 +158,21 @@ export function GameOverOverlay() {
                   ? "邪恶阵营达成了胜利条件"
                   : "对局已结束")}
           </p>
-          {winReason?.includes("猎手") && (
+          {/**
+           * ⚠️ 2026-10-23 修复「弹窗自相矛盾地宣告阵营胜负」（本项目第 5 次踩同一坑）：
+           *   原判据只有 `winReason?.includes("猎手")`，文案却**恒定**写
+           *   「…游戏立即结束并由善良阵营获胜」。两种情形会立刻打脸：
+           *     ① 镜像双子双方存活时，即使恶魔被猎手击杀，**游戏也会继续**
+           *        （`app/gameLogic.ts` 有该阻挡，本页标题此时也不会是善良获胜）；
+           *     ② 上方的 `winReason` 由 `terminalRules` 判定，可能与这句话指向不同阵营
+           *        ⇒ 同一张卡片里「胜利依据」与「💡提示」互相矛盾。
+           *   修法与 X02 批 3a 对 `SHOOT_RESULT` 的处理一致：**只陈述能力结果**
+           *   （猎手击杀了恶魔），阵营胜负一律以本页标题/主徽章（`isGood`）为准，
+           *   且加 `isGood` 门控 —— 邪恶获胜时绝不显示这句。
+           */}
+          {isGood && winReason?.includes("猎手") && (
             <p className="text-sm sm:text-base text-amber-300/90 pl-6 font-medium">
-              💡 猎手成功击杀恶魔，游戏立即结束并由善良阵营获胜。
+              💡 猎手成功击杀了恶魔（胜负以上方结算为准）。
             </p>
           )}
         </div>

@@ -541,15 +541,22 @@ describe("L1 · 静态数据层（窃窃私语 + 无名之墓 · 32 角色）", 
     expect(mismatched, `以下角色 type 与真值表不符：${mismatched.join("; ")}`).toEqual([]);
 
     /**
-     * ⚠️ L1-③ 已知缺口（只报告，不在本批修）：
-     *   `scapegoat`（替罪羊）在 `officialRoleDocs.json` 中**没有顶层条目**
-     *   （全文检索「替罪羊」只出现在 *其它* 角色的相克范例正文里）。
+     * ✅ 2026-10-23 缺口已补齐（本条按设计"红 → 回来更新"了，这正是它存在的价值）。
+     *
+     * 原状：`scapegoat`（替罪羊）在 `officialRoleDocs.json` 里**没有顶层条目**
+     *   （全文检索「替罪羊」只出现在 *其它* 角色的相克范例正文里）
      *   ⇒ 该角色的 targetConfig 无法用官方原文核对。
-     *   本条把它显式钉住：若将来补了官方条目，本断言会红 → 强制回来更新。
+     *
+     * 现补：从 `json/full/all_characters.json`（官方 wiki 抓取）按既有 `【段】` 格式生成
+     *   【背景故事】/【角色能力】/【角色简介】/【范例】/【运作方式】/【提示标记】/【规则细节】/
+     *   【提示与技巧（作为善良/邪恶）】⇒ 条目已存在，`missingDoc` 归零。
+     *   ⚠️ 这条现在守的是「**不许再有**角色缺官方条目」——未来新加角色忘了补就会红。
+     *   断言口径也从「恰好等于已知缺口列表」升级为「必须为空」。
      */
-    expect(missingDoc, "缺官方文档条目的角色（当前已知仅 scapegoat）").toEqual([
-      "scapegoat(替罪羊)",
-    ]);
+    expect(
+      missingDoc,
+      `以下角色在 officialRoleDocs.json 里查不到条目（新加角色必须补官方原文）：${missingDoc.join(", ")}`
+    ).toEqual([]);
   });
 
   it("③ 注册表接线：每个角色的 abilityId/roleId 与真值表一致（含 saint 的已知例外）", () => {
