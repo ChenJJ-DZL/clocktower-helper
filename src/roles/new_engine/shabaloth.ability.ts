@@ -180,6 +180,9 @@ const updateKillState = async (
           killedBy: undefined,
           deathSource: undefined,
           deathSourceSeatId: undefined,
+          /** 🌅 黎明播报「宣布哪些玩家复活了」（官方：「在宣布哪些玩家死亡后，
+           *  宣布哪些玩家复活了。（不要说明原因。）」）。收集见 `utils/dawnAnnouncement`。 */
+          revivedAtNight: snapshot.nightCount,
           statusEffects: [
             ...(seat.statusEffects ?? []),
             {

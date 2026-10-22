@@ -3,6 +3,28 @@ import type { Script, Seat } from "@/app/data";
 import { isDeathTriggeredRole } from "../utils/dynamicQueueGenerator";
 import type { NightInfoResult } from "@/src/types/game";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
+import {
+  buildDawnAnnouncement,
+  collectRevivedThisNight,
+} from "../utils/dawnAnnouncement";
+
+/**
+ * 🌅 黎明播报的唯一构造点（本文件内）。
+ *
+ * 官方要求播报两段：「先宣布哪些玩家死亡，再宣布哪些玩家复活（不要说明原因）」
+ * （沙巴洛斯 / 哈迪寂亚）。此前这句话在本文件里写了两遍，且**都没有复活段**。
+ * 现在两处都走这里 + `utils/dawnAnnouncement`，防止再分叉。
+ */
+function buildDawnMessageFor(
+  deadThisNight: number[],
+  currentSeats: Seat[] | null | undefined,
+  nightCount: number
+): string {
+  return buildDawnAnnouncement({
+    deadThisNight,
+    revivedThisNight: collectRevivedThisNight(currentSeats as any, nightCount),
+  });
+}
 
 export function useNightSnapshot(
   seats: Seat[],
@@ -276,20 +298,16 @@ export function useNightSnapshot(
           setCurrentWakeIndex(latestQueue.length);
           setActiveNightStep(null);
           setGamePhase("dawnReport");
-          if (deadThisNight.length > 0) {
-            const deadNames = deadThisNight
-              .map((id) => `${id + 1}号`)
-              .join("、");
-            setCurrentModal({
-              type: "NIGHT_DEATH_REPORT",
-              data: { message: `昨晚${deadNames}玩家死亡` },
-            });
-          } else {
-            setCurrentModal({
-              type: "NIGHT_DEATH_REPORT",
-              data: { message: "昨天是个平安夜" },
-            });
-          }
+          setCurrentModal({
+            type: "NIGHT_DEATH_REPORT",
+            data: {
+              message: buildDawnMessageFor(
+                deadThisNight,
+                externalLatestSeatsRef?.current ?? latestSeatsRef.current ?? seats,
+                nightCount
+              ),
+            },
+          });
           return;
         }
 
@@ -381,26 +399,17 @@ export function useNightSnapshot(
         // Bug Fix: 重置今日处决标记，否则 dawnReport→day 会跳过黄昏处决
         setGamePhase("dawnReport");
 
-        // 设置夜晚死亡报告模态框
-        if (deadThisNight.length > 0) {
-          const deadNames = deadThisNight.map((id) => `${id + 1}号`).join("、");
-          console.log(
-            "[continueToNextAction] Setting NIGHT_DEATH_REPORT modal for deaths:",
-            deadNames
-          );
-          setCurrentModal({
-            type: "NIGHT_DEATH_REPORT",
-            data: { message: `昨晚${deadNames}玩家死亡` },
-          });
-        } else {
-          console.log(
-            "[continueToNextAction] Setting NIGHT_DEATH_REPORT modal for peaceful night"
-          );
-          setCurrentModal({
-            type: "NIGHT_DEATH_REPORT",
-            data: { message: "昨天是个平安夜" },
-          });
-        }
+        // 设置夜晚死亡报告模态框（死亡 + 复活两段，官方口径）
+        setCurrentModal({
+          type: "NIGHT_DEATH_REPORT",
+          data: {
+            message: buildDawnMessageFor(
+              deadThisNight,
+              externalLatestSeatsRef?.current ?? latestSeatsRef.current ?? seats,
+              nightCount
+            ),
+          },
+        });
         saveHistory?.({
           gamePhase: "dawnReport",
           currentWakeIndex: 0,

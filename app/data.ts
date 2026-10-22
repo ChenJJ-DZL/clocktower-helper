@@ -205,6 +205,15 @@ export interface Seat {
    *  处决死走 diedOnDay + executedToday；流放死只写 diedOnDay（不写 executedToday） */
   diedAtNight?: number;
   diedOnDay?: number;
+  /**
+   * 🌅 本座位**最近一次复活的夜晚号**（nightCount）。
+   *
+   * 唯一用途：黎明播报「宣布哪些玩家复活了」（官方沙巴洛斯 / 哈迪寂亚）。
+   * 写入方：教授 / 沙巴洛斯反刍 / 哈迪寂亚「生」。
+   * 判据：`utils/dawnAnnouncement::collectRevivedThisNight`（只认本夜戳，
+   * **不能**用永久性的 `statusEffects.resurrected`，否则上一夜的复活会被重复播报）。
+   */
+  revivedAtNight?: number;
   hasGhostVote?: boolean; // 死者票是否可用
   isEvilConverted?: boolean; // 通过灵言师等效果被转为邪恶
   isGoodConverted?: boolean; // 特殊效果被转为善良（如舞蛇人命中恶魔）

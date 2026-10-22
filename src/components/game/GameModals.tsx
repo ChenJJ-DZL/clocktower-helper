@@ -7,6 +7,10 @@ import { useGameActions } from "../../contexts/GameActionsContext";
 import { gameActions, useGameContext } from "../../contexts/GameContext";
 import { useGameState } from "../../hooks/useGameState";
 import { useHistoryController } from "../../hooks/useHistoryController";
+import {
+  buildDawnAnnouncement,
+  collectRevivedThisNight,
+} from "../../../src/utils/dawnAnnouncement";
 import { ArtistResultModal } from "../modals/ArtistResultModal";
 import { AttackBlockedModal } from "../modals/AttackBlockedModal";
 import { BarberSwapModal } from "../modals/BarberSwapModal";
@@ -1303,9 +1307,14 @@ export function GameModals() {
         <NightDeathReportModal
           message={
             nightDeathReportModal?.message ??
-            (deadThisNight && deadThisNight.length > 0
-              ? `昨晚${deadThisNight.map((id: number) => `${id + 1}号`).join("、")}玩家死亡`
-              : "昨天是个平安夜")
+            /**
+             * 兜底（正常流转时上面已有 message）。也必须走唯一格式化入口：
+             * 官方要求「先宣布死亡，再宣布复活」，这里少了复活段就会与主路径不一致。
+             */
+            buildDawnAnnouncement({
+              deadThisNight,
+              revivedThisNight: collectRevivedThisNight(seats as any, nightCount),
+            })
           }
           onConfirm={() => {
             if (gamePhase === "dawnReport") {

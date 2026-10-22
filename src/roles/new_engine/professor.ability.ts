@@ -109,6 +109,12 @@ const updateResurrectionStatus = async (
             deathSource: undefined,
             deathSourceSeatId: undefined,
             isEvilConverted: false,
+            /**
+             * 🌅 黎明播报「宣布哪些玩家复活了」的唯一判据（官方沙巴洛斯/哈迪寂亚同款）。
+             * 只打本夜戳；`statusEffects.resurrected` 是永久记录，
+             * 收集时必须用 `utils/dawnAnnouncement::collectRevivedThisNight`。
+             */
+            revivedAtNight: snapshot.nightCount,
             statusEffects: [
               ...(seat.statusEffects ?? []),
               {

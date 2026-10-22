@@ -332,11 +332,42 @@ describe("X02 · 夜间行动弹窗 golden 基线", () => {
     expect(modalTitle()).toBe("⚔️ 哈迪寂亚：决定命运");
     expect(t).toContain("⚔️ 哈迪寂亚：决定命运");
 
-    // ③ 主按钮文案逐字一致
-    expect(buttonTexts()).toContain("确定");
+    // ③ 逐个结算：第 1 位，主按钮是「下一位」（此时不得出现「确定」）
+    expect(t).toContain("第 1 / 3 位");
+    expect(buttonTexts()).toContain("下一位");
+    expect(buttonTexts()).not.toContain("确定");
     expect(buttonTexts()).toContain("取消");
 
-    // ④ 关闭不抛错
+    // ④ 第一位：先点「生」→ onSetChoice 收到当前座位 id
+    fireEvent.click(findButton("生"));
+    expect(onSetChoice).toHaveBeenCalledTimes(1);
+    expect(onSetChoice.mock.calls[0][0]).toBe(0);
+    expect(onSetChoice.mock.calls[0][1]).toBe("live");
+
+    // ⑤ 点「下一位」→ 第 2 位；上一位的座位号必须从页面消失（官方要求前一位的选择对后一位保密）
+    fireEvent.click(findButton("下一位"));
+    const t2 = bodyText();
+    expect(t2).toContain("第 2 / 3 位");
+    expect(t2).not.toContain("[1号]");
+    const card2 = document.querySelector('[data-testid="hadesia-current-target"]');
+    expect(card2?.textContent).toContain("[2号]");
+    expect(card2?.textContent).not.toContain("[1号]");
+
+    // ⑥ 页面不得泄露角色名
+    expect(t).not.toMatch(/号(厨师|小恶魔|士兵|共情者|呆瓜)/);
+    expect(t2).not.toMatch(/号(厨师|小恶魔|士兵|共情者|呆瓜)/);
+
+    // ⑦ 再点一次「下一位」→ 第 3 位（最后一位），主按钮变「确定」
+    fireEvent.click(findButton("下一位"));
+    const t3 = bodyText();
+    expect(t3).toContain("第 3 / 3 位");
+    expect(t3).not.toContain("[2号]");
+    expect(buttonTexts()).toContain("确定");
+    expect(buttonTexts()).not.toContain("下一位");
+    fireEvent.click(findButton("确定"));
+    expect(onConfirm).toHaveBeenCalled();
+
+    // ⑧ 关闭不抛错
     fireEvent.click(findButton("取消"));
     expect(onCancel).toHaveBeenCalled();
   });

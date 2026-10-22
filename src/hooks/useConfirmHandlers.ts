@@ -2,6 +2,8 @@
 "use client";
 
 import { resolveKlutzOutcome } from "../utils/klutzRule";
+import { buildDawnAnnouncement } from "../utils/dawnAnnouncement";
+import { resolveHadesiaOutcome } from "../utils/hadesiaRule";
 import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import type { GameRecord, NightInfoResult } from "../types/game";
@@ -248,7 +250,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
 
       if (isGood) {
         addLog(
-          `${sourceId + 1}号(月之子) 选择 ${targetId + 1}号与其陪葬，善良今晚死亡`
+          `${sourceId + 1}号(月之子) 公开选择 ${targetId + 1}号；若其为善良，该玩家在当晚死亡`
         );
         killPlayer(targetId, {
           onAfterKill: (latestSeats: Seat[]) => {
@@ -433,12 +435,18 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       {}
     );
 
-    const allChooseLive = baseTargets.every(
-      (id: number) => choiceMap[id] === "live"
+    /**
+     * 生死结算收口到纯函数（`utils/hadesiaRule`）：
+     * 官方【运作方式】有两个方向 —— 黄昏存活但黎明死亡 ⇒ 死；
+     * 黄昏死亡但黎明存活 ⇒ **复活**。此前只做了「死」，复活半边缺失。
+     */
+    const outcome = resolveHadesiaOutcome(
+      baseTargets,
+      choiceMap,
+      (seatId: number) => Boolean(seats.find((s: Seat) => s.id === seatId)?.isDead)
     );
-    const finalTargets = allChooseLive
-      ? baseTargets
-      : baseTargets.filter((id: number) => choiceMap[id] === "die");
+    const allChooseLive = outcome.allLive;
+    const finalTargets = outcome.killIds;
 
     const choiceDesc = baseTargets
       .map(
@@ -458,9 +466,49 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
 
     const currentWakeIdx = currentWakeIndex;
 
+    /**
+     * 🌅 哈迪寂亚的「复活」半边（官方【运作方式】原文）：
+     *   「宣布黄昏时存活但黎明时死亡的玩家死亡，
+     *     宣布黄昏时死亡但黎明时存活的玩家复活。」
+     *
+     * 缺陷（2026-10-22）：此前只实现了「死」——选「生」的**已死玩家**永远复活不了。
+     * 判据：选「生」且**当前**已死。
+     * ⚠️ 三人都选「生」时按规则三人**全部死亡**，不存在复活（否则会自相矛盾）。
+     * 复活与死亡的目标集合天然互斥（live / die），因此不需要回滚。
+     */
+    const revivedIds = outcome.reviveIds;
+
     setCurrentModal(null);
     setSelectedActionTargets([]);
     setHadesiaChoices({});
+
+    if (revivedIds.length > 0) {
+      addLog(
+        `黄昏时已死亡的${revivedIds.map((x: number) => `${x + 1}号`).join("、")}选择"生"，黎明时复活`
+      );
+      // 只做纯座位变换（不在 updater 内做副作用 —— 见 `seatsRef` 那条铁律）
+      setSeats((prev: Seat[]) =>
+        prev.map((s: Seat) =>
+          revivedIds.includes(s.id)
+            ? {
+                ...s,
+                isDead: false,
+                markedForDeath: false,
+                diedAtNight: undefined,
+                diedOnDay: undefined,
+                killedBy: undefined,
+                deathSource: undefined,
+                deathSourceSeatId: undefined,
+                revivedAtNight: nightCount,
+                statusEffects: [
+                  ...((s as any).statusEffects ?? []),
+                  { type: "resurrected", source: "al_hadikhia" },
+                ],
+              }
+            : s
+        )
+      );
+    }
 
     if (finalTargets.length > 0) {
       let remaining = finalTargets.length;
@@ -485,20 +533,15 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
                   ) {
                     setCurrentWakeIndex(0);
                     setTimeout(() => {
-                      if (deadThisNight.length > 0) {
-                        const deadNames = deadThisNight
-                          .map((id) => `${id + 1}号`)
-                          .join("、");
-                        setCurrentModal({
-                          type: "NIGHT_DEATH_REPORT",
-                          data: { message: `昨晚${deadNames}玩家死亡` },
-                        });
-                      } else {
-                        setCurrentModal({
-                          type: "NIGHT_DEATH_REPORT",
-                          data: { message: "昨天是个平安夜" },
-                        });
-                      }
+                      setCurrentModal({
+                        type: "NIGHT_DEATH_REPORT",
+                        data: {
+                          message: buildDawnAnnouncement({
+                            deadThisNight,
+                            revivedThisNight: revivedIds,
+                          }),
+                        },
+                      });
                     }, 50);
                     return [];
                   } else {
@@ -529,6 +572,10 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     setSelectedActionTargets,
     setWakeQueueIds,
     setCurrentWakeIndex,
+    // 「生 ⇒ 复活」判据依赖当前座位与当前夜
+    seats,
+    setSeats,
+    nightCount,
   ]);
 
   /**
