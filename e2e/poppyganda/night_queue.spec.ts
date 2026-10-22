@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { enterFirstNight, readNightQueue, T } from "../helpers/scriptFlow";
+import {
+  enterFirstNight,
+  readNightQueue,
+  T,
+  waitForSnapshot,
+} from "../helpers/scriptFlow";
 
 /**
  * 罂粟花开 · **夜间流程真实点击流**
@@ -41,47 +46,90 @@ test.describe("罂粟花开 · 夜间流程点击流", () => {
    *   —— 那是**引擎正确、用例错**，不能靠加重试掩盖。
    *   ⇒ 改为断言**条件规则**（比原来更强：两种情况都验）。
    */
-  test("② ⭐ 首夜「互认」步骤的有无与罂粟种植者状态一致（条件规则）", async ({
+  test("② ⭐ 首夜「互认」步骤的有无与罂粟种植者状态一致（两条固定阵容各验一次）", async ({
     page,
   }) => {
-    await enterFirstNight(page, 5);
+    /**
+     * 官方【罂粟种植者】·运作方式（逐字）：
+     *   「在首个夜晚，**唤醒恶魔**。对他展示“这些角色不在场”信息标记以及
+     *     三个不在场的善良角色标记。然后，让恶魔重新入睡。
+     *     **不要进行“爪牙信息”和“恶魔信息”步骤。**」
+     * 官方·规则细节：「罂粟种植者死亡时…相互认识」「中毒或醉酒…不会导致互认」
+     * ⇒ 判据：**活且健康的罂粟种植者 ⇒ 首夜无互认**；否则必须有。
+     *
+     * 🔴 2026-10-23 第三次纠正 —— 目标是把它从「碰运气」变成「确定性」：
+     *   ① 初版断言「首夜必含互认」：假绝对命题（有罂粟种植者时不成立）；
+     *   ② 改成条件断言、但用 **DOM 文本**判断罂粟在不在场 ⇒ 被**酒鬼的伪装身份**骗到
+     *      （座位卡显示 charadeRole，场上根本没有这个角色）⇒ 假红；
+     *   ③ 现在**不再靠随机发牌**：钉死两条阵容各跑一次，两个分支都是硬断言。
+     *      顺带覆盖到一条真实产品缺口：罂粟压制时恶魔那一步原来仍叫
+     *      「X(恶魔互认)」，会让说书人去做官方明令不做的事 —— 已修成「(不在场角色)」。
+     */
+    const POPPY_LINEUP = ["poppy_grower", "mayor", "farmer", "cerenovus", "imp"];
+    const NO_POPPY_LINEUP = ["chef", "mayor", "farmer", "cerenovus", "imp"];
 
-    // 罂粟种植者是否**坐在座位上**。
-    // ⚠️ 不能用「全页搜字符串『罂粟种植者』」—— 右侧【角色列表】永远列出本剧本全部
-    //    角色，会把该字符串恒定命中（实测探针因此误报「有罂粟」，见 known-issues §14.6）。
-    // ✅ 唯一可靠锚点：`[data-seat-id]`（`src/components/SeatNode.tsx`）。
-    // ⚠️ 且角色名在座位卡里可能**被拆成多个叶子节点**（实测「罂粟种」+「植者」、
-    //    「城镇公」+「告员」）⇒ 必须**把该座位的全部叶子文本拼接后**再匹配。
-    const hasPoppyGrowerSeat = await page.evaluate(() => {
-      const seats = Array.from(document.querySelectorAll("[data-seat-id]"));
-      return seats.some((seat) => {
-        const joined = Array.from(seat.querySelectorAll("*"))
-          .filter((el) => el.children.length === 0)
-          .map((el) => (el.textContent ?? "").replace(/\s+/g, ""))
-          .join("");
-        return joined.includes("罂粟种植者");
-      });
-    });
+    /** 跑一局，返回首夜队列文本 + 快照里的罂粟座位 */
+    const boot = async (lineup: string[]) => {
+      // 同一 test 内连跑两局：localStorage 跨 goto 复用 ⇒ 上一局会被当成
+      // 「恢复中的对局」直接恢复 ⇒ 拿不到配置页。每局开头清（清的是测试上下文）。
+      await page.goto("/", { waitUntil: "domcontentloaded" }).catch(() => undefined);
+      await page
+        .evaluate(() => {
+          try {
+            localStorage.clear();
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch(() => undefined);
 
-    const queueText = (await readNightQueue(page)).join(" | ");
-    expect(queueText, `夜间队列不应为空（罂粟在=${hasPoppyGrowerSeat}）`).not.toBe(
-      ""
-    );
-
-    if (hasPoppyGrowerSeat) {
-      // 罂粟种植者在场且健康 ⇒ 互认必须被抑制
+      await enterFirstNight(page, 5, undefined, undefined, lineup);
+      const snap = await waitForSnapshot(
+        page,
+        (s) =>
+          Array.isArray(s?.seats) &&
+          s.seats.length >= 5 &&
+          s.seats.every((x: any) => !!x?.role?.id),
+        20_000
+      );
       expect(
-        queueText,
-        `罂粟种植者在场时首夜不应出现互认步骤，实际：${queueText}`
-      ).not.toContain("互认");
-    } else {
-      // 无罂粟种植者 ⇒ 互认应当出现
-      expect(
-        queueText,
-        `无罂粟种植者时首夜应含互认步骤，实际：${queueText}`
-      ).toContain("互认");
-    }
+        snap,
+        `❌ 入夜后快照不可读（阵容 ${lineup.join("/")}）`
+      ).not.toBeNull();
+      const seats = (snap?.seats ?? []) as any[];
+      return {
+        queueText: (await readNightQueue(page)).join(" | "),
+        poppy: seats.find((s: any) => s?.role?.id === "poppy_grower"),
+      };
+    };
+
+    // ── A：含罂粟种植者（存活且未受干扰）⇒ 互认必须被抑制 ──
+    const withPoppy = await boot(POPPY_LINEUP);
+    expect(
+      withPoppy.poppy,
+      "❌ 固定阵容里没有罂粟种植者（发牌没按 lineup 走）—— 本分支会变成空断言"
+    ).toBeTruthy();
+    expect(withPoppy.queueText, "❌ 首夜队列为空").not.toBe("");
+    expect(
+      withPoppy.queueText,
+      `罂粟种植者在场且未受干扰时，首夜不得出现互认步骤` +
+        `（官方：不要进行“爪牙信息”和“恶魔信息”步骤）。实际：${withPoppy.queueText}`
+    ).not.toContain("互认");
+    expect(
+      withPoppy.queueText,
+      `罂粟种植者在场时，恶魔那一步只剩「告知不在场角色」，队列里应出现「不在场角色」。` +
+        `实际：${withPoppy.queueText}`
+    ).toContain("不在场角色");
+
+    // ── B：不含罂粟种植者 ⇒ 互认必须出现 ──
+    const noPoppy = await boot(NO_POPPY_LINEUP);
+    expect(noPoppy.poppy, "❌ 这条阵容里不该有罂粟种植者").toBeFalsy();
+    expect(
+      noPoppy.queueText,
+      `无罂粟种植者时，首夜必须出现互认步骤。实际：${noPoppy.queueText}`
+    ).toContain("互认");
   });
+
 
   test("③ 入夜后说书人控制台有实质内容（不空白）", async ({ page }) => {
     await enterFirstNight(page, 5);

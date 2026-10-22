@@ -16,6 +16,7 @@ import {
 } from "./grantedAbilityHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
 import { isRealMinion } from "./roleFlags";
+import { isSeatAlive } from "./seatAlive";
 
 // 全量夜晚顺序表项
 export interface NightOrderEntry {
@@ -715,10 +716,29 @@ export function generateDynamicNightQueue(
       for (const lunaticSeat of lunatics) {
         const apparentRole = (lunaticSeat as any).apparentDemonRole;
         const apparentName = apparentRole?.name ?? "恶魔";
+        /**
+         * 🌾 罂粟种植者首夜：疯子这步同样只拿「不在场角色」，不得叫「恶魔互认」。
+         *   官方【罂粟种植者】·规则细节：「剧本里同时有罂粟种植者时，可以向疯子假装
+         *   有罂粟种植者在场，从而**在首夜不告诉疯子他的“爪牙”是谁**。」
+         *   ⇒ 与真恶魔节点用同一套命名（见下方 `poppySuppressesEvilInfoOnFirstNight`）。
+         */
+        const poppyHidesEvilInfo =
+          isFirstNight &&
+          snapshot.seats.some(
+            (s) =>
+              s.role?.id === "poppy_grower" &&
+              isSeatAlive(s) &&
+              !s.isDrunk &&
+              !s.isPoisoned
+          );
         // 🌀 2026-09-12：疯子伪装成军团时这一步是「军团互认」而非「恶魔互认」——
         //    军团没有爪牙，它的信息形态是"军团玩家互相认亲"。
         const stepLabel =
-          apparentRole?.id === "legion" ? "军团互认" : "恶魔互认";
+          apparentRole?.id === "legion"
+            ? "军团互认"
+            : poppyHidesEvilInfo
+              ? "不在场角色"
+              : "恶魔互认";
         expandedEntries.push({
           ...entry,
           actorSeatId: lunaticSeat.id,
@@ -808,6 +828,33 @@ export function generateDynamicNightQueue(
       seat?.role?.id !== entry.roleId &&
       seatHasAcquiredAbility(seat, entry.roleId);
 
+    /**
+     * 🌾 罂粟种植者 · 首夜「恶魔互认」的**文案纠正**（2026-10-23）
+     * ------------------------------------------------------------------
+     * 官方【罂粟种植者】·运作方式（逐字）：
+     *   「在首个夜晚，**唤醒恶魔**。对他展示“这些角色不在场”信息标记以及
+     *     三个不在场的善良角色标记。然后，让恶魔重新入睡。
+     *     **不要进行“爪牙信息”和“恶魔信息”步骤。**」
+     *
+     * ⇒ 首夜罂粟种植者健康时，恶魔**仍会被唤醒**，但那次唤醒的作用只有
+     *   「告知 3 个不在场角色」，**不是**互认。
+     *   而旧实现把这一步统一命名为 `X(恶魔互认)` ⇒ 说书人照着班次表念，
+     *   就会去做官方明令**不要做**的那件事（把爪牙指给恶魔看）。
+     *   对话框层（`demonFirstNightHelper` 的 `shouldHideMinions`）早就藏了爪牙，
+     *   只有队列标签没跟上 —— 属于「实现对了、话术骗人」。
+     * ⇒ 仅在「首夜 + 罂粟种植者存活且未受干扰」时改叫 `(不在场角色)`；
+     *   其余情形保持 `(恶魔互认)` 不变（BMR/WS 等剧本的既有断言依赖原名）。
+     */
+    const poppySuppressesEvilInfoOnFirstNight =
+      isFirstNight &&
+      snapshot.seats.some(
+        (s) =>
+          s.role?.id === "poppy_grower" &&
+          isSeatAlive(s) &&
+          !s.isDrunk &&
+          !s.isPoisoned
+      );
+
     const roleName =
       entry.roleId === "demon_info" && seat?.role?.name
         ? // 🌀 2026-09-12：疯子伪装成**军团**时，这一步是「军团互认」而不是「恶魔互认」。
@@ -818,7 +865,9 @@ export function generateDynamicNightQueue(
           `${seat.role.name}(${
             (seat as any).apparentDemonRole?.id === "legion"
               ? "军团互认"
-              : "恶魔互认"
+              : poppySuppressesEvilInfoOnFirstNight
+                ? "不在场角色"
+                : "恶魔互认"
           })`
         : isInheritedActor
           ? // 🧚 小精灵 →「(小精灵)」；🧠 哲学家 →「(哲学家)」
