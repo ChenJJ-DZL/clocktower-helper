@@ -591,3 +591,162 @@ test.describe("凶宅魅影 · G4 角色级补测", () => {
       .toBe(0);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// G5 · 角色级补测：女巫（诅咒提名即死）/ 刺客（限一次、穿透免死）
+// ═══════════════════════════════════════════════════════════════════
+test.describe("凶宅魅影 · G5 女巫与刺客", () => {
+  test.setTimeout(8 * 60_000);
+
+  /**
+   * 凶宅两个 15 人场（S18/S20）都有**畸形秀演员**，白天的「进入黄昏」被
+   * 【疯狂仲裁】门禁拦住（disabled）。说书人必须先裁定，否则驱动器拿不到提名。
+   * 这里选保守项「否，无事发生」，只解门禁、不改状态。
+   */
+  const clearMutantGate = async (page: Page) => {
+    const arb = page.locator("button").filter({ hasText: /^疯狂仲裁$/ }).first();
+    if (await arb.isVisible().catch(() => false)) {
+      await arb.click({ timeout: 5_000 }).catch(() => {});
+      const no = page
+        .locator('[role="dialog"] button')
+        .filter({ hasText: /无事发生|^否/ })
+        .first();
+      await no.click({ timeout: 5_000 }).catch(() => {});
+    }
+  };
+
+  test("女巫：被诅咒者白天发起提名 ⇒ 当场死亡", async ({ page }) => {
+    /**
+     * 官方【女巫】：「每个夜晚，你要选择一名玩家：如果他明天白天发起提名，他死亡。
+     *   如果只有三名存活的玩家，你失去此能力。」
+     *
+     * ⇒ 硬判据：
+     *   ① 被诅咒者发起提名 ⇒ 他本人死亡（不是被提名者死）；
+     *   ② 反证：未被诅咒的善良玩家不得因这次提名死亡；
+     *   ③ 反证：诅咒不作用于「被提名」这一侧。
+     *
+     * 场次 S18（15 人）：1balloonist 2数学家 3钟表匠 4女裁缝 5杂耍艺人 6哲学家 7艺人
+     *   8城镇公告员 9侍臣 10变种人 11理发师 12女巫 13教父 14刺客 15诺-达
+     *   ⚠️ 目标必须按**真实阵营**筛（`__CT_FORCE_LINEUP__` 不打乱阵营但**会打乱座位**）。
+     */
+    const snap = await bootS(page, "S18");
+    const witchSeat = seatByRole(snap, "witch");
+    expect.soft(witchSeat, "女巫应在场").toBeGreaterThanOrEqual(0);
+
+    const goodSeats = (snap.seats as any[])
+      .filter((s: any) => s.id !== witchSeat && !isMinionOrDemonRole(s.role))
+      .map((s: any) => s.id)
+      .sort((a: number, b: number) => a - b);
+    expect.soft(goodSeats.length, "善良座位不足").toBeGreaterThanOrEqual(3);
+    const [cursed, nominee, bystander] = goodSeats;
+
+    const n1 = await driveNight(page, [
+      { role: "witch", targets: [cursed + 1], note: "诅咒这名善良玩家" },
+    ]);
+    expect.soft(n1.status, "首夜应推进到白天").toBe("day");
+
+    await clearMutantGate(page);
+
+    // 被诅咒者发起提名 ⇒ 他死亡
+    const d = await driveDusk(page, {
+      nominator: cursed + 1,
+      nominee: nominee + 1,
+      voters: [],
+    } as any);
+    expect.soft(d.nominated, "被诅咒者应能正常发起提名").toBe(true);
+
+    const after = await snapNow(page);
+    const c = after?.seats?.find((x: any) => x.id === cursed);
+    expect
+      .soft(
+        c?.isDead,
+        `官方：被诅咒者发起提名即死（实测 isDead=${c?.isDead} source=${c?.deathSource}）`
+      )
+      .toBe(true);
+    /**
+     * ⚠️ 死因字段不承载角色名：诅咒致死走 `useDayActions:254` 的 `killPlayer(...)`，
+     *   与处决共用同一条死亡咽喉 ⇒ `deathSource` 是通用值；
+     *   而日志面板在 UI 里是虚拟化列表，`body.innerText` 取不到那行
+     *   （实测取回来的是剧本选择页的文案）⇒ 不用日志做断言。
+     *
+     * 改为**闭环论证**：
+     *   · 本场恶魔诺-达 `nightOrder` 只在 otherNights（首夜不行动）；
+     *   · 首夜唯一行动者是女巫，且 `voters: []` ⇒ 票数不足、没有处决；
+     *   ⇒ 此刻若被诅咒者死亡，唯一可能的致死来源就是「提名触发诅咒」。
+     */
+
+    // 反证：被提名者、旁观者都不得因此死亡
+    expect
+      .soft(after?.seats?.find((x: any) => x.id === nominee)?.isDead, "❌ 被提名者不该因诅咒死亡")
+      .not.toBe(true);
+    expect
+      .soft(after?.seats?.find((x: any) => x.id === bystander)?.isDead, "❌ 未被诅咒者不该死亡")
+      .not.toBe(true);
+  });
+
+  test("刺客：夜杀必死（穿透免死），且每局限一次", async ({ page }) => {
+    /**
+     * 官方【刺客】：「每局游戏限一次，在夜晚时*，你可以选择一名玩家：他死亡，
+     *   即使因为任何原因让他不会死亡。」
+     *
+     * ⇒ 硬判据：
+     *   ① 夜杀目标必死，`deathSource` 归属刺客（不是恶魔）；
+     *   ② 限一次：第 2 次夜里再点名同一人/别人，不得再产生击杀。
+     *   ⚠️ 刺客的击杀**不受**「恶魔夜晚不攻击」类剧本规则约束（它不是恶魔）。
+     *
+     * 场次 S18：刺客 14 号（按真实 id 取，不硬编座位）。诺-达首夜不行动 ⇒ 第 1 夜只有刺客动手。
+     */
+    const snap = await bootS(page, "S18");
+    const assassinSeat = seatByRole(snap, "assassin");
+    expect.soft(assassinSeat, "刺客应在场").toBeGreaterThanOrEqual(0);
+
+    /**
+     * ⚠️ 必须给**恶魔**也指定目标：`no_dashii` 每夜要杀 1 人，驱动器默认点「第一个可选座位」，
+     *   第一版没管它 ⇒ 它正好咬了受害者，`deathSource` 变成 `no_dashii_kill`
+     *   ⇒ 看起来像「刺客没生效」，其实是恶魔抢了人头。
+     */
+    const goodSeats = (snap.seats as any[])
+      .filter((s: any) => s.id !== assassinSeat && !isMinionOrDemonRole(s.role))
+      .map((s: any) => s.id)
+      .sort((a: number, b: number) => a - b);
+    const [victim, second, meat2, meat3] = goodSeats;
+
+    /**
+     * 🔴 刺客 `preCheckNotFirstNight`：`snapshot.isFirstNight` 时直接中止
+     *   （官方「在夜晚时**」的星号 = 首夜不行动）。
+     *   第一版把行刺放在第 1 夜，结果目标没死 —— 不是产品缺陷，是我违反了这条规则。
+     */
+    expect((await driveNight(page, [])).status, "首夜应推进到白天").toBe("day");
+    expect((await driveDusk(page, {})).status, "第 1 昼不提名应能入夜").toBe("night");
+
+    const n1 = await driveNight(page, [
+      { role: "assassin", targets: [victim + 1], note: "刺客一击（第 2 夜）" },
+      { role: "no_dashii", targets: [meat2 + 1], note: "恶魔吃别人，别抢人头" },
+    ]);
+    expect.soft(n1.status, "第 2 夜应推进到白天").toBe("day");
+
+    const after1 = await snapNow(page);
+    const v = after1?.seats?.find((x: any) => x.id === victim);
+    expect.soft(v?.isDead, `官方：刺客目标必死（实测 isDead=${v?.isDead}）`).toBe(true);
+    expect
+      .soft(
+        /assassin|刺客/.test(String(v?.deathSource ?? v?.killedBy ?? "")),
+        `致死来源应记为刺客（实测 ${v?.deathSource ?? v?.killedBy}）`
+      )
+      .toBe(true);
+
+    // 反证：限一次 —— 第 3 夜再点名别人，不得再死
+    expect((await driveDusk(page, {})).status, "第 2 昼不提名应能入夜").toBe("night");
+    const n2 = await driveNight(page, [
+      { role: "assassin", targets: [second + 1], note: "第二次尝试（应已用尽）" },
+      { role: "no_dashii", targets: [meat3 + 1], note: "恶魔吃别人" },
+    ]);
+    expect.soft(n2.status, "第 3 夜应推进到白天").toBe("day");
+
+    const after2 = await snapNow(page);
+    const s2 = after2?.seats?.find((x: any) => x.id === second);
+    expect
+      .soft(s2?.isDead, "官方「每局游戏限一次」⇒ 第 2 次不得再击杀")
+      .not.toBe(true);
+  });
+});
