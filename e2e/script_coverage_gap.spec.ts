@@ -105,15 +105,10 @@ for (const c of CASES) {
         // "spy" 或 "timeout" ⇒ 重开一局
       }
 
-      if (!reachedDay) {
-        // 🔴 不伪造通过：三次都没走完就明确标记待查（不是绿色）
-        test.skip(
-          true,
-          `${c.name} 连续 ${MAX_TRY} 局未能自动走完首夜（末次=${lastResult}）。` +
-            `间谍局会自动重开；若持续 timeout 需人工复现排查。`
-        );
-        return;
-      }
+      expect(
+        reachedDay,
+        `❌ ${c.name} 连续 ${MAX_TRY} 局未能自动走完首夜（末次=${lastResult}）`
+      ).toBe(true);
 
       // ⑤ 已进入白天：快照里应能读到天数推进
       const daySnap = await waitForSnapshot(

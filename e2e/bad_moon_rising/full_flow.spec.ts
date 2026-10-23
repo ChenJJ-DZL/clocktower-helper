@@ -466,7 +466,6 @@ test.describe("L4 · 黯月初升 A7（7人）", () => {
      *   因此**能一路走到 day** 本身就是这些角色「能选目标 + 能确认」的端到端证据。
      */
     const result = await advanceNightFast(page);
-    test.skip(result === "spy", "本局为间谍「查看魔典」步骤（无语义确认按钮，不可自动驱动）");
     expect(
       result,
       "❌ 夜间推进未能到达白天 —— 卡在某个角色的选目标/确认环节"
@@ -580,7 +579,6 @@ test.describe("L4 · 黯月初升 B9（9人）", () => {
     await dealAndEnterNight(page, B9);
 
     const n1 = await advanceNightFast(page);
-    test.skip(n1 === "spy", "本局含间谍「查看魔典」步骤，不可自动驱动");
     expect(n1, "❌ 首夜未能推进到白天").toBe("day");
 
     // 黄昏 → 第二夜
@@ -588,7 +586,6 @@ test.describe("L4 · 黯月初升 B9（9人）", () => {
     expect(dusk, "❌ 黄昏阶段未能进入下一夜").toBe("night");
 
     const n2 = await advanceNightFast(page);
-    test.skip(n2 === "spy", "❌ 第二夜含间谍步骤，不可自动驱动");
     expect(n2, "❌ 第二夜未能推进到白天（赌徒/教授/造谣者/修补匠/月之子的选目标环节可能卡住）").toBe(
       "day"
     );
@@ -740,7 +737,6 @@ test.describe("L4 · 黯月初升 D12（12人）", () => {
     ).toBe(true);
 
     const result = await advanceNightFast(page);
-    test.skip(result === "spy", "本局含间谍「查看魔典」步骤，不可自动驱动");
     expect(result, "❌ 首夜推进未能到达白天（祖母/侍女/水手/普卡的选目标环节可能卡住）").toBe(
       "day"
     );
@@ -851,7 +847,6 @@ test.describe("L4 · 黯月初升 D12（12人）", () => {
     const snap1 = await dealAndEnterNight(page, D12);
 
     const n1 = await advanceNightFast(page);
-    test.skip(n1 === "spy", "本局含间谍步骤，不可自动驱动");
     expect(n1, "❌ 首夜未能推进到白天").toBe("day");
     expect(
       Number((await readSnapshot(page))?.nightCount ?? 0),

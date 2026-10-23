@@ -98,8 +98,6 @@ test.describe("L4 状态断言 · 罂粟花开：真实点击流必须产生真�
 
     const result = await advanceNightFast(page);
 
-    // 间谍局（查看魔典无语义确认按钮）→ 跳过，不属于本用例可断言范围
-    test.skip(result === "spy", "本局为间谍局，自动驱动不适用");
 
     expect(
       result,
@@ -150,7 +148,6 @@ test.describe("L4 状态断言 · 罂粟花开：真实点击流必须产生真�
     // ⚠️ 设计铁律①：首夜恶魔不行动（官方）⇒ 首夜必无人死。
     //    先断言这一点，既验证规则、又证明「本用例的死亡断言不是空转」。
     const n1 = await advanceNightFast(page);
-    test.skip(n1 === "spy", "本局为间谍局，自动驱动不适用");
     expect(n1, "❌ 首夜未能推进到白天").toBe("day");
 
     const snap1 = await readSnapshot(page);
@@ -192,7 +189,6 @@ test.describe("L4 状态断言 · 罂粟花开：真实点击流必须产生真�
     ).toBe("night");
 
     const n2 = await advanceNightFast(page);
-    test.skip(n2 === "spy", "本局为间谍局，自动驱动不适用");
 
     const snap2 = await waitForSnapshot(
       page,
@@ -332,7 +328,8 @@ test.describe("L4 状态断言 · 罂粟花开：真实点击流必须产生真�
   test("⭐ 醉酒者 statusEffects 必须带 type=drunk（可复现的状态落库证据）", async ({
     page,
   }) => {
-    await enterFirstNight(page);
+    const DRUNK_LINEUP = ["farmer", "drunk", "snitch", "baron", "imp"];
+    await enterFirstNight(page, SEAT_COUNT, undefined, undefined, DRUNK_LINEUP);
     const snap = await readSnapshot(page);
     expect(snap, "❌ 快照不可读").not.toBeNull();
 
@@ -342,7 +339,7 @@ test.describe("L4 状态断言 · 罂粟花开：真实点击流必须产生真�
     const drunkSeats = seatsOf(snap).filter(
       (s: any) => s.role?.id === "drunk" || s.role?.id === "drunk_placeholder"
     );
-    test.skip(drunkSeats.length === 0, "本局无酒鬼，无法断言该状态");
+    expect(drunkSeats.length, "❌ 固定阵容含 drunk 但快照未找到酒鬼座位").toBeGreaterThan(0);
 
     for (const s of drunkSeats) {
       const effects: any[] = Array.isArray(s.statusEffects)

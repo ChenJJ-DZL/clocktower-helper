@@ -620,7 +620,6 @@ test.describe("L4 · 无上愉悦：第二剧本必须可独立跑通", () => {
      *   `advanceNightFast` 是逐角色用例在用的同一份驱动器，选目标/确认/推进都在里面。
      */
     const r2 = await advanceNightFast(page);
-    test.skip(r2 === "spy", "本局含间谍步骤，自动驱动不适用");
     expect(r2, `❌ 第 2 夜未能推进到白天（返回 ${r2}）`).toBe("day");
 
     const day2 = await waitForSnapshot(

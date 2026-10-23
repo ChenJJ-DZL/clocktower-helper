@@ -37,7 +37,8 @@ test.describe("zz 探针 · 洗脑告知节点入队", () => {
 
     for (let attempt = 1; attempt <= 30 && !conclusive; attempt++) {
       try {
-        await enterFirstNight(page);
+        const LINEUP = ["farmer", "mayor", "savant", "cerenovus", "imp"];
+        await enterFirstNight(page, 5, undefined, attempt, LINEUP);
       } catch (e) {
         log.push(`[局 ${attempt}] enterFirstNight 抛错: ${String(e).slice(0, 120)}`);
         continue;
@@ -99,10 +100,10 @@ test.describe("zz 探针 · 洗脑告知节点入队", () => {
      * 若真回归了（`force` 放行失效），**命中那一局的
      * `expect(isNow, …).toBe(true)` 会精确变红**，而不是靠这条兜底。
      */
-    test.skip(
-      !conclusive,
-      `30 局未命中可判定样本（概率事件）—— 本次未验证，非缺陷。\n` +
+    expect(
+      conclusive,
+      "❌ 固定阵容（含 cerenovus + 3 名首夜无行动镇民）未能命中被洗脑者入队判据：\n" +
         log.join("\n")
-    );
+    ).toBe(true);
   });
 });

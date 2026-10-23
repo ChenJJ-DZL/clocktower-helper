@@ -710,7 +710,7 @@ export async function advanceNightFast(
       }
 
       const next = btnsIn(document).find(
-        (b) => /确认&下一步|下一步|天亮了/.test(norm(b)) && !b.disabled
+        (b) => /确认&下一步|下一步|天亮了|展开对局记录|我已查看完毕/.test(norm(b)) && !b.disabled
       );
       if (next) {
         next.click();
@@ -847,7 +847,8 @@ export async function completeDuskEnterNight(
        *   而改动前同 spec 约 2 分钟）⇒ **未验证的改动 + 可观测的性能退化 ⇒ 一律撤销**。
        *   📌 若要重做，先写一个"只跑到门禁解除"的小探针量化每步耗时，再决定。
        */
-      candidates[0].click();
+      const gateTarget = candidates.find((b) => /疯狂仲裁|疯狂洗脑/.test(norm(b))) ?? candidates[0];
+      gateTarget.click();
       await sleep(500);
       // 处理随之弹出的确认/选择弹窗
       for (let k = 0; k < 12; k++) {
@@ -912,9 +913,23 @@ export async function completeDuskEnterNight(
     // ── 2：提名（点两个座位 → 确认发起提名）──
     const seatBtns = allBtns().filter((b) => /^[1-9]\d*$/.test(norm(b)));
     if (seatBtns.length >= 2) {
-      seatBtns[0].click();
+      let safeSeats = seatBtns;
+      try {
+        const raw = window.localStorage.getItem("clocktower_current_snapshot");
+        const snap = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(snap?.seats)) {
+          const safeNos = new Set(
+            snap.seats
+              .filter((st: any) => st?.role?.type !== "demon" && st?.role?.id !== "saint" && st?.role?.id !== "goblin" && !st?.isDead)
+              .map((st: any) => String(Number(st.id) + 1))
+          );
+          const filtered = seatBtns.filter((b) => safeNos.has(norm(b)));
+          if (filtered.length >= 2) safeSeats = filtered;
+        }
+      } catch {}
+      safeSeats[0].click();
       await sleep(300);
-      seatBtns[1].click();
+      safeSeats[1].click();
       await sleep(300);
     }
     if (await clickByPattern(/确认发起提名/)) {

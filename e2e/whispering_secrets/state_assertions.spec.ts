@@ -260,7 +260,6 @@ async function toNight2(
   page: any
 ): Promise<{ ok: boolean; reason?: "gameover" }> {
   const n1 = await advanceNightFast(page);
-  test.skip(n1 === "spy", "本局为间谍局，自动驱动不适用");
   expect(n1, "❌ 首夜未能推进到白天").toBe("day");
   return duskStep(page);
 }
@@ -480,7 +479,6 @@ test.describe("L4 状态断言 · 窃窃私语：真实点击流必须产生真�
     // ⚠️ 设计铁律①：首夜恶魔不行动 ⇒ 首夜必无人死。
     //    先断言这一点，既验证规则、又证明「本用例的死亡断言不是空转」。
     const n1 = await advanceNightFast(page);
-    test.skip(n1 === "spy", "本局为间谍局，自动驱动不适用");
     expect(n1, "❌ 首夜未能推进到白天").toBe("day");
 
     const snap1 = await readSnapshot(page);
@@ -503,7 +501,7 @@ test.describe("L4 状态断言 · 窃窃私语：真实点击流必须产生真�
     }
 
     const n2 = await advanceNightFast(page);
-    test.skip(n2 === "spy", "本局为间谍局，自动驱动不适用");
+    expect(n2, "❌ 第二夜未能推进到白天").toBe("day");
 
     const snap2 = await waitForSnapshot(
       page,
