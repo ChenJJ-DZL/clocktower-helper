@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T17:59:44.690Z",
+  "generatedAt": "2026-10-23T02:18:10.715Z",
   "method": "roleIds ← app/data.ts scripts[].roleIds；seen ← temp/(terminal|full_sim)_<seed>.json 的 lineup；scenes ← outputs/scenes.json 的 27 个逐角色场次；specRef ← e2e/<script>/role_scenarios.spec.ts",
   "totals": {
     "scripts": 9,

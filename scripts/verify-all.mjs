@@ -6,6 +6,7 @@
  *   node scripts/verify-all.mjs --list     # 只列步骤与状态（不跑）
  *   node scripts/verify-all.mjs            # 跑「已实现」的步骤，输出 verdict
  *   node scripts/verify-all.mjs --only=tsc,vitest
+ *   node scripts/verify-all.mjs --skip=orphan   # 跳过耗时步做快速回归（与 --only 对称）
  *
  * 设计要点（对着《全量验证计划 V1》第 5 节）：
  *   1. **三闸门串行**：tsc → vitest → build。build 与 dev 抢 `.next`，绝不并行。
@@ -21,6 +22,13 @@ const args = process.argv.slice(2);
 const LIST_ONLY = args.includes("--list");
 const onlyArg = args.find((a) => a.startsWith("--only="));
 const ONLY = onlyArg ? onlyArg.slice("--only=".length).split(",").map((s) => s.trim()) : null;
+/**
+ * `--skip=orphan,terminal` —— 与 `--only` 对称的减法。
+ * 用途：日常快速回归时跳过耗时步（orphan 约 9.3 分钟、terminal 的 45 局矩阵更久），
+ * 发版前再完整跑一遍。**跳过不等于通过**：`--list` 与 verdict 会显示实际选了哪几步。
+ */
+const skipArg = args.find((a) => a.startsWith("--skip="));
+const SKIP = skipArg ? skipArg.slice("--skip=".length).split(",").map((s) => s.trim()) : [];
 
 const NPX = process.platform === "win32" ? "npx.cmd" : "npx";
 const NODE = process.execPath;
@@ -181,6 +189,7 @@ const steps = [
     ],
     env: { NODE_OPTIONS: "" },
     desc: "计划 W7：每局实际唤醒序列 == 官方 rank 过滤后的顺序（9 剧本各一场）",
+    needsServer: true,
     timeoutMs: 15 * 60 * 1000,
   },
   {
@@ -216,6 +225,74 @@ const steps = [
     desc: "计划 W6：43 个可达弹窗各有 golden（43/43，0 降级）",
     timeoutMs: 10 * 60 * 1000,
   },
+  {
+    /**
+     * ✅ 2026-10-23 转正：原 `e2e/wip/day_cycle.wip.spec.ts` —— 曾被 `testIgnore` 排除、
+     *   只能靠 `CT_E2E_WIP=1` 手动跑。现在迁到 `e2e/poppyganda/day_cycle.spec.ts`
+     *   并纳入本闸门（`wip` 目录与那个环境变量开关已一并退役）。
+     *
+     * 覆盖两条：
+     *   ① 罂粟花开「首夜 → 第 1 天（白天）→ 进入黄昏处决阶段」的完整真实点击流；
+     *   ② 黄昏阶段真的渲染出提名与处决台（门槛 / 步骤 / 上台规则）。
+     *
+     * 为什么值得单列一步：这是**唯一**一条穿过「夜 → 昼 → 黄昏」阶段边界、
+     *   且断言渲染结果（而不是中间变量）的用例 —— 阶段切换类的回归只有它能抓到。
+     *
+     * ⚠️ 固定 5 人阵容（fortune_teller / mayor / savant / evil_twin / imp），单次约 18s。
+     */
+    id: "dayCycle",
+    title: "夜→昼→黄昏完整点击流（罂粟花开）",
+    status: "ready",
+    cmd: NPX,
+    args: [
+      "playwright",
+      "test",
+      "e2e/poppyganda/day_cycle.spec.ts",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line",
+    ],
+    env: { NODE_OPTIONS: "" },
+    desc: "2 passed：夜→白天→黄昏进入处决阶段；黄昏提名/处决台渲染齐全",
+    needsServer: true,
+    timeoutMs: 15 * 60 * 1000,
+  },
+  {
+    /**
+     * ✅ 2026-10-23 新接线：**孤儿角色逐角色真实点击流**（58 个）。
+     *
+     * 为什么必须单列一步：
+     *   `roleScenarios` 只覆盖**内置 9 剧本内**的 192 个角色位；
+     *   剧本外还有 58 个角色（`astrologer`/`miner`/`lloam`/红罗刹…），
+     *   它们进不了任何内置剧本，只能走「🛠️ 自建剧本」构建器 ⇒ 另一条驱动链。
+     *   2026-10-23 盘点发现：这 58 个**从未进过任何闸门**（有文件、只手工跑），
+     *   正是本项目复发多次的「ENTRY_LOST」死形态 —— 有实现、无调用点。
+     *
+     * 判据（与 S&V per_role 同口径，绝不拿文案代状态）：
+     *   ① 快照 `role.id` 就是该角色；② `role.type` 与独立真值表一致；
+     *   ③ 座位数 = 该局人数、`gamePhase` 已推进、`nightCount ≥ 1`；④ 每座位已发牌。
+     *
+     * ⚠️ 时长：ROSTER 66 ÷ 7 = 10 组，单组上限 15 分钟 ⇒ 实测约 9.3 分钟（11 passed）。
+     *    日常快速回归用 `--skip=orphan`，发版前必须完整跑。
+     * ⚠️ 依赖外部 dev server（同其它 E2E 步，见 playwright.config 不用 webServer 的原因）。
+     */
+    id: "orphan",
+    title: "孤儿角色点击流（58 个 · 自建剧本）",
+    status: "ready",
+    cmd: NPX,
+    args: [
+      "playwright",
+      "test",
+      "e2e/orphan",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line",
+    ],
+    env: { NODE_OPTIONS: "" },
+    desc: "58 个剧本外角色各自真实点击流：role.id / type / 座位数 / 发牌 全对上",
+    needsServer: true,
+    timeoutMs: 60 * 60 * 1000,
+  },
 ];
 
 function runStep(step) {
@@ -248,7 +325,9 @@ function serverUp() {
 }
 const osDevNull = () => (process.platform === "win32" ? "NUL" : "/dev/null");
 
-const selected = steps.filter((s) => !ONLY || ONLY.includes(s.id));
+const selected = steps.filter(
+  (s) => (!ONLY || ONLY.includes(s.id)) && !SKIP.includes(s.id)
+);
 
 if (LIST_ONLY) {
   console.log("全量验证 gate 步骤：\n");

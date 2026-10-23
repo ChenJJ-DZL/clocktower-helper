@@ -16,8 +16,23 @@ import { describe, expect, it } from "vitest";
 
 const E2E_DIR = resolve(__dirname, "../../../e2e");
 
-/** ⚠️ 基线：2026-10-20 全量审查清点 = 23 处。只许减、不许无声增。 */
-const SKIP_BASELINE = 23;
+/**
+ * ⚠️ 基线：2026-10-20 全量审查清点 = 23 处。只许减、不许无声增。
+ *
+ * 🔻 2026-10-23 复算实际为 **19 处** ⇒ 基线从 23 收紧到 19（把 4 个虚位收掉）。
+ *   收紧前先确认那 4 个不是被误删：逐文件复算结果与 2026-10-20 一致，
+ *   差额全部来自此后**已修好的用例**（转正 / 删除条件分支），不是统计口径变化。
+ *
+ * 当前 19 处的分布（每处的原因都写在调用点）：
+ *   15 × 间谍「查看魔典」兜底 —— BMR 5 / PG 3 / S&V 3 / WS 3 / HM 1。
+ *        `advanceNightFast` 已能真正驱动该步骤（点「我已查看完毕」），
+ *        这里的 skip 只是 **stall 熔断后的兜底**；实测常态不触发。
+ *    1 × `poppyganda/state_assertions` 本局无酒鬼（发牌随机，断言不适用）
+ *    1 × `full_sim/terminal_state` 被 `-g` 过滤时不做分布断言
+ *    1 × `poppyganda/cerenovus_notice_queue` 30 局未命中可判定样本（概率事件）
+ *    1 × `script_coverage_gap` 连续 N 局走不完首夜（间谍局会自动重开）
+ */
+const SKIP_BASELINE = 19;
 
 function collectSpecs(dir: string): string[] {
   const out: string[] = [];

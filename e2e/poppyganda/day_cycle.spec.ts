@@ -13,13 +13,25 @@ import { advanceNightFast, enterFirstNight, T } from "../helpers/poppy";
  *
  * ⚠️ 其他关键坑位见 `e2e/helpers/poppy.ts`。
  */
+
+/**
+ * 🔒 固定 5 人阵容（3 镇民 / 0 外来者 / 1 爪牙 / 1 恶魔）—— 2026-10-23 转正时钉死。
+ *
+ * 为什么不能用随机发牌：
+ *   随机抽到洗脑师（cerenovus）或畸形秀演员（mutant）时，白天进入黄昏按钮会被替换为
+ *   「需先完成洗脑师判定【疯狂洗脑】」门禁（disabled），直接点「进入黄昏」必然超时
+ *   （门禁分支已由 `cerenovus_notice_queue.spec.ts` 与 `x08_madness.spec.ts` 专项覆盖）。
+ *   保留占卜师（2 目标）+ 镜像双子（1 目标），完整覆盖首夜选人交互 + 昼/黄昏阶段切换。
+ */
+const LINEUP = ["fortune_teller", "mayor", "savant", "evil_twin", "imp"];
+
 test.describe("罂粟花开 · 夜→白天→黄昏→次日 点击流", () => {
   test("⭐ 完整链路：首夜 → 第 1 天（白天）→ 进入黄昏处决阶段", async ({
     page,
   }) => {
     test.setTimeout(150_000);
 
-    await enterFirstNight(page, 5);
+    await enterFirstNight(page, 5, undefined, undefined, LINEUP);
     let body = await page.locator("body").innerText();
     expect(body, "入夜后应显示首夜标记").toMatch(/首夜|第\s*1\s*夜/);
 
@@ -46,7 +58,7 @@ test.describe("罂粟花开 · 夜→白天→黄昏→次日 点击流", () => 
   }) => {
     test.setTimeout(150_000);
 
-    await enterFirstNight(page, 5);
+    await enterFirstNight(page, 5, undefined, undefined, LINEUP);
     expect(await advanceNightFast(page), "未进入白天").toBe("day");
 
     await page

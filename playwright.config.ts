@@ -21,16 +21,17 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   /**
-   * ⚠️ 默认**跳过** `*.wip.spec.ts`（未稳定的进行中用例）。
-   *    当前唯一 WIP：`e2e/wip/day_cycle.wip.spec.ts` ——
-   *    「夜→白天→黄昏」点击流已**人工验证可跑通**（截图见手册 §8.15），
-   *    但自动化驱动一整个夜晚需要连点数十次 + 为占卜师/僧侣等选目标，
-   *    单次耗时 >2 分钟，暂不适合纳入默认套件。
-   *    手动运行：`CT_E2E_WIP=1 npx playwright test e2e/wip --timeout=200000`
+   * ✅ 2026-10-23：`*.wip.spec.ts` 排除机制**已退役**（不再有 testIgnore）。
+   *
+   * 最后一个 WIP —— `e2e/wip/day_cycle.wip.spec.ts` —— 已转正并迁到
+   * `e2e/poppyganda/day_cycle.spec.ts`：罂粟花开「夜 → 白天 → 黄昏」完整点击流，
+   * 实测纳入默认套件（单次约 2 分钟，含 `retries: 1` 抗跑批抖动）。
+   *
+   * 🔴 将来再出现未稳定用例，**不要**重建 wip 目录 / 环境变量开关：
+   *   直接 `test.fixme(true, "判据指向 <符号>：<原因>")`，
+   *   由 `src/utils/__tests__/e2e_skip_ratchet.test.ts` 冻结数量（只许减不许增）。
+   *   理由：wip 目录会让人误以为"永远不进套件"，而 fixme 是显式欠账、有护栏。
    */
-  // ⚠️ 用环境变量开关：`CT_E2E_WIP=1` 时才纳入 WIP（否则 testIgnore 会把
-  //    显式指定的 `e2e/wip` 目录也一起挡掉，导致"No tests found"）。
-  testIgnore: process.env.CT_E2E_WIP ? [] : ["**/*.wip.spec.ts"],
   fullyParallel: false,
   workers: 1,
   forbidOnly: true,
