@@ -65,8 +65,8 @@ const BASELINE = {
     游园惊梦: 20,
     罂粟花开: 24,
   } as Record<string, number>,
-  /** 整局模拟的执行证据水位（`seen > 0` 的二元组数） */
-  executedPairs: 109,
+  /** 整局模拟的执行证据水位（`seen > 0` 的二元组数，2026-10-23 跑通 27 场 scenes 后已达 191/191 满分） */
+  executedPairs: 191,
   /** 审计台账的 roleIds 口径总对数 */
   ledgerRolePairs: 191,
 } as const;

@@ -735,7 +735,7 @@ export function useGameController() {
        */
       const klutzBeforeDeath = seatsRef.current.find((s) => s.id === targetId);
       const klutzWillResolve =
-        klutzBeforeDeath?.isDead !== true &&
+        (klutzBeforeDeath?.isDead !== true || source === "execution") &&
         ((klutzBeforeDeath as any)?.charadeRole?.id === "klutz" ||
           klutzBeforeDeath?.role?.id === "klutz");
 
@@ -824,7 +824,11 @@ export function useGameController() {
           );
         }
         let updatedSeats = prev.map((s) => {
-          if (s.id !== targetId || s.isDead) return s;
+          // ?? 2026-10-23??????/??????? ?? ??????? killPlayer ???
+          //   dispatch EXECUTE_PLAYER ? s.isDead ?? true????? s.isDead ?????
+          //   ??????????? diedOnDay / deathSource="execution" / executedToday /
+          //   executedRoleSnapshot??????????????????
+          if (s.id !== targetId || (s.isDead && source !== "execution")) return s;
           const next = {
             ...s,
             isDead: true,

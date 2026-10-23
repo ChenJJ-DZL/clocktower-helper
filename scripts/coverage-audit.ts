@@ -7,10 +7,10 @@
  * 数据来源（都是**已落盘的事实**，不猜）：
  *   · 剧本角色清单 ← `app/data.ts::scripts[].roleIds`
  *   · 角色中文名   ← `src/data/officialRoleDocs.json`
- *   · E2E 实际阵容 ← `temp/terminal_<seed>.json` / `temp/full_sim_<seed>.json` 的 `lineup`
+ *   · E2E 实际阵容 ← `temp/(terminal|full_sim|x05|scene)_*.json` 的 `roleIds` / `lineup`
  *
  * 判据（每个 (剧本, 角色) 二元组）**三层，必须分开报，不许混算**：
- *   ① `seen`    = 该角色在**该剧本**的「整局模拟」E2E 阵容里出现过至少一次（执行证据）
+ *   ① `seen`    = 该角色在**该剧本**的 E2E 实跑报告（terminal / full_sim / x05 / scene）里出现过至少一次（执行证据）
  *   ② `scenes`  = 该角色在 `outputs/scenes.json` 的 27 个**逐角色场次**里被排进过几场
  *                 （`role_scenarios.spec.ts` 用 `__CT_FORCE_LINEUP__` 按这份编排发牌）
  *   ③ `specRef` = 该角色是否被**该剧本自己的** `role_scenarios.spec.ts` 显式提及
@@ -92,7 +92,6 @@ function loadSpecSources(): Map<string, string> {
   return out;
 }
 
-
 /**
  * 中文名 → roleId。
  *
@@ -116,14 +115,16 @@ function loadLineups(): Lineup[] {
   if (!fs.existsSync(TEMP)) return [];
   const out: Lineup[] = [];
   for (const file of fs.readdirSync(TEMP)) {
-    if (!/^(terminal|full_sim)_\d+\.json$/.test(file)) continue;
+    if (!/^(terminal|full_sim|x05|scene)_[A-Za-z0-9]+\.json$/.test(file)) continue;
     try {
       const d = JSON.parse(fs.readFileSync(path.join(TEMP, file), "utf-8"));
       const script = String(d.script ?? "");
-      const lineup = String(d.lineup ?? "");
-      const rawNames = [...lineup.matchAll(/\d+号=([^\s]+)/g)].map((m) => m[1]);
-      // 中文名 → id（映射不到的**保留原名**，这样审计会把它当未覆盖并暴露出来）
-      const roles = rawNames.map((n) => nameToId[n] ?? n);
+      const roles: string[] =
+        Array.isArray(d.roleIds) && d.roleIds.length > 0
+          ? d.roleIds.map((r: unknown) => String(r))
+          : [...String(d.lineup ?? "").matchAll(/\d+号=([^\s]+)/g)]
+              .map((m) => m[1])
+              .map((n) => nameToId[n] ?? n);
       if (!script || roles.length === 0) continue;
       out.push({
         script,
@@ -183,7 +184,7 @@ for (const script of scripts) {
     return {
       id,
       name: roleNames[id] ?? id,
-      /** ① 整局模拟里出现过几次（**执行**证据） */
+      /** ① 整局/场次模拟里出现过几次（**执行**证据） */
       seen,
       /** ② 逐角色场次里被排进过几场（`outputs/scenes.json`） */
       scenes,
@@ -206,13 +207,13 @@ const report = {
   generatedAt: new Date().toISOString(),
   /** 本轮审计口径（三层，见文件头） */
   method:
-    "roleIds ← app/data.ts scripts[].roleIds；seen ← temp/(terminal|full_sim)_<seed>.json 的 lineup；" +
+    "roleIds ← app/data.ts scripts[].roleIds；seen ← temp/(terminal|full_sim|x05|scene)_<seed>.json 的 roleIds/lineup；" +
     "scenes ← outputs/scenes.json 的 27 个逐角色场次；specRef ← e2e/<script>/role_scenarios.spec.ts",
   totals: {
     scripts: scripts.length,
     games: lineups.length,
     rolePairs: totalPairs,
-    /** 执行证据（整局模拟真的发到过这个角色） */
+    /** 执行证据（整局/场次模拟真的发到过这个角色） */
     coveredPairs,
     executedCoverage: totalPairs ? +(coveredPairs / totalPairs).toFixed(4) : 0,
     /** 入口证据（场次排过 ∪ 用例写过）—— 这才是「有没有验证入口」的口径 */
@@ -225,7 +226,7 @@ const report = {
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(report, null, 2), "utf-8");
 
-console.log(`剧本 ${report.totals.scripts} 个 / 整局模拟 ${report.totals.games} 局`);
+console.log(`剧本 ${report.totals.scripts} 个 / 实跑模拟 ${report.totals.games} 局`);
 console.log(
   `(剧本,角色) 二元组 ${totalPairs} 个：` +
     `执行证据 ${coveredPairs} 个（${(report.totals.executedCoverage * 100).toFixed(1)}%）／` +
@@ -235,7 +236,7 @@ for (const [name, data] of Object.entries(ledger as Record<string, any>)) {
   const executed = data.roles.filter((r: any) => r.seen > 0).length;
   const reach = data.roles.filter((r: any) => r.scenes > 0 || r.specRef).length;
   console.log(
-    `  ${name}: 角色 ${data.roleCount}，整局 ${data.games} 局｜执行 ${executed}/${data.roleCount}｜入口 ${reach}/${data.roleCount}`
+    `  ${name}: 角色 ${data.roleCount}，实跑 ${data.games} 局｜执行 ${executed}/${data.roleCount}｜入口 ${reach}/${data.roleCount}`
   );
 }
 console.log(`→ ${path.relative(ROOT, OUT)}`);

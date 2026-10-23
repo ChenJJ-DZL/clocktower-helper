@@ -47,6 +47,7 @@ type ScriptScenes = {
 };
 
 const scenesPath = path.resolve(__dirname, "../../outputs/scenes.json");
+const tempDir = path.resolve(__dirname, "../../temp");
 
 function loadScenes(): ScriptScenes[] {
   const raw = fs.readFileSync(scenesPath, "utf-8");
@@ -114,6 +115,30 @@ for (const scriptEntry of scenes) {
         );
         expect(byType("demon"), "恶魔数量应与配比一致").toBe(
           game.counts.demon
+        );
+
+        // 断言全部通过后落盘执行证据（供 scripts/coverage-audit.ts 消费）
+        fs.mkdirSync(tempDir, { recursive: true });
+        const lineupStr = seats
+          .filter((x) => x.role)
+          .map((x, idx) => `${idx + 1}号=${String(x.role.name ?? x.role.id)}`)
+          .join(" ");
+        fs.writeFileSync(
+          path.join(tempDir, `scene_${game.id}.json`),
+          JSON.stringify(
+            {
+              script: scriptEntry.script,
+              seed: game.seed,
+              sceneId: game.id,
+              players: game.players,
+              gameover: false,
+              lineup: lineupStr,
+              roleIds: dealt,
+            },
+            null,
+            2
+          ),
+          "utf-8"
         );
       });
     }
