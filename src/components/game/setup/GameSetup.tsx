@@ -296,7 +296,10 @@ export default function GameSetup({
       seats.map((s) => s.role?.id).filter(Boolean)
     );
     const townsfolkList = filteredGroupedRoles?.townsfolk || [];
-    const demonList = filteredGroupedRoles?.demon || [];
+    // 疯子伪装恶魔候选池：必须排除军团（军团无法配合疯子互认）
+    const demonList = (filteredGroupedRoles?.demon || []).filter(
+      (d) => d.id !== "legion"
+    );
 
     const usedCharadeIdsInThisBatch = new Set<string>();
 
@@ -335,12 +338,13 @@ export default function GameSetup({
         }
       } else if (seat.role?.id === "lunatic") {
         const currentFakeDemonId = seat.apparentDemonRole?.id;
-        // 候选池：不在场、本批次未选用、且非疯子的恶魔
+        // 候选池：不在场、本批次未选用、且非疯子、非军团的恶魔
         let pool = demonList.filter(
           (d) =>
             !inPlayRealRoleIds.has(d.id) &&
             !usedCharadeIdsInThisBatch.has(d.id) &&
-            d.id !== "lunatic"
+            d.id !== "lunatic" &&
+            d.id !== "legion"
         );
         // 若重复点击且候选池数量大于1，优先排除当前假恶魔，使每次随机都有明显变化
         if (pool.length > 1 && currentFakeDemonId) {
@@ -350,7 +354,7 @@ export default function GameSetup({
           }
         }
         if (pool.length === 0) {
-          pool = demonList.filter((d) => d.id !== "lunatic");
+          pool = demonList.filter((d) => d.id !== "lunatic" && d.id !== "legion");
         }
         if (pool.length > 0) {
           const fakeDemon = pool[Math.floor(Math.random() * pool.length)];

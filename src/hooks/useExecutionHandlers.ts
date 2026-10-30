@@ -306,6 +306,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       if (options?.forceExecution) {
         // Log it
         addLog(`⚖️ ${t.id + 1}号被强制执行处决！`);
+        setTodayExecutedId(id);
         dispatch({ type: "EXECUTE_PLAYER", targetId: id });
         // 实际杀死玩家
         killPlayer(id, { source: "execution", recordNightDeath: false });
@@ -423,6 +424,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       }
 
       // Atomic Dispatch
+      setTodayExecutedId(id);
       dispatch({ type: "EXECUTE_PLAYER", targetId: id });
 
       // 实际杀死玩家（关键修复：处决必须实际杀死玩家）
@@ -864,7 +866,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             !voudonSkipsGhostVote(voudonHere) &&
             voters?.includes(s.id) &&
             s.isDead &&
-            s.hasGhostVote
+            s.hasGhostVote !== false
           ) {
             next = { ...next, hasGhostVote: false };
           }

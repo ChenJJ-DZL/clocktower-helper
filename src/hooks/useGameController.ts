@@ -1712,6 +1712,10 @@ export function useGameController() {
           vortoxWorld: isVortoxWorld,
           // 🔧 送葬者修复：能力管道需要 todayExecutedId 定位被处决者
           todayExecutedId,
+          todayMinionNominated,
+          minionNominatedToday: todayMinionNominated,
+          todayDemonVoted,
+          demonVotedToday: todayDemonVoted,
           getRegistration: getRegistrationCached,
           getMisinformation: getMisinformation,
           findNearestAliveNeighbor,
@@ -2215,9 +2219,13 @@ export function useGameController() {
        *
        * ⚠️ 幂等：`victoryRef.current` 已有值（上一路径已判过）⇒ 直接进夜。
        */
+      const hasExecutionToday =
+        todayExecutedId != null ||
+        seatsRef.current.some((s: any) => s.executedToday === true);
+
       if (
         !victoryRef.current &&
-        isVortoxDuskWinActive(seatsRef.current, todayExecutedId != null)
+        isVortoxDuskWinActive(seatsRef.current, hasExecutionToday)
       ) {
         addLog("⚖️ 涡流：今日无人被处决 ⇒ 邪恶阵营获胜！");
         setWinResult("evil");
@@ -2248,7 +2256,7 @@ export function useGameController() {
       if (!victoryRef.current) {
         const mayorWin = resolveMayorDuskWin(
           seatsRef.current,
-          todayExecutedId != null
+          hasExecutionToday
         );
         if (mayorWin) {
           addLog(
@@ -2371,6 +2379,66 @@ export function useGameController() {
     seats,
   ]);
 
+  // 🤹 规则约束：杂耍艺人仅在首个白天猜测并在当晚（第2夜）获知结果，第3夜及后续夜晚绝不唤醒
+  // 若当前局由于历史队列滞留在第3夜及以后的杂耍艺人步骤，自动推进到下一个合法行动
+  useEffect(() => {
+    if (
+      gamePhase === "night" &&
+      nightCount > 2 &&
+      nightInfo?.effectiveRole?.id === "juggler" &&
+      !currentModal
+    ) {
+      console.log(
+        `[GameController] 🤹 规则修正：第${nightCount}夜不应唤醒杂耍艺人，自动推进到下一步`
+      );
+      continueToNextAction();
+    }
+  }, [gamePhase, nightCount, nightInfo, currentModal, continueToNextAction]);
+
+  // 🌀 规则约束：疯子不能以为自己是军团（无军团成员配合互认）
+  // 自动修复旧档或当前局中将疯子伪装设为军团的座位
+  useEffect(() => {
+    const invalidLunatics = seats.filter(
+      (s) =>
+        s.role?.id === "lunatic" &&
+        (s as any).apparentDemonRole?.id === "legion"
+    );
+    if (invalidLunatics.length === 0) return;
+
+    const inPlayRoleIds = new Set(
+      seats.map((s) => s.role?.id).filter(Boolean)
+    );
+    const candidateDemons = roles.filter(
+      (r: any) =>
+        r.type === "demon" &&
+        r.id !== "legion" &&
+        r.id !== "lunatic" &&
+        !inPlayRoleIds.has(r.id)
+    );
+    const replacement =
+      candidateDemons[0] ||
+      roles.find((r: any) => r.type === "demon" && r.id !== "legion") ||
+      null;
+
+    if (replacement) {
+      commitSeats((prev) =>
+        prev.map((s) =>
+          s.role?.id === "lunatic" &&
+          (s as any).apparentDemonRole?.id === "legion"
+            ? {
+                ...s,
+                apparentDemonRole: replacement,
+                displayRole: replacement,
+              }
+            : s
+        )
+      );
+      addLog(
+        `🎭 规则修正：疯子不能伪装成【军团】（无军团成员配合互认），已将疯子假恶魔修正为【${replacement.name}】`
+      );
+    }
+  }, [seats, roles, commitSeats, addLog]);
+
   // 动态预测与实时渲染当前或即将到来的夜晚行动顺序，保证恶魔与所有在场角色的行动位始终精准且实时同步
   const liveNightOrderPreview = useMemo(() => {
     // 1. 如果处于夜间阶段且引擎已有实时队列，使用实时运行队列
@@ -2424,6 +2492,9 @@ export function useGameController() {
         //   连带 4 条「步骤越序」全是误报。
         //   🔒 凡是 `generateDynamicNightQueue` 会读取的座位字段，本快照都必须透传。
         isEvilConverted: (s as any).isEvilConverted,
+        hasUsedDayAbility: (s as any).hasUsedDayAbility,
+        dayAbilityResult: (s as any).dayAbilityResult,
+        jugglerNightSettled: (s as any).jugglerNightSettled,
       })),
       statusEffects: {},
       gamePhase: isFirstNight ? ("firstNight" as const) : ("night" as const),

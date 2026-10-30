@@ -62,7 +62,12 @@ export function CharadeConfigModal({
   }, [seats]);
 
   const townsfolkList = filteredGroupedRoles?.townsfolk || [];
-  const demonList = filteredGroupedRoles?.demon || [];
+  // 恶魔候选池（疯子不能以为自己是军团：官方规则与用户指定，军团无法配合疯子互认）
+  const demonList = useMemo(() => {
+    return (filteredGroupedRoles?.demon || []).filter(
+      (d) => d.id !== "lunatic" && d.id !== "legion"
+    );
+  }, [filteredGroupedRoles]);
 
   // 计算当前已被选中的伪装角色 ID
   const selectedRoleIds = useMemo(() => {
@@ -160,14 +165,15 @@ export function CharadeConfigModal({
             (d) =>
               !inPlayRoleIds.has(d.id) &&
               !usedIds.has(d.id) &&
-              d.id !== "lunatic"
+              d.id !== "lunatic" &&
+              d.id !== "legion"
           );
           if (forceReassignAll && pool.length > 1 && currentFakeDemonId) {
             const alternate = pool.filter((d) => d.id !== currentFakeDemonId);
             if (alternate.length > 0) pool = alternate;
           }
           if (pool.length === 0) {
-            pool = demonList.filter((d) => d.id !== "lunatic");
+            pool = demonList.filter((d) => d.id !== "lunatic" && d.id !== "legion");
           }
           if (pool.length > 0) {
             const picked = pool[Math.floor(Math.random() * pool.length)];

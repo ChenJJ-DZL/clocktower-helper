@@ -84,6 +84,10 @@ export interface NightActionHandlerContext {
   vortoxWorld: boolean;
   /** 🔧 今日被处决玩家ID（送葬者/食人族等读取，guide 路径已用，能力管道需同步传入） */
   todayExecutedId?: number | null;
+  todayMinionNominated?: boolean;
+  minionNominatedToday?: boolean;
+  todayDemonVoted?: boolean;
+  demonVotedToday?: boolean;
   getRegistration: (seat: Seat, viewer?: Role | null) => any;
   getMisinformation: { [key: string]: (data: any) => any };
   findNearestAliveNeighbor: (
@@ -460,6 +464,10 @@ export async function executeViaNewEngine(
     //   但 executeViaNewEngine 构造的快照此前不含该字段，导致送葬者
     //   preCheck 的 executedTodayCheck 找不到被处决者 → aborted → 结算弹窗不展示。
     todayExecutedId: context.todayExecutedId ?? null,
+    todayMinionNominated: context.todayMinionNominated ?? context.minionNominatedToday ?? false,
+    minionNominatedToday: context.todayMinionNominated ?? context.minionNominatedToday ?? false,
+    todayDemonVoted: context.todayDemonVoted ?? context.demonVotedToday ?? false,
+    demonVotedToday: context.todayDemonVoted ?? context.demonVotedToday ?? false,
     evilTwinPair: (context as any).evilTwinPair ?? null,
     globalEffects: { vortoxWorld: isVortox },
     vortoxWorld: isVortox,
@@ -960,6 +968,9 @@ export async function executeViaNewEngine(
       const openActiveSkillModal = () => {
         const hasToymaker =
           context.seats.some((s) => s.role?.id === "toymaker") ||
+          ((context as any).activeFabled ?? []).some?.((f: any) =>
+            typeof f === "string" ? f === "toymaker" : f?.id === "toymaker"
+          ) ||
           ((context as any).snapshot as any)?.fabled?.some?.((f: any) =>
             typeof f === "string" ? f === "toymaker" : f?.id === "toymaker"
           );
@@ -2346,6 +2357,10 @@ export async function executeViaNewEngine(
     if (actorId !== undefined && actorId >= 0) {
       context.markAbilityUsed(roleId, actorId);
       const actorSeat = syncedSeats.find((s) => s.id === actorId);
+      if (actorSeat && roleId === "juggler") {
+        (actorSeat as any).jugglerNightSettled = true;
+        (actorSeat as any).hasUsedNightAbility = true;
+      }
       // 🎭 继承者代打后须标记「该继承来的能力已消耗」（一次性语义）
       //   SST：utils/grantedAbilityHelper::isInheritedAbilityConsumed 会读这些标记，
       //   避免队列层反复把一次性能力排进后续夜晚（空唤醒）。

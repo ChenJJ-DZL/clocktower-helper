@@ -64,15 +64,18 @@ function preserveGhostVote(prevSeats: Seat[], nextSeats: Seat[]): Seat[] {
     const prev = prevSeats.find((p) => p?.id === next?.id);
     if (!prev) return next;
 
-    // 只要之前已经「用掉了幽灵票」，就不允许任何整表覆盖把它还回来
-    if (prev.hasGhostVote !== false || next.hasGhostVote !== true) return next;
-
     // 例外：真实的复活（死亡 → 存活）才允许重新获得幽灵票
     const revived = prev.isDead === true && next.isDead !== true;
     if (revived) return next;
 
-    touched = true;
-    return { ...next, hasGhostVote: false };
+    // 只要之前已经「用掉了幽灵票」（prev.hasGhostVote === false），
+    // 绝不允许任何整表覆盖将其变回 true 或 undefined！
+    if (prev.hasGhostVote === false && next.hasGhostVote !== false) {
+      touched = true;
+      return { ...next, hasGhostVote: false };
+    }
+
+    return next;
   });
 
   return touched ? merged : nextSeats;

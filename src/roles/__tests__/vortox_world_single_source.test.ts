@@ -152,4 +152,45 @@ describe("🌪️ checkGameEnd 涡流平安日获胜 —— 自推导（不依�
     } as any);
     expect(res.reason).toContain("涡流");
   });
+
+  it("处决 0 号座位（第一位玩家）时，不得因 JS 假值 0 误判无人处决而导致涡流获胜", () => {
+    const seats = [
+      seat(0, "empath", { isDead: true, executedToday: true }),
+      seat(1, "soldier"),
+      seat(2, "chef"),
+      seat(3, "vortox"),
+      seat(4, "imp"),
+    ];
+    const res = checkGameEnd(seats as any, "execution", 0);
+    expect(res.isGameOver).toBe(false);
+    expect(res.reason ?? "").not.toContain("涡流");
+  });
+
+  it("场上有座位标有 executedToday 时，check_phase 不触发涡流获胜", () => {
+    const seats = [
+      seat(0, "empath", { isDead: true, executedToday: true }),
+      seat(1, "soldier"),
+      seat(2, "chef"),
+      seat(3, "vortox"),
+      seat(4, "imp"),
+    ];
+    const res = checkGameEnd(seats as any, "check_phase", null, {} as any);
+    expect(res.isGameOver).toBe(false);
+    expect(res.reason ?? "").not.toContain("涡流");
+  });
+
+  it("todayHasExecution 为 true 时，check_phase 不触发涡流获胜", () => {
+    const seats = [
+      seat(0, "empath", { isDead: true }),
+      seat(1, "soldier"),
+      seat(2, "chef"),
+      seat(3, "vortox"),
+      seat(4, "imp"),
+    ];
+    const res = checkGameEnd(seats as any, "check_phase", null, {
+      todayHasExecution: true,
+    } as any);
+    expect(res.isGameOver).toBe(false);
+    expect(res.reason ?? "").not.toContain("涡流");
+  });
 });

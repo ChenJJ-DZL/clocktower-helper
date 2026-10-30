@@ -31,6 +31,10 @@ import {
   getScriptRoleIds,
   resolveLunaticFakeInfo,
 } from "./lunaticFakeInfo";
+import {
+  getSnitchBluffsForMinion,
+  getSnitchExtraBluffsForDemon,
+} from "./snitchBluffs";
 
 /**
  * 已迁移到新引擎的角色列表（用于追踪迁移进度）
@@ -426,7 +430,7 @@ function generateSystemInfoViaAdapter(
   //    「应该在首个夜晚立即告知他是邪恶的」。行动者 = 被转变的那名镇民（本步骤排在最前）。
   if (stepId === EVIL_CONVERTED_NOTICE_ID) {
     const seatName = selfSeat.role?.name || "镇民";
-    const guide = `唤醒${selfSeat.id + 1}号【${seatName}】，告知他：你已经属于邪恶阵营（赏金猎人的设置调整）。`;
+    const guide = `唤醒${selfSeat.id + 1}号【${seatName}】，告知他：你已经属于邪恶阵营。`;
     return {
       // ⚠️⚠️ 2026-09-21 修复 P0（用户实测报告）：系统步骤**必须自带
       //   `effectiveRole` 与 `seat`**，否则下游 `useNightActionHandler.ts:2039`
@@ -563,27 +567,18 @@ function generateSystemInfoViaAdapter(
       ? `\n不在场伪装: 【${notInPlayGoodRoles.join("】、【")}】`
       : "";
 
-  // 检查场上是否有告密者
+  // 检查场上是否有告密者（官方：每个爪牙在首夜得知 3 个不在场的善良角色，彼此不完全相同）
   const hasSnitchInPlay = seats.some((s) => s.role?.id === "snitch");
   let snitchBluffText = "";
   if (hasSnitchInPlay) {
-    const availableGoodRoles = [...scriptTownsfolk, ...scriptOutsiders];
-    if (availableGoodRoles.length > 0) {
-      const minionIndex = Math.max(
-        0,
-        minionSeats.findIndex((s) => s.id === currentSeatId)
-      );
-      const offset = minionIndex * 3;
-      const bluffs: string[] = [];
-      for (let i = 0; i < Math.min(3, availableGoodRoles.length); i++) {
-        const r = availableGoodRoles[(offset + i) % availableGoodRoles.length];
-        if (r && !bluffs.includes(r.name)) {
-          bluffs.push(r.name);
-        }
-      }
-      if (bluffs.length > 0) {
-        snitchBluffText = `\n告密者伪装: 【${bluffs.join("】、【")}】`;
-      }
+    const bluffs = getSnitchBluffsForMinion(
+      seats,
+      roles,
+      scriptRoleIds,
+      currentSeatId
+    );
+    if (bluffs.length > 0) {
+      snitchBluffText = `\n告密者伪装: 【${bluffs.join("】、【")}】`;
     }
   }
 
@@ -591,9 +586,12 @@ function generateSystemInfoViaAdapter(
   // 若提线木偶与告密者均在场，改为由恶魔额外得知三个不在场角色。
   let snitchMarionetteExtraText = "";
   if (hasSnitchInPlay && marionetteSeat) {
-    const extra = [...scriptTownsfolk, ...scriptOutsiders]
-      .slice(3, 6)
-      .map((r: any) => r.name);
+    const extra = getSnitchExtraBluffsForDemon(
+      seats,
+      roles,
+      scriptRoleIds,
+      notInPlayGoodRoles
+    );
     if (extra.length > 0) {
       snitchMarionetteExtraText = `\n提线木偶×告密者相克·恶魔额外伪装: 【${extra.join("】、【")}】`;
     }

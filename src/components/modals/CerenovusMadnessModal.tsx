@@ -26,6 +26,7 @@ import {
   CERENOVUS_NOTICE_STORYTELLER_NOTE,
   getCerenovusNoticePlayerText,
 } from "../../utils/cerenovusNotice";
+import { AutoFitContent, SKILL_PAGE_AUTOFIT } from "../common/AutoFitContent";
 import { PlayerViewProvider, StorytellerOnly } from "../game/PlayerViewContext";
 import { ModalWrapper } from "./ModalWrapper";
 
@@ -47,7 +48,7 @@ export interface MadnessNoticeData {
 
 /**
  * 弹窗标题。
- * 玩家视角 = 中性「🧠 技能告知」（不含任何座位号/角色名）；
+ * 玩家视角 = 「🧠 技能告知-X号」（告知被洗脑玩家的座位号）；
  * 说书人解锁视图 = 完整「6号-洗脑师 ➔ 洗脑 3号 为【艺术家】」。
  */
 export function getMadnessNoticeTitle(
@@ -55,7 +56,8 @@ export function getMadnessNoticeTitle(
   data: MadnessNoticeData | null
 ): string {
   if (!data) return "🧠 技能告知";
-  if (!isStorytellerView) return "🧠 技能告知";
+  const seatPart = data.targetId != null ? `-${data.targetId + 1}号` : "";
+  if (!isStorytellerView) return `🧠 技能告知${seatPart}`;
   const actor =
     data.actorSeatId != null
       ? `${data.actorSeatId + 1}号-${data.actorRoleName ?? "洗脑师"}`
@@ -83,11 +85,11 @@ export function MadnessNoticeBody({
   onMadnessCheck,
 }: MadnessNoticeBodyProps) {
   return (
-    <div className="w-full flex flex-col gap-4 text-white">
+    <div className="w-full flex flex-col items-center justify-center text-center my-auto gap-4 text-white">
       {isStorytellerView && (
         <div
           data-testid="madness-storyteller-banner"
-          className="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-center py-2 rounded-xl border-2 border-amber-300 shadow-lg font-black"
+          className="w-full bg-gradient-to-r from-amber-600 to-orange-600 text-white text-center py-2.5 rounded-xl border-2 border-amber-300 shadow-lg font-black text-base sm:text-lg"
         >
           🔓 说书人视图（玩家不可见）
         </div>
@@ -100,19 +102,19 @@ export function MadnessNoticeBody({
         onPointerUp={onLongPressEnd}
         onPointerLeave={onLongPressEnd}
         onPointerCancel={onLongPressEnd}
-        className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 text-center space-y-4 select-none"
+        className="w-full rounded-2xl border border-amber-500/40 bg-amber-950/30 p-6 sm:p-8 text-center space-y-4 select-none my-auto max-w-full"
       >
-        <p className="text-xs font-bold tracking-widest text-slate-400">
+        <p className="text-sm sm:text-base font-bold tracking-widest text-slate-400">
           技能告知
         </p>
-        <div className="text-5xl select-none">🧠</div>
+        <div className="text-6xl sm:text-7xl select-none">🧠</div>
         <h2
           data-testid="madness-notice-player-text"
-          className="text-3xl font-black text-amber-100 leading-snug"
+          className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl break-words max-w-full mx-auto px-0 my-1 text-4xl sm:text-5xl md:text-6xl leading-tight"
         >
           {getCerenovusNoticePlayerText(data.roleName)}
         </h2>
-        <p className="text-lg font-medium text-slate-300">
+        <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-300 leading-tight">
           {CERENOVUS_NOTICE_PLAYER_SUBTITLE}
         </p>
       </div>
@@ -121,7 +123,7 @@ export function MadnessNoticeBody({
       <StorytellerOnly>
         <div
           data-testid="madness-notice-storyteller"
-          className="rounded-2xl border border-amber-500/40 bg-black/40 p-4 space-y-2"
+          className="w-full rounded-2xl border border-amber-500/40 bg-black/40 p-4 space-y-2 mt-2"
         >
           <p className="text-sm font-black text-amber-300">
             ⚠️ {CERENOVUS_NOTICE_STORYTELLER_NOTE}
@@ -216,9 +218,8 @@ export function CerenovusMadnessModal({
     <PlayerViewProvider playerView={!isStorytellerView}>
       <ModalWrapper
         title={getMadnessNoticeTitle(isStorytellerView, data)}
-        widthRatio={0.98}
-        maxWidthPx={1560}
-        autoHeight
+        size="fullscreen90"
+        className="w-[90vw] h-[90vh]"
         closeOnOverlayClick={false}
         onClose={onConfirm}
         footer={
@@ -227,20 +228,22 @@ export function CerenovusMadnessModal({
               type="button"
               data-testid="madness-notice-confirm"
               onClick={onConfirm}
-              className="flex-1 max-w-md py-3.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-base shadow-lg transition cursor-pointer active:scale-[0.98]"
+              className="flex-1 max-w-md py-3.5 sm:py-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-base sm:text-lg shadow-lg transition cursor-pointer active:scale-[0.98]"
             >
               确认并继续
             </button>
           </div>
         }
       >
-        <MadnessNoticeBody
-          data={data}
-          isStorytellerView={isStorytellerView}
-          onLongPressStart={startLongPress}
-          onLongPressEnd={endLongPress}
-          onMadnessCheck={onMadnessCheck}
-        />
+        <AutoFitContent {...SKILL_PAGE_AUTOFIT} className="p-0 text-white">
+          <MadnessNoticeBody
+            data={data}
+            isStorytellerView={isStorytellerView}
+            onLongPressStart={startLongPress}
+            onLongPressEnd={endLongPress}
+            onMadnessCheck={onMadnessCheck}
+          />
+        </AutoFitContent>
       </ModalWrapper>
     </PlayerViewProvider>
   );

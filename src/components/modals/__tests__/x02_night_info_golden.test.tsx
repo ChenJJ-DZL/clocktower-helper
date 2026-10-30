@@ -363,9 +363,9 @@ describe("X02 · 夜间信息弹窗 golden 基线", () => {
     // ① 能渲染
     const t = assertRendered();
 
-    // ② 标题逐字一致（玩家视角 = 中性「🧠 技能告知」，不含任何座位号/角色名）
-    expect(modalTitle()).toBe("🧠 技能告知");
-    expect(t).toContain("🧠 技能告知");
+    // ② 标题（玩家视角 = 「🧠 技能告知-3号」，带被洗脑人的座位号，不含行动者座位号/角色名）
+    expect(modalTitle()).toBe("🧠 技能告知-3号");
+    expect(t).toContain("🧠 技能告知-3号");
     //    玩家侧主文案 + 副标题（逐字）
     expect(t).toContain("你需要疯狂证明自己是【艺术家】");
     expect(t).toContain("若未照做，明天白天你可能会被处决");

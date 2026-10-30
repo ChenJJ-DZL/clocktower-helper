@@ -32,7 +32,10 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const minionNominated = ctx.snapshot.minionNominatedToday ?? false;
+  const minionNominated =
+    ctx.snapshot.minionNominatedToday ??
+    ctx.snapshot.todayMinionNominated ??
+    false;
   // 醉酒或中毒都会干扰信息（全局中间件会把 meta.isPoisoned 覆盖为 false，需一并检查 isDrunk）
   const isCorrupted =
     ctx.meta.isPoisoned === true ||
@@ -85,6 +88,7 @@ const postProcess = async (
         type: "town_crier_info",
         minionNominated: r?.minionNominated,
         isCorrupted: ctx.meta.isCorrupted,
+        playerFacingLog: status,
         log,
       },
     },

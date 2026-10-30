@@ -107,11 +107,11 @@ export function InfoResultModal({
           )}
 
           {hasItemPattern ? (
-            /* 多信息页：每条消息强制一行显示（标题：内容） */
+            /* 多信息页：统一字号、每行展示（单行最多 20 字，冒号优先换行） */
             <div className="space-y-2 my-1 max-w-full">
               {displayItems!.map((item, idx) => (
                 <div key={idx} className="font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl text-3xl sm:text-4xl md:text-5xl break-words">
-                  {item.title ? `${item.title}：${item.value}` : item.value}
+                  {item.title ? (item.value ? `${item.title}：${item.value}` : `${item.title}：`) : item.value}
                 </div>
               ))}
             </div>

@@ -772,7 +772,7 @@ export const impAbility = createRoleAbility({
    * allowDead: true — 可选死亡玩家（空刀伪装士兵/僧侣）
    */
   targetConfig: {
-    min: 0,
+    min: 1,
     max: 1,
     allowSelf: true,
     allowDead: true,

@@ -23,7 +23,8 @@ const calculateResult = async (
   const isAbilityActive = meta.abilityEffective ?? true;
 
   // 从snapshot中获取恶魔今天是否投票的信息
-  const demonVotedToday = snapshot.demonVotedToday ?? false;
+  const demonVotedToday =
+    snapshot.demonVotedToday ?? snapshot.todayDemonVoted ?? false;
 
   // 涡流在场且**存活**会使信息反转（官方：涡流死亡后恢复正常）
   // ⚠️ 2026-10-20 修复：旧写法漏了 `!isDead`，涡流死后仍反转让信息反而成了假。
@@ -105,6 +106,7 @@ export const flowergirlAbility = createRoleAbility({
             type: "flowergirl_info",
             hasVoted: result?.hasVoted ?? false,
             isCorrupted: result?.isCorrupted ?? false,
+            playerFacingLog: `恶魔今天${votedText}投过票`,
             log,
           },
         },

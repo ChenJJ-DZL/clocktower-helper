@@ -770,8 +770,10 @@ export function useInteractionHandler(deps: {
           })
         );
       } else if (type === "lunatic_apparent_demon") {
-        // 疯子：循环切换 apparentDemonRole 到下一个恶魔角色
-        const allDemons = roles.filter((r: any) => r.type === "demon");
+        // 疯子：循环切换 apparentDemonRole 到下一个恶魔角色（排除军团：无军团成员配合互认）
+        const allDemons = roles.filter(
+          (r: any) => r.type === "demon" && r.id !== "legion"
+        );
         const currentId = (seat as any).apparentDemonRole?.id;
         const idx = allDemons.findIndex((r: any) => r.id === currentId);
         const nextDemon =

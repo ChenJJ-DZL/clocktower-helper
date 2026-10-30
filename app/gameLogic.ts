@@ -865,8 +865,10 @@ export function checkGameEnd(
   //      例如涡流已死但本轮仍按涡流世界结算的历史行为）。
   const vortoxInSeats = isVortoxWorldActive(seats);
   const vortoxEffective = isVortoxWorld || vortoxInSeats;
+  const todayHasExecution =
+    (options as any)?.todayHasExecution === true ||
+    seats.some((s: any) => s.executedToday === true);
   if (lastAction === "check_phase" && vortoxEffective) {
-    const todayHasExecution = (options as any).todayHasExecution === true;
     if (!todayHasExecution) {
       return {
         isGameOver: true,
@@ -877,7 +879,7 @@ export function checkGameEnd(
   }
   if (lastAction === "execution" && executedPlayerId === null) {
     // 涡流 (Vortox): 平安日直接邪恶获胜
-    if (vortoxEffective) {
+    if (vortoxEffective && !todayHasExecution) {
       return {
         isGameOver: true,
         winner: "Evil",

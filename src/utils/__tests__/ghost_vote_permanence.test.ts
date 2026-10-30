@@ -163,4 +163,30 @@ describe("幽灵票永久性（官方规则：整局仅一张）", () => {
     );
     expect(voteOf(revived, 2)).toBe(true);
   });
+
+  it("【防御加固】当新状态中 hasGhostVote 为 undefined 或漏传时，已消耗的幽灵票绝不被意外恢复", () => {
+    const state = makeState();
+    expect(voteOf(state, 2)).toBe(false);
+
+    // 模拟整表覆盖但漏传 hasGhostVote 或设为 undefined
+    const updated = gameReducer(
+      state,
+      gameActions.setSeats(
+        state.seats.map((s) => (s.id === 2 ? ({ ...s, hasGhostVote: undefined } as any) : s))
+      )
+    );
+    expect(voteOf(updated, 2)).toBe(false);
+  });
+
+  it("【防御加固】死者被重复标记死亡 (如 killSeatOnly 传入 hasGhostVote: true) 时，已消耗的幽灵票绝不被复活", () => {
+    const state = makeState();
+    expect(voteOf(state, 2)).toBe(false);
+
+    // 重复对已死玩家调用 updateSeat 并传入 hasGhostVote: true
+    const doubleKill = gameReducer(
+      state,
+      gameActions.updateSeat(2, { isDead: true, hasGhostVote: true })
+    );
+    expect(voteOf(doubleKill, 2)).toBe(false);
+  });
 });

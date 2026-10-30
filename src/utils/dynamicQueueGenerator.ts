@@ -651,9 +651,27 @@ export function generateDynamicNightQueue(
       }
     }
 
-    // 🤹 杂耍艺人（Juggler）：仅在白天声明并使用技能后，当晚才唤醒
+    // 🤹 杂耍艺人（Juggler）：仅在首个白天声明并使用技能后，当晚（第2夜）才唤醒
+    // 官方规则：杂耍艺人在首个白天猜测，当晚获知结果；一次性能力，第3夜及后续夜晚绝不唤醒。
     if (entry.roleId === "juggler") {
       if (isFirstNight) return false;
+      const currentNight = (snapshot as any).nightCount ?? 2;
+      const isSettled =
+        (seat as any).jugglerNightSettled === true ||
+        (seat as any).hasUsedNightAbility === true ||
+        (seat as any).statusDetails?.some?.((d: string) =>
+          d.includes("juggler 一次性能力已用") || d.includes("juggler 已结算")
+        ) ||
+        (seat as any).inheritedAbilityConsumed?.includes?.("juggler");
+      if (isSettled) {
+        return false;
+      }
+
+      const isInherited = seatHasAcquiredAbility(seat, "juggler");
+      if (!isInherited && currentNight !== 2) {
+        return false;
+      }
+
       const hasUsed =
         seat.hasUsedDayAbility ||
         (seat as any).dayAbilityResult?.correctCount !== undefined ||
@@ -662,7 +680,6 @@ export function generateDynamicNightQueue(
         return false;
       }
     }
-
     // 自定义过滤
     if (customFilter && !customFilter(entry, seat)) {
       return false;

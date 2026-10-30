@@ -167,6 +167,8 @@ export function sanitizePlayerFacingText(text: string | null | undefined): strin
     .map((line) => line.replace(/\s+([。，,；;])/g, "$1").trimEnd())
     .filter((line, idx, arr) => line.trim() !== "" || (idx > 0 && idx < arr.length - 1))
     .join("\n");
+  // ⑥ 去掉开发调试前缀标签，如 [TownCrier]、[Flowergirl]、[Acrobat] 等
+  out = out.replace(/^\[[A-Za-z0-9_\u4e00-\u9fa5\s]+\]\s*/, "");
   return out.trim();
 }
 

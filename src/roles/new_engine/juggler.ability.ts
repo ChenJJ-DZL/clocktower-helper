@@ -23,16 +23,6 @@ import {
   createRoleAbility,
 } from "../core/roleAbility.types";
 
-// 前置校验：检查是否已使用能力
-const preCheckLimitedAbility = async (
-  ctx: MiddlewareContext
-): Promise<MiddlewareContext> => {
-  if (!canUseLimitedAbility(ctx.actionNode.seatId, "juggler_guess")) {
-    return { ...ctx, aborted: true, abortReason: "杂耍艺人已经使用过能力了" };
-  }
-  return ctx;
-};
-
 // 前置校验：杂耍艺人只能在首个白天猜测（官方 Wiki）
 const firstDayOnlyCheck = async (
   ctx: MiddlewareContext

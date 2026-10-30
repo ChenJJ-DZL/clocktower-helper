@@ -84,6 +84,13 @@ export function useLogicDispatcher(
   const victoryRef = useRef<{ winner: "good" | "evil"; reason: string } | null>(
     null
   );
+  const executedTodayRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (gamePhase === "day" || gamePhase === "firstNight") {
+      executedTodayRef.current = null;
+    }
+  }, [gamePhase]);
 
   /**
    * 🔴 2026-10-21：座位真值的**同步镜像** —— 把「副作用」从 `setSeats(updater)` 里救出来。
@@ -195,6 +202,7 @@ export function useLogicDispatcher(
       }
 
       if (action.type === "EXECUTE_PLAYER") {
+        executedTodayRef.current = action.targetId;
         setExecutedPlayerId(action.targetId);
         setTodayExecutedId(action.targetId);
         setCurrentDuskExecution(action.targetId);
@@ -280,10 +288,17 @@ export function useLogicDispatcher(
         );
         const isMastermindActive = !!mastermind;
 
+        const isExecution =
+          typeof executedPlayerId === "number" && !Number.isNaN(executedPlayerId);
+        const todayHasExecution =
+          isExecution ||
+          executedTodayRef.current !== null ||
+          seatsForCheck.some((s: any) => s.executedToday === true);
+
         const action: GameAction = {
           type: "CHECK_GAME_OVER",
-          executedId: executedPlayerId || undefined,
-          lastAction: executedPlayerId ? "execution" : "check_phase",
+          executedId: isExecution ? executedPlayerId : undefined,
+          lastAction: isExecution ? "execution" : "check_phase",
           context: {
             damselGuessed,
             klutzGuessedEvil,
@@ -293,6 +308,7 @@ export function useLogicDispatcher(
             // ⭐ 剧本级特殊规则（判据在 utils/scriptSpecialRules，本处只透传）
             scriptSpecialRules: getScriptSpecialRules(selectedScript),
             nightCount: nightCountOverride ?? nightCount ?? 0,
+            todayHasExecution,
           },
         };
         const snapshot = processGameEvent(seatsForCheck, gamePhase, action);

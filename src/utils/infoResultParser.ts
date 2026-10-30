@@ -247,50 +247,98 @@ export function parseInfoResult(
  *
  * ⚠️ 这是**纯展示层**的折行，不修改任何结果文本本身（日志/持久化仍存原文）。
  */
-export const MAX_SINGLE_LINE_CHARS = 16;
+export const MAX_LINE_CHARS = 20;
+export const MAX_SINGLE_LINE_CHARS = MAX_LINE_CHARS;
 
-export function splitResultForDisplay(result: string): string[] {
-  if (!result) return [];
-  // 已含换行的多行结果：原样拆分，不重新排版
-  if (result.includes("\n")) {
-    return result
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-  }
+/**
+ * 将单行文本按规则切分为若干行（每行尽可能 <= MAX_LINE_CHARS）。
+ * 标点冒号“：”优先换行（冒号留在上一行末尾）。
+ */
+function splitSingleLine(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= MAX_LINE_CHARS) return [trimmed];
 
-  const trimmed = result.trim();
-  if (trimmed.length <= MAX_SINGLE_LINE_CHARS) return [trimmed];
-
-  // 收集所有「中文标点之后」的切分位置
-  const breakPoints: number[] = [];
-  const punctRe = /[，。；、！？,;!?]/g;
-  let m: RegExpExecArray | null;
-  while ((m = punctRe.exec(trimmed)) !== null) {
-    const idx = m.index + 1; // 切在标点之后
-    if (idx > 0 && idx < trimmed.length) breakPoints.push(idx);
-  }
-  if (breakPoints.length === 0) return [trimmed];
-
-  // 选最接近中点、且不把任一行留得过短的切分点
-  const mid = trimmed.length / 2;
-  let best = -1;
-  let bestScore = Number.POSITIVE_INFINITY;
-  for (const idx of breakPoints) {
-    const leftLen = idx;
-    const rightLen = trimmed.length - idx;
-    // 两行都不少于 4 字，且尽量均衡
-    if (leftLen < 4 || rightLen < 4) continue;
-    const score = Math.abs(idx - mid);
-    if (score < bestScore) {
-      bestScore = score;
-      best = idx;
+  // 1. 优先在标点冒号“：”或“:”处换行（标点在上一行末尾）
+  const colonMatch = trimmed.match(/[:：]/);
+  if (colonMatch && colonMatch.index !== undefined) {
+    const colonPos = colonMatch.index + 1; // 切分点落在冒号之后
+    // 冒号不在最前/末尾，且第一行不超过 20 字
+    if (colonPos > 1 && colonPos < trimmed.length && colonPos <= MAX_LINE_CHARS) {
+      const line1 = trimmed.slice(0, colonPos).trim().replace(/:$/, "：");
+      const line2 = trimmed.slice(colonPos).trim();
+      return [line1, ...splitSingleLine(line2)];
     }
   }
 
-  if (best === -1) return [trimmed];
+  // 2. 无冒号（或冒号在 20 字之后）时，在其他标点（，。；、！？,;!?）之后切分
+  const punctRe = /[，。；、！？,;!?]/g;
+  const breakPoints: number[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = punctRe.exec(trimmed)) !== null) {
+    const idx = m.index + 1;
+    if (idx > 0 && idx < trimmed.length) breakPoints.push(idx);
+  }
 
-  const line1 = trimmed.slice(0, best).trim();
-  const line2 = trimmed.slice(best).trim();
-  return [line1, line2].filter((l) => l.length > 0);
+  if (breakPoints.length > 0) {
+    // 若总长 <= 40（两行能装下），寻找能让两行都 <= 20 且最均衡（最接近中点）的标点
+    if (trimmed.length <= MAX_LINE_CHARS * 2) {
+      const mid = trimmed.length / 2;
+      let best = -1;
+      let bestScore = Number.POSITIVE_INFINITY;
+      for (const idx of breakPoints) {
+        const leftLen = idx;
+        const rightLen = trimmed.length - idx;
+        if (leftLen <= MAX_LINE_CHARS && rightLen <= MAX_LINE_CHARS) {
+          const score = Math.abs(idx - mid);
+          if (score < bestScore) {
+            bestScore = score;
+            best = idx;
+          }
+        }
+      }
+      if (best !== -1) {
+        const line1 = trimmed.slice(0, best).trim();
+        const line2 = trimmed.slice(best).trim();
+        return [line1, line2].filter((l) => l.length > 0);
+      }
+    }
+
+    // 若无法直接分成 2 行 <= 20，或总长 > 40：贪心选取 <= 20 的最右侧标点
+    const validPoints = breakPoints.filter((idx) => idx <= MAX_LINE_CHARS);
+    if (validPoints.length > 0) {
+      const best = validPoints[validPoints.length - 1];
+      const line1 = trimmed.slice(0, best).trim();
+      const line2 = trimmed.slice(best).trim();
+      return [line1, ...splitSingleLine(line2)];
+    }
+  }
+
+  // 3. 兜底：无任何中文标点
+  // 纯英文/纯西文长串不硬折，交渲染层 break-words 兜底
+  if (!/[，。；、！？,;!?\u4e00-\u9fa5]/.test(trimmed)) {
+    return [trimmed];
+  }
+
+  // 含中文且超过 20 字但无合适标点：强制在 20 字处折行，确保满足「单行最多 20 字」
+  const line1 = trimmed.slice(0, MAX_LINE_CHARS).trim();
+  const line2 = trimmed.slice(MAX_LINE_CHARS).trim();
+  return [line1, ...splitSingleLine(line2)];
+}
+
+export function splitResultForDisplay(result: string): string[] {
+  if (!result) return [];
+
+  // 原生多行与单行均逐行走 splitSingleLine 校验
+  const rawLines = result
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const finalLines: string[] = [];
+  for (const rawLine of rawLines) {
+    finalLines.push(...splitSingleLine(rawLine));
+  }
+
+  return finalLines;
 }

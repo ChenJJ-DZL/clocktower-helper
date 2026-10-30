@@ -337,8 +337,8 @@ const SPEC: Spec[] = [
     type: "demon",
     docsName: "小恶魔",
     rolesDataName: "小恶魔",
-    // 🧸 玩具匠（Toymaker）官方「恶魔可以放弃攻击」⇒ 2026-10-20 起放宽 0~1
-    target: { min: 0, max: 1, allowSelf: true, allowDead: true },
+    // 官方：「每个夜晚*，选择一名玩家：他死亡」⇒ min: 1, max: 1
+    target: { min: 1, max: 1, allowSelf: true, allowDead: true },
     timing: ["every_night"],
     neg: "impProtectedTarget",
     effectField: "isDead",

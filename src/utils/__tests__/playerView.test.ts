@@ -76,6 +76,8 @@ describe("playerView · 文案脱敏与泄漏词表", () => {
         "3号玩家的真实身份：男爵 (中毒/醉酒状态，此为假信息)"
       )
     ).toBe("男爵");
+    expect(sanitizePlayerFacingText("[TownCrier] 有爪牙提名")).toBe("有爪牙提名");
+    expect(sanitizePlayerFacingText("[Flowergirl] 恶魔今天没有投票")).toBe("恶魔今天没有投票");
   });
 
   it("不会误伤能力本身的合法表述（投毒者的「使X号中毒」）", () => {

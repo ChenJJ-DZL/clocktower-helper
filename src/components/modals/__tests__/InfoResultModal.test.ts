@@ -208,6 +208,12 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
     const res4 = parseInfoResult(raw4, "6号-图书管理员");
     expect(res4.prefix).toBe("6号-图书管理员获得信息");
     expect(res4.result).toBe("场上没有外来者在场（数字0）");
+
+    // 🏹 赏金猎人阵营告知文案（官方首夜：告知其已属于邪恶阵营）
+    const raw5 = "唤醒12号【侍女】，告知他：你已经属于邪恶阵营。";
+    const res5 = parseInfoResult(raw5, "12号-阵营告知");
+    expect(res5.prefix).toBe("12号-阵营告知获得信息");
+    expect(res5.result).toBe("你已经属于邪恶阵营");
   });
 
   test("⭐ 行首系统标签 - 不得出现悬挂右括号（【双子告知】11号是镜像双子）", () => {

@@ -82,7 +82,7 @@ describe("splitResultForDisplay · 不应误伤", () => {
   });
 
   it(`长度恰为阈值 ${MAX_SINGLE_LINE_CHARS} 的单句不折`, () => {
-    const exactly = "一二三四五六七八九十一二三四五六"; // 16 字
+    const exactly = "一二三四五六七八九十一二三四五六七八九十"; // 20 字
     expect(exactly.length).toBe(MAX_SINGLE_LINE_CHARS);
     expect(splitResultForDisplay(exactly)).toEqual([exactly]);
   });
@@ -90,5 +90,44 @@ describe("splitResultForDisplay · 不应误伤", () => {
   it("无中文标点的长句不硬折（交渲染层兜底）", () => {
     const noPunct = "AAAAAAAAAAAAAAAAAAAAAAAAAAAA"; // 28 字无标点
     expect(splitResultForDisplay(noPunct)).toEqual([noPunct]);
+  });
+});
+
+describe("弹窗信息新规则（最多20字、冒号处优先换行）", () => {
+  it("规则 2 示例：总共 35 个字，第 17 个字是标点冒号“：”，显示为 17+18 的 2 行字", () => {
+    const left16 = "一二三四五六七八九十一二三四五六"; // 16 字
+    const right18 = "一二三四五六七八九十一二三四五六七八"; // 18 字
+    const raw35 = `${left16}：${right18}`; // 16 + 1 (：) + 18 = 35 字，第 17 个字是冒号
+    expect(raw35.length).toBe(35);
+    expect(raw35[16]).toBe("：");
+
+    const lines = splitResultForDisplay(raw35);
+    expect(lines).toEqual([`${left16}：`, right18]);
+    expect(lines[0].length).toBe(17);
+    expect(lines[1].length).toBe(18);
+  });
+
+  it("恶魔互认实战：超过 20 字的行在冒号处折行，其余行保持原样", () => {
+    const demonInfo = [
+      "爪牙是：9号、11号、14号",
+      "疯子：8号",
+      "不在场伪装：【小精灵】、【农夫】、【镇长】",
+      "提线木偶×告密者相克·恶魔额外伪装：【罂粟种植者】、【酒鬼】、【畸形秀演员】",
+    ].join("\n");
+
+    const lines = splitResultForDisplay(demonInfo);
+    expect(lines).toEqual([
+      "爪牙是：9号、11号、14号", // 13 字 <= 20，不折
+      "疯子：8号", // 5 字 <= 20，不折
+      "不在场伪装：", // 6 字 <= 20
+      "【小精灵】、【农夫】、【镇长】", // 15 字 <= 20
+      "提线木偶×告密者相克·恶魔额外伪装：", // 18 字 <= 20
+      "【罂粟种植者】、【酒鬼】、【畸形秀演员】", // 20 字 <= 20
+    ]);
+
+    // 每一行均满足单行最多 20 字
+    for (const l of lines) {
+      expect(l.length).toBeLessThanOrEqual(20);
+    }
   });
 });

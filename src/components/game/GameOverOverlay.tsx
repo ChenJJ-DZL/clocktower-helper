@@ -144,7 +144,7 @@ export function GameOverOverlay() {
                 : "本局游戏已结束"}
           </div>
         </div>
-        ;{/* 胜利依据卡片 */}
+        {/* 胜利依据卡片 */}
         <div className="p-5 sm:p-6 rounded-2xl bg-slate-800/80 border border-white/10 space-y-3 text-left max-w-3xl mx-auto shadow-xl">
           <div className="flex items-center gap-2 text-base sm:text-lg font-bold text-slate-300">
             <span>⚖️</span>
@@ -176,7 +176,6 @@ export function GameOverOverlay() {
             </p>
           )}
         </div>
-        ;
       </div>
     </ModalWrapper>
   );
