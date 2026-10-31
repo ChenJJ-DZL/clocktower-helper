@@ -25,6 +25,7 @@ import {
   voudonThreshold,
 } from "../utils/travelerHooks";
 import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
+import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 import {
   shouldMorticianTransform,
   transformMorticianToDemon,
@@ -353,15 +354,11 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
             !s.isDrunk
         );
         if (activeEvilTwin) {
-          const isGoodTwinTarget =
-            (evilTwinPair?.goodId !== undefined &&
-              evilTwinPair.goodId === id) ||
-            !!t.isGoodTwin ||
-            (id !== activeEvilTwin.id &&
-              t.role.id !== "evil_twin" &&
-              !t.isEvilConverted &&
-              isSeatTownsfolkOrOutsider(t));
-          if (isGoodTwinTarget) {
+          const { goodTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+            seatsSnapshot,
+            evilTwinPair
+          );
+          if (goodTwinSeat && !goodTwinSeat.isDead && isGoodTwin(id)) {
             setCurrentModal({
               type: "EVIL_TWIN_EXECUTION_CONFIRM",
               data: { targetId: id, skipLunaticRps: options?.skipLunaticRps },

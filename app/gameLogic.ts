@@ -19,6 +19,7 @@ import {
 } from "../src/utils/gameRules";
 import { isVortoxWorldActive } from "../src/utils/vortoxWorld";
 import { resolveScriptAutoEvilWin } from "../src/utils/scriptSpecialRules";
+import { resolveEvilTwinPair } from "../src/utils/evilTwinHelper";
 import type { GamePhase, Seat } from "./data";
 import { roles } from "./data";
 
@@ -656,20 +657,7 @@ export function checkGameEnd(
         s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
     );
     if (evilTwinSeat) {
-      const goodTwinId =
-        evilTwinPair?.goodSeatId ?? evilTwinPair?.goodId;
-      const goodTwinSeat =
-        (goodTwinId !== undefined
-          ? seats.find((s) => s.id === goodTwinId)
-          : null) ||
-        seats.find((s) => s.isGoodTwin && !s.isDead) ||
-        seats.find(
-          (s) =>
-            s.id !== evilTwinSeat.id &&
-            !s.isDead &&
-            (s.role?.type === "townsfolk" || s.role?.type === "outsider") &&
-            !s.isEvilConverted
-        );
+      const { goodTwinSeat } = resolveEvilTwinPair(seats, evilTwinPair);
       if (goodTwinSeat && !goodTwinSeat.isDead) {
         goodWinBlockedByTwin = true;
       }
@@ -703,19 +691,14 @@ export function checkGameEnd(
           s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
       );
       if (evilTwin) {
-        const designatedGoodId =
-          evilTwinPair?.goodSeatId ?? evilTwinPair?.goodId;
-        const hasExplicitDesignation =
-          designatedGoodId !== undefined || seats.some((s) => s.isGoodTwin);
-        const isGoodTwin = hasExplicitDesignation
-          ? executedSeat.id === designatedGoodId ||
-            !!executedSeat.isGoodTwin
-          : executedSeat.id !== evilTwin.id &&
-            executedSeat.role?.id !== "evil_twin" &&
-            !executedSeat.isEvilConverted &&
-            (executedSeat.role?.type === "townsfolk" ||
-              executedSeat.role?.type === "outsider");
-        if (isGoodTwin) {
+        const { goodTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+          seats,
+          evilTwinPair
+        );
+        if (
+          goodTwinSeat &&
+          isGoodTwin(executedSeat.id)
+        ) {
           return {
             isGameOver: true,
             winner: "Evil",
