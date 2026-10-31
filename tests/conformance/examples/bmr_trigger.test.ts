@@ -79,6 +79,32 @@ describe("黯月初升 · 触发链官方范例", () => {
       },
     },
     {
+      // 官方范例: 月之子 #0
+      id: "月之子#0：被普卡杀死的月之子，次日选择驱魔人 ⇒ 当晚驱魔人死亡",
+      roleId: "moonchild",
+      seats: [
+        [0, "moonchild", { isDead: true }],
+        "exorcist",
+        "imp",
+        "chef",
+      ],
+      phase: "day",
+      targets: [1],
+      check: ({ info }) => {
+        expect(info?.shouldKill, "选中的是善良玩家 ⇒ 应产生击杀").toBe(true);
+        expect(info?.targetId).toBe(1);
+      },
+    },
+    {
+      // 官方范例: 月之子 #1
+      id: "月之子#1：被处决但被和平主义者救下（未死亡）⇒ 不能选人",
+      roleId: "moonchild",
+      seats: ["moonchild", "exorcist", "imp", "chef"],
+      phase: "day",
+      targets: [1],
+      expect: { aborted: true },
+    },
+    {
       // 官方范例: 沙巴洛斯 #0
       id: "沙巴洛斯#0：同时攻击造谣者与受旅店老板保护的赌徒 ⇒ 前者死、后者活",
       roleId: "shabaloth",
@@ -94,6 +120,27 @@ describe("黯月初升 · 触发链官方范例", () => {
       check: ({ seats }) => {
         expect(seats[1]?.isDead, "造谣者未受保护 ⇒ 应死亡").toBe(true);
         expect(seats[2]?.isDead, "受保护的赌徒不应死亡").toBe(false);
+      },
+    },
+    {
+      // 官方范例: 沙巴洛斯 #1
+      id: "沙巴洛斯#1：攻击存活的侍臣 + 反刍已死亡的驱魔人 ⇒ 侍臣死、驱魔人复活",
+      roleId: "shabaloth",
+      seats: [
+        "shabaloth",
+        "courtier",
+        [2, "exorcist", { isDead: true, diedAtNight: 1, deathSource: "shabaloth" }],
+        "chef",
+      ],
+      night: 2,
+      targets: [1, 2],
+      storytellerInput: { regurgitatedSeatId: 2 },
+      check: ({ seats }) => {
+        expect(seats[1]?.isDead, "存活的侍臣被攻击 ⇒ 死亡").toBe(true);
+        expect(
+          seats[2]?.isDead,
+          "官方：说书人让驱魔人复活 ⇒ 不再处于死亡状态"
+        ).toBe(false);
       },
     },
   ]);

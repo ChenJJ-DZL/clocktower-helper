@@ -18,6 +18,20 @@ export default defineConfig({
     globals: true,
     environment: "node",
     env: { NODE_ENV: "test" },
+    /**
+     * 🔴 2026-11-01：限制并发 worker 数。
+     *
+     * 本机 14 核，默认会开出接近核数的 forks；全量 6000+ 用例跑起来时，
+     * 偶发出现 `Failed to start forks worker … Timeout waiting for worker to respond`
+     * —— **文件本身没跑，测试结果却是全 passed**，只有进程退出码 1。
+     * 症状极具误导性：看起来像"某用例红了"，实际是用例根本没执行。
+     * （连续三次分别命中 bmr_townsfolk / executioner / investigator 三个不同文件 ⇒ 与代码无关。）
+     *
+     * 6 个 worker 足够跑满 CPU，又留出启动余量；代价是全量时间略增。
+     * 宁可慢 30%，也不要一个会说谎的基线。
+     */
+    maxWorkers: 6,
+    minWorkers: 1,
     // 旧测试已全部清除（过期），保留框架以备后续新建测试
     passWithNoTests: true,
     include: ["**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],

@@ -568,6 +568,8 @@ describe("L5 · 黯月初升 · 其余 13 角色因果链（差分判据）", ()
 
     // A：目标 = 1号 chambermaid（善良）⇒ MARK_FOR_DEATH
     const A = board(layout);
+    // 官方：月之子能力在死亡时触发（见 月之子#1）
+    A[0].isDead = true;
     const ra = await runRole(moonchildAbility, A, 0, {
       night: 2,
       phase: "night",
@@ -576,6 +578,8 @@ describe("L5 · 黯月初升 · 其余 13 角色因果链（差分判据）", ()
 
     // B：目标 = 2号 imp（邪恶）⇒ 无事发生
     const B = board(layout);
+    // 官方：月之子能力在死亡时触发（见 月之子#1）
+    B[0].isDead = true;
     const rb = await runRole(moonchildAbility, B, 0, {
       night: 2,
       phase: "night",

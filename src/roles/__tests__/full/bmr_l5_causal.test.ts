@@ -1008,6 +1008,8 @@ describe("L5 · 修补匠(tinker)", () => {
 describe("L5 · 月之子(moonchild)", () => {
   it("① 选中善良玩家 ⇒ 产出 MARK_FOR_DEATH 指令", async () => {
     const seats = board(layout("moonchild"));
+    // 官方：月之子能力在**死亡时**触发 ⇒ 夹具必须让本人处于死亡状态（官方范例 月之子#1）
+    seats[0].isDead = true;
     const res = await runRole(moonchildAbility, seats, 0, {
       night: 2,
       phase: "night",
@@ -1021,6 +1023,8 @@ describe("L5 · 月之子(moonchild)", () => {
 
   it("② 负向对照：选中邪恶玩家 ⇒ 无事发生", async () => {
     const seats = board(layout("moonchild", ["imp"]));
+    // 官方：月之子能力在**死亡时**触发 ⇒ 夹具必须让本人处于死亡状态（官方范例 月之子#1）
+    seats[0].isDead = true;
     const impId = seats.findIndex((s: any) => s.role?.id === "imp");
     const res = await runRole(moonchildAbility, seats, 0, {
       night: 2,
@@ -1034,6 +1038,8 @@ describe("L5 · 月之子(moonchild)", () => {
 
   it("③ 边界：月之子醉酒/中毒 ⇒ 能力无效，不下死亡指令", async () => {
     const seats = board(layout("moonchild"));
+    // 官方：月之子能力在**死亡时**触发 ⇒ 夹具必须让本人处于死亡状态（官方范例 月之子#1）
+    seats[0].isDead = true;
     drunk(seats, 0);
     const res = await runRole(moonchildAbility, seats, 0, {
       night: 2,

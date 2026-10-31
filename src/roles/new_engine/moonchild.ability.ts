@@ -28,6 +28,21 @@ const calculateResult = async (
   const moonchildSeatId = context.actionNode.seatId;
   const moonchildSeat = snapshot.seats.find((s) => s.id === moonchildSeatId);
 
+  /**
+   * 🔴 官方范例（月之子 #1）：「和平主义者在场。月之子被处决但依然存活。
+   *   月之子无法选择玩家，因为月之子没有死亡。」
+   *   ⇒ 能力触发的前提是**月之子本人已死亡**。
+   *   历史缺陷：原实现直接产出 `shouldKill`，存活时也会弹出选人并击杀，
+   *   等于把「被救下的月之子」当成死人用。
+   */
+  if (!moonchildSeat || (moonchildSeat as { isDead?: boolean }).isDead !== true) {
+    return {
+      ...context,
+      aborted: true,
+      abortReason: "月之子尚未死亡，能力不触发",
+    };
+  }
+
   // 获取目标座位
   const targetId = targetIds[0];
   const targetSeat = snapshot.seats.find((s) => s.id === targetId);

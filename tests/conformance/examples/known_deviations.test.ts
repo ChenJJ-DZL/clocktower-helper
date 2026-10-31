@@ -56,35 +56,4 @@ describe("官方范例 · 已核实偏差（修好后请转正）", () => {
     }
   );
 
-  it.fails(
-    "月之子#1：被处决但被和平主义者救下（未死亡）⇒ 不得选择玩家",
-    async () => {
-      // 官方原文（月之子 范例#1）：
-      //   「和平主义者在场。月之子被处决但依然存活。月之子无法选择玩家，
-      //     因为月之子没有死亡。」
-      //
-      // 判据符号：`src/roles/new_engine/moonchild.ability.ts::calculate`
-      //   —— 该函数直接产出 `shouldKill: true`，**没有判 `seat.isDead`**；
-      //   而月之子的能力触发时点应当是「死亡当晚/次日」，存活时不应询问目标。
-      //
-      // 修复方向：在 calculate 前加死亡判定（`if (!seat.isDead) abort`），
-      //   并确认「死亡后下一次天黑」的既有路径仍能正常进入（preCheck 别一并挡住）。
-      ensureAbilityRegistry();
-      const seats = [
-        seat(0, "moonchild"),
-        seat(1, "exorcist"),
-        seat(2, "imp"),
-        seat(3, "chef"),
-      ];
-      const res = await runAbility(
-        getAbilityForRole("moonchild") as any,
-        ctx(seats, 0, "moonchild", { phase: "day", targets: [1] })
-      );
-      // 官方：没死就不能选人 ⇒ 能力不该生效
-      expect(
-        (res.meta as any)?.abilityResult?.shouldKill ?? false,
-        "未死亡的月之子不应触发击杀选择"
-      ).toBe(false);
-    }
-  );
 });
