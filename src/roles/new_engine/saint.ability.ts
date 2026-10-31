@@ -225,8 +225,8 @@ const postProcessResult = async (
 // ─── 导出能力注册 ─────────────────────────────────────────────────────
 
 export const saintAbility = createRoleAbility({
-  /** 角色标识符，对应 app/data.ts 中 Role.id */
-  roleId: "saint_townsfolk",
+  /** 角色标识符，对应 app/data.ts 中 Role.id（官方外来者版角色 id 为 "saint"） */
+  roleId: "saint",
   /** 能力标识符，用于 abilityRegistry 注册 */
   abilityId: "saint_execution_curse",
   /** 能力中文名 */

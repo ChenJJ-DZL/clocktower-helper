@@ -1126,7 +1126,7 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
       expect(res.snapshot.gameResult?.winner).toBe("evil");
     });
 
-    it("⭐⭐ 官方契约成立 + 钉住架构债：外来者版 saint 走 legacy 通路，行为已双重覆盖", async () => {
+    it("⭐⭐ 官方契约成立 + 外来者版 saint 已迁入新引擎（roleId 修正为 \"saint\"）", async () => {
       /**
        * ✅ 2026-09-22 复核结论（原为 `it.fails` 登记「待修 P1」，**判据错位**）：
        *
@@ -1134,28 +1134,18 @@ describe("L5 · 凶宅魅影（haunted_manor）21 角色因果链", () => {
        *   官方【角色简介】：「如果圣徒因处决而死亡，游戏结束。善良阵营落败，邪恶阵营获胜。」
        *   「如果圣徒因处决**以外**的任何方式死亡——例如被恶魔杀死——游戏仍会继续。」
        *
-       * **官方规则层面无缺陷** —— 行为已被两处独立覆盖：
-       *   ① `src/roles/__tests__/full_game_lifecycle.test.ts`「圣徒被处决 → 邪恶阵营胜利」
-       *      （**legacy `checkGameEnd`** 通路，即生产实际走的那条）
-       *   ② 本文件 ⑭「主路径：被处决 → gameOver + winner=evil」（新引擎 `saintAbility`）
-       *
-       * ⚠️ 唯余**架构债**（**不是**官方规则缺陷，故不再用 `it.fails` 冒充"待修缺陷"）：
-       *   `saint.ability.ts` 注册的 `roleId` 是 `saint_townsfolk`（**镇民版**圣徒），
-       *   而凶宅魅影/窃窃私语用的是**外来者版** `saint`
-       *   ⇒ `isRoleMigrated("saint") === false` ⇒ 生产对该角色走 legacy 通路（行为正确）。
-       *   若将来要让外来者圣徒也走新引擎，应**新增** `roleId: "saint"` 的注册，
-       *   **不要**把 `saint_townsfolk` 改名（会打断镇民版）。
-       *
-       * ⇒ 本条改为：**断言官方契约成立** + **钉住架构债现状**
-       *   （若哪天完成迁移，这条会红并提醒同步更新说明 —— 这是我们要的棘轮行为）。
+       * ✅ 2026-11-01 架构债已修复：`saint.ability.ts` 的 `roleId` 由
+       *   `saint_townsfolk`（扩展镇民版）改为官方外来者 id `saint`
+       *   （abilityId 仍为 `saint_execution_curse`）⇒ `isRoleMigrated("saint") === true`。
+       *   行为不变：圣徒处决结算在生产仍由 legacy `checkGameEnd` 兜底，
+       *   本文件 ⑭（新引擎 `saintAbility`）与 `full_game_lifecycle` 双重覆盖官方契约。
+       *   （扩展镇民版 `saint_townsfolk` 不再持有该能力，其 legacy 通路由人审 waiver 登记。）
        */
       const { isRoleMigrated } = await import("../../../utils/nightInfoAdapter");
       expect(
         isRoleMigrated("saint"),
-        "⚠️ 架构债（非官方缺陷）：外来者版 saint 未迁新引擎（saint.ability.ts 注册为 saint_townsfolk）" +
-          "⇒ 生产走 legacy 通路；官方行为由 full_game_lifecycle + 本文件 ⑭ 双重覆盖。" +
-          "若已迁移到新引擎 ⇒ 请把本条改成 isRoleMigrated===true 并更新说明。"
-      ).toBe(false);
+        "外来者版 saint 应已迁入新引擎（saint.ability.ts 的 roleId 已修正为 \"saint\"）"
+      ).toBe(true);
 
       // ⭐ 官方契约（必须成立的那件事）：死于处决 ⇒ 游戏结束、邪恶获胜
       const seats = board(["saint", ...SAFE4]);

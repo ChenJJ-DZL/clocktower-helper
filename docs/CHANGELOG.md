@@ -1,5 +1,74 @@
 # 更新日志
 
+## W10.31.0 — 规则一致性系统 L3–L7 全量落地（2026-11-01）
+
+> 配套文档：[RULE_CONFORMANCE_SYSTEM.md](./RULE_CONFORMANCE_SYSTEM.md) ·
+> [POSTMORTEM_AND_ENGINEERING_GUIDELINES.md](./POSTMORTEM_AND_ENGINEERING_GUIDELINES.md) 第六章
+
+### 一、棘轮门禁修复（此前是**红的**，但没有规则回归）
+
+1. **基线签名格式 v2**：`check|角色` → `severity|check|角色`。旧格式下无法发现
+   「waiver 被移除 ⇒ 严重度从 INFO 回升到 P0」，而且会让 95 条**已知债务**被误报成"新增回归"、
+   63 条被误报成"已修复"（报告自相矛盾）。
+2. **失败关闭 + 一次性迁移**：`compareWithBaseline()` 读到旧格式基线返回 `needsMigration` 且
+   **不产出 diff**（不允许"新增 0 条"的假绿）；新增 `--migrate-baseline [--accept-new]`
+   只做「同 `check|role` 换前缀」的机械变换，无法唯一对齐即拒绝落盘。
+   本次迁移：机械迁移 56 条 / 真实修复 7 条 / 新增 39 条（L3 语义层 review，已人审）。
+3. **夜序指标改成「审计覆盖」**：`firstNightAudited = 硬比对 68 + 显式裁定 46`，
+   `otherNightAudited = 64 + 50`。原口径下"把误报改成 INFO 裁定"会被判成覆盖率下降，
+   等于奖励写错、惩罚修正。
+
+### 二、L4 整局随机仿真接入台账（新）
+
+- 新增 `scripts/conformance/fuzz.ts` + `lib/fuzzRunner.ts`：复用既有 `runStressGame`（I1–I11 不变式），
+  2 剧本池（黯月初升 / 梦殒春宵）× 6 局 × 4 夜 = **12 局 / 246 动作 / 违例 0**（约 2s）。
+- 指标进审计台账：`fuzzGames / fuzzActions` 只许上升，`fuzzViolations` **上升即回归**。
+- 🔴 每局强制 `resetLimitedAbilityUses()`：限次能力是模块级单例，不重置会让第 2 局起动作数骤降，
+  把"违例 0"变成假绿——门禁因此同时断言样本量（`fuzzActions > 80`）。
+
+### 三、L5 变异测试 20 → 23 条，分数进棘轮，**23/23 全杀**
+
+- 新增 3 条针对判胜审计的变异（缺 reasonCode 放过 / 不校验证据 / 大小写敏感），全部被杀死。
+- 补掉最后一条长期存活的变异 `wr2-required-evidence-cleared`：它的 tests 里漏了
+  `win_reason_registry_contract.test.ts`（只跑 `winReasonMatrix`），清空 `requiredEvidence` 竟无测试可杀。
+- `mutationKilled` 进 `COVERAGE_METRICS`（只许上升）；未跑变异时按"本次未测量"跳过判定，
+  避免 CI（不跑 80s 变异）被误判成覆盖率下降。
+
+### 四、L6 E2E 从"有入口"升级为"有断言"（新）
+
+- 新增 `scripts/conformance/e2e-assertions.ts` + `lib/e2eAssertions.ts`：把 `e2e/**/*.ts` 按
+  `test(...)` 切块，统计「块内既有 `expect(`、又提到该角色」的块数。
+- 现状：**48 个 spec · 237 个 test 块 · 796 条 expect · 94/172 个角色被断言**。
+- `e2eAssertionRoles` 进棘轮（只许上升），并用「断言数 > 500」+「≤ reach 口径」双向夹住防口径漂移。
+
+### 五、L7 判胜运行时审计留痕（新）
+
+- 新增 `src/utils/winConditions/winAudit.ts`：50 条环形缓冲，校验
+  reasonCode 是否登记 / winner 与注册表 side 是否一致 / requiredEvidence 是否齐全；
+  脏判胜 `console.warn("[win-audit] …")`，浏览器可用 `window.__ctWinAudit.summary()` 现场取证。
+- **接入两条绕过判胜入口的路径**：`useConfirmHandlers` 的圣徒、善良双子确认弹窗此前直接
+  `setWinResult()`，审计完全看不见。
+- `app/gameLogic.ts::checkGameEnd` 拆成 `checkGameEndCore` + 审计包装（对外签名不变）。
+  只观测不改写：审计失败不阻断对局（阻断已在 `makeWinResult` 侧 fail-closed）。
+
+### 六、官方范例 Oracle 表驱动化
+
+- 新增 `tests/conformance/examples/_oracle.ts`：一条官方范例 ≈ 10 行数据（`{ id, roleId, seats, targets, check }`），
+  不再复制 20 行样板；新增夹具 `tb_oracle_batch.test.ts`（僧侣#2 恶魔受保护自杀 / 猎手#2 射非恶魔 / 送葬者#2 间谍登记）。
+- 已编码官方范例 **46 → 51 条**（暗流涌动 43/87）。
+- 新增 `known_deviations.test.ts`：用 `it.fails` 钉住**已核实**的实现偏差（修好即转红、强制转正）——
+  本轮登记 1 条：图书管理员#1 中「陌客被说书人登记为爪牙」时官方要求报「0」，
+  而 `librarian.ability.ts::getOutsiderCandidates` 只按 `role.type` 收候选、不消费 `registerAs*`。
+
+### 七、验证结果
+
+- `npx tsc --noEmit`：**0 错**
+- `npx vitest run`：全量通过（含新增 `winAudit.test.ts` 10 例、表驱动范例 3 例、偏差登记 1 例 expected-fail）
+- `npm run conformance:audit`：**静态 P0 = 0 / P1 = 0**，棘轮 **新增 0 · 修复 0 · 覆盖下降 0**
+- `npm run conformance:mutation`：**23/23 = 100%**，0 冲突，全部文件 hash 已恢复
+- `npm run conformance:fuzz`：**12 局 / 246 动作 / 违例 0**
+- `npm run conformance:e2e`：**94/172** 角色有断言型覆盖
+
 ## W9.7.4 — 控制台操作按钮固定沉底与信息弹窗（数字0）格式单行规范化（2026-09-07）
 
 ### 一、控制台底部按钮严格固定贴底修复（图1 & 图2）

@@ -45,10 +45,11 @@ import { washerwomanAbility } from "../../new_engine/washerwoman.ability";
  *   ① `recluse` / `scarlet_woman` 在 rolesData.json 的中文名是
  *      「隐士」/「红罗刹」，而 app/data.ts 与 officialRoleDocs.json 均为
  *      「陌客」/「红唇女郎」 ⇒ **三处名称不一致**。
- *   ② 外来者 `saint` 没有以自身 id 注册的能力对象：
- *      `saint.ability.ts:229` 的 `roleId` 是 `"saint_townsfolk"`（扩展镇民版），
- *      于是 `isRoleMigrated("saint") === false`；外来者圣徒的处决结算实际写在
- *      `src/hooks/useExecutionHandlers.ts:261`（`t.role.id === "saint"`）。
+ *   ② 外来者 `saint` 已完成新引擎注册迁移（2026-11-01）：
+ *      `saint.ability.ts` 的 `roleId` 已从 `"saint_townsfolk"` 改回官方外来者 id
+ *      `"saint"`（abilityId 仍为 `"saint_execution_curse"`）⇒ `isRoleMigrated("saint") === true`；
+ *      扩展镇民版 `saint_townsfolk` 不再假装持有该能力（由人审 waiver 登记 legacy 通路）。
+ *      判胜/处决行为不变（legacy `checkGameEnd` 与新引擎能力双重覆盖）。
  *   ③ `scarlet_woman.otherNightPriority` 声明为 `null`（被动不排队），而
  *      rolesData.json 记 `otherNightOrder: 37` —— 两份数据源口径不同。
  *
@@ -433,46 +434,22 @@ describe("L1 · 暗流涌动 · 静态数据层（22 角色）", () => {
       ).toBe(spec.type);
 
       /**
-       * ④ 能力对象的 roleId 通常必须等于注册 id（防复制粘贴漏改）。
-       * ⚠️ 例外：`saint`（外来者）的能力对象 roleId 是 `"saint_townsfolk"`
-       *    （扩展镇民版圣徒），因此外来者圣徒**没有以自身 id 注册的能力对象**。
-       *    此处固化现状，并把该缺口写入交付报告（见文件头 §②）。
+       * ④ 能力对象的 roleId 必须等于注册 id（防复制粘贴漏改）。
+       * 2026-11-01 起 `saint` 也走严格断言：其能力对象 roleId 已改为 `"saint"`
+       * （原为扩展镇民版 `"saint_townsfolk"`）。
        */
-      if (spec.id === "saint") {
-        expect(
-          spec.ability?.roleId,
-          "❌ 外来者 saint 的能力对象 roleId 已不再是 saint_townsfolk（请复核并更新本断言）"
-        ).toBe("saint_townsfolk");
-      } else {
-        expect(
-          spec.ability?.roleId,
-          `❌ ${spec.id} 的能力对象 roleId 是 ${spec.ability?.roleId}（应为 ${spec.id}）`
-        ).toBe(spec.id);
-      }
+      expect(
+        spec.ability?.roleId,
+        `❌ ${spec.id} 的能力对象 roleId 是 ${spec.ability?.roleId}（应为 ${spec.id}）`
+      ).toBe(spec.id);
     });
 
     it("② 注册状态（isRoleMigrated）+ rolesData 中文名现状", () => {
-      /**
-       * ⚠️ `saint` 是**已知缺口**：其能力对象注册在 `saint_townsfolk` 名下，
-       *    所以 `isRoleMigrated("saint") === false`。外来者圣徒的处决结算
-       *    写在 `src/hooks/useExecutionHandlers.ts:261`，不走注册表。
-       *    本断言固化现状，缺口写入交付报告。
-       */
-      if (spec.id === "saint") {
-        expect(
-          isRoleMigrated("saint"),
-          "❌ 外来者 saint 的注册状态发生变化（原本为 false）—— 请复核本断言与交付报告"
-        ).toBe(false);
-        expect(
-          isRoleMigrated("saint_townsfolk"),
-          "（说明）扩展镇民版 saint_townsfolk 才是已注册的那一个"
-        ).toBe(true);
-      } else {
-        expect(
-          isRoleMigrated(spec.id),
-          `❌ ${spec.id} 未注册进新引擎注册表（isRoleMigrated=false）`
-        ).toBe(true);
-      }
+      // 2026-11-01 起 saint 已迁入新引擎（roleId 修正为 "saint"）⇒ 全角色严格断言。
+      expect(
+        isRoleMigrated(spec.id),
+        `❌ ${spec.id} 未注册进新引擎注册表（isRoleMigrated=false）`
+      ).toBe(true);
 
       // rolesData.json 的中文名（固化现状：recluse/scarlet_woman 与另两处不一致）
       expect(

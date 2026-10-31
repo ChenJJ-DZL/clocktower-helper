@@ -198,9 +198,11 @@ const SPEC: Record<string, Row> = {
   saint: {
     script: "hm", main: 1,
     n: {
-      // 该剧本的圣徒是外来者：走 legacy checkGameEnd，adapter 连 targetLimit 都不产出
-      1: { guide: "silent", queued: false, tl: null },
-      2: { guide: "silent", queued: false, tl: null },
+      // ✅ 2026-11-01：saint 已迁入新引擎（PASSIVE，roleId 修正为 "saint"），
+      //   adapter 仍不唤醒（guide=silent / queued=false），但 targetLimit 从能力声明
+      //   `targetConfig {min:0,max:0}` 解析出 [0,0]（原为 legacy 时代 null）。
+      1: { guide: "silent", queued: false, tl: [0, 0] },
+      2: { guide: "silent", queued: false, tl: [0, 0] },
     },
   },
   witch: {

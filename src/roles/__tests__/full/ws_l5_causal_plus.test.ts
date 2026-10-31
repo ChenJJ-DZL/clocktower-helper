@@ -338,7 +338,7 @@ interface RoleContract {
 }
 
 /**
- * **18 个角色的声明式契约表**（`saint` 见文末的已登记例外）。
+ * **19 个角色的声明式契约表**（含 2026-11-01 迁入的 `saint`）。
  *
  * 每条 `official` 都**逐字**引自 `src/data/officialRoleDocs.json`，用来支撑
  * `firstNight` / `otherNight` / `timing` / `target` 四组期望值。
@@ -424,6 +424,18 @@ const CONTRACTS: RoleContract[] = [
     firstNight: false,
     otherNight: false,
     timing: [AbilityTriggerTiming.PASSIVE],
+  },
+  {
+    roleId: "saint",
+    cn: "圣徒",
+    // ✅ 2026-11-01：saint.ability.ts 的 roleId 由 saint_townsfolk 修正为官方外来者 id `saint`，
+    //    故本剧本 19 个角色全部纳入声明式契约。
+    official: "如果你死于处决，你的阵营落败。",
+    firstNight: false,
+    otherNight: false,
+    timing: [AbilityTriggerTiming.PASSIVE],
+    // 被动死亡触发：不选目标
+    target: { min: 0, max: 0, allowSelf: false, allowDead: false },
   },
   {
     roleId: "recluse",
@@ -528,8 +540,8 @@ const CONTRACTS: RoleContract[] = [
 describe("L5 · 声明式契约：官方原文 → firstNightPriority / otherNightPriority / triggerTiming / targetConfig", () => {
   initializeAbilityRegistry();
 
-  /** 先自证「表本身没错」——否则 18 条绿灯全部不可信（元教训 0） */
-  it("⓪ 自证：契约表必须恰好覆盖窃窃私语除 saint 外的 18 个角色，且注册表里都能找到", () => {
+  /** 先自证「表本身没错」——否则 19 条绿灯全部不可信（元教训 0） */
+  it("⓪ 自证：契约表必须恰好覆盖窃窃私语的 19 个角色，且注册表里都能找到", () => {
     const WS = [
       "chambermaid", "gossip", "oracle", "mathematician", "artist", "flowergirl",
       "innkeeper", "fool", "saint", "recluse", "politician", "spy", "witch",
@@ -537,14 +549,14 @@ describe("L5 · 声明式契约：官方原文 → firstNightPriority / otherNig
     ];
     expect(WS.length, "❌ 窃窃私语应为 19 个角色").toBe(19);
 
-    const expected = WS.filter((id) => id !== "saint").sort();
+    const expected = [...WS].sort();
     expect(
       CONTRACTS.length,
-      "❌ 契约表条目数必须 = 18（少一条就有角色没被约束）"
+      "❌ 契约表条目数必须 = 19（少一条就有角色没被约束）"
     ).toBe(expected.length);
     expect(
       CONTRACTS.map((c) => c.roleId).sort(),
-      "❌ 契约表的 roleId 集合必须与窃窃私语名册（除 saint）完全一致"
+      "❌ 契约表的 roleId 集合必须与窃窃私语名册完全一致"
     ).toEqual(expected);
 
     const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
@@ -621,30 +633,23 @@ describe("L5 · 声明式契约：官方原文 → firstNightPriority / otherNig
   }
 
   /**
-   * ⚠️ **已登记的例外**：`saint` —— **刻意不进 CONTRACTS**，此处显式登记。
-   *
-   * 事实链（与 `ws_l1_l2.test.ts:574-581`、`ws_l2_matrix.test.ts` 的 ⓪ 是**同一件事**）：
-   *   · 窃窃私语里的 `saint` 是**外来者版圣徒**（官方：「如果你死于处决，你的阵营落败。」）
-   *   · `src/roles/new_engine/saint.ability.ts:229` 的 `roleId` 写的是 **`saint_townsfolk`**
-   *     （扩展镇民版），故注册表里**没有** `roleId === "saint"` 的能力。
-   *   · 本剧本圣徒的处决诅咒走 **legacy `checkGameEnd`**，`isRoleMigrated("saint") === false`。
-   *   · ⚠️ 另外 `getAbilityForRole` 是 `startsWith` 模糊匹配，`getAbilityForRole("saint")`
-   *     会**串门**拿到 `saint_townsfolk` 的能力（返回非 null！）⇒ 判「有没有」必须用注册表。
-   * ⇒ **不做声明式契约断言**（没有声明可测），但**必须把例外本身断言住**：
-   *   一旦有人把 `saint_townsfolk` 改名成 `saint`，本用例立刻红，提醒回来补契约条目。
+   * ✅ 2026-11-01：`saint` 的迁移缺口已修复 —— `src/roles/new_engine/saint.ability.ts`
+   *   的 `roleId` 已由 `saint_townsfolk`（扩展镇民版）改为官方外来者 id `saint`
+   *   （abilityId 仍为 `saint_execution_curse`）⇒ 注册表里存在 `roleId === "saint"` 的能力，
+   *   且本剧本 19 个角色已全部纳入上表 CONTRACTS。
+   *   生产结算仍以 legacy `checkGameEnd` 兜底为本剧主线，行为不变。
    */
-  it("⚠️ 已登记例外：saint（外来者版）没有新引擎能力，走 legacy checkGameEnd —— 例外本身必须可证伪", () => {
+  it("✅ saint 已并入 CONTRACTS（外来者版，roleId 已修正为 saint）", () => {
     initializeAbilityRegistry();
     const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
     expect(
       abilities.filter((a) => a?.roleId === "saint").length,
-      "❌ 注册表里出现了 roleId='saint' 的能力 —— 例外已失效，" +
-        "请把它从本例外中移出并补进 CONTRACTS"
-    ).toBe(0);
+      "❌ 注册表里应恰有 1 条 roleId='saint' 的能力（saint_execution_curse）"
+    ).toBe(1);
     expect(
       CONTRACTS.some((c) => c.roleId === "saint"),
-      "❌ saint 不应出现在契约表里（它没有可测的声明）"
-    ).toBe(false);
+      "❌ saint 应出现在声明式契约表里（已迁入新引擎，有可测的声明）"
+    ).toBe(true);
   });
 
   /**

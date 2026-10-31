@@ -20,6 +20,7 @@ import {
 } from "../src/utils/mastermindRule";
 import { resolveScriptAutoEvilWin } from "../src/utils/scriptSpecialRules";
 import { isVortoxWorldActive } from "../src/utils/vortoxWorld";
+import { auditWinResult } from "../src/utils/winConditions/winAudit";
 import {
   GOOD_TWIN_EXECUTED_REASON,
   makeWinResult,
@@ -555,8 +556,13 @@ export function isPlayerMinion(seat: Seat): boolean {
  * @param lastAction 导致检查的最后一个动作
  * @param executedPlayerId 如果是处决，被处决的玩家ID
  * @param options 其他选项：主谋状态、特殊猜测状态、旋涡状态等
+ *
+ * ⚠️ 实现体命名为 `checkGameEndCore`：**唯一对外入口是下方的 `checkGameEnd`**
+ *   包装函数，它在返回前把终局结果交给 `winAudit.auditWinResult` 观测
+ *   （reasonCode 未登记 / winner 与 side 不一致 / 证据缺失 ⇒ 立刻告警并留痕）。
+ *   新增判胜分支时**不要**直接 return 到外部，走 `makeWinResult` 即可被审计覆盖。
  */
-export function checkGameEnd(
+function checkGameEndCore(
   seats: Seat[],
   lastAction: "execution" | "night_death" | "check_phase",
   executedPlayerId: number | null = null,
@@ -1074,6 +1080,24 @@ export function checkGameEnd(
   }
 
   return { isGameOver: false, winner: null, reason: null };
+}
+
+/**
+ * 判胜唯一对外入口：执行判胜并**审计留痕**。
+ *
+ * L7（生产反馈闭环）：判胜不可逆，脏判胜必须在现场就能被发现。
+ * 审计只观测不改写（不阻断对局），脏数据写进环形缓冲 + `console.warn`，
+ * 浏览器里可通过 `window.__ctWinAudit.summary()` 直接取证。
+ */
+export function checkGameEnd(
+  seats: Seat[],
+  lastAction: "execution" | "night_death" | "check_phase",
+  executedPlayerId: number | null = null,
+  options: GameContext = {}
+): GameEndResult {
+  const result = checkGameEndCore(seats, lastAction, executedPlayerId, options);
+  auditWinResult(result, "gameLogic.checkGameEnd");
+  return result;
 }
 
 // ======================================================================

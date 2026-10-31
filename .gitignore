@@ -61,3 +61,10 @@ screenshots/
 /outputs/rule_conformance/ledger.json
 /outputs/rule_conformance/report.md
 
+/outputs/rule_conformance/examples_ledger.json
+/outputs/rule_conformance/semantic_findings.json
+/outputs/rule_conformance/mutation_report.json
+/outputs/rule_conformance/fuzz_report.json
+/outputs/rule_conformance/e2e_assertions.json
+/outputs/_*.json
+

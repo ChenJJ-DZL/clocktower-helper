@@ -108,8 +108,10 @@ export const rangerAbility = createRoleAbility({
   abilityId: "ranger_night_check",
   abilityName: "游侠排查",
   triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT, AbilityTriggerTiming.EVERY_NIGHT],
-  firstNightPriority: 30,
-  otherNightPriority: 30,
+  // 官方夜序（json/full 归一化 → outputs/rule_conformance/official_spec.json）：
+  // 巡山人/Huntsman 首夜 51、其他夜 88；triggerTiming 保持「每个夜晚」不变。
+  firstNightPriority: 51,
+  otherNightPriority: 88,
   firstNightOnly: false,
   wakePromptId: "role.ranger.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

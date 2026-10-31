@@ -289,8 +289,9 @@ const ROLE_SPEC: Spec[] = [
     firstOnly: false,
     target: { min: 0, max: 0, allowSelf: false, allowDead: false },
     note:
-      "⚠️ 注册的能力 roleId 是 `saint_townsfolk`（扩展镇民版本）⇒ isRoleMigrated('saint') === false。" +
-      "本剧本的 `saint`（外来者）处决诅咒走 legacy `app/gameLogic.ts::checkGameEnd`（见 L5 用例）。",
+      "✅ 2026-11-01 已迁移：`saint.ability.ts` 的 roleId 由 `saint_townsfolk` 修正为 `saint`" +
+      "（abilityId 仍为 `saint_execution_curse`）⇒ isRoleMigrated('saint') === true。" +
+      "本剧本生产结算仍以 legacy `app/gameLogic.ts::checkGameEnd` 为主（见 L5 用例），行为不变。",
   },
   {
     id: "recluse",
@@ -559,7 +560,7 @@ describe("L1 · 静态数据层（窃窃私语 + 无名之墓 · 32 角色）", 
     ).toEqual([]);
   });
 
-  it("③ 注册表接线：每个角色的 abilityId/roleId 与真值表一致（含 saint 的已知例外）", () => {
+  it("③ 注册表接线：每个角色的 abilityId/roleId 与真值表一致", () => {
     const map = getRawAbilityMap();
     const problems: string[] = [];
     const notMigrated: string[] = [];
@@ -579,13 +580,11 @@ describe("L1 · 静态数据层（窃窃私语 + 无名之墓 · 32 角色）", 
     expect(problems, `注册表接线问题：${problems.join("; ")}`).toEqual([]);
 
     /**
-     * ⚠️ 已知例外（只报告）：`saint.ability.ts` 的 `roleId` 写的是
-     *   `saint_townsfolk`（**扩展镇民版圣徒**），而窃窃私语里的是 `saint`（**外来者**）
-     *   ⇒ `isRoleMigrated("saint") === false`，本剧本的圣徒处决诅咒**走 legacy**。
-     *   这与 skill §2.4 记录的「仓库有两个圣徒」完全一致，属既有设计而非本批缺陷，
-     *   但**必须显式登记**，否则后人会以为"新引擎在管圣徒"。
+     * 2026-11-01：`saint.ability.ts` 的 roleId 已修正为官方外来者 id `saint`
+     *   ⇒ 本剧本（窃窃私语）全部角色都已迁入新引擎，不再有注册缺口。
+     *   （扩展镇民版 `saint_townsfolk` 的 legacy 通路由人审 waiver 登记，不影响本真值表。）
      */
-    expect(notMigrated, "未迁移到新引擎的角色（当前已知仅 saint）").toEqual(["saint"]);
+    expect(notMigrated, "未迁移到新引擎的角色（应为空）").toEqual([]);
   });
 
   it("④ 负向对照：真值表里没有重复 id，且 each script 标签确实能在剧本 roleIds 命中", () => {

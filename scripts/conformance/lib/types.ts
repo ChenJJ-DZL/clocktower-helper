@@ -149,6 +149,31 @@ export interface ConformanceFinding {
   impl?: string | number | null;
   /** 人读详情 */
   detail: string;
+  /** 是否已被人审 waiver 台账豁免（豁免后降级 INFO，但仍保留可追溯） */
+  waived?: boolean;
+  /** waiver 理由（来自 scripts/conformance/waivers.json） */
+  waiverReason?: string;
+}
+
+/** 人审豁免/裁定台账条目（必须写明理由，避免"静默放过"） */
+export interface WaiverEntry {
+  /** 匹配的检查项 id（必填） */
+  check: string;
+  /** 可选：精确匹配角色 id */
+  roleId?: string;
+  /** 可选：精确匹配官方角色中文名（roleId 缺失时使用） */
+  roleNameCn?: string;
+  /** 裁定理由（必填，会写进报告） */
+  reason: string;
+  /** 裁定人 */
+  owner?: string;
+  /** 裁定日期（YYYY-MM-DD） */
+  date?: string;
+}
+
+/** waivers 文件结构（scripts/conformance/waivers.json） */
+export interface WaiverFile {
+  waivers: WaiverEntry[];
 }
 
 /** 每个角色的台账行（规则一致性 + 证据面） */
@@ -190,12 +215,44 @@ export interface ConformanceReport {
     officialNotImplemented: number;
     typeChecked: number;
     typeMismatches: number;
+    /** 真正做了硬比对的夜序数（官方给了数字且实现可断言） */
     firstNightComparable: number;
     firstNightMismatches: number;
+    /**
+     * 官方给了夜序、但按人审规则**不作硬断言**而登记裁定的条数
+     * （`spec.official_slot_only` 占位槽 / `spec.official_data_conflict` 官方数据自相矛盾 /
+     * 被动能力不参与夜间唤醒）。它们不是"没测"，而是"显式裁定过"。
+     */
+    firstNightExempt: number;
+    /** 夜序审计覆盖 = 硬比对 + 显式裁定（棘轮口径：只许上升） */
+    firstNightAudited: number;
     otherNightComparable: number;
     otherNightMismatches: number;
+    otherNightExempt: number;
+    otherNightAudited: number;
     rolesWithTestReference: number;
     rolesWithAbilityImpl: number;
+    /** 语义原子层（L3）产生的偏差数 */
+    semanticFindings: number;
+    /** 官方范例总数 / 已编码为可执行夹具的数量（L3 Oracle 覆盖度） */
+    officialExamples: number;
+    encodedExamples: number;
+    /** 变异测试（L5）：被测试杀死 / 总变异数（未运行则为 0） */
+    mutationKilled: number;
+    mutationTotal: number;
+    /** L4 整局随机仿真：局数 / 执行的动作数 / 不变式违例数 */
+    fuzzGames: number;
+    fuzzActions: number;
+    fuzzViolations: number;
+    /**
+     * L6 E2E「断言型」覆盖：在 `test()` 块内既提到该角色、块内又有 `expect(` 的角色数。
+     * （区别于 reach 口径的 `rolesWithTestReference`：那是"源码里被提到过"。）
+     */
+    e2eAssertionRoles: number;
+    /** E2E test 块内的 `expect(` 总数 */
+    e2eAssertions: number;
+    /** 被人审 waiver 豁免的 findings 数 */
+    waivedFindings: number;
   };
   findings: ConformanceFinding[];
   rows: RoleConformanceRow[];
@@ -227,8 +284,15 @@ export interface ConformanceReport {
 
 /** 棘轮基线（提交到仓库，防止规则一致性回退） */
 export interface ConformanceBaseline {
+  /**
+   * 基线格式版本：
+   *   1（或缺省）= 旧签名 `check|roleId`（不带 severity，无法发现"豁免被移除导致严重度回升"）
+   *   2 = 现行签名 `severity|check|roleId`
+   * 版本不匹配时棘轮**失败关闭**：必须显式跑 `--migrate-baseline` 人审迁移，禁止静默兼容。
+   */
+  schemaVersion?: number;
   generatedAt: string;
-  /** findings 签名集合：`check|roleId`（唯一、排序） */
+  /** findings 签名集合：`severity|check|roleId`（唯一、排序） */
   findings: string[];
   /** 统计快照（用于报告趋势，不参与硬断言） */
   metrics: Record<string, number>;

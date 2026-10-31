@@ -458,15 +458,14 @@ describe("《暗流涌动》(Trouble Brewing) 全 22 角色百科范例与 UI �
     });
 
     it("圣徒 (Saint)：死于处决时邪恶直接获胜", () => {
-      // ⚠️ 命名陷阱：本仓库有**两个叫「圣徒」的角色**
-      //   · `saint`（外来者，暗流涌动用）→ 被动，**没有**新引擎能力，
-      //      胜负由 app/gameLogic.ts 的 checkGameEnd 处理
-      //   · `saint_townsfolk`（扩展镇民，非 TB 花名册）→ 才是这个能力的归属
-      //   因此这里断言它挂到 `saint_townsfolk`，而 TB 的 `saint` 走裸能力校验。
+      // ✅ 2026-11-01：`saint.ability.ts` 的 roleId 已由 `saint_townsfolk` 修正为
+      //   官方外来者 id `saint`（abilityId 仍为 `saint_execution_curse`）。
+      //   本仓库仍有扩展镇民版 `saint_townsfolk`（非 TB 花名册），但它不再挂这条能力；
+      //   其 legacy 通路由人审 waiver 登记，不影响 TB 外来者圣徒的接线断言。
       expect(
         saintAbility?.roleId,
-        "saintAbility 属于扩展镇民 saint_townsfolk，不是 TB 的外来者 saint"
-      ).toBe("saint_townsfolk");
+        "saintAbility 应挂到 TB 的外来者 saint（2026-11-01 迁移完成）"
+      ).toBe("saint");
       expect(roles.find((r) => r.id === "saint")?.type, "TB 的圣徒是外来者").toBe(
         "outsider"
       );

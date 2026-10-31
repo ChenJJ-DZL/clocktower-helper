@@ -11,6 +11,7 @@ import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 import { resolveHadesiaOutcome } from "../utils/hadesiaRule";
 import { resolveKlutzOutcome } from "../utils/klutzRule";
 import { showAlert, showConfirm } from "../utils/nativeDialogShim";
+import { auditWinResult } from "../utils/winConditions/winAudit";
 import {
   GOOD_TWIN_EXECUTED_REASON,
   SAINT_EXECUTED_REASON,
@@ -650,6 +651,20 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     victoryRef.current = { winner, reason: SAINT_EXECUTED_REASON };
     setWinResult(winner);
     setWinReason(SAINT_EXECUTED_REASON);
+    // L7：这条路径绕过 checkGameEnd（直接置胜负状态），必须同样留痕，
+    // 否则「脏判胜」审计会漏掉两条确认弹窗路径（见 docs/POSTMORTEM 第六章）。
+    auditWinResult(
+      {
+        isGameOver: true,
+        winner,
+        reason: SAINT_EXECUTED_REASON,
+        reasonCode: saintIsEvil
+          ? "SAINT_CONVERTED_EXECUTED"
+          : "SAINT_EXECUTED",
+        evidence: { executedSeatId: targetId, executedRoleId: "saint" },
+      },
+      "useConfirmHandlers.confirmSaintExecution"
+    );
     executePlayer(targetId, { forceExecution: true });
   }, [
     currentModal,
@@ -758,6 +773,23 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     };
     setWinResult("evil");
     setWinReason(GOOD_TWIN_EXECUTED_REASON);
+    // L7：同 confirmSaintExecution —— 判胜必须可审计（这里是第二条绕过
+    // checkGameEnd 的落库路径）。
+    auditWinResult(
+      {
+        isGameOver: true,
+        winner: "evil",
+        reason: GOOD_TWIN_EXECUTED_REASON,
+        reasonCode: "GOOD_TWIN_EXECUTED",
+        evidence: {
+          executedSeatId: targetId,
+          goodTwinSeatId: targetId,
+          evilTwinSeatId: livingEvilTwin.id,
+          twinPairSource: resolved.source,
+        },
+      },
+      "useConfirmHandlers.confirmEvilTwinExecution"
+    );
     executePlayer(targetId, { forceExecution: true });
   }, [
     currentModal,

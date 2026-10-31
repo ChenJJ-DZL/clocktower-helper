@@ -657,12 +657,12 @@ const DOCS_MISSING_ENTRY: Record<string, string> = {};
 
 /**
  * ② L1 迁移缺口：`isRoleMigrated(id)` 为 false 的角色（只报告不改生产）。
+ *
+ * ✅ 2026-11-01：`saint` 缺口已修复 —— `saint.ability.ts` 的 roleId 由
+ *    `"saint_townsfolk"` 改为官方外来者 id `"saint"`（abilityId 仍为
+ *    `"saint_execution_curse"`）⇒ 本剧本 37 角色全部已迁入新引擎。
  */
-const MIGRATION_KNOWN_GAP: Record<string, string> = {
-  saint:
-    "saintAbility.roleId = \"saint_townsfolk\"（应为 \"saint\"）⇒ isRoleMigrated(\"saint\")=false，" +
-    "getAbilityForRole(\"saint\") 靠 startsWith 兜底才能命中 ⇒ P1（见 hm_l5_causal.test.ts 同名用例）",
-};
+const MIGRATION_KNOWN_GAP: Record<string, string> = {};
 
 /**
  * ③ L2 夜序偏差：`firstNightPriority` / `otherNightPriority` 与官方 rolesData 不一致的登记。

@@ -1,0 +1,116 @@
+{
+  "//": "规则一致性人审豁免台账：每条必须写明理由/裁定人/日期；新增偏差必须先修复或在此登记，不允许静默忽略。",
+  "waivers": [
+    {
+      "check": "spec.type.mismatch",
+      "roleId": "scapegoat",
+      "reason": "官方「替罪羊 Scapegoat」是旅行者；项目为「无名之墓」剧本把它作为角色表成员（type=outsider）承载，能力行为已在 scapegoat.ability.ts 实现。改类型会影响该剧本人数配置/旅行者流程，属产品裁定项，先登记差异（行为已覆盖：处决代刑逻辑与测试）。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "apprentice",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者（全仓旅行者统一口径，非单角色缺口）。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "barista",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "bishop",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "bone_collector",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "butcher",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "deviant",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "harlot",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "judge",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "matron",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "voudon",
+      "reason": "旅行者能力由 travelerHooks/legacy 流程承载，新引擎 abilityRegistry 不注册旅行者。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "monk_female",
+      "reason": "自定义/变体角色（女版僧侣），不属于官方角色清单，能力由变体流程承载。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "saint_townsfolk",
+      "reason": "自定义/变体角色（镇民版圣徒），不属于官方角色清单，能力由变体流程承载。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "saint_demon",
+      "reason": "自定义/变体角色（恶魔版圣徒），不属于官方角色清单，能力由变体流程承载。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "impl.ability.missing",
+      "roleId": "shaman",
+      "reason": "自定义角色（灵言师），不属于官方角色清单，能力由自定义流程承载。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    },
+    {
+      "check": "ability.atom.win.reason_code",
+      "roleId": "conjurer",
+      "reason": "戏法师为自定义角色（未用于任何内置剧本，scripts: []）；官方文本的猜测获胜语义尚未在项目实现（判胜注册表无对应 reasonCode）。登记为已知缺口，待实现该角色能力时按 winReasonCodes 契约补 code+evidence+正反例。",
+      "owner": "Lead",
+      "date": "2026-11-01"
+    }  ]
+}

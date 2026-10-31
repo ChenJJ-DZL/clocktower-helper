@@ -18,8 +18,10 @@ export const missionaryAbility = createRoleAbility({
     AbilityTriggerTiming.FIRST_NIGHT,
     AbilityTriggerTiming.EVERY_NIGHT,
   ],
-  firstNightPriority: 20, // 官方「每个夜晚」（无*）——此前双null致传教士永不行动（孤儿审计P1）
-  otherNightPriority: 20,
+  // 官方夜序（json/full 归一化 → outputs/rule_conformance/official_spec.json）：
+  // 传教士/Priest 首夜 25、其他夜 10；triggerTiming 仍为「每个夜晚」（无 *）。
+  firstNightPriority: 25,
+  otherNightPriority: 10,
   firstNightOnly: false,
   wakePromptId: "role.missionary.wake",
   targetConfig: { min: 1, max: 1, allowSelf: false, allowDead: false },

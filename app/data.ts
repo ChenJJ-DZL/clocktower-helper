@@ -1196,8 +1196,13 @@ export const roles: Role[] = [
     name: "传教士",
     type: "townsfolk",
 
-    ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
-    fullDescription: "",
+    // 官方能力原文（outputs/rule_conformance/official_spec.json 传教士/Priest）：
+    // 「每个夜晚，你要选择一名玩家：如果你选中了爪牙，他会得知被传教士选中。
+    //   所有被你选中的爪牙失去能力。」
+    ability:
+      "【实验性角色】每个夜晚，你要选择一名玩家：如果你选中了爪牙，他会得知被传教士选中。所有被你选中的爪牙失去能力。",
+    fullDescription:
+      "每个夜晚,你要选择一名玩家:如果你选中了爪牙,他会得知被传教士选中。所有被你选中的爪牙失去能力。",
     script: "黯月初升",
     docRef:
       "https://clocktower-wiki.gstonegames.com/index.php?title=%E4%BC%A0%E6%95%99%E5%A3%AB",
@@ -1227,7 +1232,7 @@ export const roles: Role[] = [
   {
     id: "acrobat",
     name: "杂技演员",
-    type: "outsider",
+    type: "townsfolk",
 
     ability: "【实验性角色】详见官方《黯月初升》扩展说明。",
     fullDescription: "",

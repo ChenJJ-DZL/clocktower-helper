@@ -2114,6 +2114,7 @@
     "id": "ranger",
     "name": "巡山人",
     "type": "townsfolk",
+    "firstNightOrder": 51,
     "otherNightMeta": {
       "script": "巡山人请睁眼...",
       "instruction": "说书人将执行守护互换的能力",
@@ -2124,7 +2125,7 @@
       "canSelectSelf": true,
       "canSelectDead": false
     },
-    "otherNightOrder": 0
+    "otherNightOrder": 88
   },
   {
     "id": "revolutionary",

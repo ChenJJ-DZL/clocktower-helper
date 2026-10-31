@@ -2,8 +2,8 @@
  * 窃窃私语 · L2 引擎矩阵（2026-09-22 建，照 `snv_l2_matrix.test.ts` 模板 + 一处**必要的收紧**）
  * ==================================================================
  * 剧本：**窃窃私语（whispering_secrets）**，19 角色（镇民 7 / 外来者 4 / 爪牙 4 / 恶魔 3 / 特殊 1）。
- * 规模：`⓪ 自证 ×1` + `describe.each` 18 角色 × 3 条（① 边界场景 / ② 静默空转护栏 / ③ 确定性）
- *   + `④ 护栏自证 ×1` + `⑤ 全局棘轮 ×1` ⇒ **1 + 18×3 + 2 = 57 条**（实测 `57 passed`）。
+ * 规模：`⓪ 自证 ×1` + `describe.each` 19 角色 × 3 条（① 边界场景 / ② 静默空转护栏 / ③ 确定性）
+ *   + `④ 护栏自证 ×1` + `⑤ 全局棘轮 ×1` ⇒ **1 + 19×3 + 2 = 60 条**。
  *
  * ── 为什么这个剧本要单独建矩阵（而不是复用 ws_l1_l2 的 L2 段）────────
  *   `ws_l1_l2.test.ts` 的 L2 段是**声明契约**（静态事实：targetConfig / 夜序优先级 /
@@ -48,7 +48,6 @@ import {
   initializeAbilityRegistry,
   isRoleAbilitiesRegistered,
 } from "../new_engine/abilityRegistry";
-import { isRoleMigrated } from "../../utils/nightInfoAdapter";
 import { board, runRole } from "./_tbHarness";
 
 /**
@@ -84,22 +83,11 @@ const ROSTER = [
 ];
 
 /**
- * ⚠️ **已登记的例外**：`saint` 在本剧本里是**外来者版**，**没有新引擎能力**。
- *
- *   事实链（可复核，不是"我们忽略了"）：
- *     · `src/roles/new_engine/saint.ability.ts:229` 的 `roleId` 写的是 **`saint_townsfolk`**
- *       （扩展镇民版圣徒），而窃窃私语要的是 `saint`（外来者）。
- *     · 故 `getAbilityForRole("saint")` 取不到、`isRoleRegistered("saint")` 为 false。
- *     · 本剧本圣徒的「被处决 ⇒ 善良阵营失败」走 **legacy `checkGameEnd`**。
- *   这与 `ws_l1_l2.test.ts:574-581` 登记的是**同一件事**（那处断言 `notMigrated === ["saint"]`）。
- *
- *   ⇒ 本文件对它的处理：**进 ⓪ 的负向对照**（断言"确实没有能力"），**不进 `describe.each` 矩阵**
- *     （没有能力可跑，硬跑只会得到一条无意义的红）。
+ * ✅ 2026-11-01：`saint.ability.ts` 的 `roleId` 已由 `saint_townsfolk` 修正为官方
+ *   外来者 id `saint`（abilityId 仍为 `saint_execution_curse`）⇒ 本剧本 19 个角色
+ *   **全部**有可跑的新引擎能力，不再需要「无能力例外」名单。
  */
-const NO_ENGINE_ABILITY = new Set<string>(["saint"]);
-
-/** 真正进矩阵的角色（18 个） */
-const MATRIX_ROSTER = ROSTER.filter((id) => !NO_ENGINE_ABILITY.has(id));
+const MATRIX_ROSTER = ROSTER;
 
 /**
  * **全局计数**：供 ⑤ 做「判据不是恒真」的棘轮断言。
@@ -276,7 +264,7 @@ function stableShape(res: any) {
   });
 }
 
-describe("L2 · 窃窃私语 · 引擎矩阵（18 角色 × 9 边界场景 + 静默空转护栏 + 确定性）", () => {
+describe("L2 · 窃窃私语 · 引擎矩阵（19 角色 × 9 边界场景 + 静默空转护栏 + 确定性）", () => {
   beforeAll(() => {
     initializeAbilityRegistry();
   });
@@ -293,7 +281,7 @@ describe("L2 · 窃窃私语 · 引擎矩阵（18 角色 × 9 边界场景 + 静
    *   它会**安静地**少跑几条或对着未注册能力报红 —— 前者是假绿，后者是噪音。
    *   本用例把「名单与真实剧本花名册一致」钉死：任何人增删角色都必须回来改这里。
    */
-  it("⓪ 自证：名单与剧本 roleIds 完全一致（19 个）；18 个有引擎能力，saint 例外要能被负向证实", () => {
+  it("⓪ 自证：名单与剧本 roleIds 完全一致（19 个）；19 个全部有引擎能力", () => {
     const script = scripts.find((s) => s.id === "whispering_secrets");
     expect(script, "❌ app/data.ts 里找不到 whispering_secrets 剧本").toBeTruthy();
 
@@ -318,38 +306,17 @@ describe("L2 · 窃窃私语 · 引擎矩阵（18 角色 × 9 边界场景 + 静
       ).toBeTruthy();
     }
 
-    // 例外的**负向对照**：`saint` 必须"真的没有"，而不是我们视而不见
-    expect(MATRIX_ROSTER.length, "❌ 进矩阵的应恰为 18 个").toBe(18);
-    for (const id of NO_ENGINE_ABILITY) {
-      expect(
-        isRoleAbilitiesRegistered(id),
-        "❌ " +
-          id +
-          " 被登记为『无新引擎能力』，但注册表里确实有 —— 例外已失效，必须回来改本文件"
-      ).toBe(false);
-      expect(
-        isRoleMigrated(id),
-        "❌ " +
-          id +
-          " 被登记为『走 legacy』，但 isRoleMigrated 为 true —— 例外已失效"
-      ).toBe(false);
-      /**
-       * ⚠️⚠️ **`getAbilityForRole` 是模糊匹配，会"串门"**（本文件实测踩到，别再踩）：
-       *   `abilityRegistry.ts:536-538` 的查找键是 `k.startsWith(roleId)`，
-       *   于是 `getAbilityForRole("saint")` 会命中的是 **`saint_townsfolk`（扩展镇民版圣徒）**
-       *   的能力对象 —— **返回非 null，但不是我们要的那个角色**。
-       *   ⇒ 判「某角色有没有新引擎能力」**必须用 `isRoleAbilitiesRegistered(id)`**，
-       *     绝不能用 `getAbilityForRole(id) != null`（会得到假阳性）。
-       */
-      const fuzzy = getAbilityForRole(id) as any;
-      expect(
-        fuzzy?.roleId,
-        "❌ getAbilityForRole('" +
-          id +
-          "') 应模糊命中别人（saint_townsfolk），实际返回 " +
-          String(fuzzy?.roleId)
-      ).not.toBe(id);
-    }
+    expect(MATRIX_ROSTER.length, "❌ 进矩阵的应恰为 19 个").toBe(19);
+    /**
+     * ✅ 2026-11-01 修复的正向自证：`saint` 的能力对象 roleId 已是官方外来者 id
+     *   `saint`（不再靠 `startsWith` 串到扩展镇民版 `saint_townsfolk`）。
+     *   ⚠️ 判「某角色有没有新引擎能力」仍必须用 `isRoleAbilitiesRegistered(id)`
+     *     （`getAbilityForRole` 是模糊匹配，只适合作展示层兜底）。
+     */
+    expect(
+      (getAbilityForRole("saint") as any)?.roleId,
+      "❌ getAbilityForRole('saint') 应精确命中 roleId='saint'"
+    ).toBe("saint");
   });
 
   describe.each(MATRIX_ROSTER.map((id) => [id] as const))("L2 · %s", (roleId) => {
@@ -559,7 +526,7 @@ describe("L2 · 窃窃私语 · 引擎矩阵（18 角色 × 9 边界场景 + 静
    * ⑤ **全局棘轮**（防「② 虽然不恒真、但实际对所有角色都走豁免」）。
    *
    * ④ 已证明判据对**桩能力**有牙齿；⑤ 再证明它**真的落在真实角色身上**：
-   *   `TALLY.exempt` 若等于 `combos`（162），说明每个组合都被豁免掉了
+   *   `TALLY.exempt` 若等于 `combos`（171 = 19×9），说明每个组合都被豁免掉了
    *   ⇒ ② 对生产代码实际零检查。这里把「非豁免检查数」钉成**只许上调**的棘轮。
    *
    * ⚠️ 棘轮口径：数字**只能变大**（改小 = 有人偷偷放宽了豁免条件，必须当场解释为什么）。
@@ -569,10 +536,14 @@ describe("L2 · 窃窃私语 · 引擎矩阵（18 角色 × 9 边界场景 + 静
     console.log("[L2-TALLY]", JSON.stringify(TALLY));
     expect(
       TALLY.combos,
-      "❌ 组合数应恰为 18 角色 × 9 场景 = 162（说明 describe.each 少跑了角色）"
+      "❌ 组合数应恰为 19 角色 × 9 场景 = 171（说明 describe.each 少跑了角色）"
     ).toBe(MATRIX_ROSTER.length * SCENES.length);
 
-    /** 🔒 棘轮下限（2026-09-22 实测 nonExempt=159 / exempt=3 / combos=162；留 4 的余量） */
+    /**
+     * 🔒 棘轮下限（2026-09-22 实测 nonExempt=159 / exempt=3 / combos=162；
+     *    2026-11-01 saint 迁入矩阵后实测 combos=171、nonExempt=164 / exempt=7 ——
+     *    saint 的被动中止与「不选目标」合法空转分别落在非豁免/豁免通道；下限仍留余量）。
+     */
     const FLOOR = 155;
     expect(
       TALLY.nonExempt,

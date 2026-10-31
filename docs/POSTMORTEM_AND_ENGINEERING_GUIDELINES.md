@@ -290,6 +290,26 @@ export function resolveEvilTwinPair(seats, pair): ResolvedEvilTwinPair {
 - [ ] 用户报障 → 固化到 `tests/reported-bugs/`；
 - [ ] `npm run check:ci` 全绿后再提交。
 
+### 6.7 铁律六：判胜必须**运行时**留痕（2026-11-01 增补，L7）
+
+构造侧 fail-closed（`makeWinResult` 缺证据抛错）只覆盖"走了注册表"的路径；
+历史上还有两条**绕过判胜入口**的路径（`useConfirmHandlers` 的圣徒 / 善良双子确认弹窗）
+直接 `setWinResult()` 落库。生产环境里 `makeWinResult` 又会把抛错降级成 `console.error`，
+**没人看得见**——复盘时无从检索"这局为什么这么结"。
+
+因此补一道**只读观测**关卡 `src/utils/winConditions/winAudit.ts`：
+
+- **接入点**：`checkGameEnd` 的唯一对外出口（实现体改名 `checkGameEndCore`）+ 上述两条弹窗路径；
+- **校验三件事**：`reasonCode` 是否登记 / `winner` 是否与注册表 `side` 一致（大小写不敏感，
+  兼容 `"Good"` 与 `"good"` 两种落库形态）/ `requiredEvidence` 是否齐全；
+- **留痕**：50 条环形缓冲 + 脏判胜 `console.warn("[win-audit] …")`；浏览器暴露
+  `window.__ctWinAudit.trail() / .summary()`（e2e 与线上复盘直接取证）；
+- **不改写结果**：审计失败不阻断对局（阻断已在构造侧完成），只保证"脏判胜一定留痕可查"。
+
+纳入门禁：`winAudit.test.ts` 断言「真实判胜入口产生的每条记录都必须 `ok`」，
+并给审计逻辑配 3 条变异（缺原因码放过 / 不校验证据 / 大小写敏感）——全部被杀死，
+说明这三条不变量确实被测试钉住，而不是"写了没人验"。
+
 > 🧭 **更上层的"全量符合官方规则"检测**（官方规范 ⇄ 实现 ⇄ 测试证据三方对账 + 棘轮门禁）
 > 见 [RULE_CONFORMANCE_SYSTEM.md](./RULE_CONFORMANCE_SYSTEM.md)：
 > `npm run conformance:audit` 会输出逐角色台账与静态判定（含官方类型/夜序/实现缺口），

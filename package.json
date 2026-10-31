@@ -1,7 +1,7 @@
 {
   "//": "by 拜甘教成员-大长老",
   "name": "clocktower-helper",
-  "version": "W10.30.1",
+  "version": "W10.31.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,6 +18,11 @@
     "conformance:spec": "tsx scripts/conformance/extract-spec.ts",
     "conformance:audit": "tsx scripts/conformance/audit.ts",
     "conformance:baseline": "tsx scripts/conformance/audit.ts --write-baseline",
+    "conformance:mutation": "tsx scripts/conformance/mutation.ts",
+    "conformance:semantic": "tsx scripts/conformance/semantic-audit.ts",
+    "conformance:examples": "tsx scripts/conformance/examples-ledger.ts",
+    "conformance:fuzz": "tsx scripts/conformance/fuzz.ts",
+    "conformance:e2e": "tsx scripts/conformance/e2e-assertions.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:list": "playwright test --list",

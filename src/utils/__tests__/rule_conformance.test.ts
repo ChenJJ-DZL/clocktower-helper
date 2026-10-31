@@ -26,12 +26,20 @@ import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { ConformanceReport } from "../../../scripts/conformance/lib/types";
 import {
+  BASELINE_SCHEMA_VERSION,
   compareWithBaseline,
+  findingSignatures,
+  migrateBaselineSignatures,
   runConformanceAudit,
 } from "../../../scripts/conformance/lib/audit";
 import { collectTestEvidence } from "../../../scripts/conformance/lib/evidence";
+import { collectE2eAssertions } from "../../../scripts/conformance/lib/e2eAssertions";
+import { exampleCoverage } from "../../../scripts/conformance/lib/examples";
+import { runFuzz } from "../../../scripts/conformance/lib/fuzzRunner";
 import { buildImplInventory } from "../../../scripts/conformance/lib/impl";
+import { runSemanticAudit } from "../../../scripts/conformance/lib/ruleAtoms";
 import { extractOfficialSpec } from "../../../scripts/conformance/lib/spec";
+import { loadWaivers } from "../../../scripts/conformance/lib/waivers";
 
 const ROOT = process.cwd();
 const BASELINE_FILE = path.join(
@@ -47,14 +55,49 @@ interface AuditBundle {
 
 let bundle: AuditBundle;
 
-beforeAll(() => {
+beforeAll(async () => {
   const spec = extractOfficialSpec(ROOT);
   const impl = buildImplInventory();
   const evidence = collectTestEvidence(
     impl.roles.map((role) => ({ roleId: role.roleId, nameCn: role.nameCn })),
     ROOT
   );
-  bundle = { report: runConformanceAudit({ spec, impl, evidence }) };
+  const examples = exampleCoverage(ROOT);
+  const semantic = runSemanticAudit(spec, impl);
+  // L4：与 `npm run conformance:audit` 同一份 fuzz 配置（确定性 seed）
+  const fuzz = await runFuzz();
+  // L6：E2E 断言型覆盖（reach 口径之外的第二个指标）
+  const e2e = collectE2eAssertions(
+    impl.roles.map((role) => ({ roleId: role.roleId, nameCn: role.nameCn })),
+    ROOT
+  );
+  bundle = {
+    report: runConformanceAudit({
+      spec,
+      impl,
+      evidence,
+      waivers: loadWaivers(ROOT),
+      examples: { total: examples.total, encoded: examples.encoded },
+      fuzz: {
+        games: fuzz.games,
+        actions: fuzz.actions,
+        violations: fuzz.violations,
+      },
+      e2eAssertions: {
+        rolesWithAssertions: e2e.rolesWithAssertions,
+        assertions: e2e.totals.assertions,
+      },
+      semanticFindings: semantic.findings.map((finding) => ({
+        atom: finding.atom,
+        severity: finding.severity,
+        expected: finding.expected,
+        actual: finding.actual,
+        detail: finding.detail,
+        roleId: finding.roleId,
+        nameCn: finding.nameCn,
+      })),
+    }),
+  };
 }, 180_000);
 
 describe("规则一致性系统 · 官方规范抽取", () => {
@@ -90,6 +133,10 @@ describe("规则一致性系统 · 棘轮门禁（无新增偏差）", () => {
 
     const comparison = compareWithBaseline(bundle.report, baseline);
     expect(
+      comparison.needsMigration,
+      "棘轮基线为旧格式（签名缺 severity 前缀），已失败关闭：请运行 npx tsx scripts/conformance/audit.ts --migrate-baseline 后提交新基线"
+    ).toBe(false);
+    expect(
       comparison.newFindings,
       `出现 ${comparison.newFindings.length} 项新的规则一致性偏差（详见 outputs/rule_conformance/report.md）：\n${comparison.newFindings.join("\n")}`
     ).toEqual([]);
@@ -112,5 +159,172 @@ describe("规则一致性系统 · 棘轮门禁（无新增偏差）", () => {
       expect(bundle.report.verdict.strictlyConformant).toBe(false);
       expect(bundle.report.verdict.blockerCount).toBe(p0);
     }
+  });
+});
+
+describe("规则一致性系统 · L4 整局随机仿真", () => {
+  it("整局仿真不变式违例必须为 0，且必须真的执行了动作（防空转假绿）", () => {
+    // 防空转：如果限次能力单例没重置 / 角色池为空，动作数会骤降到 0，
+    // 此时"违例 0"毫无意义 —— 必须同时断言样本量。
+    expect(bundle.report.stats.fuzzGames).toBeGreaterThanOrEqual(6);
+    expect(bundle.report.stats.fuzzActions).toBeGreaterThan(80);
+    expect(
+      bundle.report.stats.fuzzViolations,
+      "整局随机仿真出现不变式违例（见 outputs/rule_conformance/fuzz_report.json 的 samples）"
+    ).toBe(0);
+  });
+});
+
+describe("规则一致性系统 · L6 E2E 断言型覆盖", () => {
+  it("断言型覆盖必须真实存在（reach ≠ assert），且不是空扫描", () => {
+    // 防空转：如果 e2e 目录结构变了导致切块失败，断言总数会崩到 0，
+    // 此时"覆盖角色数"毫无意义 —— 必须同时断言样本量。
+    expect(bundle.report.stats.e2eAssertions).toBeGreaterThan(500);
+    expect(bundle.report.stats.e2eAssertionRoles).toBeGreaterThan(50);
+    // 断言型覆盖不可能超过 reach 口径（测试入口数），超过说明扫描口径错
+    expect(bundle.report.stats.e2eAssertionRoles).toBeLessThanOrEqual(
+      bundle.report.stats.rolesWithTestReference
+    );
+  });
+});
+
+describe("规则一致性系统 · 基线迁移与棘轮契约", () => {  /** 造一个最小可用的 report（只填棘轮用到的字段） */
+  function makeReport(
+    findings: Array<{ severity: "P0" | "P1" | "P2" | "INFO"; check: string; roleId?: string }>
+  ): ConformanceReport {
+    return {
+      generatedAt: new Date().toISOString(),
+      stats: {
+        officialRoles: 0,
+        implRoles: 0,
+        mappedRoles: 0,
+        implWithoutSpec: 0,
+        officialNotImplemented: 0,
+        typeChecked: 0,
+        typeMismatches: 0,
+        firstNightComparable: 0,
+        firstNightMismatches: 0,
+        firstNightExempt: 0,
+        firstNightAudited: 0,
+        otherNightComparable: 0,
+        otherNightMismatches: 0,
+        otherNightExempt: 0,
+        otherNightAudited: 0,
+        rolesWithTestReference: 0,
+        rolesWithAbilityImpl: 0,
+        semanticFindings: 0,
+        officialExamples: 0,
+        encodedExamples: 0,
+        mutationKilled: 0,
+        mutationTotal: 0,
+        fuzzGames: 0,
+        fuzzActions: 0,
+        fuzzViolations: 0,
+        e2eAssertionRoles: 0,
+        e2eAssertions: 0,
+        waivedFindings: 0,
+      },
+      findings: findings.map((finding) => ({ ...finding, detail: "fixture" })),
+      rows: [],
+      scriptBreakdown: [],
+      capabilityTagBreakdown: [],
+      verdict: { strictlyConformant: true, blockerCount: 0, note: "fixture" },
+    } as ConformanceReport;
+  }
+
+  it("旧格式基线（check|role）⇒ 失败关闭：不产出 diff，标记 needsMigration", () => {
+    const report = makeReport([
+      { severity: "P2", check: "impl.ability.missing", roleId: "saint" },
+    ]);
+    const comparison = compareWithBaseline(report, {
+      findings: ["impl.ability.missing|saint"],
+      metrics: {},
+    });
+    expect(comparison.needsMigration).toBe(true);
+    // 关键：旧格式下不能声称"新增 0 项"来假装绿
+    expect(comparison.newFindings).toEqual([]);
+    expect(comparison.fixedFindings).toEqual([]);
+  });
+
+  it("迁移只做机械换前缀：不新增 check|role、不猜测 severity", () => {
+    const report = makeReport([
+      { severity: "INFO", check: "impl.ability.missing", roleId: "saint" },
+      { severity: "P1", check: "night.first.mismatch", roleId: "ranger" },
+    ]);
+    const migration = migrateBaselineSignatures(report, [
+      "impl.ability.missing|saint",
+      "night.first.mismatch|ranger",
+    ]);
+    expect(migration.ambiguous).toEqual([]);
+    expect(migration.malformed).toEqual([]);
+    expect(migration.newFindings).toEqual([]);
+    expect(migration.findings.sort()).toEqual(
+      ["INFO|impl.ability.missing|saint", "P1|night.first.mismatch|ranger"].sort()
+    );
+    // 换前缀后与原 check|role 一一对应（没有任何语义漂移）
+    for (const item of migration.migrated) {
+      expect(item.to.split("|").slice(1).join("|")).toBe(item.from);
+    }
+  });
+
+  it("旧签名在当前结果里找不到唯一对应 ⇒ ambiguous 且拒绝落盘", () => {
+    const report = makeReport([
+      { severity: "P2", check: "impl.ability.missing", roleId: "saint_townsfolk" },
+    ]);
+    const migration = migrateBaselineSignatures(report, [
+      "impl.ability.missing|saint",
+    ]);
+    // 旧 key 在当前结果中已不存在 = 真实修复，不得被"猜"成 saint_townsfolk
+    expect(migration.migrated).toEqual([]);
+    expect(migration.fixedFindings).toContain("impl.ability.missing|saint");
+    // 改名产生的新 key 只能作为「新增」显式列出（需 --accept-new 才落盘），
+    // 绝不能出现在 migrated（机械迁移）里被静默吞掉。
+    expect(migration.newFindings).toContain(
+      "P2|impl.ability.missing|saint_townsfolk"
+    );
+    expect(migration.migrated.map((item) => item.to)).not.toContain(
+      "P2|impl.ability.missing|saint_townsfolk"
+    );
+  });
+
+  it("现行格式基线可直接比对（schemaVersion=2）", () => {
+    const report = makeReport([
+      { severity: "P2", check: "impl.ability.missing", roleId: "saint" },
+    ]);
+    const baseline = {
+      schemaVersion: BASELINE_SCHEMA_VERSION,
+      findings: findingSignatures(report),
+      metrics: {
+        officialRoles: 0,
+        implRoles: 0,
+        mappedRoles: 0,
+        typeChecked: 0,
+        firstNightAudited: 0,
+        otherNightAudited: 0,
+        rolesWithTestReference: 0,
+        rolesWithAbilityImpl: 0,
+        encodedExamples: 0,
+      },
+    };
+    const comparison = compareWithBaseline(report, baseline);
+    expect(comparison.needsMigration).toBe(false);
+    expect(comparison.newFindings).toEqual([]);
+    expect(comparison.metricRegressions).toEqual([]);
+  });
+
+  it("夜序指标用「审计覆盖」= 硬比对 + 显式裁定，避免降级误报成覆盖率下降", () => {
+    const report = makeReport([
+      { severity: "INFO", check: "spec.official_slot_only", roleId: "grandmother" },
+    ]);
+    report.stats.firstNightComparable = 60;
+    report.stats.firstNightExempt = 9;
+    report.stats.firstNightAudited = 69;
+    expect(report.stats.firstNightAudited).toBe(69);
+    const comparison = compareWithBaseline(report, {
+      schemaVersion: BASELINE_SCHEMA_VERSION,
+      findings: findingSignatures(report),
+      metrics: { firstNightAudited: 69, otherNightAudited: 0 },
+    });
+    expect(comparison.metricRegressions).toEqual([]);
   });
 });
