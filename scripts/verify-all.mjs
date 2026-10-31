@@ -110,6 +110,20 @@ const steps = [
     desc: "计划 W2：任一格下降即红（场次 27 / 角色位 192 / 入口覆盖 100% / 执行证据 ≥109）",
   },
   {
+    id: "conformance",
+    title: "规则一致性（官方规范 ⇄ 实现 ⇄ 证据）",
+    status: "ready",
+    cmd: NPX,
+    args: [
+      "vitest",
+      "run",
+      "src/utils/__tests__/rule_conformance.test.ts",
+      "--reporter=dot",
+    ],
+    env: { NODE_OPTIONS: "" },
+    desc: "官方 json/full 归一化 ⇄ 实现（类型/夜序/能力注册）⇄ 测试入口台账；无新增偏差、覆盖指标不下降（棘轮）",
+  },
+  {
     id: "terminal",
     title: "终局专项（C5，5 人 × 9 剧本）",
     status: "ready",

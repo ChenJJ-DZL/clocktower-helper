@@ -55,3 +55,9 @@ playwright-report/
 test-results/
 .me
 screenshots/
+
+# rule conformance generated artifacts (baseline 提交，其余为可再生产物)
+/outputs/rule_conformance/official_spec.json
+/outputs/rule_conformance/ledger.json
+/outputs/rule_conformance/report.md
+

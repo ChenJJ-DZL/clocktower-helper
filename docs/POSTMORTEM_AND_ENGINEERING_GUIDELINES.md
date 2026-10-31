@@ -290,6 +290,11 @@ export function resolveEvilTwinPair(seats, pair): ResolvedEvilTwinPair {
 - [ ] 用户报障 → 固化到 `tests/reported-bugs/`；
 - [ ] `npm run check:ci` 全绿后再提交。
 
+> 🧭 **更上层的"全量符合官方规则"检测**（官方规范 ⇄ 实现 ⇄ 测试证据三方对账 + 棘轮门禁）
+> 见 [RULE_CONFORMANCE_SYSTEM.md](./RULE_CONFORMANCE_SYSTEM.md)：
+> `npm run conformance:audit` 会输出逐角色台账与静态判定（含官方类型/夜序/实现缺口），
+> `npx vitest run src/utils/__tests__/rule_conformance.test.ts` 在 CI 中防止偏差回退。
+
 ---
 
 ## 附录 A：CI workflow（可直接复制为 `.github/workflows/ci.yml`）
