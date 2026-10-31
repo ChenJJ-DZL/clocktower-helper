@@ -31,7 +31,6 @@ export default defineConfig({
      * 宁可慢 30%，也不要一个会说谎的基线。
      */
     maxWorkers: 6,
-    minWorkers: 1,
     // 旧测试已全部清除（过期），保留框架以备后续新建测试
     passWithNoTests: true,
     include: ["**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
