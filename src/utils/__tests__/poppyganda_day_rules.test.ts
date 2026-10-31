@@ -13,16 +13,12 @@
  * 被测对象：`app/gameLogic.ts` 的 `checkGameEnd`（纯函数，无需 DOM）
  */
 import { describe, expect, it } from "vitest";
-import { checkGameEnd } from "../../../app/gameLogic";
 import { roles } from "../../../app/data";
+import { checkGameEnd } from "../../../app/gameLogic";
 
 const r = (id: string) => roles.find((x) => x.id === id)!;
 
-function seat(
-  id: number,
-  roleId: string,
-  over: Partial<any> = {}
-): any {
+function seat(id: number, roleId: string, over: Partial<any> = {}): any {
   return {
     id,
     playerName: `P${id + 1}`,
@@ -36,7 +32,7 @@ function seat(
 }
 
 /** 把一个座位标记为死亡 */
-const dead = (s: any) => ({ ...s, isDead: true, });
+const dead = (s: any) => ({ ...s, isDead: true });
 
 describe("罂粟花开 · 白天/终局胜负规则", () => {
   // ─── 军团 ───────────────────────────────────────────────
@@ -95,6 +91,10 @@ describe("罂粟花开 · 白天/终局胜负规则", () => {
   // ─── 镜像双子 ───────────────────────────────────────────
   it("镜像双子 善良双子被处决 → **邪恶**阵营获胜（官方原文）", () => {
     // 官方：「你与一名对立阵营的玩家互知身份…如果你们中一人被处决，邪恶阵营获胜」
+    // ⚠️ 2026-11-01：配对必须**显式指定**（说书人指定 / 座位标记）。
+    //   旧实现靠"第一个镇民"启发式识别善良双子，导致处决任意镇民都可能误判
+    //   （P0：处决 15号-小精灵被判善良双子）。现在无证据 ⇒ 不判胜，
+    //   因此本用例显式传入 evilTwinPair。
     const seats = [
       seat(0, "evil_twin"),
       seat(1, "mayor"), // 对立善良双子
@@ -102,7 +102,9 @@ describe("罂粟花开 · 白天/终局胜负规则", () => {
       seat(3, "legion"),
       seat(4, "farmer"),
     ];
-    const res = checkGameEnd(seats, "execution", 1);
+    const res = checkGameEnd(seats, "execution", 1, {
+      evilTwinPair: { evilId: 0, goodId: 1 },
+    });
     expect(res.isGameOver).toBe(true);
     expect(res.winner).toBe("Evil");
     expect(res.reason).toContain("双子");

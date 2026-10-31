@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { Seat } from "../../../../app/data";
 import { checkGameEnd } from "../../../../app/gameLogic";
 import { abilityPriorityCalculation } from "../../../utils/abilityPriorityMiddleware";
-import { runAbilityPipeline } from "../../../utils/middlewarePipeline";
-import { vortoxAbility } from "../../new_engine/vortox.ability";
-import { evil_twinAbility } from "../../new_engine/evil_twin.ability";
-import { chefAbility } from "../../new_engine/chef.ability";
 import {
   generateDynamicNightQueue,
   type NightOrderEntry,
 } from "../../../utils/dynamicQueueGenerator";
+import { runAbilityPipeline } from "../../../utils/middlewarePipeline";
 import { calculateNightInfoViaNewEngine } from "../../../utils/nightInfoAdapter";
+import { chefAbility } from "../../new_engine/chef.ability";
+import { evil_twinAbility } from "../../new_engine/evil_twin.ability";
+import { vortoxAbility } from "../../new_engine/vortox.ability";
 
 /**
  * 用户实测反馈 4 大核心机制综合验证：
@@ -61,7 +61,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       const monkCtx = {
         actionNode: { seatId: 1, roleId: "monk", abilityId: "monk_protect" },
         snapshot: {
-          seats: seats.map((s) => ({ ...s, isDead: false, })),
+          seats: seats.map((s) => ({ ...s, isDead: false })),
           isVortoxWorld: true,
           vortoxWorld: true,
         },
@@ -73,9 +73,13 @@ describe("用户实测反馈四大核心机制综合测试", () => {
 
       // 洗衣妇为信息类镇民
       const washerCtx = {
-        actionNode: { seatId: 2, roleId: "washerwoman", abilityId: "washerwoman_info" },
+        actionNode: {
+          seatId: 2,
+          roleId: "washerwoman",
+          abilityId: "washerwoman_info",
+        },
         snapshot: {
-          seats: seats.map((s) => ({ ...s, isDead: false, })),
+          seats: seats.map((s) => ({ ...s, isDead: false })),
           isVortoxWorld: true,
           vortoxWorld: true,
         },
@@ -90,7 +94,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
     it("涡流夜杀被僧侣保护的目标时，受保护玩家存活", async () => {
       const snapshot = {
         seats: [
-          makeSeat(0, "vortox", "demon", { isDead: false, } as any),
+          makeSeat(0, "vortox", "demon", { isDead: false } as any),
           makeSeat(1, "washerwoman", "townsfolk", {
             isDead: false,
             isProtected: true,
@@ -118,17 +122,26 @@ describe("用户实测反馈四大核心机制综合测试", () => {
     it("双子首夜产生 displayInfo 并包含对立双子角色", async () => {
       const snapshot = {
         seats: [
-          makeSeat(0, "evil_twin", "minion", { isDead: false, } as any),
-          makeSeat(1, "oracle", "townsfolk", { isDead: false, } as any),
+          makeSeat(0, "evil_twin", "minion", { isDead: false } as any),
+          makeSeat(1, "oracle", "townsfolk", { isDead: false } as any),
         ],
         nightCount: 1,
         gamePhase: "firstNight",
       };
 
       const result = await runAbilityPipeline(evil_twinAbility, {
-        actionNode: { seatId: 0, roleId: "evil_twin", abilityId: "evil_twin_recognize" },
+        actionNode: {
+          seatId: 0,
+          roleId: "evil_twin",
+          abilityId: "evil_twin_recognize",
+        },
         snapshot: snapshot as any,
         targetIds: [],
+        // ⚠️ 2026-11-01：对立双子必须由说书人**显式指定**（storytellerInput.twinId）。
+        //   旧实现会启发式取"首个镇民"充当善良双子，导致处决任意镇民被误判
+        //   （P0：处决 15号-小精灵被判善良双子）。无指定时能力应提示待指定，
+        //   不再伪造配对，故本用例显式传入 twinId。
+        storytellerInput: { twinId: 1 },
         meta: {},
         aborted: false,
       } as any);
@@ -259,7 +272,9 @@ describe("用户实测反馈四大核心机制综合测试", () => {
         1
       );
       expect(info).toBeDefined();
-      expect(info?.guide).toContain("【双子告知】请先告知该玩家：1号是镜像双子！");
+      expect(info?.guide).toContain(
+        "【双子告知】请先告知该玩家：1号是镜像双子！"
+      );
       expect(info?.guide).toContain("告诉他相邻邪恶玩家有");
     });
 
@@ -283,7 +298,9 @@ describe("用户实测反馈四大核心机制综合测试", () => {
         1
       );
       expect(info).toBeDefined();
-      expect(info?.guide).toContain("【双子告知】请先告知该玩家：1号是镜像双子！随后再进行角色技能操作。");
+      expect(info?.guide).toContain(
+        "【双子告知】请先告知该玩家：1号是镜像双子！随后再进行角色技能操作。"
+      );
     });
   });
 
@@ -300,11 +317,15 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       ];
 
       const chefCtx = {
-        actionNode: { seatId: 0, roleId: "chef", abilityId: "chef_first_night_ability" },
+        actionNode: {
+          seatId: 0,
+          roleId: "chef",
+          abilityId: "chef_first_night_ability",
+        },
         snapshot: {
           nightCount: 1,
           gamePhase: "firstNight",
-          seats: seats.map((s) => ({ ...s, isDead: false, })),
+          seats: seats.map((s) => ({ ...s, isDead: false })),
         },
         meta: {},
         aborted: false,
@@ -322,10 +343,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
   describe("3. 告密者 (Snitch) 机制测试", () => {
     it("告密者为纯被动角色，被排除在夜间唤醒队列之外", () => {
       const snapshot = {
-        seats: [
-          makeSeat(0, "snitch", "outsider"),
-          makeSeat(1, "imp", "demon"),
-        ],
+        seats: [makeSeat(0, "snitch", "outsider"), makeSeat(1, "imp", "demon")],
       };
       const order: NightOrderEntry[] = [
         {
@@ -400,7 +418,10 @@ describe("用户实测反馈四大核心机制综合测试", () => {
     it("转邪恶角色（如僧侣）技能效果 100% 正常执行，不受阵营改变干扰", async () => {
       const seats = [
         makeSeat(0, "bounty_hunter", "townsfolk"),
-        makeSeat(1, "monk", "townsfolk", { isEvilConverted: true, alignment: "evil" } as any),
+        makeSeat(1, "monk", "townsfolk", {
+          isEvilConverted: true,
+          alignment: "evil",
+        } as any),
         makeSeat(2, "washerwoman", "townsfolk"),
         makeSeat(3, "imp", "demon"),
       ];
@@ -409,7 +430,7 @@ describe("用户实测反馈四大核心机制综合测试", () => {
       const monkCtx = {
         actionNode: { seatId: 1, roleId: "monk", abilityId: "monk_protect" },
         snapshot: {
-          seats: seats.map((s) => ({ ...s, isDead: false, })),
+          seats: seats.map((s) => ({ ...s, isDead: false })),
         },
         meta: {},
       } as any;

@@ -9,18 +9,31 @@
  * - 随机数走确定性种子，保证同一爪牙在预览、执行、弹窗间信息完全一致。
  */
 
+import type { Role } from "@/app/data";
 import {
   createDeterministicRandom,
   nightInfoSeed,
 } from "../roles/core/deterministicRandom";
 import { isRealMinion } from "./roleFlags";
-import type { Role } from "@/app/data";
+import { isTownsfolkOrOutsiderRole } from "./seatAlignment";
 
 export interface SeatLikeForSnitch {
   id: number;
-  role?: { id?: string | null; name?: string | null; type?: string | null } | null;
-  charadeRole?: { id?: string | null; name?: string | null; type?: string | null } | null;
-  displayRole?: { id?: string | null; name?: string | null; type?: string | null } | null;
+  role?: {
+    id?: string | null;
+    name?: string | null;
+    type?: string | null;
+  } | null;
+  charadeRole?: {
+    id?: string | null;
+    name?: string | null;
+    type?: string | null;
+  } | null;
+  displayRole?: {
+    id?: string | null;
+    name?: string | null;
+    type?: string | null;
+  } | null;
   isDead?: boolean | null;
   snitchBluffs?: string[] | null;
 }
@@ -43,7 +56,7 @@ export function getSnitchCandidateGoodRoles(
     .filter(
       (r): r is Role =>
         Boolean(r) &&
-        (r!.type === "townsfolk" || r!.type === "outsider") &&
+        isTownsfolkOrOutsiderRole(r) &&
         r!.id !== "drunk" &&
         !inPlayRoleIds.has(r!.id)
     );
@@ -53,7 +66,7 @@ export function getSnitchCandidateGoodRoles(
     const existingIds = new Set(scriptGoodRoles.map((r) => r.id));
     const globalGoodRoles = allRoles.filter(
       (r) =>
-        (r.type === "townsfolk" || r.type === "outsider") &&
+        isTownsfolkOrOutsiderRole(r) &&
         r.id !== "drunk" &&
         !inPlayRoleIds.has(r.id) &&
         !existingIds.has(r.id)

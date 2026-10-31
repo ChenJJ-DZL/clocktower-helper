@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { board, runRole, seat } from "../_tbHarness";
-import { fang_guAbility } from "../../new_engine/fang_gu.ability";
-import { vigormortisAbility } from "../../new_engine/vigormortis.ability";
-import { no_dashiiAbility } from "../../new_engine/no_dashii.ability";
-import { pit_hagAbility } from "../../new_engine/pit_hag.ability";
-import { witchAbility } from "../../new_engine/witch.ability";
-import { evil_twinAbility } from "../../new_engine/evil_twin.ability";
-import { barberAbility } from "../../new_engine/barber.ability";
-import { mutantAbility } from "../../new_engine/mutant.ability";
 import {
   canJudgeMutantExecution,
   hasPendingMutantMadnessCheck,
 } from "../../../utils/mutantGate";
+import { barberAbility } from "../../new_engine/barber.ability";
+import { evil_twinAbility } from "../../new_engine/evil_twin.ability";
+import { fang_guAbility } from "../../new_engine/fang_gu.ability";
+import { mutantAbility } from "../../new_engine/mutant.ability";
+import { no_dashiiAbility } from "../../new_engine/no_dashii.ability";
+import { pit_hagAbility } from "../../new_engine/pit_hag.ability";
+import { vigormortisAbility } from "../../new_engine/vigormortis.ability";
+import { witchAbility } from "../../new_engine/witch.ability";
+import { board, runRole, seat } from "../_tbHarness";
 
 /**
  * L5 · 梦殒春宵 / 游园惊梦 · 恶魔与爪牙因果链（2026-09-21）
@@ -113,7 +113,7 @@ function assertSomethingChanged(
     `❌ ${hint}\n` +
       `   座位级变化=${JSON.stringify(seatDiffs)}；快照级变化=${JSON.stringify(snapDiffs)}` +
       `\n   aborted=${res?.aborted} reason=${res?.abortReason ?? "无"}` +
-      `\n   ⇒ 说书人在 UI 上能选人、能确认，但状态里什么都没落（跑通≠能玩）`
+      "\n   ⇒ 说书人在 UI 上能选人、能确认，但状态里什么都没落（跑通≠能玩）"
   ).toBeGreaterThan(0);
 }
 
@@ -133,7 +133,12 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
     const seatDiffs = {
       1: seatChanges(before[1], seatAfter(res, 1)),
     };
-    assertSomethingChanged(seatDiffs, snapshotChanges({}, res?.snapshot), "方古选了目标并确认后，目标状态完全没变", res);
+    assertSomethingChanged(
+      seatDiffs,
+      snapshotChanges({}, res?.snapshot),
+      "方古选了目标并确认后，目标状态完全没变",
+      res
+    );
 
     const after = seatAfter(res, 1);
     expect(
@@ -148,7 +153,13 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
 
   it("② 方古(fang_gu)：击杀外来者 → 外来者变方古且原方古代替死亡（官方「每局仅一次」）", async () => {
     // ⚠️ 前提：目标是**外来者**（barber=理发师，outsider），且场上没有 fangGuHasJumped 标记
-    const seats = board(["fang_gu", "barber", "gossip", "grandmother", "tinker"]);
+    const seats = board([
+      "fang_gu",
+      "barber",
+      "gossip",
+      "grandmother",
+      "tinker",
+    ]);
     const before = clone(seats);
 
     const res = await runRole(fang_guAbility, seats, 0, {
@@ -176,7 +187,7 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
     ).toBe("fang_gu");
     expect(
       jumped?.isDead,
-      `❌ 外来者变成方古时**不应死亡**（官方：改为不死）`
+      "❌ 外来者变成方古时**不应死亡**（官方：改为不死）"
     ).toBe(false);
 
     const oldDemon = seatAfter(res, 0);
@@ -209,9 +220,10 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
     );
 
     const after = seatAfter(res, 1);
-    expect(after?.isDead, `❌ 亡骨魔的目标必须死亡（实际 ${after?.isDead}）`).toBe(
-      true
-    );
+    expect(
+      after?.isDead,
+      `❌ 亡骨魔的目标必须死亡（实际 ${after?.isDead}）`
+    ).toBe(true);
     expect(
       after?.deathSource,
       `❌ 亡骨魔击杀必须落 deathSource=vigormortis_kill（实际 ${after?.deathSource}）`
@@ -222,7 +234,13 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
     // ⚠️ 前提（`vigormortis.ability.ts:35`）：`poisonedTownsfolkId` 读自
     //   `ctx.storytellerInput`（**不是 snapshot**），默认 null ⇒ 必须显式传，
     //   否则中毒分支永不触发（会造出「测不到目标分支」的假绿）。
-    const seats = board(["vigormortis", "witch", "chambermaid", "gossip", "grandmother"]);
+    const seats = board([
+      "vigormortis",
+      "witch",
+      "chambermaid",
+      "gossip",
+      "grandmother",
+    ]);
     const before = clone(seats);
 
     const res = await runRole(vigormortisAbility, seats, 0, {
@@ -244,7 +262,7 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
     );
 
     const minion = seatAfter(res, 1);
-    expect(minion?.isDead, `❌ 被击杀的爪牙必须死亡`).toBe(true);
+    expect(minion?.isDead, "❌ 被击杀的爪牙必须死亡").toBe(true);
     expect(
       minion?.keepsAbilityDead,
       `❌ 官方：「被你杀死的爪牙保留他的能力」⇒ 必须落 keepsAbilityDead=true（实际 ${minion?.keepsAbilityDead}）`
@@ -259,7 +277,7 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
       (poisoned?.statusEffects ?? []).some(
         (e: any) => e.type === "poisoned" && e.source === "vigormortis"
       ),
-      `❌ 中毒必须落 statusEffects{type:poisoned,source:vigormortis}`
+      "❌ 中毒必须落 statusEffects{type:poisoned,source:vigormortis}"
     ).toBe(true);
   });
 
@@ -288,7 +306,7 @@ describe("L5 · 梦殒春宵 · 四恶魔因果链（方古 / 亡骨魔 / 诺-�
     );
 
     const killed = seatAfter(res, 2);
-    expect(killed?.isDead, `❌ 诺-达鲺的目标必须死亡`).toBe(true);
+    expect(killed?.isDead, "❌ 诺-达鲺的目标必须死亡").toBe(true);
     expect(
       killed?.deathSource,
       `❌ 诺-达鲺击杀必须落 deathSource=no_dashii_kill（实际 ${killed?.deathSource}）`
@@ -336,7 +354,7 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     ).toBe("soldier");
     expect(
       res?.snapshot?.roleChanges,
-      `❌ 角色变换必须记账到 snapshot.roleChanges`
+      "❌ 角色变换必须记账到 snapshot.roleChanges"
     ).toContainEqual({ seatId: 1, newRole: "soldier" });
   });
 
@@ -368,7 +386,7 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     ).toBe(true);
     expect(
       res?.snapshot?.deathDecidedByStoryteller,
-      `❌ 创造恶魔必须置 deathDecidedByStoryteller=true（官方：当晚死亡由说书人决定）`
+      "❌ 创造恶魔必须置 deathDecidedByStoryteller=true（官方：当晚死亡由说书人决定）"
     ).toBe(true);
   });
 
@@ -387,7 +405,7 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     const snapDiffs = snapshotChanges({}, res?.snapshot);
     expect(
       seatDiffs[1].length + snapDiffs.length,
-      `❌ 官方：「她无法创造重复角色，如果那个角色已在场，则无事发生」——` +
+      "❌ 官方：「她无法创造重复角色，如果那个角色已在场，则无事发生」——" +
         `但座位/快照发生了变化（seat=${JSON.stringify(seatDiffs[1])} snap=${JSON.stringify(snapDiffs)}）`
     ).toBe(0);
     expect(
@@ -415,16 +433,16 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     );
 
     const cursed = seatAfter(res, 1);
-    expect(cursed?.isCursed, `❌ 被诅咒者必须落 isCursed=true`).toBe(true);
+    expect(cursed?.isCursed, "❌ 被诅咒者必须落 isCursed=true").toBe(true);
     expect(
       (cursed?.statusEffects ?? []).some(
         (e: any) => e.type === "cursed" && e.source === "witch"
       ),
-      `❌ 诅咒必须落 statusEffects{type:cursed,source:witch}`
+      "❌ 诅咒必须落 statusEffects{type:cursed,source:witch}"
     ).toBe(true);
     expect(
       res?.snapshot?.witchCurse?.[1],
-      `❌ 诅咒必须记账到 snapshot.witchCurse[1]`
+      "❌ 诅咒必须记账到 snapshot.witchCurse[1]"
     ).toBe(true);
   });
 
@@ -452,12 +470,15 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     ).toBe(true);
     expect(
       seatChanges(before[1], seatAfter(res, 1)),
-      `❌ 已失去能力者不得再落诅咒状态`
+      "❌ 已失去能力者不得再落诅咒状态"
     ).toEqual([]);
   });
 
-  it("⑪ 邪恶双子(evil_twin)：首夜互知 → 必须落 evilTwinPair + 对立双子 isGoodTwin", async () => {
+  it("⑪ 邪恶双子(evil_twin)：说书人已指定对立双子 → 必须落 evilTwinPair + 对立双子 isGoodTwin", async () => {
     const seats = board(["evil_twin", ...SAFE_BOARD]);
+    // 生产路径：说书人已在人物面板/右键指定"对立双子"（座位 isGoodTwin 标记），
+    // 首夜能力据此把配对落库。⚠️ 未指定时引擎不得自行配对（见 ⑪b fail-closed）。
+    seats[1].isGoodTwin = true;
     const before = clone(seats);
 
     const res = await runRole(evil_twinAbility, seats, 0, {
@@ -482,17 +503,41 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
       `❌ evilTwinPair.evilSeatId 应为行动者 0（实际 ${pair?.evilSeatId}）`
     ).toBe(0);
     expect(
-      typeof pair?.goodSeatId,
-      `❌ 必须为邪恶双子配一名对立双子（实际 goodSeatId=${pair?.goodSeatId}）`
-    ).toBe("number");
+      pair?.goodSeatId,
+      `❌ 必须落说书人指定的对立双子（实际 goodSeatId=${pair?.goodSeatId}）`
+    ).toBe(1);
     expect(
       seatAfter(res, pair.goodSeatId)?.isGoodTwin,
-      `❌ 对立双子座位必须落 isGoodTwin=true`
+      "❌ 对立双子座位必须落 isGoodTwin=true"
     ).toBe(true);
     expect(
       res?.meta?.evilTwinResult?.twinRevealed,
-      `❌ 首夜必须产出互知结果 twinRevealed=true`
+      "❌ 首夜必须产出互知结果 twinRevealed=true"
     ).toBe(true);
+  });
+
+  it("⑪b 邪恶双子(evil_twin)负向对照：说书人未指定 → 绝不伪造/清空配对（fail-closed）", async () => {
+    const seats = board(["evil_twin", ...SAFE_BOARD]);
+
+    const res = await runRole(evil_twinAbility, seats, 0, {
+      night: 1,
+      phase: "firstNight",
+      targets: [],
+    });
+
+    expect(
+      res?.snapshot?.evilTwinPair,
+      "❌ 无证据时不得写入任何配对（尤其 goodSeatId:null），否则白天判胜会拿到伪证"
+    ).toBeUndefined();
+    expect(
+      seatAfter(res, 1)?.isGoodTwin,
+      "❌ 无证据时不得把启发式猜测（首个镇民/外来者）写进座位标记"
+    ).not.toBe(true);
+    expect(
+      res?.meta?.evilTwinResult?.needsDesignation,
+      "❌ 未指定时必须标记 needsDesignation，供 UI 提示说书人补指定"
+    ).toBe(true);
+    expect(res?.meta?.evilTwinResult?.twinRevealed).toBe(false);
   });
 
   it("⑫ 邪恶双子(evil_twin)：说书人指定 twinId → 必须尊重指定（不得自行配对）", async () => {
@@ -511,11 +556,11 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     ).toBe(3);
     expect(
       seatAfter(res, 3)?.isGoodTwin,
-      `❌ 被指定的 4号位必须落 isGoodTwin=true`
+      "❌ 被指定的 4号位必须落 isGoodTwin=true"
     ).toBe(true);
     expect(
       seatAfter(res, 1)?.isGoodTwin,
-      `❌ 未被指定的座位不得被标记为对立双子`
+      "❌ 未被指定的座位不得被标记为对立双子"
     ).toBe(false);
   });
 
@@ -553,7 +598,7 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     ).toBe("chambermaid");
     expect(
       res?.snapshot?.barberSwap,
-      `❌ 交换必须记账到 snapshot.barberSwap`
+      "❌ 交换必须记账到 snapshot.barberSwap"
     ).toEqual({ a: 1, b: 2 });
   });
 
@@ -598,15 +643,15 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     );
     expect(
       res?.snapshot?.mutantRevealed,
-      `❌ 暴露状态必须落 snapshot.mutantRevealed=true`
+      "❌ 暴露状态必须落 snapshot.mutantRevealed=true"
     ).toBe(true);
     expect(
       res?.meta?.mutantResult?.canBeExecuted,
-      `❌ 暴露后可被处决 canBeExecuted=true`
+      "❌ 暴露后可被处决 canBeExecuted=true"
     ).toBe(true);
     expect(
       seatChanges(before[1], seatAfter(res, 1)),
-      `❌ 变种人能力不得误改其它座位`
+      "❌ 变种人能力不得误改其它座位"
     ).toEqual([]);
   });
 
@@ -631,37 +676,38 @@ describe("L5 · 梦殒春宵 · 爪牙与外来者因果链（麻脸巫婆 / 女
     //   ⇒ 只测管道是假绿，必须把**真实路径**也钉住。
     const aliveMutant = seat(0, "mutant");
     const deadMutant = seat(1, "mutant", { isDead: true });
-    const checkedMutant = seat(2, "mutant", { mutantMadnessCheckedToday: true });
+    const checkedMutant = seat(2, "mutant", {
+      mutantMadnessCheckedToday: true,
+    });
     const townsfolk = seat(3, "chambermaid");
 
     expect(
       hasPendingMutantMadnessCheck([townsfolk]),
-      `❌ 场上无存活变种人时不得产生门禁（否则上一局残留状态会把新局卡死在白天）`
+      "❌ 场上无存活变种人时不得产生门禁（否则上一局残留状态会把新局卡死在白天）"
     ).toBe(false);
     expect(
       hasPendingMutantMadnessCheck([aliveMutant, townsfolk]),
-      `❌ 存在存活且今日未裁定的变种人 ⇒ 白天必须先走疯狂仲裁才能进黄昏`
+      "❌ 存在存活且今日未裁定的变种人 ⇒ 白天必须先走疯狂仲裁才能进黄昏"
     ).toBe(true);
     expect(
       hasPendingMutantMadnessCheck([deadMutant, townsfolk]),
-      `❌ 已死亡的变种人不得产生门禁`
+      "❌ 已死亡的变种人不得产生门禁"
     ).toBe(false);
     expect(
       hasPendingMutantMadnessCheck([checkedMutant, townsfolk]),
-      `❌ 今日已裁定过 ⇒ 不得再次拦门`
+      "❌ 今日已裁定过 ⇒ 不得再次拦门"
     ).toBe(false);
 
     expect(
       canJudgeMutantExecution(aliveMutant),
-      `❌ 存活变种人可由说书人裁定处决`
+      "❌ 存活变种人可由说书人裁定处决"
     ).toBe(true);
-    expect(
-      canJudgeMutantExecution(deadMutant),
-      `❌ 已死亡者不可被处决`
-    ).toBe(false);
+    expect(canJudgeMutantExecution(deadMutant), "❌ 已死亡者不可被处决").toBe(
+      false
+    );
     expect(
       canJudgeMutantExecution(townsfolk),
-      `❌ 非变种人不得走该裁定入口`
+      "❌ 非变种人不得走该裁定入口"
     ).toBe(false);
   });
 });

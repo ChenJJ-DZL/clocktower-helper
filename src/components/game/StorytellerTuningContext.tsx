@@ -17,17 +17,21 @@
 
 import {
   createContext,
+  type ReactNode,
   useContext,
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
 } from "react";
 import { roles, type Seat } from "../../../app/data";
 import type { NightInfoResult } from "../../types/game";
-import { isInformationRole } from "../../utils/informationRoles";
-import { isSeatEvil, isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import { setStorytellerInfoOverrides } from "../../utils/corruptedInfo";
+import { resolveEvilTwinPairForDisplay } from "../../utils/evilTwinHelper";
+import { isInformationRole } from "../../utils/informationRoles";
+import {
+  isSeatEvil,
+  isSeatTownsfolkOrOutsider,
+} from "../../utils/seatAlignment";
 
 export interface StorytellerTuningState {
   showOverride: boolean;
@@ -342,7 +346,15 @@ export function StorytellerTuningProvider({
       return { bountyTargetId: chosen?.id ?? 0 };
     }
     return null;
-  }, [roleId, roleType, seats, seatId, nightInfo, vortoxActive, allOutsiderRoles]);
+  }, [
+    roleId,
+    roleType,
+    seats,
+    seatId,
+    nightInfo,
+    vortoxActive,
+    allOutsiderRoles,
+  ]);
 
   // ─── 共情者存活邻居与邪恶数 ──────────────────────────────────────────────
   const livingLeftNeighbor = useMemo(() => {
@@ -390,19 +402,17 @@ export function StorytellerTuningProvider({
   }, [livingLeftNeighbor, livingRightNeighbor]);
 
   // ─── 镜像双子对立绑定 ────────────────────────────────────────────────────
+  // ⚠️ 2026-11-01：默认候选的启发式已收敛到 utils/evilTwinHelper 的展示解析
+  //   （单一事实源；展示/默认值不得用于判胜）。
   const defaultGoodTwinId = useMemo(() => {
     if (roleId !== "evil_twin") return null;
     const explicitGoodTwin = seats.find((s) => s.isGoodTwin);
     if (explicitGoodTwin) return explicitGoodTwin.id;
-    const candidate =
-      seats.find(
-        (s) =>
-          s.id !== seatId &&
-          isSeatTownsfolkOrOutsider(s) &&
-          !s.isEvilConverted &&
-          !s.isDead
-      ) || seats.find((s) => s.id !== seatId && !s.isDead);
-    return candidate ? candidate.id : null;
+    const resolved = resolveEvilTwinPairForDisplay(seats, null);
+    if (resolved.source === "heuristic" && resolved.goodTwinSeat) {
+      return resolved.goodTwinSeat.id;
+    }
+    return null;
   }, [roleId, seats, seatId]);
 
   // ─── 占卜师判定 ──────────────────────────────────────────────────────────
@@ -419,7 +429,8 @@ export function StorytellerTuningProvider({
         (s?.role?.id === "recluse" &&
           (s as any).registerAsDemon !== false &&
           (s as any).registerAsEvil !== false) ||
-        (s?.role?.id === "spy" && (s as any).registerAsDemon === true)) === true;
+        (s?.role?.id === "spy" && (s as any).registerAsDemon === true)) ===
+      true;
     const t1 = seats.find((s) => s.id === selectedTargets[0]);
     const t2 = seats.find((s) => s.id === selectedTargets[1]);
     const isDemon1 = isDemonLike(t1);
@@ -526,7 +537,8 @@ export function StorytellerTuningProvider({
   }, [fortuneTellerDetection, vortoxActive]);
 
   useEffect(() => {
-    if (defaultGoodTwinId !== null) patch({ evilTwinGoodId: defaultGoodTwinId });
+    if (defaultGoodTwinId !== null)
+      patch({ evilTwinGoodId: defaultGoodTwinId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultGoodTwinId]);
 
@@ -559,16 +571,23 @@ export function StorytellerTuningProvider({
       lunaticFakeMinionIds: Array.isArray(minions) ? minions : null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lunaticSeat?.id, (lunaticSeat as any)?.lunaticFakeBluffNames, (lunaticSeat as any)?.lunaticFakeMinionIds]);
+  }, [
+    lunaticSeat?.id,
+    (lunaticSeat as any)?.lunaticFakeBluffNames,
+    (lunaticSeat as any)?.lunaticFakeMinionIds,
+  ]);
 
   const currentGoodTwinSeat = useMemo(() => {
     if (roleId !== "evil_twin" || state.evilTwinGoodId === null) return null;
     return seats.find((s) => s.id === state.evilTwinGoodId) || null;
   }, [roleId, state.evilTwinGoodId, seats]);
 
-  const isInfoRole = ["washerwoman", "librarian", "investigator", "chef"].includes(
-    roleId
-  );
+  const isInfoRole = [
+    "washerwoman",
+    "librarian",
+    "investigator",
+    "chef",
+  ].includes(roleId);
 
   const buildStorytellerInput = () => {
     const storytellerInput: Record<string, any> = {};

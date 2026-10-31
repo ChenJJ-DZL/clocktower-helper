@@ -14,6 +14,7 @@
     "circular": "madge --circular src/index.ts",
     "check": "npm run fix && npm run type && npm run test && npm run circular",
     "check:all": "npm run fix && npm run type && npm run test && npm run circular",
+    "check:ci": "tsc --noEmit && vitest run && madge --circular src/index.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:list": "playwright test --list",

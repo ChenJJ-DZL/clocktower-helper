@@ -7,12 +7,13 @@
  *
  * 首夜互知。全局效果：善良双子被处决时邪恶获胜。
  */
+
+import { resolveEvilTwinPair } from "../../utils/evilTwinHelper";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
-import { resolveEvilTwinPair } from "../../utils/evilTwinHelper";
 
 const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
   const seat = ctx.snapshot.seats.find(
@@ -28,20 +29,32 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
+  /**
+   * 🔴 判胜级严格解析（2026-11-01 P0「处决 15号小精灵被误判为处决善良双子」）：
+   *   `resolveEvilTwinPair` 只认**显式证据** —— 说书人/引擎写入的 `evilTwinPair`
+   *   或座位上的 `isGoodTwin` 标记；无证据时 `goodTwinSeat === null`，绝不猜测。
+   *   （展示/调度路径才允许 `resolveEvilTwinPairForDisplay` 的启发式占位。）
+   *
+   * 对立双子来源优先级：说书人本次指定 > 已落库的权威证据 > 无（needsDesignation）。
+   */
   const resolved = resolveEvilTwinPair(
     ctx.snapshot.seats,
     ctx.snapshot.evilTwinPair
   );
-  const twinId = ctx.storytellerInput?.twinId ?? resolved.goodTwinSeat?.id ?? null;
+  const twinId =
+    ctx.storytellerInput?.twinId ?? resolved.goodTwinSeat?.id ?? null;
+  const needsDesignation = twinId == null;
   return {
     ...ctx,
     meta: {
       ...ctx.meta,
       abilityResult: {
-        twinRevealed: true,
+        // 未指定对立双子 ⇒ 首夜互知并未真正发生，不得谎报 twinRevealed。
+        twinRevealed: !needsDesignation,
         twinId,
         goodTwinExecuted: false,
         evilWinsIfGoodTwinDies: true,
+        needsDesignation,
       },
     },
   };
@@ -53,6 +66,21 @@ const stateUpdate = async (
   const r = ctx.meta.abilityResult as any;
   const goodId = r?.twinId;
   const evilId = ctx.actionNode.seatId;
+  /**
+   * 🔴 无证据则不落库（2026-11-01 P0 修复）：
+   *   原实现无条件写 `evilTwinPair: { goodSeatId: goodId }` 并执行
+   *   `seats.map(s => ({...s, isGoodTwin: s.id === goodId}))` —— 当 goodId 为
+   *   null 时等价于「写入 goodSeatId:null」+「清空所有座位的 isGoodTwin」，
+   *   即凭空抹掉说书人已指定的权威配对，并让判胜路径拿到伪造的空配对。
+   *   正确语义：说书人尚未指定时就**什么都不写**（不伪造、不清空），
+   *   只在 postProcess 提示 needsDesignation。
+   */
+  if (goodId == null) {
+    return {
+      ...ctx,
+      meta: { ...ctx.meta, evilTwinResult: r },
+    };
+  }
   return {
     ...ctx,
     snapshot: {
@@ -78,6 +106,26 @@ const postProcess = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const r = ctx.meta.abilityResult as any;
+  // 🔴 未指定对立双子：给出人读提示，而不是伪造配对（不得让判胜路径拿到本局"证据"）。
+  if (r?.twinId == null) {
+    const log =
+      "尚未指定对立双子：请说书人在人物面板指定「对立双子」，或下次执行时选择一名对立阵营玩家";
+    console.warn(`[EvilTwin] ${log}`);
+    return {
+      ...ctx,
+      meta: {
+        ...ctx.meta,
+        abilityLog: log,
+        displayInfo: {
+          type: "evil_twin_info",
+          log,
+          twinId: null,
+          twinRoleName: null,
+          needsDesignation: true,
+        },
+      },
+    };
+  }
   const goodTwinSeat = ctx.snapshot.seats.find((s: any) => s.id === r?.twinId);
   const goodRoleName = goodTwinSeat?.role?.name || "未知角色";
   const log = goodTwinSeat
@@ -94,6 +142,7 @@ const postProcess = async (
         log,
         twinId: r?.twinId,
         twinRoleName: goodRoleName,
+        needsDesignation: false,
       },
     },
   };

@@ -209,3 +209,122 @@ const cancelNomination = (nominatorId: number, nomineeId: number) => {
 - [ ] **边界规则校验**：死者幽灵票、处决门槛计算、目标自选限制等边界是否满足官方最新规则？
 - [ ] **自动化测试全覆盖**：执行 `npm run test` 确保所有测试套件通过（通过率 $100\%$）。
 - [ ] **构建编译校验**：执行 `npm run type` 验证无类型报错。
+---
+
+## 六、 判胜类规则缺陷的系统性防范（2026-11-01 增补）
+
+> 触发事故：第 4 天处决 **15号-小精灵（镇民）**，系统误判「善良双子被处决」直接判邪恶胜并提前结案；
+> 而真正的善良双子是 **1号-图书管理员**（存活）、恶魔 **11号-小恶魔** 也存活，本局根本没有分出胜负。
+> 根因不是"写错一行"，而是**判胜逻辑在证据缺失时用启发式伪造了领域事实**，且同一规则在两处各写一遍。
+
+### 6.1 铁律一：判胜必须「失败关闭」（fail-closed）
+
+判胜是**不可逆操作**（一旦弹窗宣布胜负，对局就结束），因此：**证据不足 ⇒ 条件不成立，禁止任何默认值/启发式/类型推断。**
+
+```ts
+// ❌ 事故代码（旧）：没有显式配对就用"第一个镇民"当善良双子
+const goodTwinSeat = evilTwinPair?.goodSeatId
+  ? seats.find((s) => s.id === evilTwinPair.goodSeatId)
+  : seats.find((s) => s.id !== evilTwinId && isTownsfolkOrOutsider(s)); // ← 伪造事实
+
+// ✅ 现行代码：证据只有两种来源，缺失则 unresolved，判胜谓词恒 false
+export function resolveEvilTwinPair(seats, pair): ResolvedEvilTwinPair {
+  // ① 显式 evilTwinPair（说书人指定/引擎落库） ② 座位 isGoodTwin 标记
+  // ③ 都没有 ⇒ { goodTwinSeat: null, resolved: false, source: "unresolved" }
+}
+```
+
+**接入要求**：任何依赖"身份/配对/角色/座位"等**领域事实**的判胜分支，都必须先写一个
+「无证据 ⇒ 不成立」的严格解析函数与单测；禁止在判胜分支里出现 `?? 默认值`、`find(第一个符合的)`、
+"类型看起来像"这类兜底。
+
+### 6.2 铁律二：单一事实来源 + 双通道解析（判胜级 / 展示级）
+
+- 同一规则**只允许一处实现**。历史事故（`app/gameLogic.ts` 与 `useExecutionHandlers.ts` 各写一份启发式）
+  的教训：修一处漏一处，两处口径必然分叉。
+- 需要启发式占位的只有**夜间队列编排 / 信息展示 / 告知画面**，它们使用
+  `resolveEvilTwinPairForDisplay`（`source: "heuristic"`、`resolved: false`）。
+- **判胜级消费者只能使用严格解析**；架构护栏测试会静态扫描并禁止
+  `app/gameLogic.ts` / `useExecutionHandlers.ts` 导入 display 版本。
+
+### 6.3 铁律三：判胜结果必须「可证明、可审计」—— reasonCode + evidence
+
+所有终局返回统一走 `src/utils/winConditions/winReasonCodes.ts::makeWinResult`：
+
+- `reasonCode`：封闭枚举，**新增判胜条件必须登记**；
+- `winner`：只能由注册表 `side` 派生，禁止在返回字面量里另写胜负；
+- `evidence`：每个 code 声明 `requiredEvidence`（如镜像双子必须给出
+  `executedSeatId / goodTwinSeatId / evilTwinSeatId / twinPairSource`），
+  测试会泛化断言"证据不全不允许判胜"。
+- `rule`：官方规则原文依据，供规则评审逐条对账。
+
+### 6.4 铁律四：用「属性测试 + 回归夹具」替代人肉穷举
+
+人工测试只能覆盖"想到的路径"，组合空间（座位×角色×状态×动作时点）必须交给机器：
+
+1. **确定性属性测试**（`src/utils/__tests__/winConditionSoundness.test.ts`）：
+   固定 seed 随机生成盘面/动作，断言 6 条泛化不变量（reasonCode 合法、winner 与 side 一致、
+   证据齐全、无配对永不判双子、受限简单盘处决普通好人绝不结束、双子被毒/醉不判胜……）。
+2. **用户报障回归夹具**（`tests/reported-bugs/`）：**每一条用户报障都必须固化为夹具**——
+   用报障中的座位/天数/操作序列断言"不得结束/必须结束"。人工复测过一次就丢，等于下次还会犯。
+3. **判胜原因覆盖矩阵**（`winReasonMatrix.test.ts`）：注册表每个 code 至少 1 正例 + 1 近似反例；
+   新增 code 不补场景 → 测试立刻变红（覆盖棘轮）。
+4. **架构护栏测试**（`evilTwinSingleSource.test.ts`）：静态扫描源码，禁止启发式/字符串/裸返回
+   绕过注册表与严格解析。
+
+### 6.5 铁律五：CI 守门，本地与远端同一口径
+
+- `.github/workflows/ci.yml` 在 push / PR 上执行 `tsc` + `vitest` + `madge`（**能真实拦截规则缺陷**的三项）；
+- 本地等价命令：`npm run check:ci`（只读校验，不写文件，与 CI 同口径）；提交流程仍按仓库约定跑一次 `npm run check:all`（其 `fix` 步骤负责格式化）。
+- ⚠️ biome 格式化**暂不作为 CI 门禁**：仓库存在历史格式化欠账（一次性 `biome check --write .` 会改写数百个与业务无关的文件）。格式化由本地 `npm run fix` 负责，CI 只保留"能拦截缺陷"的步骤，避免"全红等于没红"。
+- 基线与 CI **必须保持全绿**：任何"已知红"都会让新缺陷淹没在噪音里（本次修复同时清理了 3 个既有失败基线：2 个 vitest 失败 + 1 个循环依赖红灯）。循环依赖用 `.madgerc` 开启 `skipTypeImports` —— type-only import 在运行时不存在（`gameLogic → evilTwinHelper → types/game → gameLogic` 是纯类型环）；
+- 判胜溯源随 `processGameEvent` 透传：`GameStateSnapshot.reasonCode / evidence`（生产 UI / 复盘可直接读取"凭什么判胜"）。
+
+### 6.6 新增判胜条件接入清单（Checklist）
+
+- [ ] 在 `winReasonCodes.ts` 登记 `reasonCode` / `side` / `rule` / `requiredEvidence`；
+- [ ] 用 `makeWinResult` 返回（禁止裸 `{ isGameOver: true, winner, reason }`）；
+- [ ] 若依赖领域事实，先写严格解析 + 「无证据 ⇒ 不成立」单测；
+- [ ] 在 `winReasonMatrix.test.ts` 补 1 正例 + 1 近似反例；
+- [ ] 若规则与既有规则可能冲突（如双子 vs 人数阈值），补优先级注释与边界用例；
+- [ ] 用户报障 → 固化到 `tests/reported-bugs/`；
+- [ ] `npm run check:ci` 全绿后再提交。
+
+---
+
+## 附录 A：CI workflow（可直接复制为 `.github/workflows/ci.yml`）
+
+> 本仓库推送凭据为 GitHub OAuth App 且**没有 `workflow` scope**，无法通过 API 创建/更新
+> workflow 文件（`git push` 会报 `refusing to allow an OAuth App to create or update workflow`）。
+> 因此该文件以文档形式入库：用带 `workflow` 权限的账号/Token 手动创建
+> `.github/workflows/ci.yml` 即可，内容与本地 `npm run check:ci` 同口径。
+
+```yaml
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: verify (tsc + vitest + madge)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Tests (unit + integration + invariant + regression)
+        run: npx vitest run
+      - name: Circular dependency guard (skip type-only imports, see .madgerc)
+        run: npx madge --circular src/index.ts
+```

@@ -1,5 +1,5 @@
 import type { RoleDefinition } from "../../types/roleDefinition";
-import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
+import { resolveEvilTwinPairForDisplay } from "../../utils/evilTwinHelper";
 
 /**
  * 镜像双子
@@ -105,20 +105,13 @@ Saved in parser cache with key gstone_wiki:pcache:idhash:157-0!canonical and tim
         };
       }
       const seats = context?.seats || [];
-      // 寻找对立善良双子（优先读取说书人指定的 isGoodTwin / evilTwinPair）
-      const goodTwin =
-        seats.find((s: any) => s.isGoodTwin) ||
-        (context?.evilTwinPair?.goodId !== undefined
-          ? seats.find((s: any) => s.id === context.evilTwinPair.goodId)
-          : null) ||
-        seats.find(
-          (s: any) =>
-            s.id !== playerSeatId &&
-            (isSeatTownsfolkOrOutsider(s)) &&
-            !s.isEvilConverted &&
-            !s.isDead
-        ) ||
-        seats.find((s: any) => s.id !== playerSeatId && !s.isDead);
+      // 寻找对立善良双子（优先读取说书人指定的 isGoodTwin / evilTwinPair）。
+      // ⚠️ 2026-11-01：启发式兜底已收敛到 utils/evilTwinHelper 的展示解析
+      //   （单一事实源）；本处只生成夜间对话文案，不参与判胜。
+      const goodTwin = resolveEvilTwinPairForDisplay(
+        seats,
+        context?.evilTwinPair ?? null
+      ).goodTwinSeat;
 
       const goodTwinSeatNo = goodTwin ? `${goodTwin.id + 1}号` : "对立玩家";
       const goodTwinRoleName = goodTwin?.role?.name || "善良角色";

@@ -41,7 +41,9 @@ import {
   shouldUiRemaskForCorruption,
 } from "../utils/corruptedInfo";
 import { resolveDeathEventWakeups } from "../utils/dynamicQueueGenerator";
-import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
+// ⚠️ 仅调度/展示用途（夜间队列、双子告知弹窗与文案）：允许启发式占位，
+//    该占位**绝不得**用于判胜（判胜见 app/gameLogic.ts / useExecutionHandlers 的严格解析）。
+import { resolveEvilTwinPairForDisplay } from "../utils/evilTwinHelper";
 import {
   applyFarmerSuccession,
   buildFarmerSuccessorGuide,
@@ -55,6 +57,7 @@ import {
 import { isInformationRole } from "../utils/informationRoles";
 import { runAbilityPipeline } from "../utils/middlewarePipeline";
 import type { GameStateSnapshot } from "../utils/middlewareTypes";
+import { showAlert } from "../utils/nativeDialogShim";
 import { calculateNightInfoViaNewEngine } from "../utils/nightInfoAdapter";
 import { EVIL_CONVERTED_NOTICE_ID } from "../utils/nightStepIds";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
@@ -64,11 +67,10 @@ import {
   getPlayerFacingRole,
   sanitizePlayerFacingText,
 } from "../utils/playerView";
+import { availableRolesForRoleSelection } from "../utils/roleSelectionPool";
 import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
 import { isSeatEvil, isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
 import { isVortoxWorldActive } from "../utils/vortoxWorld";
-import { availableRolesForRoleSelection } from "../utils/roleSelectionPool";
-import { showAlert } from "../utils/nativeDialogShim";
 
 export interface NightActionHandlerContext {
   nightInfo: NightInfoResult | null;
@@ -207,9 +209,7 @@ export function syncStatusEffectsToSeat(
    *       路径也会写 false，语义是「本次不死亡」而非「曾经死亡者复活」，
    *       放宽会把死亡闩锁彻底拆掉（一个已死玩家被任何能力扫过就活过来）。
    */
-  const resurrectedEffect = effects.some(
-    (e: any) => e?.type === "resurrected"
-  );
+  const resurrectedEffect = effects.some((e: any) => e?.type === "resurrected");
   const explicitlyRevived =
     (updated as any).isDead === false &&
     (resurrectedEffect || (updated as any).revivedAtNight != null);
@@ -464,10 +464,14 @@ export async function executeViaNewEngine(
     //   但 executeViaNewEngine 构造的快照此前不含该字段，导致送葬者
     //   preCheck 的 executedTodayCheck 找不到被处决者 → aborted → 结算弹窗不展示。
     todayExecutedId: context.todayExecutedId ?? null,
-    todayMinionNominated: context.todayMinionNominated ?? context.minionNominatedToday ?? false,
-    minionNominatedToday: context.todayMinionNominated ?? context.minionNominatedToday ?? false,
-    todayDemonVoted: context.todayDemonVoted ?? context.demonVotedToday ?? false,
-    demonVotedToday: context.todayDemonVoted ?? context.demonVotedToday ?? false,
+    todayMinionNominated:
+      context.todayMinionNominated ?? context.minionNominatedToday ?? false,
+    minionNominatedToday:
+      context.todayMinionNominated ?? context.minionNominatedToday ?? false,
+    todayDemonVoted:
+      context.todayDemonVoted ?? context.demonVotedToday ?? false,
+    demonVotedToday:
+      context.todayDemonVoted ?? context.demonVotedToday ?? false,
     evilTwinPair: (context as any).evilTwinPair ?? null,
     globalEffects: { vortoxWorld: isVortox },
     vortoxWorld: isVortox,
@@ -732,7 +736,8 @@ export async function executeViaNewEngine(
 
       if (isSystemStep) {
         if (isGoodTwinStep) {
-          const { evilTwinSeat } = resolveEvilTwinPair(
+          // ⚠️ 展示用途：决定"告知哪个座位谁是对立双子"，允许启发式占位，不得判胜。
+          const { evilTwinSeat } = resolveEvilTwinPairForDisplay(
             context.seats,
             (context as any).evilTwinPair
           );
@@ -880,7 +885,8 @@ export async function executeViaNewEngine(
           return true;
         }
 
-        const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+        // ⚠️ 展示用途：仅为确认弹窗拼接"X号是镜像双子"提示，允许启发式占位，不得判胜。
+        const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPairForDisplay(
           context.seats,
           (context as any).evilTwinPair
         );
@@ -956,7 +962,9 @@ export async function executeViaNewEngine(
       // 弹窗确认（含弹窗内安全防窥选人交互）
       const safeTargets = [...(context.selectedTargets || [])];
 
-      const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+      // ⚠️ 展示用途：判断"行动者是否该先收到双子告知"（弹窗顺序），
+      //    允许启发式占位，不得判胜（判胜在 app/gameLogic.ts）。
+      const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPairForDisplay(
         context.seats,
         (context as any).evilTwinPair
       );
@@ -1314,7 +1322,11 @@ export async function executeViaNewEngine(
                   ...context,
                   preview: false,
                   selectedTargets: finalTargets,
-                  actionData: { chosenRoleId, newRoleId: chosenRoleId, roleId: chosenRoleId },
+                  actionData: {
+                    chosenRoleId,
+                    newRoleId: chosenRoleId,
+                    roleId: chosenRoleId,
+                  },
                 };
                 await executeViaNewEngine(realContext, roleId);
                 return;
@@ -1857,10 +1869,15 @@ export async function executeViaNewEngine(
       }
 
       // 👥 镜像双子桥接：新引擎快照 evilTwinPair → legacy evilTwinPair & isGoodTwin
+      // ⚠️ 2026-11-01 P0（处决非善良双子误判）：引擎快照里的 `goodSeatId` 可能是
+      //    `null`（说书人尚未指定对立双子时的"无证据"形态）。原判断只排除了
+      //    `undefined` ⇒ `null` 被当成有效值写回 ⇒ 清空全部 isGoodTwin 标记，
+      //    让权威配对凭空消失。此处必须要求 **非 null 的数值** 才允许写 seats/state；
+      //    只同步到 evil 侧（good 缺失）时同样跳过，绝不覆盖旧值。
       if (evilTwinPair) {
         const goodSeatId = evilTwinPair.goodSeatId ?? evilTwinPair.goodId;
         const evilSeatId = evilTwinPair.evilSeatId ?? evilTwinPair.evilId;
-        if (goodSeatId !== undefined) {
+        if (goodSeatId != null) {
           syncedSeats.forEach((s) => {
             s.isGoodTwin = s.id === goodSeatId;
           });
@@ -2214,7 +2231,8 @@ export async function executeViaNewEngine(
       }
 
       // 👥 对立双子在夜间获知“X号是镜像双子”
-      const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+      // ⚠️ 展示用途：仅为结果弹窗/日志拼接双子告知文案，允许启发式占位，不得判胜。
+      const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPairForDisplay(
         syncedSeats.length > 0 ? syncedSeats : context.seats,
         evilTwinPair || (context as any)?.evilTwinPair
       );
@@ -2500,7 +2518,8 @@ export function useNightActionHandler() {
         const actorId = nightInfo.seat?.id ?? -1;
         const seatPrefix = actorId >= 0 ? `${actorId + 1}号-` : "";
         if (isGoodTwinStep) {
-          const { evilTwinSeat } = resolveEvilTwinPair(
+          // ⚠️ 展示用途：系统步骤预览/结果页的引导文案，允许启发式占位，不得判胜。
+          const { evilTwinSeat } = resolveEvilTwinPairForDisplay(
             context.seats,
             (context as any).evilTwinPair
           );

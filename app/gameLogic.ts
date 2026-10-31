@@ -7,19 +7,26 @@
  *   但单测不应依赖 React hooks，因此这里提供无副作用的纯函数实现。
  */
 
-import {
-  resolveMastermindExtraDay,
-  shouldEnterMastermindExtraDay,
-} from "../src/utils/mastermindRule";
+import { resolveEvilTwinPair } from "../src/utils/evilTwinHelper";
 import {
   hasExecutionProof,
   hasTeaLadyProtection,
   isActorDisabledByPoisonOrDrunk,
   isGoodAlignment,
 } from "../src/utils/gameRules";
-import { isVortoxWorldActive } from "../src/utils/vortoxWorld";
+import {
+  resolveMastermindExtraDay,
+  shouldEnterMastermindExtraDay,
+} from "../src/utils/mastermindRule";
 import { resolveScriptAutoEvilWin } from "../src/utils/scriptSpecialRules";
-import { resolveEvilTwinPair } from "../src/utils/evilTwinHelper";
+import { isVortoxWorldActive } from "../src/utils/vortoxWorld";
+import {
+  GOOD_TWIN_EXECUTED_REASON,
+  makeWinResult,
+  SAINT_EXECUTED_REASON,
+  type WinEvidence,
+  type WinReasonCode,
+} from "../src/utils/winConditions/winReasonCodes";
 import type { GamePhase, Seat } from "./data";
 import { roles } from "./data";
 
@@ -37,6 +44,18 @@ export interface GameEndResult {
    * 供调用方（`useLogicDispatcher`）激活 `mastermindFinalDay` 状态。
    */
   extraDay?: boolean;
+  /**
+   * ⭐ 2026-11-01：终局原因码（唯一事实源 `utils/winConditions/winReasonCodes`）。
+   * 只有 `isGameOver === true` 的结果才允许携带；用于测试断言「判胜可被状态严格证明」，
+   * 以及复盘/日志溯源。禁止在注册表之外新造原因字符串。
+   */
+  reasonCode?: WinReasonCode;
+  /**
+   * ⭐ 2026-11-01：判胜证据（见 `WinEvidence`）。
+   * 每个 reasonCode 都声明了必须携带的证据字段；证据不足**不允许**判胜
+   * （属性测试 `winConditionSoundness.test.ts` 会对此做泛化断言）。
+   */
+  evidence?: WinEvidence;
 }
 
 export interface NightActionSnapshot {
@@ -65,6 +84,13 @@ export interface GameStateSnapshot {
   gamePhase: GamePhase;
   winner: Faction | null;
   winReason: string | null;
+  /**
+   * ⭐ 2026-11-01：判胜溯源透传（`checkGameEnd` 的唯一事实源输出）。
+   * 生产 UI / 日志 / 复盘读这里即可知道「凭什么判胜」，
+   * 避免注册表只活在单测里（审计发现：旧实现把它们丢弃了）。
+   */
+  reasonCode?: WinReasonCode;
+  evidence?: WinEvidence;
   nextActionHint?: string;
   // Logs generated during this pure transition
   logs: string[];
@@ -404,6 +430,8 @@ export function processGameEvent(
     gamePhase: nextPhase,
     winner,
     winReason,
+    reasonCode: result.reasonCode,
+    evidence: result.evidence,
     logs,
     nextActionHint,
   };
@@ -555,10 +583,14 @@ export function checkGameEnd(
 
   // 0. 特殊即时胜利/失败触发 (未在金字塔中明确列出，但属于即时结算，置于顶层)
   if (damselGuessed) {
-    return { isGameOver: true, winner: "Evil", reason: "爪牙猜中落难少女" };
+    return makeWinResult("DAMSEL_GUESSED", "爪牙猜中落难少女", {
+      trigger: "damselGuessed",
+    });
   }
   if (klutzGuessedEvil) {
-    return { isGameOver: true, winner: "Evil", reason: "呆瓜误判" };
+    return makeWinResult("KLUTZ_GUESSED_EVIL", "呆瓜误判", {
+      trigger: "klutzGuessedEvil",
+    });
   }
 
   /**
@@ -579,7 +611,10 @@ export function checkGameEnd(
     demonAlive: seats.some((s) => s.role?.type === "demon" && !s.isDead),
   });
   if (scriptAutoEvilWin) {
-    return { isGameOver: true, winner: "Evil", reason: scriptAutoEvilWin };
+    return makeWinResult("SCRIPT_AUTO_EVIL_WIN", scriptAutoEvilWin, {
+      trigger: scriptAutoEvilWin,
+      nightCount: options.nightCount ?? 0,
+    });
   }
 
   const aliveSeats = seats.filter((s) => !s.isDead);
@@ -604,10 +639,7 @@ export function checkGameEnd(
     isMastermindActiveOpt ??
     seats.some(
       (s) =>
-        s.role?.id === "mastermind" &&
-        !s.isDead &&
-        !s.isPoisoned &&
-        !s.isDrunk
+        s.role?.id === "mastermind" && !s.isDead && !s.isPoisoned && !s.isDrunk
     );
 
   const hasLegionInPlay = seats.some((s) => s.role?.id === "legion");
@@ -625,11 +657,9 @@ export function checkGameEnd(
   // 1.1 恶魔全灭 -> 好人获胜 (除非受阻)
   if (totalEffectiveDemons === 0) {
     if (hasLegionInPlay) {
-      return {
-        isGameOver: true,
-        winner: "Good",
-        reason: "所有军团已被彻底消灭",
-      };
+      return makeWinResult("LEGION_ALL_DEAD", "所有军团已被彻底消灭", {
+        livingDemonCount: 0,
+      });
     }
 
     // 特例：主谋 (Mastermind) 触发用于在处决导致恶魔死亡时延续游戏
@@ -639,7 +669,10 @@ export function checkGameEnd(
         demoSeat?.role?.type === "demon" || demoSeat?.role?.id === "legion";
       // 唯一判据：utils/mastermindRule
       if (
-        shouldEnterMastermindExtraDay({ mastermindActive: isMastermindActive, demonDiedByExecution: demonDied })
+        shouldEnterMastermindExtraDay({
+          mastermindActive: isMastermindActive,
+          demonDiedByExecution: demonDied,
+        })
       ) {
         return {
           isGameOver: false,
@@ -650,21 +683,39 @@ export function checkGameEnd(
       }
     }
 
-    // 检查邪恶双子阻挡
+    // 检查邪恶双子阻挡（唯一事实源：utils/evilTwinHelper 的**严格**解析）
     let goodWinBlockedByTwin = false;
-    const evilTwinSeat = seats.find(
+    //
+    // ⚠️ 失败关闭（2026-11-01 P0 复盘）：恶魔已死 + 场上仍有存活镜像双子，但配对
+    //   **无证据**（unresolved）时，既不能判善良胜、也不能落到下方「仅剩 2 人 ⇒ 邪恶胜」——
+    //   两个结论都依赖"善良双子是谁 / 是否存活"这一无法证明的事实。
+    //   ⇒ 不结束对局，交还说书人指定配对（UI 有指定入口），这才是 fail-closed。
+    const livingEvilTwin = seats.find(
       (s) =>
         s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
     );
-    if (evilTwinSeat) {
-      const { goodTwinSeat } = resolveEvilTwinPair(seats, evilTwinPair);
-      if (goodTwinSeat && !goodTwinSeat.isDead) {
+    if (livingEvilTwin) {
+      const twin = resolveEvilTwinPair(seats, evilTwinPair);
+      if (!twin.resolved) {
+        return {
+          isGameOver: false,
+          winner: null,
+          reason:
+            "恶魔已死，但镜像双子配对未指定，无法判定胜负（请说书人指定对立善良双子）",
+        };
+      }
+      // 配对有证据：善良双子存活 ⇒ 善良无法获胜（官方 "Good can't win if you both live."），
+      // 游戏继续（好人还需处决邪恶双子），交由下方人数阈值收口。
+      if (twin.goodTwinSeat && !twin.goodTwinSeat.isDead) {
         goodWinBlockedByTwin = true;
       }
     }
 
     if (!goodWinBlockedByTwin) {
-      return { isGameOver: true, winner: "Good", reason: "恶魔已被彻底消灭" };
+      return makeWinResult("DEMON_ALL_DEAD", "恶魔已被彻底消灭", {
+        livingDemonCount: 0,
+        aliveCount,
+      });
     }
     // ⚠️ 被双子阻止 → 善良**无法**获胜，但**不代表**邪恶立刻获胜：
     //    官方 Evil Twin："Good can't win if you both live."
@@ -679,32 +730,54 @@ export function checkGameEnd(
   // --- 1.2 【处决特殊结算】特殊角色导致邪恶获胜 (圣徒、地精、双子) ---
   if (lastAction === "execution" && executedPlayerId !== null) {
     const executedSeat = seats.find((s) => s.id === executedPlayerId);
-    if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
-      if (executedSeat.role?.id === "saint")
-        return { isGameOver: true, winner: "Evil", reason: "圣徒被处决" };
-      if (executedSeat.role?.id === "goblin")
-        return { isGameOver: true, winner: "Evil", reason: "地精被处决" };
 
-      // 镜像双子（Evil Twin）：若存活的善良双子被处决，邪恶阵营直接获胜
-      const evilTwin = seats.find(
-        (s) =>
-          s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
-      );
-      if (evilTwin) {
-        const { goodTwinSeat, isGoodTwin } = resolveEvilTwinPair(
-          seats,
-          evilTwinPair
+    // 1.2.1 圣徒 / 地精：**其自身能力**被处决时触发；中毒/醉酒会令能力失效
+    //       （这是官方 droison 语义，与下面的双子全局判据不同源）。
+    if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
+      if (executedSeat.role?.id === "saint") {
+        // 官方：圣徒「如果你的阵营落败」——winner 由圣徒**当前阵营**派生。
+        // 被转化的邪恶圣徒被处决 ⇒ 善良获胜（历史实现写死 Evil，是 P1-4 规则缺陷）。
+        const saintIsEvil = isPlayerEvil(executedSeat);
+        return makeWinResult(
+          saintIsEvil ? "SAINT_CONVERTED_EXECUTED" : "SAINT_EXECUTED",
+          SAINT_EXECUTED_REASON,
+          {
+            executedSeatId: executedSeat.id,
+            executedRoleId: executedSeat.role?.id ?? null,
+          }
         );
-        if (
-          goodTwinSeat &&
-          isGoodTwin(executedSeat.id)
-        ) {
-          return {
-            isGameOver: true,
-            winner: "Evil",
-            reason: "善良双子被处决（镜像双子胜利）",
-          };
-        }
+      }
+      if (executedSeat.role?.id === "goblin") {
+        return makeWinResult("GOBLIN_EXECUTED", "地精被处决", {
+          executedSeatId: executedSeat.id,
+          executedRoleId: executedSeat.role?.id ?? null,
+        });
+      }
+    }
+
+    // 1.2.2 镜像双子（Evil Twin）：若**权威配对**中的善良双子被处决，邪恶直接获胜。
+    //   · 判据只认严格解析（explicit / seatFlag）；无证据 ⇒ 绝不猜测（见 evilTwinHelper）。
+    //   · 被处决的善良双子自身中毒/醉酒**不影响**该判据：这是镜像双子的全局规则，
+    //     不是被处决者的能力（例：善良双子是酒鬼 Drunk（永久醉酒）时仍必须判邪恶胜）。
+    //   · 镜像双子本人中毒/醉酒 ⇒ 其能力失效 ⇒ 不判胜（与 1.1 的阻挡口径一致）。
+    const livingEvilTwin = seats.find(
+      (s) =>
+        s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
+    );
+    if (executedSeat && livingEvilTwin) {
+      const twin = resolveEvilTwinPair(seats, evilTwinPair);
+      if (
+        twin.resolved &&
+        twin.goodTwinSeat !== null &&
+        twin.isGoodTwin(executedSeat.id)
+      ) {
+        return makeWinResult("GOOD_TWIN_EXECUTED", GOOD_TWIN_EXECUTED_REASON, {
+          executedSeatId: executedSeat.id,
+          executedRoleId: executedSeat.role?.id ?? null,
+          goodTwinSeatId: twin.goodTwinSeat.id,
+          evilTwinSeatId: livingEvilTwin.id,
+          twinPairSource: twin.source,
+        });
       }
     }
   }
@@ -770,23 +843,27 @@ export function checkGameEnd(
     executedPlayerId === null &&
     (lastAction === "execution" || lastAction === "check_phase");
 
+  const peacefulMayorSeat = aliveSeats.find(
+    (s) => s.role?.id === "mayor" && !s.isPoisoned && !s.isDrunk
+  );
   const hasMayorPeacefulWin =
     isNoExecutionResolution &&
     aliveCount === 3 && // 恰好 3 人存活（aliveSeats 含旅行者 → 与官方口径一致）
-    aliveSeats.some(
-      (s) => s.role?.id === "mayor" && !s.isPoisoned && !s.isDrunk
-    );
+    !!peacefulMayorSeat;
 
   // ⭐ 官方优先规则：「If both teams would win at the same time, good wins.」
   //   镇长和平获胜是**硬性**胜利条件，必须放在人数阈值**与军团分支之前**结算：
   //     · 放阈值之前 → 否则「镇长 + 恶魔 + 旅行者」被人数阈值抢先判邪恶；
   //     · 放军团分支之前 → 否则军团局（如 镇长 + 2 邪恶存活、平安日）会漏判。
-  if (hasMayorPeacefulWin) {
-    return {
-      isGameOver: true,
-      winner: "Good",
-      reason: "镇长触发和平获胜条件",
-    };
+  if (hasMayorPeacefulWin && peacefulMayorSeat) {
+    // 官方：「你的阵营获胜」⇒ winner 由镇长**当前阵营**派生
+    // （酒鬼/提线木偶/转化后可能属邪恶；历史实现写死 Good，是 P2-4 规则缺陷）。
+    const mayorIsEvil = isPlayerEvil(peacefulMayorSeat);
+    return makeWinResult(
+      mayorIsEvil ? "MAYOR_CONVERTED_PEACEFUL_WIN" : "MAYOR_PEACEFUL_WIN",
+      "镇长触发和平获胜条件",
+      { aliveCount, mayorSeatId: peacefulMayorSeat.id }
+    );
   }
 
   if (hasLegionInPlay) {
@@ -797,11 +874,15 @@ export function checkGameEnd(
       aliveGood.length <= 1 ||
       (aliveCount <= 2 && totalEffectiveDemons > 0)
     ) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "善良阵营存活人数不足以战胜军团，邪恶阵营获胜",
-      };
+      return makeWinResult(
+        "LEGION_THRESHOLD",
+        "善良阵营存活人数不足以战胜军团，邪恶阵营获胜",
+        {
+          aliveNonTravelerCount,
+          livingDemonCount: totalEffectiveDemons,
+          aliveCount,
+        }
+      );
     }
   } else {
     // 官方点名允许的提前结束：存活者**全部为邪恶** → 善良无法提名恶魔
@@ -810,11 +891,14 @@ export function checkGameEnd(
       aliveGood.length === 0 &&
       aliveEvil.length > 0
     ) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "存活玩家全为邪恶阵营，善良无法提名恶魔",
-      };
+      return makeWinResult(
+        "ONLY_EVIL_ALIVE",
+        "存活玩家全为邪恶阵营，善良无法提名恶魔",
+        {
+          aliveNonTravelerCount,
+          livingDemonCount: totalEffectiveDemons,
+        }
+      );
     }
 
     // --- 3. 【第三优先级】官方固定阈值：**仅剩 2 人存活**（旅行者不计入）---
@@ -827,11 +911,10 @@ export function checkGameEnd(
     //    （官方："Good can't win if you both live."），而人数已到阈值，
     //    邪恶获胜（官方 Evil Twin Tips 印证 3 人 → 2 人的必然收敛）。
     if (aliveNonTravelerCount <= 2) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "存活人数仅剩 2 人",
-      };
+      return makeWinResult("TWO_ALIVE", "存活人数仅剩 2 人", {
+        aliveNonTravelerCount,
+        livingDemonCount: totalEffectiveDemons,
+      });
     }
   }
 
@@ -853,21 +936,19 @@ export function checkGameEnd(
     seats.some((s: any) => s.executedToday === true);
   if (lastAction === "check_phase" && vortoxEffective) {
     if (!todayHasExecution) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "涡流：今日无人被处决",
-      };
+      return makeWinResult("VORTOX_NO_EXECUTION", "涡流：今日无人被处决", {
+        nightCount: options.nightCount ?? 0,
+        trigger: "check_phase_no_execution",
+      });
     }
   }
   if (lastAction === "execution" && executedPlayerId === null) {
     // 涡流 (Vortox): 平安日直接邪恶获胜
     if (vortoxEffective && !todayHasExecution) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "涡流：今日无人被处决",
-      };
+      return makeWinResult("VORTOX_NO_EXECUTION", "涡流：今日无人被处决", {
+        nightCount: options.nightCount ?? 0,
+        trigger: "execution_null_no_execution",
+      });
     }
     /**
      * 主谋（Mastermind）额外一天：**无人被处决 ⇒ 善良获胜**。
@@ -882,13 +963,19 @@ export function checkGameEnd(
      */
     if (isMastermindExtraDay) {
       const r = resolveMastermindExtraDay(null);
-      return {
-        isGameOver: true,
-        // ⚠️ 胜负**必须从纯函数派生**，不能另写字面量 ——
-        //    否则两处会分叉，改一处不改另一处，测试也抓不到。
-        winner: r.winner === "good" ? "Good" : "Evil",
-        reason: r.reason,
-      };
+      // ⚠️ 胜负从注册表派生（`MASTERMIND_EXTRA_DAY_NO_EXECUTION` 的 side 已声明
+      //    为 Good，与 utils/mastermindRule 的纯函数返回值由测试逐条对账）。
+      return makeWinResult("MASTERMIND_EXTRA_DAY_NO_EXECUTION", r.reason, {
+        trigger: "mastermindExtraDay_noExecution",
+        mastermindSeatId:
+          seats.find(
+            (s) =>
+              s.role?.id === "mastermind" &&
+              !s.isDead &&
+              !s.isPoisoned &&
+              !s.isDrunk
+          )?.id ?? null,
+      });
     }
     // 镇长 (Mayor): 和平获胜已**上移**到「1.5 邪恶人数阈值之前」统一结算
     //   —— 官方优先规则「两条同时成立时善良优先」要求它先于人数阈值。
@@ -902,21 +989,25 @@ export function checkGameEnd(
     (s) => s.role?.id === "leviathan" && !s.isDead
   );
   if (leviathanPresent) {
+    const leviathanSeat =
+      seats.find((s) => s.role?.id === "leviathan" && !s.isDead) ?? null;
     // 条件1: 多于一名善良玩家被处决
     if (goodExecutionsCount > 1) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "利维坦：多于一名善良玩家被处决",
-      };
+      return makeWinResult(
+        "LEVIATHAN_EXECUTIONS",
+        "利维坦：多于一名善良玩家被处决",
+        {
+          goodExecutionsCount,
+          leviathanSeatId: leviathanSeat?.id ?? null,
+        }
+      );
     }
     // 条件2: 第五个白天结束时利维坦存活
     if (leviathanDay >= 5) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "利维坦：第五个白天结束时存活",
-      };
+      return makeWinResult("LEVIATHAN_DAY5", "利维坦：第五个白天结束时存活", {
+        nightCount: options.nightCount ?? 0,
+        leviathanSeatId: leviathanSeat?.id ?? null,
+      });
     }
   }
 
@@ -929,11 +1020,14 @@ export function checkGameEnd(
   ) {
     const executedSeat = seats.find((s) => s.id === executedPlayerId);
     if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
-      return {
-        isGameOver: true,
-        winner: "Evil",
-        reason: "恐惧之灵：选定的目标被处决",
-      };
+      return makeWinResult(
+        "FEARMONGER_TARGET_EXECUTED",
+        "恐惧之灵：选定的目标被处决",
+        {
+          executedSeatId: executedSeat.id,
+          fearmongerTargetId,
+        }
+      );
     }
   }
 
@@ -947,11 +1041,11 @@ export function checkGameEnd(
 
   // 5.4 无神论者 (Atheist) 胜利条件
   if (!atheistPresent && storytellerExecuted) {
-    return {
-      isGameOver: true,
-      winner: "Evil",
-      reason: "无神论者：说书人被处决且无神论者不在场",
-    };
+    return makeWinResult(
+      "ATHEIST_STORYTELLER_EXECUTED",
+      "无神论者：说书人被处决且无神论者不在场",
+      { trigger: "storytellerExecuted_withoutAtheist" }
+    );
   }
 
   // 5.5 炸弹人 (Boomdandy) 胜利条件
@@ -969,11 +1063,14 @@ export function checkGameEnd(
     executedPlayerId === grandmotherGrandchildId
   ) {
     // 孙子死于处决且利维坦在场，邪恶获胜
-    return {
-      isGameOver: true,
-      winner: "Evil",
-      reason: "祖母与利维坦：孙子被处决",
-    };
+    return makeWinResult(
+      "GRANDMOTHER_GRANDCHILD_EXECUTED",
+      "祖母与利维坦：孙子被处决",
+      {
+        executedSeatId: executedPlayerId,
+        grandchildSeatId: grandmotherGrandchildId,
+      }
+    );
   }
 
   return { isGameOver: false, winner: null, reason: null };

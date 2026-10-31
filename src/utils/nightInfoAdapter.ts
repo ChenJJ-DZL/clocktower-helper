@@ -12,25 +12,30 @@
 import type { NightInfoResult } from "@/src/types/game";
 import { type GamePhase, roles, type Script, type Seat } from "../../app/data";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
-import { buildCerenovusNoticeNightInfo, CERENOVUS_NOTICE_STEP_ID } from "./cerenovusNotice";
+import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
+import {
+  buildCerenovusNoticeNightInfo,
+  CERENOVUS_NOTICE_STEP_ID,
+} from "./cerenovusNotice";
 // ⚠️ 单向依赖：dynamicQueueGenerator 不 import 本文件，无循环引用风险。
 import { seatHasNightAction } from "./dynamicQueueGenerator";
-import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
-import {
-  MARIONETTE_NO_WAKE_NOTE,
-  isLunaticSeat,
-  isMarionetteSeat,
-} from "./roleFlags";
-import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
-import { generateNightInfo } from "./nightInfoGenerator";
-import { resolveEvilTwinPair } from "./evilTwinHelper";
+// ⚠️ 仅信息展示用途：resolveEvilTwinPairForDisplay 的启发式占位
+//    （source="heuristic"、resolved=false）**绝不得据此判胜**。
+import { resolveEvilTwinPairForDisplay } from "./evilTwinHelper";
 import {
   computeDemonBluffNames,
-  formatLunaticFakeGuide,
   computeLegionTeammateCount,
+  formatLunaticFakeGuide,
   getScriptRoleIds,
   resolveLunaticFakeInfo,
 } from "./lunaticFakeInfo";
+import { generateNightInfo } from "./nightInfoGenerator";
+import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
+import {
+  isLunaticSeat,
+  isMarionetteSeat,
+  MARIONETTE_NO_WAKE_NOTE,
+} from "./roleFlags";
 import {
   getSnitchBluffsForMinion,
   getSnitchExtraBluffsForDemon,
@@ -214,7 +219,9 @@ export function getMigratedRoleCount(): number {
  * 📌 用途：区分「首夜只有恶魔互认的恶魔」（小恶魔/军团/僵怖/沙巴洛斯/珀…）
  *    与「首夜**另有**自己行动的恶魔」（普卡/卡扎力/lléech）。
  */
-export function hasOwnFirstNightAbility(roleId: string | undefined | null): boolean {
+export function hasOwnFirstNightAbility(
+  roleId: string | undefined | null
+): boolean {
   if (!roleId) return false;
   try {
     const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
@@ -392,8 +399,10 @@ export function calculateNightInfoViaNewEngine(
   if (!rawNightInfo) return cerenovusNoticeInfo;
 
   // 👥 镜像双子对立善良角色在首夜的信息注入
+  // ⚠️ 仅供"给谁弹双子告知/展示"使用，属展示路径：无显式指定时允许启发式占位，
+  //    占位结果**不得**用于判胜（判胜走 app/gameLogic.ts 的严格解析）。
   if (gamePhase === "firstNight" || nightCount === 1) {
-    const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPair(
+    const { evilTwinSeat, isGoodTwin } = resolveEvilTwinPairForDisplay(
       seats,
       (selectedScript as any)?.evilTwinPair
     );
@@ -464,7 +473,8 @@ function generateSystemInfoViaAdapter(
   }
 
   if (stepId === "good_twin_info") {
-    const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPair(
+    // ⚠️ 系统步骤文案属展示用途：无显式配对时允许启发式占位（仅展示，不得判胜）。
+    const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPairForDisplay(
       seats,
       (selectedScript as any)?.evilTwinPair
     );
@@ -791,7 +801,6 @@ function generateSystemInfoViaAdapter(
       }[国王告知] 唤醒恶魔后指向 ${kingSeat.id + 1}号（国王）—— 官方：恶魔知道你是国王`;
     }
   }
-
 
   return {
     seat: selfSeat,

@@ -3,7 +3,6 @@ import {
   canUseLimitedAbility,
   resetLimitedAbilityUses,
 } from "../../../utils/LimitedAbilityManager";
-import { board, runRole, seat } from "../_tbHarness";
 import { artistAbility } from "../../new_engine/artist.ability";
 import { barberAbility } from "../../new_engine/barber.ability";
 import { cerenovusAbility } from "../../new_engine/cerenovus.ability";
@@ -29,6 +28,7 @@ import { town_crierAbility } from "../../new_engine/town_crier.ability";
 import { vigormortisAbility } from "../../new_engine/vigormortis.ability";
 import { vortoxAbility } from "../../new_engine/vortox.ability";
 import { witchAbility } from "../../new_engine/witch.ability";
+import { board, runRole, seat } from "../_tbHarness";
 
 /**
  * L5 · 因果链层 · 梦殒春宵 / 游园惊梦（25 唯一角色，每角色 ≥3 用例）
@@ -79,30 +79,70 @@ beforeEach(() => {
 describe("L5 · 镇民 · 信息类", () => {
   describe("钟表匠 clockmaker", () => {
     it("① 主路径：恶魔与爪牙相邻 ⇒ 距离为 1（裸 number）", async () => {
-      const seats = board(["clockmaker", "imp", "poisoner", "chambermaid", "tinker"]);
+      const seats = board([
+        "clockmaker",
+        "imp",
+        "poisoner",
+        "chambermaid",
+        "tinker",
+      ]);
       const res = await runRole(clockmakerAbility, seats, 0, {
         night: 1,
         phase: "firstNight",
       });
       const d = res?.meta?.abilityResult;
-      expect(typeof d, `❌ 结果必须是裸 number（实际 ${JSON.stringify(d)}）`).toBe("number");
-      expect(d, `❌ 1号小恶魔与2号投毒者相邻 ⇒ 距离应为 1（实际 ${d}）`).toBe(1);
-      expect(after(res, 0)?.isDead, "❌ 纯信息能力不得改变任何座位状态").toBe(false);
+      expect(
+        typeof d,
+        `❌ 结果必须是裸 number（实际 ${JSON.stringify(d)}）`
+      ).toBe("number");
+      expect(d, `❌ 1号小恶魔与2号投毒者相邻 ⇒ 距离应为 1（实际 ${d}）`).toBe(
+        1
+      );
+      expect(after(res, 0)?.isDead, "❌ 纯信息能力不得改变任何座位状态").toBe(
+        false
+      );
     });
     it("② 差分：爪牙挪远 ⇒ 距离必须随之变化", async () => {
-      const A = board(["clockmaker", "imp", "poisoner", "chambermaid", "tinker"]);
-      const B = board(["clockmaker", "imp", "chambermaid", "tinker", "poisoner"]);
-      const ra = await runRole(clockmakerAbility, A, 0, { night: 1, phase: "firstNight" });
-      const rb = await runRole(clockmakerAbility, B, 0, { night: 1, phase: "firstNight" });
+      const A = board([
+        "clockmaker",
+        "imp",
+        "poisoner",
+        "chambermaid",
+        "tinker",
+      ]);
+      const B = board([
+        "clockmaker",
+        "imp",
+        "chambermaid",
+        "tinker",
+        "poisoner",
+      ]);
+      const ra = await runRole(clockmakerAbility, A, 0, {
+        night: 1,
+        phase: "firstNight",
+      });
+      const rb = await runRole(clockmakerAbility, B, 0, {
+        night: 1,
+        phase: "firstNight",
+      });
       expect(ra?.meta?.abilityResult, "❌ 配置 A 距离应为 1").toBe(1);
-      expect(rb?.meta?.abilityResult, "❌ 配置 B 中恶魔↔爪牙环形距离应为 2").toBe(2);
+      expect(
+        rb?.meta?.abilityResult,
+        "❌ 配置 B 中恶魔↔爪牙环形距离应为 2"
+      ).toBe(2);
       expect(
         ra?.meta?.abilityResult !== rb?.meta?.abilityResult,
         "❌ 两种布局的距离不同，结果却相同 ⇒ 没有真正读场上位置"
       ).toBe(true);
     });
     it("③ 负向对照：场上无爪牙 ⇒ 距离必须为 0（不得猜测）", async () => {
-      const seats = board(["clockmaker", "chambermaid", "gossip", "tinker", "grandmother"]);
+      const seats = board([
+        "clockmaker",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "grandmother",
+      ]);
       const res = await runRole(clockmakerAbility, seats, 0, {
         night: 1,
         phase: "firstNight",
@@ -117,7 +157,13 @@ describe("L5 · 镇民 · 信息类", () => {
 
   describe("筑梦师 dreamer", () => {
     it("① 主路径：目标是善良 ⇒ 两个候选之一必为其真实角色", async () => {
-      const seats = board(["dreamer", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "dreamer",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       const res = await runRole(dreamerAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -125,25 +171,33 @@ describe("L5 · 镇民 · 信息类", () => {
       });
       const r = res?.meta?.abilityResult;
       expect(r?.targetId, "❌ 结果必须带所选目标 id").toBe(1);
-      expect(r?.actualRole?.id, "❌ 结果必须带目标真实角色").toBe("chambermaid");
+      expect(r?.actualRole?.id, "❌ 结果必须带目标真实角色").toBe(
+        "chambermaid"
+      );
       const ids = [r?.roleA?.id, r?.roleB?.id];
       expect(
         ids.includes("chambermaid"),
         `❌ 官方：「其中一个为该玩家真实角色」⇒ 候选里必须含 chambermaid（实际 ${JSON.stringify(ids)}）`
       ).toBe(true);
-      expect(
-        ids.filter(Boolean).length,
-        "❌ 必须给出两个角色候选"
-      ).toBe(2);
+      expect(ids.filter(Boolean).length, "❌ 必须给出两个角色候选").toBe(2);
     });
     it("② 差分：目标是邪恶 ⇒ 两个候选之一必为其真实角色（imp）", async () => {
-      const seats = board(["dreamer", "imp", "chambermaid", "gossip", "tinker"]);
+      const seats = board([
+        "dreamer",
+        "imp",
+        "chambermaid",
+        "gossip",
+        "tinker",
+      ]);
       const res = await runRole(dreamerAbility, seats, 0, {
         night: 2,
         phase: "night",
         targets: [1],
       });
-      const ids = [res?.meta?.abilityResult?.roleA?.id, res?.meta?.abilityResult?.roleB?.id];
+      const ids = [
+        res?.meta?.abilityResult?.roleA?.id,
+        res?.meta?.abilityResult?.roleB?.id,
+      ];
       expect(
         ids.includes("imp"),
         `❌ 目标是小恶魔 ⇒ 候选里必须含 imp（实际 ${JSON.stringify(ids)}）`
@@ -151,7 +205,13 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(res?.meta?.abilityResult?.actualRole?.id).toBe("imp");
     });
     it("③ 负向对照：受干扰（醉酒）⇒ 两个候选**都不得**是真实角色", async () => {
-      const seats = board(["dreamer", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "dreamer",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       // ⚠️ preCheck 读的是 `statusEffects`（不是裸 isDrunk 字段）⇒ 必须带效果
       seats[0].statusEffects = [{ type: "drunk" }];
       const res = await runRole(dreamerAbility, seats, 0, {
@@ -159,7 +219,10 @@ describe("L5 · 镇民 · 信息类", () => {
         phase: "night",
         targets: [1],
       });
-      const ids = [res?.meta?.abilityResult?.roleA?.id, res?.meta?.abilityResult?.roleB?.id];
+      const ids = [
+        res?.meta?.abilityResult?.roleA?.id,
+        res?.meta?.abilityResult?.roleB?.id,
+      ];
       expect(
         ids.includes("chambermaid"),
         `❌ 醉酒筑梦师必须给出**错误**信息，但候选里出现了真实角色（${JSON.stringify(ids)}）`
@@ -180,7 +243,9 @@ describe("L5 · 镇民 · 信息类", () => {
       const r = res?.meta?.abilityResult;
       expect(r?.abnormalCount, "❌ 应告知异常数 3").toBe(3);
       expect(r?.actualCount, "❌ actualCount 应为真实值 3").toBe(3);
-      expect(r?.isCorrupted, "❌ 未受干扰时 isCorrupted 必须为 false").toBe(false);
+      expect(r?.isCorrupted, "❌ 未受干扰时 isCorrupted 必须为 false").toBe(
+        false
+      );
     });
     it("② 差分：abnormalAbilityCount 变化 ⇒ 告知值必须变", async () => {
       const seats = board(["mathematician", ...SAFE]);
@@ -197,7 +262,8 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(r1?.meta?.abilityResult?.abnormalCount).toBe(1);
       expect(r2?.meta?.abilityResult?.abnormalCount).toBe(4);
       expect(
-        r1?.meta?.abilityResult?.abnormalCount !== r2?.meta?.abilityResult?.abnormalCount,
+        r1?.meta?.abilityResult?.abnormalCount !==
+          r2?.meta?.abilityResult?.abnormalCount,
         "❌ 异常数 1→4，告知值却没变 ⇒ 没读 snapshot"
       ).toBe(true);
     });
@@ -213,10 +279,17 @@ describe("L5 · 镇民 · 信息类", () => {
         snapshot: { abnormalAbilityCount: 3 },
         storytellerInput: { fakeResult: 6 },
       });
-      expect(res?.meta?.abilityResult?.isCorrupted, "❌ 受干扰必须标记 isCorrupted").toBe(true);
-      expect(res?.meta?.abilityResult?.abnormalCount, "❌ 受干扰应采纳说书人假值 6").toBe(6);
       expect(
-        res?.meta?.abilityResult?.abnormalCount !== res?.meta?.abilityResult?.actualCount,
+        res?.meta?.abilityResult?.isCorrupted,
+        "❌ 受干扰必须标记 isCorrupted"
+      ).toBe(true);
+      expect(
+        res?.meta?.abilityResult?.abnormalCount,
+        "❌ 受干扰应采纳说书人假值 6"
+      ).toBe(6);
+      expect(
+        res?.meta?.abilityResult?.abnormalCount !==
+          res?.meta?.abilityResult?.actualCount,
         "❌ 受干扰时告知值不得等于真实值"
       ).toBe(true);
     });
@@ -246,13 +319,22 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(res?.meta?.abilityResult?.isCorrupted).toBe(false);
     });
     it("③ 负向对照：涡流在场 ⇒ 信息必须反转（真实 true → 告知 false）", async () => {
-      const seats = board(["flowergirl", "vortox", "gossip", "tinker", "grandmother"]);
+      const seats = board([
+        "flowergirl",
+        "vortox",
+        "gossip",
+        "tinker",
+        "grandmother",
+      ]);
       const res = await runRole(flowergirlAbility, seats, 0, {
         night: 2,
         phase: "night",
         snapshot: { demonVotedToday: true },
       });
-      expect(res?.meta?.abilityResult?.isCorrupted, "❌ 涡流在场必须标 isCorrupted").toBe(true);
+      expect(
+        res?.meta?.abilityResult?.isCorrupted,
+        "❌ 涡流在场必须标 isCorrupted"
+      ).toBe(true);
       expect(
         res?.meta?.abilityResult?.hasVoted,
         "❌ 涡流局镇民信息必须错误 ⇒ 真实 true 应告知 false"
@@ -269,7 +351,10 @@ describe("L5 · 镇民 · 信息类", () => {
         snapshot: { minionNominatedToday: true },
       });
       expect(res?.meta?.abilityResult?.minionNominated).toBe(true);
-      expect(snap(res, "_abilityResults")?.town_crier?.minionNominated, "❌ 结果必须落 _abilityResults.town_crier").toBe(true);
+      expect(
+        snap(res, "_abilityResults")?.town_crier?.minionNominated,
+        "❌ 结果必须落 _abilityResults.town_crier"
+      ).toBe(true);
       expect(res?.meta?.isCorrupted).toBe(false);
     });
     it("② 差分：今日无爪牙提名 ⇒ false", async () => {
@@ -307,7 +392,10 @@ describe("L5 · 镇民 · 信息类", () => {
         phase: "night",
         snapshot: { deadThisNight: [1] },
       });
-      expect(res?.meta?.abilityResult?.deadEvilCount, "❌ 死亡的邪恶玩家应为 1 名").toBe(1);
+      expect(
+        res?.meta?.abilityResult?.deadEvilCount,
+        "❌ 死亡的邪恶玩家应为 1 名"
+      ).toBe(1);
       expect(res?.meta?.abilityResult?.finalCount).toBe(1);
       expect(after(res, 0)?.isDead).toBe(false);
     });
@@ -331,7 +419,8 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(two?.meta?.abilityResult?.deadEvilCount).toBe(2);
       expect(zero?.meta?.abilityResult?.deadEvilCount).toBe(0);
       expect(
-        two?.meta?.abilityResult?.finalCount !== zero?.meta?.abilityResult?.finalCount,
+        two?.meta?.abilityResult?.finalCount !==
+          zero?.meta?.abilityResult?.finalCount,
         "❌ 死亡邪恶数 2→0，最终告知值却没变"
       ).toBe(true);
     });
@@ -357,7 +446,9 @@ describe("L5 · 镇民 · 信息类", () => {
       const res = await runRole(savantAbility, seats, 0, {
         night: 2,
         phase: "day",
-        storytellerInput: { result: { correct: "甲是真的", incorrect: "乙是假的" } },
+        storytellerInput: {
+          result: { correct: "甲是真的", incorrect: "乙是假的" },
+        },
       });
       expect(res?.meta?.abilityResult?.correct).toBe("甲是真的");
       expect(res?.meta?.abilityResult?.incorrect).toBe("乙是假的");
@@ -388,7 +479,10 @@ describe("L5 · 镇民 · 信息类", () => {
         night: 2,
         phase: "day",
       });
-      expect(res?.meta?.abilityResult?.needsStorytellerInput, "❌ 未填内容必须标 needsStorytellerInput").toBe(true);
+      expect(
+        res?.meta?.abilityResult?.needsStorytellerInput,
+        "❌ 未填内容必须标 needsStorytellerInput"
+      ).toBe(true);
       expect(res?.meta?.abilityResult?.correct, "❌ 不得伪造内容").toBe("");
       expect(
         JSON.stringify(res?.meta?.displayInfo ?? {}).includes("正确信息"),
@@ -399,7 +493,13 @@ describe("L5 · 镇民 · 信息类", () => {
 
   describe("女裁缝 seamstress", () => {
     it("① 主路径：两名目标同为善良 ⇒ sameAlignment=true", async () => {
-      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "seamstress",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       const res = await runRole(seamstressAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -410,7 +510,13 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(res?.meta?.abilityResult?.isCorrupted).toBe(false);
     });
     it("② 差分：一善良一邪恶 ⇒ sameAlignment=false", async () => {
-      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "seamstress",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       const res = await runRole(seamstressAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -418,16 +524,27 @@ describe("L5 · 镇民 · 信息类", () => {
       });
       expect(res?.meta?.abilityResult?.sameAlignment).toBe(false);
       expect(res?.meta?.abilityResult?.actualSameAlignment).toBe(false);
-      expect(res?.meta?.abilityResult?.isTarget2Evil, "❌ 5号小恶魔应判为邪恶").toBe(true);
+      expect(
+        res?.meta?.abilityResult?.isTarget2Evil,
+        "❌ 5号小恶魔应判为邪恶"
+      ).toBe(true);
     });
     it("③ 负向对照：只选 1 名目标 ⇒ 必须中止且不产生结果", async () => {
-      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "seamstress",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       const res = await runRole(seamstressAbility, seats, 0, {
         night: 2,
         phase: "night",
         targets: [1],
       });
-      expect(res?.aborted, "❌ 官方要求选两名玩家 ⇒ 只选一人必须中止").toBe(true);
+      expect(res?.aborted, "❌ 官方要求选两名玩家 ⇒ 只选一人必须中止").toBe(
+        true
+      );
       expect(res?.meta?.abilityResult, "❌ 中止时不得产出结果").toBeUndefined();
     });
 
@@ -442,14 +559,23 @@ describe("L5 · 镇民 · 信息类", () => {
      * 断言两件事：不 abort、且没有 `_preCheckAborted`（后者才是弹窗被跳过的真判据）。
      */
     it("④ 唤醒/预览（未选目标）⇒ 不得中止，否则弹窗永远打不开", async () => {
-      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "seamstress",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       const res = await runRole(seamstressAbility, seats, 0, {
         night: 1,
         phase: "night",
         targets: [],
         preview: true,
       });
-      expect(res?.aborted, "❌ 未选目标时中止 ⇒ 女裁缝永远没有机会使用能力").not.toBe(true);
+      expect(
+        res?.aborted,
+        "❌ 未选目标时中止 ⇒ 女裁缝永远没有机会使用能力"
+      ).not.toBe(true);
       expect(
         res?.meta?._preCheckAborted,
         "❌ 置了 _preCheckAborted ⇒ 调用方会直接关弹窗跳过本角色"
@@ -457,7 +583,13 @@ describe("L5 · 镇民 · 信息类", () => {
     });
 
     it("⑤ 反证：传 3 名目标 ⇒ 数量校验仍在（修 ④ 不得把校验削掉）", async () => {
-      const seats = board(["seamstress", "chambermaid", "gossip", "tinker", "imp"]);
+      const seats = board([
+        "seamstress",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "imp",
+      ]);
       const res = await runRole(seamstressAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -509,14 +641,26 @@ describe("L5 · 镇民 · 信息类", () => {
         phase: "day",
         storytellerInput: { question: "Q", answer: true },
       });
-      expect(res?.meta?.abilityResult?.isCorrupted, "❌ 受干扰必须标记 isCorrupted").toBe(true);
-      expect(res?.meta?.abilityResult?.answer, "❌ 答案由说书人给出，不得被引擎篡改").toBe(true);
+      expect(
+        res?.meta?.abilityResult?.isCorrupted,
+        "❌ 受干扰必须标记 isCorrupted"
+      ).toBe(true);
+      expect(
+        res?.meta?.abilityResult?.answer,
+        "❌ 答案由说书人给出，不得被引擎篡改"
+      ).toBe(true);
     });
   });
 
   describe("杂耍艺人 juggler", () => {
     it("① 主路径：5 次猜测中猜对 2 个 ⇒ correctCount=2", async () => {
-      const seats = board(["juggler", "chambermaid", "gossip", "tinker", "grandmother"]);
+      const seats = board([
+        "juggler",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "grandmother",
+      ]);
       const res = await runRole(jugglerAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -531,10 +675,19 @@ describe("L5 · 镇民 · 信息类", () => {
       });
       expect(res?.meta?.abilityResult?.realCount, "❌ 应猜对 2 个").toBe(2);
       expect(res?.meta?.abilityResult?.correctCount).toBe(2);
-      expect(snap(res, "_abilityResults")?.juggler?.used, "❌ 使用后必须记账 used").toBe(true);
+      expect(
+        snap(res, "_abilityResults")?.juggler?.used,
+        "❌ 使用后必须记账 used"
+      ).toBe(true);
     });
     it("② 差分：改猜测 ⇒ 猜对数必须变", async () => {
-      const seats = board(["juggler", "chambermaid", "gossip", "tinker", "grandmother"]);
+      const seats = board([
+        "juggler",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "grandmother",
+      ]);
       const r0 = await runRole(jugglerAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -556,7 +709,13 @@ describe("L5 · 镇民 · 信息类", () => {
       expect(r1?.meta?.abilityResult?.realCount).toBe(1);
     });
     it("③ 负向对照：非首个白天（dayCount=2）⇒ 必须中止", async () => {
-      const seats = board(["juggler", "chambermaid", "gossip", "tinker", "grandmother"]);
+      const seats = board([
+        "juggler",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "grandmother",
+      ]);
       const res = await runRole(jugglerAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -565,7 +724,10 @@ describe("L5 · 镇民 · 信息类", () => {
           guesses: [{ targetSeatId: 1, roleName: "侍女" }],
         },
       });
-      expect(res?.aborted, "❌ 官方：杂耍艺人只在首个白天猜测 ⇒ 第 2 天必须中止").toBe(true);
+      expect(
+        res?.aborted,
+        "❌ 官方：杂耍艺人只在首个白天猜测 ⇒ 第 2 天必须中止"
+      ).toBe(true);
       expect(res?.meta?.abilityResult, "❌ 中止时不得产出结果").toBeUndefined();
     });
   });
@@ -580,7 +742,10 @@ describe("L5 · 镇民 · 信息类", () => {
       });
       const ids: number[] = res?.meta?.abilityResult?.targetIds ?? [];
       expect(ids.length, "❌ 官方：得知 2 名邪恶玩家").toBe(2);
-      expect(ids.includes(1), `❌ 其中一名必须是恶魔（imp 在 1 号位，实际 ${JSON.stringify(ids)}）`).toBe(true);
+      expect(
+        ids.includes(1),
+        `❌ 其中一名必须是恶魔（imp 在 1 号位，实际 ${JSON.stringify(ids)}）`
+      ).toBe(true);
       expect(res?.meta?.abilityResult?.found).toBe(true);
     });
     it("② 差分：恶魔换座位 ⇒ 结果里指向的恶魔座位必须跟着变", async () => {
@@ -672,7 +837,9 @@ describe("L5 · 外来者", () => {
         ),
         "❌ 醉酒必须带 source=sweetheart 标记"
       ).toBe(true);
-      expect(snap(res, "sweetheartDrunkTargetId"), "❌ 必须记账醉酒目标").toBe(2);
+      expect(snap(res, "sweetheartDrunkTargetId"), "❌ 必须记账醉酒目标").toBe(
+        2
+      );
     });
     it("② 差分：换一名目标 ⇒ 只有新目标醉酒", async () => {
       const seats = board(["sweetheart", ...SAFE]);
@@ -703,7 +870,9 @@ describe("L5 · 外来者", () => {
         night: 2,
         phase: "night",
       });
-      const drunk = (res?.snapshot?.seats ?? []).filter((s: any) => s.isDrunk === true);
+      const drunk = (res?.snapshot?.seats ?? []).filter(
+        (s: any) => s.isDrunk === true
+      );
       expect(drunk.length, "官方：必须恰好一名玩家醉酒").toBe(1);
       expect(drunk[0]?.id, "兜底应取座位号最小的存活非自己（2号）").toBe(1);
       expect(snap(res, "sweetheartDrunkTargetId")).toBe(1);
@@ -737,8 +906,13 @@ describe("L5 · 外来者", () => {
         phase: "night",
         storytellerInput: { swapA: 1, swapB: 2 },
       });
-      expect(after(res, 1)?.role?.id, "❌ 2号应拿到 3号的角色 gossip").toBe("gossip");
-      expect(after(res, 2)?.role?.id, "❌ 3号应拿到 2号的角色 chambermaid").toBe("chambermaid");
+      expect(after(res, 1)?.role?.id, "❌ 2号应拿到 3号的角色 gossip").toBe(
+        "gossip"
+      );
+      expect(
+        after(res, 2)?.role?.id,
+        "❌ 3号应拿到 2号的角色 chambermaid"
+      ).toBe("chambermaid");
       expect(snap(res, "barberSwap")).toEqual({ a: 1, b: 2 });
     });
     it("② 差分：交换顺序改变 ⇒ 结果一致（交换是对称操作）", async () => {
@@ -776,8 +950,12 @@ describe("L5 · 外来者", () => {
         phase: "night",
         targets: [4],
       });
-      expect(res?.meta?.abilityResult?.isEvil, "❌ 5号小恶魔应判为邪恶").toBe(true);
-      expect(res?.meta?.abilityResult?.evilWins, "❌ 选中邪恶 ⇒ 邪恶获胜").toBe(true);
+      expect(res?.meta?.abilityResult?.isEvil, "❌ 5号小恶魔应判为邪恶").toBe(
+        true
+      );
+      expect(res?.meta?.abilityResult?.evilWins, "❌ 选中邪恶 ⇒ 邪恶获胜").toBe(
+        true
+      );
       expect(snap(res, "gameOver"), "❌ 游戏必须真的结束").toBe(true);
       expect(snap(res, "klutzTriggered")).toBe(true);
     });
@@ -813,16 +991,23 @@ describe("L5 · 外来者", () => {
 // ══════════════════════════════════════════════════════════════════════════
 describe("L5 · 爪牙", () => {
   describe("镜像双子 evil_twin", () => {
-    it("① 主路径：首夜互知 ⇒ 落 evilTwinPair + 对立双子 isGoodTwin", async () => {
+    it("① 主路径：说书人已指定对立双子 ⇒ 首夜落 evilTwinPair + 对立双子 isGoodTwin", async () => {
       const seats = board(["evil_twin", ...SAFE]);
+      // 生产路径：说书人已在人物面板/右键指定"对立双子"（座位 isGoodTwin 标记），
+      // 首夜能力据此把配对落库。
+      // ⚠️ 2026-11-01 P0 契约：未指定时引擎**不得自行配对**（见下方 ④ fail-closed）。
+      seats[1].isGoodTwin = true;
       const res = await runRole(evil_twinAbility, seats, 0, {
         night: 1,
         phase: "firstNight",
       });
       const pair = snap(res, "evilTwinPair");
       expect(pair?.evilSeatId, "❌ 邪恶方必然是行动者（0号）").toBe(0);
-      expect(typeof pair?.goodSeatId, "❌ 必须配一名对立双子").toBe("number");
-      expect(after(res, pair.goodSeatId)?.isGoodTwin, "❌ 对立双子座位必须被标记").toBe(true);
+      expect(pair?.goodSeatId, "❌ 必须落说书人指定的对立双子").toBe(1);
+      expect(
+        after(res, pair.goodSeatId)?.isGoodTwin,
+        "❌ 对立双子座位必须被标记"
+      ).toBe(true);
       expect(res?.meta?.evilTwinResult?.twinRevealed).toBe(true);
     });
     it("② 差分：说书人指定 twinId ⇒ 必须尊重（不得自行配对）", async () => {
@@ -834,7 +1019,9 @@ describe("L5 · 爪牙", () => {
       });
       expect(snap(res, "evilTwinPair")?.goodSeatId).toBe(3);
       expect(after(res, 3)?.isGoodTwin).toBe(true);
-      expect(after(res, 1)?.isGoodTwin, "❌ 未被指定的座位不得被标记").toBe(false);
+      expect(after(res, 1)?.isGoodTwin, "❌ 未被指定的座位不得被标记").toBe(
+        false
+      );
     });
     it("③ 负向对照：邪恶双子已死亡 ⇒ 必须中止（I3 不变式）", async () => {
       const seats = board(["evil_twin", ...SAFE]);
@@ -845,6 +1032,26 @@ describe("L5 · 爪牙", () => {
       });
       expect(res?.aborted, "❌ 死亡玩家不得发动能力").toBe(true);
       expect(snap(res, "evilTwinPair"), "❌ 已死不得配对").toBeUndefined();
+    });
+    it("④ 负向对照：无任何配对证据 ⇒ 绝不伪造配对（fail-closed，P0 回归）", async () => {
+      const seats = board(["evil_twin", ...SAFE]);
+      const res = await runRole(evil_twinAbility, seats, 0, {
+        night: 1,
+        phase: "firstNight",
+      });
+      expect(
+        snap(res, "evilTwinPair"),
+        "❌ 说书人未指定时不得写入任何配对（尤其 goodSeatId:null），否则判胜会拿到伪证"
+      ).toBeUndefined();
+      expect(
+        after(res, 1)?.isGoodTwin,
+        "❌ 无证据时不得把启发式猜测（首个镇民/外来者）写进座位标记"
+      ).not.toBe(true);
+      expect(
+        res?.meta?.evilTwinResult?.needsDesignation,
+        "❌ 未指定时必须标记 needsDesignation 供 UI 提示"
+      ).toBe(true);
+      expect(res?.meta?.evilTwinResult?.twinRevealed).toBe(false);
     });
   });
 
@@ -863,7 +1070,9 @@ describe("L5 · 爪牙", () => {
         ),
         "❌ 必须落 cursed/source=witch 标记"
       ).toBe(true);
-      expect(snap(res, "witchCurse")?.[1], "❌ 必须记账 witchCurse[1]").toBe(true);
+      expect(snap(res, "witchCurse")?.[1], "❌ 必须记账 witchCurse[1]").toBe(
+        true
+      );
     });
     it("② 差分：换目标 ⇒ 只有新目标被诅咒", async () => {
       const seats = board(["witch", ...SAFE]);
@@ -892,10 +1101,9 @@ describe("L5 · 爪牙", () => {
         targets: [1],
       });
       expect(res?.aborted).toBe(true);
-      expect(
-        after(res, 1)?.isCursed,
-        "❌ 已失去能力者不得再诅咒"
-      ).not.toBe(true);
+      expect(after(res, 1)?.isCursed, "❌ 已失去能力者不得再诅咒").not.toBe(
+        true
+      );
     });
   });
 
@@ -910,7 +1118,9 @@ describe("L5 · 爪牙", () => {
       });
       expect(after(res, 1)?.isMad, "❌ 目标必须被标记需要疯狂").toBe(true);
       expect(after(res, 1)?.cerenovusMadnessRole).toBe("小恶魔");
-      expect(snap(res, "madRoles")?.[1], "❌ 必须记账 madRoles[1]").toBe("小恶魔");
+      expect(snap(res, "madRoles")?.[1], "❌ 必须记账 madRoles[1]").toBe(
+        "小恶魔"
+      );
     });
     it("② 负向对照：选自己 ⇒ 必须中止（洗脑师不能选自己）", async () => {
       const seats = board(["cerenovus", ...SAFE]);
@@ -931,7 +1141,10 @@ describe("L5 · 爪牙", () => {
         meta: { abilityEffective: false },
         storytellerInput: { roleName: "小恶魔" },
       });
-      expect(after(res, 1)?.isMad, "❌ 受干扰的洗脑师不得施加疯狂").toBeUndefined();
+      expect(
+        after(res, 1)?.isMad,
+        "❌ 受干扰的洗脑师不得施加疯狂"
+      ).toBeUndefined();
       expect(
         res?.meta?.cerenovusResult?.blockedByDrunkOrPoison,
         "❌ 必须记录「被醉酒/中毒阻断」"
@@ -949,8 +1162,14 @@ describe("L5 · 爪牙", () => {
         storytellerInput: { newRoleId: "soldier" },
       });
       expect(after(res, 1)?.role?.id).toBe("soldier");
-      expect(snap(res, "roleChanges")).toContainEqual({ seatId: 1, newRole: "soldier" });
-      expect(snap(res, "isDemonCreatedByPitHag"), "❌ 非恶魔变换不得标记造恶魔").toBe(false);
+      expect(snap(res, "roleChanges")).toContainEqual({
+        seatId: 1,
+        newRole: "soldier",
+      });
+      expect(
+        snap(res, "isDemonCreatedByPitHag"),
+        "❌ 非恶魔变换不得标记造恶魔"
+      ).toBe(false);
     });
     it("② 差分：造出恶魔 ⇒ 置 isDemonCreatedByPitHag / deathDecidedByStoryteller", async () => {
       const seats = board(["pit_hag", ...SAFE]);
@@ -972,7 +1191,9 @@ describe("L5 · 爪牙", () => {
         targets: [1],
         storytellerInput: { newRoleId: "gossip" }, // gossip 已在 3 号位
       });
-      expect(after(res, 1)?.role?.id, "❌ 已在场角色不得被改写").toBe("chambermaid");
+      expect(after(res, 1)?.role?.id, "❌ 已在场角色不得被改写").toBe(
+        "chambermaid"
+      );
       expect(snap(res, "roleChanges"), "❌ 无事发生不得记账").toBeUndefined();
     });
   });
@@ -995,7 +1216,13 @@ describe("L5 · 恶魔", () => {
       expect(snap(res, "lastKill")?.demonRole).toBe("fang_gu");
     });
     it("② 主路径：击杀外来者 ⇒ 外来者变方古不死亡、原方古代替死亡（每局一次）", async () => {
-      const seats = board(["fang_gu", "barber", "gossip", "grandmother", "tinker"]);
+      const seats = board([
+        "fang_gu",
+        "barber",
+        "gossip",
+        "grandmother",
+        "tinker",
+      ]);
       const res = await runRole(fang_guAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -1008,14 +1235,22 @@ describe("L5 · 恶魔", () => {
       expect(snap(res, "fangGuHasJumped")).toBe(true);
     });
     it("③ 负向对照：已跳变过 ⇒ 再杀外来者不得跳变（官方「每局仅一次」）", async () => {
-      const seats = board(["fang_gu", "barber", "gossip", "grandmother", "tinker"]);
+      const seats = board([
+        "fang_gu",
+        "barber",
+        "gossip",
+        "grandmother",
+        "tinker",
+      ]);
       const res = await runRole(fang_guAbility, seats, 0, {
         night: 4,
         phase: "night",
         targets: [1],
         snapshot: { fangGuHasJumped: true },
       });
-      expect(after(res, 1)?.role?.id, "❌ 已跳变过不得再改目标角色").toBe("barber");
+      expect(after(res, 1)?.role?.id, "❌ 已跳变过不得再改目标角色").toBe(
+        "barber"
+      );
       expect(after(res, 1)?.isDead, "❌ 应改为正常击杀").toBe(true);
       expect(after(res, 1)?.deathSource).toBe("fang_gu_kill");
     });
@@ -1031,10 +1266,19 @@ describe("L5 · 恶魔", () => {
       });
       expect(after(res, 1)?.isDead).toBe(true);
       expect(after(res, 1)?.deathSource).toBe("vigormortis_kill");
-      expect(snap(res, "vigormortisPoisonedTownsfolkId"), "❌ 击杀镇民不得置中毒目标").toBeNull();
+      expect(
+        snap(res, "vigormortisPoisonedTownsfolkId"),
+        "❌ 击杀镇民不得置中毒目标"
+      ).toBeNull();
     });
     it("② 主路径：击杀爪牙 ⇒ 死亡但保留能力 + 邻近镇民中毒", async () => {
-      const seats = board(["vigormortis", "witch", "chambermaid", "gossip", "grandmother"]);
+      const seats = board([
+        "vigormortis",
+        "witch",
+        "chambermaid",
+        "gossip",
+        "grandmother",
+      ]);
       const res = await runRole(vigormortisAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -1042,7 +1286,10 @@ describe("L5 · 恶魔", () => {
         storytellerInput: { poisonedTownsfolkId: 2 },
       });
       expect(after(res, 1)?.isDead).toBe(true);
-      expect(after(res, 1)?.keepsAbilityDead, "❌ 官方：被你杀死的爪牙保留能力").toBe(true);
+      expect(
+        after(res, 1)?.keepsAbilityDead,
+        "❌ 官方：被你杀死的爪牙保留能力"
+      ).toBe(true);
       expect(after(res, 2)?.isPoisoned).toBe(true);
       expect(snap(res, "vigormortisPoisonedTownsfolkId")).toBe(2);
     });
@@ -1056,7 +1303,13 @@ describe("L5 · 恶魔", () => {
      * 真正的负向对照下沉到 ④「击杀的不是爪牙 ⇒ 不得产生中毒者」。
      */
     it("③ 未指定中毒目标 ⇒ 自动取邻近镇民之一（官方「且…之一中毒」为强制）", async () => {
-      const seats = board(["vigormortis", "witch", "chambermaid", "gossip", "grandmother"]);
+      const seats = board([
+        "vigormortis",
+        "witch",
+        "chambermaid",
+        "gossip",
+        "grandmother",
+      ]);
       const res = await runRole(vigormortisAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -1073,7 +1326,13 @@ describe("L5 · 恶魔", () => {
 
     it("④ 负向对照：击杀的不是爪牙 ⇒ 不得产生任何中毒者", async () => {
       // 目标是 2 号 chambermaid（镇民，不是爪牙）⇒ 「杀爪牙」的两个连锁效果都不该发生
-      const seats = board(["vigormortis", "witch", "chambermaid", "gossip", "grandmother"]);
+      const seats = board([
+        "vigormortis",
+        "witch",
+        "chambermaid",
+        "gossip",
+        "grandmother",
+      ]);
       const res = await runRole(vigormortisAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -1114,7 +1373,13 @@ describe("L5 · 恶魔", () => {
       });
       // 1 号位换成外来者（barber，非镇民）⇒ 顺时针最近镇民变成 2 号；
       // 逆时针 4 号位是 tinker（**外来者**，非镇民）⇒ 继续走到 3 号 gossip
-      const B = board(["no_dashii", "barber", "chambermaid", "gossip", "tinker"]);
+      const B = board([
+        "no_dashii",
+        "barber",
+        "chambermaid",
+        "gossip",
+        "tinker",
+      ]);
       const rb = await runRole(no_dashiiAbility, B, 0, {
         night: 2,
         phase: "night",
@@ -1124,7 +1389,13 @@ describe("L5 · 恶魔", () => {
       expect(snap(rb, "noDashiiPoisoned")).toEqual([2, 3]);
     });
     it("③ 负向对照：恶魔两侧都不是镇民 ⇒ 中毒名单为空", async () => {
-      const seats = board(["no_dashii", "barber", "sweetheart", "mutant", "klutz"]);
+      const seats = board([
+        "no_dashii",
+        "barber",
+        "sweetheart",
+        "mutant",
+        "klutz",
+      ]);
       const res = await runRole(no_dashiiAbility, seats, 0, {
         night: 2,
         phase: "night",
@@ -1151,7 +1422,9 @@ describe("L5 · 恶魔", () => {
       });
       expect(after(res, 1)?.isDead).toBe(true);
       expect(after(res, 1)?.deathSource).toBe("vortox_kill");
-      expect(snap(res, "vortoxActive"), "❌ 涡流在场必须置 vortoxActive").toBe(true);
+      expect(snap(res, "vortoxActive"), "❌ 涡流在场必须置 vortoxActive").toBe(
+        true
+      );
       expect(snap(res, "lastKill")?.killed).toBe(true);
     });
     it("② 负向对照（门控）：abilityEffective=false ⇒ 不得杀人（P0 已修）", async () => {
@@ -1162,8 +1435,13 @@ describe("L5 · 恶魔", () => {
         targets: [1],
         meta: { abilityEffective: false },
       });
-      expect(after(res, 1)?.isDead, "❌ 受干扰（中毒/醉酒）的涡流不得杀人").toBe(false);
-      expect(snap(res, "lastKill")?.killed, "❌ 必须记账「未击杀」").toBe(false);
+      expect(
+        after(res, 1)?.isDead,
+        "❌ 受干扰（中毒/醉酒）的涡流不得杀人"
+      ).toBe(false);
+      expect(snap(res, "lastKill")?.killed, "❌ 必须记账「未击杀」").toBe(
+        false
+      );
       expect(after(res, 1)?.markedForDeath).not.toBe(true);
     });
     it("③ 负向对照：目标受保护 ⇒ 不得死亡", async () => {
@@ -1175,7 +1453,10 @@ describe("L5 · 恶魔", () => {
         targets: [1],
       });
       expect(after(res, 1)?.isDead, "❌ 受保护目标不得死亡").toBe(false);
-      expect(res?.meta?.vortoxResult?.blockedByProtection, "❌ 必须标记「被保护挡下」").toBe(true);
+      expect(
+        res?.meta?.vortoxResult?.blockedByProtection,
+        "❌ 必须标记「被保护挡下」"
+      ).toBe(true);
     });
   });
 });
@@ -1185,7 +1466,13 @@ describe("L5 · 恶魔", () => {
 // ══════════════════════════════════════════════════════════════════════════
 describe("L5 · 镇民 · 舞蛇人 snake_charmer", () => {
   it("① 主路径：选中恶魔 ⇒ 交换角色与阵营，原恶魔中毒", async () => {
-    const seats = board(["snake_charmer", "imp", "chambermaid", "gossip", "tinker"]);
+    const seats = board([
+      "snake_charmer",
+      "imp",
+      "chambermaid",
+      "gossip",
+      "tinker",
+    ]);
     const res = await runRole(snakeCharmerAbility, seats, 0, {
       night: 2,
       phase: "night",
@@ -1193,23 +1480,39 @@ describe("L5 · 镇民 · 舞蛇人 snake_charmer", () => {
     });
     expect(res?.meta?.abilityResult?.swapTriggered).toBe(true);
     expect(after(res, 0)?.role?.id, "❌ 舞蛇人应拿走恶魔角色").toBe("imp");
-    expect(after(res, 1)?.role?.id, "❌ 原恶魔应变成舞蛇人").toBe("snake_charmer");
+    expect(after(res, 1)?.role?.id, "❌ 原恶魔应变成舞蛇人").toBe(
+      "snake_charmer"
+    );
     expect(after(res, 1)?.isPoisoned, "❌ 原恶魔必须中毒").toBe(true);
     expect(snap(res, "snakeCharmerSwapped")).toEqual({ selfId: 0, demonId: 1 });
   });
   it("② 负向对照：选中非恶魔 ⇒ 无事发生（不得交换）", async () => {
-    const seats = board(["snake_charmer", "imp", "chambermaid", "gossip", "tinker"]);
+    const seats = board([
+      "snake_charmer",
+      "imp",
+      "chambermaid",
+      "gossip",
+      "tinker",
+    ]);
     const res = await runRole(snakeCharmerAbility, seats, 0, {
       night: 2,
       phase: "night",
       targets: [2], // 侍女，不是恶魔
     });
     expect(res?.meta?.abilityResult?.swapTriggered).toBe(false);
-    expect(after(res, 0)?.role?.id, "❌ 未选中恶魔不得交换").toBe("snake_charmer");
+    expect(after(res, 0)?.role?.id, "❌ 未选中恶魔不得交换").toBe(
+      "snake_charmer"
+    );
     expect(after(res, 2)?.isPoisoned).toBe(false);
   });
   it("③ 差分：目标被标记为「恶魔继承者」⇒ 同样视为恶魔并触发交换", async () => {
-    const seats = board(["snake_charmer", "chambermaid", "gossip", "tinker", "grandmother"]);
+    const seats = board([
+      "snake_charmer",
+      "chambermaid",
+      "gossip",
+      "tinker",
+      "grandmother",
+    ]);
     seats[1].isDemonSuccessor = true;
     const res = await runRole(snakeCharmerAbility, seats, 0, {
       night: 2,
@@ -1218,7 +1521,9 @@ describe("L5 · 镇民 · 舞蛇人 snake_charmer", () => {
     });
     expect(res?.meta?.abilityResult?.isDemon).toBe(true);
     expect(res?.meta?.abilityResult?.swapTriggered).toBe(true);
-    expect(after(res, 0)?.role?.id, "❌ 继承者同样应触发交换").toBe("chambermaid");
+    expect(after(res, 0)?.role?.id, "❌ 继承者同样应触发交换").toBe(
+      "chambermaid"
+    );
   });
 });
 
@@ -1227,7 +1532,13 @@ describe("L5 · 镇民 · 舞蛇人 snake_charmer", () => {
 // ══════════════════════════════════════════════════════════════════════════
 describe("L5 · 镇民 · 哲学家 philosopher", () => {
   it("① 主路径：选**不在场**镇民 ⇒ 哲学家获得该能力，且无人醉酒", async () => {
-    const seats = board(["philosopher", "chambermaid", "gossip", "tinker", "grandmother"]);
+    const seats = board([
+      "philosopher",
+      "chambermaid",
+      "gossip",
+      "tinker",
+      "grandmother",
+    ]);
     const res = await runRole(philosopherAbility, seats, 0, {
       night: 1,
       phase: "day",
@@ -1235,7 +1546,9 @@ describe("L5 · 镇民 · 哲学家 philosopher", () => {
     });
     const r = res?.meta?.philosopherResult;
     expect(r?.chosenRoleId, "❌ 必须记录所选角色").toBe("soldier");
-    expect(r?.roleInPlay, "❌ soldier 不在场 ⇒ roleInPlay 必须为 false").toBe(false);
+    expect(r?.roleInPlay, "❌ soldier 不在场 ⇒ roleInPlay 必须为 false").toBe(
+      false
+    );
     expect(r?.used, "❌ 发动后 used 必须为 true").toBe(true);
 
     const self = after(res, 0);
@@ -1243,9 +1556,16 @@ describe("L5 · 镇民 · 哲学家 philosopher", () => {
       (self?.acquiredAbilities ?? []).includes("soldier"),
       `❌ 官方：「哲学家获得该角色的能力」⇒ acquiredAbilities 必须含 soldier（实际 ${JSON.stringify(self?.acquiredAbilities)}）`
     ).toBe(true);
-    expect(self?.philosopherGainedRole, "❌ 座位必须落 philosopherGainedRole").toBe("soldier");
-    expect(self?.role?.id, "❌ 身份不变（能力叠加，不是改写身份）").toBe("philosopher");
-    expect(snap(res, "philosopherGainedRole"), "❌ 快照必须记账").toBe("soldier");
+    expect(
+      self?.philosopherGainedRole,
+      "❌ 座位必须落 philosopherGainedRole"
+    ).toBe("soldier");
+    expect(self?.role?.id, "❌ 身份不变（能力叠加，不是改写身份）").toBe(
+      "philosopher"
+    );
+    expect(snap(res, "philosopherGainedRole"), "❌ 快照必须记账").toBe(
+      "soldier"
+    );
     expect(
       (res?.snapshot?.seats ?? []).some((s: any) => s.isDrunk === true),
       "❌ 所选角色不在场 ⇒ 不得有任何人变酒鬼"
@@ -1253,7 +1573,13 @@ describe("L5 · 镇民 · 哲学家 philosopher", () => {
   });
 
   it("② 差分：选**在场**镇民 ⇒ 该玩家变成酒鬼（带 source=philosopher），哲学家仍获得能力", async () => {
-    const seats = board(["philosopher", "chambermaid", "gossip", "tinker", "grandmother"]);
+    const seats = board([
+      "philosopher",
+      "chambermaid",
+      "gossip",
+      "tinker",
+      "grandmother",
+    ]);
     const res = await runRole(philosopherAbility, seats, 0, {
       night: 1,
       phase: "day",
@@ -1288,8 +1614,14 @@ describe("L5 · 镇民 · 哲学家 philosopher", () => {
     const r = res?.meta?.philosopherResult;
     expect(r?.used, "❌ 未指定角色 ⇒ used 必须为 false").toBe(false);
     expect(r?.chosenRoleId, "❌ 不得凭空获得某个角色能力").toBeNull();
-    expect(after(res, 0)?.philosopherGainedRole, "❌ 不得落 philosopherGainedRole").toBeUndefined();
-    expect(after(res, 0)?.acquiredAbilities, "❌ 不得写入 acquiredAbilities").toBeUndefined();
+    expect(
+      after(res, 0)?.philosopherGainedRole,
+      "❌ 不得落 philosopherGainedRole"
+    ).toBeUndefined();
+    expect(
+      after(res, 0)?.acquiredAbilities,
+      "❌ 不得写入 acquiredAbilities"
+    ).toBeUndefined();
     expect(snap(res, "philosopherGainedRole"), "❌ 快照不得记账").toBeNull();
     expect(
       (res?.snapshot?.seats ?? []).some((s: any) => s.isDrunk === true),
@@ -1311,7 +1643,13 @@ describe("L5 · 镇民 · 哲学家 philosopher", () => {
     //      旧 P0 完全同类，只是这两个 id 当时没被一起对齐）。
     //   `juggler.ability.ts:30` 的 `"juggler_guess"` **连定义都没有**，同一问题。
     //   ⇒ 本条按**当前行为**钉住，作为「一旦修好就会变红」的缺陷登记。
-    const seats = board(["philosopher", "chambermaid", "gossip", "tinker", "grandmother"]);
+    const seats = board([
+      "philosopher",
+      "chambermaid",
+      "gossip",
+      "tinker",
+      "grandmother",
+    ]);
     const first = await runRole(philosopherAbility, seats, 0, {
       night: 1,
       phase: "day",
@@ -1395,10 +1733,9 @@ describe("L5 · 【修复】舞蛇人 snake_charmer：醉酒/中毒不得交换�
       res.meta?.abilityResult?.swapTriggered,
       "❌ 醉酒舞蛇人不得触发交换（官方：醉酒/中毒失去能力）"
     ).toBe(false);
-    expect(
-      at(res, 0)?.role?.id,
-      "❌ 醉酒舞蛇人的角色不得改变"
-    ).toBe("snake_charmer");
+    expect(at(res, 0)?.role?.id, "❌ 醉酒舞蛇人的角色不得改变").toBe(
+      "snake_charmer"
+    );
     const targetFx = (at(res, 1)?.statusEffects ?? []) as any[];
     expect(
       targetFx.some((e: any) => e.source === "snake_charmer"),

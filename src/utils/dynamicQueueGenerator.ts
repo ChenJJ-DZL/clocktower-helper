@@ -3,18 +3,20 @@
  * 根据当前游戏状态动态生成真实需要唤醒的角色队列，兼容所有隐性规则
  */
 
-import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
-import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
-import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
 import { getRoleDefinition } from "../roles";
-import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
-import { resolveEvilTwinPair } from "./evilTwinHelper";
+import { AbilityTriggerTiming } from "../roles/core/roleAbility.types";
+import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
+import { unifiedRoleDefinition } from "../roles/unifiedRoleDefinition";
+// ⚠️ 仅调度/展示用途：resolveEvilTwinPairForDisplay 允许启发式占位
+//    （source="heuristic"、resolved=false），**绝不得据此判胜**。
+import { resolveEvilTwinPairForDisplay } from "./evilTwinHelper";
 import {
   findAbilityGrantingSeat,
   isInheritedAbilityConsumed,
   seatHasAcquiredAbility,
 } from "./grantedAbilityHelper";
 import type { GameStateSnapshot, NightActionNode } from "./nightStateMachine";
+import { EVIL_CONVERTED_NOTICE_ID } from "./nightStepIds";
 import { isRealMinion } from "./roleFlags";
 import { isSeatAlive } from "./seatAlive";
 
@@ -131,7 +133,9 @@ export function getDeathEventWatchTarget(
  *
  * 🔒 引擎中所有「死亡后是否还能唤醒」的判定都必须走本函数（或它的两个分量）。
  */
-export function canWakeOnDeathEvent(roleId: string | undefined | null): boolean {
+export function canWakeOnDeathEvent(
+  roleId: string | undefined | null
+): boolean {
   return isDeathTriggeredRole(roleId) || hasDeathEventWatch(roleId);
 }
 
@@ -164,7 +168,11 @@ export function resolveDeathEventWakeups(
 
   // ① 自己死亡触发
   if (isDeathTriggeredRole(deadRoleId)) {
-    out.push({ seatId: deadSeatId, roleId: deadRoleId as string, reason: "self" });
+    out.push({
+      seatId: deadSeatId,
+      roleId: deadRoleId as string,
+      reason: "self",
+    });
     seen.add(deadSeatId);
   }
 
@@ -185,7 +193,9 @@ export function resolveDeathEventWakeups(
   return out;
 }
 
-export function isDeathTriggeredRole(roleId: string | undefined | null): boolean {
+export function isDeathTriggeredRole(
+  roleId: string | undefined | null
+): boolean {
   if (!roleId) return false;
   try {
     const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
@@ -613,8 +623,7 @@ export function generateDynamicNightQueue(
         // 兼容保留：若上层确实提供了 snapshot 级记录，两者取并集
         const knownIds: number[] = (
           (snapshot as any).bountyHunterKnownTargets ?? []
-        )
-          .concat(knownSeats.map((s: any) => s.id));
+        ).concat(knownSeats.map((s: any) => s.id));
 
         if (knownIds.length === 0) {
           // 异常兜底：没有"已知"记录时不做拦截，交回执行期判定
@@ -659,8 +668,9 @@ export function generateDynamicNightQueue(
       const isSettled =
         (seat as any).jugglerNightSettled === true ||
         (seat as any).hasUsedNightAbility === true ||
-        (seat as any).statusDetails?.some?.((d: string) =>
-          d.includes("juggler 一次性能力已用") || d.includes("juggler 已结算")
+        (seat as any).statusDetails?.some?.(
+          (d: string) =>
+            d.includes("juggler 一次性能力已用") || d.includes("juggler 已结算")
         ) ||
         (seat as any).inheritedAbilityConsumed?.includes?.("juggler");
       if (isSettled) {
@@ -803,134 +813,140 @@ export function generateDynamicNightQueue(
   //    ⚠️ 防御：任何解析不到行动者座位的条目直接丢弃（而不是在 seat.id 上崩）。
   const queue: NightActionNode[] = expandedEntries
     .map((entry): NightActionNode | null => {
-    // 系统信息步骤：按角色类型查找座位
-    let seat: any;
-    if (entry.roleId === "minion_info") {
-      // 展开后的每个节点都绑定自己的行动者座位（多名真爪牙各占一步），
-      // 因此信息按行动者座位生成，每名爪牙都能得知恶魔与其他真爪牙。
-      const pinnedSeatId = entry.actorSeatId;
-      seat =
-        pinnedSeatId != null
-          ? snapshot.seats.find((s) => s.id === pinnedSeatId)!
-          : snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
-    } else if (entry.roleId === "demon_info") {
-      // 🌀 A1：疯子专属的 demon_info 节点由 1.5 展开时钉死行动者座位
-      //    （真恶魔节点仍按"第一个存活恶魔"解析，行为不变）。
-      seat =
-        entry.actorSeatId != null
-          ? snapshot.seats.find((s) => s.id === entry.actorSeatId)!
-          : snapshot.seats.find((s) => s.role?.type === "demon" && !s.isDead)!;
-    } else if (entry.roleId === EVIL_CONVERTED_NOTICE_ID) {
-      // 行动者 = 被赏金猎人转变为邪恶的那名镇民（信息按行动者座位生成）
-      seat = snapshot.seats.find((s) => s.id === entry.actorSeatId)!;
-    } else if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
-      seat = snapshot.seats.find((s) => s.role?.id === "legion" && !s.isDead)!;
-    } else {
-      seat = snapshot.seats.find(
-        (s) =>
-          getEffectiveRoleId(s) === entry.roleId &&
-          (includeDead || (entry as any).deadActorWakes || !s.isDead)
-      );
-      // 🎭 能力继承兜底（SST：utils/grantedAbilityHelper）
-      if (!seat) {
-        seat = findAbilityGrantingSeat(snapshot.seats as any[], entry.roleId);
+      // 系统信息步骤：按角色类型查找座位
+      let seat: any;
+      if (entry.roleId === "minion_info") {
+        // 展开后的每个节点都绑定自己的行动者座位（多名真爪牙各占一步），
+        // 因此信息按行动者座位生成，每名爪牙都能得知恶魔与其他真爪牙。
+        const pinnedSeatId = entry.actorSeatId;
+        seat =
+          pinnedSeatId != null
+            ? snapshot.seats.find((s) => s.id === pinnedSeatId)!
+            : snapshot.seats.find((s) => isRealMinion(s) && !s.isDead)!;
+      } else if (entry.roleId === "demon_info") {
+        // 🌀 A1：疯子专属的 demon_info 节点由 1.5 展开时钉死行动者座位
+        //    （真恶魔节点仍按"第一个存活恶魔"解析，行为不变）。
+        seat =
+          entry.actorSeatId != null
+            ? snapshot.seats.find((s) => s.id === entry.actorSeatId)!
+            : snapshot.seats.find(
+                (s) => s.role?.type === "demon" && !s.isDead
+              )!;
+      } else if (entry.roleId === EVIL_CONVERTED_NOTICE_ID) {
+        // 行动者 = 被赏金猎人转变为邪恶的那名镇民（信息按行动者座位生成）
+        seat = snapshot.seats.find((s) => s.id === entry.actorSeatId)!;
+      } else if (entry.roleId === LEGION_MUTUAL_RECOGNITION_ID) {
+        seat = snapshot.seats.find(
+          (s) => s.role?.id === "legion" && !s.isDead
+        )!;
+      } else {
+        seat = snapshot.seats.find(
+          (s) =>
+            getEffectiveRoleId(s) === entry.roleId &&
+            (includeDead || (entry as any).deadActorWakes || !s.isDead)
+        );
+        // 🎭 能力继承兜底（SST：utils/grantedAbilityHelper）
+        if (!seat) {
+          seat = findAbilityGrantingSeat(snapshot.seats as any[], entry.roleId);
+        }
       }
-    }
 
-    // ⚠️ 防御：解析不到行动者座位的条目直接丢弃，绝不在 seat.id 上崩。
-    if (!seat) return null;
+      // ⚠️ 防御：解析不到行动者座位的条目直接丢弃，绝不在 seat.id 上崩。
+      if (!seat) return null;
 
-    // 🎭 继承者代打：行动者角色 ≠ 本条目角色（原角色不在场，由继承者顶上）
-    const isInheritedActor =
-      seat?.role?.id !== entry.roleId &&
-      seatHasAcquiredAbility(seat, entry.roleId);
+      // 🎭 继承者代打：行动者角色 ≠ 本条目角色（原角色不在场，由继承者顶上）
+      const isInheritedActor =
+        seat?.role?.id !== entry.roleId &&
+        seatHasAcquiredAbility(seat, entry.roleId);
 
-    /**
-     * 🌾 罂粟种植者 · 首夜「恶魔互认」的**文案纠正**（2026-10-23）
-     * ------------------------------------------------------------------
-     * 官方【罂粟种植者】·运作方式（逐字）：
-     *   「在首个夜晚，**唤醒恶魔**。对他展示“这些角色不在场”信息标记以及
-     *     三个不在场的善良角色标记。然后，让恶魔重新入睡。
-     *     **不要进行“爪牙信息”和“恶魔信息”步骤。**」
-     *
-     * ⇒ 首夜罂粟种植者健康时，恶魔**仍会被唤醒**，但那次唤醒的作用只有
-     *   「告知 3 个不在场角色」，**不是**互认。
-     *   而旧实现把这一步统一命名为 `X(恶魔互认)` ⇒ 说书人照着班次表念，
-     *   就会去做官方明令**不要做**的那件事（把爪牙指给恶魔看）。
-     *   对话框层（`demonFirstNightHelper` 的 `shouldHideMinions`）早就藏了爪牙，
-     *   只有队列标签没跟上 —— 属于「实现对了、话术骗人」。
-     * ⇒ 仅在「首夜 + 罂粟种植者存活且未受干扰」时改叫 `(不在场角色)`；
-     *   其余情形保持 `(恶魔互认)` 不变（BMR/WS 等剧本的既有断言依赖原名）。
-     */
-    const poppySuppressesEvilInfoOnFirstNight =
-      isFirstNight &&
-      snapshot.seats.some(
-        (s) =>
-          s.role?.id === "poppy_grower" &&
-          isSeatAlive(s) &&
-          !s.isDrunk &&
-          !s.isPoisoned
-      );
+      /**
+       * 🌾 罂粟种植者 · 首夜「恶魔互认」的**文案纠正**（2026-10-23）
+       * ------------------------------------------------------------------
+       * 官方【罂粟种植者】·运作方式（逐字）：
+       *   「在首个夜晚，**唤醒恶魔**。对他展示“这些角色不在场”信息标记以及
+       *     三个不在场的善良角色标记。然后，让恶魔重新入睡。
+       *     **不要进行“爪牙信息”和“恶魔信息”步骤。**」
+       *
+       * ⇒ 首夜罂粟种植者健康时，恶魔**仍会被唤醒**，但那次唤醒的作用只有
+       *   「告知 3 个不在场角色」，**不是**互认。
+       *   而旧实现把这一步统一命名为 `X(恶魔互认)` ⇒ 说书人照着班次表念，
+       *   就会去做官方明令**不要做**的那件事（把爪牙指给恶魔看）。
+       *   对话框层（`demonFirstNightHelper` 的 `shouldHideMinions`）早就藏了爪牙，
+       *   只有队列标签没跟上 —— 属于「实现对了、话术骗人」。
+       * ⇒ 仅在「首夜 + 罂粟种植者存活且未受干扰」时改叫 `(不在场角色)`；
+       *   其余情形保持 `(恶魔互认)` 不变（BMR/WS 等剧本的既有断言依赖原名）。
+       */
+      const poppySuppressesEvilInfoOnFirstNight =
+        isFirstNight &&
+        snapshot.seats.some(
+          (s) =>
+            s.role?.id === "poppy_grower" &&
+            isSeatAlive(s) &&
+            !s.isDrunk &&
+            !s.isPoisoned
+        );
 
-    const roleName =
-      entry.roleId === "demon_info" && seat?.role?.name
-        ? // 🌀 2026-09-12：疯子伪装成**军团**时，这一步是「军团互认」而不是「恶魔互认」。
-          //    军团没有爪牙，它的信息形态是"军团玩家互相认亲"
-          //    （用户实测：显示「军团(恶魔互认)」与军团的身份自相矛盾）。
-          //    ⚠️ 注意：这里的名字取自**座位真实角色名**（疯子/小恶魔…），
-          //    所以疯子会显示成「疯子(军团互认)」——这是说书人侧的正确称呼。
-          `${seat.role.name}(${
-            (seat as any).apparentDemonRole?.id === "legion"
-              ? "军团互认"
-              : poppySuppressesEvilInfoOnFirstNight
-                ? "不在场角色"
-                : "恶魔互认"
-          })`
-        : isInheritedActor
-          ? // 🧚 小精灵 →「(小精灵)」；🧠 哲学家 →「(哲学家)」
-            `${entry.roleName}(${
-              seat.role?.id === "philosopher" ? "哲学家" : "小精灵"
+      const roleName =
+        entry.roleId === "demon_info" && seat?.role?.name
+          ? // 🌀 2026-09-12：疯子伪装成**军团**时，这一步是「军团互认」而不是「恶魔互认」。
+            //    军团没有爪牙，它的信息形态是"军团玩家互相认亲"
+            //    （用户实测：显示「军团(恶魔互认)」与军团的身份自相矛盾）。
+            //    ⚠️ 注意：这里的名字取自**座位真实角色名**（疯子/小恶魔…），
+            //    所以疯子会显示成「疯子(军团互认)」——这是说书人侧的正确称呼。
+            `${seat.role.name}(${
+              (seat as any).apparentDemonRole?.id === "legion"
+                ? "军团互认"
+                : poppySuppressesEvilInfoOnFirstNight
+                  ? "不在场角色"
+                  : "恶魔互认"
             })`
-          : entry.roleName;
+          : isInheritedActor
+            ? // 🧚 小精灵 →「(小精灵)」；🧠 哲学家 →「(哲学家)」
+              `${entry.roleName}(${
+                seat.role?.id === "philosopher" ? "哲学家" : "小精灵"
+              })`
+            : entry.roleName;
 
-    const wakeMessage = isInheritedActor
-      ? `唤醒${seat.id + 1}号【${
-          seat.role?.id === "philosopher" ? "哲学家" : "小精灵"
-        }】（使用【${entry.roleName}】能力）`
-      : entry.wakeMessage;
+      const wakeMessage = isInheritedActor
+        ? `唤醒${seat.id + 1}号【${
+            seat.role?.id === "philosopher" ? "哲学家" : "小精灵"
+          }】（使用【${entry.roleName}】能力）`
+        : entry.wakeMessage;
 
-    return {
-      seatId: seat.id,
-      roleId: entry.roleId,
-      roleName,
-      priority: priorityOf(entry),
-      isFirstNightOnly: entry.firstNightOnly,
-      abilityId: entry.abilityId,
-      wakeMessage,
-      firstNightPriority: entry.firstNightPriority,
-      otherNightPriority: entry.otherNightPriority,
-      targetIds: [],
-      processed: false,
-      success: false,
-      meta: {
-        // 保留 1.5 展开时写入的标记（如 isLunaticDisguisedDemon）
-        ...((entry as any).meta ?? {}),
-        // 🎭 能力继承标记（SST 助手判定；哲学家与小精灵同构）
-        ...(isInheritedActor
-          ? {
-              isInheritedAbilityActor: true,
-              originalRoleId: seat.role?.id,
-              inheritedAbilityRoleId: entry.roleId,
-              // 兼容旧消费点（历史上仅小精灵使用）
-              ...(seat.role?.id === "pixie"
-                ? { isPixieInherited: true, originalRoleId: "pixie" }
-                : {}),
-            }
-          : {}),
-      },
-    };
-  })
-    .filter((node): node is NightActionNode => node !== null) as NightActionNode[];
+      return {
+        seatId: seat.id,
+        roleId: entry.roleId,
+        roleName,
+        priority: priorityOf(entry),
+        isFirstNightOnly: entry.firstNightOnly,
+        abilityId: entry.abilityId,
+        wakeMessage,
+        firstNightPriority: entry.firstNightPriority,
+        otherNightPriority: entry.otherNightPriority,
+        targetIds: [],
+        processed: false,
+        success: false,
+        meta: {
+          // 保留 1.5 展开时写入的标记（如 isLunaticDisguisedDemon）
+          ...((entry as any).meta ?? {}),
+          // 🎭 能力继承标记（SST 助手判定；哲学家与小精灵同构）
+          ...(isInheritedActor
+            ? {
+                isInheritedAbilityActor: true,
+                originalRoleId: seat.role?.id,
+                inheritedAbilityRoleId: entry.roleId,
+                // 兼容旧消费点（历史上仅小精灵使用）
+                ...(seat.role?.id === "pixie"
+                  ? { isPixieInherited: true, originalRoleId: "pixie" }
+                  : {}),
+              }
+            : {}),
+        },
+      };
+    })
+    .filter(
+      (node): node is NightActionNode => node !== null
+    ) as NightActionNode[];
 
   // 4. 军团互认与军团夜间统一唤醒节点打标及文案生成
   const flagLegion = queue.map((node) => {
@@ -992,8 +1008,10 @@ export function generateDynamicNightQueue(
 
   // 6. 镜像双子（Evil Twin）：首夜向对立善良双子告知"X号是镜像双子"
   // 情况 1：若善良双子在首夜本身不会被唤醒（如士兵、圣徒、管家、镇长等无夜间行动角色），单独注入唤醒节点告知
+  // ⚠️ 队列编排属于**调度/展示**用途：说书人尚未指定对立双子时允许启发式占位，
+  //    让首夜仍能正常把"告知节点"排进队列；该占位永不参与判胜（判胜走严格解析）。
   if (isFirstNight) {
-    const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPair(
+    const { evilTwinSeat, goodTwinSeat } = resolveEvilTwinPairForDisplay(
       snapshot.seats as any,
       snapshot.evilTwinPair
     );

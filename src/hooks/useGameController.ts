@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { resolveMinstrelIntoxication } from "../utils/minstrelRule";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -16,9 +15,11 @@ import { getAllRoleDefinitions, getRoleDefinition } from "../roles";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { GameRecord } from "../types/game";
 import { executeNightAbility } from "../utils/abilityExecutor";
-import { canFoolSurvive, isProtectedByDevilsAdvocate } from "../utils/bmrMechanics";
-import { isVortoxDuskWinActive } from "../utils/vortoxWorld";
-import { resolveMayorDuskWin } from "../utils/mayorRule";
+import {
+  canFoolSurvive,
+  isProtectedByDevilsAdvocate,
+} from "../utils/bmrMechanics";
+import { buildDawnAnnouncementFromSeats } from "../utils/dawnAnnouncement";
 import {
   generateDynamicNightQueue,
   isDeathTriggeredRole,
@@ -37,6 +38,12 @@ import {
   isEvil,
   isGoodAlignment,
 } from "../utils/gameRules";
+import {
+  isDemonKillSource,
+  resolveGrandmotherChainDeaths,
+} from "../utils/grandmotherChain";
+import { resolveMayorDuskWin } from "../utils/mayorRule";
+import { resolveMinstrelIntoxication } from "../utils/minstrelRule";
 import { showAlert } from "../utils/nativeDialogShim";
 import {
   createSnapshotFromState,
@@ -44,15 +51,11 @@ import {
 } from "../utils/persistence";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
+import { isVortoxDuskWinActive } from "../utils/vortoxWorld";
 import {
   isZombuulNightImmune,
   markZombuulNightSaved,
 } from "../utils/zombuulImmunity";
-import {
-  isDemonKillSource,
-  resolveGrandmotherChainDeaths,
-} from "../utils/grandmotherChain";
-import { buildDawnAnnouncementFromSeats } from "../utils/dawnAnnouncement";
 import { executePoisonAction } from "./roleActionHandlers";
 import { useAbilityState } from "./useAbilityState";
 import { useConfirmHandlers } from "./useConfirmHandlers";
@@ -398,7 +401,9 @@ export function useGameController() {
     if (!Array.isArray(ids) || ids.length === 0) return undefined;
     const wanted = new Set(ids);
     const fromData = new Set(
-      roles.filter((r) => wanted.has(r.id) && r.type === "outsider").map((r) => r.id)
+      roles
+        .filter((r) => wanted.has(r.id) && r.type === "outsider")
+        .map((r) => r.id)
     );
     for (const def of getAllRoleDefinitions() as any[]) {
       if (wanted.has(def.id) && def.type === "outsider") fromData.add(def.id);
@@ -406,7 +411,11 @@ export function useGameController() {
     return fromData.size;
   }, [selectedScript]);
 
-  const setupManager = useSetupManager(seats, commitSeats, availableOutsiderPool);
+  const setupManager = useSetupManager(
+    seats,
+    commitSeats,
+    availableOutsiderPool
+  );
 
   const setGameRecordsProp = useCallback(
     (val: React.SetStateAction<GameRecord[]>) => {
@@ -462,9 +471,7 @@ export function useGameController() {
   const addLog = useCallback(
     (msgOrEntry: string | { message: string; summary?: string }) => {
       const entry =
-        typeof msgOrEntry === "string"
-          ? { message: msgOrEntry }
-          : msgOrEntry;
+        typeof msgOrEntry === "string" ? { message: msgOrEntry } : msgOrEntry;
       logSeqRef.current += 1;
       village.setGameLogs((p) => [
         ...(p as any),
@@ -488,9 +495,7 @@ export function useGameController() {
       roleName?: string
     ) => {
       const entry =
-        typeof msgOrEntry === "string"
-          ? { message: msgOrEntry }
-          : msgOrEntry;
+        typeof msgOrEntry === "string" ? { message: msgOrEntry } : msgOrEntry;
       village.setGameLogs((prev: any[]) => {
         const filtered =
           playerId !== undefined && roleName
@@ -748,9 +753,7 @@ export function useGameController() {
        * 处决弄臣 `dead=[8]`，`foolUsed` 仍为 undefined）。
        */
       const foolProbe = seatsRef.current.find((s) => s.id === targetId);
-      if (
-        canFoolSurvive(foolProbe, { ignoreAlive: source === "execution" })
-      ) {
+      if (canFoolSurvive(foolProbe, { ignoreAlive: source === "execution" })) {
         addLog(
           `🃏 ${targetId + 1}号(弄臣) 首次面临死亡，免死能力生效 —— 他不会死亡`
         );
@@ -793,9 +796,7 @@ export function useGameController() {
        */
       const daProbe = seatsRef.current.find((s) => s.id === targetId);
       if (source === "execution" && isProtectedByDevilsAdvocate(daProbe)) {
-        addLog(
-          `😈 ${targetId + 1}号 受魔鬼代言人保护 —— 本次处决不会死亡`
-        );
+        addLog(`😈 ${targetId + 1}号 受魔鬼代言人保护 —— 本次处决不会死亡`);
         commitSeats((prev) =>
           prev.map((s) =>
             s.id === targetId
@@ -828,7 +829,8 @@ export function useGameController() {
           //   dispatch EXECUTE_PLAYER ? s.isDead ?? true????? s.isDead ?????
           //   ??????????? diedOnDay / deathSource="execution" / executedToday /
           //   executedRoleSnapshot??????????????????
-          if (s.id !== targetId || (s.isDead && source !== "execution")) return s;
+          if (s.id !== targetId || (s.isDead && source !== "execution"))
+            return s;
           const next = {
             ...s,
             isDead: true,
@@ -977,7 +979,8 @@ export function useGameController() {
                     isDrunk: true,
                     statusEffects: [
                       ...(s.statusEffects ?? []).filter(
-                        (e: any) => !(e.type === "drunk" && e.source === "minstrel")
+                        (e: any) =>
+                          !(e.type === "drunk" && e.source === "minstrel")
                       ),
                       {
                         type: "drunk",
@@ -990,7 +993,10 @@ export function useGameController() {
                     statuses: [
                       ...((s as any).statuses ?? []).filter(
                         (st: any) =>
-                          !(st.effect === "Drunk" && st.duration === "至下个黄昏")
+                          !(
+                            st.effect === "Drunk" &&
+                            st.duration === "至下个黄昏"
+                          )
                       ),
                       { effect: "Drunk", duration: "至下个黄昏" },
                     ],
@@ -1562,6 +1568,7 @@ export function useGameController() {
     nightInfo,
     currentModal,
     seats,
+    evilTwinPair,
     gamePhase,
     nightCount,
     currentWakeIndex,
@@ -2405,9 +2412,7 @@ export function useGameController() {
     );
     if (invalidLunatics.length === 0) return;
 
-    const inPlayRoleIds = new Set(
-      seats.map((s) => s.role?.id).filter(Boolean)
-    );
+    const inPlayRoleIds = new Set(seats.map((s) => s.role?.id).filter(Boolean));
     const candidateDemons = roles.filter(
       (r: any) =>
         r.type === "demon" &&

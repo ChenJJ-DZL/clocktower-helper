@@ -1,15 +1,20 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { resolveKlutzOutcome } from "../utils/klutzRule";
-import { buildDawnAnnouncementFromSeats } from "../utils/dawnAnnouncement";
-import { resolveHadesiaOutcome } from "../utils/hadesiaRule";
 import { useCallback, useMemo } from "react";
 import type { GamePhase, Role, Seat } from "../../app/data";
+import { useGameContext } from "../contexts/GameContext";
 import type { GameRecord, NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
+import { buildDawnAnnouncementFromSeats } from "../utils/dawnAnnouncement";
+import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
+import { resolveHadesiaOutcome } from "../utils/hadesiaRule";
+import { resolveKlutzOutcome } from "../utils/klutzRule";
 import { showAlert, showConfirm } from "../utils/nativeDialogShim";
-import { useGameContext } from "../contexts/GameContext";
+import {
+  GOOD_TWIN_EXECUTED_REASON,
+  SAINT_EXECUTED_REASON,
+} from "../utils/winConditions/winReasonCodes";
 
 /**
  * 确认弹窗处理函数的依赖接口
@@ -19,6 +24,13 @@ export interface ConfirmHandlersDeps {
   nightInfo: NightInfoResult | null;
   currentModal: ModalType;
   seats: Seat[];
+  /** 权威双子配对（说书人指定/引擎落库）；确认判胜时用于**重算证据**，防止弹窗打开后状态漂移 */
+  evilTwinPair?: {
+    evilId?: number | null;
+    goodId?: number | null;
+    evilSeatId?: number | null;
+    goodSeatId?: number | null;
+  } | null;
   gamePhase: GamePhase;
   nightCount: number;
   currentWakeIndex: number;
@@ -125,6 +137,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     nightInfo,
     currentModal,
     seats,
+    evilTwinPair,
     gamePhase,
     nightCount,
     currentWakeIndex,
@@ -449,7 +462,8 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
     const outcome = resolveHadesiaOutcome(
       baseTargets,
       choiceMap,
-      (seatId: number) => Boolean(seats.find((s: Seat) => s.id === seatId)?.isDead)
+      (seatId: number) =>
+        Boolean(seats.find((s: Seat) => s.id === seatId)?.isDead)
     );
     const allChooseLive = outcome.allLive;
     const finalTargets = outcome.killIds;
@@ -459,7 +473,9 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         (id: number) => `[${id + 1}号${choiceMap[id] === "die" ? "死" : "生"}]`
       )
       .join("、");
-    addLog(`${nightInfo.seat ? nightInfo.seat.id + 1 : "?"}号(${demonName}) 选择${choiceDesc}`);
+    addLog(
+      `${nightInfo.seat ? nightInfo.seat.id + 1 : "?"}号(${demonName}) 选择${choiceDesc}`
+    );
     if (allChooseLive) {
       addLog(`三名玩家都选择"生"，按规则三人全部死亡`);
     } else if (finalTargets.length > 0) {
@@ -631,9 +647,9 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
         winner === "good" ? "善良" : "邪恶"
       }阵营获胜`
     );
-    victoryRef.current = { winner, reason: "圣徒被处决" };
+    victoryRef.current = { winner, reason: SAINT_EXECUTED_REASON };
     setWinResult(winner);
-    setWinReason("圣徒被处决");
+    setWinReason(SAINT_EXECUTED_REASON);
     executePlayer(targetId, { forceExecution: true });
   }, [
     currentModal,
@@ -695,7 +711,7 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
   /** 枪手：说书人放弃射击 ⇒ 关窗（当天不再开窗） */
   const cancelGunslingerFire = useCallback(() => {
     setCurrentModal(null);
-    addLog(`🔫 枪手未在本次白天射击`);
+    addLog("🔫 枪手未在本次白天射击");
   }, [setCurrentModal, addLog]);
 
   const confirmEvilTwinExecution = useCallback(() => {
@@ -703,17 +719,56 @@ export function useConfirmHandlers(deps: ConfirmHandlersDeps) {
       return;
     const { targetId } = currentModal.data;
     setCurrentModal(null);
-    addLog(`👥 ${targetId + 1}号(善良双子) 被处决，镜像双子能力生效，邪恶阵营直接获胜！`);
+
+    /**
+     * ⚠️ 本路径**不是第二次判胜**：`EVIL_TWIN_EXECUTION_CONFIRM` 弹窗只在
+     *   `useExecutionHandlers.executePlayer` 用 `utils/evilTwinHelper` 的**严格解析**
+     *   证明「被处决者 = 权威配对中的善良双子、镜像双子存活且未失能」之后才会打开。
+     *
+     * 🔒 但弹窗打开 → 点击确认之间状态可能漂移（撤销 / 右键改配对 / 中毒醉酒变化），
+     *   因此**确认时必须重算证据**；证据已失效 ⇒ 只做普通处决，绝不落地判胜
+     *   （历史缺陷：此处曾硬编码 setWinResult("evil")，不重算证据）。
+     *
+     * 文案/胜方一律引用 `utils/winConditions/winReasonCodes`（唯一事实源），
+     * 并补 `victoryRef`（"本局已终局"唯一权威标记），避免终局被后续流程覆盖。
+     */
+    const resolved = resolveEvilTwinPair(seats, evilTwinPair ?? null);
+    const livingEvilTwin = seats.find(
+      (s) =>
+        s.role?.id === "evil_twin" && !s.isDead && !s.isPoisoned && !s.isDrunk
+    );
+    const stillValid =
+      !!seats.find((s) => s.id === targetId) &&
+      !!livingEvilTwin &&
+      resolved.resolved &&
+      resolved.goodTwinSeat?.id === targetId;
+
+    if (!stillValid) {
+      addLog(`⚠️ ${targetId + 1}号的双子配对证据已失效，改为正常处决（不判胜）`);
+      executePlayer(targetId, { forceExecution: true });
+      return;
+    }
+
+    addLog(
+      `👥 ${targetId + 1}号(善良双子) 被处决，镜像双子能力生效，邪恶阵营直接获胜！`
+    );
+    victoryRef.current = {
+      winner: "evil",
+      reason: GOOD_TWIN_EXECUTED_REASON,
+    };
     setWinResult("evil");
-    setWinReason("善良双子被处决（镜像双子胜利）");
+    setWinReason(GOOD_TWIN_EXECUTED_REASON);
     executePlayer(targetId, { forceExecution: true });
   }, [
     currentModal,
+    seats,
+    evilTwinPair,
     setCurrentModal,
     executePlayer,
     addLog,
     setWinResult,
     setWinReason,
+    victoryRef,
   ]);
 
   const cancelEvilTwinExecution = useCallback(() => {

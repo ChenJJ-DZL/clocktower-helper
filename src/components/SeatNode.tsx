@@ -5,41 +5,34 @@ import type React from "react";
 import { useEffect, useMemo, useRef } from "react";
 import { useGameActions } from "../contexts/GameActionsContext";
 import { useSeatView } from "../hooks/useSeatView";
-import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
-import type { SeatNodeProps } from "./SeatNode.types"; // We should extract props too
-import { RoleNameLines } from "./common/RoleNameLines";
-import { useGrimoireTooltip } from "./tooltip/GrimoireTooltip";
+import { resolveEvilTwinPairForDisplay } from "../utils/evilTwinHelper";
 import {
   DRAG_START_THRESHOLD_PX,
   LONG_PRESS_MOVE_TOLERANCE_PX,
   LONG_PRESS_MS,
 } from "../utils/longPress";
+import { RoleNameLines } from "./common/RoleNameLines";
+import type { SeatNodeProps } from "./SeatNode.types"; // We should extract props too
+import { useGrimoireTooltip } from "./tooltip/GrimoireTooltip";
 
 /**
  * 判定某座位是否为「对立双子」（善良双子）。
  *
  * 该判定原先内联在徽标 IIFE 的 else 分支里；为把双子标记移到座位右上角，
- * 抽成模块级纯函数以便复用。**判定逻辑与回退规则原样保留**，未做任何语义改动：
- *   hasEvilTwin && (s.isGoodTwin || (场上无人被手动指定 isGoodTwin && 默认候选 === s))
+ * 抽成模块级纯函数以便复用。
+ *
+ * ⚠️ 2026-11-01：内联的「首个存活镇民/外来者」启发式已收敛到
+ *   `utils/evilTwinHelper::resolveEvilTwinPairForDisplay`（单一事实源）。
+ *   本函数只负责**展示**，其结论不得用于判胜；判胜走严格版 resolveEvilTwinPair。
  */
 function computeIsGoodTwin(s: any, seats: any[]): boolean {
   if (s.role?.id === "evil_twin") return false;
-  const hasEvilTwin = seats.some((seat) => seat.role?.id === "evil_twin");
-  if (!hasEvilTwin) return false;
+  const resolved = resolveEvilTwinPairForDisplay(seats as any, null);
+  if (!resolved.evilTwinSeat) return false;
   if (s.isGoodTwin) return true;
-  // 已有人被手动指定 → 不再走默认回退
+  // 已有说书人显式指定 → 不再走默认回退
   if (seats.some((seat) => seat.isGoodTwin)) return false;
-  const evilSeat = seats.find((seat) => seat.role?.id === "evil_twin");
-  if (!evilSeat) return false;
-  const defaultGoodSeat =
-    seats.find(
-      (other) =>
-        other.id !== evilSeat.id &&
-        isSeatTownsfolkOrOutsider(other) &&
-        !other.isEvilConverted &&
-        !other.isDead
-    ) || seats.find((other) => other.id !== evilSeat.id && !other.isDead);
-  return defaultGoodSeat?.id === s.id;
+  return resolved.source === "heuristic" && resolved.goodTwinSeat?.id === s.id;
 }
 
 // 状态标签组件 - 统一的状态标记样式
@@ -336,7 +329,10 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         if (t && lpStartRef.current) {
           const dx = Math.abs(t.clientX - lpStartRef.current.x);
           const dy = Math.abs(t.clientY - lpStartRef.current.y);
-          if (dx > LONG_PRESS_MOVE_TOLERANCE_PX || dy > LONG_PRESS_MOVE_TOLERANCE_PX) {
+          if (
+            dx > LONG_PRESS_MOVE_TOLERANCE_PX ||
+            dy > LONG_PRESS_MOVE_TOLERANCE_PX
+          ) {
             cancelLongPress();
           }
         }
@@ -545,7 +541,9 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
         {/* 角色名称牌：不透明底板保证任何底色/缩放比例下都可读
             ⚠️ 不设 text-shadow / drop-shadow —— 投影在缩小舞台上会把笔画糊成一团（用户 2026-10-13 反馈） */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <div className={`seat-nameplate${s.isDead ? " seat-nameplate-dead" : ""}`}>
+          <div
+            className={`seat-nameplate${s.isDead ? " seat-nameplate-dead" : ""}`}
+          >
             <RoleNameLines
               name={roleName}
               className={`${isPortrait ? "text-lg" : "text-2xl"} font-black leading-tight text-center ${roleName.length > 4 ? "" : "whitespace-nowrap"}`}
@@ -594,8 +592,6 @@ export const SeatNode: React.FC<SeatNodeProps> = (props) => {
 
           // 双子标记（镜像双子 / 对立双子）：**已移到座位右上角的标记栈**渲染
           // （与「实:X」同一处、同一套紧凑胶囊样式），不再占用这里的宽幅堆叠。
-
-
 
           // 邪恶阵营转换标记（如赏金猎人指定的邪恶镇民）
           if (s.isEvilConverted) {

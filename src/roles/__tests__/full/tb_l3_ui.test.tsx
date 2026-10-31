@@ -19,17 +19,25 @@
  *
  * ⚠️ 只加测试不改生产：发现的偏差只冻结 + 报告（见文件末 §D 与交付报告）。
  */
-import { describe, expect, it, beforeAll, afterEach } from "vitest";
-import { render, cleanup, fireEvent } from "@testing-library/react";
+
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { roles, scripts } from "../../../../app/data";
-import { calculateNightInfoViaNewEngine } from "../../../utils/nightInfoAdapter";
-import { initializeAbilityRegistry, getAbilityForRole } from "../../new_engine/abilityRegistry";
-import { ENGINE_CONFIG } from "../../../hooks/useNightEngine";import { NightActionConfirmModal } from "../../../components/modals/NightActionConfirmModal";
-import { InfoResultModal } from "../../../components/modals/InfoResultModal";
-import { IdentityShowcaseModal } from "../../../components/modals/IdentityShowcaseModal";
 import { GameConsole } from "../../../components/game/console/GameConsole";
-import { getCharadeDisplayRole, isCharadeMasked } from "../../../utils/charadeDisplay";
-import { board, queueFor, seat as hseat } from "../_tbHarness";
+import { IdentityShowcaseModal } from "../../../components/modals/IdentityShowcaseModal";
+import { InfoResultModal } from "../../../components/modals/InfoResultModal";
+import { NightActionConfirmModal } from "../../../components/modals/NightActionConfirmModal";
+import { ENGINE_CONFIG } from "../../../hooks/useNightEngine";
+import {
+  getCharadeDisplayRole,
+  isCharadeMasked,
+} from "../../../utils/charadeDisplay";
+import { calculateNightInfoViaNewEngine } from "../../../utils/nightInfoAdapter";
+import {
+  getAbilityForRole,
+  initializeAbilityRegistry,
+} from "../../new_engine/abilityRegistry";
+import { board, seat as hseat, queueFor } from "../_tbHarness";
 
 const r = (id: string) => roles.find((x) => x.id === id)!;
 const TB = scripts.find((s) => s.id === "trouble_brewing")!;
@@ -39,11 +47,27 @@ const TB = scripts.find((s) => s.id === "trouble_brewing")!;
  * 必须与 `app/data.ts` 中 `trouble_brewing.roleIds` 逐字一致（① 有断言兜底）。
  */
 const ROSTER = [
-  "washerwoman", "librarian", "investigator", "chef", "empath",
-  "fortune_teller", "undertaker", "monk", "ravenkeeper", "virgin",
-  "slayer", "soldier", "mayor",
-  "butler", "drunk", "recluse", "saint",
-  "poisoner", "spy", "scarlet_woman", "baron",
+  "washerwoman",
+  "librarian",
+  "investigator",
+  "chef",
+  "empath",
+  "fortune_teller",
+  "undertaker",
+  "monk",
+  "ravenkeeper",
+  "virgin",
+  "slayer",
+  "soldier",
+  "mayor",
+  "butler",
+  "drunk",
+  "recluse",
+  "saint",
+  "poisoner",
+  "spy",
+  "scarlet_woman",
+  "baron",
   "imp",
 ];
 
@@ -55,11 +79,27 @@ const ROSTER = [
  *         管家92 / 送葬者93 / 投毒者13 / 间谍108
  */
 const WAKE_NIGHT: Record<string, 1 | 2 | null> = {
-  washerwoman: 1, librarian: 1, investigator: 1, chef: 1, empath: 1,
-  fortune_teller: 1, undertaker: 2, monk: 2, ravenkeeper: 2,
-  virgin: null, slayer: null, soldier: null, mayor: null,
-  butler: 1, drunk: null, recluse: null, saint: null,
-  poisoner: 1, spy: 1, scarlet_woman: 2, baron: 1,
+  washerwoman: 1,
+  librarian: 1,
+  investigator: 1,
+  chef: 1,
+  empath: 1,
+  fortune_teller: 1,
+  undertaker: 2,
+  monk: 2,
+  ravenkeeper: 2,
+  virgin: null,
+  slayer: null,
+  soldier: null,
+  mayor: null,
+  butler: 1,
+  drunk: null,
+  recluse: null,
+  saint: null,
+  poisoner: 1,
+  spy: 1,
+  scarlet_woman: 2,
+  baron: 1,
   imp: 2,
 };
 
@@ -73,18 +113,72 @@ const WAKE_NIGHT: Record<string, 1 | 2 | null> = {
 type GuideKind = "standard" | "passive" | "silent" | "deviation";
 const GUIDE_KIND: Record<string, GuideKind> = {
   // 12 个标准唤醒语
-  washerwoman: "standard", librarian: "standard", investigator: "standard",
-  chef: "standard", empath: "standard", fortune_teller: "standard",
-  undertaker: "standard", monk: "standard", butler: "standard",
-  poisoner: "standard", spy: "standard", imp: "standard",
+  washerwoman: "standard",
+  librarian: "standard",
+  investigator: "standard",
+  chef: "standard",
+  empath: "standard",
+  fortune_teller: "standard",
+  undertaker: "standard",
+  monk: "standard",
+  butler: "standard",
+  poisoner: "standard",
+  spy: "standard",
+  imp: "standard",
   // 3 个被动（有夜序但引擎明确回「无需唤醒」）
-  drunk: "passive", scarlet_woman: "passive", baron: "passive",
+  drunk: "passive",
+  scarlet_woman: "passive",
+  baron: "passive",
   // 6 个无夜间步骤（引擎返回空引导语，队列里没有它们）
-  virgin: "silent", slayer: "silent", soldier: "silent",
-  mayor: "silent", recluse: "silent", saint: "silent",
+  virgin: "silent",
+  slayer: "silent",
+  soldier: "silent",
+  mayor: "silent",
+  recluse: "silent",
+  saint: "silent",
   // 1 个已知偏差：守鸦人唤醒台词缺座位号与【】角色名
   //（角色定义 `src/roles/townsfolk/ravenkeeper.ts` 的 wake 文案）
   ravenkeeper: "deviation",
+};
+
+/**
+ * 冻结的「目标数量约束」偏差：**夜间步骤 `targetLimit`** vs **能力 `targetConfig`**
+ *
+ * ⚠️ 这两层语义不同，不能无脑要求严格相等：
+ *   · `targetLimit` —— `nightInfoGenerator.ts:358-360` 从 legacy 角色定义的
+ *     `night.target.count` 取，是**说书人行动页**的门控依据
+ *     （`GameStage.tsx:1911-1912` 直接用 `min` 决定「确认行动」能否点击）；
+ *   · `targetConfig` —— 新引擎能力注册表里的**规则声明**。
+ *
+ * `imp` 的两层分歧是**双方都有官方依据**的刻意结果，不是笔误：
+ *   · 能力层 `src/roles/new_engine/imp.ability.ts:774-779` = `{min:1, max:1}`：
+ *     官方能力原文「每个夜晚*，你要选择一名玩家：他死亡。」⇒ 必须选 1 人。
+ *     03f899b（W10.30.1「…小恶魔与杂耍艺人时序规范…」）把该值从 0~1 收回 1~1，
+ *     并同步 `tb_l1_l2.test.ts:340-341`（「官方…⇒ min: 1, max: 1」）。
+ *   · 展示层 `src/roles/demon/imp.ts:109-113` 的 `night.target.count` **仍是 0~1**：
+ *     4c39d1c（W10.20.1）为玩具匠（Toymaker）官方「恶魔可以在夜晚选择放弃攻击」
+ *     把**两层**都放宽到 0~1；03f899b 只收回了能力层（本文件的 L3 用例由此变红）。
+ *     展示层这个 `min:0` 至今是行动页「空刀」的唯一入口 —— 确认弹窗的玩具匠豁免
+ *     （`useNightActionHandler.ts:1008-1009` 把 `effectiveMinTargets` 置 0、
+ *      `:1115` 只写进**确认弹窗**的 data）发生在行动页**之后**。
+ *     ⇒ 若把 legacy `min` 直接收回 1，玩具匠空刀会在行动页提前卡死
+ *       （需同时改 UI 门控，属于行为变更）——不属本次修基线范围。
+ *
+ * 冻结口径：`max` 必须与能力声明一致（展示层不得放大「最多可选几人」）；
+ * `min` 按本表登记。若将来两层统一（或 UI 门控改成消费能力层 min），请删除本条。
+ */
+const TARGET_LIMIT_DEVIATION: Record<
+  string,
+  { min: number; max: number; why: string }
+> = {
+  imp: {
+    min: 0,
+    max: 1,
+    why:
+      "玩具匠「恶魔可放弃攻击」⇒ 行动页保留 0 目标入口" +
+      "（legacy src/roles/demon/imp.ts night.target.count.min=0）；" +
+      "能力层官方口径仍为 1~1（03f899b）",
+  },
 };
 
 /** 系统步骤 id → 该夜以系统步骤身份被唤醒（爪牙/恶魔互认） */
@@ -101,8 +195,10 @@ const SYS_STEP: Record<string, string> = {
  * 这类角色在 L3 必须断言两件事：不满足 ⇒ 不在队列；满足 ⇒ 在队列。
  */
 const CONDITIONAL_WAKE: Record<string, string> = {
-  undertaker: "当日必须有人死于处决（dynamicQueueGenerator.ts:469 requiresExecutedToday）",
-  ravenkeeper: "只有当晚死亡的守鸦人才被唤醒（dynamicQueueGenerator.ts:411 ON_DEATH）",
+  undertaker:
+    "当日必须有人死于处决（dynamicQueueGenerator.ts:469 requiresExecutedToday）",
+  ravenkeeper:
+    "只有当晚死亡的守鸦人才被唤醒（dynamicQueueGenerator.ts:411 ON_DEATH）",
 };
 
 beforeAll(() => {
@@ -121,7 +217,14 @@ const bodyText = () => document.body.textContent ?? "";
 
 /** 7 人局：1号 = 被测角色，其余只用暗流涌动本剧本角色（避免掩盖拼写类缺陷） */
 function buildSeats(roleId: string): any[] {
-  const others = ["empath", "chambermaid", "gossip", "tinker", "soldier", "imp"];
+  const others = [
+    "empath",
+    "chambermaid",
+    "gossip",
+    "tinker",
+    "soldier",
+    "imp",
+  ];
   const seats = [hseat(0, roleId)];
   others.forEach((rid, i) => seats.push(hseat(i + 1, rid)));
   // 避免与被测角色重名（会让「被测角色不在 1 号」的判断失真）
@@ -205,7 +308,10 @@ describe("L3 · 暗流涌动 · §A 角色夜间引导语与弹窗渲染", () =>
       }
 
       // 其余形态：首行不能是空的（弹窗会白屏）
-      expect(guide.length, `❌ ${roleId} 引导语为空 —— 弹窗会白屏`).toBeGreaterThan(0);
+      expect(
+        guide.length,
+        `❌ ${roleId} 引导语为空 —— 弹窗会白屏`
+      ).toBeGreaterThan(0);
       expect(
         guide,
         `❌ ${roleId} 引导语未包含角色中文名「${r(roleId).name}」`
@@ -261,7 +367,9 @@ describe("L3 · 暗流涌动 · §A 角色夜间引导语与弹窗渲染", () =>
         />
       );
       const t1 = bodyText();
-      expect(t1.length, `❌ ${roleId} 确认页渲染为空（白屏）`).toBeGreaterThan(0);
+      expect(t1.length, `❌ ${roleId} 确认页渲染为空（白屏）`).toBeGreaterThan(
+        0
+      );
       expect(t1, `❌ ${roleId} 确认页应含角色名`).toContain(r(roleId).name);
       expect(t1, `❌ ${roleId} 确认页应含行动者座位号「1号」`).toContain("1号");
 
@@ -276,7 +384,9 @@ describe("L3 · 暗流涌动 · §A 角色夜间引导语与弹窗渲染", () =>
         />
       );
       const t2 = bodyText();
-      expect(t2.length, `❌ ${roleId} 结果页渲染为空（白屏）`).toBeGreaterThan(0);
+      expect(t2.length, `❌ ${roleId} 结果页渲染为空（白屏）`).toBeGreaterThan(
+        0
+      );
       expect(t2, `❌ ${roleId} 结果页应含角色名`).toContain(r(roleId).name);
 
       // ③ 不泄漏内部状态字段（两个页面都要查）
@@ -321,6 +431,23 @@ describe("L3 · 暗流涌动 · §A 角色夜间引导语与弹窗渲染", () =>
       }
 
       expect(tc, `❌ 找不到 ${roleId} 的能力声明`).toBeTruthy();
+
+      const frozen = TARGET_LIMIT_DEVIATION[roleId];
+      if (frozen) {
+        // ℹ️ 冻结偏差（有官方依据的两层语义差，见 TARGET_LIMIT_DEVIATION 注释）：
+        //    只允许 `min` 与能力声明不同；`max` 必须严格相等。
+        expect(
+          { min: tl.min, max: tl.max },
+          `ℹ️ ${roleId} 夜间目标约束偏差已冻结（${frozen.why}）` +
+            " —— 若两层已统一，请同步删除本条"
+        ).toEqual({ min: frozen.min, max: frozen.max });
+        expect(
+          tl.max,
+          `❌ ${roleId} 展示层最大目标数 ${tl.max} 与能力声明 ${tc?.max} 不一致`
+        ).toBe(tc?.max);
+        return;
+      }
+
       expect(
         { min: tl.min, max: tl.max },
         `❌ ${roleId} 夜间目标约束 ${tl.min}~${tl.max} 与能力声明 ${tc?.min}~${tc?.max} 不一致`
@@ -350,9 +477,10 @@ describe("L3 · 暗流涌动 · §A 角色夜间引导语与弹窗渲染", () =>
           const rkEntry: any = ENGINE_CONFIG.fullNightOrder.find(
             (e: any) => e.roleId === "ravenkeeper"
           );
-          expect(rkEntry?.deathTriggered, "❌ 守鸦人未标 deathTriggered（ON_DEATH）").toBe(
-            true
-          );
+          expect(
+            rkEntry?.deathTriggered,
+            "❌ 守鸦人未标 deathTriggered（ON_DEATH）"
+          ).toBe(true);
           expect(rkEntry?.otherNightPriority).toBe(80);
           // ⚠️ 能力声明里是 null（不入首夜），ENGINE_CONFIG 里用 0 表达同一语义
           //    —— 口径不统一，已在交付报告登记为「可疑点」（不影响行为）。
@@ -389,7 +517,9 @@ describe("L3 · §B 敏感信息不得泄漏（不得从 seats 反推）", () =>
     };
 
     const shown: any = getCharadeDisplayRole(drunkSeat);
-    expect(shown?.id, "❌ 酒鬼展示口径被缓存字段 displayRole 抢走了").toBe("empath");
+    expect(shown?.id, "❌ 酒鬼展示口径被缓存字段 displayRole 抢走了").toBe(
+      "empath"
+    );
     expect(shown?.name, "❌ 酒鬼应展示为伪装身份").toBe("共情者");
     expect(shown?.id, "❌ 展示口径泄漏了真实身份「酒鬼」").not.toBe("drunk");
     expect(isCharadeMasked(drunkSeat), "❌ 伪装遮罩未生效").toBe(true);
@@ -412,13 +542,39 @@ describe("L3 · §B 敏感信息不得泄漏（不得从 seats 反推）", () =>
     ).not.toContain("demon_info");
 
     // 对照 1：真爪牙（间谍）在首夜必须被排入 minion_info
-    const spyQueue = queueFor(board(["spy", "empath", "chambermaid", "gossip", "tinker", "soldier", "imp"]), 0, 1);
+    const spyQueue = queueFor(
+      board([
+        "spy",
+        "empath",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "soldier",
+        "imp",
+      ]),
+      0,
+      1
+    );
     expect(spyQueue, "❌ 间谍未被排入爪牙互认步骤").toContain("minion_info");
 
     // 对照 2：真恶魔（小恶魔）必须被排入 demon_info，而爪牙不得被排入
-    const impQueue = queueFor(board(["imp", "empath", "chambermaid", "gossip", "tinker", "soldier", "baron"]), 0, 1);
+    const impQueue = queueFor(
+      board([
+        "imp",
+        "empath",
+        "chambermaid",
+        "gossip",
+        "tinker",
+        "soldier",
+        "baron",
+      ]),
+      0,
+      1
+    );
     expect(impQueue, "❌ 小恶魔未被排入恶魔互认步骤").toContain("demon_info");
-    expect(impQueue, "❌ 恶魔被误排入爪牙互认步骤").not.toContain("minion_info");
+    expect(impQueue, "❌ 恶魔被误排入爪牙互认步骤").not.toContain(
+      "minion_info"
+    );
   });
 
   it("⑥ 身份告知牌翻开酒鬼座位：不得出现「酒鬼」三个字（玩家会看到）", () => {
@@ -435,8 +591,8 @@ describe("L3 · §B 敏感信息不得泄漏（不得从 seats 反推）", () =>
       />
     );
     // 默认处于防窥遮罩 ⇒ 先「翻开身份」
-    const revealBtn = Array.from(document.querySelectorAll("button")).find((b) =>
-      (b.textContent ?? "").includes("翻开")
+    const revealBtn = Array.from(document.querySelectorAll("button")).find(
+      (b) => (b.textContent ?? "").includes("翻开")
     );
     expect(revealBtn, "❌ 找不到「翻开身份」按钮").toBeTruthy();
     fireEvent.click(revealBtn as HTMLElement);
@@ -475,7 +631,14 @@ describe("L3 · §C 日间主动技能按钮", () => {
     ).map((b) => (b.textContent ?? "").trim());
 
   it("⑦ 猎手(slayer) 的日间开枪按钮必须出现（官方：每个游戏一次，白天公开选择）", () => {
-    mountConsole(["slayer", "empath", "chambermaid", "gossip", "tinker", "soldier"]);
+    mountConsole([
+      "slayer",
+      "empath",
+      "chambermaid",
+      "gossip",
+      "tinker",
+      "soldier",
+    ]);
     const labels = dayBtnLabels();
     expect(
       labels.length,
@@ -495,11 +658,20 @@ describe("L3 · §C 日间主动技能按钮", () => {
       labels.length,
       `❌ 纯夜间角色布局不应出现日间主动技能按钮（实际：${JSON.stringify(labels)}）`
     ).toBe(0);
-    expect(bodyText(), "❌ 无日间技能时不应渲染面板标题").not.toContain("可用主动技能");
+    expect(bodyText(), "❌ 无日间技能时不应渲染面板标题").not.toContain(
+      "可用主动技能"
+    );
   });
 
   it("⑨ 已冻结偏差：贞洁者(virgin) 的处决是「被提名时触发」而非主动按钮", () => {
-    mountConsole(["virgin", "empath", "chambermaid", "monk", "soldier", "mayor"]);
+    mountConsole([
+      "virgin",
+      "empath",
+      "chambermaid",
+      "monk",
+      "soldier",
+      "mayor",
+    ]);
     const labels = dayBtnLabels();
     // 官方：贞洁者一旦被提名，提名者立即被处决 —— **不需要**玩家点按钮。
     // 本用例冻结「不应出现按钮」这一口径（若产品改成主动按钮请同步改本条）。
