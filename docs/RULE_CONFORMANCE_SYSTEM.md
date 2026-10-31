@@ -5,7 +5,7 @@
 >
 > **状态（2026-11-01 第二轮更新）**：L0–L7 **全部落地** ——
 > 官方规范抽取 + 全量静态审计（类型/夜序/实现/证据）+ 台账棘轮 CI；
-> **L3 语义原子层**（官方能力文本 ⇄ 实现元数据）、**官方范例 Oracle**（已编码 51/438 条可执行夹具，
+> **L3 语义原子层**（官方能力文本 ⇄ 实现元数据）、**官方范例 Oracle**（已编码 73/438 条可执行夹具，
 > 并新增表驱动 runner）、**L4 整局随机仿真**（12 局 × 4 夜 · 246 动作 · 0 违例，进台账 + 棘轮）、
 > **L5 变异测试**（23 条基线 · **23/23 = 100%**，并把分数纳入棘轮下限）、
 > **L6 E2E 断言型覆盖**（reach → assert：94/172 角色在带 `expect` 的 test 块里被断言）、
@@ -144,7 +144,7 @@ interface OfficialRoleSpec {
 | 有测试入口的角色（reach 口径） | 174 / 174 |
 | **E2E 断言型覆盖（L6）** | **94 / 172**（237 test 块 · 796 条 expect） |
 | L3 语义原子层 review findings | **36**（P2/INFO 元数据口径；1 条真实缺口已 waiver） |
-| L3 官方范例已编码 / 总数 | **51 / 438（11.6%）** |
+| L3 官方范例已编码 / 总数 | **73 / 438（16.7%）** |
 | **L4 整局随机仿真** | **12 局 × 4 夜 · 246 动作 · 违例 0** |
 | **L5 变异测试被杀 / 总数** | **23 / 23（100%）** |
 | 人审 waiver（显式裁定，非静默放过） | 16 项（`scripts/conformance/waivers.json`） |
@@ -188,7 +188,7 @@ interface OfficialRoleSpec {
 官方 wiki 的 438 条【范例】是最权威的行为 Oracle：
 - `scripts/conformance/lib/examples.ts`：`loadOfficialExamples` / `scanEncodedExamples` / `exampleCoverage`
   （稳定 id `<角色名>#<idx>`，注释 `// 官方范例: 角色 #idx` 自动对账）；
-- `tests/conformance/examples/**`：**51 条真实可执行夹具**（逐条经 `runFullAbilityPipeline` /
+- `tests/conformance/examples/**`：**73 条真实可执行夹具**（逐条经 `runFullAbilityPipeline` /
   `runAbilityPipeline` / `checkGameEnd` 断言状态/信息/胜负），覆盖 TB 22 角色 + 镜像双子/呆瓜/吟游诗人/罂粟花开等；
 - **表驱动 runner（本轮新增）**：`_oracle.ts` 把「造座位 → 取能力 → 跑管道 → 断言」收敛成
   `{ id, roleId, seats, targets, check }` 数据行，一条范例 ≈ 10 行；`tb_oracle_batch.test.ts` 是本轮批次。
@@ -196,8 +196,22 @@ interface OfficialRoleSpec {
 - **已核实偏差登记**：`known_deviations.test.ts` 用 `it.fails` 钉住"当前确实不符合官方"的规则
   （修好后用例自动转红，强制转正），本轮登记 1 条（图书管理员#1：陌客被登记为爪牙时应收「0」，
   `librarian.ability.ts::getOutsiderCandidates` 未消费 `registerAs*`）；
-- `scripts/conformance/examples-ledger.ts`：覆盖率台账（51/438 = 11.6%，暗流涌动 87 条中 43 条）；
+- `scripts/conformance/examples-ledger.ts`：覆盖率台账（73/438 = 16.7%，暗流涌动 87 条中 54 条）；
 - 官方范例的**行为偏差会被夹具直接暴露**（本轮借此发现并登记上述 1 条产品缺口）。
+
+#### 覆盖率口径与剩余工作量（诚实版）
+
+- 当前 **73/438 = 16.7%**；按剧本：暗流涌动 **54/87（62.1%）**、梦殒春宵 8/80、黯月初升 9/79、无上愉悦 2/12，其余 0。
+- **分母是官方条目数，不是唯一文本数**：438 条里 54 条是「角色 / 角色（实验角色）」完全重复登记
+  （去重后唯一文本 383 条），因此一条夹具可同时登记两个 id（同一条规则的两个官方条目）。
+- **可编码上限 410 条**（28 条属于项目未实现的官方角色，无法产出可执行夹具）。
+- **不硬编码的两类**（宁可算"未覆盖"，也不做假绿）：
+  1. **说书人任选**：酒鬼/中毒信息内容、洗衣妇报哪名玩家、陌客被登记成什么 —— 官方原文本身给的是
+     「可能的一种结果」，写成固定期望等于把说书人的自由选择判成规则；
+  2. **多步叙事**：处决→阵营转换→再击杀这类跨阶段场景，当前能力管道装不下，
+     需要场景级 harness（与 L6 的 Playwright 场景共用投资）。
+- 距 S4 的 60%（263 条）还差 **190 条**；本轮产能约 **+22 条/批**（TB 旅行者与配比 11 条 + BMR/SNV 能力级 11 条），
+  按同产能还需约 9 批。推进顺序：内置 9 剧本（玩家实际会玩到的）→ 实验角色重复条目 → 多步叙事（待 harness）。
 
 ### 3.6 L5：变异测试（`scripts/conformance/mutation.ts`）
 
@@ -274,10 +288,10 @@ npx vitest run src/utils/__tests__/rule_conformance.test.ts   # CI 门禁（含 
 静态层、语义元数据层与变异层已交付；**技能结算的完整行为验证**仍需继续扩充官方范例夹具。
 以下按投入产出排序（✅ = 已交付，🔜 = 下一步）：
 
-### ✅ L3：官方范例 → 可执行场景（Oracle 化，已交付 51/438）
+### ✅ L3：官方范例 → 可执行场景（Oracle 化，已交付 73/438）
 
-- 已把官方 438 条【范例】做成可索引台账（`lib/examples.ts`），并编码 **51 条真实夹具**
-  （`tests/conformance/examples/**`），暗流涌动 22 角色全覆盖（43/87）；
+- 已把官方 438 条【范例】做成可索引台账（`lib/examples.ts`），并编码 **73 条真实夹具**
+  （`tests/conformance/examples/**`），暗流涌动 22 角色全覆盖（54/87）；
 - 表驱动 runner（`_oracle.ts`）已就位：后续补覆盖率直接加数据行；
 - 覆盖度量已进报告（`encodedExamples` / `officialExamples`），并纳入棘轮（只许上升）；
 - 下一步：按 `examples_ledger.json.missingByRole` 继续编码（暗流涌动剩 44 条 → 黯月初升/梦殒春宵），
@@ -318,8 +332,8 @@ npx vitest run src/utils/__tests__/rule_conformance.test.ts   # CI 门禁（含 
 | :--- | :--- | :--- |
 | S1 规范可追溯 | 每个项目角色都能映射到官方规范（或显式登记为自定义角色） | ✅ 169/174（5 个自定义已登记 INFO） |
 | S2 静态一致 | 类型 100% 一致；官方夜序差异人审归档；内置剧本角色 0 缺失 | ✅ 类型 0 不一致、夜序 0 不一致、内置缺失 0 |
-| S3 证据可计量 | 每个角色有测试入口 + 官方范例编码数 + 正/反例数入台账 | ◐ reach 174/174 · **assert 94/172** · 范例 51/438 |
-| S4 语义可信 | 关键能力 type-tag 全覆盖；官方范例覆盖 ≥60%；mutation score ≥80% | ◐ 语义 36 review + 51 范例（11.6%）；**mutation 23/23 = 100%** |
+| S3 证据可计量 | 每个角色有测试入口 + 官方范例编码数 + 正/反例数入台账 | ◐ reach 174/174 · **assert 94/172** · 范例 73/438 |
+| S4 语义可信 | 关键能力 type-tag 全覆盖；官方范例覆盖 ≥60%；mutation score ≥80% | ◐ 语义 36 review + 73 范例（16.7%）；**mutation 23/23 = 100%** |
 | S5 回归可控 | 棘轮：0 新增偏差；基线只降不升 | ✅ 已生效（schemaVersion=2，签名带 severity，waiver 回退会变红） |
 | S6 反馈闭环 | 每个用户报障 72h 内成为夹具；判胜/终局可溯源 | ✅ 判胜溯源 + `winAudit` 运行时留痕 + `tests/reported-bugs/` |
 | S7 组合空间可信 | 整局随机仿真不变式 0 违例，且样本量可验证（防空转） | ✅ 12 局 / 246 动作 / 违例 0 |
@@ -341,7 +355,7 @@ npx vitest run src/utils/__tests__/rule_conformance.test.ts   # CI 门禁（含 
 | :--- | :--- | :--- | :--- |
 | **P1** | L0–L2：规范抽取 + 静态审计 + 棘轮 + CI | `scripts/conformance/**`、`rule_conformance.test.ts`、本文件 | ✅ 已完成 |
 | **P2** | 修静态 P0/P1（scapegoat 类型、传教士/巡山人夜序、acrobat 类型、saint 注册错位），waiver 台账化 | `app/data.ts` / 能力元数据修复 + `waivers.json` + baseline | ✅ 已完成（静态 P0/P1 归零） |
-| **P3** | L3 语义原子层 + 官方范例 Oracle | `lib/ruleAtoms.ts`、`lib/examples.ts`、`_oracle.ts`、`tests/conformance/examples/**`（51 条） | ✅ 已交付（继续扩充至 ≥60%） |
+| **P3** | L3 语义原子层 + 官方范例 Oracle | `lib/ruleAtoms.ts`、`lib/examples.ts`、`_oracle.ts`、`tests/conformance/examples/**`（73 条） | ✅ 已交付（继续扩充至 ≥60%） |
 | **P4** | L5 变异测试产品化 + 补测 | `scripts/conformance/mutation.ts`（23 条 · 23/23）+ 注册表契约测试 | ✅ 已交付（分数进棘轮；扩展至全剧本为下一步） |
 | **P5** | L4 整局 fuzz 接入台账 + L6 E2E 断言化 + L7 日志告警 | `fuzz.ts` / `fuzzRunner.ts`、`e2e-assertions.ts`、`winAudit.ts` | ✅ 已完成（P5 收口） |
 
@@ -386,7 +400,7 @@ src/utils/__tests__/mutation_config.test.ts         # L5 变异配置静态守�
 tests/conformance/examples/_oracle.ts               # L3 表驱动 runner（不含 .test.，不被收集）
 tests/conformance/examples/known_deviations.test.ts # L3 已核实偏差（it.fails，修好即转红）
 src/utils/__tests__/win_reason_registry_contract.test.ts # 判胜注册表契约（防变异空转）
-tests/conformance/examples/                         # L3 官方范例可执行夹具（51 条）
+tests/conformance/examples/                         # L3 官方范例可执行夹具（73 条）
 outputs/rule_conformance/
 ├── baseline.json            # 提交仓库（棘轮基线 v2：schemaVersion=2 · severity|check|role）
 ├── official_spec.json       # 生成物（gitignore）
@@ -462,7 +476,7 @@ npm run conformance:e2e     # 断言型覆盖台账（--verbose 列出"只提到
 - **语义层 36 条 review**：`triggerTiming/targetConfig` 等「元数据声明」与官方文本的口径差
   （实现多经 legacy/gameLogic 路径生效）；其中少量可能是真缺陷（如罂粟种植者的死亡唤醒证据），
   已在 `report.md` 的 `ability.atom.*` 中逐条列出，按严重度排优先级。
-- **官方范例编码 51/438（11.6%）**——最大的一块增量，缺口语义证据；按
+- **官方范例编码 73/438（16.7%）**——最大的一块增量，缺口语义证据；按
   `examples_ledger.json.missingByRole` 逐条补，优先暗流涌动剩余 44 条。
 - **E2E 断言型覆盖 94/172**——其余角色只有 reach 证据（被发牌到过但没断言）。
 - **官方角色未实现 33 个**（扩展/自定义剧本）——路线图，不影响当前 9 个内置剧本。
@@ -470,6 +484,13 @@ npm run conformance:e2e     # 断言型覆盖台账（--verbose 列出"只提到
 - **官方数据自相矛盾 2 条**（官员/窃贼夜序「无法行动」vs 能力「每个夜晚」）——需说书人裁定口径，已 INFO。
 - **1 条已核实实现偏差未修**（图书管理员#1 的陌客登记）——`known_deviations.test.ts` 用 `it.fails` 钉住，
   修好后会自动转红，必须转正成正式夹具。
+- **本轮新修 1 条 + 新登记 1 条**：
+  - ✅ 已修：**管家死亡后仍受主人限制**（官方范例 管家#2：「死亡的玩家没有任何能力」
+    ⇒ 死亡应第一优先级放行）。判据 `butler.ability.ts::isButlerVoteLegal`。
+  - ⏳ 已登记未修：**士兵被指定替死时仍会被标记死亡**（官方范例 士兵#2：士兵无法被恶魔杀死 ⇒ 当晚无人死亡）。
+    判据 `src/utils/soldierImmunity.ts::resolveMayorDemonKill` 第 4 步「说书人手动指定替死」直接取候选，
+    **未排除免死角色**；修复需给返回值加「无人死亡」语义并同步 `imp`/`fang_gu` 两个调用点，
+    属跨界改动，先以 `it.fails` 钉住（`tb_night_examples.test.ts`），修好后会自动转红强制转正。
 
 ### 9.4 出问题时的"一键定位"
 

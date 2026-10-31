@@ -181,6 +181,14 @@ export function isButlerVoteLegal(
   if (isExile) return true;
   if (isDrunkOrPoisoned) return true;
 
+  /**
+   * 🔴 官方范例（管家 #2）：「管家死了。因为死亡的玩家没有任何能力，
+   *   因此管家可以使用他的投票标记在任何时候投票。」
+   *   ⇒ 死亡是**第一优先级**：连主人标记都不再约束。
+   *   （历史缺陷：旧实现只判 exile/醉毒/主人，死亡管家被判成仍然受限。）
+   */
+  if ((butlerSeat as { isDead?: boolean }).isDead === true) return true;
+
   const masterId = getButlerMasterId(butlerSeat);
   if (masterId === null) return true;
 
