@@ -20,7 +20,18 @@ const calculate = async (
 ): Promise<MiddlewareContext> => {
   const isDrunkOrPoisoned = ctx.meta.abilityEffective === false;
   const storytellerTargets = ctx.storytellerInput?.targetIds;
-  const killedByDemon = ctx.storytellerInput?.killedByDemon ?? true;
+  /**
+   * ⚠️ 击杀来源必须**显式**：`storytellerInput.killedByDemon`（说书人裁定）优先，
+   *   其次 `meta.killedByDemon`，最后才落到「按恶魔死亡处理」的旧默认。
+   *   官方【贤者#2】：「贤者死于麻脸巫婆，而非恶魔，所以贤者不会醒来也不会得知任何信息」
+   *   ⇒ 默认值取 true 会让「任何死法都报警」，见 known_deviations.test.ts 的登记项。
+   *   （此处暂不改默认值：生产链路尚未透传 killerRoleId，贸然 fail-closed 会让
+   *     真正的恶魔击杀也静默失声 —— 两害相权，先登记偏差、等链路补齐再改。）
+   */
+  const killedByDemon =
+    ctx.storytellerInput?.killedByDemon ??
+    ctx.meta.killedByDemon ??
+    true;
 
   let targetIds: number[] = [];
 
@@ -29,9 +40,28 @@ const calculate = async (
   } else if (!killedByDemon) {
     targetIds = [];
   } else if (isDrunkOrPoisoned) {
-    // 醉酒/中毒时，提供虚假信息（可能指出非恶魔玩家）
-    const nonDemons = ctx.snapshot.seats.filter((s: any) => s.role?.type !== "demon");
-    targetIds = nonDemons.slice(0, 2).map((s: any) => s.id);
+    /**
+     * 🔴 2026-11-01：醉酒/中毒时必须给**可信的假信息**，且**不得指向自己**。
+     *   官方【贤者#1】：醉酒的贤者被告知「一名死亡玩家 + 剩下的一名存活善良玩家」。
+     *   旧实现 `nonDemons.slice(0, 2)` 会把贤者本人（座位 0）算进去
+     *   ⇒ 玩家被提示「你和另一个人杀了你」这种不成立的组合。
+     *   ⚠️ 只排除自己与非邪恶，不保证「一死一活」一定凑得齐（残局可能只有 1 人），
+     *     凑不齐时给出去重后的实际候选，不编造座位。
+     */
+    const selfId = ctx.actionNode.seatId;
+    const nonDemons = ctx.snapshot.seats.filter(
+      (s: any) => s.role?.type !== "demon" && s.id !== selfId
+    );
+    const deadGood = nonDemons.filter((s: any) => s.isDead);
+    const aliveGood = nonDemons.filter((s: any) => !s.isDead);
+    /**
+     * 官方要求的组合是「一名死亡玩家 + 一名存活善良玩家」，按此顺序取；
+     * 残局凑不齐时依次回落到存活善良、其余非恶魔，**不去重后只剩 1 个**（旧写法会）。
+     */
+    const ordered = [deadGood[0], aliveGood[0], ...deadGood.slice(1), ...aliveGood.slice(1)]
+      .map((s: any) => s?.id)
+      .filter((id: number | undefined): id is number => id !== undefined);
+    targetIds = [...new Set(ordered)].slice(0, 2);
   } else {
     // 官方规则：指出两名玩家，其中一名是恶魔
     const demons = ctx.snapshot.seats.filter((s: any) => s.role?.type === "demon");

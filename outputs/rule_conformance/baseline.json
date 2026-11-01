@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-31T21:19:23.241Z",
+  "generatedAt": "2026-11-01T06:18:00.036Z",
   "findings": [
     "INFO|ability.atom.setup.adjustment|atheist",
     "INFO|ability.atom.setup.adjustment|balloonist",
@@ -118,7 +118,7 @@
     "rolesWithAbilityImpl": 160,
     "semanticFindings": 36,
     "officialExamples": 438,
-    "encodedExamples": 102,
+    "encodedExamples": 128,
     "mutationKilled": 23,
     "mutationTotal": 23,
     "fuzzGames": 12,

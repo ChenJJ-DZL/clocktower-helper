@@ -6,6 +6,7 @@
  * PASSIVE 触发：夜晚死亡时触发，可交换两名玩家角色。
  */
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { executeBarberSwap } from "../../utils/snvMechanics";
 import { isSeatDemon } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
@@ -102,13 +103,17 @@ const stateUpdate = async (
   const seatA = seats.find((s: any) => s.id === r.swapA);
   const seatB = seats.find((s: any) => s.id === r.swapB);
 
+  /**
+   * 🔴 2026-11-01：交换必须走 `snvMechanics::executeBarberSwap`（唯一实现）。
+   *   本文件原先自己内联了一段 `role: { ...seatB.role }`，而 `snvMechanics` 里的同名函数
+   *   **零调用点**（典型「两个实现 + 死代码」）⇒ 修了工具库也不会生效。
+   *   官方【理发师#3】：「曾经的亡骨魔现在是**邪恶的**心上人」⇒ 阵营不随角色改变，
+   *   该规则现在只在 `utils/roleChangeAlignment` 一处实现。
+   */
   const updatedSeats = seats.map((s: any) => {
-    if (s.id === r.swapA && seatB?.role) {
-      return { ...s, role: { ...seatB.role } };
-    }
-    if (s.id === r.swapB && seatA?.role) {
-      return { ...s, role: { ...seatA.role } };
-    }
+    if (!seatA?.role || !seatB?.role) return s;
+    if (s.id === r.swapA) return executeBarberSwap(seatA, seatB).updatedSeatA;
+    if (s.id === r.swapB) return executeBarberSwap(seatA, seatB).updatedSeatB;
     return s;
   });
 

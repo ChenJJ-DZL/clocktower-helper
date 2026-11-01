@@ -2,6 +2,7 @@
  * 《梦殒春宵》（Sects & Violets）专属规则与判定工具库
  */
 import type { Seat } from "../../app/data";
+import { applyRoleKeepingAlignment } from "./roleChangeAlignment";
 import { isSeatGood } from "./seatAlignment";
 
 /**
@@ -108,17 +109,17 @@ export function executeBarberSwap(
   seatA: Seat,
   seatB: Seat
 ): { updatedSeatA: Seat; updatedSeatB: Seat } {
-  const updatedA: Seat = {
-    ...seatA,
-    role: { ...seatB.role } as any,
-  };
-  const updatedB: Seat = {
-    ...seatB,
-    role: { ...seatA.role } as any,
-  };
+  /**
+   * 🔴 2026-11-01：**交换角色不改变阵营**。
+   *   官方【理发师#3】逐字：「亡骨魔与死去的心上人交换角色。**曾经的亡骨魔现在是邪恶的心上人**」
+   *   —— 换到外来者角色上，那名玩家仍然是邪恶。
+   *   旧实现只做 `role: { ...seatB.role }`，而 `isSeatEvil` 的权威口径是「角色类型 + 转换标记」
+   *   ⇒ 恶魔换到外来者角色上会被算成**善良**（判胜、信息类角色全线跟着错）。
+   *   收口到 `utils/roleChangeAlignment`（麻脸巫婆同一缺陷共用一份实现）。
+   */
   return {
-    updatedSeatA: updatedA,
-    updatedSeatB: updatedB,
+    updatedSeatA: applyRoleKeepingAlignment(seatA, seatB.role as any),
+    updatedSeatB: applyRoleKeepingAlignment(seatB, seatA.role as any),
   };
 }
 

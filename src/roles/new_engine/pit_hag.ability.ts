@@ -6,6 +6,8 @@
  *
  * 每夜选择目标+角色，进行角色变换。
  */
+import { roles } from "../../../app/data";
+import { applyRoleKeepingAlignment } from "../../utils/roleChangeAlignment";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
@@ -103,28 +105,28 @@ const stateUpdate = async (
 
   const seats = ctx.snapshot.seats ?? [];
   const targetSeat = seats.find((s: any) => s.id === r.targetId);
-  const isDemonCreated = [
-    "fang_gu",
-    "vigormortis",
-    "no_dashii",
-    "vortox",
-    "imp",
-    "zombuul",
-    "pukka",
-    "shabaloth",
-    "po",
-  ].includes(r.newRoleId);
+  /**
+   * 🔴 2026-11-01：**角色定义必须取真实的 `app/data` 条目，不能造 stub**。
+   *
+   * 旧实现写的是
+   *   `role: { id: r.newRoleId, name: r.newRoleId, type: isDemonCreated ? "demon" : 旧 type }`
+   * 三处都是错的（官方范例 麻脸巫婆#2 / 女裁缝#2 / 涡流#3 全部指向这一点）：
+   *   ① `name` 写成了 **roleId**（"no_dashii"），任何报角色名的信息/UI 都会露出英文 id；
+   *   ② 非恶魔的新角色**沿用旧 type** ⇒ 把镇民变成爪牙（女巫）后 `isSeatMinion` 仍为 false，
+   *      城镇公告员/亡骨魔/镜像双子等一切按类型判定的规则集体失效；
+   *   ③ 恶魔用硬编码清单判定，且变成恶魔后**没有保持原阵营** ⇒ 官方「善良的诺-达鲺」被算成邪恶。
+   */
+  const newRoleDef = roles.find((role) => role.id === r.newRoleId);
+  const isDemonCreated = newRoleDef?.type === "demon";
 
   const nextSeats = seats.map((s: any) => {
     if (s.id === r.targetId) {
-      return {
-        ...s,
-        role: {
-          id: r.newRoleId,
-          name: r.newRoleId,
-          type: isDemonCreated ? "demon" : s.role?.type ?? "townsfolk",
-        },
-      };
+      // 阵营保持逻辑收口在 `utils/roleChangeAlignment`（理发师同一处缺陷共用一份实现）
+      return applyRoleKeepingAlignment(s, {
+        id: newRoleDef?.id ?? r.newRoleId,
+        name: newRoleDef?.name ?? r.newRoleId,
+        type: newRoleDef?.type ?? s.role?.type ?? "townsfolk",
+      });
     }
     return s;
   });

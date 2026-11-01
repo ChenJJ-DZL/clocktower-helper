@@ -56,4 +56,67 @@ describe("官方范例 · 已核实偏差（修好后请转正）", () => {
     }
   );
 
+  it.fails(
+    "贤者#2：死于麻脸巫婆（非恶魔）⇒ 不应醒来、不应得知任何信息",
+    async () => {
+      // 官方原文（贤者 范例#2）：
+      //   「麻脸巫婆创造了一名恶魔。……说书人决定旧恶魔死亡，贤者也死亡，且当晚这些恶魔
+      //     选择攻击的目标中没有贤者。**因为贤者死于麻脸巫婆，而非恶魔，所以贤者不会醒来
+      //     也不会得知任何信息。**」
+      //
+      // 判据符号：`src/roles/new_engine/sage.ability.ts::calculate` 的
+      //   `const killedByDemon = ctx.storytellerInput?.killedByDemon ?? ctx.meta.killedByDemon ?? true`
+      //   —— 默认值是 **true**（缺省按「被恶魔杀」处理），而这里的死亡来源就写在座位上
+      //   （`deathSource: "pit_hag_kill"`），能力完全不读 ⇒ 只要说书人漏填就必报信息。
+      //   对照 `banshee.ability.ts` 的同名字段是 fail-closed（默认 false）。
+      //
+      // 修复方向：按 `deathSource` / `meta.killerRoleId` 推导，取不到才回落到说书人裁定；
+      //   ⚠️ 不能只把默认值改成 false —— 生产链路目前没透传 killerRoleId，
+      //      那样会让**真正的恶魔击杀**也静默失声（故本轮只登记、不改）。
+      ensureAbilityRegistry();
+      const seats = [
+        seat(0, "sage", { isDead: true, deathSource: "pit_hag_kill" }),
+        seat(1, "imp"),
+        seat(2, "chef"),
+        seat(3, "soldier"),
+      ];
+      const res = await runAbility(
+        getAbilityForRole("sage") as any,
+        ctx(seats, 0, "sage", { night: 2, phase: "night" })
+      );
+      const info = (res.meta as any)?.abilityResult;
+      expect(info?.found, "官方：死于非恶魔 ⇒ 不得产出任何候选").toBe(false);
+    }
+  );
+
+  it.fails(
+    "数学家#0：中毒的神谕者给出错误信息 ⇒ 数学家应得知「1」（异常能力计数）",
+    async () => {
+      // 官方原文（数学家 范例#0）：
+      //   「中毒的神谕者得知有两名死亡玩家是邪恶的，但是事实上有三名死亡玩家是邪恶的。
+      //     所有其他能力正常生效。数学家得知了「1」。」
+      //
+      // 判据符号：`src/roles/new_engine/mathematician.ability.ts::calculate` 读
+      //   `snapshot.abnormalAbilityCount`，而**全仓没有任何写入点**（`grep` 只命中读取处）
+      //   ⇒ 实际游戏中数学家恒报 0。这不是"元数据口径差"，是「字段有读无写」。
+      //
+      // 修复方向：在夜/昼结算处统计「因醉酒/中毒（或涡流）而未按真值生效的能力次数」，
+      //   写入 `abnormalAbilityCount`；涡流世界的折算口径见官方 数学家#2。
+      ensureAbilityRegistry();
+      const seats = [
+        seat(0, "mathematician"),
+        seat(1, "oracle", { isPoisoned: true }),
+        seat(2, "imp"),
+        seat(3, "poisoner", { isDead: true }),
+        seat(4, "scarlet_woman", { isDead: true }),
+        seat(5, "chef", { isDead: true }),
+      ];
+      const res = await runAbility(
+        getAbilityForRole("mathematician") as any,
+        ctx(seats, 0, "mathematician", { night: 2, phase: "night" })
+      );
+      const info = (res.meta as any)?.abilityResult;
+      expect(info?.abnormalCount, "官方：一名能力未正常生效").toBe(1);
+    }
+  );
 });
