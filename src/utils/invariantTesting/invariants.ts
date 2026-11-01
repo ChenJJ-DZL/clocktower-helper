@@ -42,13 +42,7 @@ export const I1DeathMarkersConsistent: InvariantCheck = (result) => {
   const errs: string[] = [];
   for (const seat of (result.finalSnapshot.seats as any[]) ?? []) {
     const id = seat.id;
-    const {
-      isDead,
-      markedForDeath,
-      diedAtNight,
-      killedBy,
-      deathSource,
-    } = seat;
+    const { isDead, markedForDeath, diedAtNight, killedBy, deathSource } = seat;
     // 死亡标记已统一为 isDead（2026-09-14）：
     //   `isAlive` 与 `isDead` 的一致性检查随之作废，无需再断言两者同步。
     if (markedForDeath === true && isDead !== true) {
@@ -116,7 +110,13 @@ export const I3DeadPlayerAbilityBlocked: InvariantCheck = async (
   const finalSeats = (result.finalSnapshot.seats as any[]) ?? [];
 
   for (const seat of finalSeats) {
-    if (!seat.isDead || seat.role?.id === "spy") continue;
+    if (
+      !seat.isDead ||
+      seat.role?.id === "spy" ||
+      seat.hasAbilityEvenDead ||
+      (seat.role?.id === "zombuul" && !(seat as any).zombuulTrulyDead)
+    )
+      continue;
 
     // 找到该角色的夜间能力
     const ability = Object.values(abilityMap).find(
@@ -702,9 +702,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         }
         ok = cur.some((s) => {
           const p = prev.find((x) => x.id === s.id);
-          return (
-            p?.isDead === true && s.isDead === false
-          );
+          return p?.isDead === true && s.isDead === false;
         });
         break;
       }

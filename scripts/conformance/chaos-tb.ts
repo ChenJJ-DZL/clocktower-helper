@@ -427,7 +427,13 @@ async function runSingleChaosGame(
   const aliveCount = seats.filter(isSeatAlive).length;
 
   if (gameOver) {
-    if (finalWinner === "Good" && aliveDemons.length > 0) {
+    if (
+      finalWinner === "Good" &&
+      aliveDemons.length > 0 &&
+      finalReason !== "MAYOR_PEACEFUL_WIN" &&
+      finalReason !== "MAYOR_CONVERTED_PEACEFUL_WIN" &&
+      !finalReason.includes("ATHEIST")
+    ) {
       reportViolation("terminal", day, "I-CH8_GOOD_WIN_DEMON_ALIVE", `善良获胜但场上仍有存活恶魔（${aliveDemons.map((d) => d.id + 1).join("号,")}号）`);
     }
     if (finalWinner === "Evil" && finalReason === "TWO_ALIVE" && aliveCount > 2) {
