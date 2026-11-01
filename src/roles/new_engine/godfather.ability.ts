@@ -198,10 +198,7 @@ export const godfatherAbility = createRoleAbility({
   effectSemantics: "kill",
   abilityId: "godfather_kill",
   abilityName: "替身击杀",
-  triggerTiming: [
-    AbilityTriggerTiming.FIRST_NIGHT,
-    AbilityTriggerTiming.EVERY_NIGHT,
-  ],
+  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
   firstNightPriority: 35,
   otherNightPriority: 69,
   firstNightOnly: false,

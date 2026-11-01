@@ -98,10 +98,7 @@ export const psychopathAbility = createRoleAbility({
   roleId: "psychopath",
   abilityId: "psychopath_day_kill",
   abilityName: "公开处刑",
-  triggerTiming: [
-    AbilityTriggerTiming.DAY,
-    AbilityTriggerTiming.ON_EXECUTION,
-  ],
+  triggerTiming: [AbilityTriggerTiming.DAY],
   firstNightPriority: null,
   otherNightPriority: null,
   firstNightOnly: false,

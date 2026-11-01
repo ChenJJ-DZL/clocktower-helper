@@ -38,6 +38,40 @@ export function pickFakeAbnormalCount(
   return possible[Math.floor(rng() * possible.length)] ?? 0;
 }
 
+function computeAbnormalCount(snapshot: any): number {
+  if (
+    snapshot.abnormalAbilityCount !== undefined &&
+    snapshot.abnormalAbilityCount !== null
+  ) {
+    return snapshot.abnormalAbilityCount;
+  }
+  const abilityResults = snapshot._abilityResults ?? {};
+  const corruptedKeys = new Set<string>();
+  for (const [key, res] of Object.entries(abilityResults) as [string, any][]) {
+    if (
+      res?.isCorrupted ||
+      res?.blockedByDrunkOrPoison ||
+      res?.suppressedByImpairment
+    ) {
+      corruptedKeys.add(key);
+    }
+  }
+  if (corruptedKeys.size > 0) return corruptedKeys.size;
+
+  const seats = (snapshot.seats ?? []) as any[];
+  const disabledActing = seats.filter((s: any) => {
+    if (s.role?.id === "mathematician" || s.isDead) return false;
+    return (
+      s.isPoisoned === true ||
+      s.isDrunk === true ||
+      (s.statusEffects ?? []).some(
+        (e: any) => e.type === "drunk" || e.type === "poisoned"
+      )
+    );
+  });
+  return disabledActing.length;
+}
+
 // 计算结果：从snapshot中获取异常次数
 const calculateResult = async (
   context: MiddlewareContext
@@ -45,8 +79,8 @@ const calculateResult = async (
   const { snapshot, meta } = context;
   const isAbilityActive = meta.abilityEffective ?? true;
 
-  // 从外部获取异常计数（storyteller 或 GameController 提供）
-  const abnormalCount = snapshot.abnormalAbilityCount ?? 0;
+  // 从外部获取异常计数，若未传入则根据场上实际异常能力或醉酒/中毒角色自动推导
+  const abnormalCount = computeAbnormalCount(snapshot);
 
   // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须一致
   const rng = createDeterministicRandom(

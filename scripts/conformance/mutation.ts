@@ -195,8 +195,8 @@ export const MUTATIONS: MutationSpec[] = [
   {
     id: "gl2-two-alive-threshold-minus-one",
     targetFile: "app/gameLogic.ts",
-    find: `    if (aliveNonTravelerCount <= 2) {`,
-    replace: `    if (aliveNonTravelerCount < 2) {`,
+    find: `    if (aliveNonTravelerCount + zombuulActive.length <= 2) {`,
+    replace: `    if (aliveNonTravelerCount + zombuulActive.length < 2) {`,
     tests: [
       "src/roles/__tests__/game_end_official_contract.test.ts",
       "src/utils/__tests__/winReasonMatrix.test.ts",

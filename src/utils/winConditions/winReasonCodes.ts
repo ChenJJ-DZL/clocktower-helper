@@ -196,8 +196,8 @@ export const WIN_REASON_META = {
     requiredEvidence: ["executedSeatId", "fearmongerTargetId"],
   },
   ATHEIST_STORYTELLER_EXECUTED: {
-    side: "Evil",
-    rule: "无神论者：说书人被处决且无神论者不在场。",
+    side: "Good",
+    rule: "无神论者：说书人被处决，善良阵营获胜。",
     requiredEvidence: ["trigger"],
   },
   GRANDMOTHER_GRANDCHILD_EXECUTED: {

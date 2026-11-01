@@ -57,7 +57,9 @@ const calculateKillTargets = async (
    *        （`useExecutionHandlers.ts` 已注明：进入夜晚仍有效，新白天才清空）；
    *      · `dayDeathsToday / anyoneDiedToday` 保留（供显式传入的调用方使用）。
    */
-  const dayDeaths = (snapshot as any).dayDeathsToday ?? ((snapshot as any).anyoneDiedToday ? 1 : 0);
+  const dayDeaths =
+    (snapshot as any).dayDeathsToday ??
+    ((snapshot as any).anyoneDiedToday ? 1 : 0);
   const lastDuskExecution = (snapshot as any).lastDuskExecution ?? null;
   const executedToday = (snapshot as any).todayExecutedId ?? null;
   if (lastDuskExecution !== null || executedToday !== null || dayDeaths > 0) {
@@ -158,7 +160,7 @@ const updateKillState = async (
       aliveCount,
       undefined,
       storytellerInput?.mayorSubstituteId,
-        `mayorKill|${(snapshot as any)?.nightCount ?? 0}|zombuul`
+      `mayorKill|${(snapshot as any)?.nightCount ?? 0}|zombuul`
     );
     if (mayorRes.isMayor) {
       console.log(`[Zombuul] ${mayorRes.logMessage}`);

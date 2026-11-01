@@ -81,10 +81,7 @@ export const boomdandyAbility = createRoleAbility({
   roleId: "boomdandy",
   abilityId: "boomdandy_explode",
   abilityName: "同归于尽",
-  triggerTiming: [
-    AbilityTriggerTiming.PASSIVE,
-    AbilityTriggerTiming.ON_EXECUTION,
-  ],
+  triggerTiming: [AbilityTriggerTiming.PASSIVE],
   firstNightPriority: null,
   otherNightPriority: null,
   firstNightOnly: false,

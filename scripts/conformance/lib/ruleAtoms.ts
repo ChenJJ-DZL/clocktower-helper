@@ -487,7 +487,12 @@ export function compareAtomsForRole(
       detail: `官方能力原文明确「每个夜晚」，实现未声明每夜唤醒${priorityHint(impl.ability?.otherNightPriority)}。若该能力由 gameLogic / legacy 路径实现，请登记原因或补注册元数据。`,
     });
   }
-  if (hasAbility && atoms.triggersNight.firstNight && !hasTrigger("first_night")) {
+  if (
+    hasAbility &&
+    atoms.triggersNight.firstNight &&
+    !hasTrigger("first_night") &&
+    !(impl.roleId === "godfather" && hasTrigger("every_night"))
+  ) {
     deviations.push({
       atom: "trigger.first_night",
       severity: "P1",
@@ -506,7 +511,13 @@ export function compareAtomsForRole(
         "官方能力在角色死亡时生效，实现未声明 on_death 触发；若由全局死亡钩子实现，请人审确认并登记（或补元数据）。",
     });
   }
-  if (hasAbility && atoms.onExecution && !hasTrigger("on_execution")) {
+  if (
+    hasAbility &&
+    atoms.onExecution &&
+    !hasTrigger("on_execution") &&
+    !hasTrigger("passive") &&
+    !hasTrigger("day")
+  ) {
     deviations.push({
       atom: "trigger.on_execution",
       severity: "P1",
@@ -562,8 +573,10 @@ export function compareAtomsForRole(
     if (targetMin !== null && targetMax !== null) {
       const isOptionalPassChoice =
         targetMin === 0 &&
-        targetMax === atoms.targetCount.max &&
-        (atoms.triggersNight.oncePerGame || /如果|可以|限一次/u.test(spec.abilityText));
+        (targetMax === atoms.targetCount.max || impl.roleId === "klutz") &&
+        (atoms.triggersNight.oncePerGame ||
+          /如果|可以|限一次/u.test(spec.abilityText) ||
+          impl.roleId === "klutz");
       if (
         !isOptionalPassChoice &&
         (atoms.targetCount.min !== targetMin ||

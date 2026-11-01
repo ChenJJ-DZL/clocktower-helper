@@ -28,10 +28,30 @@ const calculate = async (
    *   （此处暂不改默认值：生产链路尚未透传 killerRoleId，贸然 fail-closed 会让
    *     真正的恶魔击杀也静默失声 —— 两害相权，先登记偏差、等链路补齐再改。）
    */
+  const selfSeat = ctx.snapshot.seats?.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
+  const isDemonKillSource =
+    selfSeat?.deathSource === undefined ||
+    selfSeat?.deathSource === null ||
+    selfSeat?.deathSource === "demon_kill" ||
+    selfSeat?.deathSource === "imp_kill" ||
+    selfSeat?.deathSource === "fang_gu_kill" ||
+    selfSeat?.deathSource === "no_dashii_kill" ||
+    selfSeat?.deathSource === "vigormortis_kill" ||
+    selfSeat?.deathSource === "vortox_kill" ||
+    selfSeat?.deathSource === "shabaloth_kill" ||
+    selfSeat?.deathSource === "po_kill" ||
+    selfSeat?.deathSource === "pukka_kill" ||
+    selfSeat?.deathSource === "zombuul_kill" ||
+    selfSeat?.killedBy === "demon";
+  const explicitNonDemonDeath =
+    selfSeat?.deathSource != null && !isDemonKillSource;
+
   const killedByDemon =
     ctx.storytellerInput?.killedByDemon ??
     ctx.meta.killedByDemon ??
-    true;
+    !explicitNonDemonDeath;
 
   let targetIds: number[] = [];
 
@@ -58,14 +78,23 @@ const calculate = async (
      * 官方要求的组合是「一名死亡玩家 + 一名存活善良玩家」，按此顺序取；
      * 残局凑不齐时依次回落到存活善良、其余非恶魔，**不去重后只剩 1 个**（旧写法会）。
      */
-    const ordered = [deadGood[0], aliveGood[0], ...deadGood.slice(1), ...aliveGood.slice(1)]
+    const ordered = [
+      deadGood[0],
+      aliveGood[0],
+      ...deadGood.slice(1),
+      ...aliveGood.slice(1),
+    ]
       .map((s: any) => s?.id)
       .filter((id: number | undefined): id is number => id !== undefined);
     targetIds = [...new Set(ordered)].slice(0, 2);
   } else {
     // 官方规则：指出两名玩家，其中一名是恶魔
-    const demons = ctx.snapshot.seats.filter((s: any) => s.role?.type === "demon");
-    const others = ctx.snapshot.seats.filter((s: any) => s.role?.type !== "demon");
+    const demons = ctx.snapshot.seats.filter(
+      (s: any) => s.role?.type === "demon"
+    );
+    const others = ctx.snapshot.seats.filter(
+      (s: any) => s.role?.type !== "demon"
+    );
     const chosenDemon = demons[0]?.id;
     const chosenOther = others[0]?.id;
     if (chosenDemon !== undefined && chosenOther !== undefined) {

@@ -172,13 +172,17 @@ function getOutsiderCandidates(
 
     if (realRole.type === "outsider") {
       // 官方【图书管理员#1】：「说书人决定将陌客当作一名爪牙而不是外来者。现在场上没有其他外来者了。图书管理员得知了“0”。」
-      // 若陌客被登记为爪牙或恶魔或镇民（即显式 registerAsMinion / registerAsDemon / registerAsTownsfolk），
+      // 若陌客被登记为爪牙或恶魔或镇民（即显式 registerAsMinion / registerAsDemon / registerAsTownsfolk，
+      // 或登记为邪恶且非恶魔 registerAsEvil: true, registerAsDemon: false），
       // 则说书人已将陌客当作非外来者看待 ⇒ 不得作为外来者候选进入图书管理员候选集！
+      const isRecluseMinion =
+        (seat as any).registerAsMinion === true ||
+        ((seat as any).registerAsEvil === true && (seat as any).registerAsDemon === false);
+      const isRecluseDemon = (seat as any).registerAsDemon === true;
+      const isRecluseTownsfolk = (seat as any).registerAsTownsfolk === true;
       if (
         realRole.id === "recluse" &&
-        ((seat as any).registerAsMinion === true ||
-          (seat as any).registerAsDemon === true ||
-          (seat as any).registerAsTownsfolk === true)
+        (isRecluseMinion || isRecluseDemon || isRecluseTownsfolk)
       ) {
         continue;
       }

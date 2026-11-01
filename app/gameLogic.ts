@@ -672,6 +672,19 @@ function checkGameEndCore(
 
   // 1.1 恶魔全灭 -> 好人获胜 (除非受阻)
   if (totalEffectiveDemons === 0) {
+    // 官方【无神论者】：无邪恶角色在场，恶魔数量为0是预设状态；处决说书人时善良才获胜
+    if (atheistPresent) {
+      if (storytellerExecuted) {
+        return makeWinResult(
+          "ATHEIST_STORYTELLER_EXECUTED",
+          "无神论者：说书人被处决，善良阵营获胜",
+          { trigger: "storytellerExecuted_withAtheist" }
+        );
+      }
+      // 无神论者在场且未处决说书人，零恶魔属于常态，游戏继续
+      return { isGameOver: false, winner: null, reason: "无神论者在场，零恶魔正常进行" };
+    }
+
     if (hasLegionInPlay) {
       return makeWinResult("LEGION_ALL_DEAD", "所有军团已被彻底消灭", {
         livingDemonCount: 0,
@@ -960,7 +973,10 @@ function checkGameEndCore(
     //    「恶魔全灭」只可能是**被存活的邪恶双子阻挡**——此时善良无法获胜
     //    （官方："Good can't win if you both live."），而人数已到阈值，
     //    邪恶获胜（官方 Evil Twin Tips 印证 3 人 → 2 人的必然收敛）。
-    if (aliveNonTravelerCount <= 2) {
+    // 官方【僵怖#0】：「如果场上只剩下两名存活的玩家，且其中一名已死亡的玩家是假死的僵怖，游戏不会结束。
+    // 只有当场上只剩下一名存活玩家时，邪恶阵营才会获胜。」
+    // 假死的僵怖本质上仍占据一个隐性存活名额，实际存活人数 = aliveNonTravelerCount + zombuulActive.length
+    if (aliveNonTravelerCount + zombuulActive.length <= 2) {
       return makeWinResult("TWO_ALIVE", "存活人数仅剩 2 人", {
         aliveNonTravelerCount,
         livingDemonCount: totalEffectiveDemons,
@@ -1090,11 +1106,11 @@ function checkGameEndCore(
   }
 
   // 5.4 无神论者 (Atheist) 胜利条件
-  if (!atheistPresent && storytellerExecuted) {
+  if (atheistPresent && storytellerExecuted) {
     return makeWinResult(
       "ATHEIST_STORYTELLER_EXECUTED",
-      "无神论者：说书人被处决且无神论者不在场",
-      { trigger: "storytellerExecuted_withoutAtheist" }
+      "无神论者：说书人被处决，善良阵营获胜",
+      { trigger: "storytellerExecuted_withAtheist" }
     );
   }
 

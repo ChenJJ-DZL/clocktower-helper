@@ -578,16 +578,16 @@ const CASES: Record<WinReasonCode, CodeCase> = {
       ),
   },
   ATHEIST_STORYTELLER_EXECUTED: {
-    label: "无神论者：说书人被处决且无神论者不在场",
+    label: "无神论者：说书人被处决，善良阵营获胜",
     positive: () =>
       checkGameEnd(baseBoard(), "check_phase", null, {
         storytellerExecuted: true,
-        atheistPresent: false,
+        atheistPresent: true,
       }),
     negative: () =>
       checkGameEnd(baseBoard(), "check_phase", null, {
-        storytellerExecuted: true,
-        atheistPresent: true, // 无神论者在场 ⇒ 条件不成立
+        storytellerExecuted: false,
+        atheistPresent: true,
       }),
   },
   GRANDMOTHER_GRANDCHILD_EXECUTED: {

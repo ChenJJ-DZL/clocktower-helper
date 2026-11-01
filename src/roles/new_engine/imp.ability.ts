@@ -499,23 +499,37 @@ const stateUpdateResult = async (
         console.log(`[Imp] ${mayorRes.logMessage}`);
         record.mayorResolution = mayorRes;
         if (mayorRes.substituted && mayorRes.substituteSeat) {
-          // 95% 替代死亡：替代镇民死亡，镇长存活
-          const subIdx = updatedSeats.findIndex(
-            (s: any) => s.id === mayorRes.substituteSeat.id
-          );
-          if (subIdx !== -1) {
-            updatedSeats[subIdx] = {
-              ...updatedSeats[subIdx],
-              markedForDeath: true,
-              diedAtNight: snapshot.nightCount,
-              deathSource: "mayor_substitute",
-              deathSourceSeatId: actionNode.seatId,
-            };
+          // 官方【士兵#2】：说书人指定士兵代替镇长死亡，但士兵无法被恶魔杀死 ⇒ 当晚无人死亡（镇长也不死）
+          const subSeat = mayorRes.substituteSeat;
+          const subProtected = isSeatProtected(subSeat);
+          const subImmune = isImmuneToDemonKill(subSeat, true, aliveCount);
+
+          if (subProtected || subImmune) {
+            record.log = record.log || {};
+            (record.log as any).blockedBySubstituteImmune = true;
+            record.killed = false;
+            record.mayorSubstituted = false;
+            console.log(
+              `[Imp] 镇长替死目标 ${subSeat.playerName ?? subSeat.id + 1}号 免疫或受保护，当晚无人死亡`
+            );
+          } else {
+            const subIdx = updatedSeats.findIndex(
+              (s: any) => s.id === subSeat.id
+            );
+            if (subIdx !== -1) {
+              updatedSeats[subIdx] = {
+                ...updatedSeats[subIdx],
+                markedForDeath: true,
+                diedAtNight: snapshot.nightCount,
+                deathSource: "mayor_substitute",
+                deathSourceSeatId: actionNode.seatId,
+              };
+            }
+            record.killed = true;
+            record.mayorSubstituted = true;
+            record.substituteId = subSeat.id;
+            record.actualKilledId = subSeat.id;
           }
-          record.killed = true;
-          record.mayorSubstituted = true;
-          record.substituteId = mayorRes.substituteSeat.id;
-          record.actualKilledId = mayorRes.substituteSeat.id;
         } else {
           // 5% 自己死亡 或 无可用镇民替死：镇长自己死亡
           updatedSeats[targetIdx] = {

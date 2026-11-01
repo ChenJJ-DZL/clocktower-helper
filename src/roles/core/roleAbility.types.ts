@@ -51,8 +51,6 @@ export enum AbilityTriggerTiming {
   DAY = "day",
   /** 死亡时触发 */
   ON_DEATH = "on_death",
-  /** 处决时触发 */
-  ON_EXECUTION = "on_execution",
   /** 被动触发 */
   PASSIVE = "passive",
 }

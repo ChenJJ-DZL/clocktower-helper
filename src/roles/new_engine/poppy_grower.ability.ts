@@ -82,8 +82,18 @@ const calculateResult = async (
         (s.statusDetails ?? []).includes("成为新农夫")
     );
 
+  // 官方【罂粟种植者#2】：若罂粟种植者醉酒或中毒，能力失效，不阻断邪恶互认
+  const isPoppyDisabled =
+    poppySeat?.isDrunk === true ||
+    poppySeat?.isPoisoned === true ||
+    (poppySeat?.statusEffects ?? []).some(
+      (e: any) => e.type === "drunk" || e.type === "poisoned"
+    ) ||
+    ctx.meta.abilityEffective === false;
+
   const poppyGrowerAlive = poppySeat?.isDead !== true && !turnedFarmer; // 活着才算 active
-  const poppyGrowerActive = (!!poppySeat || turnedFarmer) && poppyGrowerAlive;
+  const poppyGrowerActive =
+    (!!poppySeat || turnedFarmer) && poppyGrowerAlive && !isPoppyDisabled;
 
   return {
     ...ctx,
