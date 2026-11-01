@@ -19,6 +19,7 @@ import {
   loadOfficialExamples,
   officialSpecPath,
 } from "./lib/examples";
+import { roles, scripts } from "../../app/data";
 
 const ROOT = process.cwd();
 const OUT_DIR = path.join(ROOT, "outputs", "rule_conformance");
@@ -60,6 +61,25 @@ function buildLedger() {
     encoded: coverage.encoded,
     percent: Number(coverage.percent.toFixed(4)),
     byScript: coverage.byScript,
+    byProjectScript: scripts.map((s) => {
+      let scriptTotal = 0;
+      let scriptEncoded = 0;
+      for (const roleId of s.roleIds) {
+        const r = roles.find((x) => x.id === roleId);
+        if (!r) continue;
+        const roleCov = byRole[r.name];
+        if (!roleCov) continue;
+        scriptTotal += roleCov.total;
+        scriptEncoded += roleCov.encoded;
+      }
+      return {
+        script: s.name,
+        scriptId: s.id,
+        total: scriptTotal,
+        encoded: scriptEncoded,
+        percent: scriptTotal > 0 ? scriptEncoded / scriptTotal : 0,
+      };
+    }),
     byRole,
     encodedByRole,
     missingByRole: coverage.missingByRole,
@@ -87,7 +107,14 @@ function main(): void {
     );
   }
 
-  console.log("   按剧本：");
+  console.log("   按项目内置9大实机剧本：");
+  for (const row of ledger.byProjectScript) {
+    console.log(
+      `     · ${row.script}: ${row.encoded}/${row.total}（${percentText(row.percent)}）`
+    );
+  }
+
+  console.log("   按官方Wiki互斥展开：");
   for (const row of ledger.byScript) {
     const percent = row.total > 0 ? row.encoded / row.total : 0;
     console.log(
