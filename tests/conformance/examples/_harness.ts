@@ -13,7 +13,7 @@ import { checkGameEnd } from "../../../app/gameLogic";
 import { roles } from "../../../app/data";
 import { initializeAbilityRegistry } from "../../../src/roles/new_engine/abilityRegistry";
 import type { MiddlewareContext } from "../../../src/utils/middlewareTypes";
-import { runFullAbilityPipeline } from "../../../src/utils/middlewarePipeline";
+import { runAbilityPipeline } from "../../../src/utils/middlewarePipeline";
 
 let registryReady = false;
 
@@ -127,13 +127,24 @@ export function pipe(ability: any): any {
   };
 }
 
-/** 走真实能力管道执行一次角色能力 */
+/**
+ * 走真实能力管道执行一次角色能力
+ *
+ * 🔴 2026-11-01：必须用 **`runAbilityPipeline`（生产同一入口）**，不能用
+ *   `runFullAbilityPipeline(pipe(ability))`。后者会绕过 `buildAbilityPipe` 追加的三层
+ *   postProcess：
+ *     · `createFoolImmunityConsumer` —— 弄臣免死的**唯一消费点**
+ *     · `createGoonBroadcast`        —— 莽夫「首个选中者醉酒 + 转阵营」
+ *     · `createScriptRuleNightKillSuppressor` —— 剧本级「恶魔夜晚不攻击」
+ *   ⇒ 旧写法下「弄臣被攻击后 foolUsed 是否被消耗」「莽夫有没有转阵营」永远测不到，
+ *     夹具会给出**与线上相反**的结论（当年探针误判"涡流连打两次弄臣"就是这个坑）。
+ */
 export async function runAbility(
   ability: any,
   context: MiddlewareContext
 ): Promise<MiddlewareContext> {
   ensureAbilityRegistry();
-  return runFullAbilityPipeline(pipe(ability), context);
+  return runAbilityPipeline(ability as any, context);
 }
 
 /** 生产判胜入口（薄封装，便于夹具统一） */

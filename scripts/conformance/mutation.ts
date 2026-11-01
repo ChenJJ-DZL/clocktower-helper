@@ -207,7 +207,7 @@ export const MUTATIONS: MutationSpec[] = [
   {
     id: "gl3-saint-branch-negated",
     targetFile: "app/gameLogic.ts",
-    find: `      if (executedSeat.role?.id === "saint") {`,
+    find: `      if (executedSeat.role?.id === "saint" && executedSeat.isDead === true) {`,
     replace: `      if (executedSeat.role?.id !== "saint") {`,
     tests: ["src/roles/__tests__/saint.test.ts"],
     description:

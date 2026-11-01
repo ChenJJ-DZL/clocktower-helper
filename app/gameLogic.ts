@@ -740,7 +740,16 @@ function checkGameEndCore(
     // 1.2.1 圣徒 / 地精：**其自身能力**被处决时触发；中毒/醉酒会令能力失效
     //       （这是官方 droison 语义，与下面的双子全局判据不同源）。
     if (executedSeat && !executedSeat.isPoisoned && !executedSeat.isDrunk) {
-      if (executedSeat.role?.id === "saint") {
+      /**
+       * 🔴 2026-11-01：**必须真的死在这场处决里**。
+       *   官方【圣徒#2】逐字：「圣徒被处决。然而，替罪羊的能力被触发，因此替罪羊代替
+       *   圣徒被处决。**游戏继续，因为圣徒没有死亡。**」
+       *   旧实现只看 `executedId` 指向谁，不看该座位是否真的死亡
+       *   ⇒ 被替罪羊代刑 / 被和平主义者救下 / 被旅店老板保护时，圣徒明明活着却判善良落败。
+       *   ⚠️ 正常路径安全：`checkGameEnd` 的唯一生产调用点传的是**已落库死亡**的 `nextSeats`
+       *      （`app/gameLogic.ts` 的 `result = checkGameEnd(nextSeats, …)`）。
+       */
+      if (executedSeat.role?.id === "saint" && executedSeat.isDead === true) {
         // 官方：圣徒「如果你的阵营落败」——winner 由圣徒**当前阵营**派生。
         // 被转化的邪恶圣徒被处决 ⇒ 善良获胜（历史实现写死 Evil，是 P1-4 规则缺陷）。
         const saintIsEvil = isPlayerEvil(executedSeat);

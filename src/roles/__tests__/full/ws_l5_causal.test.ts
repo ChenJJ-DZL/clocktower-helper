@@ -649,7 +649,10 @@ describe("L5 · 窃窃私语 + 无名之墓 · 32 角色因果链", () => {
     ];
 
     it("⭐⭐ 圣徒死于处决 → 终局 + 邪恶获胜", () => {
-      const res = checkGameEnd(live() as any, "execution", 0);
+      // 判据要求「真的死于这场处决」⇒ 夹具补 isDead（官方 圣徒#2：没死就不算）
+      const seats = live();
+      seats[0] = { ...seats[0], isDead: true };
+      const res = checkGameEnd(seats as any, "execution", 0);
       expect(res.isGameOver, "❌ 圣徒被处决未结束游戏").toBe(true);
       expect(res.winner).toBe("Evil");
       expect(String(res.reason)).toContain("圣徒");

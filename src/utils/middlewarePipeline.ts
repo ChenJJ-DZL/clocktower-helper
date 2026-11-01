@@ -5,6 +5,7 @@
 
 import type { IRoleAbility } from "../roles/core/roleAbility.types";
 import { abilityPriorityCalculation } from "./abilityPriorityMiddleware";
+import { isProtectedByTeaLady } from "./bmrMechanics";
 import { applyRulesByPhase, collectGlobalRules } from "./globalRuleEngine";
 import { getScriptSpecialRules } from "./scriptSpecialRules";
 import { getRevolutionaryDisguise } from "./revolutionaryDisguise";
@@ -305,7 +306,15 @@ export function createFoolImmunityConsumer(
       if (seat.isDead === true || seat.markedForDeath === true) continue;
       const hasOtherProtection =
         seat.isProtected === true ||
-        (seat.statusEffects ?? []).some((e: any) => e.type === "protected");
+        (seat.statusEffects ?? []).some((e: any) => e.type === "protected") ||
+        /**
+         * 🔴 2026-11-01：**茶艺师的保护不是状态效果，而是邻座推导出来的**
+         *   ⇒ 只看 `statusEffects` 会漏判，把「已被茶艺师挡下」误当成「弄臣自己挨了这一下」
+         *   而消耗掉他唯一一次免死。
+         *   官方【弄臣#2】逐字：「恶魔攻击了弄臣，但他被茶艺师保护。弄臣依然存活，
+         *   **且保留着自己的能力**。」
+         */
+        isProtectedByTeaLady(seat.id, seats as any);
       if (hasOtherProtection) continue;
 
       seats[idx] = {

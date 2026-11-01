@@ -1,5 +1,61 @@
 # 更新日志
 
+## W10.32.0 — 阵营保持 / 保护优先级 / 处决判据三类真缺陷 + 范例 128→144（2026-11-01）
+
+### 一、修 6 个产品缺陷（全部由官方范例直接指认，不是"感觉不对"）
+
+| # | 缺陷 | 官方原文 | 判据符号 |
+| :-- | :--- | :--- | :--- |
+| 1 | 麻脸巫婆造出的角色**阵营跟着角色类型变** | 麻脸巫婆#2「变成**善良的**诺-达鲺」 | `pit_hag.ability.ts::stateUpdate` |
+| 2 | 同上：造出的角色 `name` 写成 roleId（"no_dashii"） | — | 同上 |
+| 3 | 同上：非恶魔新角色**沿用旧 type**（镇民变成女巫后仍算镇民） | 女裁缝#2「女巫仍然是善良的」 | 同上 |
+| 4 | 理发师交换角色后**阵营同样被带着走** | 理发师#3「曾经的亡骨魔现在是**邪恶的**心上人」 | `snvMechanics::executeBarberSwap` |
+| 5 | 醉酒贤者的错误信息**会指向自己** | 贤者#1「一名死亡玩家 + 一名存活善良玩家」 | `sage.ability.ts::calculate` |
+| 6 | 醉酒的祖母**照样陪孙子死** | 祖母#2「祖母…处于醉酒状态，因此依然存活」 | `grandmotherChain::resolveGrandmotherChainDeaths` |
+| 7 | 弄臣被**茶艺师**保护时仍消耗唯一一次免死 | 弄臣#2「被茶艺师保护…保留着自己的能力」 | `middlewarePipeline::createFoolImmunityConsumer` |
+| 8 | 圣徒**没死**也判善良落败 | 圣徒#2「替罪羊代替圣徒被处决…因为圣徒没有死亡」 | `app/gameLogic.ts` 圣徒分支 |
+
+- ①③④ 同一根因：`isSeatEvil` 的权威口径是「角色类型 + 转换标记」，**只换 role 对象必然改阵营**
+  ⇒ 新增 `utils/roleChangeAlignment.ts::applyRoleKeepingAlignment` 收口（麻脸巫婆 / 理发师共用）。
+- ④ 另有一层：`snvMechanics::executeBarberSwap` **零调用点**，理发师自己内联了一份交换
+  ⇒ 修了工具库也不生效（「两个实现 + 死代码」）。改为调用该函数。
+- ⑦ 保护来源不止 `statusEffects`：茶艺师的保护由**邻座推导**，只查状态效果会漏判。
+- ⑧ 判据改为「真的死在这场处决里」；生产唯一调用点传的是已落库死亡的 `nextSeats`，故正常路径无影响。
+  两条既有夹具（`saint.test.ts` / `ws_l5_causal.test.ts`）原本用**存活**座位测处决诅咒，已同步补 `isDead`。
+
+### 二、修夹具保真度：harness 绕过了生产三层 postProcess
+
+- `tests/conformance/examples/_harness.ts::runAbility` 原用 `runFullAbilityPipeline(pipe(ability))`，
+  绕过了 `buildAbilityPipe` 追加的 `createFoolImmunityConsumer` / `createGoonBroadcast` /
+  `createScriptRuleNightKillSuppressor` ⇒ 弄臣免死、莽夫转阵营、剧本规则**永远测不到**，
+  夹具会给出与线上相反的结论。改为走生产同一入口 `runAbilityPipeline`。
+- 切换后 134 条既有夹具全绿（说明它们本就不敏感），只有本批新写的 5 条按预期失败。
+
+### 三、官方范例 128 → 144/438（32.88%）
+
+- `bmr_batch2.test.ts`（11 条）：茶艺师邻座保护（含"一侧邪恶即失效"反向对照）、
+  赌徒猜对不死但仍可被恶魔杀、疯子选择不产生真实击杀、弄臣三级保护优先级、
+  珀「上次没选人 ⇒ 下次必须三杀」的隔夜记账、普卡中毒者次日死亡、
+  祖母三种连锁条件（恶魔杀 / 非恶魔杀 / 醉酒）、主谋#4 恶魔死且仅剩两人 ⇒ 善良胜。
+- `tb_batch2.test.ts`（8 条）：陌客被登记为恶魔时被猎手杀（含未登记的反向对照）、
+  陌客被登记为爪牙时调查员查到、间谍按镇民登记时进入洗衣妇候选、
+  洗衣妇候选可含恶魔（不变量断言）、红唇女郎继承恶魔后占卜师由「否」翻「是」、
+  圣徒被替罪羊代刑 ⇒ 游戏继续（含真被处决的反向对照）。
+- 分剧本：暗流涌动 60/87（69.0%）· 梦殒春宵 48/80 · 黯月初升 34/79。
+
+### 四、新增两条偏差登记（`it.fails`，修好自动转红）
+
+- **贤者#2**：死于麻脸巫婆仍报信息 —— `sage.ability.ts` 的 `killedByDemon` 默认 **true**
+  （同名字段在 `banshee.ability.ts` 是 fail-closed）。未直接改默认值：生产链路尚未透传
+  `killerRoleId`，贸然 fail-closed 会让**真恶魔击杀**也静默失声。
+- **数学家#0**：`snapshot.abnormalAbilityCount` **有读无写**（全仓零写入点）⇒ 实际游戏恒报 0。
+
+### 五、验证
+
+- `npx tsc --noEmit` 0 错
+- `npx vitest run` **427 文件 / 6110 通过 / 4 expected fail**（EXIT=0）
+- `npm run build` ✓；`conformance:audit` 静态 P0=0 / P1=0，棘轮 0 新增 0 下降
+
 ## W10.31.1 — 官方范例覆盖 51→73·修管家死亡投票·登记士兵替死偏差（2026-11-01）
 
 ### 一、官方范例夹具 +22 条（73/438 = 16.7%，暗流涌动 62.1%）

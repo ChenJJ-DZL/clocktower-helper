@@ -21,6 +21,7 @@
  */
 
 import type { Role, Seat } from "../../app/data";
+import { isSeatDisabled } from "./seatDisabled";
 
 /** 明确的「恶魔击杀」死因字面量（引擎里实际出现的几种写法） */
 const DEMON_KILL_SOURCES = new Set([
@@ -72,7 +73,17 @@ export function resolveGrandmotherChainDeaths(
     if (s.isDead) continue;
     if (s.role?.id !== "grandmother") continue;
     const gid = (s as { grandchildId?: number | null }).grandchildId;
-    if (gid === deadSeatId) out.push(s.id);
+    if (gid !== deadSeatId) continue;
+    /**
+     * 🔴 2026-11-01：**醉酒/中毒的祖母不会一同死亡**。
+     *   官方【祖母#2】逐字：「小美被恶魔杀死，但祖母因为水手的能力而处于醉酒状态，
+     *   因此祖母依然存活。」
+     *   旧实现只判「活着 + 角色是祖母 + 孙子匹配」⇒ 醉酒的祖母照样陪葬。
+     *   ⚠️ `bmrMechanics::checkGrandmotherDeath` 里本来有这层判定，但它**零生产调用点**
+     *   （生产走本函数）⇒ 两处实现分叉，规则只在死代码里是对的。
+     */
+    if (isSeatDisabled(s as Seat)) continue;
+    out.push(s.id);
   }
   return out;
 }

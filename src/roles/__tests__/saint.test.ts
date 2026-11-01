@@ -24,7 +24,11 @@ describe("圣徒 (Saint)", () => {
   ];
 
   it("⭐⭐ 圣徒被处决 → 游戏立即结束，**邪恶获胜**", () => {
-    const res = checkGameEnd(live() as any, "execution", 0);
+    // 判据要求「真的死于这场处决」⇒ 夹具必须把死亡落库（生产唯一调用点传 nextSeats）。
+    // 官方【圣徒#2】：被替罪羊代刑 ⇒ 圣徒没有死亡 ⇒ 游戏继续。
+    const seats = live();
+    seats[0] = { ...seats[0], isDead: true };
+    const res = checkGameEnd(seats as any, "execution", 0);
     expect(res.isGameOver).toBe(true);
     expect(res.winner).toBe("Evil");
     expect(res.reason).toContain("圣徒");
