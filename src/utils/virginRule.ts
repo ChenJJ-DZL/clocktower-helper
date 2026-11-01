@@ -76,9 +76,10 @@ export function resolveVirginTrigger(
   const isFirstTime = virginSeat.hasBeenNominated !== true;
   const nominatorRole = effectiveRole(nominatorSeat);
   const nominatorIsTownsfolk =
-    nominatorRole?.type === "townsfolk" &&
-    nominatorRole?.id !== "drunk" &&
-    !isSeatDisabled(nominatorSeat);
+    (nominatorRole?.type === "townsfolk" &&
+      nominatorRole?.id !== "drunk" &&
+      !isSeatDisabled(nominatorSeat)) ||
+    (nominatorRole?.id === "spy" && (nominatorSeat as any).registerAsTownsfolk !== false);
 
   /**
    * ⚠️ 即使贞洁者本人醉酒/中毒、或提名者不是镇民，也**要弹窗**：

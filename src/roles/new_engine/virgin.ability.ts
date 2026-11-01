@@ -143,7 +143,12 @@ function isEligibleNominator(
   const roleId = nominator.role?.id ?? "";
   const roleType = nominator.role?.type ?? "";
 
-  if (roleId === "spy") return true;
+  if (roleId === "spy") {
+    // 官方【间谍#2】：「间谍提名了贞洁者且被贞洁者的能力处决，因为说书人选择让间谍被当作一个镇民角色。」
+    // 若说书人显式登记 registerAsTownsfolk: false，则不被当作镇民看待，不触发处决
+    if ((nominator as any).registerAsTownsfolk === false) return false;
+    return true;
+  }
 
   // 陌客（recluse）：**永不**因贞洁者被处决。
   //
