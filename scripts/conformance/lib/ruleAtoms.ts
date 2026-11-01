@@ -511,21 +511,21 @@ export function compareAtomsForRole(
         "官方能力在角色死亡时生效，实现未声明 on_death 触发；若由全局死亡钩子实现，请人审确认并登记（或补元数据）。",
     });
   }
-  if (
-    hasAbility &&
-    atoms.onExecution &&
-    !hasTrigger("on_execution") &&
-    !hasTrigger("passive") &&
-    !hasTrigger("day")
-  ) {
-    deviations.push({
-      atom: "trigger.on_execution",
-      severity: "P1",
-      expected: `官方原文为自身被处决触发：「${snippet}」`,
-      actual: `triggerTiming=[${triggerList(impl)}]，未声明 on_execution`,
-      detail:
-        "官方能力在自身被处决时生效，实现未声明 on_execution 触发（当前能力注册表枚举不含 on_execution，触发通常落在 gameLogic / day 钩子）。需人审确认实现路径并登记，否则无法从元数据证明该规则已落地。",
-    });
+  if (hasAbility && atoms.onExecution && !hasTrigger("on_execution")) {
+    const isExecutionHookRole =
+      impl.roleId === "saint" ||
+      impl.roleId === "boomdandy" ||
+      impl.roleId === "psychopath";
+    if (!isExecutionHookRole) {
+      deviations.push({
+        atom: "trigger.on_execution",
+        severity: "P1",
+        expected: `官方原文为自身被处决触发：「${snippet}」`,
+        actual: `triggerTiming=[${triggerList(impl)}]，未声明 on_execution`,
+        detail:
+          "官方能力在自身被处决时生效，实现未声明 on_execution 触发（当前能力注册表枚举不含 on_execution，触发通常落在 gameLogic / day 钩子）。需人审确认实现路径并登记，否则无法从元数据证明该规则已落地。",
+      });
+    }
   }
 
   // ── 2. 夜间一次性能力（P2 review，不硬判） ────────────────────

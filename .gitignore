@@ -65,6 +65,7 @@ screenshots/
 /outputs/rule_conformance/semantic_findings.json
 /outputs/rule_conformance/mutation_report.json
 /outputs/rule_conformance/fuzz_report.json
+/outputs/rule_conformance/chaos_tb_report.json
 /outputs/rule_conformance/e2e_assertions.json
 /outputs/_*.json
 

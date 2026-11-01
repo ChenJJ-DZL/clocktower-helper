@@ -54,15 +54,15 @@ export const I1DeathMarkersConsistent: InvariantCheck = (result) => {
     if (markedForDeath === true && isDead !== true) {
       errs.push(`I1: 座位${id + 1} markedForDeath=true 但 isDead=${isDead}`);
     }
-    if (diedAtNight !== undefined && isDead !== true) {
+    if (diedAtNight != null && isDead !== true) {
       errs.push(
         `I1: 座位${id + 1} diedAtNight=${diedAtNight} 但 isDead=${isDead}`
       );
     }
-    if (killedBy !== undefined && isDead !== true) {
+    if (killedBy != null && isDead !== true) {
       errs.push(`I1: 座位${id + 1} killedBy=${killedBy} 但 isDead=${isDead}`);
     }
-    if (deathSource !== undefined && isDead !== true) {
+    if (deathSource != null && isDead !== true) {
       errs.push(
         `I1: 座位${id + 1} deathSource=${deathSource} 但 isDead=${isDead}`
       );
@@ -633,7 +633,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         ok =
           newDeath ||
           deepDeath ||
-          snap.lastKill !== undefined ||
+          snap.lastKill?.killed === false ||
           snap.fangGuJump !== undefined ||
           snap.taowuSubstitute !== undefined ||
           exempt;

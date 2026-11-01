@@ -22,6 +22,7 @@
     "conformance:semantic": "tsx scripts/conformance/semantic-audit.ts",
     "conformance:examples": "tsx scripts/conformance/examples-ledger.ts",
     "conformance:fuzz": "tsx scripts/conformance/fuzz.ts",
+    "conformance:chaos": "tsx scripts/conformance/chaos-tb.ts",
     "conformance:e2e": "tsx scripts/conformance/e2e-assertions.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",

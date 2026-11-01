@@ -64,7 +64,7 @@ function buildLedger() {
     byProjectScript: scripts.map((s) => {
       let scriptTotal = 0;
       let scriptEncoded = 0;
-      for (const roleId of s.roleIds) {
+      for (const roleId of s.roleIds ?? []) {
         const r = roles.find((x) => x.id === roleId);
         if (!r) continue;
         const roleCov = byRole[r.name];

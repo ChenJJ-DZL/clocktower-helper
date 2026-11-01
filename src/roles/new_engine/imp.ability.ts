@@ -367,6 +367,19 @@ const stateUpdateResult = async (
 
   // 醉酒/中毒：不下杀手，但记录选择
   if (!abilityEffective) {
+    const newSnapshot = {
+      ...snapshot,
+      lastKill: {
+        demonId: actionNode.seatId,
+        targetId: null,
+        demonRole: "imp",
+        killed: false,
+      },
+      _abilityResults: {
+        ...((snapshot as any)._abilityResults ?? {}),
+        imp: record,
+      },
+    };
     return {
       ...context,
       actionNode: {
@@ -376,16 +389,11 @@ const stateUpdateResult = async (
           impResult: record,
         },
       },
-      snapshot: {
-        ...snapshot,
-        _abilityResults: {
-          ...((snapshot as any)._abilityResults ?? {}),
-          imp: record,
-        },
-      },
+      snapshot: newSnapshot,
       meta: {
         ...context.meta,
         impResult: record,
+        abilityResult: record,
       },
     };
   }
@@ -585,6 +593,12 @@ const stateUpdateResult = async (
   const newSnapshot = {
     ...snapshot,
     seats: updatedSeats,
+    lastKill: {
+      demonId: actionNode.seatId,
+      targetId: record.actualKilledId ?? targetId,
+      demonRole: "imp",
+      killed: record.killed ?? false,
+    },
     _abilityResults: {
       ...((snapshot as any)._abilityResults ?? {}),
       imp: record,
@@ -604,6 +618,7 @@ const stateUpdateResult = async (
     meta: {
       ...context.meta,
       impResult: record,
+      abilityResult: record,
     },
   };
 };
