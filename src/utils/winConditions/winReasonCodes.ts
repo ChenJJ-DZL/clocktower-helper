@@ -74,6 +74,8 @@ export type WinReasonCode =
   | "TWO_ALIVE"
   | "VORTOX_NO_EXECUTION"
   | "MASTERMIND_EXTRA_DAY_NO_EXECUTION"
+  | "MASTERMIND_EXECUTION_GOOD_WINS"
+  | "MASTERMIND_EXECUTION_EVIL_WINS"
   | "LEVIATHAN_EXECUTIONS"
   | "LEVIATHAN_DAY5"
   | "FEARMONGER_TARGET_EXECUTED"
@@ -167,6 +169,16 @@ export const WIN_REASON_META = {
     side: "Good",
     rule: "主谋额外一天：无人被处决 ⇒ 善良获胜（唯一事实源 utils/mastermindRule）。",
     requiredEvidence: ["trigger"],
+  },
+  MASTERMIND_EXECUTION_GOOD_WINS: {
+    side: "Good",
+    rule: "主谋额外一天：处决邪恶玩家 ⇒ 善良获胜。",
+    requiredEvidence: ["executedSeatId"],
+  },
+  MASTERMIND_EXECUTION_EVIL_WINS: {
+    side: "Evil",
+    rule: "主谋额外一天：处决善良玩家 ⇒ 邪恶获胜。",
+    requiredEvidence: ["executedSeatId"],
   },
   LEVIATHAN_EXECUTIONS: {
     side: "Evil",

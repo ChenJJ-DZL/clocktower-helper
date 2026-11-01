@@ -232,8 +232,11 @@ export const saintAbility = createRoleAbility({
   /** 能力中文名 */
   abilityName: "圣洁诅咒",
 
-  /** 触发时机：被动（由执行事件触发） */
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  /** 触发时机：被动 + 自身处决触发（由处决/判胜事件触发） */
+  triggerTiming: [
+    AbilityTriggerTiming.PASSIVE,
+    AbilityTriggerTiming.ON_EXECUTION,
+  ],
   /**
    * 唤醒优先级（被动能力不使用唤醒队列）
    * 圣徒的诅咒在执行结算时触发，不参与夜晚行动顺序。

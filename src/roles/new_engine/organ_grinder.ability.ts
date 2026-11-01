@@ -74,7 +74,11 @@ export const organ_grinderAbility = createRoleAbility({
   roleId: "organ_grinder",
   abilityId: "organ_vote_hide",
   abilityName: "风琴手",
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  triggerTiming: [
+    AbilityTriggerTiming.PASSIVE,
+    AbilityTriggerTiming.FIRST_NIGHT,
+    AbilityTriggerTiming.EVERY_NIGHT,
+  ],
   firstNightPriority: 36,
   otherNightPriority: 27,
   firstNightOnly: false,

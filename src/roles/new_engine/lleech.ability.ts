@@ -87,7 +87,10 @@ export const lleechAbility = createRoleAbility({
   abilityName: "宿主绑定",
 
   /** 触发时机：每夜（首夜选择，之后每晚可更换） */
-  triggerTiming: [AbilityTriggerTiming.EVERY_NIGHT],
+  triggerTiming: [
+    AbilityTriggerTiming.FIRST_NIGHT,
+    AbilityTriggerTiming.EVERY_NIGHT,
+  ],
   /** 唤醒优先级 */
   firstNightPriority: 27,
   otherNightPriority: 57,

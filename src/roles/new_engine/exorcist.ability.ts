@@ -47,9 +47,10 @@ const calculate = async (
 
   const targetSeat = snapshot.seats.find((s: any) => s.id === targetId);
   const isTargetDemon =
-    (targetSeat?.role?.type === "demon" ||
-      (targetSeat as any)?.isDemonSuccessor) &&
-    isAbilityActive;
+    Boolean(
+      targetSeat?.role?.type === "demon" ||
+        (targetSeat as any)?.isDemonSuccessor
+    ) && isAbilityActive;
 
   return {
     ...context,

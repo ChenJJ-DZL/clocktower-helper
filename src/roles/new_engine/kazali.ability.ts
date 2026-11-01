@@ -114,8 +114,11 @@ export const kazaliAbility = createRoleAbility({
   /** 能力中文名 */
   abilityName: "爪牙转恶魔",
 
-  /** 触发时机：首夜 */
-  triggerTiming: [AbilityTriggerTiming.FIRST_NIGHT],
+  /** 触发时机：首夜选爪牙，每夜选人击杀 */
+  triggerTiming: [
+    AbilityTriggerTiming.FIRST_NIGHT,
+    AbilityTriggerTiming.EVERY_NIGHT,
+  ],
   /** 唤醒优先级（恶魔变化类优先） */
   firstNightPriority: 9,
   otherNightPriority: 60,

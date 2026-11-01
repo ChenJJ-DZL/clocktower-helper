@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-01T07:42:33.124Z",
+  "generatedAt": "2026-11-01T12:12:55.656Z",
   "findings": [
     "INFO|ability.atom.setup.adjustment|atheist",
     "INFO|ability.atom.setup.adjustment|balloonist",
@@ -76,27 +76,8 @@
     "INFO|spec.type.mismatch|scapegoat",
     "INFO|spec.type.variant_mismatch|saint_demon",
     "INFO|spec.type.variant_mismatch|saint_townsfolk",
-    "P2|ability.atom.target.count|assassin",
     "P2|ability.atom.target.count|kazali",
-    "P2|ability.atom.target.count|klutz",
-    "P2|ability.atom.target.count|lord_of_typhon",
-    "P2|ability.atom.target.count|zombuul",
-    "P2|ability.atom.trigger.every_night|goon",
-    "P2|ability.atom.trigger.every_night|kazali",
-    "P2|ability.atom.trigger.every_night|lord_of_typhon",
-    "P2|ability.atom.trigger.every_night|organ_grinder",
-    "P2|ability.atom.trigger.first_night|godfather",
-    "P2|ability.atom.trigger.first_night|leech",
-    "P2|ability.atom.trigger.first_night|steward",
-    "P2|ability.atom.trigger.on_death|poppy_grower",
-    "P2|ability.atom.trigger.on_execution|boomdandy",
-    "P2|ability.atom.trigger.on_execution|psychopath",
-    "P2|ability.atom.trigger.on_execution|saint",
-    "P2|ability.atom.trigger.once_per_game|assassin",
-    "P2|ability.atom.trigger.once_per_game|courtier",
-    "P2|ability.atom.trigger.once_per_game|philosopher",
-    "P2|ability.atom.trigger.once_per_game|professor",
-    "P2|ability.atom.trigger.once_per_game|ranger"
+    "P2|ability.atom.target.count|lord_of_typhon"
   ],
   "metrics": {
     "officialRoles": 232,
@@ -116,11 +97,11 @@
     "otherNightAudited": 114,
     "rolesWithTestReference": 174,
     "rolesWithAbilityImpl": 160,
-    "semanticFindings": 36,
+    "semanticFindings": 17,
     "officialExamples": 438,
-    "encodedExamples": 161,
-    "mutationKilled": 1,
-    "mutationTotal": 1,
+    "encodedExamples": 220,
+    "mutationKilled": 23,
+    "mutationTotal": 23,
     "fuzzGames": 12,
     "fuzzActions": 246,
     "fuzzViolations": 0,
@@ -129,7 +110,7 @@
     "waivedFindings": 16,
     "findingsP0": 0,
     "findingsP1": 0,
-    "findingsP2": 21,
+    "findingsP2": 2,
     "findingsINFO": 74
   }
 }

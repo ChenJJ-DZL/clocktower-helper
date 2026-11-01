@@ -184,8 +184,23 @@ const updateKillState = async (
       );
     }
   }
+  const isTargetProtected =
+    targetSeat0?.statusEffects?.some((e: any) => e.type === "protected") ||
+    (targetSeat0 as any)?.isProtected;
+  const isSoldierImmune = targetSeat0
+    ? isImmuneToDemonKill(targetSeat0, true, aliveCount)
+    : false;
+  const isKilled =
+    !isTargetProtected && !isSoldierImmune && !mayorSaved && !taowuSaved;
+
   const newSnapshot: GameStateSnapshot = {
     ...snapshot,
+    lastKill: {
+      demonId: context.actionNode.seatId,
+      targetId,
+      demonRole: "zombuul",
+      killed: isKilled || !!mayorSubstitute,
+    },
     seats: seats.map((seat) => {
       if (seat.id === targetId) {
         // 🔧 梼杌替死成功 → 不死亡

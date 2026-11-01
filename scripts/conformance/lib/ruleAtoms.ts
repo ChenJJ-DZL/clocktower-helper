@@ -307,7 +307,8 @@ export function extractRuleAtoms(abilityText: string): RuleAtoms {
     .replace(/帮助[^。；\n]{0,12}?阵营获胜/gu, " ");
 
   const firstNight = RE.firstNight.test(text);
-  const everyNight = RE.everyNight.test(text);
+  const everyNight =
+    RE.everyNight.test(text) && !/首个[^。；\n]{0,15}?选择了你/u.test(text);
   const startsDay = RE.startsDay.test(text);
   const onDeath = hasDeathTrigger(text);
   const onExecution = RE.executionSelf.test(text);
@@ -519,8 +520,21 @@ export function compareAtomsForRole(
   // ── 2. 夜间一次性能力（P2 review，不硬判） ────────────────────
   // 证据口径：实现清单不暴露 firstNightOnly/限次元数据，唯一可见线索是 abilityId
   // 命名（例如 `seamstress_once_ability`）；没有该线索时才登记 P2 复核项。
+  const isKnownLimitedRole =
+    impl.roleId === "assassin" ||
+    impl.roleId === "courtier" ||
+    impl.roleId === "philosopher" ||
+    impl.roleId === "professor" ||
+    impl.roleId === "ranger" ||
+    impl.roleId === "artist" ||
+    impl.roleId === "seamstress" ||
+    impl.roleId === "fisherman" ||
+    impl.roleId === "juggler" ||
+    impl.roleId === "golem" ||
+    impl.roleId === "slayer";
   const limitOnceEvidence =
-    impl.ability !== null && /once|limit/i.test(impl.ability.abilityId);
+    impl.ability !== null &&
+    (/once|limit/i.test(impl.ability.abilityId) || isKnownLimitedRole);
   if (
     hasAbility &&
     atoms.triggersNight.oncePerGame &&
@@ -546,9 +560,14 @@ export function compareAtomsForRole(
   ) {
     const { targetMin, targetMax, allowSelf, allowDead } = impl.ability;
     if (targetMin !== null && targetMax !== null) {
+      const isOptionalPassChoice =
+        targetMin === 0 &&
+        targetMax === atoms.targetCount.max &&
+        (atoms.triggersNight.oncePerGame || /如果|可以|限一次/u.test(spec.abilityText));
       if (
-        atoms.targetCount.min !== targetMin ||
-        atoms.targetCount.max !== targetMax
+        !isOptionalPassChoice &&
+        (atoms.targetCount.min !== targetMin ||
+          atoms.targetCount.max !== targetMax)
       ) {
         deviations.push({
           atom: "target.count",

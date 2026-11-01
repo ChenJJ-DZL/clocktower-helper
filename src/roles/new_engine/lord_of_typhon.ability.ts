@@ -83,8 +83,11 @@ export const lord_of_typhonAbility = createRoleAbility({
   /** 能力中文名 */
   abilityName: "邪恶相邻",
 
-  /** 触发时机：被动 */
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  /** 触发时机：被动设置调整 + 每夜选人击杀 */
+  triggerTiming: [
+    AbilityTriggerTiming.PASSIVE,
+    AbilityTriggerTiming.EVERY_NIGHT,
+  ],
   /** 唤醒优先级（被动能力为 0） */
   firstNightPriority: null,
   otherNightPriority: 55,

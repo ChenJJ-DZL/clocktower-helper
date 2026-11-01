@@ -655,8 +655,18 @@ function checkGameEndCore(
     (s) => s.role?.type === "demon" || s.role?.id === "legion"
   );
   // 统计“死而未僵”的恶魔 (僵尸 Zombuul 特判)
+  // 官方【吟游诗人#2】：「僵怖被处决且第一次死亡。善良阵营获胜，因为僵怖醉酒，因而没有任何能力。」
+  // 醉酒/中毒的僵怖失去假死能力，不能算作存活恶魔。
   const zombuulActive = seats.filter(
-    (s) => s.role?.id === "zombuul" && s.isDead && !s.isZombuulTrulyDead
+    (s) =>
+      s.role?.id === "zombuul" &&
+      s.isDead &&
+      !s.isZombuulTrulyDead &&
+      !s.isDrunk &&
+      !s.isPoisoned &&
+      !(s.statusEffects ?? []).some(
+        (e: any) => e.type === "drunk" || e.type === "poisoned"
+      )
   );
   const totalEffectiveDemons = livingDemons.length + zombuulActive.length;
 
@@ -686,6 +696,31 @@ function checkGameEndCore(
           reason: "主谋使游戏在恶魔死后继续（额外一夜一昼）",
           extraDay: true,
         };
+      }
+
+      // 🔴 主谋额外一天结算：恶魔死后的额外白天中发生处决 ⇒ 其阵营落败
+      // 官方【主谋#1】：「沙巴洛斯死亡。在下一个白天，教授被处决且死亡。邪恶阵营获胜。」
+      // 官方【主谋#2】：「珀死亡。在下一个白天，教父被处决...由于一名邪恶玩家被处决，善良阵营获胜。」
+      if (isMastermindExtraDay && isMastermindActive) {
+        const r = resolveMastermindExtraDay(demoSeat as any);
+        return makeWinResult(
+          r.winner === "evil"
+            ? "MASTERMIND_EXECUTION_EVIL_WINS"
+            : "MASTERMIND_EXECUTION_GOOD_WINS",
+          r.reason,
+          {
+            executedSeatId: executedPlayerId,
+            executedRoleId: demoSeat?.role?.id ?? null,
+            mastermindSeatId:
+              seats.find(
+                (s) =>
+                  s.role?.id === "mastermind" &&
+                  !s.isDead &&
+                  !s.isPoisoned &&
+                  !s.isDrunk
+              )?.id ?? null,
+          }
+        );
       }
     }
 

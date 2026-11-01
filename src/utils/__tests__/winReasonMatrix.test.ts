@@ -430,6 +430,64 @@ const CASES: Record<WinReasonCode, CodeCase> = {
         { isMastermindExtraDay: false } // 不是额外那个白天
       ),
   },
+  MASTERMIND_EXECUTION_GOOD_WINS: {
+    label: "主谋额外一天：处决邪恶玩家 ⇒ 善良胜",
+    positive: () =>
+      checkGameEnd(
+        [
+          dead(seat(0, "po")),
+          seat(1, "mastermind"),
+          dead(seat(2, "godfather")),
+          seat(3, "chef"),
+          seat(4, "soldier"),
+        ],
+        "execution",
+        2,
+        { isMastermindExtraDay: true }
+      ),
+    negative: () =>
+      checkGameEnd(
+        [
+          dead(seat(0, "po")),
+          seat(1, "mastermind"),
+          dead(seat(2, "godfather")),
+          seat(3, "chef"),
+          seat(4, "soldier"),
+        ],
+        "execution",
+        2,
+        { isMastermindExtraDay: false }
+      ),
+  },
+  MASTERMIND_EXECUTION_EVIL_WINS: {
+    label: "主谋额外一天：处决善良玩家 ⇒ 邪恶胜",
+    positive: () =>
+      checkGameEnd(
+        [
+          dead(seat(0, "po")),
+          seat(1, "mastermind"),
+          seat(2, "godfather"),
+          dead(seat(3, "chef")),
+          seat(4, "soldier"),
+        ],
+        "execution",
+        3,
+        { isMastermindExtraDay: true }
+      ),
+    negative: () =>
+      checkGameEnd(
+        [
+          dead(seat(0, "po")),
+          seat(1, "mastermind"),
+          seat(2, "godfather"),
+          dead(seat(3, "chef")),
+          seat(4, "soldier"),
+        ],
+        "execution",
+        3,
+        { isMastermindExtraDay: false }
+      ),
+  },
   LEVIATHAN_EXECUTIONS: {
     label: "利维坦：多于一名善良玩家被处决",
     positive: () =>

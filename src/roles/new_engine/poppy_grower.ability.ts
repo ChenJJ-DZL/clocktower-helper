@@ -192,7 +192,10 @@ export const poppy_growerAbility = createRoleAbility({
   abilityName: "罂粟迷雾",
 
   /** 触发时机：被动（持续生效） */
-  triggerTiming: [AbilityTriggerTiming.PASSIVE],
+  triggerTiming: [
+    AbilityTriggerTiming.PASSIVE,
+    AbilityTriggerTiming.ON_DEATH,
+  ],
   /** 被动技能无唤醒优先级（纯被动角色夜晚不唤醒） */
   firstNightPriority: null,
   otherNightPriority: null,
