@@ -51,6 +51,12 @@ export function parseInfoResult(
         );
       }
     }
+    // 清理正文结果中多余的 "XX获得信息：" 或 "XX得知：" 前缀（弹窗标题已包含角色身份，正文无需重复此说明）
+    clean = clean.replace(
+      /^(?:(?:\d+号[-_])?[^:：\n]{1,10}?(?:获得信息|得知信息|得知结果|得知))\s*[:：]\s*/,
+      ""
+    );
+
     // 去除"是："、"为："、"是 "等内部多余冒号或空格（如 是: 【角色】 或 是 【角色】 -> 是【角色】）
     clean = clean
       .replace(/是\s*[:：\s]*【/g, "是【")
@@ -101,6 +107,29 @@ export function parseInfoResult(
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
     if (lines.length >= 2) {
+      // 👥 对立双子告知 + 自身技能信息等同等重要的多行业务结果：
+      // 两条信息同等重要，字体大小必须一致，绝不能把第一行当 prefix 小字！
+      // 且清洗掉类似“厨师获得信息：”的冗余引导语。
+      const hasTwinNotice = lines.some(
+        (l) => l.includes("【双子告知】") || l.includes("双子告知")
+      );
+      if (hasTwinNotice) {
+        const cleanedLines = lines
+          .map((line) => {
+            let clean = line.replace(
+              /^(?:(?:\d+号[-_])?[^:：\n]{1,10}?(?:获得信息|得知信息|得知结果|得知))\s*[:：]\s*/,
+              ""
+            );
+            return formatResult(clean || line);
+          })
+          .filter((l) => l.length > 0);
+
+        return {
+          prefix: "",
+          result: cleanedLines.join("\n"),
+        };
+      }
+
       const rawPrefix = lines.slice(0, lines.length - 1).join(" ");
       const result = formatResult(lines[lines.length - 1]);
       const prefix = formatPrefix(rawPrefix);

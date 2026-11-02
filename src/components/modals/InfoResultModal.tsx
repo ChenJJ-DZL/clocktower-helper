@@ -118,9 +118,7 @@ export function InfoResultModal({
           ) : isMultiLine ? (
             <div className="flex justify-center my-1 max-w-full">
               <div
-                className={`inline-block ${
-                  splitByDisplayLayer ? "text-center" : "text-left"
-                } font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl space-y-1 text-3xl sm:text-4xl md:text-5xl`}
+                className="inline-block text-center font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl space-y-3 text-3xl sm:text-4xl md:text-5xl"
               >
                 {resultLines.map((line, idx) => (
                   <div key={idx} className="break-words">

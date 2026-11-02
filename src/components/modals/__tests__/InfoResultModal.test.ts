@@ -261,4 +261,15 @@ describe("parseInfoResult - 技能结果告知格式化", () => {
       );
     }
   });
+
+  test("⭐ 对立双子与原本信息平等展示：字号一致，删除多余的「厨师获得信息：」", () => {
+    const raw = "【双子告知】5号是镜像双子\n厨师获得信息：场上有 3 对相邻的邪恶玩家";
+    const res = parseInfoResult(raw, "1号-厨师");
+    // prefix 为空，不显示单独的小字
+    expect(res.prefix).toBe("");
+    // 多余的「厨师获得信息：」已被彻底清除
+    expect(res.result).not.toContain("厨师获得信息");
+    // 包含两行同等重要的正文内容
+    expect(res.result).toBe("【双子告知】5号是镜像双子\n场上有 3 对相邻的邪恶玩家");
+  });
 });
