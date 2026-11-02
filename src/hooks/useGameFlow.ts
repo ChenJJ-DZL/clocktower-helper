@@ -750,6 +750,48 @@ export function useGameFlow(): UseGameFlowResult {
         }
       }
 
+      // 3. 👥 镜像双子对立双子开局分配（官方规则：初始设置时，在一名善良玩家的角色标记旁放置“对立双子”提示标记）
+      const etIndex = withRed.findIndex((s) => s.role?.id === "evil_twin");
+      let initialEvilTwinPair: {
+        evilId: number;
+        goodId: number;
+        evilSeatId: number;
+        goodSeatId: number;
+      } | null = null;
+      if (etIndex !== -1 && !withRed.some((s) => s.isGoodTwin)) {
+        const goodCandidates = withRed.filter(
+          (s) =>
+            s.id !== etIndex &&
+            ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+            !s.isEvilConverted &&
+            (s as any).alignment !== "evil" &&
+            isGoodAlignment(s)
+        );
+        if (goodCandidates.length > 0) {
+          const t = getRandom(goodCandidates);
+          if (t) {
+            withRed[t.id].isGoodTwin = true;
+            withRed[t.id].statusDetails = [
+              ...(withRed[t.id].statusDetails || []),
+              "对立双子",
+            ];
+            initialEvilTwinPair = {
+              evilId: etIndex,
+              goodId: t.id,
+              evilSeatId: etIndex,
+              goodSeatId: t.id,
+            };
+            dispatch(
+              gameActions.addLog({
+                day: 0,
+                phase: "setup",
+                message: `👥 镜像双子开局绑定：${etIndex + 1}号【镜像双子】与 ${t.id + 1}号【${withRed[t.id].role?.name}】对立绑定`,
+              })
+            );
+          }
+        }
+      }
+
       // 🎭 提线木偶、酒鬼、疯子伪装身份强制补齐与设定
       const inPlayIds = new Set(withRed.map((s) => s.role?.id).filter(Boolean));
       const takenCharadeIds = new Set(
@@ -832,17 +874,20 @@ export function useGameFlow(): UseGameFlowResult {
       const withCharade = applyCharadePermanentDrunk(withRed);
 
       dispatch(gameActions.setSeats(withCharade));
-      dispatch(
-        gameActions.updateState({
-          initialSeats: JSON.parse(JSON.stringify(withCharade)),
-        })
-      );
+      const extraStateUpdates: any = {
+        initialSeats: JSON.parse(JSON.stringify(withCharade)),
+      };
+      if (initialEvilTwinPair) {
+        extraStateUpdates.evilTwinPair = initialEvilTwinPair;
+      }
+      dispatch(gameActions.updateState(extraStateUpdates));
       dispatch(gameActions.setGamePhase("check"));
       dispatch(
         gameActions.saveHistory({
           seats: withCharade,
           initialSeats: JSON.parse(JSON.stringify(withCharade)),
           gamePhase: "check",
+          ...(initialEvilTwinPair ? { evilTwinPair: initialEvilTwinPair } : {}),
         })
       );
     },
@@ -1167,6 +1212,47 @@ export function useGameFlow(): UseGameFlowResult {
           );
         }
         // 继续流程（不再 return 拦截）
+      }
+
+      // 👥 镜像双子对立双子检查：有镜像双子但未设置对立双子，自动指派第一个存活善良玩家
+      const hasEvilTwin = seats.some((s) => s.role?.id === "evil_twin");
+      const hasGoodTwin = seats.some((s) => (s as any).isGoodTwin === true);
+      if (hasEvilTwin && !hasGoodTwin) {
+        const etSeat = seats.find((s) => s.role?.id === "evil_twin");
+        const eligibleGood = seats.filter(
+          (s) =>
+            s.role &&
+            s.id !== etSeat?.id &&
+            s.role.type !== "demon" &&
+            s.role.type !== "minion" &&
+            !s.isEvilConverted &&
+            (s as any).alignment !== "evil" &&
+            isGoodAlignment(s) &&
+            !s.isDead
+        );
+        if (eligibleGood.length > 0 && etSeat) {
+          const target = eligibleGood[0];
+          dispatch(
+            gameActions.updateState({
+              evilTwinPair: {
+                evilId: etSeat.id,
+                goodId: target.id,
+              },
+              seats: seats.map((s) =>
+                s.id === target.id
+                  ? {
+                      ...s,
+                      isGoodTwin: true,
+                      statusDetails: [
+                        ...(s.statusDetails || []),
+                        "对立双子",
+                      ],
+                    }
+                  : s
+              ),
+            })
+          );
+        }
       }
 
       // 🌆 暮色闸门：首夜同样先走暮色（官方 Dusk 在入夜之前）。

@@ -1495,6 +1495,25 @@ export async function executeViaNewEngine(
                 return;
               }
 
+              // 👥 镜像双子：把对立双子作为 twinId 透传，确保能力侧完成确权绑定
+              if (roleId === "evil_twin") {
+                const { goodTwinSeat } = resolveEvilTwinPairForDisplay(
+                  context.seats,
+                  (context as any).evilTwinPair
+                );
+                const realContext: NightActionHandlerContext = {
+                  ...context,
+                  preview: false,
+                  selectedTargets: finalTargets,
+                  actionData: {
+                    ...(context.actionData || {}),
+                    twinId: goodTwinSeat?.id ?? null,
+                  },
+                };
+                await executeViaNewEngine(realContext, roleId);
+                return;
+              }
+
               // 用户确认后，用选中的目标参数执行真实管道
               const realContext: NightActionHandlerContext = {
                 ...context,
@@ -2297,12 +2316,19 @@ export async function executeViaNewEngine(
 
       // 👥 镜像双子：直接向玩家展示“对立双子是X号XX角色”
       if (roleId === "evil_twin") {
-        const goodTwinId =
+        let goodTwinId =
           displayInfo?.twinId ??
           evilTwinPair?.goodSeatId ??
           evilTwinPair?.goodId ??
           resultContext.meta.evilTwinResult?.twinId ??
           syncedSeats.find((s) => s.isGoodTwin)?.id;
+        if (goodTwinId == null) {
+          const displayResolved = resolveEvilTwinPairForDisplay(
+            syncedSeats,
+            evilTwinPair ?? (context as any).evilTwinPair
+          );
+          goodTwinId = displayResolved.goodTwinSeat?.id;
+        }
         const goodTwinSeat = syncedSeats.find((s) => s.id === goodTwinId);
         if (goodTwinSeat) {
           customResultText = `对立双子是${goodTwinSeat.id + 1}号【${goodTwinSeat.role?.name || "未知"}】角色`;
