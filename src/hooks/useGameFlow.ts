@@ -20,6 +20,7 @@ import { buildLunaticFakeInfo } from "../utils/lunaticFakeInfo";
 import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../utils/mutantGate";
 import { showAlert } from "../utils/nativeDialogShim";
 import { isSeatMinionOrDemon, isSeatTraveler } from "../utils/seatAlignment";
+import { isSeatAlive } from "../utils/seatAlive";
 import { hasTwilightPhase } from "../utils/travelerDusk";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 
@@ -792,6 +793,37 @@ export function useGameFlow(): UseGameFlowResult {
         }
       }
 
+      // 4. 👵 祖母孙子开局绑定（官方规则：在为首个夜晚进行准备时，通过将“孙子”提示标记放置到任意一个善良角色的角色标记旁来选择一名“孙子”）
+      const gmIndex = withRed.findIndex((s) => s.role?.id === "grandmother");
+      if (gmIndex !== -1 && !withRed[gmIndex].grandchildId) {
+        const goodCandidates = withRed.filter(
+          (s) =>
+            s.id !== gmIndex &&
+            ["townsfolk", "outsider"].includes(s.role?.type || "") &&
+            !s.isEvilConverted &&
+            (s as any).alignment !== "evil" &&
+            isGoodAlignment(s)
+        );
+        if (goodCandidates.length > 0) {
+          const t = getRandom(goodCandidates);
+          if (t) {
+            withRed[gmIndex].grandchildId = t.id;
+            withRed[t.id].isGrandchild = true;
+            withRed[t.id].statusDetails = [
+              ...(withRed[t.id].statusDetails || []),
+              "祖母的孙子",
+            ];
+            dispatch(
+              gameActions.addLog({
+                day: 0,
+                phase: "setup",
+                message: `👵 祖母开局绑定：${gmIndex + 1}号【祖母】的孙子是 ${t.id + 1}号【${withRed[t.id].role?.name}】`,
+              })
+            );
+          }
+        }
+      }
+
       // 🎭 提线木偶、酒鬼、疯子伪装身份强制补齐与设定
       const inPlayIds = new Set(withRed.map((s) => s.role?.id).filter(Boolean));
       const takenCharadeIds = new Set(
@@ -1228,7 +1260,7 @@ export function useGameFlow(): UseGameFlowResult {
             !s.isEvilConverted &&
             (s as any).alignment !== "evil" &&
             isGoodAlignment(s) &&
-            !s.isDead
+            isSeatAlive(s)
         );
         if (eligibleGood.length > 0 && etSeat) {
           const target = eligibleGood[0];
@@ -1250,6 +1282,46 @@ export function useGameFlow(): UseGameFlowResult {
                     }
                   : s
               ),
+            })
+          );
+        }
+      }
+
+      // 👵 祖母孙子检查：有祖母但未设置孙子，自动指派第一个存活善良玩家
+      const hasGrandmother = seats.some((s) => s.role?.id === "grandmother");
+      const gmSeat = seats.find((s) => s.role?.id === "grandmother");
+      if (hasGrandmother && gmSeat && !gmSeat.grandchildId) {
+        const eligibleGood = seats.filter(
+          (s) =>
+            s.role &&
+            s.id !== gmSeat.id &&
+            s.role.type !== "demon" &&
+            s.role.type !== "minion" &&
+            !s.isEvilConverted &&
+            (s as any).alignment !== "evil" &&
+            isGoodAlignment(s) &&
+            isSeatAlive(s)
+        );
+        if (eligibleGood.length > 0) {
+          const target = eligibleGood[0];
+          dispatch(
+            gameActions.updateState({
+              seats: seats.map((s) => {
+                if (s.id === gmSeat.id) {
+                  return { ...s, grandchildId: target.id };
+                }
+                if (s.id === target.id) {
+                  return {
+                    ...s,
+                    isGrandchild: true,
+                    statusDetails: [
+                      ...(s.statusDetails || []),
+                      "祖母的孙子",
+                    ],
+                  };
+                }
+                return s;
+              }),
             })
           );
         }
