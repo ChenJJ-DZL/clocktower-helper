@@ -23,6 +23,9 @@ const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
   const targetIds = ctx.targetIds ?? ctx.actionNode.targetIds ?? [];
+  if (targetIds.length < 2) {
+    return { ...ctx, aborted: true, abortReason: "鹰身女妖目标不足2人" };
+  }
   return {
     ...ctx,
     meta: { ...ctx.meta, abilityResult: { targetIds, harpyActive: true } },
@@ -77,7 +80,7 @@ export const harpyAbility = createRoleAbility({
   otherNightPriority: 32,
   firstNightOnly: false,
   wakePromptId: "role.harpy.wake",
-  targetConfig: { min: 2, max: 2, allowSelf: false, allowDead: false },
+  targetConfig: { min: 2, max: 2, allowSelf: true, allowDead: false },
   preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

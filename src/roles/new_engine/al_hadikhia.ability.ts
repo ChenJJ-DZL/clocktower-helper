@@ -28,6 +28,10 @@ export const calculate = async (
       ? ctx.targetIds.slice(0, 3)
       : (ctx.actionNode.targetIds?.slice(0, 3) ?? []);
 
+  if (targetIds.length < 3) {
+    return { ...ctx, aborted: true, abortReason: "哈迪哈目标不足3人" };
+  }
+
   return {
     ...ctx,
     meta: {
@@ -97,7 +101,7 @@ export const alHadikhiaAbility = createRoleAbility({
   otherNightPriority: 51,
   firstNightOnly: false,
   wakePromptId: "role.al_hadikhia.wake",
-  targetConfig: { min: 3, max: 3, allowSelf: false, allowDead: false },
+  targetConfig: { min: 3, max: 3, allowSelf: true, allowDead: false },
   preCheck: [preCheck],
   calculate: [calculate],
   stateUpdate: [stateUpdate],

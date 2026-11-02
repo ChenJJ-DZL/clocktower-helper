@@ -128,6 +128,10 @@ export function defaultTargetPicker(
     return true;
   });
 
+  if (tc.min > 0 && candidates.length < tc.min) {
+    return [];
+  }
+
   const max = Math.min(tc.max ?? 0, candidates.length);
   if (max <= 0) return [];
 
@@ -210,6 +214,11 @@ export async function simulateNight(
       targetIds,
       storytellerInput
     );
+    const minTargets = ability?.targetConfig?.min ?? 0;
+    if (minTargets > 0 && (targetIds?.length ?? 0) < minTargets) {
+      context.aborted = true;
+      context.abortReason = "合法目标不足";
+    }
     const result = await runFullAbilityPipeline(
       {
         preCheck: ability?.preCheck,

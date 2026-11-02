@@ -96,6 +96,7 @@ const stateUpdate = async (
       return {
         ...s,
         role: { ...targetSeat.role },
+        roleId: targetSeat.role?.id ?? targetSeat.roleId ?? s.roleId,
         isEvilConverted: true,
         isGoodConverted: false,
       };
@@ -112,6 +113,7 @@ const stateUpdate = async (
       return {
         ...s,
         role: { ...selfSeat.role },
+        roleId: selfSeat.role?.id ?? selfSeat.roleId ?? s.roleId,
         isEvilConverted: false,
         isGoodConverted: true,
         isPoisoned: true,

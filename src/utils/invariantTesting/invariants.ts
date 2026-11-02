@@ -622,7 +622,7 @@ export const I11EffectSemanticsApplied: InvariantCheck = (
         const targetId = meta.abilityResult?.targetId ?? meta.targetId;
         const targetDeadInPrev =
           targetId != null &&
-          prev.some((s) => s.id === targetId && s.isDead === true);
+          prev.some((s) => s.id === targetId && isDeadMark(s));
         const exempt =
           meta.abilityResult?.killed === false ||
           meta.abilityResult?.shouldKill === false ||

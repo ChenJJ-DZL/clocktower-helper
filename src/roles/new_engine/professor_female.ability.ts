@@ -152,6 +152,12 @@ const updateResurrection = async (
           return {
             ...seat,
             isDead: false,
+            markedForDeath: false,
+            diedAtNight: undefined,
+            killedBy: undefined,
+            deathSource: undefined,
+            deathSourceSeatId: undefined,
+            revivedAtNight: snapshot.nightCount,
             statusEffects: [
               ...seat.statusEffects,
               {

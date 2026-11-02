@@ -24,6 +24,7 @@
     "conformance:fuzz": "tsx scripts/conformance/fuzz.ts",
     "conformance:chaos": "tsx scripts/conformance/chaos.ts",
     "conformance:chaos:all": "tsx scripts/conformance/chaos.ts --all",
+    "conformance:chaos:omni": "tsx scripts/conformance/chaos-omni.ts",
     "conformance:chaos:tb": "tsx scripts/conformance/chaos-tb.ts",
     "conformance:e2e": "tsx scripts/conformance/e2e-assertions.ts",
     "test:e2e": "playwright test",

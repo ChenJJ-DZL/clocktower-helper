@@ -43,7 +43,7 @@ export const hadesiaAbility = createRoleAbility({
   targetConfig: {
     min: 3,
     max: 3,
-    allowSelf: false,
+    allowSelf: true,
     allowDead: false,
   },
 
