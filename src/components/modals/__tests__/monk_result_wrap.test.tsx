@@ -107,9 +107,9 @@ describe("僧侣结果页 · 折 2 行", () => {
     expect(norm(bodyText())).toContain(norm(MONK_PROTECTED));
   });
 
-  it("副标题（prefix）仍为「15号-僧侣获得信息」形态，未被折行逻辑破坏", () => {
+  it("以厨师案例为准：正文移除多余的「获得信息」冗余前缀，信息简洁直接", () => {
     renderResult(MONK_PROTECTED);
-    expect(bodyText()).toContain("获得信息");
+    expect(bodyText()).not.toContain("获得信息");
   });
 });
 

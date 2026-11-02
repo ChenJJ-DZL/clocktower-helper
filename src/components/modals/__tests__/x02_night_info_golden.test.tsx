@@ -278,8 +278,8 @@ describe("X02 · 夜间信息弹窗 golden 基线", () => {
     // ② 标题逐字一致（源码模板：`${roleName} - 结果`）
     expect(modalTitle()).toBe("5号-洗衣妇 - 结果");
     expect(t).toContain("5号-洗衣妇 - 结果");
-    //    正文两行也逐字：prefix（描述说明）+ result（核心结果）
-    expect(t).toContain("5号-洗衣妇获得信息");
+    //    正文纯粹简洁：以厨师案例为准，移除多余的「XX获得信息」前缀，直呈核心大字结果
+    expect(t).not.toContain("获得信息");
     expect(t).toContain("6号和9号其中一位是【占卜师】");
 
     // ③ 主按钮文案逐字一致
@@ -310,7 +310,7 @@ describe("X02 · 夜间信息弹窗 golden 基线", () => {
     // ① 能渲染 ② 标题逐字（源码模板：`${roleName} - 结果`，roleName 由 actorSeatNo 拼出）
     expect(modalTitle()).toBe("5号-占卜师 - 结果");
     expect(t).toContain("5号-占卜师 - 结果");
-    expect(t).toContain("5号-占卜师获得信息");
+    expect(t).not.toContain("获得信息");
     //    「有」被解析器包成【有】
     expect(t).toContain("【有】");
 
@@ -334,7 +334,7 @@ describe("X02 · 夜间信息弹窗 golden 基线", () => {
 
     expect(modalTitle()).toBe("5号-占卜师 - 结果");
     expect(t).toContain("5号-占卜师 - 结果");
-    expect(t).toContain("5号-占卜师获得信息");
+    expect(t).not.toContain("获得信息");
     expect(t).toContain("【没有】");
 
     expect(buttonTexts()).toContain("确认结果");

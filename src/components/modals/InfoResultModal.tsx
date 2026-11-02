@@ -58,8 +58,16 @@ export function InfoResultModal({
   const resultLines = useMemo(() => splitResultForDisplay(result), [result]);
   const isMultiLine = resultLines.length > 1;
 
-  // 多信息页（恶魔互认/爪牙互认等）：每行按首个冒号拆成标题-内容对，
-  // 统一字号、每条消息 = 1行标题 + 1行内容。
+  // 🧹 冗余前缀过滤：若 prefix 仅为 "XX获得信息" / "XX得知" 等重复角色名的模板话术，
+  // 弹窗标题已有 `${roleName} - 结果`，正文无需重复展示这行多余文字（以厨师案例为准，信息简洁不分等级）
+  const isRedundantPrefix =
+    Boolean(prefix) &&
+    /^(?:(?:\d+号[-_])?.+?(?:获得信息|得知信息|得知结果|得知|在死亡前夜得知|在死亡当夜得知))\s*$/.test(
+      prefix.trim()
+    );
+  const displayPrefix = isRedundantPrefix ? "" : prefix;
+
+  // 多信息页（恶魔互认/爪牙互认等）：每行按首个冒号拆成标题-内容对
   const displayItems = useMemo(
     () => (isMultiLine ? parseItemsForDisplay(resultLines) : null),
     [isMultiLine, resultLines]
@@ -68,9 +76,6 @@ export function InfoResultModal({
     displayItems !== null &&
     displayItems.length > 1 &&
     displayItems.some((it) => it.title);
-
-  // 非 item 模式的多行：原始多行（无冒号列表）左对齐；展示层折行居中。
-  const splitByDisplayLayer = !result.includes("\n") && isMultiLine;
 
   return (
     <ModalWrapper
@@ -82,13 +87,13 @@ export function InfoResultModal({
         <div className="flex gap-4 w-full justify-center">
           <button
             onClick={onModify}
-            className="flex-1 max-w-xs py-3 sm:py-4 font-bold text-white bg-slate-700 rounded-xl hover:bg-slate-600 transition shadow-md text-base sm:text-lg"
+            className="flex-1 max-w-xs py-3 sm:py-4 font-bold text-white bg-slate-700 rounded-xl hover:bg-slate-600 transition shadow-md text-base sm:text-lg cursor-pointer"
           >
             修改选择
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 max-w-xs py-3 sm:py-4 font-black text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition shadow-lg text-base sm:text-lg shadow-blue-600/40 ring-2 ring-blue-400 active:scale-[0.98]"
+            className="flex-1 max-w-xs py-3 sm:py-4 font-black text-white bg-blue-600 rounded-xl hover:bg-blue-500 transition shadow-lg text-base sm:text-lg shadow-blue-600/40 ring-2 ring-blue-400 active:scale-[0.98] cursor-pointer"
           >
             确认结果
           </button>
@@ -99,16 +104,16 @@ export function InfoResultModal({
         {...SKILL_PAGE_AUTOFIT}
         className="p-0 text-white"
       >
-        <div className="text-center my-auto space-y-2 max-w-full px-0 py-1">
-          {prefix && (
-            <div className="text-lg sm:text-xl md:text-2xl text-amber-200/90 font-bold leading-tight px-1">
-              {prefix}
+        <div className="text-center my-auto space-y-3 max-w-full px-0 py-1">
+          {displayPrefix && (
+            <div className="font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl text-3xl sm:text-4xl md:text-5xl break-words">
+              {displayPrefix}
             </div>
           )}
 
           {hasItemPattern ? (
-            /* 多信息页：统一字号、每行展示（单行最多 20 字，冒号优先换行） */
-            <div className="space-y-2 my-1 max-w-full">
+            /* 多信息页：统一字号、每行展示，信息不区分等级 */
+            <div className="space-y-3 my-1 max-w-full">
               {displayItems!.map((item, idx) => (
                 <div key={idx} className="font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl text-3xl sm:text-4xl md:text-5xl break-words">
                   {item.title ? (item.value ? `${item.title}：${item.value}` : `${item.title}：`) : item.value}
@@ -116,6 +121,7 @@ export function InfoResultModal({
               ))}
             </div>
           ) : isMultiLine ? (
+            /* 多行信息（如对立双子告知 + 自身技能信息）：统一字号，居中对齐，不区分等级 */
             <div className="flex justify-center my-1 max-w-full">
               <div
                 className="inline-block text-center font-black text-amber-400 tracking-wide leading-tight drop-shadow-xl space-y-3 text-3xl sm:text-4xl md:text-5xl"
@@ -128,13 +134,14 @@ export function InfoResultModal({
               </div>
             </div>
           ) : (
-            <div className="font-black text-amber-400 tracking-wider text-center drop-shadow-2xl break-words max-w-full mx-auto px-0 my-1 text-4xl sm:text-5xl md:text-6xl">
+            /* 单行信息：统一字号，居中对齐，简洁直截 */
+            <div className="font-black text-amber-400 tracking-wide text-center drop-shadow-2xl break-words max-w-full mx-auto px-0 my-1 text-3xl sm:text-4xl md:text-5xl">
               {resultLines[0] ?? result}
             </div>
           )}
 
           {storytellerFacing && (
-            <div className="text-xs sm:text-sm text-amber-300 bg-amber-950/40 rounded-xl p-3 border border-amber-500/50">
+            <div className="text-xs sm:text-sm text-amber-300 bg-amber-950/40 rounded-xl p-3 border border-amber-500/50 mt-4">
               🎙️
               本页为**说书人专用**（军团代操作）：含真值与全员信息，请勿展示给玩家。
             </div>
