@@ -76,6 +76,8 @@
    - `useGameFlow.ts::clearExpiredNightEffects` 升级为真值自愈，清理到期临时状态时依据 `kept` 残留状态动态重置，杜绝将酒鬼、提线木偶等永久醉酒状态误清；支持 `drunkUntilNight` 绝对夜数到期精准清除。
 7. **全覆盖因果闭环测试套件（L5 Causal Suite）**：
    - 新增 `src/roles/__tests__/causal_chain_32_roles_matrix.test.ts`，全面覆盖四大高危家族 32 核心角色的因果触发、极端路径与醉毒干扰验证（24 组关键断言 100% 全绿）。
+8. **全角色说书人判定双分支自动化测试矩阵（L5 Omniscient Binary Verdict Suite）**：
+   - 新增 `src/roles/__tests__/omniscient_binary_verdict_matrix.test.ts`，涵盖所有涉及说书人判断「是/否」（真/假、成功/失败、触发/不触发）的四大组 31 类场景，逐一实现「是」与「否」双分支对等验证（31 组关键断言 100% 全绿）。
 
 
 ## W26.11.1 — 突破 60% 官方范例里程碑（267/438）· 修复清空全部 4 处已知偏差 · 无神论者与士兵替死修复（2026-11-01）
