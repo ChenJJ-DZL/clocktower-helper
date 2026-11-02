@@ -405,9 +405,14 @@ export function useGameFlow(): UseGameFlowResult {
     });
 
     dispatch(gameActions.setSeats(updatedSeats));
-    dispatch(gameActions.setGamePhase("day"));
+    const extraUpdates: any = { gamePhase: "day" };
+    if (state.poppyGrowerDead === true) {
+      extraUpdates.poppyGrowerDead = false;
+      extraUpdates.poppyGrowerRecognized = true;
+    }
+    dispatch(gameActions.updateState(extraUpdates));
     dispatch(gameActions.saveHistory({ gamePhase: "day" }));
-  }, [dispatch, nightCount, state.cerenovusTarget, state.deadThisNight, seats]);
+  }, [dispatch, nightCount, state.cerenovusTarget, state.deadThisNight, state.poppyGrowerDead, seats]);
 
   const confirmNightDeathReport = useCallback(() => {
     enterDayPhase();

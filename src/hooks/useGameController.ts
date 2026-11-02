@@ -1731,6 +1731,7 @@ export function useGameController() {
           // 🔧 新引擎管道（imp.ability 等杀人）不调 killPlayer，需传入
           //   setDeadThisNight 让 executeViaNewEngine 在 markedForDeath 变 isDead 后补记。
           setDeadThisNight,
+          setPoppyGrowerDead,
           // 🔧 女巫诅咒桥接：新引擎快照 witchCurse → legacy witchCursedId（useDayActions 消费端）。
           setWitchCursedId,
           setWitchActive,
@@ -2525,6 +2526,7 @@ export function useGameController() {
     nightLogic.engine?.state,
     gameState.deadThisNight,
     gameState.todayExecutedId,
+    gameState.poppyGrowerDead,
   ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 汇总对象按需透传，全量依赖会造成全页重渲染

@@ -37,12 +37,27 @@ export function useSeatManager(): UseSeatManagerResult {
 
   const killSeatOnly = useCallback(
     (seatId: number) => {
+      const targetSeat = seats.find((s) => s.id === seatId);
       dispatch(
         gameActions.updateSeat(seatId, { isDead: true, hasGhostVote: true })
       );
       dispatch(gameActions.addDeadThisNight(seatId));
+      if (
+        targetSeat?.role?.id === "poppy_grower" &&
+        !targetSeat.isDrunk &&
+        !targetSeat.isPoisoned
+      ) {
+        dispatch(gameActions.updateState({ poppyGrowerDead: true }));
+        dispatch(
+          gameActions.addLog({
+            day: state.nightCount,
+            phase: state.gamePhase,
+            message: "🌺 罂粟种植者已死亡！恶魔与爪牙将在当晚互相认识。",
+          })
+        );
+      }
     },
-    [dispatch]
+    [dispatch, seats, state.nightCount, state.gamePhase]
   );
 
   const reviveSeatOnly = useCallback(

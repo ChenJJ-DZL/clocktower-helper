@@ -69,7 +69,8 @@ import {
 } from "../utils/playerView";
 import { availableRolesForRoleSelection } from "../utils/roleSelectionPool";
 import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
-import { isSeatEvil, isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
+import { isSeatEvil, isSeatMinion, isSeatDemon, isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
+import { isSeatAlive } from "../utils/seatAlive";
 import { isVortoxWorldActive } from "../utils/vortoxWorld";
 
 export interface NightActionHandlerContext {
@@ -158,6 +159,8 @@ export interface NightActionHandlerContext {
   insertIntoWakeQueueAfterCurrent: (seatId: number, options?: any) => void;
   /** 🔧 守鸦人修复：恶魔杀守鸦人后动态插入新引擎觉醒节点 */
   enqueueDeathTriggeredIfNeeded?: (targetId: number, roleId?: string) => void;
+  // 🌺 罂粟种植者死亡处理
+  setPoppyGrowerDead?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -1704,6 +1707,45 @@ export async function executeViaNewEngine(
             //   （订阅类座位是**存活**的，无需该标记。）
             if (w.reason === "self") target.hasAbilityEvenDead = true;
             context.enqueueDeathTriggeredIfNeeded(w.seatId, w.roleId);
+          }
+        }
+      }
+
+      // 🌺 罂粟种植者夜间死亡处理：当晚恶魔与爪牙互相认识（官方规则）
+      const deadPoppy = newlyDead
+        .map((id) => syncedSeats.find((s) => s.id === id))
+        .find(
+          (s) =>
+            s?.role?.id === "poppy_grower" && !s.isDrunk && !s.isPoisoned
+        );
+      if (deadPoppy) {
+        if ((context as any).setPoppyGrowerDead) {
+          (context as any).setPoppyGrowerDead(true);
+        }
+        context.addLog("🌺 罂粟种植者已死亡！恶魔与爪牙将在当晚互相认识。");
+        // 动态唤醒爪牙与恶魔互认
+        if (context.insertIntoWakeQueueAfterCurrent) {
+          const aliveMinions = syncedSeats.filter(
+            (s) => isSeatMinion(s) && isSeatAlive(s)
+          );
+          const aliveDemon = syncedSeats.find(
+            (s) => isSeatDemon(s) && isSeatAlive(s)
+          );
+          for (const m of aliveMinions) {
+            context.insertIntoWakeQueueAfterCurrent(m.id, {
+              force: true,
+              position: "priority",
+              stepOverride: "minion_info",
+              reinsertIfProcessed: true,
+            });
+          }
+          if (aliveDemon) {
+            context.insertIntoWakeQueueAfterCurrent(aliveDemon.id, {
+              force: true,
+              position: "priority",
+              stepOverride: "demon_info",
+              reinsertIfProcessed: true,
+            });
           }
         }
       }

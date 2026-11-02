@@ -47,6 +47,13 @@
    - `src/utils/invariantTesting/invariants.ts` I11 击杀语义放行前序已被标记死亡的目标，杜绝同夜多次攻击同一目标时的空转误报。
    - 457 局万象混沌对局 12 大规则铁律**零违例全绿通过**。
 
+### 五、修复罂粟种植者死后恶魔爪牙互认未能触发的严重链路缺陷
+1. **全链路状态透传补齐**：此前 `useNightEngine`、`useGameController` 预览快照、`convertToNightStateMachineSnapshot` 及 `historySnapshot` 在构建夜晚快照时均漏传了 `poppyGrowerDead` 字段，导致夜间动态队列生成器读取 `(snapshot as any).poppyGrowerDead` 恒为 `undefined`，从而在非首夜直接丢弃 `minion_info` 与 `demon_info` 互认步骤。
+2. **夜间死亡与手动标死即时响应**：
+   - 在 `useNightActionHandler` 中对 `newlyDead` 进行实时监听，当罂粟种植者在夜间被恶魔杀害时，立即将 `minion_info` 与 `demon_info` 动态插队唤醒，严格实现官方规则「如果你在夜晚死亡，当晚他们会互相认识」；
+   - 在 `useSeatManager.killSeatOnly` 中补齐罂粟种植者标死时的 `poppyGrowerDead: true` 派发；
+   - 在 `dynamicQueueGenerator.ts` 增加防御性自愈检测：即便调用方未显式传入 `poppyGrowerDead` 布尔值，只要场上罂粟种植者已死亡且未醉酒中毒，即自动触发邪恶互认。
+
 ## W26.11.1 — 突破 60% 官方范例里程碑（267/438）· 修复清空全部 4 处已知偏差 · 无神论者与士兵替死修复（2026-11-01）
 
 ### 一、清空全部 4 处历史已知偏差（`it.fails` 归零）
