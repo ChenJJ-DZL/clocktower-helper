@@ -20,8 +20,8 @@ import { buildLunaticFakeInfo } from "../utils/lunaticFakeInfo";
 import { hasPendingMutantMadnessCheck as hasPendingMutantGate } from "../utils/mutantGate";
 import { showAlert } from "../utils/nativeDialogShim";
 import { isSeatMinionOrDemon, isSeatTraveler } from "../utils/seatAlignment";
-import { unifiedEventBus } from "../utils/unifiedEventBus";
 import { hasTwilightPhase } from "../utils/travelerDusk";
+import { unifiedEventBus } from "../utils/unifiedEventBus";
 
 /**
  * 🔧 跨角色状态时序修复（W8.14.13）：清除"次日黄昏"类临时标记并同步重置布尔。
@@ -412,7 +412,14 @@ export function useGameFlow(): UseGameFlowResult {
     }
     dispatch(gameActions.updateState(extraUpdates));
     dispatch(gameActions.saveHistory({ gamePhase: "day" }));
-  }, [dispatch, nightCount, state.cerenovusTarget, state.deadThisNight, state.poppyGrowerDead, seats]);
+  }, [
+    dispatch,
+    nightCount,
+    state.cerenovusTarget,
+    state.deadThisNight,
+    state.poppyGrowerDead,
+    seats,
+  ]);
 
   const confirmNightDeathReport = useCallback(() => {
     enterDayPhase();
@@ -434,15 +441,25 @@ export function useGameFlow(): UseGameFlowResult {
     const hasExpiry = (e: any) =>
       e.expiresAtNight !== undefined ||
       e.expiresAtDusk === true ||
-      typeof e.duration === "number";
+      typeof e.duration === "number" ||
+      typeof e.drunkUntilNight === "number";
     const expiring = effects.filter(hasExpiry);
     if (expiring.length === 0) return seat;
 
-    // 递减 duration；无 duration 的视为立即到期
-    const processed = expiring.map((e: any) => ({
-      ...e,
-      duration: typeof e.duration === "number" ? e.duration - 1 : 0,
-    }));
+    // 递减 duration；支持 drunkUntilNight 绝对夜数到期
+    const processed = expiring.map((e: any) => {
+      let dur = typeof e.duration === "number" ? e.duration - 1 : 0;
+      if (
+        typeof e.drunkUntilNight === "number" &&
+        nightCount >= e.drunkUntilNight
+      ) {
+        dur = 0;
+      }
+      return {
+        ...e,
+        duration: dur,
+      };
+    });
     const kept = [
       ...effects.filter((e) => !hasExpiry(e)),
       ...processed.filter((e) => e.duration > 0),
@@ -451,19 +468,22 @@ export function useGameFlow(): UseGameFlowResult {
 
     const next: Seat = { ...seat, statusEffects: kept };
 
-    // 仅当被移除的效果包含对应类型时，才重置布尔字段
+    // 🛡️ 自愈机制：基于 kept 中残留效果状态动态重置布尔，杜绝洗白其他合法效果
     if (removed.some((e: any) => e.type === "protected")) {
-      next.isProtected = false;
-      next.protectedBy = null;
+      next.isProtected = kept.some((e: any) => e.type === "protected");
+      if (!next.isProtected) next.protectedBy = null;
     }
     if (removed.some((e: any) => e.type === "poisoned")) {
-      next.isPoisoned = false;
+      next.isPoisoned = kept.some((e: any) => e.type === "poisoned");
     }
     if (removed.some((e: any) => e.type === "drunk")) {
-      next.isDrunk = false;
+      next.isDrunk =
+        seat.role?.id === "drunk" ||
+        seat.role?.id === "marionette" ||
+        kept.some((e: any) => e.type === "drunk");
     }
     return next;
-  }, []);
+  }, [nightCount]);
 
   const enterDuskPhase = useCallback(() => {
     // 保存历史 (这里需要实现 saveHistory 的 Action，目前先用 updateState 模拟)

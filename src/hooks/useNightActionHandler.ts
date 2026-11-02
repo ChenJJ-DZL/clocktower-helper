@@ -50,6 +50,7 @@ import {
   findFarmerSuccessionTrigger,
 } from "../utils/farmerSuccession";
 import { computeIsPoisoned } from "../utils/gameRules";
+import { resolveGrandmotherChainDeaths } from "../utils/grandmotherChain";
 import {
   findAbilityGrantingSeat,
   seatHasAcquiredAbility,
@@ -69,7 +70,12 @@ import {
 } from "../utils/playerView";
 import { availableRolesForRoleSelection } from "../utils/roleSelectionPool";
 import { getScriptSpecialRules } from "../utils/scriptSpecialRules";
-import { isSeatEvil, isSeatMinion, isSeatDemon, isTownsfolkOrOutsiderRole } from "../utils/seatAlignment";
+import {
+  isSeatDemon,
+  isSeatEvil,
+  isSeatMinion,
+  isTownsfolkOrOutsiderRole,
+} from "../utils/seatAlignment";
 import { isSeatAlive } from "../utils/seatAlive";
 import { isVortoxWorldActive } from "../utils/vortoxWorld";
 
@@ -881,7 +887,19 @@ export async function executeViaNewEngine(
         roleId !== "brewer" &&
         roleId !== "philosopher"
       ) {
-        // 不需要选择目标的能力（信息角色、间谍魔典等）
+        // 不需要选择目标的能力（信息角色、间谍魔典、理发师换人等）
+        // 💈 理发师：恶魔选择两名玩家交换角色
+        if (roleId === "barber") {
+          const demon = context.seats.find(
+            (s: any) => isSeatDemon(s) && isSeatAlive(s)
+          );
+          context.setCurrentModal({
+            type: "BARBER_SWAP",
+            data: { demonId: demon?.id ?? null, firstId: null, secondId: null },
+          } as any);
+          return true;
+        }
+
         // 间谍特殊：需要弹出对局记录/魔典查看界面
         if (roleId === "spy") {
           context.setCurrentModal({ type: "SPY_RECORDS", data: null });
@@ -1662,6 +1680,7 @@ export async function executeViaNewEngine(
       //   不调 killPlayer 也不记录 deadThisNight，导致天亮报告永远"平安夜"、
       //   送葬者技能失效。此处比较 prev / new isDead，对新增死亡补记。
       const prevSeats = context.seats;
+      const isDemonActor = isSeatDemon(actorSeat as any);
       const newlyDead: number[] = [];
       syncedSeats.forEach((newSeat) => {
         const prevSeat = prevSeats.find((s) => s.id === newSeat.id);
@@ -1715,8 +1734,7 @@ export async function executeViaNewEngine(
       const deadPoppy = newlyDead
         .map((id) => syncedSeats.find((s) => s.id === id))
         .find(
-          (s) =>
-            s?.role?.id === "poppy_grower" && !s.isDrunk && !s.isPoisoned
+          (s) => s?.role?.id === "poppy_grower" && !s.isDrunk && !s.isPoisoned
         );
       if (deadPoppy) {
         if ((context as any).setPoppyGrowerDead) {
@@ -1750,33 +1768,98 @@ export async function executeViaNewEngine(
         }
       }
 
-      // 🔧 恶魔死亡判胜：新引擎击杀的 newlyDead 中若含恶魔，立即触发 checkGameOver。
-      //   此前只补记 deadThisNight，胜利判定拖到白天流程才触发 → 恶魔被杀后
-      //   游戏继续跑白天/黄昏/提名（官方规则：恶魔死亡立即善良获胜）。
-      if (newlyDead.length > 0 && context.checkGameOver) {
-        const deadDemon = newlyDead.find((id) => {
-          const seat = syncedSeats.find((s) => s.id === id);
-          return seat?.role?.type === "demon";
-        });
-        if (deadDemon != null) {
+      // 👵 祖母连带死亡处理：如果死者是恶魔击杀的孙子，祖母连带暴毙
+      if (isDemonActor && newlyDead.length > 0) {
+        for (const deadId of [...newlyDead]) {
+          const grandmaDeaths = resolveGrandmotherChainDeaths(
+            syncedSeats as any,
+            deadId,
+            true
+          );
+          for (const gid of grandmaDeaths) {
+            if (!newlyDead.includes(gid)) {
+              newlyDead.push(gid);
+              syncedSeats = syncedSeats.map((s) =>
+                s.id === gid
+                  ? {
+                      ...s,
+                      isDead: true,
+                      markedForDeath: true,
+                      diedAtNight: context.nightCount,
+                      killedBy: "grandmother_chain",
+                      deathSource: "grandmother_chain",
+                      statusDetails: [
+                        ...(s.statusDetails ?? []),
+                        `孙子${deadId + 1}号被恶魔杀死`,
+                      ],
+                    }
+                  : s
+              );
+              context.addLog(
+                `👵 祖母连带死亡：${gid + 1}号祖母因孙子${deadId + 1}号被恶魔杀死而连带暴毙`
+              );
+            }
+          }
+        }
+      }
+
+      // 💄 红唇女郎继承恶魔：若恶魔死亡且死后存活玩家≥4（排除旅行者），红唇女郎立刻变成恶魔
+      const deadDemon = newlyDead.find((id) => {
+        const seat = syncedSeats.find((s) => s.id === id);
+        return seat?.role?.type === "demon" && !seat.isDemonSuccessor;
+      });
+      if (deadDemon != null) {
+        const aliveNonTravelers = syncedSeats.filter(
+          (s) => isSeatAlive(s) && s.role?.type !== "traveler"
+        ).length;
+        const swSeat = syncedSeats.find(
+          (s) =>
+            s.role?.id === "scarlet_woman" &&
+            isSeatAlive(s) &&
+            !s.isDrunk &&
+            !s.isPoisoned
+        );
+        if (aliveNonTravelers >= 4 && swSeat) {
+          const deadDemonSeat = syncedSeats.find((s) => s.id === deadDemon);
+          const demonRoleId = deadDemonSeat?.role?.id || "imp";
+          const demonRoleName = deadDemonSeat?.role?.name || "小恶魔";
+          syncedSeats = syncedSeats.map((s) =>
+            s.id === swSeat.id
+              ? {
+                  ...s,
+                  role: {
+                    ...(s.role ?? {}),
+                    id: demonRoleId,
+                    name: demonRoleName,
+                    type: "demon",
+                  },
+                  roleId: demonRoleId,
+                  isDemonSuccessor: true,
+                }
+              : s
+          );
+          context.addLog(
+            `💄 红唇女郎（${swSeat.id + 1}号）继承为新的恶魔【${demonRoleName}】，游戏继续！`
+          );
+        } else if (context.checkGameOver) {
           context.checkGameOver(syncedSeats, deadDemon, false);
           context.addLog(`⚔️ 恶魔 ${deadDemon + 1} 号死亡，触发胜负判定`);
-        } else {
-          /**
-           * ⭐ 2026-10-21 补：官方「仅剩 2 名玩家存活 ⇒ 邪恶胜」。
-           *   此前这段只在「死者里有恶魔」时判终局 —— 恶魔活着把人杀光时**永不终局**。
-           *   5 人局 E2E 实测：4 死 1 活（恶魔）仍显示对局继续，12 个昼夜都不结束。
-           *   判据交给 checkGameOver（内部按官方四条算），这里只负责「死亡落库后立刻问一次」。
-           */
-          const aliveAfterNight = syncedSeats.filter(
-            (s: any) => s.role && s.isDead !== true
-          ).length;
-          if (aliveAfterNight <= 2) {
-            context.checkGameOver(syncedSeats, null as any, false);
-            context.addLog(
-              `⚖️ 夜后仅剩 ${aliveAfterNight} 名存活玩家，触发胜负判定`
-            );
-          }
+        }
+      } else if (newlyDead.length > 0 && context.checkGameOver) {
+        /**
+         * ⭐ 2026-10-21 补：官方「仅剩 2 名玩家存活 ⇒ 邪恶胜」。
+         *   此前这段只在「死者里有恶魔」时判终局 —— 恶魔活着把人杀光时**永不终局**。
+         *   5 人局 E2E 实测：4 死 1 活（恶魔）仍显示对局继续，12 个昼夜都不结束。
+         *   判据交给 checkGameOver（内部按官方四条算），这里只负责「死亡落库后立刻问一次」。
+         */
+        const aliveAfterNight = syncedSeats.filter(
+          (s: any) => s.role && s.isDead !== true
+        ).length;
+        if (aliveAfterNight <= 2) {
+          context.checkGameOver(syncedSeats, null as any, false);
+          context.addLog(
+            `⚖️ 夜后仅剩 ${aliveAfterNight} 名存活玩家，触发胜负判定`
+          );
         }
       }
 

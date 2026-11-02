@@ -2,13 +2,12 @@
  * 月之子（Moonchild）新引擎技能实现
  */
 
+import { isDrunkOrPoisoned, isGoodSeat } from "../../utils/bmrMechanics";
 import type { MiddlewareContext } from "../../utils/middlewareTypes";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
 } from "../core/roleAbility.types";
-
-import { isDrunkOrPoisoned, isGoodSeat } from "../../utils/bmrMechanics";
 
 // 前置校验：月之子能力在死亡时触发
 const preCheckOnDeath = async (
@@ -35,7 +34,10 @@ const calculateResult = async (
    *   历史缺陷：原实现直接产出 `shouldKill`，存活时也会弹出选人并击杀，
    *   等于把「被救下的月之子」当成死人用。
    */
-  if (!moonchildSeat || (moonchildSeat as { isDead?: boolean }).isDead !== true) {
+  if (
+    !moonchildSeat ||
+    (moonchildSeat as { isDead?: boolean }).isDead !== true
+  ) {
     return {
       ...context,
       aborted: true,
@@ -75,17 +77,33 @@ const calculateResult = async (
 const stateUpdate = async (
   context: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  const { meta } = context;
+  const { meta, snapshot } = context;
   const result = meta.abilityResult;
 
-  if (!result?.shouldKill) {
+  if (!result?.shouldKill || result.targetId == null) {
     return context;
   }
 
-  // 状态更新逻辑会在GameController中实现
-  // 这里只传递需要更新的信息
+  const updatedSeats = (snapshot.seats ?? []).map((s: any) =>
+    s.id === result.targetId
+      ? {
+          ...s,
+          isDead: true,
+          markedForDeath: true,
+          diedAtNight: snapshot.nightCount,
+          killedBy: "moonchild",
+          deathSource: "moonchild_curse",
+          statusDetails: [...(s.statusDetails ?? []), "月之子诅咒"],
+        }
+      : s
+  );
+
   return {
     ...context,
+    snapshot: {
+      ...snapshot,
+      seats: updatedSeats,
+    },
     meta: {
       ...context.meta,
       stateUpdates: {

@@ -2,24 +2,27 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import type { GamePhase, Role, Seat } from "../../app/data";
+import { getRoleDefinition } from "../roles";
+import type { ModalType } from "../types/modal";
+import type { DayActionContext } from "../types/roleDefinition";
+import {
+  checkCannotGainAbility,
+  isAntagonismEnabled,
+} from "../utils/antagonism";
 import { withCharadePermanentDrunk } from "../utils/charadeSetup";
+import {
+  executeDayAbilityViaNewEngine,
+  getNewEngineDayAbility,
+} from "../utils/dayAbilityBridge";
+import { isStorytellerNominatorId } from "../utils/fabledLock";
+import { showAlert } from "../utils/nativeDialogShim";
 import {
   checkNominationPair,
   revokeNominationOnVoteCancelled,
 } from "../utils/nominationEligibility";
 import { isSeatDead } from "../utils/seatAlive";
-import type { GamePhase, Role, Seat } from "../../app/data";
-import { getRoleDefinition } from "../roles";
-import type { ModalType } from "../types/modal";
-import type { DayActionContext } from "../types/roleDefinition";
-import { checkCannotGainAbility, isAntagonismEnabled } from "../utils/antagonism";
-import {
-  executeDayAbilityViaNewEngine,
-  getNewEngineDayAbility,
-} from "../utils/dayAbilityBridge";
-import { showAlert } from "../utils/nativeDialogShim";
 import { hasTravelerRole } from "../utils/travelerHooks";
-import { isStorytellerNominatorId } from "../utils/fabledLock";
 
 /**
  * DayAbilityConfig 类型重新声明（与 useGameController 中一致）
@@ -196,9 +199,7 @@ export function useDayActions(deps: DayActionsDeps) {
         return false;
       }
       if (!isStorytellerNomination && bishopInPlay) {
-        addLog(
-          "🕊️ 主教在场：只有说书人可以发起提名（玩家无法自行提名）"
-        );
+        addLog("🕊️ 主教在场：只有说书人可以发起提名（玩家无法自行提名）");
         return false;
       }
 
@@ -207,7 +208,10 @@ export function useDayActions(deps: DayActionsDeps) {
       const nominatorSeat = isStorytellerNomination
         ? null
         : seats.find((s) => s.id === sourceId);
-      if (!isStorytellerNomination && (!nominatorSeat || isSeatDead(nominatorSeat))) {
+      if (
+        !isStorytellerNomination &&
+        (!nominatorSeat || isSeatDead(nominatorSeat))
+      ) {
         addLog("只有存活的玩家可以发起提名");
         return false;
       }
@@ -250,9 +254,15 @@ export function useDayActions(deps: DayActionsDeps) {
 
       saveHistory();
 
-      if (witchActive && witchCursedId !== null) {
+      const isNomineeWitchCursed =
+        (witchActive && witchCursedId === sourceId) ||
+        (nominatorSeat as any)?.isCursed === true ||
+        (nominatorSeat?.statusEffects ?? []).some(
+          (e: any) => e.type === "cursed" && e.source === "witch"
+        );
+      if (isNomineeWitchCursed) {
         const aliveCount = seats.filter((s) => !s.isDead).length;
-        if (aliveCount > 3 && witchCursedId === sourceId) {
+        if (aliveCount > 3) {
           addLog(`${sourceId + 1}发起提名触发女巫诅咒立刻死亡`);
           killPlayer(sourceId, {
             skipGameOverCheck: false,
@@ -260,6 +270,19 @@ export function useDayActions(deps: DayActionsDeps) {
           });
           setWitchCursedId(null);
           setWitchActive(false);
+          setSeats((prev) =>
+            prev.map((s) =>
+              s.id === sourceId
+                ? {
+                    ...s,
+                    isCursed: false,
+                    statusEffects: (s.statusEffects ?? []).filter(
+                      (e: any) => !(e.type === "cursed" && e.source === "witch")
+                    ),
+                  }
+                : s
+            )
+          );
           return false;
         }
       }
@@ -569,7 +592,11 @@ export function useDayActions(deps: DayActionsDeps) {
         (prev: { nominators: Set<number>; nominees: Set<number> }) =>
           // 🗣️ 走共享模块：只有**显式取消**才恢复资格。
           //    （投票完成时上层用 consumeVoteSettled() 分流，不会走到这里。）
-          revokeNominationOnVoteCancelled(prev, nominatorId ?? null, nomineeId ?? null)
+          revokeNominationOnVoteCancelled(
+            prev,
+            nominatorId ?? null,
+            nomineeId ?? null
+          )
       );
       setNominationMap((prev) => {
         if (!prev) return {};
@@ -793,9 +820,7 @@ export function useDayActions(deps: DayActionsDeps) {
         return;
       }
       if (
-        ["amnesiac", "fisherman", "engineer", "gossip"].includes(
-          config.roleId
-        )
+        ["amnesiac", "fisherman", "engineer", "gossip"].includes(config.roleId)
       ) {
         setCurrentModal({
           type: "DAY_ABILITY",
@@ -990,16 +1015,14 @@ export function useDayActions(deps: DayActionsDeps) {
                   [effectiveRole.id]: result,
                 },
                 // 结构化结果回流，供既有 handleViewDayAbilityResult 回显。
-                dayAbilityResult:
-                  (s as any).dayAbilityResult ??
-                  {
-                    type: `${effectiveRole.id.toUpperCase()}_ENGINE_RESULT`,
-                    message:
-                      info.playerFacingLog ?? info.log ?? bridge.abilityLog,
-                    summary: info.log ?? bridge.abilityLog,
-                    abilityResult: result,
-                    isActorDisabled,
-                  },
+                dayAbilityResult: (s as any).dayAbilityResult ?? {
+                  type: `${effectiveRole.id.toUpperCase()}_ENGINE_RESULT`,
+                  message:
+                    info.playerFacingLog ?? info.log ?? bridge.abilityLog,
+                  summary: info.log ?? bridge.abilityLog,
+                  abilityResult: result,
+                  isActorDisabled,
+                },
               } as any;
             })
           );
@@ -1436,10 +1459,7 @@ export function useDayActions(deps: DayActionsDeps) {
                         acquiredAbilities: existing.includes(roleId)
                           ? existing
                           : [...existing, roleId],
-                        statusDetails: [
-                          ...details,
-                          `获得能力:${grantedName}`,
-                        ],
+                        statusDetails: [...details, `获得能力:${grantedName}`],
                       };
                     }
                     // ② 在场同名角色：变成酒鬼（官方规则）

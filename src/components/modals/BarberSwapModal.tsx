@@ -1,4 +1,5 @@
 import { useGameActions } from "../../contexts/GameActionsContext";
+import { executeBarberSwap } from "../../utils/snvMechanics";
 import { ModalWrapper } from "./ModalWrapper";
 
 export function BarberSwapModal() {
@@ -30,20 +31,24 @@ export function BarberSwapModal() {
               const aSeat = props.seats.find((s: any) => s.id === aId);
               const bSeat = props.seats.find((s: any) => s.id === bId);
               if (!aSeat || !bSeat) return;
-              const aRole = aSeat.role;
-              const bRole = bSeat.role;
+              const { updatedSeatA, updatedSeatB } = executeBarberSwap(
+                aSeat,
+                bSeat
+              );
               props.setSeats((prev: any[]) =>
                 prev.map((s: any) => {
-                  if (s.id === aId) return { ...s, role: bRole };
-                  if (s.id === bId) return { ...s, role: aRole };
+                  if (s.id === aId) return updatedSeatA;
+                  if (s.id === bId) return updatedSeatB;
                   return s;
                 })
               );
               props.addLog(
-                `理发师触发：交换了 ${aId + 1}号 与 ${bId + 1}号 的角色`
+                `理发师触发：交换了 ${aId + 1}号 与 ${bId + 1}号 的角色（阵营保持官方契约不变）`
               );
               // 调整唤醒队列：如果当前在夜晚，将交换后的两名玩家插入唤醒队列
               if (["night", "firstNight"].includes(props.gamePhase)) {
+                const aRole = updatedSeatA.role;
+                const bRole = updatedSeatB.role;
                 if (
                   aRole &&
                   ((aRole.firstNightOrder ?? 0) > 0 ||
@@ -106,8 +111,8 @@ export function BarberSwapModal() {
                 )
                 .map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    {/* 🔒 只显示座位号+玩家名：恶魔不该知道全场角色 */}
-                    [{s.id + 1}号] {s.playerName ?? ""}
+                    {/* 🔒 只显示座位号+玩家名：恶魔不该知道全场角色 */}[
+                    {s.id + 1}号] {s.playerName ?? ""}
                   </option>
                 ))}
             </select>
@@ -140,8 +145,8 @@ export function BarberSwapModal() {
                 )
                 .map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    {/* 🔒 只显示座位号+玩家名：恶魔不该知道全场角色 */}
-                    [{s.id + 1}号] {s.playerName ?? ""}
+                    {/* 🔒 只显示座位号+玩家名：恶魔不该知道全场角色 */}[
+                    {s.id + 1}号] {s.playerName ?? ""}
                   </option>
                 ))}
             </select>

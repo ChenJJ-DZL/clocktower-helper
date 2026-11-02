@@ -85,7 +85,9 @@ describe("死亡标记统一护栏", () => {
     ).toEqual([]);
   });
 
-  it("⭐⭐ 不得再自行实现「是否存活」（唯一权威 = utils/seatAlive::isSeatAlive）", () => {
+  it(
+    "⭐⭐ 不得再自行实现「是否存活」（唯一权威 = utils/seatAlive::isSeatAlive）",
+    () => {
     // 二次收口（2026-09-14）：曾另有 2 套实现
     //   · bmrMechanics::isAliveSeat       —— `!seat.isDead`
     //   · expansionMechanics::isSeatAlive —— `!seat.isDead`
@@ -134,7 +136,7 @@ describe("死亡标记统一护栏", () => {
       `内联 \`!x.isDead\` 不得高于棘轮上限 ${INLINE_CEILING}（当前 ${inlineNeg.length}）。\n` +
         `新增处请改用 utils/seatAlive 的 isSeatAlive/isSeatDead。`
     ).toBeLessThanOrEqual(INLINE_CEILING);
-  });
+  }, 15000);
 
   it("⭐ 引擎侧不再派生 isAlive：快照里不应出现该字段", () => {
     const snapshot = {

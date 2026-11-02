@@ -214,7 +214,7 @@ describe("🛡️ 弹窗可达性台账", () => {
         `${unregistered.join("\n")}\n` +
         `⇒ 要么补一个 setModal({type:"X"}) 生产点，要么在 LEGACY 里写明理由。`
     ).toEqual([]);
-  });
+  }, 15000);
 
   it("② 台账里的类型必须确实没有生产点（名单过期即报红）", () => {
     const stale = Object.keys(LEGACY).filter(

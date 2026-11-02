@@ -50,6 +50,7 @@ import {
   saveCurrentSnapshot,
 } from "../utils/persistence";
 import { checkAndUpdatePixieAbility } from "../utils/pixieHelper";
+import { isSeatAlive } from "../utils/seatAlive";
 import { unifiedEventBus } from "../utils/unifiedEventBus";
 import { isVortoxDuskWinActive } from "../utils/vortoxWorld";
 import {
@@ -951,6 +952,46 @@ export function useGameController() {
             addLog(
               "🌺 罂粟种植者在醉酒/中毒状态下死亡，能力未生效，邪恶阵营无法互相认识。"
             );
+          }
+        }
+
+        // 💄 红唇女郎 (Scarlet Woman) 恶魔继任逻辑：恶魔死亡且死后存活玩家≥4（排除旅行者）时接盘
+        if (
+          targetSeat?.role?.type === "demon" &&
+          !targetSeat.isDemonSuccessor
+        ) {
+          const aliveNonTravelers = updatedSeats.filter(
+            (s) => isSeatAlive(s) && s.role?.type !== "traveler"
+          ).length;
+          if (aliveNonTravelers >= 4) {
+            const swSeat = updatedSeats.find(
+              (s) =>
+                s.role?.id === "scarlet_woman" &&
+                isSeatAlive(s) &&
+                !s.isDrunk &&
+                !s.isPoisoned
+            );
+            if (swSeat) {
+              const demonRole = targetSeat.role;
+              updatedSeats = updatedSeats.map((s) =>
+                s.id === swSeat.id
+                  ? {
+                      ...s,
+                      role: {
+                        ...(s.role ?? {}),
+                        id: demonRole.id,
+                        name: demonRole.name,
+                        type: "demon",
+                      },
+                      roleId: demonRole.id,
+                      isDemonSuccessor: true,
+                    }
+                  : s
+              );
+              addLog(
+                `💄 红唇女郎（${swSeat.id + 1}号）继承为新的恶魔【${demonRole.name}】，游戏继续！`
+              );
+            }
           }
         }
 

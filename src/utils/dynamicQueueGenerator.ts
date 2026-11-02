@@ -116,9 +116,12 @@ export function getDeathEventWatchTarget(
   roleId: string | undefined | null
 ): string | null {
   if (!roleId) return null;
+  const canonicalId = roleId === "choirboy" ? "choir_boy" : roleId;
   try {
     const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
-    const ability = abilities.find((ab) => ab?.roleId === roleId);
+    const ability = abilities.find(
+      (ab) => ab?.roleId === canonicalId || ab?.roleId === roleId
+    );
     const watched = ability?.deathEventWatch?.roleId;
     return typeof watched === "string" && watched.length > 0 ? watched : null;
   } catch {
@@ -197,9 +200,12 @@ export function isDeathTriggeredRole(
   roleId: string | undefined | null
 ): boolean {
   if (!roleId) return false;
+  const canonicalId = roleId === "choirboy" ? "choir_boy" : roleId;
   try {
     const abilities = unifiedRoleDefinition.getAllAbilities() as any[];
-    const ability = abilities.find((ab) => ab?.roleId === roleId);
+    const ability = abilities.find(
+      (ab) => ab?.roleId === canonicalId || ab?.roleId === roleId
+    );
     const timings = (ability?.triggerTiming ?? []) as string[];
     return timings.includes(AbilityTriggerTiming.ON_DEATH);
   } catch {
@@ -242,13 +248,35 @@ export function appendExecutedDeathTriggeredToQueue(
   wakeIds: number[]
 ): number[] {
   const base = Array.isArray(wakeIds) ? wakeIds : [];
+  const next = [...base];
   // ⚠️ 一律返回**副本**（下方所有分支同此契约）
-  if (typeof todayExecutedId !== "number") return [...base];
-  if (base.includes(todayExecutedId)) return [...base];
-  const seat = (seats ?? []).find((s: any) => s?.id === todayExecutedId);
-  if (!seat) return [...base];
-  if (!canWakeOnDeathEvent(seat.role?.id)) return [...base];
-  return [...base, todayExecutedId];
+  if (typeof todayExecutedId === "number" && !next.includes(todayExecutedId)) {
+    const seat = (seats ?? []).find((s: any) => s?.id === todayExecutedId);
+    if (seat && canWakeOnDeathEvent(seat.role?.id)) {
+      next.push(todayExecutedId);
+    }
+  }
+
+  // 🛡️ 自愈机制：兼容非标准处决（如女巫诅咒猝死、魔像处决、猎手射杀、手动标死等）白天死亡的死亡触发角色
+  for (const s of seats ?? []) {
+    if (!s || next.includes(s.id)) continue;
+    if (
+      s.isDead === true &&
+      canWakeOnDeathEvent(s.role?.id) &&
+      (s.executedToday === true ||
+        s.diedOnDay != null ||
+        (Array.isArray(s.statusDetails) &&
+          s.statusDetails.some(
+            (d: any) =>
+              typeof d === "string" &&
+              (d.includes("处决") || d.includes("死亡"))
+          )))
+    ) {
+      next.push(s.id);
+    }
+  }
+
+  return next;
 }
 
 export function roleHasNightAction(roleId: string | undefined | null): boolean {
@@ -355,7 +383,15 @@ export function generateDynamicNightQueue(
       entry.roleId === "demon_info" ||
       entry.roleId === LEGION_MUTUAL_RECOGNITION_ID;
     const poppyGrowerDiedAndTriggersEvil =
-      (snapshot as any).poppyGrowerDead === true;
+      (snapshot as any).poppyGrowerDead === true ||
+      (!(snapshot as any).poppyGrowerRecognized &&
+        snapshot.seats.some(
+          (s) =>
+            s.role?.id === "poppy_grower" &&
+            !isSeatAlive(s) &&
+            !s.isDrunk &&
+            !s.isPoisoned
+        ));
 
     // 🧚 小精灵能力继承：若为非首夜、原本仅首夜行动的角色（如图书管理员、厨师），
     //   但场上有存活小精灵刚刚继承了该能力且当晚尚未唤醒使用过，允许进队列！

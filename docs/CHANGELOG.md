@@ -54,6 +54,30 @@
    - 在 `useSeatManager.killSeatOnly` 中补齐罂粟种植者标死时的 `poppyGrowerDead: true` 派发；
    - 在 `dynamicQueueGenerator.ts` 增加防御性自愈检测：即便调用方未显式传入 `poppyGrowerDead` 布尔值，只要场上罂粟种植者已死亡且未醉酒中毒，即自动触发邪恶互认。
 
+### 六、四大高危家族 32 核心角色因果链排查与自愈型防御全面加固
+1. **废除脆弱旁路变量，转向真值自愈（Self-Healing Truth）**：
+   - `dynamicQueueGenerator.ts`：全面自愈推导罂粟种植者死亡互认，即使外部漏传 `poppyGrowerDead`，只要场上罂粟种植者已死且未中毒醉酒、未曾互认，系统即刻自愈排入爪牙与恶魔互认步骤。
+   - `appendExecutedDeathTriggeredToQueue`：升级自愈逻辑，除常规处决死者外，自动检测并补齐白天因女巫诅咒、魔像处决、猎手射杀、说书人手动标死等非标准死因的死亡触发角色（如理发师/帽匠/心上人/瘟疫医生等），当晚无缝进入唤醒队列，并统一确保设置 `hasAbilityEvenDead = true` 避免被死后门控拦截。
+   - `dynamicQueueGenerator.ts` 对 `choirboy` 与 `choir_boy` 别名双向自愈对齐，确保死亡事件订阅 `deathEventWatch` 100% 准确命中。
+2. **理发师 (Barber) 交换全链路自愈与阵营防篡改**：
+   - 修复夜杀理发师唤醒时因 `maxTargets === 0` 误入无目标简易确认窗导致无法选人换角色的深层断链，在夜间执行时精准弹出 `BARBER_SWAP` 换人窗；
+   - 修复 `BarberSwapModal.tsx` 直接替换 `role` 导致阵营篡改的严重漏洞，全面收敛至 `executeBarberSwap`，严格遵守官方契约「角色交换保持原有阵营不变」，并严禁在两名恶魔之间交换。
+3. **恶魔死亡与红唇女郎 (Scarlet Woman) 继任防早夭**：
+   - 修复新引擎夜杀恶魔（如小恶魔自杀或其它夜杀）及白天处决/射杀恶魔时，胜负判定 `checkGameOver` 抢跑导致游戏提前判善良胜的漏洞；
+   - 在恶魔死亡咽喉处（`useNightActionHandler.ts` 及 `useGameController.ts::killPlayer`）先期执行红唇女郎自愈继任推导，在存活玩家≥4（非旅行者）且红唇女郎未中毒醉酒时，立即无缝继承为新恶魔，阻止游戏异常结束。
+4. **祖母 (Grandmother) 恶魔夜杀连带暴毙闭环**：
+   - 补齐 `useNightActionHandler.ts` 新引擎击杀（`executeViaNewEngine`）中孙子被恶魔杀害时的祖母连带暴毙联动（`resolveGrandmotherChainDeaths`），记录 `grandmother_chain` 死因与状态说明，且醉酒中毒祖母依规免疫。
+5. **报丧女妖 (Banshee)、月之子 (Moonchild)、守鸦人 (Ravenkeeper) 真实死因自愈**：
+   - `banshee.ability.ts` 自愈读取座位死因（`deathSource` / `killedBy`），只要死于恶魔不论显式或隐式均如实白天觉醒；
+   - `moonchild.ability.ts` 补齐 `snapshot.seats` 目标死亡状态真实落库（`deathSource: "moonchild_curse"`），确保能力管道与外部视图状态强一致；
+   - `ravenkeeper.ability.ts` 补齐 `deadThisNight` 自愈检测，杜绝恶魔杀害守鸦人但未写 `diedAtNight` 时的静默跳过。
+6. **跨昼夜递延与记账自愈（女巫/侍臣/水手/旅店老板）**：
+   - `useDayActions.ts` 提名判定对女巫诅咒增加从提名者 `isCursed` 与 `statusEffects` 自愈识别，且触发后同步清除诅咒；
+   - `useGameFlow.ts::clearExpiredNightEffects` 升级为真值自愈，清理到期临时状态时依据 `kept` 残留状态动态重置，杜绝将酒鬼、提线木偶等永久醉酒状态误清；支持 `drunkUntilNight` 绝对夜数到期精准清除。
+7. **全覆盖因果闭环测试套件（L5 Causal Suite）**：
+   - 新增 `src/roles/__tests__/causal_chain_32_roles_matrix.test.ts`，全面覆盖四大高危家族 32 核心角色的因果触发、极端路径与醉毒干扰验证（24 组关键断言 100% 全绿）。
+
+
 ## W26.11.1 — 突破 60% 官方范例里程碑（267/438）· 修复清空全部 4 处已知偏差 · 无神论者与士兵替死修复（2026-11-01）
 
 ### 一、清空全部 4 处历史已知偏差（`it.fails` 归零）

@@ -23,11 +23,21 @@ const preCheck = async (ctx: MiddlewareContext): Promise<MiddlewareContext> => {
 const calculate = async (
   ctx: MiddlewareContext
 ): Promise<MiddlewareContext> => {
-  // 检测是否被恶魔杀死
+  // 检测是否被恶魔杀死：优先说书人/元数据，自愈读取座位上的 deathSource 与 killedBy
+  const seat = ctx.snapshot.seats.find(
+    (s: any) => s.id === ctx.actionNode.seatId
+  );
   const killerRole =
     ctx.meta.killerRole ?? ctx.actionNode.meta?.killerRole ?? "";
   const killedByDemon =
-    killerRole === "demon" || ctx.meta.killedByDemon === true;
+    killerRole === "demon" ||
+    ctx.meta.killedByDemon === true ||
+    seat?.killedBy === "demon" ||
+    seat?.deathSource === "demon_kill" ||
+    seat?.deathSource === "imp_kill" ||
+    (typeof seat?.deathSource === "string" &&
+      (seat.deathSource.includes("demon") ||
+        seat.deathSource.includes("kill")));
   return {
     ...ctx,
     meta: {

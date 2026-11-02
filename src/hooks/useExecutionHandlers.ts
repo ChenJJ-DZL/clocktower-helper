@@ -1,40 +1,39 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { resolveMastermindExtraDay } from "../utils/mastermindRule";
-import { isSeatDemon } from "../utils/seatAlignment";
-import { checkPacifistSave } from "../utils/pacifistRule";
 import { useCallback, useMemo, useRef } from "react";
-import { appendExecutedDeathTriggeredToQueue } from "../utils/dynamicQueueGenerator";
 import type { GamePhase, Role, Seat } from "../../app/data";
 import { isPlayerEvil } from "../../app/gameLogic";
 import { gameActions } from "../contexts/GameContext";
 import { LEGION_MUTUAL_RECOGNITION_ID } from "../roles/demon/demonFirstNightHelper";
 import type { NightInfoResult } from "../types/game";
 import type { ModalType } from "../types/modal";
+import { appendExecutedDeathTriggeredToQueue } from "../utils/dynamicQueueGenerator";
+import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
 import { hasTeaLadyProtection } from "../utils/gameRules";
 import { shouldZeroLegionVote } from "../utils/legionVoteRule";
-import { markVoteSettled } from "../utils/nominationEligibility";
-import {
-  travelerScapegoatCanSubstitute,
-  travelerExecutedId,
-  travelerSlotId,
-  formatVoterLabel,
-  hasTravelerRole,
-  voudonSkipsGhostVote,
-  voudonThreshold,
-} from "../utils/travelerHooks";
-import { isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
-import { resolveEvilTwinPair } from "../utils/evilTwinHelper";
+import { resolveMastermindExtraDay } from "../utils/mastermindRule";
 import {
   shouldMorticianTransform,
   transformMorticianToDemon,
 } from "../utils/morticianTransform";
+import { showAlert } from "../utils/nativeDialogShim";
+import { markVoteSettled } from "../utils/nominationEligibility";
+import { checkPacifistSave } from "../utils/pacifistRule";
+import { isSeatDemon, isSeatTownsfolkOrOutsider } from "../utils/seatAlignment";
+import {
+  formatVoterLabel,
+  hasTravelerRole,
+  travelerExecutedId,
+  travelerScapegoatCanSubstitute,
+  travelerSlotId,
+  voudonSkipsGhostVote,
+  voudonThreshold,
+} from "../utils/travelerHooks";
 import type { executePoisonAction } from "./roleActionHandlers";
 // 单数 useExecutionHandler 为本文件直接依赖的活代码（非死文件；勿因与复数 useExecutionHandlers 命名撞车而误删）
 import { useExecutionHandler } from "./useExecutionHandler";
 import type { NightActionHandlerContext } from "./useNightActionHandler";
-import { showAlert } from "../utils/nativeDialogShim";
 
 /**
  * 处决/击杀/投票处理函数的依赖接口
@@ -377,13 +376,13 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         return true;
       }
       // ❌ 2026-10-21 删除「镇长被处决不死」——这是**自造规则**。
-    //   官方【镇长】只写：「如果仅有 3 名玩家存活，且**没有发生处决**，你的阵营获胜。」
-    //   ⇒ 镇长**没有**处决免疫，被处决就是死。
-    //   旧实现（注释自承「当前先保证不死」）导致：处决镇长 ⇒ 无人死亡 ⇒
-    //   白天不消耗性命、终局阈值永远推不动。5 人局 E2E 一跑就抓到：
-    //   dusk#2「执行了处决结算但无新增死亡（死前=5号 死后=5号）」。
-    //   「3 人存活 + 平安日 ⇒ 善良胜」由 app/gameLogic.ts::hasMayorPeacefulWin
-    //   自动结算，与本分支无关，删除后不影响那条规则。
+      //   官方【镇长】只写：「如果仅有 3 名玩家存活，且**没有发生处决**，你的阵营获胜。」
+      //   ⇒ 镇长**没有**处决免疫，被处决就是死。
+      //   旧实现（注释自承「当前先保证不死」）导致：处决镇长 ⇒ 无人死亡 ⇒
+      //   白天不消耗性命、终局阈值永远推不动。5 人局 E2E 一跑就抓到：
+      //   dusk#2「执行了处决结算但无新增死亡（死前=5号 死后=5号）」。
+      //   「3 人存活 + 平安日 ⇒ 善良胜」由 app/gameLogic.ts::hasMayorPeacefulWin
+      //   自动结算，与本分支无关，删除后不影响那条规则。
 
       // 🐑 替罪羊（traveler）：说书人裁定代刑 —— 替罪羊死、原被处决者免死。
       //   判据：utils/travelerHooks.ts::travelerScapegoatCanSubstitute（读 state.travelers，
@@ -792,9 +791,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         const thiefTarget = twilightVoteTargets?.thiefTargetId;
         if (thiefTarget != null && effectiveVoters.includes(thiefTarget)) {
           v = v - 2;
-          addLog(
-            `🗳️ 窃贼效果生效：${thiefTarget + 1}号投票算作负数（−1 票）`
-          );
+          addLog(`🗳️ 窃贼效果生效：${thiefTarget + 1}号投票算作负数（−1 票）`);
         }
 
         voters = effectiveVoters;
@@ -814,10 +811,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       const beggarIndex = (travelers ?? []).findIndex(
         (r) => r?.id === "beggar"
       );
-      if (
-        beggarIndex >= 0 &&
-        voters?.includes(travelerSlotId(beggarIndex))
-      ) {
+      if (beggarIndex >= 0 && voters?.includes(travelerSlotId(beggarIndex))) {
         dispatch(gameActions.consumeBeggarToken());
         addLog("🥣 乞丐使用 1 枚投票标记举手投票（其投票标记数 -1）");
       }
@@ -1057,10 +1051,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
        *   再叠加 `isGoodAlignment(executed)`，逻辑虽对但**无法单测**，
        *   「只救善良 / 醉毒不生效 / 已死不生效」三条只能靠整局偶然撞见。
        */
-      const pacifistCheck = checkPacifistSave(
-        executed as any,
-        seats as any
-      );
+      const pacifistCheck = checkPacifistSave(executed as any, seats as any);
       if (pacifistCheck.shouldPrompt) {
         setCurrentModal({
           type: "PACIFIST_CONFIRM",
@@ -1344,7 +1335,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
         const executedSeat =
           todayExecutedId === null || todayExecutedId === undefined
             ? null
-            : seats.find((s) => s.id === todayExecutedId) ?? null;
+            : (seats.find((s) => s.id === todayExecutedId) ?? null);
         const extra = resolveMastermindExtraDay(executedSeat as any);
         addLog(`🧠 ${extra.reason}`);
         setWinResult(extra.winner);
@@ -1479,6 +1470,16 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       baseWakeIds
     );
 
+    // 🛡️ 自愈机制：确保夜晚唤醒队列中的死亡触发角色具备 hasAbilityEvenDead 标记，
+    // 防止被 preProcessAbility 已死亡门控误拦截
+    setSeats((prev: Seat[]) =>
+      prev.map((s) =>
+        wakeIds.includes(s.id) && s.isDead && !s.hasAbilityEvenDead
+          ? { ...s, hasAbilityEvenDead: true }
+          : s
+      )
+    );
+
     // 重新计算非首夜的系统步骤映射（如罂粟种植者死亡触发的邪恶互认；无则清空旧首夜映射）
     const stepMap = new Map<number, string>();
     queue.forEach((node: any, idx: number) => {
@@ -1611,7 +1612,7 @@ export function useExecutionHandlers(deps: ExecutionHandlersDeps) {
       const executedSeat =
         todayExecutedId === null || todayExecutedId === undefined
           ? null
-          : seats.find((s) => s.id === todayExecutedId) ?? null;
+          : (seats.find((s) => s.id === todayExecutedId) ?? null);
       const extra = resolveMastermindExtraDay(executedSeat as any);
       addLog(`🧠 ${extra.reason}`);
       setWinResult(extra.winner);

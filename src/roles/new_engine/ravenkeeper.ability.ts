@@ -44,14 +44,14 @@
  * ============================================================
  */
 
+import type { MiddlewareContext } from "../../utils/middlewareTypes";
+import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
+import { isSeatDisabled } from "../../utils/seatDisabled";
 import {
   createDeterministicRandom,
   type DeterministicRandom,
   nightInfoSeed,
 } from "../core/deterministicRandom";
-import type { MiddlewareContext } from "../../utils/middlewareTypes";
-import { isSeatDisabled } from "../../utils/seatDisabled";
-import { isSeatTownsfolkOrOutsider } from "../../utils/seatAlignment";
 import {
   AbilityTriggerTiming,
   createRoleAbility,
@@ -101,7 +101,9 @@ const preCheckDeathAndStatus = async (
   }
 
   const diedTonight =
-    seat.diedAtNight === nightCount || seat.markedForDeath === true;
+    seat.diedAtNight === nightCount ||
+    seat.markedForDeath === true ||
+    (snapshot as any).deadThisNight?.includes?.(seat.id) === true;
 
   // 规则："只要守鸦人死在夜晚，不论因什么原因而死，他都能被唤醒并使用能力。"
   // 移除 killedByDemon 检查 — 任何夜晚死亡原因均可触发
@@ -174,9 +176,7 @@ export function resolveTargetRole(
       (targetSeat as any).registerAsGood !== false &&
       (targetSeat as any).registerAsEvil !== true;
     if (isGood) {
-      const goodRoles = seats.filter(
-        (s: any) => isSeatTownsfolkOrOutsider(s)
-      );
+      const goodRoles = seats.filter((s: any) => isSeatTownsfolkOrOutsider(s));
       if (goodRoles.length > 0) {
         const randomGood = goodRoles[Math.floor(rng() * goodRoles.length)];
         return randomGood.role?.name ?? displayRole?.name ?? "未知角色";
@@ -200,8 +200,8 @@ export function generateFakeRoleName(
 ): string {
   const validCandidates = seats
     .map((s: any) => s.role?.name)
-    .filter(
-      (name: any): name is string => Boolean(name && name !== realRoleName)
+    .filter((name: any): name is string =>
+      Boolean(name && name !== realRoleName)
     );
   if (validCandidates.length > 0) {
     return validCandidates[Math.floor(rng() * validCandidates.length)];
@@ -279,7 +279,11 @@ const calculateResult = async (
   // 🎲 确定性随机：同一夜、同一角色的重复计算（提示预演 / 实际执行）必须得到
   // 完全相同的角色名，否则说书人照提示念的内容会与结果弹窗、魔典标记对不上。
   const rng = createDeterministicRandom(
-    nightInfoSeed("ravenkeeper", context.actionNode.seatId, snapshot.nightCount ?? 1)
+    nightInfoSeed(
+      "ravenkeeper",
+      context.actionNode.seatId,
+      snapshot.nightCount ?? 1
+    )
   );
 
   const realRoleName = resolveTargetRole(targetSeat, snapshot.seats, rng);
