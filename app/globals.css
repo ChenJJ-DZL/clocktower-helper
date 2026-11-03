@@ -612,35 +612,37 @@ body > * {
               盖过的元素，必须在本段用更高特异性覆盖，且改完必须截图复测。
    ══════════════════════════════════════════════════════════════ */
 
-/* ── V2 tokens：纸 / 卡 / 墨 / 线 / 语义色 / 三级阴影 ── */
+/* ── 方案 2A tokens：暖木生宣 / 柔和卡面 / 竹炭木墨 / 细檀木线 / 矿物彩墨语义 / 三级阴影 ── */
 .theme-modern {
   /* 纸与卡 */
-  --paper: #f2eee5;      /* 舞台纸底（米白） */
-  --paper-0: #ffffff;    /* 纯白卡（最上一层） */
-  --paper-1: #faf8f3;    /* 次级卡底 */
-  --paper-2: #f6f3ec;    /* 凹槽 / 次级底 */
-  --paper-3: #ece7db;    /* 最深的纸（分隔/舞台边缘） */
-  /* 墨（文字） */
-  --ink-900: #111111;
-  --ink-600: #6f6a60;
-  --ink-400: #8a8478;
-  /* 线 */
-  --rule: #111111;
-  --line: rgba(17, 17, 17, 0.07);
-  --rule-soft: rgba(17, 17, 17, 0.07);
-  /* 语义色（语义锁死，不得互换） */
-  --green: #15803d;      /* 正常 / 可执行 / 成功 */
+  --paper: #ece5d8;      /* 舞台纸底（暖木生宣燕麦纸，低眩光、护眼） */
+  --paper-0: #faf6ee;    /* 柔和温润宣纸卡（最上一层） */
+  --paper-1: #f5efe3;    /* 次级卡底 */
+  --paper-2: #ede6d8;    /* 凹槽 / 次级底 */
+  --paper-3: #e2d9c8;    /* 最深的纸（分隔/舞台边缘） */
+  /* 墨（文字：竹炭木墨，绝非死黑） */
+  --ink-900: #2a241e;    /* 主文字（9:1 黄金阅读对比度） */
+  --ink-600: #5c5245;    /* 次级文字 */
+  --ink-400: #8f8373;    /* 辅助注释 */
+  /* 线（细檀木线） */
+  --rule: #2a241e;
+  --line: rgba(42, 36, 30, 0.1);
+  --rule-soft: rgba(42, 36, 30, 0.08);
+  /* 语义色（矿物彩墨） */
+  --green: #15803d;      /* 正常 / 可执行 / 成功（松石翡翠绿） */
   --green-bg: #eef6f0;
-  --red: #b91c1c;        /* 异常 / 提醒 / 危险 / 被处决 */
+  --red: #b91c1c;        /* 异常 / 提醒 / 危险 / 被处决（朱砂赤红） */
   --red-bg: #fbeeee;
-  --blue: #1b4db1;       /* 村民 / 信息 */
-  --blue-bg: #eef1f9;
-  --orange: #b45309;     /* 爪牙 / 需注意 */
-  --orange-bg: #faf3e6;
-  --purple: #6d28d9;     /* 转为邪恶 */
+  --blue: #2b6282;       /* 村民 / 信息（青金石兰） */
+  --blue-bg: #edf4f8;
+  --orange: #b45e1b;     /* 爪牙 / 需注意（赭石暖橙） */
+  --orange-bg: #fdf5ed;
+  --purple: #6d4c82;     /* 转为邪恶（紫檀） */
   --purple-bg: #f4f0fd;
-  --yellow: #f2b705;     /* 醉酒 / 中性提示 */
+  --yellow: #d97706;     /* 醉酒 / 中性提示（暖金） */
   --yellow-bg: #fdf6e3;
+  --accent: #a64b2a;     /* 暖红檀木灵魂高光 */
+  --accent-bg: #faf2ec;
   /* 阵营色（沿用语义） */
   --align-townsfolk: var(--blue);
   --align-outsider: var(--green);
@@ -651,9 +653,9 @@ body > * {
   --r-card: 16px;    /* 卡内小卡 */
   --r-chip: 999px;   /* 胶囊 */
   /* 阴影分层（唯一允许的"立体感"来源；不透明底板禁投影） */
-  --sh1: 0 1px 2px rgba(17, 17, 17, 0.04), 0 6px 16px rgba(17, 17, 17, 0.05);
-  --sh2: 0 2px 5px rgba(17, 17, 17, 0.06), 0 12px 28px rgba(17, 17, 17, 0.09);
-  --sh3: 0 4px 10px rgba(17, 17, 17, 0.06), 0 30px 70px rgba(17, 17, 17, 0.16);
+  --sh1: 0 1px 2px rgba(42, 36, 30, 0.03), 0 4px 12px rgba(42, 36, 30, 0.04);
+  --sh2: 0 2px 5px rgba(42, 36, 30, 0.04), 0 8px 18px rgba(42, 36, 30, 0.05);
+  --sh3: 0 4px 10px rgba(42, 36, 30, 0.05), 0 20px 40px rgba(42, 36, 30, 0.08);
   --shadow-print: var(--sh2);
   /* 语义 token（兼容既有引用） */
   --color-bg: var(--paper);
@@ -722,12 +724,12 @@ body > * {
   border-color: var(--line);
 }
 
-/* 牌桌：米白纸底 + 极淡中心提亮（浮卡的"卡下纸面"，无暗角、无蒙版） */
+/* 牌桌：暖木生宣纸底 + 极淡中心提亮（低眩光、护眼漫反射） */
 .theme-modern [data-surface="table"] {
   background-color: var(--paper);
   background-image: radial-gradient(
     circle at 50% 46%,
-    #fbf9f4 0%,
+    #faf6ee 0%,
     var(--paper) 58%,
     var(--paper-3) 100%
   );
@@ -1126,18 +1128,15 @@ body > * {
   border-color: var(--align-demon);
 }
 
-/* 死亡态：降透明 + 一道墨色斜线 */
+/* ── 特效 3：处决破局 · 焦墨断痕撕裂（纯净无印章版：飞白焦墨刀痕与朱砂暗红芯线） ── */
 .theme-modern .seat-token.dead-cracked {
   background: var(--paper-0);
-  background-image: linear-gradient(
-    to top right,
-    transparent calc(50% - 1px),
-    var(--ink-600) calc(50% - 1px),
-    var(--ink-600) calc(50% + 1px),
-    transparent calc(50% + 1px)
-  );
-  opacity: 0.4;
-  border-color: var(--line);
+  background-image: 
+    linear-gradient(115deg, transparent 46%, var(--ink-900) 48%, var(--red) 50%, var(--ink-900) 52%, transparent 54%),
+    linear-gradient(110deg, transparent 48%, rgba(42, 36, 30, 0.3) 49%, transparent 51%);
+  opacity: 0.6;
+  border-color: var(--red) !important;
+  animation: executionShockwave 0.14s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ── 按钮组件（.btn-arcane-*）── */
@@ -1391,10 +1390,82 @@ body > * {
 
 .theme-modern .theme-capsule-btn.is-active,
 .theme-modern .theme-capsule-btn.is-active:hover {
-  background-color: var(--ink-900);
+  background-color: var(--accent);
   color: #fff;
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(166, 75, 42, 0.3);
   font-family: var(--font-display);
+}
+
+/* ── 特效 1：水墨微物理湮染触感（生宣吸墨浸润涟漪 160ms，干脆利落） ── */
+@keyframes washiInkRipple {
+  0% {
+    transform: scale(0.97);
+    box-shadow: 0 0 0 0 rgba(166, 75, 42, 0.4);
+  }
+  40% {
+    transform: scale(0.985);
+    box-shadow: 0 0 0 6px rgba(166, 75, 42, 0.16);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 14px rgba(166, 75, 42, 0);
+  }
+}
+
+.theme-modern button:active:not(:disabled),
+.theme-modern .seat-node:active,
+.theme-modern [data-testid^="script-card-"]:active,
+.theme-modern .theme-capsule-btn:active {
+  animation: washiInkRipple 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes executionShockwave {
+  0% {
+    transform: scale(0.92);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ── 特效 2：昼夜流转 · 晨昏全景天光跃迁 ── */
+.theme-modern [data-night="true"] [data-surface="table"],
+.theme-modern [data-surface="table"][data-night="true"],
+.theme-modern [data-night="true"].game-board {
+  background-color: #171b20 !important;
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    #202730 0%,
+    #13171b 100%
+  ) !important;
+  transition: background-color 400ms var(--ease-out), background-image 400ms var(--ease-out);
+}
+
+.theme-modern [data-night="true"] .compass-ring {
+  background: #1e252d !important;
+  border-color: rgba(217, 168, 92, 0.35) !important;
+  box-shadow: 0 0 35px rgba(217, 168, 92, 0.15), 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.theme-modern [data-night="true"] .compass-ring > div:first-child {
+  color: #f5e6cc !important;
+}
+
+.theme-modern [data-night="true"] .timer-glow {
+  color: #f8dca6 !important;
+  text-shadow: 0 0 15px rgba(248, 220, 166, 0.5) !important;
+}
+
+.theme-modern [data-night="true"] .seat-token {
+  background: #1e252d !important;
+  border-color: rgba(237, 232, 223, 0.15) !important;
+}
+
+.theme-modern [data-night="true"] .seat-nameplate {
+  color: #ede8df !important;
 }
 
 /* ── Classic: 确保扁平高对比回退（显式重置，零迁移成本）── */

@@ -593,6 +593,7 @@ export function RoundTable({
   return (
     <div
       ref={containerRef}
+      data-night={gamePhase === "firstNight" || gamePhase === "night" ? "true" : undefined}
       className="relative w-full h-full overflow-hidden"
       onWheel={handleWheel}
     >

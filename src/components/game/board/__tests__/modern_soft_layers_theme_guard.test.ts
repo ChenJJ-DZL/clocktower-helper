@@ -26,13 +26,13 @@ function block(selector: string): string {
 }
 
 describe("现代版 V2 圆润浮卡主题护栏", () => {
-  it("① V2 token 齐备（纸 / 卡 / 墨 / 圆角 / 三级阴影）", () => {
+  it("① 2A tokens 齐备（生宣燕麦纸 / 宣纸卡面 / 竹炭墨 / 圆角 / 三级阴影）", () => {
     for (const token of [
-      "--paper: #f2eee5",
-      "--paper-0: #ffffff",
-      "--paper-1: #faf8f3",
-      "--ink-900: #111111",
-      "--ink-600: #6f6a60",
+      "--paper: #ece5d8",
+      "--paper-0: #faf6ee",
+      "--paper-1: #f5efe3",
+      "--ink-900: #2a241e",
+      "--ink-600: #5c5245",
       "--r-plate: 26px",
       "--r-card: 16px",
       "--sh1:",
@@ -81,9 +81,9 @@ describe("现代版 V2 圆润浮卡主题护栏", () => {
     expect(CSS).not.toContain('.theme-classic [data-surface="table"]::after');
   });
 
-  it("⑥ 主题胶囊选中态 = 墨黑实心白字（压过批量文字映射）", () => {
+  it("⑥ 主题胶囊选中态 = 暖红檀木实心白字（压过批量文字映射）", () => {
     const active = block(".theme-modern .theme-capsule-btn.is-active");
-    expect(active).toContain("var(--ink-900)");
+    expect(active).toContain("var(--accent)");
     expect(active).toContain("color: #fff");
   });
 
